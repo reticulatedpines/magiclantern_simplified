@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+# Read the map file
+my %syms;
+my $map_file = shift;
+open MAP, "<$map_file"
+	or die "$map_file: Unable to open: $!\n";
+while( <MAP> )
+{
+	my ($pc,$name) = /:([0-9A-Fa-f]+)\s*([^\s]+)/
+		or next;
+	$pc = hex $pc;
+	$syms{$pc} = $name;
+}
+
+# Now read the list file
+while(<>)
+{
+	my ($pc,$hex,$instr,$args) = /
+		^\s*
+		([0-9a-f]+):	# pc
+		\s+
+		([0-9a-f]+)	# hex
+		\s+
+		([^\s]+)	# instruction
+		\s*
+		(.*?)		# args
+		#(?:\s*;.*)?	# comment
+		\s*$
+	/msgx
+		or next;
+
+	$pc = hex $pc;
+	$hex = hex $hex;
+
+	# Look for add instructions with pc relative, since those do not 
+	# get translated correctly.
+	if( $instr =~ /^add/ and $args =~ /pc, #/ )
+	{
+		# Strip any comment off the args
+		$args =~ s/\s*;.*$//;
+		my @args = split /,\s*/, $args;
+		$args[2] =~ s/^#//;
+		my $result = $pc + $args[2] + 8;
+		$args .= sprintf " ; 0x%x", $result;
+	}
+
+	printf "\n%s()\n", $syms{$pc}
+		if exists $syms{$pc};
+	
+	# Check to see if a coment has an symbol?
+
+	printf "%08x:\t%08x\t%s\t%s\n", $pc, $hex, $instr,$args;
+}
+
+print "\n";
