@@ -30,10 +30,14 @@ rom.raw: ROM0.bin
 		$^ \
 	> $@
 
+#BASE=0xFF810000
+BASE=0
+
 ROM0.elf: ROM0.subs.S
 	$(CC) \
-		-Wl,-N,-Ttext,0 \
+		-Wl,-N,-Ttext,$(BASE) \
 		-nostdlib \
+		-DBASE=$(BASE) \
 		-o $@ \
 		$^
 
@@ -44,8 +48,14 @@ ROM0.bin: FORCE
 FORCE:
 
 
+#
+# Fetch the firmware archive from the Canon website
+# and unpack it to generate the pristine firmware image.
+#
+eos5d2107.exe:
+	wget http://web.canon.jp/imaging/eosd/firm-e/eos5dmk2/data/eos5d2107.exe
+
 5d200107.fir: eos5d2107.exe
 	unzip -o $<
 
-eos5d2107.exe:
-	wget http://web.canon.jp/imaging/eosd/firm-e/eos5dmk2/data/eos5d2107.exe
+ROM0.bin: 5d200107.fir
