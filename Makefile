@@ -5,12 +5,16 @@ CFLAGS=\
 	-O3 \
 	-Wall \
 	-W \
+	-fpic \
+	-static \
 	-fomit-frame-pointer \
 
 %.s: %.c
 	$(CC) $(CFLAGS) -S -o $@ $<
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
+%: %.c
+	$(CC) $(CFLAGS) -o $@ $<
 
 
 rom.list: ROM0.bin
@@ -22,12 +26,12 @@ rom.list: ROM0.bin
 	| ./fixup-rel $(MAP) - \
 	> $@
 
-rom.raw: ROM0.bin
+%.dis: %.bin
 	$(ARM_PATH)/arm-linux-objdump \
 		-b binary \
 		-m arm \
 		-D \
-		$^ \
+		$< \
 	> $@
 
 #BASE=0xFF810000
@@ -58,4 +62,4 @@ eos5d2107.exe:
 5d200107.fir: eos5d2107.exe
 	unzip -o $<
 
-ROM0.bin: 5d200107.fir
+#ROM0.bin: 5d200107.fir
