@@ -11,19 +11,18 @@ use File::Temp qw/ tempfile tempdir /;
 my $base	= 0;
 my $output	= "a.out";
 my $cc		= $ENV{CC} || "gcc";
-my $syms;
-my $image;
 
 GetOptions(
 	"b|base=o"		=> \$base,
-	"s|syms=s"		=> \$syms,
-	"i|image=s"		=> \$image,
 	"o|output=s"		=> \$output,
 	"c|cc=s"		=> \$cc,
 ) or die "$0: Unknown option\n";
 
-die "$0: Image must be specified!\n" unless $image;
-warn "$0: No syms?\n" unless $syms;
+my $image = shift
+	or die "$0: Image must be specified!\n";
+
+my $syms = shift
+	or warn "$0: No syms specified!\n";
 
 
 # Convert the base back into hex notation
