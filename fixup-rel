@@ -39,7 +39,10 @@ sub sym_lookup_approx
 		my $sym_pc = $syms[$i]->[0];
 		next unless $sym_pc > $pc;
 
-		return sprintf "%s+0x%x", $syms[$i-1]->[1], $pc - $syms[$i-1]->[0];
+		$sym_pc = $syms[$i-1]->[0];
+		my $sym = $syms[$i-1]->[1];
+		return $sym if $sym_pc == $pc;
+		return sprintf "%s+0x%x", $sym, $pc - $sym_pc;
 	}
 
 	return;
@@ -49,6 +52,8 @@ sub sym_lookup_approx
 # Now read the list file
 while(<>)
 {
+	chomp;
+
 	my ($pc,$hex,$instr,$args) = /
 		^\s*
 		([0-9a-f]+):	# pc
@@ -57,9 +62,9 @@ while(<>)
 		\s+
 		([^\s]+)	# instruction
 		\s*
-		(.*?)		# args
+		(.*)		# args
 		#(?:\s*;.*)?	# comment
-		\s*$
+		$
 	/msgx
 		or next;
 
@@ -75,6 +80,18 @@ while(<>)
 		my @args = split /,\s*/, $args;
 		$args[2] =~ s/^#//;
 		my $result = $pc + $args[2] + 8;
+		$args .= sprintf " ; 0x%x", $result;
+	}
+
+	# Look for sub instructions with pc relative, since those do not 
+	# get translated correctly.
+	if( $instr =~ /^sub/ and $args =~ /pc, #/ )
+	{
+		# Strip any comment off the args
+		$args =~ s/\s*;.*$//;
+		my @args = split /,\s*/, $args;
+		$args[2] =~ s/^#//;
+		my $result = $pc - $args[2] + 8;
 		$args .= sprintf " ; 0x%x", $result;
 	}
 
