@@ -4,6 +4,7 @@ use strict;
 
 # Read the map file
 my %syms;
+
 my $map_file = shift;
 open MAP, "<$map_file"
 	or die "$map_file: Unable to open: $!\n";
@@ -14,6 +15,36 @@ while( <MAP> )
 	$pc = hex $pc;
 	$syms{$pc} = $name;
 }
+
+# Generate a sorted list of symbols
+my @syms = map { [ $_ => $syms{$_} ] } sort { $a <=> $b } keys %syms;
+
+
+sub sym_lookup
+{
+	my $pc = shift;
+	return unless exists $syms{$pc};
+	return $syms{$pc};
+}
+
+
+sub sym_lookup_approx
+{
+	my $pc = shift;
+	return if $pc < 1024;
+
+	# Do a linear search for it
+	for( my $i = 1 ; $i < @syms ; $i++ )
+	{
+		my $sym_pc = $syms[$i]->[0];
+		next unless $sym_pc > $pc;
+
+		return sprintf "%s+0x%x", $syms[$i-1]->[1], $pc - $syms[$i-1]->[0];
+	}
+
+	return;
+}
+
 
 # Now read the list file
 while(<>)
@@ -47,12 +78,38 @@ while(<>)
 		$args .= sprintf " ; 0x%x", $result;
 	}
 
-	printf "\n%s()\n", $syms{$pc}
-		if exists $syms{$pc};
+	# Check to see if a branch instruction has a symbol
+	# and it does not make a register indirect call
+	if( $instr =~ /^b/ and $args =~ /^[0-9A-Fa-f]/ )
+	{
+		my $sym = sym_lookup_approx( hex $args );
+		$args .= " $sym"
+			if $sym;
+	}
+	
+
+	my $sym = sym_lookup( $pc );
+	printf "\n%s()\n", $sym
+		if $sym;
 	
 	# Check to see if a coment has an symbol?
+	my ($comment_addr) = $args =~ /;\s+([0-9A-Fa-fx]+)/;
+	if( $comment_addr )
+	{
+		$comment_addr = hex $comment_addr;
+		my $sym = sym_lookup_approx( $comment_addr );
+		$args .= " $sym"
+			if $sym;
+	}
 
-	printf "%08x:\t%08x\t%s\t%s\n", $pc, $hex, $instr,$args;
+	my $asc;
+	for my $i (0..3)
+	{
+		my $c = chr( ($hex >> (8*$i)) & 0xFF );
+		$asc .= ($c =~ /[[:print:]]/) ? $c : '.';
+	}
+
+	printf "%08x: %08x   %s\t%s\t%s\n", $pc, $hex, $asc, $instr,$args;
 }
 
 print "\n";
