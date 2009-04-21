@@ -34,16 +34,24 @@ rom.list: ROM0.bin
 		$< \
 	> $@
 
-#BASE=0xFF810000
-BASE=0
+BASE=0xFF800000
+#BASE=0
 
-ROM0.elf: ROM0.subs.S
+ROM0.elf: ROM0.subs.S stubs.S
 	$(CC) \
 		-Wl,-N,-Ttext,$(BASE) \
 		-nostdlib \
 		-DBASE=$(BASE) \
 		-o $@ \
-		$^
+		$<
+
+stubs.S: 5D21070a.map
+	perl > $@ < $< -ne ' \
+		($$addr,$$name) = /^\s0001:([0-9A-F]+)\s+([^\s]+)\s*$$/ \
+			or next; \
+		$$addr = (hex $$addr) + $(BASE); \
+		printf "NSTUB( 0x%08x, %s )\n", $$addr, $$name; \
+	'
 
 strings: ROM0.bin
 	strings -t x $^
