@@ -2,6 +2,7 @@ ARM_PATH=/usr/local/arm/oe/bin
 ARM_CC=$(ARM_PATH)/arm-linux-gcc
 MAP=5D21070a.map
 CFLAGS=\
+	-g \
 	-O3 \
 	-Wall \
 	-W \

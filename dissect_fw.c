@@ -1,14 +1,14 @@
 /*
- * Version 3.2 from chdk site.
+ * Based on version 3.2 from chdk site.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-
-
-typedef unsigned short uint16;
-typedef unsigned int uint32;
+#include <stdint.h>
+#include <stdarg.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 
 char CRYPT1[512] = { 0x07, 0x9E, 0xD5, 0x5E, 0x19, 0xB5, 0xE6, 0x2B, 0x17, 0xA5,
@@ -118,168 +118,168 @@ char CRYPT2[513] = { 0xB8, 0xE4, 0x0F, 0xD5, 0xAC, 0x6B, 0x38, 0x5F, 0x4F, 0x75,
                      0xFC, 0xF2, 0x1D };
 
 
+void
+getoffsets(
+	uintptr_t		base,
+	unsigned int *		o1,
+	unsigned int *		o2
+)
+{
+	unsigned int		a = base;
+	unsigned int		b = 0xFF803FE1;
 
-
-void getoffsets(unsigned int base, unsigned int *o1, unsigned int *o2) {
-	unsigned int a, b;
-	unsigned int highbits;
-	
 	// Get high 32 bits of multiplication
-	a = base;
-	b = 0xFF803FE1;
-	highbits = ((long long) a * b) >> 32;
+	unsigned int		highbits = ((long long) a * b) >> 32;
 	
-	*o1 = ((base<<23)>>23); // base&0x100?
+	*o1 = (base<<23) >> 23; // base&0x100?
 	*o2 = base - ((highbits>>9)+(highbits&0xFFFFFE00));
 }
 
 
 
 
-void decrypt_block( unsigned char * buf, int bytes , unsigned int base){
+void
+decrypt_block(
+	unsigned char *		buf,
+	size_t			bytes,
+	uintptr_t		base
+)
+{
+	unsigned int		offset1;
+	unsigned int		offset2;
+	unsigned int		i;
 
-	unsigned int offset1, offset2, i;
-	getoffsets( base, &offset1, &offset2);
+	getoffsets( base, &offset1, &offset2 );
 
-	for(i=0;i<bytes;i++){
-			buf[i] = buf[i] ^ CRYPT1[offset1] ^ CRYPT2[offset2] ^ 0x37;
-			if(++offset1 >= 512) offset1 = 0;
-			if(++offset2 >= 513) offset2 = 0;
+	for( i=0 ; i<bytes ; i++ )
+	{
+		buf[i] ^= CRYPT1[offset1] ^ CRYPT2[offset2] ^ 0x37;
+
+		if( ++offset1 >= 512 )
+			offset1 = 0;
+		if( ++offset2 >= 513 )
+			offset2 = 0;
 	}
-
 }
 
 
-
-int main(int argc, char *argv[])
+FILE *
+sfopen(
+	const char *		mode,
+	const char *		fmt,
+	...
+)
 {
-  FILE *in;
-  FILE *out;
-	FILE *rep;
-  uint32 i,  j;
+	char			filename[ 256 ];
+	va_list ap;
+	va_start( ap, fmt );
+	int len = vsnprintf( filename, sizeof(filename), fmt, ap );
+	va_end( ap );
 
-	char fl_nm[100];
-	uint32 crc, model_id, data_offset;
+	if( len == sizeof(filename) )
+		return 0;
 
+	fprintf( stderr, "Opening '%s'\n", filename );
+	FILE * fp = fopen( filename, mode );
+	if( !fp )
+		perror( filename );
 
-
-
-
-	
-	
-  
-  if (argc <2) {
-    printf("Usage: dissect_fw3 inputfile out_dir files_prefix\n");
-    return -1;
-  }
-
-  char *out_dir=".";
-  char *prefix=argv[1];
-
-  if(argc>2){
-	out_dir=argv[2];
-  }
-
-  if(argc>3){
-	prefix=argv[3];
-  }
-
-  mkdir(out_dir);
-
-  
-  if ((in = fopen(argv[1], "rb")) == NULL) {
-    printf("Cant't open file name %s\n", argv[1]);
-    return -1;
-  }
-
-	strcpy(fl_nm,argv[1]);
-	strcat(fl_nm,".csv");
-  if ((rep = fopen(fl_nm, "wb")) == NULL) {
-    printf("Cant't open file name %s\n", fl_nm);
-    return -1;
-  }
+	return fp;
+}
 
 
+int
+main(
+	int			argc,
+	char **			argv
+)
+{
+	uint32_t i;
 
-	fseek( in, 0, SEEK_END );
-	uint32 file_size = ftell( in );
-	fseek( in, 0, SEEK_SET );
-	unsigned char *data=malloc(file_size);
+	if( argc <= 1 )
+	{
+		fprintf( stderr,
+			"Usage: %s inputfile [out_dir [files_prefix]]\n",
+			argv[0]
+		);
 
-	uint32 *arr=(uint32*)data;
-
-
-	fprintf(rep,"head,,%s\n",argv[1]);
-	fprintf(rep,"file size,,0x%8.8X\n",file_size);
-
-
-	fread (data,file_size, 1, in);
-  fclose(in);
-
-
-	sprintf(fl_nm,"%s/%s.0.header.bin",out_dir,prefix);
-
-  if ((out = fopen(fl_nm, "wb")) == NULL) {
-    printf("Cant't open file name %s\n", fl_nm);
-    fclose(in);
-    return -1;
-  }
-
-	fwrite(data,0x120, 1, out);
-	fclose(out);
-
-
-	for(i=0;i<0x48;i++){
-		fprintf(rep,",0x%2.2X,0x%8.8X\n",i*4,arr[i]);
+		return EXIT_FAILURE;
 	}
 
-	data_offset=*(uint32*)&data[0x60];
+	const char * input_file = argv[1];
+	const char * out_dir = argc <= 2 ? "." : argv[2];
+	const char * prefix = argc <= 3 ? input_file : argv[3];
 
-	sprintf(fl_nm,"%s/%s.1.flasher.bin",out_dir,prefix);
+	mkdir( out_dir, 0777 );
 
-  if ((out = fopen(fl_nm, "wb")) == NULL) {
-    printf("Cant't open file name %s\n", fl_nm);
-    fclose(in);
-    return -1;
-  }
+	FILE * in = fopen( input_file, "rb" );
+	if( !in )
+	{
+		perror( input_file );
+		return EXIT_FAILURE;
+	}
 
+	FILE * rep = sfopen( "wb", "%s.csv", input_file );
+	if( !rep )
+		return EXIT_FAILURE;
 
+	fseek( in, 0, SEEK_END );
+	uint32_t file_size = ftell( in );
+	fseek( in, 0, SEEK_SET );
+	unsigned char *data = malloc(file_size);
+
+	uint32_t *arr = (uint32_t*) data;
+
+	fprintf( rep, "head,,%s\n", input_file );
+	fprintf( rep, "file size,,0x%8.8X\n", file_size );
+
+	fread( data,file_size, 1, in );
+	fclose(in);
+
+	FILE * out = sfopen( "wb", "%s/%s.0.header.bin", out_dir, prefix );
+	if( !out )
+		return EXIT_FAILURE;
+
+	fwrite( data, 0x120, 1, out );
+	fclose( out );
+
+	for( i=0 ; i<0x48 ; i++ )
+		fprintf( rep, ",0x%2.2X,0x%8.8X\n", i*4, arr[i] );
+
+	uint32_t data_offset = *(uint32_t*) &data[ 0x60 ];
+
+	out = sfopen( "wb", "%s/%s.1.flasher.bin", out_dir, prefix );
+	if( !out )
+		return EXIT_FAILURE;
 
 	decrypt_block( data+0x120, data_offset-0x120 , arr[0x2f]);
 
-	fwrite(data+0x120,data_offset-0x120,1, out);
-	fclose(out);
+	fwrite( data+0x120, data_offset-0x120, 1, out );
+	fclose( out );
 
-	sprintf(fl_nm,"%s/%s.2.data_head.bin",out_dir,prefix);
+	out = sfopen( "wb", "%s/%s.2.data_head.bin", out_dir, prefix );
+	if( !out )
+		return EXIT_FAILURE;
 
-  if ((out = fopen(fl_nm, "wb")) == NULL) {
-    printf("Cant't open file name %s\n", fl_nm);
-    fclose(in);
-    return -1;
-  }
+	fwrite( data+data_offset, 0x18, 1, out );
+	fclose( out );
 
-	fwrite(data+data_offset,0x18,1, out);
-	fclose(out);
+	fprintf( rep, "data head\n" );
 
 
-	fprintf(rep,"data head\n");
+	out = sfopen( "wb", "%s/%s.3.data_body.bin", out_dir, prefix );
+	if( !out )
+		return EXIT_FAILURE;
 
-
-	sprintf(fl_nm,"%s/%s.3.data_body.bin",out_dir,prefix);
-
-  if ((out = fopen(fl_nm, "wb")) == NULL) {
-    printf("Cant't open file name %s\n", fl_nm);
-    fclose(in);
-    return -1;
-  }
-
-	
-		
 //	decrypt_block( data + data_offset + 0x18, file_size - data_offset - 0x18 , arr[0x2f]);
-	fwrite(data + data_offset + 0x18, file_size - data_offset - 0x18, 1, out);
+	fwrite(
+		data + data_offset + 0x18,
+		file_size - data_offset - 0x18,
+		1,
+		out
+	);
+
 	fclose(out);
 
-
-
-  return 0;
+	return 0;
 }
