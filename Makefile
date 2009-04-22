@@ -41,7 +41,14 @@ BASE=0xFF800000
 ROM0.elf: ROM0.bin 5D21070a.map
 	./remake-elf \
 		--base $(BASE) \
-		--cc $(CC) \
+		--cc $(ARM_CC) \
+		-o $@ \
+		$^
+
+flasher.elf: 5d200107.1.flasher.bin /dev/null
+	./remake-elf \
+		--cc $(ARM_CC) \
+		--base 0x800120 \
 		-o $@ \
 		$^
 
