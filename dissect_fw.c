@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
   fclose(in);
 
 
-	sprintf(fl_nm,"%s/%s_0_header.bin",out_dir,prefix);
+	sprintf(fl_nm,"%s/%s.0.header.bin",out_dir,prefix);
 
   if ((out = fopen(fl_nm, "wb")) == NULL) {
     printf("Cant't open file name %s\n", fl_nm);
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
 
 	data_offset=*(uint32*)&data[0x60];
 
-	sprintf(fl_nm,"%s/%s_1_flasher.bin",out_dir,prefix);
+	sprintf(fl_nm,"%s/%s.1.flasher.bin",out_dir,prefix);
 
   if ((out = fopen(fl_nm, "wb")) == NULL) {
     printf("Cant't open file name %s\n", fl_nm);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
 	fwrite(data+0x120,data_offset-0x120,1, out);
 	fclose(out);
 
-	sprintf(fl_nm,"%s/%s_2_data_head.bin",out_dir,prefix);
+	sprintf(fl_nm,"%s/%s.2.data_head.bin",out_dir,prefix);
 
   if ((out = fopen(fl_nm, "wb")) == NULL) {
     printf("Cant't open file name %s\n", fl_nm);
@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 	fprintf(rep,"data head\n");
 
 
-	sprintf(fl_nm,"%s/%s_3_data_body.bin",out_dir,prefix);
+	sprintf(fl_nm,"%s/%s.3.data_body.bin",out_dir,prefix);
 
   if ((out = fopen(fl_nm, "wb")) == NULL) {
     printf("Cant't open file name %s\n", fl_nm);

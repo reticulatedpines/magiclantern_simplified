@@ -1,6 +1,6 @@
 ARM_PATH=/usr/local/arm/oe/bin
+ARM_CC=$(ARM_PATH)/arm-linux-gcc
 MAP=5D21070a.map
-CC=$(ARM_PATH)/arm-linux-gcc
 CFLAGS=\
 	-O3 \
 	-Wall \
@@ -59,6 +59,14 @@ eos5d2107.exe:
 	wget http://web.canon.jp/imaging/eosd/firm-e/eos5dmk2/data/eos5d2107.exe
 
 5d200107.fir: eos5d2107.exe
-	unzip -o $<
+	-unzip -o $< $@
+	touch $@
+
+%.1.flasher.bin: %.fir dissect_fw
+	./dissect_fw $< . $(basename $<)
 
 #ROM0.bin: 5d200107.fir
+
+
+# Firmware manipulation tools
+dissect_fw: dissect_fw.c
