@@ -3,6 +3,9 @@
 # Re-generate an ELF file at the specified offset
 # with the symbols provided from the IDA Pro dump.
 #
+# (c) 2009 Trammell Hudson <hudson@osresearch.net>
+# Based on stubs_2_elf.S by chr
+#
 use warnings;
 use strict;
 use Getopt::Long;
@@ -34,23 +37,24 @@ open SYMS, "<", $syms
 my $dir = tempdir( CLEANUP => 1 );
 my ($fh,$asm_file) = tempfile( DIR => $dir, SUFFIX => ".S" );
 
+sub _ { local $_ = shift; s/^\| //msg; return $_ }
 
 #
 # Output the preamble of the temporary .S file
 #
-print $fh <<"";
-/*
- * Generated file from $image.
- * Do not edit!
- */
-.text
-.org 0
-.align 2
-.globl _start
-here = .
-#define NSTUB(addr,name) name = here + addr - $base
-_start:
-.text
+print $fh _(<<"");
+| /*
+| * Generated file from $image.
+| * Do not edit!
+| */
+| .text
+| .org 0
+| .align 2
+| .globl _start
+| here = .
+| #define NSTUB(addr,name) name = here + addr - $base
+| _start:
+| .text
 
 
 #
@@ -71,10 +75,10 @@ while( <SYMS> )
 #
 # Include the ROM dump into the ELF file
 #
-print $fh <<"";
-blob:
-.incbin "$image"
-end:
+print $fh _(<<"");
+| blob:
+| .incbin "$image"
+| end:
 
 close SYMS;
 close $fh;
