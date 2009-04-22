@@ -11,6 +11,18 @@
 #include <sys/types.h>
 
 
+struct fw_header_t
+{
+	uint8_t		pad0[ 0x10 ];		// offset 0x00
+	char		version[ 4 ];		// offset 0x10
+	uint8_t		pad1[ 0x4C ];		// offset 0x14
+	uint32_t	data_offset;		// offset 0x60
+	uint8_t		pad2[ 0x58 ];		// offset 0x64
+	uint32_t	data_len;		// offset 0xBC
+	uint8_t		pad3[ 0x60 ];		// offset 0xC0
+} __attribute__((packed));
+
+
 char CRYPT1[512] = { 0x07, 0x9E, 0xD5, 0x5E, 0x19, 0xB5, 0xE6, 0x2B, 0x17, 0xA5,
                      0xC1, 0xA2, 0xBD, 0x59, 0x38, 0x68, 0xEC, 0xFE, 0x2D, 0x8C,
                      0x14, 0x99, 0xE6, 0xB9, 0x54, 0xAD, 0x85, 0x84, 0x40, 0x48,
@@ -228,33 +240,39 @@ main(
 	fseek( in, 0, SEEK_SET );
 	unsigned char *data = malloc(file_size);
 
-	uint32_t *arr = (uint32_t*) data;
 
 	fprintf( rep, "head,,%s\n", input_file );
 	fprintf( rep, "file size,,0x%8.8X\n", file_size );
 
-	fread( data,file_size, 1, in );
+	fread( data, file_size, 1, in );
 	fclose(in);
+
+	struct fw_header_t * const hdr = (void*) data;
+	const uint32_t data_offset = hdr->data_offset;
+	const uint32_t data_len = hdr->data_len;
+	const size_t hdr_size = sizeof(*hdr);
+	printf( "Firmware version: '%*s'\n", sizeof(hdr->version), hdr->version );
+	printf( "Body length/offset: 0x%x + 0x%x\n", data_len, data_offset );
 
 	FILE * out = sfopen( "wb", "%s/%s.0.header.bin", out_dir, prefix );
 	if( !out )
 		return EXIT_FAILURE;
-
-	fwrite( data, 0x120, 1, out );
+	fwrite( hdr, hdr_size, 1, out );
 	fclose( out );
 
-	for( i=0 ; i<0x48 ; i++ )
+	for( i=0 ; i<hdr_size/4 ; i++ )
+	{
+		uint32_t *arr = (uint32_t*) hdr;
 		fprintf( rep, ",0x%2.2X,0x%8.8X\n", i*4, arr[i] );
-
-	uint32_t data_offset = *(uint32_t*) &data[ 0x60 ];
+	}
 
 	out = sfopen( "wb", "%s/%s.1.flasher.bin", out_dir, prefix );
 	if( !out )
 		return EXIT_FAILURE;
 
-	decrypt_block( data+0x120, data_offset-0x120 , arr[0x2f]);
+	decrypt_block( data+hdr_size, data_offset-hdr_size, data_len );
 
-	fwrite( data+0x120, data_offset-0x120, 1, out );
+	fwrite( data+hdr_size, data_offset-hdr_size, 1, out );
 	fclose( out );
 
 	out = sfopen( "wb", "%s/%s.2.data_head.bin", out_dir, prefix );
