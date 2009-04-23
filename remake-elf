@@ -14,11 +14,13 @@ use File::Temp qw/ tempfile tempdir /;
 my $base	= 0;
 my $output	= "a.out";
 my $cc		= $ENV{CC} || "gcc";
+my $relative	= 0;
 
 GetOptions(
 	"b|base=o"		=> \$base,
 	"o|output=s"		=> \$output,
 	"c|cc=s"		=> \$cc,
+	"r|relative+"		=> \$relative,
 ) or die "$0: Unknown option\n";
 
 my $image = shift
@@ -67,9 +69,10 @@ unless( $syms )
 	#
 	while( <SYMS> )
 	{
-		my ($addr,$name) = /^\s0001:([0-9A-F]+)\s+([^\s]+)\s*$/
+		my ($addr,$name) = /^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)\s*$/
                         	or next;
-		$addr = hex($addr) + hex($base);
+		$addr = hex($addr);
+		$addr += hex($base) if $relative;
 
 		printf $fh "NSTUB( 0x%08x, %s )\n", $addr, $name;
 	}
