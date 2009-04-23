@@ -42,10 +42,11 @@ ROM0.elf: ROM0.bin 5D21070a.map
 	./remake-elf \
 		--base $(BASE) \
 		--cc $(ARM_CC) \
+		--relative \
 		-o $@ \
 		$^
 
-flasher.elf: 5d200107.1.flasher.bin /dev/null
+flasher.elf: 5d200107.1.flasher.bin flasher.map
 	./remake-elf \
 		--cc $(ARM_CC) \
 		--base 0x800120 \

@@ -1,0 +1,14 @@
+0001:800794 panic
+0001:800cc8 Debug
+0001:8060b8 shutdown
+0001:82df2c open
+0001:82dfe0 creat
+0001:82e4c8 write
+0001:82e088 close
+0001:83C634 Assert0
+0001:838F6C Assert1
+0001:857824 RegisterClient
+0001:8B07FC assert
+0001:8B0868 __assert
+0001:8B0FE8 __putc
+0001:8B0FB8 puts
