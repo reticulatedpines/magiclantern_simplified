@@ -1,6 +1,6 @@
 ARM_PATH=/usr/local/arm/oe/bin
 CC=$(ARM_PATH)/arm-linux-gcc
-LD=$(ARM_PATH)/arm-linux-ld
+LD=$(ARM_PATH)/arm-linux-gcc
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 
@@ -8,13 +8,16 @@ OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 
 
 CFLAGS=\
-	-O3 \
+	-Os \
 	-Wall \
 	-W \
-	-fpic \
-	-static \
 	-nostdlib \
 	-fomit-frame-pointer \
+	-fno-strict-aliasing
+	-march=armv5te \
+	-mthumb \
+	-mthumb-interwork \
+	
 
 %.s: %.c
 	$(CC) $(CFLAGS) -S -o $@ $<
@@ -23,12 +26,18 @@ CFLAGS=\
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $<
 %.o: %.S
-	$(CC) $(ASFLAGS) -c -o $@ $<
+	$(CC) $(ASFLAGS) -mthumb-interwork -c -o $@ $<
 %.bin: %
 	$(OBJCOPY) -O binary $< $@
 
 dumper: dumper_entry.o dumper.o
-	$(LD) -o $@ $^
+	$(LD) \
+		-o $@ \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-e _start \
+		$^
 
 
 
@@ -79,6 +88,13 @@ flasher.elf: 5d200107.1.flasher.bin flasher.map
 	./remake-elf \
 		--cc $(CC) \
 		--base 0x800120 \
+		-o $@ \
+		$^
+
+dumper.elf: 5d200107_dump.fir flasher.map
+	./remake-elf \
+		--cc $(CC) \
+		--base 0x800000 \
 		-o $@ \
 		$^
 

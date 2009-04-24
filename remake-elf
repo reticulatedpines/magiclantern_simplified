@@ -13,7 +13,7 @@ use File::Temp qw/ tempfile tempdir /;
 
 my $base	= 0;
 my $output	= "a.out";
-my $cc		= $ENV{CC} || "gcc";
+my $cc		= $ENV{CC} || "arm-elf-gcc";
 my $relative	= 0;
 
 GetOptions(

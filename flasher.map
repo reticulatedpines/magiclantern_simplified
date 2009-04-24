@@ -1,6 +1,6 @@
 0001:800794 panic
 0001:8001e4 _dryos_start
-0001:805ab8 _user_start
+0001:805ab8 update_manager
 0001:800cc8 Debug
 0001:8060b8 shutdown
 0001:82df2c open
