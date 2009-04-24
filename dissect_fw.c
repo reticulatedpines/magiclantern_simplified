@@ -268,8 +268,17 @@ main(
 	const uint32_t data_offset = hdr->data_offset;
 	const uint32_t data_len = hdr->data_len;
 	const size_t hdr_size = sizeof(*hdr);
-	printf( "Firmware version: '%s'\n", hdr->version );
-	printf( "Body length/offset: 0x%x + 0x%x\n", data_len, data_offset );
+
+	printf( "Firmware version: '%s' model %08x\n",
+		hdr->version,
+		hdr->model_id
+	);
+
+	printf( "Body length/offset: 0x%x + 0x%x\n",
+		data_len,
+		data_offset
+	);
+
 	printf( "CRC32: %08x\n", hdr->crc );
 
 	FILE * out = sfopen( "wb", "%s/%s.0.header.bin", out_dir, prefix );
