@@ -1,6 +1,10 @@
 ARM_PATH=/usr/local/arm/oe/bin
-ARM_CC=$(ARM_PATH)/arm-linux-gcc
-MAP=5D21070a.map
+CC=$(ARM_PATH)/arm-linux-gcc
+LD=$(ARM_PATH)/arm-linux-ld
+
+OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
+
+
 CFLAGS=\
 	-g \
 	-O3 \
@@ -8,6 +12,7 @@ CFLAGS=\
 	-W \
 	-fpic \
 	-static \
+	-nostdlib \
 	-fomit-frame-pointer \
 
 %.s: %.c
@@ -16,16 +21,15 @@ CFLAGS=\
 	$(CC) $(CFLAGS) -c -o $@ $<
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $<
+%.o: %.S
+	$(CC) $(ASFLAGS) -c -o $@ $<
+%.bin: %
+	$(OBJCOPY) -O binary $< $@
+
+dumper: dumper_entry.o dumper.o
+	$(LD) -o $@ $^
 
 
-rom.list: ROM0.bin
-	$(ARM_PATH)/arm-linux-objdump \
-		-b binary \
-		-m arm \
-		-D \
-		$^ \
-	| ./fixup-rel $(MAP) - \
-	> $@
 
 %.dis: %.bin
 	$(ARM_PATH)/arm-linux-objdump \
@@ -46,12 +50,6 @@ ROM0.elf: ROM0.bin 5D21070a.map
 		-o $@ \
 		$^
 
-flasher.elf: 5d200107.1.flasher.bin flasher.map
-	./remake-elf \
-		--cc $(ARM_CC) \
-		--base 0x800120 \
-		-o $@ \
-		$^
 
 strings: ROM0.bin
 	strings -t x $^
@@ -71,8 +69,29 @@ eos5d2107.exe:
 	-unzip -o $< $@
 	touch $@
 
+# Extract the flasher binary file from the firmware image
+# and generate an ELF from it for analysis.
 %.1.flasher.bin: %.fir dissect_fw
 	./dissect_fw $< . $(basename $<)
+
+flasher.elf: 5d200107.1.flasher.bin flasher.map
+	./remake-elf \
+		--cc $(ARM_CC) \
+		--base 0x800120 \
+		-o $@ \
+		$^
+
+#
+# Generate a new firmware image suitable for dumping the ROM images
+#
+5d200107_dump.fir: 5d200107.1.flasher.bin dummy_data_head.bin
+	cat > $@ \
+		5d200107.0.header.bin \
+		5d200107.1.flasher.bin \
+		dummy_data_head.bin \
+
+dummy_data_head.bin:
+	perl -e 'print chr(0) x 24' > $@
 
 #ROM0.bin: 5d200107.fir
 
