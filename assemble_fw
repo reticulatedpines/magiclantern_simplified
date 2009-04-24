@@ -6,7 +6,6 @@
 #
 use warnings;
 use strict;
-use Digest::CRC 'crc32';
 use Getopt::Long;
 use File::Slurp;
 
@@ -45,11 +44,35 @@ my $image = $header . $flasher . (chr(0) x $pad_bytes);
 # Replace the user code in the image
 substr( $image, $offset, length($user) ) = $user;
 
+# Set the offset or type from 0x20 to 0x10?  Why?
+substr( $image, 0x28, 1 ) = chr(0x10);
+
 # Zero the CRC and recalc it
+my $old_crc = unpack( "V", substr( $image, 0x20, 4 ) );
 substr( $image, 0x20, 4 ) = chr(0) x 4;
-my $crc = crc32( $image );
-substr( $image, 0x20, 4 ) = pack( "N", $crc );
-printf "$output_file: New CRC: %08x\n", $crc;
+
+my $crc = checksum( $image );
+substr( $image, 0x20, 4 ) = pack( "V", $crc );
+printf "$output_file: New CRC: %08x OLD %08x\n", $crc, $old_crc;
 
 # Write out the file
 write_file( $output_file, { binmode => ':raw' }, $image );
+
+
+#
+# This is the Worst. Checksum algorithm. Ever.
+#
+# It has no security or ability to detect byte order
+# errors.  It is literally the sum of the bytes!
+#
+sub checksum
+{
+	my $image = shift;
+	my $sum = 0;
+	for( my $i=0 ; $i<length $image ; $i ++ )
+	{
+		$sum += ord( substr( $image, $i, 1 ) );
+	}
+
+	return ~$sum;
+}
