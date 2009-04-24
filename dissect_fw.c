@@ -18,11 +18,19 @@
 
 struct fw_header_t
 {
-	uint8_t		pad0[ 0x10 ];		// offset 0x00
-	char		version[ 4 ];		// offset 0x10
-	uint8_t		pad1[ 0x0C ];		// offset 0x14
+	uint32_t	model_id;		// offset 0x00
+	uint8_t		pad0[ 0x0C ];		// offset 0x04
+	char		version[ 0x10 ];	// offset 0x10
 	uint32_t	crc;			// offset 0x20
-	uint8_t		pad2[ 0x3C ];		// offset 0x24
+	uint32_t	flasher_offset;		// offset 0x24, points to 0xB0
+	uint32_t	file_header_size;	// offset 0x28, must be 0x120
+	uint32_t	some_size;		// offset 0x2C
+	uint32_t	_data_offset;		// offset 0x30
+	uint32_t	unknown1;		// offset 0x34
+	uint32_t	file_size;		// offset 0x38
+	uint32_t	unknown2;		// offset 0x3C
+	uint32_t	sha1_hash;		// offset 0x40
+	uint32_t	pad2[ 7 ];		// offset 0x44-0x5C
 	uint32_t	data_offset;		// offset 0x60
 	uint8_t		pad3[ 0x58 ];		// offset 0x64
 	uint32_t	data_len;		// offset 0xBC
@@ -260,7 +268,7 @@ main(
 	const uint32_t data_offset = hdr->data_offset;
 	const uint32_t data_len = hdr->data_len;
 	const size_t hdr_size = sizeof(*hdr);
-	printf( "Firmware version: '%*s'\n", sizeof(hdr->version), hdr->version );
+	printf( "Firmware version: '%s'\n", hdr->version );
 	printf( "Body length/offset: 0x%x + 0x%x\n", data_len, data_offset );
 	printf( "CRC32: %08x\n", hdr->crc );
 
