@@ -46,7 +46,7 @@ BASE=0xFF800000
 ROM0.elf: ROM0.bin 5D21070a.map
 	./remake-elf \
 		--base $(BASE) \
-		--cc $(ARM_CC) \
+		--cc $(CC) \
 		--relative \
 		-o $@ \
 		$^
@@ -77,7 +77,7 @@ eos5d2107.exe:
 
 flasher.elf: 5d200107.1.flasher.bin flasher.map
 	./remake-elf \
-		--cc $(ARM_CC) \
+		--cc $(CC) \
 		--base 0x800120 \
 		-o $@ \
 		$^
@@ -89,7 +89,7 @@ flasher.elf: 5d200107.1.flasher.bin flasher.map
 	cat > $@ \
 		5d200107.0.header.bin \
 		5d200107.1.flasher.bin \
-		dummy_data_head.bin \
+		dummy_data_head.bin
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@
