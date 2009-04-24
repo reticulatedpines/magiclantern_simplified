@@ -95,6 +95,16 @@ dummy_data_head.bin:
 
 #ROM0.bin: 5d200107.fir
 
+# Use the dump_toolkit files
+5d2_dump.fir:
+	-rm $@
+	cat \
+		5d200107.fir.0.header.bin \
+		5d200107.fir.1.flasher.bin \
+		dump_toolkit/repack/dummy_data_head.bin \
+	> $@
+	./patch-bin $@ < dump_toolkit/diffs/5d2_dump.diff
+
 
 # Firmware manipulation tools
 dissect_fw: dissect_fw.c
