@@ -1,0 +1,14 @@
+syntax: glob
+*.bin
+*.elf
+*.o
+*.a
+*.fir
+.*
+.*.swp
+a.out
+*.exe
+*.rar
+*.list
+*.raw
+*.dis
