@@ -7,17 +7,23 @@ HOST_CFLAGS=-g -O3 -W -Wall
 OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 
 
-CFLAGS=\
-	-Os \
-	-Wall \
-	-W \
+FLAGS=\
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing
 	-march=armv5te \
 	-mthumb \
 	-mthumb-interwork \
-	
+
+CFLAGS=\
+	$(FLAGS) \
+	-Os \
+	-Wall \
+	-W \
+
+AFLAGS=\
+	$(FLAGS) \
+
 
 %.s: %.c
 	$(CC) $(CFLAGS) -S -o $@ $<
@@ -26,7 +32,7 @@ CFLAGS=\
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $<
 %.o: %.S
-	$(CC) $(ASFLAGS) -mthumb-interwork -c -o $@ $<
+	$(CC) $(AFLAGS) -c -o $@ $<
 %.bin: %
 	$(OBJCOPY) -O binary $< $@
 
