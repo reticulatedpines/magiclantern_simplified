@@ -131,3 +131,7 @@ dummy_data_head.bin:
 # Firmware manipulation tools
 dissect_fw: dissect_fw.c
 	$(HOST_CC) $(HOST_CFLAGS) -o $@ $<
+
+
+clean:
+	-rm -f *.o *.a *.bin

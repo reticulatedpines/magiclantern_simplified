@@ -106,8 +106,6 @@ int main( void )
 			while(1);
 	}
 #endif
-	uint32_t error = 0;
-
 	void *f = open(fname, O_CREAT|O_WRONLY, 0644);
 	if( INVALID_HANDLE == f )
 	{
