@@ -31,3 +31,14 @@
 0001:838c80 CreateTaskClass
 0001:251c GlobalStatus_maybe
 0001:839bd0 SetGlobalStatus_maybe
+0001:8707c0 itoa_hex
+0001:870864 vsnprintf_maybe
+0001:800c64 printf
+0001:800b80 signal_div_zero
+0001:843fcc strcpy
+0001:843f90 strcat
+0001:8440d8 strlen
+0001:86874c strtol_maybe
+0001:802eb4 IRQrestore
+0001:802ea0 IRQdisable
+0001:802ec8 IRQenable
