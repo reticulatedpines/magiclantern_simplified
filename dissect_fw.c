@@ -10,17 +10,26 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define SIZE_CHECK( struct_name, size ) \
+	static char _size_check_##struct_name[ \
+		sizeof(struct struct_name) == size ? 0 : -1 \
+	] __attribute__((unused))
+
 
 struct fw_header_t
 {
 	uint8_t		pad0[ 0x10 ];		// offset 0x00
 	char		version[ 4 ];		// offset 0x10
-	uint8_t		pad1[ 0x4C ];		// offset 0x14
+	uint8_t		pad1[ 0x0C ];		// offset 0x14
+	uint32_t	crc;			// offset 0x20
+	uint8_t		pad2[ 0x3C ];		// offset 0x24
 	uint32_t	data_offset;		// offset 0x60
-	uint8_t		pad2[ 0x58 ];		// offset 0x64
+	uint8_t		pad3[ 0x58 ];		// offset 0x64
 	uint32_t	data_len;		// offset 0xBC
-	uint8_t		pad3[ 0x60 ];		// offset 0xC0
+	uint8_t		pad4[ 0x60 ];		// offset 0xC0
 } __attribute__((packed));
+
+SIZE_CHECK( fw_header_t, 0x120 );
 
 
 char CRYPT1[512] = { 0x07, 0x9E, 0xD5, 0x5E, 0x19, 0xB5, 0xE6, 0x2B, 0x17, 0xA5,
@@ -253,6 +262,7 @@ main(
 	const size_t hdr_size = sizeof(*hdr);
 	printf( "Firmware version: '%*s'\n", sizeof(hdr->version), hdr->version );
 	printf( "Body length/offset: 0x%x + 0x%x\n", data_len, data_offset );
+	printf( "CRC32: %08x\n", hdr->crc );
 
 	FILE * out = sfopen( "wb", "%s/%s.0.header.bin", out_dir, prefix );
 	if( !out )

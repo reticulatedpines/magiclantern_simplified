@@ -1,12 +1,13 @@
 ARM_PATH=/usr/local/arm/oe/bin
 CC=$(ARM_PATH)/arm-linux-gcc
 LD=$(ARM_PATH)/arm-linux-ld
+HOST_CC=gcc
+HOST_CFLAGS=-g -O3 -W -Wall
 
 OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 
 
 CFLAGS=\
-	-g \
 	-O3 \
 	-Wall \
 	-W \
@@ -98,3 +99,4 @@ dummy_data_head.bin:
 
 # Firmware manipulation tools
 dissect_fw: dissect_fw.c
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ $<
