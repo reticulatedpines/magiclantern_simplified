@@ -1,0 +1,55 @@
+#!/usr/bin/perl
+# Assemble a hacked firmware image for the 5D Mark 2 from
+# the dumped images and the replacement user code
+# 
+# (c) Trammell Hudson
+#
+use warnings;
+use strict;
+use Digest::CRC 'crc32';
+use Getopt::Long;
+use File::Slurp;
+
+my $user_file;
+my $header_file		= "5d200107.0.header.bin";
+my $flasher_file	= "5d200107.1.flasher.bin";
+my $output_file		= "5d200107_dump.fir";
+my $offset		= 0x5ab8;
+my $pad_bytes		= 24;
+
+GetOptions(
+	"header=s"		=> \$header_file,
+	"o|output=s"		=> \$output_file,
+	"flasher=s"		=> \$flasher_file,
+	"user=s"		=> \$user_file,
+	"offset=o"		=> \$offset,
+	"pad=o"			=> \$pad_bytes,
+) or die "$0: Unknown option\n";
+
+my $header = read_file( $header_file, binmode => ':raw' )
+	or die "$0: Unable to open $header_file: $!\n";
+
+my $flasher = read_file( $flasher_file, binmode => ':raw' )
+	or die "$0: Unable to open $flasher_file: $!\n";
+
+my $user = '';
+if( $user_file )
+{
+	$user = read_file( $user_file, binmode=> ':raw' )
+		or die "$0: Unable to open $user_file: $!\n";
+}
+
+# Generate the image by concatenating everything
+my $image = $header . $flasher . (chr(0) x $pad_bytes);
+
+# Replace the user code in the image
+substr( $image, $offset, length($user) ) = $user;
+
+# Zero the CRC and recalc it
+substr( $image, 0x20, 4 ) = chr(0) x 4;
+my $crc = crc32( $image );
+substr( $image, 0x20, 4 ) = pack( "N", $crc );
+printf "$output_file: New CRC: %08x\n", $crc;
+
+# Write out the file
+write_file( $output_file, { binmode => ':raw' }, $image );

@@ -85,11 +85,10 @@ flasher.elf: 5d200107.1.flasher.bin flasher.map
 #
 # Generate a new firmware image suitable for dumping the ROM images
 #
-5d200107_dump.fir: 5d200107.1.flasher.bin dummy_data_head.bin
-	cat > $@ \
-		5d200107.0.header.bin \
-		5d200107.1.flasher.bin \
-		dummy_data_head.bin
+5d200107_dump.fir: dumper.bin 5d200107.1.flasher.bin dummy_data_head.bin
+	./assemble_fw \
+		--output $@ \
+		--user $< \
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@
