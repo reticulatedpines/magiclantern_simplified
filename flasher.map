@@ -132,3 +132,16 @@
 0001:835cfc shell_dumpentiresep
 0001:835548 shell_register3
 0001:835518 shell_enablefirmware
+0001:835524 shell_disablefirmware
+0001:835500 shell_enablebootdisk
+0001:83550c shell_disablebootdisk
+0001:835530 shell_enablemainfirm
+0001:83553c shell_disablemainfirm
+0001:83544c boot_device_enable
+0001:83e634 shell_register4
+0001:83fb74 shell_register5
+0001:801e90 dry_shell
+0001:83faa4 newtask_shell
+0001:8695f0 logstat
+0001:841b88 CPSR_c_restore_maybe
+0001:8244b4 ListView_DrawFrame_DrawFrameWithSystemColor

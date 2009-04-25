@@ -36,7 +36,7 @@ AFLAGS=\
 %.bin: %
 	$(OBJCOPY) -O binary $< $@
 
-dumper: dumper_entry.o dumper.o
+dumper: dumper_entry.o dumper.o flasher-stubs.o
 	$(LD) \
 		-o $@ \
 		-nostdlib \
@@ -45,6 +45,13 @@ dumper: dumper_entry.o dumper.o
 		-e _start \
 		$^
 
+%-stubs.S: %.map
+	perl -ne > $@ < $< '\
+		BEGIN { print "#define SYM(a,n) n=a; .global n;\n" } \
+		s/[\r\n]//g; \
+		s/^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)$$/SYM(0x\1,\2)\n/ \
+			and print; \
+	'
 
 
 %.dis: %.bin
