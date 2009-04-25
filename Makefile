@@ -8,6 +8,8 @@ OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 
 
 FLAGS=\
+	-Wp,-MMD,.$@.d \
+	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing
@@ -36,7 +38,7 @@ AFLAGS=\
 %.bin: %
 	$(OBJCOPY) -O binary $< $@
 
-dumper: dumper_entry.o dumper.o flasher-stubs.o
+dumper: dumper_entry.o dumper.o
 	$(LD) \
 		-o $@ \
 		-nostdlib \
@@ -142,3 +144,5 @@ dissect_fw: dissect_fw.c
 
 clean:
 	-rm -f *.o *.a *.bin
+
+-include .*.o.d

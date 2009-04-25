@@ -8,7 +8,7 @@
 #define ROM1_ADDRESS	0xF0000000
 #define ROM1_SIZE	0x800000
 
-#define O_WRONLY        1
+#define O_WRONLY        0x001
 #define O_CREAT         0x200
 
 #pragma long_calls
@@ -58,54 +58,9 @@ int main( void )
 		shutdown();
 	write( logfile, &model_id, sizeof(model_id) );
 
+	// Change the name to .bin
 	fname[8] = 'b'; fname[9] = 'i'; fname[10] = 'n'; fname[11] = '\0';
-#if 0
-		case 0x80000190:	// 40D
-			// 40D updater 1.1.1 params
-			// 0x0080721C tUpdMgr
-			open	= (ft_open)	0x00989A3C;
-			creat	= (ft_creat)	0x00989A4C;
-			write	= (ft_write)	0x0098953C;
-			close	= (ft_close)	0x009896A8;
-			shdn	= (ft_shutdown)	0x00807950;
-			// ROM params
-			rom_start	= (void *)ROM0_ADDRESS;
-			rom_size	= ROM0_SIZE;
-			rom1_size	= 0;
-			fname[6] = 'F';
-			break;
-		case 0x80000261:	// 50D
-			// 50D updater 1.0.3 params
-			// 0x00805A84 tUpdMgr
-			open	= (ft_open)	0x0082DEC8;
-			creat	= (ft_creat)	0x0082DF7C;
-			write	= (ft_write)	0x0082E464;
-			close	= (ft_close)	0x0082E024;
-			shdn	= (ft_shutdown)	0x00806084;
-			// ROM params
-			rom_start	= (void *)ROM0_ADDRESS;
-			rom_size	= ROM0_SIZE;
-			rom1_start	= (void *)ROM1_ADDRESS;
-			rom1_size	= ROM1_SIZE;
-			break;
-		case 0x80000218:	// 5D2
-			// 5D2 updater 1.0.7 params
-			// 0x00805AB8 tUpdMgr
-			open	= (ft_open)	0x0082DF2C;
-			creat	= (ft_creat)	0x0082DFE0;
-			write	= (ft_write)	0x0082E4C8;
-			close	= (ft_close)	0x0082E088;
-			shdn	= (ft_shutdown)	0x008060B8;
-			// ROM params
-			rom_start	= (void *)ROM0_ADDRESS;
-			rom_size	= ROM0_SIZE;
-			rom1_start	= (void *)ROM1_ADDRESS;
-			rom1_size	= ROM1_SIZE;
-			break;
-		default:			// Unsupported platform, hang
-			while(1);
-	}
-#endif
+
 	void *f = open(fname, O_CREAT|O_WRONLY, 0644);
 	if( INVALID_HANDLE == f )
 	{
@@ -127,6 +82,7 @@ int main( void )
 		shutdown();
 	}
 
+	// Change the name from ROM0 to ROM1
 	fname[6] = '1';
 	f = open(fname, O_CREAT|O_WRONLY, 0644);
 	if( INVALID_HANDLE == f )
