@@ -5,6 +5,18 @@
 
    Address         Publics by Value
 
+ 0001:000e2414       lvcaeStart
+ 0001:000e2454       lvcaeCalcAe
+ 0001:000e2494       lvcaeCalcWb
+ 0001:001F4EBC       lvae_register_handlers
+ 0001:000e2380       lvcaeActivate
+ 0001:000e21f4       lvcaeGetAllWbGain
+ 0001:000e2224       lvcaeInit
+ 0001:000e219c       lvcaeGetWbIntegFrame_sync
+ 0001:001f5510       lvae_unregister_handlers
+ 0001:000676f4       UnregisterEventProcedure
+ 0001:000e20d0       call_lvaestate_byname_maybe
+ 0001:000d3f68       SetWbIntegRegisterForWb
  0001:00010000	     _entry
  0001:000100C4       _dryos_start_addr
  0001:0001000c       _entry_absolute

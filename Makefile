@@ -41,6 +41,7 @@ AFLAGS=\
 dumper: dumper_entry.o dumper.o
 	$(LD) \
 		-o $@ \
+		--entry 0x805ab8 \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
@@ -64,9 +65,9 @@ dumper: dumper_entry.o dumper.o
 		$< \
 	> $@
 
-#BASE=0xFF800000
+BASE=0xFF800000
 #BASE=0
-BASE=0xFF000000
+#BASE=0xFF000000
 
 ROM0.elf: ROM0.bin 5D21070a.map
 	./remake-elf \
