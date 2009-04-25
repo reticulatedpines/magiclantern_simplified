@@ -50,7 +50,7 @@ print $fh _(<<"");
 | .align 2
 | .globl _start
 | here = .
-| #define NSTUB(addr,name) name = here + addr - $base
+| #define NSTUB(addr,name) name = addr; .global name
 | _start:
 | .text
 

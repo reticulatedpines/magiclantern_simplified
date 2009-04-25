@@ -5,6 +5,9 @@
 
    Address         Publics by Value
 
+ 0001:00010000	     _entry
+ 0001:000100C4       _dryos_start_addr
+ 0001:0001000c       _entry_absolute
  0001:00010444       memShow
  0001:00010480       memMap
  0001:000104E0       sysConfig
