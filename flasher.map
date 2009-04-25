@@ -145,3 +145,7 @@
 0001:8695f0 logstat
 0001:841b88 CPSR_c_restore_maybe
 0001:8244b4 ListView_DrawFrame_DrawFrameWithSystemColor
+0001:825b6c whole_screen_backup
+0001:808024 abort_firmup1
+0001:834b2c abort_firmup2
+0001:82b550 reboot_icu
