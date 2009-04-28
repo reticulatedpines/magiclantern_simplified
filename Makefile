@@ -41,7 +41,15 @@ AFLAGS=\
 dumper: dumper_entry.o dumper.o
 	$(LD) \
 		-o $@ \
-		--entry 0x805ab8 \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-e _start \
+		$^
+
+reboot: reboot.o
+	$(LD) \
+		-o $@ \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
@@ -118,10 +126,16 @@ dumper.elf: 5d200107_dump.fir flasher.map
 #
 # Generate a new firmware image suitable for dumping the ROM images
 #
-5d200107_dump.fir: dumper.bin 5d200107.1.flasher.bin dummy_data_head.bin
+5d200107_dump.fir: dumper.bin 5d200107.1.flasher.bin
 	./assemble_fw \
 		--output $@ \
 		--user $< \
+
+5d2_reboot.fir: reboot.bin 5d200107.1.flasher.bin
+	./assemble_fw \
+		--output $@ \
+		--user $< \
+		--offset 0x120 \
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@
@@ -132,8 +146,8 @@ dummy_data_head.bin:
 5d2_dump.fir:
 	-rm $@
 	cat \
-		5d200107.fir.0.header.bin \
-		5d200107.fir.1.flasher.bin \
+		5d200107.0.header.bin \
+		5d200107.1.flasher.bin \
 		dump_toolkit/repack/dummy_data_head.bin \
 	> $@
 	./patch-bin $@ < dump_toolkit/diffs/5d2_dump.diff
