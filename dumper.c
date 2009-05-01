@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 #define ROM0_ADDRESS	0xF8000000
-#define ROM0_SIZE	0x800000
+#define ROM0_SIZE	0x7FFFF0
 #define ROM1_ADDRESS	0xF0000000
 #define ROM1_SIZE	0x800000
 
@@ -62,7 +62,7 @@ int main( void )
 	void * const	rom1_start	= (void *) ROM1_ADDRESS;
 	uint32_t	rom1_size	= ROM1_SIZE;
 	void * const	ram_start	= (void*) 0xFF800000;
-	uint32_t	ram_size	= ROM0_SIZE-8;
+	uint32_t	ram_size	= ROM0_SIZE;
 
 	char fname[12];
 
@@ -78,6 +78,18 @@ int main( void )
 	// Verify that we are on a 5D
 	if( model_id != 0x80000218 )
 		while(1);
+
+#if 0
+	// Go into supervisor mode
+	asm(
+                 "MRS     R0, CPSR\n"
+                 "BIC     R0, R0, #0x3F\n"
+                 "ORR     R0, R0, #0xD3\n"
+                 "MSR     CPSR, R0\n"
+		: : : "r0"
+	);
+#endif
+
 
 	void * logfile = open( fname, O_WRONLY | O_CREAT, 0666 );
 	if( logfile == INVALID_HANDLE )
@@ -130,6 +142,7 @@ int main( void )
 	close(f);
 
 
+#if 1
 	// Change the name to RAM0.bin
 	fname[4] = 'A';
 	fname[6] = '0';
@@ -149,25 +162,80 @@ int main( void )
 	LOG();
 	write( f, ram_start, ram_size);
 	close( f );
+#endif
 
 	LOG();
 	abort_firmup1();
 	LOG();
 	abort_firmup2();
 	LOG();
-	uint32_t value = 0;
-	reboot_icu( 0x80010003, &value, 4 );
+	uint32_t dummy = 0;
+	reboot_icu( 0x80010003, dummy, 4 );
 	LOG();
 
+
+
+	// Generate some info about the CPU
+	// cpu id code == 0x41059461
+	{
+	uint32_t value;
+	asm(
+                 "MRS     %0, CPSR\n"
+                 "BIC     %0, %0, #0x1F\n" // clear out mode bits
+                 "ORR     %0, %0, #0x13\n" // set supervisor mode
+                 "MSR     CPSR, %0\n"
+		"mrc p15, 0, %0, c0, c0, 0" : "=r"(value) );
+	write( logfile, &value, sizeof(value) );
+	}
+
+	// cache type == 0xf112112
+	{
+	uint32_t value;
+	asm( "mrc p15, 0, %0, c0, c0, 1" : "=r"(value) );
+	write( logfile, &value, sizeof(value) );
+	}
+
+	// mmu details == 0x5107d
+	{
+	uint32_t value;
+	asm( "mrc p15, 0, %0, c1, c0, 0" : "=r"(value) );
+	write( logfile, &value, sizeof(value) );
+	}
+
+	// page table base == 0x70
+	{
+	uint32_t value;
+	asm( "mrc p15, 0, %0, c2, c0, 0" : "=r"(value) );
+	write( logfile, &value, sizeof(value) );
+	}
 #if 0
-	// Try jumping into the ram image to restart DryOS
-	void (*entry)( void ) = (void*) (ram_start + 0x10000);
-	entry();
+	// mva == 0
+	{
+	uint32_t value;
+	asm( "mrc p15, 0, %0, c13, c0, 0" : "=r"(value) );
+	write( logfile, &value, sizeof(value) );
+	}
+#endif
+
+	//register uint32_t i;
+	//for( i=0 ; i<4096 ; i+= 4 )
+	{
+	uint32_t entry = *(uint32_t*) 0;
+	write( logfile, &entry, sizeof(entry) );
+	}
+#if 0
+	{
+	uint32_t entry = *(uint32_t*) 4;
+	write( logfile, &entry, sizeof(entry) );
+	}
+	{
+	uint32_t entry = *(uint32_t*) (0xff800000 >> 20);
+	write( logfile, &entry, sizeof(entry) );
+	}
 #endif
 
 	LOG();
 	close( logfile );
-
 
 	return 0;
 }
