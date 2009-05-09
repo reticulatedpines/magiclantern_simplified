@@ -130,6 +130,7 @@ dumper.elf: 5d200107_dump.fir flasher.map
 	./assemble_fw \
 		--output $@ \
 		--user $< \
+		--offset 0x5ab8 \
 
 5d2_reboot.fir: reboot.bin 5d200107.1.flasher.bin
 	./assemble_fw \
