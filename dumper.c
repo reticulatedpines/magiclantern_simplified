@@ -117,6 +117,7 @@ int main( void )
 	write( f, rom0_start, rom0_size);
 	close( f );
 
+#if 0
 	if( rom1_size == 0 )
 	{
 		LOG();
@@ -142,7 +143,6 @@ int main( void )
 	close(f);
 
 
-#if 1
 	// Change the name to RAM0.bin
 	fname[4] = 'A';
 	fname[6] = '0';
@@ -164,15 +164,6 @@ int main( void )
 	close( f );
 #endif
 
-	LOG();
-	abort_firmup1();
-	LOG();
-	abort_firmup2();
-	LOG();
-	uint32_t dummy = 0;
-	reboot_icu( 0x80010003, dummy, 4 );
-	LOG();
-
 
 
 	// Generate some info about the CPU
@@ -188,6 +179,33 @@ int main( void )
 	write( logfile, &value, sizeof(value) );
 	}
 
+#define write_mrc( cn, cm, arg ) \
+	do { \
+		uint32_t value; \
+		asm( "mrc p15, 0, %0, " #cn ", " #cm ", " #arg "\n" \
+			: "=r"(value) \
+		); \
+		write( logfile, &value, sizeof(value) ); \
+	} while(0);
+
+	LOG();
+	write_mrc( c1, c0, 0 ); // control register
+	write_mrc( c2, c0, 0 ); // data cache bits
+	write_mrc( c2, c0, 1 ); // inst cache bits
+	write_mrc( c3, c0, 0 ); // data bufferable bits
+	write_mrc( c3, c0, 1 ); // inst bufferable bits
+	write_mrc( c5, c0, 2 ); // extended data access
+	write_mrc( c5, c0, 3 ); // extended inst access
+	write_mrc( c6, c0, 0 ); // region 0
+	write_mrc( c6, c1, 0 ); // region 1
+	write_mrc( c6, c2, 0 ); // region 2
+	write_mrc( c6, c3, 0 ); // region 3
+	write_mrc( c6, c4, 0 ); // region 4
+	write_mrc( c6, c5, 0 ); // region 5
+	write_mrc( c6, c6, 0 ); // region 6
+	write_mrc( c6, c7, 0 ); // region 7
+
+#if 0
 	// cache type == 0xf112112
 	{
 	uint32_t value;
@@ -223,16 +241,24 @@ int main( void )
 	uint32_t entry = *(uint32_t*) 0;
 	write( logfile, &entry, sizeof(entry) );
 	}
-#if 0
+#if 1
+	register uint32_t i;
+	for( i=0 ; i<4*4096 ; i+= 4 )
 	{
-	uint32_t entry = *(uint32_t*) 4;
-	write( logfile, &entry, sizeof(entry) );
-	}
-	{
-	uint32_t entry = *(uint32_t*) (0xff800000 >> 20);
+	uint32_t entry = *(uint32_t*) i;
 	write( logfile, &entry, sizeof(entry) );
 	}
 #endif
+#endif
+
+	LOG();
+	abort_firmup1();
+	LOG();
+	abort_firmup2();
+	LOG();
+	uint32_t dummy = 0;
+	reboot_icu( 0x80010003, dummy, 4 );
+	LOG();
 
 	LOG();
 	close( logfile );
