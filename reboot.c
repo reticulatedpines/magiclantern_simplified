@@ -99,7 +99,7 @@ MEMBASEADDR=0x1900
 MEMISOSTART=0xACB74
 */
 #define ROMBASEADDR	0xFF810000
-#define RESTARTSTART	0x00049000
+#define RESTARTSTART	0x0004F000
 #define RELOC		0x00050000
 
 
@@ -136,13 +136,13 @@ copy_and_restart( void )
 
 	// Make a few patches so that the startup routine returns here
 	volatile uint32_t * _entry_ret = (uint32_t*)( 0xFF8100C0 - ROMBASEADDR + RELOC );
+	*_entry_ret = RET_INSTR;
 /*
 	if( *_entry_ret != 0xea000a74 )
 		while(1);
 */
 
-	//select_normal_vectors();
-	//flush_caches();
+	flush_caches();
 
 #if 0
 	void (*_entry)( void ) = (void*)( ROMBASEADDR );
@@ -151,6 +151,7 @@ copy_and_restart( void )
 #endif
 	_entry();
 
+	//asm( "nop\n nop\n" );
 	void (*entry2)(void) = (void*) 0xff812a98;
 	entry2();
 
@@ -166,11 +167,19 @@ copy_and_restart( void )
 }
 
 
+
 void
 __attribute__((noinline))
 _end_of_copy( void )
 {
+	// Pad out to the rest of the code
+	asm(
+		".text\n"
+		".fill 4096,1,0\n"
+	);
+
 }
+
 
 
 /**** Hacks ****/
@@ -200,6 +209,7 @@ void
 __attribute__((noreturn))
 cstart( void )
 {
+#if 1
 	// Poke the DMA space.  Why?  I don't know.
 	volatile uint32_t * dma_space = (void*) 0xC0000000;
 	dma_space[ 0 ] = 0xD9C5D9C5;
@@ -220,6 +230,7 @@ cstart( void )
 	dma[ 0xCC / 4 ] = -1;
 	dma[ 0xEC / 4 ] = -1;
 	dma[ 0xFC / 4 ] = -1;
+#endif
 
 	set_i_tcm( 0x40000006 );
 	set_control_reg( read_control_reg() | 0x10000 );
@@ -241,11 +252,18 @@ cstart( void )
 	set_i_rw_regions( 0x3FFF );
 	set_control_reg( read_control_reg() | 0xC000107D );
 
+	select_normal_vectors();
+
+#if 0
 	// Copy the copy-and-restart blob somewhere
 	void __attribute__((noreturn))(*new_copy)( void ) = (void*) RESTARTSTART;
 	blob_memcpy( new_copy, copy_and_restart, _end_of_copy );
 	flush_caches();
 	new_copy();
+#else
+	copy_and_restart();
+#endif
+
 
 #if 0
 	// Disable the bitmap drawing routine
