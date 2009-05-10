@@ -120,6 +120,8 @@ blob_memcpy(
 
 #define RET_INSTR 0xe12fff1e
 
+#define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOC ) )
+
 
 void
 __attribute__((noreturn))
@@ -135,8 +137,11 @@ copy_and_restart( void )
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
 	// Make a few patches so that the startup routine returns here
-	volatile uint32_t * _entry_ret = (uint32_t*)( 0xFF8100C0 - ROMBASEADDR + RELOC );
-	*_entry_ret = RET_INSTR;
+	INSTR( 0xFF8100C0 ) = RET_INSTR;
+
+	// Reserve memory after the BSS for our application
+	INSTR( 0xFF81093C ) = RELOC + firmware_len;
+
 /*
 	if( *_entry_ret != 0xea000a74 )
 		while(1);
