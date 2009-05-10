@@ -11,7 +11,7 @@ asm(
 "	ldr pc, [pc,#4]\n"	// 0x120
 ".ascii \"gaonisoy\"\n"		// 0x124, 128
 ".word 0x800130\n"		// 0x12C
-"	ldr sp, =0x40000ffc\n"	// 0x130
+"	ldr sp, =0x1900\n"	// 0x130
 "	mov fp, #0\n"
 "MRS     R0, CPSR\n"
 "BIC     R0, R0, #0x3F\n"	// Clear I,F,T
@@ -41,8 +41,8 @@ flush_caches( void )
 {
 	uint32_t reg = 0;
 	asm(
-		"mcr p15, 0, %0, c7, c5, 0\n"
-		"mcr p15, 0, %0, c7, c10, 1\n"
+		"mcr p15, 0, %0, c7, c5, 0\n" // entire I cache
+		"mcr p15, 0, %0, c7, c6, 1\n" // entire D cache
 		: : "r"(reg)
 	);
 }
@@ -96,27 +96,29 @@ set_i_tcm( uint32_t value )
 
 /* Values for the SX10:
 MEMBASEADDR=0x1900
-RESTARTSTART=0x50000
 MEMISOSTART=0xACB74
-ROMBASEADDR=0xFF810000
 */
+#define ROMBASEADDR	0xFF810000
+#define RESTARTSTART	0x00049000
+#define RELOC		0x00050000
 
 
+/* This is not general purpose; len must be > 0 and must be % 4 */
 static inline void
-_memcpy(
+blob_memcpy(
 	void *		dest_v,
 	const void *	src_v,
-	uint32_t	len
+	const void *	end
 )
 {
 	uint32_t *	dest = dest_v;
 	const uint32_t * src = src_v;
-	while( len >= 4 )
-	{
+
+	while( (void*) src < end )
 		*dest++ = *src++;
-		len -= 4;
-	}
 }
+
+#define RET_INSTR 0xe12fff1e
 
 
 void
@@ -125,20 +127,42 @@ copy_and_restart( void )
 {
 	// Copy the firmware to somewhere in memory
 	// bss ends at 0x47750, so we'll use 0x50000
-	uint32_t * const firmware_start	= (void*) 0xff810000;
-	const uint32_t firmware_len = 0x7E0000;
-	uint32_t * const new_image	= (void*) 0x00050000;
-
-	_memcpy( new_image, firmware_start, firmware_len );
+	const uint32_t * const firmware_start = (void*) ROMBASEADDR;
+	const uint32_t firmware_len = 0x10000;
+	uint32_t * const new_image	= (void*) RELOC;
 
 
-	// Add a spin loop somewhere early in setup
-	volatile uint32_t * startup = (uint32_t*) 0x00050894;
-	*startup = 0xeafffffe;
+	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
-	//void __attribute__((noreturn))(*restart_vector)( void ) = (void*) firmware_start;
-	void __attribute__((noreturn))(*restart_vector)( void ) = (void*) 0x5000c;
+	// Make a few patches so that the startup routine returns here
+	volatile uint32_t * _entry_ret = (uint32_t*)( 0xFF8100C0 - ROMBASEADDR + RELOC );
+/*
+	if( *_entry_ret != 0xea000a74 )
+		while(1);
+*/
+
+	//select_normal_vectors();
+	//flush_caches();
+
+#if 0
+	void (*_entry)( void ) = (void*)( ROMBASEADDR );
+#else
+	void (*_entry)( void ) = (void*)( RELOC + 0xC );
+#endif
+	_entry();
+
+	void (*entry2)(void) = (void*) 0xff812a98;
+	entry2();
+
+/*
+
+	//void (*restart_vector)( void ) = (void*) 0x5000c;
+	void (*restart_vector)( void ) = (void*) firmware_start;
 	restart_vector();
+*/
+
+	while(1)
+		;
 }
 
 
@@ -147,6 +171,29 @@ __attribute__((noinline))
 _end_of_copy( void )
 {
 }
+
+
+/**** Hacks ****/
+
+/*
+	// Disable the bitmap drawing routine
+	volatile uint32_t * draw_bitmap = (void*)( 0xffb08bbc - ROMBASEADDR + RESTARTSTART );
+	draw_bitmap[0] = 0xe3a00001;
+	draw_bitmap[1] = 0xe12fff1e;
+*/
+
+/*
+	// Add a spin loop somewhere early in setup
+	volatile uint32_t * startup = (uint32_t*) 0x00050894;
+	*startup = 0xeafffffe;
+*/
+
+/*
+	// Disable AGC by always returning the same level
+	const uint32_t audio_level = 40;
+	const uint32_t instr = 0xe3e02000 | audio_level;
+	*(volatile uint32_t*)( 0xFF972628 - ROMBASEADDR + RESTARTSTART ) = instr;
+*/
 
 
 void
@@ -195,8 +242,9 @@ cstart( void )
 	set_control_reg( read_control_reg() | 0xC000107D );
 
 	// Copy the copy-and-restart blob somewhere
-	void __attribute__((noreturn))(*new_copy)( void ) = (void*) 0x2000;
-	_memcpy( new_copy, copy_and_restart, _end_of_copy - copy_and_restart );
+	void __attribute__((noreturn))(*new_copy)( void ) = (void*) RESTARTSTART;
+	blob_memcpy( new_copy, copy_and_restart, _end_of_copy );
+	flush_caches();
 	new_copy();
 
 #if 0
@@ -215,9 +263,6 @@ cstart( void )
 			;
 #endif
 
-
-	select_normal_vectors();
-	flush_caches();
 
 #ifdef BLINK_LED
 	while(1)

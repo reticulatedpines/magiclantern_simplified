@@ -54,6 +54,7 @@ reboot: reboot.o
 		-mthumb-interwork \
 		-march=armv5te \
 		-e _start \
+		-Ttext=0x80000 \
 		$^
 
 %-stubs.S: %.map
