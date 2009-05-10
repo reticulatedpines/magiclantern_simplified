@@ -136,8 +136,8 @@ copy_and_restart( void )
 
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
-	// Make a few patches so that the startup routine returns here
-	INSTR( 0xFF8100C0 ) = RET_INSTR;
+	// Make a few patches so that the startup routine _entry() returns here
+	INSTR( 0xFF812AE8 ) = RET_INSTR;
 
 	// Reserve memory after the BSS for our application
 	INSTR( 0xFF81093C ) = RELOC + firmware_len;
@@ -150,14 +150,36 @@ copy_and_restart( void )
 	flush_caches();
 
 #if 0
+	// This will do a normal startup
 	void (*_entry)( void ) = (void*)( ROMBASEADDR );
 #else
+	// This will do a startup through our RAM copy
 	void (*_entry)( void ) = (void*)( RELOC + 0xC );
 #endif
 	_entry();
 
-	//asm( "nop\n nop\n" );
-	void (*entry2)(void) = (void*) 0xff812a98;
+	/*
+	 * We're back!
+	 * The RAM copy of the firmware startup has:
+	 * 1. Poked the DMA engine with what ever it does
+	 * 2. Copied the rw_data segment to 0x1900 through 0x20740
+	 * 3. Zeroed the BSS from 0x20740 through 0x47550
+	 * 4. Copied the interrupt handlers to 0x0
+	 * 5. Copied irq 4 to 0x480.
+	 * 6. Installed the stack pointers for CPSR mode D2 and D3
+	 * (we are still in D3, with a %sp of 0x1000)
+	 * 7. Returned to us.
+	 *
+	 * Now is our chance to fix any data segment things, or
+	 * install our own handlers.
+	 */
+	void (*entry2)(void) = (void*) 0xff810894;
+#if 0
+	// Enable this to spin rather than starting firmware.
+	// This allows confirmation that we have reached this part
+	// of our code, rather than the normal firmware.
+	while(1);
+#endif
 	entry2();
 
 /*
