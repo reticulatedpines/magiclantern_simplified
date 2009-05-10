@@ -11,19 +11,247 @@ asm(
 "	ldr pc, [pc,#4]\n"	// 0x120
 ".ascii \"gaonisoy\"\n"		// 0x124, 128
 ".word 0x800130\n"		// 0x12C
-"	mov sp, #0x1800\n"	// 0x130
+"	ldr sp, =0x40000ffc\n"	// 0x130
 "	mov fp, #0\n"
-"	b copy_and_restart\n"
+"MRS     R0, CPSR\n"
+"BIC     R0, R0, #0x3F\n"	// Clear I,F,T
+"ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
+"MSR     CPSR, R0\n"
+"	b cstart\n"
 );
 
 typedef unsigned long uint32_t;
+typedef unsigned short uint16_t;
 
+static inline void
+select_normal_vectors( void )
+{
+	uint32_t reg;
+	asm(
+		"mrc p15, 0, %0, c1, c0\n"
+		"bic %0, %0, #0x2000\n"
+		"mcr p15, 0, %0, c1, c0\n"
+		: "=r"(reg)
+	);
+}
+
+
+static inline void
+flush_caches( void )
+{
+	uint32_t reg = 0;
+	asm(
+		"mcr p15, 0, %0, c7, c5, 0\n"
+		"mcr p15, 0, %0, c7, c10, 1\n"
+		: : "r"(reg)
+	);
+}
+
+
+// This must be a macro
+#define setup_memory_region( region, value ) \
+	asm __volatile__ ( "mcr p15, 0, %0, c6, c" #region "\n" : : "r"(value) )
+
+#define set_d_cache_regions( value ) \
+	asm __volatile__ ( "mcr p15, 0, %0, c2, c0\n" : : "r"(value) )
+
+#define set_i_cache_regions( value ) \
+	asm __volatile__ ( "mcr p15, 0, %0, c2, c0, 1\n" : : "r"(value) )
+
+#define set_d_buffer_regions( value ) \
+	asm __volatile__ ( "mcr p15, 0, %0, c3, c0\n" : : "r"(value) )
+
+#define set_d_rw_regions( value ) \
+	asm __volatile__ ( "mcr p15, 0, %0, c5, c0, 0\n" : : "r"(value) )
+
+#define set_i_rw_regions( value ) \
+	asm __volatile__ ( "mcr p15, 0, %0, c5, c0, 1\n" : : "r"(value) )
+
+static inline void
+set_control_reg( uint32_t value )
+{
+	asm __volatile__ ( "mcr p15, 0, %0, c3, c0\n" : : "r"(value) );
+}
+
+static inline uint32_t
+read_control_reg( void )
+{
+	uint32_t value;
+	asm __volatile__ ( "mrc p15, 0, %0, c3, c0\n" : "=r"(value) );
+	return value;
+}
+
+
+static inline void
+set_d_tcm( uint32_t value )
+{
+	asm( "mcr p15, 0, %0, c9, c1, 0\n" : : "r"(value) );
+}
+
+static inline void
+set_i_tcm( uint32_t value )
+{
+	asm( "mcr p15, 0, %0, c9, c1, 1\n" : : "r"(value) );
+}
+
+/* Values for the SX10:
+MEMBASEADDR=0x1900
+RESTARTSTART=0x50000
+MEMISOSTART=0xACB74
+ROMBASEADDR=0xFF810000
+*/
+
+
+static inline void
+_memcpy(
+	void *		dest_v,
+	const void *	src_v,
+	uint32_t	len
+)
+{
+	uint32_t *	dest = dest_v;
+	const uint32_t * src = src_v;
+	while( len >= 4 )
+	{
+		*dest++ = *src++;
+		len -= 4;
+	}
+}
 
 
 void
 __attribute__((noreturn))
 copy_and_restart( void )
 {
+	// Copy the firmware to somewhere in memory
+	// bss ends at 0x47750, so we'll use 0x50000
+	uint32_t * const firmware_start	= (void*) 0xff810000;
+	const uint32_t firmware_len = 0x7E0000;
+	uint32_t * const new_image	= (void*) 0x00050000;
+
+	_memcpy( new_image, firmware_start, firmware_len );
+
+
+	// Add a spin loop somewhere early in setup
+	volatile uint32_t * startup = (uint32_t*) 0x00050894;
+	*startup = 0xeafffffe;
+
+	//void __attribute__((noreturn))(*restart_vector)( void ) = (void*) firmware_start;
+	void __attribute__((noreturn))(*restart_vector)( void ) = (void*) 0x5000c;
+	restart_vector();
+}
+
+
+void
+__attribute__((noinline))
+_end_of_copy( void )
+{
+}
+
+
+void
+__attribute__((noreturn))
+cstart( void )
+{
+	// Poke the DMA space.  Why?  I don't know.
+	volatile uint32_t * dma_space = (void*) 0xC0000000;
+	dma_space[ 0 ] = 0xD9C5D9C5;
+
+	volatile uint32_t * dma = (uint32_t*) 0xC0200000;
+	dma[ 0x10C / 4 ] = -1;
+	dma[ 0x0C / 4 ] = -1;
+	dma[ 0x1C / 4 ] = -1;
+	dma[ 0x2C / 4 ] = -1;
+	dma[ 0x3C / 4 ] = -1;
+	dma[ 0x4C / 4 ] = -1;
+	dma[ 0x5C / 4 ] = -1;
+	dma[ 0x6C / 4 ] = -1;
+	dma[ 0x7C / 4 ] = -1;
+	dma[ 0x8C / 4 ] = -1;
+	dma[ 0xAC / 4 ] = -1;
+	dma[ 0xBC / 4 ] = -1;
+	dma[ 0xCC / 4 ] = -1;
+	dma[ 0xEC / 4 ] = -1;
+	dma[ 0xFC / 4 ] = -1;
+
+	set_i_tcm( 0x40000006 );
+	set_control_reg( read_control_reg() | 0x10000 );
+
+	// Install the memory regions
+	setup_memory_region( 0, 0x0000003F );
+	setup_memory_region( 1, 0x0000003D );
+	setup_memory_region( 2, 0xE0000039 );
+	setup_memory_region( 3, 0xC0000039 );
+	setup_memory_region( 4, 0xFF80002D );
+	setup_memory_region( 5, 0x00000039 );
+	setup_memory_region( 6, 0xF780002D );
+	setup_memory_region( 7, 0x00000000 );
+
+	set_d_cache_regions( 0x70 );
+	set_i_cache_regions( 0x70 );
+	set_d_buffer_regions( 0x70 );
+	set_d_rw_regions( 0x3FFF );
+	set_i_rw_regions( 0x3FFF );
+	set_control_reg( read_control_reg() | 0xC000107D );
+
+	// Copy the copy-and-restart blob somewhere
+	void __attribute__((noreturn))(*new_copy)( void ) = (void*) 0x2000;
+	_memcpy( new_copy, copy_and_restart, _end_of_copy - copy_and_restart );
+	new_copy();
+
+#if 0
+	// Disable the bitmap drawing routine
+	volatile uint32_t * draw_bitmap = (void*) 0xffb08bbc;
+	draw_bitmap[0] = 0xe3a00001;
+	draw_bitmap[1] = 0xe12fff1e;
+
+	// Add a spin loop somewhere early in setup
+	volatile uint32_t * startup = (uint32_t*) 0xff810894;
+	//volatile uint32_t * startup = (uint32_t*) 0xf8010894;
+	*startup = 0xeafffffe;
+
+	if( *startup == 0xe52de004 ) // 0xeafffffe )
+		while(1)
+			;
+#endif
+
+
+	select_normal_vectors();
+	flush_caches();
+
+#ifdef BLINK_LED
+	while(1)
+	{
+		volatile uint16_t * led = (void*) 0xE0000000;
+		int i;
+
+		const uint32_t on_cmd = 0x180e0001;
+		const uint32_t off_cmd = 0x180e0000;
+
+		led[3] = (on_cmd >> 24) & 0xFF;
+		led[2] = (on_cmd >> 16) & 0xFF;
+		led[1] = (on_cmd >>  8) & 0xFF;
+		led[0] = (on_cmd >>  0) & 0xFF;
+
+		for( i=0 ; i<0x200000 ; i++ )
+			asm( "nop\n nop\n" );
+
+		led[3] = (off_cmd >> 24) & 0xFF;
+		led[2] = (off_cmd >> 16) & 0xFF;
+		led[1] = (off_cmd >>  8) & 0xFF;
+		led[0] = (off_cmd >>  0) & 0xFF;
+
+		for( i=0 ; i<0x200000 ; i++ )
+			asm( "nop\n nop\n" );
+	}
+#endif // BLINK_LED
+		
+
+#if 0
+	//void __attribute__((noreturn))(*restart_vector)( void ) = (void*) (new_image + 0xC/4);
+	void __attribute__((noreturn))(*restart_vector)( void ) = firmware_start;
+	restart_vector();
+
 #if 0
 	char * msg	= (void*) (0xFF800000 + 0x10794);
 	//char * msg	= (void*) (0x41f00000 + 0xf85e3);
@@ -41,22 +269,16 @@ copy_and_restart( void )
 	msg[9] = 'c';
 	msg[10] = 'o';
 	msg[11] = 'm';
-*/
 
 	// Disable AGC by always returning the same level
 	const uint32_t audio_level = 40;
 	const uint32_t instr = 0xe3e02000 | audio_level;
 	*(volatile uint32_t*) 0xFF972628 = instr;
 
+*/
+
+
 /*
-	// Disable the bitmap drawing routine
-	volatile uint32_t * draw_bitmap = (void*) 0xffb08bbc;
-	draw_bitmap[0] = 0xe3a00001;
-	draw_bitmap[1] = 0xe12fff1e;
-
-	// Spin in an early setup routine
-	// *(volatile uint32_t*) 0xff81000c = 0xea000006;
-
 	// Rewrite the DMA device parameters
 	uint32_t i;
 	volatile uint32_t * device = (void*) 0xC0200000;
@@ -66,14 +288,17 @@ copy_and_restart( void )
 		device[ i ] = ffffffff;
 */
 #endif
+	// Spin in an early setup routine
+	// *(volatile uint32_t*) 0xff81000c = 0xea000006;
+
+	// Disable the firmware update menu
+	// *(volatile uint32_t*) 0xffbe6624 = 0xe12fff1e;
+
 
 	void (* dst_void)(void)	= (void*) 0xFF810000;
+	//void (* dst_void)(void)	= (void*) 0xF8010000;
 	asm __volatile__(
                 
-                 "MRS     R0, CPSR\n"
-                 "BIC     R0, R0, #0x3F\n"
-                 "ORR     R0, R0, #0xD3\n"
-                 "MSR     CPSR, R0\n"
 /*
                  "LDR     R1, =0xC0200000\n"
                  "MVN     R0, #0\n"
@@ -157,6 +382,7 @@ copy_and_restart( void )
 		"BX      %0"
 		: : "r"(dst_void) : "r0"
 	);
+#endif
 #endif
 
 	// Not reached
