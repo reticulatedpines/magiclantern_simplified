@@ -190,12 +190,16 @@ int main( void )
 
 	LOG();
 	write_mrc( c1, c0, 0 ); // control register
+
 	write_mrc( c2, c0, 0 ); // data cache bits
 	write_mrc( c2, c0, 1 ); // inst cache bits
+
 	write_mrc( c3, c0, 0 ); // data bufferable bits
 	write_mrc( c3, c0, 1 ); // inst bufferable bits
+
 	write_mrc( c5, c0, 2 ); // extended data access
 	write_mrc( c5, c0, 3 ); // extended inst access
+
 	write_mrc( c6, c0, 0 ); // region 0
 	write_mrc( c6, c1, 0 ); // region 1
 	write_mrc( c6, c2, 0 ); // region 2
@@ -204,6 +208,12 @@ int main( void )
 	write_mrc( c6, c5, 0 ); // region 5
 	write_mrc( c6, c6, 0 ); // region 6
 	write_mrc( c6, c7, 0 ); // region 7
+
+	write_mrc( c9, c0, 0 ); // data lockdown
+	write_mrc( c9, c0, 1 ); // inst lockdown
+	write_mrc( c9, c1, 0 ); // data tcm
+	write_mrc( c9, c2, 1 ); // inst tcm
+
 
 #if 0
 	// cache type == 0xf112112
