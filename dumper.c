@@ -214,52 +214,11 @@ int main( void )
 	write_mrc( c9, c1, 0 ); // data tcm
 	write_mrc( c9, c2, 1 ); // inst tcm
 
-
-#if 0
-	// cache type == 0xf112112
-	{
-	uint32_t value;
-	asm( "mrc p15, 0, %0, c0, c0, 1" : "=r"(value) );
-	write( logfile, &value, sizeof(value) );
-	}
-
-	// mmu details == 0x5107d
-	{
-	uint32_t value;
-	asm( "mrc p15, 0, %0, c1, c0, 0" : "=r"(value) );
-	write( logfile, &value, sizeof(value) );
-	}
-
-	// page table base == 0x70
-	{
-	uint32_t value;
-	asm( "mrc p15, 0, %0, c2, c0, 0" : "=r"(value) );
-	write( logfile, &value, sizeof(value) );
-	}
-#if 0
-	// mva == 0
-	{
-	uint32_t value;
-	asm( "mrc p15, 0, %0, c13, c0, 0" : "=r"(value) );
-	write( logfile, &value, sizeof(value) );
-	}
-#endif
-
-	//register uint32_t i;
-	//for( i=0 ; i<4096 ; i+= 4 )
-	{
-	uint32_t entry = *(uint32_t*) 0;
-	write( logfile, &entry, sizeof(entry) );
-	}
-#if 1
-	register uint32_t i;
-	for( i=0 ; i<4*4096 ; i+= 4 )
-	{
-	uint32_t entry = *(uint32_t*) i;
-	write( logfile, &entry, sizeof(entry) );
-	}
-#endif
-#endif
+	// Add a spin loop somewhere early in setup
+	volatile uint32_t * startup = (uint32_t*) 0xff810894;
+	*startup = 0xeafffffe;
+	if( *startup == 0xeafffffe )
+		while(1);
 
 	LOG();
 	abort_firmup1();
