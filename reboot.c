@@ -202,6 +202,8 @@ task_create_hook2(
 	uint32_t * p
 )
 {
+	while(1)
+		;
 }
 
 void
@@ -291,9 +293,14 @@ cstart( void )
 	select_normal_vectors();
 
 	// Copy the copy-and-restart blob somewhere
-	blob_memcpy( RESTARTSTART, copy_and_restart, _end_of_copy );
+	blob_memcpy( (void*) RESTARTSTART, copy_and_restart, _end_of_copy );
 	flush_caches();
+#if 1
+	void __attribute__((noreturn))(*new_copy)(void) = (void*) RESTARTSTART;
+	new_copy();
+#else
 	copy_and_restart();
+#endif
 
 
 #if 0
