@@ -119,81 +119,90 @@ blob_memcpy(
 }
 
 #define RET_INSTR 0xe12fff1e
+#define FAR_CALL_INSTR 0xe51ff004
 
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOC ) )
+#define RELOCATED( addr ) ( ((uint32_t)addr) - ((uint32_t)copy_and_restart) + RESTARTSTART )
 
+/** These are called when new tasks are created */
+void task_create_hook( uint32_t * p );
+void task_create_hook2( uint32_t * p );
 
 void
-__attribute__((noreturn))
+__attribute__((noreturn,naked,noinline))
 copy_and_restart( void )
 {
 	// Copy the firmware to somewhere in memory
 	// bss ends at 0x47750, so we'll use 0x50000
 	const uint32_t * const firmware_start = (void*) ROMBASEADDR;
 	const uint32_t firmware_len = 0x10000;
-	uint32_t * const new_image	= (void*) RELOC;
-
+	uint32_t * const new_image = (void*) RELOC;
 
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
-	// Make a few patches so that the startup routine _entry() returns here
+	// Make a few patches so that the startup routines call
+	// our create_init_task() instead of theirs
 	INSTR( 0xFF812AE8 ) = RET_INSTR;
 
 	// Reserve memory after the BSS for our application
 	INSTR( 0xFF81093C ) = RELOC + firmware_len;
 
-/*
-	if( *_entry_ret != 0xea000a74 )
-		while(1);
-*/
-
 	flush_caches();
 
-#if 0
-	// This will do a normal startup
-	void (*_entry)( void ) = (void*)( ROMBASEADDR );
-#else
-	// This will do a startup through our RAM copy
+	// We enter after the signature, avoiding the
+	// relocation jump that is at the head of the data
 	void (*_entry)( void ) = (void*)( RELOC + 0xC );
-#endif
 	_entry();
 
 	/*
-	 * We're back!
-	 * The RAM copy of the firmware startup has:
-	 * 1. Poked the DMA engine with what ever it does
-	 * 2. Copied the rw_data segment to 0x1900 through 0x20740
-	 * 3. Zeroed the BSS from 0x20740 through 0x47550
-	 * 4. Copied the interrupt handlers to 0x0
-	 * 5. Copied irq 4 to 0x480.
-	 * 6. Installed the stack pointers for CPSR mode D2 and D3
-	 * (we are still in D3, with a %sp of 0x1000)
-	 * 7. Returned to us.
-	 *
-	 * Now is our chance to fix any data segment things, or
-	 * install our own handlers.
-	 */
-	void (*entry2)(void) = (void*) 0xff810894;
+	* We're back!
+	* The RAM copy of the firmware startup has:
+	* 1. Poked the DMA engine with what ever it does
+	* 2. Copied the rw_data segment to 0x1900 through 0x20740
+	* 3. Zeroed the BSS from 0x20740 through 0x47550
+	* 4. Copied the interrupt handlers to 0x0
+	* 5. Copied irq 4 to 0x480.
+	* 6. Installed the stack pointers for CPSR mode D2 and D3
+	* (we are still in D3, with a %sp of 0x1000)
+	* 7. Returned to us.
+	*
+	* Now is our chance to fix any data segment things, or
+	* install our own handlers.
+	*/
+
+	// Install our task creation hooks
+	*(uint32_t*) 0x1930 = RELOCATED( task_create_hook );
+	*(uint32_t*) 0x1934 = RELOCATED( task_create_hook2 );
+
 #if 0
 	// Enable this to spin rather than starting firmware.
 	// This allows confirmation that we have reached this part
 	// of our code, rather than the normal firmware.
 	while(1);
 #endif
+
+	void __attribute__((noreturn)) (*entry2)(void)
+		= (void*) 0xff810894;
 	entry2();
 
-/*
+}
 
-	//void (*restart_vector)( void ) = (void*) 0x5000c;
-	void (*restart_vector)( void ) = (void*) firmware_start;
-	restart_vector();
-*/
 
+void
+task_create_hook(
+	uint32_t * p
+)
+{
 	while(1)
 		;
 }
 
-
+void
+task_create_hook2(
+	uint32_t * p
+)
+{
+}
 
 void
 __attribute__((noinline))
@@ -236,7 +245,7 @@ void
 __attribute__((noreturn))
 cstart( void )
 {
-#if 1
+#if 0
 	// Poke the DMA space.  Why?  I don't know.
 	volatile uint32_t * dma_space = (void*) 0xC0000000;
 	dma_space[ 0 ] = 0xD9C5D9C5;
@@ -281,15 +290,10 @@ cstart( void )
 
 	select_normal_vectors();
 
-#if 0
 	// Copy the copy-and-restart blob somewhere
-	void __attribute__((noreturn))(*new_copy)( void ) = (void*) RESTARTSTART;
-	blob_memcpy( new_copy, copy_and_restart, _end_of_copy );
+	blob_memcpy( RESTARTSTART, copy_and_restart, _end_of_copy );
 	flush_caches();
-	new_copy();
-#else
 	copy_and_restart();
-#endif
 
 
 #if 0
