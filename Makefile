@@ -6,6 +6,13 @@ HOST_CFLAGS=-g -O3 -W -Wall
 
 OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 
+# 5D memory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+ROMBASEADDR		= 0xFF810000
+RESTARTSTART		= 0x0004FF00
+RELOCADDR		= 0x00050000
+
 
 FLAGS=\
 	-Wp,-MMD,.$@.d \
@@ -54,10 +61,6 @@ dumper: dumper_entry.o dumper.o
 reboot.o: reboot.c 5d-hack.bin
 5d-hack.bin: 5d-hack
 
-ROMBASEADDR		= 0xFF810000
-RESTARTSTART		= 0x0004F000
-RELOCADDR		= 0x00050000
-
 5d-hack: 5d-hack.o
 	$(LD) \
 		-o $@ \
@@ -76,7 +79,7 @@ reboot: reboot.o
 		-mthumb-interwork \
 		-march=armv5te \
 		-e _start \
-		-Ttext=0x80000 \
+		-Ttext=0x800000 \
 		$^
 
 %-stubs.S: %.map

@@ -26,12 +26,31 @@ flush_caches( void )
 {
 	uint32_t reg = 0;
 	asm(
+		"mov %0, #0\n"
 		"mcr p15, 0, %0, c7, c5, 0\n" // entire I cache
-		"mcr p15, 0, %0, c7, c6, 1\n" // entire D cache
+		"mov %0, #0\n"
+		"mcr p15, 0, %0, c7, c6, 0\n" // entire D cache
+		"mcr p15, 0, %0, c7, c10, 4\n" // drain write buffer
 		: : "r"(reg)
 	);
 }
 
+
+static inline void
+clean_d_cache( void )
+{
+	uint32_t segment = 0;
+	do {
+		uint32_t line = 0;
+		for( ; line != 0x400 ; line += 0x20 )
+		{
+			asm(
+				"mcr p15, 0, %0, c7, c14, 2"
+				: : "r"( line | segment )
+			);
+		}
+	} while( segment += 0x40000000 );
+}
 
 // This must be a macro
 #define setup_memory_region( region, value ) \
@@ -83,9 +102,9 @@ set_i_tcm( uint32_t value )
 /**
  * Some common instructions.
  */
-#define RET_INSTR 0xe12fff1e	// bx lr
-#define FAR_CALL_INSTR 0xe51ff004	// ldr pc, [pc,#-4]
-#define LOOP_INSTR 0xeafffffe	// 1: b 1b
+#define RET_INSTR	0xe12fff1e	// bx lr
+#define FAR_CALL_INSTR	0xe51ff004	// ldr pc, [pc,#-4]
+#define LOOP_INSTR	0xeafffffe	// 1: b 1b
 
 /** Simple boot loader memcpy.
  *
@@ -100,9 +119,11 @@ blob_memcpy(
 {
 	uint32_t *	dest = dest_v;
 	const uint32_t * src = src_v;
+	const uint32_t len = ((const uint32_t*) end) - src;
+	uint32_t i;
 
-	while( (void*) src < end )
-		*dest++ = *src++;
+	for( i=0 ; i<len ; i++ )
+		dest[i] = src[i];
 }
 
 #endif

@@ -14,7 +14,7 @@ void my_init_task( void );
 
 
 void
-__attribute__((noreturn,naked,noinline))
+__attribute__((noreturn,noinline,naked))
 copy_and_restart( void )
 {
 	// Copy the firmware to somewhere in memory
@@ -22,6 +22,10 @@ copy_and_restart( void )
 	const uint32_t * const firmware_start = (void*) ROMBASEADDR;
 	const uint32_t firmware_len = 0x10000;
 	uint32_t * const new_image = (void*) RELOCADDR;
+
+while(1);
+void __attribute__((noreturn))(*firmware_func)(void) = (void*) ROMBASEADDR;
+firmware_func();
 
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
@@ -36,11 +40,13 @@ copy_and_restart( void )
 	// Set our init task to run instead of the firmware one
 	//INSTR( 0xFF810948 ) = task_create_hook2;
 
+	clean_d_cache();
 	flush_caches();
 
 	// We enter after the signature, avoiding the
 	// relocation jump that is at the head of the data
 	void (*_entry)( void ) = (void*)( RELOCADDR + 0xC );
+	//void (*_entry)( void ) = (void*)( ROMBASEADDR );
 	_entry();
 
 	/*

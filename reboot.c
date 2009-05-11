@@ -12,12 +12,12 @@ asm(
 "	ldr pc, [pc,#4]\n"	// 0x120
 ".ascii \"gaonisoy\"\n"		// 0x124, 128
 ".word 0x800130\n"		// 0x12C
-"	ldr sp, =0x1900\n"	// 0x130
-"	mov fp, #0\n"
 "MRS     R0, CPSR\n"
 "BIC     R0, R0, #0x3F\n"	// Clear I,F,T
 "ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
 "MSR     CPSR, R0\n"
+"	ldr sp, =0x1900\n"	// 0x130
+"	mov fp, #0\n"
 "	b cstart\n"
 );
 
@@ -28,9 +28,11 @@ extern uint8_t blob_end;
 
 asm(
 	".text\n"
+	".align 12\n" // 2^12 == 4096 bytes
 	".globl blob_start\n"
 	"blob_start:\n"
-	".incbin \"5d-hack.bin\"\n"
+	".incbin \"5d-hack.bin\"\n" // 
+	".align 12\n"
 	"blob_end:\n"
 	".globl blob_end\n"
 );
@@ -87,6 +89,7 @@ cstart( void )
 	dma[ 0xFC / 4 ] = -1;
 #endif
 
+#if 0
 	set_i_tcm( 0x40000006 );
 	set_control_reg( read_control_reg() | 0x10000 );
 
@@ -108,16 +111,30 @@ cstart( void )
 	set_control_reg( read_control_reg() | 0xC000107D );
 
 	select_normal_vectors();
+#endif
 
 	// Copy the copy-and-restart blob somewhere
-	blob_memcpy( (void*) RESTARTSTART, &blob_start, &blob_end );
+	// there is a bug in that we are 0x120 bytes off from
+	// where we should be, so we must offset the blob start.
+	blob_memcpy(
+		(void*) RESTARTSTART,
+		&blob_start + 0x120,
+		&blob_end + 0x120
+	);
+	clean_d_cache();
 	flush_caches();
-#if 1
-	void __attribute__((noreturn))(*new_copy)(void) = (void*) RESTARTSTART;
-	new_copy();
-#else
-	copy_and_restart();
-#endif
+
+	// Jump into the newly relocated code
+	void __attribute__((noreturn))(*copy_and_restart)(void)
+		= (void*) RESTARTSTART;
+
+	void __attribute__((noreturn))(*firmware_start)(void)
+		= (void*) ROMBASEADDR;
+
+	if( 1 )
+		copy_and_restart();
+	else
+		firmware_start();
 
 	// Unreachable
 	while(1)
