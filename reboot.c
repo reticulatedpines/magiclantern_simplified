@@ -89,7 +89,7 @@ cstart( void )
 	dma[ 0xFC / 4 ] = -1;
 #endif
 
-#if 0
+#if 1
 	set_i_tcm( 0x40000006 );
 	set_control_reg( read_control_reg() | 0x10000 );
 

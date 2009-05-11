@@ -34,7 +34,7 @@ copy_and_restart( void )
 	INSTR( 0xFF81093C ) = RELOCADDR + firmware_len;
 
 	// Set our init task to run instead of the firmware one
-	//INSTR( 0xFF810948 ) = task_create_hook2;
+	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
 
 	clean_d_cache();
 	flush_caches();
@@ -101,7 +101,6 @@ task_create_hook2(
 
 
 void
-__attribute__((noreturn))
 my_init_task( void )
 {
 	while(1)

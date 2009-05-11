@@ -10,7 +10,7 @@ OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF810000
-RESTARTSTART		= 0x0004FF00
+RESTARTSTART		= 0x00048000
 RELOCADDR		= 0x00050000
 
 
