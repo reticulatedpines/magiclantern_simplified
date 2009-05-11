@@ -23,10 +23,6 @@ copy_and_restart( void )
 	const uint32_t firmware_len = 0x10000;
 	uint32_t * const new_image = (void*) RELOCADDR;
 
-while(1);
-void __attribute__((noreturn))(*firmware_func)(void) = (void*) ROMBASEADDR;
-firmware_func();
-
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
 	// Make a few patches so that the startup routines call
@@ -66,10 +62,10 @@ firmware_func();
 	*/
 
 	// Install our task creation hooks
-	//*(uint32_t*) 0x1930 = task_create_hook;
-	//*(uint32_t*) 0x1934 = task_create_hook2;
+	*(uint32_t*) 0x1930 = task_create_hook;
+	*(uint32_t*) 0x1934 = task_create_hook2;
 
-#if 1
+#if 0
 	// Enable this to spin rather than starting firmware.
 	// This allows confirmation that we have reached this part
 	// of our code, rather than the normal firmware.
@@ -99,8 +95,8 @@ task_create_hook2(
 	uint32_t * p
 )
 {
-	while(1)
-		;
+	//while(1)
+		//;
 }
 
 
