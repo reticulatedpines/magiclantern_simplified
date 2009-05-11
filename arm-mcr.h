@@ -106,6 +106,11 @@ set_i_tcm( uint32_t value )
 #define FAR_CALL_INSTR	0xe51ff004	// ldr pc, [pc,#-4]
 #define LOOP_INSTR	0xeafffffe	// 1: b 1b
 
+#define BL_INSTR(pc,dest) \
+	( 0xEB000000 \
+	| ((( ((uint32_t)dest) - ((uint32_t)pc) - 8 ) >> 2) & 0x00FFFFFF) \
+	)
+
 /** Simple boot loader memcpy.
  *
  * \note This is not general purpose; len must be > 0 and must be % 4

@@ -6,7 +6,8 @@
 /** These are called when new tasks are created */
 void task_create_hook( uint32_t * p );
 void task_create_hook2( uint32_t * p );
-void my_init_task( void );
+void my_init_task( uint32_t arg0, uint32_t arg1, uint32_t arg2 );
+void bzero( uint8_t * base, uint32_t size );
 
 
 /** Translate a firmware address into a relocated address */
@@ -36,6 +37,13 @@ copy_and_restart( void )
 	// Set our init task to run instead of the firmware one
 	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
 
+	// Fix the call to bzero32() to call our local one
+	INSTR( 0xFF8108A4 ) = BL_INSTR( &INSTR(0xFF8108A4), bzero );
+
+	// And set the BL create_init_task instruction to do a long branch
+	INSTR( 0xFF81092C ) = FAR_CALL_INSTR;
+	INSTR( 0xFF810930 ) = 0xFF8173A0;
+
 	clean_d_cache();
 	flush_caches();
 
@@ -62,8 +70,8 @@ copy_and_restart( void )
 	*/
 
 	// Install our task creation hooks
-	*(uint32_t*) 0x1930 = task_create_hook;
-	*(uint32_t*) 0x1934 = task_create_hook2;
+	//*(uint32_t*) 0x1930 = task_create_hook;
+	//*(uint32_t*) 0x1934 = task_create_hook2;
 
 #if 0
 	// Enable this to spin rather than starting firmware.
@@ -72,7 +80,11 @@ copy_and_restart( void )
 	while(1);
 #endif
 
-	void (*entry2)(void) = (void*) 0xff810894;
+	// This will jump into the RAM version of the firmware,
+	// but the last branch instruction at the end of this
+	// has been modified to jump into the ROM version
+	// instead.
+	void (*entry2)(void) = (void*) &INSTR( 0xff810894 );
 	entry2();
 
 	// Unreachable
@@ -86,8 +98,8 @@ task_create_hook(
 	uint32_t * p
 )
 {
-	while(1)
-		;
+	//while(1)
+		//;
 }
 
 void
@@ -101,9 +113,23 @@ task_create_hook2(
 
 
 void
-my_init_task( void )
+my_init_task( uint32_t arg0, uint32_t arg1, uint32_t arg2 )
 {
-	while(1)
-		;
+	// Call their init task
+	void (*init_task)(uint32_t,uint32_t,uint32_t) = (void*) 0xFF811DBC;
+	init_task(arg0,arg1,arg2);
+}
+
+
+void
+bzero(
+	uint8_t *	base,
+	uint32_t	size
+)
+{
+	uint32_t	i;
+
+	for( i=0 ; i<size ; i++ )
+		base[i] = 0;
 }
 
