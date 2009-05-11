@@ -2,6 +2,7 @@
  * This program is very simple: attempt to reboot into the normal
  * firmware RAM image after startup.
  */
+#include "arm-mcr.h"
 
 
 asm(
@@ -20,203 +21,19 @@ asm(
 "	b cstart\n"
 );
 
-typedef unsigned long uint32_t;
-typedef unsigned short uint16_t;
 
-static inline void
-select_normal_vectors( void )
-{
-	uint32_t reg;
-	asm(
-		"mrc p15, 0, %0, c1, c0\n"
-		"bic %0, %0, #0x2000\n"
-		"mcr p15, 0, %0, c1, c0\n"
-		: "=r"(reg)
-	);
-}
+/** Include the relocatable shim code */
+extern uint8_t blob_start;
+extern uint8_t blob_end;
 
-
-static inline void
-flush_caches( void )
-{
-	uint32_t reg = 0;
-	asm(
-		"mcr p15, 0, %0, c7, c5, 0\n" // entire I cache
-		"mcr p15, 0, %0, c7, c6, 1\n" // entire D cache
-		: : "r"(reg)
-	);
-}
-
-
-// This must be a macro
-#define setup_memory_region( region, value ) \
-	asm __volatile__ ( "mcr p15, 0, %0, c6, c" #region "\n" : : "r"(value) )
-
-#define set_d_cache_regions( value ) \
-	asm __volatile__ ( "mcr p15, 0, %0, c2, c0\n" : : "r"(value) )
-
-#define set_i_cache_regions( value ) \
-	asm __volatile__ ( "mcr p15, 0, %0, c2, c0, 1\n" : : "r"(value) )
-
-#define set_d_buffer_regions( value ) \
-	asm __volatile__ ( "mcr p15, 0, %0, c3, c0\n" : : "r"(value) )
-
-#define set_d_rw_regions( value ) \
-	asm __volatile__ ( "mcr p15, 0, %0, c5, c0, 0\n" : : "r"(value) )
-
-#define set_i_rw_regions( value ) \
-	asm __volatile__ ( "mcr p15, 0, %0, c5, c0, 1\n" : : "r"(value) )
-
-static inline void
-set_control_reg( uint32_t value )
-{
-	asm __volatile__ ( "mcr p15, 0, %0, c3, c0\n" : : "r"(value) );
-}
-
-static inline uint32_t
-read_control_reg( void )
-{
-	uint32_t value;
-	asm __volatile__ ( "mrc p15, 0, %0, c3, c0\n" : "=r"(value) );
-	return value;
-}
-
-
-static inline void
-set_d_tcm( uint32_t value )
-{
-	asm( "mcr p15, 0, %0, c9, c1, 0\n" : : "r"(value) );
-}
-
-static inline void
-set_i_tcm( uint32_t value )
-{
-	asm( "mcr p15, 0, %0, c9, c1, 1\n" : : "r"(value) );
-}
-
-/* Values for the SX10:
-MEMBASEADDR=0x1900
-MEMISOSTART=0xACB74
-*/
-#define ROMBASEADDR	0xFF810000
-#define RESTARTSTART	0x0004F000
-#define RELOC		0x00050000
-
-
-/* This is not general purpose; len must be > 0 and must be % 4 */
-static inline void
-blob_memcpy(
-	void *		dest_v,
-	const void *	src_v,
-	const void *	end
-)
-{
-	uint32_t *	dest = dest_v;
-	const uint32_t * src = src_v;
-
-	while( (void*) src < end )
-		*dest++ = *src++;
-}
-
-#define RET_INSTR 0xe12fff1e
-#define FAR_CALL_INSTR 0xe51ff004
-
-#define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOC ) )
-#define RELOCATED( addr ) ( ((uint32_t)addr) - ((uint32_t)copy_and_restart) + RESTARTSTART )
-
-/** These are called when new tasks are created */
-void task_create_hook( uint32_t * p );
-void task_create_hook2( uint32_t * p );
-
-void
-__attribute__((noreturn,naked,noinline))
-copy_and_restart( void )
-{
-	// Copy the firmware to somewhere in memory
-	// bss ends at 0x47750, so we'll use 0x50000
-	const uint32_t * const firmware_start = (void*) ROMBASEADDR;
-	const uint32_t firmware_len = 0x10000;
-	uint32_t * const new_image = (void*) RELOC;
-
-	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
-
-	// Make a few patches so that the startup routines call
-	// our create_init_task() instead of theirs
-	INSTR( 0xFF812AE8 ) = RET_INSTR;
-
-	// Reserve memory after the BSS for our application
-	INSTR( 0xFF81093C ) = RELOC + firmware_len;
-
-	flush_caches();
-
-	// We enter after the signature, avoiding the
-	// relocation jump that is at the head of the data
-	void (*_entry)( void ) = (void*)( RELOC + 0xC );
-	_entry();
-
-	/*
-	* We're back!
-	* The RAM copy of the firmware startup has:
-	* 1. Poked the DMA engine with what ever it does
-	* 2. Copied the rw_data segment to 0x1900 through 0x20740
-	* 3. Zeroed the BSS from 0x20740 through 0x47550
-	* 4. Copied the interrupt handlers to 0x0
-	* 5. Copied irq 4 to 0x480.
-	* 6. Installed the stack pointers for CPSR mode D2 and D3
-	* (we are still in D3, with a %sp of 0x1000)
-	* 7. Returned to us.
-	*
-	* Now is our chance to fix any data segment things, or
-	* install our own handlers.
-	*/
-
-	// Install our task creation hooks
-	*(uint32_t*) 0x1930 = RELOCATED( task_create_hook );
-	*(uint32_t*) 0x1934 = RELOCATED( task_create_hook2 );
-
-#if 0
-	// Enable this to spin rather than starting firmware.
-	// This allows confirmation that we have reached this part
-	// of our code, rather than the normal firmware.
-	while(1);
-#endif
-
-	void __attribute__((noreturn)) (*entry2)(void)
-		= (void*) 0xff810894;
-	entry2();
-
-}
-
-
-void
-task_create_hook(
-	uint32_t * p
-)
-{
-	while(1)
-		;
-}
-
-void
-task_create_hook2(
-	uint32_t * p
-)
-{
-	while(1)
-		;
-}
-
-void
-__attribute__((noinline))
-_end_of_copy( void )
-{
-	// Pad out to the rest of the code
-	asm(
-		".text\n"
-		".fill 4096,1,0\n"
-	);
-
-}
+asm(
+	".text\n"
+	".globl blob_start\n"
+	"blob_start:\n"
+	".incbin \"5d-hack.bin\"\n"
+	"blob_end:\n"
+	".globl blob_end\n"
+);
 
 
 
@@ -293,7 +110,7 @@ cstart( void )
 	select_normal_vectors();
 
 	// Copy the copy-and-restart blob somewhere
-	blob_memcpy( (void*) RESTARTSTART, copy_and_restart, _end_of_copy );
+	blob_memcpy( (void*) RESTARTSTART, &blob_start, &blob_end );
 	flush_caches();
 #if 1
 	void __attribute__((noreturn))(*new_copy)(void) = (void*) RESTARTSTART;
@@ -301,6 +118,10 @@ cstart( void )
 #else
 	copy_and_restart();
 #endif
+
+	// Unreachable
+	while(1)
+		;
 
 
 #if 0
@@ -490,3 +311,4 @@ cstart( void )
 	while(1)
 		;
 }
+

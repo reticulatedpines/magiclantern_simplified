@@ -22,6 +22,10 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
+	-DRELOCADDR=$(RELOCADDR) \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+
 
 AFLAGS=\
 	$(FLAGS) \
@@ -46,6 +50,24 @@ dumper: dumper_entry.o dumper.o
 		-march=armv5te \
 		-e _start \
 		$^
+
+reboot.o: reboot.c 5d-hack.bin
+5d-hack.bin: 5d-hack
+
+ROMBASEADDR		= 0xFF810000
+RESTARTSTART		= 0x0004F000
+RELOCADDR		= 0x00050000
+
+5d-hack: 5d-hack.o
+	$(LD) \
+		-o $@ \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-Ttext=$(RESTARTSTART) \
+		$^
+
+
 
 reboot: reboot.o
 	$(LD) \
