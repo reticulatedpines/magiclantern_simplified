@@ -3,11 +3,36 @@
  */
 #include "arm-mcr.h"
 
+
+#pragma long_calls
+#define CANON_FUNC( addr, return_type, name, args ) \
+asm( ".text\n" #name " = " #addr "\n" ); \
+extern return_type name args;
+
+CANON_FUNC( 0xFF815FF8,	void, sched_yeild, ( void * ) );
+CANON_FUNC( 0xFF8173A0, void, create_init_task, (void) );
+CANON_FUNC( 0xFF869D4C, void, create_task, (
+	const char *,
+	uint32_t,
+	uint32_t,
+	void *,
+	uint32_t
+) );
+
+
+/** These need to be changed if the relocation address changes */
+CANON_FUNC( 0xFF810000, void, firmware_entry, ( void ) );
+CANON_FUNC( 0x0005000C, void, reloc_entry, (void ) );
+
+#pragma no_long_calls
+
+
+
 /** These are called when new tasks are created */
 void task_create_hook( uint32_t * p );
-void task_create_hook2( uint32_t * p );
+void task_dispatch( uint32_t * p );
 void my_init_task( uint32_t arg0, uint32_t arg1, uint32_t arg2 );
-void bzero( uint8_t * base, uint32_t size );
+void my_bzero( uint8_t * base, uint32_t size );
 
 
 /** Translate a firmware address into a relocated address */
@@ -38,20 +63,18 @@ copy_and_restart( void )
 	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
 
 	// Fix the call to bzero32() to call our local one
-	INSTR( 0xFF8108A4 ) = BL_INSTR( &INSTR(0xFF8108A4), bzero );
+	INSTR( 0xFF8108A4 ) = BL_INSTR( &INSTR(0xFF8108A4), my_bzero );
 
 	// And set the BL create_init_task instruction to do a long branch
 	INSTR( 0xFF81092C ) = FAR_CALL_INSTR;
-	INSTR( 0xFF810930 ) = 0xFF8173A0;
+	INSTR( 0xFF810930 ) = (uint32_t) create_init_task;
 
 	clean_d_cache();
 	flush_caches();
 
 	// We enter after the signature, avoiding the
 	// relocation jump that is at the head of the data
-	void (*_entry)( void ) = (void*)( RELOCADDR + 0xC );
-	//void (*_entry)( void ) = (void*)( ROMBASEADDR );
-	_entry();
+	reloc_entry();
 
 	/*
 	* We're back!
@@ -70,8 +93,8 @@ copy_and_restart( void )
 	*/
 
 	// Install our task creation hooks
-	//*(uint32_t*) 0x1930 = task_create_hook;
-	//*(uint32_t*) 0x1934 = task_create_hook2;
+	*(uint32_t*) 0x1930 = (uint32_t) task_create_hook;
+	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch;
 
 #if 0
 	// Enable this to spin rather than starting firmware.
@@ -102,27 +125,65 @@ task_create_hook(
 		//;
 }
 
+
 void
-task_create_hook2(
-	uint32_t * p
-)
+null_task( void )
 {
-	//while(1)
-		//;
+	while(1)
+	{
+		sched_yeild(0);
+	}
 }
 
 
+void my_task( void )
+{
+	return;
+
+	while(1)
+	{
+		sched_yeild( 0 );
+	}
+}
+
+void
+task_dispatch(
+	uint32_t * p
+)
+{
+	p -= 17; // p points to the end of the context buffer
+	const uint32_t pc = *p;
+
+	// Attempt to hijack the movie playback tasks
+	if( pc == 0xFF93D3F8 )
+		*p = (uint32_t) my_task;
+	else
+	if( pc == 0xFF849BEC )
+		*p = (uint32_t) my_task;
+}
+
+
+
+/** Initial task setup.
+ *
+ * This is called instead of the task at 0xFF811DBC.
+ * It does all of the stuff to bring up the debug manager,
+ * the terminal drivers, stdio, stdlib and armlib.
+ */
 void
 my_init_task( uint32_t arg0, uint32_t arg1, uint32_t arg2 )
 {
 	// Call their init task
 	void (*init_task)(uint32_t,uint32_t,uint32_t) = (void*) 0xFF811DBC;
 	init_task(arg0,arg1,arg2);
+
+
+	create_task( "my_task", 0x19, 0x2000, my_task, 0 );
 }
 
 
 void
-bzero(
+my_bzero(
 	uint8_t *	base,
 	uint32_t	size
 )
