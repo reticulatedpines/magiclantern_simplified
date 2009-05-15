@@ -9,15 +9,41 @@
 asm( ".text\n" #name " = " #addr "\n" ); \
 extern return_type name args;
 
-CANON_FUNC( 0xFF815FF8,	void, sched_yeild, ( void * ) );
+CANON_FUNC( 0xFF810674, void __attribute__((noreturn)), DryosPanic, ( uint32_t, uint32_t ) );
+CANON_FUNC( 0xFF8167F0, void *, get_current_task, (void) );
+
+//CANON_FUNC( 0xFF81612C, void, sched_yield, ( void ) );
+//CANON_FUNC( 0xFF816904, void, sched_yield, ( void ) );
+//CANON_FUNC( 0xFF81601C, void, sched_yield, ( void ) );
+CANON_FUNC( 0xFF815CC0, void, sched_yield, ( uint32_t must_be_zero ) );
+
+CANON_FUNC( 0xFF811DBC, void, init_task, (void) );
 CANON_FUNC( 0xFF8173A0, void, create_init_task, (void) );
-CANON_FUNC( 0xFF869D4C, void, create_task, (
-	const char *,
-	uint32_t,
-	uint32_t,
-	void *,
-	uint32_t
+CANON_FUNC( 0xFFC22054, int, task_save_state, ( void * buf ) );
+CANON_FUNC( 0xFF8676EC, int, RegisterEventProcedure_im1, ( const char *, void * ) );
+CANON_FUNC( 0xFF8676F4, int, UnregisterEventProcedure, ( const char * ) );
+CANON_FUNC( 0xFF9F2D48, void, EP_SetMovieManualExposureMode, ( uint32_t * ) );
+CANON_FUNC( 0xFF86DFEC, void *, new_task_struct, ( int ) );
+CANON_FUNC( 0xFF86DD10, void, create_task, (
+	const char * name,
+	uint32_t priority,
+	void * arg,
+	void * entry,
+	void * unknown
 ) );
+
+CANON_FUNC( 0xFF992924, void, EdLedOn, (void) );
+CANON_FUNC( 0xFF992950, void, EdLedOff, (void) );
+CANON_FUNC( 0xFF86694C, void, dmstart, (void) );
+
+#define O_WRONLY 0x1
+#define O_CREAT 0x200
+CANON_FUNC( 0xFF81BDC0, void *, open, ( const char * name, int flags, int mode ) );
+CANON_FUNC( 0xFF81BE70, void, close, ( void * ) );
+CANON_FUNC( 0xFF98C1CC, void *, FIO_CreateFile, ( const char * name, uint32_t mode ) );
+CANON_FUNC( 0xFF98C6B4, int, FIO_WriteFile, ( void *, const void *, uint32_t ) );
+CANON_FUNC( 0xFF98CD6C, void, FIO_CloseFile, ( void * ) );
+CANON_FUNC( 0xFF98C274, void, FIO_Sync, ( void * ) );
 
 
 /** These need to be changed if the relocation address changes */
@@ -31,7 +57,7 @@ CANON_FUNC( 0x0005000C, void, reloc_entry, (void ) );
 /** These are called when new tasks are created */
 void task_create_hook( uint32_t * p );
 void task_dispatch( uint32_t * p );
-void my_init_task( uint32_t arg0, uint32_t arg1, uint32_t arg2 );
+void my_init_task(void);
 void my_bzero( uint8_t * base, uint32_t size );
 
 
@@ -129,28 +155,57 @@ task_create_hook(
 void
 null_task( void )
 {
-	while(1)
-	{
-		sched_yeild(0);
-	}
 }
 
+void
+spin_task( void )
+{
+	while(1)
+		;
+}
 
 void my_task( void )
 {
 	return;
 
-	while(1)
+	uint8_t context_buf[ 80 ];
+	uint32_t i = 0;
+
+
+	while( i++ < (1<<30) )
 	{
-		sched_yeild( 0 );
+		//task_save_state( context_buf );
+		//uint32_t flags = cli();
+		sched_yield( 0);
+		//sei( flags );
 	}
+
+	//while(1);
 }
 
+
+
+/**
+ * Called by DryOS when it is dispatching (or creating?)
+ * a new task.
+ */
 void
 task_dispatch(
 	uint32_t * p
 )
 {
+#if 0
+	static const char __attribute__((section(".text"))) count_buf[4];
+	uint32_t * count_ptr = (uint32_t*) count_buf;
+	
+	// 8192 cycles gets to part of the sensor cleaning
+	// 32768 almost finishes cleaning
+	// 48000 never hangs.
+	// 65536 never hangs.
+	// when is this value overwritten?  stop_task_maybe
+	if( (*count_ptr)++ > 48000 )
+		while(1);
+
 	p -= 17; // p points to the end of the context buffer
 	const uint32_t pc = *p;
 
@@ -160,6 +215,7 @@ task_dispatch(
 	else
 	if( pc == 0xFF849BEC )
 		*p = (uint32_t) my_task;
+#endif
 }
 
 
@@ -171,14 +227,58 @@ task_dispatch(
  * the terminal drivers, stdio, stdlib and armlib.
  */
 void
-my_init_task( uint32_t arg0, uint32_t arg1, uint32_t arg2 )
+my_init_task(void)
 {
 	// Call their init task
-	void (*init_task)(uint32_t,uint32_t,uint32_t) = (void*) 0xFF811DBC;
-	init_task(arg0,arg1,arg2);
+	init_task();
+
+	//uint32_t * new_task = new_task_struct( 8 );
+	//new_task[1] = new_task;
+	create_task( "my_task", 0x19, 0x1000, my_task, 0 );
+
+	//static const char __attribute__((section(".text"))) fname[] = "A:/INIT.TXT";
+	//static const char __attribute__((section(".text"))) buf[] = "test buffer\n";
+
+	// We are back before they registered any procedures.
+	//static const char __attribute__((section(".text"))) proc_name[] = "lv_start";
+	//UnregisterEventProcedure( proc_name );
+	//RegisterEventProcedure_im1( proc_name, spin_task );
 
 
-	create_task( "my_task", 0x19, 0x2000, my_task, 0 );
+	// Try turning on manual movie mode...
+	
+	// It has configured all of the tasks, setup all of the
+	// devices, etc.  We are now in control of the camera.
+
+
+#if 0
+        // Disable AGC by always returning the same level
+        const uint32_t audio_level = 40;
+        const uint32_t instr = 0xe3e02000 | audio_level;
+        *(volatile uint32_t*)( 0xFF972628 ) = instr;
+        if( *(volatile uint32_t*)( 0xFF972628 ) != instr )
+		while(1);
+#endif
+
+
+	return;
+
+	// Let's create our own task.
+	//create_task( "my_task", 0x19, 1, my_task );
+
+	// Try to change the file names that are written
+	*(uint8_t*) 0x68CC = 'x';
+	*(uint8_t*) 0x68D4 = 'y';
+	*(uint8_t*) 0x11E50 = 'z';
+	//*(uint8_t*) 0x2096A8 = 'z';
+
+	dmstart();
+
+	//DryosPanic( 0x40, 1 );
+
+	//uint32_t manual = 1;
+	//EP_SetMovieManualExposureMode( &manual );
+
 }
 
 
