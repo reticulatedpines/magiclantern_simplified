@@ -35,6 +35,7 @@ CANON_FUNC( 0xFF86DD10, void, create_task, (
 CANON_FUNC( 0xFF992924, void, EdLedOn, (void) );
 CANON_FUNC( 0xFF992950, void, EdLedOff, (void) );
 CANON_FUNC( 0xFF86694C, void, dmstart, (void) );
+CANON_FUNC( 0xFF8704DC, int, add_timer, ( uint32_t timeout, void * handler, void * handler2, int unknown ) );
 
 #define O_WRONLY 0x1
 #define O_CREAT 0x200
@@ -166,21 +167,21 @@ spin_task( void )
 
 void my_task( void )
 {
+	add_timer( 1<<10, my_task, my_task, 0 );
+
 	return;
 
-	uint8_t context_buf[ 80 ];
 	uint32_t i = 0;
 
-
-	while( i++ < (1<<30) )
+	while( 1 ) // i++ < (1<<28) )
 	{
 		//task_save_state( context_buf );
 		//uint32_t flags = cli();
-		sched_yield( 0);
+		//sched_yield( 0);
 		//sei( flags );
 	}
 
-	//while(1);
+	while(1);
 }
 
 
@@ -234,7 +235,8 @@ my_init_task(void)
 
 	//uint32_t * new_task = new_task_struct( 8 );
 	//new_task[1] = new_task;
-	create_task( "my_task", 0x19, 0x1000, my_task, 0 );
+	//create_task( "my_task", 0x1, 0x1000, my_task, 0 );
+	my_task();
 
 	//static const char __attribute__((section(".text"))) fname[] = "A:/INIT.TXT";
 	//static const char __attribute__((section(".text"))) buf[] = "test buffer\n";
