@@ -181,6 +181,20 @@ spin_task( void )
 }
 
 
+void my_sleep_task( void )
+{
+	void (*msleep)( int ) = (void*) 0xFF869C94;
+	int i;
+	for( i=0 ; i<10 ; i++ )
+	{
+		msleep( 1000 );
+	}
+
+	while(1)
+		;
+}
+
+
 void my_task( void )
 {
 	add_timer( 1<<10, my_task, my_task, 0 );
@@ -282,8 +296,8 @@ my_init_task(void)
 
 	//uint32_t * new_task = new_task_struct( 8 );
 	//new_task[1] = new_task;
-	//create_task( "my_task", 0x1, 0x1000, my_task, 0 );
-	my_task();
+	create_task( "my_sleep_task", 0x1, 0x1000, my_sleep_task, 0 );
+	//my_task();
 
 	//static const char __attribute__((section(".text"))) fname[] = "A:/INIT.TXT";
 	//static const char __attribute__((section(".text"))) buf[] = "test buffer\n";
