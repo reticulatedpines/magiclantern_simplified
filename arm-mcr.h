@@ -21,6 +21,7 @@ select_normal_vectors( void )
 }
 
 
+
 static inline void
 flush_caches( void )
 {
@@ -96,6 +97,28 @@ static inline void
 set_i_tcm( uint32_t value )
 {
 	asm( "mcr p15, 0, %0, c9, c1, 1\n" : : "r"(value) );
+}
+
+
+/** Routines to enable / disable interrupts */
+static inline uint32_t
+cli(void)
+{
+	uint32_t old_cpsr;
+	uint32_t new_cpsr;
+	asm __volatile__ (
+		"mrs %0, CPSR\n"
+		"orr %1, %0, #0x80\n" // set I flag to disable IRQ
+		"msr CPSR_c, %1\n"
+		: "=r"(old_cpsr), "=r"(new_cpsr)
+	);
+	return old_cpsr;
+}
+
+static inline void
+sei( uint32_t old_cpsr )
+{
+	asm __volatile__ ( "msr CPSR_c, %0" : : "r"(old_cpsr) );
 }
 
 
