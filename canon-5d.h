@@ -42,17 +42,20 @@ CANON_FUNC( 0xFF8698D8, int, give_semaphore, ( struct semaphore * ) );
 CANON_FUNC( 0xFF992924, void, EdLedOn, (void) );
 CANON_FUNC( 0xFF992950, void, EdLedOff, (void) );
 CANON_FUNC( 0xFF86694C, void, dmstart, (void) );
-CANON_FUNC( 0xFF8704DC, int, add_timer, ( uint32_t timeout, void * handler, void * handler2, int unknown ) );
+CANON_FUNC( 0xFF8704DC, int, oneshot_timer, ( uint32_t msec, void * handler, void * handler2, int unknown ) );
 
 
 CANON_FUNC( 0xFF856AB8, void, audio_set_alc_on, (void) );
 CANON_FUNC( 0xFF856B14, void, audio_set_alc_off, (void) );
 CANON_FUNC( 0xFF856C38, void, audio_set_filter_off, (void) );
-CANON_FUNC( 0xFF856454, void, audio_set_windcut, (int,int) );
+CANON_FUNC( 0xFF856454, void, audio_set_windcut, (int) );
 CANON_FUNC( 0xFF857AE8, void, audio_set_sampling_param, (int, int, int) );
 CANON_FUNC( 0xFF857D10, void, audio_set_volume_in, (int,int) );
 CANON_FUNC( 0xFF854FC8, void, audio_start_asif_observer, (void) );
 CANON_FUNC( 0xFF9721C0, void, audio_level_task, (void ) );
+CANON_FUNC( 0xFF9721B4, void, audio_interval_unlock, (void) );
+
+CANON_FUNC( 0xFF856E60, void, sound_dev_task, (void) );
 
 /** I don't know how many of these are supported */
 #define O_RDONLY             00

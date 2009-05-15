@@ -141,7 +141,7 @@ void my_sleep_task( void )
  */
 void my_timer_task( void )
 {
-	add_timer( 1<<10, my_timer_task, my_timer_task, 0 );
+	oneshot_timer( 1<<10, my_timer_task, my_timer_task, 0 );
 }
 
 /*
@@ -155,33 +155,42 @@ struct audio_info
 	uint8_t			off_0x02;
 	uint8_t			off_0x03;
 	struct semaphore *	sem_interval;	// off_0x04
-	uint32_t		off_0x08;
-	uint32_t		asif_started;
+	uint32_t		task_created;	// off_0x08
+	uint32_t		asif_started;	// off_0x0c
 	uint32_t		initialized;	// off_0x10
 	struct semaphore *	sem_task;	// off_0x14
 	uint32_t		off_0x18;
 	int32_t			sample_count;	// off_0x1c
 	int32_t			gain;		// off_0x20, from 0 to -41
 	uint32_t		max_sample;	// off_0x24
-};
+} __attribute__((packed));
+
+
+static inline uint32_t
+audio_read_level( void )
+{
+	return *(uint32_t*) 0xC0920110;
+}
 
 
 void
 my_audio_level_task( void )
 {
 	struct audio_info * const audio = (void*) 0x7324;
-	const uint32_t * const thresholds = (void*) 0xFFC60ABC;
+	//const uint32_t * const thresholds = (void*) 0xFFC60ABC;
 
-	// Setup the audio structure
+#if 0
+	// The audio structure will already be setup; we are the
+	// second dispatch of the function.
 	audio->gain		= -39;
 	audio->sample_count	= 0;
 	audio->max_sample	= 0;
 	audio->sem_interval	= create_named_semaphore( 0, 1 );
 	audio->sem_task		= create_named_semaphore( 0, 0 );
+#endif
 
 	void * file = FIO_CreateFile( "A:/audio.log" );
-	if( file != 0xFFFFFFFF )
-		FIO_CloseFile( file );
+	FIO_WriteFile( file, audio, sizeof(*audio) );
 
 	while(1)
 	{
@@ -200,12 +209,12 @@ my_audio_level_task( void )
 			audio_set_filter_off();
 
 			if( audio->off_0x00 == 1
-			||  audio->off_0x01 == 0
+			&&  audio->off_0x01 == 0
 			)
 				audio_set_alc_off();
 			
 			audio->off_0x00 = audio->off_0x01;
-			audio_set_windcut( audio->off_0x18, 0 );
+			audio_set_windcut( audio->off_0x18 );
 
 			audio_set_sampling_param( 0xAC44, 0x10, 1 );
 			audio_set_volume_in( audio->off_0x00, audio->off_0x02 );
@@ -216,6 +225,7 @@ my_audio_level_task( void )
 			audio->initialized	= 1;
 			audio->gain		= -39;
 			audio->sample_count	= 0;
+
 		}
 
 		if( audio->asif_started == 0 )
@@ -224,17 +234,58 @@ my_audio_level_task( void )
 			audio->asif_started = 1;
 		}
 
-		// Never adjust it!
-		//set_audio_agc();
+		uint32_t level = audio_read_level();
 		give_semaphore( audio->sem_task );
 
-		msleep( 0x200 );
+		// Never adjust it!
+		//set_audio_agc();
+		//if( file != (void*) 0xFFFFFFFF )
+			//FIO_WriteFile( file, &level, sizeof(level) );
+
+		// audio_interval_wakeup will unlock our semaphore
+		oneshot_timer( 0x200, audio_interval_unlock, audio_interval_unlock, 0 );
+	}
+
+	FIO_CloseFile( file );
+}
+
+
+struct sound_dev
+{
+	uint8_t pad0[ 0x70 ];
+	struct semaphore *	sem;	 // off 0x70
+};
+
+
+void
+my_sound_dev_task( void )
+{
+	struct sound_dev * const dev = (void*) 0x208c;
+
+	void * file = FIO_CreateFile( "A:/snddev.log" );
+	FIO_WriteFile( file, dev, sizeof(*dev) );
+	FIO_CloseFile( file );
+
+	//dev->sem = create_named_semaphore( 0, 0 );
+
+	while(1)
+	{
+		if( take_semaphore( dev->sem, 0 ) != 1 )
+		{
+			// DebugAssert( .... );
+		}
+
+		msleep( 2 );
+		audio_set_alc_off();
+
+		//uint32_t level = audio_read_level();
+		//FIO_WriteFile( file, &level, sizeof(level) );
 	}
 }
 
 
 static inline void
-memcpy(
+my_memcpy(
 	void * dest_v,
 	const void * src_v,
 	uint32_t len
@@ -257,21 +308,27 @@ task_dispatch(
 )
 {
 #if 0
-	memcpy( pc_buf_raw, p-32, 4*128 );
+	my_memcpy( pc_buf_raw, p-32, 4*128 );
 #else
 	static const char __attribute__((section(".text"))) count_buf[4];
 	uint32_t * count_ptr = (uint32_t*) count_buf;
 	uint32_t * pc_buf = (uint32_t*) pc_buf_raw;
 	
 	p -= 16; // p points to the end of the context buffer
-	const uint32_t pc = *p;
+	uint32_t pc = *p;
+
+	// Attempt to hijack a few tasks
+#if 0
+	if( pc == (uint32_t) audio_level_task )
+		*p = pc = (uint32_t) my_audio_level_task;
+	else
+#endif
+	if( pc == (uint32_t) sound_dev_task )
+		*p = pc = (uint32_t) my_sound_dev_task;
 
 	pc_buf[ (*count_ptr)++ ] = pc;
 	*count_ptr &= 1023;
 
-	// Attempt to hijack a few tasks
-	if( pc == (uint32_t) audio_level_task )
-		*p = (uint32_t) my_audio_level_task;
 #endif
 }
 
