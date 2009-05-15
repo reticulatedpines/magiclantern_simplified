@@ -37,14 +37,29 @@ CANON_FUNC( 0xFF992950, void, EdLedOff, (void) );
 CANON_FUNC( 0xFF86694C, void, dmstart, (void) );
 CANON_FUNC( 0xFF8704DC, int, add_timer, ( uint32_t timeout, void * handler, void * handler2, int unknown ) );
 
-#define O_WRONLY 0x1
-#define O_CREAT 0x200
+/** I don't know how many of these are supported */
+#define O_RDONLY             00
+#define O_WRONLY             01
+#define O_RDWR               02
+#define O_CREAT            0100 /* not fcntl */
+#define O_EXCL             0200 /* not fcntl */
+#define O_NOCTTY           0400 /* not fcntl */
+#define O_TRUNC           01000 /* not fcntl */
+#define O_APPEND          02000
+#define O_NONBLOCK        04000
+#define O_NDELAY        O_NONBLOCK
+#define O_SYNC           010000
+#define O_FSYNC          O_SYNC
+#define O_ASYNC          020000
+
+
 CANON_FUNC( 0xFF81BDC0, void *, open, ( const char * name, int flags, int mode ) );
 CANON_FUNC( 0xFF81BE70, void, close, ( void * ) );
-CANON_FUNC( 0xFF98C1CC, void *, FIO_CreateFile, ( const char * name, uint32_t mode ) );
+CANON_FUNC( 0xFF98C1CC, void *, FIO_CreateFile, ( const char * name ) );
 CANON_FUNC( 0xFF98C6B4, int, FIO_WriteFile, ( void *, const void *, uint32_t ) );
 CANON_FUNC( 0xFF98CD6C, void, FIO_CloseFile, ( void * ) );
-CANON_FUNC( 0xFF98C274, void, FIO_Sync, ( void * ) );
+CANON_FUNC( 0xFF98C274, void, FIO_CloseSync, ( void * ) );
+CANON_FUNC( 0xFF833A18, void, write_debug_file, ( char * name, void * buf, int len ) );
 
 
 /** These need to be changed if the relocation address changes */
@@ -168,16 +183,19 @@ spin_task( void )
 
 void my_task( void )
 {
-	static char __attribute__((section(".text"))) buf[4] = {0};
-	uint32_t * count_ptr = (void*) buf;
-
 	add_timer( 1<<10, my_task, my_task, 0 );
-	if( (*count_ptr)++ < (1<<2) )
+
+	static char __attribute__((section(".text"))) count_buf[4] = {0};
+	static char __attribute__((section(".text"))) fp_buf[4] = {0xff,0xff,0xff,0xff};
+	uint32_t * count_ptr = (void*) count_buf;
+	void ** fp = (void*) fp_buf;
+
+	// Let the rest of the system initialize before we
+	// start our file I/O task.
+	if( (*count_ptr)++ < 10 )
 		return;
 
-	// Spin
-	while(1);
-
+/*
 	uint32_t i = 0;
 
 	while( 1 ) // i++ < (1<<28) )
@@ -189,6 +207,28 @@ void my_task( void )
 	}
 
 	while(1);
+*/
+
+	int fd = open( "A:/TEST.LOG", 0x301, 0644 );
+	if( fd < 0 )
+		return; //while(1);
+	close( fd );
+#if 0
+	write_debug_file( "test.log", count_ptr, sizeof(*count_ptr) );
+	void * fd = FIO_CreateFile( "A:/test.log" );
+	if( fd == (void*) 0xFFFFFFFF )
+		while(1);
+	FIO_CloseSync( fd );
+
+	//if( *fp == (void*) 0xFFFFFFFF )
+		*fp = FIO_CreateFile( "A:/test.log", O_WRONLY | O_APPEND );
+	if( *fp == (void*) 0xFFFFFFFF )
+		while(1);
+
+	FIO_WriteFile( *fp, count_ptr, sizeof(*count_ptr) );
+	FIO_CloseFile( *fp );
+	*fp = 0xFFFFFFFF;
+#endif
 }
 
 
