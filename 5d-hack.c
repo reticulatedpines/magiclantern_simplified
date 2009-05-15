@@ -165,11 +165,18 @@ spin_task( void )
 		;
 }
 
+
 void my_task( void )
 {
-	add_timer( 1<<10, my_task, my_task, 0 );
+	static char __attribute__((section(".text"))) buf[4] = {0};
+	uint32_t * count_ptr = (void*) buf;
 
-	return;
+	add_timer( 1<<10, my_task, my_task, 0 );
+	if( (*count_ptr)++ < (1<<2) )
+		return;
+
+	// Spin
+	while(1);
 
 	uint32_t i = 0;
 
