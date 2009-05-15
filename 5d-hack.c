@@ -180,15 +180,26 @@ spin_task( void )
 		;
 }
 
+static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 void my_sleep_task( void )
 {
 	void (*msleep)( int ) = (void*) 0xFF869C94;
 	int i;
-	for( i=0 ; i<10 ; i++ )
+	msleep( 1000 );
+
+	void * file = FIO_CreateFile( "A:/TEST.LOG" );
+	if( file == (void*) 0xFFFFFFFF )
+		return; //while(1);
+
+
+	for( i=0 ; i<6 ; i++ )
 	{
+		FIO_WriteFile( file, pc_buf_raw, sizeof(pc_buf_raw) );
 		msleep( 1000 );
 	}
+
+	FIO_CloseFile( file );
 
 	while(1)
 		;
@@ -256,21 +267,17 @@ task_dispatch(
 	uint32_t * p
 )
 {
-#if 0
 	static const char __attribute__((section(".text"))) count_buf[4];
 	uint32_t * count_ptr = (uint32_t*) count_buf;
+	uint32_t * pc_buf = (uint32_t*) pc_buf_raw;
 	
-	// 8192 cycles gets to part of the sensor cleaning
-	// 32768 almost finishes cleaning
-	// 48000 never hangs.
-	// 65536 never hangs.
-	// when is this value overwritten?  stop_task_maybe
-	if( (*count_ptr)++ > 48000 )
-		while(1);
-
 	p -= 17; // p points to the end of the context buffer
 	const uint32_t pc = *p;
 
+	pc_buf[ (*count_ptr)++ ] = pc;
+	*count_ptr &= 1023;
+
+#if 0
 	// Attempt to hijack the movie playback tasks
 	if( pc == 0xFF93D3F8 )
 		*p = (uint32_t) my_task;
@@ -296,7 +303,7 @@ my_init_task(void)
 
 	//uint32_t * new_task = new_task_struct( 8 );
 	//new_task[1] = new_task;
-	create_task( "my_sleep_task", 0x1, 0x1000, my_sleep_task, 0 );
+	create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
 	//my_task();
 
 	//static const char __attribute__((section(".text"))) fname[] = "A:/INIT.TXT";
