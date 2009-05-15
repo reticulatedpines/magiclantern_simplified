@@ -1,73 +1,7 @@
 /** \file
  * Code to run on the 5D once it has been relocated.
  */
-#include "arm-mcr.h"
-
-
-#pragma long_calls
-#define CANON_FUNC( addr, return_type, name, args ) \
-asm( ".text\n" #name " = " #addr "\n" ); \
-extern return_type name args;
-
-CANON_FUNC( 0xFF810674, void __attribute__((noreturn)), DryosPanic, ( uint32_t, uint32_t ) );
-CANON_FUNC( 0xFF8167F0, void *, get_current_task, (void) );
-
-//CANON_FUNC( 0xFF81612C, void, sched_yield, ( void ) );
-//CANON_FUNC( 0xFF816904, void, sched_yield, ( void ) );
-//CANON_FUNC( 0xFF81601C, void, sched_yield, ( void ) );
-CANON_FUNC( 0xFF815CC0, void, sched_yield, ( uint32_t must_be_zero ) );
-
-CANON_FUNC( 0xFF811DBC, void, init_task, (void) );
-CANON_FUNC( 0xFF8173A0, void, create_init_task, (void) );
-CANON_FUNC( 0xFFC22054, int, task_save_state, ( void * buf ) );
-CANON_FUNC( 0xFF8676EC, int, RegisterEventProcedure_im1, ( const char *, void * ) );
-CANON_FUNC( 0xFF8676F4, int, UnregisterEventProcedure, ( const char * ) );
-CANON_FUNC( 0xFF9F2D48, void, EP_SetMovieManualExposureMode, ( uint32_t * ) );
-CANON_FUNC( 0xFF86DFEC, void *, new_task_struct, ( int ) );
-CANON_FUNC( 0xFF86DD10, void, create_task, (
-	const char * name,
-	uint32_t priority,
-	void * arg,
-	void * entry,
-	void * unknown
-) );
-
-CANON_FUNC( 0xFF992924, void, EdLedOn, (void) );
-CANON_FUNC( 0xFF992950, void, EdLedOff, (void) );
-CANON_FUNC( 0xFF86694C, void, dmstart, (void) );
-CANON_FUNC( 0xFF8704DC, int, add_timer, ( uint32_t timeout, void * handler, void * handler2, int unknown ) );
-
-/** I don't know how many of these are supported */
-#define O_RDONLY             00
-#define O_WRONLY             01
-#define O_RDWR               02
-#define O_CREAT            0100 /* not fcntl */
-#define O_EXCL             0200 /* not fcntl */
-#define O_NOCTTY           0400 /* not fcntl */
-#define O_TRUNC           01000 /* not fcntl */
-#define O_APPEND          02000
-#define O_NONBLOCK        04000
-#define O_NDELAY        O_NONBLOCK
-#define O_SYNC           010000
-#define O_FSYNC          O_SYNC
-#define O_ASYNC          020000
-
-
-CANON_FUNC( 0xFF81BDC0, void *, open, ( const char * name, int flags, int mode ) );
-CANON_FUNC( 0xFF81BE70, void, close, ( void * ) );
-CANON_FUNC( 0xFF98C1CC, void *, FIO_CreateFile, ( const char * name ) );
-CANON_FUNC( 0xFF98C6B4, int, FIO_WriteFile, ( void *, const void *, uint32_t ) );
-CANON_FUNC( 0xFF98CD6C, void, FIO_CloseFile, ( void * ) );
-CANON_FUNC( 0xFF98C274, void, FIO_CloseSync, ( void * ) );
-CANON_FUNC( 0xFF833A18, void, write_debug_file, ( char * name, void * buf, int len ) );
-
-
-/** These need to be changed if the relocation address changes */
-CANON_FUNC( 0xFF810000, void, firmware_entry, ( void ) );
-CANON_FUNC( 0x0005000C, void, reloc_entry, (void ) );
-
-#pragma no_long_calls
-
+#include "canon-5d.h"
 
 
 /** These are called when new tasks are created */
@@ -184,7 +118,6 @@ static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 void my_sleep_task( void )
 {
-	void (*msleep)( int ) = (void*) 0xFF869C94;
 	int i;
 	msleep( 1000 );
 
@@ -200,62 +133,118 @@ void my_sleep_task( void )
 	}
 
 	FIO_CloseFile( file );
-
-	while(1)
-		;
 }
 
-
-void my_task( void )
-{
-	add_timer( 1<<10, my_task, my_task, 0 );
-
-	static char __attribute__((section(".text"))) count_buf[4] = {0};
-	static char __attribute__((section(".text"))) fp_buf[4] = {0xff,0xff,0xff,0xff};
-	uint32_t * count_ptr = (void*) count_buf;
-	void ** fp = (void*) fp_buf;
-
-	// Let the rest of the system initialize before we
-	// start our file I/O task.
-	if( (*count_ptr)++ < 10 )
-		return;
 
 /*
-	uint32_t i = 0;
-
-	while( 1 ) // i++ < (1<<28) )
-	{
-		//task_save_state( context_buf );
-		//uint32_t flags = cli();
-		//sched_yield( 0);
-		//sei( flags );
-	}
-
-	while(1);
-*/
-
-	int fd = open( "A:/TEST.LOG", 0x301, 0644 );
-	if( fd < 0 )
-		return; //while(1);
-	close( fd );
-#if 0
-	write_debug_file( "test.log", count_ptr, sizeof(*count_ptr) );
-	void * fd = FIO_CreateFile( "A:/test.log" );
-	if( fd == (void*) 0xFFFFFFFF )
-		while(1);
-	FIO_CloseSync( fd );
-
-	//if( *fp == (void*) 0xFFFFFFFF )
-		*fp = FIO_CreateFile( "A:/test.log", O_WRONLY | O_APPEND );
-	if( *fp == (void*) 0xFFFFFFFF )
-		while(1);
-
-	FIO_WriteFile( *fp, count_ptr, sizeof(*count_ptr) );
-	FIO_CloseFile( *fp );
-	*fp = 0xFFFFFFFF;
-#endif
+ * Demonstrates a task that uses timers to reschedule itself.
+ */
+void my_timer_task( void )
+{
+	add_timer( 1<<10, my_timer_task, my_timer_task, 0 );
 }
 
+/*
+ * Audio information structure at 0x7324.
+ * This controls the AGC system.
+ */
+struct audio_info
+{
+	uint8_t			off_0x00;
+	uint8_t			off_0x01;
+	uint8_t			off_0x02;
+	uint8_t			off_0x03;
+	struct semaphore *	sem_interval;	// off_0x04
+	uint32_t		off_0x08;
+	uint32_t		asif_started;
+	uint32_t		initialized;	// off_0x10
+	struct semaphore *	sem_task;	// off_0x14
+	uint32_t		off_0x18;
+	int32_t			sample_count;	// off_0x1c
+	int32_t			gain;		// off_0x20, from 0 to -41
+	uint32_t		max_sample;	// off_0x24
+};
+
+
+void
+my_audio_level_task( void )
+{
+	struct audio_info * const audio = (void*) 0x7324;
+	const uint32_t * const thresholds = (void*) 0xFFC60ABC;
+
+	// Setup the audio structure
+	audio->gain		= -39;
+	audio->sample_count	= 0;
+	audio->max_sample	= 0;
+	audio->sem_interval	= create_named_semaphore( 0, 1 );
+	audio->sem_task		= create_named_semaphore( 0, 0 );
+
+	void * file = FIO_CreateFile( "A:/audio.log" );
+	if( file != 0xFFFFFFFF )
+		FIO_CloseFile( file );
+
+	while(1)
+	{
+		if( take_semaphore( audio->sem_interval, 0 ) )
+		{
+			//DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
+		}
+
+		if( take_semaphore( audio->sem_task, 0 ) )
+		{
+			//DebugAssert( "!IS_ERROR", SoundDevice", 0x83 );
+		}
+
+		if( !audio->initialized )
+		{
+			audio_set_filter_off();
+
+			if( audio->off_0x00 == 1
+			||  audio->off_0x01 == 0
+			)
+				audio_set_alc_off();
+			
+			audio->off_0x00 = audio->off_0x01;
+			audio_set_windcut( audio->off_0x18, 0 );
+
+			audio_set_sampling_param( 0xAC44, 0x10, 1 );
+			audio_set_volume_in( audio->off_0x00, audio->off_0x02 );
+
+			if( audio->off_0x00 == 1 )
+				audio_set_alc_on();
+
+			audio->initialized	= 1;
+			audio->gain		= -39;
+			audio->sample_count	= 0;
+		}
+
+		if( audio->asif_started == 0 )
+		{
+			audio_start_asif_observer();
+			audio->asif_started = 1;
+		}
+
+		// Never adjust it!
+		//set_audio_agc();
+		give_semaphore( audio->sem_task );
+
+		msleep( 0x200 );
+	}
+}
+
+
+static inline void
+memcpy(
+	void * dest_v,
+	const void * src_v,
+	uint32_t len
+)
+{
+	uint32_t * dest = dest_v;
+	const uint32_t * src = src_v;
+	while( len -= 4 )
+		*dest++ = *src++;
+}
 
 
 /**
@@ -267,23 +256,22 @@ task_dispatch(
 	uint32_t * p
 )
 {
+#if 0
+	memcpy( pc_buf_raw, p-32, 4*128 );
+#else
 	static const char __attribute__((section(".text"))) count_buf[4];
 	uint32_t * count_ptr = (uint32_t*) count_buf;
 	uint32_t * pc_buf = (uint32_t*) pc_buf_raw;
 	
-	p -= 17; // p points to the end of the context buffer
+	p -= 16; // p points to the end of the context buffer
 	const uint32_t pc = *p;
 
 	pc_buf[ (*count_ptr)++ ] = pc;
 	*count_ptr &= 1023;
 
-#if 0
-	// Attempt to hijack the movie playback tasks
-	if( pc == 0xFF93D3F8 )
-		*p = (uint32_t) my_task;
-	else
-	if( pc == 0xFF849BEC )
-		*p = (uint32_t) my_task;
+	// Attempt to hijack a few tasks
+	if( pc == (uint32_t) audio_level_task )
+		*p = (uint32_t) my_audio_level_task;
 #endif
 }
 
