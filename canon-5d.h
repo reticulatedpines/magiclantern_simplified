@@ -33,6 +33,8 @@ CANON_FUNC( 0xFF86DD10, void, create_task, (
 	void * unknown1
 ) );
 
+CANON_FUNC( 0xFF8729CC, void, task_trampoline, (void) );
+
 struct semaphore;
 
 CANON_FUNC( 0xFF86DE00, struct semaphore *, create_named_semaphore, ( const char * name, int initial_value ) );

@@ -2,11 +2,54 @@
  * Code to run on the 5D once it has been relocated.
  */
 #include "canon-5d.h"
+#define offsetof(type, member) \
+	((uint32_t) &(( (type*) 0 )->member))
+
+static inline uint32_t
+read_lr( void )
+{
+	uint32_t lr;
+	asm( "mov %0, lr" : "=r"(lr) );
+	return lr;
+}
+
+struct context
+{
+	uint32_t		cpsr;
+	uint32_t		r[13];
+	uint32_t		lr;
+	uint32_t		pc;
+};
+
+struct task
+{
+	uint32_t		off_0x00;	// always 0?
+	uint32_t		off_0x04;	// stack maybe?
+	uint32_t		off_0x08;	// flags?
+	void *			entry;		// off 0x0c
+	uint32_t		off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	uint32_t		off_0x1c;
+	uint32_t		off_0x20;
+	char *			name;		// off_0x24;
+	uint32_t		off_0x28;
+	uint32_t		off_0x2c;
+	uint32_t		off_0x30;
+	uint32_t		off_0x34;
+	uint32_t		off_0x38;
+	uint32_t		off_0x3c;
+	uint32_t		off_0x40;
+	uint32_t		off_0x44;
+	uint32_t		off_0x48;
+	struct context *	context;	// off 0x4C
+	uint32_t		pad_1[12];
+};
 
 
 /** These are called when new tasks are created */
 void task_create_hook( uint32_t * p );
-void task_dispatch( uint32_t * p );
+void task_dispatch_hook( struct context ** );
 void my_init_task(void);
 void my_bzero( uint8_t * base, uint32_t size );
 
@@ -38,6 +81,7 @@ copy_and_restart( void )
 	// Set our init task to run instead of the firmware one
 	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
 
+	// in cstart() (0xff810894)
 	// Fix the call to bzero32() to call our local one
 	INSTR( 0xFF8108A4 ) = BL_INSTR( &INSTR(0xFF8108A4), my_bzero );
 
@@ -69,8 +113,9 @@ copy_and_restart( void )
 	*/
 
 	// Install our task creation hooks
-	*(uint32_t*) 0x1930 = (uint32_t) task_create_hook;
-	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch;
+	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch_hook;
+	*(uint32_t*) 0x1938 = (uint32_t) task_dispatch_hook;
+	//*(uint32_t*) 0x1938 = (uint32_t) task_create_hook;
 
 #if 0
 	// Enable this to spin rather than starting firmware.
@@ -97,8 +142,8 @@ task_create_hook(
 	uint32_t * p
 )
 {
-	//while(1)
-		//;
+	while(1)
+		;
 }
 
 
@@ -118,13 +163,20 @@ static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 void my_sleep_task( void )
 {
+	//uint32_t lr = read_lr();
+
 	int i;
 	msleep( 1000 );
+
+	// Try enabling manual video mode
+	i = 1;
+	EP_SetMovieManualExposureMode( &i );
 
 	void * file = FIO_CreateFile( "A:/TEST.LOG" );
 	if( file == (void*) 0xFFFFFFFF )
 		return; //while(1);
 
+	//FIO_WriteFile( file, &lr, sizeof(lr) );
 
 	for( i=0 ; i<6 ; i++ )
 	{
@@ -298,24 +350,63 @@ my_memcpy(
 }
 
 
+
+
 /**
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
  */
 void
-task_dispatch(
-	uint32_t * p
+task_dispatch_hook(
+	struct context **	context
 )
 {
-#if 0
-	my_memcpy( pc_buf_raw, p-32, 4*128 );
-#else
 	static const char __attribute__((section(".text"))) count_buf[4];
 	uint32_t * count_ptr = (uint32_t*) count_buf;
-	uint32_t * pc_buf = (uint32_t*) pc_buf_raw;
-	
+	uint32_t count = *count_ptr;
+
+#if 1
+	if( !context )
+		return;
+
+	// Determine the task address
+	struct task * task = ((uint32_t)context) - offsetof(struct task, context);
+
+	if( (*context)->pc != (uint32_t) task_trampoline )
+		return;
+
+#if 0
+	if( !task->entry && !(*context)->pc )
+		return;
+
+	// A task that has already been scheduled
+	if( (*context)->pc != (uint32_t) task_trampoline )
+		return;
+
+	*(uint32_t*)(pc_buf_raw+count) = task->entry;
+	*(uint32_t*)(pc_buf_raw+count+4) = (*context)->pc;
+	*count_ptr = (count + 8 ) & (sizeof(pc_buf_raw)-1);
+
+	// Try to replace the sound device task
+	if( (*context)->pc == (uint32_t) sound_dev_task )
+		(*context)->pc = (uint32_t) my_sound_dev_task;
+#else
+	//*(uint32_t*)(pc_buf_raw+count+0) = task ? (*task)->pc : 0xdeadbeef;
+	//*(uint32_t*)(pc_buf_raw+count+4) = lr;
+	my_memcpy( pc_buf_raw + count, task, sizeof(struct task) );
+	*(uint32_t*)(pc_buf_raw+count) = task;
+	*(uint32_t*)(pc_buf_raw+count+4) = context;
+	*(uint32_t*)(pc_buf_raw+count+8) = (*context)->pc;
+	*count_ptr = (count + sizeof(struct task) ) & (sizeof(pc_buf_raw)-1);
+#endif
+
+	if( (*context)->pc == (uint32_t) sound_dev_task )
+		(*context)->pc = (uint32_t) my_sound_dev_task;
+#else
 	p -= 16; // p points to the end of the context buffer
 	uint32_t pc = *p;
+	uint32_t * pc_buf = (uint32_t*) pc_buf_raw;
+	
 
 	// Attempt to hijack a few tasks
 #if 0
@@ -350,6 +441,10 @@ my_init_task(void)
 	//new_task[1] = new_task;
 	create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
 	//my_task();
+
+	// Stop the audio dev task
+	//stop_task( "SoundDevice" );
+	//create_task( "SoundDevice", 0x19, 0, my_sound_dev_task, 0 );
 
 	// Try re-writing the version string
 	char * additional_version = (void*) 0x11f9c;
