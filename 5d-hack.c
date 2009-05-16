@@ -351,6 +351,16 @@ my_init_task(void)
 	create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
 	//my_task();
 
+	// Try re-writing the version string
+	char * additional_version = (void*) 0x11f9c;
+	additional_version[0] = '-';
+	additional_version[1] = 'h';
+	additional_version[2] = 'u';
+	additional_version[3] = 'd';
+	additional_version[4] = 's';
+	additional_version[5] = 'o';
+	additional_version[6] = 'n';
+
 	//static const char __attribute__((section(".text"))) fname[] = "A:/INIT.TXT";
 	//static const char __attribute__((section(".text"))) buf[] = "test buffer\n";
 
