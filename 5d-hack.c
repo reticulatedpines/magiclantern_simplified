@@ -318,7 +318,9 @@ my_sound_dev_task( void )
 	FIO_WriteFile( file, dev, sizeof(*dev) );
 	FIO_CloseFile( file );
 
-	//dev->sem = create_named_semaphore( 0, 0 );
+	dev->sem = create_named_semaphore( 0, 0 );
+
+	int level = 0;
 
 	while(1)
 	{
@@ -327,8 +329,10 @@ my_sound_dev_task( void )
 			// DebugAssert( .... );
 		}
 
-		msleep( 2 );
+		msleep( 100 );
 		audio_set_alc_off();
+		audio_set_volume_in( 1, level );
+		level = ( level + 1 ) & 15;
 
 		//uint32_t level = audio_read_level();
 		//FIO_WriteFile( file, &level, sizeof(level) );
@@ -365,31 +369,27 @@ task_dispatch_hook(
 	uint32_t * count_ptr = (uint32_t*) count_buf;
 	uint32_t count = *count_ptr;
 
-#if 1
 	if( !context )
 		return;
 
 	// Determine the task address
-	struct task * task = ((uint32_t)context) - offsetof(struct task, context);
+	struct task * task =
+		((uint32_t)context) - offsetof(struct task, context);
 
-	if( (*context)->pc != (uint32_t) task_trampoline )
+	// Do nothing unless a new task is starting via the trampoile
+	if( task->context->pc != (uint32_t) task_trampoline )
 		return;
+
+	// Try to replace the sound device task
+	// The trampoline will run our entry point instead
+	if( task->entry == (uint32_t) sound_dev_task )
+		task->entry = (uint32_t) my_sound_dev_task;
 
 #if 0
-	if( !task->entry && !(*context)->pc )
-		return;
-
-	// A task that has already been scheduled
-	if( (*context)->pc != (uint32_t) task_trampoline )
-		return;
-
 	*(uint32_t*)(pc_buf_raw+count) = task->entry;
 	*(uint32_t*)(pc_buf_raw+count+4) = (*context)->pc;
 	*count_ptr = (count + 8 ) & (sizeof(pc_buf_raw)-1);
 
-	// Try to replace the sound device task
-	if( (*context)->pc == (uint32_t) sound_dev_task )
-		(*context)->pc = (uint32_t) my_sound_dev_task;
 #else
 	//*(uint32_t*)(pc_buf_raw+count+0) = task ? (*task)->pc : 0xdeadbeef;
 	//*(uint32_t*)(pc_buf_raw+count+4) = lr;
@@ -398,28 +398,6 @@ task_dispatch_hook(
 	*(uint32_t*)(pc_buf_raw+count+4) = context;
 	*(uint32_t*)(pc_buf_raw+count+8) = (*context)->pc;
 	*count_ptr = (count + sizeof(struct task) ) & (sizeof(pc_buf_raw)-1);
-#endif
-
-	if( (*context)->pc == (uint32_t) sound_dev_task )
-		(*context)->pc = (uint32_t) my_sound_dev_task;
-#else
-	p -= 16; // p points to the end of the context buffer
-	uint32_t pc = *p;
-	uint32_t * pc_buf = (uint32_t*) pc_buf_raw;
-	
-
-	// Attempt to hijack a few tasks
-#if 0
-	if( pc == (uint32_t) audio_level_task )
-		*p = pc = (uint32_t) my_audio_level_task;
-	else
-#endif
-	if( pc == (uint32_t) sound_dev_task )
-		*p = pc = (uint32_t) my_sound_dev_task;
-
-	pc_buf[ (*count_ptr)++ ] = pc;
-	*count_ptr &= 1023;
-
 #endif
 }
 
