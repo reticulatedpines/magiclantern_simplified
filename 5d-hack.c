@@ -121,6 +121,24 @@ spin_task( void )
 		;
 }
 
+
+int
+test_dialog(
+	struct dialog *		self,
+	void *			arg,
+	uint32_t		event
+)
+{
+	static void * file;
+	if( !file )
+		file = FIO_CreateFile( "A:/dialog.log" );
+	FIO_WriteFile( file, &event, sizeof(event) );
+
+	// Unhandled?
+	return 1;
+}
+
+
 static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 void my_sleep_task( void )
@@ -133,6 +151,10 @@ void my_sleep_task( void )
 	// Try enabling manual video mode
 	uint32_t enable = 1;
 	EP_SetMovieManualExposureMode( &enable );
+
+	struct dialog * dialog = dialog_create( 0, 0x1a, test_dialog, 0 );
+	dialog_draw( dialog );
+		
 
 	void * file = FIO_CreateFile( "A:/TEST.LOG" );
 	if( file == (void*) 0xFFFFFFFF )

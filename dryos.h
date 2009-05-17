@@ -204,6 +204,7 @@ extern void audio_start_asif_observer(void);
 extern void audio_level_task(void);
 extern void audio_interval_unlock(void*);
 
+
 /** Official Canon sound device task.
  * \internal
  */
@@ -284,9 +285,32 @@ bzero32(
 );
 
 
+
+/** Firmware entry points */
 extern void firmware_entry(void);
 extern void reloc_entry(void);
 extern void __attribute__((noreturn)) cstart(void);
+
+
+/** Dialog box gui elements */
+struct dialog;
+extern struct dialog *
+dialog_create(
+	int			id,
+	int			level_maybe,
+	int			(*handler)(
+		struct dialog *		self,
+		void *			arg,
+		uint32_t		event
+	),
+	void *			arg
+);
+
+extern void
+dialog_draw(
+	struct dialog *		dialog
+);
+
 
 
 #endif
