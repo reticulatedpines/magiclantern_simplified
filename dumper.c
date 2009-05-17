@@ -117,7 +117,6 @@ int main( void )
 	write( f, rom0_start, rom0_size);
 	close( f );
 
-#if 0
 	if( rom1_size == 0 )
 	{
 		LOG();
@@ -143,6 +142,7 @@ int main( void )
 	close(f);
 
 
+#if 0
 	// Change the name to RAM0.bin
 	fname[4] = 'A';
 	fname[6] = '0';
@@ -179,7 +179,7 @@ int main( void )
 	write( logfile, &value, sizeof(value) );
 	}
 
-#define write_mrc( cn, cm, arg ) \
+#define writelog_mrc( cn, cm, arg ) \
 	do { \
 		uint32_t value; \
 		asm( "mrc p15, 0, %0, " #cn ", " #cm ", " #arg "\n" \
@@ -189,36 +189,30 @@ int main( void )
 	} while(0);
 
 	LOG();
-	write_mrc( c1, c0, 0 ); // control register
+	writelog_mrc( c1, c0, 0 ); // control register
 
-	write_mrc( c2, c0, 0 ); // data cache bits
-	write_mrc( c2, c0, 1 ); // inst cache bits
+	writelog_mrc( c2, c0, 0 ); // data cache bits
+	writelog_mrc( c2, c0, 1 ); // inst cache bits
 
-	write_mrc( c3, c0, 0 ); // data bufferable bits
-	write_mrc( c3, c0, 1 ); // inst bufferable bits
+	writelog_mrc( c3, c0, 0 ); // data bufferable bits
+	writelog_mrc( c3, c0, 1 ); // inst bufferable bits
 
-	write_mrc( c5, c0, 2 ); // extended data access
-	write_mrc( c5, c0, 3 ); // extended inst access
+	writelog_mrc( c5, c0, 2 ); // extended data access
+	writelog_mrc( c5, c0, 3 ); // extended inst access
 
-	write_mrc( c6, c0, 0 ); // region 0
-	write_mrc( c6, c1, 0 ); // region 1
-	write_mrc( c6, c2, 0 ); // region 2
-	write_mrc( c6, c3, 0 ); // region 3
-	write_mrc( c6, c4, 0 ); // region 4
-	write_mrc( c6, c5, 0 ); // region 5
-	write_mrc( c6, c6, 0 ); // region 6
-	write_mrc( c6, c7, 0 ); // region 7
+	writelog_mrc( c6, c0, 0 ); // region 0
+	writelog_mrc( c6, c1, 0 ); // region 1
+	writelog_mrc( c6, c2, 0 ); // region 2
+	writelog_mrc( c6, c3, 0 ); // region 3
+	writelog_mrc( c6, c4, 0 ); // region 4
+	writelog_mrc( c6, c5, 0 ); // region 5
+	writelog_mrc( c6, c6, 0 ); // region 6
+	writelog_mrc( c6, c7, 0 ); // region 7
 
-	write_mrc( c9, c0, 0 ); // data lockdown
-	write_mrc( c9, c0, 1 ); // inst lockdown
-	write_mrc( c9, c1, 0 ); // data tcm
-	write_mrc( c9, c2, 1 ); // inst tcm
-
-	// Add a spin loop somewhere early in setup
-	volatile uint32_t * startup = (uint32_t*) 0xff810894;
-	*startup = 0xeafffffe;
-	if( *startup == 0xeafffffe )
-		while(1);
+	writelog_mrc( c9, c0, 0 ); // data lockdown
+	writelog_mrc( c9, c0, 1 ); // inst lockdown
+	writelog_mrc( c9, c1, 0 ); // data tcm
+	writelog_mrc( c9, c2, 1 ); // inst tcm
 
 	LOG();
 	abort_firmup1();
