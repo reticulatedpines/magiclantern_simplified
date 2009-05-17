@@ -10,6 +10,19 @@ typedef signed short	int16_t;
 typedef unsigned short	uint16_t;
 typedef signed char	int8_t;
 typedef unsigned char	uint8_t;
+typedef uint32_t	size_t;
+
+#define offsetof(type, member) \
+	((uint32_t) &(( (type*) 0 )->member))
+
+static inline uint32_t
+read_lr( void )
+{
+	uint32_t lr;
+	asm( "mov %0, lr" : "=r"(lr) );
+	return lr;
+}
+
 
 static inline void
 select_normal_vectors( void )

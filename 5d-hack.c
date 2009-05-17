@@ -1,50 +1,7 @@
 /** \file
  * Code to run on the 5D once it has been relocated.
  */
-#include "canon-5d.h"
-#define offsetof(type, member) \
-	((uint32_t) &(( (type*) 0 )->member))
-
-static inline uint32_t
-read_lr( void )
-{
-	uint32_t lr;
-	asm( "mov %0, lr" : "=r"(lr) );
-	return lr;
-}
-
-struct context
-{
-	uint32_t		cpsr;
-	uint32_t		r[13];
-	uint32_t		lr;
-	uint32_t		pc;
-};
-
-struct task
-{
-	uint32_t		off_0x00;	// always 0?
-	uint32_t		off_0x04;	// stack maybe?
-	uint32_t		off_0x08;	// flags?
-	void *			entry;		// off 0x0c
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	uint32_t		off_0x20;
-	char *			name;		// off_0x24;
-	uint32_t		off_0x28;
-	uint32_t		off_0x2c;
-	uint32_t		off_0x30;
-	uint32_t		off_0x34;
-	uint32_t		off_0x38;
-	uint32_t		off_0x3c;
-	uint32_t		off_0x40;
-	uint32_t		off_0x44;
-	uint32_t		off_0x48;
-	struct context *	context;	// off 0x4C
-	uint32_t		pad_1[12];
-};
+#include "dryos.h"
 
 
 /** These are called when new tasks are created */

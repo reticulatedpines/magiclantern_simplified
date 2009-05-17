@@ -19,7 +19,12 @@ FLAGS=\
 	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
-	-fno-strict-aliasing
+	-fno-strict-aliasing \
+	-DRELOCADDR=$(RELOCADDR) \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+
+NOT_USED_FLAGS=\
 	-march=armv5te \
 	-mthumb \
 	-mthumb-interwork \
@@ -29,9 +34,6 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
-	-DRELOCADDR=$(RELOCADDR) \
-	-DRESTARTSTART=$(RESTARTSTART) \
-	-DROMBASEADDR=$(ROMBASEADDR) \
 
 
 AFLAGS=\
@@ -61,7 +63,7 @@ dumper: dumper_entry.o dumper.o
 reboot.o: reboot.c 5d-hack.bin
 5d-hack.bin: 5d-hack
 
-5d-hack: 5d-hack.o
+5d-hack: 5d-hack.o stubs-5d2.107.o
 	$(LD) \
 		-o $@ \
 		-nostdlib \
