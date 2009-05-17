@@ -267,8 +267,8 @@ my_sound_dev_task( void )
 
 		msleep( 100 );
 		audio_set_alc_off();
-		audio_set_volume_in( 1, level );
-		level = ( level + 1 ) & 15;
+		//audio_set_volume_in( 0, level );
+		//level = ( level + 1 ) & 15;
 
 		//uint32_t level = audio_read_level();
 		//FIO_WriteFile( file, &level, sizeof(level) );
@@ -321,10 +321,10 @@ task_dispatch_hook(
 	if( task->entry == sound_dev_task )
 		task->entry = my_sound_dev_task;
 
-#if 0
-	*(uint32_t*)(pc_buf_raw+count) = task->entry;
-	*(uint32_t*)(pc_buf_raw+count+4) = (*context)->pc;
-	*count_ptr = (count + 8 ) & (sizeof(pc_buf_raw)-1);
+#if 1
+	*(uint32_t*)(pc_buf_raw+count+0) = (uint32_t) task->entry;
+	//*(uint32_t*)(pc_buf_raw+count+4) = (uint32_t) task->context->pc;
+	*count_ptr = (count + 16 ) & (sizeof(pc_buf_raw)-1);
 
 #else
 	//*(uint32_t*)(pc_buf_raw+count+0) = task ? (*task)->pc : 0xdeadbeef;
