@@ -129,10 +129,17 @@ test_dialog(
 	uint32_t		event
 )
 {
-	static void * file;
+	static uint32_t __attribute__((section(".text"))) buf[4];
+	static void * __attribute__((section(".text"))) file;
+
 	if( !file )
 		file = FIO_CreateFile( "A:/dialog.log" );
-	FIO_WriteFile( file, &event, sizeof(event) );
+	buf[0]++;
+	buf[1] = self;
+	buf[2] = arg;
+	buf[3] = event;
+
+	FIO_WriteFile( file, buf, sizeof(buf) );
 
 	// Unhandled?
 	return 1;
