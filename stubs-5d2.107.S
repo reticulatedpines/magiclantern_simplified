@@ -12,6 +12,10 @@
 	.global name; \
 	name = addr
 
+NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB( RELOCADDR+0xc, reloc_entry )
+
+NSTUB( 0xFF810894, cstart )
 NSTUB( 0xFF810674, DryosPanic )
 NSTUB( 0xFF8167F0, get_current_task )
 NSTUB( 0xFF869C94, msleep )
@@ -49,5 +53,4 @@ NSTUB( 0xFF98C6B4, FIO_WriteFile )
 NSTUB( 0xFF98CD6C, FIO_CloseFile )
 NSTUB( 0xFF98C274, FIO_CloseSync )
 NSTUB( 0xFF833A18, write_debug_file )
-NSTUB( ROMBASEADDR, firmware_entry )
-NSTUB( RELOCADDR+0xc, reloc_entry )
+NSTUB( 0xFFC21E14, bzero32 )

@@ -45,6 +45,28 @@ struct task
 };
 
 
+/*
+ * Audio information structure at 0x7324.
+ * This controls the AGC system.
+ */
+struct audio_info
+{
+	uint8_t			off_0x00;
+	uint8_t			off_0x01;
+	uint8_t			off_0x02;
+	uint8_t			off_0x03;
+	struct semaphore *	sem_interval;	// off_0x04
+	uint32_t		task_created;	// off_0x08
+	uint32_t		asif_started;	// off_0x0c
+	uint32_t		initialized;	// off_0x10
+	struct semaphore *	sem_task;	// off_0x14
+	uint32_t		off_0x18;
+	int32_t			sample_count;	// off_0x1c
+	int32_t			gain;		// off_0x20, from 0 to -41
+	uint32_t		max_sample;	// off_0x24
+} __attribute__((packed));
+
+
 /** Return the head of the running task list */
 extern struct task *
 get_current_task(void);
@@ -232,9 +254,16 @@ write_debug_file(
 );
 
 
-/** These need to be changed if the relocation address changes */
+extern void
+bzero32(
+	void *			buf,
+	size_t			len
+);
+
+
 extern void firmware_entry(void);
 extern void reloc_entry(void);
+extern void __attribute__((noreturn)) cstart(void);
 
 
 #endif

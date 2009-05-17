@@ -14,6 +14,9 @@ void my_bzero( uint8_t * base, uint32_t size );
 /** Translate a firmware address into a relocated address */
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
 
+/** Fix a branch instruction in the relocated firmware image */
+#define FIXUP_BRANCH( rom_addr, dest_addr ) \
+	INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
 void
 __attribute__((noreturn,noinline,naked))
@@ -27,25 +30,28 @@ copy_and_restart( void )
 
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
-	// Make a few patches so that the startup routines call
-	// our create_init_task() instead of theirs
+	/*
+	 * in entry2() (0xff812a98) make this change:
+ 	 */
+	// Return to our code before calling cstart()
 	INSTR( 0xFF812AE8 ) = RET_INSTR;
-	//INSTR( 0xFF812AE8 ) = LOOP_INSTR;
 
+
+	/*
+	 * in cstart() (0xff810894) make these changes:
+	 */
 	// Reserve memory after the BSS for our application
 	INSTR( 0xFF81093C ) = RELOCADDR + firmware_len;
+
+	// Fix the calls to bzero32() and create_init_task()
+	FIXUP_BRANCH( 0xFF8108A4, bzero32 );
+	FIXUP_BRANCH( 0xFF81092C, create_init_task );
 
 	// Set our init task to run instead of the firmware one
 	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
 
-	// in cstart() (0xff810894)
-	// Fix the call to bzero32() to call our local one
-	INSTR( 0xFF8108A4 ) = BL_INSTR( &INSTR(0xFF8108A4), my_bzero );
 
-	// And set the BL create_init_task instruction to do a long branch
-	INSTR( 0xFF81092C ) = FAR_CALL_INSTR;
-	INSTR( 0xFF810930 ) = (uint32_t) create_init_task;
-
+	// Make sure that our self-modifying code clears the cache
 	clean_d_cache();
 	flush_caches();
 
@@ -72,7 +78,6 @@ copy_and_restart( void )
 	// Install our task creation hooks
 	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch_hook;
 	*(uint32_t*) 0x1938 = (uint32_t) task_dispatch_hook;
-	//*(uint32_t*) 0x1938 = (uint32_t) task_create_hook;
 
 #if 0
 	// Enable this to spin rather than starting firmware.
@@ -85,8 +90,8 @@ copy_and_restart( void )
 	// but the last branch instruction at the end of this
 	// has been modified to jump into the ROM version
 	// instead.
-	void (*entry2)(void) = (void*) &INSTR( 0xff810894 );
-	entry2();
+	void (*ram_cstart)(void) = (void*) &INSTR( cstart );
+	ram_cstart();
 
 	// Unreachable
 	while(1)
@@ -153,26 +158,6 @@ void my_timer_task( void )
 	oneshot_timer( 1<<10, my_timer_task, my_timer_task, 0 );
 }
 
-/*
- * Audio information structure at 0x7324.
- * This controls the AGC system.
- */
-struct audio_info
-{
-	uint8_t			off_0x00;
-	uint8_t			off_0x01;
-	uint8_t			off_0x02;
-	uint8_t			off_0x03;
-	struct semaphore *	sem_interval;	// off_0x04
-	uint32_t		task_created;	// off_0x08
-	uint32_t		asif_started;	// off_0x0c
-	uint32_t		initialized;	// off_0x10
-	struct semaphore *	sem_task;	// off_0x14
-	uint32_t		off_0x18;
-	int32_t			sample_count;	// off_0x1c
-	int32_t			gain;		// off_0x20, from 0 to -41
-	uint32_t		max_sample;	// off_0x24
-} __attribute__((packed));
 
 
 static inline uint32_t
@@ -391,61 +376,4 @@ my_init_task(void)
 	additional_version[5] = 'o';
 	additional_version[6] = 'n';
 
-	//static const char __attribute__((section(".text"))) fname[] = "A:/INIT.TXT";
-	//static const char __attribute__((section(".text"))) buf[] = "test buffer\n";
-
-	// We are back before they registered any procedures.
-	//static const char __attribute__((section(".text"))) proc_name[] = "lv_start";
-	//UnregisterEventProcedure( proc_name );
-	//RegisterEventProcedure_im1( proc_name, spin_task );
-
-
-	// Try turning on manual movie mode...
-	
-	// It has configured all of the tasks, setup all of the
-	// devices, etc.  We are now in control of the camera.
-
-
-#if 0
-        // Disable AGC by always returning the same level
-        const uint32_t audio_level = 40;
-        const uint32_t instr = 0xe3e02000 | audio_level;
-        *(volatile uint32_t*)( 0xFF972628 ) = instr;
-        if( *(volatile uint32_t*)( 0xFF972628 ) != instr )
-		while(1);
-#endif
-
-
-	return;
-
-	// Let's create our own task.
-	//create_task( "my_task", 0x19, 1, my_task );
-
-	// Try to change the file names that are written
-	*(uint8_t*) 0x68CC = 'x';
-	*(uint8_t*) 0x68D4 = 'y';
-	*(uint8_t*) 0x11E50 = 'z';
-	//*(uint8_t*) 0x2096A8 = 'z';
-
-	dmstart();
-
-	//DryosPanic( 0x40, 1 );
-
-	//uint32_t manual = 1;
-	//EP_SetMovieManualExposureMode( &manual );
-
 }
-
-
-void
-my_bzero(
-	uint8_t *	base,
-	uint32_t	size
-)
-{
-	uint32_t	i;
-
-	for( i=0 ; i<size ; i++ )
-		base[i] = 0;
-}
-
