@@ -54,3 +54,8 @@ NSTUB( 0xFF98CD6C, FIO_CloseFile )
 NSTUB( 0xFF98C274, FIO_CloseSync )
 NSTUB( 0xFF833A18, write_debug_file )
 NSTUB( 0xFFC21E14, bzero32 )
+
+
+/* Structures in the BSS or rwdata segment */
+NSTUB( 0x208C, sound_dev );
+NSTUB( 0x7324, audio_info );

@@ -131,8 +131,8 @@ void my_sleep_task( void )
 	msleep( 1000 );
 
 	// Try enabling manual video mode
-	i = 1;
-	EP_SetMovieManualExposureMode( &i );
+	uint32_t enable = 1;
+	EP_SetMovieManualExposureMode( &enable );
 
 	void * file = FIO_CreateFile( "A:/TEST.LOG" );
 	if( file == (void*) 0xFFFFFFFF )
@@ -153,7 +153,7 @@ void my_sleep_task( void )
 /*
  * Demonstrates a task that uses timers to reschedule itself.
  */
-void my_timer_task( void )
+void my_timer_task( void * unused )
 {
 	oneshot_timer( 1<<10, my_timer_task, my_timer_task, 0 );
 }
@@ -170,66 +170,68 @@ audio_read_level( void )
 void
 my_audio_level_task( void )
 {
-	struct audio_info * const audio = (void*) 0x7324;
 	//const uint32_t * const thresholds = (void*) 0xFFC60ABC;
 
 #if 0
 	// The audio structure will already be setup; we are the
 	// second dispatch of the function.
-	audio->gain		= -39;
-	audio->sample_count	= 0;
-	audio->max_sample	= 0;
-	audio->sem_interval	= create_named_semaphore( 0, 1 );
-	audio->sem_task		= create_named_semaphore( 0, 0 );
+	audio_info->gain		= -39;
+	audio_info->sample_count	= 0;
+	audio_info->max_sample		= 0;
+	audio_info->sem_interval	= create_named_semaphore( 0, 1 );
+	audio_info->sem_task		= create_named_semaphore( 0, 0 );
 #endif
 
 	void * file = FIO_CreateFile( "A:/audio.log" );
-	FIO_WriteFile( file, audio, sizeof(*audio) );
+	FIO_WriteFile( file, audio_info, sizeof(*audio_info) );
 
 	while(1)
 	{
-		if( take_semaphore( audio->sem_interval, 0 ) )
+		if( take_semaphore( audio_info->sem_interval, 0 ) )
 		{
 			//DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
 		}
 
-		if( take_semaphore( audio->sem_task, 0 ) )
+		if( take_semaphore( audio_info->sem_task, 0 ) )
 		{
 			//DebugAssert( "!IS_ERROR", SoundDevice", 0x83 );
 		}
 
-		if( !audio->initialized )
+		if( !audio_info->initialized )
 		{
 			audio_set_filter_off();
 
-			if( audio->off_0x00 == 1
-			&&  audio->off_0x01 == 0
+			if( audio_info->off_0x00 == 1
+			&&  audio_info->off_0x01 == 0
 			)
 				audio_set_alc_off();
 			
-			audio->off_0x00 = audio->off_0x01;
-			audio_set_windcut( audio->off_0x18 );
+			audio_info->off_0x00 = audio_info->off_0x01;
+			audio_set_windcut( audio_info->off_0x18 );
 
 			audio_set_sampling_param( 0xAC44, 0x10, 1 );
-			audio_set_volume_in( audio->off_0x00, audio->off_0x02 );
+			audio_set_volume_in(
+				audio_info->off_0x00,
+				audio_info->off_0x02
+			);
 
-			if( audio->off_0x00 == 1 )
+			if( audio_info->off_0x00 == 1 )
 				audio_set_alc_on();
 
-			audio->initialized	= 1;
-			audio->gain		= -39;
-			audio->sample_count	= 0;
+			audio_info->initialized		= 1;
+			audio_info->gain		= -39;
+			audio_info->sample_count	= 0;
 
 		}
 
-		if( audio->asif_started == 0 )
+		if( audio_info->asif_started == 0 )
 		{
 			audio_start_asif_observer();
-			audio->asif_started = 1;
+			audio_info->asif_started = 1;
 		}
 
 		uint32_t level = audio_read_level();
-		give_semaphore( audio->sem_task );
+		give_semaphore( audio_info->sem_task );
 
 		// Never adjust it!
 		//set_audio_agc();
@@ -244,29 +246,21 @@ my_audio_level_task( void )
 }
 
 
-struct sound_dev
-{
-	uint8_t pad0[ 0x70 ];
-	struct semaphore *	sem;	 // off 0x70
-};
-
 
 void
 my_sound_dev_task( void )
 {
-	struct sound_dev * const dev = (void*) 0x208c;
-
 	void * file = FIO_CreateFile( "A:/snddev.log" );
-	FIO_WriteFile( file, dev, sizeof(*dev) );
+	FIO_WriteFile( file, sound_dev, sizeof(*sound_dev) );
 	FIO_CloseFile( file );
 
-	dev->sem = create_named_semaphore( 0, 0 );
+	sound_dev->sem = create_named_semaphore( 0, 0 );
 
 	int level = 0;
 
 	while(1)
 	{
-		if( take_semaphore( dev->sem, 0 ) != 1 )
+		if( take_semaphore( sound_dev->sem, 0 ) != 1 )
 		{
 			// DebugAssert( .... );
 		}
@@ -315,8 +309,8 @@ task_dispatch_hook(
 		return;
 
 	// Determine the task address
-	struct task * task =
-		((uint32_t)context) - offsetof(struct task, context);
+	struct task * task = (struct task*)
+		( ((uint32_t)context) - offsetof(struct task, context) );
 
 	// Do nothing unless a new task is starting via the trampoile
 	if( task->context->pc != (uint32_t) task_trampoline )
@@ -324,8 +318,8 @@ task_dispatch_hook(
 
 	// Try to replace the sound device task
 	// The trampoline will run our entry point instead
-	if( task->entry == (uint32_t) sound_dev_task )
-		task->entry = (uint32_t) my_sound_dev_task;
+	if( task->entry == sound_dev_task )
+		task->entry = my_sound_dev_task;
 
 #if 0
 	*(uint32_t*)(pc_buf_raw+count) = task->entry;
@@ -336,9 +330,9 @@ task_dispatch_hook(
 	//*(uint32_t*)(pc_buf_raw+count+0) = task ? (*task)->pc : 0xdeadbeef;
 	//*(uint32_t*)(pc_buf_raw+count+4) = lr;
 	my_memcpy( pc_buf_raw + count, task, sizeof(struct task) );
-	*(uint32_t*)(pc_buf_raw+count) = task;
-	*(uint32_t*)(pc_buf_raw+count+4) = context;
-	*(uint32_t*)(pc_buf_raw+count+8) = (*context)->pc;
+	*(uint32_t*)(pc_buf_raw+count+0) = (uint32_t) task;
+	*(uint32_t*)(pc_buf_raw+count+4) = (uint32_t) context;
+	*(uint32_t*)(pc_buf_raw+count+8) = (uint32_t) (*context)->pc;
 	*count_ptr = (count + sizeof(struct task) ) & (sizeof(pc_buf_raw)-1);
 #endif
 }
@@ -357,16 +351,10 @@ my_init_task(void)
 	// Call their init task
 	init_task();
 
-	//uint32_t * new_task = new_task_struct( 8 );
-	//new_task[1] = new_task;
+	// Create our init task
 	create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
-	//my_task();
 
-	// Stop the audio dev task
-	//stop_task( "SoundDevice" );
-	//create_task( "SoundDevice", 0x19, 0, my_sound_dev_task, 0 );
-
-	// Try re-writing the version string
+	// Re-write the version string
 	char * additional_version = (void*) 0x11f9c;
 	additional_version[0] = '-';
 	additional_version[1] = 'h';

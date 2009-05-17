@@ -1,3 +1,12 @@
+/** \file
+ * DryOS structures and functions.
+ *
+ * These are reverse engineered from the 5D Mark 2 firmware
+ * version 1.0.7.
+ *
+ * \note Do not forget to update the stubs-5d2.107.S file with
+ * new functions as they are added here!
+ */
 #ifndef _dryos_h_
 #define _dryos_h_
 
@@ -65,6 +74,20 @@ struct audio_info
 	int32_t			gain;		// off_0x20, from 0 to -41
 	uint32_t		max_sample;	// off_0x24
 } __attribute__((packed));
+
+extern struct audio_info * audio_info;
+
+
+/**
+ * Sound device structure.
+ */
+struct sound_dev
+{
+	uint8_t pad0[ 0x70 ];
+	struct semaphore *	sem;	 // off 0x70
+};
+
+extern struct sound_dev * sound_dev;
 
 
 /** Return the head of the running task list */
@@ -179,7 +202,7 @@ extern void audio_set_sampling_param(int, int, int);
 extern void audio_set_volume_in(int,int);
 extern void audio_start_asif_observer(void);
 extern void audio_level_task(void);
-extern void audio_interval_unlock(void);
+extern void audio_interval_unlock(void*);
 
 /** Official Canon sound device task.
  * \internal
