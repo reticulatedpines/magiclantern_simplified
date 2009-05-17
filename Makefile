@@ -14,6 +14,12 @@ RESTARTSTART		= 0x00048000
 RELOCADDR		= 0x00050000
 
 
+all: \
+	5d2_dumper.fir \
+	5d2_reboot.fir \
+
+
+
 FLAGS=\
 	-Wp,-MMD,.$@.d \
 	-Wp,-MT,$@ \
@@ -144,7 +150,7 @@ flasher.elf: 5d200107.1.flasher.bin flasher.map
 		-o $@ \
 		$^
 
-dumper.elf: 5d200107_dump.fir flasher.map
+dumper.elf: 5d2_dump.fir flasher.map
 	./remake-elf \
 		--cc $(CC) \
 		--base 0x800000 \
@@ -154,7 +160,7 @@ dumper.elf: 5d200107_dump.fir flasher.map
 #
 # Generate a new firmware image suitable for dumping the ROM images
 #
-5d200107_dump.fir: dumper.bin 5d200107.1.flasher.bin
+5d2_dumper.fir: dumper.bin 5d200107.1.flasher.bin
 	./assemble_fw \
 		--output $@ \
 		--user $< \
@@ -172,6 +178,7 @@ dummy_data_head.bin:
 #ROM0.bin: 5d200107.fir
 
 # Use the dump_toolkit files
+# deprectated; use the dumper.c program instead
 5d2_dump.fir:
 	-rm $@
 	cat \
@@ -188,6 +195,6 @@ dissect_fw: dissect_fw.c
 
 
 clean:
-	-rm -f *.o *.a *.bin
+	-rm -f *.o *.a
 
 -include .*.o.d
