@@ -56,7 +56,7 @@ NSTUB( 0xFF833A18, write_debug_file )
 NSTUB( 0xFFC21E14, bzero32 )
 NSTUB( 0xFFA5499C, dialog_create )
 NSTUB( 0xFFA552A0, dialog_draw )
-
+NSTUB( 0xFF99A2E0, state_object_create )
 
 /* Structures in the BSS or rwdata segment */
 NSTUB( 0x208C, sound_dev );

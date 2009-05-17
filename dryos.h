@@ -317,4 +317,61 @@ dialog_draw(
 
 
 
+/** Movie recording.
+ *
+ * State information is in this structure.  A pointer to the global
+ * object is at 0x1ee0.  It is of size 0x1b4.
+ *
+ * The state object is in 0x68a4.
+ */
+struct mvr_struct
+{
+	const char *		type;	 // "MovieRecorder"
+};
+
+extern struct mvr_struct ** mvr_struct;
+extern struct state_object ** mvr_state;
+
+/** State objects.
+ *
+ * Not much is known about how these work.  They have a list
+ * of function pointers and perhaps work like FSM?
+ *
+ * Size 0x20
+ */
+typedef void (*state_function_t)( void * arg );
+
+struct state_object
+{
+	const char *		type;		// off 0x00, "StateObject" 
+	const char *		name;		// off 0x04, arg 0
+	uint32_t		id;		// off 0x08, arg 1
+
+	// off 0x0c, always 0xff99a228 ?
+	void			(*callback)(
+		struct state_object *	obj,
+		void *			unknown1,
+		void *			unknown2
+	);
+
+	state_function_t *	callbacks;	// off 0x10
+	uint32_t		max_transitions; // off 0x14, arg 2
+	uint32_t		max_states;	// off 0x18, arg 3
+	uint32_t		state;		// off 0x1c, initially 0
+};
+
+
+extern struct state_object *
+state_object_create(
+	const char *		name,
+	int			initial,
+	state_function_t *	callbacks,
+	int			max_states,
+	int			max_transitions
+);
+
+
+
+
+
 #endif

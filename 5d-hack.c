@@ -148,6 +148,9 @@ test_dialog(
 
 static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
+// mvr_struct 0x1ee0
+// Movie starts recording, r4->0x3c( r4->0x40, 0, 0 )
+
 void my_sleep_task( void )
 {
 	//uint32_t lr = read_lr();
