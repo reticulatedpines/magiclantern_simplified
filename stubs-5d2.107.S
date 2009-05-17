@@ -1,3 +1,11 @@
+/** \file
+ * Entry points into the firmware image.
+ *
+ * These are the functions that we can call from our tasks
+ * in the Canon ROM firmware.
+ *
+ * \todo Sort this file?
+ */
 .text
 
 #define NSTUB(addr,name) \
