@@ -294,15 +294,19 @@ extern void __attribute__((noreturn)) cstart(void);
 
 /** Dialog box gui elements */
 struct dialog;
+
+/** Returns 0 if it handled the message, 1 if it did not? */
+typedef int (*dialog_handler_t)(
+	struct dialog *		self,
+	void *			arg,
+	uint32_t		event
+);
+
 extern struct dialog *
 dialog_create(
 	int			id,
 	int			level_maybe,
-	int			(*handler)(
-		struct dialog *		self,
-		void *			arg,
-		uint32_t		event
-	),
+	dialog_handler_t	handler,
 	void *			arg
 );
 
