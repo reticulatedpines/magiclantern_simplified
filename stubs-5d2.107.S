@@ -61,7 +61,27 @@ NSTUB( 0xFFA552A0, dialog_draw )
 NSTUB( 0xFF99A2E0, state_object_create )
 NSTUB( 0xFFA2AC9C, vram_get_number )
 NSTUB( 0xFF860210, dispcheck )
+NSTUB( 0xFF8669CC, DebugMsg )
+NSTUB( 0xFFAB88AC, color_palette_push )
+
+NSTUB( 0xFFBA0898, main_tab_header_dialog )
+NSTUB( 0xFFBA0820, StopMnMainTabHeaderApp )
+NSTUB( 0xFFB9CA70, StartMnMainRec1App )
+NSTUB( 0xFFB9D384, StartMnMainRec2App )
+NSTUB( 0xFFB9B800, StartMnMainPlay1App )
+NSTUB( 0xFFB9BF9C, StartMnMainPlay2App )
+NSTUB( 0xFFB9DE74, StartMnMainSetup1App )
+NSTUB( 0xFFB9E754, StartMnMainSetup2App )
+NSTUB( 0xFFB9F048, StartMnMainSetup3App )
+NSTUB( 0xFFB985BC, StartMnMainCustomFuncApp )
+NSTUB( 0xFFB9AA54, StartMnMainMyMenuApp )
+
+NSTUB( 0xFFBDDB50, StartFactoryMenuApp )
+NSTUB( 0xFF9BAC48, StartMnStudioSetupmenuApp )
+
 
 /* Structures in the BSS or rwdata segment */
+NSTUB( 0x1F848, main_tab_dialog_id )
 NSTUB( 0x208C, sound_dev );
 NSTUB( 0x7324, audio_info );
+

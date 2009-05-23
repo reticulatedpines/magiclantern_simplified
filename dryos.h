@@ -22,6 +22,14 @@ DryosPanic(
 	uint32_t		arg1
 );
 
+extern void
+DebugMsg(
+	int			subsys,
+	int			level,
+	const char *		fmt,
+	...
+);
+
 
 struct context
 {
@@ -310,24 +318,30 @@ struct dialog;
 
 /** Returns 0 if it handled the message, 1 if it did not? */
 typedef int (*dialog_handler_t)(
-	struct dialog *		self,
+	int			self_id,
 	void *			arg,
 	uint32_t		event
 );
 
-extern struct dialog *
+extern int
 dialog_create(
 	int			id,
 	int			level_maybe,
 	dialog_handler_t	handler,
-	void *			arg
+	void *			arg1,
+	void *			arg2
 );
 
 extern void
 dialog_draw(
-	struct dialog *		dialog
+	int			dialog_id
 );
 
+
+extern void
+color_palette_push(
+	int			palette_id
+);
 
 
 /** Movie recording.
@@ -409,6 +423,25 @@ vram_get_number(
 extern void
 dispcheck( void );
 
+
+/** Main menu tab functions */
+extern int main_tab_dialog_id;
+extern void main_tab_header_dialog( void );
+extern void StopMnMainTabHeaderApp( void );
+extern void StartMnMainRec1App( void );
+extern void StartMnMainRec2App( void );
+extern void StartMnMainPlay1App( void );
+extern void StartMnMainPlay2App( void );
+extern void StartMnMainSetup1App( void );
+extern void StartMnMainSetup2App( void );
+extern void StartMnMainSetup3App( void );
+extern void StartMnMainCustomFuncApp( void );
+extern void StartMnMainMyMenuApp( void );
+
+
+/** Hidden menus */
+extern void StartFactoryMenuApp( void );
+extern void StartMnStudioSetupMenuApp( void );
 
 
 #endif
