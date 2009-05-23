@@ -26,6 +26,8 @@ NSTUB( 0xFFC22054, task_save_state )
 NSTUB( 0xFF8676EC, RegisterEventProcedure_im1 )
 NSTUB( 0xFF8676F4, UnregisterEventProcedure )
 NSTUB( 0xFF9F2D48, EP_SetMovieManualExposureMode )
+NSTUB( 0xFF9F4E8C, EP_SetLVAEDebugPort )
+NSTUB( 0xFF9F4E64, EP_SetDebugLogMode )
 NSTUB( 0xFF86DFEC, new_task_struct )
 NSTUB( 0xFF86DD10, create_task )
 NSTUB( 0xFF8729CC, task_trampoline )
@@ -57,6 +59,8 @@ NSTUB( 0xFFC21E14, bzero32 )
 NSTUB( 0xFFA5499C, dialog_create )
 NSTUB( 0xFFA552A0, dialog_draw )
 NSTUB( 0xFF99A2E0, state_object_create )
+NSTUB( 0xFFA2AC9C, vram_get_number )
+NSTUB( 0xFF860210, dispcheck )
 
 /* Structures in the BSS or rwdata segment */
 NSTUB( 0x208C, sound_dev );

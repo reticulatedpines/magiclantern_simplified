@@ -12,6 +12,9 @@
 
 #include "arm-mcr.h"
 
+typedef void (*thunk)(void);
+
+
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
 DryosPanic(
@@ -144,6 +147,16 @@ UnregisterEventProcedure(
 
 extern void
 EP_SetMovieManualExposureMode(
+	uint32_t *		enable_ptr
+);
+
+extern void
+EP_SetDebugLogMode(
+	uint32_t *		enable_ptr
+);
+
+extern void
+EP_SetLVAEDebugPort(
 	uint32_t *		enable_ptr
 );
 
@@ -339,23 +352,37 @@ extern struct state_object ** mvr_state;
  *
  * Size 0x20
  */
-typedef void (*state_function_t)( void * arg );
+typedef struct state_object * (*state_function_t)(
+	void *			arg1,
+	void *			arg2,
+	void *			arg3
+);
+
+struct state_callback
+{
+	uint32_t		next_state;
+	state_function_t	handler;
+};
+
 
 struct state_object
 {
 	const char *		type;		// off 0x00, "StateObject" 
 	const char *		name;		// off 0x04, arg 0
-	uint32_t		id;		// off 0x08, arg 1
+	uint32_t		auto_sequence;	// off 0x08, arg 1
 
 	// off 0x0c, always 0xff99a228 ?
 	void			(*callback)(
-		struct state_object *	obj,
-		void *			unknown1,
-		void *			unknown2
+		struct state_object *	self,
+		void *			arg1,
+		uint32_t		input,
+		void *			arg3,
+		void *			arg4
 	);
 
-	state_function_t *	callbacks;	// off 0x10
-	uint32_t		max_transitions; // off 0x14, arg 2
+	// Points to an array of size [max_inputs][max_states]
+	struct state_callback *	callbacks;	// off 0x10
+	uint32_t		max_inputs;	// off 0x14, arg 2
 	uint32_t		max_states;	// off 0x18, arg 3
 	uint32_t		state;		// off 0x1c, initially 0
 };
@@ -364,13 +391,23 @@ struct state_object
 extern struct state_object *
 state_object_create(
 	const char *		name,
-	int			initial,
+	int			auto_sequence,
 	state_function_t *	callbacks,
-	int			max_states,
-	int			max_transitions
+	int			max_inputs,
+	int			max_states
 );
 
 
+
+/** VRAM accessors */
+extern uint32_t
+vram_get_number(
+	uint32_t		number
+);
+
+/** Write the VRAM to a BMP file named "A:/test.bmp" */
+extern void
+dispcheck( void );
 
 
 
