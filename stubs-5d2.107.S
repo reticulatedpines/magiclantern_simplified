@@ -84,4 +84,5 @@ NSTUB( 0xFF9BAC48, StartMnStudioSetupmenuApp )
 NSTUB( 0x1F848, main_tab_dialog_id )
 NSTUB( 0x208C, sound_dev );
 NSTUB( 0x7324, audio_info );
+NSTUB( 0x2924, dm_state_ptr );
 

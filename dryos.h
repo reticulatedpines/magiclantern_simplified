@@ -22,6 +22,8 @@ DryosPanic(
 	uint32_t		arg1
 );
 
+
+/** Debug messages and debug manager */
 extern void
 DebugMsg(
 	int			subsys,
@@ -29,6 +31,20 @@ DebugMsg(
 	const char *		fmt,
 	...
 );
+
+struct dm_state
+{
+	const char *		type; // off_0x00
+	uint32_t		off_0x04;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+	void *			signature; // off_0x10
+	uint32_t		unknown[ (788 - 0x14)/4 ];
+};
+
+extern struct dm_state * dm_state_ptr;
+
+/** Tasks and contexts */
 
 
 struct context
@@ -454,6 +470,7 @@ extern void StartMnMainMyMenuApp( void );
 /** Hidden menus */
 extern void StartFactoryMenuApp( void );
 extern void StartMnStudioSetupMenuApp( void );
+
 
 
 #endif
