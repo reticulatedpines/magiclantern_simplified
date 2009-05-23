@@ -178,6 +178,23 @@ void find_vram( void )
 	FIO_CloseFile( file );
 }
 
+
+void find_dm( void )
+{
+	if( !dm_state_ptr )
+		return;
+	void * file = FIO_CreateFile( "A:/dm.log" );
+	FIO_WriteFile( file, dm_state_ptr, sizeof(*dm_state_ptr) );
+	FIO_WriteFile( file, dm_state_ptr->signature, 0x100 );
+
+	int (*dmGetLogName)( char * name ) = (void*) 0xffa7e458;
+	char logfilename[32];
+	int rc = dmGetLogName( logfilename );
+
+	FIO_WriteFile( file, logfilename, sizeof(logfilename) );
+	FIO_CloseFile( file );
+}
+
 void scribble( void )
 {
 	uint32_t * const vram_config_ptr = (void*) 0x2580;
@@ -277,8 +294,8 @@ void my_sleep_task( void )
 
 	// Kill the LVC_AE task
 	//KillTask( "LVC_AE" );
-	thunk lvcae_destroy_state_object = (void*) 0xff83574c;
-	lvcae_destroy_state_object();
+	//thunk lvcae_destroy_state_object = (void*) 0xff83574c;
+	//lvcae_destroy_state_object();
 
 	msleep( 1000 );
 		dispcheck();
@@ -291,6 +308,7 @@ void my_sleep_task( void )
 		return; //while(1);
 
 	find_vram();
+	find_dm();
 	//FIO_WriteFile( file, &lr, sizeof(lr) );
 
 	for( i=0 ; i<6 ; i++ )
