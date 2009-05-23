@@ -43,6 +43,7 @@ struct dm_state
 };
 
 extern struct dm_state * dm_state_ptr;
+extern struct state_object * dm_state_object;
 
 /** Tasks and contexts */
 
@@ -384,13 +385,10 @@ struct mvr_struct
 	const char *		type;	 // "MovieRecorder"
 };
 
-extern struct mvr_struct ** mvr_struct;
-extern struct state_object ** mvr_state;
+extern struct mvr_struct * mvr_struct;
+extern struct state_object * mvr_state;
 
 /** State objects.
- *
- * Not much is known about how these work.  They have a list
- * of function pointers and perhaps work like FSM?
  *
  * Size 0x20
  */
@@ -437,6 +435,16 @@ state_object_create(
 	state_function_t *	callbacks,
 	int			max_inputs,
 	int			max_states
+);
+
+
+extern void
+state_object_dispatchc(
+	struct state_object *	self,
+	int			input,
+	int			arg0,
+	int			arg1,
+	int			arg2
 );
 
 

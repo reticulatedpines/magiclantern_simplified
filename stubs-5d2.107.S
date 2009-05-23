@@ -59,6 +59,7 @@ NSTUB( 0xFFC21E14, bzero32 )
 NSTUB( 0xFFA5499C, dialog_create )
 NSTUB( 0xFFA552A0, dialog_draw )
 NSTUB( 0xFF99A2E0, state_object_create )
+NSTUB( 0xFF99A1F0, state_object_dispatch )
 NSTUB( 0xFFA2AC9C, vram_get_number )
 NSTUB( 0xFF860210, dispcheck )
 NSTUB( 0xFF8669CC, DebugMsg )
@@ -80,9 +81,11 @@ NSTUB( 0xFFBDDB50, StartFactoryMenuApp )
 NSTUB( 0xFF9BAC48, StartMnStudioSetupmenuApp )
 
 
+
 /* Structures in the BSS or rwdata segment */
 NSTUB( 0x1F848, main_tab_dialog_id )
 NSTUB( 0x208C, sound_dev );
 NSTUB( 0x7324, audio_info );
 NSTUB( 0x2924, dm_state_ptr );
+NSTUB( 0x8348, dm_state_object );
 

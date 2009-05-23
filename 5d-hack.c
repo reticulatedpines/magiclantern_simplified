@@ -184,14 +184,20 @@ void find_dm( void )
 	if( !dm_state_ptr )
 		return;
 	void * file = FIO_CreateFile( "A:/dm.log" );
-	FIO_WriteFile( file, dm_state_ptr, sizeof(*dm_state_ptr) );
-	FIO_WriteFile( file, dm_state_ptr->signature, 0x100 );
+	//FIO_WriteFile( file, dm_state_ptr, sizeof(*dm_state_ptr) );
+	FIO_WriteFile( file, dm_state_ptr->signature, 0x1000 );
 
+	
+/*
 	int (*dmGetLogName)( char * name ) = (void*) 0xffa7e458;
+	int (*dm_log_create)( char * name ) = (void*) 0xff998f70;
 	char logfilename[32];
-	int rc = dmGetLogName( logfilename );
+	dmGetLogName( logfilename );
+	void * dml = dm_log_create( logfilename );
+*/
+	//struct state_object * (*dm_start_log)( struct state_object * self, int input, int arg1, int arg2 ) = (void*) 0xff99420c;
+	//dm_start_log( dm_state_object, 1, 1, 0 );
 
-	FIO_WriteFile( file, logfilename, sizeof(logfilename) );
 	FIO_CloseFile( file );
 }
 
