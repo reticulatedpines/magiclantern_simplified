@@ -26,6 +26,8 @@
  0000:00001C4C       gui_main_struct
  0000:00001C84       gui_lock
  0000:00001D14       smem_functions
+ 0000:00001D74       lv_event_something
+ 0000:00001D78       lvcae_task_ptr
  0000:00001E1C       lv_global_1e1c
  0000:00001ED0       video_settings
  0000:00001EE0       mvr_struct
@@ -33,7 +35,10 @@
  0000:00001F88       audio_semaphore
  0000:00001FAC       audio_struct
  0000:0000208C       sound_struct
+ 0000:000024C4       property_struct
+ 0000:000024DC       nullsub_callbacks
  0000:00002538       gui_resource_struct
+ 0000:00002580       hdmi_config_maybe
  0000:000026D8       bmp_functions
  0000:00002710       display_functions
  0000:00002924       dm_global_state
@@ -45,7 +50,9 @@
  0000:00002B78       power_save_funcs_0
  0000:00002B9C       global_2b9c
  0000:00002BBC       assert_output_func_ptr
+ 0000:00002BC0       movrecwork_struct
  0000:00002C08       timer_struct
+ 0000:00002CE0       logfileclass_str_ptr
  0000:00002D08       init_task_struct
  0000:00002D48       task_list
  0000:00002D54       semaphore_list
@@ -76,6 +83,7 @@
  0000:00002E0C       stack_addr_idle
  0000:00002E10       stack_addr_init
  0000:00002EF0       scs_state_ptr
+ 0000:00003428       sds_state_objects
  0000:00003548       gui_struct
  0000:00003630       a06010101_0
  0000:00003640       a06010101
@@ -83,9 +91,14 @@
  0000:0000365C       aNwprof01_0
  0000:00003668       gui_timer_struct
  0000:000037FC       custom_function_block
+ 0000:00003964       factory_menu_ptr_something
+ 0000:0000396C       factory_menu_catalog_table
+ 0000:0000398C       factory_callback_functions
+ 0000:0000426C       lv_struct
  0000:000043A4       lvae_global_config_maybe
  0000:000043D0       LVCAF_ptr
  0000:00004404       lvcdevstate_ptr
+ 0000:00004B00       aD_34
  0000:00006488       ptp_functions
  0000:00006598       struct_6598
  0000:00006668       global_state_0x6668
@@ -101,36 +114,86 @@
  0000:000081E4       EdLed_state
  0000:0000820C       Dfe_initialized
  0000:00008348       dmstate_ptr
+ 0000:00008388       publisher_instance_ptr
  0000:000083B8       CUTask_global
  0000:00011A60       gui_graphics_functions
  0000:00011B7C       struct_11b7c
  0000:00011BBC       lv_global_struct
  0000:00011F7C       a1_0_0_0
  0000:00011F9C       version_string_maybe
+ 0000:00012058       studio_setup_ptr
+ 0000:00012060       gui_idle_task_ptr
+ 0000:00012068       lv_global_13c_ptr
+ 0000:000120B0       factory_menu_something_0
+ 0000:00012138       factory_menu_something_1
+ 0000:0001213A       factory_menu_something_2
+ 0000:000126E0       aExif_2
+ 0000:000126E8       aCanon_12
+ 0000:000126F0       aDcim_2
  0000:00012C48       lvae_config
  0000:00012D04       struct_12d04
  0000:00012D0C       struct_12d0c
  0000:00012E94       ptp_framework_client_functions
  0000:000130D0       capready_data
+ 0000:00013EA0       vram_struct
  0000:0001402C       h264_struct
  0000:00014758       aHttpWww_w3_org2000Svg
  0000:00014774       aXml
  0000:0001477C       aXmlns
  0000:00014784       aHttpWww_w3_orgXml1998Namespace
  0000:000147AC       aHttpWww_w3_org2000Xmlns
+ 0000:000147CC       ctrlman_struct
  0000:000147E8       dialog_sys_struct_maybe
+ 0000:000147FC       langcon_struct_ptr
  0000:00014804       langcon_struct
+ 0000:00014838       aDummyPopupMenu_0
+ 0000:00014850       button_dummy
+ 0000:00014854       aDummyButton
+ 0000:00014864       widget_text_struct
+ 0000:00014868       widget_dummy_counter_struct
+ 0000:00014870       aDummyCounter
+ 0000:00014880       dummy_list_ptr
+ 0000:00014884       aDummyListSelect
+ 0000:0001489C       widget_popup_aeb
+ 0000:000148A4       aDummyPopupaeb_0
+ 0000:000148C4       fnt_str_ptr
+ 0000:000148C8       vram_instance_str_ptr
  0000:00014900       window_sys_struct_maybe
+ 0000:00014950       aDummyPopupSlider
+ 0000:00014968       aDummyAnimationBmp
+ 0000:0001498C       aDummyPopupCounter
+ 0000:00014BC0       err_recording_busy_ptr
+ 0000:00014CB4       aPE
+ 0000:00014CB8       aPE_0
+ 0000:00014CBC       aPE_1
+ 0000:00014D50       a20080916165427_0
+ 0000:00014DAC       a20080916
+ 0000:00015FE8       menumain_date_timer_callback_ptr
+ 0000:00016050       af_dialog_maybe
+ 0000:000161C0       color_palette_ptr
+ 0000:00018F2C       dialog_item_str_ptr
+ 0000:00018F30       dialog_items_list
+ 0000:00018F3C       aDummy_1
  0000:0001E848       EdLedBlink_object
  0000:0001E890       af_debug_enable
+ 0000:0001F818       mainrec1app_ptr
  0000:0001F848       main_tab_header_struct
+ 0000:00020454       factory_menu_ptr
+ 0000:00020580       factory_menu_catalog
  0000:00000000       interrupt_handler_context_buffer
+ 0000:00000820       qPrintf_buffer
  0000:000011F0       camset_filename
+ 0000:0000347C       lvcae_wb_callback_maybe
+ 0000:0000398C       bmp_vram_something
  0000:00005CE8       dryos_global_maybe
+ 0000:000090CC       lvcae_wb_callback_arg_maybe
  0000:0000B844       global_gui_status
  0000:0000E3B0       lvae_info_struct
  0000:0000EC60       struct_2f3a0
  0000:0000EC74       struct_2f3b4
+ 0000:00012C70       vram_struct_bss_maybe
+ 0000:00012D00       vram_parameter_maybe
+ 0000:00018040       dialog_items_list_maybe
  0001:00000000       here
  0001:00010000       _entry
  0001:00010004       aGaonisoy
@@ -423,7 +486,7 @@
  0001:00014940       aFm_activateX
  0001:00014988       startupPreparePlayback
  0001:00014A88       startupInitializeComplete
- 0001:00014B2C       call_seq_notify_complete_1964
+ 0001:00014B2C       startup_seq_complete
  0001:00014B3C       aAllocatevramcb
  0001:00014B58       aStartupprepa_4
  0001:00014B70       aRd_initializeX
@@ -734,6 +797,7 @@
  0001:0001D320       aBindbranchshoo
  0001:0001D34C       aBindtrashjobCi
  0001:0001D374       aBindtrashjobUn
+ 0001:0001D394       register_lots_of_events
  0001:0001D3CC       SetTuningFlag
  0001:0001D414       CheckSumOfProgramArea
  0001:0001D420       GetCamSetProp
@@ -782,6 +846,7 @@
  0001:0001DD0C       aVideodetectisr
  0001:0001DD20       aVideoConnectO
  0001:0001DD3C       aVideoDisconnec
+ 0001:0001DD58       arg1
  0001:0001DD5C       aUsbConnectO
  0001:0001DD78       aUsbDisconnectO
  0001:0001DD98       aHdmiConnectO
@@ -1078,9 +1143,10 @@
  0001:00023CD8       store_callback_1c4c_8
  0001:00023CE4       NotifyGUIEvent
  0001:00023D24       store_callback_1c4c_c
- 0001:00023D48       callback_1c4c_c
+ 0001:00023D48       gui_main_struct_call_0x0c
  0001:00023D5C       GUI_ChangeMode_0
  0001:00023DB8       NotifyShootType
+ 0001:00023E2C       gui_main_struct_call_0x14
  0001:00023E40       GUI_ChangeShootType
  0001:00023E74       store_callback_1c4c_18
  0001:00023E80       aQueueclearflgC
@@ -1209,9 +1275,11 @@
  0001:00026B08       aThis_17
  0001:00026B10       aEmErrorEm_deli
  0001:00026CB4       EM_EventDispatch
+ 0001:00026D24       create_event_mgr_task
  0001:00026EE8       aEmErrorGeroCou
  0001:00026F08       aEmGeroLast
  0001:00026F1C       aEmGeroCurD
+ 0001:00026FC0       event_manager_register
  0001:000270E0       aEmErrorAllocat
  0001:00027108       FCACHE_RemoveFarthestCacheItem
  0001:00027198       FCACHE_RequestRemoveFileCacheItem_0
@@ -1250,6 +1318,7 @@
  0001:00027F60       FCACHE_AddFileCacheItem
  0001:00027FE4       aFcacheCachelis
  0001:00028004       aFcacheCreateli
+ 0001:00028028       arg4
  0001:0002802C       aFilecacheFcach
  0001:00028040       aThis_18
  0001:00028048       aFcacheErrorAdd
@@ -1406,6 +1475,7 @@
  0001:0002B8F0       aFileopenNameSS
  0001:0002B914       aFilewriteAddre
  0001:0002BB58       SRM_EventDispatch
+ 0001:0002BC94       create_rsc_mgr_task
  0001:0002C054       aSrmeventdispat
  0001:0002C098       aPrscmgrNull
  0001:0002C0AC       aIs_errorPrscmg
@@ -1432,6 +1502,7 @@
  0001:0002CA94       aSrm_allocate_5
  0001:0002CAC0       SRM_AllocateMemoryResourceForMovieRecWork
  0001:0002CB9C       SRM_AllocateMemoryResourceForMovieStream
+ 0001:0002CC78       AllocateVram
  0001:0002CD38       aWorksizeThisDw
  0001:0002CD6C       aPfcompletecbrN
  0001:0002CD88       aNumoffreemov_4
@@ -1694,10 +1765,14 @@
  0001:000340E0       aLx_2
  0001:000340E4       a08lx_422
  0001:000340F0       aInputReturn
+ 0001:00034120       a08lx_411
  0001:0003412C       LV_Vram_Dump
  0001:000341FC       LV_Stop
  0001:00034224       LV_Start
+ 0001:0003424C       lv_result_md
+ 0001:0003429C       lv_event_post
  0001:000343E8       aFailed
+ 0001:000343F4       aLiveview_c
  0001:00034400       aPresultmd
  0001:0003487C       aPavailablearea
  0001:000349A4       LV_EventDispatch
@@ -1738,7 +1813,11 @@
  0001:00035380       aLv_temp_status
  0001:00035394       aLv_af_fase_add
  0001:000353A8       aLv_face_ael
+ 0001:00035530       lvcae_set_0x4
  0001:000355E0       LVCAE_EventDispatch
+ 0001:00035650       create_lvc_ae_task
+ 0001:0003574C       lvcae_shutdown_maybe
+ 0001:00035798       j_lvae_call_hist_setting
  0001:0003594C       aAeLiveviewae_c
  0001:0003595C       aThis_25
  0001:00035968       j_LVCAE_GetAeIntegFrame
@@ -2230,6 +2309,7 @@
  0001:000408FC       TOM_ChangeAckCBR
  0001:00040A2C       TOM_EventDispatch
  0001:00040AA0       aTomasynchronou
+ 0001:00040AC0       aTomgrTomgr_c
  0001:00040AD0       aThis_8
  0001:00040ADC       aProp_wft_ima_0
  0001:00040AF8       aTomchangeackcb
@@ -2857,6 +2937,7 @@
  0001:0004F3B4       GetVideoParameter
  0001:0004F44C       aGetvideoparame
  0001:0004F474       aSFramerateD
+ 0001:0004F488       mvr_struct_set_4c
  0001:0004F498       MVR_ResultCBR
  0001:0004F4CC       MVR_ChangeAckCBR
  0001:0004F654       aMvrresultcbrX
@@ -2874,6 +2955,7 @@
  0001:0004FA24       aMovierecorderM
  0001:0004FA44       aThis_2
  0001:0004FA4C       MVR_SaveImage
+ 0001:0004FA78       MVR_post_event
  0001:0004FB38       MVR_StopRecord
  0001:0004FBE0       nullsub_27
  0001:0004FBE4       MVR_StartRecord
@@ -3477,6 +3559,8 @@
  0001:0005AB8C       aPregistermaste
  0001:0005ABE0       DeliverProperty
  0001:0005AC68       multicast_prop_register_slave
+ 0001:0005ACF8       multicast_post_event
+ 0001:0005AD3C       property_multicast_maybe
  0001:0005ADA0       multicast_property_change
  0001:0005AE34       aPdeliverproper
  0001:0005AE4C       aPregisterslave
@@ -3560,6 +3644,7 @@
  0001:0005D51C       nullsub_105
  0001:0005D634       secret_mode_maybe
  0001:0005D6B0       store_callback_24dc_18
+ 0001:0005D77C       j_call_dslr_svg_free_0x2b58_0
  0001:0005D780       SVG_CreateBufferMemory
  0001:0005D7B0       SVG_DisposeBufferMemory
  0001:0005D7D8       dslr_malloc
@@ -3592,6 +3677,9 @@
  0001:0005E29C       aResourceGuires
  0001:0005E2B4       aErrZ_stream_en
  0001:0005E2C8       gui_resource_struct_ptr
+ 0001:0005E84C       gui_resource_something
+ 0001:0005E894       gui_find_object_id_walk
+ 0001:0005EA38       gui_resource_search
  0001:0005EC80       struct_2538_0c_cond
  0001:0005EEAC       struct_2538_44
  0001:0005EF04       aRight
@@ -3639,6 +3727,8 @@
  0001:000601CC       aAsyncenableima
  0001:00060210       dispcheck
  0001:00060460       aBitmapvramNull
+ 0001:0006047C       val
+ 0001:00060480       arg0
  0001:00060490       aATest_bmp
  0001:0006049C       check_physical_vram
  0001:00060508       bmp_vram_read
@@ -3866,7 +3956,8 @@
  0001:0006672C       aEnablemainfirm
  0001:0006673C       aDisablemainfir
  0001:0006674C       DM_EventDispatch
- 0001:000667B0       dm_something
+ 0001:000667B0       dm_allocate_maybe
+ 0001:00066900       dm_stop_maybe
  0001:0006694C       dmstart
  0001:0006698C       dmstop
  0001:000669CC       DebugMsg
@@ -3917,11 +4008,13 @@
  0001:00067588       aOlddumpfsep
  0001:00067598       aOldgrepsep
  0001:000675A8       aDumpentiresep
+ 0001:000675B8       return_neg1
  0001:000675C0       nullsub_122
  0001:000675C4       nullsub_123
  0001:0006766C       RegisterEventProcedure
  0001:000676EC       RegisterEventProcedure_im1
  0001:000676F4       UnregisterEventProcedure
+ 0001:00067748       call_func_by_name_maybe
  0001:000677CC       zRegisterFuncs
  0001:000677F4       zUnregister
  0001:00067818       store_procedures
@@ -4024,6 +4117,7 @@
  0001:0006D490       power_manager_install_maybe
  0001:0006D4E0       DisablePowerSave
  0001:0006D54C       EnablePowerSave
+ 0001:0006D5C0       register_power_events
  0001:0006D5DC       aPowermgrPowers
  0001:0006D5F4       aPowersavecount
  0001:0006D614       aPmDisablepower
@@ -4080,7 +4174,7 @@
  0001:0006ED7C       aHpcErrorHpco_0
  0001:0006EDA8       aHpcErrorHpco_1
  0001:0006EDCC       InitializeResourceWrapper
- 0001:0006EE18       zero_2bc0_members
+ 0001:0006EE18       movrecwork_reset_struct
  0001:0006EE64       m_pfAllocMemoryCBR
  0001:0006EEA8       m_pfContAllocMemoryCBR
  0001:0006EEEC       m_pfAllocMovRecWorkCBR
@@ -4204,8 +4298,12 @@
  0001:000716B0       aEvntshelDcplog
  0001:000716C4       a0_3
  0001:00071730       nullsub_55
+ 0001:00071AF4       logfile_task
+ 0001:00071B9C       logfile_take_semaphore_maybe
+ 0001:00071D0C       logfile_class_task_create
  0001:000720AC       a08d
  0001:000720B8       aW_1
+ 0001:000723A4       is_logfileclass
  0001:00072568       nullsub_51
  0001:0007256C       nullsub_117
  0001:000725D4       initialize_dryos_lists
@@ -4337,11 +4435,12 @@
  0001:00077174       aTimer_t
  0001:0007717C       list_pop_front
  0001:00077290       list_insert_after_maybe
- 0001:00077464       print
+ 0001:00077464       print_to_func
  0001:000776CC       a0123456789ab_0
  0001:000776E0       a0123456789abcd
  0001:00077CE4       sprintf
  0001:00077D28       zprint
+ 0001:000780F4       puts_maybe
  0001:000781F8       strcpy
  0001:00078210       hash_strcmp
  0001:00078254       strlen_0
@@ -4684,6 +4783,7 @@
  0001:00083750       aSdfexecutemem1
  0001:00083774       aStartmem1tobot
  0001:00083850       aSdfreference_0
+ 0001:0008388C       sdsfront_state_objects_create
  0001:00083C68       aSdfcompletefro
  0001:00083C84       aSpscompleteE_0
  0001:00083CA8       aSpscompleteE_1
@@ -4948,10 +5048,12 @@
  0001:0008A1D4       ChangeProperty
  0001:0008A208       FA_SetLvProjectionMode
  0001:0008A35C       FA_SetProjectionMode_0
+ 0001:0008A3BC       terminate_FA_setprojectionmode
  0001:0008A418       aChangeproperty
  0001:0008A448       aFa_setlvprojec
  0001:0008A484       aFa_setlvproj_0
  0001:0008A4A4       aFa_setprojec_1
+ 0001:0008A4BC       terminate_lv_fa_mode
  0001:0008A4E0       aLv_fa_mode_0
  0001:0008A4EC       FA_DISP_Start100White
  0001:0008A514       FA_DISP_End100White
@@ -4979,6 +5081,8 @@
  0001:0008A844       FA_DISP_LightMeasure
  0001:0008A84C       aFaFa_disp_com_
  0001:0008A888       aLightmeasure_1
+ 0001:0008A89C       gui_struct_set_0x4
+ 0001:0008A8A8       gui_struct_0x4
  0001:0008A8B4       GUI_SetDisplayType
  0001:0008A8D8       GUI_GetDisplayType
  0001:0008A8E4       GUI_SetVideoDisplayType
@@ -5017,8 +5121,24 @@
  0001:0008AEC4       aGui_setflandir
  0001:0008AEE8       aSetguirequestm
  0001:0008AF00       aSetguireques_0
- 0001:0008AF24       old_GUIRequestMODE
- 0001:0008AF3C       StopCallback
+ 0001:0008AF24       gui_struct_old_request_mode
+ 0001:0008AF30       gui_struct_set_0x40
+ 0001:0008AF3C       gui_struct_0x40
+ 0001:0008AF48       gui_struct_set_0x44
+ 0001:0008AF54       gui_struct_0x44
+ 0001:0008AF60       gui_struct_set_0x48
+ 0001:0008AF6C       gui_struct_0x48
+ 0001:0008AF78       gui_struct_set_0x4c
+ 0001:0008AF84       gui_struct_0x4c
+ 0001:0008AF9C       gui_struct_0x50
+ 0001:0008AFA8       gui_struct_set_0x00
+ 0001:0008AFB4       gui_struct_0x00
+ 0001:0008AFC0       gui_struct_set_0x54
+ 0001:0008AFCC       gui_struct_0x54
+ 0001:0008AFD8       gui_struct_set_0x34
+ 0001:0008AFE8       gui_struct_0x34
+ 0001:0008AFF4       gui_struct_set_0x58
+ 0001:0008B000       gui_struct_0x58
  0001:0008B00C       GUI_SetMultiPositionInDir
  0001:0008B048       GUI_GetMultiPositionInDir
  0001:0008B0C4       GetLastFileHandle
@@ -5027,6 +5147,11 @@
  0001:0008B244       aGui_getmultipo
  0001:0008B26C       aGuiGuidatast_1
  0001:0008B298       a0_25
+ 0001:0008B2BC       memcpy_06010101
+ 0001:0008B2C8       memcpy_06010101_10bytes
+ 0001:0008B2D8       memcpy_06010101_0
+ 0001:0008B2E4       copy_06010101_10_to_r0
+ 0001:0008B2F4       gui_struct_0xb8
  0001:0008B30C       GUI_SetSetupFileNameOfUserSetting
  0001:0008B344       GUI_GetSetupFileNameOfUserSetting
  0001:0008B384       GUI_SetLanSetupFileNameOfUserSetting
@@ -5035,11 +5160,15 @@
  0001:0008B438       struct_3548_set_0xc0
  0001:0008B45C       struct_3548_set_0xc8
  0001:0008B474       struct_3548_set_0xcc
+ 0001:0008B480       gui_struct_0xcc
+ 0001:0008B48C       gui_struct_set_0xd0
  0001:0008B498       EndMovRecForOneSec
+ 0001:0008B4A4       gui_struct_set_0xd4
  0001:0008B510       aGui_setsetupfi
  0001:0008B540       aGui_getsetupfi
  0001:0008B574       aGui_setlansetu
  0001:0008B5A8       aGui_getlansetu
+ 0001:0008B648       gui_struct_e4
  0001:0008B660       GUI_Control_0_1
  0001:0008B684       return_callback_3668_8
  0001:0008B690       return_callback_3668_c
@@ -5050,8 +5179,8 @@
  0001:0008B6CC       return_callback_3668_20
  0001:0008B6D8       return_callback_3668_24
  0001:0008B6E4       return_callback_3668_28
- 0001:0008B6F0       return_callback_3668_2c
- 0001:0008B6FC       return_callback_3668_30
+ 0001:0008B6F0       gui_timer_0x2c
+ 0001:0008B6FC       gui_timer_0x30
  0001:0008B708       return_callback_3668_34
  0001:0008B734       gui_massive_event_loop
  0001:0008BE28       aGuicmd_unpress
@@ -5096,6 +5225,7 @@
  0001:0008DC80       aPmemory
  0001:0008DC88       aJobstatecallba
  0001:0008DCC0       aIscleareventPr
+ 0001:0008DD64       AllocateVramCBR
  0001:0008DD98       handleGuiInit
  0001:0008E0C0       aAllocatevram_0
  0001:0008E0E0       aHandleguiinit
@@ -5191,6 +5321,8 @@
  0001:0008F524       aChangecbrPropi
  0001:0008F55C       aGui_registerpr
  0001:0008F578       store_callback_3964_20
+ 0001:0008F584       factory_menu_set_0c
+ 0001:0008F590       factory_menu_something
  0001:000909C0       FA_ShowResult
  0001:00090D80       aMcellResult
  0001:00090D94       aDTft
@@ -5256,19 +5388,32 @@
  0001:000917C0       FA_RedForSmaller
  0001:00091820       FA_GreenForLarger
  0001:00091880       FA_GreenForSmaller
+ 0001:000918E0       factory_menu_prop_register_something
+ 0001:00091928       factory_menu_post_something
  0001:00091998       aMcellROverDFor
  0001:000919C0       aMcellROverDF_0
  0001:000919F0       aFactoryZfcttes
  0001:00091A0C       aIsfactorymode
+ 0001:00091A7C       factory_menu_call_callback_0x20_0_r0
+ 0001:00091A98       factory_menu_call_callback_0x20_0_1
+ 0001:00091AB4       factory_menu_call_callback_0x20_1_0
+ 0001:00091AD0       factory_menu_static_sprintf
+ 0001:00091B18       factory_menu_call_callback_0x20_2_0
+ 0001:00091B34       factory_menu_call_callback_0x20_3_0
  0001:00091C40       aIsfactorymod_0
  0001:00091C54       aFa_savepropert
  0001:00091C68       a02x02x02x02x_1
+ 0001:00091CB8       factory_menu_items
+ 0001:00091E4C       factory_menu_free_something
+ 0001:00091EA8       factory_store_r0_into_r1
+ 0001:00091ED4       map_array
  0001:00091F10       aCatalogtableNu
  0001:00091F2C       aCatalogtable0_
  0001:00091F4C       aCatalogtable1_
  0001:00091F70       aCatalogtable2_
  0001:00091F94       aCatalogtable3_
  0001:000922C4       aHttpWww_w3_org
+ 0001:00092518       svg_something
  0001:00092934       aSvgext_id1
  0001:00092968       aScene_1
  0001:00092970       aAnimation_1
@@ -5338,6 +5483,7 @@
  0001:00093F54       aSvgext_id36
  0001:00093F60       a0_3868860_4072
  0001:00093F98       aSvgext_id37
+ 0001:00094114       svg_something_0
  0001:000945CC       a1899ms
  0001:000945D4       a00_6299890_679
  0001:0009460C       a0_2467950_2448
@@ -5363,6 +5509,7 @@
  0001:00095878       a0_6728970_6796
  0001:000958CC       a71_1199956_259
  0001:00095908       a0_7371970_7459
+ 0001:00095F20       svg_something_1
  0001:00096418       aAnimation
  0001:00096430       a3600_56_489990
  0001:00096444       a00_56_489990
@@ -5372,12 +5519,19 @@
  0001:0009647C       a11_5299985_019
  0001:00096490       aAnimation_se_0
  0001:000964AC       a0_7357940_7357
+ 0001:00096C50       svg_something_2
  0001:00097248       a1099ms
  0001:00097250       a00_1799920_359
  0001:00097284       a0_50_5110_50_5
  0001:000972E8       a38370038370070
  0001:0009731C       a0_50_5110_50_0
  0001:00097504       a0_50_5110_50_1
+ 0001:00097544       return_0_5
+ 0001:0009754C       return_0_4
+ 0001:00097554       return_0_3
+ 0001:0009755C       return_0_6
+ 0001:00097564       return_0_2
+ 0001:0009756C       return_0_1
  0001:000975B8       EnableCardNoiseChk
  0001:000975C8       DisableCardNoiseChk
  0001:00097884       aFsscompletejob
@@ -6860,7 +7014,7 @@
  0001:000C777C       aGyoRemoveDpmcH
  0001:000C77B0       aGyoRemoveDpm_0
  0001:000C77E0       aAllocateErrorJ
- 0001:000C7804       SendReqestQue
+ 0001:000C7804       create_dps_receive_task
  0001:000C79D0       DpsTerminate
  0001:000C7A14       aSendreqestque
  0001:000C7A24       aUsb
@@ -7281,11 +7435,13 @@
  0001:000D5A24       aChangefstfra_0
  0001:000D5A3C       aChangetgdrivem
  0001:000D5A5C       ChangeFstFrame_0
+ 0001:000D5BA8       lv_error_illegal_event
  0001:000D5C70       aChangefstfra_1
  0001:000D5C88       aPermituilock
  0001:000D5C98       aLverrorIllegal
  0001:000D5CB4       aLvrecIllegalEv
  0001:000D5CE8       aLvrecCurrentst
+ 0001:000D5D0C       lv_judge_start
  0001:000D6014       aJudgestartlv0x
  0001:000D6034       aLvrecSendMvr_e
  0001:000D6054       aIllegalLvStart
@@ -7295,6 +7451,7 @@
  0001:000D6B98       aFd_shiftlockLd
  0001:000D6CA0       StopFencingPass
  0001:000D6F0C       aStopfencingpas
+ 0001:000D71D4       lv_state_init_maybe
  0001:000D7358       aTvafmodeDZoomD
  0001:000D737C       aAdjustmentmemo
  0001:000D7398       aWarnSDumyDByte
@@ -7303,6 +7460,7 @@
  0001:000D73CC       aCannotLockDefm
  0001:000D73E8       aCannotLockHead
  0001:000D740C       aGuigraphicsfre
+ 0001:000D7C54       lv_get_resource
  0001:000D8024       aGetresource0xL
  0001:000D804C       aYuvaddress0x08
  0001:000D8070       aIllegalEvent0x
@@ -7313,6 +7471,7 @@
  0001:000D892C       aWbintegaddress
  0001:000D8950       aWbsearchaddres
  0001:000D8974       aPbyfaceyuvX
+ 0001:000D8990       lv_release_resource
  0001:000D8C54       aReleaseresourc
  0001:000D8C70       aGuigraphicsa_0
  0001:000D8C8C       aModechangetozo
@@ -7322,15 +7481,21 @@
  0001:000D9078       aLvfsCanTSelect
  0001:000D908C       aLvfsSelectSame
  0001:000D90A4       aLvfsFsAreaXDYD
+ 0001:000D953C       af_state_handler_maybe
  0001:000D97C0       aPclvFramenumDF
  0001:000D97FC       aEventid_lv_af_
  0001:000D9810       aEventid_lv_a_0
+ 0001:000D9844       lv_return_vram_from_disp
  0001:000D9A70       aIllegalCameraE
  0001:000D9A8C       aLvreturnvramfr
  0001:000D9ABC       len
  0001:000D9AC0       aSethorizontali
+ 0001:000D9AF4       aLvstate_c
+ 0001:000D9B04       lv_vd_interrupt
+ 0001:000D9EB8       aLvvdinterrupt
  0001:000D9EDC       aDispgainDIsoD
  0001:000D9EF4       aWbLdLdLdLdLd
+ 0001:000DA1FC       lv_set_psave
  0001:000DA49C       aLvrecRecstartZ
  0001:000DA4BC       aHpcopyResLxCop
  0001:000DA4E0       aSameAddrHpcopy
@@ -7341,10 +7506,15 @@
  0001:000DA560       aLvrecSendStart
  0001:000DA58C       aHpcopyasyncLvs
  0001:000DA5B0       aHpcopyasyncLxL
+ 0001:000DA5CC       lv_reset_psave
  0001:000DA984       aResetpsave
  0001:000DA9A4       aResetpsave10xL
  0001:000DA9D0       aResetpsave20xL
  0001:000DA9F0       aLvrecMvr_ev_ex
+ 0001:000DAA6C       lv_stopflag_for_vd
+ 0001:000DAAB8       lv_stopflag_for_ps
+ 0001:000DAB04       lv_stopflag_for_rps
+ 0001:000DAB34       lv_change_vd_interrupt
  0001:000DAE10       aStopflagforvd
  0001:000DAE24       aStopflagforps
  0001:000DAE34       aStopflagforrps
@@ -7355,6 +7525,7 @@
  0001:000DAECC       aFd_setafstateF
  0001:000DAEEC       aLvcpf_clearnum
  0001:000DAF04       aLvcpf_clearn_0
+ 0001:000DB0BC       lv_tg_standby
  0001:000DB2EC       aChangevdinte_2
  0001:000DB304       aTgstandby
  0001:000DB310       aFreeWorkX
@@ -7363,16 +7534,19 @@
  0001:000DB344       aFreeYuvX
  0001:000DB350       aKeepVramX
  0001:000DB360       aFreeVramX
+ 0001:000DB378       lv_end
  0001:000DB5FC       aLvend
  0001:000DB604       aLvendPassRelea
  0001:000DB618       aLvcpf_clearn_2
  0001:000DB634       aLvendUnlockHre
  0001:000DB654       aLvendUnlockHlo
  0001:000DB66C       aLvendComplete
+ 0001:000DB67C       lv_event_handler_maybe
  0001:000DBA64       aProp_lv_avai_0
  0001:000DBA88       aProp_lv_avai_1
  0001:000DBAC8       aClick_wb_posit
  0001:000DBAEC       aUnknownId0x08l
+ 0001:000DBB90       lv_prop_handler_maybe
  0001:000DBE60       aProp_live_view
  0001:000DBE90       aViewtypeD
  0001:000DBEB4       aProp_live_vi_0
@@ -7402,17 +7576,22 @@
  0001:000DD260       aUnknownAfModeD
  0001:000DD274       aProp_live_vi_1
  0001:000DD28C       aProp_output_ty
+ 0001:000DD380       lv_ae_parameter_maybe
  0001:000DD618       aProp_lensIdX
  0001:000DD640       aBLv_removefirs
  0001:000DD664       aSt_complete_lv
- 0001:000DD90C       WBResult
- 0001:000DD994       FlickerResult
+ 0001:000DD90C       lv_wb_result
+ 0001:000DD994       lv_flicker_result
  0001:000DDA10       LV_ReturnVramFromPD
  0001:000DDB58       aWbresultDLdLdL
  0001:000DDB78       aFlickerresultL
  0001:000DDB90       aLvreturnvram_0
+ 0001:000DDBBC       lv_struct_free_02b58
  0001:000DDBD4       CompleteALOSetParams
  0001:000DDC08       pfHPCopyALOGetRegComplete
+ 0001:000DDC18       HPCopy_disable
+ 0001:000DDCF4       CompleteVignettingCorrectGetReg
+ 0001:000DDDAC       j_CompleteVignettingCorrectGetReg
  0001:000DDDE0       aCompletealoset
  0001:000DDDF8       aPfhpcopyaloget
  0001:000DDE14       aHpcopyDisableP
@@ -7420,11 +7599,20 @@
  0001:000DDE6C       aHpcopyasyncAlo
  0001:000DDE90       aCompletevignet
  0001:000DDEB0       RequestAfAe
+ 0001:000DDEE4       CompleteAf
+ 0001:000DDF54       set_debug_flag
  0001:000DE128       aRequestafae
  0001:000DE134       aCompleteaf
  0001:000DE144       aSetDebugFlag0x
  0001:000DE164       aClearDebugFlag
  0001:000DE18C       aDebugflagUncor
+ 0001:000DE1B4       MDResult
+ 0001:000DE1FC       lv_struct_0x20
+ 0001:000DE208       lv_illegal_stop
+ 0001:000DE224       lv_already_stopped
+ 0001:000DE248       call_lv_judge_start
+ 0001:000DE258       lv_complete_thumbnail
+ 0001:000DE2F4       lvrev_send_mvr_ev_recsuspend
  0001:000DE39C       RequestCBR
  0001:000DE3E0       aMdresultXLdYLd
  0001:000DE3FC       aLvrecLvillegal
@@ -7433,6 +7621,7 @@
  0001:000DE450       aLvrecToMvr_ev_
  0001:000DE470       aLvrecSendMvr_0
  0001:000DE490       aMvrRequestcbrE
+ 0001:000DE4B8       lv_state_object_create
  0001:000DEC24       LV_frame_skip
  0001:000DEC98       GetImageTrimming
  0001:000DEF5C       aLv_frame_skip
@@ -7514,7 +7703,9 @@
  0001:000E2014       CheckFaceArea
  0001:000E2074       aCheckfaceare_1
  0001:000E20A8       aCheckfaceareaO
- 0001:000E20D0       call_lvaestate_byname_maybe
+ 0001:000E20D0       lvcae_create_state_object
+ 0001:000E2100       lvcae_destroy_state_object
+ 0001:000E2114       lvae_call_hist_setting
  0001:000E2128       LVCAE_GetAeIntegFrame
  0001:000E219C       lvcaeGetWbIntegFrame_sync
  0001:000E21F4       lvcaeGetAllWbGain
@@ -7538,6 +7729,11 @@
  0001:000E2640       aLvcaeLvcaecalc
  0001:000E265C       aLvcaeLvcaeca_0
  0001:000E267C       aLvcaeDDDDDDD
+ 0001:000E269C       lvcae_lens_info
+ 0001:000E2730       lvcae_clear_wb_counter
+ 0001:000E2770       lvcae_stop_clear
+ 0001:000E27B0       lvcae_property
+ 0001:000E2870       lvcae_exit
  0001:000E28D0       aLvcaeLvcaelens
  0001:000E28F8       aLvcaeLvcaeclea
  0001:000E2920       aLvcaeLvcaestop
@@ -7551,6 +7747,9 @@
  0001:000E2A70       pfAfError
  0001:000E2A88       pfAfComplete
  0001:000E2ABC       lvcafInit
+ 0001:000E2B4C       lvcaf_startlv_call_callback
+ 0001:000E2B98       lvcaf_face_search_callback
+ 0001:000E2BE0       lvacf_lens_info_face_search
  0001:000E2C48       aLvcafsetcurren
  0001:000E2C6C       aPfaferror
  0001:000E2C78       aPfafcompleteD
@@ -7560,10 +7759,22 @@
  0001:000E2CBC       aLvcafstartlv
  0001:000E2CD4       aLvcaffacesearc
  0001:000E2CEC       aLvcaflensinfof
+ 0001:000E2D04       lvcaf_start_af
+ 0001:000E2D64       lvcaf_dummy_start_af
+ 0001:000E2D9C       lvacf_lens_info
+ 0001:000E2DF0       lvacf_lens_drive
+ 0001:000E2E38       lvcaf_event_handler_maybe
  0001:000E2FA0       aLvcafstartaf
  0001:000E2FB4       aLvcafdummystar
  0001:000E2FCC       aLvcaflensinfo
  0001:000E2FE0       aLvcaflensdrive
+ 0001:000E3004       lvcaf_expose
+ 0001:000E3058       lvcaf_stop_lv
+ 0001:000E30A4       lvcaf_stop_af
+ 0001:000E30F0       lvcaf_start_remote
+ 0001:000E3144       lvacf_lens_info_remote
+ 0001:000E31A8       lvcaf_lens_drive_remote
+ 0001:000E31E0       lvacf_property_af_mode_maybe
  0001:000E3320       aLvcafLvcafexpo
  0001:000E3338       aLvcafstoplv
  0001:000E3348       aLvcafstopaf
@@ -7574,6 +7785,8 @@
  0001:000E33C8       aFdAf_modeQuick
  0001:000E33DC       aFdAf_modeTvaf
  0001:000E33EC       aFdAf_modeFace
+ 0001:000E3410       lvcaf_exit
+ 0001:000E3468       lvcaf_ignore_state
  0001:000E34AC       aFdUnknownAf_mo
  0001:000E34C8       aLvcafexit
  0001:000E34D8       aLvcafignoreSta
@@ -7598,12 +7811,17 @@
  0001:000E3A88       aThis_36
  0001:000E3A90       aLvcdevinit
  0001:000E3AA4       aLvcdevstarth26
+ 0001:000E3AB8       lvcdev_start_dev
+ 0001:000E3B00       lvcdev_something
+ 0001:000E3B30       lvcdev_resource_get
  0001:000E3D10       aLvcdevstartdev
  0001:000E3D34       aLvcdevresource
  0001:000E3D50       aJpegSizeOverLx
  0001:000E3D6C       aPdVfLxMsLx
  0001:000E3D84       aADcimLv06d_jpg
  0001:000E3D98       aWaitIstransmit
+ 0001:000E3DB4       lvcddev_property
+ 0001:000E3DFC       lvcdev_set_flicker_table
  0001:000E3E3C       FlickerDetect
  0001:000E3F78       CancelFlickerDetect
  0001:000E4010       aLvcdevproperty
@@ -7886,6 +8104,7 @@
  0001:000EE950       aAerequestinf_0
  0001:000EE978       aAerequestinf_1
  0001:000EE9AC       aAerequestinf_2
+ 0001:000EEAAC       lvcaf_state_something
  0001:000EEDEC       aCkvalueupseque
  0001:000EEE28       aReachedEndOfSc
  0001:000EEE64       aReachedEndOf_0
@@ -8118,16 +8337,24 @@
  0001:000F7110       aLvcpf_shiftlef
  0001:000F73C0       aLvcpf_shiftfac
  0001:000F73F0       aLvcpfaddfaceto
+ 0001:000F7580       motion_detect_init
+ 0001:000F76D4       motion_detect_start
  0001:000F7784       aMotiondetect_0
  0001:000F77A8       aThis_37
  0001:000F77B0       aInit_0
  0001:000F77C4       aInitRch1XRch2X
  0001:000F77DC       aSD_3
  0001:000F77E4       aStart_0
+ 0001:000F77EC       motion_detect_set_engine_resource
+ 0001:000F7884       motion_detect_set_resource
  0001:000F7A20       aSetengineres_0
  0001:000F7A3C       aSetRch1XRch2X
  0001:000F7A54       aSetresource
  0001:000F7A6C       aLvcmdSetresour
+ 0001:000F7AAC       motion_detect_exit
+ 0001:000F7B00       motion_detect_abort
+ 0001:000F7B88       motion_detect_register_cbr
+ 0001:000F7BC8       motion_detect_unregister_cbr
  0001:000F7C98       aExit_0
  0001:000F7CA0       aAbort_1
  0001:000F7CB8       aRegistercbr
@@ -8369,7 +8596,7 @@
  0001:00104040       aPtprspndSdio_3
  0001:00104068       aHptptranspor_1
  0001:00104084       aPtrnsctrlHco_0
- 0001:001040A0       SDIOTrns
+ 0001:001040A0       SDIOTrns_task
  0001:001044C4       aPtpSdiotranpor
  0001:001044F0       aHptptranspor_0
  0001:00104518       aSdioClassreque
@@ -10246,7 +10473,8 @@
  0001:0014355C       SetStsdAtomPCM
  0001:00143694       WriteStsdAtomPCM
  0001:00143908       aSetstsdatompcm
- 0001:00143920       aSResolutionD
+ 0001:00143918       aStsdrawSResolutionD
+ 0001:00143934       aSowtchan
  0001:00143944       aSChannelD
  0001:00143958       aWritestsdatomp
  0001:0014396C       aSSetstsdatompc
@@ -10328,8 +10556,8 @@
  0001:00146194       SetStsdAtomAVC
  0001:001462D4       SetTkhdAtom
  0001:001463D4       aSettkhdatom
- 0001:001463E4       MovieRecorder
- 0001:00146410       test_0x68a4
+ 0001:001463E4       MVR_create_state_object
+ 0001:00146410       MVR_delete_state_object
  0001:00146424       MVR_MovStreamCallback
  0001:00146460       MVR_MovWorkCallback
  0001:001464AC       MVR_AllocateStorageCBR
@@ -11703,7 +11931,7 @@
  0001:00171B48       aMvrfixqscale
  0001:00171B58       aMvrsetdefdbfil
  0001:00171B6C       aMvrsetprintmov
- 0001:00171B80       CompRateAdjust
+ 0001:00171B80       MVR_compression_rate_adjust
  0001:00171E88       aMovieCompressi
  0001:00171EA8       a0_53
  0001:00171EB0       a_d1D_d2D
@@ -12104,6 +12332,7 @@
  0001:0017BCA0       aMpuindependent
  0001:0017BCC0       aMpuindepende_0
  0001:0017BCE4       aComAddress0xX
+ 0001:0017BF20       check_for_0x80000000
  0001:0017C24C       aNotPropertylis
  0001:0017C274       aTwiceAckReques
  0001:0017C28C       aThisDwwaitacki
@@ -12151,6 +12380,7 @@
  0001:0017E408       aTwicePropertym
  0001:0017E428       aNot_enoughMemo
  0001:0017E440       aPropdeletempup
+ 0001:0017E5C0       j_check_for_0x80000000
  0001:0017ED1C       aMulticastPro_0
  0001:0017ED38       aFalse_22
  0001:0017ED54       aPmpusettingPad
@@ -12193,6 +12423,9 @@
  0001:001814F4       aCtrlsrvCance_0
  0001:0018151C       aCtrlsrvWarni_3
  0001:001815B8       CtrlSrv_task_setup
+ 0001:001816C0       struct_7450_set_0x30
+ 0001:001816D0       struct_7450_set_0x34
+ 0001:001816E0       struct_7450_set_0x38
  0001:00181820       aFinitializedTr
  0001:0018183C       aCtrlsrv
  0001:001823A8       CreateCompoBmpFromNumber_0
@@ -12223,11 +12456,14 @@
  0001:001867F4       nullsub_8
  0001:00186960       aChannelEdmac_c
  0001:00186A0C       EngDrvOut
+ 0001:00186A50       deref_r0
+ 0001:00186B7C       engio_something
  0001:00186BF0       aEngioAddr8lx_3
  0001:00186C10       aEngioAddr8lxDa
  0001:00186C3C       aEngioAddr8lx_0
  0001:00186C6C       aEngioAddr8lx_1
  0001:00186C9C       aEngioAddr8lx_2
+ 0001:00186CC0       deref_0xc0e00020
  0001:00186EB8       JpCoreIntrHandler
  0001:00186EC4       nullsub_100
  0001:00186EC8       nullsub_99
@@ -12605,6 +12841,7 @@
  0001:00194D68       UnregisterInterruptHandler
  0001:00194D80       j_IRQdisable
  0001:00194D84       j_IRQrestore
+ 0001:00194D88       global_ptr_initialized
  0001:00194DA4       j_IRQenable
  0001:00194E1C       _unregister_interrupt
  0001:00194E48       j_IntLock
@@ -12661,6 +12898,9 @@
  0001:00196D68       aSelfrefresh
  0001:00196D74       nullsub_93
  0001:00196D78       CreatePublisher
+ 0001:00196F08       publisher_register_maybe
+ 0001:00196FD0       j_publisher_register_maybe
+ 0001:00196FD4       terminate_delete_subscriber_maybe
  0001:00197440       aRingheap
  0001:00197450       aRingheapRinghe
  0001:00197464       aPrhPwPrhPmemPr
@@ -12685,7 +12925,7 @@
  0001:00197F28       aRingheapHrin_0
  0001:00197F54       aRingheapHrin_1
  0001:00197F78       aRingheapHrin_2
- 0001:001983B4       itoa_maybe
+ 0001:001983B4       dm_printf_maybe
  0001:00198768       a0123456789ab_1
  0001:0019877C       a01234567
  0001:00198788       a0123456789
@@ -12738,10 +12978,10 @@
  0001:0019A1D0       ChangeStageTaskPriority
  0001:0019A1F0       DispatchStateEvent
  0001:0019A228       StateObject_callback
- 0001:0019A2E0       create_StateObject_maybe
+ 0001:0019A2E0       state_object_create
  0001:0019A360       destroy_StateObject_maybe
- 0001:0019A3AC       get_StateObject_if_current
- 0001:0019A3E4       StateObjectComplete_maybe
+ 0001:0019A3AC       state_object_current_state
+ 0001:0019A3E4       state_object_set_state
  0001:0019A464       TerminateSyncSemaphore
  0001:0019A4E0       GetSyncSemaphore
  0001:0019A5FC       aErrorTerminate
@@ -12751,6 +12991,7 @@
  0001:0019A738       TaskClass
  0001:0019A7AC       CreateTaskClass
  0001:0019A84C       PostEvent
+ 0001:0019A8D4       task_class_post_event
  0001:0019A92C       TryPostEvent
  0001:0019A98C       TryPendEvent
  0001:0019AA54       GetNumOfEvent
@@ -12809,6 +13050,7 @@
  0001:0019C0F8       aIs_errorHsem_1
  0001:0019C118       aFgpclk1initial
  0001:0019C538       strcat
+ 0001:0019C5BC       strncmp
  0001:0019C7C4       aSS2d02d02d02dD
  0001:0019CC18       a2d02d02d02dD
  0001:0019CE28       scanf_maybe
@@ -13299,6 +13541,10 @@
  0001:001ABDEC       aGui_requestu_0
  0001:001ABE14       aProp_request_0
  0001:001ABE3C       GUI_SyncroRequestUILock
+ 0001:001ABF34       lv_global_0x264
+ 0001:001ABF40       lv_global_set_0x264
+ 0001:001ABF50       lv_global_0x240
+ 0001:001ABF5C       lv_global_0x244
  0001:001ABF8C       lv_global_0x24c
  0001:001ABF98       SetGuiDaTa
  0001:001AC054       aGui_syncrorequ
@@ -13308,6 +13554,7 @@
  0001:001AC0E4       aGui_syncrore_2
  0001:001AC11C       aSetguidataDD
  0001:001AC16C       lv_global_multiplex
+ 0001:001AC1F8       lv_global_38
  0001:001AC204       GUI_SetImgComposition
  0001:001AC2E8       GUI_GetImgFormat
  0001:001AC338       GUI_GetImgQuality
@@ -13319,6 +13566,7 @@
  0001:001AC4CC       aGui_getimgqual
  0001:001AC4F0       aGui_getcr2imgs
  0001:001AC514       aGui_getjpgimgs
+ 0001:001AC590       lvae_struct_0x4
  0001:001AC900       lv_global_0x0b8
  0001:001AC90C       lvae_info_set_0x48
  0001:001AC930       lvae_info_0x48
@@ -13488,6 +13736,8 @@
  0001:001AF104       aGui_setactiv_0
  0001:001AF124       aGui_setactives
  0001:001AF154       GUI_SetASDoneRecord
+ 0001:001AF1AC       lv_global_0x1c8
+ 0001:001AF1B8       lv_global_0x1cc
  0001:001AF1C4       GUI_SetInfoButtonShoot
  0001:001AF1FC       global_info_button
  0001:001AF208       GUI_SetElectricShutter
@@ -13872,6 +14122,7 @@
  0001:001B616C       GUI_SetPhotoStudioMode
  0001:001B61A4       GUI_GetPhotoStudioMode
  0001:001B61C8       GUI_SetPhotoStudioReleaseLockTime
+ 0001:001B6200       lv_global_0x25c
  0001:001B620C       GUI_SetPhotoStudioSetupPassword
  0001:001B6310       aGui_setphoto_7
  0001:001B6334       aGui_getphotost
@@ -13900,7 +14151,7 @@
  0001:001B6870       lv_global_0x8c
  0001:001B687C       lv_global_0x90
  0001:001B6888       lv_global_0x94
- 0001:001B6894       lv_global_0xa0
+ 0001:001B6894       lv_global_af_mode_maybe
  0001:001B68A0       lv_global_0xa4
  0001:001B68AC       lv_global_0xa8
  0001:001B68B8       GUI_GetProgramShift
@@ -13948,7 +14199,7 @@
  0001:001B71F8       aGui_setbatteri
  0001:001B721C       aGui_refreshbat
  0001:001B72C0       lv_global_0x198
- 0001:001B72CC       lv_global_0x19c
+ 0001:001B72CC       lv_global_bufer_percent
  0001:001B72D8       lv_global_0x1ac
  0001:001B72E4       lv_global_0x08
  0001:001B72F0       lv_global_0x0c
@@ -13964,6 +14215,7 @@
  0001:001B7814       aGuisetmwbthumb
  0001:001B7840       aGuisetmwbthu_0
  0001:001B7868       GUI_GetMwbThumbFromProp
+ 0001:001B79B0       is_bit_12_set
  0001:001B79C8       IsoDataToString
  0001:001B7B1C       aGuigetmwbthumb
  0001:001B7B44       aSemmnss
@@ -14083,6 +14335,7 @@
  0001:001B9760       aPadapterstat_3
  0001:001B9798       aPadapterstat_4
  0001:001B9830       pTomEventCallBack
+ 0001:001B98A8       initialize_tom
  0001:001B99D8       aPadapterstat_5
  0001:001B9A04       aPadapterstat_6
  0001:001B9A30       aGui_setwpspinc
@@ -14131,7 +14384,9 @@
  0001:001BA72C       aCalclvzoomtv_0
  0001:001BA760       StudioOn
  0001:001BA788       StudioOff
+ 0001:001BA790       initialize_studio
  0001:001BA854       StopMnStudioSetupMenuApp
+ 0001:001BA898       studio_setup_dialog
  0001:001BAA48       aAaaa
  0001:001BAA50       aStudioon
  0001:001BAA5C       aStudiooff
@@ -14355,6 +14610,7 @@
  0001:001C109C       aMcellSwitchsta
  0001:001C10C8       aMcellDialstate
  0001:001C10F8       aHbackswtestN_0
+ 0001:001C152C       backsw_test_app_maybe
  0001:001C1708       aHbackswtestNul
  0001:001C1720       aIs_errorHbacks
  0001:001C1A0C       aFactoryZfctdus
@@ -14365,6 +14621,7 @@
  0001:001C1A70       aPressSw___
  0001:001C1A7C       aMakeDdd
  0001:001C1A88       aD_22
+ 0001:001C1C1C       fct_dust_app_maybe
  0001:001C1D98       aIs_errorHdust
  0001:001C1DB0       pfPlayFrameCBR
  0001:001C1E04       SetFrameData
@@ -14397,6 +14654,7 @@
  0001:001C2780       aStartmnclear_0
  0001:001C27F0       SetCopyright
  0001:001C2808       ResetCopyright
+ 0001:001C2820       initialize_copyright
  0001:001C291C       aArtistAnnieLei
  0001:001C2938       aCopyrightKwano
  0001:001C2958       aSetcopyright
@@ -15195,11 +15453,14 @@
  0001:001E4328       aGyoIretD_1
  0001:001E4338       aGyoDrOffCxDCyD
  0001:001E435C       aGyoDustredu_10
+ 0001:001E6634       engine_resource_manager_call_something
  0001:001E67E0       aSAddWaitListRe
  0001:001E680C       aSSuccessResXFr
+ 0001:001E6828       aS0xLxD
  0001:001E6834       aSResXFreeXCoun
  0001:001E6850       aSSuspendStartC
  0001:001E686C       aSGetresourceRe
+ 0001:001E6894       eng_resource_manager_enqueue_something
  0001:001E6940       aSAddWaitListCo
  0001:001E6AFC       aTvafCurrentSta
  0001:001E6F14       aLvastart
@@ -15215,6 +15476,7 @@
  0001:001E7490       WriteEDMacCrawCompleteCBR_x1
  0001:001E74A0       ReadEDmacHivshd_V_CompleteCBR_x1
  0001:001E74B0       ReadEDmacHivshdCompleteCBR_x1
+ 0001:001E74D0       set_image_pass_x1
  0001:001E75E8       aWriteedmacvram
  0001:001E7608       aReadedmacdefco
  0001:001E7628       aReadedmacdef_0
@@ -15222,9 +15484,13 @@
  0001:001E7668       aReadedmachivsh
  0001:001E768C       aReadedmachiv_0
  0001:001E76B0       aSetimagepass_x
+ 0001:001E77F4       set_image_pass_x1_0
+ 0001:001E7808       set_image_pass_x1_1
  0001:001E7BF8       aStartimagepass
  0001:001E7C6C       aHivshdAddrChDL
  0001:001E7EC0       aSethivshdirpar
+ 0001:001E7ED8       write_ed_mac_vram_complete_cbr_x5
+ 0001:001E7EF8       read_ed_mac_def_corre_complete_cbr_x5
  0001:001E7F08       ReadEDmacDefCorreAbortCBR_x5
  0001:001E7F18       WriteEDmacCrawCompleteCBR_x5
  0001:001E7F38       ReadEDmacHivshdCompleteCBR_x5
@@ -15407,6 +15673,7 @@
  0001:001F075C       aLvaeBvD0x02xDD
  0001:001F079C       aLvaeBvD0x02x_0
  0001:001F07D0       aLvaeResetDispg
+ 0001:001F0E24       lvae_something
  0001:001F104C       aLvaeErrorSta_1
  0001:001F1080       aLvaeLiveview_2
  0001:001F10BC       aLvaeAelDStrobo
@@ -18107,46 +18374,74 @@
  0001:00253870       aDispatchingsta
  0001:002538AC       aIs_errorHlock
  0001:002538C0       aErrSuccess_1
+ 0001:002538D4       ctrlman_something
  0001:00253B28       aPdeletecontrol
  0001:00253B58       aPmovecontrolle
+ 0001:00253C88       gui_resource_callback_something
+ 0001:00253CCC       dialog_dispsw_callback
+ 0001:00253D08       dialog_something_0
+ 0001:00253D88       dialog_copy_something
  0001:00253FAC       aDialogDialog_c
  0001:00253FBC       aIs_errorErrorc
  0001:00253FD8       aPdialogNull
  0001:00253FEC       aPdialogPsignat
+ 0001:00254434       dialog_delete_maybe
+ 0001:00254528       dialog_create_publisher
  0001:0025454C       j_GiveSemaphore_0
+ 0001:002545D0       dialog_event_handler_maybe
  0001:00254790       aIs_errorPdialo
  0001:002547C0       aIs_errorPdia_0
  0001:002547F0       aIs_errorPdia_1
- 0001:0025499C       CreateDialogBox
+ 0001:00254878       dialog_publisher_callback_maybe
+ 0001:0025489C       dialog_callback_something
+ 0001:0025499C       dialog_create
  0001:00254C70       aIs_errorPdia_2
  0001:00254DFC       Dlg_get_something
- 0001:00254E80       SetProp_maybe
+ 0001:00254E80       dialog_item_something
  0001:00254EB8       GetProp
  0001:00255090       SetFocusItemToDialog
- 0001:002552A0       draw_dialog
+ 0001:0025523C       dialog_something_4
+ 0001:002552A0       dialog_draw
  0001:0025545C       aIs_errorPdia_3
+ 0001:002554C8       dialog_something_3
+ 0001:00255758       dialog_something_1
  0001:00255E8C       Dlg_search_something_0
  0001:00255EF4       Dlg_search_something
  0001:00255FBC       zSetOriginType
+ 0001:002560DC       dialog_sys_struct_0x8
+ 0001:00256184       dialog_winsys_draw_maybe
+ 0001:002564D4       struct_148e0_something
+ 0001:002564EC       struct_148e0_neg1
  0001:00256658       aInvalidItemHan
  0001:0025667C       aInvalidItemIns
+ 0001:00256A54       langcon_create_publisher_maybe
+ 0001:00256A90       disp_sw_controller_register_something
+ 0001:00256AC8       display_delete_subscriber_maybe
+ 0001:00256AF8       disp_sw_controller_something_0
  0001:00256B6C       aDispswcontroll
  0001:00256B90       aIs_errorHsubsc
  0001:00256BAC       aIs_errorRes_10
  0001:00256BC0       langcon_lock_handle
+ 0001:00256C0C       langcon_create_pub_and_sem_maybe
+ 0001:00256C40       langcon_register_something
+ 0001:00256C78       langcon_delete_subscriber_maybe
  0001:00256D44       langcon_0x0_locked
+ 0001:00256D74       check_langcon_0x0
  0001:00256DDC       aLangconLangcon
  0001:00256DF0       aHmypublisherUn
  0001:00256E18       aTakesemaphoreH
  0001:00256E4C       aIs_errorHsub_0
  0001:00256E68       aResultSucces_0
  0001:00256F64       struct_14818_0x00
+ 0001:00256FA4       color_palette_setup_maybe
  0001:002570B4       update_struct_14818
  0001:00257204       aScmInvalidPale
  0001:00257228       aUnknownColorid
  0001:00257238       aNotColoridX
  0001:002581F8       aWidgetPopupmen
  0001:00258218       aFalse_20
+ 0001:00258220       func
+ 0001:00258224       arg2
  0001:0025893C       aPopupmenuAlloc
  0001:00258974       aPopupmenuAll_0
  0001:00258DEC       aPopupmenuNotFo
@@ -18167,7 +18462,9 @@
  0001:0025A8D8       aPrectangleNull
  0001:0025A8EC       aIs_errorPrecta
  0001:0025A904       aPrectangleSign
+ 0001:0025ABBC       widget_button_allocation_motion_item
  0001:0025AEB4       aButtonAllocati
+ 0001:0025AF64       widget_button_something
  0001:0025B1DC       aButtonNotFound
  0001:0025B1FC       aWidgetButtonBu
  0001:0025B214       aPbuttonNull
@@ -18178,21 +18475,28 @@
  0001:0025B578       aButtonExtend_0
  0001:0025B93C       aResultNot_fo_1
  0001:0025B954       aFalse_25
+ 0001:0025BB24       widget_button_create
+ 0001:0025BCE8       aPcopyNull
  0001:0025BCFC       aIs_errorPcop_0
  0001:0025BD14       aPcopySignatu_0
+ 0001:0025BD60       widget_free_0x168
  0001:0025BE64       aButtonKilltime
+ 0001:0025BEE8       widget_text_something
+ 0001:0025C018       widget_text_something_0
  0001:0025C120       aWidgetTextText
  0001:0025C134       aPtextNull
  0001:0025C144       aIs_errorPtext
  0001:0025C158       aPtextSignature
  0001:0025C17C       aTextExtendedSt
  0001:0025C19C       aTextNotFoundFo
+ 0001:0025C300       widget_text_create
  0001:0025C460       aIs_errorPcop_1
  0001:0025C478       aPcopySignatu_1
  0001:0025C778       aWidgetBinbmpBi
  0001:0025C790       aPbinarybitmapN
  0001:0025C7A8       aIs_errorPbinar
  0001:0025C7C4       aPbinarybitmapS
+ 0001:0025C914       widget_dummy_counter_create
  0001:0025CB84       aIs_errorPcop_2
  0001:0025CB9C       aPcopySignatu_2
  0001:0025CBEC       aBinarybitmapWa
@@ -18228,6 +18532,7 @@
  0001:0025FAD8       aListselectNo_5
  0001:0025FB14       aIs_errorPmy_5
  0001:0025FB28       aPmySignature_5
+ 0001:002604E4       widget_dummy_list_create
  0001:00260788       aIs_errorPco_12
  0001:002607A0       aPcopySignat_12
  0001:00260CDC       aProgressbarIll
@@ -18240,6 +18545,7 @@
  0001:00261970       aPsliderNull
  0001:00261984       aIs_errorPslide
  0001:002619A0       aPsliderSignatu
+ 0001:00261CF0       widget_popup_aeb_create
  0001:00261EB0       aIs_errorPcop_3
  0001:00261EC4       aPcopySignatu_3
  0001:002624E4       aPopupaebAlloca
@@ -18270,12 +18576,26 @@
  0001:00265524       ScrollBar
  0001:00265614       aScrollbarNotfo
  0001:0026563C       aScrollbarNot_0
+ 0001:00265664       widget_histogram_object_translate_something
+ 0001:002656CC       widget_histogram_something_0
+ 0001:002659C0       widget_histogram_something
+ 0001:00265A34       widget_histogram_stop_timer
  0001:00265AD0       aBinbmp_0
  0001:00265AE4       aWidgetHistogra
  0001:00265B04       aPhNull
  0001:00265B14       aIs_errorPh
  0001:00265B28       aPhSignatureCsi
+ 0001:00265B48       widget_histogram_something_1
+ 0001:00265BA8       widget_histogram_object_something
+ 0001:00265D64       widget_histogram_setup_maybe
+ 0001:00265F0C       gui_register_something
+ 0001:00266068       fontlist_something
  0001:0026623C       aFntmanAcquiref
+ 0001:0026627C       fnt_something_1
+ 0001:002663C4       fnt_str_compare
+ 0001:002663F0       fnt_something_0
+ 0001:0026643C       fnt_something
+ 0001:00266748       vram_instance_0x4
  0001:00266960       aVideodrvVideod
  0001:00266974       aPvramImage_ppa
  0001:00266998       aIs_errorPvramH
@@ -18283,6 +18603,7 @@
  0001:002674CC       aPatternIdRejec
  0001:002682A4       whole_screen_backup_maybe
  0001:00268744       nullsub_42
+ 0001:00268824       vram_instance_0x14
  0001:00268978       aModeDIndex03dN
  0001:00268DFC       aWidgetListview
  0001:00268E18       a0PmyMaxlistnum
@@ -18310,6 +18631,7 @@
  0001:0026B664       aHheapmemoryHhe
  0001:0026B860       aListviewDrawfr
  0001:0026B894       checkdraftvram
+ 0001:0026B900       initialize_vram_maybe
  0001:0026BA8C       aCollapse_0
  0001:0026BA9C       aNotCollapsed_0
  0001:0026BAB0       aCollapsed
@@ -18318,12 +18640,16 @@
  0001:0026BAD4       aIs_errorHdraft
  0001:0026BAF0       aDraftVramIsCol
  0001:0026BB20       aDisablerefresh
+ 0001:0026BC00       window_register_something
  0001:0026BC98       nullsub_43
+ 0001:0026BC9C       is_visible_maybe
  0001:0026BF70       draw_something
+ 0001:0026C200       dialog_draw_something
  0001:0026C2C4       aPartialMemcpyS
  0001:0026C2F8       aPartialMemcpyE
  0001:0026C310       aPwindowPsignat
  0001:0026C864       draw_object
+ 0001:0026C940       winsys_draw_something
  0001:0026CF28       set_struct_14900_0x30_locked
  0001:0026CF4C       whole_screen_backup
  0001:0026CFBC       struct_14900_clr_0x34
@@ -18531,6 +18857,7 @@
  0001:0027C0F8       aEasyunmountsem
  0001:0027C108       aEasyUnmountErr
  0001:0027E01C       nullsub_14
+ 0001:0027E030       j_memcpy_0
  0001:0027E0F8       nullsub_15
  0001:0027E0FC       nullsub_16
  0001:0027E120       nullsub_17
@@ -18545,6 +18872,7 @@
  0001:0027E5BC       a_log_0
  0001:0027E5C4       aDmErrorDmgetlo
  0001:0027E5E8       aSlog03d_log
+ 0001:0027E6C4       gui_report_error_maybe
  0001:0027E954       aFatalerror
  0001:0027E960       aHardwaredefect
  0001:0027E970       aDevicefailure
@@ -18769,8 +19097,11 @@
  0001:002865B0       aStarterrforc_0
  0001:002865CC       aStarterrforc_1
  0001:00286840       aDlgerrforcamer
+ 0001:00286874       err_recording_set_percent
+ 0001:002868E4       err_recording_setprops
  0001:00286958       StopErrRecordingBusyApp
- 0001:00286998       DlgErrRecordingBusy
+ 0001:00286998       err_recording_busy_dialog
+ 0001:00286AC0       aLd_13
  0001:00286AD0       aStoperrrecordi
  0001:00286AEC       aDlgerrrecordin
  0001:00286B14       aDlgerrrecord_0
@@ -18783,6 +19114,7 @@
  0001:00286D10       aStarterrrecord
  0001:00286D2C       aStarterrreco_0
  0001:00286D4C       aStarterrreco_1
+ 0001:00286D84       get_gui_bitmap_position_maybe
  0001:0028729C       aGraphicsErrIll
  0001:00287330       aGraphicsErrI_0
  0001:0028735C       DPGuiCacheFlg
@@ -18854,6 +19186,7 @@
  0001:0028AB94       aSetplerrorcode
  0001:0028ABA8       aGetplerrorcode
  0001:0028ABBC       aSetplinfoplaym
+ 0001:0028AE80       fetch_14c5c_78_7c
  0001:0028AEBC       GetCurrentCaptureModeType
  0001:0028AEE8       GetZoomActuatorSpeedPPS
  0001:0028B0C8       GetPlayHistgramData
@@ -19542,6 +19875,7 @@
  0001:002A3B08       aDlgmnwb_cRot_1
  0001:002A3B3C       aStartmnwbapp
  0001:002A3B50       aStartmnwbappCr
+ 0001:002A3D58       menumain_date_timer_callback
  0001:002A3DBC       StartMenuMode
  0001:002A3E00       StopDateTimer
  0001:002A3F60       aMenumain_cPdat
@@ -19764,10 +20098,11 @@
  0001:002ADCEC       aGuiShootinfoDl
  0001:002ADD0C       a0_12
  0001:002ADD10       aDlgshootinfo_c
+ 0001:002ADD44       dlgshoot_olc_afframe_draw
  0001:002ADFFC       aDlgshootolcaff
  0001:002AE034       aDlgshootolca_0
  0001:002AE088       StopShootOlcAFFrameApp
- 0001:002AE0D0       OlcAFFrame
+ 0001:002AE0D0       olc_af_frame_dialog
  0001:002AE2DC       aStopshootolcaf
  0001:002AE2FC       aDlgshootolca_7
  0001:002AE328       aDlgshootolca_8
@@ -19942,8 +20277,9 @@
  0001:002B872C       aStartvirtualke
  0001:002B8754       aStartvirtual_0
  0001:002B8770       aCreatedialog_9
+ 0001:002B879C       dialog_item_strlen_something
  0001:002B8838       SetProp_maybe2
- 0001:002B88AC       PushColorPalette
+ 0001:002B88AC       color_palette_push
  0001:002B8900       PopColorPalette
  0001:002B8930       ChangeColorPalette
  0001:002B8998       ClearColorPalette
@@ -21105,6 +21441,7 @@
  0001:00304320       aLibcsvgCoreS_4
  0001:003047D4       j_strncpy_zpad
  0001:00304D68       j_rewrite_version_str_0
+ 0001:00304D80       j_strncmp
  0001:00304D84       j_strcpy_0
  0001:00304E8C       j_strlen_0
  0001:00305F90       j_call_ff81911c
@@ -21116,20 +21453,40 @@
  0001:003068D0       a0x04x0x04x
  0001:003068EC       aInvalidInput_1
  0001:00306920       aU06x
+ 0001:00307304       dialog_item_create
+ 0001:003075D8       dialog_item_cbr_something
  0001:003076C0       aDlgitmDlgitm_c
  0001:003076D0       aIs_errorPitemi
  0001:003076EC       aPiteminstanceP
  0001:00307718       aPiteminstanceN
  0001:00307850       DlgItm_something
+ 0001:003079F8       dialog_item_search_list
+ 0001:00307A40       dialog_resource_load
+ 0001:00307AE4       gui_resload
  0001:00307C78       aResloadResload
  0001:00307C8C       aStrcmpPheaderN
  0001:00307CB8       aPheaderNumbero
  0001:00307CEC       aIs_errorHopera
+ 0001:00307EFC       dialog_struct_148e0_something
+ 0001:00308038       dialog_something_2
  0001:00308B0C       aSyscolorDrawut
  0001:00308B20       a0_14
  0001:00308BBC       DrawBinBmpCompat
+ 0001:00308F30       widgetbase_type_id_maybe
+ 0001:00308FB4       return_1_2
+ 0001:00308FBC       button_0x30_check_langcon
+ 0001:00309028       dialog_callback_something_2
+ 0001:00309094       dialog_callback_something_4
+ 0001:00309100       button_get_translation_maybe
+ 0001:00309130       widget_list_get_head_and_tail_maybe
+ 0001:00309150       callback_something
  0001:003091A0       aWidgetWidgetba
  0001:003091C0       a0_15
+ 0001:0030930C       dialog_callback_something_3
+ 0001:00309368       dialog_callback_something_1
+ 0001:0030939C       dialog_call_list_maybe
+ 0001:00309460       widgetbase_walk_childlist_maybe
+ 0001:00309508       call_widgetbase_walk_childlist_maybe
  0001:0030972C       aUtf8codesizeUt
  0001:0030B744       nullsub_94
  0001:0030B748       WbInteg_irq
@@ -22481,6 +22838,8 @@
  0001:003425C8       aDlgmnqualit_58
  0001:003425FC       aMnqualitydivid
  0001:0034262C       aStartmnquali_2
+ 0001:0034278C       start_maintabheader_rightzone
+ 0001:003427C8       menutype_to_id_maybe
  0001:00342860       DialogTabTypeToMenuDialogHandle
  0001:0034296C       nullsub_23
  0001:00342B84       aDialogtabtypet
@@ -22652,6 +23011,7 @@
  0001:00345ABC       aMnmainutilit_3
  0001:00345AE8       aSetbeeptowinsy
  0001:00345B08       SetNoCFToWinSystem
+ 0001:00345B70       gui_image_quality_bmp
  0001:00345BCC       SetAebToWinSystem
  0001:00345DF8       aMnmainutilit_4
  0001:00345E24       aSetnocftowinsy
@@ -23169,6 +23529,7 @@
  0001:00358E44       aCheckinputstri
  0001:0035922C       aFactoryZfctdir
  0001:00359244       aPcatalogPdet_0
+ 0001:0035928C       factory_dir_swck
  0001:0035954C       aIs_errorHdirsw
  0001:00359800       aMnstrobotbl_cU
  0001:00359824       GUI_GetOlcTv
@@ -24110,6 +24471,7 @@
  0001:003844B8       aDecidevaluehdd
  0001:003844EC       aDecidevalueUnk
  0001:0038451C       aSearchentrynam
+ 0001:00384558       SearchEntryNameHDD
  0001:003845D8       CreateDCIMFolderStart
  0001:0038465C       ChangeDCIMFolderComplete
  0001:003846F4       TurnBackDCIMFolderComplete
@@ -24782,8 +25144,9 @@
  0001:0039C174       aDlgmnmainplay2
  0001:0039C1A0       aDlgmnmainpla_0
  0001:0039C1E0       fetch_1f818
+ 0001:0039C1EC       mainmenu_dialog_item_something
  0001:0039C2B8       StopMnMainRecord1App
- 0001:0039C314       factory_menu_dialog
+ 0001:0039C314       mainrec1_dialog
  0001:0039C5D8       aStopmnmainreco
  0001:0039C5F0       aDlgmnmainrec_0
  0001:0039C628       aDlgmnmainrec_3
@@ -24895,6 +25258,7 @@
  0001:0039F20C       aDlgmnmainse_50
  0001:0039F234       aStartmnmains_1
  0001:0039F250       aDlgmnmainse_35
+ 0001:0039F2C4       main_tab_header
  0001:0039F2D0       TabIDToMenuDialogHandle
  0001:0039F520       DlgMnMainTabHeader
  0001:0039F67C       aDlgmnmaintab_4
@@ -24933,7 +25297,7 @@
  0001:003A07DC       aTabhLeftUnknow
  0001:003A0800       aTabhRight_Unkn
  0001:003A0820       StopMnMainTabHeaderApp
- 0001:003A0898       dialog_something
+ 0001:003A0898       main_tab_dialog
  0001:003A0AC0       aStopmnmaintabh
  0001:003A0AE8       aDlgmnmaintabhe
  0001:003A0B1C       aDlgmnmaintab_0
@@ -25377,7 +25741,7 @@
  0001:003B2FD8       aDlgmnmainta_38
  0001:003B3008       aDlgmnmainta_39
  0001:003B303C       aDlgmnmainta_40
- 0001:003B30F8       StartMnMainTabHeaderApp_0
+ 0001:003B30F8       StartMnMainTabHeaderApp_fromImageZone
  0001:003B327C       aStartmnmaint_1
  0001:003B3294       aStartmnmaint_2
  0001:003B32C8       aTabhLeftUnkn_0
@@ -26098,12 +26462,16 @@
  0001:003DD4C8       aGetmenutable_0
  0001:003DD4F4       aGetmenutable_1
  0001:003DD540       GetMenuTableFromFuncNo
+ 0001:003DD610       search_menu_and_mymenu
  0001:003DD694       GetMyMenuItemIdFromFuncNo
  0001:003DD750       aGetmenutablefr
  0001:003DD780       aGetmymenuitemi
  0001:003DD7AC       GetCFnMenuTableFromTableNo
  0001:003DD7FC       aGetcfnmenutabl
  0001:003DD82C       aGetcfnmenuta_0
+ 0001:003DD85C       factory_menu_search_catalog_table
+ 0001:003DD8AC       factory_menu_shutdown_maybe
+ 0001:003DD8EC       factory_menu_event_handler
  0001:003DDAD8       aFactoryZfctfac
  0001:003DDAF4       aCatalogtableI_
  0001:003DDB2C       aHfactorymenu_0
@@ -26260,7 +26628,7 @@
  0001:003E2334       StartSubMenu
  0001:003E2628       aMnmainutili_17
  0001:003E2884       aMnmainutili_18
- 0001:003E28B8       SelectFunctions
+ 0001:003E28B8       mainmenu_select_functions
  0001:003E2CA4       aMnmainutilityS
  0001:003E2D90       aSelectfuncUnkn
  0001:003E52A8       StopDpEffectColorBalanceApp
@@ -26801,10 +27169,16 @@
  0001:003F9544       aStartmnwbbktap
  0001:003F9554       aStartmnwbbkt_0
  0001:003F956C       aStartmnwbbkt_1
+ 0001:003F9598       factory_menu_search_catalog_table_0
+ 0001:003F961C       factory_menu_catalog_set_property
+ 0001:003F96D4       factory_menu_dialog_setup
+ 0001:003F9768       factory_menu_dialog
  0001:003F987C       aFactoryZfctdat
  0001:003F9890       aPcatalogI_cata
  0001:003F98C0       aHdataNull
+ 0001:003F9934       factory_data
  0001:003F99A8       aIs_errorHdata
+ 0001:003F9C40       factory_display_ck
  0001:003F9CEC       aFactoryZfctdis
  0001:003F9D04       aHdisplayckNu_0
  0001:003F9D1C       aHdisplayckNull
@@ -26812,6 +27186,7 @@
  0001:003FA280       aFactoryZfctlen
  0001:003FA298       aPcatalogPdet_1
  0001:003FA2C8       aHlensckNull
+ 0001:003FA2E4       factory_lens_ck
  0001:003FA374       aIs_errorHlensc
  0001:003FA388       StopMnImageSendingApp
  0001:003FA66C       aStopmnimagesen
@@ -27789,9 +28164,11 @@
  0001:00421B80       aAssertionFaile
  0001:00421B98       aFile
  0001:00421BA0       aLine
+ 0001:00421BB8       memcpy_0
  0001:00421D20       memcopy_32
  0001:00421E14       bzero32
  0001:00421E6C       Mute
+ 0001:00421ED0       byteswap_32
  0001:00421EF0       address_fixup_maybe
  0001:00422054       task_save_state_maybe
  0001:004236D0       return_0x474f0
@@ -27818,13 +28195,23 @@
  0001:004264BB       a1_11
  0001:00426594       aSpsErrorSpseve
  0001:004265E0       FA_funclist
+ 0001:00426804       event_mgr_str_ptr
  0001:00426814       aEmErrorEmevent
  0001:00426860       aEmErrorEm_unre
  0001:004268A8       aFcacheErrorR_1
  0001:00426A44       aDcsGetcurren_0
+ 0001:00426A8C       rsc_mgr_str_ptr
  0001:00426B54       aTryreceivemess
+ 0001:00426B9C       LiveViewMgr_str_ptr
+ 0001:00426CF0       lvc_ae_str_ptr
+ 0001:00426CF4       lvc_ae_data
  0001:00426D0C       aLvcaeErrorLvca
+ 0001:00426D54       lvc_af_str_ptr
+ 0001:00426D58       lvc_af_data
+ 0001:00426D74       lvc_dev_str_ptr
+ 0001:00426DB0       lvc_md_str_ptr
  0001:00426DF4       aRdErrorRdevent
+ 0001:00426E40       ptpdps_str_ptr
  0001:00426ED4       aCereseventdisp
  0001:00426F1C       aSdiodrveventdi
  0001:00426F80       aTomErrorTomeve
@@ -27846,6 +28233,7 @@
  0001:0042A3F0       aSChunkAddr0x08
  0001:0042A438       aCopyrightC1997
  0001:0042A460       yield_functions
+ 0001:0042A4B4       vram_something_maybe
  0001:0042A667       aS96rJXYH
  0001:0044DAF8       scs_callbacks_0
  0001:0044E1B8       scs_callbacks_1
@@ -27855,7 +28243,14 @@
  0001:0044EEF4       SDSRearState_callbacks
  0001:0044F214       aSdsHtimercompS
  0001:0044F25C       SDSFrontState_callbacks
+ 0001:0044F70C       sdsfront_state_callbacks
+ 0001:0044F7AC       sdsfront_state_callbacks_0
  0001:0044F85C       mon_functions
+ 0001:0044FC24       factory_menu_catalog_items
+ 0001:0044FC28       aDisplayCk
+ 0001:0044FC3C       aDialCk
+ 0001:0044FC50       aAfCk
+ 0001:0044FC64       aSwTest
  0001:0045127C       a60_8899995_3_0
  0001:004512D0       a0_8997950_89_0
  0001:00451318       a34_1199954_3_0
@@ -27919,6 +28314,7 @@
  0001:00453794       aDdpmc
  0001:004537A0       aDdpmc100
  0001:004537B4       aHdpmc100
+ 0001:00453E04       lv_state_callbacks
  0001:004549D4       aGetfirstaepara
  0001:00454CC0       LVCAE_callbacks
  0001:00454EA4       LVCAF_callbacks
@@ -27964,8 +28360,11 @@
  0001:00455F98       aStRqPtStepFpcT
  0001:00456038       aMoveflensReqDM
  0001:0045607C       aMoveflensReq_1
+ 0001:004560EC       motion_detect_state
+ 0001:004561E0       rdstate_states
  0001:00456268       aFramctrlWarnin
  0001:00456328       aTrsnctrlWarningNotVbusNegatedForuceT
+ 0001:0045639C       ptpdps_state
  0001:00456F94       aTrsnctrlExce_0
  0001:00456FD8       aTrsnctrlErro_3
  0001:0045701C       aTrsnctrlWarn_2
@@ -28068,6 +28467,7 @@
  0001:0047BF74       led_off_cmd
  0001:0047BF80       DMState_callbacks
  0001:0047C1AC       StateObject_str_ptr
+ 0001:0047C1B4       task_class_str_ptr
  0001:0047C1BC       cu_functions
  0001:0047C21C       aSun
  0001:0047C220       aMon
@@ -28631,14 +29031,23 @@
  0001:0048DB3C       aVideo
  0001:0048DB44       aView
  0001:0048DB70       aPmyMultitosu_2
+ 0001:0048DE34       widget_button_object
+ 0001:0048DE44       widget_button_data
+ 0001:0048DFC4       widget_text_object
+ 0001:0048DFD4       widget_text_data
+ 0001:0048E04C       widget_dummy_counter_object
+ 0001:0048E334       widget_list_object
  0001:0048E724       aPsliderMultito
  0001:0048E768       aPsliderMulti_0
  0001:0048EC04       aPscrollbarMult
+ 0001:0048ED94       widget_histogram_object_maybe
  0001:0048EE38       a0PmyMaxlistn_0
  0001:0048EEA4       aListviewWidt_0
  0001:0048EEE8       aListviewDraw_4
+ 0001:0048F100       draftvram_functions
  0001:0048F560       aPopupcounter_0
  0001:0048F84C       aVectoranimSt_0
+ 0001:0048FEBC       gui_bitmap_position_maybe
  0001:00491FF4       aFromfullpath_0
  0001:00492040       aGui_getfilen_1
  0001:004920A4       aDlglnimageduri
@@ -28664,6 +29073,7 @@
  0001:0049394C       a456789Abcdefgh
  0001:00493A04       a__0123456789ab
  0001:00493A60       a__0123456789_0
+ 0001:00493AC0       color_palette_list
  0001:00494514       aDlgliveview_92
  0001:00494944       aDlgliveviewi_5
  0001:0049498C       aDlgliveviewi_6
@@ -28795,6 +29205,7 @@
  0001:004A3178       aAbcdefghijklm
  0001:004A3204       aChecknextbu_10
  0001:004A3248       menu_table_num
+ 0001:004A361C       mymenu_list_maybe
  0001:004A36EC       aGetcurrentpl_4
  0001:004A3734       aStartfolders_3
  0001:004A378C       aChecknextbu_11
