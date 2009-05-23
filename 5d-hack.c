@@ -135,14 +135,75 @@ test_dialog(
 	if( !file )
 		file = FIO_CreateFile( "A:/dialog.log" );
 	buf[0]++;
-	buf[1] = self;
-	buf[2] = arg;
-	buf[3] = event;
+	buf[1] = (uint32_t) self;
+	buf[2] = (uint32_t) arg;
+	buf[3] = (uint32_t) event;
 
 	FIO_WriteFile( file, buf, sizeof(buf) );
 
 	// Unhandled?
 	return 1;
+}
+
+
+void find_vram( void )
+{
+	void * file = FIO_CreateFile( "A:/vram.log" );
+	
+	uint32_t vram0 = vram_get_number( 0 );
+	uint32_t vram2 = vram_get_number( 2 );
+	//FIO_WriteFile( file, &vram0, sizeof(vram0) );
+	//FIO_WriteFile( file, &vram2, sizeof(vram2) );
+
+	uint32_t * const vram_struct = (void*) 0x13ae0;
+	uint32_t * const vram_bss = (void*) 0x333b0;
+
+	FIO_WriteFile( file, vram_struct, 0x100 );
+	FIO_WriteFile( file, vram_bss, 0x100 );
+
+	uint32_t * const bmp_vram_ptr = (void*) 0x240cc;
+	uint8_t * const bmp_vram = (void*) bmp_vram_ptr[ 2 ];
+	FIO_WriteFile( file, bmp_vram_ptr, 0x100 );
+/*
+	uint32_t r2 = vram_struct[ 0x70 / 4 ];
+	FIO_WriteFile( file, &r2, sizeof(r2) );
+
+	vram0 += vram0 << 2;
+	vram2 += vram2 << 2;
+
+	uint32_t r12 = vram_bss[ vram0 ];
+	FIO_WriteFile( file, &r12, sizeof(r12) );
+*/
+
+	FIO_CloseFile( file );
+}
+
+void scribble( void )
+{
+	uint32_t * const vram_config_ptr = (void*) 0x2580;
+	uint32_t width = vram_config_ptr[ 0x28 / 4 ];
+
+	uint32_t * const bmp_vram_ptr = (void*) 0x240cc;
+	uint8_t * const bmp_vram = (void*) bmp_vram_ptr[ 2 ];
+
+	if( !bmp_vram )
+		return;
+
+	static int __attribute__((section(".text"))) done;
+	if( !done )
+		dispcheck();
+	done = 1;
+
+	// BMP vram has 960 bytes per line
+	uint32_t i;
+	for( i=0 ; i<480 ; i++ )
+	{
+		uint8_t * row = bmp_vram + (i*960);
+		uint32_t j;
+		
+		for( j=0 ; j<width ; j += 2 )
+			row[j] = 0xFF;
+	}
 }
 
 
@@ -156,20 +217,28 @@ void my_sleep_task( void )
 	//uint32_t lr = read_lr();
 
 	int i;
-	msleep( 1000 );
+	msleep( 5000 );
 
 	// Try enabling manual video mode
 	uint32_t enable = 1;
 	EP_SetMovieManualExposureMode( &enable );
+	EP_SetDebugLogMode( &enable );
+	EP_SetLVAEDebugPort( &enable );
 
-	struct dialog * dialog = dialog_create( 0, 0x1a, test_dialog, 0 );
-	dialog_draw( dialog );
-		
+	thunk t = (void*) 0xFFBDDB50;
+	t();
+
+	msleep( 1000 );
+		dispcheck();
+
+	//struct dialog * dialog = dialog_create( 0, 0x1a, test_dialog, 0 );
+	//dialog_draw( dialog );
 
 	void * file = FIO_CreateFile( "A:/TEST.LOG" );
 	if( file == (void*) 0xFFFFFFFF )
 		return; //while(1);
 
+	find_vram();
 	//FIO_WriteFile( file, &lr, sizeof(lr) );
 
 	for( i=0 ; i<6 ; i++ )
