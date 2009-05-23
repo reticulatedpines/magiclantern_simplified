@@ -207,6 +207,52 @@ void scribble( void )
 }
 
 
+/** Attempt to start my own main menu dialog
+ * This replaces StartMnMainTabHeaderApp at 0xffba0bd4
+ */
+int
+my_tab_header_app( void )
+{
+	// 0x0001F848 main_tab_struct
+	// 0xFFBA0820 StopMnMainTabHeaderApp
+	if( main_tab_dialog_id )
+		StopMnMainTabHeaderApp();
+	StartMnMainRec1App();
+	StartMnMainRec2App();
+	StartMnMainPlay1App();
+	StartMnMainPlay2App();
+	StartMnMainSetup1App();
+	StartMnMainSetup2App();
+	StartMnMainSetup3App();
+	StartMnMainCustomFuncApp();
+	//StartMnMainMyMenuApp();
+
+	main_tab_dialog_id = dialog_create(
+		0,
+		0,
+		main_tab_header_dialog,
+		(void*) 158,
+		0
+	);
+
+	if( main_tab_dialog_id != 1 )
+	{
+		DebugMsg( 0x83, "**** %s CreateDialog failed!\n", __func__ );
+		return main_tab_dialog_id;
+	}
+
+	color_palette_push( 2 );
+
+	thunk main_tab_bitmaps_maybe = (void*) 0xFFBA0C7C;
+	main_tab_bitmaps_maybe();
+	dialog_draw( main_tab_dialog_id );
+
+	return 0;
+}
+
+
+
+
 static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 // mvr_struct 0x1ee0
@@ -225,8 +271,14 @@ void my_sleep_task( void )
 	EP_SetDebugLogMode( &enable );
 	EP_SetLVAEDebugPort( &enable );
 
-	thunk t = (void*) 0xFFBDDB50;
-	t();
+	//thunk t = (void*) 0xFFBDDB50;
+	//t();
+	//my_tab_header_app();
+
+	// Kill the LVC_AE task
+	//KillTask( "LVC_AE" );
+	thunk lvcae_destroy_state_object = (void*) 0xff83574c;
+	lvcae_destroy_state_object();
 
 	msleep( 1000 );
 		dispcheck();
@@ -258,7 +310,6 @@ void my_timer_task( void * unused )
 {
 	oneshot_timer( 1<<10, my_timer_task, my_timer_task, 0 );
 }
-
 
 
 static inline uint32_t
