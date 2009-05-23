@@ -171,6 +171,11 @@ EP_SetLVAEDebugPort(
 extern void *
 new_task_struct( int );
 
+
+/** Create a new user level task.
+ *
+ * The arguments are not really known yet.
+ */
 extern void
 create_task(
 	const char * name,
@@ -181,10 +186,17 @@ create_task(
 );
 
 
+/** Bootstrap a new task.
+ * \internal
+ * \note This is never directly called by the user; it is the entry
+ * point used by create_task() to call the user task and then to pass
+ * the return code to what ever cleans up after the task exits.
+ */
 extern void
 task_trampoline(
 	struct task *		task
 );
+
 
 struct semaphore;
 
