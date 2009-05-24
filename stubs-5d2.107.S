@@ -51,6 +51,7 @@ NSTUB( 0xFF854FC8, audio_start_asif_observer )
 NSTUB( 0xFF9721C0, audio_level_task )
 NSTUB( 0xFF9721B4, audio_interval_unlock )
 NSTUB( 0xFF856E60, sound_dev_task )
+NSTUB( 0xFF857008, sound_dev_active_in )
 NSTUB( 0xFF81BDC0, open )
 NSTUB( 0xFF81BE70, close )
 NSTUB( 0xFF98C1CC, FIO_CreateFile )
@@ -84,6 +85,7 @@ NSTUB( 0xFFBDDB50, StartFactoryMenuApp )
 NSTUB( 0xFF9BAC48, StartMnStudioSetupmenuApp )
 
 NSTUB( 0xFF86674C, dm_event_dispatch )
+NSTUB( 0xFF866D18, dm_set_store_level )
 
 
 

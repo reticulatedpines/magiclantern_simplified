@@ -145,16 +145,42 @@ test_dialog(
 	return 1;
 }
 
+static inline uint32_t
+audio_read_level( void )
+{
+	return *(uint32_t*) 0xC0920110;
+}
+
 
 void scribble(void)
 {
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
+	uint32_t level = audio_read_level();
 	uint32_t x, y;
-	for( y=vram->height/4 ; y<vram->height/2 ; y++ )
+
+	// Convert the levels to something more usable
+	level = (level / 64) + 25;
+
+	for( y=0 ; y<25 ; y++ )
 	{
 		uint16_t * row = vram->vram + y * vram->pitch;
-		for( x=vram->width/4 ; x < vram->width/2 ; x++ )
+		for( x=0 ; x < level && x < vram->width ; x++ )
+			//row[x] = 0x515F;
 			row[x] = 0xFFFF;
+	}
+}
+
+
+void my_audio_level_task( void )
+{
+	msleep( 4000 );
+	audio_set_alc_off();
+	sound_dev_active_in(0,0);
+
+	while(1)
+	{
+		scribble();
+		msleep(30);
 	}
 }
 
@@ -259,10 +285,14 @@ void my_sleep_task( void )
 {
 	int i;
 	dmstart();
+	thunk smemShowFix = (void*) 0xff82a90c;
+	dm_set_store_level( 0x80, 0x16 );
+	smemShowFix();
 
 	//uint32_t lr = read_lr();
 	msleep( 2000 );
 	dump_vram();
+	dumpf();
 
 	// Try enabling manual video mode
 	uint32_t enable = 1;
@@ -279,14 +309,9 @@ void my_sleep_task( void )
 	//thunk lvcae_destroy_state_object = (void*) 0xff83574c;
 	//lvcae_destroy_state_object();
 
-	for( i=0 ; i<1000 ; i++ )
-	{
-		scribble();
-		msleep( 100 );
-	}
 	//dispcheck();
 
-	dumpf();
+	//dumpf();
 	dmstop();
 
 	//struct dialog * dialog = dialog_create( 0, 0x1a, test_dialog, 0 );
@@ -319,13 +344,8 @@ void my_timer_task( void * unused )
 }
 
 
-static inline uint32_t
-audio_read_level( void )
-{
-	return *(uint32_t*) 0xC0920110;
-}
 
-
+#if 0
 void
 my_audio_level_task( void )
 {
@@ -403,6 +423,7 @@ my_audio_level_task( void )
 
 	FIO_CloseFile( file );
 }
+#endif
 
 
 
@@ -510,17 +531,20 @@ my_init_task(void)
 	// Call their init task
 	init_task();
 
-	// Create our init task
+	// Create our init task and our audio level task
 	create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
+	create_task( "audio_level_task", 0x1F, 0x1000, my_audio_level_task, 0 );
 
 	// Re-write the version string
 	char * additional_version = (void*) 0x11f9c;
 	additional_version[0] = '-';
-	additional_version[1] = 'h';
-	additional_version[2] = 'u';
-	additional_version[3] = 'd';
-	additional_version[4] = 's';
-	additional_version[5] = 'o';
-	additional_version[6] = 'n';
+	additional_version[1] = 'm';
+	additional_version[2] = 'a';
+	additional_version[3] = 'r';
+	additional_version[4] = 'k';
+	additional_version[5] = 'f';
+	additional_version[6] = 'r';
+	additional_version[7] = 'e';
+	additional_version[8] = 'e';
 
 }

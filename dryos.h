@@ -49,6 +49,7 @@ extern void dmStart( void ); // initiate the start
 extern void dmstop( void );
 extern void dumpentire( void );
 extern void dumpf( void );
+extern void dm_set_store_level( uint32_t class, uint32_t level );
 
 extern void
 dm_event_dispatch(
@@ -129,6 +130,13 @@ struct sound_dev
 };
 
 extern struct sound_dev * sound_dev;
+
+// Calls the unlock function when done
+extern void
+sound_dev_active_in(
+	void			(*unlock_func)( void * ),
+	void *			arg
+);
 
 
 /** Return the head of the running task list */
@@ -486,7 +494,10 @@ struct vram_object
 };
 
 
-/** VRAM info in the BSS */
+/** VRAM info in the BSS.
+ *
+ * Pixels are in the format 
+ */
 struct vram_info
 {
 	uint16_t *		vram;
