@@ -290,7 +290,7 @@ void my_sleep_task( void )
 	//uint32_t lr = read_lr();
 
 	int i;
-	msleep( 10000 );
+	msleep( 20000 );
 
 	// Try enabling manual video mode
 	uint32_t enable = 1;
