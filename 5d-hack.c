@@ -10,6 +10,7 @@ void task_dispatch_hook( struct context ** );
 void my_init_task(void);
 void my_bzero( uint8_t * base, uint32_t size );
 
+#define TEXT __attribute__((section(".text")))
 
 /** Translate a firmware address into a relocated address */
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
@@ -152,21 +153,31 @@ audio_read_level( void )
 }
 
 
-void scribble(void)
+void draw_meters(void)
 {
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 	uint32_t level = audio_read_level();
 	uint32_t x, y;
 
 	// Convert the levels to something more usable
-	level = (level / 64) + 25;
+	static uint32_t TEXT level_avg;
+	static uint32_t TEXT level_peak;
+	level = (level / 128);
+	level_avg	= (level_avg * 63 + level) / 64;
+	level_peak	= (level_peak * 15 + level) / 16;
 
 	for( y=0 ; y<25 ; y++ )
 	{
 		uint16_t * row = vram->vram + y * vram->pitch;
-		for( x=0 ; x < level && x < vram->width ; x++ )
+
+		// Draw the smooth meter
+		for( x=0 ; x < level_avg*2 && x < vram->width ; x++ )
 			//row[x] = 0x515F;
 			row[x] = 0xFFFF;
+
+		// Draw the peak
+		for( x=level_peak*2 ; x<level_peak*2 + 20 ; x++ )
+			row[x] = 0x888F;
 	}
 }
 
@@ -174,12 +185,12 @@ void scribble(void)
 void my_audio_level_task( void )
 {
 	msleep( 4000 );
-	audio_set_alc_off();
 	sound_dev_active_in(0,0);
+	audio_set_alc_off();
 
 	while(1)
 	{
-		scribble();
+		draw_meters();
 		msleep(30);
 	}
 }
@@ -291,8 +302,8 @@ void my_sleep_task( void )
 
 	//uint32_t lr = read_lr();
 	msleep( 2000 );
-	dump_vram();
-	dumpf();
+	//dump_vram();
+	//dumpf();
 
 	// Try enabling manual video mode
 	uint32_t enable = 1;
