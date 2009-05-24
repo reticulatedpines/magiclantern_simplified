@@ -146,65 +146,33 @@ test_dialog(
 }
 
 
-void find_vram( void )
+void scribble(void)
 {
-	void * file = FIO_CreateFile( "A:/vram.log" );
-	
-	uint32_t vram0 = vram_get_number( 0 );
-	uint32_t vram2 = vram_get_number( 2 );
-	//FIO_WriteFile( file, &vram0, sizeof(vram0) );
-	//FIO_WriteFile( file, &vram2, sizeof(vram2) );
-
-	uint32_t * const vram_struct = (void*) 0x13ae0;
-	uint32_t * const vram_bss = (void*) 0x333b0;
-
-	FIO_WriteFile( file, vram_struct, 0x100 );
-	FIO_WriteFile( file, vram_bss, 0x100 );
-
-	uint32_t * const bmp_vram_ptr = (void*) 0x240cc;
-	uint8_t * const bmp_vram = (void*) bmp_vram_ptr[ 2 ];
-	FIO_WriteFile( file, bmp_vram_ptr, 0x100 );
-/*
-	uint32_t r2 = vram_struct[ 0x70 / 4 ];
-	FIO_WriteFile( file, &r2, sizeof(r2) );
-
-	vram0 += vram0 << 2;
-	vram2 += vram2 << 2;
-
-	uint32_t r12 = vram_bss[ vram0 ];
-	FIO_WriteFile( file, &r12, sizeof(r12) );
-*/
-
-	FIO_CloseFile( file );
+	struct vram_info * vram = &vram_info[ vram_get_number(0) ];
+	uint32_t x, y;
+	for( x=0 ; x < vram->width ; x += 5 )
+		for( y=0 ; y<vram->height ; y+= 5 )
+			vram->vram[y * vram->pitch + x] = 0xFF;
 }
 
 
-void find_dm( void )
+
+
+void dump_vram( void )
 {
-	if( !dm_state_ptr )
-		return;
-	void * file = FIO_CreateFile( "A:/dm.log" );
-	//FIO_WriteFile( file, dm_state_ptr, sizeof(*dm_state_ptr) );
-	FIO_WriteFile( file, dm_state_ptr->signature, 0x1000 );
+	int i;
+	uint32_t vram_num[8];
+	for( i=0 ; i<8 ; i++ )
+		vram_num[i] = vram_get_number(i);
 
-	
-/*
-	int (*dmGetLogName)( char * name ) = (void*) 0xffa7e458;
-	int (*dm_log_create)( char * name ) = (void*) 0xff998f70;
-	char logfilename[32];
-	dmGetLogName( logfilename );
-	void * dml = dm_log_create( logfilename );
-*/
-	//struct state_object * (*dm_start_log)( struct state_object * self, int input, int arg1, int arg2 ) = (void*) 0xff99420c;
-	//dm_start_log( dm_state_object, 1, 1, 0 );
+	uint32_t * const vram_struct = (void*) 0x13ea0;
 
-	//dm_event_dispatch( 1, 1, 1 );
+	write_debug_file( "vram_struct.log", vram_struct, 0x400 );
+	write_debug_file( "vram_bss.log", vram_info, sizeof(vram_info) );
+	write_debug_file( "vram_num.log", vram_num, sizeof(vram_num) );
 
-	FIO_CloseFile( file );
-}
+#if 0
 
-void scribble( void )
-{
 	uint32_t * const vram_config_ptr = (void*) 0x2580;
 	uint32_t width = vram_config_ptr[ 0x28 / 4 ];
 
@@ -229,6 +197,7 @@ void scribble( void )
 		for( j=0 ; j<width ; j += 2 )
 			row[j] = 0xFF;
 	}
+#endif
 }
 
 
@@ -285,12 +254,12 @@ static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 void my_sleep_task( void )
 {
+	int i;
 	dmstart();
 
 	//uint32_t lr = read_lr();
-
-	int i;
-	msleep( 20000 );
+	msleep( 2000 );
+	dump_vram();
 
 	// Try enabling manual video mode
 	uint32_t enable = 1;
@@ -307,10 +276,13 @@ void my_sleep_task( void )
 	//thunk lvcae_destroy_state_object = (void*) 0xff83574c;
 	//lvcae_destroy_state_object();
 
-/*
-	msleep( 1000 );
-		dispcheck();
-*/
+	for( i=0 ; i<1000 ; i++ )
+	{
+		scribble();
+		msleep( 100 );
+	}
+	//dispcheck();
+
 	dumpf();
 	dmstop();
 
@@ -321,8 +293,6 @@ void my_sleep_task( void )
 	if( file == (void*) 0xFFFFFFFF )
 		return; //while(1);
 
-	find_vram();
-	find_dm();
 	//FIO_WriteFile( file, &lr, sizeof(lr) );
 
 	dumpentire();

@@ -472,6 +472,32 @@ vram_get_number(
 extern void
 dispcheck( void );
 
+extern const char * vram_instance_str_ptr;
+
+/** VRAM structure (maybe?) */
+struct vram_object
+{
+	const char *		name; // "Vram Instance" 0xFFCA79E5
+	uint32_t		off_0x04;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+	uint32_t		off_0x10;
+	struct semaphore *	sem; // off 0x14;
+};
+
+
+/** VRAM info in the BSS */
+struct vram_info
+{
+	uint8_t *		vram;
+	uint32_t		pitch; // maybe
+	uint32_t		width; // maybe
+	uint32_t		height;
+	uint32_t		vram_number;
+};
+
+extern struct vram_info vram_info[2];
+
 
 /** Main menu tab functions */
 extern int main_tab_dialog_id;
@@ -491,6 +517,7 @@ extern void StartMnMainMyMenuApp( void );
 /** Hidden menus */
 extern void StartFactoryMenuApp( void );
 extern void StartMnStudioSetupMenuApp( void );
+
 
 
 
