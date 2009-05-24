@@ -474,7 +474,7 @@ dispcheck( void );
 
 extern const char * vram_instance_str_ptr;
 
-/** VRAM structure (maybe?) */
+/** VRAM info structure (maybe?) */
 struct vram_object
 {
 	const char *		name; // "Vram Instance" 0xFFCA79E5
@@ -489,9 +489,9 @@ struct vram_object
 /** VRAM info in the BSS */
 struct vram_info
 {
-	uint8_t *		vram;
-	uint32_t		pitch; // maybe
+	uint16_t *		vram;
 	uint32_t		width; // maybe
+	uint32_t		pitch; // maybe
 	uint32_t		height;
 	uint32_t		vram_number;
 };

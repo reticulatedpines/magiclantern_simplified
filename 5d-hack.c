@@ -148,11 +148,14 @@ test_dialog(
 
 void scribble(void)
 {
-	struct vram_info * vram = &vram_info[ vram_get_number(0) ];
+	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 	uint32_t x, y;
-	for( x=0 ; x < vram->width ; x += 5 )
-		for( y=0 ; y<vram->height ; y+= 5 )
-			vram->vram[y * vram->pitch + x] = 0xFF;
+	for( y=vram->height/4 ; y<vram->height/2 ; y++ )
+	{
+		uint16_t * row = vram->vram + y * vram->pitch;
+		for( x=vram->width/4 ; x < vram->width/2 ; x++ )
+			row[x] = 0xFFFF;
+	}
 }
 
 
