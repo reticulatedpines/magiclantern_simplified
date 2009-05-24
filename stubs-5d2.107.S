@@ -37,6 +37,9 @@ NSTUB( 0xFF8698D8, give_semaphore )
 NSTUB( 0xFF992924, EdLedOn )
 NSTUB( 0xFF992950, EdLedOff )
 NSTUB( 0xFF86694C, dmstart )
+NSTUB( 0xFF86698C, dmstop )
+NSTUB( 0xFF86701C, dumpentire )
+NSTUB( 0xFF867260, dumpf )
 NSTUB( 0xFF8704DC, oneshot_timer )
 NSTUB( 0xFF856AB8, audio_set_alc_on )
 NSTUB( 0xFF856B14, audio_set_alc_off )
@@ -79,6 +82,8 @@ NSTUB( 0xFFB9AA54, StartMnMainMyMenuApp )
 
 NSTUB( 0xFFBDDB50, StartFactoryMenuApp )
 NSTUB( 0xFF9BAC48, StartMnStudioSetupmenuApp )
+
+NSTUB( 0xFF86674C, dm_event_dispatch )
 
 
 

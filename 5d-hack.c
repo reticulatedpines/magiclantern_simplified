@@ -198,6 +198,8 @@ void find_dm( void )
 	//struct state_object * (*dm_start_log)( struct state_object * self, int input, int arg1, int arg2 ) = (void*) 0xff99420c;
 	//dm_start_log( dm_state_object, 1, 1, 0 );
 
+	//dm_event_dispatch( 1, 1, 1 );
+
 	FIO_CloseFile( file );
 }
 
@@ -283,10 +285,12 @@ static const char __attribute__((section(".text"))) pc_buf_raw[4*1024];
 
 void my_sleep_task( void )
 {
+	dmstart();
+
 	//uint32_t lr = read_lr();
 
 	int i;
-	msleep( 5000 );
+	msleep( 10000 );
 
 	// Try enabling manual video mode
 	uint32_t enable = 1;
@@ -303,8 +307,12 @@ void my_sleep_task( void )
 	//thunk lvcae_destroy_state_object = (void*) 0xff83574c;
 	//lvcae_destroy_state_object();
 
+/*
 	msleep( 1000 );
 		dispcheck();
+*/
+	dumpf();
+	dmstop();
 
 	//struct dialog * dialog = dialog_create( 0, 0x1a, test_dialog, 0 );
 	//dialog_draw( dialog );
@@ -316,6 +324,8 @@ void my_sleep_task( void )
 	find_vram();
 	find_dm();
 	//FIO_WriteFile( file, &lr, sizeof(lr) );
+
+	dumpentire();
 
 	for( i=0 ; i<6 ; i++ )
 	{

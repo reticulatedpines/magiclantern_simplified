@@ -44,6 +44,19 @@ struct dm_state
 
 extern struct dm_state * dm_state_ptr;
 extern struct state_object * dm_state_object;
+extern void dmstart( void ); // post the start event
+extern void dmStart( void ); // initiate the start
+extern void dmstop( void );
+extern void dumpentire( void );
+extern void dumpf( void );
+
+extern void
+dm_event_dispatch(
+	int			input,
+	int			dwParam,
+	int			dwEventId
+);
+
 
 /** Tasks and contexts */
 
