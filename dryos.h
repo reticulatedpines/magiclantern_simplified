@@ -392,6 +392,8 @@ struct winsys_struct
 	uint32_t		off_0x30;
 };
 
+extern struct winsys_struct winsys_struct;
+
 
 
 /** Dialog box gui elements */

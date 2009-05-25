@@ -100,3 +100,4 @@ NSTUB( 0x7324, audio_info );
 NSTUB( 0x2924, dm_state_ptr );
 NSTUB( 0x8348, dm_state_object );
 NSTUB( 0x333B0, vram_info );
+NSTUB( 0x14900, winsys_struct );
