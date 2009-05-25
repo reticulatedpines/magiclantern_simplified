@@ -122,29 +122,50 @@ spin_task( void )
 		;
 }
 
+void draw_meters(void);
 
 int
 test_dialog(
-	struct dialog *		self,
+	int			dialog_id,
 	void *			arg,
 	uint32_t		event
 )
 {
-	static uint32_t __attribute__((section(".text"))) buf[4];
-	static void * __attribute__((section(".text"))) file;
+	static void * file TEXT;
+	static uint32_t events[ 1024 ] TEXT;
+	static uint32_t index TEXT;
+
+	if( event == 0 )
+		event = 0xDEADBEEF;
 
 	if( !file )
 		file = FIO_CreateFile( "A:/dialog.log" );
-	buf[0]++;
-	buf[1] = (uint32_t) self;
-	buf[2] = (uint32_t) arg;
-	buf[3] = (uint32_t) event;
+	events[ index ] = event;
+	if( index++ == 1024 )
+	{
+		FIO_WriteFile( file, events, sizeof(events) );
+		index = 0;
+	}
 
-	FIO_WriteFile( file, buf, sizeof(buf) );
+	switch(event)
+	{
+	case 0x10000085:
+		// Draw something?
+		draw_meters();
+		return 1;
 
-	// Unhandled?
-	return 1;
+	case INITIALIZE_CONTROLLER:
+		return 0;
+	case TERMINATE_WINSYS:
+	case DELETE_DIALOG_REQUEST:
+		FIO_WriteFile( file, events, index * sizeof(events[0]) );
+		FIO_CloseFile( file );
+		return 1;
+	default:
+		return 1;
+	}
 }
+
 
 /** Read the raw level from the audio device.
  *
@@ -208,32 +229,11 @@ void draw_meters(void)
 
 }
 #else
+static int TEXT db_avg;
+static int TEXT db_peak;
 /* Normal VU meter */
 void draw_meters(void)
 {
-	static int TEXT db_avg;
-	static int TEXT db_peak;
-	static uint32_t TEXT cycle_count;
-
-	int raw_level = audio_read_level();
-	if( raw_level < 0 )
-		raw_level = -raw_level;
-
-	int db = audio_level_to_db( raw_level );
-	db_avg = (db_avg * 3 + db ) / 4;
-
-	if( db > db_peak )
-		db_peak = db;
-
-	// ramp the peak and averages down at a slower rate
-	if( (cycle_count++ & 3) == 0 )
-	{
-		if( db_peak > -40 )
-			db_peak--;
-		if( db_avg > -40 )
-			db_avg--;
-	}
-
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 	const uint32_t x_db_avg = vram->width + db_avg * 18;
 	const uint32_t x_db = vram->width + db_peak * 18;
@@ -254,7 +254,7 @@ void draw_meters(void)
 
 		// Draw the peak
 		for( x = x_db ; x < x_db + 10 ; x++ )
-			row[x] = 0x888F;
+			row[x] = 0x8888;
 	}
 
 	// Draw the dB scales
@@ -269,7 +269,15 @@ void draw_meters(void)
 			row[ x_db+1 ] = 0xFFFF;
 		}
 	}
-	
+
+	// Draw a box
+	for( y=vram->height/2 ; y<vram->height ; y++ )
+	{
+		uint16_t * const row = vram->vram + y * vram->pitch;
+		uint32_t x;
+		for( x=vram->width/2 ; x<vram->width ; x++ )
+			row[x] = 0x8884;
+	}
 }
 #endif
 
@@ -278,13 +286,52 @@ void my_audio_level_task( void )
 {
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
+
+	//winsys_set_flag_0x34();
+	//winsys_set_flag_0x30();
+	struct dialog * dialog = dialog_create( 0, 0, test_dialog, 0x16, 0 );
+	dialog_window_prepare( dialog, 0 );
+
+	//struct lvram_info lvram_info;
+	//copy_lvram_info( &lvram_info );
+	//int gui_type = gui_get_display_type();
+	//write_debug_file( "lvram_info.log", &lvram_info, sizeof(lvram_info) );
+
+	dialog_set_origin_type( dialog, 0 );
+	dialog_resize( dialog, 320, 20, 20 );
+	dialog_window_resize( dialog, 320, 20, 20 );
+	dialog_move( dialog, 40, 40 );
+	dialog_draw( dialog );
 	
+	//winsys_clr_flag_0x34();
+	//winsys_whole_screen_backup();
+
 	//sound_dev_start_observer();
 
 	while(1)
 	{
-		draw_meters();
-		msleep(60);
+		static uint32_t TEXT cycle_count;
+
+		int raw_level = audio_read_level();
+		if( raw_level < 0 )
+			raw_level = -raw_level;
+
+		int db = audio_level_to_db( raw_level );
+		db_avg = (db_avg * 3 + db ) / 4;
+
+		if( db > db_peak )
+			db_peak = db;
+
+		// ramp the peak and averages down at a slower rate
+		if( (cycle_count++ & 3) == 0 )
+		{
+			if( db_peak > -40 )
+				db_peak--;
+			if( db_avg > -40 )
+				db_avg--;
+		}
+
+		msleep(30);
 	}
 }
 
@@ -334,6 +381,7 @@ void dump_vram( void )
 }
 
 
+#if 0
 /** Attempt to start my own main menu dialog
  * This replaces StartMnMainTabHeaderApp at 0xffba0bd4
  */
@@ -376,6 +424,7 @@ my_tab_header_app( void )
 
 	return 0;
 }
+#endif
 
 
 
@@ -432,7 +481,7 @@ void my_sleep_task( void )
 	for( i=0 ; i<6 ; i++ )
 	{
 		FIO_WriteFile( file, pc_buf_raw, sizeof(pc_buf_raw) );
-		msleep( 1000 );
+		msleep( 10000 );
 	}
 
 	FIO_CloseFile( file );
@@ -644,14 +693,5 @@ my_init_task(void)
 
 	// Re-write the version string
 	char * additional_version = (void*) 0x11f9c;
-	additional_version[0] = '-';
-	additional_version[1] = 'm';
-	additional_version[2] = 'a';
-	additional_version[3] = 'r';
-	additional_version[4] = 'k';
-	additional_version[5] = 'f';
-	additional_version[6] = 'r';
-	additional_version[7] = 'e';
-	additional_version[8] = 'e';
-
+	strcpy( additional_version, "-markfree" );
 }

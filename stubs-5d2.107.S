@@ -63,7 +63,12 @@ NSTUB( 0xFF98C274, FIO_CloseSync )
 NSTUB( 0xFF833A18, write_debug_file )
 NSTUB( 0xFFC21E14, bzero32 )
 NSTUB( 0xFFA5499C, dialog_create )
+NSTUB( 0xFFA54BFC, dialog_window_prepare )
 NSTUB( 0xFFA552A0, dialog_draw )
+NSTUB( 0xFFA55FBC, dialog_set_origin_type )
+NSTUB( 0xFFA54C04, dialog_resize )
+NSTUB( 0xFFA55BCC, dialog_window_resize )
+NSTUB( 0xFFA54CA4, dialog_move )
 NSTUB( 0xFF99A2E0, state_object_create )
 NSTUB( 0xFF99A1F0, state_object_dispatch )
 NSTUB( 0xFFA2AC9C, vram_get_number )
@@ -72,6 +77,14 @@ NSTUB( 0xFFA66748, vram_instance )
 NSTUB( 0xFF860210, dispcheck )
 NSTUB( 0xFF8669CC, DebugMsg )
 NSTUB( 0xFFAB88AC, color_palette_push )
+NSTUB( 0xFF9AF5D8, copy_lvram_info )
+NSTUB( 0xFF88A8D8, gui_get_display_type )
+
+NSTUB( 0xFFA6CF4C, winsys_whole_screen_backup )
+NSTUB( 0xFFA6CFCC, winsys_set_flag_0x34 )
+NSTUB( 0xFFA6CFBC, winsys_clr_flag_0x34 )
+NSTUB( 0xFFA6CF28, winsys_set_flag_0x30 )
+
 
 NSTUB( 0xFFBA0898, main_tab_header_dialog )
 NSTUB( 0xFFBA0820, StopMnMainTabHeaderApp )
@@ -103,3 +116,4 @@ NSTUB( 0x2924, dm_state_ptr );
 NSTUB( 0x8348, dm_state_object );
 NSTUB( 0x333B0, vram_info );
 NSTUB( 0x14900, winsys_struct );
+NSTUB( 0x2f33c, lvram_info )
