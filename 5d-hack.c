@@ -156,9 +156,12 @@ audio_read_level( void )
 	return (int16_t) *(uint32_t*)( 0xC0920000 + 0x110 );
 }
 
-/** Returns a dB translated from the raw level */
+/** Returns a dB translated from the raw level
+ *
+ * Range is -40 to 0 dB
+ */
 int
-audio_read_level_db(
+audio_level_to_db(
 	uint32_t		raw_level
 )
 {
@@ -168,13 +171,13 @@ audio_read_level_db(
 	for( db = 40 ; db ; db-- )
 	{
 		if( thresholds[db] > raw_level )
-			return db;
+			return -db;
 	}
 
 	return 0;
 }
 
-
+#ifdef OSCOPE_METERS
 void draw_meters(void)
 {
 #define MAX_SAMPLES 720
@@ -203,30 +206,72 @@ void draw_meters(void)
 		vram->vram[ y * vram->pitch + index ] = 0x888F;
 	}
 
-#if 0
+}
+#else
+/* Normal VU meter */
+void draw_meters(void)
+{
+	static int TEXT db_avg;
+	static int TEXT db_peak;
+	static uint32_t TEXT cycle_count;
+
+	int raw_level = audio_read_level();
+	if( raw_level < 0 )
+		raw_level = -raw_level;
+
+	int db = audio_level_to_db( raw_level );
+	db_avg = (db_avg * 3 + db ) / 4;
+
+	if( db > db_peak )
+		db_peak = db;
+
+	// ramp the peak and averages down at a slower rate
+	if( (cycle_count++ & 3) == 0 )
+	{
+		if( db_peak > -40 )
+			db_peak--;
+		if( db_avg > -40 )
+			db_avg--;
+	}
+
+	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
+	const uint32_t x_db_avg = vram->width + db_avg * 18;
+	const uint32_t x_db = vram->width + db_peak * 18;
+
+	uint32_t y;
+
 	for( y=0 ; y<25 ; y++ )
 	{
 		uint16_t * const row = vram->vram + y * vram->pitch;
 
 		// Draw the smooth meter
-		for( x=0 ; x < level_avg && x < vram->width ; x++ )
-			//row[x] = 0x515F;
+		// remember that db goes -40 to 0
+		// db -> x : vram->width + db * 18
+		uint32_t x;
+		for( x=0 ; x < x_db_avg; x++ )
 			row[x] = 0xFFFF;
+			//row[x] = 0x515F;
 
 		// Draw the peak
-		for( x=level ; x<level + 20 && x < vram->width ; x++ )
+		for( x = x_db ; x < x_db + 10 ; x++ )
 			row[x] = 0x888F;
 	}
 
 	// Draw the dB scales
-	for( y=26 ; y<50 ; y++ )
+	for( y=20 ; y<40 ; y++ )
 	{
 		uint16_t * const row = vram->vram + y * vram->pitch;
-		for( x=0 ; x<40 ; x++ )
-			row[ vram->width/2 - x * 8 ];
+		int db;
+		for( db=-40; db<= 0 ; db+=5 )
+		{
+			const uint32_t x_db = vram->width + db * 18;
+			row[ x_db+0 ] = 0xFFFF;
+			row[ x_db+1 ] = 0xFFFF;
+		}
 	}
-#endif
+	
 }
+#endif
 
 
 void my_audio_level_task( void )
@@ -239,7 +284,7 @@ void my_audio_level_task( void )
 	while(1)
 	{
 		draw_meters();
-		msleep(30);
+		msleep(60);
 	}
 }
 
