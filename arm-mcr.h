@@ -4,6 +4,13 @@
 #ifndef _arm_mcr_h_
 #define _arm_mcr_h_
 
+/** Compile time failure if a structure is not sized correctly */
+#define SIZE_CHECK_STRUCT( struct_name, size ) \
+	static uint8_t __attribute__((unused)) \
+	__size_check_##struct_name[ \
+		sizeof( struct struct_name ) == size ? 0 : -1 \
+	]
+
 typedef signed long	int32_t;
 typedef unsigned long	uint32_t;
 typedef signed short	int16_t;

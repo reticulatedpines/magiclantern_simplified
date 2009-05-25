@@ -122,6 +122,8 @@ spin_task( void )
 		;
 }
 
+static struct dialog * meter_dialog TEXT;
+
 void draw_meters(void);
 
 int
@@ -140,8 +142,13 @@ test_dialog(
 
 	if( !file )
 		file = FIO_CreateFile( "A:/dialog.log" );
-	events[ index ] = event;
-	if( index++ == 1024 )
+
+	events[ index + 0 ] = dialog_id;
+	events[ index + 1 ] = arg;
+	events[ index + 2 ] = event;
+	events[ index + 3 ] = index;
+
+	if( (index += 4) == 1024 )
 	{
 		FIO_WriteFile( file, events, sizeof(events) );
 		index = 0;
@@ -151,7 +158,8 @@ test_dialog(
 	{
 	case 0x10000085:
 		// Draw something?
-		draw_meters();
+		dialog_draw( meter_dialog );
+		//draw_meters();
 		return 1;
 
 	case INITIALIZE_CONTROLLER:
@@ -289,19 +297,21 @@ void my_audio_level_task( void )
 
 	//winsys_set_flag_0x34();
 	//winsys_set_flag_0x30();
-	struct dialog * dialog = dialog_create( 0, 0, test_dialog, 0x16, 0 );
-	dialog_window_prepare( dialog, 0 );
+	meter_dialog = dialog_create( 0, 0, test_dialog, 0x16, 0 );
+	dialog_window_prepare( meter_dialog, 0 );
 
 	//struct lvram_info lvram_info;
 	//copy_lvram_info( &lvram_info );
 	//int gui_type = gui_get_display_type();
 	//write_debug_file( "lvram_info.log", &lvram_info, sizeof(lvram_info) );
 
-	dialog_set_origin_type( dialog, 0 );
-	dialog_resize( dialog, 320, 20, 20 );
-	dialog_window_resize( dialog, 320, 20, 20 );
-	dialog_move( dialog, 40, 40 );
-	dialog_draw( dialog );
+	dialog_label_item( meter_dialog, 0xabcdef, "markfree", 9, 5 );
+	dialog_set_origin_type( meter_dialog, 0 );
+	dialog_resize( meter_dialog, 320, 20, 20 );
+	dialog_window_resize( meter_dialog, 320, 20, 20 );
+	dialog_move( meter_dialog, 40, 40 );
+	dialog_draw( meter_dialog );
+	dialog_window_draw( meter_dialog );
 	
 	//winsys_clr_flag_0x34();
 	//winsys_whole_screen_backup();
