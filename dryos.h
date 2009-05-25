@@ -374,6 +374,26 @@ extern void reloc_entry(void);
 extern void __attribute__((noreturn)) cstart(void);
 
 
+/** Windowing system elements */
+struct winsys_struct
+{
+	void *			vram_instance; // off 0x00
+	uint32_t		off_0x04;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+	uint32_t		off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	uint32_t		off_0x1c;
+	uint32_t		off_0x20;
+	struct semaphore *	sem; // off 0x24
+	uint32_t		off_0x28;
+	uint32_t		off_0x2c;
+	uint32_t		off_0x30;
+};
+
+
+
 /** Dialog box gui elements */
 struct dialog;
 
@@ -505,6 +525,14 @@ struct vram_object
 	uint32_t		off_0x10;
 	struct semaphore *	sem; // off 0x14;
 };
+
+extern struct vram_object * 
+vram_instance( void );
+
+extern int
+vram_get_lock(
+	struct vram_object *	vram
+);
 
 
 /** VRAM info in the BSS.
