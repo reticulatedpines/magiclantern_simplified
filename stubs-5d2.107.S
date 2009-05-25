@@ -91,6 +91,8 @@ NSTUB( 0xFF9BAC48, StartMnStudioSetupmenuApp )
 NSTUB( 0xFF86674C, dm_event_dispatch )
 NSTUB( 0xFF866D18, dm_set_store_level )
 
+NSTUB( 0xFF8781F8, strcpy )
+NSTUB( 0xFFB7F380, memcpy )
 
 
 /* Structures in the BSS or rwdata segment */

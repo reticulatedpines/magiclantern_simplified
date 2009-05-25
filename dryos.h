@@ -225,7 +225,7 @@ new_task_struct( int );
  *
  * The arguments are not really known yet.
  */
-extern void
+extern struct task *
 create_task(
 	const char * name,
 	uint32_t priority,
@@ -378,7 +378,7 @@ extern void __attribute__((noreturn)) cstart(void);
 struct winsys_struct
 {
 	void *			vram_instance; // off 0x00
-	uint32_t		off_0x04;
+	struct vram_object *	vram_object; // off 0x04
 	uint32_t		off_0x08;
 	uint32_t		off_0x0c;
 	uint32_t		off_0x10;
@@ -389,15 +389,45 @@ struct winsys_struct
 	struct semaphore *	sem; // off 0x24
 	uint32_t		off_0x28;
 	uint32_t		off_0x2c;
-	uint32_t		off_0x30;
+	uint32_t		flag_0x30;
+	uint32_t		flag_0x34;
 };
+
+SIZE_CHECK_STRUCT( winsys_struct, 0x38 );
 
 extern struct winsys_struct winsys_struct;
 
 
+typedef int (*window_callback)( void * );
 
-/** Dialog box gui elements */
-struct dialog;
+/** Returned by window_create_maybe() at 0xFFA6BC00 */
+struct window
+{
+	const char *		type; // "Window Instance" at 0x14920
+	uint32_t		off_0x04;	// initial=0
+	uint32_t		off_0x08;	// initial=0
+	uint32_t		off_0x0c;	// initial=0
+	uint32_t		x;		// off_0x10;
+	uint32_t		y;		// off_0x14;
+	uint32_t		width;		// off_0x18; r5
+	uint32_t		height;		// off_0x1c; r6
+	window_callback		callback;	// off 0x20
+	void *			arg;		// off_0x24;
+	uint32_t		off_0x28;
+	uint32_t		off_0x2c;
+};
+
+SIZE_CHECK_STRUCT( window, 0x30 );
+
+extern struct window *
+window_create(
+	uint32_t		x,
+	uint32_t		y,
+	uint32_t		w,
+	uint32_t		h,
+	window_callback		callback,
+	void *			arg
+);
 
 /** Returns 0 if it handled the message, 1 if it did not? */
 typedef int (*dialog_handler_t)(
@@ -406,7 +436,63 @@ typedef int (*dialog_handler_t)(
 	uint32_t		event
 );
 
-extern int
+
+/** Dialog box gui elements */
+struct dialog
+{
+	const char *		type;			// "DIALOG" at 0x147F8
+	struct window *		window;			// off 0x04
+	void *			arg0;			// off 0x08
+	struct langcon *	langcon;		// off 0x0c
+	struct dispsw_control *	disp_sw_controller;	// off 0x10
+	struct publisher *	publisher;		// off 0x14
+	uint32_t		off_0x18;
+	uint32_t		off_0x1c;
+	uint32_t		off_0x20;		// initial=0
+	uint32_t		off_0x24;		// initial=0
+	uint32_t		off_0x28;		// initial=2
+	uint32_t		off_0x2c;		// initial=0
+	uint32_t		off_0x30;		// initial=0
+	uint32_t		off_0x34;		// initial=0
+	uint32_t		off_0x38;		// initial=0
+	struct task *		gui_task;		// off 0x3c
+	uint32_t		off_0x40;		// pointed to by 0x08
+	uint32_t		off_0x44;		// initial=0
+	uint32_t		off_0x48;
+	uint32_t		off_0x4c;
+	uint32_t		off_0x50;
+	uint32_t		off_0x54;
+	uint32_t		off_0x58;
+	uint32_t		off_0x5c;
+	dialog_handler_t	handler;		// off 0x60
+	uint32_t		handler_arg;		// off_0x64;
+	uint32_t		off_0x68;		// initial=0
+	uint16_t		off_0x6c;		// initial=0
+	uint16_t		off_0x6e;		// initial=0
+	uint16_t		off_0x70;
+	uint16_t		off_0x72;		// initial=0
+	uint32_t		off_0x74;		// initial=1
+	uint32_t		off_0x78;		// initial=0
+	uint32_t		off_0x7c;		// initial=0
+	struct publisher *	publisher_callback;	// off_0x80;
+	uint32_t		off_0x84;
+	uint32_t		const_40000000_0;	// off_0x88;
+	uint32_t		off_0x8c;		// initial=0xA
+	uint32_t		off_0x90;		// initial=0xA
+	uint32_t		id;			// off_0x94;
+	uint32_t		level_maybe;		// off_0x98;
+	uint32_t		const_40000000_1;	// off_0x9c;
+	uint16_t		off_0xa0;		// initial=0
+	uint16_t		off_0xa2;
+	uint32_t		off_0xa4;
+	uint32_t		off_0xa8;		// initial=0
+	uint32_t		off_0xac;		// initial=0
+};
+
+SIZE_CHECK_STRUCT( dialog, 0xB0 );
+
+
+extern struct dialog *
 dialog_create(
 	int			id,
 	int			level_maybe,
@@ -417,7 +503,7 @@ dialog_create(
 
 extern void
 dialog_draw(
-	int			dialog_id
+	struct dialog *		dialog
 );
 
 
@@ -425,6 +511,29 @@ extern void
 color_palette_push(
 	int			palette_id
 );
+
+
+#define GOT_TOP_OF_CONTROL		0x800
+#define LOST_TOP_OF_CONTROL		0x801
+#define INITIALIZE_CONTROLLER		0x802
+#define TERMINATE_WINSYS		0x804
+#define DELETE_DIALOG_REQUEST		0x805
+#define PRESS_RIGHT_BUTTON		0x807
+#define PRESS_LEFT_BUTTON		0x809
+#define PRESS_UP_BUTTON			0x80B
+#define PRESS_DOWN_BUTTON		0x80D
+#define PRESS_MENU_BUTTON		0x80F
+#define PRESS_SET_BUTTON		0x812
+#define PRESS_INFO_BUTTON		0x829
+#define ELECTRONIC_SUB_DIAL_RIGHT	0x82B
+#define ELECTRONIC_SUB_DIAL_LEFT	0x82C
+#define PRESS_DISP_BUTTON		0x10000000
+#define PRESS_DIRECT_PRINT_BUTTON	0x10000005
+#define PRESS_FUNC_BUTTON		0x10000007
+#define PRESS_PICTURE_STYLE_BUTTON	0x10000009
+#define OPEN_SLOT_COVER			0x1000000B
+#define CLOSE_SLOT_COVER		0x1000000C
+#define START_SHOOT_MOVIE		0x1000008A
 
 
 /** Movie recording.
@@ -573,6 +682,9 @@ extern void StartFactoryMenuApp( void );
 extern void StartMnStudioSetupMenuApp( void );
 
 
+/** stdio / stdlib / string */
+extern char * strcpy( char *, const char * );
+extern void * memcpy( void *, const void *, size_t );
 
 
 #endif
