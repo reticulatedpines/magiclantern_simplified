@@ -96,7 +96,8 @@ struct task
 };
 
 #define SIZE_CHECK_STRUCT( struct_name, size ) \
-	static uint8_t __size_check_##struct_name[ \
+	static uint8_t __attribute__((unused)) \
+	__size_check_##struct_name[ \
 		sizeof( struct struct_name ) == size ? 0 : -1 \
 	]
 
