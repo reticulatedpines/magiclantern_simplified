@@ -31,7 +31,7 @@
  0000:00001E1C       lv_global_1e1c
  0000:00001ED0       video_settings
  0000:00001EE0       mvr_struct
- 0000:00001F58       global_1f58
+ 0000:00001F58       audio_semaphores
  0000:00001F88       audio_semaphore
  0000:00001FAC       audio_struct
  0000:0000208C       sound_struct
@@ -110,6 +110,9 @@
  0000:000068EC       aCanon_11
  0000:00007298       dry_sys_objs_start
  0000:00007324       audio_ptr
+ 0000:0000748C       composite_bitmap_str_ptr
+ 0000:00007498       composite_bitmap_palette_ptr
+ 0000:0000749C       composite_bitmap_palette_maybe
  0000:00007CA8       color_functions
  0000:000081E4       EdLed_state
  0000:0000820C       Dfe_initialized
@@ -156,6 +159,7 @@
  0000:00014884       aDummyListSelect
  0000:0001489C       widget_popup_aeb
  0000:000148A4       aDummyPopupaeb_0
+ 0000:000148B8       widget_histogram_ptr
  0000:000148C4       fnt_str_ptr
  0000:000148C8       vram_instance_str_ptr
  0000:00014900       window_sys_struct_maybe
@@ -168,9 +172,12 @@
  0000:00014CBC       aPE_1
  0000:00014D50       a20080916165427_0
  0000:00014DAC       a20080916
+ 0000:00015DE0       lv_dialog_struct_maybe
  0000:00015FE8       menumain_date_timer_callback_ptr
  0000:00016050       af_dialog_maybe
  0000:000161C0       color_palette_ptr
+ 0000:0001624C       liveview_wb_dialog_id
+ 0000:00016278       datastocker_str_ptr
  0000:00018F2C       dialog_item_str_ptr
  0000:00018F30       dialog_items_list
  0000:00018F3C       aDummy_1
@@ -3401,6 +3408,7 @@
  0001:00056C18       aSetalconbfD
  0001:00056C28       aSetalcoffbfD
  0001:00056C38       audio_set_filter_off
+ 0001:00056D00       audio_semaphores_create
  0001:00056D90       audio_device_write2_maybe
  0001:00056E48       aSetfilteroff
  0001:00056E60       sound_dev_task
@@ -3408,7 +3416,7 @@
  0001:00056F74       SoundDevLock
  0001:00056FA0       SoundDevUnLock
  0001:00056FC4       SweepMessageQueue
- 0001:00057008       SoundDevActiveIn
+ 0001:00057008       sound_dev_active_in
  0001:0005704C       aSounddeviceSou
  0001:0005706C       aIs_errorTake_0
  0001:000570A0       aInitializesoun
@@ -3457,8 +3465,8 @@
  0001:00057E94       aSounddevsetvol
  0001:00057EB4       aSetwindcutmode
  0001:00057EEC       SoundDevSetHDMI
- 0001:00057F30       SoundDevStartObserver
- 0001:00057F98       SoundDevStopObserver
+ 0001:00057F30       sound_dev_start_observer
+ 0001:00057F98       sound_dev_stop_observer
  0001:00057FE0       SoundDevNotifyParamChange
  0001:00058020       SoundDevGetInputLevel
  0001:00058054       SoundDevNoiseReduce
@@ -3679,6 +3687,8 @@
  0001:0005E2C8       gui_resource_struct_ptr
  0001:0005E84C       gui_resource_something
  0001:0005E894       gui_find_object_id_walk
+ 0001:0005E900       gui_lookup_something
+ 0001:0005E9D0       composite_bitmap_palette_to_color_maybe
  0001:0005EA38       gui_resource_search
  0001:0005EC80       struct_2538_0c_cond
  0001:0005EEAC       struct_2538_44
@@ -3746,6 +3756,7 @@
  0001:00060914       BmpDDev_DisplayPhysicalScreen
  0001:00060984       aSelectparamete
  0001:000609BC       aWaitbmpcbr
+ 0001:000609CC       aNotV
  0001:000609D4       aEnablebitmapvb
  0001:00060A04       aBmpddevDisplay
  0001:00060A30       DisplayPhysicalScreen
@@ -3766,6 +3777,7 @@
  0001:00061120       aBmpddevUndispl
  0001:00061174       SetPaletteWithIndexToDisplayDevice
  0001:000611C4       FlushPaletteToEngine
+ 0001:00061204       return_0_8
  0001:0006120C       SetHighLightParameter
  0001:000612A0       ClearHighLightParameter
  0001:00061308       EnableBitmapImageVBufferForPlayBackAndWait
@@ -3955,8 +3967,8 @@
  0001:0006671C       aDisablebootdis
  0001:0006672C       aEnablemainfirm
  0001:0006673C       aDisablemainfir
- 0001:0006674C       DM_EventDispatch
- 0001:000667B0       dm_allocate_maybe
+ 0001:0006674C       dm_event_dispatch
+ 0001:000667B0       dm_create
  0001:00066900       dm_stop_maybe
  0001:0006694C       dmstart
  0001:0006698C       dmstop
@@ -3966,6 +3978,12 @@
  0001:00066B2C       aError_0
  0001:00066B34       aWarn
  0001:00066B3C       aDmAssertTrypos
+ 0001:00066B60       dm_post_dump_event
+ 0001:00066C08       dm_post_dumpf_event
+ 0001:00066C5C       dm_post_olddumpf_event
+ 0001:00066CB0       dmSetPrintLevel
+ 0001:00066D18       dm_set_store_level
+ 0001:00066DF8       dm_post_dumpentire_event
  0001:00066E30       dumpentiresep
  0001:00066ECC       oldgrepsep
  0001:00066F14       olddumpfsep
@@ -11960,7 +11978,7 @@
  0001:001724E0       NotifyAudioLevelParameter
  0001:00172578       GetAudioInputLevel
  0001:001725A0       ClearAudioInputLevel
- 0001:001725C4       set_audio_AGC
+ 0001:001725C4       audio_dev_compute_average_level
  0001:00172654       aNotifyaudiolev
  0001:00172670       aMiclevelDInput
  0001:0017269C       aMiclevelMic_ma
@@ -12406,6 +12424,7 @@
  0001:00180C74       aResultSuccess
  0001:00180C88       aCtrlsrvPowerCh
  0001:00180CB4       aCtrlsrvQueueCl
+ 0001:00180EA0       timer_schedule_maybe
  0001:00180EE0       CtrlSrvr_process_message
  0001:00181158       aTimerEventPool
  0001:00181174       aCtrlsrvSettime
@@ -12428,10 +12447,13 @@
  0001:001816E0       struct_7450_set_0x38
  0001:00181820       aFinitializedTr
  0001:0018183C       aCtrlsrv
+ 0001:00182254       composite_bitmap_find_color_maybe
+ 0001:001822B4       composite_bitmap_palette_create_maybe
  0001:001823A8       CreateCompoBmpFromNumber_0
  0001:00182400       CreateBinaryCompositeBitmap_0
  0001:00182BE0       ExecuteCompositeBitmap
  0001:00182CBC       DestroyCompoBmp
+ 0001:00182D4C       composite_bitmap_find_color_maybe_0
  0001:00183774       aInvalidStoredB
  0001:00183794       aInvalidLiteral
  0001:00183BB8       aInvalidDistanc
@@ -12604,6 +12626,7 @@
  0001:0018CF7C       a__7
  0001:0018CF80       a___7
  0001:0018D158       FIO_FindFirst
+ 0001:0018D284       FIO_Exists_maybe
  0001:0018D484       FIO_GetDeviceName
  0001:0018D70C       FIO_GetCardInfo
  0001:0018D7F8       CARD_RESUME
@@ -12794,8 +12817,12 @@
  0001:00194030       nullsub_63
  0001:00194034       create_dmstate
  0001:00194074       destroy_dmstate
+ 0001:00194088       dm_state_timestamp_loop
+ 0001:00194104       dm_printf_timestamp
  0001:00194148       dmStart
  0001:0019416C       dmStop
+ 0001:00194190       dmstate_something
+ 0001:001941C8       dmstate_dump_timestamp
  0001:0019420C       dm_start_log
  0001:001942AC       call_startlog_0_0
  0001:001942C4       a6ld6ld_03ldS
@@ -12803,9 +12830,15 @@
  0001:001942E8       aDmDmstop
  0001:001942F8       aDone_1
  0001:00194300       dm_ptr_deref
+ 0001:0019430C       dmstate_something_1
  0001:00194350       call_startlog_1_0
+ 0001:0019435C       dmstate_something_2
  0001:001943A0       call_startlog_0_1
+ 0001:001943AC       dmstate_something_3
  0001:001943F0       call_startlog_1_1
+ 0001:001943FC       dmstate_something_4
+ 0001:00194418       return_nothing
+ 0001:00194494       dmstate_something_5
  0001:00194544       nullsub_85
  0001:00194638       write_40000401_to_c0242010
  0001:00194658       nullsub_64
@@ -12851,6 +12884,7 @@
  0001:00194E60       CreateRecursiveLock
  0001:00195080       aKerneldryKerrl
  0001:00195098       a0_9
+ 0001:001952B8       return_0_7
  0001:00195498       aMtdMbm29lv2mx1
  0001:001954B8       aCharWritedatai
  0001:001954F8       aCharLoadonramC
@@ -12931,12 +12965,19 @@
  0001:00198788       a0123456789
  0001:00198794       a0123456789ab_2
  0001:001987A8       aError
+ 0001:00198808       dm_setup_signature
+ 0001:00198890       dm_clear_signature
  0001:001988B0       dm_log_partition_maybe
  0001:00198B28       aErrorSizeOfLog
+ 0001:00198BF8       dm_dump_maybe
  0001:00198E80       aDmHistoryLdNum
  0001:00198EAC       aDmCurrentNumof
  0001:00198ECC       aNothingToDump_
  0001:00198EE8       aPartitionD
+ 0001:00198F04       dmstate_dump
+ 0001:00198F70       dm_log_create_file
+ 0001:00199024       dm_close_log_file
+ 0001:001990D8       dm_printf_internal_maybe
  0001:00199238       aErrorFio_creat
  0001:00199360       aSignature_____
  0001:00199378       aBuffersize____
@@ -12949,6 +12990,7 @@
  0001:00199428       aHistoryLd_inde
  0001:00199448       aHistoryLd_star
  0001:00199468       aHistoryLd_coun
+ 0001:00199488       write_r1_to_0x839c
  0001:001997C0       aMcErrorAddmccb
  0001:001997F0       aMcErrorDeletem
  0001:00199814       aMcErrorDelet_0
@@ -12976,7 +13018,7 @@
  0001:0019A124       aStageErrorPost
  0001:0019A158       aStageErrorTryp
  0001:0019A1D0       ChangeStageTaskPriority
- 0001:0019A1F0       DispatchStateEvent
+ 0001:0019A1F0       state_object_dispatch
  0001:0019A228       StateObject_callback
  0001:0019A2E0       state_object_create
  0001:0019A360       destroy_StateObject_maybe
@@ -13051,6 +13093,7 @@
  0001:0019C118       aFgpclk1initial
  0001:0019C538       strcat
  0001:0019C5BC       strncmp
+ 0001:0019C758       sprintf_event_maybe
  0001:0019C7C4       aSS2d02d02d02dD
  0001:0019CC18       a2d02d02d02dD
  0001:0019CE28       scanf_maybe
@@ -15462,12 +15505,20 @@
  0001:001E686C       aSGetresourceRe
  0001:001E6894       eng_resource_manager_enqueue_something
  0001:001E6940       aSAddWaitListCo
+ 0001:001E6A70       j_datastocker_something_4
+ 0001:001E6A74       j_call_datastocker_something_4
  0001:001E6AFC       aTvafCurrentSta
+ 0001:001E6B3C       call_lv_add_property_to_data_stocker
+ 0001:001E6B50       datastocker_something_1
+ 0001:001E6B78       datastocker_something_3
+ 0001:001E6BA0       j_call_datastocker_something_4_0
+ 0001:001E6E20       lvaSetParam
  0001:001E6F14       aLvastart
  0001:001E6F20       aLvastartNotAll
  0001:001E6F40       aLvaend
  0001:001E6F48       aLvasetparamLdL
  0001:001E6F64       aLvasetparamLd
+ 0001:001E6F74       lvaGetReg
  0001:001E7190       aLvagetregLdLdL
  0001:001E71C0       aUnknownId0x0_0
  0001:001E7450       WriteEDmacVramCompleteCBR_x1
@@ -17444,7 +17495,7 @@
  0001:0022AC34       aCalcresizepara
  0001:0022AC4C       aInputWLdHLdOut
  0001:0022AC74       aRateWLdLd1LdHL
- 0001:0022AC9C       GetVramNumber
+ 0001:0022AC9C       vram_get_number
  0001:0022ACF8       SetRotationAngle
  0001:0022AD64       SetVramImageParameter
  0001:0022ADEC       CompleteVramSyncroCopyCBR
@@ -18379,7 +18430,7 @@
  0001:00253B58       aPmovecontrolle
  0001:00253C88       gui_resource_callback_something
  0001:00253CCC       dialog_dispsw_callback
- 0001:00253D08       dialog_something_0
+ 0001:00253D08       draw_dialog_maybe
  0001:00253D88       dialog_copy_something
  0001:00253FAC       aDialogDialog_c
  0001:00253FBC       aIs_errorErrorc
@@ -18404,7 +18455,7 @@
  0001:002552A0       dialog_draw
  0001:0025545C       aIs_errorPdia_3
  0001:002554C8       dialog_something_3
- 0001:00255758       dialog_something_1
+ 0001:00255758       dialog_draw_raw_bmp_maybe
  0001:00255E8C       Dlg_search_something_0
  0001:00255EF4       Dlg_search_something
  0001:00255FBC       zSetOriginType
@@ -18435,6 +18486,7 @@
  0001:00256F64       struct_14818_0x00
  0001:00256FA4       color_palette_setup_maybe
  0001:002570B4       update_struct_14818
+ 0001:00257170       composite_bitmap_validate_color_id
  0001:00257204       aScmInvalidPale
  0001:00257228       aUnknownColorid
  0001:00257238       aNotColoridX
@@ -18542,10 +18594,16 @@
  0001:00260D44       aPprogressSigna
  0001:00261378       aSliderIllegal_
  0001:00261398       aWidgetSliderSl
+ 0001:0026175C       widget_popupaeb_slider_something
+ 0001:002618C8       widget_popupaeb_something
  0001:00261970       aPsliderNull
  0001:00261984       aIs_errorPslide
  0001:002619A0       aPsliderSignatu
+ 0001:002619C8       widget_popupaeb_slider_something_0
+ 0001:00261A9C       widget_popupaeb_event_handler
+ 0001:00261C38       widget_popupaeb_slider_something_1
  0001:00261CF0       widget_popup_aeb_create
+ 0001:00261E9C       aPcopyNull_0
  0001:00261EB0       aIs_errorPcop_3
  0001:00261EC4       aPcopySignatu_3
  0001:002624E4       aPopupaebAlloca
@@ -18578,7 +18636,8 @@
  0001:0026563C       aScrollbarNot_0
  0001:00265664       widget_histogram_object_translate_something
  0001:002656CC       widget_histogram_something_0
- 0001:002659C0       widget_histogram_something
+ 0001:002658C0       widget_timeout_maybe
+ 0001:002659C0       widget_histogram_copy_maybe
  0001:00265A34       widget_histogram_stop_timer
  0001:00265AD0       aBinbmp_0
  0001:00265AE4       aWidgetHistogra
@@ -18595,15 +18654,25 @@
  0001:002663C4       fnt_str_compare
  0001:002663F0       fnt_something_0
  0001:0026643C       fnt_something
+ 0001:0026656C       vram_get_lock
  0001:00266748       vram_instance_0x4
+ 0001:00266784       toggle_physical_screen
  0001:00266960       aVideodrvVideod
  0001:00266974       aPvramImage_ppa
  0001:00266998       aIs_errorPvramH
  0001:002669BC       aPvramModeLogic
+ 0001:00266EF0       draw_bitmap_maybe
+ 0001:002670D4       bitmap_copy_something
+ 0001:00267208       pattern_something_0
  0001:002674CC       aPatternIdRejec
+ 0001:002674FC       pattern_something
+ 0001:00267798       vram_copy_something_maybe
+ 0001:00267808       vram_bitmap_type_switch_maybe
  0001:002682A4       whole_screen_backup_maybe
+ 0001:0026861C       winsys_draw_maybe
  0001:00268744       nullsub_42
  0001:00268824       vram_instance_0x14
+ 0001:00268930       call_bitmap_copy_something
  0001:00268978       aModeDIndex03dN
  0001:00268DFC       aWidgetListview
  0001:00268E18       a0PmyMaxlistnum
@@ -18650,6 +18719,7 @@
  0001:0026C310       aPwindowPsignat
  0001:0026C864       draw_object
  0001:0026C940       winsys_draw_something
+ 0001:0026CCD8       winsys_draw_raw_bmp_maybe
  0001:0026CF28       set_struct_14900_0x30_locked
  0001:0026CF4C       whole_screen_backup
  0001:0026CFBC       struct_14900_clr_0x34
@@ -18732,6 +18802,7 @@
  0001:00274B50       aVectoranimStar
  0001:00274B78       aVectoranimStop
  0001:00274E54       aVectoranimKill
+ 0001:00274F7C       lz_decode_maybe
  0001:00275198       aCodecBitmapcod
  0001:002751AC       aRetWidthHeight
  0001:002751C0       a1_1_fLzc_1_1_2
@@ -19115,6 +19186,7 @@
  0001:00286D2C       aStarterrreco_0
  0001:00286D4C       aStarterrreco_1
  0001:00286D84       get_gui_bitmap_position_maybe
+ 0001:00286D9C       graphics_bitmap_something
  0001:0028729C       aGraphicsErrIll
  0001:00287330       aGraphicsErrI_0
  0001:0028735C       DPGuiCacheFlg
@@ -20543,6 +20615,7 @@
  0001:002C1EB8       aDlglivevieww_0
  0001:002C1EFC       aDlglivevieww_1
  0001:002C1F28       StopLiveViewWbApp
+ 0001:002C1F64       liveview_wb_dialog
  0001:002C2174       aStopliveviewwb
  0001:002C2190       aDlglivevieww_2
  0001:002C21BC       aDlglivevieww_3
@@ -20879,7 +20952,13 @@
  0001:002CD6C4       aStopAnglecontr
  0001:002CE4D8       Dp_SharpnessYuvNew
  0001:002CE800       aDp_sharpnessyu
+ 0001:002CF628       lv_add_property_to_data_stocker
+ 0001:002CF6AC       datastocker_something
+ 0001:002CF788       datastocker_something_4
+ 0001:002CF80C       datastocker_something_0
+ 0001:002CF81C       datastocker_something_2
  0001:002CF868       aLvMaxOverAddpr
+ 0001:002CF898       call_datastocker_something_4
  0001:002CF8C4       PD_TRANS_EventDispatch
  0001:002CFA84       aPd_transRetX
  0001:002CFA98       PD_EVENT_EventDispatch
@@ -21468,23 +21547,27 @@
  0001:00307CB8       aPheaderNumbero
  0001:00307CEC       aIs_errorHopera
  0001:00307EFC       dialog_struct_148e0_something
- 0001:00308038       dialog_something_2
+ 0001:00308038       draw_raw_bmp_maybe
  0001:00308B0C       aSyscolorDrawut
  0001:00308B20       a0_14
  0001:00308BBC       DrawBinBmpCompat
  0001:00308F30       widgetbase_type_id_maybe
  0001:00308FB4       return_1_2
  0001:00308FBC       button_0x30_check_langcon
+ 0001:00308FCC       button_something_maybe
  0001:00309028       dialog_callback_something_2
  0001:00309094       dialog_callback_something_4
  0001:00309100       button_get_translation_maybe
  0001:00309130       widget_list_get_head_and_tail_maybe
+ 0001:00309144       widget_popupaeb_free_maybe
  0001:00309150       callback_something
  0001:003091A0       aWidgetWidgetba
  0001:003091C0       a0_15
+ 0001:003091C4       widget_something
  0001:0030930C       dialog_callback_something_3
  0001:00309368       dialog_callback_something_1
  0001:0030939C       dialog_call_list_maybe
+ 0001:003093D8       widget_create_something
  0001:00309460       widgetbase_walk_childlist_maybe
  0001:00309508       call_widgetbase_walk_childlist_maybe
  0001:0030972C       aUtf8codesizeUt
@@ -25361,6 +25444,7 @@
  0001:003A2EF8       aSensorcleanExe
  0001:003A2F28       SensorClean
  0001:003A2F78       StopMnSensorCleanApp
+ 0001:003A2FC0       sensor_clean_dialog
  0001:003A3218       aSensorcleanDes
  0001:003A323C       aSensorcleanD_0
  0001:003A326C       aStopmnsensorcl
@@ -25376,6 +25460,7 @@
  0001:003A359C       aDlgmnsensor_11
  0001:003A35C0       aDlgmnsensor_12
  0001:003A366C       StartMnSensorCleanApp
+ 0001:003A3794       dlgmnsensorclean_set_focus
  0001:003A3830       aDlgmnsensor_13
  0001:003A386C       aDlgmnsensorcle
  0001:003A3890       aStartmnsensorc
@@ -28221,6 +28306,7 @@
  0001:00427194       a5_0
  0001:00427198       a6_0
  0001:0042719C       a7
+ 0001:004271C4       audio_sampling_rates
  0001:004271F4       aHhptimerHhptim
  0001:0042724C       aHtimerHtimerNo
  0001:0042729C       aSuccessTryre_0
@@ -28466,6 +28552,7 @@
  0001:0047BF6C       led_on_cmd
  0001:0047BF74       led_off_cmd
  0001:0047BF80       DMState_callbacks
+ 0001:0047C064       LogFile_str_ptr
  0001:0047C1AC       StateObject_str_ptr
  0001:0047C1B4       task_class_str_ptr
  0001:0047C1BC       cu_functions
@@ -29037,6 +29124,7 @@
  0001:0048DFD4       widget_text_data
  0001:0048E04C       widget_dummy_counter_object
  0001:0048E334       widget_list_object
+ 0001:0048E714       widget_popupaeb_object
  0001:0048E724       aPsliderMultito
  0001:0048E768       aPsliderMulti_0
  0001:0048EC04       aPscrollbarMult
@@ -29075,6 +29163,7 @@
  0001:00493A60       a__0123456789_0
  0001:00493AC0       color_palette_list
  0001:00494514       aDlgliveview_92
+ 0001:00494558       liveview_wb_dialog_data
  0001:00494944       aDlgliveviewi_5
  0001:0049498C       aDlgliveviewi_6
  0001:00494D48       aPd_transErrorP
