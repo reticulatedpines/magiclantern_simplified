@@ -436,6 +436,48 @@ typedef int (*dialog_handler_t)(
 	uint32_t		event
 );
 
+struct dialog;
+struct dialog_list;
+struct dialog_item;
+
+
+/** These are chock-full of callbacks.  I don't know what most of them do. */
+struct dialog_item
+{
+	const char *		type;			// "DIALOGITEM" at 0xFFCA7B1c
+	struct dialog_list *	next;			// maybe parent? 0x04
+	struct dialog_list *	prev;			// maybe 0x08
+	struct dialog_callbacks * callbacks;		// maybe object? 0x0c
+	uint32_t		off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	uint32_t		off_0x1c;
+	uint32_t		off_0x20;
+	uint32_t		off_0x24;
+	uint32_t		off_0x28;
+	void			(*move_callback)( struct dialog *, int x, int y ); //		off_0x2c;
+	uint32_t		off_0x30;
+	uint32_t		off_0x34;
+	uint32_t		off_0x38;
+	uint32_t		off_0x3c;
+};
+SIZE_CHECK_STRUCT( dialog_item, 0x40 );
+
+
+/** Dialog children?  Maybe? */
+struct dialog_list
+{
+	uint16_t		index;			// off 0x00
+	uint16_t		off_0x02;
+	struct dialog_item *	item;			// off 0x04 maybe
+	uint32_t		arg1;			// off 0x08, passed to creat
+	uint32_t		arg2;			// off_0x0c, passed to creat
+	uint32_t		off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	struct dialog_list *	next;			// off 0x1c
+};
+
 
 /** Dialog box gui elements */
 struct dialog
@@ -463,7 +505,7 @@ struct dialog
 	uint32_t		off_0x50;
 	uint32_t		off_0x54;
 	uint32_t		off_0x58;
-	uint32_t		off_0x5c;
+	void *			child_list_maybe;	// off_0x5c;
 	dialog_handler_t	handler;		// off 0x60
 	uint32_t		handler_arg;		// off_0x64;
 	uint32_t		off_0x68;		// initial=0
@@ -542,6 +584,24 @@ dialog_move(
 	int			y
 );
 
+extern void
+dialog_move_item(
+	struct dialog *		dialog,
+	int			x,
+	int			y,
+	int			index
+);
+
+extern void
+dialog_label_item(
+	struct dialog *		dialog,
+	uint32_t		id,
+	const char *		label,
+	int			len_maybe,
+	int			unknown
+);
+
+
 
 struct lvram_info
 {
@@ -618,6 +678,7 @@ color_palette_push(
 #define OPEN_SLOT_COVER			0x1000000B
 #define CLOSE_SLOT_COVER		0x1000000C
 #define START_SHOOT_MOVIE		0x1000008A
+#define RESIZE_MAYBE			0x10000085
 
 
 /** Movie recording.
