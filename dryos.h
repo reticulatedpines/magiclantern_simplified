@@ -95,6 +95,11 @@ struct task
 	uint32_t		pad_1[12];
 };
 
+#define SIZE_CHECK_STRUCT( struct_name, size ) \
+	static uint8_t __size_check_##struct_name[ \
+		sizeof( struct struct_name ) == size ? 0 : -1 \
+	]
+
 
 /*
  * Audio information structure at 0x7324.
@@ -117,7 +122,12 @@ struct audio_info
 	uint32_t		max_sample;	// off_0x24
 } __attribute__((packed));
 
-extern struct audio_info * audio_info;
+SIZE_CHECK_STRUCT( audio_info, 0x28 );
+
+extern struct audio_info audio_info;
+
+extern void sound_dev_start_observer( void );
+extern void sound_dev_stop_observer( void );
 
 
 /**
@@ -447,6 +457,8 @@ struct state_object
 	uint32_t		max_states;	// off 0x18, arg 3
 	uint32_t		state;		// off 0x1c, initially 0
 };
+
+SIZE_CHECK_STRUCT( state_object, 0x20 );
 
 
 extern struct state_object *

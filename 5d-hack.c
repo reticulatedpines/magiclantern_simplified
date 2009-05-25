@@ -146,39 +146,86 @@ test_dialog(
 	return 1;
 }
 
-static inline uint32_t
+/** Read the raw level from the audio device.
+ *
+ * Expected values are signed 16-bit?
+ */
+static inline int16_t
 audio_read_level( void )
 {
-	return *(uint32_t*) 0xC0920110;
+	return (int16_t) *(uint32_t*)( 0xC0920000 + 0x110 );
+}
+
+/** Returns a dB translated from the raw level */
+int
+audio_read_level_db(
+	uint32_t		raw_level
+)
+{
+	const uint32_t * const thresholds = (uint32_t*) 0xFFC60B2C;
+	int db;
+
+	for( db = 40 ; db ; db-- )
+	{
+		if( thresholds[db] > raw_level )
+			return db;
+	}
+
+	return 0;
 }
 
 
 void draw_meters(void)
 {
+#define MAX_SAMPLES 720
+	static int16_t TEXT levels[ MAX_SAMPLES ];
+	static uint32_t TEXT index;
+	levels[ index++ ] = audio_read_level();
+	if( index >= MAX_SAMPLES )
+		index = 0;
+
+
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
-	uint32_t level = audio_read_level();
-	uint32_t x, y;
+	//thunk audio_dev_compute_average_level = (void*) 0xFF9725C4;
+	//audio_dev_compute_average_level();
 
-	// Convert the levels to something more usable
-	static uint32_t TEXT level_avg;
-	static uint32_t TEXT level_peak;
-	level = (level / 128);
-	level_avg	= (level_avg * 63 + level) / 64;
-	level_peak	= (level_peak * 15 + level) / 16;
+	// The level goes from -40 to 0
+	uint32_t x;
+	for( x=0 ; x<MAX_SAMPLES && x<vram->width ; x++ )
+	{
+		uint16_t y = 256 + levels[ x ] / 128;
+		vram->vram[ y * vram->pitch + x ] = 0xFFFF;
+	}
 
+	uint32_t y;
+	for( y=0 ; y<128 ; y++ )
+	{
+		vram->vram[ y * vram->pitch + index ] = 0x888F;
+	}
+
+#if 0
 	for( y=0 ; y<25 ; y++ )
 	{
-		uint16_t * row = vram->vram + y * vram->pitch;
+		uint16_t * const row = vram->vram + y * vram->pitch;
 
 		// Draw the smooth meter
-		for( x=0 ; x < level_avg*2 && x < vram->width ; x++ )
+		for( x=0 ; x < level_avg && x < vram->width ; x++ )
 			//row[x] = 0x515F;
 			row[x] = 0xFFFF;
 
 		// Draw the peak
-		for( x=level_peak*2 ; x<level_peak*2 + 20 ; x++ )
+		for( x=level ; x<level + 20 && x < vram->width ; x++ )
 			row[x] = 0x888F;
 	}
+
+	// Draw the dB scales
+	for( y=26 ; y<50 ; y++ )
+	{
+		uint16_t * const row = vram->vram + y * vram->pitch;
+		for( x=0 ; x<40 ; x++ )
+			row[ vram->width/2 - x * 8 ];
+	}
+#endif
 }
 
 
@@ -186,7 +233,8 @@ void my_audio_level_task( void )
 {
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
-	audio_set_alc_off();
+	
+	//sound_dev_start_observer();
 
 	while(1)
 	{
@@ -509,8 +557,11 @@ task_dispatch_hook(
 
 	// Try to replace the sound device task
 	// The trampoline will run our entry point instead
+#if 0
 	if( task->entry == sound_dev_task )
 		task->entry = my_sound_dev_task;
+#endif
+
 
 #if 1
 	*(uint32_t*)(pc_buf_raw+count+0) = (uint32_t) task->entry;
