@@ -77,6 +77,7 @@ NSTUB( 0xFF99A1F0, state_object_dispatch )
 NSTUB( 0xFFA2AC9C, vram_get_number )
 NSTUB( 0xFFA6656C, vram_get_lock )
 NSTUB( 0xFFA66748, vram_instance )
+NSTUB( 0xFF85F9A0, vram_schedule_callback )
 NSTUB( 0xFF860210, dispcheck )
 NSTUB( 0xFF8669CC, DebugMsg )
 NSTUB( 0xFFAB88AC, color_palette_push )
@@ -112,11 +113,16 @@ NSTUB( 0xFFB7F380, memcpy )
 
 
 /* Structures in the BSS or rwdata segment */
+NSTUB( 0x1D74, liveview )
+NSTUB( 0x208C, sound_dev )
+NSTUB( 0x2924, dm_state_ptr )
+NSTUB( 0x3548, gui_struct )
+NSTUB( 0x426C, lv_struct )
+NSTUB( 0x7324, audio_info )
+NSTUB( 0x8348, dm_state_object )
+NSTUB( 0x13EA0, image_play_struct )
+NSTUB( 0x14900, winsys_struct )
 NSTUB( 0x1F848, main_tab_dialog_id )
-NSTUB( 0x208C, sound_dev );
-NSTUB( 0x7324, audio_info );
-NSTUB( 0x2924, dm_state_ptr );
-NSTUB( 0x8348, dm_state_object );
-NSTUB( 0x333B0, vram_info );
-NSTUB( 0x14900, winsys_struct );
+NSTUB( 0x240cc, bmp_vram_info )
 NSTUB( 0x2f33c, lvram_info )
+NSTUB( 0x333B0, vram_info )

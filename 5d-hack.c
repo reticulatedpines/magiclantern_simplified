@@ -143,10 +143,10 @@ test_dialog(
 	if( !file )
 		file = FIO_CreateFile( "A:/dialog.log" );
 
-	events[ index + 0 ] = dialog_id;
-	events[ index + 1 ] = arg;
-	events[ index + 2 ] = event;
-	events[ index + 3 ] = index;
+	events[ index + 0 ] = (uint32_t) dialog_id;
+	events[ index + 1 ] = (uint32_t) arg;
+	events[ index + 2 ] = (uint32_t) event;
+	events[ index + 3 ] = (uint32_t) index;
 
 	if( (index += 4) == 1024 )
 	{
@@ -242,50 +242,58 @@ static int TEXT db_peak;
 /* Normal VU meter */
 void draw_meters(void)
 {
-	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
-	const uint32_t x_db_avg = vram->width + db_avg * 18;
-	const uint32_t x_db = vram->width + db_peak * 18;
+	uint8_t * const bmp_vram = bmp_vram_info.vram2;
 
-	uint32_t y;
+	struct vram_info * const vram0 = &vram_info[ vram_get_number(0) ];
+	struct vram_info * const vram2 = &vram_info[ vram_get_number(2) ];
+	const uint32_t x_db_avg = vram0->width + db_avg * 18;
+	const uint32_t x_db = vram0->width + db_peak * 18;
+
+	uint32_t x,y;
+	for( x=10 ; x<100 ; x++ )
+		for( y=10 ; y<100 ; y++ )
+			bmp_vram[x+y*720] = 0xFF;
 
 	for( y=0 ; y<25 ; y++ )
 	{
-		uint16_t * const row = vram->vram + y * vram->pitch;
+		uint16_t * const row0 = vram0->vram + y * vram0->pitch;
+		uint16_t * const row2 = vram2->vram + y * vram2->pitch;
 
 		// Draw the smooth meter
 		// remember that db goes -40 to 0
 		// db -> x : vram->width + db * 18
-		uint32_t x;
 		for( x=0 ; x < x_db_avg; x++ )
-			row[x] = 0xFFFF;
+			row2[x] = row0[x] = 0xFFFF;
 			//row[x] = 0x515F;
 
 		// Draw the peak
 		for( x = x_db ; x < x_db + 10 ; x++ )
-			row[x] = 0x8888;
+			row2[x] = row0[x] = 0x8888;
 	}
 
 	// Draw the dB scales
 	for( y=20 ; y<40 ; y++ )
 	{
-		uint16_t * const row = vram->vram + y * vram->pitch;
+		uint16_t * const row0 = vram0->vram + y * vram0->pitch;
+		uint16_t * const row2 = vram2->vram + y * vram2->pitch;
 		int db;
 		for( db=-40; db<= 0 ; db+=5 )
 		{
-			const uint32_t x_db = vram->width + db * 18;
-			row[ x_db+0 ] = 0xFFFF;
-			row[ x_db+1 ] = 0xFFFF;
+			const uint32_t x_db = vram0->width + db * 18;
+			row2[x_db+0] = row0[ x_db+0 ] = 0xFFFF;
+			row2[x_db+1] = row0[ x_db+1 ] = 0xFFFF;
 		}
 	}
 
+/*
 	// Draw a box
 	for( y=vram->height/2 ; y<vram->height ; y++ )
 	{
 		uint16_t * const row = vram->vram + y * vram->pitch;
-		uint32_t x;
 		for( x=vram->width/2 ; x<vram->width ; x++ )
 			row[x] = 0x8884;
 	}
+*/
 }
 #endif
 
@@ -295,6 +303,7 @@ void my_audio_level_task( void )
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
 
+#if 0
 	//winsys_set_flag_0x34();
 	//winsys_set_flag_0x30();
 	meter_dialog = dialog_create( 0, 0, test_dialog, 0x16, 0 );
@@ -305,7 +314,8 @@ void my_audio_level_task( void )
 	//int gui_type = gui_get_display_type();
 	//write_debug_file( "lvram_info.log", &lvram_info, sizeof(lvram_info) );
 
-	dialog_label_item( meter_dialog, 0xabcdef, "markfree", 9, 5 );
+	uint32_t full = 0x40000001;
+	dialog_label_item( meter_dialog, 0xabcdef, &full, 9, 5 );
 	dialog_set_origin_type( meter_dialog, 0 );
 	dialog_resize( meter_dialog, 320, 20, 20 );
 	dialog_window_resize( meter_dialog, 320, 20, 20 );
@@ -315,6 +325,7 @@ void my_audio_level_task( void )
 	
 	//winsys_clr_flag_0x34();
 	//winsys_whole_screen_backup();
+#endif
 
 	//sound_dev_start_observer();
 
@@ -341,7 +352,9 @@ void my_audio_level_task( void )
 				db_avg--;
 		}
 
-		msleep(30);
+		thunk WaitVSync = (void*) 0xFF861CD4;
+		WaitVSync();
+		draw_meters();
 	}
 }
 
@@ -355,11 +368,9 @@ void dump_vram( void )
 	for( i=0 ; i<8 ; i++ )
 		vram_num[i] = vram_get_number(i);
 
-	uint32_t * const vram_struct = (void*) 0x13ea0;
-
-	write_debug_file( "vram_struct.log", vram_struct, 0x400 );
 	write_debug_file( "vram_bss.log", vram_info, sizeof(vram_info) );
 	write_debug_file( "vram_num.log", vram_num, sizeof(vram_num) );
+	write_debug_file( "bmp_vram.log", &bmp_vram_info, 0x100 );
 
 #if 0
 
@@ -454,7 +465,7 @@ void my_sleep_task( void )
 
 	//uint32_t lr = read_lr();
 	msleep( 2000 );
-	//dump_vram();
+	dump_vram();
 	//dumpf();
 
 	// Try enabling manual video mode

@@ -12,6 +12,7 @@
 
 #include "arm-mcr.h"
 #include "dialog.h"
+#include "gui.h"
 
 typedef void (*thunk)(void);
 
@@ -561,19 +562,118 @@ vram_get_lock(
 
 /** VRAM info in the BSS.
  *
- * Pixels are in the format 
+ * Pixels are in an unknown format.
+ * This points to the image VRAM, not the bitmap vram
  */
 struct vram_info
 {
-	uint16_t *		vram;
-	uint32_t		width; // maybe
-	uint32_t		pitch; // maybe
-	uint32_t		height;
-	uint32_t		vram_number;
+	uint16_t *		vram;		// off 0x00
+	uint32_t		width;		// maybe off 0x04
+	uint32_t		pitch;		// maybe off 0x08
+	uint32_t		height;		// off 0x0c
+	uint32_t		vram_number;	// off 0x10
 };
+SIZE_CHECK_STRUCT( vram_info, 0x14 );
 
 extern struct vram_info vram_info[2];
 
+
+extern void
+vram_schedule_callback(
+	struct vram_info *	vram,
+	int			arg1,
+	int			arg2,
+	int			width,
+	int			height,
+	void			(*handler)( void * ),
+	void *			arg
+);
+
+struct image_play_struct
+{
+	uint32_t		off_0x00;
+	uint16_t		off_0x04; // sharpness?
+	uint16_t		off_0x06;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+	uint32_t		copy_vram_mode;			// off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	uint32_t		image_player_effective; 	// off_0x1c;
+	uint32_t		vram_num;			// off_0x20;
+	uint32_t		work_image_pataion;		// off_0x24 ?;
+	uint32_t		visible_image_vram_offset_x;	// off_0x28;
+	uint32_t		visible_image_vram_offset_y;	// off_0x2c;
+	uint32_t		work_image_id;			// off_0x30;
+	uint32_t		off_0x34;
+	uint32_t		image_aspect;			// off_0x38;
+	uint32_t		off_0x3c;
+	uint32_t		off_0x40;
+	uint32_t		off_0x44;
+	uint32_t		sharpness_rate;			// off_0x48;
+	uint32_t		off_0x4c;
+	uint32_t		off_0x50;	// passed to gui_change_something
+	uint32_t		off_0x54;
+	struct semaphore *	sem;				// off_0x58;
+	uint32_t		off_0x5c;
+	uint32_t		image_vram;			// off_0x60;
+	uint32_t		off_0x64;
+	uint32_t		rectangle_copy;			// off_0x68;
+	uint32_t		image_play_driver_handler;	// off_0x6c;
+	uint32_t		off_0x70;
+	uint32_t		image_vram_complete_callback;	// off_0x74;
+	uint32_t		off_0x78;
+	uint32_t		work_image_width;		// off_0x7c;
+	uint32_t		work_image_height;		// off_0x80;
+	uint32_t		off_0x84;
+	uint32_t		off_0x88;
+	uint32_t		off_0x8c;
+	uint32_t		off_0x90;
+	uint32_t		off_0x94;
+	uint32_t		off_0x98;
+	uint32_t		off_0x9c;
+};
+
+extern struct image_play_struct image_play_struct;
+
+
+struct bmp_vram_info
+{
+	uint8_t *		vram0;
+	uint32_t		off_0x04;
+	uint8_t *		vram2;
+	uint32_t		off_0x0c;
+};
+
+extern struct bmp_vram_info bmp_vram_info;
+
+
+/** The top-level Liveview object.
+ * 0x2670 bytes; it is huge!
+ */
+struct liveview_mgr
+{
+	const char *		type;		// "LiveViewMgr"
+	struct task *		task;		// off 0x04
+	uint32_t		off_0x08;
+	struct state_object *	lv_state;	// off 0x0c
+};
+
+extern struct liveview_mgr * liveview_mgr;
+
+struct lv_struct
+{
+	uint32_t		off_0x00;
+	uint32_t		off_0x04;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+	uint32_t		off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	uint32_t		off_0x1c;
+	struct state_object *	lv_state;	// off 0x20
+	struct state_object *	lv_rec_state;	// off 0x24
+};
 
 /** Main menu tab functions */
 extern int main_tab_dialog_id;
