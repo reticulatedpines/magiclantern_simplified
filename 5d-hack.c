@@ -243,57 +243,42 @@ static int TEXT db_peak;
 void draw_meters(void)
 {
 	uint8_t * const bmp_vram = bmp_vram_info.vram2;
+	const uint32_t pitch = 960;
+	const uint32_t width = 720;
 
-	struct vram_info * const vram0 = &vram_info[ vram_get_number(0) ];
-	struct vram_info * const vram2 = &vram_info[ vram_get_number(2) ];
-	const uint32_t x_db_avg = vram0->width + db_avg * 18;
-	const uint32_t x_db = vram0->width + db_peak * 18;
+	const uint32_t x_db_avg = width + db_avg * 18;
+	const uint32_t x_db = width + db_peak * 18;
 
 	uint32_t x,y;
-	for( x=10 ; x<100 ; x++ )
-		for( y=10 ; y<100 ; y++ )
-			bmp_vram[x+y*720] = 0xFF;
-
 	for( y=0 ; y<25 ; y++ )
 	{
-		uint16_t * const row0 = vram0->vram + y * vram0->pitch;
-		uint16_t * const row2 = vram2->vram + y * vram2->pitch;
+		uint8_t * const row = bmp_vram + y * pitch;
 
 		// Draw the smooth meter
 		// remember that db goes -40 to 0
-		// db -> x : vram->width + db * 18
-		for( x=0 ; x < x_db_avg; x++ )
-			row2[x] = row0[x] = 0xFFFF;
-			//row[x] = 0x515F;
-
-		// Draw the peak
-		for( x = x_db ; x < x_db + 10 ; x++ )
-			row2[x] = row0[x] = 0x8888;
+		for( x=0 ; x < width ; x++ )
+		{
+			if( x_db < x && x < x_db + 10 )
+				row[x] = 0x88;
+			else
+			if( x < x_db_avg )
+				row[x] = 0xFF;
+			else
+				row[x] = 0x00;
+		}
 	}
 
 	// Draw the dB scales
 	for( y=20 ; y<40 ; y++ )
 	{
-		uint16_t * const row0 = vram0->vram + y * vram0->pitch;
-		uint16_t * const row2 = vram2->vram + y * vram2->pitch;
+		uint8_t * const row = bmp_vram + y * pitch;
 		int db;
 		for( db=-40; db<= 0 ; db+=5 )
 		{
-			const uint32_t x_db = vram0->width + db * 18;
-			row2[x_db+0] = row0[ x_db+0 ] = 0xFFFF;
-			row2[x_db+1] = row0[ x_db+1 ] = 0xFFFF;
+			const uint32_t x_db = width + db * 18;
+			row[x_db+0] = row[ x_db+1 ] = 0xFF;
 		}
 	}
-
-/*
-	// Draw a box
-	for( y=vram->height/2 ; y<vram->height ; y++ )
-	{
-		uint16_t * const row = vram->vram + y * vram->pitch;
-		for( x=vram->width/2 ; x<vram->width ; x++ )
-			row[x] = 0x8884;
-	}
-*/
 }
 #endif
 
