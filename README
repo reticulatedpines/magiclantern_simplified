@@ -1,0 +1,68 @@
+          ***************************************************
+          *                                                 *
+          * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
+          *  NO WARRANTIES.  NO GUARANTEES.  DO NOT TAUNT.  *
+          *                                                 *
+          ***************************************************
+
+If you are not comfortable with this, stop reading and delete the
+software before you are tempted to try running it on your camera.
+It works on my camera, with my version of arm-linux-gcc, and with
+my version of perl to build the firmware file, but that is no
+guarantee that it will work for you.
+
+Please see the LICENSE file for additional terms that cover
+distribution of this software.
+
+To repeat this important point:
+
+          ***************************************************
+          *                                                 *
+          * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
+          *   IF IT BREAKS, YOU GET TO KEEP BOTH PIECES.    *
+          *                                                 *
+          ***************************************************
+
+
+BOOT PROCESS
+
+* Camera DryOS copies .fir file into RAM at 0x800000 and jumps into it.
+* The first instruction does a long jump to 0x80000c to clear some headers
+* The CPSR is updated to put the ARM into supervisor mode (it already is)
+* An initial stack is setup at 0x1900
+* Branch to cstart() in reboot.c
+* set up the memory regions for the camera version of DryOS
+* enable all caches and rw regions
+* select reboot vectors in low memory
+* copies the 5d-hack.bin blob to above the DryOS BSS
+	* This is the RESTARTSTART location
+	* End of BSS is found in _entry() where it loops to zero it
+	* Note off by 0x120 error due to .fir header.
+* flushes caches
+* Jumps into 5d-hack.bin copy_and_restart() code at RESTARTSTART (0x48000)
+	* copy_and_restart() must be first routine in 5d-hack.c
+* copy_and_restart() copies the first 64 KB of ROM to 0x50000
+* It then patches a few instructions to fixup some branch instructions
+  and to return to its control before control is transfered to the
+  cstart() routine in the firmware.  It also updates the end of the BSS
+  so that both itself and the copied portion of DryOS will be saved
+* 
+
+
+
+TODO:
+
+* Figure out how to create a custom menu
+	* hijack factory or photostudio menu?
+* Find routine to trigger shutter
+* Linker script to fix off by 0x120 error in reboot.c
+* Reduce amount of DryOS copied (64 KB is more than necessary)
+* Re-arrange to have 64 KB of DryOS below 5d-hack.bin
+* Audio device is shut off after movie; keep it enablde
+* Better interaction with powersave and LCD disabled modes
+* Configurable fixed audio gain
+* Configurable crop marks
+* Manual aperture
+* Manual shutter
+* Manual ISO
+* 24p
