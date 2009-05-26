@@ -246,11 +246,13 @@ void draw_meters(void)
 	const uint32_t pitch = 960;
 	const uint32_t width = 720;
 
-	const uint32_t x_db_avg = width + db_avg * 18;
-	const uint32_t x_db = width + db_peak * 18;
+	// The db values are multiplied by 8 to make them
+	// smoother.
+	const uint32_t x_db_avg = width + db_avg * 2;
+	const uint32_t x_db = width + db_peak * 2;
 
 	uint32_t x,y;
-	for( y=0 ; y<25 ; y++ )
+	for( y=0 ; y<20 ; y++ )
 	{
 		uint8_t * const row = bmp_vram + y * pitch;
 
@@ -259,7 +261,7 @@ void draw_meters(void)
 		for( x=0 ; x < width ; x++ )
 		{
 			if( x_db < x && x < x_db + 10 )
-				row[x] = 0x88;
+				row[x] = y * 2; // 0x02;
 			else
 			if( x < x_db_avg )
 				row[x] = 0xFF;
@@ -269,16 +271,28 @@ void draw_meters(void)
 	}
 
 	// Draw the dB scales
-	for( y=20 ; y<40 ; y++ )
+	for( y=20 ; y<32 ; y++ )
 	{
 		uint8_t * const row = bmp_vram + y * pitch;
 		int db;
-		for( db=-40; db<= 0 ; db+=5 )
+		for( db=-40 * 8; db<= 0 ; db+=5*8 )
 		{
-			const uint32_t x_db = width + db * 18;
-			row[x_db+0] = row[ x_db+1 ] = 0xFF;
+			const uint32_t x_db = width + db * 2;
+			row[x_db+0] = row[ x_db+1 ] = 0x01;
 		}
 	}
+
+	// And draw the 16:9 crop marks for full time
+	// The screen is 480 vertical lines, but we only want to
+	// show 720 * 9 / 16 == 405 of them.  If we use this number,
+	// however, things don't line up right.
+	uint8_t * row = bmp_vram + 32 * pitch;
+	for( x=0 ; x<width ; x++ )
+		row[x] = 0x01;
+
+	row = bmp_vram + 390 * pitch;
+	for( x=0 ; x<width ; x++ )
+		row[x] = 0x01;
 }
 #endif
 
@@ -322,24 +336,22 @@ void my_audio_level_task( void )
 		if( raw_level < 0 )
 			raw_level = -raw_level;
 
-		int db = audio_level_to_db( raw_level );
+		int db = audio_level_to_db( raw_level ) * 8;
 		db_avg = (db_avg * 3 + db ) / 4;
 
 		if( db > db_peak )
 			db_peak = db;
 
-		// ramp the peak and averages down at a slower rate
-		if( (cycle_count++ & 3) == 0 )
-		{
-			if( db_peak > -40 )
-				db_peak--;
-			if( db_avg > -40 )
-				db_avg--;
-		}
+		// decay /  ramp the peak and averages down at a slower rate
+		if( db_avg > -40*8 )
+			db_avg--;
+		if( db_peak > -40*8 )
+			db_peak = (db_peak * 3 + db_avg) / 4;
 
-		thunk WaitVSync = (void*) 0xFF861CD4;
-		WaitVSync();
+		//thunk WaitVSync = (void*) 0xFF861CD4;
+		//WaitVSync();
 		draw_meters();
+		msleep( 30 );
 	}
 }
 
