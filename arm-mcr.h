@@ -11,6 +11,11 @@
 		sizeof( struct struct_name ) == size ? 0 : -1 \
 	]
 
+/** Force a variable to live in the text segment */
+#define TEXT __attribute__((section(".text")))
+
+
+
 typedef signed long	int32_t;
 typedef unsigned long	uint32_t;
 typedef signed short	int16_t;

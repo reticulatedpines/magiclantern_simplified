@@ -69,7 +69,11 @@ dumper: dumper_entry.o dumper.o
 reboot.o: reboot.c 5d-hack.bin
 5d-hack.bin: 5d-hack
 
-5d-hack: 5d-hack.o stubs-5d2.107.o
+5d-hack: \
+	5d-hack.o \
+	audio.o \
+	stubs-5d2.107.o \
+
 	$(LD) \
 		-o $@ \
 		-nostdlib \

@@ -36,10 +36,12 @@ IMPORTANT NOTES
 
 TODO LIST:
 
+* Palette for bitmap vram
 * Figure out how to create a custom menu
 	* hijack factory or photostudio menu?
 * Find routine to trigger shutter
 * Linker script to fix off by 0x120 error in reboot.c
+* Linker script to create data segment in hacked code
 * Reduce amount of DryOS copied (64 KB is more than necessary)
 * Re-arrange to have 64 KB of DryOS below 5d-hack.bin
 * Audio device is shut off after movie; keep it enablde
