@@ -19,8 +19,8 @@ audio_read_level( void )
  *
  * Range is -40 to 0 dB
  */
-int
-static audio_level_to_db(
+static int
+audio_level_to_db(
 	uint32_t		raw_level
 )
 {
@@ -34,6 +34,37 @@ static audio_level_to_db(
 	}
 
 	return 0;
+}
+
+
+static void
+generate_palette( void )
+{
+	uint8_t * const bmp_vram = bmp_vram_info.vram2;
+	const uint32_t pitch	= 960;
+	const uint32_t width	= 720;
+	const uint32_t height	= 480;
+
+	uint32_t x, y, msb, lsb;
+
+	for( msb=0 ; msb<16; msb++ )
+	{
+		for( y=0 ; y<30; y++ )
+		{
+			uint8_t * const row = bmp_vram + (y + 30*msb) * pitch;
+
+			for( lsb=0 ; lsb<16 ; lsb++ )
+			{
+				for( x=0 ; x<45 ; x++ )
+					row[x+45*lsb] = (msb << 4) | lsb;
+			}
+		}
+	}
+
+	static int written TEXT;
+	if( !written )
+		dispcheck();
+	written = 1;
 }
 
 
@@ -70,20 +101,59 @@ void draw_meters(void)
 #else
 static int TEXT db_avg;
 static int TEXT db_peak;
+
+
+static uint8_t
+db_to_color(
+	int			db
+)
+{
+	if( db < -35 * 8 )
+		return 0x01; // white
+	if( db < -20 * 8 )
+		return 0x06; // dark green
+	if( db < -15 * 8 )
+		return 0x0F; // yellow
+	return 0x0c; // dull red
+}
+
+static uint8_t
+db_peak_to_color(
+	int			db
+)
+{
+	if( db < -35 * 8 )
+		return 0x0b; // dark blue
+	if( db < -20 * 8 )
+		return 0x07; // bright green
+	if( db < -15 * 8 )
+		return 0xAE; // bright yellow
+	return 0x08; // bright red
+}
+
 /* Normal VU meter */
 static void draw_meters(void)
 {
 	uint8_t * const bmp_vram = bmp_vram_info.vram2;
-	const uint32_t pitch = 960;
-	const uint32_t width = 720;
+	const uint32_t pitch	= 960;
+	const uint32_t width	= 720;
+	const uint32_t height	= 480;
+
+	uint32_t x,y;
+
 
 	// The db values are multiplied by 8 to make them
 	// smoother.
 	const uint32_t x_db_avg = width + db_avg * 2;
 	const uint32_t x_db = width + db_peak * 2;
 
-	uint32_t x,y;
-	for( y=0 ; y<20 ; y++ )
+	// Transparent black
+	const uint8_t bg_color = 0x03;
+
+	const uint8_t bar_color = db_to_color( db_avg );
+	const uint8_t peak_color = db_peak_to_color( db_peak );
+
+	for( y=0 ; y<32 ; y++ )
 	{
 		uint8_t * const row = bmp_vram + y * pitch;
 
@@ -92,12 +162,12 @@ static void draw_meters(void)
 		for( x=0 ; x < width ; x++ )
 		{
 			if( x_db < x && x < x_db + 10 )
-				row[x] = y * 2; // 0x02;
+				row[x] = peak_color;
 			else
 			if( x < x_db_avg )
-				row[x] = 0xFF;
+				row[x] = bar_color;
 			else
-				row[x] = 0x00;
+				row[x] = bg_color;
 		}
 	}
 
@@ -121,11 +191,74 @@ static void draw_meters(void)
 	for( x=0 ; x<width ; x++ )
 		row[x] = 0x01;
 
-	row = bmp_vram + 390 * pitch;
-	for( x=0 ; x<width ; x++ )
-		row[x] = 0x01;
+	for( y=390 ; y<430 ; y++ )
+	{
+		const uint32_t bg_word = 0
+			| (bg_color << 24)
+			| (bg_color << 16)
+			| (bg_color <<  8)
+			| (bg_color <<  0);
+	
+		uint32_t * row = (uint32_t*)( bmp_vram + y * pitch );
+		for( x=0 ; x<width/4 ; x++ )
+			row[x] = bg_word;
+	}
 }
 #endif
+
+
+static void
+draw_zebra( void )
+{
+	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
+	uint8_t * const bmp_vram = bmp_vram_info.vram2;
+	const uint32_t pitch	= 960;
+	const uint32_t width	= 720;
+	const uint32_t height	= 480;
+/*
+	static int written TEXT;
+	if( !written )
+		write_debug_file( "vram.yuv", vram->vram, vram->height * vram->pitch * 2 );
+	written = 1;
+*/
+
+	uint32_t x,y;
+
+	const uint8_t zebra_color_0 = 0x6F; // bright read
+	const uint8_t zebra_color_1 = 0x5F; // dark red
+
+	const uint16_t threshold = 0xF000;
+
+	// skip the audio meter at the top and the bar at the bottom
+	// hardcoded; should use a constant based on the type of display
+	for( y=32 ; y < 390; y++ )
+	{
+		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
+		uint8_t * const b_row = bmp_vram + y * pitch;
+		for( x=0 ; x < vram->width ; x+=2 )
+		{
+			uint32_t pixels = v_row[x/2];
+			uint32_t pixel0 = (pixels >> 16) & 0xFFFF;
+			uint32_t pixel1 = (pixels >>  0) & 0xFFFF;
+
+			// Determine if we are a zig or a zag line
+			uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
+
+			if( pixel0 < threshold )
+				pixel0 = 0;
+			else
+				pixel0 = zag ? zebra_color_0 : zebra_color_1;
+
+			if( pixel1 < threshold )
+				pixel1 = 0;
+			else
+				pixel1 = zag ? zebra_color_0 : zebra_color_1;
+
+			b_row[x+0] = pixel0;
+			b_row[x+1] = pixel1;
+		}
+	}
+}
 
 
 /** Task to monitor the audio levels.
@@ -148,7 +281,7 @@ my_audio_level_task( void )
 			raw_level = -raw_level;
 
 		int db = audio_level_to_db( raw_level ) * 8;
-		db_avg = (db_avg * 3 + db ) / 4;
+		db_avg = (db_avg * 15 + db ) / 16;
 
 		if( db > db_peak )
 			db_peak = db;
@@ -160,6 +293,7 @@ my_audio_level_task( void )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
 		draw_meters();
+		draw_zebra();
 		msleep( 30 );
 	}
 }
