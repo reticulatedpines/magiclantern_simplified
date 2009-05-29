@@ -1,6 +1,52 @@
 #ifndef _dryos_gui_h_
 #define _dryos_gui_h_
 
+/** \file
+ * DryOS GUI structures and functions.
+ */
+
+/** Display types.
+ *
+ * 0 == 720p LCD
+ * 3 == 960 HDMI
+ * 6 == 960 HDMI
+ * All others unknown.
+ */
+extern int
+gui_get_display_type( void );
+
+extern void
+color_palette_push(
+	int			palette_id
+);
+
+
+
+/** Event types */
+#define GOT_TOP_OF_CONTROL		0x800
+#define LOST_TOP_OF_CONTROL		0x801
+#define INITIALIZE_CONTROLLER		0x802
+#define TERMINATE_WINSYS		0x804
+#define DELETE_DIALOG_REQUEST		0x805
+#define PRESS_RIGHT_BUTTON		0x807
+#define PRESS_LEFT_BUTTON		0x809
+#define PRESS_UP_BUTTON			0x80B
+#define PRESS_DOWN_BUTTON		0x80D
+#define PRESS_MENU_BUTTON		0x80F
+#define PRESS_SET_BUTTON		0x812
+#define PRESS_INFO_BUTTON		0x829
+#define ELECTRONIC_SUB_DIAL_RIGHT	0x82B
+#define ELECTRONIC_SUB_DIAL_LEFT	0x82C
+#define PRESS_DISP_BUTTON		0x10000000
+#define PRESS_DIRECT_PRINT_BUTTON	0x10000005
+#define PRESS_FUNC_BUTTON		0x10000007
+#define PRESS_PICTURE_STYLE_BUTTON	0x10000009
+#define OPEN_SLOT_COVER			0x1000000B
+#define CLOSE_SLOT_COVER		0x1000000C
+#define START_SHOOT_MOVIE		0x1000008A
+#define RESIZE_MAYBE			0x10000085
+
+
 struct gui_struct
 {
 	uint32_t		off_0x00;

@@ -13,6 +13,8 @@
 #include "arm-mcr.h"
 #include "dialog.h"
 #include "gui.h"
+#include "vram.h"
+#include "state-object.h"
 
 typedef void (*thunk)(void);
 
@@ -409,45 +411,6 @@ copy_lvram_info(
 	struct lvram_info *	dest
 );
 
-/** Display types.
- *
- * 0 == 720p LCD
- * 3 == 960 HDMI
- * 6 == 960 HDMI
- * All others unknown.
- */
-extern int
-gui_get_display_type( void );
-
-
-extern void
-color_palette_push(
-	int			palette_id
-);
-
-
-#define GOT_TOP_OF_CONTROL		0x800
-#define LOST_TOP_OF_CONTROL		0x801
-#define INITIALIZE_CONTROLLER		0x802
-#define TERMINATE_WINSYS		0x804
-#define DELETE_DIALOG_REQUEST		0x805
-#define PRESS_RIGHT_BUTTON		0x807
-#define PRESS_LEFT_BUTTON		0x809
-#define PRESS_UP_BUTTON			0x80B
-#define PRESS_DOWN_BUTTON		0x80D
-#define PRESS_MENU_BUTTON		0x80F
-#define PRESS_SET_BUTTON		0x812
-#define PRESS_INFO_BUTTON		0x829
-#define ELECTRONIC_SUB_DIAL_RIGHT	0x82B
-#define ELECTRONIC_SUB_DIAL_LEFT	0x82C
-#define PRESS_DISP_BUTTON		0x10000000
-#define PRESS_DIRECT_PRINT_BUTTON	0x10000005
-#define PRESS_FUNC_BUTTON		0x10000007
-#define PRESS_PICTURE_STYLE_BUTTON	0x10000009
-#define OPEN_SLOT_COVER			0x1000000B
-#define CLOSE_SLOT_COVER		0x1000000C
-#define START_SHOOT_MOVIE		0x1000008A
-#define RESIZE_MAYBE			0x10000085
 
 
 /** Movie recording.
@@ -465,129 +428,7 @@ struct mvr_struct
 extern struct mvr_struct * mvr_struct;
 extern struct state_object * mvr_state;
 
-/** State objects.
- *
- * Size 0x20
- */
-typedef struct state_object * (*state_function_t)(
-	void *			arg1,
-	void *			arg2,
-	void *			arg3
-);
 
-struct state_callback
-{
-	uint32_t		next_state;
-	state_function_t	handler;
-};
-
-
-struct state_object
-{
-	const char *		type;		// off 0x00, "StateObject" 
-	const char *		name;		// off 0x04, arg 0
-	uint32_t		auto_sequence;	// off 0x08, arg 1
-
-	// off 0x0c, always 0xff99a228 ?
-	void			(*callback)(
-		struct state_object *	self,
-		void *			arg1,
-		uint32_t		input,
-		void *			arg3,
-		void *			arg4
-	);
-
-	// Points to an array of size [max_inputs][max_states]
-	struct state_callback *	callbacks;	// off 0x10
-	uint32_t		max_inputs;	// off 0x14, arg 2
-	uint32_t		max_states;	// off 0x18, arg 3
-	uint32_t		state;		// off 0x1c, initially 0
-};
-
-SIZE_CHECK_STRUCT( state_object, 0x20 );
-
-
-extern struct state_object *
-state_object_create(
-	const char *		name,
-	int			auto_sequence,
-	state_function_t *	callbacks,
-	int			max_inputs,
-	int			max_states
-);
-
-
-extern void
-state_object_dispatchc(
-	struct state_object *	self,
-	int			input,
-	int			arg0,
-	int			arg1,
-	int			arg2
-);
-
-
-
-/** VRAM accessors */
-extern uint32_t
-vram_get_number(
-	uint32_t		number
-);
-
-/** Write the VRAM to a BMP file named "A:/test.bmp" */
-extern void
-dispcheck( void );
-
-extern const char * vram_instance_str_ptr;
-
-/** VRAM info structure (maybe?) */
-struct vram_object
-{
-	const char *		name; // "Vram Instance" 0xFFCA79E5
-	uint32_t		off_0x04;
-	uint32_t		off_0x08;
-	uint32_t		off_0x0c;
-	uint32_t		off_0x10;
-	struct semaphore *	sem; // off 0x14;
-};
-
-extern struct vram_object * 
-vram_instance( void );
-
-extern int
-vram_get_lock(
-	struct vram_object *	vram
-);
-
-
-/** VRAM info in the BSS.
- *
- * Pixels are in an unknown format.
- * This points to the image VRAM, not the bitmap vram
- */
-struct vram_info
-{
-	uint16_t *		vram;		// off 0x00
-	uint32_t		width;		// maybe off 0x04
-	uint32_t		pitch;		// maybe off 0x08
-	uint32_t		height;		// off 0x0c
-	uint32_t		vram_number;	// off 0x10
-};
-SIZE_CHECK_STRUCT( vram_info, 0x14 );
-
-extern struct vram_info vram_info[2];
-
-
-extern void
-vram_schedule_callback(
-	struct vram_info *	vram,
-	int			arg1,
-	int			arg2,
-	int			width,
-	int			height,
-	void			(*handler)( void * ),
-	void *			arg
-);
 
 struct image_play_struct
 {
@@ -635,17 +476,6 @@ struct image_play_struct
 };
 
 extern struct image_play_struct image_play_struct;
-
-
-struct bmp_vram_info
-{
-	uint8_t *		vram0;
-	uint32_t		off_0x04;
-	uint8_t *		vram2;
-	uint32_t		off_0x0c;
-};
-
-extern struct bmp_vram_info bmp_vram_info;
 
 
 /** The top-level Liveview object.

@@ -199,9 +199,9 @@ static void draw_meters(void)
 			| (bg_color <<  8)
 			| (bg_color <<  0);
 	
-		uint32_t * row = (uint32_t*)( bmp_vram + y * pitch );
-		for( x=0 ; x<width/4 ; x++ )
-			row[x] = bg_word;
+		uint8_t * row = (uint32_t*)( bmp_vram + y * pitch );
+		for( x=0 ; x<width ; x++ )
+			row[x] = bg_color;
 	}
 }
 #endif
@@ -231,7 +231,7 @@ draw_zebra( void )
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
-	for( y=32 ; y < 390; y++ )
+	for( y=33 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint8_t * const b_row = bmp_vram + y * pitch;
