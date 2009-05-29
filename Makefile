@@ -1,10 +1,10 @@
-ARM_PATH=/usr/local/arm/oe/bin
-CC=$(ARM_PATH)/arm-linux-gcc
-LD=$(ARM_PATH)/arm-linux-gcc
+ARM_PATH=/opt/local/bin
+CC=$(ARM_PATH)/arm-elf-gcc-4.3.2
+OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
+LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 
-OBJCOPY=$(ARM_PATH)/arm-linux-objcopy
 
 # 5D memory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -70,6 +70,7 @@ reboot.o: reboot.c 5d-hack.bin
 5d-hack.bin: 5d-hack
 
 5d-hack: \
+	entry.o \
 	5d-hack.o \
 	audio.o \
 	stubs-5d2.107.o \
