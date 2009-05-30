@@ -37,7 +37,7 @@ NOT_USED_FLAGS=\
 
 CFLAGS=\
 	$(FLAGS) \
-	-Os \
+	-O3 \
 	-Wall \
 	-W \
 

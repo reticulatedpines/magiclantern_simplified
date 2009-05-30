@@ -21,12 +21,12 @@ bmp_fill(
 	const uint32_t width	= 720;
 	const uint32_t height	= 480;
 
-	uint32_t * row = (uint32_t*)( bmp_vram + y * pitch );
-
 	const uint32_t start = x/4;
-	uint32_t end = start + w/4;
-	if( end > width )
-		end = width;
+
+	// Convert to words and limit to the width of the LCD
+	w /= 4;
+	if( start + w > width/4 )
+		w = width/4 - start;
 	
 	const uint32_t word = 0
 		| (color << 24)
@@ -34,13 +34,28 @@ bmp_fill(
 		| (color <<  8)
 		| (color <<  0);
 
-	for( ; h ; h-- )
-	{
-		for( x = start ; x < end ; x++ )
-			row[ x ] = word;
+	if( y > height )
+		y = height;
+
+	if( y + h > height )
+		h = height - y;
+
+	if( w == 0 || h == 0 )
+		return;
+
+	uint32_t * row = (uint32_t*)( bmp_vram + y * pitch + start );
+
+	// Loop tests inverted to avoid exraneous jumps.
+	// This has the minimal compiled form
+	do {
+		uint32_t i = w;
+
+		do {
+			row[ --i ] = word;
+		} while(i);
 
 		row += pitch / 4;
-	}
+	} while( --h );
 }
 
 /** Read the raw level from the audio device.
@@ -148,7 +163,7 @@ db_to_color(
 )
 {
 	if( db < -35 * 8 )
-		return 0x01; // white
+		return 0x2F; // white
 	if( db < -20 * 8 )
 		return 0x06; // dark green
 	if( db < -15 * 8 )
@@ -162,13 +177,16 @@ db_peak_to_color(
 )
 {
 	if( db < -35 * 8 )
-		return 0x0b; // dark blue
+		return 0x7f; // dark blue
 	if( db < -20 * 8 )
 		return 0x07; // bright green
 	if( db < -15 * 8 )
 		return 0xAE; // bright yellow
 	return 0x08; // bright red
 }
+
+// Transparent black
+static const uint8_t bg_color = 0x03;
 
 /* Normal VU meter */
 static void draw_meters(void)
@@ -186,37 +204,65 @@ static void draw_meters(void)
 	const uint32_t x_db_avg = width + db_avg * 2;
 	const uint32_t x_db = width + db_peak * 2;
 
-	// Transparent black
-	const uint8_t bg_color = 0x03;
+	const uint8_t white_color = 0x01;
+	const uint8_t black_color = 0x02;
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
+	const uint32_t meter_start = 0;
+	const uint32_t meter_height = 32;
+	const uint32_t tick_start = 0;
+	const uint32_t tick_height = 8;
 
-	bmp_fill( bar_color, 0, 0, x_db_avg, 32 );
-	bmp_fill( bg_color, x_db_avg, 0, width - x_db_avg, 32 );
-	bmp_fill( peak_color, x_db, 0, 10, 32 );
+	static uint32_t last_x_db_peak TEXT;
+	static uint32_t last_x_db_avg TEXT;
 
-	// Draw the dB scales
-	for( y=20 ; y<32 ; y++ )
+	// Clear our old ones
+	if( last_x_db_avg > x_db_avg )
+		bmp_fill( bg_color, x_db_avg, meter_start, last_x_db_avg - x_db_avg, meter_height );
+
+	bmp_fill( bg_color, last_x_db_peak, meter_start, 10, meter_height );
+
+	//bmp_fill( bg_color, 0, meter_start, width/2, meter_height ); // width - x_db_avg - 1, meter_height );
+	bmp_fill( bar_color, 0, meter_start, x_db_avg, meter_height );
+	bmp_fill( peak_color, x_db, meter_start, 10, meter_height );
+	bmp_fill( white_color, 0, meter_start + meter_height, width, 1 );
+
+	last_x_db_peak = x_db;
+	last_x_db_avg = x_db_avg;
+
+	// Draw the dB scales a 32-bit word at a time
+	uint32_t * row = (uint32_t*)( bmp_vram + tick_start * pitch );
+	for( y=tick_start ; y<tick_height ; y++ )
 	{
-		uint8_t * const row = bmp_vram + y * pitch;
 		int db;
 		for( db=-40 * 8; db<= 0 ; db+=5*8 )
 		{
 			const uint32_t x_db = width + db * 2;
-			row[x_db+0] = row[ x_db+1 ] = 0x01;
+			row[x_db/4] = 0x01010101;
 		}
+
+		row += pitch/4;
 	}
 
-	bmp_fill( 0x01, 0, 32, width, 1 );
-
-	// And draw the 16:9 crop marks for full time
-	// The screen is 480 vertical lines, but we only want to
-	// show 720 * 9 / 16 == 405 of them.  If we use this number,
-	// however, things don't line up right.
-	bmp_fill( bg_color, 0, 390, width, 430 - 390 );
 }
 #endif
+
+
+/** Draw transparent crop marks
+ *  And draw the 16:9 crop marks for full time
+ * The screen is 480 vertical lines, but we only want to
+ * show 720 * 9 / 16 == 405 of them.  If we use this number,
+ * however, things don't line up right.
+ */
+void
+draw_matte( void )
+{
+	const uint32_t width	= 720;
+
+	bmp_fill( bg_color, 0, 0, width, 32 );
+	bmp_fill( bg_color, 0, 390, width, 430 - 390 );
+}
 
 
 static void
@@ -301,6 +347,8 @@ my_audio_level_task( void )
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
 
+	uint32_t count = 0;
+
 	while(1)
 	{
 		static uint32_t TEXT cycle_count;
@@ -323,6 +371,12 @@ my_audio_level_task( void )
 
 		draw_meters();
 		draw_zebra();
+
+		// Draw the matte first since it goes under the meters
+		if( (count++ & 63) == 0 )
+			draw_matte();
+
+
 		msleep( 30 );
 	}
 }
