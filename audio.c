@@ -199,7 +199,7 @@ static void draw_meters(void)
 			| (bg_color <<  8)
 			| (bg_color <<  0);
 	
-		uint8_t * row = (uint32_t*)( bmp_vram + y * pitch );
+		uint8_t * row = ( bmp_vram + y * pitch );
 		for( x=0 ; x<width ; x++ )
 			row[x] = bg_color;
 	}
@@ -226,6 +226,7 @@ draw_zebra( void )
 
 	const uint8_t zebra_color_0 = 0x6F; // bright read
 	const uint8_t zebra_color_1 = 0x5F; // dark red
+	const uint8_t contrast_color = 0x0D; // blue
 
 	const uint16_t threshold = 0xF000;
 
@@ -234,28 +235,44 @@ draw_zebra( void )
 	for( y=33 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
-		uint8_t * const b_row = bmp_vram + y * pitch;
+		uint16_t * const b_row = (uint16_t*)( bmp_vram + y * pitch );
+
 		for( x=0 ; x < vram->width ; x+=2 )
 		{
 			uint32_t pixels = v_row[x/2];
-			uint32_t pixel0 = (pixels >> 16) & 0xFFFF;
-			uint32_t pixel1 = (pixels >>  0) & 0xFFFF;
+			uint16_t pixel0 = (pixels >> 16) & 0xFFFF;
+			uint16_t pixel1 = (pixels >>  0) & 0xFFFF;
+
+#if 0
+			// Check for contrast
+			// This doesn't work very well, so I have it
+			// compiled out for now.
+			if( (pixel0 > pixel1 && pixel0 - pixel1 > 0x4000 )
+			||  (pixel0 < pixel1 && pixel1 - pixel0 > 0x4000 )
+			)
+			{
+				b_row[x/2] = (contrast_color << 8) | contrast_color;
+				continue;
+			}
+#endif
+
+			// If neither pixel is overexposed, ignore it
+			if( (pixels & 0xF000F000) != 0xF000F000 )
+			{
+				b_row[x/2] = 0;
+				continue;
+			}
 
 			// Determine if we are a zig or a zag line
 			uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
 
-			if( pixel0 < threshold )
-				pixel0 = 0;
-			else
-				pixel0 = zag ? zebra_color_0 : zebra_color_1;
+			// Build the 16-bit word to write both pixels
+			// simultaneously into the BMP VRAM
+			uint16_t zebra_color_word = zag
+				? (zebra_color_0<<8) | (zebra_color_1<<0)
+				: (zebra_color_1<<8) | (zebra_color_0<<0);
 
-			if( pixel1 < threshold )
-				pixel1 = 0;
-			else
-				pixel1 = zag ? zebra_color_0 : zebra_color_1;
-
-			b_row[x+0] = pixel0;
-			b_row[x+1] = pixel1;
+			b_row[x/2] = zebra_color_word;
 		}
 	}
 }
