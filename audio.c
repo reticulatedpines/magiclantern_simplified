@@ -4,6 +4,45 @@
 #include "dryos.h"
 
 
+/** Fill a section of bitmap memory with solid color
+ * Only has a four-pixel resolution in X.
+ */
+void
+bmp_fill(
+	uint8_t			color,
+	uint32_t		x,
+	uint32_t		y,
+	uint32_t		w,
+	uint32_t		h
+)
+{
+	uint8_t * const bmp_vram = bmp_vram_info.vram2;
+	const uint32_t pitch	= 960;
+	const uint32_t width	= 720;
+	const uint32_t height	= 480;
+
+	uint32_t * row = (uint32_t*)( bmp_vram + y * pitch );
+
+	const uint32_t start = x/4;
+	uint32_t end = start + w/4;
+	if( end > width )
+		end = width;
+	
+	const uint32_t word = 0
+		| (color << 24)
+		| (color << 16)
+		| (color <<  8)
+		| (color <<  0);
+
+	for( ; h ; h-- )
+	{
+		for( x = start ; x < end ; x++ )
+			row[ x ] = word;
+
+		row += pitch / 4;
+	}
+}
+
 /** Read the raw level from the audio device.
  *
  * Expected values are signed 16-bit?
@@ -153,23 +192,9 @@ static void draw_meters(void)
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
 
-	for( y=0 ; y<32 ; y++ )
-	{
-		uint8_t * const row = bmp_vram + y * pitch;
-
-		// Draw the smooth meter
-		// remember that db goes -40 to 0
-		for( x=0 ; x < width ; x++ )
-		{
-			if( x_db < x && x < x_db + 10 )
-				row[x] = peak_color;
-			else
-			if( x < x_db_avg )
-				row[x] = bar_color;
-			else
-				row[x] = bg_color;
-		}
-	}
+	bmp_fill( bar_color, 0, 0, x_db_avg, 32 );
+	bmp_fill( bg_color, x_db_avg, 0, width - x_db_avg, 32 );
+	bmp_fill( peak_color, x_db, 0, 10, 32 );
 
 	// Draw the dB scales
 	for( y=20 ; y<32 ; y++ )
@@ -183,26 +208,13 @@ static void draw_meters(void)
 		}
 	}
 
+	bmp_fill( 0x01, 0, 32, width, 1 );
+
 	// And draw the 16:9 crop marks for full time
 	// The screen is 480 vertical lines, but we only want to
 	// show 720 * 9 / 16 == 405 of them.  If we use this number,
 	// however, things don't line up right.
-	uint8_t * row = bmp_vram + 32 * pitch;
-	for( x=0 ; x<width ; x++ )
-		row[x] = 0x01;
-
-	for( y=390 ; y<430 ; y++ )
-	{
-		const uint32_t bg_word = 0
-			| (bg_color << 24)
-			| (bg_color << 16)
-			| (bg_color <<  8)
-			| (bg_color <<  0);
-	
-		uint8_t * row = ( bmp_vram + y * pitch );
-		for( x=0 ; x<width ; x++ )
-			row[x] = bg_color;
-	}
+	bmp_fill( bg_color, 0, 390, width, 430 - 390 );
 }
 #endif
 
