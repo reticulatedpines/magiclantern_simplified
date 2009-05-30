@@ -21,6 +21,16 @@ color_palette_push(
 );
 
 
+/** Create a GUI event handler.
+ * Does this always take a dialog pointer?
+ */
+extern int
+gui_task_create(
+	int			(*handler)( void * ),
+	void *			arg_dialog
+);
+
+
 
 /** Event types */
 #define GOT_TOP_OF_CONTROL		0x800

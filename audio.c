@@ -209,31 +209,20 @@ static void draw_meters(void)
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
-	const uint32_t meter_start = 0;
+	const uint32_t meter_start = 391;
 	const uint32_t meter_height = 32;
-	const uint32_t tick_start = 0;
+	const uint32_t tick_start = meter_start;
 	const uint32_t tick_height = 8;
 
-	static uint32_t last_x_db_peak TEXT;
-	static uint32_t last_x_db_avg TEXT;
 
-	// Clear our old ones
-	if( last_x_db_avg > x_db_avg )
-		bmp_fill( bg_color, x_db_avg, meter_start, last_x_db_avg - x_db_avg, meter_height );
-
-	bmp_fill( bg_color, last_x_db_peak, meter_start, 10, meter_height );
-
-	//bmp_fill( bg_color, 0, meter_start, width/2, meter_height ); // width - x_db_avg - 1, meter_height );
+	//bmp_fill( bg_color, 0, meter_start, width, meter_height ); // width - x_db_avg - 1, meter_height );
 	bmp_fill( bar_color, 0, meter_start, x_db_avg, meter_height );
 	bmp_fill( peak_color, x_db, meter_start, 10, meter_height );
-	bmp_fill( white_color, 0, meter_start + meter_height, width, 1 );
-
-	last_x_db_peak = x_db;
-	last_x_db_avg = x_db_avg;
+	//bmp_fill( white_color, 0, meter_start -1, width, 1 );
 
 	// Draw the dB scales a 32-bit word at a time
 	uint32_t * row = (uint32_t*)( bmp_vram + tick_start * pitch );
-	for( y=tick_start ; y<tick_height ; y++ )
+	for( y=tick_start ; y<tick_start+tick_height ; y++ )
 	{
 		int db;
 		for( db=-40 * 8; db<= 0 ; db+=5*8 )
@@ -260,8 +249,10 @@ draw_matte( void )
 {
 	const uint32_t width	= 720;
 
-	bmp_fill( bg_color, 0, 0, width, 32 );
-	bmp_fill( bg_color, 0, 390, width, 430 - 390 );
+	bmp_fill( 0x01, 0, 32, width, 1 );
+	bmp_fill( 0x01, 0, 390, width, 1 );
+	//bmp_fill( bg_color, 0, 0, width, 32 );
+	//bmp_fill( bg_color, 0, 390, width, 430 - 390 );
 }
 
 
@@ -327,13 +318,25 @@ draw_zebra( void )
 			// Build the 16-bit word to write both pixels
 			// simultaneously into the BMP VRAM
 			uint16_t zebra_color_word = zag
-				? (zebra_color_0<<8) | (zebra_color_1<<0)
-				: (zebra_color_1<<8) | (zebra_color_0<<0);
+				? (zebra_color_0<<8) | (zebra_color_0<<0)
+				: (zebra_color_1<<8) | (zebra_color_1<<0);
 
 			b_row[x/2] = zebra_color_word;
 		}
 	}
 }
+
+
+static int
+my_gui_task( void * arg )
+{
+	draw_matte();
+	draw_meters();
+	draw_zebra();
+	return 1;
+}
+
+
 
 
 /** Task to monitor the audio levels.
@@ -347,7 +350,7 @@ my_audio_level_task( void )
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
 
-	uint32_t count = 0;
+	gui_task_create( my_gui_task, 0 );
 
 	while(1)
 	{
@@ -369,19 +372,9 @@ my_audio_level_task( void )
 		if( db_peak > -40*8 )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
-		draw_meters();
-		draw_zebra();
-
-		// Draw the matte first since it goes under the meters
-		if( (count++ & 63) == 0 )
-			draw_matte();
-
-
 		msleep( 30 );
 	}
 }
-
-
 
 /** Replace the sound dev task with our own to disable AGC.
  *

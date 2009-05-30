@@ -83,6 +83,7 @@ NSTUB( 0xFF8669CC, DebugMsg )
 NSTUB( 0xFFAB88AC, color_palette_push )
 NSTUB( 0xFF9AF5D8, copy_lvram_info )
 NSTUB( 0xFF88A8D8, gui_get_display_type )
+NSTUB( 0xFFA537B4, gui_task_create )
 
 NSTUB( 0xFFA6CF4C, winsys_whole_screen_backup )
 NSTUB( 0xFFA6CFCC, winsys_set_flag_0x34 )
