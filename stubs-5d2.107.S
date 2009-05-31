@@ -124,6 +124,7 @@ NSTUB( 0xFF866D18, dm_set_store_level )
 
 NSTUB( 0xFF8781F8, strcpy )
 NSTUB( 0xFFB7F380, memcpy )
+NSTUB( 0xFF9983B4, vsnprintf )
 
 
 /* Structures in the BSS or rwdata segment */

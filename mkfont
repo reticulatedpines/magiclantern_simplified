@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+#
+# Generate a program-space font definition from a textual representation.
+# For speed in representation, each 8-line character is split into
+# separate bytes, stripped by the line number.
+#
+use warnings;
+use strict;
+
+print <<"";
+const unsigned char font[] __attribute__((section(".text"))) = {
+
+# Paragraph mode
+$/ = "\n\n";
+
+my $font_height = 12;
+
+my $index = 0;
+my $base = ord( ' ' );
+my $offset = 0;
+
+while(<>)
+{
+	my ($key,@rows) = split /\n/;
+
+	my ($pos) = $key =~ /^(.) =/;
+
+	for my $line (0..$font_height-1)
+	{
+		my $row = $rows[ $line ] || '        ';
+		my $bits = $row;
+		$bits =~ s/[^ ]/1/g;
+		$bits =~ s/[ ]/0/g;
+
+		# Fix $pos for special chars
+		$pos = "\\$pos" if $pos eq '\\' or $pos eq '\'';
+
+		my $val = ord( pack( "B8", $bits ) );
+		printf "[ '%s' + (%d << 7) ] = 0x%02x, // $row\n",
+			$pos,
+			$line,
+			$val;
+	}
+
+	print "\n";
+}
+
+
+print "};\n";

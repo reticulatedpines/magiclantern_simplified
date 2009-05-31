@@ -14,3 +14,4 @@ a.out
 *.dis
 chdk
 eos
+font.c

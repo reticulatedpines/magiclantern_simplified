@@ -361,6 +361,82 @@ my_gui_task(
 }
 
 
+static void
+_draw_char(
+	uint8_t *	row,
+	char		c
+)
+{
+	unsigned i;
+	const uint32_t pitch	= 960;
+	const uint8_t  fg_color	= 0x01;
+	const uint8_t  bg_color	= 0x00;
+	extern const unsigned char font[];
+
+	for( i=0 ; i<12 ; i++ )
+	{
+		const uint8_t pixels = font[ c + (i << 7) ];
+
+		uint8_t pixel;
+		uint8_t mask = 0x80;
+
+		for( pixel=0 ; pixel<8 ; pixel++, mask >>= 1 )
+			row[pixel] = ( pixels & mask )
+				? fg_color : bg_color;
+
+		// move to the next scanline
+		row += pitch;
+	}
+}
+
+
+void
+draw_text(
+	unsigned		x,
+	unsigned		y,
+	const char *		s
+)
+{
+	uint8_t * const bmp_vram = bmp_vram_info.vram2;
+	const uint32_t pitch	= 960;
+	const uint32_t width	= 720;
+	const uint32_t height	= 480;
+
+	uint8_t * row = bmp_vram + y * pitch;
+
+	char c;
+
+	while( (c = *s++) )
+	{
+		uint8_t * row2 = row;
+		_draw_char( row, c );
+
+		// Move to the next character
+		row += 8;
+	}
+}
+
+#include <stdarg.h>
+extern int vsnprintf( char *, size_t, const char *, va_list );
+
+void
+bmp_printf(
+	unsigned		x,
+	unsigned		y,
+	const char *		fmt,
+	...
+)
+{
+	char			buf[ 256 ];
+	va_list			ap;
+
+	va_start( ap, fmt );
+	vsnprintf( buf, sizeof(buf), fmt, ap );
+	va_end( ap );
+
+	draw_text( x, y, buf );
+}
+
 
 
 /** Task to monitor the audio levels.
@@ -376,6 +452,8 @@ my_audio_level_task( void )
 
 	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
 	gui_task_create( my_gui_task, 0x9999 );
+
+	int count = 0;
 
 	while(1)
 	{
@@ -397,6 +475,15 @@ my_audio_level_task( void )
 		if( db_peak > -40*8 )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
+		bmp_printf(
+			100, 200,
+			"Testing %d (%08x) sprintf %s\n",
+			count,
+			count,
+			"CONSTANT STRING"
+		);
+
+		count++;
 		msleep( 30 );
 	}
 }

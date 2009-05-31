@@ -74,6 +74,7 @@ reboot.o: reboot.c 5d-hack.bin
 	5d-hack.o \
 	audio.o \
 	gui.o \
+	font.o \
 	stubs-5d2.107.o \
 
 	$(LD) \
@@ -85,6 +86,8 @@ reboot.o: reboot.c 5d-hack.bin
 		$^
 
 
+font.c: font.in mkfont
+	./mkfont < $< > $@
 
 reboot: reboot.o
 	$(LD) \
