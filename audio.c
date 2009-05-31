@@ -2,61 +2,8 @@
  * Onscreen audio meters
  */
 #include "dryos.h"
+#include "bmp.h"
 
-
-/** Fill a section of bitmap memory with solid color
- * Only has a four-pixel resolution in X.
- */
-void
-bmp_fill(
-	uint8_t			color,
-	uint32_t		x,
-	uint32_t		y,
-	uint32_t		w,
-	uint32_t		h
-)
-{
-	uint8_t * const bmp_vram = bmp_vram_info.vram2;
-	const uint32_t pitch	= 960;
-	const uint32_t width	= 720;
-	const uint32_t height	= 480;
-
-	const uint32_t start = x/4;
-
-	// Convert to words and limit to the width of the LCD
-	w /= 4;
-	if( start + w > width/4 )
-		w = width/4 - start;
-	
-	const uint32_t word = 0
-		| (color << 24)
-		| (color << 16)
-		| (color <<  8)
-		| (color <<  0);
-
-	if( y > height )
-		y = height;
-
-	if( y + h > height )
-		h = height - y;
-
-	if( w == 0 || h == 0 )
-		return;
-
-	uint32_t * row = (uint32_t*)( bmp_vram + y * pitch + start );
-
-	// Loop tests inverted to avoid exraneous jumps.
-	// This has the minimal compiled form
-	do {
-		uint32_t i = w;
-
-		do {
-			row[ --i ] = word;
-		} while(i);
-
-		row += pitch / 4;
-	} while( --h );
-}
 
 /** Read the raw level from the audio device.
  *
@@ -94,18 +41,13 @@ audio_level_to_db(
 static void
 generate_palette( void )
 {
-	uint8_t * const bmp_vram = bmp_vram_info.vram2;
-	const uint32_t pitch	= 960;
-	const uint32_t width	= 720;
-	const uint32_t height	= 480;
-
 	uint32_t x, y, msb, lsb;
 
 	for( msb=0 ; msb<16; msb++ )
 	{
 		for( y=0 ; y<30; y++ )
 		{
-			uint8_t * const row = bmp_vram + (y + 30*msb) * pitch;
+			uint8_t * const row = bmp_vram() + (y + 30*msb) * bmp_pitch();
 
 			for( lsb=0 ; lsb<16 ; lsb++ )
 			{
@@ -191,12 +133,10 @@ static const uint8_t bg_color = 0x03;
 /* Normal VU meter */
 static void draw_meters(void)
 {
-	uint8_t * const bmp_vram = bmp_vram_info.vram2;
-	const uint32_t pitch	= 960;
-	const uint32_t width	= 720;
-	const uint32_t height	= 480;
-
 	uint32_t x,y;
+
+	const uint32_t width = bmp_width();
+	const uint32_t pitch = bmp_pitch();
 
 
 	// The db values are multiplied by 8 to make them
@@ -221,7 +161,7 @@ static void draw_meters(void)
 	//bmp_fill( white_color, 0, meter_start -1, width, 1 );
 
 	// Draw the dB scales a 32-bit word at a time
-	uint32_t * row = (uint32_t*)( bmp_vram + tick_start * pitch );
+	uint32_t * row = (uint32_t*)( bmp_vram() + tick_start * bmp_pitch() );
 	for( y=tick_start ; y<tick_start+tick_height ; y++ )
 	{
 		int db;
@@ -260,10 +200,6 @@ static void
 draw_zebra( void )
 {
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
-	uint8_t * const bmp_vram = bmp_vram_info.vram2;
-	const uint32_t pitch	= 960;
-	const uint32_t width	= 720;
-	const uint32_t height	= 480;
 /*
 	static int written TEXT;
 	if( !written )
@@ -284,7 +220,7 @@ draw_zebra( void )
 	for( y=33 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
-		uint16_t * const b_row = (uint16_t*)( bmp_vram + y * pitch );
+		uint16_t * const b_row = (uint16_t*)( bmp_vram() + y * bmp_pitch() );
 
 		for( x=0 ; x < vram->width ; x+=2 )
 		{
@@ -358,83 +294,6 @@ my_gui_task(
 	//draw_meters();
 	//draw_zebra();
 	return 1;
-}
-
-
-static void
-_draw_char(
-	uint8_t *	row,
-	char		c
-)
-{
-	unsigned i;
-	const uint32_t pitch	= 960;
-	const uint8_t  fg_color	= 0x01;
-	const uint8_t  bg_color	= 0x00;
-	extern const unsigned char font[];
-
-	for( i=0 ; i<12 ; i++ )
-	{
-		const uint8_t pixels = font[ c + (i << 7) ];
-
-		uint8_t pixel;
-		uint8_t mask = 0x80;
-
-		for( pixel=0 ; pixel<8 ; pixel++, mask >>= 1 )
-			row[pixel] = ( pixels & mask )
-				? fg_color : bg_color;
-
-		// move to the next scanline
-		row += pitch;
-	}
-}
-
-
-void
-draw_text(
-	unsigned		x,
-	unsigned		y,
-	const char *		s
-)
-{
-	uint8_t * const bmp_vram = bmp_vram_info.vram2;
-	const uint32_t pitch	= 960;
-	const uint32_t width	= 720;
-	const uint32_t height	= 480;
-
-	uint8_t * row = bmp_vram + y * pitch;
-
-	char c;
-
-	while( (c = *s++) )
-	{
-		uint8_t * row2 = row;
-		_draw_char( row, c );
-
-		// Move to the next character
-		row += 8;
-	}
-}
-
-#include <stdarg.h>
-extern int vsnprintf( char *, size_t, const char *, va_list );
-
-void
-bmp_printf(
-	unsigned		x,
-	unsigned		y,
-	const char *		fmt,
-	...
-)
-{
-	char			buf[ 256 ];
-	va_list			ap;
-
-	va_start( ap, fmt );
-	vsnprintf( buf, sizeof(buf), fmt, ap );
-	va_end( ap );
-
-	draw_text( x, y, buf );
 }
 
 
