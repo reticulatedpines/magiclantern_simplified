@@ -61,13 +61,16 @@ my_gui_main_task( void )
 			goto event_loop_bottom;
 
 #ifdef EVENT_LOG
-		if( eventlog )
+		if( eventlog && event->type != 4 )
+		{
+		
 			FIO_WriteFile( eventlog, event, sizeof(*event) );
 
-		if( ++count == 1024 )
-		{
-			FIO_CloseFile( eventlog );
-			eventlog = 0;
+			if( ++count == 128 )
+			{
+				FIO_CloseFile( eventlog );
+				eventlog = 0;
+			}
 		}
 #endif
 
@@ -94,6 +97,12 @@ my_gui_main_task( void )
 			&&  event->param != 0x3B
 			)
 				goto queue_clear;
+
+			// Ignore the picture style button.  Because we can.
+			if( event->param == 0x0B
+			||  event->param == 0x0D
+			||  event->param == 0x13 )
+				break;
 
 			DebugMsg( 0x84, 2, "GUI_CONTROL:%d", event->param );
 			gui_massive_event_loop( event->param, event->obj, event->arg );
