@@ -1,0 +1,191 @@
+/** \file
+ * Magic Lantern GUI main task.
+ *
+ * Overrides the DryOS gui_main_task() to be able to re-map events.
+ */
+#include "dryos.h"
+
+
+struct gui_main_struct {
+	void *			obj;		// off_0x00;
+	uint32_t		counter;	// off_0x04;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+	uint32_t		off_0x10;
+	uint32_t		off_0x14;
+	uint32_t		off_0x18;
+	uint32_t		off_0x1c;
+	uint32_t		off_0x20;
+	uint32_t		off_0x24;
+	uint32_t		off_0x28;
+	uint32_t		off_0x2c;
+	uint32_t		off_0x30;
+	struct msg_queue *	msg_queue;	// off_0x34;
+	uint32_t		off_0x38;
+	uint32_t		off_0x3c;
+};
+
+extern struct gui_main_struct gui_main_struct;
+
+struct gui_timer_struct
+{
+	void *			obj;	// off_0x00
+};
+
+extern struct gui_timer_struct gui_timer_struct;
+
+
+// Replaces the gui_main_task at 0xFF823698
+void
+my_gui_main_task( void )
+{
+	gui_init_end();
+	uint32_t * obj = 0;
+
+#define EVENT_LOG
+#ifdef EVENT_LOG
+	void * eventlog = FIO_CreateFile( "A:/event.log" );
+	uint32_t count = 0;
+#endif
+
+	while(1)
+	{
+		struct event * event;
+		msg_queue_receive(
+			gui_main_struct.msg_queue,
+			&event,
+			0
+		);
+
+		if( !event )
+			goto event_loop_bottom;
+
+#ifdef EVENT_LOG
+		if( eventlog )
+			FIO_WriteFile( eventlog, event, sizeof(*event) );
+
+		if( ++count == 1024 )
+		{
+			FIO_CloseFile( eventlog );
+			eventlog = 0;
+		}
+#endif
+
+		switch( event->type )
+		{
+		case 0:
+			if( gui_main_struct.obj != obj
+			&&  event->param != 0x25
+			&&  event->param != 0x26
+			&&  event->param != 0x27
+			&&  event->param != 0x28
+			&&  event->param != 0x29
+			&&  event->param != 0x1F
+			&&  event->param != 0x2A
+			&&  event->param != 0x2B
+			&&  event->param != 0x23
+			&&  event->param != 0x2C
+			&&  event->param != 0x2D
+			&&  event->param != 0x2E
+			&&  event->param != 0x2F
+			&&  event->param != 0x30
+			&&  event->param != 0x31
+			&&  event->param != 0x32
+			&&  event->param != 0x3B
+			)
+				goto queue_clear;
+
+			DebugMsg( 0x84, 2, "GUI_CONTROL:%d", event->param );
+			gui_massive_event_loop( event->param, event->obj, event->arg );
+
+			break;
+
+		case 1:
+			if( gui_main_struct.obj != obj
+			&&  event->param != 0x00
+			&&  event->param != 0x07
+			&&  event->param != 0x05
+			)
+				goto queue_clear;
+
+			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event->param );
+
+			if( event->param == 0 )
+			{
+				gui_local_post( 0x12, 0, 0 );
+				if( gui_timer_struct.obj )
+					gui_timer_something( gui_timer_struct.obj, 4 );
+			}
+
+			gui_change_mode( event->param );
+			break;
+
+		case 2:
+			if( gui_main_struct.obj != obj
+			&&  event->param != 0x17
+			&&  event->param != 0x18
+			&&  event->param != 0x14
+			&&  event->param != 0x1B
+			&&  event->param != 0x30
+			&&  event->param != 0x31
+			)
+				goto queue_clear;
+
+			gui_local_post( event->param, event->obj, event->arg );
+			break;
+		case 3:
+			if( event->param == 0x11 )
+			{
+				DebugMsg( 0x84, 2, "GUIOTHER_CANCEL_ALL_EVENT" );
+				obj = event->obj;
+				break;
+			}
+
+			if( gui_main_struct.obj != obj
+			&&  event->param != 0x00
+			&&  event->param != 0x03
+			&&  event->param != 0x01
+			&&  event->param != 0x12
+			&&  event->param != 0x13
+			&&  event->param != 0x14
+			)
+				goto queue_clear;
+
+			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event->param );
+			gui_other_post( event->param, event->obj, event->arg );
+			break;
+		case 4:
+			gui_post_10000085( event->param, event->obj, event->arg );
+			break;
+		case 5:
+			gui_init_event( event->obj );
+			break;
+		case 6:
+			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event->param );
+			gui_change_shoot_type_post( event->param );
+			break;
+		case 7:
+			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event->param );
+			gui_change_lcd_state_post( event->param );
+			break;
+
+		default:
+			break;
+		}
+
+event_loop_bottom:
+		gui_main_struct.counter--;
+		continue;
+
+queue_clear:
+		DebugMsg(
+			0x84,
+			3,
+			"**** Queue Clear **** event(%d) param(%d)",
+			event->type,
+			event->param
+		);
+
+		goto event_loop_bottom;
+	}
+}

@@ -73,6 +73,7 @@ reboot.o: reboot.c 5d-hack.bin
 	entry.o \
 	5d-hack.o \
 	audio.o \
+	gui.o \
 	stubs-5d2.107.o \
 
 	$(LD) \

@@ -327,12 +327,36 @@ draw_zebra( void )
 }
 
 
+static void * gui_logfile TEXT;
+
 static int
-my_gui_task( void * arg )
+my_gui_task(
+	void *			arg,
+	gui_event_t		event,
+	int			arg2,
+	int			arg3
+)
 {
-	draw_matte();
-	draw_meters();
-	draw_zebra();
+	uint32_t args[] = { arg, event, arg2, arg3 };
+	if( gui_logfile )
+		FIO_WriteFile( gui_logfile, &args, sizeof(args) );
+	static int count TEXT;
+
+	if( count++ == 512 )
+	{
+		FIO_CloseFile( gui_logfile );
+		gui_logfile = 0;
+	}
+
+	// Prevent the picture style button from ever being sent on
+	if( event == PRESS_PICSTYLE_BUTTON
+	||  event == 0x81A
+	||  event == 0x828 )
+		return 0;
+
+	//draw_matte();
+	//draw_meters();
+	//draw_zebra();
 	return 1;
 }
 
@@ -350,7 +374,8 @@ my_audio_level_task( void )
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
 
-	gui_task_create( my_gui_task, 0 );
+	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
+	gui_task_create( my_gui_task, 0x9999 );
 
 	while(1)
 	{

@@ -287,6 +287,8 @@ task_dispatch_hook(
 	if( task->entry == sound_dev_task )
 		task->entry = my_sound_dev_task;
 #endif
+	if( task->entry == gui_main_task )
+		task->entry = my_gui_main_task;
 
 
 #if 1

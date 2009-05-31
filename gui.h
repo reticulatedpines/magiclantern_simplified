@@ -21,40 +21,101 @@ color_palette_push(
 );
 
 
+/** Event types */
+typedef enum {
+	GOT_TOP_OF_CONTROL		= 0x800,
+	LOST_TOP_OF_CONTROL		= 0x801,
+	INITIALIZE_CONTROLLER		= 0x802,
+	TERMINATE_WINSYS		= 0x804,
+	DELETE_DIALOG_REQUEST		= 0x805,
+	PRESS_RIGHT_BUTTON		= 0x807,
+	PRESS_LEFT_BUTTON		= 0x809,
+	PRESS_UP_BUTTON			= 0x80B,
+	PRESS_DOWN_BUTTON		= 0x80D,
+	PRESS_MENU_BUTTON		= 0x80F,
+	PRESS_SET_BUTTON		= 0x812,
+	PRESS_PICSTYLE_BUTTON		= 0x81C,
+	PRESS_INFO_BUTTON		= 0x829,
+	ELECTRONIC_SUB_DIAL_RIGHT	= 0x82B,
+	ELECTRONIC_SUB_DIAL_LEFT	= 0x82C,
+	PRESS_DISP_BUTTON		= 0x10000000,
+	PRESS_DIRECT_PRINT_BUTTON	= 0x10000005,
+	PRESS_FUNC_BUTTON		= 0x10000007,
+	PRESS_PICTURE_STYLE_BUTTON	= 0x10000009,
+	OPEN_SLOT_COVER			= 0x1000000B,
+	CLOSE_SLOT_COVER		= 0x1000000C,
+	START_SHOOT_MOVIE		= 0x1000008A,
+	RESIZE_MAYBE			= 0x10000085,
+} gui_event_t;
+
+
 /** Create a GUI event handler.
  * Does this always take a dialog pointer?
+ *
+ * The handler must return 0 if it has handled the event or 1 if
+ * it did not handle it and the event should be propagated.
+ *
+ * Event types are defined below.
  */
-extern int
-gui_task_create(
-	int			(*handler)( void * ),
-	void *			arg_dialog
+
+typedef int (*gui_event_handler)(
+	void *			priv,
+	gui_event_t		event,
+	int			arg2,
+	int			arg3
 );
 
 
+/** GUI task.
+ * Not sure about the next/prev fields.
+ * See gui_task_call_events() at 0xFFA53B8C
+ */
+struct gui_task
+{
+	gui_event_handler	handler;	// off_0x00;
+	void *			priv;		// off_0x04;
+	struct gui_task *	next;		// off_0x08;
+	struct gui_task *	prev;		// off_0x0c;
+};
 
-/** Event types */
-#define GOT_TOP_OF_CONTROL		0x800
-#define LOST_TOP_OF_CONTROL		0x801
-#define INITIALIZE_CONTROLLER		0x802
-#define TERMINATE_WINSYS		0x804
-#define DELETE_DIALOG_REQUEST		0x805
-#define PRESS_RIGHT_BUTTON		0x807
-#define PRESS_LEFT_BUTTON		0x809
-#define PRESS_UP_BUTTON			0x80B
-#define PRESS_DOWN_BUTTON		0x80D
-#define PRESS_MENU_BUTTON		0x80F
-#define PRESS_SET_BUTTON		0x812
-#define PRESS_INFO_BUTTON		0x829
-#define ELECTRONIC_SUB_DIAL_RIGHT	0x82B
-#define ELECTRONIC_SUB_DIAL_LEFT	0x82C
-#define PRESS_DISP_BUTTON		0x10000000
-#define PRESS_DIRECT_PRINT_BUTTON	0x10000005
-#define PRESS_FUNC_BUTTON		0x10000007
-#define PRESS_PICTURE_STYLE_BUTTON	0x10000009
-#define OPEN_SLOT_COVER			0x1000000B
-#define CLOSE_SLOT_COVER		0x1000000C
-#define START_SHOOT_MOVIE		0x1000008A
-#define RESIZE_MAYBE			0x10000085
+SIZE_CHECK_STRUCT( gui_task, 0x10 );
+
+extern struct gui_task *
+gui_task_create(
+	gui_event_handler	handler,
+	void *			priv
+);
+
+
+// Task that starts up all of the GUI stuff.
+// Override it to be able to install our own idle handler before it
+// gets the chance to do so.
+extern void gui_main_task( void );
+extern void my_gui_main_task( void );
+
+
+// Internal functions used by the gui code
+struct event
+{
+	uint32_t		type;
+	uint32_t		param;
+	void *			obj;
+	uint32_t		arg; // unknown meaning
+};
+
+extern void gui_init_end( void );
+extern void msg_queue_receive( void *, struct event **, uint32_t );
+extern void gui_massive_event_loop( uint32_t, void *, uint32_t );
+extern void gui_local_post( uint32_t, void *, uint32_t );
+extern void gui_other_post( uint32_t, void *, uint32_t );
+extern void gui_post_10000085( uint32_t, void *, uint32_t );
+extern void gui_init_event( void * obj );
+extern void gui_change_shoot_type_post( uint32_t event );
+extern void gui_change_lcd_state_post( uint32_t event );
+extern void gui_timer_something( void *, uint32_t );
+extern void gui_change_mode( uint32_t param );
+
+
 
 
 struct gui_struct
