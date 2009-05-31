@@ -336,7 +336,7 @@ my_audio_level_task( void )
 
 		bmp_printf(
 			100, 200,
-			"Testing %d (%08x) sprintf %s\n",
+			"Testing %d (%08x)\nnewline\nsprintf %s\n",
 			count,
 			count,
 			"CONSTANT STRING"

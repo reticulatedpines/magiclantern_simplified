@@ -11,6 +11,15 @@
 // This is a DryOS routine that must be located for bmp_printf to work
 extern int vsnprintf( char *, size_t, const char *, va_list );
 
+/* Font size and width are hard-coded by the font generation program.
+ * There is only one font.
+ * At only one size.
+ * Deal with it.
+ */
+#define font_width	8
+#define font_height	12
+extern const unsigned char font[];
+
 
 static void
 _draw_char(
@@ -19,19 +28,18 @@ _draw_char(
 )
 {
 	unsigned i;
-	const uint32_t pitch	= 960;
+	const uint32_t pitch	= bmp_pitch();
 	const uint8_t  fg_color	= 0x01;
 	const uint8_t  bg_color	= 0x00;
-	extern const unsigned char font[];
 
-	for( i=0 ; i<12 ; i++ )
+	for( i=0 ; i<font_height ; i++ )
 	{
 		const uint8_t pixels = font[ c + (i << 7) ];
 
 		uint8_t pixel;
 		uint8_t mask = 0x80;
 
-		for( pixel=0 ; pixel<8 ; pixel++, mask >>= 1 )
+		for( pixel=0 ; pixel<font_width ; pixel++, mask >>= 1 )
 			row[pixel] = ( pixels & mask )
 				? fg_color : bg_color;
 
@@ -48,15 +56,22 @@ bmp_puts(
 	const char *		s
 )
 {
-	uint8_t * row = bmp_vram() + y * bmp_pitch() + x;
+	const uint32_t		pitch = bmp_pitch();
+	uint8_t * first_row = bmp_vram() + y * pitch + x;
+	uint8_t * row = first_row;
 
 	char c;
 
 	while( (c = *s++) )
 	{
+		if( c == '\n' )
+		{
+			row = first_row += pitch * font_height;
+			continue;
+		}
+
 		_draw_char( row, c );
-		// Move to the next character
-		row += 8;
+		row += font_width;
 	}
 }
 
@@ -117,7 +132,7 @@ bmp_fill(
 	if( w == 0 || h == 0 )
 		return;
 
-	uint32_t * row = (uint32_t*)( bmp_vram() + y * bmp_pitch() + start );
+	uint32_t * row = (uint32_t*)( bmp_vram() + y * pitch + start );
 
 	// Loop tests inverted to avoid exraneous jumps.
 	// This has the minimal compiled form
