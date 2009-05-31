@@ -284,6 +284,16 @@ my_gui_task(
 		gui_logfile = 0;
 	}
 
+/*
+	if( event != 0x10000085 && event != 0x10000054 )
+		bmp_printf( 0, 100,
+			"Ev: %08x args %08x %08x",
+			event,
+			arg2,
+			arg3
+		);
+*/
+
 	// Prevent the picture style button from ever being sent on
 	if( event == PRESS_PICSTYLE_BUTTON
 	||  event == 0x81A
@@ -310,9 +320,8 @@ my_audio_level_task( void )
 	sound_dev_active_in(0,0);
 
 	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
-	gui_task_create( my_gui_task, 0x9999 );
-
-	int count = 0;
+	//gui_task_create( my_gui_task, 0x9999 );
+	int do_disp_check = 0;
 
 	while(1)
 	{
@@ -334,15 +343,29 @@ my_audio_level_task( void )
 		if( db_peak > -40*8 )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
-		bmp_printf(
-			100, 200,
-			"Testing %d (%08x)\nnewline\nsprintf %s\n",
-			count,
-			count,
-			"CONSTANT STRING"
-		);
+		unsigned i;
+		for( i=0 ; i<16 ; i++ )
+		{
+			extern struct event gui_events[];
+			extern int gui_events_index;
+			struct event * event = &gui_events[ i ];
+			if( gui_events_index == i && event->type == 0 && event->param == 0x13 )
+				do_disp_check++;
 
-		count++;
+			bmp_printf( 0, 100 + font_height * i,
+				"%sEvent %x: %x %08x %08x %08x\n",
+				i == gui_events_index ? "->" : "  ",
+				i,
+				(unsigned) event->type,
+				(unsigned) event->param,
+				(unsigned) event->obj,
+				(unsigned) event->arg
+			);
+		}
+
+		if( do_disp_check == 1 )
+			dispcheck();
+
 		msleep( 30 );
 	}
 }

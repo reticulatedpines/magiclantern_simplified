@@ -34,6 +34,9 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
+struct event gui_events[ 16 ] TEXT;
+int gui_events_index TEXT;
+
 
 // Replaces the gui_main_task at 0xFF823698
 void
@@ -42,7 +45,7 @@ my_gui_main_task( void )
 	gui_init_end();
 	uint32_t * obj = 0;
 
-#define EVENT_LOG
+#undef EVENT_LOG
 #ifdef EVENT_LOG
 	void * eventlog = FIO_CreateFile( "A:/event.log" );
 	uint32_t count = 0;
@@ -60,17 +63,28 @@ my_gui_main_task( void )
 		if( !event )
 			goto event_loop_bottom;
 
-#ifdef EVENT_LOG
-		if( eventlog && event->type != 4 )
+#if 1
+		if( event->type != 4
+		&&  (event->type != 2 && event->param != 0x16)
+		&&  (event->type != 2 && event->param != 0x31)
+		)
 		{
-		
-			FIO_WriteFile( eventlog, event, sizeof(*event) );
-
-			if( ++count == 128 )
+			gui_events[ ++gui_events_index ] = *event;
+			if( gui_events_index == 16-1 )
+				gui_events_index = 0;
+#ifdef EVENT_LOG
+			if( eventlog )
 			{
-				FIO_CloseFile( eventlog );
-				eventlog = 0;
+		
+				FIO_WriteFile( eventlog, event, sizeof(*event) );
+
+				if( ++count == 128 )
+				{
+					FIO_CloseFile( eventlog );
+					eventlog = 0;
+				}
 			}
+#endif
 		}
 #endif
 
