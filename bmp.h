@@ -27,6 +27,16 @@ static inline uint32_t bmp_pitch(void) { return 960; }
 static inline uint32_t bmp_height(void) { return 480; }
 
 
+/* Font size and width are hard-coded by the font generation program.
+ * There is only one font.
+ * At only one size.
+ * Deal with it.
+ */
+#define font_width	8
+#define font_height	12
+extern const unsigned char font[];
+
+
 extern void
 bmp_printf(
 	unsigned		x,

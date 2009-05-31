@@ -11,15 +11,6 @@
 // This is a DryOS routine that must be located for bmp_printf to work
 extern int vsnprintf( char *, size_t, const char *, va_list );
 
-/* Font size and width are hard-coded by the font generation program.
- * There is only one font.
- * At only one size.
- * Deal with it.
- */
-#define font_width	8
-#define font_height	12
-extern const unsigned char font[];
-
 
 static void
 _draw_char(
@@ -30,7 +21,7 @@ _draw_char(
 	unsigned i;
 	const uint32_t pitch	= bmp_pitch();
 	const uint8_t  fg_color	= 0x01;
-	const uint8_t  bg_color	= 0x00;
+	const uint8_t  bg_color	= 0x03;
 
 	for( i=0 ; i<font_height ; i++ )
 	{
@@ -40,8 +31,14 @@ _draw_char(
 		uint8_t mask = 0x80;
 
 		for( pixel=0 ; pixel<font_width ; pixel++, mask >>= 1 )
+		{
+#if 0
+			asm( "nop\n nop\n nop\n nop\n" );
+#else
 			row[pixel] = ( pixels & mask )
 				? fg_color : bg_color;
+#endif
+		}
 
 		// move to the next scanline
 		row += pitch;
@@ -75,7 +72,6 @@ bmp_puts(
 	}
 }
 
-
 void
 bmp_printf(
 	unsigned		x,
@@ -84,8 +80,8 @@ bmp_printf(
 	...
 )
 {
-	char			buf[ 256 ];
 	va_list			ap;
+	static char buf[ 256 ] TEXT;
 
 	va_start( ap, fmt );
 	vsnprintf( buf, sizeof(buf), fmt, ap );
