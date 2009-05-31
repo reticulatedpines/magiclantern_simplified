@@ -14,14 +14,15 @@ extern int vsnprintf( char *, size_t, const char *, va_list );
 
 static void
 _draw_char(
-	uint8_t *	row,
+	uint8_t *	bmp_vram_row,
 	char		c
 )
 {
 	unsigned i;
-	const uint32_t pitch	= bmp_pitch();
-	const uint8_t  fg_color	= 0x01;
-	const uint8_t  bg_color	= 0x03;
+	const uint32_t	pitch		= bmp_pitch();
+	const uint8_t	fg_color	= 0x01;
+	const uint8_t	bg_color	= 0x03;
+	uint8_t *	row		= (uint8_t *) bmp_vram_row;
 
 	for( i=0 ; i<font_height ; i++ )
 	{
@@ -70,6 +71,7 @@ bmp_puts(
 		_draw_char( row, c );
 		row += font_width;
 	}
+
 }
 
 void
@@ -88,6 +90,35 @@ bmp_printf(
 	va_end( ap );
 
 	bmp_puts( x, y, buf );
+}
+
+
+void
+bmp_hexdump(
+	unsigned		x,
+	unsigned		y,
+	const void *		buf,
+	size_t			len
+)
+{
+	const uint32_t *	d = (uint32_t*) buf;
+
+	// Round up
+	len = (len + 3) / 4;
+
+	while( len-- )
+	{
+		bmp_printf( x, y, "%08x: %08x %08x %08x %08x",
+			(unsigned) d,
+			(unsigned) d[0],
+			(unsigned) d[1],
+			(unsigned) d[2],
+			(unsigned) d[3]
+		);
+
+		y += font_height;
+		d += 4;
+	}
 }
 
 

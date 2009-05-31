@@ -322,10 +322,12 @@ my_audio_level_task( void )
 	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
 	//gui_task_create( my_gui_task, 0x9999 );
 	int do_disp_check = 0;
+	uint32_t cycle_count = 0;
 
 	while(1)
 	{
-		static uint32_t TEXT cycle_count;
+
+		msleep( 30 );
 
 		int raw_level = audio_read_level();
 		if( raw_level < 0 )
@@ -343,6 +345,7 @@ my_audio_level_task( void )
 		if( db_peak > -40*8 )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
+#if 0
 		unsigned i;
 		for( i=0 ; i<16 ; i++ )
 		{
@@ -362,11 +365,24 @@ my_audio_level_task( void )
 				(unsigned) event->arg
 			);
 		}
+#endif
+
+		struct vram_object * vram_obj = winsys_struct.vram_object;
+		if( !vram_obj )
+			continue;
+		unsigned rc = take_semaphore( vram_obj->sem, 100 );
+
+		bmp_printf( 1, 10, "%08x winsys: %08x vram %08x rc=%x",
+			cycle_count++,
+			&winsys_struct, winsys_struct.vram_object, rc );
+
+		bmp_hexdump( 1, 40, &winsys_struct, 32 );
+		bmp_hexdump( 1, 200, winsys_struct.vram_object, 32 );
+
+		give_semaphore( vram_obj->sem );
 
 		if( do_disp_check == 1 )
 			dispcheck();
-
-		msleep( 30 );
 	}
 }
 

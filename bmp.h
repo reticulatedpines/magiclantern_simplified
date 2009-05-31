@@ -45,6 +45,16 @@ bmp_printf(
 	...
 ) __attribute__((format(printf,3,4)));
 
+
+extern void
+bmp_hexdump(
+	unsigned		x,
+	unsigned		y,
+	const void *		buf,
+	size_t			len
+);
+
+
 extern void
 bmp_puts(
 	unsigned		x,
