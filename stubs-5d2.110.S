@@ -24,16 +24,29 @@ NSTUB( 0xFF811DBC, init_task )
 /** These are necessary for starting with debugging */
 /** look for the string "dumpf", then find register_function as well */
 NSTUB( 0xFF86725C, dumpf )
+NSTUB( 0xFF866948, dmstart )
+NSTUB( 0xFF866988, dmstop )
 
 /** Find this one to be able to identify named functions */
 NSTUB( 0xFF999CFC, register_function )
 
 /** Look for error conditions that then call this function */
-NSTUB( 0xFF86DC30, DebugMsg )
+NSTUB( 0xFF8669C8, DebugMsg )
+
+/** This one is hard to find.  Start around 0xff869c90, looking
+ * for functions that take one argument and are called by
+ * thousands of other functions.
+ */
+NSTUB( 0xFF869C90, msleep )
 
 /** These are lower prority */
 NSTUB( 0xFF8781F4, strcpy )
 NSTUB( 0xFF8697EC, take_semaphore )
+
+/** There are two task creation calls.  We want the
+ * one that takes five arguments with the name as the
+ * first one.
+ */
 NSTUB( 0xFF869D48, task_create )
 
 

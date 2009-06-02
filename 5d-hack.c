@@ -217,27 +217,6 @@ my_tab_header_app( void )
 
 static const char pc_buf_raw[4*1024] TEXT;
 
-void
-my_sleep_task( void )
-{
-	int i;
-	dmstart();
-
-	void * file = FIO_CreateFile( "A:/TEST.LOG" );
-	if( file == (void*) 0xFFFFFFFF )
-		return;
-
-	for( i=0 ; i<6 ; i++ )
-	{
-		FIO_WriteFile( file, pc_buf_raw, sizeof(pc_buf_raw) );
-		msleep( 10000 );
-	}
-
-	FIO_CloseFile( file );
-	dumpf();
-	dmstop();
-}
-
 
 
 
@@ -313,6 +292,24 @@ task_dispatch_hook(
 #endif
 
 
+/** First task after a fresh rebuild.
+ *
+ * Try to dump the debug log after ten seconds.
+ * This requires the create_task(), dmstart(), msleep() and dumpf()
+ * routines to have been found.
+ */
+void
+my_dump_task( void )
+{
+	int i;
+	dmstart();
+
+	msleep( 10000 );
+
+	dumpf();
+	dmstop();
+}
+
 
 /** Initial task setup.
  *
@@ -327,7 +324,7 @@ my_init_task(void)
 	init_task();
 
 	// Create our init task and our audio level task
-	//create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
+	task_create( "my_task", 0x1F, 0x1000, my_dump_task, 0 );
 	//extern void create_audio_task();
 	//create_audio_task();
 

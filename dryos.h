@@ -224,7 +224,7 @@ new_task_struct( int );
  * The arguments are not really known yet.
  */
 extern struct task *
-create_task(
+task_create(
 	const char * name,
 	uint32_t priority,
 	uint32_t unknown0,
