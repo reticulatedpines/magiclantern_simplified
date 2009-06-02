@@ -71,7 +71,6 @@ reboot.o: reboot.c 5d-hack.bin
 
 NOT_YET=\
 	audio.o \
-	gui.o \
 	bmp.o \
 	font.o \
 	stubs-5d2.107.o \
@@ -80,6 +79,7 @@ NOT_YET=\
 5d-hack: \
 	entry.o \
 	5d-hack.o \
+	gui.o \
 	stubs-5d2.110.o \
 
 	$(LD) \

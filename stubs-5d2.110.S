@@ -49,6 +49,36 @@ NSTUB( 0xFF8697EC, take_semaphore )
  */
 NSTUB( 0xFF869D48, task_create )
 
+/** Verify that 0x1934 is the task dispatch hook by
+ * looking for the dispatch call.  Follow task_create
+ * to find it.
+ */
+NSTUB( 0x1934, task_dispatch_hook )
+
+/** The task trampoline is after create_task. */
+NSTUB( 0xFF8729C8, task_trampoline )
+
+
+/** These data structures are required for the gui_main_task
+ * override.  Once gui_main_task has been located, walk
+ * through it to find all of the other functions and structures.
+ * @{
+ */
+NSTUB( 0x1C4C, gui_main_struct )
+NSTUB( 0x3668, gui_timer_struct )
+NSTUB( 0xFF823698, gui_main_task )
+NSTUB( 0xFF824048, gui_init_end )
+NSTUB( 0xFF8693EC, msg_queue_receive )
+NSTUB( 0xFF88B730, gui_massive_event_loop )
+NSTUB( 0xFF88D148, gui_local_post )
+NSTUB( 0xFF994CE8, gui_timer_something )
+NSTUB( 0xFF88CCA4, gui_change_mode )
+NSTUB( 0xFF88D534, gui_other_post )
+NSTUB( 0xFF88D658, gui_post_10000085 )
+NSTUB( 0xFF88DD94, gui_init_event )
+NSTUB( 0xFF88D810, gui_change_shoot_type_post )
+NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
+/** @} */
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
@@ -120,18 +150,7 @@ NSTUB( 0xFFAB88AC, color_palette_push )
 NSTUB( 0xFF9AF5D8, copy_lvram_info )
 NSTUB( 0xFF88A8D8, gui_get_display_type )
 NSTUB( 0xFFA537B4, gui_task_create )
-NSTUB( 0xFF823698, gui_main_task )
-NSTUB( 0xFF824048, gui_init_end )
-NSTUB( 0xFF8693F0, msg_queue_receive )
 NSTUB( 0xFF88B734, gui_massive_event_loop )
-NSTUB( 0xFF88D14C, gui_local_post )
-NSTUB( 0xFF88D538, gui_other_post )
-NSTUB( 0xFF994B60, gui_timer_something )
-NSTUB( 0xFF88CCA8, gui_change_mode )
-NSTUB( 0xFF88D65C, gui_post_10000085 )
-NSTUB( 0xFF88DD98, gui_init_event )
-NSTUB( 0xFF88D814, gui_change_shoot_type_post )
-NSTUB( 0xFF88D8AC, gui_change_lcd_state_post )
 
 
 NSTUB( 0xFFA6CF4C, winsys_whole_screen_backup )
@@ -165,13 +184,11 @@ NSTUB( 0xFF9983B4, vsnprintf )
 
 
 /* Structures in the BSS or rwdata segment */
-NSTUB( 0x1C4C, gui_main_struct )
 NSTUB( 0x1D74, liveview )
 NSTUB( 0x208C, sound_dev )
 NSTUB( 0x2580, hdmi_config )
 NSTUB( 0x2924, dm_state_ptr )
 NSTUB( 0x3548, gui_struct )
-NSTUB( 0x3668, gui_timer_struct )
 NSTUB( 0x426C, lv_struct )
 NSTUB( 0x7324, audio_info )
 NSTUB( 0x8348, dm_state_object )

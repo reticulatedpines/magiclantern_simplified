@@ -97,8 +97,8 @@ my_gui_main_task( void )
 			&&  event->param != 0x27
 			&&  event->param != 0x28
 			&&  event->param != 0x29
-			&&  event->param != 0x1F
 			&&  event->param != 0x2A
+			&&  event->param != 0x1F
 			&&  event->param != 0x2B
 			&&  event->param != 0x23
 			&&  event->param != 0x2C

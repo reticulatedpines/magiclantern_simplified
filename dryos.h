@@ -245,6 +245,12 @@ task_trampoline(
 );
 
 
+/** Hook to override task dispatch */
+void (*task_dispatch_hook)(
+	struct context **	context
+);
+
+
 struct semaphore;
 
 extern struct semaphore *

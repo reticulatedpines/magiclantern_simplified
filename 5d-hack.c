@@ -8,8 +8,7 @@
 
 
 /** These are called when new tasks are created */
-void task_create_hook( uint32_t * p );
-void task_dispatch_hook( struct context ** );
+void my_task_dispatch_hook( struct context ** );
 void my_init_task(void);
 void my_bzero( uint8_t * base, uint32_t size );
 
@@ -77,8 +76,10 @@ copy_and_restart( void )
 	* install our own handlers.
 	*/
 
-#if 0
 	// Install our task creation hooks
+	task_dispatch_hook = my_task_dispatch_hook;
+
+#if 0
 	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch_hook;
 	*(uint32_t*) 0x1938 = (uint32_t) task_dispatch_hook;
 
@@ -101,143 +102,6 @@ copy_and_restart( void )
 }
 
 
-#if 0
-void
-task_create_hook(
-	uint32_t * p
-)
-{
-	while(1)
-		;
-}
-
-
-void
-null_task( void )
-{
-}
-
-void
-spin_task( void )
-{
-	while(1)
-		;
-}
-
-
-
-void dump_vram( void )
-{
-	int i;
-	uint32_t vram_num[8];
-	for( i=0 ; i<8 ; i++ )
-		vram_num[i] = vram_get_number(i);
-
-	write_debug_file( "vram_bss.log", vram_info, sizeof(vram_info) );
-	write_debug_file( "vram_num.log", vram_num, sizeof(vram_num) );
-	write_debug_file( "bmp_vram.log", &bmp_vram_info, 0x100 );
-
-#if 0
-
-	uint32_t * const vram_config_ptr = (void*) 0x2580;
-	uint32_t width = vram_config_ptr[ 0x28 / 4 ];
-
-	uint32_t * const bmp_vram_ptr = (void*) 0x240cc;
-	uint8_t * const bmp_vram = (void*) bmp_vram_ptr[ 2 ];
-
-	if( !bmp_vram )
-		return;
-
-	static int __attribute__((section(".text"))) done;
-	if( !done )
-		dispcheck();
-	done = 1;
-
-	// BMP vram has 960 bytes per line
-	uint32_t i;
-	for( i=0 ; i<480 ; i++ )
-	{
-		uint8_t * row = bmp_vram + (i*960);
-		uint32_t j;
-		
-		for( j=0 ; j<width ; j += 2 )
-			row[j] = 0xFF;
-	}
-#endif
-}
-
-
-#if 0
-/** Attempt to start my own main menu dialog
- * This replaces StartMnMainTabHeaderApp at 0xffba0bd4
- */
-int
-my_tab_header_app( void )
-{
-	// 0x0001F848 main_tab_struct
-	// 0xFFBA0820 StopMnMainTabHeaderApp
-	if( main_tab_dialog_id )
-		StopMnMainTabHeaderApp();
-	StartMnMainRec1App();
-	StartMnMainRec2App();
-	StartMnMainPlay1App();
-	StartMnMainPlay2App();
-	StartMnMainSetup1App();
-	StartMnMainSetup2App();
-	StartMnMainSetup3App();
-	StartMnMainCustomFuncApp();
-	//StartMnMainMyMenuApp();
-
-	main_tab_dialog_id = dialog_create(
-		0,
-		0,
-		main_tab_header_dialog,
-		(void*) 158,
-		0
-	);
-
-	if( main_tab_dialog_id != 1 )
-	{
-		DebugMsg( 0x83, "**** %s CreateDialog failed!\n", __func__ );
-		return main_tab_dialog_id;
-	}
-
-	color_palette_push( 2 );
-
-	thunk main_tab_bitmaps_maybe = (void*) 0xFFBA0C7C;
-	main_tab_bitmaps_maybe();
-	dialog_draw( main_tab_dialog_id );
-
-	return 0;
-}
-#endif
-
-
-
-
-static const char pc_buf_raw[4*1024] TEXT;
-
-
-
-
-
-
-
-
-static inline void
-my_memcpy(
-	void * dest_v,
-	const void * src_v,
-	uint32_t len
-)
-{
-	uint32_t * dest = dest_v;
-	const uint32_t * src = src_v;
-	while( len -= 4 )
-		*dest++ = *src++;
-}
-
-
 
 
 /**
@@ -245,14 +109,10 @@ my_memcpy(
  * a new task.
  */
 void
-task_dispatch_hook(
+my_task_dispatch_hook(
 	struct context **	context
 )
 {
-	static const char __attribute__((section(".text"))) count_buf[4];
-	uint32_t * count_ptr = (uint32_t*) count_buf;
-	uint32_t count = *count_ptr;
-
 	if( !context )
 		return;
 
@@ -272,24 +132,7 @@ task_dispatch_hook(
 #endif
 	if( task->entry == gui_main_task )
 		task->entry = my_gui_main_task;
-
-
-#if 1
-	*(uint32_t*)(pc_buf_raw+count+0) = (uint32_t) task->entry;
-	//*(uint32_t*)(pc_buf_raw+count+4) = (uint32_t) task->context->pc;
-	*count_ptr = (count + 16 ) & (sizeof(pc_buf_raw)-1);
-
-#else
-	//*(uint32_t*)(pc_buf_raw+count+0) = task ? (*task)->pc : 0xdeadbeef;
-	//*(uint32_t*)(pc_buf_raw+count+4) = lr;
-	my_memcpy( pc_buf_raw + count, task, sizeof(struct task) );
-	*(uint32_t*)(pc_buf_raw+count+0) = (uint32_t) task;
-	*(uint32_t*)(pc_buf_raw+count+4) = (uint32_t) context;
-	*(uint32_t*)(pc_buf_raw+count+8) = (uint32_t) (*context)->pc;
-	*count_ptr = (count + sizeof(struct task) ) & (sizeof(pc_buf_raw)-1);
-#endif
 }
-#endif
 
 
 /** First task after a fresh rebuild.
