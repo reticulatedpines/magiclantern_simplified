@@ -16,7 +16,6 @@
 #include "vram.h"
 #include "state-object.h"
 
-typedef void (*thunk)(void);
 
 
 /** Panic and abort the camera */

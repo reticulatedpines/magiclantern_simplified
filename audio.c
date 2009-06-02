@@ -319,6 +319,31 @@ my_audio_level_task( void )
 	msleep( 4000 );
 	sound_dev_active_in(0,0);
 
+	int i;
+	for( i=5; i>0 ; i-- )
+	{
+		DebugMsg( 0x84, 3, "***** test %d", i );
+		bmp_printf( 100, 100, "Ready for test %d", i );
+		msleep( 1000 );
+	}
+
+	msleep( 2000 );
+	for( i=0 ; i<300 ; i++ )
+	{
+		msleep( 30 );
+		DebugMsg( 0x84, 3, "***** print %d", i );
+		bmp_printf( 100, 100, "Test printf %d", i );
+		bmp_hexdump( 100, 200, &hdmi_config, 32 );
+	}
+
+	msleep( 1000 );
+	DebugMsg( 0x84, 3, "***** calling dumpf" );
+	dumpf();
+
+	DebugMsg( 0x84, 3, "***** ending task" );
+	bmp_printf( 100, 100, "dumpf done" );
+	return;
+
 	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
 	//gui_task_create( my_gui_task, 0x9999 );
 	int do_disp_check = 0;
@@ -327,7 +352,7 @@ my_audio_level_task( void )
 	while(1)
 	{
 
-		msleep( 30 );
+		msleep( 120 );
 
 		int raw_level = audio_read_level();
 		if( raw_level < 0 )
@@ -345,16 +370,18 @@ my_audio_level_task( void )
 		if( db_peak > -40*8 )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
+		extern struct event gui_events[];
+		extern int gui_events_index;
+		if( gui_events[ gui_events_index ].type == 0
+		&&  gui_events[ gui_events_index ].param == 0x13
+		)
+			do_disp_check++;
+
 #if 0
 		unsigned i;
 		for( i=0 ; i<16 ; i++ )
 		{
-			extern struct event gui_events[];
-			extern int gui_events_index;
 			struct event * event = &gui_events[ i ];
-			if( gui_events_index == i && event->type == 0 && event->param == 0x13 )
-				do_disp_check++;
-
 			bmp_printf( 0, 100 + font_height * i,
 				"%sEvent %x: %x %08x %08x %08x\n",
 				i == gui_events_index ? "->" : "  ",
@@ -367,20 +394,36 @@ my_audio_level_task( void )
 		}
 #endif
 
-		struct vram_object * vram_obj = winsys_struct.vram_object;
-		if( !vram_obj )
-			continue;
-		unsigned rc = take_semaphore( vram_obj->sem, 100 );
+		//winsys_take_semaphore();
+		//take_semaphore( hdmi_config.bmpddev_sem, 0 );
 
-		bmp_printf( 1, 10, "%08x winsys: %08x vram %08x rc=%x",
+		bmp_printf( 100, 100, "%08x bmp %08x ImgDDev %08x rc=%x",
 			cycle_count++,
-			&winsys_struct, winsys_struct.vram_object, rc );
+			bmp_vram(),
+			hdmi_config.hdmi_mode,
+			vram_get_number(0)
+		);
 
-		bmp_hexdump( 1, 40, &winsys_struct, 32 );
-		bmp_hexdump( 1, 200, winsys_struct.vram_object, 32 );
+		bmp_hexdump( 10, 200, bmp_vram_info, 64 );
+		//uint32_t x, y, w, h;
+		//vram_image_pos_and_size( &x, &y, &w, &h );
+		//bmp_printf( 100, 200, "vram_info: %dx%d %dx%d", x, y, w, h );
 
-		give_semaphore( vram_obj->sem );
+		//bmp_hexdump( 1, 40, (void*) 0x2580, 64 );
 
+		//bmp_hexdump( 1, 40, &winsys_struct, 32 );
+		//bmp_hexdump( 1, 200, winsys_struct.vram_object, 32 );
+
+		//give_semaphore( hdmi_config.bmpddev_sem );
+
+/*
+		if( cycle_count == 500 )
+		{
+			img_display_dev();
+			dumpf();
+			write_debug_file( "hdmi.log", &hdmi_config, sizeof(hdmi_config) );
+		}
+*/
 		if( do_disp_check == 1 )
 			dispcheck();
 	}
@@ -509,6 +552,8 @@ my_audio_level_task( void )
 void
 create_audio_task(void)
 {
+	dmstart();
+
 	create_task(
 		"audio_level_task",
 		0x1F,

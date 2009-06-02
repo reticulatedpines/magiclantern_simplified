@@ -14,6 +14,7 @@
 /** Force a variable to live in the text segment */
 #define TEXT __attribute__((section(".text")))
 
+typedef void (*thunk)(void);
 
 
 typedef signed long	int32_t;

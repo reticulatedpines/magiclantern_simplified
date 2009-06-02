@@ -21,7 +21,7 @@ _draw_char(
 	unsigned i;
 	const uint32_t	pitch		= bmp_pitch();
 	const uint8_t	fg_color	= 0x01;
-	const uint8_t	bg_color	= 0x03;
+	const uint8_t	bg_color	= 0x0b;
 	uint8_t *	row		= (uint8_t *) bmp_vram_row;
 
 	for( i=0 ; i<font_height ; i++ )

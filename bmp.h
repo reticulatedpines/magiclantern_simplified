@@ -14,7 +14,7 @@
 static inline uint8_t *
 bmp_vram(void)
 {
-	return bmp_vram_info.vram2;
+	return bmp_vram_info[0].vram2;
 }
 
 
