@@ -1,5 +1,8 @@
 /** \file
  * Code to run on the 5D once it has been relocated.
+ *
+ * This has been updated to work with the 1.1.0 firmware.
+ * IT DOES NOT WORK WITH 1.0.7 ANY MORE!
  */
 #include "dryos.h"
 
@@ -74,11 +77,11 @@ copy_and_restart( void )
 	* install our own handlers.
 	*/
 
+#if 0
 	// Install our task creation hooks
 	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch_hook;
 	*(uint32_t*) 0x1938 = (uint32_t) task_dispatch_hook;
 
-#if 0
 	// Enable this to spin rather than starting firmware.
 	// This allows confirmation that we have reached this part
 	// of our code, rather than the normal firmware.
@@ -98,6 +101,7 @@ copy_and_restart( void )
 }
 
 
+#if 0
 void
 task_create_hook(
 	uint32_t * p
@@ -306,6 +310,7 @@ task_dispatch_hook(
 	*count_ptr = (count + sizeof(struct task) ) & (sizeof(pc_buf_raw)-1);
 #endif
 }
+#endif
 
 
 
@@ -322,12 +327,22 @@ my_init_task(void)
 	init_task();
 
 	// Create our init task and our audio level task
-	create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
-
-	extern void create_audio_task();
-	create_audio_task();
+	//create_task( "my_sleep_task", 0x1F, 0x1000, my_sleep_task, 0 );
+	//extern void create_audio_task();
+	//create_audio_task();
 
 	// Re-write the version string
-	char * additional_version = (void*) 0x11f9c;
-	strcpy( additional_version, "-markfree" );
+	char * additional_version = (void*) 0x11f98;
+	additional_version[0] = '-';
+	additional_version[1] = 'm';
+	additional_version[2] = 'a';
+	additional_version[3] = 'r';
+	additional_version[4] = 'k';
+	additional_version[5] = 'f';
+	additional_version[6] = 'r';
+	additional_version[7] = 'e';
+	additional_version[8] = 'e';
+	additional_version[9] = '\0';
+
+	//strcpy( additional_version, "-markfree" );
 }
