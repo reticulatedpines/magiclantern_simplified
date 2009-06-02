@@ -15,11 +15,27 @@
 NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( RELOCADDR+0xc, reloc_entry )
 
+/** These must be found first for any progress to be made */
 NSTUB( 0xFF810894, cstart )
 NSTUB( 0xFFC22F0C, bzero32 )
 NSTUB( 0xFF8173A0, create_init_task )
 NSTUB( 0xFF811DBC, init_task )
+
+/** These are necessary for starting with debugging */
+/** look for the string "dumpf", then find register_function as well */
+NSTUB( 0xFF86725C, dumpf )
+
+/** Find this one to be able to identify named functions */
+NSTUB( 0xFF999CFC, register_function )
+
+/** Look for error conditions that then call this function */
+NSTUB( 0xFF86DC30, DebugMsg )
+
+/** These are lower prority */
 NSTUB( 0xFF8781F4, strcpy )
+NSTUB( 0xFF8697EC, take_semaphore )
+NSTUB( 0xFF869D48, task_create )
+
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
