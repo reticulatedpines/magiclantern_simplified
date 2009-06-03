@@ -80,6 +80,13 @@ NSTUB( 0xFF88D810, gui_change_shoot_type_post )
 NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
 /** @} */
 
+
+/** This can be found in dispcheck, but keep in mind that it
+ * references bmp_vram_info[1], so subtract 0xC from its value
+ */
+NSTUB( 0x240C0, bmp_vram_info )
+NSTUB( 0xFF86020C, dispcheck )
+
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
 NSTUB( 0xFF8167F0, get_current_task )
@@ -195,7 +202,6 @@ NSTUB( 0x8348, dm_state_object )
 NSTUB( 0x13EA0, image_play_struct )
 NSTUB( 0x14900, winsys_struct )
 NSTUB( 0x1F848, main_tab_dialog_id )
-NSTUB( 0x240C0, bmp_vram_info )
 NSTUB( 0x2f33c, lvram_info )
 NSTUB( 0x333B0, vram_info )
 #endif

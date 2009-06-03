@@ -148,6 +148,7 @@ my_dump_task( void )
 	dmstart();
 
 	msleep( 10000 );
+	dispcheck();
 
 	dumpf();
 	dmstop();
