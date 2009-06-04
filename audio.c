@@ -38,6 +38,7 @@ audio_level_to_db(
 }
 
 
+/** Draw a picture of the BMP color palette. */
 static void
 generate_palette( void )
 {
@@ -399,7 +400,7 @@ my_audio_level_task( void )
 		//winsys_take_semaphore();
 		//take_semaphore( hdmi_config.bmpddev_sem, 0 );
 
-		bmp_hexdump( 10, 200, bmp_vram_info, 64 );
+		//bmp_hexdump( 10, 200, bmp_vram_info, 64 );
 		//uint32_t x, y, w, h;
 		//vram_image_pos_and_size( &x, &y, &w, &h );
 		//bmp_printf( 100, 200, "vram_info: %dx%d %dx%d", x, y, w, h );
@@ -411,14 +412,6 @@ my_audio_level_task( void )
 
 		//give_semaphore( hdmi_config.bmpddev_sem );
 
-/*
-		if( cycle_count == 500 )
-		{
-			img_display_dev();
-			dumpf();
-			write_debug_file( "hdmi.log", &hdmi_config, sizeof(hdmi_config) );
-		}
-*/
 		if( do_disp_check == 1 )
 			dispcheck();
 
@@ -554,7 +547,7 @@ create_audio_task(void)
 
 	task_create(
 		"audio_level_task",
-		0x1F,
+		0x0F,
 		0x1000,
 		my_audio_level_task,
 		0

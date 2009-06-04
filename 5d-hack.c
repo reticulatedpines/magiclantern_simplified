@@ -167,9 +167,10 @@ my_init_task(void)
 	// Call their init task
 	init_task();
 
-	// Create our init task and our audio level task
-	task_create( "my_task", 0x1F, 0x1000, my_dump_task, 0 );
+	// Call this one if we need to get a dump after a while
+	//task_create( "my_task", 0x1F, 0x1000, my_dump_task, 0 );
 
+	// Create our init task and our audio level task
 	extern void create_audio_task();
 	create_audio_task();
 
