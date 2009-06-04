@@ -290,6 +290,8 @@ extern void audio_start_asif_observer(void);
 extern void audio_level_task(void);
 extern void audio_interval_unlock(void*);
 
+extern uint32_t audio_thresholds[];
+
 
 /** Official Canon sound device task.
  * \internal

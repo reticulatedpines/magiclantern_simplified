@@ -25,12 +25,11 @@ audio_level_to_db(
 	uint32_t		raw_level
 )
 {
-	const uint32_t * const thresholds = (uint32_t*) 0xFFC60B2C;
 	int db;
 
 	for( db = 40 ; db ; db-- )
 	{
-		if( thresholds[db] > raw_level )
+		if( audio_thresholds[db] > raw_level )
 			return -db;
 	}
 
@@ -156,7 +155,7 @@ static void draw_meters(void)
 	const uint32_t tick_height = 8;
 
 
-	//bmp_fill( bg_color, 0, meter_start, width, meter_height ); // width - x_db_avg - 1, meter_height );
+	bmp_fill( bg_color, 0, meter_start, width, meter_height ); // width - x_db_avg - 1, meter_height );
 	bmp_fill( bar_color, 0, meter_start, x_db_avg, meter_height );
 	bmp_fill( peak_color, x_db, meter_start, 10, meter_height );
 	//bmp_fill( white_color, 0, meter_start -1, width, 1 );
@@ -547,7 +546,7 @@ create_audio_task(void)
 
 	task_create(
 		"audio_level_task",
-		0x0F,
+		0x1F,
 		0x1000,
 		my_audio_level_task,
 		0

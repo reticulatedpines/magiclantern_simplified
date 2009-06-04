@@ -113,6 +113,9 @@ NSTUB( 0x208C, sounddev )
 /** Look for it in functions that are from AudioIC/ */
 NSTUB( 0x1F58, audioic )
 
+/** Find the audio_level_to_db function; it references this table */
+NSTUB( 0xFFC61C28, audio_thresholds )
+
 /** Look for the error message CreateBinarySemaphore */
 NSTUB( 0xFF86DDFC, create_named_semaphore )
 
