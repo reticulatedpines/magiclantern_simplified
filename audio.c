@@ -200,6 +200,7 @@ static void
 draw_zebra( void )
 {
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
+
 /*
 	static int written TEXT;
 	if( !written )
@@ -319,6 +320,7 @@ my_audio_level_task( void )
 	msleep( 4000 );
 	sounddev_active_in(0,0);
 
+#if 0
 	int i;
 	for( i=5; i>0 ; i-- )
 	{
@@ -342,6 +344,7 @@ my_audio_level_task( void )
 	DebugMsg( 0x84, 3, "***** ending task" );
 	bmp_printf( 100, 100, "dumpf done" );
 	return;
+#endif
 
 	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
 	//gui_task_create( my_gui_task, 0x9999 );
@@ -418,6 +421,9 @@ my_audio_level_task( void )
 */
 		if( do_disp_check == 1 )
 			dispcheck();
+
+		draw_meters();
+		draw_zebra();
 	}
 }
 

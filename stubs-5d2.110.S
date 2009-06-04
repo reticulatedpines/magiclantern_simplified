@@ -96,6 +96,14 @@ NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
 NSTUB( 0x240C0, bmp_vram_info )
 NSTUB( 0xFF86020C, dispcheck )
 
+/** Search for the string GetVramNumber */
+NSTUB( 0xFFA2B6EC, vram_get_number )
+
+/** First struct referenced in vram_get_number */
+NSTUB( 0x13EA0, image_play_struct )
+/** Second struct referenced in vram_get_number */
+NSTUB( 0x333B0, vram_info )
+
 /** These are all grouped together */
 NSTUB( 0xFF856B10, audio_set_alc_off )
 NSTUB( 0xFF857004, sounddev_active_in )
@@ -166,7 +174,6 @@ NSTUB( 0xFFA55E8C, dialog_move_item )
 NSTUB( 0xFFA54E80, dialog_label_item )
 NSTUB( 0xFF99A2E0, state_object_create )
 NSTUB( 0xFF99A1F0, state_object_dispatch )
-NSTUB( 0xFFA2AC9C, vram_get_number )
 NSTUB( 0xFFA6656C, vram_get_lock )
 NSTUB( 0xFFA66748, vram_instance )
 NSTUB( 0xFFAE05FC, vram_image_pos_and_size )
@@ -216,7 +223,6 @@ NSTUB( 0x3548, gui_struct )
 NSTUB( 0x426C, lv_struct )
 NSTUB( 0x7324, audio_info )
 NSTUB( 0x8348, dm_state_object )
-NSTUB( 0x13EA0, image_play_struct )
 NSTUB( 0x14900, winsys_struct )
 NSTUB( 0x1F848, main_tab_dialog_id )
 NSTUB( 0x2f33c, lvram_info )
