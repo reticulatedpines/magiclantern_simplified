@@ -33,15 +33,24 @@ NSTUB( 0xFF999CFC, register_function )
 /** Look for error conditions that then call this function */
 NSTUB( 0xFF8669C8, DebugMsg )
 
+/** Look in DebugMsg, near the bottom.  It calls vsnprintf()
+ * with a buffer size of 0x4C.
+ */
+NSTUB( 0xFF99853C, vsnprintf )
+
 /** This one is hard to find.  Start around 0xff869c90, looking
  * for functions that take one argument and are called by
  * thousands of other functions.
  */
 NSTUB( 0xFF869C90, msleep )
 
-/** These are lower prority */
+/** These are lower prority to locate */
 NSTUB( 0xFF8781F4, strcpy )
+NSTUB( 0xFFC22E18, memcpy )
+
+/** Look for a matched pair in gui_init_end */
 NSTUB( 0xFF8697EC, take_semaphore )
+NSTUB( 0xFF8698D4, give_semaphore )
 
 /** There are two task creation calls.  We want the
  * one that takes five arguments with the name as the
@@ -87,6 +96,18 @@ NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
 NSTUB( 0x240C0, bmp_vram_info )
 NSTUB( 0xFF86020C, dispcheck )
 
+/** These are all grouped together */
+NSTUB( 0xFF856B10, audio_set_alc_off )
+NSTUB( 0xFF857004, sounddev_active_in )
+
+/** Look for it in functions that are from SoundDevice/ */
+NSTUB( 0x208C, sounddev )
+/** Look for it in functions that are from AudioIC/ */
+NSTUB( 0x1F58, audioic )
+
+/** Look for the error message CreateBinarySemaphore */
+NSTUB( 0xFF86DDFC, create_named_semaphore )
+
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
 NSTUB( 0xFF8167F0, get_current_task )
@@ -123,7 +144,6 @@ NSTUB( 0xFF854FC8, audio_start_asif_observer )
 NSTUB( 0xFF9721C0, audio_level_task )
 NSTUB( 0xFF9721B4, audio_interval_unlock )
 NSTUB( 0xFF856E60, sound_dev_task )
-NSTUB( 0xFF857008, sound_dev_active_in )
 NSTUB( 0xFF857F30, sound_dev_start_observer )
 NSTUB( 0xFF857F98, sound_dev_stop_observer )
 NSTUB( 0xFF81BDC0, open )
@@ -187,12 +207,9 @@ NSTUB( 0xFF866D18, dm_set_store_level )
 
 NSTUB( 0xFF8781F8, strcpy )
 NSTUB( 0xFFB7F380, memcpy )
-NSTUB( 0xFF9983B4, vsnprintf )
-
 
 /* Structures in the BSS or rwdata segment */
 NSTUB( 0x1D74, liveview )
-NSTUB( 0x208C, sound_dev )
 NSTUB( 0x2580, hdmi_config )
 NSTUB( 0x2924, dm_state_ptr )
 NSTUB( 0x3548, gui_struct )

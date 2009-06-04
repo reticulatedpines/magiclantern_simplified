@@ -69,17 +69,14 @@ dumper: dumper_entry.o dumper.o
 reboot.o: reboot.c 5d-hack.bin
 5d-hack.bin: 5d-hack
 
-NOT_YET=\
-	audio.o \
-	bmp.o \
-	font.o \
-	stubs-5d2.107.o \
-
 
 5d-hack: \
 	entry.o \
 	5d-hack.o \
 	gui.o \
+	audio.o \
+	bmp.o \
+	font.o \
 	stubs-5d2.110.o \
 
 	$(LD) \

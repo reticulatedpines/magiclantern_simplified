@@ -169,10 +169,13 @@ my_init_task(void)
 
 	// Create our init task and our audio level task
 	task_create( "my_task", 0x1F, 0x1000, my_dump_task, 0 );
-	//extern void create_audio_task();
-	//create_audio_task();
 
-	// Re-write the version string
+	extern void create_audio_task();
+	create_audio_task();
+
+	// Re-write the version string.
+	// Don't use strcpy() so that this can be done
+	// before strcpy() or memcpy() are located.
 	char * additional_version = (void*) 0x11f98;
 	additional_version[0] = '-';
 	additional_version[1] = 'm';
@@ -184,6 +187,4 @@ my_init_task(void)
 	additional_version[7] = 'e';
 	additional_version[8] = 'e';
 	additional_version[9] = '\0';
-
-	//strcpy( additional_version, "-markfree" );
 }

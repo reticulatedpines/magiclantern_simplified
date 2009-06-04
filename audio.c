@@ -317,7 +317,7 @@ static void
 my_audio_level_task( void )
 {
 	msleep( 4000 );
-	sound_dev_active_in(0,0);
+	sounddev_active_in(0,0);
 
 	int i;
 	for( i=5; i>0 ; i-- )
@@ -333,7 +333,6 @@ my_audio_level_task( void )
 		msleep( 30 );
 		DebugMsg( 0x84, 3, "***** print %d", i );
 		bmp_printf( 100, 100, "Test printf %d", i );
-		bmp_hexdump( 100, 200, &hdmi_config, 32 );
 	}
 
 	msleep( 1000 );
@@ -397,13 +396,6 @@ my_audio_level_task( void )
 		//winsys_take_semaphore();
 		//take_semaphore( hdmi_config.bmpddev_sem, 0 );
 
-		bmp_printf( 100, 100, "%08x bmp %08x ImgDDev %08x rc=%x",
-			cycle_count++,
-			bmp_vram(),
-			hdmi_config.hdmi_mode,
-			vram_get_number(0)
-		);
-
 		bmp_hexdump( 10, 200, bmp_vram_info, 64 );
 		//uint32_t x, y, w, h;
 		//vram_image_pos_and_size( &x, &y, &w, &h );
@@ -434,19 +426,19 @@ my_audio_level_task( void )
  * This task disables the AGC when the sound device is activated.
  */
 void
-my_sound_dev_task( void )
+my_sounddev_task( void )
 {
 	//void * file = FIO_CreateFile( "A:/snddev.log" );
-	//FIO_WriteFile( file, sound_dev, sizeof(*sound_dev) );
+	//FIO_WriteFile( file, sounddev, sizeof(*sounddev) );
 	//FIO_CloseFile( file );
 
-	sound_dev->sem = create_named_semaphore( 0, 0 );
+	sounddev->sem = create_named_semaphore( 0, 0 );
 
 	int level = 0;
 
 	while(1)
 	{
-		if( take_semaphore( sound_dev->sem, 0 ) != 1 )
+		if( take_semaphore( sounddev->sem, 0 ) != 1 )
 		{
 			// DebugAssert( .... );
 		}
@@ -554,7 +546,7 @@ create_audio_task(void)
 {
 	dmstart();
 
-	create_task(
+	task_create(
 		"audio_level_task",
 		0x1F,
 		0x1000,

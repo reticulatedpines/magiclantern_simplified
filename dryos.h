@@ -104,7 +104,7 @@ struct task
  * Audio information structure at 0x7324.
  * This controls the AGC system.
  */
-struct audio_info
+struct audioic
 {
 	uint8_t			off_0x00;
 	uint8_t			off_0x01;
@@ -121,28 +121,28 @@ struct audio_info
 	uint32_t		max_sample;	// off_0x24
 } __attribute__((packed));
 
-SIZE_CHECK_STRUCT( audio_info, 0x28 );
+SIZE_CHECK_STRUCT( audioic, 0x28 );
 
-extern struct audio_info audio_info;
+extern struct audioic audioic;
 
-extern void sound_dev_start_observer( void );
-extern void sound_dev_stop_observer( void );
+extern void sounddev_start_observer( void );
+extern void sounddev_stop_observer( void );
 
 
 /**
  * Sound device structure.
  */
-struct sound_dev
+struct sounddev
 {
 	uint8_t pad0[ 0x70 ];
 	struct semaphore *	sem;	 // off 0x70
 };
 
-extern struct sound_dev * sound_dev;
+extern struct sounddev * sounddev;
 
 // Calls the unlock function when done
 extern void
-sound_dev_active_in(
+sounddev_active_in(
 	void			(*unlock_func)( void * ),
 	void *			arg
 );
