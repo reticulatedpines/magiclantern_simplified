@@ -15,7 +15,7 @@
 #include "gui.h"
 #include "vram.h"
 #include "state-object.h"
-
+#include "camera.h"
 
 
 /** Panic and abort the camera */

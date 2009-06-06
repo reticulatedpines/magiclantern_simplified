@@ -75,6 +75,7 @@ reboot.o: reboot.c 5d-hack.bin
 	5d-hack.o \
 	gui.o \
 	audio.o \
+	hotplug.o \
 	bmp.o \
 	font.o \
 	stubs-5d2.110.o \

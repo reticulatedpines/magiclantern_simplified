@@ -381,11 +381,17 @@ my_audio_level_task( void )
 			do_disp_check++;
 
 #if 1
+		bmp_printf( 0, 10, "A/V jack: %s",
+			camera_engine.av_jack & 1 ? "No " : "Yes"
+		);
+
+		bmp_hexdump( 0, 30, &camera_engine, 32 );
+
 		unsigned i;
 		for( i=0 ; i<16 ; i++ )
 		{
 			struct event * event = &gui_events[ i ];
-			bmp_printf( 0, 100 + font_height * i,
+			bmp_printf( 0, 200 + font_height * i,
 				"%sEvent %x: %x %08x %08x %08x\n",
 				i == gui_events_index ? "->" : "  ",
 				i,

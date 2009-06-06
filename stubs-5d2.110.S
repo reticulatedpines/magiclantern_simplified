@@ -15,6 +15,9 @@
 NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( RELOCADDR+0xc, reloc_entry )
 
+/** Camera interface? */
+NSTUB( 0xC0220000, camera_engine )
+
 /** These must be found first for any progress to be made */
 NSTUB( 0xFF810894, cstart )
 NSTUB( 0xFFC22F0C, bzero32 )
@@ -121,6 +124,7 @@ NSTUB( 0xFF86DDFC, create_named_semaphore )
 
 /** Hot plug task detects when video, hdmi and usb are plugged in. */
 NSTUB( 0xFF81DB08, hotplug_task )
+NSTUB( 0x1AA4, hotplug_struct )
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )

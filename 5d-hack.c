@@ -138,11 +138,12 @@ my_task_dispatch_hook(
 		task->entry = my_sound_dev_task;
 #endif
 	extern void hotplug_task();
+	extern void my_hotplug_task();
 
 	if( task->entry == gui_main_task )
 		task->entry = my_gui_main_task;
 	if( task->entry == hotplug_task )
-		task->entry = null_task;
+		task->entry = my_hotplug_task;
 }
 
 
