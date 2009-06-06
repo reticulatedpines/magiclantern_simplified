@@ -102,6 +102,13 @@ copy_and_restart( void )
 }
 
 
+static void
+null_task( void )
+{
+	DebugMsg( 0x84, 3, "%s created (and exiting)", __func__ );
+	return;
+}
+
 
 
 /**
@@ -130,8 +137,12 @@ my_task_dispatch_hook(
 	if( task->entry == sound_dev_task )
 		task->entry = my_sound_dev_task;
 #endif
+	extern void hotplug_task();
+
 	if( task->entry == gui_main_task )
 		task->entry = my_gui_main_task;
+	if( task->entry == hotplug_task )
+		task->entry = null_task;
 }
 
 

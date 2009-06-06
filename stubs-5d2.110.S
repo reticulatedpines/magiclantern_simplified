@@ -119,6 +119,9 @@ NSTUB( 0xFFC61C28, audio_thresholds )
 /** Look for the error message CreateBinarySemaphore */
 NSTUB( 0xFF86DDFC, create_named_semaphore )
 
+/** Hot plug task detects when video, hdmi and usb are plugged in. */
+NSTUB( 0xFF81DB08, hotplug_task )
+
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
 NSTUB( 0xFF8167F0, get_current_task )

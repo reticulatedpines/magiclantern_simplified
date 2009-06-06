@@ -318,7 +318,8 @@ static void
 my_audio_level_task( void )
 {
 	msleep( 4000 );
-	sounddev_active_in(0,0);
+	//sounddev_active_in(0,0);
+	DebugMsg( 0x84, 3, "****** User task is running" );
 
 #if 0
 	int i;
@@ -379,7 +380,7 @@ my_audio_level_task( void )
 		)
 			do_disp_check++;
 
-#if 0
+#if 1
 		unsigned i;
 		for( i=0 ; i<16 ; i++ )
 		{
@@ -412,10 +413,10 @@ my_audio_level_task( void )
 		//give_semaphore( hdmi_config.bmpddev_sem );
 
 		if( do_disp_check == 1 )
-			dispcheck();
+			dumpf();
 
-		draw_meters();
-		draw_zebra();
+		//draw_meters();
+		//draw_zebra();
 	}
 }
 

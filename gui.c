@@ -72,6 +72,12 @@ my_gui_main_task( void )
 			gui_events[ ++gui_events_index ] = *event;
 			if( gui_events_index == 16-1 )
 				gui_events_index = 0;
+			DebugMsg( 0x83, 3, "Event: %x, %x, %x, %x",
+				event->type,
+				event->param,
+				event->obj,
+				event->arg
+			);
 #ifdef EVENT_LOG
 			if( eventlog )
 			{
