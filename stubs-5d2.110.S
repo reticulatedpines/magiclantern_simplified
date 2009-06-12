@@ -107,14 +107,31 @@ NSTUB( 0x13EA0, image_play_struct )
 /** Second struct referenced in vram_get_number */
 NSTUB( 0x333B0, vram_info )
 
+/** Once this is found, the rest of the audio should be easy to locate */
+NSTUB( 0xFF972348, audio_level_task )
+
 /** These are all grouped together */
+NSTUB( 0xFF856C34, audio_set_filter_off )
+NSTUB( 0xFF856450, audio_set_windcut )
+NSTUB( 0xFF857AE4, audio_set_sampling_param )
+NSTUB( 0xFF857D0C, audio_set_volume_in )
+NSTUB( 0xFF856AB4, audio_set_alc_on )
 NSTUB( 0xFF856B10, audio_set_alc_off )
+NSTUB( 0xFF97233C, audio_interval_unlock )
 NSTUB( 0xFF857004, sounddev_active_in )
+NSTUB( 0xFF857134, sounddev_active_out )
+NSTUB( 0xFF854FC4, audio_start_asif_observer )
+
+NSTUB( 0xFF868184, oneshot_timer )
+
 
 /** Look for it in functions that are from SoundDevice/ */
+NSTUB( 0xFF856E5C, sounddev_task )
 NSTUB( 0x208C, sounddev )
+
 /** Look for it in functions that are from AudioIC/ */
 NSTUB( 0x1F58, audioic )
+NSTUB( 0x7320, audio_in )
 
 /** Find the audio_level_to_db function; it references this table */
 NSTUB( 0xFFC61C28, audio_thresholds )
