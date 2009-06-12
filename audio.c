@@ -274,7 +274,7 @@ my_gui_task(
 	int			arg3
 )
 {
-	uint32_t args[] = { arg, event, arg2, arg3 };
+	uint32_t args[] = { (uint32_t) arg, event, arg2, arg3 };
 	if( gui_logfile )
 		FIO_WriteFile( gui_logfile, &args, sizeof(args) );
 	static int count TEXT;
@@ -308,6 +308,45 @@ my_gui_task(
 }
 
 
+extern struct event gui_events[];
+extern int gui_events_index;
+
+#if 0
+static void
+draw_events( void )
+{
+	bmp_printf( 0, 10, "A/V jack: %s",
+		camera_engine.av_jack & 1 ? "No " : "Yes"
+	);
+
+	bmp_hexdump( 0, 30, &camera_engine, 32 );
+
+	unsigned i;
+	for( i=0 ; i<16 ; i++ )
+	{
+		struct event * event = &gui_events[ i ];
+		bmp_printf( 0, 200 + font_height * i,
+			"%sEvent %x: %x %08x %08x %08x\n",
+			i == gui_events_index ? "->" : "  ",
+			i,
+			(unsigned) event->type,
+			(unsigned) event->param,
+			(unsigned) event->obj,
+			(unsigned) event->arg
+		);
+	}
+}
+#endif
+
+
+static void
+draw_text_state( void )
+{
+	bmp_printf( 100, 100, "Audio %d/%d",
+		db_peak / 8,
+		db_avg / 8
+	);
+}
 
 /** Task to monitor the audio levels.
  *
@@ -315,40 +354,16 @@ my_gui_task(
  * the draw_meters() function to display the results on screen.
  */
 static void
-my_audio_level_task( void )
+my_task( void )
 {
 	msleep( 4000 );
+	DebugMsg( 0x84, 3, "!!!!! User task is running" );
 	//sounddev_active_in(0,0);
-	DebugMsg( 0x84, 3, "****** User task is running" );
+	//sounddev_active_out(0,0);
 
-#if 0
-	int i;
-	for( i=5; i>0 ; i-- )
-	{
-		DebugMsg( 0x84, 3, "***** test %d", i );
-		bmp_printf( 100, 100, "Ready for test %d", i );
-		msleep( 1000 );
-	}
 
-	msleep( 2000 );
-	for( i=0 ; i<300 ; i++ )
-	{
-		msleep( 30 );
-		DebugMsg( 0x84, 3, "***** print %d", i );
-		bmp_printf( 100, 100, "Test printf %d", i );
-	}
-
-	msleep( 1000 );
-	DebugMsg( 0x84, 3, "***** calling dumpf" );
-	dumpf();
-
-	DebugMsg( 0x84, 3, "***** ending task" );
-	bmp_printf( 100, 100, "dumpf done" );
-	return;
-#endif
-
-	//gui_logfile = FIO_CreateFile( "A:/gui.log" );
 	//gui_task_create( my_gui_task, 0x9999 );
+
 	int do_disp_check = 0;
 	uint32_t cycle_count = 0;
 
@@ -373,35 +388,11 @@ my_audio_level_task( void )
 		if( db_peak > -40*8 )
 			db_peak = (db_peak * 3 + db_avg) / 4;
 
-		extern struct event gui_events[];
-		extern int gui_events_index;
 		if( gui_events[ gui_events_index ].type == 0
 		&&  gui_events[ gui_events_index ].param == 0x13
 		)
 			do_disp_check++;
 
-#if 1
-		bmp_printf( 0, 10, "A/V jack: %s",
-			camera_engine.av_jack & 1 ? "No " : "Yes"
-		);
-
-		bmp_hexdump( 0, 30, &camera_engine, 32 );
-
-		unsigned i;
-		for( i=0 ; i<16 ; i++ )
-		{
-			struct event * event = &gui_events[ i ];
-			bmp_printf( 0, 200 + font_height * i,
-				"%sEvent %x: %x %08x %08x %08x\n",
-				i == gui_events_index ? "->" : "  ",
-				i,
-				(unsigned) event->type,
-				(unsigned) event->param,
-				(unsigned) event->obj,
-				(unsigned) event->arg
-			);
-		}
-#endif
 
 		//winsys_take_semaphore();
 		//take_semaphore( hdmi_config.bmpddev_sem, 0 );
@@ -419,10 +410,13 @@ my_audio_level_task( void )
 		//give_semaphore( hdmi_config.bmpddev_sem );
 
 		if( do_disp_check == 1 )
+		{
 			dumpf();
+		}
 
 		//draw_meters();
 		//draw_zebra();
+		draw_text_state();
 	}
 }
 
@@ -437,21 +431,24 @@ my_sounddev_task( void )
 	//FIO_WriteFile( file, sounddev, sizeof(*sounddev) );
 	//FIO_CloseFile( file );
 
-	sounddev->sem = create_named_semaphore( 0, 0 );
+	//DebugMsg( 0x85, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem );
+
+	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
 	int level = 0;
 
 	while(1)
 	{
-		if( take_semaphore( sounddev->sem, 0 ) != 1 )
+		if( take_semaphore( sounddev.sem_alc, 0 ) != 1 )
 		{
 			// DebugAssert( .... );
 		}
 
-		msleep( 100 );
+		msleep( 500 );
 		audio_set_alc_off();
-		//audio_set_volume_in( 0, level );
-		//level = ( level + 1 ) & 15;
+		audio_set_volume_in( 0, level ? 83 : 0 );
+		//bmp_printf( 100, 150, "level %d", level );
+		//level = !level;
 
 		//uint32_t level = audio_read_level();
 		//FIO_WriteFile( file, &level, sizeof(level) );
@@ -465,72 +462,77 @@ my_sounddev_task( void )
  * the average audio level and translate it to dB.  Nothing ever seems
  * to activate it, so it is commented out for now.
  */
-#if 0
 void
 my_audio_level_task( void )
 {
 	//const uint32_t * const thresholds = (void*) 0xFFC60ABC;
+	DebugMsg( 0x84, 3, "!!!!! %s: Replaced Canon task %x", __func__, audio_level_task );
 
-#if 0
-	// The audio structure will already be setup; we are the
-	// second dispatch of the function.
-	audio_info->gain		= -39;
-	audio_info->sample_count	= 0;
-	audio_info->max_sample		= 0;
-	audio_info->sem_interval	= create_named_semaphore( 0, 1 );
-	audio_info->sem_task		= create_named_semaphore( 0, 0 );
-#endif
-
-	void * file = FIO_CreateFile( "A:/audio.log" );
-	FIO_WriteFile( file, audio_info, sizeof(*audio_info) );
+	audio_in.gain		= -40;
+	audio_in.sample_count	= 0;
+	audio_in.max_sample	= 0;
+	audio_in.sem_interval	= create_named_semaphore( 0, 1 );
+	audio_in.sem_task	= create_named_semaphore( 0, 0 );
 
 	while(1)
 	{
-		if( take_semaphore( audio_info->sem_interval, 0 ) )
+		DebugMsg( 0x84, 3, "%s: sleeping init=%d\n", __func__, audio_in.initialized );
+		if( take_semaphore( audio_in.sem_interval, 0 ) )
 		{
 			//DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
 		}
 
-		if( take_semaphore( audio_info->sem_task, 0 ) )
+		if( take_semaphore( audio_in.sem_task, 0 ) )
 		{
 			//DebugAssert( "!IS_ERROR", SoundDevice", 0x83 );
 		}
 
-		if( !audio_info->initialized )
+		DebugMsg( 0x84, 3, "%s: awake init=%d\n", __func__, audio_in.initialized );
+
+		if( !audio_in.initialized )
 		{
+			DebugMsg( 0x84, 3, "**** %s: agc=%d/%d wind=%d volume=%d",
+				__func__,
+				audio_in.agc_on,
+				audio_in.last_agc_on,
+				audio_in.windcut,
+				audio_in.volume
+			);
+
 			audio_set_filter_off();
 
-			if( audio_info->off_0x00 == 1
-			&&  audio_info->off_0x01 == 0
+			if( audio_in.last_agc_on == 1
+			&&  audio_in.agc_on == 0
 			)
 				audio_set_alc_off();
 			
-			audio_info->off_0x00 = audio_info->off_0x01;
-			audio_set_windcut( audio_info->off_0x18 );
+			audio_in.last_agc_on = audio_in.agc_on;
+			audio_set_windcut( audio_in.windcut );
 
-			audio_set_sampling_param( 0xAC44, 0x10, 1 );
+			audio_set_sampling_param( 44100, 0x10, 1 );
 			audio_set_volume_in(
-				audio_info->off_0x00,
-				audio_info->off_0x02
+				audio_in.agc_on,
+				audio_in.volume
 			);
 
-			if( audio_info->off_0x00 == 1 )
+			if( audio_in.agc_on == 1 )
 				audio_set_alc_on();
 
-			audio_info->initialized		= 1;
-			audio_info->gain		= -39;
-			audio_info->sample_count	= 0;
+			audio_in.initialized	= 1;
+			audio_in.gain		= -39;
+			audio_in.sample_count	= 0;
 
 		}
 
-		if( audio_info->asif_started == 0 )
+		if( audio_in.asif_started == 0 )
 		{
+			DebugMsg( 0x84, 3, "%s: Starting asif observer", __func__ );
 			audio_start_asif_observer();
-			audio_info->asif_started = 1;
+			audio_in.asif_started = 1;
 		}
 
 		uint32_t level = audio_read_level();
-		give_semaphore( audio_info->sem_task );
+		give_semaphore( audio_in.sem_task );
 
 		// Never adjust it!
 		//set_audio_agc();
@@ -541,9 +543,7 @@ my_audio_level_task( void )
 		oneshot_timer( 0x200, audio_interval_unlock, audio_interval_unlock, 0 );
 	}
 
-	FIO_CloseFile( file );
 }
-#endif
 
 
 void
@@ -552,10 +552,10 @@ create_audio_task(void)
 	dmstart();
 
 	task_create(
-		"audio_level_task",
+		"user_task",
 		0x1F,
 		0x1000,
-		my_audio_level_task,
+		my_task,
 		0
 	);
 }
