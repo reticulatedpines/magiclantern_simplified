@@ -36,7 +36,7 @@ IMPORTANT NOTES
 
 TODO LIST:
 
-* Palette for bitmap vram
+* Palette for bitmap vram (done)
 * Figure out how to create a custom menu
 	* hijack factory or photostudio menu?
 * Find routine to trigger shutter
@@ -44,14 +44,12 @@ TODO LIST:
 * Linker script to create data segment in hacked code
 * Reduce amount of DryOS copied (64 KB is more than necessary)
 * Re-arrange to have 64 KB of DryOS below 5d-hack.bin
-* Audio device is shut off after movie; keep it enablde
+* Audio device is shut off after movie; keep it enabled
 * Better interaction with powersave and LCD disabled modes
 * Configurable fixed audio gain
 * Configurable crop marks
-* Manual aperture
-* Manual shutter
-* Manual ISO
-* 24p
+* Use inclinometer to measure angle
+* Record meta data about video into separate file
 
 
 BOOT PROCESS OVERVIEW
@@ -79,4 +77,5 @@ BOOT PROCESS OVERVIEW
 * It installs a task dispatch hook in the function pointer at 0x1934.
   This will be called when ever a new task is run, allowing our code
   to disable Canon tasks or re-purpose them with our own implementations.
+
 
