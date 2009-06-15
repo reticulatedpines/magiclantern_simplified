@@ -66,6 +66,8 @@ dumper: dumper_entry.o dumper.o
 		-e _start \
 		$^
 
+dumper_entry.o: flasher-stubs.S
+
 reboot.o: reboot.c 5d-hack.bin
 5d-hack.bin: 5d-hack
 
