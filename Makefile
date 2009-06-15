@@ -16,7 +16,7 @@ RELOCADDR		= 0x00050000
 
 all: \
 	5d2_dumper.fir \
-	5d2_reboot.fir \
+	magiclantern.fir \
 
 
 
@@ -180,7 +180,7 @@ dumper.elf: 5d2_dump.fir flasher.map
 		--user $< \
 		--offset 0x5ab8 \
 
-5d2_reboot.fir: reboot.bin 5d200107.1.flasher.bin
+magiclantern.fir: reboot.bin 5d200107.1.flasher.bin
 	./assemble_fw \
 		--output $@ \
 		--user $< \
