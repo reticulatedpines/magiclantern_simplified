@@ -185,6 +185,7 @@ dumper.elf: 5d2_dump.fir flasher.map
 		--output $@ \
 		--user $< \
 		--offset 0x120 \
+		--zero \
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@

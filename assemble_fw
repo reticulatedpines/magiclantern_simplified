@@ -15,6 +15,7 @@ my $flasher_file	= "5d200107.1.flasher.bin";
 my $output_file		= "5d200107_dump.fir";
 my $offset		= 0x5ab8;
 my $pad_bytes		= 24;
+my $zero_bytes;
 
 GetOptions(
 	"header=s"		=> \$header_file,
@@ -23,7 +24,8 @@ GetOptions(
 	"user=s"		=> \$user_file,
 	"offset=o"		=> \$offset,
 	"pad=o"			=> \$pad_bytes,
-) or die "$0: Unknown option\n";
+	"z|zero+"		=> \$zero_bytes,
+) or die "$0: Unknown option (read the source for options)\n";
 
 my $header = read_file( $header_file, binmode => ':raw' )
 	or die "$0: Unable to open $header_file: $!\n";
@@ -40,9 +42,15 @@ if( $user_file )
 
 # Generate the image by concatenating everything
 my $image = $header . $flasher . (chr(0) x $pad_bytes);
+my $user_len = length($user);
 
 # Replace the user code in the image
-substr( $image, $offset, length($user) ) = $user;
+substr( $image, $offset, $user_len ) = $user;
+
+# Zero the rest of the bytes if the user requests it
+my $zero_len = length($image) - $user_len - $offset;
+substr( $image, $offset + $user_len, $zero_len ) = chr(0) x $zero_len
+	if $zero_bytes;
 
 # Set the offset or type from 0x20 to 0x10?  Why?
 substr( $image, 0x28, 1 ) = chr(0x10);
