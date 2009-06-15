@@ -4,25 +4,21 @@
 #ifndef _arm_mcr_h_
 #define _arm_mcr_h_
 
-/** Compile time failure if a structure is not sized correctly */
-#define SIZE_CHECK_STRUCT( struct_name, size ) \
-	static uint8_t __attribute__((unused)) \
-	__size_check_##struct_name[ \
-		sizeof( struct struct_name ) == size ? 0 : -1 \
-	]
-
-/** Force a variable to live in the text segment */
-#define TEXT __attribute__((section(".text")))
+#include <stdint.h>
+#include "compiler.h"
 
 typedef void (*thunk)(void);
 
 
+#if 0
 typedef signed long	int32_t;
 typedef unsigned long	uint32_t;
 typedef signed short	int16_t;
 typedef unsigned short	uint16_t;
 typedef signed char	int8_t;
 typedef unsigned char	uint8_t;
+#endif
+
 typedef uint32_t	size_t;
 
 #define offsetof(type, member) \
