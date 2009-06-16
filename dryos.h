@@ -27,6 +27,12 @@ DryosPanic(
 );
 
 
+/** Call registered functions by name. */
+extern void
+call(
+	const char *		name,
+	...
+);
 
 
 

@@ -146,6 +146,13 @@ NSTUB( 0xFF86DDFC, create_named_semaphore )
 NSTUB( 0xFF81DB08, hotplug_task )
 NSTUB( 0x1AA4, hotplug_struct )
 
+/** Call registered function by name? */
+NSTUB( 0xFF867744, call )
+
+/** These are useful functions that control the camera */
+NSTUB( 0xFF8896F0, FA_StartLiveView )
+NSTUB( 0xFF8897E8, FA_StopLiveView )
+
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
 NSTUB( 0xFF8167F0, get_current_task )
