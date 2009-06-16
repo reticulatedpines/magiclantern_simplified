@@ -360,6 +360,8 @@ my_task( void )
 	//sounddev_active_in(0,0);
 	//sounddev_active_out(0,0);
 
+	//FA_StartLiveView();
+	call( "FA_StartLiveView" );
 
 	//gui_task_create( my_gui_task, 0x9999 );
 
@@ -430,7 +432,7 @@ my_sounddev_task( void )
 	//FIO_WriteFile( file, sounddev, sizeof(*sounddev) );
 	//FIO_CloseFile( file );
 
-	//DebugMsg( DM_AUDIO, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem );
+	DebugMsg( DM_AUDIO, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem_alc );
 
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
@@ -438,23 +440,25 @@ my_sounddev_task( void )
 
 	while(1)
 	{
-		if( take_semaphore( sounddev.sem_alc, 0 ) != 1 )
-		{
-			// DebugAssert( .... );
-		}
+		if( (take_semaphore( sounddev.sem_alc, 0 ) & 1) == 1 )
+			break;
+
+		DebugMsg( DM_AUDIO, 3, "Awake and disabling alc" );
 
 		msleep( 500 );
 		audio_set_alc_off();
-		audio_set_volume_in( 0, level ? 83 : 0 );
-		//bmp_printf( 100, 150, "level %d", level );
+		//audio_set_volume_in( 0, level ? 83 : 0 );
+		bmp_printf( 100, 150, "alc off" );
 		//level = !level;
 
 		//uint32_t level = audio_read_level();
 		//FIO_WriteFile( file, &level, sizeof(level) );
 	}
+
+	DebugMsg( DM_AUDIO, 3, "!!!!! %s task aborted!", __func__ );
 }
 
-TASK_OVERRIDE( sounddev_task, my_sounddev_task );
+//TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 
 
 /** Replace the audio level task with our own.

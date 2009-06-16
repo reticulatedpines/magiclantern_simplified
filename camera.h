@@ -54,4 +54,8 @@ struct camera_engine
 SIZE_CHECK_STRUCT( camera_engine, 0x80 );
 extern struct camera_engine camera_engine;
 
+
+/** FA functions can be called to do stuff */
+extern void FA_StartLiveView( void );
+
 #endif
