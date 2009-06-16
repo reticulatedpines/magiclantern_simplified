@@ -78,16 +78,6 @@ copy_and_restart( void )
 	// Install our task creation hooks
 	task_dispatch_hook = my_task_dispatch_hook;
 
-#if 0
-	*(uint32_t*) 0x1934 = (uint32_t) task_dispatch_hook;
-	*(uint32_t*) 0x1938 = (uint32_t) task_dispatch_hook;
-
-	// Enable this to spin rather than starting firmware.
-	// This allows confirmation that we have reached this part
-	// of our code, rather than the normal firmware.
-	while(1);
-#endif
-
 	// This will jump into the RAM version of the firmware,
 	// but the last branch instruction at the end of this
 	// has been modified to jump into the ROM version
@@ -104,7 +94,7 @@ copy_and_restart( void )
 static void
 null_task( void )
 {
-	DebugMsg( 0x84, 3, "%s created (and exiting)", __func__ );
+	DebugMsg( DM_SYS, 3, "%s created (and exiting)", __func__ );
 	return;
 }
 
@@ -144,7 +134,7 @@ my_task_dispatch_hook(
 			continue;
 
 /* -- can't call debugmsg from this context */
-		DebugMsg( 0x85, 3, "***** Replacing task %x with %x",
+		DebugMsg( DM_SYS, 3, "***** Replacing task %x with %x",
 			original_entry,
 			mapping->replacement
 		);

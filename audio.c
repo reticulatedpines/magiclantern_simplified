@@ -356,7 +356,7 @@ static void
 my_task( void )
 {
 	msleep( 4000 );
-	DebugMsg( 0x84, 3, "!!!!! User task is running" );
+	DebugMsg( DM_AUDIO, 3, "!!!!! User task is running" );
 	//sounddev_active_in(0,0);
 	//sounddev_active_out(0,0);
 
@@ -430,7 +430,7 @@ my_sounddev_task( void )
 	//FIO_WriteFile( file, sounddev, sizeof(*sounddev) );
 	//FIO_CloseFile( file );
 
-	//DebugMsg( 0x85, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem );
+	//DebugMsg( DM_AUDIO, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem );
 
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
@@ -467,7 +467,7 @@ static void
 my_audio_level_task( void )
 {
 	//const uint32_t * const thresholds = (void*) 0xFFC60ABC;
-	DebugMsg( 0x84, 3, "!!!!! %s: Replaced Canon task %x", __func__, audio_level_task );
+	DebugMsg( DM_AUDIO, 3, "!!!!! %s: Replaced Canon task %x", __func__, audio_level_task );
 
 	audio_in.gain		= -40;
 	audio_in.sample_count	= 0;
@@ -477,7 +477,7 @@ my_audio_level_task( void )
 
 	while(1)
 	{
-		DebugMsg( 0x84, 3, "%s: sleeping init=%d\n", __func__, audio_in.initialized );
+		DebugMsg( DM_AUDIO, 3, "%s: sleeping init=%d\n", __func__, audio_in.initialized );
 		if( take_semaphore( audio_in.sem_interval, 0 ) )
 		{
 			//DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
@@ -488,11 +488,11 @@ my_audio_level_task( void )
 			//DebugAssert( "!IS_ERROR", SoundDevice", 0x83 );
 		}
 
-		DebugMsg( 0x84, 3, "%s: awake init=%d\n", __func__, audio_in.initialized );
+		DebugMsg( DM_AUDIO, 3, "%s: awake init=%d\n", __func__, audio_in.initialized );
 
 		if( !audio_in.initialized )
 		{
-			DebugMsg( 0x84, 3, "**** %s: agc=%d/%d wind=%d volume=%d",
+			DebugMsg( DM_AUDIO, 3, "**** %s: agc=%d/%d wind=%d volume=%d",
 				__func__,
 				audio_in.agc_on,
 				audio_in.last_agc_on,
@@ -527,7 +527,7 @@ my_audio_level_task( void )
 
 		if( audio_in.asif_started == 0 )
 		{
-			DebugMsg( 0x84, 3, "%s: Starting asif observer", __func__ );
+			DebugMsg( DM_AUDIO, 3, "%s: Starting asif observer", __func__ );
 			audio_start_asif_observer();
 			audio_in.asif_started = 1;
 		}
