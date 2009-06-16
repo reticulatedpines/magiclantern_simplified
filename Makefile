@@ -133,7 +133,7 @@ BASE=0xFF800000
 #BASE=0
 #BASE=0xFF000000
 
-ROM0.elf: ROM0.bin 5D21070a.map
+1.1.0/ROM0.elf: 1.1.0/ROM0.bin 1.1.0/ROM0.map
 	./remake-elf \
 		--base $(BASE) \
 		--cc $(CC) \
