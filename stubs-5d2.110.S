@@ -24,6 +24,9 @@ NSTUB( 0xFFC22F0C, bzero32 )
 NSTUB( 0xFF8173A0, create_init_task )
 NSTUB( 0xFF811DBC, init_task )
 
+/** How to find this one again? */
+NSTUB( 0x11F98, additional_version )
+
 /** These are necessary for starting with debugging */
 /** look for the string "dumpf", then find register_function as well */
 NSTUB( 0xFF86725C, dumpf )

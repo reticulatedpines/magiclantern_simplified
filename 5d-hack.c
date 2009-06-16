@@ -133,8 +133,8 @@ my_task_dispatch_hook(
 	thunk entry = (thunk) task->entry;
 
 	// Search the task_mappings array for a matching entry point
-	extern struct task_mapping * _task_overrides_start;
-	extern struct task_mapping * _task_overrides_end;
+	extern struct task_mapping _task_overrides_start[];
+	extern struct task_mapping _task_overrides_end[];
 	const struct task_mapping * mapping = _task_overrides_start;
 
 	for( ; mapping < _task_overrides_end ; mapping++ )
@@ -197,7 +197,7 @@ my_init_task(void)
 	// Re-write the version string.
 	// Don't use strcpy() so that this can be done
 	// before strcpy() or memcpy() are located.
-	char * additional_version = (void*) 0x11f98;
+	extern char additional_version[];
 	additional_version[0] = '-';
 	additional_version[1] = 'm';
 	additional_version[2] = 'a';

@@ -21,11 +21,13 @@ SECTIONS
 		_rodata_end = .;
 
 		/* List of DryOS tasks to be over-ridden */
+		. = ALIGN(8);
 		_task_overrides_start = .;
 		*(.task_overrides);
 		_task_overrides_end = .;
 
 		/* List of magiclantern user tasks to be started  */
+		. = ALIGN(8);
 		_tasks_start = .;
 		*(.tasks)
 		_tasks_end = .;
