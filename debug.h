@@ -14,8 +14,13 @@ DebugMsg(
 );
 
 
+extern const char * dm_names[];
+
+// To find these, look at the dm_names table at 0x292C
+// Subtract the pointer from 0x292c and divide by 4
 #define DM_SYS		18
 #define DM_AUDIO	20
+#define DM_MAGIC	50 // Replaces PTPCOM with MAGIC
 
 struct dm_state
 {

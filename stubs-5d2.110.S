@@ -33,6 +33,9 @@ NSTUB( 0xFF86725C, dumpf )
 NSTUB( 0xFF866948, dmstart )
 NSTUB( 0xFF866988, dmstop )
 
+/** This stores pointers to all of the debugging subsystem names */
+NSTUB( 0x292c, dm_names )
+
 /** Find this one to be able to identify named functions */
 NSTUB( 0xFF999CFC, register_function )
 

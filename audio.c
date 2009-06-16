@@ -355,8 +355,11 @@ draw_text_state( void )
 static void
 my_task( void )
 {
+	// Overwrite the PTPCOM message
+	dm_names[ DM_MAGIC ] = "[MAGIC] ";
+
 	msleep( 4000 );
-	DebugMsg( DM_AUDIO, 3, "!!!!! User task is running" );
+	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
 	//sounddev_active_in(0,0);
 	//sounddev_active_out(0,0);
 
@@ -440,7 +443,7 @@ my_sounddev_task( void )
 
 	while(1)
 	{
-		if( (take_semaphore( sounddev.sem_alc, 0 ) & 1) == 1 )
+		if( take_semaphore( sounddev.sem_alc, 0 ) & 1 )
 			break;
 
 		DebugMsg( DM_AUDIO, 3, "Awake and disabling alc" );
@@ -455,7 +458,7 @@ my_sounddev_task( void )
 		//FIO_WriteFile( file, &level, sizeof(level) );
 	}
 
-	DebugMsg( DM_AUDIO, 3, "!!!!! %s task aborted!", __func__ );
+	DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
 }
 
 //TASK_OVERRIDE( sounddev_task, my_sounddev_task );
@@ -482,14 +485,16 @@ my_audio_level_task( void )
 	while(1)
 	{
 		DebugMsg( DM_AUDIO, 3, "%s: sleeping init=%d\n", __func__, audio_in.initialized );
-		if( take_semaphore( audio_in.sem_interval, 0 ) )
+		if( take_semaphore( audio_in.sem_interval, 0 ) & 1 )
 		{
 			//DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
+			break;
 		}
 
-		if( take_semaphore( audio_in.sem_task, 0 ) )
+		if( take_semaphore( audio_in.sem_task, 0 ) & 1 )
 		{
 			//DebugAssert( "!IS_ERROR", SoundDevice", 0x83 );
+			break;
 		}
 
 		DebugMsg( DM_AUDIO, 3, "%s: awake init=%d\n", __func__, audio_in.initialized );
@@ -548,6 +553,7 @@ my_audio_level_task( void )
 		oneshot_timer( 0x200, audio_interval_unlock, audio_interval_unlock, 0 );
 	}
 
+	DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
 }
 
 
