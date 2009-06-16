@@ -24,7 +24,7 @@ struct hotplug_struct
 
 extern struct hotplug_struct hotplug_struct;
 
-void
+static void
 my_hotplug_task( void )
 {
 	volatile uint32_t * camera_engine = (void*) 0xC0220000;
@@ -58,3 +58,5 @@ my_hotplug_task( void )
 		// Something with a semaphore?  Sleep?
 	}
 }
+
+TASK_OVERRIDE( hotplug_task, my_hotplug_task );

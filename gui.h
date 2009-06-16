@@ -94,13 +94,6 @@ gui_task_create(
 );
 
 
-// Task that starts up all of the GUI stuff.
-// Override it to be able to install our own idle handler before it
-// gets the chance to do so.
-extern void gui_main_task( void );
-extern void my_gui_main_task( void );
-
-
 // Internal functions used by the gui code
 struct event
 {

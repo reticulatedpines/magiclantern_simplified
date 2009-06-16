@@ -6,7 +6,6 @@
  */
 #include "dryos.h"
 
-
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
 void my_init_task(void);
@@ -110,27 +109,6 @@ null_task( void )
 }
 
 
-extern void hotplug_task( void );
-extern void my_hotplug_task( void );
-extern void my_audio_level_task( void );
-extern void sounddev_task( void );
-extern void my_sounddev_task( void );
-
-
-struct task_mapping
-{
-	thunk		orig;
-	thunk		replacement;
-};
-
-static const TEXT struct task_mapping task_mappings[] = {
-	{ sounddev_task,	my_sounddev_task },
-	{ audio_level_task,	my_audio_level_task },
-	{ hotplug_task,		my_hotplug_task },
-	{ gui_main_task,	my_gui_main_task },
-	{ 0, 0 }
-};
-
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -152,21 +130,18 @@ my_task_dispatch_hook(
 	if( task->context->pc != (uint32_t) task_trampoline )
 		return;
 
-	// Search the task_mappings array for a matching entry point
 	thunk entry = (thunk) task->entry;
-	const struct task_mapping * mapping = task_mappings;
 
-	while( 1 )
+	// Search the task_mappings array for a matching entry point
+	extern struct task_mapping * _task_overrides_start;
+	extern struct task_mapping * _task_overrides_end;
+	const struct task_mapping * mapping = _task_overrides_start;
+
+	for( ; mapping < _task_overrides_end ; mapping++ )
 	{
 		thunk original_entry = mapping->orig;
-		if( !original_entry )
-			break;
-
 		if( original_entry != entry )
-		{
-			mapping++;
 			continue;
-		}
 
 /* -- can't call debugmsg from this context */
 		DebugMsg( 0x85, 3, "***** Replacing task %x with %x",
@@ -177,19 +152,6 @@ my_task_dispatch_hook(
 		task->entry = mapping->replacement;
 		break;
 	}
-
-#if 0
-	// Try to replace the sound device task
-	// The trampoline will run our entry point instead
-	if( task->entry == sound_dev_task )
-		task->entry = my_sound_dev_task;
-	if( task->entry == gui_main_task )
-		task->entry = my_gui_main_task;
-	if( task->entry == hotplug_task )
-		task->entry = my_hotplug_task;
-	if( task->entry == audio_level_task )
-		task->entry = my_audio_level_task;
-#endif
 }
 
 

@@ -16,7 +16,7 @@
 #include "vram.h"
 #include "state-object.h"
 #include "camera.h"
-
+#include "tasks.h"
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
@@ -61,42 +61,6 @@ dm_event_dispatch(
 	int			dwEventId
 );
 
-
-/** Tasks and contexts */
-
-
-struct context
-{
-	uint32_t		cpsr;
-	uint32_t		r[13];
-	uint32_t		lr;
-	uint32_t		pc;
-};
-
-struct task
-{
-	uint32_t		off_0x00;	// always 0?
-	uint32_t		off_0x04;	// stack maybe?
-	uint32_t		off_0x08;	// flags?
-	void *			entry;		// off 0x0c
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	uint32_t		off_0x20;
-	char *			name;		// off_0x24;
-	uint32_t		off_0x28;
-	uint32_t		off_0x2c;
-	uint32_t		off_0x30;
-	uint32_t		off_0x34;
-	uint32_t		off_0x38;
-	uint32_t		off_0x3c;
-	uint32_t		off_0x40;
-	uint32_t		off_0x44;
-	uint32_t		off_0x48;
-	struct context *	context;	// off 0x4C
-	uint32_t		pad_1[12];
-};
 
 
 
@@ -190,10 +154,6 @@ sounddev_active_out(
 );
 
 
-/** Return the head of the running task list */
-extern struct task *
-get_current_task(void);
-
 
 /** Put the current task to sleep for msec miliseconds */
 extern void
@@ -211,23 +171,6 @@ sched_yield(
 	uint32_t		must_be_zero
 );
 
-
-/** Official initial task.
- * \note Overridden by reboot shim.
- * \internal
- */
-extern void
-init_task( void );
-
-/** Official routine to create the init task.
- * \internal
- */
-extern void
-create_init_task( void );
-
-/** unknown */
-extern int
-task_save_state( void * buf );
 
 
 extern int
@@ -257,9 +200,6 @@ EP_SetLVAEDebugPort(
 	uint32_t *		enable_ptr
 );
 
-extern void *
-new_task_struct( int );
-
 
 /** Create a new user level task.
  *
@@ -274,23 +214,6 @@ task_create(
 	void * unknown1
 );
 
-
-/** Bootstrap a new task.
- * \internal
- * \note This is never directly called by the user; it is the entry
- * point used by create_task() to call the user task and then to pass
- * the return code to what ever cleans up after the task exits.
- */
-extern void
-task_trampoline(
-	struct task *		task
-);
-
-
-/** Hook to override task dispatch */
-void (*task_dispatch_hook)(
-	struct context **	context
-);
 
 
 struct semaphore;

@@ -5,7 +5,6 @@
  */
 #include "dryos.h"
 
-
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
 	uint32_t		counter;	// off_0x04;
@@ -38,8 +37,8 @@ struct event gui_events[ 16 ] TEXT;
 int gui_events_index TEXT;
 
 
-// Replaces the gui_main_task at 0xFF823698
-void
+// Replaces the gui_main_task
+static void
 my_gui_main_task( void )
 {
 	gui_init_end();
@@ -218,3 +217,5 @@ queue_clear:
 		goto event_loop_bottom;
 	}
 }
+
+TASK_OVERRIDE( gui_main_task, my_gui_main_task );

@@ -4,7 +4,6 @@
 #include "dryos.h"
 #include "bmp.h"
 
-
 /** Read the raw level from the audio device.
  *
  * Expected values are signed 16-bit?
@@ -57,7 +56,7 @@ generate_palette( void )
 		}
 	}
 
-	static int written TEXT;
+	static int written;
 	if( !written )
 		dispcheck();
 	written = 1;
@@ -68,8 +67,8 @@ generate_palette( void )
 void draw_meters(void)
 {
 #define MAX_SAMPLES 720
-	static int16_t TEXT levels[ MAX_SAMPLES ];
-	static uint32_t TEXT index;
+	static int16_t levels[ MAX_SAMPLES ];
+	static uint32_t index;
 	levels[ index++ ] = audio_read_level();
 	if( index >= MAX_SAMPLES )
 		index = 0;
@@ -95,8 +94,8 @@ void draw_meters(void)
 
 }
 #else
-static int TEXT db_avg;
-static int TEXT db_peak;
+static int db_avg;
+static int db_peak;
 
 
 static uint8_t
@@ -202,7 +201,7 @@ draw_zebra( void )
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 
 /*
-	static int written TEXT;
+	static int written;
 	if( !written )
 		write_debug_file( "vram.yuv", vram->vram, vram->height * vram->pitch * 2 );
 	written = 1;
@@ -264,7 +263,7 @@ draw_zebra( void )
 }
 
 
-static void * gui_logfile TEXT;
+static void * gui_logfile;
 
 static int
 my_gui_task(
@@ -277,7 +276,7 @@ my_gui_task(
 	uint32_t args[] = { (uint32_t) arg, event, arg2, arg3 };
 	if( gui_logfile )
 		FIO_WriteFile( gui_logfile, &args, sizeof(args) );
-	static int count TEXT;
+	static int count;
 
 	if( count++ == 512 )
 	{
@@ -455,6 +454,8 @@ my_sounddev_task( void )
 	}
 }
 
+TASK_OVERRIDE( sounddev_task, my_sounddev_task );
+
 
 /** Replace the audio level task with our own.
  *
@@ -462,7 +463,7 @@ my_sounddev_task( void )
  * the average audio level and translate it to dB.  Nothing ever seems
  * to activate it, so it is commented out for now.
  */
-void
+static void
 my_audio_level_task( void )
 {
 	//const uint32_t * const thresholds = (void*) 0xFFC60ABC;
@@ -544,6 +545,9 @@ my_audio_level_task( void )
 	}
 
 }
+
+
+TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 
 
 void

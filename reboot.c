@@ -33,7 +33,7 @@ asm(
 	".align 12\n" // 2^12 == 4096 bytes
 	".globl blob_start\n"
 	"blob_start:\n"
-	".incbin \"5d-hack.bin\"\n" // 
+	".incbin \"magiclantern.bin\"\n" // 
 	".align 12\n"
 	"blob_end:\n"
 	".globl blob_end\n"

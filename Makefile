@@ -50,6 +50,8 @@ AFLAGS=\
 	$(CC) $(CFLAGS) -S -o $@ $<
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
+%.i: %.c
+	$(CC) $(CFLAGS) -E -c -o $@ $<
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $<
 %.o: %.S
@@ -68,11 +70,16 @@ dumper: dumper_entry.o dumper.o
 
 dumper_entry.o: flasher-stubs.S
 
-reboot.o: reboot.c 5d-hack.bin
+reboot.o: reboot.c magiclantern.bin
 5d-hack.bin: 5d-hack
 
+magiclantern.lds: magiclantern.lds.S
+	$(CPP) $(CFLAGS) $< | grep -v '^#' > $@
 
-5d-hack: \
+# magiclantern.lds script MUST be first
+# entry.o MUST be second
+magiclantern: \
+	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
 	gui.o \
@@ -84,10 +91,11 @@ reboot.o: reboot.c 5d-hack.bin
 
 	$(LD) \
 		-o $@ \
+		-N \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
-		-Ttext=$(RESTARTSTART) \
+		-T \
 		$^
 
 
