@@ -132,7 +132,6 @@ static const uint8_t bg_color = 0x03;
 /* Normal VU meter */
 static void draw_meters(void)
 {
-#if 0
 	uint32_t x,y;
 
 	const uint32_t width = bmp_width();
@@ -142,22 +141,43 @@ static void draw_meters(void)
 	// The db values are multiplied by 8 to make them
 	// smoother.
 	const uint32_t x_db_avg = width + db_avg * 2;
-	const uint32_t x_db = width + db_peak * 2;
+	const uint32_t x_db_peak = width + db_peak * 2;
 
 	const uint8_t white_color = 0x01;
 	const uint8_t black_color = 0x02;
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
-	const uint32_t meter_start = 391;
-	const uint32_t meter_height = 8;
+	const uint32_t meter_start = 16;
+	const uint32_t meter_height = 4;
 	const uint32_t tick_start = meter_start;
-	const uint32_t tick_height = 8;
+	const uint32_t tick_height = 1;
 
 
-	bmp_fill( bg_color, 0, meter_start, width, meter_height ); // width - x_db_avg - 1, meter_height );
-	bmp_fill( bar_color, 0, meter_start, x_db_avg, meter_height );
-	bmp_fill( peak_color, x_db, meter_start, 10, meter_height );
+	bmp_fill(
+		bg_color,
+		x_db_avg,
+		meter_start,
+		width - x_db_avg - 1,
+		meter_height
+	);
+
+	bmp_fill(
+		bar_color,
+		0,
+		meter_start,
+		x_db_avg,
+		meter_height
+	);
+
+	bmp_fill(
+		peak_color,
+		x_db_peak,
+		meter_start,
+		10,
+		meter_height
+	);
+
 	//bmp_fill( white_color, 0, meter_start -1, width, 1 );
 
 	// Draw the dB scales a 32-bit word at a time
@@ -173,7 +193,6 @@ static void draw_meters(void)
 
 		row += pitch/4;
 	}
-#endif
 
 	bmp_printf( 100, 100, "%d/%d",
 		db_peak / 8,
@@ -280,35 +299,8 @@ my_gui_task(
 	int			arg3
 )
 {
-	uint32_t args[] = { (uint32_t) arg, event, arg2, arg3 };
-	if( gui_logfile )
-		FIO_WriteFile( gui_logfile, &args, sizeof(args) );
-	static int count;
-
-	if( count++ == 512 )
-	{
-		FIO_CloseFile( gui_logfile );
-		gui_logfile = 0;
-	}
-
-/*
-	if( event != 0x10000085 && event != 0x10000054 )
-		bmp_printf( 0, 100,
-			"Ev: %08x args %08x %08x",
-			event,
-			arg2,
-			arg3
-		);
-*/
-
-	// Prevent the picture style button from ever being sent on
-	if( event == PRESS_PICSTYLE_BUTTON
-	||  event == 0x81A
-	||  event == 0x828 )
-		return 0;
-
 	//draw_matte();
-	//draw_meters();
+	draw_meters();
 	//draw_zebra();
 	return 1;
 }
@@ -365,6 +357,13 @@ my_task( void )
 	call( "FA_StartLiveView" );
 
 	//gui_task_create( my_gui_task, 0x9999 );
+	//msleep( 500 );
+	//dialog_create( 0, 0, my_gui_task, 0xC0, 0 );
+
+	//msleep( 500 );
+	//call( "checkdraftvram" );
+	//msleep( 500 );
+	//dumpf();
 
 	int do_disp_check = 0;
 	uint32_t cycle_count = 0;
@@ -379,16 +378,24 @@ my_task( void )
 			raw_level = -raw_level;
 
 		int db = audio_level_to_db( raw_level ) * 8;
-		db_avg = (db_avg * 15 + db ) / 16;
-
-		if( db > db_peak )
-			db_peak = db;
+		db_avg = db; // (db_avg * 15 + db ) / 16;
 
 		// decay /  ramp the peak and averages down at a slower rate
 		if( db_avg > -40*8 )
 			db_avg--;
 		if( db_peak > -40*8 )
-			db_peak = (db_peak * 3 + db_avg) / 4;
+			db_peak--;
+
+		if( db > db_peak )
+			db_peak = db;
+		if( db_avg > 0 )
+			db_avg = 0;
+		if( db_peak > 0 )
+			db_peak = 0;
+		if( db_avg < -40*8 )
+			db_avg = -40*8;
+		if( db_peak < -40*8 )
+			db_peak = -40*8;
 
 		if( gui_events[ gui_events_index ].type == 0
 		&&  gui_events[ gui_events_index ].param == 0x13
@@ -458,8 +465,8 @@ my_sounddev_task( void )
 		//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
 
 		// Set manual low gain; +30dB == 0xE1
-		audio_ic_write( AUDIO_IC_IVL | 0xA0 );
-		audio_ic_write( AUDIO_IC_IVR | 0xA0 );
+		audio_ic_write( AUDIO_IC_IVL | 0xB1 );
+		audio_ic_write( AUDIO_IC_IVR | 0xB1 );
 
 		// Disable HPF
 		audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
@@ -468,10 +475,10 @@ my_sounddev_task( void )
 		audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
 
 		// Disable LPF
-		audio_ic_write( AUDIO_IC_LPF0 | 0x00 );
-		audio_ic_write( AUDIO_IC_LPF1 | 0x00 );
-		audio_ic_write( AUDIO_IC_LPF2 | 0x00 );
-		audio_ic_write( AUDIO_IC_LPF3 | 0x00 );
+		//audio_ic_write( AUDIO_IC_LPF0 | 0x00 );
+		//audio_ic_write( AUDIO_IC_LPF1 | 0x00 );
+		//audio_ic_write( AUDIO_IC_LPF2 | 0x00 );
+		//audio_ic_write( AUDIO_IC_LPF3 | 0x00 );
 
 		uint32_t level = 0;
 		audio_ic_read( AUDIO_IC_ALCVOL, &level );
@@ -580,6 +587,14 @@ my_audio_level_task( void )
 
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 
+static void
+dump_task( void )
+{
+	msleep( 10000 );
+	DebugMsg( DM_MAGIC, 3, "Calling dumpf" );
+	dumpf();
+}
+
 
 void
 create_audio_task(void)
@@ -588,9 +603,11 @@ create_audio_task(void)
 
 	task_create(
 		"user_task",
-		0x1F,
+		0x1f,
 		0x1000,
 		my_task,
 		0
 	);
+
+	//task_create( "dump_task", 0x1f, 0, dump_task, 0 );
 }
