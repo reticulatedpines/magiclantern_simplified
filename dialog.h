@@ -23,9 +23,15 @@ struct winsys_struct
 	uint32_t		off_0x2c;
 	uint32_t		flag_0x30;
 	uint32_t		flag_0x34;
+	uint32_t		off_0x38;
+	uint32_t		off_0x3c;
+	uint32_t		off_0x40;
+	uint32_t		off_0x44; // used for collapsed vram?
+	uint32_t		off_0x48;
+	uint32_t		off_0x4c;
 };
 
-SIZE_CHECK_STRUCT( winsys_struct, 0x38 );
+SIZE_CHECK_STRUCT( winsys_struct, 0x50 );
 
 extern struct winsys_struct winsys_struct;
 

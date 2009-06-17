@@ -98,6 +98,9 @@ NSTUB( 0xFF88D810, gui_change_shoot_type_post )
 NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
 /** @} */
 
+/** Look for the call in CreateDialog */
+NSTUB( 0xFFA5446C, gui_task_create )
+NSTUB( 0xFFA55654, dialog_create )
 
 /** This can be found in dispcheck, but keep in mind that it
  * references bmp_vram_info[1], so subtract 0xC from its value
