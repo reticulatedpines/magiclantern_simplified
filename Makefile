@@ -4,6 +4,7 @@ OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
+VERSION=001
 
 
 # 5D memory map
@@ -18,6 +19,17 @@ all: \
 	5d2_dumper.fir \
 	magiclantern.fir \
 
+zip: magiclantern-$(VERSION).zip
+
+# zip.txt must be the first item on the list!
+magiclantern-$(VERSION).zip: \
+	zip.txt \
+	magiclantern.fir \
+	README \
+	LICENSE \
+
+	-rm $@
+	zip -z $@ < $^
 
 
 FLAGS=\
