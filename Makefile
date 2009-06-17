@@ -4,7 +4,7 @@ OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=001
+VERSION=0.1.0
 
 
 # 5D memory map
