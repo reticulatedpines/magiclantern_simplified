@@ -132,6 +132,7 @@ static const uint8_t bg_color = 0x03;
 /* Normal VU meter */
 static void draw_meters(void)
 {
+#if 0
 	uint32_t x,y;
 
 	const uint32_t width = bmp_width();
@@ -149,7 +150,7 @@ static void draw_meters(void)
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
 	const uint32_t meter_start = 391;
-	const uint32_t meter_height = 32;
+	const uint32_t meter_height = 8;
 	const uint32_t tick_start = meter_start;
 	const uint32_t tick_height = 8;
 
@@ -172,6 +173,12 @@ static void draw_meters(void)
 
 		row += pitch/4;
 	}
+#endif
+
+	bmp_printf( 100, 100, "%d/%d",
+		db_peak / 8,
+		db_avg / 8
+	);
 
 }
 #endif
@@ -338,15 +345,6 @@ draw_events( void )
 #endif
 
 
-static void
-draw_text_state( void )
-{
-	bmp_printf( 100, 100, "Audio %d/%d",
-		db_peak / 8,
-		db_avg / 8
-	);
-}
-
 /** Task to monitor the audio levels.
  *
  * Compute the average and peak level, periodically calling
@@ -418,9 +416,9 @@ my_task( void )
 			dumpf();
 		}
 
-		//draw_meters();
+		draw_meters();
 		//draw_zebra();
-		draw_text_state();
+		//draw_text_state();
 	}
 }
 
@@ -439,29 +437,52 @@ my_sounddev_task( void )
 
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
+	sounddev_active_in(0,0);
+
 	int level = 0;
 
 	while(1)
 	{
+#if 0
 		if( take_semaphore( sounddev.sem_alc, 0 ) & 1 )
 			break;
-
 		DebugMsg( DM_AUDIO, 3, "Awake and disabling alc" );
-
-		msleep( 500 );
 		audio_set_alc_off();
-		//audio_set_volume_in( 0, level ? 83 : 0 );
-		bmp_printf( 100, 150, "alc off" );
-		//level = !level;
+#else
+		msleep( 1000 );
 
-		//uint32_t level = audio_read_level();
-		//FIO_WriteFile( file, &level, sizeof(level) );
+		audio_ic_write( AUDIO_IC_SIG1 | 0x04 ); // power up, no gain
+		audio_ic_write( AUDIO_IC_SIG2 | 0x00 ); // external, no gain
+		audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
+		audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
+		//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
+
+		// Set manual low gain; +30dB == 0xE1
+		audio_ic_write( AUDIO_IC_IVL | 0xA0 );
+		audio_ic_write( AUDIO_IC_IVR | 0xA0 );
+
+		// Disable HPF
+		audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
+		audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
+		audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
+		audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
+
+		// Disable LPF
+		audio_ic_write( AUDIO_IC_LPF0 | 0x00 );
+		audio_ic_write( AUDIO_IC_LPF1 | 0x00 );
+		audio_ic_write( AUDIO_IC_LPF2 | 0x00 );
+		audio_ic_write( AUDIO_IC_LPF3 | 0x00 );
+
+		uint32_t level = 0;
+		audio_ic_read( AUDIO_IC_ALCVOL, &level );
+		bmp_printf( 100, 200, "alc: %d", level );
+#endif
 	}
 
 	DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
 }
 
-//TASK_OVERRIDE( sounddev_task, my_sounddev_task );
+TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 
 
 /** Replace the audio level task with our own.

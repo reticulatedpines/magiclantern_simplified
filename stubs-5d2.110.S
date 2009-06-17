@@ -127,6 +127,8 @@ NSTUB( 0xFF97233C, audio_interval_unlock )
 NSTUB( 0xFF857004, sounddev_active_in )
 NSTUB( 0xFF857134, sounddev_active_out )
 NSTUB( 0xFF854FC4, audio_start_asif_observer )
+NSTUB( 0xFF856D8C, audio_ic_read )
+NSTUB( 0xFF855CC8, audio_ic_write )
 
 NSTUB( 0xFF868184, oneshot_timer )
 
