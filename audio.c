@@ -299,9 +299,9 @@ my_gui_task(
 	int			arg3
 )
 {
-	//draw_matte();
+	draw_zebra();
+	draw_matte();
 	draw_meters();
-	//draw_zebra();
 	return 1;
 }
 
@@ -423,8 +423,8 @@ my_task( void )
 			dumpf();
 		}
 
+		draw_zebra();
 		draw_meters();
-		//draw_zebra();
 		//draw_text_state();
 	}
 }
