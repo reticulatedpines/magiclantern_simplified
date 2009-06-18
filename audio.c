@@ -458,13 +458,15 @@ my_sounddev_task( void )
 #else
 		msleep( 1000 );
 
-		audio_ic_write( AUDIO_IC_SIG1 | 0x04 ); // power up, no gain
-		audio_ic_write( AUDIO_IC_SIG2 | 0x00 ); // external, no gain
+		audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
+		audio_ic_write( AUDIO_IC_SIG1 | 0x14 ); // power up, no gain
+		audio_ic_write( AUDIO_IC_SIG2 | 0x04 ); // external, no gain
 		audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
 		audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
 		//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
 
 		// Set manual low gain; +30dB == 0xE1
+		// gain == (byte - 145) * 0.375
 		audio_ic_write( AUDIO_IC_IVL | 0xB1 );
 		audio_ic_write( AUDIO_IC_IVR | 0xB1 );
 
@@ -479,6 +481,12 @@ my_sounddev_task( void )
 		//audio_ic_write( AUDIO_IC_LPF1 | 0x00 );
 		//audio_ic_write( AUDIO_IC_LPF2 | 0x00 );
 		//audio_ic_write( AUDIO_IC_LPF3 | 0x00 );
+
+		// Enable loop mode
+		uint32_t mode3 = 0;
+		audio_ic_read( AUDIO_IC_MODE3, &mode3 );
+		mode3 |= (1<<6);
+		audio_ic_write( AUDIO_IC_MODE3 | mode3 );
 
 		uint32_t level = 0;
 		audio_ic_read( AUDIO_IC_ALCVOL, &level );
