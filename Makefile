@@ -4,7 +4,7 @@ OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.1.0
+VERSION=0.1.1
 
 
 # 5D memory map
@@ -18,6 +18,11 @@ RELOCADDR		= 0x00050000
 all: \
 	5d2_dumper.fir \
 	magiclantern.fir \
+
+install: magiclantern.fir
+	cp magiclantern.fir /Volumes/KINGSTON/5d2.fir
+	hdiutil unmount /Volumes/KINGSTON/
+
 
 zip: magiclantern-$(VERSION).zip
 
