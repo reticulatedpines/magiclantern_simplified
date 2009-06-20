@@ -384,11 +384,13 @@ my_sounddev_task( void )
 		//audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
 		//audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
 
-		// Disable LPF
-		//audio_ic_write( AUDIO_IC_LPF0 | 0x00 );
-		//audio_ic_write( AUDIO_IC_LPF1 | 0x00 );
-		//audio_ic_write( AUDIO_IC_LPF2 | 0x00 );
-		//audio_ic_write( AUDIO_IC_LPF3 | 0x00 );
+		// Enable the LPF
+		// Canon uses F2A/B = 0x0ED4 and 0x3DA9.
+		audio_ic_write( AUDIO_IC_LPF0 | 0xD4 );
+		audio_ic_write( AUDIO_IC_LPF1 | 0x0E );
+		audio_ic_write( AUDIO_IC_LPF2 | 0xA9 );
+		audio_ic_write( AUDIO_IC_LPF3 | 0x3D );
+		audio_ic_write( AUDIO_IC_FIL1 | audio_ic_read( AUDIO_IC_FIL1 ) | (1<<5) );
 
 		// Enable loop mode
 		uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );

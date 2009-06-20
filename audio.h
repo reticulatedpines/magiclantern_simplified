@@ -130,6 +130,7 @@ audio_ic_write(
 #define AUDIO_IC_MODE3	0x2E00
 #define AUDIO_IC_MODE4	0x2F00
 #define AUDIO_IC_PM3	0x3000
+#define AUDIO_IC_FIL1	0x3100
 #define AUDIO_IC_HPF0	0x3C00
 #define AUDIO_IC_HPF1	0x3D00
 #define AUDIO_IC_HPF2	0x3E00
