@@ -104,6 +104,8 @@ draw_zebra( void )
 int
 zebra_task( void )
 {
+	msleep( 4000 );
+
 	while(1)
 	{
 		draw_zebra();

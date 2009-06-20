@@ -106,7 +106,7 @@ db_peak_to_color(
 	if( db < -35 )
 		return 0x7f; // dark blue
 	if( db < -20 )
-		return 0x07; // bright green
+		return 0x7f; // dark blue
 	if( db < -15 )
 		return 0xAE; // bright yellow
 	return 0x08; // bright red
@@ -273,12 +273,12 @@ compute_audio_levels(
 		raw = -raw;
 
 	level->last	= raw;
-	level->avg	= (level->avg * 3 + raw) / 4;
+	level->avg	= (level->avg * 15 + raw) / 16;
 	if( raw > level->peak )
 		level->peak = raw;
 
 	// Decay the peak to the average
-	level->peak = ( level->peak + level->avg ) / 2;
+	level->peak = ( level->peak * 7 + level->avg ) / 8;
 }
 
 
@@ -288,60 +288,24 @@ compute_audio_levels(
  * the draw_meters() function to display the results on screen.
  */
 static void
-my_task( void )
+meter_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
-	dm_set_store_level( DM_MOVR, 7 );
-	uint32_t * movw_struct = (void*) 0x1ed4;
-	uint8_t mode = movw_struct[3] & 0xFF;
-	dm_set_store_level( mode, 7 );
-	DebugMsg( DM_MAGIC, 3, "store dm %d", mode );
 
 	msleep( 4000 );
 
-	//sounddev_active_in(0,0);
-	//sounddev_active_out(0,0);
-
-	//FA_StartLiveView();
 	call( "FA_StartLiveView" );
-
-	//gui_task_create( my_gui_task, 0x9999 );
-	//msleep( 500 );
-	//dialog_create( 0, 0, my_gui_task, 0xC0, 0 );
-
-	//msleep( 500 );
-	//call( "checkdraftvram" );
-	//msleep( 500 );
-	//dumpf();
 
 	int do_disp_check = 0;
 
 	while(1)
 	{
 		msleep( 50 );
-		compute_audio_levels( 0 );
-		compute_audio_levels( 1 );
 
 		if( gui_events[ gui_events_index ].type == 0
 		&&  gui_events[ gui_events_index ].param == 0x13
 		)
 			do_disp_check++;
-
-
-		//winsys_take_semaphore();
-		//take_semaphore( hdmi_config.bmpddev_sem, 0 );
-
-		//bmp_hexdump( 10, 200, bmp_vram_info, 64 );
-		//uint32_t x, y, w, h;
-		//vram_image_pos_and_size( &x, &y, &w, &h );
-		//bmp_printf( 100, 200, "vram_info: %dx%d %dx%d", x, y, w, h );
-
-		//bmp_hexdump( 1, 40, (void*) 0x2580, 64 );
-
-		//bmp_hexdump( 1, 40, &winsys_struct, 32 );
-		//bmp_hexdump( 1, 200, winsys_struct.vram_object, 32 );
-
-		//give_semaphore( hdmi_config.bmpddev_sem );
 
 		if( do_disp_check == 1 )
 		{
@@ -349,13 +313,28 @@ my_task( void )
 		}
 
 		draw_meters();
-		//draw_audio_regs();
-		//draw_text_state();
 	}
 }
 
 
-TASK_CREATE( "user_task", my_task, 0, 0x18, 0x1000 );
+TASK_CREATE( "meter_task", meter_task, 0, 0x18, 0x1000 );
+
+
+/** Monitor the audio levels very quickly */
+static void
+compute_audio_level_task( void )
+{
+	msleep( 4000 );
+
+	while(1)
+	{
+		msleep( 16 );
+		compute_audio_levels( 0 );
+		compute_audio_levels( 1 );
+	}
+}
+
+TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
 
 /** Replace the sound dev task with our own to disable AGC.
  *
@@ -387,10 +366,12 @@ my_sounddev_task( void )
 
 		// Set manual low gain; +30dB == 0xE1
 		// gain == (byte - 145) * 0.375
-		audio_ic_write( AUDIO_IC_IVL | 0xB1 );
-		audio_ic_write( AUDIO_IC_IVR | 0xB1 );
+		const uint32_t gain = 18;
+		const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
+		audio_ic_write( AUDIO_IC_IVL | (gain_cmd & 0xFF) );
+		audio_ic_write( AUDIO_IC_IVR | (gain_cmd & 0xFF) );
 
-		// Disable HPF
+		// Disable the HPF
 		//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
 		//audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
 		//audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
