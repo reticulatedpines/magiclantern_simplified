@@ -20,6 +20,7 @@ extern const char * dm_names[];
 // Subtract the pointer from 0x292c and divide by 4
 #define DM_SYS		18
 #define DM_AUDIO	20
+#define DM_MOVR		48
 #define DM_MAGIC	50 // Replaces PTPCOM with MAGIC
 
 struct dm_state
