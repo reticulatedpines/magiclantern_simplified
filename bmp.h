@@ -75,4 +75,24 @@ bmp_fill(
 	uint32_t		h
 );
 
+
+/** Some selected colors */
+#define BG_COLOR		0x03 // transparent black
+#define WHITE_COLOR		0x01 // Normal white
+#define BLUE_COLOR		0x0B // normal blue
+
+static inline uint32_t
+color_word(
+	uint8_t			color
+)
+{
+	return 0
+		| ( color << 24 )
+		| ( color << 16 )
+		| ( color <<  8 )
+		| ( color <<  0 )
+		;
+}
+
+
 #endif

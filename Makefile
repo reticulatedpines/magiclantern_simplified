@@ -99,6 +99,7 @@ magiclantern: \
 	5d-hack.o \
 	gui.o \
 	audio.o \
+	zebra.o \
 	hotplug.o \
 	bmp.o \
 	font.o \

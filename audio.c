@@ -112,9 +112,6 @@ db_peak_to_color(
 	return 0x08; // bright red
 }
 
-// Transparent black
-static const uint8_t bg_color = 0x03;
-
 
 static void
 draw_meter(
@@ -138,23 +135,9 @@ draw_meter(
 	const uint8_t peak_color = db_peak_to_color( db_peak );
 	const int meter_height = 12;
 
-	const uint32_t bar_color_word = 0
-		| (bar_color << 24)
-		| (bar_color << 16)
-		| (bar_color <<  8)
-		| (bar_color <<  0);
-
-	const uint32_t peak_color_word = 0
-		| (peak_color << 24)
-		| (peak_color << 16)
-		| (peak_color <<  8)
-		| (peak_color <<  0);
-
-	const uint32_t bg_color_word = 0
-		| (bg_color << 24)
-		| (bg_color << 16)
-		| (bg_color <<  8)
-		| (bg_color <<  0);
+	const uint32_t bar_color_word = color_word( bar_color );
+	const uint32_t peak_color_word = color_word( peak_color );
+	const uint32_t bg_color_word = color_word( BG_COLOR );
 
 	// Write the meter an entire scan line at a time
 	for( y=0 ; y<meter_height ; y++, row += pitch/4 )
@@ -188,16 +171,23 @@ draw_ticks(
 	uint32_t * row = (uint32_t*) bmp_vram();
 	row += (pitch/4) * y;
 
+	const uint32_t white_word = 0
+		| ( WHITE_COLOR << 24 )
+		| ( WHITE_COLOR << 16 )
+		| ( WHITE_COLOR <<  8 )
+		| ( WHITE_COLOR <<  0 );
+
 	for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
 	{
 		int db;
 		for( db=-40 * 8; db<= 0 ; db+=5*8 )
 		{
 			const uint32_t x_db = width + db * 2;
-			row[x_db/4] = 0x01010101;
+			row[x_db/4] = white_word;
 		}
 	}
 }
+
 
 /* Normal VU meter */
 static void draw_meters(void)
@@ -212,106 +202,6 @@ static void draw_meters(void)
 #endif
 
 
-/** Draw transparent crop marks
- *  And draw the 16:9 crop marks for full time
- * The screen is 480 vertical lines, but we only want to
- * show 720 * 9 / 16 == 405 of them.  If we use this number,
- * however, things don't line up right.
- */
-void
-draw_matte( void )
-{
-	const uint32_t width	= 720;
-
-	bmp_fill( 0x01, 0, 32, width, 1 );
-	bmp_fill( 0x01, 0, 390, width, 1 );
-	//bmp_fill( bg_color, 0, 0, width, 32 );
-	//bmp_fill( bg_color, 0, 390, width, 430 - 390 );
-}
-
-
-static void
-draw_zebra( void )
-{
-	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
-
-/*
-	static int written;
-	if( !written )
-		write_debug_file( "vram.yuv", vram->vram, vram->height * vram->pitch * 2 );
-	written = 1;
-*/
-
-	uint32_t x,y;
-
-	const uint8_t zebra_color_0 = 0x6F; // bright read
-	const uint8_t zebra_color_1 = 0x5F; // dark red
-
-	// For unused contrast detection algorithm
-	//const uint8_t contrast_color = 0x0D; // blue
-	//const uint16_t threshold = 0xF000;
-
-	// skip the audio meter at the top and the bar at the bottom
-	// hardcoded; should use a constant based on the type of display
-	for( y=33 ; y < 390; y++ )
-	{
-		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
-		uint16_t * const b_row = (uint16_t*)( bmp_vram() + y * bmp_pitch() );
-
-		for( x=0 ; x < vram->width ; x+=2 )
-		{
-			uint32_t pixels = v_row[x/2];
-#if 0
-			uint16_t pixel0 = (pixels >> 16) & 0xFFFF;
-			uint16_t pixel1 = (pixels >>  0) & 0xFFFF;
-
-			// Check for contrast
-			// This doesn't work very well, so I have it
-			// compiled out for now.
-			if( (pixel0 > pixel1 && pixel0 - pixel1 > 0x4000 )
-			||  (pixel0 < pixel1 && pixel1 - pixel0 > 0x4000 )
-			)
-			{
-				b_row[x/2] = (contrast_color << 8) | contrast_color;
-				continue;
-			}
-#endif
-
-			// If neither pixel is overexposed, ignore it
-			if( (pixels & 0xF000F000) != 0xF000F000 )
-			{
-				b_row[x/2] = 0;
-				continue;
-			}
-
-			// Determine if we are a zig or a zag line
-			uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
-
-			// Build the 16-bit word to write both pixels
-			// simultaneously into the BMP VRAM
-			uint16_t zebra_color_word = zag
-				? (zebra_color_0<<8) | (zebra_color_0<<0)
-				: (zebra_color_1<<8) | (zebra_color_1<<0);
-
-			b_row[x/2] = zebra_color_word;
-		}
-	}
-}
-
-
-static int
-my_gui_task(
-	void *			UNUSED( arg ),
-	gui_event_t		UNUSED( event ),
-	int			UNUSED( arg2 ),
-	int			UNUSED( arg3 )
-)
-{
-	draw_zebra();
-	draw_matte();
-	draw_meters();
-	return 1;
-}
 
 
 extern struct event gui_events[];
@@ -400,8 +290,6 @@ compute_audio_levels(
 static void
 my_task( void )
 {
-	// Overwrite the PTPCOM message
-	dm_names[ DM_MAGIC ] = "[MAGIC] ";
 	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
 	dm_set_store_level( DM_MOVR, 7 );
 	uint32_t * movw_struct = (void*) 0x1ed4;
@@ -430,7 +318,7 @@ my_task( void )
 
 	while(1)
 	{
-		msleep( 120 );
+		msleep( 50 );
 		compute_audio_levels( 0 );
 		compute_audio_levels( 1 );
 
@@ -460,9 +348,8 @@ my_task( void )
 			dumpf();
 		}
 
-		//draw_zebra();
 		draw_meters();
-		draw_audio_regs();
+		//draw_audio_regs();
 		//draw_text_state();
 	}
 }
@@ -635,13 +522,24 @@ create_audio_task(void)
 {
 	dmstart();
 
+	// Overwrite the PTPCOM message
+	dm_names[ DM_MAGIC ] = "[MAGIC] ";
+
 	task_create(
 		"user_task",
-		0x1f,
+		0x18,
 		0x1000,
 		my_task,
 		0
 	);
 
+	extern void zebra_task( void );
+	task_create(
+		"zebra_task",
+		0x1f,
+		0x1000,
+		zebra_task,
+		0
+	);
 	//task_create( "dump_task", 0x1f, 0, dump_task, 0 );
 }

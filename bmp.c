@@ -20,8 +20,8 @@ _draw_char(
 {
 	unsigned i;
 	const uint32_t	pitch		= bmp_pitch() / 4;
-	const uint32_t	fg_color	= 0x01 << 24;
-	const uint32_t	bg_color	= 0x0b << 24;
+	const uint32_t	fg_color	= WHITE_COLOR << 24;
+	const uint32_t	bg_color	= BLUE_COLOR << 24;
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 
 	for( i=0 ; i<font_height ; i++ )
