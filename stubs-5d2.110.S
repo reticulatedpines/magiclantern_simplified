@@ -13,7 +13,6 @@
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
-NSTUB( RELOCADDR+0xc, reloc_entry )
 
 /** Camera interface? */
 NSTUB( 0xC0220000, camera_engine )

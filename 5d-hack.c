@@ -11,6 +11,11 @@ void my_task_dispatch_hook( struct context ** );
 void my_init_task(void);
 void my_bzero( uint8_t * base, uint32_t size );
 
+/** This just goes into the bss */
+#define RELOCSIZE 0x10000
+static uint8_t _reloc[ RELOCSIZE ];
+#define RELOCADDR ((uintptr_t) _reloc)
+
 /** Translate a firmware address into a relocated address */
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
 
@@ -18,14 +23,29 @@ void my_bzero( uint8_t * base, uint32_t size );
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
 	INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
+
+/** Specified by the linker */
+extern uint32_t _bss_start[], _bss_end[];
+
+static inline void
+zero_bss( void )
+{
+	uint32_t *bss = _bss_start;
+	while( bss < _bss_end )
+		*(bss++) = 0;
+}
+
+
 void
 __attribute__((noreturn,noinline,naked))
 copy_and_restart( void )
 {
+	zero_bss();
+
 	// Copy the firmware to somewhere in memory
 	// bss ends at 0x47750, so we'll use 0x50000
 	const uint32_t * const firmware_start = (void*) ROMBASEADDR;
-	const uint32_t firmware_len = 0x10000;
+	const uint32_t firmware_len = RELOCSIZE;
 	uint32_t * const new_image = (void*) RELOCADDR;
 
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
@@ -41,7 +61,7 @@ copy_and_restart( void )
 	 * in cstart() (0xff810894) make these changes:
 	 */
 	// Reserve memory after the BSS for our application
-	INSTR( 0xFF81093C ) = RELOCADDR + firmware_len;
+	INSTR( 0xFF81093C ) = (uintptr_t) _bss_end;
 
 	// Fix the calls to bzero32() and create_init_task()
 	FIXUP_BRANCH( 0xFF8108A4, bzero32 );
@@ -57,6 +77,7 @@ copy_and_restart( void )
 
 	// We enter after the signature, avoiding the
 	// relocation jump that is at the head of the data
+	thunk reloc_entry = (thunk)( RELOCADDR + 0xC );
 	reloc_entry();
 
 	/*
@@ -91,7 +112,7 @@ copy_and_restart( void )
 }
 
 
-static void
+void
 null_task( void )
 {
 	DebugMsg( DM_SYS, 3, "%s created (and exiting)", __func__ );
@@ -154,7 +175,6 @@ my_task_dispatch_hook(
 void
 my_dump_task( void )
 {
-	int i;
 	dmstart();
 
 	msleep( 10000 );

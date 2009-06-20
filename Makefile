@@ -12,7 +12,6 @@ VERSION=0.1.1
 #
 ROMBASEADDR		= 0xFF810000
 RESTARTSTART		= 0x00048000
-RELOCADDR		= 0x00050000
 
 
 all: \
@@ -43,7 +42,6 @@ FLAGS=\
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
-	-DRELOCADDR=$(RELOCADDR) \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 

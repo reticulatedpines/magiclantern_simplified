@@ -20,10 +20,11 @@ struct audio_level
 	int		last;
 	int		avg;
 	int		peak;
+	int		pad;
 };
 
 
-struct audio_level audio_levels[2] = { {}, {} };
+struct audio_level audio_levels[2];
 
 
 

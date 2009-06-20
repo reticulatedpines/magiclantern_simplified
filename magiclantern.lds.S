@@ -19,7 +19,11 @@ SECTIONS
 		_rodata_start = .;
 		*(.rodata)
 		_rodata_end = .;
+	}
 
+	_data_start = .;
+
+	.data : {
 		/* List of DryOS tasks to be over-ridden */
 		. = ALIGN(8);
 		_task_overrides_start = .;
@@ -34,17 +38,15 @@ SECTIONS
 
 		/* Read/write data */
 		. = ALIGN(64);
-		_data_start = .;
 		*(.data)
-		_data.end = .;
-
-		/* BSS segment to be zeroed */
-		. = ALIGN(64);
-		_bss_start = .;
-		*(.bss)
-		_bss_end = .;
 	}
 
-	. = RELOCADDR;
-	_reloc = .;
+	_data.end = .;
+
+	/* BSS segment to be zeroed */
+	. = ALIGN(64);
+	_bss_start = .;
+	.bss : { *(.bss) }
+	. = ALIGN(64);
+	_bss_end = .;
 }
