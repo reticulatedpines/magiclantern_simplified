@@ -112,3 +112,6 @@ zebra_task( void )
 
 	return 1;
 }
+
+
+TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 );

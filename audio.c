@@ -354,6 +354,9 @@ my_task( void )
 	}
 }
 
+
+TASK_CREATE( "user_task", my_task, 0, 0x18, 0x1000 );
+
 /** Replace the sound dev task with our own to disable AGC.
  *
  * This task disables the AGC when the sound device is activated.
@@ -517,29 +520,4 @@ dump_task( void )
 }
 
 
-void
-create_audio_task(void)
-{
-	dmstart();
-
-	// Overwrite the PTPCOM message
-	dm_names[ DM_MAGIC ] = "[MAGIC] ";
-
-	task_create(
-		"user_task",
-		0x18,
-		0x1000,
-		my_task,
-		0
-	);
-
-	extern void zebra_task( void );
-	task_create(
-		"zebra_task",
-		0x1f,
-		0x1000,
-		zebra_task,
-		0
-	);
-	//task_create( "dump_task", 0x1f, 0, dump_task, 0 );
-}
+//TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );

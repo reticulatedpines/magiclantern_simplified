@@ -197,13 +197,6 @@ my_init_task(void)
 	// Call their init task
 	init_task();
 
-	// Call this one if we need to get a dump after a while
-	//task_create( "my_task", 0x1F, 0x1000, my_dump_task, 0 );
-
-	// Create our init task and our audio level task
-	extern void create_audio_task();
-	create_audio_task();
-
 	// Re-write the version string.
 	// Don't use strcpy() so that this can be done
 	// before strcpy() or memcpy() are located.
@@ -218,4 +211,32 @@ my_init_task(void)
 	additional_version[7] = 'e';
 	additional_version[8] = 'e';
 	additional_version[9] = '\0';
+
+	// Overwrite the PTPCOM message
+	dm_names[ DM_MAGIC ] = "[MAGIC] ";
+	dmstart();
+
+	// Create all of our auto-create tasks
+	extern struct task_create _tasks_start[];
+	extern struct task_create _tasks_end[];
+	struct task_create * task = _tasks_start;
+
+	for( ; task < _tasks_end ; task++ )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"Creating task %s(%d) pri=%02x flags=%08x",
+			task->name,
+			task->arg,
+			task->priority,
+			task->flags
+		);
+
+		task_create(
+			task->name,
+			task->priority,
+			task->flags,
+			task->entry,
+			task->arg
+		);
+	}
 }

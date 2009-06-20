@@ -90,4 +90,26 @@ struct task_mapping task_mapping_##replace_func = { \
 }
 
 
+/** Auto-create tasks */
+struct task_create
+{
+	const char *		name;
+	void			(*entry)( void * );
+	int			priority;
+	uint32_t		flags;
+	void *			arg;
+};
+
+#define TASK_CREATE( NAME, ENTRY, ARG, PRIORITY, FLAGS ) \
+struct task_create \
+__attribute__((section(".tasks"))) \
+task_create_##ENTRY = { \
+	.name		= NAME, \
+	.entry		= ENTRY, \
+	.arg		= ARG, \
+	.priority	= PRIORITY, \
+	.flags		= FLAGS, \
+}
+
+
 #endif
