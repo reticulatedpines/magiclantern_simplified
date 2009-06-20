@@ -4,7 +4,7 @@ OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.1.1
+VERSION=0.1.2
 
 
 # 5D memory map
@@ -44,6 +44,7 @@ FLAGS=\
 	-fno-strict-aliasing \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
+	-DVERSION=\"$(VERSION)\" \
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -104,6 +105,7 @@ magiclantern: \
 	bmp.o \
 	font.o \
 	stubs-5d2.110.o \
+	version.o \
 
 	$(LD) \
 		-o $@ \
@@ -117,6 +119,14 @@ magiclantern: \
 
 font.c: font.in mkfont
 	./mkfont < $< > $@
+
+version.c: FORCE
+	( \
+		echo 'const char build_version[] = "$(VERSION)";' ; \
+		echo 'const char build_id[] = "'`hg id`'";' ; \
+		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' ; \
+		echo 'const char build_user[] = "'`whoami`@`hostname`'";' ; \
+	) > $@
 
 reboot: reboot.o
 	$(LD) \

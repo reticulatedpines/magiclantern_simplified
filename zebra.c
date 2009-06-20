@@ -4,6 +4,7 @@
  */
 #include "dryos.h"
 #include "bmp.h"
+#include "version.h"
 
 /** Draw white thin crop marks
  *  And draw the 16:9 crop marks for full time
@@ -104,6 +105,16 @@ draw_zebra( void )
 int
 zebra_task( void )
 {
+	msleep( 1000 );
+	bmp_printf( 0, 10,
+		"Magic Lantern Firmware version %s (%s)\nBuilt on%s by %s\n%s",
+		build_version,
+		build_id,
+		build_date,
+		build_user,
+		"http://magiclantern.wikia.com/"
+	);
+
 	msleep( 4000 );
 
 	while(1)
