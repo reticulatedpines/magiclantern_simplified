@@ -10,7 +10,7 @@
 
 #include "dryos.h"
 
-/** Returns a pointer to the BMP vram */
+/** Returns a pointer to the real BMP vram */
 static inline uint8_t *
 bmp_vram(void)
 {

@@ -19,30 +19,39 @@ _draw_char(
 )
 {
 	unsigned i;
-	const uint32_t	pitch		= bmp_pitch();
-	const uint8_t	fg_color	= 0x01;
-	const uint8_t	bg_color	= 0x0b;
-	uint8_t *	row		= (uint8_t *) bmp_vram_row;
+	const uint32_t	pitch		= bmp_pitch() / 4;
+	const uint32_t	fg_color	= 0x01 << 24;
+	const uint32_t	bg_color	= 0x0b << 24;
+	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 
 	for( i=0 ; i<font_height ; i++ )
 	{
-		const uint8_t pixels = font[ c + (i << 7) ];
-
-		uint8_t pixel;
-		uint8_t mask = 0x80;
-
-		for( pixel=0 ; pixel<font_width ; pixel++, mask >>= 1 )
-		{
-#if 0
-			asm( "nop\n nop\n nop\n nop\n" );
-#else
-			row[pixel] = ( pixels & mask )
-				? fg_color : bg_color;
-#endif
-		}
+		// Start this scanline
+		uint32_t * row = front_row;
 
 		// move to the next scanline
-		row += pitch;
+		front_row += pitch;
+
+		uint8_t pixels = font[ c + (i << 7) ];
+		uint8_t pixel;
+
+		uint32_t bmp_pixels = 0;
+		for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
+		{
+			bmp_pixels >>= 8;
+			bmp_pixels |= (pixels & 0x80) ? fg_color : bg_color;
+		}
+
+		*(row++) = bmp_pixels;
+		bmp_pixels = 0;
+
+		for( pixel=0 ; pixel<4 ; pixel++, pixels <<= 1 )
+		{
+			bmp_pixels >>= 8;
+			bmp_pixels |= (pixels & 0x80) ? fg_color : bg_color;
+		}
+
+		*(row++) = bmp_pixels;
 	}
 }
 
