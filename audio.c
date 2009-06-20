@@ -194,7 +194,8 @@ static void draw_meters(void)
 		row += pitch/4;
 	}
 
-	bmp_printf( 100, 100, "%d/%d",
+	if(0)
+	bmp_printf( 10, 4, "%d/%d",
 		db_peak / 8,
 		db_avg / 8
 	);
@@ -336,6 +337,30 @@ draw_events( void )
 }
 #endif
 
+static void
+draw_audio_regs( void )
+{
+	int y = 100, reg;
+	for( reg=0x20 ; reg < 0x3F ; reg += 8, y += font_height )
+	{
+		//DebugMsg( DM_MAGIC, 3,
+		bmp_printf( 100, y,
+			"audio reg %02x: %02x %02x %02x %02x  %02x %02x %02x %02x",
+			reg,
+			audio_ic_read( (reg+0) << 8 ),
+			audio_ic_read( (reg+1) << 8 ),
+			audio_ic_read( (reg+2) << 8 ),
+			audio_ic_read( (reg+3) << 8 ),
+			audio_ic_read( (reg+4) << 8 ),
+			audio_ic_read( (reg+5) << 8 ),
+			audio_ic_read( (reg+6) << 8 ),
+			audio_ic_read( (reg+7) << 8 )
+		);
+	}
+
+	bmp_printf( 100, y, "ABCDEFGHIJKLMNOPQRSTUVWYZ\nthe quick brown fox jumps over\nthe lazy dog" );
+}
+
 
 /** Task to monitor the audio levels.
  *
@@ -347,9 +372,15 @@ my_task( void )
 {
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
+	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
+	dm_set_store_level( DM_MOVR, 7 );
+	uint32_t * movw_struct = (void*) 0x1ed4;
+	uint8_t mode = movw_struct[3] & 0xFF;
+	dm_set_store_level( mode, 7 );
+	DebugMsg( DM_MAGIC, 3, "store dm %d", mode );
 
 	msleep( 4000 );
-	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
+
 	//sounddev_active_in(0,0);
 	//sounddev_active_out(0,0);
 
@@ -423,8 +454,9 @@ my_task( void )
 			dumpf();
 		}
 
-		draw_zebra();
-		draw_meters();
+		//draw_zebra();
+		//draw_meters();
+		draw_audio_regs();
 		//draw_text_state();
 	}
 }
@@ -450,12 +482,6 @@ my_sounddev_task( void )
 
 	while(1)
 	{
-#if 0
-		if( take_semaphore( sounddev.sem_alc, 0 ) & 1 )
-			break;
-		DebugMsg( DM_AUDIO, 3, "Awake and disabling alc" );
-		audio_set_alc_off();
-#else
 		msleep( 1000 );
 
 		audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
@@ -471,10 +497,10 @@ my_sounddev_task( void )
 		audio_ic_write( AUDIO_IC_IVR | 0xB1 );
 
 		// Disable HPF
-		audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
-		audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
-		audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
-		audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
+		//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
+		//audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
+		//audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
+		//audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
 
 		// Disable LPF
 		//audio_ic_write( AUDIO_IC_LPF0 | 0x00 );
@@ -483,15 +509,11 @@ my_sounddev_task( void )
 		//audio_ic_write( AUDIO_IC_LPF3 | 0x00 );
 
 		// Enable loop mode
-		uint32_t mode3 = 0;
-		audio_ic_read( AUDIO_IC_MODE3, &mode3 );
+		uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
 		mode3 |= (1<<6);
 		audio_ic_write( AUDIO_IC_MODE3 | mode3 );
 
-		uint32_t level = 0;
-		audio_ic_read( AUDIO_IC_ALCVOL, &level );
-		bmp_printf( 100, 200, "alc: %d", level );
-#endif
+		//draw_audio_regs();
 	}
 
 	DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
