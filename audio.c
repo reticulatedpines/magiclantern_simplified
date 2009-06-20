@@ -115,14 +115,17 @@ db_peak_to_color(
 
 static void
 draw_meter(
-	int			y,
+	int			y_origin,
 	struct audio_level *	level
 )
 {
-	const uint32_t width = bmp_width();
+	const uint32_t width = 640; // bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	uint32_t * row = (uint32_t*) bmp_vram();
-	row += (pitch/4) * y;
+
+	// Skip to the desired y coord and over the
+	// space for the numerical levels
+	row += (pitch/4) * y_origin + 8;
 
 	const int db_avg = audio_level_to_db( level->avg );
 	const int db_peak = audio_level_to_db( level->peak );
@@ -140,6 +143,7 @@ draw_meter(
 	const uint32_t bg_color_word = color_word( BG_COLOR );
 
 	// Write the meter an entire scan line at a time
+	int y;
 	for( y=0 ; y<meter_height ; y++, row += pitch/4 )
 	{
 		uint32_t x;
@@ -151,12 +155,15 @@ draw_meter(
 			if( x < x_db_peak )
 				row[x] = bg_color_word;
 			else
-			if( x < x_db_peak + 10 )
+			if( x < x_db_peak + 4 )
 				row[x] = peak_color_word;
 			else
 				row[x] = bg_color_word;
 		}
 	}
+
+	// Write the current level
+	bmp_printf( 0, y_origin, "%3d", db_avg );
 }
 
 
