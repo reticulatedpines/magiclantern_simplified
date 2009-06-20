@@ -140,5 +140,7 @@ audio_ic_write(
 #define AUDIO_IC_LPF3	0x6F00
 
 
+/** Table of calibrations for audio levels to db */
+extern int audio_thresholds[];
 
 #endif

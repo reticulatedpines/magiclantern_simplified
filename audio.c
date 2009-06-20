@@ -9,10 +9,22 @@
  * Expected values are signed 16-bit?
  */
 static inline int16_t
-audio_read_level( void )
+audio_read_level( int channel )
 {
-	return (int16_t) *(uint32_t*)( 0xC0920000 + 0x110 );
+	uint32_t *audio_level = (uint32_t*)( 0xC0920000 + 0x110 );
+	return (int16_t) audio_level[channel];
 }
+
+struct audio_level
+{
+	int		last;
+	int		avg;
+	int		peak;
+};
+
+
+struct audio_level audio_levels[2] = { {}, {} };
+
 
 
 /** Returns a dB translated from the raw level
@@ -21,7 +33,7 @@ audio_read_level( void )
  */
 static int
 audio_level_to_db(
-	uint32_t		raw_level
+	int			raw_level
 )
 {
 	int db;
@@ -36,31 +48,6 @@ audio_level_to_db(
 }
 
 
-/** Draw a picture of the BMP color palette. */
-static void
-generate_palette( void )
-{
-	uint32_t x, y, msb, lsb;
-
-	for( msb=0 ; msb<16; msb++ )
-	{
-		for( y=0 ; y<30; y++ )
-		{
-			uint8_t * const row = bmp_vram() + (y + 30*msb) * bmp_pitch();
-
-			for( lsb=0 ; lsb<16 ; lsb++ )
-			{
-				for( x=0 ; x<45 ; x++ )
-					row[x+45*lsb] = (msb << 4) | lsb;
-			}
-		}
-	}
-
-	static int written;
-	if( !written )
-		dispcheck();
-	written = 1;
-}
 
 
 #ifdef OSCOPE_METERS
@@ -94,8 +81,6 @@ void draw_meters(void)
 
 }
 #else
-static int db_avg;
-static int db_peak;
 
 
 static uint8_t
@@ -103,11 +88,11 @@ db_to_color(
 	int			db
 )
 {
-	if( db < -35 * 8 )
+	if( db < -35 )
 		return 0x2F; // white
-	if( db < -20 * 8 )
+	if( db < -20 )
 		return 0x06; // dark green
-	if( db < -15 * 8 )
+	if( db < -15 )
 		return 0x0F; // yellow
 	return 0x0c; // dull red
 }
@@ -117,11 +102,11 @@ db_peak_to_color(
 	int			db
 )
 {
-	if( db < -35 * 8 )
+	if( db < -35 )
 		return 0x7f; // dark blue
-	if( db < -20 * 8 )
+	if( db < -20 )
 		return 0x07; // bright green
-	if( db < -15 * 8 )
+	if( db < -15 )
 		return 0xAE; // bright yellow
 	return 0x08; // bright red
 }
@@ -129,60 +114,80 @@ db_peak_to_color(
 // Transparent black
 static const uint8_t bg_color = 0x03;
 
-/* Normal VU meter */
-static void draw_meters(void)
-{
-	uint32_t x,y;
 
+static void
+draw_meter(
+	int			y,
+	struct audio_level *	level
+)
+{
 	const uint32_t width = bmp_width();
 	const uint32_t pitch = bmp_pitch();
+	uint32_t * row = (uint32_t*) bmp_vram();
+	row += (pitch/4) * y;
 
+	const int db_avg = audio_level_to_db( level->avg );
+	const int db_peak = audio_level_to_db( level->peak );
 
-	// The db values are multiplied by 8 to make them
-	// smoother.
-	const uint32_t x_db_avg = width + db_avg * 2;
-	const uint32_t x_db_peak = width + db_peak * 2;
-
-	const uint8_t white_color = 0x01;
-	const uint8_t black_color = 0x02;
+	// levels go from -40 to 0, so -40 * 16 == 640
+	const uint32_t x_db_avg = (width + db_avg * 16) / 4;
+	const uint32_t x_db_peak = (width + db_peak * 16) / 4;
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
-	const uint32_t meter_start = 16;
-	const uint32_t meter_height = 4;
-	const uint32_t tick_start = meter_start;
-	const uint32_t tick_height = 1;
+	const int meter_height = 12;
+
+	const uint32_t bar_color_word = 0
+		| (bar_color << 24)
+		| (bar_color << 16)
+		| (bar_color <<  8)
+		| (bar_color <<  0);
+
+	const uint32_t peak_color_word = 0
+		| (peak_color << 24)
+		| (peak_color << 16)
+		| (peak_color <<  8)
+		| (peak_color <<  0);
+
+	const uint32_t bg_color_word = 0
+		| (bg_color << 24)
+		| (bg_color << 16)
+		| (bg_color <<  8)
+		| (bg_color <<  0);
+
+	// Write the meter an entire scan line at a time
+	for( y=0 ; y<meter_height ; y++, row += pitch/4 )
+	{
+		uint32_t x;
+		for( x=0 ; x<width/4 ; x++ )
+		{
+			if( x < x_db_avg )
+				row[x] = bar_color_word;
+			else
+			if( x < x_db_peak )
+				row[x] = bg_color_word;
+			else
+			if( x < x_db_peak + 10 )
+				row[x] = peak_color_word;
+			else
+				row[x] = bg_color_word;
+		}
+	}
+}
 
 
-	bmp_fill(
-		bg_color,
-		x_db_avg,
-		meter_start,
-		width - x_db_avg - 1,
-		meter_height
-	);
+static void
+draw_ticks(
+	int		y,
+	int		tick_height
+)
+{
+	const uint32_t width = bmp_width();
+	const uint32_t pitch = bmp_pitch();
+	uint32_t * row = (uint32_t*) bmp_vram();
+	row += (pitch/4) * y;
 
-	bmp_fill(
-		bar_color,
-		0,
-		meter_start,
-		x_db_avg,
-		meter_height
-	);
-
-	bmp_fill(
-		peak_color,
-		x_db_peak,
-		meter_start,
-		10,
-		meter_height
-	);
-
-	//bmp_fill( white_color, 0, meter_start -1, width, 1 );
-
-	// Draw the dB scales a 32-bit word at a time
-	uint32_t * row = (uint32_t*)( bmp_vram() + tick_start * bmp_pitch() );
-	for( y=tick_start ; y<tick_start+tick_height ; y++ )
+	for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
 	{
 		int db;
 		for( db=-40 * 8; db<= 0 ; db+=5*8 )
@@ -190,17 +195,19 @@ static void draw_meters(void)
 			const uint32_t x_db = width + db * 2;
 			row[x_db/4] = 0x01010101;
 		}
-
-		row += pitch/4;
 	}
-
-	if(0)
-	bmp_printf( 10, 4, "%d/%d",
-		db_peak / 8,
-		db_avg / 8
-	);
-
 }
+
+/* Normal VU meter */
+static void draw_meters(void)
+{
+	// The db values are multiplied by 8 to make them
+	// smoother.
+	draw_meter( 0, &audio_levels[0] );
+	draw_ticks( 12, 4 );
+	draw_meter( 16, &audio_levels[1] );
+}
+
 #endif
 
 
@@ -238,9 +245,10 @@ draw_zebra( void )
 
 	const uint8_t zebra_color_0 = 0x6F; // bright read
 	const uint8_t zebra_color_1 = 0x5F; // dark red
-	const uint8_t contrast_color = 0x0D; // blue
 
-	const uint16_t threshold = 0xF000;
+	// For unused contrast detection algorithm
+	//const uint8_t contrast_color = 0x0D; // blue
+	//const uint16_t threshold = 0xF000;
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
@@ -252,10 +260,10 @@ draw_zebra( void )
 		for( x=0 ; x < vram->width ; x+=2 )
 		{
 			uint32_t pixels = v_row[x/2];
+#if 0
 			uint16_t pixel0 = (pixels >> 16) & 0xFFFF;
 			uint16_t pixel1 = (pixels >>  0) & 0xFFFF;
 
-#if 0
 			// Check for contrast
 			// This doesn't work very well, so I have it
 			// compiled out for now.
@@ -290,14 +298,12 @@ draw_zebra( void )
 }
 
 
-static void * gui_logfile;
-
 static int
 my_gui_task(
-	void *			arg,
-	gui_event_t		event,
-	int			arg2,
-	int			arg3
+	void *			UNUSED( arg ),
+	gui_event_t		UNUSED( event ),
+	int			UNUSED( arg2 ),
+	int			UNUSED( arg3 )
 )
 {
 	draw_zebra();
@@ -358,7 +364,30 @@ draw_audio_regs( void )
 		);
 	}
 
-	bmp_printf( 100, y, "ABCDEFGHIJKLMNOPQRSTUVWYZ\nthe quick brown fox jumps over\nthe lazy dog" );
+	//bmp_printf( 100, y, "Volume: %08
+	bmp_hexdump( 100, y, (uint32_t*)( 0xC0920000 + 0x110 ), 16 );
+}
+
+
+
+static void
+compute_audio_levels(
+	int ch
+)
+{
+	struct audio_level * const level = &audio_levels[ch];
+
+	int raw = audio_read_level( ch );
+	if( raw < 0 )
+		raw = -raw;
+
+	level->last	= raw;
+	level->avg	= (level->avg * 3 + raw) / 4;
+	if( raw > level->peak )
+		level->peak = raw;
+
+	// Decay the peak to the average
+	level->peak = ( level->peak + level->avg ) / 2;
 }
 
 
@@ -397,36 +426,12 @@ my_task( void )
 	//dumpf();
 
 	int do_disp_check = 0;
-	uint32_t cycle_count = 0;
 
 	while(1)
 	{
-
 		msleep( 120 );
-
-		int raw_level = audio_read_level();
-		if( raw_level < 0 )
-			raw_level = -raw_level;
-
-		int db = audio_level_to_db( raw_level ) * 8;
-		db_avg = db; // (db_avg * 15 + db ) / 16;
-
-		// decay /  ramp the peak and averages down at a slower rate
-		if( db_avg > -40*8 )
-			db_avg--;
-		if( db_peak > -40*8 )
-			db_peak--;
-
-		if( db > db_peak )
-			db_peak = db;
-		if( db_avg > 0 )
-			db_avg = 0;
-		if( db_peak > 0 )
-			db_peak = 0;
-		if( db_avg < -40*8 )
-			db_avg = -40*8;
-		if( db_peak < -40*8 )
-			db_peak = -40*8;
+		compute_audio_levels( 0 );
+		compute_audio_levels( 1 );
 
 		if( gui_events[ gui_events_index ].type == 0
 		&&  gui_events[ gui_events_index ].param == 0x13
@@ -455,7 +460,7 @@ my_task( void )
 		}
 
 		//draw_zebra();
-		//draw_meters();
+		draw_meters();
 		draw_audio_regs();
 		//draw_text_state();
 	}
@@ -477,8 +482,6 @@ my_sounddev_task( void )
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
 	sounddev_active_in(0,0);
-
-	int level = 0;
 
 	while(1)
 	{
@@ -599,7 +602,7 @@ my_audio_level_task( void )
 			audio_in.asif_started = 1;
 		}
 
-		uint32_t level = audio_read_level();
+		//uint32_t level = audio_read_level(0);
 		give_semaphore( audio_in.sem_task );
 
 		// Never adjust it!

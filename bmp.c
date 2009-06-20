@@ -182,3 +182,30 @@ bmp_fill(
 		row += pitch / 4;
 	} while( --h );
 }
+
+
+/** Draw a picture of the BMP color palette. */
+void
+generate_palette( void )
+{
+	uint32_t x, y, msb, lsb;
+
+	for( msb=0 ; msb<16; msb++ )
+	{
+		for( y=0 ; y<30; y++ )
+		{
+			uint8_t * const row = bmp_vram() + (y + 30*msb) * bmp_pitch();
+
+			for( lsb=0 ; lsb<16 ; lsb++ )
+			{
+				for( x=0 ; x<45 ; x++ )
+					row[x+45*lsb] = (msb << 4) | lsb;
+			}
+		}
+	}
+
+	static int written;
+	if( !written )
+		dispcheck();
+	written = 1;
+}

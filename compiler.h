@@ -17,5 +17,8 @@
 /** Force a variable to live in the text segment */
 #define TEXT __attribute__((section(".text")))
 
+/** Flag an argument as unused */
+#define UNUSED(x) __attribute__((unused)) x
+
 
 #endif
