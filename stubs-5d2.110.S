@@ -36,6 +36,9 @@ NSTUB( 0xFF866988, dmstop )
 /** This stores pointers to all of the debugging subsystem names */
 NSTUB( 0x292c, dm_names )
 
+/** This sets the level of messages that will be stored */
+NSTUB( 0xFF8670BC, dm_set_store_level )
+
 /** Find this one to be able to identify named functions */
 NSTUB( 0xFF999CFC, register_function )
 
@@ -130,7 +133,7 @@ NSTUB( 0xFF97233C, audio_interval_unlock )
 NSTUB( 0xFF857004, sounddev_active_in )
 NSTUB( 0xFF857134, sounddev_active_out )
 NSTUB( 0xFF854FC4, audio_start_asif_observer )
-NSTUB( 0xFF856D8C, audio_ic_read )
+NSTUB( 0xFF856D8C, _audio_ic_read )
 NSTUB( 0xFF855CC8, audio_ic_write )
 
 NSTUB( 0xFF868184, oneshot_timer )

@@ -98,10 +98,20 @@ sounddev_active_out(
 
 /** Read and write commands to the AK4646 */
 extern void
-audio_ic_read(
+_audio_ic_read(
 	unsigned		cmd,
 	unsigned *		result
 );
+
+static inline uint8_t
+audio_ic_read(
+	unsigned		cmd
+)
+{
+	unsigned		value = 0;
+	_audio_ic_read( cmd, &value );
+	return value;
+}
 
 extern void
 audio_ic_write(
