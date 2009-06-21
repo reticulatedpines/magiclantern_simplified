@@ -410,7 +410,7 @@ my_sounddev_task( void )
 
 		// Set manual low gain; +30dB == 0xE1
 		// gain == (byte - 145) * 0.375
-		const uint32_t gain = 18;
+		const uint32_t gain = 12;
 		audio_ic_set_input_volume( gain );
 
 		audio_ic_set_mgain( 0x4 ); // 10 dB
