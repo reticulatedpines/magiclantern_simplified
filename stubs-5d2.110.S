@@ -48,6 +48,7 @@ NSTUB( 0xFF8669C8, DebugMsg )
  * with a buffer size of 0x4C.
  */
 NSTUB( 0xFF99853C, vsnprintf )
+NSTUB( 0xFF833A24, write_debug_file )
 
 /** This one is hard to find.  Start around 0xff869c90, looking
  * for functions that take one argument and are called by
@@ -207,7 +208,6 @@ NSTUB( 0xFF98C1CC, FIO_CreateFile )
 NSTUB( 0xFF98C6B4, FIO_WriteFile )
 NSTUB( 0xFF98CD6C, FIO_CloseFile )
 NSTUB( 0xFF98C274, FIO_CloseSync )
-NSTUB( 0xFF833A18, write_debug_file )
 NSTUB( 0xFFC21E14, bzero32 )
 NSTUB( 0xFFA5499C, dialog_create )
 NSTUB( 0xFFA54BFC, dialog_window_prepare )
