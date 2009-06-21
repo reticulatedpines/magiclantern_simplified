@@ -211,7 +211,7 @@ static void draw_meters(void)
 
 
 
-extern struct event gui_events[];
+extern struct event gui_events[16];
 extern int gui_events_index;
 
 #if 0
@@ -316,7 +316,11 @@ meter_task( void )
 
 		if( do_disp_check == 1 )
 		{
+			DebugMsg( DM_MAGIC, 3, "Dumping event log" );
+			draw_version();
+			write_debug_file( "events.log", gui_events, sizeof(gui_events ) );
 			dumpf();
+			do_disp_check = 2;
 		}
 
 		draw_meters();

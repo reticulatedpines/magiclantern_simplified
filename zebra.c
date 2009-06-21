@@ -101,12 +101,14 @@ draw_zebra( void )
 }
 
 
+volatile int do_draw_zebra;
 
-int
-zebra_task( void )
+void
+draw_version( void )
 {
-	msleep( 1000 );
-	bmp_printf( 0, 10,
+	do_draw_zebra = 0;
+
+	bmp_printf( 0, 32,
 		"Magic Lantern Firmware version %s (%s)\nBuilt on%s by %s\n%s",
 		build_version,
 		build_id,
@@ -114,13 +116,28 @@ zebra_task( void )
 		build_user,
 		"http://magiclantern.wikia.com/"
 	);
+}
 
-	msleep( 4000 );
+
+
+int
+zebra_task( void )
+{
+	msleep( 1000 );
+	draw_version();
+	msleep( 5000 );
+
+	do_draw_zebra = 1;
 
 	while(1)
 	{
-		draw_zebra();
-		msleep( 100 );
+		if( do_draw_zebra )
+		{
+			draw_zebra();
+			msleep( 100 );
+		} else {
+			msleep( 500 );
+		}
 	}
 
 	return 1;
