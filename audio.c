@@ -417,6 +417,9 @@ my_sounddev_task( void )
 		const uint32_t gain = 12;
 		audio_ic_set_input_volume( gain );
 
+		// 4 == 10 dB
+		// 5 == 17 dB
+		// 3 == 32 dB
 		audio_ic_set_mgain( 0x4 ); // 10 dB
 
 		//const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
