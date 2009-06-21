@@ -343,6 +343,43 @@ compute_audio_level_task( void )
 
 TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
 
+
+/** Write the MGAIN2-0 bits.
+ * See table 19 for the gain values.
+ * Why is it split between two registers?  I don't know.
+ */
+static inline void
+audio_ic_set_mgain(
+	unsigned		bits
+)
+{
+	bits &= 0x7;
+	unsigned sig1 = audio_ic_read( AUDIO_IC_SIG1 );
+	sig1 &= ~0x3;
+	sig1 |= (bits & 1);
+	sig1 |= (bits & 4) >> 1;
+	audio_ic_write( AUDIO_IC_SIG1 | sig1 );
+
+	unsigned sig2 = audio_ic_read( AUDIO_IC_SIG2 );
+	sig2 &= ~(1<<5);
+	sig2 |= (bits & 2) << 4;
+	audio_ic_write( AUDIO_IC_SIG2 | sig2 );
+}
+
+
+static inline void
+audio_ic_set_input_volume(
+	int			gain
+)
+{
+	unsigned cmd = ( gain * 1000 ) / 375 + 145;
+	cmd &= 0xFF;
+
+	audio_ic_write( AUDIO_IC_IVL | cmd );
+	audio_ic_write( AUDIO_IC_IVR | cmd );
+}
+
+
 /** Replace the sound dev task with our own to disable AGC.
  *
  * This task disables the AGC when the sound device is activated.
@@ -374,9 +411,13 @@ my_sounddev_task( void )
 		// Set manual low gain; +30dB == 0xE1
 		// gain == (byte - 145) * 0.375
 		const uint32_t gain = 18;
-		const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
-		audio_ic_write( AUDIO_IC_IVL | (gain_cmd & 0xFF) );
-		audio_ic_write( AUDIO_IC_IVR | (gain_cmd & 0xFF) );
+		audio_ic_set_input_volume( gain );
+
+		audio_ic_set_mgain( 0x4 ); // 10 dB
+
+		//const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
+		//audio_ic_write( AUDIO_IC_IVL | (gain_cmd & 0xFF) );
+		//audio_ic_write( AUDIO_IC_IVR | (gain_cmd & 0xFF) );
 
 		// Disable the HPF
 		//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
