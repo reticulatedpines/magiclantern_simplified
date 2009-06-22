@@ -101,41 +101,22 @@ draw_zebra( void )
 }
 
 
-volatile int do_draw_zebra;
-
-void
-draw_version( void )
-{
-	do_draw_zebra = 0;
-
-	bmp_printf( 0, 32,
-		"Magic Lantern Firmware version %s (%s)\nBuilt on%s by %s\n%s",
-		build_version,
-		build_id,
-		build_date,
-		build_user,
-		"http://magiclantern.wikia.com/"
-	);
-}
-
 
 
 int
 zebra_task( void )
 {
-	msleep( 1000 );
-	draw_version();
 	msleep( 5000 );
-
-	do_draw_zebra = 1;
 
 	while(1)
 	{
-		if( do_draw_zebra )
+		if( !gui_show_menu )
 		{
 			draw_zebra();
 			msleep( 100 );
 		} else {
+			// Don't display the zebras over the menu.
+			// wait a while and then try again
 			msleep( 500 );
 		}
 	}

@@ -211,9 +211,6 @@ static void draw_meters(void)
 
 
 
-extern struct event gui_events[16];
-extern int gui_events_index;
-
 #if 0
 static void
 draw_events( void )
@@ -241,6 +238,7 @@ draw_events( void )
 }
 #endif
 
+#if 0
 static void
 draw_audio_regs( void )
 {
@@ -265,6 +263,7 @@ draw_audio_regs( void )
 	//bmp_printf( 100, y, "Volume: %08
 	bmp_hexdump( 100, y, (uint32_t*)( 0xC0920000 + 0x110 ), 16 );
 }
+#endif
 
 
 
@@ -303,26 +302,9 @@ meter_task( void )
 
 	call( "FA_StartLiveView" );
 
-	int do_disp_check = 0;
-
 	while(1)
 	{
 		msleep( 50 );
-
-		if( gui_events[ gui_events_index ].type == 0
-		&&  gui_events[ gui_events_index ].param == 0x13
-		)
-			do_disp_check++;
-
-		if( do_disp_check == 1 )
-		{
-			DebugMsg( DM_MAGIC, 3, "Dumping event log" );
-			draw_version();
-			write_debug_file( "events.log", gui_events, sizeof(gui_events ) );
-			dumpf();
-			do_disp_check = 2;
-		}
-
 		draw_meters();
 	}
 }
@@ -549,6 +531,7 @@ my_audio_level_task( void )
 
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 
+#if 0
 static void
 dump_task( void )
 {
@@ -558,4 +541,5 @@ dump_task( void )
 }
 
 
-//TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
+#endif

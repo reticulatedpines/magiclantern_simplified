@@ -5,6 +5,8 @@
  */
 #include "dryos.h"
 
+volatile int gui_show_menu;
+
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
 	uint32_t		counter;	// off_0x04;
@@ -33,8 +35,8 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
-struct event gui_events[ 16 ] TEXT;
-int gui_events_index TEXT;
+struct event gui_events[ MAX_GUI_EVENTS ];
+int gui_events_index;
 
 
 // Replaces the gui_main_task
@@ -43,12 +45,8 @@ my_gui_main_task( void )
 {
 	gui_init_end();
 	uint32_t * obj = 0;
-
-#undef EVENT_LOG
-#ifdef EVENT_LOG
-	void * eventlog = FIO_CreateFile( "A:/event.log" );
-	uint32_t count = 0;
-#endif
+	gui_events_index = 0;
+	gui_show_menu = 0;
 
 	while(1)
 	{
@@ -68,28 +66,15 @@ my_gui_main_task( void )
 		&&  (event->type != 2 && event->param != 0x31)
 		)
 		{
-			gui_events[ ++gui_events_index ] = *event;
-			if( gui_events_index == 16-1 )
-				gui_events_index = 0;
-			DebugMsg( 0x83, 3, "Event: %x, %x, %x, %x",
+			gui_events[ gui_events_index ] = *event;
+			gui_events_index = ( gui_events_index + 1 ) % MAX_GUI_EVENTS;
+			DebugMsg( DM_MAGIC, 3,
+				"Event: %x, %x, %x, %x",
 				event->type,
 				event->param,
 				event->obj,
 				event->arg
 			);
-#ifdef EVENT_LOG
-			if( eventlog )
-			{
-		
-				FIO_WriteFile( eventlog, event, sizeof(*event) );
-
-				if( ++count == 128 )
-				{
-					FIO_CloseFile( eventlog );
-					eventlog = 0;
-				}
-			}
-#endif
 		}
 #endif
 
@@ -117,13 +102,18 @@ my_gui_main_task( void )
 			)
 				goto queue_clear;
 
-			// Ignore the picture style button.  Because we can.
-			if( event->param == 0x0B
-			||  event->param == 0x0D
-			||  event->param == 0x13 )
+			// Change the picture style button to show our menu
+			if( event->param == 0x13 )
+			{
+				gui_show_menu ^= 1;
+				DebugMsg( DM_MAGIC, 3,
+					"gui_show_menu=%d",
+					gui_show_menu
+				);
 				break;
+			}
 
-			DebugMsg( 0x84, 2, "GUI_CONTROL:%d", event->param );
+			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
 			gui_massive_event_loop( event->param, event->obj, event->arg );
 
 			break;

@@ -155,10 +155,12 @@ my_task_dispatch_hook(
 			continue;
 
 /* -- can't call debugmsg from this context */
+#if 0
 		DebugMsg( DM_SYS, 3, "***** Replacing task %x with %x",
 			original_entry,
 			mapping->replacement
 		);
+#endif
 
 		task->entry = mapping->replacement;
 		break;
@@ -216,6 +218,7 @@ my_init_task(void)
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
 	dmstart();
 
+#if 1
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];
 	extern struct task_create _tasks_end[];
@@ -239,4 +242,5 @@ my_init_task(void)
 			task->arg
 		);
 	}
+#endif
 }

@@ -102,6 +102,7 @@ magiclantern: \
 	audio.o \
 	zebra.o \
 	hotplug.o \
+	menu.o \
 	bmp.o \
 	font.o \
 	stubs-5d2.110.o \

@@ -94,7 +94,7 @@ gui_task_create(
 );
 
 
-// Internal functions used by the gui code
+/** Internal structure used by the gui code */
 struct event
 {
 	uint32_t		type;
@@ -102,6 +102,11 @@ struct event
 	void *			obj;
 	uint32_t		arg; // unknown meaning
 };
+
+/** Magic Lantern gui event log */
+#define MAX_GUI_EVENTS		16
+extern struct event gui_events[ MAX_GUI_EVENTS ];
+extern int gui_events_index;
 
 extern void gui_init_end( void );
 extern void msg_queue_receive( void *, struct event **, uint32_t );
@@ -200,5 +205,8 @@ struct gui_struct
 };
 
 extern struct gui_struct gui_struct;
+
+/** Magic Lantern GUI */
+extern volatile int gui_show_menu;
 
 #endif
