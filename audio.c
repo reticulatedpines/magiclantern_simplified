@@ -318,6 +318,8 @@ static void
 compute_audio_level_task( void )
 {
 	msleep( 4000 );
+	audio_levels[0].peak = audio_levels[1].peak = 0;
+	audio_levels[1].avg = audio_levels[1].avg = 0;
 
 	while(1)
 	{
