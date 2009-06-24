@@ -284,7 +284,7 @@ compute_audio_levels(
 		level->peak = raw;
 
 	// Decay the peak to the average
-	level->peak = ( level->peak * 7 + level->avg ) / 8;
+	level->peak = ( level->peak * 31 + level->avg ) / 32;
 }
 
 
