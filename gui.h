@@ -101,6 +101,11 @@ gui_task_create(
 	void *			priv
 );
 
+extern void
+gui_task_destroy(
+	struct gui_task *	task
+);
+
 
 /** Internal structure used by the gui code */
 struct event

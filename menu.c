@@ -211,7 +211,7 @@ menu_handler(
 	// Check if we should stop displaying
 	if( !gui_show_menu )
 	{
-		//gui_task_destroy( menu_task_ptr );
+		gui_task_destroy( menu_task_ptr );
 		menu_task_ptr = 0;
 		return 1;
 	}
