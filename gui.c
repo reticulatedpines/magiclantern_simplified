@@ -105,7 +105,7 @@ my_gui_main_task( void )
 			// Change the picture style button to show our menu
 			if( event->param == 0x13 )
 			{
-				gui_show_menu ^= 1;
+				gui_show_menu = !gui_show_menu;
 				DebugMsg( DM_MAGIC, 3,
 					"gui_show_menu=%d",
 					gui_show_menu

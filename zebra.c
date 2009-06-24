@@ -80,7 +80,10 @@ draw_zebra( void )
 #endif
 
 			// If neither pixel is overexposed, ignore it
-			if( (pixels & 0xF000F000) != 0xF000F000 )
+			extern unsigned zebra_level;
+			uint16_t p0 = (pixels >> 16) & 0xFFFF;
+			uint16_t p1 = (pixels >>  0) & 0xFFFF;
+			if( p0 < zebra_level && p1 < zebra_level )
 			{
 				b_row[x/2] = 0;
 				continue;
