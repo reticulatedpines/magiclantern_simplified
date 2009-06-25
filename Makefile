@@ -189,8 +189,11 @@ eos5d2107.exe:
 
 # Extract the flasher binary file from the firmware image
 # and generate an ELF from it for analysis.
+
+ifdef FETCH_FROM_CANON
 %.1.flasher.bin: %.fir dissect_fw
 	./dissect_fw $< . $(basename $<)
+endif
 
 flasher.elf: 5d200107.1.flasher.bin flasher.map
 	./remake-elf \
