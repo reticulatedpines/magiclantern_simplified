@@ -108,7 +108,7 @@ struct hdmi_config
 	uint32_t		off_0x1c;
 	uint32_t		off_0x20;
 	uint32_t		off_0x24;
-	uint32_t		off_0x28;
+	uint32_t		disp_type; // off_0x28;
 	uint32_t		off_0x2c;
 
 	// 0 == 720x480, 1 = 704x480, 2== 704x576, 3==1920x1080

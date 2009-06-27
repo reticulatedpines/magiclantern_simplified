@@ -94,6 +94,10 @@ draw_zebra( void )
 {
 	const int draw_edge_detect = 0;
 
+	uint8_t * const bvram = bmp_vram();
+	if( !bvram )
+		return;
+
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 
 	uint32_t x,y;
@@ -113,7 +117,7 @@ draw_zebra( void )
 	for( y=33 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
-		uint16_t * const b_row = (uint16_t*)( bmp_vram() + y * bmp_pitch() );
+		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
 
 		// Check for crop marks
 		if( draw_matte(y, b_row) )

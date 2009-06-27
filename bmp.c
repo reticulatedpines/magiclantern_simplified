@@ -64,7 +64,10 @@ bmp_puts(
 )
 {
 	const uint32_t		pitch = bmp_pitch();
-	uint8_t * first_row = bmp_vram() + y * pitch + x;
+	uint8_t * vram = bmp_vram();
+	if( !vram )
+		return;
+	uint8_t * first_row = vram + y * pitch + x;
 	uint8_t * row = first_row;
 
 	char c;
@@ -147,6 +150,9 @@ bmp_fill(
 	const uint32_t width = bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	const uint32_t height = bmp_height();
+	uint8_t * vram = bmp_vram();
+	if( !vram )
+		return;
 
 	// Convert to words and limit to the width of the LCD
 	w /= 4;
@@ -168,7 +174,7 @@ bmp_fill(
 	if( w == 0 || h == 0 )
 		return;
 
-	uint32_t * row = (uint32_t*)( bmp_vram() + y * pitch + start );
+	uint32_t * row = (uint32_t*)( vram + y * pitch + start );
 
 	// Loop tests inverted to avoid exraneous jumps.
 	// This has the minimal compiled form

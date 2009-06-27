@@ -220,6 +220,7 @@ my_init_task(void)
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
 	dmstart();
+	dm_set_store_level( DM_DISP, 2 );
 
 #if 1
 	// Create all of our auto-create tasks

@@ -30,7 +30,7 @@ struct camera_engine
 	uint32_t		off_0x30;
 	uint32_t		off_0x34;
 	uint32_t		off_0x38;
-	uint32_t		off_0x3c;
+	uint32_t		hdmi_connected; // off_0x3c;
 	uint32_t		off_0x40;
 	uint32_t		off_0x44;
 	uint32_t		off_0x48;

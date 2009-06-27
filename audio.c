@@ -123,6 +123,8 @@ draw_meter(
 	const uint32_t width = 640; // bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	uint32_t * row = (uint32_t*) bmp_vram();
+	if( !row )
+		return;
 
 	// Skip to the desired y coord and over the
 	// space for the numerical levels
@@ -177,6 +179,8 @@ draw_ticks(
 	const uint32_t width = bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	uint32_t * row = (uint32_t*) bmp_vram();
+	if( !row )
+		return;
 	row += (pitch/4) * y;
 
 	const uint32_t white_word = 0
@@ -246,7 +250,7 @@ meter_task( void )
 
 	msleep( 4000 );
 
-	call( "FA_StartLiveView" );
+	//call( "FA_StartLiveView" );
 
 	while(1)
 	{

@@ -22,6 +22,7 @@ extern const char * dm_names[];
 #define DM_AUDIO	20
 #define DM_MOVR		48
 #define DM_MAGIC	50 // Replaces PTPCOM with MAGIC
+#define DM_DISP		0x82
 
 struct dm_state
 {

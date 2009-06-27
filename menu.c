@@ -166,6 +166,11 @@ struct menu_entry main_menu[] = {
 		.display	= zebra_display,
 	},
 	{
+		.priv		= "HDMI FullHD",
+		.select		= (thunk) 0xFFA96260,
+		.display	= menu_print,
+	},
+	{
 		.priv		= &audio_mgain,
 		.select		= audio_mgain_toggle,
 		.display	= audio_mgain_display,
@@ -292,7 +297,7 @@ menu_handler(
 	events[ last_menu_event ][2] = arg3;
 	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 
-	menu_display( main_menu, 0, 100, 1 );
+	menu_display( main_menu, 100, 100, 1 );
 
 	unsigned i;
 	for( i=0 ; i < MAX_GUI_EVENTS ; i++ )
@@ -309,6 +314,7 @@ menu_handler(
 	switch( event )
 	{
 	case INITIALIZE_CONTROLLER:
+		DebugMsg( DM_MAGIC, 3, "Menu task INITIALIZE_CONTROLLER" );
 		last_menu_event = 0;
 		break;
 
@@ -348,6 +354,7 @@ menu_task( void )
 
 		if( gui_show_menu == 1 )
 		{
+			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 			bmp_printf( 0, 400, "Creating menu task" );
 			last_menu_event = 0;
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
