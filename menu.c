@@ -152,6 +152,19 @@ void audio_dgain_display( void * priv, int x, int y, int selected )
 	);
 }
 
+void enable_full_hd( void * priv )
+{
+	DebugMsg( DM_MAGIC, 3, "Attempting to set HDMI to full HD" );
+
+	thunk ChangeHDMIOutputSizeToFULLHD = (thunk) 0xFFA96260;
+	void (*SetDisplayType)(int) = (void*) 0xFF8620DC;
+
+	SetDisplayType( 3 );
+	ChangeHDMIOutputSizeToFULLHD();
+
+	DebugMsg( DM_MAGIC, 3, "Full HD done?" );
+}
+
 
 struct menu_entry main_menu[] = {
 	{
@@ -167,7 +180,7 @@ struct menu_entry main_menu[] = {
 	},
 	{
 		.priv		= "HDMI FullHD",
-		.select		= (thunk) 0xFFA96260,
+		.select		= enable_full_hd,
 		.display	= menu_print,
 	},
 	{
