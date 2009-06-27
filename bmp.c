@@ -189,17 +189,19 @@ void
 bmp_draw_palette( void )
 {
 	uint32_t x, y, msb, lsb;
+	const uint32_t height = 30;
+	const uint32_t width = 45;
 
 	for( msb=0 ; msb<16; msb++ )
 	{
-		for( y=0 ; y<30; y++ )
+		for( y=0 ; y<height; y++ )
 		{
-			uint8_t * const row = bmp_vram() + (y + 30*msb) * bmp_pitch();
+			uint8_t * const row = bmp_vram() + (y + height*msb) * bmp_pitch();
 
 			for( lsb=0 ; lsb<16 ; lsb++ )
 			{
-				for( x=0 ; x<45 ; x++ )
-					row[x+45*lsb] = (msb << 4) | lsb;
+				for( x=0 ; x<width ; x++ )
+					row[x+width*lsb] = (msb << 4) | lsb;
 			}
 		}
 	}
