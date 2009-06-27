@@ -165,6 +165,14 @@ void enable_full_hd( void * priv )
 	DebugMsg( DM_MAGIC, 3, "Full HD done?" );
 }
 
+void debug_lens_info( void * priv )
+{
+	DebugMsg( DM_MAGIC, 3, "Calling debug_lens info" );
+	thunk info = (thunk) 0xff8efde8;
+	info();
+	bmp_hexdump( 400, 100, (void*) 0x298c8, 0x40 );
+}
+
 
 struct menu_entry main_menu[] = {
 	{
@@ -181,6 +189,11 @@ struct menu_entry main_menu[] = {
 	{
 		.priv		= "HDMI FullHD",
 		.select		= enable_full_hd,
+		.display	= menu_print,
+	},
+	{
+		.priv		= "Debug Lens info",
+		.select		= debug_lens_info,
 		.display	= menu_print,
 	},
 	{
@@ -312,6 +325,7 @@ menu_handler(
 
 	menu_display( main_menu, 100, 100, 1 );
 
+#if 0
 	unsigned i;
 	for( i=0 ; i < MAX_GUI_EVENTS ; i++ )
 	{
@@ -322,7 +336,10 @@ menu_handler(
 			(unsigned) ev[2]
 		);
 	}
-		
+#endif
+	extern char current_lens_name[];
+	bmp_printf( 300, 88, "Lens: '%s'", current_lens_name );
+	bmp_hexdump( 300, 100, current_lens_name - 0x80, 0x80 );
 
 	switch( event )
 	{

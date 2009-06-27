@@ -18,8 +18,28 @@ extern const char * dm_names[];
 
 // To find these, look at the dm_names table at 0x292C
 // Subtract the pointer from 0x292c and divide by 4
+#define DM_SETPROP	0
+#define DM_PRP		1
+#define DM_PROPAD	2
+#define DM_INTCOM	3
+#define DM_WINSYS	4
+#define DM_CTRLSRV	5
+#define DM_LVCAF	6
+#define DM_LVAF		7
+#define DM_LVCAE	8
+#define DM_LVAE		9
+#define DM_LVFD		10
+#define DM_LVMD		11
+#define DM_LVCLR	12
+#define DM_LVWB		13
+#define DM_DP		14
+#define DM_MAC		15
+#define DM_CRP		16
+#define DM_UPDC		17
 #define DM_SYS		18
+#define DM_RD		19
 #define DM_AUDIO	20
+#define DM_ENGP		0x16
 #define DM_MOVR		48
 #define DM_MAGIC	50 // Replaces PTPCOM with MAGIC
 #define DM_DISP		0x82

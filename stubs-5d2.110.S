@@ -31,6 +31,7 @@ NSTUB( 0xFF86DFE8, malloc )
 
 /** These are necessary for starting with debugging */
 /** look for the string "dumpf", then find register_function as well */
+NSTUB( 0xFF81B628, dmsetup )
 NSTUB( 0xFF86725C, dumpf )
 NSTUB( 0xFF866948, dmstart )
 NSTUB( 0xFF866988, dmstop )
@@ -175,6 +176,9 @@ NSTUB( 0xFF867744, call )
 /** These are useful functions that control the camera */
 NSTUB( 0xFF8896F0, FA_StartLiveView )
 NSTUB( 0xFF8897E8, FA_StopLiveView )
+
+/** Part of the lens information */
+NSTUB( 0x2F3E0, current_lens_name )
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )

@@ -6,6 +6,7 @@
  */
 #include "dryos.h"
 #include "config.h"
+#include "version.h"
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -202,24 +203,35 @@ my_init_task(void)
 	// Call their init task
 	init_task();
 
+	// Overwrite the PTPCOM message
+	dm_names[ DM_MAGIC ] = "[MAGIC] ";
+
+	DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
+		build_version,
+		build_id
+	);
+
+	DebugMsg( DM_MAGIC, 3, "Built on %s by %s",
+		build_date,
+		build_user
+	);
+
+	dmstart();
+
 	// Re-write the version string.
 	// Don't use strcpy() so that this can be done
 	// before strcpy() or memcpy() are located.
 	extern char additional_version[];
 	additional_version[0] = '-';
 	additional_version[1] = 'm';
-	additional_version[2] = 'a';
-	additional_version[3] = 'r';
-	additional_version[4] = 'k';
-	additional_version[5] = 'f';
-	additional_version[6] = 'r';
-	additional_version[7] = 'e';
-	additional_version[8] = 'e';
+	additional_version[2] = 'l';
+	additional_version[3] = '-';
+	additional_version[4] = build_version[0];
+	additional_version[5] = build_version[1];
+	additional_version[6] = build_version[2];
+	additional_version[7] = build_version[3];
+	additional_version[8] = build_version[4];
 	additional_version[9] = '\0';
-
-	// Overwrite the PTPCOM message
-	dm_names[ DM_MAGIC ] = "[MAGIC] ";
-	dmstart();
 
 #if 1
 	// Create all of our auto-create tasks

@@ -199,7 +199,6 @@ zebra_task( void )
 			// Don't display the zebras over the menu.
 			// wait a while and then try again
 			msleep( 500 );
-			dm_set_store_level( DM_DISP, 0 );
 		}
 	}
 
