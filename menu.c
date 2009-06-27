@@ -275,7 +275,7 @@ menu_handler(
 	if( !gui_show_menu )
 	{
 		gui_task_destroy( menu_task_ptr );
-		bmp_fill( 0x00, 0, 0, 640, 480 );
+		//bmp_fill( 0x00, 0, 0, 640, 480 );
 		menu_task_ptr = 0;
 		return 1;
 	}
