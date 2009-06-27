@@ -395,6 +395,7 @@ extern void StartMnStudioSetupMenuApp( void );
 extern char * strcpy( char *, const char * );
 extern void * memcpy( void *, const void *, size_t );
 extern ssize_t read( int fd, void *, size_t );
+extern int atoi( const char * );
 
 
 

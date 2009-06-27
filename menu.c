@@ -31,7 +31,7 @@ draw_version( void )
 
 	while( config )
 	{
-		bmp_printf( 0, y, "%s => %s", config->name, config->value );
+		bmp_printf( 0, y, "'%s' => '%s'", config->name, config->value );
 		config = config->next;
 		y += font_height;
 	}
@@ -72,6 +72,21 @@ struct menu_entry
 		int			selected
 	);
 };
+
+
+void
+menu_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf( x, y, "%s%s",
+		selected ? "->" : "  ",
+		(const char*) priv
+	);
+}
 
 
 unsigned zebra_level = 0xF000;
@@ -139,6 +154,16 @@ struct menu_entry main_menu[] = {
 		.priv		= &audio_dgain,
 		.select		= audio_dgain_toggle,
 		.display	= audio_dgain_display,
+	},
+	{
+		.priv		= "Draw palette",
+		.select		= bmp_draw_palette,
+		.display	= menu_print,
+	},
+	{
+		.priv		= "Dump dmlog",
+		.select		= dumpf,
+		.display	= menu_print,
 	},
 	{
 		.selected	= -1,
@@ -286,8 +311,6 @@ menu_handler(
 static void
 menu_task( void )
 {
-	audio_dgain = audio_mgain = 0;
-
 	msleep( 1000 );
 	// Parse our config file
 	global_config = config_parse_file( "A:/ML.CFG" );

@@ -62,6 +62,10 @@ bmp_puts(
 	const char *		s
 );
 
+/** Fill the screen with a bitmap palette */
+extern void
+bmp_draw_palette( void );
+
 
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.

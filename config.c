@@ -17,7 +17,7 @@ streq( const char * a, const char * b )
 {
 	while( *a && *b )
 		if( *a++ != *b++ )
-			return -1;
+			return 0;
 	return *a == *b;
 }
 
@@ -148,7 +148,7 @@ error:
 }
 
 
-struct config *
+char *
 config_value(
 	struct config *		config,
 	const char *		name
@@ -157,7 +157,7 @@ config_value(
 	while( config )
 	{
 		if( streq( config->name, name ) )
-			return config;
+			return config->value;
 
 		config = config->next;
 	}
@@ -186,3 +186,24 @@ config_parse_file(
 	head.next = config;
 	return &head;
 }
+
+
+int
+atoi(
+	const char *		s
+)
+{
+	int value = 0;
+
+	// Only handles base ten for now
+	while( 1 )
+	{
+		char c = *s++;
+		if( !c || c < '0' || c > '9' )
+			break;
+		value = value * 10 + c - '0';
+	}
+
+	return value;
+}
+

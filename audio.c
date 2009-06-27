@@ -3,6 +3,7 @@
  */
 #include "dryos.h"
 #include "bmp.h"
+#include "config.h"
 
 /** Read the raw level from the audio device.
  *
@@ -211,61 +212,6 @@ static void draw_meters(void)
 
 
 
-#if 0
-static void
-draw_events( void )
-{
-	bmp_printf( 0, 10, "A/V jack: %s",
-		camera_engine.av_jack & 1 ? "No " : "Yes"
-	);
-
-	bmp_hexdump( 0, 30, &camera_engine, 32 );
-
-	unsigned i;
-	for( i=0 ; i<16 ; i++ )
-	{
-		struct event * event = &gui_events[ i ];
-		bmp_printf( 0, 200 + font_height * i,
-			"%sEvent %x: %x %08x %08x %08x\n",
-			i == gui_events_index ? "->" : "  ",
-			i,
-			(unsigned) event->type,
-			(unsigned) event->param,
-			(unsigned) event->obj,
-			(unsigned) event->arg
-		);
-	}
-}
-#endif
-
-#if 0
-static void
-draw_audio_regs( void )
-{
-	int y = 100, reg;
-	for( reg=0x20 ; reg < 0x3F ; reg += 8, y += font_height )
-	{
-		//DebugMsg( DM_MAGIC, 3,
-		bmp_printf( 100, y,
-			"audio reg %02x: %02x %02x %02x %02x  %02x %02x %02x %02x",
-			reg,
-			audio_ic_read( (reg+0) << 8 ),
-			audio_ic_read( (reg+1) << 8 ),
-			audio_ic_read( (reg+2) << 8 ),
-			audio_ic_read( (reg+3) << 8 ),
-			audio_ic_read( (reg+4) << 8 ),
-			audio_ic_read( (reg+5) << 8 ),
-			audio_ic_read( (reg+6) << 8 ),
-			audio_ic_read( (reg+7) << 8 )
-		);
-	}
-
-	//bmp_printf( 100, y, "Volume: %08
-	bmp_hexdump( 100, y, (uint32_t*)( 0xC0920000 + 0x110 ), 16 );
-}
-#endif
-
-
 
 static void
 compute_audio_levels(
@@ -375,15 +321,34 @@ audio_ic_set_input_volume(
 void
 my_sounddev_task( void )
 {
-	//void * file = FIO_CreateFile( "A:/snddev.log" );
-	//FIO_WriteFile( file, sounddev, sizeof(*sounddev) );
-	//FIO_CloseFile( file );
-
 	DebugMsg( DM_AUDIO, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem_alc );
 
+	msleep( 2000 );
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
 	sounddev_active_in(0,0);
+
+	// Check to see if we have any audio gain parameters
+	extern unsigned audio_dgain;
+	extern unsigned audio_mgain;
+	audio_mgain = 4; // +10 dB
+	audio_dgain = 18; // +18 dB
+	char * mgain_str = config_value( global_config, "audio.mgain" );
+	if( mgain_str )
+	{
+		DebugMsg( DM_AUDIO, 3, "mgain='%s' (%x)\n", mgain_str, mgain_str );
+		audio_mgain = atoi( mgain_str );
+	}
+
+	char * dgain_str = config_value( global_config, "audio.dgain" );
+	if( dgain_str )
+		audio_dgain = atoi( dgain_str );
+
+	DebugMsg( DM_AUDIO, 3,
+		"Using mgain=%d dgain=%d\n",
+		audio_mgain,
+		audio_dgain
+	);
 
 	while(1)
 	{
@@ -399,13 +364,11 @@ my_sounddev_task( void )
 		// Set manual low gain; +30dB == 0xE1
 		// gain == (byte - 145) * 0.375
 		//const uint32_t gain = 12;
-		extern unsigned audio_dgain;
 		audio_ic_set_input_volume( audio_dgain );
 
 		// 4 == 10 dB
 		// 5 == 17 dB
 		// 3 == 32 dB
-		extern unsigned audio_mgain;
 		audio_ic_set_mgain( audio_mgain ); // 10 dB
 
 		//const uint32_t gain_cmd = (gain * 1000) / 375 + 145;

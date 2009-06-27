@@ -186,7 +186,7 @@ bmp_fill(
 
 /** Draw a picture of the BMP color palette. */
 void
-generate_palette( void )
+bmp_draw_palette( void )
 {
 	uint32_t x, y, msb, lsb;
 

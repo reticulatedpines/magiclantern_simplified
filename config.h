@@ -23,7 +23,7 @@ config_parse(
 );
 
 
-extern struct config *
+extern char *
 config_value(
 	struct config *		config,
 	const char *		name
