@@ -63,26 +63,27 @@ AFLAGS=\
 
 
 %.s: %.c
-	$(CC) $(CFLAGS) -S -o $@ $<
+	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.i: %.c
-	$(CC) $(CFLAGS) -E -c -o $@ $<
+	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
 %.o: %.S
-	$(CC) $(AFLAGS) -c -o $@ $<
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
-	$(OBJCOPY) -O binary $< $@
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 
 dumper: dumper_entry.o dumper.o
-	$(LD) \
+	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
 		-e _start \
-		$^
+		$^ \
+	)
 
 dumper_entry.o: flasher-stubs.S
 
@@ -90,7 +91,7 @@ reboot.o: reboot.c magiclantern.bin
 5d-hack.bin: 5d-hack
 
 magiclantern.lds: magiclantern.lds.S
-	$(CPP) $(CFLAGS) $< | grep -v '^#' > $@
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
@@ -109,36 +110,38 @@ magiclantern: \
 	stubs-5d2.110.o \
 	version.o \
 
-	$(LD) \
+	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
 		-T \
-		$^
+		$^ \
+	)
 
 
 font.c: font.in mkfont
-	./mkfont < $< > $@
+	$(call build,MKFONT,./mkfont < $< > $@)
 
 version.c: FORCE
-	( \
+	$(call build,VERSION,( \
 		echo 'const char build_version[] = "$(VERSION)";' ; \
 		echo 'const char build_id[] = "'`hg id`'";' ; \
 		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' ; \
 		echo 'const char build_user[] = "'`whoami`@`hostname`'";' ; \
-	) > $@
+	) > $@)
 
 reboot: reboot.o
-	$(LD) \
+	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
 		-e _start \
 		-Ttext=0x800000 \
-		$^
+		$^ \
+	)
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
@@ -220,11 +223,12 @@ dumper.elf: 5d2_dump.fir flasher.map
 		--offset 0x5ab8 \
 
 magiclantern.fir: reboot.bin 5d200107.1.flasher.bin
-	./assemble_fw \
+	$(call build,ASSEMBLE,./assemble_fw \
 		--output $@ \
 		--user $< \
 		--offset 0x120 \
 		--zero \
+	)
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@
@@ -246,6 +250,15 @@ dummy_data_head.bin:
 # Firmware manipulation tools
 dissect_fw: dissect_fw.c
 	$(HOST_CC) $(HOST_CFLAGS) -o $@ $<
+
+# Quiet the build process
+build = \
+	@if [ "$V" == 1 ]; then \
+		echo '$2'; \
+	else \
+		printf "[ %-8s ]   %s\n"  $1 $@; \
+	fi; \
+	$2
 
 
 clean:
