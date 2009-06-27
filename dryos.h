@@ -165,22 +165,38 @@ extern void sound_dev_task(void);
 #define O_ASYNC          020000
 /* @} */
 
+extern int open( const char * name, int flags, ... );
+extern int close( int fd );
+extern ssize_t read( int fd, void * buf, size_t len );
 
-extern int
-open(
+typedef struct _file * FILE;
+extern FILE *
+FIO_Open(
 	const char *		name,
-	int			flags,
-	int			mode
+	unsigned		flags
+);
+
+extern FILE *
+FIO_OpenFile(
+	const char *		name
 );
 
 extern void
-close(
-	int			fd
+FIO_CloseFile(
+	FILE *			file
 );
+
+extern ssize_t
+FIO_ReadFile(
+	FILE *			file,
+	void *			buf,
+	size_t			len_in_bytes
+);
+
 
 #define INVALID_PTR		((const void *)0xFFFFFFFF)
 
-extern void *
+extern FILE *
 FIO_CreateFile(
 	const char *		name
 );
@@ -188,16 +204,11 @@ FIO_CreateFile(
 
 extern int
 FIO_WriteFile(
-	void *			file,
+	FILE *			file,
 	const void *		buf,
-	uint32_t		len_in_bytes
+	size_t			len_in_bytes
 );
 
-
-extern void
-FIO_CloseFile(
-	void *			file
-);
 
 extern void
 FIO_CloseSync(
@@ -383,6 +394,7 @@ extern void StartMnStudioSetupMenuApp( void );
 /** stdio / stdlib / string */
 extern char * strcpy( char *, const char * );
 extern void * memcpy( void *, const void *, size_t );
+extern ssize_t read( int fd, void *, size_t );
 
 
 

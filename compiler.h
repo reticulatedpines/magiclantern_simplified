@@ -20,5 +20,12 @@
 /** Flag an argument as unused */
 #define UNUSED(x) __attribute__((unused)) x
 
+/** NULL pointer */
+#define NULL	((void*) 0)
+
+/** We don't have free yet */
+static inline void free( const void * x ) { x = 0; }
+
+extern void * malloc( unsigned len );
 
 #endif

@@ -20,6 +20,7 @@ typedef unsigned char	uint8_t;
 #endif
 
 typedef uint32_t	size_t;
+typedef int32_t		ssize_t;
 
 #define offsetof(type, member) \
 	((uint32_t) &(( (type*) 0 )->member))

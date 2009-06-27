@@ -26,6 +26,9 @@ NSTUB( 0xFF811DBC, init_task )
 /** How to find this one again? */
 NSTUB( 0x11F98, additional_version )
 
+/** How to find? */
+NSTUB( 0xFF86DFE8, malloc )
+
 /** These are necessary for starting with debugging */
 /** look for the string "dumpf", then find register_function as well */
 NSTUB( 0xFF86725C, dumpf )
@@ -59,6 +62,14 @@ NSTUB( 0xFF869C90, msleep )
 /** These are lower prority to locate */
 NSTUB( 0xFF8781F4, strcpy )
 NSTUB( 0xFFC22E18, memcpy )
+
+/** File I/O using the FIO_ routines */
+NSTUB( 0xFF81BDC0, open )
+NSTUB( 0xFF81BE70, close )
+NSTUB( 0xFF98C2A0, FIO_Open )
+NSTUB( 0xFF98C354, FIO_CreateFile )
+NSTUB( 0xFF98C68C, FIO_ReadFile )
+NSTUB( 0xFF98C3FC, FIO_CloseFile )
 
 /** Look for a matched pair in gui_init_end */
 NSTUB( 0xFF8697EC, take_semaphore )

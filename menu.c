@@ -5,6 +5,8 @@
 #include "version.h"
 #include "bmp.h"
 #include "gui.h"
+#include "config.h"
+
 
 static void
 draw_version( void )
@@ -17,6 +19,22 @@ draw_version( void )
 		build_user,
 		"http://magiclantern.wikia.com/"
 	);
+
+	//thunk debug_lens_info = (void*) 0xff8efde8;
+	//debug_lens_info();
+	//bmp_hexdump( 0, 200, (void*)( 0x1D88 ), 0x40 );
+
+	int y = 200;
+	struct config * config = global_config;
+	bmp_printf( 0, y, "Config: %x", (unsigned) global_config );
+	y += font_height;
+
+	while( config )
+	{
+		bmp_printf( 0, y, "%s => %s", config->name, config->value );
+		config = config->next;
+		y += font_height;
+	}
 }
 
 
@@ -71,7 +89,7 @@ void zebra_display( void * priv, int x, int y, int selected )
 	);
 }
 
-unsigned audio_mgain = 4;
+unsigned audio_mgain = 0;
 void audio_mgain_toggle( void * priv )
 {
 	unsigned * ptr = priv;
@@ -86,7 +104,7 @@ void audio_mgain_display( void * priv, int x, int y, int selected )
 	);
 }
 
-unsigned audio_dgain = 12;
+unsigned audio_dgain = 0;
 void audio_dgain_toggle( void * priv )
 {
 	unsigned dgain = *(unsigned*) priv;
@@ -268,7 +286,12 @@ menu_handler(
 static void
 menu_task( void )
 {
+	audio_dgain = audio_mgain = 0;
+
 	msleep( 1000 );
+	// Parse our config file
+	global_config = config_parse_file( "A:/ML.CFG" );
+
 	draw_version();
 
 	while(1)

@@ -5,6 +5,7 @@
  * IT DOES NOT WORK WITH 1.0.7 ANY MORE!
  */
 #include "dryos.h"
+#include "config.h"
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -186,6 +187,8 @@ my_dump_task( void )
 	dmstop();
 }
 
+
+struct config * global_config;
 
 /** Initial task setup.
  *
