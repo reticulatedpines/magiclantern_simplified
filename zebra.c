@@ -38,10 +38,62 @@ draw_matte(
 	return 1;
 }
 
+static int32_t convolve_x[3][3] = {
+	{ -1, 0, +1, },
+	{ -2, 0, +2, },
+	{ -1, 0, +1, },
+};
+
+static int32_t convolve_y[3][3] = {
+	{ +1, +2, +1, },
+	{  0,  0,  0, },
+	{ -1, -2, -1, },
+};
+
+
+static int32_t
+convolve(
+	int32_t c[3][3],
+	uint16_t * buf,
+	uint32_t pitch
+)
+{
+	int32_t value = 0;
+	value += c[0][0] * buf[ -pitch - 1 ];
+	value += c[0][1] * buf[ -pitch ];
+	value += c[0][2] * buf[ -pitch + 1 ];
+
+	value += c[1][0] * buf[ -1 ];
+	value += c[1][1] * buf[ 0 ];
+	value += c[1][2] * buf[ +1 ];
+
+	value += c[2][0] * buf[ +pitch - 1 ];
+	value += c[2][1] * buf[ +pitch ];
+	value += c[2][2] * buf[ +pitch + 1 ];
+
+	return value;
+}
+
+
+int32_t
+edge_detect(
+	uint16_t *		buf,
+	uint32_t		pitch
+)
+{
+	int32_t gx = convolve( convolve_x, buf, pitch );
+	int32_t gy = convolve( convolve_y, buf, pitch );
+
+	return gx*gx + gy*gy;
+}
+
+
 
 static void
 draw_zebra( void )
 {
+	const int draw_edge_detect = 0;
+
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 
 	uint32_t x,y;
@@ -51,7 +103,10 @@ draw_zebra( void )
 
 	// For unused contrast detection algorithm
 	//const uint8_t contrast_color = 0x0D; // blue
+	const uint8_t contrast_color = 0x0E; // pink
 	//const uint16_t threshold = 0xF000;
+
+	const int32_t edge_level = zebra_level * zebra_level;
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
@@ -64,28 +119,32 @@ draw_zebra( void )
 		if( draw_matte(y, b_row) )
 			continue;
 
-		for( x=0 ; x < vram->width ; x+=2 )
+		for( x=1 ; x < vram->width-1 ; x++ )
 		{
-			uint32_t pixels = v_row[x/2];
-#if 0
-			uint16_t pixel0 = (pixels >> 16) & 0xFFFF;
-			uint16_t pixel1 = (pixels >>  0) & 0xFFFF;
 
-			// Check for contrast
-			// This doesn't work very well, so I have it
-			// compiled out for now.
-			if( (pixel0 > pixel1 && pixel0 - pixel1 > 0x4000 )
-			||  (pixel0 < pixel1 && pixel1 - pixel0 > 0x4000 )
-			)
+			if( draw_edge_detect )
 			{
-				b_row[x/2] = (contrast_color << 8) | contrast_color;
-				continue;
+				// Check for contrast
+				int32_t grad = edge_detect(
+					(uint16_t*) &v_row[x/2],
+					vram->pitch
+				);
+			
+				if( grad < edge_level )
+				{
+					b_row[x/2] = 0
+						| (contrast_color << 8)
+						| contrast_color;
+
+					continue;
+				}
 			}
-#endif
+
+			uint32_t pixel = v_row[x/2];
+			int32_t p0 = (pixel >> 16) & 0xFFFF;
+			int32_t p1 = (pixel >>  0) & 0xFFFF;
 
 			// If neither pixel is overexposed, ignore it
-			uint16_t p0 = (pixels >> 16) & 0xFFFF;
-			uint16_t p1 = (pixels >>  0) & 0xFFFF;
 			if( p0 < zebra_level && p1 < zebra_level )
 			{
 				b_row[x/2] = 0;
