@@ -104,6 +104,21 @@ void zebra_display( void * priv, int x, int y, int selected )
 	);
 }
 
+unsigned zebra_draw = 1;
+void zebra_draw_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = !*ptr;
+}
+
+void zebra_draw_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( x, y, "%sZebras %s",
+		selected ? "->" : "  ",
+		*(unsigned*) priv ? "on" : "off"
+	);
+}
+
 unsigned audio_mgain = 0;
 void audio_mgain_toggle( void * priv )
 {
@@ -113,7 +128,7 @@ void audio_mgain_toggle( void * priv )
 
 void audio_mgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sMGAIN reg: %x",
+	bmp_printf( x, y, "%sMGAIN reg: 0x%x",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -131,7 +146,7 @@ void audio_dgain_toggle( void * priv )
 
 void audio_dgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sDGAIN reg: %2d",
+	bmp_printf( x, y, "%sDGAIN reg: %2d dB",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -141,6 +156,11 @@ void audio_dgain_display( void * priv, int x, int y, int selected )
 struct menu_entry main_menu[] = {
 	{
 		.selected	= 1,
+		.priv		= &zebra_draw,
+		.select		= zebra_draw_toggle,
+		.display	= zebra_draw_display,
+	},
+	{
 		.priv		= &zebra_level,
 		.select		= zebra_toggle,
 		.display	= zebra_display,
@@ -255,6 +275,7 @@ menu_handler(
 	if( !gui_show_menu )
 	{
 		gui_task_destroy( menu_task_ptr );
+		bmp_fill( 0x00, 0, 0, 640, 480 );
 		menu_task_ptr = 0;
 		return 1;
 	}

@@ -5,6 +5,10 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
+#include "config.h"
+
+extern unsigned zebra_level;
+extern unsigned zebra_draw;
 
 /** Draw white thin crop marks
  *  And draw the 16:9 crop marks for full time
@@ -42,7 +46,7 @@ draw_zebra( void )
 
 	uint32_t x,y;
 
-	const uint8_t zebra_color_0 = 0x6F; // bright read
+	const uint8_t zebra_color_0 = BG_COLOR; // 0x6F; // bright read
 	const uint8_t zebra_color_1 = 0x5F; // dark red
 
 	// For unused contrast detection algorithm
@@ -80,7 +84,6 @@ draw_zebra( void )
 #endif
 
 			// If neither pixel is overexposed, ignore it
-			extern unsigned zebra_level;
 			uint16_t p0 = (pixels >> 16) & 0xFFFF;
 			uint16_t p1 = (pixels >>  0) & 0xFFFF;
 			if( p0 < zebra_level && p1 < zebra_level )
@@ -111,9 +114,21 @@ zebra_task( void )
 {
 	msleep( 5000 );
 
+	const char * zebra_draw_str = config_value( global_config, "zebra.draw" );
+	if( zebra_draw_str )
+		zebra_draw = atoi( zebra_draw_str );
+	const char * zebra_level_str = config_value( global_config, "zebra.level" );
+	if( zebra_level_str )
+		zebra_level = atoi( zebra_level_str );
+
+	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x",
+		zebra_draw ? "on" : "off",
+		zebra_level
+	);
+
 	while(1)
 	{
-		if( !gui_show_menu )
+		if( !gui_show_menu && zebra_draw )
 		{
 			draw_zebra();
 			msleep( 100 );
