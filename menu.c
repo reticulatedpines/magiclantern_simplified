@@ -383,6 +383,7 @@ void property_slave(
 	unsigned		len
 )
 {
+	const unsigned x = 150;
 	static unsigned y = 32;
 
 	DebugMsg( DM_MAGIC, 3, "Prop: %08x: %08x @ %02d: %08x",
@@ -392,21 +393,31 @@ void property_slave(
 		addr[0]
 	);
 
-	bmp_printf( 200, y, "Prop: %08x: %08x @ %02d",
+	bmp_printf( x, y, "Prop: %08x: %08x @ %d %08x (%d)",
 		property,
 		(unsigned) addr,
-		len
+		len,
+		addr[0],
+		addr[0]
 	);
 	y += font_height;
 
-	bmp_hexdump( 200, y, addr, len );
-	y += ((len+16) / 16) * font_height;
+	if( len != 4 )
+	{
+		bmp_hexdump( x, y, addr, len );
+		y += ((len+16) / 16) * font_height;
+	}
+
+	bmp_fill( RED_COLOR, x, y, 100, 1 );
 
 	if( y > 400 )
 		y = 32;
 	
 	prop_handler_cleanup( token, property );
 }
+
+#define num_properties 4096
+unsigned property_list[ num_properties ];
 
 
 static void
@@ -418,9 +429,17 @@ menu_task( void )
 
 	draw_version();
 
+	int i;
+	for( i=0 ; i< num_properties  ; i++ )
+	{
+		uint32_t low = i & 0xFF;
+		uint32_t high = (i & 0xF00) << 8;
+		property_list[i] = 0x80000000 | low | high;
+	}
+
 	prop_register_slave(
-		(void*) 0xFFC52BF4,
-		0x16,
+		property_list, // (void*) 0xFFC52BF4,
+		num_properties,
 		property_slave,
 		0,
 		property_token
