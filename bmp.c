@@ -113,12 +113,15 @@ bmp_hexdump(
 	size_t			len
 )
 {
-	const uint32_t *	d = (uint32_t*) buf;
+	if( len == 0 )
+		return;
 
 	// Round up
-	len = (len + 3) / 4;
+	len = (len + 15) & ~15;
 
-	while( len-- )
+	const uint32_t *	d = (uint32_t*) buf;
+
+	while( len -= 16 )
 	{
 		bmp_printf( x, y, "%08x: %08x %08x %08x %08x",
 			(unsigned) d,
