@@ -250,7 +250,7 @@ meter_task( void )
 
 	msleep( 4000 );
 
-	//call( "FA_StartLiveView" );
+	call( "FA_StartLiveView" );
 
 	while(1)
 	{

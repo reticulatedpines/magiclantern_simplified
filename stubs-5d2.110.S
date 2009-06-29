@@ -180,6 +180,10 @@ NSTUB( 0xFF8897E8, FA_StopLiveView )
 /** Part of the lens information */
 NSTUB( 0x2F3E0, current_lens_name )
 
+/** Property slave handler */
+NSTUB( 0xFF85AC64, prop_register_slave )
+NSTUB( 0xFF85AD38, prop_handler_cleanup )
+
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
 NSTUB( 0xFF8167F0, get_current_task )

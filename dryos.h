@@ -397,6 +397,21 @@ extern void * memcpy( void *, const void *, size_t );
 extern ssize_t read( int fd, void *, size_t );
 extern int atoi( const char * );
 
+/** Properties */
+extern void
+prop_register_slave(
+	unsigned *	property_list,
+	unsigned	count,
+	void		(*prop_handler)( unsigned property , void * priv, void * addr, unsigned len ),
+	void *		priv,
+	void		(*token_handler)( void * token )
+);
 
+
+extern void
+prop_cleanup(
+	void *		token,
+	unsigned	property
+);
 
 #endif

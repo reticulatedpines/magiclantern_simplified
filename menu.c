@@ -167,10 +167,12 @@ void enable_full_hd( void * priv )
 
 void debug_lens_info( void * priv )
 {
-	DebugMsg( DM_MAGIC, 3, "Calling debug_lens info" );
-	thunk info = (thunk) 0xff8efde8;
-	info();
-	bmp_hexdump( 400, 100, (void*) 0x298c8, 0x40 );
+	//thunk focusinfo = (thunk) 0xff8a3344;
+	//dm_set_store_level( 0x9f, 1 );
+	//DebugMsg( DM_MAGIC, 3, "Calling rmt_focusinfo %x", (unsigned) focusinfo );
+	//focusinfo();
+	//bmp_hexdump( 300, 100, (void*) 0x39e4, 0x80 );
+	call( "FA_MovieStart" );
 }
 
 
@@ -339,7 +341,7 @@ menu_handler(
 #endif
 	extern char current_lens_name[];
 	bmp_printf( 300, 88, "Lens: '%s'", current_lens_name );
-	bmp_hexdump( 300, 100, current_lens_name - 0x80, 0x80 );
+	//bmp_hexdump( 300, 100, (void*) 0x39e4, 0x80 );
 
 	switch( event )
 	{
@@ -365,6 +367,48 @@ menu_handler(
 }
 
 
+static void * token;
+void property_token(
+	void *			new_token
+)
+{
+	token = new_token;
+}
+
+
+void property_slave(
+	unsigned		property,
+	void *			UNUSED( priv ),
+	unsigned *		addr,
+	unsigned		len
+)
+{
+	static unsigned y = 32;
+
+	DebugMsg( DM_MAGIC, 3, "Prop: %08x: %08x @ %02d: %08x",
+		property,
+		(unsigned) addr,
+		len,
+		addr[0]
+	);
+
+	bmp_printf( 200, y, "Prop: %08x: %08x @ %02d",
+		property,
+		(unsigned) addr,
+		len
+	);
+	y += font_height;
+
+	bmp_hexdump( 200, y, addr, len );
+	y += ((len+16) / 16) * font_height;
+
+	if( y > 400 )
+		y = 32;
+	
+	prop_handler_cleanup( token, property );
+}
+
+
 static void
 menu_task( void )
 {
@@ -373,6 +417,14 @@ menu_task( void )
 	global_config = config_parse_file( "A:/ML.CFG" );
 
 	draw_version();
+
+	prop_register_slave(
+		(void*) 0xFFC52BF4,
+		0x16,
+		property_slave,
+		0,
+		property_token
+	);
 
 	while(1)
 	{
