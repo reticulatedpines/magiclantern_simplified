@@ -174,7 +174,7 @@ bmp_fill(
 	if( w == 0 || h == 0 )
 		return;
 
-	uint32_t * row = (uint32_t*)( vram + y * pitch + start );
+	uint32_t * row = (uint32_t*)( vram + y * pitch ) + start;
 
 	// Loop tests inverted to avoid exraneous jumps.
 	// This has the minimal compiled form
