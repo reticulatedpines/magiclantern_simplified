@@ -414,4 +414,9 @@ prop_cleanup(
 	unsigned	property
 );
 
+
+/** Power management */
+extern void powersave_disable( void );
+extern void powersave_enable( void );
+
 #endif

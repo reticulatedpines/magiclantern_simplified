@@ -70,6 +70,7 @@ NSTUB( 0xFF81BE70, close )
 NSTUB( 0xFF98C2A0, FIO_Open )
 NSTUB( 0xFF98C354, FIO_CreateFile )
 NSTUB( 0xFF98C68C, FIO_ReadFile )
+NSTUB( 0xFF98C83C, FIO_WriteFile )
 NSTUB( 0xFF98C3FC, FIO_CloseFile )
 
 /** Look for a matched pair in gui_init_end */
@@ -91,6 +92,8 @@ NSTUB( 0x1934, task_dispatch_hook )
 /** The task trampoline is after create_task. */
 NSTUB( 0xFF8729C8, task_trampoline )
 
+/** Look for the string 'DisablePowerSave' */
+NSTUB( 0xFF86D4DC, powersave_disable )
 
 /** These data structures are required for the gui_main_task
  * override.  Once gui_main_task has been located, walk
