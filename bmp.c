@@ -95,7 +95,7 @@ bmp_printf(
 )
 {
 	va_list			ap;
-	static char buf[ 256 ] TEXT;
+	static char		buf[ 256 ];
 
 	va_start( ap, fmt );
 	vsnprintf( buf, sizeof(buf), fmt, ap );
