@@ -40,7 +40,7 @@ NSTUB( 0xFF866988, dmstop )
 NSTUB( 0x292c, dm_names )
 
 /** This sets the level of messages that will be stored */
-NSTUB( 0xFF8670BC, dm_set_store_level )
+NSTUB( 0xFF866D14, dm_set_store_level )
 
 /** Find this one to be able to identify named functions */
 NSTUB( 0xFF999CFC, register_function )
@@ -186,6 +186,7 @@ NSTUB( 0x2F3E0, current_lens_name )
 /** Property slave handler */
 NSTUB( 0xFF85AC64, prop_register_slave )
 NSTUB( 0xFF85AD38, prop_handler_cleanup )
+NSTUB( 0xFF85ABDC, prop_deliver )
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )
