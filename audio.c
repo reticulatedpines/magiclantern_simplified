@@ -4,6 +4,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "config.h"
+#include "property.h"
 
 /** Read the raw level from the audio device.
  *
@@ -318,6 +319,90 @@ audio_ic_set_input_volume(
 }
 
 
+
+void
+audio_configure( void )
+{
+	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
+	audio_ic_write( AUDIO_IC_SIG1 | 0x14 ); // power up, no gain
+	audio_ic_write( AUDIO_IC_SIG2 | 0x04 ); // external, no gain
+	audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
+	audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
+	//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
+
+	// Set manual low gain; +30dB == 0xE1
+	// gain == (byte - 145) * 0.375
+	//const uint32_t gain = 12;
+	audio_ic_set_input_volume( audio_dgain );
+
+	// 4 == 10 dB
+	// 5 == 17 dB
+	// 3 == 32 dB
+	audio_ic_set_mgain( audio_mgain ); // 10 dB
+
+	//const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
+	//audio_ic_write( AUDIO_IC_IVL | (gain_cmd & 0xFF) );
+	//audio_ic_write( AUDIO_IC_IVR | (gain_cmd & 0xFF) );
+
+	// Disable the HPF
+	//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
+	//audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
+	//audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
+	//audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
+
+	// Enable the LPF
+	// Canon uses F2A/B = 0x0ED4 and 0x3DA9.
+	audio_ic_write( AUDIO_IC_LPF0 | 0xD4 );
+	audio_ic_write( AUDIO_IC_LPF1 | 0x0E );
+	audio_ic_write( AUDIO_IC_LPF2 | 0xA9 );
+	audio_ic_write( AUDIO_IC_LPF3 | 0x3D );
+	audio_ic_write( AUDIO_IC_FIL1 | audio_ic_read( AUDIO_IC_FIL1 ) | (1<<5) );
+
+	// Enable loop mode
+	uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
+	mode3 |= (1<<6);
+	audio_ic_write( AUDIO_IC_MODE3 | mode3 );
+
+	//draw_audio_regs();
+	bmp_printf( 500, 400, "Gain %d/%d", audio_mgain, audio_dgain );
+	DebugMsg( DM_MAGIC, 3,
+		"Gain mgain=%d dgain=%d",
+		audio_mgain,
+		audio_dgain
+	);
+}
+
+
+void
+handle_mvr_rec_property(
+	unsigned		property,
+	void *			UNUSED( priv ),
+	unsigned *		buf,
+	unsigned		len
+)
+{
+	DebugMsg( DM_MAGIC, 3, "mvr_rec_start: %d", buf[0] );
+
+	switch( buf[0] )
+	{
+	case 0:
+		// Movie recording stopped; 
+		audio_configure();
+		break;
+	case 1:
+		// Movie recording about to start?
+		break;
+	case 2:
+		// Movie recording started
+		audio_configure();
+		break;
+	default:
+		// Uh?
+		break;
+	}
+}
+
+
 /** Replace the sound dev task with our own to disable AGC.
  *
  * This task disables the AGC when the sound device is activated.
@@ -354,55 +439,16 @@ my_sounddev_task( void )
 		audio_dgain
 	);
 
-	while(1)
-	{
-		msleep( 1000 );
-
-		audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
-		audio_ic_write( AUDIO_IC_SIG1 | 0x14 ); // power up, no gain
-		audio_ic_write( AUDIO_IC_SIG2 | 0x04 ); // external, no gain
-		audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
-		audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
-		//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
-
-		// Set manual low gain; +30dB == 0xE1
-		// gain == (byte - 145) * 0.375
-		//const uint32_t gain = 12;
-		audio_ic_set_input_volume( audio_dgain );
-
-		// 4 == 10 dB
-		// 5 == 17 dB
-		// 3 == 32 dB
-		audio_ic_set_mgain( audio_mgain ); // 10 dB
-
-		//const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
-		//audio_ic_write( AUDIO_IC_IVL | (gain_cmd & 0xFF) );
-		//audio_ic_write( AUDIO_IC_IVR | (gain_cmd & 0xFF) );
-
-		// Disable the HPF
-		//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
-		//audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
-		//audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
-		//audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
-
-		// Enable the LPF
-		// Canon uses F2A/B = 0x0ED4 and 0x3DA9.
-		audio_ic_write( AUDIO_IC_LPF0 | 0xD4 );
-		audio_ic_write( AUDIO_IC_LPF1 | 0x0E );
-		audio_ic_write( AUDIO_IC_LPF2 | 0xA9 );
-		audio_ic_write( AUDIO_IC_LPF3 | 0x3D );
-		audio_ic_write( AUDIO_IC_FIL1 | audio_ic_read( AUDIO_IC_FIL1 ) | (1<<5) );
-
-		// Enable loop mode
-		uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
-		mode3 |= (1<<6);
-		audio_ic_write( AUDIO_IC_MODE3 | mode3 );
-
-		//draw_audio_regs();
-	}
-
-	DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
+	unsigned mvr_rec_event = PROP_MVR_REC;
+	prop_register_slave(
+		&mvr_rec_event,
+		1,
+		handle_mvr_rec_property,
+		0,
+		0 //handle_mvr_rec_token
+	);
 }
+
 
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 

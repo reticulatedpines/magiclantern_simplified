@@ -6,7 +6,7 @@
 #include "bmp.h"
 #include "gui.h"
 #include "config.h"
-
+#include "property.h"
 
 static void
 draw_version( void )
@@ -124,6 +124,7 @@ void audio_mgain_toggle( void * priv )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x1) & 0x7;
+	audio_configure();
 }
 
 void audio_mgain_display( void * priv, int x, int y, int selected )
@@ -142,6 +143,7 @@ void audio_dgain_toggle( void * priv )
 	if( dgain > 40 )
 		dgain = 0;
 	*(unsigned*) priv = dgain;
+	audio_configure();
 }
 
 void audio_dgain_display( void * priv, int x, int y, int selected )
@@ -174,6 +176,36 @@ void debug_lens_info( void * priv )
 	//bmp_hexdump( 300, 100, (void*) 0x39e4, 0x80 );
 	call( "FA_MovieStart" );
 }
+
+
+struct property {
+	unsigned	prop;
+	unsigned	len;
+	uint32_t	data[ 6 ]; // make it an even 32 bytes
+};
+
+#define MAX_PROP_LOG 1024
+struct property prop_log[ MAX_PROP_LOG ];
+int prop_head = 0;
+
+void prop_log_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( x, y, "%sDump prop log %04x",
+		selected ? "->" : "  ",
+		prop_head
+	);
+}
+
+void prop_log_select( void * priv )
+{
+	write_debug_file(
+		"property.log",
+		prop_log,
+		sizeof(prop_log[0])*prop_head
+	);
+	prop_head = 0;
+}
+
 
 
 struct menu_entry main_menu[] = {
@@ -212,6 +244,10 @@ struct menu_entry main_menu[] = {
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
+	},
+	{
+		.select		= prop_log_select,
+		.display	= prop_log_display,
 	},
 	{
 		.priv		= "Dump dmlog",
@@ -376,6 +412,7 @@ void property_token(
 }
 
 
+
 void property_slave(
 	unsigned		property,
 	void *			UNUSED( priv ),
@@ -383,21 +420,45 @@ void property_slave(
 	unsigned		len
 )
 {
+/*
+	if( property == PROP_LV_STATE )
+		goto ack;
+
+	if( property == PROP_LENS_SOMETHING )
+		write_debug_file( "lensinfo.log", addr, len );
+*/
+	struct property * prop = &prop_log[ prop_head ];
+	prop_head = (prop_head + 1) % MAX_PROP_LOG;
+
+	int i;
+	prop->prop	= property;
+	prop->len	= len;
+
+	if( len > sizeof(prop->data) )
+		len = sizeof(prop->data);
+	unsigned word_len = (len + 3) / 4;
+	for( i=0 ; i<sizeof(prop->data)/4 ; i++ )
+		prop->data[i] =  i < word_len ? addr[i] : 0;
+
+	int draw_prop = 0;
+	if( !draw_prop )
+		goto ack;
+
 	const unsigned x = 150;
 	static unsigned y = 32;
 
-	DebugMsg( DM_MAGIC, 3, "Prop: %08x: %08x @ %02d: %08x",
+/*
+	DebugMsg( DM_MAGIC, 3, "Prop %08x: %08x @ %02d: %08x",
 		property,
 		(unsigned) addr,
 		len,
 		addr[0]
 	);
+*/
 
-	bmp_printf( x, y, "Prop: %08x: %08x @ %d %08x (%d)",
+	bmp_printf( x, y, "Prop: %08x: %d %08x",
 		property,
-		(unsigned) addr,
 		len,
-		addr[0],
 		addr[0]
 	);
 	y += font_height;
@@ -405,7 +466,7 @@ void property_slave(
 	if( len != 4 )
 	{
 		bmp_hexdump( x, y, addr, len );
-		y += ((len+16) / 16) * font_height;
+		y += ((len+15) / 16) * font_height;
 	}
 
 	bmp_fill( RED_COLOR, x, y, 100, 1 );
@@ -413,6 +474,7 @@ void property_slave(
 	if( y > 400 )
 		y = 32;
 	
+ack:
 	prop_handler_cleanup( token, property );
 }
 
@@ -429,17 +491,47 @@ menu_task( void )
 
 	draw_version();
 
-	int i;
-	for( i=0 ; i< num_properties  ; i++ )
+	// Only record important events for the display and face detect
+	dm_set_store_level( DM_DISP, 4 );
+	dm_set_store_level( DM_LVFD, 4 );
+
+#if 1
+	unsigned i, j, k;
+	unsigned actual_num_properties = 0;
+	//for( i=0 ; i<=0x8 ; i++ )
+	i = 8;
 	{
-		uint32_t low = i & 0xFF;
-		uint32_t high = (i & 0xF00) << 8;
-		property_list[i] = 0x80000000 | low | high;
+		for( j=0 ; j<=0x8 ; j++ )
+		{
+			for( k=0 ; k<0x40 ; k++ )
+			{
+				property_list[ actual_num_properties++ ] = 0
+					| (i << 28) 
+					| (j << 16)
+					| (k <<  0);
+
+				if( i != 0 )
+				property_list[ actual_num_properties++ ] = 0
+					| (i << 28) 
+					| (j << 24)
+					| (k <<  0);
+
+				if( actual_num_properties > num_properties )
+					goto thats_all;
+			}
+		}
 	}
 
+thats_all:
+#else
+	int actual_num_properties = 0;
+	property_list[actual_num_properties++] = 0x80030002;
+#endif
+
+	prop_head = 0;
 	prop_register_slave(
-		property_list, // (void*) 0xFFC52BF4,
-		num_properties,
+		//(void*) 0xffc509b0, 0xDA,
+		property_list, actual_num_properties,
 		property_slave,
 		0,
 		property_token

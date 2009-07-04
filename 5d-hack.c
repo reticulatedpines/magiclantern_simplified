@@ -233,6 +233,8 @@ my_init_task(void)
 	additional_version[8] = build_version[4];
 	additional_version[9] = '\0';
 
+	powersave_disable();
+
 #if 1
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];

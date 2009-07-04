@@ -144,4 +144,8 @@ audio_ic_write(
 /** Table of calibrations for audio levels to db */
 extern int audio_thresholds[];
 
+/** Magic Lantern function to reconfigure the audio device */
+extern void audio_configure( void );
+extern unsigned audio_dgain, audio_mgain;
+
 #endif
