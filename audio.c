@@ -284,7 +284,17 @@ TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
 
 
 /** Write the MGAIN2-0 bits.
- * See table 19 for the gain values.
+ * Table 19 for the gain values:
+ *
+ *       0 == +0 dB
+ *       1 == +20 dB
+ *       2 == +26 dB
+ *       3 == +32 dB
+ *       4 == +10 dB
+ *       5 == +17 dB
+ *       6 == +23 dB
+ *       7 == +29 dB
+ *
  * Why is it split between two registers?  I don't know.
  */
 static inline void
