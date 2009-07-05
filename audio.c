@@ -373,33 +373,51 @@ audio_configure( void )
 }
 
 
-void
+struct gain_struct
+{
+	void *			mvr_rec_token;
+	struct semaphore *	sem;
+};
+
+static struct gain_struct gain = { (void*) 1, (void*) 1 };
+
+static void
+handle_mvr_rec_token(
+	void *			token
+)
+{
+	gain.mvr_rec_token = token;
+}
+
+
+static void
 handle_mvr_rec_property(
 	unsigned		property,
 	void *			UNUSED( priv ),
-	unsigned *		buf,
+	void *			buf,
 	unsigned		len
 )
 {
-	DebugMsg( DM_MAGIC, 3, "mvr_rec_start: %d", buf[0] );
+	const unsigned		mode = *(unsigned*) buf;
+	DebugMsg( DM_MAGIC, 3, "mvr_rec_start: %x %x", (unsigned) buf, mode );
 
-	switch( buf[0] )
+	switch( mode )
 	{
 	case 0:
-		// Movie recording stopped; 
-		audio_configure();
+		// Movie recording stopped;  (fallthrough)
+	case 2:
+		// Movie recording started
+		give_semaphore( gain.sem );
 		break;
 	case 1:
 		// Movie recording about to start?
-		break;
-	case 2:
-		// Movie recording started
-		audio_configure();
 		break;
 	default:
 		// Uh?
 		break;
 	}
+
+	return prop_cleanup( gain.mvr_rec_token, property );
 }
 
 
@@ -412,41 +430,46 @@ my_sounddev_task( void )
 {
 	DebugMsg( DM_AUDIO, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem_alc );
 
+	gain.sem = create_named_semaphore( "audio_gain", 1 );
+
+	static unsigned mvr_rec_events[] = { PROP_MVR_REC_START, };
+	prop_register_slave(
+		mvr_rec_events,
+		1,
+		handle_mvr_rec_property,
+		NULL,
+		handle_mvr_rec_token
+	);
+
 	msleep( 2000 );
+
+	// Fake the sound dev task parameters
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
 	sounddev_active_in(0,0);
 
-	// Check to see if we have any audio gain parameters
-	extern unsigned audio_dgain;
-	extern unsigned audio_mgain;
+	// Set defaults
 	audio_mgain = 4; // +10 dB
 	audio_dgain = 18; // +18 dB
+
+	// Check to see if we have any audio gain parameters
 	char * mgain_str = config_value( global_config, "audio.mgain" );
 	if( mgain_str )
-	{
-		DebugMsg( DM_AUDIO, 3, "mgain='%s' (%x)\n", mgain_str, mgain_str );
 		audio_mgain = atoi( mgain_str );
-	}
 
 	char * dgain_str = config_value( global_config, "audio.dgain" );
 	if( dgain_str )
 		audio_dgain = atoi( dgain_str );
 
-	DebugMsg( DM_AUDIO, 3,
-		"Using mgain=%d dgain=%d\n",
-		audio_mgain,
-		audio_dgain
-	);
+	while(1)
+	{
+		// will be unlocked by the property handler
+		take_semaphore( gain.sem, 0 );
+		DebugMsg( DM_MAGIC, 3, "%s: out of sleep", __func__ );
 
-	unsigned mvr_rec_event = PROP_MVR_REC;
-	prop_register_slave(
-		&mvr_rec_event,
-		1,
-		handle_mvr_rec_property,
-		0,
-		0 //handle_mvr_rec_token
-	);
+		audio_configure();
+		msleep( 10 );
+	}
 }
 
 
