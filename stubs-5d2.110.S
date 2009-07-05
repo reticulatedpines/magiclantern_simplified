@@ -95,6 +95,10 @@ NSTUB( 0xFF8729C8, task_trampoline )
 /** Look for the string 'DisablePowerSave' */
 NSTUB( 0xFF86D4DC, powersave_disable )
 
+/** Look for the string 'emAutoPowerOff' */
+NSTUB( 0xFF8A3DB8, emAutoPowerOff )
+NSTUB( 0xFF88F23C, prop_request_icu_auto_poweroff )
+
 /** These data structures are required for the gui_main_task
  * override.  Once gui_main_task has been located, walk
  * through it to find all of the other functions and structures.

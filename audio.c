@@ -478,6 +478,7 @@ my_sounddev_task( void )
 		DebugMsg( DM_MAGIC, 3, "%s: out of sleep", __func__ );
 
 		audio_configure();
+		prop_request_icu_auto_poweroff( EM_PROHIBIT );
 		msleep( 10 );
 	}
 }

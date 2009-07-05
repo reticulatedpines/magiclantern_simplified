@@ -403,4 +403,7 @@ extern int atoi( const char * );
 extern void powersave_disable( void );
 extern void powersave_enable( void );
 
+#define EM_PROHIBIT 2
+extern void prop_request_icu_auto_poweroff( int mode );
+
 #endif
