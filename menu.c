@@ -475,10 +475,10 @@ void property_slave(
 		y = 32;
 	
 ack:
-	prop_handler_cleanup( token, property );
+	prop_cleanup( token, property );
 }
 
-#define num_properties 4096
+#define num_properties 1024
 unsigned property_list[ num_properties ];
 
 
@@ -494,6 +494,7 @@ menu_task( void )
 	// Only record important events for the display and face detect
 	dm_set_store_level( DM_DISP, 4 );
 	dm_set_store_level( DM_LVFD, 4 );
+	dm_set_store_level( 0, 4 ); // catch all?
 
 #if 1
 	unsigned i, j, k;
@@ -530,8 +531,8 @@ thats_all:
 
 	prop_head = 0;
 	prop_register_slave(
-		//(void*) 0xffc509b0, 0xDA,
-		property_list, actual_num_properties,
+		(void*) 0xffc509b0, 0xDA,
+		//property_list, actual_num_properties,
 		property_slave,
 		0,
 		property_token
