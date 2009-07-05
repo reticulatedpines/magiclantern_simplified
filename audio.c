@@ -243,6 +243,8 @@ compute_audio_levels(
  *
  * Compute the average and peak level, periodically calling
  * the draw_meters() function to display the results on screen.
+ * \todo Check that we have live-view enabled and the TFT is on
+ * before drawing.
  */
 static void
 meter_task( void )
@@ -250,8 +252,6 @@ meter_task( void )
 	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
 
 	msleep( 4000 );
-
-	call( "FA_StartLiveView" );
 
 	while(1)
 	{

@@ -538,6 +538,15 @@ thats_all:
 		property_token
 	);
 
+	msleep( 3000 );
+
+	int enable_liveview = 1;
+	char * enable_liveview_str = config_value( global_config, "enable-liveview" );
+	if( enable_liveview_str )
+		enable_liveview = atoi( enable_liveview_str );
+	if( enable_liveview )
+		call( "FA_StartLiveView" );
+
 	while(1)
 	{
 		if( !gui_show_menu )
