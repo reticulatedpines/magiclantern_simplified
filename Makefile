@@ -18,8 +18,8 @@ all: \
 	5d2_dumper.fir \
 	magiclantern.fir \
 
-install: magiclantern.fir
-	cp magiclantern.fir /Volumes/KINGSTON/5d2.fir
+install: magiclantern.fir magiclantern.cfg
+	cp $^ /Volumes/KINGSTON/
 	hdiutil unmount /Volumes/KINGSTON/
 
 
