@@ -185,7 +185,7 @@ NSTUB( 0x2F3E0, current_lens_name )
 
 /** Property slave handler */
 NSTUB( 0xFF85AC64, prop_register_slave )
-NSTUB( 0xFF85AD38, prop_handler_cleanup )
+NSTUB( 0xFF85AD38, prop_cleanup )
 NSTUB( 0xFF85ABDC, prop_deliver )
 
 #if 0

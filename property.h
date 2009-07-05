@@ -24,6 +24,10 @@
 #define PROP_LV_STATE		0x8005000f // output very often
 #define PROP_LV_DISPSIZE	0x80050015
 
+/** These need to be found */
+#define PROP_LCD_STATE		error_must_be_found
+#define PROP_SHOOTING_TYPE	error_must_be_found
+
 /** Gui properties? 0xffc509b0 @ 0xDA */
 
 /** Properties */
@@ -31,7 +35,7 @@ extern void
 prop_register_slave(
 	unsigned *	property_list,
 	unsigned	count,
-	void		(*prop_handler)(
+	void *		(*prop_handler)(
 		unsigned		property,
 		void *			priv,
 		void *			addr,
@@ -42,9 +46,10 @@ prop_register_slave(
 );
 
 
-extern void
+extern void *
 prop_cleanup(
 	void *		token,
 	unsigned	property
 );
+
 #endif
