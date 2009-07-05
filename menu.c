@@ -487,7 +487,7 @@ menu_task( void )
 {
 	msleep( 1000 );
 	// Parse our config file
-	global_config = config_parse_file( "A:/ML.CFG" );
+	global_config = config_parse_file( "A:/magiclantern.cfg" );
 
 	draw_version();
 

@@ -29,6 +29,7 @@ zip: magiclantern-$(VERSION).zip
 magiclantern-$(VERSION).zip: \
 	zip.txt \
 	magiclantern.fir \
+	magiclantern.cfg \
 	README \
 	LICENSE \
 
