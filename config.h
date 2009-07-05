@@ -29,6 +29,14 @@ config_value(
 	const char *		name
 );
 
+extern int
+config_int(
+	struct config *		config,
+	const char *		name,
+	int			def
+);
+
+
 extern struct config *
 config_parse_file(
 	const char *		filename

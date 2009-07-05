@@ -165,6 +165,21 @@ config_value(
 	return NULL;
 }
 
+
+int
+config_int(
+	struct config *		config,
+	const char *		name,
+	int			def
+)
+{
+	const char *		str = config_value( config, name );
+	if( !str )
+		return def;
+	return atoi( str );
+}
+
+
 struct config head = { .name = "config.file", .value = "" };
 struct config fail = { .name = "config.failure", .value = "1" };
 

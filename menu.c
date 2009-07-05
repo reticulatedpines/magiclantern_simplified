@@ -540,10 +540,7 @@ thats_all:
 
 	msleep( 3000 );
 
-	int enable_liveview = 1;
-	char * enable_liveview_str = config_value( global_config, "enable-liveview" );
-	if( enable_liveview_str )
-		enable_liveview = atoi( enable_liveview_str );
+	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
 	if( enable_liveview )
 		call( "FA_StartLiveView" );
 

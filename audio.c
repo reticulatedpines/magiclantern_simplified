@@ -459,17 +459,9 @@ my_sounddev_task( void )
 	sounddev_active_in(0,0);
 
 	// Set defaults
-	audio_mgain = 4; // +10 dB
-	audio_dgain = 18; // +18 dB
-
-	// Check to see if we have any audio gain parameters
-	char * mgain_str = config_value( global_config, "audio.mgain" );
-	if( mgain_str )
-		audio_mgain = atoi( mgain_str );
-
-	char * dgain_str = config_value( global_config, "audio.dgain" );
-	if( dgain_str )
-		audio_dgain = atoi( dgain_str );
+	audio_mgain = config_int( global_config, "audio.mgain", 4 );
+	audio_dgain = config_int( global_config, "audio.dgain", 18 );
+	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
 
 	while(1)
 	{
@@ -478,7 +470,8 @@ my_sounddev_task( void )
 		DebugMsg( DM_MAGIC, 3, "%s: out of sleep", __func__ );
 
 		audio_configure();
-		prop_request_icu_auto_poweroff( EM_PROHIBIT );
+		if( disable_powersave )
+			prop_request_icu_auto_poweroff( EM_PROHIBIT );
 		msleep( 10 );
 	}
 }
