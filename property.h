@@ -15,6 +15,10 @@
 
 #define PROP_REC_TIME		0x02010009 // output at 1 Hz while recording
 
+/** These are good guesses */
+#define PROP_LIVE_VIEW_FACE_AF	0x0205000A
+#define PROP_LV_LOCK		0x80050021
+
 /** These are guesses */
 #define PROP_MVR_MOVW_START0	0x80000020 // not sure?
 #define PROP_MVR_MOVW_START1	0x80000021
