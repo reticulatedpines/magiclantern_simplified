@@ -175,8 +175,25 @@ config_int(
 {
 	const char *		str = config_value( config, name );
 	if( !str )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"Config '%s', using default %d",
+			name,
+			def
+		);
+
 		return def;
-	return atoi( str );
+	}
+
+	def = atoi( str );
+	DebugMsg( DM_MAGIC, 3,
+		"Config '%s', using user value %d ('%s')",
+		name,
+		def,
+		str
+	);
+
+	return def;
 }
 
 
