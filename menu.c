@@ -7,6 +7,7 @@
 #include "gui.h"
 #include "config.h"
 #include "property.h"
+#include "lens.h"
 
 static void
 draw_version( void )
@@ -375,8 +376,6 @@ menu_handler(
 		);
 	}
 #endif
-	extern char current_lens_name[];
-	bmp_printf( 300, 88, "Lens: '%s'", current_lens_name );
 	//bmp_hexdump( 300, 100, (void*) 0x39e4, 0x80 );
 
 	switch( event )
@@ -489,6 +488,28 @@ ack:
 unsigned property_list[ num_properties ];
 
 
+void
+call_init_funcs( void )
+{
+	// Call all of the init functions
+	extern struct task_create _init_funcs_start[];
+	extern struct task_create _init_funcs_end[];
+	struct task_create * init_func = _init_funcs_start;
+
+	for( ; init_func < _init_funcs_end ; init_func++ )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"Calling init_func %s (%x)",
+			init_func->name,
+			(unsigned) init_func->entry
+		);
+
+		thunk entry = (thunk) init_func->entry;
+		entry();
+	}
+}
+
+
 static void
 menu_task( void )
 {
@@ -503,6 +524,8 @@ menu_task( void )
 	dm_set_store_level( DM_LVFD, 4 );
 	dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
+
+	call_init_funcs();
 
 #if 0
 	unsigned i, j, k;

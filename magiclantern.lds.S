@@ -36,6 +36,13 @@ SECTIONS
 		*(.tasks)
 		_tasks_end = .;
 
+		/* List of magiclantern init funcs to be called  */
+		. = ALIGN(8);
+		_init_funcs_start = .;
+		*(.init_funcs)
+		_init_funcs_end = .;
+
+
 		/* Read/write data */
 		. = ALIGN(64);
 		*(.data)

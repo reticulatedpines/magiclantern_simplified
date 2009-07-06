@@ -102,6 +102,7 @@ magiclantern: \
 	5d-hack.o \
 	gui.o \
 	audio.o \
+	lens.o \
 	zebra.o \
 	hotplug.o \
 	config.o \

@@ -111,5 +111,13 @@ task_create_##ENTRY = { \
 	.flags		= FLAGS, \
 }
 
+#define INIT_FUNC( NAME, ENTRY ) \
+struct task_create \
+__attribute__((section(".init_funcs"))) \
+task_create_##ENTRY = { \
+	.name		= NAME, \
+	.entry		= ENTRY, \
+}
+
 
 #endif
