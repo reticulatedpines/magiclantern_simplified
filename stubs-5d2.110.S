@@ -155,6 +155,7 @@ NSTUB( 0xFF857134, sounddev_active_out )
 NSTUB( 0xFF854FC4, audio_start_asif_observer )
 NSTUB( 0xFF856D8C, _audio_ic_read )
 NSTUB( 0xFF855CC8, audio_ic_write )
+NSTUB( 0xFF856FC0, audio_ic_sweep_message_queue )
 
 NSTUB( 0xFF868184, oneshot_timer )
 
@@ -164,7 +165,7 @@ NSTUB( 0xFF856E5C, sounddev_task )
 NSTUB( 0x208C, sounddev )
 
 /** Look for it in functions that are from AudioIC/ */
-NSTUB( 0x1F58, audioic )
+NSTUB( 0x1F58, audio_ic )
 NSTUB( 0x7320, audio_in )
 
 /** Find the audio_level_to_db function; it references this table */

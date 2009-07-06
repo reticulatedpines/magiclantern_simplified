@@ -118,6 +118,10 @@ audio_ic_write(
 	unsigned		cmd
 );
 
+
+extern void
+audio_ic_sweep_message_queue( void );
+
 #define AUDIO_IC_PM1	0x2000
 #define AUDIO_IC_PM2	0x2100
 #define AUDIO_IC_SIG1	0x2200
