@@ -444,7 +444,7 @@ void property_slave(
 	if( !draw_prop )
 		goto ack;
 
-	const unsigned x = 150;
+	const unsigned x = 80;
 	static unsigned y = 32;
 
 /*
@@ -456,18 +456,25 @@ void property_slave(
 	);
 */
 
-	bmp_printf( x, y, "Prop: %08x: %d %08x",
+	bmp_printf( x, y, "%08x %04x: %08x %08x %08x %08x %08x %08x",
 		property,
 		len,
-		addr[0]
+		len > 0x00 ? addr[0] : 0,
+		len > 0x04 ? addr[1] : 0,
+		len > 0x08 ? addr[2] : 0,
+		len > 0x0c ? addr[3] : 0,
+		len > 0x10 ? addr[4] : 0,
+		len > 0x14 ? addr[5] : 0
 	);
 	y += font_height;
 
+/*
 	if( len != 4 )
 	{
 		bmp_hexdump( x, y, addr, len );
 		y += ((len+15) / 16) * font_height;
 	}
+*/
 
 	bmp_fill( RED_COLOR, x, y, 100, 1 );
 
@@ -478,7 +485,7 @@ ack:
 	prop_cleanup( token, property );
 }
 
-#define num_properties 1024
+#define num_properties 8192
 unsigned property_list[ num_properties ];
 
 
@@ -494,13 +501,13 @@ menu_task( void )
 	// Only record important events for the display and face detect
 	dm_set_store_level( DM_DISP, 4 );
 	dm_set_store_level( DM_LVFD, 4 );
+	dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
 
-#if 1
+#if 0
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
-	//for( i=0 ; i<=0x8 ; i++ )
-	i = 8;
+	for( i=0 ; i<=0x8 ; i++ )
 	{
 		for( j=0 ; j<=0x8 ; j++ )
 		{
@@ -526,13 +533,19 @@ menu_task( void )
 thats_all:
 #else
 	int actual_num_properties = 0;
-	property_list[actual_num_properties++] = 0x80030002;
+	property_list[actual_num_properties++] = 0x80050000;
+
+// Lens info 0x80050000
+// buf[3] --
+// 0x00
+// 0xY0, where Y is even
+// 0x0
 #endif
 
 	prop_head = 0;
 	prop_register_slave(
-		(void*) 0xffc509b0, 0xDA,
-		//property_list, actual_num_properties,
+		//(void*) 0xffc509b0, 0xDA,
+		property_list, actual_num_properties,
 		property_slave,
 		0,
 		property_token
