@@ -375,7 +375,7 @@ audio_configure( void )
 
 	//draw_audio_regs();
 	bmp_printf( 500, 400, "Gain %d/%d", audio_mgain, audio_dgain );
-	DebugMsg( DM_MAGIC, 3,
+	DebugMsg( DM_AUDIO, 3,
 		"Gain mgain=%d dgain=%d",
 		audio_mgain,
 		audio_dgain
@@ -465,14 +465,16 @@ my_sounddev_task( void )
 
 	while(1)
 	{
-		// will be unlocked by the property handler
-		take_semaphore( gain.sem, 0 );
+		msleep( 1500 );
 		DebugMsg( DM_MAGIC, 3, "%s: out of sleep", __func__ );
 
 		audio_configure();
+
 		if( disable_powersave )
 			prop_request_icu_auto_poweroff( EM_PROHIBIT );
-		msleep( 10 );
+
+		// will be unlocked by the property handler
+		take_semaphore( gain.sem, 0 );
 	}
 }
 
@@ -500,7 +502,11 @@ my_audio_level_task( void )
 
 	while(1)
 	{
-		DebugMsg( DM_AUDIO, 3, "%s: sleeping init=%d\n", __func__, audio_in.initialized );
+		DebugMsg( DM_AUDIO, 3, "%s: sleeping init=%d",
+			__func__,
+			audio_in.initialized
+		);
+
 		if( take_semaphore( audio_in.sem_interval, 0 ) & 1 )
 		{
 			//DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
