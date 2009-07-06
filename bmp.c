@@ -121,8 +121,7 @@ bmp_hexdump(
 
 	const uint32_t *	d = (uint32_t*) buf;
 
-	while( len -= 16 )
-	{
+	do {
 		bmp_printf( x, y, "%08x: %08x %08x %08x %08x",
 			(unsigned) d,
 			(unsigned) d[0],
@@ -133,7 +132,8 @@ bmp_hexdump(
 
 		y += font_height;
 		d += 4;
-	}
+		len -= 16;
+	} while(len);
 }
 
 
