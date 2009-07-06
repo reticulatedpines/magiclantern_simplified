@@ -177,12 +177,8 @@ zebra_task( void )
 {
 	msleep( 5000 );
 
-	const char * zebra_draw_str = config_value( global_config, "zebra.draw" );
-	if( zebra_draw_str )
-		zebra_draw = atoi( zebra_draw_str );
-	const char * zebra_level_str = config_value( global_config, "zebra.level" );
-	if( zebra_level_str )
-		zebra_level = atoi( zebra_level_str );
+	zebra_draw = config_int( global_config, "zebra.draw", 1 );
+	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
 
 	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x",
 		zebra_draw ? "on" : "off",
