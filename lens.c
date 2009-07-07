@@ -65,9 +65,9 @@ lens_handle_property(
 	// Needs to be 720 - 8 * 12
 	bmp_printf( FONT_MED, 620,  0, "%5d mm", lens_info.focal_len );
 	if( lens_info.focus_dist == 0xFFFF )
-		bmp_printf( FONT_MED, 620, 12, "Infinity" );
+		bmp_printf( FONT_MED, 620, font_med.height, "Infinity" );
 	else
-		bmp_printf( FONT_MED, 620, 12, "%5d cm", lens_info.focus_dist );
+		bmp_printf( FONT_MED, 620, font_med.height, "%5d cm", lens_info.focus_dist );
 
 	prop_cleanup( lens_info.token, property );
 }

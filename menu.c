@@ -10,6 +10,8 @@
 #include "lens.h"
 #include "font.h"
 
+#define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG)
+
 static void
 draw_version( void )
 {
@@ -66,7 +68,7 @@ menu_print(
 	int			selected
 )
 {
-	bmp_printf( FONT_LARGE, x, y, "%s%s",
+	bmp_printf( MENU_FONT, x, y, "%s%s",
 		selected ? "->" : "  ",
 		(const char*) priv
 	);
@@ -82,7 +84,7 @@ void zebra_toggle( void * priv )
 
 void zebra_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( FONT_LARGE, x, y, "%sZebra level: %04x",
+	bmp_printf( MENU_FONT, x, y, "%sZebra level: %04x",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -97,7 +99,7 @@ void zebra_draw_toggle( void * priv )
 
 void zebra_draw_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( FONT_LARGE, x, y, "%sZebras %s",
+	bmp_printf( MENU_FONT, x, y, "%sZebras %s",
 		selected ? "->" : "  ",
 		*(unsigned*) priv ? "on" : "off"
 	);
@@ -113,7 +115,7 @@ void audio_mgain_toggle( void * priv )
 
 void audio_mgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( FONT_LARGE, x, y, "%sMGAIN reg: 0x%x",
+	bmp_printf( MENU_FONT, x, y, "%sMGAIN reg: 0x%x",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -132,7 +134,7 @@ void audio_dgain_toggle( void * priv )
 
 void audio_dgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( FONT_LARGE, x, y, "%sDGAIN reg: %2d dB",
+	bmp_printf( MENU_FONT, x, y, "%sDGAIN reg: %2d dB",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -174,7 +176,7 @@ int prop_head = 0;
 
 void prop_log_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( FONT_LARGE, x, y, "%sDump prop log %04x",
+	bmp_printf( MENU_FONT, x, y, "%sDump prop log %04x",
 		selected ? "->" : "  ",
 		prop_head
 	);
@@ -345,7 +347,7 @@ menu_handler(
 	events[ last_menu_event ][2] = arg3;
 	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 
-	menu_display( main_menu, 10, 100, 1 );
+	menu_display( main_menu, 0, 100, 1 );
 
 	switch( event )
 	{
