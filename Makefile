@@ -109,6 +109,7 @@ magiclantern: \
 	menu.o \
 	bmp.o \
 	font-large.o \
+	font-med.o \
 	font-small.o \
 	stubs-5d2.110.o \
 	version.o \
@@ -124,13 +125,37 @@ magiclantern: \
 	)
 
 
+# These do not need to be run.  Since bigtext is not
+# a standard program, the output files are checked in.
+font-large.in: generate-font
+	./$< > $@ \
+		'-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*' \
+		19 25
+font-med.in: generate-font
+	./$< > $@ \
+		'-*-helvetica-*-r-*-*-12-*-100-100-*-*-iso8859-*' \
+		7 18
+font-small.in: generate-font
+	./$< > $@ \
+		'-*-helvetica-*-r-*-*-10-*-100-100-*-*-iso8859-*' \
+		6 8
+
 font-large.c: font-large.in mkfont
 	$(call build,MKFONT,./mkfont \
 		< $< \
 		> $@ \
 		-width 28 \
 		-height 32 \
-		-name font \
+		-name font_large \
+	)
+
+font-med.c: font-med.in mkfont
+	$(call build,MKFONT,./mkfont \
+		< $< \
+		> $@ \
+		-width 12 \
+		-height 12 \
+		-name font_med \
 	)
 
 font-small.c: font-small.in mkfont
@@ -280,6 +305,6 @@ build = \
 
 
 clean:
-	-rm -f *.o *.a
+	-rm -f *.o *.a font-*.c
 
 -include .*.o.d

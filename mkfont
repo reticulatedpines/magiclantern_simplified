@@ -10,7 +10,7 @@ use Getopt::Long;
 
 my $font_width		= 8;
 my $font_height		= 12;
-my $font_type		= 'const unsigned char';
+my $font_type		= 'const unsigned';
 my $font_name		= 'font';
 
 GetOptions(
@@ -20,14 +20,12 @@ GetOptions(
 ) or die "$0: Bad argument\n";
 
 
-$font_type = "const unsigned long"
-	if $font_width > 8;
-
-
 print <<"";
-const unsigned ${font_name}_width = $font_width;
-const unsigned ${font_name}_height = $font_height;
-$font_type ${font_name}[] = {
+#include "font.h"
+struct font ${font_name} = {
+	.width		= $font_width,
+	.height		= $font_height,
+	.bitmap		= {
 
 # Paragraph mode
 $/ = "\n\n";
@@ -45,6 +43,9 @@ while(<>)
 	for my $line (0..$font_height-1)
 	{
 		my $row = $rows[ $line ] || ( ' ' x $font_width );
+		# Pad with spaces to the width of the font
+		$row .= ' ' x (32 - length($row));
+
 		my $bits = $row;
 		$bits =~ s/[^ ]/1/g;
 		$bits =~ s/[ ]/0/g;
@@ -67,4 +68,8 @@ while(<>)
 }
 
 
-print "};\n";
+print <<"";
+	},
+};
+
+__END__

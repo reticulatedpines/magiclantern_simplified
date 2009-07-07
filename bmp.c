@@ -6,6 +6,7 @@
  */
 #include "dryos.h"
 #include "bmp.h"
+#include "font.h"
 #include <stdarg.h>
 
 // This is a DryOS routine that must be located for bmp_printf to work
@@ -14,6 +15,7 @@ extern int vsnprintf( char *, size_t, const char *, va_list );
 
 static void
 _draw_char(
+	struct font *	font,
 	uint8_t *	bmp_vram_row,
 	char		c
 )
@@ -24,7 +26,7 @@ _draw_char(
 	const uint32_t	bg_color	= BLUE_COLOR << 24;
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 
-	for( i=0 ; i<font_height ; i++ )
+	for( i=0 ; i<font->height ; i++ )
 	{
 		// Start this scanline
 		uint32_t * row = front_row;
@@ -32,10 +34,10 @@ _draw_char(
 		// move to the next scanline
 		front_row += pitch;
 
-		uint32_t pixels = font[ c + (i << 7) ];
+		uint32_t pixels = font->bitmap[ c + (i << 7) ];
 		uint8_t pixel;
 
-		for( j=0 ; j<font_width/4 ; j++ )
+		for( j=0 ; j<font->width/4 ; j++ )
 		{
 			uint32_t bmp_pixels = 0;
 			for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
@@ -66,16 +68,18 @@ bmp_puts(
 
 	char c;
 
+	struct font * font = &font_med;
+
 	while( (c = *s++) )
 	{
 		if( c == '\n' )
 		{
-			row = first_row += pitch * font_height;
+			row = first_row += pitch * font->height;
 			continue;
 		}
 
-		_draw_char( row, c );
-		row += font_width;
+		_draw_char( font, row, c );
+		row += font->width;
 	}
 
 }
@@ -124,7 +128,7 @@ bmp_hexdump(
 			(unsigned) d[3]
 		);
 
-		y += font_height;
+		y += font_med.height;
 		d += 4;
 		len -= 16;
 	} while(len);

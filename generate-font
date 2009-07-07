@@ -3,23 +3,26 @@
 use strict;
 use warnings;
 
+my $font = shift || '-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*';
+my $start = shift || 19;
+my $width = shift || 25;
+
 my @chars = (
 	'A'..'Z',
 	'a'..'z',
 	'0'..'9',
 	' ', '/', '#', ',', "'",
-	qw/ ! " $ % & ( ) * + - . [ \ ] ^ _ ` ~ /
+	qw/ @ \\ = : ! " $ % & ( ) * + - . [ ] ^ _ ` ~ /
 );
 
-warn "@chars\n";
-my $font = '-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*';
 
 for my $char (@chars)
 {
 	# The _ is to force a leading space and the Mj is to force
 	# maximum ascender and descender
-	my $str = "'_$char   Mj'";
-	$str = q{"_'   Mj"} if $char eq "'";
+	my $str = "'_$char   |`Mj'";
+	$str = q{"_'   |\\`Mj"} if $char eq "'";
+	$str = q{"_\\   |\\`Mj"} if $char eq "\\";
 
 	my @lines = `bigtext -font '$font' $str`;
 
@@ -27,8 +30,9 @@ for my $char (@chars)
 	my $text;
 	for( @lines )
 	{
-		$text .= substr( $_, 19, 25 ) . "\n";
+		$text .= substr( $_, $start, $width ) . "\n";
 	}
 
 	print "$char =\n$text\n";
 }
+

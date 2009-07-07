@@ -8,6 +8,7 @@
 #include "config.h"
 #include "property.h"
 #include "lens.h"
+#include "font.h"
 
 static void
 draw_version( void )
@@ -28,13 +29,13 @@ draw_version( void )
 	int y = 200;
 	struct config * config = global_config;
 	bmp_printf( 0, y, "Config: %x", (unsigned) global_config );
-	y += font_height;
+	y += font_med.height;
 
 	while( config )
 	{
 		bmp_printf( 0, y, "'%s' => '%s'", config->name, config->value );
 		config = config->next;
-		y += font_height;
+		y += font_med.height;
 	}
 }
 
@@ -46,7 +47,7 @@ draw_events( void )
 	for( i=0 ; i<MAX_GUI_EVENTS ; i++ )
 	{
 		const struct event * const ev = &gui_events[ (i + gui_events_index) % MAX_GUI_EVENTS ];
-		bmp_printf( 0, 100 + i*font_height,
+		bmp_printf( 0, 100 + i*font_med.height,
 			"Ev %d %08x %08x %08x",
 			(unsigned) ev->type,
 			(unsigned) ev->param,
@@ -269,7 +270,7 @@ menu_display(
 	int			selected
 )
 {
-	for( ; menu->selected >= 0 ; menu++, y += font_height )
+	for( ; menu->selected >= 0 ; menu++, y += font_med.height )
 	{
 		menu->display(
 			menu->priv,
@@ -369,7 +370,7 @@ menu_handler(
 	for( i=0 ; i < MAX_GUI_EVENTS ; i++ )
 	{
 		uint32_t * ev = events[ (i + last_menu_event) % MAX_GUI_EVENTS ];
-		bmp_printf( 300, 100 + i*font_height, "GUI: %08x %08x %08x",
+		bmp_printf( 300, 100 + i*font_med.height, "GUI: %08x %08x %08x",
 			(unsigned) ev[0],
 			(unsigned) ev[1],
 			(unsigned) ev[2]
@@ -465,13 +466,13 @@ void property_slave(
 		len > 0x10 ? addr[4] : 0,
 		len > 0x14 ? addr[5] : 0
 	);
-	y += font_height;
+	y += font_med.height;
 
 /*
 	if( len != 4 )
 	{
 		bmp_hexdump( x, y, addr, len );
-		y += ((len+15) / 16) * font_height;
+		y += ((len+15) / 16) * font_med.height;
 	}
 */
 
