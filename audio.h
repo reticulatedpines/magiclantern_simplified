@@ -150,6 +150,6 @@ extern int audio_thresholds[];
 
 /** Magic Lantern function to reconfigure the audio device */
 extern void audio_configure( void );
-extern unsigned audio_dgain, audio_mgain;
+extern unsigned audio_dgain, audio_mgain, audio_mic_power;
 
 #endif

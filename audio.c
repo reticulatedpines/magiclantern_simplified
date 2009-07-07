@@ -28,6 +28,7 @@ struct audio_level
 
 struct audio_level audio_levels[2];
 
+unsigned audio_mic_power;
 
 
 /** Returns a dB translated from the raw level
@@ -334,7 +335,10 @@ void
 audio_configure( void )
 {
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
-	audio_ic_write( AUDIO_IC_SIG1 | 0x14 ); // power up, no gain
+	audio_ic_write( AUDIO_IC_SIG1
+		| 0x10
+		| ( audio_mic_power ? 0x4 : 0x0 )
+	); // power up, no gain
 	audio_ic_write( AUDIO_IC_SIG2 | 0x04 ); // external, no gain
 	audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
 	audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
@@ -461,6 +465,7 @@ my_sounddev_task( void )
 	// Set defaults
 	audio_mgain = config_int( global_config, "audio.mgain", 4 );
 	audio_dgain = config_int( global_config, "audio.dgain", 18 );
+	audio_mic_power = config_int( global_config, "audio.mic-power", 1 );
 	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
 
 	while(1)
