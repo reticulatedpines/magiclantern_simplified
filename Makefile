@@ -134,8 +134,8 @@ font-large.in: generate-font
 	)
 font-med.in: generate-font
 	$(call build,'GENFONT',./$< > $@ \
-		'-*-helvetica-*-r-*-*-12-*-100-100-*-*-iso8859-*' \
-		7 18 \
+		'-*-helvetica-*-r-*-*-17-*-100-100-*-*-iso8859-*' \
+		10 16 \
 	)
 font-small.in: generate-font
 	$(call build,'GENFONT',./$< > $@ \
@@ -157,7 +157,7 @@ font-med.c: font-med.in mkfont
 		< $< \
 		> $@ \
 		-width 12 \
-		-height 12 \
+		-height 16 \
 		-name font_med \
 	)
 
