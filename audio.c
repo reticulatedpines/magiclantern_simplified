@@ -121,7 +121,7 @@ draw_meter(
 	struct audio_level *	level
 )
 {
-	const uint32_t width = 640; // bmp_width();
+	const uint32_t width = 600; // bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
@@ -134,9 +134,9 @@ draw_meter(
 	const int db_avg = audio_level_to_db( level->avg );
 	const int db_peak = audio_level_to_db( level->peak );
 
-	// levels go from -40 to 0, so -40 * 16 == 640
-	const uint32_t x_db_avg = (width + db_avg * 16) / 4;
-	const uint32_t x_db_peak = (width + db_peak * 16) / 4;
+	// levels go from -40 to 0, so -40 * 15 == 600
+	const uint32_t x_db_avg = (width + db_avg * 15) / 4;
+	const uint32_t x_db_peak = (width + db_peak * 15) / 4;
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
@@ -177,7 +177,7 @@ draw_ticks(
 	int		tick_height
 )
 {
-	const uint32_t width = bmp_width();
+	const uint32_t width = 600 + 8; // bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
@@ -193,9 +193,9 @@ draw_ticks(
 	for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
 	{
 		int db;
-		for( db=-40 * 8; db<= 0 ; db+=5*8 )
+		for( db=-40; db<= 0 ; db+=5 )
 		{
-			const uint32_t x_db = width + db * 2;
+			const uint32_t x_db = width + db * 15;
 			row[x_db/4] = white_word;
 		}
 	}
