@@ -128,9 +128,9 @@ font-large.c: font-large.in mkfont
 	$(call build,MKFONT,./mkfont \
 		< $< \
 		> $@ \
-		-width 25 \
+		-width 28 \
 		-height 32 \
-		-name font_large \
+		-name font \
 	)
 
 font-small.c: font-small.in mkfont
@@ -139,7 +139,7 @@ font-small.c: font-small.in mkfont
 		> $@ \
 		-width 8 \
 		-height 12 \
-		-name font \
+		-name font_small \
 	)
 
 version.c: FORCE

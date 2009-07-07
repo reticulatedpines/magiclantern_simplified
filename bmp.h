@@ -32,9 +32,11 @@ static inline uint32_t bmp_height(void) { return 480; }
  * At only one size.
  * Deal with it.
  */
-#define font_width	8
-#define font_height	12
-extern const unsigned char font[];
+//#define font_width	8
+//#define font_height	12
+extern unsigned font_width;
+extern unsigned font_height;
+extern const unsigned font[];
 
 
 extern void

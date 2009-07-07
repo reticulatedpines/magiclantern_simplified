@@ -18,7 +18,7 @@ _draw_char(
 	char		c
 )
 {
-	unsigned i;
+	unsigned i,j;
 	const uint32_t	pitch		= bmp_pitch() / 4;
 	const uint32_t	fg_color	= WHITE_COLOR << 24;
 	const uint32_t	bg_color	= BLUE_COLOR << 24;
@@ -32,26 +32,20 @@ _draw_char(
 		// move to the next scanline
 		front_row += pitch;
 
-		uint8_t pixels = font[ c + (i << 7) ];
+		uint32_t pixels = font[ c + (i << 7) ];
 		uint8_t pixel;
 
-		uint32_t bmp_pixels = 0;
-		for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
+		for( j=0 ; j<font_width/4 ; j++ )
 		{
-			bmp_pixels >>= 8;
-			bmp_pixels |= (pixels & 0x80) ? fg_color : bg_color;
+			uint32_t bmp_pixels = 0;
+			for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
+			{
+				bmp_pixels >>= 8;
+				bmp_pixels |= (pixels & 0x80000000) ? fg_color : bg_color;
+			}
+
+			*(row++) = bmp_pixels;
 		}
-
-		*(row++) = bmp_pixels;
-		bmp_pixels = 0;
-
-		for( pixel=0 ; pixel<4 ; pixel++, pixels <<= 1 )
-		{
-			bmp_pixels >>= 8;
-			bmp_pixels |= (pixels & 0x80) ? fg_color : bg_color;
-		}
-
-		*(row++) = bmp_pixels;
 	}
 }
 
