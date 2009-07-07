@@ -108,7 +108,8 @@ magiclantern: \
 	config.o \
 	menu.o \
 	bmp.o \
-	font.o \
+	font-large.o \
+	font-small.o \
 	stubs-5d2.110.o \
 	version.o \
 
@@ -123,8 +124,23 @@ magiclantern: \
 	)
 
 
-font.c: font.in mkfont
-	$(call build,MKFONT,./mkfont < $< > $@)
+font-large.c: font-large.in mkfont
+	$(call build,MKFONT,./mkfont \
+		< $< \
+		> $@ \
+		-width 25 \
+		-height 32 \
+		-name font_large \
+	)
+
+font-small.c: font-small.in mkfont
+	$(call build,MKFONT,./mkfont \
+		< $< \
+		> $@ \
+		-width 8 \
+		-height 12 \
+		-name font \
+	)
 
 version.c: FORCE
 	$(call build,VERSION,( \

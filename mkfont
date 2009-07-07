@@ -6,14 +6,31 @@
 #
 use warnings;
 use strict;
+use Getopt::Long;
+
+my $font_width		= 8;
+my $font_height		= 12;
+my $font_type		= 'const unsigned char';
+my $font_name		= 'font';
+
+GetOptions(
+	"name=s"		=> \$font_name,
+	"width=i"		=> \$font_width,
+	"height=i"		=> \$font_height,
+) or die "$0: Bad argument\n";
+
+
+$font_type = "const unsigned long"
+	if $font_width > 8;
+
 
 print <<"";
-const unsigned char font[] __attribute__((section(".text"))) = {
+const unsigned ${font_name}_width = $font_width;
+const unsigned ${font_name}_height = $font_height;
+$font_type ${font_name}[] = {
 
 # Paragraph mode
 $/ = "\n\n";
-
-my $font_height = 12;
 
 my $index = 0;
 my $base = ord( ' ' );
@@ -27,7 +44,7 @@ while(<>)
 
 	for my $line (0..$font_height-1)
 	{
-		my $row = $rows[ $line ] || '        ';
+		my $row = $rows[ $line ] || ( ' ' x $font_width );
 		my $bits = $row;
 		$bits =~ s/[^ ]/1/g;
 		$bits =~ s/[ ]/0/g;
@@ -35,8 +52,12 @@ while(<>)
 		# Fix $pos for special chars
 		$pos = "\\$pos" if $pos eq '\\' or $pos eq '\'';
 
-		my $val = ord( pack( "B8", $bits ) );
-		printf "[ '%s' + (%d << 7) ] = 0x%02x, // $row\n",
+		my $val = unpack(
+			$font_width == 8 ? "C" : "N",
+			pack( "B*", $bits )
+		);
+
+		printf "[ '%s' + (%2d << 7) ] = 0x%08x, // $row\n",
 			$pos,
 			$line,
 			$val;
