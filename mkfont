@@ -53,10 +53,7 @@ while(<>)
 		# Fix $pos for special chars
 		$pos = "\\$pos" if $pos eq '\\' or $pos eq '\'';
 
-		my $val = unpack(
-			$font_width == 8 ? "C" : "N",
-			pack( "B*", $bits )
-		);
+		my $val = unpack( "N", pack( "B*", $bits ) );
 
 		printf "[ '%s' + (%2d << 7) ] = 0x%08x, // $row\n",
 			$pos,

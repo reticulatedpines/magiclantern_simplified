@@ -12,6 +12,7 @@ struct font
 	unsigned 	bitmap[];
 };
 
+
 extern struct font font_small, font_med, font_large;
 
 #endif

@@ -15,15 +15,25 @@ extern int vsnprintf( char *, size_t, const char *, va_list );
 
 static void
 _draw_char(
-	struct font *	font,
+	unsigned	fontspec,
 	uint8_t *	bmp_vram_row,
 	char		c
 )
 {
 	unsigned i,j;
+	const struct font * const font = fontspec_font( fontspec );
+
+	uint32_t	fg_color	= fontspec_fg( fontspec ) << 24;
+	uint32_t	bg_color	= fontspec_bg( fontspec ) << 24;
+
+	// Special case -- fg=bg=0 => white on transparent
+	if( fg_color == 0 && bg_color == 0 )
+	{
+		fg_color = COLOR_WHITE << 24;
+		bg_color = COLOR_BG << 24;
+	}
+
 	const uint32_t	pitch		= bmp_pitch() / 4;
-	const uint32_t	fg_color	= WHITE_COLOR << 24;
-	const uint32_t	bg_color	= BLUE_COLOR << 24;
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 
 	for( i=0 ; i<font->height ; i++ )
@@ -54,6 +64,7 @@ _draw_char(
 
 void
 bmp_puts(
+	unsigned		fontspec,
 	unsigned		x,
 	unsigned		y,
 	const char *		s
@@ -68,7 +79,7 @@ bmp_puts(
 
 	char c;
 
-	struct font * font = &font_med;
+	const struct font * const font = fontspec_font( fontspec );
 
 	while( (c = *s++) )
 	{
@@ -78,7 +89,7 @@ bmp_puts(
 			continue;
 		}
 
-		_draw_char( font, row, c );
+		_draw_char( fontspec, row, c );
 		row += font->width;
 	}
 
@@ -86,6 +97,7 @@ bmp_puts(
 
 void
 bmp_printf(
+	unsigned		fontspec,
 	unsigned		x,
 	unsigned		y,
 	const char *		fmt,
@@ -99,12 +111,13 @@ bmp_printf(
 	vsnprintf( buf, sizeof(buf), fmt, ap );
 	va_end( ap );
 
-	bmp_puts( x, y, buf );
+	bmp_puts( fontspec, x, y, buf );
 }
 
 
 void
 bmp_hexdump(
+	unsigned		fontspec,
 	unsigned		x,
 	unsigned		y,
 	const void *		buf,
@@ -120,7 +133,11 @@ bmp_hexdump(
 	const uint32_t *	d = (uint32_t*) buf;
 
 	do {
-		bmp_printf( x, y, "%08x: %08x %08x %08x %08x",
+		bmp_printf(
+			fontspec,
+			x,
+			y,
+			"%08x: %08x %08x %08x %08x",
 			(unsigned) d,
 			(unsigned) d[0],
 			(unsigned) d[1],

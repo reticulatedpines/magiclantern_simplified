@@ -55,7 +55,6 @@ lens_handle_property(
 		lens_info.focal_len	= bswap16( lv_lens->focal_len );
 		lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
-		//bmp_printf( 300, 76, "%x %d: %4d mm @ %5d cm", (unsigned) buf, len, lens_info.focal_len, lens_info.focus_dist );
 		//bmp_hexdump( 300, 88, buf, len );
 		break;
 	}
@@ -63,19 +62,12 @@ lens_handle_property(
 		break;
 	}
 
-	if(0) bmp_printf( 300, 88,
-		"Lens: '%s' %4d mm @ %5d cm",
-		lens_info.name,
-		lens_info.focal_len,
-		lens_info.focus_dist
-	);
-	else {
-		bmp_printf( 650,  0, "%5d mm", lens_info.focal_len );
-		if( lens_info.focus_dist == 0xFFFF )
-			bmp_printf( 650, 12, "Infinity" );
-		else
-			bmp_printf( 650, 12, "%5d cm", lens_info.focus_dist );
-	}
+	// Needs to be 720 - 8 * 12
+	bmp_printf( FONT_MED, 620,  0, "%5d mm", lens_info.focal_len );
+	if( lens_info.focus_dist == 0xFFFF )
+		bmp_printf( FONT_MED, 620, 12, "Infinity" );
+	else
+		bmp_printf( FONT_MED, 620, 12, "%5d cm", lens_info.focus_dist );
 
 	prop_cleanup( lens_info.token, property );
 }

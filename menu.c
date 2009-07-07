@@ -13,7 +13,9 @@
 static void
 draw_version( void )
 {
-	bmp_printf( 0, 32,
+	bmp_printf(
+		FONT( FONT_SMALL, COLOR_WHITE, COLOR_BLUE ),
+		0, 32,
 		"Magic Lantern Firmware version %s (%s)\nBuilt on%s by %s\n%s",
 		build_version,
 		build_id,
@@ -22,39 +24,19 @@ draw_version( void )
 		"http://magiclantern.wikia.com/"
 	);
 
-	//thunk debug_lens_info = (void*) 0xff8efde8;
-	//debug_lens_info();
-	//bmp_hexdump( 0, 200, (void*)( 0x1D88 ), 0x40 );
-
+/*
 	int y = 200;
 	struct config * config = global_config;
-	bmp_printf( 0, y, "Config: %x", (unsigned) global_config );
-	y += font_med.height;
+	bmp_printf( FONT_SMALL, 0, y, "Config: %x", (unsigned) global_config );
+	y += font_small.height;
 
 	while( config )
 	{
-		bmp_printf( 0, y, "'%s' => '%s'", config->name, config->value );
+		bmp_printf( FONT_SMALL, 0, y, "'%s' => '%s'", config->name, config->value );
 		config = config->next;
-		y += font_med.height;
+		y += font_small.height;
 	}
-}
-
-
-static void
-draw_events( void )
-{
-	int i;
-	for( i=0 ; i<MAX_GUI_EVENTS ; i++ )
-	{
-		const struct event * const ev = &gui_events[ (i + gui_events_index) % MAX_GUI_EVENTS ];
-		bmp_printf( 0, 100 + i*font_med.height,
-			"Ev %d %08x %08x %08x",
-			(unsigned) ev->type,
-			(unsigned) ev->param,
-			(unsigned) ev->obj,
-			(unsigned) ev->arg
-		);
-	}
+*/
 }
 
 
@@ -84,7 +66,7 @@ menu_print(
 	int			selected
 )
 {
-	bmp_printf( x, y, "%s%s",
+	bmp_printf( FONT_LARGE, x, y, "%s%s",
 		selected ? "->" : "  ",
 		(const char*) priv
 	);
@@ -100,7 +82,7 @@ void zebra_toggle( void * priv )
 
 void zebra_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sZebra level: %04x",
+	bmp_printf( FONT_LARGE, x, y, "%sZebra level: %04x",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -115,7 +97,7 @@ void zebra_draw_toggle( void * priv )
 
 void zebra_draw_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sZebras %s",
+	bmp_printf( FONT_LARGE, x, y, "%sZebras %s",
 		selected ? "->" : "  ",
 		*(unsigned*) priv ? "on" : "off"
 	);
@@ -131,7 +113,7 @@ void audio_mgain_toggle( void * priv )
 
 void audio_mgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sMGAIN reg: 0x%x",
+	bmp_printf( FONT_LARGE, x, y, "%sMGAIN reg: 0x%x",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -150,7 +132,7 @@ void audio_dgain_toggle( void * priv )
 
 void audio_dgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sDGAIN reg: %2d dB",
+	bmp_printf( FONT_LARGE, x, y, "%sDGAIN reg: %2d dB",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
@@ -192,7 +174,7 @@ int prop_head = 0;
 
 void prop_log_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( x, y, "%sDump prop log %04x",
+	bmp_printf( FONT_LARGE, x, y, "%sDump prop log %04x",
 		selected ? "->" : "  ",
 		prop_head
 	);
@@ -270,7 +252,7 @@ menu_display(
 	int			selected
 )
 {
-	for( ; menu->selected >= 0 ; menu++, y += font_med.height )
+	for( ; menu->selected >= 0 ; menu++, y += font_large.height )
 	{
 		menu->display(
 			menu->priv,
@@ -363,21 +345,7 @@ menu_handler(
 	events[ last_menu_event ][2] = arg3;
 	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 
-	menu_display( main_menu, 100, 100, 1 );
-
-#if 0
-	unsigned i;
-	for( i=0 ; i < MAX_GUI_EVENTS ; i++ )
-	{
-		uint32_t * ev = events[ (i + last_menu_event) % MAX_GUI_EVENTS ];
-		bmp_printf( 300, 100 + i*font_med.height, "GUI: %08x %08x %08x",
-			(unsigned) ev[0],
-			(unsigned) ev[1],
-			(unsigned) ev[2]
-		);
-	}
-#endif
-	//bmp_hexdump( 300, 100, (void*) 0x39e4, 0x80 );
+	menu_display( main_menu, 10, 100, 1 );
 
 	switch( event )
 	{
@@ -456,7 +424,7 @@ void property_slave(
 	);
 */
 
-	bmp_printf( x, y, "%08x %04x: %08x %08x %08x %08x %08x %08x",
+	bmp_printf( FONT_SMALL, x, y, "%08x %04x: %08x %08x %08x %08x %08x %08x",
 		property,
 		len,
 		len > 0x00 ? addr[0] : 0,
@@ -466,17 +434,9 @@ void property_slave(
 		len > 0x10 ? addr[4] : 0,
 		len > 0x14 ? addr[5] : 0
 	);
-	y += font_med.height;
+	y += font_small.height;
 
-/*
-	if( len != 4 )
-	{
-		bmp_hexdump( x, y, addr, len );
-		y += ((len+15) / 16) * font_med.height;
-	}
-*/
-
-	bmp_fill( RED_COLOR, x, y, 100, 1 );
+	bmp_fill( COLOR_RED, x, y, 100, 1 );
 
 	if( y > 400 )
 		y = 32;
@@ -592,14 +552,12 @@ thats_all:
 		if( gui_show_menu == 1 )
 		{
 			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
-			bmp_printf( 0, 400, "Creating menu task" );
 			last_menu_event = 0;
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
 			gui_show_menu = 2;
 		}
 
 		draw_version();
-		//draw_events();
 		msleep( 100 );
 	}
 }

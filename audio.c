@@ -145,7 +145,7 @@ draw_meter(
 
 	const uint32_t bar_color_word = color_word( bar_color );
 	const uint32_t peak_color_word = color_word( peak_color );
-	const uint32_t bg_color_word = color_word( BG_COLOR );
+	const uint32_t bg_color_word = color_word( COLOR_BG );
 
 	// Write the meter an entire scan line at a time
 	int y;
@@ -168,7 +168,7 @@ draw_meter(
 	}
 
 	// Write the current level
-	bmp_printf( 0, y_origin, "%3d", db_avg );
+	bmp_printf( FONT_SMALL, 0, y_origin, "%3d", db_avg );
 }
 
 
@@ -186,10 +186,10 @@ draw_ticks(
 	row += (pitch/4) * y;
 
 	const uint32_t white_word = 0
-		| ( WHITE_COLOR << 24 )
-		| ( WHITE_COLOR << 16 )
-		| ( WHITE_COLOR <<  8 )
-		| ( WHITE_COLOR <<  0 );
+		| ( COLOR_WHITE << 24 )
+		| ( COLOR_WHITE << 16 )
+		| ( COLOR_WHITE <<  8 )
+		| ( COLOR_WHITE <<  0 );
 
 	for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
 	{
@@ -378,7 +378,7 @@ audio_configure( void )
 	audio_ic_write( AUDIO_IC_MODE3 | mode3 );
 
 	//draw_audio_regs();
-	bmp_printf( 500, 400, "Gain %d/%d", audio_mgain, audio_dgain );
+	bmp_printf( FONT_SMALL, 500, 400, "Gain %d/%d", audio_mgain, audio_dgain );
 	DebugMsg( DM_AUDIO, 3,
 		"Gain mgain=%d dgain=%d",
 		audio_mgain,

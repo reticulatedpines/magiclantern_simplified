@@ -33,7 +33,7 @@ draw_matte(
 	unsigned		x;
 
 	for( x = 0; x<width/4 ; x++ )
-		*(row++) = color_word( WHITE_COLOR );
+		*(row++) = color_word( COLOR_WHITE );
 
 	return 1;
 }
@@ -102,7 +102,7 @@ draw_zebra( void )
 
 	uint32_t x,y;
 
-	const uint8_t zebra_color_0 = BG_COLOR; // 0x6F; // bright read
+	const uint8_t zebra_color_0 = COLOR_BG; // 0x6F; // bright read
 	const uint8_t zebra_color_1 = 0x5F; // dark red
 
 	// For unused contrast detection algorithm

@@ -128,17 +128,20 @@ magiclantern: \
 # These do not need to be run.  Since bigtext is not
 # a standard program, the output files are checked in.
 font-large.in: generate-font
-	./$< > $@ \
+	$(call build,'GENFONT',./$< > $@ \
 		'-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*' \
-		19 25
+		19 25 \
+	)
 font-med.in: generate-font
-	./$< > $@ \
+	$(call build,'GENFONT',./$< > $@ \
 		'-*-helvetica-*-r-*-*-12-*-100-100-*-*-iso8859-*' \
-		7 18
+		7 18 \
+	)
 font-small.in: generate-font
-	./$< > $@ \
+	$(call build,'GENFONT',./$< > $@ \
 		'-*-helvetica-*-r-*-*-10-*-100-100-*-*-iso8859-*' \
-		6 8
+		6 8 \
+	)
 
 font-large.c: font-large.in mkfont
 	$(call build,MKFONT,./mkfont \
