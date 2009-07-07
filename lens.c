@@ -63,12 +63,19 @@ lens_handle_property(
 		break;
 	}
 
-	if(1) bmp_printf( 300, 88,
+	if(0) bmp_printf( 300, 88,
 		"Lens: '%s' %4d mm @ %5d cm",
 		lens_info.name,
 		lens_info.focal_len,
 		lens_info.focus_dist
 	);
+	else {
+		bmp_printf( 650,  0, "%5d mm", lens_info.focal_len );
+		if( lens_info.focus_dist == 0xFFFF )
+			bmp_printf( 650, 12, "Infinity" );
+		else
+			bmp_printf( 650, 12, "%5d cm", lens_info.focus_dist );
+	}
 
 	prop_cleanup( lens_info.token, property );
 }
