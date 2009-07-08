@@ -12,6 +12,8 @@
 unsigned zebra_level = 0xF000;
 unsigned zebra_draw = 1;
 unsigned crop_draw = 1;
+unsigned edge_draw = 0;
+
 
 /** Draw white thin crop marks
  *  And draw the 16:9 crop marks for full time
@@ -31,7 +33,7 @@ draw_matte(
 	if( !crop_draw )
 		return 0;
 
-	if( y != 50 && y != 380 )
+	if( y != 55 && y != 375 )
 		return 0;
 
 	const uint32_t		width	= 720;
@@ -98,8 +100,6 @@ edge_detect(
 static void
 draw_zebra( void )
 {
-	const int draw_edge_detect = 0;
-
 	uint8_t * const bvram = bmp_vram();
 	if( !bvram )
 		return;
@@ -135,7 +135,7 @@ draw_zebra( void )
 		for( x=1 ; x < vram->width-1 ; x++ )
 		{
 
-			if( draw_edge_detect )
+			if( edge_draw )
 			{
 				// Check for contrast
 				int32_t grad = edge_detect(
@@ -247,6 +247,7 @@ zebra_task( void )
 	zebra_draw = config_int( global_config, "zebra.draw", 1 );
 	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
 	crop_draw = config_int( global_config, "crop.draw", 1 );
+	edge_draw = config_int( global_config, "edge.draw", 1 );
 
 	menu_add( &main_menu, zebra_menus, COUNT(zebra_menus) );
 
