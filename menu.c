@@ -163,12 +163,30 @@ void prop_log_select( void * priv )
 }
 
 
+unsigned efic_temp;
+
+static void
+efic_temp_display(
+	struct menu_entry *	menu,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf( MENU_FONT, x, y,
+		"%sSensor Temp %4d",
+		selected ? "->" : "  ",
+		efic_temp
+	);
+}
+
+
 
 struct menu_entry main_menu = {
-	.priv		= "Magic Lantern",
+	.priv		= 0,
 	.selected	= 1,
 	.select		= 0,
-	.display	= menu_print,
+	.display	= efic_temp_display,
 };
 
 
@@ -359,6 +377,9 @@ void property_slave(
 	if( property == PROP_LENS_SOMETHING )
 		write_debug_file( "lensinfo.log", addr, len );
 */
+	if( property == PROP_EFIC_TEMP )
+		efic_temp = *addr;
+
 	struct property * prop = &prop_log[ prop_head ];
 	prop_head = (prop_head + 1) % MAX_PROP_LOG;
 
@@ -482,6 +503,7 @@ thats_all:
 #else
 	int actual_num_properties = 0;
 	property_list[actual_num_properties++] = 0x80050000;
+	property_list[actual_num_properties++] = PROP_EFIC_TEMP;
 #endif
 
 	prop_head = 0;

@@ -32,6 +32,11 @@
 #define PROP_LCD_STATE		error_must_be_found
 #define PROP_SHOOTING_TYPE	error_must_be_found
 
+/** These are used by DL: 8002000C, 80030014, 100000E, 80020013 */
+#define PROP_ACTIVE_SWEEP_STATUS 0x8002000C
+#define PROP_DL_ACTION		0x80020013
+#define PROP_EFIC_TEMP		0x80030014
+
 /** Gui properties? 0xffc509b0 @ 0xDA */
 
 /** Properties */
