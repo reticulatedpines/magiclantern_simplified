@@ -309,8 +309,8 @@ menu_handler(
 	// Check if we should stop displaying
 	if( !gui_show_menu )
 	{
+		//bmp_fill( 0x00, 0, 32, 640, 380 );
 		gui_task_destroy( menu_task_ptr );
-		//bmp_fill( 0x00, 0, 0, 640, 480 );
 		menu_task_ptr = 0;
 		return 1;
 	}

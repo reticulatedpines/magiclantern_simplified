@@ -120,7 +120,8 @@ draw_zebra( void )
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
-	for( y=33 ; y < 390; y++ )
+	// 33 is the bottom of the meters; 55 is the crop mark
+	for( y=55 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
