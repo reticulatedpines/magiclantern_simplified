@@ -221,25 +221,22 @@ void crop_display( void * priv, int x, int y, int selected )
 	);
 }
 
-struct menu_entry zebra_draw_menu =
-{
-	.priv		= &zebra_draw,
-	.select		= zebra_draw_toggle,
-	.display	= zebra_draw_display,
-};
-
-struct menu_entry zebra_level_menu =
-{
-	.priv		= &zebra_level,
-	.select		= zebra_toggle,
-	.display	= zebra_display,
-};
-
-struct menu_entry crop_draw_menu =
-{
-	.priv		= &crop_draw,
-	.select		= crop_toggle,
-	.display	= crop_display,
+struct menu_entry zebra_menus[] = {
+	{
+		.priv		= &zebra_draw,
+		.select		= zebra_draw_toggle,
+		.display	= zebra_draw_display,
+	},
+	{
+		.priv		= &zebra_level,
+		.select		= zebra_toggle,
+		.display	= zebra_display,
+	},
+	{
+		.priv		= &crop_draw,
+		.select		= crop_toggle,
+		.display	= crop_display,
+	},
 };
 
 int
@@ -251,9 +248,7 @@ zebra_task( void )
 	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
 	crop_draw = config_int( global_config, "crop.draw", 1 );
 
-	menu_add( &main_menu, &crop_draw_menu );
-	menu_add( &main_menu, &zebra_draw_menu );
-	menu_add( &main_menu, &zebra_level_menu );
+	menu_add( &main_menu, zebra_menus, COUNT(zebra_menus) );
 
 	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x",
 		zebra_draw ? "on" : "off",
