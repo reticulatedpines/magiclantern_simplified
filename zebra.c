@@ -6,9 +6,12 @@
 #include "bmp.h"
 #include "version.h"
 #include "config.h"
+#include "menu.h"
 
-extern unsigned zebra_level;
-extern unsigned zebra_draw;
+
+unsigned zebra_level = 0xF000;
+unsigned zebra_draw = 1;
+unsigned crop_draw = 1;
 
 /** Draw white thin crop marks
  *  And draw the 16:9 crop marks for full time
@@ -25,6 +28,9 @@ draw_matte(
 	void *			bmp_row
 )
 {
+	if( !crop_draw )
+		return 0;
+
 	if( y != 50 && y != 380 )
 		return 0;
 
@@ -123,6 +129,9 @@ draw_zebra( void )
 		if( draw_matte(y, b_row) )
 			continue;
 
+		if( !zebra_draw )
+			continue;
+
 		for( x=1 ; x < vram->width-1 ; x++ )
 		{
 
@@ -170,15 +179,81 @@ draw_zebra( void )
 }
 
 
+void zebra_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 0x4000) & 0xF000;
+}
 
+void zebra_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( MENU_FONT, x, y, "%sZebra level: %04x",
+		selected ? "->" : "  ",
+		*(unsigned*) priv
+	);
+}
+
+void zebra_draw_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = !*ptr;
+}
+
+void zebra_draw_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( MENU_FONT, x, y, "%sZebras %s",
+		selected ? "->" : "  ",
+		*(unsigned*) priv ? " on" : "off"
+	);
+}
+
+void crop_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = !*ptr;
+}
+
+void crop_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( MENU_FONT, x, y, "%sCrop %s",
+		selected ? "->" : "  ",
+		*(unsigned*) priv ? " on" : "off"
+	);
+}
+
+struct menu_entry zebra_draw_menu =
+{
+	.priv		= &zebra_draw,
+	.select		= zebra_draw_toggle,
+	.display	= zebra_draw_display,
+};
+
+struct menu_entry zebra_level_menu =
+{
+	.priv		= &zebra_level,
+	.select		= zebra_toggle,
+	.display	= zebra_display,
+};
+
+struct menu_entry crop_draw_menu =
+{
+	.priv		= &crop_draw,
+	.select		= crop_toggle,
+	.display	= crop_display,
+};
 
 int
 zebra_task( void )
 {
-	msleep( 5000 );
+	msleep( 3000 );
 
 	zebra_draw = config_int( global_config, "zebra.draw", 1 );
 	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
+	crop_draw = config_int( global_config, "crop.draw", 1 );
+
+	menu_add( &main_menu, &crop_draw_menu );
+	menu_add( &main_menu, &zebra_draw_menu );
+	menu_add( &main_menu, &zebra_level_menu );
 
 	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x",
 		zebra_draw ? "on" : "off",
@@ -187,7 +262,7 @@ zebra_task( void )
 
 	while(1)
 	{
-		if( !gui_show_menu && zebra_draw )
+		if( !gui_show_menu )
 		{
 			draw_zebra();
 			msleep( 100 );

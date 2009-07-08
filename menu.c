@@ -9,8 +9,7 @@
 #include "property.h"
 #include "lens.h"
 #include "font.h"
-
-#define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG)
+#include "menu.h"
 
 static void
 draw_version( void )
@@ -46,64 +45,58 @@ static unsigned last_menu_event;
 static struct gui_task * menu_task_ptr;
 
 
-struct menu_entry
-{
-	int			selected;
-	void *			priv;
-	void			(*select)( void * priv );
-	void			(*display)(
-		void *			priv,
-		int			x,
-		int			y,
-		int			selected
-	);
-};
-
-
 void
 menu_print(
 	void *			priv,
 	int			x,
 	int			y,
-	int			selected
+	int			highlighted
 )
 {
 	bmp_printf( MENU_FONT, x, y, "%s%s",
-		selected ? "->" : "  ",
+		highlighted ? "->" : "  ",
 		(const char*) priv
 	);
 }
 
 
-unsigned zebra_level = 0xF000;
-void zebra_toggle( void * priv )
+void
+menu_add(
+	struct menu_entry *	head,
+	struct menu_entry *	new_entry
+)
 {
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 0x4000) & 0xF000;
+#if 1
+	new_entry->selected	= 0;
+	new_entry->next		= head->next;
+	new_entry->prev		= head;
+	head->next		= new_entry;
+#else
+	// Maybe later...
+	struct menu_entry * child = head->child;
+	if( !child )
+	{
+		// No other child entries; add this one
+		// and select it
+		new_entry->highlighted	= 1;
+		new_entry->prev		= NULL;
+		new_entry->next		= NULL;
+		head->child		= new_entry;
+		return;
+	}
+
+	// Walk the child list to find the end
+	while( child->next )
+		child = child->next;
+
+	// Push the new entry onto the end of the list
+	new_entry->selected	= 0;
+	new_entry->prev		= child;
+	new_entry->next		= NULL;
+	child->next		= new_entry;
+#endif
 }
 
-void zebra_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf( MENU_FONT, x, y, "%sZebra level: %04x",
-		selected ? "->" : "  ",
-		*(unsigned*) priv
-	);
-}
-
-unsigned zebra_draw = 1;
-void zebra_draw_toggle( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = !*ptr;
-}
-
-void zebra_draw_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf( MENU_FONT, x, y, "%sZebras %s",
-		selected ? "->" : "  ",
-		*(unsigned*) priv ? "on" : "off"
-	);
-}
 
 unsigned audio_mgain = 0;
 void audio_mgain_toggle( void * priv )
@@ -194,18 +187,15 @@ void prop_log_select( void * priv )
 
 
 
-struct menu_entry main_menu[] = {
-	{
-		.selected	= 1,
-		.priv		= &zebra_draw,
-		.select		= zebra_draw_toggle,
-		.display	= zebra_draw_display,
-	},
-	{
-		.priv		= &zebra_level,
-		.select		= zebra_toggle,
-		.display	= zebra_display,
-	},
+struct menu_entry main_menu = {
+	.priv		= "Magic Lantern",
+	.selected	= 1,
+	.select		= 0,
+	.display	= menu_print,
+};
+
+
+/*
 	{
 		.priv		= "HDMI FullHD",
 		.select		= enable_full_hd,
@@ -244,6 +234,7 @@ struct menu_entry main_menu[] = {
 		.selected	= -1,
 	},
 };
+*/
 
 
 void
@@ -254,7 +245,7 @@ menu_display(
 	int			selected
 )
 {
-	for( ; menu->selected >= 0 ; menu++, y += font_large.height )
+	while( menu )
 	{
 		menu->display(
 			menu->priv,
@@ -262,6 +253,9 @@ menu_display(
 			y,
 			menu->selected
 		);
+
+		y += font_large.height;
+		menu = menu->next;
 	}
 }
 
@@ -271,7 +265,7 @@ menu_select(
 	struct menu_entry *	menu
 )
 {
-	for( ; menu->selected >= 0 ; menu++ )
+	for( ; menu ; menu = menu->next )
 	{
 		if( !menu->selected )
 			continue;
@@ -290,7 +284,7 @@ menu_move(
 {
 	struct menu_entry *	menu = menu_top;
 
-	for( ; menu->selected >= 0 ; menu++ )
+	for( ; menu ; menu = menu->next )
 	{
 		if( !menu->selected )
 			continue;
@@ -298,20 +292,20 @@ menu_move(
 		if( ev == PRESS_JOY_UP )
 		{
 			// First and moving up?
-			if( menu == menu_top )
+			if( !menu->prev )
 				break;
-			menu[-1].selected = 1;
-			menu[ 0].selected = 0;
+			menu->selected = 0;
+			menu->prev->selected = 1;
 			break;
 		}
 
 		if( ev == PRESS_JOY_DOWN )
 		{
 			// Last and moving down?
-			if( menu[1].selected < 0 )
+			if( !menu->next )
 				break;
-			menu[+1].selected = 1;
-			menu[ 0].selected = 0;
+			menu->selected = 0;
+			menu->next->selected = 1;
 			break;
 		}
 	}
@@ -347,7 +341,12 @@ menu_handler(
 	events[ last_menu_event ][2] = arg3;
 	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 
-	menu_display( main_menu, 0, 100, 1 );
+	bmp_printf( MENU_FONT, 0, 100-font_large.height,
+		"%s",
+		main_menu.priv
+	);
+
+	menu_display( &main_menu, 0, 100, 1 );
 
 	switch( event )
 	{
@@ -358,11 +357,11 @@ menu_handler(
 
 	case PRESS_JOY_UP:
 	case PRESS_JOY_DOWN:
-		menu_move( main_menu, event );
+		menu_move( &main_menu, event );
 		break;
 
 	case PRESS_SET_BUTTON:
-		menu_select( main_menu );
+		menu_select( &main_menu );
 		break;
 
 	default:
