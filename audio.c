@@ -402,9 +402,13 @@ static void audio_mgain_toggle( void * priv )
 
 static void audio_mgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sMGAIN reg: 0x%x",
+	static uint8_t gains[] = { 0, 20, 26, 32, 10, 17, 23, 29 };
+	unsigned gain_reg= *(unsigned*) priv;
+	gain_reg &= 0x7;
+
+	bmp_printf( MENU_FONT, x, y, "%smgain: %2d db",
 		selected ? "->" : "  ",
-		*(unsigned*) priv
+		gains[ gain_reg ]
 	);
 }
 
@@ -420,7 +424,7 @@ static void audio_dgain_toggle( void * priv )
 
 static void audio_dgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sDGAIN reg: %2d dB",
+	bmp_printf( MENU_FONT, x, y, "%sdgain: %2d dB",
 		selected ? "->" : "  ",
 		*(unsigned*) priv
 	);
