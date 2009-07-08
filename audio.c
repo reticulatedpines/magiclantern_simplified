@@ -406,7 +406,7 @@ static void audio_mgain_display( void * priv, int x, int y, int selected )
 	unsigned gain_reg= *(unsigned*) priv;
 	gain_reg &= 0x7;
 
-	bmp_printf( MENU_FONT, x, y, "%smgain: %2d db",
+	bmp_printf( MENU_FONT, x, y, "%smgain: %2d dB",
 		selected ? "->" : "  ",
 		gains[ gain_reg ]
 	);
