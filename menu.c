@@ -482,12 +482,6 @@ thats_all:
 #else
 	int actual_num_properties = 0;
 	property_list[actual_num_properties++] = 0x80050000;
-
-// Lens info 0x80050000
-// buf[3] --
-// 0x00
-// 0xY0, where Y is even
-// 0x0
 #endif
 
 	prop_head = 0;
