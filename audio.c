@@ -5,6 +5,10 @@
 #include "bmp.h"
 #include "config.h"
 #include "property.h"
+#include "menu.h"
+
+unsigned audio_mgain = 0;
+unsigned audio_dgain = 0;
 
 /** Read the raw level from the audio device.
  *
@@ -387,6 +391,56 @@ audio_configure( void )
 }
 
 
+/** Menu handlers */
+
+static void audio_mgain_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 0x1) & 0x7;
+	audio_configure();
+}
+
+static void audio_mgain_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( MENU_FONT, x, y, "%sMGAIN reg: 0x%x",
+		selected ? "->" : "  ",
+		*(unsigned*) priv
+	);
+}
+
+static void audio_dgain_toggle( void * priv )
+{
+	unsigned dgain = *(unsigned*) priv;
+	dgain += 6;
+	if( dgain > 40 )
+		dgain = 0;
+	*(unsigned*) priv = dgain;
+	audio_configure();
+}
+
+static void audio_dgain_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( MENU_FONT, x, y, "%sDGAIN reg: %2d dB",
+		selected ? "->" : "  ",
+		*(unsigned*) priv
+	);
+}
+
+
+static struct menu_entry audio_menus[] = {
+	{
+		.priv		= &audio_mgain,
+		.select		= audio_mgain_toggle,
+		.display	= audio_mgain_display,
+	},
+	{
+		.priv		= &audio_dgain,
+		.select		= audio_dgain_toggle,
+		.display	= audio_dgain_display,
+	},
+};
+
+
 struct gain_struct
 {
 	void *			mvr_rec_token;
@@ -431,7 +485,7 @@ handle_mvr_rec_property(
 		break;
 	}
 
-	return prop_cleanup( gain.mvr_rec_token, property );
+	prop_cleanup( gain.mvr_rec_token, property );
 }
 
 
@@ -467,6 +521,9 @@ my_sounddev_task( void )
 	audio_dgain = config_int( global_config, "audio.dgain", 18 );
 	audio_mic_power = config_int( global_config, "audio.mic-power", 1 );
 	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
+
+	// Create the menu items
+	menu_add( &main_menu, audio_menus, COUNT(audio_menus) );
 
 	while(1)
 	{

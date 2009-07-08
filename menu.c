@@ -63,14 +63,25 @@ menu_print(
 void
 menu_add(
 	struct menu_entry *	head,
-	struct menu_entry *	new_entry
+	struct menu_entry *	new_entry,
+	int			count
 )
 {
 #if 1
-	new_entry->selected	= 0;
-	new_entry->next		= head->next;
-	new_entry->prev		= head;
-	head->next		= new_entry;
+	// Find the end of the entries on the menu already
+	while( head->next )
+		head = head->next;
+
+	while( count-- )
+	{
+		new_entry->selected	= 0;
+		new_entry->next		= head->next;
+		new_entry->prev		= head;
+		head->next		= new_entry;
+
+		head			= new_entry;
+		new_entry++;
+	}
 #else
 	// Maybe later...
 	struct menu_entry * child = head->child;
@@ -98,40 +109,6 @@ menu_add(
 }
 
 
-unsigned audio_mgain = 0;
-void audio_mgain_toggle( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 0x1) & 0x7;
-	audio_configure();
-}
-
-void audio_mgain_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf( MENU_FONT, x, y, "%sMGAIN reg: 0x%x",
-		selected ? "->" : "  ",
-		*(unsigned*) priv
-	);
-}
-
-unsigned audio_dgain = 0;
-void audio_dgain_toggle( void * priv )
-{
-	unsigned dgain = *(unsigned*) priv;
-	dgain += 6;
-	if( dgain > 40 )
-		dgain = 0;
-	*(unsigned*) priv = dgain;
-	audio_configure();
-}
-
-void audio_dgain_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf( MENU_FONT, x, y, "%sDGAIN reg: %2d dB",
-		selected ? "->" : "  ",
-		*(unsigned*) priv
-	);
-}
 
 void enable_full_hd( void * priv )
 {
@@ -206,22 +183,16 @@ struct menu_entry main_menu = {
 		.select		= debug_lens_info,
 		.display	= menu_print,
 	},
-	{
-		.priv		= &audio_mgain,
-		.select		= audio_mgain_toggle,
-		.display	= audio_mgain_display,
-	},
-	{
-		.priv		= &audio_dgain,
-		.select		= audio_dgain_toggle,
-		.display	= audio_dgain_display,
-	},
+*/
+
+struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
 	},
 	{
+		.priv		= "Dump prop log",
 		.select		= prop_log_select,
 		.display	= prop_log_display,
 	},
@@ -230,11 +201,7 @@ struct menu_entry main_menu = {
 		.select		= dumpf,
 		.display	= menu_print,
 	},
-	{
-		.selected	= -1,
-	},
 };
-*/
 
 
 void
@@ -270,7 +237,8 @@ menu_select(
 		if( !menu->selected )
 			continue;
 
-		menu->select( menu->priv );
+		if( menu->select )
+			menu->select( menu->priv );
 		break;
 	}
 }
@@ -332,19 +300,14 @@ menu_handler(
 	static uint32_t events[ MAX_GUI_EVENTS ][4];
 
 	// Ignore periodic events
-	if( event == GUI_TIMER )
-		return 1;
-
-	// Store the event in the log
-	events[ last_menu_event ][0] = event;
-	events[ last_menu_event ][1] = arg2;
-	events[ last_menu_event ][2] = arg3;
-	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
-
-	bmp_printf( MENU_FONT, 0, 100-font_large.height,
-		"%s",
-		main_menu.priv
-	);
+	if( event != GUI_TIMER )
+	{
+		// Store the event in the log
+		events[ last_menu_event ][0] = event;
+		events[ last_menu_event ][1] = arg2;
+		events[ last_menu_event ][2] = arg3;
+		last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
+	}
 
 	menu_display( &main_menu, 0, 100, 1 );
 
@@ -541,6 +504,8 @@ thats_all:
 	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
 	if( enable_liveview )
 		call( "FA_StartLiveView" );
+
+	menu_add( &main_menu, debug_menus, COUNT(debug_menus) );
 
 	while(1)
 	{

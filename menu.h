@@ -45,7 +45,8 @@ menu_select(
 extern void
 menu_add(
 	struct menu_entry *	menu,
-	struct menu_entry *	new_entry
+	struct menu_entry *	new_entry,
+	int			count
 );
 
 

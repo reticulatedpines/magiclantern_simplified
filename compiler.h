@@ -28,4 +28,7 @@ static inline void free( const void * x ) { x = 0; }
 
 extern void * malloc( unsigned len );
 
+/** Compute the number of entries in a static array */
+#define COUNT(x)	(sizeof(x)/sizeof((x)[0]))
+
 #endif
