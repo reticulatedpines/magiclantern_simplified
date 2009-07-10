@@ -123,14 +123,9 @@ void enable_full_hd( void * priv )
 	DebugMsg( DM_MAGIC, 3, "Full HD done?" );
 }
 
-void debug_lens_info( void * priv )
+void call_dispcheck( void * priv )
 {
-	//thunk focusinfo = (thunk) 0xff8a3344;
-	//dm_set_store_level( 0x9f, 1 );
-	//DebugMsg( DM_MAGIC, 3, "Calling rmt_focusinfo %x", (unsigned) focusinfo );
-	//focusinfo();
-	//bmp_hexdump( 300, 100, (void*) 0x39e4, 0x80 );
-	call( "FA_MovieStart" );
+	call( "dispcheck" );
 }
 
 
@@ -217,6 +212,11 @@ struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Dump dmlog",
 		.select		= dumpf,
+		.display	= menu_print,
+	},
+	{
+		.priv		= "Screenshot",
+		.select		= call_dispcheck,
 		.display	= menu_print,
 	},
 };
@@ -393,21 +393,12 @@ void property_slave(
 	for( i=0 ; i<sizeof(prop->data)/4 ; i++ )
 		prop->data[i] =  i < word_len ? addr[i] : 0;
 
-	int draw_prop = 0;
+	int draw_prop = 1;
 	if( !draw_prop )
 		goto ack;
 
 	const unsigned x = 80;
 	static unsigned y = 32;
-
-/*
-	DebugMsg( DM_MAGIC, 3, "Prop %08x: %08x @ %02d: %08x",
-		property,
-		(unsigned) addr,
-		len,
-		addr[0]
-	);
-*/
 
 	bmp_printf( FONT_SMALL, x, y, "%08x %04x: %08x %08x %08x %08x %08x %08x",
 		property,
@@ -473,10 +464,11 @@ menu_task( void )
 
 	call_init_funcs();
 
-#if 0
+#if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
-	for( i=0 ; i<=0x8 ; i++ )
+	//for( i=0 ; i<=0x8 ; i++ )
+	i = 8;
 	{
 		for( j=0 ; j<=0x8 ; j++ )
 		{
