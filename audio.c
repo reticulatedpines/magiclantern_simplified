@@ -406,8 +406,10 @@ static void audio_mgain_display( void * priv, int x, int y, int selected )
 	unsigned gain_reg= *(unsigned*) priv;
 	gain_reg &= 0x7;
 
-	bmp_printf( MENU_FONT, x, y, "%smgain: %2d dB",
-		selected ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"mgain: %2d dB",
 		gains[ gain_reg ]
 	);
 }
@@ -424,8 +426,10 @@ static void audio_dgain_toggle( void * priv )
 
 static void audio_dgain_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sdgain: %2d dB",
-		selected ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"dgain: %2d dB",
 		*(unsigned*) priv
 	);
 }

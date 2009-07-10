@@ -188,8 +188,10 @@ void zebra_toggle( void * priv )
 
 void zebra_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sZebra level: %04x",
-		selected ? "->" : "  ",
+	bmp_printf( 
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Zebra level: %04x",
 		*(unsigned*) priv
 	);
 }
@@ -202,8 +204,10 @@ void zebra_draw_toggle( void * priv )
 
 void zebra_draw_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sZebras %s",
-		selected ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Zebras %s",
 		*(unsigned*) priv ? " on" : "off"
 	);
 }
@@ -216,8 +220,10 @@ void crop_toggle( void * priv )
 
 void crop_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sCrop %s",
-		selected ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Crop %s",
 		*(unsigned*) priv ? " on" : "off"
 	);
 }

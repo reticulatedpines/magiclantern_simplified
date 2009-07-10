@@ -50,11 +50,13 @@ menu_print(
 	void *			priv,
 	int			x,
 	int			y,
-	int			highlighted
+	int			selected
 )
 {
-	bmp_printf( MENU_FONT, x, y, "%s%s",
-		highlighted ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"%s",
 		(const char*) priv
 	);
 }
@@ -141,8 +143,10 @@ int prop_head = 0;
 
 void prop_log_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf( MENU_FONT, x, y, "%sDump prop log %04x",
-		selected ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Dump prop log %04x",
 		prop_head
 	);
 }
@@ -168,9 +172,10 @@ efic_temp_display(
 	int			selected
 )
 {
-	bmp_printf( MENU_FONT, x, y,
-		"%sSensor Temp %4d",
-		selected ? "->" : "  ",
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Sensor Temp %4d",
 		efic_temp
 	);
 }
