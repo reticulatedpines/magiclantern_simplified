@@ -19,6 +19,7 @@
 #include "tasks.h"
 #include "debug.h"
 #include "audio.h"
+#include <stdarg.h>
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
@@ -191,6 +192,13 @@ FIO_ReadFile(
 	FILE *			file,
 	void *			buf,
 	size_t			len_in_bytes
+);
+
+/** Returns for 0 success */
+extern int
+FIO_GetFileSize(
+	const char *		filename,
+	unsigned *		size
 );
 
 
@@ -396,6 +404,9 @@ extern char * strcpy( char *, const char * );
 extern void * memcpy( void *, const void *, size_t );
 extern ssize_t read( int fd, void *, size_t );
 extern int atoi( const char * );
+
+extern int vsnprintf( char *, size_t, const char *, va_list );
+extern int snprintf( char *, size_t, const char *, ... );
 
 
 

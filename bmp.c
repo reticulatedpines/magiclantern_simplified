@@ -9,9 +9,6 @@
 #include "font.h"
 #include <stdarg.h>
 
-// This is a DryOS routine that must be located for bmp_printf to work
-extern int vsnprintf( char *, size_t, const char *, va_list );
-
 
 static void
 _draw_char(
@@ -232,4 +229,28 @@ bmp_draw_palette( void )
 	if( !written )
 		dispcheck();
 	written = 1;
+}
+
+
+void *
+bmp_load(
+	const char *		filename
+)
+{
+	FILE * file = FIO_Open( filename, 0 );
+	if( file == INVALID_PTR )
+		return NULL;
+	const unsigned size;
+	FIO_GetFileSize( file, &size );
+
+	DebugMsg( DM_MAGIC, 3, "File '%s' (%x) size %d bytes",
+		filename,
+		(unsigned) file,
+		size
+	);
+
+	void * buf = malloc( size );
+	FIO_ReadFile( file, buf, size );
+	close( file );
+	return buf;
 }

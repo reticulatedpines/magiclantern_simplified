@@ -72,6 +72,7 @@ NSTUB( 0xFF98C354, FIO_CreateFile )
 NSTUB( 0xFF98C68C, FIO_ReadFile )
 NSTUB( 0xFF98C83C, FIO_WriteFile )
 NSTUB( 0xFF98C3FC, FIO_CloseFile )
+NSTUB( 0xFF98C9F0, FIO_GetFileSize )
 
 /** Look for a matched pair in gui_init_end */
 NSTUB( 0xFF8697EC, take_semaphore )
