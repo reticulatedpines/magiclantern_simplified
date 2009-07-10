@@ -312,7 +312,8 @@ menu_handler(
 )
 {
 	// Check if we should stop displaying
-	if( !gui_show_menu )
+	if( !gui_show_menu
+	|| event == TERMINATE_WINSYS )
 	{
 		//bmp_fill( 0x00, 0, 32, 640, 380 );
 		gui_task_destroy( menu_task_ptr );
@@ -332,13 +333,14 @@ menu_handler(
 		last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 	}
 
-	menu_display( &main_menu, 0, 100, 1 );
+	menu_display( &main_menu, 100, 100, 1 );
 
 	switch( event )
 	{
 	case INITIALIZE_CONTROLLER:
 		DebugMsg( DM_MAGIC, 3, "Menu task INITIALIZE_CONTROLLER" );
 		last_menu_event = 0;
+		bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
 		break;
 
 	case PRESS_JOY_UP:
@@ -479,10 +481,18 @@ menu_task( void )
 		{
 			for( k=0 ; k<0x40 ; k++ )
 			{
-				property_list[ actual_num_properties++ ] = 0
+				unsigned prop = 0
 					| (i << 28) 
 					| (j << 16)
 					| (k <<  0);
+
+				if( j == 5
+				|| prop == 0x80030014
+				|| prop == 0x80030015
+				)
+					continue;
+
+				property_list[ actual_num_properties++ ] = prop;
 
 				if( i != 0 )
 				property_list[ actual_num_properties++ ] = 0
