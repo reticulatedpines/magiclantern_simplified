@@ -14,6 +14,9 @@
 		sizeof( struct struct_name ) == size ? 0 : -1 \
 	]
 
+/** Packed structures */
+#define PACKED __attribute__((packed))
+
 /** Force a variable to live in the text segment */
 #define TEXT __attribute__((section(".text")))
 
@@ -22,6 +25,7 @@
 
 /** NULL pointer */
 #define NULL	((void*) 0)
+
 
 /** We don't have free yet */
 static inline void free( const void * x ) { x = 0; }
