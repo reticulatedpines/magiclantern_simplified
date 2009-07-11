@@ -193,6 +193,7 @@ NSTUB( 0x2F3E0, current_lens_name )
 NSTUB( 0xFF85AC64, prop_register_slave )
 NSTUB( 0xFF85AD38, prop_cleanup )
 NSTUB( 0xFF85ABDC, prop_deliver )
+NSTUB( 0xFF85AD9C, prop_request_change )
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )

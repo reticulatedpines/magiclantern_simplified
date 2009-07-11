@@ -28,6 +28,13 @@
 #define PROP_LV_STATE		0x8005000f // output very often
 #define PROP_LV_DISPSIZE	0x80050015
 
+#define PROP_APERTURE		0x80000006
+#define PROP_APERTURE2		0x8000002d
+#define PROP_APERTURE3		0x80000036
+
+#define PROP_SHUTTER		0x80000005
+#define PROP_ISO		0x80000007
+
 /** These need to be found */
 #define PROP_LCD_STATE		error_must_be_found
 #define PROP_SHOOTING_TYPE	error_must_be_found
@@ -59,6 +66,14 @@ extern void *
 prop_cleanup(
 	void *		token,
 	unsigned	property
+);
+
+
+extern void
+prop_request_change(
+	unsigned	property,
+	void *		addr,
+	size_t		len
 );
 
 #endif
