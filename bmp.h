@@ -147,4 +147,33 @@ color_word(
 }
 
 
+/** BMP file format */
+struct bmp_file_t
+{
+	uint16_t		signature;	// off 0
+	uint32_t		size;		// off 2, in bytes
+	uint16_t		res_0;		// off 6, must be 0
+	uint16_t		res_1;		// off 8. must be 0
+	uint8_t *		image;		// off 10, offset in bytes
+	uint32_t		hdr_size;	// off 14, must be 40
+	uint32_t		width;		// off 18, in pixels
+	uint32_t		height;		// off 22, in pixels
+	uint16_t		planes;		// off 26, must be 1
+	uint16_t		bits_per_pixel;	// off 28, 1, 4, 8 or 24
+	uint32_t		compression;	// off 30, 0=none, 1=RLE8, 2=RLE4
+	uint32_t		image_size;	// off 34, in bytes + padding
+	uint32_t		hpix_per_meter;	// off 38, unreliable
+	uint32_t		vpix_per_meter;	// off 42, unreliable
+	uint32_t		num_colors;	// off 46
+	uint32_t		num_imp_colors;	// off 50
+} PACKED;
+
+SIZE_CHECK_STRUCT( bmp_file_t, 54 );
+
+extern struct bmp_file_t *
+bmp_load(
+	const char *		name
+);
+
+
 #endif

@@ -102,7 +102,7 @@ bmp_printf(
 )
 {
 	va_list			ap;
-	static char		buf[ 256 ];
+	char			buf[ 256 ];
 
 	va_start( ap, fmt );
 	vsnprintf( buf, sizeof(buf), fmt, ap );
@@ -232,16 +232,19 @@ bmp_draw_palette( void )
 }
 
 
-void *
+/** Load a BMP file into memory so that it can be drawn onscreen */
+struct bmp_file_t *
 bmp_load(
 	const char *		filename
 )
 {
-	FILE * file = FIO_Open( filename, 0 );
+	FILE * file = FIO_Open( filename, O_RDONLY );
 	if( file == INVALID_PTR )
-		return NULL;
-	const unsigned size;
-	FIO_GetFileSize( file, &size );
+		goto open_fail;
+
+	unsigned size;
+	if( FIO_GetFileSize( filename, &size ) != 0 )
+		goto getfilesize_fail;
 
 	DebugMsg( DM_MAGIC, 3, "File '%s' (%x) size %d bytes",
 		filename,
@@ -250,7 +253,47 @@ bmp_load(
 	);
 
 	void * buf = malloc( size );
-	FIO_ReadFile( file, buf, size );
-	close( file );
+	if( !buf )
+	{
+		DebugMsg( DM_MAGIC, 3, "%s: malloc failed", filename );
+		goto malloc_fail;
+	}
+
+	unsigned rc = FIO_ReadFile( file, buf, size );
+	if( rc != size )
+	{
+		DebugMsg( DM_MAGIC, 3, "%s: size=%d rc=%d", filename, size, rc );
+		goto read_fail;
+	}
+
+	struct bmp_file_t * bmp = buf;
+	if( bmp->signature != 0x4D42 )
+	{
+		DebugMsg( DM_MAGIC, 3, "%s: signature %04x", filename, bmp->signature );
+		goto signature_fail;
+	}
+
+	// Update the offset pointer to point to the image data
+	// if it is within bounds
+	unsigned offset = (unsigned) bmp->image;
+	if( offset > size )
+	{
+		DebugMsg( DM_MAGIC, 3, "%s: size too large: %x > %x", filename, offset, size );
+		goto offsetsize_fail;
+	}
+
+	bmp->image = offset + (uint8_t*) buf;
+
+	FIO_CloseFile( file );
 	return buf;
+
+offsetsize_fail:
+signature_fail:
+read_fail:
+	free( buf );
+malloc_fail:
+getfilesize_fail:
+	FIO_CloseFile( file );
+open_fail:
+	return NULL;
 }
