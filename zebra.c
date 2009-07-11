@@ -188,8 +188,19 @@ static void
 draw_zebra( void )
 {
 	uint8_t * const bvram = bmp_vram();
+
+	// If we don't have a bitmap vram yet, nothing to do.
 	if( !bvram )
 		return;
+
+	// If we are not drawing edges, or zebras or crops, nothing to do
+	if( !edge_draw && !zebra_draw )
+	{
+		if( !crop_draw )
+			return;
+		if( !cropmarks )
+			return;
+	}
 
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 
