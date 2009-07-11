@@ -13,6 +13,7 @@ unsigned zebra_level = 0xF000;
 unsigned zebra_draw = 1;
 unsigned crop_draw = 1;
 unsigned edge_draw = 0;
+struct bmp_file_t * cropmarks;
 
 
 /** Draw white thin crop marks
@@ -96,6 +97,92 @@ edge_detect(
 }
 
 
+static unsigned
+check_edge(
+	unsigned		x,
+	unsigned		y,
+	uint16_t *		b_row,
+	uint32_t *		v_row,
+	unsigned		vram_pitch
+)
+{
+	const uint8_t contrast_color = 0x0E; // pink
+	const int32_t edge_level = zebra_level * zebra_level;
+
+	// Check for contrast
+	int32_t grad = edge_detect(
+		(uint16_t*) &v_row[x/2],
+		vram_pitch
+	);
+
+	if( grad > edge_level )
+		return 0;
+
+	b_row[x/2] = 0
+		| (contrast_color << 8)
+		| contrast_color;
+
+	return 1;
+}
+
+
+static unsigned
+check_zebra(
+	unsigned		x,
+	unsigned		y,
+	uint16_t *		b_row,
+	uint32_t *		v_row,
+	unsigned		vram_pitch
+)
+{
+	const uint8_t zebra_color_0 = COLOR_BG; // 0x6F; // bright read
+	const uint8_t zebra_color_1 = 0x5F; // dark red
+
+	uint32_t pixel = v_row[x/2];
+	int32_t p0 = (pixel >> 16) & 0xFFFF;
+	int32_t p1 = (pixel >>  0) & 0xFFFF;
+
+	// If neither pixel is overexposed, ignore it
+	if( p0 < zebra_level && p1 < zebra_level )
+		return 0;
+
+	// Determine if we are a zig or a zag line
+	uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
+
+	// Build the 16-bit word to write both pixels
+	// simultaneously into the BMP VRAM
+	uint16_t zebra_color_word = zag
+		? (zebra_color_0<<8) | (zebra_color_0<<0)
+		: (zebra_color_1<<8) | (zebra_color_1<<0);
+
+	b_row[x/2] = zebra_color_word;
+	return 1;
+}
+
+
+static unsigned
+check_crop(
+	unsigned		x,
+	unsigned		y,
+	uint16_t *		b_row,
+	uint32_t *		v_row,
+	unsigned		vram_pitch
+)
+{
+	if( !cropmarks )
+		return 0;
+
+	uint8_t * pixbuf = &cropmarks->image[
+		x + cropmarks->width * (cropmarks->height - y)
+	];
+	uint16_t pix = *(uint16_t*) pixbuf;
+	if( pix == 0 )
+		return 0;
+
+	b_row[ x/2 ] = pix;
+	return 1;
+}
+
 
 static void
 draw_zebra( void )
@@ -108,15 +195,6 @@ draw_zebra( void )
 
 	uint32_t x,y;
 
-	const uint8_t zebra_color_0 = COLOR_BG; // 0x6F; // bright read
-	const uint8_t zebra_color_1 = 0x5F; // dark red
-
-	// For unused contrast detection algorithm
-	//const uint8_t contrast_color = 0x0D; // blue
-	const uint8_t contrast_color = 0x0E; // pink
-	//const uint16_t threshold = 0xF000;
-
-	const int32_t edge_level = zebra_level * zebra_level;
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
@@ -126,55 +204,19 @@ draw_zebra( void )
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
 
-		// Check for crop marks
-		if( draw_matte(y, b_row) )
-			continue;
-
-		if( !zebra_draw )
-			continue;
-
 		for( x=1 ; x < vram->width-1 ; x++ )
 		{
-
-			if( edge_draw )
-			{
-				// Check for contrast
-				int32_t grad = edge_detect(
-					(uint16_t*) &v_row[x/2],
-					vram->pitch
-				);
-			
-				if( grad < edge_level )
-				{
-					b_row[x/2] = 0
-						| (contrast_color << 8)
-						| contrast_color;
-
-					continue;
-				}
-			}
-
-			uint32_t pixel = v_row[x/2];
-			int32_t p0 = (pixel >> 16) & 0xFFFF;
-			int32_t p1 = (pixel >>  0) & 0xFFFF;
-
-			// If neither pixel is overexposed, ignore it
-			if( p0 < zebra_level && p1 < zebra_level )
-			{
-				b_row[x/2] = 0;
+			if( cropmarks && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
-			}
 
-			// Determine if we are a zig or a zag line
-			uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
+			if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
+				continue;
 
-			// Build the 16-bit word to write both pixels
-			// simultaneously into the BMP VRAM
-			uint16_t zebra_color_word = zag
-				? (zebra_color_0<<8) | (zebra_color_0<<0)
-				: (zebra_color_1<<8) | (zebra_color_1<<0);
+			if( zebra_draw && check_zebra( x, y, b_row, v_row, vram->pitch ) )
+				continue;
 
-			b_row[x/2] = zebra_color_word;
+			// Nobody drew on it, make it clear
+			b_row[x/2] = 0;
 		}
 	}
 }
@@ -256,12 +298,25 @@ zebra_task( void )
 	crop_draw = config_int( global_config, "crop.draw", 1 );
 	edge_draw = config_int( global_config, "edge.draw", 1 );
 
+	cropmarks = bmp_load( "A:/cropmarks.bmp" );
+
 	menu_add( &main_menu, zebra_menus, COUNT(zebra_menus) );
 
-	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x",
+	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x cropmarks %x",
 		zebra_draw ? "on" : "off",
-		zebra_level
+		zebra_level,
+		(unsigned) cropmarks
 	);
+
+	if( cropmarks )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"Cropmarks: %dx%d @ %d",
+			cropmarks->width,
+			cropmarks->height,
+			cropmarks->bits_per_pixel
+		);
+	}
 
 	while(1)
 	{
