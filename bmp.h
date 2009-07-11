@@ -147,7 +147,10 @@ color_word(
 }
 
 
-/** BMP file format */
+/** BMP file format.
+ * Offsets and meaning from:
+ *	http://www.fastgraph.com/help/bmp_header_format.html
+ */
 struct bmp_file_t
 {
 	uint16_t		signature;	// off 0
