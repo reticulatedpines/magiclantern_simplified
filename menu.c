@@ -204,11 +204,13 @@ struct menu_entry main_menu = {
 */
 
 struct menu_entry debug_menus[] = {
+/*
 	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
 	},
+*/
 	{
 		.priv		= "Dump prop log",
 		.select		= prop_log_select,
@@ -315,7 +317,6 @@ menu_handler(
 	if( !gui_show_menu
 	|| event == TERMINATE_WINSYS )
 	{
-		//bmp_fill( 0x00, 0, 32, 640, 380 );
 		gui_task_destroy( menu_task_ptr );
 		menu_task_ptr = 0;
 		return 1;
