@@ -1,5 +1,14 @@
 #ifndef _lens_h_
 #define _lens_h_
+/** \file
+ * Lens and camera control
+ *
+ * These are Magic Lantern specific structures that control the camera's
+ * shutter speed, ISO and lens aperture.  It also records the focal length,
+ * distance and other parameters by hooking the different lens related
+ * properties.
+ */
+#include "property.h"
 
 struct lens_info
 {
@@ -36,6 +45,7 @@ struct prop_lv_lens
 } __attribute__((packed));
 
 SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
+
 
 /** Shutter values */
 #define SHUTTER_30 96
@@ -110,5 +120,38 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 #define ISO_5000 117
 #define ISO_6400 120
 #define ISO_12500 128
+
+
+/** Camera control functions */
+static inline void
+lens_set_aperture(
+	unsigned		aperture
+)
+{
+	prop_request_change( PROP_APERTURE, &aperture, sizeof(aperture) );
+}
+
+static inline void
+lens_set_iso(
+	unsigned		iso
+)
+{
+	prop_request_change( PROP_ISO, &iso, sizeof(iso) );
+}
+
+static inline void
+lens_set_shutter(
+	unsigned		shutter
+)
+{
+	prop_request_change( PROP_SHUTTER, &shutter, sizeof(shutter) );
+}
+
+static inline void
+lens_take_photo( void )
+{
+	unsigned value = 0;
+	prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
+}
 
 #endif

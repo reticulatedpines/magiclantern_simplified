@@ -35,6 +35,8 @@
 #define PROP_SHUTTER		0x80000005
 #define PROP_ISO		0x80000007
 
+#define PROP_SHUTTER_RELEASE	0x8003000A
+
 /** These need to be found */
 #define PROP_LCD_STATE		error_must_be_found
 #define PROP_SHOOTING_TYPE	error_must_be_found

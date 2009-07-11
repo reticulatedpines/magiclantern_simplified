@@ -185,6 +185,7 @@ NSTUB( 0xFF867744, call )
 /** These are useful functions that control the camera */
 NSTUB( 0xFF8896F0, FA_StartLiveView )
 NSTUB( 0xFF8897E8, FA_StopLiveView )
+NSTUB( 0xFF888E84, take_photo ) // called "Release"
 
 /** Part of the lens information */
 NSTUB( 0x2F3E0, current_lens_name )

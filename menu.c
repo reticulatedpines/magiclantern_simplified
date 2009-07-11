@@ -162,11 +162,11 @@ void prop_log_select( void * priv )
 }
 
 
-unsigned efic_temp;
+static unsigned efic_temp;
 
 static void
 efic_temp_display(
-	struct menu_entry *	menu,
+	void *			priv,
 	int			x,
 	int			y,
 	int			selected
@@ -175,7 +175,7 @@ efic_temp_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Sensor Temp %04x",
+		"Sensor Temp %d",
 		efic_temp
 	);
 }
@@ -185,11 +185,31 @@ void set_aperture( void * priv )
 	DebugMsg( DM_MAGIC, 3, "Trying to set aperture to f/22" );
 	unsigned value = 88;
 
-	for( value=0 ; value<88 ; value++ )
+		thunk stop_quick_review = (thunk) 0xffaadb9c;
+	//for( value=APERTURE_1_8 ; value<APERTURE_8_0 ; value++ )
 	{
-		prop_request_change( PROP_APERTURE, &value, sizeof(value) );
-		msleep(100);
+		DebugMsg( DM_MAGIC, 3, "%s: 1.8", __func__ );
+		lens_set_aperture( APERTURE_1_8 );
+		msleep( 100 );
+		DebugMsg( DM_MAGIC, 3, "%s: take photo", __func__ );
+		take_photo();
+		DebugMsg( DM_MAGIC, 3, "%s: sleep", __func__ );
+		msleep(2000);
+		DebugMsg( DM_MAGIC, 3, "%s: stop review.8", __func__ );
+		stop_quick_review();
+
+		DebugMsg( DM_MAGIC, 3, "%s: 22", __func__ );
+		lens_set_aperture( APERTURE_22 );
+		msleep( 100 );
+		DebugMsg( DM_MAGIC, 3, "%s: take photo", __func__ );
+		take_photo();
+		DebugMsg( DM_MAGIC, 3, "%s: sleep", __func__ );
+		msleep(2000);
+		DebugMsg( DM_MAGIC, 3, "%s: stop review.8", __func__ );
+		stop_quick_review();
 	}
+
+	DebugMsg( DM_MAGIC, 3, "%s: Done!", __func__ );
 }
 
 
