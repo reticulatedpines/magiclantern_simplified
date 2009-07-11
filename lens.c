@@ -14,6 +14,9 @@ struct lens_info lens_info = {
 static unsigned lens_properties[] = {
 	PROP_LENS_NAME,
 	PROP_LV_LENS,
+	PROP_APERTURE,
+	PROP_SHUTTER,
+	PROP_ISO,
 };
 
 static void
@@ -49,6 +52,15 @@ lens_handle_property(
 			len = sizeof(lens_info.name);
 		memcpy( lens_info.name, buf, len );
 		break;
+	case PROP_APERTURE:
+		lens_info.aperture = *(unsigned*) buf;
+		break;
+	case PROP_SHUTTER:
+		lens_info.shutter = *(unsigned*) buf;
+		break;
+	case PROP_ISO:
+		lens_info.iso = *(unsigned*) buf;
+		break;
 	case PROP_LV_LENS:
 	{
 		const struct prop_lv_lens * const lv_lens = (void*) buf;
@@ -63,11 +75,20 @@ lens_handle_property(
 	}
 
 	// Needs to be 720 - 8 * 12
-	bmp_printf( FONT_MED, 620,  0, "%5d mm", lens_info.focal_len );
+	unsigned x = 620;
+	unsigned y = 0;
+	bmp_printf( FONT_MED, x, y, "%5d mm", lens_info.focal_len );
+	y += font_med.height;
 	if( lens_info.focus_dist == 0xFFFF )
-		bmp_printf( FONT_MED, 620, font_med.height, "Infinity" );
+		bmp_printf( FONT_MED, x, y, "Infinity" );
 	else
-		bmp_printf( FONT_MED, 620, font_med.height, "%5d cm", lens_info.focus_dist );
+		bmp_printf( FONT_MED, x, y, "%5d cm", lens_info.focus_dist );
+	y += font_med.height;
+	bmp_printf( FONT_MED, x, y, "f/%x", lens_info.aperture );
+	y += font_med.height;
+	bmp_printf( FONT_MED, x, y, "%x shut", lens_info.shutter );
+	y += font_med.height;
+	bmp_printf( FONT_MED, x, y, "%x iso", lens_info.iso );
 
 	prop_cleanup( lens_info.token, property );
 }

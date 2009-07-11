@@ -7,6 +7,8 @@ struct lens_info
 	int			focal_len;
 	int			focus_dist;
 	unsigned		aperture;
+	unsigned		shutter;
+	unsigned		iso;
 	void *			token;
 };
 
