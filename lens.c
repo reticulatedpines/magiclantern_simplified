@@ -11,6 +11,84 @@ struct lens_info lens_info = {
 	.name		= "NO LENS NAME"
 };
 
+// These are aperture * 10 since we do not have floating point
+static uint16_t aperture_values[] = {
+	[ APERTURE_1_8 / 2 ]	=  18,
+	[ APERTURE_2_0 / 2 ]	=  20,
+	[ APERTURE_2_2 / 2 ]	=  22,
+	[ APERTURE_2_5 / 2 ]	=  25,
+	[ APERTURE_2_8 / 2 ]	=  28,
+	[ APERTURE_3_2 / 2 ]	=  32,
+	[ APERTURE_3_5 / 2 ]	=  35,
+	[ APERTURE_4_0 / 2 ]	=  40,
+	[ APERTURE_4_5 / 2 ]	=  45,
+	[ APERTURE_5_0 / 2 ]	=  50,
+	[ APERTURE_5_6 / 2 ]	=  56,
+	[ APERTURE_6_3 / 2 ]	=  63,
+	[ APERTURE_7_1 / 2 ]	=  71,
+	[ APERTURE_8_0 / 2 ]	=  80,
+	[ APERTURE_9_0 / 2 ]	=  90,
+	[ APERTURE_10 / 2 ]	= 100,
+	[ APERTURE_11 / 2 ]	= 110,
+	[ APERTURE_13 / 2 ]	= 130,
+	[ APERTURE_14 / 2 ]	= 140,
+	[ APERTURE_16 / 2 ]	= 160,
+	[ APERTURE_18 / 2 ]	= 180,
+	[ APERTURE_20 / 2 ]	= 200,
+	[ APERTURE_22 / 2 ]	= 220,
+	[ APERTURE_25 / 2 ]	= 250,
+	[ APERTURE_29 / 2 ]	= 290,
+	[ APERTURE_32 / 2 ]	= 320,
+};
+
+static uint16_t shutter_values[] = {
+	[ SHUTTER_30 / 2 ]	=   30,
+	[ SHUTTER_40 / 2 ]	=   40,
+	[ SHUTTER_50 / 2 ]	=   50,
+	[ SHUTTER_60 / 2 ]	=   60,
+	[ SHUTTER_80 / 2 ]	=   80,
+	[ SHUTTER_100 / 2 ]	=  100,
+	[ SHUTTER_125 / 2 ]	=  125,
+	[ SHUTTER_160 / 2 ]	=  160,
+	[ SHUTTER_200 / 2 ]	=  200,
+	[ SHUTTER_250 / 2 ]	=  250,
+	[ SHUTTER_320 / 2 ]	=  320,
+	[ SHUTTER_400 / 2 ]	=  400,
+	[ SHUTTER_500 / 2 ]	=  500,
+	[ SHUTTER_640 / 2 ]	=  640,
+	[ SHUTTER_800 / 2 ]	=  800,
+	[ SHUTTER_1000 / 2 ]	= 1000,
+	[ SHUTTER_1250 / 2 ]	= 1250,
+	[ SHUTTER_1600 / 2 ]	= 1600,
+	[ SHUTTER_2000 / 2 ]	= 2000,
+	[ SHUTTER_2500 / 2 ]	= 2500,
+	[ SHUTTER_3200 / 2 ]	= 3200,
+	[ SHUTTER_4000 / 2 ]	= 4000,
+};
+
+static uint16_t iso_values[] = {
+	[ ISO_100 / 2 ]		=  100,
+	[ ISO_125 / 2 ]		=  125,
+	[ ISO_160 / 2 ]		=  160,
+	[ ISO_200 / 2 ]		=  200,
+	[ ISO_250 / 2 ]		=  250,
+	[ ISO_320 / 2 ]		=  320,
+	[ ISO_400 / 2 ]		=  400,
+	[ ISO_500 / 2 ]		=  500,
+	[ ISO_640 / 2 ]		=  640,
+	[ ISO_800 / 2 ]		=  800,
+	[ ISO_1000 / 2 ]	= 1000,
+	[ ISO_1250 / 2 ]	= 1250,
+	[ ISO_1600 / 2 ]	= 1600,
+	[ ISO_2000 / 2 ]	= 2000,
+	[ ISO_2500 / 2 ]	= 2500,
+	[ ISO_3200 / 2 ]	= 3200,
+	[ ISO_4000 / 2 ]	= 4000,
+	[ ISO_5000 / 2 ]	= 5000,
+	[ ISO_6400 / 2 ]	= 6400,
+	[ ISO_12500 / 2 ]	= 12500,
+};
+
 static unsigned lens_properties[] = {
 	PROP_LENS_NAME,
 	PROP_LV_LENS,
@@ -77,21 +155,29 @@ lens_handle_property(
 	// Needs to be 720 - 8 * 12
 	unsigned x = 620;
 	unsigned y = 0;
+
 	bmp_printf( FONT_MED, x, y, "%5d mm", lens_info.focal_len );
 	y += font_med.height;
 	if( lens_info.focus_dist == 0xFFFF )
 		bmp_printf( FONT_MED, x, y, "Infinity" );
 	else
 		bmp_printf( FONT_MED, x, y, "%5d cm", lens_info.focus_dist );
+
 	y += font_med.height;
-	bmp_printf( FONT_MED, x, y, "f/%x", lens_info.aperture );
+	uint16_t aperture = aperture_values[ lens_info.aperture/2 ];
+	bmp_printf( FONT_MED, x, y, "f/%2d.%d", aperture / 10, aperture % 10 );
+
 	y += font_med.height;
-	bmp_printf( FONT_MED, x, y, "%x shut", lens_info.shutter );
+	uint16_t shutter = shutter_values[ lens_info.shutter/2 ];
+	bmp_printf( FONT_MED, x, y, "1/%4d", shutter );
+
 	y += font_med.height;
-	bmp_printf( FONT_MED, x, y, "%x iso", lens_info.iso );
+	uint16_t iso = iso_values[ lens_info.iso/2 ];
+	bmp_printf( FONT_MED, x, y, "ISO %4d", iso );
 
 	prop_cleanup( lens_info.token, property );
 }
+
 
 
 static void
