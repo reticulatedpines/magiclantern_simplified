@@ -175,11 +175,22 @@ efic_temp_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Sensor Temp %4d",
+		"Sensor Temp %04x",
 		efic_temp
 	);
 }
 
+void set_aperture( void * priv )
+{
+	DebugMsg( DM_MAGIC, 3, "Trying to set aperture to f/22" );
+	unsigned value = 88;
+
+	for( value=0 ; value<88 ; value++ )
+	{
+		prop_request_change( PROP_APERTURE, &value, sizeof(value) );
+		msleep(100);
+	}
+}
 
 
 struct menu_entry main_menu = {
@@ -211,6 +222,12 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 	},
 */
+
+	{
+		.priv		= "Set aperture",
+		.select		= set_aperture,
+		.display	= menu_print,
+	},
 	{
 		.priv		= "Dump prop log",
 		.select		= prop_log_select,
