@@ -1,5 +1,5 @@
 /*
- * Imported from dump_toolkit
+ * Imported and significantly modified from dump_toolkit
  *
  * This program replaces the update_manager() routine in the 5D Mark 2
  * firmware flashing program at location 0x805ab8 and is used to copy the
@@ -13,6 +13,27 @@
  * 0xF000_0000 Strings and other stuff?
  * 0xF800_0000 Main firmware in ROM
  */
+/*
+ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
+ * Original copyright unknown.
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
 #include <stdint.h>
 
 #define ROM0_ADDRESS	0xF8000000
