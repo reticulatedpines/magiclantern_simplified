@@ -199,13 +199,14 @@ draw_zebra( void )
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
-	for( y=55 ; y < 390; y++ )
+	for( y=33 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
 
-		for( x=1 ; x < vram->width-1 ; x++ )
+		for( x=2 ; x < vram->width-2 ; x+=2 )
 		{
+			unsigned pixels = 0;
 			if( cropmarks && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
 

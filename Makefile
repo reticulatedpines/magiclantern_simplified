@@ -18,7 +18,7 @@ all: \
 	5d2_dumper.fir \
 	magiclantern.fir \
 
-install: magiclantern.fir magiclantern.cfg
+install: magiclantern.fir magiclantern.cfg cropmarks.bmp
 	cp $^ /Volumes/KINGSTON/
 	hdiutil unmount /Volumes/KINGSTON/
 
@@ -30,6 +30,7 @@ magiclantern-$(VERSION).zip: \
 	zip.txt \
 	magiclantern.fir \
 	magiclantern.cfg \
+	cropmarks.bmp \
 	README \
 	LICENSE \
 
