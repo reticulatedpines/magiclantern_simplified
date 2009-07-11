@@ -352,8 +352,10 @@ menu_handler(
 {
 	// Check if we should stop displaying
 	if( !gui_show_menu
-	|| event == TERMINATE_WINSYS )
+	|| event == TERMINATE_WINSYS
+	|| event == DELETE_DIALOG_REQUEST )
 	{
+		DebugMsg( DM_MAGIC, 3, "Menu task shutting down: %d", event );
 		gui_task_destroy( menu_task_ptr );
 		menu_task_ptr = 0;
 		return 1;
@@ -378,6 +380,10 @@ menu_handler(
 	case INITIALIZE_CONTROLLER:
 		DebugMsg( DM_MAGIC, 3, "Menu task INITIALIZE_CONTROLLER" );
 		last_menu_event = 0;
+		break;
+
+	case GOT_TOP_OF_CONTROL:
+		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
 		bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
 		break;
 
@@ -438,7 +444,7 @@ void property_slave(
 	for( i=0 ; i<sizeof(prop->data)/4 ; i++ )
 		prop->data[i] =  i < word_len ? addr[i] : 0;
 
-	int draw_prop = 1;
+	int draw_prop = 0;
 	if( !draw_prop )
 		goto ack;
 

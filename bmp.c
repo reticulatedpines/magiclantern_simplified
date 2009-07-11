@@ -173,7 +173,7 @@ bmp_fill(
 	if( start + w > width )
 		w = width - start;
 	
-	const uint32_t word = 0
+	const uint16_t word = 0
 		| (color << 24)
 		| (color << 16)
 		| (color <<  8)
@@ -182,24 +182,21 @@ bmp_fill(
 	if( y > height )
 		y = height;
 
-	if( y + h > height )
-		h = height - y;
+	uint16_t y_end = y + h;
+	if( y_end > height )
+		y_end = height;
 
 	if( w == 0 || h == 0 )
 		return;
 
-	uint32_t * row = (uint32_t*)( vram + y * pitch + start );
+	for( ; y<y_end ; y++ )
+	{
+		uint32_t x;
+		uint16_t * row = (uint16_t*)( vram + y * pitch + start );
 
-	// Loop tests inverted to avoid exraneous jumps.
-	// This has the minimal compiled form
-	do {
-		uint32_t i;
-
-		for( i=0 ; i<w/4 ; i++ )
-			row[ i ] = word;
-
-		row += pitch / 4;
-	} while( --h );
+		for( x=0 ; x<w/2 ; x++ )
+			row[ x ] = word;
+	}
 }
 
 
