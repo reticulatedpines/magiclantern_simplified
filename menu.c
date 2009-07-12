@@ -263,11 +263,13 @@ struct menu_entry debug_menus[] = {
 	},
 */
 
+/*
 	{
 		.priv		= "Set aperture",
 		.select		= set_aperture,
 		.display	= menu_print,
 	},
+*/
 	{
 		.priv		= "Dump prop log",
 		.select		= prop_log_select,
