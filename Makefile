@@ -14,9 +14,7 @@ ROMBASEADDR		= 0xFF810000
 RESTARTSTART		= 0x00048000
 
 
-all: \
-	5d2_dumper.fir \
-	magiclantern.fir \
+all: magiclantern.fir
 
 install: magiclantern.fir magiclantern.cfg cropmarks.bmp
 	cp $^ /Volumes/KINGSTON/
@@ -58,6 +56,7 @@ CFLAGS=\
 	-O3 \
 	-Wall \
 	-W \
+	-Wno-unused-parameter \
 
 
 AFLAGS=\
