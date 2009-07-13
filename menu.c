@@ -183,6 +183,38 @@ void prop_log_select( void * priv )
 
 
 static unsigned efic_temp;
+static void * efic_temp_token;
+
+static void
+efic_temp_token_handler(
+	void *			token,
+	void *			arg1,
+	void *			arg2,
+	void *			arg3
+)
+{
+	efic_temp_token = token;
+	bmp_printf( FONT_SMALL, 100, 100,
+		"args: %08x %08x %08x",
+		(unsigned) arg1,
+		(unsigned) arg2,
+		(unsigned) arg3
+	);
+}
+	
+
+static void
+efic_temp_property_handler(
+	unsigned		property,
+	void *			UNUSED( priv ),
+	unsigned *		addr,
+	unsigned		len
+)
+{
+	efic_temp = *addr;
+	prop_cleanup( efic_temp_token, property );
+}
+
 
 static void
 efic_temp_display(
@@ -450,9 +482,6 @@ void property_slave(
 	if( property == PROP_LENS_SOMETHING )
 		write_debug_file( "lensinfo.log", addr, len );
 */
-	if( property == PROP_EFIC_TEMP )
-		efic_temp = *addr;
-
 	struct property * prop = &prop_log[ prop_head ];
 	prop_head = (prop_head + 1) % MAX_PROP_LOG;
 
@@ -586,6 +615,15 @@ thats_all:
 		property_slave,
 		0,
 		property_token
+	);
+
+	unsigned property = PROP_EFIC_TEMP;
+	prop_register_slave(
+		&property,
+		1,
+		efic_temp_property_handler,
+		0xdeadbeef,
+		efic_temp_token_handler
 	);
 
 	msleep( 3000 );
