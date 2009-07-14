@@ -152,6 +152,7 @@ bmp_fill(
 #define COLOR_WHITE		0x01 // Normal white
 #define COLOR_BLUE		0x0B // normal blue
 #define COLOR_RED		0x08 // normal red
+#define COLOR_YELLOW		0x0F // normal yellow
 
 static inline uint32_t
 color_word(
