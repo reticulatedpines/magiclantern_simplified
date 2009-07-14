@@ -63,6 +63,7 @@ draw_version( void )
 
 static unsigned last_menu_event;
 static struct gui_task * menu_task_ptr;
+static struct menu * menus;
 
 
 void
@@ -82,14 +83,74 @@ menu_print(
 }
 
 
+static struct menu *
+menu_find_by_name(
+	const char *		name
+)
+{
+	struct menu *		menu = menus;
+
+	for( ; menu ; menu = menu->next )
+	{
+		if( streq( menu->name, name ) )
+			return menu;
+
+		// Stop just before we get to the end
+		if( !menu->next )
+			break;
+	}
+
+	// Not found; create it
+	struct menu * new_menu = malloc( sizeof(*new_menu) );
+	if( !new_menu )
+		return NULL;
+
+	new_menu->name		= name;
+	new_menu->prev		= menu;
+	new_menu->next		= NULL; // Inserting at end
+	new_menu->children	= NULL;
+
+	// menu points to the last entry or NULL if there are none
+	if( menu )
+	{
+		// We are adding to the end
+		menu->next		= new_menu;
+		new_menu->selected	= 0;
+	} else {
+		// This is the first one
+		menus			= new_menu;
+		new_menu->selected	= 1;
+	}
+
+	return new_menu;
+}
+
+
 void
 menu_add(
-	struct menu_entry *	head,
+	const char *		name,
 	struct menu_entry *	new_entry,
 	int			count
 )
 {
 #if 1
+	// Walk the menu list to find a menu
+	struct menu *		menu = menu_find_by_name( name );
+	if( !menu )
+		return;
+
+	struct menu_entry *	head = menu->children;
+	if( !head )
+	{
+		// First one -- insert it as the selected item
+		head = menu->children	= new_entry;
+		new_entry->next		= NULL;
+		new_entry->prev		= NULL;
+		new_entry->selected	= 1;
+		new_entry++;
+		count--;
+	}
+
 	// Find the end of the entries on the menu already
 	while( head->next )
 		head = head->next;
@@ -287,13 +348,15 @@ struct menu_entry main_menu = {
 */
 
 struct menu_entry debug_menus[] = {
-/*
+	{
+		.display	= efic_temp_display,
+	},
+
 	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
 	},
-*/
 
 /*
 	{
@@ -309,7 +372,7 @@ struct menu_entry debug_menus[] = {
 	},
 	{
 		.priv		= "Dump dmlog",
-		.select		= dumpf,
+		.select		= (void*) dumpf,
 		.display	= menu_print,
 	},
 	{
@@ -344,54 +407,130 @@ menu_display(
 
 
 void
-menu_select(
-	struct menu_entry *	menu
+menus_display(
+	struct menu *		menu,
+	int			orig_x,
+	int			y
 )
 {
+	int			x = orig_x;
+
 	for( ; menu ; menu = menu->next )
 	{
-		if( !menu->selected )
-			continue;
+		unsigned fontspec = FONT(
+			FONT_MED,
+			COLOR_YELLOW,
+			menu->selected ? 0x7F : COLOR_BG
+		);
+		bmp_printf( fontspec, x, y, "%7s", menu->name );
+		x += fontspec_font( fontspec )->width * 7;
 
-		if( menu->select )
-			menu->select( menu->priv );
-		break;
+		if( menu->selected )
+			menu_display(
+				menu->children,
+				orig_x,
+				y + fontspec_font( fontspec )->height + 4,
+				1
+			);
 	}
 }
 
 
 void
+menu_entry_select(
+	struct menu *	menu
+)
+{
+	if( !menu )
+		return;
+
+	struct menu_entry * entry = menu->children;
+
+	for( ; entry ; entry = entry->next )
+	{
+		if( entry->selected )
+			break;
+	}
+
+	if( !entry || !entry->select )
+		return;
+
+	entry->select( entry->priv );
+}
+
+/** Scroll side to side in the list of menus */
+void
 menu_move(
-	struct menu_entry *	menu_top,
+	struct menu *		menu,
 	gui_event_t		ev
 )
 {
-	struct menu_entry *	menu = menu_top;
+	if( !menu )
+		return;
 
-	for( ; menu ; menu = menu->next )
+	switch( ev )
 	{
-		if( !menu->selected )
-			continue;
-
-		if( ev == PRESS_JOY_UP )
-		{
-			// First and moving up?
-			if( !menu->prev )
-				break;
-			menu->selected = 0;
-			menu->prev->selected = 1;
+	case PRESS_JOY_LEFT:
+		if( !menu->prev )
 			break;
-		}
+		menu->prev->selected	= 1;
+		menu->selected		= 0;
+		break;
 
-		if( ev == PRESS_JOY_DOWN )
-		{
-			// Last and moving down?
-			if( !menu->next )
-				break;
-			menu->selected = 0;
-			menu->next->selected = 1;
+	case PRESS_JOY_RIGHT:
+		if( !menu->next )
 			break;
-		}
+		menu->next->selected	= 1;
+		menu->selected		= 0;
+		break;
+
+	default:
+		break;
+	}
+}
+
+
+/** Scroll up or down in the currently displayed menu */
+void
+menu_entry_move(
+	struct menu *		menu,
+	gui_event_t		ev
+)
+{
+	if( !menu )
+		return;
+
+	struct menu_entry *	entry = menu->children;
+
+	for( ; entry ; entry = entry->next )
+	{
+		if( entry->selected )
+			break;
+	}
+
+	// Nothing selected?
+	if( !entry )
+		return;
+
+	switch( ev )
+	{
+	case PRESS_JOY_UP:
+		// First and moving up?
+		if( !entry->prev )
+			break;
+		entry->selected = 0;
+		entry->prev->selected = 1;
+		break;
+
+	case PRESS_JOY_DOWN:
+		// Last and moving down?
+		if( !entry->next )
+			break;
+		entry->selected = 0;
+		entry->next->selected = 1;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -427,7 +566,14 @@ menu_handler(
 		last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 	}
 
-	menu_display( &main_menu, 100, 100, 1 );
+	//menu_display( &main_menu, 100, 100, 1 );
+	menus_display( menus, 100, 100 );
+
+	// Find the selected menu
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+		if( menu->selected )
+			break;
 
 	switch( event )
 	{
@@ -443,11 +589,16 @@ menu_handler(
 
 	case PRESS_JOY_UP:
 	case PRESS_JOY_DOWN:
-		menu_move( &main_menu, event );
+		menu_entry_move( menu, event );
+		break;
+
+	case PRESS_JOY_LEFT:
+	case PRESS_JOY_RIGHT:
+		menu_move( menu, event );
 		break;
 
 	case PRESS_SET_BUTTON:
-		menu_select( &main_menu );
+		menu_entry_select( menu );
 		break;
 
 	default:
@@ -485,7 +636,7 @@ void property_slave(
 	struct property * prop = &prop_log[ prop_head ];
 	prop_head = (prop_head + 1) % MAX_PROP_LOG;
 
-	int i;
+	unsigned i;
 	prop->prop	= property;
 	prop->len	= len;
 
@@ -552,6 +703,8 @@ call_init_funcs( void )
 static void
 menu_task( void )
 {
+	menus = NULL;
+
 	msleep( 1000 );
 	// Parse our config file
 	global_config = config_parse_file( "A:/magiclantern.cfg" );
@@ -632,7 +785,7 @@ thats_all:
 	if( enable_liveview )
 		call( "FA_StartLiveView" );
 
-	menu_add( &main_menu, debug_menus, COUNT(debug_menus) );
+	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 
 	while(1)
 	{

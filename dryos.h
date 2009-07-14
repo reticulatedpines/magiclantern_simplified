@@ -424,6 +424,7 @@ extern char * strcpy( char *, const char * );
 extern void * memcpy( void *, const void *, size_t );
 extern ssize_t read( int fd, void *, size_t );
 extern int atoi( const char * );
+extern int streq( const char *, const char * );
 
 extern int vsnprintf( char *, size_t, const char *, va_list );
 extern int snprintf( char *, size_t, const char *, ... );

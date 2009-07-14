@@ -45,7 +45,15 @@ struct menu_entry
 	);
 };
 
-extern struct menu_entry main_menu;
+
+struct menu
+{
+	struct menu *		next;
+	struct menu *		prev;
+	const char *		name;
+	struct menu_entry *	children;
+	int			selected;
+};
 
 
 extern void
@@ -65,7 +73,7 @@ menu_select(
 
 extern void
 menu_add(
-	struct menu_entry *	menu,
+	const char *		name,
 	struct menu_entry *	new_entry,
 	int			count
 );

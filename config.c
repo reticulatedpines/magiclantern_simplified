@@ -32,7 +32,7 @@ is_space( char c )
 }
 
 // Don't use strcmp since we don't have it
-static inline int
+int
 streq( const char * a, const char * b )
 {
 	while( *a && *b )

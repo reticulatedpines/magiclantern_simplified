@@ -332,7 +332,7 @@ zebra_task( void )
 
 	cropmarks = bmp_load( "A:/cropmarks.bmp" );
 
-	menu_add( &main_menu, zebra_menus, COUNT(zebra_menus) );
+	menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
 	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x cropmarks %x",
 		zebra_draw ? "on" : "off",

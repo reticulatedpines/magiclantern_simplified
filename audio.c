@@ -576,7 +576,7 @@ my_sounddev_task( void )
 	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
 
 	// Create the menu items
-	menu_add( &main_menu, audio_menus, COUNT(audio_menus) );
+	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 
 	while(1)
 	{
