@@ -115,6 +115,8 @@ static unsigned lens_properties[] = {
 	PROP_APERTURE,
 	PROP_SHUTTER,
 	PROP_ISO,
+	0x8005001b,
+	0x80050001,
 };
 
 static void
@@ -166,6 +168,15 @@ lens_handle_property(
 		lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
 		//bmp_hexdump( 300, 88, buf, len );
+		break;
+	}
+	case 0x8005001b:
+		bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
+		break;
+	case 0x80050001:
+	{
+		const struct prop_focus * const focus = (void*) buf;
+		bmp_printf( FONT_SMALL, 200, 30, "5001: %08x active=%02x dir=%02x step=%02x off3=%02x", *(unsigned*)buf, focus->active, focus->dir, focus->step, focus->off_0x03 );
 		break;
 	}
 	default:
