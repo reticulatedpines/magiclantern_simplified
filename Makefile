@@ -108,6 +108,7 @@ magiclantern: \
 	config.o \
 	menu.o \
 	bmp.o \
+	bracket.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
