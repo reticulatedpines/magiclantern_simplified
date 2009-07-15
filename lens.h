@@ -67,6 +67,17 @@ struct prop_lv_lens
 SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 
 
+struct prop_focus
+{
+	uint8_t			active; // off_0x00, must be 1
+	uint8_t			dir;	// off_0x01; 0x00 or 0xff
+	uint8_t			step;	// off_0x02; ?
+	uint8_t			off_0x03;	// unknown
+} __attribute__((packed));
+
+SIZE_CHECK_STRUCT( prop_focus, 4 );
+
+
 /** Shutter values */
 #define SHUTTER_30 96
 #define SHUTTER_40 99
