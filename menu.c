@@ -325,46 +325,29 @@ void set_aperture( void * priv )
 	DebugMsg( DM_MAGIC, 3, "%s: Done!", __func__ );
 }
 
+static int draw_prop;
 
-struct menu_entry main_menu = {
-	.priv		= 0,
-	.selected	= 1,
-	.select		= 0,
-	.display	= efic_temp_display,
-};
+static void
+draw_prop_select( void * priv )
+{
+	draw_prop = !draw_prop;
+}
 
-
-/*
-	{
-		.priv		= "HDMI FullHD",
-		.select		= enable_full_hd,
-		.display	= menu_print,
-	},
-	{
-		.priv		= "Debug Lens info",
-		.select		= debug_lens_info,
-		.display	= menu_print,
-	},
-*/
 
 struct menu_entry debug_menus[] = {
 	{
 		.display	= efic_temp_display,
 	},
-
 	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
 	},
-
-/*
 	{
-		.priv		= "Set aperture",
-		.select		= set_aperture,
+		.priv		= "Toggle draw_prop",
+		.select		= draw_prop_select,
 		.display	= menu_print,
 	},
-*/
 	{
 		.priv		= "Dump prop log",
 		.select		= prop_log_select,
@@ -549,6 +532,7 @@ menu_handler(
 	|| event == DELETE_DIALOG_REQUEST )
 	{
 		DebugMsg( DM_MAGIC, 3, "Menu task shutting down: %d", event );
+		//bmp_fill( COLOR_EMPTY, 90, 90, 720-180, 480-180 );
 		gui_task_destroy( menu_task_ptr );
 		menu_task_ptr = 0;
 		return 1;
@@ -566,8 +550,6 @@ menu_handler(
 		last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
 	}
 
-	//menu_display( &main_menu, 100, 100, 1 );
-	menus_display( menus, 100, 100 );
 
 	// Find the selected menu
 	struct menu * menu = menus;
@@ -580,12 +562,11 @@ menu_handler(
 	case INITIALIZE_CONTROLLER:
 		DebugMsg( DM_MAGIC, 3, "Menu task INITIALIZE_CONTROLLER" );
 		last_menu_event = 0;
-		break;
+		return 0;
 
 	case GOT_TOP_OF_CONTROL:
 		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
-		bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
-		break;
+		goto redraw_dialog;
 
 	case PRESS_JOY_UP:
 	case PRESS_JOY_DOWN:
@@ -595,7 +576,7 @@ menu_handler(
 	case PRESS_JOY_LEFT:
 	case PRESS_JOY_RIGHT:
 		menu_move( menu, event );
-		break;
+		goto redraw_dialog;
 
 	case PRESS_SET_BUTTON:
 		menu_entry_select( menu );
@@ -605,6 +586,12 @@ menu_handler(
 		break;
 	}
 		
+	// Something happened
+	menus_display( menus, 100, 100 );
+	return 0;
+
+redraw_dialog:
+	bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
 	return 0;
 }
 
@@ -646,7 +633,6 @@ void property_slave(
 	for( i=0 ; i<sizeof(prop->data)/4 ; i++ )
 		prop->data[i] =  i < word_len ? addr[i] : 0;
 
-	int draw_prop = 0;
 	if( !draw_prop )
 		goto ack;
 
@@ -708,6 +694,7 @@ menu_task( void )
 	msleep( 1000 );
 	// Parse our config file
 	global_config = config_parse_file( "A:/magiclantern.cfg" );
+	draw_prop = config_int( global_config, "prop.draw", 0 );
 
 	draw_version();
 
@@ -734,9 +721,13 @@ menu_task( void )
 					| (j << 16)
 					| (k <<  0);
 
-				if( j == 5
-				|| prop == 0x80030014
-				|| prop == 0x80030015
+				if( prop == 0x80030014
+				||  prop == 0x80030015
+				||  prop == 0x80050000
+				||  prop == 0x80050004
+				||  prop == 0x80050005
+				||  prop == 0x80050010
+				||  prop == 0x8005000f
 				)
 					continue;
 
@@ -757,8 +748,7 @@ menu_task( void )
 thats_all:
 #else
 	int actual_num_properties = 0;
-	property_list[actual_num_properties++] = 0x80050000;
-	property_list[actual_num_properties++] = PROP_EFIC_TEMP;
+	property_list[actual_num_properties++] = 0x8005001b;
 #endif
 
 	prop_head = 0;
@@ -801,9 +791,9 @@ thats_all:
 			last_menu_event = 0;
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
 			gui_show_menu = 2;
+			draw_version();
 		}
 
-		draw_version();
 		msleep( 100 );
 	}
 }
