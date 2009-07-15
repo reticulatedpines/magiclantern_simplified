@@ -156,13 +156,13 @@ bmp_hexdump(
 			y,
 			"%08x: %08x %08x %08x %08x",
 			(unsigned) d,
-			(unsigned) d[0],
-			(unsigned) d[1],
-			(unsigned) d[2],
-			(unsigned) d[3]
+			len >  0 ? (unsigned) d[ 0/4] : 0,
+			len >  4 ? (unsigned) d[ 4/4] : 0,
+			len >  8 ? (unsigned) d[ 8/4] : 0,
+			len > 12 ? (unsigned) d[12/4] : 0
 		);
 
-		y += font_med.height;
+		y += fontspec_height( fontspec );
 		d += 4;
 		len -= 16;
 	} while(len);
