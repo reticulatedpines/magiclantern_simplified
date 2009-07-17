@@ -17,8 +17,8 @@ RESTARTSTART		= 0x00048000
 all: magiclantern.fir
 
 install: magiclantern.fir magiclantern.cfg cropmarks.bmp
-	cp $^ /Volumes/KINGSTON/
-	hdiutil unmount /Volumes/KINGSTON/
+	cp $^ /Volumes/"NO NAME"/
+	hdiutil unmount /Volumes/"NO NAME"/
 
 
 zip: magiclantern-$(VERSION).zip
