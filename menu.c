@@ -293,38 +293,6 @@ efic_temp_display(
 	);
 }
 
-void set_aperture( void * priv )
-{
-	DebugMsg( DM_MAGIC, 3, "Trying to set aperture to f/22" );
-	unsigned value = 88;
-
-		thunk stop_quick_review = (thunk) 0xffaadb9c;
-	//for( value=APERTURE_1_8 ; value<APERTURE_8_0 ; value++ )
-	{
-		DebugMsg( DM_MAGIC, 3, "%s: 1.8", __func__ );
-		lens_set_aperture( APERTURE_1_8 );
-		msleep( 100 );
-		DebugMsg( DM_MAGIC, 3, "%s: take photo", __func__ );
-		take_photo();
-		DebugMsg( DM_MAGIC, 3, "%s: sleep", __func__ );
-		msleep(2000);
-		DebugMsg( DM_MAGIC, 3, "%s: stop review.8", __func__ );
-		stop_quick_review();
-
-		DebugMsg( DM_MAGIC, 3, "%s: 22", __func__ );
-		lens_set_aperture( APERTURE_22 );
-		msleep( 100 );
-		DebugMsg( DM_MAGIC, 3, "%s: take photo", __func__ );
-		take_photo();
-		DebugMsg( DM_MAGIC, 3, "%s: sleep", __func__ );
-		msleep(2000);
-		DebugMsg( DM_MAGIC, 3, "%s: stop review.8", __func__ );
-		stop_quick_review();
-	}
-
-	DebugMsg( DM_MAGIC, 3, "%s: Done!", __func__ );
-}
-
 static int draw_prop;
 
 static void
@@ -533,8 +501,6 @@ menu_handler(
 	{
 		DebugMsg( DM_MAGIC, 3, "Menu task shutting down: %d", event );
 		//bmp_fill( COLOR_EMPTY, 90, 90, 720-180, 480-180 );
-		gui_task_destroy( menu_task_ptr );
-		menu_task_ptr = 0;
 		return 1;
 	}
 
@@ -583,7 +549,7 @@ menu_handler(
 		break;
 
 	default:
-		break;
+		return 0;
 	}
 		
 	// Something happened
@@ -591,7 +557,8 @@ menu_handler(
 	return 0;
 
 redraw_dialog:
-	bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
+	//bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
+	menus_display( menus, 100, 100 );
 	return 0;
 }
 
@@ -690,6 +657,7 @@ static void
 menu_task( void )
 {
 	menus = NULL;
+	menu_task_ptr = NULL;
 
 	msleep( 1000 );
 	// Parse our config file
@@ -781,6 +749,12 @@ thats_all:
 	{
 		if( !gui_show_menu )
 		{
+			if( menu_task_ptr )
+			{
+				gui_task_destroy( menu_task_ptr );
+				menu_task_ptr = 0;
+			}
+
 			msleep( 500 );
 			continue;
 		}
