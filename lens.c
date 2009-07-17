@@ -176,7 +176,14 @@ lens_handle_property(
 	case 0x80050001:
 	{
 		const struct prop_focus * const focus = (void*) buf;
-		bmp_printf( FONT_SMALL, 200, 30, "5001: %08x active=%02x dir=%02x step=%02x off3=%02x", *(unsigned*)buf, focus->active, focus->dir, focus->step, focus->off_0x03 );
+		const int16_t step = (focus->step_hi << 8) | focus->step_lo;
+		bmp_printf( FONT_SMALL, 200, 30,
+			"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
+				*(unsigned*)buf,
+				(int) step,
+				(unsigned) step & 0xFFFF,
+				focus->mode
+			);
 		break;
 	}
 	default:
@@ -216,7 +223,7 @@ lens_init( void )
 {
 	prop_register_slave(
 		lens_properties,
-		sizeof(lens_properties)/sizeof(lens_properties[0]),
+		COUNT(lens_properties),
 		lens_handle_property,
 		0,
 		lens_handle_token

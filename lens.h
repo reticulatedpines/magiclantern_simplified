@@ -69,10 +69,10 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 
 struct prop_focus
 {
-	uint8_t			active; // off_0x00, must be 1
-	uint8_t			dir;	// off_0x01; 0x00 or 0xff
-	uint8_t			step;	// off_0x02; ?
-	uint8_t			off_0x03;	// unknown
+	uint8_t			active;		// off_0x00, must be 1
+	uint8_t			step_hi;	// off_0x01
+	uint8_t			step_lo;	// off_0x02
+	uint8_t			mode;		// off_0x03 unknown, usually 7?
 } __attribute__((packed));
 
 SIZE_CHECK_STRUCT( prop_focus, 4 );
