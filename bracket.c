@@ -17,10 +17,42 @@ bracket_start( void * priv )
 	give_semaphore( bracket_sem );
 }
 
+uint8_t focus_mode = 7;
+int focus_cmd;
+unsigned focus_steps = 1000;
+
+struct semaphore * focus_done_sem;
+
+static void
+focus_done( void )
+{
+	give_semaphore( focus_done_sem );
+}
+
+
+static void
+send_focus_cmd( void * priv )
+{
+	// Should we timeout to avoid hanging?
+	take_semaphore( focus_done_sem, 0 );
+
+	struct prop_focus focus = {
+		.active		= 1,
+		.mode		= focus_mode,
+		.step_hi	= (focus_cmd >> 8) & 0xFF,
+		.step_lo	= (focus_cmd >> 0) & 0xFF,
+	};
+
+	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
+}
 
 static void sel( void * priv )
 {
-	prop_request_change( 0x80050001, &priv, 4 );
+	unsigned shift = (unsigned) priv;
+	unsigned bits = (focus_mode >> shift) & 0xF;
+	bits = (bits + 1) & 0xF;
+	focus_mode &= ~(0xF  << shift);
+	focus_mode |=   bits << shift;
 }
 
 static void show( 
@@ -29,13 +61,40 @@ static void show(
 	int			y,
 	int			selected
 ) {
+	unsigned shift = (unsigned) priv;
+	unsigned bits = (focus_mode >> shift) & 0xF;
+
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus %08x",
-		(unsigned) priv
+		"%1x %08x",
+		bits,
+		focus_mode
 	);
 }
+
+static void show_cmd( 
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+) {
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"%+5d %04x",
+		focus_cmd,
+		(unsigned) focus_cmd & 0xFFFF
+	);
+}
+
+static void sel_cmd( void * priv )
+{
+	focus_cmd = (focus_cmd * 3) / 2 + 1;
+	if( ((unsigned) focus_cmd) > 0x8000 )
+		focus_cmd = 1;
+}
+
 
 static struct menu_entry bracket_menu[] = {
 	{
@@ -43,13 +102,21 @@ static struct menu_entry bracket_menu[] = {
 		.display	= menu_print,
 		.select		= bracket_start,
 	},
-	{ .priv = (void*) 0x07ddff01, .display=show, .select=sel },
-	{ .priv = (void*) 0x07ffff01, .display=show, .select=sel },
-	{ .priv = (void*) 0x00010001, .display=show, .select=sel },
-	{ .priv = (void*) 0x00100001, .display=show, .select=sel },
-	{ .priv = (void*) 0x00ff0001, .display=show, .select=sel },
-	{ .priv = (void*) 0x01000001, .display=show, .select=sel },
-	{ .priv = (void*) 0x07000001, .display=show, .select=sel },
+	{
+		.priv		= "Test focus",
+		.display	= menu_print,
+		.select		= send_focus_cmd,
+	},
+	{ .priv = &focus_cmd, .display=show_cmd, .select=sel_cmd },
+	//{ .priv = &focus_steps, .display=show_steps, .select=sel_steps },
+	//{ .priv = (void*) 28, .display=show, .select=sel },
+	//{ .priv = (void*) 24, .display=show, .select=sel },
+	//{ .priv = (void*) 20, .display=show, .select=sel },
+	//{ .priv = (void*) 16, .display=show, .select=sel },
+	//{ .priv = (void*) 12, .display=show, .select=sel },
+	//{ .priv = (void*) 8, .display=show, .select=sel },
+	{ .priv = (void*) 4, .display=show, .select=sel },
+	{ .priv = (void*) 0, .display=show, .select=sel },
 };
 
 
@@ -59,6 +126,17 @@ bracket_task( void * priv )
 {
 	msleep( 4000 );
 	bracket_sem = create_named_semaphore( "bracket_sem", 0 );
+	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
+	focus_cmd = 1;
+
+	unsigned prop_lv_focus = PROP_LV_FOCUS_DONE;
+	prop_register_slave(
+		&prop_lv_focus,
+		1,
+		focus_done,
+		0,
+		0
+	);
 
 	menu_add( "Bracket", bracket_menu, COUNT(bracket_menu) );
 
@@ -72,14 +150,15 @@ bracket_task( void * priv )
 		bmp_printf( FONT_SMALL, 400, 30, "%s: Awake", __func__ );
 
 		int i;
-		for( i=0 ; i<400; i++ )
+		for( i=0 ; i<focus_steps && lens_info.focus_dist != 0xFFFF ; i++ )
 		{
-			//unsigned value = 0x000dff01; // big steps
-			//unsigned value = 0x07ddff01; // small steps
-			unsigned value = 0x00010001; // 
-			prop_request_change( 0x80050001, &value, 4 );
-			msleep( 50 );
+			if( lens_info.focus_dist >= 288 )
+				break;
+
+			send_focus_cmd( NULL );
 		}
+
+		bmp_printf( FONT_SMALL, 400, 30, "%s: Done!", __func__ );
 
 		continue;
 
@@ -108,5 +187,5 @@ bracket_task( void * priv )
 	}
 }
 
-TASK_CREATE( "bracket_task", bracket_task, 0, 0x1d, 0x1000 ); 
+TASK_CREATE( "bracket_task", bracket_task, 0, 0x10, 0x1000 ); 
 
