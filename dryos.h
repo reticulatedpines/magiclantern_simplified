@@ -41,6 +41,10 @@
 #include "audio.h"
 #include <stdarg.h>
 
+/** Check a pointer for error code */
+#define IS_ERROR(ptr)	(1 & (uintptr_t) ptr)
+
+
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
 DryosPanic(
@@ -65,44 +69,6 @@ msleep(
 	int			msec
 );
 
-//CANON_FUNC( 0xFF81612C, void, sched_yield, ( void ) );
-//CANON_FUNC( 0xFF816904, void, sched_yield, ( void ) );
-//CANON_FUNC( 0xFF81601C, void, sched_yield, ( void ) );
-
-/** Maybe give up the CPU; use msleep() instead */
-extern void
-sched_yield(
-	uint32_t		must_be_zero
-);
-
-
-
-extern int
-RegisterEventProcedure_im1(
-	const char *		name,
-	void 			(*handler)( void )
-);
-
-extern int
-UnregisterEventProcedure(
-	const char *		name
-);
-
-
-extern void
-EP_SetMovieManualExposureMode(
-	uint32_t *		enable_ptr
-);
-
-extern void
-EP_SetDebugLogMode(
-	uint32_t *		enable_ptr
-);
-
-extern void
-EP_SetLVAEDebugPort(
-	uint32_t *		enable_ptr
-);
 
 
 /** Create a new user level task.
@@ -189,6 +155,34 @@ extern void sound_dev_task(void);
 extern int open( const char * name, int flags, ... );
 extern int close( int fd );
 extern ssize_t read( int fd, void * buf, size_t len );
+
+/** We don't know anything about this one. */
+struct fio_dirent;
+
+/** Directory entry returned by FIO_FindFirstEx() */
+struct fio_file {
+	//! 0x10 == directory, 0x22 
+	uint32_t		mode;		// off_0x00;
+	uint32_t		off_0x04;
+	uint32_t		timestamp;	// off_0x08;
+	uint32_t		off_0x0c;
+	char			name[ 0x80 ];
+};
+
+extern struct fio_dirent *
+FIO_FindFirstEx(
+	const char *		dirname,
+	struct fio_file *	file
+);
+
+
+/** Returns 0 on success */
+extern int
+FIO_FindNextEx(
+	struct fio_dirent *	dirent,
+	struct fio_file *	file
+);
+
 
 typedef struct _file * FILE;
 extern FILE *

@@ -83,6 +83,7 @@ NSTUB( 0xFF869C90, msleep )
 /** These are lower prority to locate */
 NSTUB( 0xFF8781F4, strcpy )
 NSTUB( 0xFFC22E18, memcpy )
+NSTUB( 0xFF99C7B4, index )
 
 /** File I/O using the FIO_ routines */
 NSTUB( 0xFF81BDC0, open )
@@ -93,6 +94,8 @@ NSTUB( 0xFF98C68C, FIO_ReadFile )
 NSTUB( 0xFF98C83C, FIO_WriteFile )
 NSTUB( 0xFF98C3FC, FIO_CloseFile )
 NSTUB( 0xFF98C9F0, FIO_GetFileSize )
+NSTUB( 0xFF98D40C, FIO_FindNextEx )
+NSTUB( 0xFF98D2E0, FIO_FindFirstEx )
 
 /** Look for a matched pair in gui_init_end */
 NSTUB( 0xFF8697EC, take_semaphore )
