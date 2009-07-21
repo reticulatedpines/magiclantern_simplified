@@ -62,8 +62,11 @@ extern const char * dm_names[];
 #define DM_ENGP		0x16
 #define DM_MOVR		48
 #define DM_MAGIC	50 // Replaces PTPCOM with MAGIC
-#define DM_RSC		0x80
-#define DM_DISP		0x82
+#define DM_LVCDEV	61
+#define DM_RSC		62
+#define DM_DISP		64
+#define DM_LV		86
+#define DM_LVCFG	89
 
 struct dm_state
 {
