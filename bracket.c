@@ -14,6 +14,7 @@ static void
 bracket_start( void * priv )
 {
 	DebugMsg( DM_MAGIC, 3, "%s: Starting bracket task", __func__ );
+	gui_show_menu = 0;
 	give_semaphore( bracket_sem );
 }
 
@@ -98,7 +99,7 @@ static void sel_cmd( void * priv )
 
 static struct menu_entry bracket_menu[] = {
 	{
-		.priv		= "Test rack",
+		.priv		= "Test bracket",
 		.display	= menu_print,
 		.select		= bracket_start,
 	},
@@ -149,6 +150,8 @@ bracket_task( void * priv )
 		DebugMsg( DM_MAGIC, 3, "%s: Awake", __func__ );
 		bmp_printf( FONT_SMALL, 400, 30, "%s: Awake", __func__ );
 
+		msleep( 5000 );
+#if 0
 		int i;
 		for( i=0 ; i<focus_steps && lens_info.focus_dist != 0xFFFF ; i++ )
 		{
@@ -161,10 +164,32 @@ bracket_task( void * priv )
 		bmp_printf( FONT_SMALL, 400, 30, "%s: Done!", __func__ );
 
 		continue;
+#endif
 
 		DebugMsg( DM_MAGIC, 3, "%s: 1.8", __func__ );
+		call( "FA_ClearReleaseModeForSR" );
+
 		lens_set_aperture( APERTURE_1_8 );
-		msleep( 100 );
+		call( "Release" );
+		msleep( 200 );
+
+		lens_set_aperture( APERTURE_2_8 );
+		call( "Release" );
+		msleep( 200 );
+
+		lens_set_aperture( APERTURE_5_6 );
+		call( "Release" );
+		msleep( 200 );
+
+		lens_set_aperture( APERTURE_8_0 );
+		call( "Release" );
+		msleep( 200 );
+
+		lens_set_aperture( APERTURE_11 );
+		call( "Release" );
+		msleep( 200 );
+
+#if 0
 		DebugMsg( DM_MAGIC, 3, "%s: take photo", __func__ );
 		take_photo();
 		DebugMsg( DM_MAGIC, 3, "%s: sleep", __func__ );
@@ -184,6 +209,7 @@ bracket_task( void * priv )
 
 
 		msleep( 100 );
+#endif
 	}
 }
 
