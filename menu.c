@@ -293,7 +293,60 @@ efic_temp_display(
 	);
 }
 
-static int draw_prop;
+static void
+mvr_time_const_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	uint8_t * mvr_struct = (void*) 0x1ed4;
+	uint8_t * mvr_hdr = *(void**)( 0x1ed4 + 4 );
+	struct state_object ** const mvr_state_object = (void*) 0x68a4;
+
+	bmp_printf(
+		FONT_MED, // selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"MVR %08x -> %08x %08x",
+		(unsigned) *mvr_state_object,
+		*(unsigned*)( 0x4c + (uintptr_t) mvr_state_object ),
+		*(unsigned*)( 0x14c + (uintptr_t) mvr_state_object )
+	);
+}
+
+static void
+mvr_time_const_select( void * priv )
+{
+/*
+	void (*mvr_set_time_const)(int *) = (void*) 0xff9716cc;
+	void (*mvr_setd_fullhd)(int *) = (void*) 0xff9716cc;
+	//int args[] = { 640, 480 };
+	//DebugMsg( DM_MAGIC, 3, "calling mvr_setd_fullhd %d %d", args[0], args[1] );
+	//mvr_setd_fullhd( args );
+
+	uint32_t buf[] = { 8 };
+	//prop_request_change( 0x207000c, buf, sizeof(buf) );
+	void (*lv_magnify)( int * ) = (void*) 0xff83359c;
+	lv_magnify( buf );
+	void (*mvrSetBitRate)( int * ) = (void*) 0xff84f990;
+	//int rate = 24;
+	//mvrSetBitRate( &rate );
+	mvr_struct->is_vga	= 0;
+	mvr_struct->width	= 1920;
+	mvr_struct->height	= 1080;
+	mvr_struct->fps		= 24;
+*/
+
+	uint8_t * mvr_hdr = *(void**)( 0x1ed4 + 4 );
+	*(unsigned *)( mvr_hdr + 0x60 ) = 2400;
+	*(unsigned *)( mvr_hdr + 0x64 ) = 100;
+	*(unsigned *)( mvr_hdr + 0x68 ) = 24;
+}
+
+
+
+static int draw_prop = 1;
 
 static void
 draw_prop_select( void * priv )
@@ -305,6 +358,10 @@ draw_prop_select( void * priv )
 struct menu_entry debug_menus[] = {
 	{
 		.display	= efic_temp_display,
+	},
+	{
+		.display	= mvr_time_const_display,
+		.select		= mvr_time_const_select,
 	},
 	{
 		.priv		= "Draw palette",
@@ -590,6 +647,16 @@ void property_slave(
 	struct property * prop = &prop_log[ prop_head ];
 	prop_head = (prop_head + 1) % MAX_PROP_LOG;
 
+	DebugMsg( DM_MAGIC, 3, "Prop %08x: %d: %08x %08x %08x %08x",
+		property,
+		len,
+		len > 0x00 ? addr[0] : 0,
+		len > 0x04 ? addr[1] : 0,
+		len > 0x08 ? addr[2] : 0,
+		len > 0x0c ? addr[3] : 0
+	);
+		
+
 	unsigned i;
 	prop->prop	= property;
 	prop->len	= len;
@@ -669,6 +736,9 @@ menu_task( void )
 	// Only record important events for the display and face detect
 	dm_set_store_level( DM_DISP, 4 );
 	dm_set_store_level( DM_LVFD, 4 );
+	dm_set_store_level( DM_LVCFG, 4 );
+	dm_set_store_level( DM_LVCDEV, 4 );
+	dm_set_store_level( DM_LV, 4 );
 	dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
 
@@ -716,7 +786,7 @@ menu_task( void )
 thats_all:
 #else
 	int actual_num_properties = 0;
-	property_list[actual_num_properties++] = 0x8005001b;
+	property_list[actual_num_properties++] = 0x44;
 #endif
 
 	prop_head = 0;
