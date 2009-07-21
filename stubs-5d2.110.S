@@ -128,6 +128,7 @@ NSTUB( 0xFF88F23C, prop_request_icu_auto_poweroff )
  * through it to find all of the other functions and structures.
  * @{
  */
+NSTUB( 0x1EE0, mvr_struct )
 NSTUB( 0x1C4C, gui_main_struct )
 NSTUB( 0x3668, gui_timer_struct )
 NSTUB( 0xFF823698, gui_main_task )
