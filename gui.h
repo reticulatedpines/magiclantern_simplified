@@ -154,6 +154,13 @@ extern void gui_timer_something( void *, uint32_t );
 extern void gui_change_mode( uint32_t param );
 
 
+extern void
+gui_control(
+	unsigned		event,
+	unsigned		arg1, // normally 1?
+	unsigned		arg2  // normally 0?
+);
+
 
 
 struct gui_struct

@@ -132,6 +132,7 @@ NSTUB( 0x1EE0, mvr_struct )
 NSTUB( 0x1C4C, gui_main_struct )
 NSTUB( 0x3668, gui_timer_struct )
 NSTUB( 0xFF823698, gui_main_task )
+NSTUB( 0xFF823B5C, gui_control )
 NSTUB( 0xFF824048, gui_init_end )
 NSTUB( 0xFF8693EC, msg_queue_receive )
 NSTUB( 0xFF88B730, gui_massive_event_loop )
@@ -219,6 +220,12 @@ NSTUB( 0xFF85AC64, prop_register_slave )
 NSTUB( 0xFF85AD38, prop_cleanup )
 NSTUB( 0xFF85ABDC, prop_deliver )
 NSTUB( 0xFF85AD9C, prop_request_change )
+NSTUB( 0xFF85AEB8, prop_get_value )
+
+/** ErrBatteryApp prevents chipped batteries from working */
+NSTUB( 0xFF88F0E0, GUI_SetErrBattery )
+NSTUB( 0xFFA86614, StopErrBatteryApp )
+NSTUB( 0x14B9C, err_battery_ptr )
 
 #if 0
 NSTUB( 0xFF810674, DryosPanic )

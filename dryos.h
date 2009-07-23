@@ -77,11 +77,11 @@ msleep(
  */
 extern struct task *
 task_create(
-	const char * name,
-	uint32_t priority,
-	uint32_t unknown0,
-	void * entry,
-	void * unknown1
+	const char *		name,
+	uint32_t		priority,
+	uint32_t		unknown0,
+	void *			entry,
+	void *			arg
 );
 
 
@@ -560,5 +560,10 @@ extern void powersave_enable( void );
 
 #define EM_PROHIBIT 2
 extern void prop_request_icu_auto_poweroff( int mode );
+
+/** Battery management */
+extern void GUI_SetErrBattery( unsigned ok );
+extern void StopErrBatteryApp( void );
+extern void * err_battery_ptr;
 
 #endif
