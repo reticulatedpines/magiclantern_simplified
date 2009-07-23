@@ -37,9 +37,10 @@
 #define PROP_REC_TIME		0x02010009 // output at 1 Hz while recording
 
 /** These are good guesses */
-#define PROP_GUI_STATE		0x80020000
+#define PROP_GUI_STATE		0x80020000 // 0 == IDLE, 1 == PLAYMENU?
 #define PROP_LIVE_VIEW_FACE_AF	0x0205000A
 #define PROP_LV_LOCK		0x80050021
+#define PROP_LV_ACTION		0x80050022 // 0 == LV_START, 1 == LV_STOP
 
 /** These are guesses */
 #define PROP_MVR_MOVW_START0	0x80000020 // not sure?
@@ -68,7 +69,6 @@
 
 /** These need to be found */
 #define PROP_LCD_STATE		error_must_be_found
-#define PROP_SHOOTING_TYPE	error_must_be_found
 
 /** These are used by DL: 8002000C, 80030014, 100000E, 80020013 */
 // These come form master result cbr
@@ -82,6 +82,7 @@
 #define PROP_MIRROR_DOWN	0x8005001C
 #define PROP_LV_EXPSIM		0x80050023
 #define PROP_MYMENU_LISTING	0x80040009
+#define PROP_SHOOTING_TYPE	0x80040004	// 0 == NORMAL, 3 == LV
 #define PROP_ERR_BATTERY	0x80030020
 #define PROP_CUSTOM_SETTING	0x80020007
 #define PROP_DEFAULT_CUSTOM	0x80020008
