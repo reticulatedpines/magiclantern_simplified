@@ -56,11 +56,12 @@
 #define PROP_LVCAF_STATE	0x8005001B // unknown meaning
 #define PROP_HALF_SHUTTER	0x8005000a // two bytes, 1==held
 
-#define PROP_APERTURE		0x80000006
 #define PROP_APERTURE2		0x8000002d
 #define PROP_APERTURE3		0x80000036
 
+#define PROP_MODE		0x80000001 // maybe; set in FA_DISP_COM
 #define PROP_SHUTTER		0x80000005
+#define PROP_APERTURE		0x80000006
 #define PROP_ISO		0x80000007
 
 #define PROP_SHUTTER_RELEASE	0x8003000A
@@ -117,11 +118,26 @@ prop_cleanup(
 );
 
 
+/** Change a property.
+ *
+ */
 extern void
 prop_request_change(
 	unsigned	property,
 	void *		addr,
 	size_t		len
+);
+
+
+/** Get the current value of a property.
+ *
+ * \todo Does initial value of len matter?
+ */
+extern void
+prop_get_value(
+	unsigned	property,
+	void *		addr,
+	size_t *	len
 );
 
 #endif
