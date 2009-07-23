@@ -139,7 +139,7 @@ bracket_task( void * priv )
 		0
 	);
 
-	menu_add( "Bracket", bracket_menu, COUNT(bracket_menu) );
+	menu_add( "Brack", bracket_menu, COUNT(bracket_menu) );
 
 	//thunk stop_quick_review = (thunk) 0xffaadb9c;
 	void (*stop_quick_review)(int) = (void*) 0xffaab3c4;
