@@ -27,6 +27,8 @@
 #include "dryos.h"
 #include "config.h"
 #include "version.h"
+#include "bmp.h"
+#include "version.h"
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -211,6 +213,32 @@ my_dump_task( void )
 
 struct config * global_config;
 
+static volatile int init_funcs_done;
+
+static void
+call_init_funcs( void * priv )
+{
+	// Call all of the init functions
+	extern struct task_create _init_funcs_start[];
+	extern struct task_create _init_funcs_end[];
+	struct task_create * init_func = _init_funcs_start;
+
+	for( ; init_func < _init_funcs_end ; init_func++ )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"Calling init_func %s (%x)",
+			init_func->name,
+			(unsigned) init_func->entry
+		);
+
+		thunk entry = (thunk) init_func->entry;
+		entry();
+	}
+
+	init_funcs_done = 1;
+}
+
+
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -238,6 +266,7 @@ my_init_task(void)
 
 	dmstart();
 
+
 	// Re-write the version string.
 	// Don't use strcpy() so that this can be done
 	// before strcpy() or memcpy() are located.
@@ -252,6 +281,40 @@ my_init_task(void)
 	additional_version[7] = build_version[3];
 	additional_version[8] = build_version[4];
 	additional_version[9] = '\0';
+
+	msleep( 500 );
+
+	menu_init();
+	debug_init();
+
+	msleep( 500 );
+
+	// Parse our config file
+	const char * config_filename = "A:/magiclantern.cfg";
+	global_config = config_parse_file( config_filename );
+	bmp_printf( FONT_MED, 0, 40,
+		"Magic Lantern version %s (%s)\n"
+		"Built on %s by %s\n",
+		build_version,
+		build_id,
+		build_date,
+		build_user
+	);
+	bmp_printf( FONT_MED, 0, 400,
+		"Config file %s: %s",
+		config_filename,
+		global_config ? "YES" : "NO"
+	);
+
+	msleep( 1000 );
+
+	init_funcs_done = 0;
+	//task_create( "init_func", 0x1f, 0x1000, call_init_funcs, 0 );
+	//while( !init_funcs_done )
+		//msleep(10);
+	call_init_funcs( 0 );
+
+	msleep( 1000 );
 
 #if 1
 	// Create all of our auto-create tasks
@@ -278,4 +341,6 @@ my_init_task(void)
 		);
 	}
 #endif
+
+	DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 }

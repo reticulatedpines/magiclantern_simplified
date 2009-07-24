@@ -78,5 +78,7 @@ menu_add(
 	int			count
 );
 
+extern void
+menu_init( void );
 
 #endif

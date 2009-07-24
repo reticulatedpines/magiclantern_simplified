@@ -96,17 +96,19 @@ magiclantern.lds: magiclantern.lds.S
 
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
+# menu.o and debug.o must come before the modules
 magiclantern: \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
+	menu.o \
+	debug.o \
 	gui.o \
 	audio.o \
 	lens.o \
 	zebra.o \
 	hotplug.o \
 	config.o \
-	menu.o \
 	bmp.o \
 	bracket.o \
 	script.o \

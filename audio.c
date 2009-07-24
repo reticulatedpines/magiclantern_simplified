@@ -695,16 +695,3 @@ my_audio_level_task( void )
 
 
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
-
-#if 0
-static void
-dump_task( void )
-{
-	msleep( 10000 );
-	DebugMsg( DM_MAGIC, 3, "Calling dumpf" );
-	dumpf();
-}
-
-
-TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
-#endif

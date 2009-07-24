@@ -94,4 +94,7 @@ dm_event_dispatch(
 	int			dwEventId
 );
 
+extern void
+debug_init( void );
+
 #endif
