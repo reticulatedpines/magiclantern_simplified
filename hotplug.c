@@ -49,7 +49,8 @@ my_hotplug_task( void )
 {
 	volatile uint32_t * camera_engine = (void*) 0xC0220000;
 
-	DebugMsg( 0x84, 3, "%s: Starting up using camera engine %x\n",
+	DebugMsg( DM_MAGIC, 3,
+		"%s: Starting up using camera engine %x",
 		__func__,
 		camera_engine
 	);
