@@ -27,13 +27,15 @@
 #include "version.h"
 #include "config.h"
 #include "menu.h"
+#include "property.h"
 
 
-unsigned zebra_level = 0xF000;
-unsigned zebra_draw = 1;
-unsigned crop_draw = 1;
-unsigned edge_draw = 0;
-struct bmp_file_t * cropmarks;
+static unsigned zebra_level = 0xF000;
+static unsigned zebra_draw = 1;
+static unsigned crop_draw = 1;
+static unsigned edge_draw = 0;
+static struct bmp_file_t * cropmarks;
+static unsigned lv_drawn = 0;
 
 
 /** Draw white thin crop marks
@@ -210,7 +212,7 @@ draw_zebra( void )
 	uint8_t * const bvram = bmp_vram();
 
 	// If we don't have a bitmap vram yet, nothing to do.
-	if( !bvram )
+	if( !bvram || !lv_drawn )
 		return;
 
 	// If we are not drawing edges, or zebras or crops, nothing to do
@@ -320,11 +322,50 @@ struct menu_entry zebra_menus[] = {
 	},
 };
 
+static void * lv_token;
+static void
+lv_token_handler(
+	void *			token
+)
+{
+	lv_token = token;
+}
+
+
+static void
+lv_prop_handler(
+	unsigned		property,
+	void *			priv,
+	unsigned *		addr,
+	unsigned		len
+)
+{
+	const unsigned value = *addr;
+	switch( property )
+	{
+	case PROP_LV_ACTION:
+		if( value == 0 )
+			lv_drawn = 1; // LV_START
+		else
+			lv_drawn = 0; // LV_STOP
+		break;
+	case PROP_GUI_STATE:
+		if( value == 1 )
+			lv_drawn = 0; // PLAYMENU
+		else
+			lv_drawn = 1; // IDLE
+		break;
+	default:
+		break;
+	}
+
+	prop_cleanup( lv_token, property );
+}
+
 int
 zebra_task( void )
 {
-	msleep( 3000 );
-
+	lv_drawn = 0;
 	zebra_draw = config_int( global_config, "zebra.draw", 1 );
 	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
 	crop_draw = config_int( global_config, "crop.draw", 1 );
@@ -332,12 +373,30 @@ zebra_task( void )
 
 	cropmarks = bmp_load( "A:/cropmarks.bmp" );
 
+	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
+	DebugMsg( DM_MAGIC, 3, "liveview=%d", enable_liveview );
+	if( enable_liveview )
+		call( "FA_StartLiveView" );
+
 	menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
 	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x cropmarks %x",
 		zebra_draw ? "on" : "off",
 		zebra_level,
 		(unsigned) cropmarks
+	);
+
+	static unsigned properties[] = {
+		PROP_LV_ACTION,
+		PROP_GUI_STATE,
+	};
+
+	prop_register_slave(
+		properties,
+		COUNT(properties),
+		lv_prop_handler,
+		0,
+		lv_token_handler
 	);
 
 	if( cropmarks )
