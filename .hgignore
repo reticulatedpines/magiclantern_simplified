@@ -16,3 +16,15 @@ chdk
 eos
 font.c
 version.c
+font-*.in
+*.zip
+*.orig
+tags
+*.jpg
+*.mov
+*.mp3
+*.fcp
+*.jpeg
+*.wav
+*.i
+*.log
