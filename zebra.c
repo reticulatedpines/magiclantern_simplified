@@ -35,7 +35,8 @@ static unsigned zebra_draw = 1;
 static unsigned crop_draw = 1;
 static unsigned edge_draw = 0;
 static struct bmp_file_t * cropmarks;
-static unsigned lv_drawn = 0;
+static volatile unsigned lv_drawn = 0;
+static volatile unsigned sensor_cleaning = 1;
 
 
 /** Draw white thin crop marks
@@ -212,7 +213,7 @@ draw_zebra( void )
 	uint8_t * const bvram = bmp_vram();
 
 	// If we don't have a bitmap vram yet, nothing to do.
-	if( !bvram || !lv_drawn )
+	if( !bvram )
 		return;
 
 	// If we are not drawing edges, or zebras or crops, nothing to do
@@ -300,7 +301,7 @@ void crop_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Crop %s",
-		*(unsigned*) priv ? " on" : "off"
+		cropmarks ? (*(unsigned*) priv ? " on" : "off") : "NO FILE"
 	);
 }
 
@@ -344,16 +345,16 @@ lv_prop_handler(
 	switch( property )
 	{
 	case PROP_LV_ACTION:
-		if( value == 0 )
-			lv_drawn = 1; // LV_START
-		else
-			lv_drawn = 0; // LV_STOP
+		// LV_START==0, LV_STOP=1
+		lv_drawn = !value;
 		break;
 	case PROP_GUI_STATE:
-		if( value == 1 )
-			lv_drawn = 0; // PLAYMENU
-		else
-			lv_drawn = 1; // IDLE
+		// PLAYMENU==0, IDLE==1
+		lv_drawn = !value;
+		break;
+	case PROP_ACTIVE_SWEEP_STATUS:
+		// Let us know when the sensor is done cleaning
+		sensor_cleaning = value;
 		break;
 	default:
 		break;
@@ -365,30 +366,10 @@ lv_prop_handler(
 int
 zebra_task( void )
 {
-	lv_drawn = 0;
-	zebra_draw = config_int( global_config, "zebra.draw", 1 );
-	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
-	crop_draw = config_int( global_config, "crop.draw", 1 );
-	edge_draw = config_int( global_config, "edge.draw", 1 );
-
-	cropmarks = bmp_load( "A:/cropmarks.bmp" );
-
-	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
-	DebugMsg( DM_MAGIC, 3, "liveview=%d", enable_liveview );
-	if( enable_liveview )
-		call( "FA_StartLiveView" );
-
-	menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
-
-	DebugMsg( DM_MAGIC, 3, "Zebras %s, threshold %x cropmarks %x",
-		zebra_draw ? "on" : "off",
-		zebra_level,
-		(unsigned) cropmarks
-	);
-
 	static unsigned properties[] = {
 		PROP_LV_ACTION,
 		PROP_GUI_STATE,
+		PROP_ACTIVE_SWEEP_STATUS,
 	};
 
 	prop_register_slave(
@@ -397,6 +378,26 @@ zebra_task( void )
 		lv_prop_handler,
 		0,
 		lv_token_handler
+	);
+
+
+	lv_drawn = 0;
+	zebra_draw = config_int( global_config, "zebra.draw", 1 );
+	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
+	crop_draw = config_int( global_config, "crop.draw", 1 );
+	edge_draw = config_int( global_config, "edge.draw", 1 );
+
+	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
+
+	cropmarks = bmp_load( "A:/cropmarks.bmp" );
+
+	DebugMsg( DM_MAGIC, 3,
+		"%s: Zebras=%s threshold=%x cropmarks=%x liveview=%d",
+		__func__,
+		zebra_draw ? "on" : "off",
+		zebra_level,
+		(unsigned) cropmarks,
+		enable_liveview
 	);
 
 	if( cropmarks )
@@ -409,9 +410,23 @@ zebra_task( void )
 		);
 	}
 
+	if( enable_liveview )
+	{
+/*
+		DebugMsg( DM_MAGIC, 3, "Waiting for sweep status to end" );
+		while( sensor_cleaning )
+			msleep(100);
+*/
+		DebugMsg( DM_MAGIC, 3, "Entering liveview" );
+		call( "FA_StartLiveView" );
+	}
+
+
+	menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+
 	while(1)
 	{
-		if( !gui_show_menu )
+		if( !gui_show_menu && lv_drawn )
 		{
 			draw_zebra();
 			msleep( 100 );
