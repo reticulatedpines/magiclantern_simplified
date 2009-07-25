@@ -297,7 +297,7 @@ menu_move(
 	// Deselect the current one
 	menu->selected		= 0;
 
-	if( direction > 0 )
+	if( direction < 0 )
 	{
 		if( menu->prev )
 			menu = menu->prev;
@@ -437,12 +437,12 @@ menu_handler(
 
 	case PRESS_JOY_RIGHT:
 	case DIAL_RIGHT:
-		menu_move( menu, -1 );
+		menu_move( menu, 1 );
 		goto redraw_dialog;
 
 	case PRESS_JOY_LEFT:
 	case DIAL_LEFT:
-		menu_move( menu, 1 );
+		menu_move( menu, -1 );
 		goto redraw_dialog;
 
 	case PRESS_SET_BUTTON:
