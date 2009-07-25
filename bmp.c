@@ -283,6 +283,9 @@ bmp_load(
 		goto read_fail;
 	}
 
+	// Try to force data to appear in the buffer
+	msleep( 100 );
+
 	struct bmp_file_t * bmp = buf;
 	if( bmp->signature != 0x4D42 )
 	{
