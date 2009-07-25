@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "menu.h"
 #include "property.h"
+#include "config.h"
 
 void enable_full_hd( void * priv )
 {
@@ -301,7 +302,13 @@ thats_all:
 	);
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
+}
 
+
+static void
+dump_task( void )
+{
+	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
 	dm_set_store_level( DM_DISP, 4 );
 	dm_set_store_level( DM_LVFD, 4 );
@@ -310,18 +317,24 @@ thats_all:
 	dm_set_store_level( DM_LV, 4 );
 	dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
-}
 
+	// It was too early to read the draw_prop config in debug_init()
+	draw_prop = config_int( global_config, "debug.draw-prop", 0 );
 
-#if 1
-static void
-dump_task( void )
-{
-	msleep( 10000 );
-	DebugMsg( DM_MAGIC, 3, "Calling dumpf" );
+	int sec = config_int( global_config, "debug.timed-dump", 0 );
+	if( sec == 0 )
+		return;
+
+	DebugMsg( DM_MAGIC, 3, "%s: Will do debug dump in %d sec",
+		__func__,
+		sec
+	);
+
+	msleep( sec * 1000 );
+
+	DebugMsg( DM_MAGIC, 3, "%s: calling dumpf", __func__ );
 	dumpf();
 }
 
 
 TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
-#endif
