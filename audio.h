@@ -150,6 +150,8 @@ audio_ic_sweep_message_queue( void );
 #define AUDIO_IC_ALC2	0x2800
 #define AUDIO_IC_IVL	0x2900
 #define AUDIO_IC_IVR	0x2C00
+#define AUDIO_IC_OVL	0x2A00
+#define AUDIO_IC_OVR	0x3500
 #define AUDIO_IC_ALCVOL	0x2D00
 #define AUDIO_IC_MODE3	0x2E00
 #define AUDIO_IC_MODE4	0x2F00

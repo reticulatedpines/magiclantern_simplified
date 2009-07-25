@@ -28,6 +28,8 @@
 #include "menu.h"
 
 unsigned audio_mgain = 0;
+unsigned audio_lovl = 0;
+unsigned audio_o2gain = 0;
 unsigned audio_dgain_l = 0;
 unsigned audio_dgain_r = 0;
 
@@ -342,15 +344,25 @@ audio_ic_set_mgain(
 }
 
 
-static inline void
-audio_ic_set_input_volume(
-	int			channel,
+static inline uint8_t
+audio_gain_to_cmd(
 	int			gain
 )
 {
 	unsigned cmd = ( gain * 1000 ) / 375 + 145;
 	cmd &= 0xFF;
 
+	return cmd;
+}
+
+
+static inline void
+audio_ic_set_input_volume(
+	int			channel,
+	int			gain
+)
+{
+	unsigned cmd = audio_gain_to_cmd( gain );
 	if( channel )
 		cmd |= AUDIO_IC_IVL;
 	else
@@ -369,7 +381,11 @@ audio_configure( void )
 		| 0x10
 		| ( audio_mic_power ? 0x4 : 0x0 )
 	); // power up, no gain
-	audio_ic_write( AUDIO_IC_SIG2 | 0x04 ); // external, no gain
+
+	audio_ic_write( AUDIO_IC_SIG2
+		| 0x04 // external, no gain
+		| ( audio_lovl & 0x3) << 0 // line output level
+	);
 	audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
 	audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
 	//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
@@ -388,10 +404,6 @@ audio_configure( void )
 	// 3 == 32 dB
 	audio_ic_set_mgain( audio_mgain ); // 10 dB
 
-	//const uint32_t gain_cmd = (gain * 1000) / 375 + 145;
-	//audio_ic_write( AUDIO_IC_IVL | (gain_cmd & 0xFF) );
-	//audio_ic_write( AUDIO_IC_IVR | (gain_cmd & 0xFF) );
-
 	// Disable the HPF
 	//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
 	//audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
@@ -406,10 +418,14 @@ audio_configure( void )
 	audio_ic_write( AUDIO_IC_LPF3 | 0x3D );
 	audio_ic_write( AUDIO_IC_FIL1 | audio_ic_read( AUDIO_IC_FIL1 ) | (1<<5) );
 
-	// Enable loop mode
+	// Enable loop mode and output digital volume2
 	uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
-	mode3 |= (1<<6);
-	audio_ic_write( AUDIO_IC_MODE3 | mode3 );
+	mode3 &= ~0x5C; // disable loop, olvc, datt0/1
+	audio_ic_write( AUDIO_IC_MODE3
+		| mode3				// old value
+		| 1 << 6			// loop mode
+		| (audio_o2gain & 0x3) << 2	// output volume
+	);
 
 	//draw_audio_regs();
 	bmp_printf( FONT_SMALL, 500, 400,
@@ -473,7 +489,49 @@ static void audio_dgain_display( void * priv, int x, int y, int selected )
 }
 
 
+static void audio_lovl_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"lovl: 0x%2d",
+		*(unsigned*) priv
+	);
+}
+
+static void audio_o2gain_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 0x1) & 0x3;
+	audio_configure();
+}
+
+static void audio_o2gain_display( void * priv, int x, int y, int selected )
+{
+	static uint8_t gains[] = { 0, 6, 12, 18 };
+	unsigned gain_reg= *(unsigned*) priv;
+	gain_reg &= 0x3;
+
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"o2gain: -%2d dB",
+		gains[ gain_reg ]
+	);
+}
+
+
 static struct menu_entry audio_menus[] = {
+	{
+		.priv		= &audio_lovl,
+		.select		= audio_o2gain_toggle,
+		.display	= audio_lovl_display,
+	},
+	{
+		.priv		= &audio_o2gain,
+		.select		= audio_o2gain_toggle,
+		.display	= audio_o2gain_display,
+	},
 	{
 		.priv		= &audio_mgain,
 		.select		= audio_mgain_toggle,
@@ -573,7 +631,18 @@ my_sounddev_task( void )
 	audio_dgain_l = config_int( global_config, "audio.dgain.l", dgain );
 	audio_dgain_r = config_int( global_config, "audio.dgain.r", dgain );
 	audio_mic_power = config_int( global_config, "audio.mic-power", 1 );
+	audio_lovl = config_int( global_config, "audio.lovl", 3 );
+	audio_o2gain = config_int( global_config, "audio.o2gain", 0 );
 	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
+
+	if( disable_powersave )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"%s: Disabling powersave",
+			__func__
+		);
+		prop_request_icu_auto_poweroff( EM_PROHIBIT );
+	}
 
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
@@ -584,9 +653,6 @@ my_sounddev_task( void )
 		DebugMsg( DM_MAGIC, 3, "%s: out of sleep", __func__ );
 
 		audio_configure();
-
-		if( disable_powersave )
-			prop_request_icu_auto_poweroff( EM_PROHIBIT );
 
 		// will be unlocked by the property handler
 		take_semaphore( gain.sem, 0 );
