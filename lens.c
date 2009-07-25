@@ -180,6 +180,7 @@ lens_handle_property(
 		bmp_printf( FONT_SMALL, 200, 30,
 			"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
 				*(unsigned*)buf,
+				focus->active,
 				(int) step,
 				(unsigned) step & 0xFFFF,
 				focus->mode
