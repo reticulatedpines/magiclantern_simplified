@@ -33,6 +33,7 @@
 
 
 static struct semaphore * menu_sem;
+static int draw_event;
 
 static void
 draw_version( void )
@@ -287,31 +288,36 @@ menu_entry_select(
 void
 menu_move(
 	struct menu *		menu,
-	gui_event_t		ev
+	int			direction
 )
 {
 	if( !menu )
 		return;
 
-	switch( ev )
+	// Deselect the current one
+	menu->selected		= 0;
+
+	if( direction > 0 )
 	{
-	case PRESS_JOY_LEFT:
-		if( !menu->prev )
-			break;
-		menu->prev->selected	= 1;
-		menu->selected		= 0;
-		break;
-
-	case PRESS_JOY_RIGHT:
-		if( !menu->next )
-			break;
-		menu->next->selected	= 1;
-		menu->selected		= 0;
-		break;
-
-	default:
-		break;
+		if( menu->prev )
+			menu = menu->prev;
+		else {
+			// Go to the last one
+			while( menu->next )
+				menu = menu->next;
+		}
+	} else {
+		if( menu->next )
+			menu = menu->next;
+		else {
+			// Go to the first one
+			while( menu->prev )
+				menu = menu->prev;
+		}
 	}
+
+	// Select the new one (which might be the same)
+	menu->selected		= 1;
 }
 
 
@@ -319,7 +325,7 @@ menu_move(
 void
 menu_entry_move(
 	struct menu *		menu,
-	gui_event_t		ev
+	int			direction
 )
 {
 	if( !menu )
@@ -337,26 +343,32 @@ menu_entry_move(
 	if( !entry )
 		return;
 
-	switch( ev )
-	{
-	case PRESS_JOY_UP:
-		// First and moving up?
-		if( !entry->prev )
-			break;
-		entry->selected = 0;
-		entry->prev->selected = 1;
-		break;
+	// Deslect the current one
+	entry->selected = 0;
 
-	case PRESS_JOY_DOWN:
+	if( direction < 0 )
+	{
+		// First and moving up?
+		if( entry->prev )
+			entry = entry->prev;
+		else {
+			// Go to the last one
+			while( entry->next )
+				entry = entry->next;
+		}
+	} else {
 		// Last and moving down?
-		if( !entry->next )
-			break;
-		entry->selected = 0;
-		entry->next->selected = 1;
-		break;
-	default:
-		break;
+		if( entry->next )
+			entry = entry->next;
+		else {
+			// Go to the first one
+			while( entry->prev )
+				entry = entry->prev;
+		}
 	}
+
+	// Select the new one, which might be the same as the old one
+	entry->selected = 1;
 }
 
 
@@ -381,15 +393,20 @@ menu_handler(
 	static uint32_t events[ MAX_GUI_EVENTS ][4];
 
 	// Ignore periodic events
-	if( event != GUI_TIMER )
-	{
-		// Store the event in the log
-		events[ last_menu_event ][0] = event;
-		events[ last_menu_event ][1] = arg2;
-		events[ last_menu_event ][2] = arg3;
-		last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
-	}
+	if( event == GUI_TIMER )
+		return 0;
 
+	// Store the event in the log
+	events[ last_menu_event ][0] = event;
+	events[ last_menu_event ][1] = arg2;
+	events[ last_menu_event ][2] = arg3;
+	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
+
+	if( draw_event )
+		bmp_printf( FONT_SMALL, 400, 40,
+			"event %08x",
+			event
+		);
 
 	// Find the selected menu
 	struct menu * menu = menus;
@@ -409,13 +426,23 @@ menu_handler(
 		goto redraw_dialog;
 
 	case PRESS_JOY_UP:
-	case PRESS_JOY_DOWN:
-		menu_entry_move( menu, event );
+	case ELECTRONIC_SUB_DIAL_LEFT:
+		menu_entry_move( menu, -1 );
 		break;
 
-	case PRESS_JOY_LEFT:
+	case PRESS_JOY_DOWN:
+	case ELECTRONIC_SUB_DIAL_RIGHT:
+		menu_entry_move( menu, 1 );
+		break;
+
 	case PRESS_JOY_RIGHT:
-		menu_move( menu, event );
+	case DIAL_RIGHT:
+		menu_move( menu, -1 );
+		goto redraw_dialog;
+
+	case PRESS_JOY_LEFT:
+	case DIAL_LEFT:
+		menu_move( menu, 1 );
 		goto redraw_dialog;
 
 	case PRESS_SET_BUTTON:
@@ -475,6 +502,9 @@ menu_init( void )
 static void
 menu_task( void )
 {
+	// menu_init is too early for loading config values
+	draw_event = config_int( global_config, "debug.draw-event", 0 );
+
 	while(1)
 	{
 		if( !gui_show_menu )
