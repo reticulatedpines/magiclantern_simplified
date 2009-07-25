@@ -27,6 +27,23 @@
 #include "property.h"
 #include "menu.h"
 
+
+struct gain_struct
+{
+	void *			mvr_rec_token;
+	struct semaphore *	sem;
+	unsigned		alc1;
+	unsigned		sig1;
+	unsigned		sig2;
+};
+
+static struct gain_struct gain = {
+	.mvr_rec_token		= (void*) 1,
+	.sem			= (void*) 1,
+};
+
+
+// These should be in the gain struct
 unsigned audio_mgain = 0;
 unsigned audio_lovl = 0;
 unsigned audio_o2gain = 0;
@@ -336,11 +353,13 @@ audio_ic_set_mgain(
 	sig1 |= (bits & 1);
 	sig1 |= (bits & 4) >> 1;
 	audio_ic_write( AUDIO_IC_SIG1 | sig1 );
+	gain.sig1 = sig1;
 
 	unsigned sig2 = audio_ic_read( AUDIO_IC_SIG2 );
 	sig2 &= ~(1<<5);
 	sig2 |= (bits & 2) << 4;
 	audio_ic_write( AUDIO_IC_SIG2 | sig2 );
+	gain.sig2 = sig2;
 }
 
 
@@ -374,8 +393,20 @@ audio_ic_set_input_volume(
 
 
 void
-audio_configure( void )
+audio_configure( int force )
 {
+	if( !force )
+	{
+		// Check for ALC configuration; do nothing if it is
+		// already disabled
+		if( audio_ic_read( AUDIO_IC_ALC1 ) == gain.alc1
+		&&  audio_ic_read( AUDIO_IC_SIG1 ) == gain.sig1
+		&&  audio_ic_read( AUDIO_IC_SIG2 ) == gain.sig2
+		)
+			return;
+		DebugMsg( DM_AUDIO, "%s: Reseting user settings", __func__ );
+	}
+
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
 	audio_ic_write( AUDIO_IC_SIG1
 		| 0x10
@@ -388,6 +419,7 @@ audio_configure( void )
 	);
 	audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
 	audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
+	gain.alc1 = 0;
 	//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
 
 	// Control left/right gain independently
@@ -450,7 +482,7 @@ static void audio_mgain_toggle( void * priv )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x1) & 0x7;
-	audio_configure();
+	audio_configure( 1 );
 }
 
 static void audio_mgain_display( void * priv, int x, int y, int selected )
@@ -474,7 +506,7 @@ static void audio_dgain_toggle( void * priv )
 	if( dgain > 40 )
 		dgain = 0;
 	*(unsigned*) priv = dgain;
-	audio_configure();
+	audio_configure( 1 );
 }
 
 static void audio_dgain_display( void * priv, int x, int y, int selected )
@@ -503,7 +535,7 @@ static void audio_o2gain_toggle( void * priv )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x1) & 0x3;
-	audio_configure();
+	audio_configure( 1 );
 }
 
 static void audio_o2gain_display( void * priv, int x, int y, int selected )
@@ -548,15 +580,6 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_dgain_display,
 	},
 };
-
-
-struct gain_struct
-{
-	void *			mvr_rec_token;
-	struct semaphore *	sem;
-};
-
-static struct gain_struct gain = { (void*) 1, (void*) 1 };
 
 static void
 handle_mvr_rec_token(
@@ -646,16 +669,13 @@ my_sounddev_task( void )
 
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
+	audio_configure( 1 ); // force it this time
 
 	while(1)
 	{
-		msleep( 1500 );
-		DebugMsg( DM_MAGIC, 3, "%s: out of sleep", __func__ );
-
-		audio_configure();
-
 		// will be unlocked by the property handler
-		take_semaphore( gain.sem, 0 );
+		int rc = take_semaphore( gain.sem, 1000 );
+		audio_configure( rc == 0 ); // force it if we got the semaphore
 	}
 }
 
