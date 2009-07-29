@@ -156,15 +156,21 @@ cli(void)
 		"mrs %0, CPSR\n"
 		"orr %1, %0, #0x80\n" // set I flag to disable IRQ
 		"msr CPSR_c, %1\n"
-		: "=r"(old_cpsr), "=r"(new_cpsr)
+		: "=r"(old_cpsr)
+		: "r"(new_cpsr)
 	);
-	return old_cpsr;
+	return old_cpsr & 0x80; // return true if the flags are set
 }
 
 static inline void
 sei( uint32_t old_cpsr )
 {
-	asm __volatile__ ( "msr CPSR_c, %0" : : "r"(old_cpsr) );
+	uint32_t new_cpsr;
+	asm __volatile__ (
+		"mrs %0, CPSR\n"
+		"bic %0, %0, #0x80\n"
+		"orr %0, %0, %1\n"
+		"msr CPSR_c, %0" : : "r"(new_cpsr), "r"(old_cpsr) );
 }
 
 
