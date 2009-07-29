@@ -55,9 +55,6 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
-struct event gui_events[ MAX_GUI_EVENTS ];
-int gui_events_index;
-
 
 // Replaces the gui_main_task
 static void
@@ -65,7 +62,6 @@ my_gui_main_task( void )
 {
 	gui_init_end();
 	uint32_t * obj = 0;
-	gui_events_index = 0;
 	gui_show_menu = 0;
 
 	while(1)
@@ -86,8 +82,6 @@ my_gui_main_task( void )
 		&&  (event->type != 2 && event->param != 0x31)
 		)
 		{
-			gui_events[ gui_events_index ] = *event;
-			gui_events_index = ( gui_events_index + 1 ) % MAX_GUI_EVENTS;
 			DebugMsg( DM_MAGIC, 3,
 				"Event: %x, %x, %x, %x",
 				event->type,
