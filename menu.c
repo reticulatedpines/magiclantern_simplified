@@ -33,6 +33,7 @@
 
 
 static struct semaphore * menu_sem;
+static struct semaphore * gui_sem;
 static int draw_event;
 
 static void
@@ -65,7 +66,6 @@ draw_version( void )
 }
 
 
-static unsigned last_menu_event;
 static struct gui_task * menu_task_ptr;
 static struct menu * menus;
 
@@ -241,6 +241,8 @@ menus_display(
 {
 	int			x = orig_x;
 
+	take_semaphore( menu_sem, 0 );
+
 	for( ; menu ; menu = menu->next )
 	{
 		unsigned fontspec = FONT(
@@ -259,6 +261,8 @@ menus_display(
 				1
 			);
 	}
+
+	give_semaphore( menu_sem );
 }
 
 
@@ -270,6 +274,7 @@ menu_entry_select(
 	if( !menu )
 		return;
 
+	take_semaphore( menu_sem, 0 );
 	struct menu_entry * entry = menu->children;
 
 	for( ; entry ; entry = entry->next )
@@ -277,6 +282,7 @@ menu_entry_select(
 		if( entry->selected )
 			break;
 	}
+	give_semaphore( menu_sem );
 
 	if( !entry || !entry->select )
 		return;
@@ -292,6 +298,10 @@ menu_move(
 )
 {
 	if( !menu )
+		return;
+
+	int rc = take_semaphore( menu_sem, 100 );
+	if( rc != 0 )
 		return;
 
 	// Deselect the current one
@@ -318,6 +328,7 @@ menu_move(
 
 	// Select the new one (which might be the same)
 	menu->selected		= 1;
+	give_semaphore( menu_sem );
 }
 
 
@@ -331,6 +342,10 @@ menu_entry_move(
 	if( !menu )
 		return;
 
+	int rc = take_semaphore( menu_sem, 100 );
+	if( rc != 0 )
+		return;
+
 	struct menu_entry *	entry = menu->children;
 
 	for( ; entry ; entry = entry->next )
@@ -341,7 +356,10 @@ menu_entry_move(
 
 	// Nothing selected?
 	if( !entry )
+	{
+		give_semaphore( menu_sem );
 		return;
+	}
 
 	// Deslect the current one
 	entry->selected = 0;
@@ -369,6 +387,7 @@ menu_entry_move(
 
 	// Select the new one, which might be the same as the old one
 	entry->selected = 1;
+	give_semaphore( menu_sem );
 }
 
 
@@ -380,9 +399,12 @@ menu_handler(
 	int			arg3
 )
 {
+	// Ignore periodic events
+	if( event == GUI_TIMER )
+		return 0;
+
 	// Check if we should stop displaying
-	if( !gui_show_menu
-	|| event == TERMINATE_WINSYS
+	if( event == TERMINATE_WINSYS
 	|| event == DELETE_DIALOG_REQUEST )
 	{
 		DebugMsg( DM_MAGIC, 3, "Menu task shutting down: %d", event );
@@ -390,25 +412,13 @@ menu_handler(
 		return 1;
 	}
 
-	static uint32_t events[ MAX_GUI_EVENTS ][4];
-
-	// Ignore periodic events
-	if( event == GUI_TIMER )
-		return 0;
-
-	// Store the event in the log
-	events[ last_menu_event ][0] = event;
-	events[ last_menu_event ][1] = arg2;
-	events[ last_menu_event ][2] = arg3;
-	last_menu_event = (last_menu_event + 1) % MAX_GUI_EVENTS;
-
 	if( draw_event )
 		bmp_printf( FONT_SMALL, 400, 40,
 			"event %08x",
 			event
 		);
 
-	// Find the selected menu
+	// Find the selected menu (should be cached?)
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
@@ -418,12 +428,11 @@ menu_handler(
 	{
 	case INITIALIZE_CONTROLLER:
 		DebugMsg( DM_MAGIC, 3, "Menu task INITIALIZE_CONTROLLER" );
-		last_menu_event = 0;
 		return 0;
 
 	case GOT_TOP_OF_CONTROL:
 		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
-		goto redraw_dialog;
+		break;
 
 	case PRESS_JOY_UP:
 	case ELECTRONIC_SUB_DIAL_LEFT:
@@ -438,12 +447,12 @@ menu_handler(
 	case PRESS_JOY_RIGHT:
 	case DIAL_RIGHT:
 		menu_move( menu, 1 );
-		goto redraw_dialog;
+		break;
 
 	case PRESS_JOY_LEFT:
 	case DIAL_LEFT:
 		menu_move( menu, -1 );
-		goto redraw_dialog;
+		break;
 
 	case PRESS_SET_BUTTON:
 		menu_entry_select( menu );
@@ -452,14 +461,10 @@ menu_handler(
 	default:
 		return 0;
 	}
-		
-	// Something happened
-	menus_display( menus, 100, 100 );
-	return 0;
 
-redraw_dialog:
-	bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
-	menus_display( menus, 100, 100 );
+	// Unlock the redraw code
+	give_semaphore( gui_sem );
+
 	return 0;
 }
 
@@ -474,6 +479,7 @@ menu_init( void )
 	menus = NULL;
 	menu_task_ptr = NULL;
 	menu_sem = create_named_semaphore( "menus", 1 );
+	gui_sem = create_named_semaphore( "gui", 0 );
 
 	menu_find_by_name( "Audio" );
 	menu_find_by_name( "Video" );
@@ -504,32 +510,36 @@ menu_task( void )
 {
 	// menu_init is too early for loading config values
 	draw_event = config_int( global_config, "debug.draw-event", 0 );
+	int x, y;
 
 	while(1)
 	{
-		if( !gui_show_menu )
+		int rc = take_semaphore( gui_sem, 1000 );
+		if( !gui_show_menu && menu_task_ptr )
 		{
-			if( menu_task_ptr )
-			{
-				gui_task_destroy( menu_task_ptr );
-				menu_task_ptr = 0;
-			}
-
-			msleep( 500 );
+			gui_task_destroy( menu_task_ptr );
+			dialog_set_active();
+			bmp_fill( 0, 0, 35, 720, 400 );
+			menu_task_ptr = 0;
+			dialog_set_inactive();
 			continue;
 		}
 
-		if( gui_show_menu == 1 )
+		if( !gui_show_menu )
+			continue;
+
+		if( !menu_task_ptr )
 		{
 			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
-			last_menu_event = 0;
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
-			gui_show_menu = 2;
 			draw_version();
 		}
 
-		msleep( 100 );
+		//dialog_set_active();
+		bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
+		menus_display( menus, 100, 100 );
+		//dialog_set_inactive();
 	}
 }
 
-TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "menu_task", menu_task, 0, 0x1f, 0x1000 );
