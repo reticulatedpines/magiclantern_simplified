@@ -53,6 +53,7 @@ _draw_char(
 	const uint32_t	pitch		= bmp_pitch() / 4;
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 
+	//uint32_t flags = cli();
 	for( i=0 ; i<font->height ; i++ )
 	{
 		// Start this scanline
@@ -76,6 +77,8 @@ _draw_char(
 			*(row++) = bmp_pixels;
 		}
 	}
+
+	//sei( flags );
 }
 
 
@@ -185,15 +188,12 @@ bmp_fill(
 	const uint32_t width = bmp_width();
 	const uint32_t pitch = bmp_pitch();
 	const uint32_t height = bmp_height();
-	uint8_t * vram = bmp_vram();
-	if( !vram )
-		return;
 
 	// Convert to words and limit to the width of the LCD
 	if( start + w > width )
 		w = width - start;
 	
-	const uint16_t word = 0
+	const uint32_t word = 0
 		| (color << 24)
 		| (color << 16)
 		| (color <<  8)
@@ -209,14 +209,37 @@ bmp_fill(
 	if( w == 0 || h == 0 )
 		return;
 
-	for( ; y<y_end ; y++ )
+	//uint32_t flags = cli();
+	uint8_t * const vram = bmp_vram();
+	uint32_t * row = (void*)( vram + y * pitch + start );
+
+	bmp_printf( FONT_SMALL, 0, 400, "bmp %08x", (unsigned) vram );
+	DebugMsg( DM_MAGIC, 3,
+		"%s: vram=%x start=%d-%d y=%d-%d => %x",
+		__func__,
+		(unsigned) vram,
+		start,
+		w/4,
+		y,
+		y_end,
+		(unsigned) row
+	);
+	if( !vram || ( 1 & (uintptr_t) vram ) )
+	{
+		//sei( flags );
+		return;
+	}
+
+
+	for( ; y<y_end ; y++, row += pitch/4 )
 	{
 		uint32_t x;
-		uint16_t * row = (uint16_t*)( vram + y * pitch + start );
 
-		for( x=0 ; x<w/2 ; x++ )
+		for( x=0 ; x<w/4 ; x++ )
 			row[ x ] = word;
 	}
+
+	//sei( flags );
 }
 
 
