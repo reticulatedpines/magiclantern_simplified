@@ -87,17 +87,16 @@ window_create(
 	void *			arg
 );
 
-
-/** Returns 0 if it handled the message, 1 if it did not? */
-typedef int (*dialog_handler_t)(
-	int			self_id,
-	void *			arg,
-	uint32_t		event
-);
-
 struct dialog;
 struct dialog_list;
 struct dialog_item;
+
+/** Returns 0 if it handled the message, 1 if it did not? */
+typedef int (*dialog_handler_t)(
+	struct dialog *		self,
+	void *			arg,
+	uint32_t		event
+);
 
 
 /** These are chock-full of callbacks.  I don't know what most of them do. */
@@ -195,11 +194,16 @@ SIZE_CHECK_STRUCT( dialog, 0xB0 );
 
 extern struct dialog *
 dialog_create(
-	int			id,
+	int			id,	 // must be unique?
 	int			level_maybe,
 	dialog_handler_t	handler,
 	void *			arg1,
 	void *			arg2
+);
+
+extern void
+dialog_delete(
+	struct dialog *		dialog
 );
 
 extern void
@@ -217,6 +221,19 @@ dialog_window_prepare(
 	struct dialog *		dialog,
 	void *			unused
 );
+
+extern void
+dialog_post_event(
+	unsigned		event,
+	unsigned		arg,
+	struct dialog *		dialog
+);
+
+extern void
+dialog_set_focus(
+	struct dialog *		dialog
+);
+
 
 /** type 0 == 720, 1 == 960? */
 extern void
