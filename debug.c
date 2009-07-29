@@ -330,7 +330,11 @@ dump_task( void )
 		sec
 	);
 
-	msleep( sec * 1000 );
+	while( sec-- )
+	{
+		bmp_printf( FONT_SMALL, 600, 400, "dump %2d", sec );
+		msleep( 1000 );
+	}
 
 	DebugMsg( DM_MAGIC, 3, "%s: calling dumpf", __func__ );
 	dumpf();
