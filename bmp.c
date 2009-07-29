@@ -236,7 +236,13 @@ bmp_fill(
 		uint32_t x;
 
 		for( x=0 ; x<w/4 ; x++ )
+		{
 			row[ x ] = word;
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+		}
 	}
 
 	//sei( flags );
