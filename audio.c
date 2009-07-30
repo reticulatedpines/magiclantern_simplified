@@ -35,6 +35,13 @@ struct gain_struct
 	unsigned		alc1;
 	unsigned		sig1;
 	unsigned		sig2;
+
+	unsigned		mic_power;
+	unsigned		mgain;
+	unsigned		lovl;
+	unsigned		o2gain;
+	unsigned		dgain_l;
+	unsigned		dgain_r;
 };
 
 static struct gain_struct gain = {
@@ -42,13 +49,6 @@ static struct gain_struct gain = {
 	.sem			= (void*) 1,
 };
 
-
-// These should be in the gain struct
-unsigned audio_mgain = 0;
-unsigned audio_lovl = 0;
-unsigned audio_o2gain = 0;
-unsigned audio_dgain_l = 0;
-unsigned audio_dgain_r = 0;
 
 /** Read the raw level from the audio device.
  *
@@ -72,7 +72,6 @@ struct audio_level
 
 struct audio_level audio_levels[2];
 
-unsigned audio_mic_power;
 
 
 /** Returns a dB translated from the raw level
@@ -410,12 +409,12 @@ audio_configure( int force )
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
 	audio_ic_write( AUDIO_IC_SIG1
 		| 0x10
-		| ( audio_mic_power ? 0x4 : 0x0 )
+		| ( gain.mic_power ? 0x4 : 0x0 )
 	); // power up, no gain
 
 	audio_ic_write( AUDIO_IC_SIG2
 		| 0x04 // external, no gain
-		| ( audio_lovl & 0x3) << 0 // line output level
+		| ( gain.lovl & 0x3) << 0 // line output level
 	);
 	audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
 	audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
@@ -425,16 +424,13 @@ audio_configure( int force )
 	// Control left/right gain independently
 	audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
 
-	// Set manual low gain; +30dB == 0xE1
-	// gain == (byte - 145) * 0.375
-	//const uint32_t gain = 12;
-	audio_ic_set_input_volume( 0, audio_dgain_r );
-	audio_ic_set_input_volume( 1, audio_dgain_l );
+	audio_ic_set_input_volume( 0, gain.dgain_r );
+	audio_ic_set_input_volume( 1, gain.dgain_l );
 
 	// 4 == 10 dB
 	// 5 == 17 dB
 	// 3 == 32 dB
-	audio_ic_set_mgain( audio_mgain ); // 10 dB
+	audio_ic_set_mgain( gain.mgain ); // 10 dB
 
 	// Disable the HPF
 	//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
@@ -456,22 +452,22 @@ audio_configure( int force )
 	audio_ic_write( AUDIO_IC_MODE3
 		| mode3				// old value
 		| 1 << 6			// loop mode
-		| (audio_o2gain & 0x3) << 2	// output volume
+		| (gain.o2gain & 0x3) << 2	// output volume
 	);
 
 	//draw_audio_regs();
 	bmp_printf( FONT_SMALL, 500, 400,
 		"Gain %d/%d Mgain %d",
-		audio_dgain_l,
-		audio_dgain_r,
-		audio_mgain
+		gain.dgain_l,
+		gain.dgain_r,
+		gain.mgain
 	);
 
 	DebugMsg( DM_AUDIO, 3,
 		"Gain mgain=%d dgain=%d/%d",
-		audio_mgain,
-		audio_dgain_l,
-		audio_dgain_r
+		gain.mgain,
+		gain.dgain_l,
+		gain.dgain_r
 	);
 }
 
@@ -515,7 +511,7 @@ static void audio_dgain_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"dgain %s: %2d dB",
-		priv == &audio_dgain_l ? "L" : "R",
+		priv == &gain.dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
 }
@@ -555,27 +551,27 @@ static void audio_o2gain_display( void * priv, int x, int y, int selected )
 
 static struct menu_entry audio_menus[] = {
 	{
-		.priv		= &audio_lovl,
+		.priv		= &gain.lovl,
 		.select		= audio_o2gain_toggle,
 		.display	= audio_lovl_display,
 	},
 	{
-		.priv		= &audio_o2gain,
+		.priv		= &gain.o2gain,
 		.select		= audio_o2gain_toggle,
 		.display	= audio_o2gain_display,
 	},
 	{
-		.priv		= &audio_mgain,
+		.priv		= &gain.mgain,
 		.select		= audio_mgain_toggle,
 		.display	= audio_mgain_display,
 	},
 	{
-		.priv		= &audio_dgain_l,
+		.priv		= &gain.dgain_l,
 		.select		= audio_dgain_toggle,
 		.display	= audio_dgain_display,
 	},
 	{
-		.priv		= &audio_dgain_r,
+		.priv		= &gain.dgain_r,
 		.select		= audio_dgain_toggle,
 		.display	= audio_dgain_display,
 	},
@@ -649,13 +645,13 @@ my_sounddev_task( void )
 	sounddev_active_in(0,0);
 
 	// Set defaults
-	audio_mgain = config_int( global_config, "audio.mgain", 4 );
+	gain.mgain = config_int( global_config, "audio.mgain", 4 );
 	int dgain = config_int( global_config, "audio.dgain", 18 );
-	audio_dgain_l = config_int( global_config, "audio.dgain.l", dgain );
-	audio_dgain_r = config_int( global_config, "audio.dgain.r", dgain );
-	audio_mic_power = config_int( global_config, "audio.mic-power", 1 );
-	audio_lovl = config_int( global_config, "audio.lovl", 3 );
-	audio_o2gain = config_int( global_config, "audio.o2gain", 0 );
+	gain.dgain_l = config_int( global_config, "audio.dgain.l", dgain );
+	gain.dgain_r = config_int( global_config, "audio.dgain.r", dgain );
+	gain.mic_power = config_int( global_config, "audio.mic-power", 1 );
+	gain.lovl = config_int( global_config, "audio.lovl", 3 );
+	gain.o2gain = config_int( global_config, "audio.o2gain", 0 );
 	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
 
 	if( disable_powersave )
