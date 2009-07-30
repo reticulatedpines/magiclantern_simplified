@@ -4,6 +4,7 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
+ * Edge detection code by Robert Thiel <rthiel@gmail.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -70,42 +71,6 @@ draw_matte(
 	return 1;
 }
 
-static int32_t convolve_x[3][3] = {
-	{ -1, 0, +1, },
-	{ -2, 0, +2, },
-	{ -1, 0, +1, },
-};
-
-static int32_t convolve_y[3][3] = {
-	{ +1, +2, +1, },
-	{  0,  0,  0, },
-	{ -1, -2, -1, },
-};
-
-
-static int32_t
-convolve(
-	int32_t c[3][3],
-	uint16_t * buf,
-	uint32_t pitch
-)
-{
-	int32_t value = 0;
-	value += c[0][0] * buf[ -pitch - 1 ];
-	value += c[0][1] * buf[ -pitch ];
-	value += c[0][2] * buf[ -pitch + 1 ];
-
-	value += c[1][0] * buf[ -1 ];
-	value += c[1][1] * buf[ 0 ];
-	value += c[1][2] * buf[ +1 ];
-
-	value += c[2][0] * buf[ +pitch - 1 ];
-	value += c[2][1] * buf[ +pitch ];
-	value += c[2][2] * buf[ +pitch + 1 ];
-
-	return value;
-}
-
 
 int32_t
 edge_detect(
@@ -113,10 +78,14 @@ edge_detect(
 	uint32_t		pitch
 )
 {
-	int32_t gx = convolve( convolve_x, buf, pitch );
-	int32_t gy = convolve( convolve_y, buf, pitch );
+	int32_t sx = buf[0] - buf[0+pitch];
+	int32_t sy = buf[1] - buf[1+pitch];
 
-	return gx*gx + gy*gy;
+	// abs value
+	sx = ( sx ^ (sx >> 15) ) - (sx >> 15);
+	sy = ( sy ^ (sy >> 15) ) - (sy >> 15);
+
+	return (sx + sy) >> 9;
 }
 
 
@@ -129,21 +98,21 @@ check_edge(
 	unsigned		vram_pitch
 )
 {
-	const uint8_t contrast_color = 0x0E; // pink
-	const int32_t edge_level = zebra_level * zebra_level;
-
 	// Check for contrast
 	int32_t grad = edge_detect(
 		(uint16_t*) &v_row[x/2],
 		vram_pitch
 	);
 
-	if( grad > edge_level )
+	if( grad < 5 )
 		return 0;
 
+	// Color coding (using the blue colors starting at 0x70)
+	grad = 0x70 | ( ( grad >> 3 ) & 0x0F ); 
+
 	b_row[x/2] = 0
-		| (contrast_color << 8)
-		| contrast_color;
+		| (grad << 8)
+		| grad;
 
 	return 1;
 }
