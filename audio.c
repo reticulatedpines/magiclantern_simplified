@@ -36,7 +36,10 @@ struct gain_struct
 	unsigned		sig1;
 	unsigned		sig2;
 
+	unsigned		loopback;
+	unsigned		alc_enable;
 	unsigned		mic_power;
+	unsigned		mic_in;
 	unsigned		mgain;
 	unsigned		lovl;
 	unsigned		o2gain;
@@ -391,7 +394,7 @@ audio_ic_set_input_volume(
 
 
 
-void
+static void
 audio_configure( int force )
 {
 	if( !force )
@@ -403,7 +406,7 @@ audio_configure( int force )
 		&&  audio_ic_read( AUDIO_IC_SIG2 ) == gain.sig2
 		)
 			return;
-		DebugMsg( DM_AUDIO, "%s: Reseting user settings", __func__ );
+		DebugMsg( DM_AUDIO, 3, "%s: Reseting user settings", __func__ );
 	}
 
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
@@ -416,10 +419,14 @@ audio_configure( int force )
 		| 0x04 // external, no gain
 		| ( gain.lovl & 0x3) << 0 // line output level
 	);
-	audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
-	audio_ic_write( AUDIO_IC_ALC1 | 0x00 ); // disable all ALC
-	gain.alc1 = 0;
-	//audio_ic_write( AUDIO_IC_ALC1 | 0x24 ); // enable recording ALC
+
+	if( gain.mic_in )
+		audio_ic_write( AUDIO_IC_PM3 | 0x00 ); // internal mic
+	else
+		audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
+
+	gain.alc1 = gain.alc_enable ? (1<<5) : 0;
+	audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
 
 	// Control left/right gain independently
 	audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
@@ -444,14 +451,17 @@ audio_configure( int force )
 	audio_ic_write( AUDIO_IC_LPF1 | 0x0E );
 	audio_ic_write( AUDIO_IC_LPF2 | 0xA9 );
 	audio_ic_write( AUDIO_IC_LPF3 | 0x3D );
-	audio_ic_write( AUDIO_IC_FIL1 | audio_ic_read( AUDIO_IC_FIL1 ) | (1<<5) );
+	audio_ic_write( AUDIO_IC_FIL1
+		| audio_ic_read( AUDIO_IC_FIL1 )
+		| (1<<5)
+	);
 
 	// Enable loop mode and output digital volume2
 	uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
 	mode3 &= ~0x5C; // disable loop, olvc, datt0/1
 	audio_ic_write( AUDIO_IC_MODE3
 		| mode3				// old value
-		| 1 << 6			// loop mode
+		| gain.loopback << 6		// loop mode
 		| (gain.o2gain & 0x3) << 2	// output volume
 	);
 
@@ -474,14 +484,37 @@ audio_configure( int force )
 
 /** Menu handlers */
 
-static void audio_mgain_toggle( void * priv )
+static void
+audio_binary_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = !*ptr;
+	audio_configure( 1 );
+}
+
+
+static void
+audio_3bit_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 0x1) & 0x3;
+	audio_configure( 1 );
+}
+
+
+
+
+static void
+audio_mgain_toggle( void * priv )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x1) & 0x7;
 	audio_configure( 1 );
 }
 
-static void audio_mgain_display( void * priv, int x, int y, int selected )
+
+static void
+audio_mgain_display( void * priv, int x, int y, int selected )
 {
 	static uint8_t gains[] = { 0, 20, 26, 32, 10, 17, 23, 29 };
 	unsigned gain_reg= *(unsigned*) priv;
@@ -490,12 +523,15 @@ static void audio_mgain_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"mgain: %2d dB",
+		//23456789
+		"A-Gain:  %2d dB",
 		gains[ gain_reg ]
 	);
 }
 
-static void audio_dgain_toggle( void * priv )
+
+static void
+audio_dgain_toggle( void * priv )
 {
 	unsigned dgain = *(unsigned*) priv;
 	dgain += 6;
@@ -505,36 +541,37 @@ static void audio_dgain_toggle( void * priv )
 	audio_configure( 1 );
 }
 
-static void audio_dgain_display( void * priv, int x, int y, int selected )
+
+static void
+audio_dgain_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"dgain %s: %2d dB",
+		// 23456789
+		"%s-Gain:  %2d dB",
 		priv == &gain.dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
 }
 
 
-static void audio_lovl_display( void * priv, int x, int y, int selected )
+static void
+audio_lovl_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"lovl: 0x%2d",
-		*(unsigned*) priv
+		//23456789
+		"Out vol: %2d dB",
+		2 * *(unsigned*) priv
 	);
 }
 
-static void audio_o2gain_toggle( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 0x1) & 0x3;
-	audio_configure( 1 );
-}
 
-static void audio_o2gain_display( void * priv, int x, int y, int selected )
+#if 0
+static void
+audio_o2gain_display( void * priv, int x, int y, int selected )
 {
 	static uint8_t gains[] = { 0, 6, 12, 18 };
 	unsigned gain_reg= *(unsigned*) priv;
@@ -543,23 +580,64 @@ static void audio_o2gain_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"o2gain: -%2d dB",
+		//23456789
+		"o2gain:  -%2d dB",
 		gains[ gain_reg ]
+	);
+}
+#endif
+
+
+static void
+audio_alc_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789
+		"AGC:     %s",
+		gain.alc_enable ? "ON " : "OFF"
 	);
 }
 
 
+static void
+audio_mic_in_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789
+		"Input:   %s",
+		gain.mic_in ? "INTERNAL" : "EXTERNAL"
+	);
+}
+
+static void
+audio_loopback_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789
+		"Monitor: %s",
+		gain.loopback ? "ON " : "OFF"
+	);
+}
+
 static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &gain.lovl,
-		.select		= audio_o2gain_toggle,
+		.select		= audio_3bit_toggle,
 		.display	= audio_lovl_display,
 	},
+#if 0
 	{
 		.priv		= &gain.o2gain,
 		.select		= audio_o2gain_toggle,
 		.display	= audio_o2gain_display,
 	},
+#endif
 	{
 		.priv		= &gain.mgain,
 		.select		= audio_mgain_toggle,
@@ -575,7 +653,23 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.display	= audio_dgain_display,
 	},
+	{
+		.priv		= &gain.alc_enable,
+		.select		= audio_binary_toggle,
+		.display	= audio_alc_display,
+	},
+	{
+		.priv		= &gain.mic_in,
+		.select		= audio_binary_toggle,
+		.display	= audio_mic_in_display,
+	},
+	{
+		.priv		= &gain.loopback,
+		.select		= audio_binary_toggle,
+		.display	= audio_loopback_display,
+	},
 };
+
 
 static void
 handle_mvr_rec_token(
@@ -624,7 +718,11 @@ handle_mvr_rec_property(
 void
 my_sounddev_task( void )
 {
-	DebugMsg( DM_AUDIO, 3, "!!!!! %s started sem=%x", __func__, (uint32_t) sounddev.sem_alc );
+	DebugMsg( DM_AUDIO, 3,
+		"!!!!! %s started sem=%x",
+		__func__,
+		(uint32_t) sounddev.sem_alc
+	);
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
 
@@ -652,6 +750,9 @@ my_sounddev_task( void )
 	gain.mic_power = config_int( global_config, "audio.mic-power", 1 );
 	gain.lovl = config_int( global_config, "audio.lovl", 3 );
 	gain.o2gain = config_int( global_config, "audio.o2gain", 0 );
+	gain.alc_enable = config_int( global_config, "audio.alc_enable", 0 );
+	gain.mic_in = config_int( global_config, "audio.mic-in", 0 );
+	gain.loopback = config_int( global_config, "audio.loopback", 1 );
 	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
 
 	if( disable_powersave )

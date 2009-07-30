@@ -182,8 +182,4 @@ audio_ic_sweep_message_queue( void );
 /** Table of calibrations for audio levels to db */
 extern int audio_thresholds[];
 
-/** Magic Lantern function to reconfigure the audio device */
-extern void audio_configure( int force );
-extern unsigned audio_dgain, audio_mgain, audio_mic_power;
-
 #endif
