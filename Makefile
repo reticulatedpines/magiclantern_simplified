@@ -109,6 +109,7 @@ magiclantern: \
 	audio.o \
 	lens.o \
 	zebra.o \
+	math.o \
 	hotplug.o \
 	config.o \
 	bmp.o \
