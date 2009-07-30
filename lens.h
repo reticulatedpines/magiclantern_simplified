@@ -39,6 +39,8 @@ struct lens_info
 	unsigned		shutter;
 	unsigned		iso;
 	void *			token;
+	unsigned		dof_near;
+	unsigned		dof_far;
 };
 
 extern struct lens_info lens_info;

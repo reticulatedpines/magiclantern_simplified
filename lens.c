@@ -109,6 +109,32 @@ static uint16_t iso_values[] = {
 	[ ISO_12500 / 2 ]	= 12500,
 };
 
+
+#if 0
+// Onhold until I can test with my 70-200 f/4
+static void
+calc_dof(
+	struct lens_info * const info
+)
+{
+	const uint32_t		coc = 30; // 1/1000 mm
+	const uint32_t		fd = info->focus_dist;
+	const uint32_t		fl = info->focal_len;
+
+	// Not all lenses report the focus distance
+	if( fd == 0 )
+	{
+		info->dof_near = 0;
+		info->dof_far = 0;
+		return;
+	}
+
+	uint32_t		fl2 = fl * fl;
+	uint32_t		dof = (fl2 / 10) * fd;
+	(info->aperture * coc * ( fd * 10 - fl ) / 10) / 100;
+}
+#endif
+
 static unsigned lens_properties[] = {
 	PROP_LENS_NAME,
 	PROP_LV_LENS,
@@ -166,6 +192,7 @@ lens_handle_property(
 		const struct prop_lv_lens * const lv_lens = (void*) buf;
 		lens_info.focal_len	= bswap16( lv_lens->focal_len );
 		lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
+		//calc_dof( &lens_info );
 
 		//bmp_hexdump( 300, 88, buf, len );
 		break;
