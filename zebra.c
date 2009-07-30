@@ -72,7 +72,7 @@ draw_matte(
 }
 
 
-int32_t
+static int32_t
 edge_detect(
 	uint16_t *		buf,
 	uint32_t		pitch
@@ -226,13 +226,16 @@ draw_zebra( void )
 }
 
 
-void zebra_toggle( void * priv )
+static void
+zebra_toggle( void * priv )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x4000) & 0xF000;
 }
 
-void zebra_display( void * priv, int x, int y, int selected )
+
+static void
+zebra_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf( 
 		selected ? MENU_FONT_SEL : MENU_FONT,
@@ -242,13 +245,8 @@ void zebra_display( void * priv, int x, int y, int selected )
 	);
 }
 
-void zebra_draw_toggle( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = !*ptr;
-}
-
-void zebra_draw_display( void * priv, int x, int y, int selected )
+static void
+zebra_draw_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
@@ -258,13 +256,8 @@ void zebra_draw_display( void * priv, int x, int y, int selected )
 	);
 }
 
-void crop_toggle( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = !*ptr;
-}
-
-void crop_display( void * priv, int x, int y, int selected )
+static void
+crop_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
@@ -277,7 +270,7 @@ void crop_display( void * priv, int x, int y, int selected )
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &zebra_draw,
-		.select		= zebra_draw_toggle,
+		.select		= menu_binary_toggle,
 		.display	= zebra_draw_display,
 	},
 	{
@@ -287,7 +280,7 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &crop_draw,
-		.select		= crop_toggle,
+		.select		= menu_binary_toggle,
 		.display	= crop_display,
 	},
 };
@@ -332,7 +325,8 @@ lv_prop_handler(
 	prop_cleanup( lv_token, property );
 }
 
-int
+
+static void
 zebra_task( void )
 {
 	static unsigned properties[] = {

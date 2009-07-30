@@ -66,6 +66,12 @@ menu_print(
 
 
 extern void
+menu_binary_toggle(
+	void *			priv
+);
+
+
+extern void
 menu_select(
 	struct menu_entry *	entry
 );

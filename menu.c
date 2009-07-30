@@ -71,6 +71,15 @@ static struct menu * menus;
 
 
 void
+menu_binary_toggle(
+	void *			priv
+)
+{
+	*(unsigned*) priv = !*(unsigned*) priv;
+}
+
+
+void
 menu_print(
 	void *			priv,
 	int			x,
