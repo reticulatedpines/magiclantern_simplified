@@ -74,18 +74,35 @@ draw_matte(
 
 static int32_t
 edge_detect(
-	uint16_t *		buf,
+	uint32_t *		buf,
 	uint32_t		pitch
 )
-{
-	int32_t sx = buf[0] - buf[0+pitch];
-	int32_t sy = buf[1] - buf[1+pitch];
+{	
+	const uint32_t		pixel1	= buf[0];
+	const int32_t		p00	= (pixel1 & 0xFFFF);
+	const int32_t		p01	= pixel1 >> 16;
+	const uint32_t		pixel2	= buf[1];
+	const int32_t		p02	= (pixel2 & 0xFFFF);
+	const uint32_t		pixel3	= buf[pitch];
+	const int32_t		p10	= (pixel3 & 0xFFFF);
+	const int32_t		p11	= pixel3 >> 16;
+	const uint32_t		pixel4	= buf[pitch+1];
+	const int32_t		p12	= (pixel4 & 0xFFFF);
+	
+	int32_t sx1 = p00 - p11;
+	int32_t sy1 = p01 - p10;
+	
+	int32_t sx2 = p01 - p12;
+	int32_t sy2 = p02 - p11;
 
 	// abs value
-	sx = ( sx ^ (sx >> 15) ) - (sx >> 15);
-	sy = ( sy ^ (sy >> 15) ) - (sy >> 15);
-
-	return (sx + sy) >> 9;
+	sx1 = ( sx1 ^ (sx1 >> 15) ) - (sx1 >> 15);
+	sy1 = ( sy1 ^ (sy1 >> 15) ) - (sy1 >> 15);
+	
+	sx2 = ( sx2 ^ (sx2 >> 15) ) - (sx2 >> 15);
+	sy2 = ( sy2 ^ (sy2 >> 15) ) - (sy2 >> 15);
+	
+	return (((sx2 + sy2) >> 1 ) & 0xFF00 ) | ((sx1 + sy1) >> 9);
 }
 
 
@@ -98,23 +115,21 @@ check_edge(
 	unsigned		vram_pitch
 )
 {
+	const unsigned dx = x/2;
 	// Check for contrast
-	int32_t grad = edge_detect(
-		(uint16_t*) &v_row[x/2],
+	uint32_t grad = edge_detect(
+		&v_row[dx],
 		vram_pitch
 	);
-
-	if( grad < 5 )
+	
+	// Check for any high gradients in either pixel
+	if( (grad & 0xF8F8) == 0 )
 		return 0;
 
 	// Color coding (using the blue colors starting at 0x70)
-	grad = 0x70 | ( ( grad >> 3 ) & 0x0F ); 
-
-	b_row[x/2] = 0
-		| (grad << 8)
-		| grad;
-
+	b_row[dx] = 0x7070 | ((grad & 0xF8F8) >> 3) ;			
 	return 1;
+	
 }
 
 
