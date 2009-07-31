@@ -549,9 +549,57 @@ extern ssize_t read( int fd, void *, size_t );
 extern int atoi( const char * );
 extern int streq( const char *, const char * );
 
-extern int vsnprintf( char *, size_t, const char *, va_list );
-extern int snprintf( char *, size_t, const char *, ... );
+extern int
+vsnprintf(
+	char *			buf,
+	size_t			max_len,
+	const char *		fmt,
+	va_list			ap
+);
 
+
+extern int __attribute__((format(printf,3,4)))
+snprintf(
+	char *			buf,
+	size_t			max_len,
+	const char *		fmt,
+	...
+);
+
+extern int __attribute__((format(printf,2,3)))
+fprintf(
+	FILE *			file,
+	const char *		fmt,
+	...
+);
+
+
+struct tm {
+        int     tm_sec;         /* seconds after the minute [0-60] */
+        int     tm_min;         /* minutes after the hour [0-59] */
+        int     tm_hour;        /* hours since midnight [0-23] */
+        int     tm_mday;        /* day of the month [1-31] */
+        int     tm_mon;         /* months since January [0-11] */
+        int     tm_year;        /* years since 1900 */
+        int     tm_wday;        /* days since Sunday [0-6] */
+        int     tm_yday;        /* days since January 1 [0-365] */
+        int     tm_isdst;       /* Daylight Savings Time flag */
+        long    tm_gmtoff;      /* offset from CUT in seconds */
+        char    *tm_zone;       /* timezone abbreviation */
+};
+
+extern void
+LoadCalendarFromRTC(
+	struct tm *		tm
+);
+
+extern size_t
+strftime(
+	char *			buf,
+	size_t			maxsize,
+	const char *		fmt,
+	const struct tm *	timeptr
+);
 
 
 /** Power management */
