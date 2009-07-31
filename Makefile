@@ -48,10 +48,6 @@ FLAGS=\
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
 
-NOT_USED_FLAGS=\
-	-march=armv5te \
-	-mthumb \
-	-mthumb-interwork \
 
 CFLAGS=\
 	$(FLAGS) \
@@ -60,6 +56,10 @@ CFLAGS=\
 	-W \
 	-Wno-unused-parameter \
 
+NOT_USED_FLAGS=\
+	-march=armv5te \
+	-mthumb-interwork \
+	-msoft-float \
 
 AFLAGS=\
 	$(FLAGS) \
@@ -109,7 +109,6 @@ magiclantern: \
 	audio.o \
 	lens.o \
 	zebra.o \
-	math.o \
 	hotplug.o \
 	config.o \
 	bmp.o \
@@ -129,6 +128,7 @@ magiclantern: \
 		-march=armv5te \
 		-T \
 		$^ \
+		-lgcc \
 	)
 
 
