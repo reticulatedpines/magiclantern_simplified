@@ -514,6 +514,15 @@ menu_init( void )
 
 }
 
+
+void
+gui_stop_menu( void )
+{
+	gui_show_menu = 0;
+	give_semaphore( gui_sem );
+}
+
+
 static void
 menu_task( void )
 {

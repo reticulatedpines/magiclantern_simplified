@@ -249,4 +249,7 @@ extern struct gui_struct gui_struct;
 /** Magic Lantern GUI */
 extern volatile int gui_show_menu;
 
+extern void
+gui_stop_menu( void );
+
 #endif
