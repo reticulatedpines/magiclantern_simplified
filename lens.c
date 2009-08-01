@@ -27,6 +27,10 @@
 #include "property.h"
 #include "bmp.h"
 
+
+static struct semaphore * lens_sem;
+
+
 struct lens_info lens_info = {
 	.name		= "NO LENS NAME"
 };
@@ -110,39 +114,265 @@ static uint16_t iso_values[] = {
 };
 
 
-#if 0
-// Onhold until I can test with my 70-200 f/4
+/** Compute the depth of field for the current lens parameters.
+ *
+ * This relies heavily on:
+ * 	http://en.wikipedia.org/wiki/Circle_of_confusion
+ * The CoC value given there is 0.029 mm, but we need to scale things
+ */
 static void
 calc_dof(
 	struct lens_info * const info
 )
 {
-	const uint32_t		coc = 30; // 1/1000 mm
-	const uint32_t		fd = info->focus_dist;
-	const uint32_t		fl = info->focal_len;
+	const uint32_t		coc = 29; // 1/1000 mm
+	const uint32_t		fd = info->focus_dist * 10; // into mm
+	const uint32_t		fl = info->focal_len; // already in mm
 
+	// If we have no aperture value then we can't compute any of this
 	// Not all lenses report the focus distance
-	if( fd == 0 )
+	if( fl == 0 || info->aperture == 0 )
 	{
-		info->dof_near = 0;
-		info->dof_far = 0;
+		info->dof_near		= 0;
+		info->dof_far		= 0;
+		info->hyperfocal	= 0;
 		return;
 	}
 
-	uint32_t		fl2 = fl * fl;
-	uint32_t		dof = (fl2 / 10) * fd;
-	(info->aperture * coc * ( fd * 10 - fl ) / 10) / 100;
+	const uint32_t		fl2 = fl * fl;
+
+	// The aperture is scaled by 10 and the CoC by 1000,
+	// so scale the focal len, too.  This results in a mm measurement
+	const unsigned H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
+	info->hyperfocal = H;
+
+	// If we do not have the focus distance, then we can not compute
+	// near and far parameters
+	if( fd == 0 )
+	{
+		info->dof_near		= 0;
+		info->dof_far		= 0;
+		return;
+	}
+
+	// fd is in mm, H is in mm, but the product of H * fd can
+	// exceed 2^32, so we scale it back down before processing
+	info->dof_near = ((H * (fd/10)) / ( H + fd )) * 10; // in mm
+	if( fd > H )
+		info->dof_far = 1000 * 1000; // infinity
+	else
+		info->dof_far = ((H * (fd/10)) / ( H - fd )) * 10; // in mm
 }
-#endif
+
+
+static const char *
+format_dist(
+	unsigned		mm
+)
+{
+	static char dist[ 32 ];
+
+	if( mm > 100000 ) // 100 m
+		snprintf( dist, sizeof(dist),
+			"%3d.%1d m",
+			mm / 1000,
+			(mm % 1000) / 100
+		);
+	else
+	if( mm > 10000 ) // 10 m
+		snprintf( dist, sizeof(dist),
+			"%2d.%02d m",
+			mm / 1000,
+			(mm % 1000) / 10
+		);
+	else
+	if( mm >  1000 ) // 1 m
+		snprintf( dist, sizeof(dist),
+			"%1d.%03d m",
+			mm / 1000,
+			(mm % 1000)
+		);
+	else
+		snprintf( dist, sizeof(dist),
+			"%4d cm",
+			mm / 10
+		);
+
+	return dist;
+}
+
+
+static void
+update_lens_display(
+	struct lens_info *	info
+)
+{
+	const unsigned font	= FONT_MED;
+	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, COLOR_BG );
+	const unsigned height	= fontspec_height( font );
+
+	// Needs to be 720 - 8 * 12
+	unsigned x = 620;
+	unsigned y = 0;
+
+	bmp_printf( font, x, y, "%5d mm", info->focal_len );
+
+	y += height;
+	bmp_printf( font, x+12, y,
+		"%s",
+		info->focus_dist == 0xFFFF
+			? " Infnty"
+			: format_dist( info->focus_dist * 10 )
+	);
+
+
+	y += height;
+	if( info->aperture )
+		bmp_printf( font, x, y,
+			"f/%2d.%d",
+			info->aperture / 10,
+			info->aperture % 10
+		);
+	else
+		bmp_printf( font_err, x, y,
+			"f 0x%02x",
+			info->raw_aperture
+		);
+
+	y += height;
+	if( info->shutter )
+		bmp_printf( font, x, y,
+			"1/%4d",
+			info->shutter
+		);
+	else
+		bmp_printf( font_err, x, y,
+			"f 0x%02x",
+			info->raw_aperture
+		);
+
+	y += height;
+	if( info->iso )
+		bmp_printf( font, x, y,
+			"ISO %4d",
+			info->iso
+		);
+	else
+		bmp_printf( font_err, x, y,
+			"ISO 0x%02x",
+			info->raw_iso
+		);
+
+	y += height;
+	bmp_printf( font, x, y,
+		"%s",
+		format_dist( info->hyperfocal )
+	);
+
+	y += height;
+	bmp_printf( font, x, y,
+		"%s",
+		format_dist( info->dof_near )
+	);
+
+	y += height;
+	bmp_printf( font, x, y,
+		"%s",
+		info->dof_far >= 1000*1000
+			? " Infnty"
+			: format_dist( info->dof_far )
+	);
+}
+
+
+static FILE * mvr_logfile = INVALID_PTR;
+
+
+/** Create a logfile for each movie.
+ * Record a logfile with the lens info for each movie.
+ */
+static void
+mvr_create_logfile(
+	unsigned		event
+)
+{
+	DebugMsg( DM_MAGIC, 3, "%s: event %d", __func__, event );
+
+	if( event == 0 )
+	{
+		// Movie stopped
+		if( mvr_logfile != INVALID_PTR )
+			FIO_CloseFile( mvr_logfile );
+		mvr_logfile = INVALID_PTR;
+		return;
+	}
+
+	if( event != 2 )
+		return;
+
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+
+	// Movie starting
+	mvr_logfile = FIO_CreateFile( "A:/movie.log" );
+	if( mvr_logfile == INVALID_PTR )
+	{
+		bmp_printf( FONT_LARGE, 0, 40,
+			"Unable to create movie log! fd=%x",
+			(unsigned) mvr_logfile
+		);
+
+		return;
+	}
+
+	fprintf( mvr_logfile,
+		"Start: %4d/%02d/%02d %02d:%02d:%02d\n",
+		now.tm_year + 1900,
+		now.tm_mon + 1,
+		now.tm_mday,
+		now.tm_hour,
+		now.tm_min,
+		now.tm_sec
+	);
+
+	fprintf( mvr_logfile, "Lens: %s\n", lens_info.name );
+
+	fprintf( mvr_logfile, "%s\n",
+		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
+	);
+}
+
+
+static void
+mvr_update_logfile(
+	struct lens_info *	info
+)
+{
+	if( mvr_logfile == INVALID_PTR )
+		return;
+
+	fprintf(
+		mvr_logfile,
+		"%d,%d,%d.%d,%d,%d\n",
+		info->iso,
+		info->shutter,
+		info->aperture / 10,
+		info->aperture % 10,
+		info->focal_len,
+		info->focus_dist
+	);
+}
+
 
 static unsigned lens_properties[] = {
+	PROP_MVR_REC_START,
 	PROP_LENS_NAME,
 	PROP_LV_LENS,
 	PROP_APERTURE,
 	PROP_SHUTTER,
 	PROP_ISO,
-	0x8005001b,
-	0x80050001,
+	PROP_LVCAF_STATE,
+	PROP_LV_FOCUS,
 };
 
 static void
@@ -171,36 +401,50 @@ lens_handle_property(
 	unsigned		len
 )
 {
+	const uint32_t		raw = *(uint32_t *) buf;
+
 	switch( property )
 	{
+	case PROP_MVR_REC_START:
+		mvr_create_logfile( *(unsigned*) buf );
+		break;
 	case PROP_LENS_NAME:
 		if( len > sizeof(lens_info.name) )
 			len = sizeof(lens_info.name);
 		memcpy( lens_info.name, buf, len );
 		break;
 	case PROP_APERTURE:
-		lens_info.aperture = *(unsigned*) buf;
+		lens_info.raw_aperture = raw;
+		lens_info.aperture = raw/2 < COUNT(aperture_values)
+			? aperture_values[ raw / 2 ]
+			: 0;
 		break;
 	case PROP_SHUTTER:
-		lens_info.shutter = *(unsigned*) buf;
+		lens_info.raw_shutter = raw;
+		lens_info.shutter = raw/2 < COUNT(shutter_values)
+			? shutter_values[ raw / 2 ]
+			: 0;
 		break;
 	case PROP_ISO:
-		lens_info.iso = *(unsigned*) buf;
+		lens_info.raw_iso = raw;
+		lens_info.iso = raw/2 < COUNT(iso_values)
+			? iso_values[ raw / 2 ]
+			: 0;
 		break;
 	case PROP_LV_LENS:
 	{
 		const struct prop_lv_lens * const lv_lens = (void*) buf;
 		lens_info.focal_len	= bswap16( lv_lens->focal_len );
 		lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
-		//calc_dof( &lens_info );
 
+		give_semaphore( lens_sem );
 		//bmp_hexdump( 300, 88, buf, len );
 		break;
 	}
-	case 0x8005001b:
+	case PROP_LVCAF_STATE:
 		bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
 		break;
-	case 0x80050001:
+	case PROP_LV_FOCUS:
 	{
 		const struct prop_focus * const focus = (void*) buf;
 		const int16_t step = (focus->step_hi << 8) | focus->step_lo;
@@ -218,37 +462,31 @@ lens_handle_property(
 		break;
 	}
 
-	// Needs to be 720 - 8 * 12
-	unsigned x = 620;
-	unsigned y = 0;
-
-	bmp_printf( FONT_MED, x, y, "%5d mm", lens_info.focal_len );
-	y += font_med.height;
-	if( lens_info.focus_dist == 0xFFFF )
-		bmp_printf( FONT_MED, x, y, "Infinity" );
-	else
-		bmp_printf( FONT_MED, x, y, "%5d cm", lens_info.focus_dist );
-
-	y += font_med.height;
-	uint16_t aperture = aperture_values[ lens_info.aperture/2 ];
-	bmp_printf( FONT_MED, x, y, "f/%2d.%d", aperture / 10, aperture % 10 );
-
-	y += font_med.height;
-	uint16_t shutter = shutter_values[ lens_info.shutter/2 ];
-	bmp_printf( FONT_MED, x, y, "1/%4d", shutter );
-
-	y += font_med.height;
-	uint16_t iso = iso_values[ lens_info.iso/2 ];
-	bmp_printf( FONT_MED, x, y, "ISO %4d", iso );
-
 	prop_cleanup( lens_info.token, property );
 }
+
+
+static void
+lens_task( void * priv )
+{
+	while(1)
+	{
+		take_semaphore( lens_sem, 0 );
+		calc_dof( &lens_info );
+		update_lens_display( &lens_info );
+		mvr_update_logfile( &lens_info );
+	}
+}
+
+TASK_CREATE( __FILE__, lens_task, 0, 0x1f, 0x1000 );
 
 
 
 static void
 lens_init( void )
 {
+	lens_sem = create_named_semaphore( "lens_info", 1 );
+
 	prop_register_slave(
 		lens_properties,
 		COUNT(lens_properties),

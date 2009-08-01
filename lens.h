@@ -32,15 +32,21 @@
 
 struct lens_info
 {
+	void *			token;
 	char 			name[ 32 ];
-	int			focal_len;
-	int			focus_dist;
+	int			focal_len; // in mm
+	int			focus_dist; // in cm
 	unsigned		aperture;
 	unsigned		shutter;
 	unsigned		iso;
-	void *			token;
-	unsigned		dof_near;
-	unsigned		dof_far;
+	unsigned		hyperfocal; // in mm
+	unsigned		dof_near; // in mm
+	unsigned		dof_far; // in mm
+
+	// Store the raw values before the lookup tables
+	uint8_t			raw_aperture;
+	uint8_t			raw_shutter;
+	uint8_t			raw_iso;
 };
 
 extern struct lens_info lens_info;
