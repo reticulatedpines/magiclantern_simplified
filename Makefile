@@ -108,6 +108,7 @@ magiclantern: \
 	gui.o \
 	audio.o \
 	lens.o \
+	focus.o \
 	zebra.o \
 	hotplug.o \
 	config.o \
