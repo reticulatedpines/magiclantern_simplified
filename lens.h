@@ -42,6 +42,7 @@ struct lens_info
 	unsigned		hyperfocal; // in mm
 	unsigned		dof_near; // in mm
 	unsigned		dof_far; // in mm
+	unsigned		job_state; // see PROP_LAST_JOB_STATE
 
 	// Store the raw values before the lookup tables
 	uint8_t			raw_aperture;
@@ -191,12 +192,10 @@ lens_set_shutter(
 	prop_request_change( PROP_SHUTTER, &shutter, sizeof(shutter) );
 }
 
-static inline void
-lens_take_photo( void )
-{
-	unsigned value = 0;
-	prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
-}
+extern int
+lens_take_picture(
+	int			wait
+);
 
 
 /** Will block if it is not safe to send the focus command */

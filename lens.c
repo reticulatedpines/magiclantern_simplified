@@ -30,6 +30,7 @@
 
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
+static struct semaphore * job_sem;
 
 
 struct lens_info lens_info = {
@@ -322,6 +323,40 @@ lens_focus(
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 }
 
+
+int
+lens_take_picture(
+	int			wait
+)
+{
+	int rc = take_semaphore( job_sem, 1000 );
+	if( rc )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"%s: Timed out! Old job state %d",
+			__func__,
+			lens_info.job_state
+		);
+
+		if( lens_info.job_state > 0xA )
+			return -1;
+	}
+
+	//unsigned value = 0;
+	//prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
+	call( "Release" );
+
+	if( !wait )
+		return 0;
+
+	rc = take_semaphore( job_sem, wait );
+	if( rc )
+		return -1;
+	give_semaphore( job_sem );
+
+	return lens_info.job_state;
+}
+
 static FILE * mvr_logfile = INVALID_PTR;
 
 
@@ -411,6 +446,7 @@ static unsigned lens_properties[] = {
 	PROP_LVCAF_STATE,
 	PROP_LV_FOCUS,
 	PROP_LV_FOCUS_DONE,
+	PROP_LAST_JOB_STATE,
 };
 
 static void
@@ -496,9 +532,29 @@ lens_handle_property(
 			);
 		break;
 	}
+
+	// The last focus command has completed
 	case PROP_LV_FOCUS_DONE:
 		give_semaphore( focus_done_sem );
 		break;
+
+	// Update the job state
+	case PROP_LAST_JOB_STATE:
+	{
+		const uint32_t state = *(uint32_t*) buf;
+		lens_info.job_state = state;
+		if( state == 0xA )
+		{
+			DebugMsg( DM_MAGIC, 3,
+				"%s: Unlocking job state=%x",
+				__func__,
+				state
+			);
+			give_semaphore( job_sem );
+		}
+		break;
+	}
+
 	default:
 		break;
 	}
@@ -528,6 +584,7 @@ lens_init( void )
 {
 	lens_sem = create_named_semaphore( "lens_info", 1 );
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
+	job_sem = create_named_semaphore( "job", 1 );
 
 	prop_register_slave(
 		lens_properties,

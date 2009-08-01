@@ -37,7 +37,7 @@
 #define PROP_REC_TIME		0x02010009 // output at 1 Hz while recording
 
 /** These are good guesses */
-#define PROP_GUI_STATE		0x80020000 // 0 == IDLE, 1 == PLAYMENU?
+#define PROP_GUI_STATE		0x80020000 // 0 == IDLE, 1 == PLAYMENU?, 3 == START_QR_MODE
 #define PROP_LIVE_VIEW_FACE_AF	0x0205000A
 #define PROP_LV_LOCK		0x80050021
 #define PROP_LV_ACTION		0x80050022 // 0 == LV_START, 1 == LV_STOP
@@ -79,6 +79,7 @@
 #define PROP_DEFAULT_CFN	0x80020004
 #define PROP_DEFALT_AF_SHIFT	0x80020005
 #define PROP_DEFAULT_LV_MANIP	0x80020006
+#define PROP_DISPSENSOR_CTRL	0x80020010	// 1 == show results?
 #define PROP_LV_OUTPUT_DEVICE	0x80050011	// 1 == LCD?
 #define PROP_HOUTPUT_TYPE	0x80030030
 #define PROP_MIRROR_DOWN	0x8005001C
@@ -90,11 +91,21 @@
 #define PROP_DEFAULT_CUSTOM	0x80020008
 #define PROP_DEFAULT_BRACKET	0x8002000A
 #define PROP_PARTIAL_SETTING	0x8002000B
+#define PROP_EMPOWER_OFF	0x80030007	// 1 == prohibit, 2 == permit
 
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C	// 1 == cleaning sensor?
 #define PROP_DL_ACTION		0x80020013
 #define PROP_EFIC_TEMP		0x80030014
+
+
+/** Job progress
+ * 0xB == capture end?
+ * 0xA == start face catch pass?
+ * 0x8 == "guiSetDarkBusy" -- noise reduction?
+ * 0x0 == Job Done
+ */
+#define PROP_LAST_JOB_STATE	0x80030012	// 8 == done?
 
 /** Gui properties? 0xffc509b0 @ 0xDA */
 
