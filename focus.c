@@ -81,13 +81,13 @@ focus_stack_unlock( void * priv )
 static void
 focus_near( void * priv )
 {
-	lens_focus( focus_mode, -1 );
+	lens_focus( focus_mode, -8 );
 }
 
 static void
 focus_far( void * priv )
 {
-	lens_focus( focus_mode, 1 );
+	lens_focus( focus_mode, 8 );
 }
 
 
@@ -184,15 +184,17 @@ focus_stack(
 	unsigned i;
 	for( i=0 ; i < count ; i++ )
 	{
-		call( "Release" );
-		msleep( 200 );
+		lens_take_picture( 2000 );
 		if( count-1 == i )
 			break;
 
-		bmp_printf( FONT_LARGE, 0, 40, "Focus %2d/%2d", i, count );
-		lens_focus( 0, step );
+		lens_focus( 0xD, step );
 		lens_focus_wait();
+		msleep( 50 );
 	}
+
+	// Restore to the starting focus position
+	lens_focus( 0, -step * (count-1) );
 }
 
 
