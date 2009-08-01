@@ -246,21 +246,9 @@ bmp_fill(
 	if( w == 0 || h == 0 )
 		return;
 
-	//uint32_t flags = cli();
 	uint8_t * const vram = bmp_vram();
 	uint32_t * row = (void*)( vram + y * pitch + start );
 
-	bmp_printf( FONT_SMALL, 0, 400, "bmp %08x", (unsigned) vram );
-	DebugMsg( DM_MAGIC, 3,
-		"%s: vram=%x start=%d-%d y=%d-%d => %x",
-		__func__,
-		(unsigned) vram,
-		start,
-		w/4,
-		y,
-		y_end,
-		(unsigned) row
-	);
 	if( !vram || ( 1 & (uintptr_t) vram ) )
 	{
 		//sei( flags );
@@ -281,8 +269,6 @@ bmp_fill(
 			asm( "nop" );
 		}
 	}
-
-	//sei( flags );
 }
 
 
