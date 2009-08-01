@@ -82,13 +82,19 @@ mvr_time_const_display(
 	uint8_t * mvr_hdr = *(void**)( 0x1ed4 + 4 );
 	struct state_object ** const mvr_state_object = (void*) 0x68a4;
 
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+
 	bmp_printf(
 		FONT_MED, // selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"MVR %08x -> %08x %08x",
-		(unsigned) *mvr_state_object,
-		*(unsigned*)( 0x4c + (uintptr_t) mvr_state_object ),
-		*(unsigned*)( 0x14c + (uintptr_t) mvr_state_object )
+		"date %4d/%2d/%2d %02d:%02d:%02d",
+		now.tm_year + 1900,
+		now.tm_mon,
+		now.tm_mday,
+		now.tm_hour,
+		now.tm_min,
+		now.tm_sec
 	);
 }
 

@@ -527,10 +527,8 @@ menu_task( void )
 		if( !gui_show_menu && menu_task_ptr )
 		{
 			gui_task_destroy( menu_task_ptr );
-			dialog_set_active();
 			bmp_fill( 0, 0, 35, 720, 400 );
 			menu_task_ptr = 0;
-			dialog_set_inactive();
 			continue;
 		}
 
