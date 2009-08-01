@@ -13,37 +13,9 @@ static unsigned	focus_mode = 1;
 static int	focus_stack_step;
 static unsigned	focus_stack_count;
 
-static struct semaphore * focus_done_sem;
 static struct semaphore * focus_stack_sem;
 
 
-/** Release the semaphore when we receive the focus done event */
-static void
-focus_done( void )
-{
-	give_semaphore( focus_done_sem );
-}
-
-
-void
-lens_focus(
-	unsigned		mode,
-	int			step
-)
-{
-	// Should we timeout to avoid hanging?
-	if( take_semaphore( focus_done_sem, 100 ) != 0 )
-		return;
-
-	struct prop_focus focus = {
-		.active		= 1,
-		.mode		= mode,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-	};
-
-	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
-}
 
 
 #if 0
@@ -188,21 +160,10 @@ static struct menu_entry focus_menu[] = {
 static void
 focus_init( void )
 {
-	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 	focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
 
 	focus_stack_step = config_int( global_config, "focus.step", 100 );
 	focus_stack_count = config_int( global_config, "focus.count", 5 );
-
-	unsigned prop_lv_focus = PROP_LV_FOCUS_DONE;
-
-	prop_register_slave(
-		&prop_lv_focus,
-		1,
-		focus_done,
-		0,
-		0
-	);
 
 	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
 }
@@ -220,13 +181,17 @@ focus_stack(
 	if( count > 15 )
 		count = 15;
 
-	for( ; count > 0 ; count-- )
+	unsigned i;
+	for( i=0 ; i < count ; i++ )
 	{
-		bmp_printf( FONT_LARGE, 0, 40, "Focus %2d", count );
 		call( "Release" );
 		msleep( 200 );
-		if( count )
-			lens_focus( 0, step );
+		if( count-1 == i )
+			break;
+
+		bmp_printf( FONT_LARGE, 0, 40, "Focus %2d/%2d", i, count );
+		lens_focus( 0, step );
+		lens_focus_wait();
 	}
 }
 

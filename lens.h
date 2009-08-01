@@ -206,6 +206,10 @@ lens_focus(
 	int			step
 );
 
+/** Wait for the last command to complete */
+extern void
+lens_focus_wait( void );
+
 
 /** Format a distance in mm into something useful */
 extern const char *

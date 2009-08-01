@@ -29,6 +29,7 @@
 
 
 static struct semaphore * lens_sem;
+static struct semaphore * focus_done_sem;
 
 
 struct lens_info lens_info = {
@@ -292,6 +293,35 @@ update_lens_display(
 }
 
 
+
+void
+lens_focus_wait( void )
+{
+	take_semaphore( focus_done_sem, 0 );
+	give_semaphore( focus_done_sem );
+}
+
+
+void
+lens_focus(
+	unsigned		mode,
+	int			step
+)
+{
+	// Should we timeout to avoid hanging?
+	if( take_semaphore( focus_done_sem, 100 ) != 0 )
+		return;
+
+	struct prop_focus focus = {
+		.active		= 1,
+		.mode		= mode,
+		.step_hi	= (step >> 8) & 0xFF,
+		.step_lo	= (step >> 0) & 0xFF,
+	};
+
+	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
+}
+
 static FILE * mvr_logfile = INVALID_PTR;
 
 
@@ -380,6 +410,7 @@ static unsigned lens_properties[] = {
 	PROP_ISO,
 	PROP_LVCAF_STATE,
 	PROP_LV_FOCUS,
+	PROP_LV_FOCUS_DONE,
 };
 
 static void
@@ -465,6 +496,9 @@ lens_handle_property(
 			);
 		break;
 	}
+	case PROP_LV_FOCUS_DONE:
+		give_semaphore( focus_done_sem );
+		break;
 	default:
 		break;
 	}
@@ -493,6 +527,7 @@ static void
 lens_init( void )
 {
 	lens_sem = create_named_semaphore( "lens_info", 1 );
+	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 
 	prop_register_slave(
 		lens_properties,
