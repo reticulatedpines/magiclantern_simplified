@@ -115,6 +115,7 @@ bmp_puts(
 
 }
 
+
 void
 bmp_printf(
 	unsigned		fontspec,
@@ -132,6 +133,42 @@ bmp_printf(
 	va_end( ap );
 
 	bmp_puts( fontspec, x, y, buf );
+}
+
+
+int
+fprintf(
+	FILE *			file,
+	const char *		fmt,
+	...
+)
+{
+	va_list			ap;
+	char			buf[ 256 ];
+
+	va_start( ap, fmt );
+	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
+	va_end( ap );
+
+	FIO_WriteFile( file, buf, len );
+	return len;
+}
+
+
+int
+snprintf(
+	char *			buf,
+	size_t			max_len,
+	const char *		fmt,
+	...
+)
+{
+	va_list			ap;
+
+	va_start( ap, fmt );
+	int len = vsnprintf( buf, max_len, fmt, ap );
+	va_end( ap );
+	return len;
 }
 
 
