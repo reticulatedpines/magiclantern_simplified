@@ -198,4 +198,20 @@ lens_take_photo( void )
 	prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
 }
 
+
+/** Will block if it is not safe to send the focus command */
+extern void
+lens_focus(
+	unsigned		mode,
+	int			step
+);
+
+
+/** Format a distance in mm into something useful */
+extern const char *
+lens_format_dist(
+	unsigned		mm
+);
+
+
 #endif

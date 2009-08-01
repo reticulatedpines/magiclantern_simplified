@@ -170,8 +170,8 @@ calc_dof(
 }
 
 
-static const char *
-format_dist(
+const char *
+lens_format_dist(
 	unsigned		mm
 )
 {
@@ -227,7 +227,7 @@ update_lens_display(
 		"%s",
 		info->focus_dist == 0xFFFF
 			? " Infnty"
-			: format_dist( info->focus_dist * 10 )
+			: lens_format_dist( info->focus_dist * 10 )
 	);
 
 
@@ -268,16 +268,17 @@ update_lens_display(
 			info->raw_iso
 		);
 
+#if 0
 	y += height;
 	bmp_printf( font, x, y,
 		"%s",
-		format_dist( info->hyperfocal )
+		lens_format_dist( info->hyperfocal )
 	);
 
 	y += height;
 	bmp_printf( font, x, y,
 		"%s",
-		format_dist( info->dof_near )
+		lens_format_dist( info->dof_near )
 	);
 
 	y += height;
@@ -285,8 +286,9 @@ update_lens_display(
 		"%s",
 		info->dof_far >= 1000*1000
 			? " Infnty"
-			: format_dist( info->dof_far )
+			: lens_format_dist( info->dof_far )
 	);
+#endif
 }
 
 
