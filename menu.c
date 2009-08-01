@@ -35,6 +35,7 @@
 static struct semaphore * menu_sem;
 static struct semaphore * gui_sem;
 static int draw_event;
+static int menu_damage;
 
 static void
 draw_version( void )
@@ -75,7 +76,8 @@ menu_binary_toggle(
 	void *			priv
 )
 {
-	*(unsigned*) priv = !*(unsigned*) priv;
+	unsigned * val = priv;
+	*val = !*val;
 }
 
 
@@ -306,6 +308,8 @@ menu_move(
 	int			direction
 )
 {
+	menu_damage = 1;
+
 	if( !menu )
 		return;
 
@@ -537,6 +541,7 @@ menu_task( void )
 		{
 			gui_task_destroy( menu_task_ptr );
 			bmp_fill( 0, 0, 35, 720, 400 );
+			menu_damage = 0;
 			menu_task_ptr = 0;
 			continue;
 		}
@@ -547,12 +552,15 @@ menu_task( void )
 		if( !menu_task_ptr )
 		{
 			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
+			menu_damage = 1;
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
 			draw_version();
 		}
 
 		//dialog_set_active();
-		bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
+		if( menu_damage )
+			bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
+		menu_damage = 0;
 		menus_display( menus, 100, 100 );
 		//dialog_set_inactive();
 	}
