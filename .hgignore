@@ -14,7 +14,7 @@ a.out
 *.dis
 chdk
 eos
-font.c
+font-*.c
 version.c
 font-*.in
 *.zip
