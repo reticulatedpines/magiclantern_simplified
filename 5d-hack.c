@@ -68,7 +68,7 @@ copy_and_restart( void )
 
 	// Copy the firmware to somewhere in memory
 	// bss ends at 0x47750, so we'll use 0x50000
-	const uint32_t * const firmware_start = (void*) ROMBASEADDR;
+	const uint8_t * const firmware_start = (void*) ROMBASEADDR;
 	const uint32_t firmware_len = RELOCSIZE;
 	uint32_t * const new_image = (void*) RELOCADDR;
 
