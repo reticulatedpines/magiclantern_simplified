@@ -66,6 +66,7 @@
 #define PROP_SHUTTER		0x80000005
 #define PROP_APERTURE		0x80000006
 #define PROP_ISO		0x80000007
+#define PROP_AE			0x80000008 // signed 8-bit value
 
 #define PROP_SHUTTER_RELEASE	0x8003000A
 
@@ -95,7 +96,7 @@
 
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C	// 1 == cleaning sensor?
-#define PROP_DL_ACTION		0x80020013
+#define PROP_DL_ACTION		0x80020013 // 0 == end?
 #define PROP_EFIC_TEMP		0x80030014
 
 

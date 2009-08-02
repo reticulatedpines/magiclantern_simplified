@@ -176,6 +176,7 @@ lens_set_aperture(
 	prop_request_change( PROP_APERTURE, &aperture, sizeof(aperture) );
 }
 
+
 static inline void
 lens_set_iso(
 	unsigned		iso
@@ -184,6 +185,7 @@ lens_set_iso(
 	prop_request_change( PROP_ISO, &iso, sizeof(iso) );
 }
 
+
 static inline void
 lens_set_shutter(
 	unsigned		shutter
@@ -191,6 +193,28 @@ lens_set_shutter(
 {
 	prop_request_change( PROP_SHUTTER, &shutter, sizeof(shutter) );
 }
+
+
+static inline void
+lens_set_ae(
+	int			cmd
+)
+{
+	prop_request_change( PROP_AE, &cmd, sizeof(cmd) );
+}
+
+
+// This is currently broken.
+static inline int
+lens_get_ae( void )
+{
+	int ae = 0;
+	//size_t size = sizeof(ae);
+	//prop_get_value( PROP_AE, &ae, &size );
+
+	return ae;
+}
+
 
 extern int
 lens_take_picture(
