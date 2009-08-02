@@ -40,38 +40,8 @@ static volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
 
-/** Draw white thin crop marks
- *  And draw the 16:9 crop marks for full time
- * The screen is 480 vertical lines, but we only want to
- * show 720 * 9 / 16 == 405 of them.  If we use this number,
- * however, things don't line up right.
- *
- * \return 1 if a crop mark was drawn
- * \todo Determine the actual Cinemascope aspect ratio
- */
-static int
-draw_matte(
-	unsigned		y,
-	void *			bmp_row
-)
-{
-	if( !crop_draw )
-		return 0;
 
-	if( y != 55 && y != 375 )
-		return 0;
-
-	const uint32_t		width	= 720;
-	uint32_t *		row	= bmp_row;
-	unsigned		x;
-
-	for( x = 0; x<width/4 ; x++ )
-		*(row++) = color_word( COLOR_WHITE );
-
-	return 1;
-}
-
-
+/** Sobel edge detection */
 static int32_t
 edge_detect(
 	uint32_t *		buf,
@@ -146,8 +116,8 @@ check_zebra(
 	const uint8_t zebra_color_1 = 0x5F; // dark red
 
 	uint32_t pixel = v_row[x/2];
-	int32_t p0 = (pixel >> 16) & 0xFFFF;
-	int32_t p1 = (pixel >>  0) & 0xFFFF;
+	uint32_t p0 = (pixel >> 16) & 0xFFFF;
+	uint32_t p1 = (pixel >>  0) & 0xFFFF;
 
 	// If neither pixel is overexposed, ignore it
 	if( p0 < zebra_level && p1 < zebra_level )
@@ -224,8 +194,7 @@ draw_zebra( void )
 
 		for( x=2 ; x < vram->width-2 ; x+=2 )
 		{
-			unsigned pixels = 0;
-			if( cropmarks && check_crop( x, y, b_row, v_row, vram->pitch ) )
+			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
 
 			if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
@@ -255,7 +224,8 @@ zebra_display( void * priv, int x, int y, int selected )
 	bmp_printf( 
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Zebra level: %04x",
+		//23456789012
+		"Zebra thrs: 0x%04x",
 		*(unsigned*) priv
 	);
 }
@@ -266,8 +236,9 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Zebras %s",
-		*(unsigned*) priv ? " on" : "off"
+		//23456789012
+		"Zebras:     %s",
+		*(unsigned*) priv ? "ON " : "OFF"
 	);
 }
 
@@ -277,10 +248,24 @@ crop_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Crop %s",
-		cropmarks ? (*(unsigned*) priv ? " on" : "off") : "NO FILE"
+		//23456789012
+		"Cropmarks:  %s",
+		cropmarks ? (*(unsigned*) priv ? "ON " : "OFF") : "NO FILE"
 	);
 }
+
+static void
+edge_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Edgedetect: %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
+
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -297,6 +282,11 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &crop_draw,
 		.select		= menu_binary_toggle,
 		.display	= crop_display,
+	},
+	{
+		.priv		= &edge_draw,
+		.select		= menu_binary_toggle,
+		.display	= edge_display,
 	},
 };
 
@@ -363,7 +353,7 @@ zebra_task( void )
 	zebra_draw = config_int( global_config, "zebra.draw", 1 );
 	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
 	crop_draw = config_int( global_config, "crop.draw", 1 );
-	edge_draw = config_int( global_config, "edge.draw", 1 );
+	edge_draw = config_int( global_config, "edge.draw", 0 );
 
 	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
 
@@ -372,7 +362,7 @@ zebra_task( void )
 	DebugMsg( DM_MAGIC, 3,
 		"%s: Zebras=%s threshold=%x cropmarks=%x liveview=%d",
 		__func__,
-		zebra_draw ? "on" : "off",
+		zebra_draw ? "ON " : "OFF",
 		zebra_level,
 		(unsigned) cropmarks,
 		enable_liveview
@@ -414,8 +404,6 @@ zebra_task( void )
 			msleep( 500 );
 		}
 	}
-
-	return 1;
 }
 
 

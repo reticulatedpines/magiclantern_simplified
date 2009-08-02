@@ -103,19 +103,22 @@ display_lens_hyperfocal(
 	unsigned		height = fontspec_height( font );
 
 	bmp_printf( font, x, y,
-		"Hyper:    %s",
+		//23456789012
+		"Hyperfoal:  %s",
 		lens_format_dist( lens_info.hyperfocal )
 	);
 
 	y += height;
 	bmp_printf( font, x, y,
-		"DOF Near: %s",
+		//23456789012
+		"DOF Near:   %s",
 		lens_format_dist( lens_info.dof_near )
 	);
 
 	y += height;
 	bmp_printf( font, x, y,
-		"DOF Far:  %s",
+		//23456789012
+		"DOF Far:    %s",
 		lens_info.dof_far >= 1000*1000
 			? " Infnty"
 			: lens_format_dist( lens_info.dof_far )
@@ -125,17 +128,17 @@ display_lens_hyperfocal(
 
 static struct menu_entry focus_menu[] = {
 	{
-		.priv		= "Stack focus",
+		.priv		= "Run Stack focus",
 		.display	= menu_print,
 		.select		= focus_stack_unlock,
 	},
 	{
-		.priv		= "Near",
+		.priv		= "Focus Nearer",
 		.display	= menu_print,
 		.select		= focus_near,
 	},
 	{
-		.priv		= "Far",
+		.priv		= "Focus Further",
 		.display	= menu_print,
 		.select		= focus_far,
 	},

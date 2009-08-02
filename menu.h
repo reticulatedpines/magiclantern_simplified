@@ -1,5 +1,14 @@
 /** \file
  * Menu structures and functions.
+ *
+ * When adding a menu item, the convention in the Magic Lantern menus
+ * is that there are 12 characters for the label and up to 7 characters
+ * for the value.  The box that is drawn is 540 pixels wide, enough
+ * for 19 characters in FONT_LARGE.
+ *
+ * There is room for 8 entries in the menu.
+ *
+ * New menus must have a 5 character top level name.
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>

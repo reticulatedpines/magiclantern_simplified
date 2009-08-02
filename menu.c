@@ -559,7 +559,7 @@ menu_task( void )
 
 		//dialog_set_active();
 		if( menu_damage )
-			bmp_fill( COLOR_BG, 90, 90, 720-180, 480-180 );
+			bmp_fill( COLOR_BG, 90, 90, 720-160, 480-180 );
 		menu_damage = 0;
 		menus_display( menus, 100, 100 );
 		//dialog_set_inactive();

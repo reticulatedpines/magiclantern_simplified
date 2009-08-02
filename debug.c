@@ -65,7 +65,8 @@ efic_temp_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Sensor Temp %d",
+		//23456789012
+		"CMOS temp:  %d",
 		efic_temp
 	);
 }
@@ -88,7 +89,7 @@ mvr_time_const_display(
 	bmp_printf(
 		FONT_MED, // selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"date %4d/%2d/%2d %02d:%02d:%02d",
+		"Date %4d/%2d/%2d %02d:%02d:%02d",
 		now.tm_year + 1900,
 		now.tm_mon,
 		now.tm_mday,
@@ -143,10 +144,6 @@ struct menu_entry debug_menus[] = {
 		.display	= efic_temp_display,
 	},
 	{
-		.display	= mvr_time_const_display,
-		.select		= mvr_time_const_select,
-	},
-	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
@@ -165,6 +162,10 @@ struct menu_entry debug_menus[] = {
 		.priv		= "Screenshot",
 		.select		= call_dispcheck,
 		.display	= menu_print,
+	},
+	{
+		.display	= mvr_time_const_display,
+		.select		= mvr_time_const_select,
 	},
 };
 

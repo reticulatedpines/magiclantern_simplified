@@ -423,9 +423,15 @@ mvr_update_logfile(
 	if( mvr_logfile == INVALID_PTR )
 		return;
 
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+
 	fprintf(
 		mvr_logfile,
-		"%d,%d,%d.%d,%d,%d\n",
+		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
+		now.tm_hour,
+		now.tm_min,
+		now.tm_sec,
 		info->iso,
 		info->shutter,
 		info->aperture / 10,

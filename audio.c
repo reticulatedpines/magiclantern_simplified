@@ -523,8 +523,8 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789
-		"A-Gain:  %2d dB",
+		//23456789012
+		"Anlg gain:  %2d dB",
 		gains[ gain_reg ]
 	);
 }
@@ -548,8 +548,8 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		// 23456789
-		"%s-Gain:  %2d dB",
+		// 23456789012
+		"%s-Gain:     %2d dB",
 		priv == &gain.dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
@@ -562,8 +562,8 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789
-		"Out vol: %2d dB",
+		//23456789012
+		"Output vol: %2d dB",
 		2 * *(unsigned*) priv
 	);
 }
@@ -594,8 +594,8 @@ audio_alc_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789
-		"AGC:     %s",
+		//23456789012
+		"AGC:        %s",
 		gain.alc_enable ? "ON " : "OFF"
 	);
 }
@@ -607,9 +607,9 @@ audio_mic_in_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789
-		"Input:   %s",
-		gain.mic_in ? "INTERNAL" : "EXTERNAL"
+		//23456789012
+		"Input:      %s",
+		gain.mic_in ? "INT" : "EXT"
 	);
 }
 
@@ -619,8 +619,8 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789
-		"Monitor: %s",
+		//23456789012
+		"Monitor:    %s",
 		gain.loopback ? "ON " : "OFF"
 	);
 }
