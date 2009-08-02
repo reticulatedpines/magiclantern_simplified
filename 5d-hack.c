@@ -28,6 +28,7 @@
 #include "config.h"
 #include "version.h"
 #include "bmp.h"
+#include "menu.h"
 #include "version.h"
 
 /** These are called when new tasks are created */
