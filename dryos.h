@@ -216,7 +216,7 @@ FIO_GetFileSize(
 );
 
 
-#define INVALID_PTR		((const void *)0xFFFFFFFF)
+#define INVALID_PTR		((void *)0xFFFFFFFF)
 
 extern FILE *
 FIO_CreateFile(
