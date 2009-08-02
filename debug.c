@@ -249,7 +249,7 @@ debug_init( void )
 #if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
-	for( i=0 ; i<=0x8 ; i+=4 )
+	for( i=0 ; i<=0x8 ; i+=8 )
 	//i = 8;
 	{
 		for( j=0 ; j<=0x8 ; j++ )
