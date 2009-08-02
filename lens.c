@@ -357,8 +357,59 @@ lens_take_picture(
 	return lens_info.job_state;
 }
 
+
 static FILE * mvr_logfile = INVALID_PTR;
 
+/** Write the current lens info into the logfile */
+static void
+mvr_update_logfile(
+	struct lens_info *	info,
+	int			force
+)
+{
+	if( mvr_logfile == INVALID_PTR )
+		return;
+
+	static unsigned last_iso;
+	static unsigned last_shutter;
+	static unsigned last_aperture;
+	static unsigned last_focal_len;
+	static unsigned last_focus_dist;
+
+	// Check if nothing changed and not forced.  Do not write.
+	if( !force
+	&&  last_iso		== info->iso
+	&&  last_shutter	== info->shutter
+	&&  last_aperture	== info->aperture
+	&&  last_focal_len	== info->focal_len
+	&&  last_focus_dist	== info->focus_dist
+	)
+		return;
+
+	// Record the last settings so that we know if anything changes
+	last_iso	= info->iso;
+	last_shutter	= info->shutter;
+	last_aperture	= info->aperture;
+	last_focal_len	= info->focal_len;
+	last_focus_dist	= info->focus_dist;
+
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+
+	fprintf(
+		mvr_logfile,
+		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
+		now.tm_hour,
+		now.tm_min,
+		now.tm_sec,
+		info->iso,
+		info->shutter,
+		info->aperture / 10,
+		info->aperture % 10,
+		info->focal_len,
+		info->focus_dist
+	);
+}
 
 /** Create a logfile for each movie.
  * Record a logfile with the lens info for each movie.
@@ -412,34 +463,11 @@ mvr_create_logfile(
 	fprintf( mvr_logfile, "%s\n",
 		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
 	);
+
+	// Force the initial values to be written
+	mvr_update_logfile( &lens_info, 1 );
 }
 
-
-static void
-mvr_update_logfile(
-	struct lens_info *	info
-)
-{
-	if( mvr_logfile == INVALID_PTR )
-		return;
-
-	struct tm now;
-	LoadCalendarFromRTC( &now );
-
-	fprintf(
-		mvr_logfile,
-		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
-		now.tm_hour,
-		now.tm_min,
-		now.tm_sec,
-		info->iso,
-		info->shutter,
-		info->aperture / 10,
-		info->aperture % 10,
-		info->focal_len,
-		info->focus_dist
-	);
-}
 
 
 static unsigned lens_properties[] = {
@@ -577,7 +605,7 @@ lens_task( void * priv )
 		take_semaphore( lens_sem, 0 );
 		calc_dof( &lens_info );
 		update_lens_display( &lens_info );
-		mvr_update_logfile( &lens_info );
+		mvr_update_logfile( &lens_info, 0 ); // do not force it
 	}
 }
 

@@ -34,8 +34,8 @@ struct lens_info
 {
 	void *			token;
 	char 			name[ 32 ];
-	int			focal_len; // in mm
-	int			focus_dist; // in cm
+	unsigned		focal_len; // in mm
+	unsigned		focus_dist; // in cm
 	unsigned		aperture;
 	unsigned		shutter;
 	unsigned		iso;
