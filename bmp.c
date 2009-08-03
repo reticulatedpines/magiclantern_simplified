@@ -300,6 +300,29 @@ bmp_draw_palette( void )
 	written = 1;
 }
 
+int retry_count = 0;
+
+
+size_t
+read_file(
+	const char *		filename,
+	void *			buf,
+	size_t			size
+)
+{
+	FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+	if( file == INVALID_PTR )
+		return -1;
+	unsigned rc = FIO_ReadFile( file, buf, size );
+	FIO_CloseFile( file );
+
+	if( rc == size )
+		return size;
+
+	DebugMsg( DM_MAGIC, 3, "%s: size=%d rc=%d", filename, size, rc );
+	return -1;
+}
+
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
 struct bmp_file_t *
@@ -307,57 +330,67 @@ bmp_load(
 	const char *		filename
 )
 {
-	FILE * file = FIO_Open( filename, O_RDONLY );
-	if( file == INVALID_PTR )
-		goto open_fail;
-
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 )
 		goto getfilesize_fail;
 
-	DebugMsg( DM_MAGIC, 3, "File '%s' (%x) size %d bytes",
+	DebugMsg( DM_MAGIC, 3, "File '%s' size %d bytes",
 		filename,
-		(unsigned) file,
 		size
 	);
 
-	void * buf = malloc( size );
+	uint8_t * buf = malloc( size );
 	if( !buf )
 	{
 		DebugMsg( DM_MAGIC, 3, "%s: malloc failed", filename );
 		goto malloc_fail;
 	}
 
-	unsigned rc = FIO_ReadFile( file, buf, size );
+retry:
+	// Retry a few times if necessary
+	DebugMsg( DM_MAGIC, 3, "%s: try %d\n", __func__, retry_count );
+
+	size_t i;
+	for( i=0 ; i<size; i++ )
+		buf[i] = 'A' + i;
+	size_t rc = read_file( filename, buf, size );
 	if( rc != size )
-	{
-		DebugMsg( DM_MAGIC, 3, "%s: size=%d rc=%d", filename, size, rc );
 		goto read_fail;
-	}
 
-	// Try to force data to appear in the buffer
-	msleep( 100 );
 
-	struct bmp_file_t * bmp = buf;
+	struct bmp_file_t * bmp = (struct bmp_file_t *) buf;
 	if( bmp->signature != 0x4D42 )
 	{
 		DebugMsg( DM_MAGIC, 3, "%s: signature %04x", filename, bmp->signature );
+		int i;
+		for( i=0 ; i<64; i += 16 )
+			DebugMsg( DM_MAGIC, 3,
+				"%08x: %08x %08x %08x %08x",
+				buf + i,
+				((uint32_t*)(buf + i))[0],
+				((uint32_t*)(buf + i))[1],
+				((uint32_t*)(buf + i))[2],
+				((uint32_t*)(buf + i))[3]
+			);
+		msleep( 100 );
+		if( retry_count++ < 5 )
+			goto retry;
+
 		goto signature_fail;
 	}
 
 	// Update the offset pointer to point to the image data
 	// if it is within bounds
-	unsigned offset = (unsigned) bmp->image;
-	if( offset > size )
+	const unsigned image_offset = (unsigned) bmp->image;
+	if( image_offset > size )
 	{
-		DebugMsg( DM_MAGIC, 3, "%s: size too large: %x > %x", filename, offset, size );
+		DebugMsg( DM_MAGIC, 3, "%s: size too large: %x > %x", filename, image_offset, size );
 		goto offsetsize_fail;
 	}
 
-	bmp->image = offset + (uint8_t*) buf;
+	bmp->image = buf + image_offset;
 
-	FIO_CloseFile( file );
-	return buf;
+	return bmp;
 
 offsetsize_fail:
 signature_fail:
@@ -365,7 +398,5 @@ read_fail:
 	free( buf );
 malloc_fail:
 getfilesize_fail:
-	FIO_CloseFile( file );
-open_fail:
 	return NULL;
 }

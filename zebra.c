@@ -245,12 +245,15 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 static void
 crop_display( void * priv, int x, int y, int selected )
 {
+	extern int retry_count;
+
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Cropmarks:  %s",
-		cropmarks ? (*(unsigned*) priv ? "ON " : "OFF") : "NO FILE"
+		"Cropmarks:  %s %d",
+		cropmarks ? (*(unsigned*) priv ? "ON " : "OFF") : "NO FILE",
+		retry_count
 	);
 }
 
