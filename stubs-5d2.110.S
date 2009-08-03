@@ -164,6 +164,10 @@ NSTUB( 0xFFA549C0, dialog_redraw_maybe ) // maybe
 NSTUB( 0xFFA56DE8, dialog_set_enabled )
 NSTUB( 0xFFA56E3C, dialog_make_visible ) // maybe
 
+/** Look for "GUI_SetLvMode" */
+NSTUB( 0xFF9AF4A4, gui_set_lv_mode )
+NSTUB( 0xFF88A8E0, gui_set_video_display_type )
+
 /** This can be found in dispcheck, but keep in mind that it
  * references bmp_vram_info[1], so subtract 0xC from its value
  */
