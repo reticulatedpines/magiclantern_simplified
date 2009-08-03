@@ -729,7 +729,7 @@ my_sounddev_task( void )
 	static unsigned mvr_rec_events[] = { PROP_MVR_REC_START, };
 	prop_register_slave(
 		mvr_rec_events,
-		1,
+		COUNT(mvr_rec_events),
 		handle_mvr_rec_property,
 		NULL,
 		handle_mvr_rec_token
@@ -753,16 +753,6 @@ my_sounddev_task( void )
 	gain.alc_enable = config_int( global_config, "audio.alc_enable", 0 );
 	gain.mic_in = config_int( global_config, "audio.mic-in", 0 );
 	gain.loopback = config_int( global_config, "audio.loopback", 1 );
-	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
-
-	if( disable_powersave )
-	{
-		DebugMsg( DM_MAGIC, 3,
-			"%s: Disabling powersave",
-			__func__
-		);
-		prop_request_icu_auto_poweroff( EM_PROHIBIT );
-	}
 
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );

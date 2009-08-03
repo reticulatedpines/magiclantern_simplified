@@ -283,7 +283,7 @@ my_init_task(void)
 	additional_version[8] = build_version[4];
 	additional_version[9] = '\0';
 
-	msleep( 500 );
+	msleep( 750 );
 
 	menu_init();
 	debug_init();
@@ -307,7 +307,18 @@ my_init_task(void)
 		global_config ? "YES" : "NO"
 	);
 
-	msleep( 1000 );
+	msleep( 500 );
+
+	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
+
+	if( disable_powersave )
+	{
+		DebugMsg( DM_MAGIC, 3,
+			"%s: Disabling powersave",
+			__func__
+		);
+		prop_request_icu_auto_poweroff( EM_PROHIBIT );
+	}
 
 	init_funcs_done = 0;
 	//task_create( "init_func", 0x1f, 0x1000, call_init_funcs, 0 );
