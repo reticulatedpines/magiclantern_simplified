@@ -112,6 +112,7 @@ SIZE_CHECK_STRUCT( prop_focus, 4 );
 #define SHUTTER_4000 152
 
 /** Aperture values */
+#define APERTURE_1_2 13
 #define APERTURE_1_4 16
 #define APERTURE_1_6 19
 #define APERTURE_1_8 21

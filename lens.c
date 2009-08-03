@@ -39,6 +39,7 @@ struct lens_info lens_info = {
 
 // These are aperture * 10 since we do not have floating point
 static uint16_t aperture_values[] = {
+	[ APERTURE_1_2 / 2 ]	=  12,
 	[ APERTURE_1_4 / 2 ]	=  14,
 	[ APERTURE_1_6 / 2 ]	=  16,
 	[ APERTURE_1_8 / 2 ]	=  18,
