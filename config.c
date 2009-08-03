@@ -46,6 +46,8 @@ config_parse_line(
 	const char *		line
 )
 {
+	int name_len = 0;
+	int value_len = 0;
 	struct config *		config = malloc( sizeof(*config) );
 	if( !config )
 		goto malloc_error;
@@ -58,7 +60,6 @@ config_parse_line(
 		i++;
 
 	// Copy the name to the name buffer
-	int name_len = 0;
 	while( line[i]
 	&& !is_space( line[i] )
 	&& line[i] != '='
@@ -81,7 +82,6 @@ config_parse_line(
 		i++;
 
 	// Copy the value to the value buffer
-	int value_len = 0;
 	while( line[i] && value_len < MAX_VALUE_LEN )
 		config->value[ value_len++ ] = line[ i++ ];
 
@@ -92,9 +92,24 @@ config_parse_line(
 	// And nul terminate it
 	config->value[ value_len ] = '\0';
 
+	DebugMsg( DM_MAGIC, 3,
+		"%s: '%s' => '%s'",
+		__func__,
+		config->name,
+		config->value
+	);
+
 	return config;
 
 parse_error:
+	DebugMsg( DM_MAGIC, 3,
+		"%s: PARSE ERROR: len=%d,%d string='%s'",
+		__func__,
+		name_len,
+		value_len,
+		line
+	);
+
 	free( config );
 malloc_error:
 	return 0;
@@ -138,6 +153,7 @@ config_parse(
 ) {
 	char line_buf[ MAX_NAME_LEN + MAX_VALUE_LEN ];
 	struct config *	config = 0;
+	int count = 0;
 
 	while( read_line( file, line_buf, sizeof(line_buf) ) >= 0 )
 	{
@@ -152,14 +168,22 @@ config_parse(
 
 		new_config->next = config;
 		config = new_config;
+		count++;
 	}
 
+	DebugMsg( DM_MAGIC, 3, "%s: Read %d config values", __func__, count );
 	return config;
 
 error:
+	DebugMsg( DM_MAGIC, 3, "%s: ERROR Deleting config", __func__ );
 	while( config )
 	{
 		struct config * next = config->next;
+		DebugMsg( DM_MAGIC, 3, "%s: Deleting '%s' => '%s'",
+			__func__,
+			config->name,
+			config->value
+		);
 		free( config );
 		config = next;
 	}
@@ -225,7 +249,7 @@ config_parse_file(
 	const char *		filename
 )
 {
-	FILE * file = FIO_Open( filename, 0 );
+	FILE * file = FIO_Open( filename, O_SYNC );
 	strcpy( head.value, filename );
 	if( file == INVALID_PTR )
 	{

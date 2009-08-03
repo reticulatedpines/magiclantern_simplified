@@ -24,8 +24,8 @@
 #ifndef _config_h_
 #define _config_h_
 
-#define MAX_NAME_LEN		32
-#define MAX_VALUE_LEN		32
+#define MAX_NAME_LEN		64
+#define MAX_VALUE_LEN		60
 
 
 struct config
