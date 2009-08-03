@@ -208,6 +208,15 @@ FIO_ReadFile(
 	size_t			len_in_bytes
 );
 
+extern ssize_t
+FR_SyncReadFile(
+	const char *		filename,
+	size_t			offset,
+	size_t			len,
+	void *			address,
+	size_t			mem_offset
+);
+
 /** Returns for 0 success */
 extern int
 FIO_GetFileSize(
@@ -613,5 +622,20 @@ extern void prop_request_icu_auto_poweroff( int mode );
 extern void GUI_SetErrBattery( unsigned ok );
 extern void StopErrBatteryApp( void );
 extern void * err_battery_ptr;
+
+
+extern void * _malloc( size_t len );
+
+static inline void *
+debug_malloc( unsigned long len, const char * func )
+{
+	void * rc = _malloc(len);
+	if(1) DebugMsg( DM_MAGIC, 3, "%s: malloc(%d) = %x",
+		func,
+		len,
+		(unsigned) rc
+	);
+	return rc;
+}
 
 #endif

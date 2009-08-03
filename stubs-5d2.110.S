@@ -46,8 +46,8 @@ NSTUB( 0xFF811DBC, init_task )
 /** How to find this one again? */
 NSTUB( 0x11F98, additional_version )
 
-/** How to find? */
-NSTUB( 0xFF86DFE8, malloc )
+/** AllocateMemory() calls this one */
+NSTUB( 0xFF86ABD0, _malloc )
 
 /** These are necessary for starting with debugging */
 /** look for the string "dumpf", then find register_function as well */
@@ -98,6 +98,7 @@ NSTUB( 0xFF98D40C, FIO_FindNextEx )
 NSTUB( 0xFF98D2E0, FIO_FindFirstEx )
 NSTUB( 0xFF98C80C, FIO_Seek )
 NSTUB( 0xFF94B3C4, FR_SyncReadFileToBuffer )
+NSTUB( 0xFF94AFB8, FR_SyncReadFile )
 
 /** Look for a matched pair in gui_init_end */
 NSTUB( 0xFF8697EC, take_semaphore )

@@ -249,8 +249,8 @@ debug_init( void )
 #if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
-	for( i=0 ; i<=0x8 ; i+=8 )
-	//i = 8;
+	//for( i=0 ; i<=0x8 ; i+=8 )
+	i = 8;
 	{
 		for( j=0 ; j<=0x8 ; j++ )
 		{
@@ -299,12 +299,15 @@ thats_all:
 		debug_token_handler
 	);
 
-	unsigned property = PROP_EFIC_TEMP;
+	static unsigned efic_properties[] = {
+		PROP_EFIC_TEMP,
+	};
+
 	prop_register_slave(
-		&property,
-		1,
+		efic_properties,
+		COUNT(efic_properties),
 		efic_temp_property_handler,
-		0xdeadbeef,
+		0,
 		efic_temp_token_handler
 	);
 
@@ -339,7 +342,7 @@ dump_task( void )
 
 	while( sec-- )
 	{
-		bmp_printf( FONT_SMALL, 600, 400, "dump %2d", sec );
+		//bmp_printf( FONT_SMALL, 600, 400, "dump %2d", sec );
 		msleep( 1000 );
 	}
 
