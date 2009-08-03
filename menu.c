@@ -422,6 +422,7 @@ menu_handler(
 	{
 		DebugMsg( DM_MAGIC, 3, "Menu task shutting down: %d", event );
 		//bmp_fill( COLOR_EMPTY, 90, 90, 720-180, 480-180 );
+		gui_stop_menu();
 		return 1;
 	}
 
