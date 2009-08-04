@@ -105,7 +105,7 @@ display_lens_hyperfocal(
 
 	bmp_printf( font, x, y,
 		//23456789012
-		"Hyperfoal:  %s",
+		"Hyperfocal: %s",
 		lens_format_dist( lens_info.hyperfocal )
 	);
 
