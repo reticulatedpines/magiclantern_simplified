@@ -318,4 +318,4 @@ build = \
 clean:
 	-rm -f *.o *.a font-*.c
 
--include .*.o.d
+-include .*.d
