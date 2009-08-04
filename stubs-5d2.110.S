@@ -167,6 +167,8 @@ NSTUB( 0xFFA56E3C, dialog_make_visible ) // maybe
 /** Look for "GUI_SetLvMode" */
 NSTUB( 0xFF9AF4A4, gui_set_lv_mode )
 NSTUB( 0xFF88A8E0, gui_set_video_display_type )
+NSTUB( 0xFF88ACE4, gui_set_request_mode )
+NSTUB( 0xFF823CE4, gui_notify_event )
 
 /** This can be found in dispcheck, but keep in mind that it
  * references bmp_vram_info[1], so subtract 0xC from its value
@@ -201,6 +203,7 @@ NSTUB( 0xFF855CC8, _audio_ic_write )
 NSTUB( 0xFF856FC0, audio_ic_sweep_message_queue )
 
 NSTUB( 0xFF868184, oneshot_timer )
+NSTUB( 0xFF8704D8, timeout_schedule )
 
 
 /** Look for it in functions that are from SoundDevice/ */

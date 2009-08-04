@@ -153,6 +153,17 @@ extern void gui_change_lcd_state_post( uint32_t event );
 extern void gui_timer_something( void *, uint32_t );
 extern void gui_change_mode( uint32_t param );
 
+/** 2 == ? */
+extern void
+gui_set_request_mode( int mode );
+
+extern void
+gui_notify_event(
+	unsigned		arg0,
+	unsigned		event
+);
+
+
 /** 0==DisableMovie, 1==?, 2==EnableMovie */
 extern void gui_set_lv_mode( uint32_t mode );
 

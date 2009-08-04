@@ -172,6 +172,25 @@ snprintf(
 }
 
 
+char *
+strncpy(
+	char *			dest,
+	const char *		src,
+	size_t			n
+)
+{
+	while( n-- )
+	{
+		char c = *src++;
+		*dest++ = c;
+		if( !c )
+			break;
+	}
+
+	return dest;
+}
+
+
 void
 bmp_hexdump(
 	unsigned		fontspec,
