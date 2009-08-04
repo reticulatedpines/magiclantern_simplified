@@ -41,6 +41,7 @@ CONFIG_INT( "crop.draw",	crop_draw,	1 );
 CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
+CONFIG_INT( "hist.draw",	hist_draw,	1 );
 
 
 /** Sobel edge detection */
@@ -163,6 +164,75 @@ check_crop(
 }
 
 
+static uint32_t hist[ 256 ];
+static uint32_t hist_max;
+
+
+static void
+hist_build( void )
+{
+	struct vram_info *	vram = &vram_info[ vram_get_number(2) ];
+	const uint32_t * 	v_row = vram->vram;
+	const unsigned		width = vram->width;
+	uint32_t x,y;
+
+	hist_max = 0;
+	for( x=0 ; x<256; x++ )
+		hist[x] = 0;
+
+	for( y=33 ; y<390; y++, v_row += (vram->pitch/2) )
+	{
+		for( x=0 ; x<width ; x += 2 )
+		{
+			uint32_t pixel = v_row[x/2];
+			uint16_t p1 = (pixel >> 24) & 0xFF;
+			uint16_t p2 = (pixel >>  8) & 0xFF;
+			uint16_t p = (p1+p2) / 2;
+
+			if( ++hist[ p ] > hist_max )
+				hist_max = hist[ p ];
+		}
+	}
+}
+	
+
+static void
+hist_draw_image(
+	unsigned		x_origin,
+	unsigned		y_origin
+)
+{
+	const unsigned		x_size		= 256;
+	const unsigned		y_size		= 64;
+
+	uint8_t * const bvram = bmp_vram();
+	uint8_t * row = bvram + x_origin + y_origin * bmp_pitch();
+	if( hist_max == 0 )
+		hist_max = 1;
+
+	unsigned i, y;
+	for( i=1 ; i<x_size; i++ )
+	{
+		const uint32_t size = (hist[i] * y_size) / hist_max;
+		uint8_t * col = row + i;
+
+		// vertical line up to the hist size
+		for( y=y_size ; y>0 ; y-- , col += bmp_pitch() )
+			*col = y > size ? COLOR_BG : COLOR_WHITE;
+	}
+
+	if(0) bmp_printf(
+		FONT(FONT_SMALL,COLOR_RED,COLOR_WHITE),
+		x_origin,
+		y_origin,
+		"max %d",
+		hist_max
+	);
+
+	hist_max = 0;
+}
+
+
 static void
 draw_zebra( void )
 {
@@ -173,7 +243,7 @@ draw_zebra( void )
 		return;
 
 	// If we are not drawing edges, or zebras or crops, nothing to do
-	if( !edge_draw && !zebra_draw )
+	if( !edge_draw && !zebra_draw && !hist_draw )
 	{
 		if( !crop_draw )
 			return;
@@ -186,6 +256,9 @@ draw_zebra( void )
 	uint32_t x,y;
 
 
+
+	hist_build();
+
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
@@ -196,6 +269,14 @@ draw_zebra( void )
 
 		for( x=2 ; x < vram->width-2 ; x+=2 )
 		{
+			if( hist_draw )
+			{
+				// Ignore the regions where the hist
+				// will be drawn
+				if( y < 100 + 64 && x > 720-256 )
+					continue;
+			}
+
 			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
 
@@ -209,6 +290,9 @@ draw_zebra( void )
 			b_row[x/2] = 0;
 		}
 	}
+
+	if( hist_draw )
+		hist_draw_image( 720 - 256, 100 );
 }
 
 
@@ -259,6 +343,7 @@ crop_display( void * priv, int x, int y, int selected )
 	);
 }
 
+
 static void
 edge_display( void * priv, int x, int y, int selected )
 {
@@ -271,6 +356,18 @@ edge_display( void * priv, int x, int y, int selected )
 	);
 }
 
+
+static void
+hist_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Histogram:  %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -292,6 +389,11 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &edge_draw,
 		.select		= menu_binary_toggle,
 		.display	= edge_display,
+	},
+	{
+		.priv		= &hist_draw,
+		.select		= menu_binary_toggle,
+		.display	= hist_display,
 	},
 };
 
