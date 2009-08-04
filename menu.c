@@ -34,8 +34,9 @@
 
 static struct semaphore * menu_sem;
 static struct semaphore * gui_sem;
-static int draw_event;
 static int menu_damage;
+
+CONFIG_INT( "debug.draw-event", draw_event, 0 );
 
 static void
 draw_version( void )
@@ -532,7 +533,6 @@ static void
 menu_task( void )
 {
 	// menu_init is too early for loading config values
-	draw_event = config_int( global_config, "debug.draw-event", 0 );
 	int x, y;
 
 	while(1)

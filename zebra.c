@@ -31,14 +31,16 @@
 #include "property.h"
 
 
-static unsigned zebra_level = 0xF000;
-static unsigned zebra_draw = 1;
-static unsigned crop_draw = 1;
-static unsigned edge_draw = 0;
 static struct bmp_file_t * cropmarks;
 static volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
+CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
+CONFIG_INT( "zebra.level",	zebra_level,	0xF000 );
+CONFIG_INT( "crop.draw",	crop_draw,	1 );
+CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
+CONFIG_INT( "edge.draw",	edge_draw,	0 );
+CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 
 
 /** Sobel edge detection */
@@ -353,14 +355,7 @@ zebra_task( void )
 
 
 	lv_drawn = 0;
-	zebra_draw = config_int( global_config, "zebra.draw", 1 );
-	zebra_level = config_int( global_config, "zebra.level", 0xF000 );
-	crop_draw = config_int( global_config, "crop.draw", 1 );
-	edge_draw = config_int( global_config, "edge.draw", 0 );
-
-	int enable_liveview = config_int( global_config, "enable-liveview", 1 );
-
-	cropmarks = bmp_load( "A:/cropmarks.bmp" );
+	cropmarks = bmp_load( crop_file );
 
 	DebugMsg( DM_MAGIC, 3,
 		"%s: Zebras=%s threshold=%x cropmarks=%x liveview=%d",

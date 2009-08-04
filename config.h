@@ -1,5 +1,12 @@
 /** \file
- * Key/value parser until we have a proper config
+ * Key/value parser until we have a proper config.
+ *
+ * Auto-parsed variables will be assigned when read.
+ * To create a configuration parameter:
+ * <code>
+ * CONFIG_INT( "name", variable, default_value );
+ * CONFIG_STR( "name", variable, default_value );
+ * </code>
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
@@ -61,6 +68,40 @@ extern struct config *
 config_parse_file(
 	const char *		filename
 );
+
+
+extern int
+config_save_file(
+	struct config *		config,
+	const char *		filename
+);
+
+
+/** Create an auto-parsed config variable */
+struct config_var
+{
+	const char *		name;
+	int			type;	//!< 0 == int, 1 == char *
+	void *			value;	//!< int* if len == 0
+};
+
+
+#define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE ) \
+static TYPE VAR = VALUE; \
+struct config_var \
+__attribute__((section(".config_vars"))) \
+__config_##VAR = \
+{ \
+	.name		= NAME, \
+	.type		= TYPE_ENUM, \
+	.value		= &VAR, \
+}
+
+#define CONFIG_INT( NAME, VAR, VALUE ) \
+	_CONFIG_VAR( NAME, 0, unsigned, VAR, VALUE )
+
+#define CONFIG_STR( NAME, VAR, VALUE ) \
+	_CONFIG_VAR( NAME, 1, char *, VAR, VALUE )
 
 
 #endif

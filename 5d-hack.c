@@ -239,6 +239,8 @@ call_init_funcs( void * priv )
 	init_funcs_done = 1;
 }
 
+CONFIG_INT( "disable-powersave", disable_powersave, 1 );
+
 
 /** Initial task setup.
  *
@@ -308,8 +310,6 @@ my_init_task(void)
 	);
 
 	msleep( 500 );
-
-	int disable_powersave = config_int( global_config, "disable-powersave", 1 );
 
 	if( disable_powersave )
 	{

@@ -23,6 +23,7 @@
 
 #include "dryos.h"
 #include "config.h"
+#include "version.h"
 
 // Don't use isspace since we don't have it
 static inline int
@@ -146,6 +147,105 @@ read_line(
 }
 
 
+extern struct config_var	_config_vars_start[];
+extern struct config_var	_config_vars_end[];
+
+static void
+config_auto_parse(
+	struct config *		config
+)
+{
+	struct config_var *		var = _config_vars_start;
+
+	for( ; var < _config_vars_end ; var++ )
+	{
+		if( !streq( var->name, config->name ) )
+			continue;
+
+		DebugMsg( DM_MAGIC, 3,
+			"%s: '%s' => '%s'",
+			__func__,
+			config->name,
+			config->value
+		);
+
+		if( var->type == 0 )
+		{
+			*(unsigned*) var->value = atoi( config->value );
+		} else {
+			*(char **) var->value = config->value;
+		}
+
+		return;
+	}
+
+	DebugMsg( DM_MAGIC, 3,
+		"%s: '%s' unused?",
+		__func__,
+		config->name
+	);
+}
+
+
+int
+config_save_file(
+	struct config *		config,
+	const char *		filename
+)
+{
+	FILE * file = FIO_CreateFile( filename );
+	if( file == INVALID_PTR )
+		return -1;
+
+	struct config_var * var = _config_vars_start;
+	int count = 0;
+
+	DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
+
+	fprintf( file,
+		"# Magic Lantern %s (%s)\n"
+		"# Build on %s by %s\n",
+		build_version,
+		build_id,
+		build_date,
+		build_user
+	);
+
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+
+	fprintf( file,
+		"# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
+		now.tm_year + 1900,
+		now.tm_mon + 1,
+		now.tm_mday,
+		now.tm_hour,
+		now.tm_min,
+		now.tm_sec
+	);
+
+	for( ; var < _config_vars_end ; var++ )
+	{
+		if( var->type == 0 )
+			fprintf( file,
+				"%s = %d\n",
+				var->name,
+				*(unsigned*) var->value
+			);
+		else
+			fprintf( file,
+				"%s = %s\n",
+				var->name,
+				*(const char**) var->value
+			);
+
+		count++;
+	}
+
+	FIO_CloseFile( file );
+	return count;
+}
+
 
 struct config *
 config_parse(
@@ -169,6 +269,8 @@ config_parse(
 		new_config->next = config;
 		config = new_config;
 		count++;
+
+		config_auto_parse( config );
 	}
 
 	DebugMsg( DM_MAGIC, 3, "%s: Read %d config values", __func__, count );
@@ -262,6 +364,7 @@ config_parse_file(
 	head.next = config;
 	return &head;
 }
+
 
 
 int

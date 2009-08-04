@@ -35,22 +35,24 @@ struct gain_struct
 	unsigned		alc1;
 	unsigned		sig1;
 	unsigned		sig2;
-
-	unsigned		loopback;
-	unsigned		alc_enable;
-	unsigned		mic_power;
-	unsigned		mic_in;
-	unsigned		mgain;
-	unsigned		lovl;
-	unsigned		o2gain;
-	unsigned		dgain_l;
-	unsigned		dgain_r;
 };
 
 static struct gain_struct gain = {
 	.mvr_rec_token		= (void*) 1,
 	.sem			= (void*) 1,
 };
+
+
+// Set defaults
+CONFIG_INT( "audio.mgain",	mgain,		4 );
+CONFIG_INT( "audio.dgain.l",	dgain_l,	18 );
+CONFIG_INT( "audio.dgain.r",	dgain_r,	18 );
+CONFIG_INT( "audio.mic-power",	mic_power,	1 );
+CONFIG_INT( "audio.lovl",	lovl,		3 );
+CONFIG_INT( "audio.o2gain",	o2gain,		0 );
+CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
+CONFIG_INT( "audio.mic-in",	mic_in,		0 );
+CONFIG_INT( "audio.loopback",	loopback,	1 );
 
 
 /** Read the raw level from the audio device.
@@ -412,32 +414,32 @@ audio_configure( int force )
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
 	audio_ic_write( AUDIO_IC_SIG1
 		| 0x10
-		| ( gain.mic_power ? 0x4 : 0x0 )
+		| ( mic_power ? 0x4 : 0x0 )
 	); // power up, no gain
 
 	audio_ic_write( AUDIO_IC_SIG2
 		| 0x04 // external, no gain
-		| ( gain.lovl & 0x3) << 0 // line output level
+		| ( lovl & 0x3) << 0 // line output level
 	);
 
-	if( gain.mic_in )
+	if( mic_in )
 		audio_ic_write( AUDIO_IC_PM3 | 0x00 ); // internal mic
 	else
 		audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
 
-	gain.alc1 = gain.alc_enable ? (1<<5) : 0;
+	gain.alc1 = alc_enable ? (1<<5) : 0;
 	audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
 
 	// Control left/right gain independently
 	audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
 
-	audio_ic_set_input_volume( 0, gain.dgain_r );
-	audio_ic_set_input_volume( 1, gain.dgain_l );
+	audio_ic_set_input_volume( 0, dgain_r );
+	audio_ic_set_input_volume( 1, dgain_l );
 
 	// 4 == 10 dB
 	// 5 == 17 dB
 	// 3 == 32 dB
-	audio_ic_set_mgain( gain.mgain ); // 10 dB
+	audio_ic_set_mgain( mgain ); // 10 dB
 
 	// Disable the HPF
 	//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
@@ -461,23 +463,23 @@ audio_configure( int force )
 	mode3 &= ~0x5C; // disable loop, olvc, datt0/1
 	audio_ic_write( AUDIO_IC_MODE3
 		| mode3				// old value
-		| gain.loopback << 6		// loop mode
-		| (gain.o2gain & 0x3) << 2	// output volume
+		| loopback << 6		// loop mode
+		| (o2gain & 0x3) << 2	// output volume
 	);
 
 	//draw_audio_regs();
 	bmp_printf( FONT_SMALL, 500, 400,
 		"Gain %d/%d Mgain %d",
-		gain.dgain_l,
-		gain.dgain_r,
-		gain.mgain
+		dgain_l,
+		dgain_r,
+		mgain
 	);
 
 	DebugMsg( DM_AUDIO, 3,
 		"Gain mgain=%d dgain=%d/%d",
-		gain.mgain,
-		gain.dgain_l,
-		gain.dgain_r
+		mgain,
+		dgain_l,
+		dgain_r
 	);
 }
 
@@ -550,7 +552,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 		x, y,
 		// 23456789012
 		"%s-Gain:     %2d dB",
-		priv == &gain.dgain_l ? "L" : "R",
+		priv == &dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
 }
@@ -596,7 +598,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
 		x, y,
 		//23456789012
 		"AGC:        %s",
-		gain.alc_enable ? "ON " : "OFF"
+		alc_enable ? "ON " : "OFF"
 	);
 }
 
@@ -609,7 +611,7 @@ audio_mic_in_display( void * priv, int x, int y, int selected )
 		x, y,
 		//23456789012
 		"Input:      %s",
-		gain.mic_in ? "INT" : "EXT"
+		mic_in ? "INT" : "EXT"
 	);
 }
 
@@ -621,50 +623,50 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 		x, y,
 		//23456789012
 		"Monitor:    %s",
-		gain.loopback ? "ON " : "OFF"
+		loopback ? "ON " : "OFF"
 	);
 }
 
 static struct menu_entry audio_menus[] = {
 	{
-		.priv		= &gain.lovl,
+		.priv		= &lovl,
 		.select		= audio_3bit_toggle,
 		.display	= audio_lovl_display,
 	},
 #if 0
 	{
-		.priv		= &gain.o2gain,
+		.priv		= &o2gain,
 		.select		= audio_o2gain_toggle,
 		.display	= audio_o2gain_display,
 	},
 #endif
 	{
-		.priv		= &gain.mgain,
+		.priv		= &mgain,
 		.select		= audio_mgain_toggle,
 		.display	= audio_mgain_display,
 	},
 	{
-		.priv		= &gain.dgain_l,
+		.priv		= &dgain_l,
 		.select		= audio_dgain_toggle,
 		.display	= audio_dgain_display,
 	},
 	{
-		.priv		= &gain.dgain_r,
+		.priv		= &dgain_r,
 		.select		= audio_dgain_toggle,
 		.display	= audio_dgain_display,
 	},
 	{
-		.priv		= &gain.alc_enable,
+		.priv		= &alc_enable,
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
 	},
 	{
-		.priv		= &gain.mic_in,
+		.priv		= &mic_in,
 		.select		= audio_binary_toggle,
 		.display	= audio_mic_in_display,
 	},
 	{
-		.priv		= &gain.loopback,
+		.priv		= &loopback,
 		.select		= audio_binary_toggle,
 		.display	= audio_loopback_display,
 	},
@@ -741,18 +743,6 @@ my_sounddev_task( void )
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
 
 	sounddev_active_in(0,0);
-
-	// Set defaults
-	gain.mgain = config_int( global_config, "audio.mgain", 4 );
-	int dgain = config_int( global_config, "audio.dgain", 18 );
-	gain.dgain_l = config_int( global_config, "audio.dgain.l", dgain );
-	gain.dgain_r = config_int( global_config, "audio.dgain.r", dgain );
-	gain.mic_power = config_int( global_config, "audio.mic-power", 1 );
-	gain.lovl = config_int( global_config, "audio.lovl", 3 );
-	gain.o2gain = config_int( global_config, "audio.o2gain", 0 );
-	gain.alc_enable = config_int( global_config, "audio.alc_enable", 0 );
-	gain.mic_in = config_int( global_config, "audio.mic-in", 0 );
-	gain.loopback = config_int( global_config, "audio.loopback", 1 );
 
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );

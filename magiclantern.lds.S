@@ -62,6 +62,11 @@ SECTIONS
 		*(.init_funcs)
 		_init_funcs_end = .;
 
+		/* Configuration parameters to be assigned */
+		. = ALIGN(8);
+		_config_vars_start = .;
+		*(.config_vars)
+		_config_vars_end = .;
 
 		/* Read/write data */
 		. = ALIGN(64);

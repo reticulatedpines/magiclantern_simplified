@@ -10,8 +10,9 @@
 #include "config.h"
 
 static unsigned	focus_mode = 1;
-static int	focus_stack_step;
-static unsigned	focus_stack_count;
+
+CONFIG_INT( "focus.step",	focus_stack_step, 100 );
+CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 
 static struct semaphore * focus_stack_sem;
 
@@ -164,9 +165,6 @@ static void
 focus_init( void )
 {
 	focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
-
-	focus_stack_step = config_int( global_config, "focus.step", 100 );
-	focus_stack_count = config_int( global_config, "focus.count", 5 );
 
 	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
 }

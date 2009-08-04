@@ -130,7 +130,7 @@ mvr_time_const_select( void * priv )
 
 
 
-static int draw_prop = 0;
+CONFIG_INT( "debug.draw-prop",		draw_prop, 0 );
 
 static void
 draw_prop_select( void * priv )
@@ -139,9 +139,21 @@ draw_prop_select( void * priv )
 }
 
 
+static void
+save_config( void * priv )
+{
+	config_save_file( global_config, "A:/magiclantern.cfg" );
+}
+
+
 struct menu_entry debug_menus[] = {
 	{
 		.display	= efic_temp_display,
+	},
+	{
+		.priv		= "Save config",
+		.select		= save_config,
+		.display	= menu_print,
 	},
 	{
 		.priv		= "Draw palette",
@@ -314,6 +326,7 @@ thats_all:
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }
 
+CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 
 static void
 dump_task( void )
@@ -328,12 +341,10 @@ dump_task( void )
 	dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
 
-	// It was too early to read the draw_prop config in debug_init()
-	draw_prop = config_int( global_config, "debug.draw-prop", 0 );
-
-	int sec = config_int( global_config, "debug.timed-dump", 0 );
-	if( sec == 0 )
+	if( timed_dump == 0 )
 		return;
+
+	int sec = timed_dump;
 
 	DebugMsg( DM_MAGIC, 3, "%s: Will do debug dump in %d sec",
 		__func__,

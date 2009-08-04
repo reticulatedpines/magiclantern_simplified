@@ -434,9 +434,6 @@ mvr_create_logfile(
 	if( event != 2 )
 		return;
 
-	struct tm now;
-	LoadCalendarFromRTC( &now );
-
 	// Movie starting
 	mvr_logfile = FIO_CreateFile( "A:/movie.log" );
 	if( mvr_logfile == INVALID_PTR )
@@ -448,6 +445,9 @@ mvr_create_logfile(
 
 		return;
 	}
+
+	struct tm now;
+	LoadCalendarFromRTC( &now );
 
 	fprintf( mvr_logfile,
 		"Start: %4d/%02d/%02d %02d:%02d:%02d\n",
