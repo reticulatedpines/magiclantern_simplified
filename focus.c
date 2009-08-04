@@ -105,6 +105,15 @@ display_lens_hyperfocal(
 
 	bmp_printf( font, x, y,
 		//23456789012
+		"Focal dist: %s",
+		lens_info.focus_dist == 0xFFFF
+                        ? " Infnty"
+                        : lens_format_dist( lens_info.focus_dist * 10 )
+	);
+
+	y += height;
+	bmp_printf( font, x, y,
+		//23456789012
 		"Hyperfocal: %s",
 		lens_format_dist( lens_info.hyperfocal )
 	);
