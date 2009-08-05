@@ -234,7 +234,9 @@ update_lens_display(
 	);
 
 
-	y += height;
+	// Move the info display to the very bottom screen
+	x = 0;
+	y = 400;
 	if( info->aperture )
 		bmp_printf( font, x, y,
 			"f/%2d.%d",
@@ -247,7 +249,7 @@ update_lens_display(
 			info->raw_aperture
 		);
 
-	y += height;
+	x += 100;
 	if( info->shutter )
 		bmp_printf( font, x, y,
 			"1/%4d",
@@ -259,7 +261,7 @@ update_lens_display(
 			info->raw_aperture
 		);
 
-	y += height;
+	x += 100;
 	if( info->iso )
 		bmp_printf( font, x, y,
 			"ISO %4d",
