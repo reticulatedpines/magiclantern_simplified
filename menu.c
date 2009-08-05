@@ -473,6 +473,14 @@ menu_handler(
 		menu_entry_select( menu );
 		break;
 
+	case PRESS_ZOOM_IN_BUTTON:
+		lens_focus( 1, 100 );
+		break;
+
+	case PRESS_ZOOM_OUT_BUTTON:
+		lens_focus( 1, -100 );
+		break;
+
 	default:
 		return 0;
 	}
@@ -530,10 +538,27 @@ gui_stop_menu( void )
 
 
 static void
+toggle_draw_event( void * priv )
+{
+	draw_event = !draw_event;
+}
+
+static struct menu_entry draw_prop_menus[] = {
+	{
+		.priv		= "Toggle draw-event",
+		.display	= menu_print,
+		.select		= toggle_draw_event,
+	},
+};
+
+
+static void
 menu_task( void )
 {
-	// menu_init is too early for loading config values
 	int x, y;
+
+	// Add the draw_prop menu
+	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
 
 	while(1)
 	{
