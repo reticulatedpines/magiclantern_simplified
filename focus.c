@@ -172,6 +172,8 @@ TASK_CREATE( "focus_stack_task", focus_stack_task, 0, 0x1f, 0x1000 );
 static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
+static int focus_rack_speed = 10;
+static int focus_rack_delta;
 
 
 static void
@@ -203,7 +205,34 @@ static void
 focus_toggle( void * priv )
 {
 	focus_task_delta = -focus_task_delta;
-	lens_focus( 1, focus_task_delta );
+	focus_rack_delta = focus_task_delta;
+	give_semaphore( focus_task_sem );
+}
+
+
+static void
+focus_rack_speed_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Rack speed: %2d",
+		focus_rack_speed
+	);
+}
+
+static void
+focus_rack_speed_increment( void * priv )
+{
+	focus_rack_speed = ((focus_rack_speed + 1) * 5) / 4;
+	if( focus_rack_speed > 40 )
+		focus_rack_speed = 1;
 }
 
 
@@ -225,11 +254,52 @@ lens_focus_stop( void )
 
 
 static void
+rack_focus(
+	int		speed,
+	int		delta
+)
+{
+	if( speed <= 0 )
+		speed = 1;
+
+	int		speed_cmd = speed;
+
+	// If we are moving closer, invert the speed command
+	if( delta < 0 )
+	{
+		speed_cmd = -speed;
+		delta = -delta;
+	}
+
+	while( delta )
+	{
+		if( speed > delta )
+			speed = delta;
+
+		delta -= speed;
+		lens_focus( 0x7, speed_cmd );
+	}
+}
+
+
+static void
 focus_task( void )
 {
 	while(1)
 	{
 		take_semaphore( focus_task_sem, 0 );
+
+		if( focus_rack_delta )
+		{
+			rack_focus(
+				focus_rack_speed,
+				focus_rack_delta
+			);
+
+			focus_rack_delta = 0;
+			continue;
+		}
+
 		int step = focus_task_dir;
 
 		while( focus_task_dir )
@@ -247,13 +317,17 @@ focus_task( void )
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 
 static struct menu_entry focus_menu[] = {
 	{
 		.display	= focus_show_a,
 		.select		= focus_reset_a,
+	},
+	{
+		.display	= focus_rack_speed_display,
+		.select		= focus_rack_speed_increment,
 	},
 	{
 		.priv		= "Rack focus",
