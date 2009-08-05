@@ -35,6 +35,9 @@ static struct bmp_file_t * cropmarks;
 static volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
+static const unsigned hist_height	= 64;
+static const unsigned hist_width	= 128;
+
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
 CONFIG_INT( "zebra.level",	zebra_level,	0xF000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 );
@@ -42,6 +45,8 @@ CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
+CONFIG_INT( "hist.x",		hist_x_pos,	720 - 128 - 10 );
+CONFIG_INT( "hist.y",		hist_y_pos,	100 );
 
 
 /** Sobel edge detection */
@@ -164,10 +169,25 @@ check_crop(
 }
 
 
-static uint32_t hist[ 256 ];
+/** Store the histogram data for each of the 128 bins */
+static uint32_t hist[ 128 ];
+
+/** Maximum value in the histogram so that at least one entry fills
+ * the box */
 static uint32_t hist_max;
 
 
+/** Generate the histogram data from the YUV frame buffer.
+ *
+ * Walk the frame buffer two pixels at a time, in 32-bit chunks,
+ * to avoid err70 while recording.
+ *
+ * Average two adjacent pixels to try to reduce noise slightly.
+ *
+ * Update the hist_max for the largest number of bin entries found
+ * to scale the histogram to fit the display box from top to
+ * bottom.
+ */
 static void
 hist_build( void )
 {
@@ -184,40 +204,48 @@ hist_build( void )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
+			// Average each of the two pixels top 7 bits
 			uint32_t pixel = v_row[x/2];
-			uint16_t p1 = (pixel >> 24) & 0xFF;
-			uint16_t p2 = (pixel >>  8) & 0xFF;
+			uint16_t p1 = (pixel >> 25) & 0x7F;
+			uint16_t p2 = (pixel >>  9) & 0x7F;
 			uint16_t p = (p1+p2) / 2;
 
-			if( ++hist[ p ] > hist_max )
-				hist_max = hist[ p ];
+			// Ignore the 0 bin.  It generates too much noise
+			unsigned count = ++hist[ p ];
+			if( p && count > hist_max )
+				hist_max = count;
 		}
 	}
 }
 	
 
+/** Draw the histogram image into the bitmap framebuffer.
+ *
+ * Draw one pixel at a time; it seems to be ok with err70.
+ * Since there is plenty of math per pixel this doesn't
+ * swamp the bitmap framebuffer hardware.
+ */
 static void
 hist_draw_image(
 	unsigned		x_origin,
 	unsigned		y_origin
 )
 {
-	const unsigned		x_size		= 256;
-	const unsigned		y_size		= 64;
-
 	uint8_t * const bvram = bmp_vram();
 	uint8_t * row = bvram + x_origin + y_origin * bmp_pitch();
 	if( hist_max == 0 )
 		hist_max = 1;
 
 	unsigned i, y;
-	for( i=1 ; i<x_size; i++ )
+
+	for( i=0 ; i<hist_width ; i++ )
 	{
-		const uint32_t size = (hist[i] * y_size) / hist_max;
+		// Scale by the maximum bin value
+		const uint32_t size = (hist[i] * hist_height) / hist_max;
 		uint8_t * col = row + i;
 
 		// vertical line up to the hist size
-		for( y=y_size ; y>0 ; y-- , col += bmp_pitch() )
+		for( y=hist_height ; y>0 ; y-- , col += bmp_pitch() )
 			*col = y > size ? COLOR_BG : COLOR_WHITE;
 	}
 
@@ -226,13 +254,28 @@ hist_draw_image(
 		x_origin,
 		y_origin,
 		"max %d",
-		hist_max
+		(int) hist_max
 	);
 
 	hist_max = 0;
 }
 
 
+/** Master video overlay drawing code.
+ *
+ * This routine controls the display of the zebras, histogram,
+ * edge detection, cropmarks and so on.
+ *
+ * The stacking order of the overlays is:
+ *
+ * - Histogram
+ * - Cropping bitmap
+ * - Zebras
+ * - Edge detection
+ *
+ * This should be done with a proper OO controller that allows modules
+ * to register new drawing functions, but for right now they are hardcoded.
+ */
 static void
 draw_zebra( void )
 {
@@ -253,29 +296,32 @@ draw_zebra( void )
 
 	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
 
-	uint32_t x,y;
-
-
-
 	hist_build();
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
+	uint32_t x,y;
 	for( y=33 ; y < 390; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
 
+		// Iterate over the pixels in the scan row
+		// two at a time to read the pixel buf in 32 bit chunks
+		// otherwise we get err70 aborts while drawing regions
+		// in the bitmap vram.
 		for( x=2 ; x < vram->width-2 ; x+=2 )
 		{
-			if( hist_draw )
-			{
-				// Ignore the regions where the hist
-				// will be drawn
-				if( y < 100 + 64 && x > 720-256 )
+			// Ignore the regions where the histogram
+			// will be drawn
+			if( hist_draw
+			&&  y >= hist_y_pos
+			&&  y < hist_y_pos + hist_height
+			&&  x >= hist_x_pos
+			&&  x < hist_x_pos + hist_width
+			)
 					continue;
-			}
 
 			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
@@ -292,7 +338,7 @@ draw_zebra( void )
 	}
 
 	if( hist_draw )
-		hist_draw_image( 720 - 256, 100 );
+		hist_draw_image( hist_x_pos, hist_y_pos );
 }
 
 
