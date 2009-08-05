@@ -612,7 +612,8 @@ lens_task( void * priv )
 	}
 }
 
-TASK_CREATE( __FILE__, lens_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "dof_task", lens_task, 0, 0x1f, 0x1000 );
+
 
 
 

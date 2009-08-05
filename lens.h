@@ -234,6 +234,13 @@ lens_focus(
 extern void
 lens_focus_wait( void );
 
+/** Start the lens focus task */
+extern void
+lens_focus_start( int dir );
+
+/** Stop the lens focus task */
+extern void
+lens_focus_stop( void );
 
 /** Format a distance in mm into something useful */
 extern const char *

@@ -79,18 +79,6 @@ focus_stack_unlock( void * priv )
 	give_semaphore( focus_stack_sem );
 }
 
-static void
-focus_near( void * priv )
-{
-	lens_focus( focus_mode, -8 );
-}
-
-static void
-focus_far( void * priv )
-{
-	lens_focus( focus_mode, 8 );
-}
-
 
 static void
 display_lens_hyperfocal(
@@ -136,50 +124,7 @@ display_lens_hyperfocal(
 }
 
 
-static struct menu_entry focus_menu[] = {
-	{
-		.priv		= "Run Stack focus",
-		.display	= menu_print,
-		.select		= focus_stack_unlock,
-	},
-	{
-		.priv		= "Focus Nearer",
-		.display	= menu_print,
-		.select		= focus_near,
-	},
-	{
-		.priv		= "Focus Further",
-		.display	= menu_print,
-		.select		= focus_far,
-	},
-	{
-		.display	= display_lens_hyperfocal,
-	},
-#if 0
-	{ .priv = &focus_cmd, .display=show_cmd, .select=sel_cmd },
-	//{ .priv = &focus_steps, .display=show_steps, .select=sel_steps },
-	//{ .priv = (void*) 28, .display=show, .select=sel },
-	//{ .priv = (void*) 24, .display=show, .select=sel },
-	//{ .priv = (void*) 20, .display=show, .select=sel },
-	//{ .priv = (void*) 16, .display=show, .select=sel },
-	//{ .priv = (void*) 12, .display=show, .select=sel },
-	//{ .priv = (void*) 8, .display=show, .select=sel },
-	{ .priv = (void*) 4, .display=show, .select=sel },
-	{ .priv = (void*) 0, .display=show, .select=sel },
-#endif
-};
 
-
-static void
-focus_init( void )
-{
-	focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
-
-	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
-}
-
-
-INIT_FUNC( __FILE__, focus_init );
 
 
 void
@@ -222,4 +167,119 @@ focus_stack_task( void )
 	}
 }
 
-TASK_CREATE( __FILE__, focus_stack_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "focus_stack_task", focus_stack_task, 0, 0x1f, 0x1000 );
+
+static struct semaphore * focus_task_sem;
+static int focus_task_dir;
+static int focus_task_delta;
+
+
+static void
+focus_show_a( 
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+) {
+
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Focus A:    %+5d",
+		focus_task_delta
+	);
+}
+
+
+static void
+focus_reset_a( void * priv )
+{
+	focus_task_delta = 0;
+}
+
+
+static void
+focus_toggle( void * priv )
+{
+	focus_task_delta = -focus_task_delta;
+	lens_focus( 1, focus_task_delta );
+}
+
+
+void
+lens_focus_start(
+	int		dir
+)
+{
+	focus_task_dir = dir;
+	give_semaphore( focus_task_sem );
+}
+
+
+void
+lens_focus_stop( void )
+{
+	focus_task_dir = 0;
+}
+
+
+static void
+focus_task( void )
+{
+	while(1)
+	{
+		take_semaphore( focus_task_sem, 0 );
+		int step = focus_task_dir;
+
+		while( focus_task_dir )
+		{
+			lens_focus( 1, step );
+			focus_task_delta += step;
+			if( step > 0 && step < 1000 )
+				step = ((step+1) * 100) / 99;
+			else
+			if( step < 0 && step > -1000 )
+				step = ((step-1) * 100) / 99;
+
+			msleep( 50 );
+		}
+	}
+}
+
+TASK_CREATE( "focus_task", focus_task, 0, 0x1f, 0x1000 );
+
+
+static struct menu_entry focus_menu[] = {
+	{
+		.display	= focus_show_a,
+		.select		= focus_reset_a,
+	},
+	{
+		.priv		= "Rack focus",
+		.display	= menu_print,
+		.select		= focus_toggle,
+	},
+	{
+		.priv		= "Run Stack focus",
+		.display	= menu_print,
+		.select		= focus_stack_unlock,
+	},
+	{
+		.display	= display_lens_hyperfocal,
+	},
+};
+
+
+static void
+focus_init( void )
+{
+	focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
+	focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
+
+	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
+}
+
+
+INIT_FUNC( __FILE__, focus_init );
+

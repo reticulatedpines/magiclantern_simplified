@@ -474,11 +474,16 @@ menu_handler(
 		break;
 
 	case PRESS_ZOOM_IN_BUTTON:
-		lens_focus( 1, 100 );
+		lens_focus_start( 1 );
 		break;
 
 	case PRESS_ZOOM_OUT_BUTTON:
-		lens_focus( 1, -100 );
+		lens_focus_start( -1 );
+		break;
+
+	case UNPRESS_ZOOM_IN_BUTTON:
+	case UNPRESS_ZOOM_OUT_BUTTON:
+		lens_focus_stop();
 		break;
 
 	default:
