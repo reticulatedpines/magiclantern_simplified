@@ -129,6 +129,7 @@ magiclantern: \
 		-march=armv5te \
 		-T \
 		$^ \
+		-lm \
 		-lgcc \
 	)
 
