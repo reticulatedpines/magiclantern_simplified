@@ -271,4 +271,7 @@ extern volatile int gui_show_menu;
 extern void
 gui_stop_menu( void );
 
+extern void
+gui_hide_menu( int redisplay_time );
+
 #endif

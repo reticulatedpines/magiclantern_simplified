@@ -35,6 +35,7 @@
 static struct semaphore * menu_sem;
 static struct semaphore * gui_sem;
 static int menu_damage;
+static int menu_hidden;
 
 CONFIG_INT( "debug.draw-event", draw_event, 0 );
 
@@ -474,15 +475,18 @@ menu_handler(
 		break;
 
 	case PRESS_ZOOM_IN_BUTTON:
+		gui_hide_menu( 100 );
 		lens_focus_start( 1 );
 		break;
 
 	case PRESS_ZOOM_OUT_BUTTON:
+		gui_hide_menu( 100 );
 		lens_focus_start( -1 );
 		break;
 
 	case UNPRESS_ZOOM_IN_BUTTON:
 	case UNPRESS_ZOOM_OUT_BUTTON:
+		gui_hide_menu( 4 );
 		lens_focus_stop();
 		break;
 
@@ -542,6 +546,18 @@ gui_stop_menu( void )
 }
 
 
+void
+gui_hide_menu(
+	int			redisplay_time
+)
+{
+	menu_hidden = redisplay_time;
+	menu_damage = 1;
+	bmp_fill( 0, 0, 35, 720, 400 );
+	give_semaphore( gui_sem );
+}
+
+
 static void
 toggle_draw_event( void * priv )
 {
@@ -572,6 +588,7 @@ menu_task( void )
 		{
 			gui_task_destroy( menu_task_ptr );
 			bmp_fill( 0, 0, 35, 720, 400 );
+			menu_hidden = 0;
 			menu_damage = 0;
 			menu_task_ptr = 0;
 			continue;
@@ -584,8 +601,15 @@ menu_task( void )
 		{
 			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 			menu_damage = 1;
+			menu_hidden = 0;
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
-			draw_version();
+			//draw_version();
+		}
+
+		if( menu_hidden )
+		{
+			menu_hidden--;
+			continue;
 		}
 
 		//dialog_set_active();

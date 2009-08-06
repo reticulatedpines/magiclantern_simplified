@@ -2,14 +2,15 @@
  * Focus control.
  *
  * Support focus stacking and other focus controls.
+ * \todo Figure out how to really tell if a focus event is over.  The
+ * property PROP_LV_FOCUS_DONE doesn't seem to really indicate that it
+ * is safe to send another one.
  */
 #include "dryos.h"
 #include "menu.h"
 #include "bmp.h"
 #include "lens.h"
 #include "config.h"
-
-static unsigned	focus_mode = 1;
 
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
@@ -172,8 +173,8 @@ TASK_CREATE( "focus_stack_task", focus_stack_task, 0, 0x1f, 0x1000 );
 static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
-static int focus_rack_speed = 10;
 static int focus_rack_delta;
+CONFIG_INT( "focus.rack-speed", focus_rack_speed, 4 );
 
 
 static void
@@ -291,6 +292,7 @@ focus_task( void )
 
 		if( focus_rack_delta )
 		{
+			gui_hide_menu( 10 );
 			rack_focus(
 				focus_rack_speed,
 				focus_rack_delta
