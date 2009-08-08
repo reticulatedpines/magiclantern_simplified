@@ -170,6 +170,8 @@ NSTUB( 0xFF88A8E0, gui_set_video_display_type )
 NSTUB( 0xFF88ACE4, gui_set_request_mode )
 NSTUB( 0xFF823CE4, gui_notify_event )
 
+NSTUB( 0xFFA5431C, ctrlman_dispatch_event )
+
 /** This can be found in dispcheck, but keep in mind that it
  * references bmp_vram_info[1], so subtract 0xC from its value
  */

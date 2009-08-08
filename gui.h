@@ -155,6 +155,14 @@ extern void gui_change_lcd_state_post( uint32_t event );
 extern void gui_timer_something( void *, uint32_t );
 extern void gui_change_mode( uint32_t param );
 
+extern void
+ctrlman_dispatch_event(
+	struct gui_task *	task,
+	gui_event_t		event,
+	int			unknown1,
+	int			unknown2
+);
+
 /** 2 == ? */
 extern void
 gui_set_request_mode( int mode );

@@ -25,6 +25,7 @@
 #define _dryos_dialog_h_
 
 #include "arm-mcr.h"
+#include "gui.h"
 
 /** Windowing system elements */
 struct winsys_struct
@@ -95,7 +96,7 @@ struct dialog_item;
 typedef int (*dialog_handler_t)(
 	struct dialog *		self,
 	void *			arg,
-	uint32_t		event
+	gui_event_t		event
 );
 
 

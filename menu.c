@@ -580,6 +580,7 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
+	void * old_gui_task;
 
 	while(1)
 	{
@@ -588,6 +589,7 @@ menu_task( void )
 		{
 			gui_task_destroy( menu_task_ptr );
 			bmp_fill( 0, 0, 35, 720, 400 );
+			ctrlman_dispatch_event( old_gui_task, GOT_TOP_OF_CONTROL, 0, 0 );
 			menu_hidden = 0;
 			menu_damage = 0;
 			menu_task_ptr = 0;
@@ -599,9 +601,11 @@ menu_task( void )
 
 		if( !menu_task_ptr )
 		{
+			void ** const ctrlman_struct = (void*) 0x147cc;
 			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 			menu_damage = 1;
 			menu_hidden = 0;
+			old_gui_task = ctrlman_struct[2];
 			menu_task_ptr = gui_task_create( menu_handler, 0 );
 			//draw_version();
 		}
