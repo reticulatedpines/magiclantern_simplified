@@ -39,6 +39,7 @@ static int menu_hidden;
 static int menu_timeout;
 
 CONFIG_INT( "debug.draw-event", draw_event, 0 );
+CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 15 );
 
 static void
 draw_version( void )
@@ -527,7 +528,7 @@ menu_handler(
 
 	// If we end up here, something has been changed.
 	// Reset the timeout
-	menu_timeout = 5;
+	menu_timeout = menu_timeout_time;
 
 	if( menu_hidden )
 		return 0;
