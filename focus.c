@@ -20,59 +20,6 @@ static struct semaphore * focus_stack_sem;
 
 
 
-#if 0
-static void sel( void * priv )
-{
-	unsigned shift = (unsigned) priv;
-	unsigned bits = (focus_mode >> shift) & 0xF;
-	bits = (bits + 1) & 0xF;
-	focus_mode &= ~(0xF  << shift);
-	focus_mode |=   bits << shift;
-}
-
-static void show( 
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-) {
-	unsigned shift = (unsigned) priv;
-	unsigned bits = (focus_mode >> shift) & 0xF;
-
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"%1x %08x",
-		bits,
-		focus_mode
-	);
-}
-
-static void show_cmd( 
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"%+5d %04x",
-		focus_cmd,
-		(unsigned) focus_cmd & 0xFFFF
-	);
-}
-
-static void sel_cmd( void * priv )
-{
-	focus_cmd = (focus_cmd * 3) / 2 + 1;
-	if( ((unsigned) focus_cmd) > 0x8000 )
-		focus_cmd = 1;
-}
-#endif
-
-
 static void
 focus_stack_unlock( void * priv )
 {
@@ -260,6 +207,13 @@ rack_focus(
 	int		delta
 )
 {
+	DebugMsg( DM_MAGIC, 3,
+		"%s: speed=%d delta=%d",
+		__func__,
+		speed,
+		delta
+	);
+
 	if( speed <= 0 )
 		speed = 1;
 
@@ -303,6 +257,12 @@ focus_task( void )
 		}
 
 		int step = focus_task_dir;
+
+		DebugMsg( DM_MAGIC, 3,
+			"%s: focus dir %d",
+			__func__,
+			step
+		);
 
 		while( focus_task_dir )
 		{
