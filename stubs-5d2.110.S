@@ -152,6 +152,7 @@ NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
 /** Look for the call in CreateDialog */
 NSTUB( 0xFFA5446C, gui_task_create )
 NSTUB( 0xFFA5458C, gui_task_destroy )
+NSTUB( 0x147CC, gui_task_list )
 NSTUB( 0xFFA55654, dialog_create )
 NSTUB( 0xFFA570D4, dialog_delete )
 NSTUB( 0xFFA54844, dialog_post_event )
