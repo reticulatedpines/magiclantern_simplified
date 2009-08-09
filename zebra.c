@@ -45,8 +45,10 @@ CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
-CONFIG_INT( "hist.x",		hist_x_pos,	720 - 128 - 10 );
-CONFIG_INT( "hist.y",		hist_y_pos,	100 );
+//CONFIG_INT( "hist.x",		hist_x_pos,	720 - 128 - 10 );
+//CONFIG_INT( "hist.y",		hist_y_pos,	100 );
+static int hist_x_pos = 720 - 128 - 10;
+static int hist_y_pos = 100;
 
 
 /** Sobel edge detection */
@@ -192,12 +194,12 @@ static void
 hist_build( void )
 {
 	struct vram_info *	vram = &vram_info[ vram_get_number(2) ];
-	const uint32_t * 	v_row = vram->vram;
+	const uint32_t * 	v_row = (uint32_t*) vram->vram;
 	const unsigned		width = vram->width;
 	uint32_t x,y;
 
 	hist_max = 0;
-	for( x=0 ; x<256; x++ )
+	for( x=0 ; x<COUNT(hist) ; x++ )
 		hist[x] = 0;
 
 	for( y=33 ; y<390; y++, v_row += (vram->pitch/2) )
@@ -298,6 +300,7 @@ draw_zebra( void )
 
 	hist_build();
 
+#if 1
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
@@ -313,6 +316,10 @@ draw_zebra( void )
 		// in the bitmap vram.
 		for( x=2 ; x < vram->width-2 ; x+=2 )
 		{
+			// Abort as soon as the new menu is drawn
+			if( gui_menu_task || !lv_drawn )
+				return;
+
 			// Ignore the regions where the histogram
 			// will be drawn
 			if( hist_draw
@@ -336,6 +343,7 @@ draw_zebra( void )
 			b_row[x/2] = 0;
 		}
 	}
+#endif
 
 	if( hist_draw )
 		hist_draw_image( hist_x_pos, hist_y_pos );
@@ -501,7 +509,6 @@ zebra_task( void )
 		lv_token_handler
 	);
 
-
 	lv_drawn = 0;
 	cropmarks = bmp_load( crop_file );
 
@@ -540,7 +547,7 @@ zebra_task( void )
 
 	while(1)
 	{
-		if( !gui_show_menu && lv_drawn )
+		if( !gui_menu_task && lv_drawn )
 		{
 			draw_zebra();
 			msleep( 100 );

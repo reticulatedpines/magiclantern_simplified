@@ -68,8 +68,10 @@
 #define PROP_APERTURE		0x80000006
 #define PROP_ISO		0x80000007
 #define PROP_AE			0x80000008 // signed 8-bit value
+#define PROP_UILOCK		0x8000000b // maybe?
 
 #define PROP_SHUTTER_RELEASE	0x8003000A
+#define PROP_AVAIL_SHOT		0x8004000C // also 0x80030005
 
 /** These need to be found */
 #define PROP_LCD_STATE		error_must_be_found
@@ -88,7 +90,7 @@
 #define PROP_LV_EXPSIM		0x80050023
 #define PROP_MYMENU_LISTING	0x80040009
 #define PROP_LV_MODE		0x8004001C	// 0=DisableMovie, 1=? or 2=EnableMovie
-#define PROP_SHOOTING_TYPE	0x80040004	// 0 == NORMAL, 3 == LV
+#define PROP_SHOOTING_TYPE	0x80040004	// 0 == NORMAL, 3 == LV, 4 == MOVIE
 #define PROP_ERR_BATTERY	0x80030020
 #define PROP_CUSTOM_SETTING	0x80020007
 #define PROP_DEFAULT_CUSTOM	0x80020008
@@ -106,6 +108,8 @@
 
 #define PROP_LANGUAGE		0x02040002
 #define PROP_VIDEO_SYSTEM	0x02040003
+
+#define PROP_ICU_UILOCK		0x8300017F	// maybe?
 
 
 

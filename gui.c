@@ -25,7 +25,7 @@
 
 #include "dryos.h"
 
-volatile int gui_show_menu;
+extern struct semaphore * gui_sem;
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
@@ -62,7 +62,6 @@ my_gui_main_task( void )
 {
 	gui_init_end();
 	uint32_t * obj = 0;
-	gui_show_menu = 0;
 
 	while(1)
 	{
@@ -116,18 +115,15 @@ my_gui_main_task( void )
 			)
 				goto queue_clear;
 
+			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
+
 			// Change the picture style button to show our menu
 			if( event->param == 0x13 )
 			{
-				gui_show_menu = !gui_show_menu;
-				DebugMsg( DM_MAGIC, 3,
-					"gui_show_menu=%d",
-					gui_show_menu
-				);
+				give_semaphore( gui_sem );
 				break;
 			}
 
-			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
 			gui_massive_event_loop( event->param, event->obj, event->arg );
 
 			break;

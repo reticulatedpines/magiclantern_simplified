@@ -33,9 +33,10 @@
 
 
 static struct semaphore * menu_sem;
-static struct semaphore * gui_sem;
+struct semaphore * gui_sem;
 static int menu_damage;
 static int menu_hidden;
+static int menu_timeout;
 
 CONFIG_INT( "debug.draw-event", draw_event, 0 );
 
@@ -69,7 +70,7 @@ draw_version( void )
 }
 
 
-static struct gui_task * menu_task_ptr;
+struct gui_task * gui_menu_task;
 static struct menu * menus;
 
 
@@ -414,24 +415,23 @@ menu_handler(
 	int			arg3
 )
 {
-	// Ignore periodic events
-	if( event == GUI_TIMER )
-		return 0;
-
-	// Check if we should stop displaying
-	if( event == TERMINATE_WINSYS
-	|| event == DELETE_DIALOG_REQUEST )
-	{
-		DebugMsg( DM_MAGIC, 3, "Menu task shutting down: %d", event );
-		//bmp_fill( COLOR_EMPTY, 90, 90, 720-180, 480-180 );
-		gui_stop_menu();
+	// Ignore periodic events (pass them on)
+	if( 0
+	||  event == GUI_TIMER
+	||  event == GUI_TIMER2
+	||  event == GUI_TIMER3
+	||  event == GUI_TIMER4
+	)
 		return 1;
-	}
+
+	DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
 
 	if( draw_event )
 		bmp_printf( FONT_SMALL, 400, 40,
-			"event %08x",
-			event
+			"event %08x args %08x %08x",
+			event,
+			arg2,
+			arg3
 		);
 
 	// Find the selected menu (should be cached?)
@@ -448,16 +448,44 @@ menu_handler(
 
 	case GOT_TOP_OF_CONTROL:
 		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
+		menu_damage = 1;
 		break;
+
+	case TERMINATE_WINSYS:
+		// Must propagate to all gui elements
+		DebugMsg( DM_MAGIC, 3, "%s: TERMINATE_WINSYS", __func__ );
+		gui_stop_menu();
+		return 1;
+
+	case DELETE_DIALOG_REQUEST:
+		// Must not propagate
+		DebugMsg( DM_MAGIC, 3, "%s: DELETE_DIALOG", __func__ );
+		gui_stop_menu();
+		return 0;
+
+	case PRESS_MENU_BUTTON:
+	case EVENTID_METERING_START: // If they press the shutter halfway
+		gui_stop_menu();
+		return 1;
+
+	case JOY_CENTER:
+		// We don't process it, but dont' let anyone else, either
+		return 0;
+
+	case EVENTID_94:
+		// Generated when buttons are pressed?  Forward it on
+		return 1;
 
 	case PRESS_JOY_UP:
 	case ELECTRONIC_SUB_DIAL_LEFT:
 		menu_entry_move( menu, -1 );
+		menu_damage = 1;
 		break;
 
 	case PRESS_JOY_DOWN:
 	case ELECTRONIC_SUB_DIAL_RIGHT:
 		menu_entry_move( menu, 1 );
+		menu_damage = 1;
 		break;
 
 	case PRESS_JOY_RIGHT:
@@ -479,23 +507,35 @@ menu_handler(
 		lens_focus_start( 1 );
 		break;
 
-	case PRESS_ZOOM_OUT_BUTTON:
+#if 0
 		gui_hide_menu( 100 );
 		lens_focus_start( -1 );
 		break;
+#endif
 
 	case UNPRESS_ZOOM_IN_BUTTON:
-	case UNPRESS_ZOOM_OUT_BUTTON:
-		gui_hide_menu( 4 );
+	//case UNPRESS_ZOOM_OUT_BUTTON:
+		gui_hide_menu( 2 );
 		lens_focus_stop();
 		break;
 
 	default:
+		// We consume any unknown events
+		DebugMsg( DM_MAGIC, 3, "%s: unknown event %x", __func__, event );
 		return 0;
 	}
 
-	// Unlock the redraw code
-	give_semaphore( gui_sem );
+	// If we end up here, something has been changed.
+	// Reset the timeout
+	menu_timeout = 5;
+
+	if( menu_hidden )
+		return 0;
+
+	if( menu_damage )
+		bmp_fill( COLOR_BG, 90, 90, 720-160, 480-180 );
+	menu_damage = 0;
+	menus_display( menus, 100, 100 );
 
 	return 0;
 }
@@ -507,9 +547,8 @@ menu_handler(
 void
 menu_init( void )
 {
-	gui_show_menu = 0;
 	menus = NULL;
-	menu_task_ptr = NULL;
+	gui_menu_task = NULL;
 	menu_sem = create_named_semaphore( "menus", 1 );
 	gui_sem = create_named_semaphore( "gui", 0 );
 
@@ -517,7 +556,7 @@ menu_init( void )
 	menu_find_by_name( "Video" );
 	menu_find_by_name( "Brack" );
 	menu_find_by_name( "Focus" );
-	menu_find_by_name( "Games" );
+	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
 
 /*
@@ -534,15 +573,21 @@ menu_init( void )
 
 	msleep( 1000 );
 */
-
 }
 
 
 void
 gui_stop_menu( void )
 {
-	gui_show_menu = 0;
-	give_semaphore( gui_sem );
+	menu_hidden = 0;
+	menu_damage = 0;
+
+	if( !gui_menu_task )
+		return;
+
+	gui_task_destroy( gui_menu_task );
+	gui_menu_task = NULL;
+	bmp_fill( 0, 90, 35, 720, 400 );
 }
 
 
@@ -553,8 +598,14 @@ gui_hide_menu(
 {
 	menu_hidden = redisplay_time;
 	menu_damage = 1;
-	bmp_fill( 0, 0, 35, 720, 400 );
-	give_semaphore( gui_sem );
+	bmp_fill( 0, 90, 35, 720, 400 );
+}
+
+
+int
+gui_menu_shown( void )
+{
+	return (int) gui_menu_task;
 }
 
 
@@ -580,49 +631,52 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
-	void * old_gui_task;
 
 	while(1)
 	{
 		int rc = take_semaphore( gui_sem, 1000 );
-		if( !gui_show_menu && menu_task_ptr )
+		if( rc != 0 )
 		{
-			gui_task_destroy( menu_task_ptr );
-			bmp_fill( 0, 0, 35, 720, 400 );
-			ctrlman_dispatch_event( old_gui_task, GOT_TOP_OF_CONTROL, 0, 0 );
-			menu_hidden = 0;
-			menu_damage = 0;
-			menu_task_ptr = 0;
+			// We woke up after 1 second
+			if( !gui_menu_task )
+				continue;
+
+			// Count down the menu timeout
+			if( --menu_timeout == 0 )
+			{
+				gui_stop_menu();
+				continue;
+			}
+
+			// Count down the menu_hidden timer
+			if( !menu_hidden )
+				continue;
+
+			if( --menu_hidden != 0 )
+				continue;
+
+			// The timer has just expired; force a redisplay
+			ctrlman_dispatch_event(
+				gui_menu_task,
+				GOT_TOP_OF_CONTROL,
+				0,
+				0
+			);
+
 			continue;
 		}
 
-		if( !gui_show_menu )
-			continue;
-
-		if( !menu_task_ptr )
+		if( gui_menu_task )
 		{
-			void ** const ctrlman_struct = (void*) 0x147cc;
-			DebugMsg( DM_MAGIC, 3, "Creating menu task" );
-			menu_damage = 1;
-			menu_hidden = 0;
-			old_gui_task = ctrlman_struct[2];
-			menu_task_ptr = gui_task_create( menu_handler, 0 );
-			//draw_version();
-		}
-
-		if( menu_hidden )
-		{
-			menu_hidden--;
+			gui_stop_menu();
 			continue;
 		}
 
-		//dialog_set_active();
-		if( menu_damage )
-			bmp_fill( COLOR_BG, 90, 90, 720-160, 480-180 );
-		menu_damage = 0;
-		menus_display( menus, 100, 100 );
-		//dialog_set_inactive();
+		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
+		menu_damage = 1;
+		menu_hidden = 0;
+		gui_menu_task = gui_task_create( menu_handler, 0 );
 	}
 }
 
-TASK_CREATE( "menu_task", menu_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
