@@ -45,11 +45,8 @@ CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
-//CONFIG_INT( "hist.x",		hist_x_pos,	720 - 128 - 10 );
-//CONFIG_INT( "hist.y",		hist_y_pos,	100 );
-static int hist_x_pos = 720 - 128 - 10;
-static int hist_y_pos = 100;
-
+CONFIG_INT( "hist.x",		hist_x_pos,	720 - 128 - 10 );
+CONFIG_INT( "hist.y",		hist_y_pos,	100 );
 
 /** Sobel edge detection */
 static int32_t
