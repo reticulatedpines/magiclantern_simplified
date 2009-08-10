@@ -51,6 +51,7 @@ CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
 CONFIG_INT( "timecode.y",	timecode_y,	32 );
 CONFIG_INT( "timecode.width",	timecode_width,	160 );
 CONFIG_INT( "timecode.height",	timecode_height, 20 );
+CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 /** Sobel edge detection */
@@ -508,7 +509,7 @@ lv_prop_handler(
 	case PROP_REC_TIME:
 		value /= 200; // why? it seems to work out
 		bmp_printf(
-			value < 600 ? timecode_font : FONT_MED,
+			value < timecode_warning ? timecode_font : FONT_MED,
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
 			timecode_y,
 			"%4d:%02d",
