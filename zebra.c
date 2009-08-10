@@ -45,8 +45,13 @@ CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
-CONFIG_INT( "hist.x",		hist_x_pos,	720 - 128 - 10 );
-CONFIG_INT( "hist.y",		hist_y_pos,	100 );
+CONFIG_INT( "hist.x",		hist_x,		720 - 128 - 10 );
+CONFIG_INT( "hist.y",		hist_y,		100 );
+CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
+CONFIG_INT( "timecode.y",	timecode_y,	50 );
+CONFIG_INT( "timecode.width",	timecode_width,	160 );
+CONFIG_INT( "timecode.height",	timecode_height, 20 );
+static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 /** Sobel edge detection */
 static int32_t
@@ -320,12 +325,20 @@ draw_zebra( void )
 			// Ignore the regions where the histogram
 			// will be drawn
 			if( hist_draw
-			&&  y >= hist_y_pos
-			&&  y < hist_y_pos + hist_height
-			&&  x >= hist_x_pos
-			&&  x < hist_x_pos + hist_width
+			&&  y >= hist_y
+			&&  y <  hist_y + hist_height
+			&&  x >= hist_x
+			&&  x <  hist_x + hist_width
 			)
-					continue;
+				continue;
+
+			// Ignore the timecode region
+			if( y >= timecode_y
+			&&  y <  timecode_y + timecode_height
+			&&  x >= timecode_x
+			&&  x <  timecode_x + timecode_width
+			)
+				continue;
 
 			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
@@ -343,7 +356,7 @@ draw_zebra( void )
 #endif
 
 	if( hist_draw )
-		hist_draw_image( hist_x_pos, hist_y_pos );
+		hist_draw_image( hist_x, hist_y );
 }
 
 
@@ -449,6 +462,7 @@ struct menu_entry zebra_menus[] = {
 };
 
 static void * lv_token;
+
 static void
 lv_token_handler(
 	void *			token
@@ -466,7 +480,8 @@ lv_prop_handler(
 	unsigned		len
 )
 {
-	const unsigned value = *addr;
+	unsigned value = *addr;
+
 	switch( property )
 	{
 	case PROP_LV_ACTION:
@@ -480,6 +495,26 @@ lv_prop_handler(
 	case PROP_ACTIVE_SWEEP_STATUS:
 		// Let us know when the sensor is done cleaning
 		sensor_cleaning = value;
+		break;
+	case PROP_MVR_REC_START:
+		if( value == 2 )
+			bmp_printf(
+				timecode_font,
+				timecode_x,
+				timecode_y,
+				"REC: "
+			);
+		break;
+	case PROP_REC_TIME:
+		value /= 200; // why? it seems to work out
+		bmp_printf(
+			value < 600 ? timecode_font : FONT_MED,
+			timecode_x + 5 * fontspec_font(timecode_font)->width,
+			timecode_y,
+			"%4d:%02d",
+			value / 60,
+			value % 60
+		);
 		break;
 	default:
 		break;
@@ -496,6 +531,8 @@ zebra_task( void )
 		PROP_LV_ACTION,
 		PROP_GUI_STATE,
 		PROP_ACTIVE_SWEEP_STATUS,
+		PROP_MVR_REC_START,
+		PROP_REC_TIME,
 	};
 
 	prop_register_slave(

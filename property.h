@@ -34,7 +34,9 @@
 #define PROP_HDMI_0002e		0x8003002e // edidc?
 #define PROP_MVR_REC_START	0x80030033 // 0 = no, 1 = stating, 2 = recording
 
-#define PROP_REC_TIME		0x02010009 // output at 1 Hz while recording
+
+/** 0x02010000 - 0x02010014 == card state? */
+#define PROP_REC_TIME		0x02010009 // time remaining.  output at 1 Hz while recording
 
 /** These are good guesses */
 #define PROP_GUI_STATE		0x80020000 // 0 == IDLE, 1 == PLAYMENU?, 3 == START_QR_MODE
