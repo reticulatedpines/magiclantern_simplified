@@ -48,7 +48,7 @@ CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - 128 - 10 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
 CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
-CONFIG_INT( "timecode.y",	timecode_y,	50 );
+CONFIG_INT( "timecode.y",	timecode_y,	32 );
 CONFIG_INT( "timecode.width",	timecode_width,	160 );
 CONFIG_INT( "timecode.height",	timecode_height, 20 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
