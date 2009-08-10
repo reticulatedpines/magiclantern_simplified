@@ -273,23 +273,24 @@ debug_init( void )
 					| (j << 16)
 					| (k <<  0);
 
-				if( prop == 0x80030014
-				||  prop == 0x80030015
-				||  prop == 0x80050000
-				||  prop == 0x80050004
-				||  prop == 0x80050005
-				||  prop == 0x80050010
-				||  prop == 0x8005000f
-				)
-					continue;
+				if( prop != 0x80030014
+				&&  prop != 0x80030015
+				&&  prop != 0x80050000
+				&&  prop != 0x80050004
+				&&  prop != 0x80050005
+				&&  prop != 0x80050010
+				&&  prop != 0x8005000f
+				) {
+					property_list[ actual_num_properties++ ] = prop;
+				}
 
-				property_list[ actual_num_properties++ ] = prop;
-
+/*
 				if( i !=0 && j != 0 )
 				property_list[ actual_num_properties++ ] = 0
-					| (i << 28) 
-					| (j << 24)
+					| (2 << 24) 
+					| (j << 16)
 					| (k <<  0);
+*/
 
 				if( actual_num_properties > num_properties )
 					goto thats_all;
@@ -300,7 +301,10 @@ debug_init( void )
 thats_all:
 #else
 	int actual_num_properties = 0;
-	property_list[actual_num_properties++] = 0x44;
+	int i;
+	for( i=0 ;i<0xFF ; i++ )
+		property_list[actual_num_properties++] = 
+			0x02010000 | i;
 #endif
 
 	prop_register_slave(
