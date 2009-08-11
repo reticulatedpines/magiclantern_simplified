@@ -54,7 +54,7 @@ static struct menu_entry file_menus[] = {
 static void
 init_file_menu( void )
 {
-	menu_add( "Debug", file_menus, COUNT(file_menus) );
+	//menu_add( "Debug", file_menus, COUNT(file_menus) );
 }
 
 INIT_FUNC( __FILE__, init_file_menu );

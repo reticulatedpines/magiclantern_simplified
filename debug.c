@@ -175,10 +175,12 @@ struct menu_entry debug_menus[] = {
 		.select		= call_dispcheck,
 		.display	= menu_print,
 	},
+#if 0
 	{
 		.display	= mvr_time_const_display,
 		.select		= mvr_time_const_select,
 	},
+#endif
 };
 
 
