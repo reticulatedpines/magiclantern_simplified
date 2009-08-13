@@ -594,7 +594,7 @@ gui_stop_menu( void )
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
-	bmp_fill( 0, 90, 35, 720, 400 );
+	bmp_fill( 0, 90, 90, 720-160, 480-180 );
 }
 
 
@@ -605,7 +605,7 @@ gui_hide_menu(
 {
 	menu_hidden = redisplay_time;
 	menu_damage = 1;
-	bmp_fill( 0, 90, 35, 720, 400 );
+	bmp_fill( 0, 90, 90, 720-160, 480-180 );
 }
 
 
