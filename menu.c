@@ -505,10 +505,12 @@ menu_handler(
 
 	case PRESS_ZOOM_IN_BUTTON:
 		gui_hide_menu( 100 );
-		lens_focus_start( 1 );
+		lens_focus_start( 0 );
 		break;
 
 #if 0
+	// This breaks playback if enabled; figure out why!
+	case PRESS_ZOOM_OUT_BUTTON:
 		gui_hide_menu( 100 );
 		lens_focus_start( -1 );
 		break;
@@ -518,6 +520,10 @@ menu_handler(
 	//case UNPRESS_ZOOM_OUT_BUTTON:
 		gui_hide_menu( 2 );
 		lens_focus_stop();
+		break;
+
+	case 1:
+		// Synthetic redraw event
 		break;
 
 	default:
@@ -635,7 +641,7 @@ menu_task( void )
 
 	while(1)
 	{
-		int rc = take_semaphore( gui_sem, 1000 );
+		int rc = take_semaphore( gui_sem, 500 );
 		if( rc != 0 )
 		{
 			// We woke up after 1 second
@@ -650,19 +656,26 @@ menu_task( void )
 			}
 
 			// Count down the menu_hidden timer
-			if( !menu_hidden )
-				continue;
-
-			if( --menu_hidden != 0 )
-				continue;
-
-			// The timer has just expired; force a redisplay
-			ctrlman_dispatch_event(
-				gui_menu_task,
-				GOT_TOP_OF_CONTROL,
-				0,
-				0
-			);
+			if( menu_hidden )
+			{
+				if( --menu_hidden != 0 )
+					continue;
+				// Force an update on timer expiration
+				ctrlman_dispatch_event(
+					gui_menu_task,
+					GOT_TOP_OF_CONTROL,
+					0,
+					0
+				);
+			} else {
+				// Inject a synthetic timing event
+				ctrlman_dispatch_event(
+					gui_menu_task,
+					1,
+					0,
+					0
+				);
+			}
 
 			continue;
 		}

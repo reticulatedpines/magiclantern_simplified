@@ -14,6 +14,7 @@
 
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
+static int focus_dir;
 
 static struct semaphore * focus_stack_sem;
 
@@ -36,7 +37,7 @@ display_lens_hyperfocal(
 	int			selected
 )
 {
-	unsigned		font = FONT_LARGE;
+	unsigned		font = FONT_MED;
 	unsigned		height = fontspec_height( font );
 
 	bmp_printf( font, x, y,
@@ -125,6 +126,23 @@ CONFIG_INT( "focus.rack-speed", focus_rack_speed, 4 );
 
 
 static void
+focus_dir_display( 
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+) {
+
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Focus dir:  %s",
+		focus_dir ? "FAR " : "NEAR"
+	);
+}
+
+static void
 focus_show_a( 
 	void *			priv,
 	int			x,
@@ -189,7 +207,11 @@ lens_focus_start(
 	int		dir
 )
 {
-	focus_task_dir = dir;
+	if( dir == 0 )
+		focus_task_dir = focus_dir ? 1 : -1;
+	else
+		focus_task_dir = dir;
+
 	give_semaphore( focus_task_sem );
 }
 
@@ -282,7 +304,13 @@ focus_task( void )
 TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 
+
 static struct menu_entry focus_menu[] = {
+	{
+		.priv		= &focus_dir,
+		.display	= focus_dir_display,
+		.select		= menu_binary_toggle,
+	},
 	{
 		.display	= focus_show_a,
 		.select		= focus_reset_a,
