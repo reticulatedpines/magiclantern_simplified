@@ -328,13 +328,15 @@ SCRIPTS=\
 
 #	$(PYMITE_PATH)/src/tools/pmImgCreator.py \
 
-pymite-img.c: $(SCRIPTS)
+pymite-nat.c pymite-img.c: $(SCRIPTS)
+	$(call build,PYMITE,\
 	./pymite-compile \
 		-c \
 		-u \
-		-o $@ \
+		-o pymite-img.c \
 		--native-file=pymite-nat.c \
-		$^
+		$^ \
+	)
 
 # Quiet the build process
 build = \
