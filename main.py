@@ -2,6 +2,7 @@
 
 """__NATIVE__
 #include "bmp.h"
+#include "pymite-helpers.h"
 """
 
 def bmp_puts(x,y,s):
@@ -14,26 +15,10 @@ def bmp_puts(x,y,s):
 		return retval;
 	}
 
-	pPmObj_t pn;
-	pn = NATIVE_GET_LOCAL(0);
-	if( OBJ_GET_TYPE(pn) != OBJ_TYPE_INT )
-	{
-		PM_RAISE( retval, PM_RET_EX_TYPE );
-		return retval;
-	}
+	int x = PM_ARG_INT(0);
+	int y = PM_ARG_INT(1);
 
-	int x = ((pPmInt_t)pn)->val;
-
-	pn = NATIVE_GET_LOCAL(1);
-	if( OBJ_GET_TYPE(pn) != OBJ_TYPE_INT )
-	{
-		PM_RAISE( retval, PM_RET_EX_TYPE );
-		return retval;
-	}
-
-	int y = ((pPmInt_t)pn)->val;
-
-	pn = NATIVE_GET_LOCAL(2);
+	pPmObj_t pn = NATIVE_GET_LOCAL(2);
 	if( OBJ_GET_TYPE(pn) == OBJ_TYPE_STR )
 	{
 		bmp_printf( FONT_LARGE, x, y, "%s", ((pPmString_t)pn)->val );
@@ -49,6 +34,27 @@ def bmp_puts(x,y,s):
 	}
 
 	PM_RAISE( retval, PM_RET_EX_TYPE );
+	return retval;
+	"""
+	pass
+
+def bmp_fill(color,x,y,w,h):
+	"""__NATIVE__
+	PmReturn_t retval = PM_RET_OK;
+
+	if( NATIVE_GET_NUM_ARGS() != 5 )
+	{
+		PM_RAISE( retval, PM_RET_EX_TYPE );
+		return retval;
+	}
+
+	unsigned color = PM_ARG_INT(0);
+	unsigned x = PM_ARG_INT(1);
+	unsigned y = PM_ARG_INT(2);
+	unsigned w = PM_ARG_INT(3);
+	unsigned h = PM_ARG_INT(4);
+	bmp_fill( color, x, y, w, h );
+	NATIVE_SET_TOS(PM_NONE);
 	return retval;
 	"""
 	pass

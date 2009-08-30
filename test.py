@@ -11,8 +11,8 @@ def run_test():
 #run_test()
 
 import main;
-main.bmp_puts( 200, 40, "Hi there" );
-#main.bmp_puts( 200, 60, "Hello %03d" % 5 );
-#bmp_puts( 200, 60, 9999 );
+
+main.bmp_fill( 3, 0, 30, 720, 300 )
+main.bmp_puts( 200, 40, "Hi there" )
 
 run_test()
