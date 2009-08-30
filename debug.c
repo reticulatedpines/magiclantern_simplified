@@ -9,17 +9,63 @@
 #include "property.h"
 #include "config.h"
 
+void
+display_full_hd(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	unsigned * gui_struct = (void*) 0x3548;
+	unsigned * ps_struct = (void*) 0x11bb8;
+	// disp=0x08 == 3 == 1080p, 5 == vga
+	// vid=0x0c == 0
+	// hdmi=0x10 == 3, 5 == vga
+	// c4=0xc4 == 0, 1 == vga
+
+	unsigned (*GetDisplayType)(void) = (void*) 0xFF863590;
+
+	bmp_printf(
+		FONT_MED,
+		x, y,
+		//23456789012
+		"disp=%x vid=%x hdmi=%x c4=%x ps=%x type=%x/%x",
+		gui_struct[0x08 / 4],
+		gui_struct[0x0C / 4],
+		gui_struct[0x10 / 4],
+		gui_struct[0xC4 / 4],
+		ps_struct[0x230 / 4],
+		hdmi_config.disp_type,
+		hdmi_config.off_0x0c
+	);
+}
+
+
 void enable_full_hd( void * priv )
 {
 	DebugMsg( DM_MAGIC, 3, "Attempting to set HDMI to full HD" );
 
+#if 1
 	thunk ChangeHDMIOutputSizeToFULLHD = (thunk) 0xFFA96260;
-	void (*SetDisplayType)(int) = (void*) 0xFF8620DC;
+	//void (*SetDisplayType)(int) = (void*) 0xFF8620DC;
+	void (*SetDisplayType)(int) = (void*) 0xFFB4835C;
 
-	SetDisplayType( 3 );
+	//SetDisplayType( 0 );
+	unsigned * gui_struct = (void*) 0x3548;
+	unsigned * ps_struct = (void*) 0x11bb8;
 	ChangeHDMIOutputSizeToFULLHD();
+	//gui_struct[ 0xC4/4 ] = 0; // not resized?
+	//ps_struct[ 0x230/4 ] = 6; // who knows
 
 	DebugMsg( DM_MAGIC, 3, "Full HD done?" );
+#else
+	// This will select the image on the full screen.
+	// but not change the output resolution
+	void (*lv_output_device)( const char ** arg ) = (void*) 0xFF833218;
+	const char * full_hd = "1080full";
+	lv_output_device( &full_hd );
+#endif
 }
 
 void call_dispcheck( void * priv )
@@ -49,7 +95,21 @@ efic_temp_property_handler(
 	unsigned		len
 )
 {
-	efic_temp = *addr;
+	switch(  property )
+	{
+	case PROP_EFIC_TEMP:
+		efic_temp = *addr;
+		break;
+
+	case PROP_HDMI_CHANGE_CODE:
+		DebugMsg( DM_MAGIC, 3, "They try to set code to %d", *addr );
+		//*addr = 5;
+		break;
+
+	default:
+		break;
+	}
+
 	prop_cleanup( efic_temp_token, property );
 }
 
@@ -174,6 +234,11 @@ struct menu_entry debug_menus[] = {
 		.priv		= "Screenshot",
 		.select		= call_dispcheck,
 		.display	= menu_print,
+	},
+	{
+		.priv		= "Enable full HD",
+		.select		= enable_full_hd,
+		.display	= display_full_hd,
 	},
 #if 0
 	{
@@ -319,6 +384,7 @@ thats_all:
 
 	static unsigned efic_properties[] = {
 		PROP_EFIC_TEMP,
+		PROP_HDMI_CHANGE_CODE
 	};
 
 	prop_register_slave(
