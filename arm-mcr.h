@@ -25,6 +25,8 @@
 #define _arm_mcr_h_
 
 #include <stdint.h>
+#include <limits.h>
+#include <sys/types.h>
 #include "compiler.h"
 
 typedef void (*thunk)(void);
@@ -37,13 +39,10 @@ typedef signed short	int16_t;
 typedef unsigned short	uint16_t;
 typedef signed char	int8_t;
 typedef unsigned char	uint8_t;
-#endif
 
 typedef uint32_t	size_t;
 typedef int32_t		ssize_t;
-
-#define offsetof(type, member) \
-	((uint32_t) &(( (type*) 0 )->member))
+#endif
 
 static inline uint32_t
 read_lr( void )

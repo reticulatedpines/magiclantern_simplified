@@ -27,6 +27,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <string.h>
+
+
 /** Compile time failure if a structure is not sized correctly */
 #define SIZE_CHECK_STRUCT( struct_name, size ) \
 	static uint8_t __attribute__((unused)) \
@@ -42,9 +45,6 @@
 
 /** Flag an argument as unused */
 #define UNUSED(x) __attribute__((unused)) x
-
-/** NULL pointer */
-#define NULL	((void*) 0)
 
 
 /** We don't have free yet */

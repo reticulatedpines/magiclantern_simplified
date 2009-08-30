@@ -136,61 +136,6 @@ bmp_printf(
 }
 
 
-int
-fprintf(
-	FILE *			file,
-	const char *		fmt,
-	...
-)
-{
-	va_list			ap;
-	char			buf[ 256 ];
-
-	va_start( ap, fmt );
-	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
-	va_end( ap );
-
-	FIO_WriteFile( file, buf, len );
-	return len;
-}
-
-
-int
-snprintf(
-	char *			buf,
-	size_t			max_len,
-	const char *		fmt,
-	...
-)
-{
-	va_list			ap;
-
-	va_start( ap, fmt );
-	int len = vsnprintf( buf, max_len, fmt, ap );
-	va_end( ap );
-	return len;
-}
-
-
-char *
-strncpy(
-	char *			dest,
-	const char *		src,
-	size_t			n
-)
-{
-	while( n-- )
-	{
-		char c = *src++;
-		*dest++ = c;
-		if( !c )
-			break;
-	}
-
-	return dest;
-}
-
-
 void
 bmp_hexdump(
 	unsigned		fontspec,
