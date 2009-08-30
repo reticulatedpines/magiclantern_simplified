@@ -25,7 +25,7 @@ all: magiclantern.fir
 
 CF_CARD="/Volumes/KINGSTON"
 
-install: magiclantern.fir magiclantern.cfg cropmarks.bmp
+install: magiclantern.fir magiclantern.cfg cropmarks.bmp test.pym
 	cp $^ $(CF_CARD)
 	hdiutil unmount $(CF_CARD)
 
@@ -335,6 +335,15 @@ pymite-nat.c pymite-img.c: $(SCRIPTS)
 		-u \
 		-o pymite-img.c \
 		--native-file=pymite-nat.c \
+		$^ \
+	)
+
+%.pym: %.py
+	$(call build,PYMITE,\
+	./pymite-compile \
+		-b \
+		-u \
+		-o $@ \
 		$^ \
 	)
 

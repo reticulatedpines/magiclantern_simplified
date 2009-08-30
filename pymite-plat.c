@@ -196,6 +196,16 @@ plat_reportError(PmReturn_t result)
     plat_putByte('r');
     plat_putByte('r');
     plat_putByte('\n');
+
+	bmp_printf(
+		FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED),
+		10,
+		30,
+		"ERROR: %02x file 0x%02x.%d",
+		result,
+		gVmGlobal.errFileId,
+		gVmGlobal.errLineNum
+	);
 }
 
 
