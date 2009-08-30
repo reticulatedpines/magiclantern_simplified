@@ -28,3 +28,5 @@ tags
 *.wav
 *.i
 *.log
+docs/html
+docs/latex
