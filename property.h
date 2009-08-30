@@ -28,10 +28,11 @@
 /** These are known */
 #define PROP_BURST_COUNT	0x80030006
 #define PROP_BAT_INFO		0x8003001d
+#define PROP_TFT_STATUS		0x80030015
 #define PROP_LENS_NAME		0x80030021
 #define PROP_LENS_SOMETHING	0x80030022
 #define PROP_HDMI_CHANGE	0x8003002c
-#define PROP_HDMI_0002e		0x8003002e // edidc?
+#define PROP_HDMI_CHANGE_CODE	0x8003002e // edidc?
 #define PROP_MVR_REC_START	0x80030033 // 0 = no, 1 = stating, 2 = recording
 
 

@@ -71,7 +71,7 @@ typedef enum {
 	DIAL_LEFT			= 0x82E,
 	DIAL_RIGHT			= 0x82F,
 	PRESS_DISP_BUTTON		= 0x10000000, // also play?
-	PRESS_TRASH_BUTTON		= 0x10000001,
+	PRESS_ERASE_BUTTON		= 0x10000001,
 	PRESS_DIRECT_PRINT_BUTTON	= 0x10000005,
 	PRESS_FUNC_BUTTON		= 0x10000007,
 	PRESS_PICTURE_STYLE_BUTTON	= 0x10000009,
@@ -83,7 +83,8 @@ typedef enum {
 	GUI_TIMER2			= 0x10000069, // no idea
 	GUI_TIMER3			= 0x1000006D, // no idea
 	START_SHOOT_MOVIE		= 0x1000008A,
-	GUI_TIMER			= 0x10000085, // no idea
+	GUI_PROP_EVENT			= 0x10000085, // maybe?
+	LOCAL_MOVIE_RECORD_STOP		= 0x10000078, // DlgLiveViewApp
 	GUICMD_UI_OK			= 0x100000A1,
 	GUICMD_START_AS_CHECK		= 0x100000A2,
 	GUICMD_LOCK_OFF			= 0x100000A3,
@@ -108,7 +109,8 @@ typedef int (*gui_event_handler)(
 	void *			priv,
 	gui_event_t		event,
 	int			arg2,
-	int			arg3
+	int			arg3,
+	unsigned		arg4
 );
 
 

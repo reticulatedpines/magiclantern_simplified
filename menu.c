@@ -413,27 +413,44 @@ menu_handler(
 	void *			priv,
 	gui_event_t		event,
 	int			arg2,
-	int			arg3
+	int			arg3,
+	unsigned		arg4
 )
 {
 	// Ignore periodic events (pass them on)
 	if( 0
-	||  event == GUI_TIMER
 	||  event == GUI_TIMER2
 	||  event == GUI_TIMER3
 	||  event == GUI_TIMER4
 	)
-		return 1;
+		return 0;
 
-	DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
-
-	if( draw_event )
-		bmp_printf( FONT_SMALL, 400, 40,
-			"event %08x args %08x %08x",
-			event,
-			arg2,
-			arg3
+	if( event == GUI_PROP_EVENT )
+	{
+		if(0) bmp_printf( FONT_SMALL, 400, 40,
+			"prop %08x => %08x",
+			arg4,
+			*(unsigned*) arg4
 		);
+
+		// Mine!  No one else gets it
+		return 0;
+	}
+
+	if( event != 1 )
+	{
+		if( draw_event )
+			bmp_printf( FONT_SMALL, 400, 40,
+				"event %08x args %08x %08x %08x",
+				event,
+				arg2,
+				arg3,
+				arg4
+			);
+
+		DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
+	}
+
 
 	// Find the selected menu (should be cached?)
 	struct menu * menu = menus;
