@@ -30,3 +30,5 @@ tags
 *.log
 docs/html
 docs/latex
+pymite-nat.c
+pymite-img.c
