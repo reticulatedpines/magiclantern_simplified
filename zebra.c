@@ -35,8 +35,13 @@ static struct bmp_file_t * cropmarks;
 static volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
+#define vram_start_line	33
+#define vram_end_line	380
+
 static const unsigned hist_height	= 64;
 static const unsigned hist_width	= 128;
+static const unsigned waveform_height	= 128;
+static const unsigned waveform_width	= (vram_end_line - vram_start_line) / 2;
 
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
 CONFIG_INT( "zebra.level",	zebra_level,	0xF000 );
@@ -47,12 +52,15 @@ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - 128 - 10 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
+CONFIG_INT( "waveform.x",	waveform_x,	720 - 256 - 10 );
+CONFIG_INT( "waveform.y",	waveform_y,	280 );
 CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
 CONFIG_INT( "timecode.y",	timecode_y,	32 );
 CONFIG_INT( "timecode.width",	timecode_width,	160 );
 CONFIG_INT( "timecode.height",	timecode_height, 20 );
 CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
+
 
 /** Sobel edge detection */
 static int32_t
@@ -174,6 +182,9 @@ check_crop(
 }
 
 
+/** Store the waveform data for each of the 256 bins with 128 scan lines */
+static uint32_t waveform[ (vram_end_line - vram_start_line)/2 ][ 128 ];
+
 /** Store the histogram data for each of the 128 bins */
 static uint32_t hist[ 128 ];
 
@@ -202,10 +213,11 @@ hist_build( void )
 	uint32_t x,y;
 
 	hist_max = 0;
-	for( x=0 ; x<COUNT(hist) ; x++ )
-		hist[x] = 0;
 
-	for( y=33 ; y<390; y++, v_row += (vram->pitch/2) )
+	memset( hist, 0, sizeof(hist) );
+	memset( waveform, 0, sizeof(waveform) );
+
+	for( y=vram_start_line ; y<vram_end_line; y++, v_row += (vram->pitch/2) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -219,6 +231,9 @@ hist_build( void )
 			unsigned count = ++hist[ p ];
 			if( p && count > hist_max )
 				hist_max = count;
+
+			// Update the waveform plot
+			waveform[ (y - vram_start_line) / 2 ][ p ]++;
 		}
 	}
 }
@@ -263,6 +278,45 @@ hist_draw_image(
 	);
 
 	hist_max = 0;
+}
+
+
+/** Draw the waveform image into the bitmap framebuffer.
+ *
+ * Draw one pixel at a time; it seems to be ok with err70.
+ * Since there is plenty of math per pixel this doesn't
+ * swamp the bitmap framebuffer hardware.
+ */
+static void
+waveform_draw_image(
+	unsigned		x_origin,
+	unsigned		y_origin
+)
+{
+	uint8_t * const bvram = bmp_vram();
+	uint8_t * row = bvram + x_origin + y_origin * bmp_pitch();
+	if( hist_max == 0 )
+		hist_max = 1;
+
+	unsigned i, y;
+
+	for( i=0 ; i<waveform_width ; i++ )
+	{
+		uint8_t * col = row + i;
+
+		// vertical line up to the hist size
+		for( y=waveform_height ; y>0 ; y-- , col += bmp_pitch() )
+		{
+			uint32_t count = waveform[ i ][ y ];
+			// Scale to a grayscale
+			count = (count * 42) / 128;
+			if( count > 42 )
+				count = 0x0F;
+			else
+				count += 0x26;
+			*col = count;
+		}
+	}
 }
 
 
@@ -323,13 +377,21 @@ draw_zebra( void )
 			if( gui_menu_task || !lv_drawn )
 				return;
 
-			// Ignore the regions where the histogram
-			// will be drawn
+			// Ignore the regions where the histogram will be drawn
 			if( hist_draw
 			&&  y >= hist_y
 			&&  y <  hist_y + hist_height
 			&&  x >= hist_x
 			&&  x <  hist_x + hist_width
+			)
+				continue;
+
+			// Ignore the regions where the waveform will be drawn
+			if( hist_draw
+			&&  y >= waveform_y
+			&&  y <  waveform_y + waveform_height
+			&&  x >= waveform_x
+			&&  x <  waveform_x + waveform_width
 			)
 				continue;
 
@@ -357,7 +419,10 @@ draw_zebra( void )
 #endif
 
 	if( hist_draw )
+	{
 		hist_draw_image( hist_x, hist_y );
+		waveform_draw_image( waveform_x, waveform_y );
+	}
 }
 
 
