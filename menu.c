@@ -553,7 +553,8 @@ menu_handler(
 	// Reset the timeout
 	menu_timeout = menu_timeout_time;
 
-	if( menu_hidden )
+	// If we are hidden or no longer exit, do not redraw
+	if( menu_hidden || !gui_menu_task )
 		return 0;
 
 	if( menu_damage )
