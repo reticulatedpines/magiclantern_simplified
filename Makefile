@@ -13,6 +13,13 @@ VERSION=0.1.7
 ROMBASEADDR		= 0xFF810000
 RESTARTSTART		= 0x00048000
 
+# PyMite scripting paths
+PYMITE_PATH		= $(HOME)/build/pymite-08
+PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
+PYMITE_CFLAGS		= \
+	-I$(PYMITE_PATH)/src/vm \
+	-I$(PYMITE_PATH)/src/platform/dryos \
+
 
 all: magiclantern.fir
 
@@ -55,6 +62,7 @@ CFLAGS=\
 	-Wall \
 	-W \
 	-Wno-unused-parameter \
+	$(PYMITE_CFLAGS) \
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -103,6 +111,7 @@ magiclantern: \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
+	stdio.o \
 	menu.o \
 	debug.o \
 	gui.o \
@@ -115,10 +124,14 @@ magiclantern: \
 	bmp.o \
 	bracket.o \
 	script.o \
+	pymite-plat.o \
+	pymite-nat.o \
+	pymite-img.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
 	stubs-5d2.110.o \
+	$(PYMITE_LIB) \
 	version.o \
 
 	$(call build,LD,$(LD) \
@@ -305,6 +318,23 @@ dummy_data_head.bin:
 # Firmware manipulation tools
 dissect_fw: dissect_fw.c
 	$(HOST_CC) $(HOST_CFLAGS) -o $@ $<
+
+
+#
+# Embedded Python scripting
+#
+SCRIPTS=\
+	main.py \
+
+#	$(PYMITE_PATH)/src/tools/pmImgCreator.py \
+
+pymite-img.c: $(SCRIPTS)
+	./pymite-compile \
+		-c \
+		-u \
+		-o $@ \
+		--native-file=pymite-nat.c \
+		$^
 
 # Quiet the build process
 build = \

@@ -1,11 +1,12 @@
 /** \file
- * Script loader.
+ * Python Script loader.
  */
 
 #include "dryos.h"
 #include "menu.h"
 #include "tasks.h"
 #include "bmp.h"
+#include "pm.h" // PyMite
 
 
 static void
@@ -52,11 +53,18 @@ static struct menu_entry file_menus[] = {
 };
 
 static void
-init_file_menu( void )
+start_scripting( void )
 {
 	//menu_add( "Debug", file_menus, COUNT(file_menus) );
+
+	msleep( 5000 );
+	bmp_printf( FONT_SMALL, 0, 300, "Starting scripting" );
+
+	extern const unsigned char usrlib_img[];
+	pm_init( MEMSPACE_PROG, usrlib_img );
+	pm_run( (uint8_t*) "main" );
 }
 
-INIT_FUNC( __FILE__, init_file_menu );
+TASK_CREATE( __FILE__, start_scripting, 0, 0x1f, 0x1000 );
 
 
