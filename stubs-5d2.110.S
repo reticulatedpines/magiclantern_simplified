@@ -164,6 +164,7 @@ NSTUB( 0xFFA55B38, dialog_label_item )
 NSTUB( 0xFFA549C0, dialog_redraw_maybe ) // maybe
 NSTUB( 0xFFA56DE8, dialog_set_enabled )
 NSTUB( 0xFFA56E3C, dialog_make_visible ) // maybe
+NSTUB( 0xFFA55288, dialog_handler )
 
 /** Look for "GUI_SetLvMode" */
 NSTUB( 0xFF9AF4A4, gui_set_lv_mode )

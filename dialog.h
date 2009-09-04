@@ -284,4 +284,9 @@ dialog_label_item(
 );
 
 
+/** Top level dialog handler (gui_task) */
+extern void
+dialog_handler( void );
+
+
 #endif
