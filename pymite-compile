@@ -142,7 +142,6 @@ else:
 
 # PyMite's unimplemented bytecodes (from Python 2.0 through 2.5)
 UNIMPLEMENTED_BCODES = [
-    "UNARY_CONVERT",
     "SLICE+1", "SLICE+2", "SLICE+3",
     "STORE_SLICE+0", "STORE_SLICE+1", "STORE_SLICE+2", "STORE_SLICE+3",
     "DELETE_SLICE+0", "DELETE_SLICE+1", "DELETE_SLICE+2", "DELETE_SLICE+3",
