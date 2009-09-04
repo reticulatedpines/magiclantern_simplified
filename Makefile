@@ -62,6 +62,7 @@ CFLAGS=\
 	-Wall \
 	-W \
 	-Wno-unused-parameter \
+	-D__ARM__ \
 	$(PYMITE_CFLAGS) \
 
 NOT_USED_FLAGS=\
@@ -120,6 +121,8 @@ magiclantern: \
 	focus.o \
 	zebra.o \
 	hotplug.o \
+	reloc.o \
+	liveview.o \
 	config.o \
 	bmp.o \
 	bracket.o \

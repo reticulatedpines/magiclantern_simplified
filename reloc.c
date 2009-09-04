@@ -1,3 +1,11 @@
+/** \file
+ * Fixup ARM assembly to forcibly relocate it from ROM into RAM.
+ *
+ * This will walk through a copy of a ARM executable and find all of
+ * the %pc relative addressing modes. These will be fixed-up to allow
+ * the function to be run from a new location.
+ */
+#ifndef __ARM__
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -5,7 +13,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
+#include "reloc.h"
+
+int verbose = 0;
 
 #define REG_PC		15
 #define LOAD_MASK	0x0C000000
@@ -18,22 +30,25 @@
 
 /** Search through a memory region, looking for branch instructions */
 void
-fixup(
+reloc(
 	uint32_t *		buf,
 	uintptr_t		load_addr,
 	uintptr_t		func_offset,
-	size_t			func_len
+	size_t			func_end,
+	uintptr_t		new_pc
 )
 {
-	uintptr_t		i;
+	uintptr_t		pc;
 	uint8_t * const		mem = ((uint8_t*) buf) - load_addr;
-	uintptr_t		func_end = func_offset + func_len;
+	const uintptr_t		func_len = func_end - func_offset;
 
+#ifndef __ARM__
 	printf( "Fixing from %08x to %08x\n", func_offset, func_end );
+#endif
 
-	for( i=func_offset ; i<func_end ; i += 4 )
+	for( pc=func_offset ; pc<func_end ; pc += 4, new_pc += 4 )
 	{
-		uint32_t instr = *(uint32_t*)( mem+i );
+		uint32_t instr = *(uint32_t*)( mem+pc );
 		uint32_t branch = instr & BRANCH_MASK;
 		uint32_t load = instr & LOAD_MASK;
 
@@ -46,19 +61,60 @@ fixup(
 			// Sign extend the offset
 			if( offset & 0x00800000 )
 				offset |= 0xFF000000;
-			uintptr_t dest = i + (offset << 2) + 8;
+			uintptr_t dest = pc + (offset << 2) + 8;
 
 			// Ignore branches inside the reloc space
 			if( func_offset <= dest && dest < func_end )
 				continue;
 
+#ifndef __ARM__
+			if( verbose )
 			printf( "%08x: %08x B%s %08x => %08x\n",
-				i,
+				pc,
 				instr,
 				branch == BRANCH_LINK ? "L" : " ",
 				offset,
 				dest
 			);
+#endif
+
+			// Can we make this work?
+			int32_t new_jump = (dest - new_pc - 8);
+			new_jump >>= 2;
+			if( new_jump >= +0x00800000
+			||  new_jump <= -0x00800000
+			) {
+#ifndef __ARM__
+				printf( "%08x: !!!! can not fixup jump from %08x to %08x (offset %s%08x)\n",
+					pc,
+					new_pc,
+					dest,
+					new_jump < 0 ? "-" : "+",
+					new_jump < 0 ? -new_jump : new_jump
+				);
+#endif
+				continue;
+			}
+
+			uint32_t new_instr = 0
+				| (instr & ~BRANCH_OFFSET)
+				| (new_jump & BRANCH_OFFSET);
+
+#ifndef __ARM__
+			printf( "%08x: %08x => %08x fixup offset %08x => %s%08x\n",
+				pc,
+				instr,
+				new_instr,
+				offset,
+				new_jump < 0 ? "-" : "+",
+				new_jump < 0 ? -new_jump : new_jump
+			);
+#endif
+
+#ifdef __ARM__
+			// Write the new instruction into memory
+			*(uint32_t*) new_pc = new_instr;
+#endif
 
 			continue;
 		}
@@ -77,26 +133,32 @@ fixup(
 			if( (instr & (1<<23)) == 0 )
 				offset = -offset;
 
-			uint32_t dest		= i + offset + 8;
+			// Compute the destination, including the change in pc
+			uint32_t dest		= pc + offset + 8;
 
 			// Ignore ones that are within our reloc space
 			if( func_offset <= dest && dest < func_end )
 				continue;
 
+#ifndef __ARM__
+			// This is one that will need to be copied
+			// but we currently don't do anything!
 			printf( "%08x: %08x LD %d, %d, %d => %08x\n",
-				i,
+				pc,
 				instr,
 				reg_dest,
 				reg_base,
 				offset,
 				dest
 			);
+#endif
 			continue;
 		}
 	}
 }
 
 
+#ifndef __ARM__
 int
 main(
 	int			argc,
@@ -109,10 +171,16 @@ main(
 	const char *		filename = argv[1];
 	const uintptr_t		load_addr	= 0xFF800000;
 
-	// DlgLiveViewApp to test
-	const size_t		func_start	= 0xFFA96B1C;
-	const size_t		func_end	= 0xFFA97FF8;
-	const size_t		func_len	= func_end - func_start; 
+	// DlgLiveViewApp and other routines to test
+	//size_t		func_start	= 0xFFA96B1C; // DlgLiveViewApp
+	size_t		func_start	= 0xffa96390; // early data
+	size_t		func_end	= 0xFFA97FF8;
+	size_t		func_len	= func_end - func_start;
+
+	if( argc > 2 )
+		func_start = strtoul( argv[2], 0, 0 );
+	if( argc > 3 )
+		func_end = strtoul( argv[3], 0, 0 );
 
 	int fd = open( filename, O_RDONLY );
 	if( fd < 0 )
@@ -132,10 +200,11 @@ main(
 	if( read( fd, buf, len ) != len )
 		goto abort;
 
-	fixup( buf, load_addr, func_start, func_len );
+	reloc( buf, load_addr, func_start, func_end, 0x9000 );
 
 	return 0;
 abort:
 	perror( filename );
 	return -1;
 }
+#endif
