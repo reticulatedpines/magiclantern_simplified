@@ -139,7 +139,7 @@ struct gui_task_list
 	uint32_t		off_0x18;
 };
 
-extern struct gui_task_list *	gui_task_list;
+extern struct gui_task_list 	gui_task_list;
 
 extern struct gui_task *
 gui_task_create(
