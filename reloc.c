@@ -46,11 +46,16 @@ reloc(
 	printf( "Fixing from %08x to %08x\n", func_offset, func_end );
 #endif
 
-	for( pc=func_offset ; pc<func_end ; pc += 4, new_pc += 4 )
+	for( pc=func_offset ; pc<=func_end ; pc += 4, new_pc += 4 )
 	{
 		uint32_t instr = *(uint32_t*)( mem+pc );
 		uint32_t branch = instr & BRANCH_MASK;
 		uint32_t load = instr & LOAD_MASK;
+
+#ifdef __ARM__
+		// The default is to just copy the instruction
+		*(uint32_t*) new_pc = instr;
+#endif
 
 		// Check for branch
 		if( branch == BRANCH_LINK

@@ -30,7 +30,7 @@ reloc_dlgliveviewapp( void )
 	);
 
 	uintptr_t DlgLiveViewApp = 0xffa96b1c;
-	uintptr_t new_DlgLiveViewApp = (DlgLiveViewApp - reloc_start) + reloc;
+	uintptr_t new_DlgLiveViewApp = (DlgLiveViewApp - reloc_start) + reloc_buf;
 
 	msleep( 4000 );
 
@@ -64,7 +64,11 @@ reloc_dlgliveviewapp( void )
 		);
 
 		if( dialog->handler == DlgLiveViewApp )
+		{
 			dialog->handler = new_DlgLiveViewApp;
+			bmp_printf( FONT_SMALL, 400, 230, "new %08x", new_DlgLiveViewApp );
+			bmp_hexdump( FONT_SMALL, 0, 300, new_DlgLiveViewApp, 128 );
+		}
 	}
 }
 
