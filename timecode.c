@@ -63,6 +63,9 @@ int main( int argc, char ** argv )
 	int synced = 0;
 	int byte_count = 0;
 
+	// SMTPE timecode frame
+	uint8_t frame[ 8 ];
+
 	// Reconstruct the clock?
 	while( offset < hdr.len )
 	{
@@ -119,7 +122,7 @@ int main( int argc, char ** argv )
 			if( (word & 0xFFFF) == 0x3FFD )
 			{
 				fprintf( stderr, "%x: Got sync!\n", offset );
-				printf( "\n%08x", offset );
+				//printf( "\n%08x", offset );
 				synced = 1;
 				word = 1;
 				byte_count = 0;
@@ -131,10 +134,42 @@ int main( int argc, char ** argv )
 		if( (word & 0x100) == 0 )
 			continue;
 
-		printf( " %02x", word & 0xFF );
+		//printf( " %02x", word & 0xFF );
+
+		// Reverse the word since we bit banged it in the wrong order
+		word = 0
+			| ( word & 0x01 ) << 7
+			| ( word & 0x02 ) << 5
+			| ( word & 0x04 ) << 3
+			| ( word & 0x08 ) << 1
+			| ( word & 0x10 ) >> 1
+			| ( word & 0x20 ) >> 3
+			| ( word & 0x40 ) >> 5
+			| ( word & 0x80 ) >> 7
+			;
+
+		frame[ byte_count++ ] = word;
 		word = 1;
-		if( ++byte_count == 8 )
-			synced = 0;
+		if( byte_count < 8 )
+			continue;
+
+		// We have a complete frame
+		synced = 0;
+		printf( "%08x", offset );
+		int i;
+		for( i=0 ; i<8 ; i++ )
+			printf( " %02x", frame[ i ] );
+
+		// Decode it:
+#define BCD_BITS(x) \
+	(frame[x/8] & 0xF)
+
+		int f = BCD_BITS(0) + 10 * (BCD_BITS(8) & 0x3);
+		int s = BCD_BITS(16) + 10 * (BCD_BITS(24) & 0x7);
+		int m = BCD_BITS(32) + 10 * BCD_BITS(40);
+		int h = BCD_BITS(48) + 10 * (BCD_BITS(56) & 0x3);
+		
+		printf( ": %02d:%02d:%02d.%02d\n", h, m, s, f  );
 	}
 	return 0;
 }
