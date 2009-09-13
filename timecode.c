@@ -88,9 +88,10 @@ tc_sample(
 
 #ifdef __ARM__
 // These deltas are in timer ticks
-#define ONE_LEN		0xC0
-#define ZERO_LEN	0x180
-#define EPS		0x40
+// Timer == 500 MHz?  0xD0 ==> 2400 Hz, 0x1A0 => 1200 Hz
+#define ONE_LEN		0xD0
+#define ZERO_LEN	0x1A0
+#define EPS		0x30
 #else
 // These are in byte offsets in the file
 #define ZERO_LEN	0x25
@@ -113,7 +114,9 @@ tc_sample(
 	} else {
 		bmp_printf(
 			FONT(FONT_SMALL,COLOR_RED,0),
-			10,
+			delta < ONE_LEN ? 10 :
+			delta > ZERO_LEN ? 210 :
+			110,
 			300,
 			"%04x",
 			delta
@@ -284,9 +287,12 @@ tc_task( void )
 		int h = BCD_BITS(48) + 10 * (BCD_BITS(56) & 0x3);
 		
 		bmp_printf(
-			FONT_LARGE,
-			100, 100,
-			"%02d:%02d:%02d.%02d",
+			FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLUE),
+			180, 150,
+			"             \n"
+			"  SMPTE LTC  \n"
+			" %02d:%02d:%02d.%02d \n"
+			"             \n",
 			h, m, s, f
 		);
 
@@ -299,7 +305,7 @@ tc_task( void )
 	}
 }
 
-TASK_CREATE( __FILE__, tc_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( __FILE__, tc_task, 0, 0x18, 0x1000 );
 #endif
 
 
