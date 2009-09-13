@@ -55,16 +55,6 @@ CONFIG_INT( "audio.mic-in",	mic_in,		0 );
 CONFIG_INT( "audio.loopback",	loopback,	1 );
 
 
-/** Read the raw level from the audio device.
- *
- * Expected values are signed 16-bit?
- */
-static inline int16_t
-audio_read_level( int channel )
-{
-	uint32_t *audio_level = (uint32_t*)( 0xC0920000 + 0x110 );
-	return (int16_t) audio_level[channel];
-}
 
 struct audio_level
 {

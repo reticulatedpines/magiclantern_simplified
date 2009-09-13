@@ -182,4 +182,16 @@ audio_ic_sweep_message_queue( void );
 /** Table of calibrations for audio levels to db */
 extern int audio_thresholds[];
 
+
+/** Read the raw level from the audio device.
+ *
+ * Expected values are signed 16-bit?
+ */
+static inline int16_t
+audio_read_level( int channel )
+{
+	uint32_t *audio_level = (uint32_t*)( 0xC0920000 + 0x110 );
+	return (int16_t) audio_level[channel];
+}
+
 #endif
