@@ -1,11 +1,18 @@
+/** \file SMPTE timecode analyzer for the audio port
+ */
 #ifndef __ARM__
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h> // for ntohl
+#else
+#include "dryos.h"
+#include "tasks.h"
+#include "audio.h"
+#include "bmp.h"
 #endif
+#include <stdint.h>
 
 // SMTPE timecode frame
 static uint8_t smpte_frame[ 8 ];
@@ -14,11 +21,14 @@ static uint8_t smpte_frame[ 8 ];
 // Returns 1 if there is a new frame available
 static int
 tc_sample(
-	uint16_t		sample
+	int16_t			sample
 )
 {
+	static uint32_t last_transition;
+
 	// Hold onto the last bit for hysteris
 	static int bit = 0;
+	static int bit_count = 0;
 
 	static uint32_t word = 0;
 	static uint32_t raw_word = 0;
@@ -26,38 +36,96 @@ tc_sample(
 	static int byte_count = 0;
 
 	// Use some hysteris to avoid zero crosing errors
+	int old_bit = bit;
+#ifdef __ARM__
+	if( sample > 1000 )
+		bit = 0;
+	else
+	if( sample < -1000 )
+		bit = 1;
+#else
 	if( sample > 40000 )
 		bit = 0;
 	else
 	if( sample < 24000 )
 		bit = 1;
+#endif
 
-	//printf( "%d %d %d\n", offset, sample, bit );
-	//return 0;
+	static int x, y = 32;
 
-	raw_word = (raw_word << 1) | bit;
-
-	// Wait until we have at least 16 bits worth of samples
-	if( (raw_word & 0xFFFF0000) == 0 )
+	// Record any transition to help reconstruct the clock
+	if( bit == old_bit )
 		return 0;
 
-	// Check for a solid lock
-	uint32_t test_word = raw_word & 0xFFFF;
-	if( test_word == 0xFF00
-	||  test_word == 0x00FF )
+	unsigned (*read_clock)(void) = (void*) 0xff9948d8;
+	unsigned now = read_clock();
+	int delta = now - last_transition;
+	last_transition = now;
+
+	// Timer is only 24 bits?
+	delta &= 0x00FFFFFF;
+
+#if 0
+	con_printf( FONT_SMALL, "%08x ", delta );
+	static int delta_count;
+	if( ((++delta_count) % 6 ) == 0 )
+		con_printf( FONT_SMALL, "\n" );
+
+	return 0;
+#endif
+
+#if 0 //def __ARM__
+	bmp_printf( FONT_SMALL, x, y, "%02x ", delta );
+	x += 3 * 8;
+	if( x > 700 )
 	{
-		//printf( "%d 1\n", (int) offset );
-		word = (word << 1) | 1;
-		raw_word = 0x1;
-	} else
-	if( test_word == 0xFFFF
-	||  test_word == 0x0000 )
+		x = 0;
+		y += 12;
+		if( y > 400 )
+		{
+			y = 32;
+			msleep( 2000 );
+		}
+	}
+	bit_count = 0;
+	return 0;
+#endif
+
+	int new_bit;
+	int valid = 0;
+
+	static unsigned last_bit;
+
+	if( 0xA0 < delta && delta < 0x120 )
 	{
-		//printf( "%d 0\n", (int) offset );
-		word = (word << 1) | 0;
-		raw_word = 0x1;
+		// Skip the second transition if we're short
+		if( ++last_bit & 1 )
+			return 0;
+		valid = 1;
+		new_bit = 0;
 	} else
+	if( 0x150 < delta && delta < 0x350 )
+	{
+		// Full bit width
+		last_bit = 0;
+		new_bit = 1;
+		valid = 1;
+	} else {
+		con_printf( FONT(FONT_SMALL,COLOR_RED,0), " %04x\n", delta );
+		// Lost sync somewhere
+		synced = 0;
+		word = 0;
 		return 0;
+	}
+
+	con_printf( FONT(FONT_SMALL,synced?COLOR_WHITE:COLOR_BLUE,0), "%1x", new_bit );
+#if 0
+	static int delta_count;
+	if( ((++delta_count) % 8 ) == 0 )
+		con_printf( FONT_SMALL, "\n" );
+#endif
+
+	word = (word << 1) | new_bit;
 
 	//printf( "%04x\n", word & 0xFFFF );
 	//return 0;
@@ -65,14 +133,16 @@ tc_sample(
 	// Check for SMPTE sync signal
 	if( !synced )
 	{
-		if( (word & 0xFFFF) == 0x3FFD )
+		if( (word & 0x1FFFF) == 0x13FFD )
 		{
 			//fprintf( stderr, "%x: Got sync!\n", offset );
 			//printf( "\n%08x", offset );
+			con_printf( FONT_SMALL, "\n== " );
 			synced = 1;
 			word = 1;
 			byte_count = 0;
 		}
+
 		return 0;
 	}
 
@@ -93,6 +163,9 @@ tc_sample(
 		| ( word & 0x40 ) >> 5
 		| ( word & 0x80 ) >> 7
 		;
+#ifdef __ARM__
+	//con_printf( FONT_SMALL, "%02x ", word );
+#endif
 
 	smpte_frame[ byte_count++ ] = word;
 	word = 1;
@@ -186,4 +259,26 @@ int main( int argc, char ** argv )
 
 	return 0;
 }
+#else
+
+static void
+tc_task( void )
+{
+	msleep( 1000 );
+
+	while(1)
+	{
+		int sample = audio_read_level( 0 );
+		tc_sample( sample );
+
+		// Busy wait for a few ticks
+		volatile int i;
+		for( i=0 ; i<50 ; i++ )
+			asm( "nop" );
+	}
+}
+
+TASK_CREATE( __FILE__, tc_task, 0, 0x1f, 0x1000 );
 #endif
+
+
