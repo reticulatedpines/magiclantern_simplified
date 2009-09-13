@@ -179,6 +179,7 @@ sei( uint32_t old_cpsr )
 #define RET_INSTR	0xe12fff1e	// bx lr
 #define FAR_CALL_INSTR	0xe51ff004	// ldr pc, [pc,#-4]
 #define LOOP_INSTR	0xeafffffe	// 1: b 1b
+#define NOP_INSTR	0xe1a00000	// mov r0, r0
 
 #define BL_INSTR(pc,dest) \
 	( 0xEB000000 \
