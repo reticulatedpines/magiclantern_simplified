@@ -85,8 +85,8 @@ _draw_char(
 void
 bmp_puts(
 	unsigned		fontspec,
-	unsigned		x,
-	unsigned		y,
+	unsigned *		x,
+	unsigned *		y,
 	const char *		s
 )
 {
@@ -94,7 +94,8 @@ bmp_puts(
 	uint8_t * vram = bmp_vram();
 	if( !vram )
 		return;
-	uint8_t * first_row = vram + y * pitch + x;
+	const unsigned initial_x = *x;
+	uint8_t * first_row = vram + (*y) * pitch + (*x);
 	uint8_t * row = first_row;
 
 	char c;
@@ -106,11 +107,14 @@ bmp_puts(
 		if( c == '\n' )
 		{
 			row = first_row += pitch * font->height;
+			(*y) += font->height;
+			(*x) = initial_x;
 			continue;
 		}
 
 		_draw_char( fontspec, row, c );
 		row += font->width;
+		(*x) += font->width;
 	}
 
 }
@@ -132,7 +136,64 @@ bmp_printf(
 	vsnprintf( buf, sizeof(buf), fmt, ap );
 	va_end( ap );
 
-	bmp_puts( fontspec, x, y, buf );
+	bmp_puts( fontspec, &x, &y, buf );
+}
+
+void
+con_printf(
+	unsigned		fontspec,
+	const char *		fmt,
+	...
+)
+{
+	va_list			ap;
+	char			buf[ 256 ];
+	static int		x = 0;
+	static int		y = 32;
+
+	va_start( ap, fmt );
+	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
+	va_end( ap );
+
+	const uint32_t		pitch = bmp_pitch();
+	uint8_t * vram = bmp_vram();
+	if( !vram )
+		return;
+	uint8_t * first_row = vram + y * pitch + x;
+	uint8_t * row = first_row;
+
+	char * s = buf;
+	char c;
+	const struct font * const font = fontspec_font( fontspec );
+
+	while( (c = *s++) )
+	{
+		if( c == '\n' )
+		{
+			row = first_row += pitch * font->height;
+			y += font->height;
+			x = 0;
+			bmp_fill( 0, 0, y, 720, font->height );
+		} else {
+			_draw_char( fontspec, row, c );
+			row += font->width;
+			x += font->width;
+		}
+
+		if( x > 720 )
+		{
+			y += font->height;
+			x = 0;
+			bmp_fill( 0, 0, y, 720, font->height );
+		}
+
+		if( y > 480 )
+		{
+			x = 0;
+			y = 32;
+			bmp_fill( 0, 0, y, 720, font->height );
+		}
+	}
 }
 
 

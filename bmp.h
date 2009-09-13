@@ -110,6 +110,12 @@ bmp_printf(
 	...
 ) __attribute__((format(printf,4,5)));
 
+extern void
+con_printf(
+	unsigned		fontspec,
+	const char *		fmt,
+	...
+) __attribute__((format(printf,2,3)));
 
 extern void
 bmp_hexdump(
@@ -124,8 +130,8 @@ bmp_hexdump(
 extern void
 bmp_puts(
 	unsigned		fontspec,
-	unsigned		x,
-	unsigned		y,
+	unsigned *		x,
+	unsigned *		y,
 	const char *		s
 );
 
