@@ -6,11 +6,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h> // for ntohl
+#define con_printf(font,...) /* Nothing */
+unsigned offset;
 #else
 #include "dryos.h"
 #include "tasks.h"
 #include "audio.h"
 #include "bmp.h"
+#define printf(fmt,...) /* Nothing */
 #endif
 #include <stdint.h>
 
@@ -37,19 +40,11 @@ tc_sample(
 
 	// Use some hysteris to avoid zero crosing errors
 	int old_bit = bit;
-#ifdef __ARM__
 	if( sample > 1000 )
 		bit = 0;
 	else
 	if( sample < -1000 )
 		bit = 1;
-#else
-	if( sample > 40000 )
-		bit = 0;
-	else
-	if( sample < 24000 )
-		bit = 1;
-#endif
 
 	static int x, y = 32;
 
@@ -57,22 +52,17 @@ tc_sample(
 	if( bit == old_bit )
 		return 0;
 
+#ifdef __ARM__
 	unsigned (*read_clock)(void) = (void*) 0xff9948d8;
 	unsigned now = read_clock();
+#else
+	unsigned now = offset;
+#endif
 	int delta = now - last_transition;
 	last_transition = now;
 
 	// Timer is only 24 bits?
 	delta &= 0x00FFFFFF;
-
-#if 0
-	con_printf( FONT_SMALL, "%08x ", delta );
-	static int delta_count;
-	if( ((++delta_count) % 6 ) == 0 )
-		con_printf( FONT_SMALL, "\n" );
-
-	return 0;
-#endif
 
 #if 0 //def __ARM__
 	bmp_printf( FONT_SMALL, x, y, "%02x ", delta );
@@ -92,52 +82,61 @@ tc_sample(
 #endif
 
 	int new_bit;
-	int valid = 0;
 
 	static unsigned last_bit;
+	//printf( "%08x delta %x\n", offset, delta );
 
-	if( 0xA0 < delta && delta < 0x120 )
+#ifdef __ARM__
+// These deltas are in timer ticks
+#define ONE_LEN		0xC0
+#define ZERO_LEN	0x180
+#define EPS		0x40
+#else
+// These are in byte offsets in the file
+#define ZERO_LEN	0x25
+#define ONE_LEN		0x12
+#define EPS		0x04
+#endif
+
+	if( ZERO_LEN-EPS < delta && delta < ZERO_LEN+EPS )
+	{
+		// Full bit width
+		new_bit = 0;
+	} else
+	if( ONE_LEN-EPS < delta && delta < ONE_LEN+EPS )
 	{
 		// Skip the second transition if we're short
 		if( ++last_bit & 1 )
 			return 0;
-		valid = 1;
-		new_bit = 0;
-	} else
-	if( 0x150 < delta && delta < 0x350 )
-	{
-		// Full bit width
 		last_bit = 0;
 		new_bit = 1;
-		valid = 1;
 	} else {
-		con_printf( FONT(FONT_SMALL,COLOR_RED,0), " %04x\n", delta );
+		bmp_printf(
+			FONT(FONT_SMALL,COLOR_RED,0),
+			10,
+			300,
+			"%04x",
+			delta
+		);
+		printf( "%08x: bad delta %x\n", offset, delta );
 		// Lost sync somewhere
 		synced = 0;
 		word = 0;
 		return 0;
 	}
 
-	con_printf( FONT(FONT_SMALL,synced?COLOR_WHITE:COLOR_BLUE,0), "%1x", new_bit );
-#if 0
-	static int delta_count;
-	if( ((++delta_count) % 8 ) == 0 )
-		con_printf( FONT_SMALL, "\n" );
-#endif
-
 	word = (word << 1) | new_bit;
 
-	//printf( "%04x\n", word & 0xFFFF );
+	//printf( " %04x\n", word & 0xFFFF );
 	//return 0;
 
 	// Check for SMPTE sync signal
 	if( !synced )
 	{
-		if( (word & 0x1FFFF) == 0x13FFD )
+		if( (word & 0xFFFF) == 0x3FFD )
 		{
 			//fprintf( stderr, "%x: Got sync!\n", offset );
-			//printf( "\n%08x", offset );
-			con_printf( FONT_SMALL, "\n== " );
+			printf( "\n%08x: synced", offset );
 			synced = 1;
 			word = 1;
 			byte_count = 0;
@@ -201,7 +200,7 @@ int main( int argc, char ** argv )
 	}
 
 	struct au_hdr hdr;
-	size_t offset = read( fd, &hdr, sizeof(hdr) );
+	offset = read( fd, &hdr, sizeof(hdr) );
 
 	hdr.magic	= ntohl( hdr.magic );
 	hdr.offset	= ntohl( hdr.offset );
@@ -237,6 +236,8 @@ int main( int argc, char ** argv )
 			break;
 
 		sample = ntohs( sample );
+		// Convert to an unsigned value
+		sample += 32768;
 		if( tc_sample( sample ) == 0 )
 			continue;
 
@@ -269,12 +270,32 @@ tc_task( void )
 	while(1)
 	{
 		int sample = audio_read_level( 0 );
-		tc_sample( sample );
+		if( tc_sample( sample ) == 0 )
+			continue;
 
+		// Print a timecode result!
+		// Decode it:
+#define BCD_BITS(x) \
+	(smpte_frame[x/8] & 0xF)
+
+		int f = BCD_BITS(0) + 10 * (BCD_BITS(8) & 0x3);
+		int s = BCD_BITS(16) + 10 * (BCD_BITS(24) & 0x7);
+		int m = BCD_BITS(32) + 10 * BCD_BITS(40);
+		int h = BCD_BITS(48) + 10 * (BCD_BITS(56) & 0x3);
+		
+		bmp_printf(
+			FONT_LARGE,
+			100, 100,
+			"%02d:%02d:%02d.%02d",
+			h, m, s, f
+		);
+
+/*
 		// Busy wait for a few ticks
 		volatile int i;
 		for( i=0 ; i<50 ; i++ )
 			asm( "nop" );
+*/
 	}
 }
 
