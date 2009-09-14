@@ -26,10 +26,15 @@ int verbose = 0;
 #define BRANCH_LINK	0x0B000000
 #define BRANCH_INSTR	0x0A000000
 #define BRANCH_OFFSET	0x00FFFFFF
+#define ADD_MASK	0x0DE00000
+#define ADD_INSTR	0x00800000
 
 
-/** Search through a memory region, looking for branch instructions */
-void
+/**
+ * Search through a memory region, looking for branch instructions
+ * Returns a pointer to the new func_offset address.
+ */
+uintptr_t
 reloc(
 	uint32_t *		buf,
 	uintptr_t		load_addr,
@@ -45,6 +50,10 @@ reloc(
 #ifndef __ARM__
 	printf( "Fixing from %08x to %08x\n", func_offset, func_end );
 #endif
+
+	// Add up to 16 bytes of fixups
+	uintptr_t fixups = new_pc;
+	uintptr_t entry = new_pc += 16;
 
 	for( pc=func_offset ; pc<=func_end ; pc += 4, new_pc += 4 )
 	{
@@ -106,6 +115,7 @@ reloc(
 				| (new_jump & BRANCH_OFFSET);
 
 #ifndef __ARM__
+			if(0)
 			printf( "%08x: %08x => %08x fixup offset %08x => %s%08x\n",
 				pc,
 				instr,
@@ -124,6 +134,55 @@ reloc(
 			continue;
 		}
 
+		// Check for a add instr with %pc
+		if( (instr & ADD_MASK) == ADD_INSTR )
+		{
+			uint32_t reg_base	= (instr >> 16) & 0xF;
+			uint32_t reg_dest	= (instr >> 12) & 0xF;
+			uint32_t shift		= (instr >>  8) & 0xF;
+			uint32_t imm		= (instr >>  0) & 0xFF;
+
+			// Only even shift values are supported
+			shift <<= 1;
+
+			if( reg_base != REG_PC )
+				continue;
+
+			// If this is a jump table, we assume it is safe
+			// add pc, pc, r0 << 2
+			if( reg_dest == REG_PC )
+				continue;
+
+			if( (instr & (1<<25)) == 0 )
+			{
+				// Not an immediate 12-bit value;
+				// update the offset
+				printf( "%08x: unknown mode?\n", pc );
+				continue;
+			}
+
+			// Shift is actually a 32-bit rotate
+			uint32_t offset = imm >> shift;
+			if( shift > 8 )
+				offset |= imm << (32 - shift);
+			uint32_t dest = pc + 8 + offset;
+
+			// Ignore offetss inside the reloc space
+			if( func_offset <= dest && dest < func_end )
+				continue;
+#ifndef __ARM__
+			printf( "%08x: %08x add pc shift=%1x imm=%2x offset=%x => %08x\n",
+				pc,
+				instr,
+				shift,
+				imm,
+				offset,
+				dest
+			);
+#endif
+			continue;
+		}
+
 		// Check for load from %pc
 		if( load == LOAD_INSTR )
 		{
@@ -134,7 +193,7 @@ reloc(
 			if( reg_base != REG_PC )
 				continue;
 
-			// Sign extend offset if the up bit is not set
+			// Check direction bit and flip the sign
 			if( (instr & (1<<23)) == 0 )
 				offset = -offset;
 
@@ -145,21 +204,49 @@ reloc(
 			if( func_offset <= dest && dest < func_end )
 				continue;
 
+			// Find the data that is being used and
+			// compute a new offset so that it can be
+			// accessed from the relocated space.
+			uint32_t data = *(uint32_t*)( dest + mem );
+			int32_t new_offset = fixups - new_pc - 8;
+			if( new_offset < 0 )
+			{
+				// Set offset to negative
+				instr &= ~(1<<23);
+				new_offset = -new_offset;
+			}
+
+			uint32_t new_instr = 0
+				| ( instr & ~0xFFF )
+				| ( new_offset & 0xFFF )
+				;
 #ifndef __ARM__
 			// This is one that will need to be copied
 			// but we currently don't do anything!
-			printf( "%08x: %08x LD %d, %d, %d => %08x\n",
+			printf( "%08x: %08x LD %d, %d, %d => %08x: %08x %d data=%08x\n",
 				pc,
 				instr,
 				reg_dest,
 				reg_base,
 				offset,
-				dest
+				dest,
+				new_instr,
+				new_offset,
+				data
 			);
+#else
+			// Copy the data to the offset location
+			*(uint32_t*) fixups = data;
+			*(uint32_t*) new_pc = new_instr;
 #endif
+			fixups += 4;
+
 			continue;
 		}
 	}
+
+	// Return the entry point of the new function
+	return entry;
 }
 
 
@@ -177,8 +264,8 @@ main(
 	const uintptr_t		load_addr	= 0xFF800000;
 
 	// DlgLiveViewApp and other routines to test
-	//size_t		func_start	= 0xFFA96B1C; // DlgLiveViewApp
-	size_t		func_start	= 0xffa96390; // early data
+	size_t		func_start	= 0xFFA96B1C; // DlgLiveViewApp
+	//size_t		func_start	= 0xffa96390; // early data
 	size_t		func_end	= 0xFFA97FF8;
 	size_t		func_len	= func_end - func_start;
 
