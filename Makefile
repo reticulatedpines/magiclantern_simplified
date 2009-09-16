@@ -6,6 +6,9 @@ HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 VERSION=0.1.7
 
+CONFIG_PYMITE		= y
+CONFIG_RELOC		= y
+CONFIG_TIMECODE		= y
 
 # 5D memory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -108,7 +111,7 @@ magiclantern.lds: magiclantern.lds.S
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
 # menu.o and debug.o must come before the modules
-magiclantern: \
+ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
@@ -121,22 +124,31 @@ magiclantern: \
 	focus.o \
 	zebra.o \
 	hotplug.o \
-	reloc.o \
-	liveview.o \
 	config.o \
 	bmp.o \
 	bracket.o \
-	script.o \
-	pymite-plat.o \
-	pymite-nat.o \
-	pymite-img.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
 	stubs-5d2.110.o \
-	$(PYMITE_LIB) \
 	version.o \
 
+
+ML_OBJS-$(CONFIG_PYMITE) += \
+	script.o \
+	pymite-plat.o \
+	pymite-nat.o \
+	pymite-img.o \
+	$(PYMITE_LIB) \
+
+ML_OBJS-$(CONFIG_RELOC) += \
+	liveview.o \
+	reloc.o \
+
+ML_OBJS-$(CONFIG_TIMECODE) += \
+	timecode.o \
+
+magiclantern: $(ML_OBJS-y)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
@@ -148,7 +160,6 @@ magiclantern: \
 		-lm \
 		-lgcc \
 	)
-
 
 # These do not need to be run.  Since bigtext is not
 # a standard program, the output files are checked in.
