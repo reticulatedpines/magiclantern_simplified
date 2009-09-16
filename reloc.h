@@ -8,7 +8,7 @@
 #include "arm-mcr.h"
 #endif
 
-extern void
+extern uintptr_t
 reloc(
 	uint32_t *		buf,
 	uintptr_t		load_addr,

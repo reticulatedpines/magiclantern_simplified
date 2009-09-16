@@ -157,7 +157,9 @@ reloc(
 			{
 				// Not an immediate 12-bit value;
 				// update the offset
+#ifndef __ARM__
 				printf( "%08x: unknown mode?\n", pc );
+#endif
 				continue;
 			}
 
