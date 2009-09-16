@@ -13,6 +13,7 @@ unsigned offset;
 #include "tasks.h"
 #include "audio.h"
 #include "bmp.h"
+#include "config.h"
 #define printf(fmt,...) /* Nothing */
 #endif
 #include <stdint.h>
@@ -265,9 +266,14 @@ int main( int argc, char ** argv )
 }
 #else
 
+CONFIG_INT( "timecode.enable",		timecode_enabled, 0 );
+
 static void
 tc_task( void )
 {
+	if( !timecode_enabled )
+		return;
+
 	msleep( 1000 );
 
 	while(1)
