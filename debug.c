@@ -413,6 +413,10 @@ dump_task( void )
 	dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
 
+	// increase jpcore debugging (breaks liveview?)
+	//dm_set_store_level( 0x15, 2 );
+	//dm_set_store_level( 0x2f, 0x16 );
+
 	if( timed_dump == 0 )
 		return;
 
