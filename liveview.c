@@ -19,10 +19,28 @@
 #define	reloc_len	(reloc_end - reloc_start)
 
 
+static void
+change_hdmi_size( void )
+{
+	int (*GUI_GetDisplayType)(void) = 0xff88a8d4;
+	bmp_printf( FONT_SMALL, 0, 40, "%s: gui type %d!", __func__, GUI_GetDisplayType() );
+	//prop_request_change( 0x8003002e, 0x37080, 0x20 );
+	bmp_hexdump( FONT_SMALL, 0, 52, 0x37080, 0x20 );
+}
+
 static uint8_t reloc_buf[ reloc_len + 16 ];
 
 
 CONFIG_INT( "reloc.enabled", reloc_enabled, 0 );
+
+static inline void
+reloc_branch(
+	uintptr_t		pc,
+	void *			dest
+)
+{
+	*(uint32_t*) pc = BL_INSTR( pc, dest );
+}
 
 static void
 reloc_dlgliveviewapp( void )
@@ -48,7 +66,17 @@ reloc_dlgliveviewapp( void )
 
 	// Fix up a few things, like the calls to ChangeHDMIOutputSizeToVGA
 	//*(uint32_t*) &reloc_buf[ 0xFFA97C6C + offset ] = LOOP_INSTR;
+
 	*(uint32_t*) &reloc_buf[ 0xFFA97D5C + offset ] = NOP_INSTR;
+	*(uint32_t*) &reloc_buf[ 0xFFA97D60 + offset ] = NOP_INSTR;
+/*
+	reloc_branch(
+		(uintptr_t) &reloc_buf[ 0xFFA97D5C + offset ],
+		//change_hdmi_size
+		0xffa96260 // ChangeHDMIOutputToSizeToFULLHD
+	);
+*/
+
 
 	msleep( 4000 );
 
