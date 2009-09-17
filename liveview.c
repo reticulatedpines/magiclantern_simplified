@@ -38,7 +38,8 @@ reloc_dlgliveviewapp( void )
 		reloc_buf
 	);
 
-	const uintptr_t offset = new_DlgLiveViewApp - DlgLiveViewApp;
+	const uintptr_t offset = (new_DlgLiveViewApp - (uintptr_t) reloc_buf)
+		- reloc_start;
 
 	// There are two add %pc that we can't fixup right now.
 	// NOP the DebugMsg() calls that they would make
@@ -46,7 +47,8 @@ reloc_dlgliveviewapp( void )
 	*(uint32_t*) &reloc_buf[ 0xFFA97F28 + offset ] = NOP_INSTR;
 
 	// Fix up a few things, like the calls to ChangeHDMIOutputSizeToVGA
-	//*(uint32_t*) &reloc_buf[ 0xFFA97D5C - reloc_start ] = NOP_INSTR;
+	//*(uint32_t*) &reloc_buf[ 0xFFA97C6C + offset ] = LOOP_INSTR;
+	*(uint32_t*) &reloc_buf[ 0xFFA97D5C + offset ] = NOP_INSTR;
 
 	msleep( 4000 );
 
@@ -55,8 +57,9 @@ reloc_dlgliveviewapp( void )
 	{
 		msleep( 1000 );
 		struct gui_task * current = gui_task_list.current;
+		int y = 150;
 
-		bmp_printf( FONT_SMALL, 400, 200,
+		bmp_printf( FONT_SMALL, 400, y+=12,
 			"current %08x",
 			current
 		);
@@ -64,7 +67,7 @@ reloc_dlgliveviewapp( void )
 		if( !current )
 			continue;
 
-		bmp_printf( FONT_SMALL, 400, 210,
+		bmp_printf( FONT_SMALL, 400, y+=12,
 			"handler %08x\npriv %08x",
 			current->handler,
 			current->priv
@@ -74,17 +77,17 @@ reloc_dlgliveviewapp( void )
 			continue;
 
 		struct dialog * dialog = current->priv;
-		bmp_printf( FONT_SMALL, 400, 220,
+		bmp_printf( FONT_SMALL, 400, y+=12,
 			"dialog %08x",
 			(unsigned) dialog->handler
 		);
 
 		if( dialog->handler == DlgLiveViewApp )
 		{
-			//dialog->handler = (void*) new_DlgLiveViewApp;
-			bmp_printf( FONT_SMALL, 400, 230, "new %08x", new_DlgLiveViewApp );
-			//bmp_hexdump( FONT_SMALL, 0, 300, new_DlgLiveViewApp, 128 );
-			bmp_hexdump( FONT_SMALL, 0, 300, reloc_buf, 128 );
+			dialog->handler = (void*) new_DlgLiveViewApp;
+			bmp_printf( FONT_SMALL, 400, y+=12, "new %08x", new_DlgLiveViewApp );
+			bmp_hexdump( FONT_SMALL, 0, 300, new_DlgLiveViewApp, 128 );
+			//bmp_hexdump( FONT_SMALL, 0, 300, reloc_buf, 128 );
 		}
 	}
 }
