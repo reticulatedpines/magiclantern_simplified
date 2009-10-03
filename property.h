@@ -54,6 +54,7 @@
 #define PROP_LV_LENS		0x80050000
 #define PROP_LV_0004		0x80050004
 #define PROP_LV_MANIPULATION	0x80050006
+#define PROP_LV_AFFRAME		0x80050007 // called by ptp handler 915a
 #define PROP_LV_FOCUS		0x80050001 // only works in liveview mode
 #define PROP_LV_FOCUS_DONE	0x80050002 // output when focus motor is done?
 #define PROP_LVAF_0003		0x80050003
