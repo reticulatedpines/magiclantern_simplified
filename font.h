@@ -33,6 +33,9 @@ struct font
 };
 
 
-extern struct font font_small, font_med, font_large;
+extern struct font font_small;
+extern struct font font_med;
+extern struct font font_large;
+extern struct font font_huge;
 
 #endif

@@ -12,3 +12,5 @@ fi
 
 echo EOS_DEVELOP | dd of="$dev" bs=1 seek=0x47 count=11
 echo BOOTDISK | dd of="$dev" bs=1 seek=0x5C count=8
+
+sync; sync; sync

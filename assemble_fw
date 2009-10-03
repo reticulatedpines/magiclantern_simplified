@@ -16,6 +16,7 @@ my $output_file		= "5d200107_dump.fir";
 my $offset		= 0x5ab8;
 my $pad_bytes		= 24;
 my $zero_bytes;
+my $camera_id		= 0x80000218;	# 5D Mark II
 
 GetOptions(
 	"header=s"		=> \$header_file,
@@ -25,6 +26,7 @@ GetOptions(
 	"offset=o"		=> \$offset,
 	"pad=o"			=> \$pad_bytes,
 	"z|zero+"		=> \$zero_bytes,
+	"id=o"			=> \$camera_id,
 ) or die "$0: Unknown option (read the source for options)\n";
 
 my $header = read_file( $header_file, binmode => ':raw' )
@@ -41,19 +43,30 @@ if( $user_file )
 }
 
 # Generate the image by concatenating everything
-my $image = $header . $flasher . (chr(0) x $pad_bytes);
+my $image = $header . $flasher;
 my $user_len = length($user);
 
 # Replace the user code in the image
 substr( $image, $offset, $user_len ) = $user;
+
+# Add the pad bytes to the end
+$image .= (chr(0) x $pad_bytes);
+
+# replace the camera id in the image
+substr( $image, 0, 4 ) = pack( "V", $camera_id );
 
 # Zero the rest of the bytes if the user requests it
 my $zero_len = length($image) - $user_len - $offset;
 substr( $image, $offset + $user_len, $zero_len ) = chr(0) x $zero_len
 	if $zero_bytes;
 
-# Set the offset or type from 0x20 to 0x10?  Why?
-substr( $image, 0x28, 1 ) = chr(0x10);
+# Update the total file size
+substr( $image, 0x38, 4 ) = pack( "V", length $image );
+
+# Update the data offset and length
+
+# Set the offset from 0x120 to 0x110.  Why?
+substr( $image, 0x28, 4 ) = pack( "V", 0x110 );
 
 # Zero the CRC and recalc it
 my $old_crc = unpack( "V", substr( $image, 0x20, 4 ) );

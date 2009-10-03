@@ -84,6 +84,7 @@ NSTUB( 0xFF869C90, msleep )
 NSTUB( 0xFF8781F4, strcpy )
 NSTUB( 0xFFC22E18, memcpy )
 NSTUB( 0xFF99C7B4, index )
+NSTUB( 0xFF878250, strlen )
 
 /** File I/O using the FIO_ routines */
 NSTUB( 0xFF81BDC0, open )
@@ -132,6 +133,7 @@ NSTUB( 0xFF88F23C, prop_request_icu_auto_poweroff )
  * @{
  */
 NSTUB( 0x1EE0, mvr_struct )
+NSTUB( 0x72AC, mvr_config )
 NSTUB( 0x1C4C, gui_main_struct )
 NSTUB( 0x3668, gui_timer_struct )
 NSTUB( 0xFF823698, gui_main_task )

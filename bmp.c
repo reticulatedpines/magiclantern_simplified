@@ -75,6 +75,10 @@ _draw_char(
 			}
 
 			*(row++) = bmp_pixels;
+
+			// handle characters wider than 32 bits
+			if( j == 28/4 )
+				pixels = font->bitmap[ c + ((i+128) << 7) ];
 		}
 	}
 

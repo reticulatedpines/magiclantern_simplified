@@ -8,10 +8,8 @@
  * The memory layout of the 5D is:
  *
  * 0x0080_0000 Flasher starting address
- * 0xFF00_0000 Strings and other stuff in RAM
- * 0xFF80_0000 Main firmware in RAM
- * 0xF000_0000 Strings and other stuff?
- * 0xF800_0000 Main firmware in ROM
+ * 0xFF00_0000 Strings and other stuff in ROM
+ * 0xFF80_0000 Main firmware in ROM
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
@@ -78,6 +76,8 @@ reg_sp( void )
 
 int main( void )
 {
+	while(1)
+		;
 	void * const	rom0_start	= (void *) ROM0_ADDRESS;
 	uint32_t	rom0_size	= ROM0_SIZE;
 	void * const	rom1_start	= (void *) ROM1_ADDRESS;

@@ -26,6 +26,11 @@
 
 #include "arm-mcr.h"
 
+#ifdef CONFIG_AUTOBOOT
+#define SHIM_OFFSET 0x000
+#else
+#define SHIM_OFFSET 0x120
+#endif
 
 asm(
 ".text"
@@ -33,7 +38,11 @@ asm(
 ".global _start\n"
 "	ldr pc, [pc,#4]\n"	// 0x120
 ".ascii \"gaonisoy\"\n"		// 0x124, 128
-".word 0x800130\n"		// 0x12C
+#ifdef CONFIG_AUTOBOOT
+".word 0x800010\n"		// 0x12C -- autoboot
+#else
+".word 0x800130\n"		// 0x12C -- firmware boot
+#endif
 "MRS     R0, CPSR\n"
 "BIC     R0, R0, #0x3F\n"	// Clear I,F,T
 "ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
@@ -91,8 +100,8 @@ cstart( void )
 	// where we should be, so we must offset the blob start.
 	blob_memcpy(
 		(void*) RESTARTSTART,
-		&blob_start + 0x120,
-		&blob_end + 0x120
+		&blob_start + SHIM_OFFSET,
+		&blob_end + SHIM_OFFSET
 	);
 	clean_d_cache();
 	flush_caches();

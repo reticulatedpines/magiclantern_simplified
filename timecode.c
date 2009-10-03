@@ -14,6 +14,7 @@ unsigned offset;
 #include "audio.h"
 #include "bmp.h"
 #include "config.h"
+#include "menu.h"
 #define printf(fmt,...) /* Nothing */
 #endif
 #include <stdint.h>
@@ -266,17 +267,11 @@ int main( int argc, char ** argv )
 }
 #else
 
-CONFIG_INT( "timecode.enable",		timecode_enabled, 0 );
 
 static void
-tc_task( void )
+process_timecode( void )
 {
-	if( !timecode_enabled )
-		return;
-
-	msleep( 1000 );
-
-	while(1)
+	while( !gui_menu_task )
 	{
 		int sample = audio_read_level( 0 );
 		if( tc_sample( sample ) == 0 )
@@ -292,6 +287,7 @@ tc_task( void )
 		int m = BCD_BITS(32) + 10 * BCD_BITS(40);
 		int h = BCD_BITS(48) + 10 * (BCD_BITS(56) & 0x3);
 		
+#if 0
 		bmp_printf(
 			FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLUE),
 			180, 150,
@@ -301,15 +297,54 @@ tc_task( void )
 			"             \n",
 			h, m, s, f
 		);
-
-/*
-		// Busy wait for a few ticks
-		volatile int i;
-		for( i=0 ; i<50 ; i++ )
-			asm( "nop" );
-*/
+#else
+		bmp_printf(
+			FONT_HUGE,
+			0, 150,
+			//23456789012
+			//hh:mm:ss.ff \n
+			" SMTPE LTC:  \n"
+			" %02d:%02d:%02d.%02d ",
+			h, m, s, f
+		);
+#endif
 	}
 }
+
+
+static struct semaphore * timecode_sem;
+
+static void
+timecode_unlock( void * priv )
+{
+	gui_stop_menu();
+	give_semaphore( timecode_sem );
+}
+
+
+static struct menu_entry timecode_menu[] = {
+	{
+		.display	= menu_print,
+		.priv		= "Jam timecode",
+		.select		= timecode_unlock,
+	},
+};
+
+
+
+static void
+tc_task( void )
+{
+	timecode_sem = create_named_semaphore( "timecode", 0 );
+	menu_add( "Debug", timecode_menu, COUNT(timecode_menu) );
+
+	while(1)
+	{
+		take_semaphore( timecode_sem, 0 );
+		process_timecode();
+	}
+}
+
 
 TASK_CREATE( __FILE__, tc_task, 0, 0x18, 0x1000 );
 #endif

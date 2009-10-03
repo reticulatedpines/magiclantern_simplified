@@ -8,6 +8,7 @@
 #include "menu.h"
 #include "property.h"
 #include "config.h"
+//#include "lua.h"
 
 void
 display_full_hd(
@@ -26,10 +27,13 @@ display_full_hd(
 
 	unsigned (*GetDisplayType)(void) = (void*) 0xFF863590;
 
+	uint32_t * lv_struct = (void*) 0x37fc;
+
 	bmp_printf(
 		FONT_MED,
 		x, y,
 		//23456789012
+#if 0
 		"disp=%x vid=%x hdmi=%x c4=%x ps=%x type=%x/%x",
 		gui_struct[0x08 / 4],
 		gui_struct[0x0C / 4],
@@ -38,12 +42,35 @@ display_full_hd(
 		ps_struct[0x230 / 4],
 		hdmi_config.disp_type,
 		hdmi_config.off_0x0c
+#else
+		"mvr %d/%x",
+		mvr_struct->fps,
+		mvr_struct->bit_rate
+#endif
+	);
+
+	bmp_hexdump( FONT_SMALL, 300, 400,
+		(void*) 0x7b40,
+		64
 	);
 }
 
 
 void enable_full_hd( void * priv )
 {
+#if 0
+	if( mvr_struct->fps == 0 )
+		mvr_struct->fps = 30;
+	uint8_t bitrate = 60;
+	//call( "mvrSetBitRate", &bitrate );
+	void (*mvrSetBitRate)( uint8_t * bitrate ) = (void*) 0xff84f990;
+	mvrSetBitRate( &bitrate );
+#endif
+	void (*mvrSetQScale)( int8_t * ) = (void*) 0xff9715e0;
+	int8_t scale = -30;
+	mvrSetQScale( &scale );
+	return;
+
 	DebugMsg( DM_MAGIC, 3, "Attempting to set HDMI to full HD" );
 
 #if 1
@@ -403,6 +430,8 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 static void
 dump_task( void )
 {
+	//lua_State * L = lua_open();
+
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
 	dm_set_store_level( DM_DISP, 4 );

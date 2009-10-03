@@ -419,7 +419,7 @@ struct mvr_struct
 	uint32_t		off_0x184;
 	uint32_t		off_0x188;
 	uint32_t		off_0x18c;
-	uint32_t		off_0x190;
+	uint32_t		bit_rate; // off_0x190;
 	uint32_t		off_0x194;
 	uint32_t		off_0x198;
 	uint32_t		off_0x19c;
@@ -453,6 +453,30 @@ SIZE_CHECK_STRUCT( mvr_struct, 512 );
 
 extern struct mvr_struct * mvr_struct;
 extern struct state_object * mvr_state;
+
+struct mvr_config
+{
+	uint32_t		off_0x00;
+	uint16_t		db_filter_a;	// off_0x04;
+	uint16_t		db_filter_b;	// off_0x04;
+	int16_t			def_q_scale;	// off_0x08;
+	uint16_t		off_0x0a;
+	uint16_t		off_0x0c;
+	uint16_t		time_const;	// off_0x0e;
+	uint32_t		hd_opt_size_i;	// off_0x10;
+	uint32_t		hd_opt_size_p;	// off_0x14;
+	uint32_t		hd_height;	// off_0x18;
+	uint32_t		hd_width;	// off_0x1c;
+	uint32_t		vga_opt_size_i;	// off_0x20;
+	uint32_t		vga_opt_size_p;	// off_0x24;
+	uint32_t		vga_height;	// off_0x28;
+	uint32_t		vga_width;	// off_0x2c;
+};
+
+SIZE_CHECK_STRUCT( mvr_config, 0x30 );
+
+extern struct mvr_config mvr_config;
+
 
 
 

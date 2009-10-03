@@ -49,6 +49,7 @@ static inline uint32_t bmp_height(void) { return 480; }
 
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK		0x000F0000
+#define FONT_HUGE		0x00080000
 #define FONT_LARGE		0x00030000
 #define FONT_MED		0x00020000
 #define FONT_SMALL		0x00010000
@@ -70,6 +71,7 @@ fontspec_font(
 	case FONT_SMALL:	return &font_small;
 	case FONT_MED:		return &font_med;
 	case FONT_LARGE:	return &font_large;
+	case FONT_HUGE:		return &font_huge;
 	}
 }
 

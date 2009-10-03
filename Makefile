@@ -6,15 +6,21 @@ HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 VERSION=0.1.7
 
-CONFIG_PYMITE		= y
-CONFIG_RELOC		= y
+CONFIG_PYMITE		= n
+CONFIG_RELOC		= n
 CONFIG_TIMECODE		= y
+CONFIG_LUA		= n
 
 # 5D memory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF810000
 RESTARTSTART		= 0x00048000
+
+# Firmware file IDs
+FIRMWARE_ID_5D		= 0x80000218
+FIRMWARE_ID_7D		= 0x80000250
+FIRMWARE_ID		= $(FIRMWARE_ID_5D)
 
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
@@ -23,10 +29,15 @@ PYMITE_CFLAGS		= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos \
 
+# Lua includes and libraries
+LUA_PATH		= $(HOME)/build/lua-5.1.4
+LUA_LIB			= $(LUA_PATH)/src/liblua.a
+LUA_CFLAGS		= -I$(LUA_PATH)/src
+
 
 all: magiclantern.fir
 
-CF_CARD="/Volumes/KINGSTON"
+CF_CARD="/Volumes/EOS_DIGITAL"
 
 install: magiclantern.fir magiclantern.cfg cropmarks.bmp test.pym
 	cp $^ $(CF_CARD)
@@ -66,7 +77,14 @@ CFLAGS=\
 	-W \
 	-Wno-unused-parameter \
 	-D__ARM__ \
-	$(PYMITE_CFLAGS) \
+
+ifeq ($(CONFIG_PYMITE),y)
+CFLAGS += $(PYMITE_CFLAGS)
+endif
+
+ifeq ($(CONFIG_LUA),y)
+CFLAGS += $(LUA_CFLAGS)
+endif
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -91,6 +109,16 @@ AFLAGS=\
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 
 dumper: dumper_entry.o dumper.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-e _start \
+		$^ \
+	)
+
+test: test.o
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
@@ -127,6 +155,7 @@ ML_OBJS-y = \
 	config.o \
 	bmp.o \
 	bracket.o \
+	font-huge.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
@@ -140,6 +169,9 @@ ML_OBJS-$(CONFIG_PYMITE) += \
 	pymite-nat.o \
 	pymite-img.o \
 	$(PYMITE_LIB) \
+
+ML_OBJS-$(CONFIG_LUA) += \
+	$(LUA_LIB) \
 
 ML_OBJS-$(CONFIG_RELOC) += \
 	liveview.o \
@@ -163,6 +195,11 @@ magiclantern: $(ML_OBJS-y)
 
 # These do not need to be run.  Since bigtext is not
 # a standard program, the output files are checked in.
+font-huge.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'-*-helvetica-*-r-*-*-72-*-100-100-*-*-iso8859-*' \
+		40 66 \
+	)
 font-large.in: generate-font
 	$(call build,'GENFONT',./$< > $@ \
 		'-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*' \
@@ -177,6 +214,15 @@ font-small.in: generate-font
 	$(call build,'GENFONT',./$< > $@ \
 		'-*-helvetica-*-r-*-*-10-*-100-100-*-*-iso8859-*' \
 		6 8 \
+	)
+
+font-huge.c: font-huge.in mkfont
+	$(call build,MKFONT,./mkfont \
+		< $< \
+		> $@ \
+		-width 60 \
+		-height 70 \
+		-name font_huge \
 	)
 
 font-large.c: font-large.in mkfont
@@ -303,12 +349,15 @@ dumper.elf: 5d2_dump.fir flasher.map
 		--output $@ \
 		--user $< \
 		--offset 0x5ab8 \
+		--id $(FIRMWARE_ID) \
 
-magiclantern.fir: reboot.bin 5d200107.1.flasher.bin
+magiclantern.fir: reboot.bin
 	$(call build,ASSEMBLE,./assemble_fw \
 		--output $@ \
 		--user $< \
 		--offset 0x120 \
+		--flasher empty.bin \
+		--id $(FIRMWARE_ID) \
 		--zero \
 	)
 
