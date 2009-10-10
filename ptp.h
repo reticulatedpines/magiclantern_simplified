@@ -20,7 +20,12 @@ struct usb_context
 	void 		(*recv)(
 		void *			priv,
 		void *			buf,
-		size_t			len
+		size_t			len,
+		void			(*callback)(
+			void *			cb_priv,
+			int			status
+		),
+		void *			cb_priv
 	);
 
 	int		(*send)(
