@@ -26,23 +26,13 @@
 
 #include "arm-mcr.h"
 
-#ifdef CONFIG_AUTOBOOT
-#define SHIM_OFFSET 0x000
-#else
-#define SHIM_OFFSET 0x120
-#endif
-
 asm(
 ".text"
 "_start:\n"
 ".global _start\n"
-"	ldr pc, [pc,#4]\n"	// 0x120
+"	b 1f\n"
 ".ascii \"gaonisoy\"\n"		// 0x124, 128
-#ifdef CONFIG_AUTOBOOT
-".word 0x800010\n"		// 0x12C -- autoboot
-#else
-".word 0x800130\n"		// 0x12C -- firmware boot
-#endif
+"1:\n"
 "MRS     R0, CPSR\n"
 "BIC     R0, R0, #0x3F\n"	// Clear I,F,T
 "ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
@@ -68,6 +58,26 @@ asm(
 	".globl blob_end\n"
 );
 
+
+/** Determine the in-memory offset of the code.
+ * If we are autobooting, there is no offset (code is loaded at
+ * 0x800000).  If we are loaded via a firmware file then there
+ * is a 0x120 byte header infront of our code.
+ *
+ * Note that mov r0, pc puts pc+8 into r0.
+ */
+static int
+__attribute__((noinline))
+find_offset( void )
+{
+	uintptr_t pc;
+	asm __volatile__ (
+		"mov %0, %%pc"
+		: "=&r"(pc)
+	);
+
+	return pc - 8 - (uintptr_t) find_offset;
+}
 
 void
 __attribute__((noreturn))
@@ -98,10 +108,12 @@ cstart( void )
 	// Copy the copy-and-restart blob somewhere
 	// there is a bug in that we are 0x120 bytes off from
 	// where we should be, so we must offset the blob start.
+	ssize_t offset = find_offset();
+
 	blob_memcpy(
 		(void*) RESTARTSTART,
-		&blob_start + SHIM_OFFSET,
-		&blob_end + SHIM_OFFSET
+		&blob_start + offset,
+		&blob_end + offset
 	);
 	clean_d_cache();
 	flush_caches();

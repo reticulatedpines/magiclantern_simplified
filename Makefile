@@ -39,9 +39,21 @@ all: magiclantern.fir
 
 CF_CARD="/Volumes/EOS_DIGITAL"
 
+#
+# Install a normal firmware file to the CF card.
+#
 install: magiclantern.fir magiclantern.cfg cropmarks.bmp test.pym
 	cp $^ $(CF_CARD)
 	hdiutil unmount $(CF_CARD)
+
+#
+# Install the autoexec.bin file to the CF card and
+# make the card bootable.
+#
+autoboot: reboot.bin
+	cp reboot.bin $(CF_CARD)/autoexec.bin
+	hdiutil unmount $(CF_CARD)
+	./make-bootable
 
 
 zip: magiclantern-$(VERSION).zip
@@ -131,6 +143,7 @@ test: test.o
 dumper_entry.o: flasher-stubs.S
 
 reboot.o: reboot.c magiclantern.bin
+
 5d-hack.bin: 5d-hack
 
 magiclantern.lds: magiclantern.lds.S
