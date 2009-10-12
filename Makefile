@@ -166,6 +166,7 @@ ML_OBJS-y = \
 	zebra.o \
 	hotplug.o \
 	config.o \
+	ptp.o \
 	bmp.o \
 	bracket.o \
 	font-huge.o \

@@ -127,6 +127,9 @@ NSTUB( 0xFF86D4DC, powersave_disable )
 NSTUB( 0xFF8A3DB8, emAutoPowerOff )
 NSTUB( 0xFF88F23C, prop_request_icu_auto_poweroff )
 
+/** I don't remember how I found this one */
+NSTUB( 0xFF9FB5E4, ptp_register_handler )
+
 /** These data structures are required for the gui_main_task
  * override.  Once gui_main_task has been located, walk
  * through it to find all of the other functions and structures.
