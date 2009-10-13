@@ -232,7 +232,7 @@ NSTUB( 0xFF86DDFC, create_named_semaphore )
 /** Hot plug task detects when video, hdmi and usb are plugged in. */
 NSTUB( 0xFF81DB08, hotplug_task )
 NSTUB( 0x1AA4, hotplug_struct )
-NSTUB( 0x1ADB, hotplug_usb_buf )
+NSTUB( 0x1AD8, hotplug_usb_buf )
 NSTUB( 0x2580, hdmi_config )
 
 /** Call registered function by name? */

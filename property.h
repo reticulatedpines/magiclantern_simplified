@@ -152,6 +152,15 @@ prop_cleanup(
 );
 
 
+extern void
+prop_deliver(
+	uint32_t	prop,
+	void *		buf,
+	size_t		len,
+	uint32_t	mzb
+);
+
+
 /** Change a property.
  *
  */

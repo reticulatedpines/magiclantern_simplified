@@ -77,8 +77,9 @@ ptp_state_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"PTP State:  %s",
-		hotplug_struct.usb_state == 1 ? "ON" : "OFF"
+		"PTP State:  %x %08x",
+		hotplug_struct.usb_state,
+		*(uint32_t*)( 0xC0220000 + 0x34 )
 	);
 }
 
