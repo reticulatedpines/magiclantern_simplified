@@ -8,7 +8,9 @@
 #include "dryos.h"
 #include "ptp.h"
 #include "tasks.h"
+#include "menu.h"
 #include "bmp.h"
+#include "hotplug.h"
 
 static int
 ptp_handler_9999(
@@ -62,7 +64,44 @@ ptp_handler_9999(
 	);
 	return 0;
 }
-	
+
+static void
+ptp_state_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"PTP State:  %s",
+		hotplug_struct.usb_state == 1 ? "ON" : "OFF"
+	);
+}
+
+
+static void
+ptp_state_toggle( void * priv )
+{
+	hotplug_struct.usb_state = !hotplug_struct.usb_state;
+	prop_deliver(
+		hotplug_struct.usb_prop,
+		&hotplug_usb_buf,
+		sizeof(hotplug_usb_buf),
+		0
+	);
+}
+
+static struct menu_entry ptp_menus[] = {
+	{
+		.display	= ptp_state_display,
+		.select		= ptp_state_toggle,
+	},
+};
+
 
 static void
 ptp_init( void )
@@ -72,6 +111,8 @@ ptp_init( void )
 		ptp_handler_9999,
 		0
 	);
+
+	menu_add( "PTP", ptp_menus, COUNT(ptp_menus) );
 }
 
 INIT_FUNC( __FILE__, ptp_init );
