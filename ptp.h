@@ -10,6 +10,7 @@
  * and will be called when the host initiates that operation.
  */
 #define PTP_FM_OBJECTSIZE	0x910a
+#define PTP_SET_DEVICE_PROP	0x9110
 #define PTP_HD_CAPACITY		0x911a
 #define PTP_GUI_OFF		0x911b
 #define PTP_LCD_ON		0x911c
@@ -23,6 +24,13 @@
 #define PTP_FAPI_MESSAGE_TX	0x91fe
 
 struct usb_handle;
+
+struct ptp_msg
+{
+	uint16_t		id;
+	uint16_t		off_0x02;
+	uint8_t			buf[ 8 ];
+} __PACKED__;
 
 struct usb_context
 {
@@ -47,7 +55,7 @@ struct usb_context
 	// off_0x0c
 	int		(*send)(
 		struct usb_handle *	handle,
-		void *			buf // id is first 16-bits
+		struct ptp_msg *	msg
 	);
 
 	// Returns length of message to receive
@@ -55,13 +63,17 @@ struct usb_context
 	int		(*len)(
 		struct usb_handle *	handle
 	);
+
+	void * off_0x14;
+	void * off_0x18; // priv to close handler?
+	void * off_0x1c; // close?
 };
 
 
 extern void
 ptp_register_handler(
 	uint32_t		id,
-	void			(*handler)(
+	int			(*handler)(
 		void *			priv,
 		struct usb_context *	context,
 		void *			r2, // unknown
