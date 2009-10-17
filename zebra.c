@@ -38,10 +38,10 @@ static volatile unsigned sensor_cleaning = 1;
 #define vram_start_line	33
 #define vram_end_line	380
 
-static const unsigned hist_height	= 64;
-static const unsigned hist_width	= 128;
-static const unsigned waveform_height	= 128;
-static const unsigned waveform_width	= (vram_end_line - vram_start_line) / 2;
+#define hist_height			64
+#define hist_width			128
+#define waveform_height			256
+#define waveform_width			(720/2)
 
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
 CONFIG_INT( "zebra.level",	zebra_level,	0xF000 );
@@ -50,10 +50,11 @@ CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
-CONFIG_INT( "hist.x",		hist_x,		720 - 128 - 10 );
+CONFIG_INT( "hist.x",		hist_x,		720 - hist_width );
 CONFIG_INT( "hist.y",		hist_y,		100 );
-CONFIG_INT( "waveform.x",	waveform_x,	720 - 256 - 10 );
-CONFIG_INT( "waveform.y",	waveform_y,	280 );
+CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
+CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
+CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
 CONFIG_INT( "timecode.y",	timecode_y,	32 );
 CONFIG_INT( "timecode.width",	timecode_width,	160 );
@@ -182,11 +183,13 @@ check_crop(
 }
 
 
-/** Store the waveform data for each of the 256 bins with 128 scan lines */
-static uint32_t waveform[ (vram_end_line - vram_start_line)/2 ][ 128 ];
+/** Store the waveform data for each of the waveform_width bins with
+ * 128 levels
+ */
+static uint32_t waveform[ waveform_width ][ waveform_height ];
 
 /** Store the histogram data for each of the 128 bins */
-static uint32_t hist[ 128 ];
+static uint32_t hist[ hist_width ];
 
 /** Maximum value in the histogram so that at least one entry fills
  * the box */
@@ -221,19 +224,21 @@ hist_build( void )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
-			// Average each of the two pixels top 7 bits
+			// Average each of the two pixels
 			uint32_t pixel = v_row[x/2];
-			uint16_t p1 = (pixel >> 25) & 0x7F;
-			uint16_t p2 = (pixel >>  9) & 0x7F;
-			uint16_t p = (p1+p2) / 2;
+			uint32_t p1 = (pixel >> 16) & 0xFFFF;
+			uint32_t p2 = (pixel >>  0) & 0xFFFF;
+			uint32_t p = (p1+p2) / 2;
+
+			uint32_t hist_level = ( p * hist_width ) / 65536;
 
 			// Ignore the 0 bin.  It generates too much noise
-			unsigned count = ++hist[ p ];
-			if( p && count > hist_max )
+			unsigned count = ++hist[ hist_level ];
+			if( hist_level && count > hist_max )
 				hist_max = count;
 
 			// Update the waveform plot
-			waveform[ (y - vram_start_line) / 2 ][ p ]++;
+			waveform[ (x * waveform_width) / width ][ (p * waveform_height) / 65536 ]++;
 		}
 	}
 }
@@ -313,7 +318,21 @@ waveform_draw_image(
 			if( count > 42 )
 				count = 0x0F;
 			else
+			if( count >  0 )
 				count += 0x26;
+			else
+			// Draw a series of colored scales
+			if( y == (waveform_height*1)/4 )
+				count = COLOR_BLUE;
+			else
+			if( y == (waveform_height*2)/4 )
+				count = 0xE; // pink
+			else
+			if( y == (waveform_height*3)/4 )
+				count = COLOR_BLUE;
+			else
+				count = waveform_bg; // transparent
+
 			*col = count;
 		}
 	}
