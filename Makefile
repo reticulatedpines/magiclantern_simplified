@@ -164,6 +164,7 @@ ML_OBJS-y = \
 	lens.o \
 	focus.o \
 	zebra.o \
+	spotmeter.o \
 	hotplug.o \
 	config.o \
 	ptp.o \
