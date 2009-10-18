@@ -54,6 +54,7 @@ CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
 CONFIG_INT( "audio.mic-in",	mic_in,		0 );
 CONFIG_INT( "audio.loopback",	loopback,	1 );
 
+static int do_draw_meters = 1;
 
 
 struct audio_level
@@ -295,7 +296,11 @@ meter_task( void )
 	while(1)
 	{
 		msleep( 50 );
-		draw_meters();
+
+		if( do_draw_meters )
+			draw_meters();
+		else
+			msleep( 500 );
 	}
 }
 
@@ -673,16 +678,10 @@ handle_mvr_rec_token(
 
 
 static void
-handle_mvr_rec_property(
-	unsigned		property,
-	void *			UNUSED( priv ),
-	void *			buf,
-	unsigned		len
+enable_recording(
+	int			mode
 )
 {
-	const unsigned		mode = *(unsigned*) buf;
-	DebugMsg( DM_MAGIC, 3, "mvr_rec_start: %x %x", (unsigned) buf, mode );
-
 	switch( mode )
 	{
 	case 0:
@@ -696,6 +695,39 @@ handle_mvr_rec_property(
 		break;
 	default:
 		// Uh?
+		break;
+	}
+}
+
+static void
+enable_meters(
+	int			mode
+)
+{
+	loopback = do_draw_meters = !mode;
+	audio_configure( 1 );
+}
+
+
+static void
+handle_mvr_rec_property(
+	unsigned		property,
+	void *			UNUSED( priv ),
+	void *			buf,
+	unsigned		len
+)
+{
+	const unsigned		mode = *(unsigned*) buf;
+
+	switch( property )
+	{
+	case PROP_LV_ACTION:
+		enable_meters( mode );
+		break;
+	case PROP_MVR_REC_START:
+		enable_recording( mode );
+		break;
+	default:
 		break;
 	}
 
@@ -718,7 +750,11 @@ my_sounddev_task( void )
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
 
-	static unsigned mvr_rec_events[] = { PROP_MVR_REC_START, };
+	static unsigned mvr_rec_events[] = {
+		PROP_MVR_REC_START,
+		PROP_LV_ACTION,
+	};
+
 	prop_register_slave(
 		mvr_rec_events,
 		COUNT(mvr_rec_events),
