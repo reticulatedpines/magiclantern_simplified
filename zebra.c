@@ -52,6 +52,7 @@ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width );
 CONFIG_INT( "hist.y",		hist_y,		100 );
+CONFIG_INT( "waveform.draw",	waveform_draw,	1 );
 CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
 CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
 CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
@@ -298,20 +299,25 @@ waveform_draw_image(
 	unsigned		y_origin
 )
 {
+	// Ensure that x_origin is quad-word aligned
+	x_origin &= ~3;
+
 	uint8_t * const bvram = bmp_vram();
-	uint8_t * row = bvram + x_origin + y_origin * bmp_pitch();
+	unsigned pitch = bmp_pitch();
+	uint8_t * row = bvram + x_origin + y_origin * pitch;
 	if( hist_max == 0 )
 		hist_max = 1;
 
 	unsigned i, y;
 
-	for( i=0 ; i<waveform_width ; i++ )
+	// vertical line up to the hist size
+	for( y=waveform_height-1 ; y>0 ; y-- )
 	{
-		uint8_t * col = row + i;
+		uint32_t pixel = 0;
 
-		// vertical line up to the hist size
-		for( y=waveform_height ; y>0 ; y-- , col += bmp_pitch() )
+		for( i=0 ; i<waveform_width ; i++ )
 		{
+
 			uint32_t count = waveform[ i ][ y ];
 			// Scale to a grayscale
 			count = (count * 42) / 128;
@@ -333,8 +339,21 @@ waveform_draw_image(
 			else
 				count = waveform_bg; // transparent
 
-			*col = count;
+			pixel <<= 8;
+			pixel |= count;
+
+			if( (i & 3) != 3 )
+				continue;
+
+			*(uint32_t*)( row + i ) = pixel;
+			pixel = 0;
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
 		}
+
+		row += pitch;
 	}
 }
 
@@ -364,7 +383,7 @@ draw_zebra( void )
 		return;
 
 	// If we are not drawing edges, or zebras or crops, nothing to do
-	if( !edge_draw && !zebra_draw && !hist_draw )
+	if( !edge_draw && !zebra_draw && !hist_draw && !waveform_draw )
 	{
 		if( !crop_draw )
 			return;
@@ -406,7 +425,7 @@ draw_zebra( void )
 				continue;
 
 			// Ignore the regions where the waveform will be drawn
-			if( hist_draw
+			if( waveform_draw
 			&&  y >= waveform_y
 			&&  y <  waveform_y + waveform_height
 			&&  x >= waveform_x
@@ -438,10 +457,9 @@ draw_zebra( void )
 #endif
 
 	if( hist_draw )
-	{
 		hist_draw_image( hist_x, hist_y );
+	if( waveform_draw )
 		waveform_draw_image( waveform_x, waveform_y );
-	}
 }
 
 
@@ -518,6 +536,19 @@ hist_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+waveform_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Waveform:   %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
+
+
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &zebra_draw,
@@ -543,6 +574,11 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &hist_draw,
 		.select		= menu_binary_toggle,
 		.display	= hist_display,
+	},
+	{
+		.priv		= &waveform_draw,
+		.select		= menu_binary_toggle,
+		.display	= waveform_display,
 	},
 };
 
