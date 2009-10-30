@@ -192,6 +192,8 @@ main(
 	uintptr_t		offset = 0x800120;
 	if( argc > 1 )
 		offset = strtoul( argv[1], 0, 0 );
+	if( argc > 2 )
+		offset += strtoul( argv[2], 0, 0 ) - 0x800120;
 
 	uint8_t			buf[ 4096 ];
 
