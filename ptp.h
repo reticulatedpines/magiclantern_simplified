@@ -23,24 +23,32 @@
 #define PTP_AF_START		0x9160
 #define PTP_FAPI_MESSAGE_TX	0x91fe
 
-struct usb_handle;
+
+#define PTP_RC_OK		0x2001
+#define PTP_RC_ERROR		0x2002
+
+struct ptp_handle;
 
 struct ptp_msg
 {
-	uint16_t		id;
-	uint16_t		off_0x02;
-	uint8_t			buf[ 8 ];
+	uint32_t		id;
+	uint32_t		session;
+	uint32_t		transaction;
+	uint32_t		param_count;
+	uint32_t		param[ 5 ];
 } __PACKED__;
 
-struct usb_context
+SIZE_CHECK_STRUCT( ptp_msg, 0x24 );
+
+struct ptp_context
 {
-	struct usb_handle *	handle;		// off_0x00;
+	struct ptp_handle *	handle;		// off_0x00;
 
 	void *		off_0x04;
 
 	// off 0x08
 	void 		(*recv)(
-		struct usb_handle *	handle,
+		struct ptp_handle *	handle,
 		void *			buf,
 		size_t			len,
 		void			(*callback)(
@@ -54,14 +62,14 @@ struct usb_context
 	// \note format to be determined
 	// off_0x0c
 	int		(*send)(
-		struct usb_handle *	handle,
+		struct ptp_handle *	handle,
 		struct ptp_msg *	msg
 	);
 
 	// Returns length of message to receive
 	// off 0x10
 	int		(*len)(
-		struct usb_handle *	handle
+		struct ptp_handle *	handle
 	);
 
 	void * off_0x14;
@@ -75,7 +83,7 @@ ptp_register_handler(
 	uint32_t		id,
 	int			(*handler)(
 		void *			priv,
-		struct usb_context *	context,
+		struct ptp_context *	context,
 		void *			r2, // unknown
 		void *			r3 // unknown
 	),

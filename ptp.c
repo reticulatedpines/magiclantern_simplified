@@ -11,24 +11,41 @@
 #include "menu.h"
 #include "bmp.h"
 #include "hotplug.h"
+#include "property.h"
 
 static int
 ptp_handler_9999(
 	void *			priv,
-	struct usb_context *	context,
-	void *			r2,
-	void *			r3
+	struct ptp_context *	context,
+	uint32_t		opcode,
+	uint32_t		session,
+	uint32_t		transaction,
+	uint32_t		param1,
+	uint32_t		param2,
+	uint32_t		param3,
+	uint32_t		param4,
+	uint32_t		param5
 )
 {
-		struct ptp_msg msg = {
-			.id		= 0x2002,
-		};
+	struct ptp_msg msg = {
+		.id		= PTP_RC_OK,
+		.session	= session,
+		.transaction	= transaction,
+		.param_count	= 4,
+		.param		= { 1, 2, 0xdeadbeef, 3 },
+	};
 
-	void * (*AllocateMemory)( size_t ) = (void*) 0xFF86DFE8;
-	void (*FreeMemory)( void * ) = (void*) 0xFF86AF60;
+	//call( "FA_StartLiveView" );
+	bmp_printf( FONT_MED, 0, 30, "usb %08x %08x", context, context->handle );
+	bmp_printf( FONT_MED, 0, 50, "%08x %08x %08x %08x %08x",
+		(unsigned) param1,
+		(unsigned) param2,
+		(unsigned) param3,
+		(unsigned) param4,
+		(unsigned) param5
+	);
 
-	bmp_printf( FONT_LARGE, 0, 30, "usb %08x %08x", context, context->handle );
-
+#if 0
 	int len = context->len( context->handle );
 	bmp_printf( FONT_LARGE, 0, 50, "Len = %d", len );
 	if( !len )
@@ -57,11 +74,13 @@ ptp_handler_9999(
 
 	bmp_hexdump( FONT_LARGE, 0, 50, buf, len );
 	FreeMemory( buf );
+#endif
 
 	context->send(
 		context->handle,
 		&msg
 	);
+
 	return 0;
 }
 
