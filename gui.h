@@ -209,6 +209,25 @@ gui_control(
 );
 
 
+/** Lock the camera interface.
+ * The USB device does this when it starts up; call with parameters
+ * (0, 1, 2) to unlock it.  The meaning is unknown.
+ */
+extern void
+gui_lock(
+	unsigned		arg0,
+	unsigned		arg1,
+	unsigned		arg2
+);
+
+
+static inline void
+gui_unlock( void )
+{
+	gui_lock( 0, 1, 2 );
+}
+
+
 
 struct gui_struct
 {

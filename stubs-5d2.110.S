@@ -158,6 +158,9 @@ NSTUB( 0xFF88D810, gui_change_shoot_type_post )
 NSTUB( 0xFF88D8A8, gui_change_lcd_state_post )
 /** @} */
 
+/** Called by ptpRequestCamStateForUSBDisConnect() */
+NSTUB( 0xFF913F48, gui_lock )
+
 /** Look for the call in CreateDialog */
 NSTUB( 0xFFA5446C, gui_task_create )
 NSTUB( 0xFFA5458C, gui_task_destroy )
