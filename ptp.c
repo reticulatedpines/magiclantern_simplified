@@ -12,6 +12,7 @@
 #include "bmp.h"
 #include "hotplug.h"
 #include "property.h"
+#include "lens.h"
 
 static int
 ptp_handler_9999(
@@ -109,7 +110,7 @@ ptp_handler_9998(
 		.transaction	= transaction,
 	};
 
-	lens_focus( 0x7, -1000 );
+	lens_focus( 0x7, (int) param1 );
 
 	context->send(
 		context->handle,
