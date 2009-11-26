@@ -663,4 +663,16 @@ debug_malloc( unsigned long len, const char * func )
 	return rc;
 }
 
+/** DryOS allocate / Free.  Not sure how they differ from malloc */
+extern void *
+AllocateMemory(
+	size_t			len
+);
+
+extern void
+FreeMemory(
+	void *			buf
+);
+
+
 #endif

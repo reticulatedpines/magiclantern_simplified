@@ -46,6 +46,10 @@ NSTUB( 0xFF811DBC, init_task )
 /** How to find this one again? */
 NSTUB( 0x11F98, additional_version )
 
+/** AllocateMemory() and FreeMemory() are wrappers around malloc? */
+NSTUB( 0xFF86DFE8, AllocateMemory )
+NSTUB( 0xFF86AF60, FreeMemory )
+
 /** AllocateMemory() calls this one */
 NSTUB( 0xFF86ABD0, _malloc )
 
