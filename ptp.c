@@ -81,8 +81,44 @@ ptp_handler_9999(
 		&msg
 	);
 
+	// Try to disable the USB lock
+	gui_unlock();
+
 	return 0;
 }
+
+
+
+static int
+ptp_handler_9998(
+	void *			priv,
+	struct ptp_context *	context,
+	uint32_t		opcode,
+	uint32_t		session,
+	uint32_t		transaction,
+	uint32_t		param1,
+	uint32_t		param2,
+	uint32_t		param3,
+	uint32_t		param4,
+	uint32_t		param5
+)
+{
+	struct ptp_msg msg = {
+		.id		= PTP_RC_OK,
+		.session	= session,
+		.transaction	= transaction,
+	};
+
+	lens_focus( 0x7, -1000 );
+
+	context->send(
+		context->handle,
+		&msg
+	);
+
+	return 0;
+}
+
 
 static void
 ptp_state_display(
@@ -129,6 +165,12 @@ ptp_init( void )
 	ptp_register_handler(
 		0x9999,
 		ptp_handler_9999,
+		0
+	);
+
+	ptp_register_handler(
+		0x9998,
+		ptp_handler_9998,
 		0
 	);
 
