@@ -52,7 +52,7 @@ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width );
 CONFIG_INT( "hist.y",		hist_y,		100 );
-CONFIG_INT( "waveform.draw",	waveform_draw,	1 );
+CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
 CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
 CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
 CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
