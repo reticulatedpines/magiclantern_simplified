@@ -62,6 +62,12 @@ SECTIONS
 		*(.init_funcs)
 		_init_funcs_end = .;
 
+		/* List of PTP handlers to be installed */
+		. = ALIGN(8);
+		_ptp_handlers_start = .;
+		*(.ptp_handlers)
+		_ptp_handlers_end = .;
+
 		/* Configuration parameters to be assigned */
 		. = ALIGN(8);
 		_config_vars_start = .;

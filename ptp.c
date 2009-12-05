@@ -89,36 +89,8 @@ ptp_handler_9999(
 }
 
 
+PTP_HANDLER( 0x9999, ptp_handler_9999, 0 );
 
-static int
-ptp_handler_9998(
-	void *			priv,
-	struct ptp_context *	context,
-	uint32_t		opcode,
-	uint32_t		session,
-	uint32_t		transaction,
-	uint32_t		param1,
-	uint32_t		param2,
-	uint32_t		param3,
-	uint32_t		param4,
-	uint32_t		param5
-)
-{
-	struct ptp_msg msg = {
-		.id		= PTP_RC_OK,
-		.session	= session,
-		.transaction	= transaction,
-	};
-
-	lens_focus( 0x7, (int) param1 );
-
-	context->send(
-		context->handle,
-		&msg
-	);
-
-	return 0;
-}
 
 
 static void
@@ -163,17 +135,18 @@ static struct menu_entry ptp_menus[] = {
 static void
 ptp_init( void )
 {
-	ptp_register_handler(
-		0x9999,
-		ptp_handler_9999,
-		0
-	);
+	extern struct ptp_handler _ptp_handlers_start[];
+	extern struct ptp_handler _ptp_handlers_end[];
+	struct ptp_handler * handler = _ptp_handlers_start;
 
-	ptp_register_handler(
-		0x9998,
-		ptp_handler_9998,
-		0
-	);
+	for( ; handler < _ptp_handlers_end ; handler++ )
+	{
+		ptp_register_handler(
+			handler->id,
+			handler->handler,
+			handler->priv
+		);
+	}
 
 	menu_add( "PTP", ptp_menus, COUNT(ptp_menus) );
 }

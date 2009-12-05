@@ -91,4 +91,21 @@ ptp_register_handler(
 );
 
 
+/* PTP handlers */
+struct ptp_handler
+{
+	uint32_t		id;
+	void *			handler;
+	void *			priv;
+};
+
+#define PTP_HANDLER( ID, HANDLER, PRIV ) \
+struct ptp_handler \
+__attribute__((section(".ptp_handlers"))) \
+__ptp_handler_##ID = { \
+	.id			= ID, \
+	.handler		= HANDLER, \
+	.priv			= PRIV, \
+}
+
 #endif
