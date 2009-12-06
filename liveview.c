@@ -3,6 +3,8 @@
  *
  * Attempt to replace the DlgLiveViewApp with our own version.
  * Uses the reloc tools to do this.
+ *
+ * \warning Only works for 5D Mark 2 with 1.1.0
  */
 #include "reloc.h"
 #include "dryos.h"
@@ -10,6 +12,7 @@
 #include "gui.h"
 #include "dialog.h"
 #include "config.h"
+
 
 // 0xffa96390
 // 0xffa96b1c DlgLiveViewApp
