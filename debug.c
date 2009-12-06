@@ -262,12 +262,13 @@ struct menu_entry debug_menus[] = {
 		.select		= call_dispcheck,
 		.display	= menu_print,
 	},
+
+#if 0
 	{
 		.priv		= "Enable full HD",
 		.select		= enable_full_hd,
 		.display	= display_full_hd,
 	},
-#if 0
 	{
 		.display	= mvr_time_const_display,
 		.select		= mvr_time_const_select,
