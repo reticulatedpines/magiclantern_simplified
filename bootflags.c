@@ -6,6 +6,31 @@
 #include "menu.h"
 #include "config.h"
 
+/* CF device structure */
+struct cf_device
+{
+	// If block has the top bit set the physical blocks will be read
+	// instead of from the first partition.  Cool.
+	int 			(*read_block)(
+		struct cf_device *		dev,
+		uintptr_t			block,
+		size_t				num_blocks,
+		void *				buf
+	);
+
+	int 			(*write_block)(
+		struct cf_device *		dev,
+		uintptr_t			block,
+		size_t				num_blocks,
+		const void *			buf
+	);
+
+	void *			io_control;
+	void *			soft_reset;
+};
+
+extern struct cf_device * const cf_device;
+
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
 #define NVRAM_BOOTFLAGS		((void*) 0xF8000000)
@@ -54,13 +79,44 @@ bootflag_display(
 }
 
 
+// gcc mempcy has odd alignment issues?
+static inline void
+my_memcpy(
+	uint8_t *		dest,
+	const uint8_t *		src,
+	size_t			len
+)
+{
+	while( len-- > 0 )
+		*dest++ = *src++;
+}
+
+
 void
 bootflag_write_bootblock( void )
 {
 	gui_stop_menu();
-	//bmp_printf( FONT_LARGE, 0, 30, "Not yet" );
-	bmp_hexdump( FONT_MED, 0, 30, boot_flags, sizeof(*boot_flags) );
+	void * (*AllocateUncacheableMemory)( size_t ) = (void*) 0xff99b3a8;
+	void (*FreeUncacheableMemory)( const void * ) = (void*) 0xff99b3dc;
+
+	uint8_t *block = AllocateUncacheableMemory( 0x200 );
+	bmp_printf( FONT_MED, 0, 40, "mem=%08x read=%08x", block, cf_device->read_block );
+	int rc = cf_device->read_block( cf_device, 0x0, 1, block );
+	msleep( 100 );
+
+	bmp_printf( FONT_MED, 600, 40, "read=%d", rc );
+	bmp_hexdump( FONT_SMALL, 0, 60, block, 0x100 );
+
+	// Update the first partition header to include the magic
+	// strings
+	my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
+	my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0x8 );
+
+	rc = cf_device->write_block( cf_device, 0x0, 1, block );
+	bmp_printf( FONT_MED, 600, 60, "write=%d", rc );
+	FreeUncacheableMemory( block );
 }
+
 
 #if 0
 void
@@ -124,7 +180,7 @@ powersave_toggle( void )
 struct menu_entry boot_menus[] = {
 	{
 		.display	= menu_print,
-		.priv		= "Show flags",
+		.priv		= "Write MBR",
 		.select		= bootflag_write_bootblock,
 	},
 

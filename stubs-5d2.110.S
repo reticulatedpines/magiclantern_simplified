@@ -269,3 +269,6 @@ NSTUB( 0x14B9C, err_battery_ptr )
 /** Look for strings like %Y:%m:%d; they are calls to strftime */
 NSTUB( 0xFF86A310, strftime )
 NSTUB( 0xFF86513C, LoadCalendarFromRTC )
+
+/** Find fsuGetPart */
+NSTUB( 0x1F4F4, cf_device )
