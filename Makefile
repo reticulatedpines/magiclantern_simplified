@@ -46,16 +46,6 @@ install: magiclantern.fir magiclantern.cfg cropmarks.bmp test.pym
 	cp $^ $(CF_CARD)
 	hdiutil unmount $(CF_CARD)
 
-#
-# Install the autoexec.bin file to the CF card and
-# make the card bootable.
-#
-autoboot: reboot.bin
-	cp reboot.bin $(CF_CARD)/autoexec.bin
-	hdiutil unmount $(CF_CARD)
-	./make-bootable
-
-
 zip: magiclantern-$(VERSION).zip
 
 # zip.txt must be the first item on the list!
@@ -64,6 +54,7 @@ magiclantern-$(VERSION).zip: \
 	magiclantern.fir \
 	magiclantern.cfg \
 	cropmarks.bmp \
+	autoexec.bin \
 	README \
 	LICENSE \
 
@@ -276,7 +267,7 @@ version.c: FORCE
 		echo 'const char build_user[] = "'`whoami`@`hostname`'";' ; \
 	) > $@)
 
-reboot: reboot.o
+autoexec: reboot.o
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
@@ -367,7 +358,7 @@ dumper.elf: 5d2_dump.fir flasher.map
 		--offset 0x5ab8 \
 		--id $(FIRMWARE_ID) \
 
-magiclantern.fir: reboot.bin
+magiclantern.fir: autoexec.bin
 	$(call build,ASSEMBLE,./assemble_fw \
 		--output $@ \
 		--user $< \
