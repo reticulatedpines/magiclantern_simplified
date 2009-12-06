@@ -695,6 +695,9 @@ zebra_task( void )
 */
 		DebugMsg( DM_MAGIC, 3, "Entering liveview" );
 		call( "FA_StartLiveView" );
+
+		// Clear the bitmap display, just in case
+		bmp_fill( 0, 0, 0, 720, 480 );
 	}
 
 

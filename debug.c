@@ -469,3 +469,42 @@ dump_task( void )
 
 
 TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
+
+
+CONFIG_INT( "debug.timed-start",	timed_start, 0 );
+
+static void
+movie_start( void )
+{
+	int sec = timed_start;
+	if( sec == 0 )
+		return;
+
+	const int x = 320;
+	const int y = 150;
+
+	while( --sec > 0 )
+	{
+		msleep( 1000 );
+		bmp_printf(
+			FONT(
+				FONT_HUGE,
+				sec > 4 ? COLOR_WHITE : COLOR_RED,
+				0
+			),
+			x, y,
+			"T-%d",
+			sec
+		);
+	}
+
+	bmp_printf( FONT(FONT_HUGE,COLOR_WHITE,0), x, y, "GO!" );
+
+	call( "MovieStart" );
+
+	msleep( 1000 );
+
+	bmp_printf( FONT(FONT_HUGE,COLOR_WHITE,0), x, y, "   " );
+}
+
+TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
