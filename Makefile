@@ -167,6 +167,7 @@ ML_OBJS-y = \
 	spotmeter.o \
 	hotplug.o \
 	config.o \
+	bootflags.o \
 	ptp.o \
 	bmp.o \
 	bracket.o \

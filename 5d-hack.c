@@ -239,7 +239,6 @@ call_init_funcs( void * priv )
 	init_funcs_done = 1;
 }
 
-CONFIG_INT( "disable-powersave", disable_powersave, 1 );
 
 
 /** Initial task setup.
@@ -310,15 +309,6 @@ my_init_task(void)
 	);
 
 	msleep( 500 );
-
-	if( disable_powersave )
-	{
-		DebugMsg( DM_MAGIC, 3,
-			"%s: Disabling powersave",
-			__func__
-		);
-		prop_request_icu_auto_poweroff( EM_PROHIBIT );
-	}
 
 	init_funcs_done = 0;
 	//task_create( "init_func", 0x1f, 0x1000, call_init_funcs, 0 );
