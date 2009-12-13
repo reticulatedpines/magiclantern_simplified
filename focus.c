@@ -346,19 +346,7 @@ focus_init( void )
 }
 
 
-static int
-ptp_lens_focus(
-	void *			priv,
-	struct ptp_context *	context,
-	uint32_t		opcode,
-	uint32_t		session,
-	uint32_t		transaction,
-	uint32_t		param1,
-	uint32_t		param2,
-	uint32_t		param3,
-	uint32_t		param4,
-	uint32_t		param5
-)
+PTP_HANDLER( 0x9998, 0 )
 {
 	struct ptp_msg msg = {
 		.id		= PTP_RC_OK,
@@ -375,9 +363,6 @@ ptp_lens_focus(
 
 	return 0;
 }
-
-
-PTP_HANDLER( 0x9998, ptp_lens_focus, 0 );
 
 
 INIT_FUNC( __FILE__, focus_init );

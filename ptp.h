@@ -99,7 +99,7 @@ struct ptp_handler
 	void *			priv;
 };
 
-#define PTP_HANDLER( ID, HANDLER, PRIV ) \
+#define REGISTER_PTP_HANDLER( ID, HANDLER, PRIV ) \
 struct ptp_handler \
 __attribute__((section(".ptp_handlers"))) \
 __ptp_handler_##ID = { \
@@ -107,5 +107,22 @@ __ptp_handler_##ID = { \
 	.handler		= HANDLER, \
 	.priv			= PRIV, \
 }
+
+
+#define PTP_HANDLER( ID, PRIV ) \
+	static int ptp_handler_##ID(); \
+	REGISTER_PTP_HANDLER( ID, ptp_handler_##ID, PRIV ); \
+	static int ptp_handler_##ID( \
+		void *			priv, \
+		struct ptp_context *	context, \
+		uint32_t		opcode, \
+		uint32_t		session, \
+		uint32_t		transaction, \
+		uint32_t		param1, \
+		uint32_t		param2, \
+		uint32_t		param3, \
+		uint32_t		param4, \
+		uint32_t		param5 \
+	) \
 
 #endif

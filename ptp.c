@@ -14,19 +14,8 @@
 #include "property.h"
 #include "lens.h"
 
-static int
-ptp_handler_9999(
-	void *			priv,
-	struct ptp_context *	context,
-	uint32_t		opcode,
-	uint32_t		session,
-	uint32_t		transaction,
-	uint32_t		param1,
-	uint32_t		param2,
-	uint32_t		param3,
-	uint32_t		param4,
-	uint32_t		param5
-)
+
+PTP_HANDLER( 0x9999, 0 )
 {
 	struct ptp_msg msg = {
 		.id		= PTP_RC_OK,
@@ -89,9 +78,85 @@ ptp_handler_9999(
 }
 
 
-PTP_HANDLER( 0x9999, ptp_handler_9999, 0 );
+/** Start recording when we get a PTP operation 0x9997 */
+PTP_HANDLER( 0x9997, 0 )
+{
+	if( param1 == 0 )
+		call( "MovieStop" );
+	else
+		call( "MovieStart" );
+
+	struct ptp_msg msg = {
+		.id		= PTP_RC_OK,
+		.session	= session,
+		.transaction	= transaction,
+		.param_count	= 1,
+		.param		= { param1 },
+	};
+
+	context->send(
+		context->handle,
+		&msg
+	);
+
+	return 0;
+}
 
 
+/** Dump memory */
+PTP_HANDLER( 0x9996, 0 )
+{
+	const uint32_t * const buf = (void*) param1;
+
+	struct ptp_msg msg = {
+		.id		= PTP_RC_OK,
+		.session	= session,
+		.transaction	= transaction,
+		.param_count	= 5,
+		.param		= {
+			buf[0],
+			buf[1],
+			buf[2],
+			buf[3],
+			buf[4],
+		},
+	};
+
+	context->send(
+		context->handle,
+		&msg
+	);
+
+	return 0;
+}
+
+/** Write to memory, returning the old value */
+PTP_HANDLER( 0x9995, 0 )
+{
+	uint32_t * const buf = (void*) param1;
+	const uint32_t val = (void*) param2;
+
+	const uint32_t old = *buf;
+	*buf = val;
+
+	struct ptp_msg msg = {
+		.id		= PTP_RC_OK,
+		.session	= session,
+		.transaction	= transaction,
+		.param_count	= 2,
+		.param		= {
+			param1,
+			old,
+		},
+	};
+
+	context->send(
+		context->handle,
+		&msg
+	);
+
+	return 0;
+}
 
 static void
 ptp_state_display(
@@ -150,5 +215,6 @@ ptp_init( void )
 
 	menu_add( "PTP", ptp_menus, COUNT(ptp_menus) );
 }
+
 
 INIT_FUNC( __FILE__, ptp_init );
