@@ -78,13 +78,13 @@ PTP_HANDLER( 0x9999, 0 )
 }
 
 
-/** Start recording when we get a PTP operation 0x9997 */
+/** Start recording when we get a PTP operation 0x9997
+ * MovieStop doesn't seem to do anything, but MovieStart
+ * toggles recording on and off
+ */
 PTP_HANDLER( 0x9997, 0 )
 {
-	if( param1 == 0 )
-		call( "MovieStop" );
-	else
-		call( "MovieStart" );
+	call( "MovieStart" );
 
 	struct ptp_msg msg = {
 		.id		= PTP_RC_OK,
