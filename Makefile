@@ -42,7 +42,7 @@ CF_CARD="/Volumes/EOS_DIGITAL"
 #
 # Install a normal firmware file to the CF card.
 #
-install: magiclantern.fir magiclantern.cfg cropmarks.bmp test.pym
+install: magiclantern.fir magiclantern.cfg cropmarks.bmp autoexec.bin test.pym
 	cp $^ $(CF_CARD)
 	hdiutil unmount $(CF_CARD)
 
@@ -75,6 +75,7 @@ FLAGS=\
 
 CFLAGS=\
 	$(FLAGS) \
+	-g \
 	-O3 \
 	-Wall \
 	-W \
