@@ -218,8 +218,20 @@ hist_build( void )
 
 	hist_max = 0;
 
+#if 0
 	memset( hist, 0, sizeof(hist) );
 	memset( waveform, 0, sizeof(waveform) );
+#else
+	// memset() causes err70?  Too much memory bandwidth?
+	for( x=0 ; x<hist_width ; x++ )
+		hist[x] = 0;
+	for( y=0 ; y<waveform_width ; y++ )
+		for( x=0 ; x<waveform_height ; x++ )
+		{
+			waveform[y][x] = 0;
+			asm( "nop\nnop\nnop\nnop\n" );
+		}
+#endif
 
 	for( y=vram_start_line ; y<vram_end_line; y++, v_row += (vram->pitch/2) )
 	{
@@ -258,6 +270,10 @@ hist_draw_image(
 )
 {
 	uint8_t * const bvram = bmp_vram();
+
+	// Align the x origin, just in case
+	x_origin &= ~3;
+
 	uint8_t * row = bvram + x_origin + y_origin * bmp_pitch();
 	if( hist_max == 0 )
 		hist_max = 1;
@@ -345,7 +361,9 @@ waveform_draw_image(
 			if( (i & 3) != 3 )
 				continue;
 
-			*(uint32_t*)( row + i ) = pixel;
+			// Draw the pixel, rounding down to the nearest
+			// quad word write (and then nop to avoid err70).
+			*(uint32_t*)( row + (i & ~3)  ) = pixel;
 			pixel = 0;
 			asm( "nop" );
 			asm( "nop" );
@@ -395,7 +413,6 @@ draw_zebra( void )
 
 	hist_build();
 
-#if 1
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
@@ -454,7 +471,6 @@ draw_zebra( void )
 			b_row[x/2] = 0;
 		}
 	}
-#endif
 
 	if( hist_draw )
 		hist_draw_image( hist_x, hist_y );
