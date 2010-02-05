@@ -17,6 +17,9 @@ CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 static int focus_dir;
 
+#define FOCUS_MAX 1700
+static int focus_position;
+
 static struct semaphore * focus_stack_sem;
 
 
@@ -348,13 +351,25 @@ focus_init( void )
 
 PTP_HANDLER( 0x9998, 0 )
 {
+	int step = (int) param1;
+
+	focus_position += step;
+	if( focus_position < 0 )
+		focus_position = 0;
+	else
+	if( focus_position > FOCUS_MAX )
+		focus_position = FOCUS_MAX;
+
+	lens_focus( 0x7, (int) param1 );
+	bmp_printf( FONT_MED, 650, 35, "%04d", focus_position );
+
 	struct ptp_msg msg = {
 		.id		= PTP_RC_OK,
 		.session	= session,
 		.transaction	= transaction,
+		.param_count	= 2,
+		.param		= { param1, focus_position },
 	};
-
-	lens_focus( 0x7, (int) param1 );
 
 	context->send(
 		context->handle,
