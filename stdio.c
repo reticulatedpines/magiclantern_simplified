@@ -9,6 +9,7 @@
  */
 
 #include "dryos.h"
+#include <errno.h>
 
 int
 fprintf(
@@ -47,52 +48,6 @@ snprintf(
 }
 
 
-char *
-strncpy(
-	char *			dest,
-	const char *		src,
-	size_t			n
-)
-{
-	while( n-- )
-	{
-		char c = *src++;
-		*dest++ = c;
-		if( !c )
-			break;
-	}
-
-	return dest;
-}
-
-/* NOTE: This is the simple-minded O(len(s1) * len(s2)) worst-case approach.
- * Copied from uClibc 0.9.30 libc/string/strstr.c under the GPL.
- */
-char *
-strstr(
-	const char *		s1,
-	const char *		s2
-)
-{
-	register const char *s = s1;
-	register const char *p = s2;
-
-	do {
-		if( !*p )
-			return (char *) s1;;
-
-		if( *p == *s )
-		{
-			++p;
-			++s;
-		} else {
-			p = s2;
-			if( !*s )
-				return NULL;
-			s = ++s1;
-		}
-	} while (1);
-}
 
 
 static inline int
@@ -101,7 +56,10 @@ ISSPACE( char c )
 	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-#define SET_ERRNO(x) /* We have no errno */
+
+//int __errno;
+
+#define SET_ERRNO(x) __errno = (x)
 
 
 static unsigned long
@@ -210,6 +168,26 @@ strtol(
 }
 
 
+double
+strtod(
+	const char *		str,
+	char **			endptr
+)
+{
+	return 0;
+#if 0
+	double val;
+	int len;
+	int rc = sscanf( str, "%lf%n", &val, &len );
+	if( rc != 2 )
+		return HUGE_VAL;
+	if( endptr )
+		*endptr = str + len;
+	return val;
+#endif
+}
+
+
 unsigned long
 strtoul(
 	const char *		str,
@@ -221,21 +199,3 @@ strtoul(
 }
 
 
-
-/** \todo This could be much more optimized to handle 32-bit writes, etc.
- */
-void *
-memset(
-	void *			b,
-	int			c,
-	size_t			n
-)
-{
-	size_t			i;
-	char *			buf = b;
-	for( i=0 ; i<n ; i++ )
-		buf[i] = c;
-
-	return b;
-}
-	

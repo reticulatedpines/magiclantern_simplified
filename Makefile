@@ -1,21 +1,22 @@
 ARM_PATH=/opt/local/bin
 CC=$(ARM_PATH)/arm-elf-gcc-4.3.2
 OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
+AR=$(ARM_PATH)/arm-elf-ar
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.1.7
+VERSION=0.1.8
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
-CONFIG_TIMECODE		= y
+CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
 
 # 5D memory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF810000
-RESTARTSTART		= 0x00048000
+RESTARTSTART		= 0x00050000
 
 # Firmware file IDs
 FIRMWARE_ID_5D		= 0x80000218
@@ -148,6 +149,10 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
+	stubs-5d2.203.o \
+	version.o \
+
+NO=\
 	stdio.o \
 	menu.o \
 	debug.o \
@@ -167,8 +172,6 @@ ML_OBJS-y = \
 	font-large.o \
 	font-med.o \
 	font-small.o \
-	stubs-5d2.110.o \
-	version.o \
 
 
 ML_OBJS-$(CONFIG_PYMITE) += \
@@ -179,6 +182,7 @@ ML_OBJS-$(CONFIG_PYMITE) += \
 	$(PYMITE_LIB) \
 
 ML_OBJS-$(CONFIG_LUA) += \
+	lua-glue.o \
 	$(LUA_LIB) \
 
 ML_OBJS-$(CONFIG_RELOC) += \
@@ -188,7 +192,29 @@ ML_OBJS-$(CONFIG_RELOC) += \
 ML_OBJS-$(CONFIG_TIMECODE) += \
 	timecode.o \
 
-magiclantern: $(ML_OBJS-y)
+# Extract the stdio files that we need
+STDIO_OBJ = \
+	lib_a-setjmp.o \
+	lib_a-strchr.o \
+	lib_a-strrchr.o \
+	lib_a-strlen.o \
+	lib_a-strcat.o \
+	lib_a-strncat.o \
+	lib_a-strcmp.o \
+	lib_a-strncmp.o \
+	lib_a-strncpy.o \
+	lib_a-memcmp.o \
+	lib_a-strcoll.o \
+
+ARM_LIBC_A = /opt/local/arm-elf/lib/libc.a
+
+$(STDIO_OBJ): $(ARM_LIBC_A)
+	$(AR) xv $? $(STDIO_OBJ)
+libstdio.a: $(STDIO_OBJ)
+	$(AR) cr $@ $^
+
+
+magiclantern: $(ML_OBJS-y) libstdio.a 
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
@@ -429,6 +455,6 @@ build = \
 
 
 clean:
-	-rm -f *.o *.a font-*.c
+	-rm -f *.o *.a font-*.c magiclantern.lds
 
 -include .*.d

@@ -34,9 +34,6 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
-/** Camera interface? */
-NSTUB( 0xC0220000, camera_engine )
-
 /** These must be found first for any progress to be made */
 NSTUB( 0xFF810894, cstart )
 NSTUB( 0xFFC456C0, bzero32 ) // called by cstart()
@@ -46,3 +43,21 @@ NSTUB( 0xFF817470, create_init_task )
 /** Look for the normal printf strings */
 NSTUB( 0xFF86AF48, DebugMsg )
 
+/** Task dispatch hook hasn't moved in several versions */
+NSTUB( 0x1934, task_dispatch_hook )
+
+/** Find the additioanl version string in GUI_GetFirmVersion */
+NSTUB( 0x13420, additional_version )
+
+// Everything below here is not needed for the first boot
+
+/** Camera interface? */
+NSTUB( 0xC0220000, camera_engine )
+
+
+/** Find the shell register commands */
+NSTUB( 0xFF81C4DC, register_func )
+
+/** Debugging commands are all registered by name.  Search for the strings */
+NSTUB( 0xFF86AEC8, dmstart )
+NSTUB( 0xFF86B7DC, dumpf )

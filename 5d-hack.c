@@ -1,8 +1,8 @@
 /** \file
  * Code to run on the 5D once it has been relocated.
  *
- * This has been updated to work with the 1.1.0 firmware.
- * IT DOES NOT WORK WITH 1.0.7 ANY MORE!
+ * This has been updated to work with the 2.0.3 firmware.
+ * IT DOES NOT WORK WITH 1.1.0 NOR 1.0.7 ANY MORE!
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
@@ -30,6 +30,9 @@
 #include "bmp.h"
 #include "menu.h"
 #include "version.h"
+
+/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
+#define CONFIG_EARLY_PORT
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -76,9 +79,10 @@ copy_and_restart( void )
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
 	/*
-	 * in entry2() (0xff812a98) make this change:
- 	 */
-	// Return to our code before calling cstart()
+	 * in entry2() (0xff812a98) make this change to
+	 * return to our code before calling cstart().
+	 * This should be a "BL cstart" instruction.
+	 */
 	INSTR( 0xFF812AE8 ) = RET_INSTR;
 
 
@@ -86,6 +90,7 @@ copy_and_restart( void )
 	 * in cstart() (0xff810894) make these changes:
 	 */
 	// Reserve memory after the BSS for our application
+	// should be a pointer to 0x4d458 or thereabouts
 	INSTR( 0xFF81093C ) = (uintptr_t) _bss_end;
 
 	// Fix the calls to bzero32() and create_init_task()
@@ -94,7 +99,6 @@ copy_and_restart( void )
 
 	// Set our init task to run instead of the firmware one
 	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
-
 
 	// Make sure that our self-modifying code clears the cache
 	clean_d_cache();
@@ -121,8 +125,10 @@ copy_and_restart( void )
 	* install our own handlers.
 	*/
 
+#ifndef CONFIG_EARLY_PORT
 	// Install our task creation hooks
 	task_dispatch_hook = my_task_dispatch_hook;
+#endif
 
 	// This will jump into the RAM version of the firmware,
 	// but the last branch instruction at the end of this
@@ -136,6 +142,8 @@ copy_and_restart( void )
 		;
 }
 
+
+#ifndef CONFIG_EARLY_PORT
 
 void
 null_task( void )
@@ -239,6 +247,8 @@ call_init_funcs( void * priv )
 	init_funcs_done = 1;
 }
 
+#endif // !CONFIG_EARLY_PORT
+
 
 
 /** Initial task setup.
@@ -253,8 +263,10 @@ my_init_task(void)
 	// Call their init task
 	init_task();
 
+#ifndef CONFIG_EARLY_PORT
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
+	dmstart();
 
 	DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
 		build_version,
@@ -265,9 +277,7 @@ my_init_task(void)
 		build_date,
 		build_user
 	);
-
-	dmstart();
-
+#endif
 
 	// Re-write the version string.
 	// Don't use strcpy() so that this can be done
@@ -283,6 +293,8 @@ my_init_task(void)
 	additional_version[7] = build_version[3];
 	additional_version[8] = build_version[4];
 	additional_version[9] = '\0';
+
+#ifndef CONFIG_EARLY_PORT
 
 	msleep( 750 );
 
@@ -318,7 +330,6 @@ my_init_task(void)
 
 	msleep( 1000 );
 
-#if 1
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];
 	extern struct task_create _tasks_end[];
@@ -342,7 +353,7 @@ my_init_task(void)
 			task->arg
 		);
 	}
-#endif
 
 	DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
+#endif // !CONFIG_EARLY_PORT
 }
