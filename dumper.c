@@ -76,8 +76,6 @@ reg_sp( void )
 
 int main( void )
 {
-	while(1)
-		;
 	void * const	rom0_start	= (void *) ROM0_ADDRESS;
 	uint32_t	rom0_size	= ROM0_SIZE;
 	void * const	rom1_start	= (void *) ROM1_ADDRESS;
