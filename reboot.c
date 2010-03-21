@@ -27,9 +27,9 @@
 #include "arm-mcr.h"
 
 asm(
-".text"
+".text\n"
+".globl _start\n"
 "_start:\n"
-".global _start\n"
 "	b 1f\n"
 ".ascii \"gaonisoy\"\n"		// 0x124, 128
 "1:\n"
