@@ -149,10 +149,8 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
-	stubs-5d2.203.o \
+	stubs-5d2.204.o \
 	version.o \
-
-NO=\
 	stdio.o \
 	menu.o \
 	debug.o \
