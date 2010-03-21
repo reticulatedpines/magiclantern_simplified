@@ -96,7 +96,7 @@ bmp_puts(
 {
 	const uint32_t		pitch = bmp_pitch();
 	uint8_t * vram = bmp_vram();
-	if( !vram )
+	if( !vram || ((uintptr_t)vram & 1) == 1 )
 		return;
 	const unsigned initial_x = *x;
 	uint8_t * first_row = vram + (*y) * pitch + (*x);

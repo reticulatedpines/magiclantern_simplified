@@ -25,7 +25,7 @@
 
 #include "dryos.h"
 
-extern struct semaphore * gui_sem;
+struct semaphore * gui_sem;
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;

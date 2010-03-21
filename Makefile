@@ -152,25 +152,24 @@ ML_OBJS-y = \
 	stubs-5d2.204.o \
 	version.o \
 	stdio.o \
-	menu.o \
-	debug.o \
-	gui.o \
-	audio.o \
-	lens.o \
-	focus.o \
-	zebra.o \
-	spotmeter.o \
-	hotplug.o \
 	config.o \
-	bootflags.o \
-	ptp.o \
+	debug.o \
+	menu.o \
 	bmp.o \
-	bracket.o \
 	font-huge.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
-
+	gui.o \
+	focus.o \
+	lens.o \
+	spotmeter.o \
+	audio.o \
+	zebra.o \
+	hotplug.o \
+	bootflags.o \
+	ptp.o \
+	bracket.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \

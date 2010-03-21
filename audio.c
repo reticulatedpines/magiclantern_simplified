@@ -786,6 +786,7 @@ my_sounddev_task( void )
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 
 
+#if 0
 /** Replace the audio level task with our own.
  *
  * This task runs when the sound device is activated to keep track of
@@ -884,3 +885,4 @@ my_audio_level_task( void )
 
 
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
+#endif

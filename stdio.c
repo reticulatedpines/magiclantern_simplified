@@ -9,7 +9,7 @@
  */
 
 #include "dryos.h"
-#include <errno.h>
+//#include <errno.h>
 
 int
 fprintf(
@@ -59,7 +59,8 @@ ISSPACE( char c )
 
 //int __errno;
 
-#define SET_ERRNO(x) __errno = (x)
+//#define SET_ERRNO(x) __errno = (x)
+#define SET_ERRNO(x) /* NOP */
 
 
 static unsigned long
@@ -130,7 +131,7 @@ strto_l(
 				|| ((number == cutoff) && (digit > cutoff_digit))) {
 				number = ULONG_MAX;
 				negative &= sflag;
-				SET_ERRNO(ERANGE);
+				//SET_ERRNO(ERANGE);
 			} else {
 				number = number * base + digit;
 			}
@@ -198,4 +199,14 @@ strtoul(
 	return strto_l( str, endptr, base, 0 );
 }
 
+
+// Don't use strcmp since we don't have it
+int
+streq( const char * a, const char * b )
+{
+	while( *a && *b )
+		if( *a++ != *b++ )
+			return 0;
+	return *a == *b;
+}
 

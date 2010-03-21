@@ -33,7 +33,7 @@
 
 
 static struct semaphore * menu_sem;
-struct semaphore * gui_sem;
+extern struct semaphore * gui_sem;
 static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
@@ -520,10 +520,12 @@ menu_handler(
 		menu_entry_select( menu );
 		break;
 
+#if 0
 	case PRESS_ZOOM_IN_BUTTON:
 		gui_hide_menu( 100 );
 		lens_focus_start( 0 );
 		break;
+
 
 #if 0
 	// This breaks playback if enabled; figure out why!
@@ -538,6 +540,7 @@ menu_handler(
 		gui_hide_menu( 2 );
 		lens_focus_stop();
 		break;
+#endif
 
 	case 1:
 		// Synthetic redraw event
@@ -653,6 +656,7 @@ static void
 menu_task( void )
 {
 	int x, y;
+	DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
 	// Add the draw_prop menu
 	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );

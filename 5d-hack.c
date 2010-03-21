@@ -32,7 +32,7 @@
 #include "version.h"
 
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
-#define CONFIG_EARLY_PORT
+#undef CONFIG_EARLY_PORT
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -249,6 +249,10 @@ call_init_funcs( void * priv )
 
 #endif // !CONFIG_EARLY_PORT
 
+
+static void nop( void ) { }
+void menu_init( void ) __attribute__((weak,alias("nop")));
+void debug_init( void ) __attribute__((weak,alias("nop")));
 
 
 /** Initial task setup.

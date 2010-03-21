@@ -10,6 +10,7 @@
 #include "config.h"
 //#include "lua.h"
 
+#if 0
 void
 display_full_hd(
 	void *			priv,
@@ -94,6 +95,8 @@ void enable_full_hd( void * priv )
 	lv_output_device( &full_hd );
 #endif
 }
+#endif
+
 
 void call_dispcheck( void * priv )
 {
@@ -186,6 +189,7 @@ mvr_time_const_display(
 	);
 }
 
+#if 0
 static void
 mvr_time_const_select( void * priv )
 {
@@ -214,7 +218,7 @@ mvr_time_const_select( void * priv )
 	*(unsigned *)( mvr_hdr + 0x64 ) = 100;
 	*(unsigned *)( mvr_hdr + 0x68 ) = 24;
 }
-
+#endif
 
 
 CONFIG_INT( "debug.draw-prop",		draw_prop, 0 );
