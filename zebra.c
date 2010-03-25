@@ -50,7 +50,7 @@ CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
-CONFIG_INT( "hist.x",		hist_x,		720 - hist_width );
+CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
 CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
 CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
@@ -291,6 +291,15 @@ hist_draw_image(
 			*col = y > size ? COLOR_BG : COLOR_WHITE;
 	}
 
+	// Draw some extra just to add a black bar on the right side
+	bmp_fill(
+		COLOR_BG,
+		x_origin + hist_width,
+		y_origin,
+		4,
+		hist_height
+	);
+
 	if(0) bmp_printf(
 		FONT(FONT_SMALL,COLOR_RED,COLOR_WHITE),
 		x_origin,
@@ -437,7 +446,7 @@ draw_zebra( void )
 			&&  y >= hist_y
 			&&  y <  hist_y + hist_height
 			&&  x >= hist_x
-			&&  x <  hist_x + hist_width
+			&&  x <  hist_x + hist_width + 4
 			)
 				continue;
 
