@@ -24,17 +24,70 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
+#include "menu.h"
 #include "config.h"
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 0 );
+
+
+static void
+spotmeter_menu_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int * draw_ptr = priv;
+
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Spotmeter:  %s",
+		*draw_ptr ? "ON " : "OFF"
+	);
+}
+
+
+static void
+spotmeter_clear_display( void * priv )
+{
+	gui_stop_menu();
+	bmp_fill( 0x0, 0, 0, 1080, 480 );
+}
+
+
+static struct menu_entry spotmeter_menus[] = {
+	{
+		.priv			= "Clear screen",
+		.select			= spotmeter_clear_display,
+		.display		= menu_print,
+	},
+	{
+		.priv			= &spotmeter_draw,
+		.select			= menu_binary_toggle,
+		.display		= spotmeter_menu_display,
+	},
+};
+
 
 static void
 spotmeter_task( void * priv )
 {
+	menu_add( "Video", spotmeter_menus, COUNT(spotmeter_menus) );
+
 	msleep( 1000 );
 	while(1)
 	{
+		// Draw a few pixels to indicate the center
+		if( !spotmeter_draw )
+		{
+			msleep( 1000 );
+			continue;
+		}
+
 		msleep( 100 );
 
 		struct vram_info *	vram = &vram_info[ vram_get_number(2) ];
@@ -48,26 +101,21 @@ spotmeter_task( void * priv )
 		unsigned		sum = 0;
 		unsigned		x, y;
 
-		// Draw a few pixels to indicate the center
-		if( spotmeter_draw )
-		{
-			bmp_fill(
-				0xA,
-				width/2 - dx,
-				height/2 - dx,
-				2*dx + 1,
-				4
-			);
+		bmp_fill(
+			0xA,
+			width/2 - dx,
+			height/2 - dx,
+			2*dx + 1,
+			4
+		);
 
-			bmp_fill(
-				0xA,
-				width/2 - dx,
-				height/2 + dx,
-				2*dx + 1,
-				4
-			);
-		}
-			
+		bmp_fill(
+			0xA,
+			width/2 - dx,
+			height/2 + dx,
+			2*dx + 1,
+			4
+		);
 
 		// Sum the values around the center
 		for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
