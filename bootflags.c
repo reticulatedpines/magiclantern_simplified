@@ -96,10 +96,8 @@ void
 bootflag_write_bootblock( void )
 {
 	gui_stop_menu();
-	void * (*AllocateUncacheableMemory)( size_t ) = (void*) 0xff99b3a8;
-	void (*FreeUncacheableMemory)( const void * ) = (void*) 0xff99b3dc;
 
-	uint8_t *block = AllocateUncacheableMemory( 0x200 );
+	uint8_t *block = alloc_dma_memory( 0x200 );
 	bmp_printf( FONT_MED, 0, 40, "mem=%08x read=%08x", block, cf_device->read_block );
 	int rc = cf_device->read_block( cf_device, 0x0, 1, block );
 	msleep( 100 );
@@ -114,7 +112,7 @@ bootflag_write_bootblock( void )
 
 	rc = cf_device->write_block( cf_device, 0x0, 1, block );
 	bmp_printf( FONT_MED, 600, 60, "write=%d", rc );
-	FreeUncacheableMemory( block );
+	free_dma_memory( block );
 }
 
 

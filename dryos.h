@@ -675,5 +675,16 @@ FreeMemory(
 	void *			buf
 );
 
+/** Allocate DMA memory for writing to the CF card */
+extern void *
+alloc_dma_memory(
+	size_t			len
+);
+
+extern void
+free_dma_memory(
+	const void *		len
+);
+
 
 #endif
