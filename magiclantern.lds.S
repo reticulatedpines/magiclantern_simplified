@@ -74,6 +74,12 @@ SECTIONS
 		*(.config_vars)
 		_config_vars_end = .;
 
+		/* Property handlers */
+		. = ALIGN(8);
+		_prop_handlers_start = .;
+		*(.prop_handlers)
+		_prop_handlers_end = .;
+
 		/* Read/write data */
 		. = ALIGN(64);
 		*(.data)

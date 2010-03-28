@@ -33,7 +33,6 @@
 
 struct gain_struct
 {
-	void *			mvr_rec_token;
 	struct semaphore *	sem;
 	unsigned		alc1;
 	unsigned		sig1;
@@ -41,7 +40,6 @@ struct gain_struct
 };
 
 static struct gain_struct gain = {
-	.mvr_rec_token		= (void*) 1,
 	.sem			= (void*) 1,
 };
 
@@ -783,14 +781,6 @@ static struct menu_entry audio_menus[] = {
 };
 
 
-static void
-handle_mvr_rec_token(
-	void *			token
-)
-{
-	gain.mvr_rec_token = token;
-}
-
 
 static void
 enable_recording(
@@ -824,30 +814,21 @@ enable_meters(
 }
 
 
-static void
-handle_mvr_rec_property(
-	unsigned		property,
-	void *			UNUSED( priv ),
-	void *			buf,
-	unsigned		len
-)
+
+PROP_HANDLER( PROP_LV_ACTION )
 {
-	const unsigned		mode = *(unsigned*) buf;
-
-	switch( property )
-	{
-	case PROP_LV_ACTION:
-		enable_meters( mode );
-		break;
-	case PROP_MVR_REC_START:
-		enable_recording( mode );
-		break;
-	default:
-		break;
-	}
-
-	prop_cleanup( gain.mvr_rec_token, property );
+	const unsigned mode = *(unsigned*) buf;
+	enable_meters( mode );
+	return prop_cleanup( token, property );
 }
+
+PROP_HANDLER( PROP_MVR_REC_START )
+{
+	const unsigned mode = *(unsigned*) buf;
+	enable_recording( mode );
+	return prop_cleanup( token, property );
+}
+
 
 
 /** Replace the sound dev task with our own to disable AGC.
@@ -864,19 +845,6 @@ my_sounddev_task( void )
 	);
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
-
-	static unsigned mvr_rec_events[] = {
-		PROP_MVR_REC_START,
-		PROP_LV_ACTION,
-	};
-
-	prop_register_slave(
-		mvr_rec_events,
-		COUNT(mvr_rec_events),
-		handle_mvr_rec_property,
-		NULL,
-		handle_mvr_rec_token
-	);
 
 	msleep( 2000 );
 

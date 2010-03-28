@@ -155,6 +155,7 @@ ML_OBJS-y = \
 	config.o \
 	debug.o \
 	menu.o \
+	property.o \
 	bmp.o \
 	font-huge.o \
 	font-large.o \

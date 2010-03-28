@@ -183,4 +183,40 @@ prop_get_value(
 	size_t *	len
 );
 
+
+
+struct prop_handler
+{
+	unsigned	property;
+
+	void *		(*handler)(
+		unsigned		property,
+		void *			priv,
+		void *			addr,
+		unsigned		len
+	);
+
+	void *		token; // must be before token_handler
+	uint32_t	token_handler[2]; // function goes here!
+};
+
+/** Register a property handler with automated token function */
+#define REGISTER_PROP_HANDLER( id, func ) \
+__attribute__((section(".prop_handlers"))) \
+struct prop_handler _prop_handler_##id##_block = { \
+	.handler	= func, \
+	.property	= id, \
+}
+
+#define PROP_HANDLER(id) \
+static void * _prop_handler_##id(); \
+REGISTER_PROP_HANDLER( id, _prop_handler_##id ); \
+void * _prop_handler_##id( \
+	unsigned		property, \
+	void *			token, \
+	void *			buf, \
+	unsigned		len \
+) \
+
+
 #endif
