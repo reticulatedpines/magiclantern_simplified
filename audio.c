@@ -27,6 +27,9 @@
 #include "property.h"
 #include "menu.h"
 
+// Dump the audio registers to a file if defined
+#undef CONFIG_AUDIO_REG_LOG
+
 
 struct gain_struct
 {
@@ -390,10 +393,115 @@ audio_ic_set_input_volume(
 }
 
 
+#ifdef CONFIG_AUDIO_REG_LOG
+
+// Do not write the value; just read them and record to a logfile
+static uint16_t audio_regs[] = {
+	AUDIO_IC_PM1,
+	AUDIO_IC_PM2,
+	AUDIO_IC_SIG1,
+	AUDIO_IC_SIG2,
+	AUDIO_IC_ALC1,
+	AUDIO_IC_ALC2,
+	AUDIO_IC_IVL,
+	AUDIO_IC_IVR,
+	AUDIO_IC_OVL,
+	AUDIO_IC_OVR,
+	AUDIO_IC_ALCVOL,
+	AUDIO_IC_MODE3,
+	AUDIO_IC_MODE4,
+	AUDIO_IC_PM3,
+	AUDIO_IC_FIL1,
+	AUDIO_IC_HPF0,
+	AUDIO_IC_HPF1,
+	AUDIO_IC_HPF2,
+	AUDIO_IC_HPF3,
+	AUDIO_IC_LPF0,
+	AUDIO_IC_LPF1,
+	AUDIO_IC_LPF2,
+	AUDIO_IC_LPF3,
+};
+
+static const char * audio_reg_names[] = {
+	"AUDIO_IC_PM1",
+	"AUDIO_IC_PM2",
+	"AUDIO_IC_SIG1",
+	"AUDIO_IC_SIG2",
+	"AUDIO_IC_ALC1",
+	"AUDIO_IC_ALC2",
+	"AUDIO_IC_IVL",
+	"AUDIO_IC_IVR",
+	"AUDIO_IC_OVL",
+	"AUDIO_IC_OVR",
+	"AUDIO_IC_ALCVOL",
+	"AUDIO_IC_MODE3",
+	"AUDIO_IC_MODE4",
+	"AUDIO_IC_PM3",
+	"AUDIO_IC_FIL1",
+	"AUDIO_IC_HPF0",
+	"AUDIO_IC_HPF1",
+	"AUDIO_IC_HPF2",
+	"AUDIO_IC_HPF3",
+	"AUDIO_IC_LPF0",
+	"AUDIO_IC_LPF1",
+	"AUDIO_IC_LPF2",
+	"AUDIO_IC_LPF3",
+};
+
+static FILE * reg_file;
+
+static void
+audio_reg_dump( int force )
+{
+	if( !reg_file )
+		return;
+
+	static uint16_t last_regs[ COUNT(audio_regs) ];
+
+	unsigned i;
+	int output = 0;
+	for( i=0 ; i<COUNT(audio_regs) ; i++ )
+	{
+		const uint16_t reg = audio_ic_read( audio_regs[i] );
+
+		if( reg != last_regs[i] || force )
+		{
+			fprintf(
+				reg_file,
+				"%s %02x\n",
+				audio_reg_names[i],
+				reg
+			);
+			output = 1;
+		}
+
+		last_regs[i] = reg;
+	}
+
+	if( output )
+		fprintf( reg_file, "%s\n", "" );
+}
+
+
+static void
+audio_reg_close( void )
+{
+	if( reg_file )
+		FIO_CloseFile( reg_file );
+	reg_file = NULL;
+}
+
+#endif
+
 
 static void
 audio_configure( int force )
 {
+#ifdef CONFIG_AUDIO_REG_LOG
+	audio_reg_dump( force );
+	return;
+#endif
+
 	if( !force )
 	{
 		// Check for ALC configuration; do nothing if it is
@@ -665,6 +773,13 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_binary_toggle,
 		.display	= audio_loopback_display,
 	},
+#ifdef CONFIG_AUDIO_REG_LOG
+	{
+		.priv		= "Close register log",
+		.select		= audio_reg_close,
+		.display	= menu_print,
+	},
+#endif
 };
 
 
@@ -773,6 +888,11 @@ my_sounddev_task( void )
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 	audio_configure( 1 ); // force it this time
+
+#ifdef CONFIG_AUDIO_REG_LOG
+	// Create the logging file
+	reg_file = FIO_CreateFile( "A:/audioregs.txt" );
+#endif
 
 	while(1)
 	{
