@@ -104,43 +104,13 @@ void call_dispcheck( void * priv )
 }
 
 
+static PROP_INT( PROP_EFIC_TEMP, efic_temp );
 
-static unsigned efic_temp;
-static void * efic_temp_token;
 
-static void
-efic_temp_token_handler(
-	void *			token
-)
+PROP_HANDLER( PROP_HDMI_CHANGE_CODE )
 {
-	efic_temp_token = token;
-}
-
-
-static void
-efic_temp_property_handler(
-	unsigned		property,
-	void *			UNUSED( priv ),
-	unsigned *		addr,
-	unsigned		len
-)
-{
-	switch(  property )
-	{
-	case PROP_EFIC_TEMP:
-		efic_temp = *addr;
-		break;
-
-	case PROP_HDMI_CHANGE_CODE:
-		DebugMsg( DM_MAGIC, 3, "They try to set code to %d", *addr );
-		//*addr = 5;
-		break;
-
-	default:
-		break;
-	}
-
-	prop_cleanup( efic_temp_token, property );
+	DebugMsg( DM_MAGIC, 3, "They try to set code to %d", buf[0] );
+	return prop_cleanup( token, property );
 }
 
 
@@ -300,14 +270,16 @@ debug_token_handler(
 	);
 }
 
-static void
+static void *
 debug_property_handler(
 	unsigned		property,
 	void *			UNUSED( priv ),
-	unsigned *		addr,
+	void *			buf,
 	unsigned		len
 )
 {
+	const uint32_t * const addr = buf;
+
 	DebugMsg( DM_MAGIC, 3, "Prop %08x: %d: %08x %08x %08x %08x",
 		property,
 		len,
@@ -342,8 +314,7 @@ debug_property_handler(
 		y = 32;
 
 ack:
-	prop_cleanup( debug_token, property );
-	return;
+	return prop_cleanup( debug_token, property );
 }
 
 
@@ -410,21 +381,8 @@ thats_all:
 		property_list,
 		actual_num_properties,
 		debug_property_handler,
-		0xdeadbeef,
+		(void*) 0xdeadbeef,
 		debug_token_handler
-	);
-
-	static unsigned efic_properties[] = {
-		PROP_EFIC_TEMP,
-		PROP_HDMI_CHANGE_CODE
-	};
-
-	prop_register_slave(
-		efic_properties,
-		COUNT(efic_properties),
-		efic_temp_property_handler,
-		0,
-		efic_temp_token_handler
 	);
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );

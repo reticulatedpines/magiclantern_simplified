@@ -607,88 +607,63 @@ struct menu_entry zebra_menus[] = {
 	},
 };
 
-static void * lv_token;
 
-static void
-lv_token_handler(
-	void *			token
-)
+PROP_HANDLER( PROP_LV_ACTION )
 {
-	lv_token = token;
+	// LV_START==0, LV_STOP=1
+	lv_drawn = !buf[0];
+	return prop_cleanup( token, property );
 }
 
 
-static void
-lv_prop_handler(
-	unsigned		property,
-	void *			priv,
-	unsigned *		addr,
-	unsigned		len
-)
+PROP_HANDLER( PROP_GUI_STATE )
 {
-	unsigned value = *addr;
+	// PLAYMENU==0, IDLE==1
+	lv_drawn = !buf[0];
+	return prop_cleanup( token, property );
+}
 
-	switch( property )
-	{
-	case PROP_LV_ACTION:
-		// LV_START==0, LV_STOP=1
-		lv_drawn = !value;
-		break;
-	case PROP_GUI_STATE:
-		// PLAYMENU==0, IDLE==1
-		lv_drawn = !value;
-		break;
-	case PROP_ACTIVE_SWEEP_STATUS:
-		// Let us know when the sensor is done cleaning
-		sensor_cleaning = value;
-		break;
-	case PROP_MVR_REC_START:
-		if( value == 2 )
-			bmp_printf(
-				timecode_font,
-				timecode_x,
-				timecode_y,
-				"REC: "
-			);
-		break;
-	case PROP_REC_TIME:
-		value /= 200; // why? it seems to work out
+
+PROP_HANDLER( PROP_ACTIVE_SWEEP_STATUS )
+{
+	// Let us know when the sensor is done cleaning
+	sensor_cleaning = buf[0];
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_MVR_REC_START )
+{
+	if( buf[0] == 2 )
 		bmp_printf(
-			value < timecode_warning ? timecode_font : FONT_MED,
-			timecode_x + 5 * fontspec_font(timecode_font)->width,
+			timecode_font,
+			timecode_x,
 			timecode_y,
-			"%4d:%02d",
-			value / 60,
-			value % 60
+			"REC: "
 		);
-		break;
-	default:
-		break;
-	}
+	return prop_cleanup( token, property );
+}
 
-	prop_cleanup( lv_token, property );
+
+PROP_HANDLER( PROP_REC_TIME )
+{
+	unsigned value = buf[0];
+	value /= 200; // why? it seems to work out
+	bmp_printf(
+		value < timecode_warning ? timecode_font : FONT_MED,
+		timecode_x + 5 * fontspec_font(timecode_font)->width,
+		timecode_y,
+		"%4d:%02d",
+		value / 60,
+		value % 60
+	);
+	return prop_cleanup( token, property );
 }
 
 
 static void
 zebra_task( void )
 {
-	static unsigned properties[] = {
-		PROP_LV_ACTION,
-		PROP_GUI_STATE,
-		PROP_ACTIVE_SWEEP_STATUS,
-		PROP_MVR_REC_START,
-		PROP_REC_TIME,
-	};
-
-	prop_register_slave(
-		properties,
-		COUNT(properties),
-		lv_prop_handler,
-		0,
-		lv_token_handler
-	);
-
 	lv_drawn = 0;
 	cropmarks = bmp_load( crop_file );
 

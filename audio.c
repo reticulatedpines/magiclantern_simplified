@@ -817,14 +817,14 @@ enable_meters(
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
-	const unsigned mode = *(unsigned*) buf;
+	const unsigned mode = buf[0];
 	enable_meters( mode );
 	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
-	const unsigned mode = *(unsigned*) buf;
+	const unsigned mode = buf[0];
 	enable_recording( mode );
 	return prop_cleanup( token, property );
 }

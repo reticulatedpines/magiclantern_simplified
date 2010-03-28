@@ -473,28 +473,6 @@ mvr_create_logfile(
 
 
 
-static unsigned lens_properties[] = {
-	PROP_MVR_REC_START,
-	PROP_LENS_NAME,
-	PROP_LV_LENS,
-	PROP_APERTURE,
-	PROP_SHUTTER,
-	PROP_ISO,
-	PROP_LVCAF_STATE,
-	PROP_LV_FOCUS,
-	PROP_LV_FOCUS_DONE,
-	PROP_LAST_JOB_STATE,
-};
-
-static void
-lens_handle_token(
-	void *			token
-)
-{
-	lens_info.token = token;
-}
-
-
 static inline uint16_t
 bswap16(
 	uint16_t		val
@@ -504,99 +482,111 @@ bswap16(
 }
 
 
-static void
-lens_handle_property(
-	unsigned		property,
-	void *			priv,
-	char *			buf,
-	unsigned		len
-)
+PROP_HANDLER( PROP_MVR_REC_START )
 {
-	const uint32_t		raw = *(uint32_t *) buf;
+	mvr_create_logfile( *(unsigned*) buf );
+	return prop_cleanup( token, property );
+}
 
-	switch( property )
-	{
-	case PROP_MVR_REC_START:
-		mvr_create_logfile( *(unsigned*) buf );
-		break;
-	case PROP_LENS_NAME:
-		if( len > sizeof(lens_info.name) )
-			len = sizeof(lens_info.name);
-		memcpy( lens_info.name, buf, len );
-		break;
-	case PROP_APERTURE:
-		lens_info.raw_aperture = raw;
-		lens_info.aperture = raw/2 < COUNT(aperture_values)
-			? aperture_values[ raw / 2 ]
-			: 0;
-		break;
-	case PROP_SHUTTER:
-		lens_info.raw_shutter = raw;
-		lens_info.shutter = raw/2 < COUNT(shutter_values)
-			? shutter_values[ raw / 2 ]
-			: 0;
-		break;
-	case PROP_ISO:
-		lens_info.raw_iso = raw;
-		lens_info.iso = raw/2 < COUNT(iso_values)
-			? iso_values[ raw / 2 ]
-			: 0;
-		break;
-	case PROP_LV_LENS:
-	{
-		const struct prop_lv_lens * const lv_lens = (void*) buf;
-		lens_info.focal_len	= bswap16( lv_lens->focal_len );
-		lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
-		give_semaphore( lens_sem );
-		//bmp_hexdump( 300, 88, buf, len );
-		break;
-	}
-	case PROP_LVCAF_STATE:
-		bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
-		break;
-	case PROP_LV_FOCUS:
-	{
-		const struct prop_focus * const focus = (void*) buf;
-		const int16_t step = (focus->step_hi << 8) | focus->step_lo;
-		bmp_printf( FONT_SMALL, 200, 30,
-			"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
-				*(unsigned*)buf,
-				focus->active,
-				(int) step,
-				(unsigned) step & 0xFFFF,
-				focus->mode
-			);
-		break;
-	}
+PROP_HANDLER( PROP_LENS_NAME )
+{
+	if( len > sizeof(lens_info.name) )
+		len = sizeof(lens_info.name);
+	memcpy( lens_info.name, buf, len );
+	return prop_cleanup( token, property );
+}
 
+
+PROP_HANDLER( PROP_APERTURE )
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_aperture = raw;
+	lens_info.aperture = raw/2 < COUNT(aperture_values)
+		? aperture_values[ raw / 2 ]
+		: 0;
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_SHUTTER )
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_shutter = raw;
+	lens_info.shutter = raw/2 < COUNT(shutter_values)
+		? shutter_values[ raw / 2 ]
+		: 0;
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_ISO )
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_iso = raw;
+	lens_info.iso = raw/2 < COUNT(iso_values)
+		? iso_values[ raw / 2 ]
+		: 0;
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_LV_LENS )
+{
+	const struct prop_lv_lens * const lv_lens = (void*) buf;
+	lens_info.focal_len	= bswap16( lv_lens->focal_len );
+	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
+
+	give_semaphore( lens_sem );
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_LVCAF_STATE )
+{
+	bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_LV_FOCUS )
+{
+	const struct prop_focus * const focus = (void*) buf;
+	const int16_t step = (focus->step_hi << 8) | focus->step_lo;
+	bmp_printf( FONT_SMALL, 200, 30,
+		"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
+			*(unsigned*)buf,
+			focus->active,
+			(int) step,
+			(unsigned) step & 0xFFFF,
+			focus->mode
+		);
+	return prop_cleanup( token, property );
+}
+
+
+PROP_HANDLER( PROP_LV_FOCUS_DONE )
+{
 	// The last focus command has completed
-	case PROP_LV_FOCUS_DONE:
-		give_semaphore( focus_done_sem );
-		break;
+	give_semaphore( focus_done_sem );
+	return prop_cleanup( token, property );
+}
 
-	// Update the job state
-	case PROP_LAST_JOB_STATE:
+
+PROP_HANDLER( PROP_LAST_JOB_STATE )
+{
+	const uint32_t state = *(uint32_t*) buf;
+	lens_info.job_state = state;
+	if( state == 0xA )
 	{
-		const uint32_t state = *(uint32_t*) buf;
-		lens_info.job_state = state;
-		if( state == 0xA )
-		{
-			DebugMsg( DM_MAGIC, 3,
-				"%s: Unlocking job state=%x",
-				__func__,
-				state
-			);
-			give_semaphore( job_sem );
-		}
-		break;
+		DebugMsg( DM_MAGIC, 3,
+			"%s: Unlocking job state=%x",
+			__func__,
+			state
+		);
+		give_semaphore( job_sem );
 	}
-
-	default:
-		break;
-	}
-
-	prop_cleanup( lens_info.token, property );
+	return prop_cleanup( token, property );
 }
 
 
@@ -623,14 +613,6 @@ lens_init( void )
 	lens_sem = create_named_semaphore( "lens_info", 1 );
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 	job_sem = create_named_semaphore( "job", 1 );
-
-	prop_register_slave(
-		lens_properties,
-		COUNT(lens_properties),
-		lens_handle_property,
-		0,
-		lens_handle_token
-	);
 }
 
 INIT_FUNC( "lens", lens_init );

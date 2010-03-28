@@ -203,7 +203,8 @@ struct prop_handler
 /** Register a property handler with automated token function */
 #define REGISTER_PROP_HANDLER( id, func ) \
 __attribute__((section(".prop_handlers"))) \
-struct prop_handler _prop_handler_##id##_block = { \
+__attribute__((used)) \
+static struct prop_handler _prop_handler_##id##_block = { \
 	.handler	= func, \
 	.property	= id, \
 }
@@ -214,9 +215,17 @@ REGISTER_PROP_HANDLER( id, _prop_handler_##id ); \
 void * _prop_handler_##id( \
 	unsigned		property, \
 	void *			token, \
-	void *			buf, \
+	uint32_t *		buf, \
 	unsigned		len \
 ) \
+
+
+#define PROP_INT(id,name) \
+uint32_t name; \
+PROP_HANDLER(id) { \
+	name = buf[0]; \
+	return prop_cleanup( token, property ); \
+}
 
 
 #endif
