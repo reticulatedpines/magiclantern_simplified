@@ -57,7 +57,7 @@ ISSPACE( char c )
 }
 
 
-//int __errno;
+int __errno;
 
 //#define SET_ERRNO(x) __errno = (x)
 #define SET_ERRNO(x) /* NOP */
@@ -210,3 +210,49 @@ streq( const char * a, const char * b )
 	return *a == *b;
 }
 
+
+/** Exit is tough; we want to kill the current thread, but how? */
+#include "bmp.h"
+
+void
+exit( int rc )
+{
+	bmp_printf( FONT_SMALL, 0, 50, "Exit %d", rc );
+	while(1)
+		;
+}
+
+
+/** realloc is implemented via malloc/free */
+void *
+realloc(
+	void *			buf,
+	size_t			new_size
+)
+{
+	struct dryos_meminfo *	mem = buf;
+	mem--;
+
+	// If bit 1, 2 or 3 in mem->size is set then it is not valid
+	if( mem->size & 3 )
+		return NULL;
+
+	// If new_size is zero, then this is a free
+	if( new_size == 0 )
+	{
+		free(buf);
+		return NULL;
+	}
+
+	// If the new size is less than the current size do nothing
+	if( new_size < mem->size )
+		return buf;
+
+	// Allocate a new buffer and copy the old data into it
+	void * new_buf = malloc( new_size );
+	memcpy( new_buf, buf, mem->size );
+	free( buf );
+
+	// Return a pointer to the new buffer
+	return new_buf;
+}
