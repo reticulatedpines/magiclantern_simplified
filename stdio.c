@@ -230,19 +230,39 @@ realloc(
 	size_t			new_size
 )
 {
-	struct dryos_meminfo *	mem = buf;
+	// If buf is NULL, this is a normal malloc()
+	if (!buf)
+	{
+		void * rc = malloc( new_size );
+		struct dryos_meminfo * mem = rc;
+		mem--;
+		DebugMsg( DM_MAGIC, 3,
+			"realloc(%08x,%d) = %08x (%08x,%08x,%d)",
+			(uintptr_t) buf,
+			new_size,
+			(uintptr_t) rc,
+			mem->next,
+			mem->prev,
+			mem->size
+		);
+		return rc;
+	}
+
+	// If new_size is zero, then this is a normal free()
+	if( new_size == 0 )
+	{
+		if( buf )
+			free(buf);
+		return NULL;
+	}
+
+
+	struct dryos_meminfo * mem = buf;
 	mem--;
 
 	// If bit 1, 2 or 3 in mem->size is set then it is not valid
 	if( mem->size & 3 )
 		return NULL;
-
-	// If new_size is zero, then this is a free
-	if( new_size == 0 )
-	{
-		free(buf);
-		return NULL;
-	}
 
 	// If the new size is less than the current size do nothing
 	if( new_size < mem->size )
@@ -250,8 +270,17 @@ realloc(
 
 	// Allocate a new buffer and copy the old data into it
 	void * new_buf = malloc( new_size );
-	memcpy( new_buf, buf, mem->size );
-	free( buf );
+	if (!new_buf)
+		return NULL;
+
+	int i;
+	for( i=0 ; i < mem->size/4 ; i++ )
+	{
+		((uint32_t*) new_buf)[i] = ((uint32_t*) buf)[i];
+		asm("nop; nop; nop; nop;" );
+	}
+
+	//free( buf );
 
 	// Return a pointer to the new buffer
 	return new_buf;
