@@ -546,9 +546,17 @@ menu_handler(
 		// Synthetic redraw event
 		break;
 
+	case 0x10000086:
+		// Who knows?  Fall through
+
 	default:
-		// We consume any unknown events
-		DebugMsg( DM_MAGIC, 3, "%s: unknown event %x", __func__, event );
+		DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
+			__func__,
+			event,
+			arg2,
+			arg3,
+			arg4
+		);
 		return 0;
 	}
 
