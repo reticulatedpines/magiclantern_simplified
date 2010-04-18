@@ -485,7 +485,11 @@
 /*
 @@ LUAL_BUFFERSIZE is the buffer size used by the lauxlib buffer system.
 */
+#ifndef CONFIG_MAGICLANTERN
 #define LUAL_BUFFERSIZE		BUFSIZ
+#else
+#define LUAL_BUFFERSIZE		512
+#endif
 
 /* }================================================================== */
 
@@ -520,7 +524,7 @@
 */
 #define LUA_NUMBER_SCAN		"%lf"
 #define LUA_NUMBER_FMT		"%.14g"
-#define lua_number2str(s,n)	sprintf((s), LUA_NUMBER_FMT, (n))
+#define lua_number2str(s,sz,n)	snprintf((s), (sz), LUA_NUMBER_FMT, (n))
 #define LUAI_MAXNUMBER2STR	32 /* 16 digits, sign, point, and \0 */
 #define lua_str2number(s,p)	strtod((s), (p))
 
@@ -617,9 +621,25 @@ union luai_Cast { double l_d; long l_l; };
 #define luai_jmpbuf	jmp_buf
 
 #else
+
+extern void DebugMsg(int,int,const char *,...);
+#define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
+
 /* default handling with long jumps */
-#define LUAI_THROW(L,c)	longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,a)	if (setjmp((c)->b) == 0) { a }
+#define LUAI_THROW(L,c)	do { \
+	DEBUG("throw %08x", __builtin_return_address(0)); \
+	longjmp((c)->b, 1); \
+} while(0)
+
+#define LUAI_TRY(L,c,a)	do { \
+	if (setjmp((c)->b) == 0) { \
+		DEBUG("try %08x", __builtin_return_address(0)); \
+		a \
+	} \
+	else \
+		DEBUG("catch %08x", __builtin_return_address(0)); \
+} while(0)
+
 #define luai_jmpbuf	jmp_buf
 
 #endif

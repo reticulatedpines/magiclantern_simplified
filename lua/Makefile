@@ -20,7 +20,7 @@ MYLIBS=
 
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
-PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
+PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris arm
 
 LUA_A=	liblua.a
 CORE_O=	lapi.o lcode.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o \
@@ -36,7 +36,7 @@ LUAC_T=	luac
 LUAC_O=	luac.o print.o
 
 ALL_O= $(CORE_O) $(LIB_O) $(LUA_O) $(LUAC_O)
-ALL_T= $(LUA_A) $(LUA_T) $(LUAC_T)
+ALL_T= $(LUA_A) #$(LUA_T) $(LUAC_T)
 ALL_A= $(LUA_A)
 
 default: $(PLAT)
@@ -48,7 +48,8 @@ o:	$(ALL_O)
 a:	$(ALL_A)
 
 $(LUA_A): $(CORE_O) $(LIB_O)
-	$(AR) $@ $?
+	-$(RM) $@
+	$(AR) $@ $^
 	$(RANLIB) $@
 
 $(LUA_T): $(LUA_O) $(LUA_A)
@@ -114,6 +115,14 @@ posix:
 
 solaris:
 	$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl"
+
+arm:
+	$(MAKE) \
+		all \
+		CC=/opt/local/bin/arm-elf-gcc-4.3.2 \
+		RANLIB=/opt/local/bin/arm-elf-ranlib \
+		MYCFLAGS="-DCONFIG_MAGICLANTERN=1" \
+
 
 # list targets that do not create files (but not all makes understand .PHONY)
 .PHONY: all $(PLATS) default o a clean depend echo none

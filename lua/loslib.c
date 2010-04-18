@@ -42,19 +42,30 @@ static int os_execute (lua_State *L) {
 
 
 static int os_remove (lua_State *L) {
+#ifdef CONFIG_MAGICLANTERN
+  return luaL_error(L, "remove not implemented");
+#else
   const char *filename = luaL_checkstring(L, 1);
   return os_pushresult(L, remove(filename) == 0, filename);
+#endif
 }
 
 
 static int os_rename (lua_State *L) {
+#ifdef CONFIG_MAGICLANTERN
+  return luaL_error(L, "rename not implemented");
+#else
   const char *fromname = luaL_checkstring(L, 1);
   const char *toname = luaL_checkstring(L, 2);
   return os_pushresult(L, rename(fromname, toname) == 0, fromname);
+#endif
 }
 
 
 static int os_tmpname (lua_State *L) {
+#ifdef CONFIG_MAGICLANTERN
+    return luaL_error(L, "tmpname not implemented");
+#else
   char buff[LUA_TMPNAMBUFSIZE];
   int err;
   lua_tmpnam(buff, err);
@@ -62,6 +73,7 @@ static int os_tmpname (lua_State *L) {
     return luaL_error(L, "unable to generate a unique filename");
   lua_pushstring(L, buff);
   return 1;
+#endif
 }
 
 

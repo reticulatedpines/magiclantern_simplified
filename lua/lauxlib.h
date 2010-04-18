@@ -9,8 +9,10 @@
 #define lauxlib_h
 
 
+#ifndef CONFIG_MAGICLANTERN
 #include <stddef.h>
 #include <stdio.h>
+#endif
 
 #include "lua.h"
 

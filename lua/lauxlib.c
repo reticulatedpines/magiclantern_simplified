@@ -513,6 +513,9 @@ LUALIB_API void luaL_unref (lua_State *L, int t, int ref) {
 
 
 
+#ifndef CONFIG_MAGICLANTERN
+/* We have no file operations */
+
 /*
 ** {======================================================
 ** Load functions
@@ -588,6 +591,7 @@ LUALIB_API int luaL_loadfile (lua_State *L, const char *filename) {
   lua_remove(L, fnameindex);
   return status;
 }
+#endif // !CONFIG_MAGICLANTERN
 
 
 typedef struct LoadS {
@@ -628,7 +632,8 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   (void)ud;
   (void)osize;
   if (nsize == 0) {
-    free(ptr);
+    if (ptr)
+      free(ptr);
     return NULL;
   }
   else
@@ -637,16 +642,32 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 
 
 static int panic (lua_State *L) {
+#ifdef CONFIG_MAGICLANTERN
+	extern void bmp_printf( int, int, int, const char * fmt, ... );
+	DebugMsg( 50, 3,
+		"PANIC: unprotected error in call to Lua API (%s)",
+		lua_tostring(L, -1));
+	bmp_printf( 0, 0, 40,
+		"PANIC: unprotected error in call to Lua API (%s)\n",
+		lua_tostring(L, -1));
+	dumpf();
+#else
   (void)L;  /* to avoid warnings */
   fprintf(stderr, "PANIC: unprotected error in call to Lua API (%s)\n",
                    lua_tostring(L, -1));
+#endif
   return 0;
 }
 
 
+extern void DebugMsg(int,int,const char *fmt, ...);
+
 LUALIB_API lua_State *luaL_newstate (void) {
+DebugMsg(50,3,"%s:%d", __func__, __LINE__);
   lua_State *L = lua_newstate(l_alloc, NULL);
+DebugMsg(50,3,"%s:%d", __func__, __LINE__);
   if (L) lua_atpanic(L, &panic);
+DebugMsg(50,3,"%s:%d", __func__, __LINE__);
   return L;
 }
 

@@ -68,16 +68,26 @@ static void freestack (lua_State *L, lua_State *L1) {
 ** open parts that may cause memory-allocation errors
 */
 static void f_luaopen (lua_State *L, void *ud) {
+DEBUG();
   global_State *g = G(L);
   UNUSED(ud);
+DEBUG();
   stack_init(L, L);  /* init stack */
+DEBUG();
   sethvalue(L, gt(L), luaH_new(L, 0, 2));  /* table of globals */
+DEBUG();
   sethvalue(L, registry(L), luaH_new(L, 0, 2));  /* registry */
+DEBUG();
   luaS_resize(L, MINSTRTABSIZE);  /* initial size of string table */
+DEBUG();
   luaT_init(L);
+DEBUG();
   luaX_init(L);
+DEBUG();
   luaS_fix(luaS_newliteral(L, MEMERRMSG));
+DEBUG();
   g->GCthreshold = 4*g->totalbytes;
+DEBUG();
 }
 
 
@@ -139,22 +149,30 @@ void luaE_freethread (lua_State *L, lua_State *L1) {
   luaM_freemem(L, fromstate(L1), state_size(lua_State));
 }
 
-
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
+DEBUG();
   int i;
   lua_State *L;
   global_State *g;
   void *l = (*f)(ud, NULL, 0, state_size(LG));
+DEBUG();
   if (l == NULL) return NULL;
   L = tostate(l);
+DEBUG();
   g = &((LG *)L)->g;
   L->next = NULL;
   L->tt = LUA_TTHREAD;
+
+DEBUG();
   g->currentwhite = bit2mask(WHITE0BIT, FIXEDBIT);
   L->marked = luaC_white(g);
+DEBUG();
   set2bits(L->marked, FIXEDBIT, SFIXEDBIT);
+DEBUG();
   preinit_state(L, g);
+DEBUG();
   g->frealloc = f;
+DEBUG();
   g->ud = ud;
   g->mainthread = L;
   g->uvhead.u.l.prev = &g->uvhead;
@@ -163,8 +181,11 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->strt.size = 0;
   g->strt.nuse = 0;
   g->strt.hash = NULL;
+DEBUG();
   setnilvalue(registry(L));
+DEBUG();
   luaZ_initbuffer(L, &g->buff);
+DEBUG();
   g->panic = NULL;
   g->gcstate = GCSpause;
   g->rootgc = obj2gco(L);
@@ -179,13 +200,16 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->gcstepmul = LUAI_GCMUL;
   g->gcdept = 0;
   for (i=0; i<NUM_TAGS; i++) g->mt[i] = NULL;
+DEBUG();
   if (luaD_rawrunprotected(L, f_luaopen, NULL) != 0) {
+DEBUG();
     /* memory allocation error: free partial state */
     close_state(L);
     L = NULL;
   }
   else
     luai_userstateopen(L);
+DEBUG();
   return L;
 }
 

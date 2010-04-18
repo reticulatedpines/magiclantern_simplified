@@ -6,7 +6,14 @@
 
 
 #include <ctype.h>
+#ifdef CONFIG_MAGICLANTERN
+static void * localeconv(void) { return 0; }
+struct lconv {
+	char * decimal_point;
+};
+#else
 #include <locale.h>
+#endif
 #include <string.h>
 
 #define llex_c
@@ -102,6 +109,7 @@ static const char *txtToken (LexState *ls, int token) {
 void luaX_lexerror (LexState *ls, const char *msg, int token) {
   char buff[MAXSRC];
   luaO_chunkid(buff, getstr(ls->source), MAXSRC);
+  DebugMsg( 50, 3, "%s: %s:%d: %s", __func__, buff, ls->linenumber, msg);
   msg = luaO_pushfstring(ls->L, "%s:%d: %s", buff, ls->linenumber, msg);
   if (token)
     luaO_pushfstring(ls->L, "%s near " LUA_QS, msg, txtToken(ls, token));
