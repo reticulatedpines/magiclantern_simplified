@@ -2,15 +2,19 @@ ARM_PATH=/opt/local/bin
 CC=$(ARM_PATH)/arm-elf-gcc-4.3.2
 OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
 AR=$(ARM_PATH)/arm-elf-ar
+RANLIB=$(ARM_PATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 VERSION=0.1.8
 
+all: magiclantern.fir
+
+
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_LUA		= n
+CONFIG_LUA		= y
 
 # 5D memory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -31,12 +35,13 @@ PYMITE_CFLAGS		= \
 	-I$(PYMITE_PATH)/src/platform/dryos \
 
 # Lua includes and libraries
-LUA_PATH		= $(HOME)/build/lua-5.1.4
-LUA_LIB			= $(LUA_PATH)/src/liblua.a
-LUA_CFLAGS		= -I$(LUA_PATH)/src
+LUA_PATH		= ./lua
+LUA_LIB			= $(LUA_PATH)/liblua.a
+LUA_CFLAGS		= -I$(LUA_PATH)
 
-
-all: magiclantern.fir
+ifeq ($(CONFIG_LUA),y)
+include $(LUA_PATH)/Makefile
+endif
 
 CF_CARD="/Volumes/EOS_DIGITAL"
 
@@ -64,11 +69,12 @@ magiclantern-$(VERSION).zip: \
 
 
 FLAGS=\
-	-Wp,-MMD,.$@.d \
+	-Wp,-MMD,$(dir $@).$(notdir $@).d \
 	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
+	-DCONFIG_MAGICLANTERN=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
@@ -201,8 +207,11 @@ STDIO_OBJ = \
 	lib_a-strcmp.o \
 	lib_a-strncmp.o \
 	lib_a-strncpy.o \
+	lib_a-strstr.o \
+	lib_a-strcspn.o \
 	lib_a-memcmp.o \
 	lib_a-strcoll.o \
+	lib_a-ctype_.o \
 
 ARM_LIBC_A = /opt/local/arm-elf/lib/libc.a
 
@@ -453,6 +462,13 @@ build = \
 
 
 clean:
-	-rm -f *.o *.a font-*.c magiclantern.lds
+	-$(RM) \
+		*.o \
+		*.a \
+		.*.d \
+		font-*.c \
+		magiclantern.lds \
+		$(LUA_PATH)/*.o \
+		$(LUA_PATH)/.*.d \
 
 -include .*.d
