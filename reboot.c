@@ -83,6 +83,7 @@ void
 __attribute__((noreturn))
 cstart( void )
 {
+#if 0
 	set_i_tcm( 0x40000006 );
 	set_control_reg( read_control_reg() | 0x10000 );
 
@@ -104,6 +105,7 @@ cstart( void )
 	set_control_reg( read_control_reg() | 0xC000107D );
 
 	select_normal_vectors();
+#endif
 
 	// Copy the copy-and-restart blob somewhere
 	// there is a bug in that we are 0x120 bytes off from

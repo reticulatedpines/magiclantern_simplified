@@ -6,7 +6,7 @@ RANLIB=$(ARM_PATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.1.8
+VERSION=0.1.9
 
 all: magiclantern.fir
 
@@ -14,13 +14,13 @@ all: magiclantern.fir
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_LUA		= y
+CONFIG_LUA		= n
 
-# 5D memory map
+# DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF810000
-RESTARTSTART		= 0x00050000
+ROMBASEADDR		= 0xFF010000
+RESTARTSTART		= 0x0008B000
 
 # Firmware file IDs
 FIRMWARE_ID_5D		= 0x80000218
@@ -72,6 +72,7 @@ FLAGS=\
 	-Wp,-MMD,$(dir $@).$(notdir $@).d \
 	-Wp,-MT,$@ \
 	-nostdlib \
+	-mlong-calls \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
@@ -155,8 +156,10 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
-	stubs-5d2.204.o \
+	stubs-550d.108.o \
 	version.o \
+
+NO=\
 	stdio.o \
 	config.o \
 	debug.o \
@@ -392,7 +395,7 @@ dumper.elf: 5d2_dump.fir flasher.map
 		--offset 0x5ab8 \
 		--id $(FIRMWARE_ID) \
 
-magiclantern.fir: autoexec.bin
+magiclantern-5d.fir: autoexec.bin
 	$(call build,ASSEMBLE,./assemble_fw \
 		--output $@ \
 		--user $< \
@@ -401,6 +404,24 @@ magiclantern.fir: autoexec.bin
 		--id $(FIRMWARE_ID) \
 		--zero \
 	)
+
+#
+# Replace the start of the 550d firmware file with our own image
+#
+550d-flasher.bin: autoexec.bin
+	cp ../1.0.8/0270_108_updaters.bin $@
+	dd \
+		of=$@ \
+		if=$< \
+		bs=1 \
+		conv=notrunc \
+		oseek=288 \
+
+magiclantern.fir: 550d-flasher.bin
+	../dumper/enc_upd550.py \
+		../1.0.8/e8kr7108.fir \
+		$< \
+		$@ \
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@

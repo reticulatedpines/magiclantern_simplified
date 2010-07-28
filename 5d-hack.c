@@ -32,7 +32,7 @@
 #include "version.h"
 
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
-#undef CONFIG_EARLY_PORT
+#define CONFIG_EARLY_PORT
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -70,8 +70,7 @@ copy_and_restart( void )
 {
 	zero_bss();
 
-	// Copy the firmware to somewhere in memory
-	// bss ends at 0x47750, so we'll use 0x50000
+	// Copy the firmware to somewhere safe in memory
 	const uint8_t * const firmware_start = (void*) ROMBASEADDR;
 	const uint32_t firmware_len = RELOCSIZE;
 	uint32_t * const new_image = (void*) RELOCADDR;
@@ -79,26 +78,27 @@ copy_and_restart( void )
 	blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );
 
 	/*
-	 * in entry2() (0xff812a98) make this change to
+	 * in entry2() (0xff010134) make this change to
 	 * return to our code before calling cstart().
 	 * This should be a "BL cstart" instruction.
 	 */
-	INSTR( 0xFF812AE8 ) = RET_INSTR;
+	INSTR( 0xFF01019C ) = RET_INSTR;
 
 
 	/*
-	 * in cstart() (0xff810894) make these changes:
+	 * in cstart() (0xff010ff4) make these changes:
+	 * calls bzero(), then loads bs_end and calls
+	 * create_init_task
 	 */
 	// Reserve memory after the BSS for our application
-	// should be a pointer to 0x4d458 or thereabouts
-	INSTR( 0xFF81093C ) = (uintptr_t) _bss_end;
+	INSTR( 0xFF01109C ) = (uintptr_t) _bss_end;
 
 	// Fix the calls to bzero32() and create_init_task()
-	FIXUP_BRANCH( 0xFF8108A4, bzero32 );
-	FIXUP_BRANCH( 0xFF81092C, create_init_task );
+	FIXUP_BRANCH( 0xFF011004, bzero32 );
+	FIXUP_BRANCH( 0xFF01108C, create_init_task );
 
 	// Set our init task to run instead of the firmware one
-	INSTR( 0xFF810948 ) = (uint32_t) my_init_task;
+	INSTR( 0xFF0110A8 ) = (uint32_t) my_init_task;
 
 	// Make sure that our self-modifying code clears the cache
 	clean_d_cache();
