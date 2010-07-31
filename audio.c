@@ -585,6 +585,8 @@ audio_configure( int force )
 }
 
 
+#ifdef CONFIG_MENUS
+
 /** Menu handlers */
 
 static void
@@ -779,6 +781,7 @@ static struct menu_entry audio_menus[] = {
 	},
 #endif
 };
+#endif // CONFIG_MENU
 
 
 
@@ -853,8 +856,10 @@ my_sounddev_task( void )
 
 	sounddev_active_in(0,0);
 
+#ifdef CONFIG_MENU
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
+#endif
 	audio_configure( 1 ); // force it this time
 
 #ifdef CONFIG_AUDIO_REG_LOG
