@@ -158,24 +158,26 @@ ML_OBJS-y = \
 	5d-hack.o \
 	stubs-550d.108.o \
 	version.o \
-
-NO=\
-	stdio.o \
-	config.o \
-	debug.o \
-	menu.o \
-	property.o \
 	bmp.o \
 	font-huge.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
-	gui.o \
-	focus.o \
-	lens.o \
-	spotmeter.o \
+	config.o \
+	menu.o \
+	stdio.o \
 	audio.o \
+	lens.o \
+	property.o \
+
+NO2=\
 	zebra.o \
+	gui.o \
+
+NO=\
+	debug.o \
+	focus.o \
+	spotmeter.o \
 	hotplug.o \
 	bootflags.o \
 	ptp.o \

@@ -686,6 +686,7 @@ zebra_task( void )
 		);
 	}
 
+#ifndef CONFIG_550D
 	if( enable_liveview )
 	{
 /*
@@ -699,6 +700,7 @@ zebra_task( void )
 		// Clear the bitmap display, just in case
 		bmp_fill( 0, 0, 0, 720, 480 );
 	}
+#endif
 
 
 	menu_add( "Video", zebra_menus, COUNT(zebra_menus) );

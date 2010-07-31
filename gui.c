@@ -55,7 +55,7 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
-
+#if 0
 // Replaces the gui_main_task
 static void
 my_gui_main_task( void )
@@ -219,3 +219,4 @@ queue_clear:
 }
 
 TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+#endif // early port

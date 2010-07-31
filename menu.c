@@ -33,7 +33,7 @@
 
 
 static struct semaphore * menu_sem;
-extern struct semaphore * gui_sem;
+static struct semaphore * gui_sem;
 static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
