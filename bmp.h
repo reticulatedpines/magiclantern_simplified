@@ -35,7 +35,8 @@
 static inline uint8_t *
 bmp_vram(void)
 {
-	return bmp_vram_info[1].vram2;
+	//return bmp_vram_info[1].vram2;
+	return *(uint8_t**)( 0x94 + 0x23d8); // 550d 1.0.8 HACK!
 }
 
 

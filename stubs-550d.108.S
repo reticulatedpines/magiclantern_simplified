@@ -54,48 +54,56 @@ NSTUB( 0x15094, additional_version )
 /** Camera interface? */
 NSTUB( 0xC0220000, camera_engine )
 
-#if 0
+NSTUB( 0xFF067178, call )
+
 /** Find the shell register commands */
-NSTUB( 0xFF81C4DC, register_func )
+NSTUB( 0xFF1D7E78, register_func )
 
 /** Debugging commands are all registered by name.  Search for the strings */
-NSTUB( 0xFF86AEC8, dmstart )
-NSTUB( 0xFF86B7DC, dumpf )
+NSTUB( 0xFF06736C, dmstart )
+NSTUB( 0xFF0673AC, dmstop )
+NSTUB( 0xFF067C90, dumpf )
 
 /** Look in DebugMsg, near the bottom.  It calls vsnprintf()
  * with a buffer size of 0x4C.
  */
-NSTUB( 0xFF9B7164, vsnprintf )
+NSTUB( 0xFF1D6638, vsnprintf )
 
-NSTUB( 0xFF86E210, msleep )
-NSTUB( 0xFF86E2C8, task_create )
-NSTUB( 0xFF86AF08, dmstop )
-NSTUB( 0xFF9AA9FC, FIO_Open)
-NSTUB( 0xFF9AAAB0, FIO_CreateFile )
-NSTUB( 0xFF9AAB58, FIO_CloseFile )
-NSTUB( 0xFF9AB14C, FIO_GetFileSize )
-NSTUB( 0xFF9AAF98, FIO_WriteFile )
-NSTUB( 0xFF9AADE8, FIO_ReadFile )
-NSTUB( 0xFF86DE54, give_semaphore )
-NSTUB( 0xFF86DD6C, take_semaphore )
-NSTUB( 0xFF86BCC4, call )
-NSTUB( 0xFF86B294, dm_set_store_level )
-NSTUB( 0xFF85F0D4, prop_register_slave )
-NSTUB( 0xFF85F20C, prop_request_change )
-NSTUB( 0xFF85F04C, prop_deliver )
-NSTUB( 0xFF85F1A8, prop_cleanup )
+NSTUB( 0xFF06a344, msleep ) // called from EV_GETDONE_CACHE param 0x64
+NSTUB( 0xFF06A3F8, task_create )
+NSTUB( 0xFF1C658C, FIO_Open)
+NSTUB( 0xFF1C6648, FIO_CreateFile )
+NSTUB( 0xFF1C69EC, FIO_CloseFile )
+NSTUB( 0xFF1C6B68, FIO_GetFileSize )
+NSTUB( 0xFF1C693C, FIO_WriteFile )
+NSTUB( 0xFF1C679C, FIO_ReadFile )
+NSTUB( 0xFF069F58, give_semaphore )
+NSTUB( 0xFF069E70, take_semaphore )
+NSTUB( 0xFF067748, dm_set_store_level ) // called by "dmstore"
+NSTUB( 0xFF0574A0, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
+NSTUB( 0xFF056E38, prop_request_change )
+NSTUB( 0xFF057418, prop_deliver ) // maybe?
+
+NSTUB( 0xFF1C924C, dispcheck )
+
+NSTUB( 0xFF018270, malloc )
+NSTUB( 0xFF0182cc, free )
+
+NSTUB( 0x2B74, dm_names )
+NSTUB( 0xFF1EC1CC, strcpy )
+NSTUB( 0xFF06366C, LoadCalendarFromRTC )
+NSTUB( 0xFF0771BC, task_trampoline )
+
+#if 0
+//NSTUB( 0xFF85F1A8, prop_cleanup )
 NSTUB( 0xFF86DC0C, create_named_semaphore )
 NSTUB( 0xFFA6BD14, gui_task_create )
-NSTUB( 0xFF8696BC, LoadCalendarFromRTC )
-NSTUB( 0xFF86F150, malloc )
-NSTUB( 0xFF86F4E0, free )
 NSTUB( 0xFF812E44, cli_save )
 NSTUB( 0xFF812E58, sei_restore )
 NSTUB( 0xFF85961C, _audio_ic_write )
 NSTUB( 0xFF85944C, _audio_ic_read )
 NSTUB( 0xFF85B0C8, sounddev_task )
 NSTUB( 0x2360, sounddev )
-NSTUB( 0xFF87CBD0, strcpy )
 NSTUB( 0xFFA0FD18, ptp_register_handler )
 NSTUB( 0xFF92EA48, gui_lock )
 NSTUB( 0xFF893CD8, prop_request_icu_auto_poweroff )
@@ -104,13 +112,10 @@ NSTUB( 0xFF86C704, oneshot_timer )
 NSTUB( 0xFF81DE08, hotplug_task )
 NSTUB( 0x1AA4, hotplug_struct )
 NSTUB( 0x1AD8, hotplug_usb_buf )
-NSTUB( 0xFF864678, dispcheck )
 NSTUB( 0x27624, bmp_vram_info )
 NSTUB( 0x38920, vram_info )
 NSTUB( 0xFFA413FC, vram_get_number )
-NSTUB( 0xFF8773A4, task_trampoline )
 NSTUB( 0x208A4, cf_device )
-NSTUB( 0x2BA0, dm_names )
 NSTUB( 0xFFA6BE34, gui_task_destroy )
 NSTUB( 0xFF82399C, gui_main_task )
 NSTUB( 0xFF82434C, gui_init_end )
