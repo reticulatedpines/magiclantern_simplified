@@ -421,10 +421,14 @@ magiclantern-5d.fir: autoexec.bin
 		conv=notrunc \
 		oseek=0 \
 
-magiclantern.fir: 550d-flasher.bin
+550d-empty.fir: 550d-empty.hdr
+	( cat $< ; \
+	dd if=/dev/zero bs=9538232 count=1 \
+	) > $@
+
+magiclantern.fir: 550d-empty.fir 550d-flasher.bin 
 	../dumper/enc_upd550.py \
-		./550d-empty.fir \
-		$< \
+		$^ \
 		$@ \
 
 dummy_data_head.bin:

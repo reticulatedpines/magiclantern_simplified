@@ -123,6 +123,9 @@ NSTUB( 0xFF01A734, hotplug_task )
 NSTUB( 0x1A6C, hotplug_struct )
 NSTUB( 0x1AA0, hotplug_usb_buf )
 
+NSTUB( 0xFF067014, bootdisk_enable )
+NSTUB( 0xFF067020, bootdisk_disable )
+
 #if 0
 NSTUB( 0xFF812E44, cli_save )
 NSTUB( 0xFF812E58, sei_restore )
