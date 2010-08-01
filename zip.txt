@@ -1,5 +1,7 @@
 *******************************
 * Please see the README file! *
+* THIS IS A PRE-ALPHA RELEASE *
+* IT MIGHT CORRUPT THE CAMERA *
 *******************************
 
 Information:     http://magiclantern.wikia.com/
