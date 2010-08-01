@@ -51,6 +51,9 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
 	INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
+/** Was this an autoboot or firmware file load? */
+int autoboot_loaded;
+
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -66,9 +69,12 @@ zero_bss( void )
 
 void
 __attribute__((noreturn,noinline,naked))
-copy_and_restart( void )
+copy_and_restart( int offset )
 {
 	zero_bss();
+
+	// Set the flag if this was an autoboot load
+	autoboot_loaded = (offset == 0);
 
 	// Copy the firmware to somewhere safe in memory
 	const uint8_t * const firmware_start = (void*) ROMBASEADDR;

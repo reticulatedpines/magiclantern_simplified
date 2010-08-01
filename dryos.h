@@ -677,4 +677,8 @@ free_dma_memory(
 );
 
 
+/** Set if the firmware was loaded via AUTOEXEC.BIN */
+extern int autoboot_loaded;
+
+
 #endif

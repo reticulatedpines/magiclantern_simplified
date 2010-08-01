@@ -121,14 +121,14 @@ cstart( void )
 	flush_caches();
 
 	// Jump into the newly relocated code
-	void __attribute__((noreturn))(*copy_and_restart)(void)
+	void __attribute__((noreturn))(*copy_and_restart)(int)
 		= (void*) RESTARTSTART;
 
 	void __attribute__((noreturn))(*firmware_start)(void)
 		= (void*) ROMBASEADDR;
 
 	if( 1 )
-		copy_and_restart();
+		copy_and_restart(offset);
 	else
 		firmware_start();
 
