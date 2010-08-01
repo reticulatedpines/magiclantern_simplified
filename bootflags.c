@@ -29,7 +29,8 @@ struct cf_device
 	void *			soft_reset;
 };
 
-extern struct cf_device * const cf_device;
+extern struct cf_device * const cf_device[];
+extern struct cf_device * const sd_device[];
 
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
@@ -97,23 +98,77 @@ bootflag_write_bootblock( void )
 {
 	gui_stop_menu();
 
-	uint8_t *block = alloc_dma_memory( 0x200 );
-	bmp_printf( FONT_MED, 0, 40, "mem=%08x read=%08x", block, cf_device->read_block );
-	int rc = cf_device->read_block( cf_device, 0x0, 1, block );
+	bmp_printf( FONT_SMALL, 0, 30, "cf=%08x sd=%08x", (uint32_t)
+sd_device[0], (uint32_t) sd_device[1]);
+
+	struct cf_device * const dev = sd_device[1];
+
+
+	uint8_t *block = alloc_dma_memory( 0x200*0x40 );
+	uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
+	int i;
+	DebugMsg(DM_MAGIC, 3, "%s: buf=%08x", __func__, (uint32_t)block);
+	for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
+	bmp_printf( FONT_SMALL, 0, 40, "mem=%08x read=%08x", block, dev->read_block );
+	bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
+
+	dm_set_store_level(0x23, 0);
+	int rc = dev->read_block( dev, block, 0x0, 0x40 );
+	clean_d_cache();
+        flush_caches();
+
+
+	dm_set_store_level(0x23, 3);
+	DebugMsg(DM_MAGIC, 3, "%s: rc=%d %08x %08x", __func__,
+		rc,
+		*(uint32_t*) &user_block[0x47],
+		*(uint32_t*) &user_block[0x5C]
+	);
 	msleep( 100 );
 
 	bmp_printf( FONT_MED, 600, 40, "read=%d", rc );
-	bmp_hexdump( FONT_SMALL, 0, 60, block, 0x100 );
+	bmp_hexdump( FONT_SMALL, 0, 60, user_block, 0x100 );
 
+/*
 	// Update the first partition header to include the magic
 	// strings
 	my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
 	my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0x8 );
 
-	rc = cf_device->write_block( cf_device, 0x0, 1, block );
+	rc = dev->write_block( dev, 0x0, 1, block );
 	bmp_printf( FONT_MED, 600, 60, "write=%d", rc );
 	free_dma_memory( block );
+*/
 }
+
+
+/** Perform an initial install and configuration */
+static void
+initial_install(void)
+{
+	bmp_fill(COLOR_BG, 0, 0, 720, 480);
+	bmp_printf(FONT_LARGE, 0, 30, "Magic Lantern install");
+
+	FILE * f = FIO_CreateFile("B:/ROM0.BIN");
+	if (f != (void*) -1)
+	{
+		bmp_printf(FONT_LARGE, 0, 60, "Writing RAM");
+		FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
+		FIO_CloseFile(f);
+	}
+
+	bmp_printf(FONT_LARGE, 0, 90, "Setting boot flag");
+	call( "EnableBootDisk" );
+
+	//bmp_printf(FONT_LARGE, 0, 120, "Writing boot block");
+	//bootflag_write_bootblock();
+
+	bmp_printf(FONT_LARGE, 0, 150, "Writing boot log");
+	dumpf();
+
+	bmp_printf(FONT_HUGE, 0, 180, "Done!");
+}
+
 
 
 #if 0
@@ -203,6 +258,9 @@ struct menu_entry boot_menus[] = {
 static void
 bootflags_init( void )
 {
+	if( autoboot_loaded == 0 )
+		initial_install();
+
 	menu_add( "Boot", boot_menus, COUNT(boot_menus) );
 
 	if( disable_powersave )

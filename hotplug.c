@@ -30,6 +30,8 @@
 static void
 my_hotplug_task( void )
 {
+	return;
+/*
 	volatile uint32_t * camera_engine = (void*) 0xC0220000;
 
 	DebugMsg( DM_MAGIC, 3,
@@ -38,7 +40,6 @@ my_hotplug_task( void )
 		camera_engine
 	);
 
-	return;
 
 	while(1)
 	{
@@ -61,6 +62,7 @@ my_hotplug_task( void )
 
 		// Something with a semaphore?  Sleep?
 	}
+*/
 }
 
 TASK_OVERRIDE( hotplug_task, my_hotplug_task );

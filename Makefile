@@ -172,13 +172,13 @@ ML_OBJS-y = \
 	lens.o \
 	property.o \
 	gui.o \
+	bootflags.o \
+	hotplug.o \
 
 NO=\
 	zebra.o \
 	focus.o \
 	spotmeter.o \
-	hotplug.o \
-	bootflags.o \
 	ptp.o \
 	bracket.o \
 
