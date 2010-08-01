@@ -158,7 +158,7 @@ initial_install(void)
 	}
 
 	bmp_printf(FONT_LARGE, 0, 90, "Setting boot flag");
-	call( "EnableBootDisk" );
+	bootdisk_enable();
 
 	//bmp_printf(FONT_LARGE, 0, 120, "Writing boot block");
 	//bootflag_write_bootblock();
