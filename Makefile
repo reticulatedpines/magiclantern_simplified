@@ -48,7 +48,7 @@ CF_CARD="/Volumes/EOS_DIGITAL"
 #
 # Install a normal firmware file to the CF card.
 #
-install: magiclantern.fir magiclantern.cfg cropmarks.bmp autoexec.bin test.pym
+install: magiclantern.fir magiclantern.cfg cropmarks.bmp autoexec.bin
 	cp $^ $(CF_CARD)
 	hdiutil unmount $(CF_CARD)
 
@@ -62,7 +62,7 @@ magiclantern-$(VERSION).zip: \
 	cropmarks.bmp \
 	autoexec.bin \
 	README \
-	LICENSE \
+	COPYING \
 
 	-rm $@
 	zip -z $@ < $^
@@ -408,19 +408,22 @@ magiclantern-5d.fir: autoexec.bin
 
 #
 # Replace the start of the 550d firmware file with our own image
+# We don't want to distribute any Canon code, so we replace the
+# unencrypted flasher file with a zero-padded version.
 #
 550d-flasher.bin: autoexec.bin
-	cp ../1.0.8/0270_108_updaters.bin $@
+	#cp ../1.0.8/0270_108_updaters.bin $@
+	dd of=$@ if=/dev/zero bs=1829408 count=1
 	dd \
 		of=$@ \
 		if=$< \
 		bs=1 \
 		conv=notrunc \
-		oseek=288 \
+		oseek=0 \
 
 magiclantern.fir: 550d-flasher.bin
 	../dumper/enc_upd550.py \
-		../1.0.8/e8kr7108.fir \
+		./550d-empty.fir \
 		$< \
 		$@ \
 
