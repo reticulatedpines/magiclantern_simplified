@@ -54,7 +54,7 @@ NSTUB( 0x15094, additional_version )
 /** Camera interface? */
 NSTUB( 0xC0220000, camera_engine )
 
-NSTUB( 0xFF067178, call )
+NSTUB( 0xFF068178, call )
 
 /** Find the shell register commands */
 NSTUB( 0xFF1D7E78, register_func )
@@ -113,18 +113,22 @@ NSTUB( 0xFF2B4D30, gui_task_destroy )
 NSTUB( 0xFF2B4AC0, ctrlman_dispatch_event )
 
 NSTUB( 0xFF44F7CC, memcpy )
+NSTUB( 0xFF09786C, prop_request_icu_auto_poweroff )
+NSTUB( 0xFF1DA26C, alloc_dma_memory )
+NSTUB( 0xFF1DA2A0, free_dma_memory )
+NSTUB( 0x26258, cf_device )
+NSTUB( 0x26284, sd_device )
+
+NSTUB( 0xFF01A734, hotplug_task )
+NSTUB( 0x1A6C, hotplug_struct )
+NSTUB( 0x1AA0, hotplug_usb_buf )
 
 #if 0
 NSTUB( 0xFF812E44, cli_save )
 NSTUB( 0xFF812E58, sei_restore )
 NSTUB( 0xFFA0FD18, ptp_register_handler )
 NSTUB( 0xFF92EA48, gui_lock )
-NSTUB( 0xFF893CD8, prop_request_icu_auto_poweroff )
 NSTUB( 0xFF86C704, oneshot_timer )
-NSTUB( 0xFF81DE08, hotplug_task )
-NSTUB( 0x1AA4, hotplug_struct )
-NSTUB( 0x1AD8, hotplug_usb_buf )
-NSTUB( 0x208A4, cf_device )
 NSTUB( 0xFFA6BE34, gui_task_destroy )
 NSTUB( 0xFF82399C, gui_main_task )
 NSTUB( 0xFF82434C, gui_init_end )
@@ -140,6 +144,4 @@ NSTUB( 0xFF8922A4, gui_change_shoot_type_post )
 NSTUB( 0xFF89233C, gui_change_lcd_state_post )
 NSTUB( 0xFF890188, gui_massive_event_loop )
 NSTUB( 0xFF9B3910, gui_timer_something )
-NSTUB( 0xFF9B9FD0, alloc_dma_memory )
-NSTUB( 0xFF9BA004, free_dma_memory )
 #endif
