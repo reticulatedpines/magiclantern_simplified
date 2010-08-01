@@ -157,7 +157,8 @@ bmp_fill(
 
 /** Some selected colors */
 #define COLOR_EMPTY		0x00 // total transparent
-#define COLOR_BG		0x03 // transparent black
+#define COLOR_BG		0x14 // transparent gray
+#define COLOR_BG_DARK		0x03 // transparent black
 #define COLOR_WHITE		0x01 // Normal white
 #define COLOR_BLUE		0x0B // normal blue
 #define COLOR_RED		0x08 // normal red

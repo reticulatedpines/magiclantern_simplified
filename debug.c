@@ -409,6 +409,10 @@ dump_task( void )
 	//dm_set_store_level( 0x15, 2 );
 	//dm_set_store_level( 0x2f, 0x16 );
 
+	//msleep(1000);
+	//bmp_draw_palette();
+	//dispcheck();
+
 	if( timed_dump == 0 )
 		return;
 

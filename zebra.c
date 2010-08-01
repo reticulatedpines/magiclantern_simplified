@@ -46,7 +46,7 @@ static volatile unsigned sensor_cleaning = 1;
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
 CONFIG_INT( "zebra.level",	zebra_level,	0xF000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 );
-CONFIG_STR( "crop.file",	crop_file,	"A:/cropmarks.bmp" );
+CONFIG_STR( "crop.file",	crop_file,	"B:/cropmarks.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
@@ -409,6 +409,23 @@ draw_zebra( void )
 	if( !bvram )
 		return;
 
+	static struct vram_info _vram_info;
+	vram_get_pos_and_size(
+		&_vram_info.width,
+		&_vram_info.height,
+		&_vram_info.pitch,
+		&_vram_info.vram
+	);
+
+	bmp_printf(FONT_SMALL, 300, 300, "bmp=%08x vram=%08x %d %d %d",
+		bvram,
+		_vram_info.vram,
+		_vram_info.width,
+		_vram_info.pitch,
+		_vram_info.height
+	);
+	return;
+
 	// If we are not drawing edges, or zebras or crops, nothing to do
 	if( !edge_draw && !zebra_draw && !hist_draw && !waveform_draw )
 	{
@@ -418,9 +435,10 @@ draw_zebra( void )
 			return;
 	}
 
-	struct vram_info * vram = &vram_info[ vram_get_number(2) ];
+	//struct vram_info * vram = &vram_info[ vram_get_number(2) ];
+	struct vram_info * vram = &_vram_info;
 
-	hist_build();
+	//hist_build();
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
@@ -686,7 +704,15 @@ zebra_task( void )
 		);
 	}
 
+	while(1)
+	{
+		draw_zebra();
+		msleep(1000);
+	}
+
+
 #ifndef CONFIG_550D
+#error "liveview!"
 	if( enable_liveview )
 	{
 /*
@@ -702,8 +728,7 @@ zebra_task( void )
 	}
 #endif
 
-
-	menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+	//menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
 	while(1)
 	{
@@ -720,4 +745,4 @@ zebra_task( void )
 }
 
 
-TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "zebra_task", zebra_task, 0, 0x18, 0x1000 );

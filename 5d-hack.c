@@ -308,7 +308,7 @@ my_init_task(void)
 	msleep( 500 );
 
 	// Parse our config file
-	const char * config_filename = "A:/magiclantern.cfg";
+	const char * config_filename = "B:/magiclantern.cfg";
 	global_config = config_parse_file( config_filename );
 	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern version %s (%s)\n"
@@ -318,13 +318,19 @@ my_init_task(void)
 		build_date,
 		build_user
 	);
-	bmp_printf( FONT_MED, 0, 400,
+	bmp_printf( FONT_MED, 0, 300,
 		"Config file %s: %s",
 		config_filename,
 		global_config ? "YES" : "NO"
 	);
-
 	msleep( 500 );
+	bmp_printf( FONT(FONT_HUGE,COLOR_YELLOW,COLOR_BLUE),
+		80, 80,
+		" Magic \nLantern\n %s ",
+		build_version
+	);
+	msleep( 2000 );
+	bmp_fill(0, 80, 80, 7*60, 3 *70);
 
 	init_funcs_done = 0;
 	//task_create( "init_func", 0x1f, 0x1000, call_init_funcs, 0 );

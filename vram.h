@@ -29,8 +29,10 @@
 
 
 
-/** VRAM accessors */
-extern uint32_t
+/** VRAM accessors.
+ * \returns -1 if the vram is not enabled.
+ */
+extern int
 vram_get_number(
 	uint32_t		number
 );
@@ -57,7 +59,7 @@ struct vram_object
 {
 	const char *		name; // "Vram Instance" 0xFFCA79E5
 	uint32_t		off_0x04;
-	uint32_t		off_0x08;
+	uint32_t		initialized; // off_0x08;
 	uint32_t		off_0x0c;
 	uint32_t		off_0x10;
 	struct semaphore *	sem; // off 0x14;

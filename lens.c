@@ -437,7 +437,7 @@ mvr_create_logfile(
 		return;
 
 	// Movie starting
-	mvr_logfile = FIO_CreateFile( "A:/movie.log" );
+	mvr_logfile = FIO_CreateFile( "B:/movie.log" );
 	if( mvr_logfile == INVALID_PTR )
 	{
 		bmp_printf( FONT_LARGE, 0, 40,
@@ -544,7 +544,7 @@ PROP_HANDLER( PROP_LV_LENS )
 
 PROP_HANDLER( PROP_LVCAF_STATE )
 {
-	bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
+	//bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
 	return prop_cleanup( token, property );
 }
 
@@ -553,6 +553,7 @@ PROP_HANDLER( PROP_LV_FOCUS )
 {
 	const struct prop_focus * const focus = (void*) buf;
 	const int16_t step = (focus->step_hi << 8) | focus->step_lo;
+	if (0)
 	bmp_printf( FONT_SMALL, 200, 30,
 		"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
 			*(unsigned*)buf,

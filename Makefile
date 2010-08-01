@@ -76,6 +76,7 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
+	-DCONFIG_550D=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
@@ -165,17 +166,15 @@ ML_OBJS-y = \
 	font-small.o \
 	config.o \
 	menu.o \
+	debug.o \
 	stdio.o \
 	audio.o \
 	lens.o \
 	property.o \
-
-NO2=\
-	zebra.o \
 	gui.o \
 
 NO=\
-	debug.o \
+	zebra.o \
 	focus.o \
 	spotmeter.o \
 	hotplug.o \

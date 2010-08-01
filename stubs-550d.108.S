@@ -85,9 +85,10 @@ NSTUB( 0xFF056E38, prop_request_change )
 NSTUB( 0xFF057418, prop_deliver ) // maybe?
 
 NSTUB( 0xFF1C924C, dispcheck )
-NSTUB( 0x2E5BC, bmp_vram_info )
+NSTUB( 0x2E5B0, bmp_vram_info )
 NSTUB( 0x8194C, vram_info )
 NSTUB( 0xFF28A6F8, vram_get_number )
+NSTUB( 0xFF1C7EA8, vram_get_pos_and_size )
 
 NSTUB( 0xFF018270, malloc )
 NSTUB( 0xFF0182cc, free )
