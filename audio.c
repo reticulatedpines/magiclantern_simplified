@@ -862,6 +862,8 @@ my_sounddev_task( void )
 	reg_file = FIO_CreateFile( "A:/audioregs.txt" );
 #endif
 
+	int count = 0;
+
 	while(1)
 	{
 		// will be unlocked by the property handler

@@ -172,13 +172,12 @@ my_task_dispatch_hook(
 	if( !context )
 		return;
 
-	// Determine the task address
-	struct task * task = (struct task*)
-		( ((uint32_t)context) - offsetof(struct task, context) );
-
 	// Do nothing unless a new task is starting via the trampoile
-	if( task->context->pc != (uint32_t) task_trampoline )
+	if( (*context)->pc != (uint32_t) task_trampoline )
 		return;
+
+	// Determine the task address
+	struct task * const task = *(struct task**) 0x1a20;
 
 	thunk entry = (thunk) task->entry;
 

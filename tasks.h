@@ -27,11 +27,11 @@
 
 struct context
 {
-	uint32_t		cpsr;
-	uint32_t		r[13];
-	uint32_t		lr;
-	uint32_t		pc;
-};
+	uint32_t		cpsr;		// off_0x00;
+	uint32_t		r[13];		// off_0x04;
+	uint32_t		lr;		// off_0x38;
+	uint32_t		pc;		// off_0x3C;
+}; // 0x40 bytes
 
 struct task
 {
@@ -39,7 +39,7 @@ struct task
 	uint32_t		off_0x04;	// stack maybe?
 	uint32_t		off_0x08;	// flags?
 	void *			entry;		// off 0x0c
-	uint32_t		off_0x10;
+	uint32_t		arg;		// off_0x10;
 	uint32_t		off_0x14;
 	uint32_t		off_0x18;
 	uint32_t		off_0x1c;
@@ -53,7 +53,10 @@ struct task
 	uint32_t		off_0x3c;
 	uint32_t		off_0x40;
 	uint32_t		off_0x44;
-	uint32_t		off_0x48;
+	uint8_t			off_0x48;
+	uint8_t			off_0x49;
+	uint8_t			off_0x4a;
+	uint8_t			exited;		// off_0x4b;
 	struct context *	context;	// off 0x4C
 	uint32_t		pad_1[12];
 };
