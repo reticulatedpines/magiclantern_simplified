@@ -427,9 +427,16 @@ magiclantern-5d.fir: autoexec.bin
 	) > $@
 
 magiclantern.fir: 550d-empty.fir 550d-flasher.bin 
-	../dumper/enc_upd550.py \
-		$^ \
-		$@ \
+	@if [ -f ../dumper/enc_upd550.py ]; then \
+		../dumper/enc_upd550.py \
+			$^ \
+			$@ ; \
+	else \
+		echo "\n../dumper/enc_upd550.py not found; will not build magiclantern.fir."; \
+		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
+		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
+		echo "";\
+	fi; \
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@
