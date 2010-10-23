@@ -1,12 +1,22 @@
-ARM_PATH=/opt/local/bin
-CC=$(ARM_PATH)/arm-elf-gcc-4.3.2
-OBJCOPY=$(ARM_PATH)/arm-elf-objcopy
-AR=$(ARM_PATH)/arm-elf-ar
-RANLIB=$(ARM_PATH)/arm-elf-ranlib
+ARM_PATH=/home/user/DevelToolbin/binaries/armThumb-4.3.2
+ARM_BINPATH=$(ARM_PATH)/bin
+GCC_VERSION=4.3.2
+CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
+OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
+AR=$(ARM_BINPATH)/arm-elf-ar
+RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 VERSION=0.1.9
+
+#MacOS
+#UMOUNT=hdiutil unmount
+#CF_CARD="/Volumes/EOS_DIGITAL"
+
+#Linux (Ubuntu 10.04)
+CF_CARD=/media/CANON_DC/
+UMOUNT=umount
 
 all: magiclantern.fir
 
@@ -25,7 +35,8 @@ RESTARTSTART		= 0x0008B000
 # Firmware file IDs
 FIRMWARE_ID_5D		= 0x80000218
 FIRMWARE_ID_7D		= 0x80000250
-FIRMWARE_ID		= $(FIRMWARE_ID_5D)
+FIRMWARE_ID_550D	= 0x80000270
+FIRMWARE_ID		= $(FIRMWARE_ID_550D)
 
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
@@ -43,14 +54,12 @@ ifeq ($(CONFIG_LUA),y)
 include $(LUA_PATH)/Makefile
 endif
 
-CF_CARD="/Volumes/EOS_DIGITAL"
-
 #
 # Install a normal firmware file to the CF card.
 #
 install: magiclantern.fir magiclantern.cfg cropmarks.bmp autoexec.bin
 	cp $^ $(CF_CARD)
-	hdiutil unmount $(CF_CARD)
+	$(UMOUNT) $(CF_CARD)
 
 zip: magiclantern-$(VERSION).zip
 
@@ -217,7 +226,7 @@ STDIO_OBJ = \
 	lib_a-strcoll.o \
 	lib_a-ctype_.o \
 
-ARM_LIBC_A = /opt/local/arm-elf/lib/libc.a
+ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 
 $(STDIO_OBJ): $(ARM_LIBC_A)
 	$(AR) xv $? $(STDIO_OBJ)
@@ -419,7 +428,7 @@ magiclantern-5d.fir: autoexec.bin
 		if=$< \
 		bs=1 \
 		conv=notrunc \
-		oseek=0 \
+		seek=0 \
 
 550d-empty.fir: 550d-empty.hdr
 	( cat $< ; \
@@ -489,7 +498,7 @@ pymite-nat.c pymite-img.c: $(SCRIPTS)
 
 # Quiet the build process
 build = \
-	@if [ "$V" == 1 ]; then \
+	@if [ X"$V" = X"1" ]; then \
 		echo '$2'; \
 	else \
 		printf "[ %-8s ]   %s\n"  $1 $@; \
