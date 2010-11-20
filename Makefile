@@ -1,6 +1,6 @@
-ARM_PATH=/home/user/DevelToolbin/binaries/armThumb-4.3.2
+ARM_PATH=/home/user/arm-toolchain
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.3.2
+GCC_VERSION=4.4.2
 CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
 AR=$(ARM_BINPATH)/arm-elf-ar
@@ -54,10 +54,11 @@ ifeq ($(CONFIG_LUA),y)
 include $(LUA_PATH)/Makefile
 endif
 
+
 #
 # Install a normal firmware file to the CF card.
 #
-install: magiclantern.fir magiclantern.cfg cropmarks.bmp autoexec.bin
+install: magiclantern.fir mlantern.cfg cropmarks.bmp autoexec.bin
 	cp $^ $(CF_CARD)
 	$(UMOUNT) $(CF_CARD)
 
@@ -247,28 +248,6 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 		-lgcc \
 	)
 
-# These do not need to be run.  Since bigtext is not
-# a standard program, the output files are checked in.
-font-huge.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'-*-helvetica-*-r-*-*-72-*-100-100-*-*-iso8859-*' \
-		40 66 \
-	)
-font-large.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*' \
-		19 25 \
-	)
-font-med.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'-*-helvetica-*-r-*-*-17-*-100-100-*-*-iso8859-*' \
-		10 16 \
-	)
-font-small.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'-*-helvetica-*-r-*-*-10-*-100-100-*-*-iso8859-*' \
-		6 8 \
-	)
 
 font-huge.c: font-huge.in mkfont
 	$(call build,MKFONT,./mkfont \
@@ -327,15 +306,14 @@ autoexec: reboot.o
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
-		BEGIN { print "#define SYM(a,n) n=a; .global n;\n" } \
+		BEGIN { print "#define SYM(a,n) n=a; .global n;\n" }\
 		s/[\r\n]//g; \
-		s/^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)$$/SYM(0x\1,\2)\n/ \
-			and print; \
-	'
+		s/^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)$$/SYM(0x\1,\2)\n/\
+			and print;'
 
 
 %.dis: %.bin
-	$(ARM_PATH)/arm-linux-objdump \
+	$(ARM_BINPATH)/arm-linux-objdump \
 		-b binary \
 		-m arm \
 		-D \
