@@ -84,7 +84,8 @@ NSTUB( 0xFF067748, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF0574A0, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xFF056E38, prop_request_change )
 NSTUB( 0xFF057418, prop_deliver ) 
-
+NSTUB( 0xFF057654, prop_get_value )
+	
 NSTUB( 0xFF1C924C, dispcheck )
 NSTUB( 0xFF05DAF8, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x2E5B0, bmp_vram_info )

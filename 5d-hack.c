@@ -316,7 +316,7 @@ my_init_task(void)
 	const char * config_filename = "B:/mlantern.cfg";
 	global_config = config_parse_file( config_filename );
 	bmp_printf( FONT_MED, 0, 40,
-		"Magic Lantern version %s (%s)\n"
+		"Magic Lantern v_%s (%s)\n"
 		"Built on %s by %s\n",
 		build_version,
 		build_id,

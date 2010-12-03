@@ -98,8 +98,7 @@ bootflag_write_bootblock( void )
 {
 	gui_stop_menu();
 
-	bmp_printf( FONT_SMALL, 0, 30, "cf=%08x sd=%08x", (uint32_t)
-sd_device[0], (uint32_t) sd_device[1]);
+	bmp_printf( FONT_SMALL, 0, 30, "cf=%08lx sd=%08lx", (uint32_t)sd_device[0], (uint32_t) sd_device[1]);
 
 	struct cf_device * const dev = sd_device[1];
 
@@ -109,7 +108,7 @@ sd_device[0], (uint32_t) sd_device[1]);
 	int i;
 	DebugMsg(DM_MAGIC, 3, "%s: buf=%08x", __func__, (uint32_t)block);
 	for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
-	bmp_printf( FONT_SMALL, 0, 40, "mem=%08x read=%08x", block, dev->read_block );
+	bmp_printf( FONT_SMALL, 0, 40, "mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
 	bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
 
 	dm_set_store_level(0x23, 0);

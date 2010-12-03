@@ -8,14 +8,14 @@ RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.1.9
+VERSION=0.1.9-rc0_550d_fw109
 
 #MacOS
 #UMOUNT=hdiutil unmount
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
 #Linux (Ubuntu 10.04)
-CF_CARD=/media/CANON_DC/
+CF_CARD=/media/EOS_DIGITAL/
 UMOUNT=umount
 
 all: magiclantern.fir
@@ -68,11 +68,10 @@ zip: magiclantern-$(VERSION).zip
 magiclantern-$(VERSION).zip: \
 	zip.txt \
 	magiclantern.fir \
-	magiclantern.cfg \
+	mlantern.cfg \
 	cropmarks.bmp \
 	autoexec.bin \
 	README \
-	COPYING \
 
 	-rm $@
 	zip -z $@ < $^
@@ -167,7 +166,7 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
-	stubs-550d.108.o \
+	stubs-550d.109.o \
 	version.o \
 	bmp.o \
 	font-huge.o \
@@ -413,13 +412,11 @@ magiclantern-5d.fir: autoexec.bin
 	dd if=/dev/zero bs=9538232 count=1 \
 	) > $@
 
-magiclantern.fir: 550d-empty.fir 550d-flasher.bin 
-	@if [ -f ../dumper/enc_upd550.py ]; then \
-		../dumper/enc_upd550.py \
-			$^ \
-			$@ ; \
+magiclantern.fir: ../dumper/550d_109.fir autoexec.bin
+	@if [ -f ../dumper/build_fir.py ]; then \
+		python ../dumper/build_fir.py -r $^ $@ ; \
 	else \
-		echo "\n../dumper/enc_upd550.py not found; will not build magiclantern.fir."; \
+		echo "\n../dumper/build_fir.py not found; will not build magiclantern.fir."; \
 		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
 		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
 		echo "";\
