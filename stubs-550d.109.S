@@ -78,6 +78,8 @@ NSTUB( 0xFF1C69EC, FIO_CloseFile )
 NSTUB( 0xFF1C6B68, FIO_GetFileSize )
 NSTUB( 0xFF1C693C, FIO_WriteFile )
 NSTUB( 0xFF1C679C, FIO_ReadFile )
+NSTUB( 0xFF1C66F4, FIO_RemoveFile )
+	
 NSTUB( 0xFF069F58, give_semaphore )
 NSTUB( 0xFF069E70, take_semaphore )
 NSTUB( 0xFF067748, dm_set_store_level ) // called by "dmstore"
@@ -95,7 +97,8 @@ NSTUB( 0xFF1C7EA8, vram_get_pos_and_size )
 
 NSTUB( 0xFF018270, malloc )
 NSTUB( 0xFF0182cc, free )
-
+NSTUB( 0xFF06B270, AllocateMemory ) // thanks Alex
+	
 NSTUB( 0x2B74, dm_names )                // in DebugMsg, before the 1st loop target
 NSTUB( 0xFF1EC1CC, strcpy )
 NSTUB( 0xFF06366C, LoadCalendarFromRTC )
@@ -147,6 +150,8 @@ NSTUB( 0xFF0952F0, gui_local_post )
 NSTUB( 0xFF094CF4, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF095728, gui_other_post )
 
+NSTUB( 0xFF453E14, gui_main_task_functbl )
+	
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )

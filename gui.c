@@ -42,7 +42,7 @@ struct gui_main_struct {
 	uint32_t		off_0x2c;
 	uint32_t		off_0x30;
 	struct msg_queue *	msg_queue;	// off_0x34;
-	uint32_t		off_0x38;
+	struct msg_queue *	msg_queue_550d;	// off_0x38;
 	uint32_t		off_0x3c;
 };
 
@@ -55,168 +55,48 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
-#if 0
-// Replaces the gui_main_task
-static void
-my_gui_main_task( void )
-{
-	gui_init_end();
-	uint32_t * obj = 0;
+#define GUISTATE_IDLE 0
+#define GUISTATE_PLAYMENU 1
+int gui_state = 0;
 
+extern void* gui_main_task_functbl;
+
+#define NFUNCS 8
+#define gui_main_task_functable 0xFF453E14
+
+static void gui_main_task_550d()
+{
+	struct event * event = NULL;
+	int index = 0;
+	void* funcs[NFUNCS];
+	memcpy(funcs, gui_main_task_functable, 4*NFUNCS);  // copy 8 functions in an array
+	gui_init_end();
 	while(1)
 	{
-		struct event * event;
-		msg_queue_receive(
-			gui_main_struct.msg_queue,
-			&event,
-			0
-		);
-
-		if( !event )
-			goto event_loop_bottom;
-
-#if 1
-		if( event->type != 4
-		&&  (event->type != 2 && event->param != 0x16)
-		&&  (event->type != 2 && event->param != 0x31)
-		)
+		msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
+		gui_main_struct.counter--;
+		if (event == NULL) continue;
+		index = event->type;
+		if ((index >= NFUNCS) || (index < 0))
+			continue;
+	
+		if( gui_state != GUISTATE_PLAYMENU && event->type == 0 && event->param == 0xA ) 
 		{
-			DebugMsg( DM_MAGIC, 3,
-				"Event: %x, %x, %x, %x",
-				event->type,
-				event->param,
-				event->obj,
-				event->arg
-			);
-		}
-#endif
-
-		switch( event->type )
-		{
-		case 0:
-			if( gui_main_struct.obj != obj
-			&&  event->param != 0x25
-			&&  event->param != 0x26
-			&&  event->param != 0x27
-			&&  event->param != 0x28
-			&&  event->param != 0x29
-			&&  event->param != 0x2A
-			&&  event->param != 0x1F
-			&&  event->param != 0x2B
-			&&  event->param != 0x23
-			&&  event->param != 0x2C
-			&&  event->param != 0x2D
-			&&  event->param != 0x2E
-			&&  event->param != 0x2F
-			&&  event->param != 0x30
-			&&  event->param != 0x31
-			&&  event->param != 0x32
-			&&  event->param != 0x3B
-			)
-				goto queue_clear;
-
-			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
-
-			// Change the picture style button to show our menu
-			if( event->param == 0x13 )
+			if (gui_menu_shown()) 
+			{
+				gui_stop_menu();
+			} 
+			else 
 			{
 				give_semaphore( gui_sem );
-				break;
+				continue;
 			}
-
-			gui_massive_event_loop( event->param, event->obj, event->arg );
-
-			break;
-
-		case 1:
-			if( gui_main_struct.obj != obj
-			&&  event->param != 0x00
-			&&  event->param != 0x07
-			&&  event->param != 0x05
-			)
-				goto queue_clear;
-
-			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event->param );
-
-			if( event->param == 0 )
-			{
-				gui_local_post( 0x12, 0, 0 );
-				if( gui_timer_struct.obj )
-					gui_timer_something( gui_timer_struct.obj, 4 );
-			}
-
-			gui_change_mode( event->param );
-			break;
-
-		case 2:
-			if( gui_main_struct.obj != obj
-			&&  event->param != 0x17
-			&&  event->param != 0x18
-			&&  event->param != 0x14
-			&&  event->param != 0x1B
-			&&  event->param != 0x30
-			&&  event->param != 0x31
-			)
-				goto queue_clear;
-
-			gui_local_post( event->param, event->obj, event->arg );
-			break;
-		case 3:
-			if( event->param == 0x11 )
-			{
-				DebugMsg( 0x84, 2, "GUIOTHER_CANCEL_ALL_EVENT" );
-				obj = event->obj;
-				break;
-			}
-
-			if( gui_main_struct.obj != obj
-			&&  event->param != 0x00
-			&&  event->param != 0x03
-			&&  event->param != 0x01
-			&&  event->param != 0x12
-			&&  event->param != 0x13
-			&&  event->param != 0x14
-			)
-				goto queue_clear;
-
-			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event->param );
-			gui_other_post( event->param, event->obj, event->arg );
-			break;
-		case 4:
-			gui_post_10000085( event->param, event->obj, event->arg );
-			break;
-		case 5:
-			gui_init_event( event->obj );
-			break;
-		case 6:
-			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event->param );
-			gui_change_shoot_type_post( event->param );
-			break;
-		case 7:
-			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event->param );
-			gui_change_lcd_state_post( event->param );
-			break;
-
-		default:
-			break;
 		}
-
-event_loop_bottom:
-		gui_main_struct.counter--;
-		continue;
-
-queue_clear:
-		DebugMsg(
-			0x84,
-			3,
-			"**** Queue Clear **** event(%d) param(%d)",
-			event->type,
-			event->param
-		);
-
-		goto event_loop_bottom;
+		void(*f)(struct event *) = funcs[index];
+		f(event);
 	}
-}
+} 
 
-TASK_OVERRIDE( gui_main_task, my_gui_main_task );
-#endif // early port
+// 5D2 has a different version for gui_main_task
+
+TASK_OVERRIDE( gui_main_task, gui_main_task_550d );

@@ -423,7 +423,7 @@ menu_handler(
 	||  event == GUI_TIMER3
 	||  event == GUI_TIMER4
 	)
-		return 0;
+		return 1;
 
 	if( event == GUI_PROP_EVENT )
 	{
@@ -494,25 +494,29 @@ menu_handler(
 		// Generated when buttons are pressed?  Forward it on
 		return 1;
 
-	case PRESS_JOY_UP:
-	case ELECTRONIC_SUB_DIAL_LEFT:
+		//	case PRESS_JOY_UP:
+		//	case ELECTRONIC_SUB_DIAL_LEFT:
+	case PRESS_UP_BUTTON:
 		menu_entry_move( menu, -1 );
 		menu_damage = 1;
 		break;
 
-	case PRESS_JOY_DOWN:
-	case ELECTRONIC_SUB_DIAL_RIGHT:
+		//	case PRESS_JOY_DOWN:
+		//case ELECTRONIC_SUB_DIAL_RIGHT:
+	case PRESS_DOWN_BUTTON:
 		menu_entry_move( menu, 1 );
 		menu_damage = 1;
 		break;
 
-	case PRESS_JOY_RIGHT:
-	case DIAL_RIGHT:
+		//case PRESS_JOY_RIGHT:
+		//case DIAL_RIGHT:
+	case PRESS_RIGHT_BUTTON:
 		menu_move( menu, 1 );
 		break;
 
-	case PRESS_JOY_LEFT:
-	case DIAL_LEFT:
+		//	case PRESS_JOY_LEFT:
+		//case DIAL_LEFT:
+	case PRESS_LEFT_BUTTON:
 		menu_move( menu, -1 );
 		break;
 
