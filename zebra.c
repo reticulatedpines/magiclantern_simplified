@@ -30,7 +30,6 @@
 #include "menu.h"
 #include "property.h"
 
-
 static struct bmp_file_t * cropmarks;
 static volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
@@ -43,10 +42,13 @@ static volatile unsigned sensor_cleaning = 1;
 #define waveform_height			256
 #define waveform_width			(720/2)
 
+CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
-CONFIG_INT( "zebra.level",	zebra_level,	0xF000 );
+CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	250 );
+CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	5 );
+CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 );
-CONFIG_STR( "crop.file",	crop_file,	"B:/cropmarks.bmp" );
+CONFIG_STR( "crop.file",	crop_file,	"B:/cropmark.bmp" );
 CONFIG_INT( "edge.draw",	edge_draw,	0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
@@ -63,6 +65,8 @@ CONFIG_INT( "timecode.height",	timecode_height, 20 );
 CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
+// how to use a config setting in more than one file?!
+//extern int* p_cfg_draw_meters;
 
 /** Sobel edge detection */
 static int32_t
@@ -132,19 +136,29 @@ check_zebra(
 	unsigned		y,
 	uint16_t *		b_row,
 	uint32_t *		v_row,
-	unsigned		vram_pitch
+	unsigned		vram_pitch // unused?
 )
 {
-	const uint8_t zebra_color_0 = COLOR_BG; // 0x6F; // bright read
-	const uint8_t zebra_color_1 = 0x5F; // dark red
+    //~ DebugMsg(DM_MAGIC, 3, "check_zebra(%d, %d, %x, %x, %d)", x, y, b_row, v_row, vram_pitch);
+	uint8_t zebra_color_0 = COLOR_BG; // 0x6F; // bright read
+	uint8_t zebra_color_1 = 12; // red
 
 	uint32_t pixel = v_row[x/2];
-	uint32_t p0 = (pixel >> 16) & 0xFFFF;
-	uint32_t p1 = (pixel >>  0) & 0xFFFF;
+	uint32_t p0 = ((pixel >> 16) & 0xFF00) >> 8; // odd bytes are luma
+	uint32_t p1 = ((pixel >>  0) & 0xFF00) >> 8;
+    //~ DebugMsg(DM_MAGIC, 3, "pixels: %x, %x, %x; zebra level = %x", pixel, p0, p1, zebra_level);
 
-	// If neither pixel is overexposed, ignore it
-	if( p0 < zebra_level && p1 < zebra_level )
+	// If neither pixel is overexposed or underexposed, ignore it
+	if( p0 <= zebra_level_hi && p1 <= zebra_level_hi && p0 >= zebra_level_lo && p1 >= zebra_level_lo)
 		return 0;
+
+    if (p0 < zebra_level_lo || p1 < zebra_level_lo)
+    { // color for underexposed pixels
+        zebra_color_0 = 1;  // white
+        zebra_color_1 = 13; // blue 
+    }
+
+    //~ DebugMsg(DM_MAGIC, 3, "overexposed");
 
 	// Determine if we are a zig or a zag line
 	uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
@@ -155,6 +169,7 @@ check_zebra(
 		? (zebra_color_0<<8) | (zebra_color_0<<0)
 		: (zebra_color_1<<8) | (zebra_color_1<<0);
 
+    //~ DebugMsg(DM_MAGIC, 3, "color word = %x", zebra_color_word);
 	b_row[x/2] = zebra_color_word;
 	return 1;
 }
@@ -208,32 +223,26 @@ static uint32_t hist_max;
  * to scale the histogram to fit the display box from top to
  * bottom.
  */
-static void
-hist_build( void )
+void
+hist_build(void* vram, int width, int pitch)
 {
-	struct vram_info *	vram = &vram_info[ vram_get_number(2) ];
-	const uint32_t * 	v_row = (uint32_t*) vram->vram;
-	const unsigned		width = vram->width;
-	uint32_t x,y;
+    DebugMsg(DM_MAGIC, 3, "hist_build: %x, %d, %d", vram, width, pitch);
+	uint32_t * 	v_row = (uint32_t*) vram;
+	int x,y;
 
 	hist_max = 0;
 
-#if 0
-	memset( hist, 0, sizeof(hist) );
-	memset( waveform, 0, sizeof(waveform) );
-#else
 	// memset() causes err70?  Too much memory bandwidth?
 	for( x=0 ; x<hist_width ; x++ )
 		hist[x] = 0;
-	for( y=0 ; y<waveform_width ; y++ )
-		for( x=0 ; x<waveform_height ; x++ )
-		{
-			waveform[y][x] = 0;
-			asm( "nop\nnop\nnop\nnop\n" );
-		}
-#endif
+	//~ for( y=0 ; y<waveform_width ; y++ )
+		//~ for( x=0 ; x<waveform_height ; x++ )
+		//~ {
+			//~ waveform[y][x] = 0;
+			//~ asm( "nop\nnop\nnop\nnop\n" );
+		//~ }
 
-	for( y=vram_start_line ; y<vram_end_line; y++, v_row += (vram->pitch/2) )
+	for( y=1 ; y<480; y++, v_row += (pitch/2) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -246,16 +255,15 @@ hist_build( void )
 			uint32_t hist_level = ( p * hist_width ) / 65536;
 
 			// Ignore the 0 bin.  It generates too much noise
-			unsigned count = ++hist[ hist_level ];
+			unsigned count = ++ (hist[ hist_level ]);
 			if( hist_level && count > hist_max )
 				hist_max = count;
 
 			// Update the waveform plot
-			waveform[ (x * waveform_width) / width ][ (p * waveform_height) / 65536 ]++;
+			//~ waveform[ (x * waveform_width) / width ][ (p * waveform_height) / 65536 ]++;
 		}
 	}
 }
-	
 
 /** Draw the histogram image into the bitmap framebuffer.
  *
@@ -269,6 +277,7 @@ hist_draw_image(
 	unsigned		y_origin
 )
 {
+    DebugMsg(DM_MAGIC, 3, "***************** hist_draw_image **********************");
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -400,52 +409,84 @@ waveform_draw_image(
  * This should be done with a proper OO controller that allows modules
  * to register new drawing functions, but for right now they are hardcoded.
  */
+
+static FILE * g_aj_logfile = INVALID_PTR;
+unsigned int aj_create_log_file( char * name)
+{
+   g_aj_logfile = FIO_CreateFile( name );
+   if ( g_aj_logfile == INVALID_PTR )
+   {
+      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
+      return( 0 );  // FAILURE
+   }
+   return( 1 );  // SUCCESS
+}
+
+void aj_close_log_file( void )
+{
+   if (g_aj_logfile == INVALID_PTR)
+      return;
+   FIO_CloseFile( g_aj_logfile );
+   g_aj_logfile = INVALID_PTR;
+}
+
+void dump_seg(start, size, filename)
+{
+    DebugMsg(DM_MAGIC, 3, "********* dump_seg %s started ********", filename);
+    aj_create_log_file(filename);
+    FIO_WriteFile( g_aj_logfile, (const void *) start, size );
+    aj_close_log_file();
+    DebugMsg(DM_MAGIC, 3, "********* dump_seg %s ended ********", filename);
+}
+
+#define yuv422_image_buffer 0x40D07800
+struct vram_info * get_yuv422_vram()
+{
+	static struct vram_info _vram_info;
+    _vram_info.vram = yuv422_image_buffer;
+    _vram_info.width = 720;
+    _vram_info.pitch = 720;
+    _vram_info.height = 480;
+
+	struct vram_info * vram = &_vram_info;
+	return vram;
+}
+
 static void
 draw_zebra( void )
 {
 	uint8_t * const bvram = bmp_vram();
+    uint32_t a = 0;
 
+    DebugMsg(DM_MAGIC, 3, "***************** draw_zebra() **********************");
+    DebugMsg(DM_MAGIC, 3, "zebra_draw = %d, cfg_draw_meters = %x", zebra_draw, ext_cfg_draw_meters() );
+    //~ dump_seg(0x40D07800, 1440*480, "B:/vram1.dat");
+    
 	// If we don't have a bitmap vram yet, nothing to do.
 	if( !bvram )
-		return;
-
-	static struct vram_info _vram_info;
-	vram_get_pos_and_size(
-		&_vram_info.width,
-		&_vram_info.height,
-		&_vram_info.pitch,
-		&_vram_info.vram
-	);
-
-	bmp_printf(FONT_SMALL, 300, 300, "bmp=%08x vram=%08x %d %d %d",
-		bvram,
-		_vram_info.vram,
-		_vram_info.width,
-		_vram_info.pitch,
-		_vram_info.height
-	);
-	return;
-
-	// If we are not drawing edges, or zebras or crops, nothing to do
-	if( !edge_draw && !zebra_draw && !hist_draw && !waveform_draw )
 	{
-		if( !crop_draw )
-			return;
-		if( !cropmarks )
-			return;
+		DebugMsg( DM_MAGIC, 3, "draw_zebra() no bvram, fail");
+		return;
 	}
 
-	//struct vram_info * vram = &vram_info[ vram_get_number(2) ];
-	struct vram_info * vram = &_vram_info;
+	struct vram_info * vram = get_yuv422_vram();
+    if (hist_draw)
+    {
+        // something is fishy here => camera refused to boot due to this function...
+        hist_build(vram->vram, vram->width, vram->pitch);
+    }
 
-	//hist_build();
+    DebugMsg(DM_MAGIC, 3, "yay!");
 
 	// skip the audio meter at the top and the bar at the bottom
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
 	uint32_t x,y;
-	for( y=33 ; y < 390; y++ )
+	for( y=1 ; y < 480; y++ )
 	{
+        // if audio meters are enabled, don't draw in this area
+        if (ext_cfg_draw_meters() && y < 33) continue;
+        
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
 
@@ -453,11 +494,11 @@ draw_zebra( void )
 		// two at a time to read the pixel buf in 32 bit chunks
 		// otherwise we get err70 aborts while drawing regions
 		// in the bitmap vram.
-		for( x=2 ; x < vram->width-2 ; x+=2 )
+		for( x=2 ; x < vram->width-2 ; x+=2 ) // width = 720
 		{
 			// Abort as soon as the new menu is drawn
-			if( gui_menu_task || !lv_drawn )
-				return;
+			//~ if( gui_menu_task || !lv_drawn )
+				//~ return;
 
 			// Ignore the regions where the histogram will be drawn
 			if( hist_draw
@@ -469,27 +510,27 @@ draw_zebra( void )
 				continue;
 
 			// Ignore the regions where the waveform will be drawn
-			if( waveform_draw
-			&&  y >= waveform_y
-			&&  y <  waveform_y + waveform_height
-			&&  x >= waveform_x
-			&&  x <  waveform_x + waveform_width
-			)
-				continue;
+			//~ if( waveform_draw
+			//~ &&  y >= waveform_y
+			//~ &&  y <  waveform_y + waveform_height
+			//~ &&  x >= waveform_x
+			//~ &&  x <  waveform_x + waveform_width
+			//~ )
+				//~ continue;
 
 			// Ignore the timecode region
-			if( y >= timecode_y
-			&&  y <  timecode_y + timecode_height
-			&&  x >= timecode_x
-			&&  x <  timecode_x + timecode_width
-			)
-				continue;
+			//~ if( y >= timecode_y
+			//~ &&  y <  timecode_y + timecode_height
+			//~ &&  x >= timecode_x
+			//~ &&  x <  timecode_x + timecode_width
+			//~ )
+				//~ continue;
 
 			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch ) )
 				continue;
 
-			if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
-				continue;
+			//~ if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
+				//~ continue;
 
 			if( zebra_draw && check_zebra( x, y, b_row, v_row, vram->pitch ) )
 				continue;
@@ -501,27 +542,53 @@ draw_zebra( void )
 
 	if( hist_draw )
 		hist_draw_image( hist_x, hist_y );
-	if( waveform_draw )
-		waveform_draw_image( waveform_x, waveform_y );
+	//~ if( waveform_draw )
+		//~ waveform_draw_image( waveform_x, waveform_y );
+    DebugMsg(DM_MAGIC, 3, "***************** draw_zebra done **********************");
 }
 
 
 static void
-zebra_toggle( void * priv )
+zebra_lo_toggle( void * priv )
 {
 	unsigned * ptr = priv;
-	*ptr = (*ptr + 0x4000) & 0xF000;
+	*ptr = (*ptr + 2) % 50;
+}
+
+static void
+zebra_hi_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = 200 + (*ptr -200 + 2) % 56;
+}
+
+static void
+crop_toggle( void * priv )
+{
+    // find next cropmark BMP and load it
 }
 
 
 static void
-zebra_display( void * priv, int x, int y, int selected )
+zebra_hi_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf( 
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Zebra thrs: 0x%04x",
+		"ZebraThrHI: %d   ",
+		*(unsigned*) priv
+	);
+}
+
+static void
+zebra_lo_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf( 
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"ZebraThrLO: %d   ",
 		*(unsigned*) priv
 	);
 }
@@ -538,6 +605,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 	);
 }
 
+
 static void
 crop_display( void * priv, int x, int y, int selected )
 {
@@ -547,9 +615,8 @@ crop_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Cropmarks:  %s %d",
-		cropmarks ? (*(unsigned*) priv ? "ON " : "OFF") : "NO FILE",
-		retry_count
+		"CropM: %s",
+		cropmarks ? (*(unsigned*) priv ? crop_file+3 : "OFF         ") : "NO FILE"
 	);
 }
 
@@ -580,6 +647,18 @@ hist_display( void * priv, int x, int y, int selected )
 }
 
 static void
+global_draw_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"GlobalDraw: %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
+
+static void
 waveform_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
@@ -594,24 +673,9 @@ waveform_display( void * priv, int x, int y, int selected )
 
 struct menu_entry zebra_menus[] = {
 	{
-		.priv		= &zebra_draw,
+		.priv		= &global_draw,
 		.select		= menu_binary_toggle,
-		.display	= zebra_draw_display,
-	},
-	{
-		.priv		= &zebra_level,
-		.select		= zebra_toggle,
-		.display	= zebra_display,
-	},
-	{
-		.priv		= &crop_draw,
-		.select		= menu_binary_toggle,
-		.display	= crop_display,
-	},
-	{
-		.priv		= &edge_draw,
-		.select		= menu_binary_toggle,
-		.display	= edge_display,
+		.display	= global_draw_display,
 	},
 	{
 		.priv		= &hist_draw,
@@ -619,31 +683,52 @@ struct menu_entry zebra_menus[] = {
 		.display	= hist_display,
 	},
 	{
-		.priv		= &waveform_draw,
+		.priv		= &zebra_draw,
 		.select		= menu_binary_toggle,
-		.display	= waveform_display,
+		.display	= zebra_draw_display,
 	},
+	{
+		.priv		= &zebra_level_hi,
+		.select		= zebra_hi_toggle,
+		.display	= zebra_hi_display,
+	},
+	{
+		.priv		= &zebra_level_lo,
+		.select		= zebra_lo_toggle,
+		.display	= zebra_lo_display,
+	},
+	{
+		.priv		= &crop_draw,
+		.select		= menu_binary_toggle,
+		.display	= crop_display,
+	},
+	//~ {
+		//~ .priv		= &edge_draw,
+		//~ .select		= menu_binary_toggle,
+		//~ .display	= edge_display,
+	//~ },
+	//~ {
+		//~ .priv		= &waveform_draw,
+		//~ .select		= menu_binary_toggle,
+		//~ .display	= waveform_display,
+	//~ },
 };
 
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
 	// LV_START==0, LV_STOP=1
+    DebugMsg(DM_MAGIC, 3, "PROP_LV_ACTION => %d", buf[0]);
 	lv_drawn = !buf[0];
 	return prop_cleanup( token, property );
 }
 
 
-PROP_HANDLER( PROP_GUI_STATE )
-{
-	// PLAYMENU==0, IDLE==1
-	lv_drawn = !buf[0];
-	return prop_cleanup( token, property );
-}
 
 
 PROP_HANDLER( PROP_ACTIVE_SWEEP_STATUS )
 {
+    DebugMsg(DM_MAGIC, 3, "PROP_ACTIVE_SWEEP_STATUS => %d", buf[0]);
 	// Let us know when the sensor is done cleaning
 	sensor_cleaning = buf[0];
 	return prop_cleanup( token, property );
@@ -682,14 +767,16 @@ PROP_HANDLER( PROP_REC_TIME )
 static void
 zebra_task( void )
 {
+	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
 	lv_drawn = 0;
 	cropmarks = bmp_load( crop_file );
+	DebugMsg( DM_MAGIC, 3, "Cropmarks = %d", cropmarks);
 
 	DebugMsg( DM_MAGIC, 3,
-		"%s: Zebras=%s threshold=%x cropmarks=%x liveview=%d",
+		"%s: Zebras=%s thresholds=%x.%x cropmarks=%x liveview=%d",
 		__func__,
 		zebra_draw ? "ON " : "OFF",
-		zebra_level,
+		zebra_level_hi, zebra_level_lo,
 		(unsigned) cropmarks,
 		enable_liveview
 	);
@@ -704,10 +791,15 @@ zebra_task( void )
 		);
 	}
 
+    menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+
 	while(1)
 	{
-		draw_zebra();
-		msleep(1000);
+		if( lv_drawn && !gui_menu_shown() && global_draw)
+		{
+			draw_zebra();
+		}
+		msleep(zebra_delay);
 	}
 
 
@@ -728,7 +820,6 @@ zebra_task( void )
 	}
 #endif
 
-	//menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
 	while(1)
 	{
