@@ -52,11 +52,19 @@ CONFIG_INT( "audio.mic-power",	mic_power,	1 );
 CONFIG_INT( "audio.lovl",	lovl,		3 );
 CONFIG_INT( "audio.o2gain",	o2gain,		0 );
 CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
-CONFIG_INT( "audio.mic-in",	mic_in,		0 );
+//CONFIG_INT( "audio.mic-in",	mic_in,		0 ); // not used any more?
 CONFIG_INT( "audio.loopback",	loopback,	1 );
+CONFIG_INT( "audio.input-source",	input_source,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
+CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
 
+
+CONFIG_INT("audio.draw-meters", cfg_draw_meters, 1);
 static int do_draw_meters = 1;
 
+int ext_cfg_draw_meters(void)
+{
+    return cfg_draw_meters;
+}
 
 struct audio_level
 {
@@ -298,7 +306,7 @@ meter_task( void )
 	{
 		msleep( 50 );
 
-		if( do_draw_meters )
+		if( do_draw_meters && cfg_draw_meters )
 			draw_meters();
 		else
 			msleep( 500 );
@@ -331,14 +339,14 @@ TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
 /** Write the MGAIN2-0 bits.
  * Table 19 for the gain values:
  *
- *       0 == +0 dB
- *       1 == +20 dB
- *       2 == +26 dB
- *       3 == +32 dB
- *       4 == +10 dB
- *       5 == +17 dB
- *       6 == +23 dB
- *       7 == +29 dB
+ *   0 == +0 dB
+ *   1 == +20 dB
+ *   2 == +26 dB
+ *   3 == +32 dB
+ *   4 == +10 dB
+ *   5 == +17 dB
+ *   6 == +23 dB
+ *   7 == +29 dB
  *
  * Why is it split between two registers?  I don't know.
  */
@@ -499,6 +507,8 @@ audio_configure( int force )
 	audio_reg_dump( force );
 	return;
 #endif
+	
+	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
 	if( !force )
 	{
@@ -513,6 +523,10 @@ audio_configure( int force )
 	}
 
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
+	
+	//mic_power is forced on if input source is 0, 1 or 3
+	mic_power = (input_source == 2) ? mic_power : 1;
+				 
 	audio_ic_write( AUDIO_IC_SIG1
 		| 0x10
 		| ( mic_power ? 0x4 : 0x0 )
@@ -523,10 +537,8 @@ audio_configure( int force )
 		| ( lovl & 0x3) << 0 // line output level
 	);
 
-	if( mic_in )
-		audio_ic_write( AUDIO_IC_PM3 | 0x00 ); // internal mic
-	else
-		audio_ic_write( AUDIO_IC_PM3 | 0x07 ); // external input
+	//PM3 is set according to the input choice
+	audio_ic_write( AUDIO_IC_PM3 | pm3[input_source] );
 
 	gain.alc1 = alc_enable ? (1<<5) : 0;
 	audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
@@ -536,28 +548,11 @@ audio_configure( int force )
 
 	audio_ic_set_input_volume( 0, dgain_r );
 	audio_ic_set_input_volume( 1, dgain_l );
+	audio_ic_set_mgain( mgain );
 
-	// 4 == 10 dB
-	// 5 == 17 dB
-	// 3 == 32 dB
-	audio_ic_set_mgain( mgain ); // 10 dB
-
-	// Disable the HPF
-	//audio_ic_write( AUDIO_IC_HPF0 | 0x00 );
-	//audio_ic_write( AUDIO_IC_HPF1 | 0x00 );
-	//audio_ic_write( AUDIO_IC_HPF2 | 0x00 );
-	//audio_ic_write( AUDIO_IC_HPF3 | 0x00 );
-
-	// Enable the LPF
-	// Canon uses F2A/B = 0x0ED4 and 0x3DA9.
-	audio_ic_write( AUDIO_IC_LPF0 | 0xD4 );
-	audio_ic_write( AUDIO_IC_LPF1 | 0x0E );
-	audio_ic_write( AUDIO_IC_LPF2 | 0xA9 );
-	audio_ic_write( AUDIO_IC_LPF3 | 0x3D );
-	audio_ic_write( AUDIO_IC_FIL1
-		| audio_ic_read( AUDIO_IC_FIL1 )
-		| (1<<5)
-	);
+	if (disable_filters) {
+		audio_ic_write( AUDIO_IC_FIL1 | 0x00 ); //no need to set them all to 0Hz, just turn em off, in one easy register
+	}
 
 	// Enable loop mode and output digital volume2
 	uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
@@ -569,11 +564,12 @@ audio_configure( int force )
 	);
 
 	//draw_audio_regs();
-	bmp_printf( FONT_SMALL, 500, 400,
-		"Gain %d/%d Mgain %d",
+	bmp_printf( FONT_SMALL, 500, 450,
+		"Gain %d/%d Mgain %d Src %d",
 		dgain_l,
 		dgain_r,
-		mgain
+		mgain,
+		input_source
 	);
 
 	DebugMsg( DM_AUDIO, 3,
@@ -671,6 +667,17 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+audio_meter_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"AudioMeter: %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
+
 
 #if 0
 static void
@@ -705,16 +712,27 @@ audio_alc_display( void * priv, int x, int y, int selected )
 
 
 static void
-audio_mic_in_display( void * priv, int x, int y, int selected )
+audio_input_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Input:      %s",
-		mic_in ? "INT" : "EXT"
+		"Inp: %s",
+		(input_source == 0 ? "internal mic " : 
+        (input_source == 1 ? "int L ext R  " :
+        (input_source == 2 ? "ext stereo   " : 
+        "int L ext L+R")))
 	);
 }
+static void
+audio_input_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 1) % 4;
+	audio_configure( 1 );
+}
+
 
 static void
 audio_loopback_display( void * priv, int x, int y, int selected )
@@ -728,7 +746,23 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 	);
 }
 
+audio_filters_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Filters:    %s",
+		disable_filters ? "OFF" : "ON "
+	);
+}
+
 static struct menu_entry audio_menus[] = {
+	{
+		.priv		= &cfg_draw_meters,
+		.select		= menu_binary_toggle,
+		.display	= audio_meter_display,
+	},
 	{
 		.priv		= &lovl,
 		.select		= audio_3bit_toggle,
@@ -761,15 +795,17 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
 	},
-	{
-		.priv		= &mic_in,
-		.select		= audio_binary_toggle,
-		.display	= audio_mic_in_display,
-	},
+#if 0
 	{
 		.priv		= &loopback,
 		.select		= audio_binary_toggle,
 		.display	= audio_loopback_display,
+	},
+#endif
+	{
+		.priv		= &disable_filters,
+		.select		= audio_binary_toggle,
+		.display	= audio_filters_display,
 	},
 #ifdef CONFIG_AUDIO_REG_LOG
 	{
@@ -778,6 +814,11 @@ static struct menu_entry audio_menus[] = {
 		.display	= menu_print,
 	},
 #endif
+	{
+		.priv		= &input_source,
+		.select		= audio_input_toggle,
+		.display	= audio_input_display,
+	},
 };
 
 
@@ -836,13 +877,19 @@ PROP_HANDLER( PROP_MVR_REC_START )
  * This task disables the AGC when the sound device is activated.
  */
 void
-my_sounddev_task( void )
+my_sounddev_task( int some_param )
 {
 	DebugMsg( DM_AUDIO, 3,
 		"!!!!! %s started sem=%x",
 		__func__,
 		(uint32_t) sounddev.sem_alc
 	);
+	
+	//DIY debug ..
+	bmp_printf( FONT_SMALL, 500, 400,
+			   "sddvtsk, param=%d",
+			   some_param
+			   );	
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
 
@@ -859,7 +906,8 @@ my_sounddev_task( void )
 
 #ifdef CONFIG_AUDIO_REG_LOG
 	// Create the logging file
-	reg_file = FIO_CreateFile( "A:/audioregs.txt" );
+	FIO_RemoveFile("B:/audioreg.txt");
+	reg_file = FIO_CreateFile( "B:/audioreg.txt" );
 #endif
 
 	int count = 0;
