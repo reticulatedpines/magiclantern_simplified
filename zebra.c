@@ -31,7 +31,7 @@
 #include "property.h"
 
 static struct bmp_file_t * cropmarks;
-static volatile unsigned lv_drawn = 0;
+extern volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
 #define vram_start_line	33

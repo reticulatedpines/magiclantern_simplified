@@ -28,7 +28,7 @@
 #include "config.h"
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 0 );
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 
 
 static void
@@ -72,6 +72,7 @@ static struct menu_entry spotmeter_menus[] = {
 	},
 };
 
+extern int lv_drawn;
 
 static void
 spotmeter_task( void * priv )
@@ -82,7 +83,7 @@ spotmeter_task( void * priv )
 	while(1)
 	{
 		// Draw a few pixels to indicate the center
-		if( !spotmeter_draw )
+		if( !spotmeter_draw || !lv_drawn)
 		{
 			msleep( 1000 );
 			continue;
