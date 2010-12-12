@@ -220,12 +220,13 @@ update_lens_display(
 	const unsigned height	= fontspec_height( font );
 
 	// Needs to be 720 - 8 * 12
-	unsigned x = 620;
-	unsigned y = 0;
+	unsigned x = 520;
+	unsigned y = 400;
 
 	bmp_printf( font, x, y, "%5d mm", info->focal_len );
 
-	y += height;
+	//~ y += height;
+	x = 620;
 	bmp_printf( font, x+12, y,
 		"%s",
 		info->focus_dist == 0xFFFF
@@ -437,6 +438,7 @@ mvr_create_logfile(
 		return;
 
 	// Movie starting
+	FIO_RemoveFile("B:/movie.log");
 	mvr_logfile = FIO_CreateFile( "B:/movie.log" );
 	if( mvr_logfile == INVALID_PTR )
 	{

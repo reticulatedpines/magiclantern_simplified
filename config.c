@@ -183,6 +183,7 @@ config_save_file(
 	const char *		filename
 )
 {
+	FIO_RemoveFile(filename);
 	FILE * file = FIO_CreateFile( filename );
 	if( file == INVALID_PTR )
 		return -1;
