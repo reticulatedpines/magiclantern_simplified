@@ -206,7 +206,7 @@ draw_prop_select( void * priv )
 static void
 save_config( void * priv )
 {
-	config_save_file( global_config, "B:/mlantern.cfg" );
+	config_save_file( global_config, "B:/magic.cfg" );
 }
 
 

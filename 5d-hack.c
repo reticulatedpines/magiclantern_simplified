@@ -313,10 +313,10 @@ my_init_task(void)
 	msleep( 500 );
 
 	// Parse our config file
-	const char * config_filename = "B:/mlantern.cfg";
+	const char * config_filename = "B:/magic.cfg";
 	global_config = config_parse_file( config_filename );
 	bmp_printf( FONT_MED, 0, 40,
-		"Magic Lantern v_%s (%s)\n"
+		"Magic Lantern v.%s (%s)\n"
 		"Built on %s by %s\n",
 		build_version,
 		build_id,
