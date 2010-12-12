@@ -84,6 +84,11 @@ menu_binary_toggle(
 	*val = !*val;
 }
 
+void menu_binary_toggle_and_close(void * priv)
+{
+	menu_binary_toggle(priv);
+	gui_stop_menu();
+}
 
 void
 menu_print(
@@ -417,13 +422,17 @@ menu_handler(
 	unsigned		arg4
 )
 {
+    static int k = 0;
+	//~ DebugMsg(DM_MAGIC, 3, "menu_handler called!!!");
 	// Ignore periodic events (pass them on)
 	if( 0
 	||  event == GUI_TIMER2
 	||  event == GUI_TIMER3
 	||  event == GUI_TIMER4
+	||  event == 0x1000007c
+	||  event == 0x10000078
 	)
-		return 1;
+		return draw_event ? 0 : 1;
 
 	if( event == GUI_PROP_EVENT )
 	{
@@ -439,16 +448,14 @@ menu_handler(
 
 	if( event != 1 )
 	{
-		if( draw_event )
-			bmp_printf( FONT_SMALL, 400, 40,
-				"event %08x args %08x %08x %08x",
-				event,
-				arg2,
-				arg3,
-				arg4
-			);
-
 		DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
+		if( draw_event )
+        {
+			bmp_printf( FONT_SMALL, 20, 10 + ((k) % 8) * 10, "EVENT%2d: %x args %08x/%08x; %08x/%08x; %08x/%08x", k % 100, event, arg2, arg2 ? (*(int*)arg2) : 0, arg3, arg3 ? (*(int*)arg3) : 0, arg4, arg4 ? (*(int*)arg4) : 0);
+			bmp_printf( FONT_SMALL, 20, 10 + ((k+1) % 8) * 10, "                                             ");
+            k += 1;
+			if (event != PRESS_LEFT_BUTTON && event != PRESS_RIGHT_BUTTON && event != PRESS_UP_BUTTON && event != PRESS_DOWN_BUTTON && event != PRESS_SET_BUTTON) return 0;
+        }
 	}
 
 
@@ -483,10 +490,11 @@ menu_handler(
 
 	case PRESS_MENU_BUTTON:
 	case EVENTID_METERING_START: // If they press the shutter halfway
+	case 0x10000048:
 		gui_stop_menu();
 		return 1;
 
-	case JOY_CENTER:
+    case 0x10000000: // PLAY
 		// We don't process it, but dont' let anyone else, either
 		return 0;
 
@@ -494,28 +502,20 @@ menu_handler(
 		// Generated when buttons are pressed?  Forward it on
 		return 1;
 
-		//	case PRESS_JOY_UP:
-		//	case ELECTRONIC_SUB_DIAL_LEFT:
 	case PRESS_UP_BUTTON:
 		menu_entry_move( menu, -1 );
 		menu_damage = 1;
 		break;
 
-		//	case PRESS_JOY_DOWN:
-		//case ELECTRONIC_SUB_DIAL_RIGHT:
 	case PRESS_DOWN_BUTTON:
 		menu_entry_move( menu, 1 );
 		menu_damage = 1;
 		break;
 
-		//case PRESS_JOY_RIGHT:
-		//case DIAL_RIGHT:
 	case PRESS_RIGHT_BUTTON:
 		menu_move( menu, 1 );
 		break;
 
-		//	case PRESS_JOY_LEFT:
-		//case DIAL_LEFT:
 	case PRESS_LEFT_BUTTON:
 		menu_move( menu, -1 );
 		break;
@@ -561,7 +561,7 @@ menu_handler(
 			arg3,
 			arg4
 		);
-		return 0;
+		return 1;
 	}
 
 	// If we end up here, something has been changed.
@@ -594,10 +594,13 @@ menu_init( void )
 
 	menu_find_by_name( "Audio" );
 	menu_find_by_name( "Video" );
+	menu_find_by_name( "Shoot" );
 	menu_find_by_name( "Brack" );
 	menu_find_by_name( "Focus" );
+	menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
+	menu_find_by_name( "Boot" );
 
 /*
 	bmp_printf( FONT_LARGE, 0, 40, "Yes, use this battery" );
@@ -628,6 +631,8 @@ gui_stop_menu( void )
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 	bmp_fill( 0, 90, 90, 720-160, 480-180 );
+
+	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 }
 
 
@@ -724,6 +729,8 @@ menu_task( void )
 		menu_damage = 1;
 		menu_hidden = 0;
 		gui_menu_task = gui_task_create( menu_handler, 0 );
+		//~ powersave_disable_for_menu(); // force powersave disable while menu is on
+		// will revert back to default config when menu disappears
 	}
 }
 
