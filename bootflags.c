@@ -196,7 +196,7 @@ bootflag_display_all(
 #endif
 
 
-CONFIG_INT( "disable-powersave", disable_powersave, 1 );
+CONFIG_INT( "disable-powersave", disable_powersave, 0 );
 
 static void
 powersave_display(
