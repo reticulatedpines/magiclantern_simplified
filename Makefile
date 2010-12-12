@@ -1,4 +1,4 @@
-ARM_PATH=/home/user/arm-toolchain
+ARM_PATH=~/arm-toolchain
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.4.2
 CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
@@ -412,7 +412,7 @@ magiclantern-5d.fir: autoexec.bin
 	dd if=/dev/zero bs=9538232 count=1 \
 	) > $@
 
-magiclantern.fir: ../dumper/550d_109.fir autoexec.bin
+magiclantern.fir: autoexec.bin
 	@if [ -f ../dumper/build_fir.py ]; then \
 		python ../dumper/build_fir.py -r $^ $@ ; \
 	else \
