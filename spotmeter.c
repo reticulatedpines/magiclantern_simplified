@@ -90,7 +90,8 @@ spotmeter_task( void * priv )
 
 		msleep( 100 );
 
-		struct vram_info *	vram = &vram_info[ vram_get_number(2) ];
+		struct vram_info *	vram = get_yuv422_vram();
+
 		if( !vram->vram )
 			continue;
 
@@ -121,7 +122,7 @@ spotmeter_task( void * priv )
 		for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
 		{
 			for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
-				sum += vram->vram[ x + y * pitch ];
+				sum += (vram->vram[ x + y * pitch ]) & 0xFF00;
 		}
 
 		sum /= (2 * dx + 1) * (2 * dx + 1);
