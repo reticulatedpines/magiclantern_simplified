@@ -206,7 +206,7 @@ draw_prop_select( void * priv )
 static void
 save_config( void * priv )
 {
-	config_save_file( global_config, "A:/magiclantern.cfg" );
+	config_save_file( global_config, "B:/mlantern.cfg" );
 }
 
 
@@ -407,23 +407,14 @@ dump_task( void )
 
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-  /*	dm_set_store_level( DM_DISP, 4 );
+	dm_set_store_level( DM_DISP, 4 );
 	dm_set_store_level( DM_LVFD, 4 );
 	dm_set_store_level( DM_LVCFG, 4 );
 	dm_set_store_level( DM_LVCDEV, 4 );
-	dm_set_store_level( DM_LV, 4 );*/
+	dm_set_store_level( DM_LV, 4 );
 	dm_set_store_level( DM_RSC, 4 );
-	dm_set_store_level( DM_MAC, 7 );
-	dm_set_store_level( DM_CRP, 7 );
-	dm_set_store_level( DM_SETPROP, 4 );
-	dm_set_store_level( DM_PRP, 4 );	
-	dm_set_store_level( DM_PROPAD, 4 );	
-	dm_set_store_level( DM_INTCOM, 4 );
-	dm_set_store_level( DM_WINSYS, 4 );
-	dm_set_store_level( DM_CTRLSRV, 4 );
-#if 0
 	dm_set_store_level( 0, 4 ); // catch all?
-#endif
+	
 	// increase jpcore debugging (breaks liveview?)
 	//dm_set_store_level( 0x15, 2 );
 	//dm_set_store_level( 0x2f, 0x16 );
@@ -450,28 +441,9 @@ dump_task( void )
 		sec
 	);
 
-	unsigned long *addr=0;
-	int len=0, i;
-	unsigned long *val;
-	unsigned char *pa = 0;
-	
-	//        void (*prop_get_value)(unsigned	property, void *addr, size_t *	len) = 0xFF057654; 
-	if (dump_prop!=0) {
-	  y = 350;
-	  x= 10;	  
-	  prop_get_value(dump_prop, addr, (size_t *)&len); // 0x1060003 = 17170435
-	  val = (unsigned long *)*addr;
-	  bmp_printf( FONT_SMALL, x, y, "0x%08X, 0x%08x, %d, 0x%08lX ", dump_prop, val, len, val[0] );
-	  pa = (unsigned char *)*addr;	  
-	  if (len>32) 
-	    len=32;
-	  for(i=0; i<len; i++)
-	    bmp_printf( FONT_SMALL, x+i*font_small.width*2, y+font_small.height, "%02X",  pa[i] );
-	}
-
 	while( sec-- )
 	{
-		bmp_printf( FONT_SMALL, 600, 400, "dump %2d", sec );
+		//~ bmp_printf( FONT_SMALL, 600, 400, "dump %2d", sec );
 		msleep( 1000 );
 	}
 
