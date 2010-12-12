@@ -1,0 +1,31 @@
+Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
+================================================
+
+Features
+--------
+
+* GUI menus: press the ERASE button to display them
+* Bit rate control (QScale parameter) for H.264 encoder
+* Zebra stripes for overexposed / underexposed areas
+* Simple intervalometer
+* Remote release with the LCD sensor (i.e. put your hand near the LCD to take a pic) 
+* AE bracketing (like on 5D2 ML) 
+* Stack focus (see issues)
+* Lens data computation 
+* Onscreen audio meters
+* Manual audio gain, selectable input source 
+* Debug functions (event, property and debug logging, display CMOS temperature)
+
+Known issues
+------------
+
+* For stack focus, you have first to go to Live View, then to Play mode, 
+  make sure you have an image, then back to Live View.
+* Bitmap overlay palette is fully initialized only after performing 
+  the above steps.
+* Sometimes the menu gets overwritten by Canon's drawing routines. 
+* After closing ML menu, screen may not redraw automatically 
+  (half-press the shutter to trigger a redraw)
+* Playing with debug options may lead to strange behaviors of the
+  camera (if it happens, restart it). 
+* Boot menu entries may be dangerous => be careful with them!

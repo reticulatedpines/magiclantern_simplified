@@ -8,7 +8,7 @@ RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.1.9-rc0_550d_fw109
+VERSION=0.2.rc2.550d.fw109
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -68,10 +68,11 @@ zip: magiclantern-$(VERSION).zip
 magiclantern-$(VERSION).zip: \
 	zip.txt \
 	magiclantern.fir \
-	mlantern.cfg \
-	cropmarks.bmp \
+	cropmark.bmp \
 	autoexec.bin \
 	README \
+	FEATURES.txt \
+	INSTALL.txt \
 
 	-rm $@
 	zip -z $@ < $^
