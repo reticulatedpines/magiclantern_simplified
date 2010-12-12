@@ -183,13 +183,13 @@ ML_OBJS-y = \
 	gui.o \
 	bootflags.o \
 	hotplug.o \
-
-NO=\
 	zebra.o \
 	focus.o \
 	spotmeter.o \
-	ptp.o \
 	bracket.o \
+	shoot.o
+NO=\
+	ptp.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \
