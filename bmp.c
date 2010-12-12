@@ -300,11 +300,11 @@ bmp_fill(
 	}
 }
 
-
 /** Draw a picture of the BMP color palette. */
 void
 bmp_draw_palette( void )
 {
+	gui_stop_menu();
 	uint32_t x, y, msb, lsb;
 	const uint32_t height = 30;
 	const uint32_t width = 45;
@@ -359,6 +359,7 @@ bmp_load(
 	const char *		filename
 )
 {
+	DebugMsg( DM_MAGIC, 3, "bmp_load(%s)", filename);
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 )
 		goto getfilesize_fail;
@@ -368,10 +369,10 @@ bmp_load(
 		size
 	);
 
-	uint8_t * buf = malloc( size );
+	uint8_t * buf = AllocateMemory( size );
 	if( !buf )
 	{
-		DebugMsg( DM_MAGIC, 3, "%s: malloc failed", filename );
+		DebugMsg( DM_MAGIC, 3, "%s: AllocateMemory failed", filename );
 		goto malloc_fail;
 	}
 
@@ -427,5 +428,6 @@ read_fail:
 	free( buf );
 malloc_fail:
 getfilesize_fail:
+	DebugMsg( DM_MAGIC, 3, "bmp_load failed");
 	return NULL;
 }
