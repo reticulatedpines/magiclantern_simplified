@@ -306,7 +306,7 @@ meter_task( void )
 	{
 		msleep( 50 );
 
-		if( do_draw_meters && cfg_draw_meters )
+		if( do_draw_meters && cfg_draw_meters && get_global_draw())
 			draw_meters();
 		else
 			msleep( 500 );

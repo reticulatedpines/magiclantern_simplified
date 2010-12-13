@@ -61,14 +61,14 @@ spotmeter_clear_display( void * priv )
 
 static struct menu_entry spotmeter_menus[] = {
 	{
-		.priv			= "Clear screen",
-		.select			= spotmeter_clear_display,
-		.display		= menu_print,
-	},
-	{
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
 		.display		= spotmeter_menu_display,
+	},
+	{
+		.priv			= "Clear screen",
+		.select			= spotmeter_clear_display,
+		.display		= menu_print,
 	},
 };
 
@@ -83,7 +83,7 @@ spotmeter_task( void * priv )
 	while(1)
 	{
 		// Draw a few pixels to indicate the center
-		if( !spotmeter_draw || !lv_drawn)
+		if( !spotmeter_draw || !lv_drawn || !get_global_draw())
 		{
 			msleep( 1000 );
 			continue;
