@@ -40,6 +40,9 @@ Menu options
 Audio
 ~~~~~
 
+[[File:AudioMenu-550D.png|thumb|right]]
+
+
 Audio tweaks.
 
 **AudioMeter: ON/OFF**
@@ -65,6 +68,9 @@ Audio tweaks.
 
 Video
 ~~~~~
+
+[[File:VideoMenu-550D.png|thumb|right]]
+
 
 Video overlays: histogram, zebras, cropmarks, spotmeter.
 
@@ -97,6 +103,8 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 Shoot
 ~~~~~
 
+[[File:ShootMenu-550D.png|thumb|right]]
+
 Functions for stills shooting.
 
 **IntervalTime**
@@ -119,6 +127,9 @@ by pressing PLAY or MENU.
 
 Brack
 ~~~~~
+
+[[File:BrackMenu-550D.png|thumb|right]]
+
 AE bracketing.
 
 **Test bracket**
@@ -160,8 +171,9 @@ Debug
 **Draw palette**
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
 
-**Screenshot**
-  Print screen (it saves a BMP file).
+**Screenshot (10 s)**
+  Print screen after 10 seconds (it saves a BMP file). 
+  Only the bitmap overlays are included in the screenshot (i.e. no live view image).
 
 **Dump dmlog**
   Saves a log which contains DebugMsg output.
@@ -177,6 +189,8 @@ Debug
 
 Boot
 ~~~~
+
+[[File:BootMenu-550D.png|thumb|right]]
 
 Settings related to the Magic Lantern boot process.
 
