@@ -210,11 +210,14 @@ save_config( void * priv )
 }
 
 //----------------begin qscale-----------------
-_CONFIG_VAR( "h264.qscale", 0, int16_t, qscale, -8 );
-_CONFIG_VAR( "h264.qscale.max", 0, int16_t, qscale_max, -1 );
-_CONFIG_VAR( "h264.qscale.min", 0, int16_t, qscale_min, -16 );
+//~ CONFIG_INT( "h264.qscale", qscale, -8 );  // not reliable
+CONFIG_INT( "h264.qscale.max.neg", qscale_max_neg, 1 );
+CONFIG_INT( "h264.qscale.min.neg", qscale_min_neg, 16 );
 
-#define QSCALE_OFF (qscale_max + 1)
+int16_t qscale = 0;
+#define QSCALE_MAX (-qscale_max_neg)
+#define QSCALE_MIN (-qscale_min_neg)
+#define QSCALE_OFF (QSCALE_MAX + 1)
 
 void set_vbr( void * priv )
 {
@@ -222,7 +225,7 @@ void set_vbr( void * priv )
 	void (*mvrSetDefQScale)(int16_t *) = (void*) 0xFF1AA4A0; // 1.0.8
 
 	qscale -= 1;
-	if (qscale < qscale_min)
+	if (qscale < QSCALE_MIN)
 		qscale = QSCALE_OFF;
 
 	uint16_t param = 1;                  // select fixed rate
@@ -249,9 +252,8 @@ print_vbr(
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"QScale:     %s%d ",
-			qscale < 0 ? "-" : "+",
-			qscale < 0 ? -qscale : qscale
+			"QScale:     %d ",
+			qscale
 		);
 }
 //-------------------------end qscale--------------
