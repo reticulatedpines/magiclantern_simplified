@@ -83,7 +83,7 @@ spotmeter_task( void * priv )
 	while(1)
 	{
 		// Draw a few pixels to indicate the center
-		if( !spotmeter_draw || !lv_drawn || !get_global_draw())
+		if( !spotmeter_draw || !lv_drawn || !get_global_draw() || gui_menu_shown())
 		{
 			msleep( 1000 );
 			continue;
