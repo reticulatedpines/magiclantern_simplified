@@ -163,12 +163,13 @@ Debug
   
   See [[Bit rate]] wiki page for details.
   
-  Default range is [-16 ... -1]. This can be changed from config file, 
+  Default range is [-1 ... -16]. This can be changed from config file, 
   but qscale is restricted to negative values only, 
   due to limitations in config file parser.
   
   QScale setting is not saved; it is applied only when you select this option
   from menu. It may be overwritten by camera firmware when changing video modes.
+  When the camera starts, it is OFF.
 
 **Save config**
   Save current settings to MAGIC.CFG.

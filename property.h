@@ -37,7 +37,7 @@
 
 
 /** 0x02010000 - 0x02010014 == card state? */
-#define PROP_REC_TIME		0x8004000d // time remaining.  output at 1 Hz while recording
+#define PROP_REC_TIME		0x80030005 // time remaining.  output at 1 Hz while recording
 
 /** These are good guesses */
 #define PROP_GUI_STATE		0x80020000 // 0 == IDLE, 1 == PLAYMENU?, 3 == START_QR_MODE

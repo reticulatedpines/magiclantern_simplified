@@ -572,8 +572,8 @@ menu_handler(
 	if( menu_hidden || !gui_menu_task )
 		return 0;
 
-	if( menu_damage )
-		bmp_fill( COLOR_BG, 90, 90, 720-160, 480-180 );
+	//~ if( menu_damage )
+	bmp_fill( COLOR_BG, 90, 90, 720-160, 480-180 );
 	menu_damage = 0;
 	menus_display( menus, 100, 100 );
 
