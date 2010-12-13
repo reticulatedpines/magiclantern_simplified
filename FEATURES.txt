@@ -47,13 +47,13 @@ Audio tweaks.
   Draw the audio meters or not.
 
 **Output vol (dB)**
-  ??? (I can't hear anything)
+  Gain to external audio - currently this is the A/V jack (?) so not audible on just the camera
 
 **Analog Gain (dB)**
-  Recording volume maybe?
+  Gain applied to both inputs in the analog domain - intended as mic-type preamp, but always preferable to digital gain (unless you want different gain or run out of analog).
 
 **L-Gain and R-Gain (dB)**
-  Digital gain maybe?
+  Digital gain applied separately to the L and R channel.
 
 **AGC: ON/OFF**
   Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss noise when recording silence.
@@ -62,7 +62,7 @@ Audio tweaks.
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
 
 **Inp**
-  Input source: Internal mic, int L ext R, ext stereo, int L ext L+R (balanced).
+  Input source: Internal mic (dual mono); int L ext R; ext stereo; int L ext L+R (balanced). 
 
 Video
 ~~~~~
@@ -180,7 +180,7 @@ Boot
 Settings related to the Magic Lantern boot process.
 
 **Write MBR**
-  ???
+  ??? partition a card with MBR (aka "erase it"?). MBR as in "Master boot record"?
 
 **Autoboot: ON/OFF**
   Make the card bootable?!
