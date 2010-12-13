@@ -49,17 +49,17 @@ CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	5 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 );
 CONFIG_STR( "crop.file",	crop_file,	"B:/cropmark.bmp" );
-CONFIG_INT( "edge.draw",	edge_draw,	0 );
-CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
+//~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
+//~ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
-CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
-CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
-CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
-CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
+//~ CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
+//~ CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
+//~ CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
+//~ CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
-CONFIG_INT( "timecode.y",	timecode_y,	32 );
+CONFIG_INT( "timecode.y",	timecode_y,	0 );
 CONFIG_INT( "timecode.width",	timecode_width,	160 );
 CONFIG_INT( "timecode.height",	timecode_height, 20 );
 CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
@@ -67,6 +67,11 @@ static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
+
+int get_global_draw()
+{
+	return global_draw;
+}
 
 /** Sobel edge detection */
 static int32_t
@@ -327,6 +332,7 @@ hist_draw_image(
  * Since there is plenty of math per pixel this doesn't
  * swamp the bitmap framebuffer hardware.
  */
+#if 0
 static void
 waveform_draw_image(
 	unsigned		x_origin,
@@ -392,7 +398,7 @@ waveform_draw_image(
 		row += pitch;
 	}
 }
-
+#endif
 
 /** Master video overlay drawing code.
  *
@@ -735,6 +741,7 @@ PROP_HANDLER( PROP_ACTIVE_SWEEP_STATUS )
 }
 
 
+#if 0
 PROP_HANDLER( PROP_MVR_REC_START )
 {
 	if( buf[0] == 2 )
@@ -746,12 +753,13 @@ PROP_HANDLER( PROP_MVR_REC_START )
 		);
 	return prop_cleanup( token, property );
 }
+#endif
 
 
 PROP_HANDLER( PROP_REC_TIME )
 {
 	unsigned value = buf[0];
-	value /= 200; // why? it seems to work out
+	//value /= 200; // why? it seems to work out
 	bmp_printf(
 		value < timecode_warning ? timecode_font : FONT_MED,
 		timecode_x + 5 * fontspec_font(timecode_font)->width,
@@ -778,7 +786,8 @@ zebra_task( void )
 		zebra_draw ? "ON " : "OFF",
 		zebra_level_hi, zebra_level_lo,
 		(unsigned) cropmarks,
-		enable_liveview
+		0
+		//enable_liveview
 	);
 
 	if( cropmarks )
