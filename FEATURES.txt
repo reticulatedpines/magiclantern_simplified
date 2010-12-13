@@ -54,7 +54,7 @@ Audio tweaks.
   Digital gain maybe?
 
 **AGC: ON/OFF**
-  Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss when recording silence.
+  Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss noise when recording silence.
 
 **Filters: ON/OFF**
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
@@ -84,13 +84,13 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 **CropM**
   Enable/disable cropmarks. 
   Todo: cycle to all available cropmarks. For now, select the cropmark from the config file, 
-  option "crop.file".
+  option "crop.file". See [[Cropmarks]].
 
 **Spotmeter**
   Measure brightness in the center of the frame, and display it as a percentage.
   Indicator is at the bottom on the screen, centered horizontally.
 
-**Clear Screen*
+**Clear Screen**
   Delete any junk which might be left on the screen.
 
 Shoot
@@ -138,6 +138,8 @@ Focus
 
 From the 5D2 guide: http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu
 
+See also [[Focus distance]].
+
 Debug
 ~~~~~
 
@@ -153,7 +155,7 @@ Debug
   Temperature of the CMOS sensor, in raw units.
 
 **Draw palette**
-  Tests the 8-bit bitmap palette, which is used for video overlays.
+  Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
 
 **Screenshot**
   Print screen (it saves a BMP file).
