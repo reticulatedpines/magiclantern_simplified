@@ -176,14 +176,16 @@ Boot
 Settings related to the Magic Lantern boot process.
 
 **Write MBR**
-???
+  ???
 
 **Autoboot: ON/OFF**
-Make the card bootable?!
+  Make the card bootable?!
 
 **Powersave**
   Disable the powersave so that the LiveView never shuts off?
+
   WARNING -- this can cause problems with your sensor!
+
   '''DO NOT LEAVE THE CAMERA ON CONTINUOUSLY.'''
 
 ----
