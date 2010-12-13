@@ -9,7 +9,8 @@ using a simple text editor (Notepad, gedit, vi...), and is also used
 to save Magic Lantern configuration from the GUI menu.
 
 When you install Magic Lantern, it is recommended to start with a fresh
-configuration file, because default settings may be changed in the new release.
+configuration file (i.e. delete all *.CFG files from the card), 
+because default settings may be changed in the new release.
 
 Saving settings
 ~~~~~~~~~~~~~~~
