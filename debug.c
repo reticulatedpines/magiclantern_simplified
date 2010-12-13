@@ -257,6 +257,29 @@ print_vbr(
 //-------------------------end qscale--------------
 
 
+int screenshot_sec = 0;
+static void
+screenshot_task( void )
+{
+	while(1)
+	{
+		if (screenshot_sec)
+		{
+			bmp_printf( FONT_SMALL, 0, 0, "Screenshot in 10 seconds");
+			while( screenshot_sec-- )
+				msleep( 1000 );
+			call_dispcheck(0);
+		}
+		msleep(1000);
+	}
+}
+
+static void screenshot_start(void)
+{
+	screenshot_sec = 10;
+}
+
+
 struct menu_entry debug_menus[] = {
 	{
 		.select		= set_vbr,
@@ -276,8 +299,8 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 	},
 	{
-		.priv		= "Screenshot",
-		.select		= call_dispcheck,
+		.priv		= "Screenshot (10 s)",
+		.select		= screenshot_start,
 		.display	= menu_print,
 	},
 	{
@@ -504,7 +527,7 @@ dump_task( void )
 
 
 TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
-
+TASK_CREATE( "screenshot_task", screenshot_task, 0, 0x1f, 0x1000 );
 
 CONFIG_INT( "debug.timed-start",	timed_start, 0 );
 
