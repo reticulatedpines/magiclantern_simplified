@@ -22,8 +22,6 @@ Known issues
 
 * For stack focus, you have first to go to Live View, then to Play mode, 
   make sure you have an image, then back to Live View.
-* Bitmap overlay palette is fully initialized only after performing 
-  the above steps.
 * If you start the camera in LiveView mode, histogram and zebra may not show.
   If this happens, press MENU twice to get them.
 * Sometimes the menu gets overwritten by Canon's drawing routines. 
