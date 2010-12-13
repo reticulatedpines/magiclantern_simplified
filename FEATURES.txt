@@ -192,8 +192,3 @@ Settings related to the Magic Lantern boot process.
 
   '''DO NOT LEAVE THE CAMERA ON CONTINUOUSLY.'''
 
-----
-
-Render this file with Pandoc: convert from reStructuredText to MediaWiki
-
-http://johnmacfarlane.net/pandoc/try
