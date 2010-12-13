@@ -5,7 +5,7 @@ Features
 --------
 
 * GUI menus: press the ERASE button to display them
-* Bit rate control (QScale parameter) for H.264 encoder
+* Bit rate control (QScale parameter) for the H.264 encoder
 * Display time remaining during video recording
 * Zebra stripes for overexposed / underexposed areas
 * Simple intervalometer
@@ -143,6 +143,8 @@ See also [[Focus distance]].
 
 Debug
 ~~~~~
+
+[[File:DebugMenu-550D.png|thumb|right]]
 
 **QScale**
   Controls the H.264 QScale parameter, which affects video bitrate. 
