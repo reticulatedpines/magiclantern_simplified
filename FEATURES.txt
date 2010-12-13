@@ -24,6 +24,8 @@ Known issues
   make sure you have an image, then back to Live View.
 * Bitmap overlay palette is fully initialized only after performing 
   the above steps.
+* If you start the camera in LiveView mode, histogram and zebra may not show.
+  If this happens, press MENU twice to get them.
 * Sometimes the menu gets overwritten by Canon's drawing routines. 
 * After closing ML menu, screen may not redraw automatically 
   (half-press the shutter to trigger a redraw)
