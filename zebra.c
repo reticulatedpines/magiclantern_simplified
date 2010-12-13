@@ -141,7 +141,8 @@ check_zebra(
 	unsigned		y,
 	uint16_t *		b_row,
 	uint32_t *		v_row,
-	unsigned		vram_pitch // unused?
+	unsigned		vram_pitch, // unused?
+	uint16_t * 		m_row
 )
 {
     //~ DebugMsg(DM_MAGIC, 3, "check_zebra(%d, %d, %x, %x, %d)", x, y, b_row, v_row, vram_pitch);
@@ -176,6 +177,7 @@ check_zebra(
 
     //~ DebugMsg(DM_MAGIC, 3, "color word = %x", zebra_color_word);
 	b_row[x/2] = zebra_color_word;
+	m_row[x/2] = zebra_color_word;
 	return 1;
 }
 
@@ -186,7 +188,8 @@ check_crop(
 	unsigned		y,
 	uint16_t *		b_row,
 	uint32_t *		v_row,
-	unsigned		vram_pitch
+	unsigned		vram_pitch,
+	uint16_t * m_row
 )
 {
 	if( !cropmarks )
@@ -200,6 +203,7 @@ check_crop(
 		return 0;
 
 	b_row[ x/2 ] = pix;
+	m_row[ x/2 ] = pix;
 	return 1;
 }
 
@@ -458,11 +462,27 @@ struct vram_info * get_yuv422_vram()
 	return vram;
 }
 
+static int16_t* bvram_mirror = 0;
+
 static void
 draw_zebra( void )
 {
 	uint8_t * const bvram = bmp_vram();
     uint32_t a = 0;
+    
+	if (!bvram_mirror)
+	{
+		//~ bmp_printf(FONT_MED, 30, 30, "AllocMem for BVRAM mirror");
+		bvram_mirror = AllocateMemory(720*480*4); // I think I'm allocating too much memory here... but at least it doesn't crash this way :D
+		if (!bvram_mirror) 
+		{	
+			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
+			return;
+		}
+		//~ bmp_printf(FONT_MED, 30, 30, "AllocMem for BVRAM mirror => %x", bvram_mirror);
+		bzero32(bvram_mirror, 720*480*4);
+	}
+
 
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra() **********************");
     DebugMsg(DM_MAGIC, 3, "zebra_draw = %d, cfg_draw_meters = %x", zebra_draw, ext_cfg_draw_meters() );
@@ -472,6 +492,11 @@ draw_zebra( void )
 	if( !bvram )
 	{
 		DebugMsg( DM_MAGIC, 3, "draw_zebra() no bvram, fail");
+		return;
+	}
+	if (!bvram_mirror)
+	{
+		DebugMsg( DM_MAGIC, 3, "draw_zebra() no bvram_mirror, fail");
 		return;
 	}
 
@@ -495,6 +520,10 @@ draw_zebra( void )
         
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * bmp_pitch() );
+
+		//~ bmp_printf(FONT_MED, 30, 50, "Row: %8x/%8x", b_row, m_row);
+		//~ bmp_printf(FONT_MED, 30, 70, "Pixel: %8x/%8x", b_row[8], m_row[8]);
 
 		// Iterate over the pixels in the scan row
 		// two at a time to read the pixel buf in 32 bit chunks
@@ -503,9 +532,14 @@ draw_zebra( void )
 		for( x=2 ; x < vram->width-2 ; x+=2 ) // width = 720
 		{
 			// Abort as soon as the new menu is drawn
-			//~ if( gui_menu_task || !lv_drawn )
-				//~ return;
+			if( gui_menu_task || !lv_drawn )
+				return;
 
+			uint16_t pixel = b_row[x/2];
+			uint16_t mirror = m_row[x/2];
+			if (pixel != 0 && pixel != mirror)
+				continue; // Canon code has drawn here, do not overwrite
+				
 			// Ignore the regions where the histogram will be drawn
 			if( hist_draw
 			&&  y >= hist_y
@@ -513,7 +547,7 @@ draw_zebra( void )
 			&&  x >= hist_x
 			&&  x <  hist_x + hist_width + 4
 			)
-				continue;
+				continue; // histogram does not overwrite any Canon stuff => no problem!
 
 			// Ignore the regions where the waveform will be drawn
 			//~ if( waveform_draw
@@ -532,17 +566,23 @@ draw_zebra( void )
 			//~ )
 				//~ continue;
 
-			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch ) )
+			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch, m_row) )
+			{
+				//~ m_row[x/2] = b_row[x/2];
 				continue;
-
+			}
 			//~ if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
 				//~ continue;
 
-			if( zebra_draw && check_zebra( x, y, b_row, v_row, vram->pitch ) )
+			if( zebra_draw && check_zebra( x, y, b_row, v_row, vram->pitch, m_row) )
+			{
+				//~ m_row[x/2] = b_row[x/2];
 				continue;
+			}
 
 			// Nobody drew on it, make it clear
 			b_row[x/2] = 0;
+			//m_row[x/2] = 0;
 		}
 	}
 
@@ -566,6 +606,11 @@ zebra_hi_toggle( void * priv )
 {
 	unsigned * ptr = priv;
 	*ptr = 200 + (*ptr -200 + 2) % 56;
+}
+static void global_draw_toggle(void* priv)
+{
+	menu_binary_toggle(priv);
+	if (!global_draw) bmp_fill(0, 0, 0, 720, 480);
 }
 
 static void
@@ -680,7 +725,7 @@ waveform_display( void * priv, int x, int y, int selected )
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &global_draw,
-		.select		= menu_binary_toggle,
+		.select		= global_draw_toggle,
 		.display	= global_draw_display,
 	},
 	{
@@ -719,6 +764,7 @@ struct menu_entry zebra_menus[] = {
 		//~ .display	= waveform_display,
 	//~ },
 };
+
 
 
 PROP_HANDLER( PROP_LV_ACTION )
@@ -781,13 +827,11 @@ zebra_task( void )
 	DebugMsg( DM_MAGIC, 3, "Cropmarks = %d", cropmarks);
 
 	DebugMsg( DM_MAGIC, 3,
-		"%s: Zebras=%s thresholds=%x.%x cropmarks=%x liveview=%d",
+		"%s: Zeb=%s thr=%x/%x crop=%x",
 		__func__,
 		zebra_draw ? "ON " : "OFF",
 		zebra_level_hi, zebra_level_lo,
-		(unsigned) cropmarks,
-		0
-		//enable_liveview
+		(unsigned) cropmarks
 	);
 
 	if( cropmarks )
@@ -832,7 +876,7 @@ zebra_task( void )
 
 	while(1)
 	{
-		if( !gui_menu_task && lv_drawn )
+		if ( lv_drawn )
 		{
 			draw_zebra();
 			msleep( 100 );
