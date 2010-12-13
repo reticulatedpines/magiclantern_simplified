@@ -375,7 +375,7 @@ debug_property_handler(
 	static unsigned y = 32;
 
 	bmp_printf( FONT_SMALL, x, y,
-		"%08x %04x: %08lx %08lx %08lx %08lx %08lx %08lx",
+		"%08x %04x: %8lx %8lx %8lx %8lx %8lx %8lx",
 		property,
 		len,
 		len > 0x00 ? addr[0] : 0,

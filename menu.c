@@ -451,7 +451,7 @@ menu_handler(
 		DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
 		if( draw_event )
         {
-			bmp_printf( FONT_SMALL, 20, 10 + ((k) % 8) * 10, "EVENT%2d: %x args %08x/%08x; %08x/%08x; %08x/%08x", k % 100, event, arg2, arg2 ? (*(int*)arg2) : 0, arg3, arg3 ? (*(int*)arg3) : 0, arg4, arg4 ? (*(int*)arg4) : 0);
+			bmp_printf( FONT_SMALL, 20, 10 + ((k) % 8) * 10, "EVENT%2d: %x args %8x/%8x; %8x/%8x; %8x/%8x", k % 100, event, arg2, arg2 ? (*(int*)arg2) : 0, arg3, arg3 ? (*(int*)arg3) : 0, arg4, arg4 ? (*(int*)arg4) : 0);
 			bmp_printf( FONT_SMALL, 20, 10 + ((k+1) % 8) * 10, "                                             ");
             k += 1;
 			if (event != PRESS_LEFT_BUTTON && event != PRESS_RIGHT_BUTTON && event != PRESS_UP_BUTTON && event != PRESS_DOWN_BUTTON && event != PRESS_SET_BUTTON) return 0;

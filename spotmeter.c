@@ -83,7 +83,7 @@ spotmeter_task( void * priv )
 	while(1)
 	{
 		// Draw a few pixels to indicate the center
-		if( !spotmeter_draw || !lv_drawn || !get_global_draw() || gui_menu_shown())
+		if( !spotmeter_draw || !lv_drawn || gui_menu_shown())
 		{
 			msleep( 1000 );
 			continue;
@@ -103,21 +103,24 @@ spotmeter_task( void * priv )
 		unsigned		sum = 0;
 		unsigned		x, y;
 
-		bmp_fill(
-			0xA,
-			width/2 - dx,
-			height/2 - dx,
-			2*dx + 1,
-			4
-		);
+		if (get_global_draw())
+		{
+			bmp_fill(
+				0xA,
+				width/2 - dx,
+				height/2 - dx,
+				2*dx + 1,
+				4
+			);
 
-		bmp_fill(
-			0xA,
-			width/2 - dx,
-			height/2 + dx,
-			2*dx + 1,
-			4
-		);
+			bmp_fill(
+				0xA,
+				width/2 - dx,
+				height/2 + dx,
+				2*dx + 1,
+				4
+			);
+		}
 
 		// Sum the values around the center
 		for( y = height/2 - dx ; y <= height/2 + dx ; y++ )

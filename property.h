@@ -70,6 +70,7 @@
 #define PROP_LIVE_VIEW_VIEWTYPE	0x80000034
 
 #define PROP_MODE		0x80000001 // maybe; set in FA_DISP_COM
+#define PROP_DRIVE		0x80000003 // 0 = single, 1 = continuous, 0x10 = self timer/remote, 0x11 = 2 sec self timer, 7 = self timer continuous
 #define PROP_SHUTTER		0x80000005
 #define PROP_APERTURE		0x80000006
 #define PROP_ISO		0x80000007
