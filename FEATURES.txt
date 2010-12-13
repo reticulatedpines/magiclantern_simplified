@@ -31,6 +31,7 @@ Known issues
   (half-press the shutter to trigger a redraw)
 * Time remaining for video is meaningless if QScale control is enabled
   (maybe it should be calibrated with the real-time clock?)
+* Rack focus does not seem to work.
 * Playing with debug options may lead to strange behaviors of the
   camera (if it happens, restart it). 
 * Boot menu entries may be dangerous => be careful with them!
