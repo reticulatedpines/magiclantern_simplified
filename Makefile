@@ -71,8 +71,9 @@ magiclantern-$(VERSION).zip: \
 	cropmark.bmp \
 	autoexec.bin \
 	README \
-	FEATURES.txt \
 	INSTALL.txt \
+	FEATURES.txt \
+	CONFIG.txt
 
 	-rm $@
 	zip -z $@ < $^

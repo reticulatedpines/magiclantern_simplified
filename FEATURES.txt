@@ -29,3 +29,162 @@ Known issues
 * Playing with debug options may lead to strange behaviors of the
   camera (if it happens, restart it). 
 * Boot menu entries may be dangerous => be careful with them!
+
+Menu options
+------------
+
+Audio
+~~~~~
+
+Audio tweaks.
+
+**AudioMeter: ON/OFF**
+  Draw the audio meters or not.
+
+**Output vol (dB)**
+  ??? (I can't hear anything)
+
+**Analog Gain (dB)**
+  Recording volume maybe?
+
+**L-Gain and R-Gain (dB)**
+  Digital gain maybe?
+
+**AGC: ON/OFF**
+  Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss when recording silence.
+
+**Filters: ON/OFF**
+  Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
+
+**Inp**
+  Input source: Internal mic, int L ext R, ext stereo, int L ext L+R (balanced).
+
+Video
+~~~~~
+
+Video overlays: histogram, zebras, cropmarks, spotmeter.
+
+**Global Draw: ON/OFF**
+  Enable/disable drawing extra graphics elements 
+  (zebra, cropmarks, histogram, spotmeter, audio meters)
+
+**Histogram: ON/OFF**
+  Show a histogram for the luma (Y) channel of the LiveView image. Colorspace is YUV.
+
+**Zebras: ON/OFF**
+  Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
+
+**ZebraThrLO, ZebraThrHI**
+  Thresholds for underexposure and overexposure. 
+  Brightness values are between 0 and 255.
+
+**CropM**
+  Enable/disable cropmarks. 
+  Todo: cycle to all available cropmarks. For now, select the cropmark from the config file, 
+  option "crop.file".
+
+**Spotmeter**
+  Measure brightness in the center of the frame, and display it as a percentage.
+  Indicator is at the bottom on the screen, centered horizontally.
+
+**Clear Screen*
+  Delete any junk which might be left on the screen.
+
+Shoot
+~~~~~
+
+Functions for stills shooting.
+
+**IntervalTime**
+  Time delay for intervalometer, in seconds.
+
+**Intervalometer: ON/OFF**
+  Start/stop intervalometer. 
+
+**LCD RemoteShot: ON/OFF**
+  Start/stop shutter release with the LCD sensor. To take a picture, 
+  put your hand near the LCD sensor. 
+
+  This is useful for avoiding camera shake without extra $$$
+  
+  To use it, select one of P,S,A,M modes, turn OFF Live View, 
+  and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
+
+You can also stop the intervalometer and remote shooting mode
+by pressing PLAY or MENU.
+
+Brack
+~~~~~
+AE bracketing.
+
+**Test bracket**
+  Take a few pictures with the selected settings.
+
+**AE count**
+  Number of pictures to take.
+
+**AE step**
+  Number of AE steps between two shots.
+  
+  How big is an AE step? 
+  
+  This feature is still buggy, and seems to work only in AV mode.
+
+Focus
+~~~~~
+
+From the 5D2 guide: http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu
+
+Debug
+~~~~~
+
+**QScale**
+  Controls the H.264 QScale parameter, which affects video bitrate. 
+  Lower values mean higher bitrates. OFF should disable QScale control.
+  See [[Bit rate]] wiki page for details.
+
+**Save config**
+  Save current settings to MAGIC.CFG.
+
+**CMOS temp**
+  Temperature of the CMOS sensor, in raw units.
+
+**Draw palette**
+  Tests the 8-bit bitmap palette, which is used for video overlays.
+
+**Screenshot**
+  Print screen (it saves a BMP file).
+
+**Dump dmlog**
+  Saves a log which contains DebugMsg output.
+  See [[Debugging Magic Lantern]] wiki page.
+
+**Toggle draw_prop**
+  Display property changes in real-time.
+  See [[Properties]].
+
+**Toggle draw_event**
+  Display GUI events in real-time, and also inhibits most of them.
+  See [[GUI_Events/550D]].
+
+Boot
+~~~~
+
+Settings related to the Magic Lantern boot process.
+
+**Write MBR**
+???
+
+**Autoboot: ON/OFF**
+Make the card bootable?!
+
+**Powersave**
+  Disable the powersave so that the LiveView never shuts off?
+  WARNING -- this can cause problems with your sensor!
+  '''DO NOT LEAVE THE CAMERA ON CONTINUOUSLY.'''
+
+----
+
+Render this file with Pandoc: convert from reStructuredText to MediaWiki
+
+http://johnmacfarlane.net/pandoc/try
