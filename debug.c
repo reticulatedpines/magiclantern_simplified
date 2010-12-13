@@ -209,10 +209,58 @@ save_config( void * priv )
 	config_save_file( global_config, "B:/magic.cfg" );
 }
 
+//----------------begin qscale-----------------
+_CONFIG_VAR( "h264.qscale", 0, int16_t, qscale, -8 );
+_CONFIG_VAR( "h264.qscale.max", 0, int16_t, qscale_max, -1 );
+_CONFIG_VAR( "h264.qscale.min", 0, int16_t, qscale_min, -16 );
+
+#define QSCALE_OFF (qscale_max + 1)
+
+void set_vbr( void * priv )
+{
+	void (*mvrFixQScale)(uint16_t *) = (void*) 0xFF1AA9C4; // 1.0.8
+	void (*mvrSetDefQScale)(int16_t *) = (void*) 0xFF1AA4A0; // 1.0.8
+
+	qscale -= 1;
+	if (qscale < qscale_min)
+		qscale = QSCALE_OFF;
+
+	uint16_t param = 1;                  // select fixed rate
+	if (qscale == QSCALE_OFF) param = 0; // this should disable qscale control
+	mvrFixQScale(&param);
+	if (qscale != QSCALE_OFF) mvrSetDefQScale(&qscale);
+}
+
+static void
+print_vbr(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	if (qscale == QSCALE_OFF)
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"QScale:     OFF "
+		);
+	else
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"QScale:     %s%d ",
+			qscale < 0 ? "-" : "+",
+			qscale < 0 ? -qscale : qscale
+		);
+}
+//-------------------------end qscale--------------
+
 
 struct menu_entry debug_menus[] = {
 	{
-		.display	= efic_temp_display,
+		.select		= set_vbr,
+		.display	= print_vbr,
 	},
 	{
 		.priv		= "Save config",
@@ -220,13 +268,16 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 	},
 	{
+		.display	= efic_temp_display,
+	},
+	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
 	},
 	{
-		.priv		= "Toggle draw_prop",
-		.select		= draw_prop_select,
+		.priv		= "Screenshot",
+		.select		= call_dispcheck,
 		.display	= menu_print,
 	},
 	{
@@ -235,8 +286,8 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 	},
 	{
-		.priv		= "Screenshot",
-		.select		= call_dispcheck,
+		.priv		= "Toggle draw_prop",
+		.select		= draw_prop_select,
 		.display	= menu_print,
 	},
 

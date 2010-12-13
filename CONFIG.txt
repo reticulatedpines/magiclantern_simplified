@@ -34,3 +34,8 @@ These settings can not be changed from the ML menu, so they are documented here:
 
     # Controls the refresh rate for zebra & friends (delay in ms between updates)
     zebra.delay = 1000
+
+    # Limits allowed for qscale control
+    h264.qscale.max = -1
+    h264.qscale.max = -16
+    
