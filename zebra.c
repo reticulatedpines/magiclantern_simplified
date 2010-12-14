@@ -65,6 +65,9 @@ CONFIG_INT( "timecode.height",	timecode_height, 20 );
 CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
+CONFIG_INT( "clear.preview", clearpreview_enable, 1);
+CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
+
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
 
@@ -160,7 +163,7 @@ check_zebra(
 
     if (p0 < zebra_level_lo || p1 < zebra_level_lo)
     { // color for underexposed pixels
-        zebra_color_0 = 1;  // white
+        zebra_color_0 = COLOR_BG;
         zebra_color_1 = 13; // blue 
     }
 
@@ -581,7 +584,7 @@ draw_zebra( void )
 			}
 
 			// Nobody drew on it, make it clear
-			b_row[x/2] = 0;
+			if (pixel) b_row[x/2] = 0;
 			//m_row[x/2] = 0;
 		}
 	}
@@ -721,6 +724,23 @@ waveform_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+clearpreview_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"ClrPreview: %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
+
+
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -752,6 +772,11 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &crop_draw,
 		.select		= menu_binary_toggle,
 		.display	= crop_display,
+	},
+	{
+		.priv			= &clearpreview_enable,
+		.select			= menu_binary_toggle,
+		.display		= clearpreview_display,
 	},
 	//~ {
 		//~ .priv		= &edge_draw,
@@ -817,6 +842,13 @@ PROP_HANDLER( PROP_REC_TIME )
 	return prop_cleanup( token, property );
 }
 
+int shutter_halfpressed = 0;
+PROP_HANDLER(PROP_HALF_SHUTTER)
+{
+	shutter_halfpressed = (uint16_t) buf[0];
+	return prop_cleanup( token, property );
+}
+
 
 static void
 zebra_task( void )
@@ -846,13 +878,27 @@ zebra_task( void )
 
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
-	while(1)
+	while(1) // each code path should have a msleep; the clearscreen one
 	{
-		if( lv_drawn && !gui_menu_shown() && global_draw)
+		if (clearpreview_enable && shutter_halfpressed && lv_drawn && !gui_menu_shown()) // preview image without any overlays
+		{
+			msleep(clearpreview_delay);
+			bmp_fill( 0x0, 0, 0, 720, 480 );
+			//~ bmp_printf(FONT_LARGE, 30, 30, "BMP disabling");
+			bmp_enabled = 0;
+			int global_draw_bk = global_draw;
+			global_draw = 0;
+			while (shutter_halfpressed) msleep(100);
+			bmp_enabled = 1;
+			global_draw = global_draw_bk;
+			//~ bmp_printf(FONT_LARGE, 30, 30, "BMP enabled");
+		}
+		else if( lv_drawn && !gui_menu_shown() && global_draw) // normal zebras
 		{
 			draw_zebra();
+			msleep(zebra_delay);
 		}
-		msleep(zebra_delay);
+		else msleep(100); // nothing to do (idle), but keep it responsive
 	}
 
 

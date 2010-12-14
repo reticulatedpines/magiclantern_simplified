@@ -29,6 +29,7 @@
 #include "font.h"
 #include <stdarg.h>
 
+extern int bmp_enabled = 1; // global enable/disable for Bitmap Overlay
 
 static void
 _draw_char(
@@ -94,6 +95,8 @@ bmp_puts(
 	const char *		s
 )
 {
+	if (!bmp_enabled) return;
+	
 	const uint32_t		pitch = bmp_pitch();
 	uint8_t * vram = bmp_vram();
 	if( !vram || ((uintptr_t)vram & 1) == 1 )
@@ -250,6 +253,8 @@ bmp_fill(
 	uint32_t		h
 )
 {
+	if (!bmp_enabled) return;
+	
 	const uint32_t start = x;
 	const uint32_t width = bmp_width();
 	const uint32_t pitch = bmp_pitch();

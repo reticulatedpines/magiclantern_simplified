@@ -41,3 +41,5 @@ These settings can not be changed from the ML menu, so they are documented here:
     h264.qscale.max.neg = 1
     h264.qscale.max.neg = 16
 
+    # Delay between clearing the overlay in Clear Preview mode
+    clear.preview.delay

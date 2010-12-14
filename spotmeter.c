@@ -30,7 +30,6 @@
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 
-
 static void
 spotmeter_menu_display(
 	void *			priv,
@@ -51,26 +50,14 @@ spotmeter_menu_display(
 }
 
 
-static void
-spotmeter_clear_display( void * priv )
-{
-	gui_stop_menu();
-	bmp_fill( 0x0, 0, 0, 1080, 480 );
-}
-
-
 static struct menu_entry spotmeter_menus[] = {
 	{
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
 		.display		= spotmeter_menu_display,
 	},
-	{
-		.priv			= "Clear screen",
-		.select			= spotmeter_clear_display,
-		.display		= menu_print,
-	},
 };
+
 
 extern int lv_drawn;
 

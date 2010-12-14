@@ -24,7 +24,7 @@ Known issues
   make sure you have an image, then back to Live View.
 * If you start the camera in LiveView mode, histogram and zebra may not show.
   If this happens, press MENU twice to get them.
-* Sometimes the menu gets overwritten by Canon's drawing routines. 
+* Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * After closing ML menu, screen may not redraw automatically 
   (half-press the shutter to trigger a redraw)
 * Time remaining for video is meaningless if QScale control is enabled
@@ -93,12 +93,15 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   Todo: cycle to all available cropmarks. For now, select the cropmark from the config file, 
   option "crop.file". See [[Cropmarks]].
 
+**ClrPreview: ON/OFF**
+  When shutter is half-pressed or DOF-preview is enabled, this clears 
+  all the overlays from the Live View display after 1 second. 
+  It allows you to compose the picture without any extra distractions. 
+  This works best when autofocus is assigned to the * button (from Custom Functions).
+
 **Spotmeter**
   Measure brightness in the center of the frame, and display it as a percentage.
   Indicator is at the bottom on the screen, centered horizontally.
-
-**Clear Screen**
-  Delete any junk which might be left on the screen.
 
 Shoot
 ~~~~~
@@ -196,6 +199,9 @@ Debug
   Display GUI events in real-time, and also inhibits most of them.
   See [[GUI_Events/550D]].
 
+Some items from this menu may not be available in release builds, 
+because they are potentially dangerous.
+
 Boot
 ~~~~
 
@@ -216,3 +222,5 @@ Settings related to the Magic Lantern boot process.
 
   '''DO NOT LEAVE THE CAMERA ON CONTINUOUSLY.'''
 
+Some items from this menu may not be available in release builds, 
+because they are potentially dangerous.
