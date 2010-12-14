@@ -258,7 +258,8 @@ print_vbr(
 }
 //-------------------------end qscale--------------
 
-static void dbg_draw_props();
+static void dbg_draw_props(int changed);
+static unsigned dbg_last_changed_propindex = 0;
 int screenshot_sec = 0;
 static void
 debug_loop_task( void ) // screenshot, draw_prop
@@ -274,7 +275,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		}
 		else if (draw_prop)
 		{
-			dbg_draw_props();
+			dbg_draw_props(dbg_last_changed_propindex);
 			msleep(10);
 		}
 		else msleep(1000);
@@ -363,9 +364,9 @@ static unsigned dbg_props_c[30] = {0};
 static unsigned dbg_props_d[30] = {0};
 static unsigned dbg_props_e[30] = {0};
 static unsigned dbg_props_f[30] = {0};
-
-static void dbg_draw_props()
+static void dbg_draw_props(int changed)
 {
+	dbg_last_changed_propindex = changed;
 	int i; 
 	for (i = 0; i < dbg_propn; i++)
 	{
@@ -373,7 +374,9 @@ static void dbg_draw_props()
 		unsigned y = 32 + i * font_small.height;
 		unsigned property = dbg_props[i];
 		unsigned len = dbg_props_len[i];
-		bmp_printf( FONT_SMALL, x, y,
+		unsigned fnt = FONT_SMALL;
+		if (i == changed) fnt = FONT(FONT_SMALL, COLOR_RED, COLOR_BG);
+		bmp_printf(fnt, x, y,
 			"%08x %04x: %8lx %8lx %8lx %8lx %8lx %8lx",
 			property,
 			len,
@@ -422,7 +425,7 @@ debug_property_handler(
 			dbg_props_d[i] = addr[3];
 			dbg_props_e[i] = addr[4];
 			dbg_props_f[i] = addr[5];
-			dbg_draw_props();
+			dbg_draw_props(i);
 			goto ack; // return with cleanup
 		}
 	}
@@ -437,7 +440,7 @@ debug_property_handler(
 	dbg_props_e[dbg_propn] = addr[4];
 	dbg_props_f[dbg_propn] = addr[5];
 	dbg_propn++;
-	dbg_draw_props();
+	dbg_draw_props(dbg_propn);
 
 
 ack:
