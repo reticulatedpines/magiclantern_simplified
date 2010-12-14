@@ -111,6 +111,17 @@ PROP_HANDLER( PROP_GUI_STATE )
 	return prop_cleanup( token, property );
 }
 
+// does not seem to have any effect...
+PROP_HANDLER( PROP_HALF_SHUTTER )
+{
+    if (buf[0])
+    {
+		intervalometer_running = 0;
+		lcd_release_running = 0;
+	}		
+	return prop_cleanup( token, property );
+}
+
 int lv_drawn;
 PROP_HANDLER( PROP_LV_ACTION )
 {
@@ -118,6 +129,14 @@ PROP_HANDLER( PROP_LV_ACTION )
 	lv_drawn = !buf[0];
 	return prop_cleanup( token, property );
 }
+
+int drive_mode;
+PROP_HANDLER( PROP_DRIVE )
+{
+	drive_mode = buf[0];
+	return prop_cleanup( token, property );
+}
+
 
 static void
 shoot_task( void )
@@ -137,14 +156,23 @@ shoot_task( void )
 		}
 		else if (lcd_release_running)
 		{
-			if (!lv_drawn) bmp_printf(FONT_MED, 20, 35, "Move your hand close to the LCD screen to take a picture!");
-			else bmp_printf(FONT_MED, 20, 35, "LCD RemoteShot does not work in LiveView, sorry...");
+			msleep(20);
+			if (lv_drawn) 
+			{
+				bmp_printf(FONT_MED, 20, 35, "LCD RemoteShot does not work in LiveView, sorry...");
+				continue;
+			}
+			if (drive_mode != 0 && drive_mode != 1) // timer modes break this function (might lock the camera)
+			{
+				bmp_printf(FONT_MED, 20, 35, "LCD RemoteShot works if DriveMode is SINGLE or CONTINUOUS");
+				continue;
+			}
+			bmp_printf(FONT_MED, 20, 35, "Move your hand close to the LCD sensor to take a picture!");
 			if (display_sensor_active())
 			{
 				lens_take_picture(0);
 				while (display_sensor_active()) { msleep(500); }
 			}
-			msleep(20);
 		}
 		else msleep(500);
 	}
