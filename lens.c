@@ -220,13 +220,13 @@ update_lens_display(
 	const unsigned height	= fontspec_height( font );
 
 	// Needs to be 720 - 8 * 12
-	unsigned x = 520;
+	unsigned x = 420;
 	unsigned y = 400;
 
 	bmp_printf( font, x, y, "%5d mm", info->focal_len );
 
 	//~ y += height;
-	x = 620;
+	x = 520;
 	bmp_printf( font, x+12, y,
 		"%s",
 		info->focus_dist == 0xFFFF
@@ -234,10 +234,11 @@ update_lens_display(
 			: lens_format_dist( info->focus_dist * 10 )
 	);
 
+	return; // the rest are also displayed by Canon FW
 
 	// Move the info display to the very bottom screen
 	x = 0;
-	y = 400;
+	y = 500;
 	if( info->aperture )
 		bmp_printf( font, x, y,
 			"f/%2d.%d",
