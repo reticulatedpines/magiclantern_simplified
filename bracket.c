@@ -7,6 +7,7 @@
 #include "bmp.h"
 #include "menu.h"
 #include "lens.h"
+#include "config.h"
 
 static struct semaphore * bracket_sem;
 
@@ -18,9 +19,8 @@ bracket_start( void * priv )
 	give_semaphore( bracket_sem );
 }
 
-
-static int ae_count	= 5;
-static int ae_step	= 3;
+CONFIG_INT("brack.ae-count", ae_count, 5);
+CONFIG_INT("brack.ae-step", ae_step, 3);
 
 static void
 ae_display(
@@ -61,7 +61,7 @@ ae_adjust_step(
 )
 {
 	ae_step++;
-	if( ae_step > 8 )
+	if( ae_step > 18 )
 		ae_step = 1;
 }
 
