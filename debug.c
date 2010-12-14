@@ -258,10 +258,10 @@ print_vbr(
 }
 //-------------------------end qscale--------------
 
-
+static void dbg_draw_props();
 int screenshot_sec = 0;
 static void
-screenshot_task( void )
+debug_loop_task( void ) // screenshot, draw_prop
 {
 	while(1)
 	{
@@ -272,7 +272,12 @@ screenshot_task( void )
 				msleep( 1000 );
 			call_dispcheck(0);
 		}
-		msleep(1000);
+		else if (draw_prop)
+		{
+			dbg_draw_props();
+			msleep(10);
+		}
+		else msleep(1000);
 	}
 }
 
@@ -349,6 +354,39 @@ debug_token_handler(
 	);
 }
 
+static int dbg_propn = 0;
+static unsigned dbg_props[30] = {0};
+static unsigned dbg_props_len[30] = {0};
+static unsigned dbg_props_a[30] = {0};
+static unsigned dbg_props_b[30] = {0};
+static unsigned dbg_props_c[30] = {0};
+static unsigned dbg_props_d[30] = {0};
+static unsigned dbg_props_e[30] = {0};
+static unsigned dbg_props_f[30] = {0};
+
+static void dbg_draw_props()
+{
+	int i; 
+	for (i = 0; i < dbg_propn; i++)
+	{
+		unsigned x = 80;
+		unsigned y = 32 + i * font_small.height;
+		unsigned property = dbg_props[i];
+		unsigned len = dbg_props_len[i];
+		bmp_printf( FONT_SMALL, x, y,
+			"%08x %04x: %8lx %8lx %8lx %8lx %8lx %8lx",
+			property,
+			len,
+			len > 0x00 ? dbg_props_a[i] : 0,
+			len > 0x04 ? dbg_props_b[i] : 0,
+			len > 0x08 ? dbg_props_c[i] : 0,
+			len > 0x0c ? dbg_props_d[i] : 0,
+			len > 0x10 ? dbg_props_e[i] : 0,
+			len > 0x14 ? dbg_props_f[i] : 0
+		);
+	}
+}
+
 static void *
 debug_property_handler(
 	unsigned		property,
@@ -371,26 +409,36 @@ debug_property_handler(
 	if( !draw_prop )
 		goto ack;
 
-	const unsigned x = 80;
-	static unsigned y = 32;
+	// maybe the property is already in the array
+	int i;
+	for (i = 0; i < dbg_propn; i++)
+	{
+		if (dbg_props[i] == property)
+		{
+			dbg_props_len[i] = len;
+			dbg_props_a[i] = addr[0];
+			dbg_props_b[i] = addr[1];
+			dbg_props_c[i] = addr[2];
+			dbg_props_d[i] = addr[3];
+			dbg_props_e[i] = addr[4];
+			dbg_props_f[i] = addr[5];
+			dbg_draw_props();
+			goto ack; // return with cleanup
+		}
+	}
+	// new property
+	if (dbg_propn >= 30) dbg_propn = 29; // too much is bad :)
+	dbg_props[dbg_propn] = property;
+	dbg_props_len[dbg_propn] = len;
+	dbg_props_a[dbg_propn] = addr[0];
+	dbg_props_b[dbg_propn] = addr[1];
+	dbg_props_c[dbg_propn] = addr[2];
+	dbg_props_d[dbg_propn] = addr[3];
+	dbg_props_e[dbg_propn] = addr[4];
+	dbg_props_f[dbg_propn] = addr[5];
+	dbg_propn++;
+	dbg_draw_props();
 
-	bmp_printf( FONT_SMALL, x, y,
-		"%08x %04x: %8lx %8lx %8lx %8lx %8lx %8lx",
-		property,
-		len,
-		len > 0x00 ? addr[0] : 0,
-		len > 0x04 ? addr[1] : 0,
-		len > 0x08 ? addr[2] : 0,
-		len > 0x0c ? addr[3] : 0,
-		len > 0x10 ? addr[4] : 0,
-		len > 0x14 ? addr[5] : 0
-	);
-	y += font_small.height;
-
-	bmp_fill( COLOR_RED, x, y, 100, 1 );
-
-	if( y > 400 )
-		y = 32;
 
 ack:
 	return prop_cleanup( debug_token, property );
@@ -529,7 +577,7 @@ dump_task( void )
 
 
 TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
-TASK_CREATE( "screenshot_task", screenshot_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
 
 CONFIG_INT( "debug.timed-start",	timed_start, 0 );
 
