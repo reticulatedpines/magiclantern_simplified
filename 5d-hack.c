@@ -310,7 +310,7 @@ my_init_task(void)
 	menu_init();
 	debug_init();
 
-	msleep( 500 );
+	msleep( 550 );
 
 	// Parse our config file
 	const char * config_filename = "B:/magic.cfg";
