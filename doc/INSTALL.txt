@@ -26,6 +26,23 @@ To repeat this important point::
            *                                                 *
            ***************************************************
 
+Important notes
+===============
+
+* If you have a bootable SD card and have the ``DISKBOOT`` flag 
+  set in the camera (which the installer does), and you do not have 
+  an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT!**
+  It will hang and not wake up until the battery is removed.
+  
+* If you encounter a "locked up" camera, **quickly remove the battery**.
+  Otherwise the ARM might be in a tight-loop and get very hot, very quickly. 
+  Your battery will run down and your LCD might show some discoloration.
+  
+* When in doubt, remove the battery and reboot. 
+
+* **And, remember that this software can damage or destroy your camera.**
+
+.
 
 Introduction
 ============
@@ -82,11 +99,15 @@ AND the SD card is "prepared" with special values written in boot sector:
 * for FAT16 cards: `EOS_DEVELOP` written at offset 43 and `BOOTDISK` at offset 64
 * for FAT32 cards: `EOS_DEVELOP` written at offset 71 and `BOOTDISK` at offset 92
 
-Linux
-`````
-[does it work on Mac too?]
+Linux and Mac OS X
+``````````````````
 
-You can use `this script <http://groups.google.com/group/ml-devel/browse_thread/thread/8fda60c19c395348/f1f2e196a59d8fb2>`_
+You can use ``make_bootable.sh``, which is included in the archive.
+You need to change the following line in order to indicate your SD card device::
+
+    # change this
+    dev=/dev/sdc1
+
 
 Windows
 ```````
