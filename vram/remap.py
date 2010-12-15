@@ -86,11 +86,15 @@ def remap_rgb(im,M):
             rgb = im[i,j]
             dif = mf - rgb*ones((256,1))
             dif = (dif**2).sum(1)
-            ind = argmin(dif)
+            ind = argmin(dif[:80]) # only first 80 entries are safe
             #~ print rgb
             if tuple(rgb) == (255,255,255):
                 #~ print "transparent"
                 ind = 0
+            #~ print tuple(rgb)
+            if tuple(rgb) == (0,0,0):
+                #~ print "semitransparent"
+                ind = 3
             newim[i,j] = ind
         if i % 50 == 0: print >> sys.stderr, "%d%%" % round(i * 100.0 / h)
     return newim
