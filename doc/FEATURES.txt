@@ -34,6 +34,13 @@ Known issues
 * Playing with debug options may lead to strange behaviors of the
   camera (if it happens, restart it). 
 * Boot menu entries may be dangerous => be careful with them!
+* On some cameras, file I/O errors may prevent the camera from rebooting
+  (in this case, you need to take the battery out).
+* LCD RemoteShot will react to other buttons (not only to the LCD sensor)
+  and in certain cases it might be triggered by timer events.
+* Audio monitoring does not work. We don't know how to enable it 
+  without breaking USB and maybe other functions. If you need this feature, 
+  please uncomment the last line from hotplug.c and build a custom autoexec.bin.
 
 Menu options
 ------------
