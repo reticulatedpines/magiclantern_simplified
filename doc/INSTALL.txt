@@ -103,7 +103,7 @@ You can verify whether the boot sector has been modified using `HxD <http://mh-n
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Delete magiclantern.fir (sure?) and copy ** autoexec.bin ** and ** *.bmp ** files on your SDCard.
+Delete magiclantern.fir (sure?) and copy **autoexec.bin** and ***.bmp** files on your SDCard.
 
 Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
@@ -127,7 +127,8 @@ remove the battery immediatly during 5 secs, switching off is not enough !!!**
 
 Video instructions
 ~~~~~~~~~~~~~~~~~~
-`This video <http://www.youtube.com/watch?v=GXwcbZ4Njaw>`_ is for Magic Lantern for 1.0.8, but the proces is 90% the same for 1.0.9.
+* `This video <http://www.youtube.com/watch?v=8a9EOxOtU0E>`_ shows the firmware upgrade process using magiclantern.fir (how to enable bootflat). It is for Magic Lantern for 550D/1.0.8, but the proces is 90% the same for 1.0.9 (the latest version loads faster).
+* `This video <http://www.youtube.com/watch?v=GXwcbZ4Njaw>`_ shows how to prepare a bootable card and run a custom autoexec.bin. This video shows an unofficial build of Magic Lantern for 550D/1.0.8. The procedure for preparing the card is identical for 1.0.8 and 1.0.9.
 
 Older versions (archived)
 =========================
