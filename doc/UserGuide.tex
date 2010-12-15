@@ -1,0 +1,34 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[mathletters]{ucs}
+\usepackage[utf8x]{inputenc}
+% Redefine labelwidth for lists; otherwise, the enumerate package will cause
+% markers to extend beyond the left margin.
+\makeatletter\AtBeginDocument{%
+  \renewcommand{\@listi}
+    {\setlength{\labelwidth}{4em}}
+}\makeatother
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage[breaklinks=true,unicode=true]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setcounter{secnumdepth}{0}
+
+\let\includegfx=\includegraphics
+\def\includegraphics#1{\begin{center}\includegfx[height=2.5cm]{#1}\end{center}}
+
+\begin{document}
+\title{Magic Lantern 0.2 for Canon 550D, firmware 1.0.9\\User's Guide}
+\author{http://magiclantern.wikia.com}
+\maketitle
+\tableofcontents
+\newpage
+% some ugly hacks
+\let\subsubsection=\subsection
+\let\subsection=\section
+\def\section#1{}
+%~ \vspace{1cm}
+\input{userguide-body.tex}
+\end{document}
+
