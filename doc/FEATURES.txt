@@ -91,9 +91,23 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   Brightness values are between 0 and 255.
 
 **CropM**
-  Enable/disable cropmarks. 
-  Todo: cycle to all available cropmarks. For now, select the cropmark from the config file, 
-  option "crop.file". See [[Cropmarks]].
+  Select cropmarks (cycle between the configured ones).
+
+  There are a few predefined cropmarks included in the zip archive:
+  HDTA and Cinemascope provided by CameraRick from the cinema5d forum, 
+  and a cropmark for framing fisheye stills with Samyang/8mm.
+
+.. image:: Cropmarks550D.png
+    :alt: 400px|center
+
+  If you use custom cropmarks, you have to set their name manually in the config file.
+  See the "Hidden settings" section. You can configure max. 3 cropmark files.
+  
+  An exclamation mark (!) displayed in the menu means "File not found".
+  
+  See [[Cropmarks]] wiki page for how to create custom cropmarks.
+
+{{clr}}
 
 **ClrPreview: ON/OFF**
   When shutter is half-pressed or DOF-preview is enabled, this clears 
@@ -163,6 +177,8 @@ Focus
 See the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
 
 See also [[Focus distance]].
+
+{{clr}}
 
 Debug
 ~~~~~

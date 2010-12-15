@@ -36,11 +36,13 @@ for l in c:
 o.close()
 
 os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
+os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 os.system("pdflatex UserGuide.tex")
 
 
 os.system("pandoc -f rst -t mediawiki -s -o install.wiki INSTALL.txt")
 os.system("pandoc -f rst -t latex -o install-body.tex INSTALL.txt")
+os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' install-body.tex")
 os.system("pdflatex INSTALL.tex")
 
 

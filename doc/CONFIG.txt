@@ -27,10 +27,6 @@ These settings can not be changed from the ML menu, so they are documented here:
     # if set to 1, disable the bootdisk flag
     magic.disable_bootdiskf = 0
 
-    # Cropmarks file 
-    # todo: move it to the menu... how to use FindFirst/FindNext?
-    crop.file = B:/cropmark.bmp
-
     # Draw a property value
     debug.dump_prop = 0x1060003
 
@@ -45,4 +41,9 @@ These settings can not be changed from the ML menu, so they are documented here:
     h264.qscale.max.neg = 16
 
     # Delay between clearing the overlay in Clear Preview mode
-    clear.preview.delay
+    clear.preview.delay = 500
+    
+    # Cropmarks (you can cycle between them). Max 3 entries.
+    crop.file.1 = B:/hd_ta.bmp
+    crop.file.2 = B:/CineScop.bmp
+    crop.file.3 = B:/fish8r.bmp

@@ -63,7 +63,7 @@ Step 1. Enabling bootflag
     :alt: thumb|right|Magic Lantern install screen
 
 * Format the SD card
-* Copy **magiclantern.fir** from the zip archive on the SD card
+* Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
   start the camera and select ``Firmware ver 1.0.9`` from the ``Wrench 3`` menu 
   (must be in manual or P mode to select)
@@ -76,7 +76,7 @@ Step 1. Enabling bootflag
 Step 2. Making the SD card bootable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The file **autoexec.bin** can be launched if the bootdisk is enabled 
+The file ``autoexec.bin`` can be launched if the bootdisk is enabled 
 AND the SD card is "prepared" with special values written in boot sector:
 
 * for FAT16 cards: `EOS_DEVELOP` written at offset 43 and `BOOTDISK` at offset 64
@@ -103,7 +103,8 @@ You can verify whether the boot sector has been modified using `HxD <http://mh-n
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Delete magiclantern.fir (sure?) and copy **autoexec.bin** and ***.bmp** files on your SDCard.
+Delete magiclantern.fir (sure?) and copy ``autoexec.bin``, ``magic.cfg`` 
+and ``*.bmp`` files on your SDCard.
 
 Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
@@ -127,7 +128,7 @@ remove the battery immediatly during 5 secs, switching off is not enough !!!**
 
 Video instructions
 ~~~~~~~~~~~~~~~~~~
-* `This video <http://www.youtube.com/watch?v=8a9EOxOtU0E>`_ shows the firmware upgrade process using magiclantern.fir (how to enable bootflat). It is for Magic Lantern for 550D/1.0.8, but the proces is 90% the same for 1.0.9 (the latest version loads faster).
+* `This video <http://www.youtube.com/watch?v=8a9EOxOtU0E>`_ shows the firmware upgrade process using magiclantern.fir (how to enable the DISKBOOT flag). It is for Magic Lantern for 550D/1.0.8, but the proces is 90% the same for 1.0.9 (the latest version loads faster).
 * `This video <http://www.youtube.com/watch?v=GXwcbZ4Njaw>`_ shows how to prepare a bootable card and run a custom autoexec.bin. This video shows an unofficial build of Magic Lantern for 550D/1.0.8. The procedure for preparing the card is identical for 1.0.8 and 1.0.9.
 
 Older versions (archived)

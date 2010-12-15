@@ -10,6 +10,10 @@
 
 # Dependencies: pylab, PIL, imagemagick.
 
+# Pure white (255,255,255) becomes transparent (0).
+# Pure black (0,0,0) becomes semi-transparent black (3).
+# Only first 80 colors (the safe ones) are used.
+
 from pylab import *
 import os, sys
 import Image

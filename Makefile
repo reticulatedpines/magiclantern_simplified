@@ -8,8 +8,8 @@ RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.2.0.rc1.550d.fw109
-#VERSION=2010dec14.550d.fw109.PRERELEASE.a1ex
+#VERSION=0.2.0.rc1.550d.fw109
+VERSION=2010dec15.550d.fw109.PRERELEASE.a1ex
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -65,16 +65,23 @@ install: magiclantern.fir mlantern.cfg cropmarks.bmp autoexec.bin
 
 zip: magiclantern-$(VERSION).zip
 
+%.pdf: 
+	cp doc/*.pdf .
+%.bmp: 
+	cp vram/*.bmp .
+
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
 	magiclantern.fir \
-	cropmark.bmp \
 	autoexec.bin \
 	README \
-	INSTALL.txt \
-	FEATURES.txt \
-	CONFIG.txt
+	INSTALL.pdf \
+	UserGuide.pdf \
+	hd_ta.bmp\
+	CineScop.bmp\
+	fish8r.bmp\
+	magic.cfg\
 
 	-rm $@
 	zip -z $@ < $^
@@ -493,5 +500,7 @@ clean:
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
+		*.pdf \
+		*.bmp \
 
 -include .*.d

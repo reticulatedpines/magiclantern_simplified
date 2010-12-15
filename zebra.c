@@ -30,7 +30,8 @@
 #include "menu.h"
 #include "property.h"
 
-static struct bmp_file_t * cropmarks;
+static struct bmp_file_t * cropmarks_array[3] = {0};
+static struct bmp_file_t * cropmarks = 0;
 extern volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
@@ -47,8 +48,11 @@ CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	250 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	5 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
-CONFIG_INT( "crop.draw",	crop_draw,	1 );
-CONFIG_STR( "crop.file",	crop_file,	"B:/cropmark.bmp" );
+CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
+CONFIG_STR( "crop.file.1",	crop_file_1,	"B:/cropmark.bmp" );
+CONFIG_STR( "crop.file.2",	crop_file_2,	"               " );
+CONFIG_STR( "crop.file.3",	crop_file_3,	"               " );
+
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
 //~ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
@@ -465,7 +469,7 @@ struct vram_info * get_yuv422_vram()
 	return vram;
 }
 
-static int16_t* bvram_mirror = 0;
+static uint8_t* bvram_mirror = 0;
 
 static void
 draw_zebra( void )
@@ -476,14 +480,14 @@ draw_zebra( void )
 	if (!bvram_mirror)
 	{
 		//~ bmp_printf(FONT_MED, 30, 30, "AllocMem for BVRAM mirror");
-		bvram_mirror = AllocateMemory(720*480*4); // I think I'm allocating too much memory here... but at least it doesn't crash this way :D
+		bvram_mirror = AllocateMemory(720*480 + 100);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
 		//~ bmp_printf(FONT_MED, 30, 30, "AllocMem for BVRAM mirror => %x", bvram_mirror);
-		bzero32(bvram_mirror, 720*480*4);
+		bzero32(bvram_mirror, 720*480);
 	}
 
 
@@ -523,7 +527,7 @@ draw_zebra( void )
         
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
-		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * bmp_pitch() );
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * 720 );
 
 		//~ bmp_printf(FONT_MED, 30, 50, "Row: %8x/%8x", b_row, m_row);
 		//~ bmp_printf(FONT_MED, 30, 70, "Pixel: %8x/%8x", b_row[8], m_row[8]);
@@ -616,10 +620,32 @@ static void global_draw_toggle(void* priv)
 	if (!global_draw) bmp_fill(0, 0, 0, 720, 480);
 }
 
+static void load_cropmark(int i)
+{
+	//~ bmp_printf(FONT_MED, 30, 30, "LoadCrop");
+	if (i==1) cropmarks = bmp_load( crop_file_1 ); // too lazy to lookup case syntax in C...
+	else if (i==2) cropmarks = bmp_load( crop_file_2 );
+	else if (i==3) cropmarks = bmp_load( crop_file_3 );
+	else cropmarks = 0;
+	//~ bmp_printf(FONT_MED, 30, 30, "crop=%x", cropmarks);
+}
+
 static void
 crop_toggle( void * priv )
 {
-    // find next cropmark BMP and load it
+	unsigned * ptr = priv;
+	msleep(100);
+    *ptr = (*ptr + 1) % 4;  // 0 = off, 1..3 = configured cropmarks
+    if (*ptr)
+    {
+		cropmarks = cropmarks_array[*ptr-1];
+		if (!cropmarks) 
+		{
+			load_cropmark(*ptr);
+			cropmarks_array[*ptr-1] = cropmarks;
+		}
+	}
+	msleep(100);
 }
 
 
@@ -664,13 +690,18 @@ static void
 crop_display( void * priv, int x, int y, int selected )
 {
 	extern int retry_count;
-
+	int index = *(unsigned*)priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"CropM: %s",
-		cropmarks ? (*(unsigned*) priv ? crop_file+3 : "OFF         ") : "NO FILE"
+		"CropM:%s%s  ",
+		 (index == 1 ? crop_file_1 + 3 :
+		 (index == 2 ? crop_file_2 + 3 :
+		 (index == 3 ? crop_file_3 + 3 :
+			"OFF"
+		 ))),
+		 (cropmarks || !index) ? " " : "!" // ! means error
 	);
 }
 
@@ -770,7 +801,7 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &crop_draw,
-		.select		= menu_binary_toggle,
+		.select		= crop_toggle,
 		.display	= crop_display,
 	},
 	{
@@ -855,27 +886,7 @@ zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
 	lv_drawn = 0;
-	cropmarks = bmp_load( crop_file );
-	DebugMsg( DM_MAGIC, 3, "Cropmarks = %d", cropmarks);
-
-	DebugMsg( DM_MAGIC, 3,
-		"%s: Zeb=%s thr=%x/%x crop=%x",
-		__func__,
-		zebra_draw ? "ON " : "OFF",
-		zebra_level_hi, zebra_level_lo,
-		(unsigned) cropmarks
-	);
-
-	if( cropmarks )
-	{
-		DebugMsg( DM_MAGIC, 3,
-			"Cropmarks: %dx%d @ %d",
-			cropmarks->width,
-			cropmarks->height,
-			cropmarks->bits_per_pixel
-		);
-	}
-
+	load_cropmark(crop_draw);
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
 	while(1) // each code path should have a msleep; the clearscreen one

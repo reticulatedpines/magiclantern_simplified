@@ -28,7 +28,7 @@
 #include "config.h"
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 2 ); // 0 off, 1 on, 2 on without dots
 
 static void
 spotmeter_menu_display(
