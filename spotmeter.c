@@ -28,7 +28,7 @@
 #include "config.h"
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
 
 static void
 spotmeter_menu_display(
@@ -45,15 +45,22 @@ spotmeter_menu_display(
 		x, y,
 		//23456789012
 		"Spotmeter:  %s",
-		*draw_ptr ? "ON " : "OFF"
+		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "ON    " : "Hidden")
 	);
+}
+
+static void
+spotmeter_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 1) % 3; // 0, 1 or 2
 }
 
 
 static struct menu_entry spotmeter_menus[] = {
 	{
 		.priv			= &spotmeter_draw,
-		.select			= menu_binary_toggle,
+		.select			= spotmeter_toggle,
 		.display		= spotmeter_menu_display,
 	},
 };
@@ -90,7 +97,7 @@ spotmeter_task( void * priv )
 		unsigned		sum = 0;
 		unsigned		x, y;
 
-		if (get_global_draw())
+		if (get_global_draw() && spotmeter_draw == 1)
 		{
 			bmp_fill(
 				0xA,

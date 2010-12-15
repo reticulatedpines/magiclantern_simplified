@@ -101,9 +101,11 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   It allows you to compose the picture without any extra distractions. 
   This works best when autofocus is assigned to the * button (from Custom Functions).
 
-**Spotmeter**
+**Spotmeter: ON/OFF/Hidden**
   Measure brightness in the center of the frame, and display it as a percentage.
-  Indicator is at the bottom on the screen, centered horizontally.
+  Indicator is at the bottom on the screen, centered horizontally. It displays 
+  a small marker in the center of the screen. If the current cropmark already includes
+  a center marker, use the Hidden option.
 
 Shoot
 ~~~~~
