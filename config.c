@@ -179,7 +179,7 @@ config_auto_parse(
 
 int
 config_save_file(
-	struct config *		config,
+	struct config *		config, // unused?
 	const char *		filename
 )
 {
@@ -346,8 +346,7 @@ config_parse_file(
 	strcpy( head.value, filename );
 	if( file == INVALID_PTR )
 	{
-		head.next = &fail;
-		return &head;
+		return 0;
 	}
 
 	struct config * config = config_parse( file );
