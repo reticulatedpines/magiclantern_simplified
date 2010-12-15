@@ -237,10 +237,13 @@ Boot
 Settings related to the Magic Lantern boot process.
 
 **Write MBR**
-  ??? partition a card with MBR (aka "erase it"?). MBR as in "Master boot record"?
+  Try to make the card bootable, by writing the two labels (EOS_DEVELOP and BOOTDISK) to the MBR. Does not work yet.
 
 **Autoboot: ON/OFF**
-  Make the card bootable?!
+  Toggle the ``DISKBOOT`` flag in the NVRAM by calling ``bootdisk_enable()`` / ``bootdisk_disable()``
+  (i.e. eventprocs ``EnableBootDisk`` and  ``DisableBootDisk``).
+  
+  If you do not have access to the menu, you can use the hidden setting ``magic.disable_bootdiskf`` for this.
 
 **Powersave**
   Disable the powersave so that the LiveView never shuts off?

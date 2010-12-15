@@ -24,7 +24,8 @@ Hidden settings
 
 These settings can not be changed from the ML menu, so they are documented here::
 
-    # if set to 1, disable the bootdisk flag
+    # if set to 1, disable the bootdisk flag. 
+    # This does the same thing as Debug->Autoboot menu item.
     magic.disable_bootdiskf = 0
 
     # Draw a property value
