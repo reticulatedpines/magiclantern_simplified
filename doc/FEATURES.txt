@@ -42,6 +42,24 @@ Known issues
   without breaking USB and maybe other functions. If you need this feature, 
   please uncomment the last line from hotplug.c and build a custom autoexec.bin.
 
+
+Important notes
+---------------
+
+* If you have a bootable SD card and have the ``DISKBOOT`` flag 
+  set in the camera (which the installer does), and you do not have 
+  an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT!**
+  It will hang and not wake up until the battery is removed.
+  
+* If you encounter a "locked up" camera, **quickly remove the battery**.
+  Otherwise the ARM might be in a tight-loop and get very hot, very quickly. 
+  Your battery will run down and your LCD might show some discoloration.
+  
+* When in doubt, remove the battery and reboot. 
+
+* **And, remember that this software can damage or destroy your camera.**
+
+
 Menu options
 ------------
 
@@ -253,11 +271,11 @@ Settings related to the Magic Lantern boot process.
   If you do not have access to the menu, you can use the hidden setting ``magic.disable_bootdiskf`` for this.
 
 **Powersave**
-  Disable the powersave so that the LiveView never shuts off?
+  Disable the powersave so that the LiveView never shuts off.
 
   WARNING -- this can cause problems with your sensor!
 
-  '''DO NOT LEAVE THE CAMERA ON CONTINUOUSLY.'''
+  **DO NOT LEAVE THE CAMERA ON CONTINUOUSLY!**
 
 Some items from this menu may not be available in release builds, 
 because they are potentially dangerous.
