@@ -230,16 +230,16 @@ powersave_toggle( void )
 
 
 struct menu_entry boot_menus[] = {
-	{
-		.display	= menu_print,
-		.priv		= "Write MBR",
-		.select		= bootflag_write_bootblock,
-	},
+	//~ {
+		//~ .display	= menu_print,
+		//~ .priv		= "Write MBR",
+		//~ .select		= bootflag_write_bootblock,
+	//~ },
 
-	{
-		.display	= bootflag_display,
-		.select		= bootflag_toggle,
-	},
+	//~ {
+		//~ .display	= bootflag_display,
+		//~ .select		= bootflag_toggle,
+	//~ },
 
 	{
 		.display	= powersave_display,
