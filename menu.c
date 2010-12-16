@@ -412,6 +412,14 @@ menu_entry_move(
 	give_semaphore( menu_sem );
 }
 
+void menu_select_current()
+{
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+		if( menu->selected )
+			break;
+	menu_entry_select(menu);
+}
 
 static int
 menu_handler(
@@ -597,7 +605,7 @@ menu_init( void )
 	menu_find_by_name( "Shoot" );
 	menu_find_by_name( "Brack" );
 	menu_find_by_name( "Focus" );
-	menu_find_by_name( "LUA" );
+	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
 	menu_find_by_name( "Boot" );

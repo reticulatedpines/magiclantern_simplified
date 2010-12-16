@@ -25,6 +25,7 @@
 
 #include "dryos.h"
 #include "property.h"
+#include "bmp.h"
 
 struct semaphore * gui_sem;
 
@@ -73,6 +74,7 @@ extern void* gui_main_task_functbl;
 
 static void gui_main_task_550d()
 {
+	int kev = 0;
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[NFUNCS];
@@ -86,16 +88,46 @@ static void gui_main_task_550d()
 		index = event->type;
 		if ((index >= NFUNCS) || (index < 0))
 			continue;
-	
-		if( gui_state != GUISTATE_PLAYMENU && event->type == 0 && event->param == 0xA ) 
+				
+		// event 0 is button press maybe?
+		if( gui_state != GUISTATE_PLAYMENU && event->type == 0 && event->param == 0xA ) // trash button
 		{
 			if (gui_menu_shown()) 
 			{
 				gui_stop_menu();
+				continue;
 			} 
 			else 
 			{
 				give_semaphore( gui_sem );
+				continue;
+			}
+		}
+		if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
+		{
+			kev++;
+			bmp_printf(FONT_MED, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
+			if (event->param == 0x56 && event->arg == 0x9) // wheel L/R
+			{
+				menu_select_current(); // quick select menu items with the wheel
+				continue;
+			}
+			//~ if (event->param == 0x56 && event->arg == 0x1a) // zoom in press
+			//~ {
+				//~ gui_hide_menu( 100 );
+				//~ lens_focus_start( 0 );
+				//~ continue;
+			//~ }
+			if (event->param == 0x40) // zoom out unpress
+			{
+				gui_hide_menu( 2 );
+				lens_focus_stop();
+				continue;
+			}
+			if (event->param == 0x3f) // zoom out press
+			{
+				gui_hide_menu( 100 );
+				lens_focus_start( get_focus_dir() );
 				continue;
 			}
 		}

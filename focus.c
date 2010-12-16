@@ -17,6 +17,8 @@ CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 static int focus_dir;
 
+int get_focus_dir() { return focus_dir; }
+
 #define FOCUS_MAX 1700
 static int focus_position;
 
@@ -308,6 +310,20 @@ focus_task( void )
 TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 
+PROP_HANDLER( PROP_LV_FOCUS )
+{
+	const struct prop_focus * const focus = (void*) buf;
+	const int16_t step = (focus->step_hi << 8) | focus->step_lo;
+	bmp_printf( FONT_SMALL, 200, 30,
+		"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
+			*(unsigned*)buf,
+			focus->active,
+			(int) step,
+			(unsigned) step & 0xFFFF,
+			focus->mode
+		);
+	return prop_cleanup( token, property );
+}
 
 static struct menu_entry focus_menu[] = {
 	{
