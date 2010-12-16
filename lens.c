@@ -337,7 +337,7 @@ lens_take_picture(
 	int rc = take_semaphore( job_sem, 1000 );
 	if( rc )
 	{
-		DebugMsg( DM_MAGIC, 3,
+		bmp_printf(FONT_MED, 30, 50,
 			"%s: Timed out! Old job state %d",
 			__func__,
 			lens_info.job_state

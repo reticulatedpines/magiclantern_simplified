@@ -106,12 +106,12 @@ static void gui_main_task_550d()
 		if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
 		{
 			kev++;
-			bmp_printf(FONT_MED, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
-			if (event->param == 0x56 && event->arg == 0x9) // wheel L/R
-			{
-				menu_select_current(); // quick select menu items with the wheel
-				continue;
-			}
+			//~ bmp_printf(FONT_MED, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
+			//~ if (event->param == 0x56 && event->arg == 0x9) // wheel L/R
+			//~ {
+				//~ menu_select_current(); // quick select menu items with the wheel
+				//~ continue;
+			//~ }
 			//~ if (event->param == 0x56 && event->arg == 0x1a) // zoom in press
 			//~ {
 				//~ gui_hide_menu( 100 );

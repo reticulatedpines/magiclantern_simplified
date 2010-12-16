@@ -39,7 +39,7 @@ static int menu_hidden;
 static int menu_timeout;
 
 CONFIG_INT( "debug.draw-event", draw_event, 0 );
-CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 15 );
+CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
 
 static void
 draw_version( void )
@@ -462,7 +462,8 @@ menu_handler(
 			bmp_printf( FONT_SMALL, 20, 10 + ((k) % 8) * 10, "EVENT%2d: %x args %8x/%8x; %8x/%8x; %8x/%8x", k % 100, event, arg2, arg2 ? (*(int*)arg2) : 0, arg3, arg3 ? (*(int*)arg3) : 0, arg4, arg4 ? (*(int*)arg4) : 0);
 			bmp_printf( FONT_SMALL, 20, 10 + ((k+1) % 8) * 10, "                                             ");
             k += 1;
-			if (event != PRESS_LEFT_BUTTON && event != PRESS_RIGHT_BUTTON && event != PRESS_UP_BUTTON && event != PRESS_DOWN_BUTTON && event != PRESS_SET_BUTTON) return 0;
+            // not dangerous any more :)
+			//~ if (event != PRESS_LEFT_BUTTON && event != PRESS_RIGHT_BUTTON && event != PRESS_UP_BUTTON && event != PRESS_DOWN_BUTTON && event != PRESS_SET_BUTTON) return 0;
         }
 	}
 
@@ -639,6 +640,8 @@ gui_stop_menu( void )
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 	bmp_fill( 0, 90, 90, 720-160, 480-180 );
+	
+	lens_focus_stop();
 
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 }
@@ -684,7 +687,7 @@ menu_task( void )
 	DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
 	// Add the draw_prop menu
-	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
+	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
 
 	while(1)
 	{

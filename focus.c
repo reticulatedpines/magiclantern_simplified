@@ -16,7 +16,6 @@
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 static int focus_dir;
-
 int get_focus_dir() { return focus_dir; }
 
 #define FOCUS_MAX 1700
@@ -284,7 +283,7 @@ focus_task( void )
 			continue;
 		}
 
-		int step = focus_task_dir;
+		int step = focus_task_dir * focus_rack_speed;
 
 		DebugMsg( DM_MAGIC, 3,
 			"%s: focus dir %d",
@@ -296,11 +295,11 @@ focus_task( void )
 		{
 			lens_focus( 1, step );
 			focus_task_delta += step;
-			if( step > 0 && step < 1000 )
-				step = ((step+1) * 100) / 99;
-			else
-			if( step < 0 && step > -1000 )
-				step = ((step-1) * 100) / 99;
+			//~ if( step > 0 && step < 1000 )
+				//~ step = ((step+1) * 100) / 99;
+			//~ else
+			//~ if( step < 0 && step > -1000 )
+				//~ step = ((step-1) * 100) / 99;
 
 			msleep( 50 );
 		}
@@ -312,6 +311,8 @@ TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 PROP_HANDLER( PROP_LV_FOCUS )
 {
+	return;
+	static int16_t oldstep = 0;
 	const struct prop_focus * const focus = (void*) buf;
 	const int16_t step = (focus->step_hi << 8) | focus->step_lo;
 	bmp_printf( FONT_SMALL, 200, 30,
