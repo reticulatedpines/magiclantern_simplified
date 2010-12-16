@@ -215,8 +215,10 @@ CONFIG_INT( "h264.qscale.max.neg", qscale_max_neg, 1 );
 CONFIG_INT( "h264.qscale.min.neg", qscale_min_neg, 16 );
 
 int16_t qscale = 0;
-#define QSCALE_MAX (-qscale_max_neg)
-#define QSCALE_MIN (-qscale_min_neg)
+#define MIN(a,b) ((a) < (b) ? a : b)
+#define MAX(a,b) ((a) > (b) ? a : b)
+#define QSCALE_MAX MAX(-qscale_min_neg, -qscale_max_neg) // idiot-proof :)
+#define QSCALE_MIN MIN(-qscale_min_neg, -qscale_max_neg)
 #define QSCALE_OFF (QSCALE_MAX + 1)
 
 void set_vbr( void * priv )
@@ -224,6 +226,7 @@ void set_vbr( void * priv )
 	void (*mvrFixQScale)(uint16_t *) = (void*) 0xFF1AA9C4; // 1.0.8
 	void (*mvrSetDefQScale)(int16_t *) = (void*) 0xFF1AA4A0; // 1.0.8
 
+	qscale = MIN(qscale, QSCALE_OFF);
 	qscale -= 1;
 	if (qscale < QSCALE_MIN)
 		qscale = QSCALE_OFF;
