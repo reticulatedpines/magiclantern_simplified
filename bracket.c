@@ -97,7 +97,7 @@ bracket_task( void * priv )
 	{
 		take_semaphore( bracket_sem, 0 );
 		DebugMsg( DM_MAGIC, 3, "%s: Awake", __func__ );
-		bmp_printf( FONT_SMALL, 400, 30, "%s: Awake", __func__ );
+		bmp_printf( FONT_MED, 0, 30, "%s: Awake", __func__ );
 
 		// Get the current value for a starting point
 		const int ae = lens_get_ae();
@@ -108,21 +108,23 @@ bracket_task( void * priv )
 			ae_count,
 			ae_step
 		);
+		bmp_printf( FONT_MED, 3, 30, "%s: AE=%d, count=%d, steps=%d                          ", __func__, ae, ae_count, ae_step);
 	
 		msleep( 100 );
 
-		int i;
-		for( i=-ae_count/2 ; i<=ae_count/2 ; i++ )
+		//~ bmp_printf( FONT_MED, 3, 50, "%s: i = %d to %d                        ", __func__, -((int)(ae_count/2)), ae_count/2);
+		int i, a, b;
+		a = -((int)(ae_count/2)); // signed/unsigned workaround... 
+		b = (int)(ae_count/2);
+		for( i = a; i <= b; i++ )
 		{
-			int new_ae = ae + ae_step * i;
-			DebugMsg( DM_MAGIC, 3,
-				"%s: Exposure %d: ae %d",
-				__func__,
-				i,
-				new_ae
-			);
+			//~ bmp_printf( FONT_MED, 3, 50, "%s: %d!!!!                        ", __func__, i);
+			int new_ae = ae + (int)(ae_step) * i;
+			bmp_printf( FONT_MED, 3, 30, "%s: Frame %d: newAE=%d                            ", __func__, i, new_ae);
 			lens_set_ae( new_ae );
 			lens_take_picture( 1000 );
+			bmp_printf( FONT_MED, 3, 30, "%s: Took picture                                  ", __func__, i, new_ae);
+			msleep(1000);
 		}
 
 		lens_set_ae( ae );
