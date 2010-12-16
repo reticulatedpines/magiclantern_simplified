@@ -857,19 +857,24 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
-
+int shooting_type;
+PROP_HANDLER(PROP_SHOOTING_TYPE)
+{
+	shooting_type = buf[0];
+	return prop_cleanup( token, property );
+}
 PROP_HANDLER( PROP_REC_TIME )
 {
 	unsigned value = buf[0];
-	//value /= 200; // why? it seems to work out
-	bmp_printf(
-		value < timecode_warning ? timecode_font : FONT_MED,
-		timecode_x + 5 * fontspec_font(timecode_font)->width,
-		timecode_y,
-		"%4d:%02d",
-		value / 60,
-		value % 60
-	);
+	if (shooting_type == 4) // movie mode
+		bmp_printf(
+			value < timecode_warning ? timecode_font : FONT_MED,
+			timecode_x + 5 * fontspec_font(timecode_font)->width,
+			timecode_y,
+			"%4d:%02d",
+			value / 60,
+			value % 60
+		);
 	return prop_cleanup( token, property );
 }
 
