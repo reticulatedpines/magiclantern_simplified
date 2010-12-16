@@ -337,7 +337,7 @@ TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
 
 
 /** Write the MGAIN2-0 bits.
- * Table 19 for the gain values:
+ * Table 19 for the gain values (variable "bits"):
  *
  *   0 == +0 dB
  *   1 == +20 dB
@@ -350,11 +350,26 @@ TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
  *
  * Why is it split between two registers?  I don't know.
  */
+
+static inline unsigned mgain_index2gain(int index) // sorted mgain values
+{
+	static uint8_t gains[] = { 0, 10, 17, 20, 23, 26, 29, 32 };
+	return gains[index & 0x7];
+}
+static inline unsigned mgain_index2bits(int index) // sorted mgain values
+{
+	static uint8_t bitsv[] = { 0, 0x4, 0x5, 0x01, 0x06, 0x02, 0x07, 0x03 };
+	return bitsv[index & 0x7];
+}
+
+
+
 static inline void
 audio_ic_set_mgain(
-	unsigned		bits
+	unsigned		index
 )
 {
+	unsigned bits = mgain_index2bits(index);
 	bits &= 0x7;
 	unsigned sig1 = audio_ic_read( AUDIO_IC_SIG1 );
 	sig1 &= ~0x3;
@@ -568,13 +583,13 @@ audio_configure( int force )
 		"Gain %d/%d Mgain %d Src %d",
 		dgain_l,
 		dgain_r,
-		mgain,
+		mgain_index2gain(mgain),
 		input_source
 	);
 
 	DebugMsg( DM_AUDIO, 3,
 		"Gain mgain=%d dgain=%d/%d",
-		mgain,
+		mgain_index2gain(mgain),
 		dgain_l,
 		dgain_r
 	);
@@ -615,16 +630,14 @@ audio_mgain_toggle( void * priv )
 static void
 audio_mgain_display( void * priv, int x, int y, int selected )
 {
-	static uint8_t gains[] = { 0, 20, 26, 32, 10, 17, 23, 29 };
-	unsigned gain_reg= *(unsigned*) priv;
-	gain_reg &= 0x7;
+	unsigned gain_index = *(unsigned*) priv;
+	gain_index &= 0x7;
 
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Anlg gain:  %2d dB",
-		gains[ gain_reg ]
+		mgain_index2gain(gain_index)
 	);
 }
 
@@ -648,7 +661,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		// 23456789012
-		"%s-Gain:     %2d dB",
+		"%s-DigiGain: %2d dB",
 		priv == &dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
@@ -722,7 +735,7 @@ audio_input_display( void * priv, int x, int y, int selected )
 		(input_source == 0 ? "internal mic " : 
         (input_source == 1 ? "int L ext R  " :
         (input_source == 2 ? "ext stereo   " : 
-        "int L ext L+R")))
+        "int L ext Bal")))
 	);
 }
 static void
