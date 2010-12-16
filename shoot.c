@@ -31,9 +31,12 @@
 #include "property.h"
 
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
+CONFIG_INT( "focus.trap", trap_focus, 1);
+CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between two shots in trap focus
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
+
 
 int timer_values[] = {1,2,5,10,30,60,300,900,3600};
 
@@ -77,6 +80,17 @@ lcd_release_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void 
+trap_focus_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Trap Focus: %s",
+		(*(int*)priv) ? "ON " : "OFF"
+	);
+}
+
 struct menu_entry shoot_menus[] = {
 	{
 		.priv		= &interval_timer_index,
@@ -92,6 +106,11 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &lcd_release_running,
 		.select		= menu_binary_toggle_and_close,
 		.display	= lcd_release_display,
+	},
+	{
+		.priv		= &trap_focus,
+		.select		= menu_binary_toggle,
+		.display	= trap_focus_display,
 	},
 };
 
@@ -137,6 +156,12 @@ PROP_HANDLER( PROP_DRIVE )
 	return prop_cleanup( token, property );
 }
 
+int af_mode;
+PROP_HANDLER(PROP_AF_MODE)
+{
+	af_mode = (int16_t)buf[0];
+	return prop_cleanup( token, property );
+}
 
 static void
 shoot_task( void )
@@ -172,6 +197,27 @@ shoot_task( void )
 			{
 				lens_take_picture(0);
 				while (display_sensor_active()) { msleep(500); }
+			}
+		}
+		else if (trap_focus)
+		{
+			msleep(10);
+			if (lv_drawn) 
+			{
+				//~ bmp_printf(FONT_MED, 20, 35, "Trap Focus does not work in LiveView, sorry...");
+				msleep(500);
+				continue;
+			}
+			if ((af_mode & 0xF) != 3) // != MF
+			{
+				//~ bmp_printf(FONT_MED, 20, 35, "Please switch the lens to Manual Focus mode. %d", af_mode);
+				msleep(500);
+				continue;
+			}
+			if (*(int*)0x41d0)
+			{
+				call( "Release" ); // lens_take_picture may cause black screen (maybe the semaphore messes it up)
+				msleep(trap_focus_delay);
 			}
 		}
 		else msleep(500);
