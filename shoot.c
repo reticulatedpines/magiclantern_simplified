@@ -116,7 +116,7 @@ struct menu_entry shoot_menus[] = {
 
 int display_sensor_active()
 {
-	return !(*(int*)(0x3128+44));
+	return (*(int*)(0x2dec));
 }
 
 PROP_HANDLER( PROP_GUI_STATE )
@@ -192,10 +192,10 @@ shoot_task( void )
 				bmp_printf(FONT_MED, 20, 35, "LCD RemoteShot works if DriveMode is SINGLE or CONTINUOUS");
 				continue;
 			}
-			bmp_printf(FONT_MED, 20, 35, "Move your hand close to the LCD sensor to take a picture!");
+			bmp_printf(FONT_MED, 20, 35, "Move your hand near LCD face sensor to take a picture!");
 			if (display_sensor_active())
 			{
-				lens_take_picture(0);
+				call( "Release" ); // lens_take_picture may cause black screen (maybe the semaphore messes it up)
 				while (display_sensor_active()) { msleep(500); }
 			}
 		}

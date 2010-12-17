@@ -37,8 +37,6 @@ Known issues
 * On FAT32 cards, file I/O errors may cause instability or camera freezing
   (in this case, you need to take the battery out). This happens, for example,
   when running Magic Lantern without a config file. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/070af004c449cdb1>`_.
-* LCD RemoteShot will react to other buttons (not only to the LCD sensor)
-  and in certain cases it might be triggered by timer events. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/ce9e0362571c5f54>`_.
 * Audio monitoring does not work. We don't know how to enable it 
   without breaking USB and maybe other functions. If you need this feature, 
   please uncomment the last line from ``hotplug.c`` and build a custom ``autoexec.bin``.
