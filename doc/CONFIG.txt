@@ -24,23 +24,28 @@ These settings can not be changed from the ML menu, so they are documented here:
     # This does the same thing as Debug->Autoboot menu item.
     magic.disable_bootdiskf = 0
 
-    # Draw a property value
-    debug.dump_prop = 0x1060003
+    # Draw a property value (here BodyID)
+    debug.dump_prop = 0x1000006
 
     # Controls the refresh rate for zebra & friends 
     # (delay in ms between updates)
     zebra.delay = 1000
 
+    # Delay between clearing the overlay in Clear Preview mode
+    clear.preview.delay = 500
+
+    # Stack focus step size and frame count
+    focus.step = 100
+    focus.count = 5
+
     # Limits allowed for qscale control. 
     # Since negative values are not allowed in config file, 
     # put the absolute values here. Qscale can have only negative values.
     h264.qscale.max.neg = 1
-    h264.qscale.max.neg = 16
-
-    # Delay between clearing the overlay in Clear Preview mode
-    clear.preview.delay = 500
+    h264.qscale.min.neg = 16
     
     # Cropmarks (you can cycle between them). Max 3 entries.
     crop.file.1 = B:/hd_ta.bmp
     crop.file.2 = B:/CineScop.bmp
     crop.file.3 = B:/fish8r.bmp
+

@@ -7,40 +7,42 @@ Features
 
 * GUI menus: press the ERASE button to display them
 * Bit rate control (QScale parameter) for the H.264 encoder
-* Display time remaining during video recording
 * Zebra stripes for overexposed / underexposed areas
+* Spotmeter, histogram
+* Cropmarks
 * Simple intervalometer
-* Remote release with the LCD sensor (i.e. put your hand near the LCD to take a pic) 
-* AE bracketing (like on 5D2 ML) 
-* Stack focus (see issues)
+* Trap Focus: camera takes a picture when something comes in focus
+* Wireless trigger with the LCD face sensor & your own hand
+* AE bracketing (like on 5D2 ML)
+* Rack focus
+* Stack focus (Live View only)
 * Lens data computation 
 * Onscreen audio meters
-* Manual audio gain, selectable input source 
-* Debug functions (event, property and debug logging, display CMOS temperature)
+* Manual audio gain, selectable input source, disable AGC and digital filters
+* Display time remaining during video recording
+* Debug functions (display CMOS temperature, screenshot, logging)
 
 Known issues
 ------------
 
-* For stack focus, you have first to go to Live View, then to Play mode, 
-  make sure you have an image, then back to Live View.
 * If you start the camera in LiveView mode, histogram and zebra may not show.
-  If this happens, press MENU twice to get them.
-* Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
+  If this happens, press ``MENU`` or ``PLAY`` or ``LV`` twice to get them.
+* Stack focus only works in Live View. Sometimes, rack & stack focus simply
+  refuse to work, and you need to restart your camera.
 * After closing ML menu, screen may not redraw automatically 
-  (half-press the shutter to trigger a redraw)
+  (half-press the shutter or press ``MENU`` to trigger a redraw)
+* Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * Time remaining for video is meaningless if QScale control is enabled
   (maybe it should be calibrated with the real-time clock?)
-* Rack focus does not seem to work.
-* Playing with debug options may lead to strange behaviors of the
-  camera (if it happens, restart it). 
-* Boot menu entries may be dangerous => be careful with them!
-* On some cameras, file I/O errors may prevent the camera from rebooting
-  (in this case, you need to take the battery out).
+* On FAT32 cards, file I/O errors may cause instability or camera freezing
+  (in this case, you need to take the battery out). This happens, for example,
+  when running Magic Lantern without a config file. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/070af004c449cdb1>`_.
 * LCD RemoteShot will react to other buttons (not only to the LCD sensor)
-  and in certain cases it might be triggered by timer events.
+  and in certain cases it might be triggered by timer events. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/ce9e0362571c5f54>`_.
 * Audio monitoring does not work. We don't know how to enable it 
   without breaking USB and maybe other functions. If you need this feature, 
-  please uncomment the last line from hotplug.c and build a custom autoexec.bin.
+  please uncomment the last line from ``hotplug.c`` and build a custom ``autoexec.bin``.
+  Do this at your own risk, since this may cause other problems, too.
 
 
 Important notes
@@ -80,7 +82,7 @@ Audio tweaks.
 **Analog Gain (dB)**
   Gain applied to both inputs in the analog domain - intended as mic-type preamp, but always preferable to digital gain (unless you want different gain or run out of analog).
 
-**L-Gain and R-Gain (dB)**
+**L-DigiGain and R-DigiGain (dB)**
   Digital gain applied separately to the L and R channel.
 
 **AGC: ON/OFF**
@@ -90,7 +92,7 @@ Audio tweaks.
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
 
 **Inp**
-  Input source: Internal mic (dual mono); int L ext R; ext stereo; int L ext L+R (balanced). 
+  Input source: Internal mic (dual mono); int L ext R; ext stereo; int L ext Bal (balanced Left + Right).
 
 Video
 ~~~~~
@@ -103,7 +105,9 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 
 **Global Draw: ON/OFF**
   Enable/disable drawing extra graphics elements 
-  (zebra, cropmarks, histogram, spotmeter, audio meters)
+  (zebra, cropmarks, histogram, spotmeter, audio meters).
+
+  Tip: use this to quickly turn them off.
 
 **Histogram: ON/OFF**
   Show a histogram for the luma (Y) channel of the LiveView image. Colorspace is YUV.
@@ -118,19 +122,22 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 **CropM**
   Select cropmarks (cycle between the configured ones).
 
-  There are a few predefined cropmarks included in the zip archive:
-  HDTA and Cinemascope provided by CameraRick from the cinema5d forum, 
+  There are 3 predefined cropmarks in the zip archive:
+  HD with Title & Action Safe and Cinemascope provided by *CameraRick* from the ``cinema5d`` forum, 
   and a cropmark for framing fisheye stills with Samyang/8mm.
 
 .. image:: Cropmarks550D.png
     :alt: 400px|center
 
   If you use custom cropmarks, you have to set their name manually in the config file.
-  See the "Hidden settings" section. You can configure max. 3 cropmark files.
+  See the "Hidden settings" section. You can configure max. 3 cropmark files, and give them 
+  short 8:3 names.
   
-  An exclamation mark (!) displayed in the menu means "File not found".
+  An exclamation mark (!) displayed in the menu means "File not found". 
+  Since file I/O errors on FAT32 cards might cause instability (power issues),
+  please make sure all entries are valid.
   
-  See [[Cropmarks]] wiki page for how to create custom cropmarks.
+  See [[Cropmarks]] for how to create custom cropmarks.
 
 {{clr}}
 
@@ -138,7 +145,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   When shutter is half-pressed or DOF-preview is enabled, this clears 
   all the overlays from the Live View display after 1 second. 
   It allows you to compose the picture without any extra distractions. 
-  This works best when autofocus is assigned to the * button (from Custom Functions).
+  This works best when autofocus is assigned to the ``*`` button (from Custom Functions).
 
 **Spotmeter: ON/OFF/Hidden**
   Measure brightness in the center of the frame, and display it as a percentage.
@@ -159,12 +166,15 @@ Functions for stills shooting.
 
 **Intervalometer: ON/OFF**
   Start/stop intervalometer. 
+  
+  Tip: shoot in manual mode and switch the lens to MF.
 
 **LCD RemoteShot: ON/OFF**
   Start/stop shutter release with the LCD sensor. To take a picture, 
   put your hand near the LCD sensor. 
 
-  This is useful for avoiding camera shake without extra $$$
+  This is useful for avoiding camera shake without extra $$$, 
+  especially if you don't have a sturdy tripod.
   
   To use it, select one of P,S,A,M modes, turn OFF Live View, 
   and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
@@ -172,6 +182,12 @@ Functions for stills shooting.
 You can also stop the intervalometer and remote shooting mode
 by pressing PLAY or MENU.
 
+**Trap Focus: ON/OFF**
+
+  You hold the shutter half-pressed; camera takes a picture when something comes into focus.
+  
+  This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
+  
 Brack
 ~~~~~
 
@@ -189,9 +205,9 @@ AE bracketing.
 **AE step**
   Number of AE steps between two shots.
   
-  How big is an AE step? 
-  
-  This feature is still buggy, and seems to work only in AV mode.
+  8 AE steps = 1 EV.
+
+TODO: move Stack focus in this menu maybe.
 
 Focus
 ~~~~~
@@ -199,11 +215,60 @@ Focus
 .. image:: FocusMenu-550D.png
     :alt: thumb|right|Focus menu
 
-See the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
+**Focus dir**
+  This is the direction the lens moves when pressing the camera's Zoom Out button to set the focus start and end points.
 
-See also [[Focus distance]].
+**Focus A**
+    This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set". 
 
-{{clr}}
+**Rack Focus**
+    Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
+
+**Run Stack focus**
+  This selection will shoot a series of photographs with varying focal distances. You can also call this "focus bracketing".
+  It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
+  
+  To configure focus step and number of photos, use the hidden settings ``focus.step`` and ``focus.count``.
+
+The following items are display only:
+
+**Focal Dist**
+    The distance to the focal point. Value is returned by most newer Canon lenses. If the lens does not report any distance information, 0 will be displayed and the DOF calculations will not be correct. 
+    
+    See also [[Focus distance]].
+
+**Hyperfocal**
+    The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
+
+**DOF Near**
+    The nearest distance in which objects appear in focus. 
+
+**DOF Far**
+    The farthest distance in which objects appear in focus. 
+
+See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
+
+**How rack focus works**
+
+Now that you know what the buttons are about, here is how you make it work:
+
+1. After opening the focus menu, pick the end point of your rack focus, focusing manually with your lens on that point.
+
+2. Next on the Focus Menu, select the direction you will have to focus to in order to find the start point. If the start point is a closer focus, pick ``Near``, if it a farther away focus point, pick ``Far``. ( Remember, you are simply telling camera which direction to go to find the start point.)
+
+3. Next, scroll down to ``Focus A``. You need to zero this setting out, before going on. Press ``Set`` to zero it out.
+
+4. Once that is completed you will use the ``Zoom Out`` button in the right hand upper corner of the back of the camera to move the focus point to your start point.
+
+5. Next select the time period of the pull, by scrolling down to rack speed. The lower the number, the longer the rack will take. It is recommended for testing purposes to start around 20.
+
+6. Once that is done, you need to exit the Magic Lantern Menu, to start the camera recording
+
+7. Once the camera is recording, re-enter the Magic Lantern Focus Menu, and scroll to ``Rack Focus``. To start the rack focus, press ``Set``. You should see the rack focus commence and complete its cycle.
+
+8. To return to the beginning point, you can press ``Set`` again to return to that point, once again.
+
+**Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
 
 Debug
 ~~~~~
@@ -213,9 +278,9 @@ Debug
 
 **QScale**
   Controls the H.264 QScale parameter, which affects video bitrate. 
-  Lower values mean higher bitrates. OFF should disable QScale control.
+  Lower values mean higher bitrates. OFF disables QScale control.
   
-  See [[Bit rate]] wiki page for details.
+  See [[Bit rate]] page for details.
   
   Default range is [-1 ... -16]. This can be changed from config file, 
   but qscale is restricted to negative values only, 
@@ -224,12 +289,14 @@ Debug
   QScale setting is not saved; it is applied only when you select this option
   from menu. It may be overwritten by camera firmware when changing video modes.
   When the camera starts, it is OFF.
+  
+  You can change QScale before starting recording, or right in the middle of the movie!
 
 **Save config**
-  Save current settings to MAGIC.CFG.
+  Save current settings to ``MAGIC.CFG``.
 
 **CMOS temp**
-  Temperature of the CMOS sensor, in raw units.
+  Temperature of the CMOS sensor (EFIC temperature), in raw units.
 
 **Draw palette**
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
@@ -240,18 +307,35 @@ Debug
 
 **Dump dmlog**
   Saves a log which contains DebugMsg output.
-  See [[Debugging Magic Lantern]] wiki page.
+  See [[Debugging Magic Lantern]] page.
 
 **Toggle draw_prop**
   Display property changes in real-time.
   See [[Properties]].
 
 **Toggle draw_event**
-  Display GUI events in real-time, and also inhibits most of them.
+  Display GUI events in real-time.
   See [[GUI_Events/550D]].
 
-Some items from this menu may not be available in release builds, 
-because they are potentially dangerous.
+**Toggle mem_spy**
+  Display memory addresses which change, but not those which change like mad. 
+  Useful for detecting interesting addresses inside the camera RAM (like sensor & button locations).
+  
+  Start address and size is selected with the hidden settings ``debug.mem-spy.*``
+  (see ``debug.c`` for details). You can also display only "small" or "boolean" values.
+  
+  Trying to spy the camera_engine addresses seems to cause trouble (camera freeze). 
+  Probably it's not safe to read data from those areas.
+
+**Powersave**
+  Disable the powersave so that the LiveView never shuts off.
+
+  WARNING -- this can cause problems with your sensor!
+
+  **DO NOT LEAVE THE CAMERA ON CONTINUOUSLY!**
+
+Some items from this menu may not be available in release builds; 
+you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
 Boot
 ~~~~
@@ -266,16 +350,11 @@ Settings related to the Magic Lantern boot process.
 
 **Autoboot: ON/OFF**
   Toggle the ``DISKBOOT`` flag in the NVRAM by calling ``bootdisk_enable()`` / ``bootdisk_disable()``
-  (i.e. eventprocs ``EnableBootDisk`` and  ``DisableBootDisk``).
+  (these are registered by camera FW as eventprocs with names ``EnableBootDisk`` and  ``DisableBootDisk``).
+  
+  If you disable Autoboot, Magic Lantern won't boot any more (you will have to reinstall it).
   
   If you do not have access to the menu, you can use the hidden setting ``magic.disable_bootdiskf`` for this.
 
-**Powersave**
-  Disable the powersave so that the LiveView never shuts off.
-
-  WARNING -- this can cause problems with your sensor!
-
-  **DO NOT LEAVE THE CAMERA ON CONTINUOUSLY!**
-
-Some items from this menu may not be available in release builds, 
-because they are potentially dangerous.
+This menu may not be available in release builds, 
+because these settings are potentially dangerous.

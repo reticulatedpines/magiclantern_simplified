@@ -8,8 +8,8 @@ RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-VERSION=0.2.0.rc1.550d.fw109
-#~ VERSION=2010dec15.550d.fw109.PRERELEASE.a1ex
+#~ VERSION=0.2.0.rc1.550d.fw109
+VERSION=2010dec17.550d.fw109.PRERELEASE.a1ex
 
 #MacOS
 #UMOUNT=hdiutil unmount
