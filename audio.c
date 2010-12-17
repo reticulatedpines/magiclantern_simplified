@@ -77,7 +77,8 @@ struct audio_level
 
 struct audio_level audio_levels[2];
 
-// from Morgan
+// from Morgan Look
+// THIS FUNCTION IS NOT TESTED!!! (it may work, or it may not)
 void masked_audio_ic_write(
    unsigned reg,     // the register we wish to manipulate (eg AUDIO_IC_SIG1)
    unsigned mask, // the range of bits we want to manipulate (eg 0x05 or b0000111) to only allow changes to b3,b2,b0
@@ -88,7 +89,7 @@ void masked_audio_ic_write(
    old = audio_ic_read(reg);  // read current register value
    old &= ~mask;                     // bitwise AND old value against inverted mask
    bits &= mask;                      // limit scope of new bits with mask
-   _audio_ic_write(reg | bits | new);    // bitwise OR everything together and call _audio_ic_write function
+   _audio_ic_write(reg | bits | old);    // bitwise OR everything together and call _audio_ic_write function
 }
 
 
