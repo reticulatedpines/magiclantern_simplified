@@ -20,7 +20,7 @@ bracket_start( void * priv )
 }
 
 CONFIG_INT("brack.ae-count", ae_count, 5);
-CONFIG_INT("brack.ae-step", ae_step, 3);
+CONFIG_INT("brack.ae-step", ae_step, 8);
 
 static void
 ae_display(
