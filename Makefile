@@ -8,8 +8,26 @@ RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
+
+# Naming convention for Magic Lantern builds:
+# General rules:
+# - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
+# - For non-release builds, specify the build date and author's (nick)name.
+# - For experimental builds, add a short keyword indicating the particular feature tested.
+
+# Examples for experimental builds:
+# magiclantern-2010dec07.550d.fw108.cropmarks.a1ex.zip 
+# magiclantern-2010nov23.550d.fw108.selectable-audio.piers.zip 
+
+# Example for pre-release builds:
+# magiclantern-2010dec17.550d.fw109.PRERELEASE.alex.zip
+
+# Release builds:
+# magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
-VERSION=2010dec17.550d.fw109.PRERELEASE.a1ex
+
+BUILDVER=PRERELEASE.$(shell whoami)
+VERSION:=$(shell date +'%Y%b%d' | tr [A-Z] [a-z]).550d.fw109.$(BUILDVER)
 
 #MacOS
 #UMOUNT=hdiutil unmount
