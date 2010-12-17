@@ -260,7 +260,7 @@ bootflags_init( void )
 	if( autoboot_loaded == 0 )
 		initial_install();
 
-	menu_add( "Boot", boot_menus, COUNT(boot_menus) );
+	menu_add( "Debug", boot_menus, COUNT(boot_menus) );
 
 	if( disable_powersave )
 	{

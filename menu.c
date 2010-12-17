@@ -609,7 +609,7 @@ menu_init( void )
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
-	menu_find_by_name( "Boot" );
+	//~ menu_find_by_name( "Boot" );
 
 /*
 	bmp_printf( FONT_LARGE, 0, 40, "Yes, use this battery" );
