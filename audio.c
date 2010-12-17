@@ -59,7 +59,12 @@ CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LP
 
 
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 1);
-static int do_draw_meters = 1;
+int do_draw_meters = 1;
+
+int lv_drawn()
+{
+	return do_draw_meters;
+}
 
 int ext_cfg_draw_meters(void)
 {

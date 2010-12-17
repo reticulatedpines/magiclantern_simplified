@@ -66,8 +66,6 @@ static struct menu_entry spotmeter_menus[] = {
 };
 
 
-extern int lv_drawn;
-
 static void
 spotmeter_task( void * priv )
 {
@@ -77,7 +75,7 @@ spotmeter_task( void * priv )
 	while(1)
 	{
 		// Draw a few pixels to indicate the center
-		if( !spotmeter_draw || !lv_drawn || gui_menu_shown())
+		if( !spotmeter_draw || !lv_drawn() || gui_menu_shown())
 		{
 			msleep( 1000 );
 			continue;

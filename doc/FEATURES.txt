@@ -25,8 +25,6 @@ Features
 Known issues
 ------------
 
-* If you start the camera in LiveView mode, histogram and zebra may not show.
-  If this happens, press ``MENU`` or ``PLAY`` or ``LV`` twice to get them.
 * Stack focus only works in Live View. Sometimes, rack & stack focus simply
   refuse to work, and you need to restart your camera.
 * After closing ML menu, screen may not redraw automatically 

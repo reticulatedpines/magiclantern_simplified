@@ -32,7 +32,6 @@
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
-extern volatile unsigned lv_drawn = 0;
 static volatile unsigned sensor_cleaning = 1;
 
 #define vram_start_line	33
@@ -539,7 +538,7 @@ draw_zebra( void )
 		for( x=2 ; x < vram->width-2 ; x+=2 ) // width = 720
 		{
 			// Abort as soon as the new menu is drawn
-			if( gui_menu_task || !lv_drawn )
+			if( gui_menu_task || !lv_drawn() )
 				return;
 
 			uint16_t pixel = b_row[x/2];
@@ -823,17 +822,6 @@ struct menu_entry zebra_menus[] = {
 
 
 
-PROP_HANDLER( PROP_LV_ACTION )
-{
-	// LV_START==0, LV_STOP=1
-    DebugMsg(DM_MAGIC, 3, "PROP_LV_ACTION => %d", buf[0]);
-	lv_drawn = !buf[0];
-	return prop_cleanup( token, property );
-}
-
-
-
-
 PROP_HANDLER( PROP_ACTIVE_SWEEP_STATUS )
 {
     DebugMsg(DM_MAGIC, 3, "PROP_ACTIVE_SWEEP_STATUS => %d", buf[0]);
@@ -890,13 +878,12 @@ static void
 zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
-	lv_drawn = 0;
 	load_cropmark(crop_draw);
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 
 	while(1) // each code path should have a msleep; the clearscreen one
 	{
-		if (clearpreview_enable && shutter_halfpressed && lv_drawn && !gui_menu_shown()) // preview image without any overlays
+		if (clearpreview_enable && shutter_halfpressed && lv_drawn() && !gui_menu_shown()) // preview image without any overlays
 		{
 			msleep(clearpreview_delay);
 			bmp_fill( 0x0, 0, 0, 720, 480 );
@@ -909,7 +896,7 @@ zebra_task( void )
 			global_draw = global_draw_bk;
 			//~ bmp_printf(FONT_LARGE, 30, 30, "BMP enabled");
 		}
-		else if( lv_drawn && !gui_menu_shown() && global_draw) // normal zebras
+		else if( lv_drawn() && !gui_menu_shown() && global_draw) // normal zebras
 		{
 			draw_zebra();
 			msleep(zebra_delay);
@@ -938,7 +925,7 @@ zebra_task( void )
 
 	while(1)
 	{
-		if ( lv_drawn )
+		if ( lv_drawn() )
 		{
 			draw_zebra();
 			msleep( 100 );

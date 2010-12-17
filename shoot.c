@@ -141,14 +141,6 @@ PROP_HANDLER( PROP_HALF_SHUTTER )
 	return prop_cleanup( token, property );
 }
 
-int lv_drawn;
-PROP_HANDLER( PROP_LV_ACTION )
-{
-    DebugMsg(DM_MAGIC, 3, "PROP_LV_ACTION => %d", buf[0]);
-	lv_drawn = !buf[0];
-	return prop_cleanup( token, property );
-}
-
 int drive_mode;
 PROP_HANDLER( PROP_DRIVE )
 {
@@ -182,7 +174,7 @@ shoot_task( void )
 		else if (lcd_release_running)
 		{
 			msleep(20);
-			if (lv_drawn) 
+			if (lv_drawn()) 
 			{
 				bmp_printf(FONT_MED, 20, 35, "LCD RemoteShot does not work in LiveView, sorry...");
 				continue;
@@ -202,7 +194,7 @@ shoot_task( void )
 		else if (trap_focus)
 		{
 			msleep(10);
-			if (lv_drawn) 
+			if (lv_drawn()) 
 			{
 				//~ bmp_printf(FONT_MED, 20, 35, "Trap Focus does not work in LiveView, sorry...");
 				msleep(500);
