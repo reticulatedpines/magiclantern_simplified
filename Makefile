@@ -445,7 +445,7 @@ magiclantern.fir: autoexec.bin
 	@if [ -f ../dumper/build_fir.py ]; then \
 		python ../dumper/build_fir.py -r $^ $@ ; \
 	else \
-		echo "\n../dumper/build_fir.py not found; will not build magiclantern.fir."; \
+		echo "\nNotice: ../dumper/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
 		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
 		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
 		echo "";\
