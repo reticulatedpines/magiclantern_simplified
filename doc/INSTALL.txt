@@ -117,12 +117,15 @@ You need to change the following line in order to indicate your SD card device::
 
 Windows
 ```````
-Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!)
 
-Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
+Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!)
 
 .. image:: EOScard.png
     :alt: thumb|right|EOScard usage
+
+Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
+
+{{clr}}
 
 
 Step 3. The last one :)
