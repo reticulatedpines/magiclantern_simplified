@@ -84,7 +84,7 @@ Step 1. Enabling bootflag
 .. image:: 550install.jpg
     :alt: thumb|right|Magic Lantern install screen
 
-* Format the SD card
+* Format the SD card from the camera (``Wrench 1`` menu)
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
   start the camera and select ``Firmware ver 1.0.9`` from the ``Wrench 3`` menu 
@@ -115,6 +115,18 @@ You need to change the following line in order to indicate your SD card device::
     # change this
     dev=/dev/disk1s1
 
+* To find the correct ``/dev/`` entry under **OS X** type::
+
+      diskutil list | grep FAT
+
+  That will list all mounted FAT disks, the ``/dev/`` entry is the last column. Note also that under OS X this script will leave the card unmounted, eject and reinsert it to re-mount it. 
+
+* To find the correct ``/dev/`` entry under **Linux** type::
+
+      mount | grep fat
+
+  and choose the one labeled ``EOS_DIGITAL``. You may have to run this script as root.
+
 Windows
 ```````
 
@@ -132,7 +144,7 @@ Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Delete ``magiclantern.fir`` and copy ``autoexec.bin``, ``magic.cfg`` 
-and ``*.bmp`` files on your SDCard.
+and ``*.bmp`` files on your SDCard. Put the card in the camera.
 
 Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
