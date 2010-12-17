@@ -101,8 +101,10 @@ Step 2. Making the SD card bootable
 The file ``autoexec.bin`` can be launched if the bootdisk is enabled 
 AND the SD card is "prepared" with special values written in boot sector:
 
-* for FAT16 cards: ``EOS_DEVELOP`` written at offset 43 and ``BOOTDISK`` at offset 64
-* for FAT32 cards: ``EOS_DEVELOP`` written at offset 71 and ``BOOTDISK`` at offset 92
+* for FAT16 cards: ``EOS_DEVELOP`` at offset 43 and ``BOOTDISK`` at offset 64
+* for FAT32 cards: ``EOS_DEVELOP`` at offset 71 and ``BOOTDISK`` at offset 92
+
+**Do not put an "prepared" (bootable) card without ``autoexec.bin`` in the camera! (it won't boot and you'll have to take the battery out).**
 
 Linux and Mac OS X
 ``````````````````
@@ -113,21 +115,15 @@ You need to change the following line in order to indicate your SD card device::
     # change this
     dev=/dev/disk1s1
 
-Then run the script with::
-
-    bash make_bootable.sh
-
 Windows
 ```````
-You can use:
+Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!)
 
-* **CardTricks** tool from CHDK, for cards smaller than 4 GB: `here <http://chdk.wikia.com/wiki/CHDK/Installing_with_Cardtricks>`_
-* **bootCF** for larger cards: `here <http://groups.google.com/group/ml-devel/msg/39730e28a233350f>`_
-  
-To run **bootCF**, either drag the card's icon from the ``My Computer`` screen 
-onto the ``BootCF.exe`` icon, or run **bootCF** from command prompt.
+Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
 
-You can verify whether the boot sector has been modified using `HxD <http://mh-nexus.de/en/hxd/>`_.
+.. image:: EOScard.png
+    :alt: thumb|right|EOScard usage
+
 
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,13 +144,15 @@ Troubleshooting
 * If Magic Lantern does not work (i.e. no new features are noticed), repeat Step 2. 
   Also try with an older (FAT16) card.
 
-* **Again, NEVER let a prepared card without a working autoexec.bin on it, 
-remove the battery immediatly during 5 secs, switching off is not enough !!!**
+* **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 secs, switching off is not enough !!!** 
 
 Video instructions
 ~~~~~~~~~~~~~~~~~~
-* `This video <http://www.youtube.com/watch?v=8a9EOxOtU0E>`_ shows the firmware upgrade process using magiclantern.fir (how to enable the DISKBOOT flag). It is for Magic Lantern for 550D/1.0.8, but the proces is 90% the same for 1.0.9 (the latest version loads faster).
-* `This video <http://www.youtube.com/watch?v=GXwcbZ4Njaw>`_ shows how to prepare a bootable card and run a custom autoexec.bin. This video shows an unofficial build of Magic Lantern for 550D/1.0.8. The procedure for preparing the card is identical for 1.0.8 and 1.0.9.
+
+These videos are outdated, but might still be useful:
+
+* `This video <http://www.youtube.com/watch?v=8a9EOxOtU0E>`_ shows the firmware upgrade process using ``magiclantern.fir`` (how to enable the ``DISKBOOT`` flag). It is for Magic Lantern for 550D/1.0.8, but the proces is 90% the same for 1.0.9 (the latest version loads faster).
+* `This video <http://www.youtube.com/watch?v=GXwcbZ4Njaw>`_ shows how to prepare a bootable card with ``bootCF`` and run a custom autoexec.bin. This video shows an experimental build of Magic Lantern for 550D/1.0.8, but might still be useful.
 
 Older versions (archived)
 =========================
