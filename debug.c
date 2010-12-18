@@ -203,13 +203,13 @@ draw_prop_select( void * priv )
 }
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
-CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0x0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0x0 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
 CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x1000 );         // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	1 );         // only display small numbers (less than 10)
 
-#define mem_spy_start ((uint32_t)mem_spy_start_lo & ((uint32_t)mem_spy_start_hi << 16))
+#define mem_spy_start ((uint32_t)mem_spy_start_lo | ((uint32_t)mem_spy_start_hi << 16))
 
 static void
 mem_spy_select( void * priv )
@@ -281,7 +281,7 @@ static uint32_t* dbg_memchanges = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-	//~ bmp_printf(FONT_MED, 10,10, "memspy init");
+	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... %x", mem_spy_start, mem_spy_len);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
 	if (!dbg_memmirror) return;
