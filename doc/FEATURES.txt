@@ -25,16 +25,11 @@ Features
 Known issues
 ------------
 
-* Stack focus only works in Live View. Sometimes, rack & stack focus simply
-  refuse to work, and you need to restart your camera.
+* Stack focus only works in Live View, after going through Play mode first. 
+  Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
 * After closing ML menu, screen may not redraw automatically 
   (half-press the shutter or press ``MENU`` to trigger a redraw)
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
-* Time remaining for video is meaningless if QScale control is enabled
-  (maybe it should be calibrated with the real-time clock?)
-* On FAT32 cards, file I/O errors may cause power management issues 
-  (you can't turn the camera off and back on without taking the battery out).
-  This happens, for example, when running Magic Lantern without a config file. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/070af004c449cdb1>`_.
 * Audio monitoring does not work. We don't know how to enable it 
   without breaking USB and maybe other functions. If you need this feature, 
   please uncomment the last line from ``hotplug.c`` and build a custom ``autoexec.bin``.
