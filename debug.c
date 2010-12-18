@@ -203,10 +203,13 @@ draw_prop_select( void * priv )
 }
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
-CONFIG_INT( "debug.mem-spy.start",	mem_spy_start,	0x0 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0x0 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0x0 ); // start from here
 CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x1000 );         // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	1 );         // only display small numbers (less than 10)
+
+#define mem_spy_start ((uint32_t)mem_spy_start_lo & ((uint32_t)mem_spy_start_hi << 16))
 
 static void
 mem_spy_select( void * priv )
@@ -273,8 +276,8 @@ print_vbr(
 }
 //-------------------------end qscale--------------
 
-static unsigned* dbg_memmirror = 0;
-static unsigned* dbg_memchanges = 0;
+static uint32_t* dbg_memmirror = 0;
+static uint32_t* dbg_memchanges = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
@@ -286,11 +289,11 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 	if (!dbg_memchanges) return;
 	int i;
 	//~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
-	unsigned crc = 0;
+	uint32_t crc = 0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
-		unsigned addr = mem_spy_start + i*4;
-		dbg_memmirror[i] = *(unsigned*)(addr);
+		uint32_t addr = mem_spy_start + i*4;
+		dbg_memmirror[i] = *(uint32_t*)(addr);
 		dbg_memchanges[i] = 0;
 		crc += dbg_memmirror[i];
 	}
@@ -304,10 +307,10 @@ static void dbg_memspy_update()
 	int k=0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
-		unsigned fnt = FONT_SMALL;
-		unsigned addr = mem_spy_start + i*4;
-		unsigned oldval = dbg_memmirror[i];
-		unsigned newval = *(unsigned*)(addr);
+		uint32_t fnt = FONT_SMALL;
+		uint32_t addr = mem_spy_start + i*4;
+		uint32_t oldval = dbg_memmirror[i];
+		uint32_t newval = *(uint32_t*)(addr);
 		if (oldval != newval)
 		{
 			//~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
