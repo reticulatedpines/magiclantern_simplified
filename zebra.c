@@ -694,7 +694,7 @@ crop_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"CropM:%s%s  ",
+		"CropM:%s%s",
 		 (index == 1 ? crop_file_1 + 3 :
 		 (index == 2 ? crop_file_2 + 3 :
 		 (index == 3 ? crop_file_3 + 3 :
