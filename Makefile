@@ -214,9 +214,10 @@ ML_OBJS-y = \
 	hotplug.o \
 	zebra.o \
 	focus.o \
-	spotmeter.o \
 	bracket.o \
-	shoot.o
+	shoot.o \
+	spotmeter.o \
+
 NO=\
 	ptp.o \
 
