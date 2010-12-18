@@ -837,10 +837,29 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 	shooting_type = buf[0];
 	return prop_cleanup( token, property );
 }
+
+int movie_elapsed_time = 0;
+int movie_elapsed_ticks = 0;
+int recording = 0;
+PROP_HANDLER(PROP_MVR_REC_START)
+{
+	recording = buf[0];
+	if (!recording)
+	{
+		movie_elapsed_ticks = 0;
+		movie_elapsed_time = 0;
+	}
+	return prop_cleanup( token, property );
+}
 PROP_HANDLER( PROP_REC_TIME )
 {
-	unsigned value = buf[0];
+	uint32_t value = buf[0];
 	if (shooting_type == 4) // movie mode
+	{
+		if (recording) movie_elapsed_ticks++;
+		
+		//~ bmp_printf(FONT_MED, 30,30, "ticks=%d, time=%d", movie_elapsed_ticks, movie_elapsed_time);
+		value = value * movie_elapsed_time / movie_elapsed_ticks;
 		bmp_printf(
 			value < timecode_warning ? timecode_font : FONT_MED,
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
@@ -849,6 +868,8 @@ PROP_HANDLER( PROP_REC_TIME )
 			value / 60,
 			value % 60
 		);
+	}
+	else movie_elapsed_ticks = 0;
 	return prop_cleanup( token, property );
 }
 
@@ -925,3 +946,15 @@ zebra_task( void )
 
 
 TASK_CREATE( "zebra_task", zebra_task, 0, 0x18, 0x1000 );
+
+static void
+movie_clock_task( void )
+{
+	while(1)
+	{
+		msleep(1000);
+		if (shooting_type == 4 && recording) movie_elapsed_time++;
+	}
+}
+
+TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x18, 0x1000 );
