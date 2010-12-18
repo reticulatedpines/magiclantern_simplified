@@ -24,6 +24,7 @@
 #include "dryos.h"
 #include "config.h"
 #include "version.h"
+#include "bmp.h"
 
 // Don't use isspace since we don't have it
 static inline int
@@ -344,14 +345,19 @@ config_parse_file(
 {
 	FILE * file = FIO_Open( filename, O_SYNC );
 	strcpy( head.value, filename );
+	msleep(100);
 	if( file == INVALID_PTR )
 	{
+		bmp_printf(FONT_MED, 0, 120, "Could not open config file");
 		config_auto_parse( &head );
+		bmp_printf(FONT_MED, 0, 120, "Using default config values");
 		return 0;
 	}
 
+	bmp_printf(FONT_MED, 0, 120, "Config file opened");
 	struct config * config = config_parse( file );
 	FIO_CloseFile( file );
+	bmp_printf(FONT_MED, 0, 120, "Config file parsed");
 	head.next = config;
 	return &head;
 }
