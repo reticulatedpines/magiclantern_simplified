@@ -9,7 +9,7 @@ Features
 * Bit rate control (QScale parameter) for the H.264 encoder
 * Zebra stripes for overexposed / underexposed areas
 * Spotmeter, histogram
-* Cropmarks
+* Cropmarks (16:9, Cinemascope, Fisheye)
 * Simple intervalometer
 * Trap Focus: camera takes a picture when something comes in focus
 * Wireless trigger with the LCD face sensor & your own hand
@@ -32,9 +32,9 @@ Known issues
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * Time remaining for video is meaningless if QScale control is enabled
   (maybe it should be calibrated with the real-time clock?)
-* On FAT32 cards, file I/O errors may cause instability or camera freezing
-  (in this case, you need to take the battery out). This happens, for example,
-  when running Magic Lantern without a config file. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/070af004c449cdb1>`_.
+* On FAT32 cards, file I/O errors may cause power management issues 
+  (you can't turn the camera off and back on without taking the battery out).
+  This happens, for example, when running Magic Lantern without a config file. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/070af004c449cdb1>`_.
 * Audio monitoring does not work. We don't know how to enable it 
   without breaking USB and maybe other functions. If you need this feature, 
   please uncomment the last line from ``hotplug.c`` and build a custom ``autoexec.bin``.
@@ -195,13 +195,11 @@ AE bracketing.
 **Test bracket**
   Take a few pictures with the selected settings.
 
-**AE count**
+**AE Count**
   Number of pictures to take.
 
-**AE step**
-  Number of AE steps between two shots.
-  
-  8 AE steps = 1 EV.
+**AE Step**
+  AE step size between two shots (in EV).
 
 TODO: move Stack focus in this menu maybe.
 

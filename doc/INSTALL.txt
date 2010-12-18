@@ -161,6 +161,8 @@ Troubleshooting
 
 * **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 secs, switching off is not enough !!!** 
 
+* Look in the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues>`_ for similar problems; if you can't find the solution, create a new issue there.
+
 Video instructions
 ~~~~~~~~~~~~~~~~~~
 
@@ -202,6 +204,9 @@ Risks
 
 * This firmware does a (very small) (semi-)permanent change to your camera: it changes the ``DISKBOOT`` flag, which is stored in NVRAM. This change can be reverted (see the mailing list and bootflags.c).
 * There are no confirmed reports of Magic Lantern doing permanent damage on the 550D. However, there are reports on the CHDK forums that some users `bricked their 350D <http://chdk.setepontos.com/index.php?topic=4202.315>`_, most probably by installing a hack on the wrong firmware version. There are also lots of reports of camera refusing to boot after installing ML; this happens because they have tried to start the camera from a bootable (i.e. prepared) card without ``autoexec.bin``. That's why you should read the install instructions carefully.
+* Starting the camera with a "prepared" (bootable) card without an ``autoexec.bin`` will cause symptoms similar to a bricked one (it will not boot). This may scare you. It it happens, **take the battery out quickly** and the camera should be fine.
+* On certain cameras, there are power management issues (i.e. if you turn off the camera or let it go to standby, it won't start any more). Make sure you don't have these problems; if you do, take the battery out after each shooting session!
+* Even if you don't have power issues, it's a good idea to take the battery out when you don't use the camera.
 * The biggest risk is when experimenting with source code without knowing what you are doing. Calling certain functions or calling them at the wrong moment can be dangerous.
 * Risks are low with pre-built binaries, since we test them on our cameras before making them public.
 * Risks are minimal with official versions (from the main repo), since they get tested by many users before releasing them.
