@@ -346,6 +346,7 @@ config_parse_file(
 	strcpy( head.value, filename );
 	if( file == INVALID_PTR )
 	{
+		config_auto_parse( &head );
 		return 0;
 	}
 
