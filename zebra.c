@@ -151,39 +151,23 @@ check_zebra(
 	uint16_t * 		m_row
 )
 {
-    //~ DebugMsg(DM_MAGIC, 3, "check_zebra(%d, %d, %x, %x, %d)", x, y, b_row, v_row, vram_pitch);
-	uint8_t zebra_color_0 = COLOR_BG; // 0x6F; // bright read
-	uint8_t zebra_color_1 = 12; // red
+	// Determine if we are a zig or a zag line
+	if (((y >> 3) ^ (x >> 3)) & 1) return 0;
 
 	uint32_t pixel = v_row[x/2];
 	uint32_t p0 = ((pixel >> 16) & 0xFF00) >> 8; // odd bytes are luma
 	uint32_t p1 = ((pixel >>  0) & 0xFF00) >> 8;
-    //~ DebugMsg(DM_MAGIC, 3, "pixels: %x, %x, %x; zebra level = %x", pixel, p0, p1, zebra_level);
 
 	// If neither pixel is overexposed or underexposed, ignore it
 	if( p0 <= zebra_level_hi && p1 <= zebra_level_hi && p0 >= zebra_level_lo && p1 >= zebra_level_lo)
 		return 0;
 
-    if (p0 < zebra_level_lo || p1 < zebra_level_lo)
-    { // color for underexposed pixels
-        zebra_color_0 = COLOR_BG;
+ 	uint8_t zebra_color_1 = 12; // red
+   if (p0 < zebra_level_lo || p1 < zebra_level_lo)
         zebra_color_1 = 13; // blue 
-    }
 
-    //~ DebugMsg(DM_MAGIC, 3, "overexposed");
-
-	// Determine if we are a zig or a zag line
-	uint32_t zag = ((y >> 3) ^ (x >> 3)) & 1;
-
-	// Build the 16-bit word to write both pixels
-	// simultaneously into the BMP VRAM
-	uint16_t zebra_color_word = zag
-		? (zebra_color_0<<8) | (zebra_color_0<<0)
-		: (zebra_color_1<<8) | (zebra_color_1<<0);
-
-    //~ DebugMsg(DM_MAGIC, 3, "color word = %x", zebra_color_word);
-	b_row[x/2] = zebra_color_word;
-	m_row[x/2] = zebra_color_word;
+	b_row[x/2] = (zebra_color_1<<8) | (zebra_color_1<<0);
+	m_row[x/2] = (zebra_color_1<<8) | (zebra_color_1<<0);
 	return 1;
 }
 
@@ -519,13 +503,15 @@ draw_zebra( void )
 	// hardcoded; should use a constant based on the type of display
 	// 33 is the bottom of the meters; 55 is the crop mark
 	uint32_t x,y;
+	int cfg_draw_meters = ext_cfg_draw_meters();
+	int bmppitch = bmp_pitch();
 	for( y=1 ; y < 480; y++ )
 	{
         // if audio meters are enabled, don't draw in this area
-        if (ext_cfg_draw_meters() && y < 33) continue;
+        if (cfg_draw_meters && y < 33) continue;
         
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
-		uint16_t * const b_row = (uint16_t*)( bvram + y * bmp_pitch() );
+		uint16_t * const b_row = (uint16_t*)( bvram + y * bmppitch );
 		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * 720 );
 
 		//~ bmp_printf(FONT_MED, 30, 50, "Row: %8x/%8x", b_row, m_row);
