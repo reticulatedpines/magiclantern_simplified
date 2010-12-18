@@ -918,10 +918,10 @@ my_sounddev_task( int some_param )
 	);
 	
 	//DIY debug ..
-	bmp_printf( FONT_SMALL, 500, 400,
-			   "sddvtsk, param=%d",
-			   some_param
-			   );	
+	//~ bmp_printf( FONT_SMALL, 500, 400,
+			   //~ "sddvtsk, param=%d",
+			   //~ some_param
+			   //~ );	
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
 

@@ -305,7 +305,7 @@ my_init_task(void)
 
 #ifndef CONFIG_EARLY_PORT
 
-	msleep( 2500 );
+	msleep( 1500 );
 
 	menu_init();
 	debug_init();
