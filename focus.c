@@ -311,19 +311,19 @@ TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 PROP_HANDLER( PROP_LV_FOCUS )
 {
-	return;
-	static int16_t oldstep = 0;
-	const struct prop_focus * const focus = (void*) buf;
-	const int16_t step = (focus->step_hi << 8) | focus->step_lo;
-	bmp_printf( FONT_SMALL, 200, 30,
-		"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
-			*(unsigned*)buf,
-			focus->active,
-			(int) step,
-			(unsigned) step & 0xFFFF,
-			focus->mode
-		);
 	return prop_cleanup( token, property );
+	//~ static int16_t oldstep = 0;
+	//~ const struct prop_focus * const focus = (void*) buf;
+	//~ const int16_t step = (focus->step_hi << 8) | focus->step_lo;
+	//~ bmp_printf( FONT_SMALL, 200, 30,
+		//~ "FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
+			//~ *(unsigned*)buf,
+			//~ focus->active,
+			//~ (int) step,
+			//~ (unsigned) step & 0xFFFF,
+			//~ focus->mode
+		//~ );
+	//~ return prop_cleanup( token, property );
 }
 
 static struct menu_entry focus_menu[] = {
