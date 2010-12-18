@@ -30,13 +30,23 @@ ae_display(
 	int			selected
 )
 {
+	if (priv == &ae_step)
+	{
+		int steps = *(int*)priv;
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"AE Step:    %d%s eV",
+			steps/8,
+			((steps/4) % 2) ? ".5" : ""
+		);
+		return;
+	}
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//2349012
-		"AE %s   %2d",
+		"AE %s   %d",
 		priv == &ae_count  ? "Count:" :
-		priv == &ae_step   ? "Step: " :
 		"?????:",
 		*(int*) priv
 	);
@@ -60,9 +70,9 @@ ae_adjust_step(
 	void *			priv
 )
 {
-	ae_step++;
-	if( ae_step > 18 )
-		ae_step = 1;
+	ae_step += 4;
+	if( ae_step > 32 )
+		ae_step = 4;
 }
 
 
