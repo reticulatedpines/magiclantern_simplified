@@ -133,10 +133,13 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 {{clr}}
 
 **ClrPreview: ON/OFF**
-  When shutter is half-pressed or DOF-preview is enabled, this clears 
+  When shutter is half-pressed, this clears 
   all the overlays from the Live View display after 1 second. 
   It allows you to compose the picture without any extra distractions. 
+  
   This works best when autofocus is assigned to the ``*`` button (from Custom Functions).
+  
+  Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
 
 **Spotmeter: ON/OFF/Hidden**
   Measure brightness in the center of the frame, and display it as a percentage.
