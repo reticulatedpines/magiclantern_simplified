@@ -305,16 +305,13 @@ my_init_task(void)
 
 #ifndef CONFIG_EARLY_PORT
 
-	msleep( 750 );
+	msleep( 2500 );
 
 	menu_init();
 	debug_init();
 
 	msleep( 1000 );
 
-	// Parse our config file
-	const char * config_filename = "B:/magic.cfg";
-	global_config = config_parse_file( config_filename );
 	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
 		"Built on %s by %s\n",
@@ -323,26 +320,17 @@ my_init_task(void)
 		build_date,
 		build_user
 	);
+
+	// Parse our config file
+	const char * config_filename = "B:/magic.cfg";
+	global_config = config_parse_file( config_filename );
 	bmp_printf( FONT_MED, 0, 70,
 		"Config file %s: %s",
 		config_filename,
 		global_config ? "YES" : "NO"
 	);
-/*
-	msleep( 500 );
-	bmp_printf( FONT(FONT_HUGE,COLOR_YELLOW,COLOR_BLUE),
-		80, 80,
-		" Magic \nLantern\n %s ",
-		build_version
-	);
-	msleep( 2000 );
-	bmp_fill(0, 80, 80, 7*60, 3 *70);
-*/
 
 	init_funcs_done = 0;
-	//task_create( "init_func", 0x1f, 0x1000, call_init_funcs, 0 );
-	//while( !init_funcs_done )
-		//msleep(10);
 	call_init_funcs( 0 );
 
 	msleep( 1000 );
@@ -352,6 +340,7 @@ my_init_task(void)
 	extern struct task_create _tasks_end[];
 	struct task_create * task = _tasks_start;
 
+	int ml_tasks = 0;
 	for( ; task < _tasks_end ; task++ )
 	{
 		DebugMsg( DM_MAGIC, 3,
@@ -369,7 +358,12 @@ my_init_task(void)
 			task->entry,
 			task->arg
 		);
+		ml_tasks++;
 	}
+	bmp_printf( FONT_MED, 0, 85,
+		"Magic Lantern is up and running... %d tasks started.",
+		ml_tasks
+	);
 
 	DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
