@@ -126,7 +126,7 @@ static void gui_main_task_550d()
 			}
 			if (event->param == 0x3f) // zoom out press
 			{
-				gui_hide_menu( 100 );
+				gui_hide_menu( 50 );
 				lens_focus_start( get_focus_dir() );
 				continue;
 			}
