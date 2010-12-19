@@ -4,7 +4,7 @@
 #     http://en.wikipedia.org/wiki/File_Allocation_Table#Boot_Sector
 
 # change this
-dev=/dev/disk1s1
+dev=/dev/sdb1
 
 if [[ $OSTYPE == darwin* ]]; then
   diskutil unmount $dev

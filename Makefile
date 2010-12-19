@@ -26,8 +26,8 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=testing.$(shell whoami)
-VERSION:=$(shell date +'%Y%b%d' | tr [A-Z] [a-z]).550d.fw109.$(BUILDVER)
+BUILDVER=iso+playback.$(shell whoami)
+VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
 #UMOUNT=hdiutil unmount

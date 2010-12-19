@@ -29,6 +29,7 @@
 #include "config.h"
 #include "menu.h"
 #include "property.h"
+#include "lens.h"
 
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 1);
@@ -91,6 +92,30 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	);
 }
 
+const int iso_values[] = {100,125,160,200,250,320,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,4500,5000,6400,7000,8000,12500, 25600};
+const int iso_codes[]  = { 72, 75, 77, 80, 83, 85, 88, 91, 93, 96,  99, 101, 104, 107, 109, 112, 115, 116, 117, 120, 121, 122,  128,   136};
+int iso_index = 0;
+static void 
+iso_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"IsoOverride:%d",
+		iso_values[*(int*)priv]
+	);
+}
+
+static void
+iso_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 1) % COUNT(iso_values);
+	lens_set_iso(iso_codes[*ptr]);
+}
+
+
+
 struct menu_entry shoot_menus[] = {
 	{
 		.priv		= &interval_timer_index,
@@ -111,6 +136,11 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &trap_focus,
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
+	},
+	{
+		.priv		= &iso_index,
+		.select		= iso_toggle,
+		.display	= iso_display,
 	},
 };
 

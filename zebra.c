@@ -854,9 +854,9 @@ PROP_HANDLER(PROP_MVR_REC_START)
 PROP_HANDLER( PROP_REC_TIME )
 {
 	uint32_t value = buf[0];
-	if (shooting_type == 4) // movie mode
+	if (shooting_type == 4 && recording) // movie mode
 	{
-		if (recording) movie_elapsed_ticks++;
+		movie_elapsed_ticks++;
 		
 		//~ bmp_printf(FONT_MED, 30,30, "ticks=%d, time=%d", movie_elapsed_ticks, movie_elapsed_time);
 		value = value * movie_elapsed_time / movie_elapsed_ticks;

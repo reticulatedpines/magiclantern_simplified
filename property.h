@@ -104,7 +104,7 @@
 #define PROP_DEFAULT_BRACKET	0x8002000A
 #define PROP_PARTIAL_SETTING	0x8002000B
 #define PROP_EMPOWER_OFF	0x80030007	// 1 == prohibit, 2 == permit
-
+#define PROP_LVAF_MODE      8004001d // 0 = shutter killer, 1 = live mode, 2 = face detect
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C	// 1 == cleaning sensor?
 #define PROP_DL_ACTION		0x80020013 // 0 == end?
