@@ -125,19 +125,17 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   short 8:3 names.
   
   An exclamation mark (!) displayed in the menu means "File not found". 
-  Since file I/O errors on FAT32 cards might cause instability (power issues),
-  please make sure all entries are valid.
   
   See [[Cropmarks]] for how to create custom cropmarks.
 
 {{clr}}
 
 **ClrPreview: ON/OFF**
-  When shutter is half-pressed, this clears 
-  all the overlays from the Live View display after 1 second. 
+  Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
+  and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
   It allows you to compose the picture without any extra distractions. 
   
-  This works best when autofocus is assigned to the ``*`` button (from Custom Functions).
+  This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
   
   Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
 
@@ -172,12 +170,13 @@ Functions for stills shooting.
   
   To use it, select one of P,S,A,M modes, turn OFF Live View, 
   and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
+  
+  Do not turn on Live View while this option is active (it will take a picture and it shouldn't).
 
 You can also stop the intervalometer and remote shooting mode
 by pressing PLAY or MENU.
 
 **Trap Focus: ON/OFF**
-
   You hold the shutter half-pressed; camera takes a picture when something comes into focus.
   
   This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
@@ -271,6 +270,9 @@ Debug
 **QScale**
   Controls the H.264 QScale parameter, which affects video bitrate. 
   Lower values mean higher bitrates. OFF disables QScale control.
+  
+  When QScale is enabled, camera records in VBR mode (variable bitrate). 
+  When QScale is OFF, the bitrate is (more or less) constant (CBR mode).
   
   See [[Bit rate]] page for details.
   
