@@ -321,4 +321,8 @@ gui_stop_menu( void );
 extern void
 gui_hide_menu( int redisplay_time );
 
+extern int gui_state;
+#define GUISTATE_IDLE 0
+#define GUISTATE_PLAYMENU 1
+
 #endif

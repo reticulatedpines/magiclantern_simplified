@@ -57,8 +57,6 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
-#define GUISTATE_IDLE 0
-#define GUISTATE_PLAYMENU 1
 int gui_state = 0;
 
 PROP_HANDLER( PROP_GUI_STATE )

@@ -26,6 +26,7 @@
 #include "config.h"
 #include "property.h"
 #include "menu.h"
+#include "gui.h"
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -948,7 +949,9 @@ my_sounddev_task( int some_param )
 	{
 		// will be unlocked by the property handler
 		int rc = take_semaphore( gain.sem, 1000 );
-		audio_configure( rc == 0 ); // force it if we got the semaphore
+		if(gui_state != GUISTATE_PLAYMENU) {
+			audio_configure( rc == 0 ); // force it if we got the semaphore
+		}
 	}
 }
 
