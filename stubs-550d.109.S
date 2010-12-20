@@ -151,13 +151,17 @@ NSTUB( 0xFF094CF4, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF095728, gui_other_post )
 
 NSTUB( 0xFF453E14, gui_main_task_functbl )
-	
+
+NSTUB( 0xFF1AA9C4, mvrFixQScale )
+NSTUB( 0xFF1AA4A0, mvrSetDefQScale )
+
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )
 NSTUB( 0xFF095A30, gui_change_shoot_type_post )
 NSTUB( 0xFF095AC8, gui_change_lcd_state_post )
- NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
+NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
 NSTUB( 0xFF1D2760, gui_timer_something )
 // FF2B4C10, gui_task_create    ?
 #endif

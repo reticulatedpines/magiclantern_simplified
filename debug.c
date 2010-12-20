@@ -236,24 +236,36 @@ int16_t qscale = 0;
 #define QSCALE_MIN MIN(-(int)qscale_min_neg, -(int)qscale_max_neg)
 #define QSCALE_OFF (QSCALE_MAX + 1)
 
-void set_vbr( void * priv )
+void mvrFixQScale(uint16_t *);
+void mvrSetDefQScale(int16_t *);
+
+void vbr_set()
 {
-	void (*mvrFixQScale)(uint16_t *) = (void*) 0xFF1AA9C4; // 1.0.8
-	void (*mvrSetDefQScale)(int16_t *) = (void*) 0xFF1AA4A0; // 1.0.8
-
-	qscale = MIN(qscale, QSCALE_OFF);
-	qscale -= 1;
-	if (qscale < QSCALE_MIN)
-		qscale = QSCALE_OFF;
-
-	uint16_t param = 1;                  // select fixed rate
-	if (qscale == QSCALE_OFF) param = 0; // this should disable qscale control
+	uint16_t param = (qscale == QSCALE_OFF) ? 0 : 1;                  // select fixed rate or VBR
 	mvrFixQScale(&param);
 	if (qscale != QSCALE_OFF) mvrSetDefQScale(&qscale);
 }
 
+void vbr_toggle( void * priv )
+{
+	qscale = MIN(qscale, QSCALE_OFF);
+	qscale -= 1;
+	if (qscale < QSCALE_MIN)
+		qscale = QSCALE_OFF;
+	vbr_set();
+}
+
+void vbr_toggle_reverse( void * priv )
+{
+	qscale = MIN(qscale, QSCALE_OFF);
+	qscale += 1;
+	if (qscale > QSCALE_OFF)
+		qscale = QSCALE_MIN;
+	vbr_set();
+}
+
 static void
-print_vbr(
+vbr_print(
 	void *			priv,
 	int			x,
 	int			y,
@@ -372,8 +384,9 @@ static void screenshot_start(void)
 
 struct menu_entry debug_menus[] = {
 	{
-		.select		= set_vbr,
-		.display	= print_vbr,
+		.display	= vbr_print,
+		.select		= vbr_toggle,
+		.select_reverse	= vbr_toggle_reverse,
 	},
 	{
 		.priv		= "Save config",

@@ -585,20 +585,33 @@ draw_zebra( void )
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra done **********************");
 }
 
-
 static void
 zebra_lo_toggle( void * priv )
 {
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 2) % 50;
+	int * ptr = priv;
+	*ptr = mod(*ptr + 1, 50);
 }
+zebra_lo_toggle_reverse( void * priv )
+{
+	int * ptr = priv;
+	*ptr = mod(*ptr - 1, 50);
+}
+
 
 static void
 zebra_hi_toggle( void * priv )
 {
-	unsigned * ptr = priv;
-	*ptr = 200 + (*ptr -200 + 2) % 56;
+	int * ptr = priv;
+	*ptr = 200 + mod(*ptr - 200 + 1, 56);
 }
+
+static void
+zebra_hi_toggle_reverse( void * priv )
+{
+	int * ptr = priv;
+	*ptr = 200 + mod(*ptr - 200 - 1, 56);
+}
+
 static void global_draw_toggle(void* priv)
 {
 	menu_binary_toggle(priv);
@@ -776,13 +789,15 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &zebra_level_hi,
-		.select		= zebra_hi_toggle,
 		.display	= zebra_hi_display,
+		.select		= zebra_hi_toggle,
+		.select_reverse		= zebra_hi_toggle_reverse,
 	},
 	{
 		.priv		= &zebra_level_lo,
-		.select		= zebra_lo_toggle,
 		.display	= zebra_lo_display,
+		.select		= zebra_lo_toggle,
+		.select_reverse		= zebra_lo_toggle_reverse,
 	},
 	{
 		.priv		= &crop_draw,

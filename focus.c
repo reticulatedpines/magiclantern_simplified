@@ -198,12 +198,29 @@ focus_rack_speed_display(
 	);
 }
 
+
+unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36};
+
+int current_rack_speed_index()
+{
+	int i;
+	for (i = 0; i < COUNT(rack_speed_values); i++)
+		if (focus_rack_speed == rack_speed_values[i]) return i;
+	return 0;
+}
+
 static void
 focus_rack_speed_increment( void * priv )
 {
-	focus_rack_speed = ((focus_rack_speed + 1) * 5) / 4;
-	if( focus_rack_speed > 40 )
-		focus_rack_speed = 1;
+	int i = current_rack_speed_index();
+	focus_rack_speed = rack_speed_values[mod(i + 1, COUNT(rack_speed_values))];
+}
+
+static void
+focus_rack_speed_decrement( void * priv )
+{
+	int i = current_rack_speed_index();
+	focus_rack_speed = rack_speed_values[mod(i - 1, COUNT(rack_speed_values))];
 }
 
 
@@ -339,6 +356,7 @@ static struct menu_entry focus_menu[] = {
 	{
 		.display	= focus_rack_speed_display,
 		.select		= focus_rack_speed_increment,
+		.select_reverse	= focus_rack_speed_decrement
 	},
 	{
 		.priv		= "Rack focus",

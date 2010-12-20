@@ -116,13 +116,13 @@ static void gui_main_task_550d()
 				//~ lens_focus_start( 0 );
 				//~ continue;
 			//~ }
-			if (event->param == 0x40) // zoom out unpress
+			if (lv_drawn() && event->param == 0x40) // zoom out unpress
 			{
 				gui_hide_menu( 2 );
 				lens_focus_stop();
 				continue;
 			}
-			if (event->param == 0x3f) // zoom out press
+			if (lv_drawn() && event->param == 0x3f) // zoom out press
 			{
 				gui_hide_menu( 50 );
 				lens_focus_start( get_focus_dir() );

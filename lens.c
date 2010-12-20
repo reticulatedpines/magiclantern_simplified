@@ -234,7 +234,7 @@ update_lens_display(
 			: lens_format_dist( info->focus_dist * 10 )
 	);
 
-	return; // the rest are also displayed by Canon FW
+	//~ return; // the rest are also displayed by Canon FW
 
 	// Move the info display to the very bottom screen
 	x = 0;

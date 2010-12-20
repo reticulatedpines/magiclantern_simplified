@@ -56,8 +56,15 @@ static void
 interval_timer_toggle( void * priv )
 {
 	unsigned * ptr = priv;
-	*ptr = (*ptr + 1) % COUNT(timer_values);
+	*ptr = mod(*ptr + 1, COUNT(timer_values));
 }
+static void
+interval_timer_toggle_reverse( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = mod(*ptr - 1, COUNT(timer_values));
+}
+
 
 static void 
 intervalometer_display( void * priv, int x, int y, int selected )
@@ -92,35 +99,73 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	);
 }
 
-const int iso_values[] = {100,125,160,200,250,320,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,4500,5000,6400,7000,8000,12500, 25600};
-const int iso_codes[]  = { 72, 75, 77, 80, 83, 85, 88, 91, 93, 96,  99, 101, 104, 107, 109, 112, 115, 116, 117, 120, 121, 122,  128,   136};
-int iso_index = 0;
+const int iso_values[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,580,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2750,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,7200,8000,12800,25600};
+const int iso_codes[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,  128,  136}; 
+
+int current_iso_code = 0;
+PROP_HANDLER(PROP_ISO)
+{
+	current_iso_code = buf[0];
+	return prop_cleanup( token, property );
+}
+
+int get_current_iso_index()
+{
+	int i;
+	for (i = 0; i < COUNT(iso_codes); i++) 
+		if(iso_codes[i] == current_iso_code) return i;
+	return 0;
+}
+int get_current_iso()
+{
+	return iso_values[get_current_iso_index()];
+}
+
 static void 
 iso_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"IsoOverride:%d",
-		iso_values[*(int*)priv]
+		"ISO:        %d",
+		get_current_iso()
 	);
 }
 
 static void
 iso_toggle( void * priv )
 {
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 1) % COUNT(iso_values);
-	lens_set_iso(iso_codes[*ptr]);
+	int i = get_current_iso_index();
+	while(1)
+	{
+		i = mod(i + 1, COUNT(iso_codes));
+		lens_set_iso(iso_codes[i]);
+		msleep(100);
+		int j = get_current_iso_index();
+		if (i == j) break;
+	}
 }
 
-
+static void
+iso_toggle_reverse( void * priv )
+{
+	int i = get_current_iso_index();
+	while(1)
+	{
+		i = mod(i - 1, COUNT(iso_codes));
+		lens_set_iso(iso_codes[i]);
+		msleep(100);
+		int j = get_current_iso_index();
+		if (i == j) break;
+	}
+}
 
 struct menu_entry shoot_menus[] = {
 	{
 		.priv		= &interval_timer_index,
-		.select		= interval_timer_toggle,
 		.display	= interval_timer_display,
+		.select		= interval_timer_toggle,
+		.select_reverse	= interval_timer_toggle_reverse,
 	},
 	{
 		.priv		= &intervalometer_running,
@@ -138,9 +183,9 @@ struct menu_entry shoot_menus[] = {
 		.display	= trap_focus_display,
 	},
 	{
-		.priv		= &iso_index,
-		.select		= iso_toggle,
 		.display	= iso_display,
+		.select		= iso_toggle,
+		.select_reverse		= iso_toggle_reverse,
 	},
 };
 
@@ -223,7 +268,7 @@ shoot_task( void )
 		}
 		else if (trap_focus)
 		{
-			msleep(10);
+			msleep(1);
 			if (lv_drawn()) 
 			{
 				//~ bmp_printf(FONT_MED, 20, 35, "Trap Focus does not work in LiveView, sorry...");

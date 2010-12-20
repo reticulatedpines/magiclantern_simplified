@@ -19,8 +19,9 @@ bracket_start( void * priv )
 	give_semaphore( bracket_sem );
 }
 
-CONFIG_INT("brack.ae-count", ae_count, 5);
+CONFIG_INT("brack.ae-count", ae_count, 3);
 CONFIG_INT("brack.ae-step", ae_step, 8);
+CONFIG_INT("brack.delay", brack_delay, 1000);
 
 static void
 ae_display(
@@ -64,6 +65,18 @@ ae_adjust_count(
 		ae_count = 3;
 }
 
+static void
+ae_adjust_count_reverse(
+	void *			priv
+)
+{
+	ae_count -= 2;
+
+		if( ae_count < 3 )
+			ae_count = 13;
+}
+
+
 
 static void
 ae_adjust_step(
@@ -73,6 +86,16 @@ ae_adjust_step(
 	ae_step += 4;
 	if( ae_step > 32 )
 		ae_step = 4;
+}
+
+static void
+ae_adjust_step_reverse(
+	void *			priv
+)
+{
+	ae_step -= 4;
+	if( ae_step < 4 )
+		ae_step = 32;
 }
 
 
@@ -86,11 +109,13 @@ static struct menu_entry bracket_menu[] = {
 		.priv		= &ae_count,
 		.display	= ae_display,
 		.select		= ae_adjust_count,
+		.select_reverse = ae_adjust_count_reverse,
 	},
 	{
 		.priv		= &ae_step,
 		.display	= ae_display,
 		.select		= ae_adjust_step,
+		.select_reverse = ae_adjust_step_reverse,
 	},
 };
 
@@ -134,7 +159,7 @@ bracket_task( void * priv )
 			lens_set_ae( new_ae );
 			lens_take_picture( 1000 );
 			bmp_printf( FONT_MED, 3, 30, "%s: Took picture                                  ", __func__, i, new_ae);
-			msleep(1000);
+			msleep(brack_delay);
 		}
 
 		lens_set_ae( ae );

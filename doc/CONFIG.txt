@@ -49,3 +49,5 @@ These settings can not be changed from the ML menu, so they are documented here:
     crop.file.2 = B:/CineScop.bmp
     crop.file.3 = B:/fish8r.bmp
 
+    # delay [ms] between two consecutive shots in Bracketing mode
+    brack_delay = 1000

@@ -288,7 +288,8 @@ menus_display(
 
 void
 menu_entry_select(
-	struct menu *	menu
+	struct menu *	menu,
+	int reverse
 )
 {
 	if( !menu )
@@ -304,10 +305,18 @@ menu_entry_select(
 	}
 	give_semaphore( menu_sem );
 
-	if( !entry || !entry->select )
+	if( !entry )
 		return;
 
-	entry->select( entry->priv );
+	if(reverse) 
+	{
+		if( entry->select_reverse ) entry->select_reverse( entry->priv );
+		else if (entry->select) entry->select( entry->priv );
+	} 
+	else 
+	{
+		if( entry->select ) entry->select( entry->priv );
+	}
 }
 
 /** Scroll side to side in the list of menus */
@@ -412,13 +421,13 @@ menu_entry_move(
 	give_semaphore( menu_sem );
 }
 
-void menu_select_current()
+void menu_select_current(int reverse)
 {
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
 			break;
-	menu_entry_select(menu);
+	menu_entry_select(menu,reverse);
 }
 
 static int
@@ -431,7 +440,6 @@ menu_handler(
 )
 {
     static int k = 0;
-	//~ DebugMsg(DM_MAGIC, 3, "menu_handler called!!!");
 	// Ignore periodic events (pass them on)
 	if( 0
 	||  event == GUI_TIMER2
@@ -440,7 +448,7 @@ menu_handler(
 	||  event == 0x1000007c
 	||  event == 0x10000078
 	)
-		return draw_event ? 0 : 1;
+		return 1; // 0 is too aggressive :)
 
 	if( event == GUI_PROP_EVENT )
 	{
@@ -530,9 +538,12 @@ menu_handler(
 		break;
 
 	case PRESS_SET_BUTTON:
-		menu_entry_select( menu );
+		menu_entry_select( menu, 0 ); // normal select
 		break;
-
+ 
+	case PRESS_INFO_BUTTON:
+		menu_entry_select( menu, 1 ); // reverse select
+		break;
 #if 0
 	case PRESS_ZOOM_IN_BUTTON:
 		gui_hide_menu( 100 );

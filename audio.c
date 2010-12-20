@@ -635,8 +635,13 @@ audio_3bit_toggle( void * priv )
 	audio_configure( 1 );
 }
 
-
-
+static void
+audio_3bit_toggle_reverse( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr - 0x1) & 0x3;
+	audio_configure( 1 );
+}
 
 static void
 audio_mgain_toggle( void * priv )
@@ -645,6 +650,16 @@ audio_mgain_toggle( void * priv )
 	*ptr = (*ptr + 0x1) & 0x7;
 	audio_configure( 1 );
 }
+
+static void
+audio_mgain_toggle_reverse( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr - 0x1) & 0x7;
+	audio_configure( 1 );
+}
+
+
 
 
 static void
@@ -673,6 +688,18 @@ audio_dgain_toggle( void * priv )
 	audio_configure( 1 );
 }
 
+static void
+audio_dgain_toggle_reverse( void * priv )
+{
+	unsigned dgain = *(unsigned*) priv;
+	if( dgain <= 0 ) {
+		dgain = 36;
+	} else {
+		dgain -= 6;
+	}
+	*(unsigned*) priv = dgain;
+	audio_configure( 1 );
+}
 
 static void
 audio_dgain_display( void * priv, int x, int y, int selected )
@@ -799,6 +826,7 @@ static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &lovl,
 		.select		= audio_3bit_toggle,
+		.select_reverse		= audio_3bit_toggle_reverse,
 		.display	= audio_lovl_display,
 	},
 #if 0
@@ -811,16 +839,19 @@ static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &mgain,
 		.select		= audio_mgain_toggle,
+		.select_reverse	= audio_mgain_toggle_reverse,
 		.display	= audio_mgain_display,
 	},
 	{
 		.priv		= &dgain_l,
 		.select		= audio_dgain_toggle,
+		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
 	},
 	{
 		.priv		= &dgain_r,
 		.select		= audio_dgain_toggle,
+		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
 	},
 	{
