@@ -133,12 +133,12 @@ iso_display( void * priv, int x, int y, int selected )
 }
 
 static void
-iso_toggle( void * priv )
+iso_toggle( int sign )
 {
 	int i = get_current_iso_index();
 	while(1)
 	{
-		i = mod(i + 1, COUNT(iso_codes));
+		i = mod(i + sign, COUNT(iso_codes));
 		lens_set_iso(iso_codes[i]);
 		msleep(100);
 		int j = get_current_iso_index();
@@ -147,18 +147,77 @@ iso_toggle( void * priv )
 }
 
 static void
+iso_toggle_forward( void * priv )
+{
+	iso_toggle(1);
+}
+
+static void
 iso_toggle_reverse( void * priv )
 {
-	int i = get_current_iso_index();
+	iso_toggle(-1);
+}
+
+const int shutter_values[] = { 30, 33, 37, 40,  45,  50,  53,  57,  60,  67,  75,  80,  90, 100, 110, 115, 125, 135, 150, 160, 180, 200, 210, 220, 235, 250, 275, 300, 320, 360, 400, 435, 470, 500, 550, 600, 640, 720, 800, 875, 925,1000,1100,1200,1250,1400,1600,1750,1900,2000,2150,2300,2500,2800,3200,3500,3750,4000};
+const int shutter_codes[]  = { 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152};
+
+
+int current_shutter_code = 0;
+PROP_HANDLER(PROP_SHUTTER)
+{
+	current_shutter_code = buf[0];
+	return prop_cleanup( token, property );
+}
+
+int get_current_shutter_index()
+{
+	int i;
+	for (i = 0; i < COUNT(shutter_codes); i++) 
+		if(shutter_codes[i] >= current_shutter_code) return i;
+	return 0;
+}
+int get_current_shutter()
+{
+	return shutter_values[get_current_shutter_index()];
+}
+
+static void 
+shutter_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Shutter:    1/%d",
+		get_current_shutter()
+	);
+}
+
+static void
+shutter_toggle( int sign)
+{
+	int i = get_current_shutter_index();
 	while(1)
 	{
-		i = mod(i - 1, COUNT(iso_codes));
-		lens_set_iso(iso_codes[i]);
+		i = mod(i + sign, COUNT(shutter_codes));
+		lens_set_shutter(shutter_codes[i]);
 		msleep(100);
-		int j = get_current_iso_index();
+		int j = get_current_shutter_index();
 		if (i == j) break;
 	}
 }
+
+static void
+shutter_toggle_forward( void * priv )
+{
+	shutter_toggle(1);
+}
+
+static void
+shutter_toggle_reverse( void * priv )
+{
+	shutter_toggle(-1);
+}
+
 
 struct menu_entry shoot_menus[] = {
 	{
@@ -184,8 +243,13 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.display	= iso_display,
-		.select		= iso_toggle,
+		.select		= iso_toggle_forward,
 		.select_reverse		= iso_toggle_reverse,
+	},
+	{
+		.display	= shutter_display,
+		.select		= shutter_toggle_forward,
+		.select_reverse		= shutter_toggle_reverse,
 	},
 };
 
