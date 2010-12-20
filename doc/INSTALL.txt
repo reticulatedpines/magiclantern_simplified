@@ -137,6 +137,8 @@ Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/
 
 Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
 
+If the antivirus `is complaining <https://bitbucket.org/hudson/magic-lantern/issue/207/problem-using-eoscardexe-with-bitdefender>, put it on Game Mode or try another operating system ;)
+
 {{clr}}
 
 

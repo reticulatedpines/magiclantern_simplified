@@ -56,6 +56,9 @@ Important notes
 Menu options
 ------------
 
+Press ERASE button to show the menu. Use arrows to navigate, ``SET`` to change values forwards
+and ``DISP`` to change values backwards.
+
 Audio
 ~~~~~
 
@@ -180,7 +183,20 @@ by pressing PLAY or MENU.
   You hold the shutter half-pressed; camera takes a picture when something comes into focus.
   
   This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
+
+**ISO**
+  Custom steps for ISO. Possible values:
   
+  0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
+
+**Shutter**
+  Custom steps for shutter speed. Possible values:
+  
+  1/30, 33, 37, 40, 45, 50, 53, 57, 60, 67, 75, 80, 90, 100, 110, 115, 125, 135, 150, 160, 
+  180, 200, 210, 235, 250, 275, 300, 320, 360, 400, 435, 470, 500, 550, 600, 640, 720, 800,
+  875, 925, 1000, 1100, 1200, 1250, 1400, 1600, 1750, 1900, 2000, 2150, 2300, 2500, 2800, 3200,
+  3500, 3750, 4000.
+
 Brack
 ~~~~~
 
