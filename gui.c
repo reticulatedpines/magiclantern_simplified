@@ -26,6 +26,10 @@
 #include "dryos.h"
 #include "property.h"
 #include "bmp.h"
+#include "config.h"
+
+CONFIG_INT("button.menu.on", button_menu_on, 0xA);
+CONFIG_INT("button.menu.off", button_menu_off, 0xA);
 
 struct semaphore * gui_sem;
 
@@ -88,18 +92,18 @@ static void gui_main_task_550d()
 			continue;
 				
 		// event 0 is button press maybe?
-		if( gui_state != GUISTATE_PLAYMENU && event->type == 0 && event->param == 0xA ) // trash button
+		if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
 		{
-			if (gui_menu_shown()) 
-			{
-				gui_stop_menu();
-				continue;
-			} 
-			else 
+			if (event->param == button_menu_on && !gui_menu_shown()) 
 			{
 				give_semaphore( gui_sem );
 				continue;
 			}
+			if (event->param == button_menu_off && gui_menu_shown()) 
+			{
+				gui_stop_menu();
+				continue;
+			} 
 		}
 		if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
 		{

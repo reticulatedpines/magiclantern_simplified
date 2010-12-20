@@ -51,3 +51,19 @@ These settings can not be changed from the ML menu, so they are documented here:
 
     # delay [ms] between two consecutive shots in Bracketing mode
     brack_delay = 1000
+
+    # button used for Magic Lantern menu
+    # Press/unpress codes (hex)
+    # 1c/1d = left
+    # 1e/1f = up
+    # 1a/1b = right
+    # 20/21 = down
+    # 4/5 = set
+    # 7 = disp
+    # 6 = menu
+    # 8 = direct print (Q)
+    # a = trash
+    # Enter button value in decimal
+    button.menu.on = 10
+    button.menu.off = 10
+
