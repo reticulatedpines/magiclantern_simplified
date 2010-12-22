@@ -30,7 +30,7 @@
 
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
-static struct semaphore * job_sem;
+//~ static struct semaphore * job_sem;
 
 
 struct lens_info lens_info = {
@@ -334,30 +334,20 @@ lens_take_picture(
 	int			wait
 )
 {
-	int rc = take_semaphore( job_sem, 1000 );
-	if( rc )
-	{
-		bmp_printf(FONT_MED, 30, 50,
-			"%s: Timed out! Old job state %d",
-			__func__,
-			lens_info.job_state
-		);
+	if( lens_info.job_state > 0xA )
+		return -1;
 
-		if( lens_info.job_state > 0xA )
-			return -1;
-	}
-
-	//unsigned value = 0;
-	//prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
 	call( "Release" );
 
 	if( !wait )
 		return 0;
 
-	rc = take_semaphore( job_sem, wait );
-	if( rc )
-		return -1;
-	give_semaphore( job_sem );
+	int i;
+	for (i = 0; i < wait / 100; i++)
+	{
+		if (lens_info.job_state == 8 || lens_info.job_state == 0) break;
+		msleep(100);
+	}
 
 	return lens_info.job_state;
 }
@@ -581,15 +571,6 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 {
 	const uint32_t state = *(uint32_t*) buf;
 	lens_info.job_state = state;
-	if( state == 0xA )
-	{
-		DebugMsg( DM_MAGIC, 3,
-			"%s: Unlocking job state=%x",
-			__func__,
-			state
-		);
-		give_semaphore( job_sem );
-	}
 	return prop_cleanup( token, property );
 }
 
@@ -616,7 +597,7 @@ lens_init( void )
 {
 	lens_sem = create_named_semaphore( "lens_info", 1 );
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
-	job_sem = create_named_semaphore( "job", 1 );
+	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 }
 
 INIT_FUNC( "lens", lens_init );

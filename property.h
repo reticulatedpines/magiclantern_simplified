@@ -135,7 +135,7 @@
  * 0x8 == "guiSetDarkBusy" -- noise reduction?
  * 0x0 == Job Done
  */
-#define PROP_LAST_JOB_STATE	0x80030012	// 8 == done?
+#define PROP_LAST_JOB_STATE	0x80030012	// 8 == writing to card, 0 = idle, B = busy.
 
 /** Gui properties? 0xffc509b0 @ 0xDA */
 
