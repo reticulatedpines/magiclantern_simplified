@@ -700,7 +700,7 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
-	msleep(4000);
+	msleep(3000);
 	while(1)
 	{
 		int rc = take_semaphore( gui_sem, 500 );

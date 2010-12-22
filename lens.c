@@ -345,7 +345,7 @@ lens_take_picture(
 	int i;
 	for (i = 0; i < wait / 100; i++)
 	{
-		if (lens_info.job_state == 8 || lens_info.job_state == 0) break;
+		if (lens_info.job_state <= 0xA) break;
 		msleep(100);
 	}
 

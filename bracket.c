@@ -158,7 +158,7 @@ bracket_task( void * priv )
 			int new_ae = ae + (int)(ae_step) * i;
 			bmp_printf( FONT_MED, 3, 30, "%s: Frame %d: newAE=%d                            ", __func__, i, new_ae);
 			lens_set_ae( new_ae );
-			lens_take_picture( 1000 );
+			lens_take_picture( 100000 );
 			bmp_printf( FONT_MED, 3, 30, "%s: Took picture                                  ", __func__, i, new_ae);
 			msleep(brack_delay);
 		}
