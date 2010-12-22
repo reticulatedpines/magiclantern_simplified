@@ -33,6 +33,7 @@ Known issues
 * After closing ML menu, screen may not redraw automatically 
   (half-press the shutter or press ``MENU`` to trigger a redraw)
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
+* Camera may become unstable if you change modes while ML menu is active.
 * Audio monitoring does not work. We don't know how to enable it 
   without breaking USB and maybe other functions. If you need this feature, 
   please uncomment the last line from ``hotplug.c`` and build a custom ``autoexec.bin``.
@@ -168,8 +169,10 @@ Functions for stills shooting.
 **Intervalometer: ON/OFF**
   Start/stop intervalometer. 
   
-  Tip: shoot in manual mode and switch the lens to MF.
-
+  Tip 1: shoot in manual mode and switch the lens to MF.
+  
+  Tip 2: for power saving, set ``Image Review`` to ``2 sec`` or ``Off``, and press ``Disp`` while shooting.
+  
 **LCD RemoteShot: ON/OFF**
   Start/stop shutter release with the LCD sensor. To take a picture, 
   put your hand near the LCD sensor. 
@@ -184,6 +187,13 @@ Functions for stills shooting.
 
 You can also stop the intervalometer and remote shooting mode
 by pressing PLAY or MENU.
+
+**HDR Bracket**
+  AE Bracketing for HDR images and timelapses. This setting is applied only to images taken with intervalometer or LCD face sensor.
+  
+  Select number of images with ``SET`` and step size with ``DISP``.
+  
+  In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
 
 **Trap Focus: ON/OFF**
   You hold the shutter half-pressed; camera takes a picture when something comes into focus.
@@ -207,7 +217,7 @@ by pressing PLAY or MENU.
   875, 925, 1000, 1100, 1200, 1250, 1400, 1600, 1750, 1900, 2000, 2150, 2300, 2500, 2800, 3200,
   3500, 3750, 4000.
   
-**WB**
+**White Bal**
   Kelvin white balance. This feature is still experimental and only works in video mode.
   
   Range: 1700 ... 10000.

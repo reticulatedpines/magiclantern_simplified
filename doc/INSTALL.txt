@@ -48,7 +48,7 @@ Important notes
 Introduction
 ============
 
-There is 2 ways of running user code on the 550D/T2i/Kiss X4:
+There are 2 ways of running user code on the 550D/T2i/Kiss X4:
 
 1. using the update process with a **.fir** file, which must be digitally signed.
 
@@ -89,7 +89,7 @@ Step 1. Enabling bootflag
 .. image:: 550install.jpg
     :alt: thumb|right|Magic Lantern install screen
 
-* Format the SD card from the camera (``Wrench 1`` menu)
+* Format the SD card from the camera (low level, from ``Wrench 1`` menu)
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
   start the camera and select ``Firmware ver 1.0.9`` from the ``Wrench 3`` menu 
@@ -119,7 +119,7 @@ Mac OS X
 Use `**MacBoot** <http://www.zenoshrdlu.com/macboot/macboot.html>`_ by `Dave Mitchell <http://www.zenoshrdlu.com/>`_.
 
 .. image:: MacBoot.jpg
-    :alt: thumb|right|MacBoot usage
+    :alt: 300px|right|MacBoot usage
 
 Select your SD card drive, check ``Make DSLR-bootable`` and hit Prepare.
 
@@ -129,7 +129,7 @@ Windows
 Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!)
 
 .. image:: EOScard.png
-    :alt: thumb|right|EOScard usage
+    :alt: frame|right|EOScard usage
 
 Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
 
@@ -176,7 +176,7 @@ Troubleshooting
 ~~~~~~~~~~~~~~~
 
 * If Magic Lantern does not work (i.e. no new features are noticed), repeat Step 2. 
-  Also try with an older (FAT16) card.
+  Also try a low-level format of the card from the camera, or try with an older (FAT16) card.
 
 * **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 secs, switching off is not enough !!!** 
 
