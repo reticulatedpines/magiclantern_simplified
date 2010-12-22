@@ -22,6 +22,7 @@ bracket_start( void * priv )
 CONFIG_INT("brack.ae-count", ae_count, 3);
 CONFIG_INT("brack.ae-step", ae_step, 8);
 CONFIG_INT("brack.delay", brack_delay, 1000);
+CONFIG_INT("brack.startdelay", brack_startdelay, 2000);
 
 static void
 ae_display(
@@ -145,7 +146,7 @@ bracket_task( void * priv )
 		);
 		bmp_printf( FONT_MED, 3, 30, "%s: AE=%d, count=%d, steps=%d                          ", __func__, ae, ae_count, ae_step);
 	
-		msleep( 100 );
+		msleep( brack_startdelay );
 
 		//~ bmp_printf( FONT_MED, 3, 50, "%s: i = %d to %d                        ", __func__, -((int)(ae_count/2)), ae_count/2);
 		int i, a, b;
