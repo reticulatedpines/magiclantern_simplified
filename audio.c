@@ -47,8 +47,8 @@ static struct gain_struct gain = {
 
 // Set defaults
 CONFIG_INT( "audio.mgain",	mgain,		4 );
-CONFIG_INT( "audio.dgain.l",	dgain_l,	18 );
-CONFIG_INT( "audio.dgain.r",	dgain_r,	18 );
+CONFIG_INT( "audio.dgain.l",	dgain_l,	0 );
+CONFIG_INT( "audio.dgain.r",	dgain_r,	0 );
 CONFIG_INT( "audio.mic-power",	mic_power,	1 );
 CONFIG_INT( "audio.lovl",	lovl,		3 );
 CONFIG_INT( "audio.o2gain",	o2gain,		0 );
