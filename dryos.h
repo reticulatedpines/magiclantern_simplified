@@ -39,6 +39,7 @@
 #include "tasks.h"
 #include "debug.h"
 #include "audio.h"
+#include "consts-550d.109.h"
 #include <stdarg.h>
 
 /** Check a pointer for error code */
