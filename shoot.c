@@ -430,8 +430,9 @@ shoot_task( void )
 	{
 		if (intervalometer_running)
 		{
+			msleep(1000);
 			hdr_shot();
-			for (i = 0; i < timer_values[interval_timer_index]; i++)
+			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				msleep(1000);
 				if (intervalometer_running) bmp_printf(FONT_MED, 20, 35, "Press PLAY or MENU to stop the intervalometer.");

@@ -348,6 +348,7 @@ lens_take_picture(
 		if (lens_info.job_state <= 0xA) break;
 		msleep(100);
 	}
+	msleep(200);
 
 	return lens_info.job_state;
 }
