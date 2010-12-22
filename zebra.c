@@ -34,15 +34,13 @@ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 static volatile unsigned sensor_cleaning = 1;
 
-#define vram_start_line	33
-#define vram_end_line	380
-
 #define hist_height			64
 #define hist_width			128
 #define waveform_height			256
 #define waveform_width			(720/2)
 
-CONFIG_INT( "global.draw", global_draw, 1 );
+static int global_draw = 1;
+CONFIG_INT( "global.draw", global_draw_bk, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	250 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	5 );
@@ -68,7 +66,7 @@ CONFIG_INT( "timecode.height",	timecode_height, 20 );
 CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
-CONFIG_INT( "clear.preview", clearpreview_enable, 1);
+CONFIG_INT( "clear.preview", clearpreview, 1); // 2 is always
 CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 
 // how to use a config setting in more than one file?!
@@ -439,11 +437,10 @@ void dump_seg(start, size, filename)
     DebugMsg(DM_MAGIC, 3, "********* dump_seg %s ended ********", filename);
 }
 
-#define yuv422_image_buffer 0x40D07800
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
-    _vram_info.vram = yuv422_image_buffer;
+    _vram_info.vram = YUV422_IMAGE_BUFFER;
     _vram_info.width = 720;
     _vram_info.pitch = 720;
     _vram_info.height = 480;
@@ -591,10 +588,42 @@ zebra_lo_toggle( void * priv )
 	int * ptr = priv;
 	*ptr = mod(*ptr + 1, 50);
 }
+
+static void
 zebra_lo_toggle_reverse( void * priv )
 {
 	int * ptr = priv;
 	*ptr = mod(*ptr - 1, 50);
+}
+
+static void clearpreview_setup(mode) // 0 = disable display, 1 = enable display
+{
+	if (mode == 0 && bmp_enabled && lv_drawn())
+	{
+		bmp_enabled = 0;
+		global_draw_bk = global_draw;
+		global_draw = 0;
+	}
+	if (mode == 1)
+	{
+		bmp_enabled = 1;
+		global_draw = global_draw_bk;
+	}
+}
+static void
+clearpreview_toggle( void * priv )
+{
+	int * ptr = priv;
+	*ptr = mod(*ptr + 1, 3);
+	if (*ptr != 2) clearpreview_setup(1);
+}
+
+static void
+clearpreview_toggle_reverse( void * priv )
+{
+	int * ptr = priv;
+	*ptr = mod(*ptr - 1, 3);
+	clearpreview_setup(*ptr == 2 ? 0 : 1);
 }
 
 
@@ -616,6 +645,7 @@ static void global_draw_toggle(void* priv)
 {
 	menu_binary_toggle(priv);
 	if (!global_draw) bmp_fill(0, 0, 0, 720, 480);
+	global_draw_bk = global_draw;
 }
 
 static void load_cropmark(int i)
@@ -737,7 +767,7 @@ global_draw_display( void * priv, int x, int y, int selected )
 		x, y,
 		//23456789012
 		"GlobalDraw: %s",
-		*(unsigned*) priv ? "ON " : "OFF"
+		global_draw_bk ? "ON " : "OFF"
 	);
 }
 
@@ -761,11 +791,15 @@ clearpreview_display(
 	int			selected
 )
 {
+	int mode = *(int*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"ClrPreview: %s",
-		*(unsigned*) priv ? "ON " : "OFF"
+		(mode == 0 ? "OFF" : 
+		(mode == 1 ? "ON" : 
+		(mode == 2 ? "Always" :
+		"Error")))
 	);
 }
 
@@ -805,9 +839,10 @@ struct menu_entry zebra_menus[] = {
 		.display	= crop_display,
 	},
 	{
-		.priv			= &clearpreview_enable,
-		.select			= menu_binary_toggle,
+		.priv			= &clearpreview,
 		.display		= clearpreview_display,
+		.select			= clearpreview_toggle,
+		.select_reverse	= clearpreview_toggle_reverse,
 	},
 	//~ {
 		//~ .priv		= &edge_draw,
@@ -895,7 +930,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	return prop_cleanup( token, property );
 }
 
-
+//this function is a mess... but seems to work
 static void
 zebra_task( void )
 {
@@ -905,18 +940,33 @@ zebra_task( void )
 
 	while(1) // each code path should have a msleep; the clearscreen one
 	{
-		if (clearpreview_enable && shutter_halfpressed && lv_drawn() && !gui_menu_shown()) // preview image without any overlays
+		// clear overlays on shutter halfpress
+		if (clearpreview == 1 && shutter_halfpressed && lv_drawn() && !gui_menu_shown()) // preview image without any overlays
 		{
 			msleep(clearpreview_delay);
-			bmp_fill( 0x0, 0, 0, 720, 480 );
-			//~ bmp_printf(FONT_LARGE, 30, 30, "BMP disabling");
-			bmp_enabled = 0;
-			int global_draw_bk = global_draw;
-			global_draw = 0;
+			clrscr();
+			clearpreview_setup(0);
 			while (shutter_halfpressed) msleep(100);
-			bmp_enabled = 1;
-			global_draw = global_draw_bk;
-			//~ bmp_printf(FONT_LARGE, 30, 30, "BMP enabled");
+			clearpreview_setup(1);
+		}
+		else if (clearpreview == 2 && lv_drawn() && !gui_menu_shown()) // always clear overlays
+		{ // in this mode, BMP & global_draw are disabled, but Canon code may draw on the screen
+			if (gui_state == 0)
+			{
+				msleep(200);
+				if (!lv_drawn()) continue;
+				bmp_enabled = 1;
+				clrscr();
+				clearpreview_setup(0);
+				msleep(200);
+			}
+			else
+			{
+				bmp_enabled = 1; // Quick menu => enable drawings
+				global_draw = 1;
+				draw_zebra();
+				msleep(zebra_delay);
+			}
 		}
 		else if( lv_drawn() && !gui_menu_shown() && global_draw) // normal zebras
 		{

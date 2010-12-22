@@ -439,6 +439,7 @@ menu_handler(
 	unsigned		arg4
 )
 {
+	bmp_enabled = 1; // temporary override clear_preview in Always mode
     static int k = 0;
 	// Ignore periodic events (pass them on)
 	if( 0
@@ -699,7 +700,7 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
-
+	msleep(4000);
 	while(1)
 	{
 		int rc = take_semaphore( gui_sem, 500 );
