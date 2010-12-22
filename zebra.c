@@ -601,7 +601,6 @@ static void clearpreview_setup(mode) // 0 = disable display, 1 = enable display
 	if (mode == 0 && bmp_enabled && lv_drawn())
 	{
 		bmp_enabled = 0;
-		global_draw_bk = global_draw;
 		global_draw = 0;
 	}
 	if (mode == 1)
@@ -795,9 +794,9 @@ clearpreview_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ClrPreview: %s",
+		"ClrScr: %s",
 		(mode == 0 ? "OFF" : 
-		(mode == 1 ? "ON" : 
+		(mode == 1 ? "HalfShutter" : 
 		(mode == 2 ? "Always" :
 		"Error")))
 	);
@@ -954,7 +953,7 @@ zebra_task( void )
 			if (gui_state == 0)
 			{
 				msleep(200);
-				if (!lv_drawn()) continue;
+				if (!lv_drawn() || gui_state != 0) continue;
 				bmp_enabled = 1;
 				clrscr();
 				clearpreview_setup(0);
