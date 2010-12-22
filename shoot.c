@@ -47,7 +47,7 @@ interval_timer_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"IntervalTime: %4ds", 
+		"IntervalTime:   %ds", 
 		timer_values[*(int*)priv]
 	);
 }
@@ -94,7 +94,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Trap Focus: %s",
+		"Trap Focus:  %s",
 		(*(int*)priv) ? "ON " : "OFF"
 	);
 }
@@ -127,7 +127,7 @@ iso_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ISO:        %d",
+		"ISO:         %d",
 		get_current_iso()
 	);
 }
@@ -187,7 +187,7 @@ shutter_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Shutter:    1/%d",
+		"Shutter:     1/%d",
 		get_current_shutter()
 	);
 }
@@ -234,6 +234,7 @@ PROP_HANDLER(PROP_WB_KELVIN)
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
 
 static void
 kelvin_toggle( int sign )
@@ -268,7 +269,7 @@ kelvin_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"WB:  %d K",
+			"White Bal : %dK",
 			kelvins
 		);
 	}
@@ -277,12 +278,12 @@ kelvin_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"WB:  %s",
+			"White Bal: %s",
 			(wb_mode == 0 ? "Auto" : 
 			(wb_mode == 1 ? "Sunny" :
 			(wb_mode == 2 ? "Cloudy" : 
 			(wb_mode == 3 ? "Tungsten" : 
-			(wb_mode == 4 ? "Fluorescent" : 
+			(wb_mode == 4 ? "CFL" : 
 			(wb_mode == 5 ? "Flash" : 
 			(wb_mode == 6 ? "Custom" : 
 			(wb_mode == 8 ? "Shade" :
@@ -291,6 +292,43 @@ kelvin_display( void * priv, int x, int y, int selected )
 	}
 }
 
+CONFIG_INT("hdr.steps", hdr_steps, 1);
+CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
+
+static void 
+hdr_display( void * priv, int x, int y, int selected )
+{
+	if (hdr_steps == 1)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"HDR Bracket: OFF"
+		);
+	}
+	else
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"HDR Bracket: %dx%dEV",
+			hdr_steps, 
+			hdr_stepsize / 8
+		);
+	}
+}
+
+static void
+hdr_steps_toggle( void * priv )
+{
+	hdr_steps = mod(hdr_steps + 2, 10);
+}
+
+static void
+hdr_stepsize_toggle( void * priv )
+{
+	hdr_stepsize = mod(hdr_stepsize, 40) + 8;
+}
 
 struct menu_entry shoot_menus[] = {
 	{
@@ -308,6 +346,11 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &lcd_release_running,
 		.select		= menu_binary_toggle_and_close,
 		.display	= lcd_release_display,
+	},
+	{
+		.display	= hdr_display,
+		.select		= hdr_steps_toggle,
+		.select_reverse = hdr_stepsize_toggle,
 	},
 	{
 		.priv		= &trap_focus,
@@ -333,7 +376,7 @@ struct menu_entry shoot_menus[] = {
 
 int display_sensor_active()
 {
-	return (*(int*)(0x2dec));
+	return (*(int*)(DISPLAY_SENSOR_MAYBE));
 }
 
 PROP_HANDLER( PROP_GUI_STATE )
@@ -387,7 +430,7 @@ shoot_task( void )
 	{
 		if (intervalometer_running)
 		{
-			lens_take_picture(0);
+			hdr_shot();
 			for (i = 0; i < timer_values[interval_timer_index]; i++)
 			{
 				msleep(1000);
@@ -410,7 +453,7 @@ shoot_task( void )
 			bmp_printf(FONT_MED, 20, 35, "Move your hand near LCD face sensor to take a picture!");
 			if (display_sensor_active())
 			{
-				call( "Release" ); // lens_take_picture may cause black screen (maybe the semaphore messes it up)
+				hdr_shot();
 				while (display_sensor_active()) { msleep(500); }
 			}
 		}
@@ -429,14 +472,46 @@ shoot_task( void )
 				msleep(500);
 				continue;
 			}
-			if (*(int*)0x41d0)
+			if (*(int*)FOCUS_CONFIRMATION)
 			{
-				call( "Release" ); // lens_take_picture may cause black screen (maybe the semaphore messes it up)
+				lens_take_picture(1000);
 				msleep(trap_focus_delay);
 			}
 		}
 		else msleep(500);
 	}
+}
+
+void hdr_take_pics(int steps, int step_size)
+{
+	int i;
+	if (shooting_mode == 3) // manual
+	{
+		const int s = current_shutter_code;
+		for( i = -steps/2; i <= steps/2; i ++  )
+		{
+			int new_s = COERCE(s - step_size * i, 0x10, 152);
+			lens_set_shutter( new_s );
+			lens_take_picture( 100000 );
+		}
+		lens_set_shutter( s );
+	}
+	else
+	{
+		const int ae = lens_get_ae();
+		for( i = -steps/2; i <= steps/2; i ++  )
+		{
+			int new_ae = ae + step_size * i;
+			lens_set_ae( new_ae );
+			lens_take_picture( 100000 );
+		}
+		lens_set_ae( ae );
+	}
+}
+
+void hdr_shot()
+{
+	hdr_take_pics(hdr_steps, hdr_stepsize);
 }
 
 
