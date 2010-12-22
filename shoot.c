@@ -219,6 +219,79 @@ shutter_toggle_reverse( void * priv )
 }
 
 
+int wb_mode = 0;
+int kelvins = 0;
+PROP_HANDLER(PROP_WB_MODE)
+{
+	wb_mode = buf[0];
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER(PROP_WB_KELVIN)
+{
+	kelvins = buf[0];
+	return prop_cleanup( token, property );
+}
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
+static void
+kelvin_toggle( int sign )
+{
+	int k = kelvins;
+	int mode = 9;
+	k = (k/100) * 100;
+	k = 1700 + mod(k - 1700 + sign * 100, 10100 - 1700);
+	prop_request_change(PROP_WB_MODE, &mode, 4);
+	prop_request_change(PROP_WB_MODE_MIRROR, &mode, 4);
+	prop_request_change(PROP_WB_KELVIN, &k, 4);
+}
+
+static void
+kelvin_toggle_forward( void * priv )
+{
+	kelvin_toggle(1);
+}
+
+static void
+kelvin_toggle_reverse( void * priv )
+{
+	kelvin_toggle(-1);
+}
+
+
+static void 
+kelvin_display( void * priv, int x, int y, int selected )
+{
+	if (wb_mode == 9) // kelvin
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"WB:  %d K",
+			kelvins
+		);
+	}
+	else
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"WB:  %s",
+			(wb_mode == 0 ? "Auto" : 
+			(wb_mode == 1 ? "Sunny" :
+			(wb_mode == 2 ? "Cloudy" : 
+			(wb_mode == 3 ? "Tungsten" : 
+			(wb_mode == 4 ? "Fluorescent" : 
+			(wb_mode == 5 ? "Flash" : 
+			(wb_mode == 6 ? "Custom" : 
+			(wb_mode == 8 ? "Shade" :
+			 "unknown"))))))))
+		);
+	}
+}
+
+
 struct menu_entry shoot_menus[] = {
 	{
 		.priv		= &interval_timer_index,
@@ -250,6 +323,11 @@ struct menu_entry shoot_menus[] = {
 		.display	= shutter_display,
 		.select		= shutter_toggle_forward,
 		.select_reverse		= shutter_toggle_reverse,
+	},
+	{
+		.display	= kelvin_display,
+		.select		= kelvin_toggle_forward,
+		.select_reverse		= kelvin_toggle_reverse,
 	},
 };
 
@@ -294,6 +372,12 @@ PROP_HANDLER(PROP_AF_MODE)
 	return prop_cleanup( token, property );
 }
 
+int shooting_mode;
+PROP_HANDLER(PROP_SHOOTING_MODE)
+{
+	shooting_mode = (int16_t)buf[0];
+	return prop_cleanup( token, property );
+}
 static void
 shoot_task( void )
 {
@@ -354,6 +438,7 @@ shoot_task( void )
 		else msleep(500);
 	}
 }
+
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x18, 0x1000 );
 
