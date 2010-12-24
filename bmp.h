@@ -211,9 +211,6 @@ bmp_load(
 	const char *		name
 );
 
-static void clrscr()
-{
-	bmp_fill( 0x0, 0, 0, 720, 480 );
-}
+void clrscr();
 
 #endif

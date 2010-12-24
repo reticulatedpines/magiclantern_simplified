@@ -658,23 +658,31 @@ static void load_cropmark(int i)
 }
 
 static void
-crop_toggle( void * priv )
+crop_toggle( int sign )
 {
-	unsigned * ptr = priv;
 	msleep(100);
-    *ptr = (*ptr + 1) % 4;  // 0 = off, 1..3 = configured cropmarks
-    if (*ptr)
+    crop_draw = mod(crop_draw + sign, 4);  // 0 = off, 1..3 = configured cropmarks
+    if (crop_draw)
     {
-		cropmarks = cropmarks_array[*ptr-1];
+		cropmarks = cropmarks_array[crop_draw-1];
 		if (!cropmarks) 
 		{
-			load_cropmark(*ptr);
-			cropmarks_array[*ptr-1] = cropmarks;
+			load_cropmark(crop_draw);
+			cropmarks_array[crop_draw-1] = cropmarks;
 		}
 	}
 	msleep(100);
 }
 
+static void crop_toggle_forward(void* priv)
+{
+	crop_toggle(1);
+}
+
+static void crop_toggle_reverse(void* priv)
+{
+	crop_toggle(-1);
+}
 
 static void
 zebra_hi_display( void * priv, int x, int y, int selected )
@@ -834,8 +842,9 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &crop_draw,
-		.select		= crop_toggle,
 		.display	= crop_display,
+		.select		= crop_toggle_forward,
+		.select_reverse		= crop_toggle_reverse,
 	},
 	{
 		.priv			= &clearpreview,
@@ -934,8 +943,10 @@ static void
 zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
-	load_cropmark(crop_draw);
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+
+	msleep(1000);
+	load_cropmark(crop_draw);
 
 	while(1) // each code path should have a msleep; the clearscreen one
 	{

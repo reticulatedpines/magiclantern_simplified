@@ -64,7 +64,7 @@ config_int(
 );
 
 
-extern struct config *
+extern int
 config_parse_file(
 	const char *		filename
 );

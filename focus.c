@@ -93,7 +93,7 @@ focus_stack(
 	unsigned i;
 	for( i=0 ; i < count ; i++ )
 	{
-		lens_take_picture( 2000 );
+		lens_take_picture( 100000 );
 		if( count-1 == i )
 			break;
 

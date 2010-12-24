@@ -337,7 +337,7 @@ lens_take_picture(
 	if( lens_info.job_state > 0xA )
 		return -1;
 
-	call( "Release" );
+	call( "Release", 0 );
 
 	if( !wait )
 		return 0;
@@ -573,6 +573,18 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 	const uint32_t state = *(uint32_t*) buf;
 	lens_info.job_state = state;
 	return prop_cleanup( token, property );
+}
+
+int current_ae;
+PROP_HANDLER(PROP_AE)
+{
+	current_ae = buf[0];
+	return prop_cleanup( token, property );
+}
+
+int lens_get_ae( void )
+{
+	return current_ae;
 }
 
 

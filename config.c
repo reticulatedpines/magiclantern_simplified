@@ -40,11 +40,11 @@ config_parse_line(
 {
 	int name_len = 0;
 	int value_len = 0;
-	struct config *		config = malloc( sizeof(*config) );
-	if( !config )
+	struct config *		cfg = AllocateMemory( sizeof(struct config) + 32 );
+	if( !cfg )
 		goto malloc_error;
 
-	config->next = 0;
+	cfg->next = 0;
 
 	// Trim any leading whitespace
 	int i = 0;
@@ -57,13 +57,13 @@ config_parse_line(
 	&& line[i] != '='
 	&& name_len < MAX_NAME_LEN
 	)
-		config->name[ name_len++ ] = line[i++];
+		cfg->name[ name_len++ ] = line[i++];
 
 	if( name_len == MAX_NAME_LEN )
 		goto parse_error;
 
 	// And nul terminate it
-	config->name[ name_len ] = '\0';
+	cfg->name[ name_len ] = '\0';
 
 	// Skip any white space and = signs
 	while( line[i] && is_space( line[i] ) )
@@ -75,23 +75,23 @@ config_parse_line(
 
 	// Copy the value to the value buffer
 	while( line[i] && value_len < MAX_VALUE_LEN )
-		config->value[ value_len++ ] = line[ i++ ];
+		cfg->value[ value_len++ ] = line[ i++ ];
 
 	// Back up to trim any white space
-	while( value_len > 0 && is_space( config->value[ value_len-1 ] ) )
+	while( value_len > 0 && is_space( cfg->value[ value_len-1 ] ) )
 		value_len--;
 
 	// And nul terminate it
-	config->value[ value_len ] = '\0';
+	cfg->value[ value_len ] = '\0';
 
 	DebugMsg( DM_MAGIC, 3,
 		"%s: '%s' => '%s'",
 		__func__,
-		config->name,
-		config->value
+		cfg->name,
+		cfg->value
 	);
 
-	return config;
+	return cfg;
 
 parse_error:
 	DebugMsg( DM_MAGIC, 3,
@@ -101,8 +101,19 @@ parse_error:
 		value_len,
 		line
 	);
+	
+	bmp_printf(FONT_LARGE, 10, 150, "CONFIG PARSE ERROR");
+	bmp_printf(FONT_MED, 10, 200,
+		"%s: PARSE ERROR:\nlen=%d,%d\nstring='%s'",
+		__func__,
+		name_len,
+		value_len,
+		line
+	);
 
-	free( config );
+	msleep(2000);
+	free( cfg );
+	dumpf();
 malloc_error:
 	return 0;
 }
@@ -143,28 +154,28 @@ extern struct config_var	_config_vars_end[];
 
 static void
 config_auto_parse(
-	struct config *		config
+	struct config *		cfg
 )
 {
 	struct config_var *		var = _config_vars_start;
 
 	for( ; var < _config_vars_end ; var++ )
 	{
-		if( !streq( var->name, config->name ) )
+		if( !streq( var->name, cfg->name ) )
 			continue;
 
 		DebugMsg( DM_MAGIC, 3,
 			"%s: '%s' => '%s'",
 			__func__,
-			config->name,
-			config->value
+			cfg->name,
+			cfg->value
 		);
 
 		if( var->type == 0 )
 		{
-			*(unsigned*) var->value = atoi( config->value );
+			*(unsigned*) var->value = atoi( cfg->value );
 		} else {
-			*(char **) var->value = config->value;
+			*(char **) var->value = cfg->value;
 		}
 
 		return;
@@ -173,14 +184,14 @@ config_auto_parse(
 	DebugMsg( DM_MAGIC, 3,
 		"%s: '%s' unused?",
 		__func__,
-		config->name
+		cfg->name
 	);
 }
 
 
 int
 config_save_file(
-	struct config *		config, // unused?
+	struct config *		cfg, // unused?
 	const char *		filename
 )
 {
@@ -243,8 +254,8 @@ struct config *
 config_parse(
 	FILE *			file
 ) {
-	char line_buf[ MAX_NAME_LEN + MAX_VALUE_LEN ];
-	struct config *	config = 0;
+	char line_buf[ 1000 ];
+	struct config *	cfg = 0;
 	int count = 0;
 
 	while( read_line( file, line_buf, sizeof(line_buf) ) >= 0 )
@@ -253,113 +264,114 @@ config_parse(
 		if( line_buf[0] == '#'
 		||  line_buf[0] == '\0' )
 			continue;
-
+		
+		DebugMsg(DM_MAGIC, 3, "cfg line: %s", line_buf);
+		
 		struct config * new_config = config_parse_line( line_buf );
 		if( !new_config )
 			goto error;
 
-		new_config->next = config;
-		config = new_config;
+		new_config->next = cfg;
+		cfg = new_config;
 		count++;
 
-		config_auto_parse( config );
+		config_auto_parse( cfg );
 	}
 
 	DebugMsg( DM_MAGIC, 3, "%s: Read %d config values", __func__, count );
-	return config;
+	return cfg;
 
 error:
 	DebugMsg( DM_MAGIC, 3, "%s: ERROR Deleting config", __func__ );
-	while( config )
+	while( cfg )
 	{
-		struct config * next = config->next;
+		struct config * next = cfg->next;
 		DebugMsg( DM_MAGIC, 3, "%s: Deleting '%s' => '%s'",
 			__func__,
-			config->name,
-			config->value
+			cfg->name,
+			cfg->value
 		);
-		free( config );
-		config = next;
+		free( cfg );
+		cfg = next;
 	}
 
 	return NULL;
 }
 
 
-char *
-config_value(
-	struct config *		config,
-	const char *		name
-)
-{
-	while( config )
-	{
-		if( streq( config->name, name ) )
-			return config->value;
+//~ char *
+//~ config_value(
+	//~ struct config *		cfg,
+	//~ const char *		name
+//~ )
+//~ {
+	//~ while( cfg )
+	//~ {
+		//~ if( streq( cfg->name, name ) )
+			//~ return cfg->value;
+//~ 
+		//~ cfg = cfg->next;
+	//~ }
+//~ 
+	//~ return NULL;
+//~ }
 
-		config = config->next;
-	}
 
-	return NULL;
-}
+//~ int
+//~ config_int(
+	//~ struct config *		cfg,
+	//~ const char *		name,
+	//~ int			def
+//~ )
+//~ {
+	//~ const char *		str = config_value( cfg, name );
+	//~ if( !str )
+	//~ {
+		//~ DebugMsg( DM_MAGIC, 3,
+			//~ "Config '%s', using default %d",
+			//~ name,
+			//~ def
+		//~ );
+//~ 
+		//~ return def;
+	//~ }
+//~ 
+	//~ def = atoi( str );
+	//~ DebugMsg( DM_MAGIC, 3,
+		//~ "Config '%s', using user value %d ('%s')",
+		//~ name,
+		//~ def,
+		//~ str
+	//~ );
+//~ 
+	//~ return def;
+//~ }
 
+
+//~ struct config head = { .name = "config.file", .value = "" };
+//~ struct config fail = { .name = "config.failure", .value = "1" };
 
 int
-config_int(
-	struct config *		config,
-	const char *		name,
-	int			def
-)
-{
-	const char *		str = config_value( config, name );
-	if( !str )
-	{
-		DebugMsg( DM_MAGIC, 3,
-			"Config '%s', using default %d",
-			name,
-			def
-		);
-
-		return def;
-	}
-
-	def = atoi( str );
-	DebugMsg( DM_MAGIC, 3,
-		"Config '%s', using user value %d ('%s')",
-		name,
-		def,
-		str
-	);
-
-	return def;
-}
-
-
-struct config head = { .name = "config.file", .value = "" };
-struct config fail = { .name = "config.failure", .value = "1" };
-
-struct config *
 config_parse_file(
 	const char *		filename
 )
 {
-	FILE * file = FIO_Open( filename, O_SYNC );
-	strcpy( head.value, filename );
-	msleep(100);
+	FILE * file = FIO_Open( filename, 0 );
+	//~ strcpy( head.value, filename );
+	//~ msleep(100);
 	if( file == INVALID_PTR )
 	{
 		bmp_printf(FONT_MED, 0, 120, "Could not open config file");
-		config_auto_parse( &head );
+		//~ config_auto_parse( &head );
 		bmp_printf(FONT_MED, 0, 120, "Using default config values");
 		return 0;
 	}
 
 	bmp_printf(FONT_MED, 0, 120, "Config file opened");
-	struct config * config = config_parse( file );
+	config_parse( file );
 	FIO_CloseFile( file );
 	bmp_printf(FONT_MED, 0, 120, "Config file parsed");
-	head.next = config;
-	return &head;
+	return 1;
 }
 
 

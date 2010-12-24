@@ -632,6 +632,15 @@ dump_task( void )
 {
 	//lua_State * L = lua_open();
 
+	// Parse our config file
+	const char * config_filename = "B:/magic.cfg";
+	global_config = config_parse_file( config_filename );
+	bmp_printf( FONT_MED, 0, 70,
+		"Config file %s: %s",
+		config_filename,
+		global_config ? "YES" : "NO"
+	);
+
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
 	dm_set_store_level( DM_DISP, 4 );
@@ -649,6 +658,13 @@ dump_task( void )
 	//msleep(1000);
 	//bmp_draw_palette();
 	//dispcheck();
+
+	if (lv_drawn())
+	{
+		msleep(2000);
+		clrscr();
+	}
+
 
 	unsigned x=10;
 	unsigned y=32;

@@ -495,6 +495,7 @@ void hdr_take_pics(int steps, int step_size)
 			lens_set_shutter( new_s );
 			lens_take_picture( 100000 );
 		}
+		msleep(100);
 		lens_set_shutter( s );
 	}
 	else

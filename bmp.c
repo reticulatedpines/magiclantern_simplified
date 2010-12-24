@@ -436,3 +436,8 @@ getfilesize_fail:
 	DebugMsg( DM_MAGIC, 3, "bmp_load failed");
 	return NULL;
 }
+
+void clrscr()
+{
+	bmp_fill( 0x0, 0, 0, 960, 540 );
+}

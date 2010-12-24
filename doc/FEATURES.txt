@@ -24,6 +24,7 @@ Features
 * Fine tuning for ISO and shutter speeds; also ISO 25600
 * Kelvin white balance for video mode
 * Clean LiveView display without any overlays (selectable)
+* HDR timelapse
 
 Known issues
 ------------
