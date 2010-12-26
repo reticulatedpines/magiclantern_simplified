@@ -38,6 +38,15 @@ CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between tw
 int intervalometer_running = 0;
 int lcd_release_running = 0;
 
+PROP_INT(PROP_DRIVE, drive_mode);
+PROP_INT(PROP_AF_MODE, af_mode);
+PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
+PROP_INT(PROP_MVR_REC_START, recording);
+PROP_INT(PROP_WB_MODE, wb_mode);
+PROP_INT(PROP_WB_KELVIN, kelvins);
+PROP_INT(PROP_SHUTTER, current_shutter_code);
+PROP_INT(PROP_ISO, current_iso_code);
 
 int timer_values[] = {1,2,5,10,30,60,300,900,3600};
 
@@ -102,13 +111,6 @@ trap_focus_display( void * priv, int x, int y, int selected )
 const int iso_values[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,580,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2750,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,7200,8000,12800,25600};
 const int iso_codes[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,  128,  136}; 
 
-int current_iso_code = 0;
-PROP_HANDLER(PROP_ISO)
-{
-	current_iso_code = buf[0];
-	return prop_cleanup( token, property );
-}
-
 int get_current_iso_index()
 {
 	int i;
@@ -161,14 +163,6 @@ iso_toggle_reverse( void * priv )
 const int shutter_values[] = { 30, 33, 37, 40,  45,  50,  53,  57,  60,  67,  75,  80,  90, 100, 110, 115, 125, 135, 150, 160, 180, 200, 210, 220, 235, 250, 275, 300, 320, 360, 400, 435, 470, 500, 550, 600, 640, 720, 800, 875, 925,1000,1100,1200,1250,1400,1600,1750,1900,2000,2150,2300,2500,2800,3200,3500,3750,4000};
 const int shutter_codes[]  = { 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152};
 
-
-int current_shutter_code = 0;
-PROP_HANDLER(PROP_SHUTTER)
-{
-	current_shutter_code = buf[0];
-	return prop_cleanup( token, property );
-}
-
 int get_current_shutter_index()
 {
 	int i;
@@ -216,20 +210,6 @@ static void
 shutter_toggle_reverse( void * priv )
 {
 	shutter_toggle(-1);
-}
-
-
-int wb_mode = 0;
-int kelvins = 0;
-PROP_HANDLER(PROP_WB_MODE)
-{
-	wb_mode = buf[0];
-	return prop_cleanup( token, property );
-}
-PROP_HANDLER(PROP_WB_KELVIN)
-{
-	kelvins = buf[0];
-	return prop_cleanup( token, property );
 }
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -330,6 +310,14 @@ hdr_stepsize_toggle( void * priv )
 	hdr_stepsize = mod(hdr_stepsize, 40) + 8;
 }
 
+int mov_test_en = 0;
+
+static void mov_test(void* priv)
+{
+	mov_test_en = !mov_test_en;
+	bmp_printf(FONT_LARGE, 30, 30, "en=%d ", mov_test_en);
+}
+
 struct menu_entry shoot_menus[] = {
 	{
 		.priv		= &interval_timer_index,
@@ -401,26 +389,92 @@ PROP_HANDLER( PROP_HALF_SHUTTER )
 	return prop_cleanup( token, property );
 }
 
-int drive_mode;
-PROP_HANDLER( PROP_DRIVE )
+void hdr_take_pics(int steps, int step_size)
 {
-	drive_mode = buf[0];
-	return prop_cleanup( token, property );
+	int i;
+	if (shooting_mode == 3) // manual
+	{
+		const int s = current_shutter_code;
+		for( i = -steps/2; i <= steps/2; i ++  )
+		{
+			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+			int new_s = COERCE(s - step_size * i, 0x10, 152);
+			msleep(100);
+			lens_set_shutter( new_s );
+			msleep(100);
+			lens_take_picture( 64000 );
+			msleep(100);
+		}
+		msleep(100);
+		lens_set_shutter( s );
+	}
+	else
+	{
+		const int ae = lens_get_ae();
+		for( i = -steps/2; i <= steps/2; i ++  )
+		{
+			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+			int new_ae = ae + step_size * i;
+			lens_set_ae( new_ae );
+			lens_take_picture( 64000 );
+		}
+		lens_set_ae( ae );
+	}
 }
 
-int af_mode;
-PROP_HANDLER(PROP_AF_MODE)
+static void
+hdr_take_mov(steps, step_size)
 {
-	af_mode = (int16_t)buf[0];
-	return prop_cleanup( token, property );
+	if (shooting_type != 3 && shooting_mode != 0x14)
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "Not in movie (%d,%d) ", shooting_type, shooting_mode);
+		return;
+	}
+	if (recording)
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "Already recording ");
+		return;
+	}
+	
+	int g = get_global_draw();
+	set_global_draw(0);
+	clrscr();
+	call("MovieStart");
+	while (recording != 2) msleep(100);
+	msleep(300);
+
+	int i;
+	const int s = current_shutter_code;
+	for( i = -steps/2; i <= steps/2; i ++  )
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+		int new_s = COERCE(s - step_size * i, 96, 152);
+		lens_set_shutter( new_s );
+		msleep(300);
+	}
+	lens_set_shutter( s );
+
+	while (recording == 2)
+	{
+		call("MovieEnd",1);
+		msleep(100);
+	}
+	set_global_draw(g);
 }
 
-int shooting_mode;
-PROP_HANDLER(PROP_SHOOTING_MODE)
+
+void hdr_shot()
 {
-	shooting_mode = (int16_t)buf[0];
-	return prop_cleanup( token, property );
+	if (shooting_mode == 0x14)
+	{
+		hdr_take_mov(hdr_steps, hdr_stepsize);
+	}
+	else
+	{
+		hdr_take_pics(hdr_steps, hdr_stepsize);
+	}
 }
+
 static void
 shoot_task( void )
 {
@@ -475,7 +529,7 @@ shoot_task( void )
 			}
 			if (*(int*)FOCUS_CONFIRMATION)
 			{
-				lens_take_picture(1000);
+				lens_take_picture(64000);
 				msleep(trap_focus_delay);
 			}
 		}
@@ -483,38 +537,7 @@ shoot_task( void )
 	}
 }
 
-void hdr_take_pics(int steps, int step_size)
-{
-	int i;
-	if (shooting_mode == 3) // manual
-	{
-		const int s = current_shutter_code;
-		for( i = -steps/2; i <= steps/2; i ++  )
-		{
-			int new_s = COERCE(s - step_size * i, 0x10, 152);
-			lens_set_shutter( new_s );
-			lens_take_picture( 100000 );
-		}
-		msleep(100);
-		lens_set_shutter( s );
-	}
-	else
-	{
-		const int ae = lens_get_ae();
-		for( i = -steps/2; i <= steps/2; i ++  )
-		{
-			int new_ae = ae + step_size * i;
-			lens_set_ae( new_ae );
-			lens_take_picture( 100000 );
-		}
-		lens_set_ae( ae );
-	}
-}
 
-void hdr_shot()
-{
-	hdr_take_pics(hdr_steps, hdr_stepsize);
-}
 
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x18, 0x1000 );
