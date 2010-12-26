@@ -441,3 +441,26 @@ void clrscr()
 {
 	bmp_fill( 0x0, 0, 0, 960, 540 );
 }
+
+void bmp_draw(struct bmp_file_t * bmp, int x0, int y0)
+{
+	if (!bmp) return;
+
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+
+	int bmppitch = bmp_pitch();
+	uint32_t x,y;
+	for( y=0 ; y < bmp->height; y++ )
+	{
+		uint16_t * const b_row = (uint16_t*)( bvram + (y + y0) * bmppitch );
+		for( x=0 ; x < bmp->width ; x+=2 )
+		{
+			uint8_t * pixbuf = &bmp->image[
+				x + bmp->width * (bmp->height - y - 1)
+			];
+			uint16_t pix = *(uint16_t*) pixbuf;
+			b_row[ (x + x0) / 2 ] = pix;
+		}
+	}
+}
