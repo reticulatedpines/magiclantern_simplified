@@ -180,19 +180,21 @@ lens_set_aperture(
 
 static inline void
 lens_set_iso(
-	unsigned		iso
+	uint32_t		iso
 )
 {
-	prop_request_change( PROP_ISO, &iso, sizeof(iso) );
+	prop_request_change( PROP_ISO, &iso, 4 );
+	msleep(100);
 }
 
 
 static inline void
 lens_set_shutter(
-	unsigned		shutter
+	int32_t		shutter
 )
 {
-	prop_request_change( PROP_SHUTTER, &shutter, sizeof(shutter) );
+	prop_request_change( PROP_SHUTTER, &shutter, 4 );
+	msleep(100);
 }
 
 
@@ -202,6 +204,7 @@ lens_set_ae(
 )
 {
 	prop_request_change( PROP_AE, &cmd, 4 );
+	msleep(100);
 }
 
 
@@ -210,7 +213,7 @@ int lens_get_ae();
 
 extern int
 lens_take_picture(
-	int			wait
+	uint32_t		wait
 );
 
 

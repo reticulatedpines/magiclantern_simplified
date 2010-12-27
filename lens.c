@@ -331,23 +331,34 @@ lens_focus(
 
 int
 lens_take_picture(
-	int			wait
+	uint32_t			wait
 )
 {
 	if( lens_info.job_state > 0xA )
+	{
+		bmp_printf(FONT_LARGE,10,450, "Busy (job_state=%d)  ", lens_info.job_state);
 		return -1;
+	}
 
-	call( "Release", 0 );
+
+	bmp_printf(FONT_LARGE,10,450, "Taking pic");
+	unsigned value = 0;
+	prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
+	//~ call( "Release", 0 );
 
 	if( !wait )
 		return 0;
 
+	msleep(500);
+	
 	int i;
 	for (i = 0; i < wait / 100; i++)
 	{
-		if (lens_info.job_state <= 0xA) break;
+		bmp_printf(FONT_LARGE,10,450, "Wait (job_state=%d)  ", lens_info.job_state);
+		if (lens_info.job_state == 0) break;
 		msleep(100);
 	}
+	bmp_printf(FONT_LARGE,10,450, "Done :)           )  ", lens_info.job_state);
 	msleep(200);
 
 	return lens_info.job_state;
@@ -575,12 +586,7 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 	return prop_cleanup( token, property );
 }
 
-int current_ae;
-PROP_HANDLER(PROP_AE)
-{
-	current_ae = buf[0];
-	return prop_cleanup( token, property );
-}
+PROP_INT(PROP_AE, current_ae);
 
 int lens_get_ae( void )
 {
@@ -596,7 +602,7 @@ lens_task( void * priv )
 		take_semaphore( lens_sem, 0 );
 		calc_dof( &lens_info );
 		update_lens_display( &lens_info );
-		mvr_update_logfile( &lens_info, 0 ); // do not force it
+		//~ mvr_update_logfile( &lens_info, 0 ); // do not force it
 	}
 }
 

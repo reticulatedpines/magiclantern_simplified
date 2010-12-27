@@ -93,7 +93,7 @@ focus_stack(
 	unsigned i;
 	for( i=0 ; i < count ; i++ )
 	{
-		lens_take_picture( 100000 );
+		lens_take_picture( 64000 );
 		if( count-1 == i )
 			break;
 
@@ -121,7 +121,7 @@ focus_stack_task( void )
 	}
 }
 
-TASK_CREATE( "focus_stack_task", focus_stack_task, 0, 0x1f, 0x1000 );
+//~ TASK_CREATE( "focus_stack_task", focus_stack_task, 0, 0x1f, 0x1000 );
 
 static struct semaphore * focus_task_sem;
 static int focus_task_dir;
@@ -323,7 +323,7 @@ focus_task( void )
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
+//~ TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 
 PROP_HANDLER( PROP_LV_FOCUS )
