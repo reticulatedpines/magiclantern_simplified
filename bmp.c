@@ -464,3 +464,14 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0)
 		}
 	}
 }
+
+// this is slow, but is good for a small number of pixels :)
+uint8_t bmp_getpixel(int x, int y)
+{
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return 0;
+	int bmppitch = bmp_pitch();
+
+	uint8_t * const b_row = bvram + y * bmppitch;
+	return b_row[x];
+}

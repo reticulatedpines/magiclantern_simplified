@@ -214,5 +214,6 @@ bmp_load(
 void clrscr();
 
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0);
+uint8_t bmp_getpixel(int x, int y);
 
 #endif
