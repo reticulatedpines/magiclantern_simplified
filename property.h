@@ -119,15 +119,19 @@
 #define PROP_ICU_UILOCK		0x8300017F	// maybe?
 
 #define PROP_SHOOTING_MODE  0x80000000
-
-#define PROP_WB_MODE        0x80050018  // 0=AWB, 1=sun, 8=shade, 2=clouds, 3=tungsten, 4=fluorescent, 5=flash, 6=custom, 9 = kelvin
-#define PROP_WB_MODE_MIRROR 0x8000000D  // mirror of WB_Mode?
-#define PROP_WB_KELVIN      0x80050019
 //~ 80000000 = shooting mode maybe: 0 = P; 1 = Tv; 2 = Av; 3 = M; 5 = A-Dep; 13 = CA; 9 = auto; f = no flash;
            //~ c = lady; d = mountains; e = flowers; b = sportsman; a = stars; 14 = movie. 
            //~ During mode switch, it takes other values.
 
+// WB in LiveView (and movie) mode
+#define PROP_WB_MODE_LV        0x80050018  // 0=AWB, 1=sun, 8=shade, 2=clouds, 3=tungsten, 4=fluorescent, 5=flash, 6=custom, 9 = kelvin
+#define PROP_WB_KELVIN_LV      0x80050019
 
+// WB in photo mode
+#define PROP_WB_MODE_PH 0x8000000D
+#define PROP_WB_KELVIN_PH 0x8000000E
+
+#define PROP_SHUTTER_COUNT 0x02050001 // maybe?
 
 /** Job progress
  * 0xB == capture end?

@@ -30,6 +30,7 @@
 #include "menu.h"
 #include "property.h"
 #include "lens.h"
+#include "gui.h"
 
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 1);
@@ -43,8 +44,8 @@ PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
-PROP_INT(PROP_WB_MODE, wb_mode);
-PROP_INT(PROP_WB_KELVIN, kelvins);
+PROP_INT(PROP_WB_MODE_LV, wb_mode);
+PROP_INT(PROP_WB_KELVIN_LV, kelvins);
 PROP_INT(PROP_SHUTTER, current_shutter_code);
 PROP_INT(PROP_ISO, current_iso_code);
 
@@ -223,9 +224,10 @@ kelvin_toggle( int sign )
 	int mode = 9;
 	k = (k/100) * 100;
 	k = 1700 + mod(k - 1700 + sign * 100, 10100 - 1700);
-	prop_request_change(PROP_WB_MODE, &mode, 4);
-	prop_request_change(PROP_WB_MODE_MIRROR, &mode, 4);
-	prop_request_change(PROP_WB_KELVIN, &k, 4);
+	prop_request_change(PROP_WB_MODE_LV, &mode, 4);
+	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
+	prop_request_change(PROP_WB_MODE_PH, &mode, 4);
+	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
 }
 
 static void
@@ -367,16 +369,6 @@ int display_sensor_active()
 	return (*(int*)(DISPLAY_SENSOR_MAYBE));
 }
 
-PROP_HANDLER( PROP_GUI_STATE )
-{
-    int gui_state = buf[0];
-    if (gui_state == 1) // PLAYMENU
-    {
-		intervalometer_running = 0;
-		lcd_release_running = 0;
-	}		
-	return prop_cleanup( token, property );
-}
 
 // does not seem to have any effect...
 PROP_HANDLER( PROP_HALF_SHUTTER )
@@ -482,6 +474,13 @@ shoot_task( void )
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 	while(1)
 	{
+		if (gui_state == GUISTATE_PLAYMENU)
+		{
+			intervalometer_running = 0;
+			lcd_release_running = 0;
+		}
+		
+		
 		if (intervalometer_running)
 		{
 			msleep(1000);
