@@ -8,6 +8,7 @@
 #include "menu.h"
 #include "property.h"
 #include "config.h"
+#include "gui.h"
 //#include "lua.h"
 
 extern void bootdisk_disable();
@@ -202,12 +203,20 @@ draw_prop_select( void * priv )
 	draw_prop = !draw_prop;
 }
 
+static int dbg_propn = 0;
+static void 
+draw_prop_reset( void * priv )
+{
+	dbg_propn = 0;
+}
+
+
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
 CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x1000 );         // look at ### int32's
+CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x400 );         // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
-CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	1 );         // only display small numbers (less than 10)
+CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
 
 #define mem_spy_start ((uint32_t)mem_spy_start_lo | ((uint32_t)mem_spy_start_hi << 16))
 
@@ -293,14 +302,15 @@ static uint32_t* dbg_memchanges = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... %x", mem_spy_start, mem_spy_len);
+	bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
+	msleep(2000);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
 	if (!dbg_memmirror) return;
 	if (!dbg_memchanges) dbg_memchanges = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
 	if (!dbg_memchanges) return;
 	int i;
-	//~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
+	bmp_printf(FONT_MED, 10,10, "memspy alloc");
 	uint32_t crc = 0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
@@ -308,6 +318,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 		dbg_memmirror[i] = *(uint32_t*)(addr);
 		dbg_memchanges[i] = 0;
 		crc += dbg_memmirror[i];
+		bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
 	}
 	//~ bmp_printf(FONT_MED, 10,10, "memspy: %x", crc);
 }
@@ -330,19 +341,52 @@ static void dbg_memspy_update()
 			if (dbg_memchanges[i] < 100) dbg_memchanges[i]++;
 			fnt = FONT(FONT_SMALL, 5, COLOR_BG);
 		}
+		//~ else continue;
 
 		if (mem_spy_bool && newval != 0 && newval != 1 && newval != 0xFFFFFFFF) continue;
 		if (mem_spy_small && newval > 10) continue;
 
 		// show addresses which change, but not those which change like mad
-		if (dbg_memchanges[i] > 0 && dbg_memchanges[i] < 50)
+		if (dbg_memchanges[i] > 5 && dbg_memchanges[i] < 50)
 		{
-			int x = 10 + 8 * 20 * (k % 4);
+			int x = 10 + 8 * 22 * (k % 4);
 			int y = 10 + 12 * (k / 4);
 			bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
 			k = (k + 1) % 120;
 		}
 	}
+
+	for (i = 0; i < 10; i++)
+	{
+		int x = 10 + 8 * 22 * (k % 4);
+		int y = 10 + 12 * (k / 4);
+		bmp_printf(FONT_SMALL, x, y, "                    ");
+		k = (k + 1) % 120;
+	}
+}
+
+PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
+
+char lens_name[200];
+PROP_HANDLER(PROP_LENS_NAME)
+{
+	strcpy(lens_name, buf);
+	return prop_cleanup( token, property );
+}
+void display_info()
+{
+	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
+	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
+	bmp_printf(FONT_MED, 20, 440, "Lens: %s", lens_name);
+}
+void display_clock()
+{
+	int bg = bmp_getpixel(15, 430);
+	uint32_t fnt = FONT(FONT_LARGE, 80, bg);
+
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+	bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
 }
 
 
@@ -355,6 +399,16 @@ debug_loop_task( void ) // screenshot, draw_prop
 	dbg_memspy_init();
 	while(1)
 	{
+		if (gui_state == GUISTATE_MENUDISP)
+		{
+			display_info();
+		}
+		
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE)
+		{
+			display_clock();
+		}
+		
 		if (screenshot_sec)
 		{
 			bmp_printf( FONT_SMALL, 0, 0, "Screenshot in 10 seconds");
@@ -372,7 +426,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			dbg_memspy_update();
 			msleep(10);
 		}
-		else msleep(1000);
+		else msleep(100);
 	}
 }
 
@@ -393,9 +447,9 @@ struct menu_entry debug_menus[] = {
 		.select		= save_config,
 		.display	= menu_print,
 	},
-	{
-		.display	= efic_temp_display,
-	},
+	//~ {
+		//~ .display	= efic_temp_display,
+	//~ },
 	//~ {
 		//~ .priv		= "Draw palette",
 		//~ .select		= bmp_draw_palette,
@@ -414,6 +468,7 @@ struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Toggle draw_prop",
 		.select		= draw_prop_select,
+		.select_reverse = draw_prop_reset,
 		.display	= menu_print,
 	},
 	{
@@ -455,15 +510,16 @@ debug_token_handler(
 	);
 }
 
-static int dbg_propn = 0;
-static unsigned dbg_props[30] = {0};
-static unsigned dbg_props_len[30] = {0};
-static unsigned dbg_props_a[30] = {0};
-static unsigned dbg_props_b[30] = {0};
-static unsigned dbg_props_c[30] = {0};
-static unsigned dbg_props_d[30] = {0};
-static unsigned dbg_props_e[30] = {0};
-static unsigned dbg_props_f[30] = {0};
+//~ static int dbg_propn = 0;
+#define MAXPROP 30
+static unsigned dbg_props[MAXPROP] = {0};
+static unsigned dbg_props_len[MAXPROP] = {0};
+static unsigned dbg_props_a[MAXPROP] = {0};
+static unsigned dbg_props_b[MAXPROP] = {0};
+static unsigned dbg_props_c[MAXPROP] = {0};
+static unsigned dbg_props_d[MAXPROP] = {0};
+static unsigned dbg_props_e[MAXPROP] = {0};
+static unsigned dbg_props_f[MAXPROP] = {0};
 static void dbg_draw_props(int changed)
 {
 	dbg_last_changed_propindex = changed;
@@ -471,7 +527,7 @@ static void dbg_draw_props(int changed)
 	for (i = 0; i < dbg_propn; i++)
 	{
 		unsigned x = 80;
-		unsigned y = 32 + i * font_small.height;
+		unsigned y = 15 + i * font_small.height;
 		unsigned property = dbg_props[i];
 		unsigned len = dbg_props_len[i];
 		unsigned fnt = FONT_SMALL;
@@ -489,6 +545,7 @@ static void dbg_draw_props(int changed)
 		);
 	}
 }
+
 
 static void *
 debug_property_handler(
@@ -511,7 +568,7 @@ debug_property_handler(
 		
 	if( !draw_prop )
 		goto ack;
-
+	
 	// maybe the property is already in the array
 	int i;
 	for (i = 0; i < dbg_propn; i++)
@@ -530,7 +587,7 @@ debug_property_handler(
 		}
 	}
 	// new property
-	if (dbg_propn >= 30) dbg_propn = 29; // too much is bad :)
+	if (dbg_propn >= MAXPROP) dbg_propn = MAXPROP-1; // too much is bad :)
 	dbg_props[dbg_propn] = property;
 	dbg_props_len[dbg_propn] = len;
 	dbg_props_a[dbg_propn] = addr[0];
@@ -541,7 +598,6 @@ debug_property_handler(
 	dbg_props_f[dbg_propn] = addr[5];
 	dbg_propn++;
 	dbg_draw_props(dbg_propn);
-
 
 ack:
 	return prop_cleanup( debug_token, property );
@@ -561,26 +617,28 @@ debug_init( void )
 #if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
-	//for( i=0 ; i<=0x8 ; i+=8 )
-	i = 8;
+	
+	unsigned is[] = {0x80, 0xe, 0x5, 0x4, 0x2, 0x1, 0x0};
+	for( i=0 ; i<=COUNT(is) ; i++ )
 	{
 		for( j=0 ; j<=0x8 ; j++ )
 		{
 			for( k=0 ; k<0x40 ; k++ )
 			{
 				unsigned prop = 0
-					| (i << 28) 
+					| (is[i] << 24) 
 					| (j << 16)
 					| (k <<  0);
 
-				if( prop != 0x80030014
-				&&  prop != 0x80030015
-				&&  prop != 0x80050000
-				&&  prop != 0x80050004
-				&&  prop != 0x80050005
-				&&  prop != 0x80050010
-				&&  prop != 0x8005000f
-				) {
+				//~ if( prop != 0x80030014
+				//~ &&  prop != 0x80030015
+				//~ &&  prop != 0x80050000
+				//~ &&  prop != 0x80050004
+				//~ &&  prop != 0x80050005
+				//~ &&  prop != 0x80050010
+				//~ &&  prop != 0x8005000f
+				//~ ) 
+				{
 					property_list[ actual_num_properties++ ] = prop;
 				}
 
@@ -620,35 +678,52 @@ thats_all:
 
 CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 
-CONFIG_INT( "debug.dump_prop", dump_prop, 0 );
-CONFIG_INT( "debug.dumpaddr", dump_addr, 0 );
-CONFIG_INT( "debug.dumplen", dump_len, 0 );
+//~ CONFIG_INT( "debug.dump_prop", dump_prop, 0 );
+//~ CONFIG_INT( "debug.dumpaddr", dump_addr, 0 );
+//~ CONFIG_INT( "debug.dumplen", dump_len, 0 );
 
 CONFIG_INT( "magic.disable_bootdiskf",	disable_bootdiskf, 0 );
+
+void show_logo()
+{
+	gui_stop_menu();
+	msleep(1000);
+	struct bmp_file_t * bmp = bmp_load("B:/logo.bmp");
+	int i;
+	for (i = 0; i < 100; i++)
+	{
+		bmp_draw(bmp,0,0);
+		bmp_enabled = 0;
+		msleep(10);
+		bmp_enabled = 1;
+	}
+}
 
 
 static void
 dump_task( void )
 {
-	//lua_State * L = lua_open();
 
+	//lua_State * L = lua_open();
+	//~ show_logo();
+	//~ clrscr();
 	// Parse our config file
-	const char * config_filename = "B:/magic.cfg";
-	global_config = config_parse_file( config_filename );
-	bmp_printf( FONT_MED, 0, 70,
-		"Config file %s: %s",
-		config_filename,
-		global_config ? "YES" : "NO"
-	);
+	//~ const char * config_filename = "B:/magic.cfg";
+	//~ global_config = config_parse_file( config_filename );
+	//~ bmp_printf( FONT_MED, 0, 70,
+		//~ "Config file %s: %s",
+		//~ config_filename,
+		//~ global_config ? "YES" : "NO"
+	//~ );
 
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-	dm_set_store_level( DM_DISP, 4 );
-	dm_set_store_level( DM_LVFD, 4 );
-	dm_set_store_level( DM_LVCFG, 4 );
-	dm_set_store_level( DM_LVCDEV, 4 );
-	dm_set_store_level( DM_LV, 4 );
-	dm_set_store_level( DM_RSC, 4 );
+	//~ dm_set_store_level( DM_DISP, 4 );
+	//~ dm_set_store_level( DM_LVFD, 4 );
+	//~ dm_set_store_level( DM_LVCFG, 4 );
+	//~ dm_set_store_level( DM_LVCDEV, 4 );
+	//~ dm_set_store_level( DM_LV, 4 );
+	//~ dm_set_store_level( DM_RSC, 4 );
 	dm_set_store_level( 0, 4 ); // catch all?
 	
 	// increase jpcore debugging (breaks liveview?)
@@ -675,7 +750,7 @@ dump_task( void )
 	}
 
 	if( timed_dump == 0 )
-		return;
+		goto end;
 
 	int sec = timed_dump;
 
@@ -692,11 +767,14 @@ dump_task( void )
 
 	DebugMsg( DM_MAGIC, 3, "%s: calling dumpf", __func__ );
 	dumpf();
+
+end:
+	debug_loop_task();
 }
 
 
 TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
-TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
+//~ TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
 
 CONFIG_INT( "debug.timed-start",	timed_start, 0 );
 
@@ -734,4 +812,4 @@ movie_start( void )
 	bmp_printf( FONT(FONT_HUGE,COLOR_WHITE,0), x, y, "   " );
 }
 
-TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
+//~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
