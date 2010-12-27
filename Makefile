@@ -217,10 +217,10 @@ ML_OBJS-y = \
 	focus.o \
 	bracket.o \
 	shoot.o \
-	spotmeter.o \
 
 NO=\
 	ptp.o \
+	spotmeter.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \

@@ -29,10 +29,10 @@
 #include "config.h"
 #include "menu.h"
 #include "property.h"
+#include "gui.h"
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
-static volatile unsigned sensor_cleaning = 1;
 
 #define hist_height			64
 #define hist_width			128
@@ -42,8 +42,8 @@ static volatile unsigned sensor_cleaning = 1;
 static int global_draw = 1;
 CONFIG_INT( "global.draw", global_draw_bk, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
-CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	250 );
-CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	5 );
+CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
+CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_STR( "crop.file.1",	crop_file_1,	"B:/cropmark.bmp" );
@@ -69,12 +69,19 @@ static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 CONFIG_INT( "clear.preview", clearpreview, 1); // 2 is always
 CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 
+CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 2 ); // 0 off, 1 on, 2 on without dots
+
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
 
 int get_global_draw()
 {
 	return global_draw;
+}
+void set_global_draw(int g)
+{
+	global_draw = g;
 }
 
 /** Sobel edge detection */
@@ -454,6 +461,8 @@ static uint8_t* bvram_mirror = 0;
 static void
 draw_zebra( void )
 {
+	if (!lv_drawn()) return;
+	
 	uint8_t * const bvram = bmp_vram();
     uint32_t a = 0;
     
@@ -577,6 +586,9 @@ draw_zebra( void )
 
 	if( hist_draw )
 		hist_draw_image( hist_x, hist_y );
+
+	if( spotmeter_draw)
+		spotmeter_step();
 	//~ if( waveform_draw )
 		//~ waveform_draw_image( waveform_x, waveform_y );
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra done **********************");
@@ -811,6 +823,86 @@ clearpreview_display(
 }
 
 
+static void
+spotmeter_menu_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int * draw_ptr = priv;
+
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		//23456789012
+		"Spotmeter:  %s",
+		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "ON    " : "Hidden")
+	);
+}
+
+static void
+spotmeter_toggle( void * priv )
+{
+	unsigned * ptr = priv;
+	*ptr = (*ptr + 1) % 3; // 0, 1 or 2
+}
+
+
+void spotmeter_step()
+{
+	struct vram_info *	vram = get_yuv422_vram();
+
+	if( !vram->vram )
+		return;
+
+	const unsigned		width = vram->width;
+	const unsigned		pitch = vram->pitch;
+	const unsigned		height = vram->height;
+	const unsigned		dx = spotmeter_size;
+	unsigned		sum = 0;
+	unsigned		x, y;
+
+	if (get_global_draw() && spotmeter_draw == 1)
+	{
+		bmp_fill(
+			0xA,
+			width/2 - dx,
+			height/2 - dx,
+			2*dx + 1,
+			4
+		);
+
+		bmp_fill(
+			0xA,
+			width/2 - dx,
+			height/2 + dx,
+			2*dx + 1,
+			4
+		);
+	}
+
+	// Sum the values around the center
+	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	{
+		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
+			sum += (vram->vram[ x + y * pitch ]) & 0xFF00;
+	}
+
+	sum /= (2 * dx + 1) * (2 * dx + 1);
+
+	// Scale to 100%
+	const unsigned		scaled = (100 * sum) / 65536;
+	bmp_printf(
+		FONT_MED,
+		300,
+		400,
+		"%3d%%",
+		scaled
+	);
+}
+
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -847,6 +939,11 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse		= crop_toggle_reverse,
 	},
 	{
+		.priv			= &spotmeter_draw,
+		.select			= spotmeter_toggle,
+		.display		= spotmeter_menu_display,
+	},
+	{
 		.priv			= &clearpreview,
 		.display		= clearpreview_display,
 		.select			= clearpreview_toggle,
@@ -865,14 +962,7 @@ struct menu_entry zebra_menus[] = {
 };
 
 
-
-PROP_HANDLER( PROP_ACTIVE_SWEEP_STATUS )
-{
-    DebugMsg(DM_MAGIC, 3, "PROP_ACTIVE_SWEEP_STATUS => %d", buf[0]);
-	// Let us know when the sensor is done cleaning
-	sensor_cleaning = buf[0];
-	return prop_cleanup( token, property );
-}
+PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 
 
 #if 0
@@ -889,12 +979,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
-int shooting_type;
-PROP_HANDLER(PROP_SHOOTING_TYPE)
-{
-	shooting_type = buf[0];
-	return prop_cleanup( token, property );
-}
+PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 
 int movie_elapsed_time = 0;
 int movie_elapsed_ticks = 0;
@@ -985,38 +1070,6 @@ zebra_task( void )
 		}
 		else msleep(100); // nothing to do (idle), but keep it responsive
 	}
-
-
-#ifndef CONFIG_550D
-#error "liveview!"
-	if( enable_liveview )
-	{
-/*
-		DebugMsg( DM_MAGIC, 3, "Waiting for sweep status to end" );
-		while( sensor_cleaning )
-			msleep(100);
-*/
-		DebugMsg( DM_MAGIC, 3, "Entering liveview" );
-		call( "FA_StartLiveView" );
-
-		// Clear the bitmap display, just in case
-		bmp_fill( 0, 0, 0, 720, 480 );
-	}
-#endif
-
-
-	while(1)
-	{
-		if ( lv_drawn() )
-		{
-			draw_zebra();
-			msleep( 100 );
-		} else {
-			// Don't display the zebras over the menu.
-			// wait a while and then try again
-			msleep( 500 );
-		}
-	}
 }
 
 
@@ -1032,4 +1085,4 @@ movie_clock_task( void )
 	}
 }
 
-TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x18, 0x1000 );
+TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x19, 0x1000 );
