@@ -451,20 +451,20 @@ menu_handler(
 	)
 		return 1; // 0 is too aggressive :)
 
-	if( event == GUI_PROP_EVENT )
-	{
-		if(0) bmp_printf( FONT_SMALL, 400, 40,
-			"prop %08x => %08x",
-			arg4,
-			*(unsigned*) arg4
-		);
+	//~ if( event == GUI_PROP_EVENT )
+	//~ {
+		//~ if(0) bmp_printf( FONT_SMALL, 400, 40,
+			//~ "prop %08x => %08x",
+			//~ arg4,
+			//~ *(unsigned*) arg4
+		//~ );
 
 		// Mine!  No one else gets it
-		return 0;
-	}
+		//~ return 0;
+	//~ }
 
-	if( event != 1 )
-	{
+	//~ if( event != 1 )
+	//~ {
 		DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
 		if( draw_event )
         {
@@ -474,7 +474,7 @@ menu_handler(
             // not dangerous any more :)
 			//~ if (event != PRESS_LEFT_BUTTON && event != PRESS_RIGHT_BUTTON && event != PRESS_UP_BUTTON && event != PRESS_DOWN_BUTTON && event != PRESS_SET_BUTTON) return 0;
         }
-	}
+	//~ }
 
 
 	// Find the selected menu (should be cached?)
@@ -676,6 +676,7 @@ gui_menu_shown( void )
 	return (int) gui_menu_task;
 }
 
+int get_draw_event() { return draw_event; }
 
 static void
 toggle_draw_event( void * priv )
@@ -699,7 +700,7 @@ menu_task( void )
 	DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
 	// Add the draw_prop menu
-	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
+	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
 	msleep(3000);
 	while(1)
 	{

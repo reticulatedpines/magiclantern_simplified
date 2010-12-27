@@ -61,14 +61,6 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
-int gui_state = 0;
-
-PROP_HANDLER( PROP_GUI_STATE )
-{
-    gui_state = buf[0];
-	return prop_cleanup( token, property );
-}
-
 extern void* gui_main_task_functbl;
 
 #define NFUNCS 8
@@ -105,10 +97,24 @@ static void gui_main_task_550d()
 				continue;
 			} 
 		}
+		if (get_draw_event())
+		{
+			if (event->type != 2)
+			{
+				kev++;
+				bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+					kev, 
+					event->type, 
+					event->param, 
+					event->obj ? *(uint32_t*)(event->obj) : 0,
+					event->obj ? *(uint32_t*)(event->obj + 4) : 0,
+					event->obj ? *(uint32_t*)(event->obj + 8) : 0,
+					event->arg);
+			}
+		}
+		
 		if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
 		{
-			kev++;
-			//~ bmp_printf(FONT_MED, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
 			//~ if (event->param == 0x56 && event->arg == 0x9) // wheel L/R
 			//~ {
 				//~ menu_select_current(); // quick select menu items with the wheel

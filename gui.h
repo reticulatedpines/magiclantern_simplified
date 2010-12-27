@@ -321,8 +321,11 @@ gui_stop_menu( void );
 extern void
 gui_hide_menu( int redisplay_time );
 
-extern int gui_state;
+#include "property.h"
+static PROP_INT(PROP_GUI_STATE, gui_state);
 #define GUISTATE_IDLE 0
 #define GUISTATE_PLAYMENU 1
+#define GUISTATE_MENUDISP 2
+#define GUISTATE_QMENU 9
 
 #endif
