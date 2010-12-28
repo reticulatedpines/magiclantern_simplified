@@ -46,7 +46,6 @@ display_lens_hyperfocal(
 	unsigned		height = fontspec_height( font );
 
 	bmp_printf( font, x, y,
-		//23456789012
 		"Focal dist: %s",
 		lens_info.focus_dist == 0xFFFF
                         ? " Infnty"
@@ -55,21 +54,18 @@ display_lens_hyperfocal(
 
 	y += height;
 	bmp_printf( font, x, y,
-		//23456789012
 		"Hyperfocal: %s",
 		lens_format_dist( lens_info.hyperfocal )
 	);
 
 	y += height;
 	bmp_printf( font, x, y,
-		//23456789012
 		"DOF Near:   %s",
 		lens_format_dist( lens_info.dof_near )
 	);
 
 	y += height;
 	bmp_printf( font, x, y,
-		//23456789012
 		"DOF Far:    %s",
 		lens_info.dof_far >= 1000*1000
 			? " Infnty"
@@ -121,7 +117,7 @@ focus_stack_task( void )
 	}
 }
 
-//~ TASK_CREATE( "focus_stack_task", focus_stack_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1f, 0x1000 );
 
 static struct semaphore * focus_task_sem;
 static int focus_task_dir;
@@ -141,7 +137,6 @@ focus_dir_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Focus dir:  %s",
 		focus_dir ? "FAR " : "NEAR"
 	);
@@ -158,7 +153,6 @@ focus_show_a(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Focus A:    %+5d",
 		focus_task_delta
 	);
@@ -192,7 +186,6 @@ focus_rack_speed_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Rack speed: %2d",
 		focus_rack_speed
 	);
@@ -312,23 +305,17 @@ focus_task( void )
 		{
 			lens_focus( 1, step );
 			focus_task_delta += step;
-			//~ if( step > 0 && step < 1000 )
-				//~ step = ((step+1) * 100) / 99;
-			//~ else
-			//~ if( step < 0 && step > -1000 )
-				//~ step = ((step-1) * 100) / 99;
-
 			msleep( 50 );
 		}
 	}
 }
 
-//~ TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
 
 
-PROP_HANDLER( PROP_LV_FOCUS )
-{
-	return prop_cleanup( token, property );
+//~ PROP_HANDLER( PROP_LV_FOCUS )
+//~ {
+	//~ return prop_cleanup( token, property );
 	//~ static int16_t oldstep = 0;
 	//~ const struct prop_focus * const focus = (void*) buf;
 	//~ const int16_t step = (focus->step_hi << 8) | focus->step_lo;
@@ -341,7 +328,7 @@ PROP_HANDLER( PROP_LV_FOCUS )
 			//~ focus->mode
 		//~ );
 	//~ return prop_cleanup( token, property );
-}
+//~ }
 
 static struct menu_entry focus_menu[] = {
 	{
@@ -383,7 +370,7 @@ focus_init( void )
 	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
 }
 
-
+/*
 PTP_HANDLER( 0x9998, 0 )
 {
 	int step = (int) param1;
@@ -413,7 +400,7 @@ PTP_HANDLER( 0x9998, 0 )
 
 	return 0;
 }
-
+*/
 
 INIT_FUNC( __FILE__, focus_init );
 
