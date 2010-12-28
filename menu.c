@@ -289,7 +289,7 @@ menus_display(
 void
 menu_entry_select(
 	struct menu *	menu,
-	int reverse
+	int mode // 0 = normal, 1 = reverse, 2 = auto setting
 )
 {
 	if( !menu )
@@ -308,11 +308,21 @@ menu_entry_select(
 	if( !entry )
 		return;
 
-	if(reverse) 
+	if(mode == 1)
 	{
 		if( entry->select_reverse ) entry->select_reverse( entry->priv );
 		else if (entry->select) entry->select( entry->priv );
-	} 
+	}
+	else if (mode == 2)
+	{
+		if( entry->select_auto ) entry->select_auto( entry->priv );
+		else 
+		{
+			bmp_printf(FONT_LARGE, 20,450, "Option not available");
+			msleep(1000);
+			bmp_printf(FONT_LARGE, 20,450, "                    ");
+		}
+	}
 	else 
 	{
 		if( entry->select ) entry->select( entry->priv );
@@ -545,6 +555,11 @@ menu_handler(
 	case PRESS_INFO_BUTTON:
 		menu_entry_select( menu, 1 ); // reverse select
 		break;
+
+	case PRESS_DIRECT_PRINT_BUTTON:
+		menu_entry_select( menu, 2 ); // auto setting select
+		break;
+
 #if 0
 	case PRESS_ZOOM_IN_BUTTON:
 		gui_hide_menu( 100 );
@@ -616,7 +631,8 @@ menu_init( void )
 	menu_find_by_name( "Audio" );
 	menu_find_by_name( "Video" );
 	menu_find_by_name( "Shoot" );
-	menu_find_by_name( "Brack" );
+	menu_find_by_name( "Expo" );
+	//~ menu_find_by_name( "Brack" );
 	menu_find_by_name( "Focus" );
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );

@@ -70,12 +70,20 @@
 #define PROP_LIVE_VIEW_VIEWTYPE	0x80000034
 
 #define PROP_MODE		0x80000001 // maybe; set in FA_DISP_COM
-#define PROP_DRIVE		0x80000003 // 0 = single, 1 = continuous, 0x10 = self timer/remote, 0x11 = 2 sec self timer, 7 = self timer continuous
+
+#define PROP_DRIVE		0x80000003
+#define DRIVE_SINGLE 0
+#define DRIVE_CONTINUOUS 1
+#define DRIVE_SELFTIMER_REMOTE 0x10
+#define DRIVE_SELFTIMER_2SEC 0x11
+#define DRIVE_SELFTIMER_CONTINUOUS 7
+
 #define PROP_SHUTTER		0x80000005
 #define PROP_APERTURE		0x80000006
 #define PROP_ISO		0x80000007
 #define PROP_AE			0x80000008 // signed 8-bit value
 #define PROP_UILOCK		0x8000000b // maybe?
+#define PROP_ISO_AUTO		0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO
 
 #define PROP_SHUTTER_RELEASE	0x8003000A
 #define PROP_AVAIL_SHOT		0x8004000C // also 0x80030005
@@ -118,10 +126,21 @@
 
 #define PROP_ICU_UILOCK		0x8300017F	// maybe?
 
-#define PROP_SHOOTING_MODE  0x80000000
-//~ 80000000 = shooting mode maybe: 0 = P; 1 = Tv; 2 = Av; 3 = M; 5 = A-Dep; 13 = CA; 9 = auto; f = no flash;
-           //~ c = lady; d = mountains; e = flowers; b = sportsman; a = stars; 14 = movie. 
-           //~ During mode switch, it takes other values.
+#define PROP_SHOOTING_MODE  0x80000000 // During mode switch, it takes other values.
+#define SHOOTMODE_P 0
+#define SHOOTMODE_TV 1
+#define SHOOTMODE_AV 2
+#define SHOOTMODE_M 3
+#define SHOOTMODE_ADEP 5
+#define SHOOTMODE_CA 13
+#define SHOOTMODE_AUTO 9
+#define SHOOTMODE_NOFLASH 0xF
+#define SHOOTMODE_PORTRAIT 0xC
+#define SHOOTMODE_LANDSCAPE 0xD
+#define SHOOTMODE_MACRO 0xE
+#define SHOOTMODE_SPORTS 0xB
+#define SHOOTMODE_NIGHT 0xA
+#define SHOOTMODE_MOVIE 0x14
 
 // WB in LiveView (and movie) mode
 #define PROP_WB_MODE_LV        0x80050018  // 0=AWB, 1=sun, 8=shade, 2=clouds, 3=tungsten, 4=fluorescent, 5=flash, 6=custom, 9 = kelvin
@@ -131,7 +150,43 @@
 #define PROP_WB_MODE_PH 0x8000000D
 #define PROP_WB_KELVIN_PH 0x8000000E
 
+// values of PROP_WB_MODE_*:
+#define WB_AUTO 0
+#define WB_SUNNY 1 
+#define WB_SHADE 8
+#define WB_CLOUDY 2
+#define WB_TUNGSTEN 3
+#define WB_FLUORESCENT 4
+#define WB_FLASH 5
+#define WB_CUSTOM 6
+#define WB_KELVIN 9
+
+#define PROP_WBS_GM 0x80000010 // signed 8-bit, len=4
+#define PROP_WBS_BA 0x80000011 // idem
+
+
 #define PROP_SHUTTER_COUNT 0x02050001 // maybe?
+#define PROP_FILE_NUMBER 0x02040008   // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+#define PROP_FILE_NUMBER_ALSO 0x02010004 // seems to mirror the previous one
+
+#define PROP_PICTURE_STYLE 0x80000028 // 0x81 = std, 82 = portrait, 83 = landscape, 84 = neutral, 85 = faithful, 86 = monochrome, 21 = user 1, 22 = user 2, 23 = user 3
+#define PROP_PICSTYLE_SETTINGS_1 0x02060001 // 02060001 for std, 02060002 for portrait... 02060007 for user 1 ... 02060009 for user 3
+#define PROP_PICSTYLE_SETTINGS_2 0x02060002
+#define PROP_PICSTYLE_SETTINGS_3 0x02060003
+#define PROP_PICSTYLE_SETTINGS_4 0x02060004
+#define PROP_PICSTYLE_SETTINGS_5 0x02060005
+#define PROP_PICSTYLE_SETTINGS_6 0x02060006
+#define PROP_PICSTYLE_SETTINGS_7 0x02060007
+#define PROP_PICSTYLE_SETTINGS_8 0x02060008
+#define PROP_PICSTYLE_SETTINGS_9 0x02060009
+
+#define PROP_ALO 0x8000003D
+#define ALO_STD 0
+#define ALO_LOW 1
+#define ALO_HIGH 2
+#define ALO_OFF 3
+
+#define PROP_CFN 0x80010004 // 13 bytes
 
 /** Job progress
  * 0xB == capture end?

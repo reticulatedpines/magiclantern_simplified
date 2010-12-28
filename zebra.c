@@ -72,6 +72,9 @@ CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 2 ); // 0 off, 1 on, 2 on without dots
 
+PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
+PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
 
@@ -82,6 +85,18 @@ int get_global_draw()
 void set_global_draw(int g)
 {
 	global_draw = g;
+}
+
+struct vram_info * get_yuv422_vram()
+{
+	static struct vram_info _vram_info;
+    _vram_info.vram = YUV422_IMAGE_BUFFER;
+    _vram_info.width = 720;
+    _vram_info.pitch = 720;
+    _vram_info.height = 480;
+
+	struct vram_info * vram = &_vram_info;
+	return vram;
 }
 
 /** Sobel edge detection */
@@ -269,6 +284,34 @@ hist_build(void* vram, int width, int pitch)
 	}
 }
 
+void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, int* over)
+{
+	*under = -1;
+	*over = -1;
+	struct vram_info * vramstruct = get_yuv422_vram();
+	if (!vramstruct) return;
+
+	*under = 0;
+	*over = 0;
+	void* vram = vramstruct->vram;
+	int width = vramstruct->width;
+	int pitch = vramstruct->pitch;
+	uint32_t * 	v_row = (uint32_t*) vram;
+	int x,y;
+	for( y=1 ; y<480; y++, v_row += (pitch/2) )
+	{
+		for( x=0 ; x<width ; x += 2 )
+		{
+			uint32_t pixel = v_row[x/2];
+			uint32_t p1 = (pixel >> 16) & 0xFFFF;
+			uint32_t p2 = (pixel >>  0) & 0xFFFF;
+			uint32_t p = ((p1+p2) / 2) >> 8;
+			if (p < thr_lo) (*under)++;
+			if (p > thr_hi) (*over)++;
+		}
+	}
+}
+
 /** Draw the histogram image into the bitmap framebuffer.
  *
  * Draw one pixel at a time; it seems to be ok with err70.
@@ -444,19 +487,9 @@ void dump_seg(start, size, filename)
     DebugMsg(DM_MAGIC, 3, "********* dump_seg %s ended ********", filename);
 }
 
-struct vram_info * get_yuv422_vram()
-{
-	static struct vram_info _vram_info;
-    _vram_info.vram = YUV422_IMAGE_BUFFER;
-    _vram_info.width = 720;
-    _vram_info.pitch = 720;
-    _vram_info.height = 480;
-
-	struct vram_info * vram = &_vram_info;
-	return vram;
-}
-
 static uint8_t* bvram_mirror = 0;
+
+void spotmeter_step();
 
 static void
 draw_zebra( void )
@@ -535,8 +568,18 @@ draw_zebra( void )
 
 			uint16_t pixel = b_row[x/2];
 			uint16_t mirror = m_row[x/2];
+
+			// cropmarks: black border in movie mode
+			if ((pixel == 0 || pixel == (COLOR_BG << 8 | COLOR_BG)) && shooting_mode == SHOOTMODE_MOVIE && (y < 40 || y > 440))
+			{
+				b_row[x/2] = (2 << 8 | 2); // black borders by default
+				if( crop_draw) check_crop( x, y, b_row, v_row, vram->pitch, m_row);
+			}
+
 			if (pixel != 0 && pixel != mirror)
+			{
 				continue; // Canon code has drawn here, do not overwrite
+			}
 				
 			// Ignore the regions where the histogram will be drawn
 			if( hist_draw
@@ -849,6 +892,41 @@ spotmeter_toggle( void * priv )
 	*ptr = (*ptr + 1) % 3; // 0, 1 or 2
 }
 
+void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
+{
+	struct vram_info *	vram = get_yuv422_vram();
+
+	if( !vram->vram )
+		return;
+
+	const unsigned		width = vram->width;
+	const unsigned		pitch = vram->pitch;
+	const unsigned		height = vram->height;
+	unsigned		x, y;
+
+
+	unsigned sy = 0;
+	int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
+	// Sum the values around the center
+	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	{
+		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
+		{
+			uint16_t p = vram->vram[ x + y * pitch ];
+			sy += p & 0xFF00;
+			if (x % 2) su += (int)(p & 0x00FF); else sv += (int)(p & 0x00FF); // U and V may be reversed
+		}
+	}
+
+	sy /= (2 * dx + 1) * (2 * dx + 1);
+	su /= (dx + 1) * (2 * dx + 1);
+	sv /= (dx + 1) * (2 * dx + 1);
+
+	*Y = sy >> 8;
+	*U = su;
+	*V = sv;
+}
+
 
 void spotmeter_step()
 {
@@ -978,8 +1056,6 @@ PROP_HANDLER( PROP_MVR_REC_START )
 	return prop_cleanup( token, property );
 }
 #endif
-
-PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 
 int movie_elapsed_time = 0;
 int movie_elapsed_ticks = 0;

@@ -49,6 +49,9 @@ struct menu_entry
 	void			(*select_reverse)(
 		void *			priv
 	);
+	void			(*select_auto)(
+		void *			priv
+	);
 	void			(*display)(
 		void *			priv,
 		int			x,
