@@ -774,7 +774,7 @@ movie_start( void )
 		msleep( 1000 );
 		bmp_printf(
 			FONT(
-				FONT_HUGE,
+				FONT_LARGE,
 				sec > 4 ? COLOR_WHITE : COLOR_RED,
 				0
 			),
@@ -784,13 +784,13 @@ movie_start( void )
 		);
 	}
 
-	bmp_printf( FONT(FONT_HUGE,COLOR_WHITE,0), x, y, "GO!" );
+	bmp_printf( FONT(FONT_LARGE,COLOR_WHITE,0), x, y, "GO!" );
 
 	call( "MovieStart" );
 
 	msleep( 1000 );
 
-	bmp_printf( FONT(FONT_HUGE,COLOR_WHITE,0), x, y, "   " );
+	bmp_printf( FONT(FONT_LARGE,COLOR_WHITE,0), x, y, "   " );
 }
 
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );

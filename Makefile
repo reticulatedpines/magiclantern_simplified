@@ -199,7 +199,6 @@ ML_OBJS-y = \
 	stubs-550d.109.o \
 	version.o \
 	bmp.o \
-	font-huge.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
@@ -212,13 +211,14 @@ ML_OBJS-y = \
 	property.o \
 	gui.o \
 	bootflags.o \
-	hotplug.o \
 	zebra.o \
-	focus.o \
-	bracket.o \
 	shoot.o \
+	focus.o \
 
 NO=\
+	font-huge.o \
+	hotplug.o \
+	bracket.o \
 	ptp.o \
 	spotmeter.o \
 

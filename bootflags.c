@@ -165,7 +165,7 @@ initial_install(void)
 	bmp_printf(FONT_LARGE, 0, 150, "Writing boot log");
 	dumpf();
 
-	bmp_printf(FONT_HUGE, 0, 180, "Done!");
+	bmp_printf(FONT_LARGE, 0, 180, "Done!");
 }
 
 
