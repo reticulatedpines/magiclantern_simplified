@@ -57,9 +57,8 @@ CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
 CONFIG_INT( "audio.loopback",	loopback,	1 );
 CONFIG_INT( "audio.input-source",	input_source,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
-
-
-CONFIG_INT("audio.draw-meters", cfg_draw_meters, 1);
+CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 int do_draw_meters = 1;
 
 int lv_drawn()
@@ -326,7 +325,7 @@ meter_task( void )
 	{
 		msleep( 50 );
 
-		if( do_draw_meters && cfg_draw_meters && get_global_draw())
+		if( do_draw_meters && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)) && get_global_draw())
 			draw_meters();
 		else
 			msleep( 500 );
@@ -730,11 +729,13 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 static void
 audio_meter_display( void * priv, int x, int y, int selected )
 {
+	unsigned v = *(unsigned*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"AudioMeter: %s",
-		*(unsigned*) priv ? "ON " : "OFF"
+		v == 1 ? "ON " : 
+		(v == 2 ? "MovOnly": "OFF")
 	);
 }
 
@@ -817,10 +818,17 @@ audio_filters_display( void * priv, int x, int y, int selected )
 	);
 }
 
+void draw_meters_toggle(void* priv)
+{
+	unsigned * val = priv;
+	*val = mod(*val+1, 3);
+	if (!*val && lv_drawn()) bmp_fill( 0x0, 0, 0, 720, 40);
+}
+
 static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &cfg_draw_meters,
-		.select		= menu_binary_toggle,
+		.select		= draw_meters_toggle,
 		.display	= audio_meter_display,
 	},
 	{
