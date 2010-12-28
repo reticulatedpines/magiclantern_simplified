@@ -9,6 +9,7 @@
 #include "property.h"
 #include "config.h"
 #include "gui.h"
+#include "lens.h"
 //#include "lua.h"
 
 extern void bootdisk_disable();
@@ -367,20 +368,16 @@ static void dbg_memspy_update()
 
 PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
 
-char lens_name[200];
-PROP_HANDLER(PROP_LENS_NAME)
-{
-	strcpy(lens_name, buf);
-	return prop_cleanup( token, property );
-}
 void display_info()
 {
+	bmp_enabled = 1;
 	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
 	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
-	bmp_printf(FONT_MED, 20, 440, "Lens: %s", lens_name);
+	bmp_printf(FONT_MED, 20, 440, "Lens: %s          ", lens_info.name);
 }
 void display_clock()
 {
+	bmp_enabled = 1;
 	int bg = bmp_getpixel(15, 430);
 	uint32_t fnt = FONT(FONT_LARGE, 80, bg);
 
@@ -404,9 +401,10 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE)
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && bmp_getpixel(2,10) != 2)
 		{
 			display_clock();
+			display_shooting_info();
 		}
 		
 		if (screenshot_sec)
@@ -465,12 +463,12 @@ struct menu_entry debug_menus[] = {
 		.select		= (void*) dumpf,
 		.display	= menu_print,
 	},
-	{
-		.priv		= "Toggle draw_prop",
-		.select		= draw_prop_select,
-		.select_reverse = draw_prop_reset,
-		.display	= menu_print,
-	},
+	//~ {
+		//~ .priv		= "Toggle draw_prop",
+		//~ .select		= draw_prop_select,
+		//~ .select_reverse = draw_prop_reset,
+		//~ .display	= menu_print,
+	//~ },
 	{
 		.priv		= "Toggle mem_spy",
 		.select		= mem_spy_select,
@@ -511,7 +509,7 @@ debug_token_handler(
 }
 
 //~ static int dbg_propn = 0;
-#define MAXPROP 30
+#define MAXPROP 10
 static unsigned dbg_props[MAXPROP] = {0};
 static unsigned dbg_props_len[MAXPROP] = {0};
 static unsigned dbg_props_a[MAXPROP] = {0};
@@ -605,8 +603,8 @@ ack:
 
 
 
-#define num_properties 8192
-unsigned property_list[ num_properties ];
+//~ #define num_properties 8192
+//~ unsigned property_list[ num_properties ];
 
 
 void
@@ -614,6 +612,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
+/*
 #if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
@@ -630,25 +629,7 @@ debug_init( void )
 					| (j << 16)
 					| (k <<  0);
 
-				//~ if( prop != 0x80030014
-				//~ &&  prop != 0x80030015
-				//~ &&  prop != 0x80050000
-				//~ &&  prop != 0x80050004
-				//~ &&  prop != 0x80050005
-				//~ &&  prop != 0x80050010
-				//~ &&  prop != 0x8005000f
-				//~ ) 
-				{
-					property_list[ actual_num_properties++ ] = prop;
-				}
-
-/*
-				if( i !=0 && j != 0 )
-				property_list[ actual_num_properties++ ] = 0
-					| (2 << 24) 
-					| (j << 16)
-					| (k <<  0);
-*/
+				property_list[ actual_num_properties++ ] = prop;
 
 				if( actual_num_properties > num_properties )
 					goto thats_all;
@@ -671,7 +652,7 @@ thats_all:
 		debug_property_handler,
 		(void*) 0xdeadbeef,
 		debug_token_handler
-	);
+	); */
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }
@@ -708,13 +689,13 @@ dump_task( void )
 	//~ show_logo();
 	//~ clrscr();
 	// Parse our config file
-	//~ const char * config_filename = "B:/magic.cfg";
-	//~ global_config = config_parse_file( config_filename );
-	//~ bmp_printf( FONT_MED, 0, 70,
-		//~ "Config file %s: %s",
-		//~ config_filename,
-		//~ global_config ? "YES" : "NO"
-	//~ );
+	const char * config_filename = "B:/magic.cfg";
+	global_config = config_parse_file( config_filename );
+	bmp_printf( FONT_MED, 0, 70,
+		"Config file %s: %s",
+		config_filename,
+		global_config ? "YES" : "NO"
+	);
 
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
