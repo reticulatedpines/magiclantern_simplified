@@ -336,12 +336,12 @@ lens_take_picture(
 {
 	if( lens_info.job_state > 0xA )
 	{
-		bmp_printf(FONT_LARGE,10,450, "Busy (job_state=%d)  ", lens_info.job_state);
+		//~ bmp_printf(FONT_LARGE,10,450, "Busy (job_state=%d)  ", lens_info.job_state);
 		return -1;
 	}
 
 
-	bmp_printf(FONT_LARGE,10,450, "Taking pic");
+	//~ bmp_printf(FONT_LARGE,10,450, "Taking pic");
 	unsigned value = 0;
 	prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
 	//~ call( "Release", 0 );
@@ -354,11 +354,11 @@ lens_take_picture(
 	int i;
 	for (i = 0; i < wait / 100; i++)
 	{
-		bmp_printf(FONT_LARGE,10,450, "Wait (job_state=%d)  ", lens_info.job_state);
+		//~ bmp_printf(FONT_LARGE,10,450, "Wait (job_state=%d)  ", lens_info.job_state);
 		if (lens_info.job_state == 0) break;
 		msleep(100);
 	}
-	bmp_printf(FONT_LARGE,10,450, "Done :)           )  ", lens_info.job_state);
+	//~ bmp_printf(FONT_LARGE,10,450, "Done :)              ", lens_info.job_state);
 	msleep(200);
 
 	return lens_info.job_state;
@@ -542,7 +542,10 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
-	give_semaphore( lens_sem );
+	calc_dof( &lens_info );
+	update_lens_display( &lens_info );
+	mvr_update_logfile( &lens_info, 0 ); // do not force it
+	
 	return prop_cleanup( token, property );
 }
 
@@ -594,21 +597,21 @@ int lens_get_ae( void )
 }
 
 
-static void
-lens_task( void * priv )
-{
-	while(1)
-	{
-		take_semaphore( lens_sem, 0 );
-		calc_dof( &lens_info );
-		update_lens_display( &lens_info );
+//~ static void
+//~ lens_task( void * priv )
+//~ {
+	//~ while(1)
+	//~ {
+		//~ take_semaphore( lens_sem, 0 );
+		//~ calc_dof( &lens_info );
+		//~ update_lens_display( &lens_info );
 		//~ mvr_update_logfile( &lens_info, 0 ); // do not force it
-	}
-}
+	//~ }
+//~ }
 
-TASK_CREATE( "dof_task", lens_task, 0, 0x1f, 0x1000 );
+//~ TASK_CREATE( "dof_task", lens_task, 0, 0x1f, 0x1000 );
 
-
+// less tasks = more stable
 
 
 static void
