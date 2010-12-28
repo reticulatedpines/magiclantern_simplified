@@ -335,13 +335,13 @@ my_init_task(void)
 	int ml_tasks = 0;
 	for( ; task < _tasks_end ; task++ )
 	{
-		DebugMsg( DM_MAGIC, 3,
-			"Creating task %s(%d) pri=%02x flags=%08x",
-			task->name,
-			task->arg,
-			task->priority,
-			task->flags
-		);
+		//~ DebugMsg( DM_MAGIC, 3,
+			//~ "Creating task %s(%d) pri=%02x flags=%08x",
+			//~ task->name,
+			//~ task->arg,
+			//~ task->priority,
+			//~ task->flags
+		//~ );
 
 		task_create(
 			task->name,
@@ -357,6 +357,6 @@ my_init_task(void)
 		ml_tasks
 	);
 
-	DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
+	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
 }
