@@ -22,9 +22,11 @@ Features
 * Display time remaining during video recording
 * Debug functions (display CMOS temperature, screenshot, logging)
 * Fine tuning for ISO and shutter speeds; also ISO 25600
-* Kelvin white balance for video mode
+* Kelvin white balance
 * Clean LiveView display without any overlays (selectable)
 * HDR timelapse
+* On-demand auto tuning for ISO, shutter & kelvin white balance
+* Quick access to some useful settings like HTP, ALO and contrast
 
 Known issues
 ------------
@@ -72,8 +74,8 @@ Audio
 
 Audio tweaks.
 
-**AudioMeter: ON/OFF**
-  Draw the audio meters or not.
+**AudioMeter: ON/OFF/MovOnly**
+  Draw the audio meters or not. The ``MovOnly`` settings enables audio meters in movie mode only.
 
 **Output vol (dB)**
   Gain to external audio - currently this is the A/V jack (?) so not audible on just the camera
@@ -134,9 +136,16 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   
   An exclamation mark (!) displayed in the menu means "File not found". 
   
-  See [[Cropmarks]] for how to create custom cropmarks.
+  See [[Cropmarks]] for how to create custom cropmarks. Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
 {{clr}}
+
+**Spotmeter: ON/OFF/Hidden**
+  Measure brightness in the center of the frame, and display it as a percentage.
+
+  Indicator is at the bottom on the screen, centered horizontally. It displays 
+  a small marker in the center of the screen. If the current cropmark already includes
+  a center marker, select the Hidden option.
 
 **ClrScr: OFF/HalfShutter/Always**
   
@@ -149,12 +158,6 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
   
   **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
-
-**Spotmeter: ON/OFF/Hidden**
-  Measure brightness in the center of the frame, and display it as a percentage.
-  Indicator is at the bottom on the screen, centered horizontally. It displays 
-  a small marker in the center of the screen. If the current cropmark already includes
-  a center marker, use the Hidden option.
 
 Shoot
 ~~~~~
@@ -170,10 +173,14 @@ Functions for stills shooting.
 **Intervalometer: ON/OFF**
   Start/stop intervalometer. 
   
+  In photo mode, it takes a sequence of photos with a fixed delay. In movie mode, it takes a sequence of very small videos, and works best when combined with the HDR Bracket setting.
+  
   Tip 1: shoot in manual mode and switch the lens to MF.
   
   Tip 2: for power saving, set ``Image Review`` to ``2 sec`` or ``Off``, and press ``Disp`` while shooting.
   
+  Tip 3: to save the shutter count when doing timelapses, switch to Movie mode.
+
 **LCD RemoteShot: ON/OFF**
   Start/stop shutter release with the LCD sensor. To take a picture, 
   put your hand near the LCD sensor. 
@@ -187,19 +194,24 @@ Functions for stills shooting.
   Do not turn on Live View while this option is active (it will take a picture and it shouldn't).
 
 You can also stop the intervalometer and remote shooting mode
-by pressing PLAY or MENU.
+by pressing ``PLAY`` or ``MENU``.
 
 **HDR Bracket**
   AE Bracketing for HDR images and timelapses. This setting is applied only to images taken with intervalometer or LCD face sensor.
   
-  Select number of images with ``SET`` and step size with ``DISP``.
+  Select number of images with ``SET`` and step size with ``DISP``. To turn this off quickly, press ``Q``.
   
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
-
+  
 **Trap Focus: ON/OFF**
   You hold the shutter half-pressed; camera takes a picture when something comes into focus.
   
   This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
+
+Expo
+~~~~
+
+Adjusting the exposure parameters
 
 **ISO**
   Custom steps for ISO. Possible values:
@@ -209,6 +221,11 @@ by pressing PLAY or MENU.
   In video mode, ISO only goes up to 6400.
   
   To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1).
+  
+  In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the ISO value automatically. 
+   
+  * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
+  * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
 
 **Shutter**
   Custom steps for shutter speed. Possible values:
@@ -218,11 +235,30 @@ by pressing PLAY or MENU.
   875, 925, 1000, 1100, 1200, 1250, 1400, 1600, 1750, 1900, 2000, 2150, 2300, 2500, 2800, 3200,
   3500, 3750, 4000.
   
-**White Bal**
-  Kelvin white balance. This feature is still experimental and only works in video mode.
+  In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the shutter value automatically.
   
-  Range: 1700 ... 10000.
+  * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
+  * When LiveView is off, the shutter value is computed with the help of Auto ISO feature from Canon firmware, in 1EV steps. This feature is still experimental and sometimes it does not work.
 
+**WhiteBal**
+  Kelvin white balance. Range: 1700 ... 10000.
+
+  In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
+
+**Contrast**
+  Adjusts the contrast of the current picture style. Range: -4...4.
+  
+  ``WARNING 1``: this will modify your current picture style.
+  
+  ``WARNING 2``: this was not tested with custom picture styles loaded with the EOS Utility (and it might have negative effects)!
+
+**LightAdj: OFF/ALO hi/HTP**
+  Select the light adjustment algorithm: 
+  
+  * OFF
+  * Auto Lighting Optimizer (strong)
+  * Highlight Tone Priority.
+  
 Brack
 ~~~~~
 
@@ -295,9 +331,9 @@ Now that you know what the buttons are about, here is how you make it work:
 
 5. Next select the time period of the pull, by scrolling down to rack speed. The lower the number, the longer the rack will take. It is recommended for testing purposes to start around 20.
 
-6. Once that is done, you need to exit the Magic Lantern Menu, to start the camera recording
+6. Next, start movie recording (you can do that while ML menu is active).
 
-7. Once the camera is recording, re-enter the Magic Lantern Focus Menu, and scroll to ``Rack Focus``. To start the rack focus, press ``Set``. You should see the rack focus commence and complete its cycle.
+7. Once the camera is recording, scroll to ``Rack Focus``. To start the rack focus, press ``Set``. You should see the rack focus commence and complete its cycle.
 
 8. To return to the beginning point, you can press ``Set`` again to return to that point, once again.
 
