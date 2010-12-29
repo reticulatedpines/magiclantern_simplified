@@ -147,21 +147,6 @@ bmp_printf(
 }
 
 void
-slprintf(
-	char* buf,
-	int len,
-	const char *		fmt,
-	...
-)
-{
-	va_list			ap;
-	va_start( ap, fmt );
-	vsnprintf( buf, len, fmt, ap );
-	va_end( ap );
-}
-
-
-void
 con_printf(
 	unsigned		fontspec,
 	const char *		fmt,
