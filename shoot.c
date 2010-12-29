@@ -199,8 +199,7 @@ static int measure_auto_iso()
 }
 static void iso_auto_quick()
 {
-	int newiso = measure_auto_iso();
-	prop_request_change(PROP_ISO, &newiso, 4);
+	lens_set_iso(measure_auto_iso());
 }
 
 int iso_auto_flag = 0;
@@ -246,10 +245,11 @@ int crit_iso(int iso_index)
 
 static void iso_auto_run()
 {
+	if (current_iso_code == 0) { lens_set_iso(96); msleep(500); }
 	int c0 = crit_iso(-1); // test current iso
 	int i;
-	if (c0 > 0) i = bin_search(MAX(1, get_current_iso_index()), COUNT(iso_codes), crit_iso);
-	else i = bin_search(1, get_current_iso_index()+1, crit_iso);
+	if (c0 > 0) i = bin_search(get_current_iso_index(), COUNT(iso_codes), crit_iso);
+	else i = bin_search(get_htp() ? 9 : 1, get_current_iso_index()+1, crit_iso);
 	lens_set_iso(iso_codes[i]);
 	clrscr();
 }
@@ -310,10 +310,10 @@ static void shutter_auto_quick()
 {
 	if (current_iso_code == 0) return;                  // does not work on Auto ISO
 	int ciso = current_iso_code;
-	int steps = measure_auto_iso() - ciso;                   // read delta exposure and compute new shutter value
+	int steps = measure_auto_iso() - ciso;              // read delta exposure and compute new shutter value
 	int newshutter = COERCE(current_shutter_code - steps, 96, 152);
-	prop_request_change(PROP_ISO, &ciso, 4);            // restore iso
-	prop_request_change(PROP_SHUTTER, &newshutter, 4);  // set new shutter value
+	lens_set_iso(ciso);                                 // restore iso
+	lens_set_shutter(newshutter);                       // set new shutter value
 }
 
 int shutter_auto_flag = 0;
