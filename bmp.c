@@ -445,7 +445,7 @@ retry:
 offsetsize_fail:
 signature_fail:
 read_fail:
-	free( buf );
+	FreeMemory( buf );
 malloc_fail:
 getfilesize_fail:
 	DebugMsg( DM_MAGIC, 3, "bmp_load failed");

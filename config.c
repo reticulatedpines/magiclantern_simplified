@@ -112,7 +112,7 @@ parse_error:
 	);
 
 	msleep(2000);
-	free( cfg );
+	FreeMemory( cfg );
 	dumpf();
 malloc_error:
 	return 0;
@@ -291,7 +291,7 @@ error:
 			cfg->name,
 			cfg->value
 		);
-		free( cfg );
+		FreeMemory( cfg );
 		cfg = next;
 	}
 
