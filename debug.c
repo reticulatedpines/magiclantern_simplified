@@ -303,7 +303,7 @@ static uint32_t* dbg_memchanges = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-	bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
+	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
 	msleep(2000);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
@@ -311,7 +311,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 	if (!dbg_memchanges) dbg_memchanges = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
 	if (!dbg_memchanges) return;
 	int i;
-	bmp_printf(FONT_MED, 10,10, "memspy alloc");
+	//~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
 	uint32_t crc = 0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
@@ -319,7 +319,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 		dbg_memmirror[i] = *(uint32_t*)(addr);
 		dbg_memchanges[i] = 0;
 		crc += dbg_memmirror[i];
-		bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
+		//~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
 	}
 	//~ bmp_printf(FONT_MED, 10,10, "memspy: %x", crc);
 }

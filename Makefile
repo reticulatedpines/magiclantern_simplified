@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=bugfixes.$(shell whoami)
+BUILDVER=script.$(shell whoami)
 VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
@@ -77,7 +77,7 @@ endif
 #
 # Install a normal firmware file to the CF card.
 #
-install: magiclantern.fir mlantern.cfg cropmarks.bmp autoexec.bin
+install: autoexec.bin magic.cfg
 	cp $^ $(CF_CARD)
 	$(UMOUNT) $(CF_CARD)
 
@@ -214,6 +214,7 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
+	console.o \
 
 NO=\
 	font-huge.o \

@@ -156,8 +156,9 @@ You need to change the following line in order to indicate your SD card device::
 
       mount | grep fat
 
-  and choose the one labeled ``EOS_DIGITAL``. You may have to run this script as root.
-
+  and choose the one labeled ``EOS_DIGITAL``. You may have to run this script as root, for example::
+      
+      sudo bash make_bootable.sh
 
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~

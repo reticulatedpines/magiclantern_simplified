@@ -587,7 +587,7 @@ PROP_HANDLER( PROP_CFN )
 	cfn[1] = buf[1];
 	cfn[2] = buf[2];
 	cfn[3] = buf[3] & 0xFF;
-	bmp_printf(FONT_MED, 0, 450, "cfn: %x/%x/%x/%x", cfn[0], cfn[1], cfn[2], cfn[3]);
+	//~ bmp_printf(FONT_MED, 0, 450, "cfn: %x/%x/%x/%x", cfn[0], cfn[1], cfn[2], cfn[3]);
 	return prop_cleanup( token, property );
 }
 
