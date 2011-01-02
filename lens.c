@@ -37,90 +37,6 @@ struct lens_info lens_info = {
 	.name		= "NO LENS NAME"
 };
 
-// These are aperture * 10 since we do not have floating point
-static uint16_t aperture_values[] = {
-	[ APERTURE_1_2 / 2 ]	=  12,
-	[ APERTURE_1_4 / 2 ]	=  14,
-	[ APERTURE_1_6 / 2 ]	=  16,
-	[ APERTURE_1_8 / 2 ]	=  18,
-	[ APERTURE_2_0 / 2 ]	=  20,
-	[ APERTURE_2_2 / 2 ]	=  22,
-	[ APERTURE_2_5 / 2 ]	=  25,
-	[ APERTURE_2_8 / 2 ]	=  28,
-	[ APERTURE_3_2 / 2 ]	=  32,
-	[ APERTURE_3_5 / 2 ]	=  35,
-	[ APERTURE_4_0 / 2 ]	=  40,
-	[ APERTURE_4_5 / 2 ]	=  45,
-	[ APERTURE_5_0 / 2 ]	=  50,
-	[ APERTURE_5_6 / 2 ]	=  56,
-	[ APERTURE_6_3 / 2 ]	=  63,
-	[ APERTURE_7_1 / 2 ]	=  71,
-	[ APERTURE_8_0 / 2 ]	=  80,
-	[ APERTURE_9_0 / 2 ]	=  90,
-	[ APERTURE_10 / 2 ]	= 100,
-	[ APERTURE_11 / 2 ]	= 110,
-	[ APERTURE_13 / 2 ]	= 130,
-	[ APERTURE_14 / 2 ]	= 140,
-	[ APERTURE_16 / 2 ]	= 160,
-	[ APERTURE_18 / 2 ]	= 180,
-	[ APERTURE_20 / 2 ]	= 200,
-	[ APERTURE_22 / 2 ]	= 220,
-	[ APERTURE_25 / 2 ]	= 250,
-	[ APERTURE_29 / 2 ]	= 290,
-	[ APERTURE_32 / 2 ]	= 320,
-	[ APERTURE_36 / 2 ]	= 360,
-	[ APERTURE_40 / 2 ]	= 400,
-	[ APERTURE_45 / 2 ]	= 450,
-};
-
-static uint16_t shutter_values[] = {
-	[ SHUTTER_30 / 2 ]	=   30,
-	[ SHUTTER_40 / 2 ]	=   40,
-	[ SHUTTER_50 / 2 ]	=   50,
-	[ SHUTTER_60 / 2 ]	=   60,
-	[ SHUTTER_80 / 2 ]	=   80,
-	[ SHUTTER_100 / 2 ]	=  100,
-	[ SHUTTER_125 / 2 ]	=  125,
-	[ SHUTTER_160 / 2 ]	=  160,
-	[ SHUTTER_200 / 2 ]	=  200,
-	[ SHUTTER_250 / 2 ]	=  250,
-	[ SHUTTER_320 / 2 ]	=  320,
-	[ SHUTTER_400 / 2 ]	=  400,
-	[ SHUTTER_500 / 2 ]	=  500,
-	[ SHUTTER_640 / 2 ]	=  640,
-	[ SHUTTER_800 / 2 ]	=  800,
-	[ SHUTTER_1000 / 2 ]	= 1000,
-	[ SHUTTER_1250 / 2 ]	= 1250,
-	[ SHUTTER_1600 / 2 ]	= 1600,
-	[ SHUTTER_2000 / 2 ]	= 2000,
-	[ SHUTTER_2500 / 2 ]	= 2500,
-	[ SHUTTER_3200 / 2 ]	= 3200,
-	[ SHUTTER_4000 / 2 ]	= 4000,
-};
-
-static uint16_t iso_values[] = {
-	[ ISO_100 / 2 ]		=  100,
-	[ ISO_125 / 2 ]		=  125,
-	[ ISO_160 / 2 ]		=  160,
-	[ ISO_200 / 2 ]		=  200,
-	[ ISO_250 / 2 ]		=  250,
-	[ ISO_320 / 2 ]		=  320,
-	[ ISO_400 / 2 ]		=  400,
-	[ ISO_500 / 2 ]		=  500,
-	[ ISO_640 / 2 ]		=  640,
-	[ ISO_800 / 2 ]		=  800,
-	[ ISO_1000 / 2 ]	= 1000,
-	[ ISO_1250 / 2 ]	= 1250,
-	[ ISO_1600 / 2 ]	= 1600,
-	[ ISO_2000 / 2 ]	= 2000,
-	[ ISO_2500 / 2 ]	= 2500,
-	[ ISO_3200 / 2 ]	= 3200,
-	[ ISO_4000 / 2 ]	= 4000,
-	[ ISO_5000 / 2 ]	= 5000,
-	[ ISO_6400 / 2 ]	= 6400,
-	[ ISO_12500 / 2 ]	= 12500,
-};
-
 
 /** Compute the depth of field for the current lens parameters.
  *
@@ -234,11 +150,9 @@ update_lens_display(
 			: lens_format_dist( info->focus_dist * 10 )
 	);
 
-	//~ return; // the rest are also displayed by Canon FW
-
 	// Move the info display to the very bottom screen
 	x = 0;
-	y = 500;
+	y = 400;
 	if( info->aperture )
 		bmp_printf( font, x, y,
 			"f/%2d.%d",
@@ -266,13 +180,12 @@ update_lens_display(
 	x += 100;
 	if( info->iso )
 		bmp_printf( font, x, y,
-			"ISO %4d",
+			"ISO%5d",
 			info->iso
 		);
 	else
-		bmp_printf( font_err, x, y,
-			"ISO 0x%02x",
-			info->raw_iso
+		bmp_printf( font, x, y,
+			"ISO Auto"
 		);
 
 #if 0
@@ -502,39 +415,109 @@ PROP_HANDLER( PROP_LENS_NAME )
 	return prop_cleanup( token, property );
 }
 
-
-PROP_HANDLER( PROP_APERTURE )
-{
-	const uint32_t raw = *(uint32_t *) buf;
-	lens_info.raw_aperture = raw;
-	lens_info.aperture = raw/2 < COUNT(aperture_values)
-		? aperture_values[ raw / 2 ]
-		: 0;
-	return prop_cleanup( token, property );
+// it may be slow; if you need faster speed, replace this with a binary search or something better
+#define RAWVAL_FUNC(param) \
+int raw2index_##param(int raw) \
+{ \
+	int i; \
+	for (i = 0; i < COUNT(codes_##param); i++) \
+		if(codes_##param[i] >= raw) return i; \
+	return 0; \
+}\
+\
+int val2raw_##param(int val) \
+{ \
+	unsigned i; \
+	for (i = 0; i < COUNT(codes_##param); i++) \
+		if(values_##param[i] >= val) return codes_##param[i]; \
+	return -1; \
 }
 
+RAWVAL_FUNC(iso)
+RAWVAL_FUNC(shutter)
+RAWVAL_FUNC(aperture)
 
-PROP_HANDLER( PROP_SHUTTER )
-{
-	const uint32_t raw = *(uint32_t *) buf;
-	lens_info.raw_shutter = raw;
-	lens_info.shutter = raw/2 < COUNT(shutter_values)
-		? shutter_values[ raw / 2 ]
-		: 0;
-	return prop_cleanup( token, property );
-}
-
+#define RAW2VALUE(param,rawvalue) values_##param[raw2index_##param(rawvalue)]
+#define VALUE2RAW(param,value) val2raw_##param(value)
 
 PROP_HANDLER( PROP_ISO )
 {
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_iso = raw;
-	lens_info.iso = raw/2 < COUNT(iso_values)
-		? iso_values[ raw / 2 ]
-		: 0;
+	lens_info.iso = RAW2VALUE(iso, raw);
 	return prop_cleanup( token, property );
 }
 
+PROP_HANDLER( PROP_SHUTTER )
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_shutter = raw;
+	lens_info.shutter = RAW2VALUE(shutter, raw);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_APERTURE )
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_aperture = raw;
+	lens_info.aperture = RAW2VALUE(aperture, raw);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_AE )
+{
+	const uint32_t value = *(uint32_t *) buf;
+	lens_info.ae = value;
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_WB_MODE_LV )
+{
+	const uint32_t value = *(uint32_t *) buf;
+	lens_info.wb_mode = value;
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_WB_KELVIN_LV )
+{
+	const uint32_t value = *(uint32_t *) buf;
+	lens_info.kelvin = value;
+	return prop_cleanup( token, property );
+}
+
+#define LENS_GET(param) \
+int lens_get_##param() \
+{ \
+	return lens_info.param; \
+} 
+
+LENS_GET(iso)
+LENS_GET(shutter)
+LENS_GET(aperture)
+LENS_GET(ae)
+LENS_GET(kelvin)
+
+#define LENS_SET(param) \
+void lens_set_##param(int value) \
+{ \
+	int raw = VALUE2RAW(param,value); \
+	if (raw >= 0) lens_set_raw##param(raw); \
+}
+
+LENS_SET(iso)
+LENS_SET(shutter)
+LENS_SET(aperture)
+
+void
+lens_set_kelvin(int k)
+{
+	k = COERCE(k, KELVIN_MIN, KELVIN_MAX);
+	int mode = WB_KELVIN;
+	prop_request_change(PROP_WB_MODE_LV, &mode, 4);
+	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
+	prop_request_change(PROP_WB_MODE_PH, &mode, 4);
+	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
+}
 
 PROP_HANDLER( PROP_LV_LENS )
 {
@@ -543,7 +526,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
 	calc_dof( &lens_info );
-	update_lens_display( &lens_info );
+	if (lv_drawn()) update_lens_display( &lens_info );
 	mvr_update_logfile( &lens_info, 0 ); // do not force it
 	
 	return prop_cleanup( token, property );
@@ -556,7 +539,7 @@ PROP_HANDLER( PROP_LVCAF_STATE )
 	return prop_cleanup( token, property );
 }
 
-
+/*
 PROP_HANDLER( PROP_LV_FOCUS )
 {
 	const struct prop_focus * const focus = (void*) buf;
@@ -571,7 +554,7 @@ PROP_HANDLER( PROP_LV_FOCUS )
 			focus->mode
 		);
 	return prop_cleanup( token, property );
-}
+}*/
 
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
@@ -589,31 +572,6 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 	return prop_cleanup( token, property );
 }
 
-PROP_INT(PROP_AE, current_ae);
-
-int lens_get_ae( void )
-{
-	return current_ae;
-}
-
-
-//~ static void
-//~ lens_task( void * priv )
-//~ {
-	//~ while(1)
-	//~ {
-		//~ take_semaphore( lens_sem, 0 );
-		//~ calc_dof( &lens_info );
-		//~ update_lens_display( &lens_info );
-		//~ mvr_update_logfile( &lens_info, 0 ); // do not force it
-	//~ }
-//~ }
-
-//~ TASK_CREATE( "dof_task", lens_task, 0, 0x1f, 0x1000 );
-
-// less tasks = more stable
-
-
 static void
 lens_init( void )
 {
@@ -623,3 +581,115 @@ lens_init( void )
 }
 
 INIT_FUNC( "lens", lens_init );
+
+
+// picture style, contrast...
+// -------------------------------------------
+
+int get_prop_picstyle_index(int pic_style)
+{
+	switch(pic_style)
+	{
+		case 0x81: return 1;
+		case 0x82: return 2;
+		case 0x83: return 3;
+		case 0x84: return 4;
+		case 0x85: return 5;
+		case 0x86: return 6;
+		case 0x21: return 7;
+		case 0x22: return 8;
+		case 0x23: return 9;
+	}
+	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle: %x", pic_style);
+	return 0;
+}
+
+PROP_HANDLER(PROP_PICTURE_STYLE)
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_picstyle = raw;
+	lens_info.picstyle = get_prop_picstyle_index(raw);
+	return prop_cleanup( token, property );
+}
+
+struct prop_picstyle_settings picstyle_settings[10];
+
+// prop_register_slave is much more difficult to use than copy/paste...
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_1 ) {
+	memcpy(&picstyle_settings[1], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_2 ) {
+	memcpy(&picstyle_settings[2], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_3 ) {
+	memcpy(&picstyle_settings[3], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_4 ) {
+	memcpy(&picstyle_settings[4], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_5 ) {
+	memcpy(&picstyle_settings[5], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_6 ) {
+	memcpy(&picstyle_settings[6], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_7 ) {
+	memcpy(&picstyle_settings[7], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_8 ) {
+	memcpy(&picstyle_settings[8], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_PICSTYLE_SETTINGS_9 ) {
+	memcpy(&picstyle_settings[9], buf, 24);
+	return prop_cleanup( token, property );
+}
+
+// get contrast/saturation/etc from the current picture style
+
+#define LENS_GET_FROM_PICSTYLE(param) \
+int \
+lens_get_##param() \
+{ \
+	int i = lens_info.picstyle; \
+	if (!i) return -10; \
+	return picstyle_settings[i].param; \
+} \
+
+// set contrast/saturation/etc in the current picture style (change is permanent!)
+#define LENS_SET_IN_PICSTYLE(param) \
+void \
+lens_set_##param(int value) \
+{ \
+	value = COERCE(value, -4, 4); \
+	int i = lens_info.picstyle; \
+	if (!i) return; \
+	picstyle_settings[i].param = value; \
+	prop_request_change(PROP_PICSTYLE_SETTINGS_1 - 1 + i, &picstyle_settings[i], 24); \
+} \
+
+LENS_GET_FROM_PICSTYLE(contrast)
+LENS_GET_FROM_PICSTYLE(sharpness)
+LENS_GET_FROM_PICSTYLE(saturation)
+LENS_GET_FROM_PICSTYLE(color_tone)
+
+LENS_SET_IN_PICSTYLE(contrast)
+LENS_SET_IN_PICSTYLE(sharpness)
+LENS_SET_IN_PICSTYLE(saturation)
+LENS_SET_IN_PICSTYLE(color_tone)

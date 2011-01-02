@@ -974,7 +974,7 @@ void spotmeter_step()
 	const unsigned		scaled = (100 * sum) / 65536;
 	bmp_printf(
 		FONT_MED,
-		300,
+		350,
 		400,
 		"%3d%%",
 		scaled

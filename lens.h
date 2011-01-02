@@ -37,6 +37,7 @@ struct lens_info
 	unsigned		focal_len; // in mm
 	unsigned		focus_dist; // in cm
 	unsigned		aperture;
+	unsigned		ae;        // exposure compensation, in 1/8 EV steps
 	unsigned		shutter;
 	unsigned		iso;
 	unsigned		hyperfocal; // in mm
@@ -44,10 +45,20 @@ struct lens_info
 	unsigned		dof_far; // in mm
 	unsigned		job_state; // see PROP_LAST_JOB_STATE
 
+	unsigned		wb_mode;  // see property.h for possible values
+	unsigned		kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
+
+	unsigned		picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
+	int32_t 		contrast;   // -4..4
+	uint32_t		sharpness;  // 0..7
+	uint32_t		saturation; // 0..7
+	uint32_t		color_tone; // 0..7
+
 	// Store the raw values before the lookup tables
 	uint8_t			raw_aperture;
 	uint8_t			raw_shutter;
 	uint8_t			raw_iso;
+	uint8_t			raw_picstyle;
 };
 
 extern struct lens_info lens_info;
@@ -86,91 +97,21 @@ struct prop_focus
 
 SIZE_CHECK_STRUCT( prop_focus, 4 );
 
+struct prop_picstyle_settings
+{
+	int32_t 	contrast;   // -4..4
+	uint32_t	sharpness;  // 0..7
+	uint32_t	saturation; // 0..7
+	uint32_t	color_tone; // 0..7
+	uint32_t	off_0x10;   // deadbeaf?!
+	uint32_t	off_0x14;   // deadbeaf?!
+} __attribute__((packed));  
 
-/** Shutter values */
-#define SHUTTER_30 96
-#define SHUTTER_40 99
-#define SHUTTER_50 101
-#define SHUTTER_60 104
-#define SHUTTER_80 107
-#define SHUTTER_100 109
-#define SHUTTER_125 112
-#define SHUTTER_160 115
-#define SHUTTER_200 117
-#define SHUTTER_250 120
-#define SHUTTER_320 123
-#define SHUTTER_400 125
-#define SHUTTER_500 128
-#define SHUTTER_640 131
-#define SHUTTER_800 133
-#define SHUTTER_1000 136
-#define SHUTTER_1250 139
-#define SHUTTER_1600 141
-#define SHUTTER_2000 144
-#define SHUTTER_2500 147
-#define SHUTTER_3200 149
-#define SHUTTER_4000 152
-
-/** Aperture values */
-#define APERTURE_1_2 13
-#define APERTURE_1_4 16
-#define APERTURE_1_6 19
-#define APERTURE_1_8 21
-#define APERTURE_2_0 24
-#define APERTURE_2_2 27
-#define APERTURE_2_5 29
-#define APERTURE_2_8 32
-#define APERTURE_3_2 35
-#define APERTURE_3_5 37
-#define APERTURE_4_0 40
-#define APERTURE_4_5 43
-#define APERTURE_5_0 45
-#define APERTURE_5_6 48
-#define APERTURE_6_3 51
-#define APERTURE_7_1 53
-#define APERTURE_8_0 56
-#define APERTURE_9_0 59
-#define APERTURE_10 61
-#define APERTURE_11 64
-#define APERTURE_13 67
-#define APERTURE_14 69
-#define APERTURE_16 72
-#define APERTURE_18 75
-#define APERTURE_20 77
-#define APERTURE_22 80
-#define APERTURE_25 83
-#define APERTURE_29 85
-#define APERTURE_32 88
-#define APERTURE_36 91
-#define APERTURE_40 93
-#define APERTURE_45 96
-
-/** ISO values */
-#define ISO_100 72
-#define ISO_125 75
-#define ISO_160 77
-#define ISO_200 80
-#define ISO_250 83
-#define ISO_320 85
-#define ISO_400 88
-#define ISO_500 91
-#define ISO_640 93
-#define ISO_800 96
-#define ISO_1000 99
-#define ISO_1250 101
-#define ISO_1600 104
-#define ISO_2000 107
-#define ISO_2500 109
-#define ISO_3200 112
-#define ISO_4000 115
-#define ISO_5000 117
-#define ISO_6400 120
-#define ISO_12500 128
-
+SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 
 /** Camera control functions */
 static inline void
-lens_set_aperture(
+lens_set_rawaperture(
 	unsigned		aperture
 )
 {
@@ -179,7 +120,7 @@ lens_set_aperture(
 
 
 static inline void
-lens_set_iso(
+lens_set_rawiso(
 	uint32_t		iso
 )
 {
@@ -189,7 +130,7 @@ lens_set_iso(
 
 
 static inline void
-lens_set_shutter(
+lens_set_rawshutter(
 	int32_t		shutter
 )
 {
@@ -242,5 +183,22 @@ lens_format_dist(
 	unsigned		mm
 );
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
+#define ABS(a) ((a) > 0 ? (a) : -(a))
+#define KELVIN_MIN 1700
+#define KELVIN_MAX 10000
+#define KELVIN_STEP 100
+
+static const int values_iso[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,580,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2750,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,7200,8000,12800,25600};
+static const int codes_iso[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,  128,  136}; 
+
+static const int values_shutter[] = { 0, 30, 33, 37, 40,  45,  50,  53,  57,  60,  67,  75,  80,  90, 100, 110, 115, 125, 135, 150, 160, 180, 200, 210, 220, 235, 250, 275, 300, 320, 360, 400, 435, 470, 500, 550, 600, 640, 720, 800, 875, 925,1000,1100,1200,1250,1400,1600,1750,1900,2000,2150,2300,2500,2800,3200,3500,3750,4000};
+static const int codes_shutter[]  = { 0, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152};
+
+// aperture*10
+static const int values_aperture[] = {12,14,16,18,20,22,25,28,32,35,40,45,50,56,63,71,80,90,100,110,130,140,160,180,200,220,250,290,320,360,400,450};
+static const int codes_aperture[] =   {13,16,19,21,24,27,29,32,35,37,40,43,45,48,51,53,56,59, 61, 64, 67, 69, 72, 75, 77, 80, 83, 85, 88, 91, 93, 96};
 
 #endif
