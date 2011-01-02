@@ -24,7 +24,7 @@ Features
 * Fine tuning for ISO and shutter speeds; also ISO 25600
 * Kelvin white balance
 * Clean LiveView display without any overlays (selectable)
-* HDR timelapse
+* HDR Timelapse
 * On-demand auto tuning for ISO, shutter & kelvin white balance
 * Quick access to some useful settings like HTP, ALO and contrast
 
@@ -136,6 +136,8 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   
   An exclamation mark (!) displayed in the menu means "File not found". 
   
+  Get more cropmarks created by Magic Lantern users here: `cropmarks-550D.zip <https://bitbucket.org/hudson/magic-lantern/downloads/cropmarks-550D.zip>`_
+  
   See [[Cropmarks]] for how to create custom cropmarks. Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
 {{clr}}
@@ -171,13 +173,13 @@ Functions for stills shooting.
   Time delay for intervalometer, in seconds.
 
 **Intervalometer: ON/OFF**
-  Start/stop intervalometer. 
+  Start/stop intervalometer. Only works outside LiveView.
   
   In photo mode, it takes a sequence of photos with a fixed delay. In movie mode, it takes a sequence of very small videos, and works best when combined with the HDR Bracket setting.
   
   Tip 1: shoot in manual mode and switch the lens to MF.
   
-  Tip 2: for power saving, set ``Image Review`` to ``2 sec`` or ``Off``, and press ``Disp`` while shooting.
+  Tip 2: for power saving, cover the LCD sensor with something.
   
   Tip 3: to save the shutter count when doing timelapses, switch to Movie mode.
 
@@ -262,21 +264,7 @@ Adjusting the exposure parameters
 Brack
 ~~~~~
 
-.. image:: BrackMenu-550D.png
-    :alt: thumb|right|Bracketing menu
-
-AE bracketing.
-
-**Test bracket**
-  Take a few pictures with the selected settings.
-
-**AE Count**
-  Number of pictures to take.
-
-**AE Step**
-  AE step size between two shots (in EV).
-
-TODO: move Stack focus in this menu maybe.
+Bracketing was replaced by ``HDR Bracket`` feature from the ``Shoot`` menu, and it is no longer available. The source code is still there, you can enable it from Makefile and create a custom build.
 
 Focus
 ~~~~~
