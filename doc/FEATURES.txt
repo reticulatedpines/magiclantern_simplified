@@ -355,9 +355,6 @@ Debug
 **Save config**
   Save current settings to ``MAGIC.CFG``.
 
-**CMOS temp**
-  Temperature of the CMOS sensor (EFIC temperature), in raw units.
-
 **Draw palette**
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
 
@@ -418,3 +415,29 @@ Settings related to the Magic Lantern boot process.
 
 This menu may not be available in release builds, 
 because these settings are potentially dangerous.
+
+Extra info displays
+-------------------
+
+Main shooting screen (outside LiveView)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Clock (bottom of screen)
+* ISO value in finer increments (above Canon's ISO display)
+* Trap Focus status (near MF icon)
+* Kelvin temperature (in the white balance box)
+* WB shift values for BA and GM
+
+MENU->DISP
+~~~~~~~~~~
+
+* Shutter counter. Only counts pictures taken, not LV switches or quick focus attempts. 
+* CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units. Before, this was in the Debug menu.
+* Lens name
+
+LiveView
+~~~~~~~~
+
+* Spotmeter: brightness percentage from the center of the frame. Computed as average value of Y component from YUV LiveView buffer over a very small area.
+* Lens focal length and focus distance
+* Todo: ISO, kelvin and maybe others.
