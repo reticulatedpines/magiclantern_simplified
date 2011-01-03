@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=expo.$(shell whoami)
+BUILDVER=uncacheable.$(shell whoami)
 VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
@@ -214,7 +214,6 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
-	console.o \
 
 NO=\
 	font-huge.o \

@@ -374,16 +374,12 @@ bmp_load(
 		size
 	);
 
-	uint8_t * buf = AllocateMemory( size );
+	uint8_t * buf = alloc_dma_memory( size );
 	if( !buf )
 	{
-		DebugMsg( DM_MAGIC, 3, "%s: AllocateMemory failed", filename );
+		DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
 		goto malloc_fail;
 	}
-
-retry:
-	// Retry a few times if necessary
-	DebugMsg( DM_MAGIC, 3, "%s: try %d\n", __func__, retry_count );
 
 	size_t i;
 	for( i=0 ; i<size; i++ )
@@ -407,9 +403,6 @@ retry:
 				((uint32_t*)(buf + i))[2],
 				((uint32_t*)(buf + i))[3]
 			);
-		msleep( 100 );
-		if( retry_count++ < 5 )
-			goto retry;
 
 		goto signature_fail;
 	}
@@ -423,14 +416,23 @@ retry:
 		goto offsetsize_fail;
 	}
 
-	bmp->image = buf + image_offset;
-
+	// Since the read was into uncacheable memory, it will
+	// be very slow to access.  Copy it into a cached buffer
+	// and release the uncacheable space.
+	uint8_t * fast_buf = AllocateMemory( size + 32);
+	if( !fast_buf )
+		goto fail_buf_copy;
+	memcpy(fast_buf, buf, size);
+	bmp = (struct bmp_file_t *) fast_buf;
+	bmp->image = fast_buf + image_offset;
+	free_dma_memory( buf );
 	return bmp;
 
+fail_buf_copy:
 offsetsize_fail:
 signature_fail:
 read_fail:
-	FreeMemory( buf );
+	free_dma_memory( buf );
 malloc_fail:
 getfilesize_fail:
 	DebugMsg( DM_MAGIC, 3, "bmp_load failed");
