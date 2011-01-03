@@ -10,10 +10,9 @@ Features
 * Zebra stripes for overexposed / underexposed areas
 * Spotmeter, histogram
 * Cropmarks (16:9, Cinemascope, Fisheye)
-* Simple intervalometer
+* Intervalometer (classic or HDR)
 * Trap Focus: camera takes a picture when something comes in focus
 * Wireless trigger with the LCD face sensor & your own hand
-* AE bracketing (like on 5D2 ML)
 * Rack focus
 * Stack focus (Live View only)
 * Lens data computation 
@@ -24,7 +23,6 @@ Features
 * Fine tuning for ISO and shutter speeds; also ISO 25600
 * Kelvin white balance
 * Clean LiveView display without any overlays (selectable)
-* HDR Timelapse
 * On-demand auto tuning for ISO, shutter & kelvin white balance
 * Quick access to some useful settings like HTP, ALO and contrast
 
@@ -202,6 +200,8 @@ by pressing ``PLAY`` or ``MENU``.
   AE Bracketing for HDR images and timelapses. This setting is applied only to images taken with intervalometer or LCD face sensor.
   
   Select number of images with ``SET`` and step size with ``DISP``. To turn this off quickly, press ``Q``.
+  
+  To take HDR pictures, enable either the intervalometer or the LCD remote after you have configured the HDR bracketing.
   
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
   
