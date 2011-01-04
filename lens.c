@@ -188,6 +188,12 @@ update_lens_display(
 			"ISO Auto"
 		);
 
+	x = 650;
+	bmp_printf( font, x, y,
+		"AE%2d/8EV",
+		info->ae
+	);
+
 #if 0
 	y += height;
 	bmp_printf( font, x, y,
@@ -262,17 +268,17 @@ lens_take_picture(
 	if( !wait )
 		return 0;
 
-	msleep(500);
+	msleep(100);
 	
 	int i;
 	for (i = 0; i < wait / 100; i++)
 	{
 		//~ bmp_printf(FONT_LARGE,10,450, "Wait (job_state=%d)  ", lens_info.job_state);
-		if (lens_info.job_state == 0) break;
+		if (lens_info.job_state < 0xA) break;
 		msleep(100);
 	}
 	//~ bmp_printf(FONT_LARGE,10,450, "Done :)              ", lens_info.job_state);
-	msleep(200);
+	msleep(30);
 
 	return lens_info.job_state;
 }
@@ -316,7 +322,7 @@ mvr_update_logfile(
 	struct tm now;
 	LoadCalendarFromRTC( &now );
 
-	fprintf(
+	my_fprintf(
 		mvr_logfile,
 		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
 		now.tm_hour,
@@ -369,7 +375,7 @@ mvr_create_logfile(
 	struct tm now;
 	LoadCalendarFromRTC( &now );
 
-	fprintf( mvr_logfile,
+	my_fprintf( mvr_logfile,
 		"Start: %4d/%02d/%02d %02d:%02d:%02d\n",
 		now.tm_year + 1900,
 		now.tm_mon + 1,
@@ -379,9 +385,9 @@ mvr_create_logfile(
 		now.tm_sec
 	);
 
-	fprintf( mvr_logfile, "Lens: %s\n", lens_info.name );
+	my_fprintf( mvr_logfile, "Lens: %s\n", lens_info.name );
 
-	fprintf( mvr_logfile, "%s\n",
+	my_fprintf( mvr_logfile, "%s\n",
 		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
 	);
 
@@ -526,7 +532,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
 	calc_dof( &lens_info );
-	if (lv_drawn()) update_lens_display( &lens_info );
+	if (lv_drawn() && get_global_draw()) update_lens_display( &lens_info );
 	mvr_update_logfile( &lens_info, 0 ); // do not force it
 	
 	return prop_cleanup( token, property );

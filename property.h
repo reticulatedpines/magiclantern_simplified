@@ -62,7 +62,7 @@
 #define PROP_LV_STATE		0x8005000f // output very often
 #define PROP_LV_DISPSIZE	0x80050015 // used to control LV zoom
 #define PROP_LVCAF_STATE	0x8005001B // unknown meaning
-#define PROP_HALF_SHUTTER	0x8005000a // two bytes, 1==held
+#define PROP_HALF_SHUTTER	0x8005000a // two bytes, 1==held; only updated in LV mode
 #define PROP_ORIENTATION	0x8005000d // 0 == 0 deg, 1 == +90 deg, 2 == -90 deg
 
 #define PROP_APERTURE2		0x8000002d

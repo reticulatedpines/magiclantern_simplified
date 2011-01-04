@@ -148,6 +148,14 @@ lens_set_ae(
 	msleep(100);
 }
 
+static inline void
+lens_set_drivemode(
+	uint32_t		dm
+)
+{
+	prop_request_change( PROP_DRIVE, &dm, 4 );
+	msleep(100);
+}
 
 int lens_get_ae();
 
