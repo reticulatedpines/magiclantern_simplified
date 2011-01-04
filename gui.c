@@ -27,9 +27,18 @@
 #include "property.h"
 #include "bmp.h"
 #include "config.h"
+#include "consts-550d.109.h"
 
-CONFIG_INT("button.menu.on", button_menu_on, 0xA);
-CONFIG_INT("button.menu.off", button_menu_off, 0xA);
+CONFIG_INT("button.menu.on", button_menu_on, BGMT_TRASH);
+CONFIG_INT("button.menu.off", button_menu_off, BGMT_TRASH);
+
+// halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
+int halfshutter_pressed = 0;
+int get_halfshutter_pressed() 
+{ 
+	return halfshutter_pressed; 
+}
+
 
 struct semaphore * gui_sem;
 
@@ -63,16 +72,13 @@ extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
 
-#define NFUNCS 8
-#define gui_main_task_functable 0xFF453E14
-
 static void gui_main_task_550d()
 {
 	int kev = 0;
 	struct event * event = NULL;
 	int index = 0;
-	void* funcs[NFUNCS];
-	memcpy(funcs, gui_main_task_functable, 4*NFUNCS);  // copy 8 functions in an array
+	void* funcs[GMT_NFUNCS];
+	memcpy(funcs, GMT_FUNCTABLE, 4*GMT_NFUNCS);
 	gui_init_end();
 	while(1)
 	{
@@ -80,7 +86,7 @@ static void gui_main_task_550d()
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
-		if ((index >= NFUNCS) || (index < 0))
+		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
 				
 		// event 0 is button press maybe?
@@ -126,18 +132,23 @@ static void gui_main_task_550d()
 				//~ lens_focus_start( 0 );
 				//~ continue;
 			//~ }
-			if (lv_drawn() && event->param == 0x40) // zoom out unpress
+			if (lv_drawn() && event->param == BGMT_UNPRESS_HALFSHUTTER) // zoom out unpress, shared with halfshutter
 			{
 				gui_hide_menu( 2 );
 				lens_focus_stop();
 				continue;
 			}
-			if (lv_drawn() && event->param == 0x3f) // zoom out press
+			if (lv_drawn() && event->param == BGMT_PRESS_HALFSHUTTER) // zoom out press, shared with halfshutter
 			{
 				gui_hide_menu( 50 );
 				lens_focus_start( get_focus_dir() );
 				continue;
 			}
+		}
+		if (event->type == 0)
+		{
+			if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
+			if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
 		}
 		void(*f)(struct event *) = funcs[index];
 		f(event);
