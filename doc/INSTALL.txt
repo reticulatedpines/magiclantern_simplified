@@ -89,6 +89,7 @@ Step 1. Enabling bootflag
 .. image:: 550install.jpg
     :alt: thumb|right|Magic Lantern install screen
 
+* Remove any accessories from your camera (such as battery grip or external flash)
 * Format the SD card from the camera (low level, from ``Wrench 1`` menu)
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
@@ -110,8 +111,6 @@ AND the SD card is "prepared" with special values written in boot sector:
 * for FAT32 cards: ``EOS_DEVELOP`` at offset 71 and ``BOOTDISK`` at offset 92
 
 **Do not put an "prepared" (bootable) card without ``autoexec.bin`` in the camera! (it won't boot and you'll have to take the battery out).**
-
-**Before making the card bootable, please remove any accessories from your camera (such as battery grip or external flash!). Magic Lantern was not tested using these accessories and may cause problems.**
 
 Mac OS X
 ````````
