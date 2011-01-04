@@ -775,7 +775,7 @@ audio_input_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Inp: %s",
+		"Input: %s",
 		(input_source == 0 ? "internal mic " : 
         (input_source == 1 ? "int L ext R  " :
         (input_source == 2 ? "ext stereo   " : 

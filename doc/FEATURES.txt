@@ -90,7 +90,7 @@ Audio tweaks.
 **Filters: ON/OFF**
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
 
-**Inp**
+**Input**
   Input source: Internal mic (dual mono); int L ext R; ext stereo; int L ext Bal (balanced Left + Right).
 
 Video
