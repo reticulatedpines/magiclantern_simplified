@@ -182,6 +182,13 @@ audio_ic_sweep_message_queue( void );
 /** Table of calibrations for audio levels to db */
 extern int audio_thresholds[];
 
+struct audio_level
+{
+	int		last;
+	int		avg;
+	int		peak;
+	int		pad;
+};
 
 /** Read the raw level from the audio device.
  *
@@ -193,5 +200,7 @@ audio_read_level( int channel )
 	uint32_t *audio_level = (uint32_t*)( 0xC0920000 + 0x110 );
 	return (int16_t) audio_level[channel];
 }
+
+struct audio_level *get_audio_levels(void);
 
 #endif

@@ -71,16 +71,12 @@ int ext_cfg_draw_meters(void)
     return cfg_draw_meters;
 }
 
-struct audio_level
-{
-	int		last;
-	int		avg;
-	int		peak;
-	int		pad;
-};
-
-
 struct audio_level audio_levels[2];
+
+struct audio_level *get_audio_levels(void)
+{
+	return audio_levels;
+}
 
 // from Morgan Look
 // THIS FUNCTION IS NOT TESTED!!! (it may work, or it may not)
@@ -212,7 +208,7 @@ draw_meter(
 
 	const uint32_t bar_color_word = color_word( bar_color );
 	const uint32_t peak_color_word = color_word( peak_color );
-	const uint32_t bg_color_word = color_word( COLOR_BG );
+	const uint32_t bg_color_word = color_word( get_crop_black_border() ? COLOR_BLACK : COLOR_BG);
 
 	// Write the meter an entire scan line at a time
 	int y;
