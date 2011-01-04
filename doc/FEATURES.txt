@@ -12,7 +12,7 @@ Features
 * Cropmarks (16:9, Cinemascope, Fisheye)
 * Intervalometer (classic or HDR)
 * Trap Focus: camera takes a picture when something comes in focus
-* Wireless trigger with the LCD face sensor & your own hand
+* Remote release with either the LCD face sensor or audio trigger
 * Rack focus
 * Stack focus (Live View only)
 * Lens data computation 
@@ -111,8 +111,10 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 **Histogram: ON/OFF**
   Show a histogram for the luma (Y) channel of the LiveView image. Colorspace is YUV.
 
-**Zebras: ON/OFF**
+**Zebras: ON/OFF/Auto**
   Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
+  
+  Auto setting: zebras are disabled while recording.
 
 **ZebraThrLO, ZebraThrHI**
   Thresholds for underexposure and overexposure. 
@@ -182,7 +184,7 @@ Functions for stills shooting.
   Tip 3: to save the shutter count when doing timelapses, switch to Movie mode.
 
 **LCD RemoteShot: ON/OFF**
-  Start/stop shutter release with the LCD sensor. To take a picture, 
+  Start/stop remote shutter release mode with the LCD sensor. To take a picture, 
   put your hand near the LCD sensor. 
 
   This is useful for avoiding camera shake without extra $$$, 
@@ -191,19 +193,50 @@ Functions for stills shooting.
   To use it, select one of P,S,A,M modes, turn OFF Live View, 
   and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
   
-  Do not turn on Live View while this option is active (it will take a picture and it shouldn't).
+  If self-timer is on, this function will disable it.
 
-You can also stop the intervalometer and remote shooting mode
-by pressing ``PLAY`` or ``MENU``.
+**Audio Rem.Shot: ON/OFF**
+  Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands.
+  
+  Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the audio volume.
+  
+  You can also start movie recording with this feature.
+  
+  In photo mode, you can combine this option with the self-timer (may be useful for group or self pictures).
+  
+  Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
+
+You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
 
 **HDR Bracket**
-  AE Bracketing for HDR images and timelapses. This setting is applied only to images taken with intervalometer or LCD face sensor.
+  AE Bracketing for HDR images and timelapses.
   
   Select number of images with ``SET`` and step size with ``DISP``. To turn this off quickly, press ``Q``.
-  
-  To take HDR pictures, enable either the intervalometer or the LCD remote after you have configured the HDR bracketing.
-  
+    
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
+
+  HDR images can be taken with:
+  
+  * ML remote triggers: LCD face sensor & audio trigger.
+  * ML intervalometer (for HDR timelapse)
+  * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used.
+  
+  For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
+  with `**enfuse** <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM`` and are named after the first picture in set, 
+  e.g. if the HDR sequence is created from ``IMG_1001.JPG ... IMG_1005.JPG``, the HDR script will be named 
+  ``HDR_1001.SH`` and the resulting HDR image will be saved as ``HDR_1001.JPG``.
+  
+  To run the HDR scripts on the computer, move the scripts and the JPGs in the same directory and run (for example)::
+  
+        bash HDR_1001.SH
+
+  or, for processing all the images at once::
+  
+        for f in $(ls *.SH); do bash $f ; done 
+
+  On Windows, you can use Cygwin or MSYS to run the scripts.
+  
+  Don't forget to delete the scripts from the card; the camera won't delete them!
   
 **Trap Focus: ON/OFF**
   You hold the shutter half-pressed; camera takes a picture when something comes into focus.
@@ -438,6 +471,7 @@ MENU->DISP
 LiveView
 ~~~~~~~~
 
+* Aperture, shutter, ISO
 * Spotmeter: brightness percentage from the center of the frame. Computed as average value of Y component from YUV LiveView buffer over a very small area.
 * Lens focal length and focus distance
-* Todo: ISO, kelvin and maybe others.
+* Exposure compensation (codenamed AE)

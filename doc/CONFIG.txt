@@ -69,3 +69,8 @@ These settings can not be changed from the ML menu, so they are documented here:
     button.menu.on = 10
     button.menu.off = 10
 
+    # threshold for audio trigger
+    audio.release.level = 700
+    
+    # black borders in movie mode instead of transparent ones
+    crop.black-border = 1
