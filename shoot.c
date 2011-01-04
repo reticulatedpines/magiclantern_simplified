@@ -35,10 +35,13 @@
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 1);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between two shots in trap focus
+CONFIG_INT( "audio.release.level", audio_release_level, 700);
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
+int audio_release_running = 0;
 
+int drive_mode_bk = -1;
 PROP_INT(PROP_DRIVE, drive_mode);
 PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
@@ -46,8 +49,9 @@ PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
 PROP_INT(PROP_WBS_GM, wbs_gm);
 PROP_INT(PROP_WBS_BA, wbs_ba);
+PROP_INT(PROP_FILE_NUMBER, file_number);
 
-int timer_values[] = {1,2,5,10,30,60,300,900,3600};
+int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -85,7 +89,6 @@ interval_timer_toggle_reverse( void * priv )
 	*ptr = mod(*ptr - 1, COUNT(timer_values));
 }
 
-
 static void 
 intervalometer_display( void * priv, int x, int y, int selected )
 {
@@ -108,6 +111,24 @@ lcd_release_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+audio_release_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Audio Rem.Shot: %s",
+		audio_release_running ? "ON " : "OFF"
+	);
+}
+
+static void
+audio_release_toggle(void* priv)
+{
+	audio_release_running = !audio_release_running;
+	if (!audio_release_running) clrscr();
+}
+
 static void 
 trap_focus_display( void * priv, int x, int y, int selected )
 {
@@ -128,6 +149,7 @@ iso_display( void * priv, int x, int y, int selected )
 		"ISO     : %d",
 		lens_info.iso
 	);
+	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
 }
 
 static void
@@ -237,13 +259,15 @@ shutter_display( void * priv, int x, int y, int selected )
 		"Shutter : 1/%d",
 		lens_info.shutter
 	);
+	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
 }
 
 static void
 shutter_toggle( int sign)
 {
 	int i = raw2index_shutter(lens_info.raw_shutter);
-	while(1)
+	int k;
+	for (k = 0; k < 10; k++)
 	{
 		i = mod(i + sign, COUNT(codes_shutter));
 		lens_set_rawshutter(codes_shutter[i]);
@@ -364,6 +388,7 @@ kelvin_display( void * priv, int x, int y, int selected )
 			 "unknown"))))))))
 		);
 	}
+	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
 }
 
 int kelvin_auto_flag = 0;
@@ -537,7 +562,7 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Bracket: OFF"
+			"HDR Bracket:OFF"
 		);
 	}
 	else
@@ -545,11 +570,13 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Bracket: %dx%dEV",
+			"HDR Brack:%dx%dEV",
 			hdr_steps, 
 			hdr_stepsize / 8
 		);
 	}
+	bmp_printf(FONT_MED, x + 440, y, "[SET ]\n[DISP]");
+	bmp_printf(FONT_MED, x + 510, y+5, "[Q]");
 }
 
 static void
@@ -595,6 +622,10 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &lcd_release_running,
 		.select		= menu_binary_toggle,
 		.display	= lcd_release_display,
+	},
+ 	{
+		.select		= audio_release_toggle,
+		.display	= audio_release_display,
 	},
 	{
 		.display	= hdr_display,
@@ -646,32 +677,53 @@ int display_sensor_active()
 	return (*(int*)(DISPLAY_SENSOR_MAYBE));
 }
 
-
-PROP_HANDLER( PROP_HALF_SHUTTER )
+void hdr_create_script(int steps, int skip0)
 {
-    if (buf[0])
-    {
-		intervalometer_running = 0;
-		lcd_release_running = 0;
-	}		
-	return prop_cleanup( token, property );
+	if (steps <= 1) return;
+	DEBUG();
+	FILE * f = INVALID_PTR;
+	char name[100];
+	int f0 = skip0 ? file_number : file_number+1;
+	snprintf(name, sizeof(name), "B:/DCIM/HDR_%04d.sh", mod(f0, 10000));
+	DEBUG("name=%s", name);
+	f = FIO_CreateFile(name);
+	if ( f == INVALID_PTR )
+	{
+		bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+		return;
+	}
+	DEBUG();
+	my_fprintf(f, "#!/usr/bin/env bash\n");
+	my_fprintf(f, "\n# HDR_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", f0, f0, f0 + steps - 1);
+	my_fprintf(f, "enfuse \"$@\" --output=HDR_%04d.JPG ", f0);
+	int i;
+	for( i = 0; i < steps; i++ )
+	{
+		my_fprintf(f, "IMG_%04d.JPG ", f0 + i);
+	}
+	my_fprintf(f, "\n");
+	DEBUG();
+	FIO_CloseFile(f);
+	DEBUG();
 }
 
-void hdr_take_pics(int steps, int step_size)
+// skip0: don't take the middle exposure
+void hdr_take_pics(int steps, int step_size, int skip0)
 {
+	hdr_create_script(steps, skip0);
 	int i;
 	if (shooting_mode == SHOOTMODE_M)
 	{
 		const int s = lens_info.raw_shutter;
 		for( i = -steps/2; i <= steps/2; i ++  )
 		{
+			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+			msleep(10);
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
-			msleep(100);
 			lens_set_rawshutter( new_s );
-			msleep(100);
+			msleep(10);
 			lens_take_picture( 64000 );
-			msleep(100);
 		}
 		msleep(100);
 		lens_set_rawshutter( s );
@@ -681,9 +733,12 @@ void hdr_take_pics(int steps, int step_size)
 		const int ae = lens_get_ae();
 		for( i = -steps/2; i <= steps/2; i ++  )
 		{
+			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+			msleep(10);
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
+			msleep(10);
 			lens_take_picture( 64000 );
 		}
 		lens_set_ae( ae );
@@ -691,7 +746,7 @@ void hdr_take_pics(int steps, int step_size)
 }
 
 static void
-hdr_take_mov(steps, step_size)
+movie_start()
 {
 	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
 	{
@@ -703,14 +758,37 @@ hdr_take_mov(steps, step_size)
 		bmp_printf(FONT_LARGE, 30, 30, "Already recording ");
 		return;
 	}
-	
-	int g = get_global_draw();
-	set_global_draw(0);
-	clrscr();
+
 	call("MovieStart");
 	while (recording != 2) msleep(100);
 	msleep(300);
+}
 
+static void
+movie_end()
+{
+	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "Not in movie (%d,%d) ", shooting_type, shooting_mode);
+		return;
+	}
+	if (!recording)
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "Not recording ");
+		return;
+	}
+
+	call("MovieEnd");
+}
+
+static void
+hdr_take_mov(steps, step_size)
+{
+	int g = get_global_draw();
+	set_global_draw(0);
+	clrscr();
+
+	movie_start();
 	int i;
 	const int s = lens_info.raw_shutter;
 	for( i = -steps/2; i <= steps/2; i ++  )
@@ -721,26 +799,43 @@ hdr_take_mov(steps, step_size)
 		msleep(300);
 	}
 	lens_set_rawshutter( s );
-
-	while (recording == 2)
-	{
-		call("MovieEnd",1);
-		msleep(100);
-	}
+	movie_end();
 	set_global_draw(g);
 }
 
-
-void hdr_shot()
+// take a HDR shot (sequence of stills or a small movie)
+void hdr_shot(int skip0)
 {
+	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
+	//~ msleep(2000);
 	if (shooting_mode == SHOOTMODE_MOVIE)
 	{
 		hdr_take_mov(hdr_steps, hdr_stepsize);
 	}
 	else
 	{
-		hdr_take_pics(hdr_steps, hdr_stepsize);
+		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
+			lens_set_drivemode(DRIVE_CONTINUOUS);
+		hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
+		while (lens_info.job_state) msleep(500);
 	}
+}
+
+// take one shot, a sequence of HDR shots, or start a movie
+// to be called by remote triggers
+void remote_shot()
+{
+	//~ bmp_printf(FONT_LARGE, 50, 50, "REMOT");
+	//~ msleep(2000);
+	if (hdr_steps > 1) hdr_shot(0);
+	else
+	{
+		if (shooting_mode == SHOOTMODE_MOVIE)
+			movie_start();
+		else
+			lens_take_picture(64000); // hdr_shot messes with the self timer mode
+	}
+	while (lens_info.job_state) msleep(500);
 }
 
 void display_shooting_info() // called from debug task
@@ -778,20 +873,32 @@ void display_shooting_info() // called from debug task
 		if (gm) bmp_printf(fnt, 431, 270, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
 		else bmp_printf(fnt, 431, 270, "  ");
 	}
+	
+	bg = bmp_getpixel(15, 430);
+	fnt = FONT(FONT_MED, 80, bg);
+	
+	if (hdr_steps > 1)
+		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
+	else
+		bmp_printf(fnt, 380, 450, "           ");
 }
 
 static void
 shoot_task( void )
 {
 	int i = 0;
-    menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
-    menu_add( "Expo", expo_menus, COUNT(expo_menus) );
+	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
+	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
+	msleep(1000);
+	struct audio_level *al=get_audio_levels();
 	while(1)
 	{
-		if (gui_state == GUISTATE_PLAYMENU)
+		msleep(1);
+		if (gui_state == GUISTATE_PLAYMENU/* || get_halfshutter_pressed()*/)
 		{
 			intervalometer_running = 0;
 			lcd_release_running = 0;
+			audio_release_running = 0;
 		}
 		
 		if (iso_auto_flag)
@@ -809,12 +916,20 @@ shoot_task( void )
 			kelvin_auto_run();
 			kelvin_auto_flag = 0;
 		}
-		
+
+		// restore drive mode if it was changed
+		// it might have been changed to 2sec timer by the HDR triggered by picture taken
+		if (!get_halfshutter_pressed() && drive_mode_bk >= 0)
+		{
+			lens_set_drivemode(drive_mode_bk);
+			drive_mode_bk = -1;
+		}
+
 		if (intervalometer_running)
 		{
 			msleep(1000);
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-			hdr_shot();
+			hdr_shot(0);
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				msleep(1000);
@@ -831,21 +946,52 @@ shoot_task( void )
 				bmp_printf(FONT_MED, 20, 40, "LCD RemoteShot does not work in LiveView, sorry...");
 				continue;
 			}
-			if (drive_mode != 0 && drive_mode != 1) // timer modes break this function (might lock the camera)
-			{
-				bmp_printf(FONT_MED, 20, 3, "LCD RemoteShot works if DriveMode is SINGLE or CONTINUOUS");
-				continue;
-			}
 			bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
 			if (display_sensor_active())
 			{
-				hdr_shot();
+				remote_shot();
 				while (display_sensor_active()) { msleep(500); }
+			}
+		}
+		else if (audio_release_running) 
+		{
+			bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d)   ", al[0].peak);
+			if (al[0].peak > audio_release_level) 
+			{
+				remote_shot();
+				// this may trigger an infinite shooting loop due to shutter noise
+				int k;
+				for (k = 0; k < 5; k++)
+				{
+					msleep(100);
+					while (al[0].peak > audio_release_level)
+					{
+						bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Waiting for silence (%d)...", al[0].peak);
+						msleep(100);
+					}
+				}
+				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "                                        ");
+			}
+			else 
+			{
+				msleep(5); // peak is updated at 16 ms
+			}
+		}
+		else if (hdr_steps > 1) // no remote control enabled => will trigger HDR by taking a normal pic
+		{
+			// avoid camera shake
+			if (get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
+			{
+				drive_mode_bk = drive_mode;
+				lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+			}
+			if (lens_info.job_state && lens_info.job_state <= 0xA) // just took a picture
+			{
+				hdr_shot(1); // skip the middle exposure, which was just taken
 			}
 		}
 		else if (trap_focus)
 		{
-			msleep(1);
 			if (lv_drawn()) 
 			{
 				//~ bmp_printf(FONT_MED, 20, 35, "Trap Focus does not work in LiveView, sorry...");
@@ -863,7 +1009,7 @@ shoot_task( void )
 				lens_take_picture(64000);
 				msleep(trap_focus_delay);
 			}
-		}
+		} 
 		else msleep(500);
 	}
 }
