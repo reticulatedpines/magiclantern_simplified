@@ -41,7 +41,7 @@ static struct bmp_file_t * cropmarks = 0;
 
 static int global_draw = 1;
 CONFIG_INT( "global.draw", global_draw_bk, 1 );
-CONFIG_INT( "zebra.draw",	zebra_draw,	1 );
+CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
@@ -49,6 +49,9 @@ CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_STR( "crop.file.1",	crop_file_1,	"B:/cropmark.bmp" );
 CONFIG_STR( "crop.file.2",	crop_file_2,	"               " );
 CONFIG_STR( "crop.file.3",	crop_file_3,	"               " );
+CONFIG_INT( "crop.black-border", crop_black_border, 1); // black borders in movie mode instead of transparent ones
+
+int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
 //~ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
@@ -74,6 +77,10 @@ CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 2 ); // 0 off, 1 on, 2 on without
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+
+int movie_elapsed_time = 0;
+int movie_elapsed_ticks = 0;
+int recording = 0;
 
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
@@ -544,10 +551,12 @@ draw_zebra( void )
 	uint32_t x,y;
 	int cfg_draw_meters = ext_cfg_draw_meters();
 	int bmppitch = bmp_pitch();
+	
+	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
 	for( y=1 ; y < 480; y++ )
 	{
         // if audio meters are enabled, don't draw in this area
-        if (cfg_draw_meters && y < 33) continue;
+        if (y < 33 && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE))) continue;
         
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmppitch );
@@ -570,7 +579,7 @@ draw_zebra( void )
 			uint16_t mirror = m_row[x/2];
 
 			// cropmarks: black border in movie mode
-			if ((pixel == 0 || pixel == (COLOR_BG << 8 | COLOR_BG)) && shooting_mode == SHOOTMODE_MOVIE && (y < 40 || y > 440))
+			if (crop_black_border && (pixel == 0 || pixel == (COLOR_BG << 8 | COLOR_BG)) && shooting_mode == SHOOTMODE_MOVIE && (y < 40 || y > 440))
 			{
 				b_row[x/2] = (2 << 8 | 2); // black borders by default
 				if( crop_draw) check_crop( x, y, b_row, v_row, vram->pitch, m_row);
@@ -615,7 +624,7 @@ draw_zebra( void )
 			//~ if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
 				//~ continue;
 
-			if( zebra_draw && check_zebra( x, y, b_row, v_row, vram->pitch, m_row) )
+			if( zd && check_zebra( x, y, b_row, v_row, vram->pitch, m_row) )
 			{
 				//~ m_row[x/2] = b_row[x/2];
 				continue;
@@ -635,6 +644,14 @@ draw_zebra( void )
 	//~ if( waveform_draw )
 		//~ waveform_draw_image( waveform_x, waveform_y );
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra done **********************");
+}
+
+// 0 = off, 1 = on, 2 = auto (turns off in movie mode)
+static void
+zebra_toggle( void * priv )
+{
+	int * ptr = priv;
+	*ptr = mod(*ptr + 1, 3);
 }
 
 static void
@@ -766,12 +783,13 @@ zebra_lo_display( void * priv, int x, int y, int selected )
 static void
 zebra_draw_display( void * priv, int x, int y, int selected )
 {
+	unsigned z = *(unsigned*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
 		"Zebras:     %s",
-		*(unsigned*) priv ? "ON " : "OFF"
+		z == 1 ? "ON " : (z == 2 ? "Auto" : "OFF")
 	);
 }
 
@@ -995,7 +1013,7 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &zebra_draw,
-		.select		= menu_binary_toggle,
+		.select		= zebra_toggle,
 		.display	= zebra_draw_display,
 	},
 	{
@@ -1057,9 +1075,6 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
-int movie_elapsed_time = 0;
-int movie_elapsed_ticks = 0;
-int recording = 0;
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	recording = buf[0];
@@ -1099,12 +1114,22 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	return prop_cleanup( token, property );
 }
 
+static void draw_movie_bars()
+{
+	if (shooting_mode == SHOOTMODE_MOVIE)
+	{
+		bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 0, 960, 40 );
+		bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 440, 960, 40 );
+	}
+}
+
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+	set_global_draw(global_draw_bk);
 
 	msleep(1000);
 	load_cropmark(crop_draw);
@@ -1116,6 +1141,7 @@ zebra_task( void )
 		{
 			msleep(clearpreview_delay);
 			clrscr();
+			draw_movie_bars();
 			clearpreview_setup(0);
 			while (shutter_halfpressed) msleep(100);
 			clearpreview_setup(1);
@@ -1128,6 +1154,7 @@ zebra_task( void )
 				if (!lv_drawn() || gui_state != 0) continue;
 				bmp_enabled = 1;
 				clrscr();
+				draw_movie_bars();
 				clearpreview_setup(0);
 				msleep(200);
 			}
