@@ -11,8 +11,10 @@
 #include "dryos.h"
 //#include <errno.h>
 
+// sometimes gcc likes very much the default fprintf and uses that one 
+// => renamed to my_fprintf to force it to use this one
 int
-fprintf(
+my_fprintf(
 	FILE *			file,
 	const char *		fmt,
 	...

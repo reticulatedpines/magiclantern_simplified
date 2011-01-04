@@ -205,7 +205,7 @@ config_save_file(
 
 	DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
 
-	fprintf( file,
+	my_fprintf( file,
 		"# Magic Lantern %s (%s)\n"
 		"# Build on %s by %s\n",
 		build_version,
@@ -217,7 +217,7 @@ config_save_file(
 	struct tm now;
 	LoadCalendarFromRTC( &now );
 
-	fprintf( file,
+	my_fprintf( file,
 		"# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
 		now.tm_year + 1900,
 		now.tm_mon + 1,
@@ -230,13 +230,13 @@ config_save_file(
 	for( ; var < _config_vars_end ; var++ )
 	{
 		if( var->type == 0 )
-			fprintf( file,
+			my_fprintf( file,
 				"%s = %d\n",
 				var->name,
 				*(unsigned*) var->value
 			);
 		else
-			fprintf( file,
+			my_fprintf( file,
 				"%s = %s\n",
 				var->name,
 				*(const char**) var->value
