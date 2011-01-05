@@ -1107,13 +1107,6 @@ PROP_HANDLER( PROP_REC_TIME )
 	return prop_cleanup( token, property );
 }
 
-int shutter_halfpressed = 0;
-PROP_HANDLER(PROP_HALF_SHUTTER)
-{
-	shutter_halfpressed = (uint16_t) buf[0];
-	return prop_cleanup( token, property );
-}
-
 static void draw_movie_bars()
 {
 	if (shooting_mode == SHOOTMODE_MOVIE)
@@ -1134,16 +1127,18 @@ zebra_task( void )
 	msleep(1000);
 	load_cropmark(crop_draw);
 
-	while(1) // each code path should have a msleep; the clearscreen one
+	while(1)
 	{
+		msleep(1); // safety msleep :)
+		
 		// clear overlays on shutter halfpress
-		if (clearpreview == 1 && shutter_halfpressed && lv_drawn() && !gui_menu_shown()) // preview image without any overlays
+		if (clearpreview == 1 && get_halfshutter_pressed() && lv_drawn() && !gui_menu_shown()) // preview image without any overlays
 		{
 			msleep(clearpreview_delay);
 			clrscr();
 			draw_movie_bars();
 			clearpreview_setup(0);
-			while (shutter_halfpressed) msleep(100);
+			while (get_halfshutter_pressed()) msleep(100);
 			clearpreview_setup(1);
 		}
 		else if (clearpreview == 2 && lv_drawn() && !gui_menu_shown()) // always clear overlays
