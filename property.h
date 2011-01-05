@@ -88,6 +88,8 @@
 #define PROP_SHUTTER_RELEASE	0x8003000A
 #define PROP_AVAIL_SHOT		0x8004000C // also 0x80030005
 
+#define PROP_MIC_INSERTED	0x8003002b
+
 /** These need to be found */
 #define PROP_LCD_STATE		error_must_be_found
 

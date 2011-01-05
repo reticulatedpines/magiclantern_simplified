@@ -55,7 +55,8 @@ CONFIG_INT( "audio.o2gain",	o2gain,		0 );
 CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
 //CONFIG_INT( "audio.mic-in",	mic_in,		0 ); // not used any more?
 CONFIG_INT( "audio.loopback",	loopback,	1 );
-CONFIG_INT( "audio.input-source",	input_source,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
+//CONFIG_INT( "audio.input-source",	input_source,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
+CONFIG_INT( "audio.input-choice",	input_choice,		0 ); //0=Auto; 1=L int, R ext; 2 = L int, R ext balanced
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
@@ -529,6 +530,7 @@ audio_reg_close( void )
 
 #endif
 
+PROP_INT( PROP_MIC_INSERTED, mic_inserted);
 
 static void
 audio_configure( int force )
@@ -538,7 +540,16 @@ audio_configure( int force )
 	return;
 #endif
 	
-	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
+	int pm3[] = { 0x00, 0x07, 0x05, 0x11 }; //should this be in a header file?
+	int input_source, is_plugged_in;
+	
+	//setup input_source based on choice and mic pluggedinedness
+	if (input_choice == 0) {
+		input_source = mic_inserted; 
+	} else {
+		input_source = input_choice + 1;
+	}
+
 
 	if( !force )
 	{
@@ -554,8 +565,8 @@ audio_configure( int force )
 
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
 	
-	//mic_power is forced on if input source is 0, 1 or 3
-	mic_power = (input_source == 2) ? mic_power : 1;
+	//mic_power is forced on if input source is 0, 2 or 3
+	mic_power = (input_source == 1) ? mic_power : 1;
 				 
 	audio_ic_write( AUDIO_IC_SIG1
 		| 0x10
@@ -776,17 +787,16 @@ audio_input_display( void * priv, int x, int y, int selected )
 		x, y,
 		//23456789012
 		"Input: %s",
-		(input_source == 0 ? "internal mic " : 
-        (input_source == 1 ? "int L ext R  " :
-        (input_source == 2 ? "ext stereo   " : 
-        "int L ext Bal")))
+		(input_choice == 0 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") :
+        (input_choice == 1 ? "int L ext R  " :
+        "int L ext Bal"))
 	);
 }
 static void
 audio_input_toggle( void * priv )
 {
 	unsigned * ptr = priv;
-	*ptr = (*ptr + 1) % 4;
+	*ptr = (*ptr + 1) % 3;
 	audio_configure( 1 );
 }
 
@@ -883,7 +893,7 @@ static struct menu_entry audio_menus[] = {
 	},
 #endif
 	{
-		.priv		= &input_source,
+		.priv		= &input_choice,
 		.select		= audio_input_toggle,
 		.display	= audio_input_display,
 	},

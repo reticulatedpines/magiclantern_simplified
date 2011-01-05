@@ -91,7 +91,11 @@ Audio tweaks.
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
 
 **Input**
-  Input source: Internal mic (dual mono); int L ext R; ext stereo; int L ext Bal (balanced Left + Right).
+  Input source: 
+  
+  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo.
+  * **int L ext R**
+  * **int L ext Bal** (balanced Left + Right)
 
 Video
 ~~~~~
