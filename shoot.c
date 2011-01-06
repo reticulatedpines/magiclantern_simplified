@@ -690,8 +690,9 @@ void hdr_create_script(int steps, int skip0)
 	FILE * f = INVALID_PTR;
 	char name[100];
 	int f0 = skip0 ? file_number : file_number+1;
-	snprintf(name, sizeof(name), "B:/DCIM/HDR_%04d.sh", mod(f0, 10000));
+	snprintf(name, sizeof(name), "B:/DCIM/HDR_%04d.sh", f0);
 	DEBUG("name=%s", name);
+	FIO_RemoveFile(name);
 	f = FIO_CreateFile(name);
 	if ( f == INVALID_PTR )
 	{
@@ -700,12 +701,12 @@ void hdr_create_script(int steps, int skip0)
 	}
 	DEBUG();
 	my_fprintf(f, "#!/usr/bin/env bash\n");
-	my_fprintf(f, "\n# HDR_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", f0, f0, f0 + steps - 1);
+	my_fprintf(f, "\n# HDR_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", f0, f0, mod(f0 + steps - 1, 10000));
 	my_fprintf(f, "enfuse \"$@\" --output=HDR_%04d.JPG ", f0);
 	int i;
 	for( i = 0; i < steps; i++ )
 	{
-		my_fprintf(f, "IMG_%04d.JPG ", f0 + i);
+		my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
 	}
 	my_fprintf(f, "\n");
 	DEBUG();
