@@ -247,29 +247,8 @@ lens_focus(
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 }
 
-
-int
-lens_take_picture(
-	uint32_t			wait
-)
+void lens_wait_readytotakepic(uint32_t wait)
 {
-	if( lens_info.job_state > 0xA )
-	{
-		DEBUG("Busy (job_state=%d)  ", lens_info.job_state);
-		return -1;
-	}
-
-
-	DEBUG("Taking pic");
-	//~ unsigned value = 0;
-	//~ prop_request_change( PROP_SHUTTER_RELEASE, &value, sizeof(value) );
-	call( "Release", 0 );
-
-	if( !wait )
-		return 0;
-
-	msleep(100);
-	
 	int i;
 	for (i = 0; i < wait / 100; i++)
 	{
@@ -277,8 +256,28 @@ lens_take_picture(
 		if (lens_info.job_state <= 0xA) break;
 		msleep(100);
 	}
-	DEBUG("Done :)");
 	msleep(30);
+}
+
+int
+lens_take_picture(
+	uint32_t			wait
+)
+{
+	lens_wait_readytotakepic(wait);
+	if (lens_info.job_state > 0xA) 
+	{
+		DEBUG("could not take pic (%d)", lens_info.job_state);
+		return;
+	}
+
+	DEBUG("Taking pic (%d)", lens_info.job_state);
+	call( "Release", 0 );
+
+	if( !wait )
+		return 0;
+
+	lens_wait_readytotakepic(wait);
 
 	return lens_info.job_state;
 }

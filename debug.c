@@ -705,7 +705,7 @@ dump_task( void )
 	//~ dm_set_store_level( DM_LVCDEV, 4 );
 	//~ dm_set_store_level( DM_LV, 4 );
 	//~ dm_set_store_level( DM_RSC, 4 );
-	dm_set_store_level( 0, 4 ); // catch all?
+	//~ dm_set_store_level( 0, 4 ); // catch all?
 	
 	// increase jpcore debugging (breaks liveview?)
 	//dm_set_store_level( 0x15, 2 );
