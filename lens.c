@@ -477,7 +477,7 @@ PROP_HANDLER( PROP_APERTURE )
 PROP_HANDLER( PROP_AE )
 {
 	const uint32_t value = *(uint32_t *) buf;
-	lens_info.ae = value;
+	lens_info.ae = (int8_t)value;
 	return prop_cleanup( token, property );
 }
 

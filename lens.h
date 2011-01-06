@@ -37,7 +37,7 @@ struct lens_info
 	unsigned		focal_len; // in mm
 	unsigned		focus_dist; // in cm
 	unsigned		aperture;
-	unsigned		ae;        // exposure compensation, in 1/8 EV steps
+	int				ae;        // exposure compensation, in 1/8 EV steps, signed
 	unsigned		shutter;
 	unsigned		iso;
 	unsigned		hyperfocal; // in mm
