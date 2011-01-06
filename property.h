@@ -167,9 +167,10 @@
 #define PROP_WBS_BA 0x80000011 // idem
 
 
-#define PROP_SHUTTER_COUNT 0x02050001 // maybe?
-#define PROP_FILE_NUMBER 0x02040008   // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER_ALSO 0x02010004 // seems to mirror the previous one
+#define PROP_SHUTTER_COUNT     0x02050001 // maybe?
+#define PROP_FILE_NUMBER       0x02040008   // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+#define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one
+#define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
 
 #define PROP_PICTURE_STYLE 0x80000028 // 0x81 = std, 82 = portrait, 83 = landscape, 84 = neutral, 85 = faithful, 86 = monochrome, 21 = user 1, 22 = user 2, 23 = user 3
 #define PROP_PICSTYLE_SETTINGS_1 0x02060001 // 02060001 for std, 02060002 for portrait... 02060007 for user 1 ... 02060009 for user 3
