@@ -336,6 +336,8 @@ mvr_update_logfile(
 	);
 }
 
+PROP_INT(PROP_FILE_NUMBER, file_number);
+
 /** Create a logfile for each movie.
  * Record a logfile with the lens info for each movie.
  */
@@ -359,8 +361,11 @@ mvr_create_logfile(
 		return;
 
 	// Movie starting
-	FIO_RemoveFile("B:/movie.log");
-	mvr_logfile = FIO_CreateFile( "B:/movie.log" );
+	char name[100];
+	snprintf(name, sizeof(name), "B:/DCIM/MOV_%04d.LOG", file_number);
+
+	FIO_RemoveFile(name);
+	mvr_logfile = FIO_CreateFile( name );
 	if( mvr_logfile == INVALID_PTR )
 	{
 		bmp_printf( FONT_LARGE, 0, 40,
