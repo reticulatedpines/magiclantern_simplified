@@ -187,9 +187,11 @@ Functions for stills shooting.
   
   Tip 3: to save the shutter count when doing timelapses, switch to Movie mode.
 
-**LCD RemoteShot: ON/OFF**
-  Start/stop remote shutter release mode with the LCD sensor. To take a picture, 
-  put your hand near the LCD sensor. 
+**LCD RemoteShot: OFF/Near/Away**
+  Start/stop remote shutter release mode with the LCD sensor. 
+  
+  * **Near**: To take a picture, put your hand near the LCD sensor.
+  * **Away**: Picture is taken when you get your hand away from the sensor.
 
   This is useful for avoiding camera shake without extra $$$, 
   especially if you don't have a sturdy tripod.
@@ -257,9 +259,8 @@ Adjusting the exposure parameters
   
   0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
   
-  In video mode, ISO only goes up to 6400.
-  
-  To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1).
+  To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1). To get ISO lower than 200, turn HTP off. 
+  In video mode, ISO only goes up to 6400. These is also true without ML.
   
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the ISO value automatically. 
    

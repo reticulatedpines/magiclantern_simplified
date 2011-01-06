@@ -103,14 +103,20 @@ intervalometer_display( void * priv, int x, int y, int selected )
 static void 
 lcd_release_display( void * priv, int x, int y, int selected )
 {
+	int v = (*(int*)priv);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"LCD RemoteShot: %s",
-		(*(int*)priv) ? "ON " : "OFF"
+		v == 1 ? "Near" : (v == 2 ? "Away" : "OFF")
 	);
 }
 
+static void
+lcd_release_toggle( void * priv )
+{
+	*(int*)priv = mod(*(int*)priv + 1, 3);
+}
 static void
 audio_release_display( void * priv, int x, int y, int selected )
 {
@@ -551,7 +557,7 @@ ladj_display( void * priv, int x, int y, int selected )
 }
 
 
-CONFIG_INT("hdr.steps", hdr_steps, 1);
+int hdr_steps = 1;
 CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
 
 static void 
@@ -620,7 +626,7 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &lcd_release_running,
-		.select		= menu_binary_toggle,
+		.select		= lcd_release_toggle,
 		.display	= lcd_release_display,
 	},
  	{
@@ -761,7 +767,7 @@ movie_start()
 
 	call("MovieStart");
 	while (recording != 2) msleep(100);
-	msleep(300);
+	msleep(500);
 }
 
 static void
@@ -796,7 +802,7 @@ hdr_take_mov(steps, step_size)
 		bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
 		int new_s = COERCE(s - step_size * i, 96, 152);
 		lens_set_rawshutter( new_s );
-		msleep(300);
+		msleep(500);
 	}
 	lens_set_rawshutter( s );
 	movie_end();
@@ -949,6 +955,9 @@ shoot_task( void )
 			bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
 			if (display_sensor_active())
 			{
+				if (lcd_release_running == 2) // take pic when you move the hand away
+					while (display_sensor_active()) 
+						msleep(10);
 				remote_shot();
 				while (display_sensor_active()) { msleep(500); }
 			}
