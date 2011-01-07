@@ -36,6 +36,7 @@ CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 1);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
+CONFIG_INT( "interval.movie.duration", interval_movie_duration, 1000);
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
@@ -50,6 +51,7 @@ PROP_INT(PROP_MVR_REC_START, recording);
 PROP_INT(PROP_WBS_GM, wbs_gm);
 PROP_INT(PROP_WBS_BA, wbs_ba);
 PROP_INT(PROP_FILE_NUMBER, file_number);
+PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 
 int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
 
@@ -690,7 +692,7 @@ void hdr_create_script(int steps, int skip0)
 	FILE * f = INVALID_PTR;
 	char name[100];
 	int f0 = skip0 ? file_number : file_number+1;
-	snprintf(name, sizeof(name), "B:/DCIM/HDR_%04d.sh", f0);
+	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/HDR_%04d.sh", folder_number, f0);
 	DEBUG("name=%s", name);
 	FIO_RemoveFile(name);
 	f = FIO_CreateFile(name);
@@ -803,7 +805,7 @@ hdr_take_mov(steps, step_size)
 		bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
 		int new_s = COERCE(s - step_size * i, 96, 152);
 		lens_set_rawshutter( new_s );
-		msleep(500);
+		msleep(interval_movie_duration);
 	}
 	lens_set_rawshutter( s );
 	movie_end();
@@ -999,6 +1001,7 @@ shoot_task( void )
 			{
 				hdr_shot(1); // skip the middle exposure, which was just taken
 			}
+			msleep(5);
 		}
 		else if (trap_focus)
 		{

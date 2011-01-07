@@ -49,11 +49,6 @@ These settings can not be changed from the ML menu, so they are documented here:
     crop.file.2 = B:/CineScop.bmp
     crop.file.3 = B:/fish8r.bmp
 
-    # delay [ms] before starting the bracketing sequence
-    brack.startdelay = 2000
-    # delay [ms] between two consecutive shots in Bracketing mode
-    brack.delay = 1000
-
     # button used for Magic Lantern menu
     # Press/unpress codes (hex)
     # 1c/1d = left
@@ -74,3 +69,6 @@ These settings can not be changed from the ML menu, so they are documented here:
     
     # black borders in movie mode instead of transparent ones
     crop.black-border = 1
+
+    # duration of movies taken with the intervalometer [ms]
+    interval.movie.duration = 1000
