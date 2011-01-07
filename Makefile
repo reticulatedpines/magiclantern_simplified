@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=hdrfix+movielog.$(shell whoami)
+BUILDVER=audiomonitor.$(shell whoami)
 VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
@@ -214,10 +214,10 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
+	hotplug.o \
 
 NO=\
 	font-huge.o \
-	hotplug.o \
 	bracket.o \
 	ptp.o \
 	spotmeter.o \

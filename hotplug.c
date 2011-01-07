@@ -65,4 +65,4 @@ my_hotplug_task( void )
 */
 }
 
-//TASK_OVERRIDE( hotplug_task, my_hotplug_task );
+TASK_OVERRIDE( hotplug_task, my_hotplug_task );
