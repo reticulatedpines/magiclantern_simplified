@@ -414,6 +414,9 @@ Debug
 **Save config**
   Save current settings to ``MAGIC.CFG``.
 
+**MovRestart: ON/OFF**
+  While this setting is on, movie recording will restart automatically, no matter what the reason for stopping was.
+
 **Draw palette**
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
 

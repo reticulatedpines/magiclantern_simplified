@@ -754,8 +754,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 	}
 }
 
-static void
-movie_start()
+void movie_start()
 {
 	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
 	{
@@ -773,8 +772,7 @@ movie_start()
 	msleep(500);
 }
 
-static void
-movie_end()
+void movie_end()
 {
 	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
 	{

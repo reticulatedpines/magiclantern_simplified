@@ -298,6 +298,26 @@ vbr_print(
 }
 //-------------------------end qscale--------------
 
+CONFIG_INT("movie.restart", movie_restart,0);
+
+PROP_INT(PROP_MVR_REC_START, mvr_rec_start);
+
+static void
+movie_restart_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"MovRestart: %s ",
+		movie_restart ? "ON " : "OFF"
+	);
+}
+
 static uint32_t* dbg_memmirror = 0;
 static uint32_t* dbg_memchanges = 0;
 
@@ -396,6 +416,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 	dbg_memspy_init();
 	while(1)
 	{
+		msleep(1);
 		if (gui_state == GUISTATE_MENUDISP)
 		{
 			display_info();
@@ -424,6 +445,10 @@ debug_loop_task( void ) // screenshot, draw_prop
 			dbg_memspy_update();
 			msleep(10);
 		}
+		else if (movie_restart && mvr_rec_start == 0)
+		{
+			movie_start();
+		}
 		else msleep(100);
 	}
 }
@@ -444,6 +469,11 @@ struct menu_entry debug_menus[] = {
 		.priv		= "Save config",
 		.select		= save_config,
 		.display	= menu_print,
+	},
+	{
+		.priv = &movie_restart,
+		.display	= movie_restart_print,
+		.select		= menu_binary_toggle,
 	},
 	//~ {
 		//~ .display	= efic_temp_display,
@@ -757,8 +787,8 @@ end:
 TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
 //~ TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
 
-CONFIG_INT( "debug.timed-start",	timed_start, 0 );
-
+//~ CONFIG_INT( "debug.timed-start",	timed_start, 0 );
+/*
 static void
 movie_start( void )
 {
@@ -791,6 +821,6 @@ movie_start( void )
 	msleep( 1000 );
 
 	bmp_printf( FONT(FONT_LARGE,COLOR_WHITE,0), x, y, "   " );
-}
+}*/
 
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
