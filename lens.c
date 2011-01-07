@@ -250,13 +250,12 @@ lens_focus(
 void lens_wait_readytotakepic(uint32_t wait)
 {
 	int i;
-	for (i = 0; i < wait / 100; i++)
+	for (i = 0; i < wait / 1000; i++)
 	{
 		DEBUG("Wait (job_state=%d)", lens_info.job_state);
 		if (lens_info.job_state <= 0xA) break;
-		msleep(100);
+		msleep(1);
 	}
-	msleep(30);
 }
 
 int

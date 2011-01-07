@@ -728,10 +728,10 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
-			msleep(10);
+			msleep(1);
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
-			msleep(10);
+			msleep(1);
 			lens_take_picture( 64000 );
 		}
 		msleep(100);
