@@ -73,7 +73,7 @@ Audio
 Audio tweaks.
 
 **AudioMeter: ON/OFF/MovOnly**
-  Draw the audio meters or not. The ``MovOnly`` settings enables audio meters in movie mode only.
+  Draw the audio meters or not. The ``MovOnly`` settings enables audio meters in movie mode only (default).
 
 **Output vol (dB)**
   Gain to external audio - currently this is the A/V jack (?) so not audible on just the camera
@@ -159,9 +159,12 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
   It allows you to compose the picture without any extra distractions. 
   
+  
   This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
   
+  
   Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
+  
   
   **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
 
@@ -177,15 +180,20 @@ Functions for stills shooting.
   Time delay for intervalometer, in seconds.
 
 **Intervalometer: ON/OFF**
-  Start/stop intervalometer. Only works outside LiveView.
+  Start/stop intervalometer.
   
-  In photo mode, it takes a sequence of photos with a fixed delay. In movie mode, it takes a sequence of very small videos, and works best when combined with the HDR Bracket setting.
+  * In photo mode, it takes a sequence of photos with a fixed delay. 
+  * In movie mode, it takes a sequence of very small videos
+    - You can adjust the duration of the videos by editing ``magic.cfg`` and changing ``interval.movie.duration``.
+    - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
   
-  * Tip 1: shoot in manual mode and switch the lens to MF.
+  Tips:
   
-  * Tip 2: for power saving, cover the LCD sensor with something.
+  * shoot in manual mode and switch the lens to MF.
   
-  * Tip 3: to save the shutter count when doing timelapses, switch to Movie mode.
+  * for power saving, cover the LCD sensor with something.
+  
+  * to save the shutter count when doing timelapses, switch to Movie mode.
 
 **LCD RemoteShot: OFF/Near/Away**
   Start/stop remote shutter release mode with the LCD sensor. 
@@ -204,34 +212,44 @@ Functions for stills shooting.
 **Audio Rem.Shot: ON/OFF**
   Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands.
   
+  
   Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the audio volume.
+  
   
   You can also start movie recording with this feature.
   
+  
   In photo mode, you can combine this option with the self-timer (may be useful for group or self pictures).
   
+  
   Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
+
 
 You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
 
 **HDR Bracket**
   AE Bracketing for HDR images and timelapses.
   
+  
   Select number of images with ``SET`` and step size with ``DISP``. To turn this off quickly, press ``Q``.
+  
     
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
+
 
   HDR images can be taken with:
   
   * ML remote triggers: LCD face sensor & audio trigger.
   * ML intervalometer (for HDR timelapse)
   * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used.
+
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
-  with `**enfuse** <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM`` and are named after the first picture in set, 
+  with `**enfuse** <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
   e.g. if the HDR sequence is created from ``IMG_1001.JPG ... IMG_1005.JPG``, the HDR script will be named 
   ``HDR_1001.SH`` and the resulting HDR image will be saved as ``HDR_1001.JPG``.
   
+
   To run the HDR scripts on the computer, move the scripts and the JPGs in the same directory and run (for example)::
   
         bash HDR_1001.SH
@@ -241,6 +259,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
         for f in $(ls *.SH); do bash $f ; done 
 
   On Windows, you can use Cygwin or MSYS to run the scripts.
+
   
   Don't forget to delete the scripts from the card; the camera won't delete them!
   
@@ -453,6 +472,24 @@ Settings related to the Magic Lantern boot process.
 
 This menu may not be available in release builds, 
 because these settings are potentially dangerous.
+
+Features which are not in menu
+------------------------------
+
+Movie logging
+~~~~~~~~~~~~~
+
+Magic Lantern will write out a metadata file for the each movie to ``MOV_1234.LOG`` (numbered after the movie), as well as a timestamp every time any of the parameters is changed during recording. 
+Log files are placed in the same folder as the movies: ``DCIM/100CANON/``, ``101CANON`` etc.
+
+Time remaining display
+~~~~~~~~~~~~~~~~~~~~~~
+
+When recording a movie, ML will display a small time counter in the upper right corner, 
+which shows the estimated amount of recording time remaining on the card.
+
+Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
+However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
 
 Extra info displays
 -------------------
