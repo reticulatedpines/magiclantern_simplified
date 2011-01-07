@@ -337,6 +337,7 @@ mvr_update_logfile(
 }
 
 PROP_INT(PROP_FILE_NUMBER, file_number);
+PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 
 /** Create a logfile for each movie.
  * Record a logfile with the lens info for each movie.
@@ -362,7 +363,7 @@ mvr_create_logfile(
 
 	// Movie starting
 	char name[100];
-	snprintf(name, sizeof(name), "B:/DCIM/MOV_%04d.LOG", file_number);
+	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MOV_%04d.LOG", folder_number, file_number);
 
 	FIO_RemoveFile(name);
 	mvr_logfile = FIO_CreateFile( name );
