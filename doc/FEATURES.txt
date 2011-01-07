@@ -93,9 +93,11 @@ Audio tweaks.
 **Input**
   Input source: 
   
-  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo.
+  * **internal mic**
   * **int L ext R**
+  * **ext stereo**
   * **int L ext Bal** (internal Left + Right from both external pins as balanced audio)
+  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo.
 
 Video
 ~~~~~
