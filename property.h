@@ -169,7 +169,7 @@
 
 #define PROP_SHUTTER_COUNT     0x02050001 // maybe?
 #define PROP_FILE_NUMBER       0x02040008   // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one
+#define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one, but it's increased earlier
 #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
 
 #define PROP_PICTURE_STYLE 0x80000028 // 0x81 = std, 82 = portrait, 83 = landscape, 84 = neutral, 85 = faithful, 86 = monochrome, 21 = user 1, 22 = user 2, 23 = user 3
@@ -197,9 +197,22 @@
  * 0x8 == "guiSetDarkBusy" -- noise reduction?
  * 0x0 == Job Done
  */
-#define PROP_LAST_JOB_STATE	0x80030012	// 8 == writing to card, 0 = idle, B = busy.
+#define PROP_LAST_JOB_STATE   0x80030012  // 8 == writing to card, 0 = idle, B = busy.
+#define PROP_STROBO_FIRING    0x80040013  // 0 = enable, 1 = disable, 2 = auto?
+#define PROP_STROBO_ETTLMETER 0x80040014  // 0 = evaluative, 1 = average
+#define PROP_STROBO_CURTAIN   0x80040015  // 0 = first, 1 = second
+#define PROP_STROBO_AECOMP    0x80000009  // in 1/8 EV steps, 8-bit signed
+#define PROP_STROBO_SETTING   0x80030038  // len=22
+#define PROP_STROBO_REDEYE    0x80000025  // 1 = enable, 0 = disable
+//strobo_setting[0] & 0xFF000000 = strobo_aecomp << 24
+//strobo_setting[1] & 2 = 2 if strobo_curtain else 0
+//strobo_setting[1] & 8 = 8 if e-ttl meter = average else 0
+
+#define PROP_LCD_BRIGHTNESS 0x2040000     // 1 .. 7
 
 /** Gui properties? 0xffc509b0 @ 0xDA */
+
+#define PROP_STROBO_FIRING 0x80040013 // 0 = enable, 1 = disable?
 
 /** Properties */
 extern void

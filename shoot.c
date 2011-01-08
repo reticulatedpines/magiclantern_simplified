@@ -37,6 +37,7 @@ CONFIG_INT( "focus.trap", trap_focus, 1);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration", interval_movie_duration, 1000);
+CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
@@ -50,9 +51,9 @@ PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
 PROP_INT(PROP_WBS_GM, wbs_gm);
 PROP_INT(PROP_WBS_BA, wbs_ba);
-PROP_INT(PROP_FILE_NUMBER, file_number);
+PROP_INT(PROP_FILE_NUMBER_ALSO, file_number);
 PROP_INT(PROP_FOLDER_NUMBER, folder_number);
-
+PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
 
 typedef int (*CritFunc)(int);
@@ -147,6 +148,33 @@ trap_focus_display( void * priv, int x, int y, int selected )
 		(*(int*)priv) ? "ON " : "OFF"
 	);
 }
+
+void set_flash_firing(int mode)
+{
+	DEBUG("%d", mode);
+	mode = COERCE(mode, 0, 2);
+	prop_request_change(PROP_STROBO_FIRING, &mode, 4);
+}
+static void 
+flash_and_no_flash_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Flash Toggle:%s",
+		strobo_firing == 2 ? "N/A" : 
+		flash_and_no_flash ? "ON " : "OFF"
+	);
+}
+
+static void
+flash_and_no_flash_toggle( void * priv )
+{
+	flash_and_no_flash = !flash_and_no_flash;
+	if (!flash_and_no_flash)
+		set_flash_firing(0); // force on
+}
+
 
 static void 
 iso_display( void * priv, int x, int y, int selected )
@@ -645,6 +673,10 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &trap_focus,
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
+	},
+	{
+		.select		= flash_and_no_flash_toggle,
+		.display	= flash_and_no_flash_display,
 	}
 };
 
@@ -888,6 +920,12 @@ void display_shooting_info() // called from debug task
 		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
 	else
 		bmp_printf(fnt, 380, 450, "           ");
+
+	bmp_printf(fnt, 200, 450, "Flash:%s%s", 
+		strobo_firing == 0 ? " ON" : 
+		strobo_firing == 1 ? "OFF" : "Auto", 
+		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
+		);
 }
 
 static void
@@ -900,8 +938,8 @@ shoot_task( void )
 	struct audio_level *al=get_audio_levels();
 	while(1)
 	{
-		msleep(1);
-		if (gui_state == GUISTATE_PLAYMENU/* || get_halfshutter_pressed()*/)
+		msleep(10);
+		if (gui_state == GUISTATE_PLAYMENU)
 		{
 			intervalometer_running = 0;
 			lcd_release_running = 0;
@@ -924,13 +962,41 @@ shoot_task( void )
 			kelvin_auto_flag = 0;
 		}
 
+
+		// avoid camera shake for HDR shots => force self timer
+		if (hdr_steps > 1 && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
+		{
+			drive_mode_bk = drive_mode;
+			lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+		}
+
 		// restore drive mode if it was changed
-		// it might have been changed to 2sec timer by the HDR triggered by picture taken
 		if (!get_halfshutter_pressed() && drive_mode_bk >= 0)
 		{
 			lens_set_drivemode(drive_mode_bk);
 			drive_mode_bk = -1;
 		}
+
+		if (lens_info.job_state) // just took a picture, maybe we should take another one
+		{
+			if (hdr_steps > 1) hdr_shot(1); // skip the middle exposure, which was just taken
+		}
+
+		// toggle flash on/off for next picture
+		if (flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+		{
+			strobo_firing = file_number % 2;
+			set_flash_firing(strobo_firing);
+		}
+
+		if (trap_focus && !lv_drawn() && (af_mode & 0xF) == 3) // MF
+		{
+			if (*(int*)FOCUS_CONFIRMATION)
+			{
+				lens_take_picture(64000);
+				msleep(trap_focus_delay);
+			}
+		} 
 
 		if (intervalometer_running)
 		{
@@ -944,84 +1010,48 @@ shoot_task( void )
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			}
 		}
-		else if (lcd_release_running)
+		else
 		{
-			msleep(20);
-			if (gui_menu_shown()) continue;
-			if (lv_drawn()) 
+			if (lcd_release_running)
 			{
-				bmp_printf(FONT_MED, 20, 40, "LCD RemoteShot does not work in LiveView, sorry...");
-				continue;
-			}
-			bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
-			if (display_sensor_active())
-			{
-				if (lcd_release_running == 2) // take pic when you move the hand away
-					while (display_sensor_active()) 
-						msleep(10);
-				remote_shot();
-				while (display_sensor_active()) { msleep(500); }
-			}
-		}
-		else if (audio_release_running) 
-		{
-			bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d)   ", al[0].peak);
-			if (al[0].peak > audio_release_level) 
-			{
-				remote_shot();
-				// this may trigger an infinite shooting loop due to shutter noise
-				int k;
-				for (k = 0; k < 5; k++)
+				msleep(20);
+				if (gui_menu_shown()) continue;
+				if (lv_drawn()) 
 				{
-					msleep(100);
-					while (al[0].peak > audio_release_level)
-					{
-						bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Waiting for silence (%d)...", al[0].peak);
-						msleep(100);
-					}
+					bmp_printf(FONT_MED, 20, 40, "LCD RemoteShot does not work in LiveView, sorry...");
+					continue;
 				}
-				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "                                        ");
+				bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
+				if (display_sensor_active())
+				{
+					if (lcd_release_running == 2) // take pic when you move the hand away
+						while (display_sensor_active()) 
+							msleep(10);
+					remote_shot();
+					while (display_sensor_active()) { msleep(500); }
+				}
 			}
-			else 
+			if (audio_release_running) 
 			{
-				msleep(5); // peak is updated at 16 ms
+				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d)   ", al[0].peak);
+				if (al[0].peak > audio_release_level) 
+				{
+					remote_shot();
+					// this may trigger an infinite shooting loop due to shutter noise
+					int k;
+					for (k = 0; k < 5; k++)
+					{
+						msleep(100);
+						while (al[0].peak > audio_release_level)
+						{
+							bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Waiting for silence (%d)...", al[0].peak);
+							msleep(100);
+						}
+					}
+					bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "                                        ");
+				}
 			}
 		}
-		else if (hdr_steps > 1) // no remote control enabled => will trigger HDR by taking a normal pic
-		{
-			// avoid camera shake
-			if (get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
-			{
-				drive_mode_bk = drive_mode;
-				lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-			}
-			if (lens_info.job_state && lens_info.job_state <= 0xA) // just took a picture
-			{
-				hdr_shot(1); // skip the middle exposure, which was just taken
-			}
-			msleep(5);
-		}
-		else if (trap_focus)
-		{
-			if (lv_drawn()) 
-			{
-				//~ bmp_printf(FONT_MED, 20, 35, "Trap Focus does not work in LiveView, sorry...");
-				msleep(500);
-				continue;
-			}
-			if ((af_mode & 0xF) != 3) // != MF
-			{
-				//~ bmp_printf(FONT_MED, 20, 35, "Please switch the lens to Manual Focus mode. %d", af_mode);
-				msleep(500);
-				continue;
-			}
-			if (*(int*)FOCUS_CONFIRMATION)
-			{
-				lens_take_picture(64000);
-				msleep(trap_focus_delay);
-			}
-		} 
-		else msleep(500);
 	}
 }
 

@@ -270,6 +270,9 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
 
+**Flash Toggle: ON/OFF**
+  This will toggle flash setting (on/off) after each photo. Works only in P,A,S,M modes. The effect is somewhat similar to Fuji's Natural Light with Flash mode.
+    
 Expo
 ~~~~
 
