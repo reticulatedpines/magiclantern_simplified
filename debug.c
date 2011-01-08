@@ -483,22 +483,22 @@ struct menu_entry debug_menus[] = {
 		//~ .select		= bmp_draw_palette,
 		//~ .display	= menu_print,
 	//~ },
-	{
-		.priv		= "Screenshot (10 s)",
-		.select		= screenshot_start,
-		.display	= menu_print,
-	},
+	//~ {
+		//~ .priv		= "Screenshot (10 s)",
+		//~ .select		= screenshot_start,
+		//~ .display	= menu_print,
+	//~ },
 	{
 		.priv		= "Dump dmlog",
 		.select		= (void*) dumpf,
 		.display	= menu_print,
 	},
-	//~ {
-		//~ .priv		= "Toggle draw_prop",
-		//~ .select		= draw_prop_select,
-		//~ .select_reverse = draw_prop_reset,
-		//~ .display	= menu_print,
-	//~ },
+	{
+		.priv		= "Toggle draw_prop",
+		.select		= draw_prop_select,
+		.select_reverse = draw_prop_reset,
+		.display	= menu_print,
+	},
 	{
 		.priv		= "Toggle mem_spy",
 		.select		= mem_spy_select,
@@ -539,7 +539,7 @@ debug_token_handler(
 }
 
 //~ static int dbg_propn = 0;
-#define MAXPROP 10
+#define MAXPROP 30
 static unsigned dbg_props[MAXPROP] = {0};
 static unsigned dbg_props_len[MAXPROP] = {0};
 static unsigned dbg_props_a[MAXPROP] = {0};
@@ -633,8 +633,8 @@ ack:
 
 
 
-//~ #define num_properties 8192
-//~ unsigned property_list[ num_properties ];
+#define num_properties 8192
+unsigned property_list[ num_properties ];
 
 
 void
@@ -642,7 +642,6 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-/*
 #if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
@@ -682,7 +681,7 @@ thats_all:
 		debug_property_handler,
 		(void*) 0xdeadbeef,
 		debug_token_handler
-	); */
+	);
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }
