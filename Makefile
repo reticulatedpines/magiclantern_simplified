@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=FlashNoFlash.$(shell whoami)
+BUILDVER=font-terminus.$(shell whoami)
 VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
@@ -279,20 +279,30 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 	)
 
 
-font-huge.c: font-huge.in mkfont
-	$(call build,MKFONT,./mkfont \
-		< $< \
-		> $@ \
-		-width 60 \
-		-height 70 \
-		-name font_huge \
+# These do not need to be run.  Since bigtext is not
+# a standard program, the output files are checked in.
+font-large.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'terminus-bold-32' \
+		16 30 \
 	)
+font-med.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'terminus-bold-20' \
+		10 15 \
+	)
+font-small.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'terminus-bold-12' \
+		6 10 \
+	)
+
 
 font-large.c: font-large.in mkfont
 	$(call build,MKFONT,./mkfont \
 		< $< \
 		> $@ \
-		-width 28 \
+		-width 20 \
 		-height 32 \
 		-name font_large \
 	)
@@ -302,7 +312,7 @@ font-med.c: font-med.in mkfont
 		< $< \
 		> $@ \
 		-width 12 \
-		-height 16 \
+		-height 20 \
 		-name font_med \
 	)
 

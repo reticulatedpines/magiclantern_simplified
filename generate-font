@@ -20,9 +20,10 @@ for my $char (@chars)
 {
 	# The _ is to force a leading space and the Mj is to force
 	# maximum ascender and descender
-	my $str = "'_$char   |`Mj'";
-	$str = q{"_'   |\\`Mj"} if $char eq "'";
-	$str = q{"_\\   |\\`Mj"} if $char eq "\\";
+	my $str = "'_$char   |`Mj'~";
+	$str = q{"_'   |\\`Mj~"} if $char eq "'";
+#	$str = q{"_'   |\\`Mj~"} if $char eq "`";
+	$str = q{"_\\   |\\`Mj~"} if $char eq "\\";
 
 	my @lines = `bigtext -font '$font' $str`;
 

@@ -37,7 +37,6 @@ my $offset = 0;
 while(<>)
 {
 	my ($key,@rows) = split /\n/;
-
 	my ($pos) = $key =~ /^(.) =/;
 
 	for my $line (0..$font_height-1)
