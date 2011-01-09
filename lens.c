@@ -42,14 +42,14 @@ struct lens_info lens_info = {
  *
  * This relies heavily on:
  * 	http://en.wikipedia.org/wiki/Circle_of_confusion
- * The CoC value given there is 0.029 mm, but we need to scale things
+ * The CoC value given there is 0.019 mm, but we need to scale things
  */
 static void
 calc_dof(
 	struct lens_info * const info
 )
 {
-	const uint32_t		coc = 29; // 1/1000 mm
+	const uint32_t		coc = 19; // 1/1000 mm
 	const uint32_t		fd = info->focus_dist * 10; // into mm
 	const uint32_t		fl = info->focal_len; // already in mm
 
