@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=font-terminus.$(shell whoami)
+BUILDVER=debug-cropmarks.$(shell whoami)
 VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
@@ -283,12 +283,12 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 # a standard program, the output files are checked in.
 font-large.in: generate-font
 	$(call build,'GENFONT',./$< > $@ \
-		'terminus-bold-32' \
+		'fixed-bold-32' \
 		16 30 \
 	)
 font-med.in: generate-font
 	$(call build,'GENFONT',./$< > $@ \
-		'terminus-bold-20' \
+		'-misc-fixed-medium-r-normal--20-2' \
 		10 15 \
 	)
 font-small.in: generate-font

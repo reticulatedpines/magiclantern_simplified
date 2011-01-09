@@ -721,6 +721,7 @@ static void global_draw_toggle(void* priv)
 
 static void load_cropmark(int i)
 {
+	DEBUG("%d, %s, %s, %s", i, crop_file_1, crop_file_2, crop_file_3);
 	//~ bmp_printf(FONT_MED, 30, 30, "LoadCrop");
 	if (i==1) cropmarks = bmp_load( crop_file_1 ); // too lazy to lookup case syntax in C...
 	else if (i==2) cropmarks = bmp_load( crop_file_2 );
@@ -1126,7 +1127,7 @@ zebra_task( void )
 
 	msleep(1000);
 	load_cropmark(crop_draw);
-
+	dumpf();
 	while(1)
 	{
 		msleep(1); // safety msleep :)

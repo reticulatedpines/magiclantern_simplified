@@ -483,11 +483,11 @@ struct menu_entry debug_menus[] = {
 		//~ .select		= bmp_draw_palette,
 		//~ .display	= menu_print,
 	//~ },
-	//~ {
-		//~ .priv		= "Screenshot (10 s)",
-		//~ .select		= screenshot_start,
-		//~ .display	= menu_print,
-	//~ },
+	{
+		.priv		= "Screenshot (10 s)",
+		.select		= screenshot_start,
+		.display	= menu_print,
+	},
 	{
 		.priv		= "Dump dmlog",
 		.select		= (void*) dumpf,
@@ -499,11 +499,11 @@ struct menu_entry debug_menus[] = {
 		.select_reverse = draw_prop_reset,
 		.display	= menu_print,
 	},
-	{
+	/*{
 		.priv		= "Toggle mem_spy",
 		.select		= mem_spy_select,
 		.display	= menu_print,
-	},
+	},*/
 
 #if 0
 	{
