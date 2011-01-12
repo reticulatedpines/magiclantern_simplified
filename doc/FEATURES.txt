@@ -72,32 +72,35 @@ Audio
 
 Audio tweaks.
 
-**AudioMeter: ON/OFF/MovOnly**
-  Draw the audio meters or not. The ``MovOnly`` settings enables audio meters in movie mode only (default).
+**Audio Meters: ON / OFF / MovieOnly**
+  Draw the audio meters or not. The ``Movie Only`` settings enables audio meters in movie mode only (default).
 
-**Output vol (dB)**
+**Output volume (dB)**
   Gain to external audio - currently this is the A/V jack (?) so not audible on just the camera
 
 **Analog Gain (dB)**
   Gain applied to both inputs in the analog domain - intended as mic-type preamp, but always preferable to digital gain (unless you want different gain or run out of analog).
 
-**L-DigiGain and R-DigiGain (dB)**
+**L-DigitalGain and R-DigitalGain (dB)**
   Digital gain applied separately to the L and R channel.
 
 **AGC: ON/OFF**
   Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss noise when recording silence.
 
-**Filters: ON/OFF**
+**Monitor: ON/OFF**
+  It's ported from 5D2 code, so it should be tested to see what it does. In the code it says it enables or disables loopback mode (what's this?!)
+
+**DigitalFilters: ON/OFF**
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
 
 **Input**
   Input source: 
   
   * **internal mic**
-  * **int L ext R**
-  * **ext stereo**
-  * **int L ext Bal** (internal Left + Right from both external pins as balanced audio)
-  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo.
+  * **int Left ext Right**
+  * **external stereo**
+  * **int Left ext Balanced** (internal Left + Right from both external pins as balanced audio)
+  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo. Does not work yet.
 
 Video
 ~~~~~
@@ -126,12 +129,14 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   Thresholds for underexposure and overexposure. 
   Brightness values are between 0 and 255.
 
-**CropM**
+**Cropmarks**
   Select cropmarks (cycle between the configured ones).
 
   There are 3 predefined cropmarks in the zip archive:
-  HD with Title & Action Safe and Cinemascope provided by *CameraRick* from the ``cinema5d`` forum, 
-  and a cropmark for framing fisheye stills with Samyang/8mm.
+  
+  * HD with Title & Action Safe (from CameraRick)
+  * Cinemascope
+  * Fisheye for stills framing with Samyang/8mm.
 
 .. image:: Cropmarks550D.png
     :alt: 400px|center
@@ -155,7 +160,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   a small marker in the center of the screen. If the current cropmark already includes
   a center marker, select the Hidden option.
 
-**ClrScr: OFF/HalfShutter/Always**
+**ClrScreen: OFF/HalfShutter/Always**
   
   **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
   and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
@@ -178,58 +183,7 @@ Shoot
 
 Functions for stills shooting.
 
-**IntervalTime**
-  Time delay for intervalometer, in seconds.
-
-**Intervalometer: ON/OFF**
-  Start/stop intervalometer.
-  
-  * In photo mode, it takes a sequence of photos with a fixed delay. 
-  * In movie mode, it takes a sequence of very small videos
-    - You can adjust the duration of the videos by editing ``magic.cfg`` and changing ``interval.movie.duration``.
-    - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
-  
-  Tips:
-  
-  * shoot in manual mode and switch the lens to MF.
-  
-  * for power saving, cover the LCD sensor with something.
-  
-  * to save the shutter count when doing timelapses, switch to Movie mode.
-
-**LCD RemoteShot: OFF/Near/Away**
-  Start/stop remote shutter release mode with the LCD sensor. 
-  
-  * **Near**: To take a picture, put your hand near the LCD sensor.
-  * **Away**: Picture is taken when you get your hand away from the sensor.
-
-  This is useful for avoiding camera shake without extra $$$, 
-  especially if you don't have a sturdy tripod.
-  
-  To use it, select one of P,S,A,M modes, turn OFF Live View, 
-  and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
-  
-  If self-timer is on, this function will disable it.
-
-**Audio Rem.Shot: ON/OFF**
-  Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands.
-  
-  
-  Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the audio volume.
-  
-  
-  You can also start movie recording with this feature.
-  
-  
-  In photo mode, you can combine this option with the self-timer (may be useful for group or self pictures).
-  
-  
-  Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
-
-
-You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
-
-**HDR Bracket**
+**HDR Brack**
   AE Bracketing for HDR images and timelapses.
   
   
@@ -243,7 +197,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   * ML remote triggers: LCD face sensor & audio trigger.
   * ML intervalometer (for HDR timelapse)
-  * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used.
+  * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used. Also, this mode only works with 3 images or more.
 
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
@@ -264,17 +218,89 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
 
   
   Don't forget to delete the scripts from the card; the camera won't delete them!
+
+**Take a pic every X seconds** / **Record Y seconds, pause X seconds**
+
+  Change the intervalometer settings (first setting appears in photo mode, second appears in movie mode).
+
+**Intervalometer: ON/OFF**
+  Start/stop intervalometer.
+  
+  * In photo mode, it takes a sequence of photos with a fixed delay. 
+  * In movie mode, it takes a sequence of small videos
+    - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
+  
+  Tips:
+  
+  * shoot in manual mode and switch the lens to MF.
+  
+  * for power saving, cover the LCD sensor with something.
+  
+  * to save the shutter count when doing timelapses, switch to Movie mode.
+
+**LCD Remote Shot: OFF/Near/Away**
+  Start/stop remote shutter release mode with the LCD sensor. 
+  
+  * **Near**: To take a picture, put your hand near the LCD sensor.
+  * **Away**: Picture is taken when you get your hand away from the sensor.
+
+  This is useful for avoiding camera shake without extra $$$, 
+  especially if you don't have a sturdy tripod.
+  
+  To use it, select one of P,S,A,M modes, turn OFF Live View, 
+  and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
+  
+  If self-timer is on, this function will disable it.
+
+**Audio RemoteShot: ON/OFF**
+  Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands.
+  
+  
+  Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the audio volume.
+  
+  
+  You can also start movie recording with this feature.
+  
+  
+  In photo mode, you can combine this option with the self-timer (may be useful for group or self pictures).
+  
+  
+  Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
+
+
+You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
   
 **Trap Focus: ON/OFF**
   You hold the shutter half-pressed; camera takes a picture when something comes into focus.
   
   This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
 
-**Flash Toggle: ON/OFF**
+**Flash / No flash: ON/OFF**
   This will toggle flash setting (on/off) after each photo. Works only in P,A,S,M modes. The effect is somewhat similar to Fuji's Natural Light with Flash mode.
     
+**Silent Picture: ON/OFF**
+  This is highly experimental. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
+  
+  * Make sure you don't have autofocus assigned to half-shutter press (put it on ``*`` or turn it off)
+  * When movie recording is off, images are 1056*704 (3:2 ratio)
+  * When movie recording is on, images are 1720x974 (approx. 16:9 ratio)
+  
+  Images are saved in ``DCIM/1xxCANON/``, named after last picture/movie taken without this function.
+  
+  To convert a 422 image to JPEG, use 422-yuv.py (you need Python and PIL)::
+  
+    python 422-yuv.py 1234-001.422
+  
+  TODO: 
+  
+  * wait for vsync (how to do this?)
+  * save to a format which can be opened without conversion (BMP, TIFF, JPEG?)
+  
 Expo
 ~~~~
+
+.. image:: ExpoMenu-550D.png
+    :alt: thumb|right|Expo menu
 
 Adjusting the exposure parameters
 
@@ -304,7 +330,7 @@ Adjusting the exposure parameters
   * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
   * When LiveView is off, the shutter value is computed with the help of Auto ISO feature from Canon firmware, in 1EV steps. This feature is still experimental and sometimes it does not work.
 
-**WhiteBal**
+**WhiteBalance**
   Kelvin white balance. Range: 1700 ... 10000.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
@@ -316,7 +342,7 @@ Adjusting the exposure parameters
   
   ``WARNING 2``: this was not tested with custom picture styles loaded with the EOS Utility (and it might have negative effects)!
 
-**LightAdj: OFF/ALO hi/HTP**
+**Light Adjust: OFF/ALO hi/HTP**
   Select the light adjustment algorithm: 
   
   * OFF
@@ -408,17 +434,13 @@ Debug
   but qscale is restricted to negative values only, 
   due to limitations in config file parser.
   
-  QScale setting is not saved; it is applied only when you select this option
-  from menu. It may be overwritten by camera firmware when changing video modes.
-  When the camera starts, it is OFF.
-  
-  You can change QScale before starting recording, or right in the middle of the movie!
+  QScale setting is saved, overrides Canon setting, and it does not take effect if you change it during recording. It will take effect at next movie.
 
 **Save config**
   Save current settings to ``MAGIC.CFG``.
 
 **MovRestart: ON/OFF**
-  While this setting is on, movie recording will restart automatically, no matter what the reason for stopping was.
+  While this setting is on, movie recording will restart automatically, unless stopped by you.
 
 **Draw palette**
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
@@ -505,6 +527,9 @@ Extra info displays
 Main shooting screen (outside LiveView)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. image:: InfoDisplayShooting-550D.png
+    :alt: thumb|right|Extra shooting info display
+
 * Clock (bottom of screen)
 * ISO value in finer increments (above Canon's ISO display)
 * Trap Focus status (near MF icon)
@@ -513,6 +538,9 @@ Main shooting screen (outside LiveView)
 
 MENU->DISP
 ~~~~~~~~~~
+
+.. image:: InfoMenuDisp-550D.png
+    :alt: thumb|right|MENU->DISP info display
 
 * Shutter counter. Only counts pictures taken, not LV switches or quick focus attempts. 
 * CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units. Before, this was in the Debug menu.
