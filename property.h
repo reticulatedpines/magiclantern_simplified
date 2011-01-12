@@ -60,7 +60,7 @@
 #define PROP_LVAF_0003		0x80050003
 #define PROP_LVAF_001D		0x8005001d
 #define PROP_LV_STATE		0x8005000f // output very often
-#define PROP_LV_DISPSIZE	0x80050015 // used to control LV zoom
+#define PROP_LV_DISPSIZE	0x80050015 // used to control LV zoom (0 / 5 / A)
 #define PROP_LVCAF_STATE	0x8005001B // unknown meaning
 #define PROP_HALF_SHUTTER	0x8005000a // two bytes, 1==held; only updated in LV mode
 #define PROP_ORIENTATION	0x8005000d // 0 == 0 deg, 1 == +90 deg, 2 == -90 deg
@@ -102,7 +102,7 @@
 #define PROP_DEFAULT_LV_MANIP	0x80020006
 #define PROP_DISPSENSOR_CTRL	0x80020010	// 1 == show results?
 #define PROP_LV_OUTPUT_DEVICE	0x80050011	// 1 == LCD?
-#define PROP_HOUTPUT_TYPE	0x80030030
+#define PROP_HOUTPUT_TYPE	0x80030030      // 0 = no info displayed in LV, 1 = info displayed (this is toggled with DISP)
 #define PROP_MIRROR_DOWN	0x8005001C
 #define PROP_LV_EXPSIM		0x80050023
 #define PROP_MYMENU_LISTING	0x80040009
@@ -114,7 +114,7 @@
 #define PROP_DEFAULT_BRACKET	0x8002000A
 #define PROP_PARTIAL_SETTING	0x8002000B
 #define PROP_EMPOWER_OFF	0x80030007	// 1 == prohibit, 2 == permit
-#define PROP_LVAF_MODE      8004001d // 0 = shutter killer, 1 = live mode, 2 = face detect
+#define PROP_LVAF_MODE      0x8004001d // 0 = shutter killer, 1 = live mode, 2 = face detect
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C	// 1 == cleaning sensor?
 #define PROP_DL_ACTION		0x80020013 // 0 == end?

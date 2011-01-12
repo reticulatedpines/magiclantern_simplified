@@ -36,8 +36,12 @@ CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 1);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
-CONFIG_INT( "interval.movie.duration", interval_movie_duration, 1000);
+CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
+CONFIG_INT( "silent.pic", silent_pic, 0 );
+CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
+CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
+CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
@@ -51,9 +55,13 @@ PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
 PROP_INT(PROP_WBS_GM, wbs_gm);
 PROP_INT(PROP_WBS_BA, wbs_ba);
-PROP_INT(PROP_FILE_NUMBER_ALSO, file_number);
+PROP_INT(PROP_FILE_NUMBER, file_number);
+PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
 PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 PROP_INT(PROP_STROBO_FIRING, strobo_firing);
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+PROP_INT(PROP_LVAF_MODE, lvaf_mode);
+
 int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
 
 typedef int (*CritFunc)(int);
@@ -71,12 +79,26 @@ static int bin_search(int lo, int hi, CritFunc crit)
 static void
 interval_timer_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"IntervalTime:   %ds", 
-		timer_values[*(int*)priv]
-	);
+	if (shooting_mode != SHOOTMODE_MOVIE)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Take a pic every: %ds",
+			timer_values[*(int*)priv]
+		);
+	}
+	else
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Record %ds, pause %ds",
+			timer_values[interval_movie_duration_index],
+			timer_values[*(int*)priv]
+		);
+		bmp_printf(FONT_MED, x + 510, y+5, "[Q]");
+	}
 }
 
 static void
@@ -92,13 +114,20 @@ interval_timer_toggle_reverse( void * priv )
 	*ptr = mod(*ptr - 1, COUNT(timer_values));
 }
 
+static void
+interval_movie_duration_toggle( void * priv )
+{
+	if (shooting_mode == SHOOTMODE_MOVIE)
+		interval_movie_duration_index = mod(interval_movie_duration_index + 1, COUNT(timer_values));
+}
+
 static void 
 intervalometer_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Intervalometer: %s",
+		"Intervalometer:   %s",
 		(*(int*)priv) ? "ON " : "OFF"
 	);
 }
@@ -110,7 +139,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LCD RemoteShot: %s",
+		"LCD Remote Shot:  %s",
 		v == 1 ? "Near" : (v == 2 ? "Away" : "OFF")
 	);
 }
@@ -126,16 +155,9 @@ audio_release_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Audio Rem.Shot: %s",
+		"Audio RemoteShot: %s",
 		audio_release_running ? "ON " : "OFF"
 	);
-}
-
-static void
-audio_release_toggle(void* priv)
-{
-	audio_release_running = !audio_release_running;
-	if (!audio_release_running) clrscr();
 }
 
 static void 
@@ -144,7 +166,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Trap Focus:  %s",
+		"Trap Focus:       %s",
 		(*(int*)priv) ? "ON " : "OFF"
 	);
 }
@@ -161,7 +183,7 @@ flash_and_no_flash_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Flash Toggle:%s",
+		"Flash / No flash: %s",
 		strobo_firing == 2 ? "N/A" : 
 		flash_and_no_flash ? "ON " : "OFF"
 	);
@@ -177,12 +199,104 @@ flash_and_no_flash_toggle( void * priv )
 
 
 static void 
+silent_pic_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Silent Picture:   %s",
+		*(int*)priv ? "ON " : "OFF"
+	);
+}
+
+
+uint32_t afframe[26];
+PROP_HANDLER( PROP_LV_AFFRAME ) {
+	memcpy(afframe, buf, 0x68);
+	return prop_cleanup( token, property );
+}
+
+face_zoom_request = 0;
+
+int hs = 0;
+PROP_HANDLER( PROP_HALF_SHUTTER ) {
+	int v = *(int*)buf;
+	if (zoom_enable_face)
+	{
+		if (v == 0 && lv_drawn() && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
+			face_zoom_request = 1;
+	}
+	return prop_cleanup( token, property );
+}
+
+
+int sweep_lv_on = 0;
+static void 
+sweep_lv_start(void* priv)
+{
+	sweep_lv_on = 1;
+}
+
+static void 
+sweep_lv()
+{
+	if (recording) return;
+	if (!lv_drawn()) return;
+	gui_stop_menu();
+	msleep(2000);
+	int zoom = 5;
+	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	msleep(2000);
+	
+	int i,j;
+	for (i = 0; i < 5; i++)
+	{
+		for (j = 0; j < 5; j++)
+		{
+			bmp_printf(FONT_LARGE, 50, 50, "AFF %d, %d ", i, j);
+			afframe[2] = 250 + 918 * j;
+			afframe[3] = 434 + 490 * i;
+			prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+			msleep(100);
+		}
+	}
+
+	zoom = 1;
+	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+}
+static void
+silent_pic_take()
+{
+	int hd_pitch = recording ? YUV422_HD_PITCH_REC : YUV422_HD_PITCH;
+	int hd_height = recording ? YUV422_HD_HEIGHT_REC : YUV422_HD_HEIGHT;
+	int hd_width = hd_pitch / 2;
+	
+	int silent_number;
+	char imgname[100];
+	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
+	{
+		//bmp_printf(FONT_MED, 90,90, "silent: %d ", silent_number);
+
+		snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+
+		unsigned size;
+		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+		if (size == 0) break;
+	}
+
+	
+	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a pic (%d)", silent_number);
+	dump_seg(YUV422_HD_BUFFER, hd_pitch * hd_height, imgname);
+	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a pic     ");
+}
+
+static void 
 iso_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ISO     : %d",
+		"ISO         : %d",
 		lens_info.iso
 	);
 	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
@@ -292,7 +406,7 @@ shutter_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Shutter : 1/%d",
+		"Shutter     : 1/%d",
 		lens_info.shutter
 	);
 	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
@@ -403,7 +517,7 @@ kelvin_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"WhiteBal: %dK",
+			"WhiteBalance: %dK",
 			lens_info.kelvin
 		);
 	}
@@ -492,7 +606,7 @@ contrast_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Contrast: %d ",
+		"Contrast    : %d ",
 		lens_get_contrast()
 	);
 }
@@ -577,15 +691,49 @@ ladj_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LightAdj: %s",
+		"Light Adjust: %s",
 		(htp ? "HTP" :
 		(alo == ALO_STD ? "ALO std" :
 		(alo == ALO_LOW ? "ALO low" : 
-		(alo == ALO_HIGH ? "ALO hi " :
+		(alo == ALO_HIGH ? "ALO strong " :
 		(alo == ALO_OFF ? "OFF" : "err")))))
 	);
 }
 
+static void 
+zoom_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"LiveView Zoom:    %s%s %s",
+		zoom_disable_x5 ? "" : "x5", 
+		zoom_disable_x10 ? "" : "x10", 
+		zoom_enable_face ? ":-)" : ""
+	);
+}
+
+static void zoom_toggle(void* priv)
+{
+	// x5 x10
+	// x5
+	// x10
+	if (!zoom_disable_x5 && !zoom_disable_x10) // both enabled
+	{
+		zoom_disable_x5 = 0;
+		zoom_disable_x10 = 1;
+	}
+	else if (!zoom_disable_x10)
+	{
+		zoom_disable_x5 = 0;
+		zoom_disable_x10 = 0;
+	}
+	else
+	{
+		zoom_disable_x5 = 1;
+		zoom_disable_x10 = 0;
+	}
+}
 
 int hdr_steps = 1;
 CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
@@ -598,7 +746,7 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Bracket:OFF"
+			"HDR Brack:   OFF"
 		);
 	}
 	else
@@ -606,25 +754,26 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Brack:%dx%dEV",
+			"HDR Brack: %dx%d%sEV",
 			hdr_steps, 
-			hdr_stepsize / 8
+			hdr_stepsize / 8,
+			((hdr_stepsize/4) % 2) ? ".5" : ""
 		);
 	}
-	bmp_printf(FONT_MED, x + 440, y, "[SET ]\n[DISP]");
-	bmp_printf(FONT_MED, x + 510, y+5, "[Q]");
+	bmp_printf(FONT_MED, x + 400, y+5, "[SET-DISP-Q]");
 }
 
 static void
 hdr_steps_toggle( void * priv )
 {
-	hdr_steps = mod(hdr_steps + 2, 10);
+	hdr_steps = mod(hdr_steps + (hdr_steps <= 2 ? 0 : 1), 10) + 1;
 }
 
 static void
 hdr_stepsize_toggle( void * priv )
 {
-	hdr_stepsize = mod(hdr_stepsize, 40) + 8;
+	hdr_stepsize = (hdr_stepsize < 8) ? 8 : (hdr_stepsize/8)*8 + 8;
+	if (hdr_stepsize > 40) hdr_stepsize = 4;
 }
 
 static void
@@ -634,20 +783,19 @@ hdr_reset( void * priv )
 	hdr_stepsize = 8;
 }
 
-int mov_test_en = 0;
-
-static void mov_test(void* priv)
-{
-	mov_test_en = !mov_test_en;
-	bmp_printf(FONT_LARGE, 30, 30, "en=%d ", mov_test_en);
-}
-
 struct menu_entry shoot_menus[] = {
+	{
+		.display	= hdr_display,
+		.select		= hdr_steps_toggle,
+		.select_reverse = hdr_stepsize_toggle,
+		.select_auto = hdr_reset,
+	},
 	{
 		.priv		= &interval_timer_index,
 		.display	= interval_timer_display,
 		.select		= interval_timer_toggle,
 		.select_reverse	= interval_timer_toggle_reverse,
+		.select_auto = interval_movie_duration_toggle,
 	},
 	{
 		.priv		= &intervalometer_running,
@@ -660,14 +808,9 @@ struct menu_entry shoot_menus[] = {
 		.display	= lcd_release_display,
 	},
  	{
-		.select		= audio_release_toggle,
+		.priv		= &audio_release_running,
+		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
-	},
-	{
-		.display	= hdr_display,
-		.select		= hdr_steps_toggle,
-		.select_reverse = hdr_stepsize_toggle,
-		.select_auto = hdr_reset,
 	},
 	{
 		.priv		= &trap_focus,
@@ -677,7 +820,23 @@ struct menu_entry shoot_menus[] = {
 	{
 		.select		= flash_and_no_flash_toggle,
 		.display	= flash_and_no_flash_display,
-	}
+	},
+	{
+		.priv = &silent_pic, 
+		.select = menu_binary_toggle, 
+		.display = silent_pic_display,
+	},
+	{
+		.priv = &zoom_enable_face,
+		.select = menu_binary_toggle,
+		.select_reverse = zoom_toggle, 
+		.display = zoom_display,
+	},
+	/*{
+		.priv = "Sweep test", 
+		.display = menu_print, 
+		.select = sweep_lv_start,
+	}*/
 };
 
 struct menu_entry expo_menus[] = {
@@ -723,7 +882,7 @@ void hdr_create_script(int steps, int skip0)
 	DEBUG();
 	FILE * f = INVALID_PTR;
 	char name[100];
-	int f0 = skip0 ? file_number : file_number+1;
+	int f0 = skip0 ? file_number_also : file_number_also+1;
 	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/HDR_%04d.sh", folder_number, f0);
 	DEBUG("name=%s", name);
 	FIO_RemoveFile(name);
@@ -835,7 +994,7 @@ hdr_take_mov(steps, step_size)
 		bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
 		int new_s = COERCE(s - step_size * i, 96, 152);
 		lens_set_rawshutter( new_s );
-		msleep(interval_movie_duration);
+		msleep(timer_values[interval_movie_duration_index] * 1000);
 	}
 	lens_set_rawshutter( s );
 	movie_end();
@@ -855,7 +1014,10 @@ void hdr_shot(int skip0)
 	{
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 			lens_set_drivemode(DRIVE_CONTINUOUS);
-		hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
+		if (hdr_steps == 2)
+			hdr_take_pics(hdr_steps, hdr_stepsize/2, 1);
+		else
+			hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
 		while (lens_info.job_state) msleep(500);
 	}
 }
@@ -891,9 +1053,9 @@ void display_shooting_info() // called from debug task
 	fnt = FONT(FONT_MED, 80, bg);
 	int iso = lens_info.iso;
 	if (iso)
-		bmp_printf(fnt, 470, 30, "ISO %5d", iso);
+		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
 	else
-		bmp_printf(fnt, 470, 30, "ISO AUTO");
+		bmp_printf(fnt, 470, 27, "ISO AUTO");
 
 	bg = bmp_getpixel(410, 330);
 	fnt = FONT(FONT_MED, 80, bg);
@@ -905,12 +1067,12 @@ void display_shooting_info() // called from debug task
 		fnt = FONT(FONT_LARGE, 80, bg);
 
 		int ba = (int8_t)wbs_ba;
-		if (ba) bmp_printf(fnt, 431, 240, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(fnt, 431, 240, "  ");
+		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
+		else bmp_printf(fnt, 431, 240, "    ");
 
 		int gm = (int8_t)wbs_gm;
-		if (gm) bmp_printf(fnt, 431, 270, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-		else bmp_printf(fnt, 431, 270, "  ");
+		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
+		else bmp_printf(fnt, 431, 270, "   ");
 	}
 	
 	bg = bmp_getpixel(15, 430);
@@ -928,6 +1090,21 @@ void display_shooting_info() // called from debug task
 		);
 }
 
+// may be unreliable
+int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
+{
+	int i;
+	for (i = 0; i <= wait/20; i++)
+	{
+		int msgcolor = 3; // may give wrong results if cropmark uses this color; may be camera-dependent
+		if (bmp_getpixel(300,150) == msgcolor &&
+			bmp_getpixel(60,250) == msgcolor &&
+			bmp_getpixel(400,300) == msgcolor
+			) return 1;
+		msleep(20);
+	}
+	return 0;
+}
 static void
 shoot_task( void )
 {
@@ -939,8 +1116,12 @@ shoot_task( void )
 	while(1)
 	{
 		msleep(10);
-		if (gui_state == GUISTATE_PLAYMENU)
-		{
+		if (gui_state == GUISTATE_PLAYMENU || gui_state == GUISTATE_MENUDISP)
+ 		{
+			if (intervalometer_running || lcd_release_running || audio_release_running)
+			{
+				bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Stopped                                             ");
+			}
 			intervalometer_running = 0;
 			lcd_release_running = 0;
 			audio_release_running = 0;
@@ -961,7 +1142,55 @@ shoot_task( void )
 			kelvin_auto_run();
 			kelvin_auto_flag = 0;
 		}
-
+		if (lv_drawn() && face_zoom_request && lv_dispsize == 1 && !recording)
+		{
+			if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
+			{
+				int afmode = 1;
+				int zoom = 5;
+				int afx = afframe[2];
+				int afy = afframe[3];
+				prop_request_change(PROP_LVAF_MODE, &afmode, 4);
+				msleep(100);
+				afframe[2] = afx;
+				afframe[3] = afy;
+				prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+				msleep(1);
+				prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+				msleep(1);
+			}
+			else if (lvaf_mode == 1) // back from temporary live focus mode
+			{
+				int afmode = 2;
+				prop_request_change(PROP_LVAF_MODE, &afmode, 4);
+				msleep(100);
+				face_zoom_request = 0;
+				//~ bmp_printf(FONT_LARGE, 10, 50, "       ");
+			}
+			else // cancel zoom request
+			{
+				msleep(100);
+				face_zoom_request = 0;
+				//~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
+			}
+		}
+		if (zoom_disable_x5 && lv_dispsize == 5)
+		{
+			int zoom = 10;
+			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+			msleep(100);
+		}
+		if (zoom_disable_x10 && lv_dispsize == 10)
+		{
+			int zoom = 1;
+			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+			msleep(100);
+		}
+		if (sweep_lv_on)
+		{
+			sweep_lv();
+			sweep_lv_on = 0;
+		}
 
 		// avoid camera shake for HDR shots => force self timer
 		if (hdr_steps > 1 && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
@@ -983,9 +1212,9 @@ shoot_task( void )
 		}
 
 		// toggle flash on/off for next picture
-		if (flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+		if (flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number_also % 2)
 		{
-			strobo_firing = file_number % 2;
+			strobo_firing = file_number_also % 2;
 			set_flash_firing(strobo_firing);
 		}
 
@@ -997,6 +1226,11 @@ shoot_task( void )
 				msleep(trap_focus_delay);
 			}
 		} 
+		
+		if (silent_pic && lv_drawn() && get_halfshutter_pressed())
+		{
+			silent_pic_take();
+		}
 
 		if (intervalometer_running)
 		{
@@ -1006,8 +1240,14 @@ shoot_task( void )
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				msleep(1000);
-				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer.");
+				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
+				
+				if (shooting_mode != SHOOTMODE_MOVIE)
+				{
+					if (lens_info.shutter > 100) bmp_printf(FONT_MED, 0, 70, "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
+					if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
+				}
 			}
 		}
 		else
