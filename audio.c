@@ -677,7 +677,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Anlg gain:  %2d dB",
+		"Analog Gain:    %d dB",
 		mgain_index2gain(gain_index)
 	);
 }
@@ -714,7 +714,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		// 23456789012
-		"%s-DigiGain: %2d dB",
+		"%s-DigitalGain:  %d dB",
 		priv == &dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
@@ -728,7 +728,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Output vol: %2d dB",
+		"Output volume:  %d dB",
 		2 * *(unsigned*) priv
 	);
 }
@@ -740,9 +740,9 @@ audio_meter_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"AudioMeter: %s",
+		"Audio Meters:   %s",
 		v == 1 ? "ON " : 
-		(v == 2 ? "MovOnly": "OFF")
+		(v == 2 ? "Movie Only": "OFF")
 	);
 }
 
@@ -773,7 +773,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"AGC:        %s",
+		"AGC:            %s",
 		alc_enable ? "ON " : "OFF"
 	);
 }
@@ -786,12 +786,12 @@ audio_input_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Input: %s",
-		(input_choice == 0 ? "internal mic " : 
-		(input_choice == 1 ? "int L ext R  " :
-		(input_choice == 2 ? "ext stereo   " : 
-		(input_choice == 3 ? "int L ext Bal" : 
-		(input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
+		"Input:%s",
+		(input_choice == 0 ? " internal mic " : 
+		(input_choice == 1 ? " int Left ext Right  " :
+		(input_choice == 2 ? " external stereo   " : 
+		(input_choice == 3 ? "int Left ext Balanced" : 
+		(input_choice == 4 ? (mic_inserted ? " Auto int/EXT " : " Auto INT/ext") : 
 		"error")))))
 	);
 }
@@ -811,7 +811,7 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Monitor:    %s",
+		"Monitor:        %s",
 		loopback ? "ON " : "OFF"
 	);
 }
@@ -822,7 +822,7 @@ audio_filters_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Filters:    %s",
+		"DigitalFilters: %s",
 		disable_filters ? "OFF" : "ON "
 	);
 }
@@ -876,13 +876,11 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
 	},
-#if 0
 	{
 		.priv		= &loopback,
 		.select		= audio_binary_toggle,
 		.display	= audio_loopback_display,
 	},
-#endif
 	{
 		.priv		= &disable_filters,
 		.select		= audio_binary_toggle,
