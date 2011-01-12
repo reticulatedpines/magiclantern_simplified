@@ -51,6 +51,7 @@ CONFIG_STR( "crop.file.2",	crop_file_2,	"               " );
 CONFIG_STR( "crop.file.3",	crop_file_3,	"               " );
 CONFIG_INT( "crop.black-border", crop_black_border, 1); // black borders in movie mode instead of transparent ones
 
+CONFIG_INT( "focus.assist", focus_assist, 0);
 int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
@@ -468,6 +469,7 @@ waveform_draw_image(
 static FILE * g_aj_logfile = INVALID_PTR;
 unsigned int aj_create_log_file( char * name)
 {
+   FIO_RemoveFile( name );
    g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
@@ -485,22 +487,90 @@ void aj_close_log_file( void )
    g_aj_logfile = INVALID_PTR;
 }
 
-void dump_seg(start, size, filename)
+void dump_seg(uint32_t start, uint32_t size, char* filename)
 {
-    DebugMsg(DM_MAGIC, 3, "********* dump_seg %s started ********", filename);
+    DEBUG();
     aj_create_log_file(filename);
     FIO_WriteFile( g_aj_logfile, (const void *) start, size );
     aj_close_log_file();
-    DebugMsg(DM_MAGIC, 3, "********* dump_seg %s ended ********", filename);
+    DEBUG();
+}
+
+void dump_big_seg(int k, char* filename)
+{
+    DEBUG();
+    aj_create_log_file(filename);
+    
+    int i;
+    for (i = 0; i < 16; i++)
+    {
+		DEBUG();
+		uint32_t start = (k << 28 | i << 24);
+		bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
+		FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
+	}
+    
+    aj_close_log_file();
+    DEBUG();
+}
+
+static void dump_vram()
+{
+	//dump_big_seg(1, "B:/1.bin");
+	//dump_big_seg(4, "B:/4.bin");
+	dump_seg(0x44000080, 1920*1080*2, "B:/hd.bin");
 }
 
 static uint8_t* bvram_mirror = 0;
 
 void spotmeter_step();
 
+// thresholded edge detection
+static void
+draw_focus_assist( void )
+{
+	// Downsampling
+	// non-record: 1056 px: 1.46 ratio (yuck!)
+	// record: around 1872px: 2.6 ratio (yuck!)
+	
+	// How to scan?
+	// Scan the HD vram and do ratio conversion only for the 1% pixels displayed
+	
+	/*
+	uint8_t * const bvram = bmp_vram();
+	uint8_t * const hdvram = YUV422_HD_BUFFER;
+	if (!bvram) return;
+	
+	int lv_pitch = 720; // or other value for ext monitor
+	int hd_pitch = recording ? YUV422_HD_PITCH_REC : YUV422_HD_PITCH;
+	int hd_height = recording ? YUV422_HD_HEIGHT_REC : YUV422_HD_HEIGHT;
+	int hd_width = hd_pitch / 2;
+	
+	int skipv = 50 * hd_pitch / lv_pitch;
+	int skiph = 100 * hd_pitch / lv_pitch;
+	
+	uint32_t x,y;
+	for( y=skipv ; y < hd_height - skipv; y++ )
+	{
+		uint16_t * const b_row = (uint16_t*)( bvram + y * bmppitch ); // 2 pixels
+		uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch );
+		for ( uint32_t * p = skiph ; x < hd_width - skiph ; x+=2 )
+		{
+			uint32_t pix = *(uint32_t*)();
+			b_row[ x / 2 ] = pix;
+		}
+	}
+	*/
+}
+
 static void
 draw_zebra( void )
 {
+	if (focus_assist)
+	{
+		draw_focus_assist();
+		return;
+	}
 	if (!lv_drawn()) return;
 	
 	uint8_t * const bvram = bmp_vram();
@@ -764,7 +834,7 @@ zebra_hi_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"ZebraThrHI: %d   ",
+		"ZebraThrHI:  %d   ",
 		*(unsigned*) priv
 	);
 }
@@ -776,7 +846,7 @@ zebra_lo_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"ZebraThrLO: %d   ",
+		"ZebraThrLO:  %d   ",
 		*(unsigned*) priv
 	);
 }
@@ -789,11 +859,22 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Zebras:     %s",
+		"Zebras:      %s",
 		z == 1 ? "ON " : (z == 2 ? "Auto" : "OFF")
 	);
 }
 
+static void
+focus_assist_display( void * priv, int x, int y, int selected )
+{
+	unsigned f = *(unsigned*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Focus Assist:%s",
+		f ? "ON " : "OFF"
+	);
+}
 
 static void
 crop_display( void * priv, int x, int y, int selected )
@@ -804,7 +885,7 @@ crop_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"CropM:%s%s",
+		"Cropmarks:   %s%s",
 		 (index == 1 ? crop_file_1 + 3 :
 		 (index == 2 ? crop_file_2 + 3 :
 		 (index == 3 ? crop_file_3 + 3 :
@@ -835,7 +916,7 @@ hist_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Histogram:  %s",
+		"Histogram:   %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
 }
@@ -847,7 +928,7 @@ global_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"GlobalDraw: %s",
+		"Global Draw: %s",
 		global_draw_bk ? "ON " : "OFF"
 	);
 }
@@ -876,7 +957,7 @@ clearpreview_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ClrScr: %s",
+		"ClrScreen:   %s",
 		(mode == 0 ? "OFF" : 
 		(mode == 1 ? "HalfShutter" : 
 		(mode == 2 ? "Always" :
@@ -899,7 +980,7 @@ spotmeter_menu_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Spotmeter:  %s",
+		"Spotmeter:   %s",
 		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "ON    " : "Hidden")
 	);
 }
@@ -946,6 +1027,7 @@ void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 	*V = sv;
 }
 
+PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 
 void spotmeter_step()
 {
@@ -994,7 +1076,7 @@ void spotmeter_step()
 	bmp_printf(
 		FONT_MED,
 		350,
-		400,
+		lv_disp_mode ? 400 : 480 - font_med.height - 10,
 		"%3d%%",
 		scaled
 	);
@@ -1046,6 +1128,16 @@ struct menu_entry zebra_menus[] = {
 		.select			= clearpreview_toggle,
 		.select_reverse	= clearpreview_toggle_reverse,
 	},
+	//~ {
+		//~ .priv			= &focus_assist,
+		//~ .display		= focus_assist_display,
+		//~ .select			= menu_binary_toggle,
+	//~ },
+	//~ {
+		//~ .priv = "dump vram", 
+		//~ .display = menu_print, 
+		//~ .select = dump_vram,
+	//~ }
 	//~ {
 		//~ .priv		= &edge_draw,
 		//~ .select		= menu_binary_toggle,
@@ -1125,9 +1217,16 @@ zebra_task( void )
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
 	set_global_draw(global_draw_bk);
 
-	msleep(1000);
+
+	msleep(2000);
 	load_cropmark(crop_draw);
-	dumpf();
+	if (!cropmarks)
+	{
+		bmp_printf(FONT_LARGE, 50, 50, "CROP NOT LOADED\nCREATING DEBUG LOG...");
+		msleep(1000);
+		dumpf();
+		msleep(2000);
+	}
 	while(1)
 	{
 		msleep(1); // safety msleep :)
