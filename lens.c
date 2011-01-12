@@ -125,19 +125,31 @@ lens_format_dist(
 	return dist;
 }
 
+int lv_disp_mode;
+
+PROP_HANDLER(PROP_HOUTPUT_TYPE)
+{
+	lv_disp_mode = *(int*)buf;
+	if (lv_drawn()) 
+		bmp_fill(0, 
+			0, lv_disp_mode == 0 ? 400 : 480 - font_med.height - 10, 
+			720, font_med.height); // clean old lens display
+	return prop_cleanup( token, property );
+}
+
 
 static void
 update_lens_display(
 	struct lens_info *	info
 )
 {
-	const unsigned font	= FONT_MED;
-	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, COLOR_BG );
+	const unsigned font	= FONT(FONT_MED, COLOR_WHITE, get_crop_black_border() ? COLOR_BLACK : COLOR_BG);
+	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, get_crop_black_border() ? COLOR_BLACK : COLOR_BG );
 	const unsigned height	= fontspec_height( font );
 
 	// Needs to be 720 - 8 * 12
 	unsigned x = 420;
-	unsigned y = 400;
+	unsigned y = lv_disp_mode ? 400 : 480 - height - 10;
 
 	bmp_printf( font, x, y, "%5d mm", info->focal_len );
 
@@ -152,7 +164,7 @@ update_lens_display(
 
 	// Move the info display to the very bottom screen
 	x = 0;
-	y = 400;
+	//~ y = 400;
 	if( info->aperture )
 		bmp_printf( font, x, y,
 			"f/%2d.%d",
@@ -671,6 +683,7 @@ PROP_HANDLER( PROP_PICSTYLE_SETTINGS_9 ) {
 	memcpy(&picstyle_settings[9], buf, 24);
 	return prop_cleanup( token, property );
 }
+
 
 // get contrast/saturation/etc from the current picture style
 
