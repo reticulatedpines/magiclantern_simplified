@@ -295,7 +295,16 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   * wait for vsync (how to do this?)
   * save to a format which can be opened without conversion (BMP, TIFF, JPEG?)
+
+**LiveView Zoom: x5 / x10 / :-)**
   
+  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
+  
+  * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
+  * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
+  * ``x5x10``: both settings available (Canon default)
+  * ``:-)`` Enable zoom in Face Detection mode
+ 
 Expo
 ~~~~
 
