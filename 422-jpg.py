@@ -7,7 +7,7 @@ import time
 import os, Image
 
 try:
-    data = open(sys.argv[1]).read();
+    data = open(sys.argv[1], "rb").read();
 except:
     print "Usage: python %s image.422"% sys.argv[0]
     raise SystemExit
