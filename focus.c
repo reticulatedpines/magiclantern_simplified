@@ -186,13 +186,13 @@ focus_rack_speed_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Rack speed: %2d",
+		"Rack speed: %d",
 		focus_rack_speed
 	);
 }
 
 
-unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36};
+unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36,50,75,100};
 
 int current_rack_speed_index()
 {
