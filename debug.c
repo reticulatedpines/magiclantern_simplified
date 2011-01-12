@@ -235,9 +235,10 @@ save_config( void * priv )
 }
 
 //----------------begin qscale-----------------
-//~ CONFIG_INT( "h264.qscale", qscale, -8 );  // not reliable
+CONFIG_INT( "h264.qscale.neg", qscale_neg, 0 );
 CONFIG_INT( "h264.qscale.max.neg", qscale_max_neg, 1 );
 CONFIG_INT( "h264.qscale.min.neg", qscale_min_neg, 16 );
+CONFIG_INT( "h264.qscale.force", qscale_force, 1);
 
 int16_t qscale = 0;
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -251,10 +252,20 @@ void mvrSetDefQScale(int16_t *);
 
 void vbr_set()
 {
+	qscale = COERCE(qscale, QSCALE_MIN, QSCALE_OFF);
+	if (qscale == QSCALE_OFF) bmp_printf(FONT_SMALL, 10,50, "QScale OFF");
+	else bmp_printf(FONT_SMALL, 10,50, "QScale %d ", qscale);
 	uint16_t param = (qscale == QSCALE_OFF) ? 0 : 1;                  // select fixed rate or VBR
 	mvrFixQScale(&param);
 	if (qscale != QSCALE_OFF) mvrSetDefQScale(&qscale);
 }
+
+//~ void cbr_set() // test
+//~ {
+	//~ uint16_t param = 0;
+	//~ mvrFixQScale(&param);
+	//~ mvrSetDefQScale(&qscale);
+//~ }
 
 void vbr_toggle( void * priv )
 {
@@ -262,7 +273,8 @@ void vbr_toggle( void * priv )
 	qscale -= 1;
 	if (qscale < QSCALE_MIN)
 		qscale = QSCALE_OFF;
-	vbr_set();
+	qscale_neg = -qscale;
+	//~ vbr_set(); // error 70 if you switch from CBR to VBR while recording
 }
 
 void vbr_toggle_reverse( void * priv )
@@ -271,7 +283,7 @@ void vbr_toggle_reverse( void * priv )
 	qscale += 1;
 	if (qscale > QSCALE_OFF)
 		qscale = QSCALE_MIN;
-	vbr_set();
+	//~ vbr_set();
 }
 
 static void
@@ -300,7 +312,7 @@ vbr_print(
 
 CONFIG_INT("movie.restart", movie_restart,0);
 
-PROP_INT(PROP_MVR_REC_START, mvr_rec_start);
+PROP_INT(PROP_MVR_REC_START, recording);
 
 static void
 movie_restart_print(
@@ -406,6 +418,8 @@ void display_clock()
 	bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
 }
 
+PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+
 
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
@@ -414,9 +428,10 @@ static void
 debug_loop_task( void ) // screenshot, draw_prop
 {
 	dbg_memspy_init();
-	while(1)
+	int k;
+	for (k = 0; ; k++)
 	{
-		msleep(1);
+		msleep(10);
 		if (gui_state == GUISTATE_MENUDISP)
 		{
 			display_info();
@@ -430,12 +445,27 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		if (screenshot_sec)
 		{
-			bmp_printf( FONT_SMALL, 0, 0, "Screenshot in 10 seconds");
-			while( screenshot_sec-- )
-				msleep( 1000 );
-			call_dispcheck(0);
+			if (screenshot_sec >= 5) bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds", screenshot_sec);
+			screenshot_sec--;
+			msleep( 1000 );
+			if (!screenshot_sec)
+				call_dispcheck(0);
 		}
-		else if (draw_prop)
+		
+		if (movie_restart)
+		{
+			static int recording_prev = 0;
+			if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
+				movie_start();
+			recording_prev = recording;
+		}
+		
+		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && !recording && k % 10 == 0)
+		{
+			vbr_set();
+		}
+		
+		if (draw_prop)
 		{
 			dbg_draw_props(dbg_last_changed_propindex);
 			msleep(10);
@@ -444,10 +474,6 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			dbg_memspy_update();
 			msleep(10);
-		}
-		else if (movie_restart && mvr_rec_start == 0)
-		{
-			movie_start();
 		}
 		else msleep(100);
 	}
@@ -726,20 +752,31 @@ dump_task( void )
 		global_config ? "YES" : "NO"
 	);
 
+	qscale = -((int)qscale_neg);
+
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-	//~ dm_set_store_level( DM_DISP, 4 );
-	//~ dm_set_store_level( DM_LVFD, 4 );
-	//~ dm_set_store_level( DM_LVCFG, 4 );
-	//~ dm_set_store_level( DM_LVCDEV, 4 );
-	//~ dm_set_store_level( DM_LV, 4 );
-	//~ dm_set_store_level( DM_RSC, 4 );
-	//~ dm_set_store_level( 0, 4 ); // catch all?
 	
-	// increase jpcore debugging (breaks liveview?)
-	//dm_set_store_level( 0x15, 2 );
-	//dm_set_store_level( 0x2f, 0x16 );
-
+	DEBUG();
+	dm_set_store_level( DM_DISP, 7 );
+	dm_set_store_level( DM_LVFD, 7 );
+	dm_set_store_level( DM_LVCFG, 7 );
+	dm_set_store_level( DM_LVCDEV, 7 );
+	dm_set_store_level( DM_LV, 7 );
+	dm_set_store_level( DM_RSC, 7 );
+	dm_set_store_level( DM_MAC, 7 );
+	dm_set_store_level( DM_CRP, 7 );
+	dm_set_store_level( DM_SETPROP, 7 );
+	dm_set_store_level( DM_PRP, 7 );
+	dm_set_store_level( DM_PROPAD, 7 );
+	dm_set_store_level( DM_INTCOM, 7 );
+	dm_set_store_level( DM_WINSYS, 7 );
+	dm_set_store_level( DM_CTRLSRV, 7 );
+	dm_set_store_level( DM_GUI, 7);
+	dm_set_store_level( DM_GUI_M, 7);
+	dm_set_store_level( DM_GUI_E, 7);
+	dm_set_store_level( DM_BIND, 7);
+	DEBUG();
 	//msleep(1000);
 	//bmp_draw_palette();
 	//dispcheck();

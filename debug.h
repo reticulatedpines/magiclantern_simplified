@@ -67,6 +67,10 @@ extern const char * dm_names[];
 #define DM_DISP		64
 #define DM_LV		86
 #define DM_LVCFG	89
+#define DM_GUI		131
+#define DM_GUI_M	132
+#define DM_GUI_E	133
+#define DM_BIND		137
 
 struct dm_state
 {
