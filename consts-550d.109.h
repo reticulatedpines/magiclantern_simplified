@@ -1,4 +1,13 @@
+// 720x480, changes when external monitor is connected
 #define YUV422_IMAGE_BUFFER 0x40D07800 
+#define YUV422_PITCH 1440
+
+// changes during record
+#define YUV422_HD_BUFFER 0x44000080
+#define YUV422_HD_PITCH 2112
+#define YUV422_HD_HEIGHT 704
+#define YUV422_HD_PITCH_REC 3440
+#define YUV422_HD_HEIGHT_REC 974
 
 #define FOCUS_CONFIRMATION 0x41d0
 #define DISPLAY_SENSOR 0x2dec
