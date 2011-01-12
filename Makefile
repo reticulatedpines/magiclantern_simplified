@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=debug-cropmarks.$(shell whoami)
+BUILDVER=manytweaks.$(shell whoami)
 VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 #MacOS
@@ -100,7 +100,8 @@ magiclantern-$(VERSION).zip: \
 	CineScop.bmp\
 	fish8r.bmp\
 	magic.cfg\
-	make_bootable.sh
+	make_bootable.sh\
+	422-jpg.py
 
 	-rm $@
 	chmod -x autoexec.bin
