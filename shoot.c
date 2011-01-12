@@ -229,6 +229,12 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	return prop_cleanup( token, property );
 }
 
+int job_almost_ready = 0;
+PROP_HANDLER( PROP_LAST_JOB_STATE ) {
+	int v = *(int*)buf;
+	if (v <= 10) job_almost_ready = 1;
+	return prop_cleanup( token, property );
+}
 
 int sweep_lv_on = 0;
 static void 
@@ -1212,9 +1218,14 @@ shoot_task( void )
 		}
 
 		// toggle flash on/off for next picture
-		if (flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number_also % 2)
+		if (flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
 		{
-			strobo_firing = file_number_also % 2;
+			if (lens_info.job_state > 10) // not safe to change flash setting
+			{
+				job_almost_ready = 0;
+				while (!job_almost_ready) msleep(1);
+			}
+			strobo_firing = file_number % 2;
 			set_flash_firing(strobo_firing);
 		}
 
