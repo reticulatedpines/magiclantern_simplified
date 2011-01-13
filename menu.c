@@ -31,7 +31,6 @@
 #include "font.h"
 #include "menu.h"
 
-
 static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
 static int menu_damage;
@@ -84,10 +83,22 @@ menu_binary_toggle(
 	*val = !*val;
 }
 
-void menu_binary_toggle_and_close(void * priv)
+void
+menu_ternary_toggle(
+	void *			priv
+)
 {
-	menu_binary_toggle(priv);
-	gui_stop_menu();
+	unsigned * val = priv;
+	*val = mod(*val + 1, 3);
+}
+
+void
+menu_ternary_toggle_reverse(
+	void *			priv
+)
+{
+	unsigned * val = priv;
+	*val = mod(*val - 1, 3);
 }
 
 void
@@ -775,3 +786,12 @@ menu_task( void )
 }
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
+
+int is_focus_menu_active()
+{
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+		if( menu->selected )
+			break;
+	return !strcmp(menu->name, "Focus");
+}

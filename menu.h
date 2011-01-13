@@ -85,8 +85,8 @@ menu_binary_toggle(
 	void *			priv
 );
 
-// also close the menu after selecting an option
-extern void menu_binary_toggle_and_close(void * priv);
+extern void menu_ternary_toggle(void* priv);
+extern void menu_ternary_toggle_reverse(void* priv);
 
 
 extern void
