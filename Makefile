@@ -26,13 +26,13 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=tamron.$(shell whoami)
+BUILDVER=silent.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
-CONFIG_AUDIOMON 	= n
+CONFIG_AUDIOMON 	= y
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -105,6 +105,7 @@ magiclantern-$(VERSION).zip: \
 	INSTALL.pdf \
 	UserGuide.pdf \
 	make_bootable.sh\
+	422-jpg.py\
 	cropmks/* \
 
 	-rm $@
