@@ -467,6 +467,7 @@ PROP_HANDLER( PROP_ISO )
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_iso = raw;
 	lens_info.iso = RAW2VALUE(iso, raw);
+	update_stuff();
 	return prop_cleanup( token, property );
 }
 
@@ -475,6 +476,7 @@ PROP_HANDLER( PROP_SHUTTER )
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_shutter = raw;
 	lens_info.shutter = RAW2VALUE(shutter, raw);
+	update_stuff();
 	return prop_cleanup( token, property );
 }
 
@@ -483,6 +485,7 @@ PROP_HANDLER( PROP_APERTURE )
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_aperture = raw;
 	lens_info.aperture = RAW2VALUE(aperture, raw);
+	update_stuff();
 	return prop_cleanup( token, property );
 }
 
@@ -490,6 +493,7 @@ PROP_HANDLER( PROP_AE )
 {
 	const uint32_t value = *(uint32_t *) buf;
 	lens_info.ae = (int8_t)value;
+	update_stuff();
 	return prop_cleanup( token, property );
 }
 
@@ -541,25 +545,28 @@ lens_set_kelvin(int k)
 	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
 }
 
+void update_stuff()
+{
+	calc_dof( &lens_info );
+	if (lv_drawn() && get_global_draw()) update_lens_display( &lens_info );
+	mvr_update_logfile( &lens_info, 0 ); // do not force it
+}
+
 PROP_HANDLER( PROP_LV_LENS )
 {
 	const struct prop_lv_lens * const lv_lens = (void*) buf;
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
-
-	calc_dof( &lens_info );
-	if (lv_drawn() && get_global_draw()) update_lens_display( &lens_info );
-	mvr_update_logfile( &lens_info, 0 ); // do not force it
-	
+	update_stuff();
 	return prop_cleanup( token, property );
 }
 
 
-PROP_HANDLER( PROP_LVCAF_STATE )
-{
+//~ PROP_HANDLER( PROP_LVCAF_STATE )
+//~ {
 	//bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
-	return prop_cleanup( token, property );
-}
+	//~ return prop_cleanup( token, property );
+//~ }
 
 /*
 PROP_HANDLER( PROP_LV_FOCUS )
