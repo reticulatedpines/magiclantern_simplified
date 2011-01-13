@@ -253,19 +253,20 @@ void mvrSetDefQScale(int16_t *);
 void vbr_set()
 {
 	qscale = COERCE(qscale, QSCALE_MIN, QSCALE_OFF);
-	if (qscale == QSCALE_OFF) bmp_printf(FONT_SMALL, 10,50, "QScale OFF");
-	else bmp_printf(FONT_SMALL, 10,50, "QScale %d ", qscale);
+	//~ if (qscale == QSCALE_OFF) bmp_printf(FONT_SMALL, 10,50, "QScale OFF");
+	//~ else bmp_printf(FONT_SMALL, 10,50, "QScale %d ", qscale);
 	uint16_t param = (qscale == QSCALE_OFF) ? 0 : 1;                  // select fixed rate or VBR
 	mvrFixQScale(&param);
 	if (qscale != QSCALE_OFF) mvrSetDefQScale(&qscale);
 }
 
-//~ void cbr_set() // test
-//~ {
-	//~ uint16_t param = 0;
-	//~ mvrFixQScale(&param);
-	//~ mvrSetDefQScale(&qscale);
-//~ }
+void cbr_set() // test
+{
+	uint16_t param = 0;
+	uint8_t bitrate = 1;
+	mvrFixQScale(&param);
+	mvrSetBitRate(&bitrate);
+}
 
 void vbr_toggle( void * priv )
 {
@@ -406,6 +407,8 @@ void display_info()
 	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
 	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
 	bmp_printf(FONT_MED, 20, 440, "Lens: %s          ", lens_info.name);
+	//~ bmp_printf(FONT_MED, 20, 440, "%d  ", *(int*)0x25334);
+
 }
 void display_clock()
 {
