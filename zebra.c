@@ -30,6 +30,7 @@
 #include "menu.h"
 #include "property.h"
 #include "gui.h"
+#include "lens.h"
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -46,9 +47,6 @@ CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
-CONFIG_STR( "crop.file.1",	crop_file_1,	"B:/cropmark.bmp" );
-CONFIG_STR( "crop.file.2",	crop_file_2,	"               " );
-CONFIG_STR( "crop.file.3",	crop_file_3,	"               " );
 CONFIG_INT( "crop.black-border", crop_black_border, 1); // black borders in movie mode instead of transparent ones
 
 CONFIG_INT( "focus.assist", focus_assist, 0);
@@ -716,14 +714,6 @@ draw_zebra( void )
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra done **********************");
 }
 
-// 0 = off, 1 = on, 2 = auto (turns off in movie mode)
-static void
-zebra_toggle( void * priv )
-{
-	int * ptr = priv;
-	*ptr = mod(*ptr + 1, 3);
-}
-
 static void
 zebra_lo_toggle( void * priv )
 {
@@ -789,31 +779,64 @@ static void global_draw_toggle(void* priv)
 	global_draw_bk = global_draw;
 }
 
+#define MAX_CROP_NAME_LEN 15
+#define MAX_CROPMARKS 9
+int num_cropmarks = 0;
+char cropmark_names[MAX_CROPMARKS][MAX_CROP_NAME_LEN];
+static void find_cropmarks()
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/CROPMKS", &file );
+	if( IS_ERROR(dirent) )
+	{
+		bmp_printf( FONT_LARGE, 40, 40,
+			"%s: dirent=%08x!",
+			__func__,
+			(unsigned) dirent
+		);
+		return;
+	}
+
+	int k = 0;
+	do {
+		char* s = strstr(file.name, ".BMP");
+		if (s)
+		{
+			if (k >= MAX_CROPMARKS)
+			{
+				bmp_printf(FONT_LARGE, 0, 50, "TOO MANY CROPMARKS (max=%d)", MAX_CROPMARKS);
+				break;
+			}
+			snprintf(cropmark_names[k], MAX_CROP_NAME_LEN, "%s", file.name);
+			k++;
+		}
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	num_cropmarks = k;
+}
 static void load_cropmark(int i)
 {
-	DEBUG("%d, %s, %s, %s", i, crop_file_1, crop_file_2, crop_file_3);
-	//~ bmp_printf(FONT_MED, 30, 30, "LoadCrop");
-	if (i==1) cropmarks = bmp_load( crop_file_1 ); // too lazy to lookup case syntax in C...
-	else if (i==2) cropmarks = bmp_load( crop_file_2 );
-	else if (i==3) cropmarks = bmp_load( crop_file_3 );
-	else cropmarks = 0;
-	//~ bmp_printf(FONT_MED, 30, 30, "crop=%x", cropmarks);
+	if (cropmarks)
+	{
+		FreeMemory(cropmarks);
+		cropmarks = 0;
+	}
+	
+	i = COERCE(i, 0, num_cropmarks);
+	if (i)
+	{
+		char bmpname[100];
+		snprintf(bmpname, sizeof(bmpname), "B:/CROPMKS/%s", cropmark_names[i-1]);
+		cropmarks = bmp_load(bmpname);
+		if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
+	}
 }
 
 static void
 crop_toggle( int sign )
 {
 	msleep(100);
-    crop_draw = mod(crop_draw + sign, 4);  // 0 = off, 1..3 = configured cropmarks
-    if (crop_draw)
-    {
-		cropmarks = cropmarks_array[crop_draw-1];
-		if (!cropmarks) 
-		{
-			load_cropmark(crop_draw);
-			cropmarks_array[crop_draw-1] = cropmarks;
-		}
-	}
+	crop_draw = mod(crop_draw + sign, num_cropmarks + 1);  // 0 = off, 1..num_cropmarks = cropmarks
+	load_cropmark(crop_draw);
 	msleep(100);
 }
 
@@ -834,7 +857,7 @@ zebra_hi_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"ZebraThrHI:  %d   ",
+		"ZebraThrHI  : %d   ",
 		*(unsigned*) priv
 	);
 }
@@ -846,7 +869,7 @@ zebra_lo_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"ZebraThrLO:  %d   ",
+		"ZebraThrLO  : %d   ",
 		*(unsigned*) priv
 	);
 }
@@ -859,7 +882,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Zebras:      %s",
+		"Zebras      : %s",
 		z == 1 ? "ON " : (z == 2 ? "Auto" : "OFF")
 	);
 }
@@ -871,7 +894,7 @@ focus_assist_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus Assist:%s",
+		"Focus Assist: %s",
 		f ? "ON " : "OFF"
 	);
 }
@@ -881,16 +904,14 @@ crop_display( void * priv, int x, int y, int selected )
 {
 	extern int retry_count;
 	int index = *(unsigned*)priv;
+	index = COERCE(index, 0, num_cropmarks);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Cropmarks:   %s%s",
-		 (index == 1 ? crop_file_1 + 3 :
-		 (index == 2 ? crop_file_2 + 3 :
-		 (index == 3 ? crop_file_3 + 3 :
-			"OFF"
-		 ))),
+		"Cropmks(%d/%d): %s%s",
+		 index, num_cropmarks,
+		 index  ? cropmark_names[index-1] : "OFF",
 		 (cropmarks || !index) ? " " : "!" // ! means error
 	);
 }
@@ -903,7 +924,7 @@ edge_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Edgedetect: %s",
+		"Edgedetect  : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
 }
@@ -916,7 +937,7 @@ hist_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Histogram:   %s",
+		"Histogram   : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
 }
@@ -928,7 +949,7 @@ global_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Global Draw: %s",
+		"Global Draw : %s",
 		global_draw_bk ? "ON " : "OFF"
 	);
 }
@@ -940,7 +961,7 @@ waveform_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Waveform:   %s",
+		"Waveform    : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
 }
@@ -957,7 +978,7 @@ clearpreview_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ClrScreen:   %s",
+		"ClrScreen   : %s",
 		(mode == 0 ? "OFF" : 
 		(mode == 1 ? "HalfShutter" : 
 		(mode == 2 ? "Always" :
@@ -980,17 +1001,11 @@ spotmeter_menu_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Spotmeter:   %s",
-		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "ON    " : "Hidden")
+		"Spotmeter   : %s",
+		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "ON" : "Hidden")
 	);
 }
 
-static void
-spotmeter_toggle( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 1) % 3; // 0, 1 or 2
-}
 
 void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 {
@@ -1096,7 +1111,8 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &zebra_draw,
-		.select		= zebra_toggle,
+		.select		= menu_ternary_toggle,
+		.select 	= menu_ternary_toggle_reverse,
 		.display	= zebra_draw_display,
 	},
 	{
@@ -1119,7 +1135,8 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv			= &spotmeter_draw,
-		.select			= spotmeter_toggle,
+		.select			= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display		= spotmeter_menu_display,
 	},
 	{
@@ -1219,14 +1236,15 @@ zebra_task( void )
 
 
 	msleep(2000);
+	find_cropmarks();
 	load_cropmark(crop_draw);
-	if (!cropmarks)
+/*	if (!cropmarks)
 	{
 		bmp_printf(FONT_LARGE, 50, 50, "CROP NOT LOADED\nCREATING DEBUG LOG...");
 		msleep(1000);
 		dumpf();
 		msleep(2000);
-	}
+	} */
 	while(1)
 	{
 		msleep(1); // safety msleep :)
@@ -1249,7 +1267,7 @@ zebra_task( void )
 				if (!lv_drawn() || gui_state != 0) continue;
 				bmp_enabled = 1;
 				clrscr();
-				draw_movie_bars();
+				//~ draw_movie_bars();
 				clearpreview_setup(0);
 				msleep(200);
 			}
