@@ -132,13 +132,13 @@ static void gui_main_task_550d()
 				//~ lens_focus_start( 0 );
 				//~ continue;
 			//~ }
-			if (lv_drawn() && event->param == BGMT_UNPRESS_HALFSHUTTER) // zoom out unpress, shared with halfshutter
+			if (lv_drawn() && event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) // zoom out unpress, shared with halfshutter
 			{
 				gui_hide_menu( 2 );
 				lens_focus_stop();
 				continue;
 			}
-			if (lv_drawn() && event->param == BGMT_PRESS_HALFSHUTTER) // zoom out press, shared with halfshutter
+			if (lv_drawn() && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
 			{
 				gui_hide_menu( 50 );
 				lens_focus_start( get_focus_dir() );
