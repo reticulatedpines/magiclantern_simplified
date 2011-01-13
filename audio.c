@@ -677,7 +677,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Analog Gain:    %d dB",
+		"Analog Gain   : %d dB",
 		mgain_index2gain(gain_index)
 	);
 }
@@ -714,7 +714,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		// 23456789012
-		"%s-DigitalGain:  %d dB",
+		"%s-DigitalGain : %d dB",
 		priv == &dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
@@ -728,7 +728,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Output volume:  %d dB",
+		"Output volume : %d dB",
 		2 * *(unsigned*) priv
 	);
 }
@@ -740,7 +740,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Audio Meters:   %s",
+		"Audio Meters  : %s",
 		v == 1 ? "ON " : 
 		(v == 2 ? "Movie Only": "OFF")
 	);
@@ -773,7 +773,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"AGC:            %s",
+		"AGC           : %s",
 		alc_enable ? "ON " : "OFF"
 	);
 }
@@ -811,7 +811,7 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Monitor:        %s",
+		"Monitor       : %s",
 		loopback ? "ON " : "OFF"
 	);
 }
