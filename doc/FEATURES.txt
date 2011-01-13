@@ -5,7 +5,7 @@ Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
 Features
 --------
 
-* GUI menus: press the ERASE button to display them
+* GUI menus: press the ERASE button to display them, SET/DISP to change values
 * Bit rate control (QScale parameter) for the H.264 encoder
 * Zebra stripes for overexposed / underexposed areas
 * Spotmeter, histogram
@@ -35,10 +35,10 @@ Known issues
   (half-press the shutter or press ``MENU`` to trigger a redraw)
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * Camera may become unstable if you change modes while ML menu is active.
-* Audio monitoring does not work. We don't know how to enable it 
-  without breaking USB and maybe other functions. If you need this feature, 
-  please uncomment the last line from ``hotplug.c`` and build a custom ``autoexec.bin``.
-  Do this at your own risk, since this may cause other problems, too.
+* Audio monitoring works, but breaks USB, HDMI and maybe other functions. 
+  For this reason, you may find pairs of builds with ``AudioMon`` or ``NoAudioMon`` in their names.
+** If you need audio monitoring and don't care about broken stuff, use the ``AudioMon`` builds.
+** If you don't need audio monitoring, use the ``NoAudioMon`` builds.
 
 
 Important notes
@@ -113,7 +113,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 
 **Global Draw: ON/OFF**
   Enable/disable drawing extra graphics elements 
-  (zebra, cropmarks, histogram, spotmeter, audio meters).
+  (zebra, cropmarks, histogram, spotmeter, audio meters, ML shooting info).
 
   Tip: use this to quickly turn them off.
 
@@ -129,8 +129,8 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   Thresholds for underexposure and overexposure. 
   Brightness values are between 0 and 255.
 
-**Cropmarks**
-  Select cropmarks (cycle between the configured ones).
+**Cropmks(n)**
+  Select cropmarks (cycle between them).
 
   There are 3 predefined cropmarks in the zip archive:
   
@@ -141,11 +141,9 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 .. image:: Cropmarks550D.png
     :alt: 400px|center
 
-  If you use custom cropmarks, you have to set their name manually in the config file.
-  See the "Hidden settings" section. You can configure max. 3 cropmark files, and give them 
-  short 8:3 names.
+  If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x)`` shows how many cromparks were detected. You can place at most 9 cropmarks on the card.
   
-  An exclamation mark (!) displayed in the menu means "File not found". 
+  An exclamation mark (!) displayed in the menu means there was an error loading the cropmark image.
   
   Get more cropmarks created by Magic Lantern users here: `cropmarks-550D.zip <https://bitbucket.org/hudson/magic-lantern/downloads/cropmarks-550D.zip>`_
   
@@ -229,6 +227,7 @@ Functions for stills shooting.
   * In photo mode, it takes a sequence of photos with a fixed delay. 
   * In movie mode, it takes a sequence of small videos
     - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
+    - To use the intervalometer in movie mode, make sure ``Silent Picture`` is ``OFF``.
   
   Tips:
   
@@ -236,7 +235,7 @@ Functions for stills shooting.
   
   * for power saving, cover the LCD sensor with something.
   
-  * to save the shutter count when doing timelapses, switch to Movie mode.
+  * to save the shutter count when doing timelapses, enable ``Silent Picture`` or use the intervalometer in Movie mode.
 
 **LCD Remote Shot: OFF/Near/Away**
   Start/stop remote shutter release mode with the LCD sensor. 
@@ -277,6 +276,8 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
 
 **Flash / No flash: ON/OFF**
   This will toggle flash setting (on/off) after each photo. Works only in P,A,S,M modes. The effect is somewhat similar to Fuji's Natural Light with Flash mode.
+  
+  Don't forget to pop up the flash :)
     
 **Silent Picture: ON/OFF**
   This is highly experimental. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
@@ -285,16 +286,23 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   * When movie recording is off, images are 1056*704 (3:2 ratio)
   * When movie recording is on, images are 1720x974 (approx. 16:9 ratio)
   
+  Silent picture setting is applied to intervalometer and remote triggers when used in LiveView mode.
+  
   Images are saved in ``DCIM/1xxCANON/``, named after last picture/movie taken without this function.
   
-  To convert a 422 image to JPEG, use 422-yuv.py (you need Python and PIL)::
+  To convert a 422 image to JPEG on the PC, use ``422-yuv.py`` (you need `Python <http://www.python.org/download/>`_ and `PIL <http://www.pythonware.com/products/pil/>`_)::
   
     python 422-yuv.py 1234-001.422
+  
+  To convert all 422 files from current folder, use::
+  
+    python 422-yuv.py .
+  
+  On Windows (and maybe on Mac too) you can simply drag a 422 file or a folder with 422 files onto ``422-yuv.py``.
   
   TODO: 
   
   * wait for vsync (how to do this?)
-  * save to a format which can be opened without conversion (BMP, TIFF, JPEG?)
 
 **LiveView Zoom: x5 / x10 / :-)**
   
@@ -311,7 +319,7 @@ Expo
 .. image:: ExpoMenu-550D.png
     :alt: thumb|right|Expo menu
 
-Adjusting the exposure parameters
+Adjusting the exposure parameters. Most of these settings only work in Manual (photo and video), and some of them work in P, Av and Tv too.
 
 **ISO**
   Custom steps for ISO. Possible values:
@@ -412,7 +420,7 @@ Now that you know what the buttons are about, here is how you make it work:
 
 3. Next, scroll down to ``Focus A``. You need to zero this setting out, before going on. Press ``Set`` to zero it out.
 
-4. Once that is completed you will use the ``Zoom Out`` button in the right hand upper corner of the back of the camera to move the focus point to your start point.
+4. Once that is completed you will use the ``Zoom Out`` or ``Half Shutter`` button to move the focus point to your start point.
 
 5. Next select the time period of the pull, by scrolling down to rack speed. The lower the number, the longer the rack will take. It is recommended for testing purposes to start around 20.
 
@@ -560,5 +568,5 @@ LiveView
 
 * Aperture, shutter, ISO
 * Spotmeter: brightness percentage from the center of the frame. Computed as average value of Y component from YUV LiveView buffer over a very small area.
-* Lens focal length and focus distance
+* Lens focal length and focus distance: see [[http://magiclantern.wikia.com/wiki/Focus_distance]]
 * Exposure compensation (codenamed AE)

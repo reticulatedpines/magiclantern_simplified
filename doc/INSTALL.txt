@@ -162,10 +162,10 @@ You need to change the following line in order to indicate your SD card device::
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Delete ``magiclantern.fir`` and copy ``autoexec.bin``, ``magic.cfg`` 
-and ``*.bmp`` files on your SDCard. Put the card in the camera.
-
-Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
+* Delete ``magiclantern.fir``.
+* Copy ``autoexec.bin`` and ``cropmks`` on your SDCard.
+* Put the card in the camera.
+* Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
 As long as you had enabled the ``BOOTDISK`` flag once, you card is "prepared";
 the camera will try to load any ``autoexec.bin``. The ``.fir`` file is not needed any more,
