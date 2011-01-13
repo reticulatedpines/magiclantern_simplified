@@ -155,7 +155,10 @@ NSTUB( 0xFF453E14, gui_main_task_functbl )
 
 NSTUB( 0xFF1AA9C4, mvrFixQScale )
 NSTUB( 0xFF1AA4A0, mvrSetDefQScale )
+NSTUB( 0xFF04C7C0, mvrSetBitRate )
 
+NSTUB( 0xFF1C7760, FIO_FindFirstEx )
+NSTUB( 0xFF1C7854, FIO_FindNextEx )
 
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
