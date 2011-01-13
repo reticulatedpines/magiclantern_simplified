@@ -79,7 +79,7 @@ static int bin_search(int lo, int hi, CritFunc crit)
 static void
 interval_timer_display( void * priv, int x, int y, int selected )
 {
-	if (shooting_mode != SHOOTMODE_MOVIE)
+	if (shooting_mode != SHOOTMODE_MOVIE || silent_pic)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -117,7 +117,7 @@ interval_timer_toggle_reverse( void * priv )
 static void
 interval_movie_duration_toggle( void * priv )
 {
-	if (shooting_mode == SHOOTMODE_MOVIE)
+	if (shooting_mode == SHOOTMODE_MOVIE && silent_pic == 0)
 		interval_movie_duration_index = mod(interval_movie_duration_index + 1, COUNT(timer_values));
 }
 
@@ -127,7 +127,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Intervalometer:   %s",
+		"Intervalometer  : %s",
 		(*(int*)priv) ? "ON " : "OFF"
 	);
 }
@@ -139,16 +139,11 @@ lcd_release_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LCD Remote Shot:  %s",
+		"LCD Remote Shot : %s",
 		v == 1 ? "Near" : (v == 2 ? "Away" : "OFF")
 	);
 }
 
-static void
-lcd_release_toggle( void * priv )
-{
-	*(int*)priv = mod(*(int*)priv + 1, 3);
-}
 static void
 audio_release_display( void * priv, int x, int y, int selected )
 {
@@ -166,7 +161,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Trap Focus:       %s",
+		"Trap Focus      : %s",
 		(*(int*)priv) ? "ON " : "OFF"
 	);
 }
@@ -201,11 +196,12 @@ flash_and_no_flash_toggle( void * priv )
 static void 
 silent_pic_display( void * priv, int x, int y, int selected )
 {
+	int v = *(int*)priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Silent Picture:   %s",
-		*(int*)priv ? "ON " : "OFF"
+		"Silent Picture  : %s",
+		v == 0 ? "OFF" : (v == 1 ? "Single" : "Burst")
 	);
 }
 
@@ -225,6 +221,10 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	{
 		if (v == 0 && lv_drawn() && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
 			face_zoom_request = 1;
+	}
+	if (v && gui_menu_shown() && !is_focus_menu_active())
+	{
+		gui_stop_menu();
 	}
 	return prop_cleanup( token, property );
 }
@@ -270,6 +270,239 @@ sweep_lv()
 	zoom = 1;
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
+
+#if 0 // does not work... out of memory?
+uint8_t* read_entire_file(const char * filename, int* buf_size)
+{
+	bmp_printf(FONT_LARGE, 0, 40, "read %s ", filename);
+	msleep(1000);
+
+	*buf_size = 0;
+	unsigned size;
+	if( FIO_GetFileSize( filename, &size ) != 0 )
+		goto getfilesize_fail;
+
+	DEBUG("File '%s' size %d bytes", filename, size);
+
+	bmp_printf(FONT_LARGE, 0, 40, "size %d ", size);
+	msleep(1000);
+
+	uint8_t * buf = alloc_dma_memory( size );
+	if( !buf )
+	{
+		DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
+		goto malloc_fail;
+	}
+
+	bmp_printf(FONT_LARGE, 0, 40, "alloc %x ", buf);
+	msleep(1000);
+
+	size_t rc = read_file( filename, buf, size );
+	if( rc != size )
+		goto read_fail;
+
+	bmp_printf(FONT_LARGE, 0, 40, "read ok ");
+	msleep(1000);
+
+	// Since the read was into uncacheable memory, it will
+	// be very slow to access.  Copy it into a cached buffer
+	// and release the uncacheable space.
+	//~ uint8_t * fast_buf = AllocateMemory( size + 32);
+	//~ if( !fast_buf )
+		//~ goto fail_buf_copy;
+
+	//~ bmp_printf(FONT_LARGE, 0, 40, "alloc fast %x ", fast_buf);
+	//~ msleep(1000);
+
+	//~ memcpy(fast_buf, buf, size);
+	//~ free_dma_memory( buf );
+	*buf_size = size;
+
+	bmp_printf(FONT_LARGE, 0, 40, "almost done ");
+	msleep(1000);
+
+	return buf;
+
+fail_buf_copy:
+read_fail:
+	free_dma_memory( buf );
+malloc_fail:
+getfilesize_fail:
+	DEBUG("failed");
+	return NULL;
+}
+
+static void
+convert_yuv_to_bmp(char* file_yuv, char* file_bmp)
+{
+	int yuv_size;
+	int width, height;
+	void* yuv = read_entire_file(file_yuv, &yuv_size);
+	if (!yuv)
+	{
+		bmp_printf(FONT_LARGE, 0, 40, "read error %s", file_yuv);
+		msleep(1000);
+		return;
+	}
+	if (yuv_size == 1056*704*2)
+	{
+		width = 1056;
+		height = 704;
+	}
+	else if (yuv_size == 1720*974*2)
+	{
+		width = 1720;
+		height = 974;
+	}
+	else
+	{
+		bmp_printf(FONT_LARGE, 0, 40, "unk yuv size: %d ", yuv_size);
+		free_dma_memory(yuv);
+		return;
+	}
+	
+	int bmp_size = width * height * 3;
+	void* bmpbuf = AllocateMemory(bmp_size + 32);
+	if (!bmpbuf)
+	{
+		bmp_printf(FONT_LARGE, 0, 40, "malloc error");
+		free_dma_memory(yuv);
+		return;
+	}
+	
+	// AJ equations for YUV -> RGB
+	// anyone wants to optimize this?
+	#define Y(i) (*(uint8_t*)(yuv + i * 2 + 1))
+	#define U(i) (*(int8_t*)(yuv + i * 4))
+	#define V(i) (*(int8_t*)(yuv + i * 4 + 2))
+	#define R(i) (*(uint8_t*)(bmpbuf + i * 3))
+	#define G(i) (*(uint8_t*)(bmpbuf + i * 3 + 1))
+	#define B(i) (*(uint8_t*)(bmpbuf + i * 3 + 2))
+	int i;
+	int N = width*height;
+	for (i = 0; i < N; i++)
+	{
+		R(i) = COERCE( Y(i) + 1.403 * V(i/2),                  0, 255);
+		G(i) = COERCE( Y(i) - 0.344 * U(i/2) - 0.714 * V(i/2), 0, 255);
+		B(i) = COERCE( Y(i) + 1.770 * U(i/2),                  0, 255);
+	}
+	#undef Y
+	#undef U
+	#undef V
+	#undef R
+	#undef G
+	#undef B
+
+	struct bmp_file_t bmp;
+	bmp.signature = 0x4D42;
+	bmp.size = bmp_size + sizeof(bmp);
+	bmp.res_0 = 0;
+	bmp.res_1 = 0;
+	bmp.image = 54; // offset
+	bmp.hdr_size = 40;
+	bmp.width = width;
+	bmp.height = height;
+	bmp.planes = 1;
+	bmp.bits_per_pixel = 24;
+	bmp.compression = 0;
+	bmp.image_size = bmp_size; // yuv buffers are always multiples of 16
+	bmp.hpix_per_meter = 2835; // from wikipedia
+	bmp.vpix_per_meter = 2835; // from wikipedia
+	bmp.num_colors = 0;
+	bmp.num_imp_colors = 0;
+
+
+	FILE *f;
+	FIO_RemoveFile(file_bmp);
+	f = FIO_CreateFile(file_bmp);
+	if (f == INVALID_PTR)
+	{
+		bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", file_bmp);
+		free_dma_memory(yuv);
+		FreeMemory(bmpbuf);
+		return;
+	}
+	FIO_WriteFile(f, &bmp, sizeof(bmp));
+	FIO_WriteFile(f, &bmpbuf, bmp_size);
+
+	FIO_CloseFile(f);
+	free_dma_memory(yuv);
+	FreeMemory(bmpbuf);
+}
+
+static void
+convert_all_yuvs_to_bmp_folder(char* folder) // folder includes /
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( folder, &file );
+	if( IS_ERROR(dirent) )
+	{
+		bmp_printf( FONT_LARGE, 40, 40,
+			"%s: dirent=%08x!",
+			__func__,
+			(unsigned) dirent
+		);
+		return;
+	}
+
+	int k = 0;
+	do {
+		if (file.mode & 0x20) // regular file
+		{
+			char* s = strstr(file.name, ".422");
+			if (s)
+			{
+				char yuvname[100];
+				char bmpname[100];
+				snprintf(yuvname, sizeof(yuvname), "%s%s", folder, file.name);
+				*s = 0;
+				snprintf(bmpname, sizeof(yuvname), "%s%s.BMP", folder, file.name);
+				bmp_printf(FONT_MED, 0, 40, "bmp %s \nyuv %s ", bmpname, yuvname);
+				msleep(1000);
+				convert_yuv_to_bmp(yuvname, bmpname);
+				msleep(1000);
+				return;
+			}
+		}
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+}
+static void
+convert_all_yuvs_to_bmp()
+{
+	convert_yuv_to_bmp("B:/DCIM/100CANON/1324-001.422", "B:/DCIM/100CANON/1324-001.BMP");
+	return;
+	bmp_printf(FONT_MED, 0, 40, "yuv to bmp...");
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/DCIM/", &file );
+	if( IS_ERROR(dirent) )
+	{
+		bmp_printf( FONT_LARGE, 40, 40,
+			"%s: dirent=%08x!",
+			__func__,
+			(unsigned) dirent
+		);
+		return;
+	}
+
+	int k = 0;
+	do {
+		if ((file.mode & 0x10) && (file.name[0] != '.')) // directory
+		{
+			char folder[100];
+			snprintf(folder, sizeof(folder), "B:/DCIM/%s/", file.name);
+			convert_all_yuvs_to_bmp_folder(folder);
+		}
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+}
+
+int convert_yuv_bmp_flag = 0;
+static void
+convert_all_yuvs_start()
+{
+	convert_yuv_bmp_flag = 1;
+}
+#endif
+
 static void
 silent_pic_take()
 {
@@ -291,9 +524,15 @@ silent_pic_take()
 	}
 
 	
-	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a pic (%d)", silent_number);
+	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a pic (%d)      ", silent_number);
+	
 	dump_seg(YUV422_HD_BUFFER, hd_pitch * hd_height, imgname);
-	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a pic     ");
+	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a pic (%d)   ", silent_number);
+	
+	if (silent_pic == 1) // single mode
+	{
+		while (get_halfshutter_pressed()) msleep(100);
+	}
 }
 
 static void 
@@ -312,7 +551,8 @@ static void
 iso_toggle( int sign )
 {
 	int i = raw2index_iso(lens_info.raw_iso);
-	while(1)
+	int k;
+	for (k = 0; k < 10; k++)
 	{
 		i = mod(i + sign, COUNT(codes_iso));
 		lens_set_rawiso(codes_iso[i]);
@@ -532,7 +772,7 @@ kelvin_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"WhiteBal: %s",
+			"WhiteBalance: %s",
 			(lens_info.wb_mode == 0 ? "Auto" : 
 			(lens_info.wb_mode == 1 ? "Sunny" :
 			(lens_info.wb_mode == 2 ? "Cloudy" : 
@@ -584,6 +824,40 @@ static void kelvin_auto_run()
 	else i = bin_search(KELVIN_MIN/KELVIN_STEP, lens_info.kelvin/KELVIN_STEP + 1, crit_kelvin);
 	lens_set_kelvin(i * KELVIN_STEP);
 	clrscr();
+}
+
+static void 
+wbs_gm_display( void * priv, int x, int y, int selected )
+{
+		int gm = (int8_t)wbs_gm;
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"WBShift G/M : %s%d", 
+			gm > 0 ? "G" : (gm < 0 ? "M" : ""), 
+			ABS(gm)
+		);
+}
+
+static void
+wbs_gm_toggle( int sign )
+{
+	int gm = (int8_t)wbs_gm;
+	int newgm = mod((gm + 9 + sign), 19) - 9;
+	newgm = newgm & 0xFF;
+	prop_request_change(PROP_WBS_GM, &newgm, 4);
+}
+
+static void
+wbs_gm_toggle_forward( void * priv )
+{
+	wbs_gm_toggle(-1);
+}
+
+static void
+wbs_gm_toggle_reverse( void * priv )
+{
+	wbs_gm_toggle(1);
 }
 
 static void
@@ -712,7 +986,7 @@ zoom_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LiveView Zoom:    %s%s %s",
+		"LiveView Zoom   : %s%s %s",
 		zoom_disable_x5 ? "" : "x5", 
 		zoom_disable_x10 ? "" : "x10", 
 		zoom_enable_face ? ":-)" : ""
@@ -810,7 +1084,8 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &lcd_release_running,
-		.select		= lcd_release_toggle,
+		.select		= menu_ternary_toggle, 
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display	= lcd_release_display,
 	},
  	{
@@ -829,7 +1104,9 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv = &silent_pic, 
-		.select = menu_binary_toggle, 
+		.select = menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		//~ .select_auto = convert_all_yuvs_start,
 		.display = silent_pic_display,
 	},
 	{
@@ -863,6 +1140,11 @@ struct menu_entry expo_menus[] = {
 		.select		= kelvin_toggle_forward,
 		.select_reverse		= kelvin_toggle_reverse,
 		.select_auto = kelvin_auto,
+	},
+	{
+		.display = wbs_gm_display, 
+		.select = wbs_gm_toggle_forward, 
+		.select_reverse = wbs_gm_toggle_reverse,
 	},
 	{
 		.display	= contrast_display,
@@ -929,7 +1211,8 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
 			msleep(1);
-			lens_take_picture( 64000 );
+			if (!silent_pic || !lv_drawn()) lens_take_picture( 64000 );
+			else { msleep(300); silent_pic_take(); }
 		}
 		msleep(100);
 		lens_set_rawshutter( s );
@@ -945,7 +1228,8 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			msleep(10);
-			lens_take_picture( 64000 );
+			if (!silent_pic || !lv_drawn()) lens_take_picture( 64000 );
+			else { msleep(300); silent_pic_take(); }
 		}
 		lens_set_ae( ae );
 	}
@@ -1012,7 +1296,7 @@ void hdr_shot(int skip0)
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
 	//~ msleep(2000);
-	if (shooting_mode == SHOOTMODE_MOVIE)
+	if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic)
 	{
 		hdr_take_mov(hdr_steps, hdr_stepsize);
 	}
@@ -1037,7 +1321,9 @@ void remote_shot()
 	if (hdr_steps > 1) hdr_shot(0);
 	else
 	{
-		if (shooting_mode == SHOOTMODE_MOVIE)
+		if (silent_pic && lv_drawn())
+			silent_pic_take();
+		else if (shooting_mode == SHOOTMODE_MOVIE)
 			movie_start();
 		else
 			lens_take_picture(64000); // hdr_shot messes with the self timer mode
@@ -1074,7 +1360,7 @@ void display_shooting_info() // called from debug task
 
 		int ba = (int8_t)wbs_ba;
 		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(fnt, 431, 240, "    ");
+		else bmp_printf(fnt, 431, 240, "   ");
 
 		int gm = (int8_t)wbs_gm;
 		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
@@ -1256,8 +1542,9 @@ shoot_task( void )
 				
 				if (shooting_mode != SHOOTMODE_MOVIE)
 				{
-					if (lens_info.shutter > 100) bmp_printf(FONT_MED, 0, 70, "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
-					if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
+					if (lens_info.shutter > 100) bmp_printf(FONT_MED, 0, 70,                                 "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
+					else if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
+					else if ((af_mode & 0xF) != 3) bmp_printf(FONT_MED, 0, 70,                               "Tip: use manual focus                                        ");
 				}
 			}
 		}
