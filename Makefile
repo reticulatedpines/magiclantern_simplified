@@ -26,8 +26,13 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=manytweaks.$(shell whoami)
-VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
+BUILDVER=tamron.$(shell whoami)
+
+CONFIG_PYMITE		= n
+CONFIG_RELOC		= n
+CONFIG_TIMECODE		= n
+CONFIG_LUA		= n
+CONFIG_AUDIOMON 	= n
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -39,11 +44,12 @@ UMOUNT=umount
 
 all: magiclantern.fir
 
+AUDIOMON=NoAudioMon.
+ifeq ($(CONFIG_AUDIOMON),y)
+AUDIOMON=AudioMon.
+endif
 
-CONFIG_PYMITE		= n
-CONFIG_RELOC		= n
-CONFIG_TIMECODE		= n
-CONFIG_LUA		= n
+VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(AUDIOMON)$(BUILDVER)
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -77,16 +83,18 @@ endif
 #
 # Install a normal firmware file to the CF card.
 #
-install: autoexec.bin magic.cfg
+install: autoexec.bin
 	cp $^ $(CF_CARD)
+
+	mkdir $(CF_CARD)/cropmks || echo "no problem"
+	cp cropmks/*.bmp $(CF_CARD)/cropmks/
+
 	$(UMOUNT) $(CF_CARD)
 
 zip: magiclantern-$(VERSION).zip
 
 %.pdf: 
 	cp doc/*.pdf .
-%.bmp: 
-	cp vram/*.bmp .
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
@@ -96,12 +104,8 @@ magiclantern-$(VERSION).zip: \
 	README \
 	INSTALL.pdf \
 	UserGuide.pdf \
-	hd_ta.bmp\
-	CineScop.bmp\
-	fish8r.bmp\
-	magic.cfg\
 	make_bootable.sh\
-	422-jpg.py
+	cropmks/* \
 
 	-rm $@
 	chmod -x autoexec.bin
@@ -215,13 +219,15 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
-	hotplug.o \
 
 NO=\
 	font-huge.o \
 	bracket.o \
 	ptp.o \
 	spotmeter.o \
+
+ML_OBJS-$(CONFIG_AUDIOMON) += \
+	hotplug.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \
@@ -257,6 +263,7 @@ STDIO_OBJ = \
 	lib_a-memcmp.o \
 	lib_a-strcoll.o \
 	lib_a-ctype_.o \
+	lib_a-memchr.o \
 
 ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 
