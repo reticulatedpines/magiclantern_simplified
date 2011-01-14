@@ -536,7 +536,6 @@ draw_focus_assist( void )
 	
 	// How to scan?
 	// Scan the HD vram and do ratio conversion only for the 1% pixels displayed
-	
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	if (!bvram_mirror) return;
@@ -647,11 +646,6 @@ draw_focus_assist( void )
 static void
 draw_zebra( void )
 {
-	if (focus_assist)
-	{
-		draw_focus_assist();
-		return;
-	}
 	if (!lv_drawn()) return;
 	
 	uint8_t * const bvram = bmp_vram();
@@ -670,6 +664,12 @@ draw_zebra( void )
 		bzero32(bvram_mirror, 720*480);
 	}
 
+
+	if (focus_assist)
+	{
+		draw_focus_assist();
+		return;
+	}
 
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra() **********************");
     DebugMsg(DM_MAGIC, 3, "zebra_draw = %d, cfg_draw_meters = %x", zebra_draw, ext_cfg_draw_meters() );
