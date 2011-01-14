@@ -37,8 +37,9 @@ Known issues
 * Camera may become unstable if you change modes while ML menu is active.
 * Audio monitoring works, but breaks USB, HDMI and maybe other functions. 
   For this reason, you may find pairs of builds with ``AudioMon`` or ``NoAudioMon`` in their names.
-** If you need audio monitoring and don't care about broken stuff, use the ``AudioMon`` builds.
-** If you don't need audio monitoring, use the ``NoAudioMon`` builds.
+  
+  - If you need audio monitoring and don't care about broken stuff, use the ``AudioMon`` builds.
+  - If you don't need audio monitoring, use the ``NoAudioMon`` builds.
 
 
 Important notes
@@ -129,7 +130,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   Thresholds for underexposure and overexposure. 
   Brightness values are between 0 and 255.
 
-**Cropmks(n)**
+**Cropmks(x/n)**
   Select cropmarks (cycle between them).
 
   There are 3 predefined cropmarks in the zip archive:
@@ -141,7 +142,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 .. image:: Cropmarks550D.png
     :alt: 400px|center
 
-  If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x)`` shows how many cromparks were detected. You can place at most 9 cropmarks on the card.
+  If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x/n)`` shows the selected cropmark number and the number of detected cropmarks. You can place at most 9 cropmarks on the card.
   
   An exclamation mark (!) displayed in the menu means there was an error loading the cropmark image.
   
@@ -172,6 +173,25 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   
   
   **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
+
+**Focus Peak: ON/OFF**
+  Experimental focus peaking.
+  
+  See [[Focus assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
+  
+  Known bugs:
+  
+  * it's easily fooled by contrast (or lack of it)
+  * it may display red markers even if there's nothing in focus
+  
+  Implementation details:
+  
+  * Only horizontal edges are detected.
+  * Only adjacent pixels which fit in an int32 are considered. 
+  * Threshold: 1% percentile.
+  * When recording, HD buffer is downsampled horizontally by 2.
+  
+  
 
 Shoot
 ~~~~~
@@ -352,6 +372,9 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
 
+**WBShift G/M**
+  Green-Magenta white balance shift. Range: G9 ... 0 ... M9. Useful for fluorescent lighting.
+
 **Contrast**
   Adjusts the contrast of the current picture style. Range: -4...4.
   
@@ -359,7 +382,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
   ``WARNING 2``: this was not tested with custom picture styles loaded with the EOS Utility (and it might have negative effects)!
 
-**Light Adjust: OFF/ALO hi/HTP**
+**Light Adjust: OFF/ALO strong/HTP**
   Select the light adjustment algorithm: 
   
   * OFF
@@ -568,5 +591,5 @@ LiveView
 
 * Aperture, shutter, ISO
 * Spotmeter: brightness percentage from the center of the frame. Computed as average value of Y component from YUV LiveView buffer over a very small area.
-* Lens focal length and focus distance: see [[http://magiclantern.wikia.com/wiki/Focus_distance]]
+* Lens focal length and focus distance: see [[Focus_distance]]
 * Exposure compensation (codenamed AE)

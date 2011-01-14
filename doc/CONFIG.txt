@@ -44,11 +44,6 @@ These settings can not be changed from the ML menu, so they are documented here:
     h264.qscale.max.neg = 1
     h264.qscale.min.neg = 16
     
-    # Cropmarks (you can cycle between them). Max 3 entries.
-    crop.file.1 = B:/hd_ta.bmp
-    crop.file.2 = B:/CineScop.bmp
-    crop.file.3 = B:/fish8r.bmp
-
     # button used for Magic Lantern menu
     # Press/unpress codes (hex)
     # 1c/1d = left

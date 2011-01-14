@@ -516,49 +516,132 @@ static void dump_vram()
 {
 	//dump_big_seg(1, "B:/1.bin");
 	//dump_big_seg(4, "B:/4.bin");
-	dump_seg(0x44000080, 1920*1080*2, "B:/hd.bin");
+	//~ dump_seg(0x44000080, 1920*1080*2, "B:/hd.bin");
+	dump_seg(YUV422_IMAGE_BUFFER, 720*480*2, "B:/VRAM.BIN");
 }
 
 static uint8_t* bvram_mirror = 0;
 
 void spotmeter_step();
 
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+
 // thresholded edge detection
 static void
 draw_focus_assist( void )
 {
-	// Downsampling
+	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
-	// record: around 1872px: 2.6 ratio (yuck!)
+	// record: 1720: 2.38 ratio (yuck!)
 	
 	// How to scan?
 	// Scan the HD vram and do ratio conversion only for the 1% pixels displayed
 	
-	/*
 	uint8_t * const bvram = bmp_vram();
-	uint8_t * const hdvram = YUV422_HD_BUFFER;
 	if (!bvram) return;
+	if (!bvram_mirror) return;
+	int bmppitch = bmp_pitch();
+
+	// clear previously written pixels
+	#define MAX_DIRTY_PIXELS 5000
+	static int dirty_pixels[MAX_DIRTY_PIXELS];
+	static int dirty_pixels_num = 0;
+	static int very_dirty = 0;
+	int i;
+	for (i = 0; i < dirty_pixels_num; i++)
+	{
+		*(uint16_t*)(bvram + dirty_pixels[i]) = 0;
+		*(uint16_t*)(bvram + dirty_pixels[i] + bmppitch) = 0;
+		*(uint16_t*)(bvram_mirror + dirty_pixels[i]) = 0;
+		*(uint16_t*)(bvram_mirror + dirty_pixels[i] + bmppitch) = 0;
+	}
+	dirty_pixels_num = 0;
+
+	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 	
+	uint8_t * const hdvram = YUV422_HD_BUFFER;
 	int lv_pitch = 720; // or other value for ext monitor
+	int lv_width = lv_pitch;  // 8-bit palette image
+	int lv_height = 480;
 	int hd_pitch = recording ? YUV422_HD_PITCH_REC : YUV422_HD_PITCH;
 	int hd_height = recording ? YUV422_HD_HEIGHT_REC : YUV422_HD_HEIGHT;
 	int hd_width = hd_pitch / 2;
 	
-	int skipv = 50 * hd_pitch / lv_pitch;
-	int skiph = 100 * hd_pitch / lv_pitch;
+	int lv_skipv = 50;
+	int lv_skiph = 100;
+	int hd_skipv = lv_skipv * hd_width / lv_width;
+	int hd_skiph = lv_skiph * hd_width / lv_width;
 	
+	static int thr = 50;
+		
+	int n_over = 0;
+	int n_under = 0;
+	
+	// look in the HD buffer
 	uint32_t x,y;
-	for( y=skipv ; y < hd_height - skipv; y++ )
+	int rec_off = (recording ? 90 : 0);
+	for( y = hd_skipv; y < hd_height - hd_skipv; y++ )
 	{
-		uint16_t * const b_row = (uint16_t*)( bvram + y * bmppitch ); // 2 pixels
-		uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch );
-		for ( uint32_t * p = skiph ; x < hd_width - skiph ; x+=2 )
+		int b_row_off = COERCE((y + rec_off) * lv_width / hd_width, 0, 479) * bmppitch;
+		uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
+		uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
+		uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
+		
+		uint32_t* hdp; // that's a moving pointer
+		int step = (recording ? 2 : 1);
+		for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
 		{
-			uint32_t pix = *(uint32_t*)();
-			b_row[ x / 2 ] = pix;
+			uint32_t pixel = *hdp;
+			int32_t p0 = ((pixel >> 16) & 0xFF00) >> 8;
+			int32_t p1 = ((pixel >>  0) & 0xFF00) >> 8;
+			int32_t d = ABS(p0-p1);
+			if (d > thr)
+			{
+				n_over++;
+				
+				int x = 2 * (hdp - hd_row) * lv_width / hd_width;
+				x = COERCE(x, 0, 720);
+				
+				/*bmp_printf(FONT_MED, 0, 80, "xb=%d, yh=%d, yb=%d, \n "
+											"hdp_off=%x, b_off=%x, hdp=%x...%x \n "
+											"hdskip=(%d,%d) yrange=%d...%d", 
+						x, y, y * lv_width / hd_width * bmppitch, 
+						((void*)hdp) - ((void*)hd_row), ((void*)b_row) - ((void*)bvram), hd_row + hd_skiph/2, hd_row_end,
+						hd_skiph, hd_skipv, hd_skipv, hd_height - hd_skipv);*/
+				// 2x2 square
+				
+				uint16_t pixel = b_row[x/2];
+				uint16_t mirror = m_row[x/2];
+				uint16_t pixel2 = b_row[x/2 + bmppitch/2];
+				uint16_t mirror2 = m_row[x/2 + bmppitch/2];
+				if ((pixel == 0 || pixel == mirror) && (pixel2 == 0 || pixel2 == mirror2)) // safe to draw
+				{
+					b_row[x/2] = COLOR_RED | (COLOR_RED << 8);
+					b_row[x/2 + bmppitch/2] = COLOR_RED | (COLOR_RED << 8);
+					m_row[x/2] = COLOR_RED | (COLOR_RED << 8);
+					m_row[x/2 + bmppitch/2] = COLOR_RED | (COLOR_RED << 8);
+					if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+					{
+						dirty_pixels[dirty_pixels_num++] = x + b_row_off;
+					}
+					else // threshold too low, abort
+					{
+						thr = COERCE(thr + 1, 30, 250);
+						return;
+					}
+				}
+			}
+			else
+			{
+				n_under++;
+			}
 		}
 	}
-	*/
+	bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
+	if (1000 * n_over / n_under > 10) thr++;
+	else thr--;
+	thr = COERCE(thr, 10, 250);
 }
 
 static void
@@ -577,7 +660,7 @@ draw_zebra( void )
 	if (!bvram_mirror)
 	{
 		//~ bmp_printf(FONT_MED, 30, 30, "AllocMem for BVRAM mirror");
-		bvram_mirror = AllocateMemory(720*480 + 100);
+		bvram_mirror = AllocateMemory(bmp_pitch()*480 + 100);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
@@ -628,7 +711,7 @@ draw_zebra( void )
         
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * bmppitch );
-		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * 720 );
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * bmppitch );
 
 		//~ bmp_printf(FONT_MED, 30, 50, "Row: %8x/%8x", b_row, m_row);
 		//~ bmp_printf(FONT_MED, 30, 70, "Pixel: %8x/%8x", b_row[8], m_row[8]);
@@ -894,7 +977,7 @@ focus_assist_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus Assist: %s",
+		"Focus Peak  : %s",
 		f ? "ON " : "OFF"
 	);
 }
@@ -1145,16 +1228,16 @@ struct menu_entry zebra_menus[] = {
 		.select			= clearpreview_toggle,
 		.select_reverse	= clearpreview_toggle_reverse,
 	},
-	//~ {
-		//~ .priv			= &focus_assist,
-		//~ .display		= focus_assist_display,
-		//~ .select			= menu_binary_toggle,
-	//~ },
-	//~ {
-		//~ .priv = "dump vram", 
-		//~ .display = menu_print, 
-		//~ .select = dump_vram,
-	//~ }
+	{
+		.priv			= &focus_assist,
+		.display		= focus_assist_display,
+		.select			= menu_binary_toggle,
+	},
+	{
+		.priv = "[debug] dump vram", 
+		.display = menu_print, 
+		.select = dump_vram,
+	}
 	//~ {
 		//~ .priv		= &edge_draw,
 		//~ .select		= menu_binary_toggle,
@@ -1276,13 +1359,13 @@ zebra_task( void )
 				bmp_enabled = 1; // Quick menu => enable drawings
 				global_draw = 1;
 				draw_zebra();
-				msleep(zebra_delay);
+				msleep(focus_assist ? 10 : zebra_delay);
 			}
 		}
 		else if( lv_drawn() && !gui_menu_shown() && global_draw) // normal zebras
 		{
 			draw_zebra();
-			msleep(zebra_delay);
+			msleep(focus_assist ? 10 : zebra_delay);
 		}
 		else msleep(100); // nothing to do (idle), but keep it responsive
 	}
