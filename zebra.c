@@ -572,7 +572,14 @@ draw_focus_assist( void )
 	int hd_skiph = lv_skiph * hd_width / lv_width;
 	
 	static int thr = 50;
-		
+	
+	int color = thr > 50 ? COLOR_RED :
+				thr > 40 ? 19 /*orange*/ :
+				thr > 30 ? 15 /*yellow*/ :
+				thr > 20 ? 5 /*cyan*/ : 
+				9 /*light blue*/;
+	color = (color << 8) | color;
+	
 	int n_over = 0;
 	int n_under = 0;
 	
@@ -581,9 +588,6 @@ draw_focus_assist( void )
 	int rec_off = (recording ? 90 : 0);
 	for( y = hd_skipv; y < hd_height - hd_skipv; y++ )
 	{
-		int b_row_off = COERCE((y + rec_off) * lv_width / hd_width, 0, 479) * bmppitch;
-		uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
-		uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 		uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
 		uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
 		
@@ -592,23 +596,19 @@ draw_focus_assist( void )
 		for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
 		{
 			uint32_t pixel = *hdp;
-			int32_t p0 = ((pixel >> 16) & 0xFF00) >> 8;
-			int32_t p1 = ((pixel >>  0) & 0xFF00) >> 8;
+			int32_t p0 = (pixel >> 24) & 0xFF;
+			int32_t p1 = (pixel >>  8) & 0xFF;
 			int32_t d = ABS(p0-p1);
 			if (d > thr)
 			{
 				n_over++;
+
+				int b_row_off = COERCE((y + rec_off) * lv_width / hd_width, 0, 479) * bmppitch;
+				uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
+				uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 				
 				int x = 2 * (hdp - hd_row) * lv_width / hd_width;
 				x = COERCE(x, 0, 720);
-				
-				/*bmp_printf(FONT_MED, 0, 80, "xb=%d, yh=%d, yb=%d, \n "
-											"hdp_off=%x, b_off=%x, hdp=%x...%x \n "
-											"hdskip=(%d,%d) yrange=%d...%d", 
-						x, y, y * lv_width / hd_width * bmppitch, 
-						((void*)hdp) - ((void*)hd_row), ((void*)b_row) - ((void*)bvram), hd_row + hd_skiph/2, hd_row_end,
-						hd_skiph, hd_skipv, hd_skipv, hd_height - hd_skipv);*/
-				// 2x2 square
 				
 				uint16_t pixel = b_row[x/2];
 				uint16_t mirror = m_row[x/2];
@@ -616,17 +616,17 @@ draw_focus_assist( void )
 				uint16_t mirror2 = m_row[x/2 + bmppitch/2];
 				if ((pixel == 0 || pixel == mirror) && (pixel2 == 0 || pixel2 == mirror2)) // safe to draw
 				{
-					b_row[x/2] = COLOR_RED | (COLOR_RED << 8);
-					b_row[x/2 + bmppitch/2] = COLOR_RED | (COLOR_RED << 8);
-					m_row[x/2] = COLOR_RED | (COLOR_RED << 8);
-					m_row[x/2 + bmppitch/2] = COLOR_RED | (COLOR_RED << 8);
+					b_row[x/2] = color;
+					b_row[x/2 + bmppitch/2] = color;
+					m_row[x/2] = color;
+					m_row[x/2 + bmppitch/2] = color;
 					if (dirty_pixels_num < MAX_DIRTY_PIXELS)
 					{
 						dirty_pixels[dirty_pixels_num++] = x + b_row_off;
 					}
 					else // threshold too low, abort
 					{
-						thr = COERCE(thr + 1, 30, 250);
+						thr = MIN(thr+1, 255);
 						return;
 					}
 				}
@@ -640,7 +640,7 @@ draw_focus_assist( void )
 	bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
 	if (1000 * n_over / n_under > 10) thr++;
 	else thr--;
-	thr = COERCE(thr, 10, 250);
+	thr = COERCE(thr, 10, 255);
 }
 
 static void
