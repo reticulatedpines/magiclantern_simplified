@@ -55,17 +55,25 @@ def convert_422_bmp(input, output):
 try:
     input = sys.argv[1]
 except IndexError:
-    print """Usage:
+    print """No command-line arguments given.
+
+Command-line usage:
     python %s image.422                    # convert a single 422 image
     python %s .                            # convert all 422 images from current dir
     python %s /folder/with/422/images      # convert all 422 images from another dir
-    """ % tuple([sys.argv[0]] * 3)
-    raise SystemExit
+        """ % tuple([os.path.split(sys.argv[0])[1]] * 3)
+    import Tkinter, tkFileDialog
+    root = Tkinter.Tk()
+
+    input = tkFileDialog.askopenfilename(parent=root, title = 'Choose a file (for batch processing, click Cancel)', filetypes = [('YUV 422 files created by Magic Lantern','.422')])
+    if not input:
+        input = tkFileDialog.askdirectory(parent=root,title='Please select a directory with 422 files')
 
 if os.path.isfile(input):
     convert_422_bmp(input, change_ext(input, ".bmp"))
 elif os.path.isdir(input):
     for f in os.listdir(input):
         if f.endswith(".422"):
+            f = os.path.join(input, f)
             convert_422_bmp(f, change_ext(f, ".bmp"));
 print "Done."
