@@ -42,7 +42,7 @@ def sub(file, fr, to):
     f.write(txt)
     f.close()
 
-sub("userguide.rst", r"\[\[([a-zA-Z0-9_ /]+)\]\]", "`\\1 <http://magiclantern.wikia.com/wiki/\\1>`_")
+sub("userguide.rst", r"\[\[([^]|]+)([^]]*)\]\]", "`\\1 <http://magiclantern.wikia.com/wiki/\\1>`_")
 os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 os.system("pdflatex UserGuide.tex")
@@ -50,8 +50,10 @@ os.system("pdflatex UserGuide.tex")
 
 os.system("cp INSTALL.txt INSTALL.rst")
 os.system("pandoc -f rst -t mediawiki -s -o install.wiki INSTALL.rst")
-sub("INSTALL.rst", r"\[\[Video:[^]]+\]\]", "`Video installation tutorial <http://vimeo.com/18035870>`_ by saw0media")
-sub("INSTALL.rst", r"\[\[([a-zA-Z0-9_ /]+)\]\]", "`\\1 <http://magiclantern.wikia.com/wiki/\\1>`_")
+
+#sub("INSTALL.rst", r"\[\[Video:[^]]+\]\]", "`Video installation tutorial <http://vimeo.com/18035870>`_ by saw0media")
+
+sub("INSTALL.rst", r"\[\[([^]|]+)([^]]*)\]\]", "`\\1 <http://magiclantern.wikia.com/wiki/\\1>`_")
 os.system("pandoc -f rst -t latex -o install-body.tex INSTALL.rst")
 os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' install-body.tex")
 os.system("pdflatex INSTALL.tex")

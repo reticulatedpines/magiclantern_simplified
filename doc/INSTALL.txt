@@ -29,7 +29,7 @@ To repeat this important point::
 Important notes
 ===============
 
-* EyeFi cards `are known to cause problems <https://bitbucket.org/hudson/magic-lantern/issue/216/eye-fi-pro-x2-doesnt-work>`_, so it's better to use normal cards. 
+* EyeFi cards `are known to cause problems <https://bitbucket.org/hudson/magic-lantern/issue/216/eye-fi-pro-x2-doesnt-work>`_, so it's better to use normal cards. See also `this message from fe50 <http://chdk.setepontos.com/index.php?topic=4214.msg55503#msg55503>`_.
 
 * If you have a bootable SD card and have the ``DISKBOOT`` flag 
   set in the camera (which the installer does), and you do not have 
@@ -50,9 +50,9 @@ Introduction
 
 There are 2 ways of running user code on the 550D/T2i/Kiss X4:
 
-1. using the update process with a **.fir** file, which must be digitally signed.
+1. using the update process with a ``.fir`` file, which must be digitally signed.
 
-2. using the bootdisk process: the **autoexec.bin** file is loaded and executed. 
+2. using the bootdisk process: the ``autoexec.bin`` file is loaded and executed. 
    This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
 
 To install Magic Lantern on your camera, you must download the right 
@@ -62,10 +62,8 @@ is to upgrade your camera to 1.0.9 in order to get the latest features.
 No development will be done on 1.0.8 any more. 
 Magic Lantern does not work at all with earlier firmware versions.
 
-Installing Magic Lantern for 550D firmware version 1.0.9 (current)
-==================================================================
-
-[[Video:Magic Lantern Installation Tutorial for Canon 550D / Rebel T2i|thumb|400px|right|Installation tutorial by saw0media]]
+Installing Magic Lantern for 550D firmware 1.0.9 for the first time
+===========================================================================
 
 **Make sure you have the Canon Firmware 1.0.9 first!**
 **Running Magic Lantern on an incorrect firmware version may brick your camera!**
@@ -80,7 +78,8 @@ upgrade camera firmware to 1.0.9 and follow the ML install steps.
 
 Step 0. Downloading
 ~~~~~~~~~~~~~~~~~~~
-* Download this release: `magiclantern-0.2.0.rc1.550d.fw109.zip <https://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-0.2.0.rc1.550d.fw109.zip>`_
+
+* Download this release: `magiclantern-0.2.0.rc1.550d.fw109.zip <https://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-0.2.0.rc1.550d.fw109.zip>`_.
 * Read `this discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/850ec268bc883ceb>`_ for more info.
 
 Step 1. Enabling bootflag
@@ -90,6 +89,7 @@ Step 1. Enabling bootflag
     :alt: thumb|right|Magic Lantern install screen
 
 * Remove any accessories from your camera (such as battery grip or external flash)
+* Restore your camera to default settings (``Clear all camera settings``, from ``Wrench 3`` menu)
 * Format the SD card from the camera (low level, from ``Wrench 1`` menu)
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
@@ -109,28 +109,38 @@ AND the SD card is "prepared" with special values written in boot sector:
 
 * for FAT16 cards: ``EOS_DEVELOP`` at offset 43 and ``BOOTDISK`` at offset 64
 * for FAT32 cards: ``EOS_DEVELOP`` at offset 71 and ``BOOTDISK`` at offset 92
+* for EXFAT cards: ``EOS_DEVELOP`` at offset 130 and ``BOOTDISK`` at offset 122; there's also a checksum, see [[Bootdisk]] for details.
 
 **Do not put an "prepared" (bootable) card without ``autoexec.bin`` in the camera! (it won't boot and you'll have to take the battery out).**
 
 Mac OS X
 ````````
-
-Use `**MacBoot** <http://www.zenoshrdlu.com/macboot/macboot.html>`_ by `Dave Mitchell <http://www.zenoshrdlu.com/>`_.
-
 .. image:: MacBoot.jpg
-    :alt: 300px|right|MacBoot usage
+    :alt: 350px|right|MacBoot usage
+
+[[Video:MAGIC LANTERN 1.0.9 HACK INSTALL WITH A MAC FOR CANON T2I OR 550D|thumb|300px|right|Magic Lantern install tutorial for MAC OS X (older, does not use MacBoot)]]
+
+Use `**MacBoot** <http://www.zenoshrdlu.com/macboot/macboot.html>`_ by `Dave Mitchell <http://www.zenoshrdlu.com/>`_. MacBoot works with FAT16, FAT32 and EXFAT cards.
 
 Select your SD card drive, check ``Make DSLR-bootable`` and hit Prepare.
 
+If MacBoot does not work, try ``make_bootable.sh`` (scroll down) and be sure to report the problem to Dave.
+
+{{clr}}
+
 Windows
 ```````
+[[Video:Magic Lantern Installation Tutorial for Canon 550D / Rebel T2i|thumb|300px|right|Installation tutorial by saw0media]]
 
-Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!)
+[[Video:Tutorial 5 - Magic Lantern by Dod3032|thumb|300px|right]]
+
+Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!). It works with FAT16, FAT32 and EXFAT cards. You need to have Administrator rights on your Windows user account.
 
 .. image:: EOScard.png
     :alt: frame|right|EOScard usage
 
 Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
+
 
 If the antivirus `is complaining <https://bitbucket.org/hudson/magic-lantern/issue/207/problem-using-eoscardexe-with-bitdefender>`_, put it on Game Mode or try another operating system ;)
 
@@ -159,6 +169,8 @@ You need to change the following line in order to indicate your SD card device::
       
       sudo bash make_bootable.sh
 
+* For EXFAT cards, see `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/1dae47529094cae3>`_.
+
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -175,20 +187,33 @@ unless for some reason you will want to retry the installation process.
 Troubleshooting
 ~~~~~~~~~~~~~~~
 
-* If Magic Lantern does not work (i.e. no new features are noticed), repeat Step 2. 
-  Also try a low-level format of the card from the camera, or try with an older (FAT16) card.
+* If Magic Lantern does not work (i.e. no new features are noticed), repeat Step 2. This means your card is not bootable. Also try with an older (FAT16) card, try with another card reader, another PC or another operating system.
 
-* **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 secs, switching off is not enough !!!** 
-
-* Look in the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues>`_ for similar problems; if you can't find the solution, create a new issue there.
+* **DO NOT repeat the firmware upgrade step with ``magiclantern.fir``**! There may be a firmware update counter like on the 7D, and you may end up with a bricked camera.
 
 * If the camera does not boot (seems dead), **remove the battery and the card**. 
   Then put the battery back and try to boot the camera without card. Then put a formatted card 
-  in the camera and try to boot without Magic Lantern. Only after you are sure the camera is OK, 
+  in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, 
   you can try to see what's wrong with Magic Lantern.
 
-.
+* **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 seconds, switching off is not enough !!!**
 
+* Look in the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues>`_ for similar problems; if you can't find the solution, create a new issue there.
+
+Installing updated Magic Lantern builds
+=======================================
+
+[[Video:550D T2I Magic Lantern: Installing New Builds, Offical / ML in parallel, Deinstalling ML|thumb|300px|right]]
+
+[[Video:MAGIC LANTERN 1.0.9 FIRMWARE HACK:UPDATE Q&A|thumb|300px|right]]
+
+After you've installed ML, you can get updated builds; just unzip them on the SD card (overwrite old files).
+
+It's highly recommended to install an updated build, usually the last one. They are announced first on the `ML mailing list <http://groups.google.com/group/ml-devel>`_ and on `Vimeo Magic Lantern User Group <http://vimeo.com/groups/magiclantern/forumthread:236203>`_.
+
+Make sure you have the correct firmware version!
+
+{{clr}}
 
 Uninstalling Magic Lantern
 ==========================
@@ -239,9 +264,9 @@ Risks
 =====
 
 * This firmware does a (very small) (semi-)permanent change to your camera: it changes the ``DISKBOOT`` flag, which is stored in NVRAM. This change can be reverted (see the mailing list and bootflags.c).
-* There `is a report <https://bitbucket.org/hudson/magic-lantern/issue/211/550-t2i-seems-dead>`_ of Magic Lantern which seems to have damaged a 550D during installation. We are still investigating the problem, but it seems an `autoexec.bin` issue combined with card incompatibility. The `ML install log <https://bitbucket-assetroot.s3.amazonaws.com/hudson/magic-lantern/20101222/211/LOG000-failed.LOG>`_ indicates that Magic Lantern completed the installation procedure.
+* There are no confirmed reports of Magic Lantern doing permanent damage on the 550D.
   
-  There are also reports on CHDK forum that some users `bricked their 350D <http://chdk.setepontos.com/index.php?topic=4202.315>`_, most probably by installing a hack on the wrong firmware version. There are also lots of reports of camera refusing to boot after installing ML; this happens because they have tried to start the camera from a bootable (i.e. prepared) card without ``autoexec.bin``.
+  However, there are reports on CHDK forum that some users `bricked their 350D <http://chdk.setepontos.com/index.php?topic=4202.315>`_, most probably by installing a hack on the wrong firmware version. There are also lots of reports of camera refusing to boot after installing ML; this happens because they have tried to start the camera from a bootable (i.e. prepared) card without ``autoexec.bin``.
 * Starting the camera with a bootable card without an ``autoexec.bin`` **will cause symptoms similar to a bricked one** (it will not boot). This may scare you. It it happens, **take the battery out quickly** and the camera should be fine. There are many reports about cameras which behave like being bricked, when in fact it was just ``autoexec.bin`` missing. That's why you should read the install instructions carefully.
 * On certain cameras, there are power management issues (i.e. if you turn off the camera or let it go to standby, it won't start any more). Make sure you don't have these problems; if you do, take the battery out after each shooting session!
 * Even if you don't have power issues, it's a good idea to take the battery out when you don't use the camera.
@@ -249,9 +274,7 @@ Risks
 * Risks are low with pre-built binaries, since we test them on our cameras before making them public.
 * Risks are minimal with official versions (from the main repo), since they get tested by many users before releasing them.
 
-That being said, Magic Lantern for 550D was downloaded over 5000 times, and most users run it successfully and use it for production, not only for testing.
-
-.
+That being said, Magic Lantern for 550D was downloaded over 10000 times (without counting downloads from the mailing list or from other sites), and most users run it successfully and use it for production, not only for testing.
 
 Source code
 ===========

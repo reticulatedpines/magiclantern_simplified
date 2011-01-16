@@ -71,6 +71,8 @@ Audio
 .. image:: AudioMenu-550D.png
     :alt: thumb|right|Audio menu
 
+[[Video:Ryan's T2i Tips and Reviews - Onboard Mic vs. ATR-3350 Lav vs Rode VideoMic|thumb|300px|right|Audio tests by Ryan Sauvé]]
+
 Audio tweaks.
 
 **Audio Meters: ON / OFF / MovieOnly**
@@ -161,23 +163,31 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 
 **ClrScreen: OFF/HalfShutter/Always**
   
-  **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
-  and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
-  It allows you to compose the picture without any extra distractions. 
+  * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
+    and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
+    It allows you to compose the picture without any extra distractions. 
   
   
-  This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
+    This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
   
   
-  Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
+    Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
   
   
-  **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
+  * **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
 
-**Focus Peak: ON/OFF**
+**Focus Peak: ON/OFF, threshold, color_mode**
   Experimental focus peaking.
   
   See [[Focus assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
+  
+  * ``SET``: toggle ON/OFF
+  * ``Q``: adjust percentile threshold, between 0.1% and 5%.
+  * ``DISP``: select color mode
+  
+     - one of ``R,G,B,C,M,Y`` (a single color)
+     - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
+     - ``cc2``: color coding 2 (show edge detection threshold as color for every pixel)
   
   Known bugs:
   
@@ -188,8 +198,9 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   
   * Only horizontal edges are detected.
   * Only adjacent pixels which fit in an int32 are considered. 
-  * Threshold: 1% percentile.
-  * When recording, HD buffer is downsampled horizontally by 2.
+  * Threshold method: percentile (0.1% ... 5%).
+  * Vertical downsampling: always 2
+  * Horizontal downsampling: 2 when recording, else 1.
   
   
 
@@ -242,6 +253,9 @@ Functions for stills shooting.
   Change the intervalometer settings (first setting appears in photo mode, second appears in movie mode).
 
 **Intervalometer: ON/OFF**
+
+[[Video:T2i Timelapse|thumb|300px|right|Timelapse taken with the ML intervalometer, by Logan Stewart]]
+
   Start/stop intervalometer.
   
   * In photo mode, it takes a sequence of photos with a fixed delay. 
@@ -310,15 +324,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   Images are saved in ``DCIM/1xxCANON/``, named after last picture/movie taken without this function.
   
-  To convert a 422 image to JPEG on the PC, use ``422-yuv.py`` (you need `Python <http://www.python.org/download/>`_ and `PIL <http://www.pythonware.com/products/pil/>`_)::
-  
-    python 422-yuv.py 1234-001.422
-  
-  To convert all 422 files from current folder, use::
-  
-    python 422-yuv.py .
-  
-  On Windows (and maybe on Mac too) you can simply drag a 422 file or a folder with 422 files onto ``422-yuv.py``.
+  To convert a 422 image to JPEG on the PC, use `422-yuv.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg.exe>`_ (Windows and Wine) or `422-yuv.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
   
   TODO: 
   
@@ -399,6 +405,8 @@ Focus
 
 .. image:: FocusMenu-550D.png
     :alt: thumb|right|Focus menu
+
+[[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|thumb|300px|right|Rack Focus Tutorial by Daniel Thurau]]
 
 **Focus dir**
   This is the direction the lens moves when pressing the camera's Zoom Out button to set the focus start and end points.
