@@ -1211,7 +1211,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
 			msleep(1);
-			if (!silent_pic || !lv_drawn()) lens_take_picture( 64000 );
+			if (!silent_pic || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(); }
 		}
 		msleep(100);
@@ -1228,7 +1228,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			msleep(10);
-			if (!silent_pic || !lv_drawn()) lens_take_picture( 64000 );
+			if (!silent_pic || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(); }
 		}
 		lens_set_ae( ae );
@@ -1531,6 +1531,7 @@ shoot_task( void )
 
 		if (intervalometer_running)
 		{
+			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			msleep(1000);
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			hdr_shot(0);

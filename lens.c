@@ -293,6 +293,29 @@ lens_take_picture(
 	return lens_info.job_state;
 }
 
+int lens_take_picture_forced()
+{
+	msleep(200);
+	return lens_take_picture(64000);
+	
+	// does not work
+	DEBUG("%d", lens_info.job_state);
+	if (lens_info.job_state == 0) return lens_take_picture(64000);
+	
+	DEBUG("busy %d", lens_info.job_state);
+	lens_take_picture(64000);
+	int i;
+	for (i = 0; i < 1000; i++)
+	{
+		if (lens_info.job_state > 0xA) return;
+		msleep(1);
+	}
+	DEBUG("pic not taken %d", lens_info.job_state);
+	while (lens_info.job_state) msleep(100);
+	DEBUG("retrying %d", lens_info.job_state);
+	lens_take_picture(64000);
+}
+
 
 static FILE * mvr_logfile = INVALID_PTR;
 
