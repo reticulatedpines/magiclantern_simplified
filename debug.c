@@ -784,12 +784,6 @@ dump_task( void )
 	//bmp_draw_palette();
 	//dispcheck();
 
-	if (lv_drawn())
-	{
-		msleep(2000);
-		clrscr();
-	}
-
 
 	unsigned x=10;
 	unsigned y=32;
