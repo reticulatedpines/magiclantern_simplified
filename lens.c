@@ -138,6 +138,7 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 }
 
 PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+static int recording = 0;
 
 static void
 update_lens_display(
@@ -152,7 +153,7 @@ update_lens_display(
 	// Needs to be 720 - 8 * 12
 	unsigned x = 420;
 	unsigned y = lv_disp_mode ? 400 : 480 - height - 10;
-	if (ext_monitor_hdmi) y += 60;
+	if (ext_monitor_hdmi && !recording) y += 100;
 	
 
 	bmp_printf( font, x, y, "%5d mm", info->focal_len );
@@ -202,6 +203,26 @@ update_lens_display(
 	else
 		bmp_printf( font, x, y,
 			"ISO Auto"
+		);
+
+	x += 110;
+	if( info->wb_mode == WB_KELVIN )
+		bmp_printf( font, x, y,
+			"WB%5dK",
+			info->kelvin
+		);
+	else
+		bmp_printf( font, x, y,
+			"WB:%s",
+			(lens_info.wb_mode == 0 ? "Auto " : 
+			(lens_info.wb_mode == 1 ? "Sunny" :
+			(lens_info.wb_mode == 2 ? "Cloud" : 
+			(lens_info.wb_mode == 3 ? "Tungs" : 
+			(lens_info.wb_mode == 4 ? "CFL  " : 
+			(lens_info.wb_mode == 5 ? "Flash" : 
+			(lens_info.wb_mode == 6 ? "Custm" : 
+			(lens_info.wb_mode == 8 ? "Shade" :
+			 "unk"))))))))
 		);
 
 	x = 650;
@@ -448,9 +469,9 @@ bswap16(
 	return ((val << 8) & 0xFF00) | ((val >> 8) & 0x00FF);
 }
 
-
 PROP_HANDLER( PROP_MVR_REC_START )
 {
+	recording = buf[0];
 	mvr_create_logfile( *(unsigned*) buf );
 	return prop_cleanup( token, property );
 }

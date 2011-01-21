@@ -223,7 +223,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			v == 0 ? 0 : SILENTPIC_NL,
 			v == 0 ? 0 : SILENTPIC_NC
 		);
-		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*1024, SILENTPIC_NL*680);
+		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
 	}
 }
 
@@ -708,6 +708,7 @@ iso_toggle( int sign )
 		int j = raw2index_iso(lens_info.raw_iso);
 		if (i == j) break;
 	}
+	menu_show_only_selected();
 }
 
 static void
@@ -784,6 +785,7 @@ int crit_iso(int iso_index)
 
 static void iso_auto_run()
 {
+	menu_show_only_selected();
 	if (lens_info.raw_iso == 0) { lens_set_rawiso(96); msleep(500); }
 	int c0 = crit_iso(-1); // test current iso
 	int i;
@@ -819,6 +821,7 @@ shutter_toggle( int sign)
 		int j = raw2index_shutter(lens_info.raw_shutter);
 		if (i == j) break;
 	}
+	menu_show_only_selected();
 }
 
 static void
@@ -873,6 +876,7 @@ int crit_shutter(int shutter_index)
 
 static void shutter_auto_run()
 {
+	menu_show_only_selected();
 	int c0 = crit_shutter(-1); // test current shutter
 	int i;
 	if (c0 > 0) i = bin_search(raw2index_shutter(lens_info.raw_shutter), COUNT(codes_shutter), crit_shutter);
@@ -889,6 +893,7 @@ kelvin_toggle( int sign )
 	k = (k/KELVIN_STEP) * KELVIN_STEP;
 	k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * KELVIN_STEP, KELVIN_MAX - KELVIN_MIN + KELVIN_STEP);
 	lens_set_kelvin(k);
+	menu_show_only_selected();
 }
 
 static void
@@ -961,11 +966,13 @@ int crit_kelvin(int k)
 	uint8_t Y;
 	int8_t U, V;
 	get_spot_yuv(100, &Y, &U, &V);
+	bmp_printf(FONT_MED, 300, 30, "%d, %d ", U, V);
 	return V - U;
 }
 
 static void kelvin_auto_run()
 {
+	menu_show_only_selected();
 	int c0 = crit_kelvin(-1); // test current iso
 	int i;
 	if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
@@ -994,6 +1001,7 @@ wbs_gm_toggle( int sign )
 	int newgm = mod((gm + 9 + sign), 19) - 9;
 	newgm = newgm & 0xFF;
 	prop_request_change(PROP_WBS_GM, &newgm, 4);
+	menu_show_only_selected();
 }
 
 static void
@@ -1014,6 +1022,7 @@ contrast_toggle( int sign )
 	int c = lens_get_contrast();
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_contrast(newc);
+	menu_show_only_selected();
 }
 
 static void
@@ -1098,6 +1107,7 @@ ladj_toggle( int sign )
 	{
 		set_htp(1); // this disables ALO
 	}
+	menu_show_only_selected();
 }
 
 static void
@@ -1614,7 +1624,7 @@ shoot_task( void )
 				//~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
 			}
 		}
-		if (zoom_disable_x5 && lv_dispsize == 5)
+		if (zoom_disable_x5 && lv_dispsize == 5 && !silent_pic_highres) //silent_pic_highres needs x5 zoom
 		{
 			int zoom = 10;
 			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);

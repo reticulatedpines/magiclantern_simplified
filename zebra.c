@@ -76,13 +76,32 @@ CONFIG_INT( "clear.preview", clearpreview, 1); // 2 is always
 CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 2 ); // 0 off, 1 on, 2 on without dots
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca);
-PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+
+
+int crop_dirty = 0;
+int ext_monitor_rca = 0;
+int ext_monitor_hdmi = 0;
+int lv_dispsize = 1;
+PROP_HANDLER(PROP_USBRCA_MONITOR)
+{
+	ext_monitor_rca = buf[0];
+	crop_dirty = 1;
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER(PROP_HDMI_CHANGE)
+{
+	ext_monitor_hdmi = buf[0];
+	crop_dirty = 1;
+}
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+	lv_dispsize = buf[0];
+	crop_dirty = 1;
+}
 
 int video_mode_crop = 0;
 int video_mode_fps = 0;
@@ -113,29 +132,29 @@ void set_global_draw(int g)
 
 struct vram_info * get_yuv422_hd_vram()
 {
-    static struct vram_info _vram_info;
-    _vram_info.vram = YUV422_HD_BUFFER;
-    _vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
+	static struct vram_info _vram_info;
+	_vram_info.vram = YUV422_HD_BUFFER;
+	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
 									video_mode_resolution == 1 ? 1280 : 
 									video_mode_resolution == 2 ? 640 : 0)
 						: *(uint16_t*)0x1300ce;
-    _vram_info.pitch = _vram_info.width * 2;
-    _vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
+	_vram_info.pitch = _vram_info.width * 2;
+	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
 									video_mode_resolution == 1 ? 580 : 
 									video_mode_resolution == 2 ? 480 : 0)
 						: *(uint16_t*)0x1300d0;
 
-    struct vram_info * vram = &_vram_info;
-    return vram;
+	struct vram_info * vram = &_vram_info;
+	return vram;
 }
 
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
-    _vram_info.vram = CACHEABLE(YUV422_LV_BUFFER);
-    _vram_info.width = 720;
-    _vram_info.pitch = 720;
-    _vram_info.height = 480;
+	_vram_info.vram = YUV422_LV_BUFFER;
+	_vram_info.width = 720;
+	_vram_info.pitch = _vram_info.width * 2;
+	_vram_info.height = 480;
 
 	struct vram_info * vram = &_vram_info;
 	return vram;
@@ -303,7 +322,7 @@ hist_build(void* vram, int width, int pitch)
 			//~ asm( "nop\nnop\nnop\nnop\n" );
 		//~ }
 
-	for( y=1 ; y<480; y++, v_row += (pitch/2) )
+	for( y=1 ; y<480; y++, v_row += (pitch/4) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -340,7 +359,7 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 	int pitch = vramstruct->pitch;
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
-	for( y=1 ; y<480; y++, v_row += (pitch/2) )
+	for( y=1 ; y<480; y++, v_row += (pitch/4) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -621,6 +640,8 @@ int get_focus_color(int thr, int d)
 static void
 draw_zebra_and_focus( void )
 {
+	if (!global_draw) return;
+	
 	fps_ticks++;
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
@@ -708,8 +729,8 @@ draw_zebra_and_focus( void )
 					
 					int color = get_focus_color(thr, d);
 					//~ int color = COLOR_RED;
-					color = (color << 8) | color;
-					int b_row_off = COERCE((y + rec_off) * bm_height / hd_height, 0, 539) * BMPPITCH;
+					color = (color << 8) | color;   
+					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
@@ -1261,12 +1282,11 @@ void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 
 	if( !vram->vram )
 		return;
-
+	const uint16_t*		vr = vram->vram;
 	const unsigned		width = vram->width;
 	const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
 	unsigned		x, y;
-
 
 	unsigned sy = 0;
 	int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
@@ -1275,7 +1295,7 @@ void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 	{
 		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
 		{
-			uint16_t p = vram->vram[ x + y * pitch ];
+			uint16_t p = vr[ x + y * width ];
 			sy += p & 0xFF00;
 			if (x % 2) su += (int)(p & 0x00FF); else sv += (int)(p & 0x00FF); // U and V may be reversed
 		}
@@ -1298,7 +1318,8 @@ void spotmeter_step()
 
 	if( !vram->vram )
 		return;
-
+	
+	const uint16_t*		vr = vram->vram;
 	const unsigned		width = vram->width;
 	const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
@@ -1306,7 +1327,7 @@ void spotmeter_step()
 	unsigned		sum = 0;
 	unsigned		x, y;
 
-	if (get_global_draw() && spotmeter_draw == 1)
+/*	if (get_global_draw() && spotmeter_draw == 1)
 	{
 		bmp_fill(
 			0xA,
@@ -1323,23 +1344,34 @@ void spotmeter_step()
 			2*dx + 1,
 			4
 		);
-	}
+	}*/
 
 	// Sum the values around the center
 	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
 	{
 		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
-			sum += (vram->vram[ x + y * pitch ]) & 0xFF00;
+			sum += (vr[ x + y * width]) & 0xFF00;
 	}
 
 	sum /= (2 * dx + 1) * (2 * dx + 1);
 
 	// Scale to 100%
 	const unsigned		scaled = (100 * sum) / 65536;
+	//~ bmp_printf(
+		//~ FONT_MED,
+		//~ 350,
+		//~ (lv_disp_mode ? 400 : 480 - font_med.height - 10) + 
+		//~ ((ext_monitor_hdmi && !recording) ? 100 : 0),
+		//~ "%3d%%",
+		//~ scaled
+	//~ );
+	static int fg = 0;
+	if (scaled < 30) fg = COLOR_WHITE;
+	if (scaled > 60) fg = COLOR_BLACK;
 	bmp_printf(
-		FONT_MED,
-		350,
-		lv_disp_mode ? 400 : 480 - font_med.height - 10,
+		FONT(FONT_MED, fg, 0),
+		(ext_monitor_hdmi && !recording) ? 480 : 360 - 2 * font_med.width, 
+		(ext_monitor_hdmi && !recording) ? 270 : 240, 
 		"%3d%%",
 		scaled
 	);
@@ -1350,6 +1382,34 @@ void hdmi_test_toggle(void* priv)
 {
 	hdmi_test = !hdmi_test;
 }
+
+int crop_offset = -40;
+void crop_off_toggle(void* priv)
+{
+	crop_offset++;
+}
+void crop_off_toggle_rev(void* priv)
+{
+	crop_offset--;
+}
+
+static void
+crop_off_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int * draw_ptr = priv;
+
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"crop offset : %d", crop_offset
+	);
+}
+
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -1388,8 +1448,7 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv			= &spotmeter_draw,
-		.select			= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select			= menu_binary_toggle,
 		.display		= spotmeter_menu_display,
 	},
 	{
@@ -1405,11 +1464,17 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 	},
-	{
-		.priv = "[debug] HDMI test", 
-		.display = menu_print, 
-		.select = hdmi_test_toggle,
-	}
+	//~ {
+		//~ .display		= crop_off_display,
+		//~ .select			= crop_off_toggle,
+		//~ .select_reverse = crop_off_toggle_rev, 
+	//~ },
+	
+	//~ {
+		//~ .priv = "[debug] HDMI test", 
+		//~ .display = menu_print, 
+		//~ .select = hdmi_test_toggle,
+	//~ }
 		//~ {
 		//~ .priv = "[debug] dump vram", 
 		//~ .display = menu_print, 
@@ -1447,6 +1512,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
+	if (recording != buf[0]) crop_dirty = 1;
 	recording = buf[0];
 	if (!recording)
 	{
@@ -1479,14 +1545,12 @@ PROP_HANDLER( PROP_REC_TIME )
 
 static void draw_movie_bars()
 {
-	if (shooting_mode == SHOOTMODE_MOVIE)
+	if (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution < 2)
 	{
 		bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 0, 960, 40 );
 		bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 440, 960, 40 );
 	}
 }
-
-int crop_dirty = 0;
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
@@ -1518,6 +1582,7 @@ zebra_task( void )
 	if (lv_drawn())
 	{
 		clrscr();
+		draw_movie_bars();
 		crop_dirty = 1;
 	}
 
@@ -1526,16 +1591,21 @@ zebra_task( void )
 		k++;
 		msleep(10); // safety msleep :)
 		if (!lv_drawn()) { msleep(100); continue; }
-		
+
+		if (gui_menu_shown()) crop_dirty = 1;
+
 		// clear overlays on shutter halfpress
 		if (clearpreview == 1 && get_halfshutter_pressed() && !gui_menu_shown()) // preview image without any overlays
 		{
 			msleep(clearpreview_delay);
 			clrscr();
 			draw_movie_bars();
-			clearpreview_setup(0);
-			while (get_halfshutter_pressed()) msleep(100);
-			clearpreview_setup(1);
+			if (get_halfshutter_pressed())
+			{
+				clearpreview_setup(0);
+				while (get_halfshutter_pressed()) msleep(100);
+				clearpreview_setup(1);
+			}
 			crop_dirty = 1;
 		}
 		else if (clearpreview == 2 && !gui_menu_shown()) // always clear overlays
@@ -1564,23 +1634,34 @@ zebra_task( void )
 		}
 		else msleep(100); // nothing to do (idle), but keep it responsive
 
-		if (k % 16 == 0)
+		if (k % 16 == 0 && global_draw && !gui_menu_shown())
 		{
 			if( hist_draw )
 			{
 				struct vram_info * vram = get_yuv422_vram();
 				hist_build(vram->vram, vram->width, vram->pitch);
-				hist_draw_image( hist_x, hist_y );
+				if (ext_monitor_hdmi && !recording)
+					hist_draw_image( hist_x*960/720, hist_y*540/480);
+				else
+					hist_draw_image( hist_x, hist_y );
 			}
 
 			if( spotmeter_draw)
 				spotmeter_step();
 			if (crop_dirty)
 			{
-				if ((ext_monitor_hdmi && !recording) || (hdmi_test))
-					bmp_draw_scaled(cropmarks, 0, -50, 960, 720);
+				if (!cropmarks) 
+				{
+					clrscr();
+					draw_movie_bars();
+				}
 				else
-					bmp_draw(cropmarks, 0, 0);
+				{
+					if ((ext_monitor_hdmi && !recording) || (hdmi_test))
+						bmp_draw_scaled(cropmarks, 0, crop_offset, 960, 720);
+					else
+						bmp_draw(cropmarks, 0, 0);
+				}
 				crop_dirty = 0;
 			}
 		}
