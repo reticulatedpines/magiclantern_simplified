@@ -1,0 +1,51 @@
+Magic Lantern is an open (GPL) framework for developing enhancements to the amazing Canon 5D Mark II and 550D/T2i digital SLRs. 
+Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by a small team, helped by a very enthusiastic and respectful `user community <http://vimeo.com/groups/magiclantern>`_.
+
+**Initial version by** `Trammell <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ (the author and lead of Magic Lantern project)
+
+**Main developer for 550D branch:**
+ `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_
+
+**Crypto tools and 550D/1.0.9 port by**
+ `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_
+
+**Code review and insights by**
+ `AJ <http://magiclantern.wikia.com/wiki/2.0.4_AJ>`_
+
+**Patches by**
+ `piersg <http://pdaddy.wordpress.com/2010/11/07/quick-notes-on-magic-lantern-for-550d/>`_, 
+ `nandoide <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=nandoide+|+nangdoide&qt_g=Search+this+group>`_, 
+ `stefano <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=stefano&qt_g=Search+this+group>`_, 
+ `trho <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=tobias&qt_g=Search+this+group>`_, 
+ `deti <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=deti&qt_g=Search+this+group>`_, 
+ `tapani <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=tapani&qt_g=Search+this+group>`_, 
+ `phil <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=phil&qt_g=Search+this+group>`_
+
+**Card tools by** 
+  `Pel <http://pel.hu>`_,
+  `Zeno <http://www.zenoshrdlu.com/>`_,
+  `lichtjaar <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=lichtjaar&qt_g=Search+this+group>`_
+
+**Cropmarks by**
+  `CameraRick <http://magiclantern.wikia.com/wiki/User:CameraRick>`_, 
+  `Robert <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=robert&qt_g=Search+this+group>`_, 
+  `bwwd <http://www.dvxuser.com/V6/member.php?42938-bwwd>`_, 
+  `turbinicarpus <http://www.canonistas.com/foros/members/turbinicarpus-61719.html>`_
+
+**Tutorials by**
+ `sawomedia <http://vimeo.com/sawo>`_,
+ `Renny <http://vimeo.com/renny>`_,
+ `Jeremy <http://vimeo.com/l33t>`_, 
+ `Daniel <http://vimeo.com/gefilmt>`_,
+ `Dod3032 <http://www.youtube.com/user/Dod3032>`_, 
+ `MediaUnlocked <http://www.youtube.com/user/MediaUnlocked>`_,
+ `3615geek <http://vimeo.com/user5714625>`_, 
+ `CineDigital.tv <http://www.cinedigital.tv/>`_,
+ `jeveuxdoncjevilme <http://www.jeveuxdoncjefilme.fr/>`_
+
+Thanks to all the users who `provided feedback <http://groups.google.com/group/ml-devel>`_ and `reported bugs <http://bitbucket.org/hudson/magic-lantern/issues>`_!
+
+Special thanks for people who `donated <https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=ELJ6U9GGFPL3U&lc=RO&item_name=Magic%20Lantern%20firmware%20for%20Canon%20550D&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest>`_ 
+in order to help the development of Magic Lantern; your help is very much appreciated!
+
+Also, thanks to the `CHDK team <http://chdk.wikia.com/>`_ and all the `contributors and donors for the 5D2 Magic Lantern <http://magiclantern.wikia.com/wiki/Thanks>`_!
