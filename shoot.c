@@ -39,6 +39,8 @@ CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 CONFIG_INT( "silent.pic", silent_pic, 0 );
+CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);
+CONFIG_INT(" silent.pic.sweepdelay", silent_pic_sweepdelay, 300);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -192,19 +194,62 @@ flash_and_no_flash_toggle( void * priv )
 		set_flash_firing(0); // force on
 }
 
+                                                 //2  4  6  9 12 16 20 25
+static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
+static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
+#define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres-1,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
+#define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres-1,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
+
 
 static void 
 silent_pic_display( void * priv, int x, int y, int selected )
 {
 	int v = *(int*)priv;
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Silent Picture  : %s",
-		v == 0 ? "OFF" : (v == 1 ? "Single" : "Burst")
-	);
+	if (!silent_pic_highres)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Silent Picture  : %s",
+			v == 0 ? "OFF" : v == 1 ? "Single" : "Burst"
+		);
+	}
+	else
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Silent Pic HiRes: %dx%d",
+			v == 0 ? 0 : SILENTPIC_NL,
+			v == 0 ? 0 : SILENTPIC_NC
+		);
+		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*1024, SILENTPIC_NL*680);
+	}
 }
 
+static void silent_pic_highres_toggle(void* priv)
+{
+	silent_pic_highres = !silent_pic_highres;
+	silent_pic = silent_pic_highres ? 1 : 0;
+}
+
+static void silent_pic_toggle(int sign)
+{
+	if (silent_pic_highres) 
+	{
+		silent_pic_highres = mod(silent_pic_highres + sign - 1, COUNT(silent_pic_sweep_modes_c)) + 1;
+		silent_pic = silent_pic_highres ? 1 : 0;
+	}
+	else
+	{
+		silent_pic = mod(silent_pic + sign, 3);
+	}
+}
+static void silent_pic_toggle_forward(void* priv)
+{ silent_pic_toggle(1); }
+
+static void silent_pic_toggle_reverse(void* priv)
+{ silent_pic_toggle(-1); }
 
 uint32_t afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
@@ -503,12 +548,22 @@ convert_all_yuvs_start()
 }
 #endif
 
-static void
-silent_pic_take()
+static void vsync(int* addr)
 {
-	int hd_pitch = recording ? YUV422_HD_PITCH_REC : YUV422_HD_PITCH;
-	int hd_height = recording ? YUV422_HD_HEIGHT_REC : YUV422_HD_HEIGHT;
-	int hd_width = hd_pitch / 2;
+	int i;
+	int v0 = *addr;
+	for (i = 0; i < 100; i++)
+	{
+		if (*addr != v0) return;
+		msleep(1);
+	}
+	bmp_printf(FONT_MED, 30, 100, "vsync failed");
+}
+
+static void
+silent_pic_take_simple()
+{
+	struct vram_info * vram = get_yuv422_hd_vram();
 	
 	int silent_number;
 	char imgname[100];
@@ -525,8 +580,8 @@ silent_pic_take()
 
 	
 	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a pic (%d)      ", silent_number);
-	
-	dump_seg(YUV422_HD_BUFFER, hd_pitch * hd_height, imgname);
+	//~ vsync(vram->vram + vram->pitch * vram->height - 100);
+	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a pic (%d)   ", silent_number);
 	
 	if (silent_pic == 1) // single mode
@@ -534,6 +589,99 @@ silent_pic_take()
 		while (get_halfshutter_pressed()) msleep(100);
 	}
 }
+
+static void
+silent_pic_take_sweep()
+{
+	if (recording) return;
+	if (!lv_drawn()) return;
+
+	bmp_printf(FONT_MED, 20, 70, "Psst! Preparing for high-res pic   ");
+	while (get_halfshutter_pressed()) msleep(100);
+	gui_stop_menu();
+	msleep(100);
+
+	int afx0 = afframe[2];
+	int afy0 = afframe[3];
+
+	int zoom = 5;
+	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	msleep(1000);
+
+	struct vram_info * vram = get_yuv422_hd_vram();
+	int silent_number;
+	char imgname[100];
+	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
+	{
+		snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+		unsigned size;
+		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+		if (size == 0) break;
+	}
+
+	FIO_RemoveFile(imgname);
+	FILE* f = FIO_CreateFile(imgname);
+	if (f == INVALID_PTR)
+	{
+		bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
+		return;
+	}
+	int i,j;
+	int NL = SILENTPIC_NL;
+	int NC = SILENTPIC_NC;
+	int x0 = (5202 - NC * 1024) / 2;
+	int y0 = (3465 - NL * 680) / 2;
+	for (i = 0; i < NL; i++)
+	{
+		for (j = 0; j < NC; j++)
+		{
+			// afframe[2,3]: x,y
+			// range obtained by moving the zoom window: 250 ... 3922, 434 ... 2394 => upper left corner
+			// full-res: 5202x3465
+			// buffer size: 1024x680
+			bmp_printf(FONT_MED, 20, 70, "Psst! Taking a high-res pic (%d) [%d,%d]      ", silent_number, i, j);
+			afframe[2] = x0 + 1024 * j;
+			afframe[3] = y0 + 680 * i;
+			prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+			//~ msleep(500);
+			msleep(silent_pic_sweepdelay);
+			int ans = FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
+			//~ bmp_printf(FONT_MED, 20, 150, "=> %d", ans);
+			msleep(50);
+		}
+	}
+	FIO_CloseFile(f);
+	
+	// restore
+	zoom = 1;
+	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	msleep(1000);
+	afframe[2] = afx0;
+	afframe[3] = afy0;
+	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+
+	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a high-res pic (%d)   ", silent_number);
+
+}
+
+static void
+silent_pic_take()
+{
+	if (!lv_drawn()) return;
+	
+	int g = get_global_draw();
+	set_global_draw(0);
+	if (silent_pic_highres)
+	{
+		silent_pic_take_sweep();
+	}
+	else
+	{
+		silent_pic_take_simple();
+	}
+	set_global_draw(g);
+}
+
 
 static void 
 iso_display( void * priv, int x, int y, int selected )
@@ -1104,9 +1252,9 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv = &silent_pic, 
-		.select = menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
-		//~ .select_auto = convert_all_yuvs_start,
+		.select = silent_pic_toggle_forward,
+		.select_reverse = silent_pic_toggle_reverse,
+		.select_auto = silent_pic_highres_toggle,
 		.display = silent_pic_display,
 	},
 	{
@@ -1200,7 +1348,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 {
 	hdr_create_script(steps, skip0);
 	int i;
-	if (shooting_mode == SHOOTMODE_M)
+	if ((lens_info.iso && shooting_mode == SHOOTMODE_M) || (shooting_mode == SHOOTMODE_MOVIE))
 	{
 		const int s = lens_info.raw_shutter;
 		for( i = -steps/2; i <= steps/2; i ++  )

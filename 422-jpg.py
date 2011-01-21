@@ -7,6 +7,8 @@
 import re, string, os, sys
 import time
 import os, Image
+import numpy
+from numpy import array, int8, uint8, double
 
 def change_ext(file, newext):
     if newext and (not newext.startswith(".")):
@@ -16,11 +18,74 @@ def change_ext(file, newext):
 def COERCE(x,lo,hi):
     return max(min(x,hi),lo)
 
+def decode(y,u,v,w,h):
+    Y = numpy.fromstring(y, dtype=uint8).astype(double)
+    U = numpy.fromstring(u, dtype=int8).repeat(2).astype(double)
+    V = numpy.fromstring(v, dtype=int8).repeat(2).astype(double)
+    #print Y.size, U.size, V.size
+    
+    # AJ equations
+    R = Y + 1.403 * V
+    G = Y - 0.344 * U - 0.714 * V
+    B = Y + 1.770 * U
+    
+    R = R.reshape((h,w))
+    G = G.reshape((h,w))
+    B = B.reshape((h,w))
+    R[R<0] = 0; R[R>255] = 255
+    G[G<0] = 0; G[G>255] = 255
+    B[B<0] = 0; B[B>255] = 255
+    ar = array([R,G,B]).transpose(1,2,0)
+    im = Image.fromarray(ar.astype(uint8), mode="RGB")
+    return im;
+
+def convert_422_hires(input, output):
+    data = open(input, "rb").read();
+
+    Y = data[1::2]
+    U = data[0::4]
+    V = data[2::4]
+    numpics = len(Y) / (1024*680)
+    n = 1024*680
+    w, h = 1024, 680
+    modes = [(2,1), (2,2), (2,3), (3,3), (3,4), (4,4), (4,5), (5,5)]
+    try: i = [nl*nc for nl,nc in modes].index(numpics)
+    except: 
+        print "Wrong number of subpictures (%d)" % numpics
+        NL, NC = 1, numpics
+        for i in range(NL):
+            for j in range(NC):
+                y = Y[(i*NC+j)*n : (i*NC+j+1)*n]
+                u = U[(i*NC+j)*n/2 : (i*NC+j+1)*n/2]
+                v = V[(i*NC+j)*n/2 : (i*NC+j+1)*n/2]
+                im = decode(y,u,v,w,h)
+                im.save("debug-%d.jpg" % j)
+    NL,NC = modes[i]
+    print "%d sub-pics, %dx%d" % (numpics, NL, NC)
+    
+    IM = Image.new("RGB", (NC*1016, NL*672))
+    
+    for i in range(NL):
+        for j in range(NC):
+            y = Y[(i*NC+j)*n : (i*NC+j+1)*n]
+            u = U[(i*NC+j)*n/2 : (i*NC+j+1)*n/2]
+            v = V[(i*NC+j)*n/2 : (i*NC+j+1)*n/2]
+            print "*",
+            sys.stdout.flush()
+            
+            im = decode(y,u,v,w,h)
+            #~ cx,cy = 57,98
+            cx,cy = 4,4
+            im = im.crop((cx,cy,w-cx,h-cy))
+            IM.paste(im, (j*im.size[0], i*im.size[1]))
+        print
+    IM.save(output, quality=95)
+    
+    
 def convert_422_bmp(input, output):
     print "Converting %s to %s..." % (input, output)
     
     data = open(input, "rb").read();
-
     y = data[1::2]
     u = data[0::4]
     v = data[2::4]
@@ -29,27 +94,23 @@ def convert_422_bmp(input, output):
         w, h = 1056, 704
     elif len(data) == 1720*974*2: # 2MP 16:9
         w, h = 1720, 974
+    elif len(data) == 580*580*2:
+        w, h = 580, 580
+    elif len(data) == 1280*580*2:
+        w, h = 1280, 580
+    elif len(data) == 640*480*2:
+        w, h = 640, 480
+    elif len(data) == 1024*680*2:
+        w, h = 1024, 680
+    elif len(data) == 512*340*2:
+        w, h = 512, 340
+    elif len(data) % 1024*680*2 == 0:
+        return convert_422_hires(input,output)
     else:
         raise Exception, "unknown image size: %d" % len(data)
 
     assert w*h*2 == len(data)
-
-    Y = [ord(c) for c in y]
-    U = [ord(c) if ord(c) < 128 else ord(c) - 256 for c in u]
-    V = [ord(c) if ord(c) < 128 else ord(c) - 256 for c in v]
-
-    # AJ equations
-    R = [Y[i] + 1.403 * V[i/2] for i in range(len(Y))]
-    G = [Y[i] - 0.344 * U[i/2] - 0.714 * V[i/2]  for i in range(len(Y))]
-    B = [Y[i] + 1.770 * U[i/2] for i in range(len(Y))]
-
-    buf = []
-    for i in range(len(R)):
-        buf.append(chr(int(COERCE(R[i], 0, 255))))
-        buf.append(chr(int(COERCE(G[i], 0, 255))))
-        buf.append(chr(int(COERCE(B[i], 0, 255))))
-    buf = string.join(buf,"")
-    im = Image.fromstring("RGB", (w,h), buf);
+    im = decode(y,u,v,w,h)
     im.save(output, quality=95)
 
 try:
