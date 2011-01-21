@@ -40,7 +40,7 @@ CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 CONFIG_INT( "silent.pic", silent_pic, 0 );
 CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);
-CONFIG_INT(" silent.pic.sweepdelay", silent_pic_sweepdelay, 300);
+CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 300);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);

@@ -96,11 +96,13 @@ PROP_HANDLER(PROP_HDMI_CHANGE)
 {
 	ext_monitor_hdmi = buf[0];
 	crop_dirty = 1;
+	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
 	lv_dispsize = buf[0];
 	crop_dirty = 1;
+	return prop_cleanup( token, property );
 }
 
 int video_mode_crop = 0;
@@ -1640,17 +1642,14 @@ zebra_task( void )
 			{
 				struct vram_info * vram = get_yuv422_vram();
 				hist_build(vram->vram, vram->width, vram->pitch);
-				if (ext_monitor_hdmi && !recording)
-					hist_draw_image( hist_x*960/720, hist_y*540/480);
-				else
-					hist_draw_image( hist_x, hist_y );
+				hist_draw_image( hist_x, hist_y );
 			}
 
 			if( spotmeter_draw)
 				spotmeter_step();
 			if (crop_dirty)
 			{
-				if (!cropmarks) 
+				if (!cropmarks || lv_dispsize > 1) 
 				{
 					clrscr();
 					draw_movie_bars();

@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=silent_hires.$(shell whoami)
+BUILDVER=silent_hires+hdmifix.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -107,7 +107,6 @@ magiclantern-$(VERSION).zip: \
 	make_bootable.sh\
 	cropmks/* \
 	422-jpg.py \
-	422-jpg.exe 
 
 	-rm $@
 	chmod -x autoexec.bin
