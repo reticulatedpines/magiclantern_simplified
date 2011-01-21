@@ -450,7 +450,14 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0)
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
-
+	
+	x0 = COERCE(x0, 0, 960 - bmp->width);
+	y0 = COERCE(y0, 0, 540 - bmp->height);
+	if (x0 < 0) return;
+	if (x0 + bmp->width > 960) return;
+	if (y0 < 0) return;
+	if (y0 + bmp->height > 960) return;
+	
 	int bmppitch = bmp_pitch();
 	uint32_t x,y;
 	for( y=0 ; y < bmp->height; y++ )
@@ -465,6 +472,69 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0)
 			b_row[ (x + x0) / 2 ] = pix;
 		}
 	}
+}
+
+void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int num, int den)
+{
+	//~ bmp_printf(FONT_MED,30,100,"bmp_draw_scaled(%d, %d, %d/%d)", x0, y0, num, den);
+	//~ msleep(1000);
+	if (!bmp) return;
+
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+
+	int bmppitch = bmp_pitch();
+	int x,y; // those sweep the original bmp
+	int xs,ys; // those sweep the BMP VRAM (and are scaled)
+	
+	static int* lut = 0;
+	if (!lut) lut = AllocateMemory(1000 * 4);
+	if (!lut) return;
+	
+	int i;
+	for (i = 0; i < 960; i++) 
+	{
+		lut[i] = i * den/num;
+	}
+	//~ bmp_printf(FONT_MED,30,100,"lut was ok");
+	
+	int hs = bmp->height * num/den;
+	int ws = bmp->width * num/den;
+	
+	//~ bmp_printf(FONT_MED,30,100,"%d %d => %d %d ", bmp->width, bmp->height, ws, hs);
+	//~ msleep(1000);
+	for( ys = y0 ; ys < y0 + hs; ys++ )
+	{
+		//~ bmp_printf(FONT_MED,30,100,"ys=%d  ",ys);
+		//~ msleep(1000);
+		if (ys < 0) continue;
+		if (ys >= 540) continue;
+		y = lut[ys] - y0;
+		//~ bmp_printf(FONT_MED,30,100,"ys=%d, y=%d  ",ys, y);
+		//~ msleep(100);
+		if (y < 0) continue;
+		if (y >= bmp->height) continue;
+		uint8_t * const b_row = bvram + ys * bmppitch;
+		for (xs = x0; xs < x0 + ws; xs++)
+		{
+			//~ bmp_printf(FONT_MED,30,100,"ys=%d, y=%d, xs=%d ",ys, y, xs);
+			//~ msleep(100);
+			if (xs < 0) continue;
+			if (xs >= 960) continue;
+			x = lut[xs] - x0;
+			//~ bmp_printf(FONT_MED,30,100,"ys=%d, y=%d, xs=%d, x=%d ",ys, y, xs, x);
+			//~ msleep(100);
+			if (x < 0) continue;
+			if (x >= bmp->width) continue;
+
+			//~ bmp_printf(FONT_MED,30,100,"(%d,%d) -> (%d,%d) ", xs,ys,x,y);
+			//~ msleep(1000);
+
+			uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+			b_row[ xs ] = pix;
+		}
+	}
+	//~ bmp_printf(FONT_MED,30,130,"bmp done! ", hs, ws);
 }
 
 // this is slow, but is good for a small number of pixels :)
