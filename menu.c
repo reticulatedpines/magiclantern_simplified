@@ -36,6 +36,11 @@ extern struct semaphore * gui_sem;
 static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
+static int show_only_selected; // for ISO, kelvin...
+void menu_show_only_selected()
+{
+	show_only_selected = 1;
+}
 
 CONFIG_INT( "debug.draw-event", draw_event, 0 );
 CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
@@ -250,12 +255,13 @@ menu_display(
 {
 	while( menu )
 	{
-		menu->display(
-			menu->priv,
-			x,
-			y,
-			menu->selected
-		);
+		if (!show_only_selected || menu->selected)
+			menu->display(
+				menu->priv,
+				x,
+				y,
+				menu->selected
+			);
 
 		y += font_large.height;
 		menu = menu->next;
@@ -281,7 +287,7 @@ menus_display(
 			COLOR_YELLOW,
 			menu->selected ? 0x7F : COLOR_BG
 		);
-		bmp_printf( fontspec, x, y, "%6s", menu->name );
+		if (!show_only_selected) bmp_printf( fontspec, x, y, "%6s", menu->name );
 		x += fontspec_font( fontspec )->width * 6;
 
 		if( menu->selected )
@@ -306,6 +312,7 @@ menu_entry_select(
 	if( !menu )
 		return;
 
+	show_only_selected = 0;
 	take_semaphore( menu_sem, 0 );
 	struct menu_entry * entry = menu->children;
 
@@ -352,6 +359,7 @@ menu_move(
 	if( !menu )
 		return;
 
+	show_only_selected = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -394,6 +402,7 @@ menu_entry_move(
 	if( !menu )
 		return;
 
+	show_only_selected = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -461,7 +470,7 @@ menu_handler(
 )
 {
 	bmp_enabled = 1; // temporary override clear_preview in Always mode
-    static int k = 0;
+	static int k = 0;
 	// Ignore periodic events (pass them on)
 	if( 0
 	||  event == GUI_TIMER2
@@ -620,7 +629,8 @@ menu_handler(
 		return 0;
 
 	//~ if( menu_damage )
-	bmp_fill( COLOR_BG, 90, 70, 720-160, 480-140 );
+	if (!lv_drawn()) show_only_selected = 0;
+	bmp_fill( show_only_selected ? 0 : COLOR_BG, 90, 70, 720-160, 480-140 );
 	menu_damage = 0;
 	menus_display( menus, 100, 80 );
 
@@ -682,6 +692,7 @@ gui_stop_menu( void )
 	bmp_fill( 0, 90, 70, 720-160, 480-140 );
 	
 	lens_focus_stop();
+	show_only_selected = 0;
 
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 }
