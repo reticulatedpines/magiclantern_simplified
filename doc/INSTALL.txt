@@ -196,6 +196,8 @@ Troubleshooting
   in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, 
   you can try to see what's wrong with Magic Lantern.
 
+* Also make sure the battery and card doors are closed
+
 * **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 seconds, switching off is not enough !!!**
 
 * Look in the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues>`_ for similar problems; if you can't find the solution, create a new issue there.

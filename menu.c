@@ -648,6 +648,7 @@ menu_init( void )
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
+	menu_find_by_name( "About" );
 	//~ menu_find_by_name( "Boot" );
 
 /*
@@ -711,6 +712,56 @@ toggle_draw_event( void * priv )
 	draw_event = !draw_event;
 }
 
+static void
+about_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(FONT_LARGE,
+		x, y,
+		"Magic Lantern for 550D"
+	);
+	bmp_printf(FONT_MED,
+		x, y + font_large.height,
+"http://magiclantern.wikia.com/550D");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 1 + 5,
+"First version by Trammell; developed by Alex");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 2 + 10,
+"Crypto tools and 550D/1.0.9 port by Arm.Indy");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 3 + 15,
+"Code review and insights by AJ");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 4 + 20,
+"Patches by piersg, nandoide, stefano, trho,\n"
+"      deti, tapani, phil");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 6 + 25,
+"Card tools by Pel, Zeno, lichtjaar");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 7 + 30,
+"Cropmarks by Robert, bwwd, turbinicarpus,\n"
+"      CameraRick");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 9 + 35,
+"Tutorials by sawomedia, Renny, Jeremy, Daniel,\n"
+"      Dod3032, MediaUnlocked, 3615geek,\n"
+"      CineDigital.tv, jeveuxdoncjefilme\n");
+}
+
+
 static struct menu_entry draw_prop_menus[] = {
 	{
 		.priv		= "Toggle draw-event",
@@ -719,6 +770,11 @@ static struct menu_entry draw_prop_menus[] = {
 	},
 };
 
+static struct menu_entry about_menu[] = {
+	{
+		.display = about_print
+	}
+};
 
 static void
 menu_task( void )
@@ -728,6 +784,8 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
+	menu_add( "About", about_menu, COUNT(about_menu));
+	
 	msleep(3000);
 	while(1)
 	{

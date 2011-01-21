@@ -42,6 +42,8 @@ def sub(file, fr, to):
     f.write(txt)
     f.close()
 
+os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
+
 sub("userguide.rst", r"\[\[([^]|]+)([^]]*)\]\]", "`\\1 <http://magiclantern.wikia.com/wiki/\\1>`_")
 os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
