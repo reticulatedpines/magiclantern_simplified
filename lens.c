@@ -137,6 +137,7 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 	return prop_cleanup( token, property );
 }
 
+PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 
 static void
 update_lens_display(
@@ -147,9 +148,12 @@ update_lens_display(
 	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, get_crop_black_border() ? COLOR_BLACK : COLOR_BG );
 	const unsigned height	= fontspec_height( font );
 
+	
 	// Needs to be 720 - 8 * 12
 	unsigned x = 420;
 	unsigned y = lv_disp_mode ? 400 : 480 - height - 10;
+	if (ext_monitor_hdmi) y += 60;
+	
 
 	bmp_printf( font, x, y, "%5d mm", info->focal_len );
 

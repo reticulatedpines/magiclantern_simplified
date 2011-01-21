@@ -191,10 +191,6 @@ lens_format_dist(
 	unsigned		mm
 );
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
-#define ABS(a) ((a) > 0 ? (a) : -(a))
 #define KELVIN_MIN 1700
 #define KELVIN_MAX 10000
 #define KELVIN_STEP 100

@@ -684,4 +684,9 @@ extern int autoboot_loaded;
 extern void DebugMsg(int,int,const char *,...);
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
+#define ABS(a) ((a) > 0 ? (a) : -(a))
+
 #endif

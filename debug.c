@@ -507,14 +507,15 @@ struct menu_entry debug_menus[] = {
 	//~ {
 		//~ .display	= efic_temp_display,
 	//~ },
-	//~ {
-		//~ .priv		= "Draw palette",
-		//~ .select		= bmp_draw_palette,
-		//~ .display	= menu_print,
-	//~ },
+	{
+		.priv		= "Draw palette",
+		.select		= bmp_draw_palette,
+		.display	= menu_print,
+	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
+		.select_auto = call_dispcheck,
 		.display	= menu_print,
 	},
 	{

@@ -87,12 +87,12 @@ extern struct bmp_vram_info bmp_vram_info[];
 
 /** VRAM info in the BSS.
  *
- * Pixels are in an unknown format.
+ * Pixels are in an YUV 422 format.
  * This points to the image VRAM, not the bitmap vram
  */
 struct vram_info
 {
-	uint16_t *		vram;		// off 0x00
+	uint8_t *		vram;		// off 0x00
 	uint32_t		width;		// maybe off 0x04
 	uint32_t		pitch;		// maybe off 0x08
 	uint32_t		height;		// off 0x0c
@@ -228,5 +228,7 @@ struct hdmi_config
 
 extern struct hdmi_config hdmi_config;
 
+#define CACHEABLE(x)   (((uint32_t)(x)) |  0x40000000)
+#define UNCACHEABLE(x) (((uint32_t)(x)) & ~0x40000000) 
 
 #endif

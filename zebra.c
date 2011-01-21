@@ -80,6 +80,20 @@ CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 2 ); // 0 off, 1 on, 2 on without
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca);
+PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+
+int video_mode_crop = 0;
+int video_mode_fps = 0;
+int video_mode_resolution = 0; // 0 if full hd, 1 if 720p, 2 if 480p
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+	video_mode_crop = buf[0];
+	video_mode_fps = buf[2];
+	video_mode_resolution = buf[1];
+	return prop_cleanup( token, property );
+}
 
 int movie_elapsed_time = 0;
 int movie_elapsed_ticks = 0;
@@ -97,10 +111,28 @@ void set_global_draw(int g)
 	global_draw = g;
 }
 
+struct vram_info * get_yuv422_hd_vram()
+{
+    static struct vram_info _vram_info;
+    _vram_info.vram = YUV422_HD_BUFFER;
+    _vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
+									video_mode_resolution == 1 ? 1280 : 
+									video_mode_resolution == 2 ? 640 : 0)
+						: *(uint16_t*)0x1300ce;
+    _vram_info.pitch = _vram_info.width * 2;
+    _vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
+									video_mode_resolution == 1 ? 580 : 
+									video_mode_resolution == 2 ? 480 : 0)
+						: *(uint16_t*)0x1300d0;
+
+    struct vram_info * vram = &_vram_info;
+    return vram;
+}
+
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
-    _vram_info.vram = YUV422_IMAGE_BUFFER_CACHED;
+    _vram_info.vram = CACHEABLE(YUV422_LV_BUFFER);
     _vram_info.width = 720;
     _vram_info.pitch = 720;
     _vram_info.height = 480;
@@ -521,14 +553,13 @@ static void dump_vram()
 	//dump_big_seg(1, "B:/1.bin");
 	//dump_big_seg(4, "B:/4.bin");
 	//~ dump_seg(0x44000080, 1920*1080*2, "B:/hd.bin");
-	dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, "B:/VRAM.BIN");
+	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, "B:/VRAM.BIN");
 }
 
 static uint8_t* bvram_mirror = 0;
 
 void spotmeter_step();
 
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 int fps_ticks = 0;
 
 static void bvram_mirror_init()
@@ -616,6 +647,7 @@ draw_zebra_and_focus( void )
 		int i;
 		for (i = 0; i < dirty_pixels_num; i++)
 		{
+			dirty_pixels[i] = COERCE(dirty_pixels[i], 0, 950*540);
 			#define B1 *(uint16_t*)(bvram + dirty_pixels[i])
 			#define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
 			#define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
@@ -631,18 +663,22 @@ draw_zebra_and_focus( void )
 
 		if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 		
-		uint8_t * const hdvram = YUV422_HD_BUFFER_CACHED;
-		int lv_pitch = 720; // or other value for ext monitor
-		int lv_width = lv_pitch;  // 8-bit palette image
-		int lv_height = 480;
-		int hd_pitch = recording ? YUV422_HD_PITCH_REC : YUV422_HD_PITCH;
-		int hd_height = recording ? YUV422_HD_HEIGHT_REC : YUV422_HD_HEIGHT;
-		int hd_width = hd_pitch / 2;
+		int bm_pitch = (ext_monitor_hdmi && !recording) ? 960 : 720; // or other value for ext monitor
+		int bm_width = bm_pitch;  // 8-bit palette image
+		int bm_height = (ext_monitor_hdmi && !recording) ? 540 : 480;
 		
-		int lv_skipv = 50;
-		int lv_skiph = 100;
-		int hd_skipv = lv_skipv * hd_width / lv_width;
-		int hd_skiph = lv_skiph * hd_width / lv_width;
+		struct vram_info * hd_vram = get_yuv422_hd_vram();
+		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
+		int hd_pitch  = hd_vram->pitch;
+		int hd_height = hd_vram->height;
+		int hd_width  = hd_vram->width;
+		
+		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d ", hd_width, hd_height);
+		
+		int bm_skipv = 50;
+		int bm_skiph = 100;
+		int hd_skipv = bm_skipv * hd_height / bm_height;
+		int hd_skiph = bm_skiph * hd_width / bm_width;
 		
 		static int thr = 50;
 		
@@ -673,13 +709,12 @@ draw_zebra_and_focus( void )
 					int color = get_focus_color(thr, d);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;
-					
-					int b_row_off = COERCE((y + rec_off) * lv_width / hd_width, 0, 479) * BMPPITCH;
+					int b_row_off = COERCE((y + rec_off) * bm_height / hd_height, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
-					int x = 2 * (hdp - hd_row) * lv_width / hd_width;
-					x = COERCE(x, 0, 720);
+					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
+					x = COERCE(x, 0, 960);
 					
 					uint16_t pixel = b_row[x/2];
 					uint16_t mirror = m_row[x/2];
@@ -707,7 +742,9 @@ draw_zebra_and_focus( void )
 		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
 		if (1000 * n_over / ((hd_height - 2*hd_skipv) * (hd_width - 2*hd_skiph) / step / 2) > focus_peaking_pthr) thr++;
 		else thr--;
-		thr = COERCE(thr, 10, 255);
+		
+		int thr_min = (lens_info.iso > 1600 ? 15 : 10);
+		thr = COERCE(thr, thr_min, 255);
 	}
 	
 	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
@@ -716,8 +753,8 @@ draw_zebra_and_focus( void )
 		uint32_t zlh = zebra_level_hi << 8;
 		uint32_t zll = zebra_level_lo << 8;
 
-		uint8_t * const lvram = YUV422_IMAGE_BUFFER;
-		int lvpitch = YUV422_PITCH;
+		uint8_t * const lvram = YUV422_LV_BUFFER;
+		int lvpitch = YUV422_LV_PITCH;
 		for( y = 0; y < 480; y += 2 )
 		{
 			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
@@ -733,7 +770,7 @@ draw_zebra_and_focus( void )
 			uint32_t* bp;  // through bmp vram
 			uint32_t* mp;  // through mirror
 
-			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + YUV422_PITCH/4 ; lvp += 2, bp++, mp++)
+			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + YUV422_LV_PITCH/4 ; lvp += 2, bp++, mp++)
 			{
 				#define BP (*bp)
 				#define MP (*mp)
@@ -1308,6 +1345,11 @@ void spotmeter_step()
 	);
 }
 
+int hdmi_test = 0;
+void hdmi_test_toggle(void* priv)
+{
+	hdmi_test = !hdmi_test;
+}
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -1363,7 +1405,12 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 	},
-	//~ {
+	{
+		.priv = "[debug] HDMI test", 
+		.display = menu_print, 
+		.select = hdmi_test_toggle,
+	}
+		//~ {
 		//~ .priv = "[debug] dump vram", 
 		//~ .display = menu_print, 
 		//~ .select = dump_vram,
@@ -1530,7 +1577,10 @@ zebra_task( void )
 				spotmeter_step();
 			if (crop_dirty)
 			{
-				bmp_draw(cropmarks, 0, 0);
+				if ((ext_monitor_hdmi && !recording) || (hdmi_test))
+					bmp_draw_scaled(cropmarks, 0, -50, 960, 720);
+				else
+					bmp_draw(cropmarks, 0, 0);
 				crop_dirty = 0;
 			}
 		}

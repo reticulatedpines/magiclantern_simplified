@@ -31,8 +31,9 @@
 #define PROP_TFT_STATUS		0x80030015
 #define PROP_LENS_NAME		0x80030021
 #define PROP_LENS_SOMETHING	0x80030022
-#define PROP_HDMI_CHANGE	0x8003002c
+#define PROP_HDMI_CHANGE	0x8003002c // 1 if HDMI display connected
 #define PROP_HDMI_CHANGE_CODE	0x8003002e // edidc?
+#define PROP_USBRCA_MONITOR 0x80030018 // not sure
 #define PROP_MVR_REC_START	0x80030033 // 0 = no, 1 = stating, 2 = recording
 
 
@@ -213,6 +214,14 @@
 /** Gui properties? 0xffc509b0 @ 0xDA */
 
 #define PROP_STROBO_FIRING 0x80040013 // 0 = enable, 1 = disable?
+
+#define PROP_VIDEO_MODE 0x80000039 
+// buf[0]: 8 if crop else 0
+// buf[1]: 0 if full hd, 1 if 720p, 2 if 680p
+// buf[2]: 0x19 if 25fps, 18 if 24fps, 32 if 50fps, maybe other values if I change region
+// buf[3]: always c
+
+#define PROP_ERASING_IMAGE 0x8003000c // not sure, may be dangerous to set it
 
 /** Properties */
 extern void
