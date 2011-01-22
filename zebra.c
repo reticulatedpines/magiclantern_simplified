@@ -51,6 +51,7 @@ CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
+CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
@@ -81,6 +82,10 @@ CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+
+uint8_t false_colour[256] = {
+0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6F 
+};
 
 
 int crop_dirty = 0;
@@ -471,7 +476,7 @@ hist_draw_image(
 
 		// vertical line up to the hist size
 		for( y=hist_height ; y>0 ; y-- , col += bmp_pitch() )
-			*col = y > size ? COLOR_BG : COLOR_WHITE;
+			*col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
 	}
 
 	// Draw some extra just to add a black bar on the right side
@@ -720,6 +725,8 @@ draw_zebra_and_focus( void )
 	if (!global_draw) return;
 	
 	fps_ticks++;
+	
+	if (falsecolor_draw) { draw_false(); return; }
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
 	// record: 1720: 2.38 ratio (yuck!)
@@ -931,6 +938,36 @@ clrscr_mirror( void )
 	}
 }
 
+void
+draw_false( void )
+{
+	if (!global_draw) return;
+	bvram_mirror_init();
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	if (!bvram_mirror) return;
+
+	uint32_t x,y;
+	uint8_t * const lvram = CACHEABLE(YUV422_LV_BUFFER);
+	int lvpitch = YUV422_LV_PITCH;
+	for( y = 0; y < 480; y++ )
+	{
+		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
+		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
+		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH );  // 1 pixel
+		
+		uint16_t* lvp; // that's a moving pointer through lv vram
+		uint8_t* bp;  // through bmp vram
+		uint8_t* mp;  // through mirror
+
+		for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + 720 ; lvp++, bp++, mp++)
+		{
+			if (*bp != 0 && *bp != *mp) continue;
+			*mp = *bp = false_colour[(*lvp) >> 8];
+		}
+	}
+}
+
 /*
 static void
 draw_zebra( void )
@@ -1071,15 +1108,13 @@ draw_zebra( void )
 static void
 zebra_lo_toggle( void * priv )
 {
-	int * ptr = priv;
-	*ptr = mod(*ptr + 1, 50);
+	zebra_level_lo = mod(zebra_level_lo + 1, 50);
 }
 
 static void
 zebra_lo_toggle_reverse( void * priv )
 {
-	int * ptr = priv;
-	*ptr = mod(*ptr - 1, 50);
+	zebra_level_lo = mod(zebra_level_lo - 1, 50);
 }
 
 static void clearpreview_setup(mode) // 0 = disable display, 1 = enable display
@@ -1115,15 +1150,13 @@ clearpreview_toggle_reverse( void * priv )
 static void
 zebra_hi_toggle( void * priv )
 {
-	int * ptr = priv;
-	*ptr = 200 + mod(*ptr - 200 + 1, 56);
+	zebra_level_hi = 200 + mod(zebra_level_hi - 200 + 1, 56);
 }
 
 static void
 zebra_hi_toggle_reverse( void * priv )
 {
-	int * ptr = priv;
-	*ptr = 200 + mod(*ptr - 200 - 1, 56);
+	zebra_level_hi = 200 + mod(zebra_level_hi - 200 - 1, 56);
 }
 
 static void global_draw_toggle(void* priv)
@@ -1229,6 +1262,7 @@ zebra_lo_display( void * priv, int x, int y, int selected )
 	);
 }
 
+
 static void
 zebra_draw_display( void * priv, int x, int y, int selected )
 {
@@ -1237,8 +1271,21 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Zebras      : %s",
-		z == 1 ? "ON " : (z == 2 ? "Auto" : "OFF")
+		"Zebras      : %s, %d..%d",
+		z == 1 ? "ON " : (z == 2 ? "Auto" : "OFF"),
+		zebra_level_lo, zebra_level_hi
+	);
+}
+
+static void
+falsecolor_display( void * priv, int x, int y, int selected )
+{
+	unsigned fc = *(unsigned*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"False Color : %s",
+		fc ? "ON " : "OFF"
 	);
 }
 
@@ -1538,20 +1585,14 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &zebra_draw,
 		.select		= menu_ternary_toggle,
-		.select 	= menu_ternary_toggle_reverse,
+		.select_reverse = zebra_lo_toggle, 
+		.select_auto = zebra_hi_toggle,
 		.display	= zebra_draw_display,
 	},
 	{
-		.priv		= &zebra_level_hi,
-		.display	= zebra_hi_display,
-		.select		= zebra_hi_toggle,
-		.select_reverse		= zebra_hi_toggle_reverse,
-	},
-	{
-		.priv		= &zebra_level_lo,
-		.display	= zebra_lo_display,
-		.select		= zebra_lo_toggle,
-		.select_reverse		= zebra_lo_toggle_reverse,
+		.priv		= &falsecolor_draw,
+		.display	= falsecolor_display,
+		.select		= menu_binary_toggle,
 	},
 	{
 		.priv		= &crop_draw,
@@ -1801,7 +1842,7 @@ movie_clock_task( void )
 		msleep(1000);
 		if (shooting_type == 4 && recording) movie_elapsed_time++;
 		
-		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
+		bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
 		fps_ticks = 0;
 	}
 }
