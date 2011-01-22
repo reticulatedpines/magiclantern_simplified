@@ -785,7 +785,7 @@ draw_zebra_and_focus( void )
 		//~ int n_under = 0;
 		// look in the HD buffer
 
-		
+		int rec_off = (recording ? 90 : 0);
 		int step = (recording ? 2 : 1);
 		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
@@ -812,7 +812,7 @@ draw_zebra_and_focus( void )
 					int color = get_focus_color(thr, d);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
-					int b_row_off = COERCE((y * bm_width / hd_width) + os.bmp_of_y, 0, 539) * BMPPITCH;
+					int b_row_off = COERCE(((y + rec_off) * bm_width / hd_width) + os.bmp_of_y, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
