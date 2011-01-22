@@ -95,8 +95,8 @@ NSTUB( 0x8194C, vram_info )
 NSTUB( 0xFF28A6F8, vram_get_number )
 NSTUB( 0xFF1C7EA8, vram_get_pos_and_size )
 
-//NSTUB( 0xFF018270, malloc ) // maybe it's better to use Allocate/Free?
-//NSTUB( 0xFF0182cc, free )
+NSTUB( 0xFF018270, malloc ) // maybe it's better to use Allocate/Free?
+NSTUB( 0xFF0182cc, free )
 NSTUB( 0xFF06B270, AllocateMemory ) // thanks Alex
 NSTUB( 0xFF06B600, FreeMemory ) // release_mem in Indy's IDC
 

@@ -726,7 +726,12 @@ draw_zebra_and_focus( void )
 	
 	fps_ticks++;
 	
-	if (falsecolor_draw) { draw_false(); return; }
+	if (falsecolor_draw) 
+	{ 
+		if (falsecolor_draw == 2) aj_DisplayFalseColour_n_CalcHistogram(); 
+		else draw_false();
+		return; 
+	}
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
 	// record: 1720: 2.38 ratio (yuck!)
@@ -1285,7 +1290,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"False Color : %s",
-		fc ? "ON " : "OFF"
+		fc == 1 ? "Plain C" : fc == 2 ? "ASM (AJ)" : "OFF"
 	);
 }
 
@@ -1592,7 +1597,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
-		.select		= menu_binary_toggle,
+		.select		= menu_ternary_toggle,
 	},
 	{
 		.priv		= &crop_draw,
