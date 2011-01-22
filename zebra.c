@@ -1430,7 +1430,7 @@ void spotmeter_step()
 	//~ );
 	static int fg = 0;
 	if (scaled < 50) fg = COLOR_WHITE;
-	if (scaled > 70) fg = COLOR_BLACK;
+	if (scaled > 60) fg = COLOR_BLACK;
 	bmp_printf(
 		FONT(FONT_MED, fg, 0),
 		(ext_monitor_hdmi && !recording) ? 480 : 360 - 2 * font_med.width, 
@@ -1764,8 +1764,8 @@ zebra_task( void )
 				{
 					struct vram_info * vram = get_yuv422_vram();
 					hist_build(vram->vram, vram->width, vram->pitch);
-					int off = (hist_x > 350 && ext_monitor_hdmi && !recording ? 960-720 : 0); // if hist is in the right half, anchor it to the right edge
-					hist_draw_image( hist_x + off, hist_y );
+					//~ int off = (hist_x > 350 && ext_monitor_hdmi && !recording ? 200 : 200); // if hist is in the right half, anchor it to the right edge
+					hist_draw_image( hist_x, hist_y );
 				}
 
 				if( spotmeter_draw)
