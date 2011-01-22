@@ -22,14 +22,8 @@ These settings can not be changed from the ML menu, so they are documented here:
 
     # if set to 1, disable the bootdisk flag. 
     # This does the same thing as Debug->Autoboot menu item.
+    # Only for advanced users!!!
     magic.disable_bootdiskf = 0
-
-    # Draw a property value (here BodyID)
-    debug.dump_prop = 0x1000006
-
-    # Controls the refresh rate for zebra & friends 
-    # (delay in ms between updates)
-    zebra.delay = 1000
 
     # Delay between clearing the overlay in Clear Preview mode
     clear.preview.delay = 500
@@ -44,23 +38,8 @@ These settings can not be changed from the ML menu, so they are documented here:
     h264.qscale.max.neg = 1
     h264.qscale.min.neg = 16
     
-    # button used for Magic Lantern menu
-    # Press/unpress codes (hex)
-    # 1c/1d = left
-    # 1e/1f = up
-    # 1a/1b = right
-    # 20/21 = down
-    # 4/5 = set
-    # 7 = disp
-    # 6 = menu
-    # 8 = direct print (Q)
-    # a = trash
-    # Enter button value in decimal
-    button.menu.on = 10
-    button.menu.off = 10
-
-    # threshold for audio trigger
+    # Threshold for audio trigger
     audio.release.level = 700
     
-    # black borders in movie mode instead of transparent ones
-    crop.black-border = 1
+    # Delay between two sub-pics in hi-res silent pic mode
+    silent.pic.sweepdelay = 350
