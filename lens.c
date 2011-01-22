@@ -145,8 +145,8 @@ update_lens_display(
 	struct lens_info *	info
 )
 {
-	const unsigned font	= FONT(FONT_MED, COLOR_WHITE, get_crop_black_border() ? COLOR_BLACK : COLOR_BG);
-	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, get_crop_black_border() ? COLOR_BLACK : COLOR_BG );
+	const unsigned font	= FONT(FONT_MED, COLOR_WHITE, COLOR_BG);
+	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, COLOR_BG );
 	const unsigned height	= fontspec_height( font );
 
 	

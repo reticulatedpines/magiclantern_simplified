@@ -40,7 +40,7 @@ CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 CONFIG_INT( "silent.pic", silent_pic, 0 );
 CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);
-CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 300);
+CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -63,6 +63,7 @@ PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 PROP_INT(PROP_LVAF_MODE, lvaf_mode);
+PROP_INT(PROP_GUI_STATE, gui_state);
 
 int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
 
@@ -286,6 +287,20 @@ static void
 sweep_lv_start(void* priv)
 {
 	sweep_lv_on = 1;
+}
+
+int center_lv_aff = 0;
+void center_lv_afframe()
+{
+	center_lv_aff = 1;
+}
+void center_lv_afframe_do()
+{
+	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
+	afframe[2] = (afframe[0] - afframe[4])/2;
+	afframe[3] = (afframe[1] - afframe[5])/2;
+	//~ bmp_printf(FONT_MED, 30, 30, "center af: %d, %d ", afframe[2], afframe[3]);
+	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 }
 
 static void 
@@ -629,8 +644,8 @@ silent_pic_take_sweep()
 	int i,j;
 	int NL = SILENTPIC_NL;
 	int NC = SILENTPIC_NC;
-	int x0 = (5202 - NC * 1024) / 2;
-	int y0 = (3465 - NL * 680) / 2;
+	int x0 = (SENSOR_RES_X - NC * 1024) / 2;
+	int y0 = (SENSOR_RES_Y - NL * 680) / 2;
 	for (i = 0; i < NL; i++)
 	{
 		for (j = 0; j < NC; j++)
@@ -1640,6 +1655,11 @@ shoot_task( void )
 		{
 			sweep_lv();
 			sweep_lv_on = 0;
+		}
+		if (center_lv_aff)
+		{
+			center_lv_afframe_do();
+			center_lv_aff = 0;
 		}
 
 		// avoid camera shake for HDR shots => force self timer

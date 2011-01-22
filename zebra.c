@@ -49,12 +49,11 @@ CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
-CONFIG_INT( "crop.black-border", crop_black_border, 1); // black borders in movie mode instead of transparent ones
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 CONFIG_INT( "focus.peaking.color", focus_peaking_color, 5); // R,G,B,C,M,Y,cc1,cc2
-int get_crop_black_border() { return crop_black_border; }
+//~ int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
 //~ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
@@ -89,19 +88,19 @@ int lv_dispsize = 1;
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
 	ext_monitor_rca = buf[0];
-	crop_dirty = 1;
+	crop_dirty = 10;
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
 	ext_monitor_hdmi = buf[0];
-	crop_dirty = 1;
+	crop_dirty = 10;
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
 	lv_dispsize = buf[0];
-	crop_dirty = 1;
+	crop_dirty = 10;
 	return prop_cleanup( token, property );
 }
 
@@ -115,6 +114,19 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 	video_mode_resolution = buf[1];
 	return prop_cleanup( token, property );
 }
+
+int gui_state;
+PROP_HANDLER(PROP_GUI_STATE) {
+	gui_state = buf[0];
+	if (gui_state == GUISTATE_IDLE) crop_dirty = 10;
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_LV_AFFRAME ) {
+	crop_dirty = 10; // redraw cropmarks after 10 cycles
+	return prop_cleanup( token, property );
+}
+
 
 int movie_elapsed_time = 0;
 int movie_elapsed_ticks = 0;
@@ -638,6 +650,17 @@ int get_focus_color(int thr, int d)
 									 d > 20 ? 5 /*cyan*/ : 
 									 9 /*light blue*/) : 1;
 }
+
+static void little_cleanup(uint8_t* bp, uint8_t* mp)
+{
+	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
+	bp++; mp++;
+	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
+	bp++; mp++;
+	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
+	bp++; mp++;
+	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
+}
 // thresholded edge detection
 static void
 draw_zebra_and_focus( void )
@@ -709,7 +732,6 @@ draw_zebra_and_focus( void )
 		//~ int n_under = 0;
 		// look in the HD buffer
 
-		
 		int rec_off = (recording ? 90 : 0);
 		int step = (recording ? 2 : 1);
 		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
@@ -728,7 +750,12 @@ draw_zebra_and_focus( void )
 				// else
 				{ // executed for 1% of pixels
 					n_over++;
-					
+					if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
+					{
+						thr = MIN(thr+2, 255);
+						return;
+					}
+
 					int color = get_focus_color(thr, d);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
@@ -752,11 +779,6 @@ draw_zebra_and_focus( void )
 						if (dirty_pixels_num < MAX_DIRTY_PIXELS)
 						{
 							dirty_pixels[dirty_pixels_num++] = x + b_row_off;
-						}
-						else // threshold too low, abort
-						{
-							thr = MIN(thr+1, 255);
-							return;
 						}
 					}
 				}
@@ -799,23 +821,59 @@ draw_zebra_and_focus( void )
 				#define MP (*mp)
 				#define BN (*(bp + BMPPITCH/4))
 				#define MN (*(mp + BMPPITCH/4))
-				if (BP != 0 && BP != MP) continue;
+				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
+				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
 				uint32_t p0 = *lvp & 0xFF00;
 				if (p0 > zlh)
 				{
 					BP = MP = color_over;
-					BN = color_over_2;
+					BN = MN = color_over_2;
 				}
 				else if (p0 < zll)
 				{
 					BP = MP = color_under;
-					BN = color_under_2;
+					BN = MN = color_under_2;
 				}
 				else if (BP)
-					BN = BP = MP = 0;
+					BN = MN = BP = MP = 0;
 				#undef MP
 				#undef BP
 			}
+		}
+	}
+}
+
+
+// clear only zebra, focus assist and whatever else is in BMP VRAM mirror
+static void
+clrscr_mirror( void )
+{
+	if (!global_draw) return;
+
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	if (!bvram_mirror) return;
+
+	uint32_t x,y;
+	for( y = 0; y < 480; y++ )
+	{
+		uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);
+		uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );
+		
+		uint32_t* bp;  // through bmp vram
+		uint32_t* mp;  // through mirror
+
+		for (bp = b_row, mp = m_row ; bp < b_row + BMPPITCH / 4; bp++, mp++)
+		{
+			#define BP (*bp)
+			#define MP (*mp)
+			if (BP != 0)
+			{ 
+				if (BP == MP) BP = MP = 0;
+				else little_cleanup(bp, mp);
+			}			
+			#undef MP
+			#undef BP
 		}
 	}
 }
@@ -1060,6 +1118,7 @@ static void load_cropmark(int i)
 {
 	if (cropmarks)
 	{
+		cropmark_draw(1); // delete old cropmark from screen
 		FreeMemory(cropmarks);
 		cropmarks = 0;
 	}
@@ -1368,21 +1427,20 @@ void spotmeter_step()
 		//~ scaled
 	//~ );
 	static int fg = 0;
-	if (scaled < 30) fg = COLOR_WHITE;
-	if (scaled > 60) fg = COLOR_BLACK;
+	if (scaled < 50) fg = COLOR_WHITE;
+	if (scaled > 70) fg = COLOR_BLACK;
 	bmp_printf(
 		FONT(FONT_MED, fg, 0),
 		(ext_monitor_hdmi && !recording) ? 480 : 360 - 2 * font_med.width, 
-		(ext_monitor_hdmi && !recording) ? 270 : 240, 
+		(ext_monitor_hdmi && !recording) ? 270 : 240 - font_med.height/2, 
 		"%3d%%",
 		scaled
 	);
 }
 
-int hdmi_test = 0;
 void hdmi_test_toggle(void* priv)
 {
-	hdmi_test = !hdmi_test;
+	ext_monitor_hdmi = !ext_monitor_hdmi;
 }
 
 int crop_offset = -40;
@@ -1472,11 +1530,11 @@ struct menu_entry zebra_menus[] = {
 		//~ .select_reverse = crop_off_toggle_rev, 
 	//~ },
 	
-	//~ {
-		//~ .priv = "[debug] HDMI test", 
-		//~ .display = menu_print, 
-		//~ .select = hdmi_test_toggle,
-	//~ }
+	{
+		.priv = "[debug] HDMI test", 
+		.display = menu_print, 
+		.select = hdmi_test_toggle,
+	}
 		//~ {
 		//~ .priv = "[debug] dump vram", 
 		//~ .display = menu_print, 
@@ -1514,7 +1572,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
-	if (recording != buf[0]) crop_dirty = 1;
+	crop_dirty = 10;
 	recording = buf[0];
 	if (!recording)
 	{
@@ -1547,19 +1605,39 @@ PROP_HANDLER( PROP_REC_TIME )
 
 static void draw_movie_bars()
 {
-	if (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution < 2)
-	{
-		bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 0, 960, 40 );
-		bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 440, 960, 40 );
-	}
+	//~ if (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution < 2)
+	//~ {
+		//~ bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 0, 960, 40 );
+		//~ bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 440, 960, 40 );
+	//~ }
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
-	crop_dirty = 1;
+	crop_dirty = 10;
 	return prop_cleanup( token, property );
 }
 
+void 
+cropmark_draw(int del)
+{
+	clrscr_mirror();
+	if (ext_monitor_hdmi && !recording)
+		bmp_draw_scaled(cropmarks, 0, crop_offset, 960, 720);
+	else
+		bmp_draw(cropmarks, 0, 0, bvram_mirror, del);
+}
+static void
+cropmark_redraw()
+{
+	if (cropmarks) 
+	{
+		int del = lv_dispsize == 1 ? 0 : 1;
+		cropmark_draw(del);
+	}
+	else
+		clrscr_mirror();
+}
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -1572,21 +1650,7 @@ zebra_task( void )
 	msleep(2000);
 	find_cropmarks();
 	load_cropmark(crop_draw);
-/*	if (!cropmarks)
-	{
-		bmp_printf(FONT_LARGE, 50, 50, "CROP NOT LOADED\nCREATING DEBUG LOG...");
-		msleep(1000);
-		dumpf();
-		msleep(2000);
-	} */
 	int k;
-
-	if (lv_drawn())
-	{
-		clrscr();
-		draw_movie_bars();
-		crop_dirty = 1;
-	}
 
 	while(1)
 	{
@@ -1594,16 +1658,23 @@ zebra_task( void )
 		msleep(10); // safety msleep :)
 		if (!lv_drawn()) { msleep(100); continue; }
 
-		if (gui_menu_shown()) crop_dirty = 1;
+		bmp_printf(FONT_MED, 10, 80, "%d ", crop_dirty);
+		if (gui_menu_shown())
+		{
+			clrscr_mirror();
+			while (gui_menu_shown()) msleep(100);
+			crop_dirty = 1;
+		}
 
 		// clear overlays on shutter halfpress
 		if (clearpreview == 1 && get_halfshutter_pressed() && !gui_menu_shown()) // preview image without any overlays
 		{
+			clrscr_mirror();
 			msleep(clearpreview_delay);
-			clrscr();
-			draw_movie_bars();
+			//~ draw_movie_bars();
 			if (get_halfshutter_pressed())
 			{
+				clrscr();
 				clearpreview_setup(0);
 				while (get_halfshutter_pressed()) msleep(100);
 				clearpreview_setup(1);
@@ -1636,32 +1707,30 @@ zebra_task( void )
 		}
 		else msleep(100); // nothing to do (idle), but keep it responsive
 
-		if (k % 16 == 0 && global_draw && !gui_menu_shown())
+		if (global_draw && !gui_menu_shown())
 		{
-			if( hist_draw )
+			if (k % 4 == 0)
 			{
-				struct vram_info * vram = get_yuv422_vram();
-				hist_build(vram->vram, vram->width, vram->pitch);
-				hist_draw_image( hist_x, hist_y );
-			}
+				if( hist_draw )
+				{
+					struct vram_info * vram = get_yuv422_vram();
+					hist_build(vram->vram, vram->width, vram->pitch);
+					int off = (hist_x > 350 && ext_monitor_hdmi && !recording ? 960-720 : 0); // if hist is in the right half, anchor it to the right edge
+					hist_draw_image( hist_x + off, hist_y );
+				}
 
-			if( spotmeter_draw)
-				spotmeter_step();
+				if( spotmeter_draw)
+				{
+					spotmeter_step();
+				}
+			}
 			if (crop_dirty)
 			{
-				if (!cropmarks || lv_dispsize > 1) 
+				crop_dirty--;
+				if (!crop_dirty)
 				{
-					clrscr();
-					draw_movie_bars();
+					cropmark_redraw();
 				}
-				else
-				{
-					if ((ext_monitor_hdmi && !recording) || (hdmi_test))
-						bmp_draw_scaled(cropmarks, 0, crop_offset, 960, 720);
-					else
-						bmp_draw(cropmarks, 0, 0);
-				}
-				crop_dirty = 0;
 			}
 		}
 	}

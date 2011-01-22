@@ -690,6 +690,9 @@ gui_stop_menu( void )
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 	bmp_fill( 0, 90, 70, 720-160, 480-140 );
+	msleep(50);
+	bmp_fill( 0, 90, 70, 720-160, 480-140 );
+
 	
 	lens_focus_stop();
 	show_only_selected = 0;

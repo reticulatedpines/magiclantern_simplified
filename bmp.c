@@ -444,7 +444,8 @@ void clrscr()
 	bmp_fill( 0x0, 0, 0, 960, 540 );
 }
 
-void bmp_draw(struct bmp_file_t * bmp, int x0, int y0)
+// mirror can be NULL
+void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear)
 {
 	if (!bmp) return;
 
@@ -462,14 +463,28 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0)
 	uint32_t x,y;
 	for( y=0 ; y < bmp->height; y++ )
 	{
-		uint16_t * const b_row = (uint16_t*)( bvram + (y + y0) * bmppitch );
-		for( x=0 ; x < bmp->width ; x+=2 )
+		uint8_t * const b_row = (uint8_t*)( bvram + (y + y0) * bmppitch );
+		uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * bmppitch );
+		for( x=0 ; x < bmp->width ; x++ )
 		{
-			uint8_t * pixbuf = &bmp->image[
-				x + bmp->width * (bmp->height - y - 1)
-			];
-			uint16_t pix = *(uint16_t*) pixbuf;
-			b_row[ (x + x0) / 2 ] = pix;
+			if (clear)
+			{
+				uint8_t p = b_row[ x + x0 ];
+				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+				if (pix && p == pix)
+					b_row[x + x0] = 0;
+			}
+			else
+			{
+				if (mirror)
+				{
+					uint8_t p = b_row[ x + x0 ];
+					uint8_t m = m_row[ x + x0 ];
+					if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+				}
+				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+				b_row[x + x0] = pix;
+			}
 		}
 	}
 }

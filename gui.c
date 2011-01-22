@@ -29,8 +29,11 @@
 #include "config.h"
 #include "consts-550d.109.h"
 
-CONFIG_INT("button.menu.on", button_menu_on, BGMT_TRASH);
-CONFIG_INT("button.menu.off", button_menu_off, BGMT_TRASH);
+static PROP_INT(PROP_GUI_STATE, gui_state);
+
+int button_menu_on = BGMT_TRASH;
+int button_menu_off = BGMT_TRASH;
+int button_center_lvafframe = BGMT_PRESS_SET;
 
 // halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
 int halfshutter_pressed = 0;
@@ -101,7 +104,11 @@ static void gui_main_task_550d()
 			{
 				gui_stop_menu();
 				continue;
-			} 
+			}
+			if (event->param == button_center_lvafframe)
+			{
+				center_lv_afframe();
+			}
 		}
 		if (get_draw_event())
 		{

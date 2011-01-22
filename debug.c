@@ -109,6 +109,7 @@ void call_dispcheck( void * priv )
 
 
 static PROP_INT( PROP_EFIC_TEMP, efic_temp );
+static PROP_INT(PROP_GUI_STATE, gui_state);
 
 
 PROP_HANDLER( PROP_HDMI_CHANGE_CODE )
@@ -732,7 +733,7 @@ void show_logo()
 	int i;
 	for (i = 0; i < 100; i++)
 	{
-		bmp_draw(bmp,0,0);
+		bmp_draw(bmp,0,0,0,0);
 		bmp_enabled = 0;
 		msleep(10);
 		bmp_enabled = 1;

@@ -209,7 +209,7 @@ draw_meter(
 
 	const uint32_t bar_color_word = color_word( bar_color );
 	const uint32_t peak_color_word = color_word( peak_color );
-	const uint32_t bg_color_word = color_word( get_crop_black_border() ? COLOR_BLACK : COLOR_BG);
+	const uint32_t bg_color_word = color_word(COLOR_BG);
 
 	// Write the meter an entire scan line at a time
 	int y;
@@ -949,6 +949,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 	return prop_cleanup( token, property );
 }
 
+static PROP_INT(PROP_GUI_STATE, gui_state);
 
 
 /** Replace the sound dev task with our own to disable AGC.
