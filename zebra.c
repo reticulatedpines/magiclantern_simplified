@@ -33,6 +33,8 @@
 #include "lens.h"
 
 #define BMPPITCH 960
+extern int LV_EX_X;
+extern int LV_EX_Y;
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -1618,14 +1620,60 @@ PROP_HANDLER(PROP_LV_ACTION)
 	return prop_cleanup( token, property );
 }
 
+typedef struct bmp_ov_loc_size 
+{
+	int bmp_of_x;
+	int bmp_of_y;
+	int bmp_ex_x;
+	int bmp_ex_y;
+} bmp_ov_loc_size_t;
+
+static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
+{
+	if (ext_monitor_hdmi || ext_monitor_rca) {
+		// Parameters of challenge
+		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
+		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
+		// LV centered with aspect ratio of 3:2
+
+		int disp_x, disp_y;
+		int ov_x, ov_y;
+		int lv_x=LV_EX_X;
+		int lv_y=LV_EX_Y;
+		
+		if(recording || ext_monitor_rca) {
+			disp_x=640;
+			disp_y=480;
+			ov_x=720;
+			ov_y=480;
+			lv_y = 394; // we have some different live view width than reported (3:2)
+			lv_x = 582; 
+		} else {
+			disp_x=1920;
+			disp_y=1080;
+			ov_x=960;
+			ov_y=540;
+		}
+		os->bmp_ex_x=lv_x*ov_x/disp_x;
+		os->bmp_ex_y=lv_y*ov_y/disp_y;
+		os->bmp_of_y=(recording||ext_monitor_rca)?(ov_y-os->bmp_ex_y)>>2:0; //screen layout differs beween rec mode and standby
+		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:(ov_x-os->bmp_ex_x)>>1;
+	} else {
+		os->bmp_ex_x=720;
+		os->bmp_ex_y=480;
+		os->bmp_of_x=0;
+		os->bmp_of_y=0;
+	}
+}
+
 void 
 cropmark_draw(int del)
 {
 	clrscr_mirror();
-	if (ext_monitor_hdmi && !recording)
-		bmp_draw_scaled(cropmarks, 0, crop_offset, 960, 720);
-	else
-		bmp_draw(cropmarks, 0, 0, bvram_mirror, del);
+	bmp_ov_loc_size_t os;
+	calc_ov_loc_size(&os);
+	//bmp_draw_scaled_ex(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y, bvram_mirror, del);
+	bmp_draw_scaled(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y);
 }
 static void
 cropmark_redraw()
@@ -1638,6 +1686,8 @@ cropmark_redraw()
 	else
 		clrscr_mirror();
 }
+
+
 //this function is a mess... but seems to work
 static void
 zebra_task( void )

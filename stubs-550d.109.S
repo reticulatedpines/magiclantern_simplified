@@ -160,6 +160,9 @@ NSTUB( 0xFF04C7C0, mvrSetBitRate )
 NSTUB( 0xFF1C7760, FIO_FindFirstEx )
 NSTUB( 0xFF1C7854, FIO_FindNextEx )
 
+NSTUB( 0x3787c, LV_EX_X)
+NSTUB( 0x37880, LV_EX_Y)
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )
