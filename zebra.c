@@ -146,6 +146,56 @@ void set_global_draw(int g)
 	global_draw = g;
 }
 
+typedef struct bmp_ov_loc_size 
+{
+	int bmp_of_x; //live view x offset within OSD
+	int bmp_of_y; //live view y offset within OSD
+	int bmp_ex_x; //live view x extend
+	int bmp_ex_y; //live view y extend
+	int bmp_sz_x; //bitmap x size
+	int bmp_sz_y; //bitmap y size
+} bmp_ov_loc_size_t;
+
+static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
+{
+	int ov_x, ov_y;
+	if (ext_monitor_hdmi || ext_monitor_rca) {
+		// Parameters of challenge
+		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
+		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
+		// LV centered with aspect ratio of 3:2
+		int disp_x, disp_y;
+		int lv_x = LV_EX_X;
+		int lv_y = LV_EX_Y;
+		
+		if(recording || ext_monitor_rca) {
+			disp_x=640;
+			disp_y=480;
+			ov_x=720;
+			ov_y=480;
+			//lv_y = 372;
+			lv_x = 570; // we have different live view dimensions than reported (3:2 -> 4:3)
+		} else {
+			disp_x=1920;
+			disp_y=1080;
+			ov_x=960;
+			ov_y=540;
+		}
+		os->bmp_ex_x=lv_x*ov_x/disp_x;
+		os->bmp_ex_y=lv_y*ov_y/disp_y;
+		os->bmp_of_y=(recording||ext_monitor_rca||lv_y==880)?24:0; //screen layout differs beween rec mode and standby
+		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:(ov_x-os->bmp_ex_x)>>1;
+	} else {
+		os->bmp_ex_x=720;
+		os->bmp_ex_y=480;
+		os->bmp_of_x=0;
+		os->bmp_of_y=0;
+	}
+	os->bmp_sz_x = ov_x;
+	os->bmp_sz_y = ov_y;
+//	bmp_printf( FONT_MED, 120, 40, "calc_ov_loc_size: %d %d %d %d %d %d", os->bmp_sz_x, os->bmp_sz_y, os->bmp_ex_x, os->bmp_ex_y, os->bmp_of_x, os->bmp_of_y);
+}
+
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
@@ -711,9 +761,10 @@ draw_zebra_and_focus( void )
 
 		if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 		
-		int bm_pitch = (ext_monitor_hdmi && !recording) ? 960 : 720; // or other value for ext monitor
-		int bm_width = bm_pitch;  // 8-bit palette image
-		int bm_height = (ext_monitor_hdmi && !recording) ? 540 : 480;
+		bmp_ov_loc_size_t os;
+		calc_ov_loc_size(&os);
+		int bm_width = os.bmp_ex_x;  // 8-bit palette image
+		int bm_height = os.bmp_ex_y;
 		
 		struct vram_info * hd_vram = get_yuv422_hd_vram();
 		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
@@ -734,7 +785,7 @@ draw_zebra_and_focus( void )
 		//~ int n_under = 0;
 		// look in the HD buffer
 
-		int rec_off = (recording ? 90 : 0);
+		
 		int step = (recording ? 2 : 1);
 		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
@@ -761,12 +812,12 @@ draw_zebra_and_focus( void )
 					int color = get_focus_color(thr, d);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
-					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
+					int b_row_off = COERCE((y * bm_width / hd_width) + os.bmp_of_y, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
 					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
-					x = COERCE(x, 0, 960);
+					x = COERCE(x + os.bmp_of_x, 0, 960);
 					
 					uint16_t pixel = b_row[x/2];
 					uint16_t mirror = m_row[x/2];
@@ -1618,52 +1669,6 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
 	crop_dirty = 10;
 	return prop_cleanup( token, property );
-}
-
-typedef struct bmp_ov_loc_size 
-{
-	int bmp_of_x;
-	int bmp_of_y;
-	int bmp_ex_x;
-	int bmp_ex_y;
-} bmp_ov_loc_size_t;
-
-static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
-{
-	if (ext_monitor_hdmi || ext_monitor_rca) {
-		// Parameters of challenge
-		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
-		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
-		// LV centered with aspect ratio of 3:2
-
-		int disp_x, disp_y;
-		int ov_x, ov_y;
-		int lv_x=LV_EX_X;
-		int lv_y=LV_EX_Y;
-		
-		if(recording || ext_monitor_rca) {
-			disp_x=640;
-			disp_y=480;
-			ov_x=720;
-			ov_y=480;
-			lv_y = 394; // we have some different live view width than reported (3:2)
-			lv_x = 582; 
-		} else {
-			disp_x=1920;
-			disp_y=1080;
-			ov_x=960;
-			ov_y=540;
-		}
-		os->bmp_ex_x=lv_x*ov_x/disp_x;
-		os->bmp_ex_y=lv_y*ov_y/disp_y;
-		os->bmp_of_y=(recording||ext_monitor_rca)?(ov_y-os->bmp_ex_y)>>2:0; //screen layout differs beween rec mode and standby
-		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:(ov_x-os->bmp_ex_x)>>1;
-	} else {
-		os->bmp_ex_x=720;
-		os->bmp_ex_y=480;
-		os->bmp_of_x=0;
-		os->bmp_of_y=0;
-	}
 }
 
 void 
