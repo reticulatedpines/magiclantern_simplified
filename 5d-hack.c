@@ -312,14 +312,14 @@ my_init_task(void)
 
 	msleep( 1000 );
 
-	bmp_printf( FONT_MED, 0, 40,
+/*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
 		"Built on %s by %s\n",
 		build_version,
 		build_id,
 		build_date,
 		build_user
-	);
+	);*/
 
 	//~ return;
 	init_funcs_done = 0;
@@ -352,10 +352,10 @@ my_init_task(void)
 		);
 		ml_tasks++;
 	}
-	bmp_printf( FONT_MED, 0, 85,
-		"Magic Lantern is up and running... %d tasks started.",
-		ml_tasks
-	);
+	//~ bmp_printf( FONT_MED, 0, 85,
+		//~ "Magic Lantern is up and running... %d tasks started.",
+		//~ ml_tasks
+	//~ );
 
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT

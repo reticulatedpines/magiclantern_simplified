@@ -50,7 +50,7 @@ draw_version( void )
 {
 	bmp_printf(
 		FONT( FONT_SMALL, COLOR_WHITE, COLOR_BLUE ),
-		0, 32,
+		0, 0,
 		"Magic Lantern Firmware version %s (%s)\nBuilt on%s by %s\n%s",
 		build_version,
 		build_id,
@@ -727,13 +727,14 @@ toggle_draw_event( void * priv )
 }
 
 static void
-about_print(
+about_print_0(
 	void *			priv,
 	int			x,
 	int			y,
 	int			selected
 )
 {
+	if (!selected) return;
 	bmp_printf(FONT_LARGE,
 		x, y,
 		"Magic Lantern for 550D"
@@ -744,7 +745,47 @@ about_print(
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 1 + 5,
-"First version by Trammell; developed by Alex");
+"First version by Trammell, developed by Alex");
+
+	char msg[500];
+	snprintf(msg, sizeof(msg), 
+		"Magic Lantern v.%s (%s)\n \n"
+		"Built on %s \nby %s\n",
+		build_version,
+		build_id,
+		build_date,
+		build_user);
+
+	int X = x;
+	int Y = y + font_large.height + font_med.height * 3 + 10; 
+	bmp_puts_w(FONT_MED, &X, &Y, 37, msg); 
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 10 + 15,
+	"(scroll down for full credits)");
+}
+
+static void
+about_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	y -= font_large.height;
+	if (!selected) return;
+	bmp_printf(FONT_LARGE,
+		x, y,
+		"Magic Lantern for 550D"
+	);
+	bmp_printf(FONT_MED,
+		x, y + font_large.height,
+"http://magiclantern.wikia.com/550D");
+
+	bmp_printf(FONT_MED,
+		x, y + font_large.height + font_med.height * 1 + 5,
+"First version by Trammell, developed by Alex");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 2 + 10,
@@ -785,6 +826,9 @@ static struct menu_entry draw_prop_menus[] = {
 };
 
 static struct menu_entry about_menu[] = {
+	{
+		.display = about_print_0
+	},
 	{
 		.display = about_print
 	}

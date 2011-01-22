@@ -605,13 +605,13 @@ audio_configure( int force )
 	);
 
 	//draw_audio_regs();
-	bmp_printf( FONT_SMALL, 500, 450,
+/*	bmp_printf( FONT_SMALL, 500, 450,
 		"Gain %d/%d Mgain %d Src %d",
 		dgain_l,
 		dgain_r,
 		mgain_index2gain(mgain),
 		input_source
-	);
+	);*/
 
 	DebugMsg( DM_AUDIO, 3,
 		"Gain mgain=%d dgain=%d/%d",

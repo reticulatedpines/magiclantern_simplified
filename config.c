@@ -361,16 +361,16 @@ config_parse_file(
 	//~ msleep(100);
 	if( file == INVALID_PTR )
 	{
-		bmp_printf(FONT_MED, 0, 120, "Could not open config file");
+		//~ bmp_printf(FONT_MED, 0, 120, "Could not open config file");
 		//~ config_auto_parse( &head );
-		bmp_printf(FONT_MED, 0, 120, "Using default config values");
+		//~ bmp_printf(FONT_MED, 0, 120, "Using default config values");
 		return 0;
 	}
 
-	bmp_printf(FONT_MED, 0, 120, "Config file opened");
+	//~ bmp_printf(FONT_MED, 0, 120, "Config file opened");
 	config_parse( file );
 	FIO_CloseFile( file );
-	bmp_printf(FONT_MED, 0, 120, "Config file parsed");
+	//~ bmp_printf(FONT_MED, 0, 120, "Config file parsed");
 	return 1;
 }
 

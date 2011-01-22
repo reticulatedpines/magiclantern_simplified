@@ -751,11 +751,11 @@ dump_task( void )
 	// Parse our config file
 	const char * config_filename = "B:/magic.cfg";
 	global_config = config_parse_file( config_filename );
-	bmp_printf( FONT_MED, 0, 70,
+	/*bmp_printf( FONT_MED, 0, 70,
 		"Config file %s: %s",
 		config_filename,
 		global_config ? "YES" : "NO"
-	);
+	);*/
 
 	qscale = -((int)qscale_neg);
 
