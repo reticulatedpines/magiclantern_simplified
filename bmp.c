@@ -129,6 +129,48 @@ bmp_puts(
 }
 
 void
+bmp_puts_w(
+	unsigned		fontspec,
+	unsigned *		x,
+	unsigned *		y,
+	unsigned max_chars_per_line,
+	const char *		s
+)
+{
+	const uint32_t		pitch = bmp_pitch();
+	uint8_t * vram = bmp_vram();
+	if( !vram || ((uintptr_t)vram & 1) == 1 )
+		return;
+	const unsigned initial_x = *x;
+	uint8_t * first_row = vram + (*y) * pitch + (*x);
+	uint8_t * row = first_row;
+
+	char c;
+
+	const struct font * const font = fontspec_font( fontspec );
+	int i = 0;
+	while( (c = *s++) )
+	{
+		if( c == '\n' || i >= max_chars_per_line)
+		{
+			row = first_row += pitch * font->height;
+			(*y) += font->height;
+			(*x) = initial_x;
+			i = 0;
+			if (lv_drawn()) msleep(1);
+			if (c == '\n') continue;
+		}
+
+		_draw_char( fontspec, row, c );
+		row += font->width;
+		(*x) += font->width;
+		i++;
+	}
+
+}
+
+
+void
 bmp_printf(
 	unsigned		fontspec,
 	unsigned		x,
