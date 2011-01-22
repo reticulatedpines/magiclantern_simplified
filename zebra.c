@@ -601,13 +601,13 @@ static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
-		bvram_mirror = AllocateMemory(bmp_pitch()*480 + 100);
+		bvram_mirror = AllocateMemory(bmp_pitch()*540 + 100);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
-		bzero32(bvram_mirror, 720*480);
+		bzero32(bvram_mirror, 960*540);
 	}
 }
 
@@ -1532,11 +1532,11 @@ struct menu_entry zebra_menus[] = {
 		//~ .select_reverse = crop_off_toggle_rev, 
 	//~ },
 	
-	{
-		.priv = "[debug] HDMI test", 
-		.display = menu_print, 
-		.select = hdmi_test_toggle,
-	}
+	//~ {
+		//~ .priv = "[debug] HDMI test", 
+		//~ .display = menu_print, 
+		//~ .select = hdmi_test_toggle,
+	//~ }
 		//~ {
 		//~ .priv = "[debug] dump vram", 
 		//~ .display = menu_print, 
@@ -1672,8 +1672,7 @@ cropmark_draw(int del)
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
-	//bmp_draw_scaled_ex(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y, bvram_mirror, del);
-	bmp_draw_scaled(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y);
+	bmp_draw_scaled_ex(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y, bvram_mirror, del);
 }
 static void
 cropmark_redraw()
@@ -1681,7 +1680,7 @@ cropmark_redraw()
 	if (cropmarks) 
 	{
 		int del = lv_dispsize == 1 ? 0 : 1;
-		cropmark_draw(del);
+		cropmark_draw(del); // erase cropmarks in zoom mode
 	}
 	else
 		clrscr_mirror();
@@ -1708,7 +1707,7 @@ zebra_task( void )
 		msleep(10); // safety msleep :)
 		if (!lv_drawn()) { msleep(100); continue; }
 
-		bmp_printf(FONT_MED, 10, 80, "%d ", crop_dirty);
+		//~ bmp_printf(FONT_MED, 10, 80, "%d ", crop_dirty);
 		if (gui_menu_shown())
 		{
 			clrscr_mirror();
@@ -1719,7 +1718,7 @@ zebra_task( void )
 		// clear overlays on shutter halfpress
 		if (clearpreview == 1 && get_halfshutter_pressed() && !gui_menu_shown()) // preview image without any overlays
 		{
-			clrscr_mirror();
+			cropmark_redraw();
 			msleep(clearpreview_delay);
 			//~ draw_movie_bars();
 			if (get_halfshutter_pressed())

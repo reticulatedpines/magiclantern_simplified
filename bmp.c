@@ -128,7 +128,6 @@ bmp_puts(
 
 }
 
-
 void
 bmp_printf(
 	unsigned		fontspec,
@@ -539,3 +538,58 @@ uint8_t bmp_getpixel(int x, int y)
 	return b_row[x];
 }
 
+
+void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear)
+{
+	if (!bmp) return;
+
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+
+	int bmppitch = bmp_pitch();
+	int x,y; // those sweep the original bmp
+	int xs,ys; // those sweep the BMP VRAM (and are scaled)
+	
+	#ifdef USE_LUT 
+	// we better don't use AllocateMemory for LUT (Err 70)
+	static int lut[960];
+	for (xs = x0; xs < (x0 + xmax); xs++)
+	{
+		lut[xs] = (xs-x0) * bmp->width/xmax;
+	}
+	#endif
+
+	for( ys = y0 ; ys < (y0 + ymax); ys++ )
+	{
+		y = (ys-y0)*bmp->height/ymax;
+		uint8_t * const b_row = bvram + ys * bmppitch;
+		uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * bmppitch );
+		for (xs = x0; xs < (x0 + xmax); xs++)
+		{
+#ifdef USE_LUT
+			x = lut[xs];
+#else
+			x = (xs-x0)*bmp->width/xmax;
+#endif
+
+			if (clear)
+			{
+				uint8_t p = b_row[ xs ];
+				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+				if (pix && p == pix)
+					b_row[xs] = 0;
+			}
+			else
+			{
+				if (mirror)
+				{
+					uint8_t p = b_row[ xs ];
+					uint8_t m = m_row[ xs ];
+					if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+				}
+				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+				b_row[ xs ] = pix;
+			}
+		}
+	}
+}
