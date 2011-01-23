@@ -173,6 +173,8 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   
   See [[Cropmarks]] for how to create custom cropmarks. Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
+  Press ``Q`` to enable cropmarks in Playback mode.
+  
 {{clr}}
 
 **Spotmeter: ON/Percent/IRE**

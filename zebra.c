@@ -51,6 +51,7 @@ CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
+CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
 CONFIG_INT( "falsecolor.shortcutkey", falsecolor_shortcutkey, 1);
 int falsecolor_displayed = 0;
@@ -1395,16 +1396,17 @@ static void
 crop_display( void * priv, int x, int y, int selected )
 {
 	extern int retry_count;
-	int index = *(unsigned*)priv;
+	int index = crop_draw;
 	index = COERCE(index, 0, num_cropmarks);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Cropmks(%d/%d): %s%s",
+		"Cropmk%s(%d/%d): %s%s",
+		 (cropmark_playback ? "P" : "s"),
 		 index, num_cropmarks,
 		 index  ? cropmark_names[index-1] : "OFF",
-		 (cropmarks || !index) ? " " : "!" // ! means error
+		 (cropmarks || !index) ? "" : "!" // ! means error
 	);
 }
 
@@ -1662,10 +1664,11 @@ struct menu_entry zebra_menus[] = {
 		.select_auto = falsecolor_key_toggle,
 	},
 	{
-		.priv		= &crop_draw,
+		.priv		= &cropmark_playback,
 		.display	= crop_display,
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,
+		.select_auto = menu_binary_toggle,
 	},
 	{
 		.priv			= &spotmeter_draw,
@@ -1822,9 +1825,16 @@ zebra_task_loop:
 		k++;
 
 		msleep(10); // safety msleep :)
+		if (cropmark_playback && gui_state == GUISTATE_PLAYMENU)
+		{
+			cropmark_redraw();
+			msleep(1000);
+		}
 		if (!lv_drawn()) { msleep(100); continue; }
 
+		int fcp = falsecolor_displayed;
 		falsecolor_displayed = (falsecolor_draw && ((!falsecolor_shortcutkey) || (falsecolor_shortcutkey && (dofpreview || FLASH_BTN_MOVIE_MODE))));
+		if (fcp != falsecolor_displayed && !falsecolor_displayed) clrscr_mirror(); // cleanup
 
 		if (gui_menu_shown())
 		{
