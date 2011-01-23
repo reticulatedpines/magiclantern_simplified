@@ -181,7 +181,9 @@ static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 			disp_y=480;
 			ov_x=720;
 			ov_y=480;
-			//lv_y = 372;
+			if(ext_monitor_rca) {
+				lv_y = 394;
+			}
 			lv_x = 570; // we have different live view dimensions than reported (3:2 -> 4:3)
 		} else {
 			disp_x=1920;
@@ -194,8 +196,8 @@ static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 		os->bmp_of_y=(recording||ext_monitor_rca||lv_y==880)?24:0; //screen layout differs beween rec mode and standby
 		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:(ov_x-os->bmp_ex_x)>>1;
 	} else {
-		os->bmp_ex_x=720;
-		os->bmp_ex_y=480;
+		ov_x = os->bmp_ex_x=720;
+		ov_y = os->bmp_ex_y=480;
 		os->bmp_of_x=0;
 		os->bmp_of_y=0;
 	}
@@ -781,14 +783,20 @@ draw_zebra_and_focus( void )
 		calc_ov_loc_size(&os);
 		int bm_width = os.bmp_ex_x;  // 8-bit palette image
 		int bm_height = os.bmp_ex_y;
+		int bm_lv_y = recording?bm_height-os.bmp_ex_x*9/16:0;
+		bm_lv_y=(ext_monitor_hdmi||ext_monitor_rca)?bm_lv_y:bm_lv_y>>1;
 		
 		struct vram_info * hd_vram = get_yuv422_hd_vram();
 		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
 		int hd_pitch  = hd_vram->pitch;
 		int hd_height = hd_vram->height;
 		int hd_width  = hd_vram->width;
-		
-		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d ", hd_width, hd_height);
+//		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %dx%d %d", hd_width, hd_height, bm_width, bm_height, 1138*100/bm_height);
+
+		if(hd_height == 974) {
+			bm_height = bm_height*100/117; //reduce drawing area to actual lv size
+		}
+
 		
 		int bm_skipv = 50;
 		int bm_skiph = 100;
@@ -801,7 +809,6 @@ draw_zebra_and_focus( void )
 		//~ int n_under = 0;
 		// look in the HD buffer
 
-		int rec_off = (recording ? 90 : 0);
 		int step = (recording ? 2 : 1);
 		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
@@ -826,9 +833,8 @@ draw_zebra_and_focus( void )
 					}
 
 					int color = get_focus_color(thr, d);
-					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
-					int b_row_off = COERCE(((y + rec_off) * bm_width / hd_width) + os.bmp_of_y, 0, 539) * BMPPITCH;
+					int b_row_off = COERCE((y * bm_height / hd_height) + os.bmp_of_y+bm_lv_y, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
