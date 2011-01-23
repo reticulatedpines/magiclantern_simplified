@@ -222,6 +222,7 @@
 // buf[3]: always c
 
 #define PROP_ERASING_IMAGE 0x8003000c // not sure, may be dangerous to set it
+#define PROP_DOF_PREVIEW_MAYBE 0x8005000B
 
 /** Properties */
 extern void
@@ -315,7 +316,7 @@ void * _prop_handler_##id( \
 
 
 #define PROP_INT(id,name) \
-uint32_t name; \
+volatile uint32_t name; \
 PROP_HANDLER(id) { \
 	name = buf[0]; \
 	return prop_cleanup( token, property ); \

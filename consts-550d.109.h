@@ -66,3 +66,5 @@
 
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
+
+#define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)

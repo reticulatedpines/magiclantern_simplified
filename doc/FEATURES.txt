@@ -7,15 +7,15 @@ Features
 
 * GUI menus: press the ERASE button to display them, SET/DISP to change values
 * Bit rate control (QScale parameter) for the H.264 encoder
-* Zebra stripes for overexposed / underexposed areas
-* Spotmeter, histogram
-* Cropmarks (16:9, Cinemascope, Fisheye)
-* Intervalometer (classic or HDR)
-* Trap Focus: camera takes a picture when something comes in focus
-* Remote release with either the LCD face sensor or audio trigger
+* Exposure aids: zebra stripes, false color, spotmeter, histogram
+* Focus peaking
 * Rack focus
 * Stack focus (Live View only)
-* Lens data computation 
+* Cropmarks (16:9, Cinemascope, Fisheye)
+* Intervalometer (classic or HDR)
+* Silent pictures in LiveView mode
+* Trap Focus: camera takes a picture when something comes in focus
+* Remote release with either the LCD face sensor or audio trigger
 * Onscreen audio meters
 * Manual audio gain, selectable input source, disable AGC and digital filters
 * Display time remaining during video recording
@@ -25,6 +25,7 @@ Features
 * Clean LiveView display without any overlays (selectable)
 * On-demand auto tuning for ISO, shutter & kelvin white balance
 * Quick access to some useful settings like HTP, ALO and contrast
+* Extra info displays: lens data, focus distance, DOF, shutter count, clock
 
 Known issues
 ------------
@@ -105,6 +106,8 @@ Audio tweaks.
   * **int Left ext Balanced** (internal Left + Right from both external pins as balanced audio)
   * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo. Does not work yet.
 
+"Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
+
 Video
 ~~~~~
 
@@ -112,7 +115,7 @@ Video
     :alt: thumb|right|Video menu
 
 
-Video overlays: histogram, zebras, cropmarks, spotmeter.
+Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false color.
 
 **Global Draw: ON/OFF**
   Enable/disable drawing extra graphics elements 
@@ -123,14 +126,32 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
 **Histogram: ON/OFF**
   Show a histogram for the luma (Y) channel of the LiveView image. Colorspace is YUV.
 
-**Zebras: ON/OFF/Auto**
+**Zebras: ON/OFF/Auto, lo_level..hi_level**
   Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
   
   Auto setting: zebras are disabled while recording.
-
-**ZebraThrLO, ZebraThrHI**
-  Thresholds for underexposure and overexposure. 
+  
+  Keys:
+  
+  * ``SET``: toggle between ``ON/OFF/Auto``
+  * ``DISP``: change threshold for underexposure
+  * ``Q``: change threshold for overexposure
+  
   Brightness values are between 0 and 255.
+
+**False color**
+  This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
+  
+  * **Plain C**: full resolution, maybe a bit slow.
+  * **Lo-res C**: half resolution, faster.
+  * **ASM (AJ)**: ASM code by `AJ <http://magiclantern.wikia.com/wiki/2.0.4_AJ>`_, ported from 5D2. Very fast, but a bit buggy.
+
+  This can be triggered by a shortcut key:
+  
+  * flash button in Movie mode
+  * DOF preview button in Photo mode
+  
+  Use ``Q`` to enable/disable the shortcut key.
 
 **Cropmks(x/n)**
   Select cropmarks (cycle between them).
@@ -148,18 +169,14 @@ Video overlays: histogram, zebras, cropmarks, spotmeter.
   
   An exclamation mark (!) displayed in the menu means there was an error loading the cropmark image.
   
-  Get more cropmarks created by Magic Lantern users here: `cropmarks-550D.zip <https://bitbucket.org/hudson/magic-lantern/downloads/cropmarks-550D.zip>`_
+  Get more cropmarks created by Magic Lantern users `here <http://www.sawomedia.de/magiclantern/cropmarks/>`_
   
   See [[Cropmarks]] for how to create custom cropmarks. Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
 {{clr}}
 
-**Spotmeter: ON/OFF/Hidden**
-  Measure brightness in the center of the frame, and display it as a percentage.
-
-  Indicator is at the bottom on the screen, centered horizontally. It displays 
-  a small marker in the center of the screen. If the current cropmark already includes
-  a center marker, select the Hidden option.
+**Spotmeter: ON/Percent/IRE**
+  Measure brightness in the center of the frame, and display it as a percentage or IRE value.
 
 **ClrScreen: OFF/HalfShutter/Always**
   
@@ -313,18 +330,27 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   Don't forget to pop up the flash :)
     
-**Silent Picture: ON/OFF**
+**Silent Picture: ON/Single/Burst or HiRes**
   This is highly experimental. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
   
   * Make sure you don't have autofocus assigned to half-shutter press (put it on ``*`` or turn it off)
-  * When movie recording is off, images are 1056*704 (3:2 ratio)
-  * When movie recording is on, images are 1720x974 (approx. 16:9 ratio)
+  
+  Modes:
+  
+  * Normal (low-resolution). Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
+
+  * Hi-Res: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the scene should be almost stationary (a pic is taken in a few seconds). Useful for timelapse.
+  
+  Keys:
+  
+  * ``Q``: toggle modes (normal or hi-res)
+  * ``SET/DISP``: toggle between ``ON/Single/Burst`` in normal mode, or between available resolutions in Hi-Res mode.
   
   Silent picture setting is applied to intervalometer and remote triggers when used in LiveView mode.
   
   Images are saved in ``DCIM/1xxCANON/``, named after last picture/movie taken without this function.
   
-  To convert a 422 image to JPEG on the PC, use `422-yuv.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg.exe>`_ (Windows and Wine) or `422-yuv.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
+  To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
   
   TODO: 
   
@@ -583,6 +609,8 @@ Main shooting screen (outside LiveView)
 * Trap Focus status (near MF icon)
 * Kelvin temperature (in the white balance box)
 * WB shift values for BA and GM
+* Flash setting (under clock)
+* HDR setting (under battery icon)
 
 MENU->DISP
 ~~~~~~~~~~

@@ -215,8 +215,8 @@ draw_prop_reset( void * priv )
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x400 );         // look at ### int32's
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	1 ); // start from here
+CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x4000 );         // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
 
@@ -530,11 +530,11 @@ struct menu_entry debug_menus[] = {
 		.select_reverse = draw_prop_reset,
 		.display	= menu_print,
 	},
-	/*{
+	{
 		.priv		= "Toggle mem_spy",
 		.select		= mem_spy_select,
 		.display	= menu_print,
-	},*/
+	},
 
 #if 0
 	{

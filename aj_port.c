@@ -13,10 +13,10 @@
 #include "gui.h"
 #include "lens.h"
 
-int g_cropmark_y_start = 50;
-int g_cropmark_x_start = 50;
-int g_cropmark_x_end = 720-50;
-int g_cropmark_y_end = 480-50;
+int g_cropmark_y_start = 100;
+int g_cropmark_x_start = 100;
+int g_cropmark_x_end = 720-100;
+int g_cropmark_y_end = 480-100;
 int g_display_false_colour = 1;
 unsigned int * g_arr_falsColhist = 0;
 void* g_bmp_base_addr = 0;

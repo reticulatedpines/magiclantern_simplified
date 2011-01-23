@@ -51,7 +51,9 @@ CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
-CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
+CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
+CONFIG_INT( "falsecolor.shortcutkey", falsecolor_shortcutkey, 1);
+int falsecolor_displayed = 0;
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
@@ -82,6 +84,7 @@ CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 
 uint8_t false_colour[256] = {
 0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6F 
@@ -476,7 +479,7 @@ hist_draw_image(
 
 		// vertical line up to the hist size
 		for( y=hist_height ; y>0 ; y-- , col += bmp_pitch() )
-			*col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
+			*col = y > size ? COLOR_BG : (falsecolor_displayed ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
 	}
 
 	// Draw some extra just to add a black bar on the right side
@@ -726,11 +729,12 @@ draw_zebra_and_focus( void )
 	
 	fps_ticks++;
 	
-	if (falsecolor_draw) 
-	{ 
-		if (falsecolor_draw == 2) aj_DisplayFalseColour_n_CalcHistogram(); 
+	if (falsecolor_displayed) 
+	{
+		if (falsecolor_draw == 3) aj_DisplayFalseColour_n_CalcHistogram(); 
+		else if (falsecolor_draw == 2) draw_false_downsampled();
 		else draw_false();
-		return; 
+		return;
 	}
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
@@ -955,7 +959,7 @@ draw_false( void )
 	uint32_t x,y;
 	uint8_t * const lvram = CACHEABLE(YUV422_LV_BUFFER);
 	int lvpitch = YUV422_LV_PITCH;
-	for( y = 0; y < 480; y++ )
+	for( y = 100; y < 480-100; y++ )
 	{
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
 		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
@@ -965,10 +969,41 @@ draw_false( void )
 		uint8_t* bp;  // through bmp vram
 		uint8_t* mp;  // through mirror
 
-		for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + 720 ; lvp++, bp++, mp++)
+		for (lvp = v_row + 100, bp = b_row + 100, mp = m_row + 100; lvp < v_row + 720-100 ; lvp++, bp++, mp++)
 		{
 			if (*bp != 0 && *bp != *mp) continue;
 			*mp = *bp = false_colour[(*lvp) >> 8];
+		}
+	}
+}
+
+void
+draw_false_downsampled( void )
+{
+	if (!global_draw) return;
+	bvram_mirror_init();
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	if (!bvram_mirror) return;
+
+	uint32_t x,y;
+	uint8_t * const lvram = CACHEABLE(YUV422_LV_BUFFER);
+	int lvpitch = YUV422_LV_PITCH;
+	for( y = 100; y < 480-100; y++ )
+	{
+		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
+		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * BMPPITCH );  // 2 pixel
+		
+		uint32_t* lvp; // that's a moving pointer through lv vram
+		uint16_t* bp;  // through bmp vram
+		uint16_t* mp;  // through mirror
+
+		for (lvp = v_row + 100/2, bp = b_row + 100/2, mp = m_row + 100/2; lvp < v_row + (720-100)/2 ; lvp++, bp++, mp++)
+		{
+			if (*bp != 0 && *bp != *mp) continue;
+			int16_t c = false_colour[((*lvp) >> 8) & 0xFF];
+			*mp = *bp = c | (c << 8);
 		}
 	}
 }
@@ -1289,9 +1324,25 @@ falsecolor_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"False Color : %s",
-		fc == 1 ? "Plain C" : fc == 2 ? "ASM (AJ)" : "OFF"
+		"False Color : %s%s",
+		fc == 1 ? "Plain C" : fc == 2 ? "Lo-res C" : fc == 3 ? "ASM (AJ)" : "OFF",
+		falsecolor_shortcutkey ? ", Key" : ""
 	);
+}
+static void
+falsecolor_toggle( void * priv )
+{
+	falsecolor_draw = mod(falsecolor_draw + 1, 4);
+}
+static void
+falsecolor_toggle_reverse( void * priv )
+{
+	falsecolor_draw = mod(falsecolor_draw - 1, 4);
+}
+static void
+falsecolor_key_toggle( void * priv )
+{
+	falsecolor_shortcutkey = !falsecolor_shortcutkey;
 }
 
 static void
@@ -1437,7 +1488,7 @@ spotmeter_menu_display(
 		x, y,
 		//23456789012
 		"Spotmeter   : %s",
-		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "ON" : "Hidden")
+		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "Percent" : "IRE")
 	);
 }
 
@@ -1493,25 +1544,6 @@ void spotmeter_step()
 	unsigned		sum = 0;
 	unsigned		x, y;
 
-/*	if (get_global_draw() && spotmeter_draw == 1)
-	{
-		bmp_fill(
-			0xA,
-			width/2 - dx,
-			height/2 - dx,
-			2*dx + 1,
-			4
-		);
-
-		bmp_fill(
-			0xA,
-			width/2 - dx,
-			height/2 + dx,
-			2*dx + 1,
-			4
-		);
-	}*/
-
 	// Sum the values around the center
 	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
 	{
@@ -1523,24 +1555,46 @@ void spotmeter_step()
 
 	// Scale to 100%
 	const unsigned		scaled = (100 * sum) / 65536;
-	//~ bmp_printf(
-		//~ FONT_MED,
-		//~ 350,
-		//~ (lv_disp_mode ? 400 : 480 - font_med.height - 10) + 
-		//~ ((ext_monitor_hdmi && !recording) ? 100 : 0),
-		//~ "%3d%%",
-		//~ scaled
-	//~ );
+	
+	// spotmeter color: 
+	// black on transparent, if brightness > 60%
+	// white on transparent, if brightness < 50%
+	// previous value otherwise
+	
+	// if false color is active, draw white on semi-transparent gray
+	
 	static int fg = 0;
-	if (scaled < 50) fg = COLOR_WHITE;
 	if (scaled > 60) fg = COLOR_BLACK;
-	bmp_printf(
-		FONT(FONT_MED, fg, 0),
-		(ext_monitor_hdmi && !recording) ? 480 : 360 - 2 * font_med.width, 
-		(ext_monitor_hdmi && !recording) ? 270 : 240 - font_med.height/2, 
-		"%3d%%",
-		scaled
-	);
+	if (scaled < 50 || falsecolor_displayed) fg = COLOR_WHITE;
+	int bg = falsecolor_displayed ? COLOR_BG : 0;
+
+	int xc = (ext_monitor_hdmi && !recording) ? 480 : 360 - 2 * font_med.width;
+	int yc = (ext_monitor_hdmi && !recording) ? 270 : 240 - font_med.height/2;
+	if (spotmeter_draw == 1)
+	{
+		bmp_printf(
+			FONT(FONT_MED, fg, bg),
+			xc, yc, 
+			"%3d%%",
+			scaled
+		);
+	}
+	else
+	{
+		int ire = (((int)sum >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
+		bmp_printf(
+			FONT(FONT_MED, fg, bg),
+			xc, yc, 
+			"%s%3d", // why does %4d display garbage?!
+			ire < 0 ? "-" : " ",
+			ire < 0 ? -ire : ire
+		);
+		bmp_printf(
+			FONT(FONT_SMALL, fg, 0),
+			xc + font_med.width*4, yc,
+			"IRE"
+		);
+	}
 }
 
 void hdmi_test_toggle(void* priv)
@@ -1597,7 +1651,9 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
-		.select		= menu_ternary_toggle,
+		.select		= falsecolor_toggle,
+		.select_reverse = falsecolor_toggle_reverse, 
+		.select_auto = falsecolor_key_toggle,
 	},
 	{
 		.priv		= &crop_draw,
@@ -1607,7 +1663,8 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv			= &spotmeter_draw,
-		.select			= menu_binary_toggle,
+		.select			= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display		= spotmeter_menu_display,
 	},
 	{
@@ -1717,6 +1774,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 	return prop_cleanup( token, property );
 }
 
+
 void 
 cropmark_draw(int del)
 {
@@ -1744,21 +1802,24 @@ zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
-	set_global_draw(global_draw_bk);
 
 
 	msleep(2000);
+	set_global_draw(global_draw_bk);
 	find_cropmarks();
 	load_cropmark(crop_draw);
 	int k;
 
 	while(1)
 	{
+zebra_task_loop:
 		k++;
+
 		msleep(10); // safety msleep :)
 		if (!lv_drawn()) { msleep(100); continue; }
 
-		//~ bmp_printf(FONT_MED, 10, 80, "%d ", crop_dirty);
+		falsecolor_displayed = (falsecolor_draw && ((!falsecolor_shortcutkey) || (falsecolor_shortcutkey && (dofpreview || FLASH_BTN_MOVIE_MODE))));
+
 		if (gui_menu_shown())
 		{
 			clrscr_mirror();
@@ -1767,18 +1828,20 @@ zebra_task( void )
 		}
 
 		// clear overlays on shutter halfpress
-		if (clearpreview == 1 && get_halfshutter_pressed() && !gui_menu_shown()) // preview image without any overlays
+		if (clearpreview == 1 && get_halfshutter_pressed() && !dofpreview && !gui_menu_shown()) // preview image without any overlays
 		{
-			cropmark_redraw();
-			msleep(clearpreview_delay);
-			//~ draw_movie_bars();
-			if (get_halfshutter_pressed())
+			cropmark_redraw(); // short press... clear only zebra and focus assist and redraw cropmarks
+			int i;
+			for (i = 0; i < clearpreview_delay/10; i++)
 			{
-				clrscr();
-				clearpreview_setup(0);
-				while (get_halfshutter_pressed()) msleep(100);
-				clearpreview_setup(1);
+				msleep(10);
+				if (!get_halfshutter_pressed() || dofpreview) goto zebra_task_loop;
 			}
+
+			clrscr();         // long press... clear everything
+			clearpreview_setup(0);
+			while (get_halfshutter_pressed()) msleep(100);
+			clearpreview_setup(1);
 			crop_dirty = 1;
 		}
 		else if (clearpreview == 2 && !gui_menu_shown()) // always clear overlays
@@ -1809,20 +1872,17 @@ zebra_task( void )
 
 		if (global_draw && !gui_menu_shown())
 		{
-			if (k % 4 == 0)
+			if( hist_draw  && k % 16 == 0)
 			{
-				if( hist_draw )
-				{
-					struct vram_info * vram = get_yuv422_vram();
-					hist_build(vram->vram, vram->width, vram->pitch);
-					//~ int off = (hist_x > 350 && ext_monitor_hdmi && !recording ? 200 : 200); // if hist is in the right half, anchor it to the right edge
-					hist_draw_image( hist_x, hist_y );
-				}
+				struct vram_info * vram = get_yuv422_vram();
+				hist_build(vram->vram, vram->width, vram->pitch);
+				//~ int off = (hist_x > 350 && ext_monitor_hdmi && !recording ? 200 : 200); // if hist is in the right half, anchor it to the right edge
+				hist_draw_image( hist_x, hist_y );
+			}
 
-				if( spotmeter_draw)
-				{
-					spotmeter_step();
-				}
+			if(spotmeter_draw && k % 4 == 0)
+			{
+				spotmeter_step();
 			}
 			if (crop_dirty)
 			{
