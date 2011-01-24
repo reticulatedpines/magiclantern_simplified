@@ -1503,7 +1503,7 @@ spotmeter_menu_display(
 		x, y,
 		//23456789012
 		"Spotmeter   : %s",
-		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "Percent" : "IRE")
+		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "Percent" : *draw_ptr == 2 ? "IRE (AJ)" : "IRE (Piers)")
 	);
 }
 
@@ -1596,7 +1596,10 @@ void spotmeter_step()
 	}
 	else
 	{
-		int ire = (((int)sum >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
+		int ire_aj = (((int)sum >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
+		int ire_piers = (((int)sum >> 8) - 16) * (100-7) / 219 + 7;  // formula from Piers: (16...235) -> (7.5...100)
+		int ire = spotmeter_draw == 2 ? ire_aj : ire_piers;
+		
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
 			xc, yc, 
@@ -1607,7 +1610,8 @@ void spotmeter_step()
 		bmp_printf(
 			FONT(FONT_SMALL, fg, 0),
 			xc + font_med.width*4, yc,
-			"IRE"
+			"IRE\n%s",
+			spotmeter_draw == 2 ? "AJ" : "Piers"
 		);
 	}
 }
@@ -1679,8 +1683,8 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv			= &spotmeter_draw,
-		.select			= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select			= menu_quaternary_toggle,
+		.select_reverse = menu_quaternary_toggle_reverse,
 		.display		= spotmeter_menu_display,
 	},
 	{
@@ -1841,7 +1845,25 @@ zebra_task_loop:
 
 		int fcp = falsecolor_displayed;
 		falsecolor_displayed = (falsecolor_draw && ((!falsecolor_shortcutkey) || (falsecolor_shortcutkey && (dofpreview || FLASH_BTN_MOVIE_MODE))));
-		if (fcp != falsecolor_displayed && !falsecolor_displayed) cropmark_redraw(); // cleanup
+		if (fcp != falsecolor_displayed)
+		{
+			if (falsecolor_displayed) // first time displaying false color from shortcut key
+			{
+				// there's a beautiful message saying "This function is not available in movie mode"
+				// but users want to get rid of this
+				if (shooting_mode == SHOOTMODE_MOVIE && !recording)
+				{
+					bmp_fill(0, 0, 330, 720, 480-330);
+					msleep(50);
+					bmp_fill(0, 0, 330, 720, 480-330);
+					cropmark_redraw();
+				}
+			}
+			else // 
+			{
+				cropmark_redraw();
+			}
+		}
 
 		if (gui_menu_shown())
 		{

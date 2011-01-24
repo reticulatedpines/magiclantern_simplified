@@ -88,22 +88,28 @@ menu_binary_toggle(
 	*val = !*val;
 }
 
-void
-menu_ternary_toggle(
-	void *			priv
-)
+void menu_ternary_toggle(void* priv)
 {
 	unsigned * val = priv;
 	*val = mod(*val + 1, 3);
 }
 
-void
-menu_ternary_toggle_reverse(
-	void *			priv
-)
+void menu_ternary_toggle_reverse( void* priv)
 {
 	unsigned * val = priv;
 	*val = mod(*val - 1, 3);
+}
+
+void menu_quaternary_toggle(void* priv)
+{
+	unsigned * val = priv;
+	*val = mod(*val + 1, 4);
+}
+
+void menu_quaternary_toggle_reverse( void* priv)
+{
+	unsigned * val = priv;
+	*val = mod(*val - 1, 4);
 }
 
 void
