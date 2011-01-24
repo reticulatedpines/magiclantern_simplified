@@ -206,7 +206,6 @@ static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
 static void 
 silent_pic_display( void * priv, int x, int y, int selected )
 {
-	int v = *(int*)priv;
 	if (silent_pic_mode == 0)
 	{
 		bmp_printf(
@@ -230,8 +229,8 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Silent Pic HiRes: %dx%d",
-			v == 0 ? 0 : SILENTPIC_NL,
-			v == 0 ? 0 : SILENTPIC_NC
+			SILENTPIC_NL,
+			SILENTPIC_NC
 		);
 		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
 	}
