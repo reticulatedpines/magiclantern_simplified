@@ -373,7 +373,7 @@ static void dbg_memspy_update()
 		{
 			//~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
 			dbg_memmirror[i] = newval;
-			if (dbg_memchanges[i] < 100) dbg_memchanges[i]++;
+			if (dbg_memchanges[i] < 10000) dbg_memchanges[i]++;
 			fnt = FONT(FONT_SMALL, 5, COLOR_BG);
 		}
 		//~ else continue;
@@ -382,7 +382,7 @@ static void dbg_memspy_update()
 		if (mem_spy_small && newval > 10) continue;
 
 		// show addresses which change, but not those which change like mad
-		if (dbg_memchanges[i] > 5 && dbg_memchanges[i] < 50)
+		if (dbg_memchanges[i] > 5 && dbg_memchanges[i] < 5000)
 		{
 			int x = 10 + 8 * 22 * (k % 4);
 			int y = 10 + 12 * (k / 4);

@@ -1944,6 +1944,26 @@ zebra_task_loop:
 
 TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 );
 
+void test_fps(int* x)
+{
+	int x0 = 0;
+	int F = 0;
+	int f = 0;
+	bmp_printf(FONT_SMALL, 10, 100, "testing %x...", x);
+	while(F < 500)
+	{
+		if (x0 != *x)
+		{
+			x0 = *x;
+			fps_ticks++;
+		}
+		F++;
+		msleep(1);
+	}
+	bmp_printf(FONT_SMALL, 10, 100, "testing done.");
+	return;
+}
+
 static void
 movie_clock_task( void )
 {

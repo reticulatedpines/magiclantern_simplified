@@ -68,3 +68,4 @@
 #define SENSOR_RES_Y 3465
 
 #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
+#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure

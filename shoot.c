@@ -38,9 +38,11 @@ CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between tw
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
-CONFIG_INT( "silent.pic", silent_pic, 0 );
-CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);
+CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = slit-scan
+CONFIG_INT( "silent.pic.burst", silent_pic_burst, 0);       // boolean
+CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
+CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 2);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -82,7 +84,7 @@ static int bin_search(int lo, int hi, CritFunc crit)
 static void
 interval_timer_display( void * priv, int x, int y, int selected )
 {
-	if (shooting_mode != SHOOTMODE_MOVIE || silent_pic)
+	if (shooting_mode != SHOOTMODE_MOVIE || silent_pic_mode)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -120,7 +122,7 @@ interval_timer_toggle_reverse( void * priv )
 static void
 interval_movie_duration_toggle( void * priv )
 {
-	if (shooting_mode == SHOOTMODE_MOVIE && silent_pic == 0)
+	if (shooting_mode == SHOOTMODE_MOVIE && silent_pic_mode == 0)
 		interval_movie_duration_index = mod(interval_movie_duration_index + 1, COUNT(timer_values));
 }
 
@@ -198,24 +200,31 @@ flash_and_no_flash_toggle( void * priv )
                                                  //2  4  6  9 12 16 20 25
 static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
 static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
-#define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres-1,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
-#define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres-1,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
-
+#define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
+#define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
 
 static void 
 silent_pic_display( void * priv, int x, int y, int selected )
 {
 	int v = *(int*)priv;
-	if (!silent_pic_highres)
+	if (silent_pic_mode == 0)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Silent/Slit Pic : OFF"
+		);
+	}
+	else if (silent_pic_mode == 1)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Silent Picture  : %s",
-			v == 0 ? "OFF" : v == 1 ? "Single" : "Burst"
+			silent_pic_burst ? "Burst" : "Single"
 		);
 	}
-	else
+	else if (silent_pic_mode == 2)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -226,25 +235,30 @@ silent_pic_display( void * priv, int x, int y, int selected )
 		);
 		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
 	}
+	else if (silent_pic_mode == 3)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Slit-scan Pic   : 1ln/%dclk",
+			silent_pic_slitscan_skipframes
+		);
+	}
 }
 
-static void silent_pic_highres_toggle(void* priv)
+static void silent_pic_mode_toggle(void* priv)
 {
-	silent_pic_highres = !silent_pic_highres;
-	silent_pic = silent_pic_highres ? 1 : 0;
+	silent_pic_mode = mod(silent_pic_mode + 1, 4); // off, normal, hi-res, slit
 }
 
 static void silent_pic_toggle(int sign)
 {
-	if (silent_pic_highres) 
-	{
-		silent_pic_highres = mod(silent_pic_highres + sign - 1, COUNT(silent_pic_sweep_modes_c)) + 1;
-		silent_pic = silent_pic_highres ? 1 : 0;
-	}
-	else
-	{
-		silent_pic = mod(silent_pic + sign, 3);
-	}
+	if (silent_pic_mode == 1)
+		silent_pic_burst = !silent_pic_burst;
+	else if (silent_pic_mode == 2) 
+		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));
+	else if (silent_pic_mode == 3)
+		silent_pic_slitscan_skipframes = mod(silent_pic_slitscan_skipframes + sign - 1, 4) + 1;
 }
 static void silent_pic_toggle_forward(void* priv)
 { silent_pic_toggle(1); }
@@ -563,7 +577,7 @@ convert_all_yuvs_start()
 }
 #endif
 
-static void vsync(int* addr)
+static void vsync(volatile int* addr)
 {
 	int i;
 	int v0 = *addr;
@@ -578,7 +592,7 @@ static void vsync(int* addr)
 static void
 silent_pic_take_simple()
 {
-	struct vram_info * vram = get_yuv422_hd_vram();
+	struct vram_info * vram = get_yuv422_vram();
 	
 	int silent_number;
 	char imgname[100];
@@ -599,7 +613,7 @@ silent_pic_take_simple()
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a pic (%d)   ", silent_number);
 	
-	if (silent_pic == 1) // single mode
+	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 	}
@@ -680,20 +694,92 @@ silent_pic_take_sweep()
 }
 
 static void
+silent_pic_take_slitscan()
+{
+	if (recording) return;
+	if (!lv_drawn()) return;
+	gui_stop_menu();
+	while (get_halfshutter_pressed()) msleep(100);
+	clrscr();
+	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a slit-scan pic   ");
+
+	uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER);
+	int lvpitch = YUV422_LV_PITCH;
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	#define BMPPITCH 960
+
+	struct vram_info * vram = get_yuv422_hd_vram();
+	int silent_number;
+	char imgname[100];
+	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
+	{
+		snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+		unsigned size;
+		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+		if (size == 0) break;
+	}
+
+	FIO_RemoveFile(imgname);
+	FILE* f = FIO_CreateFile(imgname);
+	if (f == INVALID_PTR)
+	{
+		bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
+		return;
+	}
+	int i;
+	for (i = 0; i < vram->height; i++)
+	{
+		int k;
+		for (k = 0; k < silent_pic_slitscan_skipframes; k++)
+			vsync(CLK_25FPS);
+		
+		FIO_WriteFile(f, vram->vram + i * vram->pitch, vram->pitch);
+
+		int y = i * 480 / vram->height;
+		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
+		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
+		uint16_t* lvp; // that's a moving pointer through lv vram
+		uint8_t* bp;  // through bmp vram
+		for (lvp = v_row, bp = b_row; lvp < v_row + 720 ; lvp++, bp++)
+			*bp = ((*lvp) * 41 >> 16) + 38;
+		
+		if (get_halfshutter_pressed())
+		{
+			FIO_CloseFile(f);
+			FIO_RemoveFile(imgname);
+			clrscr();
+			bmp_printf(FONT_MED, 20, 70, "Slit-scan cancelled.");
+			while (get_halfshutter_pressed()) msleep(100);
+			return;
+		}
+	}
+	FIO_CloseFile(f);
+
+	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a slit-scan pic (%d)   ", silent_number);
+
+	// wait half-shutter press and clear the screen
+	while (!get_halfshutter_pressed()) msleep(100);
+	clrscr();
+	while (get_halfshutter_pressed()) msleep(100);
+	clrscr();
+}
+
+static void
 silent_pic_take()
 {
 	if (!lv_drawn()) return;
 	
 	int g = get_global_draw();
 	set_global_draw(0);
-	if (silent_pic_highres)
-	{
-		silent_pic_take_sweep();
-	}
-	else
-	{
+
+	if (silent_pic_mode == 1) // normal
 		silent_pic_take_simple();
-	}
+	else if (silent_pic_mode == 2) // hi-res
+		silent_pic_take_sweep();
+	else if (silent_pic_mode == 3) // slit-scan
+		silent_pic_take_slitscan();
+
 	set_global_draw(g);
 }
 
@@ -1276,10 +1362,9 @@ struct menu_entry shoot_menus[] = {
 		.display	= flash_and_no_flash_display,
 	},
 	{
-		.priv = &silent_pic, 
-		.select = silent_pic_toggle_forward,
+		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
-		.select_auto = silent_pic_highres_toggle,
+		.select_auto = silent_pic_toggle_forward,
 		.display = silent_pic_display,
 	},
 	{
@@ -1384,7 +1469,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
 			msleep(1);
-			if (!silent_pic || !lv_drawn()) lens_take_picture_forced();
+			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(); }
 		}
 		msleep(100);
@@ -1401,7 +1486,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			msleep(10);
-			if (!silent_pic || !lv_drawn()) lens_take_picture_forced();
+			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(); }
 		}
 		lens_set_ae( ae );
@@ -1469,7 +1554,7 @@ void hdr_shot(int skip0)
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
 	//~ msleep(2000);
-	if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic)
+	if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
 	{
 		hdr_take_mov(hdr_steps, hdr_stepsize);
 	}
@@ -1494,7 +1579,7 @@ void remote_shot()
 	if (hdr_steps > 1) hdr_shot(0);
 	else
 	{
-		if (silent_pic && lv_drawn())
+		if (silent_pic_mode && lv_drawn())
 			silent_pic_take();
 		else if (shooting_mode == SHOOTMODE_MOVIE)
 			movie_start();
@@ -1702,7 +1787,7 @@ shoot_task( void )
 			}
 		} 
 		
-		if (silent_pic && lv_drawn() && get_halfshutter_pressed())
+		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
 		{
 			silent_pic_take();
 		}

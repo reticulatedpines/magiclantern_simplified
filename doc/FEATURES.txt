@@ -334,21 +334,25 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   Don't forget to pop up the flash :)
     
-**Silent Picture: ON/Single/Burst or HiRes**
-  This is highly experimental. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
+**Silent Picture / Silent Pic HiRes / Slit-scan Pic**
+
+  This can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
   
   * Make sure you don't have autofocus assigned to half-shutter press (put it on ``*`` or turn it off)
   
   Modes:
   
-  * Normal (low-resolution). Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
-
-  * Hi-Res: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the scene should be almost stationary (a pic is taken in a few seconds). Useful for timelapse.
+  * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
+  * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the scene should be almost stationary (a pic is taken in a few seconds). Useful for timelapse.
+  * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
   
   Keys:
   
-  * ``Q``: toggle modes (normal or hi-res)
-  * ``SET/DISP``: toggle between ``ON/Single/Burst`` in normal mode, or between available resolutions in Hi-Res mode.
+  * ``SET``: toggle modes (normal or hi-res)
+  * ``DISP/Q``: toggle between:
+    * ``Single/Burst`` in normal mode
+    * available matrix sizes (which give the image resolutions) in Hi-Res mode.
+    * timing (number of clocks to skip after each line) in Slit-scan mode. The internal clock has 25fps and the image buffer is updated at 12.5fps => use ``1ln/2clk`` or ``1ln/4clk`` for best results.
   
   Silent picture setting is applied to intervalometer and remote triggers when used in LiveView mode.
   
@@ -358,7 +362,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   TODO: 
   
-  * wait for vsync (how to do this?)
+  * avoid that horizontal cut in pictures (vsync doesn't help)
 
 **LiveView Zoom: x5 / x10 / :-)**
   
