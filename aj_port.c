@@ -141,7 +141,7 @@ asm volatile ( "nop" );
 static void init_aj_stuff(void)
 {
 	g_bmp_base_addr = bmp_vram();
-	g_bmp_pitch = bmp_pitch();
+	g_bmp_pitch = BMPPITCH;
 	g_bmp_height = 480;
     aj_malloc_false_colour_histogram_struct();
 }

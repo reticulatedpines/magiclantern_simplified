@@ -187,7 +187,7 @@ draw_meter(
 )
 {
 	const uint32_t width = 600; // bmp_width();
-	const uint32_t pitch = bmp_pitch();
+	const uint32_t pitch = BMPPITCH;
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
 		return;
@@ -243,7 +243,7 @@ draw_ticks(
 )
 {
 	const uint32_t width = 600 + 8; // bmp_width();
-	const uint32_t pitch = bmp_pitch();
+	const uint32_t pitch = BMPPITCH;
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
 		return;

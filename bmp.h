@@ -39,15 +39,7 @@ bmp_vram(void)
 {
 	return bmp_vram_info[1].vram2;
 }
-
-
-/** Returns the width, pitch and height of the BMP vram.
- * These should check the current mode since we might be in
- * HDMI output mode, which uses the full 960x540 space.
- */
-static inline uint32_t bmp_width(void) { return 720; }
-static inline uint32_t bmp_pitch(void) { return 960; }
-static inline uint32_t bmp_height(void) { return 480; }
+#define BMPPITCH 960
 
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK		0x000F0000
@@ -212,8 +204,20 @@ bmp_load(
 	const char *		name
 );
 
-void clrscr();
+typedef struct bmp_ov_loc_size 
+{
+	int bmp_of_x; //live view x offset within OSD
+	int bmp_of_y; //live view y offset within OSD
+	int bmp_ex_x; //live view x extend
+	int bmp_ex_y; //live view y extend
+	int bmp_sz_x; //bitmap x size
+	int bmp_sz_y; //bitmap y size
+	int lv_pitch; //pitch for low res yuv422 buffer
+	int lv_height;//height for low res yuv422 buffer
+} bmp_ov_loc_size_t;
 
+void calc_ov_loc_size(bmp_ov_loc_size_t *os);
+void clrscr();
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear);
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);
 uint8_t bmp_getpixel(int x, int y);

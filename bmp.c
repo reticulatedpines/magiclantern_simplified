@@ -31,7 +31,64 @@
 
 #define USE_LUT
 
+extern int LV_EX_X;
+extern int LV_EX_Y;
+extern int ext_monitor_rca;
+extern int ext_monitor_hdmi;
+extern int recording;
 extern int bmp_enabled = 1; // global enable/disable for Bitmap Overlay
+
+void calc_ov_loc_size(bmp_ov_loc_size_t *os)
+{
+	int ov_x, ov_y;
+	if (ext_monitor_hdmi || ext_monitor_rca) {
+		// Parameters of challenge
+		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
+		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
+		// LV centered with aspect ratio of 3:2
+		int disp_x, disp_y;
+		int lv_x = LV_EX_X;
+		int lv_y = LV_EX_Y;
+		
+		if(recording || ext_monitor_rca) {
+			disp_x=640;
+			disp_y=480;
+			ov_x=720;
+			ov_y=480;
+			if(ext_monitor_rca) {
+				lv_y = 394;
+			}
+			lv_x = 570; // we have different live view dimensions than reported (3:2 -> 4:3)
+		} else {
+			disp_x=1920;
+			disp_y=1080;
+			ov_x=960;
+			ov_y=540;
+		}
+		os->bmp_ex_x=lv_x*ov_x/disp_x;
+		os->bmp_ex_y=lv_y*ov_y/disp_y;
+		os->bmp_of_y=(recording||ext_monitor_rca||lv_y==880)?24:0; //screen layout differs beween rec mode and standby
+		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:((ov_x-os->bmp_ex_x)>>1);
+	} else {
+		ov_x = os->bmp_ex_x=720;
+		ov_y = os->bmp_ex_y=480;
+		os->bmp_of_x=0;
+		os->bmp_of_y=0;
+	}
+	if(ext_monitor_hdmi && !recording) {
+		os->lv_pitch=YUV422_LV_PITCH_HDMI;
+		os->lv_height=YUV422_LV_HEIGHT_HDMI;
+	}else if(ext_monitor_rca) {
+		os->lv_pitch=YUV422_LV_PITCH_RCA;
+		os->lv_height=YUV422_LV_HEIGHT_RCA;
+	} else {
+		os->lv_pitch=YUV422_LV_PITCH;
+		os->lv_height=YUV422_LV_HEIGHT;
+	}
+	os->bmp_sz_x = ov_x;
+	os->bmp_sz_y = ov_y;
+//	bmp_printf( FONT_MED, 10, 40, "calc_ov_loc_size: %d %d %d %d %d %d %d %d", os->bmp_sz_x, os->bmp_sz_y, os->bmp_ex_x, os->bmp_ex_y, os->bmp_of_x, os->bmp_of_y, os->lv_pitch, os->lv_height);
+}
 
 static void
 _draw_char(
@@ -53,7 +110,7 @@ _draw_char(
 		bg_color = COLOR_BG << 24;
 	}
 
-	const uint32_t	pitch		= bmp_pitch() / 4;
+	const uint32_t	pitch		= BMPPITCH / 4;
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 
 	//uint32_t flags = cli();
@@ -99,7 +156,7 @@ bmp_puts(
 {
 	if (!bmp_enabled) return;
 	
-	const uint32_t		pitch = bmp_pitch();
+	const uint32_t		pitch = BMPPITCH;
 	uint8_t * vram = bmp_vram();
 	if( !vram || ((uintptr_t)vram & 1) == 1 )
 		return;
@@ -137,7 +194,7 @@ bmp_puts_w(
 	const char *		s
 )
 {
-	const uint32_t		pitch = bmp_pitch();
+	const uint32_t		pitch = BMPPITCH;
 	uint8_t * vram = bmp_vram();
 	if( !vram || ((uintptr_t)vram & 1) == 1 )
 		return;
@@ -205,7 +262,7 @@ con_printf(
 	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
 	va_end( ap );
 
-	const uint32_t		pitch = bmp_pitch();
+	const uint32_t		pitch = BMPPITCH;
 	uint8_t * vram = bmp_vram();
 	if( !vram )
 		return;
@@ -297,11 +354,13 @@ bmp_fill(
 )
 {
 	if (!bmp_enabled) return;
-	
+	bmp_ov_loc_size_t os;
+	calc_ov_loc_size(&os);
+	                
 	const uint32_t start = x;
-	const uint32_t width = bmp_width();
-	const uint32_t pitch = bmp_pitch();
-	const uint32_t height = bmp_height();
+	const uint32_t width = os.bmp_sz_x;
+	const uint32_t pitch = BMPPITCH;
+	const uint32_t height = os.bmp_sz_y;
 
 	// Convert to words and limit to the width of the LCD
 	if( start + w > width )
@@ -361,7 +420,7 @@ bmp_draw_palette( void )
 	{
 		for( y=0 ; y<height; y++ )
 		{
-			uint8_t * const row = bmp_vram() + (y + height*msb) * bmp_pitch();
+			uint8_t * const row = bmp_vram() + (y + height*msb) * BMPPITCH;
 
 			for( lsb=0 ; lsb<16 ; lsb++ )
 			{
@@ -502,7 +561,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 	if (y0 < 0) return;
 	if (y0 + bmp->height > 960) return;
 	
-	int bmppitch = bmp_pitch();
+	int bmppitch = BMPPITCH;
 	uint32_t x,y;
 	for( y=0 ; y < bmp->height; y++ )
 	{
@@ -539,7 +598,7 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
-	int bmppitch = bmp_pitch();
+	int bmppitch = BMPPITCH;
 	int x,y; // those sweep the original bmp
 	int xs,ys; // those sweep the BMP VRAM (and are scaled)
 	
@@ -574,7 +633,7 @@ uint8_t bmp_getpixel(int x, int y)
 {
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return 0;
-	int bmppitch = bmp_pitch();
+	int bmppitch = BMPPITCH;
 
 	uint8_t * const b_row = bvram + y * bmppitch;
 	return b_row[x];
@@ -588,7 +647,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
-	int bmppitch = bmp_pitch();
+	int bmppitch = BMPPITCH;
 	int x,y; // those sweep the original bmp
 	int xs,ys; // those sweep the BMP VRAM (and are scaled)
 	
