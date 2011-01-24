@@ -105,7 +105,4 @@ menu_add(
 extern void
 menu_init( void );
 
-// mod like in math... x mod n is from 0 to n-1
-#define mod(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
-
 #endif

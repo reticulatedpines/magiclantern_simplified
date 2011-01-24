@@ -688,5 +688,7 @@ extern void DebugMsg(int,int,const char *,...);
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
 #define ABS(a) ((a) > 0 ? (a) : -(a))
+// mod like in math... x mod n is from 0 to n-1
+#define mod(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
 
 #endif

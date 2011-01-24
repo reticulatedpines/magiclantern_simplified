@@ -146,13 +146,15 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   * **Lo-res C**: half resolution, faster.
   * **ASM (AJ)**: ASM code by `AJ <http://magiclantern.wikia.com/wiki/2.0.4_AJ>`_, ported from 5D2. Very fast, but a bit buggy.
 
-  This can be triggered by a shortcut key:
+  To get the correct palette, go to LiveView, then Play, make sure you have an image, then back to LiveView.
+
+  This function can be triggered by a shortcut key:
   
   * flash button in Movie mode
   * DOF preview button in Photo mode
   
   Use ``Q`` to enable/disable the shortcut key.
-
+  
 **Cropmks(x/n)**
   Select cropmarks (cycle between them).
 

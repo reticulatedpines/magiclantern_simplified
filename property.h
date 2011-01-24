@@ -221,7 +221,7 @@
 // buf[2]: 0x19 if 25fps, 18 if 24fps, 32 if 50fps, maybe other values if I change region
 // buf[3]: always c
 
-#define PROP_ERASING_IMAGE 0x8003000c // not sure, may be dangerous to set it
+#define PROP_WORKING_ON_IMAGE 0x8003000c // not sure, may be dangerous to set it
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
 
 /** Properties */

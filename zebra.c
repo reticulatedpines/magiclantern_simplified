@@ -1834,7 +1834,7 @@ zebra_task_loop:
 
 		int fcp = falsecolor_displayed;
 		falsecolor_displayed = (falsecolor_draw && ((!falsecolor_shortcutkey) || (falsecolor_shortcutkey && (dofpreview || FLASH_BTN_MOVIE_MODE))));
-		if (fcp != falsecolor_displayed && !falsecolor_displayed) clrscr_mirror(); // cleanup
+		if (fcp != falsecolor_displayed && !falsecolor_displayed) cropmark_redraw(); // cleanup
 
 		if (gui_menu_shown())
 		{
@@ -1923,7 +1923,7 @@ movie_clock_task( void )
 		msleep(1000);
 		if (shooting_type == 4 && recording) movie_elapsed_time++;
 		
-		bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
+		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
 		fps_ticks = 0;
 	}
 }
