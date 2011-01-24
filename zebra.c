@@ -163,6 +163,8 @@ typedef struct bmp_ov_loc_size
 	int bmp_ex_y; //live view y extend
 	int bmp_sz_x; //bitmap x size
 	int bmp_sz_y; //bitmap y size
+	int lv_pitch; //pitch for low res yuv422 buffer
+	int lv_height;//height for low res yuv422 buffer
 } bmp_ov_loc_size_t;
 
 static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
@@ -195,16 +197,26 @@ static void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 		os->bmp_ex_x=lv_x*ov_x/disp_x;
 		os->bmp_ex_y=lv_y*ov_y/disp_y;
 		os->bmp_of_y=(recording||ext_monitor_rca||lv_y==880)?24:0; //screen layout differs beween rec mode and standby
-		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:(ov_x-os->bmp_ex_x)>>1;
+		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:((ov_x-os->bmp_ex_x)>>1)+2;
 	} else {
 		ov_x = os->bmp_ex_x=720;
 		ov_y = os->bmp_ex_y=480;
 		os->bmp_of_x=0;
 		os->bmp_of_y=0;
 	}
+	if(ext_monitor_hdmi) {
+		os->lv_pitch=YUV422_LV_PITCH_HDMI;
+		os->lv_height=YUV422_LV_HEIGHT_HDMI;
+	}else if(ext_monitor_rca) {
+		os->lv_pitch=YUV422_LV_PITCH_RCA;
+		os->lv_height=YUV422_LV_HEIGHT_RCA;
+	} else {
+		os->lv_pitch=YUV422_LV_PITCH;
+		os->lv_height=YUV422_LV_HEIGHT;
+	}
 	os->bmp_sz_x = ov_x;
 	os->bmp_sz_y = ov_y;
-//	bmp_printf( FONT_MED, 120, 40, "calc_ov_loc_size: %d %d %d %d %d %d", os->bmp_sz_x, os->bmp_sz_y, os->bmp_ex_x, os->bmp_ex_y, os->bmp_of_x, os->bmp_of_y);
+//	bmp_printf( FONT_MED, 10, 40, "calc_ov_loc_size: %d %d %d %d %d %d %d %d", os->bmp_sz_x, os->bmp_sz_y, os->bmp_ex_x, os->bmp_ex_y, os->bmp_of_x, os->bmp_of_y, os->lv_pitch, os->lv_height);
 }
 
 struct vram_info * get_yuv422_hd_vram()
@@ -753,6 +765,8 @@ draw_zebra_and_focus( void )
 	if (!bvram_mirror) return;
 	//~ int BMPPITCH = bmp_pitch();
 	uint32_t x,y;
+	bmp_ov_loc_size_t os;
+	calc_ov_loc_size(&os);
 
 	if (focus_peaking)
 	{
@@ -780,8 +794,6 @@ draw_zebra_and_focus( void )
 
 		if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 		
-		bmp_ov_loc_size_t os;
-		calc_ov_loc_size(&os);
 		int bm_width = os.bmp_ex_x;  // 8-bit palette image
 		int bm_height = os.bmp_ex_y;
 		int bm_lv_y = recording?bm_height-os.bmp_ex_x*9/16:0;
@@ -875,31 +887,26 @@ draw_zebra_and_focus( void )
 		uint32_t zll = zebra_level_lo << 8;
 
 		uint8_t * const lvram = YUV422_LV_BUFFER;
-		int lvpitch = YUV422_LV_PITCH;
-		for( y = 0; y < 480; y += 2 )
+		for( y = os.bmp_of_y; y < os.bmp_ex_y+os.bmp_of_y; y += 2 )
 		{
 			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
 			uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
 			uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
 			uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
 			
-			uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );          // 2 pixels
-			uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);          // 4 pixels
-			uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );  // 4 pixels
+			uint32_t * const v_row = (uint32_t*)( lvram + (y - os.bmp_of_y) * os.lv_height / (os.bmp_ex_y+os.bmp_of_y)  * os.lv_pitch + (os.bmp_of_x<<2));          // 2 pixel
+			uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH + os.bmp_of_x );         // 4 pixels
+			uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH + os.bmp_of_x );  // 4 pixels
 			
-			uint32_t* lvp; // that's a moving pointer through lv vram
-			uint32_t* bp;  // through bmp vram
-			uint32_t* mp;  // through mirror
-
-			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + YUV422_LV_PITCH/4 ; lvp += 2, bp++, mp++)
+			for (x=0; x < os.bmp_ex_x>>2; x++)
 			{
-				#define BP (*bp)
-				#define MP (*mp)
-				#define BN (*(bp + BMPPITCH/4))
-				#define MN (*(mp + BMPPITCH/4))
-				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
-				uint32_t p0 = *lvp & 0xFF00;
+				#define BP (b_row[x])
+				#define MP (m_row[x])
+				#define BN (b_row[x + BMPPITCH/4])
+				#define MN (m_row[x + BMPPITCH/4])
+				if (BP != 0 && BP != MP) { little_cleanup(b_row + x, m_row + x); continue; }
+				if (BN != 0 && BN != MN) { little_cleanup(b_row + x + BMPPITCH/4, m_row + x + BMPPITCH/4); continue; }
+				uint32_t p0 = v_row[(x + 0) * ((os.lv_pitch-(os.bmp_of_x<<3))>>2) / (os.bmp_ex_x>>2)] & 0xFF00;
 				if (p0 > zlh)
 				{
 					BP = MP = color_over;
