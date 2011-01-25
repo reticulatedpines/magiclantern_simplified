@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Render the user's guide in wiki format
 # Output: userguide.wiki
 

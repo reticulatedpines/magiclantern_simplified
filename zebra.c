@@ -617,27 +617,6 @@ static void bvram_mirror_init()
 	}
 }
 
-static int zebra_color_word_row(int c, int y)
-{
-	uint32_t cw = 0;
-	switch(y % 4)
-	{
-		case 0:
-			cw  = c  | c  << 8;
-			break;
-		case 1:
-			cw  = c << 8 | c << 16;
-			break;
-		case 2:
-			cw = c  << 16 | c << 24;
-			break;
-		case 3:
-			cw  = c  << 24 | c ;
-			break;
-	}
-	return cw;
-}
-
 int get_focus_color(int thr, int d)
 {
 	return
@@ -670,8 +649,7 @@ static void little_cleanup(uint8_t* bp, uint8_t* mp)
 	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 }
 // thresholded edge detection
-static void
-draw_zebra_and_focus( void )
+static void draw_zebra_and_focus( void )
 {
 	if (!global_draw) return;
 	
@@ -709,13 +687,18 @@ draw_zebra_and_focus( void )
 		int hd_pitch =  hd_vram->pitch;
 
 		int bm_lv_y = (os.bmp_ex_y-os.bmp_ex_x*9/16);
-		if((ext_monitor_hdmi || ext_monitor_rca) && !recording || !(ext_monitor_hdmi || ext_monitor_rca) && !recording){
+		if(((ext_monitor_hdmi || ext_monitor_rca) && !recording ) || (!ext_monitor_hdmi && !ext_monitor_rca)){
 			bm_lv_y>>=1;
+		}
+		int off_cor = recording ? bm_lv_y:0;
+		int height_cor = recording ? bm_lv_y+os.bmp_of_y:0;
+		if(!ext_monitor_hdmi && !ext_monitor_rca) {
+			height_cor<<=1;
 		}
 		os.bmp_ex_x>>=1; 
 		os.bmp_of_x>>=1;
 
-//		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %d %d", hd_width, hd_height, os.bmp_of_y,  bm_lv_y);
+//		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %d %d %d %d", hd_width, hd_height, os.bmp_of_y,  bm_lv_y, off_cor, height_cor);
 
 		uint32_t zlh = zebra_level_hi << 8;
 		uint32_t zll = zebra_level_lo << 8;
@@ -741,17 +724,11 @@ draw_zebra_and_focus( void )
   		int n_over = 0;
   
   		int step = (recording ? 2 : 1);
-		int off_cor = recording && (ext_monitor_hdmi || ext_monitor_rca);
 		for( y = os.bmp_of_y + bm_lv_y; y < (os.bmp_ex_y+os.bmp_of_y-bm_lv_y); y+=2 ) {
-			uint32_t * const hd_row = (uint32_t*)( hdvram + (y-os.bmp_of_y-(off_cor?bm_lv_y:0)) * hd_height/(os.bmp_ex_y-(off_cor?bm_lv_y+os.bmp_of_y:0)) * hd_pitch ); // 2 pixels
+			uint32_t * const hd_row = (uint32_t*)( hdvram + (y-os.bmp_of_y-off_cor) * hd_height/(os.bmp_ex_y-height_cor) * hd_pitch ); // 2 pixels
 			int b_row_off = y * BMPPITCH;
 			uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 			uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
-  
-  			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
-  			uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
-  			uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
-  			uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
   
 			for ( x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step ) {
 
@@ -776,12 +753,12 @@ draw_zebra_and_focus( void )
 					if(!zebra_done) {
 						uint32_t p0 = pixel & 0xFF00;
 						if (p0 > zlh) {
-							BP = MP = color_over;
-							BN = MN = color_over_2;
+							BP = MP = COLOR_RED;
+							BN = MN = COLOR_RED<<8;
 						}
 						else if (p0 < zll) {
-							BP = MP = color_under;
-							BN = MN = color_under_2;
+							BP = MP = COLOR_BLUE;
+							BN = MN = COLOR_BLUE<<8;
 						}
 						else if (pixel) {
 							BN = MN = BP = MP = 0;
@@ -794,12 +771,12 @@ draw_zebra_and_focus( void )
 					int32_t p1 = (pixel >>  8) & 0xFF;
 					int32_t d = ABS(p0-p1);
 					if (d < thr) continue;
+					n_over++;
 					// executed for 1% of pixels
 					if (n_over > MAX_DIRTY_PIXELS) { // threshold too low, abort
 						thr = MIN(thr+2, 255);
 						continue;
 					}
-					n_over++;
 
 					int color = get_focus_color(thr, d);
 					color = (color << 8) | color;   
@@ -817,7 +794,7 @@ draw_zebra_and_focus( void )
   			}
   		}
 		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
-		if (1000 * n_over / os.bmp_ex_x<<1 * os.bmp_ex_y / step / 2 > focus_peaking_pthr) {
+		if (1000 * n_over / (os.bmp_ex_x>>(step-1)) / (os.bmp_ex_y>>1) > focus_peaking_pthr) {
 			thr++;
 		} else {
 			thr--;
