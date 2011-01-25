@@ -488,6 +488,25 @@ static void screenshot_start(void)
 	screenshot_sec = 10;
 }
 
+void toggle_draw_event( void * priv );
+
+static void
+spy_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Spy %s/%s/%s (s/d/q)",
+		draw_prop ? "PROP" : "prop",
+		get_draw_event() ? "EVT" : "evt", 
+		mem_spy ? "MEM" : "mem"
+	);
+}
 
 struct menu_entry debug_menus[] = {
 	{
@@ -525,16 +544,16 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 	},
 	{
-		.priv		= "Toggle draw_prop",
 		.select		= draw_prop_select,
-		.select_reverse = draw_prop_reset,
-		.display	= menu_print,
+		.select_reverse = toggle_draw_event,
+		.select_auto = mem_spy_select,
+		.display	= spy_print,
 	},
-	{
+	/*{
 		.priv		= "Toggle mem_spy",
 		.select		= mem_spy_select,
 		.display	= menu_print,
-	},
+	},*/
 
 #if 0
 	{

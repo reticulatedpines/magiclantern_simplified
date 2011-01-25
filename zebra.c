@@ -80,6 +80,19 @@ CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
 
+CONFIG_INT( "unified.loop", unified_loop, 0); // temporary; on/off/auto
+
+static void
+unified_loop_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"UnifLoop (experim): %s",
+		unified_loop == 0 ? "OFF" : unified_loop == 1 ? "ON" : "ExtMon"
+	);
+}
+
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
@@ -648,8 +661,30 @@ static void little_cleanup(uint8_t* bp, uint8_t* mp)
 	bp++; mp++;
 	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 }
+
+static int zebra_color_word_row(int c, int y)
+{
+	uint32_t cw = 0;
+	switch(y % 4)
+	{
+		case 0:
+			cw  = c  | c  << 8;
+			break;
+		case 1:
+			cw  = c << 8 | c << 16;
+			break;
+		case 2:
+			cw = c  << 16 | c << 24;
+			break;
+		case 3:
+			cw  = c  << 24 | c ;
+			break;
+	}
+	return cw;
+}
+
 // thresholded edge detection
-static void draw_zebra_and_focus( void )
+static void draw_zebra_and_focus_unified( void )
 {
 	if (!global_draw) return;
 	
@@ -802,6 +837,205 @@ static void draw_zebra_and_focus( void )
 		int thr_min = (lens_info.iso > 1600 ? 15 : 10);
 		thr = COERCE(thr, thr_min, 255);
   	}
+}
+
+
+// thresholded edge detection
+static void
+draw_zebra_and_focus( void )
+{
+	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
+	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca)) { draw_zebra_and_focus_unified(); return; }
+	
+	if (!global_draw) return;
+	
+	fps_ticks++;
+	
+	if (falsecolor_displayed) 
+	{
+		if (falsecolor_draw == 3) aj_DisplayFalseColour_n_CalcHistogram(); 
+		else if (falsecolor_draw == 2) draw_false_downsampled();
+		else draw_false();
+		return;
+	}
+	// HD to LV coordinate transform:
+	// non-record: 1056 px: 1.46 ratio (yuck!)
+	// record: 1720: 2.38 ratio (yuck!)
+	
+	// How to scan?
+	// Scan the HD vram and do ratio conversion only for the 1% pixels displayed
+
+	bvram_mirror_init();
+
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	if (!bvram_mirror) return;
+	//~ int BMPPITCH = bmp_pitch();
+	uint32_t x,y;
+
+	if (focus_peaking)
+	{
+		// clear previously written pixels
+		#define MAX_DIRTY_PIXELS 5000
+		static int dirty_pixels[MAX_DIRTY_PIXELS];
+		static int dirty_pixels_num = 0;
+		static int very_dirty = 0;
+		int i;
+		for (i = 0; i < dirty_pixels_num; i++)
+		{
+			dirty_pixels[i] = COERCE(dirty_pixels[i], 0, 950*540);
+			#define B1 *(uint16_t*)(bvram + dirty_pixels[i])
+			#define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
+			#define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
+			#define M2 *(uint16_t*)(bvram_mirror + dirty_pixels[i] + BMPPITCH)
+			if ((B1 == 0 || B1 == M1) && (B2 == 0 || B2 == M2))
+				B1 = B2 = M1 = M2 = 0;
+			#undef B1
+			#undef B2
+			#undef M1
+			#undef M2
+		}
+		dirty_pixels_num = 0;
+
+		if (lv_dispsize != 1) return; // zoom not handled, better ignore it
+		
+		bmp_ov_loc_size_t os;
+		calc_ov_loc_size(&os);
+		int bm_width = os.bmp_ex_x;  // 8-bit palette image
+		int bm_height = os.bmp_ex_y;
+		int bm_lv_y = recording?bm_height-os.bmp_ex_x*9/16:0;
+		bm_lv_y=(ext_monitor_hdmi||ext_monitor_rca)?bm_lv_y:bm_lv_y>>1;
+		
+		struct vram_info * hd_vram = get_yuv422_hd_vram();
+		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
+		int hd_pitch  = hd_vram->pitch;
+		int hd_height = hd_vram->height;
+		int hd_width  = hd_vram->width;
+//		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %dx%d %d", hd_width, hd_height, bm_width, bm_height, 1138*100/bm_height);
+
+		if(hd_height == 974) {
+			bm_height = bm_height*100/117; //reduce drawing area to actual lv size
+		}
+
+		
+		int bm_skipv = 50;
+		int bm_skiph = 100;
+		int hd_skipv = bm_skipv * hd_height / bm_height;
+		int hd_skiph = bm_skiph * hd_width / bm_width;
+		
+		static int thr = 50;
+		
+		int n_over = 0;
+		//~ int n_under = 0;
+		// look in the HD buffer
+
+		int step = (recording ? 2 : 1);
+		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
+		{
+			uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
+			uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
+			
+			uint32_t* hdp; // that's a moving pointer
+			for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
+			{
+				uint32_t pixel = *hdp;
+				int32_t p0 = (pixel >> 24) & 0xFF;
+				int32_t p1 = (pixel >>  8) & 0xFF;
+				int32_t d = ABS(p0-p1);
+				if (d < thr) continue;
+				// else
+				{ // executed for 1% of pixels
+					n_over++;
+					if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
+					{
+						thr = MIN(thr+2, 255);
+						return;
+					}
+
+					int color = get_focus_color(thr, d);
+					color = (color << 8) | color;   
+					int b_row_off = COERCE((y * bm_height / hd_height) + os.bmp_of_y+bm_lv_y, 0, 539) * BMPPITCH;
+					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
+					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
+					
+					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
+					x = COERCE(x + os.bmp_of_x, 0, 960);
+					
+					uint16_t pixel = b_row[x/2];
+					uint16_t mirror = m_row[x/2];
+					uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
+					uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
+					if ((pixel == 0 || pixel == mirror) && (pixel2 == 0 || pixel2 == mirror2)) // safe to draw
+					{
+						b_row[x/2] = color;
+						b_row[x/2 + BMPPITCH/2] = color;
+						m_row[x/2] = color;
+						m_row[x/2 + BMPPITCH/2] = color;
+						if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+						{
+							dirty_pixels[dirty_pixels_num++] = x + b_row_off;
+						}
+					}
+				}
+			}
+		}
+		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
+		if (1000 * n_over / ((hd_height - 2*hd_skipv) * (hd_width - 2*hd_skiph) / step / 2) > focus_peaking_pthr) thr++;
+		else thr--;
+		
+		int thr_min = (lens_info.iso > 1600 ? 15 : 10);
+		thr = COERCE(thr, thr_min, 255);
+	}
+	
+	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
+	if (zd)
+	{
+		uint32_t zlh = zebra_level_hi << 8;
+		uint32_t zll = zebra_level_lo << 8;
+
+		uint8_t * const lvram = YUV422_LV_BUFFER;
+		int lvpitch = YUV422_LV_PITCH;
+		for( y = 0; y < 480; y += 2 )
+		{
+			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
+			uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
+			uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
+			uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
+			
+			uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );          // 2 pixels
+			uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);          // 4 pixels
+			uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );  // 4 pixels
+			
+			uint32_t* lvp; // that's a moving pointer through lv vram
+			uint32_t* bp;  // through bmp vram
+			uint32_t* mp;  // through mirror
+
+			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + YUV422_LV_PITCH/4 ; lvp += 2, bp++, mp++)
+			{
+				#define BP (*bp)
+				#define MP (*mp)
+				#define BN (*(bp + BMPPITCH/4))
+				#define MN (*(mp + BMPPITCH/4))
+				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
+				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
+				uint32_t p0 = *lvp & 0xFF00;
+				if (p0 > zlh)
+				{
+					BP = MP = color_over;
+					BN = MN = color_over_2;
+				}
+				else if (p0 < zll)
+				{
+					BP = MP = color_under;
+					BN = MN = color_under_2;
+				}
+				else if (BP)
+					BN = MN = BP = MP = 0;
+				#undef MP
+				#undef BP
+			}
+		}
+	}
 }
 
 
@@ -1204,7 +1438,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		x, y,
 		//23456789012
 		"Zebras      : %s, %d..%d",
-		z == 1 ? "ON " : (z == 2 ? "Auto" : "OFF"),
+		z == 1 ? "ON " : (z == 2 ? "NRec" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
 }
@@ -1606,6 +1840,13 @@ struct menu_entry zebra_menus[] = {
 	//~ },
 };
 
+struct menu_entry dbg_menus[] = {
+	{
+		.priv		= &unified_loop,
+		.select		= menu_ternary_toggle,
+		.display	= unified_loop_display,
+	},
+};
 
 PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 
@@ -1700,6 +1941,7 @@ zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+    menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
 
 
 	msleep(2000);
@@ -1736,8 +1978,12 @@ zebra_task_loop:
 					bmp_fill(0, 0, 330, 720, 480-330);
 					cropmark_redraw();
 				}
+				else
+				{
+					clrscr_mirror();
+				}
 			}
-			else // 
+			else // false color no longer displayed
 			{
 				cropmark_redraw();
 			}

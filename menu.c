@@ -726,8 +726,7 @@ gui_menu_shown( void )
 
 int get_draw_event() { return draw_event; }
 
-static void
-toggle_draw_event( void * priv )
+void toggle_draw_event( void * priv )
 {
 	draw_event = !draw_event;
 }
@@ -823,13 +822,13 @@ about_print(
 }
 
 
-static struct menu_entry draw_prop_menus[] = {
+/*static struct menu_entry draw_prop_menus[] = {
 	{
 		.priv		= "Toggle draw-event",
 		.display	= menu_print,
 		.select		= toggle_draw_event,
 	},
-};
+};*/
 
 static struct menu_entry about_menu[] = {
 	{
@@ -847,7 +846,7 @@ menu_task( void )
 	DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
 	// Add the draw_prop menu
-	menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
+	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
 	menu_add( "About", about_menu, COUNT(about_menu));
 	
 	msleep(3000);
