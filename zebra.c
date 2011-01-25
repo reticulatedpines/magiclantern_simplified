@@ -173,6 +173,7 @@ struct vram_info * get_yuv422_hd_vram()
 									video_mode_resolution == 1 ? 1280 : 
 									video_mode_resolution == 2 ? 640 : 0)
 								  : lv_dispsize > 1 ? 1024
+								  : shooting_mode != SHOOTMODE_MOVIE ? 1056
 								  : (video_mode_resolution == 0 ? 1056 : 
 									 video_mode_resolution == 2 ? 640 : 0);
 	_vram_info.pitch = _vram_info.width * 2;
@@ -180,6 +181,7 @@ struct vram_info * get_yuv422_hd_vram()
 									video_mode_resolution == 1 ? 580 : 
 									video_mode_resolution == 2 ? 480 : 0)
 								  : lv_dispsize > 1 ? 680
+								  : shooting_mode != SHOOTMODE_MOVIE ? 704
 								  : (video_mode_resolution == 0 ? 704 : 
 									 video_mode_resolution == 2 ? 480 : 0);
 
