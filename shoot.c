@@ -591,7 +591,7 @@ static void vsync(volatile int* addr)
 static void
 silent_pic_take_simple()
 {
-	struct vram_info * vram = get_yuv422_vram();
+	struct vram_info * vram = get_yuv422_hd_vram();
 	
 	int silent_number;
 	char imgname[100];
@@ -695,7 +695,7 @@ silent_pic_take_sweep()
 static void
 silent_pic_take_slitscan(int interactive)
 {
-	if (recording) return;
+	if (recording) return; // vsync fails
 	if (!lv_drawn()) return;
 	gui_stop_menu();
 	if (interactive) while (get_halfshutter_pressed()) msleep(100);
@@ -709,6 +709,7 @@ silent_pic_take_slitscan(int interactive)
 	#define BMPPITCH 960
 
 	struct vram_info * vram = get_yuv422_hd_vram();
+	bmp_printf(FONT_MED, 20, 100, "%dx%d", vram->width, vram->height);
 	int silent_number;
 	char imgname[100];
 	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics

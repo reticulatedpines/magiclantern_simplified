@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=unified-optional-2.$(shell whoami)
+BUILDVER=silent-fix.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
