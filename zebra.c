@@ -172,12 +172,16 @@ struct vram_info * get_yuv422_hd_vram()
 	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
 									video_mode_resolution == 1 ? 1280 : 
 									video_mode_resolution == 2 ? 640 : 0)
-						: *(uint16_t*)0x1300ce;
+								  : lv_dispsize > 1 ? 1024
+								  : (video_mode_resolution == 0 ? 1056 : 
+									 video_mode_resolution == 2 ? 640 : 0);
 	_vram_info.pitch = _vram_info.width * 2;
 	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
 									video_mode_resolution == 1 ? 580 : 
 									video_mode_resolution == 2 ? 480 : 0)
-						: *(uint16_t*)0x1300d0;
+								  : lv_dispsize > 1 ? 680
+								  : (video_mode_resolution == 0 ? 704 : 
+									 video_mode_resolution == 2 ? 480 : 0);
 
 	struct vram_info * vram = &_vram_info;
 	return vram;
@@ -899,24 +903,17 @@ draw_zebra_and_focus( void )
 
 		if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 		
-		bmp_ov_loc_size_t os;
-		calc_ov_loc_size(&os);
-		int bm_width = os.bmp_ex_x;  // 8-bit palette image
-		int bm_height = os.bmp_ex_y;
-		int bm_lv_y = recording?bm_height-os.bmp_ex_x*9/16:0;
-		bm_lv_y=(ext_monitor_hdmi||ext_monitor_rca)?bm_lv_y:bm_lv_y>>1;
+		int bm_pitch = (ext_monitor_hdmi && !recording) ? 960 : 720; // or other value for ext monitor
+		int bm_width = bm_pitch;  // 8-bit palette image
+		int bm_height = (ext_monitor_hdmi && !recording) ? 540 : 480;
 		
 		struct vram_info * hd_vram = get_yuv422_hd_vram();
 		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
 		int hd_pitch  = hd_vram->pitch;
 		int hd_height = hd_vram->height;
 		int hd_width  = hd_vram->width;
-//		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %dx%d %d", hd_width, hd_height, bm_width, bm_height, 1138*100/bm_height);
-
-		if(hd_height == 974) {
-			bm_height = bm_height*100/117; //reduce drawing area to actual lv size
-		}
-
+		
+		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d ", hd_width, hd_height);
 		
 		int bm_skipv = 50;
 		int bm_skiph = 100;
@@ -929,6 +926,7 @@ draw_zebra_and_focus( void )
 		//~ int n_under = 0;
 		// look in the HD buffer
 
+		int rec_off = (recording ? 90 : 0);
 		int step = (recording ? 2 : 1);
 		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
@@ -953,13 +951,14 @@ draw_zebra_and_focus( void )
 					}
 
 					int color = get_focus_color(thr, d);
+					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
-					int b_row_off = COERCE((y * bm_height / hd_height) + os.bmp_of_y+bm_lv_y, 0, 539) * BMPPITCH;
+					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
 					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
-					x = COERCE(x + os.bmp_of_x, 0, 960);
+					x = COERCE(x, 0, 960);
 					
 					uint16_t pixel = b_row[x/2];
 					uint16_t mirror = m_row[x/2];
