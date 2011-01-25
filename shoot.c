@@ -42,7 +42,7 @@ CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = norm
 CONFIG_INT( "silent.pic.burst", silent_pic_burst, 0);       // boolean
 CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
-CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 2);
+CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -693,12 +693,12 @@ silent_pic_take_sweep()
 }
 
 static void
-silent_pic_take_slitscan()
+silent_pic_take_slitscan(int interactive)
 {
 	if (recording) return;
 	if (!lv_drawn()) return;
 	gui_stop_menu();
-	while (get_halfshutter_pressed()) msleep(100);
+	if (interactive) while (get_halfshutter_pressed()) msleep(100);
 	clrscr();
 	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a slit-scan pic   ");
 
@@ -733,7 +733,7 @@ silent_pic_take_slitscan()
 		for (k = 0; k < silent_pic_slitscan_skipframes; k++)
 			vsync(CLK_25FPS);
 		
-		FIO_WriteFile(f, vram->vram + i * vram->pitch, vram->pitch);
+		FIO_WriteFile(f, (i % 2 ? YUV422_HD_BUFFER : YUV422_HD_BUFFER_2) + i * vram->pitch, vram->pitch);
 
 		int y = i * 480 / vram->height;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
@@ -757,6 +757,7 @@ silent_pic_take_slitscan()
 
 	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a slit-scan pic (%d)   ", silent_number);
 
+	if (!interactive) return;
 	// wait half-shutter press and clear the screen
 	while (!get_halfshutter_pressed()) msleep(100);
 	clrscr();
@@ -765,7 +766,7 @@ silent_pic_take_slitscan()
 }
 
 static void
-silent_pic_take()
+silent_pic_take(int interactive) // for remote release, set interactive=0
 {
 	if (!lv_drawn()) return;
 	
@@ -777,7 +778,7 @@ silent_pic_take()
 	else if (silent_pic_mode == 2) // hi-res
 		silent_pic_take_sweep();
 	else if (silent_pic_mode == 3) // slit-scan
-		silent_pic_take_slitscan();
+		silent_pic_take_slitscan(interactive);
 
 	set_global_draw(g);
 }
@@ -1469,7 +1470,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			lens_set_rawshutter( new_s );
 			msleep(1);
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
-			else { msleep(300); silent_pic_take(); }
+			else { msleep(300); silent_pic_take(0); }
 		}
 		msleep(100);
 		lens_set_rawshutter( s );
@@ -1486,7 +1487,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			lens_set_ae( new_ae );
 			msleep(10);
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
-			else { msleep(300); silent_pic_take(); }
+			else { msleep(300); silent_pic_take(0); }
 		}
 		lens_set_ae( ae );
 	}
@@ -1579,7 +1580,7 @@ void remote_shot()
 	else
 	{
 		if (silent_pic_mode && lv_drawn())
-			silent_pic_take();
+			silent_pic_take(0);
 		else if (shooting_mode == SHOOTMODE_MOVIE)
 			movie_start();
 		else
@@ -1788,7 +1789,7 @@ shoot_task( void )
 		
 		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
 		{
-			silent_pic_take();
+			silent_pic_take(1);
 		}
 
 		if (intervalometer_running)
