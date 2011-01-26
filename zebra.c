@@ -81,6 +81,7 @@ CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
 
 CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
+CONFIG_INT( "zebra.mode", zebra_mode, 0); 
 
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
@@ -91,6 +92,15 @@ unified_loop_display( void * priv, int x, int y, int selected )
 		"UnifLoop (experim): %s",
 		unified_loop == 0 ? "OFF" : unified_loop == 1 ? "ON" : "ExtMon"
 	);
+}
+
+static void
+zebra_mode_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Zebra Density: %d", zebra_mode);
 }
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
@@ -783,7 +793,7 @@ static void draw_zebra_and_focus_unified( void )
   		static int xcalc[960];
   		static int xcalc_done=0;
   		
-  		if(!xcalc_done) {
+  		if(!xcalc_done || crop_dirty) {
 	  		for (x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step) {
   				xcalc[x]=(x-os.bmp_of_x)*(hd_width>>2)/os.bmp_ex_x;
 			}
@@ -813,20 +823,65 @@ static void draw_zebra_and_focus_unified( void )
 
 				if (zd) {
 					int zebra_done = 0;
-					if (bp != 0 && bp != mp) { little_cleanup(b_row + x, m_row + x); zebra_done = 1; }
-					if (bn != 0 && bn != mn) { little_cleanup(b_row + x + (BMPPITCH>>1), m_row + x + (BMPPITCH>>1)); zebra_done = 1; }
+					switch(zebra_mode) {
+						case 0:
+							if(!(y&2) && (x&1)) {
+								zebra_done = 1;
+							} else if ((y&2) && !(x&1)) {
+								zebra_done = 1;
+							}
+							break;
+						case 1:
+							if(!(y&2) && (x&2)) {
+								zebra_done = 1;
+							} else if ((y&2) && !(x&2)) {
+								zebra_done = 1;
+							} 
+							break;
+					}
+					if(!zebra_done) {
+						if (bp != 0 && bp != mp) { little_cleanup(b_row + x, m_row + x); zebra_done = 1; }
+						if (bn != 0 && bn != mn) { little_cleanup(b_row + x + (BMPPITCH>>1), m_row + x + (BMPPITCH>>1)); zebra_done = 1; }
+					}
 					if(!zebra_done) {
 						uint32_t p0 = pixel & 0xFF00;
+						int color = 0;
+					
 						if (p0 > zlh) {
-							BP = MP = COLOR_RED;
-							BN = MN = COLOR_RED<<8;
+							color = COLOR_RED;
+						} else if (p0 < zll) {
+							color = COLOR_BLUE;
 						}
-						else if (p0 < zll) {
-							BP = MP = COLOR_BLUE;
-							BN = MN = COLOR_BLUE<<8;
-						}
-						else if (pixel) {
-							BN = MN = BP = MP = 0;
+						
+						switch(zebra_mode) {
+							case 0:
+								BP = MP = color;
+								BN = MN = color<<8;
+								break;
+							case 1:
+								if(!(x&1)) {
+									BP = MP = color<<8 | color;
+								} else {
+									BN = MN = color<<8 | color;
+								}
+								break;
+							case 2:
+								if(!(y&2)) {
+									if(!(x&1)) {
+										BP = MP = color<<8 | color;
+										BN = MN = color<<8;
+									} else {
+										BN = MN = color;
+									}
+								} else {
+									if(!(x&1)) {
+										BN= MN = color;
+									} else {
+										BP = MP = color<<8 | color;
+										BN = MN = color<<8;
+									} 
+								}
+								break;
 						}
 					}
   				}
@@ -1378,7 +1433,7 @@ static void find_cropmarks()
 	int k = 0;
 	do {
 		char* s = strstr(file.name, ".BMP");
-		if (s)
+		if (s && !strstr(file.name, "~"))
 		{
 			if (k >= MAX_CROPMARKS)
 			{
@@ -1869,6 +1924,11 @@ struct menu_entry dbg_menus[] = {
 		.priv		= &unified_loop,
 		.select		= menu_ternary_toggle,
 		.display	= unified_loop_display,
+	},
+	{
+		.priv		= &zebra_mode,
+		.select		= menu_ternary_toggle,
+		.display	= zebra_mode_display,
 	},
 };
 
