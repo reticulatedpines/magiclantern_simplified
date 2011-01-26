@@ -67,6 +67,7 @@ PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_GUI_STATE, gui_state);
+PROP_INT(PROP_REMOTE_SW1, remote_sw1);
 
 int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
 
@@ -164,11 +165,12 @@ audio_release_display( void * priv, int x, int y, int selected )
 static void 
 trap_focus_display( void * priv, int x, int y, int selected )
 {
+	int t = (*(int*)priv);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Trap Focus      : %s",
-		(*(int*)priv) ? "ON " : "OFF"
+		t == 1 ? "Hold" : t == 2 ? "Cont." : "OFF"
 	);
 }
 
@@ -1415,7 +1417,7 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &trap_focus,
-		.select		= menu_binary_toggle,
+		.select		= menu_ternary_toggle,
 		.display	= trap_focus_display,
 	},
 	{
@@ -1682,7 +1684,7 @@ void display_shooting_info() // called from debug task
 		bmp_printf(fnt, 470, 27, "ISO AUTO");
 
 	bg = bmp_getpixel(410, 330);
-	fnt = FONT(FONT_MED, 80, bg);
+	fnt = FONT(FONT_MED, (trap_focus == 2 ? COLOR_RED : 80), bg);
 	if (trap_focus && ((af_mode & 0xF) == 3))
 		bmp_printf(fnt, 410, 331, "TRAP \nFOCUS");
 
@@ -1853,14 +1855,17 @@ shoot_task( void )
 			set_flash_firing(strobo_firing);
 		}
 
-		if (trap_focus && !lv_drawn() && (af_mode & 0xF) == 3) // MF
+		if (trap_focus && !lv_drawn() && (af_mode & 0xF) == 3 && !gui_menu_shown()) // MF
 		{
+			if (trap_focus == 2 && cfn[2] & 0xF00 != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
+			if (trap_focus == 2 && gui_state == GUISTATE_IDLE) SW1(1);
 			if (*(int*)FOCUS_CONFIRMATION)
 			{
 				lens_take_picture(64000);
 				msleep(trap_focus_delay);
 			}
-		} 
+			if (trap_focus == 2 && gui_state == GUISTATE_IDLE) SW1(0);
+		}
 		
 		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
 		{

@@ -336,8 +336,10 @@ Functions for stills shooting.
 
 You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
   
-**Trap Focus: ON/OFF**
-  You hold the shutter half-pressed; camera takes a picture when something comes into focus.
+**Trap Focus: OFF/Hold/Cont.**
+  
+  * ``Hold``: You hold the shutter half-pressed; camera takes a picture when something comes into focus.
+  * ``Cont.``: You don't have to hold the shutter half-pressed; ML will emulate half-shutter presses instead. This is experimental and may have bugs.
   
   This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
 
