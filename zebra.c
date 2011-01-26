@@ -185,15 +185,17 @@ struct vram_info * get_yuv422_hd_vram()
 								  : lv_dispsize > 1 ? 1024
 								  : shooting_mode != SHOOTMODE_MOVIE ? 1056
 								  : (video_mode_resolution == 0 ? 1056 : 
-									 video_mode_resolution == 2 ? 640 : 0);
-	_vram_info.pitch = _vram_info.width * 2;
+								  	video_mode_resolution == 1 ? 1024 :
+									 video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
+	_vram_info.pitch = _vram_info.width <<(video_mode_crop?2:1);
 	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
 									video_mode_resolution == 1 ? 580 : 
 									video_mode_resolution == 2 ? 480 : 0)
 								  : lv_dispsize > 1 ? 680
 								  : shooting_mode != SHOOTMODE_MOVIE ? 704
 								  : (video_mode_resolution == 0 ? 704 : 
-									 video_mode_resolution == 2 ? 480 : 0);
+								  	video_mode_resolution == 1 ? 680 :
+									 video_mode_resolution == 2 ? (video_mode_crop?680:680) : 0);
 
 	struct vram_info * vram = &_vram_info;
 	return vram;
