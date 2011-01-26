@@ -223,7 +223,14 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   * Vertical downsampling: always 2
   * Horizontal downsampling: 2 when recording, else 1.
   
+**LiveView Zoom: x5 / x10 / :-)**
   
+  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
+  
+  * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
+  * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
+  * ``x5x10``: both settings available (Canon default)
+  * ``:-)`` Enable zoom in Face Detection mode
 
 Shoot
 ~~~~~
@@ -364,15 +371,11 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   * avoid that horizontal cut in pictures (vsync doesn't help)
 
-**LiveView Zoom: x5 / x10 / :-)**
-  
-  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
-  
-  * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
-  * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
-  * ``x5x10``: both settings available (Canon default)
-  * ``:-)`` Enable zoom in Face Detection mode
- 
+**Bulb Timer: 1s...3600s**
+
+  Very long exposures with Bulb mode and ML timer. Only works with remote triggers and intervalometer. You should select ``M`` mode and ``BULB`` setting from Canon UI before using this.
+
+  Tip: you can cancel the exposure earlier by half-pressing the shutter button.
 Expo
 ~~~~
 

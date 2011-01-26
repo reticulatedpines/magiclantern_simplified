@@ -224,6 +224,9 @@
 #define PROP_WORKING_ON_IMAGE 0x8003000c // not sure, may be dangerous to set it
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
 
+#define PROP_REMOTE_SW1 0x80020015
+#define PROP_REMOTE_SW2 0x80020016
+
 /** Properties */
 extern void
 prop_register_slave(

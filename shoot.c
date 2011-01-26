@@ -46,6 +46,7 @@ CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1)
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
+CONFIG_INT( "bulb.duration", bulb_duration, 5000);
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
@@ -1246,7 +1247,7 @@ zoom_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LiveView Zoom   : %s%s %s",
+		"LiveViewZoom: %s %s %s",
 		zoom_disable_x5 ? "" : "x5", 
 		zoom_disable_x10 ? "" : "x10", 
 		zoom_enable_face ? ":-)" : ""
@@ -1323,6 +1324,65 @@ hdr_reset( void * priv )
 	hdr_stepsize = 8;
 }
 
+void SW1(int v)
+{
+	prop_request_change(PROP_REMOTE_SW1, &v, 2);
+	msleep(100);
+}
+void SW2(int v)
+{
+	prop_request_change(PROP_REMOTE_SW2, &v, 2);
+	msleep(100);
+}
+int is_bulb_mode()
+{
+	if (shooting_mode != SHOOTMODE_M) return 0;
+	if (lens_info.raw_shutter != 0xC) return 0;
+	return 1;
+}
+static void
+bulb_take_pic(int duration)
+{
+	if (!is_bulb_mode())
+	{
+		bmp_printf(FONT_LARGE, 0, 30, "Pls select bulb mode");
+		return;
+	}
+	SW1(1);
+	SW2(1);
+	msleep(duration);
+	SW2(0);
+	SW1(0);
+}
+
+static void bulb_toggle_fwd(void* priv)
+{
+	bulb_duration = bulb_duration * 2;
+	if (bulb_duration > 3600*1000) // one hour
+		bulb_duration = 3600*1000;
+	if (bulb_duration >= 3600*1000*2)
+		bulb_duration = 1000;
+}
+static void bulb_toggle_rev(void* priv)
+{
+	bulb_duration = bulb_duration / 2;
+	if (bulb_duration < 1000)
+		bulb_duration = 3600*1000;
+}
+
+static void
+bulb_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Bulb Timer %s: %ds",
+		is_bulb_mode() ? "     " : "(N/A)",
+		bulb_duration/1000
+	);
+}
+
+
 struct menu_entry shoot_menus[] = {
 	{
 		.display	= hdr_display,
@@ -1369,16 +1429,19 @@ struct menu_entry shoot_menus[] = {
 		.display = silent_pic_display,
 	},
 	{
+		.display = bulb_display, 
+		.select = bulb_toggle_fwd, 
+		.select_reverse = bulb_toggle_rev,
+	}
+};
+
+struct menu_entry vid_menus[] = {
+	{
 		.priv = &zoom_enable_face,
 		.select = menu_binary_toggle,
 		.select_reverse = zoom_toggle, 
 		.display = zoom_display,
 	},
-	/*{
-		.priv = "Sweep test", 
-		.display = menu_print, 
-		.select = sweep_lv_start,
-	}*/
 };
 
 struct menu_entry expo_menus[] = {
@@ -1551,11 +1614,16 @@ hdr_take_mov(steps, step_size)
 }
 
 // take a HDR shot (sequence of stills or a small movie)
+// to be used with the intervalometer
 void hdr_shot(int skip0)
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
 	//~ msleep(2000);
-	if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
+	if (is_bulb_mode())
+	{
+		bulb_take_pic(bulb_duration);
+	}
+	else if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
 	{
 		hdr_take_mov(hdr_steps, hdr_stepsize);
 	}
@@ -1575,9 +1643,14 @@ void hdr_shot(int skip0)
 // to be called by remote triggers
 void remote_shot()
 {
-	//~ bmp_printf(FONT_LARGE, 50, 50, "REMOT");
-	//~ msleep(2000);
-	if (hdr_steps > 1) hdr_shot(0);
+	if (is_bulb_mode())
+	{
+		bulb_take_pic(bulb_duration);
+	}
+	else if (hdr_steps > 1)
+	{
+		hdr_shot(0);
+	}
 	else
 	{
 		if (silent_pic_mode && lv_drawn())
@@ -1663,6 +1736,7 @@ shoot_task( void )
 	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
+	menu_add( "Video", vid_menus, COUNT(vid_menus) );
 	struct audio_level *al=get_audio_levels();
 	while(1)
 	{
