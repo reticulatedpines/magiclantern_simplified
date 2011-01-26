@@ -38,8 +38,8 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define waveform_height			256
-#define waveform_width			(720/2)
+#define waveform_height			200
+#define waveform_width			300
 
 static int global_draw = 1;
 CONFIG_INT( "global.draw", global_draw_bk, 1 );
@@ -63,10 +63,10 @@ CONFIG_INT( "focus.peaking.color", focus_peaking_color, 5); // R,G,B,C,M,Y,cc1,c
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
-//~ CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
-//~ CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
-//~ CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
-//~ CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
+CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
+CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
+CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
+CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
 CONFIG_INT( "timecode.y",	timecode_y,	0 );
 CONFIG_INT( "timecode.width",	timecode_width,	160 );
@@ -323,7 +323,7 @@ check_crop(
 /** Store the waveform data for each of the waveform_width bins with
  * 128 levels
  */
-static uint32_t waveform[ waveform_width ][ waveform_height ];
+static uint32_t** waveform = 0;
 
 /** Store the histogram data for each of the 128 bins */
 static uint32_t hist[ hist_width ];
@@ -347,21 +347,17 @@ static uint32_t hist_max;
 void
 hist_build(void* vram, int width, int pitch)
 {
-    DebugMsg(DM_MAGIC, 3, "hist_build: %x, %d, %d", vram, width, pitch);
+	waveform_init();
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
 
 	hist_max = 0;
 
-	// memset() causes err70?  Too much memory bandwidth?
 	for( x=0 ; x<hist_width ; x++ )
 		hist[x] = 0;
-	//~ for( y=0 ; y<waveform_width ; y++ )
-		//~ for( x=0 ; x<waveform_height ; x++ )
-		//~ {
-			//~ waveform[y][x] = 0;
-			//~ asm( "nop\nnop\nnop\nnop\n" );
-		//~ }
+	for( y=0 ; y<waveform_width ; y++ )
+		for( x=0 ; x<waveform_height ; x++ )
+			waveform[y][x] = 0;
 
 	for( y=1 ; y<480; y++, v_row += (pitch/4) )
 	{
@@ -381,7 +377,7 @@ hist_build(void* vram, int width, int pitch)
 				hist_max = count;
 
 			// Update the waveform plot
-			//~ waveform[ (x * waveform_width) / width ][ (p * waveform_height) / 65536 ]++;
+			waveform[ COERCE((x * waveform_width) / width, 0, waveform_width-1)][ COERCE((p * waveform_height) / 65536, 0, waveform_height-1) ]++;
 		}
 	}
 }
@@ -476,13 +472,14 @@ hist_draw_image(
  * Since there is plenty of math per pixel this doesn't
  * swamp the bitmap framebuffer hardware.
  */
-#if 0
+
 static void
 waveform_draw_image(
 	unsigned		x_origin,
 	unsigned		y_origin
 )
 {
+	waveform_init();
 	// Ensure that x_origin is quad-word aligned
 	x_origin &= ~3;
 
@@ -542,7 +539,7 @@ waveform_draw_image(
 		row += pitch;
 	}
 }
-#endif
+
 
 /** Master video overlay drawing code.
  *
@@ -622,6 +619,24 @@ void spotmeter_step();
 
 int fps_ticks = 0;
 
+void fail(char* msg)
+{
+	bmp_printf(FONT_LARGE, 30, 100, msg);
+	while(1) msleep(1);
+}
+void waveform_init()
+{
+	if (!waveform)
+	{
+		waveform = AllocateMemory(waveform_width * sizeof(uint32_t*));
+		if (!waveform) fail("Waveform malloc failed");
+		int i;
+		for (i = 0; i < waveform_width; i++) {
+			waveform[i] = AllocateMemory(waveform_height * sizeof(uint32_t));
+			if (!waveform[i]) fail("Waveform malloc failed");
+		}
+	}
+}
 static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
@@ -1420,7 +1435,6 @@ zebra_hi_display( void * priv, int x, int y, int selected )
 	bmp_printf( 
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"ZebraThrHI  : %d   ",
 		*(unsigned*) priv
 	);
@@ -1432,7 +1446,6 @@ zebra_lo_display( void * priv, int x, int y, int selected )
 	bmp_printf( 
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"ZebraThrLO  : %d   ",
 		*(unsigned*) priv
 	);
@@ -1446,7 +1459,6 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Zebras      : %s, %d..%d",
 		z == 1 ? "ON " : (z == 2 ? "NRec" : "OFF"),
 		zebra_level_lo, zebra_level_hi
@@ -1530,7 +1542,6 @@ crop_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Cropmk%s(%d/%d): %s%s",
 		 (cropmark_playback ? "P" : "s"),
 		 index, num_cropmarks,
@@ -1546,7 +1557,6 @@ edge_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Edgedetect  : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
@@ -1559,10 +1569,11 @@ hist_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
-		"Histogram   : %s",
-		*(unsigned*) priv ? "ON " : "OFF"
+		"Hist/WaveFrm: %s/%s",
+		hist_draw ? "ON " : "OFF",
+		waveform_draw ? "ON " : "OFF"
 	);
+	bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
 }
 
 static void
@@ -1571,7 +1582,6 @@ global_draw_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Global Draw : %s",
 		global_draw_bk ? "ON " : "OFF"
 	);
@@ -1583,10 +1593,13 @@ waveform_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
 		"Waveform    : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
+}
+static void waveform_toggle(void* priv)
+{
+	waveform_draw = !waveform_draw;
 }
 
 static void
@@ -1780,6 +1793,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &hist_draw,
 		.select		= menu_binary_toggle,
+		.select_auto = waveform_toggle,
 		.display	= hist_display,
 	},
 	{
@@ -1953,7 +1967,6 @@ zebra_task( void )
     menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
     menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
 
-
 	msleep(2000);
 	set_global_draw(global_draw_bk);
 	find_cropmarks();
@@ -2051,13 +2064,19 @@ zebra_task_loop:
 
 		if (global_draw && !gui_menu_shown())
 		{
-			if( hist_draw  && k % 16 == 0)
+			if (k % 16 == 0)
 			{
-				struct vram_info * vram = get_yuv422_vram();
-				hist_build(vram->vram, vram->width, vram->pitch);
-				//~ int off = (hist_x > 350 && ext_monitor_hdmi && !recording ? 200 : 200); // if hist is in the right half, anchor it to the right edge
-				hist_draw_image( hist_x, hist_y );
+				if (hist_draw || waveform_draw)
+				{
+					struct vram_info * vram = get_yuv422_vram();
+					hist_build(vram->vram, vram->width, vram->pitch);
+				}
+				if( hist_draw )
+					hist_draw_image( hist_x, hist_y );
+				if( waveform_draw )
+					waveform_draw_image( waveform_x, waveform_y );
 			}
+
 
 			if(spotmeter_draw && k % 4 == 0)
 			{

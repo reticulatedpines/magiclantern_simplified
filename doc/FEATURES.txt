@@ -123,8 +123,13 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
 
   Tip: use this to quickly turn them off.
 
-**Histogram: ON/OFF**
-  Show a histogram for the luma (Y) channel of the LiveView image. Colorspace is YUV.
+**Hist/WaveFrm: ON/OFF**
+  Shows the distribution of image brightness with:
+  
+  * a histogram plot (toggle with ``SET``)
+  * a waveform plot (toggle with ``Q``)
+  
+  The brightness is considered to be equal to the luma (Y) channel of the LiveView image. Colorspace is YUV.
 
 **Zebras: ON/OFF/Auto, lo_level..hi_level**
   Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
