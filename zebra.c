@@ -755,9 +755,13 @@ static void draw_zebra_and_focus_unified( void )
   		int hd_height = hd_vram->height;
 		int hd_pitch =  hd_vram->pitch;
 
-		int bm_lv_y = (os.bmp_ex_y-os.bmp_ex_x*9/16);
-		if(((ext_monitor_hdmi || ext_monitor_rca) && !recording ) || (!ext_monitor_hdmi && !ext_monitor_rca)){
-			bm_lv_y>>=1;
+		int bm_lv_y = 0;
+		
+		if(shooting_mode == SHOOTMODE_MOVIE) {
+			bm_lv_y = (os.bmp_ex_y-os.bmp_ex_x*9/16);
+			if(((ext_monitor_hdmi || ext_monitor_rca) && !recording ) || (!ext_monitor_hdmi && !ext_monitor_rca)){
+				bm_lv_y>>=1;
+			}
 		}
 		int off_cor = recording ? bm_lv_y:0;
 		int height_cor = recording ? bm_lv_y+os.bmp_of_y:0;
