@@ -738,6 +738,7 @@ static void draw_zebra_and_focus_unified( void )
 		}
 		os.bmp_ex_x>>=1; 
 		os.bmp_of_x>>=1;
+  		int step = (recording ? 2 : 1);
 
 //		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %d %d %d %d", hd_width, hd_height, os.bmp_of_y,  bm_lv_y, off_cor, height_cor);
 
@@ -763,8 +764,16 @@ static void draw_zebra_and_focus_unified( void )
   
   		static int thr = 50;
   		int n_over = 0;
-  
-  		int step = (recording ? 2 : 1);
+  		
+  		static int xcalc[960];
+  		static int xcalc_done=0;
+  		
+  		if(!xcalc_done) {
+	  		for (x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step) {
+  				xcalc[x]=(x-os.bmp_of_x)*(hd_width>>2)/os.bmp_ex_x;
+			}
+			xcalc_done=1;
+		}
 		for( y = os.bmp_of_y + bm_lv_y; y < (os.bmp_ex_y+os.bmp_of_y-bm_lv_y); y+=2 ) {
 			uint32_t * const hd_row = (uint32_t*)( hdvram + (y-os.bmp_of_y-off_cor) * hd_height/(os.bmp_ex_y-height_cor) * hd_pitch ); // 2 pixels
 			int b_row_off = y * BMPPITCH;
@@ -778,7 +787,7 @@ static void draw_zebra_and_focus_unified( void )
 				#define BN (b_row[x + (BMPPITCH>>1)])
 				#define MN (m_row[x + (BMPPITCH>>1)])
 
-				uint32_t pixel = hd_row[(x-os.bmp_of_x)*(hd_width>>2)/os.bmp_ex_x];
+				uint32_t pixel = hd_row[xcalc[x]];
 
 				uint16_t bp = BP;
 				uint16_t mp = MP;
