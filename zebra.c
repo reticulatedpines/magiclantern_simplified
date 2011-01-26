@@ -80,7 +80,7 @@ CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
 
-CONFIG_INT( "unified.loop", unified_loop, 0); // temporary; on/off/auto
+CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
