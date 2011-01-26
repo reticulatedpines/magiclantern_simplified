@@ -683,7 +683,7 @@ ack:
 
 
 
-#define num_properties 8192
+#define num_properties 1024
 unsigned property_list[ num_properties ];
 
 
