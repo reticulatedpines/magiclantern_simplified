@@ -1360,10 +1360,10 @@ bulb_take_pic(int duration)
 static void bulb_toggle_fwd(void* priv)
 {
 	bulb_duration = bulb_duration * 2;
-	if (bulb_duration > 3600*1000) // one hour
-		bulb_duration = 3600*1000;
 	if (bulb_duration >= 3600*1000*2)
 		bulb_duration = 1000;
+	if (bulb_duration > 3600*1000) // one hour
+		bulb_duration = 3600*1000;
 }
 static void bulb_toggle_rev(void* priv)
 {
