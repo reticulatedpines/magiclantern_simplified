@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=hd-geom.$(shell whoami)
+BUILDVER=hd-geom-2.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n

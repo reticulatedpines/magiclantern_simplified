@@ -187,7 +187,7 @@ struct vram_info * get_yuv422_hd_vram()
 								  : (video_mode_resolution == 0 ? 1056 : 
 								  	video_mode_resolution == 1 ? 1024 :
 									 video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-	_vram_info.pitch = _vram_info.width <<(video_mode_crop?2:1);
+	_vram_info.pitch = _vram_info.width << 1; 
 	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
 									video_mode_resolution == 1 ? 580 : 
 									video_mode_resolution == 2 ? 480 : 0)
@@ -195,7 +195,7 @@ struct vram_info * get_yuv422_hd_vram()
 								  : shooting_mode != SHOOTMODE_MOVIE ? 704
 								  : (video_mode_resolution == 0 ? 704 : 
 								  	video_mode_resolution == 1 ? 680 :
-									 video_mode_resolution == 2 ? (video_mode_crop?680:680) : 0);
+									 video_mode_resolution == 2 ? (video_mode_crop? 480:680) : 0);
 
 	struct vram_info * vram = &_vram_info;
 	return vram;
@@ -774,7 +774,7 @@ static void draw_zebra_and_focus_unified( void )
 		os.bmp_of_x>>=1;
   		int step = (recording ? 2 : 1);
 
-//		bmp_printf(FONT_MED, 30, 100, "HD %dx%d %d %d %d %d", hd_width, hd_height, os.bmp_of_y,  bm_lv_y, off_cor, height_cor);
+		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d %d %d %d %d %d", hd_width>>1, hd_height, hd_pitch, os.bmp_of_y,  bm_lv_y, off_cor, height_cor);
 
 		uint32_t zlh = zebra_level_hi << 8;
 		uint32_t zll = zebra_level_lo << 8;
