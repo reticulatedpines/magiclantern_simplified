@@ -357,17 +357,20 @@ static uint32_t hist_max;
 void
 hist_build(void* vram, int width, int pitch)
 {
-	waveform_init();
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
 
 	hist_max = 0;
-
 	for( x=0 ; x<hist_width ; x++ )
 		hist[x] = 0;
-	for( y=0 ; y<waveform_width ; y++ )
-		for( x=0 ; x<waveform_height ; x++ )
-			waveform[y][x] = 0;
+
+	if (waveform_draw)
+	{
+		waveform_init();
+		for( y=0 ; y<waveform_width ; y++ )
+			for( x=0 ; x<waveform_height ; x++ )
+				waveform[y][x] = 0;
+	}
 
 	for( y=1 ; y<480; y++, v_row += (pitch/4) )
 	{
@@ -387,7 +390,7 @@ hist_build(void* vram, int width, int pitch)
 				hist_max = count;
 
 			// Update the waveform plot
-			waveform[ COERCE((x * waveform_width) / width, 0, waveform_width-1)][ COERCE((p * waveform_height) / 65536, 0, waveform_height-1) ]++;
+			if (waveform_draw) waveform[ COERCE((x * waveform_width) / width, 0, waveform_width-1)][ COERCE((p * waveform_height) / 65536, 0, waveform_height-1) ]++;
 		}
 	}
 }
@@ -800,13 +803,14 @@ static void draw_zebra_and_focus_unified( void )
 			xcalc_done=1;
 		}
 		for( y = os.bmp_of_y + bm_lv_y; y < (os.bmp_ex_y+os.bmp_of_y-bm_lv_y); y+=2 ) {
+			if (y > 540-2) continue;
 			uint32_t * const hd_row = (uint32_t*)( hdvram + (y-os.bmp_of_y-off_cor) * hd_height/(os.bmp_ex_y-height_cor) * hd_pitch ); // 2 pixels
 			int b_row_off = y * BMPPITCH;
 			uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 			uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
   
 			for ( x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step ) {
-
+				x = COERCE(x, 0, 960);
 				#define BP (b_row[x])
 				#define MP (m_row[x])
 				#define BN (b_row[x + (BMPPITCH>>1)])
