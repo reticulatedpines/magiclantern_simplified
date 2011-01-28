@@ -1649,10 +1649,11 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
-			msleep(1);
+			msleep(10);
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
-			msleep(1);
+			msleep(10);
+			if (lens_info.raw_shutter < 0x40) while (lens_info.job_state) msleep(100);
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(0); }
 		}
@@ -1670,6 +1671,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			msleep(10);
+			if (lens_info.raw_shutter < 0x40) while (lens_info.job_state) msleep(100);
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(0); }
 		}
