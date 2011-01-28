@@ -43,3 +43,6 @@ These settings can not be changed from the ML menu, so they are documented here:
     
     # Delay between two sub-pics in hi-res silent pic mode
     silent.pic.sweepdelay = 350
+    
+    # Zebra density: 0, 1 or 2
+    zebra.density = 2

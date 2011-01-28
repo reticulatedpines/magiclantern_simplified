@@ -104,18 +104,18 @@ Audio tweaks.
   * **int Left ext Right**
   * **external stereo**
   * **int Left ext Balanced** (internal Left + Right from both external pins as balanced audio)
-  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo. Does not work yet.
+  * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo. Does not work with AudioMon builds.
 
 "Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
 
-Video
+LiveV
 ~~~~~
 
 .. image:: VideoMenu-550D.png
     :alt: thumb|right|Video menu
 
 
-Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false color.
+LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false color.
 
 **Global Draw: ON/OFF**
   Enable/disable drawing extra graphics elements 
@@ -123,7 +123,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
 
   Tip: use this to quickly turn them off.
 
-**Hist/WaveFrm: ON/OFF**
+**Histo/Wavefm: ON/OFF**
   Shows the distribution of image brightness with:
   
   * a histogram plot (toggle with ``SET``)
@@ -131,10 +131,10 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   
   The brightness is considered to be equal to the luma (Y) channel of the LiveView image. Colorspace is YUV.
 
-**Zebras: ON/OFF/Auto, lo_level..hi_level**
+**Zebras: ON/OFF/NRec, lo_level..hi_level**
   Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
   
-  Auto setting: zebras are disabled while recording.
+  ``NRec`` setting: zebras are only displayed while not recording.
   
   Keys:
   
@@ -142,7 +142,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   * ``DISP``: change threshold for underexposure
   * ``Q``: change threshold for overexposure
   
-  Brightness values are between 0 and 255.
+  Brightness values are between 0 and 255. A threshold equal to 0 will disable blue zebras, and 255 will disable red zebras.
 
 **False color**
   This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
@@ -163,25 +163,30 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
 **Cropmks(x/n)**
   Select cropmarks (cycle between them).
 
+
   There are 3 predefined cropmarks in the zip archive:
   
   * HD with Title & Action Safe (from CameraRick)
   * Cinemascope
   * Fisheye for stills framing with Samyang/8mm.
 
-.. image:: Cropmarks550D.png
-    :alt: 400px|center
+  .. image:: Cropmarks550D.png
+      :alt: 400px|center
 
   If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x/n)`` shows the selected cropmark number and the number of detected cropmarks. You can place at most 9 cropmarks on the card.
-  
+
+
   An exclamation mark (!) displayed in the menu means there was an error loading the cropmark image.
-  
+
+
   Get more cropmarks created by Magic Lantern users `here <http://www.sawomedia.de/magiclantern/cropmarks/>`_
-  
+
+
   See [[Cropmarks]] for how to create custom cropmarks. Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
+
   Press ``Q`` to enable cropmarks in Playback mode.
-  
+
 {{clr}}
 
 **Spotmeter: ON/Percent/IRE**
@@ -205,7 +210,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
 **Focus Peak: ON/OFF, threshold, color_mode**
   Experimental focus peaking.
   
-  See [[Focus assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
+  See [[Focus Assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
   
   * ``SET``: toggle ON/OFF
   * ``Q``: adjust percentile threshold, between 0.1% and 5%.
@@ -213,7 +218,7 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   
      - one of ``R,G,B,C,M,Y`` (a single color)
      - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
-     - ``cc2``: color coding 2 (show edge detection threshold as color for every pixel)
+     - ``cc2``: color coding 2 (show edge strength as color for every pixel)
   
   Known bugs:
   
@@ -229,7 +234,6 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   * Horizontal downsampling: 2 when recording, else 1.
   
 **LiveView Zoom: x5 / x10 / :-)**
-  
   Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
   
   * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
@@ -237,6 +241,39 @@ Video overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false co
   * ``x5x10``: both settings available (Canon default)
   * ``:-)`` Enable zoom in Face Detection mode
 
+Movie
+~~~~~
+
+Functions specific to movie mode.
+
+
+**QScale**
+  Controls the H.264 QScale parameter, which affects video bitrate. 
+  Lower values mean higher bitrates. OFF disables QScale control.
+  
+  When QScale is enabled, camera records in VBR mode (variable bitrate). 
+  When QScale is OFF, the bitrate is (more or less) constant (CBR mode).
+  
+  See [[Bit rate]] page for details.
+  
+  Default range is [-1 ... -16]. This can be changed from config file, 
+  but qscale is restricted to negative values only, 
+  due to limitations in config file parser.
+  
+  QScale setting is saved, overrides Canon setting, and it does not take effect if you change it during recording. It will take effect at next movie.
+
+**Movie Restart: ON/OFF**
+  While this setting is on, movie recording will restart automatically, unless stopped by you.
+
+**Movie logging: ON/OFF**
+  If this setting is ``ON``, Magic Lantern will write out a metadata file for the each movie to ``MOV_1234.LOG`` (numbered after the movie), as well as a timestamp every time any of the parameters is changed during recording. 
+  
+  
+  Log files are placed in the same folder as the movies: ``DCIM/100CANON/``, ``101CANON`` etc.
+  
+  
+  Tip: you can rename ``LOG`` files to ``CSV`` and import them in Excel.
+  
 Shoot
 ~~~~~
 
@@ -338,6 +375,8 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
 **Trap Focus: OFF/Hold/Cont.**
   
+  Modes:
+  
   * ``Hold``: You hold the shutter half-pressed; camera takes a picture when something comes into focus.
   * ``Cont.``: You don't have to hold the shutter half-pressed; ML will emulate half-shutter presses instead. This is experimental and may have bugs.
   
@@ -366,23 +405,24 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   * ``DISP/Q``: toggle between:
     * ``Single/Burst`` in normal mode
     * available matrix sizes (which give the image resolutions) in Hi-Res mode.
-    * timing (number of clocks to skip after each line) in Slit-scan mode. The internal clock has 25fps and the image buffer is updated at 12.5fps => use ``1ln/2clk`` or ``1ln/4clk`` for best results.
+    * timing (number of clocks to skip after each line) in Slit-scan mode.
   
   Silent picture setting is applied to intervalometer and remote triggers when used in LiveView mode.
   
   Images are saved in ``DCIM/1xxCANON/``, named after last picture/movie taken without this function.
   
-  To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
+  To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python, PIL and numpy). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
   
   TODO: 
   
   * avoid that horizontal cut in pictures (vsync doesn't help)
 
 **Bulb Timer: 1s...3600s**
-
   Very long exposures with Bulb mode and ML timer. Only works with remote triggers and intervalometer. You should select ``M`` mode and ``BULB`` setting from Canon UI before using this.
-
+  
+  
   Tip: you can cancel the exposure earlier by half-pressing the shutter button.
+
 Expo
 ~~~~
 
@@ -513,26 +553,8 @@ Debug
 .. image:: DebugMenu-550D.png
     :alt: thumb|right|Debug menu
 
-**QScale**
-  Controls the H.264 QScale parameter, which affects video bitrate. 
-  Lower values mean higher bitrates. OFF disables QScale control.
-  
-  When QScale is enabled, camera records in VBR mode (variable bitrate). 
-  When QScale is OFF, the bitrate is (more or less) constant (CBR mode).
-  
-  See [[Bit rate]] page for details.
-  
-  Default range is [-1 ... -16]. This can be changed from config file, 
-  but qscale is restricted to negative values only, 
-  due to limitations in config file parser.
-  
-  QScale setting is saved, overrides Canon setting, and it does not take effect if you change it during recording. It will take effect at next movie.
-
 **Save config**
   Save current settings to ``MAGIC.CFG``.
-
-**MovRestart: ON/OFF**
-  While this setting is on, movie recording will restart automatically, unless stopped by you.
 
 **Draw palette**
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
@@ -545,23 +567,18 @@ Debug
   Saves a log which contains DebugMsg output.
   See [[Debugging Magic Lantern]] page.
 
-**Toggle draw_prop**
-  Display property changes in real-time.
-  See [[Properties]].
-
-**Toggle draw_event**
-  Display GUI events in real-time.
-  See [[GUI_Events/550D]].
-
-**Toggle mem_spy**
-  Display memory addresses which change, but not those which change like mad. 
-  Useful for detecting interesting addresses inside the camera RAM (like sensor & button locations).
+**Spy prop/evt/mem**
   
-  Start address and size is selected with the hidden settings ``debug.mem-spy.*``
-  (see ``debug.c`` for details). You can also display only "small" or "boolean" values.
-  
-  Trying to spy the camera_engine addresses seems to cause trouble (camera freeze). 
-  Probably it's not safe to read data from those areas.
+  * prop: display property changes in real-time. See [[Properties]].
+  * evt: Display GUI events in real-time. See [[GUI_Events/550D]].
+  * mem: Display memory addresses which change, but not those which change like mad. 
+    Useful for detecting interesting addresses inside the camera RAM (like sensor & button locations).
+    
+    Start address and size is selected with the hidden settings (from ``magic.cfg``) ``debug.mem-spy.*``
+    (see ``debug.c`` for details). You can also display only "small" or "boolean" values.
+    
+    Trying to spy the camera_engine addresses seems to cause trouble (camera freeze). 
+    Probably it's not safe to read data from those areas.
 
 **Powersave**
   Disable the powersave so that the LiveView never shuts off.
@@ -597,12 +614,6 @@ because these settings are potentially dangerous.
 
 Features which are not in menu
 ------------------------------
-
-Movie logging
-~~~~~~~~~~~~~
-
-Magic Lantern will write out a metadata file for the each movie to ``MOV_1234.LOG`` (numbered after the movie), as well as a timestamp every time any of the parameters is changed during recording. 
-Log files are placed in the same folder as the movies: ``DCIM/100CANON/``, ``101CANON`` etc.
 
 Time remaining display
 ~~~~~~~~~~~~~~~~~~~~~~

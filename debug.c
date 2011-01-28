@@ -300,13 +300,13 @@ vbr_print(
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"QScale:     OFF "
+			"QScale        : OFF (CBR)"
 		);
 	else
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"QScale:     %d ",
+			"QScale        : %d (VBR)",
 			qscale
 		);
 }
@@ -327,7 +327,7 @@ movie_restart_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"MovRestart: %s ",
+		"Movie Restart : %s ",
 		movie_restart ? "ON " : "OFF"
 	);
 }
@@ -510,28 +510,18 @@ spy_print(
 
 struct menu_entry debug_menus[] = {
 	{
-		.display	= vbr_print,
-		.select		= vbr_toggle,
-		.select_reverse	= vbr_toggle_reverse,
-	},
-	{
 		.priv		= "Save config",
 		.select		= save_config,
 		.display	= menu_print,
 	},
-	{
-		.priv = &movie_restart,
-		.display	= movie_restart_print,
-		.select		= menu_binary_toggle,
-	},
 	//~ {
 		//~ .display	= efic_temp_display,
 	//~ },
-/*	{
+	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},*/
+	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -566,6 +556,19 @@ struct menu_entry debug_menus[] = {
 		.select		= mvr_time_const_select,
 	},
 #endif
+};
+
+struct menu_entry mov_menus[] = {
+	{
+		.display	= vbr_print,
+		.select		= vbr_toggle,
+		.select_reverse	= vbr_toggle_reverse,
+	},
+	{
+		.priv = &movie_restart,
+		.display	= movie_restart_print,
+		.select		= menu_binary_toggle,
+	},
 };
 
 
@@ -734,6 +737,7 @@ thats_all:
 	);
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
+	menu_add( "Movie", mov_menus, COUNT(mov_menus) );
 }
 
 CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );

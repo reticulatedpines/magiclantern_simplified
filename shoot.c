@@ -58,8 +58,6 @@ PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
-PROP_INT(PROP_WBS_GM, wbs_gm);
-PROP_INT(PROP_WBS_BA, wbs_ba);
 PROP_INT(PROP_FILE_NUMBER, file_number);
 PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
 PROP_INT(PROP_FOLDER_NUMBER, folder_number);
@@ -990,6 +988,46 @@ static void shutter_auto_run()
 	clrscr();
 }
 
+static void 
+aperture_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Aperture    : %d.%d",
+		lens_info.aperture / 10,
+		lens_info.aperture % 10
+	);
+}
+
+static void
+aperture_toggle( int sign)
+{
+	int i = raw2index_aperture(lens_info.raw_aperture);
+	int k;
+	for (k = 0; k < 5; k++)
+	{
+		i = mod(i + sign, COUNT(codes_aperture));
+		lens_set_rawaperture(codes_aperture[i]);
+		msleep(200);
+		int j = raw2index_aperture(lens_info.raw_aperture);
+		if (i == j) break;
+	}
+	menu_show_only_selected();
+}
+
+static void
+aperture_toggle_forward( void * priv )
+{
+	aperture_toggle(1);
+}
+
+static void
+aperture_toggle_reverse( void * priv )
+{
+	aperture_toggle(-1);
+}
+
 
 static void
 kelvin_toggle( int sign )
@@ -1089,7 +1127,7 @@ static void kelvin_auto_run()
 static void 
 wbs_gm_display( void * priv, int x, int y, int selected )
 {
-		int gm = (int8_t)wbs_gm;
+		int gm = lens_info.wbs_gm;
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
@@ -1102,7 +1140,7 @@ wbs_gm_display( void * priv, int x, int y, int selected )
 static void
 wbs_gm_toggle( int sign )
 {
-	int gm = (int8_t)wbs_gm;
+	int gm = lens_info.wbs_gm;
 	int newgm = mod((gm + 9 + sign), 19) - 9;
 	newgm = newgm & 0xFF;
 	prop_request_change(PROP_WBS_GM, &newgm, 4);
@@ -1152,6 +1190,71 @@ contrast_display( void * priv, int x, int y, int selected )
 		lens_get_contrast()
 	);
 }
+
+static void
+sharpness_toggle( int sign )
+{
+	int c = lens_get_sharpness();
+	int newc = mod(c + sign, 8);
+	lens_set_sharpness(newc);
+	menu_show_only_selected();
+}
+
+static void
+sharpness_toggle_forward( void * priv )
+{
+	sharpness_toggle(1);
+}
+
+static void
+sharpness_toggle_reverse( void * priv )
+{
+	sharpness_toggle(-1);
+}
+
+static void 
+sharpness_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Sharpness   : %d ",
+		lens_get_sharpness()
+	);
+}
+
+static void
+saturation_toggle( int sign )
+{
+	int c = lens_get_saturation();
+	int newc = mod((c + 4 + sign), 9) - 4;
+	lens_set_saturation(newc);
+	menu_show_only_selected();
+}
+
+static void
+saturation_toggle_forward( void * priv )
+{
+	saturation_toggle(1);
+}
+
+static void
+saturation_toggle_reverse( void * priv )
+{
+	saturation_toggle(-1);
+}
+
+static void 
+saturation_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Saturation  : %d ",
+		lens_get_saturation()
+	);
+}
+
 
 uint32_t cfn[4];
 PROP_HANDLER( PROP_CFN )
@@ -1437,7 +1540,7 @@ struct menu_entry shoot_menus[] = {
 	}
 };
 
-struct menu_entry vid_menus[] = {
+static struct menu_entry vid_menus[] = {
 	{
 		.priv = &zoom_enable_face,
 		.select = menu_binary_toggle,
@@ -1460,6 +1563,11 @@ struct menu_entry expo_menus[] = {
 		.select_auto = shutter_auto,
 	},
 	{
+		.display	= aperture_display,
+		.select		= aperture_toggle_forward,
+		.select_reverse		= aperture_toggle_reverse,
+	},
+	{
 		.display	= kelvin_display,
 		.select		= kelvin_toggle_forward,
 		.select_reverse		= kelvin_toggle_reverse,
@@ -1475,6 +1583,16 @@ struct menu_entry expo_menus[] = {
 		.select		= contrast_toggle_forward,
 		.select_reverse		= contrast_toggle_reverse,
 		//~ .select_auto = contrast_auto,
+	},
+	{
+		.display	= sharpness_display,
+		.select		= sharpness_toggle_forward,
+		.select_reverse		= sharpness_toggle_reverse,
+	},
+	{
+		.display	= saturation_display,
+		.select		= saturation_toggle_forward,
+		.select_reverse		= saturation_toggle_reverse,
 	},
 	{
 		.display	= ladj_display,
@@ -1688,15 +1806,15 @@ void display_shooting_info() // called from debug task
 	if (trap_focus && ((af_mode & 0xF) == 3))
 		bmp_printf(fnt, 410, 331, "TRAP \nFOCUS");
 
-	if (wbs_gm || wbs_ba)
+	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		fnt = FONT(FONT_LARGE, 80, bg);
 
-		int ba = (int8_t)wbs_ba;
+		int ba = lens_info.wbs_ba;
 		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
 		else bmp_printf(fnt, 431, 240, "   ");
 
-		int gm = (int8_t)wbs_gm;
+		int gm = lens_info.wbs_gm;
 		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
 		else bmp_printf(fnt, 431, 270, "   ");
 	}
@@ -1738,7 +1856,7 @@ shoot_task( void )
 	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
-	menu_add( "Video", vid_menus, COUNT(vid_menus) );
+	menu_add( "LiveV", vid_menus, COUNT(vid_menus) );
 	struct audio_level *al=get_audio_levels();
 	while(1)
 	{

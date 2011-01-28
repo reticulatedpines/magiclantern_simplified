@@ -81,7 +81,7 @@ CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
 
 CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
-CONFIG_INT( "zebra.mode", zebra_mode, 0); 
+CONFIG_INT( "zebra.density", zebra_density, 0); 
 
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
@@ -100,7 +100,7 @@ zebra_mode_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Zebra Density: %d", zebra_mode);
+		"Zebra Density: %d", zebra_density);
 }
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
@@ -833,7 +833,7 @@ static void draw_zebra_and_focus_unified( void )
 
 				if (zd) {
 					int zebra_done = 0;
-					switch(zebra_mode) {
+					switch(zebra_density) {
 						case 0:
 							if(!(y&2) && (x&1)) {
 								zebra_done = 1;
@@ -863,7 +863,7 @@ static void draw_zebra_and_focus_unified( void )
 							color = COLOR_BLUE;
 						}
 						
-						switch(zebra_mode) {
+						switch(zebra_density) {
 							case 0:
 								BP = MP = color;
 								BN = MN = color<<8;
@@ -1634,7 +1634,7 @@ hist_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Hist/WaveFrm: %s/%s",
+		"Histo/Wavefm: %s/%s",
 		hist_draw ? "ON " : "OFF",
 		waveform_draw ? "ON " : "OFF"
 	);
@@ -1936,7 +1936,7 @@ struct menu_entry dbg_menus[] = {
 		.display	= unified_loop_display,
 	},
 	{
-		.priv		= &zebra_mode,
+		.priv		= &zebra_density,
 		.select		= menu_ternary_toggle,
 		.display	= zebra_mode_display,
 	},
@@ -2034,7 +2034,7 @@ static void
 zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
-    menu_add( "Video", zebra_menus, COUNT(zebra_menus) );
+    menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
     menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
 
 	msleep(2000);

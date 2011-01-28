@@ -47,12 +47,14 @@ struct lens_info
 
 	unsigned		wb_mode;  // see property.h for possible values
 	unsigned		kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
+	int8_t		wbs_gm;
+	int8_t		wbs_ba;
 
 	unsigned		picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
 	int32_t 		contrast;   // -4..4
 	uint32_t		sharpness;  // 0..7
-	uint32_t		saturation; // 0..7
-	uint32_t		color_tone; // 0..7
+	uint32_t		saturation; // -4..4
+	uint32_t		color_tone; // -4..4
 
 	// Store the raw values before the lookup tables
 	uint8_t			raw_aperture;
@@ -157,6 +159,20 @@ lens_set_drivemode(
 	msleep(100);
 }
 
+static void
+lens_set_wbs_gm(int value)
+{
+	value = value & 0xFF;
+	prop_request_change(PROP_WBS_GM, &value, 4);
+}
+static void
+lens_set_wbs_ba(int value)
+{
+	value = value & 0xFF;
+	prop_request_change(PROP_WBS_BA, &value, 4);
+}
+
+
 int lens_get_ae();
 
 
@@ -202,7 +218,7 @@ static const int values_shutter[] = { 0, 30, 33, 37, 40,  45,  50,  53,  57,  60
 static const int codes_shutter[]  = { 0, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152};
 
 // aperture*10
-static const int values_aperture[] = {12,14,16,18,20,22,25,28,32,35,40,45,50,56,63,71,80,90,100,110,130,140,160,180,200,220,250,290,320,360,400,450};
-static const int codes_aperture[] =   {13,16,19,21,24,27,29,32,35,37,40,43,45,48,51,53,56,59, 61, 64, 67, 69, 72, 75, 77, 80, 83, 85, 88, 91, 93, 96};
+static const int values_aperture[] = {12,16,14,18,20,25,28,35,40,45,56,67,80,95,110,130,160,190,220,270,320,380,450};
+static const int codes_aperture[] =  { 8,12,16,20,24,28,32,36,40,44,48,52,56,60, 64, 68, 72, 76, 80, 84, 88, 92, 96};
 
 #endif

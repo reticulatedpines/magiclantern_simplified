@@ -26,7 +26,10 @@
 #include "lens.h"
 #include "property.h"
 #include "bmp.h"
+#include "config.h"
+#include "menu.h"
 
+CONFIG_INT("movie.log", movie_log, 1);
 
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
@@ -359,6 +362,15 @@ mvr_update_logfile(
 	static unsigned last_aperture;
 	static unsigned last_focal_len;
 	static unsigned last_focus_dist;
+	static unsigned last_wb_mode;
+	static unsigned last_kelvin;
+	static unsigned last_wbs_gm;
+	static unsigned last_wbs_ba;
+	static unsigned last_picstyle;
+	static unsigned last_contrast;
+	static unsigned last_saturation;
+	static unsigned last_sharpness;
+	static unsigned last_color_tone;
 
 	// Check if nothing changed and not forced.  Do not write.
 	if( !force
@@ -367,6 +379,15 @@ mvr_update_logfile(
 	&&  last_aperture	== info->aperture
 	&&  last_focal_len	== info->focal_len
 	&&  last_focus_dist	== info->focus_dist
+	&&  last_wb_mode	== info->wb_mode
+	&&  last_kelvin		== info->kelvin
+	&&  last_wbs_gm		== info->wbs_gm
+	&&  last_wbs_ba		== info->wbs_ba
+	&&  last_picstyle	== info->picstyle
+	&&  last_contrast	== info->contrast
+	&&  last_saturation	== info->saturation
+	&&  last_sharpness	== info->sharpness
+	&&  last_color_tone	== info->color_tone
 	)
 		return;
 
@@ -376,13 +397,22 @@ mvr_update_logfile(
 	last_aperture	= info->aperture;
 	last_focal_len	= info->focal_len;
 	last_focus_dist	= info->focus_dist;
+	last_wb_mode = info->wb_mode;
+	last_kelvin = info->kelvin;
+	last_wbs_gm = info->wbs_gm; 
+	last_wbs_ba = info->wbs_ba;
+	last_picstyle = info->picstyle;
+	last_contrast = info->contrast; 
+	last_saturation = info->saturation;
+	last_sharpness = info->sharpness;
+	last_color_tone = info->color_tone;
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
 
 	my_fprintf(
 		mvr_logfile,
-		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
+		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
 		now.tm_hour,
 		now.tm_min,
 		now.tm_sec,
@@ -391,7 +421,16 @@ mvr_update_logfile(
 		info->aperture / 10,
 		info->aperture % 10,
 		info->focal_len,
-		info->focus_dist
+		info->focus_dist,
+		info->wb_mode, 
+		info->wb_mode == WB_KELVIN ? info->kelvin : 0,
+		info->wbs_gm, 
+		info->wbs_ba,
+		info->picstyle, 
+		info->contrast, 
+		info->saturation, 
+		info->sharpness, 
+		info->color_tone
 	);
 }
 
@@ -407,6 +446,7 @@ mvr_create_logfile(
 )
 {
 	DebugMsg( DM_MAGIC, 3, "%s: event %d", __func__, event );
+	if (!movie_log) return;
 
 	if( event == 0 )
 	{
@@ -452,7 +492,7 @@ mvr_create_logfile(
 	my_fprintf( mvr_logfile, "Lens: %s\n", lens_info.name );
 
 	my_fprintf( mvr_logfile, "%s\n",
-		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
+		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist,WB_Mode,Kelvin,WBShift_GM,WBShift_BA,PicStyle,Contrast,Saturation,Sharpness,ColorTone"
 	);
 
 	// Force the initial values to be written
@@ -528,7 +568,7 @@ PROP_HANDLER( PROP_SHUTTER )
 	return prop_cleanup( token, property );
 }
 
-PROP_HANDLER( PROP_APERTURE )
+PROP_HANDLER( PROP_APERTURE2 )
 {
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_aperture = raw;
@@ -552,6 +592,20 @@ PROP_HANDLER( PROP_WB_MODE_LV )
 	return prop_cleanup( token, property );
 }
 
+PROP_HANDLER(PROP_WBS_GM)
+{
+	const int8_t value = *(int8_t *) buf;
+	lens_info.wbs_gm = value;
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER(PROP_WBS_BA)
+{
+	const int8_t value = *(int8_t *) buf;
+	lens_info.wbs_ba = value;
+	return prop_cleanup( token, property );
+}
+
 PROP_HANDLER( PROP_WB_KELVIN_LV )
 {
 	const uint32_t value = *(uint32_t *) buf;
@@ -570,6 +624,8 @@ LENS_GET(shutter)
 LENS_GET(aperture)
 LENS_GET(ae)
 LENS_GET(kelvin)
+LENS_GET(wbs_gm)
+LENS_GET(wbs_ba)
 
 #define LENS_SET(param) \
 void lens_set_##param(int value) \
@@ -597,7 +653,7 @@ void update_stuff()
 {
 	calc_dof( &lens_info );
 	if (lv_drawn() && get_global_draw()) update_lens_display( &lens_info );
-	mvr_update_logfile( &lens_info, 0 ); // do not force it
+	if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
 }
 
 PROP_HANDLER( PROP_LV_LENS )
@@ -650,12 +706,31 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 	return prop_cleanup( token, property );
 }
 
+static void 
+movielog_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Movie Logging : %s",
+		movie_log ? "ON" : "OFF"
+	);
+}
+static struct menu_entry lens_menus[] = {
+	{
+		.priv = &movie_log,
+		.select = menu_binary_toggle,
+		.display = movielog_display,
+	},
+};
+
 static void
 lens_init( void )
 {
 	lens_sem = create_named_semaphore( "lens_info", 1 );
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
+	menu_add("Movie", lens_menus, COUNT(lens_menus));
 }
 
 INIT_FUNC( "lens", lens_init );
@@ -752,11 +827,11 @@ lens_get_##param() \
 } \
 
 // set contrast/saturation/etc in the current picture style (change is permanent!)
-#define LENS_SET_IN_PICSTYLE(param) \
+#define LENS_SET_IN_PICSTYLE(param,lo,hi) \
 void \
 lens_set_##param(int value) \
 { \
-	value = COERCE(value, -4, 4); \
+	value = COERCE(value, lo, hi); \
 	int i = lens_info.picstyle; \
 	if (!i) return; \
 	picstyle_settings[i].param = value; \
@@ -768,7 +843,8 @@ LENS_GET_FROM_PICSTYLE(sharpness)
 LENS_GET_FROM_PICSTYLE(saturation)
 LENS_GET_FROM_PICSTYLE(color_tone)
 
-LENS_SET_IN_PICSTYLE(contrast)
-LENS_SET_IN_PICSTYLE(sharpness)
-LENS_SET_IN_PICSTYLE(saturation)
-LENS_SET_IN_PICSTYLE(color_tone)
+LENS_SET_IN_PICSTYLE(contrast, -4, 4)
+LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
+LENS_SET_IN_PICSTYLE(saturation, -4, 4)
+LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
+

@@ -290,8 +290,8 @@ menus_display(
 	{
 		unsigned fontspec = FONT(
 			FONT_MED,
-			COLOR_YELLOW,
-			menu->selected ? 0x7F : COLOR_BG
+			menu->selected ? COLOR_WHITE : COLOR_YELLOW,
+			menu->selected ? 13 : COLOR_BG
 		);
 		if (!show_only_selected) bmp_printf( fontspec, x, y, "%6s", menu->name );
 		x += fontspec_font( fontspec )->width * 6;
@@ -656,7 +656,8 @@ menu_init( void )
 	gui_sem = create_named_semaphore( "gui", 0 );
 
 	menu_find_by_name( "Audio" );
-	menu_find_by_name( "Video" );
+	menu_find_by_name( "LiveV" );
+	menu_find_by_name( "Movie" );
 	menu_find_by_name( "Shoot" );
 	menu_find_by_name( "Expo" );
 	//~ menu_find_by_name( "Brack" );
@@ -664,7 +665,7 @@ menu_init( void )
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
-	menu_find_by_name( "About" );
+	menu_find_by_name( "(i)" );
 	//~ menu_find_by_name( "Boot" );
 
 /*
@@ -847,7 +848,7 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
-	menu_add( "About", about_menu, COUNT(about_menu));
+	menu_add( "(i)", about_menu, COUNT(about_menu));
 	
 	msleep(3000);
 	while(1)
