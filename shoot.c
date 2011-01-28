@@ -1009,7 +1009,7 @@ aperture_toggle( int sign)
 	{
 		i = mod(i + sign, COUNT(codes_aperture));
 		lens_set_rawaperture(codes_aperture[i]);
-		msleep(200);
+		msleep(250);
 		int j = raw2index_aperture(lens_info.raw_aperture);
 		if (i == j) break;
 	}
