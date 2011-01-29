@@ -212,8 +212,8 @@ typedef struct bmp_ov_loc_size
 	int bmp_ex_y; //live view y extend
 	int bmp_sz_x; //bitmap x size
 	int bmp_sz_y; //bitmap y size
-	int lv_pitch; //pitch for low res yuv422 buffer
-	int lv_height;//height for low res yuv422 buffer
+	int lv_ex_x;
+	int lv_ex_y;
 } bmp_ov_loc_size_t;
 
 void calc_ov_loc_size(bmp_ov_loc_size_t *os);

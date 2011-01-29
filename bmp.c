@@ -41,14 +41,14 @@ extern int bmp_enabled = 1; // global enable/disable for Bitmap Overlay
 void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 {
 	int ov_x, ov_y;
+	os->lv_ex_x = LV_EX_X;
+	os->lv_ex_y = LV_EX_Y;
 	if (ext_monitor_hdmi || ext_monitor_rca) {
 		// Parameters of challenge
 		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
 		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
 		// LV centered with aspect ratio of 3:2
 		int disp_x, disp_y;
-		int lv_x = LV_EX_X;
-		int lv_y = LV_EX_Y;
 		
 		if(recording || ext_monitor_rca) {
 			disp_x=640;
@@ -56,34 +56,24 @@ void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 			ov_x=720;
 			ov_y=480;
 			if(ext_monitor_rca) {
-				lv_y = 394;
+				os->lv_ex_y = 394;
 			}
-			lv_x = 570; // we have different live view dimensions than reported (3:2 -> 4:3)
+			os->lv_ex_x = 570; // we have different live view dimensions than reported (3:2 -> 4:3)
 		} else {
 			disp_x=1920;
 			disp_y=1080;
 			ov_x=960;
 			ov_y=540;
 		}
-		os->bmp_ex_x=lv_x*ov_x/disp_x;
-		os->bmp_ex_y=lv_y*ov_y/disp_y;
-		os->bmp_of_y=(recording||ext_monitor_rca||lv_y==880)?24:0; //screen layout differs beween rec mode and standby
+		os->bmp_ex_x=os->lv_ex_x*ov_x/disp_x;
+		os->bmp_ex_y=os->lv_ex_y*ov_y/disp_y;
+		os->bmp_of_y=(recording||ext_monitor_rca||os->lv_ex_y==880)?24:0; //screen layout differs beween rec mode and standby
 		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:((ov_x-os->bmp_ex_x)>>1);
 	} else {
 		ov_x = os->bmp_ex_x=720;
 		ov_y = os->bmp_ex_y=480;
 		os->bmp_of_x=0;
 		os->bmp_of_y=0;
-	}
-	if(ext_monitor_hdmi && !recording) {
-		os->lv_pitch=YUV422_LV_PITCH_HDMI;
-		os->lv_height=YUV422_LV_HEIGHT_HDMI;
-	}else if(ext_monitor_rca) {
-		os->lv_pitch=YUV422_LV_PITCH_RCA;
-		os->lv_height=YUV422_LV_HEIGHT_RCA;
-	} else {
-		os->lv_pitch=YUV422_LV_PITCH;
-		os->lv_height=YUV422_LV_HEIGHT;
 	}
 	os->bmp_sz_x = ov_x;
 	os->bmp_sz_y = ov_y;

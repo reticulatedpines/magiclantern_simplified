@@ -82,6 +82,7 @@ CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without
 
 CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 CONFIG_INT( "zebra.density", zebra_density, 0); 
+CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
@@ -101,6 +102,15 @@ zebra_mode_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Zebra Density: %d", zebra_density);
+}
+
+static void
+use_hd_vram_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Use HD VRAM: %s", use_hd_vram?"yes":"no");
 }
 
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
@@ -197,20 +207,28 @@ struct vram_info * get_yuv422_hd_vram()
 								  	video_mode_resolution == 1 ? 680 :
 									 video_mode_resolution == 2 ? (video_mode_crop? 480:680) : 0);
 
-	struct vram_info * vram = &_vram_info;
-	return vram;
+	return &_vram_info;
 }
 
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
 	_vram_info.vram = YUV422_LV_BUFFER;
-	_vram_info.width = 720;
-	_vram_info.pitch = _vram_info.width * 2;
-	_vram_info.height = 480;
 
-	struct vram_info * vram = &_vram_info;
-	return vram;
+	if(ext_monitor_hdmi && !recording) {
+		_vram_info.pitch=YUV422_LV_PITCH_HDMI;
+		_vram_info.height=YUV422_LV_HEIGHT_HDMI;
+	}else if(ext_monitor_rca) {
+		_vram_info.pitch=YUV422_LV_PITCH_RCA;
+		_vram_info.height=YUV422_LV_HEIGHT_RCA;
+	} else {
+		_vram_info.pitch=YUV422_LV_PITCH;
+		_vram_info.height=YUV422_LV_HEIGHT;
+	}
+
+	_vram_info.width = _vram_info.pitch >> 1;
+
+	return &_vram_info;
 }
 
 /** Sobel edge detection */
@@ -751,30 +769,70 @@ static void draw_zebra_and_focus_unified( void )
   		static int very_dirty = 0;
   		bmp_ov_loc_size_t os;
   		calc_ov_loc_size(&os);
-  		struct vram_info * hd_vram = get_yuv422_hd_vram();
-  		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
-		int hd_width  = hd_vram->width<<1;
-  		int hd_height = hd_vram->height;
-		int hd_pitch =  hd_vram->pitch;
+  		struct vram_info * _vram;
+  		
+  		if(use_hd_vram) { 
+  			_vram=get_yuv422_hd_vram();
+		} else {
+			_vram=get_yuv422_vram();
+		}
+  		uint8_t * const vram = /*UNCACHEABLE*/(_vram->vram);
+		int vr_width  = _vram->width<<1;
+  		int vr_height = _vram->height;
+		int vr_pitch =  _vram->pitch;
 
 		int bm_lv_y = 0;
-		
+
 		if(shooting_mode == SHOOTMODE_MOVIE) {
 			bm_lv_y = (os.bmp_ex_y-os.bmp_ex_x*9/16);
 			if(((ext_monitor_hdmi || ext_monitor_rca) && !recording ) || (!ext_monitor_hdmi && !ext_monitor_rca)){
 				bm_lv_y>>=1;
 			}
 		}
-		int off_cor = recording ? bm_lv_y:0;
-		int height_cor = recording ? bm_lv_y+os.bmp_of_y:0;
-		if(!ext_monitor_hdmi && !ext_monitor_rca) {
-			height_cor<<=1;
+
+		os.bmp_ex_x>>=1; //reduce x size to double pixels 
+		os.bmp_of_x>>=1; //reduce offset to double pixels
+		
+		int vr_x_of_corr = 0;
+		int vr_x_ex_corr = 0;
+		int vr_y_of_corr = 0;
+		int vr_y_ex_corr = 0;
+		
+		if(use_hd_vram) {
+			vr_y_of_corr = recording ? bm_lv_y:0;
+			vr_y_ex_corr = recording ? bm_lv_y+os.bmp_of_y:0;
+			if(!ext_monitor_hdmi && !ext_monitor_rca) {
+				vr_y_ex_corr<<=1;
+			}
+		} else {
+			vr_x_of_corr = os.bmp_of_x; // number of double pixels we go left
+			vr_x_ex_corr = os.bmp_of_x<<((ext_monitor_hdmi || ext_monitor_rca)&&recording?1:2);
+			
+			vr_y_of_corr=-os.bmp_of_y;
+			vr_height=os.lv_ex_y;
+			if(ext_monitor_hdmi && video_mode_resolution) {
+				vr_height>>=1;
+				if(video_mode_crop) { // FIXME crop mode with external displays
+					vr_x_of_corr<<=1;
+					vr_height>>=1;
+					vr_width>>=1;
+				}
+			}
 		}
-		os.bmp_ex_x>>=1; 
-		os.bmp_of_x>>=1;
+		
+//		bmp_printf(FONT_MED, 30, 100, "HD %dx%dp:%d vxc:%d vxo:%d vyc:%d vyo:%d byo:%d blvy:%d", vr_width>>1, vr_height, vr_pitch, vr_x_ex_corr, vr_x_of_corr, vr_y_ex_corr, vr_y_of_corr, os.bmp_of_y,  bm_lv_y);
+
   		int step = (recording ? 2 : 1);
 
-		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d %d %d %d %d %d", hd_width>>1, hd_height, hd_pitch, os.bmp_of_y,  bm_lv_y, off_cor, height_cor);
+  		static int xcalc[960];
+  		static int xcalc_done=0;
+  		
+  		if(!xcalc_done || crop_dirty) {
+	  		for (x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step) {
+  				xcalc[x]=(x-os.bmp_of_x+vr_x_of_corr)*((vr_width>>2)-vr_x_ex_corr)/os.bmp_ex_x;
+			}
+			xcalc_done=1;
+		}
 
 		uint32_t zlh = zebra_level_hi << 8;
 		uint32_t zll = zebra_level_lo << 8;
@@ -799,18 +857,9 @@ static void draw_zebra_and_focus_unified( void )
   		static int thr = 50;
   		int n_over = 0;
   		
-  		static int xcalc[960];
-  		static int xcalc_done=0;
-  		
-  		if(!xcalc_done || crop_dirty) {
-	  		for (x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step) {
-  				xcalc[x]=(x-os.bmp_of_x)*(hd_width>>2)/os.bmp_ex_x;
-			}
-			xcalc_done=1;
-		}
 		for( y = os.bmp_of_y + bm_lv_y; y < (os.bmp_ex_y+os.bmp_of_y-bm_lv_y); y+=2 ) {
 			if (y > 540-2) continue;
-			uint32_t * const hd_row = (uint32_t*)( hdvram + (y-os.bmp_of_y-off_cor) * hd_height/(os.bmp_ex_y-height_cor) * hd_pitch ); // 2 pixels
+			uint32_t * const vr_row = (uint32_t*)( vram + (y-os.bmp_of_y-vr_y_of_corr) * vr_height/(os.bmp_ex_y-vr_y_ex_corr) * vr_pitch ); // 2 pixels
 			int b_row_off = y * BMPPITCH;
 			uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 			uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
@@ -822,7 +871,7 @@ static void draw_zebra_and_focus_unified( void )
 				#define BN (b_row[x + (BMPPITCH>>1)])
 				#define MN (m_row[x + (BMPPITCH>>1)])
 
-				uint32_t pixel = hd_row[xcalc[x]];
+				uint32_t pixel = vr_row[xcalc[x]];
 
 				uint16_t bp = BP;
 				uint16_t mp = MP;
@@ -1940,6 +1989,11 @@ struct menu_entry dbg_menus[] = {
 		.select		= menu_ternary_toggle,
 		.display	= zebra_mode_display,
 	},
+	{
+		.priv		= &use_hd_vram,
+		.select		= menu_binary_toggle,
+		.display	= use_hd_vram_display,
+	},
 };
 
 PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
@@ -2195,7 +2249,7 @@ movie_clock_task( void )
 		msleep(1000);
 		if (shooting_type == 4 && recording) movie_elapsed_time++;
 		
-		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
+		bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
 		fps_ticks = 0;
 	}
 }
