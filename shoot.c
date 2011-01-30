@@ -1463,6 +1463,7 @@ bulb_take_pic(int duration)
 		bmp_printf(FONT_LARGE, 0, 30, "Pls select bulb mode");
 		return;
 	}
+	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	SW1(1);
 	SW2(1);
 	int i;
@@ -1471,6 +1472,7 @@ bulb_take_pic(int duration)
 	{
 		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 		msleep(1000);
+		if (lens_info.job_state == 0) break;
 	}
 	SW2(0);
 	SW1(0);
