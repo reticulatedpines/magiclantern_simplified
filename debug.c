@@ -686,8 +686,8 @@ ack:
 
 
 
-#define num_properties 10
-unsigned property_list[ num_properties ];
+//~ #define num_properties 4096
+//~ unsigned property_list[ num_properties ];
 
 
 void
@@ -720,13 +720,6 @@ debug_init( void )
 	}
 
 thats_all:
-#else
-	int actual_num_properties = 0;
-	int i;
-	for( i=0 ;i<0xFF ; i++ )
-		property_list[actual_num_properties++] = 
-			0x02010000 | i;
-#endif
 
 	prop_register_slave(
 		property_list,
@@ -735,6 +728,7 @@ thats_all:
 		(void*) 0xdeadbeef,
 		debug_token_handler
 	);
+#endif
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 	menu_add( "Movie", mov_menus, COUNT(mov_menus) );

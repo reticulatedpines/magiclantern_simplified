@@ -46,7 +46,7 @@ CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1)
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
-CONFIG_INT( "bulb.duration", bulb_duration, 5000);
+CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
 
 int intervalometer_running = 0;
 int lcd_release_running = 0;
@@ -67,7 +67,7 @@ PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_GUI_STATE, gui_state);
 PROP_INT(PROP_REMOTE_SW1, remote_sw1);
 
-int timer_values[] = {1,2,5,10,15,20,30,60,300,900,3600};
+int timer_values[] = {1,2,5,10,15,20,30,60,120,300,600,900,1800,3600};
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -86,11 +86,13 @@ interval_timer_display( void * priv, int x, int y, int selected )
 {
 	if (shooting_mode != SHOOTMODE_MOVIE || silent_pic_mode)
 	{
+		int d = timer_values[*(int*)priv];
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"Take a pic every: %ds",
-			timer_values[*(int*)priv]
+			"Take a pic every: %d%s",
+			d < 60 ? d : d/60, 
+			d < 60 ? "s" : "min"
 		);
 	}
 	else
@@ -624,6 +626,11 @@ silent_pic_take_sweep()
 {
 	if (recording) return;
 	if (!lv_drawn()) return;
+	if ((af_mode & 0xF) != 3 )
+	{
+		bmp_printf(FONT_MED, 20, 70, "Please switch to Manual Focus."); 
+		return; 
+	}
 
 	bmp_printf(FONT_MED, 20, 70, "Psst! Preparing for high-res pic   ");
 	while (get_halfshutter_pressed()) msleep(100);
@@ -1247,11 +1254,14 @@ saturation_toggle_reverse( void * priv )
 static void 
 saturation_display( void * priv, int x, int y, int selected )
 {
+	int s = lens_get_saturation();
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Saturation  : %d ",
-		lens_get_saturation()
+		(s >= -4 && s <= 4) ? 
+			"Saturation  : %d " :
+			"Saturation  : 0x%X",
+		s
 	);
 }
 
@@ -1462,28 +1472,24 @@ bulb_take_pic(int duration)
 
 static void bulb_toggle_fwd(void* priv)
 {
-	bulb_duration = bulb_duration * 2;
-	if (bulb_duration >= 3600*1000*2)
-		bulb_duration = 1000;
-	if (bulb_duration > 3600*1000) // one hour
-		bulb_duration = 3600*1000;
+	bulb_duration_index = mod(bulb_duration_index + 1, COUNT(timer_values));
 }
 static void bulb_toggle_rev(void* priv)
 {
-	bulb_duration = bulb_duration / 2;
-	if (bulb_duration < 1000)
-		bulb_duration = 3600*1000;
+	bulb_duration_index = mod(bulb_duration_index - 1, COUNT(timer_values));
 }
 
 static void
 bulb_display( void * priv, int x, int y, int selected )
 {
+	int d = timer_values[bulb_duration_index];
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Bulb Timer %s: %ds",
+		"Bulb Timer %s: %d%s",
 		is_bulb_mode() ? "     " : "(N/A)",
-		bulb_duration/1000
+		d < 60 ? d : d/60, 
+		d < 60 ? "s" : "min"
 	);
 }
 
@@ -1653,7 +1659,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
 			msleep(10);
-			if (lens_info.raw_shutter < 0x40) while (lens_info.job_state) msleep(100);
+			if (lens_info.raw_shutter < 0x60) while (lens_info.job_state) msleep(100);
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(0); }
 		}
@@ -1671,7 +1677,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			msleep(10);
-			if (lens_info.raw_shutter < 0x40) while (lens_info.job_state) msleep(100);
+			if (lens_info.raw_shutter < 0x60) while (lens_info.job_state) msleep(100);
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
 			else { msleep(300); silent_pic_take(0); }
 		}
@@ -1743,7 +1749,7 @@ void hdr_shot(int skip0)
 	//~ msleep(2000);
 	if (is_bulb_mode())
 	{
-		bulb_take_pic(bulb_duration);
+		bulb_take_pic(timer_values[bulb_duration_index] * 1000);
 	}
 	else if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
 	{
@@ -1767,7 +1773,7 @@ void remote_shot()
 {
 	if (is_bulb_mode())
 	{
-		bulb_take_pic(bulb_duration);
+		bulb_take_pic(timer_values[bulb_duration_index] * 1000);
 	}
 	else if (hdr_steps > 1)
 	{

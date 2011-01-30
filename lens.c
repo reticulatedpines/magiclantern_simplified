@@ -193,8 +193,8 @@ update_lens_display(
 		);
 	else
 		bmp_printf( font_err, x, y,
-			"f 0x%02x",
-			info->raw_aperture
+			"1/0x%02x",
+			info->raw_shutter
 		);
 
 	x += 100;
@@ -831,7 +831,7 @@ lens_get_##param() \
 void \
 lens_set_##param(int value) \
 { \
-	value = COERCE(value, lo, hi); \
+	if (value < lo || value > hi) return; \
 	int i = lens_info.picstyle; \
 	if (!i) return; \
 	picstyle_settings[i].param = value; \

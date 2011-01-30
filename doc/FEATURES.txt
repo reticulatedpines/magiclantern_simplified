@@ -399,7 +399,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   Modes:
   
   * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
-  * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the scene should be almost stationary (a pic is taken in a few seconds). Useful for timelapse.
+  * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the scene should be almost stationary (a pic is taken in a few seconds). Useful for timelapse. Only works well with manual focus.
   * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
   
   Keys:
