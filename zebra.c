@@ -764,7 +764,9 @@ static void draw_zebra_and_focus_unified( void )
 	if (focus_peaking || zd) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
-  		static int dirty_pixels[MAX_DIRTY_PIXELS];
+  		static int* dirty_pixels = 0;
+  		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
+  		if (!dirty_pixels) return;
   		static int dirty_pixels_num = 0;
   		static int very_dirty = 0;
   		bmp_ov_loc_size_t os;
@@ -824,7 +826,7 @@ static void draw_zebra_and_focus_unified( void )
 
   		int step = (recording ? 2 : 1);
 
-  		static int xcalc[960];
+  		static int16_t xcalc[960];
   		static int xcalc_done=0;
   		
   		if(!xcalc_done || crop_dirty) {
@@ -1021,7 +1023,9 @@ draw_zebra_and_focus( void )
 	{
 		// clear previously written pixels
 		#define MAX_DIRTY_PIXELS 5000
-		static int dirty_pixels[MAX_DIRTY_PIXELS];
+  		static int* dirty_pixels = 0;
+  		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
+  		if (!dirty_pixels) return;
 		static int dirty_pixels_num = 0;
 		static int very_dirty = 0;
 		int i;

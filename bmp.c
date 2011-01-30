@@ -594,7 +594,7 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
 	
 	#ifdef USE_LUT 
 	// we better don't use AllocateMemory for LUT (Err 70)
-	static int lut[960];
+	static int16_t lut[960];
 	for (xs = x0; xs < (x0 + xmax); xs++)
 	{
 		lut[xs] = (xs-x0) * bmp->width/xmax;
@@ -643,7 +643,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 	
 	#ifdef USE_LUT 
 	// we better don't use AllocateMemory for LUT (Err 70)
-	static int lut[960];
+	static int16_t lut[960];
 	for (xs = x0; xs < (x0 + xmax); xs++)
 	{
 		lut[xs] = (xs-x0) * bmp->width/xmax;

@@ -686,7 +686,7 @@ ack:
 
 
 
-#define num_properties 1024
+#define num_properties 10
 unsigned property_list[ num_properties ];
 
 
@@ -695,7 +695,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 1
+#if 0
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
 	
