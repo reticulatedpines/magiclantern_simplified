@@ -1170,6 +1170,7 @@ static void
 contrast_toggle( int sign )
 {
 	int c = lens_get_contrast();
+	if (c < -4 || c > 4) return;
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_contrast(newc);
 	menu_show_only_selected();
@@ -1202,6 +1203,7 @@ static void
 sharpness_toggle( int sign )
 {
 	int c = lens_get_sharpness();
+	if (c < 0 || c > 7) return;
 	int newc = mod(c + sign, 8);
 	lens_set_sharpness(newc);
 	menu_show_only_selected();
@@ -1234,6 +1236,7 @@ static void
 saturation_toggle( int sign )
 {
 	int c = lens_get_saturation();
+	if (c < -4 || c > 4) return;
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_saturation(newc);
 	menu_show_only_selected();
