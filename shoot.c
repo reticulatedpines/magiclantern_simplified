@@ -1465,7 +1465,13 @@ bulb_take_pic(int duration)
 	}
 	SW1(1);
 	SW2(1);
-	msleep(duration);
+	int i;
+	int d = duration/1000;
+	for (i = 0; i < d; i++)
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+		msleep(1000);
+	}
 	SW2(0);
 	SW1(0);
 }
