@@ -91,7 +91,7 @@ unified_loop_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"UnifLoop (experim): %s",
-		unified_loop == 0 ? "OFF" : unified_loop == 1 ? "ON" : "ExtMon"
+		unified_loop == 0 ? "OFF" : unified_loop == 1 ? "ON" : "Auto"
 	);
 }
 
@@ -991,7 +991,8 @@ static void
 draw_zebra_and_focus( void )
 {
 	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
-	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca)) { draw_zebra_and_focus_unified(); return; }
+	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
+		{ draw_zebra_and_focus_unified(); return; }
 	
 	if (!global_draw) return;
 	
@@ -2253,7 +2254,7 @@ movie_clock_task( void )
 		msleep(1000);
 		if (shooting_type == 4 && recording) movie_elapsed_time++;
 		
-		bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
+		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
 		fps_ticks = 0;
 	}
 }
