@@ -456,6 +456,7 @@ hist_draw_image(
 )
 {
     DebugMsg(DM_MAGIC, 3, "***************** hist_draw_image **********************");
+    if (!lv_drawn()) return;
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -512,6 +513,7 @@ waveform_draw_image(
 	unsigned		y_origin
 )
 {
+    if (!lv_drawn()) return;
 	waveform_init();
 	// Ensure that x_origin is quad-word aligned
 	x_origin &= ~3;
@@ -1800,6 +1802,7 @@ PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 
 void spotmeter_step()
 {
+    if (!lv_drawn()) return;
 	struct vram_info *	vram = get_yuv422_vram();
 
 	if( !vram->vram )
@@ -2108,7 +2111,7 @@ zebra_task_loop:
 		k++;
 
 		msleep(10); // safety msleep :)
-		if (cropmark_playback && gui_state == GUISTATE_PLAYMENU)
+		if (cropmarks && cropmark_playback && gui_state == GUISTATE_PLAYMENU)
 		{
 			cropmark_redraw();
 			msleep(1000);
