@@ -794,8 +794,8 @@ static void draw_zebra_and_focus_unified( void )
 			}
 		}
 
-		os.bmp_ex_x>>=1; //reduce x size to double pixels 
-		os.bmp_of_x>>=1; //reduce offset to double pixels
+		os.bmp_ex_x>>=2; //reduce x size to quad pixels 
+		os.bmp_of_x>>=2; //reduce offset to quad pixels
 		
 		int vr_x_of_corr = 0;
 		int vr_x_ex_corr = 0;
@@ -810,16 +810,16 @@ static void draw_zebra_and_focus_unified( void )
 			}
 		} else {
 			vr_x_of_corr = os.bmp_of_x; // number of double pixels we go left
-			vr_x_ex_corr = os.bmp_of_x<<((ext_monitor_hdmi || ext_monitor_rca)&&recording?1:2);
+			vr_x_ex_corr = os.bmp_of_x<<((ext_monitor_hdmi || ext_monitor_rca)&&recording?2:3);
 			
 			vr_y_of_corr=-os.bmp_of_y;
 			vr_height=os.lv_ex_y;
 			if(ext_monitor_hdmi && video_mode_resolution) {
 				vr_height>>=1;
 				if(video_mode_crop) { // FIXME crop mode with external displays
-					vr_x_of_corr<<=1;
+					vr_x_of_corr<<=2;
 					vr_height>>=1;
-					vr_width>>=1;
+					vr_width>>=2;
 				}
 			}
 		}
@@ -828,11 +828,21 @@ static void draw_zebra_and_focus_unified( void )
 
   		int step = (recording ? 2 : 1);
 
+  		int ymin = os.bmp_of_y + bm_lv_y;
+  		int ymax = os.bmp_ex_y + os.bmp_of_y - bm_lv_y;
+  		int xmin = os.bmp_of_x;
+  		int xmax = os.bmp_ex_x + os.bmp_of_x;
+
+ 		ymin=COERCE(ymin, 0, 540);
+  		ymax=COERCE(ymax, 0, 540);
+  		xmin=COERCE(xmin, 0, 960);
+  		xmax=COERCE(xmax, 0, 960);
+
   		static int16_t xcalc[960];
   		static int xcalc_done=0;
   		
   		if(!xcalc_done || crop_dirty) {
-	  		for (x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step) {
+	  		for (x = xmin; x < xmax; x+=step) {
   				xcalc[x]=(x-os.bmp_of_x+vr_x_of_corr)*((vr_width>>2)-vr_x_ex_corr)/os.bmp_ex_x;
 			}
 			xcalc_done=1;
@@ -861,51 +871,33 @@ static void draw_zebra_and_focus_unified( void )
   		static int thr = 50;
   		int n_over = 0;
   		
-		for( y = os.bmp_of_y + bm_lv_y; y < (os.bmp_ex_y+os.bmp_of_y-bm_lv_y); y+=2 ) {
-			if (y > 540-2) continue;
+  		
+		for( y = ymin; y < ymax; y+=2 ) {
 			uint32_t * const vr_row = (uint32_t*)( vram + (y-os.bmp_of_y-vr_y_of_corr) * vr_height/(os.bmp_ex_y-vr_y_ex_corr) * vr_pitch ); // 2 pixels
 			int b_row_off = y * BMPPITCH;
-			uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
-			uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
+			uint32_t * const b_row = (uint32_t*)( bvram + b_row_off );   // 4 pixels
+			uint32_t * const m_row = (uint32_t*)( bvram_mirror + b_row_off );   // 4 pixels
   
-			for ( x = os.bmp_of_x; x < (os.bmp_ex_x + os.bmp_of_x); x+=step ) {
-				x = COERCE(x, 0, 960);
+			for ( x = xmin; x < xmax; x+=step ) {
 				#define BP (b_row[x])
 				#define MP (m_row[x])
-				#define BN (b_row[x + (BMPPITCH>>1)])
-				#define MN (m_row[x + (BMPPITCH>>1)])
+				#define BN (b_row[x + (BMPPITCH>>2)])
+				#define MN (m_row[x + (BMPPITCH>>2)])
 
 				uint32_t pixel = vr_row[xcalc[x]];
 
-				uint16_t bp = BP;
-				uint16_t mp = MP;
-				uint16_t bn = BN;
-				uint16_t mn = MN;
+				uint32_t bp = BP;
+				uint32_t mp = MP;
+				uint32_t bn = BN;
+				uint32_t mn = MN;
 				
 //				BP=(pixel&0xff)>>8 | (pixel&0xff000000)>>24;
 
 				if (zd) {
 					int zebra_done = 0;
-					switch(zebra_density) {
-						case 0:
-							if(!(y&2) && (x&1)) {
-								zebra_done = 1;
-							} else if ((y&2) && !(x&1)) {
-								zebra_done = 1;
-							}
-							break;
-						case 1:
-							if(!(y&2) && (x&2)) {
-								zebra_done = 1;
-							} else if ((y&2) && !(x&2)) {
-								zebra_done = 1;
-							} 
-							break;
-					}
-					if(!zebra_done) {
-						if (bp != 0 && bp != mp) { little_cleanup(b_row + x, m_row + x); zebra_done = 1; }
-						if (bn != 0 && bn != mn) { little_cleanup(b_row + x + (BMPPITCH>>1), m_row + x + (BMPPITCH>>1)); zebra_done = 1; }
-					}
+					if (bp != 0 && bp != mp) { little_cleanup(b_row + x, m_row + x); zebra_done = 1; }
+					if (bn != 0 && bn != mn) { little_cleanup(b_row + x + (BMPPITCH>>1), m_row + x + (BMPPITCH>>1)); zebra_done = 1; }
+
 					if(!zebra_done) {
 						uint32_t p0 = pixel & 0xFF00;
 						int color = 0;
@@ -919,30 +911,19 @@ static void draw_zebra_and_focus_unified( void )
 						switch(zebra_density) {
 							case 0:
 								BP = MP = color;
-								BN = MN = color<<8;
+								BN = MN = color<<16;
 								break;
 							case 1:
-								if(!(x&1)) {
-									BP = MP = color<<8 | color;
-								} else {
-									BN = MN = color<<8 | color;
-								}
+								BP = MP = color<<8 | color;
+								BN = MN = color<<24 | color<<16;
 								break;
 							case 2:
 								if(!(y&2)) {
-									if(!(x&1)) {
 										BP = MP = color<<8 | color;
-										BN = MN = color<<8;
-									} else {
-										BN = MN = color;
-									}
+										BN = MN = color<<16 | color<<8;
 								} else {
-									if(!(x&1)) {
-										BN= MN = color;
-									} else {
-										BP = MP = color<<8 | color;
-										BN = MN = color<<8;
-									} 
+										BP = MP = color<<16 | color<<24;
+										BN = MN = color<<24 | color;
 								}
 								break;
 						}
@@ -966,7 +947,7 @@ static void draw_zebra_and_focus_unified( void )
 					if ((bp == 0 || bp == mp) && (bn == 0 || bn == mn)) { // safe to draw
 						BP = BN = MP = MN = color;
 						if (dirty_pixels_num < MAX_DIRTY_PIXELS) {
-							dirty_pixels[dirty_pixels_num++] = (x<<1) + b_row_off;
+							dirty_pixels[dirty_pixels_num++] = (x<<2) + b_row_off;
 						}
 					}
   				}
