@@ -980,8 +980,6 @@ my_sounddev_task( int some_param )
 
 	sounddev_active_in(0,0);
 
-	// Create the menu items
-	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 	audio_configure( 1 ); // force it this time
 
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -989,6 +987,10 @@ my_sounddev_task( int some_param )
 	FIO_RemoveFile("B:/audioreg.txt");
 	reg_file = FIO_CreateFile( "B:/audioreg.txt" );
 #endif
+
+	msleep(3000);
+	// Create the menu items
+	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 
 	int count = 0;
 
