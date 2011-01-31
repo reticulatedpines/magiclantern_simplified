@@ -973,7 +973,7 @@ my_sounddev_task( int some_param )
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
 
-	msleep( 4000 );
+	msleep( 1000 );
 
 	// Fake the sound dev task parameters
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
