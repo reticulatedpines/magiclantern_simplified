@@ -31,6 +31,7 @@
 #define PROP_TFT_STATUS		0x80030015
 #define PROP_LENS_NAME		0x80030021
 #define PROP_LENS_SOMETHING	0x80030022
+#define PROP_LENS			0x80030011 // info about lens? flags?
 #define PROP_HDMI_CHANGE	0x8003002c // 1 if HDMI display connected
 #define PROP_HDMI_CHANGE_CODE	0x8003002e // edidc?
 #define PROP_USBRCA_MONITOR 0x80030018 // not sure

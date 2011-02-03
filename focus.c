@@ -192,7 +192,7 @@ focus_rack_speed_display(
 }
 
 
-unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36,50,75,100};
+unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36,50,75,100,200,300,500,1000};
 
 int current_rack_speed_index()
 {

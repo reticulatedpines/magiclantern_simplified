@@ -332,6 +332,28 @@ movie_restart_print(
 	);
 }
 
+void fake_lens(void* priv)
+{
+	uint32_t lens[4];
+	lens[0] = 0x00101001;
+	lens[1] = 0xFF01001b;
+	lens[2] = 0x0D0490FF;
+	lens[3] = 0;
+	bmp_printf(FONT_MED, 0, 0, "lens chg");
+	prop_request_change(PROP_LENS, lens, 14);
+	msleep(500);
+
+	int ap = 0x10;
+	prop_request_change(PROP_APERTURE3, &ap, 4);
+	msleep(100);
+	prop_request_change(PROP_APERTURE2, &ap, 4);
+	msleep(100);
+	prop_request_change(PROP_APERTURE, &ap, 4);
+	msleep(100);
+	bmp_printf(FONT_MED, 0, 0, "ap chg");
+	msleep(500);
+}
+
 static uint32_t* dbg_memmirror = 0;
 static uint32_t* dbg_memchanges = 0;
 
@@ -539,11 +561,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	/*{
-		.priv		= "Toggle mem_spy",
-		.select		= mem_spy_select,
+	{
+		.priv		= "Fake Lens",
+		.select		= fake_lens,
 		.display	= menu_print,
-	},*/
+	}
 
 #if 0
 	{
@@ -686,8 +708,8 @@ ack:
 
 
 
-//~ #define num_properties 4096
-//~ unsigned property_list[ num_properties ];
+#define num_properties 4096
+unsigned property_list[ num_properties ];
 
 
 void
@@ -695,7 +717,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 0
+#if 1
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
 	
