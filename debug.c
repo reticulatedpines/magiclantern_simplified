@@ -332,6 +332,7 @@ movie_restart_print(
 	);
 }
 
+/*
 void fake_lens(void* priv)
 {
 	uint32_t lens[4];
@@ -353,6 +354,7 @@ void fake_lens(void* priv)
 	bmp_printf(FONT_MED, 0, 0, "ap chg");
 	msleep(500);
 }
+*/
 
 static uint32_t* dbg_memmirror = 0;
 static uint32_t* dbg_memchanges = 0;
@@ -561,11 +563,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	{
+/*	{
 		.priv		= "Fake Lens",
 		.select		= fake_lens,
 		.display	= menu_print,
-	}
+	}*/
 
 #if 0
 	{
