@@ -462,7 +462,7 @@ mvr_create_logfile(
 
 	// Movie starting
 	char name[100];
-	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MOV_%04d.LOG", folder_number, file_number);
+	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.LOG", folder_number, file_number);
 
 	FIO_RemoveFile(name);
 	mvr_logfile = FIO_CreateFile( name );

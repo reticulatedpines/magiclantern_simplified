@@ -271,7 +271,7 @@ Functions specific to movie mode.
   While this setting is on, movie recording will restart automatically, unless stopped by you.
 
 **Movie logging: ON/OFF**
-  If this setting is ``ON``, Magic Lantern will write out a metadata file for the each movie to ``MOV_1234.LOG`` (numbered after the movie), as well as a timestamp every time any of the parameters is changed during recording. 
+  If this setting is ``ON``, Magic Lantern will write out a metadata file for the each movie to ``MVI_1234.LOG`` (numbered after the movie), as well as a timestamp every time any of the parameters is changed during recording. 
   
   
   Log files are placed in the same folder as the movies: ``DCIM/100CANON/``, ``101CANON`` etc.
