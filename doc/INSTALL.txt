@@ -7,7 +7,7 @@ WARNING
 
 ::
 
-           ***************************************************
+          .***************************************************
            *                                                 *
            * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
            *  NO WARRANTIES.  NO GUARANTEES.  DO NOT TAUNT.  *
@@ -19,7 +19,7 @@ software before you are tempted to try running it on your camera.
 
 To repeat this important point::
 
-           ***************************************************
+          .***************************************************
            *                                                 *
            * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
            *   IF IT BREAKS, YOU GET TO KEEP BOTH PIECES.    *
@@ -85,8 +85,10 @@ Step 0. Downloading
 Step 1. Enabling bootflag
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: 550install.jpg
+.. figure:: 550install.jpg
     :alt: thumb|right|Magic Lantern install screen
+    :align: center
+    :width: 5cm
 
 * Remove any accessories from your camera (such as battery grip or external flash)
 * Restore your camera to default settings (``Clear all camera settings``, from ``Wrench 3`` menu)
@@ -115,8 +117,10 @@ AND the SD card is "prepared" with special values written in boot sector:
 
 Mac OS X
 ````````
-.. image:: MacBoot.jpg
+.. figure:: MacBoot.jpg
     :alt: 350px|right|MacBoot usage
+    :align: center
+    :width: 5cm
 
 [[Video:MAGIC LANTERN 1.0.9 HACK INSTALL WITH A MAC FOR CANON T2I OR 550D|thumb|300px|right|Magic Lantern install tutorial for MAC OS X (older, does not use MacBoot)]]
 
@@ -134,10 +138,12 @@ Windows
 
 [[Video:Tutorial 5 - Magic Lantern by Dod3032|thumb|300px|right]]
 
-Use `**EOScard** <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!). It works with FAT16, FAT32 and EXFAT cards. You need to have Administrator rights on your Windows user account.
+Use `EOScard <http://pel.hu/down/EOScard.exe>`_ (thanks `Pel <http://pel.hu/>`_!). It works with FAT16, FAT32 and EXFAT cards. You need to have Administrator rights on your Windows user account.
 
-.. image:: EOScard.png
+.. figure:: EOScard.png
     :alt: frame|right|EOScard usage
+    :align: center
+    :width: 5cm
 
 Select your SD card drive, check ``EOS_DEVELOP`` and ``BOOTDISK`` and hit Save.
 
@@ -149,8 +155,9 @@ If the antivirus `is complaining <https://bitbucket.org/hudson/magic-lantern/iss
 Linux and Mac OS X (command line)
 `````````````````````````````````
 
-You can use ``make_bootable.sh``, which is included in the archive.
-You need to change the following line in order to indicate your SD card device::
+You can use ``make_bootable.sh``, which is included in the archive. If you don't know how to run scripts, see `here <http://stackoverflow.com/questions/733824/how-to-run-a-sh-script-in-an-unix-console-mac-terminal>`_.
+
+Open the file and change the following line in order to indicate your SD card device::
 
     # change this
     dev=/dev/disk1s1
@@ -165,17 +172,23 @@ You need to change the following line in order to indicate your SD card device::
 
       mount | grep fat
 
-  and choose the one labeled ``EOS_DIGITAL``. You may have to run this script as root, for example::
-      
-      sudo bash make_bootable.sh
+  and choose the one labeled ``EOS_DIGITAL``. 
 
 * For EXFAT cards, see `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/1dae47529094cae3>`_.
 
+Run the script from the terminal::
+
+    bash make_bootable.sh
+
+If it doesn't have enough permissions, run it as root:
+
+    sudo bash make_bootable.sh
+    
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 * Delete ``magiclantern.fir``.
-* Copy ``autoexec.bin`` and ``cropmks`` on your SDCard.
+* Copy ``autoexec.bin`` and ``cropmks`` on your SDCard. Older builds may require some BMP files and ``magic.cfg``. 
 * Put the card in the camera.
 * Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
@@ -187,6 +200,8 @@ unless for some reason you will want to retry the installation process.
 Troubleshooting
 ~~~~~~~~~~~~~~~
 
+* Check if all doors are closed. The camera will not boot if the SD slot door is open!
+
 * If Magic Lantern does not work (i.e. no new features are noticed), repeat Step 2. This means your card is not bootable. Also try with an older (FAT16) card, try with another card reader, another PC or another operating system.
 
 * **DO NOT repeat the firmware upgrade step with ``magiclantern.fir``**! There may be a firmware update counter like on the 7D, and you may end up with a bricked camera.
@@ -195,8 +210,6 @@ Troubleshooting
   Then put the battery back and try to boot the camera without card. Then put a formatted card 
   in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, 
   you can try to see what's wrong with Magic Lantern.
-
-* Also make sure the battery and card doors are closed
 
 * **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 seconds, switching off is not enough !!!**
 
@@ -229,7 +242,9 @@ Format the card from the camera, and Magic Lantern will be gone (only from that 
 Uninstalling ML from the camera
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Put this in ``magic.cfg`` to reset the ``DISKBOOT`` flag from the camera::
+**You don't have to do this** unless you are asked to do so by ML developers. For most users, formatting the card will be enough to uninstall ML.
+
+If you know what you are doing, put this in ``magic.cfg`` to reset the ``DISKBOOT`` flag from the camera::
 
     magic.disable_bootdiskf = 1
 
@@ -269,7 +284,7 @@ Risks
 * There are no confirmed reports of Magic Lantern doing permanent damage on the 550D.
   
   However, there are reports on CHDK forum that some users `bricked their 350D <http://chdk.setepontos.com/index.php?topic=4202.315>`_, most probably by installing a hack on the wrong firmware version. There are also lots of reports of camera refusing to boot after installing ML; this happens because they have tried to start the camera from a bootable (i.e. prepared) card without ``autoexec.bin``.
-* Starting the camera with a bootable card without an ``autoexec.bin`` **will cause symptoms similar to a bricked one** (it will not boot). This may scare you. It it happens, **take the battery out quickly** and the camera should be fine. There are many reports about cameras which behave like being bricked, when in fact it was just ``autoexec.bin`` missing. That's why you should read the install instructions carefully.
+* Starting the camera with a bootable card without an ``autoexec.bin`` **will cause symptoms similar to a bricked one** (it will not boot). This may scare you. If it happens, **take the battery out quickly** and the camera should be fine. There are many reports about cameras which behave like being bricked, when in fact it was just ``autoexec.bin`` missing. That's why you should read the install instructions carefully.
 * On certain cameras, there are power management issues (i.e. if you turn off the camera or let it go to standby, it won't start any more). Make sure you don't have these problems; if you do, take the battery out after each shooting session!
 * Even if you don't have power issues, it's a good idea to take the battery out when you don't use the camera.
 * The biggest risk is when experimenting with source code without knowing what you are doing. Calling certain functions or calling them at the wrong moment can be dangerous.

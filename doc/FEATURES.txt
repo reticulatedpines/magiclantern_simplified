@@ -1,31 +1,40 @@
 Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
 ================================================
 
+.. raw:: latex
+
+    { \setlength{\parskip}{0.5mm}
 
 Features
 --------
 
-* GUI menus: press the ERASE button to display them, SET/DISP to change values
-* Bit rate control (QScale parameter) for the H.264 encoder
-* Exposure aids: zebra stripes, false color, spotmeter, histogram
-* Focus peaking
-* Rack focus
-* Stack focus (Live View only)
-* Cropmarks (16:9, Cinemascope, Fisheye)
-* Intervalometer (classic or HDR)
-* Silent pictures in LiveView mode
-* Trap Focus: camera takes a picture when something comes in focus
-* Remote release with either the LCD face sensor or audio trigger
-* Onscreen audio meters
-* Manual audio gain, selectable input source, disable AGC and digital filters
-* Display time remaining during video recording
-* Debug functions (display CMOS temperature, screenshot, logging)
-* Fine tuning for ISO and shutter speeds; also ISO 25600
-* Kelvin white balance
-* Clean LiveView display without any overlays (selectable)
-* On-demand auto tuning for ISO, shutter & kelvin white balance
-* Quick access to some useful settings like HTP, ALO and contrast
-* Extra info displays: lens data, focus distance, DOF, shutter count, clock
+* Audio: `disable AGC`_ and digital filters, `audio meters`_, `manual audio controls`_, selectable `input source`_ (internal, internal+external, external stereo, `balanced`_), `audio monitoring`_ via USB.
+* Exposure helpers: `zebras`_, `false color`_, `histogram`_, `waveform`_, `spotmeter`_.
+* Focus tools: `focus peaking`_, `focus graph`_, `trap focus`_, `rack focus`_, `focus stacking`_, `zoom in Face Detect mode`_.
+* Movie helpers: `QScale`_ (bitrate control), `custom AF algorithm`_, `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
+* `Cropmark`_ images: user-editable overlays to assist framing and composition.
+* Fine control for `ISO`_, `Shutter`_, `Kelvin white balance`_ and other `image settings`_.
+* Remote release with `LCD face sensor`_ and `audio trigger`_, without extra hardware.
+* Bracketing: `exposure bracketing`_, `focus stacking`_.
+* Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation; integration with bracketing.
+* Astro- and night photography: `bulb timer`_ for very long exposures (up to 1h).
+* Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, `clock`_.
+* Misc. functions: `slit-scan pictures`_, toggle `flash / no flash`_ (even pics without flash, odd pics with flash).
+
+.. raw:: latex
+
+    \tableofcontents
+    \newpage
+    }
+    \def\itemize{
+    \olditemize
+    \setlength{\itemsep}{4pt}
+    }
+    \def\enumerate{
+    \oldenumerate
+    \setlength{\itemsep}{4pt}
+    }
+
 
 Known issues
 ------------
@@ -36,12 +45,26 @@ Known issues
   (half-press the shutter or press ``MENU`` to trigger a redraw)
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * Camera may become unstable if you change modes while ML menu is active.
+
+.. _audio monitoring:
+
 * Audio monitoring works, but breaks USB, HDMI and maybe other functions. 
   For this reason, you may find pairs of builds with ``AudioMon`` or ``NoAudioMon`` in their names.
   
   - If you need audio monitoring and don't care about broken stuff, use the ``AudioMon`` builds.
   - If you don't need audio monitoring, use the ``NoAudioMon`` builds.
 
+* External monitors are not yet fully supported (some functions may not work / display correctly).
+    
+  The following functions are known not to work with external displays:
+  
+  - Histogram
+  - Waveform
+  - False color
+  - Spotmeter
+  - Auto ISO / Shutter / Kelvin
+  - ML displays may be shifted (menu not centered)
+  
 
 Important notes
 ---------------
@@ -59,7 +82,10 @@ Important notes
 
 * **And, remember that this software can damage or destroy your camera.**
 
-
+.. raw:: latex
+    
+    \newpage
+    
 Menu options
 ------------
 
@@ -69,36 +95,54 @@ and ``DISP`` to change values backwards.
 Audio
 ~~~~~
 
-.. image:: AudioMenu-550D.png
+.. figure:: AudioMenu-550D.png
     :alt: thumb|right|Audio menu
+    :align: center
+    :width: 5cm
 
 [[Video:Ryan's T2i Tips and Reviews - Onboard Mic vs. ATR-3350 Lav vs Rode VideoMic|thumb|300px|right|Audio tests by Ryan Sauvé]]
 
 Audio tweaks.
 
+.. _audio meters:
+
 **Audio Meters: ON / OFF / MovieOnly**
+
   Draw the audio meters or not. The ``Movie Only`` settings enables audio meters in movie mode only (default).
 
 **Output volume (dB)**
+
   Gain to external audio - currently this is the A/V jack (?) so not audible on just the camera
 
+.. _manual audio controls:
+
 **Analog Gain (dB)**
+
   Gain applied to both inputs in the analog domain - intended as mic-type preamp, but always preferable to digital gain (unless you want different gain or run out of analog).
 
-**L-DigitalGain and R-DigitalGain (dB)**
+**L-DigitalGain** and **R-DigitalGain (dB)**
+
   Digital gain applied separately to the L and R channel.
 
+.. _disable AGC:
+
 **AGC: ON/OFF**
+
   Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss noise when recording silence.
 
 **Monitor: ON/OFF**
+
   It's ported from 5D2 code, so it should be tested to see what it does. In the code it says it enables or disables loopback mode (what's this?!)
 
 **DigitalFilters: ON/OFF**
+
   Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
 
+.. _input source:
+
 **Input**
-  Input source: 
+
+  Audio input source for recording: 
   
   * **internal mic**
   * **int Left ext Right**
@@ -106,8 +150,12 @@ Audio tweaks.
   * **int Left ext Balanced** (internal Left + Right from both external pins as balanced audio)
   * **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo. Does not work with AudioMon builds.
 
-.. image:: XLRtoBalancedCable.jpg
+.. _balanced:
+
+.. figure:: XLRtoBalancedCable.jpg
     :alt: thumb|right|XLR microphone to Balanced input pinouts
+    :align: center
+    :width: 8cm
 
 "Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
 
@@ -116,19 +164,25 @@ Audio tweaks.
 LiveV
 ~~~~~
 
-.. image:: VideoMenu-550D.png
+.. figure:: VideoMenu-550D.png
     :alt: thumb|right|Video menu
+    :align: center
+    :width: 5cm
 
-
-LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false color.
+LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false color...
 
 **Global Draw: ON/OFF**
+
   Enable/disable drawing extra graphics elements 
-  (zebra, cropmarks, histogram, spotmeter, audio meters, ML shooting info).
+  (zebra, cropmarks, histogram, waveform, false color, spotmeter, audio meters, ML shooting info...).
 
   Tip: use this to quickly turn them off.
 
-**Histo/Wavefm: ON/OFF**
+.. _histogram:
+.. _waveform:
+
+**Histo/Wavefm: ON/OFF for histogram, OFF/Small/Large for waveform**
+
   Shows the distribution of image brightness with:
   
   * a histogram plot (toggle with ``SET``)
@@ -136,7 +190,10 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   The brightness is considered to be equal to the luma (Y) channel of the LiveView image. Colorspace is YUV.
 
+.. _zebras:
+
 **Zebras: ON/OFF/NRec, lo_level..hi_level**
+
   Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
   
   ``NRec`` setting: zebras are only displayed while not recording.
@@ -149,7 +206,10 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   Brightness values are between 0 and 255. A threshold equal to 0 will disable blue zebras, and 255 will disable red zebras.
 
+.. _false color:
+
 **False color**
+
   This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
   
   * **Plain C**: full resolution, maybe a bit slow.
@@ -164,8 +224,11 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * DOF preview button in Photo mode
   
   Use ``Q`` to enable/disable the shortcut key.
-  
+
+.. _Cropmark:
+
 **Cropmks(x/n)**
+
   Select cropmarks (cycle between them).
 
 
@@ -175,8 +238,10 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * Cinemascope
   * Fisheye for stills framing with Samyang/8mm.
 
-  .. image:: Cropmarks550D.png
+  .. figure:: Cropmarks550D.png
       :alt: 400px|center
+      :align: center
+      :width: 5cm
 
   If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x/n)`` shows the selected cropmark number and the number of detected cropmarks. You can place at most 9 cropmarks on the card.
 
@@ -184,20 +249,45 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   An exclamation mark (!) displayed in the menu means there was an error loading the cropmark image.
 
 
-  Get more cropmarks created by Magic Lantern users `here <http://www.sawomedia.de/magiclantern/cropmarks/>`_
+  Get more cropmarks created by Magic Lantern users `from the ML cropmark repository <http://www.sawomedia.de/magiclantern/cropmarks/>`_.
 
 
-  See [[Cropmarks]] for how to create custom cropmarks. Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
+  See [[Cropmarks]] for how to create custom cropmarks. 
+  
+  Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
 
   Press ``Q`` to enable cropmarks in Playback mode.
 
 {{clr}}
 
-**Spotmeter: ON/Percent/IRE**
+.. _spotmeter:
+
+**Spotmeter: OFF/Percent/IRE**
+
   Measure brightness in the center of the frame, and display it as a percentage or IRE value.
+  
+  Keys:
+  
+  * ``SET``: change display mode:
+  
+    - OFF 
+    - small square ⬜ with text below 
+    - centered text only
+    
+  * ``Q``: change measurement unit:
+  
+    - Percent (0..100%)
+    - IRE -1..101 (formula used by AJ, which maps 0-255 brightness levels to approx. -1..101 IRE)
+    - IRE 0..108 (formula proposed by Piers, which maps 16-235 brightness levels to 7.5-100 IRE)
+  
+  Note: when using low-contrast picture styles (like Marvels Cine or Superflat), the brightness might not reach the extreme values, even under strong under/over-exposure. This is OK.
+
+.. _Clean LiveView display:
 
 **ClrScreen: OFF/HalfShutter/Always**
+
+  Clear image overlays from LiveView display.
   
   * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
     and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
@@ -212,7 +302,10 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
 
+.. _focus peaking:
+
 **Focus Peak: ON/OFF, threshold, color_mode**
+
   Experimental focus peaking.
   
   See [[Focus Assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
@@ -237,8 +330,21 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * Threshold method: percentile (0.1% ... 5%).
   * Vertical downsampling: always 2
   * Horizontal downsampling: 2 when recording, else 1.
+
+.. _focus graph:
+
+**Focus Graph: ON/OFF**
+
+  Draws a small graph which shows the *amount* of focus in the AF frame (the little rectangle), over the last few seconds. Focus computation is done by Canon's autofocus algorithm.
   
+  Since the function which measures the amount of focus is heavily influenced by other factors (like contrast and exposure), ML attempts to normalize the value.
+  
+  If you are focusing manually, try to position the lens such as you get a local maxima on the focus graph.
+
+.. _zoom in Face Detect mode:
+
 **LiveView Zoom: x5 / x10 / :-)**
+
   Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
   
   * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
@@ -251,8 +357,10 @@ Movie
 
 Functions specific to movie mode.
 
+.. _QScale:
 
 **QScale**
+
   Controls the H.264 QScale parameter, which affects video bitrate. 
   Lower values mean higher bitrates. OFF disables QScale control.
   
@@ -267,27 +375,87 @@ Functions specific to movie mode.
   
   QScale setting is saved, overrides Canon setting, and it does not take effect if you change it during recording. It will take effect at next movie.
 
+.. _auto-restart:
+
 **Movie Restart: ON/OFF**
+
   While this setting is on, movie recording will restart automatically, unless stopped by you.
 
+.. _movie logging:
+
 **Movie logging: ON/OFF**
-  If this setting is ``ON``, Magic Lantern will write out a metadata file for the each movie to ``MVI_1234.LOG`` (numbered after the movie), as well as a timestamp every time any of the parameters is changed during recording. 
+
+  If this setting is ``ON``, Magic Lantern will write out a metadata file for the each movie to ``MVI_1234.LOG`` (numbered after the movie). The log file contains lens and exposure info, as well as a timestamp every time any of the parameters is changed during recording. 
   
   
   Log files are placed in the same folder as the movies: ``DCIM/100CANON/``, ``101CANON`` etc.
   
   
   Tip: you can rename ``LOG`` files to ``CSV`` and import them in Excel.
+
+.. _custom AF algorithm:
+
+**Movie AF: OFF/Hold/Cont**
+
+  Experimental autofocus in movie mode. It overrides the default autofocus algorithm.
   
+  Modes:
+  
+  * ``Hold``: AF only works when you press and hold the shutter halfway, or the ``*`` button.
+    - If you press the Canon AF buton (which is half-shutter or ``*``, depending on your ``CFn.9`` setting), the exposure will be changed during autofocus.
+    - If you press the other button, the exposure will not change during AF, but the AF will be slower.
+  * ``Cont``: AF works continuously. It will work faster when you hold the AF button.
+  * ``CFPk``: a very experimental version which does not use Canon's focus estimation, but focus peaking data. It only uses the center area and computes the absolute value of edge strengths and divides by the image brightness. Fast in theory, very bad in practice.
+  
+  This is a modified gradient descent algorithm. Tuning parameters (change with ``Q/DISP``):
+  
+  * ``A=1..64``: aggressiveness (target % rate of change for focus magnitude).
+  * ``N=0..9``: noise filter (for focus derivative).
+
+  Tips:
+  
+  * if you see it hunting in the wrong direction, a quick press of half-shutter or ``*`` will fix this. If you are holding the AF button pressed, de-press it and press it again to reverse the direction. Be aware that this algorithm has a very high self-esteem and sometimes it will refuse to believe you :)
+  * get an external microphone and place it far away from the camera (AF is noisy)
+
+**Start with LV: ON / Movie mode / All modes**
+
+  Force LiveView on startup. In movie mode, this only has effect if you use unchipped lenses. You can also force LiveView at startup in all modes.
+
+.. _change movie position:
+
+**MovieModeRemap: A-DEP / CA**
+
+  Changes movie position on the mode dial. You can swap movie mode with either ``A-DEP`` or ``CA``.
+
+.. _time remaining display:
+
+**Time Indicator: OFF / Elapsed / Remain.Card / Remain.4GB**
+
+ When recording a movie, ML will display a small time counter in the upper right corner, 
+ which can be:
+
+ * ``Elapsed``: duration of the current clip
+ * ``Remain.Card``: estimated amount of recording time remaining on the card.
+ * ``Remain.4GB``:  estimated amount of recording time until reaching 4GB (or until filling the card, whichever comes first).
+
+ Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
+ However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
+
+
 Shoot
 ~~~~~
 
-.. image:: ShootMenu-550D.png
+.. figure:: ShootMenu-550D.png
     :alt: thumb|right|Shoot menu
+    :align: center
+    :width: 5cm
 
 Functions for stills shooting.
 
+.. _exposure bracketing:
+
 **HDR Brack**
+
   AE Bracketing for HDR images and timelapses.
   
   
@@ -305,7 +473,7 @@ Functions for stills shooting.
 
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
-  with `**enfuse** <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
+  with `enfuse <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
   e.g. if the HDR sequence is created from ``IMG_1001.JPG ... IMG_1005.JPG``, the HDR script will be named 
   ``HDR_1001.SH`` and the resulting HDR image will be saved as ``HDR_1001.JPG``.
   
@@ -323,18 +491,21 @@ Functions for stills shooting.
   
   Don't forget to delete the scripts from the card; the camera won't delete them!
 
+.. _intervalometer:
+
 **Take a pic every X seconds** / **Record Y seconds, pause X seconds**
 
   Change the intervalometer settings (first setting appears in photo mode, second appears in movie mode).
 
 **Intervalometer: ON/OFF**
 
-[[Video:T2i Timelapse|thumb|300px|right|Timelapse taken with the ML intervalometer, by Logan Stewart]]
+  [[Video:T2i Timelapse|thumb|300px|right|Timelapse taken with the ML intervalometer, by Logan Stewart]]
 
   Start/stop intervalometer.
   
   * In photo mode, it takes a sequence of photos with a fixed delay. 
   * In movie mode, it takes a sequence of small videos
+  
     - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
     - To use the intervalometer in movie mode, make sure ``Silent Picture`` is ``OFF``.
   
@@ -346,22 +517,27 @@ Functions for stills shooting.
   
   * to save the shutter count when doing timelapses, enable ``Silent Picture`` or use the intervalometer in Movie mode.
 
+.. _LCD face sensor:
+
 **LCD Remote Shot: OFF/Near/Away**
+
   Start/stop remote shutter release mode with the LCD sensor. 
   
   * **Near**: To take a picture, put your hand near the LCD sensor.
   * **Away**: Picture is taken when you get your hand away from the sensor.
+  * **Wave**: Picture is taken after you wave your hand 3 times near the sensor.
 
   This is useful for avoiding camera shake without extra $$$, 
   especially if you don't have a sturdy tripod.
   
   To use it, select one of P,S,A,M modes, turn OFF Live View, 
   and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
-  
-  If self-timer is on, this function will disable it.
+
+.. _audio trigger:
 
 **Audio RemoteShot: ON/OFF**
-  Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands.
+
+  Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands or pop a balloon.
   
   
   Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the audio volume.
@@ -377,21 +553,48 @@ Functions for stills shooting.
 
 
 You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
-  
+
+.. _trap focus:
+
 **Trap Focus: OFF/Hold/Cont.**
+
+  Takes a picture when the subject comes into focus.
   
   Modes:
   
   * ``Hold``: You hold the shutter half-pressed; camera takes a picture when something comes into focus.
-  * ``Cont.``: You don't have to hold the shutter half-pressed; ML will emulate half-shutter presses instead. This is experimental and may have bugs.
+  * ``Cont.``: You don't have to hold the shutter half-pressed; ML will emulate half-shutter presses instead. This will disable some buttons (like ``MENU`` and ``PLAY``), so turn it off from ML menu before doing anything else.
   
-  This works if the lens is set to Manual focus (MF) and outside Live View. It does not work with lenses without chip.
+  Trap focus works only when the lens is set to Manual focus (MF).
+  
+  * Outside LiveView, it only works with lenses with chip.
+  * In LiveView it only works for photos, in ``Hold`` mode, and it will take a picture 
+    when the focus indicator has (almost) maximum value on the `focus graph`_. 
+    
+    Notes:
+    
+    - You may have to turn the lens back and forth a few times in order to let ML
+      compute the correct focus scaling for the current scene. 
+    - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
+    
+    To use Trap Focus in LiveView, make sure `focus graph`_ is ``ON``.
+
+.. _flash / no flash:
 
 **Flash / No flash: ON/OFF**
-  This will toggle flash setting (on/off) after each photo. Works only in P,A,S,M modes. The effect is somewhat similar to Fuji's Natural Light with Flash mode.
+
+  This will toggle flash setting (on/off) after each photo:
+  
+  * Even pictures (by file number) will be taken without flash
+  * Odd pictures will be taken with flash
+  
+  This function works only in P,A,S,M modes. The effect is somewhat similar to Fuji's Natural Light with Flash mode.
   
   Don't forget to pop up the flash :)
-    
+
+.. _silent pictures:
+.. _slit-scan pictures:
+
 **Silent Picture / Silent Pic HiRes / Slit-scan Pic**
 
   This can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
@@ -408,6 +611,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   * ``SET``: toggle modes (normal or hi-res)
   * ``DISP/Q``: toggle between:
+  
     * ``Single/Burst`` in normal mode
     * available matrix sizes (which give the image resolutions) in Hi-Res mode.
     * timing (number of clocks to skip after each line) in Slit-scan mode.
@@ -420,23 +624,33 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   
   TODO: 
   
-  * avoid that horizontal cut in pictures (vsync doesn't help)
+  * avoid that horizontal cut in pictures (vsync doesn't help and there's not enough RAM to buffer an entire image)
+
+.. _bulb timer:
 
 **Bulb Timer: 1s...3600s**
+
   Very long exposures with Bulb mode and ML timer. Only works with remote triggers and intervalometer. You should select ``M`` mode and ``BULB`` setting from Canon UI before using this.
   
   
   Tip: you can cancel the exposure earlier by half-pressing the shutter button.
 
+.. _image settings:
+
 Expo
 ~~~~
 
-.. image:: ExpoMenu-550D.png
+.. figure:: ExpoMenu-550D.png
     :alt: thumb|right|Expo menu
+    :align: center
+    :width: 5cm
 
 Adjusting the exposure parameters. Most of these settings only work in Manual (photo and video), and some of them work in P, Av and Tv too.
 
-**ISO**
+.. _ISO:
+
+**ISO: 100-25600**
+
   Custom steps for ISO. Possible values:
   
   0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
@@ -449,7 +663,10 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
   * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
 
-**Shutter**
+.. _shutter:
+
+**Shutter: 1/30...1/4000**
+
   Custom steps for shutter speed. Possible values:
   
   1/30, 33, 37, 40, 45, 50, 53, 57, 60, 67, 75, 80, 90, 100, 110, 115, 125, 135, 150, 160, 
@@ -462,22 +679,30 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
   * When LiveView is off, the shutter value is computed with the help of Auto ISO feature from Canon firmware, in 1EV steps. This feature is still experimental and sometimes it does not work.
 
-**WhiteBalance**
-  Kelvin white balance. Range: 1700 ... 10000.
+.. _Kelvin white balance:
+
+**WhiteBalance: 1700...10000**
+
+  Kelvin white balance.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
 
-**WBShift G/M**
-  Green-Magenta white balance shift. Range: G9 ... 0 ... M9. Useful for fluorescent lighting.
+**WBShift G/M: G9...0...M9**
 
-**Contrast**
-  Adjusts the contrast of the current picture style. Range: -4...4.
-  
-  ``WARNING 1``: this will modify your current picture style.
-  
-  ``WARNING 2``: this was not tested with custom picture styles loaded with the EOS Utility (and it might have negative effects)!
+  Green-Magenta white balance shift. Useful for fluorescent lighting.
 
+**PictureStyle**
+
+  Change picture style. You can see the effect on LiveView instantly.
+
+**Contrast/Saturation: -4..4**
+
+  Adjusts the contrast and the saturation of the current picture style.
+    
+  ``WARNING``: this will modify your current picture style.
+  
 **Light Adjust: OFF/ALO strong/HTP**
+
   Select the light adjustment algorithm: 
   
   * OFF
@@ -492,40 +717,56 @@ Bracketing was replaced by ``HDR Bracket`` feature from the ``Shoot`` menu, and 
 Focus
 ~~~~~
 
-.. image:: FocusMenu-550D.png
+.. figure:: FocusMenu-550D.png
     :alt: thumb|right|Focus menu
+    :align: center
+    :width: 5cm
+
+.. _rack focus:
 
 [[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|thumb|300px|right|Rack Focus Tutorial by Daniel Thurau]]
 
 **Focus dir**
+
   This is the direction the lens moves when pressing the camera's Zoom Out button to set the focus start and end points.
 
 **Focus A**
+
     This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set". 
 
 **Rack Focus**
+
     Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
 
+.. _focus stacking:
+
 **Run Stack focus**
+
   This selection will shoot a series of photographs with varying focal distances. You can also call this "focus bracketing".
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
   
   To configure focus step and number of photos, use the hidden settings ``focus.step`` and ``focus.count``.
 
+.. _focus and DOF info:
+
 The following items are display only:
 
 **Focal Dist**
+
     The distance to the focal point. Value is returned by most newer Canon lenses. If the lens does not report any distance information, 0 will be displayed and the DOF calculations will not be correct. 
     
     See also [[Focus distance]].
 
 **Hyperfocal**
+
     The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
 
 **DOF Near**
+
     The nearest distance in which objects appear in focus. 
 
 **DOF Far**
+
     The farthest distance in which objects appear in focus. 
 
 See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
@@ -555,20 +796,26 @@ Now that you know what the buttons are about, here is how you make it work:
 Debug
 ~~~~~
 
-.. image:: DebugMenu-550D.png
+.. figure:: DebugMenu-550D.png
     :alt: thumb|right|Debug menu
+    :align: center
+    :width: 5cm
 
 **Save config**
+
   Save current settings to ``MAGIC.CFG``.
 
 **Draw palette**
+
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
 
 **Screenshot (10 s)**
+
   Print screen after 10 seconds (it saves a BMP file). 
   Only the bitmap overlays are included in the screenshot (i.e. no live view image).
 
 **Dump dmlog**
+
   Saves a log which contains DebugMsg output.
   See [[Debugging Magic Lantern]] page.
 
@@ -586,6 +833,7 @@ Debug
     Probably it's not safe to read data from those areas.
 
 **Powersave**
+
   Disable the powersave so that the LiveView never shuts off.
 
   WARNING -- this can cause problems with your sensor!
@@ -595,48 +843,18 @@ Debug
 Some items from this menu may not be available in release builds; 
 you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
-Boot
-~~~~
-
-.. image:: BootMenu-550D.png
-    :alt: thumb|right|Boot menu
-
-Settings related to the Magic Lantern boot process.
-
-**Write MBR**
-  Try to make the card bootable, by writing the two labels (EOS_DEVELOP and BOOTDISK) to the MBR. Does not work yet.
-
-**Autoboot: ON/OFF**
-  Toggle the ``DISKBOOT`` flag in the NVRAM by calling ``bootdisk_enable()`` / ``bootdisk_disable()``
-  (these are registered by camera FW as eventprocs with names ``EnableBootDisk`` and  ``DisableBootDisk``).
-  
-  If you disable Autoboot, Magic Lantern won't boot any more (you will have to reinstall it).
-  
-  If you do not have access to the menu, you can use the hidden setting ``magic.disable_bootdiskf`` for this.
-
-This menu may not be available in release builds, 
-because these settings are potentially dangerous.
-
-Features which are not in menu
-------------------------------
-
-Time remaining display
-~~~~~~~~~~~~~~~~~~~~~~
-
-When recording a movie, ML will display a small time counter in the upper right corner, 
-which shows the estimated amount of recording time remaining on the card.
-
-Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
-However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
-
 Extra info displays
 -------------------
 
 Main shooting screen (outside LiveView)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: InfoDisplayShooting-550D.png
+.. _clock:
+
+.. figure:: InfoDisplayShooting-550D.png
     :alt: thumb|right|Extra shooting info display
+    :align: center
+    :width: 5cm
 
 * Clock (bottom of screen)
 * ISO value in finer increments (above Canon's ISO display)
@@ -649,8 +867,13 @@ Main shooting screen (outside LiveView)
 MENU->DISP
 ~~~~~~~~~~
 
-.. image:: InfoMenuDisp-550D.png
+.. _shutter count:
+.. _CMOS temperature:
+
+.. figure:: InfoMenuDisp-550D.png
     :alt: thumb|right|MENU->DISP info display
+    :align: center
+    :width: 3cm
 
 * Shutter counter. Only counts pictures taken, not LV switches or quick focus attempts. 
 * CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units. Before, this was in the Debug menu.
@@ -663,3 +886,4 @@ LiveView
 * Spotmeter: brightness percentage from the center of the frame. Computed as average value of Y component from YUV LiveView buffer over a very small area.
 * Lens focal length and focus distance: see [[Focus_distance]]
 * Exposure compensation (codenamed AE)
+
