@@ -3,127 +3,166 @@
 #include "bmp.h"
 #include "dryos.h"
 #include "menu.h"
+#include "gui.h"
+#include "property.h"
 
-int console_printf(const char* fmt, ...); // how to replace the normal printf?
+PROP_INT(PROP_GUI_STATE, gui_state);
+
+void console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
-#define CONSOLE_W 50
-#define CONSOLE_H 25
-#define BUFSIZE (CONSOLE_W * CONSOLE_H + 1000)
-char* console_buffer = "Script Console\n";
-char* console_draw_buffer = 0;
+#define CONSOLE_W 80
+#define CONSOLE_H 30
+
+// buffer is circular and filled with spaces
+#define BUFSIZE (CONSOLE_H * CONSOLE_W)
+char* console_buffer = 0;
+
+char* console_puts_buffer = 0; // "normal" copy of the circular buffer
+
+int console_buffer_index = 0; 
+
 int console_visible = 0;
+
+void console_show() 
+{ 
+	console_visible = 1;
+	set_global_draw(0);
+}
+void console_hide() 
+{ 
+	console_visible = 0;
+	msleep(500);
+	bmp_enabled = 1;
+	set_global_draw(1);
+	clrscr();
+}
+
+static void
+console_toggle( void * priv )
+{
+	if (console_visible) console_hide();
+	else console_show();
+}
 
 static void
 console_test( void * priv )
 {
-	console_visible = !console_visible;
-	if (console_visible) printf("Hello World!\n");
-	else printf("The quick brown fox jumps over the lazy dog. abcdefgfdwenfoewjfrfrejfrej\n");
+	console_visible = 1;
+	printf("Hello World!\n");
+	printf("The quick brown fox jumps over the lazy dog. Computer programs expand so as to fill the core available. El trabajo y la economia son la mejor loteria. \n");
+}
+
+static void
+console_print( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Debug Console: %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
 }
 
 static struct menu_entry script_menu[] = {
-	{
-		.priv		= "Console Test",
+	/*{
+		.priv		= "Console test",
 		.display	= menu_print,
 		.select		= console_test,
+	},*/
+	{
+		.priv		= &console_visible,
+		.display	= console_print,
+		.select		= menu_binary_toggle,
 	},
 };
 
+void console_clear()
+{
+	if (!console_buffer) return;
+	int i;
+	for (i = 0; i < BUFSIZE; i++)
+		console_buffer[i] = ' ';
+}
 void console_init()
 {
-	console_buffer = AllocateMemory(BUFSIZE);
-	console_draw_buffer = AllocateMemory(BUFSIZE);
-	console_buffer[0] = 0;
-	menu_add( "Script", script_menu, COUNT(script_menu) );
-}
+	console_buffer = AllocateMemory(BUFSIZE+32);
+	console_puts_buffer = AllocateMemory(BUFSIZE+32);
 
-int console_printf(const char* fmt, ...)
-{
-	if (!console_buffer) return 0;
-	int L = strlen(console_buffer);
-	//~ bmp_printf(FONT_MED, 0, 0, "console buf: L=%d ", L);
-	va_list			ap;
-	va_start( ap, fmt );
-	int len = vsnprintf( console_buffer + L, BUFSIZE - L, fmt, ap );
-	va_end( ap );
-	//~ bmp_printf(FONT_MED, 0, 30, "console buf: %s ", console_buffer);
-	return len;
-}
-
-void console_draw() // reformat the buffer to handle newlines & wrap long lines
-{
-	#define NEW_CHAR(x) if (j >= BUFSIZE) return; console_draw_buffer[j] = x; j++;
-	if (!console_buffer) return 0;
-	if (!console_draw_buffer) return 0;
+	console_clear();
 	
-	int x = 0, y = 0;
-	int i = 0; // index in console_buffer
-	int j = 0; // index in console_draw_buffer
-	int N = strlen(console_buffer);
-	for (i = 0; i < N; i++)
-	{
-		char c = console_buffer[i];
-		if (c == '\n') // fill the remaining of the line with spaces
-		{
-			while (x < CONSOLE_W)
-			{
-				NEW_CHAR(' ');
-				x++;
-			}
-			x = 0;
-			y++;
-		}
-		NEW_CHAR(c);
-		x++;
+	menu_add( "Debug", script_menu, COUNT(script_menu) );
+}
 
-		if (x > CONSOLE_W)
-		{
-			NEW_CHAR('\n');
-			x = 0;
-			y++;
-		}
-	}
-	while (y < CONSOLE_H)
+void console_puts(const char* str) // don't DebugMsg from here!
+{
+	#define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
+	if (!console_buffer) return 0;
+	char* c = str;
+	while (*c)
 	{
-		while (x < CONSOLE_W)
+		if (*c == '\n')
+			while (mod(console_buffer_index, CONSOLE_W) != 0) 
+				NEW_CHAR(' ');
+		else if (*c == '\t')
 		{
 			NEW_CHAR(' ');
-			x++;
+			while (mod(mod(console_buffer_index, CONSOLE_W), 4) != 0) 
+				NEW_CHAR(' ');
 		}
-		NEW_CHAR('\n');
-		x = 0;
-		y++;
+		else
+			NEW_CHAR(*c);
+		c++;
 	}
-	NEW_CHAR(0);
+}
 
-	unsigned x0 = 720/2 - font_med.width * CONSOLE_W/2;
-	unsigned y0 = 480/2 - font_med.height * CONSOLE_H/2;
-	unsigned w = font_med.width * CONSOLE_W;
-	unsigned h = font_med.height * CONSOLE_H;
+void console_printf(const char* fmt, ...) // don't DebugMsg from here!
+{
+	char buf[256];
+	va_list			ap;
+	va_start( ap, fmt );
+	int len = vsnprintf( buf, 256, fmt, ap );
+	va_end( ap );
+	console_puts(buf);
+}
 
-	bmp_puts(FONT(FONT_MED,COLOR_WHITE,COLOR_BG_DARK), &x0, &y0, console_draw_buffer);
+void console_draw()
+{
+	if (!console_buffer) return 0;
+	if (!console_puts_buffer) return 0;
+	unsigned x0 = 720/2 - font_small.width * CONSOLE_W/2;
+	unsigned y0 = 480/2 - font_small.height * CONSOLE_H/2;
+	unsigned w = font_small.width * CONSOLE_W;
+	unsigned h = font_small.height * CONSOLE_H;
+	int i;
+	for (i = 0; i < BUFSIZE; i++)
+	{
+		console_puts_buffer[i] = console_buffer[mod(console_buffer_index + i, BUFSIZE)];
+	}
+	console_puts_buffer[BUFSIZE] = 0;
+	bmp_puts_w(FONT(FONT_SMALL,COLOR_WHITE,COLOR_BG_DARK), &x0, &y0, CONSOLE_W, console_puts_buffer);
 }
 
 
 static void
 console_task( void )
 {
+	console_init();
 	while(1)
 	{
-		if (console_visible && !gui_menu_shown())
+		if (console_visible && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
 		{
+			bmp_enabled = 0;
+			set_global_draw(0);
 			console_draw();
-			msleep(10);
 		}
-		else
-			msleep(1000);
+		msleep(200);
 	}
 }
 
 TASK_CREATE( "console_task", console_task, 0, 0x10, 0x1000 );
 
 
-INIT_FUNC(__FILE__, console_init);
+//~ INIT_FUNC(__FILE__, console_init);
 
 

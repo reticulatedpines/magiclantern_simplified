@@ -41,7 +41,7 @@ NSTUB( 0xff018d1c, init_task ) // passed as arg to create_init_task, look for dm
 NSTUB( 0xFF017518, create_init_task ) 
 
 /** Look for the normal printf strings */
-NSTUB( 0xff0673ec, DebugMsg )
+NSTUB( 0xff0673ec, DryosDebugMsg )
 
 /** Task dispatch hook hasn't moved in several versions */
 NSTUB( 0x1938, task_dispatch_hook )
@@ -162,6 +162,8 @@ NSTUB( 0xFF1C7854, FIO_FindNextEx )
 
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)
+
+NSTUB( 0xFF020450, GUI_ChangeMode )
 
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?

@@ -220,6 +220,7 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
+	console.o \
 	aj_port.o \
 	aj_lib_port.o
 

@@ -681,13 +681,16 @@ free_dma_memory(
 /** Set if the firmware was loaded via AUTOEXEC.BIN */
 extern int autoboot_loaded;
 
-extern void DebugMsg(int,int,const char *,...);
+extern void DryosDebugMsg(int,int,const char *,...);
+#define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
 #define ABS(a) ((a) > 0 ? (a) : -(a))
+#define SGN(a) ((a) > 0 ? 1 : (a) < 0 ? -1 : 0)
+#define SGNX(a) ((a) > 0 ? 1 : -1)
 // mod like in math... x mod n is from 0 to n-1
 #define mod(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
 
