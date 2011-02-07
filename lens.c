@@ -282,6 +282,19 @@ lens_focus(
 		.mode		= mode,
 		.step_hi	= (step >> 8) & 0xFF,
 		.step_lo	= (step >> 0) & 0xFF,
+		.unk		= 0,
+	};
+
+	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
+}
+
+lens_focus_ex(unsigned mode, int step, int active)
+{
+	struct prop_focus focus = {
+		.active		= active,
+		.mode		= mode,
+		.step_hi	= (step >> 8) & 0xFF,
+		.step_lo	= (step >> 0) & 0xFF,
 	};
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
@@ -311,7 +324,11 @@ lens_take_picture(
 	}
 
 	DEBUG("Taking pic (%d)", lens_info.job_state);
-	call( "Release", 0 );
+	//call( "Release", 0 );
+	SW1(1,10);
+	SW2(1,100);
+	SW2(0,10);
+	SW1(0,10);
 
 	if( !wait )
 		return 0;
@@ -754,6 +771,24 @@ int get_prop_picstyle_index(int pic_style)
 		case 0x23: return 9;
 	}
 	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle: %x", pic_style);
+	return 0;
+}
+
+int get_prop_picstyle_from_index(int index)
+{
+	switch(index)
+	{
+		case 1: return 0x81;
+		case 2: return 0x82;
+		case 3: return 0x83;
+		case 4: return 0x84;
+		case 5: return 0x85;
+		case 6: return 0x86;
+		case 7: return 0x21;
+		case 8: return 0x22;
+		case 9: return 0x23;
+	}
+	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle index: %x", index);
 	return 0;
 }
 

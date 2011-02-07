@@ -628,6 +628,28 @@ uint8_t bmp_getpixel(int x, int y)
 	uint8_t * const b_row = bvram + y * bmppitch;
 	return b_row[x];
 }
+uint8_t bmp_putpixel(int x, int y, uint8_t color)
+{
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return 0;
+	int bmppitch = BMPPITCH;
+
+	uint8_t * const b_row = bvram + y * bmppitch;
+	b_row[x] = color;
+}
+void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
+{
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return 0;
+	
+	int x, y;
+	#define P(X,Y) bvram[COERCE(X, 0, 960) + COERCE(Y, 0, 540) * BMPPITCH]
+	for (x = x0; x <= x0 + w; x++)
+		P(x, y0) = P(x, y0+h) = color;
+	for (y = y0; y <= y0 + h; y++)
+		P(x0, y) = P(x0+w, y) = color;
+	#undef P
+}
 
 
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear)

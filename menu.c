@@ -636,9 +636,9 @@ menu_handler(
 
 	//~ if( menu_damage )
 	if (!lv_drawn()) show_only_selected = 0;
-	bmp_fill( show_only_selected ? 0 : COLOR_BG, 90, 70, 720-160, 480-140 );
+	bmp_fill( show_only_selected ? 0 : COLOR_BG, 90, 55, 720-160, 480-110 );
 	menu_damage = 0;
-	menus_display( menus, 100, 80 );
+	menus_display( menus, 100, 65 );
 
 	return 0;
 }
@@ -696,9 +696,9 @@ gui_stop_menu( void )
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
-	bmp_fill( 0, 90, 70, 720-160, 480-140 );
+	bmp_fill( 0, 90, 55, 720-160, 480-110 );
 	msleep(50);
-	bmp_fill( 0, 90, 70, 720-160, 480-140 );
+	bmp_fill( 0, 90, 55, 720-160, 480-110 );
 
 	
 	lens_focus_stop();
@@ -715,7 +715,7 @@ gui_hide_menu(
 {
 	menu_hidden = redisplay_time;
 	menu_damage = 1;
-	bmp_fill( 0, 90, 70, 720-160, 480-140 );
+	bmp_fill( 0, 90, 55, 720-160, 480-110 );
 }
 
 

@@ -59,6 +59,10 @@
 #define PROP_LV_AFFRAME		0x80050007 // called by ptp handler 915a
 #define PROP_LV_FOCUS		0x80050001 // only works in liveview mode
 #define PROP_LV_FOCUS_DONE	0x80050002 // output when focus motor is done?
+#define PROP_LV_FOCUS_BAD	0x80050029 // true if camera couldn't focus?
+#define PROP_LV_FOCUS_STATE	0x80050009 // 1 OK, 101 bad, 201 not done?
+#define PROP_LV_FOCUS_CMD	0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
+#define PROP_LV_FOCUS_DATA	0x80050026 // 8 integers; updates quickly when AF is active
 #define PROP_LVAF_0003		0x80050003
 #define PROP_LVAF_001D		0x8005001d
 #define PROP_LV_STATE		0x8005000f // output very often
@@ -82,10 +86,11 @@
 
 #define PROP_SHUTTER		0x80000005
 #define PROP_APERTURE		0x80000006
-#define PROP_ISO		0x80000007
-#define PROP_AE			0x80000008 // signed 8-bit value
-#define PROP_UILOCK		0x8000000b // maybe?
-#define PROP_ISO_AUTO		0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO
+#define PROP_ISO			0x80000007
+#define PROP_MAX_AUTO_ISO	0x8000003b // len=2, LSB is the iso
+#define PROP_AE				0x80000008 // signed 8-bit value
+#define PROP_UILOCK			0x8000000b // maybe?
+#define PROP_ISO_AUTO		0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO; in movie mode, is 0 unless you half-press shutter
 
 #define PROP_SHUTTER_RELEASE	0x8003000A
 #define PROP_AVAIL_SHOT		0x8004000C // also 0x80030005
@@ -136,7 +141,7 @@
 #define SHOOTMODE_AV 2
 #define SHOOTMODE_M 3
 #define SHOOTMODE_ADEP 5
-#define SHOOTMODE_CA 13
+#define SHOOTMODE_CA 0x13
 #define SHOOTMODE_AUTO 9
 #define SHOOTMODE_NOFLASH 0xF
 #define SHOOTMODE_PORTRAIT 0xC

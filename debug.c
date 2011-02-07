@@ -14,6 +14,8 @@
 
 extern void bootdisk_disable();
 
+int focus_value = 0; // heuristic from 0 to 100
+
 #if 0
 void
 display_full_hd(
@@ -110,7 +112,7 @@ void call_dispcheck( void * priv )
 
 static PROP_INT( PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
-
+static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 
 PROP_HANDLER( PROP_HDMI_CHANGE_CODE )
 {
@@ -198,6 +200,7 @@ mvr_time_const_select( void * priv )
 
 
 CONFIG_INT( "debug.draw-prop",		draw_prop, 0 );
+CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
 
 static void
 draw_prop_select( void * priv )
@@ -263,8 +266,12 @@ void vbr_set()
 
 void cbr_set() // test
 {
+	gui_stop_menu();
+	msleep(100);
+	bmp_printf(FONT_MED, 10, 150, "cbr: %d", *(int*)(708 + *(int*)7792));
+	msleep(1000);
 	uint16_t param = 0;
-	uint8_t bitrate = 1;
+	uint8_t bitrate = 2;
 	mvrFixQScale(&param);
 	mvrSetBitRate(&bitrate);
 }
@@ -312,7 +319,12 @@ vbr_print(
 }
 //-------------------------end qscale--------------
 
+CONFIG_INT("movie.af", movie_af, 0);
+CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 1);
+CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 5); // 0 ... 9
 CONFIG_INT("movie.restart", movie_restart,0);
+CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+int movie_af_stepsize = 10;
 
 PROP_INT(PROP_MVR_REC_START, recording);
 
@@ -332,6 +344,218 @@ movie_restart_print(
 	);
 }
 
+int lv_focus_confirmation = 0;
+int get_lv_focus_confirmation() 
+{ 
+	if (!get_halfshutter_pressed()) return 0;
+	int ans = lv_focus_confirmation;
+	lv_focus_confirmation = 0;
+	return ans; 
+}
+
+
+volatile int focus_done = 0;
+volatile uint32_t focus_done_raw = 0;
+PROP_HANDLER(PROP_LV_FOCUS_DONE)
+{
+	focus_done_raw = buf[0];
+	focus_done = 1;
+	return prop_cleanup(token, property);
+}
+
+PROP_INT(PROP_AF_MODE, af_mode);
+
+int shooting_mode;
+int mode_remap_done = 0;
+PROP_HANDLER(PROP_SHOOTING_MODE)
+{
+	shooting_mode = buf[0];
+	mode_remap_done = 0;
+	return prop_cleanup(token, property);
+}
+
+static int vmax(int* x, int n)
+{
+	int i; 
+	int m = -100000;
+	for (i = 0; i < n; i++)
+		if (x[i] > m)
+			m = x[i];
+	return m;
+}
+
+int movie_af_active()
+{
+	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && (af_mode & 0xF) != 3 && (focus_done || movie_af==3);
+}
+
+static int hsp = 0;
+int movie_af_reverse_dir_request = 0;
+PROP_HANDLER(PROP_HALF_SHUTTER)
+{
+	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
+	hsp = buf[0];
+	return prop_cleanup(token, property);
+}
+
+static void movie_af_step(int mag)
+{
+	if (!movie_af_active()) return;
+	
+	#define MAXSTEPSIZE 64
+	#define NP ((int)movie_af_noisefilter)
+	#define NQ (10 - NP)
+	
+	int dirchange = 0;
+	static int dir = 1;
+	static int prev_mag = 0;
+	if (mag == prev_mag) return;
+	
+	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
+
+	static int dmag = 0;
+	dmag = ((mag - prev_mag) * NQ + dmag * NP) / 10; // focus derivative is filtered (it's noisy)
+	int dmagp = dmag * 100 / prev_mag;
+	
+	if (focus_done_raw & 0x1000) // bam! focus motor has hit something
+	{
+		dirchange = 1;
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "BAM!");
+	}
+	else if (movie_af_reverse_dir_request)
+	{
+		dirchange = 1;
+		movie_af_reverse_dir_request = 0;
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "REV ");
+	}
+	else
+	{
+		if (dmagp < 0) dirchange = 1;
+
+		if (ABS(dmagp) > movie_af_aggressiveness) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
+		else movie_af_stepsize = movie_af_stepsize * 3 / 2;               // when focus is "locked", derivative of focus amount is very high => step size will be very low
+		movie_af_stepsize = COERCE(movie_af_stepsize, 2, MAXSTEPSIZE);    // when OOF, derivative is very small => will increase focus speed
+	}
+	
+	if (dirchange)
+	{
+		dir = -dir;
+		dmag = 0;
+	}
+
+	focus_done = 0;	
+	lens_focus(7, movie_af_stepsize * SGN(dir));  // send focus command
+
+	if (get_global_draw())
+	{
+		bmp_fill(0, 8, 151, 128, 10);                                          // display focus info
+		bmp_fill(COLOR_RED, 8, 151, movie_af_stepsize, 5);
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s %d%%   ", dir > 0 ? "FAR " : "NEAR", dmagp);
+	}
+	prev_mag = mag;
+}
+
+
+static void plot_focus_mag(int mag)
+{
+	if (gui_state != GUISTATE_IDLE) return;
+	if (!lv_drawn()) return;
+	#define NMAGS 64
+	#define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
+	static int mags[NMAGS] = {0};
+	int maxmag = 1;
+	int i;
+	#define WEIGHT(i) 1
+	for (i = 0; i < NMAGS-1; i++)
+		if (mags[i] * WEIGHT(i) > maxmag) maxmag = mags[i] * WEIGHT(i);
+
+	static int maxmagf = 1;
+	maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
+	
+	for (i = 0; i < NMAGS-1; i++)
+	{
+		bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
+		mags[i] = mags[i+1];
+		bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
+	}
+	// i = NMAGS-1
+	mags[i] = mag;
+	lv_focus_confirmation = (FH >= 42 && get_halfshutter_pressed());
+
+	focus_value = FH * 2;
+	#undef FH
+	#undef NMAGS
+}
+
+int focus_mag_a = 0;
+int focus_mag_b = 0;
+int focus_mag_c = 0;
+PROP_HANDLER(PROP_LV_FOCUS_DATA)
+{
+	focus_mag_a = buf[2];
+	focus_mag_b = buf[3];
+	focus_mag_c = buf[4];
+	
+	if (movie_af != 3)
+	{
+		if (get_focus_graph() && get_global_draw()) plot_focus_mag(focus_mag_a + focus_mag_b);
+		if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
+			movie_af_step(focus_mag_a + focus_mag_b);
+	}
+	return prop_cleanup(token, property);
+}
+
+static void
+movie_af_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	if (movie_af)
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Movie AF      : %s A%d N%d",
+			movie_af == 1 ? "Hold" : movie_af == 2 ? "Cont" : movie_af == 3 ? "CFPk" : "Err",
+			movie_af_aggressiveness,
+			movie_af_noisefilter
+		);
+	else
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Movie AF      : OFF"
+		);
+}
+
+void movie_af_aggressiveness_bump(void* priv)
+{
+	movie_af_aggressiveness = movie_af_aggressiveness * 2;
+	if (movie_af_aggressiveness > 64) movie_af_aggressiveness = 1;
+}
+void movie_af_noisefilter_bump(void* priv)
+{
+	movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
+}
+
+void set_shooting_mode(int m)
+{
+	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
+	msleep(500);
+	mode_remap_done = 1;
+}
+
+void do_movie_mode_remap()
+{
+	if (!movie_mode_remap) return;
+	if (mode_remap_done) return;
+	int movie_newmode = movie_mode_remap == 1 ? SHOOTMODE_ADEP : SHOOTMODE_CA;
+	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
+	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
+	mode_remap_done = 1;
+}
 /*
 void fake_lens(void* priv)
 {
@@ -355,6 +579,90 @@ void fake_lens(void* priv)
 	msleep(500);
 }
 */
+
+int foc_mod = 7;
+int foc_en = 1;
+void focus_test(void* priv)
+{
+	lens_focus_ex(7, 1000, 1);
+	msleep(10);
+	lens_focus_ex(foc_mod, -100, foc_en);
+}
+void focus_mod_bump(void* priv)
+{
+	foc_mod = (foc_mod + 1) % 16;
+}
+void focus_en_bump(void* priv)
+{
+	foc_en = (foc_en + 1) % 16;
+}
+static void
+focus_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Focus mode=%x en=%x", foc_mod, foc_en);
+}
+
+static void
+enable_liveview_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Start with LV : %s",
+		enable_liveview == 1 ? "Movie mode" : enable_liveview == 2 ? "All modes" : "OFF"
+	);
+}
+
+static void
+mode_remap_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"MovieModeRemap: %s",
+		movie_mode_remap == 1 ? "A-DEP" : movie_mode_remap == 2 ? "CA" : "OFF"
+	);
+}
+
+static void
+max_auto_iso_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Max Auto ISO  : %x", max_auto_iso
+	);
+}
+
+static void max_auto_iso_toggle(void* priv)
+{
+	uint16_t newmax = (((max_auto_iso & 0xFF) - 8 ) & 0xFF) | (max_auto_iso & 0xFF00);
+	prop_request_change(PROP_MAX_AUTO_ISO, &newmax, 2);
+}
+
 
 static uint32_t* dbg_memmirror = 0;
 static uint32_t* dbg_memchanges = 0;
@@ -446,8 +754,6 @@ void display_clock()
 	bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
 }
 
-PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-
 
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
@@ -455,6 +761,24 @@ int screenshot_sec = 0;
 static void
 debug_loop_task( void ) // screenshot, draw_prop
 {
+	do_movie_mode_remap();
+	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "Starting LiveView...");
+		if (shooting_mode == SHOOTMODE_MOVIE)
+		{
+			set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
+			msleep(500);
+			call( "FA_StartLiveView" );
+			msleep(1000);
+			set_shooting_mode(SHOOTMODE_MOVIE);
+		}
+		else
+		{
+			call( "FA_StartLiveView" );
+		}
+	}
+
 	dbg_memspy_init();
 	int k;
 	for (k = 0; ; k++)
@@ -484,9 +808,21 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			static int recording_prev = 0;
 			if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
+			{
+				msleep(1000);
 				movie_start();
+			}
 			recording_prev = recording;
 		}
+		
+		if (movie_af == 3)
+		{
+			int fm = get_spot_focus(100);
+			if (get_focus_graph() && get_global_draw()) plot_focus_mag(fm);
+			movie_af_step(fm);
+		}
+		
+		do_movie_mode_remap();
 		
 		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && !recording && k % 10 == 0)
 		{
@@ -496,14 +832,13 @@ debug_loop_task( void ) // screenshot, draw_prop
 		if (draw_prop)
 		{
 			dbg_draw_props(dbg_last_changed_propindex);
-			msleep(10);
 		}
 		else if (mem_spy)
 		{
 			dbg_memspy_update();
-			msleep(10);
 		}
-		else msleep(100);
+		
+		msleep(10);
 	}
 }
 
@@ -531,6 +866,7 @@ spy_print(
 		mem_spy ? "MEM" : "mem"
 	);
 }
+
 
 struct menu_entry debug_menus[] = {
 	{
@@ -563,10 +899,21 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
+	//~ {
+		//~ .priv		= "Mode test",
+		//~ .select		= mode_test,
+		//~ .display	= menu_print,
+	//~ }
 /*	{
-		.priv		= "Fake Lens",
-		.select		= fake_lens,
-		.display	= menu_print,
+		.select = focus_test,
+		.display = focus_print,
+		.select_reverse = focus_en_bump,
+		.select_auto = focus_mod_bump
+	},
+	{
+		.priv = "CBR test", 
+		.select = cbr_set,
+		.display = menu_print,
 	}*/
 
 #if 0
@@ -592,6 +939,27 @@ struct menu_entry mov_menus[] = {
 		.priv = &movie_restart,
 		.display	= movie_restart_print,
 		.select		= menu_binary_toggle,
+	},
+	/*{
+		.display	= max_auto_iso_print,
+		.select		= max_auto_iso_toggle,
+	},*/
+	{
+		.priv = &movie_af,
+		.display	= movie_af_print,
+		.select		= menu_quaternary_toggle,
+		.select_reverse = movie_af_noisefilter_bump,
+		.select_auto = movie_af_aggressiveness_bump,
+	},
+	{
+		.priv = &enable_liveview,
+		.display	= enable_liveview_print,
+		.select		= menu_ternary_toggle,
+	},
+	{
+		.priv = &movie_mode_remap,
+		.display	= mode_remap_print,
+		.select		= menu_ternary_toggle,
 	},
 };
 
@@ -662,7 +1030,7 @@ debug_property_handler(
 {
 	const uint32_t * const addr = buf;
 
-	DebugMsg( DM_MAGIC, 3, "Prop %08x: %d: %08x %08x %08x %08x",
+	DebugMsg( DM_MAGIC, 3, "Prop %08x: %2x: %08x %08x %08x %08x",
 		property,
 		len,
 		len > 0x00 ? addr[0] : 0,
@@ -802,7 +1170,7 @@ dump_task( void )
 
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-	
+	/*
 	DEBUG();
 	dm_set_store_level( DM_DISP, 7 );
 	dm_set_store_level( DM_LVFD, 7 );
@@ -823,6 +1191,7 @@ dump_task( void )
 	dm_set_store_level( DM_GUI_E, 7);
 	dm_set_store_level( DM_BIND, 7);
 	DEBUG();
+	*/
 	//msleep(1000);
 	//bmp_draw_palette();
 	//dispcheck();

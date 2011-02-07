@@ -38,8 +38,11 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define waveform_height			200
-#define waveform_width			300
+#define WAVEFORM_MAX_HEIGHT			240
+#define WAVEFORM_MAX_WIDTH			360
+#define WAVEFORM_HALFSIZE (waveform_draw == 1)
+#define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
+#define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
 static int global_draw = 1;
 CONFIG_INT( "global.draw", global_draw_bk, 1 );
@@ -56,16 +59,17 @@ int falsecolor_displayed = 0;
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 CONFIG_INT( "focus.peaking.color", focus_peaking_color, 5); // R,G,B,C,M,Y,cc1,cc2
+
+CONFIG_INT( "focus.graph", focus_graph, 1);
 //~ int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
-//~ CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
 CONFIG_INT( "hist.draw",	hist_draw,	1 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
 CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
-CONFIG_INT( "waveform.x",	waveform_x,	720 - waveform_width );
-CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - waveform_height );
+//~ CONFIG_INT( "waveform.x",	waveform_x,	720 - WAVEFORM_WIDTH );
+//~ CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
 CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
 CONFIG_INT( "timecode.y",	timecode_y,	0 );
@@ -78,11 +82,15 @@ CONFIG_INT( "clear.preview", clearpreview, 1); // 2 is always
 CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1 on, 2 on without dots
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1: on (center), 2: under center marker
+CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
 
 CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 CONFIG_INT( "zebra.density", zebra_density, 0); 
 CONFIG_INT( "hd.vram", use_hd_vram, 0); 
+
+CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
+CONFIG_INT( "time.ticks.4gb", ticks_4gb, 540); // how many ticks of PROP_REC_TIME are sent in a 4 GB movie
 
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
@@ -116,6 +124,7 @@ use_hd_vram_display( void * priv, int x, int y, int selected )
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
+int recording = 0;
 
 uint8_t false_colour[256] = {
 0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6F 
@@ -169,10 +178,6 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
 }
 
 
-int movie_elapsed_time = 0;
-int movie_elapsed_ticks = 0;
-int recording = 0;
-
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
 
@@ -210,10 +215,24 @@ struct vram_info * get_yuv422_hd_vram()
 	return &_vram_info;
 }
 
+void* get_fastrefresh_422_buf()
+{
+	switch (*(uint32_t*)0x246c)
+	{
+		case 0x40d07800:
+			return 0x4c233800;
+		case 0x4c233800:
+			return 0x4f11d800;
+		case 0x4f11d800:
+			return 0x40d07800;
+	}
+	return 0;
+}
+
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = YUV422_LV_BUFFER;
+	_vram_info.vram = get_fastrefresh_422_buf();
 
 	if(ext_monitor_hdmi && !recording) {
 		_vram_info.pitch=YUV422_LV_PITCH_HDMI;
@@ -350,7 +369,7 @@ check_crop(
 }
 
 
-/** Store the waveform data for each of the waveform_width bins with
+/** Store the waveform data for each of the WAVEFORM_WIDTH bins with
  * 128 levels
  */
 static uint32_t** waveform = 0;
@@ -387,8 +406,8 @@ hist_build(void* vram, int width, int pitch)
 	if (waveform_draw)
 	{
 		waveform_init();
-		for( y=0 ; y<waveform_width ; y++ )
-			for( x=0 ; x<waveform_height ; x++ )
+		for( y=0 ; y<WAVEFORM_WIDTH ; y++ )
+			for( x=0 ; x<WAVEFORM_HEIGHT ; x++ )
 				waveform[y][x] = 0;
 	}
 
@@ -410,7 +429,7 @@ hist_build(void* vram, int width, int pitch)
 				hist_max = count;
 
 			// Update the waveform plot
-			if (waveform_draw) waveform[ COERCE((x * waveform_width) / width, 0, waveform_width-1)][ COERCE((p * waveform_height) / 65536, 0, waveform_height-1) ]++;
+			if (waveform_draw) waveform[ COERCE((x * WAVEFORM_WIDTH) / width, 0, WAVEFORM_WIDTH-1)][ COERCE((p * WAVEFORM_HEIGHT) / 65536, 0, WAVEFORM_HEIGHT-1) ]++;
 		}
 	}
 }
@@ -455,8 +474,7 @@ hist_draw_image(
 	unsigned		y_origin
 )
 {
-    DebugMsg(DM_MAGIC, 3, "***************** hist_draw_image **********************");
-    if (!lv_drawn()) return;
+	if (!lv_drawn()) return;
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -478,23 +496,6 @@ hist_draw_image(
 		for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
 			*col = y > size ? COLOR_BG : (falsecolor_displayed ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
 	}
-
-	// Draw some extra just to add a black bar on the right side
-	bmp_fill(
-		COLOR_BG,
-		x_origin + hist_width,
-		y_origin,
-		4,
-		hist_height
-	);
-
-	if(0) bmp_printf(
-		FONT(FONT_SMALL,COLOR_RED,COLOR_WHITE),
-		x_origin,
-		y_origin,
-		"max %d",
-		(int) hist_max
-	);
 
 	hist_max = 0;
 }
@@ -527,11 +528,11 @@ waveform_draw_image(
 	unsigned i, y;
 
 	// vertical line up to the hist size
-	for( y=waveform_height-1 ; y>0 ; y-- )
+	for( y=WAVEFORM_HEIGHT-1 ; y>0 ; y-- )
 	{
 		uint32_t pixel = 0;
 
-		for( i=0 ; i<waveform_width ; i++ )
+		for( i=0 ; i<WAVEFORM_WIDTH ; i++ )
 		{
 
 			uint32_t count = waveform[ i ][ y ];
@@ -544,19 +545,18 @@ waveform_draw_image(
 				count += 0x26;
 			else
 			// Draw a series of colored scales
-			if( y == (waveform_height*1)/4 )
+			if( y == (WAVEFORM_HEIGHT*1)/4 )
 				count = COLOR_BLUE;
 			else
-			if( y == (waveform_height*2)/4 )
+			if( y == (WAVEFORM_HEIGHT*2)/4 )
 				count = 0xE; // pink
 			else
-			if( y == (waveform_height*3)/4 )
+			if( y == (WAVEFORM_HEIGHT*3)/4 )
 				count = COLOR_BLUE;
 			else
 				count = waveform_bg; // transparent
 
-			pixel <<= 8;
-			pixel |= count;
+			pixel |= (count << ((i & 3)<<3));
 
 			if( (i & 3) != 3 )
 				continue;
@@ -663,11 +663,11 @@ void waveform_init()
 {
 	if (!waveform)
 	{
-		waveform = AllocateMemory(waveform_width * sizeof(uint32_t*));
+		waveform = AllocateMemory(WAVEFORM_MAX_WIDTH * sizeof(uint32_t*));
 		if (!waveform) fail("Waveform malloc failed");
 		int i;
-		for (i = 0; i < waveform_width; i++) {
-			waveform[i] = AllocateMemory(waveform_height * sizeof(uint32_t));
+		for (i = 0; i < WAVEFORM_MAX_WIDTH; i++) {
+			waveform[i] = AllocateMemory(WAVEFORM_MAX_HEIGHT * sizeof(uint32_t));
 			if (!waveform[i]) fail("Waveform malloc failed");
 		}
 	}
@@ -1354,9 +1354,9 @@ draw_zebra( void )
 			// Ignore the regions where the waveform will be drawn
 			//~ if( waveform_draw
 			//~ &&  y >= waveform_y
-			//~ &&  y <  waveform_y + waveform_height
+			//~ &&  y <  waveform_y + WAVEFORM_HEIGHT
 			//~ &&  x >= waveform_x
-			//~ &&  x <  waveform_x + waveform_width
+			//~ &&  x <  waveform_x + WAVEFORM_WIDTH
 			//~ )
 				//~ continue;
 
@@ -1652,6 +1652,18 @@ crop_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+focus_graph_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Focus Graph : %s",
+		*(unsigned*) priv ? "ON " : "OFF"
+	);
+}
+
+int get_focus_graph() { return focus_graph; }
 
 static void
 edge_display( void * priv, int x, int y, int selected )
@@ -1664,6 +1676,18 @@ edge_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+time_indicator_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Time Indicator: %s",
+		time_indicator == 1 ? "Elapsed" :
+		time_indicator == 2 ? "Remain.Card" :
+		time_indicator == 3 ? "Remain.4GB" : "OFF"
+	);
+}
 
 static void
 hist_display( void * priv, int x, int y, int selected )
@@ -1673,7 +1697,7 @@ hist_display( void * priv, int x, int y, int selected )
 		x, y,
 		"Histo/Wavefm: %s/%s",
 		hist_draw ? "ON " : "OFF",
-		waveform_draw ? "ON " : "OFF"
+		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : "OFF"
 	);
 	bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
 }
@@ -1699,10 +1723,13 @@ waveform_display( void * priv, int x, int y, int selected )
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
 }
-static void waveform_toggle(void* priv)
+static void 
+waveform_toggle(void* priv)
 {
-	waveform_draw = !waveform_draw;
+	waveform_draw = mod(waveform_draw+1, 3);
+	bmp_fill(0, 360, 240-50, 360, 240);
 }
+
 
 static void
 clearpreview_display(
@@ -1733,16 +1760,24 @@ spotmeter_menu_display(
 	int			selected
 )
 {
-	int * draw_ptr = priv;
 
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
-		"Spotmeter   : %s",
-		(*draw_ptr == 0) ? "OFF   " : (*draw_ptr == 1 ? "Percent" : *draw_ptr == 2 ? "IRE (AJ)" : "IRE (Piers)")
+		"Spotmeter   : %s%s",
+		spotmeter_draw == 0 ? "OFF" : spotmeter_draw == 1 ? "  " : "  ",
+		spotmeter_draw == 0 ? "" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
 	);
+	if (spotmeter_draw == 1) bmp_draw_rect(COLOR_WHITE, x + 14 * font_large.width + 10, y + 10, 10, 10);
+	if (spotmeter_draw == 2) bmp_printf(FONT_SMALL, x + 14 * font_large.width, y + 10, "123");
 }
+
+static void 
+spotmeter_formula_toggle(void* priv)
+{
+	spotmeter_formula = mod(spotmeter_formula + 1, 3);
+}
+
 
 
 void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
@@ -1779,6 +1814,36 @@ void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 	*V = sv;
 }
 
+
+int get_spot_focus(int dx)
+{
+	struct vram_info *	vram = get_yuv422_vram();
+
+	if( !vram->vram )
+		return;
+	const uint32_t*		vr = vram->vram; // 2px
+	const unsigned		width = vram->width;
+	const unsigned		pitch = vram->pitch;
+	const unsigned		height = vram->height;
+	unsigned		x, y;
+	
+	unsigned sf = 0;
+	unsigned br = 0;
+	// Sum the absolute difference of values around the center
+	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	{
+		for( x = width/2 - dx ; x <= width/2 + dx ; x += 2 )
+		{
+			uint32_t p = vr[ x/2 + y * width/2 ];
+			int32_t p0 = (p >> 24) & 0xFF;
+			int32_t p1 = (p >>  8) & 0xFF;
+			sf += ABS(p1 - p0);
+			br += p1 + p0;
+		}
+	}
+	return sf / (br >> 14);
+}
+
 PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 
 void spotmeter_step()
@@ -1807,7 +1872,7 @@ void spotmeter_step()
 	sum /= (2 * dx + 1) * (2 * dx + 1);
 
 	// Scale to 100%
-	const unsigned		scaled = (100 * sum) / 65536;
+	const unsigned		scaled = (100 * sum) / 0xFF00;
 	
 	// spotmeter color: 
 	// black on transparent, if brightness > 60%
@@ -1821,9 +1886,17 @@ void spotmeter_step()
 	if (scaled < 50 || falsecolor_displayed) fg = COLOR_WHITE;
 	int bg = falsecolor_displayed ? COLOR_BG : 0;
 
-	int xc = (ext_monitor_hdmi && !recording) ? 480 : 360 - 2 * font_med.width;
-	int yc = (ext_monitor_hdmi && !recording) ? 270 : 240 - font_med.height/2;
-	if (spotmeter_draw == 1)
+	int xc = (ext_monitor_hdmi && !recording) ? 480 : 360;
+	int yc = (ext_monitor_hdmi && !recording) ? 270 : 240;
+	if (spotmeter_draw == 1) // square marker
+	{
+		bmp_draw_rect(fg, xc - dx, yc - dx, 2*dx+1, 2*dx+1);
+		yc += dx + 20;
+	}
+	yc -= font_med.height/2;
+	xc -= 2 * font_med.width;
+
+	if (spotmeter_formula == 0)
 	{
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
@@ -1835,8 +1908,8 @@ void spotmeter_step()
 	else
 	{
 		int ire_aj = (((int)sum >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
-		int ire_piers = (((int)sum >> 8) - 16) * (100-7) / 219 + 7;  // formula from Piers: (16...235) -> (7.5...100)
-		int ire = spotmeter_draw == 2 ? ire_aj : ire_piers;
+		int ire_piers = ((int)sum >> 8) * 108/255;           // formula from Piers: (0...255) -> (0...108)
+		int ire = (spotmeter_formula == 1) ? ire_aj : ire_piers;
 		
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
@@ -1849,7 +1922,7 @@ void spotmeter_step()
 			FONT(FONT_SMALL, fg, 0),
 			xc + font_med.width*4, yc,
 			"IRE\n%s",
-			spotmeter_draw == 2 ? "AJ" : "Piers"
+			spotmeter_formula == 1 ? "-1..101" : "0..108"
 		);
 	}
 }
@@ -1886,7 +1959,6 @@ crop_off_display(
 	);
 }
 
-
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &global_draw,
@@ -1922,8 +1994,9 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv			= &spotmeter_draw,
-		.select			= menu_quaternary_toggle,
-		.select_reverse = menu_quaternary_toggle_reverse,
+		.select			= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		.select_auto	= spotmeter_formula_toggle,
 		.display		= spotmeter_menu_display,
 	},
 	{
@@ -1938,6 +2011,11 @@ struct menu_entry zebra_menus[] = {
 		.select			= menu_binary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
+	},
+	{
+		.priv			= &focus_graph,
+		.display		= focus_graph_display,
+		.select			= menu_binary_toggle,
 	},
 	//~ {
 		//~ .display		= crop_off_display,
@@ -1973,15 +2051,24 @@ struct menu_entry dbg_menus[] = {
 		.select		= menu_ternary_toggle,
 		.display	= unified_loop_display,
 	},
-	{
+	/*{
 		.priv		= &zebra_density,
 		.select		= menu_ternary_toggle,
 		.display	= zebra_mode_display,
-	},
+	},*/
 	{
 		.priv		= &use_hd_vram,
 		.select		= menu_binary_toggle,
 		.display	= use_hd_vram_display,
+	},
+};
+
+struct menu_entry movie_menus[] = {
+	{
+		.priv		= &time_indicator,
+		.select		= menu_quaternary_toggle,
+		.select_reverse	= menu_quaternary_toggle_reverse,
+		.display	= time_indicator_display,
 	},
 };
 
@@ -2002,6 +2089,11 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
+int movie_elapsed_time = 0;
+int movie_elapsed_ticks = 0;
+int rec_time_card = 0;
+int rec_time_4gb = 0;
+
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	crop_dirty = 10;
@@ -2010,29 +2102,51 @@ PROP_HANDLER(PROP_MVR_REC_START)
 	{
 		movie_elapsed_ticks = 0;
 		movie_elapsed_time = 0;
+		movie_elapsed_ticks = 0;
+		rec_time_4gb = ticks_4gb; // this may need calibration
 	}
 	return prop_cleanup( token, property );
 }
-PROP_HANDLER( PROP_REC_TIME )
+
+PROP_HANDLER(PROP_REC_TIME)
 {
-	uint32_t value = buf[0];
-	if (shooting_type == 4 && recording) // movie mode
+	if (recording)
 	{
-		movie_elapsed_ticks++;
-		
-		//~ bmp_printf(FONT_MED, 30,30, "ticks=%d, time=%d", movie_elapsed_ticks, movie_elapsed_time);
-		value = value * movie_elapsed_time / movie_elapsed_ticks;
+		rec_time_card = buf[0]; // countdown, in seconds, showing time remaining until filling the card, assumming a fixed bitrate
+		movie_elapsed_ticks++;  // if different bitrate is used, this is update more (or less) often
+		rec_time_4gb--;         // countdown, shows time remaining until filling 4GB
+	}
+	return prop_cleanup(token, property);
+}
+
+void time_indicator_show()
+{
+	if (!recording) return;
+	
+	// time until filling the card, adjusted for actual bitrate
+	int time_cardfill = rec_time_card * movie_elapsed_time / movie_elapsed_ticks;
+	
+	// time until 4 GB or filling the card, whichever comes sooner, adjusted for actual bitrate
+	int time_4gb = MIN(rec_time_4gb, rec_time_card) * movie_elapsed_time / movie_elapsed_ticks;
+	
+	// what to display
+	int dispvalue = time_indicator == 1 ? movie_elapsed_time :
+					time_indicator == 2 ? time_cardfill :
+					time_indicator == 3 ? time_4gb : 0;
+
+	//bmp_printf(FONT_MED, 0, 180, "%d %d %d %d ", movie_elapsed_time, movie_elapsed_ticks, rec_time_card, rec_time_4gb);
+	
+	if (time_indicator)
+	{
 		bmp_printf(
-			value < timecode_warning ? timecode_font : FONT_MED,
+			time_4gb < timecode_warning ? timecode_font : FONT_MED,
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
 			timecode_y,
 			"%4d:%02d",
-			value / 60,
-			value % 60
+			dispvalue / 60,
+			dispvalue % 60
 		);
 	}
-	else movie_elapsed_ticks = 0;
-	return prop_cleanup( token, property );
 }
 
 static void draw_movie_bars()
@@ -2071,7 +2185,6 @@ cropmark_redraw()
 		clrscr_mirror();
 }
 
-
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -2079,8 +2192,10 @@ zebra_task( void )
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
     menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
+    menu_add( "Movie", movie_menus, COUNT(movie_menus) );
 
 	msleep(2000);
+	
 	set_global_draw(global_draw_bk);
 	find_cropmarks();
 	load_cropmark(crop_draw);
@@ -2090,7 +2205,7 @@ zebra_task( void )
 	{
 zebra_task_loop:
 		k++;
-
+		
 		msleep(10); // safety msleep :)
 		if (cropmarks && cropmark_playback && gui_state == GUISTATE_PLAYMENU)
 		{
@@ -2187,7 +2302,7 @@ zebra_task_loop:
 				if( hist_draw )
 					hist_draw_image( hist_x, hist_y );
 				if( waveform_draw )
-					waveform_draw_image( waveform_x, waveform_y );
+					waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
 			}
 
 
@@ -2236,7 +2351,11 @@ movie_clock_task( void )
 	while(1)
 	{
 		msleep(1000);
-		if (shooting_type == 4 && recording) movie_elapsed_time++;
+		if (shooting_type == 4 && recording) 
+		{
+			movie_elapsed_time++;
+			time_indicator_show();
+		}
 		
 		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
 		fps_ticks = 0;

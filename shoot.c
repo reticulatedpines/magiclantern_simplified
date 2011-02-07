@@ -34,7 +34,7 @@
 
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 1);
-CONFIG_INT( "focus.trap.delay", trap_focus_delay, 500); // min. delay between two shots in trap focus
+CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
@@ -54,7 +54,7 @@ int audio_release_running = 0;
 
 int drive_mode_bk = -1;
 PROP_INT(PROP_DRIVE, drive_mode);
-PROP_INT(PROP_AF_MODE, af_mode);
+//~ PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
@@ -67,6 +67,13 @@ PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_GUI_STATE, gui_state);
 PROP_INT(PROP_REMOTE_SW1, remote_sw1);
 
+int af_mode;
+PROP_HANDLER(PROP_AF_MODE)
+{
+	af_mode = buf[0];
+	if (lv_drawn()) bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 8, 150, "     \n     "); // clear the message
+	return prop_cleanup(token, property);
+}
 int timer_values[] = {1,2,5,10,15,20,30,60,120,300,600,900,1800,3600};
 
 typedef int (*CritFunc)(int);
@@ -147,7 +154,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"LCD Remote Shot : %s",
-		v == 1 ? "Near" : (v == 2 ? "Away" : "OFF")
+		v == 1 ? "Near" : v == 2 ? "Away" : v == 3 ? "Wave" : "OFF"
 	);
 }
 
@@ -602,7 +609,7 @@ silent_pic_take_simple()
 	{
 		//bmp_printf(FONT_MED, 90,90, "silent: %d ", silent_number);
 
-		snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+		snprintf(imgname, sizeof(imgname), (intervalometer_running ? "B:/DCIM/%03dCANON/%04d-%03d.422" : "B:/DCIM/%03dCANON/%04d-%03d.422"), folder_number, file_number, silent_number);
 
 		unsigned size;
 		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
@@ -834,18 +841,43 @@ iso_toggle_reverse( void * priv )
 }
 
 PROP_INT(PROP_ISO_AUTO, iso_auto_code);
+PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static int measure_auto_iso()
 {
+	// temporary changes during measurement:
+	// * max auto iso => 12800
+	// * iso: 800 => 2 or 3 stops down, 3 or 4 stops up
+	// * AE shift to keep the same exposure
+	uint16_t ma = max_auto_iso;
+	uint16_t ma0 = (ma & 0xFF00) | 0x80;
+	
+	int is0 = lens_info.raw_iso;
+	int ae0 = lens_info.ae;
+	int dif = 0x60 - is0;
+	console_printf("iso %x, ae %x, dif %d\n", is0, ae0, dif);
+	lens_set_rawiso(is0 + dif); // = 0x60 = ISO 800
+	lens_set_ae(ae0 - dif);
+	
+	prop_request_change(PROP_MAX_AUTO_ISO, &ma0, 2);
+	
 	int iso_auto_mode = 0;
 	prop_request_change(PROP_ISO, &iso_auto_mode, 4);   // force iso auto
 	msleep(500);
 	while (iso_auto_code == 0)
 	{
-		bmp_printf(FONT_LARGE, 0, 0, "Please half-press shutter");
-		msleep(100);
-		bmp_printf(FONT_LARGE, 0, 0, "                         ");
+		SW1(1,100);
+		SW1(0,100);
 	}
-	return iso_auto_code;
+	
+	int ans = iso_auto_code;
+	
+	// restore stuff back
+	prop_request_change(PROP_MAX_AUTO_ISO, &ma, 2);
+	lens_set_rawiso(is0);
+	lens_set_ae(ae0);
+	
+	console_printf("=> %d\n", ans);
+	return ans;
 }
 static void iso_auto_quick()
 {
@@ -1268,6 +1300,49 @@ saturation_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void 
+picstyle_display( void * priv, int x, int y, int selected )
+{
+	int p = lens_info.raw_picstyle;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"PictureStyle: %s ",
+		p == 0x81 ? "Standard" : 
+		p == 0x82 ? "Portrait" :
+		p == 0x83 ? "Landscape" :
+		p == 0x84 ? "Neutral" :
+		p == 0x85 ? "Faithful" :
+		p == 0x86 ? "Monochrome" :
+		p == 0x21 ? "User Def 1" :
+		p == 0x22 ? "User Def 2" :
+		p == 0x23 ? "User Def 3" : "Unknown"
+	);
+}
+
+static void
+picstyle_toggle( int sign )
+{
+	int p = lens_info.picstyle;
+	p = (p + sign - 1) % 9 + 1;
+	p = get_prop_picstyle_from_index(p);
+	if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
+	menu_show_only_selected();
+}
+
+static void
+picstyle_toggle_forward( void * priv )
+{
+	picstyle_toggle(1);
+}
+
+static void
+picstyle_toggle_reverse( void * priv )
+{
+	picstyle_toggle(-1);
+}
+
+
 
 uint32_t cfn[4];
 PROP_HANDLER( PROP_CFN )
@@ -1365,7 +1440,7 @@ zoom_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LiveViewZoom: %s %s %s",
+		"LiveViewZoom: %s%s %s",
 		zoom_disable_x5 ? "" : "x5", 
 		zoom_disable_x10 ? "" : "x10", 
 		zoom_enable_face ? ":-)" : ""
@@ -1442,15 +1517,15 @@ hdr_reset( void * priv )
 	hdr_stepsize = 8;
 }
 
-void SW1(int v)
+void SW1(int v, int wait)
 {
 	prop_request_change(PROP_REMOTE_SW1, &v, 2);
-	msleep(100);
+	msleep(wait);
 }
-void SW2(int v)
+void SW2(int v, int wait)
 {
 	prop_request_change(PROP_REMOTE_SW2, &v, 2);
-	msleep(100);
+	msleep(wait);
 }
 int is_bulb_mode()
 {
@@ -1467,8 +1542,8 @@ bulb_take_pic(int duration)
 		return;
 	}
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
-	SW1(1);
-	SW2(1);
+	SW1(1,100);
+	SW2(1,100);
 	int i;
 	int d = duration/1000;
 	for (i = 0; i < d; i++)
@@ -1477,8 +1552,8 @@ bulb_take_pic(int duration)
 		msleep(1000);
 		if (lens_info.job_state == 0) break;
 	}
-	SW2(0);
-	SW1(0);
+	SW2(0,100);
+	SW1(0,100);
 }
 
 static void bulb_toggle_fwd(void* priv)
@@ -1526,8 +1601,8 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &lcd_release_running,
-		.select		= menu_ternary_toggle, 
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select		= menu_quaternary_toggle, 
+		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
 	},
  	{
@@ -1596,15 +1671,20 @@ struct menu_entry expo_menus[] = {
 		.select_reverse = wbs_gm_toggle_reverse,
 	},
 	{
+		.display	= ladj_display,
+		.select		= ladj_toggle_forward,
+		.select_reverse		= ladj_toggle_reverse,
+	},
+	{
+		.display	= picstyle_display,
+		.select		= picstyle_toggle_forward,
+		.select_reverse		= picstyle_toggle_reverse,
+	},
+	{
 		.display	= contrast_display,
 		.select		= contrast_toggle_forward,
 		.select_reverse		= contrast_toggle_reverse,
 		//~ .select_auto = contrast_auto,
-	},
-	{
-		.display	= sharpness_display,
-		.select		= sharpness_toggle_forward,
-		.select_reverse		= sharpness_toggle_reverse,
 	},
 	{
 		.display	= saturation_display,
@@ -1612,9 +1692,9 @@ struct menu_entry expo_menus[] = {
 		.select_reverse		= saturation_toggle_reverse,
 	},
 	{
-		.display	= ladj_display,
-		.select		= ladj_toggle_forward,
-		.select_reverse		= ladj_toggle_reverse,
+		.display	= sharpness_display,
+		.select		= sharpness_toggle_forward,
+		.select_reverse		= sharpness_toggle_reverse,
 	},
 };
 
@@ -1851,6 +1931,11 @@ void display_shooting_info() // called from debug task
 		strobo_firing == 1 ? "OFF" : "Auto", 
 		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
 		);
+
+	bmp_printf(fnt, 60, 455, 
+		lcd_release_running == 1 ? "Near" : 
+		lcd_release_running == 2 ? "Away" : 
+		lcd_release_running == 3 ? "Wave" : "");
 }
 
 // may be unreliable
@@ -1981,7 +2066,7 @@ shoot_task( void )
 		}
 
 		// toggle flash on/off for next picture
-		if (flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+		if (shooting_mode != SHOOTMODE_MOVIE && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
 		{
 			if (lens_info.job_state > 10) // not safe to change flash setting
 			{
@@ -1992,18 +2077,41 @@ shoot_task( void )
 			set_flash_firing(strobo_firing);
 		}
 
-		if (trap_focus && !lv_drawn() && (af_mode & 0xF) == 3 && !gui_menu_shown()) // MF
+		static int sw1_pressed = 0;
+
+		if (trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown()) // MF
 		{
-			if (trap_focus == 2 && cfn[2] & 0xF00 != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
-			if (trap_focus == 2 && gui_state == GUISTATE_IDLE) SW1(1);
-			if (*(int*)FOCUS_CONFIRMATION)
+			if (lv_drawn()) bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 8, 150, "TRAP \nFOCUS");
+			if (trap_focus == 2 && (cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
+			
+			static int sw1_countdown = 0;
+			if (trap_focus == 2 && lv_drawn())
+			{				
+				if (!sw1_countdown) // press half-shutter periodically
+				{
+					bmp_printf(FONT_SMALL, 0, 0, "HalfS   ");
+					if (sw1_pressed) { SW1(0,0); sw1_pressed = 0; }
+					{ SW1(1,0); sw1_pressed = 1; }
+					sw1_countdown = 30;
+				}
+				else
+				{
+					sw1_countdown--;
+					bmp_printf(FONT_SMALL, 0, 0, "HalfS %d ", sw1_countdown);
+				}
+			}
+
+			bmp_printf(FONT_SMALL, 0, 0, "%d", sw1_pressed);
+			
+			if (*(int*)FOCUS_CONFIRMATION || get_lv_focus_confirmation())
 			{
 				lens_take_picture(64000);
 				msleep(trap_focus_delay);
 			}
-			if (trap_focus == 2 && gui_state == GUISTATE_IDLE) SW1(0);
 		}
-		
+		else // cleanup sw1
+			if (sw1_pressed) { SW1(0,0); sw1_pressed = 0; }
+
 		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
 		{
 			silent_pic_take(1);
@@ -2015,6 +2123,11 @@ shoot_task( void )
 			msleep(1000);
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			hdr_shot(0);
+			if (lv_drawn()) // simulate a half-shutter press to avoid mirror going up
+			{
+				SW1(1,100);
+				SW1(0,100);
+			}
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				msleep(1000);
@@ -2040,12 +2153,22 @@ shoot_task( void )
 					bmp_printf(FONT_MED, 20, 40, "LCD RemoteShot does not work in LiveView, sorry...");
 					continue;
 				}
-				bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
+				if (lcd_release_running != 3) bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
 				if (display_sensor_active())
 				{
 					if (lcd_release_running == 2) // take pic when you move the hand away
 						while (display_sensor_active()) 
 							msleep(10);
+					if (lcd_release_running == 3) // you need to wave your hand a few times
+					{
+						int k;
+						int tmax = 30;
+						k = 0; while ( display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
+						k = 0; while (!display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
+						k = 0; while ( display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
+						k = 0; while (!display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
+						k = 0; while ( display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
+					}
 					remote_shot();
 					while (display_sensor_active()) { msleep(500); }
 				}

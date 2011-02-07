@@ -95,9 +95,10 @@ struct prop_focus
 	uint8_t			step_hi;	// off_0x01
 	uint8_t			step_lo;	// off_0x02
 	uint8_t			mode;		// off_0x03 unknown, usually 7?
+	uint8_t			unk;
 } __attribute__((packed));
 
-SIZE_CHECK_STRUCT( prop_focus, 4 );
+SIZE_CHECK_STRUCT( prop_focus, 5 );
 
 struct prop_picstyle_settings
 {
