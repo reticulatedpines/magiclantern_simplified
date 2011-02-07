@@ -301,7 +301,11 @@ my_init_task(void)
 	additional_version[6] = build_version[2];
 	additional_version[7] = build_version[3];
 	additional_version[8] = build_version[4];
-	additional_version[9] = '\0';
+	additional_version[9] = build_version[5];
+	additional_version[10] = build_version[6];
+	additional_version[11] = build_version[7];
+	additional_version[12] = build_version[8];
+	additional_version[13] = '\0';
 
 #ifndef CONFIG_EARLY_PORT
 
