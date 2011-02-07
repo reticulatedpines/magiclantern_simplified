@@ -826,8 +826,6 @@ static void draw_zebra_and_focus_unified( void )
 		
 //		bmp_printf(FONT_MED, 30, 100, "HD %dx%dp:%d vxc:%d vxo:%d vyc:%d vyo:%d byo:%d blvy:%d", vr_width>>1, vr_height, vr_pitch, vr_x_ex_corr, vr_x_of_corr, vr_y_ex_corr, vr_y_of_corr, os.bmp_of_y,  bm_lv_y);
 
-  		int step = (recording ? 2 : 1);
-
   		int ymin = os.bmp_of_y + bm_lv_y;
   		int ymax = os.bmp_ex_y + os.bmp_of_y - bm_lv_y;
   		int xmin = os.bmp_of_x;
@@ -842,7 +840,7 @@ static void draw_zebra_and_focus_unified( void )
   		static int xcalc_done=0;
   		
   		if(!xcalc_done || crop_dirty) {
-	  		for (x = xmin; x < xmax; x+=step) {
+	  		for (x = xmin; x < xmax; x++) {
   				xcalc[x]=(x-os.bmp_of_x+vr_x_of_corr)*((vr_width>>2)-vr_x_ex_corr)/os.bmp_ex_x;
 			}
 			xcalc_done=1;
@@ -878,7 +876,7 @@ static void draw_zebra_and_focus_unified( void )
 			uint32_t * const b_row = (uint32_t*)( bvram + b_row_off );   // 4 pixels
 			uint32_t * const m_row = (uint32_t*)( bvram_mirror + b_row_off );   // 4 pixels
   
-			for ( x = xmin; x < xmax; x+=step ) {
+			for ( x = xmin; x < xmax; x++ ) {
 				#define BP (b_row[x])
 				#define MP (m_row[x])
 				#define BN (b_row[x + (BMPPITCH>>2)])
@@ -957,8 +955,10 @@ static void draw_zebra_and_focus_unified( void )
 				#undef MN
   			}
   		}
+		int yy=250 * n_over / (os.bmp_ex_x * (os.bmp_ex_y - (bm_lv_y<<1)));
 		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
-		if (1000 * n_over / (os.bmp_ex_x>>(step-1)) / (os.bmp_ex_y>>1) > focus_peaking_pthr) {
+//		bmp_printf(FONT_LARGE, 10, 50, "%d %d %d>%d ", thr, n_over, yy, focus_peaking_pthr);
+		if ( yy > focus_peaking_pthr) {
 			thr++;
 		} else {
 			thr--;
