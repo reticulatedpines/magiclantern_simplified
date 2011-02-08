@@ -29,7 +29,7 @@
 #include "font.h"
 #include <stdarg.h>
 
-#define USE_LUT
+//~ #define USE_LUT
 
 extern int LV_EX_X;
 extern int LV_EX_Y;
@@ -533,7 +533,11 @@ getfilesize_fail:
 
 void clrscr()
 {
+	DEBUG();
+	int be = bmp_enabled;
+	bmp_enabled = 1;
 	bmp_fill( 0x0, 0, 0, 960, 540 );
+	bmp_enabled = be;
 }
 
 // mirror can be NULL
@@ -580,7 +584,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 		}
 	}
 }
-
+/*
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax)
 {
 	if (!bmp) return;
@@ -616,7 +620,7 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
 			b_row[ xs ] = pix;
 		}
 	}
-}
+}*/
 
 // this is slow, but is good for a small number of pixels :)
 uint8_t bmp_getpixel(int x, int y)

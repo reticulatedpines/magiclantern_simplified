@@ -215,6 +215,8 @@ Troubleshooting
 
 * Look in the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues>`_ for similar problems; if you can't find the solution, create a new issue there.
 
+* Always use *safely remove hardware* when copying files to your SD card; otherwise, you may end up with a corrupted file system. The PC may not notice it, but the camera may fail to load ``autoexec.bin`` or to detect cropmarks.
+
 Installing updated Magic Lantern builds
 =======================================
 

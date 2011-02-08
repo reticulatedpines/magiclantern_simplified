@@ -251,6 +251,7 @@ struct vram_info * get_yuv422_vram()
 }
 
 /** Sobel edge detection */
+/*
 static int32_t
 edge_detect(
 	uint32_t *		buf,
@@ -367,15 +368,18 @@ check_crop(
 	m_row[ x/2 ] = pix;
 	return 1;
 }
-
+*/
 
 /** Store the waveform data for each of the WAVEFORM_WIDTH bins with
  * 128 levels
  */
 static uint32_t** waveform = 0;
 
-/** Store the histogram data for each of the 128 bins */
-static uint32_t hist[ hist_width ];
+/** Store the histogram data for each of the "hist_width" bins */
+static uint32_t* hist = 0;
+static uint32_t* hist_r = 0;
+static uint32_t* hist_g = 0;
+static uint32_t* hist_b = 0;
 
 /** Maximum value in the histogram so that at least one entry fills
  * the box */
@@ -399,9 +403,20 @@ hist_build(void* vram, int width, int pitch)
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
 
+	histo_init();
+	if (!hist) return;
+	if (!hist_r) return;
+	if (!hist_g) return;
+	if (!hist_b) return;
+
 	hist_max = 0;
 	for( x=0 ; x<hist_width ; x++ )
+	{
 		hist[x] = 0;
+		hist_r[x] = 0;
+		hist_g[x] = 0;
+		hist_b[x] = 0;
+	}
 
 	if (waveform_draw)
 	{
@@ -417,19 +432,34 @@ hist_build(void* vram, int width, int pitch)
 		{
 			// Average each of the two pixels
 			uint32_t pixel = v_row[x/2];
-			uint32_t p1 = (pixel >> 16) & 0xFFFF;
-			uint32_t p2 = (pixel >>  0) & 0xFFFF;
-			uint32_t p = (p1+p2) / 2;
+			uint32_t p1 = (pixel >> 16) & 0xFF00;
+			uint32_t p2 = (pixel >>  0) & 0xFF00;
+			int Y = ((p1+p2) / 2) >> 8;
 
-			uint32_t hist_level = ( p * hist_width ) / 65536;
+			if (hist_draw == 2)
+			{
+				int8_t U = (pixel >>  0) & 0xFF;
+				int8_t V = (pixel >> 16) & 0xFF;
+				int R = Y + 1437 * V / 1024;
+				int G = Y -  352 * U / 1024 - 731 * V / 1024;
+				int B = Y + 1812 * U / 1024;
+				uint32_t R_level = COERCE(( R * hist_width ) / 256, 0, hist_width-1);
+				uint32_t G_level = COERCE(( G * hist_width ) / 256, 0, hist_width-1);
+				uint32_t B_level = COERCE(( B * hist_width ) / 256, 0, hist_width-1);
+				hist_r[R_level]++;
+				hist_g[G_level]++;
+				hist_b[B_level]++;
+			}
+
+			uint32_t hist_level = COERCE(( Y * hist_width ) / 0xFF, 0, hist_width-1);
 
 			// Ignore the 0 bin.  It generates too much noise
 			unsigned count = ++ (hist[ hist_level ]);
 			if( hist_level && count > hist_max )
 				hist_max = count;
-
+			
 			// Update the waveform plot
-			if (waveform_draw) waveform[ COERCE((x * WAVEFORM_WIDTH) / width, 0, WAVEFORM_WIDTH-1)][ COERCE((p * WAVEFORM_HEIGHT) / 65536, 0, WAVEFORM_HEIGHT-1) ]++;
+			if (waveform_draw) waveform[ COERCE((x * WAVEFORM_WIDTH) / width, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
 		}
 	}
 }
@@ -462,6 +492,25 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 	}
 }
 
+static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
+{
+	switch ((y > sizeR ? 0 : 1) |
+			(y > sizeG ? 0 : 2) |
+			(y > sizeB ? 0 : 4))
+	{
+		case 0b000: return COLOR_BLACK;
+		case 0b001: return COLOR_RED;
+		case 0b010: return 7; // green
+		case 0b100: return 9; // strident blue
+		case 0b011: return COLOR_YELLOW;
+		case 0b110: return 5; // cyan
+		case 0b101: return 14; // magenta
+		case 0b111: return COLOR_WHITE;
+	}
+	return 0;
+}
+
+
 /** Draw the histogram image into the bitmap framebuffer.
  *
  * Draw one pixel at a time; it seems to be ok with err70.
@@ -486,15 +535,23 @@ hist_draw_image(
 
 	unsigned i, y;
 
-	for( i=0 ; i<hist_width ; i++ )
+	for( i=0 ; i < hist_width ; i++ )
 	{
 		// Scale by the maximum bin value
 		const uint32_t size = (hist[i] * hist_height) / hist_max;
-		uint8_t * col = row + i;
+		const uint32_t sizeR = (hist_r[i] * hist_height) / hist_max;
+		const uint32_t sizeG = (hist_g[i] * hist_height) / hist_max;
+		const uint32_t sizeB = (hist_b[i] * hist_height) / hist_max;
 
+		uint8_t * col = row + i;
 		// vertical line up to the hist size
 		for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
-			*col = y > size ? COLOR_BG : (falsecolor_displayed ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
+		{
+			if (hist_draw == 2) // RGB
+				*col = hist_rgb_color(y, sizeR, sizeG, sizeB);
+			else
+				*col = y > size ? COLOR_BG : (falsecolor_displayed ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
+		}
 	}
 
 	hist_max = 0;
@@ -672,6 +729,22 @@ void waveform_init()
 		}
 	}
 }
+
+void histo_init()
+{
+	if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t*));
+	if (!hist) fail("Hist malloc failed");
+
+	if (!hist_r) hist_r = AllocateMemory(hist_width * sizeof(uint32_t*));
+	if (!hist_r) fail("HistR malloc failed");
+
+	if (!hist_g) hist_g = AllocateMemory(hist_width * sizeof(uint32_t*));
+	if (!hist_g) fail("HistG malloc failed");
+
+	if (!hist_b) hist_b = AllocateMemory(hist_width * sizeof(uint32_t*));
+	if (!hist_b) fail("HistB malloc failed");
+}
+
 static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
@@ -836,7 +909,9 @@ static void draw_zebra_and_focus_unified( void )
   		xmin=COERCE(xmin, 0, 960);
   		xmax=COERCE(xmax, 0, 960);
 
-  		static int16_t xcalc[960];
+  		static int16_t* xcalc = 0;
+  		if (!xcalc) xcalc = AllocateMemory(960 * 2);
+  		if (!xcalc) return;
   		static int xcalc_done=0;
   		
   		if(!xcalc_done || crop_dirty) {
@@ -1167,7 +1242,7 @@ draw_zebra_and_focus( void )
 
 
 // clear only zebra, focus assist and whatever else is in BMP VRAM mirror
-static void
+void
 clrscr_mirror( void )
 {
 	if (!global_draw) return;
@@ -1696,7 +1771,7 @@ hist_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Histo/Wavefm: %s/%s",
-		hist_draw ? "ON " : "OFF",
+		hist_draw == 1 ? "Luma" : hist_draw == 2 ? "RGB" : "OFF",
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : "OFF"
 	);
 	bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
@@ -1967,7 +2042,7 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv		= &hist_draw,
-		.select		= menu_binary_toggle,
+		.select		= menu_ternary_toggle,
 		.select_auto = waveform_toggle,
 		.display	= hist_display,
 	},
@@ -2168,6 +2243,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 void 
 cropmark_draw(int del)
 {
+	if (!get_global_draw()) return;
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
@@ -2176,7 +2252,7 @@ cropmark_draw(int del)
 static void
 cropmark_redraw()
 {
-	if (cropmarks) 
+	if (cropmarks)
 	{
 		int del = lv_dispsize == 1 ? 0 : 1;
 		cropmark_draw(del); // erase cropmarks in zoom mode
@@ -2257,9 +2333,11 @@ zebra_task_loop:
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview) goto zebra_task_loop;
 			}
-
+			
 			clrscr();         // long press... clear everything
 			clearpreview_setup(0);
+			msleep(100);
+			clrscr();
 			while (get_halfshutter_pressed()) msleep(100);
 			clearpreview_setup(1);
 			crop_dirty = 1;
