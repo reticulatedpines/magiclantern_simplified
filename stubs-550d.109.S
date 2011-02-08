@@ -165,6 +165,9 @@ NSTUB( 0x37880, LV_EX_Y)
 
 NSTUB( 0xFF020450, GUI_ChangeMode )
 
+NSTUB( 0xFF2DF524, AJ_guess_LED_ON )
+NSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )

@@ -231,6 +231,19 @@ mem_spy_select( void * priv )
 	mem_spy = !mem_spy;
 }
 
+void card_led_on() { AJ_guess_LED_ON(1); }
+void card_led_off() { AJ_guess_LED_OFF(1); }
+void card_led_blink(int times, int delay_on, int delay_off)
+{
+	int i;
+	for (i = 0; i < times; i++)
+	{
+		card_led_on();
+		msleep(delay_on);
+		card_led_off();
+		msleep(delay_off);
+	}
+}
 
 static void
 save_config( void * priv )
@@ -542,6 +555,7 @@ void movie_af_noisefilter_bump(void* priv)
 
 void set_shooting_mode(int m)
 {
+	msleep(200);
 	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
 	msleep(500);
 	mode_remap_done = 1;
@@ -1078,8 +1092,8 @@ ack:
 
 
 
-#define num_properties 4096
-unsigned property_list[ num_properties ];
+//~ #define num_properties 4096
+//~ unsigned property_list[ num_properties ];
 
 
 void
@@ -1087,7 +1101,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 1
+#if 0
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
 	
