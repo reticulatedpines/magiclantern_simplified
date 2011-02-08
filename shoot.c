@@ -1953,6 +1953,7 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 	}
 	return 0;
 }
+
 static void
 shoot_task( void )
 {
@@ -2120,18 +2121,26 @@ shoot_task( void )
 		if (intervalometer_running)
 		{
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-			msleep(1000);
+			card_led_blink(5, 50, 50);
+			msleep(500);  // total 1 second
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
+			
 			hdr_shot(0);
 			if (lv_drawn()) // simulate a half-shutter press to avoid mirror going up
 			{
-				SW1(1,100);
-				SW1(0,100);
+				SW1(1,0);
+				SW1(0,0);
 			}
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
+				card_led_blink(1, 50, 0);
 				msleep(1000);
+
+				SW1(1,0); // prevent camera from entering in "deep sleep" mode
+				SW1(0,0); // (some kind of sleep where it won't wake up from msleep)
+
 				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
+				else break;
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 				
 				if (shooting_mode != SHOOTMODE_MOVIE)

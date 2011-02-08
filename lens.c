@@ -128,39 +128,41 @@ lens_format_dist(
 	return dist;
 }
 
-int lv_disp_mode;
-
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
-{
-	lv_disp_mode = *(int*)buf;
-	if (lv_drawn()) 
-		bmp_fill(0, 
-			0, lv_disp_mode == 0 ? 400 : 480 - font_med.height - 10, 
-			720, font_med.height); // clean old lens display
-	return prop_cleanup( token, property );
-}
+PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 
 PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 static int recording = 0;
+PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 
 static void
 update_lens_display(
 	struct lens_info *	info
 )
 {
-	const unsigned font	= FONT(FONT_MED, COLOR_WHITE, COLOR_BG);
-	const unsigned font_err	= FONT( FONT_MED, COLOR_RED, COLOR_BG );
-	const unsigned height	= fontspec_height( font );
+	if (get_halfshutter_pressed()) return;
+	
+	int bg = bmp_getpixel(1,479);
+	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
+	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
+	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
+	unsigned height	= fontspec_height( font );
 
 	
 	// Needs to be 720 - 8 * 12
 	unsigned x = 420;
 	unsigned y = lv_disp_mode ? 400 : 480 - height - 10;
+	static unsigned prev_y = 0;
 	if (ext_monitor_hdmi && !recording) y += 100;
 	
+	if (y != prev_y)
+	{
+		bmp_fill(0, 0, prev_y - 5, 720, font_med.height + 10);
+	}
+
+	prev_y = y;
 
 	bmp_printf( font, x, y, "%5d mm", info->focal_len );
-
+	
 	//~ y += height;
 	x = 520;
 	bmp_printf( font, x+12, y,
@@ -169,10 +171,26 @@ update_lens_display(
 			? " Infnty"
 			: lens_format_dist( info->focus_dist * 10 )
 	);
-
-	// Move the info display to the very bottom screen
+	
 	x = 0;
-	//~ y = 400;
+		bmp_printf( Font, x, y-8,
+			shooting_mode == SHOOTMODE_P ? "P " :
+			shooting_mode == SHOOTMODE_M ? "M " :
+			shooting_mode == SHOOTMODE_TV ? "Tv" :
+			shooting_mode == SHOOTMODE_AV ? "Av" :
+			shooting_mode == SHOOTMODE_CA ? "CA" :
+			shooting_mode == SHOOTMODE_ADEP ? "AD" :
+			shooting_mode == SHOOTMODE_AUTO ? "[]" :
+			shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
+			shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
+			shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
+			shooting_mode == SHOOTMODE_MACRO ? "MC" :
+			shooting_mode == SHOOTMODE_SPORTS ? "SP" :
+			shooting_mode == SHOOTMODE_NIGHT ? "NI" :
+			shooting_mode == SHOOTMODE_MOVIE ? "Mv" : "?"
+		);
+
+	x += 40;
 	if( info->aperture )
 		bmp_printf( font, x, y,
 			"f/%2d.%d",
@@ -197,7 +215,7 @@ update_lens_display(
 			info->raw_shutter
 		);
 
-	x += 100;
+	x += 80;
 	if( info->iso )
 		bmp_printf( font, x, y,
 			"ISO%5d",
@@ -316,7 +334,7 @@ lens_take_picture(
 	uint32_t			wait
 )
 {
-	lens_wait_readytotakepic(wait);
+	lens_wait_readytotakepic(64000);
 	if (lens_info.job_state > 0xA) 
 	{
 		DEBUG("could not take pic (%d)", lens_info.job_state);
@@ -326,7 +344,7 @@ lens_take_picture(
 	DEBUG("Taking pic (%d)", lens_info.job_state);
 	//call( "Release", 0 );
 	SW1(1,10);
-	SW2(1,100);
+	SW2(1,200);
 	SW2(0,10);
 	SW1(0,10);
 
@@ -341,7 +359,7 @@ lens_take_picture(
 int lens_take_picture_forced()
 {
 	msleep(200);
-	return lens_take_picture(64000);
+	return lens_take_picture(0);
 	
 	// does not work
 	DEBUG("%d", lens_info.job_state);
@@ -720,6 +738,12 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 	const uint32_t state = *(uint32_t*) buf;
 	lens_info.job_state = state;
 	DEBUG("job state: %d", state);
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER(PROP_HALF_SHUTTER)
+{
+	update_stuff();
 	return prop_cleanup( token, property );
 }
 
