@@ -333,7 +333,7 @@ vbr_print(
 //-------------------------end qscale--------------
 
 CONFIG_INT("movie.af", movie_af, 0);
-CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 1);
+CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 32);
 CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 5); // 0 ... 9
 CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
@@ -422,13 +422,14 @@ static void movie_af_step(int mag)
 	int dirchange = 0;
 	static int dir = 1;
 	static int prev_mag = 0;
+	static int target_focus_rate = 1;
 	if (mag == prev_mag) return;
 	
 	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
 
 	static int dmag = 0;
 	dmag = ((mag - prev_mag) * NQ + dmag * NP) / 10; // focus derivative is filtered (it's noisy)
-	int dmagp = dmag * 100 / prev_mag;
+	int dmagp = dmag * 10000 / prev_mag;
 	
 	if (focus_done_raw & 0x1000) // bam! focus motor has hit something
 	{
@@ -445,7 +446,7 @@ static void movie_af_step(int mag)
 	{
 		if (dmagp < 0) dirchange = 1;
 
-		if (ABS(dmagp) > movie_af_aggressiveness) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
+		if (ABS(dmagp) > target_focus_rate) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
 		else movie_af_stepsize = movie_af_stepsize * 3 / 2;               // when focus is "locked", derivative of focus amount is very high => step size will be very low
 		movie_af_stepsize = COERCE(movie_af_stepsize, 2, MAXSTEPSIZE);    // when OOF, derivative is very small => will increase focus speed
 	}
@@ -454,7 +455,13 @@ static void movie_af_step(int mag)
 	{
 		dir = -dir;
 		dmag = 0;
+		target_focus_rate /= 4;
 	}
+	else
+	{
+		target_focus_rate = target_focus_rate * 13/10;
+	}
+	target_focus_rate = COERCE(target_focus_rate, 50, movie_af_aggressiveness * 100);
 
 	focus_done = 0;	
 	lens_focus(7, movie_af_stepsize * SGN(dir));  // send focus command
@@ -463,7 +470,8 @@ static void movie_af_step(int mag)
 	{
 		bmp_fill(0, 8, 151, 128, 10);                                          // display focus info
 		bmp_fill(COLOR_RED, 8, 151, movie_af_stepsize, 5);
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s %d%%   ", dir > 0 ? "FAR " : "NEAR", dmagp);
+		bmp_fill(COLOR_BLUE, 8, 156, 64 * target_focus_rate / movie_af_aggressiveness / 100, 5);
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s %d%%   ", dir > 0 ? "FAR " : "NEAR", dmagp/100);
 	}
 	prev_mag = mag;
 }

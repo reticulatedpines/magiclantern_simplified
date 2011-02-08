@@ -410,7 +410,7 @@ Functions specific to movie mode.
   
   This is a modified gradient descent algorithm. Tuning parameters (change with ``Q/DISP``):
   
-  * ``A=1..64``: aggressiveness (target % rate of change for focus magnitude).
+  * ``A=1..64``: aggressiveness (maximum target % rate of change for focus magnitude).
   * ``N=0..9``: noise filter (for focus derivative).
 
   Tips:
