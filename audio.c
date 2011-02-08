@@ -810,8 +810,7 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		//23456789012
-		"Monitor       : %s",
+		"Loopback      : %s",
 		loopback ? "ON " : "OFF"
 	);
 }
@@ -839,12 +838,6 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &cfg_draw_meters,
 		.select		= draw_meters_toggle,
 		.display	= audio_meter_display,
-	},
-	{
-		.priv		= &lovl,
-		.select		= audio_3bit_toggle,
-		.select_reverse		= audio_3bit_toggle_reverse,
-		.display	= audio_lovl_display,
 	},
 #if 0
 	{
@@ -877,11 +870,6 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_alc_display,
 	},
 	{
-		.priv		= &loopback,
-		.select		= audio_binary_toggle,
-		.display	= audio_loopback_display,
-	},
-	{
 		.priv		= &disable_filters,
 		.select		= audio_binary_toggle,
 		.display	= audio_filters_display,
@@ -897,6 +885,17 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &input_choice,
 		.select		= audio_input_toggle,
 		.display	= audio_input_display,
+	},
+	{
+		.priv		= &loopback,
+		.select		= audio_binary_toggle,
+		.display	= audio_loopback_display,
+	},
+	{
+		.priv		= &lovl,
+		.select		= audio_3bit_toggle,
+		.select_reverse		= audio_3bit_toggle_reverse,
+		.display	= audio_lovl_display,
 	},
 };
 

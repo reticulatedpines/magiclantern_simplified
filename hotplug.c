@@ -25,12 +25,85 @@
 
 #include "dryos.h"
 #include "hotplug.h"
+#include "menu.h"
+#include "bmp.h"
 
+int hotplug_override = 0;
+int no_turning_back = 0;
+
+static void
+hotplug_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Monitoring-USB: %s%s",
+		hotplug_override ? "ON" : "OFF",
+		hotplug_override && no_turning_back ? "(restart)" : ""
+	);
+}
+
+#define HOTPLUG_FLAG_FILE "B:/HOTPLUG.OFF"
+
+void hotplug_setting_save()
+{
+	if (hotplug_override)
+	{
+		FIO_RemoveFile(HOTPLUG_FLAG_FILE);
+		FILE* f = FIO_CreateFile(HOTPLUG_FLAG_FILE);
+		FIO_CloseFile(f);
+	}
+	else
+	{
+		FIO_RemoveFile(HOTPLUG_FLAG_FILE);
+	}
+}
+void hotplug_setting_load()
+{
+	FILE * file = FIO_Open( HOTPLUG_FLAG_FILE, 0 );
+	if( file == INVALID_PTR )
+	{
+		hotplug_override = 0;
+		return;
+	}
+	hotplug_override = 1;
+	FIO_CloseFile( file );
+}
+
+static void
+hotplug_toggle( void * priv)
+{
+	hotplug_override = !hotplug_override;
+	hotplug_setting_save();
+	msleep(100);
+	hotplug_setting_load();
+}
+
+static struct menu_entry hotplug_menus[] = {
+	{
+		.select		= hotplug_toggle,
+		.display	= hotplug_display,
+	},
+};
 
 static void
 my_hotplug_task( void )
 {
-	return;
+	msleep(3000);
+	hotplug_setting_load();
+	while(1)
+	{
+		msleep(1000);
+		
+		if (!hotplug_override && !gui_menu_shown())
+		{
+			//~ bmp_printf(FONT_LARGE, 0, 0, "Hotplug ON!");
+			no_turning_back = 1;
+			hotplug_task();
+			bmp_printf(FONT_LARGE, 0, 0, "UNREACHABLE!!!");
+			while(1) msleep(100); // should be unreachable
+		}
+	}
 /*
 	volatile uint32_t * camera_engine = (void*) 0xC0220000;
 
@@ -66,3 +139,10 @@ my_hotplug_task( void )
 }
 
 TASK_OVERRIDE( hotplug_task, my_hotplug_task );
+
+static void hotplug_init(void)
+{
+	msleep(3000);
+	menu_add("Audio", hotplug_menus, COUNT(hotplug_menus));
+}
+INIT_FUNC("hotplug", hotplug_init);

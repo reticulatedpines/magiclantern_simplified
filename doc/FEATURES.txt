@@ -45,15 +45,6 @@ Known issues
   (half-press the shutter or press ``MENU`` to trigger a redraw)
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * Camera may become unstable if you change modes while ML menu is active.
-
-.. _audio monitoring:
-
-* Audio monitoring works, but breaks USB, HDMI and maybe other functions. 
-  For this reason, you may find pairs of builds with ``AudioMon`` or ``NoAudioMon`` in their names.
-  
-  - If you need audio monitoring and don't care about broken stuff, use the ``AudioMon`` builds.
-  - If you don't need audio monitoring, use the ``NoAudioMon`` builds.
-
 * External monitors are not yet fully supported (some functions may not work / display correctly).
     
   The following functions are known not to work with external displays:
@@ -90,7 +81,7 @@ Menu options
 ------------
 
 Press ERASE button to show the menu. Use arrows to navigate, ``SET`` to change values forwards
-and ``DISP`` to change values backwards.
+and ``DISP`` to change values backwards. Some options may also use the ``Q`` button, or may have a different meaning for ``DISP``.
 
 Audio
 ~~~~~
@@ -110,10 +101,6 @@ Audio tweaks.
 
   Draw the audio meters or not. The ``Movie Only`` settings enables audio meters in movie mode only (default).
 
-**Output volume (dB)**
-
-  Gain to external audio - currently this is the A/V jack (?) so not audible on just the camera
-
 .. _manual audio controls:
 
 **Analog Gain (dB)**
@@ -129,10 +116,6 @@ Audio tweaks.
 **AGC: ON/OFF**
 
   Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss noise when recording silence.
-
-**Monitor: ON/OFF**
-
-  It's ported from 5D2 code, so it should be tested to see what it does. In the code it says it enables or disables loopback mode (what's this?!)
 
 **DigitalFilters: ON/OFF**
 
@@ -161,6 +144,26 @@ Audio tweaks.
 
 {{clr}}
 
+.. _audio monitoring:
+
+**Monitoring-USB: ON/OFF**
+  
+  Audio monitoring with headphones, via USB port.
+  
+  To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details.
+  
+  When audio monitor is enabled, it will disable USB, HDMI and maybe other functions, so if you don't use this feature, leave it ``OFF``.
+  
+  To change this setting, a camera restart may be required; ML will tell you to do so if it's needed. This setting is saved as soon as you change it (so you don't have to save the config file before restarting).
+
+**Output volume (dB)**
+
+  Volume for audio monitoring. It does not have effect on the internal camera speaker.
+
+**Loopback: ON/OFF**
+
+  Enable loopback for audio monitoring. If this setting can be kept always on without any side effects, it will be removed from the menu (need feedback on this).
+
 LiveV
 ~~~~~
 
@@ -181,15 +184,13 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _histogram:
 .. _waveform:
 
-**Histo/Wavefm: ON/OFF for histogram, OFF/Small/Large for waveform**
+**Histo/Wavefm: ON/Luma/RGB for histogram, OFF/Small/Large for waveform**
 
-  Shows the distribution of image brightness with:
+  Shows the distribution of image brightness levels with:
   
-  * a histogram plot (toggle with ``SET``)
+  * a histogram plot (``Luma`` or ``RGB``, toggle with ``SET``)
   * a waveform plot (toggle with ``Q``)
   
-  The brightness is considered to be equal to the luma (Y) channel of the LiveView image. Colorspace is YUV.
-
 .. _zebras:
 
 **Zebras: ON/OFF/NRec, lo_level..hi_level**
@@ -513,9 +514,11 @@ Functions for stills shooting.
   
   * shoot in manual mode and switch the lens to MF.
   
-  * for power saving, cover the LCD sensor with something.
+  * for power saving, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
   
   * to save the shutter count when doing timelapses, enable ``Silent Picture`` or use the intervalometer in Movie mode.
+
+  Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.
 
 .. _LCD face sensor:
 
@@ -540,7 +543,7 @@ Functions for stills shooting.
   Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands or pop a balloon.
   
   
-  Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the audio volume.
+  Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the `audio`_ gain.
   
   
   You can also start movie recording with this feature.
