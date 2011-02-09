@@ -854,7 +854,6 @@ static int measure_auto_iso()
 	int is0 = lens_info.raw_iso;
 	int ae0 = lens_info.ae;
 	int dif = 0x60 - is0;
-	console_printf("iso %x, ae %x, dif %d\n", is0, ae0, dif);
 	lens_set_rawiso(is0 + dif); // = 0x60 = ISO 800
 	lens_set_ae(ae0 - dif);
 	
@@ -876,7 +875,6 @@ static int measure_auto_iso()
 	lens_set_rawiso(is0);
 	lens_set_ae(ae0);
 	
-	console_printf("=> %d\n", ans);
 	return ans;
 }
 static void iso_auto_quick()
@@ -1517,16 +1515,6 @@ hdr_reset( void * priv )
 	hdr_stepsize = 8;
 }
 
-void SW1(int v, int wait)
-{
-	prop_request_change(PROP_REMOTE_SW1, &v, 2);
-	msleep(wait);
-}
-void SW2(int v, int wait)
-{
-	prop_request_change(PROP_REMOTE_SW2, &v, 2);
-	msleep(wait);
-}
 int is_bulb_mode()
 {
 	if (shooting_mode != SHOOTMODE_M) return 0;
@@ -2082,7 +2070,13 @@ shoot_task( void )
 
 		if (trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown()) // MF
 		{
-			if (lv_drawn()) bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 8, 150, "TRAP \nFOCUS");
+			if (lv_drawn()) 
+			{
+				int can = can_lv_trap_focus_be_active();
+				static int could = 0;
+				if (can || could) bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 8, 150, can ? "TRAP \nFOCUS" : "     \n     ");
+				could = can;
+			}
 			if (trap_focus == 2 && (cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
 			
 			static int sw1_countdown = 0;

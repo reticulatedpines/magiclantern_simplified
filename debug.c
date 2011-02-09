@@ -115,12 +115,13 @@ static PROP_INT( PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 
+/*
 PROP_HANDLER( PROP_HDMI_CHANGE_CODE )
 {
 	DebugMsg( DM_MAGIC, 3, "They try to set code to %d", buf[0] );
 	return prop_cleanup( token, property );
 }
-
+*/
 
 static void
 efic_temp_display(
@@ -219,10 +220,10 @@ draw_prop_reset( void * priv )
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	1 ); // start from here
-CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x10000 );         // look at ### int32's
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0xC000 ); // start from here
+CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );         // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
-CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
+CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	1 );         // only display small numbers (less than 10)
 
 #define mem_spy_start ((uint32_t)mem_spy_start_lo | ((uint32_t)mem_spy_start_hi << 16))
 
@@ -334,8 +335,8 @@ vbr_print(
 //-------------------------end qscale--------------
 
 CONFIG_INT("movie.af", movie_af, 0);
-CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 32);
-CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 5); // 0 ... 9
+CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
+CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
 CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 int movie_af_stepsize = 10;
@@ -359,11 +360,22 @@ movie_restart_print(
 }
 
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
+int shooting_mode;
+
 int lv_focus_confirmation = 0;
+static int hsp_countdown = 0;
+int can_lv_trap_focus_be_active()
+{
+	if (!lv_drawn()) return 0;
+	if (!get_halfshutter_pressed()) return 0;
+	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
+	if (dofpreview) return 0;
+	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
+	return 1;
+}
 int get_lv_focus_confirmation() 
 { 
-	if (!get_halfshutter_pressed()) return 0;
-	if (dofpreview) return 0;
+	if (!can_lv_trap_focus_be_active()) return 0;
 	int ans = lv_focus_confirmation;
 	lv_focus_confirmation = 0;
 	return ans; 
@@ -381,7 +393,6 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 
 PROP_INT(PROP_AF_MODE, af_mode);
 
-int shooting_mode;
 int mode_remap_done = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
@@ -411,6 +422,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 {
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
 	hsp = buf[0];
+	hsp_countdown = 5;
 	return prop_cleanup(token, property);
 }
 
@@ -472,7 +484,7 @@ static void movie_af_step(int mag)
 	focus_pos += focus_delta;
 	lens_focus(7, focus_delta);  // send focus command
 
-	bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
+	//~ bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
 	
 	if (get_global_draw())
 	{
@@ -512,7 +524,7 @@ static void plot_focus_mag(int mag)
 
 	focus_value_delta = FH * 2 - focus_value;
 	focus_value = FH * 2;
-	lv_focus_confirmation = (focus_value + focus_value_delta*2 > 120);
+	lv_focus_confirmation = (focus_value + focus_value_delta*3 > 110);
 	#undef FH
 	#undef NMAGS
 }
@@ -730,8 +742,8 @@ static void dbg_memspy_update()
 	{
 		uint32_t fnt = FONT_SMALL;
 		uint32_t addr = mem_spy_start + i*4;
-		uint32_t oldval = dbg_memmirror[i];
-		uint32_t newval = *(uint32_t*)(addr);
+		int32_t oldval = dbg_memmirror[i];
+		int32_t newval = *(uint32_t*)(addr);
 		if (oldval != newval)
 		{
 			//~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
@@ -741,11 +753,11 @@ static void dbg_memspy_update()
 		}
 		//~ else continue;
 
-		if (mem_spy_bool && newval != 0 && newval != 1 && newval != 0xFFFFFFFF) continue;
-		if (mem_spy_small && newval > 10) continue;
+		if (mem_spy_bool && newval != 0 && newval != 1 && newval != -1) continue;
+		if (mem_spy_small && ABS(newval) > 10) continue;
 
 		// show addresses which change, but not those which change like mad
-		if (dbg_memchanges[i] > 5 && dbg_memchanges[i] < 5000)
+		if (dbg_memchanges[i] > 5 && dbg_memchanges[i] < 50)
 		{
 			int x = 10 + 8 * 22 * (k % 4);
 			int y = 10 + 12 * (k / 4);
@@ -868,6 +880,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			dbg_memspy_update();
 		}
+		
+		if (hsp_countdown) hsp_countdown--;
 		
 		msleep(10);
 	}

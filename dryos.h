@@ -682,7 +682,7 @@ free_dma_memory(
 extern int autoboot_loaded;
 
 extern void DryosDebugMsg(int,int,const char *,...);
-#define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
+#define DebugMsg(a,b,fmt,...) { /*console_printf(fmt "\n", ## __VA_ARGS__);*/ DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))

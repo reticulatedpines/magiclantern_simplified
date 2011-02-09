@@ -130,7 +130,7 @@ FLAGS=\
 CFLAGS=\
 	$(FLAGS) \
 	-g \
-	-O3 \
+	-Os \
 	-Wall \
 	-W \
 	-Wno-unused-parameter \
@@ -220,11 +220,10 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
-	console.o \
-	aj_port.o \
-	aj_lib_port.o
 
 NO=\
+	aj_port.o \
+	aj_lib_port.o \
 	font-huge.o \
 	bracket.o \
 	ptp.o \

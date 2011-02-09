@@ -53,7 +53,8 @@ CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
-CONFIG_INT( "falsecolor.shortcutkey", falsecolor_shortcutkey, 1);
+//~ CONFIG_INT( "falsecolor.shortcutkey", falsecolor_shortcutkey, 1);
+#define falsecolor_shortcutkey (falsecolor_draw == 2)
 int falsecolor_displayed = 0;
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
@@ -821,9 +822,7 @@ static void draw_zebra_and_focus_unified( void )
 	
 	if (falsecolor_displayed) 
 	{
-		if (falsecolor_draw == 3) aj_DisplayFalseColour_n_CalcHistogram(); 
-		else if (falsecolor_draw == 2) draw_false_downsampled();
-		else draw_false();
+		draw_false_downsampled();
 		return;
 	}
 
@@ -1059,9 +1058,7 @@ draw_zebra_and_focus( void )
 	
 	if (falsecolor_displayed) 
 	{
-		if (falsecolor_draw == 3) aj_DisplayFalseColour_n_CalcHistogram(); 
-		else if (falsecolor_draw == 2) draw_false_downsampled();
-		else draw_false();
+		draw_false_downsampled();
 		return;
 	}
 	// HD to LV coordinate transform:
@@ -1142,14 +1139,12 @@ draw_zebra_and_focus( void )
 			uint32_t* hdp; // that's a moving pointer
 			for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
 			{
-				#define PX_AB (*hdp)                // current pixel group
+				#define PX_AB (*hdp)        // current pixel group
 				#define PX_CD (*(hdp + 1))  // next pixel group
-				#define PX_YZ (*(hdp - 1))  // previous pixel group
 				#define a ((int32_t)(PX_AB >>  8) & 0xFF)
 				#define b ((int32_t)(PX_AB >> 24) & 0xFF)
 				#define c ((int32_t)(PX_CD >>  8) & 0xFF)
 				#define d ((int32_t)(PX_CD >> 24) & 0xFF)
-				#define z ((int32_t)(PX_YZ >>  8) & 0xFF)    // pixel before a
 				
 				#define mBC MIN(b,c)
 				#define AE MIN(a,b)
@@ -1164,26 +1159,25 @@ draw_zebra_and_focus( void )
 				#define BED MAX(AE,MAX(BE,CE))
 				#define BDE MIN(AD,MIN(BD,CD))
 
-				#define SIGNBIT(x) (x & (1<<31))
-				#define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
-				#define D1 (b-a)
-				#define D2 (c-b)
-				#define D3 (d-c)
+				//~ #define SIGNBIT(x) (x & (1<<31))
+				//~ #define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
+				//~ #define D1 (b-a)
+				//~ #define D2 (c-b)
+				//~ #define D3 (d-c)
 
 				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 1)
-				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
-				#define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
+				//~ #define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
+				//~ #define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
 
-				int e = (focus_peaking == 1) ? ABS(D1) :
-						(focus_peaking == 2) ? e_morph :
-						(focus_peaking == 3) ? e_opposite_sign : 
-						(focus_peaking == 4) ? e_sign3 : 0;
+				int e = e_morph;
+
 				#undef a
 				#undef b
 				#undef c
 				#undef d
 				#undef z
-				if (focus_peaking_debug)
+				
+				/*if (focus_peaking_debug)
 				{
 					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
@@ -1191,7 +1185,8 @@ draw_zebra_and_focus( void )
 					x = COERCE(x, 0, 960);
 					int c = (COERCE(e, 0, thr*2) * 41 / thr / 2) + 38;
 					b_row[x/2] = c | (c << 8);
-				}
+				}*/
+				
 				if (e < thr) continue;
 				// else
 				{ // executed for 1% of pixels
@@ -1324,6 +1319,7 @@ clrscr_mirror( void )
 	}
 }
 
+/*
 void
 draw_false( void )
 {
@@ -1352,7 +1348,7 @@ draw_false( void )
 			*mp = *bp = false_colour[(*lvp) >> 8];
 		}
 	}
-}
+}*/
 
 void
 draw_false_downsampled( void )
@@ -1699,24 +1695,8 @@ falsecolor_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"False Color : %s%s",
-		fc == 1 ? "Plain C" : fc == 2 ? "Lo-res C" : fc == 3 ? "ASM (AJ)" : "OFF",
-		falsecolor_shortcutkey ? ", Key" : ""
+		fc ? (falsecolor_shortcutkey ? "Shortcut Key": "Always ON") : "OFF"
 	);
-}
-static void
-falsecolor_toggle( void * priv )
-{
-	falsecolor_draw = mod(falsecolor_draw + 1, 4);
-}
-static void
-falsecolor_toggle_reverse( void * priv )
-{
-	falsecolor_draw = mod(falsecolor_draw - 1, 4);
-}
-static void
-falsecolor_key_toggle( void * priv )
-{
-	falsecolor_shortcutkey = !falsecolor_shortcutkey;
 }
 
 static void
@@ -2121,9 +2101,8 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
-		.select		= falsecolor_toggle,
-		.select_reverse = falsecolor_toggle_reverse, 
-		.select_auto = falsecolor_key_toggle,
+		.select		= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse, 
 	},
 	{
 		.priv		= &cropmark_playback,
@@ -2201,11 +2180,11 @@ struct menu_entry dbg_menus[] = {
 		.select		= menu_binary_toggle,
 		.display	= use_hd_vram_display,
 	},
-	{
+	/*{
 		.priv = &focus_peaking_debug,
 		.select = menu_binary_toggle, 
 		.display = focus_debug_display,
-	}
+	}*/
 };
 
 struct menu_entry movie_menus[] = {

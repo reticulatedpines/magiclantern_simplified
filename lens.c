@@ -907,3 +907,15 @@ LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
 LENS_SET_IN_PICSTYLE(saturation, -4, 4)
 LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
+
+void SW1(int v, int wait)
+{
+	prop_request_change(PROP_REMOTE_SW1, &v, 2);
+	msleep(wait);
+}
+
+void SW2(int v, int wait)
+{
+	prop_request_change(PROP_REMOTE_SW2, &v, 2);
+	msleep(wait);
+}
