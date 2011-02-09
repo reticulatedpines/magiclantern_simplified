@@ -1133,8 +1133,8 @@ draw_zebra_and_focus( void )
 		int rec_off = (recording ? 90 : 0);
 		int step = (focus_peaking == 1) 
 						? (recording ? 2 : 1)
-						: (recording ? 2 : 1);
-		for( y = hd_skipv; y < hd_height - hd_skipv; y += 1 )
+						: (recording ? 4 : 2);
+		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
 			uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
 			uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
@@ -1142,25 +1142,35 @@ draw_zebra_and_focus( void )
 			uint32_t* hdp; // that's a moving pointer
 			for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
 			{
-				uint32_t pixel = *hdp;
-				int32_t a = (pixel >> 24) & 0xFF;
-				int32_t b = (pixel >>  8) & 0xFF;
-				pixel = *(hdp + (step>>1));
-				int32_t c = (pixel >> 24) & 0xFF;
-				int32_t d = (pixel >>  8) & 0xFF;
+				#define PX_AB (*hdp)                // current pixel group
+				#define PX_CD (*(hdp + 1))  // next pixel group
+				#define PX_YZ (*(hdp - 1))  // previous pixel group
+				#define a ((int32_t)(PX_AB >>  8) & 0xFF)
+				#define b ((int32_t)(PX_AB >> 24) & 0xFF)
+				#define c ((int32_t)(PX_CD >>  8) & 0xFF)
+				#define d ((int32_t)(PX_CD >> 24) & 0xFF)
+				#define z ((int32_t)(PX_YZ >>  8) & 0xFF)    // pixel before a
 				
 				#define mBC MIN(b,c)
 				#define AE MIN(a,b)
 				#define BE MIN(a, mBC)
 				#define CE MIN(mBC, d)
-				#define BD MAX(AE,MAX(BE,CE))
+
+				#define MBC MAX(b,c)
+				#define AD MAX(a,b)
+				#define BD MAX(a, MBC)
+				#define CD MAX(MBC, d)
+
+				#define BED MAX(AE,MAX(BE,CE))
+				#define BDE MIN(AD,MIN(BD,CD))
+
 				#define SIGNBIT(x) (x & (1<<31))
 				#define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
 				#define D1 (b-a)
 				#define D2 (c-b)
 				#define D3 (d-c)
 
-				#define e_morph (ABS(BD - b) << 1)
+				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 1)
 				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
 				#define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
 
@@ -1168,7 +1178,11 @@ draw_zebra_and_focus( void )
 						(focus_peaking == 2) ? e_morph :
 						(focus_peaking == 3) ? e_opposite_sign : 
 						(focus_peaking == 4) ? e_sign3 : 0;
-
+				#undef a
+				#undef b
+				#undef c
+				#undef d
+				#undef z
 				if (focus_peaking_debug)
 				{
 					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
