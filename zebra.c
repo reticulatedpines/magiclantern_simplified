@@ -1130,7 +1130,9 @@ draw_zebra_and_focus( void )
 		// look in the HD buffer
 
 		int rec_off = (recording ? 90 : 0);
-		int step = (recording ? 2 : 1);
+		int step = (focus_peaking == 1) 
+						? (recording ? 2 : 1)
+						: (recording ? 4 : 2);
 		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
 			uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
@@ -1140,10 +1142,33 @@ draw_zebra_and_focus( void )
 			for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
 			{
 				uint32_t pixel = *hdp;
-				int32_t p0 = (pixel >> 24) & 0xFF;
-				int32_t p1 = (pixel >>  8) & 0xFF;
-				int32_t d = ABS(p0-p1);
-				if (d < thr) continue;
+				int32_t a = (pixel >> 24) & 0xFF;
+				int32_t b = (pixel >>  8) & 0xFF;
+				pixel = *(hdp + (step>>1));
+				int32_t c = (pixel >> 24) & 0xFF;
+				int32_t d = (pixel >>  8) & 0xFF;
+				
+				#define mBC MIN(b,c)
+				#define AE MIN(a,b)
+				#define BE MIN(a, mBC)
+				#define CE MIN(mBC, d)
+				#define BD MAX(AE,MAX(BE,CE))
+				#define SIGNBIT(x) (x & (1<<31))
+				#define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
+				#define D1 (b-a)
+				#define D2 (c-b)
+				#define D3 (d-c)
+
+				#define e_morph (ABS(BD - b) << 1)
+				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 5)
+				#define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 2)
+
+				int e = (focus_peaking == 1) ? ABS(D1) :
+						(focus_peaking == 2) ? e_morph :
+						(focus_peaking == 3) ? e_opposite_sign : 
+						(focus_peaking == 4) ? e_sign3 : 0;
+
+				if (e < thr) continue;
 				// else
 				{ // executed for 1% of pixels
 					n_over++;
@@ -1153,7 +1178,7 @@ draw_zebra_and_focus( void )
 						return;
 					}
 
-					int color = get_focus_color(thr, d);
+					int color = get_focus_color(thr, e);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
 					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
@@ -1678,7 +1703,11 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"Focus Peak  : ON, %d.%d, %s", 
+			"Focus Peak  : %s, %d.%d, %s", 
+			focus_peaking == 1 ? "DIFF" : 
+			focus_peaking == 2 ? "MORF" :
+			focus_peaking == 3 ? "SGN2" :
+			focus_peaking == 4 ? "SGN3" : "?",
 			focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
 			focus_peaking_color == 0 ? "R" :
 			focus_peaking_color == 1 ? "G" :
@@ -2083,7 +2112,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
-		.select			= menu_binary_toggle,
+		.select			= menu_quinternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 	},

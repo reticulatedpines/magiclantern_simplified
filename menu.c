@@ -112,6 +112,18 @@ void menu_quaternary_toggle_reverse( void* priv)
 	*val = mod(*val - 1, 4);
 }
 
+void menu_quinternary_toggle(void* priv)
+{
+	unsigned * val = priv;
+	*val = mod(*val + 1, 5);
+}
+
+void menu_quinternary_toggle_reverse( void* priv)
+{
+	unsigned * val = priv;
+	*val = mod(*val - 1, 5);
+}
+
 void
 menu_print(
 	void *			priv,

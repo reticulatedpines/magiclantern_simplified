@@ -89,6 +89,8 @@ extern void menu_ternary_toggle(void* priv);
 extern void menu_ternary_toggle_reverse(void* priv);
 extern void menu_quaternary_toggle(void* priv);
 extern void menu_quaternary_toggle_reverse(void* priv);
+extern void menu_quinternary_toggle(void* priv);
+extern void menu_quinternary_toggle_reverse(void* priv);
 
 
 extern void
