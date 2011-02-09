@@ -15,6 +15,7 @@
 extern void bootdisk_disable();
 
 int focus_value = 0; // heuristic from 0 to 100
+int focus_value_delta = 0;
 
 #if 0
 void
@@ -219,7 +220,7 @@ draw_prop_reset( void * priv )
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
 CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	1 ); // start from here
-CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x4000 );         // look at ### int32's
+CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	0x10000 );         // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
 
@@ -357,10 +358,12 @@ movie_restart_print(
 	);
 }
 
+PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 int lv_focus_confirmation = 0;
 int get_lv_focus_confirmation() 
 { 
 	if (!get_halfshutter_pressed()) return 0;
+	if (dofpreview) return 0;
 	int ans = lv_focus_confirmation;
 	lv_focus_confirmation = 0;
 	return ans; 
@@ -461,11 +464,16 @@ static void movie_af_step(int mag)
 	{
 		target_focus_rate = target_focus_rate * 13/10;
 	}
-	target_focus_rate = COERCE(target_focus_rate, 50, movie_af_aggressiveness * 100);
+	target_focus_rate = COERCE(target_focus_rate, movie_af_aggressiveness * 20, movie_af_aggressiveness * 100);
 
 	focus_done = 0;	
-	lens_focus(7, movie_af_stepsize * SGN(dir));  // send focus command
+	static int focus_pos = 0;
+	int focus_delta = movie_af_stepsize * SGN(dir);
+	focus_pos += focus_delta;
+	lens_focus(7, focus_delta);  // send focus command
 
+	bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
+	
 	if (get_global_draw())
 	{
 		bmp_fill(0, 8, 151, 128, 10);                                          // display focus info
@@ -501,9 +509,10 @@ static void plot_focus_mag(int mag)
 	}
 	// i = NMAGS-1
 	mags[i] = mag;
-	lv_focus_confirmation = (FH >= 42 && get_halfshutter_pressed());
 
+	focus_value_delta = FH * 2 - focus_value;
 	focus_value = FH * 2;
+	lv_focus_confirmation = (focus_value + focus_value_delta*2 > 120);
 	#undef FH
 	#undef NMAGS
 }
