@@ -405,7 +405,9 @@ Functions specific to movie mode.
   * ``Cont``: AF works continuously. It will work faster when you hold the AF button.
   * ``CFPk``: a very experimental version which does not use Canon's focus estimation, but focus peaking data. It only uses the center area and computes the absolute value of edge strengths and divides by the image brightness. Fast in theory, very bad in practice.
   
-  This is a modified gradient descent algorithm. Tuning parameters (change with ``Q/DISP``):
+  This is a modified gradient descent algorithm. It does not have global convergence, so in strong OOF situations it will not find focus. This can be solved with better math in the focus evaluation function, which should only have a local max at the perfect focus point. Current functions also have small local maxima in strong OOF regions (besides noise). Patches welcome.
+  
+  Tuning parameters (change with ``Q/DISP``):
   
   * ``A=1..64``: aggressiveness (maximum target % rate of change for focus magnitude).
   * ``N=0..9``: noise filter (for focus derivative).
