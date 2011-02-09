@@ -2102,8 +2102,6 @@ shoot_task( void )
 				}
 			}
 
-			bmp_printf(FONT_SMALL, 0, 0, "%d", sw1_pressed);
-			
 			if (*(int*)FOCUS_CONFIRMATION || get_lv_focus_confirmation())
 			{
 				lens_take_picture(64000);
@@ -2136,13 +2134,13 @@ shoot_task( void )
 				card_led_blink(1, 50, 0);
 				msleep(1000);
 
-				SW1(1,0); // prevent camera from entering in "deep sleep" mode
-				SW1(0,0); // (some kind of sleep where it won't wake up from msleep)
-
 				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
 				else break;
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-				
+
+				SW1(1,0); // prevent camera from entering in "deep sleep" mode
+				SW1(0,0); // (some kind of sleep where it won't wake up from msleep)
+
 				if (shooting_mode != SHOOTMODE_MOVIE)
 				{
 					if (lens_info.shutter > 100) bmp_printf(FONT_MED, 0, 70,                                 "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
