@@ -1043,6 +1043,7 @@ static void draw_zebra_and_focus_unified( void )
   	}
 }
 
+int focus_peaking_debug = 0;
 
 // thresholded edge detection
 static void
@@ -1132,8 +1133,8 @@ draw_zebra_and_focus( void )
 		int rec_off = (recording ? 90 : 0);
 		int step = (focus_peaking == 1) 
 						? (recording ? 2 : 1)
-						: (recording ? 4 : 2);
-		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
+						: (recording ? 2 : 1);
+		for( y = hd_skipv; y < hd_height - hd_skipv; y += 1 )
 		{
 			uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
 			uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
@@ -1160,7 +1161,7 @@ draw_zebra_and_focus( void )
 				#define D3 (d-c)
 
 				#define e_morph (ABS(BD - b) << 1)
-				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 5)
+				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 4)
 				#define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 2)
 
 				int e = (focus_peaking == 1) ? ABS(D1) :
@@ -1168,6 +1169,15 @@ draw_zebra_and_focus( void )
 						(focus_peaking == 3) ? e_opposite_sign : 
 						(focus_peaking == 4) ? e_sign3 : 0;
 
+				if (focus_peaking_debug)
+				{
+					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
+					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
+					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
+					x = COERCE(x, 0, 960);
+					int c = (COERCE(e, 0, thr*2) * 41 / thr / 2) + 38;
+					b_row[x/2] = c | (c << 8);
+				}
 				if (e < thr) continue;
 				// else
 				{ // executed for 1% of pixels
@@ -1696,6 +1706,18 @@ falsecolor_key_toggle( void * priv )
 }
 
 static void
+focus_debug_display( void * priv, int x, int y, int selected )
+{
+	unsigned fc = *(unsigned*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"FPeak debug : %s",
+		focus_peaking_debug ? "ON" : "OFF"
+	);
+}
+
+static void
 focus_peaking_display( void * priv, int x, int y, int selected )
 {
 	unsigned f = *(unsigned*) priv;
@@ -2165,6 +2187,11 @@ struct menu_entry dbg_menus[] = {
 		.select		= menu_binary_toggle,
 		.display	= use_hd_vram_display,
 	},
+	{
+		.priv = &focus_peaking_debug,
+		.select = menu_binary_toggle, 
+		.display = focus_debug_display,
+	}
 };
 
 struct menu_entry movie_menus[] = {
