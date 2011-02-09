@@ -1161,8 +1161,8 @@ draw_zebra_and_focus( void )
 				#define D3 (d-c)
 
 				#define e_morph (ABS(BD - b) << 1)
-				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 4)
-				#define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 2)
+				#define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
+				#define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
 
 				int e = (focus_peaking == 1) ? ABS(D1) :
 						(focus_peaking == 2) ? e_morph :
