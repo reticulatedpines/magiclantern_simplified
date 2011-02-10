@@ -310,7 +310,7 @@ focus_task( void )
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x10, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x1d, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )

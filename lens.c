@@ -197,11 +197,6 @@ update_lens_display(
 			info->aperture / 10,
 			info->aperture % 10
 		);
-	else
-		bmp_printf( font_err, x, y,
-			"f 0x%02x",
-			info->raw_aperture
-		);
 
 	x += 100;
 	if( info->shutter )

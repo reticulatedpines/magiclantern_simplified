@@ -59,7 +59,7 @@ int falsecolor_displayed = 0;
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
-CONFIG_INT( "focus.peaking.color", focus_peaking_color, 5); // R,G,B,C,M,Y,cc1,cc2
+CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 
 CONFIG_INT( "focus.graph", focus_graph, 1);
 //~ int get_crop_black_border() { return crop_black_border; }
@@ -1165,7 +1165,7 @@ draw_zebra_and_focus( void )
 				//~ #define D2 (c-b)
 				//~ #define D3 (d-c)
 
-				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 1)
+				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 2)
 				//~ #define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
 				//~ #define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
 
@@ -1360,9 +1360,9 @@ draw_false_downsampled( void )
 	if (!bvram_mirror) return;
 
 	uint32_t x,y;
-	uint8_t * const lvram = CACHEABLE(YUV422_LV_BUFFER);
+	uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER);
 	int lvpitch = YUV422_LV_PITCH;
-	for( y = 100; y < 480-100; y++ )
+	for( y = 0; y < 480; y++ )
 	{
 		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
 		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
@@ -1372,7 +1372,7 @@ draw_false_downsampled( void )
 		uint16_t* bp;  // through bmp vram
 		uint16_t* mp;  // through mirror
 
-		for (lvp = v_row + 100/2, bp = b_row + 100/2, mp = m_row + 100/2; lvp < v_row + (720-100)/2 ; lvp++, bp++, mp++)
+		for (lvp = v_row, bp = b_row, mp = m_row; lvp < v_row + 720 ; lvp++, bp++, mp++)
 		{
 			if (*bp != 0 && *bp != *mp) continue;
 			int16_t c = false_colour[((*lvp) >> 8) & 0xFF];
@@ -1586,7 +1586,7 @@ char cropmark_names[MAX_CROPMARKS][MAX_CROP_NAME_LEN];
 static void find_cropmarks()
 {
 	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/CROPMKS", &file );
+	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/CROPMKS/", &file );
 	if( IS_ERROR(dirent) )
 	{
 		bmp_printf( FONT_LARGE, 40, 40,
@@ -1596,7 +1596,6 @@ static void find_cropmarks()
 		);
 		return;
 	}
-
 	int k = 0;
 	do {
 		char* s = strstr(file.name, ".BMP");
@@ -1719,11 +1718,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"Focus Peak  : %s, %d.%d, %s", 
-			focus_peaking == 1 ? "DIFF" : 
-			focus_peaking == 2 ? "MORF" :
-			focus_peaking == 3 ? "SGN2" :
-			focus_peaking == 4 ? "SGN3" : "?",
+			"Focus Peak  : ON, %d.%d, %s", 
 			focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
 			focus_peaking_color == 0 ? "R" :
 			focus_peaking_color == 1 ? "G" :

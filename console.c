@@ -160,7 +160,7 @@ console_task( void )
 	}
 }
 
-TASK_CREATE( "console_task", console_task, 0, 0x10, 0x1000 );
+TASK_CREATE( "console_task", console_task, 0, 0x1f, 0x1000 );
 
 
 //~ INIT_FUNC(__FILE__, console_init);
