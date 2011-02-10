@@ -220,10 +220,10 @@ draw_prop_reset( void * priv )
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0xC000 ); // start from here
-CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );         // look at ### int32's
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
+CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );     // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
-CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	1 );         // only display small numbers (less than 10)
+CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
 
 #define mem_spy_start ((uint32_t)mem_spy_start_lo | ((uint32_t)mem_spy_start_hi << 16))
 
@@ -445,6 +445,10 @@ static void movie_af_step(int mag)
 	static int dmag = 0;
 	dmag = ((mag - prev_mag) * NQ + dmag * NP) / 10; // focus derivative is filtered (it's noisy)
 	int dmagp = dmag * 10000 / prev_mag;
+	static int dmagp_acc = 0;
+	static int acc_num = 0;
+	dmagp_acc += dmagp;
+	acc_num++;
 	
 	if (focus_done_raw & 0x1000) // bam! focus motor has hit something
 	{
@@ -459,7 +463,17 @@ static void movie_af_step(int mag)
 	}
 	else
 	{
-		if (dmagp < 0) dirchange = 1;
+		if (dmagp_acc < -500 && acc_num >= 2) dirchange = 1;
+		if (ABS(dmagp_acc) < 500)
+		{
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " !! "); // confused
+		}
+		else
+		{
+			dmagp_acc = 0;
+			acc_num = 0;
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " :) "); // it knows exactly if it's going well or not
+		}
 
 		if (ABS(dmagp) > target_focus_rate) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
 		else movie_af_stepsize = movie_af_stepsize * 3 / 2;               // when focus is "locked", derivative of focus amount is very high => step size will be very low
@@ -474,7 +488,7 @@ static void movie_af_step(int mag)
 	}
 	else
 	{
-		target_focus_rate = target_focus_rate * 13/10;
+		target_focus_rate = target_focus_rate * 11/10;
 	}
 	target_focus_rate = COERCE(target_focus_rate, movie_af_aggressiveness * 20, movie_af_aggressiveness * 100);
 
@@ -713,7 +727,7 @@ static uint32_t* dbg_memchanges = 0;
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
 	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
-	msleep(2000);
+	//~ msleep(2000);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
 	if (!dbg_memmirror) return;
@@ -1123,8 +1137,8 @@ ack:
 
 
 
-//~ #define num_properties 4096
-//~ unsigned property_list[ num_properties ];
+#define num_properties 4096
+unsigned* property_list = 0;
 
 
 void
@@ -1132,12 +1146,14 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 0
+#if 1
+	if (!property_list) property_list = AllocateMemory(num_properties * sizeof(unsigned));
+	if (!property_list) return;
 	unsigned i, j, k;
 	unsigned actual_num_properties = 0;
 	
 	unsigned is[] = {0x80, 0xe, 0x5, 0x4, 0x2, 0x1, 0x0};
-	for( i=0 ; i<=COUNT(is) ; i++ )
+	for( i=0 ; i<COUNT(is) ; i++ )
 	{
 		for( j=0 ; j<=0x8 ; j++ )
 		{
@@ -1274,7 +1290,7 @@ end:
 }
 
 
-TASK_CREATE( "dump_task", dump_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
 //~ TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
 
 //~ CONFIG_INT( "debug.timed-start",	timed_start, 0 );

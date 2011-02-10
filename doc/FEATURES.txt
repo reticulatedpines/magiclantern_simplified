@@ -282,6 +282,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Note: when using low-contrast picture styles (like Marvels Cine or Superflat), the brightness might not reach the extreme values, even under strong under/over-exposure. This is OK.
 
 .. _Clean LiveView display:
+.. _ClrScreen:
 
 **ClrScreen: OFF/HalfShutter/Always**
 
@@ -402,20 +403,34 @@ Functions specific to movie mode.
   * ``Hold``: AF only works when you press and hold the shutter halfway, or the ``*`` button.
     - If you press the Canon AF buton (which is half-shutter or ``*``, depending on your ``CFn.9`` setting), the exposure will be changed during autofocus.
     - If you press the other button, the exposure will not change during AF, but the AF will be slower.
-  * ``Cont``: AF works continuously. It will work faster when you hold the AF button.
-  * ``CFPk``: a very experimental version which does not use Canon's focus estimation, but focus peaking data. It only uses the center area and computes the absolute value of edge strengths and divides by the image brightness. Fast in theory, very bad in practice.
+  * ``Cont``: AF works continuously. It will be faster when you hold the AF button.
+  * ``CFPk``: a very experimental version which does not use Canon's focus estimation, but focus peaking data. It only uses the center area and computes the absolute value of edge strengths and divides by the image brightness.
+
+  **Internals**
   
-  This is a modified gradient descent algorithm. It does not have global convergence, so in strong OOF situations it will not find focus. This can be solved with better math in the focus evaluation function, which should only have a local max at the perfect focus point. Current functions also have small local maxima in strong OOF regions (besides noise). Patches welcome.
+  To see how the algorithm works, disable `ClrScreen`_. You'll see:
   
+  * ``NEAR/FAR``: the direction in which it's currently moving the lens.
+  * percentage of focus change from last step.
+  * red bar: current *focus step size*, between 0 and 64.
+  * blue bar: *target focus rate*, which is between 20% and 100% of the *aggressiveness* setting. It is used to adjust the focus step size.
+  * *mood*, which can be:
+  
+    - ``!!`` (confused): it doesn't know if it's going in the right way or not, because the focus change rate is too small. It will avoid changing the search direction until focus info becomes better. If you see it hunting in the wrong direction, a quick press of half-shutter or ``*`` will fix this. If you are holding the AF button pressed, de-press it and press it again to reverse the direction.
+    - ``:)`` (happy): in this case, the focus change rate is high enough and the algorithm believes it's going in the correct direction (and will ignore any hints from you regarding this).
+    
+  This is a modified gradient descent algorithm. It does not have global convergence, so in strong OOF situations it may not find focus. This can be solved with:
+  
+  - Better math in the focus evaluation function, which should only have a local max at the perfect focus point. Current functions also have small local maxima in strong OOF regions (besides noise). 
+  - Workarounds to avoid hunting (like the *mood* hack).
+  
+ 
   Tuning parameters (change with ``Q/DISP``):
   
-  * ``A=1..64``: aggressiveness (maximum target % rate of change for focus magnitude).
+  * ``A=1..64``: maximum aggressiveness (maximum target % rate of change for focus magnitude).
   * ``N=0..9``: noise filter (for focus derivative).
 
-  Tips:
-  
-  * if you see it hunting in the wrong direction, a quick press of half-shutter or ``*`` will fix this. If you are holding the AF button pressed, de-press it and press it again to reverse the direction. Be aware that this algorithm has a very high self-esteem and sometimes it will refuse to believe you :)
-  * get an external microphone and place it far away from the camera (AF is noisy)
+  Tip: get an external microphone and place it far away from the camera (AF is noisy)
 
 **Start with LV: ON / Movie mode / All modes**
 
