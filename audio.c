@@ -972,7 +972,7 @@ my_sounddev_task( int some_param )
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
 
-	msleep( 1000 );
+	msleep( 2000 );
 
 	// Fake the sound dev task parameters
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
@@ -987,7 +987,7 @@ my_sounddev_task( int some_param )
 	reg_file = FIO_CreateFile( "B:/audioreg.txt" );
 #endif
 
-	msleep(3000);
+	msleep(2000);
 	// Create the menu items
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 
