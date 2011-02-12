@@ -1993,6 +1993,10 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	int on = !buf[0];
 	int off = !on;
+	
+	if (on == display_sensor_active) // false alarm
+		goto end;
+	
 	display_sensor_active = on;
 	if (lcd_release_running && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE && !intervalometer_running)
 	{
