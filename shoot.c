@@ -47,14 +47,16 @@ CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
+CONFIG_INT( "lcd.release", lcd_release_running, 3);
+
+void get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
 int intervalometer_running = 0;
-int lcd_release_running = 0;
 int audio_release_running = 0;
 
 int drive_mode_bk = -1;
 PROP_INT(PROP_DRIVE, drive_mode);
-//~ PROP_INT(PROP_AF_MODE, af_mode);
+PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 PROP_INT(PROP_MVR_REC_START, recording);
@@ -67,13 +69,6 @@ PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_GUI_STATE, gui_state);
 PROP_INT(PROP_REMOTE_SW1, remote_sw1);
 
-int af_mode;
-PROP_HANDLER(PROP_AF_MODE)
-{
-	af_mode = buf[0];
-	if (lv_drawn()) bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 8, 150, "     \n     "); // clear the message
-	return prop_cleanup(token, property);
-}
 int timer_values[] = {1,2,5,10,15,20,30,60,120,300,600,900,1800,3600};
 
 typedef int (*CritFunc)(int);
@@ -142,7 +137,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Intervalometer  : %s",
-		(*(int*)priv) ? "ON " : "OFF"
+		(*(int*)priv) ? "ON" : "OFF"
 	);
 }
 
@@ -598,34 +593,77 @@ static void vsync(volatile int* addr)
 	bmp_printf(FONT_MED, 30, 100, "vsync failed");
 }
 
+static char* silent_pic_get_name()
+{
+	static char imgname[100];
+	static int silent_number = 1; // cache this number for speed (so it won't check all files until 10000 to find the next free number)
+	
+	static int prev_file_number = -1;
+	static int prev_folder_number = -1;
+	
+	if (prev_file_number != file_number) silent_number = 1;
+	if (prev_folder_number != folder_number) silent_number = 1;
+	
+	prev_file_number = file_number;
+	prev_folder_number = folder_number;
+	
+	if (intervalometer_running)
+	{
+		int timelapse_number;
+		for ( ; silent_number < 100000000; silent_number++)
+		{
+			snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%08d.422", folder_number, silent_number);
+			unsigned size;
+			if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+			if (size == 0) break;
+		}
+	}
+	else
+	{
+		for ( ; silent_number < 1000; silent_number++)
+		{
+			snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+			unsigned size;
+			if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+			if (size == 0) break;
+		}
+	}
+	bmp_printf(FONT_MED, 100, 130, "%s    ", imgname);
+	return imgname;
+}
+
 static void
 silent_pic_take_simple()
 {
 	struct vram_info * vram = get_yuv422_hd_vram();
 	
-	int silent_number;
-	char imgname[100];
-	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
-	{
-		//bmp_printf(FONT_MED, 90,90, "silent: %d ", silent_number);
-
-		snprintf(imgname, sizeof(imgname), (intervalometer_running ? "B:/DCIM/%03dCANON/%04d-%03d.422" : "B:/DCIM/%03dCANON/%04d-%03d.422"), folder_number, file_number, silent_number);
-
-		unsigned size;
-		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-		if (size == 0) break;
-	}
-
+	char* imgname = silent_pic_get_name();
 	
-	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a pic (%d)      ", silent_number);
+	bmp_printf(FONT_MED, 100, 100, "Psst! Taking a pic      ");
 	//~ vsync(vram->vram + vram->pitch * vram->height - 100);
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
-	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a pic (%d)   ", silent_number);
+	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a pic   ");
 	
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 	}
+}
+
+void
+silent_pic_take_lv_dbg()
+{
+	struct vram_info * vram = get_yuv422_vram();
+	int silent_number;
+	char imgname[100];
+	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
+	{
+		snprintf(imgname, sizeof(imgname), "B:/VRAM%d.422", silent_number);
+		unsigned size;
+		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+		if (size == 0) break;
+	}
+	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
 
 static void
@@ -635,11 +673,11 @@ silent_pic_take_sweep()
 	if (!lv_drawn()) return;
 	if ((af_mode & 0xF) != 3 )
 	{
-		bmp_printf(FONT_MED, 20, 70, "Please switch to Manual Focus."); 
+		bmp_printf(FONT_MED, 100, 100, "Please switch to Manual Focus."); 
 		return; 
 	}
 
-	bmp_printf(FONT_MED, 20, 70, "Psst! Preparing for high-res pic   ");
+	bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
 	while (get_halfshutter_pressed()) msleep(100);
 	gui_stop_menu();
 	msleep(100);
@@ -652,15 +690,8 @@ silent_pic_take_sweep()
 	msleep(1000);
 
 	struct vram_info * vram = get_yuv422_hd_vram();
-	int silent_number;
-	char imgname[100];
-	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
-	{
-		snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
-		unsigned size;
-		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-		if (size == 0) break;
-	}
+
+	char* imgname = silent_pic_get_name();
 
 	FIO_RemoveFile(imgname);
 	FILE* f = FIO_CreateFile(imgname);
@@ -682,7 +713,7 @@ silent_pic_take_sweep()
 			// range obtained by moving the zoom window: 250 ... 3922, 434 ... 2394 => upper left corner
 			// full-res: 5202x3465
 			// buffer size: 1024x680
-			bmp_printf(FONT_MED, 20, 70, "Psst! Taking a high-res pic (%d) [%d,%d]      ", silent_number, i, j);
+			bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
 			afframe[2] = x0 + 1024 * j;
 			afframe[3] = y0 + 680 * i;
 			prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
@@ -703,7 +734,7 @@ silent_pic_take_sweep()
 	afframe[3] = afy0;
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 
-	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a high-res pic (%d)   ", silent_number);
+	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 
 }
 
@@ -715,7 +746,6 @@ silent_pic_take_slitscan(int interactive)
 	gui_stop_menu();
 	if (interactive) while (get_halfshutter_pressed()) msleep(100);
 	clrscr();
-	bmp_printf(FONT_MED, 20, 70, "Psst! Taking a slit-scan pic   ");
 
 	uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER);
 	int lvpitch = YUV422_LV_PITCH;
@@ -724,16 +754,9 @@ silent_pic_take_slitscan(int interactive)
 	#define BMPPITCH 960
 
 	struct vram_info * vram = get_yuv422_hd_vram();
-	bmp_printf(FONT_MED, 20, 100, "%dx%d", vram->width, vram->height);
-	int silent_number;
-	char imgname[100];
-	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
-	{
-		snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
-		unsigned size;
-		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-		if (size == 0) break;
-	}
+	bmp_printf(FONT_MED, 100, 100, "Psst! Taking a slit-scan pic (%dx%d)", vram->width, vram->height);
+
+	char* imgname = silent_pic_get_name();
 
 	FIO_RemoveFile(imgname);
 	FILE* f = FIO_CreateFile(imgname);
@@ -764,14 +787,14 @@ silent_pic_take_slitscan(int interactive)
 			FIO_CloseFile(f);
 			FIO_RemoveFile(imgname);
 			clrscr();
-			bmp_printf(FONT_MED, 20, 70, "Slit-scan cancelled.");
+			bmp_printf(FONT_MED, 100, 100, "Slit-scan cancelled.");
 			while (get_halfshutter_pressed()) msleep(100);
 			return;
 		}
 	}
 	FIO_CloseFile(f);
 
-	bmp_printf(FONT_MED, 20, 70, "Psst! Just took a slit-scan pic (%d)   ", silent_number);
+	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a slit-scan pic   ");
 
 	if (!interactive) return;
 	// wait half-shutter press and clear the screen
@@ -1686,11 +1709,6 @@ struct menu_entry expo_menus[] = {
 	},
 };
 
-int display_sensor_active()
-{
-	return (*(int*)(DISPLAY_SENSOR_MAYBE));
-}
-
 void hdr_create_script(int steps, int skip0)
 {
 	if (steps <= 1) return;
@@ -1733,7 +1751,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		for( i = -steps/2; i <= steps/2; i ++  )
 		{
 			if (skip0 && (i == 0)) continue;
-			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
 			msleep(10);
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
@@ -1751,7 +1769,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		for( i = -steps/2; i <= steps/2; i ++  )
 		{
 			if (skip0 && (i == 0)) continue;
-			bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
 			msleep(10);
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
@@ -1846,6 +1864,12 @@ void hdr_shot(int skip0)
 	}
 }
 
+int remote_shot_flag;
+void schedule_remote_shot() { remote_shot_flag = 1; }
+
+int movie_end_flag;
+void schedule_movie_end() { movie_end_flag = 1; }
+
 // take one shot, a sequence of HDR shots, or start a movie
 // to be called by remote triggers
 void remote_shot()
@@ -1873,41 +1897,35 @@ void remote_shot()
 void display_shooting_info() // called from debug task
 {
 	int bg = bmp_getpixel(314, 260);
-	uint32_t fnt = FONT(FONT_MED, 80, bg);
+	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
 		bmp_printf(fnt, 320, 260, "%5dK", lens_info.kelvin);
 	}
+	if (lens_info.wbs_gm || lens_info.wbs_ba)
+	{
+		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
+
+		int ba = lens_info.wbs_ba;
+		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
+		else bmp_printf(fnt, 435, 240, "   ");
+
+		int gm = lens_info.wbs_gm;
+		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
+		else bmp_printf(fnt, 435, 270, "   ");
+	}
 
 	bg = bmp_getpixel(680, 40);
-	fnt = FONT(FONT_MED, 80, bg);
+	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
 		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
 	else
 		bmp_printf(fnt, 470, 27, "ISO AUTO");
 
-	bg = bmp_getpixel(410, 330);
-	fnt = FONT(FONT_MED, (trap_focus == 2 ? COLOR_RED : 80), bg);
-	if (trap_focus && ((af_mode & 0xF) == 3))
-		bmp_printf(fnt, 410, 331, "TRAP \nFOCUS");
-
-	if (lens_info.wbs_gm || lens_info.wbs_ba)
-	{
-		fnt = FONT(FONT_LARGE, 80, bg);
-
-		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(fnt, 431, 240, "   ");
-
-		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
-		else bmp_printf(fnt, 431, 270, "   ");
-	}
-	
 	bg = bmp_getpixel(15, 430);
-	fnt = FONT(FONT_MED, 80, bg);
+	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
 	if (hdr_steps > 1)
 		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
@@ -1920,10 +1938,36 @@ void display_shooting_info() // called from debug task
 		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
 		);
 
-	bmp_printf(fnt, 60, 455, 
-		lcd_release_running == 1 ? "Near" : 
-		lcd_release_running == 2 ? "Away" : 
-		lcd_release_running == 3 ? "Wave" : "");
+	display_lcd_remote_info();
+	display_trap_focus_info();
+}
+
+void display_shooting_info_lv()
+{
+	display_lcd_remote_info();
+	display_trap_focus_info();
+}
+
+void display_trap_focus_info()
+{
+	int show, fg, bg, x, y;
+	if (lv_drawn())
+	{
+		show = can_lv_trap_focus_be_active();
+		bg = show ? COLOR_BLACK : 0;
+		fg = COLOR_WHITE;
+		x = 8; y = 160;
+	}
+	else
+	{
+		show = (trap_focus && ((af_mode & 0xF) == 3));
+		bg = bmp_getpixel(410, 330);
+		fg = trap_focus == 2 || FOCUS_CONFIRMATION_AF_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
+		x = 410; y = 331;
+	}
+	static int show_prev = 0;
+	if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
+	show_prev = show;
 }
 
 // may be unreliable
@@ -1942,6 +1986,78 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 	return 0;
 }
 
+int wave_count = 0;
+int wave_count_countdown = 0;
+int display_sensor_active = 0;
+PROP_HANDLER(PROP_DISPSENSOR_CTRL)
+{
+	int on = !buf[0];
+	int off = !on;
+	display_sensor_active = on;
+	if (lcd_release_running && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE)
+	{
+		if (gui_menu_shown()) goto end;
+		
+		if (lcd_release_running == 1 && off) goto end;
+		if (lcd_release_running == 2 && on) goto end;
+		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 75; }
+		if (lcd_release_running == 3 && wave_count < 5) goto end;
+
+		if (lcd_release_running == 3 && recording) schedule_movie_end(); // wave mode is allowed to stop movies
+		else schedule_remote_shot();
+		wave_count = 0;
+	}
+	else wave_count = 0;
+
+	end:
+	return prop_cleanup(token, property);
+}
+
+void display_lcd_remote_info()
+{
+	int x0 = 480;
+	int cl_on = COLOR_RED;
+	int cl_off = lv_drawn() ? COLOR_WHITE : COLOR_FG_NONLV;
+	int cl = display_sensor_active ? cl_on : cl_off;
+	int bg = lv_drawn() ? 0 : bmp_getpixel(x0 - 20, 1);
+
+	if (lcd_release_running == 1)
+	{
+		draw_circle(x0, 10, 8, cl);
+		draw_circle(x0, 10, 7, cl);
+		draw_line(x0-5,10-5,x0+5,10+5,cl);
+		draw_line(x0-5,10+5,x0+5,10-5,cl);
+	}
+	else if (lcd_release_running == 2)
+	{
+		draw_circle(x0, 10, 8, cl);
+		draw_circle(x0, 10, 7, cl);
+		draw_circle(x0, 10, 1, cl);
+		draw_circle(x0, 10, 2, cl);
+	}
+	else if (lcd_release_running == 3)
+	{
+		int yup = 5;
+		int ydn = 15;
+		int step = 5;
+		int k;
+		for (k = 0; k < 2; k++)
+		{
+			draw_line(x0 - 2*step, ydn, x0 - 1*step, yup, wave_count > 0 ? cl_on : cl_off);
+			draw_line(x0 - 1*step, yup, x0 - 0*step, ydn, wave_count > 1 ? cl_on : cl_off);
+			draw_line(x0 - 0*step, ydn, x0 + 1*step, yup, wave_count > 2 ? cl_on : cl_off);
+			draw_line(x0 + 1*step, yup, x0 + 2*step, ydn, wave_count > 3 ? cl_on : cl_off);
+			draw_line(x0 + 2*step, ydn, x0 + 3*step, yup, wave_count > 4 ? cl_on : cl_off);
+			x0++;
+		}
+	}
+	
+	static int prev_lr = 0;
+	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, 0, 40, 20);
+	prev_lr = lcd_release_running;
+}
+
+
 static void
 shoot_task( void )
 {
@@ -1956,13 +2072,18 @@ shoot_task( void )
 		msleep(10);
 		if (gui_state == GUISTATE_PLAYMENU || gui_state == GUISTATE_MENUDISP)
  		{
-			if (intervalometer_running || lcd_release_running || audio_release_running)
+			if (intervalometer_running)
 			{
 				bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Stopped                                             ");
 			}
 			intervalometer_running = 0;
-			lcd_release_running = 0;
-			audio_release_running = 0;
+			display_on();
+		}
+		
+		if (wave_count_countdown)
+		{
+			wave_count_countdown--;
+			if (!wave_count_countdown) wave_count = 0;
 		}
 		
 		if (iso_auto_flag)
@@ -1979,6 +2100,16 @@ shoot_task( void )
 		{
 			kelvin_auto_run();
 			kelvin_auto_flag = 0;
+		}
+		if (remote_shot_flag)
+		{
+			remote_shot();
+			remote_shot_flag = 0;
+		}
+		if (movie_end_flag)
+		{
+			movie_end();
+			movie_end_flag = 0;
 		}
 		if (lv_drawn() && face_zoom_request && lv_dispsize == 1 && !recording)
 		{
@@ -2070,21 +2201,13 @@ shoot_task( void )
 
 		if (trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown()) // MF
 		{
-			if (lv_drawn()) 
-			{
-				int can = can_lv_trap_focus_be_active();
-				static int could = 0;
-				if (can || could) bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 8, 150, can ? "TRAP \nFOCUS" : "     \n     ");
-				could = can;
-			}
-			if (trap_focus == 2 && (cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
-			
 			static int sw1_countdown = 0;
-			if (trap_focus == 2 && lv_drawn())
+			if (trap_focus == 2 && !lv_drawn())
 			{				
+				if ((cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
 				if (!sw1_countdown) // press half-shutter periodically
 				{
-					bmp_printf(FONT_SMALL, 0, 0, "HalfS   ");
+					//~ bmp_printf(FONT_SMALL, 0, 0, "HalfS   ");
 					if (sw1_pressed) { SW1(0,0); sw1_pressed = 0; }
 					{ SW1(1,0); sw1_pressed = 1; }
 					sw1_countdown = 30;
@@ -2092,11 +2215,11 @@ shoot_task( void )
 				else
 				{
 					sw1_countdown--;
-					bmp_printf(FONT_SMALL, 0, 0, "HalfS %d ", sw1_countdown);
+					//~ bmp_printf(FONT_SMALL, 0, 0, "HalfS %d ", sw1_countdown);
 				}
 			}
 
-			if (*(int*)FOCUS_CONFIRMATION || get_lv_focus_confirmation())
+			if ((!lv_drawn() && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
 				lens_take_picture(64000);
 				msleep(trap_focus_delay);
@@ -2110,19 +2233,29 @@ shoot_task( void )
 			silent_pic_take(1);
 		}
 
+		// force powersave mode for intervalometer in silent mode
 		if (intervalometer_running)
 		{
+			if (silent_pic_mode && lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+				display_off();
+			else
+				display_on();
+			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
+			
 			card_led_blink(5, 50, 50);
 			msleep(500);  // total 1 second
+			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			
 			hdr_shot(0);
+			
 			if (lv_drawn()) // simulate a half-shutter press to avoid mirror going up
 			{
 				SW1(1,0);
 				SW1(0,0);
 			}
+			
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				card_led_blink(1, 50, 0);
@@ -2130,14 +2263,18 @@ shoot_task( void )
 
 				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
 				else break;
-				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 
-				SW1(1,0); // prevent camera from entering in "deep sleep" mode
-				SW1(0,0); // (some kind of sleep where it won't wake up from msleep)
+				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
+				
+				if (!lv_drawn())
+				{
+					SW1(1,0); // prevent camera from entering in "deep sleep" mode
+					SW1(0,0); // (some kind of sleep where it won't wake up from msleep)
+				}
 
 				if (shooting_mode != SHOOTMODE_MOVIE)
 				{
-					if (lens_info.shutter > 100) bmp_printf(FONT_MED, 0, 70,                                 "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
+					if (lens_info.shutter > 100 && !silent_pic_mode) bmp_printf(FONT_MED, 0, 70,             "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
 					else if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
 					else if ((af_mode & 0xF) != 3) bmp_printf(FONT_MED, 0, 70,                               "Tip: use manual focus                                        ");
 				}
@@ -2145,35 +2282,6 @@ shoot_task( void )
 		}
 		else
 		{
-			if (lcd_release_running)
-			{
-				msleep(20);
-				if (gui_menu_shown()) continue;
-				if (lv_drawn()) 
-				{
-					bmp_printf(FONT_MED, 20, 40, "LCD RemoteShot does not work in LiveView, sorry...");
-					continue;
-				}
-				if (lcd_release_running != 3) bmp_printf(FONT_MED, 20, 3, "Move your hand near LCD face sensor to take a picture!");
-				if (display_sensor_active())
-				{
-					if (lcd_release_running == 2) // take pic when you move the hand away
-						while (display_sensor_active()) 
-							msleep(10);
-					if (lcd_release_running == 3) // you need to wave your hand a few times
-					{
-						int k;
-						int tmax = 30;
-						k = 0; while ( display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
-						k = 0; while (!display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
-						k = 0; while ( display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
-						k = 0; while (!display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
-						k = 0; while ( display_sensor_active()) { msleep(10); k++; } if (k > tmax) continue;
-					}
-					remote_shot();
-					while (display_sensor_active()) { msleep(500); }
-				}
-			}
 			if (audio_release_running) 
 			{
 				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d)   ", al[0].peak);

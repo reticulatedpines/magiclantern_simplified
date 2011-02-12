@@ -28,9 +28,11 @@
 #define YUV422_HD_PITCH_REC_480P 1280
 #define YUV422_HD_HEIGHT_REC_480P 480
 
-#define FOCUS_CONFIRMATION 0x41d0
-#define DISPLAY_SENSOR 0x2dec
-#define DISPLAY_SENSOR_MAYBE 0xC0220104
+#define FOCUS_CONFIRMATION (*(int*)0x41d0)
+#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // only used to show trap focus status
+//~ #define DISPLAY_SENSOR (*(int*)0x2dec)
+//~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
+#define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
 
 // for gui_main_task
 #define GMT_NFUNCS 8
@@ -72,3 +74,7 @@
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
 #define AJ_LCD_Palette 0x2CDB0
+
+#define LV_ADJUSTING_ISO ((*(int*)0x5780) == 0xF)
+
+#define COLOR_FG_NONLV 80
