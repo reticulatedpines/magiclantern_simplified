@@ -1994,7 +1994,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	int on = !buf[0];
 	int off = !on;
 	display_sensor_active = on;
-	if (lcd_release_running && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE)
+	if (lcd_release_running && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE && !intervalometer_running)
 	{
 		if (gui_menu_shown()) goto end;
 		
@@ -2199,7 +2199,7 @@ shoot_task( void )
 
 		static int sw1_pressed = 0;
 
-		if (trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown()) // MF
+		if (trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running) // MF
 		{
 			static int sw1_countdown = 0;
 			if (trap_focus == 2 && !lv_drawn())
