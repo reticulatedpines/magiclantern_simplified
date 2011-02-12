@@ -60,7 +60,7 @@ CONFIG_INT( "audio.input-choice",	input_choice,		0 ); //0=internal; 1=L int, R e
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-int do_draw_meters = 1;
+int do_draw_meters = 0;
 
 int lv_drawn()
 {
@@ -958,6 +958,8 @@ static PROP_INT(PROP_GUI_STATE, gui_state);
 void
 my_sounddev_task( int some_param )
 {
+	msleep( 2000 );
+
 	DebugMsg( DM_AUDIO, 3,
 		"!!!!! %s started sem=%x",
 		__func__,
@@ -971,8 +973,6 @@ my_sounddev_task( int some_param )
 			   //~ );	
 
 	gain.sem = create_named_semaphore( "audio_gain", 1 );
-
-	msleep( 2000 );
 
 	// Fake the sound dev task parameters
 	sounddev.sem_alc = create_named_semaphore( 0, 0 );
