@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=peaking-debug.$(shell whoami)
+BUILDVER=sleek.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -220,6 +220,8 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	focus.o \
+	console.o \
+	chdk-gui_draw.o \
 
 NO=\
 	aj_port.o \

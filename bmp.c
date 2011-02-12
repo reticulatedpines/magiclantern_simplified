@@ -29,14 +29,13 @@
 #include "font.h"
 #include <stdarg.h>
 
-//~ #define USE_LUT
+#define USE_LUT
 
 extern int LV_EX_X;
 extern int LV_EX_Y;
 extern int ext_monitor_rca;
 extern int ext_monitor_hdmi;
 extern int recording;
-extern int bmp_enabled = 1; // global enable/disable for Bitmap Overlay
 
 void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 {
@@ -144,8 +143,6 @@ bmp_puts(
 	const char *		s
 )
 {
-	if (!bmp_enabled) return;
-	
 	const uint32_t		pitch = BMPPITCH;
 	uint8_t * vram = bmp_vram();
 	if( !vram || ((uintptr_t)vram & 1) == 1 )
@@ -343,7 +340,6 @@ bmp_fill(
 	uint32_t		h
 )
 {
-	if (!bmp_enabled) return;
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
 	                
@@ -533,11 +529,7 @@ getfilesize_fail:
 
 void clrscr()
 {
-	DEBUG();
-	int be = bmp_enabled;
-	bmp_enabled = 1;
 	bmp_fill( 0x0, 0, 0, 960, 540 );
-	bmp_enabled = be;
 }
 
 // mirror can be NULL
@@ -637,7 +629,8 @@ uint8_t bmp_putpixel(int x, int y, uint8_t color)
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return 0;
 	int bmppitch = BMPPITCH;
-
+	x = COERCE(x, 0, 960);
+	y = COERCE(y, 0, 540);
 	uint8_t * const b_row = bvram + y * bmppitch;
 	b_row[x] = color;
 }
