@@ -487,7 +487,6 @@ menu_handler(
 	unsigned		arg4
 )
 {
-	bmp_enabled = 1; // temporary override clear_preview in Always mode
 	static int k = 0;
 	// Ignore periodic events (pass them on)
 	if( 0

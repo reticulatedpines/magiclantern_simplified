@@ -44,8 +44,7 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
-static int global_draw = 1;
-CONFIG_INT( "global.draw", global_draw_bk, 1 );
+CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
@@ -1124,7 +1123,7 @@ draw_zebra_and_focus( void )
 		static int thr = 50;
 		
 		int n_over = 0;
-		//~ int n_under = 0;
+		int n_total = 0;
 		// look in the HD buffer
 
 		int rec_off = (recording ? 90 : 0);
@@ -1159,18 +1158,18 @@ draw_zebra_and_focus( void )
 				#define BED MAX(AE,MAX(BE,CE))
 				#define BDE MIN(AD,MIN(BD,CD))
 
-				//~ #define SIGNBIT(x) (x & (1<<31))
-				//~ #define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
-				//~ #define D1 (b-a)
-				//~ #define D2 (c-b)
-				//~ #define D3 (d-c)
+				#define SIGNBIT(x) (x & (1<<31))
+				#define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
+				#define D1 (b-a)
+				#define D2 (c-b)
+				#define D3 (d-c)
 
-				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 2)
+				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 3)
 				//~ #define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
 				//~ #define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
 
-				int e = e_morph;
-
+				int e = (focus_peaking == 1) ? ABS(D1) :
+						(focus_peaking == 2) ? e_morph : 0;
 				#undef a
 				#undef b
 				#undef c
@@ -1187,6 +1186,7 @@ draw_zebra_and_focus( void )
 					b_row[x/2] = c | (c << 8);
 				}*/
 				
+				n_total++;
 				if (e < thr) continue;
 				// else
 				{ // executed for 1% of pixels
@@ -1226,7 +1226,7 @@ draw_zebra_and_focus( void )
 			}
 		}
 		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
-		if (1000 * n_over / ((hd_height - 2*hd_skipv) * (hd_width - 2*hd_skiph) / step / 2) > focus_peaking_pthr) thr++;
+		if (1000 * n_over / n_total > focus_peaking_pthr) thr++;
 		else thr--;
 		
 		int thr_min = (lens_info.iso > 1600 ? 15 : 10);
@@ -1530,25 +1530,11 @@ zebra_lo_toggle_reverse( void * priv )
 	zebra_level_lo = mod(zebra_level_lo - 1, 50);
 }
 
-static void clearpreview_setup(mode) // 0 = disable display, 1 = enable display
-{
-	if (mode == 0 && bmp_enabled && lv_drawn())
-	{
-		bmp_enabled = 0;
-		global_draw = 0;
-	}
-	if (mode == 1)
-	{
-		bmp_enabled = 1;
-		global_draw = global_draw_bk;
-	}
-}
 static void
 clearpreview_toggle( void * priv )
 {
 	int * ptr = priv;
 	*ptr = mod(*ptr + 1, 3);
-	if (*ptr != 2) clearpreview_setup(1);
 }
 
 static void
@@ -1556,7 +1542,6 @@ clearpreview_toggle_reverse( void * priv )
 {
 	int * ptr = priv;
 	*ptr = mod(*ptr - 1, 3);
-	clearpreview_setup(*ptr == 2 ? 0 : 1);
 }
 
 
@@ -1575,8 +1560,7 @@ zebra_hi_toggle_reverse( void * priv )
 static void global_draw_toggle(void* priv)
 {
 	menu_binary_toggle(priv);
-	if (!global_draw) bmp_fill(0, 0, 0, 720, 480);
-	global_draw_bk = global_draw;
+	if (!global_draw && lv_drawn()) bmp_fill(0, 0, 0, 720, 480);
 }
 
 #define MAX_CROP_NAME_LEN 15
@@ -1718,7 +1702,9 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"Focus Peak  : ON, %d.%d, %s", 
+			"Focus Peak  : %s,%d.%d,%s", 
+			focus_peaking == 1 ? "HDIF" : 
+			focus_peaking == 2 ? "MORF" : "?",
 			focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
 			focus_peaking_color == 0 ? "R" :
 			focus_peaking_color == 1 ? "G" :
@@ -1824,7 +1810,7 @@ global_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Global Draw : %s",
-		global_draw_bk ? "ON " : "OFF"
+		global_draw ? "ON " : "OFF"
 	);
 }
 
@@ -1861,7 +1847,7 @@ clearpreview_display(
 		"ClrScreen   : %s",
 		(mode == 0 ? "OFF" : 
 		(mode == 1 ? "HalfShutter" : 
-		(mode == 2 ? "Always" :
+		(mode == 2 ? "WhenIdle" :
 		"Error")))
 	);
 }
@@ -2122,7 +2108,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
-		.select			= menu_quinternary_toggle,
+		.select			= menu_ternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 	},
@@ -2305,6 +2291,52 @@ cropmark_redraw()
 		clrscr_mirror();
 }
 
+// those functions will do nothing if called multiple times (it's safe to do this)
+int _bmp_cleared = 0;
+void bmp_on()
+{
+	if (!_bmp_cleared) call("MuteOff");
+	_bmp_cleared = 1;
+}
+void bmp_off()
+{
+	if (_bmp_cleared) call("MuteOn");
+	_bmp_cleared = 0;
+}
+
+int _lvimage_cleared = 0;
+void lvimage_on()
+{
+	if (!_lvimage_cleared) call("MuteOffImage");
+	_lvimage_cleared = 1;
+}
+void lvimage_off()
+{
+	if (_lvimage_cleared) call("MuteOnImage");
+	_lvimage_cleared = 0;
+}
+
+int _display_is_off = 0;
+void display_on()
+{
+	if (_display_is_off)
+	{
+		if (lv_drawn()) lvimage_on(); // might save a bit of power
+		call("TurnOnDisplay");
+		_display_is_off = 0;
+	}
+}
+void display_off()
+{
+	if (!_display_is_off)
+	{
+		if (lv_drawn()) lvimage_off(); // might save a bit of power
+		call("TurnOffDisplay");
+		_display_is_off = 1;
+	}
+}
+
+
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -2316,7 +2348,6 @@ zebra_task( void )
 
 	msleep(2000);
 	
-	set_global_draw(global_draw_bk);
 	find_cropmarks();
 	load_cropmark(crop_draw);
 	int k;
@@ -2362,10 +2393,14 @@ zebra_task_loop:
 
 		if (gui_menu_shown())
 		{
+			display_on();
+			bmp_on();
 			clrscr_mirror();
 			while (gui_menu_shown()) msleep(100);
 			crop_dirty = 1;
 		}
+		
+		if (get_halfshutter_pressed()) display_on();
 
 		// clear overlays on shutter halfpress
 		if (clearpreview == 1 && get_halfshutter_pressed() && !dofpreview && !gui_menu_shown()) // preview image without any overlays
@@ -2378,31 +2413,19 @@ zebra_task_loop:
 				if (!get_halfshutter_pressed() || dofpreview) goto zebra_task_loop;
 			}
 			
-			clrscr();         // long press... clear everything
-			clearpreview_setup(0);
-			msleep(100);
-			clrscr();
+			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
-			clearpreview_setup(1);
-			crop_dirty = 1;
+			bmp_on();
 		}
-		else if (clearpreview == 2 && !gui_menu_shown()) // always clear overlays
+		else if (clearpreview == 2) // always clear overlays
 		{ // in this mode, BMP & global_draw are disabled, but Canon code may draw on the screen
-			if (gui_state == 0)
+			if (gui_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed() && !falsecolor_displayed && !LV_ADJUSTING_ISO) 
 			{
-				msleep(200);
-				if (!lv_drawn() || gui_state != 0) continue;
-				bmp_enabled = 1;
-				clrscr();
-				//~ draw_movie_bars();
-				clearpreview_setup(0);
-				crop_dirty = 1;
-				msleep(200);
+				bmp_off();
 			}
-			else
+			else 
 			{
-				bmp_enabled = 1; // Quick menu => enable drawings
-				global_draw = 1;
+				bmp_on();
 				draw_zebra_and_focus();
 			}
 		}
