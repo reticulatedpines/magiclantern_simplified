@@ -105,9 +105,10 @@ void enable_full_hd( void * priv )
 #endif
 
 
-void call_dispcheck( void * priv )
+void take_screenshot( void * priv )
 {
 	call( "dispcheck" );
+	silent_pic_take_lv_dbg();
 }
 
 
@@ -371,8 +372,11 @@ int can_lv_trap_focus_be_active()
 	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
 	if (dofpreview) return 0;
 	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
+	if (gui_state != GUISTATE_IDLE) return 0;
+	if (get_silent_pic_mode()) return 0;
 	return 1;
 }
+
 int get_lv_focus_confirmation() 
 { 
 	if (!can_lv_trap_focus_be_active()) return 0;
@@ -422,7 +426,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 {
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
 	hsp = buf[0];
-	hsp_countdown = 5;
+	hsp_countdown = 15;
 	return prop_cleanup(token, property);
 }
 
@@ -683,6 +687,19 @@ enable_liveview_print(
 	);
 }
 
+static void lv_test(void* priv)
+{
+	DispSensorStart();
+}
+
+static void turn_off_display(void* priv)
+{
+	gui_stop_menu();
+	msleep(250);
+	display_off();
+	call("TurnOffDisplay"); // force it
+}
+
 static void
 mode_remap_print(
 	void *			priv,
@@ -793,7 +810,6 @@ PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
 
 void display_info()
 {
-	bmp_enabled = 1;
 	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
 	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
 	bmp_printf(FONT_MED, 20, 440, "Lens: %s          ", lens_info.name);
@@ -802,9 +818,8 @@ void display_info()
 }
 void display_clock()
 {
-	bmp_enabled = 1;
 	int bg = bmp_getpixel(15, 430);
-	uint32_t fnt = FONT(FONT_LARGE, 80, bg);
+	uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
@@ -852,13 +867,18 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_shooting_info();
 		}
 		
+		if (lv_drawn())
+		{
+			display_shooting_info_lv();
+		}
+		
 		if (screenshot_sec)
 		{
 			if (screenshot_sec >= 5) bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds", screenshot_sec);
 			screenshot_sec--;
 			msleep( 1000 );
 			if (!screenshot_sec)
-				call_dispcheck(0);
+				take_screenshot(0);
 		}
 		
 		if (movie_restart)
@@ -885,7 +905,12 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			vbr_set();
 		}
-		
+
+		if (!DISPLAY_SENSOR_POWERED && gui_state == GUISTATE_IDLE) // force sensor on
+		{
+			DispSensorStart();
+		}
+
 		if (draw_prop)
 		{
 			dbg_draw_props(dbg_last_changed_propindex);
@@ -933,9 +958,11 @@ struct menu_entry debug_menus[] = {
 		.select		= save_config,
 		.display	= menu_print,
 	},
-	//~ {
-		//~ .display	= efic_temp_display,
-	//~ },
+	{
+		.priv = "Turn display off",
+		.display	= menu_print, 
+		.select = turn_off_display,
+	},
 	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
@@ -944,7 +971,7 @@ struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
-		.select_auto = call_dispcheck,
+		.select_auto = take_screenshot,
 		.display	= menu_print,
 	},
 	{
@@ -958,11 +985,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	//~ {
-		//~ .priv		= "Mode test",
-		//~ .select		= mode_test,
-		//~ .display	= menu_print,
-	//~ }
+	/*{
+		.priv		= "LV test",
+		.select		= lv_test,
+		.display	= menu_print,
+	}*/
 /*	{
 		.select = focus_test,
 		.display = focus_print,
@@ -1204,9 +1231,7 @@ void show_logo()
 	for (i = 0; i < 100; i++)
 	{
 		bmp_draw(bmp,0,0,0,0);
-		bmp_enabled = 0;
 		msleep(10);
-		bmp_enabled = 1;
 	}
 }
 
@@ -1231,7 +1256,7 @@ dump_task( void )
 
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-	/*
+	
 	DEBUG();
 	dm_set_store_level( DM_DISP, 7 );
 	dm_set_store_level( DM_LVFD, 7 );
@@ -1252,7 +1277,7 @@ dump_task( void )
 	dm_set_store_level( DM_GUI_E, 7);
 	dm_set_store_level( DM_BIND, 7);
 	DEBUG();
-	*/
+	
 	//msleep(1000);
 	//bmp_draw_palette();
 	//dispcheck();
