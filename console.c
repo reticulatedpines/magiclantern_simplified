@@ -24,18 +24,24 @@ int console_buffer_index = 0;
 
 int console_visible = 0;
 
+FILE* console_log_file = 0;
 void console_show() 
 { 
 	console_visible = 1;
 	set_global_draw(0);
+	FIO_RemoveFile("B:/console.log");
+	console_log_file = FIO_CreateFile("B:/console.log");
+	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
 }
 void console_hide() 
 { 
 	console_visible = 0;
 	msleep(500);
-	bmp_enabled = 1;
 	set_global_draw(1);
 	clrscr();
+	FIO_CloseFile(console_log_file);
+	console_log_file = 0;
+	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE OFF");
 }
 
 static void
@@ -71,9 +77,8 @@ static struct menu_entry script_menu[] = {
 		.select		= console_test,
 	},*/
 	{
-		.priv		= &console_visible,
 		.display	= console_print,
-		.select		= menu_binary_toggle,
+		.select		= console_toggle,
 	},
 };
 
@@ -97,6 +102,9 @@ void console_init()
 void console_puts(const char* str) // don't DebugMsg from here!
 {
 	#define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
+	
+	if (console_log_file) my_fprintf(console_log_file, "%s", str);
+	
 	if (!console_buffer) return 0;
 	char* c = str;
 	while (*c)
@@ -152,7 +160,6 @@ console_task( void )
 	{
 		if (console_visible && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
 		{
-			bmp_enabled = 0;
 			set_global_draw(0);
 			console_draw();
 		}
