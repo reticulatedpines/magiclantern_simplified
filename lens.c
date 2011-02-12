@@ -324,6 +324,8 @@ void lens_wait_readytotakepic(uint32_t wait)
 	}
 }
 
+PROP_INT(PROP_AF_MODE, af_mode);
+
 int
 lens_take_picture(
 	uint32_t			wait
@@ -337,11 +339,17 @@ lens_take_picture(
 	}
 
 	DEBUG("Taking pic (%d)", lens_info.job_state);
-	//call( "Release", 0 );
-	SW1(1,10);
-	SW2(1,200);
-	SW2(0,10);
-	SW1(0,10);
+	if ((af_mode & 0xF) == 3 )
+	{
+		SW1(1,10); // those work well with bracketing, but fail if AF is on
+		SW2(1,200);
+		SW2(0,10);
+		SW1(0,10);
+	}
+	else
+	{
+		call( "Release", 0 ); // this works with AF but skips frames in bracketing
+	}
 
 	if( !wait )
 		return 0;
