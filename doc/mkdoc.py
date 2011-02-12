@@ -85,7 +85,12 @@ labelhack("userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex > UserGuide.tex")
 os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' UserGuide.tex")
+
 os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide.tex")
+os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide.tex")
+os.system(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide.tex")
+os.system(r"sed -i -e 's/〰/$\\wave$/g' UserGuide.tex")
+
 os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
 os.system("pdflatex UserGuide.tex")
 os.system("pdflatex UserGuide.tex")

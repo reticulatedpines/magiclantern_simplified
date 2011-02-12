@@ -12,6 +12,9 @@
 \usepackage{float} % float configuration
 \floatplacement{figure}{H} % place figures here definitely
 \usepackage{graphicx}
+\usepackage{tikz}
+
+\def\wave{\tikz{ \draw [xscale=0.05,yscale=0.15] (0,0)--(1,1)--(2,0)--(3,1)--(4,0)--(5,1); }}
 
 \usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
 \hypersetup{

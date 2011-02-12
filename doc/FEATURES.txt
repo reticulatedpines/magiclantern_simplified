@@ -174,6 +174,8 @@ LiveV
 
 LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false color...
 
+.. _Global Draw:
+
 **Global Draw: ON/OFF**
 
   Enable/disable drawing extra graphics elements 
@@ -284,7 +286,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _Clean LiveView display:
 .. _ClrScreen:
 
-**ClrScreen: OFF/HalfShutter/Always**
+**ClrScreen: OFF/HalfShutter/WhenIdle**
 
   Clear image overlays from LiveView display.
   
@@ -296,39 +298,34 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
   
   
-    Tip: also use it for cleaning up unwanted Magic Lantern garbage left on the screen.
+  * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle.
   
-  
-  * **Always**: In this mode, all the overlays are erased from the screen (100% clean display). Zebras & friends are still available when you enter the Q menu, and then disappear.
+    The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then disappear.
 
+  This function works by temporarily disabling the bitmap overlay. All the overlay graphics will be restored when the overlay is enabled again.
+  To clear garbage left on the screen, press ``MENU`` twice (don't use this function).
+  
 .. _focus peaking:
 
-**Focus Peak: ON/OFF, threshold, color_mode**
+**Focus Peak: OFF/HDIF/MORF, threshold, color_mode**
 
   Experimental focus peaking.
   
   See [[Focus Assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
   
-  * ``SET``: toggle ON/OFF
+  * ``SET``: toggle beteween available algorithms or turn the setting off
+  
+    - ``HDIF``: looks at difference between adjacent pixels. Detects horizontal edges only. It is fooled by high-contrast, out of focus edges.
+    - ``MORF``: looks for fine detail lost by morphological opening and closing (which is a kind of blurring). It handles high-contrast OOF edges well, but is very sensitive to ISO noise.
+
   * ``Q``: adjust percentile threshold, between 0.1% and 5%.
   * ``DISP``: select color mode
   
-     - one of ``R,G,B,C,M,Y`` (a single color)
-     - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
-     - ``cc2``: color coding 2 (show edge strength as color for every pixel)
-  
-  Known bugs:
-  
-  * it's easily fooled by contrast (or lack of it)
-  * it may display red markers even if there's nothing in focus
-  
-  Implementation details:
-  
-  * Only horizontal edges are detected.
-  * Only adjacent pixels which fit in an int32 are considered. 
-  * Threshold method: percentile (0.1% ... 5%).
-  * Vertical downsampling: always 2
-  * Horizontal downsampling: 2 when recording, else 1.
+    - one of ``R,G,B,C,M,Y`` (a single color)
+    - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
+    - ``cc2``: color coding 2 (show edge strength as color for every pixel)
+    
+  The implementation uses heavy downsampling to maintain speed.
 
 .. _focus graph:
 
@@ -486,6 +483,7 @@ Functions for stills shooting.
   * ML intervalometer (for HDR timelapse)
   * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used. Also, this mode only works with 3 images or more.
 
+  For best results, switch to manual focus.
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
   with `enfuse <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
@@ -522,34 +520,40 @@ Functions for stills shooting.
   * In movie mode, it takes a sequence of small videos
   
     - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
-    - To use the intervalometer in movie mode, make sure ``Silent Picture`` is ``OFF``.
+    - To use the intervalometer in movie mode, make sure `Silent Picture`_ is ``OFF``.
+
+  You can stop the intervalometer either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
   
   Tips:
   
-  * shoot in manual mode and switch the lens to MF.
+  * Shoot in manual mode and switch the lens to MF.
+  * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
+  * Do not use the intervalometer in LiveView with "noisy" mode (otherwise your shutter will wear twice as fast than outside LV).
+
+  Power Saving:
   
-  * for power saving, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
-  
-  * to save the shutter count when doing timelapses, enable ``Silent Picture`` or use the intervalometer in Movie mode.
+  * When not in LiveView, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
+  * When in LiveView and Silent Picture is enabled, the intervalometer will turn the display off. For this to work, you have to assign the focus on the ``*`` button (otherwise the screen will wake up). Turn off `Global Draw`_ to save more power. ML will NOT turn off the sensor.
+  * The card led will blink once per second to let you know it's alive and kicking.
 
   Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.
 
+.. _remote triggers:
 .. _LCD face sensor:
 
-**LCD Remote Shot: OFF/Near/Away**
+**LCD Remote Shot: OFF/Near/Away/Wave**
 
   Start/stop remote shutter release mode with the LCD sensor. 
   
-  * **Near**: To take a picture, put your hand near the LCD sensor.
-  * **Away**: Picture is taken when you get your hand away from the sensor.
-  * **Wave**: Picture is taken after you wave your hand 3 times near the sensor.
+  * ⨂ **Near**: To take a picture, put your hand near the LCD sensor.
+  * ⨀ **Away**: Picture is taken when you get your hand away from the sensor.
+  * 〰 **Wave**: Picture is taken after you wave your hand 3 times near the sensor. You can leave it on without interfering (too much) with normal shooting.
 
   This is useful for avoiding camera shake without extra $$$, 
   especially if you don't have a sturdy tripod.
   
-  To use it, select one of P,S,A,M modes, turn OFF Live View, 
-  and make sure "LCD auto off" is enabled (in the Canon menu, wrench 1).
-
+  In LiveView, the ``Wave`` mode is able to start and stop recording movies. The other modes can only start recording (because it's too easy to stop recording by mistake).
+  
 .. _audio trigger:
 
 **Audio RemoteShot: ON/OFF**
@@ -568,8 +572,6 @@ Functions for stills shooting.
   
   Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
 
-
-You can stop the intervalometer and remote shooting modes either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
 
 .. _trap focus:
 
@@ -594,7 +596,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
       compute the correct focus scaling for the current scene. 
     - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
     
-    To use Trap Focus in LiveView, make sure `focus graph`_ is ``ON``.
+    To use Trap Focus in LiveView, make sure `focus graph`_ is ``ON`` and `silent pictures`_ are ``OFF``.
 
 .. _flash / no flash:
 
@@ -610,6 +612,7 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
   Don't forget to pop up the flash :)
 
 .. _silent pictures:
+.. _Silent Picture:
 .. _slit-scan pictures:
 
 **Silent Picture / Silent Pic HiRes / Slit-scan Pic**
@@ -633,10 +636,13 @@ You can stop the intervalometer and remote shooting modes either frrom ML menu, 
     * available matrix sizes (which give the image resolutions) in Hi-Res mode.
     * timing (number of clocks to skip after each line) in Slit-scan mode.
   
-  Silent picture setting is applied to intervalometer and remote triggers when used in LiveView mode.
+  Silent picture setting is applied to `intervalometer`_ and `remote triggers`_ when used in LiveView mode.
   
-  Images are saved in ``DCIM/1xxCANON/``, named after last picture/movie taken without this function.
+  Images are saved in ``DCIM/1xxCANON/`` after the following rules:
   
+    * If intervalometer is ``OFF``, silent pics are named after last picture/movie taken without this function (e.g. ``1234-001.422``). You are limited to 1000 silent pictures for each "noisy" picture.
+    * If intervalometer is ``ON``, silent pics have names like ``12345678.422``. Tip: use ``File Numbering -> Manual Reset`` from Canon menu to increase folder number (to sort them easier).
+    
   To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python, PIL and numpy). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
   
   TODO: 
@@ -822,14 +828,19 @@ Debug
 
   Save current settings to ``MAGIC.CFG``.
 
+**Turn display off**
+
+  Guess :)
+
 **Draw palette**
 
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
 
 **Screenshot (10 s)**
 
-  Print screen after 10 seconds (it saves a BMP file). 
-  Only the bitmap overlays are included in the screenshot (i.e. no live view image).
+  Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
+  
+  A small timer is displayed. After 5 seconds, it won't be updated any more (which lets you remove it from the screen).
 
 **Dump dmlog**
 
@@ -900,7 +911,7 @@ LiveView
 ~~~~~~~~
 
 * Aperture, shutter, ISO
-* Spotmeter: brightness percentage from the center of the frame. Computed as average value of Y component from YUV LiveView buffer over a very small area.
+* `Spotmeter`_
 * Lens focal length and focus distance: see [[Focus_distance]]
 * Exposure compensation (codenamed AE)
 
