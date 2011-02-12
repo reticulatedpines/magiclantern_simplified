@@ -60,14 +60,8 @@ void hotplug_setting_save()
 }
 void hotplug_setting_load()
 {
-	FILE * file = FIO_Open( HOTPLUG_FLAG_FILE, 0 );
-	if( file == INVALID_PTR )
-	{
-		hotplug_override = 0;
-		return;
-	}
-	hotplug_override = 1;
-	FIO_CloseFile( file );
+	unsigned size;
+	hotplug_override = ( FIO_GetFileSize( HOTPLUG_FLAG_FILE, &size ) == 0 );
 }
 
 static void
