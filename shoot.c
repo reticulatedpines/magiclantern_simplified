@@ -1311,13 +1311,13 @@ static void
 saturation_display( void * priv, int x, int y, int selected )
 {
 	int s = lens_get_saturation();
+	char ss[10];
+	if (s >= -4 && s <= 4) snprintf(ss, sizeof(ss), "%d", s);
+	else snprintf(ss, sizeof(ss), "N/A");
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		(s >= -4 && s <= 4) ? 
-			"Saturation  : %d " :
-			"Saturation  : N/A",
-		s
+		"Saturation  : %s ", ss
 	);
 }
 
