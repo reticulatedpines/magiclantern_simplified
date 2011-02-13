@@ -19,12 +19,13 @@ Features
 * Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation; integration with bracketing.
 * Astro- and night photography: `bulb timer`_ for very long exposures (up to 1h).
 * Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, `clock`_.
-* Misc. functions: `slit-scan pictures`_, toggle `flash / no flash`_ (even pics without flash, odd pics with flash).
+* For strobists: `flash exposure compensation`_ from -10 to +3 EV; auto-toggle `flash / no flash`_ (even pics without flash, odd pics with flash).
+* Power management: `Turn off display`_ in LiveView mode; quickly adjust `LCD backlight level`_.
+* Fun stuff: `slit-scan pictures`_.
 
 .. raw:: latex
 
     \tableofcontents
-    \newpage
     }
     \def\itemize{
     \olditemize
@@ -76,7 +77,22 @@ Important notes
 .. raw:: latex
     
     \newpage
-    
+
+Keyboard shortcuts
+------------------
+
+These buttons have special meaning with Magic Lantern:
+
+.. _LCD backlight level:
+
+* LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
+* LCD sensor + ``UP / DOWN``: adjust LCD backlight level (brightness).
+* Flash / DOF preview: see `False color`_.
+* Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_.
+* ``SET`` in LiveView: center AF area (the little rectangle).
+* ``ERASE``: display Magic Lantern menu.
+* ``Arrows, SET, DISP, Q``: ML menu navigation (see below).
+
 Menu options
 ------------
 
@@ -119,7 +135,7 @@ Audio tweaks.
 
 **DigitalFilters: ON/OFF**
 
-  Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis)
+  Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis). Does it actually work?!
 
 .. _input source:
 
@@ -216,11 +232,13 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
   
   * **Always ON**: self-explaining. 
-  * **Shortcut key**: false color overlay will appear only when you press this key:
+  * **Hold Flas/DOF**: false color overlay will appear only when you press this key:
   
     - flash button in Movie mode
     - DOF preview button in Photo mode
 
+  * **Togg Flas/DOF**: false color appearance will be toggled by the shortcut keys above-mentioned.
+  
   The implementation uses a half-resolution C code.
   
   To get the correct palette, go to LiveView, then Play, make sure you have an image, then go back to LiveView.
@@ -390,6 +408,7 @@ Functions specific to movie mode.
   Tip: you can rename ``LOG`` files to ``CSV`` and import them in Excel.
 
 .. _custom AF algorithm:
+.. _movie af:
 
 **Movie AF: OFF/Hold/Cont**
 
@@ -540,6 +559,7 @@ Functions for stills shooting.
 
 .. _remote triggers:
 .. _LCD face sensor:
+.. _LCD Remote Shot:
 
 **LCD Remote Shot: OFF/Near/Away/Wave**
 
@@ -714,6 +734,14 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Green-Magenta white balance shift. Useful for fluorescent lighting.
 
+**Light Adjust: OFF/ALO strong/HTP**
+
+  Select the light adjustment algorithm: 
+  
+  * OFF
+  * Auto Lighting Optimizer (strong)
+  * Highlight Tone Priority.
+
 **PictureStyle**
 
   Change picture style. You can see the effect on LiveView instantly.
@@ -723,14 +751,12 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   Adjusts the contrast and the saturation of the current picture style.
     
   ``WARNING``: this will modify your current picture style.
-  
-**Light Adjust: OFF/ALO strong/HTP**
 
-  Select the light adjustment algorithm: 
-  
-  * OFF
-  * Auto Lighting Optimizer (strong)
-  * Highlight Tone Priority.
+.. _flash exposure compensation:
+
+**Flash AEcomp: -10..3 EV**
+
+  Flash exposure compensation.
   
 Brack
 ~~~~~
@@ -827,6 +853,8 @@ Debug
 **Save config**
 
   Save current settings to ``MAGIC.CFG``.
+
+.. _Turn off display:
 
 **Turn display off**
 

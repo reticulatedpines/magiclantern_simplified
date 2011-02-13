@@ -30,6 +30,7 @@
 #include "consts-550d.109.h"
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
+static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
 
 int button_menu_on = BGMT_TRASH;
 int button_menu_off = BGMT_TRASH;
@@ -152,6 +153,21 @@ static void gui_main_task_550d()
 				continue;
 			}
 		}
+		
+		if (event->type == 0 && display_sensor_neg == 0) // button presses while display sensor is covered
+		{
+			if (event->param == BGMT_PRESS_UP)
+			{
+				adjust_backlight_level(1);
+				continue;
+			}
+			else if (event->param == BGMT_PRESS_DOWN)
+			{
+				adjust_backlight_level(-1);
+				continue;
+			}
+		}
+		
 		if (event->type == 0)
 		{
 			if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;

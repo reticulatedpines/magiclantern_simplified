@@ -913,8 +913,9 @@ menu_task( void )
 		menu_damage = 1;
 		menu_hidden = 0;
 		gui_menu_task = gui_task_create( menu_handler, 0 );
-		//~ powersave_disable_for_menu(); // force powersave disable while menu is on
-		// will revert back to default config when menu disappears
+
+		display_on(); // ensure the menu is visible even if display was off
+		bmp_on();
 	}
 }
 

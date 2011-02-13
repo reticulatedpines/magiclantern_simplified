@@ -209,7 +209,7 @@
 #define PROP_STROBO_FIRING    0x80040013  // 0 = enable, 1 = disable, 2 = auto?
 #define PROP_STROBO_ETTLMETER 0x80040014  // 0 = evaluative, 1 = average
 #define PROP_STROBO_CURTAIN   0x80040015  // 0 = first, 1 = second
-#define PROP_STROBO_AECOMP    0x80000009  // in 1/8 EV steps, 8-bit signed
+#define PROP_STROBO_AECOMP    0x80000009  // in 1/8 EV steps, 8-bit signed, len=4
 #define PROP_STROBO_SETTING   0x80030038  // len=22
 #define PROP_STROBO_REDEYE    0x80000025  // 1 = enable, 0 = disable
 //strobo_setting[0] & 0xFF000000 = strobo_aecomp << 24
@@ -233,6 +233,8 @@
 
 #define PROP_REMOTE_SW1 0x80020015
 #define PROP_REMOTE_SW2 0x80020016
+
+#define PROP_BACKLIGHT_LEVEL	0x02040000
 
 /** Properties */
 extern void

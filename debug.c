@@ -360,6 +360,18 @@ movie_restart_print(
 	);
 }
 
+PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
+void adjust_backlight_level(int delta)
+{
+	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
+	display_on_force();
+	int level = COERCE(backlight_level + delta, 1, 7);
+	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
+	if (!lv_drawn()) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
+}
+
+
+PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 int shooting_mode;
 
@@ -368,18 +380,20 @@ static int hsp_countdown = 0;
 int can_lv_trap_focus_be_active()
 {
 	if (!lv_drawn()) return 0;
-	if (!get_halfshutter_pressed()) return 0;
 	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
 	if (dofpreview) return 0;
 	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
 	if (gui_state != GUISTATE_IDLE) return 0;
 	if (get_silent_pic_mode()) return 0;
+	if ((af_mode & 0xF) != 3) return 0;
+	if (!get_focus_graph()) return 0; // it depends on the graph
 	return 1;
 }
 
 int get_lv_focus_confirmation() 
 { 
 	if (!can_lv_trap_focus_be_active()) return 0;
+	if (!get_halfshutter_pressed()) return 0;
 	int ans = lv_focus_confirmation;
 	lv_focus_confirmation = 0;
 	return ans; 
@@ -394,8 +408,6 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 	focus_done = 1;
 	return prop_cleanup(token, property);
 }
-
-PROP_INT(PROP_AF_MODE, af_mode);
 
 int mode_remap_done = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)

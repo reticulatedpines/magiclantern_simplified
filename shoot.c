@@ -1316,7 +1316,7 @@ saturation_display( void * priv, int x, int y, int selected )
 		x, y,
 		(s >= -4 && s <= 4) ? 
 			"Saturation  : %d " :
-			"Saturation  : 0x%X",
+			"Saturation  : N/A",
 		s
 	);
 }
@@ -1363,6 +1363,43 @@ picstyle_toggle_reverse( void * priv )
 	picstyle_toggle(-1);
 }
 
+PROP_INT(PROP_STROBO_AECOMP, flash_ae);
+
+static void
+flash_ae_toggle( int sign )
+{
+	int ae = (int8_t)flash_ae;
+	int newae = ae + sign * (ABS(ae) <= 16 ? 4 : 8);
+	if (newae > 24) newae = -80;
+	if (newae < -80) newae = 24;
+	ae &= 0xFF;
+	prop_request_change(PROP_STROBO_AECOMP, &newae, 4);
+}
+
+static void
+flash_ae_toggle_forward( void * priv )
+{
+	flash_ae_toggle(1);
+}
+
+static void
+flash_ae_toggle_reverse( void * priv )
+{
+	flash_ae_toggle(-1);
+}
+
+static void 
+flash_ae_display( void * priv, int x, int y, int selected )
+{
+	int ae_ev = ((int8_t)flash_ae) * 10 / 8;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Flash AEcomp: %d.%d EV",
+		ae_ev / 10, 
+		ABS(ae_ev % 10)
+	);
+}
 
 
 uint32_t cfn[4];
@@ -1703,10 +1740,15 @@ struct menu_entry expo_menus[] = {
 		.select_reverse		= saturation_toggle_reverse,
 	},
 	{
+		.display	= flash_ae_display,
+		.select		= flash_ae_toggle_forward,
+		.select_reverse		= flash_ae_toggle_reverse,
+	},
+	/*{
 		.display	= sharpness_display,
 		.select		= sharpness_toggle_forward,
 		.select_reverse		= sharpness_toggle_reverse,
-	},
+	},*/
 };
 
 void hdr_create_script(int steps, int skip0)
@@ -1953,8 +1995,8 @@ void display_trap_focus_info()
 	int show, fg, bg, x, y;
 	if (lv_drawn())
 	{
-		int active = can_lv_trap_focus_be_active();
-		show = 1;
+		show = can_lv_trap_focus_be_active();
+		int active = show && get_halfshutter_pressed();
 		bg = active ? COLOR_BG : 0;
 		fg = active ? COLOR_RED : COLOR_BG;
 		x = 8; y = 160;

@@ -52,15 +52,13 @@ CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
-//~ CONFIG_INT( "falsecolor.shortcutkey", falsecolor_shortcutkey, 1);
-#define falsecolor_shortcutkey (falsecolor_draw == 2)
 int falsecolor_displayed = 0;
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 
-CONFIG_INT( "focus.graph", focus_graph, 1);
+CONFIG_INT( "focus.graph", focus_graph, 0);
 //~ int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
@@ -79,7 +77,7 @@ CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
 static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 CONFIG_INT( "clear.preview", clearpreview, 1); // 2 is always
-CONFIG_INT( "clear.preview.delay", clearpreview_delay, 1000); // ms
+CONFIG_INT( "clear.preview.delay", clearpreview_delay, 500); // ms
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1: on (center), 2: under center marker
@@ -1029,7 +1027,7 @@ static void draw_zebra_and_focus_unified( void )
   			}
   		}
 		int yy=250 * n_over / (os.bmp_ex_x * (os.bmp_ex_y - (bm_lv_y<<1)));
-		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
+		//~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
 //		bmp_printf(FONT_LARGE, 10, 50, "%d %d %d>%d ", thr, n_over, yy, focus_peaking_pthr);
 		if ( yy > focus_peaking_pthr) {
 			thr++;
@@ -1225,7 +1223,7 @@ draw_zebra_and_focus( void )
 				}
 			}
 		}
-		bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
+		//~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
 		if (1000 * n_over / n_total > focus_peaking_pthr) thr++;
 		else thr--;
 		
@@ -1677,8 +1675,11 @@ falsecolor_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"False Color : %s%s",
-		fc ? (falsecolor_shortcutkey ? "Shortcut Key": "Always ON") : "OFF"
+		"False Color : %s",
+		fc == 0 ? "OFF" :
+		fc == 1 ? "Always ON" : 
+		fc == 2 ? "Hold Flas/DOF" :
+		fc == 3 ? "Togg Flas/DOF" : "err"
 	);
 }
 
@@ -2082,8 +2083,8 @@ struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
-		.select		= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse, 
+		.select		= menu_quaternary_toggle,
+		.select_reverse = menu_quaternary_toggle_reverse, 
 	},
 	{
 		.priv		= &cropmark_playback,
@@ -2295,13 +2296,18 @@ cropmark_redraw()
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	if (!_bmp_cleared) call("MuteOff");
+	if (_bmp_cleared) call("MuteOff");
+	_bmp_cleared = 0;
+}
+void bmp_on_force()
+{
 	_bmp_cleared = 1;
+	bmp_on();
 }
 void bmp_off()
 {
-	if (_bmp_cleared) call("MuteOn");
-	_bmp_cleared = 0;
+	if (!_bmp_cleared) call("MuteOn");
+	_bmp_cleared = 1;
 }
 
 int _lvimage_cleared = 0;
@@ -2325,6 +2331,11 @@ void display_on()
 		call("TurnOnDisplay");
 		_display_is_off = 0;
 	}
+}
+void display_on_force()
+{
+	_display_is_off = 1;
+	display_on();
 }
 void display_off()
 {
@@ -2366,7 +2377,17 @@ zebra_task_loop:
 		if (!lv_drawn()) { msleep(100); continue; }
 
 		int fcp = falsecolor_displayed;
-		falsecolor_displayed = (falsecolor_draw && ((!falsecolor_shortcutkey) || (falsecolor_shortcutkey && (dofpreview || FLASH_BTN_MOVIE_MODE))));
+
+		// when to display false color?
+		if (falsecolor_draw == 1) falsecolor_displayed = 1;
+		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || FLASH_BTN_MOVIE_MODE);
+		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
+		{
+			falsecolor_displayed = !falsecolor_displayed;
+			while (dofpreview || FLASH_BTN_MOVIE_MODE) msleep(100);
+		}
+		
+		// did false color setting toggle?
 		if (fcp != falsecolor_displayed)
 		{
 			if (falsecolor_displayed) // first time displaying false color from shortcut key
@@ -2393,8 +2414,6 @@ zebra_task_loop:
 
 		if (gui_menu_shown())
 		{
-			display_on();
-			bmp_on();
 			clrscr_mirror();
 			while (gui_menu_shown()) msleep(100);
 			crop_dirty = 1;
@@ -2412,6 +2431,7 @@ zebra_task_loop:
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview) goto zebra_task_loop;
 			}
+			crop_dirty = 1;
 			
 			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
