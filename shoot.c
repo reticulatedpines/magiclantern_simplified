@@ -49,7 +49,7 @@ CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
 CONFIG_INT( "lcd.release", lcd_release_running, 3);
 
-void get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
+int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
@@ -1953,14 +1953,15 @@ void display_trap_focus_info()
 	int show, fg, bg, x, y;
 	if (lv_drawn())
 	{
-		show = can_lv_trap_focus_be_active();
-		bg = show ? COLOR_BLACK : 0;
-		fg = COLOR_WHITE;
+		int active = can_lv_trap_focus_be_active();
+		show = 1;
+		bg = active ? COLOR_BG : 0;
+		fg = active ? COLOR_RED : COLOR_BG;
 		x = 8; y = 160;
 	}
 	else
 	{
-		show = (trap_focus && ((af_mode & 0xF) == 3));
+		show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
 		bg = bmp_getpixel(410, 330);
 		fg = trap_focus == 2 || FOCUS_CONFIRMATION_AF_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
 		x = 410; y = 331;
