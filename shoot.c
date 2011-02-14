@@ -69,7 +69,7 @@ PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_GUI_STATE, gui_state);
 PROP_INT(PROP_REMOTE_SW1, remote_sw1);
 
-int timer_values[] = {1,2,5,10,15,20,30,60,120,300,600,900,1800,3600};
+int timer_values[] = {1,2,5,10,15,20,30,60,120,300,600,900,1800,3600,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100,110, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 600, 650, 700, 750, 800, 850, 900, 1000, 1120, 1240, 1360, 1480, 1600, 1720, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3300, 3600, 4500, 5400, 6300, 7200, 8100, 9000, 9900, 10800, 11700, 12600, 13500, 14400, 15300, 16200, 17100, 18000, 19800, 21600, 23400, 25200, 27000, 28800};
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -1311,13 +1311,13 @@ static void
 saturation_display( void * priv, int x, int y, int selected )
 {
 	int s = lens_get_saturation();
-	char ss[10];
-	if (s >= -4 && s <= 4) snprintf(ss, sizeof(ss), "%d", s);
-	else snprintf(ss, sizeof(ss), "N/A");
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Saturation  : %s ", ss
+		(s >= -4 && s <= 4) ? 
+			"Saturation  : %d " :
+			"Saturation  : 0x%X",
+		s
 	);
 }
 
@@ -1596,7 +1596,7 @@ bulb_take_pic(int duration)
 	int d = duration/1000;
 	for (i = 0; i < d; i++)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
 		msleep(1000);
 		if (lens_info.job_state == 0) break;
 	}
@@ -1620,10 +1620,9 @@ bulb_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Bulb Timer %s: %d%s",
+		"Bulb Timer %s: %02dh%02dm%02ds",
 		is_bulb_mode() ? "     " : "(N/A)",
-		d < 60 ? d : d/60, 
-		d < 60 ? "s" : "min"
+		d/3600, (d % 3600) / 60, (d % 3600) % 60
 	);
 }
 

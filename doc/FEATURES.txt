@@ -17,7 +17,7 @@ Features
 * Remote release with `LCD face sensor`_ and `audio trigger`_, without extra hardware.
 * Bracketing: `exposure bracketing`_, `focus stacking`_.
 * Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation; integration with bracketing.
-* Astro- and night photography: `bulb timer`_ for very long exposures (up to 1h).
+* Astro- and night photography: `bulb timer`_ for very long exposures (up to 8h).
 * Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, `clock`_.
 * For strobists: `flash exposure compensation`_ from -10 to +3 EV; auto-toggle `flash / no flash`_ (even pics without flash, odd pics with flash).
 * Power management: `Turn off display`_ in LiveView mode; quickly adjust `LCD backlight level`_.
@@ -671,7 +671,7 @@ Functions for stills shooting.
 
 .. _bulb timer:
 
-**Bulb Timer: 1s...3600s**
+**Bulb Timer: 1s...8h**
 
   Very long exposures with Bulb mode and ML timer. Only works with remote triggers and intervalometer. You should select ``M`` mode and ``BULB`` setting from Canon UI before using this.
   
