@@ -174,7 +174,8 @@ static int handle_buttons(struct event * event)
 			}
 		}
 	}
-	else
+	
+	if (display_sensor_neg != 0)
 		lens_focus_stop(); 
 	
 	if (event->type == 0)
