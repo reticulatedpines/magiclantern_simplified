@@ -203,4 +203,7 @@ audio_read_level( int channel )
 
 struct audio_level *get_audio_levels(void);
 
+//horiz shift of audio meters to allow for label and numerical dB readout
+#define AUDIO_METER_OFFSET 20
+
 #endif

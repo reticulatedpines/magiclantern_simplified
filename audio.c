@@ -150,6 +150,8 @@ void draw_meters(void)
 }
 #else
 
+char * left_label;
+char * right_label;
 
 static uint8_t
 db_to_color(
@@ -182,8 +184,9 @@ db_peak_to_color(
 
 static void
 draw_meter(
-	int			y_origin,
-	struct audio_level *	level
+	int		y_origin,
+	struct	audio_level *	level,
+    char *	label
 )
 {
 	const uint32_t width = 600; // bmp_width();
@@ -194,7 +197,8 @@ draw_meter(
 
 	// Skip to the desired y coord and over the
 	// space for the numerical levels
-	row += (pitch/4) * y_origin + 8;
+	// .. and the space for showing the channel and source.
+	row += (pitch/4) * y_origin + AUDIO_METER_OFFSET;
 
 	const int db_avg = audio_level_to_db( level->avg );
 	const int db_peak = audio_level_to_db( level->peak );
@@ -232,7 +236,7 @@ draw_meter(
 	}
 
 	// Write the current level
-	bmp_printf( FONT_SMALL, 0, y_origin, "%3d", db_avg );
+	bmp_printf( FONT_SMALL, 0, y_origin, "%s %2d", label, db_avg );
 }
 
 
@@ -247,7 +251,7 @@ draw_ticks(
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
 		return;
-	row += (pitch/4) * y;
+	row += (pitch/4) * y + AUDIO_METER_OFFSET - 2 ;//seems to need less of an offset
 
 	const uint32_t white_word = 0
 		| ( COLOR_WHITE << 24 )
@@ -272,9 +276,9 @@ static void draw_meters(void)
 {
 	// The db values are multiplied by 8 to make them
 	// smoother.
-	draw_meter( 0, &audio_levels[0] );
+	draw_meter( 0, &audio_levels[0], left_label);
 	draw_ticks( 12, 4 );
-	draw_meter( 16, &audio_levels[1] );
+	draw_meter( 16, &audio_levels[1], right_label);
 }
 
 #endif
@@ -541,6 +545,8 @@ audio_configure( int force )
 #endif
 	
 	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
+	char * left_labels[] =  {"L INT", "L INT", "L EXT", "L INT"}; //these are used by draw_meters()
+	char * right_labels[] = {"R INT", "R EXT", "R EXT", "R BAL"}; //but defined and set here, because a change to the pm3 array should be changed in them too.
 	int input_source;
 	
 	//setup input_source based on choice and mic pluggedinedness
@@ -549,6 +555,8 @@ audio_configure( int force )
 	} else {
 		input_source = input_choice;
 	}
+	left_label = left_labels[input_source];
+	right_label = right_labels[input_source];
 
 
 	if( !force )
