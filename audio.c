@@ -545,7 +545,7 @@ audio_configure( int force )
 	
 	//setup input_source based on choice and mic pluggedinedness
 	if (input_choice == 4) {
-		input_source = mic_inserted ? 1 : 0;
+		input_source = mic_inserted ? 2 : 0;
 	} else {
 		input_source = input_choice;
 	}
