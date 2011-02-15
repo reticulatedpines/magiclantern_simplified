@@ -76,9 +76,117 @@ extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
 
+// return 0 if you want to block this event
+static int handle_buttons(struct event * event)
+{
+	static int kev = 0;
+	// event 0 is button press maybe?
+	if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
+	{
+		if (event->param == button_menu_on && !gui_menu_shown()) 
+		{
+			give_semaphore( gui_sem );
+			return 0;
+		}
+		if (event->param == button_menu_off && gui_menu_shown()) 
+		{
+			gui_stop_menu();
+			return 0;
+		}
+		if (event->param == button_center_lvafframe && !gui_menu_shown())
+		{
+			center_lv_afframe();
+			return 0;
+		}
+	}
+	if (get_draw_event())
+	{
+		if (event->type != 2)
+		{
+			kev++;
+			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+				kev, 
+				event->type, 
+				event->param, 
+				event->obj ? *(uint32_t*)(event->obj) : 0,
+				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
+				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
+				event->arg);
+		}
+	}
+	
+	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
+	{
+		if (lv_drawn() && event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) // zoom out unpress, shared with halfshutter
+		{
+			gui_hide_menu( 2 );
+			lens_focus_stop();
+			return 0;
+		}
+		if (lv_drawn() && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
+		{
+			gui_hide_menu( 50 );
+			lens_focus_start( get_focus_dir() );
+			return 0;
+		}
+	}
+	
+	if (event->type == 0 && display_sensor_neg == 0) // button presses while display sensor is covered
+	{ // those are shortcut keys
+		if (!lv_drawn() && !gui_menu_shown())
+		{
+			if (event->param == BGMT_PRESS_UP)
+			{
+				adjust_backlight_level(1);
+				return 0;
+			}
+			else if (event->param == BGMT_PRESS_DOWN)
+			{
+				adjust_backlight_level(-1);
+				return 0;
+			}
+		}
+		else // LV only
+		{
+			if (is_follow_focus_active() && !gui_menu_shown())
+			{
+				switch(event->param)
+				{
+					case BGMT_PRESS_LEFT:
+						lens_focus_start(1);
+						return 0;
+					case BGMT_PRESS_RIGHT:
+						lens_focus_start(-1);
+						return 0;
+					case BGMT_PRESS_UP:
+						lens_focus_start(5);
+						return 0;
+					case BGMT_PRESS_DOWN:
+						lens_focus_start(-5);
+						return 0;
+					case BGMT_UNPRESS_LEFT:
+					case BGMT_UNPRESS_RIGHT:
+					case BGMT_UNPRESS_UP:
+					case BGMT_UNPRESS_DOWN:
+						lens_focus_stop();
+						return 0;
+				}
+			}
+		}
+	}
+	else
+		lens_focus_stop(); 
+	
+	if (event->type == 0)
+	{
+		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
+		if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
+	}
+	return 1;
+}
+
 static void gui_main_task_550d()
 {
-	int kev = 0;
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
@@ -92,87 +200,9 @@ static void gui_main_task_550d()
 		index = event->type;
 		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
-				
-		// event 0 is button press maybe?
-		if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
-		{
-			if (event->param == button_menu_on && !gui_menu_shown()) 
-			{
-				give_semaphore( gui_sem );
-				continue;
-			}
-			if (event->param == button_menu_off && gui_menu_shown()) 
-			{
-				gui_stop_menu();
-				continue;
-			}
-			if (event->param == button_center_lvafframe)
-			{
-				center_lv_afframe();
-			}
-		}
-		if (get_draw_event())
-		{
-			if (event->type != 2)
-			{
-				kev++;
-				bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
-					kev, 
-					event->type, 
-					event->param, 
-					event->obj ? *(uint32_t*)(event->obj) : 0,
-					event->obj ? *(uint32_t*)(event->obj + 4) : 0,
-					event->obj ? *(uint32_t*)(event->obj + 8) : 0,
-					event->arg);
-			}
-		}
 		
-		if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
-		{
-			//~ if (event->param == 0x56 && event->arg == 0x9) // wheel L/R
-			//~ {
-				//~ menu_select_current(); // quick select menu items with the wheel
-				//~ continue;
-			//~ }
-			//~ if (event->param == 0x56 && event->arg == 0x1a) // zoom in press
-			//~ {
-				//~ gui_hide_menu( 100 );
-				//~ lens_focus_start( 0 );
-				//~ continue;
-			//~ }
-			if (lv_drawn() && event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) // zoom out unpress, shared with halfshutter
-			{
-				gui_hide_menu( 2 );
-				lens_focus_stop();
-				continue;
-			}
-			if (lv_drawn() && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
-			{
-				gui_hide_menu( 50 );
-				lens_focus_start( get_focus_dir() );
-				continue;
-			}
-		}
+		if (handle_buttons(event) == 0) continue;
 		
-		if (event->type == 0 && display_sensor_neg == 0) // button presses while display sensor is covered
-		{
-			if (event->param == BGMT_PRESS_UP)
-			{
-				adjust_backlight_level(1);
-				continue;
-			}
-			else if (event->param == BGMT_PRESS_DOWN)
-			{
-				adjust_backlight_level(-1);
-				continue;
-			}
-		}
-		
-		if (event->type == 0)
-		{
-			if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
-			if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-		}
 		void(*f)(struct event *) = funcs[index];
 		f(event);
 	}

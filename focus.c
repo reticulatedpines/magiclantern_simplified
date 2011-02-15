@@ -15,8 +15,12 @@
 
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
+
+CONFIG_INT( "focus.follow", follow_focus, 1 );
+
 static int focus_dir;
 int get_focus_dir() { return focus_dir; }
+int is_follow_focus_active() { return follow_focus; }
 
 #define FOCUS_MAX 1700
 static int focus_position;
@@ -330,6 +334,22 @@ TASK_CREATE( "focus_task", focus_task, 0, 0x1d, 0x1000 );
 	//~ return prop_cleanup( token, property );
 //~ }
 
+static void
+follow_focus_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Follow Focus  : %s",
+		follow_focus ? "ON" : "OFF"
+	);
+}
+
 static struct menu_entry focus_menu[] = {
 	{
 		.priv		= &focus_dir,
@@ -354,6 +374,11 @@ static struct menu_entry focus_menu[] = {
 		.priv		= "Run Stack focus",
 		.display	= menu_print,
 		.select		= focus_stack_unlock,
+	},
+	{
+		.priv = &follow_focus,
+		.display	= follow_focus_print,
+		.select		= menu_ternary_toggle,
 	},
 	{
 		.display	= display_lens_hyperfocal,

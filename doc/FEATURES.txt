@@ -10,7 +10,7 @@ Features
 
 * Audio: `disable AGC`_ and digital filters, `audio meters`_, `manual audio controls`_, selectable `input source`_ (internal, internal+external, external stereo, `balanced`_), `audio monitoring`_ via USB.
 * Exposure helpers: `zebras`_, `false color`_, `histogram`_, `waveform`_, `spotmeter`_.
-* Focus tools: `focus peaking`_, `focus graph`_, `trap focus`_, `rack focus`_, `focus stacking`_, `zoom in Face Detect mode`_.
+* Focus tools: `focus peaking`_, `focus graph`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `zoom in Face Detect mode`_.
 * Movie helpers: `QScale`_ (bitrate control), `custom AF algorithm`_, `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
 * `Cropmark`_ images: user-editable overlays to assist framing and composition.
 * Fine control for `ISO`_, `Shutter`_, `Kelvin white balance`_ and other `image settings`_.
@@ -86,12 +86,15 @@ These buttons have special meaning with Magic Lantern:
 .. _LCD backlight level:
 
 * LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
-* LCD sensor + ``UP / DOWN``: adjust LCD backlight level (brightness).
+* LCD sensor + ``UP / DOWN``, outside LiveView: adjust LCD backlight level (brightness).
+* LCD sensor + Arrows: `Follow Focus`_ operation.
 * Flash / DOF preview: see `False color`_.
 * Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_.
 * ``SET`` in LiveView: center AF area (the little rectangle).
+* ``MENU`` \rightarrow ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``ERASE``: display Magic Lantern menu.
-* ``Arrows, SET, DISP, Q``: ML menu navigation (see below).
+* Arrows, ``SET, DISP, Q``: ML menu navigation (see below).
+
 
 Menu options
 ------------
@@ -472,7 +475,6 @@ Functions specific to movie mode.
  Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
  However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
 
-
 Shoot
 ~~~~~
 
@@ -757,11 +759,6 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 **Flash AEcomp: -10..3 EV**
 
   Flash exposure compensation.
-  
-Brack
-~~~~~
-
-Bracketing was replaced by ``HDR Bracket`` feature from the ``Shoot`` menu, and it is no longer available. The source code is still there, you can enable it from Makefile and create a custom build.
 
 Focus
 ~~~~~
@@ -783,6 +780,10 @@ Focus
 
     This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set". 
 
+**Rack speed**
+
+  Rack focus speed, in focus steps.
+
 **Rack Focus**
 
     Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
@@ -795,6 +796,24 @@ Focus
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
   
   To configure focus step and number of photos, use the hidden settings ``focus.step`` and ``focus.count``.
+
+.. _follow focus:
+
+**Follow Focus: ON/OFF**
+
+ Very simple follow focus (like a rack focus controlled manually).
+ 
+ To adjust focus, cover the LCD sensor and press:
+
+
+=========  =========  ====  ===
+  Key      Speed      Direction
+=========  =========  =========
+``LEFT``   slow (1x)  far    ↶
+``RIGHT``  slow (1x)  near   ↷
+``UP``     fast (5x)  far    ↶
+``DOWN``   fast (5x)  near   ↷
+=========  =========  ====  ===
 
 .. _focus and DOF info:
 
