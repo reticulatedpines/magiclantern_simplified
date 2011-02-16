@@ -146,36 +146,33 @@ static int handle_buttons(struct event * event)
 				return 0;
 			}
 		}
-		else // LV only
+	}
+
+	if (is_follow_focus_active() && !gui_menu_shown() && display_sensor_neg != 0)
+	{
+		switch(event->param)
 		{
-			if (is_follow_focus_active() && !gui_menu_shown())
-			{
-				switch(event->param)
-				{
-					case BGMT_PRESS_LEFT:
-						lens_focus_start(1);
-						return 0;
-					case BGMT_PRESS_RIGHT:
-						lens_focus_start(-1);
-						return 0;
-					case BGMT_PRESS_UP:
-						lens_focus_start(5);
-						return 0;
-					case BGMT_PRESS_DOWN:
-						lens_focus_start(-5);
-						return 0;
-					case BGMT_UNPRESS_LEFT:
-					case BGMT_UNPRESS_RIGHT:
-					case BGMT_UNPRESS_UP:
-					case BGMT_UNPRESS_DOWN:
-						lens_focus_stop();
-						return 0;
-				}
-			}
+			case BGMT_PRESS_LEFT:
+				lens_focus_start(1 * get_follow_focus_dir_h());
+				return 0;
+			case BGMT_PRESS_RIGHT:
+				lens_focus_start(-1 * get_follow_focus_dir_h());
+				return 0;
+			case BGMT_PRESS_UP:
+				lens_focus_start(5 * get_follow_focus_dir_v());
+				return 0;
+			case BGMT_PRESS_DOWN:
+				lens_focus_start(-5 * get_follow_focus_dir_v());
+				return 0;
+			case BGMT_UNPRESS_LEFT:
+			case BGMT_UNPRESS_RIGHT:
+			case BGMT_UNPRESS_UP:
+			case BGMT_UNPRESS_DOWN:
+				lens_focus_stop();
+				return 0;
 		}
 	}
-	
-	if (display_sensor_neg != 0)
+	else
 		lens_focus_stop(); 
 	
 	if (event->type == 0)

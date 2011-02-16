@@ -17,10 +17,14 @@ CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 
 CONFIG_INT( "focus.follow", follow_focus, 1 );
+CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
+CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
 
 static int focus_dir;
 int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() { return follow_focus; }
+int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
+int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
 #define FOCUS_MAX 1700
 static int focus_position;
@@ -190,7 +194,7 @@ focus_rack_speed_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Rack speed: %d",
+		"Focus speed: %d",
 		focus_rack_speed
 	);
 }
@@ -335,6 +339,17 @@ TASK_CREATE( "focus_task", focus_task, 0, 0x1d, 0x1000 );
 //~ }
 
 static void
+follow_focus_toggle_dir_h( void * priv )
+{
+	follow_focus_reverse_h = !follow_focus_reverse_h;
+}
+static void
+follow_focus_toggle_dir_v( void * priv )
+{
+	follow_focus_reverse_v = !follow_focus_reverse_v;
+}
+
+static void
 follow_focus_print(
 	void *			priv,
 	int			x,
@@ -348,6 +363,11 @@ follow_focus_print(
 		"Follow Focus  : %s",
 		follow_focus ? "ON" : "OFF"
 	);
+	if (follow_focus)
+	{
+		bmp_printf(FONT_MED, x + 450, y+5, follow_focus_reverse_h ? "- +" : "+ -");
+		bmp_printf(FONT_MED, x + 450 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
+	}
 }
 
 static struct menu_entry focus_menu[] = {
@@ -361,24 +381,26 @@ static struct menu_entry focus_menu[] = {
 		.select		= focus_reset_a,
 	},
 	{
-		.display	= focus_rack_speed_display,
-		.select		= focus_rack_speed_increment,
-		.select_reverse	= focus_rack_speed_decrement
-	},
-	{
 		.priv		= "Rack focus",
 		.display	= menu_print,
 		.select		= focus_toggle,
 	},
 	{
-		.priv		= "Run Stack focus",
-		.display	= menu_print,
-		.select		= focus_stack_unlock,
+		.display	= focus_rack_speed_display,
+		.select		= focus_rack_speed_increment,
+		.select_reverse	= focus_rack_speed_decrement
 	},
 	{
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
-		.select		= menu_ternary_toggle,
+		.select		= menu_binary_toggle,
+		.select_reverse = follow_focus_toggle_dir_v,
+		.select_auto = follow_focus_toggle_dir_h,
+	},
+	{
+		.priv		= "Run Stack focus",
+		.display	= menu_print,
+		.select		= focus_stack_unlock,
 	},
 	{
 		.display	= display_lens_hyperfocal,

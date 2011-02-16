@@ -5,7 +5,8 @@
 \usepackage{babel}
 \usepackage{mathpazo}
 \usepackage{setspace}
-\usepackage{mathabx}
+\usepackage{MnSymbol}
+\usepackage{color}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{ifthen}
@@ -13,12 +14,16 @@
 \floatplacement{figure}{H} % place figures here definitely
 \usepackage{graphicx}
 \usepackage{tikz}
+\usetikzlibrary{patterns}
 \usepackage{longtable}
 \usepackage{booktabs}
 
 \newlength{\DUtablewidth} % internal use in tables
 
 \def\wave{\tikz{ \draw [xscale=0.05,yscale=0.15] (0,0)--(1,1)--(2,0)--(3,1)--(4,0)--(5,1); }}
+
+\def\overexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=red, minimum width=5mm, minimum height=3mm] {}; }}
+\def\underexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=blue, minimum width=5mm, minimum height=3mm] {}; }}
 
 \usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
 \hypersetup{

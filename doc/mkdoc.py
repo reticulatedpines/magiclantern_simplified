@@ -92,6 +92,10 @@ os.system(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide.tex")
 os.system(r"sed -i -e 's/〰/$\\wave$/g' UserGuide.tex")
 os.system(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide.tex")
 os.system(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide.tex")
+os.system(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide.tex")
+os.system(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide.tex")
+
+os.system(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide.tex")
 
 os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
 os.system("pdflatex UserGuide.tex")

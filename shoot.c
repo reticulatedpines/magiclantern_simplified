@@ -38,11 +38,13 @@ CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between t
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
-CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = slit-scan
+CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
 CONFIG_INT( "silent.pic.burst", silent_pic_burst, 0);       // boolean
 CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
+CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
+CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -70,6 +72,7 @@ PROP_INT(PROP_GUI_STATE, gui_state);
 PROP_INT(PROP_REMOTE_SW1, remote_sw1);
 
 int timer_values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100,110, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 600, 650, 700, 750, 800, 850, 900, 1000, 1120, 1240, 1360, 1480, 1600, 1720, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3300, 3600, 4500, 5400, 6300, 7200, 8100, 9000, 9900, 10800, 11700, 12600, 13500, 14400, 15300, 16200, 17100, 18000, 19800, 21600, 23400, 25200, 27000, 28800};
+int timer_values_ms[] = {100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 30000, 50000, 60000, 120000, 180000, 300000, 600000, 900000, 1800000};
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -241,6 +244,18 @@ silent_pic_display( void * priv, int x, int y, int selected )
 	}
 	else if (silent_pic_mode == 3)
 	{
+		int t = timer_values_ms[mod(silent_pic_longexp_time_index, COUNT(timer_values_ms))];
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Silent Pic LongX: %s%ds,%s",
+			t < 1000 ? "0." : "",
+			t < 1000 ? t / 100 : t / 1000,
+			silent_pic_longexp_method ? "MAX" : "AVG"
+		);
+	}
+	else if (silent_pic_mode == 4)
+	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
@@ -252,7 +267,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 static void silent_pic_mode_toggle(void* priv)
 {
-	silent_pic_mode = mod(silent_pic_mode + 1, 4); // off, normal, hi-res, slit
+	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
 }
 
 static void silent_pic_toggle(int sign)
@@ -261,7 +276,18 @@ static void silent_pic_toggle(int sign)
 		silent_pic_burst = !silent_pic_burst;
 	else if (silent_pic_mode == 2) 
 		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));
-	else if (silent_pic_mode == 3)
+	else if (silent_pic_mode == 3) 
+	{
+		if (sign < 0)
+		{
+			silent_pic_longexp_method = !silent_pic_longexp_method;
+		}
+		else
+		{
+			silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + 1, COUNT(timer_values_ms));
+		}
+	}
+	else if (silent_pic_mode == 4)
 		silent_pic_slitscan_skipframes = mod(silent_pic_slitscan_skipframes + sign - 1, 4) + 1;
 }
 static void silent_pic_toggle_forward(void* priv)
@@ -632,6 +658,61 @@ static char* silent_pic_get_name()
 	return imgname;
 }
 
+int ms100_clock = 0;
+static void
+ms100_clock_task( void )
+{
+	while(1)
+	{
+		msleep(100);
+		ms100_clock += 100;
+	}
+}
+TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
+
+
+// not working
+static void
+silent_pic_take_longexp()
+{
+	struct vram_info * vram = get_yuv422_hd_vram();
+	uint8_t* buf = AllocateMemory(vram->pitch * vram->width * 2);
+	if (!buf)
+	{
+		bmp_printf(FONT_MED, 100, 100, "Psst! Not enough memory :(  ");
+		return;
+	}
+	FreeMemory(buf);
+	
+	char* imgname = silent_pic_get_name();
+//~ 
+	//~ FIO_RemoveFile(imgname);
+	//~ FILE* f = FIO_CreateFile(imgname);
+	//~ if (f == INVALID_PTR)
+	//~ {
+		//~ bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
+		//~ return;
+	//~ }
+//~ 
+	//~ ms100_clock = 0;
+	//~ int tmax = timer_values_ms[silent_pic_longexp_time_index];
+	//~ while (ms100_clock < tmax)
+	//~ {
+		//~ bmp_printf(FONT_MED, 100, 100, "Psst! Taking a long-exp silent pic (%d/%d)...   ", ms100_clock, tmax);
+		//~ int ans = FIO_WriteFile(f, vram->vram, vram->height * vram->pitch);
+		//~ msleep(10);
+	//~ }
+	//~ FIO_CloseFile(f);
+	//~ 
+	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a long-exp silent pic   ");
+	
+	if (!silent_pic_burst) // single mode
+	{
+		while (get_halfshutter_pressed()) msleep(100);
+	}
+}
+
+
 static void
 silent_pic_take_simple()
 {
@@ -816,7 +897,9 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 		silent_pic_take_simple();
 	else if (silent_pic_mode == 2) // hi-res
 		silent_pic_take_sweep();
-	else if (silent_pic_mode == 3) // slit-scan
+	else if (silent_pic_mode == 3) // long exposure
+		silent_pic_take_longexp();
+	else if (silent_pic_mode == 4) // slit-scan
 		silent_pic_take_slitscan(interactive);
 
 	set_global_draw(g);
@@ -1054,7 +1137,7 @@ aperture_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Aperture    : %d.%d",
+		"Aperture    : f/%d.%d",
 		lens_info.aperture / 10,
 		lens_info.aperture % 10
 	);
@@ -1696,17 +1779,6 @@ struct menu_entry expo_menus[] = {
 		.select_auto = iso_auto,
 	},
 	{
-		.display	= shutter_display,
-		.select		= shutter_toggle_forward,
-		.select_reverse		= shutter_toggle_reverse,
-		.select_auto = shutter_auto,
-	},
-	{
-		.display	= aperture_display,
-		.select		= aperture_toggle_forward,
-		.select_reverse		= aperture_toggle_reverse,
-	},
-	{
 		.display	= kelvin_display,
 		.select		= kelvin_toggle_forward,
 		.select_reverse		= kelvin_toggle_reverse,
@@ -1716,6 +1788,17 @@ struct menu_entry expo_menus[] = {
 		.display = wbs_gm_display, 
 		.select = wbs_gm_toggle_forward, 
 		.select_reverse = wbs_gm_toggle_reverse,
+	},
+	{
+		.display	= shutter_display,
+		.select		= shutter_toggle_forward,
+		.select_reverse		= shutter_toggle_reverse,
+		.select_auto = shutter_auto,
+	},
+	{
+		.display	= aperture_display,
+		.select		= aperture_toggle_forward,
+		.select_reverse		= aperture_toggle_reverse,
 	},
 	{
 		.display	= ladj_display,
@@ -1994,7 +2077,7 @@ void display_trap_focus_info()
 	int show, fg, bg, x, y;
 	if (lv_drawn())
 	{
-		show = can_lv_trap_focus_be_active();
+		show = trap_focus && can_lv_trap_focus_be_active();
 		int active = show && get_halfshutter_pressed();
 		bg = active ? COLOR_BG : 0;
 		fg = active ? COLOR_RED : COLOR_BG;

@@ -301,7 +301,7 @@ lens_focus(
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 }
 
-lens_focus_ex(unsigned mode, int step, int active)
+void lens_focus_ex(unsigned mode, int step, int active)
 {
 	struct prop_focus focus = {
 		.active		= active,
