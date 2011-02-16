@@ -150,8 +150,8 @@ void draw_meters(void)
 }
 #else
 
-char * left_label;
-char * right_label;
+char left_label[10];
+char right_label[10];
 
 static uint8_t
 db_to_color(
@@ -545,8 +545,6 @@ audio_configure( int force )
 #endif
 	
 	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
-	char * left_labels[] =  {"L INT", "L INT", "L EXT", "L INT"}; //these are used by draw_meters()
-	char * right_labels[] = {"R INT", "R EXT", "R EXT", "R BAL"}; //but defined and set here, because a change to the pm3 array should be changed in them too.
 	int input_source;
 	
 	//setup input_source based on choice and mic pluggedinedness
@@ -555,9 +553,29 @@ audio_configure( int force )
 	} else {
 		input_source = input_choice;
 	}
-	left_label = left_labels[input_source];
-	right_label = right_labels[input_source];
 
+	//those char*'s cause a memory corruption, don't know why
+	//char * left_labels[] =  {"L INT", "L INT", "L EXT", "L INT"}; //these are used by draw_meters()
+	//char * right_labels[] = {"R INT", "R EXT", "R EXT", "R BAL"}; //but defined and set here, because a change to the pm3 array should be changed in them too.
+	switch (input_source)
+	{
+		case 0:
+			snprintf(left_label,  sizeof(left_label),  "L INT");
+			snprintf(right_label, sizeof(right_label), "R INT");
+			break;
+		case 1:
+			snprintf(left_label,  sizeof(left_label),  "L INT");
+			snprintf(right_label, sizeof(right_label), "R EXT");
+			break;
+		case 2:
+			snprintf(left_label,  sizeof(left_label),  "L EXT");
+			snprintf(right_label, sizeof(right_label), "R EXT");
+			break;
+		case 3:
+			snprintf(left_label,  sizeof(left_label),  "L INT");
+			snprintf(right_label, sizeof(right_label), "R BAL");
+			break;
+	}
 
 	if( !force )
 	{
