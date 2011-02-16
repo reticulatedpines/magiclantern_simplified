@@ -140,6 +140,7 @@ update_lens_display(
 )
 {
 	if (get_halfshutter_pressed()) return;
+	if (gui_menu_shown()) return;
 	
 	int bg = bmp_getpixel(1,479);
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);

@@ -573,7 +573,7 @@ Functions for stills shooting.
   Start/stop remote shutter release mode with the LCD sensor. 
   
   * ⨂ **Near**: To take a picture, put your hand near the LCD sensor.
-  * ⨀ **Away**: Picture is taken when you get your hand away from the sensor.
+  * ⨀ **Away**: Picture is taken when you get your hand away from the sensor. You may combine this setting with `Mirror Lockup`_.
   * 〰 **Wave**: Picture is taken after you wave your hand 3 times near the sensor. You can leave it on without interfering (too much) with normal shooting.
 
   This is useful for avoiding camera shake without extra $$$, 
@@ -686,6 +686,19 @@ Functions for stills shooting.
   
   
   Tip: you can cancel the exposure earlier by half-pressing the shutter button.
+
+.. _mirror lockup:
+
+**Mirror Lockup: OFF / ON / Timer+Remote**
+
+  Mirror Lockup. ML will always override this setting => you can't change it from Canon menu any more.
+  
+  * ``OFF``: always off
+  * ``ON``: always on
+  * ``Timer+Remote``: this will auto-enable MLU under one of the following conditions (and disable it otherwise):
+  
+    - self-timer mode is on (either 2 second or 10 second, but not continuous)
+    - `LCD Remote Shot`_ is in ``Away`` mode.
 
 .. _image settings:
 

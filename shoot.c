@@ -50,6 +50,7 @@ CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
 CONFIG_INT( "lcd.release", lcd_release_running, 3);
+CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
 
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
@@ -152,7 +153,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"LCD Remote Shot : %s",
-		v == 1 ? "Near" : v == 2 ? "Away" : v == 3 ? "Wave" : "OFF"
+		v == 1 ? "Near" : v == 2 ? (mlu_mode == 2 ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
 	);
 }
 
@@ -1509,6 +1510,17 @@ int set_htp(int enable)
 	prop_request_change(PROP_CFN, cfn, 0xD);
 }
 
+void set_mlu(int enable)
+{
+	if (enable) cfn[2] |= 0x1;
+	else cfn[2] &= ~0x1;
+	prop_request_change(PROP_CFN, cfn, 0xD);
+}
+int get_mlu()
+{
+	return cfn[2] & 0x1;
+}
+
 PROP_INT(PROP_ALO, alo);
 
 void set_alo(int value)
@@ -1709,6 +1721,18 @@ bulb_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void
+mlu_display( void * priv, int x, int y, int selected )
+{
+	int d = timer_values[bulb_duration_index];
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Mirror Lockup %s",
+		mlu_mode == 1 ? "  : ON" : mlu_mode == 2 ? ":Timer+Remote" : "  : OFF"
+	);
+}
+
 
 struct menu_entry shoot_menus[] = {
 	{
@@ -1759,6 +1783,11 @@ struct menu_entry shoot_menus[] = {
 		.display = bulb_display, 
 		.select = bulb_toggle_fwd, 
 		.select_reverse = bulb_toggle_rev,
+	},
+	{
+		.priv = &mlu_mode,
+		.display = mlu_display, 
+		.select = menu_ternary_toggle,
 	}
 };
 
@@ -2062,6 +2091,8 @@ void display_shooting_info() // called from debug task
 		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
 		);
 
+	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
+
 	display_lcd_remote_info();
 	display_trap_focus_info();
 }
@@ -2128,7 +2159,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 		if (gui_menu_shown()) goto end;
 		
 		if (lcd_release_running == 1 && off) goto end;
-		if (lcd_release_running == 2 && on) goto end;
+		if (lcd_release_running == 2 && on && mlu_mode != 2) goto end;
 		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 75; }
 		if (lcd_release_running == 3 && wave_count < 5) goto end;
 
@@ -2240,6 +2271,24 @@ shoot_task( void )
 			movie_end();
 			movie_end_flag = 0;
 		}
+		
+		if (!lv_drawn()) // MLU
+		{
+			if (mlu_mode == 0 && get_mlu()) set_mlu(0);
+			if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
+			if (mlu_mode == 2)
+			{
+				if ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (hdr_steps < 2))
+				{
+					if (!get_mlu()) set_mlu(1);
+				}
+				else
+				{
+					if (get_mlu()) set_mlu(0);
+				}
+			}
+		}
+		
 		if (lv_drawn() && face_zoom_request && lv_dispsize == 1 && !recording)
 		{
 			if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
