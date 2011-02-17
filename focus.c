@@ -23,6 +23,7 @@ CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down but
 static int focus_dir;
 int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() { return follow_focus; }
+int get_follow_focus_stop_on_focus() { return follow_focus == 2; }
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
@@ -133,6 +134,16 @@ static int focus_task_delta;
 static int focus_rack_delta;
 CONFIG_INT( "focus.rack-speed", focus_rack_speed, 4 );
 
+void follow_focus_reverse_dir()
+{
+	focus_task_dir = -focus_task_dir;
+}
+
+void plot_focus_status()
+{
+	if (gui_menu_shown()) return;
+	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s        ", focus_task_dir > 0 ? "FAR " : focus_task_dir < 0 ? "NEAR" : "    ");
+}
 
 static void
 focus_dir_display( 
@@ -145,7 +156,7 @@ focus_dir_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus dir:  %s",
+		"Focus dir   :  %s",
 		focus_dir ? "FAR " : "NEAR"
 	);
 }
@@ -161,7 +172,7 @@ focus_show_a(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus A:    %+5d",
+		"Focus A     : %+5d",
 		focus_task_delta
 	);
 }
@@ -194,7 +205,7 @@ focus_rack_speed_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus speed: %d",
+		"Focus speed : %d",
 		focus_rack_speed
 	);
 }
@@ -245,7 +256,6 @@ lens_focus_stop( void )
 	focus_task_dir = 0;
 }
 
-
 static void
 rack_focus(
 	int		speed,
@@ -287,6 +297,7 @@ focus_task( void )
 {
 	while(1)
 	{
+		msleep(10);
 		take_semaphore( focus_task_sem, 0 );
 
 		if( focus_rack_delta )
@@ -301,16 +312,9 @@ focus_task( void )
 			continue;
 		}
 
-		int step = focus_task_dir * focus_rack_speed;
-
-		DebugMsg( DM_MAGIC, 3,
-			"%s: focus dir %d",
-			__func__,
-			step
-		);
-
 		while( focus_task_dir )
 		{
+			int step = focus_task_dir * focus_rack_speed;
 			lens_focus( 1, step );
 			focus_task_delta += step;
 			msleep( 50 );
@@ -360,13 +364,13 @@ follow_focus_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Follow Focus  : %s",
-		follow_focus ? "ON" : "OFF"
+		"Follow Focus: %s",
+		follow_focus == 1 ? "Manual" : follow_focus == 2 ? "AutoLock" : "OFF"
 	);
 	if (follow_focus)
 	{
-		bmp_printf(FONT_MED, x + 450, y+5, follow_focus_reverse_h ? "- +" : "+ -");
-		bmp_printf(FONT_MED, x + 450 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
+		bmp_printf(FONT_MED, x + 480, y+5, follow_focus_reverse_h ? "- +" : "+ -");
+		bmp_printf(FONT_MED, x + 480 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
 }
 
@@ -393,7 +397,7 @@ static struct menu_entry focus_menu[] = {
 	{
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
-		.select		= menu_binary_toggle,
+		.select		= menu_ternary_toggle,
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
 	},

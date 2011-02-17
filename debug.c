@@ -221,7 +221,7 @@ draw_prop_reset( void * priv )
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0xc072 ); // start from here
 CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );     // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
@@ -399,7 +399,6 @@ int get_lv_focus_confirmation()
 	return ans; 
 }
 
-
 volatile int focus_done = 0;
 volatile uint32_t focus_done_raw = 0;
 PROP_HANDLER(PROP_LV_FOCUS_DONE)
@@ -555,6 +554,39 @@ static void plot_focus_mag(int mag)
 	focus_value_delta = FH * 2 - focus_value;
 	focus_value = FH * 2;
 	lv_focus_confirmation = (focus_value + focus_value_delta*3 > 110);
+	
+	static int rev_countdown = 0;
+	static int stop_countdown = 0;
+	if (is_follow_focus_active())
+	{
+		plot_focus_status();
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
+		if (get_follow_focus_stop_on_focus() && !stop_countdown)
+		{
+			if (!rev_countdown)
+			{
+				if (focus_value - focus_value_delta*5 > 110)
+				{
+					follow_focus_reverse_dir();
+					rev_countdown = 5;
+					bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "PEAK");
+				}
+			}
+			else
+			{
+				rev_countdown--;
+				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "PEAK");
+				if (focus_value + focus_value_delta*5 > 110) rev_countdown = 0;
+				if (!rev_countdown)
+				{
+					bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "LOCK");
+					lens_focus_stop();
+					stop_countdown = 10;
+				}
+			}
+		}
+		if (stop_countdown) stop_countdown--;
+	}
 	#undef FH
 	#undef NMAGS
 }

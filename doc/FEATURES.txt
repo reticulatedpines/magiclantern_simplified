@@ -816,11 +816,11 @@ Focus
 
 .. _follow focus:
 
-**Follow Focus: ON/OFF**
+**Follow Focus: OFF / Simple / StopPeak**
 
-  Very simple follow focus (like a rack focus controlled manually). 
+  Very simple follow focus (like a rack focus controlled manually).
   
-  When this setting is ``ON``, it will change the default behavior of arrow keys. The default key assignment works well for Canon lenses and works according to the following table:
+  When this setting is enabled, it will change the default behavior of arrow keys. The default key assignment works well for Canon lenses and works according to the following table:
 
 
   =========  =====  ====  ====  ======  ===
@@ -838,6 +838,11 @@ Focus
   * Press ``DISP`` to reverse the direction for ``UP/DOWN`` keys (fast speed)
 
   To use the default behavior of the arrow keys (i.e. move the AF frame), cover the LCD sensor.
+
+  Modes:
+  
+  * ``Manual``: focus ring moves as long as you hold the key pressed.
+  * ``AutoLock``: follow focus will stop automatically when a focus peak is detected in current AF frame (in a way similar to `Trap Focus`_). Look at the `focus graph`_ to see when it's about to lock the focus. To focus past the peak point, de-press the button and press it again.
   
   Tip: you can adjust `focus speed`_ (which is multiplied by the *x* from the table above).
 
