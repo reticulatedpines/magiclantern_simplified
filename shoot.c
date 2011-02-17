@@ -1147,15 +1147,22 @@ aperture_display( void * priv, int x, int y, int selected )
 static void
 aperture_toggle( int sign)
 {
-	int i = raw2index_aperture(lens_info.raw_aperture);
+	int amin = codes_aperture[1];
+	int amax = codes_aperture[COUNT(codes_aperture)-1];
+	
+	int a = lens_info.raw_aperture;
+	int a0 = a;
+
 	int k;
-	for (k = 0; k < 5; k++)
+	for (k = 0; k < 20; k++)
 	{
-		i = mod(i + sign - 1, COUNT(codes_aperture)-1) + 1;
-		lens_set_rawaperture(codes_aperture[i]);
-		msleep(250);
-		int j = raw2index_aperture(lens_info.raw_aperture);
-		if (i == j) break;
+		a += sign;
+		if (a > amax) a = amin;
+		if (a < amin) a = amax;
+
+		lens_set_rawaperture(a);
+		msleep(100);
+		if (lens_info.raw_aperture != a0) break;
 	}
 	menu_show_only_selected();
 }
