@@ -189,7 +189,7 @@ draw_meter(
     char *	label
 )
 {
-	const uint32_t width = 600; // bmp_width();
+	const uint32_t width = 550; // bmp_width();
 	const uint32_t pitch = BMPPITCH;
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
