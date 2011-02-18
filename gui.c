@@ -93,7 +93,7 @@ static int handle_buttons(struct event * event)
 			gui_stop_menu();
 			return 0;
 		}
-		if (event->param == button_center_lvafframe && !gui_menu_shown())
+		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
 		{
 			center_lv_afframe();
 			return 0;
