@@ -246,7 +246,7 @@ draw_ticks(
 	int		tick_height
 )
 {
-	const uint32_t width = 600 + 8; // bmp_width();
+	const uint32_t width = 550 + 8; // bmp_width();
 	const uint32_t pitch = BMPPITCH;
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
@@ -264,7 +264,7 @@ draw_ticks(
 		int db;
 		for( db=-40; db<= 0 ; db+=5 )
 		{
-			const uint32_t x_db = width + db * 15;
+			const uint32_t x_db = width + db * 14;
 			row[x_db/4] = white_word;
 		}
 	}
