@@ -88,7 +88,6 @@ CONFIG_INT( "zebra.density", zebra_density, 0);
 CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-CONFIG_INT( "time.ticks.4gb", ticks_4gb, 540); // how many ticks of PROP_REC_TIME are sent in a 4 GB movie
 
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
@@ -2195,10 +2194,8 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
-int movie_elapsed_time = 0;
-int movie_elapsed_ticks = 0;
-int rec_time_card = 0;
-int rec_time_4gb = 0;
+int movie_elapsed_time = 0;       // seconds since starting the current movie
+int movie_bytes_written_32k = 0;   // how many bytes were written (computed from free space change)
 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
@@ -2206,21 +2203,44 @@ PROP_HANDLER(PROP_MVR_REC_START)
 	recording = buf[0];
 	if (!recording)
 	{
-		movie_elapsed_ticks = 0;
 		movie_elapsed_time = 0;
-		movie_elapsed_ticks = 0;
-		rec_time_4gb = ticks_4gb; // this may need calibration
+		movie_bytes_written_32k;
 	}
 	return prop_cleanup( token, property );
 }
 
-PROP_HANDLER(PROP_REC_TIME)
+int measured_bitrate = 0; // mbps
+int free_space_32k = 0;
+
+int get_measured_bitrate() { return measured_bitrate; }
+
+PROP_HANDLER(PROP_FREE_SPACE) // fires every second when recording
 {
-	if (recording)
+	static int free_space_delta = 0;
+	free_space_delta = free_space_32k - buf[0];
+	free_space_32k = buf[0]; // unit: 32kbytes
+	if(recording)
 	{
-		rec_time_card = buf[0]; // countdown, in seconds, showing time remaining until filling the card, assumming a fixed bitrate
-		movie_elapsed_ticks++;  // if different bitrate is used, this is update more (or less) often
-		rec_time_4gb--;         // countdown, shows time remaining until filling 4GB
+		movie_elapsed_time++;
+		measured_bitrate = ABS(free_space_delta) * 32 * 8 / 1024;
+		movie_bytes_written_32k += ABS(free_space_delta);
+		if (recording == 2)
+		{
+			time_indicator_show();
+			
+			if (get_bitrate_mode() == 1) // CBR emulated
+			{
+				int e = measured_bitrate - get_prescribed_bitrate();
+				int abse = ABS(e);
+				
+				// P controller with some nonlinear gain
+				int k = abse < 4 ? 0 :
+						abse < 10 ? 1 :
+						abse < 20 ? 2 : 5;
+				if (e > 0) k *= 2;
+				vbr_bump(k * SGN(e));
+			}
+		}
 	}
 	return prop_cleanup(token, property);
 }
@@ -2229,18 +2249,20 @@ void time_indicator_show()
 {
 	if (!recording) return;
 	
-	// time until filling the card, adjusted for actual bitrate
-	int time_cardfill = rec_time_card * movie_elapsed_time / movie_elapsed_ticks;
+	// time until filling the card
+	// in "movie_elapsed_time" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
+	int time_cardfill = movie_elapsed_time * free_space_32k / movie_bytes_written_32k ;
 	
-	// time until 4 GB or filling the card, whichever comes sooner, adjusted for actual bitrate
-	int time_4gb = MIN(rec_time_4gb, rec_time_card) * movie_elapsed_time / movie_elapsed_ticks;
-	
-	// what to display
-	int dispvalue = time_indicator == 1 ? movie_elapsed_time :
-					time_indicator == 2 ? time_cardfill :
-					time_indicator == 3 ? time_4gb : 0;
+	// time until 4 GB
+	int time_4gb = movie_elapsed_time * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k;
 
-	//bmp_printf(FONT_MED, 0, 180, "%d %d %d %d ", movie_elapsed_time, movie_elapsed_ticks, rec_time_card, rec_time_4gb);
+	//~ bmp_printf(FONT_MED, 0, 300, "%d %d %d %d ", movie_elapsed_time, movie_elapsed_ticks, rec_time_card, rec_time_4gb);
+
+	// what to display
+	int dispvalue = time_indicator == 1 ? movie_elapsed_time:
+					time_indicator == 2 ? time_cardfill :
+					time_indicator == 3 ? MIN(time_4gb, time_cardfill)
+					: 0;
 	
 	if (time_indicator)
 	{
@@ -2252,6 +2274,26 @@ void time_indicator_show()
 			dispvalue / 60,
 			dispvalue % 60
 		);
+		bmp_printf(FONT_MED, 
+			timecode_x + 5 * fontspec_font(timecode_font)->width,
+			timecode_y + 18,
+			"%4d",
+			measured_bitrate
+		);
+		if (get_bitrate_mode())
+			bmp_printf(FONT_SMALL, 
+				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
+				timecode_y + 25,
+				"%s%d ",
+				get_qscale() < 0 ? "-" : "+",
+				ABS(get_qscale())
+			);
+		else
+			bmp_printf(FONT_SMALL, 
+				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
+				timecode_y + 25,
+				"   "
+			);
 	}
 }
 
@@ -2510,16 +2552,17 @@ void test_fps(int* x)
 	return;
 }
 
+/*
 static void
 movie_clock_task( void )
 {
 	while(1)
 	{
-		msleep(1000);
+		msleep(100);
 		if (shooting_type == 4 && recording) 
 		{
 			movie_elapsed_time++;
-			time_indicator_show();
+			if (movie_elapsed_time % 10 == 0) time_indicator_show();
 		}
 		
 		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
@@ -2527,4 +2570,4 @@ movie_clock_task( void )
 	}
 }
 
-TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x19, 0x1000 );
+TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x17, 0x1000 ); */

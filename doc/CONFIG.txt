@@ -31,12 +31,6 @@ These settings can not be changed from the ML menu, so they are documented here:
     # Stack focus step size and frame count
     focus.step = 100
     focus.count = 5
-
-    # Limits allowed for qscale control. 
-    # Since negative values are not allowed in config file, 
-    # put the absolute values here. Qscale can have only negative values.
-    h264.qscale.max.neg = 1
-    h264.qscale.min.neg = 16
     
     # Threshold for audio trigger
     audio.release.level = 700

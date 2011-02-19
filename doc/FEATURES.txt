@@ -11,7 +11,7 @@ Features
 * Audio: `disable AGC`_ and digital filters, `audio meters`_, `manual audio controls`_, selectable `input source`_ (internal, internal+external, external stereo, `balanced`_), `audio monitoring`_ via USB.
 * Exposure helpers: `zebras`_, `false color`_, `histogram`_, `waveform`_, `spotmeter`_.
 * Focus tools: `focus peaking`_, `focus graph`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `zoom in Face Detect mode`_.
-* Movie helpers: `QScale`_ (bitrate control), `custom AF algorithm`_, `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
+* Movie helpers: `Bitrate control`_ (QScale or CBR), `custom AF algorithm`_, `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
 * `Cropmark`_ images: user-editable overlays to assist framing and composition.
 * Fine control for `ISO`_, `Shutter`_, `Kelvin white balance`_ and other `image settings`_.
 * Remote release with `LCD face sensor`_ and `audio trigger`_, without extra hardware.
@@ -377,29 +377,45 @@ Movie
 
 Functions specific to movie mode.
 
-.. _QScale:
+.. _Bitrate control:
 
-**QScale**
+**Bit Rate**
 
-  Controls the H.264 QScale parameter, which affects video bitrate. 
-  Lower values mean higher bitrates. OFF disables QScale control.
+  Controls H.264 bitrate used for video recording.
   
-  When QScale is enabled, camera records in VBR mode (variable bitrate). 
-  When QScale is OFF, the bitrate is (more or less) constant (CBR mode).
+  Modes:
+  
+  * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps)
+  * ``CBRe``: constant bitrate, emulated. Range: 1...120mbps.
+  * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16..-1; +16. Lower numbers mean higher bitrates.
+    
+  Keys:
+  
+  * Change mode with ``SET``
+  * Change numeric value with ``Q`` and ``DISP``
+  
+  Notes:
+  
+  * There is a bitrate / QScale display near the red recording dot, updated every second.
+  * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain Class10 cards.
+  * ``CBRe`` mode (emulated CBR) is implemented as variable QScale, as follows:
+  
+    - QScale is adjusted in a simple feedback loop (P controller with nonlinear gain) and sampled every second.
+    - Bit rate will not be equal to the prescribed value, but it will oscillate around it. In certain cases (e.g. strong defocus->focus transitions) it will overshoot badly and stop recording. True CBR mode or higher sampling rate would fix this. Patches welcome :)
+    - The feedback loop adjusts only local (instantaneous) bitrate, which means the video file may have different average bitrate than the one prescribed in the menu. This is normal. To adjust the bitrate over the entire video, a controller with integration component (e.g. PI) is required.
+    
+  * In QScale mode, bitrate varies a lot. Try not to use very high bitrates in this mode, because the chances of video stopping recording are very high.
+  * QScale can be changed during recording, but only by one unit (1) at a time. ML will take care of this.
+  * Since ``CBRe`` is implemented as variable QScale, you can freely change between ``CBRe`` and ``QScale`` during recording.
+  * It is not possible to change from non-QScale mode to QScale modes during recording (which means between ``FW default`` and the other settings). If you try to, the change will be applied only for the next video file.
   
   See [[Bit rate]] page for details.
-  
-  Default range is [-1 ... -16]. This can be changed from config file, 
-  but qscale is restricted to negative values only, 
-  due to limitations in config file parser.
-  
-  QScale setting is saved, overrides Canon setting, and it does not take effect if you change it during recording. It will take effect at next movie.
 
 .. _auto-restart:
 
 **Movie Restart: ON/OFF**
 
-  While this setting is on, movie recording will restart automatically, unless stopped by you.
+  While this setting is on, movie recording will restart automatically, unless stopped by you. There will be a few seconds skipped during restarting.
 
 .. _movie logging:
 

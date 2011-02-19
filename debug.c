@@ -17,93 +17,6 @@ extern void bootdisk_disable();
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 
-#if 0
-void
-display_full_hd(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	unsigned * gui_struct = (void*) 0x3548;
-	unsigned * ps_struct = (void*) 0x11bb8;
-	// disp=0x08 == 3 == 1080p, 5 == vga
-	// vid=0x0c == 0
-	// hdmi=0x10 == 3, 5 == vga
-	// c4=0xc4 == 0, 1 == vga
-
-	unsigned (*GetDisplayType)(void) = (void*) 0xFF863590;
-
-	uint32_t * lv_struct = (void*) 0x37fc;
-
-	bmp_printf(
-		FONT_MED,
-		x, y,
-		//23456789012
-#if 0
-		"disp=%x vid=%x hdmi=%x c4=%x ps=%x type=%x/%x",
-		gui_struct[0x08 / 4],
-		gui_struct[0x0C / 4],
-		gui_struct[0x10 / 4],
-		gui_struct[0xC4 / 4],
-		ps_struct[0x230 / 4],
-		hdmi_config.disp_type,
-		hdmi_config.off_0x0c
-#else
-		"mvr %d/%x",
-		mvr_struct->fps,
-		mvr_struct->bit_rate
-#endif
-	);
-
-	bmp_hexdump( FONT_SMALL, 300, 400,
-		(void*) 0x7b40,
-		64
-	);
-}
-
-
-void enable_full_hd( void * priv )
-{
-#if 0
-	if( mvr_struct->fps == 0 )
-		mvr_struct->fps = 30;
-	uint8_t bitrate = 60;
-	//call( "mvrSetBitRate", &bitrate );
-	void (*mvrSetBitRate)( uint8_t * bitrate ) = (void*) 0xff84f990;
-	mvrSetBitRate( &bitrate );
-#endif
-	void (*mvrSetQScale)( int8_t * ) = (void*) 0xff9715e0;
-	int8_t scale = -30;
-	mvrSetQScale( &scale );
-	return;
-
-	DebugMsg( DM_MAGIC, 3, "Attempting to set HDMI to full HD" );
-
-#if 1
-	thunk ChangeHDMIOutputSizeToFULLHD = (thunk) 0xFFA96260;
-	//void (*SetDisplayType)(int) = (void*) 0xFF8620DC;
-	void (*SetDisplayType)(int) = (void*) 0xFFB4835C;
-
-	//SetDisplayType( 0 );
-	unsigned * gui_struct = (void*) 0x3548;
-	unsigned * ps_struct = (void*) 0x11bb8;
-	ChangeHDMIOutputSizeToFULLHD();
-	//gui_struct[ 0xC4/4 ] = 0; // not resized?
-	//ps_struct[ 0x230/4 ] = 6; // who knows
-
-	DebugMsg( DM_MAGIC, 3, "Full HD done?" );
-#else
-	// This will select the image on the full screen.
-	// but not change the output resolution
-	void (*lv_output_device)( const char ** arg ) = (void*) 0xFF833218;
-	const char * full_hd = "1080full";
-	lv_output_device( &full_hd );
-#endif
-}
-#endif
-
 
 void take_screenshot( void * priv )
 {
@@ -170,37 +83,6 @@ mvr_time_const_display(
 	);
 }
 
-#if 0
-static void
-mvr_time_const_select( void * priv )
-{
-/*
-	void (*mvr_set_time_const)(int *) = (void*) 0xff9716cc;
-	void (*mvr_setd_fullhd)(int *) = (void*) 0xff9716cc;
-	//int args[] = { 640, 480 };
-	//DebugMsg( DM_MAGIC, 3, "calling mvr_setd_fullhd %d %d", args[0], args[1] );
-	//mvr_setd_fullhd( args );
-
-	uint32_t buf[] = { 8 };
-	//prop_request_change( 0x207000c, buf, sizeof(buf) );
-	void (*lv_magnify)( int * ) = (void*) 0xff83359c;
-	lv_magnify( buf );
-	void (*mvrSetBitRate)( int * ) = (void*) 0xff84f990;
-	//int rate = 24;
-	//mvrSetBitRate( &rate );
-	mvr_struct->is_vga	= 0;
-	mvr_struct->width	= 1920;
-	mvr_struct->height	= 1080;
-	mvr_struct->fps		= 24;
-*/
-
-	uint8_t * mvr_hdr = *(void**)( 0x1ed4 + 4 );
-	*(unsigned *)( mvr_hdr + 0x60 ) = 2400;
-	*(unsigned *)( mvr_hdr + 0x64 ) = 100;
-	*(unsigned *)( mvr_hdr + 0x68 ) = 24;
-}
-#endif
-
 
 CONFIG_INT( "debug.draw-prop",		draw_prop, 0 );
 CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
@@ -221,7 +103,7 @@ draw_prop_reset( void * priv )
 
 CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0xc072 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0xc052 ); // start from here
 CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );     // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
@@ -254,86 +136,125 @@ save_config( void * priv )
 	config_save_file( global_config, "B:/magic.cfg" );
 }
 
+int shooting_mode;
+PROP_INT(PROP_MVR_REC_START, recording);
+
 //----------------begin qscale-----------------
-CONFIG_INT( "h264.qscale.neg", qscale_neg, 0 );
-CONFIG_INT( "h264.qscale.max.neg", qscale_max_neg, 1 );
-CONFIG_INT( "h264.qscale.min.neg", qscale_min_neg, 16 );
-CONFIG_INT( "h264.qscale.force", qscale_force, 1);
+CONFIG_INT( "h264.qscale.index", qscale_index, 6 );
+CONFIG_INT( "h264.bitrate.mode", bitrate_mode, 0 ); // off, CBR, VBR, MAX
+CONFIG_INT( "h264.bitrate.value.index", bitrate_value_index, 14 );
 
-int16_t qscale = 0;
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define QSCALE_MAX MAX(-(int)qscale_min_neg, -(int)qscale_max_neg) // idiot-proof :)
-#define QSCALE_MIN MIN(-(int)qscale_min_neg, -(int)qscale_max_neg)
-#define QSCALE_OFF (QSCALE_MAX + 1)
+int qscale_values[] = {24,16,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
+int bitrate_values[] = {1,2,3,4,5,6,7,8,10,12,15,18,20,25,30,35,40,45,50,60,70,80,90,100,110,120};
 
-void mvrFixQScale(uint16_t *);
-void mvrSetDefQScale(int16_t *);
+#define BITRATE_VALUE bitrate_values[mod(bitrate_value_index, COUNT(bitrate_values))]
 
+int get_prescribed_bitrate() { return BITRATE_VALUE; }
+int get_bitrate_mode() { return bitrate_mode; }
+
+int qscale = 0; // prescribed value
+
+// don't call those outside vbr_fix / vbr_set
+void mvrFixQScale(uint16_t *);    // only safe to call when not recording
+void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at a time
+// otherwise ther appears a nice error message which shows the shutter count [quote AlinS] :)
+
+void vbr_fix(uint16_t param)
+{
+	if (!lv_drawn()) return;
+	if (shooting_mode != SHOOTMODE_MOVIE) return; 
+	if (recording) return; // err70 if you do this while recording
+
+	mvrFixQScale(&param);
+}
 void vbr_set()
 {
-	qscale = COERCE(qscale, QSCALE_MIN, QSCALE_OFF);
-	//~ if (qscale == QSCALE_OFF) bmp_printf(FONT_SMALL, 10,50, "QScale OFF");
-	//~ else bmp_printf(FONT_SMALL, 10,50, "QScale %d ", qscale);
-	uint16_t param = (qscale == QSCALE_OFF) ? 0 : 1;                  // select fixed rate or VBR
-	mvrFixQScale(&param);
-	if (qscale != QSCALE_OFF) mvrSetDefQScale(&qscale);
+	static int k = 0;
+	k++;
+	//~ bmp_printf(FONT_SMALL, 10,70, "vbr_set %3d %d %d", k, bitrate_mode, qscale);
+
+	if (!lv_drawn()) return;
+	if (shooting_mode != SHOOTMODE_MOVIE) return; 
+	if (recording == 1) return; 
+	
+	if (bitrate_mode == 0)
+	{
+		//~ bmp_printf(FONT_SMALL, 10,50, "QScale OFF");
+		vbr_fix(0);
+	}
+	else
+	{
+		static int16_t qscale_slow = 0;
+		//~ bmp_printf(FONT_SMALL, 10,50, "QScale %d %d", qscale, qscale_slow);
+		qscale_slow += SGN(qscale - qscale_slow);
+		qscale_slow = COERCE(qscale_slow, -16, 16);
+		vbr_fix(1);
+		mvrSetDefQScale(&qscale_slow);
+	}
 }
 
-void cbr_set() // test
-{
-	gui_stop_menu();
-	msleep(100);
-	bmp_printf(FONT_MED, 10, 150, "cbr: %d", *(int*)(708 + *(int*)7792));
-	msleep(1000);
-	uint16_t param = 0;
-	uint8_t bitrate = 2;
-	mvrFixQScale(&param);
-	mvrSetBitRate(&bitrate);
-}
+int get_qscale() { return qscale; }
 
 void vbr_toggle( void * priv )
 {
-	qscale = MIN(qscale, QSCALE_OFF);
-	qscale -= 1;
-	if (qscale < QSCALE_MIN)
-		qscale = QSCALE_OFF;
-	qscale_neg = -qscale;
-	//~ vbr_set(); // error 70 if you switch from CBR to VBR while recording
+	qscale_index = mod(qscale_index - 1, COUNT(qscale_values));
+	qscale = qscale_values[qscale_index];
 }
 
 void vbr_toggle_reverse( void * priv )
 {
-	qscale = MIN(qscale, QSCALE_OFF);
-	qscale += 1;
-	if (qscale > QSCALE_OFF)
-		qscale = QSCALE_MIN;
-	//~ vbr_set();
+	qscale_index = mod(qscale_index + 1, COUNT(qscale_values));
+	qscale = qscale_values[qscale_index];
 }
 
+void vbr_bump(int delta) // do not change the saved setting (=> do not change qscale_index)
+{
+	qscale = COERCE(qscale + delta, -16, 16);
+}
+//-------------------------end qscale--------------
+
+
 static void
-vbr_print(
+bitrate_print(
 	void *			priv,
 	int			x,
 	int			y,
 	int			selected
 )
 {
-	if (qscale == QSCALE_OFF)
-		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
-			x, y,
-			"QScale        : OFF (CBR)"
-		);
-	else
-		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
-			x, y,
-			"QScale        : %d (VBR)",
-			qscale
-		);
+	if (bitrate_mode == 0)
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : FW default");
+	else if (bitrate_mode == 1)
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBRe,%dm/s", BITRATE_VALUE);
+	else if (bitrate_mode == 2)
+	{
+		qscale = qscale_values[qscale_index];
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : QScale %d", qscale);
+	}
 }
-//-------------------------end qscale--------------
+
+static void 
+bitrate_toggle_forward(void* priv)
+{
+	if (bitrate_mode == 0)
+		return;
+	else if (bitrate_mode == 1)
+		bitrate_value_index = mod(bitrate_value_index + 1, COUNT(bitrate_values));
+	else if (bitrate_mode == 2)
+		vbr_toggle(0);
+}
+
+static void 
+bitrate_toggle_reverse(void* priv)
+{
+	if (bitrate_mode == 0)
+		return;
+	else if (bitrate_mode == 1)
+		bitrate_value_index = mod(bitrate_value_index - 1, COUNT(bitrate_values));
+	else if (bitrate_mode == 2)
+		vbr_toggle_reverse(0);
+}
+
 
 CONFIG_INT("movie.af", movie_af, 0);
 CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
@@ -341,8 +262,6 @@ CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
 CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 int movie_af_stepsize = 10;
-
-PROP_INT(PROP_MVR_REC_START, recording);
 
 static void
 movie_restart_print(
@@ -373,7 +292,6 @@ void adjust_backlight_level(int delta)
 
 PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
-int shooting_mode;
 
 int lv_focus_confirmation = 0;
 static int hsp_countdown = 0;
@@ -945,7 +863,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		do_movie_mode_remap();
 		
-		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && !recording && k % 10 == 0)
+		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && k % 10 == 0) 
 		{
 			vbr_set();
 		}
@@ -1061,10 +979,16 @@ struct menu_entry debug_menus[] = {
 
 struct menu_entry mov_menus[] = {
 	{
+		.priv = &bitrate_mode,
+		.display	= bitrate_print,
+		.select		= menu_ternary_toggle,
+		.select_auto	= bitrate_toggle_forward,
+		.select_reverse	= bitrate_toggle_reverse,
+	},
+	/*{
 		.display	= vbr_print,
 		.select		= vbr_toggle,
-		.select_reverse	= vbr_toggle_reverse,
-	},
+	},*/
 	{
 		.priv = &movie_restart,
 		.display	= movie_restart_print,
@@ -1296,7 +1220,9 @@ dump_task( void )
 		global_config ? "YES" : "NO"
 	);*/
 
-	qscale = -((int)qscale_neg);
+	// set qscale from the vector of available values
+	qscale_index = mod(qscale_index, COUNT(qscale_values));
+	qscale = qscale_values[qscale_index];
 
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect

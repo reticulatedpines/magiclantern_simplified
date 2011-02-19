@@ -234,6 +234,8 @@
 #define PROP_REMOTE_SW1 0x80020015
 #define PROP_REMOTE_SW2 0x80020016
 
+#define PROP_FREE_SPACE 0x0201000a // unit is 32kbytes maybe, or filesystem-dependent
+
 #define PROP_BACKLIGHT_LEVEL	0x02040000
 
 /** Properties */
