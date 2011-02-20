@@ -1,6 +1,8 @@
 Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
 ================================================
 
+.. _magic.cfg:
+
 Configuration file
 ------------------
 
@@ -40,3 +42,12 @@ These settings can not be changed from the ML menu, so they are documented here:
     
     # Zebra density: 0, 1 or 2
     zebra.density = 2
+
+.. _iso.round.only:
+
+::
+
+    # Only select "round" ISO values in menu:
+    # 100,200,400,800,1600,3200,6400,12800,25600,
+    # 160,320,640,1250,2500.
+    iso.round.only = 1

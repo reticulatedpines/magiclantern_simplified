@@ -739,6 +739,9 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1). To get ISO lower than 200, turn HTP off. 
   In video mode, ISO only goes up to 6400. These is also true without ML.
   
+  To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, enable `iso.round.only`_ from `magic.cfg`_.
+
+  
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the ISO value automatically. 
    
   * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.

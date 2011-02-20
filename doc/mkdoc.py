@@ -73,7 +73,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
             txt += r""".. raw:: latex
     
     \vspace{-10mm}\subsubsection*{}\label{%s}
-""" % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-")
+""" % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-").replace(".", "-")
     f = open(file,"w")
     f.write(txt)
     f.close()

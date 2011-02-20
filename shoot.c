@@ -919,6 +919,31 @@ iso_display( void * priv, int x, int y, int selected )
 	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
 }
 
+int is_round_iso(int iso)
+{
+	switch(iso)
+	{
+		case 100:
+		case 200:
+		case 400:
+		case 800:
+		case 1600:
+		case 3200:
+		case 6400:
+		case 12800:
+		case 25600:
+		case 160:
+		case 320:
+		case 640:
+		case 1250:
+		case 2500:
+			return 1;
+	}
+	return 0;
+}
+
+CONFIG_INT("iso.round.only", iso_round_only, 0);
+
 static void
 iso_toggle( int sign )
 {
@@ -927,6 +952,10 @@ iso_toggle( int sign )
 	for (k = 0; k < 10; k++)
 	{
 		i = mod(i + sign, COUNT(codes_iso));
+		
+		while (iso_round_only && !is_round_iso(values_iso[i]))
+			i = mod(i + sign, COUNT(codes_iso));
+		
 		lens_set_rawiso(codes_iso[i]);
 		msleep(100);
 		int j = raw2index_iso(lens_info.raw_iso);

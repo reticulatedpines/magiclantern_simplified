@@ -231,13 +231,13 @@ config_save_file(
 	{
 		if( var->type == 0 )
 			my_fprintf( file,
-				"%s = %d\n",
+				"%s = %d\r\n",
 				var->name,
 				*(unsigned*) var->value
 			);
 		else
 			my_fprintf( file,
-				"%s = %s\n",
+				"%s = %s\r\n",
 				var->name,
 				*(const char**) var->value
 			);
