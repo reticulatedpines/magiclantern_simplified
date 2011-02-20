@@ -150,7 +150,7 @@ static int handle_buttons(struct event * event)
 
 	if (event->type == 0)
 	{
-		if (is_follow_focus_active() && !gui_menu_shown() && lv_drawn() && display_sensor_neg != 0)
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && display_sensor_neg != 0)
 		{
 			switch(event->param)
 			{

@@ -344,9 +344,14 @@ static int vmax(int* x, int n)
 	return m;
 }
 
+int is_manual_focus()
+{
+	return (af_mode & 0xF) == 3;
+}
+
 int movie_af_active()
 {
-	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && (af_mode & 0xF) != 3 && (focus_done || movie_af==3);
+	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && !is_manual_focus() && (focus_done || movie_af==3);
 }
 
 static int hsp = 0;
@@ -1092,7 +1097,7 @@ debug_property_handler(
 		len > 0x08 ? addr[2] : 0,
 		len > 0x0c ? addr[3] : 0
 	);
-		
+	
 	if( !draw_prop )
 		goto ack;
 	
