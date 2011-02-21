@@ -2231,14 +2231,7 @@ PROP_HANDLER(PROP_FREE_SPACE) // fires every second when recording
 			if (get_bitrate_mode() == 1) // CBR emulated
 			{
 				int e = measured_bitrate - get_prescribed_bitrate();
-				int abse = ABS(e);
-				
-				// P controller with some nonlinear gain
-				int k = abse < 4 ? 0 :
-						abse < 10 ? 1 :
-						abse < 20 ? 2 : 5;
-				if (e > 0) k *= 2;
-				vbr_bump(k * SGN(e));
+				vbr_bump(SGN(e));
 			}
 		}
 	}

@@ -78,3 +78,16 @@
 #define LV_ADJUSTING_ISO ((*(int*)0x5780) == 0xF)
 
 #define COLOR_FG_NONLV 80
+
+#define MVR_752_STRUCT (*(void**)0x1e70)
+
+#define MEM(x) (*(int*)(x))
+#define div_maybe(a,b) ((a)/(b))
+
+// see mvrGetBufferUsage, which is not really safe to call => err70
+// macros copied from arm-console
+#define MVR_BUFFER_USAGE_FRAME div_maybe(-100*MEM(256 + MVR_752_STRUCT) - 100*MEM(264 + MVR_752_STRUCT) - 100*MEM(724 + MVR_752_STRUCT) - 100*MEM(732 + MVR_752_STRUCT) + 100*MEM(260 + MVR_752_STRUCT) + 100*MEM(268 + MVR_752_STRUCT), -MEM(256 + MVR_752_STRUCT) - MEM(264 + MVR_752_STRUCT) + MEM(260 + MVR_752_STRUCT) + MEM(268 + MVR_752_STRUCT))
+#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(436 + MVR_752_STRUCT) + 100*MEM(424 + MVR_752_STRUCT), 0xa)
+#define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
+
+#define MVR_LAST_FRAME_SIZE (*(int*)(708 + MVR_752_STRUCT))

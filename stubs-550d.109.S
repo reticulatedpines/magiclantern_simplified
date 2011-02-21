@@ -156,6 +156,7 @@ NSTUB( 0xFF453E14, gui_main_task_functbl )
 NSTUB( 0xFF1AA9C4, mvrFixQScale )
 NSTUB( 0xFF1AA4A0, mvrSetDefQScale )
 NSTUB( 0xFF04C7C0, mvrSetBitRate )
+NSTUB( 0xFF1AA9E4, mvrSetPrintMovieLog )
 
 NSTUB( 0xFF1C7760, FIO_FindFirstEx )
 NSTUB( 0xFF1C7854, FIO_FindNextEx )

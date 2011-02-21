@@ -190,6 +190,7 @@ void vbr_set()
 		qscale_slow = COERCE(qscale_slow, -16, 16);
 		vbr_fix(1);
 		mvrSetDefQScale(&qscale_slow);
+		bmp_printf(FONT_MED, 0, 100, "B=%d,%d Q=%d  ", MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND, qscale_slow);
 	}
 }
 
@@ -656,7 +657,10 @@ enable_liveview_print(
 
 static void lv_test(void* priv)
 {
-	DispSensorStart();
+	//~ uint16_t x = 1;
+	//~ mvrSetPrintMovieLog(&x);
+	//~ int x = mvrGetBufferUsage(MVR_752_STRUCT);
+	//~ bmp_printf(FONT_LARGE, 0, 0, "=> %d  ", x);
 }
 
 static void turn_off_display(void* priv)
@@ -828,6 +832,10 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
+		//~ if (recording == 2)
+			//~ bmp_printf(FONT_MED, 0, 0, "buf=%3d,%3d frame=%8x", MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND, MVR_LAST_FRAME_SIZE);
+		//~ bmp_hexdump(FONT_SMALL, 0, 0, MVR_752_STRUCT, 32*30);
+		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && bmp_getpixel(2,10) != 2)
 		{
 			display_clock();
@@ -868,8 +876,14 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		do_movie_mode_remap();
 		
-		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && k % 10 == 0) 
+		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && k % 5 == 0) 
 		{
+			if (recording == 2)
+			{
+				if (MVR_BUFFER_USAGE > 70) vbr_bump(5); // panic
+				else if (MVR_BUFFER_USAGE > 40) vbr_bump(1);
+				else if (MVR_BUFFER_USAGE_FRAME < 5 && k % 20 == 0) vbr_bump(-1);
+			}
 			vbr_set();
 		}
 
@@ -952,11 +966,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	/*{
+	{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
-	}*/
+	}
 /*	{
 		.select = focus_test,
 		.display = focus_print,

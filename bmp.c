@@ -313,17 +313,21 @@ bmp_hexdump(
 			fontspec,
 			x,
 			y,
-			"%08x: %08x %08x %08x %08x",
+			"%08x: %08x %08x %08x %08x %08x %08x %08x %08x ",
 			(unsigned) d,
 			len >  0 ? (unsigned) d[ 0/4] : 0,
 			len >  4 ? (unsigned) d[ 4/4] : 0,
 			len >  8 ? (unsigned) d[ 8/4] : 0,
-			len > 12 ? (unsigned) d[12/4] : 0
+			len > 12 ? (unsigned) d[12/4] : 0,
+			len > 16 ? (unsigned) d[16/4] : 0,
+			len > 20 ? (unsigned) d[20/4] : 0,
+			len > 24 ? (unsigned) d[24/4] : 0,
+			len > 28 ? (unsigned) d[28/4] : 0
 		);
 
 		y += fontspec_height( fontspec );
 		d += 4;
-		len -= 16;
+		len -= 32;
 	} while(len);
 }
 
