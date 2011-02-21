@@ -77,6 +77,7 @@ static struct menu_entry script_menu[] = {
 		.select		= console_test,
 	},*/
 	{
+		.priv = &console_visible,
 		.display	= console_print,
 		.select		= console_toggle,
 	},
