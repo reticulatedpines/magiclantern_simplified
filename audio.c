@@ -189,7 +189,7 @@ draw_meter(
     char *	label
 )
 {
-	const uint32_t width = 550; // bmp_width();
+	const uint32_t width = 560; // bmp_width();
 	const uint32_t pitch = BMPPITCH;
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
@@ -203,9 +203,9 @@ draw_meter(
 	const int db_avg = audio_level_to_db( level->avg );
 	const int db_peak = audio_level_to_db( level->peak );
 
-	// levels go from -40 to 0, so -40 * 15 == 600
-	const uint32_t x_db_avg = (width + db_avg * 15) / 4;
-	const uint32_t x_db_peak = (width + db_peak * 15) / 4;
+	// levels go from -40 to 0, so -40 * 14 == 560 (=width)
+	const uint32_t x_db_avg = (width + db_avg * 14) / 4;
+	const uint32_t x_db_peak = (width + db_peak * 14) / 4;
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
@@ -246,7 +246,7 @@ draw_ticks(
 	int		tick_height
 )
 {
-	const uint32_t width = 550 + 8; // bmp_width();
+	const uint32_t width = 560 + 8; // bmp_width();
 	const uint32_t pitch = BMPPITCH;
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
