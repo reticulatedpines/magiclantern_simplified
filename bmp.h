@@ -54,6 +54,9 @@ bmp_vram(void)
 	| ((fg) & 0xFF) << 0 \
 )
 
+#define FONT_BG(font) (((font) & 0xFF00) >> 8)
+#define FONT_FG(font) (((font) & 0x00FF) >> 0)
+
 static inline struct font *
 fontspec_font(
 	unsigned		fontspec
@@ -158,6 +161,10 @@ bmp_fill(
 #define COLOR_RED		0x08 // normal red
 #define COLOR_YELLOW		0x0F // normal yellow
 #define COLOR_BLACK 2
+#define COLOR_CYAN 5
+#define COLOR_GREEN1 6
+#define COLOR_GREEN2 7
+#define COLOR_ORANGE 19
 
 static inline uint32_t
 color_word(

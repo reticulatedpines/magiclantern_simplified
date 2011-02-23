@@ -326,7 +326,7 @@ bmp_hexdump(
 		);
 
 		y += fontspec_height( fontspec );
-		d += 4;
+		d += 8;
 		len -= 32;
 	} while(len);
 }

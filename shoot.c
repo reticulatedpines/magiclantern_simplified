@@ -910,16 +910,33 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 static void 
 iso_display( void * priv, int x, int y, int selected )
 {
+	int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		fnt,
 		x, y,
-		"ISO         : %d",
-		lens_info.iso
+		"ISO         : %s", 
+		lens_info.iso ? "" : "Auto"
 	);
+
 	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
+
+	fnt = FONT(
+		fnt, 
+		is_native_iso(lens_info.iso) ? COLOR_YELLOW :
+		is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : FONT_FG(fnt),
+		FONT_BG(fnt));
+
+	if (lens_info.iso)
+	{
+		bmp_printf(
+			fnt,
+			x + 14 * font_large.width, y,
+			"%d", lens_info.iso
+		);
+	}
 }
 
-int is_round_iso(int iso)
+int is_native_iso(int iso)
 {
 	switch(iso)
 	{
@@ -932,14 +949,28 @@ int is_round_iso(int iso)
 		case 6400:
 		case 12800:
 		case 25600:
+			return 1;
+	}
+	return 0;
+}
+
+int is_lowgain_iso(int iso)
+{
+	switch(iso)
+	{
 		case 160:
 		case 320:
 		case 640:
 		case 1250:
 		case 2500:
-			return 1;
+		return 1;
 	}
 	return 0;
+}
+
+int is_round_iso(int iso)
+{
+	return is_native_iso(iso) || is_lowgain_iso(iso);
 }
 
 CONFIG_INT("iso.round.only", iso_round_only, 0);
@@ -1050,7 +1081,7 @@ int crit_iso(int iso_index)
 	{
 		lens_set_rawiso(codes_iso[iso_index]);
 		msleep(100);
-		bmp_printf(FONT_LARGE, 30, 30, "ISO %d... ", lens_info.iso);
+		//~ bmp_printf(FONT_LARGE, 30, 30, "ISO %d... ", lens_info.iso);
 		msleep(300);
 	}
 
@@ -1068,7 +1099,7 @@ static void iso_auto_run()
 	if (c0 > 0) i = bin_search(raw2index_iso(lens_info.raw_iso), COUNT(codes_iso), crit_iso);
 	else i = bin_search(get_htp() ? 9 : 1, raw2index_iso(lens_info.raw_iso)+1, crit_iso);
 	lens_set_rawiso(codes_iso[i]);
-	clrscr();
+	//~ clrscr();
 }
 
 
@@ -1141,7 +1172,7 @@ int crit_shutter(int shutter_index)
 	{
 		lens_set_rawshutter(codes_shutter[shutter_index]);
 		msleep(100);
-		bmp_printf(FONT_LARGE, 30, 30, "Shutter 1/%d... ", lens_info.shutter);
+		//~ bmp_printf(FONT_LARGE, 30, 30, "Shutter 1/%d... ", lens_info.shutter);
 		msleep(300);
 	}
 
@@ -1158,7 +1189,7 @@ static void shutter_auto_run()
 	if (c0 > 0) i = bin_search(raw2index_shutter(lens_info.raw_shutter), COUNT(codes_shutter), crit_shutter);
 	else i = bin_search(1, raw2index_shutter(lens_info.raw_shutter)+1, crit_shutter);
 	lens_set_rawshutter(codes_shutter[i]);
-	clrscr();
+	//~ clrscr();
 }
 
 static void 
@@ -1282,14 +1313,14 @@ int crit_kelvin(int k)
 	if (k > 0)
 	{
 		lens_set_kelvin(k * KELVIN_STEP);
-		bmp_printf(FONT_LARGE, 30, 30, "WB %dK... ", k * KELVIN_STEP);
+		//~ bmp_printf(FONT_LARGE, 30, 30, "WB %dK... ", k * KELVIN_STEP);
 		msleep(500);
 	}
 
 	uint8_t Y;
 	int8_t U, V;
 	get_spot_yuv(100, &Y, &U, &V);
-	bmp_printf(FONT_MED, 300, 30, "%d, %d ", U, V);
+	//~ bmp_printf(FONT_MED, 300, 30, "%d, %d ", U, V);
 	return V - U;
 }
 
@@ -1301,7 +1332,7 @@ static void kelvin_auto_run()
 	if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
 	else i = bin_search(KELVIN_MIN/KELVIN_STEP, lens_info.kelvin/KELVIN_STEP + 1, crit_kelvin);
 	lens_set_kelvin(i * KELVIN_STEP);
-	clrscr();
+	//~ clrscr();
 }
 
 static void 

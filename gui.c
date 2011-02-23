@@ -133,7 +133,7 @@ static int handle_buttons(struct event * event)
 	
 	if (event->type == 0 && display_sensor_neg == 0) // button presses while display sensor is covered
 	{ // those are shortcut keys
-		if (!lv_drawn() && !gui_menu_shown())
+		if (get_backlight_keys() && !gui_menu_shown())
 		{
 			if (event->param == BGMT_PRESS_UP)
 			{
@@ -174,8 +174,6 @@ static int handle_buttons(struct event * event)
 					return 0;
 			}
 		}
-		else
-			lens_focus_stop();
 	}
 	
 	if (event->type == 0)
