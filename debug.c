@@ -17,6 +17,26 @@ extern void bootdisk_disable();
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 
+CONFIG_INT("backlight.keys", backlight_keys, 1);
+
+int get_backlight_keys() { return backlight_keys; }
+
+static void
+backlight_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Backlight Keys: %s", 
+		backlight_keys ? "ON (IR+U/D)" : "OFF"
+	);
+}
+
 
 void take_screenshot( void * priv )
 {
@@ -190,7 +210,7 @@ void vbr_set()
 		qscale_slow = COERCE(qscale_slow, -16, 16);
 		vbr_fix(1);
 		mvrSetDefQScale(&qscale_slow);
-		bmp_printf(FONT_MED, 0, 100, "B=%d,%d Q=%d  ", MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND, qscale_slow);
+		//~ bmp_printf(FONT_MED, 0, 100, "B=%d,%d Q=%d  ", MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND, qscale_slow);
 	}
 }
 
@@ -210,6 +230,7 @@ void vbr_toggle_reverse( void * priv )
 
 void vbr_bump(int delta) // do not change the saved setting (=> do not change qscale_index)
 {
+	//~ bmp_printf(FONT_MED, 0, 200, "bump %d  ", delta);
 	qscale = COERCE(qscale + delta, -16, 16);
 }
 //-------------------------end qscale--------------
@@ -833,8 +854,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		}
 		
 		//~ if (recording == 2)
-			//~ bmp_printf(FONT_MED, 0, 0, "buf=%3d,%3d frame=%8x", MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND, MVR_LAST_FRAME_SIZE);
-		//~ bmp_hexdump(FONT_SMALL, 0, 0, MVR_752_STRUCT, 32*30);
+			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, MVR_752_STRUCT, 32*30);
 		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && bmp_getpixel(2,10) != 2)
 		{
@@ -880,14 +901,49 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			if (recording == 2)
 			{
-				if (MVR_BUFFER_USAGE > 70) vbr_bump(5); // panic
-				else if (MVR_BUFFER_USAGE > 40) vbr_bump(1);
-				else if (MVR_BUFFER_USAGE_FRAME < 5 && k % 20 == 0) vbr_bump(-1);
+				static int prev_fn = 0;
+				if (prev_fn != MVR_FRAME_NUMBER) // only run this once per frame
+				{
+					static int prev_buffer_usage = 0;
+					int buffer_usage = MVR_BUFFER_USAGE_FRAME;
+					int buffer_delta = buffer_usage - prev_buffer_usage;
+					prev_buffer_usage = buffer_usage;
+					
+					//~ if (buffer_delta > 0 && MVR_BUFFER_USAGE > 70) vbr_bump(10); // panic
+					//~ else if (buffer_delta > 0 && MVR_BUFFER_USAGE > 55) vbr_bump(3); // just a bit of panic
+					//if (buffer_delta > 0 && MVR_BUFFER_USAGE_FRAME > 35) vbr_bump(1);
+					//else if (buffer_usage < 35 && k % 10 == 0) // buffer ok, we can adjust qscale according to the selected preset
+					
+					int comp = 0;
+					
+					if (buffer_delta > 0 && buffer_usage > 50)
+					{
+						bmp_fill(COLOR_RED, 720-64, 60, 32, 4);
+						comp = -10;
+					}
+					else
+					{
+						bmp_fill(0, 720-64, 60, 32, 4);
+						comp = 0;
+					}
+					
+					if (bitrate_mode == 1 && get_new_measurement()) // CBRe
+					{
+						if (get_measured_bitrate() > BITRATE_VALUE + comp) vbr_bump(1);
+						else if (get_measured_bitrate() < BITRATE_VALUE + comp) vbr_bump(-1);
+					}
+					else if (bitrate_mode == 2) // qscale
+					{
+						vbr_bump(SGN(qscale_values[qscale_index] - qscale));
+					}
+					
+				}
+				prev_fn = MVR_FRAME_NUMBER;
 			}
 			vbr_set();
 		}
 
-		if (!DISPLAY_SENSOR_POWERED && gui_state == GUISTATE_IDLE) // force sensor on
+		if (!DISPLAY_SENSOR_POWERED) // force sensor on
 		{
 			DispSensorStart();
 		}
@@ -945,6 +1001,11 @@ struct menu_entry debug_menus[] = {
 		.select = turn_off_display,
 	},
 	{
+		.priv		= &backlight_keys,
+		.select		= menu_binary_toggle,
+		.display	= backlight_print,
+	},
+	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
@@ -966,11 +1027,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	{
+/*	{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
-	}
+	}*/
 /*	{
 		.select = focus_test,
 		.display = focus_print,

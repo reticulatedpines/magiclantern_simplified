@@ -86,7 +86,7 @@ These buttons have special meaning with Magic Lantern:
 .. _LCD backlight level:
 
 * LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
-* LCD sensor + ``UP / DOWN``, outside LiveView: adjust LCD backlight level (brightness).
+* LCD sensor + ``UP / DOWN``: see `Backlight Keys`_ (adjust LCD backlight level).
 * LCD sensor + Arrows: see `Follow Focus`_.
 * Flash / DOF preview: see `False color`_.
 * Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_.
@@ -400,9 +400,10 @@ Functions specific to movie mode.
   * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain Class10 cards.
   * ``CBRe`` mode (emulated CBR) is implemented as variable QScale, as follows:
   
-    - QScale is adjusted in a simple feedback loop (P controller with nonlinear gain) and sampled every second.
-    - Bit rate will not be equal to the prescribed value, but it will oscillate around it. In certain cases (e.g. strong defocus->focus transitions) it will overshoot badly and stop recording. True CBR mode or higher sampling rate would fix this. Patches welcome :)
+    - QScale is adjusted in a simple feedback loop, based on bitrate estimation (sampled 5 times per second).
+    - Bit rate will not be equal to the prescribed value, but it will oscillate around it. In certain cases (e.g. strong defocus->focus transitions) it will overshoot badly and stop recording. True CBR mode or a better control algorithm would fix this. Patches welcome :)
     - The feedback loop adjusts only local (instantaneous) bitrate, which means the video file may have different average bitrate than the one prescribed in the menu. This is normal. To adjust the bitrate over the entire video, a controller with integration component (e.g. PI) is required.
+    - If the buffer becomes full, ML will temporarily lower the bitrate by 10mb/s.
     
   * In QScale mode, bitrate varies a lot. Try not to use very high bitrates in this mode, because the chances of video stopping recording are very high.
   * QScale can be changed during recording, but only by one unit (1) at a time. ML will take care of this.
@@ -938,6 +939,14 @@ Debug
 
   Guess :)
 
+.. _backlight keys:
+
+**Backlight Keys: ON/OFF**
+
+  Enable quick adjustment of LCD backlight. To adjust it, hold the LCD sensor and press ``UP/DOWN``.
+  
+  Disabling this setting will restore the default behavior of ``UP/DOWN`` keys.
+  
 **Draw palette**
 
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
