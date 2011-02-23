@@ -317,7 +317,7 @@ focus_task( void )
 			int step = focus_task_dir * focus_rack_speed;
 			lens_focus( 1, step );
 			focus_task_delta += step;
-			msleep( 50 );
+			msleep( 70 );
 		}
 	}
 }
