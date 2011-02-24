@@ -173,11 +173,11 @@ db_peak_to_color(
 )
 {
 	if( db < -35 )
-		return 0x7f; // dark blue
+		return 11; // dark blue
 	if( db < -20 )
-		return 0x7f; // dark blue
+		return 11; // dark blue
 	if( db < -15 )
-		return 0xAE; // bright yellow
+		return 15; // bright yellow
 	return 0x08; // bright red
 }
 
