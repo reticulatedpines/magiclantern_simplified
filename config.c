@@ -258,7 +258,7 @@ config_parse(
 	struct config *	cfg = 0;
 	int count = 0;
 
-	while( read_line( file, line_buf, sizeof(line_buf) ) >= 0 )
+	while( read_line( file, UNCACHEABLE(line_buf), sizeof(line_buf) ) >= 0 )
 	{
 		// Ignore any line that begins with # or is empty
 		if( line_buf[0] == '#'

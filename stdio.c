@@ -27,7 +27,7 @@ my_fprintf(
 	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
 	va_end( ap );
 
-	FIO_WriteFile( file, buf, len );
+	FIO_WriteFile( file, UNCACHEABLE(buf), len );
 	return len;
 }
 

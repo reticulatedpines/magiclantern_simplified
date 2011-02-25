@@ -1615,10 +1615,8 @@ static void load_cropmark(int i)
 static void
 crop_toggle( int sign )
 {
-	msleep(100);
 	crop_draw = mod(crop_draw + sign, num_cropmarks + 1);  // 0 = off, 1..num_cropmarks = cropmarks
 	load_cropmark(crop_draw);
-	msleep(100);
 }
 
 static void crop_toggle_forward(void* priv)
@@ -2409,7 +2407,7 @@ zebra_task( void )
     menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
     menu_add( "Movie", movie_menus, COUNT(movie_menus) );
 
-	msleep(2000);
+	msleep(3000);
 	
 	find_cropmarks();
 	load_cropmark(crop_draw);
