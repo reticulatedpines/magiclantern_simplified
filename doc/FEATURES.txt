@@ -83,8 +83,6 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
-.. _LCD backlight level:
-
 * LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
 * LCD sensor + ``UP / DOWN``: see `Backlight Keys`_ (adjust LCD backlight level).
 * LCD sensor + Arrows: see `Follow Focus`_.
@@ -576,8 +574,8 @@ Functions for stills shooting.
   Power Saving:
   
   * When not in LiveView, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
-  * When in LiveView and Silent Picture is enabled, the intervalometer will turn the display off. For this to work, you have to assign the focus on the ``*`` button (otherwise the screen will wake up). Turn off `Global Draw`_ to save more power. ML will NOT turn off the sensor.
-  * The card led will blink once per second to let you know it's alive and kicking.
+  * In LiveView, enable `Force display off`_ and disable `Global Draw`_. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
+  * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
   Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.
 
@@ -822,7 +820,9 @@ Focus
 
 **Focus A**
 
-    This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set". 
+    This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set".
+    
+    The start point will be the point where you are before selecting ``Rack focus`` in the menu.
 
 **Rack Focus**
 
@@ -909,7 +909,7 @@ Now that you know what the buttons are about, here is how you make it work:
 
 3. Next, scroll down to ``Focus A``. You need to zero this setting out, before going on. Press ``Set`` to zero it out.
 
-4. Once that is completed you will use the ``Zoom Out`` or ``Half Shutter`` button to move the focus point to your start point.
+4. Once that is completed you will use the ``Zoom Out`` or ``Half Shutter`` button to move the focus point to your start point. You can also use ML `follow focus`_ for this (but in this case you have to close the ML menu).
 
 5. Next select the time period of the pull, by scrolling down to rack speed. The lower the number, the longer the rack will take. It is recommended for testing purposes to start around 20.
 
@@ -929,17 +929,19 @@ Debug
     :align: center
     :width: 5cm
 
-**Save config**
-
-  Save current settings to ``MAGIC.CFG``.
-
 .. _Turn off display:
+.. _Force display off:
 
-**Turn display off**
+**Force display off**
 
-  Guess :)
+  This will turn off the LCD display while the camera is not expecting user input (i.e. when no menus are shown on the screen).
+  
+  While the screen is off, the card led will blink once per 5 seconds to let you know the camera is alive and kicking. No card activity is actually taking place (just LED blinking).
+  
+  See `Power saving`_ for more info.
 
 .. _backlight keys:
+.. _LCD backlight level:
 
 **Backlight Keys: ON/OFF**
 
@@ -1030,3 +1032,26 @@ LiveView
 * Lens focal length and focus distance: see [[Focus_distance]]
 * Exposure compensation (codenamed AE)
 
+
+Power saving
+------------
+
+Magic Lantern can help you maximize battery life while shooting, which also results in reduced overheat.
+
+You can:
+
+* `Turn off display`_ in LiveView mode
+* Turn off `Global Draw`_
+* Quickly adjust `LCD backlight level`_
+
+Power consumption in movie mode, idle (approximate figures derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
+
+* Camera body (without lens): 360 mA
+* Lens (Tamron 17-50/2.8): 20 mA
+* LCD backlight at level 1: 40 mA
+* LCD backlight at level 7: 100 mA
+* Magic Lantern with GlobalDraw off: around 10 mA
+* Zebras: around 15 mA
+* Focus peaking: maybe around 25 mA (not tested)
+
+According to `this message <https://bitbucket.org/hudson/magic-lantern/issue/362/turn-display-off-ignored-on-next-movie#comment-382238>`_, by turning display off, the camera will overheat around twice as slow when recording (45 minutes instead of 25 until the overheat indicator appears).

@@ -13,9 +13,9 @@ to save Magic Lantern configuration from the GUI menu.
 Saving settings
 ~~~~~~~~~~~~~~~
 
-From the Magic Lantern menu, choose Debug -> Save config. 
-Your config file will be overwritten with current Magic Lantern settings.
-Comments from the file will be removed!
+Settings are saved automatically to ``MAGIC.CFG`` when you turn off the camera, or when you open the card door.
+
+Settings are NOT saved when you open the battery door.
 
 Hidden settings
 ~~~~~~~~~~~~~~~

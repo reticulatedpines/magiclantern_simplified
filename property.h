@@ -238,6 +238,8 @@
 
 #define PROP_BACKLIGHT_LEVEL	0x02040000
 
+#define PROP_TERMINATE_SHUT_REQ 0x80010001
+
 /** Properties */
 extern void
 prop_register_slave(

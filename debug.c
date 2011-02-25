@@ -14,6 +14,24 @@
 
 extern void bootdisk_disable();
 
+int display_force_off = 0;
+
+static void
+display_off_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Force display off: %s", 
+		display_force_off ? "Enabled" : "Disabled"
+	);
+}
+
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 
@@ -682,12 +700,11 @@ static void lv_test(void* priv)
 	//~ mvrSetPrintMovieLog(&x);
 	//~ int x = mvrGetBufferUsage(MVR_752_STRUCT);
 	//~ bmp_printf(FONT_LARGE, 0, 0, "=> %d  ", x);
+	//draw_pie(360,240,240,0,90);
 }
 
-static void turn_off_display(void* priv)
+void turn_off_display()
 {
-	gui_stop_menu();
-	msleep(250);
 	display_off();
 	call("TurnOffDisplay"); // force it
 }
@@ -947,6 +964,12 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			DispSensorStart();
 		}
+		
+		if (display_force_off && !gui_menu_shown() && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed() && k % 100 == 0)
+		{
+			turn_off_display();
+			card_led_blink(1, 20, 0);
+		}
 
 		if (draw_prop)
 		{
@@ -991,14 +1014,9 @@ spy_print(
 
 struct menu_entry debug_menus[] = {
 	{
-		.priv		= "Save config",
-		.select		= save_config,
-		.display	= menu_print,
-	},
-	{
-		.priv = "Turn display off",
-		.display	= menu_print, 
-		.select = turn_off_display,
+		.priv = &display_force_off,
+		.display	= display_off_print, 
+		.select = menu_binary_toggle,
 	},
 	{
 		.priv		= &backlight_keys,
@@ -1027,7 +1045,7 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-/*	{
+	/*{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
@@ -1055,6 +1073,11 @@ struct menu_entry debug_menus[] = {
 		.select		= mvr_time_const_select,
 	},
 #endif
+/*	{
+		.priv		= "Clear config",
+		.select		= clear_config,
+		.display	= menu_print,
+	}, */
 };
 
 struct menu_entry mov_menus[] = {
@@ -1283,6 +1306,7 @@ void show_logo()
 	}
 }
 
+int config_ok = 0;
 
 static void
 dump_task( void )
@@ -1294,6 +1318,8 @@ dump_task( void )
 	// Parse our config file
 	const char * config_filename = "B:/magic.cfg";
 	global_config = config_parse_file( config_filename );
+	
+	config_ok = 1;
 	/*bmp_printf( FONT_MED, 0, 70,
 		"Config file %s: %s",
 		config_filename,
@@ -1405,3 +1431,11 @@ movie_start( void )
 }*/
 
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
+
+
+PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
+{
+	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
+	if (buf[0] == 0 && config_ok) save_config(0);
+	return prop_cleanup(token, property);
+}

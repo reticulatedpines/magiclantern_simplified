@@ -2481,11 +2481,6 @@ shoot_task( void )
 		// force powersave mode for intervalometer in silent mode
 		if (intervalometer_running)
 		{
-			if (silent_pic_mode && lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
-				display_off();
-			else
-				display_on();
-			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			
 			card_led_blink(5, 50, 50);
