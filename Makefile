@@ -222,13 +222,13 @@ ML_OBJS-y = \
 	focus.o \
 	console.o \
 	chdk-gui_draw.o \
+	ptp.o \
 
 NO=\
 	aj_port.o \
 	aj_lib_port.o \
 	font-huge.o \
 	bracket.o \
-	ptp.o \
 	spotmeter.o \
 
 ML_OBJS-$(CONFIG_AUDIOMON) += \
@@ -269,6 +269,7 @@ STDIO_OBJ = \
 	lib_a-strcoll.o \
 	lib_a-ctype_.o \
 	lib_a-memchr.o \
+	lib_a-memset.o \
 
 ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 

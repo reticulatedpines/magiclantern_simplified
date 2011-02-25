@@ -7,6 +7,7 @@
 
 #include "dryos.h"
 #include "ptp.h"
+#include "ptp-chdk.h"
 #include "tasks.h"
 #include "menu.h"
 #include "bmp.h"
@@ -15,7 +16,7 @@
 #include "lens.h"
 
 
-PTP_HANDLER( 0x9999, 0 )
+PTP_HANDLER( PTP_OC_CHDK, 0 )
 {
 	struct ptp_msg msg = {
 		.id		= PTP_RC_OK,
@@ -24,7 +25,7 @@ PTP_HANDLER( 0x9999, 0 )
 		.param_count	= 4,
 		.param		= { 1, 2, 0xdeadbeef, 3 },
 	};
-
+	/*
 	//call( "FA_StartLiveView" );
 	bmp_printf( FONT_MED, 0, 30, "usb %08x %08x", context, context->handle );
 	bmp_printf( FONT_MED, 0, 50, "%08x %08x %08x %08x %08x",
@@ -66,6 +67,78 @@ PTP_HANDLER( 0x9999, 0 )
 	FreeMemory( buf );
 #endif
 
+    */
+    
+  bmp_printf(FONT_LARGE, 0, 0, "PTP: %8x %8x %8x", param1, param2, param3);
+
+  // ported from CHDK
+  // handle command
+  switch ( param1 )
+  {
+
+    case PTP_CHDK_Version:
+      msg.param_count = 2;
+      msg.param[0] = PTP_CHDK_VERSION_MAJOR;
+      msg.param[1] = PTP_CHDK_VERSION_MINOR;
+      break;
+
+    case PTP_CHDK_GetMemory:
+      bmp_printf(FONT_LARGE, 0, 0, "GetMemory: not implemented");
+      break;
+/*      if ( param2 == 0 || param3 < 1 ) // null pointer or invalid size?
+      {
+        msg.id = PTP_RC_GeneralError;
+        break;
+      }
+
+      if ( !send_ptp_data(data,(char *) param2,param3) )
+      {
+        msg.id = PTP_RC_GeneralError;
+      }
+      break;*/
+      
+    case PTP_CHDK_SetMemory:
+      /*
+      if ( param2 == 0 || param3 < 1 ) // null pointer or invalid size?
+      {
+        msg.id = PTP_RC_GeneralError;
+        break;
+      }
+
+      data->get_data_size(data->handle); // XXX required call before receiving
+      if ( !recv_ptp_data(data,(char *) param2,param3) )
+      {
+        msg.id = PTP_RC_GeneralError;
+      } */
+      
+      bmp_printf(FONT_LARGE, 0, 0, "SetMemory: not implemented");
+      break;
+
+    case PTP_CHDK_CallFunction:
+      bmp_printf(FONT_LARGE, 0, 0, "CallFunction: not implemented");
+      break;
+
+    case PTP_CHDK_TempData:
+      bmp_printf(FONT_LARGE, 0, 0, "TempData: not implemented");
+      break;
+
+    case PTP_CHDK_UploadFile:
+      bmp_printf(FONT_LARGE, 0, 0, "UploadFile: not implemented");
+      break;
+      
+    case PTP_CHDK_DownloadFile:
+      bmp_printf(FONT_LARGE, 0, 0, "DownloadFile: not implemented");
+      break;
+
+    case PTP_CHDK_ExecuteScript:
+      bmp_printf(FONT_LARGE, 0, 0, "ExecuteScript: not implemented");
+      break;
+
+    default:
+      msg.id = PTP_RC_ParameterNotSupported;
+      break;
+  }
+
 	context->send(
 		context->handle,
 		&msg
@@ -73,7 +146,7 @@ PTP_HANDLER( 0x9999, 0 )
 
 	// Try to disable the USB lock
 	gui_unlock();
-
+	
 	return 0;
 }
 
