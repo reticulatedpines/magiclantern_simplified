@@ -222,9 +222,9 @@ ML_OBJS-y = \
 	focus.o \
 	console.o \
 	chdk-gui_draw.o \
-	ptp.o \
 
 NO=\
+	ptp.o \
 	aj_port.o \
 	aj_lib_port.o \
 	font-huge.o \
