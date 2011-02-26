@@ -1,10 +1,6 @@
 Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
 ================================================
 
-.. raw:: latex
-
-    { \setlength{\parskip}{0.5mm}
-
 Features
 --------
 
@@ -23,19 +19,26 @@ Features
 * Power management: `Turn off display`_ in LiveView mode; quickly adjust `LCD backlight level`_.
 * Fun stuff: `slit-scan pictures`_.
 
+Important notes
+---------------
+
+* If you have a bootable SD card and have the ``DISKBOOT`` flag 
+  set in the camera (which the installer does), and you do not have 
+  an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT!**
+  It will hang and not wake up until the battery is removed.
+  
+* If you encounter a "locked up" camera, **quickly remove the battery**.
+  Otherwise the ARM might be in a tight-loop and get very hot, very quickly. 
+  Your battery will run down and your LCD might show some discoloration.
+  
+* When in doubt, remove the battery and reboot. 
+
+* **And, remember that this software can damage or destroy your camera.**
+
 .. raw:: latex
 
+    \newpage
     \tableofcontents
-    }
-    \def\itemize{
-    \olditemize
-    \setlength{\itemsep}{4pt}
-    }
-    \def\enumerate{
-    \oldenumerate
-    \setlength{\itemsep}{4pt}
-    }
-
 
 Known issues
 ------------
@@ -57,23 +60,6 @@ Known issues
   - Auto ISO / Shutter / Kelvin
   - ML displays may be shifted (menu not centered)
   
-
-Important notes
----------------
-
-* If you have a bootable SD card and have the ``DISKBOOT`` flag 
-  set in the camera (which the installer does), and you do not have 
-  an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT!**
-  It will hang and not wake up until the battery is removed.
-  
-* If you encounter a "locked up" camera, **quickly remove the battery**.
-  Otherwise the ARM might be in a tight-loop and get very hot, very quickly. 
-  Your battery will run down and your LCD might show some discoloration.
-  
-* When in doubt, remove the battery and reboot. 
-
-* **And, remember that this software can damage or destroy your camera.**
-
 .. raw:: latex
     
     \newpage
@@ -376,8 +362,9 @@ Movie
 Functions specific to movie mode.
 
 .. _Bitrate control:
+.. _bitrate:
 
-**Bit Rate**
+**Bit Rate: FW default / CBRe / QScale**
 
   Controls H.264 bitrate used for video recording.
   
@@ -406,7 +393,7 @@ Functions specific to movie mode.
   * In QScale mode, bitrate varies a lot. Try not to use very high bitrates in this mode, because the chances of video stopping recording are very high.
   * QScale can be changed during recording, but only by one unit (1) at a time. ML will take care of this.
   * Since ``CBRe`` is implemented as variable QScale, you can freely change between ``CBRe`` and ``QScale`` during recording.
-  * It is not possible to change from non-QScale mode to QScale modes during recording (which means between ``FW default`` and the other settings). If you try to, the change will be applied only for the next video file.
+  * It is not possible to change from non-QScale mode to QScale modes during recording (which means between ``FW default`` and the other settings). If you try to, the change will be applied only for the next video file, and ``CBRe`` may stop working properly.
   
   See [[Bit rate]] page for details.
 
@@ -503,9 +490,10 @@ Shoot
     :align: center
     :width: 5cm
 
-Functions for stills shooting.
+Functions for stills shooting (some of them work for movies, too).
 
 .. _exposure bracketing:
+.. _HDR:
 
 **HDR Brack**
 
@@ -582,6 +570,7 @@ Functions for stills shooting.
 .. _remote triggers:
 .. _LCD face sensor:
 .. _LCD Remote Shot:
+.. _LCD Remote:
 
 **LCD Remote Shot: OFF/Near/Away/Wave**
 
@@ -594,13 +583,13 @@ Functions for stills shooting.
   This is useful for avoiding camera shake without extra $$$, 
   especially if you don't have a sturdy tripod.
   
-  In LiveView, the ``Wave`` mode is able to start and stop recording movies. The other modes can only start recording (because it's too easy to stop recording by mistake).
+  In Movie mode, the ``Wave`` 〰 setting is able to start and stop recording movies. The other modes can only start recording (because it's too easy to stop recording by mistake).
   
 .. _audio trigger:
 
 **Audio RemoteShot: ON/OFF**
 
-  Start/stop remote audio trigger. To take a picture, make some loud noise, for example, clap your hands or pop a balloon.
+  Start/stop remote audio trigger. To take a picture (or start recording a movie), make some loud noise, for example, clap your hands or pop a balloon.
   
   
   Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the `audio`_ gain.
@@ -703,6 +692,7 @@ Functions for stills shooting.
   Tip: you can cancel the exposure earlier by half-pressing the shutter button.
 
 .. _mirror lockup:
+.. _MLU:
 
 **Mirror Lockup: OFF / ON / Timer+Remote**
 
@@ -747,6 +737,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
 
 .. _Kelvin white balance:
+.. _White balance:
 
 **WhiteBalance: 1700...10000**
 
@@ -754,7 +745,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
 
-**WBShift G/M: G9...0...M9**
+**WBShift G/M: Green 0..9 / Magenta 0..9**
 
   Green-Magenta white balance shift. Useful for fluorescent lighting.
 
@@ -836,7 +827,7 @@ Focus
 
 .. _follow focus:
 
-**Follow Focus: OFF / Simple / StopPeak**
+**Follow Focus: OFF / Manual / AutoLock**
 
   Very simple follow focus (like a rack focus controlled manually).
   
@@ -881,45 +872,48 @@ The following items are display only:
 
 **Focal Dist**
 
-    The distance to the focal point. Value is returned by most newer Canon lenses. If the lens does not report any distance information, 0 will be displayed and the DOF calculations will not be correct. 
+  The distance to the focal point. Value is returned by most newer Canon lenses. If the lens does not report any distance information, 0 will be displayed and the DOF calculations will not be correct. 
     
-    See also [[Focus distance]].
+  See also [[Focus distance]].
 
 **Hyperfocal**
 
-    The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
+  The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
 
 **DOF Near**
 
-    The nearest distance in which objects appear in focus. 
+  The nearest distance in which objects appear in focus. 
 
 **DOF Far**
 
-    The farthest distance in which objects appear in focus. 
-
-See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
+  The farthest distance in which objects appear in focus. 
 
 **How rack focus works**
 
-Now that you know what the buttons are about, here is how you make it work:
+  Now that you know what the buttons are about, here is how you make it work:
+  
+  1. Pick the end point of rack focus by focusing on it (manually or with AF).
 
-1. After opening the focus menu, pick the end point of your rack focus, focusing manually with your lens on that point.
+  2. Open the Focus menu, go to ``Focus A`` and press ``Set`` to zero it out.
+  
+  3. Pick the start point by focusing on it **from ML controls**. Do NOT use autofocus and do NOT focus manually from the lens ring.
+  
+    To focus the lens, make sure it is set on AF and use one of the following:
+    
+    * Option 1: choose ``Focus dir`` and hold on the ``*`` button (``Zoom Out``) or ``Half Shutter`` while Focus menu is active.
+    * Option 2: enable `Follow focus`_, close the focus menu and focus with the arrows.
 
-2. Next on the Focus Menu, select the direction you will have to focus to in order to find the start point. If the start point is a closer focus, pick ``Near``, if it a farther away focus point, pick ``Far``. ( Remember, you are simply telling camera which direction to go to find the start point.)
-
-3. Next, scroll down to ``Focus A``. You need to zero this setting out, before going on. Press ``Set`` to zero it out.
-
-4. Once that is completed you will use the ``Zoom Out`` or ``Half Shutter`` button to move the focus point to your start point. You can also use ML `follow focus`_ for this (but in this case you have to close the ML menu).
-
-5. Next select the time period of the pull, by scrolling down to rack speed. The lower the number, the longer the rack will take. It is recommended for testing purposes to start around 20.
-
-6. Next, start movie recording (you can do that while ML menu is active).
-
-7. Once the camera is recording, scroll to ``Rack Focus``. To start the rack focus, press ``Set``. You should see the rack focus commence and complete its cycle.
-
-8. To return to the beginning point, you can press ``Set`` again to return to that point, once again.
+  4. Select the focus speed. The number varies between different lenses and represents raw encoder steps for the focus motor.
+  
+  5. Next, start movie recording (you can do that while ML menu is active).
+  
+  6. Go to ``Rack Focus`` and press ``SET`` to start rack focus. You should see the rack focus commence and complete its cycle.
+  
+  7. To return to the beginning point, you can press ``SET`` again to return to that point, once again.
 
 **Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
+
+See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
 
 Debug
 ~~~~~
@@ -932,7 +926,7 @@ Debug
 .. _Turn off display:
 .. _Force display off:
 
-**Force display off**
+**ForceDisplayOFF**
 
   This will turn off the LCD display while the camera is not expecting user input (i.e. when no menus are shown on the screen).
   
@@ -948,7 +942,20 @@ Debug
   Enable quick adjustment of LCD backlight. To adjust it, hold the LCD sensor and press ``UP/DOWN``.
   
   Disabling this setting will restore the default behavior of ``UP/DOWN`` keys.
+
+**Big Clock: ON/OFF**
+
+  This will display a little big clock.
+
+**Auto Burst PicQ: ON/OFF**
+
+  When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
   
+  This function will reduce picture quality in the following steps:
+  
+  * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+
 **Draw palette**
 
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
@@ -957,7 +964,7 @@ Debug
 
   Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
   
-  A small timer is displayed. After 5 seconds, it won't be updated any more (which lets you remove it from the screen).
+  A small timer is displayed. After 5 seconds, it won't be updated any more (which lets you remove it from the screenshot by triggering a redraw).
 
 **Dump dmlog**
 
@@ -976,14 +983,6 @@ Debug
     
     Trying to spy the camera_engine addresses seems to cause trouble (camera freeze). 
     Probably it's not safe to read data from those areas.
-
-**Powersave**
-
-  Disable the powersave so that the LiveView never shuts off.
-
-  WARNING -- this can cause problems with your sensor!
-
-  **DO NOT LEAVE THE CAMERA ON CONTINUOUSLY!**
 
 Some items from this menu may not be available in release builds; 
 you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
@@ -1007,7 +1006,9 @@ Main shooting screen (outside LiveView)
 * Kelvin temperature (in the white balance box)
 * WB shift values for BA and GM
 * Flash setting (under clock)
-* HDR setting (under battery icon)
+* `HDR`_ setting (under battery icon)
+* `MLU`_ setting (under ``Q`` icon)
+* `LCD remote`_ status icon: ⨂ ⨀ 〰
 
 MENU->DISP
 ~~~~~~~~~~
@@ -1024,13 +1025,35 @@ MENU->DISP
 * CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units. Before, this was in the Debug menu.
 * Lens name
 
+This info also appears on error displays (e.g. ERR 70).
+
 LiveView
 ~~~~~~~~
 
-* Aperture, shutter, ISO
-* `Spotmeter`_
-* Lens focal length and focus distance: see [[Focus_distance]]
-* Exposure compensation (codenamed AE)
+* Bottom bar:
+
+  * Current shooting mode
+  * Aperture, `shutter`_, `ISO`_, `white balance`_
+  * Lens focal length and focus distance: see [[Focus_distance]]
+  * Exposure compensation (codenamed AE)
+
+* In the middle of the screen:
+
+  * `Spotmeter`_
+
+* Around the recording dot: 
+
+  * `Time remaining display`_
+  * `Bitrate`_ info (instant and average bitrate, and qscale factor)
+
+* Left side:
+
+  * Status for `trap focus`_ / `follow focus`_ / `movie AF`_.
+
+* Top side:
+
+  * `Audio meters`_ and audio input source for each channel
+  * `LCD remote`_ status icon: ⨂ ⨀ 〰
 
 
 Power saving
@@ -1046,7 +1069,7 @@ You can:
 
 Power consumption in movie mode, idle (approximate figures derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
 
-* Camera body (without lens): 360 mA
+* Camera body (without lens), LCD off: 360 mA
 * Lens (Tamron 17-50/2.8): 20 mA
 * LCD backlight at level 1: 40 mA
 * LCD backlight at level 7: 100 mA
@@ -1054,4 +1077,4 @@ Power consumption in movie mode, idle (approximate figures derived from `this te
 * Zebras: around 15 mA
 * Focus peaking: maybe around 25 mA (not tested)
 
-According to `this message <https://bitbucket.org/hudson/magic-lantern/issue/362/turn-display-off-ignored-on-next-movie#comment-382238>`_, by turning display off, the camera will overheat around twice as slow when recording (45 minutes instead of 25 until the overheat indicator appears).
+According to `this message <https://bitbucket.org/hudson/magic-lantern/issue/362/turn-display-off-ignored-on-next-movie#comment-382238>`_, by turning off Global Draw and LCD display, the camera will be able to record over 80 minutes continuously, without overheating (compared with around 30 minutes with default settings and 60 minutes without ML).

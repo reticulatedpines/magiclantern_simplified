@@ -1343,7 +1343,7 @@ wbs_gm_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"WBShift G/M : %s%d", 
-			gm > 0 ? "G" : (gm < 0 ? "M" : ""), 
+			gm > 0 ? "Green " : (gm < 0 ? "Magenta " : ""), 
 			ABS(gm)
 		);
 }

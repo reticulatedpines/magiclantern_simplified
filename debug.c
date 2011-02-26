@@ -12,9 +12,113 @@
 #include "lens.h"
 //#include "lua.h"
 
+static PROP_INT(PROP_EFIC_TEMP, efic_temp );
+static PROP_INT(PROP_GUI_STATE, gui_state);
+static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
+static PROP_INT(PROP_PIC_QUALITY, pic_quality);
+
 extern void bootdisk_disable();
 
 int display_force_off = 0;
+
+
+CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
+int burst_count = 0; // PROP_BURST_COUNT = how many more pics can be taken in burst mode
+
+void set_pic_quality(int q)
+{
+	switch(q)
+	{
+		case PICQ_RAW:
+		case PICQ_RAW_JPG:
+		case PICQ_LARGE_FINE:
+		case PICQ_LARGE_COARSE:
+		case PICQ_MED_FINE:
+		case PICQ_MED_COARSE:
+		case PICQ_SMALL_FINE:
+		case PICQ_SMALL_COARSE:
+			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q OK: %x", q);
+			prop_request_change(PROP_PIC_QUALITY, &q, 4);
+			prop_request_change(PROP_PIC_QUALITY2, &q, 4);
+			prop_request_change(PROP_PIC_QUALITY3, &q, 4);
+			break;
+		default:
+			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q invalid: %x", q);
+	}
+}
+
+int picq_saved = -1;
+void decrease_pic_quality()
+{
+	if (picq_saved == -1) picq_saved = pic_quality; // save only first change
+	
+	int newpicq = 0;
+	switch(pic_quality)
+	{
+		case PICQ_RAW_JPG:
+			newpicq = PICQ_RAW;
+			break;
+		case PICQ_RAW:
+			newpicq = PICQ_LARGE_FINE;
+			break;
+		case PICQ_LARGE_FINE:
+			newpicq = PICQ_MED_FINE;
+			break;
+		//~ case PICQ_MED_FINE:
+			//~ newpicq = PICQ_SMALL_FINE;
+			//~ break;
+		//~ case PICQ_SMALL_FINE:
+			//~ newpicq = PICQ_SMALL_COARSE;
+			//~ break;
+		case PICQ_LARGE_COARSE:
+			newpicq = PICQ_MED_COARSE;
+			break;
+		//~ case PICQ_MED_COARSE:
+			//~ newpicq = PICQ_SMALL_COARSE;
+			//~ break;
+	}
+	if (newpicq) set_pic_quality(newpicq);
+}
+void restore_pic_quality()
+{
+	if (picq_saved != -1) set_pic_quality(picq_saved);
+	picq_saved = -1;
+}
+
+void adjust_burst_pic_quality()
+{
+	if (burst_count < 3) decrease_pic_quality();
+	else if (burst_count >= 3) restore_pic_quality();
+}
+
+PROP_HANDLER(PROP_BURST_COUNT)
+{
+	burst_count = buf[0];
+
+	if (auto_burst_pic_quality)
+	{
+		adjust_burst_pic_quality();
+	}
+
+	return prop_cleanup(token, property);
+}
+
+static void
+auto_burst_pic_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Auto Burst PicQ: %s", 
+		auto_burst_pic_quality ? "ON" : "OFF"
+	);
+}
+
 
 static void
 display_off_print(
@@ -27,13 +131,67 @@ display_off_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Force display off: %s", 
+		"ForceDisplayOFF: %s", 
 		display_force_off ? "Enabled" : "Disabled"
 	);
 }
 
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
+
+int big_clock = 0;
+
+static void
+big_clock_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Big Clock      : %s", 
+		big_clock == 0 ? "OFF" : "ON"
+		//~ big_clock == 1 ? "Clock" :
+		//~ big_clock == 2 ? "Timer (1h)" :
+		//~ big_clock == 3 ? "Timer (1m)" : "err"
+	);
+}
+
+void show_big_clock()
+{
+	if (gui_state != 0) return;
+	if (gui_menu_shown()) return;
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+	if (big_clock == 1)
+	{
+		static int tm_sec_prev = 0;
+		if (now.tm_sec == tm_sec_prev) return;
+		tm_sec_prev = now.tm_sec;
+
+		int ang_hour = (now.tm_hour % 12) * 360 / 12 - 90;
+		int ang_min = now.tm_min * 360 / 60 - 90;
+		int ang_sec = now.tm_sec * 360 / 60 - 90;
+		
+		clrscr();
+		draw_circle(360, 240, 240, COLOR_WHITE);
+		draw_circle(360, 240, 239, COLOR_WHITE);
+		draw_circle(360, 240, 238, COLOR_WHITE);
+		draw_pie(360, 240, 150, ang_hour - 1, ang_hour + 1, COLOR_WHITE);
+		draw_pie(360, 240, 200, ang_min - 1, ang_min + 1, COLOR_WHITE);
+		draw_pie(360, 240, 220, ang_sec - 1, ang_sec + 1, COLOR_RED);
+	}
+	/*else
+	{
+		int ang = (big_clock == 2 ? now.tm_min : now.tm_sec) * 360 / 60 - 90;
+		
+		draw_pie(360, 240, 200, -90, ang, COLOR_RED);
+		draw_pie(360, 240, 200, ang, 270, COLOR_WHITE);
+	}*/
+}
 
 CONFIG_INT("backlight.keys", backlight_keys, 1);
 
@@ -50,8 +208,8 @@ backlight_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Backlight Keys: %s", 
-		backlight_keys ? "ON (IR+U/D)" : "OFF"
+		"Backlight Keys : %s", 
+		backlight_keys ? "ON,IR+U/D" : "OFF"
 	);
 }
 
@@ -62,10 +220,6 @@ void take_screenshot( void * priv )
 	silent_pic_take_lv_dbg();
 }
 
-
-static PROP_INT( PROP_EFIC_TEMP, efic_temp );
-static PROP_INT(PROP_GUI_STATE, gui_state);
-static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 
 /*
 PROP_HANDLER( PROP_HDMI_CHANGE_CODE )
@@ -696,11 +850,7 @@ enable_liveview_print(
 
 static void lv_test(void* priv)
 {
-	//~ uint16_t x = 1;
-	//~ mvrSetPrintMovieLog(&x);
-	//~ int x = mvrGetBufferUsage(MVR_752_STRUCT);
-	//~ bmp_printf(FONT_LARGE, 0, 0, "=> %d  ", x);
-	//draw_pie(360,240,240,0,90);
+	set_pic_quality(PICQ_LARGE_FINE);
 }
 
 void turn_off_display()
@@ -874,7 +1024,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, MVR_752_STRUCT, 32*30);
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && bmp_getpixel(2,10) != 2)
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !big_clock && bmp_getpixel(2,10) != 2)
 		{
 			display_clock();
 			display_shooting_info();
@@ -968,9 +1118,14 @@ debug_loop_task( void ) // screenshot, draw_prop
 		if (display_force_off && !gui_menu_shown() && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed() && k % 100 == 0)
 		{
 			turn_off_display();
-			card_led_blink(1, 20, 0);
+			if (k % 500 == 0) card_led_blink(1, 20, 0);
 		}
-
+		
+		if (big_clock && k % 10 == 0)
+		{
+			show_big_clock();
+		}
+		
 		if (draw_prop)
 		{
 			dbg_draw_props(dbg_last_changed_propindex);
@@ -1024,10 +1179,20 @@ struct menu_entry debug_menus[] = {
 		.display	= backlight_print,
 	},
 	{
+		.priv = &big_clock, 
+		.select = menu_binary_toggle,
+		.display = big_clock_print,
+	},
+	{
+		.priv = &auto_burst_pic_quality, 
+		.select = menu_binary_toggle, 
+		.display = auto_burst_pic_display,
+	},
+/*	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},
+	},*/
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -1045,11 +1210,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	/*{
+	{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
-	}*/
+	}
 /*	{
 		.select = focus_test,
 		.display = focus_print,
@@ -1325,6 +1490,7 @@ dump_task( void )
 		config_filename,
 		global_config ? "YES" : "NO"
 	);*/
+
 
 	// set qscale from the vector of available values
 	qscale_index = mod(qscale_index, COUNT(qscale_values));

@@ -78,10 +78,27 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
     f.write(txt)
     f.close()
 
+def add_menu_items_to_contents(file):
+    txt = ""
+    for l in open(file).readlines():
+        txt += l
+        m = re.match("^\*\*(.*)\*\*\ *$", l)
+        if m:
+            item = m.groups()[0]
+            txt += r"""
+  .. raw:: latex
+      
+      \addcontentsline{toc}{subsubsection}{%s}
+""" % item.replace("**","").replace("_", r"\_")
+    f = open(file,"w")
+    f.write(txt)
+    f.close()
+
 os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 
 fixwikilinks("userguide.rst")
 labelhack("userguide.rst")
+add_menu_items_to_contents("userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex")
 os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' UserGuide.tex")
@@ -97,7 +114,7 @@ os.system(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide.tex")
 
 os.system(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide.tex")
 
-os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
+#~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
 os.system("pdflatex UserGuide.tex")
 os.system("pdflatex UserGuide.tex")
 #os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
