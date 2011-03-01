@@ -559,10 +559,6 @@ menu_handler(
 		gui_stop_menu();
 		return 1;
 
-    case 0x10000000: // PLAY
-		// We don't process it, but dont' let anyone else, either
-		return 0;
-
 	case EVENTID_94:
 		// Generated when buttons are pressed?  Forward it on
 		return 1;
@@ -590,6 +586,7 @@ menu_handler(
 		break;
  
 	case PRESS_INFO_BUTTON:
+    case 0x10000000: // PLAY
 		menu_entry_select( menu, 1 ); // reverse select
 		break;
 
