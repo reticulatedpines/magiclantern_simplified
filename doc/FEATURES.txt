@@ -69,6 +69,8 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
+* Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a SET press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
+* ``DISP`` in LiveView has 3 extra display modes specific to ML, which are fully customizable from `LiveV`_ menu. Each display mode has its own set of LiveV settings.
 * LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
 * LCD sensor + ``UP / DOWN``: see `Backlight Keys`_ (adjust LCD backlight level).
 * LCD sensor + Arrows: see `Follow Focus`_.
@@ -77,7 +79,7 @@ These buttons have special meaning with Magic Lantern:
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``ERASE``: display Magic Lantern menu.
-* Arrows, ``SET, DISP, Q``: ML menu navigation (see below).
+* Arrows, ``SET, DISP, Q, PLAY``: ML menu navigation (see below).
 
 
 Menu options
@@ -85,6 +87,8 @@ Menu options
 
 Press ERASE button to show the menu. Use arrows to navigate, ``SET`` to change values forwards
 and ``DISP`` to change values backwards. Some options may also use the ``Q`` button, or may have a different meaning for ``DISP``.
+
+For one-handed navigation in ML menu, ``PLAY`` is the same as ``DISP``.
 
 Audio
 ~~~~~

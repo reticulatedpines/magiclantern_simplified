@@ -51,3 +51,14 @@ These settings can not be changed from the ML menu, so they are documented here:
     # 100,200,400,800,1600,3200,6400,12800,25600,
     # 160,320,640,1250,2500.
     iso.round.only = 1
+
+.. _set.on.halfshutter:
+
+::
+
+    # Emulate a SET press when you press the shutter half-way 
+    # in photo dialogs and menu (so all dialogs like WB, self-timer, 
+    # AF mode, flash setting etc. will behave like the ISO one)
+    #
+    # Set it on 0 to restore default firmware behavior
+    set.on.halfshutter = 1
