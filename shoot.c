@@ -49,7 +49,7 @@ CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
-CONFIG_INT( "lcd.release", lcd_release_running, 3);
+CONFIG_INT( "lcd.release", lcd_release_running, 0);
 CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
 
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
@@ -2388,7 +2388,7 @@ shoot_task( void )
 				//~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
 			}
 		}
-		if (zoom_disable_x5 && lv_dispsize == 5 && !silent_pic_highres) //silent_pic_highres needs x5 zoom
+		if (zoom_disable_x5 && lv_dispsize == 5)
 		{
 			int zoom = 10;
 			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
@@ -2547,5 +2547,3 @@ shoot_task( void )
 }
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x18, 0x1000 );
-
-
