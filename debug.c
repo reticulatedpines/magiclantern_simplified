@@ -276,7 +276,8 @@ mvr_time_const_display(
 }
 
 
-CONFIG_INT( "debug.draw-prop",		draw_prop, 0 );
+int draw_prop = 0;
+
 CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
 
 static void
@@ -293,9 +294,9 @@ draw_prop_reset( void * priv )
 }
 
 
-CONFIG_INT( "debug.mem-spy",		mem_spy, 0 );
+int mem_spy = 0;
 CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0xc052 ); // start from here
+CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
 CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );     // look at ### int32's
 CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
 CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
@@ -850,7 +851,31 @@ enable_liveview_print(
 
 static void lv_test(void* priv)
 {
-	set_pic_quality(PICQ_LARGE_FINE);
+	fake_simple_button(BGMT_MENU);
+	msleep(200);
+	fake_simple_button(BGMT_MENU);
+	msleep(200);
+}
+
+void fake_simple_button(int bgmt_code)
+{
+	struct event e = {
+		.type = 0,
+		.param = bgmt_code, 
+		.obj = 0,
+		.arg = 0,
+	};
+	GUI_CONTROL(&e);
+}
+
+// not very elegant, but seems to work
+void lv_redraw()
+{
+	if (recording) return;
+	int x = 5;
+	prop_request_change(PROP_LV_DISPSIZE, &x, 4);
+	x = 1;
+	prop_request_change(PROP_LV_DISPSIZE, &x, 4);
 }
 
 void turn_off_display()
@@ -1210,11 +1235,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	{
+	/*{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
-	}
+	}*/
 /*	{
 		.select = focus_test,
 		.display = focus_print,

@@ -165,6 +165,7 @@ NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)
 
 NSTUB( 0xFF020450, GUI_ChangeMode )
+//NSTUB( 0xFF020350, GUI_Control)
 
 NSTUB( 0xFF2DF524, AJ_guess_LED_ON )
 NSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
@@ -173,12 +174,14 @@ NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )
 NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
 NSTUB( 0xFF07C6A0, DispSensorStart )
 
+NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
+NSTUB( 0xFF020760, GUI_CONTROL )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )
 NSTUB( 0xFF095A30, gui_change_shoot_type_post )
 NSTUB( 0xFF095AC8, gui_change_lcd_state_post )
-NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
 NSTUB( 0xFF1D2760, gui_timer_something )
 // FF2B4C10, gui_task_create    ?
 #endif

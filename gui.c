@@ -31,6 +31,7 @@
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
+static PROP_INT(PROP_HOUTPUT_TYPE, houtput_type);
 
 int button_menu_on = BGMT_TRASH;
 int button_menu_off = BGMT_TRASH;
@@ -75,6 +76,8 @@ struct gui_timer_struct
 extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
+
+CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -180,6 +183,24 @@ static int handle_buttons(struct event * event)
 	{
 		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
 		if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
+	}
+	
+	// force a SET press in photo mode when you adjust the settings and press half-shutter
+	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv_drawn())
+	{
+		fake_simple_button(BGMT_PRESS_SET);
+		msleep(50);
+		fake_simple_button(BGMT_UNPRESS_SET);
+		msleep(50);
+	}
+	
+	// override DISP button in LiveView mode
+	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
+	{
+		if (houtput_type == 0)
+		{
+			return toggle_disp_mode();
+		}
 	}
 	return 1;
 }
