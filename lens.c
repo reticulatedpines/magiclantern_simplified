@@ -141,6 +141,7 @@ update_lens_display(
 {
 	if (get_halfshutter_pressed()) return;
 	if (gui_menu_shown()) return;
+	if (LV_ADJUSTING_ISO) return;
 	
 	int bg = bmp_getpixel(1,479);
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
@@ -148,6 +149,7 @@ update_lens_display(
 	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	unsigned height	= fontspec_height( font );
 
+	if (lv_disp_mode) return;
 	
 	// Needs to be 720 - 8 * 12
 	unsigned x = 420;
@@ -155,14 +157,13 @@ update_lens_display(
 	static unsigned prev_y = 0;
 	if (ext_monitor_hdmi && !recording) y += 100;
 	
-	if (y != prev_y)
-	{
-		bmp_fill(0, 0, prev_y - 5, 720, font_med.height + 10);
-	}
+	//~ if (y != prev_y)
+	//~ {
+		//~ bmp_fill(0, 0, prev_y - 5, 720, font_med.height + 10);
+	//~ }
 
 	prev_y = y;
 
-	bmp_printf( font, x, y, "%5d mm", info->focal_len );
 	
 	//~ y += height;
 	x = 520;
@@ -191,18 +192,23 @@ update_lens_display(
 			shooting_mode == SHOOTMODE_MOVIE ? "Mv" : "?"
 		);
 
-	x += 40;
-	if( info->aperture )
-		bmp_printf( font, x, y,
-			"f/%2d.%d",
-			info->aperture / 10,
-			info->aperture % 10
-		);
+	x += 50;
+	bmp_printf( font, x, y,
+		"DISP %d", get_disp_mode()
+	);
 
 	x += 100;
+	bmp_printf( font, x, y,
+		"%d/%d.%d  ",
+		info->focal_len,
+		info->aperture / 10,
+		info->aperture % 10
+	);
+
+	x += 120;
 	if( info->shutter )
 		bmp_printf( font, x, y,
-			"1/%4d",
+			"1/%d  ",
 			info->shutter
 		);
 	else
@@ -225,20 +231,20 @@ update_lens_display(
 	x += 110;
 	if( info->wb_mode == WB_KELVIN )
 		bmp_printf( font, x, y,
-			"WB%5dK",
+			"%5dK",
 			info->kelvin
 		);
 	else
 		bmp_printf( font, x, y,
-			"WB:%s",
-			(lens_info.wb_mode == 0 ? "Auto " : 
-			(lens_info.wb_mode == 1 ? "Sunny" :
-			(lens_info.wb_mode == 2 ? "Cloud" : 
-			(lens_info.wb_mode == 3 ? "Tungs" : 
-			(lens_info.wb_mode == 4 ? "CFL  " : 
-			(lens_info.wb_mode == 5 ? "Flash" : 
-			(lens_info.wb_mode == 6 ? "Custm" : 
-			(lens_info.wb_mode == 8 ? "Shade" :
+			"%s",
+			(lens_info.wb_mode == 0 ? "AutoWB" : 
+			(lens_info.wb_mode == 1 ? "Sunny " :
+			(lens_info.wb_mode == 2 ? "Cloudy" : 
+			(lens_info.wb_mode == 3 ? "Tungst" : 
+			(lens_info.wb_mode == 4 ? "CFL   " : 
+			(lens_info.wb_mode == 5 ? "Flash " : 
+			(lens_info.wb_mode == 6 ? "Custom" : 
+			(lens_info.wb_mode == 8 ? "Shade " :
 			 "unk"))))))))
 		);
 

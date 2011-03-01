@@ -44,6 +44,11 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
+CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x85980);
+CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x95020);
+CONFIG_INT("disp.mode.ccc", disp_mode_c, 0x88090);
+CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x84020);
+
 CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
@@ -1593,8 +1598,13 @@ static void find_cropmarks()
 	} while( FIO_FindNextEx( dirent, &file ) == 0);
 	num_cropmarks = k;
 }
-static void load_cropmark(int i)
+static void reload_cropmark(int i)
 {
+	static int old_i = -1;
+	if (i == old_i) return; 
+	old_i = i;
+	//~ bmp_printf(FONT_LARGE, 0, 100, "reload crop: %d", i);
+
 	if (cropmarks)
 	{
 		cropmark_draw(1); // delete old cropmark from screen
@@ -1616,7 +1626,7 @@ static void
 crop_toggle( int sign )
 {
 	crop_draw = mod(crop_draw + sign, num_cropmarks + 1);  // 0 = off, 1..num_cropmarks = cropmarks
-	load_cropmark(crop_draw);
+	reload_cropmark(crop_draw);
 }
 
 static void crop_toggle_forward(void* priv)
@@ -2410,7 +2420,6 @@ zebra_task( void )
 	msleep(3000);
 	
 	find_cropmarks();
-	load_cropmark(crop_draw);
 	int k;
 
 	while(1)
@@ -2419,6 +2428,9 @@ zebra_task_loop:
 		k++;
 		
 		msleep(10); // safety msleep :)
+
+		reload_cropmark(crop_draw);
+
 		if (cropmarks && cropmark_playback && gui_state == GUISTATE_PLAYMENU)
 		{
 			cropmark_redraw();
@@ -2467,6 +2479,12 @@ zebra_task_loop:
 			clrscr_mirror();
 			while (gui_menu_shown()) msleep(100);
 			crop_dirty = 1;
+			update_disp_mode_bits_from_params();
+		}
+		else
+		{
+			if (update_disp_mode_params_from_bits())  // update settings if DISP mode was changed
+				k = 0; // and force a quick redraw of slow elements (like histogram and waveform)
 		}
 		
 		if (get_halfshutter_pressed()) display_on();
@@ -2514,9 +2532,9 @@ zebra_task_loop:
 					struct vram_info * vram = get_yuv422_vram();
 					hist_build(vram->vram, vram->width, vram->pitch);
 				}
-				if( hist_draw )
+				if( hist_draw && lv_dispsize == 1 )
 					hist_draw_image( hist_x, hist_y );
-				if( waveform_draw )
+				if( waveform_draw && lv_dispsize == 1 )
 					waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
 			}
 
@@ -2580,3 +2598,84 @@ movie_clock_task( void )
 }
 
 TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x17, 0x1000 );
+
+
+// 0b11001100 11001100 11001100 11001100
+//                                  **** cropmarks
+//                                **     zebra
+//                              **       histogram
+//                           **          waveform
+//                         **            false color
+//                       **              spotmeter
+//                     **                clrscr
+//                  **                   global draw
+//                **                     focus peak
+//              **                       focus graph
+
+int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &focus_graph, &global_draw};
+int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1           , 1};
+
+int disp_mode = 0;
+void update_disp_mode_bits_from_params()
+{
+	int i;
+	int off = 0;
+	uint32_t bits = 0;
+	for (i = 0; i < COUNT(disp_mode_params); i++)
+	{
+		int b = disp_mode_bits[i];
+		bits = bits | (((*(disp_mode_params[i])) & ((1 << b) - 1)) << off);
+		off += b;
+	}
+	
+	if (disp_mode == 1) disp_mode_a = bits;
+	else if (disp_mode == 2) disp_mode_b = bits;
+	else if (disp_mode == 3) disp_mode_c = bits;
+	else disp_mode_x = bits;
+	
+	//~ bmp_printf(FONT_MED, 0, 50, "mode: %d", disp_mode);
+	//~ bmp_printf(FONT_MED, 0, 50, "a=%8x b=%8x c=%8x x=%8x", disp_mode_a, disp_mode_b, disp_mode_c, disp_mode_x);
+}
+
+int update_disp_mode_params_from_bits()
+{
+	uint32_t bits = disp_mode == 1 ? disp_mode_a : 
+	                disp_mode == 2 ? disp_mode_b :
+	                disp_mode == 3 ? disp_mode_c : disp_mode_x;
+	
+	static uint32_t old_bits = 0xffffffff;
+	if (bits == old_bits) return 0;
+	old_bits = bits;
+	
+	int i;
+	int off = 0;
+	for (i = 0; i < COUNT(disp_mode_params); i++)
+	{
+		int b = disp_mode_bits[i];
+		*(disp_mode_params[i]) = (bits >> off) & ((1 << b) - 1);
+		off += b;
+	}
+	
+	bmp_on();
+	return 1;
+}
+
+int get_disp_mode() { return disp_mode; }
+
+int toggle_disp_mode()
+{
+	disp_mode = mod(disp_mode + 1, 4);
+	//~ if (lv_disp_mode != 0 && disp_mode == 0) disp_mode = 1;
+	
+	//~ bmp_printf(FONT_LARGE, 150, 100, "LiveV disp mode: %d", disp_mode);
+	//~ msleep(500);
+	//~ bmp_printf(FONT_LARGE, 150, 100, "                     ");
+	
+	//~ update_disp_mode_params_from_bits();
+	
+	clrscr();
+	lv_redraw();
+	update_disp_mode_params_from_bits();
+
+	return disp_mode == 0;
+}
