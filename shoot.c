@@ -54,6 +54,8 @@ CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
 
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
+CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
+
 int intervalometer_running = 0;
 int audio_release_running = 0;
 
@@ -69,10 +71,25 @@ PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 PROP_INT(PROP_LVAF_MODE, lvaf_mode);
-PROP_INT(PROP_GUI_STATE, gui_state);
+//~ PROP_INT(PROP_GUI_STATE, gui_state);
 PROP_INT(PROP_REMOTE_SW1, remote_sw1);
+PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 
-int timer_values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100,110, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 600, 650, 700, 750, 800, 850, 900, 1000, 1120, 1240, 1360, 1480, 1600, 1720, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3300, 3600, 4500, 5400, 6300, 7200, 8100, 9000, 9900, 10800, 11700, 12600, 13500, 14400, 15300, 16200, 17100, 18000, 19800, 21600, 23400, 25200, 27000, 28800};
+int gui_state = 0;
+CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 1);
+PROP_HANDLER(PROP_GUI_STATE)
+{
+	gui_state = buf[0];
+
+	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom && !intervalometer_running)
+	{
+		fake_simple_button(BGMT_PLAY);
+	}
+
+	return prop_cleanup(token, property);
+}
+
+int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100,110, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 600, 650, 700, 750, 800, 850, 900, 1000, 1120, 1240, 1360, 1480, 1600, 1720, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3300, 3600, 4500, 5400, 6300, 7200, 8100, 9000, 9900, 10800, 11700, 12600, 13500, 14400, 15300, 16200, 17100, 18000, 19800, 21600, 23400, 25200, 27000, 28800};
 int timer_values_ms[] = {100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 30000, 50000, 60000, 120000, 180000, 300000, 600000, 900000, 1800000};
 
 typedef int (*CritFunc)(int);
@@ -93,13 +110,20 @@ interval_timer_display( void * priv, int x, int y, int selected )
 	if (shooting_mode != SHOOTMODE_MOVIE || silent_pic_mode)
 	{
 		int d = timer_values[*(int*)priv];
-		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
-			x, y,
-			"Take a pic every: %d%s",
-			d < 60 ? d : d/60, 
-			d < 60 ? "s" : "min"
-		);
+		if (!d)
+			bmp_printf(
+				selected ? MENU_FONT_SEL : MENU_FONT,
+				x, y,
+				"Take pics like crazy"
+			);
+		else
+			bmp_printf(
+				selected ? MENU_FONT_SEL : MENU_FONT,
+				x, y,
+				"Take a pic every: %d%s",
+				d < 60 ? d : d/60, 
+				d < 60 ? "s" : "min"
+			);
 	}
 	else
 	{
@@ -137,11 +161,14 @@ interval_movie_duration_toggle( void * priv )
 static void 
 intervalometer_display( void * priv, int x, int y, int selected )
 {
+	int p = *(int*)priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Intervalometer  : %s",
-		(*(int*)priv) ? "ON" : "OFF"
+		"Intervalometer  : %s%s",
+		p ? "ON" : "OFF",
+		p ? (intervalometer_wait ? ",Wait" : ",NoWait") : ""
+		
 	);
 }
 
@@ -1800,6 +1827,12 @@ mlu_display( void * priv, int x, int y, int selected )
 	);
 }
 
+static void 
+intervalometer_wait_toggle(void* priv)
+{
+	intervalometer_wait = !intervalometer_wait;
+}
+
 
 struct menu_entry shoot_menus[] = {
 	{
@@ -1819,6 +1852,7 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
+		.select_auto = intervalometer_wait_toggle,
 	},
 	{
 		.priv		= &lcd_release_running,
@@ -2060,7 +2094,7 @@ hdr_take_mov(steps, step_size)
 
 // take a HDR shot (sequence of stills or a small movie)
 // to be used with the intervalometer
-void hdr_shot(int skip0)
+void hdr_shot(int skip0, int wait)
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
 	//~ msleep(2000);
@@ -2072,7 +2106,7 @@ void hdr_shot(int skip0)
 	{
 		hdr_take_mov(hdr_steps, hdr_stepsize);
 	}
-	else
+	else if (hdr_steps > 1)
 	{
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 			lens_set_drivemode(DRIVE_CONTINUOUS);
@@ -2081,6 +2115,18 @@ void hdr_shot(int skip0)
 		else
 			hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
 		while (lens_info.job_state) msleep(500);
+	}
+	else // regular pic
+	{
+		if (wait)
+		{
+			hdr_take_pics(0,0,0);
+		}
+		else
+		{
+			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_nowait();
+			else silent_pic_take(0);
+		}
 	}
 }
 
@@ -2100,7 +2146,7 @@ void remote_shot()
 	}
 	else if (hdr_steps > 1)
 	{
-		hdr_shot(0);
+		hdr_shot(0,1);
 	}
 	else
 	{
@@ -2285,6 +2331,30 @@ void display_lcd_remote_info()
 }
 
 
+void intervalometer_stop()
+{
+	if (intervalometer_running)
+	{
+		bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Stopped                                             ");
+		intervalometer_running = 0;
+		display_on();
+	}
+}
+
+// this syncs with real-time clock
+void wait_till_next_second()
+{
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+	int s = now.tm_sec;
+	
+	while (now.tm_sec == s)
+	{
+		LoadCalendarFromRTC( &now );
+		msleep(20);
+	}
+}
+
 static void
 shoot_task( void )
 {
@@ -2297,15 +2367,6 @@ shoot_task( void )
 	while(1)
 	{
 		msleep(10);
-		if (gui_state == GUISTATE_PLAYMENU || gui_state == GUISTATE_MENUDISP)
- 		{
-			if (intervalometer_running)
-			{
-				bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Stopped                                             ");
-			}
-			intervalometer_running = 0;
-			display_on();
-		}
 		
 		if (wave_count_countdown)
 		{
@@ -2427,7 +2488,7 @@ shoot_task( void )
 
 		if (lens_info.job_state) // just took a picture, maybe we should take another one
 		{
-			if (hdr_steps > 1) hdr_shot(1); // skip the middle exposure, which was just taken
+			if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
 		}
 
 		// toggle flash on/off for next picture
@@ -2483,12 +2544,16 @@ shoot_task( void )
 		{
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			
-			card_led_blink(5, 50, 50);
-			msleep(500);  // total 1 second
+			if (timer_values[interval_timer_index])
+			{
+				card_led_blink(5, 50, 50);
+				wait_till_next_second();
+			}
 			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-			
-			hdr_shot(0);
+			if (get_halfshutter_pressed()) continue;
+
+			hdr_shot(0, intervalometer_wait);
 			
 			if (lv_drawn()) // simulate a half-shutter press to avoid mirror going up
 			{
@@ -2499,7 +2564,7 @@ shoot_task( void )
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				card_led_blink(1, 50, 0);
-				msleep(1000);
+				wait_till_next_second();
 
 				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
 				else break;

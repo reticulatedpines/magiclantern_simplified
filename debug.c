@@ -13,24 +13,9 @@
 //#include "lua.h"
 
 static PROP_INT(PROP_EFIC_TEMP, efic_temp );
-//~ static PROP_INT(PROP_GUI_STATE, gui_state);
+static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static PROP_INT(PROP_PIC_QUALITY, pic_quality);
-static PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
-
-int gui_state = 0;
-CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 1);
-PROP_HANDLER(PROP_GUI_STATE)
-{
-	gui_state = buf[0];
-
-	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom)
-	{
-		fake_simple_button(BGMT_PLAY);
-	}
-
-	return prop_cleanup(token, property);
-}
 
 extern void bootdisk_disable();
 

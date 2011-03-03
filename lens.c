@@ -368,6 +368,22 @@ lens_take_picture(
 	return lens_info.job_state;
 }
 
+void
+lens_take_picture_nowait()
+{
+	if ((af_mode & 0xF) == 3 )
+	{
+		SW1(1,10); // those work well with bracketing, but fail if AF is on
+		SW2(1,200);
+		SW2(0,10);
+		SW1(0,10);
+	}
+	else
+	{
+		call( "Release", 0 ); // this works with AF but skips frames in bracketing
+	}
+}
+
 int lens_take_picture_forced()
 {
 	msleep(200);

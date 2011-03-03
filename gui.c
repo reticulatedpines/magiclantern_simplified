@@ -215,6 +215,11 @@ static int handle_buttons(struct event * event)
 			return toggle_disp_mode();
 		}
 	}
+	
+	// stop intervalometer with MENU or PLAY
+	if (event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY))
+		intervalometer_stop();
+	
 	return 1;
 }
 

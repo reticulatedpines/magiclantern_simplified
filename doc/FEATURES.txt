@@ -543,6 +543,8 @@ Functions for stills shooting (some of them work for movies, too).
 **Take a pic every X seconds** / **Record Y seconds, pause X seconds**
 
   Change the intervalometer settings (first setting appears in photo mode, second appears in movie mode).
+  
+  There is also a mode named ``Take pics like crazy``, which does exactly that. This is the best tool for killing your shutter.
 
 **Intervalometer: ON/OFF**
 
@@ -550,19 +552,26 @@ Functions for stills shooting (some of them work for movies, too).
 
   Start/stop intervalometer.
   
-  * In photo mode, it takes a sequence of photos with a fixed delay. 
+  * In photo mode, it takes a sequence of photos with a fixed rate or delay (toggle with ``Q``):
+  
+    - ``Wait``: intervalometer waits until the picture is taken and saved to card, then starts counting the time for the next picture (default, fixed delay with 1-second resolution).
+    - ``NoWait``: timer for next shot starts as soon as current shot was triggered (it does not wait for exposure to finish, nor for picture to be saved). This ensures precise timing between shots (fixed rate). If the total time required for taking a picture is larger than the interval between two shots, it will miss some frames.
+
+    The ``Wait/NoWait`` setting has no effect in movie, `HDR`_ or `bulb timer`_ modes.
+
   * In movie mode, it takes a sequence of small videos
   
     - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
     - To use the intervalometer in movie mode, make sure `Silent Picture`_ is ``OFF``.
-
-  You can stop the intervalometer either frrom ML menu, or by pressing ``PLAY`` or ``MENU``.
+  
+  You can stop the intervalometer either from ML menu, or by pressing MENU or PLAY. You can pause the intervalometer by holding the shutter halfway.
   
   Tips:
   
   * Shoot in manual mode and switch the lens to MF.
   * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
   * Do not use the intervalometer in LiveView with "noisy" mode (otherwise your shutter will wear twice as fast than outside LV).
+  * If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
 
   Power Saving:
   

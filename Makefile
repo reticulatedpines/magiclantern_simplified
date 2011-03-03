@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=ui-tweaks.$(shell whoami)
+BUILDVER=intervalometer+zoom.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -265,7 +265,7 @@ STDIO_OBJ = \
 	lib_a-strncpy.o \
 	lib_a-strstr.o \
 	lib_a-strcasestr.o \
-	lib_a-strncasecmp.o \ 
+	lib_a-strncasecmp.o \
 	lib_a-strcspn.o \
 	lib_a-memcmp.o \
 	lib_a-strcoll.o \

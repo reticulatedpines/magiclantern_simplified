@@ -44,10 +44,10 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
-CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x85980);
-CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x95020);
-CONFIG_INT("disp.mode.ccc", disp_mode_c, 0x88090);
-CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x84020);
+CONFIG_INT("disp.mode.aaa", disp_mode_a, 547200);
+CONFIG_INT("disp.mode.bbb", disp_mode_b, 612352);
+CONFIG_INT("disp.mode.ccc", disp_mode_c, 557200);
+CONFIG_INT("disp.mode.xxx", disp_mode_x, 547872);
 
 CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
