@@ -1584,7 +1584,7 @@ static void find_cropmarks()
 	}
 	int k = 0;
 	do {
-		char* s = strstr(file.name, ".BMP");
+		char* s = strcasestr(file.name, ".BMP");
 		if (s && !strstr(file.name, "~"))
 		{
 			if (k >= MAX_CROPMARKS)

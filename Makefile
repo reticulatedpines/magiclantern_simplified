@@ -264,6 +264,8 @@ STDIO_OBJ = \
 	lib_a-strncmp.o \
 	lib_a-strncpy.o \
 	lib_a-strstr.o \
+	lib_a-strcasestr.o \
+	lib_a-strncasecmp.o \ 
 	lib_a-strcspn.o \
 	lib_a-memcmp.o \
 	lib_a-strcoll.o \
