@@ -2327,6 +2327,8 @@ static void draw_movie_bars()
 PROP_HANDLER(PROP_LV_ACTION)
 {
 	crop_dirty = 10;
+	if (buf[0] == 0) ChangeColorPalette(2);
+
 	return prop_cleanup( token, property );
 }
 
@@ -2456,7 +2458,7 @@ zebra_task_loop:
 			{
 				// there's a beautiful message saying "This function is not available in movie mode"
 				// but users want to get rid of this
-				if (shooting_mode == SHOOTMODE_MOVIE && !recording)
+				if (shooting_mode == SHOOTMODE_MOVIE && !recording && falsecolor_draw == 2)
 				{
 					bmp_fill(0, 0, 330, 720, 480-330);
 					msleep(50);
@@ -2507,7 +2509,7 @@ zebra_task_loop:
 		}
 		else if (clearpreview == 2) // always clear overlays
 		{ // in this mode, BMP & global_draw are disabled, but Canon code may draw on the screen
-			if (gui_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed() && !falsecolor_displayed && !LV_ADJUSTING_ISO) 
+			if (gui_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed() && !falsecolor_displayed && !LV_BOTTOM_BAR_DISPLAYED) 
 			{
 				bmp_off();
 			}

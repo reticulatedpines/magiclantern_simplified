@@ -44,6 +44,10 @@ int get_halfshutter_pressed()
 	return halfshutter_pressed; 
 }
 
+int zoom_in_pressed = 0;
+int zoom_out_pressed = 0;
+int get_zoom_in_pressed() { return zoom_in_pressed; }
+int get_zoom_out_pressed() { return zoom_out_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -193,6 +197,15 @@ static int handle_buttons(struct event * event)
 		fake_simple_button(BGMT_UNPRESS_SET);
 		msleep(50);
 	}
+	
+	// for faster zoom in in Play mode
+	if (event->type == 0)
+	{
+		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
+		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
+		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+ 	}
 	
 	// override DISP button in LiveView mode
 	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)

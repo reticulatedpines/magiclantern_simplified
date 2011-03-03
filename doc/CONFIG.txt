@@ -62,3 +62,12 @@ These settings can not be changed from the ML menu, so they are documented here:
     #
     # Set it on 0 to restore default firmware behavior
     set.on.halfshutter = 1
+
+.. _quick.review.allow.zoom:
+
+::
+
+    # Allow zoom in Quick Review mode (only works when Image Review = Hold)
+    # This works by faking a Play button press after you take a pic.
+    # Side effect: some delay until you see the picture after you take it
+    quick.review.allow.zoom = 1

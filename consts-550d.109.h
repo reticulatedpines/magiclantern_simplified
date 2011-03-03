@@ -55,6 +55,7 @@
 #define BGMT_MENU 6
 #define BGMT_DISP 7
 #define BGMT_Q 8
+#define BGMT_PLAY 9
 
 #define BGMT_PRESS_HALFSHUTTER 0x3F
 #define BGMT_UNPRESS_HALFSHUTTER 0x40
@@ -75,7 +76,7 @@
 
 #define AJ_LCD_Palette 0x2CDB0
 
-#define LV_ADJUSTING_ISO ((*(int*)0x5780) == 0xF)
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
 
 #define COLOR_FG_NONLV 80
 

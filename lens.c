@@ -133,6 +133,7 @@ PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 static int recording = 0;
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+static PROP_INT(PROP_GUI_STATE, gui_state);
 
 static void
 update_lens_display(
@@ -141,7 +142,8 @@ update_lens_display(
 {
 	if (get_halfshutter_pressed()) return;
 	if (gui_menu_shown()) return;
-	if (LV_ADJUSTING_ISO) return;
+	if (LV_BOTTOM_BAR_DISPLAYED) return;
+	if (gui_state != GUISTATE_IDLE) return;
 	
 	int bg = bmp_getpixel(1,479);
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);

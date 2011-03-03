@@ -252,6 +252,8 @@
 #define PICQ_SMALL_FINE   0x3010200
 #define PICQ_SMALL_COARSE 0x2010200
 
+#define PROP_IMAGE_REVIEW_TIME 0x02020006 // 0, 2, 4, 8, ff
+
 /** Properties */
 extern void
 prop_register_slave(

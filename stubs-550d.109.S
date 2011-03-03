@@ -177,6 +177,8 @@ NSTUB( 0xFF07C6A0, DispSensorStart )
 NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
 NSTUB( 0xFF020760, GUI_CONTROL )
 
+NSTUB( 0xFF31CFCC, ChangeColorPalette )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )

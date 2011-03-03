@@ -13,14 +13,28 @@
 //#include "lua.h"
 
 static PROP_INT(PROP_EFIC_TEMP, efic_temp );
-static PROP_INT(PROP_GUI_STATE, gui_state);
+//~ static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static PROP_INT(PROP_PIC_QUALITY, pic_quality);
+static PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
+
+int gui_state = 0;
+CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 1);
+PROP_HANDLER(PROP_GUI_STATE)
+{
+	gui_state = buf[0];
+
+	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom)
+	{
+		fake_simple_button(BGMT_PLAY);
+	}
+
+	return prop_cleanup(token, property);
+}
 
 extern void bootdisk_disable();
 
 int display_force_off = 0;
-
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 int burst_count = 0; // PROP_BURST_COUNT = how many more pics can be taken in burst mode
@@ -851,10 +865,9 @@ enable_liveview_print(
 
 static void lv_test(void* priv)
 {
-	fake_simple_button(BGMT_MENU);
-	msleep(200);
-	fake_simple_button(BGMT_MENU);
-	msleep(200);
+	static int x = 0;
+	ChangeColorPalette(x);
+	x++;
 }
 
 void fake_simple_button(int bgmt_code)
@@ -1047,7 +1060,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, MVR_752_STRUCT, 32*30);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x20150, 32*5);
+		//~ bmp_printf(FONT_MED, 0, 0, "bidt=%8x pal=%8x", *(int*)0x20164, *(int*)132004);
 		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !big_clock && bmp_getpixel(2,10) != 2)
 		{
@@ -1146,6 +1160,22 @@ debug_loop_task( void ) // screenshot, draw_prop
 			if (k % 500 == 0) card_led_blink(1, 20, 0);
 		}
 		
+		// faster zoom in play mode
+		if (gui_state == GUISTATE_PLAYMENU)
+		{
+			if (get_zoom_in_pressed()) 
+			{
+				msleep(300);
+				while (get_zoom_in_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+			}
+			
+			if (get_zoom_out_pressed())
+			{
+				msleep(300);
+				while (get_zoom_out_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
+			}
+		}
+
 		if (big_clock && k % 10 == 0)
 		{
 			show_big_clock();
