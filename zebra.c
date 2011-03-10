@@ -64,7 +64,7 @@ CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 
-CONFIG_INT( "focus.graph", focus_graph, 0);
+//~ CONFIG_INT( "focus.graph", focus_graph, 0);
 //~ int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
@@ -1768,6 +1768,7 @@ crop_display( void * priv, int x, int y, int selected )
 	);
 }
 
+/*
 static void
 focus_graph_display( void * priv, int x, int y, int selected )
 {
@@ -1777,9 +1778,7 @@ focus_graph_display( void * priv, int x, int y, int selected )
 		"Focus Graph : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
-}
-
-int get_focus_graph() { return focus_graph; }
+}*/
 
 static void
 edge_display( void * priv, int x, int y, int selected )
@@ -2100,11 +2099,11 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 	},
-	{
+	/*{
 		.priv			= &focus_graph,
 		.display		= focus_graph_display,
 		.select			= menu_binary_toggle,
-	},
+	},*/
 	//~ {
 		//~ .display		= crop_off_display,
 		//~ .select			= crop_off_toggle,
@@ -2610,7 +2609,8 @@ TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x17, 0x1000 );
 //                **                     focus peak
 //              **                       focus graph
 
-int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &focus_graph, &global_draw};
+int unused;
+int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw};
 int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1           , 1};
 
 int disp_mode = 0;

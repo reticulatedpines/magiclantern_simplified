@@ -453,6 +453,8 @@ CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 int movie_af_stepsize = 10;
 
+int get_focus_graph() { return movie_af || get_trap_focus() || get_follow_focus_stop_on_focus(); }
+
 static void
 movie_restart_print(
 	void *			priv,
@@ -981,26 +983,18 @@ PROP_HANDLER(PROP_SHUTTER)
 
 void lv_test(void* priv)
 {
-	movie_start();
-	msleep(1000);
-	aperiso_init();
-	
-	int i;
-	for (i = 0; i < 12; i++)
-	{
-		aperiso_close(0);
-		msleep(500);
-	}
-	msleep(2000);
-	for (i = 0; i < 12; i++)
-	{
-		aperiso_open(0);
-		msleep(500);
-	}
+	struct vram_info *	vram = get_yuv422_vram();
 
-	msleep(2000);
-	movie_end();
-	msleep(2000);
+	if( !vram->vram )
+		return;
+	uint16_t*		vr = vram->vram;
+	unsigned		width = vram->width;
+	
+	int x,y;
+	for (x = 0; x < 50; x++)
+		for (y = 0; y < 50; y++)
+			vr[ x + y * width ] = 0;
+	
 }
 
 void fake_simple_button(int bgmt_code)

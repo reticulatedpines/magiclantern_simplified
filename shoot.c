@@ -207,6 +207,8 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	);
 }
 
+int get_trap_focus() { return trap_focus; }
+
 void set_flash_firing(int mode)
 {
 	DEBUG("%d", mode);
