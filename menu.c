@@ -42,7 +42,7 @@ void menu_show_only_selected()
 	show_only_selected = 1;
 }
 
-CONFIG_INT( "debug.draw-event", draw_event, 0 );
+int draw_event = 0;
 CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
 
 static void

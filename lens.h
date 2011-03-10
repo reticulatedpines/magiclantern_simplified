@@ -128,7 +128,7 @@ lens_set_rawiso(
 )
 {
 	prop_request_change( PROP_ISO, &iso, 4 );
-	msleep(100);
+	//~ msleep(100);
 }
 
 

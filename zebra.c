@@ -56,6 +56,7 @@ CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
+CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
 int falsecolor_displayed = 0;
 
@@ -134,6 +135,12 @@ uint8_t false_colour[256] = {
 
 
 int crop_dirty = 0;
+
+void crop_set_dirty(int value)
+{
+	crop_dirty = value;
+}
+
 int ext_monitor_rca = 0;
 int ext_monitor_hdmi = 0;
 int lv_dispsize = 1;
@@ -2041,33 +2048,6 @@ void hdmi_test_toggle(void* priv)
 	ext_monitor_hdmi = !ext_monitor_hdmi;
 }
 
-int crop_offset = -40;
-void crop_off_toggle(void* priv)
-{
-	crop_offset++;
-}
-void crop_off_toggle_rev(void* priv)
-{
-	crop_offset--;
-}
-
-static void
-crop_off_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	int * draw_ptr = priv;
-
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"crop offset : %d", crop_offset
-	);
-}
-
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &global_draw,
@@ -2206,7 +2186,8 @@ int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 
 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
-	crop_dirty = 10;
+	crop_dirty = 50;
+	if (ext_monitor_hdmi && lv_drawn()) clrscr();
 	recording = buf[0];
 	if (!recording)
 	{
@@ -2336,6 +2317,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 void 
 cropmark_draw(int del)
 {
+	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE) return;
 	if (!get_global_draw()) return;
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
@@ -2409,6 +2391,11 @@ void display_off()
 	}
 }
 
+falsecolor_canceled = 0;
+void falsecolor_cancel()
+{
+	falsecolor_canceled = 1;
+}
 
 //this function is a mess... but seems to work
 static void
@@ -2428,7 +2415,11 @@ zebra_task( void )
 	{
 zebra_task_loop:
 		k++;
-		
+
+		//~ bmp_printf(FONT_MED, 0, 100, "%x ", *(int*)0xc0f03024);
+		//~ if (k == 500)
+			//~ lv_test(0);
+
 		msleep(10); // safety msleep :)
 
 		reload_cropmark(crop_draw);
@@ -2439,16 +2430,21 @@ zebra_task_loop:
 			msleep(1000);
 		}
 		if (!lv_drawn()) { msleep(100); continue; }
+		
+		if (FLASH_BTN_MOVIE_MODE) crop_dirty = 1;
 
 		int fcp = falsecolor_displayed;
 
 		// when to display false color?
+		if (falsecolor_draw == 0) falsecolor_displayed = 0;
 		if (falsecolor_draw == 1) falsecolor_displayed = 1;
 		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || FLASH_BTN_MOVIE_MODE);
 		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
 		{
-			falsecolor_displayed = !falsecolor_displayed;
+			falsecolor_canceled = 0;
 			while (dofpreview || FLASH_BTN_MOVIE_MODE) msleep(100);
+			if (!falsecolor_canceled)
+				falsecolor_displayed = !falsecolor_displayed;
 		}
 		
 		// did false color setting toggle?
@@ -2501,7 +2497,7 @@ zebra_task_loop:
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview) goto zebra_task_loop;
 			}
-			crop_dirty = 1;
+			crop_dirty = 10;
 			
 			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);

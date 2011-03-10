@@ -28,10 +28,13 @@
 #include "bmp.h"
 #include "config.h"
 #include "consts-550d.109.h"
+#include "lens.h"
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
 static PROP_INT(PROP_HOUTPUT_TYPE, houtput_type);
+static PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
+PROP_INT(PROP_MVR_REC_START, recording);
 
 int button_menu_on = BGMT_TRASH;
 int button_menu_off = BGMT_TRASH;
@@ -87,6 +90,24 @@ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 static int handle_buttons(struct event * event)
 {
 	static int kev = 0;
+
+	// volume adjust (FLASH + UP/DOWN)
+	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+		{
+			volume_up();
+			falsecolor_cancel();
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+		{
+			volume_down();
+			falsecolor_cancel();
+			return 0;
+		}
+	}
+
 	// event 0 is button press maybe?
 	if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
 	{
@@ -108,7 +129,7 @@ static int handle_buttons(struct event * event)
 	}
 	if (get_draw_event())
 	{
-		if (event->type != 2)
+		if (event->type == 0)
 		{
 			kev++;
 			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
@@ -119,6 +140,15 @@ static int handle_buttons(struct event * event)
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
 				event->arg);
+			console_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+				kev, 
+				event->type, 
+				event->param, 
+				event->obj ? *(uint32_t*)(event->obj) : 0,
+				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
+				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
+				event->arg);
+			//msleep(250);
 		}
 	}
 	
@@ -216,10 +246,89 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
+	// MENU while recording => clear screen
+	if (recording && event->type == 0 && event->param == BGMT_MENU)
+	{
+		clrscr();
+		crop_set_dirty(1);
+	}
+	
 	// stop intervalometer with MENU or PLAY
 	if (event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY))
 		intervalometer_stop();
+
+/*
 	
+	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_SHUTTER)
+	{
+		int value = *(int*)(event->obj + 4);
+		bmp_printf(FONT_LARGE, 0, 0, "Tv %d", value);
+		DEBUG("Tv %d", value);
+	}
+	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
+	{
+		int value = *(int*)(event->obj + 4);
+		bmp_printf(FONT_LARGE, 0, 0, "Av %d", value);
+		DEBUG("Av %d", value);
+		
+		static int old = 0;
+		
+		if (old && lv_drawn())
+		{
+			if (display_sensor_neg == 0)
+			{
+				if (value != old)
+				{
+					int newiso = lens_info.raw_iso + value - old;
+					if (newiso >= 72 && newiso <= 120)
+					{
+						lens_set_rawiso(newiso);
+					}
+					else return 0;
+				}
+			}
+		}
+		old = value; 
+
+	}
+	if (event->param == 5 && *(uint32_t*)(event->obj) == 0x80010001)
+	{
+		DEBUG("limit");
+		bmp_printf(FONT_MED, 0, 0, "Limit %8x %8x %8x %8x", 
+			*(uint32_t*)(event->obj + 4), 
+			*(uint32_t*)(event->obj + 8), 
+			event->param,
+			event->arg);
+	}
+	
+	*/
+
+	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
+	{
+		int value = *(int*)(event->obj + 4);
+		//~ bmp_printf(FONT_LARGE, 0, 0, "Av %d", value);
+		//~ DEBUG("Av %d", value);
+		
+		static int old = 0;
+		
+		if (get_dof_adjust() && old && lv_drawn())
+		{
+			if (display_sensor_neg == 0)
+			{
+				if (value != old)
+				{
+					int newiso = lens_info.raw_iso + value - old;
+					if (newiso >= 72 && newiso <= 120)
+					{
+						lens_set_rawiso(newiso);
+					}
+					else return 0;
+				}
+			}
+		}
+		old = value; 
+	}
+
 	return 1;
 }
 

@@ -71,3 +71,11 @@ These settings can not be changed from the ML menu, so they are documented here:
     # This works by faking a Play button press after you take a pic.
     # Side effect: some delay until you see the picture after you take it
     quick.review.allow.zoom = 1
+
+.. _crop.movieonly:
+
+::
+
+    # If enabled, it will show cropmarks only in movie mode. 
+    # Disable it to show cropmarks in photo mode too.
+    crop.movieonly = 0

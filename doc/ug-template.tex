@@ -20,6 +20,26 @@
 
 \newlength{\DUtablewidth} % internal use in tables
 
+% providelength (provide a length variable and set default, if it is new)
+\providecommand*{\DUprovidelength}[2]{
+  \ifthenelse{\isundefined{#1}}{\newlength{#1}\setlength{#1}{#2}}{}
+}
+
+% lineblock environment
+\DUprovidelength{\DUlineblockindent}{2.5em}
+\ifthenelse{\isundefined{\DUlineblock}}{
+  \newenvironment{DUlineblock}[1]{%
+    \list{}{\setlength{\partopsep}{\parskip}
+            \addtolength{\partopsep}{\baselineskip}
+            \setlength{\topsep}{0pt}
+            \setlength{\itemsep}{0.15\baselineskip}
+            \setlength{\parsep}{0pt}
+            \setlength{\leftmargin}{#1}}
+    \raggedright
+  }
+  {\endlist}
+}{}
+
 \def\wave{\tikz{ \draw [xscale=0.05,yscale=0.15] (0,0)--(1,1)--(2,0)--(3,1)--(4,0)--(5,1); }}
 
 \def\overexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=red, minimum width=5mm, minimum height=3mm] {}; }}

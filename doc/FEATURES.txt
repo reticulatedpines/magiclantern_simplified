@@ -39,18 +39,111 @@ Important notes
 
     \newpage
     \tableofcontents
+    \newpage
+
+FAQ
+---
+
+How do I erase all the images without removing ML?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Canon menu (Play) -> Erase images -> All images on card.
+
+Notes:
+
+* This will not remove files created by ML (like ``*.LOG``, ``*.422``, ``*.SH``). You will have to delete these files from PC.
+* Formatting the card will remove ML from that card. If you did this, you will have to make the card bootable again and then copy ML files.
+
+How do I see shutter counter / CMOS temperature?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``MENU -> DISP``.
+
+
+How do I get exposure times longer than 30 seconds?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use `Bulb timer`_ together with `LCD remote shot`_, `audio trigger`_ or `intervalometer`_.
+
+
+How do I adjust ISO in smaller steps? And Kelvin white balance?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These settings are in the `Expo`_ menu.
+
+Why can't I set the ISO under 200?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Turn off HTP and read the camera manual.
+
+
+Do I have to adjust ISO/shutter/aperture/WB from ML menu only?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No, you can adjust them both from ML menu or Canon user interface.
+
+Note: when you use Kelvin WB, the WB icon from Canon menu will not be displayed, but it works (you can change it).
+
+Does ML eat batteries faster, or cause overheating?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yes and no, depending on what features you have enabled. For example, focus peaking, false colors, waveform, zebras (and maybe others) are CPU hungry. It can even reduce power consumption by turning off the LCD screen, or by letting you change the backlight level quickly. See `Power saving`_ for details.
+
+
+How do I record more than 12 minutes?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There's no 12 minute limit. There's a 30 minute limit and a 4 GB limit, whichever comes first. You can either lower the `bitrate`_ or use `Movie restart`_.
+
+
+Can I record more than 30 minutes / 4 GB continuously?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use `Movie Restart`_, but you will lose a few seconds when a new file is created.
+
+Why the audio is so quiet after disabling AGC?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You have to adjust the volume manually, the camera won't do it for you any more :)
+
+
+Why does the camera take pictures when pressing the shutter half-way?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Trap focus`_ may be active.
+
+Can the intervalometer be more accurate?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Select the ``NoWait`` mode and it will be as accurate as the camera's realtime clock.
+
+My camera freezes and I have to remove the battery, or saves corrupted files. Why?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You may have an unstable build of ML. Upgrade to the latest one; if you still have problems, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_.
+
+
+Why feature X doesn't work properly?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Read the manual. In many cases you will find the solution.
+* Try upgrading to the latest build. In some cases, downgrading to an earlier build will also help.
+* Search the `Vimeo ML user group <http://vimeo.com/groups/magiclantern/forums>`_, the `issue tracker <http://bitbucket.org/hudson/magic-lantern/issues>`_ and the `mailing list <http://groups.google.com/group/ml-devel>`_.
+* If you still have problems, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_ (if you've found a bug) or ask on the forums.
+
 
 Known issues
 ------------
 
 * First second of recorded audio may be very loud
+* Certain actions may clear the 16:9 bars in Movie mode. A workaround is to use a cropmark which has those bars.
 * Stack focus only works in Live View, after going through Play mode first. 
   Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
 * After closing ML menu, screen may not redraw automatically 
   (half-press the shutter or press ``MENU`` to trigger a redraw)
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * Camera may become unstable if you change modes while ML menu is active.
-* External monitors are not yet fully supported (some functions may not work / display correctly).
+* External monitors are not yet fully supported (some functions may not work / display correctly). It is recommended to use a cropmark image.
     
   The following functions are known not to work with external displays:
   
@@ -61,10 +154,6 @@ Known issues
   - Auto ISO / Shutter / Kelvin
   - ML displays may be shifted (menu not centered)
   
-.. raw:: latex
-    
-    \newpage
-
 Keyboard shortcuts
 ------------------
 
@@ -77,12 +166,15 @@ These buttons have special meaning with Magic Lantern:
 * LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
 * LCD sensor + ``UP / DOWN``: see `Backlight Keys`_ (adjust LCD backlight level).
 * LCD sensor + Arrows: see `Follow Focus`_.
+* LCD sensor + aperture change in LiveView: `DOF adjust`_ (changes aperture and ISO while keeping the same exposure).
 * Flash / DOF preview: see `False color`_.
+* Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain.
 * Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_.
+* ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``ERASE``: display Magic Lantern menu.
-* Arrows, ``SET, DISP, Q, PLAY``: ML menu navigation (see below).
+* Arrows, ``SET, DISP/PLAY, Q``: ML menu navigation (see below).
 
 
 Menu options
@@ -160,7 +252,7 @@ Audio tweaks.
   
   Audio monitoring with headphones, via USB port.
   
-  To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details.
+  To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details. You have to plug the USB cable *after* ML is loaded.
   
   When audio monitor is enabled, it will disable USB, HDMI and maybe other functions, so if you don't use this feature, leave it ``OFF``.
   
@@ -245,16 +337,19 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Select cropmarks (cycle between them).
 
 
-  There are 3 predefined cropmarks in the zip archive:
+  There are 4 predefined cropmarks in the zip archive:
   
-  * HD with Title & Action Safe (from CameraRick)
+  * 16:9 black bars
+  * HD with Title & Action Safe
   * Cinemascope
   * Fisheye for stills framing with Samyang/8mm.
 
   .. figure:: Cropmarks550D.png
       :alt: 400px|center
       :align: center
-      :width: 5cm
+      :height: 2cm
+
+  By default, cropmarks are displayed only in Movie mode. To display them in photo modes, disable `crop.movieonly`_.
 
   If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x/n)`` shows the selected cropmark number and the number of detected cropmarks. You can place at most 9 cropmarks on the card.
 
@@ -271,12 +366,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 
   Press ``Q`` to enable cropmarks in Playback mode.
-
+  
 {{clr}}
 
 .. _spotmeter:
 
-**Spotmeter: OFF/Percent/IRE**
+**Spotmeter: OFF / Percent / IRE**
 
   Measure brightness in the center of the frame, and display it as a percentage or IRE value.
   
@@ -299,7 +394,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _Clean LiveView display:
 .. _ClrScreen:
 
-**ClrScreen: OFF/HalfShutter/WhenIdle**
+**ClrScreen: OFF / HalfShutter / WhenIdle**
 
   Clear image overlays from LiveView display.
   
@@ -316,7 +411,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then disappear.
 
   This function works by temporarily disabling the bitmap overlay. All the overlay graphics will be restored when the overlay is enabled again.
-  To clear garbage left on the screen, press ``MENU`` twice (don't use this function).
+  To clear garbage left on the screen, press ``MENU`` twice (don't use ``ClrScreen`` for this).
   
 .. _focus peaking:
 
@@ -339,16 +434,6 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     - ``cc2``: color coding 2 (show edge strength as color for every pixel)
     
   The implementation uses heavy downsampling to maintain speed.
-
-.. _focus graph:
-
-**Focus Graph: ON/OFF**
-
-  Draws a small graph which shows the *amount* of focus in the AF frame (the little rectangle), over the last few seconds. Focus computation is done by Canon's autofocus algorithm.
-  
-  Since the function which measures the amount of focus is heavily influenced by other factors (like contrast and exposure), ML attempts to normalize the value.
-  
-  If you are focusing manually, try to position the lens such as you get a local maxima on the focus graph.
 
 .. _zoom in Face Detect mode:
 
@@ -387,7 +472,7 @@ Functions specific to movie mode.
   Notes:
   
   * There is a bitrate / QScale display near the red recording dot, updated every second.
-  * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain Class10 cards.
+  * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain cards labeled as Class10.
   * ``CBRe`` mode (emulated CBR) is implemented as variable QScale, as follows:
   
     - QScale is adjusted in a simple feedback loop, based on bitrate estimation (sampled 5 times per second).
@@ -403,6 +488,7 @@ Functions specific to movie mode.
   See [[Bit rate]] page for details.
 
 .. _auto-restart:
+.. _movie restart:
 
 **Movie Restart: ON/OFF**
 
@@ -472,6 +558,14 @@ Functions specific to movie mode.
   Changes movie position on the mode dial. You can swap movie mode with either ``A-DEP`` or ``CA``.
   
   This seems to have some side effects (like not remembering Kelvin setting).
+
+.. _DOF adjust:
+
+**DOF adjust: ON/OFF**
+
+  Enables a shortcut key for adjusting the DOF while maintaining the same exposure. This is done by changing aperture and ISO at the same time.
+  
+  To adjust DOF, cover the LCD sensor and change the aperture.
 
 .. _time remaining display:
 
@@ -546,7 +640,7 @@ Functions for stills shooting (some of them work for movies, too).
   
   There is also a mode named ``Take pics like crazy``, which does exactly that. This is the best tool for killing your shutter.
 
-**Intervalometer: ON/OFF**
+**Intervalometer: ON/OFF, Wait/NoWait**
 
   [[Video:T2i Timelapse|thumb|300px|right|Timelapse taken with the ML intervalometer, by Logan Stewart]]
 
@@ -1069,6 +1163,17 @@ LiveView
   * `Audio meters`_ and audio input source for each channel
   * `LCD remote`_ status icon: ⨂ ⨀ 〰
 
+.. _focus graph:
+
+* Focus Graph
+
+  This item is displayed when you enable `Movie AF`_, `Trap Focus`_ or `Follow Focus` with AutoLock.
+
+  It draws a small graph which shows the *amount* of focus in the AF frame (the little rectangle), over the last few seconds. Focus computation is done by Canon's autofocus algorithm.
+  
+  Since the function which measures the amount of focus is heavily influenced by other factors (like contrast and exposure), ML attempts to normalize the value.
+  
+  If you are focusing manually, try to position the lens such as you get a local maxima on the focus graph.
 
 Power saving
 ------------
@@ -1081,14 +1186,42 @@ You can:
 * Turn off `Global Draw`_
 * Quickly adjust `LCD backlight level`_
 
-Power consumption in movie mode, idle (approximate figures derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
+Power consumption in movie mode, idle, 24p (approximate figures derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
 
-* Camera body (without lens), LCD off: 360 mA
-* Lens (Tamron 17-50/2.8): 20 mA
-* LCD backlight at level 1: 40 mA
-* LCD backlight at level 7: 100 mA
-* Magic Lantern with GlobalDraw off: around 10 mA
-* Zebras: around 15 mA
-* Focus peaking: maybe around 25 mA (not tested)
++------------------------------------+--------------------------+
+| Item                               | Current (approx)         |
++====================================+==========================+
+| Camera body (without lens), LCD off| 360 mA                   |
++------------------------------------+--------------------------+
+| Lens (Tamron 17-50/2.8)            | 20 mA                    | 
++------------------------------------+--------------------------+
+| LCD backlight at level 1           | 40 mA                    |
++------------------------------------+--------------------------+
+| LCD backlight at level 7           | 100 mA                   |
++------------------------------------+--------------------------+
+| Magic Lantern with GlobalDraw off  | around 10 mA             |
++------------------------------------+--------------------------+
+| Zebras                             | around 15 mA             |
++------------------------------------+--------------------------+
+| Focus peaking                      | maybe 25 mA (not tested) |
++------------------------------------+--------------------------+
+
+Power consumption `varies with the frame rate <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2269449&viewfull=1#post2269449>`_. The following table shows the difference between video modes. The test was done on a 550d with ML, body cap only, movie standby, lcd brightness 4, default settings, i.e. no magic.cfg at startup.
+
++------------+------------+------------+---------+
+| NTSC                    | PAL                  |
++------------+------------+------------+---------+
+| Video mode | Current    | Video mode | Current |
++============+=========+==+============+=========+
+| 1080 30p   | 480 mA  |  | 1080 25p   | 450 mA  |
++------------+---------+--+------------+---------+
+| 1080 24p   | 440 mA  |  | 1080 24p   | 440 mA  |
++------------+---------+--+------------+---------+
+| 720 60p    | 520 mA  |  | 720 50p    | 490 mA  |
++------------+---------+--+------------+---------+
+| 480 60p    | 520 mA  |  | 480 50p    | 490 mA  |
++------------+---------+--+------------+---------+
+| crop 60p   | 430 mA  |  | crop 50p   | 420 mA  |
++------------+---------+--+------------+---------+
 
 According to `this message <https://bitbucket.org/hudson/magic-lantern/issue/362/turn-display-off-ignored-on-next-movie#comment-382238>`_, by turning off Global Draw and LCD display, the camera will be able to record over 80 minutes continuously, without overheating (compared with around 30 minutes with default settings and 60 minutes without ML).

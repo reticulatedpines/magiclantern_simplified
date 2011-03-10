@@ -292,15 +292,11 @@ draw_prop_reset( void * priv )
 	dbg_propn = 0;
 }
 
-
 int mem_spy = 0;
-CONFIG_INT( "debug.mem-spy.start.lo",	mem_spy_start_lo,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.start.hi",	mem_spy_start_hi,	0 ); // start from here
-CONFIG_INT( "debug.mem-spy.len",	mem_spy_len,	10000 );     // look at ### int32's
-CONFIG_INT( "debug.mem-spy.bool",	mem_spy_bool,	0 );         // only display booleans (0,1,-1)
-CONFIG_INT( "debug.mem-spy.small",	mem_spy_small,	0 );         // only display small numbers (less than 10)
-
-#define mem_spy_start ((uint32_t)mem_spy_start_lo | ((uint32_t)mem_spy_start_hi << 16))
+int mem_spy_start = 0; // start from here
+int mem_spy_len = 0x10000/4;    // look at ### int32's
+int mem_spy_bool = 0;           // only display booleans (0,1,-1)
+int mem_spy_small = 0;          // only display small numbers (less than 10)
 
 static void
 mem_spy_select( void * priv )
@@ -848,11 +844,163 @@ enable_liveview_print(
 	);
 }
 
-static void lv_test(void* priv)
+CONFIG_INT("dof.adjust", dof_adjust, 1);
+int get_dof_adjust() { return dof_adjust; }
+
+static void
+dof_adjust_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
 {
-	static int x = 0;
-	ChangeColorPalette(x);
-	x++;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"DOF adjust    : %s",
+		dof_adjust ? "ON" : "OFF"
+	);
+}
+
+
+CONFIG_INT("swap.aperture.shutter", as_swap_enable, 0);
+
+static void
+as_swap_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Swap Av <-> Tv: %s",
+		as_swap_enable ? "ON" : "OFF"
+	);
+}
+
+
+static void apershutter_close(void* priv)
+{
+	lens_set_rawaperture(lens_info.raw_aperture + 4);
+	lens_set_rawshutter(lens_info.raw_shutter - 4);
+}
+static void apershutter_open(void* priv)
+{
+	lens_set_rawaperture(lens_info.raw_aperture - 4);
+	lens_set_rawshutter(lens_info.raw_shutter + 4);
+}
+
+int aperiso_rawap = 0;
+int aperiso_rawiso = 0;
+static void aperiso_init()
+{
+	aperiso_rawap = lens_info.raw_aperture;
+	aperiso_rawiso = lens_info.raw_iso;
+}
+static void aperiso_close(void* priv)
+{
+	aperiso_rawap += 4;
+	aperiso_rawiso += 4;
+	lens_set_rawaperture(aperiso_rawap);
+	lens_set_rawiso(aperiso_rawiso);
+}
+static void aperiso_open(void* priv)
+{
+	aperiso_rawap -= 4;
+	aperiso_rawiso -= 4;
+	lens_set_rawaperture(aperiso_rawap);
+	lens_set_rawiso(aperiso_rawiso);
+}
+PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
+
+/*
+volatile int swap_a = 0;
+volatile int swap_s = 0;
+
+void swap_countdown()
+{
+	bmp_printf(FONT_MED, 0, 40, "s%d a%d", swap_s, swap_a);
+	if (swap_a) swap_a--;
+	if (swap_s) swap_s--;
+}
+
+PROP_HANDLER(PROP_APERTURE)
+{
+	static int old = 0;
+	
+	if (lv_drawn() && display_sensor_neg == 0 && old)
+	{
+		if (buf[0] != old)
+		{
+			int newiso = COERCE(lens_info.raw_iso + buf[0] - old, codes_iso[1], codes_iso[COUNT(codes_iso)-1]);
+			lens_set_rawiso(newiso);
+		}
+	}
+
+	if (as_swap_enable && shooting_mode == SHOOTMODE_MOVIE && old && swap_a==0 && buf[0] != old && !gui_menu_shown())
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "SWAP AV");
+		swap_s = 10;
+		swap_a = 10;
+		int d = buf[0] - old;
+		lens_set_rawaperture(old);
+		lens_set_rawshutter(lens_info.raw_shutter + d);
+		swap_a = 0;
+	}
+	else
+	{
+		old = buf[0];
+	}
+
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_SHUTTER)
+{
+	static int old = 0;
+	if (as_swap_enable && shooting_mode == SHOOTMODE_MOVIE && old && swap_s==0 && buf[0] != old && !gui_menu_shown())
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "SWAP TV");
+		swap_s = 10;
+		swap_a = 10;
+		int d = buf[0] - old;
+		lens_set_rawshutter(old);
+		lens_set_rawaperture(lens_info.raw_aperture + d);
+		swap_s = 0;
+	}
+	else
+	{
+		old = buf[0];
+	}
+	return prop_cleanup(token, property);
+} */
+
+void lv_test(void* priv)
+{
+	movie_start();
+	msleep(1000);
+	aperiso_init();
+	
+	int i;
+	for (i = 0; i < 12; i++)
+	{
+		aperiso_close(0);
+		msleep(500);
+	}
+	msleep(2000);
+	for (i = 0; i < 12; i++)
+	{
+		aperiso_open(0);
+		msleep(500);
+	}
+
+	msleep(2000);
+	movie_end();
+	msleep(2000);
 }
 
 void fake_simple_button(int bgmt_code)
@@ -943,7 +1091,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 		crc += dbg_memmirror[i];
 		//~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
 	}
-	//~ bmp_printf(FONT_MED, 10,10, "memspy: %x", crc);
+	//~ bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
 }
 static void dbg_memspy_update()
 {
@@ -1032,7 +1180,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			call( "FA_StartLiveView" );
 		}
 	}
-
+	
 	dbg_memspy_init();
 	int k;
 	for (k = 0; ; k++)
@@ -1045,8 +1193,9 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x20150, 32*5);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, *(int*)0x5B34, 32*10);
 		//~ bmp_printf(FONT_MED, 0, 0, "bidt=%8x pal=%8x", *(int*)0x20164, *(int*)132004);
+		DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !big_clock && bmp_getpixel(2,10) != 2)
 		{
@@ -1250,11 +1399,13 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	/*{
+	{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
-	}*/
+		.select_reverse = apershutter_close, 
+		.select_auto = apershutter_open,
+	}
 /*	{
 		.select = focus_test,
 		.display = focus_print,
@@ -1323,6 +1474,16 @@ struct menu_entry mov_menus[] = {
 		.display	= mode_remap_print,
 		.select		= menu_ternary_toggle,
 	},
+	/*{
+		.priv = &as_swap_enable, 
+		.display = as_swap_print,
+		.select = menu_binary_toggle,
+	},*/
+	{
+		.priv = &dof_adjust, 
+		.display = dof_adjust_print, 
+		.select = menu_binary_toggle,
+	}
 };
 
 
@@ -1539,6 +1700,7 @@ dump_task( void )
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
 	
+	
 	DEBUG();
 	dm_set_store_level( DM_DISP, 7 );
 	dm_set_store_level( DM_LVFD, 7 );
@@ -1558,6 +1720,7 @@ dump_task( void )
 	dm_set_store_level( DM_GUI_M, 7);
 	dm_set_store_level( DM_GUI_E, 7);
 	dm_set_store_level( DM_BIND, 7);
+	dm_set_store_level( DM_DISP, 7);
 	DEBUG();
 	
 	//msleep(1000);
@@ -1645,3 +1808,26 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 	if (buf[0] == 0 && config_ok) save_config(0);
 	return prop_cleanup(token, property);
 }
+
+/*
+PROP_HANDLER(PROP_APERTURE)
+{
+	static int old = 0;
+	
+	if (old && lv_drawn())
+	{
+		if (display_sensor_neg == 0)
+		{
+			if (buf[0] != old)
+			{
+				int newiso = COERCE(lens_info.raw_iso + buf[0] - old, codes_iso[1], codes_iso[COUNT(codes_iso)-1]);
+				lens_set_rawiso(newiso);
+			}
+		}
+	}
+
+	old = buf[0];
+
+	return prop_cleanup(token, property);
+}*/
+

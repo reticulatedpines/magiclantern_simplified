@@ -254,6 +254,8 @@
 
 #define PROP_IMAGE_REVIEW_TIME 0x02020006 // 0, 2, 4, 8, ff
 
+#define PROP_BATTERY_REPORT     0x8003001D
+
 /** Properties */
 extern void
 prop_register_slave(

@@ -307,6 +307,7 @@ compute_audio_levels(
 	level->peak = ( level->peak * 31 + level->avg ) / 32;
 }
 
+int show_volume = 0;
 
 /** Task to monitor the audio levels.
  *
@@ -330,6 +331,13 @@ meter_task( void )
 			draw_meters();
 		else
 			msleep( 500 );
+		
+		if (show_volume)
+		{
+			volume_display();
+			show_volume--;
+			if (show_volume == 0) volume_display_clear();
+		}
 	}
 }
 
@@ -1130,6 +1138,51 @@ my_audio_level_task( void )
 	DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
 }
 
-
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 #endif
+
+
+void volume_up()
+{
+	int mgain_db = mgain_index2gain(mgain);
+	if (mgain_db < 32)
+		audio_mgain_toggle(&mgain);
+	else
+	{
+		if( MAX(dgain_l, dgain_r) + 6 <= 40 )
+		{
+			audio_dgain_toggle(&dgain_l);
+			audio_dgain_toggle(&dgain_r);
+		}
+	}
+	volume_display_schedule();
+}
+
+void volume_down()
+{
+	int mgain_db = mgain_index2gain(mgain);
+
+	if( MIN(dgain_l, dgain_r) > 0 )
+	{
+		audio_dgain_toggle_reverse(&dgain_l);
+		audio_dgain_toggle_reverse(&dgain_r);
+	}
+	else if (mgain_db > 0)
+		audio_mgain_toggle_reverse(&mgain);
+	volume_display_schedule();
+}
+
+void volume_display_schedule()
+{
+	show_volume = 10;
+}
+void volume_display()
+{
+	int mgain_db = mgain_index2gain(mgain);
+	bmp_printf(FONT_MED, 50, 40, "Vol: %d + (%d,%d) dB     ", mgain_db, dgain_l, dgain_r);
+}
+void volume_display_clear()
+{
+	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
+	crop_set_dirty(1);
+}
