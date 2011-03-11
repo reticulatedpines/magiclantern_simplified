@@ -383,6 +383,14 @@ void center_lv_afframe_do()
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 }
 
+void move_lv_afframe(int dx, int dy)
+{
+	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
+	afframe[2] = COERCE(afframe[2] + dx, 0, afframe[0] - afframe[4]);
+	afframe[3] = COERCE(afframe[3] + dy, 50, afframe[1] - afframe[5]);
+	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+}
+
 static void 
 sweep_lv()
 {
@@ -2170,6 +2178,8 @@ void remote_shot()
 
 void display_shooting_info() // called from debug task
 {
+	if (lv_drawn()) return;
+	
 	int bg = bmp_getpixel(314, 260);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 

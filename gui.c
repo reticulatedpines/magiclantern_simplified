@@ -260,9 +260,21 @@ static int handle_buttons(struct event * event)
 	
 	// zoom overlay
 	
-	if (recording && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_z() && recording && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
-		magic_circles_toggle();
+		zoom_overlay_toggle();
+	}
+	
+	if (recording && get_zoom_overlay_mode())
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+			move_lv_afframe(-200, 0);
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+			move_lv_afframe(200, 0);
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+			move_lv_afframe(0, -200);
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+			move_lv_afframe(0, 200);
 	}
 
 /*

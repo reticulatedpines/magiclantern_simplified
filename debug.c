@@ -553,6 +553,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
 	hsp = buf[0];
 	hsp_countdown = 15;
+	if (get_zoom_overlay_z()) zoom_overlay_disable();
 	return prop_cleanup(token, property);
 }
 
@@ -1145,6 +1146,7 @@ int screenshot_sec = 0;
 static void
 debug_loop_task( void ) // screenshot, draw_prop
 {
+	gui_unlock();
 	do_movie_mode_remap();
 	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
 	{
@@ -1177,7 +1179,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, *(int*)0x5B34, 32*10);
 		//~ bmp_printf(FONT_MED, 0, 0, "bidt=%8x pal=%8x", *(int*)0x20164, *(int*)132004);
-		DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
+		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !big_clock && bmp_getpixel(2,10) != 2)
 		{
@@ -1683,6 +1685,7 @@ dump_task( void )
 	// Only record important events for the display and face detect
 	
 	
+	/*
 	DEBUG();
 	dm_set_store_level( DM_DISP, 7 );
 	dm_set_store_level( DM_LVFD, 7 );
@@ -1703,7 +1706,7 @@ dump_task( void )
 	dm_set_store_level( DM_GUI_E, 7);
 	dm_set_store_level( DM_BIND, 7);
 	dm_set_store_level( DM_DISP, 7);
-	DEBUG();
+	DEBUG();*/
 	
 	//msleep(1000);
 	//bmp_draw_palette();

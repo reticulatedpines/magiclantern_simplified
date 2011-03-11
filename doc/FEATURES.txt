@@ -6,7 +6,7 @@ Features
 
 * Audio: `disable AGC`_ and digital filters, `audio meters`_, `manual audio controls`_, selectable `input source`_ (internal, internal+external, external stereo, `balanced`_), `audio monitoring`_ via USB.
 * Exposure helpers: `zebras`_, `false color`_, `histogram`_, `waveform`_, `spotmeter`_.
-* Focus tools: `focus peaking`_, `focus graph`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `zoom in Face Detect mode`_.
+* Focus tools: `focus peaking`_, `zoom while recording`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `focus graph`_, `zoom in Face Detect mode`_.
 * Movie helpers: `Bitrate control`_ (QScale or CBR), `custom AF algorithm`_, `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
 * `Cropmark`_ images: user-editable overlays to assist framing and composition.
 * Fine control for `ISO`_, `Shutter`_, `Kelvin white balance`_ and other `image settings`_.
@@ -162,6 +162,7 @@ These buttons have special meaning with Magic Lantern:
 * Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
 * ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
+* ``Zoom In`` while recording: it does just that :) (`zoom while recording`_)
 * ``DISP`` in LiveView has 3 extra display modes specific to ML, which are fully customizable from `LiveV`_ menu. Each display mode has its own set of LiveV settings.
 * LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
 * LCD sensor + ``UP / DOWN``: see `Backlight Keys`_ (adjust LCD backlight level).
@@ -175,7 +176,7 @@ These buttons have special meaning with Magic Lantern:
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``ERASE``: display Magic Lantern menu.
 * Arrows, ``SET, DISP/PLAY, Q``: ML menu navigation (see below).
-
+* Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern)
 
 Menu options
 ------------
@@ -434,6 +435,42 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     - ``cc2``: color coding 2 (show edge strength as color for every pixel)
     
   The implementation uses heavy downsampling to maintain speed.
+
+.. _magic zoom:
+.. _zoom while recording:
+
+**Magic Zoom: OFF/Zr/ZF/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
+
+  This function enables zoom while recording. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
+
+  Modes (change with ``SET``):
+  
+  * ``OFF``
+  * ``Zr``: triggered by ``Zoom In`` button while recording
+  * ``ZF``: triggered by ``Zoom In`` while recording and also by rotating the focus ring (only on lenses which report focus distance).
+  * ``ALW``: always on
+  
+  Sizes (change with ``DISP`` or ``PLAY``): 
+  
+  * ``Small`` (150x150)
+  * ``Medium`` (250x200)
+  * ``Large`` (500x300)
+  
+  Positions (change with ``Q``):
+  
+  * ``AFF``: moves with the AF frame (the little rectangle)
+  * ``NW``, ``NE``, ``SE``, ``SW``: the zoom overlay is placed in one of the 4 corners. The zoomed area is still linked to the AF frame.
+
+  Magnification:
+  
+  * while recording FullHD: around 2.4x.
+  * while not recording: around 1.5x.
+
+  Notes:
+  
+  * It does not work with external displays.
+  * Zebra and focus peaking are disabled automatically when the zoom overlay is active.
+  * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:
 
@@ -1167,7 +1204,7 @@ LiveView
 
 * Focus Graph
 
-  This item is displayed when you enable `Movie AF`_, `Trap Focus`_ or `Follow Focus` with AutoLock.
+  This item is displayed when you enable `Movie AF`_, `Trap Focus`_ or `Follow Focus`_ with AutoLock.
 
   It draws a small graph which shows the *amount* of focus in the AF frame (the little rectangle), over the last few seconds. Focus computation is done by Canon's autofocus algorithm.
   

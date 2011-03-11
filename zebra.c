@@ -58,7 +58,14 @@ CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
-CONFIG_INT( "magic.circles", magic_circles, 0);
+CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 2);
+CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
+CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
+int get_zoom_overlay_mode() { return zoom_overlay_mode; }
+int get_zoom_overlay_z() { return zoom_overlay_mode == 1 || zoom_overlay_mode == 2; }
+
+int zoom_overlay = 0;
+int zoom_overlay_countdown = 0;
 int falsecolor_displayed = 0;
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
@@ -1071,7 +1078,13 @@ int focus_peaking_debug = 0;
 static void
 draw_zebra_and_focus( void )
 {
-	//~ if (magic_circles) draw_magic_circles();
+	// disable zebra/peaking while overlay is active (reduces flicker)
+	int Zd = should_draw_zoom_overlay();
+
+	static int Zdp = 0;
+	if (Zd && !Zdp) clrscr_mirror();
+	Zdp = Zd;
+	if (Zd) return;
 	
 	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
 	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
@@ -1884,7 +1897,7 @@ clearpreview_display(
 }
 
 static void
-magic_circles_display(
+zoom_overlay_display(
 	void *			priv,
 	int			x,
 	int			y,
@@ -1895,8 +1908,22 @@ magic_circles_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"MagicCircles: %s",
-		magic_circles ? "ON" : "OFF"
+		"Magic Zoom  : %s%s%s",
+		zoom_overlay_mode == 0 ? "OFF" :
+		zoom_overlay_mode == 1 ? "Zr," :
+		zoom_overlay_mode == 2 ? "ZF," :
+		zoom_overlay_mode == 3 ? "ALW," : "err",
+
+		zoom_overlay_mode == 0 ? "" :
+			zoom_overlay_size == 0 ? "Small," :
+			zoom_overlay_size == 1 ? "Med," :
+			zoom_overlay_size == 2 ? "Large," : "err",
+		zoom_overlay_mode == 0 ? "" :
+			zoom_overlay_pos == 0 ? "AFF" :
+			zoom_overlay_pos == 1 ? "NW" :
+			zoom_overlay_pos == 2 ? "NE" :
+			zoom_overlay_pos == 3 ? "SE" :
+			zoom_overlay_pos == 4 ? "SW" : "err"
 	);
 }
 
@@ -2080,6 +2107,18 @@ void hdmi_test_toggle(void* priv)
 	ext_monitor_hdmi = !ext_monitor_hdmi;
 }
 
+
+void zoom_overlay_main_toggle(void* priv)
+{
+	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 4);
+}
+
+void zoom_overlay_size_toggle(void* priv)
+{
+	zoom_overlay_size = mod(zoom_overlay_size + 1, 3);
+}
+
+
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &global_draw,
@@ -2133,9 +2172,11 @@ struct menu_entry zebra_menus[] = {
 		.select_auto    = focus_peaking_adjust_thr,
 	},
 	{
-		.priv = &magic_circles, 
-		.display = magic_circles_display,
-		.select = menu_binary_toggle,
+		.priv = &zoom_overlay_pos,
+		.display = zoom_overlay_display,
+		.select = zoom_overlay_main_toggle,
+		.select_reverse = zoom_overlay_size_toggle,
+		.select_auto = menu_quinternary_toggle,
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2390,6 +2431,7 @@ void bmp_off()
 	if (!_bmp_cleared) call("MuteOn");
 	_bmp_cleared = 1;
 }
+int is_bmp_on() { return !_bmp_cleared; }
 
 int _lvimage_cleared = 0;
 void lvimage_on()
@@ -2434,19 +2476,34 @@ void falsecolor_cancel()
 	falsecolor_canceled = 1;
 }
 
-void magic_circles_toggle()
+void zoom_overlay_toggle()
 {
-	magic_circles = !magic_circles;
+	zoom_overlay = !zoom_overlay;
+	if (!zoom_overlay) zoom_overlay_countdown = 0;
 }
 
-void magic_circles_enable()
+void zoom_overlay_enable()
 {
-	magic_circles = 1;
+	zoom_overlay = 1;
 }
-void draw_magic_circles()
+
+void zoom_overlay_disable()
+{
+	zoom_overlay = 0;
+	zoom_overlay_countdown = 0;
+}
+
+void zoom_overlay_set_countdown(int x)
+{
+	zoom_overlay_countdown = x;
+}
+
+void draw_zoom_overlay()
 {
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
+	if (gui_menu_shown()) return;
+	if (!is_bmp_on()) return;
 	
 	struct vram_info *	lv = get_yuv422_vram();
 	struct vram_info *	hd = get_yuv422_hd_vram();
@@ -2459,23 +2516,77 @@ void draw_magic_circles()
 	
 	if (!lvr) return;
 
-	int x0,y0; 
-	get_afframe_pos(lv->width, lv->height, &x0, &y0);
-
 	int hx0,hy0; 
 	get_afframe_pos(hd->width, hd->height, &hx0, &hy0);
 	
 	int W = 240;
 	int H = 240;
+	
+	switch(zoom_overlay_size)
+	{
+		case 0:
+			W = 150;
+			H = 150;
+			break;
+		case 1:
+			W = 250;
+			H = 200;
+			break;
+		case 2:
+			W = 500;
+			H = 350;
+			break;
+	}
+
+	int x0,y0; 
+	int xaf,yaf;
+	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
+
+	switch(zoom_overlay_pos)
+	{
+		case 0: // AFF
+			x0 = xaf;
+			y0 = yaf;
+			break;
+		case 1: // NW
+			x0 = W/2 + 50;
+			y0 = H/2 + 50;
+			break;
+		case 2: // NE
+			x0 = 720 - W/2 - 50;
+			y0 = H/2 + 50;
+			break;
+		case 3: // SE
+			x0 = 720 - W/2 - 50;
+			y0 = 480 - H/2 - 50;
+			break;
+		case 4: // SV
+			x0 = W/2 + 50;
+			y0 = 480 - H/2 - 50;
+			break;
+	}
+
+	if (zoom_overlay_pos)
+	{
+		int w = W * lv->width / hd->width;
+		int h = H * lv->width / hd->width;
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1),     0, 480) * lv->width, 0,    w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) + 1, 0, 480) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) - 1, 0, 480) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1),     0, 480) * lv->width, 0,    w<<1);
+	}
+
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
 	int x,y;
+	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
+	int y0c = COERCE(y0 - (H>>1), 0, 480-H);
 	for (y = 0; y < H; y++)
-	{
-		int x0c = COERCE(x0 - (W>>1), 0, 720-W);
-		int y0c = COERCE(y0 - (H>>1), 0, 480-H);
 		memcpy(lvr + x0c + (y + y0c) * lv->width, hdr + (y + hy0 - (H>>1)) * hd->width + (hx0 - (W>>1)), W<<1);
-	}
-	
+	memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, 0,    W<<1);
+	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, 0xFF, W<<1);
+	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, 0xFF, W<<1);
+	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, 0,    W<<1);
+
 }
 
 //this function is a mess... but seems to work
@@ -2678,21 +2789,28 @@ movie_clock_task( void )
 
 TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x1f, 0x1000 );
 
+int should_draw_zoom_overlay()
+{
+	return (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3);
+}
 static void
-magic_circles_task( void )
+zoom_overlay_task( void )
 {
 	while(1)
 	{
-		if (magic_circles)
+		if (should_draw_zoom_overlay())
 		{
 			msleep(10);
-			draw_magic_circles();
+			draw_zoom_overlay();
 		}
-		else msleep(500);
+		else msleep(100);
+		
+		if (zoom_overlay_countdown)
+			zoom_overlay_countdown--;
 	}
 }
 
-TASK_CREATE( "magic_circles_task", magic_circles_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "zoom_overlay_task", zoom_overlay_task, 0, 0x1e, 0x1000 );
 
 int unused;
 int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw};
