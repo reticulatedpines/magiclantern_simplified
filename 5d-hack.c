@@ -324,6 +324,13 @@ my_init_task(void)
 		build_date,
 		build_user
 	);*/
+	
+	if (FOCUS_CONFIRMATION_AF_PRESSED) 
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
+		additional_version[0] = '\0';
+		return;
+	}
 
 	//~ return;
 	init_funcs_done = 0;
