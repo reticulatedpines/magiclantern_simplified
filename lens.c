@@ -101,27 +101,27 @@ lens_format_dist(
 
 	if( mm > 100000 ) // 100 m
 		snprintf( dist, sizeof(dist),
-			"%3d.%1d m",
+			"%3d.%1dm",
 			mm / 1000,
 			(mm % 1000) / 100
 		);
 	else
 	if( mm > 10000 ) // 10 m
 		snprintf( dist, sizeof(dist),
-			"%2d.%02d m",
+			"%2d.%02dm",
 			mm / 1000,
 			(mm % 1000) / 10
 		);
 	else
 	if( mm >  1000 ) // 1 m
 		snprintf( dist, sizeof(dist),
-			"%1d.%03d m",
+			"%1d.%03dm",
 			mm / 1000,
 			(mm % 1000)
 		);
 	else
 		snprintf( dist, sizeof(dist),
-			"%4d cm",
+			"%4dcm",
 			mm / 10
 		);
 
@@ -168,11 +168,11 @@ update_lens_display(
 
 	
 	//~ y += height;
-	x = 520;
+	x = 530;
 	bmp_printf( font, x+12, y,
 		"%s",
 		info->focus_dist == 0xFFFF
-			? " Infnty"
+			? "Infnty"
 			: lens_format_dist( info->focus_dist * 10 )
 	);
 	
@@ -724,6 +724,12 @@ PROP_HANDLER( PROP_LV_LENS )
 	const struct prop_lv_lens * const lv_lens = (void*) buf;
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
+	
+	static int old_focus_dist = 0;
+	if (lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
+		magic_circles_enable();
+	old_focus_dist = lens_info.focus_dist;
+	
 	update_stuff();
 	return prop_cleanup( token, property );
 }

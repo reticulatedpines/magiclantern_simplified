@@ -58,6 +58,7 @@ CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
+CONFIG_INT( "magic.circles", magic_circles, 0);
 int falsecolor_displayed = 0;
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
@@ -226,7 +227,7 @@ struct vram_info * get_yuv422_hd_vram()
 
 void* get_fastrefresh_422_buf()
 {
-	switch (*(uint32_t*)0x246c)
+	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
 		case 0x40d07800:
 			return 0x4c233800;
@@ -234,6 +235,20 @@ void* get_fastrefresh_422_buf()
 			return 0x4f11d800;
 		case 0x4f11d800:
 			return 0x40d07800;
+	}
+	return 0;
+}
+
+void* get_write_422_buf()
+{
+	switch (YUV422_LV_BUFFER_DMA_ADDR)
+	{
+		case 0x40d07800:
+			return 0x40d07800;
+		case 0x4c233800:
+			return 0x4c233800;
+		case 0x4f11d800:
+			return 0x4f11d800;
 	}
 	return 0;
 }
@@ -1056,6 +1071,8 @@ int focus_peaking_debug = 0;
 static void
 draw_zebra_and_focus( void )
 {
+	//~ if (magic_circles) draw_magic_circles();
+	
 	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
 	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
 		{ draw_zebra_and_focus_unified(); return; }
@@ -1866,6 +1883,22 @@ clearpreview_display(
 	);
 }
 
+static void
+magic_circles_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int mode = *(int*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"MagicCircles: %s",
+		magic_circles ? "ON" : "OFF"
+	);
+}
 
 static void
 spotmeter_menu_display(
@@ -2098,6 +2131,11 @@ struct menu_entry zebra_menus[] = {
 		.select			= menu_ternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
+	},
+	{
+		.priv = &magic_circles, 
+		.display = magic_circles_display,
+		.select = menu_binary_toggle,
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2396,6 +2434,50 @@ void falsecolor_cancel()
 	falsecolor_canceled = 1;
 }
 
+void magic_circles_toggle()
+{
+	magic_circles = !magic_circles;
+}
+
+void magic_circles_enable()
+{
+	magic_circles = 1;
+}
+void draw_magic_circles()
+{
+	if (!lv_drawn()) return;
+	if (!get_global_draw()) return;
+	
+	struct vram_info *	lv = get_yuv422_vram();
+	struct vram_info *	hd = get_yuv422_hd_vram();
+
+	if( !lv->vram )	return;
+	if( !hd->vram )	return;
+
+	uint16_t*		lvr = lv->vram;
+	uint16_t*		hdr = hd->vram;
+	
+	if (!lvr) return;
+
+	int x0,y0; 
+	get_afframe_pos(lv->width, lv->height, &x0, &y0);
+
+	int hx0,hy0; 
+	get_afframe_pos(hd->width, hd->height, &hx0, &hy0);
+	
+	int W = 240;
+	int H = 240;
+	//~ draw_circle(x0,y0,45,COLOR_WHITE);
+	int x,y;
+	for (y = 0; y < H; y++)
+	{
+		int x0c = COERCE(x0 - (W>>1), 0, 720-W);
+		int y0c = COERCE(y0 - (H>>1), 0, 480-H);
+		memcpy(lvr + x0c + (y + y0c) * lv->width, hdr + (y + hy0 - (H>>1)) * hd->width + (hx0 - (W>>1)), W<<1);
+	}
+	
+}
+
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -2594,20 +2676,23 @@ movie_clock_task( void )
 	}
 }
 
-TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x17, 0x1000 );
+TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x1f, 0x1000 );
 
+static void
+magic_circles_task( void )
+{
+	while(1)
+	{
+		if (magic_circles)
+		{
+			msleep(10);
+			draw_magic_circles();
+		}
+		else msleep(500);
+	}
+}
 
-// 0b11001100 11001100 11001100 11001100
-//                                  **** cropmarks
-//                                **     zebra
-//                              **       histogram
-//                           **          waveform
-//                         **            false color
-//                       **              spotmeter
-//                     **                clrscr
-//                  **                   global draw
-//                **                     focus peak
-//              **                       focus graph
+TASK_CREATE( "magic_circles_task", magic_circles_task, 0, 0x1e, 0x1000 );
 
 int unused;
 int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw};

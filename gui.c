@@ -256,6 +256,14 @@ static int handle_buttons(struct event * event)
 	// stop intervalometer with MENU or PLAY
 	if (event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY))
 		intervalometer_stop();
+		
+	
+	// zoom overlay
+	
+	if (recording && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	{
+		magic_circles_toggle();
+	}
 
 /*
 	

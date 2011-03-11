@@ -33,7 +33,7 @@
 #include "gui.h"
 
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
-CONFIG_INT( "focus.trap", trap_focus, 1);
+CONFIG_INT( "focus.trap", trap_focus, 0);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
@@ -330,6 +330,12 @@ uint32_t afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
 	memcpy(afframe, buf, 0x68);
 	return prop_cleanup( token, property );
+}
+
+void get_afframe_pos(int W, int H, int* x, int* y)
+{
+	*x = (afframe[2] + afframe[4]/2) * W / afframe[0];
+	*y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
 face_zoom_request = 0;
@@ -637,7 +643,7 @@ convert_all_yuvs_start()
 }
 #endif
 
-static void vsync(volatile int* addr)
+void vsync(volatile int* addr)
 {
 	int i;
 	int v0 = *addr;

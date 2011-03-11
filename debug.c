@@ -983,18 +983,6 @@ PROP_HANDLER(PROP_SHUTTER)
 
 void lv_test(void* priv)
 {
-	struct vram_info *	vram = get_yuv422_vram();
-
-	if( !vram->vram )
-		return;
-	uint16_t*		vr = vram->vram;
-	unsigned		width = vram->width;
-	
-	int x,y;
-	for (x = 0; x < 50; x++)
-		for (y = 0; y < 50; y++)
-			vr[ x + y * width ] = 0;
-	
 }
 
 void fake_simple_button(int bgmt_code)
@@ -1393,13 +1381,13 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	{
+/*	{
 		.priv		= "LV test",
 		.select		= lv_test,
 		.display	= menu_print,
 		.select_reverse = apershutter_close, 
 		.select_auto = apershutter_open,
-	}
+	}*/
 /*	{
 		.select = focus_test,
 		.display = focus_print,

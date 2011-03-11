@@ -7,6 +7,8 @@
 #define YUV422_LV_HEIGHT_RCA 540
 #define YUV422_LV_HEIGHT_HDMI 1080
 
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x246c)
+
 
 // changes during record
 #define YUV422_HD_BUFFER 0x44000080

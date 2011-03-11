@@ -168,7 +168,7 @@ These buttons have special meaning with Magic Lantern:
 * LCD sensor + Arrows: see `Follow Focus`_.
 * LCD sensor + aperture change in LiveView: `DOF adjust`_ (changes aperture and ISO while keeping the same exposure).
 * Flash / DOF preview: see `False color`_.
-* Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain.
+* Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
 * Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
