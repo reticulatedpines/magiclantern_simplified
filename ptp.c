@@ -88,6 +88,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
       msg.param_count = 2;
       msg.param[0] = PTP_CHDK_VERSION_MAJOR;
       msg.param[1] = PTP_CHDK_VERSION_MINOR;
+      gui_unlock();
       break;
 
     case PTP_CHDK_GetMemory:
@@ -330,9 +331,6 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 		context->handle,
 		&msg
 	);
-
-	// Try to disable the USB lock
-	gui_unlock();
 	
 	return 0;
 }

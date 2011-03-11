@@ -226,7 +226,9 @@ gui_lock(
 static inline void
 gui_unlock( void )
 {
-	gui_lock( 0, 1, 2 );
+	//~ gui_lock( 0, 1, 2 );
+	uint32_t x = 0x41000000;
+	prop_request_change(0x80020009, &x, 4);
 }
 
 
