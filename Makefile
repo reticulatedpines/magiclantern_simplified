@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=gui-tweaks.$(shell whoami)
+BUILDVER=PTP.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -90,6 +90,12 @@ install: autoexec.bin
 	cp cropmks/*.bmp $(CF_CARD)/cropmks/
 
 	$(UMOUNT) $(CF_CARD)
+
+ptpinstall: autoexec.bin
+	gvfs-mount -s gphoto2
+	sleep 2
+	cat ptpcam.txt | ptpcam --chdk
+	diff autoexec.bin autoexec.test
 
 zip: magiclantern-$(VERSION).zip
 
@@ -222,9 +228,9 @@ ML_OBJS-y = \
 	focus.o \
 	console.o \
 	chdk-gui_draw.o \
+	ptp.o \
 
 NO=\
-	ptp.o \
 	aj_port.o \
 	aj_lib_port.o \
 	font-huge.o \

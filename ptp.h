@@ -62,10 +62,18 @@ struct ptp_context
 {
 	struct ptp_handle *	handle;		// off_0x00;
 
-	void *		off_0x04;
+	int 		(*send_data)(
+		struct ptp_handle *	handle,
+		void *		buf,
+		int			part_size,
+		int 		total_size,     // total_size should be 0 except for the first call
+		int,                        // that's brainfuck for me...
+		int,
+		int
+	);
 
 	// off 0x08
-	void 		(*recv)(
+	int 		(*recv_data)(
 		struct ptp_handle *	handle,
 		void *			buf,
 		size_t			len,
@@ -79,18 +87,19 @@ struct ptp_context
 	// Sends a formatted buffer
 	// \note format to be determined
 	// off_0x0c
-	int		(*send)(
+	int		(*send_resp)(
 		struct ptp_handle *	handle,
 		struct ptp_msg *	msg
 	);
 
 	// Returns length of message to receive
 	// off 0x10
-	int		(*len)(
+	int		(*get_data_size)(
 		struct ptp_handle *	handle
 	);
+	// CHDK equiv: int (*get_data_size)(int handle);
 
-	void * off_0x14;
+	void * off_0x14; // int (*send_err_resp)(int handle, PTPContainer *resp); ?
 	void * off_0x18; // priv to close handler?
 	void * off_0x1c; // close?
 };
