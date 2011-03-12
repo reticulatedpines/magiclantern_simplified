@@ -172,6 +172,8 @@ my_task_dispatch_hook(
 	if( !context )
 		return;
 
+	if (FOCUS_CONFIRMATION_AF_PRESSED) return;
+
 	// Do nothing unless a new task is starting via the trampoile
 	if( (*context)->pc != (uint32_t) task_trampoline )
 		return;
@@ -311,6 +313,13 @@ my_init_task(void)
 
 	msleep( 1500 );
 
+	if (FOCUS_CONFIRMATION_AF_PRESSED) 
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
+		additional_version[0] = '\0';
+		return;
+	}
+
 	menu_init();
 	debug_init();
 
@@ -324,13 +333,6 @@ my_init_task(void)
 		build_date,
 		build_user
 	);*/
-	
-	if (FOCUS_CONFIRMATION_AF_PRESSED) 
-	{
-		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
-		additional_version[0] = '\0';
-		return;
-	}
 
 	//~ return;
 	init_funcs_done = 0;
