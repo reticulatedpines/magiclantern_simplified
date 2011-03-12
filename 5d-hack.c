@@ -316,7 +316,14 @@ my_init_task(void)
 	if (FOCUS_CONFIRMATION_AF_PRESSED) 
 	{
 		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
-		additional_version[0] = '\0';
+		additional_version[0] = '-';
+		additional_version[1] = 'm';
+		additional_version[2] = 'l';
+		additional_version[3] = '-';
+		additional_version[4] = 'o';
+		additional_version[5] = 'f';
+		additional_version[6] = 'f';
+		additional_version[7] = '\0';
 		return;
 	}
 

@@ -176,7 +176,7 @@ These buttons have special meaning with Magic Lantern:
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``ERASE``: display Magic Lantern menu.
 * Arrows, ``SET, DISP/PLAY, Q``: ML menu navigation (see below).
-* Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern)
+* Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). This does not work in video mode; it works best in P, Tv, Av or M modes.
 
 Menu options
 ------------
