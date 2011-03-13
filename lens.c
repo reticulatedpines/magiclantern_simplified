@@ -31,6 +31,8 @@
 
 CONFIG_INT("movie.log", movie_log, 1);
 
+PROP_INT(PROP_AF_MODE, af_mode);
+
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
 //~ static struct semaphore * job_sem;
@@ -298,6 +300,9 @@ lens_focus(
 	// Should we timeout to avoid hanging?
 	if( take_semaphore( focus_done_sem, 100 ) != 0 )
 		return;
+	
+	if (!lv_drawn()) return;
+	if ((af_mode & 0xF) == 3 ) return;
 
 	struct prop_focus focus = {
 		.active		= 1,
@@ -308,8 +313,11 @@ lens_focus(
 	};
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
+
+	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(200);
 }
 
+/*
 void lens_focus_ex(unsigned mode, int step, int active)
 {
 	struct prop_focus focus = {
@@ -320,7 +328,7 @@ void lens_focus_ex(unsigned mode, int step, int active)
 	};
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
-}
+}*/
 
 void lens_wait_readytotakepic(uint32_t wait)
 {
@@ -332,8 +340,6 @@ void lens_wait_readytotakepic(uint32_t wait)
 		msleep(1);
 	}
 }
-
-PROP_INT(PROP_AF_MODE, af_mode);
 
 int
 lens_take_picture(

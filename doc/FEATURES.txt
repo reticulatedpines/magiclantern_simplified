@@ -450,26 +450,29 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``ZF``: triggered by ``Zoom In`` while recording and also by rotating the focus ring (only on lenses which report focus distance).
   * ``ALW``: always on
   
-  Sizes (change with ``DISP`` or ``PLAY``): 
+  Size / magnification (change with ``DISP`` or ``PLAY``): 
   
   * ``Small`` (150x150)
   * ``Medium`` (250x200)
   * ``Large`` (500x300)
+  * ``SmaX2`` : small with *x2* magnification
+  * ``MedX2`` : medium with *x2* magnification
   
   Positions (change with ``Q``):
   
   * ``AFF``: moves with the AF frame (the little rectangle)
   * ``NW``, ``NE``, ``SE``, ``SW``: the zoom overlay is placed in one of the 4 corners. The zoomed area is still linked to the AF frame.
 
-  Magnification:
+  Magnification (linear):
   
   * while recording FullHD: around 2.4x.
   * while not recording: around 1.5x.
+  * *x2* setting doubles the magnification, but it does not add any extra detail (just doubles the pixels). It may be easier to see, though.
 
   Notes:
   
-  * It does not work with external displays.
-  * Zebra and focus peaking are disabled automatically when the zoom overlay is active.
+  * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
+  * Zebra, focus peaking and false color are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:
@@ -772,8 +775,6 @@ Functions for stills shooting (some of them work for movies, too).
       compute the correct focus scaling for the current scene. 
     - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
     
-    To use Trap Focus in LiveView, make sure `focus graph`_ is ``ON`` and `silent pictures`_ are ``OFF``.
-
 .. _flash / no flash:
 
 **Flash / No flash: ON/OFF**

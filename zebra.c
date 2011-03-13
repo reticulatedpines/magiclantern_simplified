@@ -1917,7 +1917,9 @@ zoom_overlay_display(
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_size == 0 ? "Small," :
 			zoom_overlay_size == 1 ? "Med," :
-			zoom_overlay_size == 2 ? "Large," : "err",
+			zoom_overlay_size == 2 ? "Large," :
+			zoom_overlay_size == 3 ? "SmaX2," :
+			zoom_overlay_size == 4 ? "MedX2," :  "err",
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_pos == 0 ? "AFF" :
 			zoom_overlay_pos == 1 ? "NW" :
@@ -2115,7 +2117,7 @@ void zoom_overlay_main_toggle(void* priv)
 
 void zoom_overlay_size_toggle(void* priv)
 {
-	zoom_overlay_size = mod(zoom_overlay_size + 1, 3);
+	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
 
@@ -2498,6 +2500,17 @@ void zoom_overlay_set_countdown(int x)
 	zoom_overlay_countdown = x;
 }
 
+void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
+{
+
+	uint32_t* last_s = src + (num_pix>>1);
+	for (; src < last_s; src++, dst += 2)
+	{
+		*(dst) = ((*src) & 0x00FFFFFF) | (((*src) & 0x0000FF00) << 16);
+		*(dst+1) = ((*src) & 0xFFFF00FF) | (((*src) & 0xFF000000) >> 16);
+	}
+}
+
 void draw_zoom_overlay()
 {
 	if (!lv_drawn()) return;
@@ -2525,10 +2538,12 @@ void draw_zoom_overlay()
 	switch(zoom_overlay_size)
 	{
 		case 0:
+		case 3:
 			W = 150;
 			H = 150;
 			break;
 		case 1:
+		case 4:
 			W = 250;
 			H = 200;
 			break;
@@ -2537,6 +2552,8 @@ void draw_zoom_overlay()
 			H = 350;
 			break;
 	}
+	
+	int x2 = (zoom_overlay_size > 2);
 
 	int x0,y0; 
 	int xaf,yaf;
@@ -2580,8 +2597,30 @@ void draw_zoom_overlay()
 	int x,y;
 	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
 	int y0c = COERCE(y0 - (H>>1), 0, 480-H);
-	for (y = 0; y < H; y++)
-		memcpy(lvr + x0c + (y + y0c) * lv->width, hdr + (y + hy0 - (H>>1)) * hd->width + (hx0 - (W>>1)), W<<1);
+	
+	if (x2)
+	{
+		uint16_t* d = lvr + x0c + y0c * lv->width;
+		uint16_t* s = hdr + (hy0 - (H>>2)) * hd->width + (hx0 - (W>>2));
+		for (y = 0; y < H; y++)
+		{
+			yuvcpy_x2(d, s, W>>1);
+			d += lv->width;
+			if (y & 1) s += hd->width;
+		}
+	}
+	else
+	{
+		uint16_t* d = lvr + x0c + y0c * lv->width;
+		uint16_t* s = hdr + (hy0 - (H>>1)) * hd->width + (hx0 - (W>>1));
+		for (y = 0; y < H; y++)
+		{
+			memcpy(d, s, W<<1);
+			d += lv->width;
+			s += hd->width;
+		}
+	}
+	
 	memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, 0,    W<<1);
 	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, 0xFF, W<<1);
 	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, 0xFF, W<<1);
@@ -2623,7 +2662,7 @@ zebra_task_loop:
 		}
 		if (!lv_drawn()) { msleep(100); continue; }
 		
-		if (FLASH_BTN_MOVIE_MODE) crop_dirty = 1;
+		if (FLASH_BTN_MOVIE_MODE) crop_dirty = 2;
 
 		int fcp = falsecolor_displayed;
 

@@ -801,6 +801,7 @@ void fake_lens(void* priv)
 }
 */
 
+/*
 int foc_mod = 7;
 int foc_en = 1;
 void focus_test(void* priv)
@@ -829,7 +830,7 @@ focus_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Focus mode=%x en=%x", foc_mod, foc_en);
-}
+}*/
 
 static void
 enable_liveview_print(

@@ -386,8 +386,8 @@ void center_lv_afframe_do()
 void move_lv_afframe(int dx, int dy)
 {
 	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
-	afframe[2] = COERCE(afframe[2] + dx, 0, afframe[0] - afframe[4]);
-	afframe[3] = COERCE(afframe[3] + dy, 50, afframe[1] - afframe[5]);
+	afframe[2] = COERCE(afframe[2] + dx, 100, afframe[0] - afframe[4]);
+	afframe[3] = COERCE(afframe[3] + dy, 100, afframe[1] - afframe[5]);
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 }
 
