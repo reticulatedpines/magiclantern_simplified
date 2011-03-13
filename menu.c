@@ -704,10 +704,10 @@ gui_stop_menu( void )
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
-	bmp_fill( 0, 90, 55, 720-160, 480-110 );
 	msleep(50);
-	bmp_fill( 0, 90, 55, 720-160, 480-110 );
-
+	clrscr();
+	lv_redraw();
+	zebra_resume();
 	
 	lens_focus_stop();
 	show_only_selected = 0;
@@ -911,6 +911,7 @@ menu_task( void )
 		menu_hidden = 0;
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
+		zebra_pause();
 		display_on(); // ensure the menu is visible even if display was off
 		bmp_on();
 	}

@@ -1918,8 +1918,9 @@ zoom_overlay_display(
 			zoom_overlay_size == 0 ? "Small," :
 			zoom_overlay_size == 1 ? "Med," :
 			zoom_overlay_size == 2 ? "Large," :
-			zoom_overlay_size == 3 ? "SmaX2," :
-			zoom_overlay_size == 4 ? "MedX2," :  "err",
+			zoom_overlay_size == 3 ? "SmlX2," :
+			zoom_overlay_size == 4 ? "MedX2," :
+			zoom_overlay_size == 5 ? "LrgX2," :  "err",
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_pos == 0 ? "AFF" :
 			zoom_overlay_pos == 1 ? "NW" :
@@ -2267,7 +2268,7 @@ int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	crop_dirty = 50;
-	if (ext_monitor_hdmi && lv_drawn()) clrscr();
+	lv_redraw();
 	recording = buf[0];
 	if (!recording)
 	{
@@ -2502,7 +2503,8 @@ void zoom_overlay_set_countdown(int x)
 
 void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
-
+	dst = (unsigned int)dst & 0xFFFFFFF0;
+	src = (unsigned int)src & 0xFFFFFFF0;
 	uint32_t* last_s = src + (num_pix>>1);
 	for (; src < last_s; src++, dst += 2)
 	{
@@ -2548,6 +2550,7 @@ void draw_zoom_overlay()
 			H = 200;
 			break;
 		case 2:
+		case 5:
 			W = 500;
 			H = 350;
 			break;
@@ -2628,6 +2631,10 @@ void draw_zoom_overlay()
 
 }
 
+int zebra_paused = 0;
+void zebra_pause() { zebra_paused = 1; }
+void zebra_resume() { zebra_paused = 0; }
+
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -2699,16 +2706,21 @@ zebra_task_loop:
 			}
 			else // false color no longer displayed
 			{
-				cropmark_redraw();
+				lv_redraw();
+				crop_dirty = 1;
 			}
 		}
 
-		if (gui_menu_shown())
+		if (zebra_paused)
 		{
 			clrscr_mirror();
-			while (gui_menu_shown()) msleep(100);
-			crop_dirty = 1;
-			update_disp_mode_bits_from_params();
+			while (zebra_paused)
+			{
+				msleep(100);
+				if (gui_menu_shown()) update_disp_mode_bits_from_params();
+			}
+			msleep(200);
+			crop_dirty = 10;
 		}
 		else
 		{
@@ -2733,6 +2745,7 @@ zebra_task_loop:
 			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
 			bmp_on();
+			lv_redraw();
 		}
 		else if (clearpreview == 2) // always clear overlays
 		{ // in this mode, BMP & global_draw are disabled, but Canon code may draw on the screen
@@ -2849,7 +2862,7 @@ zoom_overlay_task( void )
 	}
 }
 
-TASK_CREATE( "zoom_overlay_task", zoom_overlay_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "zoom_overlay_task", zoom_overlay_task, 0, 0x13, 0x1000 );
 
 int unused;
 int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw};

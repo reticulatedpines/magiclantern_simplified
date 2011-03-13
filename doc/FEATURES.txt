@@ -412,8 +412,9 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then disappear.
 
   This function works by temporarily disabling the bitmap overlay. All the overlay graphics will be restored when the overlay is enabled again.
-  To clear garbage left on the screen, press ``MENU`` twice (don't use ``ClrScreen`` for this).
   
+  To clear garbage left on the screen, press ``MENU`` twice (don't use ``ClrScreen`` for this).
+
 .. _focus peaking:
 
 **Focus Peak: OFF/HDIF/MORF, threshold, color_mode**
@@ -455,7 +456,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``Small`` (150x150)
   * ``Medium`` (250x200)
   * ``Large`` (500x300)
-  * ``SmaX2`` : small with *x2* magnification
+  * ``SmlX2`` : small with *x2* magnification
   * ``MedX2`` : medium with *x2* magnification
   
   Positions (change with ``Q``):

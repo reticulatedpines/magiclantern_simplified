@@ -985,6 +985,14 @@ PROP_HANDLER(PROP_SHUTTER)
 
 void lv_test(void* priv)
 {
+	zebra_pause();
+	if (lv_drawn()) msleep(200); // redrawing screen while zebra is active seems to cause trouble
+	static int i = 0;
+	if (i) winsys_related_maybe(); // one of those should trigger a redraw
+	else struct_1e774_0x40_something();
+	i = !i;
+	msleep(200);
+	zebra_resume();
 }
 
 void fake_simple_button(int bgmt_code)
@@ -998,14 +1006,17 @@ void fake_simple_button(int bgmt_code)
 	GUI_CONTROL(&e);
 }
 
-// not very elegant, but seems to work
 void lv_redraw()
 {
-	if (recording) return;
-	int x = 5;
-	prop_request_change(PROP_LV_DISPSIZE, &x, 4);
-	x = 1;
-	prop_request_change(PROP_LV_DISPSIZE, &x, 4);
+	if (lv_drawn())
+	{
+		zebra_pause();
+		msleep(200);
+		redraw_maybe();
+		msleep(200);
+		zebra_resume();
+	}
+	else redraw_maybe();
 }
 
 void turn_off_display()
@@ -1178,7 +1189,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, *(int*)0x5B34, 32*10);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x1E774, 32*10);
 		//~ bmp_printf(FONT_MED, 0, 0, "bidt=%8x pal=%8x", *(int*)0x20164, *(int*)132004);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
@@ -1615,7 +1626,7 @@ debug_init( void )
 
 				property_list[ actual_num_properties++ ] = prop;
 
-				if( actual_num_properties > num_properties )
+				if( actual_num_properties >= num_properties )
 					goto thats_all;
 			}
 		}

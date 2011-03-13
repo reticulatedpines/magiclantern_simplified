@@ -179,6 +179,11 @@ NSTUB( 0xFF020760, GUI_CONTROL )
 
 NSTUB( 0xFF31CFCC, ChangeColorPalette )
 
+NSTUB( 0xFF2CFA54, winsys_related_maybe )
+NSTUB( 0xFF2CFAB4, struct_1e774_0x40_something )
+NSTUB( 0xFF2CE1F0, redraw_maybe )
+NSTUB( 0xFF06366C, AJ_0x15C24_struct_related )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )

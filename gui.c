@@ -246,11 +246,10 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
-	// MENU while recording => clear screen
+	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{
-		clrscr();
-		crop_set_dirty(1);
+		lv_redraw();
 	}
 	
 	// stop intervalometer with MENU or PLAY
