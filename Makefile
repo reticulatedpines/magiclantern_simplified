@@ -110,9 +110,9 @@ magiclantern-$(VERSION).zip: \
 	README \
 	INSTALL.pdf \
 	UserGuide.pdf \
+	UserGuide-diff.pdf \
 	make_bootable.sh\
 	cropmks/* \
-	422-jpg.py \
 
 	-rm $@
 	chmod -x autoexec.bin
