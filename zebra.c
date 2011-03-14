@@ -2296,7 +2296,7 @@ struct menu_entry zebra_menus[] = {
 struct menu_entry dbg_menus[] = {
 	{
 		.priv = "Card Benchmark",
-		.select = card_benchmark,
+		.select = card_benchmark_schedule,
 		.display = menu_print,
 	},
 	{
