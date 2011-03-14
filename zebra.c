@@ -728,6 +728,85 @@ void dump_big_seg(int k, char* filename)
     DEBUG();
 }
 
+int tic()
+{
+	struct tm now;
+	LoadCalendarFromRTC(&now);
+	return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
+}
+
+void card_benchmark_wr(int bufsize, int K, int N)
+{
+	FIO_RemoveFile("B:/bench.tmp");
+	msleep(1000);
+	int n = 0x10000000 / bufsize;
+	{
+		FILE* f = FIO_CreateFile("B:/bench.tmp");
+		int t0 = tic();
+		int i;
+		for (i = 0; i < n; i++)
+		{
+			uint32_t start = UNCACHEABLE(i * bufsize);
+			bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+			FIO_WriteFile( f, (const void *) start, bufsize );
+		}
+		FIO_CloseFile(f);
+		int t1 = tic();
+		int speed = 2560 / (t1 - t0);
+		console_printf("Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+	}
+	SW1(1,100);
+	SW1(0,100);
+	msleep(1000);
+	if (bufsize > 1024*1024) console_printf("read test skipped: buffer=%d\n", bufsize);
+	else
+	{
+		void* buf = AllocateMemory(bufsize);
+		if (buf)
+		{
+			FILE* f = FIO_Open("B:/bench.tmp", O_RDONLY | O_SYNC);
+			int t0 = tic();
+			int i;
+			for (i = 0; i < n; i++)
+			{
+				bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+				FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
+			}
+			FIO_CloseFile(f);
+			FreeMemory(buf);
+			int t1 = tic();
+			int speed = 2560 / (t1 - t0);
+			console_printf("Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+		}
+		else
+		{
+			console_printf("malloc error: buffer=%d\n", bufsize);
+		}
+	}
+
+	FIO_RemoveFile("B:/bench.tmp");
+	msleep(1000);
+	SW1(1,100);
+	SW1(0,100);
+}
+
+void card_benchmark()
+{
+	console_printf("Card benchmark starting...\n");
+	card_benchmark_wr(16384, 1, 3);
+	card_benchmark_wr(131072, 2, 3);
+	card_benchmark_wr(16777216, 3, 3);
+	console_printf("Card benchmark done.\n");
+	console_show();
+}
+
+int card_benchmark_start = 0;
+void card_benchmark_schedule()
+{
+	gui_stop_menu();
+	card_benchmark_start = 1;
+}
+
 static void dump_vram()
 {
 	//dump_big_seg(1, "B:/1.bin");
@@ -1084,7 +1163,7 @@ draw_zebra_and_focus( void )
 	static int Zdp = 0;
 	if (Zd && !Zdp) clrscr_mirror();
 	Zdp = Zd;
-	if (Zd) return;
+	if (Zd) msleep(100); // reduce frame rate when zoom overlay is active
 	
 	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
 	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
@@ -1114,7 +1193,7 @@ draw_zebra_and_focus( void )
 	//~ int BMPPITCH = bmp_pitch();
 	uint32_t x,y;
 
-	if (focus_peaking)
+	if (focus_peaking && !Zd)
 	{
 		// clear previously written pixels
 		#define MAX_DIRTY_PIXELS 5000
@@ -2216,6 +2295,11 @@ struct menu_entry zebra_menus[] = {
 
 struct menu_entry dbg_menus[] = {
 	{
+		.priv = "Card Benchmark",
+		.select = card_benchmark,
+		.display = menu_print,
+	},
+	{
 		.priv		= &unified_loop,
 		.select		= menu_ternary_toggle,
 		.display	= unified_loop_display,
@@ -2224,13 +2308,13 @@ struct menu_entry dbg_menus[] = {
 		.priv		= &zebra_density,
 		.select		= menu_ternary_toggle,
 		.display	= zebra_mode_display,
-	},*/
+	},
 	{
 		.priv		= &use_hd_vram,
 		.select		= menu_binary_toggle,
 		.display	= use_hd_vram_display,
 	},
-	/*{
+	{
 		.priv = &focus_peaking_debug,
 		.select = menu_binary_toggle, 
 		.display = focus_debug_display,
@@ -2515,6 +2599,7 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 void draw_zoom_overlay()
 {
+	if (falsecolor_displayed) return;
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
@@ -2843,13 +2928,18 @@ TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x1f, 0x1000 );
 
 int should_draw_zoom_overlay()
 {
-	return (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3);
+	return (zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
 }
 static void
 zoom_overlay_task( void )
 {
 	while(1)
 	{
+		if (card_benchmark_start)
+		{
+			card_benchmark_start = 0;
+			card_benchmark();
+		}
 		if (should_draw_zoom_overlay())
 		{
 			msleep(10);

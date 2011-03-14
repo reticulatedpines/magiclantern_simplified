@@ -138,6 +138,7 @@ display_off_print(
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 
+/*
 int big_clock = 0;
 
 static void
@@ -183,14 +184,8 @@ void show_big_clock()
 		draw_pie(360, 240, 200, ang_min - 1, ang_min + 1, COLOR_WHITE);
 		draw_pie(360, 240, 220, ang_sec - 1, ang_sec + 1, COLOR_RED);
 	}
-	/*else
-	{
-		int ang = (big_clock == 2 ? now.tm_min : now.tm_sec) * 360 / 60 - 90;
-		
-		draw_pie(360, 240, 200, -90, ang, COLOR_RED);
-		draw_pie(360, 240, 200, ang, 270, COLOR_WHITE);
-	}*/
 }
+*/
 
 CONFIG_INT("backlight.keys", backlight_keys, 1);
 
@@ -1187,13 +1182,18 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
+		//~ struct tm now;
+		//~ LoadCalendarFromRTC(&now);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, &now, 32*5);
+		//~ bmp_hexdump(FONT_SMALL, 0, 200, 0x26B8, 32*5);
+		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x1E774, 32*10);
 		//~ bmp_printf(FONT_MED, 0, 0, "bidt=%8x pal=%8x", *(int*)0x20164, *(int*)132004);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !big_clock && bmp_getpixel(2,10) != 2)
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2 && k % 10 == 0)
 		{
 			display_clock();
 			display_shooting_info();
@@ -1306,10 +1306,10 @@ debug_loop_task( void ) // screenshot, draw_prop
 			}
 		}
 
-		if (big_clock && k % 10 == 0)
+		/*if (big_clock && k % 10 == 0)
 		{
 			show_big_clock();
-		}
+		}*/
 		
 		if (draw_prop)
 		{
@@ -1363,11 +1363,11 @@ struct menu_entry debug_menus[] = {
 		.select		= menu_binary_toggle,
 		.display	= backlight_print,
 	},
-	{
+	/*{
 		.priv = &big_clock, 
 		.select = menu_binary_toggle,
 		.display = big_clock_print,
-	},
+	},*/
 	{
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
@@ -1597,8 +1597,8 @@ ack:
 
 
 
-#define num_properties 4096
-unsigned* property_list = 0;
+//~ #define num_properties 4096
+//~ unsigned* property_list = 0;
 
 
 void
@@ -1606,7 +1606,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 1
+#if 0
 	if (!property_list) property_list = AllocateMemory(num_properties * sizeof(unsigned));
 	if (!property_list) return;
 	unsigned i, j, k;

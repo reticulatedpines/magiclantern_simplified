@@ -448,7 +448,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * ``OFF``
   * ``Zr``: triggered by ``Zoom In`` button while recording
-  * ``ZF``: triggered by ``Zoom In`` while recording and also by rotating the focus ring (only on lenses which report focus distance).
+  * ``ZF``: triggered by ``Zoom In`` while recording and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `movie AF`_ / `rack focus`_).
   * ``ALW``: always on
   
   Size / magnification (change with ``DISP`` or ``PLAY``): 
@@ -473,7 +473,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Notes:
   
   * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
-  * Zebra, focus peaking and false color are disabled automatically when the zoom overlay is active.
+  * It does not work in certain video modes (e.g. 720p) when not recording.
+  * Focus peaking is disabled automatically when the zoom overlay is active. If `false color`_ mode is enabled, the zoom overlay will not work.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:
@@ -1090,10 +1091,6 @@ Debug
   
   Disabling this setting will restore the default behavior of ``UP/DOWN`` keys.
 
-**Big Clock: ON/OFF**
-
-  This will display a little big clock.
-
 **Auto Burst PicQ: ON/OFF**
 
   When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
@@ -1130,6 +1127,16 @@ Debug
     
     Trying to spy the camera_engine addresses seems to cause trouble (camera freeze). 
     Probably it's not safe to read data from those areas.
+
+**Card benchmark**
+
+  Simple benchmark for card read/write speed. It does the following tests:
+  
+  * sequential write/read with 16K buffer
+  * sequential write/read with 128K buffer
+  * sequential write with 16M buffer
+  
+  It will create a 256MB, dump the first section of RAM, and then read it.
 
 Some items from this menu may not be available in release builds; 
 you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
