@@ -49,7 +49,7 @@ ifeq ($(CONFIG_AUDIOMON),y)
 AUDIOMON=AudioMon.
 endif
 
-VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(AUDIOMON)$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').550d.fw109.$(AUDIOMON)$(BUILDVER)
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
