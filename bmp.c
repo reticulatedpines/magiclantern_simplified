@@ -707,3 +707,109 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 		}
 	}
 }
+
+
+// built-in fonts found by Pel
+// http://groups.google.com/group/ml-devel/browse_thread/thread/aec4c80eef1cdd6a
+// http://chdk.setepontos.com/index.php?topic=6204.0
+
+#define BFNT_CHAR_CODES    0xFF661AA4
+#define BFNT_BITMAP_OFFSET 0xFF663F84
+#define BFNT_BITMAP_DATA   0xFF666464
+
+// quick sanity test
+int bfnt_ok()
+{
+	int* codes = BFNT_CHAR_CODES;
+	int i;
+	
+	for (i = 0; i < 20; i++) 
+		if (codes[i] != 0x20+i) return 0;
+
+	int* off = BFNT_BITMAP_OFFSET;
+	if (off[0] != 0) return 0;
+	
+	for (i = 1; i < 20; i++) 
+		if (off[i] <= off[i-1]) return 0;
+	
+	return 1;
+}
+
+uint8_t* bfnt_find_char(int code)
+{
+	int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
+	int* codes = BFNT_CHAR_CODES;
+	int* off = BFNT_BITMAP_OFFSET;
+	
+	//~ if (code <= 'z') return off[code - 0x20];
+	
+	int i;
+	for (i = 0; i < n; i++)
+		if (codes[i] == code)
+			return BFNT_BITMAP_DATA + off[i];
+	return 0;
+}
+
+// returns width
+int bfnt_draw_char(int c, int px, int py, int fg, int bg)
+{
+	if (!bfnt_ok())
+	{
+		bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
+		return;
+	}
+	
+	uint16_t* chardata = bfnt_find_char(c);
+	if (!chardata) return 0;
+	uint8_t* buff = chardata + 5;
+	int ptr = 0;
+	
+	unsigned int cw  = chardata[0]; // the stored bitmap width
+	unsigned int ch  = chardata[1]; // the stored bitmap height
+	unsigned int crw = chardata[2]; // the displayed character width
+	unsigned int xo  = chardata[3]; // X offset for displaying the bitmap
+	unsigned int yo  = chardata[4]; // Y offset for displaying the bitmap
+	unsigned int bb	= cw / 8 + (cw % 8 == 0 ? 0 : 1); // calculate the byte number per line
+	
+	//~ bmp_printf(FONT_SMALL, 0, 0, "%x %d %d %d %d %d %d", chardata, cw, ch, crw, xo, yo, bb);
+	
+	if (crw+xo > 50) return 0;
+	if (ch+yo > 50) return 0;
+	
+	bmp_fill(bg, px, py, crw+xo+3, 40);
+	
+	int i,j,k;
+	for (i = 0; i < ch; i++)
+	{
+		for (j = 0; j < bb; j++)
+		{
+			for (k = 0; k < 8; k++)
+			{
+				if (j*8 + k < cw)
+				{
+					if ((buff[ptr+j] & (1 << (7-k)))) bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
+				}
+			}
+		}
+		ptr += bb;
+	}
+	return crw;
+}
+
+void bfnt_puts(char* s, int x, int y, int fg, int bg)
+{
+	while (*s)
+	{
+		x += bfnt_draw_char(*s, x, y, fg, bg);
+		s++;
+	}
+}
+
+void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
+{
+	while (*s)
+	{
+		x += bfnt_draw_char(*s, x, y, fg, bg);
+		s++;
+	}
+}

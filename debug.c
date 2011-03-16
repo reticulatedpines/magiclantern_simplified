@@ -978,6 +978,16 @@ PROP_HANDLER(PROP_SHUTTER)
 	return prop_cleanup(token, property);
 } */
 
+void font_test(void* priv)
+{
+	gui_stop_menu();
+	msleep(500);
+	
+	bfnt_puts("Hello, world!", 10, 20, COLOR_BLACK, COLOR_WHITE);
+	int msg[] = {0x9381e3, 0x9382e3, 0xab81e3, 0xa181e3, 0xaf81e3, 0};
+	bfnt_puts_utf8(msg, 250, 20, COLOR_BLACK, COLOR_WHITE);
+}
+
 void lv_test(void* priv)
 {
 	zebra_pause();
@@ -1395,13 +1405,13 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-/*	{
-		.priv		= "LV test",
-		.select		= lv_test,
+	{
+		.priv		= "Font test",
+		.select		= font_test,
 		.display	= menu_print,
 		.select_reverse = apershutter_close, 
 		.select_auto = apershutter_open,
-	}*/
+	}
 /*	{
 		.select = focus_test,
 		.display = focus_print,
