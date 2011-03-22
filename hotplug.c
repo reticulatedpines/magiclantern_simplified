@@ -43,6 +43,8 @@ hotplug_display( void * priv, int x, int y, int selected )
 	);
 }
 
+int audio_monitoring_enabled() { return hotplug_override && !no_turning_back; }
+
 #define HOTPLUG_FLAG_FILE "B:/HOTPLUG.OFF"
 
 void hotplug_setting_save()

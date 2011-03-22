@@ -1031,7 +1031,7 @@ my_sounddev_task( int some_param )
 	{
 		// will be unlocked by the property handler
 		int rc = take_semaphore( gain.sem, 1000 );
-		if(gui_state != GUISTATE_PLAYMENU) {
+		if(gui_state != GUISTATE_PLAYMENU || audio_monitoring_enabled()) {
 			audio_configure( rc == 0 ); // force it if we got the semaphore
 		}
 	}
