@@ -735,13 +735,14 @@ int bfnt_ok()
 	return 1;
 }
 
+// are all char codes in ascending order, for binary search?
 uint8_t* bfnt_find_char(int code)
 {
 	int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
 	int* codes = BFNT_CHAR_CODES;
 	int* off = BFNT_BITMAP_OFFSET;
 	
-	//~ if (code <= 'z') return off[code - 0x20];
+	if (code <= 'z') return BFNT_BITMAP_DATA + off[code - 0x20];
 	
 	int i;
 	for (i = 0; i < n; i++)
@@ -756,7 +757,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 	if (!bfnt_ok())
 	{
 		bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
-		return;
+		return 0;
 	}
 	
 	uint16_t* chardata = bfnt_find_char(c);
@@ -787,7 +788,8 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 			{
 				if (j*8 + k < cw)
 				{
-					if ((buff[ptr+j] & (1 << (7-k)))) bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
+					if ((buff[ptr+j] & (1 << (7-k)))) 
+						bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
 				}
 			}
 		}
@@ -795,6 +797,82 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 	}
 	return crw;
 }
+
+/*
+int bfnt_draw_char_half(int c, int px, int py, int fg, int bg, int g1, int g2)
+{
+	if (!bfnt_ok())
+	{
+		bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
+		return 0;
+	}
+	
+	uint16_t* chardata = bfnt_find_char(c);
+	if (!chardata) return 0;
+	uint8_t* buff = chardata + 5;
+	int ptr = 0;
+	
+	unsigned int cw  = chardata[0]; // the stored bitmap width
+	unsigned int ch  = chardata[1]; // the stored bitmap height
+	unsigned int crw = chardata[2]; // the displayed character width
+	unsigned int xo  = chardata[3]; // X offset for displaying the bitmap
+	unsigned int yo  = chardata[4]; // Y offset for displaying the bitmap
+	unsigned int bb	= cw / 8 + (cw % 8 == 0 ? 0 : 1); // calculate the byte number per line
+	
+	//~ bmp_printf(FONT_SMALL, 0, 0, "%x %d %d %d %d %d %d", chardata, cw, ch, crw, xo, yo, bb);
+	
+	if (cw > 100) return 0;
+	if (ch > 50) return 0;
+	
+	static uint8_t tmp[50][25];
+
+	int i,j,k;
+
+	for (i = 0; i < 50; i++)
+		for (j = 0; j < 25; j++)
+			tmp[i][j] = 0;
+	
+	for (i = 0; i < ch; i++)
+	{
+		for (j = 0; j < bb; j++)
+		{
+			for (k = 0; k < 8; k++)
+			{
+				if (j*8 + k < cw)
+				{
+					if ((buff[ptr+j] & (1 << (7-k)))) 
+						tmp[COERCE((j*8+k)>>1, 0, 49)][COERCE(i>>1, 0, 24)] ++;
+				}
+			}
+		}
+		ptr += bb;
+	}
+
+	bmp_fill(bg, px+3, py, crw/2+xo/2+3, 20);
+
+	for (i = 0; i <= cw/2; i++)
+	{
+		for (j = 0; j <= ch/2; j++)
+		{
+			int c = COLOR_RED;
+			switch (tmp[i][j])
+			{
+				case 0:
+				case 1:
+				case 2:
+				case 3:
+					c = bg;
+					break;
+				case 4:
+					c = fg;
+					break;
+			}
+			if (c != bg) bmp_putpixel(px+xo/2+i, py+yo/2+j, c);
+		}
+	}
+
+	return crw>>1;
+}*/
 
 void bfnt_puts(char* s, int x, int y, int fg, int bg)
 {
