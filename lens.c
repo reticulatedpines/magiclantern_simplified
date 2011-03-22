@@ -137,7 +137,7 @@ static int recording = 0;
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 static PROP_INT(PROP_GUI_STATE, gui_state);
 
-static void
+void
 update_lens_display(
 	struct lens_info *	info
 )
@@ -255,7 +255,7 @@ update_lens_display(
 	x = 650;
 	bmp_printf( font, x, y,
 		"AE%2d/8EV",
-		info->ae
+		AE_VALUE
 	);
 
 #if 0
@@ -314,7 +314,7 @@ lens_focus(
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 
-	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(200);
+	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 }
 
 /*
@@ -734,7 +734,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	static int old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
-		zoom_overlay_set_countdown(200);
+		zoom_overlay_set_countdown(300);
 	}
 	old_focus_dist = lens_info.focus_dist;
 	

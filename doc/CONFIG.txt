@@ -3,24 +3,14 @@ Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
 
 .. _magic.cfg:
 
-Configuration file
-------------------
+Hidden settings
+---------------
 
 The configuration file (``MAGIC.CFG``) lets you tweak various hidden settings
 using a simple text editor (Notepad, gedit, vi...), and is also used
 to save Magic Lantern configuration from the GUI menu.
 
-Saving settings
-~~~~~~~~~~~~~~~
-
-Settings are saved automatically to ``MAGIC.CFG`` when you turn off the camera, or when you open the card door.
-
-Settings are NOT saved when you open the battery door.
-
-Hidden settings
-~~~~~~~~~~~~~~~
-
-These settings can not be changed from the ML menu, so they are documented here::
+These settings can not be changed from the ML menu::
 
     # if set to 1, disable the bootdisk flag. 
     # This does the same thing as Debug->Autoboot menu item.

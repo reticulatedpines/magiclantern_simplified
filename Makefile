@@ -484,6 +484,7 @@ magiclantern.fir: autoexec.bin
 		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
 		echo "";\
 	fi; \
+	stat -c "autoexec.bin: %s bytes" autoexec.bin
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@

@@ -277,7 +277,7 @@ my_init_task(void)
 #ifndef CONFIG_EARLY_PORT
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
-	dmstart();
+	//~ dmstart(); // already called by firmware?
 
 	DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
 		build_version,

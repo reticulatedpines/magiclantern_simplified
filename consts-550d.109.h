@@ -57,6 +57,7 @@
 #define BGMT_MENU 6
 #define BGMT_DISP 7
 #define BGMT_Q 8
+#define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 9
 
 #define BGMT_PRESS_HALFSHUTTER 0x3F
@@ -79,6 +80,7 @@
 #define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
 
 #define COLOR_FG_NONLV 80
 
@@ -99,3 +101,16 @@
 
 #define MOV_REC_STATEOBJ (*(void**)0x5B34)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
+
+#define AE_VALUE (*(int8_t*)0x14c25)
+
+#define CURRENT_DIALOG_MAYBE (*(int*)0x39ac)
+#define DLG_WB 5
+#define DLG_FOCUS_MODE 9
+#define DLG_DRIVE_MODE 8
+#define DLG_PICTURE_STYLE 4
+#define DLG_PLAY 1
+#define DLG_MENU 2
+#define DLG_Q_UNAVI 0x1F
+#define DLG_FLASH_AE 0x22
+#define DLG_PICQ 6

@@ -12,6 +12,44 @@
 #include "lens.h"
 //#include "lua.h"
 
+CONFIG_INT("config.autosave", config_autosave, 1);
+
+//////////////////////////////////////////////////////////
+// debug manager enable/disable
+//////////////////////////////////////////////////////////
+
+CONFIG_INT("dm.enable", dm_enable, 0);
+
+void dm_update()
+{
+	if (dm_enable) dmstart();
+	else dmstop();
+}
+
+static void
+dm_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int mode = *(int*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Debug logging  : %s",
+		dm_enable ? "ON, Q=dump" : "OFF,Q=dump"
+	);
+}
+
+static void dm_toggle(void* priv)
+{
+	dm_enable = !dm_enable;
+	dm_update();
+}
+//////////////////////////////////////////////////////////
+
 static PROP_INT(PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
@@ -214,62 +252,6 @@ void take_screenshot( void * priv )
 	silent_pic_take_lv_dbg();
 }
 
-
-/*
-PROP_HANDLER( PROP_HDMI_CHANGE_CODE )
-{
-	DebugMsg( DM_MAGIC, 3, "They try to set code to %d", buf[0] );
-	return prop_cleanup( token, property );
-}
-*/
-
-static void
-efic_temp_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		//23456789012
-		"CMOS temp:  %ld",
-		efic_temp
-	);
-}
-
-static void
-mvr_time_const_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-  /*
-	uint8_t * mvr_struct = (void*) 0x1ed4;
-	uint8_t * mvr_hdr = *(void**)( 0x1ed4 + 4 );
-	struct state_object ** const mvr_state_object = (void*) 0x68a4;
-  */
-	struct tm now;
-	LoadCalendarFromRTC( &now );
-
-	bmp_printf(
-		FONT_MED, // selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Date %4d/%2d/%2d %02d:%02d:%02d",
-		now.tm_year + 1900,
-		now.tm_mon,
-		now.tm_mday,
-		now.tm_hour,
-		now.tm_min,
-		now.tm_sec
-	);
-}
-
-
 int draw_prop = 0;
 
 CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
@@ -313,11 +295,36 @@ void card_led_blink(int times, int delay_on, int delay_off)
 	}
 }
 
+int config_ok = 0;
+
 static void
 save_config( void * priv )
 {
 	config_save_file( global_config, "B:/magic.cfg" );
 }
+static void
+delete_config( void * priv )
+{
+	FIO_RemoveFile( "B:/magic.cfg" );
+	config_autosave = 0;
+}
+
+static void
+config_autosave_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Config AutoSave: %s", 
+		config_autosave ? "ON" : "OFF"
+	);
+}
+
 
 int shooting_mode;
 PROP_INT(PROP_MVR_REC_START, recording);
@@ -327,7 +334,7 @@ CONFIG_INT( "h264.qscale.index", qscale_index, 6 );
 CONFIG_INT( "h264.bitrate.mode", bitrate_mode, 0 ); // off, CBR, VBR, MAX
 CONFIG_INT( "h264.bitrate.value.index", bitrate_value_index, 14 );
 
-int qscale_values[] = {24,16,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
+int qscale_values[] = {16,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
 int bitrate_values[] = {1,2,3,4,5,6,7,8,10,12,15,18,20,25,30,35,40,45,50,60,70,80,90,100,110,120};
 
 #define BITRATE_VALUE bitrate_values[mod(bitrate_value_index, COUNT(bitrate_values))]
@@ -1194,13 +1201,13 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, &now, 32*5);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, 0x26B8, 32*5);
 		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x1E774, 32*10);
-		//~ bmp_printf(FONT_MED, 0, 0, "bidt=%8x pal=%8x", *(int*)0x20164, *(int*)132004);
+		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", *(int*)131030);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2 && k % 10 == 0)
@@ -1216,7 +1223,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		if (screenshot_sec)
 		{
-			if (screenshot_sec >= 5) bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds", screenshot_sec);
+			if (screenshot_sec >= 5) bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec);
+			if (screenshot_sec == 4) lv_redraw();
 			screenshot_sec--;
 			msleep( 1000 );
 			if (!screenshot_sec)
@@ -1395,9 +1403,9 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 	},
 	{
-		.priv		= "Dump dmlog",
-		.select		= (void*) dumpf,
-		.display	= menu_print,
+		.select = dm_toggle, 
+		.select_auto		= (void*) dumpf,
+		.display	= dm_display,
 	},
 	{
 		.select		= draw_prop_select,
@@ -1490,6 +1498,24 @@ struct menu_entry mov_menus[] = {
 		.display = dof_adjust_print, 
 		.select = menu_binary_toggle,
 	}
+};
+
+static struct menu_entry cfg_menus[] = {
+	{
+		.priv = &config_autosave,
+		.display	= config_autosave_display,
+		.select		= menu_binary_toggle,
+	},
+	{
+		.priv = "Save config now",
+		.display	= menu_print,
+		.select		= save_config,
+	},
+	{
+		.priv = "Delete config file",
+		.display	= menu_print,
+		.select		= delete_config,
+	},
 };
 
 
@@ -1655,6 +1681,7 @@ thats_all:
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 	menu_add( "Movie", mov_menus, COUNT(mov_menus) );
+    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 }
 
 CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
@@ -1665,6 +1692,7 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 
 CONFIG_INT( "magic.disable_bootdiskf",	disable_bootdiskf, 0 );
 
+/*
 void show_logo()
 {
 	gui_stop_menu();
@@ -1676,9 +1704,7 @@ void show_logo()
 		bmp_draw(bmp,0,0,0,0);
 		msleep(10);
 	}
-}
-
-int config_ok = 0;
+}*/
 
 static void
 dump_task( void )
@@ -1698,6 +1724,7 @@ dump_task( void )
 		global_config ? "YES" : "NO"
 	);*/
 
+	dm_update();
 
 	// set qscale from the vector of available values
 	qscale_index = mod(qscale_index, COUNT(qscale_values));
@@ -1812,7 +1839,7 @@ movie_start( void )
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
 	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
-	if (buf[0] == 0 && config_ok) save_config(0);
+	if (config_autosave && buf[0] == 0 && config_ok) save_config(0);
 	return prop_cleanup(token, property);
 }
 

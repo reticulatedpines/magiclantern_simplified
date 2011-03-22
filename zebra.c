@@ -44,10 +44,10 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
-CONFIG_INT("disp.mode.aaa", disp_mode_a, 547200);
-CONFIG_INT("disp.mode.bbb", disp_mode_b, 612352);
-CONFIG_INT("disp.mode.ccc", disp_mode_c, 557200);
-CONFIG_INT("disp.mode.xxx", disp_mode_x, 547872);
+CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285c41);
+CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295c01);
+CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88890);
+CONFIG_INT("disp.mode.xxx", disp_mode_x,   0x5c50);
 
 CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
@@ -1700,8 +1700,9 @@ static void find_cropmarks()
 	}
 	int k = 0;
 	do {
-		char* s = strcasestr(file.name, ".BMP");
-		if (s && !strstr(file.name, "~"))
+		char* su = strstr(file.name, ".BMP"); // saves a few K over strcasestr
+		char* sl = strstr(file.name, ".bmp");
+		if ((sl || su) && !strstr(file.name, "~"))
 		{
 			if (k >= MAX_CROPMARKS)
 			{
@@ -2200,6 +2201,24 @@ void zoom_overlay_size_toggle(void* priv)
 	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
+CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
+
+static void
+disp_profiles_0_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"DISP profiles  : %d", 
+		disp_profiles_0 + 1
+	);
+}
+
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -2330,6 +2349,15 @@ struct menu_entry movie_menus[] = {
 	},
 };
 
+static struct menu_entry cfg_menus[] = {
+	{
+		.priv		= &disp_profiles_0,
+		.select		= menu_quaternary_toggle,
+		.select_reverse	= menu_quaternary_toggle_reverse,
+		.display	= disp_profiles_0_display,
+	},
+};
+
 PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 
 
@@ -2397,7 +2425,7 @@ void measure_bitrate() // called 5 times / second
 	int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
 	prev_bytes_written = bytes_written;
 	movie_bytes_written_32k = bytes_written >> 15;
-	measured_bitrate = (ABS(bytes_delta) / 1024) * 5 * 8 / 1024;
+	measured_bitrate = (ABS(bytes_delta) / 1024) * 10 * 8 / 1024;
 	new_measurement = 1;
 	
 	if (time_indicator)
@@ -2461,14 +2489,6 @@ void time_indicator_show()
 	}
 }
 
-static void draw_movie_bars()
-{
-	//~ if (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution < 2)
-	//~ {
-		//~ bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 0, 960, 40 );
-		//~ bmp_fill( crop_black_border ? COLOR_BLACK : COLOR_BG, 0, 440, 960, 40 );
-	//~ }
-}
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
@@ -2604,6 +2624,9 @@ void draw_zoom_overlay()
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
 	if (!is_bmp_on()) return;
+	if (lv_dispsize != 1) return;
+	if (get_halfshutter_pressed() && clearpreview != 2) return;
+	if (recording == 1) return;
 	
 	struct vram_info *	lv = get_yuv422_vram();
 	struct vram_info *	hd = get_yuv422_hd_vram();
@@ -2641,7 +2664,7 @@ void draw_zoom_overlay()
 			break;
 	}
 	
-	int x2 = (zoom_overlay_size > 2);
+	int x2 = (zoom_overlay_size > 2) ? 1 : 0;
 
 	int x0,y0; 
 	int xaf,yaf;
@@ -2675,17 +2698,23 @@ void draw_zoom_overlay()
 	{
 		int w = W * lv->width / hd->width;
 		int h = H * lv->width / hd->width;
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1),     0, 480) * lv->width, 0,    w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) + 1, 0, 480) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) - 1, 0, 480) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1),     0, 480) * lv->width, 0,    w<<1);
+		if (x2)
+		{
+			w >>= 1;
+			h >>= 1;
+		}
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 1, 0, 480) * lv->width, 0,    w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 2, 0, 480) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 1, 0, 480) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 2, 0, 480) * lv->width, 0,    w<<1);
 	}
 
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
 	int x,y;
 	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
 	int y0c = COERCE(y0 - (H>>1), 0, 480-H);
-	
+
+	// some other tasks may have do some CPU-intensive stuff
 	if (x2)
 	{
 		uint16_t* d = lvr + x0c + y0c * lv->width;
@@ -2713,7 +2742,6 @@ void draw_zoom_overlay()
 	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, 0xFF, W<<1);
 	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, 0xFF, W<<1);
 	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, 0,    W<<1);
-
 }
 
 int zebra_paused = 0;
@@ -2728,6 +2756,7 @@ zebra_task( void )
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
     menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
     menu_add( "Movie", movie_menus, COUNT(movie_menus) );
+    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 
 	msleep(3000);
 	
@@ -2809,8 +2838,7 @@ zebra_task_loop:
 		}
 		else
 		{
-			if (update_disp_mode_params_from_bits())  // update settings if DISP mode was changed
-				k = 0; // and force a quick redraw of slow elements (like histogram and waveform)
+			update_disp_mode_params_from_bits();  // update settings if DISP mode was changed
 		}
 		
 		if (get_halfshutter_pressed()) display_on();
@@ -2911,10 +2939,10 @@ movie_clock_task( void )
 {
 	while(1)
 	{
-		msleep(200);
+		msleep(100);
 		if (shooting_type == 4 && recording) 
 		{
-			movie_elapsed_time_01s += 2;
+			movie_elapsed_time_01s += 1;
 			measure_bitrate();
 			if (movie_elapsed_time_01s % 10 == 0) time_indicator_show();
 		}
@@ -2924,7 +2952,7 @@ movie_clock_task( void )
 	}
 }
 
-TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x13, 0x1000 );
 
 int should_draw_zoom_overlay()
 {
@@ -2952,13 +2980,13 @@ zoom_overlay_task( void )
 	}
 }
 
-TASK_CREATE( "zoom_overlay_task", zoom_overlay_task, 0, 0x13, 0x1000 );
+TASK_CREATE( "zoom_overlay_task", zoom_overlay_task, 0, 0x1a, 0x1000 );
 
 int unused;
-int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw};
-int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1           , 1};
+int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw, &zoom_overlay_mode};
+int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1,       1,            2};
 
-int disp_mode = 0;
+CONFIG_INT("disp.mode", disp_mode, 0);
 void update_disp_mode_bits_from_params()
 {
 	int i;
@@ -3007,15 +3035,7 @@ int get_disp_mode() { return disp_mode; }
 
 int toggle_disp_mode()
 {
-	disp_mode = mod(disp_mode + 1, 4);
-	//~ if (lv_disp_mode != 0 && disp_mode == 0) disp_mode = 1;
-	
-	//~ bmp_printf(FONT_LARGE, 150, 100, "LiveV disp mode: %d", disp_mode);
-	//~ msleep(500);
-	//~ bmp_printf(FONT_LARGE, 150, 100, "                     ");
-	
-	//~ update_disp_mode_params_from_bits();
-	
+	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	clrscr();
 	lv_redraw();
 	update_disp_mode_params_from_bits();

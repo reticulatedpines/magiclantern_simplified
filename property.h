@@ -256,6 +256,8 @@
 
 #define PROP_BATTERY_REPORT     0x8003001D
 
+#define PROP_AE_MODE_MOVIE 0x8000003a
+
 /** Properties */
 extern void
 prop_register_slave(
