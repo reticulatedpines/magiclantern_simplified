@@ -58,6 +58,7 @@ CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
+int motion_detect = 0;
 
 int drive_mode_bk = -1;
 PROP_INT(PROP_DRIVE, drive_mode);
@@ -180,7 +181,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"LCD Remote Shot : %s",
-		v == 1 ? "Near" : v == 2 ? (mlu_mode == 2 ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
+		v == 1 ? "Near" : v == 2 ? (mlu_mode ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
 	);
 }
 
@@ -204,6 +205,17 @@ trap_focus_display( void * priv, int x, int y, int selected )
 		x, y,
 		"Trap Focus      : %s",
 		t == 1 ? "Hold" : t == 2 ? "Cont." : "OFF"
+	);
+}
+
+static void 
+motion_detect_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Motion Detect   : %s",
+		motion_detect ? "ON" : "OFF"
 	);
 }
 
@@ -298,6 +310,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 static void silent_pic_mode_toggle(void* priv)
 {
 	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
+	if (silent_pic_mode == 3) silent_pic_mode = 4; // skip longx, not working
 }
 
 static void silent_pic_toggle(int sign)
@@ -386,8 +399,8 @@ void center_lv_afframe_do()
 void move_lv_afframe(int dx, int dy)
 {
 	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
-	afframe[2] = COERCE(afframe[2] + dx, 100, afframe[0] - afframe[4]);
-	afframe[3] = COERCE(afframe[3] + dy, 100, afframe[1] - afframe[5]);
+	afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
+	afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 }
 
@@ -1018,7 +1031,8 @@ int is_round_iso(int iso)
 
 CONFIG_INT("iso.round.only", iso_round_only, 0);
 
-static void
+
+void
 iso_toggle( int sign )
 {
 	int i = raw2index_iso(lens_info.raw_iso);
@@ -1283,7 +1297,7 @@ aperture_toggle_reverse( void * priv )
 }
 
 
-static void
+void
 kelvin_toggle( int sign )
 {
 	int k = lens_info.kelvin;
@@ -1883,13 +1897,18 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &trap_focus,
-		.select		= menu_ternary_toggle,
+		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
 	},
 	{
+		.priv		= &motion_detect,
+		.select		= menu_binary_toggle, 
+		.display	= motion_detect_display,
+	},
+/*	{
 		.select		= flash_and_no_flash_toggle,
 		.display	= flash_and_no_flash_display,
-	},
+	},*/
 	{
 		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
@@ -2010,6 +2029,17 @@ void hdr_create_script(int steps, int skip0)
 	DEBUG();
 }
 
+void hdr_shutter_release()
+{
+	if (lens_info.raw_shutter < 0x64) while (lens_info.job_state) msleep(100);
+	if (!silent_pic_mode || !lv_drawn())
+	{
+		if (get_mlu()) { lens_take_picture_forced(); msleep(500); }
+		lens_take_picture_forced();
+	}
+	else { msleep(300); silent_pic_take(0); }
+}
+
 // skip0: don't take the middle exposure
 void hdr_take_pics(int steps, int step_size, int skip0)
 {
@@ -2026,9 +2056,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_s = COERCE(s - step_size * i, 0x10, 152);
 			lens_set_rawshutter( new_s );
 			msleep(10);
-			if (lens_info.raw_shutter < 0x60) while (lens_info.job_state) msleep(100);
-			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
-			else { msleep(300); silent_pic_take(0); }
+			hdr_shutter_release();
 		}
 		msleep(100);
 		lens_set_rawshutter( s );
@@ -2044,9 +2072,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			msleep(10);
-			if (lens_info.raw_shutter < 0x60) while (lens_info.job_state) msleep(100);
-			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_forced();
-			else { msleep(300); silent_pic_take(0); }
+			hdr_shutter_release();
 		}
 		lens_set_ae( ae );
 	}
@@ -2176,6 +2202,22 @@ void remote_shot()
 	while (lens_info.job_state) msleep(500);
 }
 
+void iso_refresh_display()
+{
+	if (lv_drawn())
+	{
+		update_lens_display(lens_info);
+		return;
+	}
+	int bg = bmp_getpixel(680, 40);
+	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+	int iso = lens_info.iso;
+	if (iso)
+		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
+	else
+		bmp_printf(fnt, 470, 27, "ISO AUTO");
+}
+
 void display_shooting_info() // called from debug task
 {
 	if (lv_drawn()) return;
@@ -2200,13 +2242,7 @@ void display_shooting_info() // called from debug task
 		else bmp_printf(fnt, 435, 270, "   ");
 	}
 
-	bg = bmp_getpixel(680, 40);
-	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-	int iso = lens_info.iso;
-	if (iso)
-		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
-	else
-		bmp_printf(fnt, 470, 27, "ISO AUTO");
+	iso_refresh_display();
 
 	bg = bmp_getpixel(15, 430);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
@@ -2290,7 +2326,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 		if (gui_menu_shown()) goto end;
 		
 		if (lcd_release_running == 1 && off) goto end;
-		if (lcd_release_running == 2 && on && mlu_mode != 2) goto end;
+		if (lcd_release_running == 2 && on && !get_mlu()) goto end;
 		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 75; }
 		if (lcd_release_running == 3 && wave_count < 5) goto end;
 
@@ -2372,6 +2408,8 @@ void wait_till_next_second()
 		msleep(20);
 	}
 }
+
+int sw1_pressed = 0;
 
 static void
 shoot_task( void )
@@ -2523,36 +2561,86 @@ shoot_task( void )
 			set_flash_firing(strobo_firing);
 		}
 
-		static int sw1_pressed = 0;
+		static int sw1_countdown = 0;
+		
+		// trap focus (outside LV) and all the preconditions
+		int tfx = trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running;
 
-		if (trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running) // MF
+		// same for motion detect
+		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown();
+		mdx == mdx && lv_drawn(); // not working outside LiveView (stability bugs)
+		
+		// emulate half-shutter press (for trap focus or motion detection)
+		/* this can cause the camera not to shutdown properly... 
+		if (!lv_drawn() && ((tfx && trap_focus == 2) || mdx ))
 		{
-			static int sw1_countdown = 0;
-			if (trap_focus == 2 && !lv_drawn())
-			{				
-				if ((cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
-				if (!sw1_countdown) // press half-shutter periodically
-				{
-					//~ bmp_printf(FONT_SMALL, 0, 0, "HalfS   ");
-					if (sw1_pressed) { SW1(0,0); sw1_pressed = 0; }
-					{ SW1(1,0); sw1_pressed = 1; }
-					sw1_countdown = 30;
-				}
-				else
-				{
-					sw1_countdown--;
-					//~ bmp_printf(FONT_SMALL, 0, 0, "HalfS %d ", sw1_countdown);
-				}
+			if (trap_focus == 2 && (cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
+			if (!sw1_countdown) // press half-shutter periodically
+			{
+				if (sw1_pressed) { SW1(0,10); sw1_pressed = 0; }
+				{ SW1(1,10); sw1_pressed = 1; }
+				sw1_countdown = motion_detect ? 2 : 10;
 			}
+			else
+			{
+				sw1_countdown--;
+			}
+		}
+		else // cleanup sw1
+			if (sw1_pressed) { SW1(0,10); sw1_pressed = 0; } */
 
+		if (tfx) // MF
+		{
 			if ((!lv_drawn() && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
 				lens_take_picture(64000);
 				msleep(trap_focus_delay);
 			}
 		}
-		else // cleanup sw1
-			if (sw1_pressed) { SW1(0,0); sw1_pressed = 0; }
+		
+		if (mdx)
+		{
+			static int old_ae = 0;
+			
+			int aev = 0;
+			if (lv_drawn())
+			{
+				uint8_t y;
+				int8_t u;
+				int8_t v;
+				get_spot_yuv(100, &y, &u, &v);
+				aev = y / 2;
+			}
+			else
+			{
+				aev = AE_VALUE;
+			}
+			
+			// ensure LiveView data is valid
+			static int K = 0;
+			if (aev && gui_state == GUISTATE_IDLE) K = COERCE(K+1, 0, 1000);
+			else K = 0;
+
+			if (K > 50) bmp_printf(FONT_MED, 0, 0, "%d %d   ", aev, old_ae);
+			
+			if (K > 50 && ABS(old_ae - aev) >= 8)
+			{
+				if (silent_pic_mode)
+				{
+					silent_pic_take(0);
+					silent_pic_take(0);
+					silent_pic_take(0);
+				}
+				else
+				{
+					lens_take_picture(64000);
+				}
+				msleep(trap_focus_delay);
+				K = 0;
+			}
+			
+			old_ae = aev;
+		}
 
 		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
 		{
@@ -2577,8 +2665,8 @@ shoot_task( void )
 			
 			if (lv_drawn()) // simulate a half-shutter press to avoid mirror going up
 			{
-				SW1(1,0);
-				SW1(0,0);
+				SW1(1,10);
+				SW1(0,10);
 			}
 			
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
@@ -2593,8 +2681,8 @@ shoot_task( void )
 				
 				if (!lv_drawn())
 				{
-					SW1(1,0); // prevent camera from entering in "deep sleep" mode
-					SW1(0,0); // (some kind of sleep where it won't wake up from msleep)
+					SW1(1,10); // prevent camera from entering in "deep sleep" mode
+					SW1(0,10); // (some kind of sleep where it won't wake up from msleep)
 				}
 
 				if (shooting_mode != SHOOTMODE_MOVIE)
