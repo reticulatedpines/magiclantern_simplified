@@ -91,7 +91,7 @@ static int handle_buttons(struct event * event)
 {
 	static int kev = 0;
 
-	// volume adjust (FLASH + UP/DOWN)
+	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
@@ -103,6 +103,18 @@ static int handle_buttons(struct event * event)
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
 		{
 			volume_down();
+			falsecolor_cancel();
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+		{
+			iso_toggle(-1);
+			falsecolor_cancel();
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+		{
+			iso_toggle(1);
 			falsecolor_cancel();
 			return 0;
 		}
@@ -183,6 +195,19 @@ static int handle_buttons(struct event * event)
 				return 0;
 			}
 		}
+		if (lv_drawn())
+		{
+			if (event->param == BGMT_PRESS_LEFT)
+			{
+				kelvin_toggle(-1);
+				return 0;
+			}
+			else if (event->param == BGMT_PRESS_RIGHT)
+			{
+				kelvin_toggle(1);
+				return 0;
+			}
+		}
 	}
 
 	if (event->type == 0)
@@ -220,12 +245,10 @@ static int handle_buttons(struct event * event)
 	}
 	
 	// force a SET press in photo mode when you adjust the settings and press half-shutter
-	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv_drawn())
+	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv_drawn() && !gui_menu_shown())
 	{
 		fake_simple_button(BGMT_PRESS_SET);
-		msleep(50);
 		fake_simple_button(BGMT_UNPRESS_SET);
-		msleep(50);
 	}
 	
 	// for faster zoom in in Play mode
@@ -321,6 +344,53 @@ static int handle_buttons(struct event * event)
 	}
 	
 	*/
+	
+	// quick access to some menu items
+	if (event->type == 0 && event->param == BGMT_Q_ALT && !gui_menu_shown())
+	{
+		if (ISO_ADJUSTMENT_ACTIVE)
+		{
+			select_menu("Expo", 0);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_WB)
+		{
+			select_menu("Expo", 1);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
+		{
+			select_menu("Shoot", 5);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE)
+		{
+			select_menu("Shoot", 3);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
+		{
+			select_menu("Expo", 7);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_FLASH_AE)
+		{
+			select_menu("Expo", 9);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_PICQ)
+		{
+			select_menu("Debug", 2);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+	}
 
 	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
 	{

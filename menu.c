@@ -311,7 +311,7 @@ menus_display(
 		if( menu->selected )
 			menu_display(
 				menu->children,
-				orig_x,
+				orig_x + 50,
 				y + fontspec_font( fontspec )->height + 4,
 				1
 			);
@@ -644,9 +644,9 @@ menu_handler(
 
 	//~ if( menu_damage )
 	if (!lv_drawn()) show_only_selected = 0;
-	bmp_fill( show_only_selected ? 0 : COLOR_BG, 90, 55, 720-160, 480-110 );
+	bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
 	menu_damage = 0;
-	menus_display( menus, 100, 65 );
+	menus_display( menus, 40, 65 );
 
 	return 0;
 }
@@ -673,7 +673,8 @@ menu_init( void )
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Debug" );
-	menu_find_by_name( "(i)" );
+	menu_find_by_name( "Config" );
+	menu_find_by_name( " (i)" );
 	//~ menu_find_by_name( "Boot" );
 
 /*
@@ -723,7 +724,7 @@ gui_hide_menu(
 {
 	menu_hidden = redisplay_time;
 	menu_damage = 1;
-	bmp_fill( 0, 90, 55, 720-160, 480-110 );
+	bmp_fill( 0, 30, 55, 720-60, 480-110 );
 }
 
 
@@ -856,7 +857,7 @@ menu_task( void )
 
 	// Add the draw_prop menu
 	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
-	menu_add( "(i)", about_menu, COUNT(about_menu));
+	menu_add( " (i)", about_menu, COUNT(about_menu));
 	
 	msleep(3000);
 	while(1)
@@ -914,6 +915,7 @@ menu_task( void )
 		zebra_pause();
 		display_on(); // ensure the menu is visible even if display was off
 		bmp_on();
+		show_only_selected = 0;
 	}
 }
 
@@ -926,4 +928,21 @@ int is_focus_menu_active()
 		if( menu->selected )
 			break;
 	return !strcmp(menu->name, "Focus");
+}
+
+void select_menu(char* name, int entry_index)
+{
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+	{
+		menu->selected = !strcmp(menu->name, name);
+		if (menu->selected)
+		{
+			struct menu_entry *	entry = menu->children;
+			
+			int i;
+			for(i = 0 ; entry ; entry = entry->next, i++ )
+				entry->selected = (i == entry_index);
+		}
+	}
 }
