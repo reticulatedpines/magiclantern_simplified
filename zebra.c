@@ -2794,6 +2794,13 @@ zebra_task_loop:
 		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
 		{
 			falsecolor_canceled = 0;
+			if (shooting_mode == SHOOTMODE_MOVIE)
+			{
+				bmp_fill(0, 0, 330, 720, 480-330);
+				msleep(50);
+				bmp_fill(0, 0, 330, 720, 480-330);
+				cropmark_redraw();
+			}
 			while (dofpreview || FLASH_BTN_MOVIE_MODE) msleep(100);
 			if (!falsecolor_canceled)
 				falsecolor_displayed = !falsecolor_displayed;
