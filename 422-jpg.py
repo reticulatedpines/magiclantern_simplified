@@ -135,7 +135,7 @@ Command-line usage:
 if os.path.isfile(input):
     convert_422_bmp(input, change_ext(input, ".jpg"))
 elif os.path.isdir(input):
-    for f in os.listdir(input):
+    for f in sorted(os.listdir(input)):
         if f.endswith(".422"):
             f = os.path.join(input, f)
             convert_422_bmp(f, change_ext(f, ".jpg"));
