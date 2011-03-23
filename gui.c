@@ -34,7 +34,8 @@ static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
 static PROP_INT(PROP_HOUTPUT_TYPE, houtput_type);
 static PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-PROP_INT(PROP_MVR_REC_START, recording);
+static PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+static PROP_INT(PROP_MVR_REC_START, recording);
 
 int button_menu_on = BGMT_TRASH;
 int button_menu_off = BGMT_TRASH;
@@ -287,6 +288,12 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
+	if (get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0)
+	{
+		zoom_overlay_toggle();
+		return 0;
+	}
+	
 	if (recording && get_zoom_overlay_mode())
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
@@ -390,6 +397,13 @@ static int handle_buttons(struct event * event)
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
+		else if (lv_dispsize > 1)
+		{
+			select_menu("LiveV", 8);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		
 	}
 
 	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
