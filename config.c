@@ -395,3 +395,18 @@ atoi(
 	return value;
 }
 
+int config_flag_file_setting_load(char* file)
+{
+	unsigned size;
+	return ( FIO_GetFileSize( file, &size ) == 0 );
+}
+
+void config_flag_file_setting_save(char* file, int setting)
+{
+	FIO_RemoveFile(file);
+	if (setting)
+	{
+		FILE* f = FIO_CreateFile(file);
+		FIO_CloseFile(f);
+	}
+}

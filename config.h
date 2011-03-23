@@ -103,5 +103,7 @@ __config_##VAR = \
 #define CONFIG_STR( NAME, VAR, VALUE ) \
 	_CONFIG_VAR( NAME, 1, char *, VAR, VALUE )
 
+void config_flag_file_setting_save(char* file, int setting);
+int config_flag_file_setting_load(char* file);
 
 #endif
