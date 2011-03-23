@@ -26,13 +26,12 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=configmenu+tweaks.$(shell whoami)
+BUILDVER=tweaks.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
-CONFIG_AUDIOMON 	= y
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -44,12 +43,7 @@ UMOUNT=umount
 
 all: magiclantern.fir
 
-AUDIOMON=NoAudioMon.
-ifeq ($(CONFIG_AUDIOMON),y)
-AUDIOMON=AudioMon.
-endif
-
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').550d.fw109.$(AUDIOMON)$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').550d.fw109.$(BUILDVER)
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -229,6 +223,7 @@ ML_OBJS-y = \
 	console.o \
 	chdk-gui_draw.o \
 	ptp.o \
+	hotplug.o \
 
 NO=\
 	aj_port.o \
@@ -236,9 +231,6 @@ NO=\
 	font-huge.o \
 	bracket.o \
 	spotmeter.o \
-
-ML_OBJS-$(CONFIG_AUDIOMON) += \
-	hotplug.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \
