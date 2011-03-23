@@ -620,6 +620,8 @@ Functions specific to movie mode.
   
   To adjust DOF, cover the LCD sensor and change the aperture.
 
+.. _Movie REC key:
+
 **Movie REC key: Default / HalfShutter**
 
   This option enables you to start/stop movie recording by half-pressing the shutter button.
