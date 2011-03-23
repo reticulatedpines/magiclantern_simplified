@@ -12,7 +12,8 @@
 #include "lens.h"
 //#include "lua.h"
 
-CONFIG_INT("config.autosave", config_autosave, 1);
+int config_autosave = 1;
+#define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
@@ -306,7 +307,7 @@ static void
 delete_config( void * priv )
 {
 	FIO_RemoveFile( "B:/magic.cfg" );
-	config_autosave = 0;
+	if (config_autosave) config_autosave_toggle(0);
 }
 
 static void
@@ -323,6 +324,14 @@ config_autosave_display(
 		"Config AutoSave: %s", 
 		config_autosave ? "ON" : "OFF"
 	);
+}
+
+void
+config_autosave_toggle(void* priv)
+{
+	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
+	msleep(50);
+	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 }
 
 
@@ -453,9 +462,26 @@ CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
 CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
 CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 int movie_af_stepsize = 10;
 
-int get_focus_graph() { return movie_af || get_trap_focus() || get_follow_focus_stop_on_focus(); }
+int get_focus_graph() { return movie_af || (get_trap_focus() && can_lv_trap_focus_be_active()) || get_follow_focus_stop_on_focus(); }
+
+static void
+movie_rec_key_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Movie REC key : %s ",
+		movie_rec_key ? "HalfShutter" : "Default"
+	);
+}
 
 static void
 movie_restart_print(
@@ -498,7 +524,6 @@ int can_lv_trap_focus_be_active()
 	if (gui_state != GUISTATE_IDLE) return 0;
 	if (get_silent_pic_mode()) return 0;
 	if ((af_mode & 0xF) != 3) return 0;
-	if (!get_focus_graph()) return 0; // it depends on the graph
 	return 1;
 }
 
@@ -556,6 +581,13 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	hsp = buf[0];
 	hsp_countdown = 15;
 	if (get_zoom_overlay_z()) zoom_overlay_disable();
+	
+	if (movie_rec_key && hsp && shooting_mode == SHOOTMODE_MOVIE)
+	{
+		if (!recording) schedule_movie_start();
+		else schedule_movie_end();
+	}
+	
 	return prop_cleanup(token, property);
 }
 
@@ -984,7 +1016,7 @@ PROP_HANDLER(PROP_SHUTTER)
 	}
 	return prop_cleanup(token, property);
 } */
-
+/*
 void font_test(void* priv)
 {
 	gui_stop_menu();
@@ -993,6 +1025,12 @@ void font_test(void* priv)
 	bfnt_puts("Hello, world!", 10, 20, COLOR_BLACK, COLOR_WHITE);
 	int msg[] = {0x9381e3, 0x9382e3, 0xab81e3, 0xa181e3, 0xaf81e3, 0};
 	bfnt_puts_utf8(msg, 250, 20, COLOR_BLACK, COLOR_WHITE);
+}*/
+
+void xx_test(void* priv)
+{
+	int x = 5;
+	prop_request_change(PROP_LV_DISPSIZE, &x, 4);
 }
 
 void lv_test(void* priv)
@@ -1174,7 +1212,6 @@ debug_loop_task( void ) // screenshot, draw_prop
 	do_movie_mode_remap();
 	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
 	{
-		bmp_printf(FONT_LARGE, 0, 0, "Starting LiveView...");
 		if (shooting_mode == SHOOTMODE_MOVIE)
 		{
 			set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
@@ -1414,11 +1451,9 @@ struct menu_entry debug_menus[] = {
 		.display	= spy_print,
 	},
 	{
-		.priv		= "Font test",
-		.select		= font_test,
+		.priv		= "Don't click me!",
+		.select		= xx_test,
 		.display	= menu_print,
-		.select_reverse = apershutter_close, 
-		.select_auto = apershutter_open,
 	}
 /*	{
 		.select = focus_test,
@@ -1497,14 +1532,18 @@ struct menu_entry mov_menus[] = {
 		.priv = &dof_adjust, 
 		.display = dof_adjust_print, 
 		.select = menu_binary_toggle,
+	},
+	{
+		.priv = &movie_rec_key, 
+		.display = movie_rec_key_print, 
+		.select = menu_binary_toggle,
 	}
 };
 
 static struct menu_entry cfg_menus[] = {
 	{
-		.priv = &config_autosave,
 		.display	= config_autosave_display,
-		.select		= menu_binary_toggle,
+		.select		= config_autosave_toggle,
 	},
 	{
 		.priv = "Save config now",
@@ -1717,6 +1756,7 @@ dump_task( void )
 	const char * config_filename = "B:/magic.cfg";
 	global_config = config_parse_file( config_filename );
 	
+	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 	config_ok = 1;
 	/*bmp_printf( FONT_MED, 0, 70,
 		"Config file %s: %s",

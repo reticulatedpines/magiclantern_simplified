@@ -2090,6 +2090,8 @@ void movie_start()
 		bmp_printf(FONT_LARGE, 30, 30, "Already recording ");
 		return;
 	}
+	
+	while (get_halfshutter_pressed()) msleep(100);
 
 	call("MovieStart");
 	while (recording != 2) msleep(100);
@@ -2108,6 +2110,8 @@ void movie_end()
 		bmp_printf(FONT_LARGE, 30, 30, "Not recording ");
 		return;
 	}
+
+	while (get_halfshutter_pressed()) msleep(100);
 
 	call("MovieEnd");
 }
@@ -2172,10 +2176,13 @@ void hdr_shot(int skip0, int wait)
 	}
 }
 
-int remote_shot_flag;
+int remote_shot_flag = 0;
 void schedule_remote_shot() { remote_shot_flag = 1; }
 
-int movie_end_flag;
+int movie_start_flag = 0;
+void schedule_movie_start() { movie_start_flag = 1; }
+
+int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
 // take one shot, a sequence of HDR shots, or start a movie
@@ -2451,6 +2458,11 @@ shoot_task( void )
 		{
 			remote_shot();
 			remote_shot_flag = 0;
+		}
+		if (movie_start_flag)
+		{
+			movie_start();
+			movie_start_flag = 0;
 		}
 		if (movie_end_flag)
 		{
