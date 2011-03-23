@@ -49,21 +49,12 @@ int audio_monitoring_enabled() { return hotplug_override && !no_turning_back; }
 
 void hotplug_setting_save()
 {
-	if (hotplug_override)
-	{
-		FIO_RemoveFile(HOTPLUG_FLAG_FILE);
-		FILE* f = FIO_CreateFile(HOTPLUG_FLAG_FILE);
-		FIO_CloseFile(f);
-	}
-	else
-	{
-		FIO_RemoveFile(HOTPLUG_FLAG_FILE);
-	}
+	config_flag_file_setting_save(HOTPLUG_FLAG_FILE, hotplug_override);
 }
+
 void hotplug_setting_load()
 {
-	unsigned size;
-	hotplug_override = ( FIO_GetFileSize( HOTPLUG_FLAG_FILE, &size ) == 0 );
+	hotplug_override = config_flag_file_setting_load(HOTPLUG_FLAG_FILE);
 }
 
 static void
