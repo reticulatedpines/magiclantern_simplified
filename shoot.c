@@ -2112,6 +2112,7 @@ void movie_end()
 	}
 
 	while (get_halfshutter_pressed()) msleep(100);
+	msleep(500);
 
 	call("MovieEnd");
 }
