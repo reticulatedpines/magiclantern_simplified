@@ -146,21 +146,21 @@ static int handle_buttons(struct event * event)
 		{
 			kev++;
 			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
-				kev, 
+				kev,
 				event->type, 
 				event->param, 
 				event->obj ? *(uint32_t*)(event->obj) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
 				event->arg);
-			console_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
-				kev, 
+/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+				kev,
 				event->type, 
 				event->param, 
 				event->obj ? *(uint32_t*)(event->obj) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
-				event->arg);
+				event->arg);*/
 			//msleep(250);
 		}
 	}
@@ -181,7 +181,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
-	if (event->type == 0 && display_sensor_neg == 0) // button presses while display sensor is covered
+	if (event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys
 		if (get_backlight_keys() && !gui_menu_shown())
 		{
@@ -288,7 +288,7 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
-	if (get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0)
+	if (get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{
 		zoom_overlay_toggle();
 		return 0;
