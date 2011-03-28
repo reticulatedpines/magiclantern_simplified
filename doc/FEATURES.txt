@@ -180,7 +180,6 @@ These buttons have special meaning with Magic Lantern:
 * ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
 * ``Q`` while *Drive mode* dialog is active: go to `LCD Remote Shot`_ item in ML menu.
 * ``Q`` while *Flash exposure comp.* dialog is active: go to `Flash AEcomp`_ item in ML menu.
-* ``Q`` while *Quality* dialog (picture quality) is active: go to `Auto Burst PicQ`_ item in ML menu.
 * ``Q`` while LiveView zoom is active: go to `Magic Zoom`_ item in ML menu.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
