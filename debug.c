@@ -583,11 +583,11 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	hsp_countdown = 15;
 	if (get_zoom_overlay_z()) zoom_overlay_disable();
 	
-	/*if (movie_rec_key && hsp && shooting_mode == SHOOTMODE_MOVIE)
+	if (movie_rec_key && hsp && shooting_mode == SHOOTMODE_MOVIE)
 	{
 		if (!recording) schedule_movie_start();
 		else schedule_movie_end();
-	}*/
+	}
 	
 	return prop_cleanup(token, property);
 }
