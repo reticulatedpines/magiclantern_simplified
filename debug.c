@@ -1080,6 +1080,7 @@ void lv_redraw()
 
 void turn_off_display()
 {
+	if (lens_info.job_state) return;
 	display_off();
 	call("TurnOffDisplay"); // force it
 }

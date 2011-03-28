@@ -1407,6 +1407,7 @@ draw_zebra_and_focus( void )
 void
 clrscr_mirror( void )
 {
+	if (!lv_drawn()) return;
 	if (!global_draw) return;
 
 	uint8_t * const bvram = bmp_vram();
@@ -2516,19 +2517,23 @@ cropmark_redraw()
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
+// they might cause ERR80 if called while taking a picture
 int _bmp_cleared = 0;
 void bmp_on()
 {
+	if (lens_info.job_state) return;
 	if (_bmp_cleared) call("MuteOff");
 	_bmp_cleared = 0;
 }
 void bmp_on_force()
 {
+	if (lens_info.job_state) return;
 	_bmp_cleared = 1;
 	bmp_on();
 }
 void bmp_off()
 {
+	if (lens_info.job_state) return;
 	if (!_bmp_cleared) call("MuteOn");
 	_bmp_cleared = 1;
 }
@@ -2537,11 +2542,13 @@ int is_bmp_on() { return !_bmp_cleared; }
 int _lvimage_cleared = 0;
 void lvimage_on()
 {
+	if (lens_info.job_state) return;
 	if (!_lvimage_cleared) call("MuteOffImage");
 	_lvimage_cleared = 1;
 }
 void lvimage_off()
 {
+	if (lens_info.job_state) return;
 	if (_lvimage_cleared) call("MuteOnImage");
 	_lvimage_cleared = 0;
 }
@@ -2549,6 +2556,7 @@ void lvimage_off()
 int _display_is_off = 0;
 void display_on()
 {
+	if (lens_info.job_state) return;
 	if (_display_is_off)
 	{
 		if (lv_drawn()) lvimage_on(); // might save a bit of power
@@ -2558,11 +2566,13 @@ void display_on()
 }
 void display_on_force()
 {
+	if (lens_info.job_state) return;
 	_display_is_off = 1;
 	display_on();
 }
 void display_off()
 {
+	if (lens_info.job_state) return;
 	if (!_display_is_off)
 	{
 		if (lv_drawn()) lvimage_off(); // might save a bit of power
@@ -2776,6 +2786,7 @@ zebra_task_loop:
 			msleep(1000);
 		}
 		if (!lv_drawn()) { msleep(100); continue; }
+		if (lens_info.job_state) continue;
 
 		if (FLASH_BTN_MOVIE_MODE) crop_dirty = 2;
 
@@ -2841,6 +2852,9 @@ zebra_task_loop:
 		{
 			update_disp_mode_params_from_bits();  // update settings if DISP mode was changed
 		}
+		
+		if (!lv_drawn()) continue;
+		if (lens_info.job_state) continue;
 		
 		if (get_halfshutter_pressed()) display_on();
 
