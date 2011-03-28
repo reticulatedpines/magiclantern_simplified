@@ -60,6 +60,7 @@ extern void bootdisk_disable();
 
 int display_force_off = 0;
 
+/*
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 int burst_count = 0; // PROP_BURST_COUNT = how many more pics can be taken in burst mode
 
@@ -155,7 +156,7 @@ auto_burst_pic_display(
 		"Auto Burst PicQ: %s", 
 		auto_burst_pic_quality ? "ON" : "OFF"
 	);
-}
+}*/
 
 
 static void
@@ -465,7 +466,7 @@ CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 int movie_af_stepsize = 10;
 
-int get_focus_graph() { return movie_af || (get_trap_focus() && can_lv_trap_focus_be_active()) || get_follow_focus_stop_on_focus(); }
+int get_focus_graph() { return (movie_af || (get_trap_focus() && can_lv_trap_focus_be_active()) || get_follow_focus_stop_on_focus()) && !gui_menu_shown(); }
 
 static void
 movie_rec_key_print(
@@ -582,11 +583,11 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	hsp_countdown = 15;
 	if (get_zoom_overlay_z()) zoom_overlay_disable();
 	
-	if (movie_rec_key && hsp && shooting_mode == SHOOTMODE_MOVIE)
+	/*if (movie_rec_key && hsp && shooting_mode == SHOOTMODE_MOVIE)
 	{
 		if (!recording) schedule_movie_start();
 		else schedule_movie_end();
-	}
+	}*/
 	
 	return prop_cleanup(token, property);
 }
@@ -1029,8 +1030,16 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	int x = 5;
-	prop_request_change(PROP_LV_DISPSIZE, &x, 4);
+	//~ int x = 5;
+	//~ prop_request_change(PROP_LV_DISPSIZE, &x, 4);
+	int i;
+	char fn[100];
+	for (i = 0; i < 5000; i++)
+	{
+		snprintf(fn, 100, "B:/DCIM/100CANON/%08d.422", i);
+		bmp_printf(FONT_MED, 0, 0, fn);
+		FIO_RemoveFile(fn);
+	}
 }
 
 void lv_test(void* priv)
@@ -1208,7 +1217,7 @@ int screenshot_sec = 0;
 static void
 debug_loop_task( void ) // screenshot, draw_prop
 {
-	gui_unlock();
+	//~ gui_unlock();
 	do_movie_mode_remap();
 	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
 	{
@@ -1422,13 +1431,13 @@ struct menu_entry debug_menus[] = {
 		.priv = &big_clock, 
 		.select = menu_binary_toggle,
 		.display = big_clock_print,
-	},*/
+	},
 	{
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
 	},
-/*	{
+	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
@@ -1450,11 +1459,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	{
+/*	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
-	}
+	}*/
 /*	{
 		.select = focus_test,
 		.display = focus_print,

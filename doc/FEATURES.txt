@@ -231,10 +231,6 @@ Audio tweaks.
 
   Enable/disable Automatic Gain Control. Turn this to OFF to prevent hiss noise when recording silence.
 
-**DigitalFilters: ON/OFF**
-
-  Enable/disable digital audio filters (High Pass Filter, Low Pass Filter and stereo emphasis). Does it actually work?!
-
 .. _input source:
 
 **Input**
@@ -273,10 +269,6 @@ Audio tweaks.
 **Output volume (dB)**
 
   Volume for audio monitoring. It does not have effect on the internal camera speaker.
-
-**Loopback: ON/OFF**
-
-  Enable loopback for audio monitoring. If this setting can be kept always on without any side effects, it will be removed from the menu (need feedback on this).
 
 LiveV
 ~~~~~
@@ -389,11 +381,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   Keys:
   
-  * ``SET``: change display mode:
-  
-    - OFF 
-    - small square ⬜ with text below 
-    - centered text only
+  * ``SET``: enable/disable spotmeter
     
   * ``Q``: change measurement unit:
   
@@ -1118,21 +1106,6 @@ Debug
   
   Disabling this setting will restore the default behavior of ``UP/DOWN`` keys.
 
-.. _Auto Burst PicQ:
-
-**Auto Burst PicQ: ON/OFF**
-
-  When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
-  
-  This function will reduce picture quality in the following steps:
-  
-  * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
-  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
-
-**Draw palette**
-
-  Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
-
 **Screenshot (10 s)**
 
   Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
@@ -1151,16 +1124,6 @@ Debug
   * evt: Display GUI events in real-time. See [[GUI_Events/550D]].
   * mem: Display memory addresses which change, but not those which change like mad. 
     Useful for detecting interesting [[Memory Addresses]] inside the camera RAM (like sensor & button locations).
-
-**Card benchmark**
-
-  Simple benchmark for card read/write speed. It does the following tests:
-  
-  * sequential write/read with 16K buffer
-  * sequential write/read with 128K buffer
-  * sequential write with 16M buffer
-  
-  It will create a 256MB, dump the first section of RAM, and then read it.
 
 Some items from this menu may not be available in release builds; 
 you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.

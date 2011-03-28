@@ -216,16 +216,16 @@ ML_OBJS-y = \
 	lens.o \
 	property.o \
 	gui.o \
-	bootflags.o \
 	zebra.o \
 	shoot.o \
 	focus.o \
-	console.o \
 	chdk-gui_draw.o \
 	ptp.o \
 	hotplug.o \
 
 NO=\
+	bootflags.o \
+	console.o \
 	aj_port.o \
 	aj_lib_port.o \
 	font-huge.o \
@@ -253,22 +253,9 @@ ML_OBJS-$(CONFIG_TIMECODE) += \
 # Extract the stdio files that we need
 STDIO_OBJ = \
 	lib_a-setjmp.o \
-	lib_a-strchr.o \
-	lib_a-strrchr.o \
 	lib_a-strlen.o \
-	lib_a-strcat.o \
-	lib_a-strncat.o \
 	lib_a-strcmp.o \
-	lib_a-strncmp.o \
-	lib_a-strncpy.o \
-	lib_a-strstr.o \
-	lib_a-strcasestr.o \
-	lib_a-strncasecmp.o \
-	lib_a-strcspn.o \
 	lib_a-memcmp.o \
-	lib_a-strcoll.o \
-	lib_a-ctype_.o \
-	lib_a-memchr.o \
 	lib_a-memset.o \
 
 ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a

@@ -340,7 +340,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
  * MovieStop doesn't seem to do anything, but MovieStart
  * toggles recording on and off
  */
-PTP_HANDLER( 0x9997, 0 )
+/*PTP_HANDLER( 0x9997, 0 )
 {
 	call( "MovieStart" );
 
@@ -359,10 +359,10 @@ PTP_HANDLER( 0x9997, 0 )
 
 	return 0;
 }
-
+*/
 
 /** Dump memory */
-PTP_HANDLER( 0x9996, 0 )
+/*PTP_HANDLER( 0x9996, 0 )
 {
 	const uint32_t * const buf = (void*) param1;
 
@@ -386,10 +386,10 @@ PTP_HANDLER( 0x9996, 0 )
 	);
 
 	return 0;
-}
+}*/
 
 /** Write to memory, returning the old value */
-PTP_HANDLER( 0x9995, 0 )
+/*PTP_HANDLER( 0x9995, 0 )
 {
 	uint32_t * const buf = (void*) param1;
 	const uint32_t val = (void*) param2;
@@ -414,8 +414,9 @@ PTP_HANDLER( 0x9995, 0 )
 	);
 
 	return 0;
-}
+}*/
 
+/*
 static void
 ptp_state_display(
 	void *			priv,
@@ -452,7 +453,7 @@ static struct menu_entry ptp_menus[] = {
 		.display	= ptp_state_display,
 		.select		= ptp_state_toggle,
 	},
-};
+};*/
 
 
 static void

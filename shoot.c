@@ -1771,7 +1771,7 @@ hdr_display( void * priv, int x, int y, int selected )
 			((hdr_stepsize/4) % 2) ? ".5" : ""
 		);
 	}
-	bmp_printf(FONT_MED, x + 400, y+5, "[SET-DISP-Q]");
+	//~ bmp_printf(FONT_MED, x + 400, y+5, "[SET-DISP-Q]");
 }
 
 static void
@@ -2182,6 +2182,7 @@ void schedule_remote_shot() { remote_shot_flag = 1; }
 
 int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
+void is_movie_start_scheduled() { return movie_start_flag; }
 
 int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }

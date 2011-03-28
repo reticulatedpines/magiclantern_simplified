@@ -837,7 +837,7 @@ audio_input_toggle( void * priv )
 	audio_configure( 1 );
 }
 
-
+/*
 static void
 audio_loopback_display( void * priv, int x, int y, int selected )
 {
@@ -847,9 +847,9 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 		"Loopback      : %s",
 		loopback ? "ON " : "OFF"
 	);
-}
+}*/
 
-audio_filters_display( void * priv, int x, int y, int selected )
+/*audio_filters_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
@@ -858,7 +858,7 @@ audio_filters_display( void * priv, int x, int y, int selected )
 		"DigitalFilters: %s",
 		disable_filters ? "OFF" : "ON "
 	);
-}
+}*/
 
 void draw_meters_toggle(void* priv)
 {
@@ -903,11 +903,11 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
 	},
-	{
+	/*{
 		.priv		= &disable_filters,
 		.select		= audio_binary_toggle,
 		.display	= audio_filters_display,
-	},
+	},*/
 #ifdef CONFIG_AUDIO_REG_LOG
 	{
 		.priv		= "Close register log",
@@ -920,11 +920,11 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_input_toggle,
 		.display	= audio_input_display,
 	},
-	{
+	/*{
 		.priv		= &loopback,
 		.select		= audio_binary_toggle,
 		.display	= audio_loopback_display,
-	},
+	},*/
 	{
 		.priv		= &lovl,
 		.select		= audio_3bit_toggle,

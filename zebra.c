@@ -94,7 +94,7 @@ CONFIG_INT( "clear.preview", clearpreview, 1); // 2 is always
 CONFIG_INT( "clear.preview.delay", clearpreview_delay, 500); // ms
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 ); // 0 off, 1: on (center), 2: under center marker
+CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
 
 CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
@@ -734,7 +734,7 @@ int tic()
 	LoadCalendarFromRTC(&now);
 	return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
 }
-
+/*
 void card_benchmark_wr(int bufsize, int K, int N)
 {
 	FIO_RemoveFile("B:/bench.tmp");
@@ -805,7 +805,7 @@ void card_benchmark_schedule()
 {
 	gui_stop_menu();
 	card_benchmark_start = 1;
-}
+}*/
 
 static void dump_vram()
 {
@@ -1691,18 +1691,17 @@ static void find_cropmarks()
 	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/CROPMKS/", &file );
 	if( IS_ERROR(dirent) )
 	{
-		bmp_printf( FONT_LARGE, 40, 40,
-			"%s: dirent=%08x!",
-			__func__,
-			(unsigned) dirent
-		);
+		bmp_printf( FONT_LARGE, 40, 40, "CROPMKS dir missing" );
 		return;
 	}
 	int k = 0;
 	do {
-		char* su = strstr(file.name, ".BMP"); // saves a few K over strcasestr
-		char* sl = strstr(file.name, ".bmp");
-		if ((sl || su) && !strstr(file.name, "~"))
+		int n = strlen(file.name);
+		int s =  file.name[n-4] == "." &&
+		        (file.name[n-3] == "b" || file.name[n-3] == "B") &&
+		        (file.name[n-2] == "m" || file.name[n-2] == "M") &&
+		        (file.name[n-1] == "p" || file.name[n-1] == "P"); // saves a few k of code over strstr
+		if (s)
 		{
 			if (k >= MAX_CROPMARKS)
 			{
@@ -1756,6 +1755,7 @@ static void crop_toggle_reverse(void* priv)
 	crop_toggle(-1);
 }
 
+/*
 static void
 zebra_hi_display( void * priv, int x, int y, int selected )
 {
@@ -1776,7 +1776,7 @@ zebra_lo_display( void * priv, int x, int y, int selected )
 		"ZebraThrLO  : %d   ",
 		*(unsigned*) priv
 	);
-}
+}*/
 
 
 static void
@@ -1806,7 +1806,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
 		fc == 3 ? "Togg Flas/DOF" : "err"
 	);
 }
-
+/*
 static void
 focus_debug_display( void * priv, int x, int y, int selected )
 {
@@ -1817,7 +1817,7 @@ focus_debug_display( void * priv, int x, int y, int selected )
 		"FPeak debug : %s",
 		focus_peaking_debug ? "ON" : "OFF"
 	);
-}
+}*/
 
 static void
 focus_peaking_display( void * priv, int x, int y, int selected )
@@ -1890,6 +1890,7 @@ focus_graph_display( void * priv, int x, int y, int selected )
 	);
 }*/
 
+/*
 static void
 edge_display( void * priv, int x, int y, int selected )
 {
@@ -1899,7 +1900,7 @@ edge_display( void * priv, int x, int y, int selected )
 		"Edgedetect  : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
-}
+}*/
 
 static void
 time_indicator_display( void * priv, int x, int y, int selected )
@@ -1924,7 +1925,7 @@ hist_display( void * priv, int x, int y, int selected )
 		hist_draw == 1 ? "Luma" : hist_draw == 2 ? "RGB" : "OFF",
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : "OFF"
 	);
-	bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
+	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
 }
 
 static void
@@ -2022,12 +2023,9 @@ spotmeter_menu_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Spotmeter   : %s%s",
-		spotmeter_draw == 0 ? "OFF" : spotmeter_draw == 1 ? "  " : "  ",
-		spotmeter_draw == 0 ? "" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
+		"Spotmeter   : %s",
+		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
 	);
-	if (spotmeter_draw == 1) bmp_draw_rect(COLOR_WHITE, x + 14 * font_large.width + 10, y + 10, 10, 10);
-	if (spotmeter_draw == 2) bmp_printf(FONT_SMALL, x + 14 * font_large.width, y + 10, "123");
 }
 
 static void 
@@ -2146,11 +2144,8 @@ void spotmeter_step()
 
 	int xc = (ext_monitor_hdmi && !recording) ? 480 : 360;
 	int yc = (ext_monitor_hdmi && !recording) ? 270 : 240;
-	if (spotmeter_draw == 1) // square marker
-	{
-		bmp_draw_rect(fg, xc - dx, yc - dx, 2*dx+1, 2*dx+1);
-		yc += dx + 20;
-	}
+	bmp_draw_rect(fg, xc - dx, yc - dx, 2*dx+1, 2*dx+1);
+	yc += dx + 20;
 	yc -= font_med.height/2;
 	xc -= 2 * font_med.width;
 
@@ -2254,8 +2249,7 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.priv			= &spotmeter_draw,
-		.select			= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select			= menu_binary_toggle,
 		.select_auto	= spotmeter_formula_toggle,
 		.display		= spotmeter_menu_display,
 	},
@@ -2313,11 +2307,11 @@ struct menu_entry zebra_menus[] = {
 };
 
 struct menu_entry dbg_menus[] = {
-	{
+	/*{
 		.priv = "Card Benchmark",
 		.select = card_benchmark_schedule,
 		.display = menu_print,
-	},
+	},*/
 	{
 		.priv		= &unified_loop,
 		.select		= menu_ternary_toggle,
@@ -2782,7 +2776,7 @@ zebra_task_loop:
 			msleep(1000);
 		}
 		if (!lv_drawn()) { msleep(100); continue; }
-		
+
 		if (FLASH_BTN_MOVIE_MODE) crop_dirty = 2;
 
 		int fcp = falsecolor_displayed;
@@ -2853,14 +2847,14 @@ zebra_task_loop:
 		// clear overlays on shutter halfpress
 		if (clearpreview == 1 && get_halfshutter_pressed() && !dofpreview && !gui_menu_shown()) // preview image without any overlays
 		{
-			cropmark_redraw(); // short press... clear only zebra and focus assist and redraw cropmarks
+			//~ cropmark_redraw(); // short press... clear only zebra and focus assist and redraw cropmarks
 			int i;
 			for (i = 0; i < clearpreview_delay/10; i++)
 			{
+				crop_dirty = 10;
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview) goto zebra_task_loop;
 			}
-			crop_dirty = 10;
 			
 			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
@@ -2879,6 +2873,8 @@ zebra_task_loop:
 				draw_zebra_and_focus();
 			}
 		}
+		
+		
 		else if(!gui_menu_shown() && global_draw) // normal zebras
 		{
 			draw_zebra_and_focus();
@@ -2970,11 +2966,11 @@ zoom_overlay_task( void )
 {
 	while(1)
 	{
-		if (card_benchmark_start)
+	/*	if (card_benchmark_start)
 		{
 			card_benchmark_start = 0;
 			card_benchmark();
-		}
+		}*/
 		if (should_draw_zoom_overlay())
 		{
 			msleep(10);
