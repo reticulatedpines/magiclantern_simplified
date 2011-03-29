@@ -213,7 +213,7 @@ draw_meter(
 
 	const uint32_t bar_color_word = color_word( bar_color );
 	const uint32_t peak_color_word = color_word( peak_color );
-	const uint32_t bg_color_word = color_word(COLOR_BG);
+	const uint32_t bg_color_word = color_word(TOPBAR_BGCOLOR);
 
 	// Write the meter an entire scan line at a time
 	int y;
@@ -236,7 +236,7 @@ draw_meter(
 	}
 
 	// Write the current level
-	bmp_printf( FONT_SMALL, 0, y_origin, "%s %2d", label, db_avg );
+	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR), 0, y_origin, "%s %2d", label, db_avg );
 }
 
 
@@ -309,6 +309,12 @@ compute_audio_levels(
 
 int show_volume = 0;
 
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+
+int audio_meters_are_drawn()
+{
+	return do_draw_meters && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)) && get_global_draw() && lv_dispsize == 1;
+}
 /** Task to monitor the audio levels.
  *
  * Compute the average and peak level, periodically calling
@@ -327,7 +333,7 @@ meter_task( void )
 	{
 		msleep( 50 );
 
-		if( do_draw_meters && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)) && get_global_draw())
+		if (audio_meters_are_drawn())
 			draw_meters();
 		else
 			msleep( 500 );

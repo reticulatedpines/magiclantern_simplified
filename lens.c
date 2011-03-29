@@ -135,7 +135,11 @@ PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 static int recording = 0;
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-static PROP_INT(PROP_GUI_STATE, gui_state);
+PROP_INT(PROP_GUI_STATE, gui_state);
+PROP_INT(PROP_BURST_COUNT, burst_count);
+PROP_INT(PROP_AVAIL_SHOT, avail_shot);
+PROP_INT(PROP_ALO, alo);
+PROP_INT(PROP_PIC_QUALITY, picq);
 
 void
 update_lens_display(
@@ -144,141 +148,179 @@ update_lens_display(
 {
 	if (get_halfshutter_pressed()) return;
 	if (gui_menu_shown()) return;
-	if (LV_BOTTOM_BAR_DISPLAYED) return;
 	if (gui_state != GUISTATE_IDLE) return;
 	
-	int bg = bmp_getpixel(1,479);
+	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	unsigned height	= fontspec_height( font );
-
-	if (lv_disp_mode) return;
 	
-	// Needs to be 720 - 8 * 12
 	unsigned x = 420;
 	unsigned y = lv_disp_mode ? 400 : 480 - height - 10;
-	static unsigned prev_y = 0;
-	if (ext_monitor_hdmi && !recording) y += 100;
-	
-	//~ if (y != prev_y)
-	//~ {
-		//~ bmp_fill(0, 0, prev_y - 5, 720, font_med.height + 10);
-	//~ }
+	if (ext_monitor_hdmi) y += recording ? -100 : 100;
 
-	prev_y = y;
+	if (!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0)
+	{
+	
+		//~ y += height;
+		x = 500;
+		bmp_printf( font, x+12, y,
+			"%s",
+			info->focus_dist == 0xFFFF
+				? "Infnty"
+				: lens_format_dist( info->focus_dist * 10 )
+		);
+		
+		x = 0;
+			bmp_printf( Font, x, y-8,
+				shooting_mode == SHOOTMODE_P ? "P " :
+				shooting_mode == SHOOTMODE_M ? "M " :
+				shooting_mode == SHOOTMODE_TV ? "Tv" :
+				shooting_mode == SHOOTMODE_AV ? "Av" :
+				shooting_mode == SHOOTMODE_CA ? "CA" :
+				shooting_mode == SHOOTMODE_ADEP ? "AD" :
+				shooting_mode == SHOOTMODE_AUTO ? "[]" :
+				shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
+				shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
+				shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
+				shooting_mode == SHOOTMODE_MACRO ? "MC" :
+				shooting_mode == SHOOTMODE_SPORTS ? "SP" :
+				shooting_mode == SHOOTMODE_NIGHT ? "NI" :
+				shooting_mode == SHOOTMODE_MOVIE ? "Mv" : "?"
+			);
 
-	
-	//~ y += height;
-	x = 530;
-	bmp_printf( font, x+12, y,
-		"%s",
-		info->focus_dist == 0xFFFF
-			? "Infnty"
-			: lens_format_dist( info->focus_dist * 10 )
-	);
-	
-	x = 0;
-		bmp_printf( Font, x, y-8,
-			shooting_mode == SHOOTMODE_P ? "P " :
-			shooting_mode == SHOOTMODE_M ? "M " :
-			shooting_mode == SHOOTMODE_TV ? "Tv" :
-			shooting_mode == SHOOTMODE_AV ? "Av" :
-			shooting_mode == SHOOTMODE_CA ? "CA" :
-			shooting_mode == SHOOTMODE_ADEP ? "AD" :
-			shooting_mode == SHOOTMODE_AUTO ? "[]" :
-			shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
-			shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
-			shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
-			shooting_mode == SHOOTMODE_MACRO ? "MC" :
-			shooting_mode == SHOOTMODE_SPORTS ? "SP" :
-			shooting_mode == SHOOTMODE_NIGHT ? "NI" :
-			shooting_mode == SHOOTMODE_MOVIE ? "Mv" : "?"
+		x += 50;
+
+		bmp_printf( font, x, y,
+			"%d/%d.%d  ",
+			info->focal_len,
+			info->aperture / 10,
+			info->aperture % 10
 		);
 
-	x += 50;
+		x += 120;
+		if( info->shutter )
+			bmp_printf( font, x, y,
+				"1/%d  ",
+				info->shutter
+			);
+		else
+			bmp_printf( font_err, x, y,
+				"1/0x%02x",
+				info->raw_shutter
+			);
+
+		x += 80;
+		if( info->iso )
+			bmp_printf( font, x, y,
+				"ISO%5d",
+				info->iso
+			);
+		else
+			bmp_printf( font, x, y,
+				"ISO Auto"
+			);
+
+		x += 110;
+		if( info->wb_mode == WB_KELVIN )
+			bmp_printf( font, x, y,
+				"%5dK",
+				info->kelvin
+			);
+		else
+			bmp_printf( font, x, y,
+				"%s",
+				(lens_info.wb_mode == 0 ? "AutoWB" : 
+				(lens_info.wb_mode == 1 ? "Sunny " :
+				(lens_info.wb_mode == 2 ? "Cloudy" : 
+				(lens_info.wb_mode == 3 ? "Tungst" : 
+				(lens_info.wb_mode == 4 ? "CFL   " : 
+				(lens_info.wb_mode == 5 ? "Flash " : 
+				(lens_info.wb_mode == 6 ? "Custom" : 
+				(lens_info.wb_mode == 8 ? "Shade " :
+				 "unk"))))))))
+			);
+		x += font_med.width * 7;
+
+		int gm = lens_info.wbs_gm;
+		if (gm) bmp_printf(font, x, y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+		else bmp_printf(font, x, y, "  ");
+
+		x += font_med.width * 2;
+		int ba = lens_info.wbs_ba;
+		if (ba) bmp_printf(font, x, y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+		else bmp_printf(font, x, y, "  ");
+
+		x = 610;
+		bmp_printf( font, x, y,
+			"AE%s%d.%dEV ",
+			AE_VALUE < 0 ? "-" : " ",
+			ABS(AE_VALUE) / 8,
+			mod(ABS(AE_VALUE) * 10 / 8, 10)
+		);
+
+		#if 0
+		y += height;
+		bmp_printf( font, x, y,
+			"%s",
+			lens_format_dist( info->hyperfocal )
+		);
+
+		y += height;
+		bmp_printf( font, x, y,
+			"%s",
+			lens_format_dist( info->dof_near )
+		);
+
+		y += height;
+		bmp_printf( font, x, y,
+			"%s",
+			info->dof_far >= 1000*1000
+				? " Infnty"
+				: lens_format_dist( info->dof_far )
+		);
+		#endif
+	}
+	
+
+	free_space_show();
+	if (audio_meters_are_drawn()) return;
+
+	y = 0;
+	x = 100;
 	bmp_printf( font, x, y,
 		"DISP %d", get_disp_mode()
 	);
 
 	x += 100;
 	bmp_printf( font, x, y,
-		"%d/%d.%d  ",
-		info->focal_len,
-		info->aperture / 10,
-		info->aperture % 10
+		picq == PICQ_RAW ? "RAW  " :
+		picq == PICQ_RAW_JPG ? "RAW+J" :
+		picq == PICQ_LARGE_FINE ? "LARGE" :
+		picq == PICQ_LARGE_COARSE ? "large" :
+		picq == PICQ_MED_FINE ? "MED  " :
+		picq == PICQ_MED_COARSE ? "med  " :
+		picq == PICQ_SMALL_FINE ? "SMALL" :
+		picq == PICQ_SMALL_COARSE ? "small" : "err  "
 	);
 
-	x += 120;
-	if( info->shutter )
-		bmp_printf( font, x, y,
-			"1/%d  ",
-			info->shutter
-		);
-	else
-		bmp_printf( font_err, x, y,
-			"1/0x%02x",
-			info->raw_shutter
-		);
-
-	x += 80;
-	if( info->iso )
-		bmp_printf( font, x, y,
-			"ISO%5d",
-			info->iso
-		);
-	else
-		bmp_printf( font, x, y,
-			"ISO Auto"
-		);
-
-	x += 110;
-	if( info->wb_mode == WB_KELVIN )
-		bmp_printf( font, x, y,
-			"%5dK",
-			info->kelvin
-		);
-	else
-		bmp_printf( font, x, y,
-			"%s",
-			(lens_info.wb_mode == 0 ? "AutoWB" : 
-			(lens_info.wb_mode == 1 ? "Sunny " :
-			(lens_info.wb_mode == 2 ? "Cloudy" : 
-			(lens_info.wb_mode == 3 ? "Tungst" : 
-			(lens_info.wb_mode == 4 ? "CFL   " : 
-			(lens_info.wb_mode == 5 ? "Flash " : 
-			(lens_info.wb_mode == 6 ? "Custom" : 
-			(lens_info.wb_mode == 8 ? "Shade " :
-			 "unk"))))))))
-		);
-
-	x = 650;
+	x += 100;
 	bmp_printf( font, x, y,
-		"AE%2d/8EV",
-		AE_VALUE
+		get_htp() ? "HTP" :
+		alo == ALO_LOW ? "alo" :
+		alo == ALO_STD ? "Alo" :
+		alo == ALO_HIGH ? "ALO" : "   "
 	);
 
-#if 0
-	y += height;
+	display_clock();
+
+	x = 550;
 	bmp_printf( font, x, y,
-		"%s",
-		lens_format_dist( info->hyperfocal )
+		"[%d]  ",
+		avail_shot
 	);
 
-	y += height;
-	bmp_printf( font, x, y,
-		"%s",
-		lens_format_dist( info->dof_near )
-	);
-
-	y += height;
-	bmp_printf( font, x, y,
-		"%s",
-		info->dof_far >= 1000*1000
-			? " Infnty"
-			: lens_format_dist( info->dof_far )
-	);
-#endif
 }
 
 

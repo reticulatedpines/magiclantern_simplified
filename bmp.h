@@ -229,4 +229,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);
 uint8_t bmp_getpixel(int x, int y);
 
+#define TOPBAR_BGCOLOR (bmp_getpixel(1,35))
+#define BOTTOMBAR_BGCOLOR (bmp_getpixel(1,479))
+
 #endif

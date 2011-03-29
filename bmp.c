@@ -29,6 +29,8 @@
 #include "font.h"
 #include <stdarg.h>
 
+int bmp_enabled = 1;
+
 #define USE_LUT
 
 extern int LV_EX_X;
@@ -86,6 +88,7 @@ _draw_char(
 	char		c
 )
 {
+	if (!bmp_enabled) return;
 	unsigned i,j;
 	const struct font * const font = fontspec_font( fontspec );
 
@@ -344,6 +347,8 @@ bmp_fill(
 	uint32_t		h
 )
 {
+	if (!bmp_enabled) return;
+
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
 	                
@@ -540,6 +545,7 @@ void clrscr()
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear)
 {
 	if (!bmp) return;
+	if (!bmp_enabled) return;
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -630,6 +636,7 @@ uint8_t bmp_getpixel(int x, int y)
 }
 uint8_t bmp_putpixel(int x, int y, uint8_t color)
 {
+	if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return 0;
 	int bmppitch = BMPPITCH;
@@ -640,6 +647,7 @@ uint8_t bmp_putpixel(int x, int y, uint8_t color)
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
+	if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return 0;
 	
@@ -656,6 +664,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear)
 {
 	if (!bmp) return;
+	if (!bmp_enabled) return;
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -695,13 +704,14 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 			}
 			else
 			{
+				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
 				if (mirror)
 				{
 					uint8_t p = b_row[ xs ];
 					uint8_t m = m_row[ xs ];
 					if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+					if ((p == 0x14 || p == 0x3) && pix == 0) continue;
 				}
-				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
 				b_row[ xs ] = pix;
 			}
 		}

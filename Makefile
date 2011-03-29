@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=reckeyfix.$(shell whoami)
+BUILDVER=topbar.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -224,8 +224,8 @@ ML_OBJS-y = \
 	hotplug.o \
 
 NO=\
-	bootflags.o \
 	console.o \
+	bootflags.o \
 	aj_port.o \
 	aj_lib_port.o \
 	font-huge.o \

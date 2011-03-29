@@ -265,9 +265,9 @@ static int handle_buttons(struct event * event)
 	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
 	{
 		if (houtput_type == 0)
-		{
 			return toggle_disp_mode();
-		}
+		else
+			schedule_disp_mode_change();
 	}
 	
 	// MENU while recording => force a redraw

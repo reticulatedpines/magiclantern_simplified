@@ -60,7 +60,7 @@ extern void bootdisk_disable();
 
 int display_force_off = 0;
 
-/*
+
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 int burst_count = 0; // PROP_BURST_COUNT = how many more pics can be taken in burst mode
 
@@ -156,8 +156,49 @@ auto_burst_pic_display(
 		"Auto Burst PicQ: %s", 
 		auto_burst_pic_quality ? "ON" : "OFF"
 	);
-}*/
+}
 
+
+CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
+
+static void
+af_frame_autohide_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"AF frame       : %s", 
+		af_frame_autohide ? "AutoHide" : "Default"
+	);
+}
+
+int afframe_countdown = 0;
+
+PROP_HANDLER(PROP_LV_AFFRAME)
+{
+	afframe_countdown = 50;
+	return prop_cleanup(token, property);
+}
+
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+
+void clear_lv_afframe()
+{
+	if (!lv_drawn()) return;
+	if (gui_menu_shown()) return;
+	if (lv_dispsize != 1) return;
+	struct vram_info *	lv = get_yuv422_vram();
+	if( !lv->vram )	return;
+	int xaf,yaf;
+	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
+	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,50) - 50, 200, 100 );
+	crop_set_dirty(1);
+}
 
 static void
 display_off_print(
@@ -1070,12 +1111,16 @@ void lv_redraw()
 	if (lv_drawn())
 	{
 		zebra_pause();
+		bmp_enabled = 0;
 		msleep(200);
 		redraw_maybe();
 		msleep(200);
+		bmp_enabled = 1;
 		zebra_resume();
 	}
 	else redraw_maybe();
+
+	afframe_countdown = 50;
 }
 
 void turn_off_display()
@@ -1193,10 +1238,21 @@ static void dbg_memspy_update()
 
 PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
 
+/*int battery_level_raw = 0;
+PROP_HANDLER(PROP_BATTERY_CHECK)
+{
+	battery_level_raw = buf[21];
+	//~ bmp_hexdump(FONT_SMALL, 0, 20, buf, 32*30);
+	//~ call("dispcheck");
+	return prop_cleanup(token, property);
+}
+PROP_INT(PROP_BATTERY_RAW_LEVEL_MAYBE, battery_level_raw_maybe);*/
+
 void display_info()
 {
 	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
 	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
+	//~ bmp_printf(FONT_MED, 20, 440, "Battery level: %d or %d", battery_level_raw, battery_level_raw_maybe);
 	bmp_printf(FONT_MED, 20, 440, "Lens: %s          ", lens_info.name);
 	//~ bmp_printf(FONT_MED, 20, 440, "%d  ", *(int*)0x25334);
 
@@ -1204,11 +1260,19 @@ void display_info()
 void display_clock()
 {
 	int bg = bmp_getpixel(15, 430);
-	uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
-	bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
+	if (lv_drawn())
+	{
+		uint32_t fnt = FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR);
+		bmp_printf(fnt, 0, 0, "%02d:%02d", now.tm_hour, now.tm_min);
+	}
+	else
+	{
+		uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
+		bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
+	}
 }
 
 
@@ -1343,6 +1407,12 @@ debug_loop_task( void ) // screenshot, draw_prop
 			}
 			vbr_set();
 		}
+		
+		if (af_frame_autohide && lv_drawn() && afframe_countdown)
+		{
+			afframe_countdown--;
+			if (!afframe_countdown) clear_lv_afframe();
+		}
 
 		if (!DISPLAY_SENSOR_POWERED) // force sensor on
 		{
@@ -1432,6 +1502,11 @@ struct menu_entry debug_menus[] = {
 		.priv = &big_clock, 
 		.select = menu_binary_toggle,
 		.display = big_clock_print,
+	},*/
+	{
+		.priv = &af_frame_autohide, 
+		.select = menu_binary_toggle,
+		.display = af_frame_autohide_display,
 	},
 	{
 		.priv = &auto_burst_pic_quality, 
@@ -1442,7 +1517,7 @@ struct menu_entry debug_menus[] = {
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},*/
+	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -1634,14 +1709,14 @@ debug_property_handler(
 {
 	const uint32_t * const addr = buf;
 
-	DebugMsg( DM_MAGIC, 3, "Prop %08x: %2x: %08x %08x %08x %08x",
+	/*console_printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
 		property,
 		len,
 		len > 0x00 ? addr[0] : 0,
 		len > 0x04 ? addr[1] : 0,
 		len > 0x08 ? addr[2] : 0,
 		len > 0x0c ? addr[3] : 0
-	);
+	);*/
 	
 	if( !draw_prop )
 		goto ack;
@@ -1682,8 +1757,8 @@ ack:
 
 
 
-//~ #define num_properties 4096
-//~ unsigned* property_list = 0;
+#define num_properties 4096
+unsigned* property_list = 0;
 
 
 void

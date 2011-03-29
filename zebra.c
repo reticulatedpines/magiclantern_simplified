@@ -44,10 +44,13 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
+CONFIG_INT("disp.mode", disp_mode, 0);
 CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285c41);
 CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295c01);
 CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88890);
 CONFIG_INT("disp.mode.xxx", disp_mode_x,   0x5c50);
+int disp_mode_change_request = 0;
+void schedule_disp_mode_change() { disp_mode_change_request = 1; }
 
 CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
@@ -151,17 +154,18 @@ void crop_set_dirty(int value)
 
 int ext_monitor_rca = 0;
 int ext_monitor_hdmi = 0;
+#define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 int lv_dispsize = 1;
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
 	ext_monitor_rca = buf[0];
-	crop_dirty = 10;
+	crop_dirty = 5;
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
 	ext_monitor_hdmi = buf[0];
-	crop_dirty = 10;
+	crop_dirty = 5;
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_LV_DISPSIZE)
@@ -185,12 +189,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 int gui_state;
 PROP_HANDLER(PROP_GUI_STATE) {
 	gui_state = buf[0];
-	if (gui_state == GUISTATE_IDLE) crop_dirty = 10;
+	if (gui_state == GUISTATE_IDLE) crop_dirty = 100;
 	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-	crop_dirty = 10; // redraw cropmarks after 10 cycles
+	crop_dirty = 20;
 	return prop_cleanup( token, property );
 }
 
@@ -1158,6 +1162,8 @@ static void
 draw_zebra_and_focus( void )
 {
 	// disable zebra/peaking while overlay is active (reduces flicker)
+	if (lv_dispsize != 1) return;
+
 	int Zd = should_draw_zoom_overlay();
 
 	static int Zdp = 0;
@@ -1218,8 +1224,6 @@ draw_zebra_and_focus( void )
 			#undef M2
 		}
 		dirty_pixels_num = 0;
-
-		if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 		
 		int bm_pitch = (ext_monitor_hdmi && !recording) ? 960 : 720; // or other value for ext monitor
 		int bm_width = bm_pitch;  // 8-bit palette image
@@ -1720,7 +1724,6 @@ static void reload_cropmark(int i)
 
 	if (cropmarks)
 	{
-		cropmark_draw(1); // delete old cropmark from screen
 		FreeMemory(cropmarks);
 		cropmarks = 0;
 	}
@@ -2193,7 +2196,7 @@ void zoom_overlay_size_toggle(void* priv)
 	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
-CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
+CONFIG_INT("lv.disp.profiles", disp_profiles_0, 3);
 
 static void
 disp_profiles_0_display(
@@ -2421,14 +2424,14 @@ void measure_bitrate() // called 5 times / second
 	
 	if (time_indicator)
 	{
-		bmp_printf(FONT_MED, 
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
 			timecode_y + 18,
 			"%4d",
 			measured_bitrate
 		);
 		if (get_bitrate_mode())
-			bmp_printf(FONT_SMALL, 
+			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR), 
 				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
 				timecode_y + 25,
 				"%s%d ",
@@ -2436,16 +2439,37 @@ void measure_bitrate() // called 5 times / second
 				ABS(get_qscale())
 			);
 		else
-			bmp_printf(FONT_SMALL, 
+			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR),
 				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
 				timecode_y + 25,
 				"   "
 			);
 	}
 }
+
+void free_space_show()
+{
+	if (recording && time_indicator) return;
+	int fsg = free_space_32k >> 15;
+	int fsgr = free_space_32k - (fsg << 15);
+	int fsgf = (fsgr * 10) >> 15;
+
+	bmp_printf(
+		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+		timecode_x + 7 * fontspec_font(timecode_font)->width,
+		timecode_y,
+		"%d.%dGB",
+		fsg,
+		fsgf
+	);
+}
 void time_indicator_show()
 {
-	if (!recording) return;
+	if (!recording) 
+	{
+		free_space_show();
+		return;
+	}
 	
 	// time until filling the card
 	// in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
@@ -2465,14 +2489,14 @@ void time_indicator_show()
 	if (time_indicator)
 	{
 		bmp_printf(
-			time_4gb < timecode_warning ? timecode_font : FONT_MED,
+			time_4gb < timecode_warning ? timecode_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
 			timecode_y,
 			"%4d:%02d",
 			dispvalue / 60,
 			dispvalue % 60
 		);
-		bmp_printf(FONT_MED, 
+		bmp_printf( FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
 			timecode_x + 7 * fontspec_font(timecode_font)->width,
 			timecode_y + 38,
 			"AVG%3d",
@@ -2483,7 +2507,7 @@ void time_indicator_show()
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
-	crop_dirty = 10;
+	crop_dirty = 5;
 	if (buf[0] == 0) ChangeColorPalette(2);
 
 	return prop_cleanup( token, property );
@@ -2491,25 +2515,20 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 
 void 
-cropmark_draw(int del)
+cropmark_draw(int unused)
 {
+	if (!cropmarks) clrscr_mirror();
 	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE) return;
 	if (!get_global_draw()) return;
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
-	bmp_draw_scaled_ex(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y, bvram_mirror, del);
+	bmp_draw_scaled_ex(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y, bvram_mirror, 0);
 }
 static void
 cropmark_redraw()
 {
-	if (cropmarks)
-	{
-		int del = lv_dispsize == 1 ? 0 : 1;
-		cropmark_draw(del); // erase cropmarks in zoom mode
-	}
-	else
-		clrscr_mirror();
+	cropmark_draw(0);
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
@@ -2553,6 +2572,7 @@ int _display_is_off = 0;
 void display_on()
 {
 	if (lens_info.job_state) return;
+	if (EXT_MONITOR_CONNECTED) return;
 	if (_display_is_off)
 	{
 		if (lv_drawn()) lvimage_on(); // might save a bit of power
@@ -2563,12 +2583,14 @@ void display_on()
 void display_on_force()
 {
 	if (lens_info.job_state) return;
+	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 1;
 	display_on();
 }
 void display_off()
 {
 	if (lens_info.job_state) return;
+	if (EXT_MONITOR_CONNECTED) return;
 	if (!_display_is_off)
 	{
 		if (lv_drawn()) lvimage_off(); // might save a bit of power
@@ -2748,6 +2770,20 @@ int zebra_paused = 0;
 void zebra_pause() { zebra_paused = 1; }
 void zebra_resume() { zebra_paused = 0; }
 
+void clear_this_message_not_available_in_movie_mode()
+{
+	static int fp = -1;
+	int f = FLASH_BTN_MOVIE_MODE;
+	if (f == fp) return; // clear the message only once
+	fp = f;
+	if (!f) return;
+	
+	bmp_fill(0, 0, 330, 720, 480-330);
+	msleep(50);
+	bmp_fill(0, 0, 330, 720, 480-330);
+	cropmark_redraw();
+}
+
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -2774,64 +2810,7 @@ zebra_task_loop:
 
 		msleep(10); // safety msleep :)
 
-		reload_cropmark(crop_draw);
-
-		if (cropmarks && cropmark_playback && gui_state == GUISTATE_PLAYMENU)
-		{
-			cropmark_redraw();
-			msleep(1000);
-		}
-		if (!lv_drawn()) { msleep(100); continue; }
-		if (lens_info.job_state) continue;
-
-		if (FLASH_BTN_MOVIE_MODE) crop_dirty = 2;
-
-		int fcp = falsecolor_displayed;
-
-		// when to display false color?
-		if (falsecolor_draw == 0) falsecolor_displayed = 0;
-		if (falsecolor_draw == 1) falsecolor_displayed = 1;
-		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || FLASH_BTN_MOVIE_MODE);
-		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
-		{
-			falsecolor_canceled = 0;
-			if (shooting_mode == SHOOTMODE_MOVIE)
-			{
-				bmp_fill(0, 0, 330, 720, 480-330);
-				msleep(50);
-				bmp_fill(0, 0, 330, 720, 480-330);
-				cropmark_redraw();
-			}
-			while (dofpreview || FLASH_BTN_MOVIE_MODE) msleep(100);
-			if (!falsecolor_canceled)
-				falsecolor_displayed = !falsecolor_displayed;
-		}
-		
-		// did false color setting toggle?
-		if (fcp != falsecolor_displayed)
-		{
-			if (falsecolor_displayed) // first time displaying false color from shortcut key
-			{
-				// there's a beautiful message saying "This function is not available in movie mode"
-				// but users want to get rid of this
-				if (shooting_mode == SHOOTMODE_MOVIE && !recording && falsecolor_draw == 2)
-				{
-					bmp_fill(0, 0, 330, 720, 480-330);
-					msleep(50);
-					bmp_fill(0, 0, 330, 720, 480-330);
-					cropmark_redraw();
-				}
-				else
-				{
-					clrscr_mirror();
-				}
-			}
-			else // false color no longer displayed
-			{
-				lv_redraw();
-				crop_dirty = 1;
-			}
-		}
+		reload_cropmark(crop_draw); // reloads only when changed
 
 		if (zebra_paused)
 		{
@@ -2842,22 +2821,89 @@ zebra_task_loop:
 				if (gui_menu_shown()) update_disp_mode_bits_from_params();
 			}
 			msleep(200);
-			crop_dirty = 10;
+			crop_dirty = 5;
+			continue;
 		}
 		else
 		{
 			update_disp_mode_params_from_bits();  // update settings if DISP mode was changed
+		}
+
+		if (cropmarks && cropmark_playback && gui_state == GUISTATE_PLAYMENU)
+		{
+			cropmark_redraw();
+			msleep(1000);
+		}
+		
+		if (!lv_drawn()) { msleep(100); continue; }
+		if (lens_info.job_state) continue;
+
+		if (lv_dispsize != 1)
+		{
+			lv_redraw();
+			while (lv_dispsize != 1) msleep(100);
+			lv_redraw();
+			continue;
+		}
+		
+		
+		if (disp_mode_change_request)
+		{
+			disp_mode_change_request = 0;
+			do_disp_mode_change();
+		}
+		
+
+		if (shooting_mode == SHOOTMODE_MOVIE)
+			clear_this_message_not_available_in_movie_mode();
+
+		// when to display false color?
+		int fcp = falsecolor_displayed;
+		if (falsecolor_draw == 0) falsecolor_displayed = 0;
+		if (falsecolor_draw == 1) falsecolor_displayed = 1;
+		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || FLASH_BTN_MOVIE_MODE);
+		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
+		{
+			falsecolor_canceled = 0;
+			
+			int k = 0;
+			while (dofpreview || FLASH_BTN_MOVIE_MODE)
+			{
+				msleep(100);
+				k++;
+			}
+			if (k > 10) falsecolor_canceled = 1; // long press doesn't toggle
+			
+			if (!falsecolor_canceled)
+				falsecolor_displayed = !falsecolor_displayed;
+		}
+		
+		// did false color setting toggle?
+		if (fcp != falsecolor_displayed)
+		{
+			if (falsecolor_displayed) // first time displaying false color from shortcut key
+			{
+				clrscr_mirror();
+			}
+			else // false color no longer displayed
+			{
+				lv_redraw();
+				crop_dirty = 1;
+			}
 		}
 		
 		if (!lv_drawn()) continue;
 		if (lens_info.job_state) continue;
 		
 		if (get_halfshutter_pressed()) display_on();
+		
+		if (ISO_ADJUSTMENT_ACTIVE) crop_dirty = 5;
 
 		// clear overlays on shutter halfpress
 		if (clearpreview == 1 && get_halfshutter_pressed() && !dofpreview && !gui_menu_shown()) // preview image without any overlays
 		{
-			//~ cropmark_redraw(); // short press... clear only zebra and focus assist and redraw cropmarks
+			// short press... clear only zebra and focus assist and redraw cropmarks
+			clrscr_mirror();
 			int i;
 			for (i = 0; i < clearpreview_delay/10; i++)
 			{
@@ -2868,8 +2914,11 @@ zebra_task_loop:
 			
 			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
+			clrscr();
 			bmp_on();
 			lv_redraw();
+			crop_dirty = 10;
+			continue; // it may have passed a long time => unexpected things may have happened (need to check again)
 		}
 		else if (clearpreview == 2) // always clear overlays
 		{ // in this mode, BMP & global_draw are disabled, but Canon code may draw on the screen
@@ -2999,7 +3048,6 @@ int unused;
 int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearpreview, &focus_peaking, &unused, &global_draw, &zoom_overlay_mode};
 int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1,       1,            2};
 
-CONFIG_INT("disp.mode", disp_mode, 0);
 void update_disp_mode_bits_from_params()
 {
 	int i;
@@ -3049,9 +3097,17 @@ int get_disp_mode() { return disp_mode; }
 int toggle_disp_mode()
 {
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
+	schedule_disp_mode_change();
+	return disp_mode == 0;
+}
+void do_disp_mode_change()
+{
+	display_on();
+	bmp_on();
+	clrscr();
+	bmp_printf(FONT_LARGE, 10, 40, "DISP %d", disp_mode);
+	msleep(500);
 	clrscr();
 	lv_redraw();
-	update_disp_mode_params_from_bits();
-
-	return disp_mode == 0;
+	crop_dirty = 5;
 }

@@ -180,6 +180,7 @@ These buttons have special meaning with Magic Lantern:
 * ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
 * ``Q`` while *Drive mode* dialog is active: go to `LCD Remote Shot`_ item in ML menu.
 * ``Q`` while *Flash exposure comp.* dialog is active: go to `Flash AEcomp`_ item in ML menu.
+* ``Q`` while *Quality* dialog (picture quality) is active: go to `Auto Burst PicQ`_ item in ML menu.
 * ``Q`` while LiveView zoom is active: go to `Magic Zoom`_ item in ML menu.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
@@ -1105,6 +1106,28 @@ Debug
   
   Disabling this setting will restore the default behavior of ``UP/DOWN`` keys.
 
+**AF frame: Default / AutoHide**
+
+  Control the appearance of AF frame:
+  
+  * Default: no change (just like the standard firmware)
+  * AutoHide: the AF frame is only displayed when you move it, and then it disappears after 1 second or so.
+
+.. _Auto Burst PicQ:
+
+**Auto Burst PicQ: ON/OFF**
+
+  When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
+  
+  This function will reduce picture quality in the following steps:
+  
+  * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+
+**Draw palette**
+
+  Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
+
 **Screenshot (10 s)**
 
   Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
@@ -1146,14 +1169,17 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
   
   Note: This item will also disable ``Config AutoSave``, in order to make sure the config file won't be re-created at shutdown.
 
+.. _display preset:
+
 **DISP presets: 1..4**
 
-  This item lets you use up to 4 display presets for the settings in the `LiveV`_ menu.
+  This feature lets you use up to 4 display presets for the settings in the `LiveV`_ menu.
 
-  On the bottom bar, you will see ``DISP:`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``LiveV`` menu. So you can, for example, configure ``DISP 1`` with false colors, ``DISP 2`` with zebras and focus peaking, and ``DISP 3`` with clear display.
+  On the top bar, you will see ``DISP`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``LiveV`` menu. So you can, for example, configure ``DISP 1`` with false colors, ``DISP 2`` with zebras and focus peaking, and ``DISP 3`` with clear display.
 
   ``DISP`` presets named 1, 2 and 3 are only used when Canon info display is inactive. When Canon info display is active, ML will use the ``DISP 0`` preset (which does not display anything by default).
 
+  This menu item sets the maximum number of available DISP presets. To disable this feature, set the number of presets to 1.
 
 Extra info displays
 -------------------
@@ -1198,12 +1224,21 @@ This info also appears on error displays (e.g. ERR 70).
 LiveView
 ~~~~~~~~
 
-* Bottom bar:
+* Bottom bar (displayed only when Canon bottom bar is hidden):
 
   * Current shooting mode
-  * Aperture, `shutter`_, `ISO`_, `white balance`_
-  * Lens focal length and focus distance: see [[Focus_distance]]
+  * Lens focal length and aperture, 
+  * `shutter`_, `ISO`_, `white balance`_, WB shift
+  * [[Focus_distance]]
   * Exposure compensation (codenamed AE)
+
+* Top bar (displayed only when audio meters are not shown):
+
+  * Clock
+  * Current `display preset`_
+  * Picture quality setting
+  * Number of pictures remaining (estimated)
+  * Free space remaining, in GB (may be incorrect on certain cards)
 
 * In the middle of the screen:
 
