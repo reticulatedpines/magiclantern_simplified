@@ -866,6 +866,29 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 	);
 }*/
 
+PROP_INT(PROP_WINDCUT_MODE, windcut_mode);
+
+void windcut_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Wind Cut Mode : %d",
+		windcut_mode
+	);
+}
+
+void set_windcut(int value)
+{
+	prop_request_change(PROP_WINDCUT_MODE, &value, 4);
+}
+
+void windcut_toggle(void* priv)
+{
+	windcut_mode = !windcut_mode;
+	set_windcut(windcut_mode);
+}
+
 void draw_meters_toggle(void* priv)
 {
 	unsigned * val = priv;
@@ -908,6 +931,11 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &alc_enable,
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
+	},
+	{
+		.priv		= &windcut_mode,
+		.select		= windcut_toggle,
+		.display	= windcut_display,
 	},
 	/*{
 		.priv		= &disable_filters,
