@@ -2431,6 +2431,12 @@ shoot_task( void )
 	struct audio_level *al=get_audio_levels();
 	int winsys_struct[20]; // GUI state related?
 	AJ_0x15C24_struct_related( &winsys_struct );
+	if (winsys_struct[3] == 1 && winsys_struct[4] == 3)
+	{
+		lv_test(0);
+		msleep(100);
+		lv_test(1);
+	}
 	while(1)
 	{
 		msleep(10);
@@ -2730,9 +2736,6 @@ shoot_task( void )
 				}
 			}
 		}
-		if (winsys_struct[3] == 1 && winsys_struct[4] == 3)
-			if (al[0].last > al[0].avg * 10) 
-				lv_test(0);
 	}
 }
 
