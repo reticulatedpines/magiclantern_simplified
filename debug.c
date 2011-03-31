@@ -268,12 +268,12 @@ void show_big_clock()
 }
 */
 
-CONFIG_INT("backlight.keys", backlight_keys, 1);
+CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
 
-int get_backlight_keys() { return backlight_keys; }
+int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
 
 static void
-backlight_print(
+lcd_sensor_shortcuts_print(
 	void *			priv,
 	int			x,
 	int			y,
@@ -283,8 +283,8 @@ backlight_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Backlight Keys : %s", 
-		backlight_keys ? "ON,IR+U/D" : "OFF"
+		"SensorShortcuts: %s", 
+		lcd_sensor_shortcuts ? "ON" : "OFF"
 	);
 }
 
@@ -1414,7 +1414,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			if (!afframe_countdown) clear_lv_afframe();
 		}
 
-		if (!DISPLAY_SENSOR_POWERED) // force sensor on
+		if (get_lcd_sensor_shortcuts() && !DISPLAY_SENSOR_POWERED) // force sensor on
 		{
 			DispSensorStart();
 		}
@@ -1494,9 +1494,9 @@ struct menu_entry debug_menus[] = {
 		.select = menu_binary_toggle,
 	},
 	{
-		.priv		= &backlight_keys,
+		.priv		= &lcd_sensor_shortcuts,
 		.select		= menu_binary_toggle,
-		.display	= backlight_print,
+		.display	= lcd_sensor_shortcuts_print,
 	},
 	/*{
 		.priv = &big_clock, 

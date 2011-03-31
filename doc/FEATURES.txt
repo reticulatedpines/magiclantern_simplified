@@ -164,8 +164,14 @@ These buttons have special meaning with Magic Lantern:
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
 * ``DISP`` in LiveView has 3 extra display modes specific to ML, which are fully customizable from `LiveV`_ menu. Each display mode has its own set of LiveV settings.
-* LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_.
-* LCD sensor + ``UP / DOWN``: see `Backlight Keys`_ (adjust LCD backlight level).
+
+.. _LCD sensor:
+
+* LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_ and `SensorShortcuts`_.
+
+.. _LCD backlight level:
+
+* LCD sensor + ``UP / DOWN``: adjust LCD backlight level.
 * LCD sensor + ``LEFT / RIGHT`` in LiveView: adjust `Kelvin white balance`_.
 * LCD sensor + Arrows: see `Follow Focus`_.
 * LCD sensor + aperture change in LiveView: `DOF adjust`_ (changes aperture and ISO while keeping the same exposure).
@@ -251,6 +257,10 @@ Audio tweaks.
     :width: 8cm
 
 "Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
+
+**Wind Cut Mode: ON/OFF**
+
+  Not tested. It may work, it may do nothing or it might do harm.
 
 {{clr}}
 
@@ -1097,14 +1107,13 @@ Debug
   
   See `Power saving`_ for more info.
 
-.. _backlight keys:
-.. _LCD backlight level:
+.. _SensorShortcuts:
 
-**Backlight Keys: ON/OFF**
+**SensorShortcuts: ON/OFF**
 
-  Enable quick adjustment of LCD backlight. To adjust it, hold the LCD sensor and press ``UP/DOWN``.
+  Enable the use of `LCD sensor`_ as an extra shift key. This function allows you to adjust `white balance`_, LCD backlight level, move the AF frame when `follow focus`_ is active, or trigger `Magic Zoom`_ when not recording.
   
-  Disabling this setting will restore the default behavior of ``UP/DOWN`` keys.
+  Disable this option if you are using a device which covers the LCD sensor.
 
 **AF frame: Default / AutoHide**
 
