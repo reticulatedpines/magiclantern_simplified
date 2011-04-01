@@ -1083,13 +1083,13 @@ void xx_test(void* priv)
 	}
 }
 
-void lv_test(void* priv)
+void toggle_mirror_display()
 {
 	zebra_pause();
 	if (lv_drawn()) msleep(200); // redrawing screen while zebra is active seems to cause trouble
 	static int i = 0;
-	if (i) winsys_related_maybe(); // one of those should trigger a redraw
-	else struct_1e774_0x40_something();
+	if (i) MirrorDisplay();
+	else NormalDisplay();
 	i = !i;
 	msleep(200);
 	zebra_resume();

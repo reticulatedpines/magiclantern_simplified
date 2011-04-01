@@ -2429,14 +2429,15 @@ shoot_task( void )
 	msleep(1000);
 	menu_add( "LiveV", vid_menus, COUNT(vid_menus) );
 	struct audio_level *al=get_audio_levels();
-	int winsys_struct[20]; // GUI state related?
-	AJ_0x15C24_struct_related( &winsys_struct );
-	if (winsys_struct[3] == 1 && winsys_struct[4] == 3)
+	
+	// :-)
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+	if (now.tm_mday == 1 && now.tm_mon == 3)
 	{
-		lv_test(0);
-		msleep(100);
-		lv_test(1);
+		toggle_mirror_display();
 	}
+	
 	while(1)
 	{
 		msleep(10);
