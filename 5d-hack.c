@@ -158,7 +158,26 @@ null_task( void )
 	return;
 }
 
+// the startup process is a mistery for me... => workaround :)
+int _magic_off = -1;
 
+// only first call will set the value of _magic_off, to avoid race condition
+// (when some code would catch the shortcut key pressed and other code would catch it released)
+int magic_is_off()
+{
+	if (_magic_off == -1 || _magic_off == 0)
+		_magic_off = FOCUS_CONFIRMATION_AF_PRESSED ? 1 : 0;
+	return _magic_off;
+}
+
+
+char escargot[5000] = {0};
+
+void dump_escargot()
+{
+	bmp_printf(FONT_LARGE, 0, 0, "SPANAC");
+	console_puts(escargot);
+}
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -171,17 +190,20 @@ my_task_dispatch_hook(
 {
 	if( !context )
 		return;
-
-	if (FOCUS_CONFIRMATION_AF_PRESSED) return;
-
+	
 	// Do nothing unless a new task is starting via the trampoile
 	if( (*context)->pc != (uint32_t) task_trampoline )
 		return;
-
+	
 	// Determine the task address
 	struct task * const task = *(struct task**) 0x1a20;
 
 	thunk entry = (thunk) task->entry;
+
+	if (strlen(escargot) < sizeof(escargot) - 100)
+		snprintf(escargot + strlen(escargot), sizeof(escargot) - strlen(escargot), "%8x %s\n", task->entry, task->name);
+	else
+		snprintf(escargot + strlen(escargot) - 1, 5, "!");
 
 	// Search the task_mappings array for a matching entry point
 	extern struct task_mapping _task_overrides_start[];
@@ -193,7 +215,8 @@ my_task_dispatch_hook(
 		thunk original_entry = mapping->orig;
 		if( original_entry != entry )
 			continue;
-
+		if( magic_is_off() ) // can't call this too early... it's tricky
+			return;
 /* -- can't call debugmsg from this context */
 #if 0
 		DebugMsg( DM_SYS, 3, "***** Replacing task %x with %x",
@@ -313,7 +336,7 @@ my_init_task(void)
 
 	msleep( 1500 );
 
-	if (FOCUS_CONFIRMATION_AF_PRESSED) 
+	if (magic_is_off())
 	{
 		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
 		additional_version[0] = '-';

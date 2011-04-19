@@ -32,6 +32,7 @@ void console_show()
 	FIO_RemoveFile("B:/console.log");
 	console_log_file = FIO_CreateFile("B:/console.log");
 	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
+	dump_escargot();
 }
 void console_hide() 
 { 
@@ -104,7 +105,8 @@ void console_puts(const char* str) // don't DebugMsg from here!
 {
 	#define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
 	
-	if (console_log_file) my_fprintf(console_log_file, "%s", str);
+	if (console_log_file)
+		FIO_WriteFile( console_log_file, UNCACHEABLE(str), strlen(str) );
 	
 	if (!console_buffer) return 0;
 	char* c = str;

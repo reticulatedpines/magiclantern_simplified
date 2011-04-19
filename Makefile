@@ -32,6 +32,7 @@ CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
+CONFIG_CONSOLE		= y
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -224,7 +225,6 @@ ML_OBJS-y = \
 	hotplug.o \
 
 NO=\
-	console.o \
 	bootflags.o \
 	aj_port.o \
 	aj_lib_port.o \
@@ -249,6 +249,9 @@ ML_OBJS-$(CONFIG_RELOC) += \
 
 ML_OBJS-$(CONFIG_TIMECODE) += \
 	timecode.o \
+
+ML_OBJS-$(CONFIG_CONSOLE) += \
+	console.o \
 
 # Extract the stdio files that we need
 STDIO_OBJ = \
