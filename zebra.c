@@ -2776,12 +2776,12 @@ void clear_this_message_not_available_in_movie_mode()
 	int f = FLASH_BTN_MOVIE_MODE;
 	if (f == fp) return; // clear the message only once
 	fp = f;
+	crop_dirty = 5;
 	if (!f) return;
 	
 	bmp_fill(0, 0, 330, 720, 480-330);
 	msleep(50);
 	bmp_fill(0, 0, 330, 720, 480-330);
-	crop_dirty = 5;
 }
 
 //this function is a mess... but seems to work
@@ -2865,6 +2865,7 @@ zebra_task_loop:
 		if (falsecolor_draw == 3 && (dofpreview || fb))
 		{
 			falsecolor_canceled = 0;
+			clrscr_mirror();
 			
 			int k = 0;
 			while (dofpreview || FLASH_BTN_MOVIE_MODE)
