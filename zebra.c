@@ -2781,7 +2781,7 @@ void clear_this_message_not_available_in_movie_mode()
 	bmp_fill(0, 0, 330, 720, 480-330);
 	msleep(50);
 	bmp_fill(0, 0, 330, 720, 480-330);
-	cropmark_redraw();
+	crop_dirty = 5;
 }
 
 //this function is a mess... but seems to work
@@ -2853,7 +2853,7 @@ zebra_task_loop:
 			do_disp_mode_change();
 		}
 		
-
+		int fb = FLASH_BTN_MOVIE_MODE;
 		if (shooting_mode == SHOOTMODE_MOVIE)
 			clear_this_message_not_available_in_movie_mode();
 
@@ -2861,8 +2861,8 @@ zebra_task_loop:
 		int fcp = falsecolor_displayed;
 		if (falsecolor_draw == 0) falsecolor_displayed = 0;
 		if (falsecolor_draw == 1) falsecolor_displayed = 1;
-		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || FLASH_BTN_MOVIE_MODE);
-		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
+		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || fb);
+		if (falsecolor_draw == 3 && (dofpreview || fb))
 		{
 			falsecolor_canceled = 0;
 			
@@ -2871,8 +2871,13 @@ zebra_task_loop:
 			{
 				msleep(100);
 				k++;
+				
+				if (k > 10) 
+					falsecolor_canceled = 1; // long press doesn't toggle
+					
+				bmp_printf(FONT_MED, 250, 400, falsecolor_canceled ? "                  " : "False Color toggle");
 			}
-			if (k > 10) falsecolor_canceled = 1; // long press doesn't toggle
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 250, 400, "                  ");
 			
 			if (!falsecolor_canceled)
 				falsecolor_displayed = !falsecolor_displayed;

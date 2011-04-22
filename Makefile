@@ -26,13 +26,13 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=LCD-sensor-option.$(shell whoami)
+BUILDVER=keyhints.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
-CONFIG_CONSOLE		= y
+CONFIG_CONSOLE		= n
 
 #MacOS
 #UMOUNT=hdiutil unmount

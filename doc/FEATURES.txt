@@ -258,10 +258,6 @@ Audio tweaks.
 
 "Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
 
-**Wind Cut Mode: ON/OFF**
-
-  Not tested. It may work, it may do nothing or it might do harm.
-
 {{clr}}
 
 .. _audio monitoring:
@@ -1101,9 +1097,15 @@ Debug
 
 **ForceDisplayOFF**
 
-  This will turn off the LCD display while the camera is not expecting user input (i.e. when no menus are shown on the screen).
+  This will turn off the LCD display in LiveView mode, when the camera is idle or recording and no menus are shown on the screen.
   
   While the screen is off, the card led will blink once per 5 seconds to let you know the camera is alive and kicking. No card activity is actually taking place (just LED blinking).
+  
+  To turn the display on temporarily, do one of the following:
+  
+  * Put your hand near the LCD sensor (recommended during recording, prevents shake)
+  * Half-press the shutter button
+  * Press one of the ``ERASE``, ``MENU`` or ``DISP`` buttons
   
   See `Power saving`_ for more info.
 
@@ -1112,8 +1114,8 @@ Debug
 **SensorShortcuts: ON/OFF**
 
   Enable the use of `LCD sensor`_ as an extra shift key. This function allows you to adjust `white balance`_, LCD backlight level, move the AF frame when `follow focus`_ is active, or trigger `Magic Zoom`_ when not recording.
-  
-  Disable this option if you are using a device which covers the LCD sensor.
+
+  To fully disable the `LCD sensor`_ in Magic Lantern, disable ``LCD auto off`` from Canon menu (Wrench 1). You need to do this if you are using a device which covers the LCD sensor (e.g. a loupe).
 
 **AF frame: Default / AutoHide**
 
@@ -1132,6 +1134,33 @@ Debug
   
   * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
   * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+
+**LV metering**
+
+  Experimental metering methods for stills in LiveView:
+  
+  * ``Default``: disable this feature (use default Canon metering).
+  * ``Spotmeter``: meter the image so that `spotmeter`_ shows around 50%.
+  * ``CenteredHist``: center the histogram. In high-contrast scenes, the amounts of underexposed and overexposed pixels will be equal.
+  * ``HighlightPri``: highlight priority:
+  
+    - In low-contrast scenes, it will expose to the right without overexposing.
+    - In high-contrast scenes, it will allow 5x more underexposed pixels than overexposed. If this is not possible, it will overexpose the highlights.
+    
+  * ``NoOverexpose``: this will avoid overexposure, but will underexpose a lot in high-contrast scenes.
+  
+  This feature only works in ``P``, ``Av`` and ``Tv`` modes.
+  
+  These metering methods are implemented by changing the exposure compensation parameter on the fly. This results in the following limitations:
+  
+  * You can't use exposure compensation with any of these metering methods.
+  * The metering result will have a maximum difference of +/- 5 EV from Canon's metering result.
+  
+  Other limitations:
+  
+  * Only the luma (Y) channel is checked for overexposure. Individual channels (R, G or B) may still be overexposed without any warning.
+  * It may take a few seconds until the metering result is locked. This happens because LiveView display is not updated instantly when the exposure changes, and therefore ML has to wait a bit before reading the image brightness.
+  * It's not reliable under dynamic scenes; it should work for landscapes :)
 
 **Draw palette**
 

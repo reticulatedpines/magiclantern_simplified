@@ -1116,7 +1116,7 @@ static void iso_auto()
 		iso_auto_quick(); // sometimes it gets better result the second time
 	}
 }
-static void get_under_and_over_exposure_autothr(int* under, int* over)
+void get_under_and_over_exposure_autothr(int* under, int* over)
 {
 	int thr_lo = 0;
 	int thr_hi = 255;
@@ -1124,8 +1124,8 @@ static void get_under_and_over_exposure_autothr(int* under, int* over)
 	*over = 0;
 	while (*under < 50 && *over < 50 && thr_lo < thr_hi)
 	{
-		thr_lo += 20;
-		thr_hi -= 20;
+		thr_lo += 10;
+		thr_hi -= 10;
 		get_under_and_over_exposure(thr_lo, thr_hi, under, over);
 	}
 }
