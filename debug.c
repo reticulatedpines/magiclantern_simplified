@@ -15,6 +15,9 @@
 int config_autosave = 1;
 #define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 
+CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
+CONFIG_INT( "wbs.gm", workaround_wbs_gm, 10);
+
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
 //////////////////////////////////////////////////////////
@@ -401,7 +404,7 @@ int config_ok = 0;
 static void
 save_config( void * priv )
 {
-	config_save_file( global_config, "B:/magic.cfg" );
+	config_save_file( "B:/magic.cfg" );
 }
 static void
 delete_config( void * priv )
@@ -646,8 +649,8 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 int mode_remap_done = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
+	if (shooting_mode != buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
-	mode_remap_done = 0;
 	return prop_cleanup(token, property);
 }
 
@@ -907,6 +910,7 @@ void do_movie_mode_remap()
 	int movie_newmode = movie_mode_remap == 1 ? SHOOTMODE_ADEP : SHOOTMODE_CA;
 	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
 	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
+	restore_kelvin_wb();
 	mode_remap_done = 1;
 }
 /*
@@ -1531,6 +1535,9 @@ debug_loop_task( void ) // screenshot, draw_prop
 				while (get_zoom_out_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
 			}
 		}
+		
+		workaround_wb_kelvin = lens_info.kelvin;
+		workaround_wbs_gm = lens_info.wbs_gm + 100;
 
 		/*if (big_clock && k % 10 == 0)
 		{
@@ -1923,6 +1930,13 @@ void show_logo()
 	}
 }*/
 
+void restore_kelvin_wb()
+{
+	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
+	lens_set_kelvin(workaround_wb_kelvin);
+	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
+}
+
 static void
 dump_task( void )
 {
@@ -1931,8 +1945,7 @@ dump_task( void )
 	//~ show_logo();
 	//~ clrscr();
 	// Parse our config file
-	const char * config_filename = "B:/magic.cfg";
-	global_config = config_parse_file( config_filename );
+	config_parse_file( "B:/magic.cfg" );
 	
 	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 	config_ok = 1;
@@ -1948,7 +1961,8 @@ dump_task( void )
 	// set qscale from the vector of available values
 	qscale_index = mod(qscale_index, COUNT(qscale_values));
 	qscale = qscale_values[qscale_index];
-
+	
+	restore_kelvin_wb();
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
 	
