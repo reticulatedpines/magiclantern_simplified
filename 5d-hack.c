@@ -331,8 +331,10 @@ my_init_task(void)
 
 	menu_init();
 	debug_init();
+	display_clock();
 
 	msleep( 1000 );
+	display_clock();
 
 /*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
@@ -348,6 +350,7 @@ my_init_task(void)
 	call_init_funcs( 0 );
 
 	msleep( 1000 );
+	display_clock();
 
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];
