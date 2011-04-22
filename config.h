@@ -37,12 +37,12 @@
 
 struct config
 {
-	struct config *		next;
+//	struct config *		next;
 	char			name[ MAX_NAME_LEN ];
 	char			value[ MAX_VALUE_LEN ];
 };
 
-extern struct config * global_config;
+//extern struct config * global_config;
 
 extern struct config *
 config_parse(
@@ -72,7 +72,6 @@ config_parse_file(
 
 extern int
 config_save_file(
-	struct config *		config,
 	const char *		filename
 );
 
