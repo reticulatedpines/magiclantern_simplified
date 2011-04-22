@@ -32,7 +32,6 @@ void console_show()
 	FIO_RemoveFile("B:/console.log");
 	console_log_file = FIO_CreateFile("B:/console.log");
 	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
-	dump_escargot();
 }
 void console_hide() 
 { 

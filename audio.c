@@ -866,6 +866,7 @@ audio_loopback_display( void * priv, int x, int y, int selected )
 	);
 }*/
 
+/*
 PROP_INT(PROP_WINDCUT_MODE, windcut_mode);
 
 void windcut_display( void * priv, int x, int y, int selected )
@@ -887,7 +888,7 @@ void windcut_toggle(void* priv)
 {
 	windcut_mode = !windcut_mode;
 	set_windcut(windcut_mode);
-}
+}*/
 
 void draw_meters_toggle(void* priv)
 {
@@ -932,11 +933,11 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
 	},
-	{
+	/*{
 		.priv		= &windcut_mode,
 		.select		= windcut_toggle,
 		.display	= windcut_display,
-	},
+	},*/
 	/*{
 		.priv		= &disable_filters,
 		.select		= audio_binary_toggle,
@@ -1027,6 +1028,7 @@ void
 my_sounddev_task( int some_param )
 {
 	msleep( 2000 );
+	if (magic_is_off()) { sounddev_task(); return; }
 
 	DebugMsg( DM_AUDIO, 3,
 		"!!!!! %s started sem=%x",

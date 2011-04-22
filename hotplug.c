@@ -77,6 +77,9 @@ static void
 my_hotplug_task( void )
 {
 	msleep(3000);
+	
+	if (magic_is_off()) { hotplug_task(); return; }
+	
 	hotplug_setting_load();
 	while(1)
 	{

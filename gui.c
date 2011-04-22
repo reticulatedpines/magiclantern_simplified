@@ -306,6 +306,7 @@ static int handle_buttons(struct event * event)
 			move_lv_afframe(0, 200);
 	}
 
+
 /*
 	
 	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_SHUTTER)
@@ -451,7 +452,9 @@ static void gui_main_task_550d()
 		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
 		
-		if (handle_buttons(event) == 0) continue;
+		if (!magic_is_off())
+			if (handle_buttons(event) == 0) 
+				continue;
 		
 		void(*f)(struct event *) = funcs[index];
 		f(event);
