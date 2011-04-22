@@ -905,7 +905,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 .. _White balance:
 .. _WhiteBalance:
 
-**WhiteBalance: 1700...10000**
+**WhiteBalance: 1500...12000**
 
   Kelvin white balance.
 
