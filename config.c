@@ -41,7 +41,7 @@ config_parse_line(
 	int name_len = 0;
 	int value_len = 0;
 	static struct config _cfg;
-	struct config * cfg = &cfg;
+	struct config * cfg = &_cfg;
 
 	// Trim any leading whitespace
 	int i = 0;
@@ -109,7 +109,7 @@ parse_error:
 	);
 
 	msleep(2000);
-	FreeMemory( cfg );
+	//~ FreeMemory( cfg );
 	dumpf();
 malloc_error:
 	return 0;
@@ -267,8 +267,7 @@ config_parse(
 		if( !new_config )
 			goto error;
 
-		//~ new_config->next = cfg;
-		//~ cfg = new_config;
+		cfg = new_config;
 		count++;
 
 		config_auto_parse( cfg );
@@ -290,14 +289,14 @@ config_parse_file(
 	FILE * file = FIO_Open( filename, 0 );
 	if( file == INVALID_PTR )
 	{
-		bmp_printf(FONT_MED, 0, 120, "Could not open config file");
+		//~ bmp_printf(FONT_MED, 0, 120, "Could not open config file");
 		return 0;
 	}
 
-	bmp_printf(FONT_MED, 0, 120, "Config file opened");
+	//~ bmp_printf(FONT_MED, 0, 120, "Config file opened");
 	config_parse( file );
 	FIO_CloseFile( file );
-	bmp_printf(FONT_MED, 0, 120, "Config file parsed");
+	//~ bmp_printf(FONT_MED, 0, 120, "Config file parsed");
 	return 1;
 }
 
