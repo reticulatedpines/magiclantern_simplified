@@ -54,7 +54,7 @@ CONFIG_INT( "audio.lovl",	lovl,		0 );
 CONFIG_INT( "audio.o2gain",	o2gain,		0 );
 CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
 //CONFIG_INT( "audio.mic-in",	mic_in,		0 ); // not used any more?
-CONFIG_INT( "audio.loopback",	loopback,	1 );
+int loopback = 1;
 //CONFIG_INT( "audio.input-source",	input_source,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.input-choice",	input_choice,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
@@ -325,10 +325,6 @@ int audio_meters_are_drawn()
 static void
 meter_task( void )
 {
-	DebugMsg( DM_MAGIC, 3, "!!!!! User task is running" );
-
-	msleep( 4000 );
-
 	while(1)
 	{
 		msleep( 50 );
@@ -355,7 +351,6 @@ TASK_CREATE( "meter_task", meter_task, 0, 0x18, 0x1000 );
 static void
 compute_audio_level_task( void )
 {
-	msleep( 4000 );
 	audio_levels[0].peak = audio_levels[1].peak = 0;
 	audio_levels[1].avg = audio_levels[1].avg = 0;
 
@@ -550,7 +545,7 @@ audio_reg_close( void )
 
 PROP_INT( PROP_MIC_INSERTED, mic_inserted);
 
-static void
+void
 audio_configure( int force )
 {
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -602,6 +597,9 @@ audio_configure( int force )
 			return;
 		DebugMsg( DM_AUDIO, 3, "%s: Reseting user settings", __func__ );
 	}
+	
+	//~ static int iter=0;
+	//~ bmp_printf(FONT_MED, 0, 70, "audio configure(%d)", iter++);
 
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
 	
@@ -1030,12 +1028,16 @@ my_sounddev_task( int some_param )
 	msleep( 2000 );
 	if (magic_is_off()) { sounddev_task(); return; }
 
+	hold_your_horses();
+
 	DebugMsg( DM_AUDIO, 3,
 		"!!!!! %s started sem=%x",
 		__func__,
 		(uint32_t) sounddev.sem_alc
 	);
-	
+
+	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
+
 	//DIY debug ..
 	//~ bmp_printf( FONT_SMALL, 500, 400,
 			   //~ "sddvtsk, param=%d",
@@ -1059,7 +1061,6 @@ my_sounddev_task( int some_param )
 
 	msleep(2000);
 	// Create the menu items
-	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 
 	int count = 0;
 
@@ -1067,7 +1068,7 @@ my_sounddev_task( int some_param )
 	{
 		// will be unlocked by the property handler
 		int rc = take_semaphore( gain.sem, 1000 );
-		if(gui_state != GUISTATE_PLAYMENU || audio_monitoring_enabled()) {
+		if(gui_state != GUISTATE_PLAYMENU || (audio_monitoring_enabled() && AUDIO_MONITORING_HEADPHONES_CONNECTED)) {
 			audio_configure( rc == 0 ); // force it if we got the semaphore
 		}
 	}

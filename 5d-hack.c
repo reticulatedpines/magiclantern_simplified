@@ -30,6 +30,7 @@
 #include "bmp.h"
 #include "menu.h"
 #include "version.h"
+#include "property.h"
 
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
 #undef CONFIG_EARLY_PORT
@@ -242,12 +243,10 @@ call_init_funcs( void * priv )
 			init_func->name,
 			(unsigned) init_func->entry
 		);
-
 		thunk entry = (thunk) init_func->entry;
 		entry();
 	}
 
-	init_funcs_done = 1;
 }
 
 #endif // !CONFIG_EARLY_PORT
@@ -261,6 +260,29 @@ int magic_off = 0;
 int magic_is_off() 
 {
 	return magic_off; 
+}
+
+int _hold_your_horses = 1;
+
+// only after this task finished, the others are started
+void init_task_read_config()
+{
+	config_parse_file( "B:/magic.cfg" ); // this is better in a separate task
+	debug_init_stuff();
+	_hold_your_horses = 0;
+}
+
+void hold_your_horses()
+{
+	while (_hold_your_horses)
+	{
+		bmp_printf( FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 100, 100,
+			"Magic Lantern for 550D \n"
+			"Loading, please wait...\n"
+		);
+		display_clock();
+		msleep( 100 );
+	}
 }
 
 /** Initial task setup.
@@ -329,12 +351,12 @@ my_init_task(void)
 		return;
 	}
 
+	msleep( 1000 );
+
 	menu_init();
 	debug_init();
-	display_clock();
+	call_init_funcs( 0 );
 
-	msleep( 1000 );
-	display_clock();
 
 /*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
@@ -345,12 +367,8 @@ my_init_task(void)
 		build_user
 	);*/
 
-	//~ return;
-	init_funcs_done = 0;
-	call_init_funcs( 0 );
-
-	msleep( 1000 );
-	display_clock();
+	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
+	hold_your_horses();
 
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];

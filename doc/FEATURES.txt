@@ -266,7 +266,7 @@ Audio tweaks.
   
   Audio monitoring with headphones, via USB port.
   
-  To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details. You have to plug the USB cable *after* ML is loaded.
+  To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details.
   
   When audio monitor is enabled, it will disable USB, HDMI and maybe other functions, so if you don't use this feature, leave it ``OFF``.
   

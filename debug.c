@@ -1131,8 +1131,10 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	//~ int x = 5;
-	//~ prop_request_change(PROP_LV_DISPSIZE, &x, 4);
+	
+	bmp_hexdump(FONT_SMALL, 0, 0, 0x1A6C, 32*10);
+	
+	/*
 	int i;
 	char fn[100];
 	for (i = 0; i < 5000; i++)
@@ -1140,7 +1142,7 @@ void xx_test(void* priv)
 		snprintf(fn, 100, "B:/DCIM/100CANON/%08d.422", i);
 		bmp_printf(FONT_MED, 0, 0, fn);
 		FIO_RemoveFile(fn);
-	}
+	}*/
 }
 
 void toggle_mirror_display()
@@ -1393,6 +1395,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
+		//~ bmp_printf(FONT_MED, 50, 50, "%8x", *(int*)0xc0220070);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -1639,7 +1642,7 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-/*	{
+	/*{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
@@ -1937,24 +1940,12 @@ void restore_kelvin_wb()
 	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
 }
 
-static void
-dump_task( void )
+void
+debug_init_stuff( void )
 {
-
-	//lua_State * L = lua_open();
-	//~ show_logo();
-	//~ clrscr();
-	// Parse our config file
-	config_parse_file( "B:/magic.cfg" );
-	
 	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 	config_ok = 1;
-	/*bmp_printf( FONT_MED, 0, 70,
-		"Config file %s: %s",
-		config_filename,
-		global_config ? "YES" : "NO"
-	);*/
-
+	
 	dm_update();
 	lv_redraw();
 
@@ -2023,12 +2014,12 @@ dump_task( void )
 	dumpf();
 
 end:
-	debug_loop_task();
+	return;
 }
 
 
-TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
-//~ TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
+//~ TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1e, 0x1000 );
 
 //~ CONFIG_INT( "debug.timed-start",	timed_start, 0 );
 /*

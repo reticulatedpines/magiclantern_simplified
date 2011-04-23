@@ -73,14 +73,29 @@ static struct menu_entry hotplug_menus[] = {
 	},
 };
 
+void audio_monitoring_force_display_on()
+{
+	if (!audio_monitoring_enabled()) return;
+	if (!AUDIO_MONITORING_HEADPHONES_CONNECTED) return;
+	*(int*)(VIDEO_OUT_PROP_DELIVER_VALUE) = 0;
+	prop_deliver(*(int*)(VIDEO_OUT_PROP_DELIVER_ADDR), VIDEO_OUT_PROP_DELIVER_VALUE, 4, 0x0);
+	msleep(100);
+	lv_redraw();
+	audio_configure(1);
+}
+
+
 static void
 my_hotplug_task( void )
 {
-	msleep(3000);
-	
+	msleep(2000);
 	if (magic_is_off()) { hotplug_task(); return; }
-	
+	hold_your_horses();
+	msleep(500);
+	menu_add("Audio", hotplug_menus, COUNT(hotplug_menus));
 	hotplug_setting_load();
+	audio_monitoring_force_display_on();
+
 	while(1)
 	{
 		msleep(1000);
@@ -129,10 +144,3 @@ my_hotplug_task( void )
 }
 
 TASK_OVERRIDE( hotplug_task, my_hotplug_task );
-
-static void hotplug_init(void)
-{
-	msleep(3000);
-	menu_add("Audio", hotplug_menus, COUNT(hotplug_menus));
-}
-INIT_FUNC("hotplug", hotplug_init);
