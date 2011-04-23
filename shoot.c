@@ -2071,7 +2071,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			msleep(10);
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
-			msleep(10);
+			msleep(500);
 			hdr_shutter_release();
 		}
 		lens_set_ae( ae );
