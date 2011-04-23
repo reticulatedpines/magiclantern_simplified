@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=keyhints.$(shell whoami)
+BUILDVER=easterbunny.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -107,6 +107,7 @@ magiclantern-$(VERSION).zip: \
 	UserGuide.pdf \
 	UserGuide-diff.pdf \
 	make_bootable.sh\
+	logo.bmp\
 	cropmks/* \
 
 	-rm $@

@@ -2794,6 +2794,8 @@ zebra_task( void )
     menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 	
+	msleep(1000);
+	
 	find_cropmarks();
 	int k;
 

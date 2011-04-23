@@ -1028,7 +1028,7 @@ my_sounddev_task( int some_param )
 	msleep( 2000 );
 	if (magic_is_off()) { sounddev_task(); return; }
 
-	hold_your_horses();
+	hold_your_horses(1);
 
 	DebugMsg( DM_AUDIO, 3,
 		"!!!!! %s started sem=%x",

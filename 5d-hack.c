@@ -267,21 +267,21 @@ int _hold_your_horses = 1;
 // only after this task finished, the others are started
 void init_task_read_config()
 {
-	config_parse_file( "B:/magic.cfg" ); // this is better in a separate task
+	config_parse_file( "B:/magic.cfg" );
 	debug_init_stuff();
 	_hold_your_horses = 0;
 }
 
-void hold_your_horses()
+void hold_your_horses(int showlogo)
 {
 	while (_hold_your_horses)
 	{
-		bmp_printf( FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 100, 100,
-			"Magic Lantern for 550D \n"
-			"Loading, please wait...\n"
-		);
-		display_clock();
-		msleep( 100 );
+		msleep( 500 );
+		if (showlogo)
+		{
+			show_logo();
+			display_clock();
+		}
 	}
 }
 
@@ -367,8 +367,10 @@ my_init_task(void)
 		build_user
 	);*/
 
+	// this is better in a separate task (not sure why, but causes instability if called right from here)
+	// let's try not to open files from here
 	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
-	hold_your_horses();
+	hold_your_horses(0); 
 
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];
@@ -399,6 +401,9 @@ my_init_task(void)
 		//~ "Magic Lantern is up and running... %d tasks started.",
 		//~ ml_tasks
 	//~ );
+
+	msleep(500);
+	lv_redraw();
 
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT

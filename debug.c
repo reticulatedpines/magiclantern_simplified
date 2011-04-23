@@ -1869,7 +1869,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 0
+#if 1
 	if (!property_list) property_list = AllocateMemory(num_properties * sizeof(unsigned));
 	if (!property_list) return;
 	unsigned i, j, k;
@@ -1919,19 +1919,27 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 
 CONFIG_INT( "magic.disable_bootdiskf",	disable_bootdiskf, 0 );
 
-/*
+struct bmp_file_t * logo = -1;
+void load_logo()
+{
+	if (logo == -1) 
+		logo = bmp_load("B:/logo.bmp");
+}
 void show_logo()
 {
-	gui_stop_menu();
-	msleep(1000);
-	struct bmp_file_t * bmp = bmp_load("B:/logo.bmp");
-	int i;
-	for (i = 0; i < 100; i++)
+	load_logo();
+	if (logo)
 	{
-		bmp_draw(bmp,0,0,0,0);
-		msleep(10);
+		bmp_draw(logo, 360 - logo->width/2, 240 - logo->height/2, 0, 0);
 	}
-}*/
+	else
+	{
+		bmp_printf( FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 200, 100,
+			"Magic Lantern\n"
+			"...loading...\n"
+		);
+	}
+}
 
 void restore_kelvin_wb()
 {
@@ -1947,7 +1955,6 @@ debug_init_stuff( void )
 	config_ok = 1;
 	
 	dm_update();
-	lv_redraw();
 
 	// set qscale from the vector of available values
 	qscale_index = mod(qscale_index, COUNT(qscale_values));
