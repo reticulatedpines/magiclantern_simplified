@@ -18,6 +18,22 @@ prop_token_handler_generic(
 	asm( "str r0, [pc, #-12]" );
 }
 
+void prop_handler_init(struct prop_handler * handler)
+{
+	memcpy(
+		handler->token_handler,
+		prop_token_handler_generic,
+		8
+	);
+
+	prop_register_slave(
+		&handler->property,
+		1,
+		handler->handler,
+		&handler->token,
+		&handler->token_handler
+	);
+}
 
 static void
 prop_init( void )

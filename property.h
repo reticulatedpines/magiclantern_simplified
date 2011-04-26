@@ -335,6 +335,14 @@ struct prop_handler
 	uint32_t	token_handler[2]; // function goes here!
 };
 
+
+/** Configure a property handler; only necessary if not using automated functions */
+extern void
+prop_handler_init(
+	struct prop_handler * handler
+);
+
+
 /** Register a property handler with automated token function */
 #define REGISTER_PROP_HANDLER( id, func ) \
 __attribute__((section(".prop_handlers"))) \
