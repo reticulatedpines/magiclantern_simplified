@@ -760,6 +760,14 @@ lens_set_kelvin(int k)
 	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
 }
 
+void
+lens_set_kelvin_value_only(int k)
+{
+	k = COERCE(k, KELVIN_MIN, KELVIN_MAX);
+	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
+	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
+}
+
 void update_stuff()
 {
 	calc_dof( &lens_info );

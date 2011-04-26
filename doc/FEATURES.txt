@@ -509,7 +509,7 @@ Functions specific to movie mode.
   
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps)
   * ``CBRe``: constant bitrate, emulated. Range: 1...120mbps.
-  * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16..-1; +16. Lower numbers mean higher bitrates.
+  * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
   
@@ -910,7 +910,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   Kelvin white balance.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
-
+  
 **WBShift G/M: Green 0..9 / Magenta 0..9**
 
   Green-Magenta white balance shift. Useful for fluorescent lighting.

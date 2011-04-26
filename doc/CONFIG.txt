@@ -69,3 +69,9 @@ These settings can not be changed from the ML menu::
     # If enabled, it will show cropmarks only in movie mode. 
     # Disable it to show cropmarks in photo mode too.
     crop.movieonly = 0
+
+    # Workaround for remembering Kelvin temperature and WBShift G/M and B/A values.
+    # If this setting is on, these values are stored in config file.
+    # They will be shared between movie and photo modes.
+    # Enabling this setting will apply WBShift setting in auto modes, too.    
+    white.balance.workaround = 1
