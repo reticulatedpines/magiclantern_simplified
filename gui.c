@@ -181,7 +181,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
-	if (get_lcd_sensor_shortcuts() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
+	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys
 		if (!gui_menu_shown())
 		{
@@ -288,7 +288,7 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
-	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
+	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{
 		zoom_overlay_toggle();
 		return 0;
@@ -415,7 +415,7 @@ static int handle_buttons(struct event * event)
 		
 		static int old = 0;
 		
-		if (get_lcd_sensor_shortcuts() && get_dof_adjust() && old && lv_drawn())
+		if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && get_dof_adjust() && old && lv_drawn())
 		{
 			if (display_sensor_neg == 0)
 			{

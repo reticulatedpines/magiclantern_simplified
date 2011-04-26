@@ -1302,7 +1302,7 @@ void display_shortcut_key_hints_lv()
 	static int old_mode = 0;
 	int mode = 0;
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE) mode = 1;
-	else if (get_lcd_sensor_shortcuts() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) mode = 2;
+	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) mode = 2;
 	else if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts())) mode = 3;
 	
 	if (mode == 0 && old_mode == 0) return;
@@ -1395,7 +1395,6 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 50, 50, "%8x", *(int*)0xc0220070);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
