@@ -59,10 +59,12 @@ expsim_display( void * priv, int x, int y, int selected )
 }
 
 PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+int shooting_mode;
 
 void expsim_update()
 {
 	if (!lv_drawn()) return;
+	if (shooting_mode == SHOOTMODE_MOVIE) return;
 	if (expsim_auto)
 	{
 		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
@@ -110,7 +112,6 @@ static PROP_INT(PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static PROP_INT(PROP_PIC_QUALITY, pic_quality);
-int shooting_mode;
 
 extern void bootdisk_disable();
 
@@ -1225,6 +1226,8 @@ void fake_simple_button(int bgmt_code)
 
 void lv_redraw()
 {
+	if (recording && MVR_FRAME_NUMBER < 50) return;
+
 	if (lv_drawn())
 	{
 		zebra_pause();
@@ -1235,7 +1238,8 @@ void lv_redraw()
 		bmp_enabled = 1;
 		zebra_resume();
 	}
-	else redraw_maybe();
+	else
+		redraw_maybe();
 
 	afframe_countdown = 50;
 }
@@ -1544,11 +1548,10 @@ debug_loop_task( void ) // screenshot, draw_prop
 					{
 						vbr_bump(SGN(qscale_values[qscale_index] - qscale));
 					}
-					
 				}
 				prev_fn = MVR_FRAME_NUMBER;
 			}
-			vbr_set();
+			if (bitrate_mode) vbr_set();
 		}
 		
 		if (af_frame_autohide && lv_drawn() && afframe_countdown)

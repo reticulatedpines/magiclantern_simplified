@@ -2886,7 +2886,7 @@ zebra_task_loop:
 
 		if (zebra_paused)
 		{
-			clrscr_mirror();
+			//~ clrscr_mirror();
 			while (zebra_paused)
 			{
 				msleep(100);
