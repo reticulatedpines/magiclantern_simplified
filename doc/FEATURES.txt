@@ -159,6 +159,7 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
+* ISO followed by LV from photo mode: shortcut key for movie mode
 * Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
 * ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
@@ -479,7 +480,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
   * It does not work in certain video modes (e.g. 720p) when not recording.
-  * Focus peaking is disabled automatically when the zoom overlay is active. If `false color`_ mode is enabled, the zoom overlay will not work.
+  * `Focus peaking`_ and `false colors`_ are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:
@@ -1134,6 +1135,16 @@ Debug
   
   * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
   * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+
+**Exposure Sim: OFF / ON / Auto**
+
+  Exposure simulation (ExpSim) in LiveView display (for photo mode only).
+  
+  * ``ON``: LiveView display image reflects exposure of the final image.
+  * ``OFF``: LiveView display image does not reflect the exposure, but may be useful for framing and checking focus.
+  * ``Auto``: ExpSim is disabled during zoom (x5, x10 and MagicZoom) and enabled otherwise.
+  
+  When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
 
 **LV metering**
 

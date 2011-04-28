@@ -20,6 +20,56 @@ CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
 CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
 CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
 
+CONFIG_INT( "expsim.auto", expsim_auto, 1);
+
+PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
+void set_expsim( int x )
+{
+	if (expsim != x)
+		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+}
+static void
+expsim_toggle( void * priv )
+{
+	// off, on, auto
+	if (!expsim_auto && !expsim) // off->on
+	{
+		set_expsim(1);
+	}
+	else if (!expsim_auto && expsim) // on->auto
+	{
+		expsim_auto = 1;
+	}
+	else // auto->off
+	{
+		expsim_auto = 0;
+		set_expsim(0);
+	}
+}
+static void
+expsim_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Exposure Sim.  : %s",
+		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
+		expsim ? "ON " : "OFF"
+	);
+}
+
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+
+void expsim_update()
+{
+	if (!lv_drawn()) return;
+	if (expsim_auto)
+	{
+		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
+		else set_expsim(1);
+	}
+}
+
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
 //////////////////////////////////////////////////////////
@@ -60,7 +110,6 @@ static PROP_INT(PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static PROP_INT(PROP_PIC_QUALITY, pic_quality);
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 int shooting_mode;
 
 extern void bootdisk_disable();
@@ -1543,6 +1592,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		workaround_wb_kelvin = lens_info.kelvin;
 		workaround_wbs_gm = lens_info.wbs_gm + 100;
 		workaround_wbs_ba = lens_info.wbs_ba + 100;
+		
+		expsim_update();
 
 		/*if (big_clock && k % 10 == 0)
 		{
@@ -1617,16 +1668,20 @@ struct menu_entry debug_menus[] = {
 		.display = auto_burst_pic_display,
 	},
 	{
+		.select = expsim_toggle, 
+		.display = expsim_display,
+	},
+	{
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 	},
-	{
+	/*{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},
+	},*/
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,

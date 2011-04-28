@@ -32,6 +32,7 @@
 #include "gui.h"
 #include "lens.h"
 
+PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -559,6 +560,7 @@ hist_draw_image(
 )
 {
 	if (!lv_drawn()) return;
+	if (!expsim) return;
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -607,6 +609,7 @@ waveform_draw_image(
 )
 {
     if (!lv_drawn()) return;
+    if (!expsim) return;
 	waveform_init();
 	// Ensure that x_origin is quad-word aligned
 	x_origin &= ~3;
@@ -1356,6 +1359,7 @@ draw_zebra_and_focus( void )
 	}
 	
 	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
+	if (!expsim) zd = 0;
 	if (zd)
 	{
 		uint32_t zlh = zebra_level_hi << 8;
@@ -1477,6 +1481,8 @@ void
 draw_false_downsampled( void )
 {
 	if (!global_draw) return;
+	if (!expsim) return;
+	if (should_draw_zoom_overlay()) return;
 	bvram_mirror_init();
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -2641,7 +2647,6 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 void draw_zoom_overlay()
 {
-	if (falsecolor_displayed) return;
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
@@ -3024,7 +3029,7 @@ TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x13, 0x1000 );
 
 int should_draw_zoom_overlay()
 {
-	return (zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
+	return (get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
 }
 static void
 zoom_overlay_task( void )
