@@ -308,22 +308,22 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
 .. _zebras:
 
-**Zebras: ON/OFF/NRec, lo_level..hi_level**
+**Zebras: OFF/Luma/RGB, lo_level..hi_level**
 
-  .. raw:: latex
-  
-    Enable/disable zebra stripes, which indicate overexposed \overexposed\ or underexposed \underexposed\ areas.
-    \par
-  
-  ``NRec`` setting: zebras are only displayed while not recording.
+  Enable/disable zebra stripes. which indicate overexposed or underexposed areas.
+    
+  Modes:
+    
+  * ``Luma``: zebras are computed from Y channel only; overexposure is red, underexposure is blue.
+  * ``RGB``: overexposure zebras are computed from RGB channels; underexposure zebras are computed from Y. Clipped channels are displayed in the opposite color (i.e. clipped red displayed as cyan, underexposed displayed as white...).
   
   Keys:
   
-  * ``SET``: toggle between ``ON/OFF/NRec``
+  * ``SET``: toggle between ``OFF/Luma/RGB``
   * ``DISP``: change threshold for underexposure (blacks)
   * ``Q``: change threshold for overexposure (whites)
   
-  Brightness values are between 0 and 255. A threshold equal to 0 will disable blue zebras, and 255 will disable red zebras.
+  Brightness values are between 0 and 255. A threshold equal to 0 will disable zebras for underexposure, and 255 will disable zebras for overexposure.
 
 .. _false color:
 
@@ -480,7 +480,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
   * It does not work in certain video modes (e.g. 720p) when not recording.
-  * `Focus peaking`_ and `false colors`_ are disabled automatically when the zoom overlay is active.
+  * `Focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:

@@ -546,6 +546,27 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
 	return 0;
 }
 
+#define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
+static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB)
+{
+	if (underexposed) return ZEBRA_COLOR_WORD_SOLID(COLOR_WHITE);
+	
+	switch ((clipR ? 0 : 1) |
+			(clipG ? 0 : 2) |
+			(clipB ? 0 : 4))
+	{
+		case 0b000: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLACK);
+		case 0b001: return ZEBRA_COLOR_WORD_SOLID(COLOR_RED);
+		case 0b010: return ZEBRA_COLOR_WORD_SOLID(7); // green
+		case 0b100: return ZEBRA_COLOR_WORD_SOLID(9); // strident blue
+		case 0b011: return ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
+		case 0b110: return ZEBRA_COLOR_WORD_SOLID(5); // cyan
+		case 0b101: return ZEBRA_COLOR_WORD_SOLID(14); // magenta
+		case 0b111: return 0;
+	}
+	return 0;
+}
+
 
 /** Draw the histogram image into the bitmap framebuffer.
  *
@@ -908,8 +929,11 @@ static void little_cleanup(uint8_t* bp, uint8_t* mp)
 	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 }
 
+
 static int zebra_color_word_row(int c, int y)
 {
+	if (!c) return 0;
+	
 	uint32_t cw = 0;
 	switch(y % 4)
 	{
@@ -924,6 +948,29 @@ static int zebra_color_word_row(int c, int y)
 			break;
 		case 3:
 			cw  = c  << 24 | c ;
+			break;
+	}
+	return cw;
+}
+
+static int zebra_color_word_row_thick(int c, int y)
+{
+	if (!c) return 0;
+	
+	uint32_t cw = 0;
+	switch(y % 4)
+	{
+		case 0:
+			cw  = c  | c  << 8 | c << 16;
+			break;
+		case 1:
+			cw  = c << 8 | c << 16 | c << 24;
+			break;
+		case 2:
+			cw = c  << 16 | c << 24 | c;
+			break;
+		case 3:
+			cw  = c  << 24 | c | c << 8;
 			break;
 	}
 	return cw;
@@ -950,8 +997,8 @@ static void draw_zebra_and_focus_unified( void )
 	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 
 	uint32_t x,y;
-	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
-	if (focus_peaking || zd) {
+	int zd = zebra_draw && expsim;
+	if (focus_peaking) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
   		static int* dirty_pixels = 0;
@@ -1358,12 +1405,11 @@ draw_zebra_and_focus( void )
 		thr = COERCE(thr, thr_min, 255);
 	}
 	
-	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
-	if (!expsim) zd = 0;
+	int zd = zebra_draw && expsim;  // when to draw zebras
 	if (zd)
 	{
-		uint32_t zlh = zebra_level_hi << 8;
-		uint32_t zll = zebra_level_lo << 8;
+		uint32_t zlh = zebra_level_hi;
+		uint32_t zll = zebra_level_lo;
 
 		uint8_t * const lvram = YUV422_LV_BUFFER;
 		int lvpitch = YUV422_LV_PITCH;
@@ -1390,19 +1436,40 @@ draw_zebra_and_focus( void )
 				#define MN (*(mp + BMPPITCH/4))
 				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
 				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
-				uint32_t p0 = *lvp & 0xFF00;
-				if (p0 > zlh)
+				
+				if (zebra_draw == 2) // rgb
 				{
-					BP = MP = color_over;
-					BN = MN = color_over_2;
+					uint32_t pixel = *lvp;
+					uint32_t p1 = (pixel >> 24) & 0xFF;
+					uint32_t p2 = (pixel >>  8) & 0xFF;
+					int Y = (p1+p2) / 2;
+					int8_t U = (pixel >>  0) & 0xFF;
+					int8_t V = (pixel >> 16) & 0xFF;
+					int R = Y + 1437 * V / 1024;
+					int G = Y -  352 * U / 1024 - 731 * V / 1024;
+					int B = Y + 1812 * U / 1024;
+					
+					//~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
+
+					BP = MP = BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh );
 				}
-				else if (p0 < zll)
+				else
 				{
-					BP = MP = color_under;
-					BN = MN = color_under_2;
+					uint32_t p0 = (*lvp) >> 8 & 0xFF;
+					if (p0 > zlh)
+					{
+						BP = MP = color_over;
+						BN = MN = color_over_2;
+					}
+					else if (p0 < zll)
+					{
+						BP = MP = color_under;
+						BN = MN = color_under_2;
+					}
+					else if (BP)
+						BN = MN = BP = MP = 0;
 				}
-				else if (BP)
-					BN = MN = BP = MP = 0;
+					
 				#undef MP
 				#undef BP
 			}
@@ -1793,7 +1860,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Zebras      : %s, %d..%d",
-		z == 1 ? "ON " : (z == 2 ? "NRec" : "OFF"),
+		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
 }
