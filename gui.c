@@ -433,6 +433,13 @@ static int handle_buttons(struct event * event)
 		old = value; 
 	}
 
+	// movie mode shortcut
+	if (event->type == 0 && event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
+	{
+		set_shooting_mode(SHOOTMODE_MOVIE);
+		return 0;
+	}
+
 	return 1;
 }
 
