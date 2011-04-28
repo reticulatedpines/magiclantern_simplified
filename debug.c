@@ -947,18 +947,22 @@ void movie_af_noisefilter_bump(void* priv)
 	movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
 }
 
+int setting_shooting_mode = 0;
 void set_shooting_mode(int m)
 {
+	setting_shooting_mode = 1;
 	msleep(200);
 	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
 	msleep(500);
 	mode_remap_done = 1;
+	setting_shooting_mode = 0;
 }
 
 void do_movie_mode_remap()
 {
 	if (!movie_mode_remap) return;
 	if (mode_remap_done) return;
+	if (setting_shooting_mode) return;
 	int movie_newmode = movie_mode_remap == 1 ? SHOOTMODE_ADEP : SHOOTMODE_CA;
 	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
 	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
