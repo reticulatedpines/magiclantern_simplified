@@ -794,7 +794,7 @@ silent_pic_take_lv_dbg()
 	struct vram_info * vram = get_yuv422_vram();
 	int silent_number;
 	char imgname[100];
-	for (silent_number = 1 ; silent_number < 1000; silent_number++) // may be slow after many pics
+	for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
 	{
 		snprintf(imgname, sizeof(imgname), "B:/VRAM%d.422", silent_number);
 		unsigned size;
