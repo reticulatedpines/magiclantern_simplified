@@ -1187,8 +1187,9 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	
-	bmp_hexdump(FONT_SMALL, 0, 0, 0x1A6C, 32*10);
+	static int i = 0;
+	ChangeColorPalette(i);
+	i = mod(i+1, 10);
 	
 	/*
 	int i;
@@ -1234,6 +1235,7 @@ void lv_redraw()
 		bmp_enabled = 0;
 		msleep(200);
 		redraw_maybe();
+		ChangeColorPalette(2);
 		msleep(200);
 		bmp_enabled = 1;
 		zebra_resume();
@@ -1684,11 +1686,11 @@ struct menu_entry debug_menus[] = {
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 	},
-	/*{
+	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},*/
+	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -1706,11 +1708,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	/*{
+	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
-	}*/
+	}
 /*	{
 		.select = focus_test,
 		.display = focus_print,
