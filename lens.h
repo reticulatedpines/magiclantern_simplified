@@ -118,6 +118,7 @@ lens_set_rawaperture(
 	unsigned		aperture
 )
 {
+	lens_wait_readytotakepic(64);
 	prop_request_change( PROP_APERTURE, &aperture, sizeof(aperture) );
 }
 
@@ -127,6 +128,7 @@ lens_set_rawiso(
 	uint32_t		iso
 )
 {
+	lens_wait_readytotakepic(64);
 	prop_request_change( PROP_ISO, &iso, 4 );
 	//~ msleep(100);
 }
@@ -137,6 +139,7 @@ lens_set_rawshutter(
 	int32_t		shutter
 )
 {
+	lens_wait_readytotakepic(64);
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
 	msleep(100);
 }
@@ -156,6 +159,7 @@ lens_set_drivemode(
 	uint32_t		dm
 )
 {
+	lens_wait_readytotakepic(64);
 	prop_request_change( PROP_DRIVE, &dm, 4 );
 	msleep(100);
 }

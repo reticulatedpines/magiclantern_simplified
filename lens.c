@@ -375,11 +375,10 @@ void lens_focus_ex(unsigned mode, int step, int active)
 void lens_wait_readytotakepic(uint32_t wait)
 {
 	int i;
-	for (i = 0; i < wait / 1000; i++)
+	for (i = 0; i < wait * 10; i++)
 	{
-		DEBUG("Wait (job_state=%d)", lens_info.job_state);
 		if (lens_info.job_state <= 0xA) break;
-		msleep(1);
+		msleep(100);
 	}
 }
 
@@ -388,25 +387,14 @@ lens_take_picture(
 	uint32_t			wait
 )
 {
-	lens_wait_readytotakepic(64000);
+	lens_wait_readytotakepic(64);
 	if (lens_info.job_state > 0xA) 
 	{
 		DEBUG("could not take pic (%d)", lens_info.job_state);
 		return;
 	}
 
-	DEBUG("Taking pic (%d)", lens_info.job_state);
-	if ((af_mode & 0xF) == 3 )
-	{
-		SW1(1,10); // those work well with bracketing, but fail if AF is on
-		SW2(1,200);
-		SW2(0,10);
-		SW1(0,10);
-	}
-	else
-	{
-		call( "Release", 0 ); // this works with AF but skips frames in bracketing
-	}
+	call( "Release", 0 );
 
 	if( !wait )
 		return 0;

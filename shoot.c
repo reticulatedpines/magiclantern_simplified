@@ -223,7 +223,7 @@ int get_trap_focus() { return trap_focus; }
 
 void set_flash_firing(int mode)
 {
-	DEBUG("%d", mode);
+	lens_wait_readytotakepic(64);
 	mode = COERCE(mode, 0, 2);
 	prop_request_change(PROP_STROBO_FIRING, &mode, 4);
 }
@@ -365,13 +365,6 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	{
 		gui_stop_menu();
 	}
-	return prop_cleanup( token, property );
-}
-
-int job_almost_ready = 0;
-PROP_HANDLER( PROP_LAST_JOB_STATE ) {
-	int v = *(int*)buf;
-	if (v <= 10) job_almost_ready = 1;
 	return prop_cleanup( token, property );
 }
 
@@ -2031,7 +2024,7 @@ void hdr_create_script(int steps, int skip0)
 
 void hdr_shutter_release()
 {
-	if (lens_info.raw_shutter < 0x64) while (lens_info.job_state) msleep(100);
+	lens_wait_readytotakepic(64);
 	if (!silent_pic_mode || !lv_drawn())
 	{
 		if (get_mlu()) { lens_take_picture_forced(); msleep(500); }
@@ -2053,9 +2046,9 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
 			msleep(10);
-			int new_s = COERCE(s - step_size * i, 0x10, 152);
+			int new_s = COERCE(s - step_size * i, 0x10, 160);
 			lens_set_rawshutter( new_s );
-			msleep(10);
+			msleep(20);
 			hdr_shutter_release();
 		}
 		msleep(100);
@@ -2178,6 +2171,9 @@ void hdr_shot(int skip0, int wait)
 			else silent_pic_take(0);
 		}
 	}
+
+	while (lens_info.job_state) msleep(500);
+
 }
 
 int remote_shot_flag = 0;
@@ -2555,6 +2551,7 @@ shoot_task( void )
 		}
 
 		// avoid camera shake for HDR shots => force self timer
+		
 		if (hdr_steps > 1 && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
 		{
 			drive_mode_bk = drive_mode;
@@ -2576,11 +2573,6 @@ shoot_task( void )
 		// toggle flash on/off for next picture
 		if (shooting_mode != SHOOTMODE_MOVIE && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
 		{
-			if (lens_info.job_state > 10) // not safe to change flash setting
-			{
-				job_almost_ready = 0;
-				while (!job_almost_ready) msleep(1);
-			}
 			strobo_firing = file_number % 2;
 			set_flash_firing(strobo_firing);
 		}
