@@ -269,10 +269,6 @@ Audio tweaks.
   
   To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details.
   
-  When audio monitor is enabled, it will disable USB, HDMI and maybe other functions, so if you don't use this feature, leave it ``OFF``.
-  
-  To change this setting, a camera restart may be required; ML will tell you to do so if it's needed. This setting is saved as soon as you change it (so you don't have to save the config file before restarting).
-
 **Output volume (dB)**
 
   Volume for audio monitoring. It does not have effect on the internal camera speaker.
