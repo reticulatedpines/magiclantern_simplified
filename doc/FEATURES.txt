@@ -339,6 +339,13 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   * **Togg Flas/DOF**: false color appearance will be toggled by the shortcut keys above-mentioned.
   
+  There are 4 color palettes available (toggle with ``Q``):
+
+  .. figure:: falsecolor.png
+      :alt: thumb|right|False color palettes
+      :align: center
+      :width: 13cm
+
   The implementation uses a half-resolution C code.
   
 .. _Cropmark:
