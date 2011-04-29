@@ -859,8 +859,9 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Bulb Timer: 1s...8h**
 
-  Very long exposures with Bulb mode and ML timer. Only works with remote triggers and intervalometer. You should select ``M`` mode and ``BULB`` setting from Canon UI before using this.
+  Very long exposures with Bulb mode and ML timer.
   
+  Bulb timer is started by half-shutter press, or by remote triggers / intervalometer.
   
   Tip: you can cancel the exposure earlier by half-pressing the shutter button.
 

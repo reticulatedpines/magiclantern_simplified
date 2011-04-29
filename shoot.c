@@ -1789,6 +1789,7 @@ hdr_reset( void * priv )
 
 int is_bulb_mode()
 {
+	if (shooting_mode == SHOOTMODE_BULB) return 1;
 	if (shooting_mode != SHOOTMODE_M) return 0;
 	if (lens_info.raw_shutter != 0xC) return 0;
 	return 1;
@@ -2563,6 +2564,32 @@ shoot_task( void )
 		{
 			lens_set_drivemode(drive_mode_bk);
 			drive_mode_bk = -1;
+		}
+		
+		if (bulb_duration_index && is_bulb_mode() && !gui_menu_shown())
+		{
+			// look for a transition of half-shutter during idle state
+			static int was_idle_not_pressed = 0;
+			int is_idle_not_pressed = !get_halfshutter_pressed() && gui_state == GUISTATE_IDLE;
+			int is_idle_and_pressed = get_halfshutter_pressed() && gui_state == GUISTATE_IDLE;
+
+			if (was_idle_not_pressed && is_idle_and_pressed)
+			{
+				int d = timer_values[bulb_duration_index];
+				while (get_halfshutter_pressed())
+				{
+					bmp_printf(FONT_LARGE, 0, 0, "[HS] Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+					msleep(100);
+				}
+				bmp_printf(FONT_LARGE, 0, 0, "[2s] Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+				msleep(1000);
+				if (gui_state != GUISTATE_IDLE) continue;
+				bmp_printf(FONT_LARGE, 0, 0, "[1s] Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+				msleep(1000);
+				if (gui_state != GUISTATE_IDLE) continue;
+				bulb_take_pic(d * 1000);
+			}
+			was_idle_not_pressed = is_idle_not_pressed;
 		}
 
 		if (lens_info.job_state) // just took a picture, maybe we should take another one
