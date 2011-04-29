@@ -1708,11 +1708,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	{
+	/*{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
-	}
+	}*/
 /*	{
 		.select = focus_test,
 		.display = focus_print,
