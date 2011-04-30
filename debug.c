@@ -1187,10 +1187,7 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	static int i = 0;
-	ChangeColorPalette(i);
-	i = mod(i+1, 10);
-	
+	*(int*)VIDEO_OUT_PROP_DELIVER_VALUE = 2;
 	/*
 	int i;
 	char fn[100];
@@ -1365,8 +1362,9 @@ void display_shortcut_key_hints_lv()
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE) mode = 1;
 	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) mode = 2;
 	else if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts())) mode = 3;
-	
 	if (mode == 0 && old_mode == 0) return;
+
+	int mz = (mode == 2 && get_zoom_overlay_z() && lv_dispsize == 1);
 	
 	if (mode == 1)
 	{
@@ -1381,8 +1379,6 @@ void display_shortcut_key_hints_lv()
 		bmp_printf(FONT_MED, 360 + 100 - font_med.width*2, 240 - font_med.height/2, "Kel+");
 		bmp_printf(FONT_MED, 360 - font_med.width*2, 240 - 100 - font_med.height/2, "LCD+");
 		bmp_printf(FONT_MED, 360 - font_med.width*2, 240 + 100 - font_med.height/2, "LCD-");
-		if (get_zoom_overlay_z() && lv_dispsize == 1)
-			bmp_printf(FONT_MED, 360 + 100, 240 - 150, "Magic Zoom");
 	}
 	else if (mode == 3)
 	{
@@ -1397,8 +1393,11 @@ void display_shortcut_key_hints_lv()
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, "    ");
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, "    ");
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, "    ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100, 240 - 150, "          ");
 	}
+
+	if (mz) bmp_printf(FONT_MED, 360 + 100, 240 - 150, "Magic Zoom");
+	else bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100, 240 - 150, "          ");
+
 	old_mode = mode;
 }
 
@@ -1456,6 +1455,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
+		//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x", AUDIO_MONITORING_HEADPHONES_CONNECTED, *(int*)VIDEO_OUT_PROP_DELIVER_COUNTER, *(int*)VIDEO_OUT_PROP_DELIVER_VALUE);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
