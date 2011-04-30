@@ -57,7 +57,7 @@ CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
-CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
+CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
@@ -1000,7 +1000,7 @@ static void draw_zebra_and_focus_unified( void )
 	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 
 	uint32_t x,y;
-	int zd = zebra_draw && expsim;
+	int zd = zebra_draw && expsim && (!zebra_nrec || !recording);
 	if (focus_peaking) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000

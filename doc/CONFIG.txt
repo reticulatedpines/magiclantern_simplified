@@ -75,3 +75,6 @@ These settings can not be changed from the ML menu::
     # They will be shared between movie and photo modes.
     # Enabling this setting will apply WBShift setting in auto modes, too.    
     white.balance.workaround = 1
+
+    # If set to 1, display zebras only when not recording
+    zebra.nrec = 1
