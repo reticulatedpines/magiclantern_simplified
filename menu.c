@@ -40,6 +40,7 @@ static int show_only_selected; // for ISO, kelvin...
 void menu_show_only_selected()
 {
 	show_only_selected = 1;
+	menu_damage = 1;
 }
 
 int draw_event = 0;
@@ -478,6 +479,18 @@ void menu_select_current(int reverse)
 	menu_entry_select(menu,reverse);
 }
 
+static void 
+menu_redraw_if_damaged()
+{
+	if( menu_damage )
+	{
+		if (!lv_drawn()) show_only_selected = 0;
+		bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
+		menu_damage = 0;
+		menus_display( menus, 40, 65 );
+	}
+}
+
 static int
 menu_handler(
 	void *			priv,
@@ -488,23 +501,31 @@ menu_handler(
 )
 {
 	static int k = 0;
+
 	// Ignore periodic events (pass them on)
-	if( 0
-	||  event == GUI_TIMER2
-	||  event == GUI_TIMER3
-	||  event == GUI_TIMER4
-	||  event == 0x1000007c
-	||  event == 0x10000078
-	)
+	if( event == 0x1000007c || event == 0x10000078 || event == 0x1000007d)
 		return 1; // 0 is too aggressive :)
 
-	//~ if( event == GUI_PROP_EVENT )
+	// canon code might have drawn over menu... but these should not be blocked
+	if (event == 0x100000b5)
+	{
+		menu_damage = 1;
+		return 1;
+	}
+	
+	if (event == 0x100000a6)
+	{
+		if (!lv_drawn()) menu_damage = 1;
+		return 1;
+	}
+
+	//~ if(event != 0x1000007c)
 	//~ {
-		//~ if(0) bmp_printf( FONT_SMALL, 400, 40,
-			//~ "prop %08x => %08x",
-			//~ arg4,
-			//~ *(unsigned*) arg4
+		//~ bmp_printf( FONT_SMALL, 300, 40,
+			//~ "evt %8x(%8x,%8x,%8x) %d",
+			//~ event, arg2, arg3, arg4, menu_damage
 		//~ );
+	//~ }
 
 		// Mine!  No one else gets it
 		//~ return 0;
@@ -539,6 +560,7 @@ menu_handler(
 	case GOT_TOP_OF_CONTROL:
 		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
 		menu_damage = 1;
+		menu_redraw_if_damaged();
 		break;
 
 	case TERMINATE_WINSYS:
@@ -558,7 +580,7 @@ menu_handler(
 	case 0x10000048:
 		gui_stop_menu();
 		return 1;
-
+	
 	case EVENTID_94:
 		// Generated when buttons are pressed?  Forward it on
 		return 1;
@@ -575,23 +597,28 @@ menu_handler(
 
 	case PRESS_RIGHT_BUTTON:
 		menu_move( menu, 1 );
+		menu_damage = 1;
 		break;
 
 	case PRESS_LEFT_BUTTON:
 		menu_move( menu, -1 );
+		menu_damage = 1;
 		break;
 
 	case PRESS_SET_BUTTON:
 		menu_entry_select( menu, 0 ); // normal select
+		menu_damage = 1;
 		break;
- 
+
 	case PRESS_INFO_BUTTON:
     case 0x10000000: // PLAY
 		menu_entry_select( menu, 1 ); // reverse select
+		menu_damage = 1;
 		break;
 
 	case PRESS_DIRECT_PRINT_BUTTON:
 		menu_entry_select( menu, 2 ); // auto setting select
+		menu_damage = 1;
 		break;
 
 #if 0
@@ -616,8 +643,7 @@ menu_handler(
 		break;
 #endif
 
-	case 1:
-		// Synthetic redraw event
+	case 1:          // Synthetic redraw event
 		break;
 
 	case 0x10000086:
@@ -641,12 +667,8 @@ menu_handler(
 	// If we are hidden or no longer exit, do not redraw
 	if( menu_hidden || !gui_menu_task )
 		return 0;
-
-	//~ if( menu_damage )
-	if (!lv_drawn()) show_only_selected = 0;
-	bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
-	menu_damage = 0;
-	menus_display( menus, 40, 65 );
+	
+	menu_redraw_if_damaged();
 
 	return 0;
 }
@@ -705,6 +727,7 @@ gui_stop_menu( void )
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
+
 	msleep(50);
 	clrscr();
 	lv_redraw();
@@ -712,7 +735,7 @@ gui_stop_menu( void )
 	
 	lens_focus_stop();
 	show_only_selected = 0;
-
+	
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 }
 

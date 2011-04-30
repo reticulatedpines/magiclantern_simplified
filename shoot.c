@@ -1130,9 +1130,8 @@ int crit_iso(int iso_index)
 	if (iso_index >= 0)
 	{
 		lens_set_rawiso(codes_iso[iso_index]);
-		msleep(100);
-		//~ bmp_printf(FONT_LARGE, 30, 30, "ISO %d... ", lens_info.iso);
 		msleep(300);
+		menu_show_only_selected();
 	}
 
 	int under, over;
@@ -1221,8 +1220,7 @@ int crit_shutter(int shutter_index)
 	if (shutter_index >= 0)
 	{
 		lens_set_rawshutter(codes_shutter[shutter_index]);
-		msleep(100);
-		//~ bmp_printf(FONT_LARGE, 30, 30, "Shutter 1/%d... ", lens_info.shutter);
+		menu_show_only_selected();
 		msleep(300);
 	}
 
@@ -1363,8 +1361,8 @@ int crit_kelvin(int k)
 	if (k > 0)
 	{
 		lens_set_kelvin(k * KELVIN_STEP);
-		//~ bmp_printf(FONT_LARGE, 30, 30, "WB %dK... ", k * KELVIN_STEP);
-		msleep(500);
+		msleep(300);
+		menu_show_only_selected();
 	}
 
 	uint8_t Y;
