@@ -1187,7 +1187,6 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	*(int*)VIDEO_OUT_PROP_DELIVER_VALUE = 2;
 	/*
 	int i;
 	char fn[100];
