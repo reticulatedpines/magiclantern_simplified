@@ -136,13 +136,8 @@ Known issues
 ------------
 
 * First second of recorded audio may be very loud
-* Certain actions may clear the 16:9 bars in Movie mode. A workaround is to use a cropmark which has those bars.
-* Stack focus only works in Live View, after going through Play mode first. 
-  Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
-* After closing ML menu, screen may not redraw automatically 
-  (half-press the shutter or press ``MENU`` to trigger a redraw)
+* Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
-* Camera may become unstable if you change modes while ML menu is active.
 * External monitors are not yet fully supported (some functions may not work / display correctly). It is recommended to use a cropmark image.
     
   The following functions are known not to work with external displays:
@@ -1052,12 +1047,16 @@ Focus
 
 .. _focus stacking:
 
-**Run Stack focus**
+**Stack focus**
 
   This selection will shoot a series of photographs with varying focus points. You can also call this "focus bracketing".
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
   
-  To configure focus step and number of photos, use the hidden settings ``focus.step`` and ``focus.count``.
+  Keys:
+  
+  * ``SET``: change the number of photos
+  * ``Q``: change the focus step size
+  * ``PLAY``: run the stack focus sequence
 
 .. _focus and DOF info:
 
