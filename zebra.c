@@ -2610,6 +2610,7 @@ cropmark_draw(int unused)
 static void
 cropmark_redraw()
 {
+	ChangeColorPalette(2);
 	cropmark_draw(0);
 }
 

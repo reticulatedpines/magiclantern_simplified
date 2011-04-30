@@ -1187,6 +1187,9 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
+	static int i = 0;
+	ChangeColorPalette(i);
+	i++;
 	/*
 	int i;
 	char fn[100];
@@ -1685,11 +1688,11 @@ struct menu_entry debug_menus[] = {
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 	},
-	{
+	/*{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},
+	},*/
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
