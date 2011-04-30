@@ -159,7 +159,7 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
-* ISO followed by LV from photo mode: shortcut key for movie mode
+* ISO followed by LV: toggle between photo and movie mode.
 * Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
 * ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
