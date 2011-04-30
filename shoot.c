@@ -2028,8 +2028,8 @@ void hdr_shutter_release()
 	lens_wait_readytotakepic(64);
 	if (!silent_pic_mode || !lv_drawn())
 	{
-		if (get_mlu()) { lens_take_picture_forced(); msleep(500); }
-		lens_take_picture_forced();
+		if (get_mlu()) { lens_take_picture(64); msleep(500); }
+		lens_take_picture(64);
 	}
 	else { msleep(300); silent_pic_take(0); }
 }
@@ -2168,7 +2168,7 @@ void hdr_shot(int skip0, int wait)
 		}
 		else
 		{
-			if (!silent_pic_mode || !lv_drawn()) lens_take_picture_nowait();
+			if (!silent_pic_mode || !lv_drawn()) lens_take_picture(0);
 			else silent_pic_take(0);
 		}
 	}
@@ -2206,7 +2206,7 @@ void remote_shot()
 		else if (shooting_mode == SHOOTMODE_MOVIE)
 			movie_start();
 		else
-			lens_take_picture(64000); // hdr_shot messes with the self timer mode
+			lens_take_picture(64); // hdr_shot messes with the self timer mode
 	}
 	while (lens_info.job_state) msleep(500);
 }
@@ -2636,7 +2636,7 @@ shoot_task( void )
 		{
 			if ((!lv_drawn() && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
-				lens_take_picture(64000);
+				lens_take_picture(64);
 				msleep(trap_focus_delay);
 			}
 		}
@@ -2676,7 +2676,7 @@ shoot_task( void )
 				}
 				else
 				{
-					lens_take_picture(64000);
+					lens_take_picture(64);
 				}
 				msleep(trap_focus_delay);
 				K = 0;

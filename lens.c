@@ -32,6 +32,7 @@
 CONFIG_INT("movie.log", movie_log, 1);
 
 PROP_INT(PROP_AF_MODE, af_mode);
+#define MANUAL_FOCUS ((af_mode & 0xF) == 3)
 
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
@@ -324,14 +325,24 @@ update_lens_display(
 }
 
 
+int lv_focus_done = 1;
+
+PROP_HANDLER( PROP_LV_FOCUS_DONE )
+{
+	lv_focus_done = 1;
+	return prop_cleanup( token, property );
+}
 
 void
 lens_focus_wait( void )
 {
-	take_semaphore( focus_done_sem, 0 );
-	give_semaphore( focus_done_sem );
+	while (!lv_focus_done)
+	{
+		msleep(10);
+		if (!lv_drawn()) break;
+		if (MANUAL_FOCUS) break;
+	}
 }
-
 
 void
 lens_focus(
@@ -339,23 +350,23 @@ lens_focus(
 	int			step
 )
 {
-	// Should we timeout to avoid hanging?
-	if( take_semaphore( focus_done_sem, 100 ) != 0 )
-		return;
-	
 	if (!lv_drawn()) return;
-	if ((af_mode & 0xF) == 3 ) return;
+	if (MANUAL_FOCUS) return;
 
+	while (lens_info.job_state) msleep(100);
+	lens_focus_wait();
+	msleep(10);
+	lv_focus_done = 0;
+	
 	struct prop_focus focus = {
 		.active		= 1,
-		.mode		= mode,
+		.mode		= 7,
 		.step_hi	= (step >> 8) & 0xFF,
 		.step_lo	= (step >> 0) & 0xFF,
 		.unk		= 0,
 	};
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
-
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 }
 
@@ -388,61 +399,17 @@ lens_take_picture(
 )
 {
 	lens_wait_readytotakepic(64);
-	if (lens_info.job_state > 0xA) 
-	{
-		DEBUG("could not take pic (%d)", lens_info.job_state);
-		return;
-	}
 
 	call( "Release", 0 );
 
 	if( !wait )
 		return 0;
 
+	msleep(200);
 	lens_wait_readytotakepic(wait);
 
 	return lens_info.job_state;
 }
-
-void
-lens_take_picture_nowait()
-{
-	if ((af_mode & 0xF) == 3 )
-	{
-		SW1(1,10); // those work well with bracketing, but fail if AF is on
-		SW2(1,200);
-		SW2(0,10);
-		SW1(0,10);
-	}
-	else
-	{
-		call( "Release", 0 ); // this works with AF but skips frames in bracketing
-	}
-}
-
-int lens_take_picture_forced()
-{
-	msleep(200);
-	return lens_take_picture(0);
-	
-	// does not work
-	DEBUG("%d", lens_info.job_state);
-	if (lens_info.job_state == 0) return lens_take_picture(64000);
-	
-	DEBUG("busy %d", lens_info.job_state);
-	lens_take_picture(64000);
-	int i;
-	for (i = 0; i < 1000; i++)
-	{
-		if (lens_info.job_state > 0xA) return;
-		msleep(1);
-	}
-	DEBUG("pic not taken %d", lens_info.job_state);
-	while (lens_info.job_state) msleep(100);
-	DEBUG("retrying %d", lens_info.job_state);
-	lens_take_picture(64000);
-}
-
 
 static FILE * mvr_logfile = INVALID_PTR;
 
@@ -779,39 +746,6 @@ PROP_HANDLER( PROP_LV_LENS )
 	update_stuff();
 	return prop_cleanup( token, property );
 }
-
-
-//~ PROP_HANDLER( PROP_LVCAF_STATE )
-//~ {
-	//bmp_hexdump( FONT_SMALL, 200, 50, buf, len );
-	//~ return prop_cleanup( token, property );
-//~ }
-
-/*
-PROP_HANDLER( PROP_LV_FOCUS )
-{
-	const struct prop_focus * const focus = (void*) buf;
-	const int16_t step = (focus->step_hi << 8) | focus->step_lo;
-	if (0)
-	bmp_printf( FONT_SMALL, 200, 30,
-		"FOCUS: %08x active=%02x dir=%+5d (%04x) mode=%02x",
-			*(unsigned*)buf,
-			focus->active,
-			(int) step,
-			(unsigned) step & 0xFFFF,
-			focus->mode
-		);
-	return prop_cleanup( token, property );
-}*/
-
-
-PROP_HANDLER( PROP_LV_FOCUS_DONE )
-{
-	// The last focus command has completed
-	give_semaphore( focus_done_sem );
-	return prop_cleanup( token, property );
-}
-
 
 PROP_HANDLER( PROP_LAST_JOB_STATE )
 {

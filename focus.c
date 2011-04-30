@@ -83,8 +83,32 @@ display_lens_hyperfocal(
 }
 
 
+PROP_INT(PROP_AF_MODE, af_mode);
+#define MANUAL_FOCUS ((af_mode & 0xF) == 3)
 
+void focus_stack_ensure_preconditions()
+{
+	while (lens_info.job_state) msleep(100);
+	if (!lv_drawn())
+	{
+		msleep(200);
+		SW1(1,0);
+		SW1(0,0);
+		msleep(200);
+		while (!lv_drawn())
+		{
+			bmp_printf(FONT_LARGE, 10, 30, "Please switch to LiveView");
+			msleep(100);
+		}
+		msleep(200);
+	}
 
+	while (MANUAL_FOCUS)
+	{
+		bmp_printf(FONT_LARGE, 10, 30, "Please enable autofocus");
+		msleep(100);
+	}
+}
 
 void
 focus_stack(
@@ -95,20 +119,38 @@ focus_stack(
 	if( count > 15 )
 		count = 15;
 
+	bmp_printf( FONT_LARGE, 10, 30, "Focus stack: %dx%d", count, step );
+	msleep(1000);
+	
+	int focus_moved_total = 0;
+
 	unsigned i;
 	for( i=0 ; i < count ; i++ )
 	{
-		lens_take_picture( 64000 );
+		if (gui_menu_shown()) break;
+		
+		bmp_printf( FONT_LARGE, 10, 30, "Focus stack: %d of %d", i+1, count );
+		msleep( 500 );
+		
+		focus_stack_ensure_preconditions();
+		lens_take_picture( 64 );
+		
 		if( count-1 == i )
 			break;
+		
+		focus_stack_ensure_preconditions();
 
-		lens_focus( 0xD, step );
+		lens_focus( 1, step );
 		lens_focus_wait();
-		msleep( 50 );
+		focus_moved_total += step;
 	}
 
+	msleep(1000);
+	bmp_printf( FONT_LARGE, 10, 30, "Focus stack done!         " );
+
 	// Restore to the starting focus position
-	lens_focus( 0, -step * (count-1) );
+	focus_stack_ensure_preconditions();
+	lens_focus( 0, -focus_moved_total );
 }
 
 
@@ -118,9 +160,6 @@ focus_stack_task( void )
 	while(1)
 	{
 		take_semaphore( focus_stack_sem, 0 );
-		DebugMsg( DM_MAGIC, 3, "%s: Awake", __func__ );
-		bmp_printf( FONT_SMALL, 400, 30, "Focus stack" );
-
 		msleep( 100 );
 		focus_stack( focus_stack_count, focus_stack_step );
 	}
@@ -213,28 +252,58 @@ focus_rack_speed_display(
 
 unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36,50,75,100,200,300,500,1000};
 
-int current_rack_speed_index()
+int current_speed_index(speed)
 {
 	int i;
 	for (i = 0; i < COUNT(rack_speed_values); i++)
-		if (focus_rack_speed == rack_speed_values[i]) return i;
+		if (speed == rack_speed_values[i]) return i;
 	return 0;
 }
 
 static void
 focus_rack_speed_increment( void * priv )
 {
-	int i = current_rack_speed_index();
+	int i = current_speed_index(focus_rack_speed);
 	focus_rack_speed = rack_speed_values[mod(i + 1, COUNT(rack_speed_values))];
 }
 
 static void
 focus_rack_speed_decrement( void * priv )
 {
-	int i = current_rack_speed_index();
+	int i = current_speed_index(focus_rack_speed);
 	focus_rack_speed = rack_speed_values[mod(i - 1, COUNT(rack_speed_values))];
 }
 
+static void
+focus_stack_step_increment( void * priv )
+{
+	int i = current_speed_index(focus_stack_step);
+	focus_stack_step = rack_speed_values[mod(i + 1, COUNT(rack_speed_values))];
+}
+
+static void
+focus_stack_count_increment( void * priv )
+{
+	focus_stack_count = mod(focus_stack_count + 1, 16);
+	if (focus_stack_count < 2) focus_stack_count = 2;
+}
+
+static void
+focus_stack_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Stack focus : %dx%d",
+		focus_stack_count, focus_stack_step
+	);
+	bmp_printf(FONT_MED, x + 420, y-1, "PLAY: Run\nSET/Q: Adjust");
+}
 
 void
 lens_focus_start(
@@ -317,7 +386,6 @@ focus_task( void )
 			int step = focus_task_dir * focus_rack_speed;
 			lens_focus( 1, step );
 			focus_task_delta += step;
-			msleep( 70 );
 		}
 	}
 }
@@ -402,9 +470,10 @@ static struct menu_entry focus_menu[] = {
 		.select_auto = follow_focus_toggle_dir_h,
 	},
 	{
-		.priv		= "Run Stack focus",
-		.display	= menu_print,
-		.select		= focus_stack_unlock,
+		.display	= focus_stack_print,
+		.select		= focus_stack_count_increment,
+		.select_auto		= focus_stack_step_increment,
+		.select_reverse		= focus_stack_unlock,
 	},
 	{
 		.display	= display_lens_hyperfocal,
