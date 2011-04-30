@@ -891,9 +891,15 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 **ISO: 100-25600**
 
-  Custom steps for ISO. Possible values:
+  Custom steps for ISO. Possible values (rounded):
   
   0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
+  
+  To compute exact ISO values from 100 to 6400, assumming 1/8 EV steps, use this formula:
+  
+  .. raw:: latex
+  
+      $$100 \cdot 2^{k/8},\;\; k=[0:48]$$
   
   To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1). To get ISO lower than 200, turn HTP off. 
   In video mode, ISO only goes up to 6400. These is also true without ML.
@@ -922,15 +928,28 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 .. _shutter:
 
-**Shutter: 1/30...1/4000**
+**Shutter: 1/24...1/4000**
 
-  Custom steps for shutter speed. Possible values:
+  Custom steps for shutter speed, in 1/8 EV steps.
   
-  1/30, 33, 37, 40, 45, 50, 53, 57, 60, 67, 75, 80, 90, 100, 110, 115, 125, 135, 150, 160, 
-  180, 200, 210, 235, 250, 275, 300, 320, 360, 400, 435, 470, 500, 550, 600, 640, 720, 800,
-  875, 925, 1000, 1100, 1200, 1250, 1400, 1600, 1750, 1900, 2000, 2150, 2300, 2500, 2800, 3200,
-  3500, 3750, 4000.
+  Assumming 1/4000 is native, you can use the `EV definition <http://en.wikipedia.org/wiki/Exposure_value>`_ to compute all available shutter speeds between 30s and 1/8000, resulting:
   
+  .. raw:: latex
+  
+       $$1/4000 \cdot 2^{k/8},\;\; k=[135:-1:-8]$$
+  
+  Assumming 30s is native, you will have:
+  
+  .. raw:: latex
+
+       $$30 \cdot 2^{k/8},\;\; k=[0:-1:-143]$$
+  
+  The difference between results in these two cases is around 1.3\%.
+  
+  Values displayed by ML (rounded to 2 digits):
+  
+  1/24, 26, 29, 31, 34, 37, 41, 44, 48, 53, 57, 63, 68, 74, 81, 88, 96, 110, 120, 130, 140, 150, 160, 180, 190, 210, 230, 250, 270, 300, 320, 350, 390, 420, 460, 500, 560, 600, 650, 710, 770, 840, 920, 1000, 1100, 1200, 1300, 1400, 1500, 1700, 1800, 2000, 2200, 2300, 2600, 2800, 3000, 3400, 3700, 4000, 4400, 4800, 5200, 5600, 6200, 6800, 7300, 8000.
+    
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the shutter value automatically.
   
   * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
