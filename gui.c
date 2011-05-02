@@ -125,7 +125,7 @@ static int handle_buttons(struct event * event)
 	}
 
 	// event 0 is button press maybe?
-	if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
+	if( gui_state == GUISTATE_IDLE && event->type == 0 )
 	{
 		if (event->param == button_menu_on && !gui_menu_shown()) 
 		{
