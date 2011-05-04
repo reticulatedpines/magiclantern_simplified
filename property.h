@@ -272,6 +272,8 @@
 
 #define PROP_WINDCUT_MODE 0x02050016
 
+#define PROP_ROLLING_PITCHING_LEVEL 0x80030039
+
 /** Properties */
 extern void
 prop_register_slave(

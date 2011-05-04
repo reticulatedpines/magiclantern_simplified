@@ -32,16 +32,15 @@
 
 CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
 
+int lv_disp_mode;
+PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode)
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
-static PROP_INT(PROP_HOUTPUT_TYPE, houtput_type);
 static PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 static PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 static PROP_INT(PROP_MVR_REC_START, recording);
 
-int button_menu_on = BGMT_TRASH;
-int button_menu_off = BGMT_TRASH;
 int button_center_lvafframe = BGMT_PRESS_SET;
 
 // halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
@@ -53,8 +52,10 @@ int get_halfshutter_pressed()
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
+int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
+int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -123,6 +124,23 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 	}
+
+	if(event->type == 0 && ( gui_state == GUISTATE_IDLE || MENU_MODE))
+ 	{
+		if (event->param == BGMT_TRASH || event->param == BGMT_UNLOCK)
+ 		{
+			if (!gui_menu_shown()) 
+				give_semaphore( gui_sem );
+			else
+				gui_stop_menu();
+ 			return 0;
+ 		}
+		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
+		{
+			center_lv_afframe();
+			return 0;
+		}
+ 	}
 
 	// event 0 is button press maybe?
 	if( gui_state == GUISTATE_IDLE && event->type == 0 )
@@ -263,16 +281,7 @@ static int handle_buttons(struct event * event)
 		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
 		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
  	}
-	
-	// override DISP button in LiveView mode
-	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
-	{
-		if (houtput_type == 0)
-			return toggle_disp_mode();
-		else
-			schedule_disp_mode_change();
-	}
-	
+		
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{
@@ -449,6 +458,15 @@ static int handle_buttons(struct event * event)
 			set_shooting_mode(previous_photo_mode);
 		}
 		return 0;
+	}
+	
+	// enable LiveV stuff in Play mode
+	if (event->type == 0 && PLAY_MODE)
+	{
+		if (event->param == BGMT_UNLOCK)
+			livev_playback_toggle();
+		else
+			livev_playback_reset();
 	}
 
 	return 1;

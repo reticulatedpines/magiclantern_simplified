@@ -37,6 +37,7 @@ static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
 static int show_only_selected; // for ISO, kelvin...
+extern int gui_state;
 void menu_show_only_selected()
 {
 	show_only_selected = 1;
@@ -312,7 +313,7 @@ menus_display(
 		if( menu->selected )
 			menu_display(
 				menu->children,
-				orig_x + 50,
+				orig_x,
 				y + fontspec_font( fontspec )->height + 4,
 				1
 			);
@@ -353,12 +354,7 @@ menu_entry_select(
 	else if (mode == 2)
 	{
 		if( entry->select_auto ) entry->select_auto( entry->priv );
-		else 
-		{
-			bmp_printf(FONT_LARGE, 20,450, "Option not available");
-			msleep(1000);
-			bmp_printf(FONT_LARGE, 20,450, "                    ");
-		}
+		else if (entry->select) entry->select( entry->priv );
 	}
 	else 
 	{
@@ -544,6 +540,14 @@ menu_handler(
         }
 	//~ }
 
+	if (event == DIAL_LEFT || event == DIAL_RIGHT || event == ELECTRONIC_SUB_DIAL_RIGHT || event == ELECTRONIC_SUB_DIAL_LEFT)
+	{
+		if (get_set_pressed() || get_zoom_in_pressed() || get_zoom_out_pressed())
+		{
+			event = (event == DIAL_LEFT || event == ELECTRONIC_SUB_DIAL_LEFT) ? PRESS_INFO_BUTTON : PRESS_SET_BUTTON;
+		}
+	}
+
 
 	// Find the selected menu (should be cached?)
 	struct menu * menu = menus;
@@ -562,6 +566,8 @@ menu_handler(
 		menu_damage = 1;
 		menu_redraw_if_damaged();
 		break;
+	case LOST_TOP_OF_CONTROL:
+		gui_stop_menu();
 
 	case TERMINATE_WINSYS:
 		// Must propagate to all gui elements
@@ -585,21 +591,29 @@ menu_handler(
 		// Generated when buttons are pressed?  Forward it on
 		return 1;
 
+	case ELECTRONIC_SUB_DIAL_LEFT:
+		if (get_set_pressed()) break;
 	case PRESS_UP_BUTTON:
 		menu_entry_move( menu, -1 );
 		menu_damage = 1;
 		break;
 
+	case ELECTRONIC_SUB_DIAL_RIGHT:
+		if (get_set_pressed()) break;
 	case PRESS_DOWN_BUTTON:
 		menu_entry_move( menu, 1 );
 		menu_damage = 1;
 		break;
 
+	case DIAL_RIGHT:
+		if (get_set_pressed()) break;
 	case PRESS_RIGHT_BUTTON:
 		menu_move( menu, 1 );
 		menu_damage = 1;
 		break;
 
+	case DIAL_LEFT:
+		if (get_set_pressed()) break;
 	case PRESS_LEFT_BUTTON:
 		menu_move( menu, -1 );
 		menu_damage = 1;
@@ -732,6 +746,7 @@ gui_stop_menu( void )
 	clrscr();
 	lv_redraw();
 	zebra_resume();
+	update_disp_mode_bits_from_params();
 	
 	lens_focus_stop();
 	show_only_selected = 0;
@@ -929,7 +944,7 @@ menu_task( void )
 			gui_stop_menu();
 			continue;
 		}
-
+		
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;
 		menu_hidden = 0;

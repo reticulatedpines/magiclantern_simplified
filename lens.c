@@ -131,7 +131,7 @@ lens_format_dist(
 	return dist;
 }
 
-PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
+extern int lv_disp_mode;
 
 PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 static int recording = 0;
@@ -148,8 +148,7 @@ update_lens_display(
 )
 {
 	if (get_halfshutter_pressed()) return;
-	if (gui_menu_shown()) return;
-	if (gui_state != GUISTATE_IDLE) return;
+	if (!zebra_should_run()) return;
 	
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
@@ -350,6 +349,7 @@ lens_focus(
 	int			step
 )
 {
+	return;
 	if (!lv_drawn()) return;
 	if (MANUAL_FOCUS) return;
 
@@ -709,18 +709,36 @@ lens_set_kelvin(int k)
 {
 	k = COERCE(k, KELVIN_MIN, KELVIN_MAX);
 	int mode = WB_KELVIN;
+
+	if (k > 10000 || k < 2500) // workaround for 60D; out-of-range values are ignored in photo mode
+	{
+		int lim = k > 10000 ? 10000 : 2500;
+		prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
+		msleep(10);
+	}
+
 	prop_request_change(PROP_WB_MODE_LV, &mode, 4);
 	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
 	prop_request_change(PROP_WB_MODE_PH, &mode, 4);
 	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
+	msleep(10);
 }
 
 void
 lens_set_kelvin_value_only(int k)
 {
 	k = COERCE(k, KELVIN_MIN, KELVIN_MAX);
+
+	if (k > 10000 || k < 2500) // workaround for 60D; out-of-range values are ignored in photo mode
+	{
+		int lim = k > 10000 ? 10000 : 2500;
+		prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
+		msleep(10);
+	}
+
 	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
 	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
+	msleep(10);
 }
 
 void update_stuff()

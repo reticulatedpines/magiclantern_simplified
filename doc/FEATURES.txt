@@ -172,7 +172,6 @@ These buttons have special meaning with Magic Lantern:
 * LCD sensor + Arrows: see `Follow Focus`_.
 * LCD sensor + aperture change in LiveView: `DOF adjust`_ (changes aperture and ISO while keeping the same exposure).
 * LCD sensor + ``Zoom In``: activates `Magic Zoom`_.
-* Flash / DOF preview: see `False color`_.
 * Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
 * Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 * Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
@@ -322,22 +321,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
   
-  * **Always ON**: self-explaining. 
-  * **Hold Flas/DOF**: false color overlay will appear only when you press this key:
-  
-    - flash button in Movie mode
-    - DOF preview button in Photo mode
-
-  * **Togg Flas/DOF**: false color appearance will be toggled by the shortcut keys above-mentioned.
-  
-  There are 4 color palettes available (toggle with ``Q``):
+  There are 4 false color palettes available (toggle with ``Q``):
 
   .. figure:: falsecolor.png
       :alt: thumb|right|False color palettes
       :align: center
       :width: 13cm
-
-  The implementation uses a half-resolution C code.
   
 .. _Cropmark:
 
@@ -897,7 +886,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
       $$100 \cdot 2^{k/8},\;\; k=[0:48]$$
   
   To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1). To get ISO lower than 200, turn HTP off. 
-  In video mode, ISO only goes up to 6400. These is also true without ML.
+  In video mode, ISO only goes up to 6400. This is also true without ML.
   
   To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, enable `iso.round.only`_ from `magic.cfg`_.
 
@@ -913,7 +902,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 **WhiteBalance: 1500...12000**
 
-  Kelvin white balance.
+  Kelvin white balance. Extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range, i.e. 2500...10000.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
   
@@ -1248,9 +1237,9 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
 
   On the top bar, you will see ``DISP`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``LiveV`` menu. So you can, for example, configure ``DISP 1`` with false colors, ``DISP 2`` with zebras and focus peaking, and ``DISP 3`` with clear display.
 
-  ``DISP`` presets named 1, 2 and 3 are only used when Canon info display is inactive. When Canon info display is active, ML will use the ``DISP 0`` preset (which does not display anything by default).
-
   This menu item sets the maximum number of available DISP presets. To disable this feature, set the number of presets to 1.
+  
+  To change the presets, use the Metering button.
 
 Extra info displays
 -------------------

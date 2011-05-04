@@ -618,7 +618,7 @@ CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 int movie_af_stepsize = 10;
 
-int get_focus_graph() { return (movie_af || (get_trap_focus() && can_lv_trap_focus_be_active()) || get_follow_focus_stop_on_focus()) && !gui_menu_shown(); }
+int get_focus_graph() { return (movie_af || (get_trap_focus() && can_lv_trap_focus_be_active()) || get_follow_focus_stop_on_focus()) && zebra_should_run(); }
 
 static void
 movie_rec_key_print(
@@ -1234,7 +1234,7 @@ void lv_redraw()
 		bmp_enabled = 0;
 		msleep(200);
 		redraw_maybe();
-		ChangeColorPalette(2);
+		ChangeColorPaletteLV(2);
 		msleep(200);
 		bmp_enabled = 1;
 		zebra_resume();
@@ -1273,7 +1273,7 @@ static uint32_t* dbg_memchanges = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
+	bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
 	//~ msleep(2000);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
@@ -1361,10 +1361,10 @@ void display_shortcut_key_hints_lv()
 {
 	static int old_mode = 0;
 	int mode = 0;
-	if (gui_state != GUISTATE_IDLE) return;
+	if (!zebra_should_run()) return;
 	if (shooting_mode == SHOOTMODE_MOVIE && FLASH_BTN_MOVIE_MODE) mode = 1;
 	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) mode = 2;
-	else if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts())) mode = 3;
+	else if (is_follow_focus_active() && !is_manual_focus() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts())) mode = 3;
 	if (mode == 0 && old_mode == 0) return;
 
 	int mz = (mode == 2 && get_zoom_overlay_z() && lv_dispsize == 1);
@@ -1556,7 +1556,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 				}
 				prev_fn = MVR_FRAME_NUMBER;
 			}
-			if (bitrate_mode) vbr_set();
+			vbr_set();
 		}
 		
 		if (af_frame_autohide && lv_drawn() && afframe_countdown)
@@ -1606,6 +1606,12 @@ debug_loop_task( void ) // screenshot, draw_prop
 		workaround_wbs_ba = lens_info.wbs_ba + 100;
 		
 		expsim_update();
+		
+		if (BTN_METERING_PRESSED_IN_LV)
+		{
+			toggle_disp_mode();
+			while (BTN_METERING_PRESSED_IN_LV) msleep(100);
+		}
 
 		/*if (big_clock && k % 10 == 0)
 		{
@@ -1652,6 +1658,22 @@ spy_print(
 	);
 }
 
+struct rolling_pitching 
+{
+	uint8_t status;
+	uint8_t cameraposture;
+	int8_t roll_sensor1;
+	int8_t roll_sensor2;
+	int8_t pitch_sensor1;
+	int8_t pitch_sensor2;
+};
+struct rolling_pitching level_data;
+
+PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
+{
+	memcpy(&level_data, buf, 6);
+	return prop_cleanup(token, property);
+}
 
 struct menu_entry debug_menus[] = {
 	{
@@ -1997,7 +2019,7 @@ void load_logo()
 void show_logo()
 {
 	load_logo();
-	if (logo)
+	if (logo > 0)
 	{
 		bmp_draw(logo, 360 - logo->width/2, 240 - logo->height/2, 0, 0);
 	}
