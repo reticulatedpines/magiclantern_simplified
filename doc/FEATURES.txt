@@ -154,12 +154,12 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
-* ISO followed by LV: toggle between photo and movie mode.
+* ``ISO`` followed by ``LV``: toggle between photo and movie mode.
+* ``ISO`` followed by ``DISP``: change current ``display preset`_.
 * Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
 * ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
-* ``DISP`` in LiveView has 3 extra display modes specific to ML, which are fully customizable from `LiveV`_ menu. Each display mode has its own set of LiveV settings.
 
 .. _LCD sensor:
 
@@ -174,7 +174,7 @@ These buttons have special meaning with Magic Lantern:
 * LCD sensor + ``Zoom In``: activates `Magic Zoom`_.
 * Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
 * Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
-* Half-shutter / ``*``: see `ClrScreen`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
+* Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` while *White balance* dialog is active: go to `WhiteBalance`_ item in ML menu.
 * ``Q`` while *Picture Style* dialog is active: go to `Contrast`_ item in ML menu.
@@ -183,6 +183,7 @@ These buttons have special meaning with Magic Lantern:
 * ``Q`` while *Flash exposure comp.* dialog is active: go to `Flash AEcomp`_ item in ML menu.
 * ``Q`` while *Quality* dialog (picture quality) is active: go to `Auto Burst PicQ`_ item in ML menu.
 * ``Q`` while LiveView zoom is active: go to `Magic Zoom`_ item in ML menu.
+* ``Q`` in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, spotmeter and cropmarks.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
@@ -385,28 +386,24 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   Note: when using low-contrast picture styles (like Marvels Cine or Superflat), the brightness might not reach the extreme values, even under strong under/over-exposure. This is OK.
 
+.. _Display:
 .. _Clean LiveView display:
-.. _ClrScreen:
+.. _Turn off display:
 
-**ClrScreen: OFF / HalfShutter / WhenIdle**
+**Display: No special action / Clr on HalfShutter / Clear when idle / Turn OFF when idle**
 
-  Clear image overlays from LiveView display.
-  
-  * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
-    and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
-    It allows you to compose the picture without any extra distractions. 
-  
-  
-    This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
-  
-  
-  * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle.
-  
-    The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then disappear.
+  Configure special behavior of LiveView display:
+    
+    * ``No special action``: do nothing.
+    * ``Clr on HalfShutter``: overlays will be removed from the screen if you hold the shutter button pressed halfway.
+    * ``Clr when idle``: overlays will be removed from the screen if you don't press any buttons for a few seconds.
+    * ``Turn OFF when idle``: screen will be turned off if you don't press any buttons for a few seconds. This will reduce power draw, see `Power saving`_.
 
-  This function works by temporarily disabling the bitmap overlay. All the overlay graphics will be restored when the overlay is enabled again.
-  
-  To clear garbage left on the screen, press ``MENU`` twice (don't use ``ClrScreen`` for this).
+  Tips:
+    
+    * For ``Clr on HalfShutter``, assign autofocus to the * button (from Custom Functions, set CFn.9 to 1: Shutter/AE lock button = AE lock/AF).
+    * Use the LCD sensor to turn on the display without causing shake.
+    * To clear garbage left on the screen, press ``MENU`` twice.
 
 .. _focus peaking:
 
@@ -433,15 +430,15 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _magic zoom:
 .. _zoom while recording:
 
-**Magic Zoom: OFF/Zr/ZF/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
+**Magic Zoom: OFF/Zrec/Zr+F/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
 
   This function enables zoom while recording. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
 
   Modes (change with ``SET``):
   
   * ``OFF``
-  * ``Zr``: triggered by ``Zoom In`` button, pressed either while recording or while the LCD sensor is covered
-  * ``ZF``: triggered by ``Zoom In`` button and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `movie AF`_ / `rack focus`_).
+  * ``Zrec``: triggered by ``Zoom In`` button, pressed either while recording or while the LCD sensor is covered
+  * ``Zr+F``: triggered by ``Zoom In`` button and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `movie AF`_ / `rack focus`_).
   * ``ALW``: always on
   
   Size / magnification (change with ``DISP`` or ``PLAY``): 
@@ -449,8 +446,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``Small`` (150x150)
   * ``Medium`` (250x200)
   * ``Large`` (500x300)
-  * ``SmlX2`` : small with *x2* magnification
-  * ``MedX2`` : medium with *x2* magnification
+  * ``Small X2`` : small with *x2* magnification
+  * ``Med X2`` : medium with *x2* magnification
   
   Positions (change with ``Q``):
   
@@ -1103,23 +1100,6 @@ Debug
     :alt: thumb|right|Debug menu
     :align: center
     :width: 5cm
-
-.. _Turn off display:
-.. _Force display off:
-
-**ForceDisplayOFF**
-
-  This will turn off the LCD display in LiveView mode, when the camera is idle or recording and no menus are shown on the screen.
-  
-  While the screen is off, the card led will blink once per 5 seconds to let you know the camera is alive and kicking. No card activity is actually taking place (just LED blinking).
-  
-  To turn the display on temporarily, do one of the following:
-  
-  * Put your hand near the LCD sensor (recommended during recording, prevents shake)
-  * Half-press the shutter button
-  * Press one of the ``ERASE``, ``MENU`` or ``DISP`` buttons
-  
-  See `Power saving`_ for more info.
 
 .. _SensorShortcuts:
 

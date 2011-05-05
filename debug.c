@@ -115,8 +115,6 @@ static PROP_INT(PROP_PIC_QUALITY, pic_quality);
 
 extern void bootdisk_disable();
 
-int display_force_off = 0;
-
 CONFIG_INT("lv.metering", lv_metering, 0);
 
 static void
@@ -313,21 +311,6 @@ void clear_lv_afframe()
 	crop_set_dirty(1);
 }
 
-static void
-display_off_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"ForceDisplayOFF: %s", 
-		display_force_off ? "Enabled" : "Disabled"
-	);
-}
 
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
@@ -1570,16 +1553,6 @@ debug_loop_task( void ) // screenshot, draw_prop
 			DispSensorStart();
 		}
 		
-		if (lv_drawn() && display_force_off && !gui_menu_shown() && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed() && k % 100 == 0 && (!DISPLAY_SENSOR_POWERED || display_sensor_neg))
-		{
-			turn_off_display();
-			if (k % 500 == 0) card_led_blink(1, 20, 0);
-		}
-		if (lv_drawn() && (DISPLAY_SENSOR_POWERED && !display_sensor_neg))
-		{
-			display_on();
-		}
-		
 		if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
 		{
 			lv_metering_adjust();
@@ -1607,12 +1580,6 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		expsim_update();
 		
-		if (BTN_METERING_PRESSED_IN_LV)
-		{
-			toggle_disp_mode();
-			while (BTN_METERING_PRESSED_IN_LV) msleep(100);
-		}
-
 		/*if (big_clock && k % 10 == 0)
 		{
 			show_big_clock();
@@ -1676,11 +1643,6 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 }
 
 struct menu_entry debug_menus[] = {
-	{
-		.priv = &display_force_off,
-		.display	= display_off_print, 
-		.select = menu_binary_toggle,
-	},
 	{
 		.priv		= &lcd_sensor_shortcuts,
 		.select		= menu_binary_toggle,

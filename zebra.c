@@ -53,13 +53,13 @@ CONFIG_INT("disp.mode.xxx", disp_mode_x,   0x5c50);
 int disp_mode_change_request = 0;
 void schedule_disp_mode_change() { disp_mode_change_request = 1; }
 
+CONFIG_INT( "livev.playback", livev_playback, 0);
 CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
-CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
 CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
@@ -1740,21 +1740,6 @@ zebra_lo_toggle_reverse( void * priv )
 }
 
 static void
-clearscreen_toggle( void * priv )
-{
-	int * ptr = priv;
-	*ptr = mod(*ptr + 1, 3);
-}
-
-static void
-clearscreen_toggle_reverse( void * priv )
-{
-	int * ptr = priv;
-	*ptr = mod(*ptr - 1, 3);
-}
-
-
-static void
 zebra_hi_toggle( void * priv )
 {
 	zebra_level_hi = 200 + mod(zebra_level_hi - 200 + 1, 56);
@@ -2064,11 +2049,12 @@ clearscreen_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ClrScreen   : %s",
-		(mode == 0 ? "OFF" : 
-		(mode == 1 ? "HalfShutter" : 
-		(mode == 2 ? "WhenIdle" :
-		"Error")))
+		"Display     : %s",
+		mode == 0 ? "No special action" : 
+		mode == 1 ? "Clr on HalfShutter" : 
+		mode == 2 ? "Clr when idle" :
+		mode == 3 ? "Turn OFF when idle" :
+		"Error"
 	);
 }
 
@@ -2086,17 +2072,17 @@ zoom_overlay_display(
 		x, y,
 		"Magic Zoom  : %s%s%s",
 		zoom_overlay_mode == 0 ? "OFF" :
-		zoom_overlay_mode == 1 ? "Zr," :
-		zoom_overlay_mode == 2 ? "ZF," :
+		zoom_overlay_mode == 1 ? "Zrec," :
+		zoom_overlay_mode == 2 ? "Zr+F," :
 		zoom_overlay_mode == 3 ? "ALW," : "err",
 
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_size == 0 ? "Small," :
 			zoom_overlay_size == 1 ? "Med," :
 			zoom_overlay_size == 2 ? "Large," :
-			zoom_overlay_size == 3 ? "SmlX2," :
-			zoom_overlay_size == 4 ? "MedX2," :
-			zoom_overlay_size == 5 ? "LrgX2," :  "err",
+			zoom_overlay_size == 3 ? "Small X2," :
+			zoom_overlay_size == 4 ? "Med X2," :
+			zoom_overlay_size == 5 ? "Large X2," :  "err",
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_pos == 0 ? "AFF" :
 			zoom_overlay_pos == 1 ? "NW" :
@@ -2348,12 +2334,6 @@ struct menu_entry zebra_menus[] = {
 		.display		= spotmeter_menu_display,
 	},
 	{
-		.priv			= &clearscreen,
-		.display		= clearscreen_display,
-		.select			= clearscreen_toggle,
-		.select_reverse	= clearscreen_toggle_reverse,
-	},
-	{
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
 		.select			= menu_ternary_toggle,
@@ -2366,6 +2346,12 @@ struct menu_entry zebra_menus[] = {
 		.select = zoom_overlay_main_toggle,
 		.select_reverse = zoom_overlay_size_toggle,
 		.select_auto = menu_quinternary_toggle,
+	},
+	{
+		.priv			= &clearscreen,
+		.display		= clearscreen_display,
+		.select			= menu_quaternary_toggle,
+		.select_reverse	= menu_quaternary_toggle_reverse,
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2609,9 +2595,10 @@ void
 cropmark_draw()
 {
 	ChangeColorPaletteLV(2);
-	reload_cropmark(crop_draw); // reloads only when changed
 	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE) return;
 	if (!get_global_draw()) return;
+
+	reload_cropmark(crop_draw); // reloads only when changed
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
@@ -2629,30 +2616,26 @@ cropmark_redraw()
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	if (lens_info.job_state) return;
-	if (_bmp_cleared) { card_led_blink(2, 20, 100); call("MuteOff"); }
-	msleep(100);
-	_bmp_cleared = 0;
+	while (lens_info.job_state) msleep(100);
+	if (_bmp_cleared) { call("MuteOff"); msleep(100); _bmp_cleared = 0;}
 }
 void bmp_on_force()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state) msleep(100);
 	_bmp_cleared = 1;
 	bmp_on();
 }
 void bmp_off()
 {
-	if (lens_info.job_state) return;
-	_bmp_cleared = 1;
-	msleep(100);
-	if (!_bmp_cleared) { card_led_blink(2, 100, 20); call("MuteOn"); }
+	while (lens_info.job_state) msleep(100);
+	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); call("MuteOn");}
 }
 int bmp_is_on() { return !_bmp_cleared; }
 
 int _lvimage_cleared = 0;
 void lvimage_on()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state) msleep(100);
 	if (!_lvimage_cleared) call("MuteOffImage");
 	_lvimage_cleared = 1;
 }
@@ -2692,6 +2675,13 @@ void display_off()
 		call("TurnOffDisplay");
 		_display_is_off = 1;
 	}
+}
+void display_off_force()
+{
+	if (lens_info.job_state) return;
+	if (EXT_MONITOR_CONNECTED) return;
+	_display_is_off = 0;
+	display_on();
 }
 
 void zoom_overlay_toggle()
@@ -2952,7 +2942,7 @@ zebra_task( void )
 	{
 		k++;
 		msleep(10); // safety msleep :)
-
+		
 		if (lv_drawn() && disp_mode_change_request)
 		{
 			disp_mode_change_request = 0;
@@ -2961,18 +2951,25 @@ zebra_task( void )
 		
 		zebra_sleep_when_tired();
 		
-		draw_livev_stuff(k);
+		if (get_global_draw())
+			draw_livev_stuff(k);
 	}
 }
 
 
 TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 );
 
+void clearscreen_wakeup()
+{
+	clearscreen_countdown = clearscreen == 3 ? 50 : 20;
+}
+
 static void
 clearscreen_task( void )
 {
 	while(1)
 	{
+clearscreen_loop:
 		msleep(100);
 
 		// clear overlays on shutter halfpress
@@ -2983,33 +2980,40 @@ clearscreen_task( void )
 			{
 				crop_dirty = 10;
 				msleep(10);
-				if (!get_halfshutter_pressed() || dofpreview) continue;
+				if (!get_halfshutter_pressed() || dofpreview)
+					goto clearscreen_loop;
 			}
 			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
 			clrscr();
 			bmp_on();
-			lv_redraw();
-			crop_dirty = 10;
 		}
-		else if (clearscreen == 2)  // always clear overlays
+		else if (clearscreen == 2 || clearscreen == 3)  // always clear overlays, or turn off display
 		{
 			if (!get_halfshutter_pressed() && liveview_display_idle())
-			{ // in this mode, BMP & global_draw are disabled, but Canon code may draw on the screen
+			{
 				if (clearscreen_countdown)
-				{
 					clearscreen_countdown--;
-					if (!clearscreen_countdown) bmp_off();
-				}
 			}
 			else
 			{
+				clearscreen_wakeup();
+			}
+			
+			if (clearscreen_countdown == 1)
+			{
+				bmp_off();
+				if (clearscreen == 3) display_off_force();
+			}
+			else if (clearscreen_countdown > 1)
+			{
+				display_on();
 				bmp_on();
-				clearscreen_countdown = 20;
 			}
 		}
 		else
 		{
+			display_on();
 			bmp_on();
 		}
 	}
@@ -3139,12 +3143,14 @@ int get_disp_mode() { return disp_mode; }
 
 int toggle_disp_mode()
 {
+	clearscreen_wakeup();
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	schedule_disp_mode_change();
 	return disp_mode == 0;
 }
 void do_disp_mode_change()
 {
+	clearscreen_wakeup();
 	display_on();
 	bmp_on();
 	clrscr();
@@ -3154,7 +3160,6 @@ void do_disp_mode_change()
 	clrscr();
 	lv_redraw();
 	crop_dirty = 5;
-	clearscreen_countdown = 20;
 }
 
 void livev_playback_toggle()

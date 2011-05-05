@@ -32,7 +32,6 @@
 
 CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
 
-int lv_disp_mode;
 PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode)
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
@@ -102,32 +101,28 @@ static int handle_buttons(struct event * event)
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
 		{
 			volume_up();
-			falsecolor_cancel();
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
 		{
 			volume_down();
-			falsecolor_cancel();
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
 		{
 			iso_toggle(-1);
-			falsecolor_cancel();
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
 		{
 			iso_toggle(1);
-			falsecolor_cancel();
 			return 0;
 		}
 	}
 
 	if(event->type == 0 && ( gui_state == GUISTATE_IDLE || MENU_MODE))
  	{
-		if (event->param == BGMT_TRASH || event->param == BGMT_UNLOCK)
+		if (event->param == BGMT_TRASH)
  		{
 			if (!gui_menu_shown()) 
 				give_semaphore( gui_sem );
@@ -141,26 +136,12 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
  	}
+	
+	if (event->type == 0 && event->param != 0x56)
+ 	{
+		clearscreen_wakeup();
+ 	}
 
-	// event 0 is button press maybe?
-	if( gui_state == GUISTATE_IDLE && event->type == 0 )
-	{
-		if (event->param == button_menu_on && !gui_menu_shown()) 
-		{
-			give_semaphore( gui_sem );
-			return 0;
-		}
-		if (event->param == button_menu_off && gui_menu_shown()) 
-		{
-			gui_stop_menu();
-			return 0;
-		}
-		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
-		{
-			center_lv_afframe();
-			return 0;
-		}
-	}
 	if (get_draw_event())
 	{
 		if (event->type == 0)
@@ -459,11 +440,17 @@ static int handle_buttons(struct event * event)
 		}
 		return 0;
 	}
+
+	if (event->type == 0 && event->param == BGMT_DISP && ISO_ADJUSTMENT_ACTIVE)
+	{
+		toggle_disp_mode();
+		return 0;
+	}
 	
 	// enable LiveV stuff in Play mode
 	if (event->type == 0 && PLAY_MODE)
 	{
-		if (event->param == BGMT_UNLOCK)
+		if (event->param == BGMT_Q_ALT)
 			livev_playback_toggle();
 		else
 			livev_playback_reset();

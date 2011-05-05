@@ -481,6 +481,7 @@ menu_redraw_if_damaged()
 	if( menu_damage )
 	{
 		if (!lv_drawn()) show_only_selected = 0;
+		if (MENU_MODE) clrscr();
 		bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
 		menu_damage = 0;
 		menus_display( menus, 40, 65 );
