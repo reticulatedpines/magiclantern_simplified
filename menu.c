@@ -37,6 +37,14 @@ static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
 static int show_only_selected; // for ISO, kelvin...
+static int edit_mode = 0;
+
+int get_menu_font_sel() 
+{
+	if (edit_mode) return FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED);
+	else return FONT(FONT_LARGE,COLOR_WHITE,13);
+}
+
 extern int gui_state;
 void menu_show_only_selected()
 {
@@ -488,6 +496,11 @@ menu_redraw_if_damaged()
 	}
 }
 
+int menu_send_event(int event)
+{
+	ctrlman_dispatch_event(gui_menu_task, event, 0, 0);
+}
+
 static int
 menu_handler(
 	void *			priv,
@@ -541,15 +554,6 @@ menu_handler(
         }
 	//~ }
 
-	if (event == DIAL_LEFT || event == DIAL_RIGHT || event == ELECTRONIC_SUB_DIAL_RIGHT || event == ELECTRONIC_SUB_DIAL_LEFT)
-	{
-		if (get_set_pressed() || get_zoom_in_pressed() || get_zoom_out_pressed())
-		{
-			event = (event == DIAL_LEFT || event == ELECTRONIC_SUB_DIAL_LEFT) ? PRESS_INFO_BUTTON : PRESS_SET_BUTTON;
-		}
-	}
-
-
 	// Find the selected menu (should be cached?)
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
@@ -591,37 +595,45 @@ menu_handler(
 	case EVENTID_94:
 		// Generated when buttons are pressed?  Forward it on
 		return 1;
-
-	case ELECTRONIC_SUB_DIAL_LEFT:
-		if (get_set_pressed()) break;
-	case PRESS_UP_BUTTON:
-		menu_entry_move( menu, -1 );
+	
+	case PRESS_ZOOM_IN_BUTTON:
+		edit_mode = !edit_mode;
 		menu_damage = 1;
 		break;
 
-	case ELECTRONIC_SUB_DIAL_RIGHT:
-		if (get_set_pressed()) break;
-	case PRESS_DOWN_BUTTON:
-		menu_entry_move( menu, 1 );
+	case PRESS_UP_BUTTON:
+		edit_mode = 0;
+	case ELECTRONIC_SUB_DIAL_LEFT:
 		menu_damage = 1;
+		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
+		else menu_entry_move( menu, -1 );
+		break;
+
+	case PRESS_DOWN_BUTTON:
+		edit_mode = 0;
+	case ELECTRONIC_SUB_DIAL_RIGHT:
+		menu_damage = 1;
+		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
+		else menu_entry_move( menu, 1 );
 		break;
 
 	case DIAL_RIGHT:
-		if (get_set_pressed()) break;
 	case PRESS_RIGHT_BUTTON:
-		menu_move( menu, 1 );
 		menu_damage = 1;
+		if (edit_mode) menu_entry_select( menu, 0 );
+		else menu_move( menu, 1 );
 		break;
 
 	case DIAL_LEFT:
-		if (get_set_pressed()) break;
 	case PRESS_LEFT_BUTTON:
-		menu_move( menu, -1 );
 		menu_damage = 1;
+		if (edit_mode) menu_entry_select( menu, 1 );
+		else menu_move( menu, -1 );
 		break;
 
 	case PRESS_SET_BUTTON:
-		menu_entry_select( menu, 0 ); // normal select
+		if (edit_mode) edit_mode = 0;
+		else menu_entry_select( menu, 0 ); // normal select
 		menu_damage = 1;
 		break;
 
@@ -743,9 +755,7 @@ gui_stop_menu( void )
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 
-	msleep(50);
-	clrscr();
-	lv_redraw();
+	if (!lv_drawn()) redraw_maybe();
 	zebra_resume();
 	update_disp_mode_bits_from_params();
 	
@@ -949,6 +959,7 @@ menu_task( void )
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;
 		menu_hidden = 0;
+		edit_mode = 0;
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
 		zebra_pause();
