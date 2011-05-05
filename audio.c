@@ -214,7 +214,7 @@ draw_meter(
 
 	const uint32_t bar_color_word = color_word( bar_color );
 	const uint32_t peak_color_word = color_word( peak_color );
-	const uint32_t bg_color_word = color_word(TOPBAR_BGCOLOR);
+	const uint32_t bg_color_word = color_word(COLOR_BLACK);
 
 	// Write the meter an entire scan line at a time
 	int y;
@@ -237,7 +237,7 @@ draw_meter(
 	}
 
 	// Write the current level
-	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR), 0, y_origin, "%s %2d", label, db_avg );
+	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), 0, y_origin, "%s %2d", label, db_avg );
 }
 
 

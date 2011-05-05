@@ -1209,8 +1209,6 @@ void fake_simple_button(int bgmt_code)
 
 void lv_redraw()
 {
-	if (recording && MVR_FRAME_NUMBER < 50) return;
-
 	if (lv_drawn())
 	{
 		zebra_pause();

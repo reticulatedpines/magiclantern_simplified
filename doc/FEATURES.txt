@@ -1218,7 +1218,7 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
 
   This menu item sets the maximum number of available DISP presets. To disable this feature, set the number of presets to 1.
   
-  To change the presets, use the Metering button.
+  To change the presets, press ``ISO`` followed by ``DISP``.
 
 Extra info displays
 -------------------
