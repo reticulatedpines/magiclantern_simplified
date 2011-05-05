@@ -2610,23 +2610,24 @@ cropmark_redraw()
 	cropmark_draw();
 }
 
+PROP_INT(PROP_TFT_STATUS, tft_status);
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	while (lens_info.job_state) msleep(100);
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (_bmp_cleared) { call("MuteOff"); msleep(100); _bmp_cleared = 0;}
 }
 void bmp_on_force()
 {
-	while (lens_info.job_state) msleep(100);
+	while (lens_info.job_state || tft_status) msleep(100);
 	_bmp_cleared = 1;
 	bmp_on();
 }
 void bmp_off()
 {
-	while (lens_info.job_state) msleep(100);
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); call("MuteOn");}
 }
 int bmp_is_on() { return !_bmp_cleared; }
@@ -2634,13 +2635,13 @@ int bmp_is_on() { return !_bmp_cleared; }
 int _lvimage_cleared = 0;
 void lvimage_on()
 {
-	while (lens_info.job_state) msleep(100);
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (!_lvimage_cleared) call("MuteOffImage");
 	_lvimage_cleared = 1;
 }
 void lvimage_off()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (_lvimage_cleared) call("MuteOnImage");
 	_lvimage_cleared = 0;
 }
@@ -2648,7 +2649,7 @@ void lvimage_off()
 int _display_is_off = 0;
 void display_on()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	if (_display_is_off)
 	{
@@ -2658,14 +2659,14 @@ void display_on()
 }
 void display_on_force()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 1;
 	display_on();
 }
 void display_off()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	if (!_display_is_off)
 	{
@@ -2675,7 +2676,7 @@ void display_off()
 }
 void display_off_force()
 {
-	if (lens_info.job_state) return;
+	while (lens_info.job_state || tft_status) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 0;
 	display_off();
@@ -2855,6 +2856,8 @@ int liveview_display_idle()
 		CURRENT_DIALOG_MAYBE <= 3 && 
 		lv_dispsize == 1 &&
 		lens_info.job_state < 10 &&
+		recording != 1 &&
+		!(recording == 2 && MVR_FRAME_NUMBER < 50) &&
 		!gui_menu_shown();
 }
 // when it's safe to draw zebras and other on-screen stuff
@@ -2974,6 +2977,7 @@ clearscreen_task( void )
 	{
 clearscreen_loop:
 		msleep(100);
+		if (!lv_drawn()) continue;
 
 		if (k % 50 == 0 && !display_is_on())
 			card_led_blink(2, 50, 50);
