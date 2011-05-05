@@ -397,12 +397,11 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     * ``No special action``: do nothing.
     * ``Clr on HalfShutter``: overlays will be removed from the screen if you hold the shutter button pressed halfway.
     * ``Clr when idle``: overlays will be removed from the screen if you don't press any buttons for a few seconds.
-    * ``Turn OFF when idle``: screen will be turned off if you don't press any buttons for a few seconds. This will reduce power draw, see `Power saving`_.
+    * ``Turn OFF when idle``: screen will be turned off if you don't press any buttons for a few seconds. This will reduce power draw, see `Power saving`_. While display is off, the card LED will blink every 5 seconds.
 
   Tips:
     
     * For ``Clr on HalfShutter``, assign autofocus to the * button (from Custom Functions, set CFn.9 to 1: Shutter/AE lock button = AE lock/AF).
-    * Use the LCD sensor to turn on the display without causing shake.
     * To clear garbage left on the screen, press ``MENU`` twice.
 
 .. _focus peaking:
@@ -589,8 +588,8 @@ Functions specific to movie mode.
 
   Changes movie position on the mode dial. You can swap movie mode with either ``A-DEP`` or ``CA``.
   
-  This seems to have some side effects (like not remembering Kelvin setting).
-
+  Alternative: press ISO and then press LV.
+  
 .. _DOF adjust:
 
 **DOF adjust: ON/OFF**
@@ -708,7 +707,7 @@ Functions for stills shooting (some of them work for movies, too).
   Power Saving:
   
   * When not in LiveView, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
-  * In LiveView, enable `Force display off`_ and disable `Global Draw`_. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
+  * In LiveView, set `Display`_: ``Turn OFF when idle``. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
   Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.

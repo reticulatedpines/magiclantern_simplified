@@ -314,7 +314,7 @@ PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 
 int audio_meters_are_drawn()
 {
-	return do_draw_meters && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)) && get_global_draw() && lv_dispsize == 1;
+	return do_draw_meters && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)) && (zebra_should_run() || gui_menu_shown());
 }
 /** Task to monitor the audio levels.
  *
@@ -889,13 +889,6 @@ void windcut_toggle(void* priv)
 	set_windcut(windcut_mode);
 }*/
 
-void draw_meters_toggle(void* priv)
-{
-	unsigned * val = priv;
-	*val = mod(*val+1, 3);
-	if (!*val && lv_drawn()) bmp_fill( 0x0, 0, 0, 720, 40);
-}
-
 static void
 audio_monitoring_display( void * priv, int x, int y, int selected )
 {
@@ -933,7 +926,8 @@ audio_monitoring_toggle( void * priv)
 static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &cfg_draw_meters,
-		.select		= draw_meters_toggle,
+		.select		= menu_ternary_toggle,
+		.select_reverse		= menu_ternary_toggle_reverse,
 		.display	= audio_meter_display,
 	},
 #if 0

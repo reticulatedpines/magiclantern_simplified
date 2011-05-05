@@ -1214,12 +1214,12 @@ void lv_redraw()
 	if (lv_drawn())
 	{
 		zebra_pause();
-		bmp_enabled = 0;
-		msleep(200);
-		redraw_maybe();
-		ChangeColorPaletteLV(2);
-		msleep(200);
-		bmp_enabled = 1;
+		//~ bmp_enabled = 0;
+		msleep(500);
+		//~ redraw_maybe();
+		//~ ChangeColorPaletteLV(2);
+		//~ msleep(200);
+		//~ bmp_enabled = 1;
 		zebra_resume();
 	}
 	else

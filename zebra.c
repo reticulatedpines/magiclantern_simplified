@@ -2277,7 +2277,7 @@ void zoom_overlay_size_toggle(void* priv)
 	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
-CONFIG_INT("lv.disp.profiles", disp_profiles_0, 3);
+CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
 
 static void
 disp_profiles_0_display(
@@ -2653,7 +2653,6 @@ void display_on()
 	if (EXT_MONITOR_CONNECTED) return;
 	if (_display_is_off)
 	{
-		if (lv_drawn()) lvimage_on(); // might save a bit of power
 		call("TurnOnDisplay");
 		_display_is_off = 0;
 	}
@@ -2671,7 +2670,6 @@ void display_off()
 	if (EXT_MONITOR_CONNECTED) return;
 	if (!_display_is_off)
 	{
-		if (lv_drawn()) lvimage_off(); // might save a bit of power
 		call("TurnOffDisplay");
 		_display_is_off = 1;
 	}
@@ -2681,8 +2679,10 @@ void display_off_force()
 	if (lens_info.job_state) return;
 	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 0;
-	display_on();
+	display_off();
 }
+int display_is_on() { return !_display_is_off; }
+
 
 void zoom_overlay_toggle()
 {
@@ -2845,8 +2845,8 @@ void draw_zoom_overlay()
 }
 
 int zebra_paused = 0;
-void zebra_pause() { zebra_paused++; }
-void zebra_resume() { zebra_paused--; }
+void zebra_pause() { zebra_paused = 1; }
+void zebra_resume() { zebra_paused = 0; }
 
 int liveview_display_idle()
 {
@@ -2876,6 +2876,9 @@ void zebra_sleep_when_tired()
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_dirty = 5;
+		msleep(200);
+		if (lv_drawn() && !gui_menu_shown()) redraw_maybe();
+		msleep(200);
 	}
 }
 
@@ -2967,10 +2970,14 @@ void clearscreen_wakeup()
 static void
 clearscreen_task( void )
 {
-	while(1)
+	int k = 0;
+	for (;;k++)
 	{
 clearscreen_loop:
 		msleep(100);
+
+		if (k % 50 == 0 && !display_is_on())
+			card_led_blink(2, 50, 50);
 
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && get_halfshutter_pressed())
@@ -3002,8 +3009,13 @@ clearscreen_loop:
 			
 			if (clearscreen_countdown == 1)
 			{
+				if (clearscreen == 3)
+				{
+					bmp_printf(FONT_LARGE, 10, 40, "DISPLAY OFF");
+					msleep(1000);
+					display_off_force();
+				}
 				bmp_off();
-				if (clearscreen == 3) display_off_force();
 			}
 			else if (clearscreen_countdown > 1)
 			{

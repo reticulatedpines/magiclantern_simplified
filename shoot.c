@@ -1096,6 +1096,7 @@ static int measure_auto_iso()
 }
 static void iso_auto_quick()
 {
+	if (MENU_MODE) return;
 	lens_set_rawiso(measure_auto_iso());
 }
 
@@ -1194,6 +1195,7 @@ shutter_toggle_reverse( void * priv )
 
 static void shutter_auto_quick()
 {
+	if (MENU_MODE) return;
 	if (lens_info.raw_iso == 0) return;                  // does not work on Auto ISO
 	int ciso = lens_info.raw_iso;
 	int steps = measure_auto_iso() - ciso;              // read delta exposure and compute new shutter value

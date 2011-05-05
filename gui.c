@@ -51,10 +51,10 @@ int get_halfshutter_pressed()
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-int set_pressed = 0;
+//~ int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-int get_set_pressed() { return set_pressed; }
+//~ int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -88,7 +88,7 @@ extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
 
-CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
+//~ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -181,6 +181,10 @@ static int handle_buttons(struct event * event)
 			lens_focus_start( get_focus_dir() );
 			return 0;
 		}
+	}
+	if (gui_menu_shown())
+	{
+		if (event->type == 0 && event->param == 0x5a) return 0;
 	}
 	
 	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
@@ -373,7 +377,7 @@ static int handle_buttons(struct event * event)
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
-		else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
+		/*else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
 		{
 			select_menu("Expo", 7);
 			give_semaphore( gui_sem ); 
@@ -390,7 +394,7 @@ static int handle_buttons(struct event * event)
 			select_menu("Debug", 2);
 			give_semaphore( gui_sem ); 
 			return 0;
-		}
+		}*/
 		else if (lv_dispsize > 1)
 		{
 			select_menu("LiveV", 8);
