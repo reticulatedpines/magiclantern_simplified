@@ -1009,7 +1009,7 @@ static void draw_zebra_and_focus_unified( void )
 
 	uint32_t x,y;
 	int zd = zebra_draw && expsim && (!zebra_nrec || !recording); // when to draw zebras
-	if (focus_peaking) {
+	if (focus_peaking || zd) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
   		static int* dirty_pixels = 0;
@@ -1262,7 +1262,7 @@ draw_zebra_and_focus( void )
 	//~ int BMPPITCH = bmp_pitch();
 	uint32_t x,y;
 
-	if (focus_peaking && !Zd)
+	if (focus_peaking && !Zd && !PLAY_MODE)
 	{
 		// clear previously written pixels
 		#define MAX_DIRTY_PIXELS 5000
@@ -2607,7 +2607,6 @@ cropmark_draw()
 static void
 cropmark_redraw()
 {
-	if (!zebra_should_run()) return;
 	cropmark_draw();
 }
 
