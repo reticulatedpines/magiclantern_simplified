@@ -2672,6 +2672,7 @@ int liveview_display_idle()
 		lv_dispsize == 1 &&
 		lens_info.job_state < 10 &&
 		recording != 1 &&
+		!mirror_down &&
 		!(recording == 2 && MVR_FRAME_NUMBER < 50) &&
 		!gui_menu_shown();
 }
