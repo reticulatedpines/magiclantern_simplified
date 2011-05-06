@@ -482,7 +482,7 @@ int can_lv_trap_focus_be_active()
 	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
 	if (gui_state != GUISTATE_IDLE) return 0;
 	if (get_silent_pic_mode()) return 0;
-	if ((af_mode & 0xF) != 3) return 0;
+	if (!is_manual_focus()) return 0;
 	return 1;
 }
 
@@ -497,7 +497,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 {
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
 	hsp = buf[0];
-	hsp_countdown = 15;
+	hsp_countdown = 3;
 	if (get_zoom_overlay_z()) zoom_overlay_disable();
 	
 	return prop_cleanup(token, property);
@@ -620,10 +620,11 @@ static void plot_focus_mag(int mag)
 	
 	for (i = 0; i < NMAGS-1; i++)
 	{
-		bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
+		if (get_global_draw()) bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
 		mags[i] = mags[i+1];
-		bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
+		if (get_global_draw()) bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
 	}
+
 	// i = NMAGS-1
 	mags[i] = mag;
 
@@ -635,8 +636,11 @@ static void plot_focus_mag(int mag)
 	static int stop_countdown = 0;
 	if (is_follow_focus_active())
 	{
-		plot_focus_status();
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
+		if (get_global_draw())
+		{
+			plot_focus_status();
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
+		}
 		if (get_follow_focus_stop_on_focus() && !stop_countdown)
 		{
 			if (!rev_countdown)
@@ -678,7 +682,7 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 	
 	if (movie_af != 3)
 	{
-		if (get_focus_graph() && get_global_draw()) plot_focus_mag(focus_mag_a + focus_mag_b);
+		if (get_focus_graph()) plot_focus_mag(focus_mag_a + focus_mag_b);
 		if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
 			movie_af_step(focus_mag_a + focus_mag_b);
 	}
@@ -723,17 +727,22 @@ void movie_af_noisefilter_bump(void* priv)
 static void
 focus_misc_task()
 {
-	if (hsp_countdown) hsp_countdown--;
-
-	if (movie_af == 3)
+	while(1)
 	{
-		int fm = get_spot_focus(100);
-		if (get_focus_graph() && get_global_draw()) plot_focus_mag(fm);
-		movie_af_step(fm);
+		msleep(50);
+		
+		if (hsp_countdown) hsp_countdown--;
+
+		if (movie_af == 3)
+		{
+			int fm = get_spot_focus(100);
+			if (get_focus_graph()) plot_focus_mag(fm);
+			movie_af_step(fm);
+		}
 	}
 }
 
-
+TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1f, 0x1000 );
 
 static void 
 trap_focus_display( void * priv, int x, int y, int selected )
