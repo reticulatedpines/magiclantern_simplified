@@ -285,10 +285,24 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
-	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor && DISPLAY_SENSOR_POWERED)
+	if (lv_drawn() && get_zoom_overlay_mode() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
-		zoom_overlay_toggle();
-		return 0;
+		// magic zoom toggled by sensor+zoom in
+		if (get_zoom_overlay_mode() != 3 && get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+		{
+			static int i = 0;
+			extern int zoom_overlay;
+			bmp_printf(FONT_MED, 50, 50, "Z%d %d %d ", i, get_zoom_overlay_mode(), zoom_overlay);
+			i++;
+			zoom_overlay_toggle();
+			return 0;
+		}
+		// magic zoom toggled by zoom in, normal zoom by sensor+zoom in
+		else if (get_zoom_overlay_mode() == 3 && !(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
+		{
+			zoom_overlay_toggle();
+			return 0;
+		}
 	}
 	
 	if (recording && get_zoom_overlay_mode())

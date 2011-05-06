@@ -2049,17 +2049,17 @@ zoom_overlay_display(
 		x, y,
 		"Magic Zoom  : %s%s%s",
 		zoom_overlay_mode == 0 ? "OFF" :
-		zoom_overlay_mode == 1 ? "Zrec," :
-		zoom_overlay_mode == 2 ? "Zr+F," :
-		zoom_overlay_mode == 3 ? "(+)," : "err",
+		zoom_overlay_mode == 1 ? "Zrec, " :
+		zoom_overlay_mode == 2 ? "Zr+F, " :
+		zoom_overlay_mode == 3 ? "(+), " : "err",
 
 		zoom_overlay_mode == 0 ? "" :
-			zoom_overlay_size == 0 ? "Small," :
-			zoom_overlay_size == 1 ? "Med," :
-			zoom_overlay_size == 2 ? "Large," :
-			zoom_overlay_size == 3 ? "Small X2," :
-			zoom_overlay_size == 4 ? "Med X2," :
-			zoom_overlay_size == 5 ? "Large X2," :  "err",
+			zoom_overlay_size == 0 ? "Small, " :
+			zoom_overlay_size == 1 ? "Med, " :
+			zoom_overlay_size == 2 ? "Large, " :
+			zoom_overlay_size == 3 ? "SmallX2, " :
+			zoom_overlay_size == 4 ? "MedX2, " :
+			zoom_overlay_size == 5 ? "LargeX2, " :  "err",
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_pos == 0 ? "AFF" :
 			zoom_overlay_pos == 1 ? "NW" :
@@ -2246,7 +2246,7 @@ void hdmi_test_toggle(void* priv)
 
 void zoom_overlay_main_toggle(void* priv)
 {
-	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 5);
+	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 4);
 }
 
 void zoom_overlay_size_toggle(void* priv)
@@ -2673,28 +2673,24 @@ int liveview_display_idle()
 		lens_info.job_state < 10 &&
 		recording != 1 &&
 		!(recording == 2 && MVR_FRAME_NUMBER < 50) &&
-		!gui_menu_shown() &&
-		bmp_is_on() &&
-		!redraw_requested;
+		!gui_menu_shown();
 }
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
-	return liveview_display_idle();
+	return liveview_display_idle() && bmp_is_on() && !redraw_requested;
 }
 
 void zebra_sleep_when_tired()
 {
 	if (!zebra_should_run())
 	{
-		ChangeColorPaletteLV(4);
-		if (lv_drawn() && !gui_menu_shown()) redraw_maybe();
+		if (!gui_menu_shown()) ChangeColorPaletteLV(4);
+		if (lv_drawn() && !gui_menu_shown()) redraw();
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_dirty = 5;
-		msleep(200);
-		if (lv_drawn() && !gui_menu_shown()) redraw_maybe();
-		msleep(200);
+		if (lv_drawn() && !gui_menu_shown()) redraw();
 	}
 }
 
@@ -2757,6 +2753,7 @@ zebra_task( void )
 	{
 		k++;
 		msleep(10); // safety msleep :)
+		if (recording) msleep(100);
 		
 		if (lv_drawn() && disp_mode_change_request)
 		{
@@ -2820,6 +2817,9 @@ clearscreen_loop:
 				clearscreen_wakeup();
 			}
 			
+			if (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+				clearscreen_wakeup();
+			
 			if (clearscreen_countdown == 1)
 			{
 				if (clearscreen == 3)
@@ -2851,6 +2851,12 @@ void redraw_request()
 	redraw_requested = 1;
 }
 
+void redraw()
+{
+	redraw_request();
+	while (redraw_requested) msleep(100);
+}
+
 static void
 redraw_task( void )
 {
@@ -2859,17 +2865,14 @@ redraw_task( void )
 		msleep(100);
 		if (redraw_requested)
 		{
-			if (!bmp_is_on()) continue;
-			
 			bmp_enabled = 0;
-			msleep(200);
-			redraw_maybe();
-			ChangeColorPaletteLV(2);
+			msleep(100);
+			RedrawDisplay();
 			bmp_enabled = 1;
 
-			redraw_maybe();
-
 			afframe_set_dirty();
+			redraw_requested = 0;
+			msleep(500);
 			redraw_requested = 0;
 		}
 	}
@@ -2900,7 +2903,7 @@ void test_fps(int* x)
 
 int should_draw_zoom_overlay()
 {
-	return (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
+	return (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown));
 }
 static void
 zoom_overlay_task( void )
@@ -2986,7 +2989,6 @@ int toggle_disp_mode()
 }
 void do_disp_mode_change()
 {
-	clearscreen_wakeup();
 	display_on();
 	bmp_on();
 	clrscr();
@@ -3009,7 +3011,7 @@ void livev_playback_toggle()
 	}
 	else
 	{
-		redraw_maybe();
+		redraw_request();
 	}
 }
 void livev_playback_reset()

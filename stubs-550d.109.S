@@ -181,7 +181,7 @@ NSTUB( 0xFF31CFCC, ChangeColorPalette )
 
 NSTUB( 0xFF2CFA54, MirrorDisplay )
 NSTUB( 0xFF2CFAB4, NormalDisplay )
-NSTUB( 0xFF2CE1F0, redraw_maybe )
+NSTUB( 0xFF2CE1F0, RedrawDisplay )
 
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?

@@ -493,6 +493,7 @@ menu_redraw_if_damaged()
 		bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
 		menu_damage = 0;
 		menus_display( menus, 10, 40 );
+		update_stuff();
 	}
 }
 
@@ -757,15 +758,13 @@ gui_stop_menu( void )
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 
-	if (!lv_drawn()) redraw_maybe();
-	//~ zebra_resume();
 	update_disp_mode_bits_from_params();
 	
 	lens_focus_stop();
 	show_only_selected = 0;
-	
-	redraw_request();
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
+
+	redraw_request();
 }
 
 
@@ -974,13 +973,13 @@ menu_task( void )
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
 
-int is_focus_menu_active()
+int is_menu_active(char* name)
 {
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
 			break;
-	return !strcmp(menu->name, "Focus");
+	return !strcmp(menu->name, name);
 }
 
 void select_menu(char* name, int entry_index)

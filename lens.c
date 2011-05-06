@@ -133,8 +133,11 @@ update_lens_display(
 	struct lens_info *	info
 )
 {
-	if (get_halfshutter_pressed()) return;
-	if (!zebra_should_run()) return;
+	if (!gui_menu_shown() || audio_meters_are_drawn())
+	{
+		if (get_halfshutter_pressed()) return;
+		if (!zebra_should_run()) return;
+	}
 	
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
@@ -143,10 +146,10 @@ update_lens_display(
 	unsigned height	= fontspec_height( font );
 	
 	unsigned x = 420;
-	unsigned y = lv_disp_mode ? 400 : 480 - height - 10;
-	if (ext_monitor_hdmi) y += recording ? -100 : 100;
+	unsigned y = 480 - height - 10;
+	if (ext_monitor_hdmi) y += recording ? -100 : 200;
 
-	if (!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0)
+	if ((!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0) || (gui_menu_shown()))
 	{
 	
 		//~ y += height;
@@ -297,6 +300,9 @@ update_lens_display(
 		alo == ALO_STD ? "Alo" :
 		alo == ALO_HIGH ? "ALO" : "   "
 	);
+
+	x += 100;
+	bmp_printf( font, x, y,"T%d", efic_temp);
 
 	display_clock();
 

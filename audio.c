@@ -311,7 +311,16 @@ int show_volume = 0;
 
 int audio_meters_are_drawn()
 {
-	return do_draw_meters && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)) && (zebra_should_run() || gui_menu_shown());
+	return 
+		(
+			(do_draw_meters && zebra_should_run()) ||
+			(gui_menu_shown() && is_menu_active("Audio"))
+		)
+		&&
+		(
+			cfg_draw_meters == 1 || 
+			(cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)
+		);
 }
 /** Task to monitor the audio levels.
  *

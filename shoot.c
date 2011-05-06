@@ -335,7 +335,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 		if (v == 0 && lv_drawn() && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
 			face_zoom_request = 1;
 	}
-	if (v && gui_menu_shown() && !is_focus_menu_active())
+	if (v && gui_menu_shown() && !is_menu_active("Focus"))
 	{
 		gui_stop_menu();
 	}

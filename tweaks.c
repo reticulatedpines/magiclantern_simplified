@@ -298,7 +298,7 @@ af_frame_autohide_display(
 int afframe_countdown = 0;
 void afframe_set_dirty()
 {
-	afframe_countdown = 50;
+	afframe_countdown = 20;
 }
 
 void clear_lv_afframe()
@@ -390,7 +390,6 @@ tweak_task( void )
 			afframe_countdown--;
 			if (!afframe_countdown) clear_lv_afframe();
 		}
-
 	}
 }
 
