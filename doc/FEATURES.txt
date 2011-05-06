@@ -437,8 +437,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * ``OFF``
   * ``Zrec``: triggered by ``Zoom In`` button, pressed either while recording or while the LCD sensor is covered
-  * ``Zr+F``: triggered by ``Zoom In`` button and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `movie AF`_ / `rack focus`_).
-  * ``ALW``: always on
+  * ``Zr+F``: triggered by ``Zoom In`` button while recording, and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `movie AF`_ / `rack focus`_).
+  * ``(*)``: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, cover the LCD sensor or press both zoom buttons at the same time.
   
   Size / magnification (change with ``DISP`` or ``PLAY``): 
   
