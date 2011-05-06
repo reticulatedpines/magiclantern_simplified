@@ -1110,6 +1110,7 @@ int crit_iso(int iso_index)
 
 	int under, over;
 	get_under_and_over_exposure_autothr(&under, &over);
+	menu_show_only_selected();
 	return under - over;
 }
 
@@ -1201,6 +1202,7 @@ int crit_shutter(int shutter_index)
 
 	int under, over;
 	get_under_and_over_exposure_autothr(&under, &over);
+	menu_show_only_selected();
 	return over - under;
 }
 
@@ -1347,6 +1349,7 @@ int crit_kelvin(int k)
 	int8_t U, V;
 	get_spot_yuv(100, &Y, &U, &V);
 	//~ bmp_printf(FONT_MED, 300, 30, "%d, %d ", U, V);
+	menu_show_only_selected();
 	return V - U;
 }
 
