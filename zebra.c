@@ -32,8 +32,6 @@
 #include "gui.h"
 #include "lens.h"
 
-PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
-
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 
@@ -87,12 +85,6 @@ CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
 //~ CONFIG_INT( "waveform.x",	waveform_x,	720 - WAVEFORM_WIDTH );
 //~ CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
 CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
-CONFIG_INT( "timecode.x",	timecode_x,	720 - 160 );
-CONFIG_INT( "timecode.y",	timecode_y,	0 );
-CONFIG_INT( "timecode.width",	timecode_width,	160 );
-CONFIG_INT( "timecode.height",	timecode_height, 20 );
-CONFIG_INT( "timecode.warning",	timecode_warning, 120 );
-static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 CONFIG_INT( "clear.preview", clearscreen, 1); // 2 is always
 CONFIG_INT( "clear.preview.delay", clearscreen_delay, 500); // ms
@@ -105,10 +97,10 @@ CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 CONFIG_INT( "zebra.density", zebra_density, 0); 
 CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
-CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 
 int crop_dirty = 0;
 int clearscreen_countdown = 20;
+int redraw_requested = 0;
 
 void ChangeColorPaletteLV(int x)
 {
@@ -146,9 +138,6 @@ use_hd_vram_display( void * priv, int x, int y, int selected )
 		"Use HD VRAM: %s", use_hd_vram?"yes":"no");
 }
 
-PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
-PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 int recording = 0;
 
 uint8_t false_colour[4][256] = {
@@ -206,6 +195,7 @@ PROP_HANDLER(PROP_GUI_STATE) {
 
 PROP_HANDLER( PROP_LV_AFFRAME ) {
 	crop_dirty = 20;
+	afframe_set_dirty();
 	return prop_cleanup( token, property );
 }
 
@@ -1983,19 +1973,6 @@ edge_display( void * priv, int x, int y, int selected )
 }*/
 
 static void
-time_indicator_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Time Indicator: %s",
-		time_indicator == 1 ? "Elapsed" :
-		time_indicator == 2 ? "Remain.Card" :
-		time_indicator == 3 ? "Remain.4GB" : "OFF"
-	);
-}
-
-static void
 hist_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
@@ -2074,7 +2051,7 @@ zoom_overlay_display(
 		zoom_overlay_mode == 0 ? "OFF" :
 		zoom_overlay_mode == 1 ? "Zrec," :
 		zoom_overlay_mode == 2 ? "Zr+F," :
-		zoom_overlay_mode == 3 ? "ALW," : "err",
+		zoom_overlay_mode == 3 ? "(+)," : "err",
 
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_size == 0 ? "Small," :
@@ -2269,7 +2246,7 @@ void hdmi_test_toggle(void* priv)
 
 void zoom_overlay_main_toggle(void* priv)
 {
-	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 4);
+	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 5);
 }
 
 void zoom_overlay_size_toggle(void* priv)
@@ -2414,15 +2391,6 @@ struct menu_entry dbg_menus[] = {
 	}*/
 };
 
-struct menu_entry movie_menus[] = {
-	{
-		.priv		= &time_indicator,
-		.select		= menu_quaternary_toggle,
-		.select_reverse	= menu_quaternary_toggle_reverse,
-		.display	= time_indicator_display,
-	},
-};
-
 static struct menu_entry cfg_menus[] = {
 	{
 		.priv		= &disp_profiles_0,
@@ -2431,158 +2399,6 @@ static struct menu_entry cfg_menus[] = {
 		.display	= disp_profiles_0_display,
 	},
 };
-
-PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
-
-
-#if 0
-PROP_HANDLER( PROP_MVR_REC_START )
-{
-	if( buf[0] == 2 )
-		bmp_printf(
-			timecode_font,
-			timecode_x,
-			timecode_y,
-			"REC: "
-		);
-	return prop_cleanup( token, property );
-}
-#endif
-
-int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
-
-PROP_HANDLER(PROP_MVR_REC_START)
-{
-	crop_dirty = 50;
-	recording = buf[0];
-	if (!recording)
-	{
-		movie_elapsed_time_01s = 0;
-	}
-	return prop_cleanup( token, property );
-}
-
-int measured_bitrate = 0; // mbps
-int free_space_32k = 0;
-int movie_bytes_written_32k = 0;
-
-int get_measured_bitrate() // also applies a small filter to ignore keyframes
-{ 
-	static int prev = 0;
-	int ans = MIN(prev, measured_bitrate);
-	prev = measured_bitrate;
-	return ans; 
-}
-
-int new_measurement = 0;
-int get_new_measurement()
-{ 
-	if (new_measurement)
-	{
-		new_measurement = 0;
-		return 1;
-	}
-	return 0;
-}
-
-PROP_HANDLER(PROP_FREE_SPACE)
-{
-	free_space_32k = buf[0];
-	return prop_cleanup(token, property);
-}
-
-void measure_bitrate() // called 5 times / second
-{
-	static uint32_t prev_bytes_written = 0;
-	uint32_t bytes_written = MVR_BYTES_WRITTEN;
-	int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
-	prev_bytes_written = bytes_written;
-	movie_bytes_written_32k = bytes_written >> 15;
-	measured_bitrate = (ABS(bytes_delta) / 1024) * 10 * 8 / 1024;
-	new_measurement = 1;
-	
-	if (time_indicator)
-	{
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
-			timecode_x + 5 * fontspec_font(timecode_font)->width,
-			timecode_y + 18,
-			"%4d",
-			measured_bitrate
-		);
-		if (get_bitrate_mode())
-			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR), 
-				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
-				timecode_y + 25,
-				"%s%d ",
-				get_qscale() < 0 ? "-" : "+",
-				ABS(get_qscale())
-			);
-		else
-			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR),
-				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
-				timecode_y + 25,
-				"   "
-			);
-	}
-}
-
-void free_space_show()
-{
-	if (recording && time_indicator) return;
-	int fsg = free_space_32k >> 15;
-	int fsgr = free_space_32k - (fsg << 15);
-	int fsgf = (fsgr * 10) >> 15;
-
-	bmp_printf(
-		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-		timecode_x + 7 * fontspec_font(timecode_font)->width,
-		timecode_y,
-		"%d.%dGB",
-		fsg,
-		fsgf
-	);
-}
-void time_indicator_show()
-{
-	if (!recording) 
-	{
-		free_space_show();
-		return;
-	}
-	
-	// time until filling the card
-	// in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
-	int time_cardfill = movie_elapsed_time_01s * free_space_32k / movie_bytes_written_32k / 10;
-	
-	// time until 4 GB
-	int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
-
-	//~ bmp_printf(FONT_MED, 0, 300, "%d %d %d %d ", movie_elapsed_time_01s, movie_elapsed_ticks, rec_time_card, rec_time_4gb);
-
-	// what to display
-	int dispvalue = time_indicator == 1 ? movie_elapsed_time_01s / 10:
-					time_indicator == 2 ? time_cardfill :
-					time_indicator == 3 ? MIN(time_4gb, time_cardfill)
-					: 0;
-	
-	if (time_indicator)
-	{
-		bmp_printf(
-			time_4gb < timecode_warning ? timecode_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-			timecode_x + 5 * fontspec_font(timecode_font)->width,
-			timecode_y,
-			"%4d:%02d",
-			dispvalue / 60,
-			dispvalue % 60
-		);
-		bmp_printf( FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
-			timecode_x + 7 * fontspec_font(timecode_font)->width,
-			timecode_y + 38,
-			"AVG%3d",
-			movie_bytes_written_32k * 32 * 80 / 1024 / movie_elapsed_time_01s);
-	}
-}
-
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
@@ -2610,7 +2426,6 @@ cropmark_redraw()
 	cropmark_draw();
 }
 
-PROP_INT(PROP_TFT_STATUS, tft_status);
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
 int _bmp_cleared = 0;
@@ -2844,9 +2659,9 @@ void draw_zoom_overlay()
 	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, 0,    W<<1);
 }
 
-int zebra_paused = 0;
-void zebra_pause() { zebra_paused = 1; }
-void zebra_resume() { zebra_paused = 0; }
+//~ int zebra_paused = 0;
+//~ void zebra_pause() { zebra_paused = 1; }
+//~ void zebra_resume() { zebra_paused = 0; }
 
 int liveview_display_idle()
 {
@@ -2858,15 +2673,14 @@ int liveview_display_idle()
 		lens_info.job_state < 10 &&
 		recording != 1 &&
 		!(recording == 2 && MVR_FRAME_NUMBER < 50) &&
-		!gui_menu_shown();
+		!gui_menu_shown() &&
+		bmp_is_on() &&
+		!redraw_requested;
 }
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
-	return 
-		liveview_display_idle() &&
-		!zebra_paused && 
-		bmp_is_on();
+	return liveview_display_idle();
 }
 
 void zebra_sleep_when_tired()
@@ -2933,10 +2747,6 @@ static void
 zebra_task( void )
 {
 	DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
-    menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
-    menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
-    menu_add( "Movie", movie_menus, COUNT(movie_menus) );
-    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 	
 	msleep(1000);
 	
@@ -3036,6 +2846,37 @@ clearscreen_loop:
 
 TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 
+void redraw_request()
+{
+	redraw_requested = 1;
+}
+
+static void
+redraw_task( void )
+{
+	while(1)
+	{
+		msleep(100);
+		if (redraw_requested)
+		{
+			if (!bmp_is_on()) continue;
+			
+			bmp_enabled = 0;
+			msleep(200);
+			redraw_maybe();
+			ChangeColorPaletteLV(2);
+			bmp_enabled = 1;
+
+			redraw_maybe();
+
+			afframe_set_dirty();
+			redraw_requested = 0;
+		}
+	}
+}
+
+TASK_CREATE( "redraw_task", redraw_task, 0, 0x1e, 0x1000 );
+
 void test_fps(int* x)
 {
 	int x0 = 0;
@@ -3056,26 +2897,6 @@ void test_fps(int* x)
 	return;
 }
 
-
-static void
-movie_clock_task( void )
-{
-	while(1)
-	{
-		msleep(100);
-		if (shooting_type == 4 && recording) 
-		{
-			movie_elapsed_time_01s += 1;
-			measure_bitrate();
-			if (movie_elapsed_time_01s % 10 == 0) time_indicator_show();
-		}
-		
-		//~ bmp_printf(FONT_MED, 10, 80, "%d fps", fps_ticks);
-		fps_ticks = 0;
-	}
-}
-
-TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x13, 0x1000 );
 
 int should_draw_zoom_overlay()
 {
@@ -3173,7 +2994,7 @@ void do_disp_mode_change()
 	update_disp_mode_params_from_bits();
 	msleep(500);
 	clrscr();
-	lv_redraw();
+	redraw_request();
 	crop_dirty = 5;
 }
 
@@ -3195,4 +3016,14 @@ void livev_playback_reset()
 {
 	livev_playback = 0;
 }
+
+static void zebra_init_menus()
+{
+    menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
+    menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
+    //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
+    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+}
+
+INIT_FUNC(__FILE__, zebra_init_menus);
 

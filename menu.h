@@ -34,7 +34,7 @@
 #define _menu_h_
 
 
-#define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG)
+#define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
 #define MENU_FONT_SEL	get_menu_font_sel()
 
 struct menu_entry

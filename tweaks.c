@@ -1,0 +1,534 @@
+/** \file
+ * Tweaks to default UI behavior
+ */
+#include "dryos.h"
+#include "bmp.h"
+#include "tasks.h"
+#include "debug.h"
+#include "menu.h"
+#include "property.h"
+#include "config.h"
+#include "gui.h"
+#include "lens.h"
+
+// ExpSim
+//**********************************************************************
+CONFIG_INT( "expsim.auto", expsim_auto, 1);
+
+void set_expsim( int x )
+{
+	if (expsim != x)
+		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+}
+static void
+expsim_toggle( void * priv )
+{
+	// off, on, auto
+	if (!expsim_auto && !expsim) // off->on
+	{
+		set_expsim(1);
+	}
+	else if (!expsim_auto && expsim) // on->auto
+	{
+		expsim_auto = 1;
+	}
+	else // auto->off
+	{
+		expsim_auto = 0;
+		set_expsim(0);
+	}
+}
+static void
+expsim_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Exposure Simulation : %s",
+		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
+		expsim ? "ON " : "OFF"
+	);
+}
+
+void expsim_update()
+{
+	if (!lv_drawn()) return;
+	if (shooting_mode == SHOOTMODE_MOVIE) return;
+	if (expsim_auto)
+	{
+		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
+		else set_expsim(1);
+	}
+}
+
+// LV metering
+//**********************************************************************
+
+CONFIG_INT("lv.metering", lv_metering, 0);
+
+static void
+lv_metering_print( void * priv, int x, int y, int selected )
+{
+	unsigned z = *(unsigned*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"LV Metering Override: %s",
+		lv_metering == 0 ? "OFF" :
+		lv_metering == 1 ? "Spotmeter" :
+		lv_metering == 2 ? "CenteredHist" :
+		lv_metering == 3 ? "HighlightPri" :
+		lv_metering == 4 ? "NoOverexpose" : "err"
+	);
+}
+
+static void
+lv_metering_adjust()
+{
+	if (!lv_drawn()) return;
+	if (get_halfshutter_pressed()) return;
+	if (lv_dispsize != 1) return;
+	if (shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV) return;
+	
+	if (lv_metering == 1)
+	{
+		uint8_t Y,U,V;
+		get_spot_yuv(5, &Y, &U, &V);
+		//bmp_printf(FONT_LARGE, 0, 100, "Y %d AE %d  ", Y, lens_info.ae);
+		lens_set_ae(COERCE(lens_info.ae + (128 - Y) / 5, -40, 40));
+	}
+	else if (lv_metering == 2) // centered histogram
+	{
+		int under, over;
+		get_under_and_over_exposure_autothr(&under, &over);
+		if (over > under) lens_set_ae(lens_info.ae - 1);
+		else lens_set_ae(lens_info.ae + 1);
+	}
+	else if (lv_metering == 3) // highlight priority
+	{
+		int under, over;
+		get_under_and_over_exposure(5, 240, &under, &over);
+		if (over > 100 && under < over * 5) lens_set_ae(lens_info.ae - 1);
+		else lens_set_ae(lens_info.ae + 1);
+	}
+	else if (lv_metering == 4) // don't overexpose
+	{
+		int under, over;
+		get_under_and_over_exposure(5, 240, &under, &over);
+		if (over > 1000) lens_set_ae(lens_info.ae - 1);
+		else lens_set_ae(lens_info.ae + 1);
+	}
+}
+
+// auto burst pic quality
+//**********************************************************************
+
+CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
+
+int burst_count = 0;
+
+void set_pic_quality(int q)
+{
+	switch(q)
+	{
+		case PICQ_RAW:
+		case PICQ_RAW_JPG:
+		case PICQ_LARGE_FINE:
+		case PICQ_LARGE_COARSE:
+		case PICQ_MED_FINE:
+		case PICQ_MED_COARSE:
+		case PICQ_SMALL_FINE:
+		case PICQ_SMALL_COARSE:
+			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q OK: %x", q);
+			prop_request_change(PROP_PIC_QUALITY, &q, 4);
+			prop_request_change(PROP_PIC_QUALITY2, &q, 4);
+			prop_request_change(PROP_PIC_QUALITY3, &q, 4);
+			break;
+		default:
+			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q invalid: %x", q);
+	}
+}
+
+int picq_saved = -1;
+void decrease_pic_quality()
+{
+	if (picq_saved == -1) picq_saved = pic_quality; // save only first change
+	
+	int newpicq = 0;
+	switch(pic_quality)
+	{
+		case PICQ_RAW_JPG:
+			newpicq = PICQ_RAW;
+			break;
+		case PICQ_RAW:
+			newpicq = PICQ_LARGE_FINE;
+			break;
+		case PICQ_LARGE_FINE:
+			newpicq = PICQ_MED_FINE;
+			break;
+		//~ case PICQ_MED_FINE:
+			//~ newpicq = PICQ_SMALL_FINE;
+			//~ break;
+		//~ case PICQ_SMALL_FINE:
+			//~ newpicq = PICQ_SMALL_COARSE;
+			//~ break;
+		case PICQ_LARGE_COARSE:
+			newpicq = PICQ_MED_COARSE;
+			break;
+		//~ case PICQ_MED_COARSE:
+			//~ newpicq = PICQ_SMALL_COARSE;
+			//~ break;
+	}
+	if (newpicq) set_pic_quality(newpicq);
+}
+void restore_pic_quality()
+{
+	if (picq_saved != -1) set_pic_quality(picq_saved);
+	picq_saved = -1;
+}
+
+void adjust_burst_pic_quality()
+{
+	if (burst_count < 3) decrease_pic_quality();
+	else if (burst_count >= 3) restore_pic_quality();
+}
+
+PROP_HANDLER(PROP_BURST_COUNT)
+{
+	burst_count = buf[0];
+
+	if (auto_burst_pic_quality && avail_shot > burst_count)
+	{
+		adjust_burst_pic_quality();
+	}
+
+	return prop_cleanup(token, property);
+}
+
+static void
+auto_burst_pic_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Auto BurstPicQuality: %s", 
+		auto_burst_pic_quality ? "ON" : "OFF"
+	);
+}
+
+// sensor shortcuts
+//**********************************************************************
+
+CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
+
+int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
+
+static void
+lcd_sensor_shortcuts_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"LCD Sensor Shortcuts: %s", 
+		lcd_sensor_shortcuts ? "ON" : "OFF"
+	);
+}
+
+// start with LV
+//**********************************************************************
+
+CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
+static void
+enable_liveview_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Start with LiveView : %s",
+		enable_liveview == 1 ? "Movie mode" : enable_liveview == 2 ? "All modes" : "OFF"
+	);
+}
+
+// backlight adjust
+//**********************************************************************
+
+PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
+void adjust_backlight_level(int delta)
+{
+	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
+	display_on_force();
+	int level = COERCE(backlight_level + delta, 1, 7);
+	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
+	if (!lv_drawn()) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
+}
+
+CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
+
+static void
+af_frame_autohide_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"AF frame display    : %s", 
+		af_frame_autohide ? "AutoHide" : "Show"
+	);
+}
+
+int afframe_countdown = 0;
+void afframe_set_dirty()
+{
+	afframe_countdown = 50;
+}
+
+void clear_lv_afframe()
+{
+	if (!lv_drawn()) return;
+	if (gui_menu_shown()) return;
+	if (lv_dispsize != 1) return;
+	struct vram_info *	lv = get_yuv422_vram();
+	if( !lv->vram )	return;
+	int xaf,yaf;
+	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
+	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,50) - 50, 200, 100 );
+	crop_set_dirty(1);
+}
+
+CONFIG_INT("play.quick.zoom", quickzoom, 1);
+
+static void
+quickzoom_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Zoom in PLAY mode   : %s", 
+		quickzoom ? "Fast" : "Normal"
+	);
+}
+
+
+static void
+tweak_task( void )
+{
+	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
+	{
+		if (shooting_mode == SHOOTMODE_MOVIE)
+		{
+			set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
+			msleep(500);
+			call( "FA_StartLiveView" );
+			msleep(1000);
+			set_shooting_mode(SHOOTMODE_MOVIE);
+		}
+		else
+		{
+			call( "FA_StartLiveView" );
+		}
+	}
+	
+	int k;
+	for (k = 0; ; k++)
+	{
+		msleep(50);
+		
+		if (!DISPLAY_SENSOR_POWERED) // force sensor on
+		{
+			DispSensorStart();
+		}
+		
+		if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
+		{
+			lv_metering_adjust();
+		}
+		
+		// faster zoom in play mode
+		if (quickzoom && gui_state == GUISTATE_PLAYMENU)
+		{
+			if (get_zoom_in_pressed()) 
+			{
+				msleep(300);
+				while (get_zoom_in_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+			}
+			
+			if (get_zoom_out_pressed())
+			{
+				msleep(300);
+				while (get_zoom_out_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
+			}
+		}
+		
+		expsim_update();
+
+		if (af_frame_autohide && lv_drawn() && afframe_countdown)
+		{
+			afframe_countdown--;
+			if (!afframe_countdown) clear_lv_afframe();
+		}
+
+	}
+}
+
+TASK_CREATE("tweak_task", tweak_task, 0, 0x1f, 0x1000 );
+
+extern int quick_review_allow_zoom;
+
+static void
+qrplay_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"After taking a photo: %s", 
+		quick_review_allow_zoom ? "Hold->Play" : "QuickReview"
+	);
+}
+
+extern int set_on_halfshutter;
+
+static void
+set_on_halfshutter_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"HalfShutter in DLGs : %s", 
+		set_on_halfshutter ? "SET" : "Cancel"
+	);
+}
+
+extern int iso_round_only;
+static void
+iso_round_only_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"ISO selection       : %s", 
+		iso_round_only ? "100x, 160x" : "All values"
+	);
+}
+
+
+extern int cropmark_movieonly;
+
+static void
+crop_movieonly_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Show cropmarks in   : %s", 
+		cropmark_movieonly ? "Movie mode" : "All modes"
+	);
+}
+
+struct menu_entry tweak_menus[] = {
+	{
+		.priv = &af_frame_autohide, 
+		.select = menu_binary_toggle,
+		.display = af_frame_autohide_display,
+	},
+	{
+		.priv		= &lcd_sensor_shortcuts,
+		.select		= menu_binary_toggle,
+		.display	= lcd_sensor_shortcuts_print,
+	},
+	{
+		.priv = &auto_burst_pic_quality, 
+		.select = menu_binary_toggle, 
+		.display = auto_burst_pic_display,
+	},
+	{
+		.select = expsim_toggle, 
+		.display = expsim_display,
+	},
+	{
+		.priv = &quick_review_allow_zoom, 
+		.select = menu_binary_toggle, 
+		.display = qrplay_display,
+	},
+	{
+		.priv = &quickzoom, 
+		.select = menu_binary_toggle, 
+		.display = quickzoom_display,
+	},
+	{
+		.priv = &set_on_halfshutter, 
+		.select = menu_binary_toggle, 
+		.display = set_on_halfshutter_display,
+	},
+	{
+		.priv = &cropmark_movieonly,
+		.display	= crop_movieonly_display,
+		.select		= menu_binary_toggle,
+	},
+	{
+		.priv = &iso_round_only,
+		.display	= iso_round_only_display,
+		.select		= menu_binary_toggle,
+	},
+	{
+		.priv = &enable_liveview,
+		.display	= enable_liveview_print,
+		.select		= menu_ternary_toggle,
+	},
+	{
+		.priv = &lv_metering,
+		.select = menu_quinternary_toggle, 
+		.select_reverse = menu_quinternary_toggle_reverse, 
+		.display = lv_metering_print,
+	},
+};
+
+void tweak_init()
+{
+	menu_add( "Tweak", tweak_menus, COUNT(tweak_menus) );
+}
+
+INIT_FUNC(__FILE__, tweak_init);

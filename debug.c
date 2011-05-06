@@ -15,63 +15,6 @@
 int config_autosave = 1;
 #define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 
-CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
-CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
-CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
-CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
-
-CONFIG_INT( "expsim.auto", expsim_auto, 1);
-
-PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
-void set_expsim( int x )
-{
-	if (expsim != x)
-		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
-}
-static void
-expsim_toggle( void * priv )
-{
-	// off, on, auto
-	if (!expsim_auto && !expsim) // off->on
-	{
-		set_expsim(1);
-	}
-	else if (!expsim_auto && expsim) // on->auto
-	{
-		expsim_auto = 1;
-	}
-	else // auto->off
-	{
-		expsim_auto = 0;
-		set_expsim(0);
-	}
-}
-static void
-expsim_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Exposure Sim.  : %s",
-		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
-		expsim ? "ON " : "OFF"
-	);
-}
-
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-int shooting_mode;
-
-void expsim_update()
-{
-	if (!lv_drawn()) return;
-	if (shooting_mode == SHOOTMODE_MOVIE) return;
-	if (expsim_auto)
-	{
-		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
-		else set_expsim(1);
-	}
-}
-
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
 //////////////////////////////////////////////////////////
@@ -108,282 +51,7 @@ static void dm_toggle(void* priv)
 }
 //////////////////////////////////////////////////////////
 
-static PROP_INT(PROP_EFIC_TEMP, efic_temp );
-static PROP_INT(PROP_GUI_STATE, gui_state);
-static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
-static PROP_INT(PROP_PIC_QUALITY, pic_quality);
-
 extern void bootdisk_disable();
-
-CONFIG_INT("lv.metering", lv_metering, 0);
-
-static void
-lv_metering_print( void * priv, int x, int y, int selected )
-{
-	unsigned z = *(unsigned*) priv;
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"LV metering    : %s",
-		lv_metering == 0 ? "Default" :
-		lv_metering == 1 ? "Spotmeter" :
-		lv_metering == 2 ? "CenteredHist" :
-		lv_metering == 3 ? "HighlightPri" :
-		lv_metering == 4 ? "NoOverexpose" : "err"
-	);
-}
-
-static void
-lv_metering_adjust()
-{
-	if (!lv_drawn()) return;
-	if (get_halfshutter_pressed()) return;
-	if (lv_dispsize != 1) return;
-	if (shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV) return;
-	
-	if (lv_metering == 1)
-	{
-		uint8_t Y,U,V;
-		get_spot_yuv(5, &Y, &U, &V);
-		//bmp_printf(FONT_LARGE, 0, 100, "Y %d AE %d  ", Y, lens_info.ae);
-		lens_set_ae(COERCE(lens_info.ae + (128 - Y) / 5, -40, 40));
-	}
-	else if (lv_metering == 2) // centered histogram
-	{
-		int under, over;
-		get_under_and_over_exposure_autothr(&under, &over);
-		if (over > under) lens_set_ae(lens_info.ae - 1);
-		else lens_set_ae(lens_info.ae + 1);
-	}
-	else if (lv_metering == 3) // highlight priority
-	{
-		int under, over;
-		get_under_and_over_exposure(5, 240, &under, &over);
-		if (over > 100 && under < over * 5) lens_set_ae(lens_info.ae - 1);
-		else lens_set_ae(lens_info.ae + 1);
-	}
-	else if (lv_metering == 4) // don't overexpose
-	{
-		int under, over;
-		get_under_and_over_exposure(5, 240, &under, &over);
-		if (over > 1000) lens_set_ae(lens_info.ae - 1);
-		else lens_set_ae(lens_info.ae + 1);
-	}
-}
-
-
-CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
-int burst_count = 0; // PROP_BURST_COUNT = how many more pics can be taken in burst mode
-
-void set_pic_quality(int q)
-{
-	switch(q)
-	{
-		case PICQ_RAW:
-		case PICQ_RAW_JPG:
-		case PICQ_LARGE_FINE:
-		case PICQ_LARGE_COARSE:
-		case PICQ_MED_FINE:
-		case PICQ_MED_COARSE:
-		case PICQ_SMALL_FINE:
-		case PICQ_SMALL_COARSE:
-			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q OK: %x", q);
-			prop_request_change(PROP_PIC_QUALITY, &q, 4);
-			prop_request_change(PROP_PIC_QUALITY2, &q, 4);
-			prop_request_change(PROP_PIC_QUALITY3, &q, 4);
-			break;
-		default:
-			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q invalid: %x", q);
-	}
-}
-
-int picq_saved = -1;
-void decrease_pic_quality()
-{
-	if (picq_saved == -1) picq_saved = pic_quality; // save only first change
-	
-	int newpicq = 0;
-	switch(pic_quality)
-	{
-		case PICQ_RAW_JPG:
-			newpicq = PICQ_RAW;
-			break;
-		case PICQ_RAW:
-			newpicq = PICQ_LARGE_FINE;
-			break;
-		case PICQ_LARGE_FINE:
-			newpicq = PICQ_MED_FINE;
-			break;
-		//~ case PICQ_MED_FINE:
-			//~ newpicq = PICQ_SMALL_FINE;
-			//~ break;
-		//~ case PICQ_SMALL_FINE:
-			//~ newpicq = PICQ_SMALL_COARSE;
-			//~ break;
-		case PICQ_LARGE_COARSE:
-			newpicq = PICQ_MED_COARSE;
-			break;
-		//~ case PICQ_MED_COARSE:
-			//~ newpicq = PICQ_SMALL_COARSE;
-			//~ break;
-	}
-	if (newpicq) set_pic_quality(newpicq);
-}
-void restore_pic_quality()
-{
-	if (picq_saved != -1) set_pic_quality(picq_saved);
-	picq_saved = -1;
-}
-
-void adjust_burst_pic_quality()
-{
-	if (burst_count < 3) decrease_pic_quality();
-	else if (burst_count >= 3) restore_pic_quality();
-}
-
-PROP_INT(PROP_AVAIL_SHOT, avail_shot);
-
-PROP_HANDLER(PROP_BURST_COUNT)
-{
-	burst_count = buf[0];
-
-	if (auto_burst_pic_quality && avail_shot > burst_count)
-	{
-		adjust_burst_pic_quality();
-	}
-
-	return prop_cleanup(token, property);
-}
-
-static void
-auto_burst_pic_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Auto Burst PicQ: %s", 
-		auto_burst_pic_quality ? "ON" : "OFF"
-	);
-}
-
-
-CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
-
-static void
-af_frame_autohide_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"AF frame       : %s", 
-		af_frame_autohide ? "AutoHide" : "Default"
-	);
-}
-
-int afframe_countdown = 0;
-
-PROP_HANDLER(PROP_LV_AFFRAME)
-{
-	afframe_countdown = 50;
-	return prop_cleanup(token, property);
-}
-
-void clear_lv_afframe()
-{
-	if (!lv_drawn()) return;
-	if (gui_menu_shown()) return;
-	if (lv_dispsize != 1) return;
-	struct vram_info *	lv = get_yuv422_vram();
-	if( !lv->vram )	return;
-	int xaf,yaf;
-	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
-	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,50) - 50, 200, 100 );
-	crop_set_dirty(1);
-}
-
-
-int focus_value = 0; // heuristic from 0 to 100
-int focus_value_delta = 0;
-
-/*
-int big_clock = 0;
-
-static void
-big_clock_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Big Clock      : %s", 
-		big_clock == 0 ? "OFF" : "ON"
-		//~ big_clock == 1 ? "Clock" :
-		//~ big_clock == 2 ? "Timer (1h)" :
-		//~ big_clock == 3 ? "Timer (1m)" : "err"
-	);
-}
-
-void show_big_clock()
-{
-	if (gui_state != 0) return;
-	if (gui_menu_shown()) return;
-	struct tm now;
-	LoadCalendarFromRTC( &now );
-	if (big_clock == 1)
-	{
-		static int tm_sec_prev = 0;
-		if (now.tm_sec == tm_sec_prev) return;
-		tm_sec_prev = now.tm_sec;
-
-		int ang_hour = (now.tm_hour % 12) * 360 / 12 - 90;
-		int ang_min = now.tm_min * 360 / 60 - 90;
-		int ang_sec = now.tm_sec * 360 / 60 - 90;
-		
-		clrscr();
-		draw_circle(360, 240, 240, COLOR_WHITE);
-		draw_circle(360, 240, 239, COLOR_WHITE);
-		draw_circle(360, 240, 238, COLOR_WHITE);
-		draw_pie(360, 240, 150, ang_hour - 1, ang_hour + 1, COLOR_WHITE);
-		draw_pie(360, 240, 200, ang_min - 1, ang_min + 1, COLOR_WHITE);
-		draw_pie(360, 240, 220, ang_sec - 1, ang_sec + 1, COLOR_RED);
-	}
-}
-*/
-
-CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
-
-int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
-
-static void
-lcd_sensor_shortcuts_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"SensorShortcuts: %s", 
-		lcd_sensor_shortcuts ? "ON" : "OFF"
-	);
-}
-
 
 void take_screenshot( void * priv )
 {
@@ -392,8 +60,6 @@ void take_screenshot( void * priv )
 }
 
 int draw_prop = 0;
-
-CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
 
 static void
 draw_prop_select( void * priv )
@@ -472,224 +138,6 @@ config_autosave_toggle(void* priv)
 	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 }
 
-PROP_INT(PROP_MVR_REC_START, recording);
-
-//----------------begin qscale-----------------
-CONFIG_INT( "h264.qscale.index", qscale_index, 6 );
-CONFIG_INT( "h264.bitrate.mode", bitrate_mode, 0 ); // off, CBR, VBR, MAX
-CONFIG_INT( "h264.bitrate.value.index", bitrate_value_index, 14 );
-
-int qscale_values[] = {16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
-int bitrate_values[] = {1,2,3,4,5,6,7,8,10,12,15,18,20,25,30,35,40,45,50,60,70,80,90,100,110,120};
-
-#define BITRATE_VALUE bitrate_values[mod(bitrate_value_index, COUNT(bitrate_values))]
-
-int get_prescribed_bitrate() { return BITRATE_VALUE; }
-int get_bitrate_mode() { return bitrate_mode; }
-
-int qscale = 0; // prescribed value
-
-// don't call those outside vbr_fix / vbr_set
-void mvrFixQScale(uint16_t *);    // only safe to call when not recording
-void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at a time
-// otherwise ther appears a nice error message which shows the shutter count [quote AlinS] :)
-
-void vbr_fix(uint16_t param)
-{
-	if (!lv_drawn()) return;
-	if (shooting_mode != SHOOTMODE_MOVIE) return; 
-	if (recording) return; // err70 if you do this while recording
-
-	mvrFixQScale(&param);
-}
-void vbr_set()
-{
-	static int k = 0;
-	k++;
-	//~ bmp_printf(FONT_SMALL, 10,70, "vbr_set %3d %d %d", k, bitrate_mode, qscale);
-
-	if (!lv_drawn()) return;
-	if (shooting_mode != SHOOTMODE_MOVIE) return; 
-	if (recording == 1) return; 
-	
-	if (bitrate_mode == 0)
-	{
-		//~ bmp_printf(FONT_SMALL, 10,50, "QScale OFF");
-		vbr_fix(0);
-	}
-	else
-	{
-		static int16_t qscale_slow = 0;
-		//~ bmp_printf(FONT_SMALL, 10,50, "QScale %d %d", qscale, qscale_slow);
-		qscale_slow += SGN(qscale - qscale_slow);
-		qscale_slow = COERCE(qscale_slow, -16, 16);
-		vbr_fix(1);
-		mvrSetDefQScale(&qscale_slow);
-		//~ bmp_printf(FONT_MED, 0, 100, "B=%d,%d Q=%d  ", MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND, qscale_slow);
-	}
-}
-
-int get_qscale() { return qscale; }
-
-void vbr_toggle( void * priv )
-{
-	qscale_index = mod(qscale_index - 1, COUNT(qscale_values));
-	qscale = qscale_values[qscale_index];
-}
-
-void vbr_toggle_reverse( void * priv )
-{
-	qscale_index = mod(qscale_index + 1, COUNT(qscale_values));
-	qscale = qscale_values[qscale_index];
-}
-
-void vbr_bump(int delta) // do not change the saved setting (=> do not change qscale_index)
-{
-	//~ bmp_printf(FONT_MED, 0, 200, "bump %d  ", delta);
-	qscale = COERCE(qscale + delta, -16, 16);
-}
-//-------------------------end qscale--------------
-
-
-static void
-bitrate_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	if (bitrate_mode == 0)
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : FW default");
-	else if (bitrate_mode == 1)
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBRe,%dm/s", BITRATE_VALUE);
-	else if (bitrate_mode == 2)
-	{
-		qscale = qscale_values[qscale_index];
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : QScale %d", qscale);
-	}
-}
-
-static void 
-bitrate_toggle_forward(void* priv)
-{
-	if (bitrate_mode == 0)
-		return;
-	else if (bitrate_mode == 1)
-		bitrate_value_index = mod(bitrate_value_index + 1, COUNT(bitrate_values));
-	else if (bitrate_mode == 2)
-		vbr_toggle(0);
-}
-
-static void 
-bitrate_toggle_reverse(void* priv)
-{
-	if (bitrate_mode == 0)
-		return;
-	else if (bitrate_mode == 1)
-		bitrate_value_index = mod(bitrate_value_index - 1, COUNT(bitrate_values));
-	else if (bitrate_mode == 2)
-		vbr_toggle_reverse(0);
-}
-
-
-CONFIG_INT("movie.af", movie_af, 0);
-CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
-CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
-CONFIG_INT("movie.restart", movie_restart,0);
-CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
-CONFIG_INT("movie.rec-key", movie_rec_key, 0);
-int movie_af_stepsize = 10;
-
-int get_focus_graph() { return (movie_af || (get_trap_focus() && can_lv_trap_focus_be_active()) || get_follow_focus_stop_on_focus()) && zebra_should_run(); }
-
-static void
-movie_rec_key_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Movie REC key : %s ",
-		movie_rec_key ? "HalfShutter" : "Default"
-	);
-}
-
-static void
-movie_restart_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Movie Restart : %s ",
-		movie_restart ? "ON " : "OFF"
-	);
-}
-
-PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
-void adjust_backlight_level(int delta)
-{
-	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
-	display_on_force();
-	int level = COERCE(backlight_level + delta, 1, 7);
-	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
-	if (!lv_drawn()) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
-}
-
-
-PROP_INT(PROP_AF_MODE, af_mode);
-PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
-
-int lv_focus_confirmation = 0;
-static int hsp_countdown = 0;
-int can_lv_trap_focus_be_active()
-{
-	if (!lv_drawn()) return 0;
-	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
-	if (dofpreview) return 0;
-	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
-	if (gui_state != GUISTATE_IDLE) return 0;
-	if (get_silent_pic_mode()) return 0;
-	if ((af_mode & 0xF) != 3) return 0;
-	return 1;
-}
-
-int get_lv_focus_confirmation() 
-{ 
-	if (!can_lv_trap_focus_be_active()) return 0;
-	if (!get_halfshutter_pressed()) return 0;
-	int ans = lv_focus_confirmation;
-	lv_focus_confirmation = 0;
-	return ans; 
-}
-
-volatile int focus_done = 0;
-volatile uint32_t focus_done_raw = 0;
-PROP_HANDLER(PROP_LV_FOCUS_DONE)
-{
-	focus_done_raw = buf[0];
-	focus_done = 1;
-	return prop_cleanup(token, property);
-}
-
-int mode_remap_done = 0;
-PROP_HANDLER(PROP_SHOOTING_MODE)
-{
-	if (shooting_mode != buf[0]) mode_remap_done = 0;
-	shooting_mode = buf[0];
-	restore_kelvin_wb();
-	return prop_cleanup(token, property);
-}
-
 static int vmax(int* x, int n)
 {
 	int i; 
@@ -700,463 +148,6 @@ static int vmax(int* x, int n)
 	return m;
 }
 
-int is_manual_focus()
-{
-	return (af_mode & 0xF) == 3;
-}
-
-int movie_af_active()
-{
-	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && !is_manual_focus() && (focus_done || movie_af==3);
-}
-
-static int hsp = 0;
-int movie_af_reverse_dir_request = 0;
-PROP_HANDLER(PROP_HALF_SHUTTER)
-{
-	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
-	hsp = buf[0];
-	hsp_countdown = 15;
-	if (get_zoom_overlay_z()) zoom_overlay_disable();
-	
-	if (movie_rec_key && hsp && shooting_mode == SHOOTMODE_MOVIE)
-	{
-		if (!recording) schedule_movie_start();
-		else schedule_movie_end();
-	}
-	
-	return prop_cleanup(token, property);
-}
-
-static void movie_af_step(int mag)
-{
-	if (!movie_af_active()) return;
-	
-	#define MAXSTEPSIZE 64
-	#define NP ((int)movie_af_noisefilter)
-	#define NQ (10 - NP)
-	
-	int dirchange = 0;
-	static int dir = 1;
-	static int prev_mag = 0;
-	static int target_focus_rate = 1;
-	if (mag == prev_mag) return;
-	
-	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
-
-	static int dmag = 0;
-	dmag = ((mag - prev_mag) * NQ + dmag * NP) / 10; // focus derivative is filtered (it's noisy)
-	int dmagp = dmag * 10000 / prev_mag;
-	static int dmagp_acc = 0;
-	static int acc_num = 0;
-	dmagp_acc += dmagp;
-	acc_num++;
-	
-	if (focus_done_raw & 0x1000) // bam! focus motor has hit something
-	{
-		dirchange = 1;
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "BAM!");
-	}
-	else if (movie_af_reverse_dir_request)
-	{
-		dirchange = 1;
-		movie_af_reverse_dir_request = 0;
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "REV ");
-	}
-	else
-	{
-		if (dmagp_acc < -500 && acc_num >= 2) dirchange = 1;
-		if (ABS(dmagp_acc) < 500)
-		{
-			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " !! "); // confused
-		}
-		else
-		{
-			dmagp_acc = 0;
-			acc_num = 0;
-			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " :) "); // it knows exactly if it's going well or not
-		}
-
-		if (ABS(dmagp) > target_focus_rate) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
-		else movie_af_stepsize = movie_af_stepsize * 3 / 2;               // when focus is "locked", derivative of focus amount is very high => step size will be very low
-		movie_af_stepsize = COERCE(movie_af_stepsize, 2, MAXSTEPSIZE);    // when OOF, derivative is very small => will increase focus speed
-	}
-	
-	if (dirchange)
-	{
-		dir = -dir;
-		dmag = 0;
-		target_focus_rate /= 4;
-	}
-	else
-	{
-		target_focus_rate = target_focus_rate * 11/10;
-	}
-	target_focus_rate = COERCE(target_focus_rate, movie_af_aggressiveness * 20, movie_af_aggressiveness * 100);
-
-	focus_done = 0;	
-	static int focus_pos = 0;
-	int focus_delta = movie_af_stepsize * SGN(dir);
-	focus_pos += focus_delta;
-	lens_focus(7, focus_delta);  // send focus command
-
-	//~ bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
-	
-	if (get_global_draw())
-	{
-		bmp_fill(0, 8, 151, 128, 10);                                          // display focus info
-		bmp_fill(COLOR_RED, 8, 151, movie_af_stepsize, 5);
-		bmp_fill(COLOR_BLUE, 8, 156, 64 * target_focus_rate / movie_af_aggressiveness / 100, 5);
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s %d%%   ", dir > 0 ? "FAR " : "NEAR", dmagp/100);
-	}
-	prev_mag = mag;
-}
-
-
-static void plot_focus_mag(int mag)
-{
-	if (gui_state != GUISTATE_IDLE) return;
-	if (!lv_drawn()) return;
-	#define NMAGS 64
-	#define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
-	static int mags[NMAGS] = {0};
-	int maxmag = 1;
-	int i;
-	#define WEIGHT(i) 1
-	for (i = 0; i < NMAGS-1; i++)
-		if (mags[i] * WEIGHT(i) > maxmag) maxmag = mags[i] * WEIGHT(i);
-
-	static int maxmagf = 1;
-	maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
-	
-	for (i = 0; i < NMAGS-1; i++)
-	{
-		bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
-		mags[i] = mags[i+1];
-		bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
-	}
-	// i = NMAGS-1
-	mags[i] = mag;
-
-	focus_value_delta = FH * 2 - focus_value;
-	focus_value = FH * 2;
-	lv_focus_confirmation = (focus_value + focus_value_delta*3 > 110);
-	
-	static int rev_countdown = 0;
-	static int stop_countdown = 0;
-	if (is_follow_focus_active())
-	{
-		plot_focus_status();
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
-		if (get_follow_focus_stop_on_focus() && !stop_countdown)
-		{
-			if (!rev_countdown)
-			{
-				if (focus_value - focus_value_delta*5 > 110)
-				{
-					follow_focus_reverse_dir();
-					rev_countdown = 5;
-					bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "PEAK");
-				}
-			}
-			else
-			{
-				rev_countdown--;
-				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "PEAK");
-				if (focus_value + focus_value_delta*5 > 110) rev_countdown = 0;
-				if (!rev_countdown)
-				{
-					bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "LOCK");
-					lens_focus_stop();
-					stop_countdown = 10;
-				}
-			}
-		}
-		if (stop_countdown) stop_countdown--;
-	}
-	#undef FH
-	#undef NMAGS
-}
-
-int focus_mag_a = 0;
-int focus_mag_b = 0;
-int focus_mag_c = 0;
-PROP_HANDLER(PROP_LV_FOCUS_DATA)
-{
-	focus_mag_a = buf[2];
-	focus_mag_b = buf[3];
-	focus_mag_c = buf[4];
-	
-	if (movie_af != 3)
-	{
-		if (get_focus_graph() && get_global_draw()) plot_focus_mag(focus_mag_a + focus_mag_b);
-		if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
-			movie_af_step(focus_mag_a + focus_mag_b);
-	}
-	return prop_cleanup(token, property);
-}
-
-static void
-movie_af_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	if (movie_af)
-		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
-			x, y,
-			"Movie AF      : %s A%d N%d",
-			movie_af == 1 ? "Hold" : movie_af == 2 ? "Cont" : movie_af == 3 ? "CFPk" : "Err",
-			movie_af_aggressiveness,
-			movie_af_noisefilter
-		);
-	else
-		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
-			x, y,
-			"Movie AF      : OFF"
-		);
-}
-
-void movie_af_aggressiveness_bump(void* priv)
-{
-	movie_af_aggressiveness = movie_af_aggressiveness * 2;
-	if (movie_af_aggressiveness > 64) movie_af_aggressiveness = 1;
-}
-void movie_af_noisefilter_bump(void* priv)
-{
-	movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
-}
-
-int setting_shooting_mode = 0;
-void set_shooting_mode(int m)
-{
-	setting_shooting_mode = 1;
-	msleep(200);
-	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
-	msleep(500);
-	mode_remap_done = 1;
-	setting_shooting_mode = 0;
-}
-
-void do_movie_mode_remap()
-{
-	if (!movie_mode_remap) return;
-	if (mode_remap_done) return;
-	if (setting_shooting_mode) return;
-	int movie_newmode = movie_mode_remap == 1 ? SHOOTMODE_ADEP : SHOOTMODE_CA;
-	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
-	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
-	mode_remap_done = 1;
-}
-/*
-void fake_lens(void* priv)
-{
-	uint32_t lens[4];
-	lens[0] = 0x00101001;
-	lens[1] = 0xFF01001b;
-	lens[2] = 0x0D0490FF;
-	lens[3] = 0;
-	bmp_printf(FONT_MED, 0, 0, "lens chg");
-	prop_request_change(PROP_LENS, lens, 14);
-	msleep(500);
-
-	int ap = 0x10;
-	prop_request_change(PROP_APERTURE3, &ap, 4);
-	msleep(100);
-	prop_request_change(PROP_APERTURE2, &ap, 4);
-	msleep(100);
-	prop_request_change(PROP_APERTURE, &ap, 4);
-	msleep(100);
-	bmp_printf(FONT_MED, 0, 0, "ap chg");
-	msleep(500);
-}
-*/
-
-/*
-int foc_mod = 7;
-int foc_en = 1;
-void focus_test(void* priv)
-{
-	lens_focus_ex(7, 1000, 1);
-	msleep(10);
-	lens_focus_ex(foc_mod, -100, foc_en);
-}
-void focus_mod_bump(void* priv)
-{
-	foc_mod = (foc_mod + 1) % 16;
-}
-void focus_en_bump(void* priv)
-{
-	foc_en = (foc_en + 1) % 16;
-}
-static void
-focus_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Focus mode=%x en=%x", foc_mod, foc_en);
-}*/
-
-static void
-enable_liveview_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Start with LV : %s",
-		enable_liveview == 1 ? "Movie mode" : enable_liveview == 2 ? "All modes" : "OFF"
-	);
-}
-
-CONFIG_INT("dof.adjust", dof_adjust, 1);
-int get_dof_adjust() { return dof_adjust; }
-
-static void
-dof_adjust_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"DOF adjust    : %s",
-		dof_adjust ? "ON" : "OFF"
-	);
-}
-
-
-CONFIG_INT("swap.aperture.shutter", as_swap_enable, 0);
-
-static void
-as_swap_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Swap Av <-> Tv: %s",
-		as_swap_enable ? "ON" : "OFF"
-	);
-}
-
-
-static void apershutter_close(void* priv)
-{
-	lens_set_rawaperture(lens_info.raw_aperture + 4);
-	lens_set_rawshutter(lens_info.raw_shutter - 4);
-}
-static void apershutter_open(void* priv)
-{
-	lens_set_rawaperture(lens_info.raw_aperture - 4);
-	lens_set_rawshutter(lens_info.raw_shutter + 4);
-}
-
-int aperiso_rawap = 0;
-int aperiso_rawiso = 0;
-static void aperiso_init()
-{
-	aperiso_rawap = lens_info.raw_aperture;
-	aperiso_rawiso = lens_info.raw_iso;
-}
-static void aperiso_close(void* priv)
-{
-	aperiso_rawap += 4;
-	aperiso_rawiso += 4;
-	lens_set_rawaperture(aperiso_rawap);
-	lens_set_rawiso(aperiso_rawiso);
-}
-static void aperiso_open(void* priv)
-{
-	aperiso_rawap -= 4;
-	aperiso_rawiso -= 4;
-	lens_set_rawaperture(aperiso_rawap);
-	lens_set_rawiso(aperiso_rawiso);
-}
-PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
-
-/*
-volatile int swap_a = 0;
-volatile int swap_s = 0;
-
-void swap_countdown()
-{
-	bmp_printf(FONT_MED, 0, 40, "s%d a%d", swap_s, swap_a);
-	if (swap_a) swap_a--;
-	if (swap_s) swap_s--;
-}
-
-PROP_HANDLER(PROP_APERTURE)
-{
-	static int old = 0;
-	
-	if (lv_drawn() && display_sensor_neg == 0 && old)
-	{
-		if (buf[0] != old)
-		{
-			int newiso = COERCE(lens_info.raw_iso + buf[0] - old, codes_iso[1], codes_iso[COUNT(codes_iso)-1]);
-			lens_set_rawiso(newiso);
-		}
-	}
-
-	if (as_swap_enable && shooting_mode == SHOOTMODE_MOVIE && old && swap_a==0 && buf[0] != old && !gui_menu_shown())
-	{
-		bmp_printf(FONT_LARGE, 0, 0, "SWAP AV");
-		swap_s = 10;
-		swap_a = 10;
-		int d = buf[0] - old;
-		lens_set_rawaperture(old);
-		lens_set_rawshutter(lens_info.raw_shutter + d);
-		swap_a = 0;
-	}
-	else
-	{
-		old = buf[0];
-	}
-
-	return prop_cleanup(token, property);
-}
-
-PROP_HANDLER(PROP_SHUTTER)
-{
-	static int old = 0;
-	if (as_swap_enable && shooting_mode == SHOOTMODE_MOVIE && old && swap_s==0 && buf[0] != old && !gui_menu_shown())
-	{
-		bmp_printf(FONT_LARGE, 0, 0, "SWAP TV");
-		swap_s = 10;
-		swap_a = 10;
-		int d = buf[0] - old;
-		lens_set_rawshutter(old);
-		lens_set_rawaperture(lens_info.raw_aperture + d);
-		swap_s = 0;
-	}
-	else
-	{
-		old = buf[0];
-	}
-	return prop_cleanup(token, property);
-} */
 /*
 void font_test(void* priv)
 {
@@ -1186,14 +177,14 @@ void xx_test(void* priv)
 
 void toggle_mirror_display()
 {
-	zebra_pause();
+	//~ zebra_pause();
 	if (lv_drawn()) msleep(200); // redrawing screen while zebra is active seems to cause trouble
 	static int i = 0;
 	if (i) MirrorDisplay();
 	else NormalDisplay();
 	i = !i;
 	msleep(200);
-	zebra_resume();
+	//~ zebra_resume();
 }
 
 void fake_simple_button(int bgmt_code)
@@ -1205,48 +196,6 @@ void fake_simple_button(int bgmt_code)
 		.arg = 0,
 	};
 	GUI_CONTROL(&e);
-}
-
-void lv_redraw()
-{
-	if (lv_drawn())
-	{
-		zebra_pause();
-		//~ bmp_enabled = 0;
-		msleep(500);
-		//~ redraw_maybe();
-		//~ ChangeColorPaletteLV(2);
-		//~ msleep(200);
-		//~ bmp_enabled = 1;
-		zebra_resume();
-	}
-	else
-		redraw_maybe();
-
-	afframe_countdown = 50;
-}
-
-void turn_off_display()
-{
-	if (lens_info.job_state) return;
-	display_off();
-	call("TurnOffDisplay"); // force it
-}
-
-static void
-mode_remap_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"MovieModeRemap: %s",
-		movie_mode_remap == 1 ? "A-DEP" : movie_mode_remap == 2 ? "CA" : "OFF"
-	);
 }
 
 static uint32_t* dbg_memmirror = 0;
@@ -1276,6 +225,10 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 }
 static void dbg_memspy_update()
 {
+	static int init_done = 0;
+	if (!init_done) dbg_memspy_init();
+	init_done = 1;
+
 	if (!dbg_memmirror) return;
 	if (!dbg_memchanges) return;
 	int i;
@@ -1317,18 +270,6 @@ static void dbg_memspy_update()
 	}
 }
 
-PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
-
-/*int battery_level_raw = 0;
-PROP_HANDLER(PROP_BATTERY_CHECK)
-{
-	battery_level_raw = buf[21];
-	//~ bmp_hexdump(FONT_SMALL, 0, 20, buf, 32*30);
-	//~ call("dispcheck");
-	return prop_cleanup(token, property);
-}
-PROP_INT(PROP_BATTERY_RAW_LEVEL_MAYBE, battery_level_raw_maybe);*/
-
 void display_info()
 {
 	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
@@ -1344,8 +285,8 @@ void display_shortcut_key_hints_lv()
 	int mode = 0;
 	if (!zebra_should_run()) return;
 	if (shooting_mode == SHOOTMODE_MOVIE && FLASH_BTN_MOVIE_MODE) mode = 1;
-	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) mode = 2;
-	else if (is_follow_focus_active() && !is_manual_focus() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts())) mode = 3;
+	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) mode = 2;
+	else if (is_follow_focus_active() && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
 	if (mode == 0 && old_mode == 0) return;
 
 	int mz = (mode == 2 && get_zoom_overlay_z() && lv_dispsize == 1);
@@ -1403,33 +344,13 @@ void display_clock()
 	}
 }
 
-PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
-
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
 int screenshot_sec = 0;
 static void
+
 debug_loop_task( void ) // screenshot, draw_prop
 {
-	//~ gui_unlock();
-	do_movie_mode_remap();
-	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
-	{
-		if (shooting_mode == SHOOTMODE_MOVIE)
-		{
-			set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
-			msleep(500);
-			call( "FA_StartLiveView" );
-			msleep(1000);
-			set_shooting_mode(SHOOTMODE_MOVIE);
-		}
-		else
-		{
-			call( "FA_StartLiveView" );
-		}
-	}
-	
-	dbg_memspy_init();
 	int k;
 	for (k = 0; ; k++)
 	{
@@ -1457,7 +378,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_shooting_info();
 		}
 		
-		if (lv_drawn())
+		if (lv_drawn() && !gui_menu_shown())
 		{
 			display_shooting_info_lv();
 			if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
@@ -1468,120 +389,12 @@ debug_loop_task( void ) // screenshot, draw_prop
 		if (screenshot_sec)
 		{
 			if (screenshot_sec >= 5) bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec);
-			if (screenshot_sec == 4) lv_redraw();
+			if (screenshot_sec == 4) redraw_request();
 			screenshot_sec--;
 			msleep( 1000 );
 			if (!screenshot_sec)
 				take_screenshot(0);
 		}
-		
-		if (movie_restart)
-		{
-			static int recording_prev = 0;
-			if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
-			{
-				msleep(1000);
-				movie_start();
-			}
-			recording_prev = recording;
-		}
-		
-		if (movie_af == 3)
-		{
-			int fm = get_spot_focus(100);
-			if (get_focus_graph() && get_global_draw()) plot_focus_mag(fm);
-			movie_af_step(fm);
-		}
-		
-		do_movie_mode_remap();
-		
-		if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE && k % 5 == 0) 
-		{
-			if (recording == 2)
-			{
-				static int prev_fn = 0;
-				if (prev_fn != MVR_FRAME_NUMBER) // only run this once per frame
-				{
-					static int prev_buffer_usage = 0;
-					int buffer_usage = MVR_BUFFER_USAGE_FRAME;
-					int buffer_delta = buffer_usage - prev_buffer_usage;
-					prev_buffer_usage = buffer_usage;
-					
-					//~ if (buffer_delta > 0 && MVR_BUFFER_USAGE > 70) vbr_bump(10); // panic
-					//~ else if (buffer_delta > 0 && MVR_BUFFER_USAGE > 55) vbr_bump(3); // just a bit of panic
-					//if (buffer_delta > 0 && MVR_BUFFER_USAGE_FRAME > 35) vbr_bump(1);
-					//else if (buffer_usage < 35 && k % 10 == 0) // buffer ok, we can adjust qscale according to the selected preset
-					
-					int comp = 0;
-					
-					if (buffer_delta > 0 && buffer_usage > 50)
-					{
-						bmp_fill(COLOR_RED, 720-64, 60, 32, 4);
-						comp = -10;
-					}
-					else
-					{
-						bmp_fill(0, 720-64, 60, 32, 4);
-						comp = 0;
-					}
-					
-					if (bitrate_mode == 1 && get_new_measurement()) // CBRe
-					{
-						if (get_measured_bitrate() > BITRATE_VALUE + comp) vbr_bump(1);
-						else if (get_measured_bitrate() < BITRATE_VALUE + comp) vbr_bump(-1);
-					}
-					else if (bitrate_mode == 2) // qscale
-					{
-						vbr_bump(SGN(qscale_values[qscale_index] - qscale));
-					}
-				}
-				prev_fn = MVR_FRAME_NUMBER;
-			}
-			vbr_set();
-		}
-		
-		if (af_frame_autohide && lv_drawn() && afframe_countdown)
-		{
-			afframe_countdown--;
-			if (!afframe_countdown) clear_lv_afframe();
-		}
-
-		if (!DISPLAY_SENSOR_POWERED) // force sensor on
-		{
-			DispSensorStart();
-		}
-		
-		if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
-		{
-			lv_metering_adjust();
-		}
-		
-		// faster zoom in play mode
-		if (gui_state == GUISTATE_PLAYMENU)
-		{
-			if (get_zoom_in_pressed()) 
-			{
-				msleep(300);
-				while (get_zoom_in_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
-			}
-			
-			if (get_zoom_out_pressed())
-			{
-				msleep(300);
-				while (get_zoom_out_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
-			}
-		}
-		
-		workaround_wb_kelvin = lens_info.kelvin;
-		workaround_wbs_gm = lens_info.wbs_gm + 100;
-		workaround_wbs_ba = lens_info.wbs_ba + 100;
-		
-		expsim_update();
-		
-		/*if (big_clock && k % 10 == 0)
-		{
-			show_big_clock();
-		}*/
 		
 		if (draw_prop)
 		{
@@ -1591,8 +404,6 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			dbg_memspy_update();
 		}
-		
-		if (hsp_countdown) hsp_countdown--;
 		
 		msleep(10);
 	}
@@ -1642,40 +453,10 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 
 struct menu_entry debug_menus[] = {
 	{
-		.priv		= &lcd_sensor_shortcuts,
-		.select		= menu_binary_toggle,
-		.display	= lcd_sensor_shortcuts_print,
-	},
-	/*{
-		.priv = &big_clock, 
-		.select = menu_binary_toggle,
-		.display = big_clock_print,
-	},*/
-	{
-		.priv = &af_frame_autohide, 
-		.select = menu_binary_toggle,
-		.display = af_frame_autohide_display,
-	},
-	{
-		.priv = &auto_burst_pic_quality, 
-		.select = menu_binary_toggle, 
-		.display = auto_burst_pic_display,
-	},
-	{
-		.select = expsim_toggle, 
-		.display = expsim_display,
-	},
-	{
-		.priv = &lv_metering,
-		.select = menu_quinternary_toggle, 
-		.select_reverse = menu_quinternary_toggle_reverse, 
-		.display = lv_metering_print,
-	},
-	/*{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},*/
+	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -1693,11 +474,11 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 	},
-	/*{
+	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
-	}*/
+	}
 /*	{
 		.select = focus_test,
 		.display = focus_print,
@@ -1728,57 +509,6 @@ struct menu_entry debug_menus[] = {
 	}, */
 };
 
-struct menu_entry mov_menus[] = {
-	{
-		.priv = &bitrate_mode,
-		.display	= bitrate_print,
-		.select		= menu_ternary_toggle,
-		.select_auto	= bitrate_toggle_forward,
-		.select_reverse	= bitrate_toggle_reverse,
-	},
-	/*{
-		.display	= vbr_print,
-		.select		= vbr_toggle,
-	},*/
-	{
-		.priv = &movie_restart,
-		.display	= movie_restart_print,
-		.select		= menu_binary_toggle,
-	},
-	{
-		.priv = &movie_af,
-		.display	= movie_af_print,
-		.select		= menu_quaternary_toggle,
-		.select_reverse = movie_af_noisefilter_bump,
-		.select_auto = movie_af_aggressiveness_bump,
-	},
-	{
-		.priv = &enable_liveview,
-		.display	= enable_liveview_print,
-		.select		= menu_ternary_toggle,
-	},
-	{
-		.priv = &movie_mode_remap,
-		.display	= mode_remap_print,
-		.select		= menu_ternary_toggle,
-	},
-	/*{
-		.priv = &as_swap_enable, 
-		.display = as_swap_print,
-		.select = menu_binary_toggle,
-	},*/
-	{
-		.priv = &dof_adjust, 
-		.display = dof_adjust_print, 
-		.select = menu_binary_toggle,
-	},
-	{
-		.priv = &movie_rec_key, 
-		.display = movie_rec_key_print, 
-		.select = menu_binary_toggle,
-	},
-};
-
 static struct menu_entry cfg_menus[] = {
 	{
 		.display	= config_autosave_display,
@@ -1795,6 +525,8 @@ static struct menu_entry cfg_menus[] = {
 		.select		= delete_config,
 	},
 };
+
+
 
 
 static void * debug_token;
@@ -1958,7 +690,6 @@ thats_all:
 #endif
 
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-	menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 }
 
@@ -1992,16 +723,6 @@ void show_logo()
 	}
 }
 
-void restore_kelvin_wb()
-{
-	if (!white_balance_workaround) return;
-	
-	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
-	lens_set_kelvin_value_only(workaround_wb_kelvin);
-	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
-	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
-}
-
 void
 debug_init_stuff( void )
 {
@@ -2009,15 +730,7 @@ debug_init_stuff( void )
 	config_ok = 1;
 	
 	dm_update();
-
-	// set qscale from the vector of available values
-	qscale_index = mod(qscale_index, COUNT(qscale_values));
-	qscale = qscale_values[qscale_index];
-	
 	restore_kelvin_wb();
-	// It was too early to turn these down in debug_init().
-	// Only record important events for the display and face detect
-	
 	
 	/*
 	DEBUG();
@@ -2135,7 +848,7 @@ PROP_HANDLER(PROP_APERTURE)
 	
 	if (old && lv_drawn())
 	{
-		if (display_sensor_neg == 0)
+		if (display_sensor)
 		{
 			if (buf[0] != old)
 			{

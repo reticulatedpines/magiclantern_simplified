@@ -403,7 +403,7 @@ my_init_task(void)
 	//~ );
 
 	msleep(500);
-	lv_redraw();
+	redraw_request();
 
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT

@@ -30,15 +30,15 @@
 #include "consts-550d.109.h"
 #include "lens.h"
 
+void gui_unlock( void )
+{
+	//~ gui_lock( 0, 1, 2 );
+	uint32_t x = 0x41000000;
+	prop_request_change(0x80020009, &x, 4);
+}
+
+
 CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
-
-PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode)
-
-static PROP_INT(PROP_GUI_STATE, gui_state);
-static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
-static PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-static PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-static PROP_INT(PROP_MVR_REC_START, recording);
 
 int button_center_lvafframe = BGMT_PRESS_SET;
 
@@ -187,7 +187,7 @@ static int handle_buttons(struct event * event)
 		if (event->type == 0 && event->param == 0x5a) return 0;
 	}
 	
-	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
+	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && event->type == 0 && display_sensor && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys
 		if (!gui_menu_shown())
 		{
@@ -219,7 +219,7 @@ static int handle_buttons(struct event * event)
 
 	if (event->type == 0)
 	{
-		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE)
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE)
 		{
 			switch(event->param)
 			{
@@ -270,7 +270,7 @@ static int handle_buttons(struct event * event)
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{
-		lv_redraw();
+		redraw_request();
 	}
 	
 	// stop intervalometer with MENU or PLAY
@@ -285,7 +285,7 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
-	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
+	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor && DISPLAY_SENSOR_POWERED)
 	{
 		zoom_overlay_toggle();
 		return 0;
@@ -322,7 +322,7 @@ static int handle_buttons(struct event * event)
 		
 		if (old && lv_drawn())
 		{
-			if (display_sensor_neg == 0)
+			if (display_sensor)
 			{
 				if (value != old)
 				{
@@ -414,7 +414,7 @@ static int handle_buttons(struct event * event)
 		
 		if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && get_dof_adjust() && old && lv_drawn())
 		{
-			if (display_sensor_neg == 0)
+			if (display_sensor)
 			{
 				if (value != old)
 				{

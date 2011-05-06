@@ -86,7 +86,7 @@ struct config_var
 
 
 #define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE ) \
-static TYPE VAR = VALUE; \
+TYPE VAR = VALUE; \
 struct config_var \
 __attribute__((section(".config_vars"))) \
 __config_##VAR = \

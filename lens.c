@@ -31,9 +31,6 @@
 
 CONFIG_INT("movie.log", movie_log, 1);
 
-PROP_INT(PROP_AF_MODE, af_mode);
-#define MANUAL_FOCUS ((af_mode & 0xF) == 3)
-
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
 //~ static struct semaphore * job_sem;
@@ -130,17 +127,6 @@ lens_format_dist(
 
 	return dist;
 }
-
-extern int lv_disp_mode;
-
-PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
-static int recording = 0;
-PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-PROP_INT(PROP_GUI_STATE, gui_state);
-PROP_INT(PROP_BURST_COUNT, burst_count);
-PROP_INT(PROP_AVAIL_SHOT, avail_shot);
-PROP_INT(PROP_ALO, alo);
-PROP_INT(PROP_PIC_QUALITY, picq);
 
 void
 update_lens_display(
@@ -284,7 +270,6 @@ update_lens_display(
 	}
 	
 
-	free_space_show();
 	if (audio_meters_are_drawn()) return;
 
 	y = 0;
@@ -295,14 +280,14 @@ update_lens_display(
 
 	x += 100;
 	bmp_printf( font, x, y,
-		picq == PICQ_RAW ? "RAW  " :
-		picq == PICQ_RAW_JPG ? "RAW+J" :
-		picq == PICQ_LARGE_FINE ? "LARGE" :
-		picq == PICQ_LARGE_COARSE ? "large" :
-		picq == PICQ_MED_FINE ? "MED  " :
-		picq == PICQ_MED_COARSE ? "med  " :
-		picq == PICQ_SMALL_FINE ? "SMALL" :
-		picq == PICQ_SMALL_COARSE ? "small" : "err  "
+		pic_quality == PICQ_RAW ? "RAW  " :
+		pic_quality == PICQ_RAW_JPG ? "RAW+J" :
+		pic_quality == PICQ_LARGE_FINE ? "LARGE" :
+		pic_quality == PICQ_LARGE_COARSE ? "large" :
+		pic_quality == PICQ_MED_FINE ? "MED  " :
+		pic_quality == PICQ_MED_COARSE ? "med  " :
+		pic_quality == PICQ_SMALL_FINE ? "SMALL" :
+		pic_quality == PICQ_SMALL_COARSE ? "small" : "err  "
 	);
 
 	x += 100;
@@ -339,7 +324,7 @@ lens_focus_wait( void )
 	{
 		msleep(10);
 		if (!lv_drawn()) break;
-		if (MANUAL_FOCUS) break;
+		if (is_manual_focus()) break;
 	}
 }
 
@@ -350,7 +335,7 @@ lens_focus(
 )
 {
 	if (!lv_drawn()) return;
-	if (MANUAL_FOCUS) return;
+	if (is_manual_focus()) return;
 
 	while (lens_info.job_state) msleep(100);
 	lens_focus_wait();
@@ -499,9 +484,6 @@ mvr_update_logfile(
 	);
 }
 
-PROP_INT(PROP_FILE_NUMBER, file_number);
-PROP_INT(PROP_FOLDER_NUMBER, folder_number);
-
 /** Create a logfile for each movie.
  * Record a logfile with the lens info for each movie.
  */
@@ -576,7 +558,6 @@ bswap16(
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
-	recording = buf[0];
 	mvr_create_logfile( *(unsigned*) buf );
 	return prop_cleanup( token, property );
 }

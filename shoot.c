@@ -61,20 +61,6 @@ int audio_release_running = 0;
 int motion_detect = 0;
 
 int drive_mode_bk = -1;
-PROP_INT(PROP_DRIVE, drive_mode);
-PROP_INT(PROP_AF_MODE, af_mode);
-PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
-PROP_INT(PROP_MVR_REC_START, recording);
-PROP_INT(PROP_FILE_NUMBER, file_number);
-PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
-PROP_INT(PROP_FOLDER_NUMBER, folder_number);
-PROP_INT(PROP_STROBO_FIRING, strobo_firing);
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-PROP_INT(PROP_LVAF_MODE, lvaf_mode);
-//~ PROP_INT(PROP_GUI_STATE, gui_state);
-PROP_INT(PROP_REMOTE_SW1, remote_sw1);
-PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 
 int gui_state = 0;
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 1);
@@ -193,18 +179,6 @@ audio_release_display( void * priv, int x, int y, int selected )
 		x, y,
 		"Audio RemoteShot: %s",
 		audio_release_running ? "ON " : "OFF"
-	);
-}
-
-static void 
-trap_focus_display( void * priv, int x, int y, int selected )
-{
-	int t = (*(int*)priv);
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Trap Focus      : %s",
-		t == 1 ? "Hold" : t == 2 ? "Cont." : "OFF"
 	);
 }
 
@@ -1058,7 +1032,6 @@ iso_toggle_reverse( void * priv )
 }
 
 PROP_INT(PROP_ISO_AUTO, iso_auto_code);
-PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static int measure_auto_iso()
 {
 	// temporary changes during measurement:
@@ -1641,8 +1614,6 @@ int get_mlu()
 	return cfn[2] & 0x1;
 }
 
-PROP_INT(PROP_ALO, alo);
-
 void set_alo(int value)
 {
 	value = COERCE(value, 0, 3);
@@ -1753,7 +1724,7 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Brack:   OFF"
+			"HDR Bracketing  : OFF"
 		);
 	}
 	else
@@ -1761,7 +1732,7 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Brack: %dx%d%sEV",
+			"HDR Bracketing  : %dx%d%sEV",
 			hdr_steps, 
 			hdr_stepsize / 8,
 			((hdr_stepsize/4) % 2) ? ".5" : ""
@@ -1812,7 +1783,7 @@ bulb_take_pic(int duration)
 	int d = duration/1000;
 	for (i = 0; i < d; i++)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 		msleep(1000);
 		if (lens_info.job_state == 0) break;
 	}
@@ -1836,9 +1807,10 @@ bulb_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Bulb Timer %s: %02dh%02dm%02ds",
+		"Bulb Timer %s: %d%s",
 		is_bulb_mode() ? "     " : "(N/A)",
-		d/3600, (d % 3600) / 60, (d % 3600) % 60
+		d < 60 ? d : d/60, 
+		d < 60 ? "s" : "min"
 	);
 }
 
@@ -1849,8 +1821,8 @@ mlu_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Mirror Lockup %s",
-		mlu_mode == 1 ? "  : ON" : mlu_mode == 2 ? ":Timer+Remote" : "  : OFF"
+		"Mirror Lockup   : %s",
+		mlu_mode == 1 ? "ON" : mlu_mode == 2 ? "Timer+Remote" : "OFF"
 	);
 }
 
@@ -1891,11 +1863,6 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
-	},
-	{
-		.priv		= &trap_focus,
-		.select		= menu_binary_toggle,
-		.display	= trap_focus_display,
 	},
 	{
 		.priv		= &motion_detect,
@@ -2325,7 +2292,7 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 int wave_count = 0;
 int wave_count_countdown = 0;
 int display_sensor_active = 0;
-/*PROP_HANDLER(PROP_DISPSENSOR_CTRL)
+PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	int on = !buf[0];
 	int off = !on;
@@ -2351,7 +2318,7 @@ int display_sensor_active = 0;
 
 	end:
 	return prop_cleanup(token, property);
-}*/
+}
 
 void display_lcd_remote_info()
 {
@@ -2582,13 +2549,13 @@ shoot_task( void )
 				int d = timer_values[bulb_duration_index];
 				while (get_halfshutter_pressed())
 				{
-					bmp_printf(FONT_LARGE, 0, 0, "[HS] Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+					bmp_printf(FONT_LARGE, 0, 0, "[HS] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 					msleep(100);
 				}
-				bmp_printf(FONT_LARGE, 0, 0, "[2s] Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+				bmp_printf(FONT_LARGE, 0, 0, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				msleep(1000);
 				if (gui_state != GUISTATE_IDLE) continue;
-				bmp_printf(FONT_LARGE, 0, 0, "[1s] Bulb timer: %02dh%02dm%02ds", d/3600, (d % 3600) / 60, (d % 3600) % 60);
+				bmp_printf(FONT_LARGE, 0, 0, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				msleep(1000);
 				if (gui_state != GUISTATE_IDLE) continue;
 				bulb_take_pic(d * 1000);

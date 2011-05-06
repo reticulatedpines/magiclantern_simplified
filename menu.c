@@ -313,7 +313,7 @@ menus_display(
 		unsigned fontspec = FONT(
 			FONT_MED,
 			menu->selected ? COLOR_WHITE : COLOR_YELLOW,
-			menu->selected ? 13 : COLOR_BG
+			menu->selected ? 13 : COLOR_BLACK
 		);
 		if (!show_only_selected) bmp_printf( fontspec, x, y, "%6s", menu->name );
 		x += fontspec_font( fontspec )->width * 6;
@@ -321,7 +321,7 @@ menus_display(
 		if( menu->selected )
 			menu_display(
 				menu->children,
-				orig_x,
+				orig_x + 20,
 				y + fontspec_font( fontspec )->height + 4,
 				1
 			);
@@ -489,10 +489,10 @@ menu_redraw_if_damaged()
 	if( menu_damage )
 	{
 		if (!lv_drawn()) show_only_selected = 0;
-		if (MENU_MODE || lv_drawn()) clrscr();
-		bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
+		//~ if (MENU_MODE || lv_drawn()) clrscr();
+		bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
 		menu_damage = 0;
-		menus_display( menus, 40, 65 );
+		menus_display( menus, 10, 40 );
 	}
 }
 
@@ -722,6 +722,7 @@ menu_init( void )
 	menu_find_by_name( "Focus" );
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
+	menu_find_by_name( "Tweak" );
 	menu_find_by_name( "Debug" );
 	menu_find_by_name( "Config" );
 	menu_find_by_name( " (i)" );
@@ -757,12 +758,13 @@ gui_stop_menu( void )
 	gui_menu_task = NULL;
 
 	if (!lv_drawn()) redraw_maybe();
-	zebra_resume();
+	//~ zebra_resume();
 	update_disp_mode_bits_from_params();
 	
 	lens_focus_stop();
 	show_only_selected = 0;
 	
+	redraw_request();
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 }
 
@@ -963,7 +965,7 @@ menu_task( void )
 		edit_mode = 0;
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
-		zebra_pause();
+		//~ zebra_pause();
 		display_on(); // ensure the menu is visible even if display was off
 		bmp_on();
 		show_only_selected = 0;

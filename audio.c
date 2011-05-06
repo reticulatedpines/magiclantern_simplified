@@ -60,7 +60,6 @@ CONFIG_INT( "audio.input-choice",	input_choice,		0 ); //0=internal; 1=L int, R e
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
-PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 int do_draw_meters = 0;
 
 int lv_drawn()
@@ -309,8 +308,6 @@ compute_audio_levels(
 }
 
 int show_volume = 0;
-
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 
 int audio_meters_are_drawn()
 {
@@ -1047,8 +1044,6 @@ PROP_HANDLER( PROP_MVR_REC_START )
 	enable_recording( mode );
 	return prop_cleanup( token, property );
 }
-
-static PROP_INT(PROP_GUI_STATE, gui_state);
 
 
 /** Replace the sound dev task with our own to disable AGC.

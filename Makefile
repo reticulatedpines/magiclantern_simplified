@@ -217,12 +217,17 @@ ML_OBJS-y = \
 	audio.o \
 	lens.o \
 	property.o \
+	propvalues.o \
 	gui.o \
 	zebra.o \
 	shoot.o \
 	focus.o \
 	chdk-gui_draw.o \
 	ptp.o \
+	bitrate.o \
+	movtweaks.o \
+	tweaks.o \
+	bootflags.o \
 
 NO=\
 	hotplug.o \

@@ -74,7 +74,7 @@ bootflag_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Autoboot    %s",
+		"Autoboot (!!!) : %s",
 		boot_flags->bootdisk != 0 ? "ON " : "OFF"
 	);
 }
@@ -170,7 +170,7 @@ initial_install(void)
 
 
 
-#if 0
+#if 1
 void
 bootflag_display_all(
 	void *			priv,
@@ -179,18 +179,17 @@ bootflag_display_all(
 	int			selected
 )
 {
-	bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT,
+	bmp_printf( FONT_MED,
 		x,
 		y,
-		//23456789012
-		"Firmware    %s\n"
-		"Bootdisk    %s\n"
-		"RAM_EXE     %s\n"
-		"Update      %s\n",
-		boot_flags->firmware == 0 ? "ON" : "OFF",
-		boot_flags->bootdisk == 0  ? "ON" : "OFF",
-		boot_flags->ram_exe == 0 ? "ON" : "OFF",
-		boot_flags->update == 0 ? "ON" : "OFF"
+		"Firmware    %d\n"
+		"Bootdisk    %d\n"
+		"RAM_EXE     %d\n"
+		"Update      %d\n",
+		boot_flags->firmware,
+		boot_flags->bootdisk,
+		boot_flags->ram_exe,
+		boot_flags->update
 	);
 }
 #endif
@@ -236,15 +235,18 @@ struct menu_entry boot_menus[] = {
 		//~ .select		= bootflag_write_bootblock,
 	//~ },
 
-	//~ {
-		//~ .display	= bootflag_display,
-		//~ .select		= bootflag_toggle,
-	//~ },
-
+	/*{
+		.display	= bootflag_display,
+		.select		= bootflag_toggle,
+	},*/
+	{
+		.display = bootflag_display_all,
+	}
+/*
 	{
 		.display	= powersave_display,
 		.select		= powersave_toggle,
-	},
+	}, */
 
 #if 0
 	{
@@ -260,9 +262,9 @@ bootflags_init( void )
 	if( autoboot_loaded == 0 )
 		initial_install();
 
-	//~ menu_add( "Debug", boot_menus, COUNT(boot_menus) );
+	menu_add( "Debug", boot_menus, COUNT(boot_menus) );
 
-	if( disable_powersave )
+	/*if( disable_powersave )
 	{
 		DebugMsg( DM_MAGIC, 3,
 			"%s: Disabling powersave",
@@ -270,7 +272,7 @@ bootflags_init( void )
 		);
 
 		prop_request_icu_auto_poweroff( EM_PROHIBIT );
-	}
+	}*/
 
 }
 
