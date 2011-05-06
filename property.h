@@ -380,5 +380,6 @@ PROP_HANDLER(id) { \
 	return prop_cleanup( token, property ); \
 }
 
+#include "propvalues.h"
 
 #endif
