@@ -1966,10 +1966,10 @@ struct menu_entry shoot_menus[] = {
 		.select		= menu_binary_toggle, 
 		.display	= motion_detect_display,
 	},
-/*	{
+	{
 		.select		= flash_and_no_flash_toggle,
 		.display	= flash_and_no_flash_display,
-	},*/
+	},
 	{
 		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
