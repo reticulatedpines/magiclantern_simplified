@@ -49,7 +49,13 @@ CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295c01);
 CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88890);
 CONFIG_INT("disp.mode.xxx", disp_mode_x,   0x5c50);
 int disp_mode_change_request = 0;
-void schedule_disp_mode_change() { disp_mode_change_request = 1; }
+void schedule_disp_mode_change() 
+{
+	if (gui_menu_shown()) 
+		update_disp_mode_params_from_bits();
+	else
+		disp_mode_change_request = 1; 
+}
 
 CONFIG_INT( "livev.playback", livev_playback, 0);
 CONFIG_INT( "global.draw", global_draw, 1 );
