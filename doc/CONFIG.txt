@@ -19,10 +19,6 @@ These settings can not be changed from the ML menu::
 
     # Delay between clearing the overlay in Clear Preview mode
     clear.preview.delay = 500
-
-    # Stack focus step size and frame count
-    focus.step = 100
-    focus.count = 5
     
     # Threshold for audio trigger
     audio.release.level = 700
@@ -32,49 +28,3 @@ These settings can not be changed from the ML menu::
     
     # Zebra density: 0, 1 or 2
     zebra.density = 2
-
-.. _iso.round.only:
-
-::
-
-    # Only select "round" ISO values in menu:
-    # 100,200,400,800,1600,3200,6400,12800,25600,
-    # 160,320,640,1250,2500.
-    iso.round.only = 1
-
-.. _set.on.halfshutter:
-
-::
-
-    # Emulate a SET press when you press the shutter half-way 
-    # in photo dialogs and menu (so all dialogs like WB, self-timer, 
-    # AF mode, flash setting etc. will behave like the ISO one)
-    #
-    # Set it on 0 to restore default firmware behavior
-    set.on.halfshutter = 1
-
-.. _quick.review.allow.zoom:
-
-::
-
-    # Allow zoom in Quick Review mode (only works when Image Review = Hold)
-    # This works by faking a Play button press after you take a pic.
-    # Side effect: some delay until you see the picture after you take it
-    quick.review.allow.zoom = 1
-
-.. _crop.movieonly:
-
-::
-
-    # If enabled, it will show cropmarks only in movie mode. 
-    # Disable it to show cropmarks in photo mode too.
-    crop.movieonly = 0
-
-    # Workaround for remembering Kelvin temperature and WBShift G/M and B/A values.
-    # If this setting is on, these values are stored in config file.
-    # They will be shared between movie and photo modes.
-    # Enabling this setting will apply WBShift setting in auto modes, too.    
-    white.balance.workaround = 1
-
-    # If set to 1, display zebras only when not recording
-    zebra.nrec = 1
