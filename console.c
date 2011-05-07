@@ -6,8 +6,6 @@
 #include "gui.h"
 #include "property.h"
 
-PROP_INT(PROP_GUI_STATE, gui_state);
-
 void console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 

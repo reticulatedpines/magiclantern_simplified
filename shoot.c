@@ -1835,6 +1835,100 @@ intervalometer_wait_toggle(void* priv)
 	intervalometer_wait = !intervalometer_wait;
 }
 
+static void
+picq_display( void * priv, int x, int y, int selected )
+{
+	int raw = pic_quality & 0x60000;
+	int rawsize = pic_quality & 0xF;
+	int jpegtype = pic_quality >> 24;
+	int jpegsize = (pic_quality >> 8) & 0xF;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Picture Quality : %s%s%s%s%s",
+		rawsize == 1 ? "M" : rawsize == 2 ? "S" : "",
+		raw ? "RAW" : "",
+		jpegtype != 4 && raw ? "+" : "",
+		jpegtype == 4 ? "" : jpegsize == 0 ? "Large" : jpegsize == 1 ? "Med" : "Small",
+		jpegtype == 2 ? "Coarse" : jpegtype == 3 ? "Fine" : ""
+	);
+}
+
+static void picq_toggle_rawsize(void* priv)
+{
+	int p = pic_quality;
+	int r = p & 0xF;
+	r = mod(r+1, 3);
+	int newp = (p & 0xfffffff0) | r;
+	set_pic_quality(newp);
+}
+
+static void picq_toggle_raw_on_off(void* priv)
+{
+	int raw = pic_quality & 0x60000;
+	int newp;
+	if (raw)
+	{
+		int jt = (pic_quality >> 24) & 0xF;
+		if (jt == 4) newp = PICQ_LARGE_FINE;
+		else newp = (pic_quality & 0xf0f1fff0) | (jt << 24);
+	}
+	else newp = pic_quality | 0x60000;
+	console_printf("%x\n", newp);
+	set_pic_quality(newp);
+}
+
+static void picq_toggle_raw(void* priv)
+{
+	int raw = pic_quality & 0x60000;
+	int rsize = pic_quality & 0xF;
+	if (raw && rsize < 2) picq_toggle_rawsize(0);
+	else picq_toggle_raw_on_off(0);
+}
+
+static void picq_toggle_jpegsize(void* priv)
+{
+	int js = (pic_quality >> 8) & 0xF;
+	js = mod(js+1, 3);
+	int newp = (pic_quality & 0xfffff0ff) | (js << 8);
+	set_pic_quality(newp);
+}
+
+static void picq_toggle_jpegtype(void* priv)
+{
+	int jt = (pic_quality >> 24) & 0xF;
+	jt = mod(jt-1, 3) + 2;
+	int newp = (pic_quality & 0xf0ffffff) | (jt << 24);
+	int raw = pic_quality & 0x60000;
+	int rawsize = pic_quality & 0xF;
+	if (jt == 4) newp = PICQ_RAW + rawsize;
+	set_pic_quality(newp);
+}
+
+static int picq_next(int p)
+{
+	switch(pic_quality)
+	{
+		case PICQ_RAW: return PICQ_MRAW;
+		case PICQ_MRAW: return PICQ_SRAW;
+		case PICQ_SRAW: return PICQ_RAW_JPG_LARGE_FINE;
+		case PICQ_RAW_JPG_LARGE_FINE: return PICQ_MRAW_JPG_LARGE_FINE;
+		case PICQ_MRAW_JPG_LARGE_FINE: return PICQ_SRAW_JPG_LARGE_FINE;
+		case PICQ_SRAW_JPG_LARGE_FINE: return PICQ_SRAW_JPG_MED_FINE;
+		case PICQ_SRAW_JPG_MED_FINE: return PICQ_SRAW_JPG_SMALL_FINE;
+		case PICQ_SRAW_JPG_SMALL_FINE: return PICQ_LARGE_FINE;
+		case PICQ_LARGE_FINE: return PICQ_MED_FINE;
+		case PICQ_MED_FINE: return PICQ_SMALL_FINE;
+	}
+	return PICQ_RAW;
+}
+
+static void picq_toggle(void* priv)
+{
+	int newp = picq_next(pic_quality);
+	set_pic_quality(newp);
+}
+
 
 struct menu_entry shoot_menus[] = {
 	{
@@ -1892,6 +1986,16 @@ struct menu_entry shoot_menus[] = {
 		.priv = &mlu_mode,
 		.display = mlu_display, 
 		.select = menu_ternary_toggle,
+	},
+	/*{
+		.display = picq_display, 
+		.select = picq_toggle_raw,
+		.select_reverse = picq_toggle_jpegsize, 
+		.select_auto = picq_toggle_jpegtype,
+	}*/
+	{
+		.display = picq_display, 
+		.select = picq_toggle, 
 	}
 };
 

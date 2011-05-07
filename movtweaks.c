@@ -223,7 +223,7 @@ wb_workaround_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"WB workaround : %s", 
-		white_balance_workaround ? "ON (save WB in cfg)" : "OFF"
+		white_balance_workaround ? "ON(save WB in cfg)" : "OFF"
 	);
 }
 

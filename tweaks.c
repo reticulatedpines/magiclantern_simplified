@@ -129,24 +129,10 @@ int burst_count = 0;
 
 void set_pic_quality(int q)
 {
-	switch(q)
-	{
-		case PICQ_RAW:
-		case PICQ_RAW_JPG:
-		case PICQ_LARGE_FINE:
-		case PICQ_LARGE_COARSE:
-		case PICQ_MED_FINE:
-		case PICQ_MED_COARSE:
-		case PICQ_SMALL_FINE:
-		case PICQ_SMALL_COARSE:
-			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q OK: %x", q);
-			prop_request_change(PROP_PIC_QUALITY, &q, 4);
-			prop_request_change(PROP_PIC_QUALITY2, &q, 4);
-			prop_request_change(PROP_PIC_QUALITY3, &q, 4);
-			break;
-		default:
-			bmp_printf(FONT_LARGE, 0, 0, "SET_PIC_Q invalid: %x", q);
-	}
+	if (q == -1) return;
+	prop_request_change(PROP_PIC_QUALITY, &q, 4);
+	prop_request_change(PROP_PIC_QUALITY2, &q, 4);
+	prop_request_change(PROP_PIC_QUALITY3, &q, 4);
 }
 
 int picq_saved = -1;
@@ -157,27 +143,31 @@ void decrease_pic_quality()
 	int newpicq = 0;
 	switch(pic_quality)
 	{
-		case PICQ_RAW_JPG:
+		case PICQ_RAW_JPG_LARGE_FINE:
 			newpicq = PICQ_RAW;
 			break;
 		case PICQ_RAW:
-			newpicq = PICQ_LARGE_FINE;
+			newpicq = PICQ_MRAW;
 			break;
+		case PICQ_MRAW:
+			newpicq = PICQ_SRAW;
+			break;
+			
 		case PICQ_LARGE_FINE:
 			newpicq = PICQ_MED_FINE;
 			break;
-		//~ case PICQ_MED_FINE:
-			//~ newpicq = PICQ_SMALL_FINE;
-			//~ break;
+		case PICQ_MED_FINE:
+			newpicq = PICQ_SMALL_FINE;
+			break;
 		//~ case PICQ_SMALL_FINE:
 			//~ newpicq = PICQ_SMALL_COARSE;
 			//~ break;
 		case PICQ_LARGE_COARSE:
 			newpicq = PICQ_MED_COARSE;
 			break;
-		//~ case PICQ_MED_COARSE:
-			//~ newpicq = PICQ_SMALL_COARSE;
-			//~ break;
+		case PICQ_MED_COARSE:
+			newpicq = PICQ_SMALL_COARSE;
+			break;
 	}
 	if (newpicq) set_pic_quality(newpicq);
 }

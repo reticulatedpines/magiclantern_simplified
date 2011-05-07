@@ -161,9 +161,7 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	static int i = 0;
-	ChangeColorPalette(i);
-	i++;
+	set_pic_quality(0x4060002);
 	/*
 	int i;
 	char fn[100];
@@ -726,6 +724,7 @@ void show_logo()
 void
 debug_init_stuff( void )
 {
+	//~ set_pic_quality(PICQ_RAW);
 	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 	config_ok = 1;
 	
