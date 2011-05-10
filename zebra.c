@@ -2470,7 +2470,7 @@ void lvimage_off()
 int _display_is_off = 0;
 void display_on()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	while (lens_info.job_state) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	if (_display_is_off)
 	{
@@ -2480,14 +2480,14 @@ void display_on()
 }
 void display_on_force()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	while (lens_info.job_state) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 1;
 	display_on();
 }
 void display_off()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	while (lens_info.job_state) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	if (!_display_is_off)
 	{
@@ -2497,7 +2497,7 @@ void display_off()
 }
 void display_off_force()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	while (lens_info.job_state) msleep(100);
 	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 0;
 	display_off();
