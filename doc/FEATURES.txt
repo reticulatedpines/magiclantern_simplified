@@ -490,14 +490,14 @@ Functions specific to movie mode.
 .. _Bitrate control:
 .. _bitrate:
 
-**Bit Rate: FW default / CBRe / QScale**
+**Bit Rate: FW default / CBR / QScale**
 
   Controls H.264 bitrate used for video recording.
   
   Modes:
   
-  * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps)
-  * ``CBRe``: constant bitrate, emulated. Range: 1...120mbps.
+  * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps, including sound).
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the same as FW default.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
@@ -509,17 +509,8 @@ Functions specific to movie mode.
   
   * There is a bitrate / QScale display near the red recording dot, updated every second.
   * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain cards labeled as Class10.
-  * ``CBRe`` mode (emulated CBR) is implemented as variable QScale, as follows:
-  
-    - QScale is adjusted in a simple feedback loop, based on bitrate estimation (sampled 5 times per second).
-    - Bit rate will not be equal to the prescribed value, but it will oscillate around it. In certain cases (e.g. strong defocus->focus transitions) it will overshoot badly and stop recording. True CBR mode or a better control algorithm would fix this. Patches welcome :)
-    - The feedback loop adjusts only local (instantaneous) bitrate, which means the video file may have different average bitrate than the one prescribed in the menu. This is normal. To adjust the bitrate over the entire video, a controller with integration component (e.g. PI) is required.
-    - If the buffer becomes full, ML will temporarily lower the bitrate by 10mb/s.
-    
-  * In QScale mode, bitrate varies a lot. Try not to use very high bitrates in this mode, because the chances of video stopping recording are very high.
-  * QScale can be changed during recording, but only by one unit (1) at a time. ML will take care of this.
-  * Since ``CBRe`` is implemented as variable QScale, you can freely change between ``CBRe`` and ``QScale`` during recording.
-  * It is not possible to change from non-QScale mode to QScale modes during recording (which means between ``FW default`` and the other settings). If you try to, the change will be applied only for the next video file, and ``CBRe`` may stop working properly.
+  * In QScale mode, bitrate varies a lot with frame complexity, and you have no direct control over its value.
+  * You can't change this setting during recording.
   
   See [[Bit rate]] page for details.
 
