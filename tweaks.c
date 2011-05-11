@@ -323,6 +323,8 @@ quickzoom_display(
 static void
 tweak_task( void )
 {
+	do_movie_mode_remap();
+
 	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
 	{
 		if (shooting_mode == SHOOTMODE_MOVIE)

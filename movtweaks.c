@@ -39,6 +39,7 @@ void restore_kelvin_wb()
 int mode_remap_done = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
+	static int shooting_mode = -1;
 	if (shooting_mode != buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
 	restore_kelvin_wb();
@@ -185,8 +186,6 @@ mode_remap_print(
 static void
 movtweak_task( void )
 {
-	do_movie_mode_remap();
-
 	int k;
 	for (k = 0; ; k++)
 	{
