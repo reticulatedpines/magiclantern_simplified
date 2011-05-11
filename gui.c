@@ -120,22 +120,25 @@ static int handle_buttons(struct event * event)
 		}
 	}
 
-	if(event->type == 0 && ( gui_state == GUISTATE_IDLE || MENU_MODE))
- 	{
-		if (event->param == BGMT_TRASH)
- 		{
-			if (!gui_menu_shown()) 
-				give_semaphore( gui_sem );
-			else
-				gui_stop_menu();
- 			return 0;
- 		}
-		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
+	if (event->type == 0 && event->param == BGMT_TRASH)
+	{
+		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
 		{
-			center_lv_afframe();
+			give_semaphore( gui_sem );
+			return 0;
+		}
+		else if (gui_menu_shown())
+		{
+			gui_stop_menu();
 			return 0;
 		}
  	}
+
+	if (lv_drawn() && event->type == 0 && event->param == button_center_lvafframe && !gui_menu_shown())
+	{
+		center_lv_afframe();
+		return 0;
+	}
 	
 	if (event->type == 0 && event->param != 0x56)
  	{
