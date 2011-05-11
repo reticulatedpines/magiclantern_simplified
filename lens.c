@@ -283,21 +283,21 @@ update_lens_display(
 
 	x += 100;
 
-	/*int raw = pic_quality & 0x60000;
+	int raw = pic_quality & 0x60000;
 	int rawsize = pic_quality & 0xF;
 	int jpegtype = pic_quality >> 24;
 	int jpegsize = (pic_quality >> 8) & 0xF;
 	bmp_printf( font, x, y, "%s%s%s%s%s",
 		rawsize == 1 ? "M" : rawsize == 2 ? "S" : "",
 		raw ? "RAW" : "",
-		jpegtype != 4 && raw ? "+" : "JPG ",
+		jpegtype == 4 ? "" : (raw ? "+" : "JPG-"),
 		jpegtype == 4 ? "" : (
 			jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") : 
 			jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") : 
 			jpegsize == 2 ? (jpegtype == 3 ? "S" : "s") :
 			"err"
 		)
-	);*/
+	);
 
 	x += 100;
 	bmp_printf( font, x, y,

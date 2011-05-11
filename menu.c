@@ -769,10 +769,10 @@ gui_stop_menu( void )
 	show_only_selected = 0;
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 
-	if (MENU_MODE)
+	if (MENU_MODE && !get_halfshutter_pressed())
 	{
 		fake_simple_button(BGMT_MENU);
-		while (MENU_MODE) msleep(100);
+		msleep(200);
 	}
 	else
 	{

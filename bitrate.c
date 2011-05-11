@@ -164,6 +164,7 @@ PROP_HANDLER(PROP_FREE_SPACE)
 
 void free_space_show()
 {
+	if (!get_global_draw()) return;
 	if (recording && time_indicator) return;
 	int fsg = free_space_32k >> 15;
 	int fsgr = free_space_32k - (fsg << 15);
