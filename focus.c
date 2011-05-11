@@ -498,7 +498,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
 	hsp = buf[0];
 	hsp_countdown = 3;
-	if (get_zoom_overlay_z()) zoom_overlay_disable();
+	if (get_zoom_overlay_z()) zoom_overlay_set_countdown(0);
 	
 	return prop_cleanup(token, property);
 }
