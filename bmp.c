@@ -95,11 +95,11 @@ _draw_char(
 	uint32_t	fg_color	= fontspec_fg( fontspec ) << 24;
 	uint32_t	bg_color	= fontspec_bg( fontspec ) << 24;
 
-	// Special case -- fg=bg=0 => white on transparent
+	// Special case -- fg=bg=0 => white on black
 	if( fg_color == 0 && bg_color == 0 )
 	{
 		fg_color = COLOR_WHITE << 24;
-		bg_color = COLOR_BG << 24;
+		bg_color = COLOR_BLACK << 24;
 	}
 
 	const uint32_t	pitch		= BMPPITCH / 4;
