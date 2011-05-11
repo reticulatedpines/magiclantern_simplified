@@ -68,7 +68,7 @@ CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
 CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 2);
-CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
+CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
 CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 int get_zoom_overlay_mode() { return zoom_overlay_mode; }
 int get_zoom_overlay_z() { return zoom_overlay_mode == 1 || zoom_overlay_mode == 2; }
@@ -2285,12 +2285,15 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &global_draw,
 		.select		= global_draw_toggle,
 		.display	= global_draw_display,
+		.help = "Enable/disable ML overlay graphics (zebra, cropmarks...)"
+
 	},
 	{
 		.priv		= &hist_draw,
 		.select		= menu_ternary_toggle,
 		.select_auto = waveform_toggle,
 		.display	= hist_display,
+		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
 	},
 	{
 		.priv		= &zebra_draw,
@@ -2298,6 +2301,7 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = zebra_lo_toggle, 
 		.select_auto = zebra_hi_toggle,
 		.display	= zebra_draw_display,
+		.help = "Zebra stripes: show overexposed or underexposed areas."
 	},
 	{
 		.priv		= &falsecolor_draw,
@@ -2305,17 +2309,20 @@ struct menu_entry zebra_menus[] = {
 		.select		= menu_binary_toggle,
 		.select_reverse = menu_quaternary_toggle_reverse, 
 		.select_auto = falsecolor_palette_toggle,
+		.help = "Shows brightness level as color-coded. [Q]: change palette."
 	},
 	{
 		.display	= crop_display,
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,
+		.help = "Cropmarks for framing. Usually shown only in Movie mode."
 	},
 	{
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
 		.select_auto	= spotmeter_formula_toggle,
 		.display		= spotmeter_menu_display,
+		.help = "Measure brightness in the frame center. [Q]: Percent/IRE."
 	},
 	{
 		.priv			= &focus_peaking,
@@ -2323,6 +2330,7 @@ struct menu_entry zebra_menus[] = {
 		.select			= menu_ternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
+		.help = "Show tiny dots on focused edges. Params: method,thr,color."
 	},
 	{
 		.priv = &zoom_overlay_pos,
@@ -2330,12 +2338,14 @@ struct menu_entry zebra_menus[] = {
 		.select = zoom_overlay_main_toggle,
 		.select_reverse = zoom_overlay_size_toggle,
 		.select_auto = menu_quinternary_toggle,
+		.help = "Zoom box for focusing. Can be used while recording."
 	},
 	{
 		.priv			= &clearscreen,
 		.display		= clearscreen_display,
 		.select			= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,
+		.help = "Clear BMP overlay or turn display off."
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2370,16 +2380,17 @@ struct menu_entry dbg_menus[] = {
 		.priv = "Card Benchmark",
 		.select = card_benchmark_schedule,
 		.display = menu_print,
-	},*/
+	},
 	{
-		.priv = "[debug] dump vram", 
+		.priv = "Dump RAM",
 		.display = menu_print, 
 		.select = dump_vram,
-	},
+	},*/
 	{
 		.priv		= &unified_loop,
 		.select		= menu_ternary_toggle,
 		.display	= unified_loop_display,
+		.help = "Unique loop for zebra and FP. Used with HDMI and 720p."
 	},
 	/*{
 		.priv		= &zebra_density,
@@ -2404,6 +2415,7 @@ static struct menu_entry cfg_menus[] = {
 		.select		= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= disp_profiles_0_display,
+		.help = "Number of LiveV display presets. Switch them with ISO+DISP."
 	},
 };
 
@@ -2508,13 +2520,8 @@ int display_is_on() { return !_display_is_off; }
 
 void zoom_overlay_toggle()
 {
-	static int i = 0;
-	bmp_printf(FONT_MED, 50, 50, "Z%d m=%d o=%d c=%d", i, get_zoom_overlay_mode(), zoom_overlay, zoom_overlay_countdown);
 	zoom_overlay = !zoom_overlay;
 	if (!zoom_overlay) zoom_overlay_countdown = 0;
-
-	bmp_printf(FONT_MED, 50, 100, "Z%d m=%d o=%d c=%d", i, get_zoom_overlay_mode(), zoom_overlay, zoom_overlay_countdown);
-	i++;
 }
 
 //~ void zoom_overlay_enable()

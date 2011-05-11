@@ -58,6 +58,7 @@ struct menu_entry
 		int			y,
 		int			selected
 	);
+	const char * help;
 };
 
 

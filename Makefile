@@ -262,10 +262,6 @@ ML_OBJS-$(CONFIG_CONSOLE) += \
 # Extract the stdio files that we need
 STDIO_OBJ = \
 	lib_a-setjmp.o \
-	lib_a-strlen.o \
-	lib_a-strcmp.o \
-	lib_a-memcmp.o \
-	lib_a-memset.o \
 
 ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 

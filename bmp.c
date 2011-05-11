@@ -406,7 +406,6 @@ bmp_fill(
 void
 bmp_draw_palette( void )
 {
-	gui_stop_menu();
 	uint32_t x, y, msb, lsb;
 	const uint32_t height = 30;
 	const uint32_t width = 45;
@@ -429,6 +428,7 @@ bmp_draw_palette( void )
 	if( !written )
 		dispcheck();
 	written = 1;
+	msleep(2000);
 }
 
 int retry_count = 0;

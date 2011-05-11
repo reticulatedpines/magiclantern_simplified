@@ -765,17 +765,20 @@ static struct menu_entry focus_menu[] = {
 		.priv		= &trap_focus,
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
+		.help = "Takes a picture when the subject comes in focus. MF only."
 	},
 	{
 		.display	= focus_stack_print,
 		.select		= focus_stack_count_increment,
 		.select_auto		= focus_stack_step_increment,
 		.select_reverse		= focus_stack_unlock,
+		.help = "Focus bracketing, useful for macro shots."
 	},
 	{
 		.display	= focus_rack_speed_display,
 		.select		= focus_rack_speed_increment,
-		.select_reverse	= focus_rack_speed_decrement
+		.select_reverse	= focus_rack_speed_decrement,
+		.help = "Speed for rack focus and follow focus, in raw steps."
 	},
 	{
 		.priv = &follow_focus,
@@ -783,6 +786,7 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_ternary_toggle,
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
+		.help = "Simple follow focus with arrow keys."
 	},
 	{
 		.priv = &movie_af,
@@ -790,20 +794,24 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_quaternary_toggle,
 		.select_reverse = movie_af_noisefilter_bump,
 		.select_auto = movie_af_aggressiveness_bump,
+		.help = "Custom AF algorithm in movie mode. Not very efficient."
 	},
 	{
 		.priv		= &focus_dir,
 		.display	= focus_dir_display,
 		.select		= menu_binary_toggle,
+		.help = "Focus direction used when you half-press the shutter."
 	},
 	{
 		.display	= focus_show_a,
 		.select		= focus_reset_a,
+		.help = "Press SET to fix here the end point of rack focus."
 	},
 	{
 		.priv		= "Rack focus",
 		.display	= menu_print,
 		.select		= focus_toggle,
+		.help = "Start the rack focus operation."
 	},
 	{
 		.display	= display_lens_hyperfocal,

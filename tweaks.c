@@ -141,36 +141,33 @@ void decrease_pic_quality()
 	if (picq_saved == -1) picq_saved = pic_quality; // save only first change
 	
 	int newpicq = 0;
-	switch(pic_quality)
-	{
+ 	switch(pic_quality)
+ 	{
 		case PICQ_RAW_JPG_LARGE_FINE:
-			newpicq = PICQ_RAW;
-			break;
-		case PICQ_RAW:
-			newpicq = PICQ_MRAW;
-			break;
-		case PICQ_MRAW:
-			newpicq = PICQ_SRAW;
-			break;
-			
-		case PICQ_LARGE_FINE:
-			newpicq = PICQ_MED_FINE;
-			break;
-		case PICQ_MED_FINE:
-			newpicq = PICQ_SMALL_FINE;
-			break;
-		//~ case PICQ_SMALL_FINE:
+ 			newpicq = PICQ_RAW;
+ 			break;
+ 		case PICQ_RAW:
+			newpicq = PICQ_LARGE_FINE;
+ 			break;
+ 		case PICQ_LARGE_FINE:
+ 			newpicq = PICQ_MED_FINE;
+ 			break;
+		//~ case PICQ_MED_FINE:
+			//~ newpicq = PICQ_SMALL_FINE;
+			//~ break;
+ 		//~ case PICQ_SMALL_FINE:
+ 			//~ newpicq = PICQ_SMALL_COARSE;
+ 			//~ break;
+ 		case PICQ_LARGE_COARSE:
+ 			newpicq = PICQ_MED_COARSE;
+ 			break;
+		//~ case PICQ_MED_COARSE:
 			//~ newpicq = PICQ_SMALL_COARSE;
 			//~ break;
-		case PICQ_LARGE_COARSE:
-			newpicq = PICQ_MED_COARSE;
-			break;
-		case PICQ_MED_COARSE:
-			newpicq = PICQ_SMALL_COARSE;
-			break;
-	}
-	if (newpicq) set_pic_quality(newpicq);
+ 	}
+ 	if (newpicq) set_pic_quality(newpicq);
 }
+ 
 void restore_pic_quality()
 {
 	if (picq_saved != -1) set_pic_quality(picq_saved);
@@ -459,59 +456,70 @@ crop_movieonly_display(
 
 struct menu_entry tweak_menus[] = {
 	{
-		.priv = &af_frame_autohide, 
-		.select = menu_binary_toggle,
-		.display = af_frame_autohide_display,
+		.select = expsim_toggle, 
+		.display = expsim_display,
+		.help = "ExpSim: LCD image reflects exposure settings."
 	},
 	{
 		.priv		= &lcd_sensor_shortcuts,
 		.select		= menu_binary_toggle,
 		.display	= lcd_sensor_shortcuts_print,
+		.help = "Disable this if you are using a LCD loupe."
+	},
+	{
+		.priv = &af_frame_autohide, 
+		.select = menu_binary_toggle,
+		.display = af_frame_autohide_display,
+		.help = "You can hide the AF frame (the little white rectangle)."
 	},
 	{
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
-	},
-	{
-		.select = expsim_toggle, 
-		.display = expsim_display,
+		.help = "Decrease pic quality in burst mode: RAW+J->RAW->Large->Med."
 	},
 	{
 		.priv = &quick_review_allow_zoom, 
 		.select = menu_binary_toggle, 
 		.display = qrplay_display,
+		.help = "When you set \"ImageReview: Hold\", it will go to Play mode."
 	},
 	{
 		.priv = &quickzoom, 
 		.select = menu_binary_toggle, 
 		.display = quickzoom_display,
+		.help = "Faster zoom in Play mode, for pixel peeping :)"
 	},
 	{
 		.priv = &set_on_halfshutter, 
 		.select = menu_binary_toggle, 
 		.display = set_on_halfshutter_display,
+		.help = "Half-shutter press in dialog boxes => OK (SET) or Cancel."
 	},
 	{
 		.priv = &cropmark_movieonly,
 		.display	= crop_movieonly_display,
 		.select		= menu_binary_toggle,
+		.help = "Cromparks can be in Movie mode only, or in Photo modes too."
 	},
 	{
 		.priv = &iso_round_only,
 		.display	= iso_round_only_display,
 		.select		= menu_binary_toggle,
+		.help = "You can enable only ISOs which are multiple of 100 and 160."
 	},
 	{
 		.priv = &enable_liveview,
 		.display	= enable_liveview_print,
 		.select		= menu_ternary_toggle,
+		.help = "Start the camera in LiveView, even with an unchipped lens."
 	},
 	{
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
+		.help = "Custom metering methods in LiveView; too slow for real use."
 	},
 };
 

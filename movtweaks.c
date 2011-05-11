@@ -262,6 +262,7 @@ static struct menu_entry mov_menus[] = {
 		.priv = &movie_restart,
 		.display	= movie_restart_print,
 		.select		= menu_binary_toggle,
+		.help = "Auto-restart movie recording, if it happens to stop."
 	},
 	/*{
 		.priv = &movie_af,
@@ -274,6 +275,7 @@ static struct menu_entry mov_menus[] = {
 		.priv = &movie_mode_remap,
 		.display	= mode_remap_print,
 		.select		= menu_ternary_toggle,
+		.help = "Remap movie mode to A-DEP or CA."
 	},
 	/*{
 		.priv = &as_swap_enable, 
@@ -284,21 +286,25 @@ static struct menu_entry mov_menus[] = {
 		.priv = &dof_adjust, 
 		.display = dof_adjust_print, 
 		.select = menu_binary_toggle,
+		.help = "Cover LCD sensor and adjust aperture => ISO changes too."
 	},
 	{
 		.priv = &movie_rec_key, 
 		.display = movie_rec_key_print, 
 		.select = menu_binary_toggle,
+		.help = "Change the button used for recording. Hint: wired remote."
 	},
 	{
 		.priv = &white_balance_workaround,
 		.display = wb_workaround_display, 
 		.select = menu_binary_toggle,
+		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
 	{
 		.priv = &zebra_nrec,
 		.select = menu_binary_toggle,
 		.display = zebra_nrec_display,
+		.help = "You can disable zebra during recording."
 	},
 };
 

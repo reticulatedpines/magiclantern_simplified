@@ -550,7 +550,14 @@ audio_reg_close( void )
 
 #endif
 
-PROP_INT( PROP_MIC_INSERTED, mic_inserted);
+int mic_inserted = 0;
+PROP_HANDLER( PROP_MIC_INSERTED )
+{
+   mic_inserted = buf[0];
+   audio_configure( 1 );
+   return prop_cleanup( token, property );
+}
+
 
 void
 audio_configure( int force )
@@ -935,6 +942,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= menu_ternary_toggle,
 		.select_reverse		= menu_ternary_toggle_reverse,
 		.display	= audio_meter_display,
+		.help = "Meters show average value and peaks, from -40 dB to 0 dB."
 	},
 #if 0
 	{
@@ -948,23 +956,27 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_mgain_toggle,
 		.select_reverse	= audio_mgain_toggle_reverse,
 		.display	= audio_mgain_display,
+		.help = "Gain applied to both inputs in analog domain (preferred)."
 	},
 	{
 		.priv		= &dgain_l,
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
+		.help = "Digital gain applied only to the LEFT channel."
 	},
 	{
 		.priv		= &dgain_r,
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
+		.help = "Digital gain applied only to the RIGHT channel."
 	},
 	{
 		.priv		= &alc_enable,
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
+		.help = "Automatic Gain Control - turn it off :)"
 	},
 	/*{
 		.priv		= &windcut_mode,
@@ -987,6 +999,7 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &input_choice,
 		.select		= audio_input_toggle,
 		.display	= audio_input_display,
+		.help = "Audio input: internal / external / both / balanced / auto."
 	},
 	/*{
 		.priv		= &loopback,
@@ -998,10 +1011,12 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_3bit_toggle,
 		.select_reverse		= audio_3bit_toggle_reverse,
 		.display	= audio_lovl_display,
+		.help = "Output volume for audio monitoring (headphones only)."
 	},
 	{
 		.select		= audio_monitoring_toggle,
 		.display	= audio_monitoring_display,
+		.help = "Audio monitoring via USB. Disable if you use a SD display."
 	},
 };
 

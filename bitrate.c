@@ -281,12 +281,14 @@ static struct menu_entry mov_menus[] = {
 		.select		= bitrate_toggle_mode,
 		.select_auto	= bitrate_toggle_forward,
 		.select_reverse	= bitrate_toggle_reverse,
+		.help = "H.264 bitrate. Be careful when using it!"
 	},
 	{
 		.priv		= &time_indicator,
 		.select		= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= time_indicator_display,
+		.help = "Time indicator during recording"
 	},
 };
 

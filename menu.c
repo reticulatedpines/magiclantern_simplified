@@ -272,7 +272,6 @@ menu_add(
 }
 
 
-
 void
 menu_display(
 	struct menu_entry *	menu,
@@ -289,6 +288,13 @@ menu_display(
 				x,
 				y,
 				menu->selected
+			);
+		
+		if (menu->selected && menu->help)
+			bmp_printf(
+				FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
+				10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, 450, 
+				menu->help
 			);
 
 		y += font_large.height;
@@ -763,7 +769,15 @@ gui_stop_menu( void )
 	show_only_selected = 0;
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 
-	redraw_request();
+	if (MENU_MODE)
+	{
+		fake_simple_button(BGMT_MENU);
+		while (MENU_MODE) msleep(100);
+	}
+	else
+	{
+		redraw();
+	}
 }
 
 
@@ -957,6 +971,12 @@ menu_task( void )
 			continue;
 		}
 		
+		if (!lv_drawn() && !MENU_MODE)
+		{
+			fake_simple_button(BGMT_MENU);
+			while (!MENU_MODE) msleep(50);
+		}
+		
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;
 		menu_hidden = 0;
@@ -964,8 +984,8 @@ menu_task( void )
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
 		//~ zebra_pause();
-		display_on(); // ensure the menu is visible even if display was off
-		bmp_on();
+		//~ display_on(); // ensure the menu is visible even if display was off
+		//~ bmp_on();
 		show_only_selected = 0;
 	}
 }

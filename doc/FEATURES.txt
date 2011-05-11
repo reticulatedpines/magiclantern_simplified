@@ -722,8 +722,6 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Flash / No flash: ON/OFF**
 
-  (disabled, is anyone using it?)
-
   This will toggle flash setting (on/off) after each photo:
   
   * Even pictures (by file number) will be taken without flash
@@ -1136,10 +1134,9 @@ Miscellanous settings.
   When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
   
   This function will reduce picture quality in the following steps:
-  
-  * ``RAW+JPG`` -> ``RAW`` -> ``MRAW`` -> ``SRAW``
-  * ``JPG Large Fine`` -> ``JPG Medium Fine`` -> ``JPG Small Fine``
-  * ``JPG Large Coarse`` -> ``JPG Medium Coarse`` -> ``JPG Small Coarse``
+
+  * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``  
 
 **Exposure Simulation: OFF / ON / Auto**
 

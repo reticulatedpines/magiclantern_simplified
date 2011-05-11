@@ -454,28 +454,33 @@ struct menu_entry debug_menus[] = {
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
+		.help = "Display a test pattern to see the color palette."
 	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
 		.select_auto = take_screenshot,
 		.display	= menu_print,
+		.help = "Take a screenshot after 10 seconds [SET] or right now [Q]."
 	},
 	{
 		.select = dm_toggle, 
 		.select_auto		= (void*) dumpf,
 		.display	= dm_display,
+		.help = "While ON, debug messages are saved. [Q] => LOGnnn.LOG."
 	},
 	{
 		.select		= draw_prop_select,
 		.select_reverse = toggle_draw_event,
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
+		.help = "Spy properties / events / memory addresses which change."
 	},
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
+		.help = "The camera may turn into a 1D Mark V or it may explode."
 	}
 /*	{
 		.select = focus_test,
@@ -511,16 +516,19 @@ static struct menu_entry cfg_menus[] = {
 	{
 		.display	= config_autosave_display,
 		.select		= config_autosave_toggle,
+		.help = "If enabled, ML settings are saved automatically at shutdown."
 	},
 	{
 		.priv = "Save config now",
 		.display	= menu_print,
 		.select		= save_config,
+		.help = "Save ML settings to MAGIC.CFG"
 	},
 	{
 		.priv = "Delete config file",
 		.display	= menu_print,
 		.select		= delete_config,
+		.help = "Use this to restore ML default settings. Restart needed."
 	},
 };
 

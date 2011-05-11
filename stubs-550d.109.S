@@ -190,6 +190,10 @@ NSTUB( 0xFF2CFA54, MirrorDisplay )
 NSTUB( 0xFF2CFAB4, NormalDisplay )
 NSTUB( 0xFF2CE1F0, RedrawDisplay )
 
+NSTUB( 0xFF0181A4, strlen )
+NSTUB( 0xFF07B498, strcmp )
+NSTUB( 0xFF44f8f8, memset ) // bzero32+4
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )

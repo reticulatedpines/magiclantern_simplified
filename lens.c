@@ -149,7 +149,7 @@ update_lens_display(
 	unsigned y = 480 - height - 10;
 	if (ext_monitor_hdmi) y += recording ? -100 : 200;
 
-	if ((!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0) || (gui_menu_shown()))
+	if ((!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0) && (!gui_menu_shown()))
 	{
 	
 		//~ y += height;
@@ -786,6 +786,7 @@ static struct menu_entry lens_menus[] = {
 		.priv = &movie_log,
 		.select = menu_binary_toggle,
 		.display = movielog_display,
+		.help = "Save metadata for each movie, e.g. MVI_1234.LOG"
 	},
 };
 

@@ -1936,6 +1936,7 @@ struct menu_entry shoot_menus[] = {
 		.select		= hdr_steps_toggle,
 		.select_reverse = hdr_stepsize_toggle,
 		.select_auto = hdr_reset,
+		.help = "Exposure bracketing, useful for HDR images."
 	},
 	{
 		.priv		= &interval_timer_index,
@@ -1943,49 +1944,58 @@ struct menu_entry shoot_menus[] = {
 		.select		= interval_timer_toggle,
 		.select_reverse	= interval_timer_toggle_reverse,
 		.select_auto = interval_movie_duration_toggle,
+		.help = "Intervalometer setting: duration between two shots."
 	},
 	{
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
 		.select_auto = intervalometer_wait_toggle,
+		.help = "Intervalometer. For precise timing, choose NoWait [Q]."
 	},
 	{
 		.priv		= &lcd_release_running,
 		.select		= menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
+		.help = "Use the LCD sensor as a remote trigger. Avoids shake."
 	},
  	{
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
+		.help = "Clap your hands or pop a balloon to take a picture."
 	},
 	{
 		.priv		= &motion_detect,
 		.select		= menu_binary_toggle, 
 		.display	= motion_detect_display,
+		.help = "Motion detection, fast enough to catch lightning. LV only."
 	},
 	{
 		.select		= flash_and_no_flash_toggle,
 		.display	= flash_and_no_flash_display,
+		.help = "Take odd pictures with flash, even pictures without flash."
 	},
 	{
 		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
 		.select_auto = silent_pic_toggle_forward,
 		.display = silent_pic_display,
+		.help = "Take pics in LiveView without increasing shutter count."
 	},
 	{
 		.display = bulb_display, 
 		.select = bulb_toggle_fwd, 
 		.select_reverse = bulb_toggle_rev,
 		.select_auto = bulb_toggle_fwd,
+		.help = "Bulb timer for very long exposures, useful for astrophotos"
 	},
 	{
 		.priv = &mlu_mode,
 		.display = mlu_display, 
 		.select = menu_ternary_toggle,
+		.help = "MLU setting can be linked with self-timer and LCD remote."
 	},
 	/*{
 		.display = picq_display, 
@@ -1996,6 +2006,7 @@ struct menu_entry shoot_menus[] = {
 	{
 		.display = picq_display, 
 		.select = picq_toggle, 
+		.help = "Experimental SRAW/MRAW mode. You may get corrupted files."
 	}
 };
 
@@ -2005,6 +2016,7 @@ static struct menu_entry vid_menus[] = {
 		.select = menu_binary_toggle,
 		.select_reverse = zoom_toggle, 
 		.display = zoom_display,
+		.help = "Disable x5 or x10, or enable zoom during Face Detection :)"
 	},
 };
 
@@ -2014,54 +2026,64 @@ struct menu_entry expo_menus[] = {
 		.select		= iso_toggle_forward,
 		.select_reverse		= iso_toggle_reverse,
 		.select_auto = iso_auto,
+		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning."
 	},
 	{
 		.display	= kelvin_display,
 		.select		= kelvin_toggle_forward,
 		.select_reverse		= kelvin_toggle_reverse,
 		.select_auto = kelvin_auto,
+		.help = "Adjust Kelvin WB. Press [Q] for auto tuning."
 	},
 	{
 		.display = wbs_gm_display, 
 		.select = wbs_gm_toggle_forward, 
 		.select_reverse = wbs_gm_toggle_reverse,
+		.help = "Green-Magenta white balance shift, for fluorescent lights."
 	},
 	{
 		.display	= shutter_display,
 		.select		= shutter_toggle_forward,
 		.select_reverse		= shutter_toggle_reverse,
 		.select_auto = shutter_auto,
+		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits."
 	},
 	{
 		.display	= aperture_display,
 		.select		= aperture_toggle_forward,
 		.select_reverse		= aperture_toggle_reverse,
+		.help = "Adjust aperture. Useful if the wheel stops working."
 	},
 	{
 		.display	= ladj_display,
 		.select		= ladj_toggle_forward,
 		.select_reverse		= ladj_toggle_reverse,
+		.help = "Enable/disable HTP and ALO from the same place."
 	},
 	{
 		.display	= picstyle_display,
 		.select		= picstyle_toggle_forward,
 		.select_reverse		= picstyle_toggle_reverse,
+		.help = "Change current picture style."
 	},
 	{
 		.display	= contrast_display,
 		.select		= contrast_toggle_forward,
 		.select_reverse		= contrast_toggle_reverse,
 		//~ .select_auto = contrast_auto,
+		.help = "Adjust contrast in current picture style."
 	},
 	{
 		.display	= saturation_display,
 		.select		= saturation_toggle_forward,
 		.select_reverse		= saturation_toggle_reverse,
+		.help = "Adjust saturation in current picture style."
 	},
 	{
 		.display	= flash_ae_display,
 		.select		= flash_ae_toggle_forward,
 		.select_reverse		= flash_ae_toggle_reverse,
+		.help = "Flash exposure compensation, from -10EV to +3EV."
 	},
 	/*{
 		.display	= sharpness_display,
