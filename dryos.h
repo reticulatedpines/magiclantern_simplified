@@ -455,26 +455,163 @@ SIZE_CHECK_STRUCT( mvr_struct, 512 );
 extern struct mvr_struct * mvr_struct;
 extern struct state_object * mvr_state;
 
+// tab size: 4
 struct mvr_config
 {
-	uint32_t		off_0x00;
-	uint16_t		db_filter_a;	// off_0x04;
-	uint16_t		db_filter_b;	// off_0x04;
-	int16_t			def_q_scale;	// off_0x08;
-	uint16_t		off_0x0a;
-	uint16_t		off_0x0c;
-	uint16_t		time_const;	// off_0x0e;
-	uint32_t		hd_opt_size_i;	// off_0x10;
-	uint32_t		hd_opt_size_p;	// off_0x14;
-	uint32_t		hd_height;	// off_0x18;
-	uint32_t		hd_width;	// off_0x1c;
-	uint32_t		vga_opt_size_i;	// off_0x20;
-	uint32_t		vga_opt_size_p;	// off_0x24;
-	uint32_t		vga_height;	// off_0x28;
-	uint32_t		vga_width;	// off_0x2c;
+	uint16_t		debug_flag;				// 0x00, 67bc, 1 = write debugmsg's
+	uint16_t		qscale_mode;			// 0x02, 67be, 1 = QScale, 0 = CBR
+	uint16_t		db_filter_a;			// 0x04, 67c0, no effect
+	uint16_t		db_filter_b;			// 0x06, 67c2, no effect
+	int16_t			def_q_scale;			// 0x08, 67c4, works when qscale_mode = 1
+	uint16_t		qscale_related_1;		// 0x0a, 67c6
+	uint16_t		qscale_related_2;		// 0x0c, 67c8
+	uint16_t		qscale_related_3;		// 0x0e, 67ca
+	uint16_t		qscale_limit_L;			// 0x10, 67cc
+	uint16_t		qscale_limit_H;			// 0x12, 67ce
+	uint16_t		time_const;				// 0x14, 67d0, unknown
+	uint16_t		x67d0;					// 0x16, 67d2
+	uint32_t		fullhd_opt_size_I;		// 0x18, 67d4, works when qscale_mode = 0
+	uint32_t		fullhd_opt_size_P;		// 0x1c, 67d8
+	uint32_t		x67dc_D1;				// 0x20, 67dc
+	uint32_t		x67e0_D2;				// 0x24, 67e0
+	uint32_t		x67e4;					// 0x28, 67e4
+	uint32_t		fullhd_opt_size_I_copy;	// 0x2c, 67e8
+	uint32_t		fullhd_opt_size_P_copy;	// 0x30, 67ec
+	uint32_t		x67f0_D1;				// 0x34, 67f0
+	uint32_t		x67f4_D2;				// 0x38, 67f4
+	uint32_t		x67f8;					// 0x3c, 67f8
+	uint32_t		fullhd_opt_size_I_cp1;	// 0x40, 67fc
+	uint32_t		fullhd_opt_size_I_cp2;	// 0x44, 6800
+	uint32_t		x6804_D1;				// 0x48, 6804
+	uint32_t		x6808_D2;				// 0x4c, 6808
+	uint32_t		x680c;					// 0x50, 680c
+	uint32_t		hd_opt_size_I;			// 0x54, 6810
+	uint32_t		hd_opt_size_P;			// 0x58, 6814
+	uint32_t		x6818_D1;				// 0x5c, 6818
+	uint32_t		x681c_D2;				// 0x60, 681c
+	uint32_t		x6820;					// 0x64, 6820
+	uint32_t		x6824;					// 0x68, 6824
+	uint32_t		x6828;					// 0x6c, 6828
+	uint32_t		_D1_related;			// 0x70, 682c
+	uint32_t		_D2_related;			// 0x74, 6830
+	uint32_t		x6834_kinda_counter;	// 0x78, 6834
+	uint32_t		vga_opt_size_I;			// 0x7c, 6838
+	uint32_t		vga_opt_size_P;			// 0x80, 683c
+	uint32_t		x6840_D1;				// 0x84, 6840
+	uint32_t		x6844_D2;				// 0x88, 6844
+	uint32_t		x6848;					// 0x8c, 6848
+	uint32_t		x684c;					// 0x90, 684c
+	uint32_t		x6850;					// 0x94, 6850
+	uint32_t		x6854_D1;				// 0x98, 6854
+	uint32_t		x6858_D2;				// 0x9c, 6858
+	uint32_t		x685c;					// 0xa0, 685c
+	uint32_t		another_def_q_scale;	// 0xa4, 6860
+	uint32_t		IniQScale;				// 0xa8, 6864
+	uint32_t		QScaleRelated;			// 0xac, 6868
+	uint32_t		IOptSize;				// 0xb0, 686c
+	uint32_t		POptSize;				// 0xb4, 6870
+	uint32_t		IOptSize2;				// 0xb8, 6874
+	uint32_t		POptSize2;				// 0xbc, 6878
+	uint32_t		GopSize;				// 0xc0, 687c
+	uint32_t		B_zone_NowIndex;		// 0xc4, 6880
+	uint32_t		gop_opt_array_ptr;		// 0xc8, 6884
+	uint32_t		_D1;					// 0xcc, 6888
+	uint32_t		_D2;					// 0xd0, 688c
+	uint32_t		x6890_counter_maybe;	// 0xd4, 6890
+	uint32_t		fullhd_gop_opt_0;		// 0xd8, 6894
+	uint32_t		fullhd_gop_opt_1;		// 0xdc, 6898
+	uint32_t		fullhd_gop_opt_2;		// 0xe0, 689c
+	uint32_t		fullhd_gop_opt_3;		// 0xe4, 68a0
+	uint32_t		fullhd_gop_opt_4;		// 0xe8, 68a4
+	uint32_t		fullhd_gop_opt_0_copy;	// 0xec, 68a8
+	uint32_t		fullhd_gop_opt_1_copy;	// 0xf0, 68ac
+	uint32_t		fullhd_gop_opt_2_copy;	// 0xf4, 68b0
+	uint32_t		fullhd_gop_opt_3_copy;	// 0xf8, 68b4
+	uint32_t		fullhd_gop_opt_4_copy;	// 0xfc, 68b8
+	uint32_t		fullhd_gop_opt_0_cp2;	// 0x100, 68bc
+	uint32_t		fullhd_gop_opt_1_cp2;	// 0x104, 68c0
+	uint32_t		fullhd_gop_opt_2_cp2;	// 0x108, 68c4
+	uint32_t		fullhd_gop_opt_3_cp2;	// 0x10c, 68c8
+	uint32_t		fullhd_gop_opt_4_cp2;	// 0x110, 68cc
+	uint32_t		hd_gop_opt_0;			// 0x114, 68d0
+	uint32_t		hd_gop_opt_1;			// 0x118, 68d4
+	uint32_t		hd_gop_opt_2;			// 0x11c, 68d8
+	uint32_t		hd_gop_opt_3;			// 0x120, 68dc
+	uint32_t		hd_gop_opt_4;			// 0x124, 68e0
+	uint32_t		hd_gop_opt_0_copy;		// 0x128, 68e4
+	uint32_t		hd_gop_opt_1_copy;		// 0x12c, 68e8
+	uint32_t		hd_gop_opt_2_copy;		// 0x130, 68ec
+	uint32_t		hd_gop_opt_3_copy;		// 0x134, 68f0
+	uint32_t		hd_gop_opt_4_copy;		// 0x138, 68f4
+	uint32_t		vga_gop_opt_0;			// 0x13c, 68f8
+	uint32_t		vga_gop_opt_1;			// 0x140, 68fc
+	uint32_t		vga_gop_opt_2;			// 0x144, 6900
+	uint32_t		vga_gop_opt_3;			// 0x148, 6904
+	uint32_t		vga_gop_opt_4;			// 0x14c, 6908
+	uint32_t		vga_gop_opt_0_copy;		// 0x150, 690c
+	uint32_t		vga_gop_opt_1_copy;		// 0x154, 6910
+	uint32_t		vga_gop_opt_2_copy;		// 0x158, 6914
+	uint32_t		vga_gop_opt_3_copy;		// 0x15c, 6918
+	uint32_t		vga_gop_opt_4_copy;		// 0x160, 691c
+	uint32_t		x6920;					// 0x164, 6920
+	uint32_t		x6924;					// 0x168, 6924
+	uint32_t		x6928;					// 0x16c, 6928
+	uint32_t		x692c;					// 0x170, 692c
+	uint32_t		x6930;					// 0x174, 6930
+	uint32_t		x6934;					// 0x178, 6934
+	uint32_t		x6938;					// 0x17c, 6938
+	uint32_t		x693c;					// 0x180, 693c
+	uint32_t		x6940;					// 0x184, 6940
+	uint32_t		x6944;					// 0x188, 6944
+	uint32_t		x6948;					// 0x18c, 6948
+	uint32_t		x694c;					// 0x190, 694c
+	uint32_t		x6950;					// 0x194, 6950
+	uint32_t		x6954;					// 0x198, 6954
+	uint32_t		x6958;					// 0x19c, 6958
+	uint32_t		x695c;					// 0x1a0, 695c
+	uint32_t		x6960;					// 0x1a4, 6960
+	uint32_t		x6964;					// 0x1a8, 6964
+	uint32_t		x6968;					// 0x1ac, 6968
+	uint32_t		x696c;					// 0x1b0, 696c
+	uint32_t		x6970;					// 0x1b4, 6970
+	uint32_t		x6974;					// 0x1b8, 6974
+	uint32_t		x6978;					// 0x1bc, 6978
+	uint32_t		x697c;					// 0x1c0, 697c
+	uint32_t		x6980;					// 0x1c4, 6980
+	uint32_t		x6984;					// 0x1c8, 6984
+	uint32_t		x6988;					// 0x1cc, 6988
+	uint32_t		x698c;					// 0x1d0, 698c
+	uint32_t		x6990;					// 0x1d4, 6990
+	uint32_t		x6994;					// 0x1d8, 6994
+	uint32_t		x6998;					// 0x1dc, 6998
+	uint32_t		x699c;					// 0x1e0, 699c
+	uint32_t		x69a0;					// 0x1e4, 69a0
+	uint32_t		x69a4;					// 0x1e8, 69a4
+	uint32_t		x69a8;					// 0x1ec, 69a8
+	uint32_t		x69ac;					// 0x1f0, 69ac
+	uint32_t		x69b0;					// 0x1f4, 69b0
+	uint32_t		x69b4;					// 0x1f8, 69b4
+	uint32_t		x69b8;					// 0x1fc, 69b8
+	uint32_t		x69bc;					// 0x200, 69bc
+	uint32_t		x69c0;					// 0x204, 69c0
+	uint32_t		x69c4;					// 0x208, 69c4
+	uint32_t		x69c8;					// 0x20c, 69c8
+	uint32_t		x69cc;					// 0x210, 69cc
+	uint32_t		x69d0;					// 0x214, 69d0
+	uint32_t		x69d4;					// 0x218, 69d4
+	uint32_t		x69d8;					// 0x21c, 69d8
+	uint32_t		x69dc;					// 0x220, 69dc
+	uint32_t		x69e0;					// 0x224, 69e0
+	uint32_t		x69e4;					// 0x228, 69e4
+	uint32_t		x69e8;					// 0x22c, 69e8
+	uint32_t		x69ec;					// 0x230, 69ec
+	uint32_t		x69f0;					// 0x234, 69f0
+	uint32_t		x69f4;					// 0x238, 69f4
+	uint32_t		x69f8;					// 0x23c, 69f8
+	uint32_t		x69fc;					// 0x240, 69fc
 };
 
-SIZE_CHECK_STRUCT( mvr_config, 0x30 );
+//~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
 
 extern struct mvr_config mvr_config;
 

@@ -194,6 +194,8 @@ NSTUB( 0xFF0181A4, strlen )
 NSTUB( 0xFF07B498, strcmp )
 //NSTUB( 0xFF44f8f8, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 
+NSTUB( 0x67bc, mvr_config )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )
