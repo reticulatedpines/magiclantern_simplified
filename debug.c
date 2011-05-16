@@ -392,7 +392,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			display_shooting_info_lv();
 			if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
-				bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 100, 50, "!!! Auto exposure !!!");
+				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, "!!! Auto exposure !!!\nSet 'Movie exposure: Manual' in Canon menu");
 			display_shortcut_key_hints_lv();
 		}
 		
