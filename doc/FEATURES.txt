@@ -170,6 +170,7 @@ LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ) or as shift 
 Flash button shortcuts
 ~~~~~~~~~~~~~~~~~~~~~~
 
+* Flash in Movie mode (short press): toggle `False Color`_.
 * Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
 * Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 
@@ -193,7 +194,7 @@ Misc shortcuts
 * ``ISO`` followed by ``LV``: toggle between photo and movie mode.
 * ``ISO`` followed by ``DISP``: change current `display preset`_.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
-* Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
+* Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Bulb timer`_, `Movie REC key`_.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
@@ -335,6 +336,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
       :alt: thumb|right|False color palettes
       :align: center
       :width: 13cm
+
+  In Movie mode, you can toggle False Color with a short press of Flash button.
   
 .. _Cropmark:
 
@@ -467,8 +470,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Notes:
   
   * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
-  * It does not work in certain video modes (e.g. 720p) when not recording.
-  * `Focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
+  * It does **not** work in certain video modes (e.g. 720p) when not recording.
+  * `Zebras`_, `focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:
@@ -497,7 +500,7 @@ Functions specific to movie mode.
   Modes:
   
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps, including sound).
-  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the same as FW default.
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the same as FW default. The implementation uses variable QScale, displayed near the recording dot.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
@@ -510,6 +513,7 @@ Functions specific to movie mode.
   * There is a bitrate / QScale display near the red recording dot, updated every second.
   * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain cards labeled as Class10.
   * In QScale mode, bitrate varies a lot with frame complexity, and you have no direct control over its value.
+  * In CBR mode, on scenes without a lot of details, QScale will not go further than -16, and bitrate will be lower than requested. As soon as frame complexity increases, the bitrate will increase too, and video may stop recording. In this case, bitrate meter will be displayed in red.
   * You can't change this setting during recording.
   
   See [[Bit rate]] page for details.
@@ -574,14 +578,22 @@ Functions specific to movie mode.
 **WB workaround: ON/OFF**
 
   Workaround for remembering Kelvin temperature and WBShift G/M and B/A values in Movie mode.
-  
+    
   If this setting is on, these values are stored in config file.
   They will be shared between movie and photo modes.
-  Enabling this setting will apply WBShift setting in auto modes, too.    
+
+  Note: WBShift B/A can be only changed from Canon menu in photo mode, but with WB workaround enabled, WBShift settings will take effect in Movie mode, too (and also in auto modes, as a side effect).
 
 **Zebra when REC: Hide / Don't Hide**
 
   You can disable zebras during recording.
+
+**Force LiveView: OFF / Start \& CPU lenses / Always**
+
+  Force LiveView in Movie mode (bypass the dialog saying *Press LV button to activate movie shooting*).
+  
+  * Always: force LiveView even if you use an unchipped lens, or no lens at all. Be careful, you may get dust on the sensor while changing lenses.
+  * Start & CPU lenses: it will force LiveView at startup, regardless of the lens used. After this, it will only bypass the dialog when a chipped lens is attached (i.e. it will enter LiveView as soon as you attach a chipped lens).
 
 Shoot
 ~~~~~
@@ -660,7 +672,7 @@ Functions for stills shooting (some of them work for movies, too).
     - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
     - To use the intervalometer in movie mode, make sure `Silent Picture`_ is ``OFF``.
   
-  You can stop the intervalometer either from ML menu, or by pressing MENU or PLAY. You can pause the intervalometer by holding the shutter halfway.
+  You can stop the intervalometer either from ML menu, or by pressing MENU or PLAY, or by changing the shooting mode. You can pause the intervalometer by holding the shutter halfway, or by opening ML menu.
   
   Tips:
   
@@ -735,7 +747,7 @@ Functions for stills shooting (some of them work for movies, too).
 .. _Silent Picture:
 .. _slit-scan pictures:
 
-**Silent Picture / Silent Pic HiRes / Silent Pic LongX / Slit-scan Pic**
+**Silent Picture / Silent Pic HiRes / Slit-scan Pic**
 
   This can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
   
@@ -743,19 +755,17 @@ Functions for stills shooting (some of them work for movies, too).
   
   Modes:
   
-  * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
+  * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie. `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
   * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the scene should be almost stationary (a pic is taken in a few seconds). Useful for timelapse. Only works well with manual focus.
-  * ``Silent Pic LongX``:  **(does not work yet)** emulate a long exposure and/or a very low ISO, by stacking lots of simple silent pics. This may fail in high-resolution modes due to lack of memory.
   * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
   
   Keys:
   
-  * ``SET``: toggle modes (normal or hi-res)
+  * ``SET``: toggle modes (normal, hi-res or slit-scan)
   * ``DISP/Q``: toggle between:
   
-    * ``Single/Burst`` in normal mode
+    * ``Single/Burst/FullHD`` in normal mode
     * available matrix sizes (which give the image resolutions) in Hi-Res mode.
-    * exposure time (0.1s ... 8h) and image stacking method for luma channel (``AVG`` or ``MAX``) in long exposure mode. Chroma is always stacked with ``AVG``.
     * timing (number of clocks to skip after each line) in Slit-scan mode.
   
   Silent picture setting is applied to `intervalometer`_ and `remote triggers`_ when used in LiveView mode.
@@ -766,6 +776,8 @@ Functions for stills shooting (some of them work for movies, too).
     * If intervalometer is ``ON``, silent pics have names like ``12345678.422``. Tip: use ``File Numbering -> Manual Reset`` from Canon menu to increase folder number (to sort them easier).
     
   To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python, PIL and numpy). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
+  
+  Note: FullHD option will cause errors during playback; they are caused by dummy videos which were removed by ML, but camera thinks they are still there. After restart, the errors will disappear.
   
   TODO: 
   
@@ -798,6 +810,8 @@ Functions for stills shooting (some of them work for movies, too).
 **Picture Quality**
 
   Set picture quality for stills. Available options: RAW, SRAW, MRAW and a few combinations of RAW+JPEG.
+  
+  Warning: we don't know yet how to open SRAW and MRAW files. Neither DPP nor dcraw/ufraw will open them. Use this option only for testing.
   
   When using SRAW and MRAW, please be aware of the following side effects:
   
@@ -1046,11 +1060,11 @@ Focus
 
 **Focus dir**
 
-  This is the direction the lens moves when pressing the camera's Zoom Out button to set the focus start and end points.
+  This is the direction the lens moves when pressing the camera's Zoom In button to set the focus start and end points.
 
 **Focus A**
 
-    This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set".
+    This is end point of rack focus. To set, focus the lens with the Zoom In button, then press "Set".
     
     The start point will be the point where you are before selecting ``Rack focus`` in the menu.
 
@@ -1092,7 +1106,7 @@ The following items are display only:
   
     To focus the lens, make sure it is set on AF and use one of the following:
     
-    * Option 1: choose ``Focus dir`` and hold on the ``*`` button (``Zoom Out``) or ``Half Shutter`` while Focus menu is active.
+    * Option 1: choose ``Focus dir`` and hold on the ``Zoom In`` button while Focus menu is active.
     * Option 2: enable `Follow focus`_, close the focus menu and focus with the arrows.
 
   4. Select the focus speed. The number varies between different lenses and represents raw encoder steps for the focus motor.
@@ -1179,10 +1193,6 @@ Miscellanous settings.
 
   * ``All values``: use all available ISO speeds, in 1/8 EV steps
   * ``100x, 160x``: use only native ISOs (multiples of 100) and ISO values with lower digital gain (multiples of 160).
-
-**Start with LV: ON / Movie mode / All modes**
-
-  Force LiveView on startup. In movie mode, this only has effect if you use unchipped lenses. You can also force LiveView at startup in all modes.
 
 **LV Metering Override**
 
