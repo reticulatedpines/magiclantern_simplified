@@ -463,11 +463,11 @@ struct mvr_config
 	uint16_t		db_filter_a;			// 0x04, 67c0, no effect
 	uint16_t		db_filter_b;			// 0x06, 67c2, no effect
 	int16_t			def_q_scale;			// 0x08, 67c4, works when qscale_mode = 1
-	uint16_t		qscale_related_1;		// 0x0a, 67c6
-	uint16_t		qscale_related_2;		// 0x0c, 67c8
-	uint16_t		qscale_related_3;		// 0x0e, 67ca
-	uint16_t		qscale_limit_L;			// 0x10, 67cc
-	uint16_t		qscale_limit_H;			// 0x12, 67ce
+	int16_t 		qscale_related_1;		// 0x0a, 67c6
+	int16_t 		qscale_related_2;		// 0x0c, 67c8
+	int16_t 		qscale_related_3;		// 0x0e, 67ca
+	int16_t 		qscale_limit_L;			// 0x10, 67cc
+	int16_t 		qscale_limit_H;			// 0x12, 67ce
 	uint16_t		time_const;				// 0x14, 67d0, unknown
 	uint16_t		x67d0;					// 0x16, 67d2
 	uint32_t		fullhd_opt_size_I;		// 0x18, 67d4, works when qscale_mode = 0
@@ -505,9 +505,9 @@ struct mvr_config
 	uint32_t		x6854_D1;				// 0x98, 6854
 	uint32_t		x6858_D2;				// 0x9c, 6858
 	uint32_t		x685c;					// 0xa0, 685c
-	uint32_t		another_def_q_scale;	// 0xa4, 6860
-	uint32_t		IniQScale;				// 0xa8, 6864
-	uint32_t		QScaleRelated;			// 0xac, 6868
+	int32_t 		another_def_q_scale;	// 0xa4, 6860
+	int32_t 		IniQScale;				// 0xa8, 6864
+	int32_t 		actual_qscale_maybe;	// 0xac, 6868
 	uint32_t		IOptSize;				// 0xb0, 686c
 	uint32_t		POptSize;				// 0xb4, 6870
 	uint32_t		IOptSize2;				// 0xb8, 6874
@@ -820,7 +820,13 @@ extern int autoboot_loaded;
 
 extern void DryosDebugMsg(int,int,const char *,...);
 //~ #define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
-#define DebugMsg(a,b,fmt,...) { /*DryosDebugMsg(a,b,fmt, ## __VA_ARGS__);*/ }
+
+#if CONFIG_DEBUGMSG
+	#define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
+#else
+	#define DebugMsg(a,b,fmt,...) { }
+#endif
+
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
