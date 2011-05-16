@@ -196,6 +196,8 @@ NSTUB( 0xFF07B498, strcmp )
 
 NSTUB( 0x67bc, mvr_config )
 
+NSTUB( 0xFF21023C, GuiEdLedOn )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )
@@ -204,3 +206,6 @@ NSTUB( 0xFF095AC8, gui_change_lcd_state_post )
 NSTUB( 0xFF1D2760, gui_timer_something )
 // FF2B4C10, gui_task_create    ?
 #endif
+
+NSTUB( 0xff01d838, main_ctrl_task )
+NSTUB( 0xFF0364A0, LVCAF_LensDriveStart )

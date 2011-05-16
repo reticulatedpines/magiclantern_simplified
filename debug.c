@@ -75,10 +75,13 @@ draw_prop_reset( void * priv )
 }
 
 int mem_spy = 0;
-int mem_spy_start = 0; // start from here
-int mem_spy_len = 0x10000/4;    // look at ### int32's
+int mem_spy_start = 0xc0f10000; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
 int mem_spy_small = 0;          // only display small numbers (less than 10)
+int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses
+const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc00011cf, 0xc02000a8, 0xc02000ac, 0xc0201004, 0xc0201010, 0xc0201100, 0xc0201104, 0xc0201200, 0xc0203000, 0xc020301c, 0xc0203028, 0xc0203030, 0xc0203034, 0xc020303c, 0xc0203044, 0xc0203048, 0xc0210200, 0xc0210208, 0xc022001c, 0xc0220028, 0xc0220034, 0xc0220070, 0xc02200a4, 0xc02200d0, 0xc02200d4, 0xc02200d8, 0xc02200e8, 0xc02200ec, 0xc0220100, 0xc0220104, 0xc022010c, 0xc0220118, 0xc0220130, 0xc0220134, 0xc0220138, 0xc0222000, 0xc0222004, 0xc0222008, 0xc022200c, 0xc0223000, 0xc0223010, 0xc0223060, 0xc0223064, 0xc0223068, 0xc0224100, 0xc0224104, 0xc022d000, 0xc022d02c, 0xc022d074, 0xc022d1ec, 0xc022d1f0, 0xc022d1f4, 0xc022d1f8, 0xc022d1fc, 0xc022dd14, 0xc022f000, 0xc022f004, 0xc022f200, 0xc022f210, 0xc022f214, 0xc022f340, 0xc022f344, 0xc022f430, 0xc022f434, 0xc0238060, 0xc0238064, 0xc0238080, 0xc0238084, 0xc0238098, 0xc0242010, 0xc0300000, 0xc0300100, 0xc0300104, 0xc0300108, 0xc0300204, 0xc0400004, 0xc0400008, 0xc0400018, 0xc040002c, 0xc0400080, 0xc0400084, 0xc040008c, 0xc04000b4, 0xc04000c0, 0xc04000c4, 0xc04000cc, 0xc0410000, 0xc0410008, 0xc0500080, 0xc0500088, 0xc0500090, 0xc0500094, 0xc05000a0, 0xc05000a8, 0xc05000b0, 0xc05000b4, 0xc05000c0, 0xc05000c4, 0xc05000c8, 0xc05000cc, 0xc05000d0, 0xc05000d4, 0xc05000d8, 0xc0520000, 0xc0520004, 0xc0520008, 0xc052000c, 0xc0520014, 0xc0520018, 0xc0720000, 0xc0720004, 0xc0720008, 0xc072000c, 0xc0720014, 0xc0720024, 0xc07200ec, 0xc07200f0, 0xc0720100, 0xc0720104, 0xc0720108, 0xc072010c, 0xc0720110, 0xc0720114, 0xc0720118, 0xc072011c, 0xc07201c8, 0xc0720200, 0xc0720204, 0xc0720208, 0xc072020c, 0xc0720210, 0xc0800008, 0xc0800014, 0xc0800018, 0xc0820000, 0xc0820304, 0xc0820308, 0xc082030c, 0xc0820310, 0xc0820318, 0xc0920000, 0xc0920004, 0xc0920008, 0xc092000c, 0xc0920010, 0xc0920100, 0xc0920118, 0xc092011c, 0xc0920120, 0xc0920124, 0xc0920204, 0xc0920208, 0xc092020c, 0xc0920210, 0xc0920220, 0xc0920224, 0xc0920238, 0xc0920320, 0xc0920344, 0xc0920348, 0xc0920354, 0xc0920358, 0xc0a00000, 0xc0a00008, 0xc0a0000c, 0xc0a00014, 0xc0a00018, 0xc0a0001c, 0xc0a00020, 0xc0a00024, 0xc0a00044, 0xc0a10008 };
+int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
+//~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
 static void
 mem_spy_select( void * priv )
@@ -161,16 +164,16 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	set_pic_quality(0x4060002);
-	/*
-	int i;
-	char fn[100];
-	for (i = 0; i < 5000; i++)
-	{
-		snprintf(fn, 100, "B:/DCIM/100CANON/%08d.422", i);
-		bmp_printf(FONT_MED, 0, 0, fn);
-		FIO_RemoveFile(fn);
-	}*/
+	int step = 100;
+	struct prop_focus focus = {
+		.active		= 1,
+		.mode		= 7,
+		.step_hi	= (step >> 8) & 0xFF,
+		.step_lo	= (step >> 0) & 0xFF,
+		.unk		= 0,
+	};
+	
+	LVCAF_LensDriveStart(&focus);
 }
 
 void toggle_mirror_display()
@@ -199,9 +202,17 @@ void fake_simple_button(int bgmt_code)
 static uint32_t* dbg_memmirror = 0;
 static uint32_t* dbg_memchanges = 0;
 
+static int dbg_memspy_get_addr(int i)
+{
+	if (mem_spy_fixed_addresses)
+		return mem_spy_addresses[i];
+	else
+		return mem_spy_start + i*4;
+}
+
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
+	bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
 	//~ msleep(2000);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
@@ -213,13 +224,14 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 	uint32_t crc = 0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
-		uint32_t addr = mem_spy_start + i*4;
+		uint32_t addr = dbg_memspy_get_addr(i);
 		dbg_memmirror[i] = *(uint32_t*)(addr);
 		dbg_memchanges[i] = 0;
 		crc += dbg_memmirror[i];
 		//~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
+		//~ msleep(1000);
 	}
-	//~ bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
+	bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
 }
 static void dbg_memspy_update()
 {
@@ -234,7 +246,7 @@ static void dbg_memspy_update()
 	for (i = 0; i < mem_spy_len; i++)
 	{
 		uint32_t fnt = FONT_SMALL;
-		uint32_t addr = mem_spy_start + i*4;
+		uint32_t addr = dbg_memspy_get_addr(i);
 		int32_t oldval = dbg_memmirror[i];
 		int32_t newval = *(uint32_t*)(addr);
 		if (oldval != newval)
@@ -358,15 +370,15 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x", AUDIO_MONITORING_HEADPHONES_CONNECTED, *(int*)VIDEO_OUT_PROP_DELIVER_COUNTER, *(int*)VIDEO_OUT_PROP_DELIVER_VALUE);
+		//~ bmp_printf(FONT_MED, 0, 0, "%x", *(int*)0xc0f10040);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, 0x26B8, 32*5);
 		
-		//~ if (recording == 2)
+		//~ if (gui_state == GUISTATE_IDLE)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x1E774, 32*10);
+			//~ bmp_hexdump(FONT_SMALL, 0, 40, 0xc0e10000, 32*20);
 		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", *(int*)131030);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
@@ -761,6 +773,10 @@ debug_init_stuff( void )
 	dm_set_store_level( DM_BIND, 7);
 	dm_set_store_level( DM_DISP, 7);
 	DEBUG();*/
+
+	//~ int i;
+	//~ for (i = 0; i < 256; i++)
+		//~ dm_set_store_level( i, 15);
 	
 	//msleep(1000);
 	//bmp_draw_palette();
