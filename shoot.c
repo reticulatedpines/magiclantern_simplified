@@ -39,7 +39,9 @@ CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
-CONFIG_INT( "silent.pic.burst", silent_pic_burst, 0);       // boolean
+CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
+#define silent_pic_burst (silent_pic_submode == 1)
+#define silent_pic_fullhd (silent_pic_submode == 2)
 CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
@@ -244,7 +246,8 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Silent Picture  : %s",
-			silent_pic_burst ? "Burst" : "Single"
+			silent_pic_burst ? "Burst" : 
+			silent_pic_fullhd ? "FullHD" : "Single"
 		);
 	}
 	else if (silent_pic_mode == 2)
@@ -258,7 +261,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 		);
 		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
 	}
-	else if (silent_pic_mode == 3)
+/*	else if (silent_pic_mode == 3)
 	{
 		int t = timer_values_ms[mod(silent_pic_longexp_time_index, COUNT(timer_values_ms))];
 		bmp_printf(
@@ -269,7 +272,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			t < 1000 ? t / 100 : t / 1000,
 			silent_pic_longexp_method ? "MAX" : "AVG"
 		);
-	}
+	}*/
 	else if (silent_pic_mode == 4)
 	{
 		bmp_printf(
@@ -290,10 +293,10 @@ static void silent_pic_mode_toggle(void* priv)
 static void silent_pic_toggle(int sign)
 {
 	if (silent_pic_mode == 1)
-		silent_pic_burst = !silent_pic_burst;
+		silent_pic_submode = mod(silent_pic_submode + 1, 3);
 	else if (silent_pic_mode == 2) 
 		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));
-	else if (silent_pic_mode == 3) 
+	/*else if (silent_pic_mode == 3) 
 	{
 		if (sign < 0)
 		{
@@ -303,7 +306,7 @@ static void silent_pic_toggle(int sign)
 		{
 			silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + 1, COUNT(timer_values_ms));
 		}
-	}
+	}*/
 	else if (silent_pic_mode == 4)
 		silent_pic_slitscan_skipframes = mod(silent_pic_slitscan_skipframes + sign - 1, 4) + 1;
 }
@@ -335,10 +338,10 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 		if (v == 0 && lv_drawn() && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
 			face_zoom_request = 1;
 	}
-	if (v && gui_menu_shown() && !is_menu_active("Focus"))
+/*	if (v && gui_menu_shown() && !is_menu_active("Focus"))
 	{
 		gui_stop_menu();
-	}
+	}*/
 	return prop_cleanup( token, property );
 }
 
@@ -702,6 +705,7 @@ TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
 
 // not working
+/*
 static void
 silent_pic_take_longexp()
 {
@@ -740,12 +744,40 @@ silent_pic_take_longexp()
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 	}
+}*/
+
+static int
+silent_pic_ensure_movie_mode()
+{
+	if (silent_pic_fullhd && shooting_mode != SHOOTMODE_MOVIE) 
+	{ 
+		set_shooting_mode(SHOOTMODE_MOVIE);
+		msleep(1000); 
+	}
+	if (silent_pic_fullhd && !recording)
+	{
+		movie_start();
+		return 1;
+	}
+	return 0;
 }
 
+static void
+silent_pic_stop_dummy_movie()
+{ 
+	movie_end();
+	char name[100];
+	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
+	FIO_RemoveFile(name);
+	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
+	FIO_RemoveFile(name);
+}
 
 static void
 silent_pic_take_simple()
 {
+	int movie_started = silent_pic_ensure_movie_mode();
+	
 	struct vram_info * vram = get_yuv422_hd_vram();
 	
 	char* imgname = silent_pic_get_name();
@@ -755,6 +787,8 @@ silent_pic_take_simple()
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a pic   ");
 	
+	if (movie_started) silent_pic_stop_dummy_movie();
+
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
@@ -927,8 +961,8 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 		silent_pic_take_simple();
 	else if (silent_pic_mode == 2) // hi-res
 		silent_pic_take_sweep();
-	else if (silent_pic_mode == 3) // long exposure
-		silent_pic_take_longexp();
+	//~ else if (silent_pic_mode == 3) // long exposure
+		//~ silent_pic_take_longexp();
 	else if (silent_pic_mode == 4) // slit-scan
 		silent_pic_take_slitscan(interactive);
 
@@ -2836,6 +2870,8 @@ shoot_task( void )
 				else break;
 
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
+
+				while (get_halfshutter_pressed()) msleep(100);
 				
 				if (!lv_drawn())
 				{
