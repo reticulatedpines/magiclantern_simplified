@@ -172,13 +172,13 @@ static int handle_buttons(struct event * event)
 	
 	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
 	{
-		if (lv_drawn() && event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) // zoom out unpress, shared with halfshutter
+		if (lv_drawn() && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 		{
 			gui_hide_menu( 2 );
 			lens_focus_stop();
 			return 0;
 		}
-		if (lv_drawn() && (event->param == BGMT_PRESS_HALFSHUTTER || (event->param == BGMT_PRESS_ZOOMOUT_MAYBE && lvaf_mode))) // zoom out press, shared with halfshutter
+		if (lv_drawn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
 			gui_hide_menu( 50 );
 			lens_focus_start( get_focus_dir() );
