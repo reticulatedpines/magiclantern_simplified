@@ -258,7 +258,7 @@ PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
 void adjust_backlight_level(int delta)
 {
 	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
-	display_on_force();
+	call("TurnOnDisplay");
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
 	if (!lv_drawn()) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
@@ -298,7 +298,7 @@ void clear_lv_afframe()
 	int xaf,yaf;
 	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
 	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,50) - 50, 200, 100 );
-	crop_set_dirty(1);
+	crop_set_dirty(10);
 }
 
 CONFIG_INT("play.quick.zoom", quickzoom, 1);
@@ -346,7 +346,7 @@ tweak_task( void )
 	{
 		msleep(50);
 		
-		if (!DISPLAY_SENSOR_POWERED) // force sensor on
+		if (!DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
 		{
 			DispSensorStart();
 		}
@@ -379,10 +379,31 @@ tweak_task( void )
 			afframe_countdown--;
 			if (!afframe_countdown) clear_lv_afframe();
 		}
+		
+		if (FLASH_BTN_MOVIE_MODE)
+		{
+			int k = 0;
+			int falsecolor_canceled = 0;
+			bmp_printf(FONT_MED, 245, 100, "False Color toggle");
+			while (FLASH_BTN_MOVIE_MODE)
+			{
+				msleep(100);
+				k++;
+				
+				if (k > 3)
+				{
+					falsecolor_canceled = 1; // long press doesn't toggle
+					bmp_printf(FONT(FONT_MED, 1, 0), 245, 100, "                  ");
+				}
+					
+			}
+			if (!falsecolor_canceled) false_color_toggle();
+			redraw_request();
+		}
 	}
 }
 
-TASK_CREATE("tweak_task", tweak_task, 0, 0x1f, 0x1000 );
+TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );
 
 extern int quick_review_allow_zoom;
 

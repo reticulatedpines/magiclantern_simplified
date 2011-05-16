@@ -51,10 +51,10 @@ struct lens_info
 	int8_t		wbs_ba;
 
 	unsigned		picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
-	int32_t 		contrast;   // -4..4
+/*	int32_t 		contrast;   // -4..4
 	uint32_t		sharpness;  // 0..7
 	uint32_t		saturation; // -4..4
-	uint32_t		color_tone; // -4..4
+	uint32_t		color_tone; // -4..4 */
 
 	// Store the raw values before the lookup tables
 	uint8_t			raw_aperture;

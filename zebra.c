@@ -44,10 +44,10 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
 CONFIG_INT("disp.mode", disp_mode, 0);
-CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285c41);
-CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295c01);
-CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88890);
-CONFIG_INT("disp.mode.xxx", disp_mode_x,   0x5c50);
+CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
+CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295001);
+CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88090);
+CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x2c5051);
 int disp_mode_change_request = 0;
 void schedule_disp_mode_change() 
 {
@@ -65,7 +65,7 @@ CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
 CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
-CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
+CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 2);
 CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
@@ -94,7 +94,7 @@ CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
 CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 
 CONFIG_INT( "clear.preview", clearscreen, 1); // 2 is always
-CONFIG_INT( "clear.preview.delay", clearscreen_delay, 500); // ms
+CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
 
 CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
@@ -162,7 +162,7 @@ void crop_set_dirty(int value)
 int ext_monitor_rca = 0;
 int ext_monitor_hdmi = 0;
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
-int lv_dispsize = 1;
+
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
 	ext_monitor_rca = buf[0];
@@ -172,15 +172,15 @@ PROP_HANDLER(PROP_USBRCA_MONITOR)
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
 	ext_monitor_hdmi = buf[0];
-	crop_dirty = 5;
+	//~ crop_dirty = 5;
 	return prop_cleanup( token, property );
 }
-PROP_HANDLER(PROP_LV_DISPSIZE)
+/*PROP_HANDLER(PROP_LV_DISPSIZE)
 {
 	lv_dispsize = buf[0];
-	crop_dirty = 10;
+	//~ crop_dirty = 10;
 	return prop_cleanup( token, property );
-}
+}*/
 
 int video_mode_crop = 0;
 int video_mode_fps = 0;
@@ -201,7 +201,7 @@ PROP_HANDLER(PROP_GUI_STATE) {
 }
 
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-	crop_dirty = 20;
+	crop_dirty = 50;
 	afframe_set_dirty();
 	return prop_cleanup( token, property );
 }
@@ -555,21 +555,21 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
 }
 
 #define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
-static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB)
+static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, int y)
 {
-	if (underexposed) return ZEBRA_COLOR_WORD_SOLID(COLOR_WHITE);
+	if (underexposed) return zebra_color_word_row(79, y);
 	
 	switch ((clipR ? 0 : 1) |
 			(clipG ? 0 : 2) |
 			(clipB ? 0 : 4))
 	{
-		case 0b000: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLACK);
-		case 0b001: return ZEBRA_COLOR_WORD_SOLID(COLOR_RED);
-		case 0b010: return ZEBRA_COLOR_WORD_SOLID(7); // green
-		case 0b100: return ZEBRA_COLOR_WORD_SOLID(9); // strident blue
-		case 0b011: return ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
-		case 0b110: return ZEBRA_COLOR_WORD_SOLID(5); // cyan
-		case 0b101: return ZEBRA_COLOR_WORD_SOLID(14); // magenta
+		case 0b000: return zebra_color_word_row(COLOR_BLACK, y);
+		case 0b001: return zebra_color_word_row(COLOR_RED,1);
+		case 0b010: return zebra_color_word_row(7, 1); // green
+		case 0b100: return zebra_color_word_row(9, 1); // strident blue
+		case 0b011: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
+		case 0b110: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(5); // cyan
+		case 0b101: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(14); // magenta
 		case 0b111: return 0;
 	}
 	return 0;
@@ -938,7 +938,7 @@ static void little_cleanup(uint8_t* bp, uint8_t* mp)
 }
 
 
-static int zebra_color_word_row(int c, int y)
+int zebra_color_word_row(int c, int y)
 {
 	if (!c) return 0;
 	
@@ -961,8 +961,9 @@ static int zebra_color_word_row(int c, int y)
 	return cw;
 }
 
-static int zebra_color_word_row_thick(int c, int y)
+int zebra_color_word_row_thick(int c, int y)
 {
+	//~ return zebra_color_word_row(c,y);
 	if (!c) return 0;
 	
 	uint32_t cw = 0;
@@ -991,12 +992,6 @@ static void draw_zebra_and_focus_unified( void )
 	
 	fps_ticks++;
 	
-	if (falsecolor_draw) 
-	{
-		draw_false_downsampled();
-		return;
-	}
-
 	bvram_mirror_init();
 
 	uint8_t * const bvram = bmp_vram();
@@ -1219,17 +1214,16 @@ int focus_peaking_debug = 0;
 
 // thresholded edge detection
 static void
-draw_zebra_and_focus( void )
+draw_zebra_and_focus( int Z, int F )
 {
-	// disable zebra/peaking while overlay is active (reduces flicker)
 	if (lv_dispsize != 1) return;
 
-	int Zd = should_draw_zoom_overlay();
-
+/*	int Zd = should_draw_zoom_overlay();
 	static int Zdp = 0;
 	if (Zd && !Zdp) clrscr_mirror();
 	Zdp = Zd;
 	if (Zd) msleep(100); // reduce frame rate when zoom overlay is active
+	*/
 	
 	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
 	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
@@ -1239,11 +1233,6 @@ draw_zebra_and_focus( void )
 	
 	fps_ticks++;
 	
-	if (falsecolor_draw) 
-	{
-		draw_false_downsampled();
-		return;
-	}
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
 	// record: 1720: 2.38 ratio (yuck!)
@@ -1259,7 +1248,7 @@ draw_zebra_and_focus( void )
 	//~ int BMPPITCH = bmp_pitch();
 	uint32_t x,y;
 
-	if (focus_peaking && !Zd && !PLAY_MODE)
+	if (F && focus_peaking)
 	{
 		// clear previously written pixels
 		#define MAX_DIRTY_PIXELS 5000
@@ -1297,8 +1286,8 @@ draw_zebra_and_focus( void )
 		
 		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d ", hd_width, hd_height);
 		
-		int bm_skipv = 50;
-		int bm_skiph = 100;
+		int bm_skipv = 10;
+		int bm_skiph = 10;
 		int hd_skipv = bm_skipv * hd_height / bm_height;
 		int hd_skiph = bm_skiph * hd_width / bm_width;
 		
@@ -1415,7 +1404,7 @@ draw_zebra_and_focus( void )
 		thr = COERCE(thr, thr_min, 255);
 	}
 	
-	int zd = zebra_draw && expsim && (!zebra_nrec || !recording); // when to draw zebras
+	int zd = Z && zebra_draw && expsim && (!zebra_nrec || !recording); // when to draw zebras
 	if (zd)
 	{
 		uint32_t zlh = zebra_level_hi;
@@ -1461,7 +1450,8 @@ draw_zebra_and_focus( void )
 					
 					//~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
 
-					BP = MP = BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh );
+					BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
+					BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
 				}
 				else
 				{
@@ -1758,6 +1748,29 @@ static void global_draw_toggle(void* priv)
 #define MAX_CROPMARKS 9
 int num_cropmarks = 0;
 char cropmark_names[MAX_CROPMARKS][MAX_CROP_NAME_LEN];
+
+// Cropmark sorting code contributed by Nathan Rosenquist
+void sort_cropmarks()
+{
+	int i = 0;
+	int j = 0;
+	
+	char aux[MAX_CROP_NAME_LEN];
+	
+	for (i=0; i<num_cropmarks; i++)
+	{
+		for (j=i+1; j<num_cropmarks; j++)
+		{
+			if (strcmp(cropmark_names[i], cropmark_names[j]) > 0)
+			{
+				strcpy(aux, cropmark_names[i]);
+				strcpy(cropmark_names[i], cropmark_names[j]);
+				strcpy(cropmark_names[j], aux);
+			}
+		}
+	}
+}
+
 static void find_cropmarks()
 {
 	struct fio_file file;
@@ -1782,6 +1795,7 @@ static void find_cropmarks()
 		}
 	} while( FIO_FindNextEx( dirent, &file ) == 0);
 	num_cropmarks = k;
+	sort_cropmarks();
 }
 static void reload_cropmark(int i)
 {
@@ -2421,10 +2435,16 @@ static struct menu_entry cfg_menus[] = {
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
-	crop_dirty = 5;
+	//~ crop_dirty = 5;
+	zoom_overlay_countdown = 0;
 	return prop_cleanup( token, property );
 }
 
+PROP_HANDLER(PROP_HALF_SHUTTER)
+{
+	if (!buf[0]) crop_dirty = 10;
+	return prop_cleanup( token, property );
+}
 
 void 
 cropmark_draw()
@@ -2447,21 +2467,27 @@ cropmark_redraw()
 
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
+
+void wait_till_its_safe_to_mess_with_the_display()
+{
+	while (lens_info.job_state || tft_status || recording == 1)
+		msleep(100);
+}
+
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	wait_till_its_safe_to_mess_with_the_display();
 	if (_bmp_cleared) { call("MuteOff"); msleep(100); _bmp_cleared = 0;}
 }
 void bmp_on_force()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
 	_bmp_cleared = 1;
 	bmp_on();
 }
 void bmp_off()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	wait_till_its_safe_to_mess_with_the_display();
 	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); call("MuteOn");}
 }
 int bmp_is_on() { return !_bmp_cleared; }
@@ -2469,13 +2495,13 @@ int bmp_is_on() { return !_bmp_cleared; }
 int _lvimage_cleared = 0;
 void lvimage_on()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	wait_till_its_safe_to_mess_with_the_display();
 	if (!_lvimage_cleared) call("MuteOffImage");
 	_lvimage_cleared = 1;
 }
 void lvimage_off()
 {
-	while (lens_info.job_state || tft_status) msleep(100);
+	wait_till_its_safe_to_mess_with_the_display();
 	if (_lvimage_cleared) call("MuteOnImage");
 	_lvimage_cleared = 0;
 }
@@ -2483,8 +2509,7 @@ void lvimage_off()
 int _display_is_off = 0;
 void display_on()
 {
-	while (lens_info.job_state) msleep(100);
-	if (EXT_MONITOR_CONNECTED) return;
+	wait_till_its_safe_to_mess_with_the_display();
 	if (_display_is_off)
 	{
 		call("TurnOnDisplay");
@@ -2493,15 +2518,12 @@ void display_on()
 }
 void display_on_force()
 {
-	while (lens_info.job_state) msleep(100);
-	if (EXT_MONITOR_CONNECTED) return;
 	_display_is_off = 1;
 	display_on();
 }
 void display_off()
 {
-	while (lens_info.job_state) msleep(100);
-	if (EXT_MONITOR_CONNECTED) return;
+	wait_till_its_safe_to_mess_with_the_display();
 	if (!_display_is_off)
 	{
 		call("TurnOffDisplay");
@@ -2510,8 +2532,7 @@ void display_off()
 }
 void display_off_force()
 {
-	while (lens_info.job_state) msleep(100);
-	if (EXT_MONITOR_CONNECTED) return;
+	wait_till_its_safe_to_mess_with_the_display();
 	_display_is_off = 0;
 	display_off();
 }
@@ -2529,11 +2550,11 @@ void zoom_overlay_toggle()
 	//~ zoom_overlay = 1;
 //~ }
 
-//~ void zoom_overlay_disable()
-//~ {
-	//~ zoom_overlay = 0;
-	//~ zoom_overlay_countdown = 0;
-//~ }
+void zoom_overlay_disable()
+{
+	zoom_overlay = 0;
+	zoom_overlay_countdown = 0;
+}
 
 void zoom_overlay_set_countdown(int x)
 {
@@ -2685,7 +2706,9 @@ void draw_zoom_overlay()
 int liveview_display_idle()
 {
 	return
+		global_draw &&
 		lv_drawn() && 
+		!gui_menu_shown() &&
 		gui_state == GUISTATE_IDLE && 
 		CURRENT_DIALOG_MAYBE <= 3 && 
 		lv_dispsize == 1 &&
@@ -2693,7 +2716,7 @@ int liveview_display_idle()
 		recording != 1 &&
 		!mirror_down &&
 		!(recording == 2 && MVR_FRAME_NUMBER < 50) &&
-		!gui_menu_shown();
+		!(clearscreen == 1 && get_halfshutter_pressed());
 }
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
@@ -2705,11 +2728,14 @@ void zebra_sleep_when_tired()
 {
 	if (!zebra_should_run())
 	{
+		while (clearscreen == 1 && get_halfshutter_pressed()) msleep(100);
+		if (zebra_should_run()) return;
+		
 		if (!gui_menu_shown()) ChangeColorPaletteLV(4);
 		if (lv_drawn() && !gui_menu_shown()) redraw();
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
-		crop_dirty = 5;
+		crop_dirty = 20;
 		if (lv_drawn() && !gui_menu_shown()) redraw();
 	}
 }
@@ -2720,7 +2746,7 @@ void clear_this_message_not_available_in_movie_mode()
 	int f = FLASH_BTN_MOVIE_MODE;
 	if (f == fp) return; // clear the message only once
 	fp = f;
-	crop_dirty = 5;
+	//~ crop_dirty = 5;
 	if (!f) return;
 	
 	bmp_fill(0, 0, 330, 720, 480-330);
@@ -2728,36 +2754,36 @@ void clear_this_message_not_available_in_movie_mode()
 	bmp_fill(0, 0, 330, 720, 480-330);
 }
 
-void draw_livev_stuff(int k)
+void draw_livev_for_playback()
 {
-		draw_zebra_and_focus();
+	if (spotmeter_draw)
+		spotmeter_step();
+
+	if (falsecolor_draw) 
+	{
+		draw_false_downsampled();
+	}
+	else
+	{
+		draw_zebra_and_focus(1,0);
+	}
+
+	if (hist_draw || waveform_draw)
+	{
+		struct vram_info * vram = get_yuv422_vram();
+		hist_build(vram->vram, vram->width, vram->pitch);
+	}
+	
+	if( hist_draw)
+		hist_draw_image( hist_x, hist_y );
 		
-		if (k % 16 == 0)
-		{
-			if (hist_draw || waveform_draw)
-			{
-				struct vram_info * vram = get_yuv422_vram();
-				hist_build(vram->vram, vram->width, vram->pitch);
-			}
-			if( hist_draw)
-				hist_draw_image( hist_x, hist_y );
-			if( waveform_draw)
-				waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
-		}
+	if( waveform_draw)
+		waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
 
-		if(spotmeter_draw && k % 4 == 0)
-			spotmeter_step();
-
-		if (crop_dirty)
-		{
-			crop_dirty--;
-			if (!crop_dirty)
-			{
-				cropmark_redraw();
-			}
-		}
+	cropmark_redraw();
 }
 
+/*
 //this function is a mess... but seems to work
 static void
 zebra_task( void )
@@ -2784,12 +2810,14 @@ zebra_task( void )
 		zebra_sleep_when_tired();
 		
 		if (get_global_draw())
+		{
 			draw_livev_stuff(k);
+		}
 	}
 }
 
 
-TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 ); */
 
 void clearscreen_wakeup()
 {
@@ -2805,6 +2833,12 @@ clearscreen_task( void )
 clearscreen_loop:
 		msleep(100);
 		if (!lv_drawn()) continue;
+		
+/*		if (k % 10 == 0)
+		{
+			bmp_printf(FONT_MED, 50, 50, "%d fps ", fps_ticks);
+			fps_ticks = 0;
+		}*/
 
 		if (k % 50 == 0 && !display_is_on())
 			card_led_blink(2, 50, 50);
@@ -2812,10 +2846,11 @@ clearscreen_loop:
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && get_halfshutter_pressed())
 		{
+			clrscr_mirror();
 			int i;
 			for (i = 0; i < clearscreen_delay/10; i++)
 			{
-				crop_dirty = 10;
+				//~ crop_dirty = 10;
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
@@ -2882,17 +2917,17 @@ redraw_task( void )
 {
 	while(1)
 	{
-		msleep(100);
+		msleep(50);
 		if (redraw_requested)
 		{
 			bmp_enabled = 0;
-			msleep(100);
+			msleep(50);
 			RedrawDisplay();
 			bmp_enabled = 1;
 
 			afframe_set_dirty();
 			redraw_requested = 0;
-			msleep(500);
+			msleep(200);
 			redraw_requested = 0;
 		}
 	}
@@ -2927,29 +2962,109 @@ int should_draw_zoom_overlay()
 	if (lv_drawn() && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
 	return 0;
 }
-static void
-zoom_overlay_task( void )
+
+void false_color_toggle()
 {
-	while(1)
+	falsecolor_draw = !falsecolor_draw;
+	if (falsecolor_draw) zoom_overlay_disable();
+}
+
+// Items which need a high FPS
+// Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
+// * = not really high FPS, but still fluent
+static void
+livev_hipriority_task( void )
+{
+	msleep(1000);
+	find_cropmarks();
+
+	int k = 0;
+	for (;;k++)
 	{
-	/*	if (card_benchmark_start)
+		msleep(10);
+
+		if (lv_drawn() && disp_mode_change_request)
 		{
-			card_benchmark_start = 0;
-			card_benchmark();
-		}*/
+			disp_mode_change_request = 0;
+			do_disp_mode_change();
+		}
+		
+		zebra_sleep_when_tired();
+
+		static int dirty = 0;
 		if (should_draw_zoom_overlay())
 		{
-			msleep(10);
+			if (dirty) { clrscr_mirror(); dirty = 0; }
 			draw_zoom_overlay();
 		}
-		else msleep(100);
-		
+		else
+		{
+			dirty = 1;
+			if (falsecolor_draw)
+			{
+				if (k % 4 == 0)
+					draw_false_downsampled();
+			}
+			else
+			{
+				draw_zebra_and_focus(k % (recording ? 4 : 2) == 0, 1);
+			}
+			msleep(20);
+		}
+
+		if (spotmeter_draw && k % 4 == 0)
+			spotmeter_step();
+
+		if (crop_dirty)
+		{
+			crop_dirty--;
+			if (!crop_dirty)
+			{
+				cropmark_redraw();
+			}
+		}
+
 		if (zoom_overlay_countdown)
 			zoom_overlay_countdown--;
 	}
 }
 
-TASK_CREATE( "zoom_overlay_task", zoom_overlay_task, 0, 0x1a, 0x1000 );
+// Items which do not need a high FPS, but are CPU intensive
+// histogram, waveform...
+static void
+livev_lopriority_task( void )
+{
+	while(1)
+	{
+		msleep(10);
+		if (!zebra_should_run()) continue;
+		/*if (should_draw_zoom_overlay())
+		{
+			draw_zebra_and_focus(1,0); // when magic zoom is active, zebra can work at low priority
+		}*/
+
+		msleep(10);
+
+		if ((hist_draw || waveform_draw) && zebra_should_run())
+		{
+			struct vram_info * vram = get_yuv422_vram();
+			hist_build(vram->vram, vram->width, vram->pitch);
+		}
+
+		msleep(10);
+		
+		if( hist_draw && zebra_should_run())
+			hist_draw_image( hist_x, hist_y );
+
+		msleep(10);
+		
+		if( waveform_draw && zebra_should_run())
+			waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
+	}
+}
+
+TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
 int unused = 0;
 int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &unused, &global_draw, &zoom_overlay_mode};
@@ -3019,7 +3134,7 @@ void do_disp_mode_change()
 	msleep(500);
 	clrscr();
 	redraw_request();
-	crop_dirty = 5;
+	//~ crop_dirty = 1;
 }
 
 void livev_playback_toggle()
@@ -3029,7 +3144,7 @@ void livev_playback_toggle()
 	if (livev_playback)
 	{
 		crop_dirty = 1;
-		draw_livev_stuff(0);
+		draw_livev_for_playback();
 	}
 	else
 	{

@@ -363,13 +363,13 @@ compute_audio_level_task( void )
 
 	while(1)
 	{
-		msleep( 16 );
+		msleep( 10 );
 		compute_audio_levels( 0 );
 		compute_audio_levels( 1 );
 	}
 }
 
-TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x18, 0x1000 );
 
 
 /** Write the MGAIN2-0 bits.

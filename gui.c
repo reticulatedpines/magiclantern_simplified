@@ -158,7 +158,7 @@ static int handle_buttons(struct event * event)
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
 				event->arg);
-/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+			/*console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
 				kev,
 				event->type, 
 				event->param, 
@@ -465,10 +465,15 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
-	if (event->type == 0 && event->param == BGMT_DISP && ISO_ADJUSTMENT_ACTIVE)
+	if (event->type == 0 && event->param == BGMT_DISP && ISO_ADJUSTMENT_ACTIVE && gui_state == GUISTATE_IDLE)
 	{
 		toggle_disp_mode();
 		return 0;
+	}
+
+	if (lv_drawn() && !gui_menu_shown() && event->type == 0 && event->param == BGMT_DISP)
+	{
+		redraw_request();
 	}
 	
 	// enable LiveV stuff in Play mode
