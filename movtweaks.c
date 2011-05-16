@@ -43,6 +43,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 	if (shooting_mode != buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
 	restore_kelvin_wb();
+	intervalometer_stop();
 	return prop_cleanup(token, property);
 }
 
@@ -97,7 +98,7 @@ int setting_shooting_mode = 0;
 void set_shooting_mode(int m)
 {
 	setting_shooting_mode = 1;
-	msleep(200);
+	msleep(100);
 	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
 	msleep(500);
 	mode_remap_done = 1;
@@ -183,9 +184,49 @@ mode_remap_print(
 	);
 }
 
+// start with LV
+//**********************************************************************
+
+CONFIG_INT( "enable-liveview",	enable_liveview, 1 );
+static void
+enable_liveview_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Force LiveView: %s",
+		enable_liveview == 1 ? "Start & CPU lenses" : enable_liveview == 2 ? "Always" : "OFF"
+	);
+}
+
+void force_liveview()
+{
+	if (shooting_mode == SHOOTMODE_MOVIE)
+	{
+		set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
+		call( "FA_StartLiveView" );
+		set_shooting_mode(SHOOTMODE_MOVIE);
+	}
+	else
+	{
+		call( "FA_StartLiveView" );
+	}
+	while (gui_state != GUISTATE_IDLE) msleep(1000);
+}
+
 static void
 movtweak_task( void )
 {
+	if (!lv_drawn() && enable_liveview && shooting_mode == SHOOTMODE_MOVIE)
+	{
+		force_liveview();
+	}
+
 	int k;
 	for (k = 0; ; k++)
 	{
@@ -205,6 +246,12 @@ movtweak_task( void )
 		do_movie_mode_remap();
 		
 		save_kelvin_wb();
+
+		if ((enable_liveview && CURRENT_DIALOG_MAYBE == DLG_MOVIE_PRESS_LV_TO_RESUME) ||
+			(enable_liveview == 2 && CURRENT_DIALOG_MAYBE == DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+		{
+			force_liveview();
+		}
 	}
 }
 
@@ -304,6 +351,12 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.display = zebra_nrec_display,
 		.help = "You can disable zebra during recording."
+	},
+	{
+		.priv = &enable_liveview,
+		.display	= enable_liveview_print,
+		.select		= menu_ternary_toggle,
+		.help = "Force LiveView in movie mode, even with an unchipped lens."
 	},
 };
 

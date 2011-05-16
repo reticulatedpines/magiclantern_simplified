@@ -231,26 +231,6 @@ lcd_sensor_shortcuts_print(
 	);
 }
 
-// start with LV
-//**********************************************************************
-
-CONFIG_INT( "enable-liveview",	enable_liveview, 0 );
-static void
-enable_liveview_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Start with LiveView : %s",
-		enable_liveview == 1 ? "Movie mode" : enable_liveview == 2 ? "All modes" : "OFF"
-	);
-}
-
 // backlight adjust
 //**********************************************************************
 
@@ -324,22 +304,6 @@ static void
 tweak_task( void )
 {
 	do_movie_mode_remap();
-
-	if (!lv_drawn() && ((enable_liveview == 2) || (enable_liveview == 1 && shooting_mode == SHOOTMODE_MOVIE)))
-	{
-		if (shooting_mode == SHOOTMODE_MOVIE)
-		{
-			set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
-			msleep(500);
-			call( "FA_StartLiveView" );
-			msleep(1000);
-			set_shooting_mode(SHOOTMODE_MOVIE);
-		}
-		else
-		{
-			call( "FA_StartLiveView" );
-		}
-	}
 	
 	int k;
 	for (k = 0; ; k++)
@@ -400,6 +364,9 @@ tweak_task( void )
 			if (!falsecolor_canceled) false_color_toggle();
 			redraw_request();
 		}
+		
+		if (LV_BOTTOM_BAR_DISPLAYED || ISO_ADJUSTMENT_ACTIVE)
+			clearscreen_wakeup();
 	}
 }
 
@@ -530,12 +497,6 @@ struct menu_entry tweak_menus[] = {
 		.display	= iso_round_only_display,
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
-	},
-	{
-		.priv = &enable_liveview,
-		.display	= enable_liveview_print,
-		.select		= menu_ternary_toggle,
-		.help = "Start the camera in LiveView, even with an unchipped lens."
 	},
 	{
 		.priv = &lv_metering,
