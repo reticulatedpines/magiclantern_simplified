@@ -419,20 +419,20 @@ mvr_update_logfile(
 	if( mvr_logfile == INVALID_PTR )
 		return;
 
-	static unsigned last_iso;
-	static unsigned last_shutter;
-	static unsigned last_aperture;
-	static unsigned last_focal_len;
-	static unsigned last_focus_dist;
-	static unsigned last_wb_mode;
-	static unsigned last_kelvin;
-	static unsigned last_wbs_gm;
-	static unsigned last_wbs_ba;
-	static unsigned last_picstyle;
-	static unsigned last_contrast;
-	static unsigned last_saturation;
-	static unsigned last_sharpness;
-	static unsigned last_color_tone;
+	static int last_iso;
+	static int last_shutter;
+	static int last_aperture;
+	static int last_focal_len;
+	static int last_focus_dist;
+	static int last_wb_mode;
+	static int last_kelvin;
+	static int last_wbs_gm;
+	static int last_wbs_ba;
+	static int last_picstyle;
+	static int last_contrast;
+	static int last_saturation;
+	static int last_sharpness;
+	static int last_color_tone;
 
 	// Check if nothing changed and not forced.  Do not write.
 	if( !force
@@ -446,10 +446,10 @@ mvr_update_logfile(
 	&&  last_wbs_gm		== info->wbs_gm
 	&&  last_wbs_ba		== info->wbs_ba
 	&&  last_picstyle	== info->picstyle
-	&&  last_contrast	== info->contrast
-	&&  last_saturation	== info->saturation
-	&&  last_sharpness	== info->sharpness
-	&&  last_color_tone	== info->color_tone
+	&&  last_contrast	== lens_get_contrast()
+	&&  last_saturation	== lens_get_saturation()
+	&&  last_sharpness	== lens_get_sharpness()
+	&&  last_color_tone	== lens_get_color_tone()
 	)
 		return;
 
@@ -464,10 +464,10 @@ mvr_update_logfile(
 	last_wbs_gm = info->wbs_gm; 
 	last_wbs_ba = info->wbs_ba;
 	last_picstyle = info->picstyle;
-	last_contrast = info->contrast; 
-	last_saturation = info->saturation;
-	last_sharpness = info->sharpness;
-	last_color_tone = info->color_tone;
+	last_contrast = lens_get_contrast(); 
+	last_saturation = lens_get_saturation();
+	last_sharpness = lens_get_sharpness();
+	last_color_tone = lens_get_color_tone();
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
@@ -489,10 +489,10 @@ mvr_update_logfile(
 		info->wbs_gm, 
 		info->wbs_ba,
 		info->picstyle, 
-		info->contrast, 
-		info->saturation, 
-		info->sharpness, 
-		info->color_tone
+		lens_get_contrast(),
+		lens_get_saturation(), 
+		lens_get_sharpness(), 
+		lens_get_color_tone()
 	);
 }
 
