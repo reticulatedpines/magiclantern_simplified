@@ -68,7 +68,7 @@ void opt_set(int num, int den)
 	int i;
 
 	for (i = 0; i < 2; i++) opt[i] = opt_size_fullhd[i] * num / den;
-	for (i = 0; i < 5; i++) gop[i] = gop_opt_size_fullhd[i] * num / den;
+	for (i = 0; i < 3; i++) gop[i] = gop_opt_size_fullhd[i] * num / den;
 	mvrSetGopOptSizeFULLHD(gop);
 	mvrSetFullHDOptSize(opt);
 
@@ -232,33 +232,20 @@ void measure_bitrate() // called once / second
 	
 	if (time_indicator)
 	{
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
+		int fnt = FONT(FONT_SMALL, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
+		bmp_printf(fnt,
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
 			timecode_y + 18,
 			"%4d",
 			measured_bitrate
 		);
-		if (bitrate_mode == 2)
-			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR), 
-				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
-				timecode_y + 25,
-				"%s%d ",
-				qscale < 0 ? "-" : "+",
-				ABS(qscale)
-			);
-		else if (bitrate_mode == 1)
-			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR), 
-				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
-				timecode_y + 25,
-				"%d.%d",
-				bitrate_factor/10, bitrate_factor%10
-			);
-		else
-			bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, TOPBAR_BGCOLOR),
-				timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
-				timecode_y + 25,
-				"   "
-			);
+		bmp_printf(fnt,
+			timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
+			timecode_y + 25,
+			"%s%d ",
+			mvr_config.actual_qscale_maybe < 0 ? "-" : "+",
+			ABS(mvr_config.actual_qscale_maybe)
+		);
 	}
 }
 
