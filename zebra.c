@@ -2706,7 +2706,6 @@ void draw_zoom_overlay()
 int liveview_display_idle()
 {
 	return
-		global_draw &&
 		lv_drawn() && 
 		!gui_menu_shown() &&
 		gui_state == GUISTATE_IDLE && 
@@ -2721,7 +2720,7 @@ int liveview_display_idle()
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
-	return liveview_display_idle() && bmp_is_on() && !redraw_requested;
+	return liveview_display_idle() && global_draw && bmp_is_on() && !redraw_requested;
 }
 
 void zebra_sleep_when_tired()

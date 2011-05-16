@@ -127,6 +127,8 @@
 #define DLG_Q_UNAVI 0x1F
 #define DLG_FLASH_AE 0x22
 #define DLG_PICQ 6
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0x1A
+#define DLG_MOVIE_PRESS_LV_TO_RESUME 0x1B
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a74 // this prop_deliver performs the action for Video Connect and Video Disconnect

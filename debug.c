@@ -75,7 +75,7 @@ draw_prop_reset( void * priv )
 }
 
 int mem_spy = 0;
-int mem_spy_start = 0xc0f10000; // start from here
+int mem_spy_start = 0; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
 int mem_spy_small = 0;          // only display small numbers (less than 10)
 int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses

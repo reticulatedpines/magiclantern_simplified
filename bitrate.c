@@ -232,14 +232,15 @@ void measure_bitrate() // called once / second
 	
 	if (time_indicator)
 	{
-		int fnt = FONT(FONT_SMALL, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
-		bmp_printf(fnt,
+		int fnts = FONT(FONT_SMALL, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
+		int fntm = FONT(FONT_MED, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
+		bmp_printf(fntm,
 			timecode_x + 5 * fontspec_font(timecode_font)->width,
 			timecode_y + 18,
 			"%4d",
 			measured_bitrate
 		);
-		bmp_printf(fnt,
+		bmp_printf(fnts,
 			timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
 			timecode_y + 25,
 			"%s%d ",
