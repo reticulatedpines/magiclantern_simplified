@@ -77,11 +77,17 @@ draw_prop_reset( void * priv )
 int mem_spy = 0;
 int mem_spy_start = 0; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
-int mem_spy_small = 0;          // only display small numbers (less than 10)
 int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses
 const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc00011cf, 0xc02000a8, 0xc02000ac, 0xc0201004, 0xc0201010, 0xc0201100, 0xc0201104, 0xc0201200, 0xc0203000, 0xc020301c, 0xc0203028, 0xc0203030, 0xc0203034, 0xc020303c, 0xc0203044, 0xc0203048, 0xc0210200, 0xc0210208, 0xc022001c, 0xc0220028, 0xc0220034, 0xc0220070, 0xc02200a4, 0xc02200d0, 0xc02200d4, 0xc02200d8, 0xc02200e8, 0xc02200ec, 0xc0220100, 0xc0220104, 0xc022010c, 0xc0220118, 0xc0220130, 0xc0220134, 0xc0220138, 0xc0222000, 0xc0222004, 0xc0222008, 0xc022200c, 0xc0223000, 0xc0223010, 0xc0223060, 0xc0223064, 0xc0223068, 0xc0224100, 0xc0224104, 0xc022d000, 0xc022d02c, 0xc022d074, 0xc022d1ec, 0xc022d1f0, 0xc022d1f4, 0xc022d1f8, 0xc022d1fc, 0xc022dd14, 0xc022f000, 0xc022f004, 0xc022f200, 0xc022f210, 0xc022f214, 0xc022f340, 0xc022f344, 0xc022f430, 0xc022f434, 0xc0238060, 0xc0238064, 0xc0238080, 0xc0238084, 0xc0238098, 0xc0242010, 0xc0300000, 0xc0300100, 0xc0300104, 0xc0300108, 0xc0300204, 0xc0400004, 0xc0400008, 0xc0400018, 0xc040002c, 0xc0400080, 0xc0400084, 0xc040008c, 0xc04000b4, 0xc04000c0, 0xc04000c4, 0xc04000cc, 0xc0410000, 0xc0410008, 0xc0500080, 0xc0500088, 0xc0500090, 0xc0500094, 0xc05000a0, 0xc05000a8, 0xc05000b0, 0xc05000b4, 0xc05000c0, 0xc05000c4, 0xc05000c8, 0xc05000cc, 0xc05000d0, 0xc05000d4, 0xc05000d8, 0xc0520000, 0xc0520004, 0xc0520008, 0xc052000c, 0xc0520014, 0xc0520018, 0xc0720000, 0xc0720004, 0xc0720008, 0xc072000c, 0xc0720014, 0xc0720024, 0xc07200ec, 0xc07200f0, 0xc0720100, 0xc0720104, 0xc0720108, 0xc072010c, 0xc0720110, 0xc0720114, 0xc0720118, 0xc072011c, 0xc07201c8, 0xc0720200, 0xc0720204, 0xc0720208, 0xc072020c, 0xc0720210, 0xc0800008, 0xc0800014, 0xc0800018, 0xc0820000, 0xc0820304, 0xc0820308, 0xc082030c, 0xc0820310, 0xc0820318, 0xc0920000, 0xc0920004, 0xc0920008, 0xc092000c, 0xc0920010, 0xc0920100, 0xc0920118, 0xc092011c, 0xc0920120, 0xc0920124, 0xc0920204, 0xc0920208, 0xc092020c, 0xc0920210, 0xc0920220, 0xc0920224, 0xc0920238, 0xc0920320, 0xc0920344, 0xc0920348, 0xc0920354, 0xc0920358, 0xc0a00000, 0xc0a00008, 0xc0a0000c, 0xc0a00014, 0xc0a00018, 0xc0a0001c, 0xc0a00020, 0xc0a00024, 0xc0a00044, 0xc0a10008 };
 int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
+
+int mem_spy_count_lo = 5; // how many times is a value allowed to change
+int mem_spy_count_hi = 0; // (limits)
+int mem_spy_freq_lo = 5; 
+int mem_spy_freq_hi = 100;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_value_lo = 0x40000000;
+int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
 
 static void
 mem_spy_select( void * priv )
@@ -164,16 +170,8 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	int step = 100;
-	struct prop_focus focus = {
-		.active		= 1,
-		.mode		= 7,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-		.unk		= 0,
-	};
-	
-	LVCAF_LensDriveStart(&focus);
+	int x = 0x200;
+	prop_request_change(0x8000000a, &x, 4);
 }
 
 void toggle_mirror_display()
@@ -199,8 +197,8 @@ void fake_simple_button(int bgmt_code)
 	GUI_CONTROL(&e);
 }
 
-static uint32_t* dbg_memmirror = 0;
-static uint32_t* dbg_memchanges = 0;
+static int* dbg_memmirror = 0;
+static int* dbg_memchanges = 0;
 
 static int dbg_memspy_get_addr(int i)
 {
@@ -208,6 +206,25 @@ static int dbg_memspy_get_addr(int i)
 		return mem_spy_addresses[i];
 	else
 		return mem_spy_start + i*4;
+}
+
+// for debugging purpises only
+int _t = 0;
+int _get_timestamp(struct tm * t)
+{
+	return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
+}
+void _tic()
+{
+	struct tm now;
+	LoadCalendarFromRTC(&now);
+	_t = _get_timestamp(&now);
+}
+int _toc()
+{
+	struct tm now;
+	LoadCalendarFromRTC(&now);
+	return _get_timestamp(&now) - _t;
 }
 
 static void dbg_memspy_init() // initial state of the analyzed memory
@@ -221,17 +238,18 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 	if (!dbg_memchanges) return;
 	int i;
 	//~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
-	uint32_t crc = 0;
+	int crc = 0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
 		uint32_t addr = dbg_memspy_get_addr(i);
-		dbg_memmirror[i] = *(uint32_t*)(addr);
+		dbg_memmirror[i] = *(int*)(addr);
 		dbg_memchanges[i] = 0;
 		crc += dbg_memmirror[i];
 		//~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
 		//~ msleep(1000);
 	}
 	bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
+	_tic();
 }
 static void dbg_memspy_update()
 {
@@ -241,34 +259,43 @@ static void dbg_memspy_update()
 
 	if (!dbg_memmirror) return;
 	if (!dbg_memchanges) return;
+
+	int elapsed_time = _toc();
+	bmp_printf(FONT_MED, 50, 400, "%d ", elapsed_time);
+
 	int i;
 	int k=0;
 	for (i = 0; i < mem_spy_len; i++)
 	{
 		uint32_t fnt = FONT_SMALL;
 		uint32_t addr = dbg_memspy_get_addr(i);
-		int32_t oldval = dbg_memmirror[i];
-		int32_t newval = *(uint32_t*)(addr);
+		int oldval = dbg_memmirror[i];
+		int newval = *(int*)(addr);
 		if (oldval != newval)
 		{
 			//~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
 			dbg_memmirror[i] = newval;
-			if (dbg_memchanges[i] < 10000) dbg_memchanges[i]++;
+			if (dbg_memchanges[i] < 1000000) dbg_memchanges[i]++;
 			fnt = FONT(FONT_SMALL, 5, COLOR_BG);
 		}
 		//~ else continue;
 
 		if (mem_spy_bool && newval != 0 && newval != 1 && newval != -1) continue;
-		if (mem_spy_small && ABS(newval) > 10) continue;
 
-		// show addresses which change, but not those which change like mad
-		if (dbg_memchanges[i] > 5 && dbg_memchanges[i] < 50)
-		{
-			int x = 10 + 8 * 22 * (k % 4);
-			int y = 10 + 12 * (k / 4);
-			bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
-			k = (k + 1) % 120;
-		}
+		if (mem_spy_value_lo && newval < mem_spy_value_lo) continue;
+		if (mem_spy_value_hi && newval > mem_spy_value_hi) continue;
+		
+		if (mem_spy_count_lo && dbg_memchanges[i] < mem_spy_count_lo) continue;
+		if (mem_spy_count_hi && dbg_memchanges[i] > mem_spy_count_hi) continue;
+		
+		int freq = dbg_memchanges[i] / elapsed_time;
+		if (mem_spy_freq_lo && freq < mem_spy_freq_lo) continue;
+		if (mem_spy_freq_hi && freq > mem_spy_freq_hi) continue;
+
+		int x = 10 + 8 * 22 * (k % 4);
+		int y = 10 + 12 * (k / 4);
+		bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, freq, newval);
+		k = (k + 1) % 120;
 	}
 
 	for (i = 0; i < 10; i++)
@@ -370,7 +397,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 0, 0, "%x", *(int*)0xc0f10040);
+		//~ bmp_printf(FONT_MED, 0, 0, "%x", *(int*)0x3cc0);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
