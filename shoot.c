@@ -889,7 +889,8 @@ silent_pic_take_slitscan(int interactive)
 	if (recording) return; // vsync fails
 	if (!lv_drawn()) return;
 	gui_stop_menu();
-	if (interactive) while (get_halfshutter_pressed()) msleep(100);
+	while (get_halfshutter_pressed()) msleep(100);
+	msleep(500);
 	clrscr();
 
 	uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER);
@@ -915,9 +916,9 @@ silent_pic_take_slitscan(int interactive)
 	{
 		int k;
 		for (k = 0; k < silent_pic_slitscan_skipframes; k++)
-			vsync(CLK_25FPS);
+			vsync(YUV422_HD_BUFFER_DMA_ADDR);
 		
-		FIO_WriteFile(f, (i % 2 ? YUV422_HD_BUFFER : YUV422_HD_BUFFER_2) + i * vram->pitch, vram->pitch);
+		FIO_WriteFile(f, YUV422_HD_BUFFER_DMA_ADDR + i * vram->pitch, vram->pitch);
 
 		int y = i * 480 / vram->height;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
@@ -981,7 +982,7 @@ iso_display( void * priv, int x, int y, int selected )
 		lens_info.iso ? "" : "Auto"
 	);
 
-	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
+	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 
 	fnt = FONT(
 		fnt, 
@@ -1144,7 +1145,7 @@ int crit_iso(int iso_index)
 	if (iso_index >= 0)
 	{
 		lens_set_rawiso(codes_iso[iso_index]);
-		msleep(300);
+		msleep(500);
 		menu_show_only_selected();
 	}
 
@@ -1176,7 +1177,7 @@ shutter_display( void * priv, int x, int y, int selected )
 		"Shutter     : 1/%d",
 		lens_info.shutter
 	);
-	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
+	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
 
 static void
@@ -1237,7 +1238,7 @@ int crit_shutter(int shutter_index)
 	{
 		lens_set_rawshutter(codes_shutter[shutter_index]);
 		menu_show_only_selected();
-		msleep(300);
+		msleep(500);
 	}
 
 	int under, over;
@@ -1359,13 +1360,25 @@ kelvin_display( void * priv, int x, int y, int selected )
 			 "unknown"))))))))
 		);
 	}
-	bmp_printf(FONT_MED, x + 450, y+5, "[Q]=Auto");
+	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
 
 int kelvin_auto_flag = 0;
+int wbs_gm_auto_flag = 0;
 static void kelvin_auto()
 {
 	if (lv_drawn()) kelvin_auto_flag = 1;
+	else
+	{
+		bmp_printf(FONT_LARGE, 20,450, "Only works in LiveView");
+		msleep(1000);
+		bmp_printf(FONT_LARGE, 20,450, "                      ");
+	}
+}
+
+static void wbs_gm_auto()
+{
+	if (lv_drawn()) wbs_gm_auto_flag = 1;
 	else
 	{
 		bmp_printf(FONT_LARGE, 20,450, "Only works in LiveView");
@@ -1381,27 +1394,63 @@ int crit_kelvin(int k)
 	if (k > 0)
 	{
 		lens_set_kelvin(k * KELVIN_STEP);
-		msleep(300);
+		msleep(500);
 		menu_show_only_selected();
 	}
 
-	uint8_t Y;
-	int8_t U, V;
+	int Y, U, V;
 	get_spot_yuv(100, &Y, &U, &V);
-	//~ bmp_printf(FONT_MED, 300, 30, "%d, %d ", U, V);
+
 	menu_show_only_selected();
-	return V - U;
+
+	int R = Y + 1437 * V / 1024;
+	int G = Y -  352 * U / 1024 - 731 * V / 1024;
+	int B = Y + 1812 * U / 1024;
+
+	return B - R;
+}
+
+int crit_wbs_gm(int k)
+{
+	if (!lv_drawn()) return 0;
+
+	if (k < 10 && k > -10)
+	{
+		lens_set_wbs_gm(k);
+		msleep(500);
+		menu_show_only_selected();
+	}
+
+	int Y, U, V;
+	get_spot_yuv(100, &Y, &U, &V);
+
+	int R = Y + 1437 * V / 1024;
+	int G = Y -  352 * U / 1024 - 731 * V / 1024;
+	int B = Y + 1812 * U / 1024;
+
+	menu_show_only_selected();
+	return (R+B)/2 - G;
 }
 
 static void kelvin_auto_run()
 {
 	menu_show_only_selected();
-	int c0 = crit_kelvin(-1); // test current iso
+	int c0 = crit_kelvin(-1); // test current kelvin
 	int i;
 	if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
 	else i = bin_search(KELVIN_MIN/KELVIN_STEP, lens_info.kelvin/KELVIN_STEP + 1, crit_kelvin);
 	lens_set_kelvin(i * KELVIN_STEP);
 	//~ clrscr();
+}
+
+static void wbs_gm_auto_run()
+{
+	menu_show_only_selected();
+	int c0 = crit_wbs_gm(100); // test current value
+	int i;
+	if (c0 > 0) i = bin_search(lens_info.wbs_gm, 10, crit_wbs_gm);
+	else i = bin_search(-9, lens_info.wbs_gm + 1, crit_wbs_gm);
+	lens_set_wbs_gm(i);
 }
 
 static void 
@@ -1415,6 +1464,7 @@ wbs_gm_display( void * priv, int x, int y, int selected )
 			gm > 0 ? "Green " : (gm < 0 ? "Magenta " : ""), 
 			ABS(gm)
 		);
+	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
 
 static void
@@ -1727,7 +1777,7 @@ zoom_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LiveViewZoom: %s%s %s",
+		"LiveView Zoom       : %s%s %s",
 		zoom_disable_x5 ? "" : "x5", 
 		zoom_disable_x10 ? "" : "x10", 
 		zoom_enable_face ? ":-)" : ""
@@ -2078,6 +2128,7 @@ struct menu_entry expo_menus[] = {
 		.display = wbs_gm_display, 
 		.select = wbs_gm_toggle_forward, 
 		.select_reverse = wbs_gm_toggle_reverse,
+		.select_auto = wbs_gm_auto,
 		.help = "Green-Magenta white balance shift, for fluorescent lights."
 	},
 	{
@@ -2571,7 +2622,7 @@ shoot_task( void )
 	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
-	menu_add( "LiveV", vid_menus, COUNT(vid_menus) );
+	menu_add( "Tweak", vid_menus, COUNT(vid_menus) );
 	struct audio_level *al=get_audio_levels();
 	
 	// :-)
@@ -2606,6 +2657,11 @@ shoot_task( void )
 		{
 			kelvin_auto_run();
 			kelvin_auto_flag = 0;
+		}
+		if (wbs_gm_auto_flag)
+		{
+			wbs_gm_auto_run();
+			wbs_gm_auto_flag = 0;
 		}
 		if (remote_shot_flag)
 		{
@@ -2792,9 +2848,7 @@ shoot_task( void )
 			int aev = 0;
 			if (lv_drawn())
 			{
-				uint8_t y;
-				int8_t u;
-				int8_t v;
+				int y,u,v;
 				get_spot_yuv(100, &y, &u, &v);
 				aev = y / 2;
 			}
