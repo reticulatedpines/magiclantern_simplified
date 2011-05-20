@@ -351,7 +351,8 @@ lens_focus(
 
 	while (lens_info.job_state) msleep(100);
 	lens_focus_wait();
-	msleep(10);
+	extern int lens_focus_delay;
+	msleep(lens_focus_delay);
 	lv_focus_done = 0;
 	
 	struct prop_focus focus = {
