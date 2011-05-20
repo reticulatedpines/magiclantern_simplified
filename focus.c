@@ -169,6 +169,7 @@ static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
 CONFIG_INT( "focus.rack-speed", focus_rack_speed, 4 );
+CONFIG_INT( "focus.delay", lens_focus_delay, 85 );
 
 void follow_focus_reverse_dir()
 {
@@ -247,7 +248,7 @@ focus_rack_speed_display(
 }
 
 
-unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36,50,75,100,200,300,500,1000};
+unsigned rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
 
 int current_speed_index(speed)
 {
@@ -272,6 +273,22 @@ focus_rack_speed_decrement( void * priv )
 }
 
 static void
+focus_delay_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Focus delay   : %d",
+		lens_focus_delay
+	);
+}
+
+static void
 focus_stack_step_increment( void * priv )
 {
 	int i = current_speed_index(focus_stack_step);
@@ -281,9 +298,18 @@ focus_stack_step_increment( void * priv )
 static void
 focus_stack_count_increment( void * priv )
 {
-	focus_stack_count = mod(focus_stack_count + 1, 16);
+	focus_stack_count = mod(focus_stack_count + 1, 100);
 	if (focus_stack_count < 2) focus_stack_count = 2;
 }
+
+static void
+focus_delay_toggle( int sign)
+{
+	int i = current_speed_index(lens_focus_delay);
+	lens_focus_delay = rack_speed_values[mod(i + sign, COUNT(rack_speed_values))];
+}
+static void focus_delay_increment(void* priv) { focus_delay_toggle(1); }
+static void focus_delay_decrement(void* priv) { focus_delay_toggle(-1); }
 
 static void
 focus_stack_print(
@@ -363,7 +389,7 @@ focus_task( void )
 {
 	while(1)
 	{
-		msleep(10);
+		msleep(50);
 		take_semaphore( focus_task_sem, 0 );
 
 		if( focus_rack_delta )
@@ -602,36 +628,47 @@ static void movie_af_step(int mag)
 	prev_mag = mag;
 }
 
-static void plot_focus_mag(int mag)
+#define NMAGS 64
+static int mags[NMAGS] = {0};
+#define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
+int maxmagf = 1;
+
+static void update_focus_mag(int mag)
 {
-	if (gui_state != GUISTATE_IDLE) return;
-	if (!lv_drawn()) return;
-	#define NMAGS 64
-	#define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
-	static int mags[NMAGS] = {0};
 	int maxmag = 1;
 	int i;
-	#define WEIGHT(i) 1
+	#define WEIGHT(i) (i > 40 ? 1 : 0.2)
 	for (i = 0; i < NMAGS-1; i++)
 		if (mags[i] * WEIGHT(i) > maxmag) maxmag = mags[i] * WEIGHT(i);
-
-	static int maxmagf = 1;
 	maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
 	
 	for (i = 0; i < NMAGS-1; i++)
-	{
-		if (get_global_draw()) bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
 		mags[i] = mags[i+1];
-		if (get_global_draw()) bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
-	}
-
-	// i = NMAGS-1
 	mags[i] = mag;
 
 	focus_value_delta = FH * 2 - focus_value;
 	focus_value = FH * 2;
 	lv_focus_confirmation = (focus_value + focus_value_delta*3 > 110);
+}
+static void plot_focus_mag()
+{
+	if (gui_state != GUISTATE_IDLE) return;
+	if (!lv_drawn()) return;
+	if (!get_global_draw()) return;
 	
+	int i;
+	for (i = 0; i < NMAGS-1; i++)
+	{
+		bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
+		bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
+	}
+	ff_check_autolock();
+}
+#undef FH
+#undef NMAGS
+
+void ff_check_autolock()
+{
 	static int rev_countdown = 0;
 	static int stop_countdown = 0;
 	if (is_follow_focus_active())
@@ -667,8 +704,6 @@ static void plot_focus_mag(int mag)
 		}
 		if (stop_countdown) stop_countdown--;
 	}
-	#undef FH
-	#undef NMAGS
 }
 
 int focus_mag_a = 0;
@@ -682,7 +717,8 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 	
 	if (movie_af != 3)
 	{
-		if (get_focus_graph()) plot_focus_mag(focus_mag_a + focus_mag_b);
+		update_focus_mag(focus_mag_a + focus_mag_b);
+		if (get_focus_graph()) plot_focus_mag();
 		if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
 			movie_af_step(focus_mag_a + focus_mag_b);
 	}
@@ -729,20 +765,21 @@ focus_misc_task()
 {
 	while(1)
 	{
-		msleep(50);
+		msleep(100);
 		
 		if (hsp_countdown) hsp_countdown--;
 
 		if (movie_af == 3)
 		{
 			int fm = get_spot_focus(100);
-			if (get_focus_graph()) plot_focus_mag(fm);
+			update_focus_mag(fm);
+			if (get_focus_graph()) plot_focus_mag();
 			movie_af_step(fm);
 		}
 	}
 }
 
-TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );
 
 static void 
 trap_focus_display( void * priv, int x, int y, int selected )
@@ -779,6 +816,12 @@ static struct menu_entry focus_menu[] = {
 		.select		= focus_rack_speed_increment,
 		.select_reverse	= focus_rack_speed_decrement,
 		.help = "Speed for rack focus and follow focus, in raw steps."
+	},
+	{
+		.display	= focus_delay_display,
+		.select		= focus_delay_increment,
+		.select_reverse	= focus_delay_decrement,
+		.help = "Delay between two successive focus commands."
 	},
 	{
 		.priv = &follow_focus,
