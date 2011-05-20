@@ -981,6 +981,8 @@ menu_task( void )
 		menu_damage = 1;
 		menu_hidden = 0;
 		edit_mode = 0;
+		gui_menu_task = 1;
+		msleep(100);
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
 		//~ zebra_pause();

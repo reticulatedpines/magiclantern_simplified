@@ -479,6 +479,14 @@ static int handle_buttons(struct event * event)
 	// enable LiveV stuff in Play mode
 	if (event->type == 0 && PLAY_MODE)
 	{
+		extern int livev_playback;
+		if (event->param == BGMT_PRESS_SET && livev_playback)
+		{
+			make_overlay();
+			livev_playback_reset();
+			return 0;
+		}
+
 		if (event->param == BGMT_Q_ALT)
 		{
 			livev_playback_toggle();

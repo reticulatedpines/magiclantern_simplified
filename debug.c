@@ -361,6 +361,8 @@ void display_shortcut_key_hints_lv()
 	else bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100, 240 - 150, "          ");
 
 	old_mode = mode;
+	
+	crop_set_dirty(20);
 }
 
 void display_clock()

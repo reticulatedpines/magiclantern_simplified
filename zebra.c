@@ -43,6 +43,8 @@ static struct bmp_file_t * cropmarks = 0;
 #define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
 #define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
 
+#define BVRAM_MIRROR_SIZE (BMPPITCH*540)
+
 CONFIG_INT("disp.mode", disp_mode, 0);
 CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
 CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295001);
@@ -57,6 +59,7 @@ void schedule_disp_mode_change()
 		disp_mode_change_request = 1; 
 }
 
+CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 CONFIG_INT( "livev.playback", livev_playback, 0);
 CONFIG_INT( "global.draw", global_draw, 1 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
@@ -70,6 +73,8 @@ CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 2);
 CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
 CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
+CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
+CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_mode() { return zoom_overlay_mode; }
 int get_zoom_overlay_z() { return zoom_overlay_mode == 1 || zoom_overlay_mode == 2; }
 
@@ -147,16 +152,17 @@ use_hd_vram_display( void * priv, int x, int y, int selected )
 
 int recording = 0;
 
-uint8_t false_colour[4][256] = {
+uint8_t false_colour[5][256] = {
 	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6F},
 	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x31, 0x31, 0x31, 0x31, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x33, 0x33, 0x33, 0x33, 0x33, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x35, 0x35, 0x35, 0x35, 0x35, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x37, 0x37, 0x37, 0x37, 0x37, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x39, 0x39, 0x39, 0x39, 0x39, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x45, 0x45, 0x45, 0x45, 0x45, 0x46, 0x46, 0x46, 0x46, 0x46, 0x46, 0x47, 0x47, 0x47, 0x47, 0x47, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x49, 0x49, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0x4B, 0x4B, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4D, 0x4D, 0x4D, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6F},
 	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6F},
 	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6F},
+	{0x0E, 0x4F, 0x4E, 0x4D, 0x4C, 0x4B, 0x4A, 0x49, 0x48, 0x48, 0x47, 0x47, 0x46, 0x46, 0x45, 0x45, 0x45, 0x44, 0x44, 0x44, 0x44, 0x43, 0x43, 0x43, 0x42, 0x42, 0x42, 0x42, 0x41, 0x41, 0x41, 0x41, 0x41, 0x40, 0x40, 0x40, 0x40, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x39, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x35, 0x35, 0x35, 0x35, 0x35, 0x35, 0x35, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x29, 0x29, 0x29, 0x29, 0x29, 0x29, 0x29, 0x29, 0x29, 0x29, 0x29, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x27, 0x26, 0x26, 0x26, 0x26, 0x26, 0x6F},
 };
 
 void crop_set_dirty(int value)
 {
-	crop_dirty = value;
+	crop_dirty = MAX(crop_dirty, value);
 }
 
 int ext_monitor_rca = 0;
@@ -166,21 +172,15 @@ int ext_monitor_hdmi = 0;
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
 	ext_monitor_rca = buf[0];
-	crop_dirty = 5;
+	crop_set_dirty(50);
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
 	ext_monitor_hdmi = buf[0];
-	//~ crop_dirty = 5;
+	crop_set_dirty(50);
 	return prop_cleanup( token, property );
 }
-/*PROP_HANDLER(PROP_LV_DISPSIZE)
-{
-	lv_dispsize = buf[0];
-	//~ crop_dirty = 10;
-	return prop_cleanup( token, property );
-}*/
 
 int video_mode_crop = 0;
 int video_mode_fps = 0;
@@ -196,12 +196,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 int gui_state;
 PROP_HANDLER(PROP_GUI_STATE) {
 	gui_state = buf[0];
-	if (gui_state == GUISTATE_IDLE) crop_dirty = 100;
+	if (gui_state == GUISTATE_IDLE) crop_set_dirty(50);
 	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-	crop_dirty = 50;
+	crop_set_dirty(50);
 	afframe_set_dirty();
 	return prop_cleanup( token, property );
 }
@@ -222,7 +222,7 @@ void set_global_draw(int g)
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = YUV422_HD_BUFFER;
+	_vram_info.vram = YUV422_HD_BUFFER_DMA_ADDR;
 	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
 									video_mode_resolution == 1 ? 1280 : 
 									video_mode_resolution == 2 ? 640 : 0)
@@ -243,6 +243,7 @@ struct vram_info * get_yuv422_hd_vram()
 
 	return &_vram_info;
 }
+
 
 void* get_fastrefresh_422_buf()
 {
@@ -895,13 +896,13 @@ static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
-		bvram_mirror = AllocateMemory(BMPPITCH*540 + 100);
+		bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
-		bzero32(bvram_mirror, 960*540);
+		bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
 	}
 }
 
@@ -1286,8 +1287,8 @@ draw_zebra_and_focus( int Z, int F )
 		
 		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d ", hd_width, hd_height);
 		
-		int bm_skipv = 10;
-		int bm_skiph = 10;
+		int bm_skipv = 50;
+		int bm_skiph = 100;
 		int hd_skipv = bm_skipv * hd_height / bm_height;
 		int hd_skiph = bm_skiph * hd_width / bm_width;
 		
@@ -2091,6 +2092,29 @@ zoom_overlay_display(
 }
 
 static void
+split_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int mode = *(int*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Split Screen: %s%s",
+		zoom_overlay_split ? "ON" : "OFF",
+		zoom_overlay_split && zoom_overlay_split_zerocross ? ", zerocross" : ""
+	);
+}
+
+static void split_zerocross_toggle(void* priv)
+{
+	zoom_overlay_split_zerocross = !zoom_overlay_split_zerocross;
+}
+
+static void
 spotmeter_menu_display(
 	void *			priv,
 	int			x,
@@ -2115,7 +2139,7 @@ spotmeter_formula_toggle(void* priv)
 
 
 
-void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
+void get_spot_yuv(int dx, int* Y, int* U, int* V)
 {
 	struct vram_info *	vram = get_yuv422_vram();
 
@@ -2135,8 +2159,8 @@ void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
 		{
 			uint16_t p = vr[ x + y * width ];
-			sy += p & 0xFF00;
-			if (x % 2) su += (int)(p & 0x00FF); else sv += (int)(p & 0x00FF); // U and V may be reversed
+			sy += (p >> 8) & 0xFF;
+			if (x % 2) sv += (int8_t)(p & 0x00FF); else su += (int8_t)(p & 0x00FF);
 		}
 	}
 
@@ -2144,7 +2168,7 @@ void get_spot_yuv(int dx, uint8_t* Y, int8_t* U, int8_t* V)
 	su /= (dx + 1) * (2 * dx + 1);
 	sv /= (dx + 1) * (2 * dx + 1);
 
-	*Y = sy >> 8;
+	*Y = sy;
 	*U = su;
 	*V = sv;
 }
@@ -2294,6 +2318,25 @@ disp_profiles_0_display(
 }
 
 
+static void
+transparent_overlay_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Ghost Image : %s", 
+		transparent_overlay == 0? "OFF" :
+		transparent_overlay == 1? "Centered" :
+		transparent_overlay == 2? "Left" :
+		transparent_overlay == 3? "Right" : "err"
+	);
+}
+
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &global_draw,
@@ -2321,7 +2364,6 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
 		.select		= menu_binary_toggle,
-		.select_reverse = menu_quaternary_toggle_reverse, 
 		.select_auto = falsecolor_palette_toggle,
 		.help = "Shows brightness level as color-coded. [Q]: change palette."
 	},
@@ -2330,6 +2372,12 @@ struct menu_entry zebra_menus[] = {
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,
 		.help = "Cropmarks for framing. Usually shown only in Movie mode."
+	},
+	{
+		.priv = &transparent_overlay, 
+		.display = transparent_overlay_display, 
+		.select = menu_quaternary_toggle,
+		.help = "Overlay any image in LiveView. In PLAY mode, press Q+SET."
 	},
 	{
 		.priv			= &spotmeter_draw,
@@ -2353,6 +2401,13 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = zoom_overlay_size_toggle,
 		.select_auto = menu_quinternary_toggle,
 		.help = "Zoom box for focusing. Can be used while recording."
+	},
+	{
+		.priv = &zoom_overlay_split,
+		.display = split_display, 
+		.select = menu_binary_toggle,
+		.select_auto = split_zerocross_toggle,
+		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
 	},
 	{
 		.priv			= &clearscreen,
@@ -2435,14 +2490,13 @@ static struct menu_entry cfg_menus[] = {
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
-	//~ crop_dirty = 5;
 	zoom_overlay_countdown = 0;
 	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
-	if (!buf[0]) crop_dirty = 10;
+	if (!buf[0]) crop_set_dirty(50);
 	return prop_cleanup( token, property );
 }
 
@@ -2450,9 +2504,9 @@ void
 cropmark_draw()
 {
 	ChangeColorPaletteLV(2);
-	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE) return;
 	if (!get_global_draw()) return;
-
+	if (transparent_overlay) show_overlay();
+	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE) return;
 	reload_cropmark(crop_draw); // reloads only when changed
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
@@ -2543,6 +2597,7 @@ void zoom_overlay_toggle()
 {
 	zoom_overlay = !zoom_overlay;
 	if (!zoom_overlay) zoom_overlay_countdown = 0;
+	crop_dirty = 1;
 }
 
 //~ void zoom_overlay_enable()
@@ -2559,12 +2614,13 @@ void zoom_overlay_disable()
 void zoom_overlay_set_countdown(int x)
 {
 	zoom_overlay_countdown = x;
+	crop_dirty = 1;
 }
 
 void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
-	dst = (unsigned int)dst & 0xFFFFFFF0;
-	src = (unsigned int)src & 0xFFFFFFF0;
+	dst = (unsigned int)dst & 0xFFFFFFFC;
+	src = (unsigned int)src & 0xFFFFFFFC;
 	uint32_t* last_s = src + (num_pix>>1);
 	for (; src < last_s; src++, dst += 2)
 	{
@@ -2669,34 +2725,48 @@ void draw_zoom_overlay()
 	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
 	int y0c = COERCE(y0 - (H>>1), 0, 480-H);
 
-	// some other tasks may have do some CPU-intensive stuff
+	extern int focus_value;
+	int rawoff = COERCE(80 - focus_value, 0, 100) >> 2;
+	
+	// reverse the sign of split when perfect focus is achieved
+	static int rev = 0;
+	static int poff = 0;
+	if (rawoff != 0 && poff == 0) rev = !rev;
+	poff = rawoff;
+	if (!zoom_overlay_split_zerocross) rev = 0;
+
 	if (x2)
 	{
-		uint16_t* d = lvr + x0c + y0c * lv->width;
+		uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
 		uint16_t* s = hdr + (hy0 - (H>>2)) * hd->width + (hx0 - (W>>2));
-		for (y = 0; y < H; y++)
+		for (y = 2; y < H-2; y++)
 		{
-			yuvcpy_x2(d, s, W>>1);
+			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
+			if (rev) off = -off;
+			yuvcpy_x2(d, s + off, W>>1);
 			d += lv->width;
 			if (y & 1) s += hd->width;
 		}
 	}
 	else
 	{
-		uint16_t* d = lvr + x0c + y0c * lv->width;
+		uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
 		uint16_t* s = hdr + (hy0 - (H>>1)) * hd->width + (hx0 - (W>>1));
-		for (y = 0; y < H; y++)
+		for (y = 2; y < H-2; y++)
 		{
-			memcpy(d, s, W<<1);
+			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
+			if (rev) off = -off;
+			memcpy(d, s + off, W<<1);
 			d += lv->width;
 			s += hd->width;
 		}
 	}
 	
-	memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, 0,    W<<1);
-	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, 0xFF, W<<1);
-	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, 0xFF, W<<1);
-	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, 0,    W<<1);
+	memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
+	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
+	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
+	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
+	bmp_fill(0, x0c, y0c, W, H);
 }
 
 //~ int zebra_paused = 0;
@@ -2734,7 +2804,7 @@ void zebra_sleep_when_tired()
 		if (lv_drawn() && !gui_menu_shown()) redraw();
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
-		crop_dirty = 20;
+		crop_set_dirty(50);
 		if (lv_drawn() && !gui_menu_shown()) redraw();
 	}
 }
@@ -2745,7 +2815,6 @@ void clear_this_message_not_available_in_movie_mode()
 	int f = FLASH_BTN_MOVIE_MODE;
 	if (f == fp) return; // clear the message only once
 	fp = f;
-	//~ crop_dirty = 5;
 	if (!f) return;
 	
 	bmp_fill(0, 0, 330, 720, 480-330);
@@ -2755,6 +2824,8 @@ void clear_this_message_not_available_in_movie_mode()
 
 void draw_livev_for_playback()
 {
+	cropmark_redraw();
+
 	if (spotmeter_draw)
 		spotmeter_step();
 
@@ -2778,8 +2849,6 @@ void draw_livev_for_playback()
 		
 	if( waveform_draw)
 		waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
-
-	cropmark_redraw();
 }
 
 /*
@@ -2849,7 +2918,6 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < clearscreen_delay/10; i++)
 			{
-				//~ crop_dirty = 10;
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
@@ -3016,6 +3084,7 @@ livev_hipriority_task( void )
 
 		if (crop_dirty)
 		{
+			//~ bmp_printf(FONT_MED, 100, 100, "%d ", crop_dirty);
 			crop_dirty--;
 			if (!crop_dirty)
 			{
@@ -3024,7 +3093,10 @@ livev_hipriority_task( void )
 		}
 
 		if (zoom_overlay_countdown)
+		{
 			zoom_overlay_countdown--;
+			crop_set_dirty(20);
+		}
 	}
 }
 
@@ -3062,12 +3134,12 @@ livev_lopriority_task( void )
 	}
 }
 
-TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1c, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
 int unused = 0;
-int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &unused, &global_draw, &zoom_overlay_mode};
-int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1,       1,            2};
+int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &split_display, &global_draw, &zoom_overlay_mode, &transparent_overlay};
+int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1,             1,            2,                   2};
 
 void update_disp_mode_bits_from_params()
 {
@@ -3138,12 +3210,11 @@ void do_disp_mode_change()
 
 void livev_playback_toggle()
 {
-	bmp_printf(FONT_MED, 0, 0, "LiveV");
 	livev_playback = !livev_playback;
 	if (livev_playback)
 	{
-		crop_dirty = 1;
 		draw_livev_for_playback();
+		bmp_printf(FONT_MED, 0, 0, "[SET] = Save this image as overlay");
 	}
 	else
 	{
@@ -3165,3 +3236,75 @@ static void zebra_init_menus()
 
 INIT_FUNC(__FILE__, zebra_init_menus);
 
+
+
+
+void make_overlay()
+{
+	clrscr();
+	struct vram_info * vram = get_yuv422_vram();
+	uint8_t * const lvram = vram->vram;
+	int lvpitch = YUV422_LV_PITCH;
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	#define BMPPITCH 960
+
+	int y;
+	for (y = 0; y < vram->height; y++)
+	{
+		int k;
+		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
+		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
+		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH);   // 1 pixel
+		uint16_t* lvp; // that's a moving pointer through lv vram
+		uint8_t* bp;  // through bmp vram
+		uint8_t* mp;  //through bmp vram mirror
+		for (lvp = v_row, bp = b_row, mp = m_row; lvp < v_row + 720 ; lvp++, bp++, mp++)
+			if ((y + (int)bp) % 2)
+				*bp = *mp = ((*lvp) * 41 >> 16) + 38;
+	}
+	FIO_RemoveFile("B:/overlay.dat");
+	FILE* f = FIO_CreateFile("B:/overlay.dat");
+	FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
+	FIO_CloseFile(f);
+	bmp_printf(FONT_MED, 0, 0, "Overlay saved.");
+
+	msleep(1000);
+}
+
+void show_overlay()
+{
+	struct vram_info * vram = get_yuv422_vram();
+	uint8_t * const lvram = vram->vram;
+	int lvpitch = YUV422_LV_PITCH;
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+	#define BMPPITCH 960
+	
+	clrscr();
+
+	FILE* f = FIO_Open("B:/overlay.dat", O_RDONLY | O_SYNC);
+	if (f == INVALID_PTR) return;
+	FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE );
+	FIO_CloseFile(f);
+
+	int y;
+	for (y = 0; y < vram->height; y++)
+	{
+		int k;
+		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
+		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
+		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH);   // 1 pixel
+		uint8_t* bp;  // through bmp vram
+		uint8_t* mp;  //through bmp vram mirror
+		int offm = 0;
+		int offb = 0;
+		if (transparent_overlay == 2) offm = 720/2;
+		if (transparent_overlay == 3) offb = 720/2;
+		for (bp = b_row + offb, mp = m_row + offm; mp < m_row + 720 && bp < b_row + 720 ; bp++, mp++)
+			if ((y + (int)bp) % 2)
+				*bp = *mp;
+	}
+	
+	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+}

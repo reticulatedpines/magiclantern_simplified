@@ -222,7 +222,9 @@ void force_liveview()
 static void
 movtweak_task( void )
 {
-	if (!lv_drawn() && enable_liveview && shooting_mode == SHOOTMODE_MOVIE)
+	if (!lv_drawn() && enable_liveview && shooting_mode == SHOOTMODE_MOVIE
+		&& (CURRENT_DIALOG_MAYBE == DLG_MOVIE_PRESS_LV_TO_RESUME || 
+			CURRENT_DIALOG_MAYBE == DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
 	{
 		force_liveview();
 	}
