@@ -3138,8 +3138,8 @@ TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1c, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
 int unused = 0;
-int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &split_display, &global_draw, &zoom_overlay_mode, &transparent_overlay};
-int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,              1,             1,            2,                   2};
+int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay};
+int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2};
 
 void update_disp_mode_bits_from_params()
 {
