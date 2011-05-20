@@ -330,7 +330,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
   
-  There are 4 false color palettes available (toggle with ``Q``):
+  There are 5 false color palettes available, including one for night vision (toggle with ``Q``):
 
   .. figure:: falsecolor.png
       :alt: thumb|right|False color palettes
