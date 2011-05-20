@@ -697,7 +697,7 @@ debug_init( void )
 {
 	draw_prop = 0;
 
-#if 0
+#if CONFIG_DEBUGMSG
 	if (!property_list) property_list = AllocateMemory(num_properties * sizeof(unsigned));
 	if (!property_list) return;
 	unsigned i, j, k;
