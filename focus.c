@@ -113,10 +113,8 @@ focus_stack(
 	int			step
 )
 {
-	if( count > 15 )
-		count = 15;
-
 	bmp_printf( FONT_LARGE, 10, 30, "Focus stack: %dx%d", count, step );
+	hdr_create_script(count, 0, 1);
 	msleep(1000);
 	
 	int focus_moved_total = 0;

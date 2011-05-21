@@ -328,9 +328,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **False color**
 
-  This is an aid for evaluating the exposure. See `this thread <http://groups.google.com/group/ml-devel/browse_thread/thread/a5db0a709aa86767>`_ for details.
-  
-  There are 5 false color palettes available, including one for night vision (toggle with ``Q``):
+  This is a tool for evaluating the exposure. It shows different luma (Y) levels using a color map.
+  You can press ``Q`` to select one of the followig color maps:
 
   .. figure:: falsecolor.png
       :alt: thumb|right|False color palettes
@@ -375,6 +374,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   
 {{clr}}
+
+**Ghost image: OFF / Centered / Left / Right**
+
+  Shows a transparent overlay which can be created from any image in Play mode.
+  
+  To select the image, go to Play mode and press ``Q`` followed by ``SET``.
 
 .. _spotmeter:
 
@@ -440,6 +445,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 **Magic Zoom: OFF/Zrec/Zr+F/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
 
   This function enables zoom while recording. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
+  
+  When ML believes you have achieved perfect focus, Magic Zoom borders will become green.
 
   Modes (change with ``SET``):
   
@@ -474,17 +481,15 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * `Zebras`_, `focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
-.. _zoom in Face Detect mode:
+**Split Screen: ON/OFF, zerocross**
 
-**LiveView Zoom: x5 / x10 / :-)**
-
-  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
+  When the image is out of focus, Magic Zoom window looks similar to a split focusing screen commonly used in film cameras.
   
-  * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
-  * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
-  * ``x5x10``: both settings available (Canon default)
-  * ``:-)`` Enable zoom in Face Detection mode
-
+  This is just an alternate display for `focus graph`_. It can't detect whether you are focusing too far or too close, 
+  and the display is only accurate a few seconds after you turn the focus ring and cross the perfect focus point.
+  
+  Zerocross option will reverse the split direction whenever you achieve perfect focus.
+  
 Movie
 ~~~~~
 
@@ -628,7 +633,7 @@ Functions for stills shooting (some of them work for movies, too).
   For best results, switch to manual focus.
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
-  with `enfuse <http://wiki.panotools.org/Enfuse>`_. The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
+  with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x). The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
   e.g. if the HDR sequence is created from ``IMG_1001.JPG ... IMG_1005.JPG``, the HDR script will be named 
   ``HDR_1001.SH`` and the resulting HDR image will be saved as ``HDR_1001.JPG``.
   
@@ -968,6 +973,8 @@ Focus
   This selection will shoot a series of photographs with varying focus points. You can also call this "focus bracketing".
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
   
+  This function will also create scripts named like named ``FST_1234.SH``, which can be used for stacking the images with enfuse. See `Exposure bracketing`_ for details on how to use these scripts, and the `focus stacking section <http://panorama.dyndns.org/EandE-documentation/enfuse.html#Focus-Stacks>`_ from Enfuse reference manual.
+  
   Keys:
   
   * ``SET``: change the number of photos
@@ -978,7 +985,11 @@ Focus
 
 **Focus speed**
 
-  Adjust rack focus / follow focus speed, in focus steps.
+  Adjust speed for rack focus and follow focus, in focus steps.
+
+**Focus delay**
+
+  Delay between two successive focus commands. See `this article <http://www.okii.net/Articles.asp?ID=238>`_ for details.
 
 .. _follow focus:
 
@@ -1221,7 +1232,16 @@ Miscellanous settings.
   * It may take a few seconds until the metering result is locked. This happens because LiveView display is not updated instantly when the exposure changes, and therefore ML has to wait a bit before reading the image brightness.
   * It's not reliable under dynamic scenes; it should work for landscapes :)
 
+.. _zoom in Face Detect mode:
 
+**LiveView Zoom: x5 / x10 / :-)**
+
+  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
+  
+  * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
+  * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
+  * ``x5x10``: both settings available (Canon default)
+  * ``:-)`` Enable zoom in Face Detection mode
 
 Debug
 ~~~~~

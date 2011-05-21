@@ -2182,14 +2182,14 @@ struct menu_entry expo_menus[] = {
 	},*/
 };
 
-void hdr_create_script(int steps, int skip0)
+void hdr_create_script(int steps, int skip0, int focus_stack)
 {
 	if (steps <= 1) return;
 	DEBUG();
 	FILE * f = INVALID_PTR;
 	char name[100];
 	int f0 = skip0 ? file_number_also : file_number_also+1;
-	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/HDR_%04d.sh", folder_number, f0);
+	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/%s_%04d.sh", folder_number, focus_stack ? "FST" : "HDR", f0);
 	DEBUG("name=%s", name);
 	FIO_RemoveFile(name);
 	f = FIO_CreateFile(name);
@@ -2200,8 +2200,8 @@ void hdr_create_script(int steps, int skip0)
 	}
 	DEBUG();
 	my_fprintf(f, "#!/usr/bin/env bash\n");
-	my_fprintf(f, "\n# HDR_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", f0, f0, mod(f0 + steps - 1, 10000));
-	my_fprintf(f, "enfuse \"$@\" --output=HDR_%04d.JPG ", f0);
+	my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+	my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
 	int i;
 	for( i = 0; i < steps; i++ )
 	{
@@ -2227,7 +2227,7 @@ void hdr_shutter_release()
 // skip0: don't take the middle exposure
 void hdr_take_pics(int steps, int step_size, int skip0)
 {
-	hdr_create_script(steps, skip0);
+	hdr_create_script(steps, skip0, 0);
 	int i;
 	if ((lens_info.iso && shooting_mode == SHOOTMODE_M) || (shooting_mode == SHOOTMODE_MOVIE))
 	{
@@ -2595,7 +2595,7 @@ void intervalometer_stop()
 	{
 		bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Stopped                                             ");
 		intervalometer_running = 0;
-		display_on();
+		//~ display_on();
 	}
 }
 
