@@ -69,7 +69,7 @@ movie_rec_key_print(
 
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
-	if (movie_rec_key && buf[0] && shooting_mode == SHOOTMODE_MOVIE)
+	if (movie_rec_key && buf[0] && shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && !gui_menu_shown())
 	{
 		if (!recording) schedule_movie_start();
 		else schedule_movie_end();
