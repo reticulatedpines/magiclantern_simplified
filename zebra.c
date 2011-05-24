@@ -3201,6 +3201,7 @@ int toggle_disp_mode()
 	clearscreen_wakeup();
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	BMP_SEM( do_disp_mode_change(); )
+	redraw();
 	return disp_mode == 0;
 }
 void do_disp_mode_change()
@@ -3209,11 +3210,10 @@ void do_disp_mode_change()
 	
 	display_on();
 	bmp_on();
-	BMP_SEM( clrscr(); )
-	BMP_SEM( bmp_printf(FONT_LARGE, 10, 40, "DISP %d", disp_mode); )
+	clrscr();
+	bmp_printf(FONT_LARGE, 10, 40, "DISP %d", disp_mode);
 	update_disp_mode_params_from_bits();
 	msleep(500);
-	redraw();
 	//~ crop_dirty = 1;
 }
 
