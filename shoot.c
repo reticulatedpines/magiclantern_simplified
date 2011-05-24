@@ -37,7 +37,7 @@ CONFIG_INT( "focus.trap", trap_focus, 0);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release.level", audio_release_level, 700);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
-CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
+//~ CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
 CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
 #define silent_pic_burst (silent_pic_submode == 1)
@@ -196,7 +196,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
 }
 
 int get_trap_focus() { return trap_focus; }
-
+/*
 void set_flash_firing(int mode)
 {
 	lens_wait_readytotakepic(64);
@@ -221,7 +221,7 @@ flash_and_no_flash_toggle( void * priv )
 	flash_and_no_flash = !flash_and_no_flash;
 	if (!flash_and_no_flash)
 		set_flash_firing(0); // force on
-}
+}*/
 
                                                  //2  4  6  9 12 16 20 25
 static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
@@ -690,7 +690,7 @@ static char* silent_pic_get_name()
 	bmp_printf(FONT_MED, 100, 130, "%s    ", imgname);
 	return imgname;
 }
-
+/*
 int ms100_clock = 0;
 static void
 ms100_clock_task( void )
@@ -701,7 +701,7 @@ ms100_clock_task( void )
 		ms100_clock += 100;
 	}
 }
-TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
+TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );*/
 
 
 // not working
@@ -2061,11 +2061,11 @@ struct menu_entry shoot_menus[] = {
 		.display	= motion_detect_display,
 		.help = "Motion detection, fast enough to catch lightning. LV only."
 	},
-	{
+/*	{
 		.select		= flash_and_no_flash_toggle,
 		.display	= flash_and_no_flash_display,
 		.help = "Take odd pictures with flash, even pictures without flash."
-	},
+	},*/
 	{
 		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
@@ -2455,10 +2455,10 @@ void display_shooting_info() // called from debug task
 	else
 		bmp_printf(fnt, 380, 450, "           ");
 
-	bmp_printf(fnt, 200, 450, "Flash:%s%s", 
+	bmp_printf(fnt, 200, 450, "Flash:%s", 
 		strobo_firing == 0 ? " ON" : 
-		strobo_firing == 1 ? "OFF" : "Auto", 
-		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
+		strobo_firing == 1 ? "OFF" : "Auto"
+		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
 		);
 
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
@@ -2798,11 +2798,11 @@ shoot_task( void )
 		}
 
 		// toggle flash on/off for next picture
-		if (shooting_mode != SHOOTMODE_MOVIE && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+		/*if (shooting_mode != SHOOTMODE_MOVIE && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
 		{
 			strobo_firing = file_number % 2;
 			set_flash_firing(strobo_firing);
-		}
+		}*/
 
 		static int sw1_countdown = 0;
 		
