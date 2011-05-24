@@ -45,6 +45,7 @@ static int gop_opt_size_vga[3];
 
 void cbr_init()
 {
+	//~ bmp_hexdump(FONT_SMALL, 0, 0, 0x67bc, 32*10);
 	memcpy(opt_size_fullhd, MOV_OPT_SIZE_FULLHD, 8);
 	memcpy(gop_opt_size_fullhd, MOV_GOP_OPT_SIZE_FULLHD, 12);
 	memcpy(opt_size_hd, MOV_OPT_SIZE_HD, 8);
@@ -66,7 +67,7 @@ void opt_set(int num, int den)
 	int opt[2];
 	int gop[5];
 	int i;
-
+	
 	for (i = 0; i < 2; i++) opt[i] = opt_size_fullhd[i] * num / den;
 	for (i = 0; i < 3; i++) gop[i] = gop_opt_size_fullhd[i] * num / den;
 	mvrSetGopOptSizeFULLHD(gop);
@@ -214,24 +215,11 @@ void time_indicator_show()
 			dispvalue % 60
 		);
 		bmp_printf( FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
-			timecode_x + 7 * fontspec_font(timecode_font)->width,
+			timecode_x + 9 * fontspec_font(timecode_font)->width,
 			timecode_y + 38,
-			"AVG%3d",
+			"A%3d",
 			movie_bytes_written_32k * 32 * 80 / 1024 / movie_elapsed_time_01s);
-	}
-}
 
-void measure_bitrate() // called once / second
-{
-	static uint32_t prev_bytes_written = 0;
-	uint32_t bytes_written = MVR_BYTES_WRITTEN;
-	int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
-	prev_bytes_written = bytes_written;
-	movie_bytes_written_32k = bytes_written >> 15;
-	measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
-	
-	if (time_indicator)
-	{
 		int fnts = FONT(FONT_SMALL, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
 		int fntm = FONT(FONT_MED, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
 		bmp_printf(fntm,
@@ -250,6 +238,16 @@ void measure_bitrate() // called once / second
 	}
 }
 
+void measure_bitrate() // called once / second
+{
+	static uint32_t prev_bytes_written = 0;
+	uint32_t bytes_written = MVR_BYTES_WRITTEN;
+	int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
+	prev_bytes_written = bytes_written;
+	movie_bytes_written_32k = bytes_written >> 15;
+	measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
+}
+
 static void
 time_indicator_display( void * priv, int x, int y, int selected )
 {
@@ -263,6 +261,48 @@ time_indicator_display( void * priv, int x, int y, int selected )
 	);
 }
 
+CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
+static void
+buffer_warning_level_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"BuffWarnLevel : %d%%",
+		buffer_warning_level
+	);
+}
+
+static void buffer_warning_level_toggle(int step)
+{
+	buffer_warning_level += step;
+	if (buffer_warning_level > 100) buffer_warning_level = 30;
+	if (buffer_warning_level < 30) buffer_warning_level = 100;
+}
+
+static void buffer_warning_level_toggle_forward() { buffer_warning_level_toggle(5); }
+static void buffer_warning_level_toggle_reverse() { buffer_warning_level_toggle(-5); }
+
+int warning = 0;
+int is_mvr_buffer_almost_full() 
+{
+	if (recording == 0) return 0;
+	if (recording == 1) return 1;
+	// 2
+	
+	int ans = MVR_BUFFER_USAGE > buffer_warning_level;
+	if (ans) warning = 10;
+	return warning;
+}
+
+void show_mvr_buffer_status()
+{
+	int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
+	if (warning) warning--;
+	if (recording) bmp_printf(fnt, 680, 60, "%3d%%", MVR_BUFFER_USAGE);
+}
+
+
 static struct menu_entry mov_menus[] = {
 	{
 		.priv = &bitrate_mode,
@@ -270,7 +310,13 @@ static struct menu_entry mov_menus[] = {
 		.select		= bitrate_toggle_mode,
 		.select_auto	= bitrate_toggle_forward,
 		.select_reverse	= bitrate_toggle_reverse,
-		.help = "H.264 bitrate. Be careful when using it!"
+		.help = "H.264 bitrate. Use with care! [Q/PLAY]: change value."
+	},
+	{
+		.select		= buffer_warning_level_toggle_forward,
+		.select_reverse	= buffer_warning_level_toggle_reverse,
+		.display	= buffer_warning_level_display,
+		.help = "ML will pause CPU-intensive graphics if buffer gets full."
 	},
 	{
 		.priv		= &time_indicator,
@@ -301,8 +347,9 @@ bitrate_task( void )
 			if (movie_elapsed_time_01s % 10 == 0)
 			{
 				measure_bitrate();
-				time_indicator_show();
+				BMP_SEM( time_indicator_show(); )
 			}
+			BMP_SEM( show_mvr_buffer_status(); )
 		}
 		else
 		{
@@ -310,7 +357,8 @@ bitrate_task( void )
 			if (movie_elapsed_time_01s % 10 == 0)
 				bitrate_set();
 		}
-		if (zebra_should_run()) free_space_show();
+		if (zebra_should_run()) 
+			BMP_SEM( free_space_show(); )
 	}
 }
 
