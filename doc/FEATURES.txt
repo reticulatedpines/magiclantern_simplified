@@ -191,7 +191,7 @@ Misc shortcuts
 ~~~~~~~~~~~~~~
 
 * Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). You have to be in one of these modes: P, Tv, Av, M or A-dep.
-* ``ISO`` followed by ``LV``: toggle between photo and movie mode.
+* ``ISO`` followed by ``LV``: switch to Movie mode (from photo mode).
 * ``ISO`` followed by ``DISP``: change current `display preset`_.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Bulb timer`_, `Movie REC key`_.
