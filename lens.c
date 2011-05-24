@@ -287,7 +287,7 @@ update_lens_display(
 	int rawsize = pic_quality & 0xF;
 	int jpegtype = pic_quality >> 24;
 	int jpegsize = (pic_quality >> 8) & 0xF;
-	bmp_printf( font, x, y, "%s%s%s%s%s",
+	bmp_printf( font, x, y, "%s%s%s%s",
 		rawsize == 1 ? "M" : rawsize == 2 ? "S" : "",
 		raw ? "RAW" : "",
 		jpegtype == 4 ? "" : (raw ? "+" : "JPG-"),
@@ -737,7 +737,7 @@ lens_set_kelvin_value_only(int k)
 void update_stuff()
 {
 	calc_dof( &lens_info );
-	if (lv_drawn() && get_global_draw()) update_lens_display( &lens_info );
+	if (lv_drawn() && get_global_draw()) BMP_SEM( update_lens_display( &lens_info ); )
 	if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
 }
 

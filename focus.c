@@ -654,13 +654,15 @@ static void plot_focus_mag()
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	
-	int i;
-	for (i = 0; i < NMAGS-1; i++)
-	{
-		bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
-		bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
-	}
-	ff_check_autolock();
+	BMP_SEM(
+		int i;
+		for (i = 0; i < NMAGS-1; i++)
+		{
+			bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
+			bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
+		}
+		ff_check_autolock();
+	)
 }
 #undef FH
 #undef NMAGS

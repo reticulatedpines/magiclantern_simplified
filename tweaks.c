@@ -63,7 +63,7 @@ void expsim_update()
 
 // LV metering
 //**********************************************************************
-
+/*
 CONFIG_INT("lv.metering", lv_metering, 0);
 
 static void
@@ -118,7 +118,7 @@ lv_metering_adjust()
 		if (over > 1000) lens_set_ae(lens_info.ae - 1);
 		else lens_set_ae(lens_info.ae + 1);
 	}
-}
+}*/
 
 // auto burst pic quality
 //**********************************************************************
@@ -278,7 +278,7 @@ void clear_lv_afframe()
 	int xaf,yaf;
 	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
 	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,50) - 50, 200, 100 );
-	crop_set_dirty(10);
+	crop_set_dirty(5);
 }
 
 CONFIG_INT("play.quick.zoom", quickzoom, 1);
@@ -315,10 +315,10 @@ tweak_task( void )
 			DispSensorStart();
 		}
 		
-		if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
+		/*if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
 		{
 			lv_metering_adjust();
-		}
+		}*/
 		
 		// faster zoom in play mode
 		if (quickzoom && gui_state == GUISTATE_PLAYMENU)
@@ -341,7 +341,8 @@ tweak_task( void )
 		if (af_frame_autohide && lv_drawn() && afframe_countdown)
 		{
 			afframe_countdown--;
-			if (!afframe_countdown) clear_lv_afframe();
+			if (!afframe_countdown) 
+				BMP_SEM( clear_lv_afframe(); )
 		}
 		
 		if (FLASH_BTN_MOVIE_MODE)
@@ -362,7 +363,7 @@ tweak_task( void )
 					
 			}
 			if (!falsecolor_canceled) false_color_toggle();
-			redraw_request();
+			redraw();
 		}
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || ISO_ADJUSTMENT_ACTIVE)
@@ -498,13 +499,13 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
 	},
-	{
+/*	{
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 		.help = "Custom metering methods in LiveView; too slow for real use."
-	},
+	},*/
 };
 
 void tweak_init()

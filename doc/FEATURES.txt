@@ -329,7 +329,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 **False color**
 
   This is a tool for evaluating the exposure. It shows different luma (Y) levels using a color map.
-  You can press ``Q`` to select one of the followig color maps:
+  You can press ``Q`` to select one of the following color maps:
 
   .. figure:: falsecolor.png
       :alt: thumb|right|False color palettes
@@ -504,7 +504,7 @@ Functions specific to movie mode.
   
   Modes:
   
-  * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps, including sound).
+  * ``FW default``: default bitrate used by Canon firmware (CBR, around 45mbps in 1080p, including sound).
   * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the same as FW default. The implementation uses variable QScale, displayed near the recording dot.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
@@ -522,6 +522,12 @@ Functions specific to movie mode.
   * You can't change this setting during recording.
   
   See [[Bit rate]] page for details.
+
+.. _BuffWarnLevel:
+
+**BuffWarnLevel: 30\% ... 100\%**
+
+  If buffer usage gets higher than this value, ML will display the buffer indicator in red and will pause all CPU-intensive graphics (almost everything from `LiveV`_ menu), which will allow movie recording tasks to use all available CPU power in order to avoid a possible buffer overflow. 
 
 .. _auto-restart:
 .. _movie restart:
@@ -1376,6 +1382,7 @@ LiveView
 
   * `Time remaining display`_
   * `Bitrate`_ info (instant and average bitrate, and qscale factor)
+  * Buffer indicator (see also `BuffWarnLevel`_)
 
 * Left side:
 

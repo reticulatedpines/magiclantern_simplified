@@ -337,9 +337,14 @@ meter_task( void )
 		msleep( 50 );
 
 		if (audio_meters_are_drawn())
-			draw_meters();
+		{
+			if (!is_mvr_buffer_almost_full())
+				BMP_SEM( draw_meters(); )
+		}
 		else
+		{
 			msleep( 500 );
+		}
 		
 		if (show_volume)
 		{
@@ -1111,9 +1116,8 @@ my_sounddev_task( int some_param )
 	reg_file = FIO_CreateFile( "B:/audioreg.txt" );
 #endif
 
-	msleep(2000);
+	msleep(500);
 	audio_monitoring_update();
-
 	while(1)
 	{
 		// will be unlocked by the property handler
@@ -1271,5 +1275,4 @@ void volume_display()
 void volume_display_clear()
 {
 	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
-	crop_set_dirty(1);
 }

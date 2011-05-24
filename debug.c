@@ -170,8 +170,9 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	int x = 0x200;
-	prop_request_change(0x8000000a, &x, 4);
+	cbr_init();
+	bitrate_set();
+	while (!get_halfshutter_pressed()) msleep(100);
 }
 
 void toggle_mirror_display()
@@ -362,7 +363,8 @@ void display_shortcut_key_hints_lv()
 
 	old_mode = mode;
 	
-	crop_set_dirty(20);
+	if (!should_draw_zoom_overlay())
+		crop_set_dirty(20);
 }
 
 void display_clock()
@@ -390,6 +392,7 @@ static void
 
 debug_loop_task( void ) // screenshot, draw_prop
 {
+	msleep(500);
 	int k;
 	for (k = 0; ; k++)
 	{
@@ -411,24 +414,24 @@ debug_loop_task( void ) // screenshot, draw_prop
 		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", *(int*)131030);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2 && k % 10 == 0)
-		{
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2 && k % 10 == 0) BMP_SEM
+		(
 			display_clock();
 			display_shooting_info();
-		}
+		)
 		
-		if (lv_drawn() && !gui_menu_shown())
-		{
+		if (lv_drawn() && !gui_menu_shown()) BMP_SEM
+		(
 			display_shooting_info_lv();
 			if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
 				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, "!!! Auto exposure !!!\nSet 'Movie exposure: Manual' in Canon menu");
 			display_shortcut_key_hints_lv();
-		}
+		)
 		
 		if (screenshot_sec)
 		{
-			if (screenshot_sec >= 5) bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec);
-			if (screenshot_sec == 4) redraw_request();
+			if (screenshot_sec >= 5) BMP_SEM( bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec); )
+			if (screenshot_sec == 4) redraw();
 			screenshot_sec--;
 			msleep( 1000 );
 			if (!screenshot_sec)

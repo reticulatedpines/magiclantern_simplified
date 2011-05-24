@@ -29,7 +29,7 @@
 #include "font.h"
 #include <stdarg.h>
 
-int bmp_enabled = 1;
+//~ int bmp_enabled = 1;
 
 #define USE_LUT
 
@@ -88,7 +88,7 @@ _draw_char(
 	char		c
 )
 {
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 	unsigned i,j;
 	const struct font * const font = fontspec_font( fontspec );
 
@@ -347,7 +347,7 @@ bmp_fill(
 	uint32_t		h
 )
 {
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
@@ -394,10 +394,10 @@ bmp_fill(
 		for( x=0 ; x<w/4 ; x++ )
 		{
 			row[ x ] = word;
-			asm( "nop" );
-			asm( "nop" );
-			asm( "nop" );
-			asm( "nop" );
+			//~ asm( "nop" );
+			//~ asm( "nop" );
+			//~ asm( "nop" );
+			//~ asm( "nop" );
 		}
 	}
 }
@@ -545,7 +545,7 @@ void clrscr()
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear)
 {
 	if (!bmp) return;
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -636,7 +636,7 @@ uint8_t bmp_getpixel(int x, int y)
 }
 uint8_t bmp_putpixel(int x, int y, uint8_t color)
 {
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return 0;
 	int bmppitch = BMPPITCH;
@@ -647,7 +647,7 @@ uint8_t bmp_putpixel(int x, int y, uint8_t color)
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return 0;
 	
@@ -664,7 +664,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear)
 {
 	if (!bmp) return;
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -901,3 +901,10 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 		s++;
 	}
 }
+
+static void bmp_init()
+{
+	bmp_sem = create_named_semaphore("bmp_sem", 1);
+}
+
+INIT_FUNC(__FILE__, bmp_init);

@@ -36,6 +36,7 @@ extern struct semaphore * gui_sem;
 static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
+static int menu_shown = 0;
 static int show_only_selected; // for ISO, kelvin...
 static int edit_mode = 0;
 
@@ -498,7 +499,7 @@ menu_redraw_if_damaged()
 		//~ if (MENU_MODE || lv_drawn()) clrscr();
 		bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
 		menu_damage = 0;
-		menus_display( menus, 10, 40 );
+		BMP_SEM( menus_display( menus, 10, 40 ); )
 		update_stuff();
 		update_disp_mode_bits_from_params();
 	}
@@ -761,6 +762,8 @@ gui_stop_menu( void )
 
 	if( !gui_menu_task )
 		return;
+	
+	while (gui_menu_task == 1) msleep(100);
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
@@ -778,6 +781,8 @@ gui_stop_menu( void )
 	{
 		redraw();
 	}
+
+	menu_shown = 0;
 }
 
 
@@ -791,11 +796,10 @@ gui_hide_menu(
 	bmp_fill( 0, 0, 0, 720, 480 );
 }
 
-
 int
 gui_menu_shown( void )
 {
-	return (int) gui_menu_task;
+	return menu_shown;
 }
 
 int get_draw_event() { return draw_event; }
@@ -971,6 +975,8 @@ menu_task( void )
 			continue;
 		}
 		
+		menu_shown = 1;
+		
 		if (!lv_drawn() && !MENU_MODE)
 		{
 			fake_simple_button(BGMT_MENU);
@@ -981,8 +987,6 @@ menu_task( void )
 		menu_damage = 1;
 		menu_hidden = 0;
 		edit_mode = 0;
-		gui_menu_task = 1;
-		msleep(100);
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
 		//~ zebra_pause();

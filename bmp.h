@@ -232,4 +232,7 @@ uint8_t bmp_getpixel(int x, int y);
 #define TOPBAR_BGCOLOR (bmp_getpixel(1,35))
 #define BOTTOMBAR_BGCOLOR (bmp_getpixel(1,479))
 
+struct semaphore * bmp_sem;
+#define BMP_SEM(x) { take_semaphore(bmp_sem, 0); x; give_semaphore(bmp_sem); }
+
 #endif
