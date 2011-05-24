@@ -356,15 +356,16 @@ void display_shortcut_key_hints_lv()
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, "    ");
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, "    ");
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, "    ");
+
+		if (!should_draw_zoom_overlay())
+			crop_set_dirty(20);
+
 	}
 
 	if (mz) bmp_printf(FONT_MED, 360 + 100, 240 - 150, "Magic Zoom");
 	else bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100, 240 - 150, "          ");
 
 	old_mode = mode;
-	
-	if (!should_draw_zoom_overlay())
-		crop_set_dirty(20);
 }
 
 void display_clock()
