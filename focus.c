@@ -378,6 +378,7 @@ rack_focus(
 
 		delta -= speed;
 		lens_focus( 0x7, speed_cmd );
+		msleep(lens_focus_delay);
 	}
 }
 
@@ -407,11 +408,12 @@ focus_task( void )
 			int step = focus_task_dir * focus_rack_speed;
 			lens_focus( 1, step );
 			focus_task_delta += step;
+			msleep(lens_focus_delay);
 		}
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x1d, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x1a, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )
