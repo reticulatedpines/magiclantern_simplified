@@ -261,18 +261,18 @@ ML_OBJS-$(CONFIG_CONSOLE) += \
 	console.o \
 
 # Extract the stdio files that we need
-STDIO_OBJ = \
-	lib_a-setjmp.o \
+#~ STDIO_OBJ = \
+	#~ lib_a-setjmp.o \
+#~ 
+#~ ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
+#~ 
+#~ $(STDIO_OBJ): $(ARM_LIBC_A)
+	#~ $(AR) xv $? $(STDIO_OBJ)
+#~ libstdio.a: $(STDIO_OBJ)
+	#~ $(AR) cr $@ $^
 
-ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 
-$(STDIO_OBJ): $(ARM_LIBC_A)
-	$(AR) xv $? $(STDIO_OBJ)
-libstdio.a: $(STDIO_OBJ)
-	$(AR) cr $@ $^
-
-
-magiclantern: $(ML_OBJS-y) libstdio.a 
+magiclantern: $(ML_OBJS-y)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
