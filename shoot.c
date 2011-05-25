@@ -2955,12 +2955,12 @@ shoot_task( void )
 					SW1(0,10); // (some kind of sleep where it won't wake up from msleep)
 				}
 
-				if (shooting_mode != SHOOTMODE_MOVIE)
-				{
-					if (lens_info.shutter > 100 && !silent_pic_mode) bmp_printf(FONT_MED, 0, 70,             "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
-					else if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
-					else if ((af_mode & 0xF) != 3) bmp_printf(FONT_MED, 0, 70,                               "Tip: use manual focus                                        ");
-				}
+				//~ if (shooting_mode != SHOOTMODE_MOVIE)
+				//~ {
+					//~ if (lens_info.shutter > 100 && !silent_pic_mode) bmp_printf(FONT_MED, 0, 70,             "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
+					//~ else if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
+					//~ else if ((af_mode & 0xF) != 3) bmp_printf(FONT_MED, 0, 70,                               "Tip: use manual focus                                        ");
+				//~ }
 			}
 		}
 		else

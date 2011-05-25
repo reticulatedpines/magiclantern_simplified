@@ -421,7 +421,7 @@ static int handle_buttons(struct event * event)
 		
 	}
 
-	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
+/*	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
 	{
 		int value = *(int*)(event->obj + 4);
 		//~ bmp_printf(FONT_LARGE, 0, 0, "Av %d", value);
@@ -445,7 +445,7 @@ static int handle_buttons(struct event * event)
 			}
 		}
 		old = value; 
-	}
+	}*/
 
 	// movie mode shortcut
 	if (event->type == 0 && event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)

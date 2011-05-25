@@ -330,13 +330,13 @@ static struct menu_entry mov_menus[] = {
 		.priv = &as_swap_enable, 
 		.display = as_swap_print,
 		.select = menu_binary_toggle,
-	},*/
+	},
 	{
 		.priv = &dof_adjust, 
 		.display = dof_adjust_print, 
 		.select = menu_binary_toggle,
 		.help = "Cover LCD sensor and adjust aperture => ISO changes too."
-	},
+	},*/
 	{
 		.priv = &movie_rec_key, 
 		.display = movie_rec_key_print, 
