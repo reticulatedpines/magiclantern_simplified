@@ -99,6 +99,9 @@ void opt_set(int num, int den)
 
 	int* gop_size = get_opt_size_ptr(&mvr_config_copy, 1);
 	for (i = 0; i < 3; i++) gop[i] = gop_size[i] * num / den;
+	
+	//~ bmp_printf(FONT_MED, 0, 0, "opt %8x %8x\ngop %8x %8x %8x\nip  %8x %8x\nqsc %8d %8d", opt[0], opt[1], gop[0], gop[1], gop[2], mvr_config.IOptSize, mvr_config.POptSize, mvr_config.qscale_limit_L, mvr_config.qscale_limit_H);
+	
 
 	mvrSetGopOptSize(gop);
 	mvrSetOptSize(opt);
@@ -163,7 +166,7 @@ bitrate_toggle_forward(void* priv)
 	if (bitrate_mode == 0)
 		return;
 	else if (bitrate_mode == 1 && !recording)
-		bitrate_factor = mod(bitrate_factor, 30) + 1;
+		bitrate_factor = mod(bitrate_factor - 3 + 1, 31 - 3) + 3;
 	else if (bitrate_mode == 2)
 		qscale_plus16 = mod(qscale_plus16 - 1, 33);
 }
@@ -175,7 +178,7 @@ bitrate_toggle_reverse(void* priv)
 	if (bitrate_mode == 0)
 		return;
 	else if (bitrate_mode == 1)
-		bitrate_factor = mod(bitrate_factor - 2, 30) + 1;
+		bitrate_factor = mod(bitrate_factor - 3 - 1, 31 - 3) + 3;
 	else if (bitrate_mode == 2)
 		qscale_plus16 = mod(qscale_plus16 + 1, 33);
 }
