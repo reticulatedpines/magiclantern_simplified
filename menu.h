@@ -110,4 +110,13 @@ menu_add(
 extern void
 menu_init( void );
 
+
+#define MNI_OFF 0
+#define MNI_ON 1
+#define MNI_AUTO 2
+#define MNI_WARNING 3
+#define MNI_PERCENT 4
+#define MNI_ACTION 5
+#define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
+#define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
 #endif

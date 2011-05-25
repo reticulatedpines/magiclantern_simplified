@@ -121,6 +121,7 @@ unified_loop_display( void * priv, int x, int y, int selected )
 		"UnifLoop (experim): %s",
 		unified_loop == 0 ? "OFF" : unified_loop == 1 ? "ON" : "Auto"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_AUTO(unified_loop), 0);
 }
 
 static void
@@ -1995,6 +1996,7 @@ hist_display( void * priv, int x, int y, int selected )
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : "OFF"
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
+	menu_draw_icon(x, y, MNI_BOOL(hist_draw || waveform_draw), 0);
 }
 
 static void
@@ -2055,7 +2057,6 @@ zoom_overlay_display(
 	int			selected
 )
 {
-	int mode = *(int*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -2079,6 +2080,7 @@ zoom_overlay_display(
 			zoom_overlay_pos == 3 ? "SE" :
 			zoom_overlay_pos == 4 ? "SW" : "err"
 	);
+	menu_draw_icon(x, y, MNI_BOOL(zoom_overlay_mode), 0);
 }
 
 static void
@@ -2089,7 +2091,6 @@ split_display(
 	int			selected
 )
 {
-	int mode = *(int*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -2358,6 +2359,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Shows brightness level as color-coded. [Q]: change palette."
 	},
 	{
+		.priv = &crop_draw,
 		.display	= crop_display,
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,

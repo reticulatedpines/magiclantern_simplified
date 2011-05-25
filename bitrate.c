@@ -139,11 +139,20 @@ bitrate_print(
 )
 {
 	if (bitrate_mode == 0)
+	{
 		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : FW default%s", bitrate_dirty ? "(reboot)" : "");
+		menu_draw_icon(x, y, bitrate_dirty ? MNI_WARNING : MNI_OFF, 0);
+	}
 	else if (bitrate_mode == 1)
+	{
 		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBR, %d.%dx", bitrate_factor/10, bitrate_factor%10);
+		menu_draw_icon(x, y, MNI_PERCENT, bitrate_factor * 100 / 30);
+	}
 	else if (bitrate_mode == 2)
+	{
 		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : QScale %d", qscale);
+		menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
+	}
 }
 
 static void 
@@ -293,6 +302,7 @@ buffer_warning_level_display( void * priv, int x, int y, int selected )
 		"BuffWarnLevel : %d%%",
 		buffer_warning_level
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, buffer_warning_level);
 }
 
 static void buffer_warning_level_toggle(int step)

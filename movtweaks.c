@@ -202,6 +202,7 @@ enable_liveview_print(
 		"Force LiveView: %s",
 		enable_liveview == 1 ? "Start & CPU lenses" : enable_liveview == 2 ? "Always" : "OFF"
 	);
+	menu_draw_icon(x, y, enable_liveview == 1 ? MNI_AUTO : enable_liveview == 2 ? MNI_ON : MNI_OFF, 0);
 }
 
 void force_liveview()

@@ -48,6 +48,7 @@ expsim_display( void * priv, int x, int y, int selected )
 		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
 		expsim ? "ON " : "OFF"
 	);
+	menu_draw_icon(x, y, expsim_auto ? MNI_AUTO : MNI_BOOL(expsim), 0);
 }
 
 void expsim_update()

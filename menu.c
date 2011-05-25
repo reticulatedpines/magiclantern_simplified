@@ -149,6 +149,7 @@ menu_print(
 		"%s",
 		(const char*) priv
 	);
+	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
 
 
@@ -272,6 +273,68 @@ menu_add(
 #endif
 }
 
+static void batsu(int x, int y)
+{
+	int i;
+	for (i = 1; i < 5; i++)
+	{
+		draw_line(x + 5 + i, y + 5, x + 22 + i, y + 22, COLOR_RED);
+		draw_line(x + 22 + i, y + 5, x + 5 + i, y + 22, COLOR_RED);
+	}
+}
+
+static void maru(int x, int y, int color)
+{
+	int r;
+	for (r = 0; r < 10; r++)
+	{
+		draw_circle(x + 16, y + 16, r, color);
+		draw_circle(x + 17, y + 16, r, color);
+	}
+}
+
+static void percent(int x, int y, int value)
+{
+	int i;
+	y -= 2;
+	value = value * 28 / 100;
+	for (i = 0; i < 28; i++)
+		draw_line(x + 2 + i, y + 30, x + 2 + i, y + 30 - i,  i <= value ? 9 : 60);
+}
+
+static void playicon(int x, int y)
+{
+	int i;
+	for (i = 5; i < 32-5; i++)
+	{
+		draw_line(x + 7, y + i, x + 25, y + 16, COLOR_YELLOW);
+		draw_line(x + 7, y + i, x + 25, y + 16, COLOR_YELLOW);
+	}
+}
+
+// By default, icon type is MNI_BOOL(*(int*)priv)
+// To override, menu_draw_icon from the display functiona
+
+// Icon is only drawn once for each menu item, even if this is called multiple times
+// Only the first call is executed
+
+int icon_drawn = 0;
+void menu_draw_icon(int x, int y, int type, int arg)
+{
+	if (icon_drawn) return;
+	icon_drawn = 1;
+	x -= 40;
+	switch(type)
+	{
+		case MNI_OFF: batsu(x, y); return;
+		case MNI_ON: maru(x, y, COLOR_GREEN1); return;
+		case MNI_WARNING: maru(x, y, COLOR_RED); return;
+		case MNI_AUTO: maru(x, y, 9); return;
+		case MNI_PERCENT: percent(x, y, arg); return;
+		case MNI_ACTION: playicon(x, y); return;
+	}
+}
+
 
 void
 menu_display(
@@ -283,13 +346,21 @@ menu_display(
 {
 	while( menu )
 	{
+		icon_drawn = 0;
 		if (!show_only_selected || menu->selected)
+		{
 			menu->display(
 				menu->priv,
 				x,
 				y,
 				menu->selected
 			);
+		}
+		
+		if (menu->priv)
+		{
+			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
+		}
 		
 		if (menu->selected && menu->help)
 			bmp_printf(
@@ -328,7 +399,7 @@ menus_display(
 		if( menu->selected )
 			menu_display(
 				menu->children,
-				orig_x + 20,
+				orig_x + 40,
 				y + fontspec_font( fontspec )->height + 4,
 				1
 			);

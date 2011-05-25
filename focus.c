@@ -194,6 +194,7 @@ focus_dir_display(
 		"Focus dir     : %s",
 		focus_dir ? "FAR " : "NEAR"
 	);
+	menu_draw_icon(x, y, focus_dir ? MNI_ON : MNI_AUTO, 0);
 }
 
 static void
@@ -210,6 +211,7 @@ focus_show_a(
 		"Focus A       : %d",
 		focus_task_delta
 	);
+	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
 
 
@@ -228,6 +230,7 @@ focus_toggle( void * priv )
 	give_semaphore( focus_task_sem );
 }
 
+unsigned rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
 
 static void
 focus_rack_speed_display(
@@ -243,10 +246,9 @@ focus_rack_speed_display(
 		"Focus speed   : %d",
 		focus_rack_speed
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, current_speed_index(focus_rack_speed) * 100 / COUNT(rack_speed_values));
 }
 
-
-unsigned rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
 
 int current_speed_index(speed)
 {
@@ -284,6 +286,7 @@ focus_delay_display(
 		"Focus delay   : %d",
 		lens_focus_delay
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, current_speed_index(lens_focus_delay) * 100 / COUNT(rack_speed_values));
 }
 
 static void
@@ -324,6 +327,7 @@ focus_stack_print(
 		focus_stack_count, focus_stack_step
 	);
 	bmp_printf(FONT_MED, x + 450, y-1, "PLAY: Run\nSET/Q: Adjust");
+	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
 
 void
@@ -463,6 +467,7 @@ follow_focus_print(
 		bmp_printf(FONT_MED, x + 480, y+5, follow_focus_reverse_h ? "- +" : "+ -");
 		bmp_printf(FONT_MED, x + 480 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
+	menu_draw_icon(x, y, MNI_BOOL_AUTO(follow_focus), 0);
 }
 
 

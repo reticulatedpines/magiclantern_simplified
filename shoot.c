@@ -123,8 +123,9 @@ interval_timer_display( void * priv, int x, int y, int selected )
 			timer_values[interval_movie_duration_index],
 			timer_values[*(int*)priv]
 		);
-		bmp_printf(FONT_MED, x + 510, y+5, "[Q]");
 	}
+	
+	menu_draw_icon(x, y, intervalometer_running ? MNI_PERCENT : MNI_OFF, (*(int*)priv) * 100 / COUNT(timer_values));
 }
 
 static void
@@ -157,7 +158,6 @@ intervalometer_display( void * priv, int x, int y, int selected )
 		"Intervalometer  : %s%s",
 		p ? "ON" : "OFF",
 		p ? (intervalometer_wait ? ",Wait" : ",NoWait") : ""
-		
 	);
 }
 
@@ -171,6 +171,8 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		"LCD Remote Shot : %s",
 		v == 1 ? "Near" : v == 2 ? (mlu_mode ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
 	);
+	if (v) display_lcd_remote_info(x-25, y+5);
+	menu_draw_icon(x, y, v ? -1 : MNI_OFF, 0);
 }
 
 static void
@@ -998,6 +1000,7 @@ iso_display( void * priv, int x, int y, int selected )
 			"%d", lens_info.iso
 		);
 	}
+	menu_draw_icon(x, y, lens_info.iso ? MNI_PERCENT : MNI_AUTO, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
 }
 
 int is_native_iso(int iso)
@@ -1178,6 +1181,7 @@ shutter_display( void * priv, int x, int y, int selected )
 		lens_info.shutter
 	);
 	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
+	menu_draw_icon(x, y, MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
 }
 
 static void
@@ -1268,6 +1272,7 @@ aperture_display( void * priv, int x, int y, int selected )
 		lens_info.aperture / 10,
 		lens_info.aperture % 10
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]));
 }
 
 static void
@@ -1342,6 +1347,7 @@ kelvin_display( void * priv, int x, int y, int selected )
 			lens_info.kelvin,
 			lens_info.kelvin == wb_kelvin_ph ? "" : "*"
 		);
+		menu_draw_icon(x, y, MNI_PERCENT, (lens_info.kelvin - KELVIN_MIN) * 100 / (KELVIN_MAX - KELVIN_MIN));
 	}
 	else
 	{
@@ -1359,6 +1365,7 @@ kelvin_display( void * priv, int x, int y, int selected )
 			(lens_info.wb_mode == 8 ? "Shade" :
 			 "unknown"))))))))
 		);
+		menu_draw_icon(x, y, MNI_AUTO, 0);
 	}
 	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
@@ -1464,6 +1471,7 @@ wbs_gm_display( void * priv, int x, int y, int selected )
 			gm > 0 ? "Green " : (gm < 0 ? "Magenta " : ""), 
 			ABS(gm)
 		);
+		menu_draw_icon(x, y, MNI_PERCENT, (-lens_info.wbs_gm + 9) * 100 / 18);
 	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
 
@@ -1520,6 +1528,7 @@ contrast_display( void * priv, int x, int y, int selected )
 		"Contrast    : %d ",
 		lens_get_contrast()
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, (lens_get_contrast() + 4) * 100 / 8);
 }
 
 static void
@@ -1553,6 +1562,7 @@ sharpness_display( void * priv, int x, int y, int selected )
 		"Sharpness   : %d ",
 		lens_get_sharpness()
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, (lens_get_sharpness() + 4) * 100 / 8);
 }
 
 static void
@@ -1589,6 +1599,7 @@ saturation_display( void * priv, int x, int y, int selected )
 			"Saturation  : 0x%X",
 		s
 	);
+	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_OFF, (s + 4) * 100 / 8);
 }
 
 static void 
@@ -1609,6 +1620,7 @@ picstyle_display( void * priv, int x, int y, int selected )
 		p == 0x22 ? "User Def 2" :
 		p == 0x23 ? "User Def 3" : "Unknown"
 	);
+	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 static void
@@ -1669,6 +1681,7 @@ flash_ae_display( void * priv, int x, int y, int selected )
 		ae_ev / 10, 
 		ABS(ae_ev % 10)
 	);
+	menu_draw_icon(x, y, MNI_PERCENT, (ae_ev + 80) * 100 / (24+80));
 }
 
 
@@ -1769,6 +1782,7 @@ ladj_display( void * priv, int x, int y, int selected )
 		(alo == ALO_HIGH ? "ALO strong " :
 		(alo == ALO_OFF ? "OFF" : "err")))))
 	);
+	menu_draw_icon(x, y, alo != ALO_OFF ? MNI_ON : htp ? MNI_AUTO : MNI_OFF, 0);
 }
 
 static void 
@@ -1782,6 +1796,7 @@ zoom_display( void * priv, int x, int y, int selected )
 		zoom_disable_x10 ? "" : "x10", 
 		zoom_enable_face ? ":-)" : ""
 	);
+	menu_draw_icon(x, y, MNI_BOOL(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10), 0);
 }
 
 static void zoom_toggle(void* priv)
@@ -1831,7 +1846,7 @@ hdr_display( void * priv, int x, int y, int selected )
 			((hdr_stepsize/4) % 2) ? ".5" : ""
 		);
 	}
-	//~ bmp_printf(FONT_MED, x + 400, y+5, "[SET-DISP-Q]");
+	menu_draw_icon(x, y, MNI_BOOL(hdr_steps == 1), 0);
 }
 
 static void
@@ -1905,6 +1920,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		d < 60 ? d : d/60, 
 		d < 60 ? "s" : "min"
 	);
+	menu_draw_icon(x, y, is_bulb_mode() ? MNI_PERCENT : MNI_OFF, bulb_duration_index * 100 / COUNT(timer_values));
 }
 
 static void
@@ -1917,6 +1933,7 @@ mlu_display( void * priv, int x, int y, int selected )
 		"Mirror Lockup   : %s",
 		mlu_mode == 1 ? "ON" : mlu_mode == 2 ? "Timer+Remote" : "OFF"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_AUTO(mlu_mode), 0);
 }
 
 static void 
@@ -1942,6 +1959,7 @@ picq_display( void * priv, int x, int y, int selected )
 		jpegtype == 4 ? "" : jpegsize == 0 ? "Large" : jpegsize == 1 ? "Med" : "Small",
 		jpegtype == 2 ? "Coarse" : jpegtype == 3 ? "Fine" : ""
 	);
+	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 static void picq_toggle_rawsize(void* priv)
@@ -2067,6 +2085,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Take odd pictures with flash, even pictures without flash."
 	},*/
 	{
+		.priv = &silent_pic_mode,
 		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
 		.select_auto = silent_pic_toggle_forward,
@@ -2463,13 +2482,13 @@ void display_shooting_info() // called from debug task
 
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
 
-	display_lcd_remote_info();
+	display_lcd_remote_info(480, 0);
 	display_trap_focus_info();
 }
 
 void display_shooting_info_lv()
 {
-	display_lcd_remote_info();
+	display_lcd_remote_info(480, 0);
 	display_trap_focus_info();
 }
 
@@ -2544,32 +2563,33 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	return prop_cleanup(token, property);
 }
 
-void display_lcd_remote_info()
+void display_lcd_remote_info(int x0, int y0)
 {
-	int x0 = 480;
 	int cl_on = COLOR_RED;
 	int cl_off = lv_drawn() ? COLOR_WHITE : COLOR_FG_NONLV;
 	int cl = display_sensor ? cl_on : cl_off;
 	int bg = lv_drawn() ? 0 : bmp_getpixel(x0 - 20, 1);
 
+	if (gui_menu_shown()) cl = COLOR_GREEN1;
+
 	if (lcd_release_running == 1)
 	{
-		draw_circle(x0, 10, 8, cl);
-		draw_circle(x0, 10, 7, cl);
-		draw_line(x0-5,10-5,x0+5,10+5,cl);
-		draw_line(x0-5,10+5,x0+5,10-5,cl);
+		draw_circle(x0, 10+y0, 8, cl);
+		draw_circle(x0, 10+y0, 7, cl);
+		draw_line(x0-5,10-5+y0,x0+5,10+5+y0,cl);
+		draw_line(x0-5,10+5+y0,x0+5,10-5+y0,cl);
 	}
 	else if (lcd_release_running == 2)
 	{
-		draw_circle(x0, 10, 8, cl);
-		draw_circle(x0, 10, 7, cl);
-		draw_circle(x0, 10, 1, cl);
-		draw_circle(x0, 10, 2, cl);
+		draw_circle(x0, 10+y0, 8, cl);
+		draw_circle(x0, 10+y0, 7, cl);
+		draw_circle(x0, 10+y0, 1, cl);
+		draw_circle(x0, 10+y0, 2, cl);
 	}
 	else if (lcd_release_running == 3)
 	{
-		int yup = 5;
-		int ydn = 15;
+		int yup = 5+y0;
+		int ydn = 15+y0;
 		int step = 5;
 		int k;
 		for (k = 0; k < 2; k++)
@@ -2583,8 +2603,10 @@ void display_lcd_remote_info()
 		}
 	}
 	
+	if (gui_menu_shown()) return;
+	
 	static int prev_lr = 0;
-	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, 0, 40, 20);
+	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
 	prev_lr = lcd_release_running;
 }
 
