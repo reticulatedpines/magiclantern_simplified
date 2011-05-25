@@ -194,7 +194,7 @@ focus_dir_display(
 		"Focus dir     : %s",
 		focus_dir ? "FAR " : "NEAR"
 	);
-	menu_draw_icon(x, y, focus_dir ? MNI_ON : MNI_AUTO, 0);
+	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 static void
@@ -812,25 +812,6 @@ static struct menu_entry focus_menu[] = {
 		.help = "Takes a picture when the subject comes in focus. MF only."
 	},
 	{
-		.display	= focus_stack_print,
-		.select		= focus_stack_count_increment,
-		.select_auto		= focus_stack_step_increment,
-		.select_reverse		= focus_stack_unlock,
-		.help = "Focus bracketing, useful for macro shots."
-	},
-	{
-		.display	= focus_rack_speed_display,
-		.select		= focus_rack_speed_increment,
-		.select_reverse	= focus_rack_speed_decrement,
-		.help = "Speed for rack focus and follow focus, in raw steps."
-	},
-	{
-		.display	= focus_delay_display,
-		.select		= focus_delay_increment,
-		.select_reverse	= focus_delay_decrement,
-		.help = "Delay between two successive focus commands."
-	},
-	{
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
 		.select		= menu_ternary_toggle,
@@ -845,6 +826,18 @@ static struct menu_entry focus_menu[] = {
 		.select_reverse = movie_af_noisefilter_bump,
 		.select_auto = movie_af_aggressiveness_bump,
 		.help = "Custom AF algorithm in movie mode. Not very efficient."
+	},
+	{
+		.display	= focus_rack_speed_display,
+		.select		= focus_rack_speed_increment,
+		.select_reverse	= focus_rack_speed_decrement,
+		.help = "Speed for rack focus and follow focus, in raw steps."
+	},
+	{
+		.display	= focus_delay_display,
+		.select		= focus_delay_increment,
+		.select_reverse	= focus_delay_decrement,
+		.help = "Delay between two successive focus commands."
 	},
 	{
 		.priv		= &focus_dir,
@@ -862,6 +855,13 @@ static struct menu_entry focus_menu[] = {
 		.display	= menu_print,
 		.select		= focus_toggle,
 		.help = "Start the rack focus operation."
+	},
+	{
+		.display	= focus_stack_print,
+		.select		= focus_stack_count_increment,
+		.select_auto		= focus_stack_step_increment,
+		.select_reverse		= focus_stack_unlock,
+		.help = "Focus bracketing, useful for macro shots."
 	},
 	{
 		.display	= display_lens_hyperfocal,

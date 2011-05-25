@@ -435,7 +435,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		if (screenshot_sec)
 		{
 			if (screenshot_sec >= 5) BMP_SEM( bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec); )
-			if (screenshot_sec == 4) redraw();
+			//~ if (screenshot_sec == 4) redraw();
 			screenshot_sec--;
 			msleep( 1000 );
 			if (!screenshot_sec)
