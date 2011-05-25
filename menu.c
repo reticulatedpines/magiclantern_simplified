@@ -313,7 +313,7 @@ static void playicon(int x, int y)
 }
 
 // By default, icon type is MNI_BOOL(*(int*)priv)
-// To override, menu_draw_icon from the display functiona
+// To override, call menu_draw_icon from the display functions
 
 // Icon is only drawn once for each menu item, even if this is called multiple times
 // Only the first call is executed
