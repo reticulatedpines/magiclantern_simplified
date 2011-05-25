@@ -470,8 +470,8 @@ struct mvr_config
 	int16_t 		qscale_limit_H;			// 0x12, 67ce
 	uint16_t		time_const;				// 0x14, 67d0, unknown
 	uint16_t		x67d0;					// 0x16, 67d2
-	uint32_t		fullhd_opt_size_I_30fps;// 0x18, 67d4, works when qscale_mode = 0
-	uint32_t		fullhd_opt_size_P_30fps;// 0x1c, 67d8
+	uint32_t		fullhd_30fps_opt_size_I;// 0x18, 67d4, works when qscale_mode = 0
+	uint32_t		fullhd_30fps_opt_size_P;// 0x1c, 67d8
 	uint32_t		D1_30fps;				// 0x20, 67dc
 	uint32_t		D2_30fps;				// 0x24, 67e0
 	uint32_t		x67e4;					// 0x28, 67e4

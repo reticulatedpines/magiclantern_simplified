@@ -64,7 +64,8 @@ int* get_opt_size_ptr(struct mvr_config * mc, int gop)
 			if (gop)
 				return &(mc->fullhd_30fps_gop_opt_0) + i * 5;
 			else
-				return &(mc->fullhd_opt_size_I_30fps) + i * 5;
+				return &(mc->fullhd_30fps_opt_size_I) + i * 5;
+	return 0;
 }
 
 void mvrSetOptSize(int* arg)
