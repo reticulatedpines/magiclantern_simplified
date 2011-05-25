@@ -470,40 +470,40 @@ struct mvr_config
 	int16_t 		qscale_limit_H;			// 0x12, 67ce
 	uint16_t		time_const;				// 0x14, 67d0, unknown
 	uint16_t		x67d0;					// 0x16, 67d2
-	uint32_t		fullhd_opt_size_I;		// 0x18, 67d4, works when qscale_mode = 0
-	uint32_t		fullhd_opt_size_P;		// 0x1c, 67d8
-	uint32_t		x67dc_D1;				// 0x20, 67dc
-	uint32_t		x67e0_D2;				// 0x24, 67e0
+	uint32_t		fullhd_opt_size_I_30fps;// 0x18, 67d4, works when qscale_mode = 0
+	uint32_t		fullhd_opt_size_P_30fps;// 0x1c, 67d8
+	uint32_t		D1_30fps;				// 0x20, 67dc
+	uint32_t		D2_30fps;				// 0x24, 67e0
 	uint32_t		x67e4;					// 0x28, 67e4
-	uint32_t		fullhd_opt_size_I_copy;	// 0x2c, 67e8
-	uint32_t		fullhd_opt_size_P_copy;	// 0x30, 67ec
-	uint32_t		x67f0_D1;				// 0x34, 67f0
-	uint32_t		x67f4_D2;				// 0x38, 67f4
+	uint32_t		fullhd_25fps_opt_size_I;// 0x2c, 67e8
+	uint32_t		fullhd_25fps_opt_size_P;// 0x30, 67ec
+	uint32_t		fullhd_25fps_D1;		// 0x34, 67f0
+	uint32_t		fullhd_25fps_D2;		// 0x38, 67f4
 	uint32_t		x67f8;					// 0x3c, 67f8
-	uint32_t		fullhd_opt_size_I_cp1;	// 0x40, 67fc
-	uint32_t		fullhd_opt_size_I_cp2;	// 0x44, 6800
-	uint32_t		x6804_D1;				// 0x48, 6804
-	uint32_t		x6808_D2;				// 0x4c, 6808
+	uint32_t		fullhd_24fps_opt_size_I;// 0x40, 67fc
+	uint32_t		fullhd_24fps_opt_size_P;// 0x44, 6800
+	uint32_t		fullhd_24fps_D1;		// 0x48, 6804
+	uint32_t		fullhd_24fps_D2;		// 0x4c, 6808
 	uint32_t		x680c;					// 0x50, 680c
-	uint32_t		hd_opt_size_I;			// 0x54, 6810
-	uint32_t		hd_opt_size_P;			// 0x58, 6814
-	uint32_t		x6818_D1;				// 0x5c, 6818
-	uint32_t		x681c_D2;				// 0x60, 681c
+	uint32_t		hd_60fps_opt_size_I;	// 0x54, 6810
+	uint32_t		hd_60fps_opt_size_P;	// 0x58, 6814
+	uint32_t		hd_60fps_D1;			// 0x5c, 6818
+	uint32_t		hd_60fps_D2;			// 0x60, 681c
 	uint32_t		x6820;					// 0x64, 6820
-	uint32_t		x6824;					// 0x68, 6824
-	uint32_t		x6828;					// 0x6c, 6828
-	uint32_t		_D1_related;			// 0x70, 682c
-	uint32_t		_D2_related;			// 0x74, 6830
+	uint32_t		hd_50fps_opt_size_I;	// 0x68, 6824
+	uint32_t		hd_50fps_opt_size_P;	// 0x6c, 6828
+	uint32_t		hd_50fps_D1;			// 0x70, 682c
+	uint32_t		hd_50fps_D2;			// 0x74, 6830
 	uint32_t		x6834_kinda_counter;	// 0x78, 6834
-	uint32_t		vga_opt_size_I;			// 0x7c, 6838
-	uint32_t		vga_opt_size_P;			// 0x80, 683c
-	uint32_t		x6840_D1;				// 0x84, 6840
-	uint32_t		x6844_D2;				// 0x88, 6844
+	uint32_t		vga_60fps_opt_size_I;	// 0x7c, 6838
+	uint32_t		vga_60fps_opt_size_P;	// 0x80, 683c
+	uint32_t		vga_60fps_D1;			// 0x84, 6840
+	uint32_t		vga_60fps_D2;			// 0x88, 6844
 	uint32_t		x6848;					// 0x8c, 6848
-	uint32_t		x684c;					// 0x90, 684c
-	uint32_t		x6850;					// 0x94, 6850
-	uint32_t		x6854_D1;				// 0x98, 6854
-	uint32_t		x6858_D2;				// 0x9c, 6858
+	uint32_t		vga_50fps_opt_size_I;	// 0x90, 684c
+	uint32_t		vga_50fps_opt_size_P;	// 0x94, 6850
+	uint32_t		vga_50fps_D1;			// 0x98, 6854
+	uint32_t		vga_50fps_D2;			// 0x9c, 6858
 	uint32_t		x685c;					// 0xa0, 685c
 	int32_t 		another_def_q_scale;	// 0xa4, 6860
 	int32_t 		IniQScale;				// 0xa8, 6864
@@ -518,97 +518,41 @@ struct mvr_config
 	uint32_t		_D1;					// 0xcc, 6888
 	uint32_t		_D2;					// 0xd0, 688c
 	uint32_t		x6890_counter_maybe;	// 0xd4, 6890
-	uint32_t		fullhd_gop_opt_0;		// 0xd8, 6894
-	uint32_t		fullhd_gop_opt_1;		// 0xdc, 6898
-	uint32_t		fullhd_gop_opt_2;		// 0xe0, 689c
-	uint32_t		fullhd_gop_opt_3;		// 0xe4, 68a0
-	uint32_t		fullhd_gop_opt_4;		// 0xe8, 68a4
-	uint32_t		fullhd_gop_opt_0_copy;	// 0xec, 68a8
-	uint32_t		fullhd_gop_opt_1_copy;	// 0xf0, 68ac
-	uint32_t		fullhd_gop_opt_2_copy;	// 0xf4, 68b0
-	uint32_t		fullhd_gop_opt_3_copy;	// 0xf8, 68b4
-	uint32_t		fullhd_gop_opt_4_copy;	// 0xfc, 68b8
-	uint32_t		fullhd_gop_opt_0_cp2;	// 0x100, 68bc
-	uint32_t		fullhd_gop_opt_1_cp2;	// 0x104, 68c0
-	uint32_t		fullhd_gop_opt_2_cp2;	// 0x108, 68c4
-	uint32_t		fullhd_gop_opt_3_cp2;	// 0x10c, 68c8
-	uint32_t		fullhd_gop_opt_4_cp2;	// 0x110, 68cc
-	uint32_t		hd_gop_opt_0;			// 0x114, 68d0
-	uint32_t		hd_gop_opt_1;			// 0x118, 68d4
-	uint32_t		hd_gop_opt_2;			// 0x11c, 68d8
-	uint32_t		hd_gop_opt_3;			// 0x120, 68dc
-	uint32_t		hd_gop_opt_4;			// 0x124, 68e0
-	uint32_t		hd_gop_opt_0_copy;		// 0x128, 68e4
-	uint32_t		hd_gop_opt_1_copy;		// 0x12c, 68e8
-	uint32_t		hd_gop_opt_2_copy;		// 0x130, 68ec
-	uint32_t		hd_gop_opt_3_copy;		// 0x134, 68f0
-	uint32_t		hd_gop_opt_4_copy;		// 0x138, 68f4
-	uint32_t		vga_gop_opt_0;			// 0x13c, 68f8
-	uint32_t		vga_gop_opt_1;			// 0x140, 68fc
-	uint32_t		vga_gop_opt_2;			// 0x144, 6900
-	uint32_t		vga_gop_opt_3;			// 0x148, 6904
-	uint32_t		vga_gop_opt_4;			// 0x14c, 6908
-	uint32_t		vga_gop_opt_0_copy;		// 0x150, 690c
-	uint32_t		vga_gop_opt_1_copy;		// 0x154, 6910
-	uint32_t		vga_gop_opt_2_copy;		// 0x158, 6914
-	uint32_t		vga_gop_opt_3_copy;		// 0x15c, 6918
-	uint32_t		vga_gop_opt_4_copy;		// 0x160, 691c
-	uint32_t		x6920;					// 0x164, 6920
-	uint32_t		x6924;					// 0x168, 6924
-	uint32_t		x6928;					// 0x16c, 6928
-	uint32_t		x692c;					// 0x170, 692c
-	uint32_t		x6930;					// 0x174, 6930
-	uint32_t		x6934;					// 0x178, 6934
-	uint32_t		x6938;					// 0x17c, 6938
-	uint32_t		x693c;					// 0x180, 693c
-	uint32_t		x6940;					// 0x184, 6940
-	uint32_t		x6944;					// 0x188, 6944
-	uint32_t		x6948;					// 0x18c, 6948
-	uint32_t		x694c;					// 0x190, 694c
-	uint32_t		x6950;					// 0x194, 6950
-	uint32_t		x6954;					// 0x198, 6954
-	uint32_t		x6958;					// 0x19c, 6958
-	uint32_t		x695c;					// 0x1a0, 695c
-	uint32_t		x6960;					// 0x1a4, 6960
-	uint32_t		x6964;					// 0x1a8, 6964
-	uint32_t		x6968;					// 0x1ac, 6968
-	uint32_t		x696c;					// 0x1b0, 696c
-	uint32_t		x6970;					// 0x1b4, 6970
-	uint32_t		x6974;					// 0x1b8, 6974
-	uint32_t		x6978;					// 0x1bc, 6978
-	uint32_t		x697c;					// 0x1c0, 697c
-	uint32_t		x6980;					// 0x1c4, 6980
-	uint32_t		x6984;					// 0x1c8, 6984
-	uint32_t		x6988;					// 0x1cc, 6988
-	uint32_t		x698c;					// 0x1d0, 698c
-	uint32_t		x6990;					// 0x1d4, 6990
-	uint32_t		x6994;					// 0x1d8, 6994
-	uint32_t		x6998;					// 0x1dc, 6998
-	uint32_t		x699c;					// 0x1e0, 699c
-	uint32_t		x69a0;					// 0x1e4, 69a0
-	uint32_t		x69a4;					// 0x1e8, 69a4
-	uint32_t		x69a8;					// 0x1ec, 69a8
-	uint32_t		x69ac;					// 0x1f0, 69ac
-	uint32_t		x69b0;					// 0x1f4, 69b0
-	uint32_t		x69b4;					// 0x1f8, 69b4
-	uint32_t		x69b8;					// 0x1fc, 69b8
-	uint32_t		x69bc;					// 0x200, 69bc
-	uint32_t		x69c0;					// 0x204, 69c0
-	uint32_t		x69c4;					// 0x208, 69c4
-	uint32_t		x69c8;					// 0x20c, 69c8
-	uint32_t		x69cc;					// 0x210, 69cc
-	uint32_t		x69d0;					// 0x214, 69d0
-	uint32_t		x69d4;					// 0x218, 69d4
-	uint32_t		x69d8;					// 0x21c, 69d8
-	uint32_t		x69dc;					// 0x220, 69dc
-	uint32_t		x69e0;					// 0x224, 69e0
-	uint32_t		x69e4;					// 0x228, 69e4
-	uint32_t		x69e8;					// 0x22c, 69e8
-	uint32_t		x69ec;					// 0x230, 69ec
-	uint32_t		x69f0;					// 0x234, 69f0
-	uint32_t		x69f4;					// 0x238, 69f4
-	uint32_t		x69f8;					// 0x23c, 69f8
-	uint32_t		x69fc;					// 0x240, 69fc
+	uint32_t		fullhd_30fps_gop_opt_0;	// 0xd8, 6894
+	uint32_t		fullhd_30fps_gop_opt_1;	// 0xdc, 6898
+	uint32_t		fullhd_30fps_gop_opt_2;	// 0xe0, 689c
+	uint32_t		fullhd_30fps_gop_opt_3;	// 0xe4, 68a0
+	uint32_t		fullhd_30fps_gop_opt_4;	// 0xe8, 68a4
+	uint32_t		fullhd_25fps_gop_opt_0;	// 0xec, 68a8
+	uint32_t		fullhd_25fps_gop_opt_1;	// 0xf0, 68ac
+	uint32_t		fullhd_25fps_gop_opt_2;	// 0xf4, 68b0
+	uint32_t		fullhd_25fps_gop_opt_3;	// 0xf8, 68b4
+	uint32_t		fullhd_25fps_gop_opt_4;	// 0xfc, 68b8
+	uint32_t		fullhd_24fps_gop_opt_0;	// 0x100, 68bc
+	uint32_t		fullhd_24fps_gop_opt_1;	// 0x104, 68c0
+	uint32_t		fullhd_24fps_gop_opt_2;	// 0x108, 68c4
+	uint32_t		fullhd_24fps_gop_opt_3;	// 0x10c, 68c8
+	uint32_t		fullhd_24fps_gop_opt_4;	// 0x110, 68cc
+	uint32_t		hd_60fps_gop_opt_0;		// 0x114, 68d0
+	uint32_t		hd_60fps_gop_opt_1;		// 0x118, 68d4
+	uint32_t		hd_60fps_gop_opt_2;		// 0x11c, 68d8
+	uint32_t		hd_60fps_gop_opt_3;		// 0x120, 68dc
+	uint32_t		hd_60fps_gop_opt_4;		// 0x124, 68e0
+	uint32_t		hd_50fps_gop_opt_0;		// 0x128, 68e4
+	uint32_t		hd_50fps_gop_opt_1;		// 0x12c, 68e8
+	uint32_t		hd_50fps_gop_opt_2;		// 0x130, 68ec
+	uint32_t		hd_50fps_gop_opt_3;		// 0x134, 68f0
+	uint32_t		hd_50fps_gop_opt_4;		// 0x138, 68f4
+	uint32_t		vga_60fps_gop_opt_0;	// 0x13c, 68f8
+	uint32_t		vga_60fps_gop_opt_1;	// 0x140, 68fc
+	uint32_t		vga_60fps_gop_opt_2;	// 0x144, 6900
+	uint32_t		vga_60fps_gop_opt_3;	// 0x148, 6904
+	uint32_t		vga_60fps_gop_opt_4;	// 0x14c, 6908
+	uint32_t		vga_50fps_gop_opt_0;	// 0x150, 690c
+	uint32_t		vga_50fps_gop_opt_1;	// 0x154, 6910
+	uint32_t		vga_50fps_gop_opt_2;	// 0x158, 6914
+	uint32_t		vga_50fps_gop_opt_3;	// 0x15c, 6918
+	uint32_t		vga_50fps_gop_opt_4;	// 0x160, 691c
 };
 
 //~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );

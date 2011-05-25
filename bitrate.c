@@ -30,28 +30,17 @@ int movie_bytes_written_32k = 0;
 
 #define qscale (((int)qscale_plus16) - 16)
 
+int bitrate_dirty = 0;
 
 // don't call those outside vbr_fix / vbr_set
 void mvrFixQScale(uint16_t *);    // only safe to call when not recording
 void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at a time
 // otherwise ther appears a nice error message which shows the shutter count [quote AlinS] :)
 
-static int opt_size_fullhd[2];
-static int gop_opt_size_fullhd[3];
-static int opt_size_hd[2];
-static int gop_opt_size_hd[3];
-static int opt_size_vga[2];
-static int gop_opt_size_vga[3];
-
+static struct mvr_config mvr_config_copy;
 void cbr_init()
 {
-	//~ bmp_hexdump(FONT_SMALL, 0, 0, 0x67bc, 32*10);
-	memcpy(opt_size_fullhd, MOV_OPT_SIZE_FULLHD, 8);
-	memcpy(gop_opt_size_fullhd, MOV_GOP_OPT_SIZE_FULLHD, 12);
-	memcpy(opt_size_hd, MOV_OPT_SIZE_HD, 8);
-	memcpy(gop_opt_size_hd, MOV_GOP_OPT_SIZE_HD, 12);
-	memcpy(opt_size_vga, MOV_OPT_SIZE_VGA, 8);
-	memcpy(gop_opt_size_vga, MOV_GOP_OPT_SIZE_VGA, 12);
+	memcpy(&mvr_config_copy, &mvr_config, sizeof(mvr_config_copy));
 }
 
 void vbr_fix(uint16_t param)
@@ -62,35 +51,67 @@ void vbr_fix(uint16_t param)
 
 	mvrFixQScale(&param);
 }
+
+const int fps[] = {30, 25, 24, 60, 50, 60, 50};
+const int res[] = { 0,  0,  0,  1,  1,  2,  2};
+extern int video_mode_fps;
+extern int video_mode_resolution;
+int* get_opt_size_ptr(struct mvr_config * mc, int gop)
+{
+	int i;
+	for (i = 0; i < 7; i++)
+		if (fps[i] == video_mode_fps && res[i] == video_mode_resolution)
+			if (gop)
+				return &(mc->fullhd_30fps_gop_opt_0) + i * 5;
+			else
+				return &(mc->fullhd_opt_size_I_30fps) + i * 5;
+}
+
+void mvrSetOptSize(int* arg)
+{
+	switch (video_mode_resolution)
+	{
+		case 0: mvrSetFullHDOptSize(arg); return;
+		case 1: mvrSetHDOptSize(arg); return;
+		case 2: mvrSetVGAOptSize(arg); return;
+	}
+}
+
+void mvrSetGopOptSize(int* arg)
+{
+	switch (video_mode_resolution)
+	{
+		case 0: mvrSetGopOptSizeFULLHD(arg); return;
+		case 1: mvrSetGopOptSizeHD(arg); return;
+		case 2: mvrSetGopOptSizeVGA(arg); return;
+	}
+}
+
 void opt_set(int num, int den)
 {
 	int opt[2];
 	int gop[5];
 	int i;
 	
-	for (i = 0; i < 2; i++) opt[i] = opt_size_fullhd[i] * num / den;
-	for (i = 0; i < 3; i++) gop[i] = gop_opt_size_fullhd[i] * num / den;
-	mvrSetGopOptSizeFULLHD(gop);
-	mvrSetFullHDOptSize(opt);
+	int* opt_size = get_opt_size_ptr(&mvr_config_copy, 0);
+	for (i = 0; i < 2; i++) opt[i] = opt_size[i] * num / den;
 
-	for (i = 0; i < 2; i++) opt[i] = opt_size_hd[i] * num / den;
-	for (i = 0; i < 3; i++) gop[i] = gop_opt_size_hd[i] * num / den;
-	mvrSetGopOptSizeHD(gop);
-	mvrSetHDOptSize(opt);
+	int* gop_size = get_opt_size_ptr(&mvr_config_copy, 1);
+	for (i = 0; i < 3; i++) gop[i] = gop_size[i] * num / den;
 
-	for (i = 0; i < 2; i++) opt[i] = opt_size_vga[i] * num / den;
-	for (i = 0; i < 3; i++) gop[i] = gop_opt_size_vga[i] * num / den;
-	mvrSetGopOptSizeVGA(gop);
-	mvrSetVGAOptSize(opt);
+	mvrSetGopOptSize(gop);
+	mvrSetOptSize(opt);
 }
 void bitrate_set()
 {
 	if (!lv_drawn()) return;
 	if (shooting_mode != SHOOTMODE_MOVIE) return; 
+	if (gui_menu_shown()) return;
 	if (recording) return; 
 	
 	if (bitrate_mode == 0)
 	{
+		if (!bitrate_dirty) return;
 		vbr_fix(0);
 		opt_set(1,1);
 	}
@@ -106,6 +127,7 @@ void bitrate_set()
 		int q = qscale;
 		mvrSetDefQScale(&q);
 	}
+	bitrate_dirty = 1;
 }
 
 static void
@@ -117,7 +139,7 @@ bitrate_print(
 )
 {
 	if (bitrate_mode == 0)
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : FW default");
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : FW default%s", bitrate_dirty ? "(reboot)" : "");
 	else if (bitrate_mode == 1)
 		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBR, %d.%dx", bitrate_factor/10, bitrate_factor%10);
 	else if (bitrate_mode == 2)
