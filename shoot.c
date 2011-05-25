@@ -35,7 +35,7 @@
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
-CONFIG_INT( "audio.release.level", audio_release_level, 700);
+CONFIG_INT( "audio.release-level", audio_release_level, 10);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 //~ CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
@@ -178,12 +178,31 @@ lcd_release_display( void * priv, int x, int y, int selected )
 static void
 audio_release_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Audio RemoteShot: %s",
-		audio_release_running ? "ON " : "OFF"
-	);
+	if (audio_release_running)
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Audio RemoteShot: ON, level=%d",
+			audio_release_level
+		);
+	else
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Audio RemoteShot: OFF"
+		);
+	menu_draw_icon(x, y, audio_release_running ? MNI_PERCENT : MNI_OFF, audio_release_level * 100 / 30);
+}
+
+static void
+audio_release_level_toggle(void* priv)
+{
+	audio_release_level = mod(audio_release_level - 5 + 1, 26) + 5;
+}
+static void
+audio_release_level_toggle_reverse(void* priv)
+{
+	audio_release_level = mod(audio_release_level - 5 - 1, 26) + 5;
 }
 
 static void 
@@ -1846,7 +1865,7 @@ hdr_display( void * priv, int x, int y, int selected )
 			((hdr_stepsize/4) % 2) ? ".5" : ""
 		);
 	}
-	menu_draw_icon(x, y, MNI_BOOL(hdr_steps == 1), 0);
+	menu_draw_icon(x, y, MNI_BOOL(hdr_steps != 1), 0);
 }
 
 static void
@@ -2071,6 +2090,8 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
+		.select_auto = audio_release_level_toggle, 
+		.select_reverse = audio_release_level_toggle_reverse,
 		.help = "Clap your hands or pop a balloon to take a picture."
 	},
 	{
@@ -2379,6 +2400,7 @@ void hdr_shot(int skip0, int wait)
 		{
 			if (!silent_pic_mode || !lv_drawn()) lens_take_picture(0);
 			else silent_pic_take(0);
+			return;
 		}
 	}
 
@@ -2570,7 +2592,7 @@ void display_lcd_remote_info(int x0, int y0)
 	int cl = display_sensor ? cl_on : cl_off;
 	int bg = lv_drawn() ? 0 : bmp_getpixel(x0 - 20, 1);
 
-	if (gui_menu_shown()) cl = COLOR_GREEN1;
+	if (gui_menu_shown()) cl = COLOR_WHITE;
 
 	if (lcd_release_running == 1)
 	{
@@ -2645,7 +2667,6 @@ shoot_task( void )
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
 	menu_add( "Tweak", vid_menus, COUNT(vid_menus) );
-	struct audio_level *al=get_audio_levels();
 	
 	// :-)
 	struct tm now;
@@ -2967,22 +2988,16 @@ shoot_task( void )
 		{
 			if (audio_release_running) 
 			{
-				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d)   ", al[0].peak);
-				if (al[0].peak > audio_release_level) 
+				static int countdown = 0;
+				if (gui_state != GUISTATE_IDLE || gui_menu_shown()) countdown = 50;
+				if (countdown) { countdown--; continue; }
+
+				extern struct audio_level audio_levels[];
+				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d / %d)   ", audio_levels[0].peak / audio_levels[0].avg, audio_release_level);
+				if (audio_levels[0].peak > audio_levels[0].avg * audio_release_level) 
 				{
 					remote_shot();
-					// this may trigger an infinite shooting loop due to shutter noise
-					int k;
-					for (k = 0; k < 5; k++)
-					{
-						msleep(100);
-						while (al[0].peak > audio_release_level)
-						{
-							bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Waiting for silence (%d)...", al[0].peak);
-							msleep(100);
-						}
-					}
-					bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "                                        ");
+					while (lens_info.job_state) msleep(100);
 				}
 			}
 		}

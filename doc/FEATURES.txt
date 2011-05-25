@@ -505,7 +505,7 @@ Functions specific to movie mode.
   Modes:
   
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 45mbps in 1080p, including sound).
-  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the same as FW default. The implementation uses variable QScale, displayed near the recording dot.
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.3x and 3x. CBR 1x is equivalent to FW default. The implementation uses variable QScale, displayed near the recording dot.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
@@ -723,10 +723,6 @@ Functions for stills shooting (some of them work for movies, too).
 **Audio RemoteShot: ON/OFF**
 
   Start/stop remote audio trigger. To take a picture (or start recording a movie), make some loud noise, for example, clap your hands or pop a balloon.
-  
-  
-  Audio threshold can be set from ``magic.cfg`` by changing ``audio.release.level`` (default 700), or by adjusting the `audio`_ gain.
-  
   
   You can also start movie recording with this feature.
   
