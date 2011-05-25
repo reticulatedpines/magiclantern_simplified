@@ -74,6 +74,8 @@ draw_prop_reset( void * priv )
 }
 
 int mem_spy = 0;
+
+#if CONFIG_DEBUGMSG
 int mem_spy_start = 0; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
 int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses
@@ -87,6 +89,8 @@ int mem_spy_freq_lo = 5;
 int mem_spy_freq_hi = 100;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0x40000000;
 int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
+
+#endif
 
 static void
 mem_spy_select( void * priv )
@@ -193,6 +197,8 @@ void fake_simple_button(int bgmt_code)
 	};
 	GUI_CONTROL(&e);
 }
+
+#if CONFIG_DEBUGMSG
 
 static int* dbg_memmirror = 0;
 static int* dbg_memchanges = 0;
@@ -303,6 +309,7 @@ static void dbg_memspy_update()
 		k = (k + 1) % 120;
 	}
 }
+#endif
 
 void display_info()
 {
@@ -435,6 +442,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 				take_screenshot(0);
 		}
 		
+		#if CONFIG_DEBUGMSG
 		if (draw_prop)
 		{
 			dbg_draw_props(dbg_last_changed_propindex);
@@ -443,6 +451,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			dbg_memspy_update();
 		}
+		#endif
 		
 		msleep(10);
 	}
@@ -598,6 +607,7 @@ debug_token_handler(
 	);
 }
 
+#if CONFIG_DEBUGMSG
 //~ static int dbg_propn = 0;
 #define MAXPROP 30
 static unsigned dbg_props[MAXPROP] = {0};
@@ -691,6 +701,7 @@ ack:
 	return prop_cleanup( debug_token, property );
 }
 
+#endif
 
 
 #define num_properties 4096
