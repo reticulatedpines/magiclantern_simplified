@@ -1904,6 +1904,7 @@ bulb_take_pic(int duration)
 		return;
 	}
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
+	if (get_mlu()) { lens_take_picture(64); msleep(2000); }
 	SW1(1,100);
 	SW2(1,100);
 	int i;
