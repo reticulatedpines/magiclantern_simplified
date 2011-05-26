@@ -1864,6 +1864,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(z), 0);
 }
 
 static void
@@ -1880,6 +1881,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
 	{
 		draw_line(x + 364 + i, y + 2, x + 364 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
 	}
+	menu_draw_icon(x, y, MNI_BOOL_GDR(falsecolor_draw), 0);
 }
 
 static void
@@ -1927,6 +1929,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 			x, y,
 			"Focus Peak  : OFF"
 		);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(f), 0);
 }
 
 static void focus_peaking_adjust_thr(void* priv)
@@ -1959,6 +1962,7 @@ crop_display( void * priv, int x, int y, int selected )
 	int h = font_large.height;
 	int w = h * 720 / 480;
 	bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(index), 0);
 }
 
 /*
@@ -1996,7 +2000,7 @@ hist_display( void * priv, int x, int y, int selected )
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : "OFF"
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
-	menu_draw_icon(x, y, MNI_BOOL(hist_draw || waveform_draw), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(hist_draw || waveform_draw), 0);
 }
 
 static void
@@ -2019,6 +2023,7 @@ waveform_display( void * priv, int x, int y, int selected )
 		"Waveform    : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(*(unsigned*) priv), 0);
 }
 static void 
 waveform_toggle(void* priv)
@@ -2080,7 +2085,7 @@ zoom_overlay_display(
 			zoom_overlay_pos == 3 ? "SE" :
 			zoom_overlay_pos == 4 ? "SW" : "err"
 	);
-	menu_draw_icon(x, y, MNI_BOOL(zoom_overlay_mode), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode), 0);
 }
 
 static void
@@ -2098,6 +2103,7 @@ split_display(
 		zoom_overlay_split ? "ON" : "OFF",
 		zoom_overlay_split && zoom_overlay_split_zerocross ? ", zerocross" : ""
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_split), 0);
 }
 
 static void split_zerocross_toggle(void* priv)
@@ -2120,6 +2126,7 @@ spotmeter_menu_display(
 		"Spotmeter   : %s",
 		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(spotmeter_draw), 0);
 }
 
 static void 
@@ -2326,6 +2333,7 @@ transparent_overlay_display(
 		transparent_overlay == 2? "Left" :
 		transparent_overlay == 3? "Right" : "err"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay), 0);
 }
 
 struct menu_entry zebra_menus[] = {

@@ -214,6 +214,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
 		"Motion Detect   : %s",
 		motion_detect ? "ON" : "OFF"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect), 0);
 }
 
 int get_trap_focus() { return trap_focus; }
@@ -303,6 +304,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			silent_pic_slitscan_skipframes
 		);
 	}
+	menu_draw_icon(x, y, MNI_BOOL_LV(silent_pic_mode), 0);
 }
 
 static void silent_pic_mode_toggle(void* priv)
@@ -1291,7 +1293,7 @@ aperture_display( void * priv, int x, int y, int selected )
 		lens_info.aperture / 10,
 		lens_info.aperture % 10
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]));
+	menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]));
 }
 
 static void
@@ -1940,7 +1942,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		d < 60 ? d : d/60, 
 		d < 60 ? "s" : "min"
 	);
-	menu_draw_icon(x, y, is_bulb_mode() ? MNI_PERCENT : MNI_OFF, bulb_duration_index * 100 / COUNT(timer_values));
+	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, bulb_duration_index * 100 / COUNT(timer_values));
 }
 
 static void

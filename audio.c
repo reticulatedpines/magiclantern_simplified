@@ -737,7 +737,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 		"Analog Gain   : %d dB",
 		mgain_index2gain(gain_index)
 	);
-	menu_draw_icon(x, y, alc_enable ? MNI_OFF : MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
+	menu_draw_icon(x, y, alc_enable ? MNI_WARNING : MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
 
 
@@ -776,7 +776,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 		priv == &dgain_l ? "L" : "R",
 		*(unsigned*) priv
 	);
-	menu_draw_icon(x, y, alc_enable ? MNI_OFF : MNI_PERCENT, (*(unsigned*) priv) * 100 / 36);
+	menu_draw_icon(x, y, alc_enable ? MNI_WARNING : MNI_PERCENT, (*(unsigned*) priv) * 100 / 36);
 }
 
 
@@ -790,7 +790,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 		"Output volume : %d dB",
 		2 * *(unsigned*) priv
 	);
-	menu_draw_icon(x, y, !audio_monitoring ? MNI_OFF : MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
+	menu_draw_icon(x, y, !audio_monitoring ? MNI_WARNING : MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
 }
 
 static void
@@ -804,7 +804,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
 		v == 1 ? "ON " : 
 		(v == 2 ? "Movie Only": "OFF")
 	);
-	menu_draw_icon(x, y, MNI_BOOL_AUTO(v), 0);
+	menu_draw_icon(x, y, v && !get_global_draw() ? MNI_WARNING : MNI_BOOL_AUTO(v), 0);
 }
 
 
