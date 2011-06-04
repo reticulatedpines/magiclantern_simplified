@@ -322,8 +322,8 @@ gui_hide_menu( int redisplay_time );
 #define GUISTATE_IDLE 0
 #define GUISTATE_PLAYMENU 1
 #define GUISTATE_MENUDISP 2 // warning
+#define GUISTATE_QR 3 // QuickReview
 // 3: lockoff warning (?)
-// 4: QR?
 // 5: QR erase?
 // 6: OLC?
 // 7: LV?
