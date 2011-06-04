@@ -769,6 +769,7 @@ extern void DryosDebugMsg(int,int,const char *,...);
 	#define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #else
 	#define DebugMsg(a,b,fmt,...) { }
+	#define console_printf(fmt,...) { }
 #endif
 
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
