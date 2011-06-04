@@ -2185,6 +2185,43 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 	*V = sv;
 }
 
+int get_spot_motion(int dx, int draw)
+{
+	struct vram_info *	vram = get_yuv422_vram();
+
+	if( !vram->vram )
+		return;
+	const uint16_t*		vr1 = YUV422_LV_BUFFER_DMA_ADDR;
+	const uint16_t*		vr2 = get_fastrefresh_422_buf();
+	uint8_t * const		bm = bmp_vram();
+	const unsigned		width = vram->width;
+	const unsigned		pitch = vram->pitch;
+	const unsigned		height = vram->height;
+	unsigned		x, y;
+
+	draw_line(width/2 - dx, height/2 - dx, width/2 + dx, height/2 - dx, COLOR_WHITE);
+	draw_line(width/2 + dx, height/2 - dx, width/2 + dx, height/2 + dx, COLOR_WHITE);
+	draw_line(width/2 + dx, height/2 + dx, width/2 - dx, height/2 + dx, COLOR_WHITE);
+	draw_line(width/2 - dx, height/2 + dx, width/2 - dx, height/2 - dx, COLOR_WHITE);
+	
+	unsigned D = 0;
+	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	{
+		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
+		{
+			int p1 = (vr1[ x + y * width ] >> 8) & 0xFF;
+			int p2 = (vr2[ x + y * width ] >> 8) & 0xFF;
+			int dif = ABS(p1 - p2);
+			D += dif;
+			if (draw) bm[x + y * BMPPITCH] = false_colour[4][dif & 0xFF];
+		}
+	}
+	
+	D = D * 2;
+	D /= (2 * dx + 1) * (2 * dx + 1);
+	return D;
+}
+
 int get_spot_focus(int dx)
 {
 	struct vram_info *	vram = get_yuv422_vram();
@@ -3387,7 +3424,7 @@ void transparent_overlay_from_play()
 {
 	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
 	make_overlay();
-	fake_simple_button(BGMT_PLAY);
+	get_out_of_play_mode();
 	msleep(500);
 	if (!lv_drawn()) { force_liveview(); msleep(500); }
 	msleep(1000);

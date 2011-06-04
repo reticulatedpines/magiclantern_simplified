@@ -181,19 +181,20 @@ lcd_release_display( void * priv, int x, int y, int selected )
 static void
 audio_release_display( void * priv, int x, int y, int selected )
 {
-	if (audio_release_running)
-		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
-			x, y,
-			"Audio RemoteShot: ON, level=%d",
-			audio_release_level
-		);
-	else
+	//~ if (audio_release_running)
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Audio RemoteShot: %s, level=%d",
+		audio_release_running ? "ON" : "OFF",
+		audio_release_level
+	);
+	/*else
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Audio RemoteShot: OFF"
-		);
+		);*/
 	menu_draw_icon(x, y, audio_release_running ? MNI_PERCENT : MNI_OFF, audio_release_level * 100 / 30);
 }
 
@@ -220,14 +221,16 @@ motion_release_level_toggle_reverse(void* priv)
 	motion_detect_level = mod(motion_detect_level - 5 - 1, 26) + 5;
 }
 
- static void 
- motion_detect_display( void * priv, int x, int y, int selected )
- {
+static void 
+motion_detect_display( void * priv, int x, int y, int selected )
+{
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Motion Detect   : %s, %d",
-		motion_detect ? "ON" : "OFF",
+		"Motion Detect   : %s, level=%d",
+		motion_detect == 0 ? "OFF" :
+		motion_detect == 1 ? "EXP" :
+		motion_detect == 2 ? "DIF" : "err",
 		motion_detect_level
 	);
 }
@@ -1880,7 +1883,9 @@ hdr_display( void * priv, int x, int y, int selected )
 			"HDR Bracketing  : %dx%d%sEV",
 			hdr_steps, 
 			hdr_stepsize / 8,
-			((hdr_stepsize/4) % 2) ? ".5" : ""
+			((hdr_stepsize/4) % 2) ? ".5" : 
+			hdr_stepsize == 2 ? ".25" :
+			hdr_stepsize == 1 ? ".125" : ""
 		);
 	}
 	menu_draw_icon(x, y, MNI_BOOL(hdr_steps != 1), 0);
@@ -1895,8 +1900,8 @@ hdr_steps_toggle( void * priv )
 static void
 hdr_stepsize_toggle( void * priv )
 {
-	hdr_stepsize = (hdr_stepsize < 8) ? 8 : (hdr_stepsize/8)*8 + 8;
-	if (hdr_stepsize > 40) hdr_stepsize = 4;
+	hdr_stepsize = (hdr_stepsize < 8) ? MAX(hdr_stepsize * 2, 1) : (hdr_stepsize/8)*8 + 8;
+	if (hdr_stepsize > 40) hdr_stepsize = 0;
 }
 
 static void
@@ -2115,11 +2120,11 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &motion_detect,
-		.select		= menu_binary_toggle, 
+		.select		= menu_ternary_toggle, 
 		.display	= motion_detect_display,
 		.select_auto = motion_release_level_toggle, 
 		.select_reverse = motion_release_level_toggle_reverse,
-		.help = "LV Motion detection. [Q]/[Play] for sensitivity."
+		.help = "LV Motion detection: EXPosure change / frame DIFference."
 	},
 /*	{
 		.select		= flash_and_no_flash_toggle,
@@ -2439,10 +2444,29 @@ void is_movie_start_scheduled() { return movie_start_flag; }
 int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
+void get_out_of_play_mode()
+{
+	if (gui_state == GUISTATE_QR)
+	{
+		fake_simple_button(BGMT_PLAY);
+		msleep(200);
+		fake_simple_button(BGMT_PLAY);
+	}
+	else if (PLAY_MODE) 
+	{
+		fake_simple_button(BGMT_PLAY);
+	}
+	while (PLAY_MODE) msleep(100);
+	msleep(500);
+}
+
 // take one shot, a sequence of HDR shots, or start a movie
 // to be called by remote triggers
 void remote_shot()
 {
+	// save zoom value (x1, x5 or x10)
+	int zoom = lv_dispsize;
+	
 	if (is_bulb_mode())
 	{
 		bulb_take_pic(timer_values[bulb_duration_index] * 1000);
@@ -2461,10 +2485,12 @@ void remote_shot()
 			lens_take_picture(64); // hdr_shot messes with the self timer mode
 	}
 	while (lens_info.job_state >= 10) msleep(500);
+	
 	msleep(1000);
-	SW1(1,0);
-	SW1(0,0);
+	while (gui_state != GUISTATE_IDLE) msleep(100);
 	msleep(500);
+	// restore zoom
+	if (lv_drawn() && !recording && zoom > 1) prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
 
 void iso_refresh_display()
@@ -2874,8 +2900,7 @@ shoot_task( void )
 		int tfx = trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running;
 
 		// same for motion detect
-		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown();
-		mdx == mdx && lv_drawn(); // not working outside LiveView (stability bugs)
+		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown() && lv_drawn();
 		
 		//Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
 		static int K = 0;
@@ -2904,61 +2929,45 @@ shoot_task( void )
 		{
 			if ((!lv_drawn() && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
-				lens_take_picture(64);
+				remote_shot();
 				msleep(trap_focus_delay);
 			}
 		}
 		
 		if (mdx)
 		{
-			//Changed the AE to keep a circular array of the last 
-                        // 5 values.  Each run through, it computes an average now.
-			//If the new value has changed by more than the detection level, shoot.
-			static int old_ae[5] = {0};
-			static int old_ae_idx=0;
-			int old_ae_avg = (old_ae[0] + old_ae[1] + old_ae[2] + old_ae[3] + old_ae[4])/5;
+			K = COERCE(K+1, 0, 1000);
+			//~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
 
-
-			
-			int aev = 0;
-			if (lv_drawn())
+			if (motion_detect == 1)
 			{
+				int aev = 0;
+				//If the new value has changed by more than the detection level, shoot.
+				static int old_ae_avg = 0;
 				int y,u,v;
 				//TODO: maybe get the spot yuv of the target box
 				get_spot_yuv(100, &y, &u, &v);
 				aev = y / 2;
-			}
-			else
-			{
-				aev = AE_VALUE;
-			}
-			
-			// ensure LiveView data is valid
-			if (aev && gui_state == GUISTATE_IDLE) K = COERCE(K+1, 0, 1000);
-			else K = 0;
-
-			if (K > 50) bmp_printf(FONT_MED, 0, 0, "%d %d   ", aev, old_ae_avg);
-			
-			if (K > 50 && ABS(old_ae_avg - aev) >= motion_detect_level)
-			{
-				if (silent_pic_mode)
+				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+				if (K > 50 && ABS(old_ae_avg/100 - aev) >= motion_detect_level)
 				{
-					silent_pic_take(0);
-					silent_pic_take(0);
-					silent_pic_take(0);
+					remote_shot();
+					msleep(trap_focus_delay);
+					K = 0;
 				}
-				else
-				{
-					lens_take_picture(64);
-
-
-				}
-				msleep(trap_focus_delay);
-				K = 0;
+				old_ae_avg = old_ae_avg * 90/100 + aev * 10;
 			}
-			
-			old_ae[old_ae_idx] = aev;
-			old_ae_idx = (old_ae_idx + 1) % 5;
+			else if (motion_detect == 2)
+			{
+				int d = get_spot_motion(100, get_global_draw());
+				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
+				if (K > 50 && d >= motion_detect_level)
+				{
+					remote_shot();
+					msleep(trap_focus_delay);
+					K = 0;
+				}
+			}
 		}
 
 		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
@@ -3039,4 +3048,4 @@ shoot_task( void )
 	}
 }
 
-TASK_CREATE( "shoot_task", shoot_task, 0, 0x18, 0x1000 );
+TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x1000 );

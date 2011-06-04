@@ -88,10 +88,7 @@ void focus_stack_ensure_preconditions()
 	while (lens_info.job_state) msleep(100);
 	if (!lv_drawn())
 	{
-		msleep(200);
-		SW1(1,0);
-		SW1(0,0);
-		msleep(200);
+		get_out_of_play_mode();
 		while (!lv_drawn())
 		{
 			bmp_printf(FONT_LARGE, 10, 30, "Please switch to LiveView");
