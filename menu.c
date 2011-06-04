@@ -321,6 +321,7 @@ static void playicon(int x, int y)
 int icon_drawn = 0;
 void menu_draw_icon(int x, int y, int type, int arg)
 {
+	#if !CONFIG_DEBUGMSG
 	if (icon_drawn) return;
 	icon_drawn = 1;
 	x -= 40;
@@ -333,6 +334,7 @@ void menu_draw_icon(int x, int y, int type, int arg)
 		case MNI_PERCENT: percent(x, y, arg); return;
 		case MNI_ACTION: playicon(x, y); return;
 	}
+	#endif
 }
 
 
