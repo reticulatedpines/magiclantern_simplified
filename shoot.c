@@ -54,6 +54,9 @@ CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
 CONFIG_INT( "lcd.release", lcd_release_running, 0);
 CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
 
+//New option for the sensitivty of the motion release
+CONFIG_INT( "motion.release-level", motion_detect_level, 8);
+
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
 CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
@@ -61,7 +64,7 @@ CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
 int intervalometer_running = 0;
 int audio_release_running = 0;
 int motion_detect = 0;
-
+//int motion_detect_level = 8;
 int drive_mode_bk = -1;
 
 int gui_state = 0;
@@ -205,17 +208,30 @@ audio_release_level_toggle_reverse(void* priv)
 	audio_release_level = mod(audio_release_level - 5 - 1, 26) + 5;
 }
 
-static void 
-motion_detect_display( void * priv, int x, int y, int selected )
+//GUI Functions for the motion detect sensitivity.	
+static void
+motion_release_level_toggle(void* priv)
 {
+	motion_detect_level = mod(motion_detect_level - 5 + 1, 26) + 5;
+}
+static void
+motion_release_level_toggle_reverse(void* priv)
+{
+	motion_detect_level = mod(motion_detect_level - 5 - 1, 26) + 5;
+}
+
+ static void 
+ motion_detect_display( void * priv, int x, int y, int selected )
+ {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Motion Detect   : %s",
-		motion_detect ? "ON" : "OFF"
+		"Motion Detect   : %s, %d",
+		motion_detect ? "ON" : "OFF",
+		motion_detect_level
 	);
-	menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect), 0);
 }
+
 
 int get_trap_focus() { return trap_focus; }
 /*
@@ -2101,7 +2117,9 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &motion_detect,
 		.select		= menu_binary_toggle, 
 		.display	= motion_detect_display,
-		.help = "Motion detection, fast enough to catch lightning. LV only."
+		.select_auto = motion_release_level_toggle, 
+		.select_reverse = motion_release_level_toggle_reverse,
+		.help = "LV Motion detection. [Q]/[Play] for sensitivity."
 	},
 /*	{
 		.select		= flash_and_no_flash_toggle,
@@ -2859,6 +2877,10 @@ shoot_task( void )
 		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown();
 		mdx == mdx && lv_drawn(); // not working outside LiveView (stability bugs)
 		
+		//Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
+		static int K = 0;
+
+		if(!mdx) K = 0;
 		// emulate half-shutter press (for trap focus or motion detection)
 		/* this can cause the camera not to shutdown properly... 
 		if (!lv_drawn() && ((tfx && trap_focus == 2) || mdx ))
@@ -2889,12 +2911,20 @@ shoot_task( void )
 		
 		if (mdx)
 		{
-			static int old_ae = 0;
+			//Changed the AE to keep a circular array of the last 
+                        // 5 values.  Each run through, it computes an average now.
+			//If the new value has changed by more than the detection level, shoot.
+			static int old_ae[5] = {0};
+			static int old_ae_idx=0;
+			int old_ae_avg = (old_ae[0] + old_ae[1] + old_ae[2] + old_ae[3] + old_ae[4])/5;
+
+
 			
 			int aev = 0;
 			if (lv_drawn())
 			{
 				int y,u,v;
+				//TODO: maybe get the spot yuv of the target box
 				get_spot_yuv(100, &y, &u, &v);
 				aev = y / 2;
 			}
@@ -2904,13 +2934,12 @@ shoot_task( void )
 			}
 			
 			// ensure LiveView data is valid
-			static int K = 0;
 			if (aev && gui_state == GUISTATE_IDLE) K = COERCE(K+1, 0, 1000);
 			else K = 0;
 
-			if (K > 50) bmp_printf(FONT_MED, 0, 0, "%d %d   ", aev, old_ae);
+			if (K > 50) bmp_printf(FONT_MED, 0, 0, "%d %d   ", aev, old_ae_avg);
 			
-			if (K > 50 && ABS(old_ae - aev) >= 8)
+			if (K > 50 && ABS(old_ae_avg - aev) >= motion_detect_level)
 			{
 				if (silent_pic_mode)
 				{
@@ -2921,12 +2950,15 @@ shoot_task( void )
 				else
 				{
 					lens_take_picture(64);
+
+
 				}
 				msleep(trap_focus_delay);
 				K = 0;
 			}
 			
-			old_ae = aev;
+			old_ae[old_ae_idx] = aev;
+			old_ae_idx = (old_ae_idx + 1) % 5;
 		}
 
 		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
