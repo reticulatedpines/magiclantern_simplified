@@ -77,11 +77,31 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 
+#define BGMT_AV (event->type == 0 && event->param == 0x56 && ( \
+			(shooting_mode == SHOOTMODE_MOVIE && event->arg == 0xe) || \
+			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
+			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
+			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
+
+#define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x56 && (shooting_mode == SHOOTMODE_MOVIE && event->arg == 0xe))
+
+#define BGMT_PRESS_AV (BGMT_AV && (*(int*)(event->obj) & 0x2000000) == 0)
+#define BGMT_UNPRESS_AV (BGMT_AV && (*(int*)(event->obj) & 0x2000000))
+
+#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x56 && shooting_mode == SHOOTMODE_MOVIE && event->arg == 9)
+#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
+#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
+#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
+
+#define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x1b)
+#define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000))
+#define BGMT_UNPRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000) == 0)
 
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
 
-#define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
+//~ #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
 #define AJ_LCD_Palette 0x2CDB0

@@ -41,17 +41,17 @@ int button_center_lvafframe = BGMT_PRESS_SET;
 
 // halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
 int halfshutter_pressed = 0;
-int get_halfshutter_pressed() 
-{ 
-	return halfshutter_pressed; 
-}
+int get_halfshutter_pressed() { return halfshutter_pressed; }
+
+int flash_movie_pressed = 0;
+int get_flash_movie_pressed() { return flash_movie_pressed; }
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-//~ int set_pressed = 0;
+int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-//~ int get_set_pressed() { return set_pressed; }
+int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -517,12 +517,18 @@ static int handle_buttons(struct event * event)
 		transparent_overlay = 0;
 	}
 
+	if (BGMT_FLASH_MOVIE)
+	{
+		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
+		return 0;
+	}
+
 	if (lv_drawn() && event->type == 0 && event->param == button_center_lvafframe && !gui_menu_shown())
 	{
 		center_lv_afframe();
 		return 0;
 	}
-
+	
 	return 1;
 }
 
