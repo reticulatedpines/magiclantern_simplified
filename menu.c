@@ -1000,7 +1000,7 @@ menu_task( void )
 	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
 	menu_add( " (i)", about_menu, COUNT(about_menu));
 	
-	msleep(3000);
+	msleep(500);
 	while(1)
 	{
 		int rc = take_semaphore( gui_sem, 500 );
