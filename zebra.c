@@ -2152,7 +2152,7 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 
 	if( !vram->vram )
 		return;
-	const uint16_t*		vr = YUV422_LV_BUFFER_DMA_ANOTHER_ADDR;
+	const uint16_t*		vr = YUV422_LV_BUFFER_DMA_ADDR;
 	const unsigned		width = vram->width;
 	const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
@@ -3387,8 +3387,7 @@ void transparent_overlay_from_play()
 {
 	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
 	make_overlay();
-	SW1(1,0);
-	SW1(0,0);
+	fake_simple_button(BGMT_PLAY);
 	msleep(500);
 	if (!lv_drawn()) { force_liveview(); msleep(500); }
 	msleep(1000);
