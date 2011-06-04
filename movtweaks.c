@@ -291,8 +291,9 @@ zebra_nrec_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Zebra when REC: %s", 
-		zebra_nrec ? "Hide" : "Don't hide"
+		zebra_nrec ? "Hide" : "Show"
 	);
+	menu_draw_icon(x, y, MNI_BOOL(!zebra_nrec), 0);
 }
 
 static struct menu_entry mov_menus[] = {

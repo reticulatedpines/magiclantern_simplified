@@ -125,7 +125,7 @@ interval_timer_display( void * priv, int x, int y, int selected )
 		);
 	}
 	
-	menu_draw_icon(x, y, intervalometer_running ? MNI_PERCENT : MNI_OFF, (*(int*)priv) * 100 / COUNT(timer_values));
+	menu_draw_icon(x, y, intervalometer_running ? MNI_PERCENT : MNI_WARNING, (*(int*)priv) * 100 / COUNT(timer_values));
 }
 
 static void
