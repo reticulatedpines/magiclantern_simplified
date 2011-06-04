@@ -1883,9 +1883,7 @@ hdr_display( void * priv, int x, int y, int selected )
 			"HDR Bracketing  : %dx%d%sEV",
 			hdr_steps, 
 			hdr_stepsize / 8,
-			((hdr_stepsize/4) % 2) ? ".5" : 
-			hdr_stepsize == 2 ? ".25" :
-			hdr_stepsize == 1 ? ".125" : ""
+			((hdr_stepsize/4) % 2) ? ".5" : ""
 		);
 	}
 	menu_draw_icon(x, y, MNI_BOOL(hdr_steps != 1), 0);
@@ -1900,7 +1898,7 @@ hdr_steps_toggle( void * priv )
 static void
 hdr_stepsize_toggle( void * priv )
 {
-	hdr_stepsize = (hdr_stepsize < 8) ? MAX(hdr_stepsize * 2, 1) : (hdr_stepsize/8)*8 + 8;
+	hdr_stepsize = (hdr_stepsize < 8) ? MAX(hdr_stepsize * 2, 4) : (hdr_stepsize/8)*8 + 8;
 	if (hdr_stepsize > 40) hdr_stepsize = 0;
 }
 
@@ -2293,7 +2291,7 @@ void hdr_shutter_release()
 // skip0: don't take the middle exposure
 void hdr_take_pics(int steps, int step_size, int skip0)
 {
-	hdr_create_script(steps, skip0, 0);
+	if (step_size) hdr_create_script(steps, skip0, 0);
 	int i;
 	if ((lens_info.iso && shooting_mode == SHOOTMODE_M) || (shooting_mode == SHOOTMODE_MOVIE))
 	{
@@ -2302,10 +2300,8 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
-			msleep(10);
 			int new_s = COERCE(s - step_size * i, 0x10, 160);
 			lens_set_rawshutter( new_s );
-			msleep(20);
 			hdr_shutter_release();
 		}
 		msleep(100);
@@ -2318,10 +2314,8 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			if (skip0 && (i == 0)) continue;
 			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
-			msleep(10);
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
-			msleep(500);
 			hdr_shutter_release();
 		}
 		lens_set_ae( ae );
