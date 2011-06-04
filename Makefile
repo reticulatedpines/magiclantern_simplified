@@ -288,49 +288,49 @@ magiclantern: $(ML_OBJS-y)
 
 # These do not need to be run.  Since bigtext is not
 # a standard program, the output files are checked in.
-font-large.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'fixed-bold-32' \
-		16 30 \
-	)
-font-med.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'-misc-fixed-medium-r-normal--20-2' \
-		10 15 \
-	)
-font-small.in: generate-font
-	$(call build,'GENFONT',./$< > $@ \
-		'terminus-bold-12' \
-		6 10 \
-	)
+#font-large.in: generate-font
+#	$(call build,'GENFONT',./$< > $@ \
+#		'fixed-bold-32' \
+#		16 30 \
+#	)
+#font-med.in: generate-font
+#	$(call build,'GENFONT',./$< > $@ \
+#		'-misc-fixed-medium-r-normal--20-2' \
+#		10 15 \
+#	)
+#font-small.in: generate-font
+#	$(call build,'GENFONT',./$< > $@ \
+#		'terminus-bold-12' \
+#		6 10 \
+#	)
 
 
-font-large.c: font-large.in mkfont
-	$(call build,MKFONT,./mkfont \
-		< $< \
-		> $@ \
-		-width 20 \
-		-height 32 \
-		-name font_large \
-	)
-
-font-med.c: font-med.in mkfont
-	$(call build,MKFONT,./mkfont \
-		< $< \
-		> $@ \
-		-width 12 \
-		-height 20 \
-		-name font_med \
-	)
-
-font-small.c: font-small.in mkfont
-	$(call build,MKFONT,./mkfont \
-		< $< \
-		> $@ \
-		-width 8 \
-		-height 12 \
-		-name font_small \
-	)
+#font-large.c: font-large.in mkfont
+#	$(call build,MKFONT,./mkfont \
+#		< $< \
+#		> $@ \
+#		-width 20 \
+#		-height 32 \
+#		-name font_large \
+#	)
+#
+#font-med.c: font-med.in mkfont
+#	$(call build,MKFONT,./mkfont \
+#		< $< \
+#		> $@ \
+#		-width 12 \
+#		-height 20 \
+#		-name font_med \
+#	)
+#
+#font-small.c: font-small.in mkfont
+#	$(call build,MKFONT,./mkfont \
+#		< $< \
+#		> $@ \
+#		-width 8 \
+#		-height 12 \
+#		-name font_small \
+#	)
 
 version.c: FORCE
 	$(call build,VERSION,( \
@@ -535,11 +535,9 @@ clean:
 		*.o \
 		*.a \
 		.*.d \
-		font-*.c \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		*.pdf \
-		*.bmp \
 
 -include .*.d
