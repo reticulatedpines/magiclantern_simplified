@@ -1357,7 +1357,17 @@ aperture_toggle_reverse( void * priv )
 void
 kelvin_toggle( int sign )
 {
-	int k = lens_info.kelvin;
+	int k;
+	switch (lens_info.wb_mode)
+	{
+		case WB_SUNNY: k = 5200; break;
+		case WB_SHADE: k = 7000; break;
+		case WB_CLOUDY: k = 6000; break;
+		case WB_TUNGSTEN: k = 3200; break;
+		case WB_FLUORESCENT: k = 4000; break;
+		case WB_FLASH: k = 6500; break; // maybe?
+		default: k = lens_info.kelvin;
+	}
 	k = (k/KELVIN_STEP) * KELVIN_STEP;
 	k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * KELVIN_STEP, KELVIN_MAX - KELVIN_MIN + KELVIN_STEP);
 	lens_set_kelvin(k);
