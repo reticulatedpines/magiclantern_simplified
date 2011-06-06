@@ -937,7 +937,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Phantom Power : %s",
+		"Mic Power     : %s",
 		mic_pow ? "ON (Low Z)" : "OFF (High Z)"
 	);
 	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, 0);

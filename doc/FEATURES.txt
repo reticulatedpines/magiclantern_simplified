@@ -256,10 +256,10 @@ Audio tweaks.
 
 {{clr}}
 
-**Phantom Power: ON/OFF**
+**Mic Power: ON/OFF**
 
-  This is required for internal mic and certain types of external mics, but it reduces input impedance. See `AK4646 datasheet p.31 <http://www.vimeo.com/groups/magiclantern/view_file:9434>`_ and the `Mic power control <http://groups.google.com/group/ml-devel/browse_thread/thread/516d22e75dcb9357>`_ thread, and maybe `Phantom Power article on Wikipedia <http://en.wikipedia.org/wiki/Phantom_power>`_.
-  
+  This is required for internal mic and certain types of external mics, but it reduces input impedance. See `AK4646 datasheet p.31 <http://www.vimeo.com/groups/magiclantern/view_file:9434>`_ and the `Mic power control <http://groups.google.com/group/ml-devel/browse_thread/thread/516d22e75dcb9357>`_ thread.
+
   * ``ON``: input impedance is 2 kOhm
   * ``OFF``: input impedance is 30 kOhm
   
