@@ -561,6 +561,22 @@ PROP_HANDLER( PROP_MIC_INSERTED )
    return prop_cleanup( token, property );
 }
 
+int get_input_source()
+{
+	int input_source;
+	//setup input_source based on choice and mic pluggedinedness
+	if (input_choice == 4) {
+		input_source = mic_inserted ? 2 : 0;
+	} else {
+		input_source = input_choice;
+	}
+	return input_source;
+}
+
+int get_mic_power(int input_source)
+{
+	return (input_source >= 2) ? mic_power : 1;
+}
 
 void
 audio_configure( int force )
@@ -571,14 +587,8 @@ audio_configure( int force )
 #endif
 	
 	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
-	int input_source;
+	int input_source = get_input_source();
 	
-	//setup input_source based on choice and mic pluggedinedness
-	if (input_choice == 4) {
-		input_source = mic_inserted ? 2 : 0;
-	} else {
-		input_source = input_choice;
-	}
 
 	//those char*'s cause a memory corruption, don't know why
 	//char * left_labels[] =  {"L INT", "L INT", "L EXT", "L INT"}; //these are used by draw_meters()
@@ -620,12 +630,12 @@ audio_configure( int force )
 
 	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
 	
-	//mic_power is forced on if input source is 0, 1 or 3
-	//~ mic_power = (input_source == 2) ? mic_power : 1;
+	//mic_power is forced on if input source is 0 or 1
+	int mic_pow = get_mic_power(input_source);
 				 
 	audio_ic_write( AUDIO_IC_SIG1
 		| 0x10
-		| ( mic_power ? 0x4 : 0x0 )
+		| ( mic_pow ? 0x4 : 0x0 )
 	); // power up, no gain
 
 	audio_ic_write( AUDIO_IC_SIG2
@@ -923,12 +933,14 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
 static void
 audio_micpower_display( void * priv, int x, int y, int selected )
 {
+	int mic_pow = get_mic_power(get_input_source());
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Mic Power     : %s",
-		mic_power ? "ON " : "OFF"
+		mic_power ? "ON (Low Z)" : "OFF (High Z)"
 	);
+	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, 0);
 }
 
 
@@ -1029,7 +1041,7 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &mic_power,
 		.select		= audio_binary_toggle,
 		.display	= audio_micpower_display,
-		.help = "Mic power: Zinp = 30k if OFF else 2k? [AK4646 PDF p.31]"
+		.help = "Required for internal mic; affects impedance (AK4646 p.31)"
 	},
 	{
 		.priv		= &lovl,
