@@ -313,13 +313,11 @@ int audio_meters_are_drawn()
 {
 	return 
 		(
-			(do_draw_meters && zebra_should_run()) ||
-			(gui_menu_shown() && is_menu_active("Audio"))
+			shooting_mode == SHOOTMODE_MOVIE && cfg_draw_meters && do_draw_meters && zebra_should_run()
 		)
-		&&
+		||
 		(
-			cfg_draw_meters == 1 || 
-			(cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE)
+			gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
 		);
 }
 /** Task to monitor the audio levels.
@@ -801,10 +799,9 @@ audio_meter_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Audio Meters  : %s",
-		v == 1 ? "ON " : 
-		(v == 2 ? "Movie Only": "OFF")
+		v ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, v && !get_global_draw() ? MNI_WARNING : MNI_BOOL_AUTO(v), 0);
+	menu_draw_icon(x, y, v && !get_global_draw() ? MNI_WARNING : MNI_BOOL(v), 0);
 }
 
 

@@ -1966,10 +1966,10 @@ crop_display( void * priv, int x, int y, int selected )
 		 index  ? cropmark_names[index-1] : "OFF",
 		 (cropmarks || !index) ? "" : "!" // ! means error
 	);
-	int h = font_large.height;
-	int w = h * 720 / 480;
-	bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
-	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE)
+	//~ int h = font_large.height;
+	//~ int w = h * 720 / 480;
+	//~ bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
+	if (index && cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE)
 		menu_draw_icon(x, y, MNI_WARNING, 0);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(index), 0);
 }
@@ -2877,6 +2877,13 @@ void zebra_sleep_when_tired()
 		crop_set_dirty(40);
 		//~ if (lv_drawn() && !gui_menu_shown()) redraw();
 	}
+	
+	static int prev_recording = 0;
+	if (prev_recording != recording)
+	{
+		msleep(2000);
+		redraw();
+	}
 }
 
 void clear_this_message_not_available_in_movie_mode()
@@ -3026,7 +3033,6 @@ clearscreen_loop:
 			{
 				display_on();
 				bmp_on();
-				redraw();
 			}
 		}
 		else

@@ -13,6 +13,7 @@
 #include "config.h"
 #include "ptp.h"
 
+
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 
@@ -457,22 +458,22 @@ follow_focus_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Follow Focus  : %s",
-		follow_focus == 1 ? "Manual" : follow_focus == 2 ? "AutoLock" : "OFF"
+		follow_focus ? "ON" : "OFF"
 	);
 	if (follow_focus)
 	{
 		bmp_printf(FONT_MED, x + 480, y+5, follow_focus_reverse_h ? "- +" : "+ -");
 		bmp_printf(FONT_MED, x + 480 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
-	menu_draw_icon(x, y, MNI_BOOL_AUTO(follow_focus), 0);
+	menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus), 0);
 }
 
-
 CONFIG_INT("movie.af", movie_af, 0);
+#ifdef CONFIG_MOVIE_AF
 CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
 CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
 int movie_af_stepsize = 10;
-
+#endif
 
 
 int focus_value = 0; // heuristic from 0 to 100
@@ -514,11 +515,6 @@ int can_lv_trap_focus_be_active()
 	return 1;
 }
 
-int movie_af_active()
-{
-	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && !is_manual_focus() && (focus_done || movie_af==3);
-}
-
 static int hsp = 0;
 int movie_af_reverse_dir_request = 0;
 PROP_HANDLER(PROP_HALF_SHUTTER)
@@ -544,6 +540,12 @@ int get_lv_focus_confirmation()
 int is_manual_focus()
 {
 	return (af_mode & 0xF) == 3;
+}
+
+#ifdef CONFIG_MOVIE_AF
+int movie_af_active()
+{
+	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && !is_manual_focus() && (focus_done || movie_af==3);
 }
 
 static void movie_af_step(int mag)
@@ -629,6 +631,7 @@ static void movie_af_step(int mag)
 	}
 	prev_mag = mag;
 }
+#endif
 
 #define NMAGS 64
 static int mags[NMAGS] = {0};
@@ -665,12 +668,13 @@ static void plot_focus_mag()
 			bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
 			bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
 		}
-		ff_check_autolock();
+		//~ ff_check_autolock();
 	)
 }
 #undef FH
 #undef NMAGS
 
+/*
 void ff_check_autolock()
 {
 	static int rev_countdown = 0;
@@ -708,7 +712,7 @@ void ff_check_autolock()
 		}
 		if (stop_countdown) stop_countdown--;
 	}
-}
+}*/
 
 int focus_mag_a = 0;
 int focus_mag_b = 0;
@@ -719,16 +723,21 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 	focus_mag_b = buf[3];
 	focus_mag_c = buf[4];
 	
+#ifdef CONFIG_MOVIE_AF
 	if (movie_af != 3)
+#endif
 	{
 		update_focus_mag(focus_mag_a + focus_mag_b);
 		if (get_focus_graph()) plot_focus_mag();
+#ifdef CONFIG_MOVIE_AF
 		if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
 			movie_af_step(focus_mag_a + focus_mag_b);
+#endif
 	}
 	return prop_cleanup(token, property);
 }
 
+#ifdef CONFIG_MOVIE_AF
 static void
 movie_af_print(
 	void *			priv,
@@ -763,6 +772,7 @@ void movie_af_noisefilter_bump(void* priv)
 {
 	movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
 }
+#endif
 
 static void
 focus_misc_task()
@@ -773,6 +783,7 @@ focus_misc_task()
 		
 		if (hsp_countdown) hsp_countdown--;
 
+#ifdef CONFIG_MOVIE_AF
 		if (movie_af == 3)
 		{
 			int fm = get_spot_focus(100);
@@ -780,6 +791,7 @@ focus_misc_task()
 			if (get_focus_graph()) plot_focus_mag();
 			movie_af_step(fm);
 		}
+#endif
 	}
 }
 
@@ -811,11 +823,12 @@ static struct menu_entry focus_menu[] = {
 	{
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
-		.select		= menu_ternary_toggle,
+		.select		= menu_binary_toggle,
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
 		.help = "Simple follow focus with arrow keys."
 	},
+#ifdef CONFIG_MOVIE_AF
 	{
 		.priv = &movie_af,
 		.display	= movie_af_print,
@@ -824,6 +837,7 @@ static struct menu_entry focus_menu[] = {
 		.select_auto = movie_af_aggressiveness_bump,
 		.help = "Custom AF algorithm in movie mode. Not very efficient."
 	},
+#endif
 	{
 		.display	= focus_rack_speed_display,
 		.select		= focus_rack_speed_increment,

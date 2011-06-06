@@ -362,6 +362,7 @@ static int handle_buttons(struct event * event)
 	*/
 	
 	// quick access to some menu items
+	
 	if (event->type == 0 && event->param == BGMT_Q_ALT && !gui_menu_shown())
 	{
 		if (ISO_ADJUSTMENT_ACTIVE)
@@ -370,6 +371,7 @@ static int handle_buttons(struct event * event)
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
+		/*
 		else if (CURRENT_DIALOG_MAYBE == DLG_WB)
 		{
 			select_menu("Expo", 1);
@@ -388,7 +390,7 @@ static int handle_buttons(struct event * event)
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
-		/*else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
+		else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
 		{
 			select_menu("Expo", 7);
 			give_semaphore( gui_sem ); 
@@ -405,13 +407,13 @@ static int handle_buttons(struct event * event)
 			select_menu("Debug", 2);
 			give_semaphore( gui_sem ); 
 			return 0;
-		}*/
+		}
 		else if (lv_dispsize > 1)
 		{
 			select_menu("LiveV", 8);
 			give_semaphore( gui_sem ); 
 			return 0;
-		}
+		}*/
 		
 	}
 
@@ -547,6 +549,9 @@ static void gui_main_task_550d()
 		index = event->type;
 		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
+
+		//~ if (event->type != 2)
+			//~ console_printf("%d %d %d\n", event->type, event->param, event->arg);
 		
 		if (!magic_is_off())
 			if (handle_buttons(event) == 0) 

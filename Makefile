@@ -32,6 +32,7 @@ CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
+CONFIG_PTP = n
 CONFIG_CONSOLE		= n
 CONFIG_DEBUGMSG = 0
 
@@ -225,10 +226,12 @@ ML_OBJS-y = \
 	shoot.o \
 	focus.o \
 	chdk-gui_draw.o \
-	ptp.o \
 	movtweaks.o \
 	tweaks.o \
 	my_memset.o \
+
+ML_OBJS-$(CONFIG_PTP) += \
+	ptp.o \
 
 NO=\
 	hotplug.o \
