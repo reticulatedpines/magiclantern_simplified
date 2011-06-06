@@ -854,12 +854,12 @@ audio_input_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		//23456789012
-		"Input:%s",
-		(input_choice == 0 ? " internal mic " : 
-		(input_choice == 1 ? " int Left ext Right  " :
-		(input_choice == 2 ? " external stereo   " : 
-		(input_choice == 3 ? "int Left ext Balanced" : 
-		(input_choice == 4 ? (mic_inserted ? " Auto int/EXT " : " Auto INT/ext") : 
+		"Input Source  : %s",
+		(input_choice == 0 ? "internal mic" : 
+		(input_choice == 1 ? "L:int R:ext" :
+		(input_choice == 2 ? "external stereo" : 
+		(input_choice == 3 ? "L:int R:balanced" : 
+		(input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
 		"error")))))
 	);
 	menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
@@ -937,8 +937,8 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Mic Power     : %s",
-		mic_power ? "ON (Low Z)" : "OFF (High Z)"
+		"Phantom Power : %s",
+		mic_pow ? "ON (Low Z)" : "OFF (High Z)"
 	);
 	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, 0);
 }
@@ -1041,7 +1041,7 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &mic_power,
 		.select		= audio_binary_toggle,
 		.display	= audio_micpower_display,
-		.help = "Required for internal mic; affects impedance (AK4646 p.31)"
+		.help = "Needed for int. and some other mics, but lowers impedance."
 	},
 	{
 		.priv		= &lovl,
