@@ -52,59 +52,27 @@ void vbr_fix(uint16_t param)
 	mvrFixQScale(&param);
 }
 
-const int fps[] = {30, 25, 24, 60, 50, 60, 50};
-const int res[] = { 0,  0,  0,  1,  1,  2,  2};
-extern int video_mode_fps;
-extern int video_mode_resolution;
-int* get_opt_size_ptr(struct mvr_config * mc, int gop)
-{
-	int i;
-	for (i = 0; i < 7; i++)
-		if (fps[i] == video_mode_fps && res[i] == video_mode_resolution)
-			if (gop)
-				return &(mc->fullhd_30fps_gop_opt_0) + i * 5;
-			else
-				return &(mc->fullhd_30fps_opt_size_I) + i * 5;
-	return 0;
-}
-
-void mvrSetOptSize(int* arg)
-{
-	switch (video_mode_resolution)
-	{
-		case 0: mvrSetFullHDOptSize(arg); return;
-		case 1: mvrSetHDOptSize(arg); return;
-		case 2: mvrSetVGAOptSize(arg); return;
-	}
-}
-
-void mvrSetGopOptSize(int* arg)
-{
-	switch (video_mode_resolution)
-	{
-		case 0: mvrSetGopOptSizeFULLHD(arg); return;
-		case 1: mvrSetGopOptSizeHD(arg); return;
-		case 2: mvrSetGopOptSizeVGA(arg); return;
-	}
-}
-
+// may be dangerous if mvr_config and numbers are incorrect
 void opt_set(int num, int den)
 {
-	int opt[2];
-	int gop[5];
-	int i;
-	
-	int* opt_size = get_opt_size_ptr(&mvr_config_copy, 0);
-	for (i = 0; i < 2; i++) opt[i] = opt_size[i] * num / den;
-
-	int* gop_size = get_opt_size_ptr(&mvr_config_copy, 1);
-	for (i = 0; i < 3; i++) gop[i] = gop_size[i] * num / den;
-	
-	//~ bmp_printf(FONT_MED, 0, 0, "opt %8x %8x\ngop %8x %8x %8x\nip  %8x %8x\nqsc %8d %8d", opt[0], opt[1], gop[0], gop[1], gop[2], mvr_config.IOptSize, mvr_config.POptSize, mvr_config.qscale_limit_L, mvr_config.qscale_limit_H);
-	
-
-	mvrSetGopOptSize(gop);
-	mvrSetOptSize(opt);
+	int i, j;
+	for (i = 0; i < MOV_RES_AND_FPS_COMBINATIONS; i++) // 7 combinations of resolution / fps
+	{
+		for (j = 0; j < MOV_OPT_NUM_PARAMS; j++)
+		{
+			int* opt0 = &(mvr_config_copy.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
+			int* opt = &(mvr_config.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
+			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
+			(*opt) = (*opt0) * num / den;
+		}
+		for (j = 0; j < MOV_GOP_OPT_NUM_PARAMS; j++)
+		{
+			int* opt0 = &(mvr_config_copy.fullhd_30fps_gop_opt_0) + i * MOV_OPT_STEP + j;
+			int* opt = &(mvr_config.fullhd_30fps_gop_opt_0) + i * MOV_OPT_STEP + j;
+			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
+			(*opt) = (*opt0) * num / den;
+		}
+	}
 }
 void bitrate_set()
 {
@@ -166,7 +134,7 @@ bitrate_toggle_forward(void* priv)
 	if (bitrate_mode == 0)
 		return;
 	else if (bitrate_mode == 1 && !recording)
-		bitrate_factor = mod(bitrate_factor - 3 + 1, 31 - 3) + 3;
+		bitrate_factor = mod(bitrate_factor + 1, 31);
 	else if (bitrate_mode == 2)
 		qscale_plus16 = mod(qscale_plus16 - 1, 33);
 }
@@ -178,7 +146,7 @@ bitrate_toggle_reverse(void* priv)
 	if (bitrate_mode == 0)
 		return;
 	else if (bitrate_mode == 1)
-		bitrate_factor = mod(bitrate_factor - 3 - 1, 31 - 3) + 3;
+		bitrate_factor = mod(bitrate_factor - 1, 31);
 	else if (bitrate_mode == 2)
 		qscale_plus16 = mod(qscale_plus16 + 1, 33);
 }
