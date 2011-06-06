@@ -2133,7 +2133,7 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.priv		= &motion_detect,
-		.select		= menu_quaternary_toggle, 
+		.select		= menu_ternary_toggle, 
 		.display	= motion_detect_display,
 		.select_auto = motion_release_level_toggle, 
 		.select_reverse = motion_release_level_toggle_reverse,
