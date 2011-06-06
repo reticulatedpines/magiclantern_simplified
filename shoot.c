@@ -1986,6 +1986,7 @@ intervalometer_wait_toggle(void* priv)
 	intervalometer_wait = !intervalometer_wait;
 }
 
+#ifdef CONFIG_SRAW
 static void
 picq_display( void * priv, int x, int y, int selected )
 {
@@ -2074,6 +2075,7 @@ static int picq_next(int p)
 	}
 	return PICQ_RAW;
 }
+#endif
 
 static void picq_toggle(void* priv)
 {
@@ -2159,11 +2161,13 @@ struct menu_entry shoot_menus[] = {
 		.select_reverse = picq_toggle_jpegsize, 
 		.select_auto = picq_toggle_jpegtype,
 	}*/
+#ifdef CONFIG_SRAW
 	{
 		.display = picq_display, 
 		.select = picq_toggle, 
 		.help = "Experimental SRAW/MRAW mode. You may get corrupted files."
 	}
+#endif
 };
 
 static struct menu_entry vid_menus[] = {
