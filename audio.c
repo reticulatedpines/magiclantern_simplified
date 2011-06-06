@@ -970,7 +970,7 @@ audio_monitoring_toggle( void * priv)
 static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &cfg_draw_meters,
-		.select		= menu_ternary_toggle,
+		.select		= menu_binary_toggle,
 		.select_reverse		= menu_ternary_toggle_reverse,
 		.display	= audio_meter_display,
 		.help = "Meters show average value and peaks, from -40 dB to 0 dB."
