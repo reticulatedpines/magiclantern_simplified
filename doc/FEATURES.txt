@@ -1137,33 +1137,6 @@ Miscellanous settings.
   * ``All values``: use all available ISO speeds, in 1/8 EV steps
   * ``100x, 160x``: use only native ISOs (multiples of 100) and ISO values with lower digital gain (multiples of 160).
 
-**LV Metering Override**
-
-  Experimental metering methods for stills in LiveView:
-  
-  * ``Default``: disable this feature (use default Canon metering).
-  * ``Spotmeter``: meter the image so that `spotmeter`_ shows around 50%.
-  * ``CenteredHist``: center the histogram. In high-contrast scenes, the amounts of underexposed and overexposed pixels will be equal.
-  * ``HighlightPri``: highlight priority:
-  
-    - In low-contrast scenes, it will expose to the right without overexposing.
-    - In high-contrast scenes, it will allow 5x more underexposed pixels than overexposed. If this is not possible, it will overexpose the highlights.
-    
-  * ``NoOverexpose``: this will avoid overexposure, but will underexpose a lot in high-contrast scenes.
-  
-  This feature only works in ``P``, ``Av`` and ``Tv`` modes.
-  
-  These metering methods are implemented by changing the exposure compensation parameter on the fly. This results in the following limitations:
-  
-  * You can't use exposure compensation with any of these metering methods.
-  * The metering result will have a maximum difference of +/- 5 EV from Canon's metering result.
-  
-  Other limitations:
-  
-  * Only the luma (Y) channel is checked for overexposure. Individual channels (R, G or B) may still be overexposed without any warning.
-  * It may take a few seconds until the metering result is locked. This happens because LiveView display is not updated instantly when the exposure changes, and therefore ML has to wait a bit before reading the image brightness.
-  * It's not reliable under dynamic scenes; it should work for landscapes :)
-
 .. _zoom in Face Detect mode:
 
 **LiveView Zoom: x5 / x10 / :-)**
