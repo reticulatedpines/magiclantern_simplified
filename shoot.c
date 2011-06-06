@@ -2495,6 +2495,9 @@ void remote_shot()
 		else
 			lens_take_picture(64); // hdr_shot messes with the self timer mode
 	}
+	msleep(200);
+	if (get_mlu() && lens_info.job_state < 10) return;
+	
 	while (lens_info.job_state >= 10) msleep(500);
 	
 	msleep(1000);
@@ -2624,13 +2627,13 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	
 	if (remote_shot_flag) goto end;
 	
-	if (lcd_release_running && lens_info.job_state < 10 && gui_state == GUISTATE_IDLE && !intervalometer_running)
+	if (lcd_release_running && gui_state == GUISTATE_IDLE && !intervalometer_running)
 	{
 		if (gui_menu_shown()) goto end;
 		
 		if (lcd_release_running == 1 && off) goto end;
 		if (lcd_release_running == 2 && on && !get_mlu()) goto end;
-		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 75; }
+		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
 		if (lcd_release_running == 3 && wave_count < 5) goto end;
 
 		if (lcd_release_running == 3 && recording) schedule_movie_end(); // wave mode is allowed to stop movies
