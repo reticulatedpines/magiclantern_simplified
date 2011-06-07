@@ -2085,13 +2085,13 @@ static int picq_next(int p)
 	}
 	return PICQ_RAW;
 }
-#endif
 
 static void picq_toggle(void* priv)
 {
 	int newp = picq_next(pic_quality);
 	set_pic_quality(newp);
 }
+#endif
 
 struct menu_entry shoot_menus[] = {
 	{

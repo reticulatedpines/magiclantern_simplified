@@ -1,6 +1,6 @@
 ARM_PATH=~/arm-toolchain
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.4.2
+GCC_VERSION=4.6.0
 CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
 AR=$(ARM_BINPATH)/arm-elf-ar
@@ -137,7 +137,10 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
+	-mstructure-size-boundary=32 \
 	-Wno-unused-parameter \
+	-Wno-implicit-function-declaration \
+	-Wno-unused-function \
 	-D__ARM__ \
 
 ifeq ($(CONFIG_PYMITE),y)
@@ -347,10 +350,9 @@ autoexec: reboot.o
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
-		-mthumb-interwork \
 		-march=armv5te \
 		-e _start \
-		-Ttext=0x800000 \
+		-Ttext 0x800000 \
 		$^ \
 	)
 
