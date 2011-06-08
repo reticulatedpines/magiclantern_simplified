@@ -280,8 +280,8 @@ Audio tweaks.
 LiveV
 ~~~~~
 
-.. figure:: VideoMenu-550D.png
-    :alt: thumb|right|Video menu
+.. figure:: LiveVMenu-550D.png
+    :alt: thumb|right|LiveV menu
     :align: center
     :width: 5cm
 
@@ -487,6 +487,11 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
 Movie
 ~~~~~
+
+.. figure:: MovieMenu-550D.png
+    :alt: thumb|right|Movie menu
+    :align: center
+    :width: 5cm
 
 Functions specific to movie mode.
 
@@ -1067,6 +1072,11 @@ See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.
 Tweaks
 ~~~~~~
 
+.. figure:: TweakMenu-550D.png
+    :alt: thumb|right|Tweaks menu
+    :align: center
+    :width: 5cm
+
 Miscellanous settings.
 
 **AF frame display: Show / AutoHide**
@@ -1184,6 +1194,11 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
 Config
 ~~~~~~
+
+.. figure:: ConfigMenu-550D.png
+    :alt: thumb|right|Config menu
+    :align: center
+    :width: 5cm
 
 Magic Lantern saves its settings in a configuration file named `magic.cfg`_. This menu lets you customize how these settings are saved.
 
