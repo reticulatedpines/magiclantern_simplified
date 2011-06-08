@@ -259,22 +259,14 @@ movtweak_task( void* unused )
 		}
 		
 		extern int ext_monitor_hdmi;
-		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && ext_monitor_hdmi && !recording)
+		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && ext_monitor_hdmi && !recording && !gui_menu_shown())
 		{
 			if (hdmi_code == 5)
 			{
-				bmp_printf(FONT_LARGE, 0, 0, "Old HDMI code: %d ", hdmi_code);
-				msleep(3000);
-				bmp_printf(FONT_LARGE, 0, 0, "Will change resolution to SD..."); 
-				msleep(3000);
+				msleep(500);
 				ChangeHDMIOutputSizeToVGA();
-				msleep(3000);
-				bmp_printf(FONT_LARGE, 0, 0, "New HDMI code: %d "); 
-				msleep(3000);
-				bmp_printf(FONT_LARGE, 0, 0, "Will redraw...    "); 
-				msleep(3000);
+				msleep(500);
 				redraw();
-				msleep(5000);
 			}
 		}
 	}
