@@ -11,6 +11,8 @@
 #include "gui.h"
 #include "lens.h"
 
+CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
+PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 
 // WB workaround (not saved in movie mode)
 //**********************************************************************
@@ -255,6 +257,26 @@ movtweak_task( void* unused )
 		{
 			force_liveview();
 		}
+		
+		extern int ext_monitor_hdmi;
+		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && ext_monitor_hdmi && !recording)
+		{
+			if (hdmi_code == 5)
+			{
+				bmp_printf(FONT_LARGE, 0, 0, "Old HDMI code: %d ", hdmi_code);
+				msleep(3000);
+				bmp_printf(FONT_LARGE, 0, 0, "Will change resolution to SD..."); 
+				msleep(3000);
+				ChangeHDMIOutputSizeToVGA();
+				msleep(3000);
+				bmp_printf(FONT_LARGE, 0, 0, "New HDMI code: %d "); 
+				msleep(3000);
+				bmp_printf(FONT_LARGE, 0, 0, "Will redraw...    "); 
+				msleep(3000);
+				redraw();
+				msleep(5000);
+			}
+		}
 	}
 }
 
@@ -296,6 +318,21 @@ zebra_nrec_display(
 	menu_draw_icon(x, y, MNI_BOOL(!zebra_nrec), 0);
 }
 
+static void
+hdmi_force_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Force HDMI-VGA: %s", 
+		hdmi_force_vga ? "ON" : "OFF"
+	);
+}
 static struct menu_entry mov_menus[] = {
 	/*{
 		.priv = &bitrate_mode,
@@ -362,6 +399,12 @@ static struct menu_entry mov_menus[] = {
 		.select		= menu_ternary_toggle,
 		.help = "Force LiveView in movie mode, even with an unchipped lens."
 	},
+	{
+		.priv = &hdmi_force_vga, 
+		.display = hdmi_force_display, 
+		.select = menu_binary_toggle,
+		.help = "Force low resolution (3:2) on HDMI displays."
+	}
 };
 
 void movtweak_init()

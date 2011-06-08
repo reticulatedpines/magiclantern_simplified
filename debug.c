@@ -173,7 +173,7 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	ChangeHDMIOutputSizeToVGA();
+	ChangeHDMIOutputSizeToFULLHD();
 }
 
 void toggle_mirror_display()

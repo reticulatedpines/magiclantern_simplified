@@ -209,3 +209,6 @@ NSTUB( 0xFF1D2760, gui_timer_something )
 
 NSTUB( 0xff01d838, main_ctrl_task )
 NSTUB( 0xFF0364A0, LVCAF_LensDriveStart )
+
+NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
+NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
