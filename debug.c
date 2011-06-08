@@ -114,6 +114,14 @@ void card_led_blink(int times, int delay_on, int delay_off)
 
 int config_ok = 0;
 
+void
+config_autosave_toggle(void* priv)
+{
+	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
+	msleep(50);
+	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+}
+
 static void
 save_config( void * priv )
 {
@@ -142,14 +150,6 @@ config_autosave_display(
 	);
 }
 
-void
-config_autosave_toggle(void* priv)
-{
-	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
-	msleep(50);
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
-}
-
 static int vmax(int* x, int n)
 {
 	int i; 
@@ -173,6 +173,7 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
+	ChangeHDMIOutputSizeToVGA();
 }
 
 void toggle_mirror_display()
@@ -389,12 +390,14 @@ void display_clock()
 	}
 }
 
+#if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
+#endif
 int screenshot_sec = 0;
 static void
 
-debug_loop_task( void ) // screenshot, draw_prop
+debug_loop_task( void * unused ) // screenshot, draw_prop
 {
 	msleep(500);
 	int k;
@@ -457,7 +460,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 	}
 }
 
-static void screenshot_start(void)
+static void screenshot_start(void* priv)
 {
 	screenshot_sec = 10;
 }
@@ -503,7 +506,7 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Draw palette",
-		.select		= bmp_draw_palette,
+		.select		= (void(*)(void*))bmp_draw_palette,
 		.display	= menu_print,
 		.help = "Display a test pattern to see the color palette."
 	},
@@ -762,16 +765,16 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 
 CONFIG_INT( "magic.disable_bootdiskf",	disable_bootdiskf, 0 );
 
-struct bmp_file_t * logo = -1;
+struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
-	if (logo == -1) 
+	if (logo == (void*) -1) 
 		logo = bmp_load("B:/logo.bmp");
 }
 void show_logo()
 {
 	load_logo();
-	if (logo > 0)
+	if ((int)logo > 0)
 	{
 		bmp_draw(logo, 360 - logo->width/2, 240 - logo->height/2, 0, 0);
 	}

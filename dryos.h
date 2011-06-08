@@ -743,6 +743,8 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 
 extern void * malloc( size_t len );
 extern void free( void * buf );
+extern void * AllocateMemory( size_t len );
+extern void FreeMemory( void * buf );
 
 extern void * realloc( void * buf, size_t newlen );
 

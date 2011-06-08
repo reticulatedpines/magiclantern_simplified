@@ -22,7 +22,7 @@ int timecode_y = 0;
 int timecode_width = 160;
 int timecode_height = 20;
 int timecode_warning = 120;
-static unsigned timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
+static int timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 int measured_bitrate = 0; // mbps
 int free_space_32k = 0;
@@ -60,15 +60,15 @@ void opt_set(int num, int den)
 	{
 		for (j = 0; j < MOV_OPT_NUM_PARAMS; j++)
 		{
-			int* opt0 = &(mvr_config_copy.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
-			int* opt = &(mvr_config.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
+			int* opt0 = (int*) &(mvr_config_copy.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
+			int* opt = (int*) &(mvr_config.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
 			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
 			(*opt) = (*opt0) * num / den;
 		}
 		for (j = 0; j < MOV_GOP_OPT_NUM_PARAMS; j++)
 		{
-			int* opt0 = &(mvr_config_copy.fullhd_30fps_gop_opt_0) + i * MOV_OPT_STEP + j;
-			int* opt = &(mvr_config.fullhd_30fps_gop_opt_0) + i * MOV_OPT_STEP + j;
+			int* opt0 = (int*) &(mvr_config_copy.fullhd_30fps_gop_opt_0) + i * MOV_OPT_STEP + j;
+			int* opt = (int*) &(mvr_config.fullhd_30fps_gop_opt_0) + i * MOV_OPT_STEP + j;
 			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
 			(*opt) = (*opt0) * num / den;
 		}
@@ -96,7 +96,7 @@ void bitrate_set()
 	{
 		vbr_fix(1);
 		opt_set(1,1);
-		int q = qscale;
+		int16_t q = qscale;
 		mvrSetDefQScale(&q);
 	}
 	bitrate_dirty = 1;
@@ -294,7 +294,7 @@ int is_mvr_buffer_almost_full()
 	if (recording == 1) return 1;
 	// 2
 	
-	int ans = MVR_BUFFER_USAGE > buffer_warning_level;
+	int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
 	if (ans) warning = 10;
 	return warning;
 }
@@ -338,7 +338,7 @@ void bitrate_init()
 INIT_FUNC(__FILE__, bitrate_init);
 
 static void
-bitrate_task( void )
+bitrate_task( void* unused )
 {
 	cbr_init();
 

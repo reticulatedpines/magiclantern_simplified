@@ -48,6 +48,6 @@
 
 
 /** Compute the number of entries in a static array */
-#define COUNT(x)	(sizeof(x)/sizeof((x)[0]))
+#define COUNT(x)	((int)(sizeof(x)/sizeof((x)[0])))
 
 #endif

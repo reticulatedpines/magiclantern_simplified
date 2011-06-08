@@ -275,7 +275,7 @@ realloc(
 	if (!new_buf)
 		return NULL;
 
-	int i;
+	unsigned i;
 	for( i=0 ; i < mem->size/4 ; i++ )
 	{
 		((uint32_t*) new_buf)[i] = ((uint32_t*) buf)[i];

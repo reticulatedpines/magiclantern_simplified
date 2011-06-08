@@ -94,6 +94,8 @@ typedef enum {
 
 	EVENTID_METERING_START		= 0x10000039,
 	EVENTID_94			= 0x10000094,
+	EVENT_10000086 = 0x10000086,
+	EVENT_1 = 1
 } gui_event_t;
 
 

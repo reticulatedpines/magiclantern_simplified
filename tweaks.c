@@ -302,7 +302,7 @@ quickzoom_display(
 
 
 static void
-tweak_task( void )
+tweak_task( void* unused)
 {
 	do_movie_mode_remap();
 	

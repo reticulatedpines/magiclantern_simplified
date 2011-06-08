@@ -110,6 +110,7 @@ menu_add(
 extern void
 menu_init( void );
 
+void menu_draw_icon(int x, int y, int type, int arg);
 
 #define MNI_OFF 0
 #define MNI_ON 1

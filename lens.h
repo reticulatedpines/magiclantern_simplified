@@ -112,6 +112,8 @@ struct prop_picstyle_settings
 
 SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 
+void lens_wait_readytotakepic(int wait);
+
 /** Camera control functions */
 static inline void
 lens_set_rawaperture(

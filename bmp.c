@@ -178,9 +178,9 @@ bmp_puts(
 void
 bmp_puts_w(
 	unsigned		fontspec,
-	unsigned *		x,
-	unsigned *		y,
-	unsigned max_chars_per_line,
+	int *		x,
+	int *		y,
+	int max_chars_per_line,
 	const char *		s
 )
 {
@@ -188,7 +188,7 @@ bmp_puts_w(
 	uint8_t * vram = bmp_vram();
 	if( !vram || ((uintptr_t)vram & 1) == 1 )
 		return;
-	const unsigned initial_x = *x;
+	const int initial_x = *x;
 	uint8_t * first_row = vram + (*y) * pitch + (*x);
 	uint8_t * row = first_row;
 
@@ -249,7 +249,7 @@ con_printf(
 	static int		y = 32;
 
 	va_start( ap, fmt );
-	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
+	vsnprintf( buf, sizeof(buf), fmt, ap );
 	va_end( ap );
 
 	const uint32_t		pitch = BMPPITCH;
@@ -550,8 +550,8 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	
-	x0 = COERCE(x0, 0, 960 - bmp->width);
-	y0 = COERCE(y0, 0, 540 - bmp->height);
+	x0 = COERCE(x0, 0, 960 - (int)bmp->width);
+	y0 = COERCE(y0, 0, 540 - (int)bmp->height);
 	if (x0 < 0) return;
 	if (x0 + bmp->width > 960) return;
 	if (y0 < 0) return;
@@ -634,11 +634,11 @@ uint8_t bmp_getpixel(int x, int y)
 	uint8_t * const b_row = bvram + y * bmppitch;
 	return b_row[x];
 }
-uint8_t bmp_putpixel(int x, int y, uint8_t color)
+void bmp_putpixel(int x, int y, uint8_t color)
 {
 	//~ if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
-	if (!bvram) return 0;
+	if (!bvram) return;
 	int bmppitch = BMPPITCH;
 	x = COERCE(x, 0, 960);
 	y = COERCE(y, 0, 540);
@@ -649,7 +649,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
 	//~ if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
-	if (!bvram) return 0;
+	if (!bvram) return;
 	
 	int x, y;
 	#define P(X,Y) bvram[COERCE(X, 0, 960) + COERCE(Y, 0, 540) * BMPPITCH]
@@ -730,13 +730,13 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 // quick sanity test
 int bfnt_ok()
 {
-	int* codes = BFNT_CHAR_CODES;
+	int* codes = (int*) BFNT_CHAR_CODES;
 	int i;
 	
 	for (i = 0; i < 20; i++) 
 		if (codes[i] != 0x20+i) return 0;
 
-	int* off = BFNT_BITMAP_OFFSET;
+	int* off = (int*) BFNT_BITMAP_OFFSET;
 	if (off[0] != 0) return 0;
 	
 	for (i = 1; i < 20; i++) 
@@ -749,15 +749,15 @@ int bfnt_ok()
 uint8_t* bfnt_find_char(int code)
 {
 	int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
-	int* codes = BFNT_CHAR_CODES;
-	int* off = BFNT_BITMAP_OFFSET;
+	int* codes = (int*) BFNT_CHAR_CODES;
+	int* off = (int*) BFNT_BITMAP_OFFSET;
 	
-	if (code <= 'z') return BFNT_BITMAP_DATA + off[code - 0x20];
+	if (code <= 'z') return (uint8_t*) (BFNT_BITMAP_DATA + off[code - 0x20]);
 	
 	int i;
 	for (i = 0; i < n; i++)
 		if (codes[i] == code)
-			return BFNT_BITMAP_DATA + off[i];
+			return (uint8_t*) (BFNT_BITMAP_DATA + off[i]);
 	return 0;
 }
 
@@ -770,17 +770,17 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 		return 0;
 	}
 	
-	uint16_t* chardata = bfnt_find_char(c);
+	uint16_t* chardata = (uint16_t*) bfnt_find_char(c);
 	if (!chardata) return 0;
-	uint8_t* buff = chardata + 5;
+	uint8_t* buff = (uint8_t*)(chardata + 5);
 	int ptr = 0;
 	
-	unsigned int cw  = chardata[0]; // the stored bitmap width
-	unsigned int ch  = chardata[1]; // the stored bitmap height
-	unsigned int crw = chardata[2]; // the displayed character width
-	unsigned int xo  = chardata[3]; // X offset for displaying the bitmap
-	unsigned int yo  = chardata[4]; // Y offset for displaying the bitmap
-	unsigned int bb	= cw / 8 + (cw % 8 == 0 ? 0 : 1); // calculate the byte number per line
+	int cw  = chardata[0]; // the stored bitmap width
+	int ch  = chardata[1]; // the stored bitmap height
+	int crw = chardata[2]; // the displayed character width
+	int xo  = chardata[3]; // X offset for displaying the bitmap
+	int yo  = chardata[4]; // Y offset for displaying the bitmap
+	int bb	= cw / 8 + (cw % 8 == 0 ? 0 : 1); // calculate the byte number per line
 	
 	//~ bmp_printf(FONT_SMALL, 0, 0, "%x %d %d %d %d %d %d", chardata, cw, ch, crw, xo, yo, bb);
 	

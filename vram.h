@@ -93,10 +93,10 @@ extern struct bmp_vram_info bmp_vram_info[];
 struct vram_info
 {
 	uint8_t *		vram;		// off 0x00
-	uint32_t		width;		// maybe off 0x04
-	uint32_t		pitch;		// maybe off 0x08
-	uint32_t		height;		// off 0x0c
-	uint32_t		vram_number;	// off 0x10
+	int		width;		// maybe off 0x04
+	int		pitch;		// maybe off 0x08
+	int		height;		// off 0x0c
+	int		vram_number;	// off 0x10
 };
 SIZE_CHECK_STRUCT( vram_info, 0x14 );
 
@@ -228,7 +228,12 @@ struct hdmi_config
 
 extern struct hdmi_config hdmi_config;
 
-#define CACHEABLE(x)   (((uint32_t)(x)) |  0x40000000)
-#define UNCACHEABLE(x) (((uint32_t)(x)) & ~0x40000000) 
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x40000000))
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x40000000))
+
+void redraw();
+
+struct vram_info * get_yuv422_vram();
+struct vram_info * get_yuv422_hd_vram();
 
 #endif

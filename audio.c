@@ -28,6 +28,10 @@
 #include "menu.h"
 #include "gui.h"
 
+void audio_configure(int force);
+void volume_display();
+void volume_display_clear();
+
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
 
@@ -328,7 +332,7 @@ int audio_meters_are_drawn()
  * before drawing.
  */
 static void
-meter_task( void )
+meter_task( void* unused )
 {
 	while(1)
 	{
@@ -359,10 +363,10 @@ TASK_CREATE( "meter_task", meter_task, 0, 0x18, 0x1000 );
 
 /** Monitor the audio levels very quickly */
 static void
-compute_audio_level_task( void )
+compute_audio_level_task( void* unused )
 {
 	audio_levels[0].peak = audio_levels[1].peak = 0;
-	audio_levels[1].avg = audio_levels[1].avg = 0;
+	audio_levels[0].avg = audio_levels[1].avg = 0;
 
 	while(1)
 	{
@@ -933,7 +937,7 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
 static void
 audio_micpower_display( void * priv, int x, int y, int selected )
 {
-	int mic_pow = get_mic_power(get_input_source());
+	unsigned int mic_pow = get_mic_power(get_input_source());
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -1107,13 +1111,15 @@ PROP_HANDLER( PROP_MVR_REC_START )
 	return prop_cleanup( token, property );
 }
 
+void sounddev_task();
+
 
 /** Replace the sound dev task with our own to disable AGC.
  *
  * This task disables the AGC when the sound device is activated.
  */
 void
-my_sounddev_task( int some_param )
+my_sounddev_task()
 {
 	msleep( 2000 );
 	if (magic_is_off()) { sounddev_task(); return; }
@@ -1265,6 +1271,19 @@ my_audio_level_task( void )
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 #endif
 
+void volume_display_schedule()
+{
+	show_volume = 10;
+}
+void volume_display()
+{
+	int mgain_db = mgain_index2gain(mgain);
+	bmp_printf(FONT_MED, 50, 40, "Vol: %d + (%d,%d) dB     ", mgain_db, dgain_l, dgain_r);
+}
+void volume_display_clear()
+{
+	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
+}
 
 void volume_up()
 {
@@ -1294,18 +1313,4 @@ void volume_down()
 	else if (mgain_db > 0)
 		audio_mgain_toggle_reverse(&mgain);
 	volume_display_schedule();
-}
-
-void volume_display_schedule()
-{
-	show_volume = 10;
-}
-void volume_display()
-{
-	int mgain_db = mgain_index2gain(mgain);
-	bmp_printf(FONT_MED, 50, 40, "Vol: %d + (%d,%d) dB     ", mgain_db, dgain_l, dgain_r);
-}
-void volume_display_clear()
-{
-	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
 }

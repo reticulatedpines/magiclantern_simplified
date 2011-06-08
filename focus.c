@@ -29,7 +29,7 @@ int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
 #define FOCUS_MAX 1700
-static int focus_position;
+//~ static int focus_position;
 
 static struct semaphore * focus_stack_sem;
 
@@ -148,7 +148,7 @@ focus_stack(
 
 
 static void
-focus_stack_task( void )
+focus_stack_task( void* unused )
 {
 	while(1)
 	{
@@ -228,7 +228,7 @@ focus_toggle( void * priv )
 	give_semaphore( focus_task_sem );
 }
 
-unsigned rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
+int rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
 
 static void
 focus_rack_speed_display(
@@ -248,7 +248,7 @@ focus_rack_speed_display(
 }
 
 
-int current_speed_index(speed)
+int current_speed_index(int speed)
 {
 	int i;
 	for (i = 0; i < COUNT(rack_speed_values); i++)
@@ -386,7 +386,7 @@ rack_focus(
 
 
 static void
-focus_task( void )
+focus_task( void* unused )
 {
 	while(1)
 	{
@@ -775,7 +775,7 @@ void movie_af_noisefilter_bump(void* priv)
 #endif
 
 static void
-focus_misc_task()
+focus_misc_task(void* unused)
 {
 	while(1)
 	{
@@ -883,7 +883,7 @@ static struct menu_entry focus_menu[] = {
 
 
 static void
-focus_init( void )
+focus_init( void* unused )
 {
 	focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
 	focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );

@@ -29,6 +29,8 @@
 #include "config.h"
 #include "menu.h"
 
+void update_stuff();
+
 CONFIG_INT("movie.log", movie_log, 1);
 
 static struct semaphore * lens_sem;
@@ -378,7 +380,7 @@ void lens_focus_ex(unsigned mode, int step, int active)
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 }*/
 
-void lens_wait_readytotakepic(uint32_t wait)
+void lens_wait_readytotakepic(int wait)
 {
 	int i;
 	for (i = 0; i < wait * 10; i++)
@@ -418,16 +420,16 @@ mvr_update_logfile(
 	if( mvr_logfile == INVALID_PTR )
 		return;
 
-	static int last_iso;
-	static int last_shutter;
-	static int last_aperture;
-	static int last_focal_len;
-	static int last_focus_dist;
-	static int last_wb_mode;
-	static int last_kelvin;
+	static unsigned last_iso;
+	static unsigned last_shutter;
+	static unsigned last_aperture;
+	static unsigned last_focal_len;
+	static unsigned last_focus_dist;
+	static unsigned last_wb_mode;
+	static unsigned last_kelvin;
 	static int last_wbs_gm;
 	static int last_wbs_ba;
-	static int last_picstyle;
+	static unsigned last_picstyle;
 	static int last_contrast;
 	static int last_saturation;
 	static int last_sharpness;
@@ -745,7 +747,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 	
-	static int old_focus_dist = 0;
+	static unsigned old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
 		zoom_overlay_set_countdown(300);
@@ -790,7 +792,7 @@ static struct menu_entry lens_menus[] = {
 };
 
 static void
-lens_init( void )
+lens_init( void* unused )
 {
 	lens_sem = create_named_semaphore( "lens_info", 1 );
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );

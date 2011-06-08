@@ -141,6 +141,7 @@ CFLAGS=\
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
 	-Wno-unused-function \
+	-Wno-format \
 	-D__ARM__ \
 
 ifeq ($(CONFIG_PYMITE),y)

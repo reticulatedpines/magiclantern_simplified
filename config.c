@@ -111,7 +111,7 @@ parse_error:
 	msleep(2000);
 	//~ FreeMemory( cfg );
 	dumpf();
-malloc_error:
+//~ malloc_error:
 	return 0;
 }
 

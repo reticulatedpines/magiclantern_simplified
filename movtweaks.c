@@ -40,7 +40,7 @@ int mode_remap_done = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
 	static int shooting_mode = -1;
-	if (shooting_mode != buf[0]) mode_remap_done = 0;
+	if (shooting_mode != (int)buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
 	restore_kelvin_wb();
 	intervalometer_stop();
@@ -221,7 +221,7 @@ void force_liveview()
 }
 
 static void
-movtweak_task( void )
+movtweak_task( void* unused )
 {
 	if (!lv_drawn() && enable_liveview && shooting_mode == SHOOTMODE_MOVIE
 		&& (CURRENT_DIALOG_MAYBE == DLG_MOVIE_PRESS_LV_TO_RESUME || 

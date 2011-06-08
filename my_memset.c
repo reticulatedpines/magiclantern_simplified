@@ -1,8 +1,10 @@
+#include "compiler.h"
+
 // uses less memory than the one in libc.a
-char* memset(char* dest, char val, int n)
+void* memset(void* dest, int val, size_t n)
 {
-	int i;
+	size_t i;
 	for(i = 0; i < n; i++)
-		*dest++ = val;
+		*(char*)dest++ = val;
 	return dest;
 }
