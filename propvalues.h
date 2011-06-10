@@ -29,4 +29,5 @@ extern int lvaf_mode;
 extern int image_review_time;
 extern int lv_disp_mode;
 extern int mirror_down;
+extern int hdmi_code;
 #endif

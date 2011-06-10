@@ -34,6 +34,7 @@ PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 PROP_INT(PROP_MIRROR_DOWN, mirror_down);
+PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 
 int display_sensor = 0;
 

@@ -272,24 +272,26 @@ void* get_write_422_buf()
 	return 0;
 }
 
+int vram_width = 720;
+int vram_height = 480;
+PROP_HANDLER(PROP_VRAM_SIZE_MAYBE)
+{
+	vram_width = buf[1];
+	vram_height = buf[2];
+	return prop_cleanup(token, property);
+}
+
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
 	_vram_info.vram = get_fastrefresh_422_buf();
 	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 
-	if(ext_monitor_hdmi && !recording) {
-		_vram_info.pitch=YUV422_LV_PITCH_HDMI;
-		_vram_info.height=YUV422_LV_HEIGHT_HDMI;
-	}else if(ext_monitor_rca) {
-		_vram_info.pitch=YUV422_LV_PITCH_RCA;
-		_vram_info.height=YUV422_LV_HEIGHT_RCA;
-	} else {
-		_vram_info.pitch=YUV422_LV_PITCH;
-		_vram_info.height=YUV422_LV_HEIGHT;
-	}
+	_vram_info.width = vram_width;
+	_vram_info.height = vram_height;
+	_vram_info.pitch = _vram_info.width * 2;
 
-	_vram_info.width = _vram_info.pitch >> 1;
+	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
 
 	return &_vram_info;
 }
@@ -2600,8 +2602,10 @@ cropmark_redraw()
 
 void wait_till_its_safe_to_mess_with_the_display()
 {
-	while (lens_info.job_state || tft_status || recording == 1)
+	while (lens_info.job_state >= 10 || tft_status || recording == 1)
+	{
 		msleep(100);
+	}
 }
 
 int _bmp_cleared = 0;
@@ -3057,6 +3061,7 @@ TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 
 void redraw()
 {
+	wait_till_its_safe_to_mess_with_the_display();
 	BMP_SEM(
 		/*static int x;
 		msleep(500);

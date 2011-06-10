@@ -12,7 +12,6 @@
 #include "lens.h"
 
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
-PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 
 // WB workaround (not saved in movie mode)
 //**********************************************************************
@@ -259,10 +258,11 @@ movtweak_task( void* unused )
 		}
 		
 		extern int ext_monitor_hdmi;
-		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && ext_monitor_hdmi && !recording && !gui_menu_shown())
+		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && (lv_drawn() || PLAY_MODE) && ext_monitor_hdmi && !recording && !gui_menu_shown())
 		{
 			if (hdmi_code == 5)
 			{
+				msleep(1000);
 				BMP_SEM (
 					msleep(500);
 					ChangeHDMIOutputSizeToVGA();
@@ -322,8 +322,9 @@ hdmi_force_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Force HDMI-VGA: %s", 
-		hdmi_force_vga ? "ON" : "OFF"
+		"Force HDMI-VGA: %s [code=%d]", 
+		hdmi_force_vga ? "ON" : "OFF",
+		hdmi_code
 	);
 }
 static struct menu_entry mov_menus[] = {
@@ -396,7 +397,7 @@ static struct menu_entry mov_menus[] = {
 		.priv = &hdmi_force_vga, 
 		.display = hdmi_force_display, 
 		.select = menu_binary_toggle,
-		.help = "Force low resolution (3:2) on HDMI displays."
+		.help = "Force low resolution (720x480) on HDMI displays."
 	}
 };
 

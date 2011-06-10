@@ -284,6 +284,8 @@
 
 #define PROP_ROLLING_PITCHING_LEVEL 0x80030039
 
+#define PROP_VRAM_SIZE_MAYBE 0x8005001f
+
 /** Properties */
 extern void
 prop_register_slave(
