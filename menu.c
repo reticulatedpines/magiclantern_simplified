@@ -39,6 +39,7 @@ static int menu_timeout;
 static int menu_shown = 0;
 static int show_only_selected; // for ISO, kelvin...
 static int edit_mode = 0;
+static int config_dirty = 0;
 
 int get_menu_font_sel() 
 {
@@ -448,6 +449,8 @@ menu_entry_select(
 	{
 		if( entry->select ) entry->select( entry->priv );
 	}
+	
+	config_dirty = 1;
 }
 
 /** Scroll side to side in the list of menus */
@@ -846,7 +849,11 @@ gui_stop_menu( void )
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 
 	extern int config_autosave;
-	if (config_autosave) save_config(0);
+	if (config_autosave && config_dirty)
+	{
+		save_config(0);
+		config_dirty = 0;
+	}
 
 	if (MENU_MODE && !get_halfshutter_pressed())
 	{
