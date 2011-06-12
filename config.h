@@ -45,9 +45,7 @@ struct config
 //extern struct config * global_config;
 
 extern struct config *
-config_parse(
-	FILE *			file
-);
+config_parse();
 
 
 extern char *

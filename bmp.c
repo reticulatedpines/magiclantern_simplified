@@ -536,6 +536,40 @@ getfilesize_fail:
 	return NULL;
 }
 
+
+uint8_t* read_entire_file(const char * filename, int* buf_size)
+{
+	*buf_size = 0;
+	unsigned size;
+	if( FIO_GetFileSize( filename, &size ) != 0 )
+		goto getfilesize_fail;
+
+	DEBUG("File '%s' size %d bytes", filename, size);
+
+	uint8_t * buf = alloc_dma_memory( size );
+	if( !buf )
+	{
+		DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
+		goto malloc_fail;
+	}
+	size_t rc = read_file( filename, UNCACHEABLE(buf), size );
+	if( rc != size )
+		goto read_fail;
+
+	*buf_size = size;
+
+	return CACHEABLE(buf);
+
+fail_buf_copy:
+read_fail:
+	free_dma_memory( buf );
+malloc_fail:
+getfilesize_fail:
+	DEBUG("failed");
+	return NULL;
+}
+
+
 void clrscr()
 {
 	bmp_fill( 0x0, 0, 0, 960, 540 );

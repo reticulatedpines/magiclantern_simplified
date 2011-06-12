@@ -115,10 +115,18 @@ parse_error:
 	return 0;
 }
 
+char* config_file_buf = 0;
+int config_file_size = 0;
+int config_file_pos = 0;
+int get_char_from_config_file(char* out)
+{
+	if (config_file_pos >= config_file_size) return 0;
+	*out = config_file_buf[config_file_pos++];
+	return 1;
+}
 
 int
 read_line(
-	FILE *			file,
 	char *			buf,
 	size_t			size
 )
@@ -127,7 +135,7 @@ read_line(
 
 	while( len < size )
 	{
-		int rc = FIO_ReadFile( file, buf+len, 1 );
+		int rc = get_char_from_config_file(buf+len);
 		if( rc <= 0 )
 			return -1;
 
@@ -191,17 +199,16 @@ config_save_file(
 	const char *		filename
 )
 {
-	FIO_RemoveFile(filename);
-	FILE * file = FIO_CreateFile( filename );
-	if( file == INVALID_PTR )
-		return -1;
-
 	struct config_var * var = _config_vars_start;
 	int count = 0;
 
 	DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
-
-	my_fprintf( file,
+	
+	#define MAX_SIZE 10240
+	char* msg = alloc_dma_memory(MAX_SIZE);
+	char* msgc = CACHEABLE(msg);
+	
+	snprintf( msgc, MAX_SIZE,
 		"# Magic Lantern %s (%s)\n"
 		"# Build on %s by %s\n",
 		build_version,
@@ -213,7 +220,7 @@ config_save_file(
 	struct tm now;
 	LoadCalendarFromRTC( &now );
 
-	my_fprintf( file,
+	snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
 		"# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
 		now.tm_year + 1900,
 		now.tm_mon + 1,
@@ -226,13 +233,13 @@ config_save_file(
 	for( ; var < _config_vars_end ; var++ )
 	{
 		if( var->type == 0 )
-			my_fprintf( file,
+			snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
 				"%s = %d\r\n",
 				var->name,
 				*(unsigned*) var->value
 			);
 		else
-			my_fprintf( file,
+			snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
 				"%s = %s\r\n",
 				var->name,
 				*(const char**) var->value
@@ -240,6 +247,13 @@ config_save_file(
 
 		count++;
 	}
+	
+	FIO_RemoveFile(filename);
+	FILE * file = FIO_CreateFile( filename );
+	if( file == INVALID_PTR )
+		return -1;
+	
+	FIO_WriteFile(file, msg, strlen(msgc));
 
 	FIO_CloseFile( file );
 	return count;
@@ -247,22 +261,21 @@ config_save_file(
 
 
 struct config *
-config_parse(
-	FILE *			file
-) {
+config_parse() {
 	char line_buf[ 1000 ];
 	struct config *	cfg = 0;
 	int count = 0;
 
-	while( read_line( file, UNCACHEABLE(line_buf), sizeof(line_buf) ) >= 0 )
+	while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
 	{
+		//~ bmp_printf(FONT_SMALL, 0, 0, "cfg line: %s      ", line_buf);
+		
 		// Ignore any line that begins with # or is empty
 		if( line_buf[0] == '#'
 		||  line_buf[0] == '\0' )
 			continue;
 		
 		DebugMsg(DM_MAGIC, 3, "cfg line: %s", line_buf);
-		
 		struct config * new_config = config_parse_line( line_buf );
 		if( !new_config )
 			goto error;
@@ -286,17 +299,12 @@ config_parse_file(
 	const char *		filename
 )
 {
-	FILE * file = FIO_Open( filename, 0 );
-	if( file == INVALID_PTR )
-	{
-		//~ bmp_printf(FONT_MED, 0, 120, "Could not open config file");
-		return 0;
-	}
-
-	//~ bmp_printf(FONT_MED, 0, 120, "Config file opened");
-	config_parse( file );
-	FIO_CloseFile( file );
-	//~ bmp_printf(FONT_MED, 0, 120, "Config file parsed");
+	config_file_buf = read_entire_file(filename, &config_file_size);
+	config_file_pos = 0;
+	msleep(200);
+	config_parse();
+	free_dma_memory(config_file_buf);
+	config_file_buf = 0;
 	return 1;
 }
 

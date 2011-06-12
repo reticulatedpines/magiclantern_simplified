@@ -21,16 +21,17 @@ my_fprintf(
 )
 {
 	va_list			ap;
-	char			buf[ 256 ];
+	
+	char* buf = alloc_dma_memory(256);
 
 	va_start( ap, fmt );
 	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
 	va_end( ap );
 
-	FIO_WriteFile( file, UNCACHEABLE(buf), len );
+	FIO_WriteFile( file, buf, len );
+	free_dma_memory(buf);
 	return len;
 }
-
 
 
 int
