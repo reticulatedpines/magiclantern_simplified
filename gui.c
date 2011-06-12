@@ -558,10 +558,10 @@ static void gui_main_task_550d()
 			if (handle_buttons(event) == 0) 
 				continue;
 		
-		BM_SEM(
+		BMP_SEM (
 			void(*f)(struct event *) = funcs[index];
 			f(event);
-		)
+		);
 	}
 } 
 
