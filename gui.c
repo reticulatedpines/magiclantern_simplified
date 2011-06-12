@@ -536,6 +536,7 @@ static int handle_buttons(struct event * event)
 
 static void gui_main_task_550d()
 {
+	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
@@ -557,8 +558,10 @@ static void gui_main_task_550d()
 			if (handle_buttons(event) == 0) 
 				continue;
 		
-		void(*f)(struct event *) = funcs[index];
-		f(event);
+		BM_SEM(
+			void(*f)(struct event *) = funcs[index];
+			f(event);
+		)
 	}
 } 
 

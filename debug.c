@@ -903,11 +903,12 @@ movie_start( void )
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
 
 
-/*PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
+PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
 	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
+	if (buf[0] == 0) { card_led_on(); msleep(50); }
 	return prop_cleanup(token, property);
-}*/
+}
 
 /*
 PROP_HANDLER(PROP_APERTURE)

@@ -936,9 +936,9 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 	}
 }
 
-static void bmp_init()
+void bmp_sem_init()
 {
 	bmp_sem = create_named_semaphore("bmp_sem", 1);
 }
 
-INIT_FUNC(__FILE__, bmp_init);
+//~ INIT_FUNC(__FILE__, bmp_init);
