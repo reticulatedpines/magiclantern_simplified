@@ -348,6 +348,7 @@ my_init_task(void)
 		return;
 	}
 
+BMP_SEM(
 	msleep( 1000 );
 
 	menu_init();
@@ -364,7 +365,6 @@ my_init_task(void)
 		build_user
 	);*/
 
-	BMP_SEM(
 	// this is better in a separate task (not sure why, but causes instability if called right from here)
 	// let's try not to open files from here
 	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
