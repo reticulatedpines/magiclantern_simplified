@@ -2600,18 +2600,22 @@ cropmark_redraw()
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
 
-void wait_till_its_safe_to_mess_with_the_display()
+int is_safe_to_mess_with_the_display(int timeout_ms)
 {
+	int k = 0;
 	while (lens_info.job_state >= 10 || tft_status || recording == 1)
 	{
+		k++;
+		if (k * 100 > timeout_ms) return 0;
 		msleep(100);
 	}
+	return 1;
 }
 
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_bmp_cleared) { call("MuteOff"); msleep(100); _bmp_cleared = 0;}
 }
 void bmp_on_force()
@@ -2621,7 +2625,7 @@ void bmp_on_force()
 }
 void bmp_off()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); call("MuteOn");}
 }
 int bmp_is_on() { return !_bmp_cleared; }
@@ -2629,13 +2633,13 @@ int bmp_is_on() { return !_bmp_cleared; }
 int _lvimage_cleared = 0;
 void lvimage_on()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_lvimage_cleared) call("MuteOffImage");
 	_lvimage_cleared = 1;
 }
 void lvimage_off()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_lvimage_cleared) call("MuteOnImage");
 	_lvimage_cleared = 0;
 }
@@ -2643,7 +2647,7 @@ void lvimage_off()
 int _display_is_off = 0;
 void display_on()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_display_is_off)
 	{
 		call("TurnOnDisplay");
@@ -2657,7 +2661,7 @@ void display_on_force()
 }
 void display_off()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_display_is_off)
 	{
 		call("TurnOffDisplay");
@@ -2666,7 +2670,7 @@ void display_off()
 }
 void display_off_force()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(500)) return;
 	_display_is_off = 0;
 	display_off();
 }
@@ -3061,7 +3065,7 @@ TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 
 void redraw()
 {
-	wait_till_its_safe_to_mess_with_the_display();
+	if (!is_safe_to_mess_with_the_display(0)) return;
 	BMP_SEM(
 		/*static int x;
 		msleep(500);
