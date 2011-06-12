@@ -288,7 +288,7 @@ struct vram_info * get_yuv422_vram()
 	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 
 	_vram_info.width = vram_width;
-	_vram_info.height = vram_height;
+	_vram_info.height = vram_width * 2 / 3;
 	_vram_info.pitch = _vram_info.width * 2;
 
 	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
