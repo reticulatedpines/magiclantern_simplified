@@ -2575,10 +2575,28 @@ void display_shooting_info() // called from debug task
 	display_trap_focus_info();
 }
 
+void display_expsim_status()
+{
+	static int prev_expsim = 0;
+	if (!expsim)
+	{
+		int x = 610 + 2 * font_med.width;
+		int y = 400;
+		bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "ExpSim" );
+		draw_line(x-5, y + font_med.height * 3/4, x + font_med.width * 6, y + font_med.height * 1/4, COLOR_WHITE);
+	}
+	else
+	{
+		if (expsim != prev_expsim) redraw_nosem(); // this function is inside a BMP_SEM
+	}
+	prev_expsim = expsim;
+}
+
 void display_shooting_info_lv()
 {
 	display_lcd_remote_icon(480, 0);
 	display_trap_focus_info();
+	display_expsim_status();
 }
 
 void display_trap_focus_info()

@@ -3083,6 +3083,14 @@ void redraw()
 	)
 }
 
+void redraw_nosem() // to be called from a BMP_SEM only!
+{
+	if (!is_safe_to_mess_with_the_display(0)) return;
+	RedrawDisplay();
+	crop_set_dirty(20);
+	afframe_set_dirty();
+}
+
 /*
 static void
 redraw_task( void )

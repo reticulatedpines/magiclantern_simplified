@@ -251,6 +251,8 @@ update_lens_display(
 			mod(ABS(AE_VALUE) * 10 / 8, 10)
 		);
 
+
+
 		#if 0
 		y += height;
 		bmp_printf( font, x, y,
