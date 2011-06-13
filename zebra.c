@@ -105,9 +105,9 @@ CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
 
-CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
-CONFIG_INT( "zebra.density", zebra_density, 0); 
-CONFIG_INT( "hd.vram", use_hd_vram, 0); 
+//~ CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
+//~ CONFIG_INT( "zebra.density", zebra_density, 0); 
+//~ CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
 
 int crop_dirty = 0;
@@ -120,6 +120,7 @@ void ChangeColorPaletteLV(int x)
 	ChangeColorPalette(x);
 }
 
+/*
 static void
 unified_loop_display( void * priv, int x, int y, int selected )
 {
@@ -148,7 +149,7 @@ use_hd_vram_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Use HD VRAM: %s", use_hd_vram?"yes":"no");
-}
+}*/
 
 int recording = 0;
 
@@ -993,6 +994,7 @@ int zebra_color_word_row_thick(int c, int y)
 }
 
 // thresholded edge detection
+#if 0
 static void draw_zebra_and_focus_unified( void )
 {
 	if (!global_draw) return;
@@ -1216,6 +1218,7 @@ static void draw_zebra_and_focus_unified( void )
 		thr = COERCE(thr, thr_min, 255);
   	}
 }
+#endif
 
 int focus_peaking_debug = 0;
 
@@ -1224,6 +1227,7 @@ static void
 draw_zebra_and_focus( int Z, int F )
 {
 	if (lv_dispsize != 1) return;
+	if (vram_width > 720) return;
 
 /*	int Zd = should_draw_zoom_overlay();
 	static int Zdp = 0;
@@ -1232,9 +1236,9 @@ draw_zebra_and_focus( int Z, int F )
 	if (Zd) msleep(100); // reduce frame rate when zoom overlay is active
 	*/
 	
-	if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
-	if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
-		{ draw_zebra_and_focus_unified(); return; }
+	//~ if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
+	//~ if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
+		//~ { draw_zebra_and_focus_unified(); return; }
 	
 	if (!global_draw) return;
 	
@@ -1554,6 +1558,7 @@ draw_false( void )
 void
 draw_false_downsampled( void )
 {
+	if (vram_width > 720) return;
 	if (!PLAY_MODE)
 	{
 		if (!expsim) return;
@@ -2532,14 +2537,14 @@ struct menu_entry dbg_menus[] = {
 		.priv = "Dump RAM",
 		.display = menu_print, 
 		.select = dump_vram,
-	},*/
+	},
 	{
 		.priv		= &unified_loop,
 		.select		= menu_ternary_toggle,
 		.display	= unified_loop_display,
 		.help = "Unique loop for zebra and FP. Used with HDMI and 720p."
 	},
-	/*{
+	{
 		.priv		= &zebra_density,
 		.select		= menu_ternary_toggle,
 		.display	= zebra_mode_display,
@@ -2717,6 +2722,7 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 void draw_zoom_overlay()
 {
+	if (vram_width > 720) return;
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
