@@ -343,7 +343,7 @@ tweak_task( void* unused)
 		
 		expsim_update();
 
-		if (af_frame_autohide && afframe_countdown && zebra_should_run())
+		if (af_frame_autohide && afframe_countdown && liveview_display_idle())
 		{
 			afframe_countdown--;
 			if (!afframe_countdown) 
