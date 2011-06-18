@@ -235,7 +235,6 @@ lcd_sensor_shortcuts_print(
 // backlight adjust
 //**********************************************************************
 
-PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
 void adjust_backlight_level(int delta)
 {
 	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
@@ -243,6 +242,11 @@ void adjust_backlight_level(int delta)
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
 	if (!lv_drawn()) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
+}
+void set_backlight_level(int level)
+{
+	level = COERCE(level, 1, 7);
+	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
 }
 
 CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
@@ -368,7 +372,7 @@ tweak_task( void* unused)
 		}
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || ISO_ADJUSTMENT_ACTIVE)
-			clearscreen_wakeup();
+			idle_wakeup_reset_counters();
 	}
 }
 

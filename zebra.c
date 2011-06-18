@@ -109,6 +109,10 @@ CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ
 //~ CONFIG_INT( "zebra.density", zebra_density, 0); 
 //~ CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
+CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0);
+CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
+CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
+
 
 int crop_dirty = 0;
 int clearscreen_countdown = 20;
@@ -210,9 +214,11 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
 // how to use a config setting in more than one file?!
 //extern int* p_cfg_draw_meters;
 
+int idle_globaldraw_disable = 0;
+
 int get_global_draw()
 {
-	return global_draw;
+	return global_draw && !idle_globaldraw_disable;
 }
 void set_global_draw(int g)
 {
@@ -2068,12 +2074,11 @@ clearscreen_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Display     : %s",
-		mode == 0 ? "No special action" : 
-		mode == 1 ? "Clr on HalfShutter" : 
-		mode == 2 ? "Clr when idle" :
-		mode == 3 ? "Turn OFF when idle" :
-		"Error"
+		"ClearScreen : %s",
+		mode ? "ON (HalfShutter)" : "OFF"
+		//~ mode == 0 ? "OFF" : 
+		//~ mode == 1 ? "on HalfShutter" : 
+		//~ mode == 2 ? "when idle" : "err"
 	);
 }
 
@@ -2418,6 +2423,84 @@ void transparent_overlay_offset_clear(int dx, int dy)
 	transparent_overlay_offx = transparent_overlay_offy = 0;
 }
 
+char* idle_time_format(int t)
+{
+	static char msg[50];
+	if (t) snprintf(msg, sizeof(msg), "after %d%s", t < 60 ? t : t/60, t < 60 ? "sec" : "min");
+	else snprintf(msg, sizeof(msg), "OFF");
+	return msg;
+}
+
+static void
+idle_display_dim_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Dim display        : %s",
+		idle_time_format(*(int*)priv)
+	);
+}
+
+static void
+idle_display_turn_off_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Turn off display   : %s",
+		idle_time_format(*(int*)priv)
+	);
+}
+
+static void
+idle_display_global_draw_off_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Turn off GlobalDraw: %s",
+		idle_time_format(*(int*)priv)
+	);
+}
+
+int timeout_values[] = {0, 5, 10, 20, 30, 60, 120, 300, 600, 900};
+
+int current_timeout_index(int t)
+{
+	int i;
+	for (i = 0; i < COUNT(timeout_values); i++)
+		if (t == timeout_values[i]) return i;
+	return 0;
+}
+
+void idle_timeout_toggle(void* priv, int sign)
+{
+	int* t = (int*)priv;
+	int i = current_timeout_index(*t);
+	i = mod(i + sign, COUNT(timeout_values));
+	*(int*)priv = timeout_values[i];
+}
+
+void idle_timeout_toggle_forward(void* priv) { idle_timeout_toggle(priv, 1); }
+void idle_timeout_toggle_reverse(void* priv) { idle_timeout_toggle(priv, -1); }
+
+
 struct menu_entry zebra_menus[] = {
 	{
 		.priv		= &global_draw,
@@ -2497,7 +2580,7 @@ struct menu_entry zebra_menus[] = {
 		.display		= clearscreen_display,
 		.select			= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,
-		.help = "Clear BMP overlay or turn display off."
+		.help = "Clear BMP overlay."
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2528,6 +2611,27 @@ struct menu_entry zebra_menus[] = {
 };
 
 struct menu_entry dbg_menus[] = {
+	{
+		.priv			= &idle_display_dim_after,
+		.display		= idle_display_dim_print,
+		.select			= idle_timeout_toggle_forward,
+		.select_reverse	= idle_timeout_toggle_reverse,
+		.help = "Dim LCD display in LiveView when idle, to save power."
+	},
+	{
+		.priv			= &idle_display_turn_off_after,
+		.display		= idle_display_turn_off_print,
+		.select			= idle_timeout_toggle_forward,
+		.select_reverse	= idle_timeout_toggle_reverse,
+		.help = "Turn off display in LiveView when idle, to save power."
+	},
+	{
+		.priv			= &idle_display_global_draw_off_after,
+		.display		= idle_display_global_draw_off_print,
+		.select			= idle_timeout_toggle_forward,
+		.select_reverse	= idle_timeout_toggle_reverse,
+		.help = "Turn off GlobalDraw when idle, to save some CPU cycles."
+	},
 	/*{
 		.priv = "Card Benchmark",
 		.select = card_benchmark_schedule,
@@ -2574,6 +2678,7 @@ static struct menu_entry cfg_menus[] = {
 PROP_HANDLER(PROP_LV_ACTION)
 {
 	zoom_overlay_countdown = 0;
+	idle_display_undim(); // restore LCD brightness, especially for shutdown
 	return prop_cleanup( token, property );
 }
 
@@ -2884,7 +2989,7 @@ int liveview_display_idle()
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
-	return liveview_display_idle() && global_draw && bmp_is_on();
+	return liveview_display_idle() && get_global_draw() && bmp_is_on();
 }
 
 void zebra_sleep_when_tired()
@@ -2988,10 +3093,89 @@ zebra_task( void )
 
 TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 ); */
 
-void clearscreen_wakeup()
+int idle_countdown_display_dim = 100;
+int idle_countdown_display_off = 100;
+int idle_countdown_globaldraw = 100;
+//~ int idle_countdown_display_clear = 100;
+int idle_countdown_display_dim_prev = 100;
+int idle_countdown_display_off_prev = 100;
+int idle_countdown_globaldraw_prev = 100;
+
+void idle_wakeup_reset_counters()
 {
-	clearscreen_countdown = clearscreen == 3 ? 50 : 20;
+	//~ clearscreen_countdown = 3;
+	idle_countdown_display_off = idle_display_turn_off_after * 10;
+	idle_countdown_display_dim = idle_display_dim_after * 10;
+	idle_countdown_globaldraw = idle_display_global_draw_off_after * 10;
 }
+
+void update_idle_countdown(int* countdown)
+{
+	//~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
+	if (!get_halfshutter_pressed() && liveview_display_idle())
+	{
+		if (*countdown)
+			(*countdown)--;
+	}
+	else
+	{
+		idle_wakeup_reset_counters(); // will reset all idle countdowns
+	}
+	
+	if (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+		idle_wakeup_reset_counters();
+}
+
+void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void), void(*action_off)(void))
+{
+	update_idle_countdown(countdown);
+	//~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, *countdown);
+	if (*prev_countdown && !*countdown)
+	{
+		//~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
+		action_on();
+	}
+	else if (!*prev_countdown && *countdown)
+	{
+		//~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
+		action_off();
+	}
+	*prev_countdown = *countdown;
+}
+
+void idle_display_off()
+{
+	bmp_printf(FONT_LARGE, 10, 40, "DISPLAY OFF");
+	msleep(1000);
+	redraw();
+	display_off_force();
+}
+void idle_display_on()
+{
+	display_on_force();
+}
+
+int old_backlight_level = 0;
+void idle_display_dim()
+{
+	old_backlight_level = backlight_level;
+	set_backlight_level(1);
+}
+void idle_display_undim()
+{
+	if (old_backlight_level) set_backlight_level(old_backlight_level);
+	old_backlight_level = 0;
+}
+
+void idle_globaldraw_dis()
+{
+	idle_globaldraw_disable = 1;
+}
+void idle_globaldraw_en()
+{
+	idle_globaldraw_disable = 0;
+}
+
 
 static void
 clearscreen_task( void* unused )
@@ -3001,6 +3185,9 @@ clearscreen_task( void* unused )
 	{
 clearscreen_loop:
 		msleep(100);
+		
+		//~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
+
 		if (!lv_drawn()) continue;
 		
 /*		if (k % 10 == 0)
@@ -3013,7 +3200,7 @@ clearscreen_loop:
 			card_led_blink(2, 50, 50);
 
 		// clear overlays on shutter halfpress
-		if (clearscreen == 1 && get_halfshutter_pressed())
+		if (clearscreen && get_halfshutter_pressed())
 		{
 			BMP_SEM( clrscr_mirror(); )
 			int i;
@@ -3028,42 +3215,19 @@ clearscreen_loop:
 			BMP_SEM( bmp_on(); )
 			redraw();
 		}
-		else if (clearscreen == 2 || clearscreen == 3)  // always clear overlays, or turn off display
-		{
-			if (!get_halfshutter_pressed() && liveview_display_idle())
-			{
-				if (clearscreen_countdown)
-					clearscreen_countdown--;
-			}
-			else
-			{
-				clearscreen_wakeup();
-			}
-			
-			if (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
-				clearscreen_wakeup();
-			
-			if (clearscreen_countdown == 1)
-			{
-				if (clearscreen == 3)
-				{
-					bmp_printf(FONT_LARGE, 10, 40, "DISPLAY OFF");
-					msleep(1000);
-					display_off_force();
-				}
-				bmp_off();
-			}
-			else if (clearscreen_countdown > 1)
-			{
-				display_on();
-				bmp_on();
-			}
-		}
-		else
-		{
-			display_on();
-			bmp_on();
-		}
+		//~ else if (clearscreen == 2)  // always clear overlays
+		//~ {
+			//~ idle_action_do(&idle_countdown_display_clear, bmp_off, bmp_on);
+		//~ }
+
+		if (idle_display_dim_after)
+			idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
+
+		if (idle_display_turn_off_after)
+			idle_action_do(&idle_countdown_display_off, &idle_countdown_display_off_prev, idle_display_off, idle_display_on);
+
+		if (idle_display_global_draw_off_after)
+			idle_action_do(&idle_countdown_globaldraw, &idle_countdown_globaldraw_prev, idle_globaldraw_dis, idle_globaldraw_en);
 	}
 }
 
@@ -3332,7 +3496,7 @@ int get_disp_mode() { return disp_mode; }
 
 int toggle_disp_mode()
 {
-	clearscreen_wakeup();
+	idle_wakeup_reset_counters();
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	BMP_SEM( do_disp_mode_change(); )
 	redraw();

@@ -90,6 +90,12 @@ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
+
+	if (event->type == 0 && event->param != 0x56)
+ 	{
+		idle_wakeup_reset_counters();
+ 	}
+
 	static int kev = 0;
 	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
@@ -131,11 +137,6 @@ static int handle_buttons(struct event * event)
 		}
  	}
 	
-	if (event->type == 0 && event->param != 0x56)
- 	{
-		clearscreen_wakeup();
- 	}
-
 	if (get_draw_event())
 	{
 		if (event->type == 0)
