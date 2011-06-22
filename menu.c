@@ -350,6 +350,12 @@ menu_display(
 	while( menu )
 	{
 		icon_drawn = 0;
+
+		if (menu->priv)
+		{
+			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
+		}
+		
 		if (!show_only_selected || menu->selected)
 		{
 			menu->display(
@@ -358,11 +364,6 @@ menu_display(
 				y,
 				menu->selected
 			);
-		}
-		
-		if (menu->priv)
-		{
-			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
 		}
 		
 		if (menu->selected && menu->help)
