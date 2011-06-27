@@ -3079,6 +3079,13 @@ shoot_task( void* unused )
 				if (audio_levels[0].peak > audio_levels[0].avg * (int)audio_release_level) 
 				{
 					remote_shot();
+					msleep(100);
+					/* Initial forced sleep is necesarry when using camera self timer,
+					 * otherwise remote_shot returns right after the countdown 
+					 * and the loop below seems to miss the actual picture taking.
+					 * This means we will trigger again on the sound of the shutter
+					 * (and again, and again, ...)
+					 * TODO: should this be fixed in remote_shot itself? */
 					while (lens_info.job_state) msleep(100);
 				}
 			}
