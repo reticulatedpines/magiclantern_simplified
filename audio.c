@@ -274,6 +274,7 @@ draw_ticks(
 	}
 }
 
+static int audio_cmd_to_gain_x1000(int cmd);
 
 /* Normal VU meter */
 static void draw_meters(void)
@@ -283,6 +284,11 @@ static void draw_meters(void)
 	draw_meter( 0, &audio_levels[0], left_label);
 	draw_ticks( 12, 4 );
 	draw_meter( 16, &audio_levels[1], right_label);
+	if (gui_menu_shown() && alc_enable)
+	{
+		int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
+		bmp_printf(FONT_MED, 10, 420, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
+	}
 }
 
 #endif
@@ -440,6 +446,14 @@ audio_gain_to_cmd(
 	return cmd;
 }
 
+static int
+audio_cmd_to_gain_x1000(
+	int			cmd
+)
+{
+	int gain_x1000 = (cmd - 145) * 375;
+	return gain_x1000;
+}
 
 static inline void
 audio_ic_set_input_volume(
@@ -749,7 +763,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 		"Analog Gain   : %d dB",
 		mgain_index2gain(gain_index)
 	);
-	menu_draw_icon(x, y, alc_enable ? MNI_WARNING : MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
+	menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
 
 
