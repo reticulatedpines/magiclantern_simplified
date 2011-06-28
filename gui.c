@@ -55,6 +55,10 @@ int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
+int handle_buttons_active = 0;
+struct event fake_event;
+struct semaphore * fake_sem;
+
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
 	uint32_t		counter;	// off_0x04;
@@ -533,6 +537,18 @@ static int handle_buttons(struct event * event)
 	}
 	
 	return 1;
+}
+
+// if called from handle_buttons, only last fake button will be executed
+// if called from some other task, the function waits until the previous fake button was handled
+void fake_simple_button(int bgmt_code)
+{
+	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
+	fake_event.type = 0,
+	fake_event.param = bgmt_code, 
+	fake_event.obj = 0,
+	fake_event.arg = 0,
+	msg_queue_post(gui_main_struct.msg_queue_550d, &fake_event, 0, 0);
 }
 
 static void gui_main_task_550d()

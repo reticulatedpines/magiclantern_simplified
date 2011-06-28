@@ -188,6 +188,7 @@ void toggle_mirror_display()
 	//~ zebra_resume();
 }
 
+/*
 void fake_simple_button(int bgmt_code)
 {
 	struct event e = {
@@ -197,7 +198,7 @@ void fake_simple_button(int bgmt_code)
 		.arg = 0,
 	};
 	GUI_CONTROL(&e);
-}
+}*/
 
 #if CONFIG_DEBUGMSG
 
