@@ -1834,7 +1834,7 @@ static void reload_cropmark(int i)
 	{
 		char bmpname[100];
 		snprintf(bmpname, sizeof(bmpname), "B:/CROPMKS/%s", cropmark_names[i-1]);
-		cropmarks = bmp_load(bmpname);
+		cropmarks = bmp_load(bmpname, 1);
 		if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 	}
 }

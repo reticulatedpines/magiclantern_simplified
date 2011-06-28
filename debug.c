@@ -769,7 +769,7 @@ struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
 	if (logo == (void*) -1) 
-		logo = bmp_load("B:/logo.bmp");
+		logo = bmp_load("B:/logo.bmp", 0);
 }
 void show_logo()
 {

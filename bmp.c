@@ -458,7 +458,8 @@ read_file(
 /** Load a BMP file into memory so that it can be drawn onscreen */
 struct bmp_file_t *
 bmp_load(
-	const char *		filename
+	const char *		filename,
+	uint32_t 		compression // what compression to load the file into. 0: none, 1: RLE8
 )
 {
 	DebugMsg( DM_MAGIC, 3, "bmp_load(%s)", filename);
@@ -516,14 +517,62 @@ bmp_load(
 	// Since the read was into uncacheable memory, it will
 	// be very slow to access.  Copy it into a cached buffer
 	// and release the uncacheable space.
-	uint8_t * fast_buf = AllocateMemory( size + 32);
-	if( !fast_buf )
-		goto fail_buf_copy;
-	memcpy(fast_buf, buf, size);
-	bmp = (struct bmp_file_t *) fast_buf;
-	bmp->image = fast_buf + image_offset;
-	free_dma_memory( buf );
-	return bmp;
+
+	if (compression==bmp->compression) {
+		uint8_t * fast_buf = AllocateMemory( size + 32);
+		if( !fast_buf )
+			goto fail_buf_copy;
+		memcpy(fast_buf, buf, size);
+		bmp = (struct bmp_file_t *) fast_buf;
+		bmp->image = fast_buf + image_offset;
+		free_dma_memory( buf );
+		return bmp;
+	} else if (compression==1 && bmp->compression==0) { // convert the loaded image into RLE8
+		uint32_t size_needed = sizeof(struct bmp_file_t);
+		uint8_t* fast_buf;
+		uint32_t x = 0;
+		uint32_t y = 0;
+		uint8_t* gpos;
+		uint8_t count = 0;
+		uint8_t color = 0;
+		bmp->image = buf + image_offset;
+		for (y = 0; y < bmp->height; y++) {
+			uint8_t* pos = bmp->image + y*bmp->width;
+			color = *pos; count = 0;
+			for (x = 0; x < bmp->width; x++) {
+				if (color==(*pos) && count<255) { count++; } else { color = *pos; count = 1; size_needed += 2; }
+				pos++;
+			}
+			if (count!=0) size_needed += 2; // remaining line
+			size_needed += 2; //0000 EOL
+		}
+		size_needed += 2; //0001 EOF
+		fast_buf = AllocateMemory( size_needed );
+		if( !fast_buf ) goto fail_buf_copy;
+		memcpy(fast_buf, buf, sizeof(struct bmp_file_t));
+		gpos = fast_buf + sizeof(struct bmp_file_t);
+		for (y = 0; y < bmp->height; y++) {
+			uint8_t* pos = bmp->image + y*bmp->width;
+			color = *pos; count = 0;
+			for (x = 0; x < bmp->width; x++) {
+				if (color==(*pos) && count<255) { count++; } else { gpos[0] = count;gpos[1] = color; color = *pos; count = 1; gpos+=2;} pos++;
+			}
+			if (count!=0) { gpos[0] = count; gpos[1] = color; gpos+=2;} 
+			gpos[0] = 0;
+			gpos[1] = 0;
+			gpos+=2;
+		}
+		gpos[0] = 0;
+		gpos[1] = 1;
+
+		bmp = (struct bmp_file_t *) fast_buf;
+	 	bmp->compression = 1;
+		bmp->image = fast_buf + sizeof(struct bmp_file_t);
+		bmp->image_size = size_needed;
+		free_dma_memory( buf );
+		bmp_printf(FONT_SMALL,0,440,"Memory needed %d",size_needed);
+		return bmp;
+	}
 
 fail_buf_copy:
 offsetsize_fail:
@@ -580,6 +629,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 {
 	if (!bmp) return;
 	//~ if (!bmp_enabled) return;
+	if (bmp->compression!=0) return; // bmp_draw doesn't support RLE yet
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -707,48 +757,103 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 	int x,y; // those sweep the original bmp
 	int xs,ys; // those sweep the BMP VRAM (and are scaled)
 	
-	#ifdef USE_LUT 
-	// we better don't use AllocateMemory for LUT (Err 70)
-	static int16_t lut[960];
-	for (xs = x0; xs < (x0 + xmax); xs++)
-	{
-		lut[xs] = (xs-x0) * bmp->width/xmax;
-	}
-	#endif
-
-	for( ys = y0 ; ys < (y0 + ymax); ys++ )
-	{
-		y = (ys-y0)*bmp->height/ymax;
-		uint8_t * const b_row = bvram + ys * bmppitch;
-		uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * bmppitch );
+	if (bmp->compression == 0) {
+#ifdef USE_LUT 
+		// we better don't use AllocateMemory for LUT (Err 70)
+		static int16_t lut[960];
 		for (xs = x0; xs < (x0 + xmax); xs++)
 		{
-#ifdef USE_LUT
-			x = lut[xs];
-#else
-			x = (xs-x0)*bmp->width/xmax;
+			lut[xs] = (xs-x0) * bmp->width/xmax;
+		}
 #endif
 
-			if (clear)
+		for( ys = y0 ; ys < (y0 + ymax); ys++ )
+		{
+			y = (ys-y0)*bmp->height/ymax;
+			uint8_t * const b_row = bvram + ys * bmppitch;
+			uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * bmppitch );
+			for (xs = x0; xs < (x0 + xmax); xs++)
 			{
-				uint8_t p = b_row[ xs ];
-				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-				if (pix && p == pix)
-					b_row[xs] = 0;
-			}
-			else
-			{
-				uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-				if (mirror)
+#ifdef USE_LUT
+				x = lut[xs];
+#else
+				x = (xs-x0)*bmp->width/xmax;
+#endif
+
+				if (clear)
 				{
 					uint8_t p = b_row[ xs ];
-					uint8_t m = m_row[ xs ];
-					if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-					if ((p == 0x14 || p == 0x3) && pix == 0) continue;
+					uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+					if (pix && p == pix)
+						b_row[xs] = 0;
 				}
-				b_row[ xs ] = pix;
+				else
+				{
+					uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+					if (mirror)
+					{
+						uint8_t p = b_row[ xs ];
+						uint8_t m = m_row[ xs ];
+						if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+						if ((p == 0x14 || p == 0x3) && pix == 0) continue;
+					}
+					b_row[ xs ] = pix;
+				}
 			}
 		}
+	} else if (bmp->compression == 1) {
+		uint8_t * bmp_line = bmp->image; // store the start of the line
+		int bmp_y_pos = bmp->height-1; // store the line number
+		for( ys = y0 + ymax - 1 ; ys >= y0; ys-- )
+		{
+			y = (ys-y0)*bmp->height/ymax;
+			uint8_t * const b_row = bvram + ys * bmppitch;
+			uint8_t * const m_row = (uint8_t*)( mirror + (y + y0) * bmppitch );
+			while (y != bmp_y_pos) {
+				// search for the next line
+				if (bmp_line[0]!=0) { bmp_line += 2; } else
+				if (bmp_line[1]==0) { bmp_line += 2; bmp_y_pos--; } else
+				if (bmp_line[1]==1) return;
+				if (y<0) return;
+				if (bmp_line>bmp+bmp->image_size) return;
+			}
+			uint8_t* bmp_col = bmp_line; // store the actual position inside the bitmap
+			int bmp_x_pos_start = 0; // store the start of the line
+			int bmp_x_pos_end = bmp_col[0]; // store the end of the line
+			uint8_t bmp_color = bmp_col[1]; // store the actual color to use
+			for (xs = x0; xs < (x0 + xmax); xs++)
+			{
+				x = (xs-x0)*bmp->width/xmax;
+				while (x>=bmp_x_pos_end) {
+					// skip to this position
+					if (bmp_col>bmp+bmp->image_size) break;
+					if (bmp_col[0]==0) break;
+					bmp_col+=2;
+					if (bmp_col>bmp+bmp->image_size) break;
+					if (bmp_col[0]==0) break;
+					bmp_x_pos_start = bmp_x_pos_end;
+					bmp_x_pos_end = bmp_x_pos_start + bmp_col[0];
+					bmp_color = bmp_col[1];
+				}
+				if (clear)
+				{
+					uint8_t p = b_row[ xs ];
+					if (bmp_color && p == bmp_color) b_row[xs] = 0;
+				}
+				else
+				{
+					if (mirror)
+					{
+						uint8_t p = b_row[ xs ];
+						uint8_t m = m_row[ xs ];
+						if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+						if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue;
+					}
+					b_row[ xs ] = bmp_color;
+				}
+			}
+		}
+
 	}
 }
 

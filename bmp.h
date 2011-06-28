@@ -208,7 +208,8 @@ SIZE_CHECK_STRUCT( bmp_file_t, 54 );
 
 extern struct bmp_file_t *
 bmp_load(
-	const char *		name
+	const char *		name,
+        uint32_t                compression // what compression to load the file into. 0: none, 1: RLE8
 );
 
 typedef struct bmp_ov_loc_size 
@@ -229,7 +230,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);
 uint8_t bmp_getpixel(int x, int y);
 
-#define TOPBAR_BGCOLOR (bmp_getpixel(1,35))
+#define TOPBAR_BGCOLOR (bmp_getpixel(1,30))
 #define BOTTOMBAR_BGCOLOR (bmp_getpixel(1,479))
 
 struct semaphore * bmp_sem;
