@@ -35,7 +35,6 @@ void volume_display_clear();
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
 
-
 struct gain_struct
 {
 	struct semaphore *	sem;

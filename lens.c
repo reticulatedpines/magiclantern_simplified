@@ -324,7 +324,6 @@ update_lens_display(
 
 }
 
-
 int lv_focus_done = 1;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
@@ -343,44 +342,6 @@ lens_focus_wait( void )
 		if (is_manual_focus()) break;
 	}
 }
-
-void
-lens_focus(
-	unsigned		mode,
-	int			step
-)
-{
-	if (!lv_drawn()) return;
-	if (is_manual_focus()) return;
-
-	while (lens_info.job_state) msleep(100);
-	lens_focus_wait();
-	lv_focus_done = 0;
-	
-	struct prop_focus focus = {
-		.active		= 1,
-		.mode		= 7,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-		.unk		= 0,
-	};
-
-	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
-	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
-}
-
-/*
-void lens_focus_ex(unsigned mode, int step, int active)
-{
-	struct prop_focus focus = {
-		.active		= active,
-		.mode		= mode,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-	};
-
-	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
-}*/
 
 void lens_wait_readytotakepic(int wait)
 {
@@ -748,6 +709,12 @@ PROP_HANDLER( PROP_LV_LENS )
 	const struct prop_lv_lens * const lv_lens = (void*) buf;
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
+
+	uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
+	uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
+
+	lens_info.lens_rotation = *((float*)&lrswap);
+	lens_info.lens_step = *((float*)&lsswap);
 	
 	static unsigned old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
@@ -800,6 +767,9 @@ lens_init( void* unused )
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 	menu_add("Movie", lens_menus, COUNT(lens_menus));
+
+	lens_info.lens_rotation = 0.1;
+	lens_info.lens_step = 1.0;
 }
 
 INIT_FUNC( "lens", lens_init );

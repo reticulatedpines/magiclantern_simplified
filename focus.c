@@ -134,7 +134,7 @@ focus_stack(
 		focus_stack_ensure_preconditions();
 
 		lens_focus( 1, step );
-		lens_focus_wait();
+		//~ lens_focus_wait();
 		focus_moved_total += step;
 	}
 
@@ -164,7 +164,7 @@ static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
-CONFIG_INT( "focus.rack-speed", focus_rack_speed, 4 );
+CONFIG_INT( "focus.rack-speed", focus_rack_speed, 100 );
 CONFIG_INT( "focus.delay", lens_focus_delay, 85 );
 
 void follow_focus_reverse_dir()
@@ -409,13 +409,13 @@ focus_task( void* unused )
 		{
 			int step = focus_task_dir * focus_rack_speed;
 			lens_focus( 1, step );
-			focus_task_delta += step;
 			msleep(lens_focus_delay);
+			focus_task_delta += step;
 		}
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x1d, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )

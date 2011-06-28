@@ -57,8 +57,9 @@ CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
-CONFIG_INT( "lcd.release", lcd_release_running, 0);
 CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
+
+extern int lcd_release_running;
 
 //New option for the sensitivty of the motion release
 CONFIG_INT( "motion.release-level", motion_detect_level, 8);
@@ -170,19 +171,8 @@ intervalometer_display( void * priv, int x, int y, int selected )
 	);
 }
 
-static void 
-lcd_release_display( void * priv, int x, int y, int selected )
-{
-	int v = (*(int*)priv);
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"LCD Remote Shot : %s",
-		v == 1 ? "Near" : v == 2 ? (mlu_mode ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
-	);
-	if (v) display_lcd_remote_icon(x-25, y+5);
-	menu_draw_icon(x, y, v ? -1 : MNI_OFF, 0);
-}
+// in lcdsensor.c
+void lcd_release_display( void * priv, int x, int y, int selected );
 
 static void
 audio_release_display( void * priv, int x, int y, int selected )
@@ -937,6 +927,7 @@ silent_pic_take_sweep()
 static void
 silent_pic_take_slitscan(int interactive)
 {
+	return;
 	if (recording) return; // vsync fails
 	if (!lv_drawn()) return;
 	gui_stop_menu();
@@ -966,10 +957,10 @@ silent_pic_take_slitscan(int interactive)
 	for (i = 0; i < vram->height; i++)
 	{
 		int k;
-		for (k = 0; k < (int)silent_pic_slitscan_skipframes; k++)
-			vsync((void*)YUV422_HD_BUFFER_DMA_ADDR);
+		for (k = 0; k < silent_pic_slitscan_skipframes; k++)
+			vsync(CLK_25FPS);
 		
-		FIO_WriteFile(f, (void*)(YUV422_HD_BUFFER_DMA_ADDR + i * vram->pitch), vram->pitch);
+		FIO_WriteFile(f, YUV422_HD_BUFFER + i * vram->pitch, vram->pitch);
 
 		int y = i * 480 / vram->height;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
@@ -1198,7 +1189,6 @@ int crit_iso(int iso_index)
 	{
 		lens_set_rawiso(codes_iso[iso_index]);
 		msleep(500);
-		menu_show_only_selected();
 	}
 
 	int under, over;
@@ -1290,7 +1280,6 @@ int crit_shutter(int shutter_index)
 	if (shutter_index >= 0)
 	{
 		lens_set_rawshutter(codes_shutter[shutter_index]);
-		menu_show_only_selected();
 		msleep(500);
 	}
 
@@ -1461,12 +1450,10 @@ int crit_kelvin(int k)
 	{
 		lens_set_kelvin(k * KELVIN_STEP);
 		msleep(500);
-		menu_show_only_selected();
 	}
 
 	int Y, U, V;
 	get_spot_yuv(100, &Y, &U, &V);
-
 	menu_show_only_selected();
 
 	int R = Y + 1437 * V / 1024;
@@ -1743,42 +1730,6 @@ flash_ae_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_PERCENT, (ae_ev + 80) * 100 / (24+80));
 }
 
-
-uint32_t cfn[4];
-PROP_HANDLER( PROP_CFN )
-{
-	cfn[0] = buf[0];
-	cfn[1] = buf[1];
-	cfn[2] = buf[2];
-	cfn[3] = buf[3] & 0xFF;
-	//~ bmp_printf(FONT_MED, 0, 450, "cfn: %x/%x/%x/%x", cfn[0], cfn[1], cfn[2], cfn[3]);
-	return prop_cleanup( token, property );
-}
-
-int get_htp()
-{
-	if (cfn[1] & 0x10000) return 1;
-	return 0;
-}
-
-void set_htp(int enable)
-{
-	if (enable) cfn[1] |= 0x10000;
-	else cfn[1] &= ~0x10000;
-	prop_request_change(PROP_CFN, cfn, 0xD);
-}
-
-void set_mlu(int enable)
-{
-	if (enable) cfn[2] |= 0x1;
-	else cfn[2] &= ~0x1;
-	prop_request_change(PROP_CFN, cfn, 0xD);
-}
-int get_mlu()
-{
-	return cfn[2] & 0x1;
-}
-
 void set_alo(int value)
 {
 	value = COERCE(value, 0, 3);
@@ -2002,7 +1953,6 @@ intervalometer_wait_toggle(void* priv)
 	intervalometer_wait = !intervalometer_wait;
 }
 
-#ifdef CONFIG_SRAW
 static void
 picq_display( void * priv, int x, int y, int selected )
 {
@@ -2097,7 +2047,6 @@ static void picq_toggle(void* priv)
 	int newp = picq_next(pic_quality);
 	set_pic_quality(newp);
 }
-#endif
 
 struct menu_entry shoot_menus[] = {
 	{
@@ -2122,13 +2071,14 @@ struct menu_entry shoot_menus[] = {
 		.select_auto = intervalometer_wait_toggle,
 		.help = "Intervalometer. For precise timing, choose NoWait [Q]."
 	},
+	#ifdef CONFIG_550D
 	{
 		.priv		= &lcd_release_running,
 		.select		= menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
-		.help = "Use the LCD sensor as a remote trigger. Avoids shake."
 	},
+	#endif
  	{
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
@@ -2176,14 +2126,12 @@ struct menu_entry shoot_menus[] = {
 		.select = picq_toggle_raw,
 		.select_reverse = picq_toggle_jpegsize, 
 		.select_auto = picq_toggle_jpegtype,
-	}*/
-#ifdef CONFIG_SRAW
+	}
 	{
 		.display = picq_display, 
 		.select = picq_toggle, 
 		.help = "Experimental SRAW/MRAW mode. You may get corrupted files."
-	}
-#endif
+	}*/
 };
 
 static struct menu_entry vid_menus[] = {
@@ -2520,59 +2468,14 @@ void iso_refresh_display()
 		update_lens_display(lens_info);
 		return;
 	}
+	
 	int bg = bmp_getpixel(680, 40);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
-		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
+		bmp_printf(fnt, 560, 27, "ISO %5d", iso);
 	else
-		bmp_printf(fnt, 470, 27, "ISO AUTO");
-}
-
-void display_shooting_info() // called from debug task
-{
-	if (lv_drawn()) return;
-	
-	int bg = bmp_getpixel(314, 260);
-	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-
-	if (lens_info.wb_mode == WB_KELVIN)
-	{
-		bmp_printf(fnt, 320, 260, "%5dK", lens_info.kelvin);
-	}
-	if (lens_info.wbs_gm || lens_info.wbs_ba)
-	{
-		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
-
-		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(fnt, 435, 240, "   ");
-
-		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
-		else bmp_printf(fnt, 435, 270, "   ");
-	}
-
-	iso_refresh_display();
-
-	bg = bmp_getpixel(15, 430);
-	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-	
-	if (hdr_steps > 1)
-		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
-	else
-		bmp_printf(fnt, 380, 450, "           ");
-
-	//~ bmp_printf(fnt, 200, 450, "Flash:%s", 
-		//~ strobo_firing == 0 ? " ON" : 
-		//~ strobo_firing == 1 ? "OFF" : "Auto"
-		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
-		//~ );
-
-	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
-
-	display_lcd_remote_icon(480, 0);
-	display_trap_focus_info();
+		bmp_printf(fnt, 560, 27, "ISO AUTO");
 }
 
 void display_expsim_status()
@@ -2592,6 +2495,7 @@ void display_expsim_status()
 	prev_expsim = expsim;
 }
 
+
 void display_shooting_info_lv()
 {
 	display_lcd_remote_icon(480, 0);
@@ -2602,6 +2506,7 @@ void display_shooting_info_lv()
 void display_trap_focus_info()
 {
 	int show, fg, bg, x, y;
+	static int show_prev = 0;
 	if (lv_drawn())
 	{
 		show = trap_focus && can_lv_trap_focus_be_active();
@@ -2609,16 +2514,16 @@ void display_trap_focus_info()
 		bg = active ? COLOR_BG : 0;
 		fg = active ? COLOR_RED : COLOR_BG;
 		x = 8; y = 160;
+		if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
 	}
 	else
 	{
 		show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
-		bg = bmp_getpixel(410, 330);
+		bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
 		fg = trap_focus == 2 || FOCUS_CONFIRMATION_AF_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
-		x = 410; y = 331;
+		x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
+		if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
 	}
-	static int show_prev = 0;
-	if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
 	show_prev = show;
 }
 
@@ -2637,86 +2542,6 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 	}
 	return 0;
 }
-
-int wave_count = 0;
-int wave_count_countdown = 0;
-PROP_HANDLER(PROP_DISPSENSOR_CTRL)
-{
-	static int prev = 0;
-	int on = !buf[0];
-	int off = !on;
-	if (on == prev) // false alarm
-		goto end;
-	prev = on;
-	
-	if (remote_shot_flag) goto end;
-	
-	if (lcd_release_running && gui_state == GUISTATE_IDLE && !intervalometer_running)
-	{
-		if (gui_menu_shown()) goto end;
-		
-		if (lcd_release_running == 1 && off) goto end;
-		if (lcd_release_running == 2 && on && !get_mlu()) goto end;
-		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
-		if (lcd_release_running == 3 && wave_count < 5) goto end;
-
-		if (lcd_release_running == 3 && recording) schedule_movie_end(); // wave mode is allowed to stop movies
-		else schedule_remote_shot();
-		wave_count = 0;
-	}
-	else wave_count = 0;
-
-	end:
-	return prop_cleanup(token, property);
-}
-
-void display_lcd_remote_icon(int x0, int y0)
-{
-	int cl_on = COLOR_RED;
-	int cl_off = lv_drawn() ? COLOR_WHITE : COLOR_FG_NONLV;
-	int cl = display_sensor ? cl_on : cl_off;
-	int bg = lv_drawn() ? 0 : bmp_getpixel(x0 - 20, 1);
-
-	if (gui_menu_shown()) cl = COLOR_WHITE;
-
-	if (lcd_release_running == 1)
-	{
-		draw_circle(x0, 10+y0, 8, cl);
-		draw_circle(x0, 10+y0, 7, cl);
-		draw_line(x0-5,10-5+y0,x0+5,10+5+y0,cl);
-		draw_line(x0-5,10+5+y0,x0+5,10-5+y0,cl);
-	}
-	else if (lcd_release_running == 2)
-	{
-		draw_circle(x0, 10+y0, 8, cl);
-		draw_circle(x0, 10+y0, 7, cl);
-		draw_circle(x0, 10+y0, 1, cl);
-		draw_circle(x0, 10+y0, 2, cl);
-	}
-	else if (lcd_release_running == 3)
-	{
-		int yup = 5+y0;
-		int ydn = 15+y0;
-		int step = 5;
-		int k;
-		for (k = 0; k < 2; k++)
-		{
-			draw_line(x0 - 2*step, ydn, x0 - 1*step, yup, wave_count > 0 ? cl_on : cl_off);
-			draw_line(x0 - 1*step, yup, x0 - 0*step, ydn, wave_count > 1 ? cl_on : cl_off);
-			draw_line(x0 - 0*step, ydn, x0 + 1*step, yup, wave_count > 2 ? cl_on : cl_off);
-			draw_line(x0 + 1*step, yup, x0 + 2*step, ydn, wave_count > 3 ? cl_on : cl_off);
-			draw_line(x0 + 2*step, ydn, x0 + 3*step, yup, wave_count > 4 ? cl_on : cl_off);
-			x0++;
-		}
-	}
-	
-	if (gui_menu_shown()) return;
-	
-	static unsigned int prev_lr = 0;
-	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
-	prev_lr = lcd_release_running;
-}
-
 
 void intervalometer_stop()
 {
@@ -2765,11 +2590,7 @@ shoot_task( void* unused )
 	{
 		msleep(10);
 		
-		if (wave_count_countdown)
-		{
-			wave_count_countdown--;
-			if (!wave_count_countdown) wave_count = 0;
-		}
+		lcd_release_step();
 		
 		if (iso_auto_flag)
 		{

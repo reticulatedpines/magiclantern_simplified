@@ -225,8 +225,7 @@ static void
 movtweak_task( void* unused )
 {
 	if (!lv_drawn() && enable_liveview && shooting_mode == SHOOTMODE_MOVIE
-		&& (CURRENT_DIALOG_MAYBE == DLG_MOVIE_PRESS_LV_TO_RESUME || 
-			CURRENT_DIALOG_MAYBE == DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+		&& (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
 	{
 		force_liveview();
 	}
@@ -251,8 +250,8 @@ movtweak_task( void* unused )
 		
 		save_kelvin_wb();
 
-		if ((enable_liveview && CURRENT_DIALOG_MAYBE == DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-			(enable_liveview == 2 && CURRENT_DIALOG_MAYBE == DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+		if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
+			(enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
 		{
 			force_liveview();
 		}

@@ -1,11 +1,18 @@
+#define HIJACK_INSTR_BL_CSTART  0xFF01019C
+#define HIJACK_INSTR_BSS_END 0xFF01109C
+#define HIJACK_FIXBR_BZERO32 0xFF011004
+#define HIJACK_FIXBR_CREATE_ITASK 0xFF01108C
+#define HIJACK_INSTR_MY_ITASK 0xFF0110A8
+#define HIJACK_TASK_ADDR 0x1a20
+
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER 0x40D07800 
 #define YUV422_LV_PITCH 1440
-#define YUV422_LV_PITCH_RCA 1080
-#define YUV422_LV_PITCH_HDMI 3840
-#define YUV422_LV_HEIGHT 480
-#define YUV422_LV_HEIGHT_RCA 540
-#define YUV422_LV_HEIGHT_HDMI 1080
+//~ #define YUV422_LV_PITCH_RCA 1080
+//~ #define YUV422_LV_PITCH_HDMI 3840
+//~ #define YUV422_LV_HEIGHT 480
+//~ #define YUV422_LV_HEIGHT_RCA 540
+//~ #define YUV422_LV_HEIGHT_HDMI 1080
 
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x246c)
 #define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
@@ -13,7 +20,7 @@
 
 
 // changes during record
-//~ #define YUV422_HD_BUFFER 0x44000080
+#define YUV422_HD_BUFFER 0x44000080
 //~ #define YUV422_HD_BUFFER_2 0x46000080
 
 #define YUV422_HD_PITCH_IDLE 2112
@@ -111,7 +118,7 @@
 
 #define COLOR_FG_NONLV 80
 
-#define MVR_752_STRUCT (*(void**)0x1e70)
+#define MVR_752_STRUCT (*(void**)0x1e70) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
@@ -154,8 +161,8 @@
 #define DLG_Q_UNAVI 0x1F
 #define DLG_FLASH_AE 0x22
 #define DLG_PICQ 6
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0x1A
-#define DLG_MOVIE_PRESS_LV_TO_RESUME 0x1B
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1A)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1B)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a74 // this prop_deliver performs the action for Video Connect and Video Disconnect
@@ -163,3 +170,19 @@
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+
+#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
+
+// position for displaying shutter count and other info
+#define MENU_DISP_INFO_POS_X 20
+#define MENU_DISP_INFO_POS_Y 400
+
+// position for displaying clock outside LV
+#define DISPLAY_CLOCK_POS_X 200
+#define DISPLAY_CLOCK_POS_Y 410
+
+// for displaying TRAP FOCUS msg outside LV
+#define DISPLAY_TRAP_FOCUS_POS_X 410
+#define DISPLAY_TRAP_FOCUS_POS_Y 330
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "

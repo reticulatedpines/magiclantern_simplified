@@ -31,4 +31,8 @@ extern int lv_disp_mode;
 extern int mirror_down;
 extern int hdmi_code;
 extern int backlight_level;
+extern int video_mode_crop;
+extern int video_mode_fps;
+extern int video_mode_resolution; // 0 if full hd, 1 if 720p, 2 if 480p
+
 #endif

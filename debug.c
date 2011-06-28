@@ -52,6 +52,7 @@ static void dm_toggle(void* priv)
 
 extern void bootdisk_disable();
 
+
 void take_screenshot( void * priv )
 {
 	call( "dispcheck" );
@@ -84,11 +85,11 @@ int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fi
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
 int mem_spy_count_lo = 5; // how many times is a value allowed to change
-int mem_spy_count_hi = 0; // (limits)
-int mem_spy_freq_lo = 5; 
-int mem_spy_freq_hi = 100;  // or check frequecy between 2 limits (0 = disable)
-int mem_spy_value_lo = 0x40000000;
-int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
+int mem_spy_count_hi = 50; // (limits)
+int mem_spy_freq_lo = 0; 
+int mem_spy_freq_hi = 0;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_value_lo = 0;
+int mem_spy_value_hi = 50;  // or look for a specific range of values (0 = disable)
 
 #endif
 
@@ -115,14 +116,6 @@ void card_led_blink(int times, int delay_on, int delay_off)
 int config_ok = 0;
 
 void
-config_autosave_toggle(void* priv)
-{
-	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
-	msleep(50);
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
-}
-
-void
 save_config( void * priv )
 {
 	config_save_file( "B:/magic.cfg" );
@@ -132,6 +125,14 @@ delete_config( void * priv )
 {
 	FIO_RemoveFile( "B:/magic.cfg" );
 	if (config_autosave) config_autosave_toggle(0);
+}
+
+void
+config_autosave_toggle(void* priv)
+{
+	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
+	msleep(50);
+	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 }
 
 static void
@@ -160,17 +161,6 @@ static int vmax(int* x, int n)
 	return m;
 }
 
-/*
-void font_test(void* priv)
-{
-	gui_stop_menu();
-	msleep(500);
-	
-	bfnt_puts("Hello, world!", 10, 20, COLOR_BLACK, COLOR_WHITE);
-	int msg[] = {0x9381e3, 0x9382e3, 0xab81e3, 0xa181e3, 0xaf81e3, 0};
-	bfnt_puts_utf8(msg, 250, 20, COLOR_BLACK, COLOR_WHITE);
-}*/
-
 void xx_test(void* priv)
 {
 	ChangeHDMIOutputSizeToFULLHD();
@@ -188,8 +178,7 @@ void toggle_mirror_display()
 	//~ zebra_resume();
 }
 
-/*
-void fake_simple_button(int bgmt_code)
+/*void fake_simple_button(int bgmt_code)
 {
 	struct event e = {
 		.type = 0,
@@ -299,7 +288,7 @@ static void dbg_memspy_update()
 
 		int x = 10 + 8 * 22 * (k % 4);
 		int y = 10 + 12 * (k / 4);
-		bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, freq, newval);
+		bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
 		k = (k + 1) % 120;
 	}
 
@@ -315,11 +304,9 @@ static void dbg_memspy_update()
 
 void display_info()
 {
-	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
-	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
-	//~ bmp_printf(FONT_MED, 20, 440, "Battery level: %d or %d", battery_level_raw, battery_level_raw_maybe);
-	bmp_printf(FONT_MED, 20, 440, "Lens: %s          ", lens_info.name);
-	//~ bmp_printf(FONT_MED, 20, 440, "%d  ", *(int*)0x25334);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y,      "Shutter Count: %d", shutter_count);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 20, "CMOS Temperat: %d", efic_temp);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 40, "Lens: %s          ", lens_info.name);
 }
 
 void display_shortcut_key_hints_lv()
@@ -387,8 +374,29 @@ void display_clock()
 	else
 	{
 		uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
-		bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
+		bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
 	}
+}
+
+PROP_INT(PROP_APERTURE, aper1);
+PROP_INT(PROP_APERTURE2, aper2);
+PROP_INT(PROP_APERTURE3, aper3);
+
+struct rolling_pitching 
+{
+	uint8_t status;
+	uint8_t cameraposture;
+	int8_t roll_sensor1;
+	int8_t roll_sensor2;
+	int8_t pitch_sensor1;
+	int8_t pitch_sensor2;
+};
+struct rolling_pitching level_data;
+
+PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
+{
+	memcpy(&level_data, buf, 6);
+	return prop_cleanup(token, property);
 }
 
 #if CONFIG_DEBUGMSG
@@ -397,8 +405,7 @@ static unsigned dbg_last_changed_propindex = 0;
 #endif
 int screenshot_sec = 0;
 static void
-
-debug_loop_task( void * unused ) // screenshot, draw_prop
+debug_loop_task( void* unused ) // screenshot, draw_prop
 {
 	msleep(500);
 	int k;
@@ -410,19 +417,19 @@ debug_loop_task( void * unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 0, 0, "%x", *(int*)0x3cc0);
+		//~ bmp_printf(FONT_MED, 50, 50, "%2x %2x %2x %2x %2x  ", level_data.status, level_data.cameraposture, level_data.roll_sensor1, level_data.roll_sensor2, level_data.roll_sensor1 + level_data.roll_sensor2);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, 0x26B8, 32*5);
 		
-		//~ if (gui_state == GUISTATE_IDLE)
+		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
-			//~ bmp_hexdump(FONT_SMALL, 0, 40, 0xc0e10000, 32*20);
-		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", *(int*)131030);
+			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
+		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", CURRENT_DIALOG_MAYBE);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2 && k % 10 == 0) BMP_SEM
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_SEM
 		(
 			display_clock();
 			display_shooting_info();
@@ -444,6 +451,12 @@ debug_loop_task( void * unused ) // screenshot, draw_prop
 			msleep( 1000 );
 			if (!screenshot_sec)
 				take_screenshot(0);
+		}
+		
+		if (BTN_METERING_PRESSED_IN_LV)
+		{
+			while (BTN_METERING_PRESSED_IN_LV) msleep(100);
+			toggle_disp_mode();
 		}
 		
 		#if CONFIG_DEBUGMSG
@@ -487,22 +500,6 @@ spy_print(
 	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
-struct rolling_pitching 
-{
-	uint8_t status;
-	uint8_t cameraposture;
-	int8_t roll_sensor1;
-	int8_t roll_sensor2;
-	int8_t pitch_sensor1;
-	int8_t pitch_sensor2;
-};
-struct rolling_pitching level_data;
-
-PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
-{
-	memcpy(&level_data, buf, 6);
-	return prop_cleanup(token, property);
-}
 
 struct menu_entry debug_menus[] = {
 	{
@@ -770,7 +767,7 @@ struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
 	if (logo == (void*) -1) 
-		logo = bmp_load("B:/logo.bmp", 0);
+		logo = bmp_load("B:/logo.bmp",0);
 }
 void show_logo()
 {

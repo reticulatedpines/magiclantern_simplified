@@ -598,31 +598,23 @@ menu_handler(
 )
 {
 	static int k = 0;
-
 	// Ignore periodic events (pass them on)
-	if( event == 0x1000007c || event == 0x10000078 || event == 0x1000007d)
+	if( 0
+	||  event == GUI_TIMER2
+	||  event == GUI_TIMER3
+	||  event == GUI_TIMER4
+	||  event == 0x1000007c
+	||  event == 0x10000078
+	)
 		return 1; // 0 is too aggressive :)
 
-	// canon code might have drawn over menu... but these should not be blocked
-	if (event == 0x100000b5)
+/*	if( event != 0x10000098 && event != 0x100000db)
 	{
-		menu_damage = 1;
-		return 1;
-	}
-	
-	if (event == 0x100000a6)
-	{
-		if (!lv_drawn()) menu_damage = 1;
-		return 1;
-	}
-
-	//~ if(event != 0x1000007c)
-	//~ {
-		//~ bmp_printf( FONT_SMALL, 300, 40,
-			//~ "evt %8x(%8x,%8x,%8x) %d",
-			//~ event, arg2, arg3, arg4, menu_damage
-		//~ );
-	//~ }
+		bmp_printf( FONT_SMALL, 400, 40,
+			"evt %8x(%8x,%8x,%8x",
+			event, arg2, arg3, arg4
+		);
+	}*/
 
 		// Mine!  No one else gets it
 		//~ return 0;
@@ -646,7 +638,6 @@ menu_handler(
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
 			break;
-
 	switch( event )
 	{
 	case INITIALIZE_CONTROLLER:
@@ -677,6 +668,7 @@ menu_handler(
 	case PRESS_MENU_BUTTON:
 	case EVENTID_METERING_START: // If they press the shutter halfway
 	case 0x10000048:
+	case 0x10000062:
 		gui_stop_menu();
 		return 1;
 	
@@ -761,8 +753,10 @@ menu_handler(
 	case EVENT_1:          // Synthetic redraw event
 		break;
 
-	case EVENT_10000086:
-		// Who knows?  Fall through
+	//~ case 0x10000097: // canon code might have drawn over menu
+	case 0x100000e8: // when you press Q on ISO
+		menu_damage = 1;
+		break;
 
 	default:
 		DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
@@ -782,7 +776,7 @@ menu_handler(
 	// If we are hidden or no longer exit, do not redraw
 	if( menu_hidden || !gui_menu_task )
 		return 0;
-	
+
 	menu_redraw_if_damaged();
 
 	return 0;
@@ -845,6 +839,13 @@ gui_stop_menu( void )
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
+
+	//workaround, otherwise screen does not refresh after closing menu
+	/*if (!lv_drawn())
+	{
+		while (get_halfshutter_pressed()) msleep(100);
+		fake_simple_button(BGMT_Q);
+	}*/
 	
 	lens_focus_stop();
 	show_only_selected = 0;
@@ -904,11 +905,11 @@ about_print_0(
 	if (!selected) return;
 	bmp_printf(FONT_LARGE,
 		x, y,
-		"Magic Lantern for 550D"
+		"Magic Lantern for 60D"
 	);
 	bmp_printf(FONT_MED,
 		x, y + font_large.height,
-"http://magiclantern.wikia.com/550D");
+"http://magiclantern.wikia.com/60D");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 1 + 5,
@@ -944,11 +945,11 @@ about_print(
 	if (!selected) return;
 	bmp_printf(FONT_LARGE,
 		x, y,
-		"Magic Lantern for 550D"
+		"Magic Lantern for 60D"
 	);
 	bmp_printf(FONT_MED,
 		x, y + font_large.height,
-"http://magiclantern.wikia.com/550D");
+"http://magiclantern.wikia.com/60D");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 1 + 5,
@@ -956,7 +957,7 @@ about_print(
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 2 + 10,
-"Crypto tools and 550D/1.0.9 port by Arm.Indy");
+"Crypto tools by Arm.Indy, 60D port by SztupY");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 3 + 15,
@@ -965,7 +966,7 @@ about_print(
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 4 + 20,
 "Patches by piersg, nandoide, stefano, trho,\n"
-"      deti, tapani, phil");
+"      deti, tapani, phil, xaos, sztupy");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 6 + 25,
@@ -1080,6 +1081,7 @@ menu_task( void* unused )
 		{
 			open_canon_menu();
 		}
+		msleep(100);
 		
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;

@@ -32,7 +32,6 @@ PROP_INT(PROP_DRIVE, drive_mode);
 PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
-PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
@@ -43,4 +42,15 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	display_sensor = !buf[0];
 	return prop_cleanup(token, property);
+}
+
+int video_mode_crop = 0;
+int video_mode_fps = 0;
+int video_mode_resolution = 0; // 0 if full hd, 1 if 720p, 2 if 480p
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+	video_mode_crop = buf[0];
+	video_mode_fps = buf[2];
+	video_mode_resolution = buf[1];
+	return prop_cleanup( token, property );
 }

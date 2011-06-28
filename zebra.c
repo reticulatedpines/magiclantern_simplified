@@ -43,11 +43,8 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define WAVEFORM_MAX_HEIGHT			240
-#define WAVEFORM_MAX_WIDTH			360
-#define WAVEFORM_HALFSIZE (waveform_draw == 1)
-#define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
-#define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
+#define WAVEFORM_WIDTH 120
+#define WAVEFORM_HEIGHT 180
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
@@ -61,16 +58,16 @@ CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 CONFIG_INT( "livev.playback", livev_playback, 0);
-CONFIG_INT( "global.draw", global_draw, 1 );
-CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
+CONFIG_INT( "global.draw", 	global_draw, 1 );
+CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
-CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
+CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
-CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 2);
+CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
 CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
 CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
@@ -90,7 +87,7 @@ CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,c
 //~ int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
-CONFIG_INT( "hist.draw",	hist_draw,	1 );
+CONFIG_INT( "hist.draw",	hist_draw,	0 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
 CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
@@ -121,6 +118,7 @@ void ChangeColorPaletteLV(int x)
 {
 	if (!lv_drawn()) return;
 	if (!bmp_is_on()) return;
+	if (MENU_MODE) return;
 	ChangeColorPalette(x);
 }
 
@@ -187,16 +185,6 @@ PROP_HANDLER(PROP_HDMI_CHANGE)
 	return prop_cleanup( token, property );
 }
 
-int video_mode_crop = 0;
-int video_mode_fps = 0;
-int video_mode_resolution = 0; // 0 if full hd, 1 if 720p, 2 if 480p
-PROP_HANDLER(PROP_VIDEO_MODE)
-{
-	video_mode_crop = buf[0];
-	video_mode_fps = buf[2];
-	video_mode_resolution = buf[1];
-	return prop_cleanup( token, property );
-}
 
 /*int gui_state;
 PROP_HANDLER(PROP_GUI_STATE) {
@@ -223,84 +211,6 @@ int get_global_draw()
 void set_global_draw(int g)
 {
 	global_draw = g;
-}
-
-struct vram_info * get_yuv422_hd_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
-									video_mode_resolution == 1 ? 1280 : 
-									video_mode_resolution == 2 ? 640 : 0)
-								  : lv_dispsize > 1 ? 1024
-								  : shooting_mode != SHOOTMODE_MOVIE ? 1056
-								  : (video_mode_resolution == 0 ? 1056 : 
-								  	video_mode_resolution == 1 ? 1024 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
-									video_mode_resolution == 1 ? 580 : 
-									video_mode_resolution == 2 ? 480 : 0)
-								  : lv_dispsize > 1 ? 680
-								  : shooting_mode != SHOOTMODE_MOVIE ? 704
-								  : (video_mode_resolution == 0 ? 704 : 
-								  	video_mode_resolution == 1 ? 680 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 480:680) : 0);
-
-	return &_vram_info;
-}
-
-
-void* get_fastrefresh_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case 0x40d07800:
-			return (void*) 0x4c233800;
-		case 0x4c233800:
-			return (void*) 0x4f11d800;
-		case 0x4f11d800:
-			return (void*) 0x40d07800;
-	}
-	return 0;
-}
-
-void* get_write_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case 0x40d07800:
-			return (void*) 0x40d07800;
-		case 0x4c233800:
-			return (void*) 0x4c233800;
-		case 0x4f11d800:
-			return (void*) 0x4f11d800;
-	}
-	return 0;
-}
-
-int vram_width = 720;
-int vram_height = 480;
-PROP_HANDLER(PROP_VRAM_SIZE_MAYBE)
-{
-	vram_width = buf[1];
-	vram_height = buf[2];
-	return prop_cleanup(token, property);
-}
-
-struct vram_info * get_yuv422_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = get_fastrefresh_422_buf();
-	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
-
-	_vram_info.width = vram_width;
-	_vram_info.height = vram_width * 2 / 3;
-	_vram_info.pitch = _vram_info.width * 2;
-
-	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
-
-	return &_vram_info;
 }
 
 /** Sobel edge detection */
@@ -860,7 +770,39 @@ static void dump_vram()
 {
 	dump_big_seg(0, "B:/0.bin");
 	//dump_big_seg(4, "B:/4.bin");
-	//~ dump_seg(0x44000080, 1920*1080*2, "B:/hd.bin");
+	dump_seg(0x1000, 0x100000, "B:/ram.bin");
+/*	dump_seg(0x40000000, 0x1000000, "B:/0.bin");
+	dump_seg(0x41000000, 0x1000000, "B:/1.bin");
+	dump_seg(0x42000000, 0x1000000, "B:/2.bin");
+	dump_seg(0x43000000, 0x1000000, "B:/3.bin");
+	dump_seg(0x44000000, 0x1000000, "B:/4.bin");
+	dump_seg(0x45000000, 0x1000000, "B:/5.bin");
+	dump_seg(0x46000000, 0x1000000, "B:/6.bin");
+	dump_seg(0x47000000, 0x1000000, "B:/7.bin");
+	dump_seg(0x48000000, 0x1000000, "B:/8.bin");
+	dump_seg(0x49000000, 0x1000000, "B:/9.bin");
+	dump_seg(0x4A000000, 0x1000000, "B:/A.bin");
+	dump_seg(0x4B000000, 0x1000000, "B:/B.bin");
+	dump_seg(0x4C000000, 0x1000000, "B:/C.bin");
+	dump_seg(0x4D000000, 0x1000000, "B:/D.bin");
+	dump_seg(0x4E000000, 0x1000000, "B:/E.bin");
+	dump_seg(0x4F000000, 0x1000000, "B:/F.bin");
+	dump_seg(0x50000000, 0x1000000, "B:/10.bin");
+	dump_seg(0x51000000, 0x1000000, "B:/11.bin");
+	dump_seg(0x52000000, 0x1000000, "B:/12.bin");
+	dump_seg(0x53000000, 0x1000000, "B:/13.bin");
+	dump_seg(0x54000000, 0x1000000, "B:/14.bin");
+	dump_seg(0x55000000, 0x1000000, "B:/15.bin");
+	dump_seg(0x56000000, 0x1000000, "B:/16.bin");
+	dump_seg(0x57000000, 0x1000000, "B:/17.bin");
+	dump_seg(0x58000000, 0x1000000, "B:/18.bin");
+	dump_seg(0x59000000, 0x1000000, "B:/19.bin");
+	dump_seg(0x5A000000, 0x1000000, "B:/1A.bin");
+	dump_seg(0x5B000000, 0x1000000, "B:/1B.bin");
+	dump_seg(0x5C000000, 0x1000000, "B:/1C.bin");
+	dump_seg(0x5D000000, 0x1000000, "B:/1D.bin");
+	dump_seg(0x5E000000, 0x1000000, "B:/1E.bin");
+	dump_seg(0x5F000000, 0x1000000, "B:/1F.bin");*/
 	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, "B:/VRAM.BIN");
 }
 
@@ -879,11 +821,11 @@ void waveform_init()
 {
 	if (!waveform)
 	{
-		waveform = AllocateMemory(WAVEFORM_MAX_WIDTH * sizeof(uint32_t*));
+		waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
 		if (!waveform) fail("Waveform malloc failed");
 		int i;
-		for (i = 0; i < WAVEFORM_MAX_WIDTH; i++) {
-			waveform[i] = AllocateMemory(WAVEFORM_MAX_HEIGHT * sizeof(uint32_t));
+		for (i = 0; i < WAVEFORM_WIDTH; i++) {
+			waveform[i] = AllocateMemory(WAVEFORM_HEIGHT * sizeof(uint32_t));
 			if (!waveform[i]) fail("Waveform malloc failed");
 		}
 	}
@@ -975,6 +917,11 @@ int zebra_color_word_row(int c, int y)
 	return cw;
 }
 
+
+static int* dirty_pixels = 0;
+static int dirty_pixels_num = 0;
+static int very_dirty = 0;
+
 int zebra_color_word_row_thick(int c, int y)
 {
 	//~ return zebra_color_word_row(c,y);
@@ -1019,11 +966,8 @@ static void draw_zebra_and_focus_unified( void )
 	if (focus_peaking || zd) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
-  		static int* dirty_pixels = 0;
-  		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
+		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
   		if (!dirty_pixels) return;
-  		static int dirty_pixels_num = 0;
-  		//~ static int very_dirty = 0;
   		bmp_ov_loc_size_t os;
   		calc_ov_loc_size(&os);
   		struct vram_info * _vram;
@@ -1233,7 +1177,7 @@ static void
 draw_zebra_and_focus( int Z, int F )
 {
 	if (lv_dispsize != 1) return;
-	if (vram_width > 720) return;
+	//~ if (vram_width > 720) return;
 
 /*	int Zd = should_draw_zoom_overlay();
 	static int Zdp = 0;
@@ -1269,11 +1213,8 @@ draw_zebra_and_focus( int Z, int F )
 	{
 		// clear previously written pixels
 		#define MAX_DIRTY_PIXELS 5000
-  		static int* dirty_pixels = 0;
   		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
   		if (!dirty_pixels) return;
-		static int dirty_pixels_num = 0;
-		//~ static int very_dirty = 0;
 		int i;
 		for (i = 0; i < dirty_pixels_num; i++)
 		{
@@ -1564,7 +1505,7 @@ draw_false( void )
 void
 draw_false_downsampled( void )
 {
-	if (vram_width > 720) return;
+	//~ if (vram_width > 720) return;
 	if (!PLAY_MODE)
 	{
 		if (!expsim) return;
@@ -1834,7 +1775,7 @@ static void reload_cropmark(int i)
 	{
 		char bmpname[100];
 		snprintf(bmpname, sizeof(bmpname), "B:/CROPMKS/%s", cropmark_names[i-1]);
-		cropmarks = bmp_load(bmpname, 1);
+		cropmarks = bmp_load(bmpname,1);
 		if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 	}
 }
@@ -2270,8 +2211,6 @@ int get_spot_focus(int dx)
 	return sf / (br >> 14);
 }
 
-extern int lv_disp_mode;
-
 void spotmeter_step()
 {
     //~ if (!lv_drawn()) return;
@@ -2598,6 +2537,11 @@ struct menu_entry zebra_menus[] = {
 		//~ .display = menu_print, 
 		//~ .select = hdmi_test_toggle,
 	//~ }
+	/*	{
+		 .priv = "[debug] dump vram", 
+		 .display = menu_print, 
+		 .select = dump_vram,
+	 }*/
 	//~ {
 		//~ .priv		= &edge_draw,
 		//~ .select		= menu_binary_toggle,
@@ -2671,7 +2615,7 @@ static struct menu_entry cfg_menus[] = {
 		.select		= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= disp_profiles_0_display,
-		.help = "Number of LiveV display presets. Switch them with ISO+DISP."
+		.help = "No. of LiveV disp. presets. Switch w Metering or ISO+DISP."
 	},
 };
 
@@ -2827,7 +2771,7 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 void draw_zoom_overlay()
 {
-	if (vram_width > 720) return;
+	//~ if (vram_width > 720) return;
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
@@ -3213,7 +3157,6 @@ clearscreen_loop:
 			BMP_SEM( bmp_off(); )
 			while (get_halfshutter_pressed()) msleep(100);
 			BMP_SEM( bmp_on(); )
-			redraw();
 		}
 		//~ else if (clearscreen == 2)  // always clear overlays
 		//~ {
@@ -3307,6 +3250,7 @@ int should_draw_zoom_overlay()
 	return 0;
 }
 
+
 void false_color_toggle()
 {
 	falsecolor_draw = !falsecolor_draw;
@@ -3322,7 +3266,7 @@ void schedule_transparent_overlay()
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
-static void
+ static void
 livev_hipriority_task( void* unused )
 {
 	msleep(1000);
@@ -3330,17 +3274,18 @@ livev_hipriority_task( void* unused )
 
 	int k = 0;
 	for (;;k++)
-	{
+ 	{
 		msleep(10);
-		
+
 		while (is_mvr_buffer_almost_full())
 			msleep(100);
-
+		
 		zebra_sleep_when_tired();
 
 		static int dirty = 0;
 		if (should_draw_zoom_overlay())
 		{
+			guess_fastrefresh_direction();
 			if (dirty) { clrscr_mirror(); dirty = 0; }
 			BMP_SEM( draw_zoom_overlay(); )
 		}

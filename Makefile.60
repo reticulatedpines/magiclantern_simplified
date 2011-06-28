@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=$(shell whoami)
+BUILDVER=alpha12.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -41,24 +41,26 @@ CONFIG_DEBUGMSG = 0
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
 #Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DIGITAL/
+CF_CARD_GLOB=/media/EOS_*
+CF_CARD=$(shell echo $(CF_CARD_GLOB))
 UMOUNT=umount
 
 all: magiclantern.fir
 
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').550d.fw109.$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').60d.fw109.$(BUILDVER)
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF010000
-RESTARTSTART		= 0x0008B000
+RESTARTSTART		= 0x5f000
 
 # Firmware file IDs
 FIRMWARE_ID_5D		= 0x80000218
 FIRMWARE_ID_7D		= 0x80000250
 FIRMWARE_ID_550D	= 0x80000270
-FIRMWARE_ID		= $(FIRMWARE_ID_550D)
+FIRMWARE_ID_60D 	= 0x80000270
+FIRMWARE_ID		= $(FIRMWARE_ID_60D)
 
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
@@ -84,7 +86,9 @@ install: autoexec.bin
 	cp $^ $(CF_CARD)
 
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp cropmks/*.bmp $(CF_CARD)/cropmks/
+	cp cropmks_rle/*.bmp $(CF_CARD)/cropmks/
+
+	cp logo.bmp $(CF_CARD)
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -125,7 +129,7 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_550D=1 \
+	-DCONFIG_60D=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
@@ -198,7 +202,7 @@ dumper_entry.o: flasher-stubs.S
 
 reboot.o: reboot.c magiclantern.bin
 
-5d-hack.bin: 5d-hack
+boot-hack.bin: boot-hack
 
 magiclantern.lds: magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
@@ -209,8 +213,8 @@ magiclantern.lds: magiclantern.lds.S
 ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
-	5d-hack.o \
-	stubs-550d.109.o \
+	boot-hack.o \
+	platform/60D.109/stubs.o \
 	version.o \
 	bmp.o \
 	font-large.o \
@@ -225,7 +229,10 @@ ML_OBJS-y = \
 	lens.o \
 	property.o \
 	propvalues.o \
-	gui.o \
+	platform/60D.109/gui.o \
+	platform/60D.109/misc.o \
+	platform/60D.109/lens.o \
+	platform/60D.109/cfn.o \
 	zebra.o \
 	shoot.o \
 	focus.o \
