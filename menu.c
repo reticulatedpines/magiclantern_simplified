@@ -350,11 +350,6 @@ menu_display(
 	while( menu )
 	{
 		icon_drawn = 0;
-
-		if (menu->priv)
-		{
-			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
-		}
 		
 		if (!show_only_selected || menu->selected)
 		{
@@ -364,6 +359,12 @@ menu_display(
 				y,
 				menu->selected
 			);
+		}
+		
+		// this should be after menu->display, in order to allow it to override the icon
+		if (menu->priv)
+		{
+			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
 		}
 		
 		if (menu->selected && menu->help)
@@ -1001,6 +1002,21 @@ static struct menu_entry about_menu[] = {
 };
 
 static void
+open_canon_menu()
+{
+	while(1)
+	{
+		fake_simple_button(BGMT_MENU);
+		int i;
+		for (i = 0; i < 10; i++)
+		{
+			if (MENU_MODE) return;
+			msleep(100);
+		}
+	}
+}
+
+static void
 menu_task( void* unused )
 {
 	//~ int x, y;
@@ -1062,8 +1078,7 @@ menu_task( void* unused )
 		
 		if (!lv_drawn() && !MENU_MODE)
 		{
-			fake_simple_button(BGMT_MENU);
-			while (!MENU_MODE) msleep(50);
+			open_canon_menu();
 		}
 		
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
