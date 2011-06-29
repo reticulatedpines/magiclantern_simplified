@@ -104,7 +104,13 @@ static int handle_buttons(struct event * event) {
                 // Do nothing for now
                 break;
             case BGMT_TRASH :
-                // Do nothing for now
+                // Displays ML menu, except when in "play mode
+                if(gui_state != GUISTATE_PLAYMENU) {
+                    // Toggle menu on/off
+                    if(gui_menu_shown()) gui_stop_menu();
+                    else give_semaphore(gui_sem);
+                    output = 0;
+                }
                 break;
             case BGMT_ZOOM_OUT :
                 // Do nothing for now
