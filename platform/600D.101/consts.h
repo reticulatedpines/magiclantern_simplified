@@ -31,6 +31,7 @@
 #define BGMT_ZOOM_OUT 0xE // new
 
 #define BGMT_Q 0x1C // was 8
+#define BGMT_Q_ALT 0x13
 #define BGMT_MOVIE_SHOOTING 0x1D // new
 
 #define BGMT_PRESS_SET 4 // same

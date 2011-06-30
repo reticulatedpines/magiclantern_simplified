@@ -113,6 +113,12 @@ static int handle_buttons(struct event * event) {
                     output = 0;
                 }
                 break;
+			case BGMT_Q_ALT:
+				if(gui_menu_shown())
+				{
+					menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
+					return 0;
+				}
             case BGMT_ZOOM_OUT :
                 // Do nothing for now
                 break;

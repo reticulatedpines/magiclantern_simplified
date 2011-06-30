@@ -608,7 +608,7 @@ menu_handler(
 	)
 		return 1; // 0 is too aggressive :)
 
-#ifdef CONFIG_600D
+#if 0
 	if( event > 1 && event < 0x10000000)
 	{
 		bmp_printf( FONT_SMALL, 400, 40,
