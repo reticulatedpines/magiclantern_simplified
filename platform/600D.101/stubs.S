@@ -190,7 +190,9 @@ NSTUB( 0xff234fcc, ChangeColorPalette )
 
 NSTUB( 0xFF33BF7C, MirrorDisplay )
 NSTUB( 0xFF33BFDC, NormalDisplay )
-NSTUB( 0xFF33BFAC, RedrawDisplay )   // Reverse 
+NSTUB( 0xFF33BFAC, ReverseDisplay )
+NSTUB( 0xff33a734, RedrawDisplay )
+
 
 NSTUB( 0xFF018C74, strlen )
 NSTUB( 0xFF082704, strcmp )     // used to cmp "akashimorino" 
