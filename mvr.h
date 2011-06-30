@@ -5,3 +5,7 @@
 #ifdef CONFIG_60D
 #include "platform/60D.109/mvr.h"
 #endif
+
+#ifdef CONFIG_600D
+#include "platform/600D.101/mvr.h"
+#endif
