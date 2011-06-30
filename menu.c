@@ -609,7 +609,7 @@ menu_handler(
 		return 1; // 0 is too aggressive :)
 
 #ifdef CONFIG_600D
-	if( event != 0x10000098 && event != 0x100000db)
+	if( event > 1 && event < 0x10000000)
 	{
 		bmp_printf( FONT_SMALL, 400, 40,
 			"evt %8x(%8x,%8x,%8x)",
