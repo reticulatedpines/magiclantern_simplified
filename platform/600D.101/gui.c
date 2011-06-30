@@ -113,6 +113,7 @@ static int handle_buttons(struct event * event) {
                     output = 0;
                 }
                 break;
+			case BGMT_Q:
 			case BGMT_Q_ALT:
 				if(gui_menu_shown())
 				{
@@ -120,10 +121,6 @@ static int handle_buttons(struct event * event) {
 					return 0;
 				}
             case BGMT_ZOOM_OUT :
-                // Do nothing for now
-                break;
-            case BGMT_Q :
-                // Causes certain buttons to not be triggered (known examples are LEFT/RIGHT) under "Q" mode
                 // Do nothing for now
                 break;
             case BGMT_MOVIE_SHOOTING :

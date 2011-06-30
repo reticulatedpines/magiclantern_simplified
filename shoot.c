@@ -32,10 +32,6 @@
 #include "lens.h"
 #include "gui.h"
 
-#ifdef CONFIG_600D
-#include "disable-this-module.h"
-#endif
-
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
@@ -2581,7 +2577,7 @@ shoot_task( void* unused )
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
 	menu_add( "Tweak", vid_menus, COUNT(vid_menus) );
-	
+
 	// :-)
 	struct tm now;
 	LoadCalendarFromRTC( &now );
@@ -2632,6 +2628,7 @@ shoot_task( void* unused )
 			movie_end_flag = 0;
 		}
 		
+		#ifndef CONFIG_600D
 		if (!lv) // MLU
 		{
 			if (mlu_mode == 0 && get_mlu()) set_mlu(0);
@@ -2648,6 +2645,7 @@ shoot_task( void* unused )
 				}
 			}
 		}
+		#endif
 		
 		if (lv && face_zoom_request && lv_dispsize == 1 && !recording)
 		{

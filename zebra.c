@@ -32,10 +32,6 @@
 #include "gui.h"
 #include "lens.h"
 
-#ifdef CONFIG_600D
-#include "disable-this-module.h"
-#endif
-
 void waveform_init();
 void histo_init();
 void do_disp_mode_change();
