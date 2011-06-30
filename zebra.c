@@ -47,8 +47,10 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define WAVEFORM_WIDTH 120
-#define WAVEFORM_HEIGHT 180
+#define WAVEFORM_WIDTH 180
+#define WAVEFORM_HEIGHT 120
+#define WAVEFORM_FACTOR (1 << (waveform_draw - 1)) // 1, 2 or 4
+#define WAVEFORM_OFFSET (waveform_draw <= 2 ? 60 : 0)
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
@@ -579,14 +581,14 @@ waveform_draw_image(
 	unsigned i, y;
 
 	// vertical line up to the hist size
-	for( y=WAVEFORM_HEIGHT-1 ; y>0 ; y-- )
+	for( y=WAVEFORM_HEIGHT*WAVEFORM_FACTOR-1 ; y>0 ; y-- )
 	{
 		uint32_t pixel = 0;
 
-		for( i=0 ; i<WAVEFORM_WIDTH ; i++ )
+		for( i=0 ; i<WAVEFORM_WIDTH*WAVEFORM_FACTOR ; i++ )
 		{
 
-			uint32_t count = waveform[ i ][ y ];
+			uint32_t count = waveform[ i / WAVEFORM_FACTOR ][ y / WAVEFORM_FACTOR ];
 			// Scale to a grayscale
 			count = (count * 42) / 128;
 			if( count > 42 )
@@ -596,13 +598,13 @@ waveform_draw_image(
 				count += 0x26;
 			else
 			// Draw a series of colored scales
-			if( y == (WAVEFORM_HEIGHT*1)/4 )
+			if( y == (WAVEFORM_HEIGHT*WAVEFORM_FACTOR*1)/4 )
 				count = COLOR_BLUE;
 			else
-			if( y == (WAVEFORM_HEIGHT*2)/4 )
+			if( y == (WAVEFORM_HEIGHT*WAVEFORM_FACTOR*2)/4 )
 				count = 0xE; // pink
 			else
-			if( y == (WAVEFORM_HEIGHT*3)/4 )
+			if( y == (WAVEFORM_HEIGHT*WAVEFORM_FACTOR*3)/4 )
 				count = COLOR_BLUE;
 			else
 				count = waveform_bg; // transparent
@@ -616,10 +618,6 @@ waveform_draw_image(
 			// quad word write (and then nop to avoid err70).
 			*(uint32_t*)( row + (i & ~3)  ) = pixel;
 			pixel = 0;
-			asm( "nop" );
-			asm( "nop" );
-			asm( "nop" );
-			asm( "nop" );
 		}
 
 		row += pitch;
@@ -1971,7 +1969,7 @@ hist_display( void * priv, int x, int y, int selected )
 		x, y,
 		"Histo/Wavefm: %s/%s",
 		hist_draw == 1 ? "Luma" : hist_draw == 2 ? "RGB" : "OFF",
-		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : "OFF"
+		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : waveform_draw == 3 ? "FullScreen" : "OFF"
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
 	menu_draw_icon(x, y, MNI_BOOL_GDR(hist_draw || waveform_draw), 0);
@@ -2002,7 +2000,7 @@ waveform_display( void * priv, int x, int y, int selected )
 static void 
 waveform_toggle(void* priv)
 {
-	waveform_draw = mod(waveform_draw+1, 3);
+	waveform_draw = mod(waveform_draw+1, 4);
 	bmp_fill(0, 360, 240-50, 360, 240);
 }
 
@@ -3385,7 +3383,7 @@ livev_lopriority_task( void* unused )
 		loprio_sleep();
 		
 		if( waveform_draw && zebra_should_run())
-			BMP_SEM( waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 ); )
+			BMP_SEM( waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
 	}
 }
 
