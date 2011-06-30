@@ -173,7 +173,9 @@
  #define YUV422_HD_HEIGHT_REC_480P 480
 
  #define FOCUS_CONFIRMATION (*(int*)0x41d0)
- #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // only used to show trap focus status
+ //~ #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // used to show trap focus status, and for Magic Off
+ #define FOCUS_CONFIRMATION_AF_PRESSED 0 // not found yet
+
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
  #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
