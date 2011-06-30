@@ -26,6 +26,7 @@
 #include "../../dryos.h"
 #include "../../bmp.h"
 #include "../../consts.h"
+#include "../../propvalues.h"
 
 
 

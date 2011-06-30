@@ -1005,6 +1005,9 @@ static struct menu_entry about_menu[] = {
 static void
 open_canon_menu()
 {
+	#ifdef CONFIG_600D
+	return;
+	#endif
 	while(1)
 	{
 		fake_simple_button(BGMT_MENU);
