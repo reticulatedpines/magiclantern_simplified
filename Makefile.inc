@@ -434,6 +434,7 @@ magiclantern.fir: autoexec.bin
 		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
 		echo "";\
 	fi; \
+	readelf -l magiclantern | grep -C 2 MemSiz ;\
 	stat -c "autoexec.bin: %s bytes" autoexec.bin
 
 dummy_data_head.bin:

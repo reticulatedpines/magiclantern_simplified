@@ -28,6 +28,7 @@
 #include "bmp.h"
 #include "font.h"
 #include <stdarg.h>
+#include "propvalues.h"
 
 //~ int bmp_enabled = 1;
 
