@@ -58,6 +58,6 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 int lv;
 PROP_HANDLER( PROP_LV_ACTION )
 {
-	lv = buf[0];
+	lv = !buf[0];
 	return prop_cleanup( token, property );
 }
