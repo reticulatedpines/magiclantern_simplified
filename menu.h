@@ -121,5 +121,5 @@ void menu_draw_icon(int x, int y, int type, int arg);
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
 #define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF)
-#define MNI_BOOL_LV(x) ((x) ? ( lv_drawn() ? MNI_ON : MNI_WARNING ) : MNI_OFF)
+#define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF)
 #endif

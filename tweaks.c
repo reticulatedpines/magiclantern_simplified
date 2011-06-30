@@ -53,7 +53,7 @@ expsim_display( void * priv, int x, int y, int selected )
 
 void expsim_update()
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (shooting_mode == SHOOTMODE_MOVIE) return;
 	if (expsim_auto)
 	{
@@ -86,7 +86,7 @@ lv_metering_print( void * priv, int x, int y, int selected )
 static void
 lv_metering_adjust()
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (get_halfshutter_pressed()) return;
 	if (lv_dispsize != 1) return;
 	if (shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV) return;
@@ -221,7 +221,7 @@ void adjust_backlight_level(int delta)
 	call("TurnOnDisplay");
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
-	if (!lv_drawn()) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
+	if (!lv) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
 }
 void set_backlight_level(int level)
 {
@@ -255,7 +255,7 @@ void afframe_set_dirty()
 
 void clear_lv_afframe()
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (gui_menu_shown()) return;
 	if (lv_dispsize != 1) return;
 	struct vram_info *	lv = get_yuv422_vram();
@@ -295,7 +295,7 @@ tweak_task( void* unused)
 	{
 		msleep(50);
 		
-		/*if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
+		/*if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv && k % 10 == 0)
 		{
 			lv_metering_adjust();
 		}*/

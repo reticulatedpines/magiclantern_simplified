@@ -224,7 +224,7 @@ void force_liveview()
 static void
 movtweak_task( void* unused )
 {
-	if (!lv_drawn() && enable_liveview && shooting_mode == SHOOTMODE_MOVIE
+	if (!lv && enable_liveview && shooting_mode == SHOOTMODE_MOVIE
 		&& (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
 	{
 		force_liveview();
@@ -257,7 +257,7 @@ movtweak_task( void* unused )
 		}
 		
 		extern int ext_monitor_hdmi;
-		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && (lv_drawn() || PLAY_MODE) && ext_monitor_hdmi && !recording && !gui_menu_shown())
+		if (hdmi_force_vga && shooting_mode == SHOOTMODE_MOVIE && (lv || PLAY_MODE) && ext_monitor_hdmi && !recording && !gui_menu_shown())
 		{
 			if (hdmi_code == 5)
 			{

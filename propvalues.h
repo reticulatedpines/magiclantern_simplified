@@ -1,7 +1,8 @@
 #ifndef _propvalues_h_
 #define _propvalues_h_
 
-extern int lv_dispsize;
+extern int lv; // former lv_drawn(); TRUE when LiveView is active.
+extern int lv_dispsize; // 1 / 5 / A
 extern int expsim;
 extern int shooting_mode;
 extern int shooting_type;

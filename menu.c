@@ -573,8 +573,8 @@ menu_redraw_if_damaged()
 {
 	if( menu_damage )
 	{
-		if (!lv_drawn()) show_only_selected = 0;
-		//~ if (MENU_MODE || lv_drawn()) clrscr();
+		if (!lv) show_only_selected = 0;
+		//~ if (MENU_MODE || lv) clrscr();
 		bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
 		menu_damage = 0;
 		BMP_SEM( menus_display( menus, 10, 40 ); )
@@ -841,7 +841,7 @@ gui_stop_menu( void )
 	gui_menu_task = NULL;
 
 	//workaround, otherwise screen does not refresh after closing menu
-	/*if (!lv_drawn())
+	/*if (!lv)
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 		fake_simple_button(BGMT_Q);
@@ -1077,7 +1077,7 @@ menu_task( void* unused )
 		
 		menu_shown = 1;
 		
-		if (!lv_drawn() && !MENU_MODE)
+		if (!lv && !MENU_MODE)
 		{
 			open_canon_menu();
 		}

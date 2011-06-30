@@ -116,7 +116,7 @@ int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (!bmp_is_on()) return;
 	if (MENU_MODE) return;
 	ChangeColorPalette(x);
@@ -1440,7 +1440,7 @@ draw_zebra_and_focus( int Z, int F )
 void
 clrscr_mirror( void )
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (!global_draw) return;
 
 	uint8_t * const bvram = bmp_vram();
@@ -1541,7 +1541,7 @@ draw_false_downsampled( void )
 static void
 draw_zebra( void )
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	
 	uint8_t * const bvram = bmp_vram();
     uint32_t a = 0;
@@ -1600,7 +1600,7 @@ draw_zebra( void )
 		for( x=2 ; x < vram->width-2 ; x+=2 ) // width = 720
 		{
 			// Abort as soon as the new menu is drawn
-			if( gui_menu_task || !lv_drawn() )
+			if( gui_menu_task || !lv )
 				return;
 
 			uint16_t pixel = b_row[x/2];
@@ -1701,7 +1701,7 @@ zebra_hi_toggle_reverse( void * priv )
 static void global_draw_toggle(void* priv)
 {
 	menu_binary_toggle(priv);
-	if (!global_draw && lv_drawn()) bmp_fill(0, 0, 0, 720, 480);
+	if (!global_draw && lv) bmp_fill(0, 0, 0, 720, 480);
 }
 
 #define MAX_CROP_NAME_LEN 15
@@ -2213,7 +2213,7 @@ int get_spot_focus(int dx)
 
 void spotmeter_step()
 {
-    //~ if (!lv_drawn()) return;
+    //~ if (!lv) return;
 	struct vram_info *	vram = get_yuv422_vram();
 
 	if( !vram->vram )
@@ -2772,7 +2772,7 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 void draw_zoom_overlay()
 {
 	//~ if (vram_width > 720) return;
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
 	if (!bmp_is_on()) return;
@@ -2921,7 +2921,7 @@ void draw_zoom_overlay()
 int liveview_display_idle()
 {
 	return
-		lv_drawn() && 
+		lv && 
 		!gui_menu_shown() &&
 		gui_state == GUISTATE_IDLE && 
 		CURRENT_DIALOG_MAYBE <= 3 && 
@@ -2943,11 +2943,11 @@ void zebra_sleep_when_tired()
 		while (clearscreen == 1 && get_halfshutter_pressed()) msleep(100);
 		if (zebra_should_run()) return;
 		if (!gui_menu_shown()) ChangeColorPaletteLV(4);
-		if (lv_drawn() && !gui_menu_shown()) redraw();
+		if (lv && !gui_menu_shown()) redraw();
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_set_dirty(40);
-		//~ if (lv_drawn() && !gui_menu_shown()) redraw();
+		//~ if (lv && !gui_menu_shown()) redraw();
 	}
 	
 	static int prev_recording = 0;
@@ -3019,7 +3019,7 @@ zebra_task( void )
 		msleep(10); // safety msleep :)
 		if (recording) msleep(100);
 		
-		if (lv_drawn() && disp_mode_change_request)
+		if (lv && disp_mode_change_request)
 		{
 			disp_mode_change_request = 0;
 			do_disp_mode_change();
@@ -3132,7 +3132,7 @@ clearscreen_loop:
 		
 		//~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
-		if (!lv_drawn()) continue;
+		if (!lv) continue;
 		
 /*		if (k % 10 == 0)
 		{
@@ -3246,7 +3246,7 @@ void test_fps(int* x)
 int should_draw_zoom_overlay()
 {
 	if (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
-	if (lv_drawn() && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
+	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
 	return 0;
 }
 
@@ -3574,7 +3574,7 @@ void transparent_overlay_from_play()
 	make_overlay();
 	get_out_of_play_mode();
 	msleep(500);
-	if (!lv_drawn()) { force_liveview(); msleep(500); }
+	if (!lv) { force_liveview(); msleep(500); }
 	msleep(1000);
 	BMP_SEM( show_overlay(); )
 	transparent_overlay = 1;

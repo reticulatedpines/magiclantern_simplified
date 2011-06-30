@@ -101,9 +101,9 @@ void lcd_release_step() // to be called from shoot_task
 void display_lcd_remote_icon(int x0, int y0)
 {
 	int cl_on = COLOR_RED;
-	int cl_off = lv_drawn() ? COLOR_WHITE : COLOR_FG_NONLV;
+	int cl_off = lv ? COLOR_WHITE : COLOR_FG_NONLV;
 	int cl = display_sensor ? cl_on : cl_off;
-	int bg = lv_drawn() ? 0 : bmp_getpixel(x0 - 20, 1);
+	int bg = lv ? 0 : bmp_getpixel(x0 - 20, 1);
 
 	if (gui_menu_shown()) cl = COLOR_WHITE;
 

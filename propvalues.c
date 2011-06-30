@@ -54,3 +54,10 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 	video_mode_resolution = buf[1];
 	return prop_cleanup( token, property );
 }
+
+int lv;
+PROP_HANDLER( PROP_LV_ACTION )
+{
+	lv = buf[0];
+	return prop_cleanup( token, property );
+}

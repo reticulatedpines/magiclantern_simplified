@@ -169,7 +169,7 @@ void xx_test(void* priv)
 void toggle_mirror_display()
 {
 	//~ zebra_pause();
-	if (lv_drawn()) msleep(200); // redrawing screen while zebra is active seems to cause trouble
+	if (lv) msleep(200); // redrawing screen while zebra is active seems to cause trouble
 	static int i = 0;
 	if (i) MirrorDisplay();
 	else NormalDisplay();
@@ -366,7 +366,7 @@ void display_clock()
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
-	if (lv_drawn())
+	if (lv)
 	{
 		uint32_t fnt = FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR);
 		bmp_printf(fnt, 0, 0, "%02d:%02d", now.tm_hour, now.tm_min);
@@ -429,13 +429,13 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", CURRENT_DIALOG_MAYBE);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_SEM
+		if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_SEM
 		(
 			display_clock();
 			display_shooting_info();
 		)
 		
-		if (lv_drawn() && !gui_menu_shown()) BMP_SEM
+		if (lv && !gui_menu_shown()) BMP_SEM
 		(
 			display_shooting_info_lv();
 			if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
@@ -913,7 +913,7 @@ PROP_HANDLER(PROP_APERTURE)
 {
 	static int old = 0;
 	
-	if (old && lv_drawn())
+	if (old && lv)
 	{
 		if (display_sensor)
 		{
@@ -933,7 +933,7 @@ PROP_HANDLER(PROP_APERTURE)
 /*
 PROP_HANDLER(PROP_SHUTTER)
 {
-	if (lv_drawn() && shooting_mode == SHOOTMODE_MOVIE)
+	if (lv && shooting_mode == SHOOTMODE_MOVIE)
 	{
 		static volatile int old = 0;
 		

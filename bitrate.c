@@ -45,7 +45,7 @@ void cbr_init()
 
 void vbr_fix(uint16_t param)
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (shooting_mode != SHOOTMODE_MOVIE) return; 
 	if (recording) return; // err70 if you do this while recording
 
@@ -76,7 +76,7 @@ void opt_set(int num, int den)
 }
 void bitrate_set()
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (shooting_mode != SHOOTMODE_MOVIE) return; 
 	if (gui_menu_shown()) return;
 	if (recording) return; 

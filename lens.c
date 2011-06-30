@@ -338,7 +338,7 @@ lens_focus_wait( void )
 	while (!lv_focus_done)
 	{
 		msleep(10);
-		if (!lv_drawn()) break;
+		if (!lv) break;
 		if (is_manual_focus()) break;
 	}
 }
@@ -700,7 +700,7 @@ lens_set_kelvin_value_only(int k)
 void update_stuff()
 {
 	calc_dof( &lens_info );
-	if (lv_drawn() && get_global_draw()) BMP_SEM( update_lens_display( &lens_info ); )
+	if (lv && get_global_draw()) BMP_SEM( update_lens_display( &lens_info ); )
 	if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
 }
 
@@ -717,7 +717,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.lens_step = *((float*)&lsswap);
 	
 	static unsigned old_focus_dist = 0;
-	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
+	if (get_zoom_overlay_mode()==2 && lv && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
 		zoom_overlay_set_countdown(300);
 	}

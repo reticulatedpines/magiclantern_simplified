@@ -12,7 +12,7 @@ lens_focus(
 	int			step
 )
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (is_manual_focus()) return;
 
 	while (lens_info.job_state) msleep(100);

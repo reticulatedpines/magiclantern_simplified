@@ -65,11 +65,6 @@ CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 int do_draw_meters = 0;
 
-int lv_drawn()
-{
-	return do_draw_meters;
-}
-
 int ext_cfg_draw_meters(void)
 {
     return cfg_draw_meters;

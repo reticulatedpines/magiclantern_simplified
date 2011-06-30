@@ -214,13 +214,13 @@ static int handle_buttons(struct event * event)
 	
 	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
 	{
-		if (lv_drawn() && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+		if (lv && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 		{
 			gui_hide_menu( 2 );
 			lens_focus_stop();
 			return 0;
 		}
-		if (lv_drawn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
 			gui_hide_menu( 50 );
 			lens_focus_start( get_focus_dir() );
@@ -248,7 +248,7 @@ static int handle_buttons(struct event * event)
 				return 0;
 			}
 		}
-		if (lv_drawn())
+		if (lv)
 		{
 			if (event->param == BGMT_PRESS_LEFT)
 			{
@@ -265,7 +265,7 @@ static int handle_buttons(struct event * event)
 
 	if (event->type == 0)
 	{
-		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && gui_state == GUISTATE_IDLE)
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
 		{
 			switch(event->param)
 			{
@@ -296,7 +296,7 @@ static int handle_buttons(struct event * event)
 	
 	// force a SET press in photo mode when you adjust the settings and press half-shutter
 	/*
-	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv_drawn() && !gui_menu_shown())
+	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv && !gui_menu_shown())
 	{
 		fake_simple_button(BGMT_PRESS_SET);
 		fake_simple_button(BGMT_UNPRESS_SET);
@@ -313,7 +313,7 @@ static int handle_buttons(struct event * event)
 
 	// override DISP button in LiveView mode
 	
-	/*if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && zebra_should_run())
+	/*if (event->type == 0 && event->param == BGMT_DISP && lv && zebra_should_run())
 	{
 		if (lv_disp_mode == 0)
 			return toggle_disp_mode();
@@ -321,7 +321,7 @@ static int handle_buttons(struct event * event)
 			schedule_disp_mode_change();
 	}*/
 
-	if (lv_drawn() && !gui_menu_shown() && event->type == 0 && event->param == BGMT_DISP)
+	if (lv && !gui_menu_shown() && event->type == 0 && event->param == BGMT_DISP)
 	{
 		redraw();
 	}
@@ -345,13 +345,13 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
-	if (lv_drawn() && get_zoom_overlay() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv && get_zoom_overlay() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
 	}
 
-	if (lv_drawn() && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
  	{
 		// magic zoom toggled by zoom in
 		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed())
@@ -397,7 +397,7 @@ static int handle_buttons(struct event * event)
 		
 		static int old = 0;
 		
-		if (old && lv_drawn())
+		if (old && lv)
 		{
 			if (display_sensor)
 			{
@@ -491,7 +491,7 @@ static int handle_buttons(struct event * event)
 		
 		static int old = 0;
 		
-		if (get_lcd_sensor_shortcuts() && get_dof_adjust() && old && lv_drawn())
+		if (get_lcd_sensor_shortcuts() && get_dof_adjust() && old && lv)
 		{
 			if (display_sensor)
 			{
@@ -539,7 +539,7 @@ static int handle_buttons(struct event * event)
 
 	// move transparent overlay
 	extern int transparent_overlay;
-	if (transparent_overlay && lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+	if (transparent_overlay && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
 		{

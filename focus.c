@@ -87,10 +87,10 @@ display_lens_hyperfocal(
 void focus_stack_ensure_preconditions()
 {
 	while (lens_info.job_state) msleep(100);
-	if (!lv_drawn())
+	if (!lv)
 	{
 		get_out_of_play_mode();
-		while (!lv_drawn())
+		while (!lv)
 		{
 			bmp_printf(FONT_LARGE, 10, 30, "Please switch to LiveView");
 			msleep(100);
@@ -505,7 +505,7 @@ int lv_focus_confirmation = 0;
 static int hsp_countdown = 0;
 int can_lv_trap_focus_be_active()
 {
-	if (!lv_drawn()) return 0;
+	if (!lv) return 0;
 	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
 	if (dofpreview) return 0;
 	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
@@ -545,7 +545,7 @@ int is_manual_focus()
 #ifdef CONFIG_MOVIE_AF
 int movie_af_active()
 {
-	return shooting_mode == SHOOTMODE_MOVIE && lv_drawn() && !is_manual_focus() && (focus_done || movie_af==3);
+	return shooting_mode == SHOOTMODE_MOVIE && lv && !is_manual_focus() && (focus_done || movie_af==3);
 }
 
 static void movie_af_step(int mag)
@@ -658,7 +658,7 @@ static void update_focus_mag(int mag)
 static void plot_focus_mag()
 {
 	if (gui_state != GUISTATE_IDLE) return;
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if (!get_global_draw()) return;
 	
 	BMP_SEM(

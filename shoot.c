@@ -375,7 +375,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	int v = *(int*)buf;
 	if (zoom_enable_face)
 	{
-		if (v == 0 && lv_drawn() && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
+		if (v == 0 && lv && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
 			face_zoom_request = 1;
 	}
 /*	if (v && gui_menu_shown() && !is_menu_active("Focus"))
@@ -399,7 +399,7 @@ void center_lv_afframe()
 }
 void center_lv_afframe_do()
 {
-	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
+	if (!lv || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
 	int cx = (afframe[0] - afframe[4])/2;
 	int cy = (afframe[1] - afframe[5])/2;
 	if (afframe[2] == cx && afframe[3] == cy) 
@@ -414,7 +414,7 @@ void center_lv_afframe_do()
 
 void move_lv_afframe(int dx, int dy)
 {
-	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
+	if (!lv || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
 	afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
 	afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
@@ -425,7 +425,7 @@ static void
 sweep_lv()
 {
 	if (recording) return;
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	gui_stop_menu();
 	msleep(2000);
 	int zoom = 5;
@@ -856,7 +856,7 @@ silent_pic_take_lv_dbg()
 silent_pic_take_sweep()
 {
 	if (recording) return;
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	if ((af_mode & 0xF) != 3 )
 	{
 		bmp_printf(FONT_MED, 100, 100, "Please switch to Manual Focus."); 
@@ -929,7 +929,7 @@ silent_pic_take_slitscan(int interactive)
 {
 	return;
 	if (recording) return; // vsync fails
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	gui_stop_menu();
 	while (get_halfshutter_pressed()) msleep(100);
 	msleep(500);
@@ -995,7 +995,7 @@ silent_pic_take_slitscan(int interactive)
 static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
 {
-	if (!lv_drawn()) return;
+	if (!lv) return;
 	
 	int g = get_global_draw();
 	set_global_draw(0);
@@ -1160,7 +1160,7 @@ static void iso_auto_quick()
 int iso_auto_flag = 0;
 static void iso_auto()
 {
-	if (lv_drawn()) iso_auto_flag = 1; // it takes some time, so it's better to do it in another task
+	if (lv) iso_auto_flag = 1; // it takes some time, so it's better to do it in another task
 	else 
 	{
 		iso_auto_quick();
@@ -1183,7 +1183,7 @@ void get_under_and_over_exposure_autothr(int* under, int* over)
 
 int crit_iso(int iso_index)
 {
-	if (!lv_drawn()) return 0;
+	if (!lv) return 0;
 
 	if (iso_index >= 0)
 	{
@@ -1265,7 +1265,7 @@ static void shutter_auto_quick()
 int shutter_auto_flag = 0;
 static void shutter_auto()
 {
-	if (lv_drawn()) shutter_auto_flag = 1; // it takes some time, so it's better to do it in another task
+	if (lv) shutter_auto_flag = 1; // it takes some time, so it's better to do it in another task
 	else 
 	{
 		shutter_auto_quick();
@@ -1275,7 +1275,7 @@ static void shutter_auto()
 
 int crit_shutter(int shutter_index)
 {
-	if (!lv_drawn()) return 0;
+	if (!lv) return 0;
 
 	if (shutter_index >= 0)
 	{
@@ -1422,7 +1422,7 @@ int kelvin_auto_flag = 0;
 int wbs_gm_auto_flag = 0;
 static void kelvin_auto()
 {
-	if (lv_drawn()) kelvin_auto_flag = 1;
+	if (lv) kelvin_auto_flag = 1;
 	else
 	{
 		bmp_printf(FONT_LARGE, 20,450, "Only works in LiveView");
@@ -1433,7 +1433,7 @@ static void kelvin_auto()
 
 static void wbs_gm_auto()
 {
-	if (lv_drawn()) wbs_gm_auto_flag = 1;
+	if (lv) wbs_gm_auto_flag = 1;
 	else
 	{
 		bmp_printf(FONT_LARGE, 20,450, "Only works in LiveView");
@@ -1444,7 +1444,7 @@ static void wbs_gm_auto()
 
 int crit_kelvin(int k)
 {
-	if (!lv_drawn()) return 0;
+	if (!lv) return 0;
 
 	if (k > 0)
 	{
@@ -1465,7 +1465,7 @@ int crit_kelvin(int k)
 
 int crit_wbs_gm(int k)
 {
-	if (!lv_drawn()) return 0;
+	if (!lv) return 0;
 
 	if (k < 10 && k > -10)
 	{
@@ -2251,7 +2251,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 void hdr_shutter_release()
 {
 	lens_wait_readytotakepic(64);
-	if (!silent_pic_mode || !lv_drawn())
+	if (!silent_pic_mode || !lv)
 	{
 		if (get_mlu()) { lens_take_picture(64); msleep(500); }
 		lens_take_picture(64);
@@ -2389,7 +2389,7 @@ void hdr_shot(int skip0, int wait)
 		}
 		else
 		{
-			if (!silent_pic_mode || !lv_drawn()) lens_take_picture(0);
+			if (!silent_pic_mode || !lv) lens_take_picture(0);
 			else silent_pic_take(0);
 			return;
 		}
@@ -2442,7 +2442,7 @@ void remote_shot()
 	}
 	else
 	{
-		if (silent_pic_mode && lv_drawn())
+		if (silent_pic_mode && lv)
 			silent_pic_take(0);
 		else if (shooting_mode == SHOOTMODE_MOVIE)
 			movie_start();
@@ -2458,12 +2458,12 @@ void remote_shot()
 	while (gui_state != GUISTATE_IDLE) msleep(100);
 	msleep(500);
 	// restore zoom
-	if (lv_drawn() && !recording && zoom > 1) prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	if (lv && !recording && zoom > 1) prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
 
 void iso_refresh_display()
 {
-	if (lv_drawn())
+	if (lv)
 	{
 		update_lens_display(lens_info);
 		return;
@@ -2507,7 +2507,7 @@ void display_trap_focus_info()
 {
 	int show, fg, bg, x, y;
 	static int show_prev = 0;
-	if (lv_drawn())
+	if (lv)
 	{
 		show = trap_focus && can_lv_trap_focus_be_active();
 		int active = show && get_halfshutter_pressed();
@@ -2547,7 +2547,7 @@ void intervalometer_stop()
 {
 	if (intervalometer_running)
 	{
-		bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Stopped                                             ");
+		bmp_printf(FONT_MED, 20, (lv ? 40 : 3), "Stopped                                             ");
 		intervalometer_running = 0;
 		//~ display_on();
 	}
@@ -2628,7 +2628,7 @@ shoot_task( void* unused )
 			movie_end_flag = 0;
 		}
 		
-		if (!lv_drawn()) // MLU
+		if (!lv) // MLU
 		{
 			if (mlu_mode == 0 && get_mlu()) set_mlu(0);
 			if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
@@ -2645,7 +2645,7 @@ shoot_task( void* unused )
 			}
 		}
 		
-		if (lv_drawn() && face_zoom_request && lv_dispsize == 1 && !recording)
+		if (lv && face_zoom_request && lv_dispsize == 1 && !recording)
 		{
 			if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
 			{
@@ -2759,7 +2759,7 @@ shoot_task( void* unused )
 		int tfx = trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running;
 
 		// same for motion detect
-		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown() && lv_drawn();
+		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown() && lv;
 		
 		//Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
 		static int K = 0;
@@ -2767,7 +2767,7 @@ shoot_task( void* unused )
 		if(!mdx) K = 0;
 		// emulate half-shutter press (for trap focus or motion detection)
 		/* this can cause the camera not to shutdown properly... 
-		if (!lv_drawn() && ((tfx && trap_focus == 2) || mdx ))
+		if (!lv && ((tfx && trap_focus == 2) || mdx ))
 		{
 			if (trap_focus == 2 && (cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
 			if (!sw1_countdown) // press half-shutter periodically
@@ -2786,7 +2786,7 @@ shoot_task( void* unused )
 
 		if (tfx) // MF
 		{
-			if ((!lv_drawn() && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
+			if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
 				remote_shot();
 				msleep(trap_focus_delay);
@@ -2829,7 +2829,7 @@ shoot_task( void* unused )
 			}
 		}
 
-		if (silent_pic_mode && lv_drawn() && get_halfshutter_pressed())
+		if (silent_pic_mode && lv && get_halfshutter_pressed())
 		{
 			silent_pic_take(1);
 		}
@@ -2854,7 +2854,7 @@ shoot_task( void* unused )
 			// once per minute is enough and easy to check
 			static int prev_min = 0;
 			LoadCalendarFromRTC( &now );
-			if (lv_drawn() && now.tm_min != prev_min) 
+			if (lv && now.tm_min != prev_min) 
 			{
 				prev_min = now.tm_min;
 				SW1(1,10);
@@ -2866,14 +2866,14 @@ shoot_task( void* unused )
 				card_led_blink(1, 50, 0);
 				wait_till_next_second();
 
-				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv_drawn() ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
+				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
 				else break;
 
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 
 				while (get_halfshutter_pressed()) msleep(100);
 				
-				if (!lv_drawn())
+				if (!lv)
 				{
 					SW1(1,10); // prevent camera from entering in "deep sleep" mode
 					SW1(0,10); // (some kind of sleep where it won't wake up from msleep)
@@ -2896,7 +2896,7 @@ shoot_task( void* unused )
 				if (countdown) { countdown--; continue; }
 
 				extern struct audio_level audio_levels[];
-				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d / %d)   ", audio_levels[0].peak / audio_levels[0].avg, audio_release_level);
+				bmp_printf(FONT_MED, 20, lv ? 40 : 3, "Audio release ON (%d / %d)   ", audio_levels[0].peak / audio_levels[0].avg, audio_release_level);
 				if (audio_levels[0].peak > audio_levels[0].avg * (int)audio_release_level) 
 				{
 					remote_shot();

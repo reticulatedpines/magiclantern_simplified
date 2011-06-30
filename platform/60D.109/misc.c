@@ -16,7 +16,7 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 
 void display_shooting_info() // called from debug task
 {
-	if (lv_drawn()) return;
+	if (lv) return;
 	
 	int bg = bmp_getpixel(314, 260);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
