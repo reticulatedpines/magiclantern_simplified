@@ -879,8 +879,13 @@ audio_input_display( void * priv, int x, int y, int selected )
 static void
 audio_input_toggle( void * priv )
 {
-	unsigned * ptr = priv;
-	*ptr = (*ptr + 1) % 5;
+	menu_quinternary_toggle(priv);
+	audio_configure( 1 );
+}
+static void
+audio_input_toggle_reverse( void * priv )
+{
+	menu_quinternary_toggle_reverse(priv);
 	audio_configure( 1 );
 }
 
@@ -1041,6 +1046,7 @@ static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &input_choice,
 		.select		= audio_input_toggle,
+		.select_reverse		= audio_input_toggle_reverse,
 		.display	= audio_input_display,
 		.help = "Audio input: internal / external / both / balanced / auto."
 	},
