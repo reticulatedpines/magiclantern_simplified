@@ -608,13 +608,15 @@ menu_handler(
 	)
 		return 1; // 0 is too aggressive :)
 
-/*	if( event != 0x10000098 && event != 0x100000db)
+#ifdef CONFIG_600D
+	if( event != 0x10000098 && event != 0x100000db)
 	{
 		bmp_printf( FONT_SMALL, 400, 40,
-			"evt %8x(%8x,%8x,%8x",
+			"evt %8x(%8x,%8x,%8x)",
 			event, arg2, arg3, arg4
 		);
-	}*/
+	}
+#endif
 
 		// Mine!  No one else gets it
 		//~ return 0;
@@ -1005,12 +1007,13 @@ static struct menu_entry about_menu[] = {
 static void
 open_canon_menu()
 {
-	#ifdef CONFIG_600D
-	return;
-	#endif
 	while(1)
 	{
 		fake_simple_button(BGMT_MENU);
+		#ifdef CONFIG_600D
+		msleep(500);
+		return;
+		#endif
 		int i;
 		for (i = 0; i < 10; i++)
 		{

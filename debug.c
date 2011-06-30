@@ -12,10 +12,6 @@
 #include "lens.h"
 //#include "lua.h"
 
-#ifdef CONFIG_600D
-#include "disable-this-module.h"
-#endif
-
 int config_autosave = 1;
 #define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 

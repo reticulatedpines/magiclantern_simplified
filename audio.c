@@ -28,10 +28,6 @@
 #include "menu.h"
 #include "gui.h"
 
-#ifdef CONFIG_600D
-#include "disable-this-module.h"
-#endif
-
 void audio_configure(int force);
 void volume_display();
 void volume_display_clear();
