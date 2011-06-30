@@ -297,8 +297,8 @@ focus_stack_step_increment( void * priv )
 static void
 focus_stack_count_increment( void * priv )
 {
-	focus_stack_count = mod(focus_stack_count + 1, 100);
-	if (focus_stack_count < 2) focus_stack_count = 2;
+	focus_stack_count = focus_stack_count * 2;
+	if (focus_stack_count > 150) focus_stack_count = 2;
 }
 
 static void
