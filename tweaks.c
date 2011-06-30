@@ -454,7 +454,7 @@ struct menu_entry tweak_menus[] = {
 		.display = af_frame_autohide_display,
 		.help = "You can hide the AF frame (the little white rectangle)."
 	},
-	#ifndef CONFIG_60D
+	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
 		.priv		= &lcd_sensor_shortcuts,
 		.select		= menu_binary_toggle,
