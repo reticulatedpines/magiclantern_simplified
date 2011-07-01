@@ -183,7 +183,7 @@ static int handle_buttons(struct event * event) {
             default :
                 bmp_printf(FONT_SMALL, 10, 50, "UNHANDLED BGMT           : %08x", event->param);
                 DebugMsg( DM_MAGIC, 3,   "UNHANDLED BGMT : %08x", event->param);
-                dumpf();
+                //~ dumpf();
         }
     }
     return output;

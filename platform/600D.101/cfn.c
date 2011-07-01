@@ -46,6 +46,7 @@ int get_htp()
 
 void set_htp(int enable)
 {
+	return; // crash
 	if (enable) cfn2[0] |= 0x1000000;
 	else cfn2[0] &= ~0x1000000;
 	prop_request_change(PROP_CFN2, cfn2, CFN2_LEN);
@@ -53,6 +54,7 @@ void set_htp(int enable)
 
 void set_mlu(int enable)
 {
+	return; // crash
 	if (enable) cfn3[1] |= 0x100;
 	else cfn3[1] &= ~0x100;
 	prop_request_change(PROP_CFN3, cfn3, CFN3_LEN);

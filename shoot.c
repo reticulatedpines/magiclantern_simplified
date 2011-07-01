@@ -2628,7 +2628,6 @@ shoot_task( void* unused )
 			movie_end_flag = 0;
 		}
 		
-		#ifndef CONFIG_600D
 		if (!lv) // MLU
 		{
 			if (mlu_mode == 0 && get_mlu()) set_mlu(0);
@@ -2645,7 +2644,6 @@ shoot_task( void* unused )
 				}
 			}
 		}
-		#endif
 		
 		if (lv && face_zoom_request && lv_dispsize == 1 && !recording)
 		{
