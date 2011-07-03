@@ -20,7 +20,7 @@ struct menu_entry help_menus[] = {
         .name = "About Magic Lantern",
         .priv = "About Magic Lantern",
         .select = menu_help_go_to_label,
-        .display = menu_help_section_print,
+        .display = menu_print,
     },"""
 
 print >> o, "001 About Magic Lantern"
@@ -52,10 +52,10 @@ for l in f[1:]:
         print >> o, "%03d %s" % (page, item)
         print >> menu, """    {
         .name = "%s",
-        .priv = %s,
+        .priv = "%s",
         .select = menu_help_go_to_label,
-        .display = menu_help_section_print,
-    },""" % (item, page)
+        .display = menu_print,
+    },""" % (item, item)
 
     if type == "end":
         lastpage = page - 1

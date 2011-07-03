@@ -593,6 +593,7 @@ menu_redraw_if_damaged()
 			BMP_SEM( menus_display( menus, 10, 40 ); )
 			update_stuff();
 			update_disp_mode_bits_from_params();
+			if (is_menu_active(" (i)")) menu_show_version();
 		}
 	}
 }
@@ -1128,4 +1129,16 @@ menu_help_go_to_selected_entry(
 	}
 	
 	menu_help_go_to_label(entry->name);
+}
+
+void menu_show_version()
+{
+	bmp_printf(FONT_MED, 10, 410,
+		"Magic Lantern version : %s\n"
+		"Mercurial changeset   : %s\n"
+		"Built on %s by %s.",
+		build_version,
+		build_id,
+		build_date,
+		build_user);
 }

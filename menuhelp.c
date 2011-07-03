@@ -76,34 +76,6 @@ void menu_help_go_to_page(int page)
 	menu_help_active = 1;
 }
 
-void
-menu_help_section_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-) // hack: we don't have direct access to menu entry struct
-{
-	extern struct menu_entry help_menus[];
-	extern int help_menus_num;
-	int i;
-	for (i = 0; i < help_menus_num; i++)
-	{
-		if (help_menus[i].priv == priv)
-		{
-			bmp_printf(
-				selected ? MENU_FONT_SEL : MENU_FONT,
-				x, y,
-				"%s",
-				(const char*) help_menus[i].name
-			);
-			menu_draw_icon(x, y, MNI_ACTION, 0);
-			return;
-		}
-	}
-}
-
-
 void menu_help_go_to_label(char* label)
 {
 	int page = 1;
