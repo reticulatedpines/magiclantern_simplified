@@ -513,7 +513,7 @@ int can_lv_trap_focus_be_active()
 	if (gui_state != GUISTATE_IDLE) return 0;
 	if (get_silent_pic_mode()) return 0;
 	if (!is_manual_focus()) return 0;
-	bmp_printf(FONT_MED, 100, 100, "LVTF 1");
+	//~ bmp_printf(FONT_MED, 100, 100, "LVTF 1");
 	return 1;
 }
 

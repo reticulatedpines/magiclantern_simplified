@@ -33,6 +33,7 @@ for l in f[1:]:
     l = l.strip("\n").split(" ")
     page, type, name = l[0], l[1], string.join(l[2:], " ")
     page = int(page)
+    name = name.replace("$\leftrightarrow $", "<-->")
 
     if type == "subsubsection": # each menu entry is a subsection
         item = name.split(":")[0]

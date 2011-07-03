@@ -884,8 +884,6 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 **Contrast/Saturation: -4..4**
 
   Adjusts the contrast and the saturation of the current picture style.
-    
-  ``WARNING``: this will modify your current picture style.
 
 .. _flash exposure compensation:
 .. _Flash AEcomp:
@@ -1076,7 +1074,8 @@ Miscellanous settings.
   * ``ON``: LiveView display image reflects exposure of the final image.
   * ``OFF``: LiveView display image does not reflect the exposure, but may be useful for framing and checking focus.
   * ``Auto``: ExpSim is:
-    - disabled during zoom (x5, x10 and MagicZoom), if shutter is not pressed halfway;
+  
+    - disabled during zoom (x5, x10 and MagicZoom), but only if shutter is not pressed halfway;
     - enabled otherwise.
   
   When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
@@ -1166,7 +1165,7 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
 **Dim display: OFF / after X seconds**
 
-  In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight power to minimum in order to save power.
+  In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
 
 **Turn off display: OFF / after X seconds**
 

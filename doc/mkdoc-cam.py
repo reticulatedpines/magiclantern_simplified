@@ -69,7 +69,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
     f.write(txt)
     f.close()
 
-nonewlineitems = ['Output volume', 'WBShift','Aperture','PictureStyle','Contrast','Focus delay', 'Focus A', 'Rack Focus', 'Hyperfocal', 'DOF', 'Lockup', 'ISO selection', 'Screenshot', 'Spy', 'Save config', 'Delete config', 'Movie REC', 'Movie Restart', 'Zebra when REC', 'Gain', 'AGC', 'Zoom in PLAY', "Swap MENU"]
+nonewlineitems = ['Output volume', 'WBShift','Aperture','PictureStyle','Contrast','Focus delay', 'Focus A', 'Rack Focus', 'Hyperfocal', 'DOF', 'Lockup', 'ISO selection', 'Screenshot', 'Spy', 'Save config', 'Delete config', 'Movie REC', 'Movie Restart', 'Zebra when REC', 'Gain', 'AGC', 'Zoom in PLAY', "Swap MENU", "Turn off", "Flash AE"]
 def should_add_newline(l):
     for it in nonewlineitems:
         if it in l:
