@@ -555,6 +555,7 @@ void fake_simple_button(int bgmt_code)
 
 static void gui_main_task_550d()
 {
+	fake_sem = create_named_semaphore("fake_sem", 1);
 	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
@@ -574,13 +575,24 @@ static void gui_main_task_550d()
 			//~ console_printf("%d %d %d\n", event->type, event->param, event->arg);
 		
 		if (!magic_is_off())
-			if (handle_buttons(event) == 0) 
-				continue;
+		{
+			handle_buttons_active = 1;
+			int should_handle = handle_buttons(event);
+			handle_buttons_active = 0;
+			
+			if (should_handle == 0) 
+				goto bottom;
+		}
 		
-		BMP_SEM (
+		//~ BMP_SEM (
 			void(*f)(struct event *) = funcs[index];
 			f(event);
-		);
+		//~ );
+bottom:
+		if (event == &fake_event) 
+		{
+			give_semaphore(fake_sem);
+		}
 	}
 } 
 

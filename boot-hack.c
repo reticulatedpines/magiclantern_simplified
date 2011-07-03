@@ -278,7 +278,7 @@ void hold_your_horses(int showlogo)
 {
 	while (_hold_your_horses)
 	{
-		msleep( 500 );
+		msleep( 100 );
 	}
 }
 

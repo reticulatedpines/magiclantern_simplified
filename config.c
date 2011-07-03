@@ -302,8 +302,9 @@ config_parse_file(
 	config_file_buf = read_entire_file(filename, &config_file_size);
 	if (!config_file_buf)
 	{
+		// if config file is not present, force Config Autosave: On
 		extern int config_autosave;
-		config_autosave = 1;
+		if (!config_autosave) config_autosave_toggle(0);
 	}
 	config_file_pos = 0;
 	config_parse();

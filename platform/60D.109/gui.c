@@ -620,11 +620,10 @@ static void gui_main_task_60d()
 				goto bottom;
 		}
 		
-		BMP_SEM(
+		//~ BMP_SEM(
 			void(*f)(struct event *) = funcs[index];
 			f(event);
-		)
-
+		//~ )
 bottom:
 		if (event == &fake_event) 
 		{
