@@ -2528,7 +2528,7 @@ struct menu_entry zebra_menus[] = {
 		.display		= clearscreen_display,
 		.select			= menu_ternary_toggle,
 		.select_reverse	= menu_ternary_toggle_reverse,
-		.help = "Clear BMP overlay."
+		.help = "Clear bitmap overlays from LiveView display."
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2636,6 +2636,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
 	zoom_overlay_countdown = 0;
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
+	idle_wakeup_reset_counters();
 	return prop_cleanup( token, property );
 }
 
@@ -3053,10 +3054,11 @@ TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 ); */
 int idle_countdown_display_dim = 100;
 int idle_countdown_display_off = 100;
 int idle_countdown_globaldraw = 100;
-//~ int idle_countdown_display_clear = 100;
+int idle_countdown_clrscr = 100;
 int idle_countdown_display_dim_prev = 100;
 int idle_countdown_display_off_prev = 100;
 int idle_countdown_globaldraw_prev = 100;
+int idle_countdown_clrscr_prev = 100;
 
 void idle_wakeup_reset_counters()
 {
@@ -3064,8 +3066,10 @@ void idle_wakeup_reset_counters()
 	idle_countdown_display_off = idle_display_turn_off_after * 10;
 	idle_countdown_display_dim = idle_display_dim_after * 10;
 	idle_countdown_globaldraw = idle_display_global_draw_off_after * 10;
+	idle_countdown_clrscr = 30;
 }
 
+// called at 10 Hz
 void update_idle_countdown(int* countdown)
 {
 	//~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
@@ -3086,18 +3090,23 @@ void update_idle_countdown(int* countdown)
 void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void), void(*action_off)(void))
 {
 	update_idle_countdown(countdown);
-	//~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, *countdown);
-	if (*prev_countdown && !*countdown)
+	int c = *countdown; // *countdown may be changed by "wakeup" => race condition
+	//~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
+	if (*prev_countdown && !c)
 	{
 		//~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
 		action_on();
+		//~ msleep(500);
+		//~ bmp_printf(FONT_MED, 100, 200, "        ");
 	}
-	else if (!*prev_countdown && *countdown)
+	else if (!*prev_countdown && c)
 	{
 		//~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
 		action_off();
+		//~ msleep(500);
+		//~ bmp_printf(FONT_MED, 100, 200, "        ");
 	}
-	*prev_countdown = *countdown;
+	*prev_countdown = c;
 }
 
 void idle_display_off()
@@ -3110,6 +3119,15 @@ void idle_display_off()
 void idle_display_on()
 {
 	display_on_force();
+}
+
+void idle_bmp_off()
+{
+	BMP_SEM(bmp_off);
+}
+void idle_bmp_on()
+{
+	BMP_SEM(bmp_on);
 }
 
 int old_backlight_level = 0;
@@ -3157,7 +3175,7 @@ clearscreen_loop:
 			card_led_blink(2, 50, 50);
 
 		// clear overlays on shutter halfpress
-		if (clearscreen && get_halfshutter_pressed())
+		if (clearscreen == 1 && get_halfshutter_pressed())
 		{
 			BMP_SEM( clrscr_mirror(); )
 			int i;
@@ -3184,6 +3202,9 @@ clearscreen_loop:
 
 		if (idle_display_global_draw_off_after)
 			idle_action_do(&idle_countdown_globaldraw, &idle_countdown_globaldraw_prev, idle_globaldraw_dis, idle_globaldraw_en);
+
+		if (clearscreen == 2) // clear overlay when idle
+			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
 	}
 }
 

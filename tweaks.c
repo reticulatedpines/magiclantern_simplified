@@ -61,7 +61,7 @@ void expsim_update()
 	if (shooting_mode == SHOOTMODE_MOVIE) return;
 	if (expsim_auto)
 	{
-		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
+		if ((lv_dispsize > 1 || should_draw_zoom_overlay()) && !get_halfshutter_pressed()) set_expsim(0);
 		else set_expsim(1);
 	}
 }

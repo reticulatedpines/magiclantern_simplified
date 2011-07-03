@@ -99,7 +99,7 @@ extern void* gui_main_task_functbl;
 static int handle_buttons(struct event * event)
 {
 
-	if (event->type == 0 && event->param != 0x56)
+	if (event->type == 0 && event->param != 0x5a)
  	{
 		idle_wakeup_reset_counters();
  	}

@@ -718,13 +718,15 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.lens_step = *((float*)&lsswap);
 	
 	static unsigned old_focus_dist = 0;
-	if (get_zoom_overlay_mode()==2 && lv && old_focus_dist && lens_info.focus_dist != old_focus_dist)
+	if (lv && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
-		zoom_overlay_set_countdown(300);
+		if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
+		idle_wakeup_reset_counters();
 	}
 	old_focus_dist = lens_info.focus_dist;
 	
 	update_stuff();
+	
 	return prop_cleanup( token, property );
 }
 

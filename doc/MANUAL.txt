@@ -369,7 +369,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **ClearScreen: OFF / HalfShutter / WhenIdle**
 
-  Clear image overlays from LiveView display.
+  Clear bitmap overlays from LiveView display.
  
   * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
     and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
@@ -378,6 +378,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
   
   * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle.
+  
+    This feature allows you to use an external HDMI recording device.
   
     The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then disappear.
 
@@ -1057,7 +1059,9 @@ Miscellanous settings.
   
   * ``ON``: LiveView display image reflects exposure of the final image.
   * ``OFF``: LiveView display image does not reflect the exposure, but may be useful for framing and checking focus.
-  * ``Auto``: ExpSim is disabled during zoom (x5, x10 and MagicZoom) and enabled otherwise.
+  * ``Auto``: ExpSim is:
+    - disabled during zoom (x5, x10 and MagicZoom), if shutter is not pressed halfway;
+    - enabled otherwise.
   
   When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
 
