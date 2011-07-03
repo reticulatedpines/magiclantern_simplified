@@ -448,11 +448,13 @@ crop_movieonly_display(
 
 struct menu_entry tweak_menus[] = {
 	{
+		.name = "Exposure Simulation",
 		.select = expsim_toggle, 
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings."
 	},
 	{
+		.name = "AF frame display",
 		.priv = &af_frame_autohide, 
 		.select = menu_binary_toggle,
 		.display = af_frame_autohide_display,
@@ -460,47 +462,57 @@ struct menu_entry tweak_menus[] = {
 	},
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
+		.name = "LCD Sensor Shortcuts",
 		.priv		= &lcd_sensor_shortcuts,
 		.select		= menu_binary_toggle,
 		.display	= lcd_sensor_shortcuts_print,
 	},
 	{
+		.name = "Auto Burst PicQuality",
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
 	},
 	#endif
 	{
+		.name = "After taking a photo",
 		.priv = &quick_review_allow_zoom, 
 		.select = menu_binary_toggle, 
 		.display = qrplay_display,
 		.help = "When you set \"ImageReview: Hold\", it will go to Play mode."
 	},
 	{
+		.name = "Zoom in PLAY mode",
 		.priv = &quickzoom, 
 		.select = menu_binary_toggle, 
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)"
 	},
-	/*{
+	#ifdef CONFIG_550D
+	{
+		.name = "HalfShutter in DLGs",
 		.priv = &set_on_halfshutter, 
 		.select = menu_binary_toggle, 
 		.display = set_on_halfshutter_display,
 		.help = "Half-shutter press in dialog boxes => OK (SET) or Cancel."
-	},*/
+	},
+	#endif
 	{
+		.name = "Show cropmarks in",
 		.priv = &cropmark_movieonly,
 		.display	= crop_movieonly_display,
 		.select		= menu_binary_toggle,
 		.help = "Cromparks can be in Movie mode only, or in Photo modes too."
 	},
 	{
+		.name = "ISO selection",
 		.priv = &iso_round_only,
 		.display	= iso_round_only_display,
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
 	},
 	{
+		.name = "Swap MENU <--> ERASE",
 		.priv = &swap_menu,
 		.display	= swap_menu_display,
 		.select		= menu_binary_toggle,

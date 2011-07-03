@@ -2050,6 +2050,7 @@ static void picq_toggle(void* priv)
 
 struct menu_entry shoot_menus[] = {
 	{
+		.name = "HDR Bracket",
 		.display	= hdr_display,
 		.select		= hdr_steps_toggle,
 		.select_reverse = hdr_stepsize_toggle,
@@ -2057,6 +2058,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Exposure bracketing, useful for HDR images."
 	},
 	{
+		.name = "Take a pic every",
 		.priv		= &interval_timer_index,
 		.display	= interval_timer_display,
 		.select		= interval_timer_toggle,
@@ -2065,6 +2067,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Intervalometer setting: duration between two shots."
 	},
 	{
+		.name = "Intervalometer",
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
@@ -2073,6 +2076,7 @@ struct menu_entry shoot_menus[] = {
 	},
 	#ifdef CONFIG_550D
 	{
+		.name = "LCD Remote Shot",
 		.priv		= &lcd_release_running,
 		.select		= menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
@@ -2080,6 +2084,7 @@ struct menu_entry shoot_menus[] = {
 	},
 	#endif
  	{
+		.name = "Audio RemoteShot",
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
@@ -2088,6 +2093,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Clap your hands or pop a balloon to take a picture."
 	},
 	{
+		.name = "Motion Detect",
 		.priv		= &motion_detect,
 		.select		= menu_ternary_toggle, 
 		.display	= motion_detect_display,
@@ -2101,6 +2107,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Take odd pictures with flash, even pictures without flash."
 	},*/
 	{
+		.name = "Silent Picture",
 		.priv = &silent_pic_mode,
 		.select = silent_pic_mode_toggle,
 		.select_reverse = silent_pic_toggle_reverse,
@@ -2109,6 +2116,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Take pics in LiveView without increasing shutter count."
 	},
 	{
+		.name = "Bulb Timer",
 		.display = bulb_display, 
 		.select = bulb_toggle_fwd, 
 		.select_reverse = bulb_toggle_rev,
@@ -2116,6 +2124,7 @@ struct menu_entry shoot_menus[] = {
 		.help = "Bulb timer for very long exposures, useful for astrophotos"
 	},
 	{
+		.name = "Mirror Lockup",
 		.priv = &mlu_mode,
 		.display = mlu_display, 
 		.select = menu_ternary_toggle,
@@ -2136,6 +2145,7 @@ struct menu_entry shoot_menus[] = {
 
 static struct menu_entry vid_menus[] = {
 	{
+		.name = "LiveView Zoom",
 		.priv = &zoom_enable_face,
 		.select = menu_binary_toggle,
 		.select_reverse = zoom_toggle, 
@@ -2146,6 +2156,7 @@ static struct menu_entry vid_menus[] = {
 
 struct menu_entry expo_menus[] = {
 	{
+		.name = "ISO",
 		.display	= iso_display,
 		.select		= iso_toggle_forward,
 		.select_reverse		= iso_toggle_reverse,
@@ -2153,6 +2164,7 @@ struct menu_entry expo_menus[] = {
 		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning."
 	},
 	{
+		.name = "WhiteBalance",
 		.display	= kelvin_display,
 		.select		= kelvin_toggle_forward,
 		.select_reverse		= kelvin_toggle_reverse,
@@ -2160,6 +2172,7 @@ struct menu_entry expo_menus[] = {
 		.help = "Adjust Kelvin WB. Press [Q] for auto tuning."
 	},
 	{
+		.name = "WBShift G/M",
 		.display = wbs_gm_display, 
 		.select = wbs_gm_toggle_forward, 
 		.select_reverse = wbs_gm_toggle_reverse,
@@ -2167,6 +2180,7 @@ struct menu_entry expo_menus[] = {
 		.help = "Green-Magenta white balance shift, for fluorescent lights."
 	},
 	{
+		.name = "Shutter",
 		.display	= shutter_display,
 		.select		= shutter_toggle_forward,
 		.select_reverse		= shutter_toggle_reverse,
@@ -2174,24 +2188,28 @@ struct menu_entry expo_menus[] = {
 		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits."
 	},
 	{
+		.name = "Aperture",
 		.display	= aperture_display,
 		.select		= aperture_toggle_forward,
 		.select_reverse		= aperture_toggle_reverse,
 		.help = "Adjust aperture. Useful if the wheel stops working."
 	},
 	{
+		.name = "Light Adjust",
 		.display	= ladj_display,
 		.select		= ladj_toggle_forward,
 		.select_reverse		= ladj_toggle_reverse,
 		.help = "Enable/disable HTP and ALO from the same place."
 	},
 	{
+		.name = "PictureStyle",
 		.display	= picstyle_display,
 		.select		= picstyle_toggle_forward,
 		.select_reverse		= picstyle_toggle_reverse,
 		.help = "Change current picture style."
 	},
 	{
+		.name = "Contrast/Saturation",
 		.display	= contrast_display,
 		.select		= contrast_toggle_forward,
 		.select_reverse		= contrast_toggle_reverse,
@@ -2199,12 +2217,14 @@ struct menu_entry expo_menus[] = {
 		.help = "Adjust contrast in current picture style."
 	},
 	{
+		.name = "Contrast/Saturation",
 		.display	= saturation_display,
 		.select		= saturation_toggle_forward,
 		.select_reverse		= saturation_toggle_reverse,
 		.help = "Adjust saturation in current picture style."
 	},
 	{
+		.name = "Flash AEcomp",
 		.display	= flash_ae_display,
 		.select		= flash_ae_toggle_forward,
 		.select_reverse		= flash_ae_toggle_reverse,

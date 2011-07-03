@@ -40,6 +40,9 @@ static int menu_shown = 0;
 static int show_only_selected; // for ISO, kelvin...
 static int edit_mode = 0;
 static int config_dirty = 0;
+int menu_help_active = 0;
+
+int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
 int get_menu_font_sel() 
 {
@@ -424,6 +427,7 @@ menu_entry_select(
 		return;
 
 	show_only_selected = 0;
+	menu_help_active = 0;
 	take_semaphore( menu_sem, 0 );
 	struct menu_entry * entry = menu->children;
 
@@ -468,6 +472,7 @@ menu_move(
 		return;
 
 	show_only_selected = 0;
+	menu_help_active = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -511,6 +516,7 @@ menu_entry_move(
 		return;
 
 	show_only_selected = 0;
+	menu_help_active = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -573,13 +579,21 @@ menu_redraw_if_damaged()
 {
 	if( menu_damage )
 	{
-		if (!lv) show_only_selected = 0;
-		//~ if (MENU_MODE || lv) clrscr();
-		bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
-		menu_damage = 0;
-		BMP_SEM( menus_display( menus, 10, 40 ); )
-		update_stuff();
-		update_disp_mode_bits_from_params();
+		if (menu_help_active)
+		{
+			menu_help_redraw();
+			menu_damage = 0;
+		}
+		else
+		{
+			if (!lv) show_only_selected = 0;
+			//~ if (MENU_MODE || lv) clrscr();
+			bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
+			menu_damage = 0;
+			BMP_SEM( menus_display( menus, 10, 40 ); )
+			update_stuff();
+			update_disp_mode_bits_from_params();
+		}
 	}
 }
 
@@ -681,12 +695,14 @@ menu_handler(
 	case PRESS_ZOOM_IN_BUTTON:
 		edit_mode = !edit_mode;
 		menu_damage = 1;
+		menu_help_active = 0;
 		break;
 
 	case PRESS_UP_BUTTON:
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
 		menu_damage = 1;
+		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
 		else menu_entry_move( menu, -1 );
 		break;
@@ -695,6 +711,7 @@ menu_handler(
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
 		menu_damage = 1;
+		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
 		else menu_entry_move( menu, 1 );
 		break;
@@ -702,6 +719,7 @@ menu_handler(
 	case DIAL_RIGHT:
 	case PRESS_RIGHT_BUTTON:
 		menu_damage = 1;
+		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
 		else menu_move( menu, 1 );
 		break;
@@ -709,23 +727,32 @@ menu_handler(
 	case DIAL_LEFT:
 	case PRESS_LEFT_BUTTON:
 		menu_damage = 1;
+		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
 		else menu_move( menu, -1 );
 		break;
 
 	case PRESS_SET_BUTTON:
+		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
 		if (edit_mode) edit_mode = 0;
 		else menu_entry_select( menu, 0 ); // normal select
 		menu_damage = 1;
 		break;
 
 	case PRESS_INFO_BUTTON:
-    case 0x10000000: // PLAY
+		menu_help_active = !menu_help_active;
+		if (menu_help_active) menu_help_go_to_selected_entry(menu);
+		menu_damage = 1;
+		break;
+
+    case PRESS_PLAY_BUTTON:
+		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
 		menu_entry_select( menu, 1 ); // reverse select
 		menu_damage = 1;
 		break;
 
 	case PRESS_DIRECT_PRINT_BUTTON:
+		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
 		menu_entry_select( menu, 2 ); // auto setting select
 		menu_damage = 1;
 		break;
@@ -895,7 +922,7 @@ void toggle_draw_event( void * priv )
 {
 	draw_event = !draw_event;
 }
-
+/*
 static void
 about_print_0(
 	void *			priv,
@@ -905,34 +932,7 @@ about_print_0(
 )
 {
 	if (!selected) return;
-	bmp_printf(FONT_LARGE,
-		x, y,
-		"Magic Lantern for 60D"
-	);
-	bmp_printf(FONT_MED,
-		x, y + font_large.height,
-"http://magiclantern.wikia.com/60D");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 1 + 5,
-"First version by Trammell, developed by Alex");
-
-	char msg[500];
-	snprintf(msg, sizeof(msg), 
-		"Magic Lantern v.%s (%s)\n \n"
-		"Built on %s \nby %s\n",
-		build_version,
-		build_id,
-		build_date,
-		build_user);
-
-	int X = x;
-	int Y = y + font_large.height + font_med.height * 3 + 10; 
-	bmp_puts_w(FONT_MED, &X, &Y, 37, msg); 
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 10 + 15,
-	"(scroll down for full credits)");
+	show_logo();
 }
 
 static void
@@ -945,46 +945,8 @@ about_print(
 {
 	y -= font_large.height;
 	if (!selected) return;
-	bmp_printf(FONT_LARGE,
-		x, y,
-		"Magic Lantern for 60D"
-	);
-	bmp_printf(FONT_MED,
-		x, y + font_large.height,
-"http://magiclantern.wikia.com/60D");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 1 + 5,
-"First version by Trammell, developed by Alex");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 2 + 10,
-"Crypto tools by Arm.Indy, 60D port by SztupY");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 3 + 15,
-"Code review and insights by AJ");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 4 + 20,
-"Patches by piersg, nandoide, stefano, trho,\n"
-"      deti, tapani, phil, xaos, sztupy");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 6 + 25,
-"Card tools by Pel, Zeno, lichtjaar");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 7 + 30,
-"Cropmarks by Robert, bwwd, turbinicarpus,\n"
-"      CameraRick");
-
-	bmp_printf(FONT_MED,
-		x, y + font_large.height + font_med.height * 9 + 35,
-"Tutorials by sawomedia, Renny, Jeremy, Daniel,\n"
-"      Dod3032, MediaUnlocked, 3615geek,\n"
-"      CineDigital.tv, jeveuxdoncjefilme\n");
-}
+	
+}*/
 
 
 /*static struct menu_entry draw_prop_menus[] = {
@@ -994,7 +956,7 @@ about_print(
 		.select		= toggle_draw_event,
 	},
 };*/
-
+/*
 static struct menu_entry about_menu[] = {
 	{
 		.display = about_print_0
@@ -1002,7 +964,7 @@ static struct menu_entry about_menu[] = {
 	{
 		.display = about_print
 	}
-};
+};*/
 
 static void
 open_canon_menu()
@@ -1031,7 +993,7 @@ menu_task( void* unused )
 
 	// Add the draw_prop menu
 	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
-	menu_add( " (i)", about_menu, COUNT(about_menu));
+	//~ menu_add( " (i)", about_menu, COUNT(about_menu));
 	
 	msleep(500);
 	while(1)
@@ -1093,6 +1055,7 @@ menu_task( void* unused )
 		menu_damage = 1;
 		menu_hidden = 0;
 		edit_mode = 0;
+		menu_help_active = 0;
 		gui_menu_task = gui_task_create( menu_handler, 0 );
 
 		//~ zebra_pause();
@@ -1106,6 +1069,7 @@ TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
 
 int is_menu_active(char* name)
 {
+	if (menu_help_active) return 0;
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
@@ -1128,4 +1092,40 @@ void select_menu(char* name, int entry_index)
 				entry->selected = (i == entry_index);
 		}
 	}
+}
+
+void select_menu_by_name(char* name, char* entry_name)
+{
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+	{
+		menu->selected = !strcmp(menu->name, name);
+		if (menu->selected)
+		{
+			struct menu_entry *	entry = menu->children;
+			
+			int i;
+			for(i = 0 ; entry ; entry = entry->next, i++ )
+				entry->selected = !strcmp(menu->name, name);
+		}
+	}
+}
+
+void
+menu_help_go_to_selected_entry(
+	struct menu *	menu
+)
+{
+	if( !menu )
+		return;
+
+	struct menu_entry * entry = menu->children;
+
+	for( ; entry ; entry = entry->next )
+	{
+		if( entry->selected )
+			break;
+	}
+	
+	menu_help_go_to_label(entry->name);
 }

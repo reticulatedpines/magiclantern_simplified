@@ -2014,10 +2014,10 @@ clearscreen_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"ClearScreen : %s",
-		mode ? "ON (HalfShutter)" : "OFF"
-		//~ mode == 0 ? "OFF" : 
-		//~ mode == 1 ? "on HalfShutter" : 
-		//~ mode == 2 ? "when idle" : "err"
+		//~ mode ? "ON (HalfShutter)" : "OFF"
+		mode == 0 ? "OFF" : 
+		mode == 1 ? "HalfShutter" : 
+		mode == 2 ? "WhenIdle" : "err"
 	);
 }
 
@@ -2440,6 +2440,7 @@ void idle_timeout_toggle_reverse(void* priv) { idle_timeout_toggle(priv, -1); }
 
 struct menu_entry zebra_menus[] = {
 	{
+		.name = "Global Draw",
 		.priv		= &global_draw,
 		.select		= global_draw_toggle,
 		.display	= global_draw_display,
@@ -2447,6 +2448,7 @@ struct menu_entry zebra_menus[] = {
 
 	},
 	{
+		.name = "Histo/Wavefm",
 		.priv		= &hist_draw,
 		.select		= menu_ternary_toggle,
 		.select_auto = waveform_toggle,
@@ -2454,6 +2456,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
 	},
 	{
+		.name = "Zebras",
 		.priv		= &zebra_draw,
 		.select		= menu_ternary_toggle,
 		.select_reverse = zebra_lo_toggle, 
@@ -2462,6 +2465,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Zebra stripes: show overexposed or underexposed areas."
 	},
 	{
+		.name = "False color",
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
 		.select		= menu_binary_toggle,
@@ -2469,6 +2473,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Shows brightness level as color-coded. [Q]: change palette."
 	},
 	{
+		.name = "Cropmks(x/n)",
 		.priv = &crop_draw,
 		.display	= crop_display,
 		.select		= crop_toggle_forward,
@@ -2476,6 +2481,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Cropmarks for framing. Usually shown only in Movie mode."
 	},
 	/*{
+		.name = "Ghost image",
 		.priv = &transparent_overlay, 
 		.display = transparent_overlay_display, 
 		.select = menu_binary_toggle,
@@ -2483,6 +2489,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Overlay any image in LiveView. In PLAY mode, press LV btn."
 	},*/
 	{
+		.name = "Spotmeter",
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
 		.select_auto	= spotmeter_formula_toggle,
@@ -2490,6 +2497,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Measure brightness in the frame center. [Q]: Percent/IRE."
 	},
 	{
+		.name = "Focus Peak",
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
 		.select			= menu_ternary_toggle,
@@ -2498,6 +2506,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Show tiny dots on focused edges. Params: method,thr,color."
 	},
 	{
+		.name = "Magic Zoom",
 		.priv = &zoom_overlay_pos,
 		.display = zoom_overlay_display,
 		.select = zoom_overlay_main_toggle,
@@ -2506,6 +2515,7 @@ struct menu_entry zebra_menus[] = {
 		.help = "Zoom box for focusing. Can be used while recording."
 	},
 	{
+		.name = "Split Screen",
 		.priv = &zoom_overlay_split,
 		.display = split_display, 
 		.select = menu_binary_toggle,
@@ -2513,10 +2523,11 @@ struct menu_entry zebra_menus[] = {
 		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
 	},
 	{
+		.name = "ClearScreen",
 		.priv			= &clearscreen,
 		.display		= clearscreen_display,
-		.select			= menu_quaternary_toggle,
-		.select_reverse	= menu_quaternary_toggle_reverse,
+		.select			= menu_ternary_toggle,
+		.select_reverse	= menu_ternary_toggle_reverse,
 		.help = "Clear BMP overlay."
 	},
 	/*{
@@ -2554,6 +2565,7 @@ struct menu_entry zebra_menus[] = {
 
 struct menu_entry dbg_menus[] = {
 	{
+		.name = "Dim display",
 		.priv			= &idle_display_dim_after,
 		.display		= idle_display_dim_print,
 		.select			= idle_timeout_toggle_forward,
@@ -2561,6 +2573,7 @@ struct menu_entry dbg_menus[] = {
 		.help = "Dim LCD display in LiveView when idle, to save power."
 	},
 	{
+		.name = "Turn off display",
 		.priv			= &idle_display_turn_off_after,
 		.display		= idle_display_turn_off_print,
 		.select			= idle_timeout_toggle_forward,
@@ -2568,6 +2581,7 @@ struct menu_entry dbg_menus[] = {
 		.help = "Turn off display in LiveView when idle, to save power."
 	},
 	{
+		.name = "Turn off GlobalDraw",
 		.priv			= &idle_display_global_draw_off_after,
 		.display		= idle_display_global_draw_off_print,
 		.select			= idle_timeout_toggle_forward,
@@ -2609,6 +2623,7 @@ struct menu_entry dbg_menus[] = {
 
 static struct menu_entry cfg_menus[] = {
 	{
+		.name = "DISP presets",
 		.priv		= &disp_profiles_0,
 		.select		= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,

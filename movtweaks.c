@@ -339,6 +339,7 @@ static struct menu_entry mov_menus[] = {
 		.select		= vbr_toggle,
 	},*/
 	{
+		.name = "Movie Restart",
 		.priv = &movie_restart,
 		.display	= movie_restart_print,
 		.select		= menu_binary_toggle,
@@ -352,6 +353,7 @@ static struct menu_entry mov_menus[] = {
 		.select_auto = movie_af_aggressiveness_bump,
 	},*/
 	{
+		.name = "MovieModeRemap",
 		.priv = &movie_mode_remap,
 		.display	= mode_remap_print,
 		.select		= menu_ternary_toggle,
@@ -369,30 +371,35 @@ static struct menu_entry mov_menus[] = {
 		.help = "Cover LCD sensor and adjust aperture => ISO changes too."
 	},*/
 	{
+		.name = "Movie REC key",
 		.priv = &movie_rec_key, 
 		.display = movie_rec_key_print, 
 		.select = menu_binary_toggle,
 		.help = "Change the button used for recording. Hint: wired remote."
 	},
 	{
+		.name = "WB workaround",
 		.priv = &white_balance_workaround,
 		.display = wb_workaround_display, 
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
 	{
+		.name = "Zebra when REC",
 		.priv = &zebra_nrec,
 		.select = menu_binary_toggle,
 		.display = zebra_nrec_display,
 		.help = "You can disable zebra during recording."
 	},
 	{
+		.name = "Force LiveView",
 		.priv = &enable_liveview,
 		.display	= enable_liveview_print,
 		.select		= menu_ternary_toggle,
 		.help = "Force LiveView in movie mode, even with an unchipped lens."
 	},
 	{
+		.name = "Force HDMI-VGA",
 		.priv = &hdmi_force_vga, 
 		.display = hdmi_force_display, 
 		.select = menu_binary_toggle,

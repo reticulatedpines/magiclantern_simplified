@@ -140,6 +140,7 @@ update_lens_display(
 		if (get_halfshutter_pressed()) return;
 		if (!zebra_should_run()) return;
 	}
+	if (is_menu_help_active()) return;
 	
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
@@ -753,6 +754,7 @@ movielog_display( void * priv, int x, int y, int selected )
 }
 static struct menu_entry lens_menus[] = {
 	{
+		.name = "Movie logging",
 		.priv = &movie_log,
 		.select = menu_binary_toggle,
 		.display = movielog_display,

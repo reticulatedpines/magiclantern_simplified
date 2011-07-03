@@ -505,6 +505,7 @@ int lv_focus_confirmation = 0;
 static int hsp_countdown = 0;
 int can_lv_trap_focus_be_active()
 {
+	//~ bmp_printf(FONT_MED, 100, 100, "LVTF 0 lv=%d hsc=%d dof=%d sm=%d gs=%d sp=%d mf=%d",lv,hsp_countdown,dofpreview,shooting_mode,gui_state,get_silent_pic_mode(),is_manual_focus());
 	if (!lv) return 0;
 	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
 	if (dofpreview) return 0;
@@ -512,6 +513,7 @@ int can_lv_trap_focus_be_active()
 	if (gui_state != GUISTATE_IDLE) return 0;
 	if (get_silent_pic_mode()) return 0;
 	if (!is_manual_focus()) return 0;
+	bmp_printf(FONT_MED, 100, 100, "LVTF 1");
 	return 1;
 }
 
@@ -815,12 +817,14 @@ extern int trap_focus;
 
 static struct menu_entry focus_menu[] = {
 	{
+		.name = "Trap Focus",
 		.priv		= &trap_focus,
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
 		.help = "Takes a picture when the subject comes in focus. MF only."
 	},
 	{
+		.name = "Follow Focus",
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
 		.select		= menu_binary_toggle,
@@ -830,6 +834,7 @@ static struct menu_entry focus_menu[] = {
 	},
 #ifdef CONFIG_MOVIE_AF
 	{
+		.name = "Movie AF",
 		.priv = &movie_af,
 		.display	= movie_af_print,
 		.select		= menu_quaternary_toggle,
@@ -839,35 +844,41 @@ static struct menu_entry focus_menu[] = {
 	},
 #endif
 	{
+		.name = "Focus speed",
 		.display	= focus_rack_speed_display,
 		.select		= focus_rack_speed_increment,
 		.select_reverse	= focus_rack_speed_decrement,
 		.help = "Speed for rack focus and follow focus, in raw steps."
 	},
 	{
+		.name = "Focus delay",
 		.display	= focus_delay_display,
 		.select		= focus_delay_increment,
 		.select_reverse	= focus_delay_decrement,
 		.help = "Delay between two successive focus commands."
 	},
 	{
+		.name = "Focus dir",
 		.priv		= &focus_dir,
 		.display	= focus_dir_display,
 		.select		= menu_binary_toggle,
 		.help = "Focus direction used when you half-press the shutter."
 	},
 	{
+		.name = "Focus A",
 		.display	= focus_show_a,
 		.select		= focus_reset_a,
 		.help = "Press SET to fix here the end point of rack focus."
 	},
 	{
+		.name = "Rack Focus",
 		.priv		= "Rack focus",
 		.display	= menu_print,
 		.select		= focus_toggle,
 		.help = "Start the rack focus operation."
 	},
 	{
+		.name = "Stack focus",
 		.display	= focus_stack_print,
 		.select		= focus_stack_count_increment,
 		.select_auto		= focus_stack_step_increment,
@@ -875,6 +886,7 @@ static struct menu_entry focus_menu[] = {
 		.help = "Focus bracketing, useful for macro shots."
 	},
 	{
+		.name = "Focal Dist",
 		.display	= display_lens_hyperfocal,
 	},
 };

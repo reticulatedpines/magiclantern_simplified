@@ -313,6 +313,7 @@ void show_mvr_buffer_status()
 
 static struct menu_entry mov_menus[] = {
 	{
+		.name = "Bit Rate",
 		.priv = &bitrate_mode,
 		.display	= bitrate_print,
 		.select		= bitrate_toggle_mode,
@@ -321,12 +322,14 @@ static struct menu_entry mov_menus[] = {
 		.help = "H.264 bitrate. Use with care! [Q/PLAY]: change value."
 	},
 	{
+		.name = "BuffWarnLevel",
 		.select		= buffer_warning_level_toggle_forward,
 		.select_reverse	= buffer_warning_level_toggle_reverse,
 		.display	= buffer_warning_level_display,
 		.help = "ML will pause CPU-intensive graphics if buffer gets full."
 	},
 	{
+		.name = "Time Indicator",
 		.priv		= &time_indicator,
 		.select		= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,

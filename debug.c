@@ -503,12 +503,14 @@ spy_print(
 
 struct menu_entry debug_menus[] = {
 	{
+		.name = "Draw palette",
 		.priv		= "Draw palette",
 		.select		= (void(*)(void*))bmp_draw_palette,
 		.display	= menu_print,
 		.help = "Display a test pattern to see the color palette."
 	},
 	{
+		.name = "Screenshot (10 s)",
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
 		.select_auto = take_screenshot,
@@ -516,6 +518,7 @@ struct menu_entry debug_menus[] = {
 		.help = "Take a screenshot after 10 seconds [SET] or right now [Q]."
 	},
 	{
+		.name = "Debug logging",
 		.priv = &dm_enable,
 		.select = dm_toggle, 
 		.select_auto		= (void*) dumpf,
@@ -523,6 +526,7 @@ struct menu_entry debug_menus[] = {
 		.help = "While ON, debug messages are saved. [Q] => LOGnnn.LOG."
 	},
 	{
+		.name = "Spy prop/evt/mem",
 		.select		= draw_prop_select,
 		.select_reverse = toggle_draw_event,
 		.select_auto = mem_spy_select,
@@ -567,18 +571,21 @@ struct menu_entry debug_menus[] = {
 
 static struct menu_entry cfg_menus[] = {
 	{
+		.name = "Config AutoSave",
 		.priv = &config_autosave,
 		.display	= config_autosave_display,
 		.select		= config_autosave_toggle,
 		.help = "If enabled, ML settings are saved automatically at shutdown."
 	},
 	{
+		.name = "Save config now",
 		.priv = "Save config now",
 		.display	= menu_print,
 		.select		= save_config,
 		.help = "Save ML settings to MAGIC.CFG"
 	},
 	{
+		.name = "Delete config file",
 		.priv = "Delete config file",
 		.display	= menu_print,
 		.select		= delete_config,
@@ -763,6 +770,7 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 
 CONFIG_INT( "magic.disable_bootdiskf",	disable_bootdiskf, 0 );
 
+/*
 struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
@@ -783,7 +791,7 @@ void show_logo()
 			"...loading...\n"
 		);
 	}
-}
+}*/
 
 void
 debug_init_stuff( void )

@@ -986,9 +986,9 @@ audio_monitoring_toggle( void * priv)
 
 static struct menu_entry audio_menus[] = {
 	{
+		.name = "Audio Meters",
 		.priv		= &cfg_draw_meters,
 		.select		= menu_binary_toggle,
-		.select_reverse		= menu_ternary_toggle_reverse,
 		.display	= audio_meter_display,
 		.help = "Meters show average value and peaks, from -40 dB to 0 dB."
 	},
@@ -1000,6 +1000,7 @@ static struct menu_entry audio_menus[] = {
 	},
 #endif
 	{
+		.name = "Analog Gain (dB)",
 		.priv		= &mgain,
 		.select		= audio_mgain_toggle,
 		.select_reverse	= audio_mgain_toggle_reverse,
@@ -1007,6 +1008,7 @@ static struct menu_entry audio_menus[] = {
 		.help = "Gain applied to both inputs in analog domain (preferred)."
 	},
 	{
+		.name = "L-DigitalGain",
 		.priv		= &dgain_l,
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
@@ -1014,6 +1016,7 @@ static struct menu_entry audio_menus[] = {
 		.help = "Digital gain applied only to the LEFT channel."
 	},
 	{
+		.name = "L-DigitalGain", // hack
 		.priv		= &dgain_r,
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
@@ -1021,6 +1024,7 @@ static struct menu_entry audio_menus[] = {
 		.help = "Digital gain applied only to the RIGHT channel."
 	},
 	{
+		.name = "AGC",
 		.priv		= &alc_enable,
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
@@ -1044,6 +1048,7 @@ static struct menu_entry audio_menus[] = {
 	},
 #endif
 	{
+		.name = "Input source",
 		.priv		= &input_choice,
 		.select		= audio_input_toggle,
 		.select_reverse		= audio_input_toggle_reverse,
@@ -1056,12 +1061,14 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_loopback_display,
 	},*/
 	{
+		.name = "Mic Power",
 		.priv		= &mic_power,
 		.select		= audio_binary_toggle,
 		.display	= audio_micpower_display,
 		.help = "Needed for int. and some other mics, but lowers impedance."
 	},
 	{
+		.name = "Output volume (dB)",
 		.priv		= &lovl,
 		.select		= audio_3bit_toggle,
 		.select_reverse		= audio_3bit_toggle_reverse,
@@ -1069,6 +1076,7 @@ static struct menu_entry audio_menus[] = {
 		.help = "Output volume for audio monitoring (headphones only)."
 	},
 	{
+		.name = "Monitoring-USB",
 		.priv = &audio_monitoring,
 		.select		= audio_monitoring_toggle,
 		.display	= audio_monitoring_display,

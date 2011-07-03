@@ -29,6 +29,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 #~ VERSION=0.2.0.rc1.550d.fw109
 
 BUILDVER=$(shell whoami)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL).fw$(FW_VERSION).$(BUILDVER)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -82,21 +83,17 @@ ptpinstall: autoexec.bin
 	cat ptpcam.txt | ptpcam --chdk
 	diff autoexec.bin autoexec.test
 
-%.pdf: 
-	cp doc/*.pdf .
-
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
-	magiclantern.fir \
 	autoexec.bin \
 	README \
-	INSTALL.pdf \
-	UserGuide.pdf \
-	UserGuide-diff.pdf \
+	doc/INSTALL.pdf \
+	doc/UserGuide.pdf \
 	make_bootable.sh\
 	logo.bmp\
 	cropmks/* \
+	doc/cam/* \
 
 	-rm $@
 	chmod -x autoexec.bin
@@ -143,8 +140,6 @@ AFLAGS=\
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
-
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL).fw$(FW_VERSION).$(BUILDVER)
 
 
 zip: magiclantern-$(VERSION).zip

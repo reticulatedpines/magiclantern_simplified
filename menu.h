@@ -59,6 +59,7 @@ struct menu_entry
 		int			selected
 	);
 	const char * help;
+	const char * name; // for now it's used only for context help; will be used for display too.
 };
 
 
