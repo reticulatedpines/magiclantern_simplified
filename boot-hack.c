@@ -267,7 +267,7 @@ int _hold_your_horses = 1;
 // only after this task finished, the others are started
 void init_task_read_config()
 {
-	show_logo();
+	//~ show_logo();
 	display_clock();
 	config_parse_file( "B:/magic.cfg" );
 	debug_init_stuff();
