@@ -18,8 +18,8 @@ print >> menu, """
 struct menu_entry help_menus[] = {
     {
         .name = "About Magic Lantern",
-        .priv = 1,
-        .select = menu_help_go_to_page,
+        .priv = "About Magic Lantern",
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },"""
 
@@ -53,7 +53,7 @@ for l in f[1:]:
         print >> menu, """    {
         .name = "%s",
         .priv = %s,
-        .select = menu_help_go_to_page,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },""" % (item, page)
 

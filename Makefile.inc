@@ -74,6 +74,10 @@ docs:
 	cd doc && python mkdoc.py
 	cd doc && python mkdoc-cam.py
 
+docq:
+	cd doc && python mkdoc.py
+	cd doc && python mkdoc-cam.py quick
+
 installdoc:
 	mkdir $(CF_CARD)/doc || echo "no problem"
 	mkdir $(CF_CARD)/doc/cam || echo "no problem"
@@ -101,7 +105,6 @@ magiclantern-$(VERSION).zip: \
 	doc/INSTALL.pdf \
 	doc/UserGuide.pdf \
 	make_bootable.sh\
-	logo.bmp\
 	cropmks/* \
 	doc/cam/* \
 

@@ -8,7 +8,7 @@
 # Author: Alex Dumitrache <broscutamaker@gmail.com>
 # License: GPL
 
-import os, re, time
+import os, re, time, sys
 import urllib
 
 m = open("MANUAL.txt").readlines();
@@ -69,7 +69,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
     f.write(txt)
     f.close()
 
-nonewlineitems = ['Output volume', 'WBShift','Aperture','PictureStyle','Contrast','Focus delay', 'Focus A', 'Rack Focus', 'Hyperfocal', 'DOF', 'Lockup', 'ISO selection', 'Screenshot', 'Spy', 'Save config', 'Delete config', 'Movie REC', 'Movie Restart', 'Zebra when REC', 'Gain', 'AGC', 'Zoom in PLAY']
+nonewlineitems = ['Output volume', 'WBShift','Aperture','PictureStyle','Contrast','Focus delay', 'Focus A', 'Rack Focus', 'Hyperfocal', 'DOF', 'Lockup', 'ISO selection', 'Screenshot', 'Spy', 'Save config', 'Delete config', 'Movie REC', 'Movie Restart', 'Zebra when REC', 'Gain', 'AGC', 'Zoom in PLAY', "Swap MENU"]
 def should_add_newline(l):
     for it in nonewlineitems:
         if it in l:
@@ -129,7 +129,8 @@ os.system("lualatex UserGuide-cam.tex")
 #os.system("pdflatex UserGuide-cam.tex")
 #os.system("pdflatex UserGuide-cam.tex")
 
-#~ raise SystemExit # from this point it's very slow
+if len(sys.argv) > 1:
+    raise SystemExit # from this point it's very slow
 
 os.system("rm cam/*")
 os.system("mkdir cam")

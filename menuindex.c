@@ -11,62 +11,62 @@
 struct menu_entry help_menus[] = {
     {
         .name = "About Magic Lantern",
-        .priv = 1,
-        .select = menu_help_go_to_page,
+        .priv = "About Magic Lantern",
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Important notes",
         .priv = 4,
-        .select = menu_help_go_to_page,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "FAQ",
         .priv = 5,
-        .select = menu_help_go_to_page,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Known issues",
         .priv = 10,
-        .select = menu_help_go_to_page,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Keyboard shortcuts",
         .priv = 11,
-        .select = menu_help_go_to_page,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
-        .name = "Menu options",
+        .name = "Magic Lantern menu",
         .priv = 15,
-        .select = menu_help_go_to_page,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Extra info displays",
-        .priv = 90,
-        .select = menu_help_go_to_page,
+        .priv = 94,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Power saving",
-        .priv = 96,
-        .select = menu_help_go_to_page,
+        .priv = 100,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Hidden settings",
-        .priv = 99,
-        .select = menu_help_go_to_page,
+        .priv = 103,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
     {
         .name = "Epilogue",
-        .priv = 100,
-        .select = menu_help_go_to_page,
+        .priv = 104,
+        .select = menu_help_go_to_label,
         .display = menu_help_section_print,
     },
 };
@@ -79,7 +79,7 @@ help_menu_init( void* unused )
 
 INIT_FUNC( "help_menu", help_menu_init );
 
-int help_pages = 100;
+int help_pages = 104;
 int help_menus_num = 10;
 
 

@@ -119,14 +119,13 @@ void menu_help_go_to_label(char* label)
 	while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
 	{
 		char* name = line_buf+4;
-		//~ bmp_printf(FONT_MED, 0, 0, "'%s' '%s'"  , name, label);
-		//~ msleep(200);
 		if(!strcmp(name, label))
 		{
-			//~ bmp_printf(FONT_MED, 0, 0, "'%s' :) "  , name);
-			//~ msleep(1000);
 			page = atoi(line_buf);
-			break;
+		}
+		if(!strcmp(name, "end"))
+		{
+			help_pages = atoi(line_buf);
 		}
 	}
 	free_dma_memory(config_file_buf);
