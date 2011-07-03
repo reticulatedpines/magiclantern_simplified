@@ -294,17 +294,30 @@ error:
 	return NULL;
 }
 
+int config_autosave = 1;
+#define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
+
+void
+config_autosave_toggle(void* priv)
+{
+	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
+	msleep(50);
+	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+}
+
 int
 config_parse_file(
 	const char *		filename
 )
 {
+	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+
 	config_file_buf = read_entire_file(filename, &config_file_size);
 	if (!config_file_buf)
 	{
 		// if config file is not present, force Config Autosave: On
-		extern int config_autosave;
 		if (!config_autosave) config_autosave_toggle(0);
+		return 0;
 	}
 	config_file_pos = 0;
 	config_parse();

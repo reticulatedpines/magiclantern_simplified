@@ -12,9 +12,7 @@
 #include "lens.h"
 //#include "lua.h"
 
-int config_autosave = 1;
-#define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
-
+extern int config_autosave;
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
 //////////////////////////////////////////////////////////
@@ -127,13 +125,7 @@ delete_config( void * priv )
 	if (config_autosave) config_autosave_toggle(0);
 }
 
-void
-config_autosave_toggle(void* priv)
-{
-	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
-	msleep(50);
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
-}
+extern void config_autosave_toggle(void* unused);
 
 static void
 config_autosave_display(
@@ -797,7 +789,6 @@ void
 debug_init_stuff( void )
 {
 	//~ set_pic_quality(PICQ_RAW);
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 	config_ok = 1;
 	
 	dm_update();
