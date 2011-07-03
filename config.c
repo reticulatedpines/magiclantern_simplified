@@ -300,8 +300,12 @@ config_parse_file(
 )
 {
 	config_file_buf = read_entire_file(filename, &config_file_size);
+	if (!config_file_buf)
+	{
+		extern int config_autosave;
+		config_autosave = 1;
+	}
 	config_file_pos = 0;
-	msleep(200);
 	config_parse();
 	free_dma_memory(config_file_buf);
 	config_file_buf = 0;
