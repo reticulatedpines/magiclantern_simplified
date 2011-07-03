@@ -158,11 +158,20 @@ Misc shortcuts
 * ``Q`` (550D) or ``Unlock`` (60D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a transparent overlay from current image. You can then move the overlay around with arrow keys in LiveView mode. To deactivate the overlay, go to ``PLAY`` mode and back without pressing ``LV`` on a new image.
 
-Menu options
-------------
+Magic Lantern menu
+------------------
 
-Press ``ERASE`` button to show the menu. Use arrows to navigate, ``SET`` to change values forwards
-and ``PLAY`` to change values backwards. Some options may also use the ``Q`` button, or may have a different meaning for ``PLAY``.
+Press ``ERASE`` button to show the menu; use the arrow keys to navigate.
+
+To change values, use ``SET``, ``PLAY`` and ``Q``. For most menu items, you can:
+
+* press ``SET`` to change values forwards
+* press ``PLAY`` to change values backwards
+* press ``Q`` to invoke a special action (see the help text or the on-screen hints)
+
+Complex menu items may use different actions for these 3 keys. Please see the documentation of the particular menu item you want to use.
+
+In photo mode, outside LiveView, you can use the wheel(s) to navigate in ML menu. Press ``Zoom In`` button to activate edit mode and change values of a menu item with the wheel (experimental).
 
 Press the ``DISP`` or ``INFO`` button to get help about a particular menu item.
 
@@ -565,6 +574,13 @@ Functions specific to movie mode.
   * Always: force LiveView even if you use an unchipped lens, or no lens at all. Be careful, you may get dust on the sensor while changing lenses.
   * Start & CPU lenses: it will force LiveView at startup, regardless of the lens used. After this, it will only bypass the dialog when a chipped lens is attached (i.e. it will enter LiveView as soon as you attach a chipped lens).
 
+**Force HDMI-VGA: ON/OFF**
+
+  This option will force a low-resolution mode on HDMI displays (720x480), which:
+  
+  * Avoids getting black screen when you start recording;
+  * Lets you use most items from `LiveV`_ menu (zebras, false color, histogram...)
+
 Shoot
 ~~~~~
 
@@ -654,7 +670,7 @@ Functions for stills shooting (some of them work for movies, too).
   Power Saving:
   
   * When not in LiveView, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
-  * In LiveView, set `Display`_: ``Turn OFF when idle``. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
+  * In LiveView, enable the `Turn off display`_ option. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
   Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.
@@ -1097,6 +1113,10 @@ Miscellanous settings.
   * ``All values``: use all available ISO speeds, in 1/8 EV steps
   * ``100x, 160x``: use only native ISOs (multiples of 100) and ISO values with lower digital gain (multiples of 160).
 
+**Swap MENU <-> ERASE**
+
+Swaps ``MENU`` and ``ERASE`` buttons. This feature allows one-handed navigation in ML menu on 60D, but will have to use ``MENU`` button to delete the pictures.
+
 .. _zoom in Face Detect mode:
 
 **LiveView Zoom: x5 / x10 / :-)**
@@ -1143,6 +1163,18 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
   * evt: Display GUI events in real-time. See [[GUI_Events/550D]].
   * mem: Display memory addresses which change, but not those which change like mad. 
     Useful for detecting interesting [[Memory Addresses]] inside the camera RAM (like sensor & button locations).
+
+**Dim display: OFF / after X seconds**
+
+  In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight power to minimum in order to save power.
+
+**Turn off display: OFF / after X seconds**
+
+  In LiveView, if the camera is idle, Magic Lantern will turn off the built-in LCD display in order to save power.
+
+**Turn off GlobalDraw: OFF / after X seconds**
+
+  In LiveView, if the camera is idle, Magic Lantern will turn off `Global Draw`_ in order to save power.
 
 Config
 ~~~~~~
