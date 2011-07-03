@@ -69,6 +69,16 @@ endif
 #
 all: autoexec.bin
 
+
+docs:
+	cd doc && python mkdoc.py
+	cd doc && python mkdoc-cam.py
+
+installdoc:
+	mkdir $(CF_CARD)/doc || echo "no problem"
+	mkdir $(CF_CARD)/doc/cam || echo "no problem"
+	cp -v doc/cam/* $(CF_CARD)/doc/cam/
+
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
