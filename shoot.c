@@ -75,7 +75,7 @@ int motion_detect = 0;
 int drive_mode_bk = -1;
 
 int gui_state = 0;
-CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 1);
+CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 PROP_HANDLER(PROP_GUI_STATE)
 {
 	gui_state = buf[0];
@@ -1081,7 +1081,7 @@ int is_round_iso(int iso)
 	return is_native_iso(iso) || is_lowgain_iso(iso);
 }
 
-CONFIG_INT("iso.round.only", iso_round_only, 0);
+CONFIG_INT("iso.round.only", iso_round_only, 1);
 
 
 void
