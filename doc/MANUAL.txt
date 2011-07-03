@@ -291,7 +291,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Keys:
   
   * ``SET``: toggle between ``OFF/Luma/RGB``
-  * ``DISP``: change threshold for underexposure (blacks)
+  * ``PLAY``: change threshold for underexposure (blacks)
   * ``Q``: change threshold for overexposure (whites)
   
   Brightness values are between 0 and 255. A threshold equal to 0 will disable zebras for underexposure, and 255 will disable zebras for overexposure.
@@ -395,7 +395,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     - ``MORF``: looks for fine detail lost by morphological opening and closing (which is a kind of blurring). It handles high-contrast OOF edges well, but is very sensitive to ISO noise.
 
   * ``Q``: adjust percentile threshold, between 0.1% and 5%.
-  * ``DISP``: select color mode
+  * ``PLAY``: select color mode
   
     - one of ``R,G,B,C,M,Y`` (a single color)
     - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
@@ -417,7 +417,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``Zr+F``: triggered by ``Zoom In`` button while recording, and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `rack focus`_).
   * ``(*)``: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, cover the LCD sensor or press both zoom buttons at the same time.
   
-  Size / magnification (change with ``DISP`` or ``PLAY``): 
+  Size / magnification (change with ``PLAY``): 
   
   * ``Small`` (150x150)
   * ``Medium`` (250x200)
@@ -478,7 +478,7 @@ Functions specific to movie mode.
   Keys:
   
   * Change mode with ``SET``
-  * Change numeric value with ``Q`` and ``DISP``
+  * Change numeric value with ``Q`` and ``PLAY``
   
   Notes:
   
@@ -583,7 +583,7 @@ Functions for stills shooting (some of them work for movies, too).
   AE Bracketing for HDR images and timelapses.
   
   
-  Select number of images with ``SET`` and step size with ``DISP``. To turn this off quickly, press ``Q``.
+  Select number of images with ``SET`` and step size with ``PLAY``. To turn this off quickly, press ``Q``.
   
     
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
@@ -721,8 +721,8 @@ Functions for stills shooting (some of them work for movies, too).
   
   Keys:
   
-  * ``SET``: toggle modes (normal, hi-res or slit-scan)
-  * ``DISP/Q``: toggle between:
+  * ``SET``: toggle modes (normal / slit-scan)
+  * ``PLAY/Q``: toggle between:
   
     * ``Single/Burst/FullHD`` in normal mode
     * timing (number of clocks to skip after each line) in Slit-scan mode.
@@ -948,7 +948,7 @@ Focus
   You can reverse the direction for these keybindings:
   
   * Press ``Q`` to reverse the direction for ``LEFT/RIGHT`` keys (slow speed)
-  * Press ``DISP`` to reverse the direction for ``UP/DOWN`` keys (fast speed)
+  * Press ``PLAY`` to reverse the direction for ``UP/DOWN`` keys (fast speed)
 
 .. _rack focus:
 
@@ -1101,7 +1101,7 @@ Miscellanous settings.
 
 **LiveView Zoom: x5 / x10 / :-)**
 
-  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
+  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``PLAY`` and toggle ``:-)`` with ``SET``.
   
   * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
   * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
