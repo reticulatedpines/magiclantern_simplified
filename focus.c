@@ -17,7 +17,7 @@
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 
-CONFIG_INT( "focus.follow", follow_focus, 1 );
+CONFIG_INT( "focus.follow", follow_focus, 0 );
 CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
 CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
 
