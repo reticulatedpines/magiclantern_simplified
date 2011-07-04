@@ -782,42 +782,6 @@ INIT_FUNC( "lens", lens_init );
 // picture style, contrast...
 // -------------------------------------------
 
-int get_prop_picstyle_index(int pic_style)
-{
-	switch(pic_style)
-	{
-		case 0x81: return 1;
-		case 0x82: return 2;
-		case 0x83: return 3;
-		case 0x84: return 4;
-		case 0x85: return 5;
-		case 0x86: return 6;
-		case 0x21: return 7;
-		case 0x22: return 8;
-		case 0x23: return 9;
-	}
-	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle: %x", pic_style);
-	return 0;
-}
-
-int get_prop_picstyle_from_index(int index)
-{
-	switch(index)
-	{
-		case 1: return 0x81;
-		case 2: return 0x82;
-		case 3: return 0x83;
-		case 4: return 0x84;
-		case 5: return 0x85;
-		case 6: return 0x86;
-		case 7: return 0x21;
-		case 8: return 0x22;
-		case 9: return 0x23;
-	}
-	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle index: %x", index);
-	return 0;
-}
-
 PROP_HANDLER(PROP_PICTURE_STYLE)
 {
 	const uint32_t raw = *(uint32_t *) buf;
@@ -826,55 +790,7 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
 	return prop_cleanup( token, property );
 }
 
-struct prop_picstyle_settings picstyle_settings[10];
-
-// prop_register_slave is much more difficult to use than copy/paste...
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_1 ) {
-	memcpy(&picstyle_settings[1], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_2 ) {
-	memcpy(&picstyle_settings[2], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_3 ) {
-	memcpy(&picstyle_settings[3], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_4 ) {
-	memcpy(&picstyle_settings[4], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_5 ) {
-	memcpy(&picstyle_settings[5], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_6 ) {
-	memcpy(&picstyle_settings[6], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_7 ) {
-	memcpy(&picstyle_settings[7], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_8 ) {
-	memcpy(&picstyle_settings[8], buf, 24);
-	return prop_cleanup( token, property );
-}
-
-PROP_HANDLER( PROP_PICSTYLE_SETTINGS_9 ) {
-	memcpy(&picstyle_settings[9], buf, 24);
-	return prop_cleanup( token, property );
-}
-
+extern struct prop_picstyle_settings picstyle_settings[];
 
 // get contrast/saturation/etc from the current picture style
 
@@ -896,7 +812,7 @@ lens_set_##param(int value) \
 	int i = lens_info.picstyle; \
 	if (!i) return; \
 	picstyle_settings[i].param = value; \
-	prop_request_change(PROP_PICSTYLE_SETTINGS_1 - 1 + i, &picstyle_settings[i], 24); \
+	prop_request_change(PROP_PICSTYLE_SETTINGS(i), &picstyle_settings[i], 24); \
 } \
 
 LENS_GET_FROM_PICSTYLE(contrast)

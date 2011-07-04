@@ -1663,6 +1663,7 @@ picstyle_display( void * priv, int x, int y, int selected )
 		p == 0x84 ? "Neutral" :
 		p == 0x85 ? "Faithful" :
 		p == 0x86 ? "Monochrome" :
+		p == 0x87 ? "Auto" :
 		p == 0x21 ? "User Def 1" :
 		p == 0x22 ? "User Def 2" :
 		p == 0x23 ? "User Def 3" : "Unknown"
@@ -1674,7 +1675,7 @@ static void
 picstyle_toggle( int sign )
 {
 	int p = lens_info.picstyle;
-	p = mod(p + sign - 1, 9) + 1;
+	p = mod(p + sign - 1, NUM_PICSTYLES) + 1;
 	p = get_prop_picstyle_from_index(p);
 	if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
 	menu_show_only_selected();

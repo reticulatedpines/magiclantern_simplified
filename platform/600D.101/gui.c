@@ -120,6 +120,11 @@ static int handle_buttons(struct event * event) {
 					menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
 					return 0;
 				}
+				if (gui_state == GUISTATE_PLAYMENU)
+				{
+					livev_playback_toggle();
+					return 0;
+				}
             case BGMT_ZOOM_OUT :
                 // Do nothing for now
                 break;

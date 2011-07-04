@@ -73,11 +73,13 @@
 #define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(544 + MVR_992_STRUCT) + 100*MEM(532 + MVR_992_STRUCT), 0xa)
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
+#define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
+#define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
+
 #define MOV_RES_AND_FPS_COMBINATIONS 9
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 5
 #define MOV_OPT_STEP 5
-
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
@@ -149,8 +151,7 @@
 // Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
 
 
-//~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x246c)
-#define YUV422_LV_BUFFER_DMA_ADDR YUV422_LV_BUFFER // not OK; just for compiling
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
 
 
 // changes during record
@@ -190,6 +191,7 @@
  #define SENSOR_RES_Y 3465
 
  #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
+ #define FLASH_BTN_MOVIE_MODE 0
  #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
  #define AJ_LCD_Palette 0x2CDB0
@@ -202,16 +204,12 @@
 
 
 
- #define MVR_FRAME_NUMBER (*(int*)(236 + MVR_992_STRUCT))
- //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_992_STRUCT))
- #define MVR_BYTES_WRITTEN (*(int*)(228 + MVR_992_STRUCT))
-
  #define MOV_REC_STATEOBJ (*(void**)0x5B34)
  #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
  
  #define AE_VALUE (*(int8_t*)0x14c25)
 
- #define CURRENT_DIALOG_MAYBE (*(int*)0x39ac)
+ #define CURRENT_DIALOG_MAYBE 0
  #define DLG_WB 5
  #define DLG_FOCUS_MODE 9
  #define DLG_DRIVE_MODE 8
@@ -253,3 +251,6 @@
 
 #define BGMT_PRESS_ZOOMIN_MAYBE -1
 #define BGMT_UNPRESS_ZOOMIN_MAYBE -1
+
+#define NUM_PICSTYLES 10
+#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
