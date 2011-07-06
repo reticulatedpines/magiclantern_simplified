@@ -334,13 +334,15 @@ int audio_meters_are_drawn()
 static void
 meter_task( void* unused )
 {
+	audio_menus_init();
+	
 	while(1)
 	{
 		msleep( 50 );
 
 		if (audio_meters_are_drawn())
 		{
-			if (!is_mvr_buffer_almost_full())
+			//~ if (!is_mvr_buffer_almost_full())
 				BMP_SEM( draw_meters(); )
 		}
 		else
@@ -593,6 +595,9 @@ int get_mic_power(int input_source)
 void
 audio_configure( int force )
 {
+#ifdef CONFIG_600D
+	return;
+#endif
 #ifdef CONFIG_AUDIO_REG_LOG
 	audio_reg_dump( force );
 	return;
@@ -682,7 +687,7 @@ audio_configure( int force )
 	);
 
 	//draw_audio_regs();
-/*	bmp_printf( FONT_SMALL, 500, 450,
+	/*bmp_printf( FONT_SMALL, 500, 450,
 		"Gain %d/%d Mgain %d Src %d",
 		dgain_l,
 		dgain_r,
@@ -992,6 +997,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_meter_display,
 		.help = "Meters show average value and peaks, from -40 dB to 0 dB."
 	},
+#ifndef CONFIG_600D
 #if 0
 	{
 		.priv		= &o2gain,
@@ -1082,6 +1088,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_monitoring_display,
 		.help = "Audio monitoring via USB. Disable if you use a SD display."
 	},
+#endif
 };
 
 
@@ -1154,8 +1161,6 @@ my_sounddev_task()
 		(uint32_t) sounddev.sem_alc
 	);
 
-	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
-
 	//DIY debug ..
 	//~ bmp_printf( FONT_SMALL, 500, 400,
 			   //~ "sddvtsk, param=%d",
@@ -1179,6 +1184,7 @@ my_sounddev_task()
 
 	msleep(500);
 	audio_monitoring_update();
+
 	while(1)
 	{
 		// will be unlocked by the property handler
@@ -1189,9 +1195,9 @@ my_sounddev_task()
 	}
 }
 
-
+#ifndef CONFIG_600D
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
-
+#endif
 
 #if 0
 /** Replace the audio level task with our own.
@@ -1335,4 +1341,9 @@ void volume_down()
 	else if (mgain_db > 0)
 		audio_mgain_toggle_reverse(&mgain);
 	volume_display_schedule();
+}
+
+void audio_menus_init()
+{
+	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 }
