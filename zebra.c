@@ -3063,9 +3063,9 @@ int idle_countdown_clrscr_prev = 100;
 void idle_wakeup_reset_counters()
 {
 	//~ clearscreen_countdown = 3;
-	idle_countdown_display_off = idle_display_turn_off_after * 10;
-	idle_countdown_display_dim = idle_display_dim_after * 10;
-	idle_countdown_globaldraw = idle_display_global_draw_off_after * 10;
+	idle_countdown_display_off = MAX(idle_display_turn_off_after * 10, idle_countdown_display_off);
+	idle_countdown_display_dim = MAX(idle_display_dim_after * 10, idle_countdown_display_dim);
+	idle_countdown_globaldraw = MAX(idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
 	idle_countdown_clrscr = 30;
 }
 
