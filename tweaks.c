@@ -11,10 +11,6 @@
 #include "gui.h"
 #include "lens.h"
 
-#ifdef CONFIG_600D
-#include "disable-this-module.h"
-#endif
-
 // ExpSim
 //**********************************************************************
 CONFIG_INT( "expsim.auto", expsim_auto, 1);
@@ -511,6 +507,7 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
 	},
+	#ifdef CONFIG_60D
 	{
 		.name = "Swap MENU <--> ERASE",
 		.priv = &swap_menu,
@@ -518,6 +515,7 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "Swaps MENU and ERASE buttons."
 	},
+	#endif
 /*	{
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
