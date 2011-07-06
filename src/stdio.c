@@ -25,7 +25,7 @@ my_fprintf(
 	char* buf = alloc_dma_memory(256);
 
 	va_start( ap, fmt );
-	int len = vsnprintf( buf, sizeof(buf), fmt, ap );
+	int len = vsnprintf( buf, 256, fmt, ap );
 	va_end( ap );
 
 	FIO_WriteFile( file, buf, len );
