@@ -16,18 +16,14 @@ lens_focus(
 	if (is_manual_focus()) return;
 
 	while (lens_info.job_state) msleep(100);
-	lens_focus_wait();
-	lv_focus_done = 0;
-	
-	struct prop_focus focus = {
-		.active		= 1,
-		.mode		= 7,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-		.unk		= 0,
-	};
 
-	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
+	step = COERCE(step, -3, 3);
+	int focus_cmd = step;
+	if (step < 0) focus_cmd = 0x8000 - step;
+	
+	prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+	msleep(100);
+
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 }
 
