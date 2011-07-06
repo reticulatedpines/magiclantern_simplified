@@ -483,14 +483,15 @@ static int handle_buttons(struct event * event)
 			livev_playback_reset();
 	}
 
-	if (event->type == 0 && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
+	// transparent overlay
+	extern int transparent_overlay;
+
+	if (transparent_overlay && event->type == 0 && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
 	{
 		schedule_transparent_overlay();
 		return 0;
 	}
 
-	// move transparent overlay
-	extern int transparent_overlay;
 	if (transparent_overlay && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
@@ -519,11 +520,6 @@ static int handle_buttons(struct event * event)
 			transparent_overlay_offset(0, 0);
 			return 0;
 		}
-	}
-	if (event->type == 0 && event->param == BGMT_PLAY)
-	{
-		extern int transparent_overlay;
-		transparent_overlay = 0;
 	}
 
 	if (BGMT_FLASH_MOVIE)

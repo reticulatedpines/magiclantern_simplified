@@ -2321,7 +2321,7 @@ disp_profiles_0_display(
 	);
 }
 
-/*
+
 static void
 transparent_overlay_display(
 	void *			priv,
@@ -2346,7 +2346,7 @@ transparent_overlay_display(
 			transparent_overlay ? "ON" : "OFF"
 		);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay), 0);
-}*/
+}
 
 void transparent_overlay_offset(int dx, int dy)
 {
@@ -2480,14 +2480,14 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse		= crop_toggle_reverse,
 		.help = "Cropmarks for framing. Usually shown only in Movie mode."
 	},
-	/*{
+	{
 		.name = "Ghost image",
 		.priv = &transparent_overlay, 
 		.display = transparent_overlay_display, 
 		.select = menu_binary_toggle,
 		.select_auto = transparent_overlay_offset_clear,
 		.help = "Overlay any image in LiveView. In PLAY mode, press LV btn."
-	},*/
+	},
 	{
 		.name = "Spotmeter",
 		.priv			= &spotmeter_draw,
@@ -3611,5 +3611,5 @@ void transparent_overlay_from_play()
 	if (!lv) { force_liveview(); msleep(500); }
 	msleep(1000);
 	BMP_SEM( show_overlay(); )
-	transparent_overlay = 1;
+	//~ transparent_overlay = 1;
 }

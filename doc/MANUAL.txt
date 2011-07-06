@@ -354,6 +354,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
 {{clr}}
 
+**Ghost image: OFF / Centered / Left / Right**
+
+  Shows a transparent overlay which can be created from any image in Play mode.
+  
+  To select the image, go to Play mode and press the ``LiveView`` button.
+
 .. _spotmeter:
 
 **Spotmeter: OFF / Percent / IRE**
