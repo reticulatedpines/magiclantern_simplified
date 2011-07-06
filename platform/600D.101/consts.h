@@ -152,7 +152,7 @@
 
 
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
-
+#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
 
 // changes during record
  #define YUV422_HD_BUFFER 0x44000080
@@ -174,9 +174,8 @@
  #define YUV422_HD_PITCH_REC_480P 1280
  #define YUV422_HD_HEIGHT_REC_480P 480
 
- #define FOCUS_CONFIRMATION (*(int*)0x41d0)
- //~ #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // used to show trap focus status, and for Magic Off
- #define FOCUS_CONFIRMATION_AF_PRESSED 0 // not found yet
+#define FOCUS_CONFIRMATION (*(int*)0x479C) 
+#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // same as 60D
 
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
@@ -187,8 +186,8 @@
 #define GMT_FUNCTABLE 0xff56dccc
 
 
- #define SENSOR_RES_X 5202
- #define SENSOR_RES_Y 3465
+ #define SENSOR_RES_X 5184
+ #define SENSOR_RES_Y 3456
 
  #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
  #define FLASH_BTN_MOVIE_MODE 0

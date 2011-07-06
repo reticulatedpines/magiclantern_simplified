@@ -113,18 +113,13 @@ static int handle_buttons(struct event * event) {
                     output = 0;
                 }
                 break;
-			case BGMT_Q:
-			case BGMT_Q_ALT:
-				if(gui_menu_shown())
-				{
-					menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
-					return 0;
-				}
-				if (gui_state == GUISTATE_PLAYMENU)
-				{
-					livev_playback_toggle();
-					return 0;
-				}
+            case BGMT_Q:
+            case BGMT_Q_ALT:
+                if(gui_menu_shown())
+                {
+                    menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
+                    return 0;
+                }
             case BGMT_ZOOM_OUT :
                 // Do nothing for now
                 break;
@@ -168,11 +163,13 @@ static int handle_buttons(struct event * event) {
                 // Do nothing for now
                 break;
             case BGMT_PRESS_HALFSHUTTER :
+                halfshutter_pressed = 1;
                 // Shared with magnify/zoom out under certain circumstances
                 // This button handling can be catched but not overriden (returning 0 does nothing)
                 // Do nothing for now
                 break;
             case BGMT_UNPRESS_HALFSHUTTER :
+                halfshutter_pressed = 0;
                 // Shared with magnify/zoom out
                 // Do nothing for now
                 output = 0;
@@ -204,22 +201,22 @@ static int handle_buttons(struct event * event) {
 
 
 struct gui_main_struct {
-	void *			obj;		// off_0x00;
-	uint32_t		counter;	// off_0x04;
-	uint32_t		off_0x08;
-	uint32_t		counter_600D;    //off_0x0c;
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	uint32_t		off_0x20;
-	uint32_t		off_0x24;
-	uint32_t		off_0x28;
-	uint32_t		off_0x2c;
-	struct msg_queue *	msg_queue_60d;	// off_0x30;
-	struct msg_queue *	msg_queue;	// off_0x34;
-	struct msg_queue *	msg_queue_550d;	// off_0x38;
-	uint32_t		off_0x3c;
+    void *          obj;        // off_0x00;
+    uint32_t        counter;    // off_0x04;
+    uint32_t        off_0x08;
+    uint32_t        counter_600D;    //off_0x0c;
+    uint32_t        off_0x10;
+    uint32_t        off_0x14;
+    uint32_t        off_0x18;
+    uint32_t        off_0x1c;
+    uint32_t        off_0x20;
+    uint32_t        off_0x24;
+    uint32_t        off_0x28;
+    uint32_t        off_0x2c;
+    struct msg_queue *  msg_queue_60d;  // off_0x30;
+    struct msg_queue *  msg_queue;  // off_0x34;
+    struct msg_queue *  msg_queue_550d; // off_0x38;
+    uint32_t        off_0x3c;
 };
 extern struct gui_main_struct gui_main_struct;
 
@@ -227,35 +224,35 @@ extern struct gui_main_struct gui_main_struct;
 // if called from some other task, the function waits until the previous fake button was handled
 void fake_simple_button(int bgmt_code)
 {
-	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
-	fake_event.type = 0,
-	fake_event.param = bgmt_code, 
-	fake_event.obj = 0,
-	fake_event.arg = 0,
-	msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
+    if (!handle_buttons_active) take_semaphore(fake_sem, 0);
+    fake_event.type = 0,
+    fake_event.param = bgmt_code, 
+    fake_event.obj = 0,
+    fake_event.arg = 0,
+    msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
 }
 
 static void gui_main_task_600D() {
-	struct event * event = NULL;
-	int index = 0;
-	void* funcs[GMT_NFUNCS];
-	memcpy(funcs, GMT_FUNCTABLE, 4*GMT_NFUNCS);
-	gui_init_end();
-	while(1) {
-		msg_queue_receive(gui_main_struct.msg_queue_60d, &event, 0);
-		gui_main_struct.counter_600D--;
-		if (event == NULL) continue;
-		index = event->type;
-		if ((index >= GMT_NFUNCS) || (index < 0))
-			continue;
-		
-		if (!magic_is_off())
-			if (handle_buttons(event) == 0) 
-				continue;
-		
-		void(*f)(struct event *) = funcs[index];
-		f(event);
-	}
+    struct event * event = NULL;
+    int index = 0;
+    void* funcs[GMT_NFUNCS];
+    memcpy(funcs, GMT_FUNCTABLE, 4*GMT_NFUNCS);
+    gui_init_end();
+    while(1) {
+        msg_queue_receive(gui_main_struct.msg_queue_60d, &event, 0);
+        gui_main_struct.counter_600D--;
+        if (event == NULL) continue;
+        index = event->type;
+        if ((index >= GMT_NFUNCS) || (index < 0))
+            continue;
+        
+        if (!magic_is_off())
+            if (handle_buttons(event) == 0) 
+                continue;
+        
+        void(*f)(struct event *) = funcs[index];
+        f(event);
+    }
 } 
 
 
