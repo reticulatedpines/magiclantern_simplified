@@ -32,7 +32,7 @@
 
 #define BGMT_Q 0x1C // was 8
 #define BGMT_Q_ALT 0x13
-#define BGMT_MOVIE_SHOOTING 0x1D // new
+#define BGMT_LV 0x1D // new
 
 #define BGMT_PRESS_SET 4 // same
 #define BGMT_UNPRESS_SET 5 // new, only in menu mode
@@ -195,8 +195,8 @@
 
  #define AJ_LCD_Palette 0x2CDB0
 
- #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
- #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
+ #define LV_BOTTOM_BAR_DISPLAYED 0
+ #define ISO_ADJUSTMENT_ACTIVE 0
 
  #define COLOR_FG_NONLV 80
 
@@ -223,7 +223,7 @@
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
 #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 
- #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
+ #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU/* && CURRENT_DIALOG_MAYBE == DLG_PLAY*/)
  #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 
@@ -245,11 +245,11 @@
 
 
 // these are wrong (just for compiling)
-#define BGMT_PRESS_ZOOMOUT_MAYBE -1
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE -1
+#define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
 
-#define BGMT_PRESS_ZOOMIN_MAYBE -1
-#define BGMT_UNPRESS_ZOOMIN_MAYBE -1
+#define BGMT_PRESS_ZOOMIN_MAYBE 0xe
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
 
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
