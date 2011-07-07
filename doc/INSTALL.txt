@@ -1,5 +1,3 @@
-Installing Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
-
 
 
 WARNING
@@ -48,39 +46,31 @@ Important notes
 Introduction
 ============
 
-There are 2 ways of running user code on the 550D/T2i/Kiss X4:
+There are 2 ways of running user code on Canon DSLR cameras:
 
 1. using the update process with a ``.fir`` file, which must be digitally signed.
 
 2. using the bootdisk process: the ``autoexec.bin`` file is loaded and executed. 
    This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
 
-To install Magic Lantern on your camera, you must download the right 
-magiclantern for your firmware: 1.0.8 or 1.0.9. The recommended way 
-is to upgrade your camera to 1.0.9 in order to get the latest features.
-
-No development will be done on 1.0.8 any more. 
-Magic Lantern does not work at all with earlier firmware versions.
-
-Installing Magic Lantern for 550D firmware 1.0.9 for the first time
+Installing Magic Lantern for the first time
 ===========================================================================
 
-**Make sure you have the Canon Firmware 1.0.9 first!**
-**Running Magic Lantern on an incorrect firmware version may brick your camera!**
+To install Magic Lantern on your camera, you must make sure your camera has the right firmware version; if not, you have to upgrade the firmware first:
 
-If you already use a previous version of Magic Lantern for 550D firmware **1.0.9**, it's easy.
-Download the latest ML and unzip everything on your SD card. Done. Enjoy!
+* for Canon **550D** / T2i / Kiss X4: upgrade firmware to 1.0.9.
+* for Canon **60D**: upgrade firmware to 1.0.9. If you have firmware 1.0.5, you must upgrade first to 1.0.8 and then to 1.0.9.
+* For Canon **600D**: upgrade firmware to 1.0.1.
+* For Canon **500D**: upgrade firmware to 1.1.0.
 
-If you already use Magic Lantern for 550D/1.0.8, format your card, 
-upgrade camera firmware to 1.0.9 and follow the ML install steps.
 
 {{clr}}
 
 Step 0. Downloading
 ~~~~~~~~~~~~~~~~~~~
 
-* Download this release: `magiclantern-0.2.0.rc1.550d.fw109.zip <https://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-0.2.0.rc1.550d.fw109.zip>`_.
-* Read `this discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/850ec268bc883ceb>`_ for more info.
+* Download the `latest Magic Lantern version for your camera <http://magiclantern.wikia.com/wiki/Unified#Downloads>`_
+* Read the discussion thread before installing.
 
 Step 1. Enabling bootflag
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,16 +81,14 @@ Step 1. Enabling bootflag
     :width: 5cm
 
 * Remove any accessories from your camera (such as battery grip or external flash)
-* Restore your camera to default settings (``Clear all camera settings``, from ``Wrench 3`` menu)
-* Format the SD card from the camera (low level, from ``Wrench 1`` menu)
+* Restore your camera to default settings (``Clear all camera settings``)
+* Format the SD card from the camera, using low level format
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
-  start the camera and select ``Firmware ver 1.0.9`` from the ``Wrench 3`` menu 
+  start the camera and select ``Firmware ver 1.x.x`` from the menu
   (must be in manual or P mode to select)
 * The installer (``magiclantern.fir``) will enable the bootdisk flag in NVRAM
   by calling the ``bootdisk_enable()`` function from Canon firmware.
-  
-  This is the **only** persistent change to your camera, which can be reverted.
 * Once the drive light has gone off and stays off for a few seconds, remove the battery.
 
 Step 2. Making the SD card bootable
@@ -187,18 +175,21 @@ If it doesn't have enough permissions, run it as root:
 Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-* Delete ``magiclantern.fir``.
-* Copy ``autoexec.bin`` and ``cropmks`` on your SDCard. Older builds may require some BMP files and ``magic.cfg``. 
+* Unzip all files on your SD card.
+* Optional: you may delete ``magiclantern.fir``, documentation (``*.pdf``), scripts (``*.sh``, ``*.py``) and ``README``. These files are not needed on the camera, but there's no problem if you leave them on the card.
 * Put the card in the camera.
 * Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
-As long as you had enabled the ``BOOTDISK`` flag once, you card is "prepared";
-the camera will try to load any ``autoexec.bin``. The ``.fir`` file is not needed any more,
-unless for some reason you will want to retry the installation process.
+Usage info
+==========
 
+* You have to install Magic Lantern on all cards you wish to use with it. Make these cards bootable and copy the required files.
+* If you format a card, Magic Lantern will be removed from it, and the camera will start with vanilla firmware.
+* You can have some cards with Magic Lantern and other cards without.
+* You should not put a card with Magic Lantern for some camera ``X`` in a different camera ``Y``. It won't work and there is risk of causing permanent damage to the camera.
 
 Troubleshooting
-~~~~~~~~~~~~~~~
+===============
 
 * Check if all doors are closed. The camera will not boot if the SD slot door is open!
 
@@ -217,18 +208,20 @@ Troubleshooting
 
 * Always use *safely remove hardware* when copying files to your SD card; otherwise, you may end up with a corrupted file system. The PC may not notice it, but the camera may fail to load ``autoexec.bin`` or to detect cropmarks.
 
-Installing updated Magic Lantern builds
+Installing Magic Lantern updates
 =======================================
 
 [[Video:550D T2I Magic Lantern: Installing New Builds, Offical / ML in parallel, Deinstalling ML|thumb|300px|right]]
 
 [[Video:MAGIC LANTERN 1.0.9 FIRMWARE HACK:UPDATE Q&A|thumb|300px|right]]
 
-After you've installed ML, you can get updated builds; just unzip them on the SD card (overwrite old files).
+To upgrade Magic Lantern, just unzip the new version on the SD card (overwrite old files).
 
 It's highly recommended to install an updated build, usually the last one. They are announced first on the `ML mailing list <http://groups.google.com/group/ml-devel>`_ and on `Vimeo Magic Lantern User Group <http://vimeo.com/groups/magiclantern/forumthread:236203>`_.
 
 Make sure you have the correct firmware version!
+
+`Download link <http://magiclantern.wikia.com/wiki/Unified#Downloads>`_
 
 {{clr}}
 
@@ -250,37 +243,20 @@ If you know what you are doing, put this in ``magic.cfg`` to reset the ``DISKBOO
 
     magic.disable_bootdiskf = 1
 
+**Reinstalling Canon firmware will NOT remove Magic Lantern!**
 
-Older versions (archived)
-=========================
+Persistent changes
+==================
 
-550D/1.0.9
-~~~~~~~~~~
+Magic Lantern does the following persistent change to your camera:
 
-* 3 Dec 2010: `magiclantern-0.1.9-rc0_550d_fw109.zip <http://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-0.1.9-rc0_550d_fw109.zip>`_
-
-550D/1.0.8
-~~~~~~~~~~
-
-No further development will be done on the 1.0.8 firmware.
-
-Official builds from Trammell Hudson
-````````````````````````````````````
-* `Announcing pre-alpha firmware <http://groups.google.com/group/ml-devel/msg/49631dc8fec89779>`_
-* RC1 release: `magiclantern-550d.rc1.zip <http://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-550d.rc1.zip>`_
-* 8 Aug 2010: `Update 550D beta, now with gain control <http://groups.google.com/group/ml-devel/browse_thread/thread/1192bdeeb58e94d5>`_
-
-Unofficial (experimental) builds
-````````````````````````````````
-* 11 Nov 2010: `magiclantern for 550D, compiled with shorter config file <http://groups.google.com/group/ml-devel/msg/87b96d3cb43b4bec>`_
-* 23 Nov 2010: `Recording Internal and external audio simultaneously <http://groups.google.com/group/ml-devel/msg/1c690d8dee580ee3>`_
-* 07 Dec 2010: `fixed cropmarks <http://groups.google.com/group/ml-devel/msg/5abd238291b1d2b3>`_
-* 09 Dec 2010: `enabled zebras and histogram <http://groups.google.com/group/ml-devel/browse_thread/thread/e15fac669f293d2a>`_
-* 11 Dec 2010: `GUI menus & lots of extras <http://groups.google.com/group/ml-devel/browse_thread/thread/97488a67eff87b7e>`_
-* 12 Dec 2010: `enabled QScale and spotmeter <http://groups.google.com/group/ml-devel/msg/0dbfe7d9ee043525>`_
+* It enables the bootflag from NVRAM, which can be reverted (see `Uninstalling ML from the camera`_).
+* Some camera settings changed by Magic Lantern (such as ISO, white balance, picture quality) are saved into a non-volatile memory. To restore these settings, select ``Clear all camera settings`` from Canon menu.
 
 Risks
 =====
+
+(this needs some cleanup)
 
 * This firmware does a (very small) (semi-)permanent change to your camera: it changes the ``DISKBOOT`` flag, which is stored in NVRAM. This change can be reverted (see the mailing list and bootflags.c).
 * There are no confirmed reports of Magic Lantern doing permanent damage on the 550D.
