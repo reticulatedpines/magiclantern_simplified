@@ -2495,9 +2495,9 @@ void iso_refresh_display()
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
-		bmp_printf(fnt, 560, 27, "ISO %5d", iso);
+		bmp_printf(fnt, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y, "ISO %5d", iso);
 	else
-		bmp_printf(fnt, 560, 27, "ISO AUTO");
+		bmp_printf(fnt, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y, "ISO AUTO");
 }
 
 void display_expsim_status()

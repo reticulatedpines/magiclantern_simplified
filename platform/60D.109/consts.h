@@ -176,6 +176,9 @@
 #define DISPLAY_CLOCK_POS_X 400
 #define DISPLAY_CLOCK_POS_Y 410
 
+#define MENU_DISP_ISO_POS_X 560
+#define MENU_DISP_ISO_POS_Y 27
+
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 35
 #define DISPLAY_TRAP_FOCUS_POS_Y 365

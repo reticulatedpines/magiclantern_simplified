@@ -23,20 +23,20 @@ void display_shooting_info() // called from debug task
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-		bmp_printf(fnt, 360, 279, "%5dK", lens_info.kelvin);
+		bmp_printf(fnt, 185, 250, "%5dK", lens_info.kelvin);
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
-		bg = bmp_getpixel(15, 430);
+		bg = bmp_getpixel(380, 250);
 		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 320 + 2 * font_med.width, 450, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-		else    bmp_printf(fnt, 320 + 2 * font_med.width, 450, "  ");
+		if (ba) bmp_printf(fnt, 380 + 2 * font_med.width, 250, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+		else    bmp_printf(fnt, 380 + 2 * font_med.width, 250, "  ");
 
 		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 320, 450, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-		else    bmp_printf(fnt, 320, 450, "  ");
+		if (gm) bmp_printf(fnt, 380, 250, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+		else    bmp_printf(fnt, 380, 250, "  ");
 	}
 
 	iso_refresh_display();

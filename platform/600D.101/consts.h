@@ -233,15 +233,18 @@
 #define MENU_DISP_INFO_POS_X 20
 #define MENU_DISP_INFO_POS_Y 400
 
+#define MENU_DISP_ISO_POS_X 582
+#define MENU_DISP_ISO_POS_Y 27
+
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 200
 #define DISPLAY_CLOCK_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 410
-#define DISPLAY_TRAP_FOCUS_POS_Y 330
-#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
-#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
+#define DISPLAY_TRAP_FOCUS_POS_X 65
+#define DISPLAY_TRAP_FOCUS_POS_Y 360
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 
 // these are wrong (just for compiling)
