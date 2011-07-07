@@ -84,7 +84,7 @@ ptpinstall: autoexec.bin
 
 prepare_zip:
 	cp $(SRC_DIR)/zip.txt .
-	cp $(SRC_DIR)/README .
+	cp $(TOP_DIR)/README .
 	cp $(DOC_DIR)/INSTALL.pdf .
 	cp $(DOC_DIR)/UserGuide.pdf .
 	cp $(SRC_DIR)/make_bootable.sh .
