@@ -464,7 +464,7 @@ struct menu_entry tweak_menus[] = {
 		.display	= lcd_sensor_shortcuts_print,
 	},
 	{
-		.name = "Auto Burst PicQuality",
+		.name = "Auto BurstPicQuality",
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
