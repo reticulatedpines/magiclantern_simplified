@@ -74,12 +74,24 @@ CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
 CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
-int get_zoom_overlay_mode() { return zoom_overlay_mode; }
-int get_zoom_overlay_z() { return zoom_overlay_mode == 1 || zoom_overlay_mode == 2; }
+int get_zoom_overlay_mode() 
+{ 
+	if (!get_global_draw()) return 0;
+	return zoom_overlay_mode;
+}
+int get_zoom_overlay_z() 
+{ 
+	if (!get_global_draw()) return 0;
+	return zoom_overlay_mode == 1 || zoom_overlay_mode == 2;
+}
 
 int zoom_overlay = 0;
 int zoom_overlay_countdown = 0;
-int get_zoom_overlay() { return zoom_overlay; }
+int get_zoom_overlay() 
+{ 
+	if (!get_global_draw()) return 0;
+	return zoom_overlay;
+}
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
