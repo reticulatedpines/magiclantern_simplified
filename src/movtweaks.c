@@ -23,6 +23,7 @@ CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
 
 void save_kelvin_wb()
 {
+	if (!lens_info.kelvin) return;
 	workaround_wb_kelvin = lens_info.kelvin;
 	workaround_wbs_gm = lens_info.wbs_gm + 100;
 	workaround_wbs_ba = lens_info.wbs_ba + 100;

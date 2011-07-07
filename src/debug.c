@@ -790,9 +790,9 @@ debug_init_stuff( void )
 {
 	//~ set_pic_quality(PICQ_RAW);
 	config_ok = 1;
+	restore_kelvin_wb();
 	
 	dm_update();
-	restore_kelvin_wb();
 	
 	/*
 	DEBUG();
@@ -903,7 +903,12 @@ movie_start( void )
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
 	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
-	if (buf[0] == 0) { card_led_on(); msleep(50); }
+	if (buf[0] == 0) 
+	{ 
+		save_config(0);
+		card_led_on(); 
+		msleep(50); 
+	}
 	return prop_cleanup(token, property);
 }
 
