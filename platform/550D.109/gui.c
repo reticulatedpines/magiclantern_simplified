@@ -91,7 +91,7 @@ extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
 
-CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 0);
+//~ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 0);
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -253,11 +253,11 @@ static int handle_buttons(struct event * event)
 	}
 	
 	// force a SET press in photo mode when you adjust the settings and press half-shutter
-	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv && !gui_menu_shown())
+	/*if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv && !gui_menu_shown())
 	{
 		fake_simple_button(BGMT_PRESS_SET);
 		fake_simple_button(BGMT_UNPRESS_SET);
-	}
+	}*/
 	
 	// for faster zoom in in Play mode
 	if (event->type == 0)

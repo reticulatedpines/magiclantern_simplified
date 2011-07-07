@@ -120,7 +120,7 @@ void do_movie_mode_remap()
 	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
 	mode_remap_done = 1;
 }
-
+/*
 CONFIG_INT("dof.adjust", dof_adjust, 1);
 int get_dof_adjust() { return dof_adjust; }
 
@@ -171,7 +171,7 @@ static void aperiso_open(void* priv)
 	aperiso_rawiso -= 4;
 	lens_set_rawaperture(aperiso_rawap);
 	lens_set_rawiso(aperiso_rawiso);
-}
+}*/
 
 static void
 mode_remap_print(

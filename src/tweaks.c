@@ -370,7 +370,7 @@ qrplay_display(
 		quick_review_allow_zoom ? "Hold->Play" : "QuickReview"
 	);
 }
-
+/*
 extern int set_on_halfshutter;
 
 static void
@@ -387,7 +387,7 @@ set_on_halfshutter_display(
 		"HalfShutter in DLGs : %s", 
 		set_on_halfshutter ? "SET" : "Cancel"
 	);
-}
+}*/
 
 extern int iso_round_only;
 static void
@@ -484,7 +484,7 @@ struct menu_entry tweak_menus[] = {
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)"
 	},
-	#ifdef CONFIG_550D
+	#if 0
 	{
 		.name = "HalfShutter in DLGs",
 		.priv = &set_on_halfshutter, 
