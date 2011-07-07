@@ -1,0 +1,16 @@
+MAKE=make
+RM=rm
+MV=mv
+MKDIR=mkdir
+CP=cp
+export BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
+
+BINARIES_PATH=binaries
+LUA_PATH=
+PWD=$(shell pwd)
+SRC_DIR=$(TOP_DIR)/src
+PLATFORM_PATH=$(TOP_DIR)/platform
+BUILDER_DIR=$(TOP_DIR)/../dumper
+DOC_DIR=$(TOP_DIR)/doc
+CROP_DIR=$(TOP_DIR)/cropmks
+BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec

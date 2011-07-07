@@ -1,5 +1,5 @@
-#include "../../dryos.h"
-#include "../../property.h"
+#include <dryos.h>
+#include <property.h>
 
 #define PROP_CFN1 0x80010004 // 8 bytes
 #define PROP_CFN2 0x80010005 // 4 bytes

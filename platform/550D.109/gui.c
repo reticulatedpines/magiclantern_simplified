@@ -23,12 +23,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "../../dryos.h"
-#include "../../property.h"
-#include "../../bmp.h"
-#include "../../config.h"
-#include "../../consts.h"
-#include "../../lens.h"
+#include <dryos.h>
+#include <property.h>
+#include <bmp.h>
+#include <config.h>
+#include <consts.h>
+#include <lens.h>
 
 void gui_unlock( void )
 {

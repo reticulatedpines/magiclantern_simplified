@@ -37,72 +37,32 @@ extern int help_pages;
 
 void menu_help_show_page(int page)
 {
-	menu_help_active = 1;
-	char path[100];
-	snprintf(path, sizeof(path), "B:/doc/cam/page-%03d.bmp", page);
-	struct bmp_file_t * doc = (void*) -1;
-	doc = bmp_load(path, 1);
-	if (doc)
-	{
-		bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0, 0);
-		FreeMemory(doc);
-	}
-	else
-	{
-		bmp_printf(FONT_MED, 0, 0, "Could not load help page %s\nPlease unzip 'doc' directory on your SD card.", path);
-	}
 }
 
 void menu_help_redraw()
 {
-	menu_help_show_page(current_page);
 }
 
 void menu_help_next_page()
 {
-	current_page = mod(current_page, help_pages) + 1;
-	menu_help_active = 1;
 }
 
 void menu_help_prev_page()
 {
-	current_page = mod(current_page - 2, help_pages) + 1;
-	menu_help_active = 1;
 }
 
 void menu_help_go_to_page(int page)
 {
-	current_page = page;
-	menu_help_active = 1;
 }
 
-void menu_help_go_to_label(char* label)
+void
+menu_help_section_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
 {
-	int page = 1;
 	
-	// hack: use config file routines to parse menu index file
-	extern int config_file_size, config_file_pos;
-	extern char* config_file_buf;
-	config_file_buf = read_entire_file("B:/doc/cam/menuidx.dat", &config_file_size);
-	config_file_pos = 0;
-
-	char line_buf[ 100 ];
-
-	while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
-	{
-		char* name = line_buf+4;
-		if(!strcmp(name, label))
-		{
-			page = atoi(line_buf);
-		}
-		if(!strcmp(name, "end"))
-		{
-			help_pages = atoi(line_buf);
-		}
-	}
-	free_dma_memory(config_file_buf);
-	config_file_buf = 0;
-	
-	current_page = page;
-	menu_help_active = 1;
 }
+

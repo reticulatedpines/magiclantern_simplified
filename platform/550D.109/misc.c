@@ -1,11 +1,11 @@
 // misc functions specific to 550D/109
 
-#include "../../dryos.h"
-#include "../../property.h"
-#include "../../bmp.h"
-#include "../../config.h"
-#include "../../consts.h"
-#include "../../lens.h"
+#include <dryos.h>
+#include <property.h>
+#include <bmp.h>
+#include <config.h>
+#include <consts.h>
+#include <lens.h>
 
 int lv_disp_mode;
 PROP_HANDLER(PROP_HOUTPUT_TYPE)

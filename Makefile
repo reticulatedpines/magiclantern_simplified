@@ -1,45 +1,48 @@
-MAKE=make
-RM=rm
-MV=mv
-MKDIR=mkdir
+#build system for Magic Lantern.
 
-BINARIES_PATH=binaries
-LUA_PATH=
+#build and install are working, LUA not tested
 
-#todo: 
-# put sources in src/
-# unused things in legacy/
-# put Makefile.550 and .60 in their platform dir and do: 
-#  cd platform/550D.109; make 
-#  -> no .o generated in rootdir. and .o in right platform
+#http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
+#http://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion
+
+TOP_DIR=$(PWD)
+include Makefile.top
 
 all: 60D 550D 600D
 
-60D: Makefile.60
-	$(MAKE) clean
-	$(MAKE) -f Makefile.60
-	$(MKDIR) -p $(BINARIES_PATH)/60D.109
-	$(MV) autoexec.bin $(BINARIES_PATH)/60D.109
+60D:
+	$(MAKE) -C $(PLATFORM_PATH)/60D.109 
 
-550D: Makefile.550
-	$(MAKE) clean
-	$(MAKE) -f Makefile.550
-	$(MKDIR) -p $(BINARIES_PATH)/550D.109
-	$(MV) autoexec.bin $(BINARIES_PATH)/550D.109
+550D:
+	$(MAKE) -C $(PLATFORM_PATH)/550D.109 
 
-600D: Makefile.600
-	$(MAKE) clean
-	$(MAKE) -f Makefile.600
-	$(MKDIR) -p $(BINARIES_PATH)/600D.101
-	$(MV) autoexec.bin $(BINARIES_PATH)/600D.101
+600D:
+	$(MAKE) -C $(PLATFORM_PATH)/600D.101
+
+
+install_60D: $(PLATFORM_PATH)/60D.109/autoexec.bin
+	cd $(PLATFORM_PATH)/60D.109; $(MAKE) install
+
+install_550D: $(PLATFORM_PATH)/550D.109/autoexec.bin
+	cd $(PLATFORM_PATH)/550D.109; $(MAKE) install
+
+install_600D: $(PLATFORM_PATH)/600D.109/autoexec.bin
+	cd $(PLATFORM_PATH)/600D.109; $(MAKE) install
 
 clean:
 	-$(RM) \
-		*.o \
-		*.a \
-		.*.d \
+		$(SRC_DIR)/*.o \
+		$(SRC_DIR)/.*.d \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
-		*.pdf \
+		*.pdf 
+	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/60D.109/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean
 	$(RM) -rf  $(BINARIES_PATH)
+
+zip:
+	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) zip
+	cd $(PLATFORM_PATH)/60D.109/; $(MAKE) zip
+	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) zip

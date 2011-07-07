@@ -106,6 +106,10 @@ def convert_422_bmp(input, output):
         w, h = 512, 340
     elif len(data) == 720*480*2:
         w, h = 720, 480
+    elif len(data) == 1680*945*2:
+        w, h = 1680, 945
+    elif len(data) == 1280*720*2:
+        w, h = 1280, 720
     elif len(data) % 1024*680*2 == 0:
         return convert_422_hires(input,output)
     else:

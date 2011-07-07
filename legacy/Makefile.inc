@@ -27,6 +27,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # Release builds:
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
+
 BUILDVER=$(shell whoami)
 VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL).fw$(FW_VERSION).$(BUILDVER)
 
@@ -68,44 +69,44 @@ endif
 #
 all: autoexec.bin
 
+
+docs:
+	cd doc && python mkdoc.py
+	cd doc && python mkdoc-cam.py
+
+docq:
+	cd doc && python mkdoc.py
+	cd doc && python mkdoc-cam.py quick
+
+installdoc:
+	mkdir $(CF_CARD)/doc || echo "no problem"
+	mkdir $(CF_CARD)/doc/cam || echo "no problem"
+	cp -v doc/cam/* $(CF_CARD)/doc/cam/
+
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp $(TOP_DIR)/cropmks/*.bmp $(CF_CARD)/cropmks/
+	cp cropmks/*.bmp $(CF_CARD)/cropmks/
 
 	$(UMOUNT) $(CF_CARD)
 
 ptpinstall: autoexec.bin
 	gvfs-mount -s gphoto2
 	sleep 2
-	cat $(TOP_DIR)/ptpcam.txt | ptpcam --chdk
+	cat ptpcam.txt | ptpcam --chdk
 	diff autoexec.bin autoexec.test
-
-prepare_zip:
-	cp $(SRC_DIR)/zip.txt .
-	cp $(SRC_DIR)/README .
-	cp $(DOC_DIR)/INSTALL.pdf .
-	cp $(DOC_DIR)/UserGuide.pdf .
-	cp $(SRC_DIR)/make_bootable.sh .
-	cp $(SRC_DIR)/422-jpg.py .
-	mkdir cropmks || echo "ok"
-	cp $(CROP_DIR)/*.bmp cropmks/
-	mkdir doc || echo "ok"
-	cp $(DOC_DIR)/cam/* doc/
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
-	magiclantern.fir \
 	autoexec.bin \
 	README \
-	INSTALL.pdf \
-	UserGuide.pdf \
-	make_bootable.sh \
-	422-jpg.py \
+	doc/INSTALL.pdf \
+	doc/UserGuide.pdf \
+	make_bootable.sh\
 	cropmks/* \
-	doc/* \
+	doc/cam/* \
 
 	-rm $@
 	chmod -x autoexec.bin
@@ -122,8 +123,6 @@ CFLAGS=\
 	-Wno-unused-function \
 	-Wno-format \
 	-D__ARM__ \
-	-I$(PLATFORM_INC) \
-	-I$(SRC_DIR)
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
@@ -144,7 +143,7 @@ AFLAGS=\
 
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.o: $(SRC_DIR)/%.c
+%.o: %.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
@@ -156,7 +155,7 @@ AFLAGS=\
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 
 
-zip: prepare_zip magiclantern-$(VERSION).zip
+zip: magiclantern-$(VERSION).zip
 
 FLAGS=\
 	-Wp,-MMD,$(dir $@).$(notdir $@).d \
@@ -171,6 +170,7 @@ FLAGS=\
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
 	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
+
 
 
 dumper: dumper_entry.o dumper.o
@@ -195,9 +195,9 @@ test: test.o
 
 dumper_entry.o: flasher-stubs.S
 
-reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
+reboot.o: reboot.c magiclantern.bin
 
-magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
+magiclantern.lds: magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
 
@@ -434,14 +434,15 @@ magiclantern-5d.fir: autoexec.bin
 	) > $@
 
 magiclantern.fir: autoexec.bin
-	@if [ -f $(BUILDER_DIR)/build_fir.py ]; then \
-		python $(BUILDER_DIR)/build_fir.py -r $^ $@ ; \
+	@if [ -f ../dumper/build_fir.py ]; then \
+		python ../dumper/build_fir.py -r $^ $@ ; \
 	else \
-		echo "\nNotice: $(BUILDER_DIR)/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
+		echo "\nNotice: ../dumper/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
 		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
-		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir ";\
+		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
 		echo "";\
 	fi; \
+	readelf -l magiclantern | grep -C 2 MemSiz ;\
 	stat -c "autoexec.bin: %s bytes" autoexec.bin
 
 dummy_data_head.bin:
@@ -502,29 +503,15 @@ build = \
 	fi; \
 	$2
 
-docs:
-	cd $(DOC_DIR) && python mkdoc.py
-	cd $(DOC_DIR) && python mkdoc-cam.py
-
-docq:
-	cd $(DOC_DIR) && python mkdoc.py
-	cd $(DOC_DIR) && python mkdoc-cam.py quick
-
-installdoc:
-	mkdir $(CF_CARD)/doc || echo "no problem"
-	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/doc/
 
 clean:
-	$(RM) *.o   \
+	-$(RM) \
+		*.o \
+		*.a \
 		.*.d \
-		$(BIN_FILES) \
 		magiclantern.lds \
-		*.bmp \
+		$(LUA_PATH)/*.o \
+		$(LUA_PATH)/.*.d \
 		*.pdf \
-		*.txt \
-		make_bootable.sh \
-		422-jpg.py \
-		README \
-		cropmks/* \
-		doc/* \
-	|| echo clean done
+
+-include .*.d
