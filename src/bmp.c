@@ -45,7 +45,7 @@ void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 	int ov_x, ov_y;
 	os->lv_ex_x = LV_EX_X;
 	os->lv_ex_y = LV_EX_Y;
-	if (ext_monitor_hdmi || ext_monitor_rca) {
+	if ((ext_monitor_hdmi && hdmi_code == 5) || ext_monitor_rca) {
 		// Parameters of challenge
 		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
 		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
