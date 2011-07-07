@@ -79,7 +79,7 @@ help_menu_init( void* unused )
 
 INIT_FUNC( "help_menu", help_menu_init );
 
-int help_pages = 104;
+int help_pages = 103;
 int help_menus_num = 10;
 
 
