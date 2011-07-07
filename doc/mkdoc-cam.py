@@ -231,7 +231,7 @@ def convert_page(k):
     imr = remap_rgb(im,M)
     #print imr
     save_img(imr,M,bmp)
-    os.system("ruby ../convertrle.rb %s" % bmp)
+    os.system("ruby ../src/convertrle.rb %s" % bmp)
     os.system("rm %s" % bmp)
     os.system("rm %s" % png)
     os.system("mv %s.rle %s" % (bmp, bmp))
