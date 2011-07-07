@@ -233,8 +233,8 @@
 #define MENU_DISP_INFO_POS_X 20
 #define MENU_DISP_INFO_POS_Y 400
 
-#define MENU_DISP_ISO_POS_X 582
-#define MENU_DISP_ISO_POS_Y 27
+#define MENU_DISP_ISO_POS_X 590
+#define MENU_DISP_ISO_POS_Y 26
 
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 200
