@@ -322,7 +322,9 @@ autoexec: reboot.o
 		-e _start \
 		-Ttext 0x800000 \
 		$^ \
-	)
+	); \
+	stat -c "autoexec.bin: %s bytes" autoexec.bin; \
+	readelf -l magiclantern | grep -C 2 MemSiz
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
@@ -442,7 +444,6 @@ magiclantern.fir: autoexec.bin
 		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir ";\
 		echo "";\
 	fi; \
-	stat -c "autoexec.bin: %s bytes" autoexec.bin
 
 dummy_data_head.bin:
 	perl -e 'print chr(0) x 24' > $@
