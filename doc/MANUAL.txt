@@ -926,7 +926,7 @@ Focus
 
 **Stack focus**
 
-  This selection will shoot a series of photographs with varying focus points. You can also call this "focus bracketing".
+  This selection will shoot a series of photographs with varying focus points.
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
   
   This function will also create scripts named like named ``FST_1234.SH``, which can be used for stacking the images with enfuse. See `Exposure bracketing`_ for details on how to use these scripts, and the `focus stacking section <http://panorama.dyndns.org/EandE-documentation/enfuse.html#Focus-Stacks>`_ from Enfuse reference manual.
@@ -936,6 +936,8 @@ Focus
   * ``SET``: change the number of photos
   * ``Q``: change the focus step size
   * ``PLAY``: run the stack focus sequence
+  
+  Note: before using this feature, you have to assign autofocus to a separate button (for example, the ``*`` button), from Custom Functions.
 
 .. _focus speed:
 
