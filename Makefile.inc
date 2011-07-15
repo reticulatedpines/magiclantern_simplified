@@ -79,7 +79,7 @@ install: autoexec.bin
 ptpinstall: autoexec.bin
 	gvfs-mount -s gphoto2
 	sleep 2
-	cat $(TOP_DIR)/ptpcam.txt | ptpcam --chdk
+	cat $(TOP_DIR)/src/ptpcam.txt | ptpcam --chdk
 	diff autoexec.bin autoexec.test
 
 prepare_zip:

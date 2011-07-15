@@ -11,7 +11,6 @@
 #include "tasks.h"
 #include "menu.h"
 #include "bmp.h"
-#include "hotplug.h"
 #include "property.h"
 #include "lens.h"
 
