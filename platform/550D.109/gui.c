@@ -275,7 +275,7 @@ static int handle_buttons(struct event * event)
 	}
 	
 	// stop intervalometer with MENU or PLAY
-	if (event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+	if (event != &fake_event && event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
 		intervalometer_stop();
 		
 	
