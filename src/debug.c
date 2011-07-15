@@ -905,7 +905,7 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
 	if (buf[0] == 0) 
 	{ 
-		save_config(0);
+		if (config_autosave) save_config(0);
 		card_led_on(); 
 		msleep(50); 
 	}
