@@ -484,7 +484,7 @@ spy_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Spy %s/%s/%s (s/d/q)",
+		"Spy %s/%s/%s (s/p/q)",
 		draw_prop ? "PROP" : "prop",
 		get_draw_event() ? "EVT" : "evt", 
 		mem_spy ? "MEM" : "mem"

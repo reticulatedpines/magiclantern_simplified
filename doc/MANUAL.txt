@@ -1171,6 +1171,8 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
   * mem: Display memory addresses which change, but not those which change like mad. 
     Useful for detecting interesting [[Memory Addresses]] inside the camera RAM (like sensor & button locations).
 
+  To enable this feature, compile Magic Lantern with ``CONFIG_DEBUGMSG = 1``.
+
 **Dim display: OFF / after X seconds**
 
   In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
