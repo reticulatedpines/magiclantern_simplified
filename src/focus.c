@@ -862,7 +862,7 @@ static struct menu_entry focus_menu[] = {
 		.priv		= &focus_dir,
 		.display	= focus_dir_display,
 		.select		= menu_binary_toggle,
-		.help = "Focus direction used when you half-press the shutter."
+		.help = "Focus direction used when you press the 'Zoom In' button."
 	},
 	{
 		.name = "Focus A",
