@@ -32,6 +32,9 @@
 void update_stuff();
 
 CONFIG_INT("movie.log", movie_log, 1);
+#ifdef CONFIG_550D || CONFIG_60D || CONFIG_600D
+#define SENSORCROPFACTOR 1.6
+CONFIG_INT("crop.info", crop_info, 1);
 
 static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
@@ -186,7 +189,11 @@ update_lens_display(
 
 		bmp_printf( font, x, y,
 			"%d/%d.%d  ",
+#ifdef CONFIG_550D || CONFIG_60D || CONFIG_600D
+			crop_info ? (int)roundf((double)info->focal_len * SENSORCROPFACTOR) : info->focal_len,
+#else
 			info->focal_len,
+#endif
 			info->aperture / 10,
 			info->aperture % 10
 		);
@@ -764,6 +771,27 @@ static struct menu_entry lens_menus[] = {
 	},
 };
 
+#ifdef CONFIG_550D || CONFIG_60D || CONFIG_600D
+static void cropinfo_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Crop Display       : %s",
+		crop_info ? "ON" : "OFF"
+	);
+}
+static struct menu_entry debug_menus[] = {
+	{
+		.name = "Crop Display",
+		.priv = &crop_info,
+		.select = menu_binary_toggle,
+		.display = cropinfo_display,
+		.help = "Display the real focal length including the crop factor"
+	}
+};
+#endif
+
 static void
 lens_init( void* unused )
 {
@@ -771,6 +799,9 @@ lens_init( void* unused )
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 	menu_add("Movie", lens_menus, COUNT(lens_menus));
+#ifdef CONFIG_550D || CONFIG_60D || CONFIG_600D
+	menu_add("Debug", debug_menus, COUNT(debug_menus));
+#endif
 
 	lens_info.lens_rotation = 0.1;
 	lens_info.lens_step = 1.0;
