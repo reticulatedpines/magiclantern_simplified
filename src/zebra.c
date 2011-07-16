@@ -3434,12 +3434,22 @@ livev_lopriority_task( void* unused )
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
+CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
+static unsigned int picstyle_disppreset = 0;
+PROP_HANDLER(PROP_PICTURE_STYLE)
+{
+	update_disp_mode_bits_from_params();
+	return prop_cleanup(token, property);
+}
+
 int unused = 0;
-unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay};
-int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2};
+unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay, &picstyle_disppreset};
+int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2,                   4};
 
 void update_disp_mode_bits_from_params()
 {
+	picstyle_disppreset = lens_info.picstyle;
+	
 	int i;
 	int off = 0;
 	uint32_t bits = 0;
@@ -3475,11 +3485,22 @@ int update_disp_mode_params_from_bits()
 	for (i = 0; i < COUNT(disp_mode_bits); i++)
 	{
 		int b = disp_mode_bits[i];
+		//~ bmp_printf(FONT_LARGE, 50, 50, "%d) %x -> %x", i, disp_mode_params[i], (bits >> off) & ((1 << b) - 1));
+		//~ bmp_printf(FONT_MED, 50, 100, "%x %x %x %x", &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw);
+		//~ msleep(5000);
 		*(disp_mode_params[i]) = (bits >> off) & ((1 << b) - 1);
 		off += b;
 	}
 	
-	bmp_on();
+	if (picstyle_disppreset_enabled && picstyle_disppreset)
+	{
+		int p = get_prop_picstyle_from_index(picstyle_disppreset);
+		//~ bmp_printf(FONT_LARGE, 50, 50, "picsty %x ", p);
+		//~ msleep(1000);
+		if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
+	}
+	
+	//~ bmp_on();
 	return 1;
 }
 

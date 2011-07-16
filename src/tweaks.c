@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "menu.h"
 #include "property.h"
+#include "propvalues.h"
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
@@ -284,7 +285,6 @@ quickzoom_display(
 	);
 }
 
-
 static void
 tweak_task( void* unused)
 {
@@ -442,6 +442,24 @@ crop_movieonly_display(
 	);
 }
 
+extern int picstyle_disppreset_enabled;
+static void
+picstyle_disppreset_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"PicSty->DISP profile: %s",
+		picstyle_disppreset_enabled ? "ON" : "OFF"
+	);
+}
+
+
 struct menu_entry tweak_menus[] = {
 	{
 		.name = "Exposure Simulation",
@@ -506,6 +524,13 @@ struct menu_entry tweak_menus[] = {
 		.display	= iso_round_only_display,
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
+	},
+	{
+		.name = "PicStyle in DISP profile",
+		.priv = &picstyle_disppreset_enabled,
+		.display	= picstyle_disppreset_display,
+		.select		= menu_binary_toggle,
+		.help = "PicStyle can be included in DISP profiles for easy toggle."
 	},
 	#ifdef CONFIG_60D
 	{
