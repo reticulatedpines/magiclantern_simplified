@@ -1643,10 +1643,10 @@ saturation_display( void * priv, int x, int y, int selected )
 		x, y,
 		(s >= -4 && s <= 4) ? 
 			"Saturation  : %d " :
-			"Saturation  : 0x%X",
+			"Saturation  : N/A",
 		s
 	);
-	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_OFF, (s + 4) * 100 / 8);
+	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_WARNING, (s + 4) * 100 / 8);
 }
 
 static void 
