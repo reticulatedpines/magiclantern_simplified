@@ -46,3 +46,8 @@ zip:
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) zip
 	cd $(PLATFORM_PATH)/60D.109/; $(MAKE) zip
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) zip
+
+dropbox: all
+	cp $(PLATFORM_PATH)/550D.109/autoexec.bin ~/Dropbox/Public/bleeding-edge/550d/
+	cp $(PLATFORM_PATH)/60D.109/autoexec.bin ~/Dropbox/Public/bleeding-edge/60d/
+	cp $(PLATFORM_PATH)/600D.101/autoexec.bin ~/Dropbox/Public/bleeding-edge/600d/
