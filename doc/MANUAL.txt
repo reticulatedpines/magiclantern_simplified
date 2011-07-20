@@ -54,8 +54,8 @@ Use `Bulb timer`_ together with `LCD remote shot`_, `audio trigger`_ or `interva
 How do I see shutter counter / CMOS temperature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ``MENU -> DISP`` (550D, 500D, 600D)
-* Press ``INFO`` button a few times in photo mode, outside LiveView (60D)
+* ``MENU -> DISP`` (550D, 500D)
+* Press ``INFO`` button in photo mode, outside LiveView (60D, 600D)
 
 
 Do I have to adjust ISO/shutter/aperture/WB from ML menu only?
@@ -155,7 +155,7 @@ Misc shortcuts
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
-* ``Q`` (550D) or ``Unlock`` (60D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
+* ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a transparent overlay from current image. You can then move the overlay around with arrow keys in LiveView mode. To deactivate the overlay, go to ``PLAY`` mode and back without pressing ``LV`` on a new image.
 
 Magic Lantern menu
@@ -1248,8 +1248,8 @@ Main shooting screen (outside LiveView)
 * `MLU`_ setting (under ``Q`` icon)
 * `LCD remote`_ status icon: ⨂ ⨀ 〰
 
-MENU->DISP
-~~~~~~~~~~
+MENU->DISP / MENU->INFO
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _shutter count:
 .. _CMOS temperature:
