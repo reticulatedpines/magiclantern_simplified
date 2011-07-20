@@ -47,6 +47,28 @@ sub("userguide.wiki", "= Magic Lantern 0.2.1 =", """[[Image:Logo.png|140px]]
 
 """)
 
+sub("userguide.wiki", "=== Audio ===", """<tabber>
+ Audio=[[Image:AudioMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Audio]]
+|-|
+ LiveV=[[Image:LiveVMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#LiveV]]
+|-|
+ Movie=[[Image:MovieMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Movie]]
+|-|
+ Shoot=[[Image:ShootMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Shoot]]
+|-|
+ Expo=[[Image:ExpoMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Expo]]
+|-|
+ Focus=[[Image:FocusMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Focus]]
+|-|
+ Tweaks=[[Image:TweakMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Tweak]]
+|-|
+ Debug=[[Image:DebugMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Debug]]
+|-|
+ Config=[[Image:ConfigMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Config]]
+</tabber>
+
+=== Audio ===""")
+
 def find_labels(line):
     return re.findall(' id="([^"]*)"', line)
 
