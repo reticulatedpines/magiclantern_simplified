@@ -6,44 +6,8 @@
 # Author: Alex Dumitrache <broscutamaker@gmail.com>
 # License: GPL
 
-import os, re, time
+import os, re, time, string
 import urllib
-
-os.system("montage ../cropmks/16x9_blk.bmp ../cropmks/hd_ta.bmp ../cropmks/CineSco2.bmp ../cropmks/fish8r.bmp -tile 4x1 -geometry 300x200+5+5 Cropmarks550D.png")
-
-f = open("FEATURES.txt").readlines();
-m = open("MANUAL.txt").readlines();
-c = open("CONFIG.txt").readlines();
-
-o = open("userguide.rst", "w")
-print >> o, """
-'''Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9'''
-
-'''User's Guide'''
-"""
-for l in f:
-    o.write(l)
-for l in m:
-    o.write(l)
-for l in c:
-    o.write(l)
-o.close()
-
-os.system("pandoc -f rst -t mediawiki -o userguide.wiki userguide.rst")
-
-
-o = open("userguide.rst", "w")
-print >> o, """Magic Lantern 0.2.1 for Canon 550D, Firmware 1.0.9 -- User's Guide
-===========================================================================
-
-"""
-for l in f:
-    o.write(l)
-for l in m:
-    o.write(l)
-for l in c:
-    o.write(l)
-o.close()
 
 def sub(file, fr, to):
     txt = open(file).read()
@@ -100,6 +64,26 @@ def add_menu_items_to_contents(file):
     f = open(file,"w")
     f.write(txt)
     f.close()
+
+
+os.system("montage ../cropmks/16x9_blk.bmp ../cropmks/hd_ta.bmp ../cropmks/CineSco2.bmp ../cropmks/fish8r.bmp -tile 4x1 -geometry 300x200+5+5 Cropmarks550D.png")
+
+f = open("FEATURES.txt").readlines();
+m = open("MANUAL.txt").readlines();
+c = open("CONFIG.txt").readlines();
+
+o = open("userguide.rst", "w")
+print >> o, """Magic Lantern 0.2.1 for Canon 550D, Firmware 1.0.9 -- User's Guide
+===========================================================================
+
+"""
+for l in f:
+    o.write(l)
+for l in m:
+    o.write(l)
+for l in c:
+    o.write(l)
+o.close()
 
 os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 

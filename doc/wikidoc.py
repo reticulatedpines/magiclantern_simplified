@@ -1,0 +1,136 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import os, sys, re, string
+import difflib
+from stripogram import html2text
+from getpass import getpass
+from twill.commands import *
+from twill import get_browser
+
+f = open("FEATURES.txt").readlines();
+m = open("MANUAL.txt").readlines();
+c = open("CONFIG.txt").readlines();
+
+def sub(file, fr, to):
+    txt = open(file).read()
+    txt = re.sub(fr, to, txt);
+    f = open(file,"w")
+    f.write(txt)
+    f.close()
+
+o = open("userguide.rst", "w")
+print >> o, """Magic Lantern 0.2.1
+=========================
+
+dummy
+=====
+
+"""
+for l in f:
+    o.write(l)
+for l in m:
+    o.write(l)
+for l in c:
+    o.write(l)
+o.close()
+
+#~ os.system("pandoc -f rst -t mediawiki -o userguide.wiki userguide.rst")
+os.system("rst2html.py userguide.rst > userguide.html")
+os.system("pandoc -f html -t mediawiki -o userguide.wiki userguide.html")
+sub("userguide.wiki", "= dummy =", "")
+sub("userguide.wiki", "= Magic Lantern 0.2.1 =", """[[Image:Logo.png|140px]]
+
+... for Canon 550D, 60D, 600D and 500D
+
+<big>'''Magic Lantern 0.2.1 -- User's Guide'''</big>
+
+""")
+
+def find_labels(line):
+    return re.findall(' id="([^"]*)"', line)
+
+def get_context(lines, i, nmax):
+    c = html2text(string.join(lines[i:i+5]))
+    c = c.replace("\n", " ")
+    c = ' '.join(c.split())
+    c = c[:nmax]
+    return c
+
+def add_labels(line, labels):
+    for label in labels:
+        line = ('<span id="%s"></span>' % label) + line.strip()
+    return line
+
+def fix_labels_in_wiki():
+    w = open("userguide.wiki").read()
+    h = open("userguide.html").read()
+    #~ ht = html2text(h)
+    ww = w.split(" ")
+    hw = h.split(" ")
+    wl = w.split("\n")
+    hl = h.split("\n")
+    print len(wl), len(hl)
+
+    P = []
+    for i,line in enumerate(wl):
+        c = get_context(wl, i, 50)
+        P.append(c)
+
+    for i,line in enumerate(hl):
+        labels = find_labels(line)
+        if labels and "section" not in line:
+            context = get_context(hl, i, 50)
+            #~ print i,labels, line, context
+            iwl = i * len(wl) / len(hl)
+            Psmall = P[max(iwl-300,0) : min(iwl+300, len(wl))]
+            #~ print Psmall
+            try: m = difflib.get_close_matches(context, Psmall, n=1, cutoff=0.5)[0]
+            except:
+                print context
+                raise
+            pos = len(P) - 1 - P[::-1].index(m) # lastindex
+            print labels, get_context(wl, pos, 50)
+            wl[pos] = add_labels(wl[pos], labels)
+    f = open("userguide.wiki", "w")
+    for l in wl:
+        print >> f, l
+    f.close()
+
+fix_labels_in_wiki()
+
+
+
+go("http://magiclantern.wikia.com/index.php?title=Special:Signup")
+
+username = "alexdu"
+password = getpass()
+if not password:
+    raise SystemExit
+
+fv("3", "wpName", username)
+fv("3", "wpPassword", password)
+#~ showforms()
+submit()
+code(200)
+
+b = get_browser()
+
+go("http://magiclantern.wikia.com/index.php?title=Unified/UserGuide&action=edit")
+#~ showforms()
+
+# get current user guide from wiki
+userguide_from_wiki = b.get_form(1).get_value("wpTextbox1")
+f = open("userguide_from_wiki.wiki", "w")
+print >> f, userguide_from_wiki
+f.close()
+
+# compare it with the local one
+#~ os.system("wdiff -n userguide_from_wiki.wiki userguide.wiki | colordiff")
+os.system("colordiff -b userguide_from_wiki.wiki userguide.wiki")
+
+ans = raw_input("submit? [y/n]")
+if ans == 'y':
+    userguide_local = open("userguide.wiki").read()
+    fv("1", "wpTextbox1", userguide_local)
+    submit()
