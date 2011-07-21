@@ -1265,7 +1265,11 @@ draw_zebra_and_focus( int Z, int F )
 		int n_total = 0;
 		// look in the HD buffer
 
+		#ifdef CONFIG_600D
+		int rec_off = 90;
+		#else
 		int rec_off = (recording ? 90 : 0);
+		#endif
 		int step = (focus_peaking == 1) 
 						? (recording ? 2 : 1)
 						: (recording ? 4 : 2);

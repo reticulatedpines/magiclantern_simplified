@@ -1967,7 +1967,7 @@ mlu_display( void * priv, int x, int y, int selected )
 		#if defined(CONFIG_550D) || defined(CONFIG_500D)
 		mlu_auto ? "Timer+Remote"
 		#else
-		mlu_auto ? "Self-Timer"
+		mlu_auto ? "Self-timer only"
 		#endif
 		: get_mlu() ? "ON" : "OFF"
 	);
@@ -2524,7 +2524,7 @@ void iso_refresh_display()
 		return;
 	}
 	
-	int bg = bmp_getpixel(680, 40);
+	int bg = bmp_getpixel(MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
@@ -2821,7 +2821,7 @@ shoot_task( void* unused )
 		int tfx = trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running;
 
 		// same for motion detect
-		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown() && lv;
+		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown() && lv && !recording;
 		
 		//Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
 		static int K = 0;

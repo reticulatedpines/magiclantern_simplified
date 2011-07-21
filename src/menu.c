@@ -881,13 +881,6 @@ gui_stop_menu( void )
 	show_only_selected = 0;
 	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 
-	extern int config_autosave;
-	if (config_autosave && config_dirty)
-	{
-		save_config(0);
-		config_dirty = 0;
-	}
-
 	if (MENU_MODE && !get_halfshutter_pressed())
 	{
 		fake_simple_button(BGMT_MENU);
@@ -895,6 +888,14 @@ gui_stop_menu( void )
 	else
 	{
 		redraw();
+	}
+
+	msleep(200);
+	extern int config_autosave;
+	if (config_autosave && config_dirty)
+	{
+		save_config(0);
+		config_dirty = 0;
 	}
 
 	menu_shown = 0;
@@ -973,10 +974,6 @@ open_canon_menu()
 	while(1)
 	{
 		fake_simple_button(BGMT_MENU);
-		#ifdef CONFIG_600D
-		msleep(500);
-		return;
-		#endif
 		int i;
 		for (i = 0; i < 10; i++)
 		{

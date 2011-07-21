@@ -195,8 +195,8 @@
 
  #define AJ_LCD_Palette 0x2CDB0
 
- #define LV_BOTTOM_BAR_DISPLAYED 0
- #define ISO_ADJUSTMENT_ACTIVE 0
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5B28) == 0xF) || ((*(int*)0xC84C) != 0x17))
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
 
  #define COLOR_FG_NONLV 80
 
@@ -208,7 +208,7 @@
  
  #define AE_VALUE (*(int8_t*)0x14c25)
 
- #define CURRENT_DIALOG_MAYBE 0
+#define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
  #define DLG_WB 5
  #define DLG_FOCUS_MODE 9
  #define DLG_DRIVE_MODE 8
@@ -223,8 +223,8 @@
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
 #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 
- #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU/* && CURRENT_DIALOG_MAYBE == DLG_PLAY*/)
- #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
@@ -237,7 +237,7 @@
 #define MENU_DISP_ISO_POS_Y 26
 
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 200
+#define DISPLAY_CLOCK_POS_X 400
 #define DISPLAY_CLOCK_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV

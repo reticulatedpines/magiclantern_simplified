@@ -52,6 +52,7 @@ int get_halfshutter_pressed()
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
 //~ int set_pressed = 0;
+int disp_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 //~ int get_set_pressed() { return set_pressed; }
@@ -323,11 +324,14 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 		return 0;
 	}
+	
+	if (event->type == 0 && event->param == BGMT_PRESS_DISP) disp_pressed = 1;
+	if (event->type == 0 && event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
 
 	if (lv && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
  	{
 		// magic zoom toggled by zoom in
-		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed())
+		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed() && !disp_pressed)
 		{
 			zoom_overlay_toggle();
 			return 0;
