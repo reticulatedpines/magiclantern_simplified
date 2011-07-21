@@ -34,8 +34,6 @@
 
 CONFIG_INT( "lcd.release", lcd_release_running, 0);
 
-extern int mlu_mode; // from shoot.c, a config option
-
 void 
 lcd_release_display( void * priv, int x, int y, int selected )
 {
@@ -44,7 +42,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"LCD Remote Shot : %s",
-		v == 1 ? "Near" : v == 2 ? (mlu_mode ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
+		v == 1 ? "Near" : v == 2 ? (get_mlu() ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
 	);
 	if (v) display_lcd_remote_icon(x-25, y+5);
 	menu_draw_icon(x, y, v ? -1 : MNI_OFF, 0);

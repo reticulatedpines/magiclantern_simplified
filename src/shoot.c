@@ -57,7 +57,7 @@ CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
-CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
+CONFIG_INT( "mlu.auto", mlu_auto, 1);
 
 extern int lcd_release_running;
 
@@ -1936,6 +1936,26 @@ bulb_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, bulb_duration_index * 100 / COUNT(timer_values));
 }
 
+// like expsim_toggle
+static void
+mlu_toggle( void * priv )
+{
+	// off, on, auto
+	if (!mlu_auto && !get_mlu()) // off->on
+	{
+		set_mlu(1);
+	}
+	else if (!mlu_auto && get_mlu()) // on->auto
+	{
+		mlu_auto = 1;
+	}
+	else // auto->off
+	{
+		mlu_auto = 0;
+		set_mlu(0);
+	}
+}
+
 static void
 mlu_display( void * priv, int x, int y, int selected )
 {
@@ -1944,9 +1964,14 @@ mlu_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Mirror Lockup   : %s",
-		mlu_mode == 1 ? "ON" : mlu_mode == 2 ? "Timer+Remote" : "OFF"
+		#if defined(CONFIG_550D) || defined(CONFIG_500D)
+		mlu_auto ? "Timer+Remote"
+		#else
+		mlu_auto ? "Self-Timer"
+		#endif
+		: get_mlu() ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_AUTO(mlu_mode), 0);
+	menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 
 static void 
@@ -2127,9 +2152,9 @@ struct menu_entry shoot_menus[] = {
 	},
 	{
 		.name = "Mirror Lockup",
-		.priv = &mlu_mode,
+		.priv = &mlu_auto,
 		.display = mlu_display, 
-		.select = menu_ternary_toggle,
+		.select = mlu_toggle,
 		.help = "MLU setting can be linked with self-timer and LCD remote."
 	},
 	/*{
@@ -2657,17 +2682,24 @@ shoot_task( void* unused )
 		
 		if (!lv) // MLU
 		{
-			if (mlu_mode == 0 && get_mlu()) set_mlu(0);
-			if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
-			if (mlu_mode == 2)
+			//~ if (mlu_mode == 0 && get_mlu()) set_mlu(0);
+			//~ if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
+			if (mlu_auto)
 			{
-				if ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (hdr_steps < 2))
+				int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (hdr_steps < 2)) ? 1 : 0;
+				int mlu_current_value = get_mlu() ? 1 : 0;
+				if (mlu_auto_value != mlu_current_value)
 				{
-					if (!get_mlu()) set_mlu(1);
-				}
-				else
-				{
-					if (get_mlu()) set_mlu(0);
+					if (MENU_MODE && !gui_menu_shown()) // MLU changed from Canon menu
+					{ 
+						mlu_auto = 0;
+						msleep(200);
+						bmp_printf(FONT_LARGE, 0, 0, "Warning: disabling Auto MLU.");
+					}
+					else
+					{
+						set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+					}
 				}
 			}
 		}
