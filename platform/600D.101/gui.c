@@ -57,6 +57,8 @@ int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 //~ int get_set_pressed() { return set_pressed; }
 
+PROP_INT(PROP_VIDEO_MODE_ZOOM_FACTOR, video_mode_zoom_factor);
+
 struct semaphore * gui_sem;
 
 int handle_buttons_active = 0;
@@ -337,6 +339,24 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
  	}
+
+	// shortcut for 3x zoom mode
+	if (lv && shooting_mode == SHOOTMODE_MOVIE && !recording && disp_pressed && event->type == 0)
+	{
+		if (!video_mode_crop && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+		{
+			int zoom[] = {0xc, 0, video_mode_fps, 0xc, 2};
+			prop_request_change(PROP_VIDEO_MODE, zoom, 20);
+			return 0;
+		}
+		if (video_mode_crop && video_mode_zoom_factor == 300 && event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+		{
+			int nozoom[] = {0, 0, video_mode_fps, 0xc, 0};
+			prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
+			return 0;
+		}
+	}
+
 	/*
 	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{

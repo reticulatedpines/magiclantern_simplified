@@ -145,7 +145,7 @@
 #define PROP_LANGUAGE		0x02040002
 #define PROP_VIDEO_SYSTEM	0x02040003
 
-#define PROP_ICU_UILOCK		0x8300017F	// maybe?
+#define PROP_ICU_UILOCK		0x80020009
 
 #define PROP_SHOOTING_MODE  0x80000000 // During mode switch, it takes other values.
 #define SHOOTMODE_P 0
@@ -154,6 +154,7 @@
 #define SHOOTMODE_M 3
 #define SHOOTMODE_BULB 4
 #define SHOOTMODE_ADEP 5
+#define SHOOTMODE_C 7
 #define SHOOTMODE_CA 0x13
 #define SHOOTMODE_AUTO 9
 #define SHOOTMODE_NOFLASH 0xF
@@ -288,6 +289,10 @@
 #define PROP_ROLLING_PITCHING_LEVEL 0x80030039
 
 #define PROP_VRAM_SIZE_MAYBE 0x8005001f
+
+#define PROP_ICU_AUTO_POWEROFF 0x80030024
+
+#define PROP_VIDEO_MODE_ZOOM_FACTOR 0x8005002f
 
 /** Properties */
 extern void
