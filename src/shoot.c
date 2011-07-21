@@ -40,7 +40,7 @@ void display_lcd_remote_icon(int x0, int y0);
 
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
-CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
+//~ CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
 CONFIG_INT( "audio.release-level", audio_release_level, 10);
 CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 //~ CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
@@ -2479,7 +2479,7 @@ void get_out_of_play_mode()
 
 // take one shot, a sequence of HDR shots, or start a movie
 // to be called by remote triggers
-void remote_shot()
+void remote_shot(int wait)
 {
 	// save zoom value (x1, x5 or x10)
 	int zoom = lv_dispsize;
@@ -2501,8 +2501,11 @@ void remote_shot()
 		else
 			lens_take_picture(64); // hdr_shot messes with the self timer mode
 	}
+	
+	if (!wait) return;
+	
 	msleep(200);
-	if (get_mlu() && lens_info.job_state < 10) return;
+	if (get_mlu() && lens_info.job_state < 10) return; // mirror was just locked, nothing more to wait
 	
 	while (lens_info.job_state >= 10) msleep(500);
 	
@@ -2666,7 +2669,7 @@ shoot_task( void* unused )
 		}
 		if (remote_shot_flag)
 		{
-			remote_shot();
+			remote_shot(1);
 			remote_shot_flag = 0;
 		}
 		if (movie_start_flag)
@@ -2847,8 +2850,8 @@ shoot_task( void* unused )
 		{
 			if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
-				remote_shot();
-				msleep(trap_focus_delay);
+				remote_shot(0);
+				//~ msleep(trap_focus_delay);
 			}
 		}
 		
@@ -2869,8 +2872,8 @@ shoot_task( void* unused )
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
 				if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
 				{
-					remote_shot();
-					msleep(trap_focus_delay);
+					remote_shot(1);
+					//~ msleep(trap_focus_delay);
 					K = 0;
 				}
 				old_ae_avg = old_ae_avg * 90/100 + aev * 10;
@@ -2881,8 +2884,8 @@ shoot_task( void* unused )
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
 				if (K > 50 && d >= (int)motion_detect_level)
 				{
-					remote_shot();
-					msleep(trap_focus_delay);
+					remote_shot(1);
+					//~ msleep(trap_focus_delay);
 					K = 0;
 				}
 			}
@@ -2958,7 +2961,7 @@ shoot_task( void* unused )
 				bmp_printf(FONT_MED, 20, lv ? 40 : 3, "Audio release ON (%d / %d)   ", audio_levels[0].peak / audio_levels[0].avg, audio_release_level);
 				if (audio_levels[0].peak > audio_levels[0].avg * (int)audio_release_level) 
 				{
-					remote_shot();
+					remote_shot(1);
 					msleep(100);
 					/* Initial forced sleep is necesarry when using camera self timer,
 					 * otherwise remote_shot returns right after the countdown 
