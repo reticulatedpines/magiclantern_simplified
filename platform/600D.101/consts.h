@@ -189,8 +189,11 @@
  #define SENSOR_RES_X 5184
  #define SENSOR_RES_Y 3456
 
- #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
- #define FLASH_BTN_MOVIE_MODE 0
+#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && shooting_mode == SHOOTMODE_MOVIE && event->arg == 9)
+#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
+#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
+#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
+
  #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
  #define AJ_LCD_Palette 0x2CDB0

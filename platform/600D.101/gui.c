@@ -49,6 +49,10 @@ int get_halfshutter_pressed()
 	return halfshutter_pressed; 
 }
 
+int flash_movie_pressed = 0;
+int get_flash_movie_pressed() { return flash_movie_pressed; }
+
+
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
 //~ int set_pressed = 0;
@@ -566,6 +570,12 @@ static int handle_buttons(struct event * event)
 			transparent_overlay_offset(0, 0);
 			return 0;
 		}
+	}
+
+	if (BGMT_FLASH_MOVIE)
+	{
+		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
+		return 0;
 	}
 
 	return 1;
