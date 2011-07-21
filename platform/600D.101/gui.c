@@ -343,7 +343,7 @@ static int handle_buttons(struct event * event)
 	// shortcut for 3x zoom mode
 	if (lv && shooting_mode == SHOOTMODE_MOVIE && !recording && disp_pressed && event->type == 0)
 	{
-		if (!video_mode_crop && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+		if (!video_mode_crop && video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
 			int zoom[] = {0xc, 0, video_mode_fps, 0xc, 2};
 			prop_request_change(PROP_VIDEO_MODE, zoom, 20);
