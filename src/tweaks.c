@@ -285,6 +285,75 @@ quickzoom_display(
 	);
 }
 
+#ifdef CONFIG_60D
+
+CONFIG_INT("display.off.halfshutter", display_off_by_halfshutter_enabled, 0);
+
+void display_off_by_halfshutter()
+{
+	static int prev_gui_state = 0;
+	if (prev_gui_state != GUISTATE_IDLE) 
+	{ 
+		msleep(100);
+		prev_gui_state = gui_state;
+		while (get_halfshutter_pressed()) msleep(100);
+		return; 
+	}
+	prev_gui_state = gui_state;
+	if (!lv && gui_state == GUISTATE_IDLE)
+	{
+		if (get_halfshutter_pressed())
+		{
+			/* not reliable
+			if (tft_status && !get_halfshutter_pressed())
+			{
+				//~ card_led_blink(5, 50, 10);
+				//~ int k = 0;
+				//~ while (tft_status || gui_state != GUISTATE_IDLE)
+				//~ {
+				fake_simple_button(BGMT_DISP);
+				fake_simple_button(BGMT_DISP);
+				fake_simple_button(BGMT_DISP);
+				msleep(2000);
+					//~ k++;
+					//~ if (k > 5) return;
+				//~ }
+				return;
+			}*/
+			
+			// wait for long half-shutter press (1 second)
+			int i;
+			for (i = 0; i < 10; i++)
+			{
+				msleep(100);
+				if (!get_halfshutter_pressed()) return;
+				if (tft_status) return;
+			}
+			fake_simple_button(BGMT_DISP);
+			while (get_halfshutter_pressed()) msleep(100);
+			return;
+		}
+	}
+}
+
+static void
+display_off_by_halfshutter_print(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"DispOFF in PhotoMode: %s", // better name for this?
+		display_off_by_halfshutter_enabled ? "HalfShutter" : "OFF"
+	);
+}
+
+#endif
+
 static void
 tweak_task( void* unused)
 {
@@ -345,6 +414,11 @@ tweak_task( void* unused)
 			if (!falsecolor_canceled) false_color_toggle();
 			redraw();
 		}
+		
+		#ifdef CONFIG_60D
+		if (display_off_by_halfshutter_enabled)
+			display_off_by_halfshutter();
+		#endif
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || ISO_ADJUSTMENT_ACTIVE)
 			idle_wakeup_reset_counters();
@@ -540,6 +614,13 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "Swaps MENU and ERASE buttons."
 	},
+	{
+		.name = "Display off by HalfShutter",
+		.priv = &display_off_by_halfshutter_enabled,
+		.display = display_off_by_halfshutter_print, 
+		.select = menu_binary_toggle,
+		.help = "Outside LV, turn off display with long half-shutter press."
+	}
 	#endif
 /*	{
 		.priv = &lv_metering,
