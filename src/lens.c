@@ -189,10 +189,11 @@ update_lens_display(
 		x += 50;
 
 		bmp_printf( font, x, y,
-			"%d/%d.%d  ",
 #ifndef CONFIG_FULLFRAME
+			crop_info ? "%deq/%d.%d  " : "%d f/%d.%d  ",
 			crop_info ? (int)roundf((double)info->focal_len * SENSORCROPFACTOR) : info->focal_len,
 #else
+			"%d f/%d.%d  ",
 			info->focal_len,
 #endif
 			info->aperture / 10,
