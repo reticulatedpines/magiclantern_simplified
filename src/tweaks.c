@@ -397,8 +397,8 @@ tweak_task( void* unused)
 		if (FLASH_BTN_MOVIE_MODE)
 		{
 			int k = 0;
-			int falsecolor_canceled = 0;
-			bmp_printf(FONT_MED, 245, 100, "False Color toggle");
+			int longpress = 0;
+			bmp_printf(FONT_MED, 245, 100, "DISP preset toggle");
 			while (FLASH_BTN_MOVIE_MODE)
 			{
 				msleep(100);
@@ -406,12 +406,12 @@ tweak_task( void* unused)
 				
 				if (k > 3)
 				{
-					falsecolor_canceled = 1; // long press doesn't toggle
+					longpress = 1; // long press doesn't toggle
 					bmp_printf(FONT(FONT_MED, 1, 0), 245, 100, "                  ");
 				}
 					
 			}
-			if (!falsecolor_canceled) false_color_toggle();
+			if (!longpress) toggle_disp_mode();
 			redraw();
 		}
 		
@@ -528,7 +528,7 @@ picstyle_disppreset_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"PicSty->DISP profile: %s",
+		"PicSty->DISP preset : %s",
 		picstyle_disppreset_enabled ? "ON" : "OFF"
 	);
 }
@@ -600,11 +600,11 @@ struct menu_entry tweak_menus[] = {
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
 	},
 	{
-		.name = "PicStyle in DISP profile",
+		.name = "PicSty->DISP preset",
 		.priv = &picstyle_disppreset_enabled,
 		.display	= picstyle_disppreset_display,
 		.select		= menu_binary_toggle,
-		.help = "PicStyle can be included in DISP profiles for easy toggle."
+		.help = "PicStyle can be included in DISP preset for easy toggle."
 	},
 	#ifdef CONFIG_60D
 	{

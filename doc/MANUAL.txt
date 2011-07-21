@@ -139,7 +139,7 @@ Flash button shortcuts
 
 This feature is only available on 550D and 500D.
 
-* Flash in Movie mode (short press): toggle `False Color`_.
+* Flash in Movie mode (short press): change current `display preset`_.
 * Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
 * Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 
@@ -147,7 +147,7 @@ Misc shortcuts
 ~~~~~~~~~~~~~~
 
 * Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). You may have to be in one of these modes: P, Tv, Av or M.
-* ``ISO`` then ``LV``: switch to Movie mode (from photo mode).
+* ``ISO`` then ``LV``: switch to Movie mode (from photo mode). To switch back to photo mode, you need to turn the mode dial back and forth one notch.
 * ``ISO`` then ``DISP`` (550D) / Metering (60D): change current `display preset`_.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Bulb timer`_, `Movie REC key`_.
@@ -317,7 +317,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
       :align: center
       :width: 13cm
 
-  In Movie mode, you can toggle False Color with a short press of Flash button.
+  Tip: you may configure a `display preset`_ with False Color and toggle it with a single button press.
   
 .. _Cropmark:
 
@@ -883,6 +883,8 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 **PictureStyle**
 
   Change picture style. You can see the effect on LiveView instantly.
+  
+  Tip: you may assign the picture style to current `display preset`_ and toggle it with a single button press.
 
 .. _Contrast:
 
@@ -1119,9 +1121,15 @@ Miscellanous settings.
   * ``All values``: use all available ISO speeds, in 1/8 EV steps
   * ``100x, 160x``: use only native ISOs (multiples of 100) and ISO values with lower digital gain (multiples of 160).
 
+**PicSty->DISP preset**
+
+  This option allows you to assign a picture style to each `display preset`_.
+  
+  After enabling this option, go through each `display preset`_ and select the desired picture style, either from Canon or ML menu. For example, you may assign the Technicolor CineStyle™ to ``DISP 0`` for recording, and Portrait to ``DISP 1`` for adjusting the exposure. In this case, you may also want to enable the exposure tools (RGB `zebras`_, `histogram`_, `waveform`_) on ``DISP 1`` and disable them on ``DISP 0`` (and maybe enable `Magic Zoom`_ or `Focus Peaking`_).
+
 **Swap MENU <-> ERASE**
 
-Swaps ``MENU`` and ``ERASE`` buttons. This feature allows one-handed navigation in ML menu on 60D, but will have to use ``MENU`` button to delete the pictures.
+  Swaps ``MENU`` and ``ERASE`` buttons. This feature allows one-handed navigation in ML menu on 60D, but will have to use ``MENU`` button to delete the pictures.
 
 .. _zoom in Face Detect mode:
 
