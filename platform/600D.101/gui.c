@@ -114,34 +114,30 @@ static int handle_buttons(struct event * event)
 	static int kev = 0;
 	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
-	/*
+	
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
 		{
 			volume_up();
-			falsecolor_cancel();
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
 		{
 			volume_down();
-			falsecolor_cancel();
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
 		{
 			iso_toggle(-1);
-			falsecolor_cancel();
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
 		{
 			iso_toggle(1);
-			falsecolor_cancel();
 			return 0;
 		}
-	}*/
+	}
 	
     // enable the Q button when ML menu is active
 	if (event->type == 0 && (event->param == BGMT_Q || event->param == BGMT_Q_ALT) && gui_menu_shown())
