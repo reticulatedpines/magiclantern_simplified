@@ -532,9 +532,9 @@ Functions specific to movie mode.
 
 .. _change movie position:
 
-**MovieModeRemap: A-DEP / CA**
+**MovieModeRemap: A-DEP / CA / C**
 
-  Changes movie position on the mode dial. You can swap movie mode with either ``A-DEP`` or ``CA``.
+  Changes movie position on the mode dial. You can swap movie mode with either ``A-DEP``, ``CA`` or ``C``.
   
   Alternative: press ISO and then press LV.
   
@@ -617,7 +617,7 @@ Functions for stills shooting (some of them work for movies, too).
   * ML intervalometer (for HDR timelapse)
   * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used. Also, this mode only works with 3 images or more.
 
-  For best results, switch to manual focus and use relatively slow exposure times.
+  For best results, either use manual focus, or assign autofocus to ``*`` button.
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
   with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x). The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
@@ -785,8 +785,7 @@ Functions for stills shooting (some of them work for movies, too).
     
     - self-timer mode is on (either 2 second or 10 second, but not continuous)
     - `LCD Remote Shot`_ is in ``Away`` mode.
-  
-
+    
 Expo
 ~~~~
 
