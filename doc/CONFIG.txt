@@ -21,3 +21,7 @@ These settings can not be changed from the ML menu::
     waveform_bg = 20   # Semitransparent gray
     waveform_bg = 3    # Semitransparent black
     waveform_bg = 0    # Transparent
+
+    # enable QScale
+    h264.bitrate-mode = 2   # 0 is FW default, 1 is CBR, 2 is VBR
+    h264.qscale.plus16 = 8  # QScale plus 16 (range: 0..32)

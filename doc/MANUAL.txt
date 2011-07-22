@@ -157,7 +157,7 @@ Misc shortcuts
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a transparent overlay from current image. You can then move the overlay around with arrow keys in LiveView mode. To deactivate the overlay, go to ``PLAY`` mode and back without pressing ``LV`` on a new image.
-* ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable/disable 3x zoom.
+* ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom.
 
 Magic Lantern menu
 ------------------
@@ -486,20 +486,20 @@ Functions specific to movie mode.
 .. _Bitrate control:
 .. _bitrate:
 
-**Bit Rate: FW default / CBR / QScale**
+**Bit Rate: CBR, 0.1x ... 3x**
 
   Controls H.264 bitrate used for video recording.
   
-  Modes:
+  Possible modes (only CBR is available from menu; others can be selected only from ``magic.cfg``):
   
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting. The implementation uses variable QScale, displayed near the recording dot.
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 45mbps in 1080p, including sound).
-  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is equivalent to FW default. The implementation uses variable QScale, displayed near the recording dot.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
   
-  * Change mode with ``SET``
-  * Change numeric value with ``Q`` and ``PLAY``
+  * Change numeric value with ``SET`` and ``PLAY``
+  * Reset bitrate to CBR 1x (firmware default) with ``Q``
   
   Notes:
   
@@ -508,6 +508,7 @@ Functions specific to movie mode.
   * In QScale mode, bitrate varies a lot with frame complexity, and you have no direct control over its value.
   * In CBR mode, on scenes without a lot of details, QScale will not go further than -16, and bitrate will be lower than requested. As soon as frame complexity increases, the bitrate will increase too, and video may stop recording. In this case, bitrate meter will be displayed in red.
   * You can't change this setting during recording.
+  * A red ``X`` means Magic Lantern did not make any changes to bitrate settings.
   
   See [[Bit rate]] page for details.
 

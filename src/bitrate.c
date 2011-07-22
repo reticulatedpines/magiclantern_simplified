@@ -13,8 +13,8 @@
 
 //----------------begin qscale-----------------
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
-CONFIG_INT( "h264.bitrate.mode", bitrate_mode, 0 ); // off, CBR, VBR
-CONFIG_INT( "h264.bitrate.factor", bitrate_factor, 10 );
+CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
+CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 int timecode_x = 720 - 160;
 int timecode_y = 0;
@@ -88,6 +88,7 @@ void bitrate_set()
 	}
 	else if (bitrate_mode == 1) // CBR
 	{
+		if (bitrate_factor == 10 && !bitrate_dirty) return;
 		vbr_fix(0);
 		opt_set(bitrate_factor, 10);
 	}
@@ -116,8 +117,8 @@ bitrate_print(
 	}
 	else if (bitrate_mode == 1)
 	{
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBR, %d.%dx", bitrate_factor/10, bitrate_factor%10);
-		menu_draw_icon(x, y, MNI_PERCENT, bitrate_factor * 100 / 30);
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBR, %d.%dx%s", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW def)");
+		menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
 	}
 	else if (bitrate_mode == 2)
 	{
@@ -156,6 +157,15 @@ bitrate_toggle_mode(void* priv)
 	if (recording) return;
 	menu_ternary_toggle(priv);
 }
+
+static void 
+bitrate_reset(void* priv)
+{
+	if (recording) return;
+	bitrate_mode = 1;
+	bitrate_factor = 10;
+}
+
 
 int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
@@ -311,10 +321,10 @@ static struct menu_entry mov_menus[] = {
 		.name = "Bit Rate",
 		.priv = &bitrate_mode,
 		.display	= bitrate_print,
-		.select		= bitrate_toggle_mode,
-		.select_auto	= bitrate_toggle_forward,
+		.select		= bitrate_toggle_forward,
+		.select_auto	= bitrate_reset,
 		.select_reverse	= bitrate_toggle_reverse,
-		.help = "H.264 bitrate. Use with care! [Q/PLAY]: change value."
+		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: reset to 1x."
 	},
 	{
 		.name = "BuffWarnLevel",
