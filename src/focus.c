@@ -728,16 +728,21 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 	focus_mag_a = buf[2];
 	focus_mag_b = buf[3];
 	focus_mag_c = buf[4];
+	#ifdef CONFIG_600D
+	int focus_mag = focus_mag_c;
+	#else
+	int focus_mag = focus_mag_a + focus_mag_b;
+	#endif
 	
 #ifdef CONFIG_MOVIE_AF
 	if (movie_af != 3)
 #endif
 	{
-		update_focus_mag(focus_mag_a + focus_mag_b);
+		update_focus_mag(focus_mag);
 		if (get_focus_graph()) plot_focus_mag();
 #ifdef CONFIG_MOVIE_AF
 		if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
-			movie_af_step(focus_mag_a + focus_mag_b);
+			movie_af_step(focus_mag);
 #endif
 	}
 	return prop_cleanup(token, property);
