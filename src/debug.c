@@ -155,7 +155,6 @@ static int vmax(int* x, int n)
 
 void xx_test(void* priv)
 {
-	ChangeHDMIOutputSizeToFULLHD();
 }
 
 void toggle_mirror_display()
@@ -418,7 +417,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
-		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", CURRENT_DIALOG_MAYBE);
+		//~ extern int disp_pressed;
+		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", disp_pressed);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_SEM
@@ -437,10 +437,11 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		if (screenshot_sec)
 		{
-			if (screenshot_sec >= 5) BMP_SEM( bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec); )
+			card_led_blink(1, 20, 1000-20);
+			//~ if (screenshot_sec >= 5) BMP_SEM( bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec); )
 			//~ if (screenshot_sec == 4) redraw();
 			screenshot_sec--;
-			msleep( 1000 );
+			//~ msleep( 1000 );
 			if (!screenshot_sec)
 				take_screenshot(0);
 		}
