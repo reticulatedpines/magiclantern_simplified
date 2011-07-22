@@ -102,8 +102,8 @@
  */
 #define AJ_LCD_Palette 0x3BFA4
 
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5680) == 0xF) || ((*(int*)0x2A430) != 0x17))
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5680) == 0xF)
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5680) == 0xF) || ((*(int*)0x2A434) != 0x17)) // dec CancelBottomInfoDispTimer
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5680) == 0xF) // dec ptpNotifyOlcInfoChanged
 
 #define COLOR_FG_NONLV 1
 
