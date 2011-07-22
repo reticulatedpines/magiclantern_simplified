@@ -644,7 +644,11 @@ static void update_focus_mag(int mag)
 {
 	int maxmag = 1;
 	int i;
+	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	#define WEIGHT(i) (i > 40 ? 1 : 0.2)
+	#else
+	#define WEIGHT(i) 1
+	#endif
 	for (i = 0; i < NMAGS-1; i++)
 		if (mags[i] * WEIGHT(i) > maxmag) maxmag = mags[i] * WEIGHT(i);
 	maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
