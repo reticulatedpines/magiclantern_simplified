@@ -783,7 +783,7 @@ static void cropinfo_display( void * priv, int x, int y, int selected )
 		crop_info ? "ON,35mm equiv" : "OFF"
 	);
 }
-static struct menu_entry debug_menus[] = {
+static struct menu_entry tweak_menus[] = {
 	{
 		.name = "Crop Factor Display",
 		.priv = &crop_info,
@@ -802,7 +802,7 @@ lens_init( void* unused )
 	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 	menu_add("Movie", lens_menus, COUNT(lens_menus));
 #ifndef CONFIG_FULLFRAME
-	menu_add("Debug", debug_menus, COUNT(debug_menus));
+	menu_add("Tweak", tweak_menus, COUNT(tweak_menus));
 #endif
 
 	lens_info.lens_rotation = 0.1;

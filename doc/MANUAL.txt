@@ -1133,9 +1133,22 @@ Miscellanous settings.
   
   After enabling this option, go through each `display preset`_ and select the desired picture style, either from Canon or ML menu. For example, you may assign the Technicolor CineStyle™ to ``DISP 0`` for recording, and Portrait to ``DISP 1`` for adjusting the exposure. In this case, you may also want to enable the exposure tools (RGB `zebras`_, `histogram`_, `waveform`_) on ``DISP 1`` and disable them on ``DISP 0`` (and maybe enable `Magic Zoom`_ or `Focus Peaking`_).
 
+**Crop Factor Display**
+
+  If enabled, ML `bottom bar`_ will display the 35mm equivalent focal length, including crop factor (1.6x).
+  
+  For example, a 50mm lens at f1.8 will be displayed as:
+  
+  * ``50 f/1.8`` with this option disabled;
+  * ``80eq/1.8`` with this option enabled.
+  
 **Swap MENU <-> ERASE**
 
   Swaps ``MENU`` and ``ERASE`` buttons. This feature allows one-handed navigation in ML menu on 60D, but will have to use ``MENU`` button to delete the pictures.
+
+**DispOFF in PhotoMode**
+
+  On 60D, in photo mode, outside LiveView, a long half-shutter press will turn off the display if main shooting screen is active. You can turn it back on by pressing ``INFO``.
 
 .. _zoom in Face Detect mode:
 
@@ -1280,6 +1293,8 @@ This info also appears on error displays (e.g. ERR 70).
 
 LiveView
 ~~~~~~~~
+
+.. _bottom bar:
 
 * Bottom bar (displayed only when Canon bottom bar is hidden):
 
