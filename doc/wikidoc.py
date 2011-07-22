@@ -60,7 +60,7 @@ sub("userguide.wiki", "=== Audio ===", """<tabber>
 |-|
  Focus=[[Image:FocusMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Focus]]
 |-|
- Tweaks=[[Image:TweakMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Tweak]]
+ Tweaks=[[Image:TweakMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Tweaks]]
 |-|
  Debug=[[Image:DebugMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Debug]]
 |-|

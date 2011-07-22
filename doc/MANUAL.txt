@@ -137,7 +137,7 @@ LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ) or as shift 
 Flash button shortcuts
 ~~~~~~~~~~~~~~~~~~~~~~
 
-This feature is only available on 550D and 500D.
+This feature is only available on 550D, 500D and 600D.
 
 * Flash in Movie mode (short press): change current `display preset`_.
 * Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
@@ -286,7 +286,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * a histogram plot (``Luma`` or ``RGB``, toggle with ``SET``)
   * a waveform plot (toggle with ``Q``)
-  
+
+  .. figure:: Histogram-and-waveform.png
+      :alt: thumb|right|Histogram and waveform
+      :align: center
+      :height: 2cm
+
 .. _zebras:
 
 **Zebras: OFF/Luma/RGB, lo_level..hi_level**
@@ -1164,7 +1169,7 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
   Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
   
-  A small timer is displayed. After 5 seconds, it won't be updated any more (which lets you remove it from the screenshot by triggering a redraw).
+  The card LED will blink every second, until the screenshot is taken.
 
 **Debug logging: ON/OFF**
 
@@ -1231,7 +1236,7 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
   
   To change the presets, press:
   
-  * on 550D/500D: ``ISO`` followed by ``DISP``;
+  * on 550D/500D: Flash button in Movie mode, or ``ISO`` followed by ``DISP`` in all modes;
   * on 60D: the Metering button.
 
 Extra info displays
