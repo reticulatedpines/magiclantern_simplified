@@ -326,6 +326,11 @@ static int handle_buttons(struct event * event)
 		redraw();
 	}
 
+	if (!lv && event->param == BGMT_DISP)
+	{
+		return handle_disp_button_in_photo_mode();
+	}
+
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{

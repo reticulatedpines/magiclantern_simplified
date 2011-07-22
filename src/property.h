@@ -294,6 +294,8 @@
 
 #define PROP_VIDEO_MODE_ZOOM_FACTOR 0x8005002f
 
+#define PROP_INFO_BUTTON_FUNCTION 0x02070006
+
 /** Properties */
 extern void
 prop_register_slave(

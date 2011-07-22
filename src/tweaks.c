@@ -289,6 +289,37 @@ quickzoom_display(
 
 CONFIG_INT("display.off.halfshutter", display_off_by_halfshutter_enabled, 0);
 
+int display_turned_off_by_halfshutter = 0; // 1 = display was turned off, -1 = display should be turned back on (ML should take action)
+
+PROP_INT(PROP_INFO_BUTTON_FUNCTION, info_button_function);
+
+void display_on_and_go_to_main_shooting_screen()
+{
+	if (lv) return;
+	if (tft_status == 0) return; // display already on
+	if (gui_state != GUISTATE_IDLE) return;
+	
+	display_turned_off_by_halfshutter = 0;
+	
+	int old = info_button_function;
+	int x = 1;
+	//~ card_led_blink(5,100,100);
+	prop_request_change(PROP_INFO_BUTTON_FUNCTION, &x, 4); // temporarily make the INFO button display only the main shooting screen
+	fake_simple_button(BGMT_DISP);
+	msleep(300);
+	prop_request_change(PROP_INFO_BUTTON_FUNCTION, &old, 4); // restore user setting back
+}
+
+int handle_disp_button_in_photo_mode() // called from handle_buttons
+{
+	if (display_turned_off_by_halfshutter)
+	{
+		display_turned_off_by_halfshutter = -1; // request: ML should turn it on
+		return 0;
+	}
+	return 1;
+}
+
 void display_off_by_halfshutter()
 {
 	static int prev_gui_state = 0;
@@ -300,38 +331,34 @@ void display_off_by_halfshutter()
 		return; 
 	}
 	prev_gui_state = gui_state;
-	if (!lv && gui_state == GUISTATE_IDLE)
+		
+	if (!lv && gui_state == GUISTATE_IDLE) // main shooting screen, photo mode
 	{
-		if (get_halfshutter_pressed())
+		if (tft_status == 0) // display is on
 		{
-			/* not reliable
-			if (tft_status && !get_halfshutter_pressed())
+			if (get_halfshutter_pressed())
 			{
-				//~ card_led_blink(5, 50, 10);
-				//~ int k = 0;
-				//~ while (tft_status || gui_state != GUISTATE_IDLE)
-				//~ {
-				fake_simple_button(BGMT_DISP);
-				fake_simple_button(BGMT_DISP);
-				fake_simple_button(BGMT_DISP);
-				msleep(2000);
-					//~ k++;
-					//~ if (k > 5) return;
-				//~ }
+				// wait for long half-shutter press (1 second)
+				int i;
+				for (i = 0; i < 10; i++)
+				{
+					msleep(100);
+					if (!get_halfshutter_pressed()) return;
+					if (tft_status) return;
+				}
+				fake_simple_button(BGMT_DISP); // turn display off
+				while (get_halfshutter_pressed()) msleep(100);
+				display_turned_off_by_halfshutter = 1; // next INFO press will go to main shooting screen
 				return;
-			}*/
-			
-			// wait for long half-shutter press (1 second)
-			int i;
-			for (i = 0; i < 10; i++)
-			{
-				msleep(100);
-				if (!get_halfshutter_pressed()) return;
-				if (tft_status) return;
 			}
-			fake_simple_button(BGMT_DISP);
-			while (get_halfshutter_pressed()) msleep(100);
-			return;
+		}
+		else // display is off
+		{
+			if (display_turned_off_by_halfshutter == -1)
+			{
+				display_on_and_go_to_main_shooting_screen();
+				display_turned_off_by_halfshutter = 0;
+			}
 		}
 	}
 }
@@ -615,7 +642,7 @@ struct menu_entry tweak_menus[] = {
 		.help = "Swaps MENU and ERASE buttons."
 	},
 	{
-		.name = "Display off by HalfShutter",
+		.name = "DispOFF in PhotoMode",
 		.priv = &display_off_by_halfshutter_enabled,
 		.display = display_off_by_halfshutter_print, 
 		.select = menu_binary_toggle,
