@@ -42,6 +42,8 @@ static int edit_mode = 0;
 static int config_dirty = 0;
 int menu_help_active = 0;
 
+void menu_set_dirty() { menu_damage = 1; }
+
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
 int get_menu_font_sel() 
@@ -588,12 +590,14 @@ menu_redraw_if_damaged()
 		{
 			if (!lv) show_only_selected = 0;
 			//~ if (MENU_MODE || lv) clrscr();
-			bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 );
 			menu_damage = 0;
-			BMP_SEM( menus_display( menus, 10, 40 ); )
+			BMP_SEM (
+				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 ); 
+				menus_display( menus, 10, 40 ); 
+				if (is_menu_active(" (i)")) menu_show_version();
+			)
 			update_stuff();
 			update_disp_mode_bits_from_params();
-			if (is_menu_active(" (i)")) menu_show_version();
 		}
 	}
 }
@@ -865,21 +869,11 @@ gui_stop_menu( void )
 	if( !gui_menu_task )
 		return;
 	
-	//~ while (gui_menu_task == 1) msleep(100);
-
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
-
-	//workaround, otherwise screen does not refresh after closing menu
-	/*if (!lv)
-	{
-		while (get_halfshutter_pressed()) msleep(100);
-		fake_simple_button(BGMT_Q);
-	}*/
 	
 	lens_focus_stop();
 	show_only_selected = 0;
-	//~ powersave_set_config_for_menu(); // revert to your preferred setting for powersave
 
 	if (MENU_MODE && !get_halfshutter_pressed())
 	{
@@ -889,14 +883,16 @@ gui_stop_menu( void )
 	{
 		redraw();
 	}
-
-	msleep(200);
+	
 	extern int config_autosave;
 	if (config_autosave && config_dirty)
 	{
 		save_config(0);
 		config_dirty = 0;
 	}
+
+	msleep(200);
+	redraw();
 
 	menu_shown = 0;
 }
@@ -1067,6 +1063,7 @@ TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
 
 int is_menu_active(char* name)
 {
+	if (!gui_menu_task) return 0;
 	if (menu_help_active) return 0;
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )

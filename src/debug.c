@@ -455,11 +455,11 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				take_screenshot(0);
 		}
 		
-		if (BTN_METERING_PRESSED_IN_LV)
-		{
-			while (BTN_METERING_PRESSED_IN_LV) msleep(100);
-			toggle_disp_mode();
-		}
+		//~ if (BTN_METERING_PRESSED_IN_LV)
+		//~ {
+			//~ while (BTN_METERING_PRESSED_IN_LV) msleep(100);
+			//~ toggle_disp_mode();
+		//~ }
 		
 		#if CONFIG_DEBUGMSG
 		if (draw_prop)

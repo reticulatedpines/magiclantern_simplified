@@ -135,17 +135,27 @@ lens_format_dist(
 }
 
 void
-update_lens_display(
-	struct lens_info *	info
-)
+update_lens_display()
 {
 	if (!gui_menu_shown() || audio_meters_are_drawn())
 	{
-		if (get_halfshutter_pressed()) return;
 		if (!zebra_should_run()) return;
 	}
 	if (is_menu_help_active()) return;
 	
+
+	if (!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
+	{
+		draw_ml_bottombar();
+	}
+	if (!audio_meters_are_drawn())
+		draw_ml_topbar();
+}
+
+void draw_ml_bottombar()
+{
+	struct lens_info *	info = &lens_info;
+
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
@@ -154,11 +164,9 @@ update_lens_display(
 	
 	unsigned x = 420;
 	unsigned y = 480 - height - 10;
-	if (ext_monitor_hdmi) y += recording ? -100 : 200;
-
-	if ((!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0) && (!gui_menu_shown()))
-	{
+	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 	
+	{
 		//~ y += height;
 		x = 500;
 		bmp_printf( font, x+12, y,
@@ -285,17 +293,23 @@ update_lens_display(
 		);
 		#endif
 	}
+}
+void draw_ml_topbar()
+{
+	int bg = TOPBAR_BGCOLOR;
+	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
+	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
+	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
+	unsigned height	= fontspec_height( font );
 	
+	unsigned x = 80;
+	unsigned y = 0;
 
-	if (audio_meters_are_drawn()) return;
-
-	y = 0;
-	x = 100;
 	bmp_printf( font, x, y,
 		"DISP %d", get_disp_mode()
 	);
 
-	x += 100;
+	x += 80;
 
 	int raw = pic_quality & 0x60000;
 	int rawsize = pic_quality & 0xF;
@@ -313,7 +327,7 @@ update_lens_display(
 		)
 	);
 
-	x += 100;
+	x += 80;
 	bmp_printf( font, x, y,
 		get_htp() ? "HTP" :
 		alo == ALO_LOW ? "alo" :
@@ -321,7 +335,12 @@ update_lens_display(
 		alo == ALO_HIGH ? "ALO" : "   "
 	);
 
-	x += 100;
+	x += 60;
+	bmp_printf( font, x, y,
+		get_picstyle_name(lens_info.raw_picstyle)
+	);
+
+	x += 150;
 	bmp_printf( font, x, y,"T%d", efic_temp);
 
 	display_clock();
@@ -331,7 +350,6 @@ update_lens_display(
 		"[%d]  ",
 		avail_shot
 	);
-
 }
 
 int lv_focus_done = 1;
@@ -710,7 +728,7 @@ lens_set_kelvin_value_only(int k)
 void update_stuff()
 {
 	calc_dof( &lens_info );
-	if (lv && get_global_draw()) BMP_SEM( update_lens_display( &lens_info ); )
+	if (lv && get_global_draw()) BMP_SEM( update_lens_display(); )
 	if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
 }
 

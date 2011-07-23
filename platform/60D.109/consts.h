@@ -93,7 +93,12 @@
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
 
-#define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
+#define BGMT_METERING_LV (event->type == 0 && event->param == 0x5a && event->arg == 9)
+#define BGMT_PRESS_METERING_LV (BGMT_METERING_LV && (*(int*)(event->obj) & 0x8000000))
+#define BGMT_UNPRESS_METERING_LV (BGMT_METERING_LV && (*(int*)(event->obj) & 0x8000000) == 0)
+#define FLASH_BTN_MOVIE_MODE 0
+
+//~ #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
 /*

@@ -3197,6 +3197,7 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
+				draw_ml_topbar();
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
@@ -3237,6 +3238,7 @@ void redraw()
 		RedrawDisplay();
 		crop_set_dirty(20);
 		afframe_set_dirty();
+		menu_set_dirty();
 	)
 }
 
@@ -3246,6 +3248,7 @@ void redraw_nosem() // to be called from a BMP_SEM only!
 	RedrawDisplay();
 	crop_set_dirty(20);
 	afframe_set_dirty();
+	menu_set_dirty();
 }
 
 /*
@@ -3520,13 +3523,18 @@ int toggle_disp_mode()
 }
 void do_disp_mode_change()
 {
-	if (gui_menu_shown()) { update_disp_mode_params_from_bits(); return; }
+	if (gui_menu_shown()) 
+	{ 
+		update_disp_mode_params_from_bits(); 
+		return; 
+	}
 	
 	display_on();
 	bmp_on();
 	clrscr();
 	bmp_printf(FONT_LARGE, 10, 40, "DISP %d", disp_mode);
 	update_disp_mode_params_from_bits();
+	draw_ml_topbar();
 	msleep(500);
 	//~ crop_dirty = 1;
 }

@@ -211,7 +211,14 @@ static int handle_buttons(struct event * event)
 #endif
 
 	}
-	
+
+	if (BGMT_PRESS_METERING_LV)
+	{
+		gui_hide_menu(0);
+		toggle_disp_mode();
+		return 0;
+	}
+
 	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
 	{
 		if (lv && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
@@ -231,7 +238,7 @@ static int handle_buttons(struct event * event)
 	{
 		if (event->type == 0 && event->param == 0x5a) return 0;
 	}
-	
+
 	/*
 	if (get_lcd_sensor_shortcuts() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys

@@ -1649,6 +1649,21 @@ saturation_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_WARNING, (s + 4) * 100 / 8);
 }
 
+const char* get_picstyle_name(int raw_picstyle)
+{
+	return
+		raw_picstyle == 0x81 ? "Standard" : 
+		raw_picstyle == 0x82 ? "Portrait" :
+		raw_picstyle == 0x83 ? "Landscape" :
+		raw_picstyle == 0x84 ? "Neutral" :
+		raw_picstyle == 0x85 ? "Faithful" :
+		raw_picstyle == 0x86 ? "Monochrome" :
+		raw_picstyle == 0x87 ? "Auto" :
+		raw_picstyle == 0x21 ? "User Def 1" :
+		raw_picstyle == 0x22 ? "User Def 2" :
+		raw_picstyle == 0x23 ? "User Def 3" : "Unknown";
+}
+
 static void 
 picstyle_display( void * priv, int x, int y, int selected )
 {
@@ -1657,16 +1672,7 @@ picstyle_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"PictureStyle: %s ",
-		p == 0x81 ? "Standard" : 
-		p == 0x82 ? "Portrait" :
-		p == 0x83 ? "Landscape" :
-		p == 0x84 ? "Neutral" :
-		p == 0x85 ? "Faithful" :
-		p == 0x86 ? "Monochrome" :
-		p == 0x87 ? "Auto" :
-		p == 0x21 ? "User Def 1" :
-		p == 0x22 ? "User Def 2" :
-		p == 0x23 ? "User Def 3" : "Unknown"
+		get_picstyle_name(p)
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
@@ -1741,8 +1747,10 @@ void set_alo(int value)
 // 0 = off, 1 = alo, 2 = htp
 int get_ladj()
 {
-	if (get_htp()) return 2;
-	if (alo != ALO_OFF) return 1;
+	if (get_htp()) return 4;
+	if (alo == ALO_LOW) return 1;
+	if (alo == ALO_STD) return 2;
+	if (alo == ALO_HIGH) return 3;
 	return 0;
 }
 
@@ -1750,13 +1758,23 @@ static void
 ladj_toggle( int sign )
 {
 	int ladj = get_ladj();
-	ladj = mod(ladj + sign, 3);
+	ladj = mod(ladj + sign, 5);
 	if (ladj == 0)
 	{
 		set_htp(0);
 		set_alo(ALO_OFF);
 	}
 	else if (ladj == 1)
+	{
+		set_htp(0);
+		set_alo(ALO_LOW);
+	}
+	else if (ladj == 2)
+	{
+		set_htp(0);
+		set_alo(ALO_STD);
+	}
+	else if (ladj == 3)
 	{
 		set_htp(0);
 		set_alo(ALO_HIGH);

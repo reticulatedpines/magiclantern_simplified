@@ -879,12 +879,12 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Adjust aperture.
 
-**Light Adjust: OFF/ALO strong/HTP**
+**Light Adjust: OFF/ALO/HTP**
 
   Select the light adjustment algorithm: 
   
   * OFF
-  * Auto Lighting Optimizer (strong)
+  * Auto Lighting Optimizer (low / standard / strong)
   * Highlight Tone Priority.
 
 **PictureStyle**
