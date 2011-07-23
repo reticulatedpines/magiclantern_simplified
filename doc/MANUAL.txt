@@ -1284,10 +1284,15 @@ MENU->DISP / MENU->INFO
 .. figure:: InfoMenuDisp-550D.png
     :alt: thumb|right|MENU->DISP info display
     :align: center
-    :width: 3cm
+    :width: 5cm
 
-* Shutter counter. Only counts pictures taken, not LV switches or quick focus attempts. 
-* CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units. Before, this was in the Debug menu.
+* Shutter counter:
+
+  - total
+  - number of pictures taken
+  - LV switches + quick focus attempts
+
+* CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units.
 * Lens name
 
 This info also appears on error displays (e.g. ERR 70).

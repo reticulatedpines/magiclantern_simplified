@@ -188,7 +188,7 @@
 #define PROP_WBS_BA 0x80000011 // idem
 
 
-#define PROP_SHUTTER_COUNT     0x02050001 // maybe?
+#define PROP_LAST_JOB_ID     0x02050001 // maybe?
 #define PROP_FILE_NUMBER       0x02040008   // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
 #define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one, but it's increased earlier
 #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
@@ -295,6 +295,18 @@
 #define PROP_VIDEO_MODE_ZOOM_FACTOR 0x8005002f
 
 #define PROP_INFO_BUTTON_FUNCTION 0x02070006
+
+#define PROP_CONTINUOUS_AF_MODE 0x80000042
+#define PROP_CONTINUOUS_AF_VALID 0x80000043
+#define PROP_LOUDNESS_BUILT_IN_SPEAKER 0x205001B
+#define PROP_LED_LIGHT 0x80030042
+#define PROP_AFSHIFT_LVASSIST_STATUS 0x8003003D
+#define PROP_AFSHIFT_LVASSIST_SHIFT_RESULT 0x8003003E 
+#define PROP_MULTIPLE_EXPOSURE_CTRL 0x80070001
+#define PROP_MIRROR_DOWN_IN_MOVIE_MODE 0x80030034
+
+#define PROP_CARD2_CLUSTER_SIZE 0x2010007
+#define PROP_SHUTTER_COUNTER 0x80030029
 
 /** Properties */
 extern void

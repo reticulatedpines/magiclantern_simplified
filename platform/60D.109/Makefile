@@ -48,6 +48,7 @@ ML_OBJS-y = \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
+	ptp.o \
 
 #include generic rules and definitions
 

@@ -20,7 +20,7 @@ PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 PROP_INT(PROP_MVR_REC_START, recording);
 PROP_INT(PROP_AF_MODE, af_mode);
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
-PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
+//~ PROP_INT(PROP_SHUTTER_COUNT, shutter_count);
 PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 PROP_INT(PROP_ALO, alo);
@@ -35,6 +35,15 @@ PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
+
+int shutter_count = 0;
+int liveview_actuations = 0;
+PROP_HANDLER(PROP_SHUTTER_COUNTER)
+{
+	shutter_count = buf[0];
+	liveview_actuations = buf[1];
+	return prop_cleanup(token, property);
+}
 
 int display_sensor = 0;
 

@@ -155,6 +155,12 @@ static int vmax(int* x, int n)
 
 void xx_test(void* priv)
 {
+	int x = 1;
+	int prop = PROP_MIRROR_DOWN_IN_MOVIE_MODE;
+	prop_request_change(prop, &x, 4);
+	msleep(2000);
+	x = 0;
+	prop_request_change(prop, &x, 4);
 }
 
 void toggle_mirror_display()
@@ -295,9 +301,11 @@ static void dbg_memspy_update()
 
 void display_info()
 {
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y,      "Shutter Count: %d", shutter_count);
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 20, "CMOS Temperat: %d", efic_temp);
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 40, "Lens: %s          ", lens_info.name);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 40, "CMOS Temperature: %d", efic_temp);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y,      "Shutter Counter : %d", shutter_count + liveview_actuations);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 20,      " -> %d pics + %d LV", shutter_count, liveview_actuations);
+	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 60, "Lens: %s          ", lens_info.name);
+	msleep(500);
 }
 
 void display_shortcut_key_hints_lv()
@@ -395,6 +403,7 @@ static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
 #endif
 int screenshot_sec = 0;
+
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -408,7 +417,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 50, 50, "%2x %2x %2x %2x %2x  ", level_data.status, level_data.cameraposture, level_data.roll_sensor1, level_data.roll_sensor2, level_data.roll_sensor1 + level_data.roll_sensor2);
+		//~ bmp_printf(FONT_MED, 50, 50, "%x %x %x %x %x %x %x  ", sca, scb, scl, ll, afss, afsr, mec);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
