@@ -169,9 +169,11 @@ bitrate_reset(void* priv)
 
 int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
-PROP_HANDLER(PROP_FREE_SPACE)
+PROP_INT(PROP_CARD2_CLUSTER_SIZE, cluster_size);
+
+PROP_HANDLER(PROP_FREE_SPACE) // in clusters maybe?
 {
-	free_space_32k = buf[0];
+	free_space_32k = buf[0] * cluster_size / 32768;
 	return prop_cleanup(token, property);
 }
 
