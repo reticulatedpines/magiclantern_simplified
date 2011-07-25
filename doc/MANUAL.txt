@@ -936,21 +936,21 @@ Focus
 **Focus Patterns: ON/OFF**
 
   Custom focus patterns which can be used either with autofocus or `trap focus`_.
-
+  
   .. figure:: AFP.png
       :alt: thumb|right|AF patterns
       :align: center
-      :width: 11.5cm
-
+      :width: 11.8cm
+  
   To change the focus pattern:
   
   * Set your camera in photo mode, non-LiveView;
   * Look through the viewfinder and make sure the LCD display is off;
   * Change the focus pattern with the arrow keys and ``SET``; you may or may not receive visual feedback.
   * Press the ``Zoom In`` button twice to see the current selection.
-  
+
   You can use the custom focus patterns in LiveView Quick Focus mode, too, but the pattern won't be displayed on the screen.
-  
+
   This feature was ported from `400plus <http://code.google.com/p/400plus/>`_.
 
 .. _focus stacking:
