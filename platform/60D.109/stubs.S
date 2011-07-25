@@ -212,15 +212,7 @@ NSTUB( 0xFF538070, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 
 NSTUB( 0x5dd0, mvr_config )
 
-#if 0   // not checked yet in 60d 109
- NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
-NSTUB( 0xff0a9dd8, gui_init_event )
-NSTUB( 0xff0a962c, gui_change_shoot_type_post )
- NSTUB( 0xFF095AC8, gui_change_lcd_state_post )
- NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
-NSTUB( 0xff1d69f4, gui_timer_something )
-
-#endif
-
 NSTUB(0xff3701c8, ChangeHDMIOutputSizeToVGA)
 NSTUB(0xff36ff44, ChangeHDMIOutputSizeToFULLHD)
+
+NSTUB(0xff382e80, StartShootOlcAFFrameApp)

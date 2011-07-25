@@ -39,3 +39,21 @@ int get_mlu()
 	return cfn[2] & 0x1;
 }
 
+// used for showing AF patterns
+// todo: find a more elegant method to trigger AF points display in viewfinder 
+int af_button_assignment = -1;
+void assign_af_button_to_halfshutter()
+{
+	af_button_assignment = cfn[2] & 0xF00;
+	cfn[2] &= ~0xF00;
+	prop_request_change(PROP_CFN, cfn, CFN1_LEN);
+}
+
+void restore_af_button_assignment()
+{
+	if (af_button_assignment == -1) return;
+	cfn[2] &= ~0xF00;
+	cfn[2] |= af_button_assignment;
+	af_button_assignment = -1;
+	prop_request_change(PROP_CFN, cfn, CFN1_LEN);
+}

@@ -914,6 +914,7 @@ Focus
     :align: center
     :width: 5cm
 
+ 
 .. _trap focus:
 
 **Trap Focus: ON/OFF**
@@ -929,6 +930,28 @@ Focus
       - You may have to turn the lens back and forth a few times in order to let ML
         compute the correct focus scaling factor for the current scene. 
       - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
+
+.. _AF patterns:
+
+**Focus Patterns: ON/OFF**
+
+  Custom focus patterns which can be used either with autofocus or `trap focus`_.
+
+  .. figure:: afp/AFP.png
+      :alt: thumb|right|AF patterns
+      :align: center
+      :width: 11.5cm
+
+  To change the focus pattern:
+  
+  * Set your camera in photo mode, non-LiveView;
+  * Look through the viewfinder and make sure the LCD display is off;
+  * Change the focus pattern with the arrow keys and ``SET``; you may or may not receive visual feedback.
+  * Press the ``Zoom In`` button twice to see the current selection.
+  
+  You can use the custom focus patterns in LiveView Quick Focus mode, too, but the pattern won't be displayed on the screen.
+  
+  This feature is ported from `400plus <http://code.google.com/p/400plus/>`_.
 
 .. _focus stacking:
 
@@ -1002,7 +1025,7 @@ Focus
 
 The following items are display only:
 
-**Focal Dist**
+**Focus Dist**
 
   The distance to the focal point. Value is returned by most newer Canon lenses. If the lens does not report any distance information, 0 will be displayed and the DOF calculations will not be correct. 
     

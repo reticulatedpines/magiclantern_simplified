@@ -43,13 +43,14 @@ ML_OBJS-y = \
 	lcdsensor.o \
 	zebra.o \
 	shoot.o \
-	focus.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
 	tweaks.o \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
+	af_patterns.o \
+	focus.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -581,7 +581,18 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 	}
-
+	
+	// AF patterns
+	extern int af_patterns;
+	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+	}
+	
 	return 1;
 }
 
@@ -595,6 +606,11 @@ void fake_simple_button(int bgmt_code)
 	fake_event.obj = 0,
 	fake_event.arg = 0,
 	msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
+}
+
+void send_event_to_IDLEHandler(int event)
+{
+	ctrlman_dispatch_event(GMT_IDLEHANDLER_TASK, event, 0, 0);
 }
 
 static void gui_main_task_60d()
@@ -643,3 +659,4 @@ bottom:
 // 5D2 has a different version for gui_main_task
 
 TASK_OVERRIDE( gui_main_task, gui_main_task_60d );
+

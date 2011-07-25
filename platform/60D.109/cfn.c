@@ -33,8 +33,8 @@ PROP_HANDLER( PROP_CFN3 )
 }
 PROP_HANDLER( PROP_CFN4 )
 {
-	cfn3[0] = buf[0];
-	cfn3[1] = buf[1] & 0xFFFF;
+	cfn4[0] = buf[0];
+	cfn4[1] = buf[1] & 0xFFFF;
 	return prop_cleanup( token, property );
 }
 
@@ -60,4 +60,23 @@ void set_mlu(int enable)
 int get_mlu()
 {
 	return cfn3[1] & 0x100;
+}
+
+// used for showing AF patterns
+// todo: find a more elegant method to trigger AF points display in viewfinder 
+int af_button_assignment = -1;
+void assign_af_button_to_halfshutter()
+{
+	af_button_assignment = cfn4[0] & 0xF00;
+	cfn4[0] &= ~0xF00;
+	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
+}
+
+void restore_af_button_assignment()
+{
+	if (af_button_assignment == -1) return;
+	cfn4[0] &= ~0xF00;
+	cfn4[0] |= af_button_assignment;
+	af_button_assignment = -1;
+	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
 }

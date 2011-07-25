@@ -308,6 +308,8 @@
 #define PROP_CARD2_CLUSTER_SIZE 0x2010007
 #define PROP_SHUTTER_COUNTER 0x80030029
 
+#define PROP_AFPOINT 0x8000000A
+
 /** Properties */
 extern void
 prop_register_slave(
