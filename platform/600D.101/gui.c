@@ -111,6 +111,17 @@ static int handle_buttons(struct event * event)
 		idle_wakeup_reset_counters();
  	}
 
+	// AF patterns
+	extern int af_patterns;
+	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+	}
+
 	static int kev = 0;
 	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
