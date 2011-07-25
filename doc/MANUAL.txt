@@ -832,9 +832,9 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
       $$100 \cdot 2^{k/8},\;\; k=[0:48]$$
   
-.. _Kelvin white balance:
 .. _White balance:
 .. _WhiteBalance:
+.. _Kelvin white balance:
 
 **WhiteBalance: 1500...12000**
 
@@ -937,7 +937,7 @@ Focus
 
   Custom focus patterns which can be used either with autofocus or `trap focus`_.
 
-  .. figure:: afp/AFP.png
+  .. figure:: AFP.png
       :alt: thumb|right|AF patterns
       :align: center
       :width: 11.5cm
@@ -951,7 +951,7 @@ Focus
   
   You can use the custom focus patterns in LiveView Quick Focus mode, too, but the pattern won't be displayed on the screen.
   
-  This feature is ported from `400plus <http://code.google.com/p/400plus/>`_.
+  This feature was ported from `400plus <http://code.google.com/p/400plus/>`_.
 
 .. _focus stacking:
 

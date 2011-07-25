@@ -72,6 +72,11 @@ sub("userguide.wiki", "=== Audio ===", """<tabber>
 def find_labels(line):
     return re.findall(' id="([^"]*)"', line)
 
+def find_eqn(line):
+    m = re.findall("\$\$(.*)\$\$", line)
+    if m:
+        return m[0]
+
 def get_context(lines, i, nmax):
     c = html2text(string.join(lines[i:i+5]))
     c = c.replace("\n", " ")
@@ -82,6 +87,10 @@ def get_context(lines, i, nmax):
 def add_labels(line, labels):
     for label in labels:
         line = ('<span id="%s"></span>' % label) + line.strip()
+    return line
+
+def add_eqn(line, eqn):
+    line = ('\n<blockquote><math> %s </math></blockquote>\n\n' % eqn) + line.strip()
     return line
 
 def fix_labels_in_wiki():
@@ -122,6 +131,46 @@ def fix_labels_in_wiki():
 fix_labels_in_wiki()
 
 
+def fix_eqns_in_wiki():
+    w = open("userguide.wiki").read()
+    h = open("userguide.rst").read()
+    #~ ht = html2text(h)
+    ww = w.split(" ")
+    hw = h.split(" ")
+    wl = w.split("\n")
+    hl = h.split("\n")
+    print len(wl), len(hl)
+
+    P = []
+    for i,line in enumerate(wl):
+        c = get_context(wl, i, 50)
+        P.append(c)
+
+    for i,line in enumerate(hl):
+        eqn = find_eqn(line)
+        if eqn:
+            context = get_context(hl, i+1, 50)
+            print i,eqn, context
+            iwl = i * len(wl) / len(hl)
+            #~ Psmall = P[max(iwl-300,0) : min(iwl+300, len(wl))]
+            #~ print Psmall
+            #~ print(P)
+            #~ print context
+            try: m = difflib.get_close_matches(context, P, n=1, cutoff=0.5)[0]
+            except:
+                raise
+            #~ pos = len(P) - 1 - P[::-1].index(m) # lastindex
+            pos = P.index(m)
+            print eqn, get_context(wl, pos, 50)
+            wl[pos] = add_eqn(wl[pos], eqn)
+    f = open("userguide.wiki", "w")
+    for l in wl:
+        print >> f, l
+    f.close()
+
+fix_eqns_in_wiki()
+
+#~ raise SystemExit
 
 go("http://magiclantern.wikia.com/index.php?title=Special:Signup")
 
