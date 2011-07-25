@@ -233,8 +233,8 @@
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 20
-#define MENU_DISP_INFO_POS_Y 400
+#define MENU_DISP_INFO_POS_X 0
+#define MENU_DISP_INFO_POS_Y 395
 
 #define MENU_DISP_ISO_POS_X 590
 #define MENU_DISP_ISO_POS_Y 26
