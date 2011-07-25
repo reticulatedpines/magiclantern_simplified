@@ -46,7 +46,10 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF53D898
+#define GMT_FUNCTABLE 0xFF53D898 // dec gui_main_task
+#define GMT_IDLEHANDLER_TASK (*(int*)0x251c8) // dec create_idleHandler_task
+
+#define MAIN_CTRL_FUNCTBL 0x370d0
 
 // button codes as received by gui_main_task
 #define BGMT_PRESS_LEFT 0x2a
@@ -197,3 +200,4 @@
 #define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
 #define MOVIE_MODE_REMAP_X_STR "C"
 #define MOVIE_MODE_REMAP_Y_STR "CA"
+

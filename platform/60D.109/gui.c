@@ -660,3 +660,39 @@ bottom:
 
 TASK_OVERRIDE( gui_main_task, gui_main_task_60d );
 
+/*
+
+struct main_ctrl_struct {
+	uint32_t		off_0x00;
+	uint32_t		msg_queue;	// off_0x04;
+	uint32_t		off_0x08;
+	uint32_t		off_0x0c;
+};
+
+extern struct main_ctrl_struct main_ctrl_struct;
+
+
+static void my_main_ctrl_task()
+{
+	int msg;
+	
+	while(1)
+	{
+		msg_queue_receive(*(int*)0x1BE4, &msg, 0);
+		//~ card_led_blink(3, 50, 50);
+		//~ msleep(500);
+		card_led_on();
+		
+		//~ DebugMsg(DM_MAGIC, 3, "mainctrl id: %x(%d)", *(int*)(MAIN_CTRL_FUNCTBL + 16 * msg + 4), msg);
+		int r3 = *(int*)(MAIN_CTRL_FUNCTBL + 16 * msg + 0);
+		int r2 = *(int*)(MAIN_CTRL_FUNCTBL + 16 * msg + 4);
+		int r1 = *(int*)(MAIN_CTRL_FUNCTBL + 16 * msg + 8);
+		int r0 = *(int*)(MAIN_CTRL_FUNCTBL + 16 * msg + 12);
+		void(*f)(int r0, int r1, int r2, int r3) = r3;
+		//~ f(r0, r1, r2, r3);
+		card_led_off();
+	}
+}
+
+TASK_OVERRIDE( main_ctrl_task, my_main_ctrl_task );
+*/

@@ -216,3 +216,7 @@ NSTUB(0xff3701c8, ChangeHDMIOutputSizeToVGA)
 NSTUB(0xff36ff44, ChangeHDMIOutputSizeToFULLHD)
 
 NSTUB(0xff382e80, StartShootOlcAFFrameApp)
+
+NSTUB(0xff01e400, main_ctrl_task)
+NSTUB(0x1BE0, main_ctrl_struct)
+NSTUB(0x370d0, main_ctrl_functbl)
