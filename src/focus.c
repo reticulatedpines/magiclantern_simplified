@@ -56,7 +56,7 @@ display_lens_hyperfocal(
 	unsigned		height = fontspec_height( font );
 
 	bmp_printf( font, x, y,
-		"Focal dist: %s",
+		"Focus dist: %s",
 		lens_info.focus_dist == 0xFFFF
                         ? " Infnty"
                         : lens_format_dist( lens_info.focus_dist * 10 )
@@ -895,8 +895,9 @@ static struct menu_entry focus_menu[] = {
 		.help = "Focus bracketing, useful for macro shots."
 	},
 	{
-		.name = "Focal Dist",
+		.name = "Focus Dist",
 		.display	= display_lens_hyperfocal,
+		.help = "Focus distance and DOF info (read-only)"
 	},
 };
 
