@@ -117,12 +117,12 @@ bitrate_print(
 	}
 	else if (bitrate_mode == 1)
 	{
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : CBR, %d.%dx%s", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW def)");
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate (CBR): %d.%dx%s", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
 		menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
 	}
 	else if (bitrate_mode == 2)
 	{
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : QScale %d", qscale);
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate (VBR): QScale %d", qscale);
 		menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
 	}
 }
