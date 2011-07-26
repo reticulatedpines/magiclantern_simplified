@@ -3139,11 +3139,11 @@ void idle_display_on()
 
 void idle_bmp_off()
 {
-	BMP_SEM(bmp_off);
+	BMP_SEM(bmp_off());
 }
 void idle_bmp_on()
 {
-	BMP_SEM(bmp_on);
+	BMP_SEM(bmp_on());
 }
 
 int old_backlight_level = 0;
