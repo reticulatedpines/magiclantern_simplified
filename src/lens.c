@@ -338,7 +338,7 @@ void draw_ml_topbar()
 	x += 60;
 	bmp_printf( font, x, y, get_picstyle_shortname(lens_info.raw_picstyle));
 
-	x += 70;
+	x += 80;
 	bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
 
 	display_clock();
