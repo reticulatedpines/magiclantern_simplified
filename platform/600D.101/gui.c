@@ -61,7 +61,7 @@ int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 //~ int get_set_pressed() { return set_pressed; }
 
-PROP_INT(PROP_VIDEO_MODE_ZOOM_FACTOR, video_mode_zoom_factor);
+PROP_INT(PROP_DIGITAL_ZOOM_RATIO, video_mode_zoom_factor);
 
 struct semaphore * gui_sem;
 
