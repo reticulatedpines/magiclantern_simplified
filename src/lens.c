@@ -336,14 +336,13 @@ void draw_ml_topbar()
 	);
 
 	x += 60;
-	char* p = get_picstyle_name(lens_info.raw_picstyle);
-	p[4] = '\0';
-	bmp_printf( font, x, y,	p);
+	bmp_printf( font, x, y, get_picstyle_shortname(lens_info.raw_picstyle));
 
 	x += 70;
 	bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
 
 	display_clock();
+	free_space_show();
 
 	x = 550;
 	bmp_printf( font, x, y,

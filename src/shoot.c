@@ -1664,6 +1664,20 @@ const char* get_picstyle_name(int raw_picstyle)
 		raw_picstyle == 0x23 ? "User Def 3" : "Unknown";
 }
 
+const char* get_picstyle_shortname(int raw_picstyle)
+{
+	return
+		raw_picstyle == 0x81 ? "Std." : 
+		raw_picstyle == 0x82 ? "Port." :
+		raw_picstyle == 0x83 ? "Land." :
+		raw_picstyle == 0x84 ? "Neut." :
+		raw_picstyle == 0x85 ? "Fait." :
+		raw_picstyle == 0x86 ? "Mono." :
+		raw_picstyle == 0x87 ? "Auto" :
+		raw_picstyle == 0x21 ? "User1" :
+		raw_picstyle == 0x22 ? "User2" :
+		raw_picstyle == 0x23 ? "User3" : "Unk.";
+}
 static void 
 picstyle_display( void * priv, int x, int y, int selected )
 {

@@ -3197,7 +3197,6 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
-				draw_ml_topbar();
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
