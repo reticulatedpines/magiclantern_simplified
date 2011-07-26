@@ -183,5 +183,15 @@ PROP_HANDLER(PROP_BATTERY_REPORT)
 }
 int GetBatteryLevel()
 {
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+	int s = now.tm_sec;
+	static int prev_s = 0;
+	if (s != prev_s) // don't be too aggressive... refresh battery level only once per second
+	{
+		prev_s = s;
+		send_event_to_IDLEHandler(LOCAL_REFRESH_BATTERIESHISTORY); 
+	}
+
 	return battery_level;
 }
