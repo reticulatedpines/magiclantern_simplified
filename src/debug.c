@@ -365,7 +365,7 @@ void display_clock()
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
-	if (lv)
+	if (lv || gui_menu_shown())
 	{
 		uint32_t fnt = FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR);
 		bmp_printf(fnt, 0, 0, "%02d:%02d", now.tm_hour, now.tm_min);
