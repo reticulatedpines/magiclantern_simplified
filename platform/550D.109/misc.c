@@ -145,3 +145,9 @@ struct vram_info * get_yuv422_vram()
 }
 
 void guess_fastrefresh_direction(){};
+
+int GetBatteryLevel()
+{
+	return PD_GetBatteryPower();
+}
+

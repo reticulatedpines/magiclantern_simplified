@@ -203,3 +203,5 @@ NSTUB( 0xff1f5c40, msg_queue_post)
 NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
 NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 NSTUB( 0xff29e25c, AfCtrl_SetLensParameterRemote )
+
+NSTUB( 0xff039d4c, PD_GetBatteryPower )

@@ -205,3 +205,5 @@ NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 
 NSTUB(0xFF1D2D5C, msg_queue_post)
+
+NSTUB(0xFF03B8EC, PD_GetBatteryPower)

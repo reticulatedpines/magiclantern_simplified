@@ -173,3 +173,15 @@ struct vram_info * get_yuv422_vram()
 
 	return &_vram_info;
 }
+
+
+int battery_level = 0;
+PROP_HANDLER(PROP_BATTERY_REPORT)
+{
+	battery_level = buf[1] & 0xff;
+	return prop_cleanup(token, property);
+}
+int GetBatteryLevel()
+{
+	return battery_level;
+}
