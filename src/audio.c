@@ -59,7 +59,7 @@ CONFIG_INT( "audio.alc-enable",	alc_enable,	0 );
 //CONFIG_INT( "audio.mic-in",	mic_in,		0 ); // not used any more?
 int loopback = 1;
 //CONFIG_INT( "audio.input-source",	input_source,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
-CONFIG_INT( "audio.input-choice",	input_choice,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+CONFIG_INT( "audio.input-choice",	input_choice,		4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
@@ -318,6 +318,7 @@ int audio_meters_are_drawn()
 	return 
 		(
 			shooting_mode == SHOOTMODE_MOVIE && cfg_draw_meters && do_draw_meters && zebra_should_run()
+			&& !get_halfshutter_pressed()
 		)
 		||
 		(
@@ -340,15 +341,24 @@ meter_task( void* unused )
 	{
 		msleep( 50 );
 
-		if (audio_meters_are_drawn())
+		static int a_prev = 0;
+		int a = audio_meters_are_drawn();
+
+		if (a != a_prev)
+			BMP_SEM( bmp_fill(COLOR_BLACK, 0, 0, 720, 35); )
+
+		if (a)
 		{
-			//~ if (!is_mvr_buffer_almost_full())
+			if (!is_mvr_buffer_almost_full())
 				BMP_SEM( draw_meters(); )
 		}
 		else
 		{
+			if (a != a_prev)
+				BMP_SEM( draw_ml_topbar(); )
 			msleep( 500 );
 		}
+		a_prev = a;
 		
 		if (show_volume)
 		{
