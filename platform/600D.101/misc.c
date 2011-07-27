@@ -176,5 +176,5 @@ struct vram_info * get_yuv422_vram()
 
 int GetBatteryLevel()
 {
-	return PD_GetBatteryPower();
+	return PD_GetBatteryPower() + 1;
 }

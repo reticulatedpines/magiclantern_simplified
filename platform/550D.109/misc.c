@@ -148,6 +148,6 @@ void guess_fastrefresh_direction(){};
 
 int GetBatteryLevel()
 {
-	return PD_GetBatteryPower();
+	return PD_GetBatteryPower() + 1;
 }
 
