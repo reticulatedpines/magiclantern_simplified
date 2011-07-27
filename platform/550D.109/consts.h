@@ -51,6 +51,7 @@
 // for gui_main_task
 #define GMT_NFUNCS 8
 #define GMT_FUNCTABLE 0xFF453E14
+#define GMT_IDLEHANDLER_TASK (*(int*)0x15168) // dec create_idleHandler_task
 
 // button codes as received by gui_main_task
 #define BGMT_PRESS_LEFT 0x1c

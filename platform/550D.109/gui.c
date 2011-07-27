@@ -560,6 +560,11 @@ void fake_simple_button(int bgmt_code)
 	msg_queue_post(gui_main_struct.msg_queue_550d, &fake_event, 0, 0);
 }
 
+void send_event_to_IDLEHandler(int event)
+{
+	ctrlman_dispatch_event(GMT_IDLEHANDLER_TASK, event, 0, 0);
+}
+
 static void gui_main_task_550d()
 {
 	fake_sem = create_named_semaphore("fake_sem", 1);
