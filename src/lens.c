@@ -797,8 +797,8 @@ static void cropinfo_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Crop Factor Display: %s",
-		crop_info ? "ON,35mm equiv" : "OFF"
+		"Crop Factor Display : %s",
+		crop_info ? "ON,35mm eq." : "OFF"
 	);
 }
 static struct menu_entry tweak_menus[] = {

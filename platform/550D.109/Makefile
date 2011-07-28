@@ -37,6 +37,7 @@ ML_OBJS-y = \
 	propvalues.o \
 	gui.o \
 	misc.o \
+	tweaks.o \
 	$(SRC_DIR)/lens.o \
 	$(PLATFORM_DIR)/lensfocus.o \
 	cfn.o \
@@ -45,7 +46,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	tweaks.o \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \

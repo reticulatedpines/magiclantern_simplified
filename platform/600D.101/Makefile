@@ -32,6 +32,7 @@ ML_OBJS-y = \
 	stdio.o \
 	audio.o \
 	bitrate.o \
+	tweaks.o \
 	$(SRC_DIR)/lens.o \
 	property.o \
 	propvalues.o \
@@ -43,7 +44,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	tweaks.o \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \

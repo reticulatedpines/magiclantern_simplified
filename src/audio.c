@@ -344,7 +344,7 @@ meter_task( void* unused )
 		static int a_prev = 0;
 		int a = audio_meters_are_drawn();
 
-		if (a != a_prev)
+		if (a != a_prev && !gui_menu_shown())
 			BMP_SEM( bmp_fill(TOPBAR_BGCOLOR, 0, 0, 640, 33); )
 
 		if (a)
