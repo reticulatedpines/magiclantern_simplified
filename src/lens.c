@@ -34,7 +34,7 @@ void update_stuff();
 CONFIG_INT("movie.log", movie_log, 1);
 #ifndef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 1.6
-CONFIG_INT("crop.info", crop_info, 1);
+CONFIG_INT("crop.info", crop_info, 0);
 #endif
 
 static struct semaphore * lens_sem;
