@@ -518,6 +518,27 @@ Functions specific to movie mode.
 
   If buffer usage gets higher than this value, ML will display the buffer indicator in red and will pause all CPU-intensive graphics (almost everything from `LiveV`_ menu), which will allow movie recording tasks to use all available CPU power in order to avoid a possible buffer overflow. 
 
+
+.. _time remaining display:
+
+**Time Indicator: OFF / Elapsed / Remain.Card / Remain.4GB**
+
+  When recording a movie, ML will display a small time counter in the upper right corner, 
+  which can be:
+
+  * ``Elapsed``: duration of the current clip
+  * ``Remain.Card``: estimated amount of recording time remaining on the card.
+  * ``Remain.4GB``:  estimated amount of recording time until reaching 4GB (or until filling the card, whichever comes first).
+
+  Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
+  However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
+
+.. _bitrate info:
+
+**Bitrate Info: ON/OFF**
+
+  Display bitrate info (instant bitrate, average bitrate and instant QScale factor) around the recording dot.
+
 .. _auto-restart:
 .. _movie restart:
 
@@ -550,20 +571,6 @@ Functions specific to movie mode.
 **Movie REC key: Default / HalfShutter**
 
   This option enables you to start/stop movie recording by half-pressing the shutter button.
-
-.. _time remaining display:
-
-**Time Indicator: OFF / Elapsed / Remain.Card / Remain.4GB**
-
- When recording a movie, ML will display a small time counter in the upper right corner, 
- which can be:
-
- * ``Elapsed``: duration of the current clip
- * ``Remain.Card``: estimated amount of recording time remaining on the card.
- * ``Remain.4GB``:  estimated amount of recording time until reaching 4GB (or until filling the card, whichever comes first).
-
- Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
- However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
 
 .. WB workaround:
 
@@ -1349,7 +1356,7 @@ LiveView
 * Around the recording dot: 
 
   * `Time remaining display`_
-  * `Bitrate`_ info (instant and average bitrate, and qscale factor)
+  * `Bitrate info`_ (instant and average bitrate, and qscale factor)
   * Buffer indicator (see also `BuffWarnLevel`_)
 
 * Left side:

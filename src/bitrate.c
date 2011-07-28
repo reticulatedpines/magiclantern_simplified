@@ -16,6 +16,7 @@ CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
+CONFIG_INT( "bitrate.indicator", bitrate_indicator, 1);
 int timecode_x = 720 - 160;
 int timecode_y = 0;
 int timecode_width = 160;
@@ -225,6 +226,9 @@ void time_indicator_show()
 			dispvalue / 60,
 			dispvalue % 60
 		);
+	}
+	if (bitrate_indicator)
+	{
 		bmp_printf( FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
 			timecode_x + 9 * fontspec_font(timecode_font)->width,
 			timecode_y + 38,
@@ -269,6 +273,17 @@ time_indicator_display( void * priv, int x, int y, int selected )
 		time_indicator == 1 ? "Elapsed" :
 		time_indicator == 2 ? "Remain.Card" :
 		time_indicator == 3 ? "Remain.4GB" : "OFF"
+	);
+}
+
+static void
+bitrate_indicator_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Bitrate Info  : %s",
+		bitrate_indicator ? "ON" : "OFF"
 	);
 }
 
@@ -339,6 +354,13 @@ static struct menu_entry mov_menus[] = {
 		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= time_indicator_display,
 		.help = "Time indicator during recording"
+	},
+	{
+		.name = "Bitrate Info",
+		.priv		= &bitrate_indicator,
+		.select		= menu_binary_toggle,
+		.display	= bitrate_indicator_display,
+		.help = "Bitrate info (instant, average and qscale) around REC dot."
 	},
 };
 
