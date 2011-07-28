@@ -312,7 +312,7 @@ void display_on_and_go_to_main_shooting_screen()
 
 int handle_disp_button_in_photo_mode() // called from handle_buttons
 {
-	if (display_off_by_halfshutter_enabled && display_turned_off_by_halfshutter)
+	if (display_off_by_halfshutter_enabled && display_turned_off_by_halfshutter == 1 && gui_state == GUISTATE_IDLE && !gui_menu_shown())
 	{
 		display_turned_off_by_halfshutter = -1; // request: ML should turn it on
 		return 0;
