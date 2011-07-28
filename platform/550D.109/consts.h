@@ -117,7 +117,7 @@
 
 #define AJ_LCD_Palette 0x2CDB0
 
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5780) == 0xF) || ((*(int8_t*)0x20164) != 0x17))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
 
 #define COLOR_FG_NONLV 80
