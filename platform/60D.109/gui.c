@@ -350,22 +350,23 @@ static int handle_buttons(struct event * event)
 	
 	// zoom overlay
 	
-	if (get_zoom_overlay_mode() && recording == 2 && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
-		zoom_overlay_toggle();
+		zoom_overlay_toggle(); // when recording, pressing "zoom in" will always toggle Magic Zoom
 		return 0;
 	}
 
-	if (lv && get_zoom_overlay() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	extern int zoom_overlay;
+	if (lv && zoom_overlay && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
-		zoom_overlay_toggle();
+		zoom_overlay_toggle(); // magic zoom is on, turn it off by pressing "zoom in" regardless of other conditions
 		return 0;
 	}
 
 	if (lv && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
  	{
 		// magic zoom toggled by zoom in
-		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed())
+		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed() && recording != 1)
 		{
 			zoom_overlay_toggle();
 			return 0;
