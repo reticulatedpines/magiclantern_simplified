@@ -214,7 +214,6 @@ static int handle_buttons(struct event * event)
 
 	if (BGMT_PRESS_METERING_LV)
 	{
-		gui_hide_menu(0);
 		toggle_disp_mode();
 		return 0;
 	}

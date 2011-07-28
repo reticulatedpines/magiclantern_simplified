@@ -2944,9 +2944,9 @@ void draw_zoom_overlay()
 	//~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c + H, W, 1);
 }
 
-//~ int zebra_paused = 0;
-//~ void zebra_pause() { zebra_paused = 1; }
-//~ void zebra_resume() { zebra_paused = 0; }
+int zebra_paused = 0;
+void zebra_pause() { zebra_paused = 1; }
+void zebra_resume() { zebra_paused = 0; }
 
 int liveview_display_idle()
 {
@@ -2958,6 +2958,7 @@ int liveview_display_idle()
 		lv_dispsize == 1 &&
 		lens_info.job_state < 10 &&
 		!mirror_down &&
+		!zebra_paused &&
 		!(clearscreen == 1 && get_halfshutter_pressed());
 }
 // when it's safe to draw zebras and other on-screen stuff
@@ -3514,10 +3515,24 @@ int get_disp_mode() { return disp_mode; }
 
 int toggle_disp_mode()
 {
+	if (!gui_menu_shown())
+	{
+		zebra_pause();
+		msleep(200);
+	}
 	idle_wakeup_reset_counters();
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	BMP_SEM( do_disp_mode_change(); )
-	redraw();
+	if (gui_menu_shown())
+	{
+		menu_set_dirty();
+	}
+	else
+	{
+		msleep(1000);
+		redraw();
+		zebra_resume();
+	}
 	return disp_mode == 0;
 }
 void do_disp_mode_change()
@@ -3534,7 +3549,6 @@ void do_disp_mode_change()
 	bmp_printf(FONT_LARGE, 10, 40, "DISP %d", disp_mode);
 	update_disp_mode_params_from_bits();
 	draw_ml_topbar();
-	msleep(500);
 	//~ crop_dirty = 1;
 }
 
