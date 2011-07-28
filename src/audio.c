@@ -366,6 +366,18 @@ meter_task( void* unused )
 			show_volume--;
 			if (show_volume == 0) volume_display_clear();
 		}
+		
+		if (audio_monitoring)
+		{
+			static int hp = 0;
+			int h = AUDIO_MONITORING_HEADPHONES_CONNECTED;
+			
+			if (h != hp)
+			{
+				audio_monitoring_display_headphones_connected_or_not();
+			}
+			hp = h;
+		}
 	}
 }
 
@@ -985,13 +997,37 @@ void audio_monitoring_force_display(int x)
 	prop_deliver(*(int*)(HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
 }
 
+void audio_monitoring_display_headphones_connected_or_not()
+{
+	zebra_pause();
+	msleep(200);
+	//~ redraw();
+	BMP_SEM(
+		bmp_printf(FONT_MED, 10, 50, 
+			"                         \n"
+			" Audio monitoring:       \n"
+			" Headphones %s \n"
+			"                         ", 
+			AUDIO_MONITORING_HEADPHONES_CONNECTED ?
+			"connected   " :
+			"disconnected");
+	);
+	msleep(2000);
+	redraw();
+	zebra_resume();
+}
+
 static void audio_monitoring_update()
 {
 	// kill video connect/disconnect event... or not
 	*(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
 	
 	if (audio_monitoring && rca_monitor)
+	{
 		audio_monitoring_force_display(0);
+		msleep(1000);
+		audio_monitoring_display_headphones_connected_or_not();
+	}
 }
 
 static void
