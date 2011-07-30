@@ -97,7 +97,7 @@ prepare_zip:
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
-	magiclantern.fir \
+	$(ML_FIR) \
 	autoexec.bin \
 	README \
 	INSTALL.pdf \

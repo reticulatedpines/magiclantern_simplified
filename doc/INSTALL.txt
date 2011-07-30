@@ -59,7 +59,7 @@ Installing Magic Lantern for the first time
 To install Magic Lantern on your camera, you must make sure your camera has the right firmware version; if not, you have to upgrade the firmware first:
 
 * for Canon **550D** / T2i / Kiss X4: upgrade firmware to 1.0.9.
-* for Canon **60D**: upgrade firmware to 1.0.9.
+* for Canon **60D**: upgrade firmware to 1.1.0.
 * For Canon **600D**: upgrade firmware to 1.0.1.
 * For Canon **500D**: upgrade firmware to 1.1.0.
 
