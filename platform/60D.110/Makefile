@@ -1,12 +1,12 @@
-#Makefile for 60D firmware 109
+#Makefile for 60D firmware 110
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=109
+FW_VERSION=110
 MODEL=60D
-UPDATE_NAME=60d00109.fir
+UPDATE_NAME=60d00110.fir
 
 #used in CFLAGS
 PLATFORM_INC=.

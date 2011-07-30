@@ -11,7 +11,7 @@ include Makefile.top
 all: 60D 550D 600D
 
 60D:
-	$(MAKE) -C $(PLATFORM_PATH)/60D.109 
+	$(MAKE) -C $(PLATFORM_PATH)/60D.110 
 
 550D:
 	$(MAKE) -C $(PLATFORM_PATH)/550D.109 
@@ -20,8 +20,8 @@ all: 60D 550D 600D
 	$(MAKE) -C $(PLATFORM_PATH)/600D.101
 
 
-install_60D: $(PLATFORM_PATH)/60D.109/autoexec.bin
-	cd $(PLATFORM_PATH)/60D.109; $(MAKE) install
+install_60D: $(PLATFORM_PATH)/60D.110/autoexec.bin
+	cd $(PLATFORM_PATH)/60D.110; $(MAKE) install
 
 install_550D: $(PLATFORM_PATH)/550D.109/autoexec.bin
 	cd $(PLATFORM_PATH)/550D.109; $(MAKE) install
@@ -38,16 +38,16 @@ clean:
 		$(LUA_PATH)/.*.d \
 		*.pdf 
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/60D.109/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
 zip:
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) zip
-	cd $(PLATFORM_PATH)/60D.109/; $(MAKE) zip
+	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) zip
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) zip
 
 dropbox: all
 	cp $(PLATFORM_PATH)/550D.109/autoexec.bin ~/Dropbox/Public/bleeding-edge/550d/
-	cp $(PLATFORM_PATH)/60D.109/autoexec.bin ~/Dropbox/Public/bleeding-edge/60d/
+	cp $(PLATFORM_PATH)/60D.110/autoexec.bin ~/Dropbox/Public/bleeding-edge/60d/
 	cp $(PLATFORM_PATH)/600D.101/autoexec.bin ~/Dropbox/Public/bleeding-edge/600d/
