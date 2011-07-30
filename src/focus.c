@@ -823,6 +823,24 @@ trap_focus_display( void * priv, int x, int y, int selected )
 
 extern int trap_focus;
 
+CONFIG_INT("focus.patterns", af_patterns, 0);
+
+static void
+afp_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Focus Patterns: %s",
+		af_patterns ? "ON" : "OFF"
+	);
+	if (lv && af_patterns) menu_draw_icon(x, y, MNI_WARNING, 0);
+}
 
 static struct menu_entry focus_menu[] = {
 	{
@@ -831,6 +849,13 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
 		.help = "Takes a picture when the subject comes in focus. MF only."
+	},
+	{
+		.name = "Focus Patterns",
+		.priv = &af_patterns,
+		.display	= afp_display,
+		.select = menu_binary_toggle,
+		.help = "Custom AF patterns (photo mode only; ported from 400plus)"
 	},
 	{
 		.name = "Follow Focus",
