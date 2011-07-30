@@ -571,7 +571,7 @@ bmp_load(
 		bmp->image = fast_buf + sizeof(struct bmp_file_t);
 		bmp->image_size = size_needed;
 		free_dma_memory( buf );
-		bmp_printf(FONT_SMALL,0,440,"Memory needed %d",size_needed);
+		//~ bmp_printf(FONT_SMALL,0,440,"Memory needed %d",size_needed);
 		return bmp;
 	}
 
