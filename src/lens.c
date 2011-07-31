@@ -149,7 +149,17 @@ update_lens_display()
 	}
 	else
 	{
-		bmp_printf(FONT_SMALL, 10, 400, "bottom bar debug: %d %d %d %d %d %d %d ", LV_BOTTOM_BAR_DISPLAYED, *(int*)0x5780, *(int*)0x5B28, *(int*)0x20164, *(int*)0x5680, *(int*)0x2A434);
+		bmp_printf(FONT_SMALL, 10, 400, "bottom bar debug: %d %x %x ", LV_BOTTOM_BAR_DISPLAYED, 
+			#ifdef CONFIG_550D
+			*(int*)0x5780, *(int*)0x20164
+			#endif
+			#ifdef CONFIG_600D
+			 *(int*)0x5B28, *(int*)0xC84C
+			#endif
+			#ifdef CONFIG_60D
+			*(int*)0x5680, *(int*)0x2A434
+			#endif
+			);
 	}
 	if (!audio_meters_are_drawn())
 		draw_ml_topbar();
@@ -394,7 +404,9 @@ lens_take_picture(
 {
 	lens_wait_readytotakepic(64);
 
+	bmp_printf(FONT_LARGE, 50, 50, "Release");
 	call( "Release", 0 );
+	bmp_printf(FONT_LARGE, 50, 50, "Release OK");
 
 	if( !wait )
 		return 0;
