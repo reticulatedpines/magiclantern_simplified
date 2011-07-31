@@ -145,11 +145,11 @@ struct vram_info * get_yuv422_vram()
 }
 
 void guess_fastrefresh_direction(){};
-
+/*
 int GetBatteryLevel()
 {
 	return -1;
 	if (!is_safe_to_mess_with_the_display(0)) return -1;
 	return PD_GetBatteryPower() + 1;
 }
-
+*/

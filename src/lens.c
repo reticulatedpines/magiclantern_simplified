@@ -404,9 +404,9 @@ lens_take_picture(
 {
 	lens_wait_readytotakepic(64);
 
-	bmp_printf(FONT_LARGE, 50, 50, "Release");
+	//~ bmp_printf(FONT_LARGE, 50, 50, "Release");
 	call( "Release", 0 );
-	bmp_printf(FONT_LARGE, 50, 50, "Release OK");
+	//~ bmp_printf(FONT_LARGE, 50, 50, "Release OK");
 
 	if( !wait )
 		return 0;
