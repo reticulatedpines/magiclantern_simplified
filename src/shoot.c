@@ -790,7 +790,7 @@ silent_pic_take_longexp()
 static int
 silent_pic_ensure_movie_mode()
 {
-	if (silent_pic_fullhd && (shooting_mode != SHOOTMODE_MOVIE) 
+	if (silent_pic_fullhd && shooting_mode != SHOOTMODE_MOVIE) 
 	{ 
 		set_shooting_mode(SHOOTMODE_MOVIE);
 		msleep(1000); 
