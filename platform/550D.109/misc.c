@@ -148,6 +148,7 @@ void guess_fastrefresh_direction(){};
 
 int GetBatteryLevel()
 {
+	if (!is_safe_to_mess_with_the_display(0)) return -1;
 	return PD_GetBatteryPower() + 1;
 }
 

@@ -157,6 +157,8 @@ update_lens_display()
 
 void draw_ml_bottombar()
 {
+	if (!is_safe_to_mess_with_the_display(0))  return;
+
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
@@ -299,6 +301,8 @@ void draw_ml_bottombar()
 }
 void draw_ml_topbar()
 {
+	if (!is_safe_to_mess_with_the_display(0))  return;
+
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
