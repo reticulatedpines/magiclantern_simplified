@@ -68,14 +68,6 @@ NSTUB( 0xff27eb10, EMD_DRIVE_RES )
 NSTUB( 0xff28d78c, move_lens_maybe )
 NSTUB( 0xff28d0a4, lens_controller )*/
 
- /*NSTUB( 0xFF28E61C, FA_GetAfValYitgInLv )
- NSTUB( 0xFF28E604, FA_GetAfValYpInLv )
- NSTUB( 0xFF28E5cc, FA_GetAfValFepInLv )
- NSTUB( 0xFF28E5b0, FA_GetAfValTepInLv )
- NSTUB( 0xFF28E5e8, FA_GetAfValMmpInLv )
- NSTUB( 0xFF28E594, FA_GetAfValFesInLv )
- NSTUB( 0xFF28E578, FA_GetAfValTesInLv )*/
-
 
 /** Look for the normal printf strings */
 NSTUB( 0xff06b8dc, DryosDebugMsg )
