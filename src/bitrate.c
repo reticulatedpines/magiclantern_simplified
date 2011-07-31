@@ -25,7 +25,7 @@ int timecode_warning = 120;
 static int timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
 
 int measured_bitrate = 0; // mbps
-int free_space_32k = 0;
+//~ int free_space_32k = 0;
 int movie_bytes_written_32k = 0;
 
 #define qscale (((int)qscale_plus16) - 16)
@@ -172,7 +172,7 @@ int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 
 
 PROP_INT(PROP_CARD2_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#define free_space_32k (free_space_raw * cluster_size / 32768)
+#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 
 void free_space_show()
