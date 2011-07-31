@@ -147,7 +147,7 @@ update_lens_display()
 	{
 		draw_ml_bottombar();
 	}
-	else
+	/*else
 	{
 		bmp_printf(FONT_SMALL, 10, 400, "bottom bar debug: %d %x %x ", LV_BOTTOM_BAR_DISPLAYED, 
 			#ifdef CONFIG_550D
@@ -160,7 +160,7 @@ update_lens_display()
 			*(int*)0x5680, *(int*)0x2A434
 			#endif
 			);
-	}
+	}*/
 	if (!audio_meters_are_drawn())
 		draw_ml_topbar();
 }
