@@ -790,28 +790,32 @@ silent_pic_take_longexp()
 static int
 silent_pic_ensure_movie_mode()
 {
-	if (silent_pic_fullhd && shooting_mode != SHOOTMODE_MOVIE) 
+	if (silent_pic_fullhd && (shooting_mode != SHOOTMODE_MOVIE) 
 	{ 
 		set_shooting_mode(SHOOTMODE_MOVIE);
 		msleep(1000); 
 	}
+	#ifndef CONFIG_600D // on 600D you only have to go in movie mode
 	if (silent_pic_fullhd && !recording)
 	{
 		movie_start();
 		return 1;
 	}
+	#endif
 	return 0;
 }
 
 static void
 silent_pic_stop_dummy_movie()
 { 
+	#ifndef CONFIG_600D
 	movie_end();
 	char name[100];
 	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
 	FIO_RemoveFile(name);
 	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
 	FIO_RemoveFile(name);
+	#endif
 }
 
 static void
