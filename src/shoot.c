@@ -325,9 +325,13 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 static void silent_pic_mode_toggle(void* priv)
 {
+	#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	silent_pic_mode = mod(silent_pic_mode + 1, 2); // only simple mode works on these cameras
+	#else
 	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
 	if (silent_pic_mode == 3) silent_pic_mode = 4; // skip longx, not working
 	if (silent_pic_mode == 2) silent_pic_mode = 4; // skip hi-res
+	#endif
 }
 
 static void silent_pic_toggle(int sign)
