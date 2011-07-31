@@ -1,0 +1,242 @@
+/** \file
+ * Reboot into the hacked firmware.
+ *
+ * This program is very simple: attempt to reboot into the normal
+ * firmware RAM image after startup.
+ */
+/*
+ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
+#include "arm-mcr.h"
+
+#undef RESTARTSTART
+#define RESTARTSTART_550 0x8B000
+#define RESTARTSTART_60 0x5f000
+#define RESTARTSTART_600 0x82000
+
+#define SIG_LEN 0x10000
+
+#define SIG_60D_110  0xac958a1e // from FF010000
+#define SIG_550D_109 0x851320e6 // from FF010000
+#define SIG_600D_101 0x290106d8 // from FF010000
+#define SIG_500D_110 0x4c0e5a7e // from FF010000
+#define SIG_50D_107  0x20e3a085 // from FF810000
+#define SIG_5D2_204  0x41d8373d // from FF810000
+
+asm(
+".text\n"
+".globl _start\n"
+"_start:\n"
+"	b 1f\n"
+".ascii \"gaonisoy\"\n"		// 0x124, 128
+"1:\n"
+"MRS     R0, CPSR\n"
+"BIC     R0, R0, #0x3F\n"	// Clear I,F,T
+"ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
+"MSR     CPSR, R0\n"
+"	ldr sp, =0x1900\n"	// 0x130
+"	mov fp, #0\n"
+"	b cstart\n"
+);
+
+static void busy_wait(int n)
+{
+	int i,j;
+	static volatile int k = 0;
+	for (i = 0; i < n; i++)
+		for (j = 0; j < 10; j++)
+			k++;
+}
+
+static void fail()
+{
+	volatile int k = 0;
+	int i,j;
+	while (1)
+	{
+		*(int*)0xC0220134 |= 2;  // card LED on
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		//~ for (j = 0; j < 10; j++) k++;
+		//~ busy_wait(50);
+		*(int*)0xC0220134 &= ~2;  // card LED off
+		//~ for (j = 0; j < 10; j++) k++;
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		//~ busy_wait(50);
+	}
+}
+
+static int compute_signature(int* start, int num)
+{
+	int c = 0;
+	int* p;
+	for (p = start; p < start + num; p++)
+	{
+		c += *p;
+	}
+	//~ return SIG_60D_110;
+	return c;
+}
+
+/** Include the relocatable shim code */
+extern uint8_t blob_start_550;
+extern uint8_t blob_end_550;
+extern uint8_t blob_start_60;
+extern uint8_t blob_end_60;
+extern uint8_t blob_start_600;
+extern uint8_t blob_end_600;
+void* blob_start = 0;
+void* blob_end = 0;
+void* RESTARTSTART = 0;
+
+static int guess_firmware_version()
+{
+	int s = compute_signature(ROMBASEADDR, SIG_LEN);
+	switch(s)
+	{
+		case SIG_550D_109:
+			blob_start = &blob_start_550;
+			blob_end = &blob_end_550;
+			RESTARTSTART = RESTARTSTART_550;
+			return 1;
+		case SIG_60D_110:
+			blob_start = &blob_start_60;
+			blob_end = &blob_end_60;
+			RESTARTSTART = RESTARTSTART_60;
+			return 1;
+		case SIG_600D_101:
+			blob_start = &blob_start_600;
+			blob_end = &blob_end_600;
+			RESTARTSTART = RESTARTSTART_600;
+			return 1;
+		default:
+			fail();
+	}
+	return 0;
+}
+
+asm(
+	".text\n"
+	".align 12\n" // 2^12 == 4096 bytes
+
+	".globl blob_start_550\n"
+	"blob_start_550:\n"
+	".incbin \"../550D.109/magiclantern.bin\"\n" // 
+	".align 12\n"
+	"blob_end_550:\n"
+	".globl blob_end_550\n"
+
+	".globl blob_start_60\n"
+	"blob_start_60:\n"
+	".incbin \"../60D.110/magiclantern.bin\"\n" // 
+	".align 12\n"
+	"blob_end_60:"
+	".globl blob_end_60\n"
+
+	".globl blob_start_600\n"
+	"blob_start_600:\n"
+	".incbin \"../600D.101/magiclantern.bin\"\n" // 
+	".align 12\n"
+	"blob_end_600:"
+	".globl blob_end_600\n"
+);
+
+
+/** Determine the in-memory offset of the code.
+ * If we are autobooting, there is no offset (code is loaded at
+ * 0x800000).  If we are loaded via a firmware file then there
+ * is a 0x120 byte header infront of our code.
+ *
+ * Note that mov r0, pc puts pc+8 into r0.
+ */
+static int
+__attribute__((noinline))
+find_offset( void )
+{
+	uintptr_t pc;
+	asm __volatile__ (
+		"mov %0, %%pc"
+		: "=&r"(pc)
+	);
+
+	return pc - 8 - (uintptr_t) find_offset;
+}
+
+void
+__attribute__((noreturn))
+cstart( void )
+{
+	//~ fail();
+	// Compute a checksum from ROM, compare it with known values,
+	// identify camera and firmware version, 
+	// and set RESTARTSTART, blob_start and blob_end.
+	// If the firmware is not correct, it should not boot (and blink a LED).
+	int x = guess_firmware_version();
+
+	if (x != 1)
+		while(1); // should be unreachable
+	
+	// Copy the copy-and-restart blob somewhere
+	// there is a bug in that we are 0x120 bytes off from
+	// where we should be, so we must offset the blob start.
+	ssize_t offset = find_offset();
+
+	blob_memcpy(
+		(void*) RESTARTSTART,
+		blob_start + offset,
+		blob_end + offset
+	);
+	clean_d_cache();
+	flush_caches();
+
+	// Jump into the newly relocated code
+	void __attribute__((noreturn))(*copy_and_restart)(int)
+		= (void*) RESTARTSTART;
+
+	void __attribute__((noreturn))(*firmware_start)(void)
+		= (void*) ROMBASEADDR;
+
+	if( 1 )
+		copy_and_restart(offset);
+	else
+		firmware_start();
+
+	// Unreachable
+	while(1)
+		;
+}
+
