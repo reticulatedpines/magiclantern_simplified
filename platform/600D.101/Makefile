@@ -33,12 +33,12 @@ ML_OBJS-y = \
 	audio.o \
 	bitrate.o \
 	tweaks.o \
-	$(SRC_DIR)/lens.o \
+	lens.o \
 	property.o \
 	propvalues.o \
 	gui.o \
 	misc.o \
-	$(PLATFORM_DIR)/lensfocus.o \
+	lensfocus.o \
 	cfn.o \
 	zebra.o \
 	shoot.o \

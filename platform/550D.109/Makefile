@@ -38,8 +38,8 @@ ML_OBJS-y = \
 	gui.o \
 	misc.o \
 	tweaks.o \
-	$(SRC_DIR)/lens.o \
-	$(PLATFORM_DIR)/lensfocus.o \
+	lens.o \
+	lensfocus.o \
 	cfn.o \
 	lcdsensor.o \
 	zebra.o \
