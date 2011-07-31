@@ -518,14 +518,14 @@ static int handle_buttons(struct event * event)
 	}*/
 	
 	// movie mode shortcut
-	/*if (event->type == 0 && event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE || CURRENT_DIALOG_MAYBE == DLG_METERING))
+	if (event->type == 0 && event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
 	{
 		if (shooting_mode != SHOOTMODE_MOVIE)
 		{
 			set_shooting_mode(SHOOTMODE_MOVIE);
 			return 0;
 		}
-	}*/
+	}
 	
 	// enable LiveV stuff in Play mode
     
