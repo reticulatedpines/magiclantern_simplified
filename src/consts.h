@@ -3,7 +3,7 @@
 #endif
 
 #ifdef CONFIG_60D
-#include "../platform/60D.109/consts.h"
+#include "../platform/60D.110/consts.h"
 #endif
 
 #ifdef CONFIG_600D

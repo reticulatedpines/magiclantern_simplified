@@ -143,10 +143,13 @@ update_lens_display()
 	}
 	if (is_menu_help_active()) return;
 	
-
 	if (!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
 	{
 		draw_ml_bottombar();
+	}
+	else
+	{
+		bmp_printf(FONT_SMALL, 10, 400, "bottom bar debug: %d %d %d %d %d %d %d ", LV_BOTTOM_BAR_DISPLAYED, *(int*)0x5780, *(int*)0x5B28, *(int*)0x20164, *(int*)0x5680, *(int*)0x2A434);
 	}
 	if (!audio_meters_are_drawn())
 		draw_ml_topbar();
