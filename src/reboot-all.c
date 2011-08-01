@@ -61,43 +61,24 @@ static void busy_wait(int n)
 	int i,j;
 	static volatile int k = 0;
 	for (i = 0; i < n; i++)
-		for (j = 0; j < 10; j++)
+		for (j = 0; j < 100000; j++)
 			k++;
+}
+
+static void blink(int n)
+{
+	while (1)
+	{
+		*(int*)0xC0220134 |= 2;  // card LED on
+		busy_wait(n);
+		*(int*)0xC0220134 &= ~2;  // card LED off
+		busy_wait(n);
+	}
 }
 
 static void fail()
 {
-	volatile int k = 0;
-	int i,j;
-	while (1)
-	{
-		*(int*)0xC0220134 |= 2;  // card LED on
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		//~ for (j = 0; j < 10; j++) k++;
-		//~ busy_wait(50);
-		*(int*)0xC0220134 &= ~2;  // card LED off
-		//~ for (j = 0; j < 10; j++) k++;
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		//~ busy_wait(50);
-	}
+	blink(50);
 }
 
 static int compute_signature(int* start, int num)
