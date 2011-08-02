@@ -9,6 +9,8 @@ TOP_DIR=$(PWD)
 include Makefile.top
 
 all: 60D 550D 600D
+	$(MAKE) -C $(PLATFORM_PATH)/all clean
+	$(MAKE) -C $(PLATFORM_PATH)/all x
 
 60D:
 	$(MAKE) -C $(PLATFORM_PATH)/60D.110 
@@ -20,14 +22,17 @@ all: 60D 550D 600D
 	$(MAKE) -C $(PLATFORM_PATH)/600D.101
 
 
-install_60D: $(PLATFORM_PATH)/60D.110/autoexec.bin
-	cd $(PLATFORM_PATH)/60D.110; $(MAKE) install
+install: all
+	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
+	umount /media/EOS_DIGITAL
 
-install_550D: $(PLATFORM_PATH)/550D.109/autoexec.bin
-	cd $(PLATFORM_PATH)/550D.109; $(MAKE) install
-
-install_600D: $(PLATFORM_PATH)/600D.109/autoexec.bin
-	cd $(PLATFORM_PATH)/600D.109; $(MAKE) install
+install_fir:
+	$(MAKE) -C installer/550D.109/
+	$(MAKE) -C installer/60D.110/
+	$(MAKE) -C installer/600D.101/
+	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
+	cp installer/60D.110/ml-60d-110.fir /media/EOS_DIGITAL/
+	cp installer/600D.101/ml-600d-101.fir /media/EOS_DIGITAL/
 
 clean:
 	-$(RM) \
