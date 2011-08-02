@@ -130,10 +130,8 @@ int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
-	if (!lv) return;
-	if (!bmp_is_on()) return;
-	if (MENU_MODE) return;
-	ChangeColorPalette(x);
+	// pass this to GUI task to sync it with Canon code
+	fake_gui_event(GUI_ML_EVENT, GUI_ML_EVENT_CHANGE_PALETTE, 0, 4);
 }
 
 /*
@@ -3225,7 +3223,7 @@ clearscreen_loop:
 	}
 }
 
-TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
+//~ TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 
 void redraw()
 {
@@ -3356,7 +3354,7 @@ livev_hipriority_task( void* unused )
 			}
 			msleep(20);
 		}
-
+		
 		if (spotmeter_draw && k % 4 == 0)
 			BMP_SEM( spotmeter_step(); )
 

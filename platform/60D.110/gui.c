@@ -592,7 +592,17 @@ static int handle_buttons(struct event * event)
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
 		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
 	}
-	
+
+	if (event->type == GUI_ML_EVENT)
+	{
+		if (event->param == GUI_ML_EVENT_CHANGE_PALETTE)
+		{
+			if (lv && MENU_MODE && bmp_is_on())
+				ChangeColorPalette(event->arg);
+			return 0;
+		}
+	}
+
 	return 1;
 }
 
@@ -606,6 +616,16 @@ void fake_simple_button(int bgmt_code)
 	fake_event.obj = 0,
 	fake_event.arg = 0,
 	msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
+}
+
+void fake_gui_event(int type, int param, int obj, int arg)
+{
+	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
+	fake_event.type = type,
+	fake_event.param = param,
+	fake_event.obj = obj,
+	fake_event.arg = arg,
+	msg_queue_post(gui_main_struct.msg_queue_550d, &fake_event, 0, 0);
 }
 
 void send_event_to_IDLEHandler(int event)
@@ -628,26 +648,24 @@ static void gui_main_task_60d()
 		gui_main_struct.counter_60d--;
 		if (event == NULL) continue;
 		index = event->type;
-		if ((index >= GMT_NFUNCS) || (index < 0))
-			continue;
-
-		//~ if (event->type != 2)
-			//~ console_printf("%d %d %d\n", event->type, event->param, event->arg);
 		
 		if (!magic_is_off())
 		{
+			// if fake_simple_button is called from handle_buttons, it will not wait; it will just overwrite last event (avoids crashing)
 			handle_buttons_active = 1;
-			int should_handle = handle_buttons(event);
+			int should_handle = handle_buttons(event); // ML button/event handler
 			handle_buttons_active = 0;
 			
-			if (should_handle == 0) 
+			if (should_handle == 0) // ML event handler said we should not pass this event to Canon handler
 				goto bottom;
 		}
+
+		if ((index >= GMT_NFUNCS) || (index < 0))
+			continue;
 		
-		//~ BMP_SEM(
-			void(*f)(struct event *) = funcs[index];
-			f(event);
-		//~ )
+		void(*f)(struct event *) = funcs[index];
+		f(event);
+
 bottom:
 		if (event == &fake_event) 
 		{
