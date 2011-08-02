@@ -3223,7 +3223,7 @@ clearscreen_loop:
 	}
 }
 
-//~ TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 
 void redraw()
 {
