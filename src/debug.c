@@ -155,12 +155,13 @@ static int vmax(int* x, int n)
 
 void xx_test(void* priv)
 {
-	int x = 1;
-	int prop = PROP_MIRROR_DOWN_IN_MOVIE_MODE;
-	prop_request_change(prop, &x, 4);
-	msleep(2000);
-	x = 0;
-	prop_request_change(prop, &x, 4);
+	FILE * f = FIO_CreateFile("B:/BOOT0.BIN");
+	if (f != (void*) -1)
+	{
+		bmp_printf(FONT_LARGE, 0, 60, "Writing RAM");
+		FIO_WriteFile(f, (void*) 0xFFFF0000, 0x10000);
+		FIO_CloseFile(f);
+	}
 }
 
 void toggle_mirror_display()
