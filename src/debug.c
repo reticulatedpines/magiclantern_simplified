@@ -153,15 +153,27 @@ static int vmax(int* x, int n)
 	return m;
 }
 
-void xx_test(void* priv)
+void dump_rom(void* priv)
 {
-	FILE * f = FIO_CreateFile("B:/BOOT0.BIN");
+	FILE * f = FIO_CreateFile("B:/ROM0.BIN");
 	if (f != (void*) -1)
 	{
-		bmp_printf(FONT_LARGE, 0, 60, "Writing RAM");
+		bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
+		FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
+		FIO_CloseFile(f);
+	}
+
+	f = FIO_CreateFile("B:/BOOT0.BIN");
+	if (f != (void*) -1)
+	{
+		bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
 		FIO_WriteFile(f, (void*) 0xFFFF0000, 0x10000);
 		FIO_CloseFile(f);
 	}
+}
+
+void xx_test(void* priv)
+{
 }
 
 void toggle_mirror_display()
@@ -535,6 +547,12 @@ struct menu_entry debug_menus[] = {
 		.select_auto = mem_spy_select,
 		.display	= spy_print,
 		.help = "Spy properties / events / memory addresses which change."
+	},
+	{
+		.priv		= "Dump ROM",
+		.select		= dump_rom,
+		.display	= menu_print,
+		.help = "For developers: will dump ROM from FF010000 and FFFF0000."
 	},
 	{
 		.priv		= "Don't click me!",
