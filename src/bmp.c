@@ -228,7 +228,7 @@ bmp_printf(
 )
 {
 	va_list			ap;
-	char			buf[ 256 ];
+	char			buf[ 1024 ];
 
 	va_start( ap, fmt );
 	vsnprintf( buf, sizeof(buf), fmt, ap );
