@@ -789,8 +789,6 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 //~ CONFIG_INT( "debug.dumpaddr", dump_addr, 0 );
 //~ CONFIG_INT( "debug.dumplen", dump_len, 0 );
 
-CONFIG_INT( "magic.disable_bootdiskf",	disable_bootdiskf, 0 );
-
 /*
 struct bmp_file_t * logo = (void*) -1;
 void load_logo()
@@ -854,36 +852,6 @@ debug_init_stuff( void )
 	//bmp_draw_palette();
 	//dispcheck();
 
-
-	unsigned x=10;
-	unsigned y=32;
-
-	if (disable_bootdiskf!=0) {
-	  bmp_printf( FONT_SMALL, x, y, "**disable_bootdiskf**%s","" );
-	  bootdisk_disable();
-	}
-
-	if( timed_dump == 0 )
-		goto end;
-
-	int sec = timed_dump;
-
-	DebugMsg( DM_MAGIC, 3, "%s: Will do debug dump in %d sec",
-		__func__,
-		sec
-	);
-
-	while( sec-- )
-	{
-		//~ bmp_printf( FONT_SMALL, 600, 400, "dump %2d", sec );
-		msleep( 1000 );
-	}
-
-	DebugMsg( DM_MAGIC, 3, "%s: calling dumpf", __func__ );
-	dumpf();
-
-end:
-	return;
 }
 
 
