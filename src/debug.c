@@ -366,8 +366,10 @@ void display_shortcut_key_hints_lv()
 
 	}
 
+	static int prev_mz = 0;
 	if (mz) bmp_printf(FONT_MED, 360 + 100, 240 - 150, "Magic Zoom");
-	else bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100, 240 - 150, "          ");
+	else if (prev_mz) redraw();
+	prev_mz = mz;
 
 	old_mode = mode;
 }
