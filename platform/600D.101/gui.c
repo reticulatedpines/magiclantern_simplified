@@ -594,7 +594,7 @@ static int handle_buttons(struct event * event)
 	if (BGMT_FLASH_MOVIE)
 	{
 		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
-		return 0;
+		return !BGMT_PRESS_FLASH_MOVIE;
 	}
 
 	return 1;
