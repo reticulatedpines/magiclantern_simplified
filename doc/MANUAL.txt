@@ -130,7 +130,7 @@ LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ) or as shift 
 .. _LCD backlight level:
 
 * LCD sensor + ``UP / DOWN``: adjust LCD backlight level.
-* LCD sensor + ``LEFT / RIGHT`` in LiveView: adjust `Kelvin white balance`_.
+* LCD sensor + ``LEFT / RIGHT`` in LiveView: adjust `audio`_ gain (volume for recording).
 * LCD sensor + Arrows: see `Follow Focus`_.
 * LCD sensor + ``Zoom In``: activates `Magic Zoom`_.
 
@@ -140,7 +140,7 @@ Flash button shortcuts
 This feature is only available on 550D, 500D and 600D.
 
 * Flash in Movie mode (short press): change current `display preset`_.
-* Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
+* Flash + ``UP / DOWN`` in Movie mode: adjust `Kelvin white balance`_.
 * Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 
 Misc shortcuts
