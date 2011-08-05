@@ -341,6 +341,8 @@ meter_task( void* unused )
 	{
 		msleep( 50 );
 
+		if (is_menu_help_active()) continue;
+
 		static int a_prev = 0;
 		int a = audio_meters_are_drawn();
 
