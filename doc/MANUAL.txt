@@ -188,6 +188,11 @@ Audio
 
 Manual audio controls.
 
+This menu is only available on 550D/T2i and 60D.
+
+The 600D/T3i already has manual audio control, but right now it's not possible to change audio settings
+from Magic Lantern. You can only use audio meters during recording.
+
 .. _audio meters:
 
 **Audio Meters: ON / OFF**
@@ -251,9 +256,19 @@ Manual audio controls.
 **Monitoring-USB: ON/OFF**
   
   Audio monitoring with headphones, via USB port.
+
+  **This feature is not available on 600D/T3i.**
+
+  To use audio monitoring, you need a special cable:
   
-  To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `Audio monitoring HOWTO on Vimeo group <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details.
+  * your Canon USB - RCA cable with `a RCA - 3.5mm jack adapter <http://amzn.to/ml-audiomon-rca35>`_
+  * `a dedicated cable from Sescom <http://www.sescom.com/product.asp?item=DSLR-550D-HOCF>`_
+  * or you may solder it yourself (you will have to cut the USB-RCA cable). 
   
+  Warning: mobile phone cables will not work; even if the connector looks similar, it's not identical. You must use `the original cable which came with your camera <http://amzn.to/canon-usb-rca>`_.
+  
+  For details, see `Audio monitoring HOWTO on Vimeo group <http://vimeo.com/groups/magiclantern/forumthread:237296>`_.
+
 **Output volume (dB)**
 
   Volume for audio monitoring. It does not have effect on the internal camera speaker.

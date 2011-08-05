@@ -4,7 +4,7 @@ function ShowLink(addr, name)
 		return -- don't show videos
 	elseif string.find(addr, "magiclantern.wikia.com") and not string.find(name, "here") then
 		newname = "Wiki:" .. name
-	else
+	elseif not string.find(addr, "amzn") and not string.find(addr, "sescom") then
 		-- escape TeX special characters and strip HTTP
 		local a = addr
 		a = string.gsub(a, [[http://]], [[]])
