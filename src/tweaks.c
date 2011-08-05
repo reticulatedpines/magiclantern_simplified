@@ -263,7 +263,11 @@ void clear_lv_afframe()
 	if( !lv->vram )	return;
 	int xaf,yaf;
 	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
+	#ifdef CONFIG_600D
+	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,100) - 100, 200, 200 );
+	#else
 	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,50) - 50, 200, 100 );
+	#endif
 	crop_set_dirty(5);
 }
 
