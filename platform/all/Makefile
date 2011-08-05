@@ -3,6 +3,8 @@
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
+MODEL=550D.109.60D.110.600D.101
+
 include  $(TOP_DIR)/Makefile.inc
 
 autoexec-all: reboot-all.o

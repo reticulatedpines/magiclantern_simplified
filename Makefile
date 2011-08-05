@@ -26,13 +26,15 @@ install: all
 	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
 	umount /media/EOS_DIGITAL
 
-install_fir:
+fir:
 	cd installer/550D.109/; $(MAKE) clean
 	cd installer/60D.110/; $(MAKE) clean
 	cd installer/600D.101/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
 	$(MAKE) -C installer/60D.110/
 	$(MAKE) -C installer/600D.101/
+
+install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
 	cp installer/60D.110/ml-60d-110.fir /media/EOS_DIGITAL/
 	cp installer/600D.101/ml-600d-101.fir /media/EOS_DIGITAL/
@@ -50,10 +52,9 @@ clean:
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
-zip:
-	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) zip
-	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) zip
-	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) zip
+zip: all
+	cd $(PLATFORM_PATH)/all; $(MAKE) docs
+	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 dropbox: all
 	cp $(PLATFORM_PATH)/550D.109/autoexec.bin ~/Dropbox/Public/bleeding-edge/550d/

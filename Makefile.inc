@@ -28,7 +28,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 BUILDVER=$(shell whoami)
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL).fw$(FW_VERSION).$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -87,29 +87,30 @@ prepare_zip:
 	cp $(TOP_DIR)/README .
 	cp $(DOC_DIR)/INSTALL.pdf .
 	cp $(DOC_DIR)/UserGuide.pdf .
-	cp $(SRC_DIR)/make_bootable.sh .
 	cp $(SRC_DIR)/422-jpg.py .
 	mkdir cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp cropmks/
 	mkdir doc || echo "ok"
 	cp $(DOC_DIR)/cam/* doc/
+	make x
+	cp ../../installer/550D.109/*.fir .
+	cp ../../installer/60D.110/*.fir .
+	cp ../../installer/600D.101/*.fir .
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
-	$(ML_FIR) \
-	autoexec.bin \
 	README \
 	INSTALL.pdf \
 	UserGuide.pdf \
-	make_bootable.sh \
 	422-jpg.py \
 	cropmks/* \
 	doc/* \
+	*.fir \
 
 	-rm $@
 	chmod -x autoexec.bin
-	zip -z $@ < $^
+	zip -z $@ < $^ autoexec.bin
 
 CFLAGS=\
 	$(FLAGS) \
