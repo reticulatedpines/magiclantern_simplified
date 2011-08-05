@@ -20,6 +20,9 @@
 \usepackage{newfile}
 \usepackage{ifthen}
 
+\definecolor{darkgray}{rgb}{0.1,0.1,0.1}
+\definecolor{cyan}{rgb}{0.7,1,1}
+
 % avoid hyphenation and a few other things 
 \hyphenpenalty=1000000
 \widowpenalty=1000000
@@ -54,7 +57,7 @@
 \def\overexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=red, minimum width=5mm, minimum height=3mm] {}; }}
 \def\underexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=blue, minimum width=5mm, minimum height=3mm] {}; }}
 
-\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage[colorlinks=true,linkcolor=cyan,urlcolor=cyan]{hyperref}
 \hypersetup{
   pdftitle={Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9 -- User's Guide},
   pdfauthor = {Alex Dumitrache <broscutamaker@gmail.com>},
@@ -107,7 +110,7 @@
 \newcommand{\nextpagehint}{%
 \ifthenelse{\iq=1}{%
 \begin{tikzpicture}[remember picture,overlay]%
-\node [yshift=-1mm] at (current page.south east) [above left, color=blue, fill=white] {... continued on next page};%
+\node [yshift=-1mm] at (current page.south east) [above left, color=cyan, fill=darkgray] {... continued on next page};%
 \end{tikzpicture}}{}}%
 
 % a small ML logo
@@ -136,12 +139,12 @@
 %~ \sloppy
 
 % ugly...
-%~ \pagecolor{black}
-%~ \color{white}
+\pagecolor{darkgray}
+\color{white}
 
 %%% Body
 \begin{document}
-\title{\vspace{-1cm}\includegraphics[width=3cm]{Logo.png}\\Magic Lantern 0.2.1\\{\small for Canon 550D, 60D, 600D and 500D}}
+\title{\vspace{-1cm}\includegraphics[width=3cm]{logo-trans.png}\\Magic Lantern 0.2.1\\{\small for Canon 550D, 60D, 600D and 500D}}
 \author{\url{http://magiclantern.wikia.com/unified}}
 \maketitle
 
