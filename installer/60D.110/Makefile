@@ -57,7 +57,7 @@ all: magiclantern.bin updater.bin
 	python ../../../dumper/build_fir.py -r ../../../dumper/60D00110.FIR updater.bin ml-60d-110.fir
 
 clean:
-	rm *.fir *.o autoexec* magiclantern* updater* ml.bin
+	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
 install:
 	cp ml-60d-110.fir /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 

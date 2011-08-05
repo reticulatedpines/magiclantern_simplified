@@ -27,6 +27,9 @@ install: all
 	umount /media/EOS_DIGITAL
 
 install_fir:
+	cd installer/550D.109/; $(MAKE) clean
+	cd installer/60D.110/; $(MAKE) clean
+	cd installer/600D.101/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
 	$(MAKE) -C installer/60D.110/
 	$(MAKE) -C installer/600D.101/

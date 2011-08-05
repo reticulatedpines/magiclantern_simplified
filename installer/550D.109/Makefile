@@ -55,7 +55,7 @@ all: magiclantern.bin updater.bin
 	python ../../../dumper/build_fir.py -r ../../../dumper/e8kr7109.fir updater.bin ml-550d-109.fir
 
 clean:
-	rm *.fir *.o autoexec* magiclantern* updater* ml.bin
+	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
 install:
 	cp ml-550d-109.fir /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 
