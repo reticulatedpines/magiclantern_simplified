@@ -242,6 +242,6 @@ void* bmp_lock;
 void* gmt_lock;
 
 #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock); }
-#define GMT_LOCK(x) { card_led_on(); AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock);  card_led_off(); }
+#define GMT_LOCK(x) { AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock); }
 
 #endif
