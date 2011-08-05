@@ -449,6 +449,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		(
 			display_clock();
 			display_shooting_info();
+			free_space_show_photomode();
 		)
 		
 		if (lv && !gui_menu_shown()) BMP_LOCK

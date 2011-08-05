@@ -193,6 +193,22 @@ void free_space_show()
 	);
 }
 
+void free_space_show_photomode()
+{
+	int fsg = free_space_32k >> 15;
+	int fsgr = free_space_32k - (fsg << 15);
+	int fsgf = (fsgr * 10) >> 15;
+	int x = timecode_x + 2 * fontspec_font(timecode_font)->width;
+	int y = 452;
+	bmp_printf(
+		FONT(FONT_LARGE, COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
+		x, y,
+		"%d.%dGB",
+		fsg,
+		fsgf
+	);
+}
+
 void time_indicator_show()
 {
 	if (!recording) 
