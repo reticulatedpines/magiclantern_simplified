@@ -230,7 +230,7 @@ def convert_page(k):
     if im.max() <= 1: im *= 255
     imr = remap_rgb(im,M)
     #print imr
-    save_img(imr,M,bmp)
+    save_img(imr[1:481,0:720],M,bmp)
     os.system("ruby ../src/convertrle.rb %s" % bmp)
     os.system("rm %s" % bmp)
     os.system("rm %s" % png)

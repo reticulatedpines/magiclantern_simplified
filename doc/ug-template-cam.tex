@@ -20,8 +20,8 @@
 \usepackage{newfile}
 \usepackage{ifthen}
 
-\definecolor{darkgray}{rgb}{0.1,0.1,0.1}
-\definecolor{cyan}{rgb}{0.7,1,1}
+\definecolor{darkgray}{rgb}{0.05,0.05,0.05}
+\definecolor{cyan}{rgb}{0.4,1,1}
 
 % avoid hyphenation and a few other things 
 \hyphenpenalty=1000000
@@ -70,7 +70,7 @@
 
 % page size (should result in a readable font on a 720x480 bitmap)
 %\usepackage[papersize={94mm, 142mm}, total={90mm, 136mm}, centering]{geometry}
-\usepackage[papersize={120mm, 80mm}, total={115mm, 73mm}, centering]{geometry}
+\usepackage[papersize={120mm, 81mm}, total={115mm, 73mm}, centering]{geometry} % bottom line is always white... rounding bug?
 %\usepackage[papersize={94mm, 2000mm}, total={90mm, 2000mm}, centering]{geometry}
 
 % sans serif font (easier to read on monitors, unlike serif which is easier to read on paper)
@@ -110,7 +110,7 @@
 \newcommand{\nextpagehint}{%
 \ifthenelse{\iq=1}{%
 \begin{tikzpicture}[remember picture,overlay]%
-\node [yshift=-1mm] at (current page.south east) [above left, color=cyan, fill=darkgray] {... continued on next page};%
+\node [yshift=-0.5mm] at (current page.south east) [above left, color=cyan, fill=darkgray] {... continued on next page};%
 \end{tikzpicture}}{}}%
 
 % a small ML logo
