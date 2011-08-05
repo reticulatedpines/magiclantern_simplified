@@ -67,7 +67,7 @@ Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by
  `sawomedia <http://vimeo.com/sawo>`_,
  `Chung Dha <http://www.youtube.com/user/chungdha>`_,
  `Dave Dugdale <http://www.learningdslrvideo.com/category/video-tutorials/>`_,
- `Malcolm Debono <http://vimeo.com/user4129652>`_
+ `Malcolm Debono <http://vimeo.com/user4129652>`_,
  `MediaUnlocked <http://www.youtube.com/user/MediaUnlocked>`_,
  `Jeremy <http://vimeo.com/l33t>`_, 
  `Lauren Stevens <http://vimeo.com/22818564>`_, 
