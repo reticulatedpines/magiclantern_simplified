@@ -56,7 +56,7 @@ CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
 CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
-CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
+CONFIG_INT( "bulb.duration.index", bulb_duration_index, 0);
 CONFIG_INT( "mlu.auto", mlu_auto, 1);
 
 extern int lcd_release_running;
