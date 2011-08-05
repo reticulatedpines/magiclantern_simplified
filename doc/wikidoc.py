@@ -170,6 +170,28 @@ def fix_eqns_in_wiki():
 
 fix_eqns_in_wiki()
 
+def fix_newlines_in_blockquote():
+    w = open("userguide.wiki").read()
+    wl = re.split("(</?blockquote>)", w)
+    WL = []
+    inside = False
+    for x in wl:
+        if x == "<blockquote>": 
+            inside = True
+            x += "\n"
+        elif x == "</blockquote>": 
+            inside = False
+        else:
+            if inside:
+                x = x.replace("\n\n", "<br />\n\n")
+        WL.append(x)
+    
+    f = open("userguide.wiki", "w")
+    print >> f, string.join(WL, "")
+    f.close()
+
+fix_newlines_in_blockquote()
+
 #~ raise SystemExit
 
 go("http://magiclantern.wikia.com/index.php?title=Special:Signup")
