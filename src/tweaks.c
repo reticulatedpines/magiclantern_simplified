@@ -422,7 +422,7 @@ tweak_task( void* unused)
 		{
 			afframe_countdown--;
 			if (!afframe_countdown) 
-				BMP_SEM( clear_lv_afframe(); )
+				BMP_LOCK( clear_lv_afframe(); )
 		}
 		
 		if (FLASH_BTN_MOVIE_MODE)

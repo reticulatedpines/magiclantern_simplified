@@ -746,7 +746,7 @@ lens_set_kelvin_value_only(int k)
 void update_stuff()
 {
 	calc_dof( &lens_info );
-	if (lv && get_global_draw()) BMP_SEM( update_lens_display(); )
+	if (lv && get_global_draw()) BMP_LOCK( update_lens_display(); )
 	if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
 }
 

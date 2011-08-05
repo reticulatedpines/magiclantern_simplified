@@ -209,3 +209,7 @@ NSTUB(0xFF1D2D5C, msg_queue_post)
 // NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 
 NSTUB(0xffffaf20, write_bootflags_to_card)
+
+NSTUB(0xFF06E358, CreateRecursiveLock)
+NSTUB(0xff1d2ea8, AcquireRecursiveLock)
+NSTUB(0xff1d2fbc, ReleaseRecursiveLock)

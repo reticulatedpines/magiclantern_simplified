@@ -205,3 +205,7 @@ NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 NSTUB( 0xff29e25c, AfCtrl_SetLensParameterRemote )
 
 NSTUB( 0xff039d4c, PD_GetBatteryPower )
+
+NSTUB(0xff075500, CreateRecursiveLock)
+NSTUB(0xff1f5d8c, AcquireRecursiveLock)
+NSTUB(0xff1f5ea0, ReleaseRecursiveLock)

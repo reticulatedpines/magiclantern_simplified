@@ -2585,7 +2585,7 @@ void display_expsim_status()
 	}
 	else
 	{
-		if (expsim != prev_expsim) redraw_nosem(); // this function is inside a BMP_SEM
+		if (expsim != prev_expsim) redraw();
 	}
 	prev_expsim = expsim;
 }

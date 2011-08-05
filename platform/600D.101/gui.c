@@ -585,16 +585,6 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
-	if (event->type == GUI_ML_EVENT)
-	{
-		if (event->param == GUI_ML_EVENT_CHANGE_PALETTE)
-		{
-			if (lv && MENU_MODE && bmp_is_on())
-				ChangeColorPalette(event->arg);
-			return 0;
-		}
-	}
-
 	return 1;
 }
 
@@ -650,8 +640,10 @@ static void gui_main_task_60d()
 		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
 		
-		void(*f)(struct event *) = funcs[index];
-		f(event);
+		GMT_LOCK( // sync with other Canon calls => prevents some race conditions
+			void(*f)(struct event *) = funcs[index];
+			f(event);
+		)
 
 bottom:
 		if (event == &fake_event) 

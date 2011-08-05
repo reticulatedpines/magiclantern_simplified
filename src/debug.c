@@ -445,13 +445,13 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", disp_pressed);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_SEM
+		if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
 		(
 			display_clock();
 			display_shooting_info();
 		)
 		
-		if (lv && !gui_menu_shown()) BMP_SEM
+		if (lv && !gui_menu_shown()) BMP_LOCK
 		(
 			display_shooting_info_lv();
 			if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
@@ -461,11 +461,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		if (screenshot_sec)
 		{
-			card_led_blink(1, 20, 1000-20);
-			//~ if (screenshot_sec >= 5) BMP_SEM( bmp_printf( FONT_SMALL, 0, 0, "Screenshot in %d seconds ", screenshot_sec); )
-			//~ if (screenshot_sec == 4) redraw();
+			card_led_blink(1, 20, 1000-20-200);
 			screenshot_sec--;
-			//~ msleep( 1000 );
 			if (!screenshot_sec)
 				take_screenshot(0);
 		}
@@ -480,14 +477,16 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		if (draw_prop)
 		{
 			dbg_draw_props(dbg_last_changed_propindex);
+			continue;
 		}
 		else if (mem_spy)
 		{
 			dbg_memspy_update();
+			continue;
 		}
 		#endif
 		
-		msleep(10);
+		msleep(200);
 	}
 }
 

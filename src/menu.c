@@ -591,7 +591,7 @@ menu_redraw_if_damaged()
 			if (!lv) show_only_selected = 0;
 			//~ if (MENU_MODE || lv) clrscr();
 			menu_damage = 0;
-			BMP_SEM (
+			BMP_LOCK (
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 ); 
 				menus_display( menus, 10, 40 ); 
 				if (is_menu_active(" (i)")) menu_show_version();

@@ -345,17 +345,17 @@ meter_task( void* unused )
 		int a = audio_meters_are_drawn();
 
 		if (a != a_prev && !gui_menu_shown())
-			BMP_SEM( bmp_fill(TOPBAR_BGCOLOR, 0, 0, 640, 33); )
+			BMP_LOCK( bmp_fill(TOPBAR_BGCOLOR, 0, 0, 640, 33); )
 
 		if (a)
 		{
 			if (!is_mvr_buffer_almost_full())
-				BMP_SEM( draw_meters(); )
+				BMP_LOCK( draw_meters(); )
 		}
 		else
 		{
 			if (a != a_prev)
-				BMP_SEM( draw_ml_topbar(); )
+				BMP_LOCK( draw_ml_topbar(); )
 			msleep( 500 );
 		}
 		a_prev = a;
@@ -1002,7 +1002,7 @@ void audio_monitoring_display_headphones_connected_or_not()
 	zebra_pause();
 	msleep(200);
 	//~ redraw();
-	BMP_SEM(
+	BMP_LOCK(
 		bmp_printf(FONT_MED, 10, 50, 
 			"                         \n"
 			" Audio monitoring:       \n"

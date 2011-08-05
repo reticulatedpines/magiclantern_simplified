@@ -233,7 +233,15 @@ uint8_t bmp_getpixel(int x, int y);
 #define TOPBAR_BGCOLOR (bmp_getpixel(1,30))
 #define BOTTOMBAR_BGCOLOR (bmp_getpixel(1,479))
 
-struct semaphore * bmp_sem;
-#define BMP_SEM(x) { take_semaphore(bmp_sem, 0); x; give_semaphore(bmp_sem); }
+//~ struct semaphore * bmp_sem;
+//~ struct semaphore * gmt_sem;
+//~ #define BMP_SEM(x) { bmp_printf(FONT_LARGE, 50, 100, "B1 %s:%d", __func__, __LINE__); take_semaphore(bmp_sem, 0); x; give_semaphore(bmp_sem); bmp_printf(FONT_LARGE, 50, 100, "B0                                 ");}
+//~ #define GMT_SEM(x) { bmp_printf(FONT_LARGE, 50, 50, "G1 %s:%d", __func__, __LINE__); card_led_on(); take_semaphore(gmt_sem, 0); x; give_semaphore(gmt_sem);  card_led_off(); bmp_printf(FONT_LARGE, 50, 50, "G0                                 "); }
+
+void* bmp_lock;
+void* gmt_lock;
+
+#define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock); }
+#define GMT_LOCK(x) { card_led_on(); AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock);  card_led_off(); }
 
 #endif

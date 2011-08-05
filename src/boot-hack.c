@@ -348,7 +348,6 @@ my_init_task(void)
 		return;
 	}
 
-	BMP_SEM ( // block redraw events
 	msleep( 1000 );
 
 	menu_init();
@@ -399,8 +398,6 @@ my_init_task(void)
 		//~ ml_tasks
 	//~ );
 	msleep(500);
-	
-	) // end BMP_SEM
 	
 	redraw();
 

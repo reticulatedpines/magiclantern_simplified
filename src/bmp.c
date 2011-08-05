@@ -622,7 +622,7 @@ getfilesize_fail:
 
 void clrscr()
 {
-	bmp_fill( 0x0, 0, 0, 960, 540 );
+	BMP_LOCK( bmp_fill( 0x0, 0, 0, 960, 540 ); )
 }
 
 // mirror can be NULL
@@ -1044,7 +1044,8 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 
 void bmp_sem_init()
 {
-	bmp_sem = create_named_semaphore("bmp_sem", 1);
+	bmp_lock = CreateRecursiveLock("bmp_lock", 1);
+	gmt_lock = CreateRecursiveLock("gmt_lock", 1);
 }
 
 //~ INIT_FUNC(__FILE__, bmp_init);

@@ -384,9 +384,9 @@ bitrate_task( void* unused )
 			if (movie_elapsed_time_01s % 10 == 0)
 			{
 				measure_bitrate();
-				BMP_SEM( time_indicator_show(); )
+				BMP_LOCK( time_indicator_show(); )
 			}
-			BMP_SEM( show_mvr_buffer_status(); )
+			BMP_LOCK( show_mvr_buffer_status(); )
 		}
 		else
 		{
@@ -395,7 +395,7 @@ bitrate_task( void* unused )
 				bitrate_set();
 		}
 		if (zebra_should_run()) 
-			BMP_SEM( free_space_show(); )
+			BMP_LOCK( free_space_show(); )
 	}
 }
 

@@ -667,7 +667,7 @@ static void plot_focus_mag()
 	if (!lv) return;
 	if (!get_global_draw()) return;
 	
-	BMP_SEM(
+	BMP_LOCK(
 		int i;
 		for (i = 0; i < NMAGS-1; i++)
 		{

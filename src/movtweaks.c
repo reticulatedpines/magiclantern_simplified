@@ -269,11 +269,10 @@ movtweak_task( void* unused )
 			if (hdmi_code == 5)
 			{
 				msleep(1000);
-				BMP_SEM (
-					msleep(500);
+				GMT_LOCK (
 					ChangeHDMIOutputSizeToVGA();
-					msleep(500);
 				)
+				msleep(1000);
 			}
 		}
 	}

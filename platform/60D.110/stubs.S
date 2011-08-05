@@ -212,3 +212,7 @@ NSTUB(0xff382e10, StartShootOlcAFFrameApp)
 NSTUB(0xff01e414, main_ctrl_task)
 NSTUB(0x1BE0, main_ctrl_struct)
 NSTUB(0x370d0, main_ctrl_functbl)
+
+NSTUB(0xff072a14, CreateRecursiveLock)
+NSTUB(0xff1d6e10, AcquireRecursiveLock)
+NSTUB(0xff1d6f24, ReleaseRecursiveLock)

@@ -130,8 +130,10 @@ int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
-	// pass this to GUI task to sync it with Canon code
-	fake_gui_event(GUI_ML_EVENT, GUI_ML_EVENT_CHANGE_PALETTE, 0, 4);
+	if (lv && MENU_MODE && bmp_is_on())
+	{
+		GMT_LOCK( ChangeColorPalette(x); )
+	}
 }
 
 /*
@@ -2366,7 +2368,7 @@ void transparent_overlay_offset(int dx, int dy)
 {
 	transparent_overlay_offx = COERCE((int)transparent_overlay_offx + dx, -650, 650);
 	transparent_overlay_offy = COERCE((int)transparent_overlay_offy + dy, -400, 400);
-	BMP_SEM( show_overlay(); )
+	BMP_LOCK( show_overlay(); )
 }
 
 void transparent_overlay_offset_clear(int dx, int dy)
@@ -2676,7 +2678,7 @@ cropmark_draw()
 static void
 cropmark_redraw()
 {
-	cropmark_draw();
+	BMP_LOCK( cropmark_draw(); )
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
@@ -2698,7 +2700,7 @@ int _bmp_cleared = 0;
 void bmp_on()
 {
 	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (_bmp_cleared) { call("MuteOff"); msleep(100); _bmp_cleared = 0;}
+	if (_bmp_cleared) { BMP_LOCK(GMT_LOCK( call("MuteOff"); )) msleep(100); _bmp_cleared = 0;}
 }
 void bmp_on_force()
 {
@@ -2708,7 +2710,7 @@ void bmp_on_force()
 void bmp_off()
 {
 	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); call("MuteOn");}
+	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); BMP_LOCK(GMT_LOCK( call("MuteOn")); )}
 }
 int bmp_is_on() { return !_bmp_cleared; }
 
@@ -2722,7 +2724,7 @@ void lvimage_on()
 void lvimage_off()
 {
 	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (_lvimage_cleared) call("MuteOnImage");
+	if (_lvimage_cleared) GMT_LOCK( call("MuteOnImage"); )
 	_lvimage_cleared = 0;
 }
 
@@ -2732,7 +2734,7 @@ void display_on()
 	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_display_is_off)
 	{
-		call("TurnOnDisplay");
+		GMT_LOCK( call("TurnOnDisplay"); )
 		_display_is_off = 0;
 	}
 }
@@ -2746,7 +2748,7 @@ void display_off()
 	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_display_is_off)
 	{
-		call("TurnOffDisplay");
+		GMT_LOCK( call("TurnOffDisplay"); )
 		_display_is_off = 1;
 	}
 }
@@ -3075,7 +3077,7 @@ int idle_countdown_display_off_prev = 100;
 int idle_countdown_globaldraw_prev = 100;
 int idle_countdown_clrscr_prev = 100;
 
-void idle_wakeup_reset_counters()
+void idle_wakeup_reset_counters() // called from handle_buttons
 {
 	//~ clearscreen_countdown = 3;
 	idle_countdown_display_off = MAX(idle_display_turn_off_after * 10, idle_countdown_display_off);
@@ -3138,11 +3140,11 @@ void idle_display_on()
 
 void idle_bmp_off()
 {
-	BMP_SEM(bmp_off());
+	bmp_off();
 }
 void idle_bmp_on()
 {
-	BMP_SEM(bmp_on());
+	bmp_on();
 }
 
 int old_backlight_level = 0;
@@ -3192,7 +3194,7 @@ clearscreen_loop:
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && get_halfshutter_pressed())
 		{
-			BMP_SEM( clrscr_mirror(); )
+			BMP_LOCK( clrscr_mirror(); )
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
@@ -3200,9 +3202,9 @@ clearscreen_loop:
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
 			}
-			BMP_SEM( bmp_off(); )
+			bmp_off();
 			while (get_halfshutter_pressed()) msleep(100);
-			BMP_SEM( bmp_on(); )
+			bmp_on();
 		}
 		//~ else if (clearscreen == 2)  // always clear overlays
 		//~ {
@@ -3225,28 +3227,13 @@ clearscreen_loop:
 
 TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 
+// this should be synchronized with
+// * graphics code (like zebra); otherwise zebras will remain frozen on screen
+// * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
 void redraw()
 {
-	if (!is_safe_to_mess_with_the_display(0)) return;
-	BMP_SEM(
-		/*static int x;
-		msleep(500);
-		bmp_printf(FONT_MED, 50, 50, "redraw %d ", x++);
-		msleep(500);*/
-		RedrawDisplay();
-		crop_set_dirty(20);
-		afframe_set_dirty();
-		menu_set_dirty();
-	)
-}
-
-void redraw_nosem() // to be called from a BMP_SEM only!
-{
-	if (!is_safe_to_mess_with_the_display(0)) return;
-	RedrawDisplay();
-	crop_set_dirty(20);
-	afframe_set_dirty();
-	menu_set_dirty();
+	if (is_safe_to_mess_with_the_display(0)) 
+		BMP_LOCK( GMT_LOCK( RedrawDisplay(); ) )
 }
 
 /*
@@ -3338,7 +3325,7 @@ livev_hipriority_task( void* unused )
 		{
 			guess_fastrefresh_direction();
 			if (dirty) { clrscr_mirror(); dirty = 0; }
-			BMP_SEM( draw_zoom_overlay(); )
+			BMP_LOCK( draw_zoom_overlay(); )
 		}
 		else
 		{
@@ -3346,17 +3333,17 @@ livev_hipriority_task( void* unused )
 			if (falsecolor_draw)
 			{
 				if (k % 4 == 0)
-					BMP_SEM( draw_false_downsampled(); )
+					BMP_LOCK( draw_false_downsampled(); )
 			}
 			else
 			{
-				BMP_SEM( draw_zebra_and_focus(k % (recording ? 2 : 1) == 0, 1); )
+				BMP_LOCK( draw_zebra_and_focus(k % (recording ? 2 : 1) == 0, 1); )
 			}
 			msleep(20);
 		}
 		
 		if (spotmeter_draw && k % 4 == 0)
-			BMP_SEM( spotmeter_step(); )
+			BMP_LOCK( spotmeter_step(); )
 
 		if (crop_dirty)
 		{
@@ -3364,7 +3351,7 @@ livev_hipriority_task( void* unused )
 			crop_dirty--;
 			if (!crop_dirty)
 			{
-				BMP_SEM( cropmark_redraw(); )
+				cropmark_redraw();
 			}
 		}
 
@@ -3427,12 +3414,12 @@ livev_lopriority_task( void* unused )
 		loprio_sleep();
 		
 		if( hist_draw && zebra_should_run())
-			BMP_SEM( hist_draw_image( hist_x, hist_y ); )
+			BMP_LOCK( hist_draw_image( hist_x, hist_y ); )
 
 		loprio_sleep();
 		
 		if( waveform_draw && zebra_should_run())
-			BMP_SEM( waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
+			BMP_LOCK( waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
 	}
 }
 
@@ -3520,7 +3507,7 @@ int toggle_disp_mode()
 	}
 	idle_wakeup_reset_counters();
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
-	BMP_SEM( do_disp_mode_change(); )
+	BMP_LOCK( do_disp_mode_change(); )
 	if (gui_menu_shown())
 	{
 		menu_set_dirty();
@@ -3666,6 +3653,6 @@ void transparent_overlay_from_play()
 	msleep(500);
 	if (!lv) { force_liveview(); msleep(500); }
 	msleep(1000);
-	BMP_SEM( show_overlay(); )
+	BMP_LOCK( show_overlay(); )
 	//~ transparent_overlay = 1;
 }
