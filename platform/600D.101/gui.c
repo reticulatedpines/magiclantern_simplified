@@ -62,7 +62,8 @@ int get_zoom_out_pressed() { return zoom_out_pressed; }
 //~ int get_set_pressed() { return set_pressed; }
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
-int zoomout_locked; // you can zoom out only from 3x, otherwise you have to press disp again
+#define DIGITAL_ZOOMOUT_DELAY 10
+int delay_counter_zoomout = 0;
 
 struct semaphore * gui_sem;
 
@@ -339,7 +340,7 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 	
-	if (event->type == 0 && event->param == BGMT_PRESS_DISP) { disp_pressed = 1; zoomout_locked = (digital_zoom_ratio != 300); }
+	if (event->type == 0 && event->param == BGMT_PRESS_DISP) { disp_pressed = 1; delay_counter_zoomout = DIGITAL_ZOOMOUT_DELAY; }
 	if (event->type == 0 && event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
 
 	if (lv && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
@@ -357,21 +358,26 @@ static int handle_buttons(struct event * event)
 	{
 		if (!video_mode_crop && video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
-			zoomout_locked = 1;
 			int zoom[] = {0xc, 0, video_mode_fps, 0xc, 2};
 			prop_request_change(PROP_VIDEO_MODE, zoom, 20);
 			return 0;
 		}
-		if (video_mode_crop && digital_zoom_ratio == 300 && !zoomout_locked && event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+		if (video_mode_crop && digital_zoom_ratio == 300 && event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
 		{
-			int nozoom[] = {0, 0, video_mode_fps, 0xc, 0};
-			prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
-			return 0;
+			if (delay_counter_zoomout)
+			{
+				delay_counter_zoomout--;
+				return 1;
+			}
+			else
+			{
+				int nozoom[] = {0, 0, video_mode_fps, 0xc, 0};
+				prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
+				delay_counter_zoomout = DIGITAL_ZOOMOUT_DELAY;
+				return 0;
+			}
 		}
-		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
-		{
-			zoomout_locked = (digital_zoom_ratio != 300); // if you de-press zoomout at 3x, it should enable the shortcut for 1x (not sure if this event is actually sent)
-		}
+		delay_counter_zoomout = DIGITAL_ZOOMOUT_DELAY;
 	}
 
 	/*
