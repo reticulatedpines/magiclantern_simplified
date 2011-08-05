@@ -2150,6 +2150,7 @@ struct menu_entry shoot_menus[] = {
 		.display	= lcd_release_display,
 	},
 	#endif
+	#ifndef CONFIG_600D
  	{
 		.name = "Audio RemoteShot",
 		.priv		= &audio_release_running,
@@ -2159,6 +2160,7 @@ struct menu_entry shoot_menus[] = {
 		.select_reverse = audio_release_level_toggle_reverse,
 		.help = "Clap your hands or pop a balloon to take a picture."
 	},
+	#endif
 	{
 		.name = "Motion Detect",
 		.priv		= &motion_detect,
