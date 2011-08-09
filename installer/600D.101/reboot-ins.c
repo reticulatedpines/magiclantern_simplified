@@ -28,7 +28,6 @@
 
 #define SIG_LEN 0x10000
 #define FIRMWARE_SIGNATURE 0x290106d8 // from FF010000
-int (*write_bootflags_to_card)(int, int) = 0xffffaf70;
 
 asm(
 ".text\n"
@@ -141,6 +140,7 @@ cstart( void )
 		// this can only be called from a "reboot" (updater) context,
 		// not from normal DryOS
 		
+		int (*write_bootflags_to_card)(int, int) = 0xffffaf70;
 		int not_ok = write_bootflags_to_card(1, 0);
 		
 		if (not_ok)

@@ -1,4 +1,4 @@
-#Makefile for 60D firmware 109
+#Makefile for 600D firmware 101
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
@@ -7,9 +7,10 @@ include $(TOP_DIR)/Makefile.top
 FW_VERSION=101
 MODEL=600D
 UPDATE_NAME=600d_101.fir
+ML_VERSION=unified1 
 
 #used in CFLAGS
-PLATFORM_INC=.
+PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
@@ -28,9 +29,8 @@ ML_OBJS-y = \
 	font-small.o \
 
 #include generic rules and definitions
-
-include  $(TOP_DIR)/Makefile.inc
-
+#TOP_DIR defined in upper Makefile
+include ../../Makefile.inc
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -40,7 +40,6 @@ RESTARTSTART		= 0x00082000
 
 #not used but...
 FIRMWARE_ID_600D 	= 0x80000286
-
 
 updater: reboot-ins.o
 	$(call build,LD,$(LD) \
@@ -52,7 +51,10 @@ updater: reboot-ins.o
 		$^ \
 	); \
 
-all: magiclantern.bin updater.bin
+all: 
+	make clean
+	make magiclantern.bin
+	make updater.bin
 	python ../../../dumper/build_fir.py -r ../../../dumper/CCF11101.FIR updater.bin ml-600d-101.fir
 
 clean:
