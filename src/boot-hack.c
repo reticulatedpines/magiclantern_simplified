@@ -282,6 +282,8 @@ void hold_your_horses(int showlogo)
 	}
 }
 
+int ml_started = 0;
+
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -402,7 +404,7 @@ my_init_task(void)
 	msleep(500);
 
 	ui_lock(UILOCK_NONE);
-
+	ml_started = 1;
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
 }

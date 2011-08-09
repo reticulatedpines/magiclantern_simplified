@@ -89,7 +89,12 @@ extern void* gui_main_task_functbl;
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
-
+	extern int ml_started;
+	if (event->type == 0 && event->param == BGMT_LV && !ml_started)
+	{
+		return 0; // discard REC button if it's pressed too early
+	}
+	
 	if (event->type == 0 && event->param != 0x56)
  	{
 		idle_wakeup_reset_counters();
