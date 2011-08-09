@@ -51,6 +51,7 @@ ML_OBJS-y = \
 	menuindex.o \
 	af_patterns.o \
 	focus.o \
+	bootflags.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -241,6 +241,7 @@ struct menu_entry boot_menus[] = {
 	},*/
 	{
 		.display = bootflag_display_all,
+		.help = "Boot flags (read-only)"
 	}
 /*
 	{

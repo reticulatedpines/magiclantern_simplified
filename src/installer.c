@@ -292,7 +292,8 @@ bootflag_toggle( void * priv )
 			bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
 			card_led_blink(1, 50, 50);
 		}
-		if (SHOOTING_MODE != SHOOTMODE_MOVIE) call( "DisableBootDisk" ); // in movie mode, it causes ERR80 and then asks for a firmware update
+		if (SHOOTING_MODE != SHOOTMODE_MOVIE)
+			call( "DisableBootDisk" ); // in movie mode, it causes ERR80 and then asks for a firmware update
 	}
 	else
 	{
@@ -301,7 +302,8 @@ bootflag_toggle( void * priv )
 			bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
 			card_led_blink(1, 50, 50);
 		}
-		if (SHOOTING_MODE != SHOOTMODE_MOVIE) call( "EnableBootDisk" );
+		if (SHOOTING_MODE != SHOOTMODE_MOVIE)
+			call( "EnableBootDisk" );
 	}
 	card_led_blink(5, 100, 100);
 	ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
@@ -387,6 +389,18 @@ void check_install()
 				"                                    \n"
 			);
 	}
+	bmp_printf( FONT_SMALL,
+		620,
+		430,
+		"Firmware  %d\n"
+		"Bootdisk  %d\n"
+		"RAM_EXE   %d\n"
+		"Update    %d\n",
+		boot_flags->firmware,
+		boot_flags->bootdisk,
+		boot_flags->ram_exe,
+		boot_flags->update
+	);
 }
 
 // dummy definitions for bmp.c
