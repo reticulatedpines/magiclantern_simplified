@@ -1222,11 +1222,28 @@ static void iso_auto_run()
 static void 
 shutter_display( void * priv, int x, int y, int selected )
 {
+	char msg[100];
+	if (shooting_mode == SHOOTMODE_MOVIE)
+	{
+		snprintf(msg, sizeof(msg),
+			"Shutter     : 1/%d, %d",
+			lens_info.shutter, 
+			360 * video_mode_fps / lens_info.shutter);
+		int xc = x + font_large.width * strlen(msg);
+		draw_circle(xc + 2, y + 7, 3, COLOR_WHITE);
+		draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
+	}
+	else
+	{
+		snprintf(msg, sizeof(msg),
+			"Shutter     : 1/%d",
+			lens_info.shutter
+		);
+	}
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Shutter     : 1/%d",
-		lens_info.shutter
+		msg
 	);
 	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 	menu_draw_icon(x, y, MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
@@ -1241,7 +1258,7 @@ shutter_toggle( int sign)
 	{
 		i = mod(i + sign, COUNT(codes_shutter));
 		lens_set_rawshutter(codes_shutter[i]);
-		msleep(100);
+		msleep(10);
 		int j = raw2index_shutter(lens_info.raw_shutter);
 		if (i == j) break;
 	}
