@@ -141,7 +141,7 @@ Uninstalling ML from one card
 Uninstalling ML from the camera
 -------------------------------
 
-* With a Magic Lantern card, launch the ``Firmware Update`` process and follow the instructions on-screen. You will have to hold the shutter button pressed half-way for 3 seconds in order to confirm your action.
+* With a Magic Lantern card, launch the ``Firmware Update`` process and follow the instructions on-screen.
 
 .. figure:: BootdiskDisabled.png
     :alt: thumb|right|Magic Lantern install - confirmation screen

@@ -30,13 +30,6 @@
 #include <consts.h>
 #include <lens.h>
 
-void gui_unlock( void )
-{
-	//~ gui_lock( 0, 1, 2 );
-	uint32_t x = 0x41000000;
-	prop_request_change(0x80020009, &x, 4);
-}
-
 unsigned int button_center_lvafframe = BGMT_PRESS_SET;
 
 int swap_menu = 0; // not used on 550D

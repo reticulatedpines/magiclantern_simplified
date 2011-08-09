@@ -112,6 +112,7 @@
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5680) == 0xF) || ((*(int8_t*)0x2A434) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5680) == 0xF) // dec ptpNotifyOlcInfoChanged
+#define SHOOTING_MODE (*(int*)0x3274)
 
 #define COLOR_FG_NONLV 1
 

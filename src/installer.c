@@ -150,9 +150,48 @@ copy_and_restart( int offset )
 }
 
 int autoexec_ok; // true if autoexec.bin was found
-
+int old_shooting_mode; // to detect when mode dial changes
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
 #define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { bmp_printf(font, x, y, msg, ## __VA_ARGS__); msleep(100); } }
+
+#define LOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
+#define LOCK_EVERYTHING 0x4100017f
+
+void ui_lock(int x)
+{
+	int unlocked = 0x41000000;
+	prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
+	msleep(200);
+	prop_request_change(PROP_ICU_UILOCK, &x, 4);
+	msleep(200);
+}
+
+void install_task()
+{
+	ui_lock(LOCK_EVERYTHING);
+
+	autoexec_ok = check_autoexec();
+
+	initial_install();
+
+	old_shooting_mode = SHOOTING_MODE;
+	
+	ui_lock(LOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+	
+	int k = 0;
+	for (;;k++)
+	{
+		check_install();
+	
+		if (SHOOTING_MODE != old_shooting_mode)
+		{
+			bootflag_toggle();
+		}
+		old_shooting_mode = SHOOTING_MODE;
+		
+		msleep(10);
+	}
+}
 
 /** Initial task setup.
  *
@@ -191,81 +230,7 @@ my_init_task(void)
 
 	msleep( 2000 );
 
-	autoexec_ok = check_autoexec();
-
-	initial_install();
-
-	while(1)
-	{
-		check_install();
-		
-		if (get_halfshutter_pressed())
-		{
-			card_led_on();
-			int counter = 30 + 100; // 3 seconds
-			#define COUNTER_SMALL (counter/10 - 9)
-			while (get_halfshutter_pressed())
-			{
-				counter--;
-				bmp_printf(
-					FONT(FONT_LARGE, 
-						COUNTER_SMALL > 0 ? COLOR_WHITE :
-						COUNTER_SMALL == 0 ? COLOR_GREEN1 :
-						COLOR_RED,
-						COLOR_BLACK),
-					0, 0, 
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				" HalfShutter pressed (%d)...         \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				" When counter reaches 0,            \n"
-				" release the button.                \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n", 
-				COUNTER_SMALL
-				);
-				msleep(100);
-			}
-			card_led_off();
-			msleep(300);
-			
-			if (COUNTER_SMALL != 0)
-			{
-				PERSISTENT_PRINTF(20, FONT_LARGE, 0, 0, 
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				" Action canceled.                   \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				" To change the BOOTDISK setting,    \n"
-				" you need to release the shutter    \n"
-				" button when the counter becomes 0. \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				);
-				while (get_halfshutter_pressed()) msleep(100);
-				continue;
-			}
-			bootflag_toggle();
-		}
-	}
-}
-
-int get_halfshutter_pressed()
-{
-	return FOCUS_CONFIRMATION_AF_PRESSED;
+	task_create("install_task", 0x1b, 0, install_task, 0);
 }
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
@@ -317,18 +282,29 @@ initial_install(void)
 bootflag_toggle( void * priv )
 {
 	clrscr();
-	card_led_blink(2, 50, 50);
+	ui_lock(LOCK_EVERYTHING);
+	clrscr();
+	int i;
 	if( boot_flags->bootdisk )
 	{
-		bmp_printf(FONT_LARGE, 50, 50, "DisableBootDisk");
-		call( "DisableBootDisk" );
+		for (i = 0; i < 10; i++)
+		{
+			bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
+			card_led_blink(1, 50, 50);
+		}
+		if (SHOOTING_MODE != SHOOTMODE_MOVIE) call( "DisableBootDisk" ); // in movie mode, it causes ERR80 and then asks for a firmware update
 	}
 	else
 	{
-		bmp_printf(FONT_LARGE, 50, 50, "EnableBootDisk");
-		call( "EnableBootDisk" );
+		for (i = 0; i < 10; i++)
+		{
+			bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
+			card_led_blink(1, 50, 50);
+		}
+		if (SHOOTING_MODE != SHOOTMODE_MOVIE) call( "EnableBootDisk" );
 	}
-	card_led_blink(10, 50, 50);
+	card_led_blink(5, 100, 100);
+	ui_lock(LOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
 }
 
 // check if autoexec.bin is present on the card
@@ -346,33 +322,33 @@ int check_autoexec()
 // check ML installation and print a message
 void check_install()
 {
-	msleep(50);
+	//~ msleep(1);
 	
 	if( boot_flags->bootdisk )
 	{
 		if (autoexec_ok)
 		{
-			bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, COLOR_BLACK), 0, 0, 
+			bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
 				"                                    \n"
 				" BOOTDISK flag is ENABLED.          \n"
 				"                                    \n"
 				" AUTOEXEC.BIN found.                \n"
 				"                                    \n"
+				"                                    \n"
+				"                                    \n"
 				" Magic Lantern is installed.        \n"
 				" You may now restart your camera.   \n"
 				"                                    \n"
 				"                                    \n"
-				"                                    \n"
-				"                                    \n"
 				" To disable the BOOTDISK flag,      \n"
-				" hold the shutter pressed half-way  \n"
-				" for about 3 seconds.               \n"
+				" turn the mode dial one notch       \n"
+				" in any direction.                  \n"
 				"                                    \n"
 			);
 		}
 		else
 		{
-			bmp_printf(FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK), 0, 0, 
+			bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
 				"                                    \n"
 				" BOOTDISK flag is ENABLED.          \n"
 				"                                    \n"
@@ -385,15 +361,15 @@ void check_install()
 				"                                    \n"
 				"                                    \n"
 				" To disable the BOOTDISK flag,      \n"
-				" hold the shutter pressed half-way  \n"
-				" for about 3 seconds.               \n"
+				" turn the mode dial one notch       \n"
+				" in any direction.                  \n"
 				"                                    \n"
 			);
 		}
 	}
 	else
 	{
-			bmp_printf(FONT_LARGE, 0, 0, 
+			bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 0, 0, 
 				"                                    \n"
 				" BOOTDISK flag is DISABLED.         \n"
 				"                                    \n"
@@ -406,8 +382,8 @@ void check_install()
 				"                                    \n"
 				"                                    \n"
 				" To enable the BOOTDISK flag,       \n"
-				" hold the shutter pressed half-way  \n"
-				" for about 3 seconds.               \n"
+				" turn the mode dial one notch       \n"
+				" in any direction.                  \n"
 				"                                    \n"
 			);
 	}

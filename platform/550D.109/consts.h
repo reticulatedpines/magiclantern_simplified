@@ -119,6 +119,7 @@
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5780) == 0xF) || ((*(int8_t*)0x20164) != 0x17))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
+#define SHOOTING_MODE (*(int*)0x30BC)
 
 #define COLOR_FG_NONLV 80
 
