@@ -2,16 +2,11 @@
 Important notes
 ---------------
 
-* If you have a bootable SD card and have the ``DISKBOOT`` flag 
-  set in the camera (which the installer does), and you do not have 
-  an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT!**
-  It will hang and not wake up until the battery is removed.
-  
+* If you have a bootable SD card and have the ``BOOTDISK`` flag set in the camera (which the installer does), and you do not have an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT**! It will hang and not wake up until the battery is removed.
+
 * If you encounter a "locked up" camera, **quickly remove the battery**.
-  Otherwise the ARM might be in a tight-loop and get very hot, very quickly. 
-  Your battery will run down and your LCD might show some discoloration.
-  
-* When in doubt, remove the battery and reboot. 
+
+* When in doubt, remove the battery and reboot.
 
 * **And, remember that this software can damage or destroy your camera.**
 
@@ -24,6 +19,18 @@ Important notes
 FAQ
 ---
 
+Does Magic Lantern completely replace Canon firmware?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No. Magic Lantern runs from the card, as an *add-on* over standard firmware. 
+You will still be able to access all Canon functionality.
+
+To go back to Canon firmware, you may:
+
+* Hold the shutter button half-pressed at startup to bypass ML only once (for the current session).
+* Format your card (this will remove ML from that card).
+* Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
+
 How do I erase all the images without removing ML?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -32,12 +39,14 @@ Canon menu (Play) -> Erase images -> All images on card.
 Notes:
 
 * This will not remove files created by ML (like ``*.LOG``, ``*.422``, ``*.SH``). You will have to delete these files from PC.
-* Formatting the card will remove ML from that card. If you did this, you will have to make the card bootable again and then copy ML files.
+* Formatting the card will remove ML from that card. If you did this, you will have to copy ML files and make the card bootable again (see [[Unified/Install#Step_2._Installation]]).
 
 How do I record more than 12 minutes?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There's no 12 minute limit. There's a 30 minute limit and a 4 GB limit, whichever comes first. You can either lower the `bitrate`_ or use `Movie restart`_.
+
+With default bitrate settings, the 4 GB limit is reached after around 12 minutes (more or less).
 
 
 Can I record more than 30 minutes / 4 GB continuously?
@@ -54,8 +63,8 @@ Use `Bulb timer`_ together with `LCD remote shot`_, `audio trigger`_ or `interva
 How do I see shutter counter / CMOS temperature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ``MENU -> DISP`` (550D, 500D)
-* Press ``INFO`` button in photo mode, outside LiveView (60D, 600D)
+* ``MENU -> DISP`` (550D, 500D).
+* Press ``INFO`` button in photo mode, outside LiveView (60D, 600D).
 
 
 Do I have to adjust ISO/shutter/aperture/WB from ML menu only?
@@ -70,12 +79,19 @@ Does ML eat batteries faster, or cause overheating?
 
 Yes and no, depending on what features you have enabled. For example, focus peaking, false colors, waveform, zebras (and maybe others) are CPU hungry. It can even reduce power consumption by turning off the LCD screen, or by letting you change the backlight level quickly. See `Power saving`_ for details.
 
+Tip: `batteries are not expensive <http://amzn.to/ml-lp-e8>`_; however, third-party models may last less than original Canon batteries. See `this topic <http://vimeo.com/groups/magiclantern/forumthread:238190>`_.
 
-Why the audio is so quiet after disabling AGC?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why the audio is so quiet / noisy after disabling AGC?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You have to adjust the volume manually, the camera won't do it for you any more :)
+You will have to adjust the volume manually; use the audio meters to determine the proper level.
 
+Best audio is obtained by use of a preamp system fed to the camera. As a general rule, the use of a quiet preamp to send the signal to the camera will result in better the sound recorded in camera. Use of a preamped XLR adapter like the `JuicedLink CX231 <http://amzn.to/cx231>`_ or a field mixer will give superior results. You may also use a recorder like `Zoom H1, H2 or H4n <http://amzn.to/zoom-h>`_, but since the line out level is much higher than the mic level, you will have to `turn the output down from your recorder or use a pad cable <http://groups.google.com/group/ml-devel/browse_thread/thread/9d8c5bc96212ce71#>`_.
+
+If you don't use an external preamp, the `Rode VideoMic PRO <http://amzn.to/ml-rode-videomic-pro>`_ has a built-in +20dB amp designed for use with dSLR cameras. 
+The Rode VideoMic (non-pro) is known to have low output levels when used with Canon dSLRs without any preamps.
+
+For more info, check out the `Canon DSLR Audio thread on dvxuser <http://www.dvxuser.com/V6/showthread.php?240822-The-Canon-DSLR-Audio-thread>`_ and `AGC Disable - Magic Lantern vs. Juicedlink? on dvinfo <http://www.dvinfo.net/forum/all-things-audio/498727-agc-disable-magic-lantern-vs-juicedlink-2.html>`_.
 
 Why does the camera take pictures when pressing the shutter half-way?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,6 +102,8 @@ Can the intervalometer be more accurate?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Select the ``NoWait`` mode and it will be as accurate as the camera's realtime clock.
+
+If the process of saving a picture takes longer than the programmed delay between two shots (e.g. if you shoot RAW), the intervalometer will skip some frames.
 
 My camera freezes and I have to remove the battery, or saves corrupted files. Why?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -273,6 +291,11 @@ from Magic Lantern. You can only use audio meters during recording.
 
   Volume for audio monitoring. It does not have effect on the internal camera speaker.
 
+  For best results, you should a pair of low impedance headphones, for example `Audio Technica ATH-M50 (38 ohms) <http://amzn.to/ml-athm50>`_.
+  With high-impedance headphones, you may have to use a headphone amplifier like `FiiO E5 <http://amzn.to/fiio-e5>`_.
+  
+  
+
 LiveV
 ~~~~~
 
@@ -325,6 +348,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``Q``: change threshold for overexposure (whites)
   
   Brightness values are between 0 and 255. A threshold equal to 0 will disable zebras for underexposure, and 255 will disable zebras for overexposure.
+  
+  Note: when using the Technicolor CineStyle picture style, luma will have values between 16 and 255; therefore, you will have to set the underexposure threshold to 16 or greater.
 
 .. _false color:
 
@@ -411,13 +436,13 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
     It allows you to compose the picture without any extra distractions. 
   
-    This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set CFn.9 to 1: ``Shutter/AE lock button`` = ``AE lock/AF``).
+    This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set ``Shutter/AE lock button`` = ``AE lock/AF``).
   
   * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle.
-  
-    This feature allows you to use an external HDMI recording device.
-  
-    The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then disappear.
+    
+    The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then they will disappear again if the camera is idle.
+
+    This feature allows you to use an external HDMI recording device, such as `Atomos Ninja <http://amzn.to/ml-atomos-ninja>`_ or `Hyperdeck Shuttle <http://amzn.to/ml-hyperdeck-shuttle>`_. 
 
 .. _focus peaking:
 
@@ -797,7 +822,7 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Bulb Timer: 1s...8h**
 
-  Very long exposures with Bulb mode and ML timer.
+  Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
   
   Bulb timer is started by half-shutter press, or by remote triggers / intervalometer.
   
@@ -837,7 +862,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
   0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
 
-  To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1). To get ISO lower than 200, turn HTP off. 
+  To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions. To get ISO lower than 200, turn HTP off. 
   In video mode, ISO only goes up to 6400. This is also true without ML.
   
   To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, see `ISO selection`_.
@@ -860,7 +885,9 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 **WhiteBalance: 1500...12000**
 
-  Kelvin white balance. Extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range, i.e. 2500...10000.
+  Kelvin white balance.
+  
+  On 60D, extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range, i.e. 2500...10000.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
 
@@ -1154,11 +1181,6 @@ Miscellanous settings.
   
   * ``Normal``: just like in standard firmware
   * ``Fast``: zoom on steroids
-
-**HalfShutter in DLGs**
-
-  * ``SET``: Half-shutter press in almost any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others.
-  * ``Cancel``: default firmware behavior (i.e. **cancel** the current selection on half-shutter press).
 
 .. _Show cropmarks in:
 

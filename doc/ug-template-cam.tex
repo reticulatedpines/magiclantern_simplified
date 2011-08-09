@@ -19,9 +19,13 @@
 \usepackage{booktabs}
 \usepackage{newfile}
 \usepackage{ifthen}
+\usepackage[T1]{fontenc}
+%~ \usepackage[cmttb]{bold-extra}
+%\usepackage{lmodern}
 
 \definecolor{darkgray}{rgb}{0.05,0.05,0.05}
 \definecolor{cyan}{rgb}{0.4,1,1}
+%\definecolor{cyan}{rgb}{1,0.8,0}
 
 % avoid hyphenation and a few other things 
 \hyphenpenalty=1000000
@@ -207,6 +211,9 @@ development team:
 % write a computer-readable table of contents, useful for context-sensitive help
 \let\oldaddcontentsline=\addcontentsline
 \renewcommand{\addcontentsline}[3]{\oldaddcontentsline{#1}{#2}{#3}\addtostream{menuindex}{\arabic{page} #2 #3}}
+
+\let\oldtexttt=\texttt
+\renewcommand{\texttt}[1]{{\oldtexttt{\bfseries #1}}}
 
 % mkdoc-cam.py will write here the result from rst2latex
 $body

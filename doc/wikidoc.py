@@ -45,6 +45,9 @@ sub("userguide.wiki", "= Magic Lantern 0.2.1 =", """[[Image:Logo.png|140px]]
 
 <big>'''Magic Lantern 0.2.1 -- User's Guide'''</big>
 
+
+'''[[Unified/UserGuide|English]] | [[Unified/UserGuide/CZ|Česky]] | [[Unified/UserGuide/DE|Deutsch]] | [[Unified/UserGuide/NL|Dutch]] | [[Unified/UserGuide/ES|Español]] | [[Unified/UserGuide/FR|Français]] | [[Unified/UserGuide/IT|Italiano]] | [[Unified/UserGuide/RO|Română]] | [[Unified/UserGuide/RU|Russian]] | [[Unified/UserGuide/CHS|简体中文]] | [[Unified/UserGuide/JA|日本語]]'''
+
 """)
 
 sub("userguide.wiki", "=== Audio ===", """<tabber>
