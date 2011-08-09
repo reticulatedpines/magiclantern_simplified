@@ -62,7 +62,7 @@ int get_zoom_out_pressed() { return zoom_out_pressed; }
 //~ int get_set_pressed() { return set_pressed; }
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
-#define DIGITAL_ZOOMOUT_DELAY 10
+#define DIGITAL_ZOOMOUT_DELAY 2
 int delay_counter_zoomout = 0;
 
 struct semaphore * gui_sem;
