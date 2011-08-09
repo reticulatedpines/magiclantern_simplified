@@ -172,8 +172,18 @@ void dump_rom(void* priv)
 	}
 }
 
+void ui_lock(int x)
+{
+	int unlocked = UILOCK_NONE;
+	prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
+	msleep(200);
+	prop_request_change(PROP_ICU_UILOCK, &x, 4);
+	msleep(200);
+}
+
 void xx_test(void* priv)
 {
+	ui_lock(0x41000001);
 }
 
 void toggle_mirror_display()

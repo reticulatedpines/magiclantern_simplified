@@ -154,8 +154,8 @@ int old_shooting_mode; // to detect when mode dial changes
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
 #define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { bmp_printf(font, x, y, msg, ## __VA_ARGS__); msleep(100); } }
 
-#define LOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
-#define LOCK_EVERYTHING 0x4100017f
+#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
+#define UILOCK_EVERYTHING 0x4100017f
 
 void ui_lock(int x)
 {
@@ -168,7 +168,7 @@ void ui_lock(int x)
 
 void install_task()
 {
-	ui_lock(LOCK_EVERYTHING);
+	ui_lock(UILOCK_EVERYTHING);
 
 	autoexec_ok = check_autoexec();
 
@@ -176,7 +176,7 @@ void install_task()
 
 	old_shooting_mode = SHOOTING_MODE;
 	
-	ui_lock(LOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+	ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
 	
 	int k = 0;
 	for (;;k++)
@@ -282,7 +282,7 @@ initial_install(void)
 bootflag_toggle( void * priv )
 {
 	clrscr();
-	ui_lock(LOCK_EVERYTHING);
+	ui_lock(UILOCK_EVERYTHING);
 	clrscr();
 	int i;
 	if( boot_flags->bootdisk )
@@ -304,7 +304,7 @@ bootflag_toggle( void * priv )
 		if (SHOOTING_MODE != SHOOTMODE_MOVIE) call( "EnableBootDisk" );
 	}
 	card_led_blink(5, 100, 100);
-	ui_lock(LOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+	ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
 }
 
 // check if autoexec.bin is present on the card

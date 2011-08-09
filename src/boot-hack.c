@@ -348,6 +348,8 @@ my_init_task(void)
 		return;
 	}
 
+	ui_lock(UILOCK_EVERYTHING);
+	
 	msleep( 1000 );
 
 	menu_init();
@@ -398,8 +400,8 @@ my_init_task(void)
 		//~ ml_tasks
 	//~ );
 	msleep(500);
-	
-	redraw();
+
+	ui_lock(UILOCK_NONE);
 
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
