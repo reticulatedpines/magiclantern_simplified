@@ -964,7 +964,7 @@ static void draw_zebra_and_focus_unified( void )
 	
 	fps_ticks++;
 	
-	bvram_mirror_init();
+	//~ bvram_mirror_init();
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -1211,7 +1211,7 @@ draw_zebra_and_focus( int Z, int F )
 	// How to scan?
 	// Scan the HD vram and do ratio conversion only for the 1% pixels displayed
 
-	bvram_mirror_init();
+	//~ bvram_mirror_init();
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -1524,7 +1524,7 @@ draw_false_downsampled( void )
 	{
 		if (!expsim) return;
 	}
-	bvram_mirror_init();
+	//~ bvram_mirror_init();
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	if (!bvram_mirror) return;
@@ -3571,7 +3571,7 @@ INIT_FUNC(__FILE__, zebra_init_menus);
 
 void make_overlay()
 {
-	bvram_mirror_init();
+	//~ bvram_mirror_init();
 	clrscr();
 
 	bmp_printf(FONT_MED, 0, 0, "Saving overlay...");
@@ -3608,7 +3608,7 @@ void make_overlay()
 
 void show_overlay()
 {
-	bvram_mirror_init();
+	//~ bvram_mirror_init();
 	struct vram_info * vram = get_yuv422_vram();
 	//~ uint8_t * const lvram = vram->vram;
 	//~ int lvpitch = YUV422_LV_PITCH;
@@ -3656,3 +3656,5 @@ void transparent_overlay_from_play()
 	BMP_LOCK( show_overlay(); )
 	//~ transparent_overlay = 1;
 }
+
+INIT_FUNC("bvram_mirror_init", bvram_mirror_init);
