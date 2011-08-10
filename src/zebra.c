@@ -130,10 +130,8 @@ int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
-	if (lv && MENU_MODE && bmp_is_on())
-	{
+	if (lv && !MENU_MODE && bmp_is_on())
 		GMT_LOCK( ChangeColorPalette(x); )
-	}
 }
 
 /*
@@ -3233,7 +3231,11 @@ TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 void redraw()
 {
 	if (is_safe_to_mess_with_the_display(0)) 
+	{
 		BMP_LOCK( GMT_LOCK( RedrawDisplay(); ) )
+		afframe_set_dirty();
+		crop_set_dirty(20);
+	}
 }
 
 /*
