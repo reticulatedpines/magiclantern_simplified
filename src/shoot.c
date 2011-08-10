@@ -1674,6 +1674,9 @@ saturation_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_WARNING, (s + 4) * 100 / 8);
 }
 
+CONFIG_INT("picstyle.rec", picstyle_rec, 0);
+int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
+
 const char* get_picstyle_name(int raw_picstyle)
 {
 	return
@@ -1706,12 +1709,13 @@ const char* get_picstyle_shortname(int raw_picstyle)
 static void 
 picstyle_display( void * priv, int x, int y, int selected )
 {
-	int p = lens_info.raw_picstyle;
+	int p = get_prop_picstyle_from_index(picstyle_rec && recording ? picstyle_before_rec : lens_info.picstyle);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"PictureStyle: %s ",
-		get_picstyle_name(p)
+		"PictureStyle: %s%s",
+		get_picstyle_name(p),
+		picstyle_before_rec ? "*" : ""
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
@@ -1719,10 +1723,14 @@ picstyle_display( void * priv, int x, int y, int selected )
 static void
 picstyle_toggle( int sign )
 {
+	if (recording) return;
 	int p = lens_info.picstyle;
 	p = mod(p + sign - 1, NUM_PICSTYLES) + 1;
-	p = get_prop_picstyle_from_index(p);
-	if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
+	if (p)
+	{
+		p = get_prop_picstyle_from_index(p);
+		prop_request_change(PROP_PICTURE_STYLE, &p, 4);
+	}
 	menu_show_only_selected();
 }
 
@@ -1737,6 +1745,71 @@ picstyle_toggle_reverse( void * priv )
 {
 	picstyle_toggle(-1);
 }
+
+static void 
+picstyle_rec_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"REC PicStyle: %s ",
+		picstyle_rec ? get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec)) : "Don't change"
+	);
+}
+
+static void
+picstyle_rec_toggle( void * priv )
+{
+	if (recording) return;
+	picstyle_rec = mod(picstyle_rec + 1, NUM_PICSTYLES + 1);
+}
+
+static void
+picstyle_rec_toggle_reverse( void * priv )
+{
+	if (recording) return;
+	picstyle_rec = mod(picstyle_rec - 1, NUM_PICSTYLES + 1);
+}
+
+void redraw_after(int msec)
+{
+	msleep(msec);
+	redraw();
+}
+
+PROP_HANDLER(PROP_MVR_REC_START)
+{
+	static int prev = -1;
+	int rec = buf[0];
+	if (picstyle_rec)
+	{
+		if (prev == 0 && rec == 1) // will start recording
+		{
+			picstyle_before_rec = lens_info.picstyle;
+			int p = get_prop_picstyle_from_index(picstyle_rec);
+			if (p)
+			{
+				bmp_printf(FONT_LARGE, 50, 50, "Picture Style : %s", get_picstyle_name(p));
+				prop_request_change(PROP_PICTURE_STYLE, &p, 4);
+				task_create("redraw", 0x1f, 0, redraw_after, 2000);
+			}
+		}
+		else if (prev == 2 && rec == 0) // recording => will stop
+		{
+			int p = get_prop_picstyle_from_index(picstyle_before_rec);
+			if (p)
+			{
+				bmp_printf(FONT_LARGE, 50, 50, "Picture Style : %s", get_picstyle_name(p));
+				prop_request_change(PROP_PICTURE_STYLE, &p, 4);
+				task_create("redraw", 0x1f, 0, redraw_after, 2000);
+			}
+			picstyle_before_rec = 0;
+		}
+	}
+	prev = rec;
+	return prop_cleanup(token, property);
+}
+
 
 PROP_INT(PROP_STROBO_AECOMP, flash_ae);
 
@@ -2293,6 +2366,14 @@ struct menu_entry expo_menus[] = {
 		.select		= picstyle_toggle_forward,
 		.select_reverse		= picstyle_toggle_reverse,
 		.help = "Change current picture style."
+	},
+	{
+		.priv = &picstyle_rec,
+		.name = "REC PicStyle",
+		.display	= picstyle_rec_display,
+		.select		= picstyle_rec_toggle,
+		.select_reverse		= picstyle_rec_toggle_reverse,
+		.help = "You can use a different picture style when recording."
 	},
 	{
 		.name = "Contrast/Saturation",

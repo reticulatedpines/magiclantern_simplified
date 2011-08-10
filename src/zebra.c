@@ -3325,7 +3325,7 @@ livev_hipriority_task( void* unused )
 		{
 			guess_fastrefresh_direction();
 			if (dirty) { clrscr_mirror(); dirty = 0; }
-			BMP_LOCK( draw_zoom_overlay(); )
+			BMP_LOCK( if (lv) draw_zoom_overlay(); )
 		}
 		else
 		{
@@ -3333,17 +3333,17 @@ livev_hipriority_task( void* unused )
 			if (falsecolor_draw)
 			{
 				if (k % 4 == 0)
-					BMP_LOCK( draw_false_downsampled(); )
+					BMP_LOCK( if (lv) draw_false_downsampled(); )
 			}
 			else
 			{
-				BMP_LOCK( draw_zebra_and_focus(k % (recording ? 2 : 1) == 0, 1); )
+				BMP_LOCK( if (lv) draw_zebra_and_focus(k % (recording ? 2 : 1) == 0, 1); )
 			}
 			msleep(20);
 		}
 		
 		if (spotmeter_draw && k % 4 == 0)
-			BMP_LOCK( spotmeter_step(); )
+			BMP_LOCK( if (lv) spotmeter_step(); )
 
 		if (crop_dirty)
 		{
@@ -3351,7 +3351,7 @@ livev_hipriority_task( void* unused )
 			crop_dirty--;
 			if (!crop_dirty)
 			{
-				cropmark_redraw();
+				if (lv) cropmark_redraw();
 			}
 		}
 
@@ -3426,21 +3426,21 @@ livev_lopriority_task( void* unused )
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
-CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
+/*CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
 static unsigned int picstyle_disppreset = 0;
 PROP_HANDLER(PROP_PICTURE_STYLE)
 {
 	update_disp_mode_bits_from_params();
 	return prop_cleanup(token, property);
-}
+}*/
 
 int unused = 0;
-unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay, &picstyle_disppreset};
-int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2,                   4};
+unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay};
+int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2};
 
 void update_disp_mode_bits_from_params()
 {
-	picstyle_disppreset = lens_info.picstyle;
+	//~ picstyle_disppreset = lens_info.picstyle;
 	
 	int i;
 	int off = 0;
@@ -3484,13 +3484,13 @@ int update_disp_mode_params_from_bits()
 		off += b;
 	}
 	
-	if (picstyle_disppreset_enabled && picstyle_disppreset)
+	/*if (picstyle_disppreset_enabled && picstyle_disppreset)
 	{
 		int p = get_prop_picstyle_from_index(picstyle_disppreset);
 		//~ bmp_printf(FONT_LARGE, 50, 50, "picsty %x ", p);
 		//~ msleep(1000);
 		if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
-	}
+	}*/
 	
 	//~ bmp_on();
 	return 1;

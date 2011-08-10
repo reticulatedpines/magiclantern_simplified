@@ -547,7 +547,7 @@ crop_movieonly_display(
 	);
 }
 
-extern int picstyle_disppreset_enabled;
+/*extern int picstyle_disppreset_enabled;
 static void
 picstyle_disppreset_display(
         void *                  priv,
@@ -562,7 +562,7 @@ picstyle_disppreset_display(
 		"PicSty->DISP preset : %s",
 		picstyle_disppreset_enabled ? "ON" : "OFF"
 	);
-}
+}*/
 
 
 struct menu_entry tweak_menus[] = {
@@ -630,13 +630,13 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
 	},
-	{
+	/*{
 		.name = "PicSty->DISP preset",
 		.priv = &picstyle_disppreset_enabled,
 		.display	= picstyle_disppreset_display,
 		.select		= menu_binary_toggle,
 		.help = "PicStyle can be included in DISP preset for easy toggle."
-	},
+	},*/
 	#ifdef CONFIG_60D
 	{
 		.name = "Swap MENU <--> ERASE",

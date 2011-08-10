@@ -940,7 +940,9 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Change picture style. You can see the effect on LiveView instantly.
   
-  Tip: you may assign the picture style to current `display preset`_ and toggle it with a single button press.
+**REC PicStyle**
+
+  You can use a different picture style when recording (toggled automagically).
 
 .. _Contrast:
 
@@ -1194,12 +1196,6 @@ Miscellanous settings.
 
   * ``All values``: use all available ISO speeds, in 1/8 EV steps
   * ``100x, 160x``: use only native ISOs (multiples of 100) and ISO values with lower digital gain (multiples of 160).
-
-**PicSty->DISP preset**
-
-  This option allows you to assign a picture style to each `display preset`_.
-  
-  After enabling this option, go through each `display preset`_ and select the desired picture style, either from Canon or ML menu. For example, you may assign the Technicolor CineStyle™ to ``DISP 0`` for recording, and Portrait to ``DISP 1`` for adjusting the exposure. In this case, you may also want to enable the exposure tools (RGB `zebras`_, `histogram`_, `waveform`_) on ``DISP 1`` and disable them on ``DISP 0`` (and maybe enable `Magic Zoom`_ or `Focus Peaking`_).
 
 **Crop Factor Display**
 
