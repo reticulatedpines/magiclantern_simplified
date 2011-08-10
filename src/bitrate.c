@@ -178,6 +178,7 @@ PROP_INT(PROP_FREE_SPACE, free_space_raw);
 void free_space_show()
 {
 	if (!get_global_draw()) return;
+	if (gui_menu_shown()) return;
 	if (recording && time_indicator) return;
 	int fsg = free_space_32k >> 15;
 	int fsgr = free_space_32k - (fsg << 15);
@@ -211,6 +212,8 @@ void free_space_show_photomode()
 
 void time_indicator_show()
 {
+	if (!get_global_draw()) return;
+
 	if (!recording) 
 	{
 		free_space_show();
@@ -342,7 +345,7 @@ void show_mvr_buffer_status()
 {
 	int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
 	if (warning) warning--;
-	if (recording) bmp_printf(fnt, 680, 60, "%3d%%", MVR_BUFFER_USAGE);
+	if (recording && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 60, "%3d%%", MVR_BUFFER_USAGE);
 }
 
 
