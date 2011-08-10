@@ -118,7 +118,7 @@ void do_movie_mode_remap()
 	if (setting_shooting_mode) return;
 	int movie_newmode = movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X : MOVIE_MODE_REMAP_Y;
 	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
-	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
+	//~ else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
 	mode_remap_done = 1;
 }
 /*
