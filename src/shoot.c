@@ -2560,18 +2560,18 @@ void hdr_shot(int skip0, int wait)
 	}
 	else if (hdr_steps > 1)
 	{
-		int drive_mode_bk = 0;
+		int drive_mode_bak = 0;
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 		{
-			drive_mode_bk = drive_mode;
+			drive_mode_bak = drive_mode;
 			lens_set_drivemode(DRIVE_CONTINUOUS);
 		}
 		if (hdr_steps == 2)
 			hdr_take_pics(hdr_steps, hdr_stepsize/2, 1);
 		else
 			hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
-		while (lens_info.job_state > 10) msleep(500);
-		if (drive_mode_bk) lens_set_drivemode(drive_mode_bk);
+		while (lens_info.job_state > 10) msleep(100);
+		if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
 	}
 	else // regular pic
 	{
@@ -2587,7 +2587,7 @@ void hdr_shot(int skip0, int wait)
 		}
 	}
 
-	while (lens_info.job_state) msleep(500);
+	//~ while (lens_info.job_state) msleep(500);
 
 }
 
@@ -2943,7 +2943,7 @@ shoot_task( void* unused )
 			was_idle_not_pressed = is_idle_not_pressed;
 		}
 
-		if (lens_info.job_state) // just took a picture, maybe we should take another one
+		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
 		{
 			if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
 		}
