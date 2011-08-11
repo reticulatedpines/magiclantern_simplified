@@ -263,7 +263,7 @@ void draw_ml_bottombar()
       *  SHUTTER         *
       *******************/
 
-      int fgs = 0x73;
+      int fgs = 0x73; // blue (neutral)
       if (shooting_mode == SHOOTMODE_MOVIE) // check 180 degree rule
       {
            int shutter_degrees = 360 * video_mode_fps / lens_info.shutter;
@@ -273,6 +273,16 @@ void draw_ml_bottombar()
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
            else if (shutter_degrees < 45)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
+      }
+      else if (info->aperture) // rule of thumb: shutter speed should be roughly equal to focal length
+      {
+           int focal_35mm = (int)roundf((double)info->focal_len * SENSORCROPFACTOR);
+           if (lens_info.shutter > focal_35mm * 15/10) 
+              fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg); // very good
+           else if (lens_info.shutter < focal_35mm / 2) 
+              fgs = FONT(FONT_LARGE,COLOR_RED,bg); // you should have really steady hands
+           else if (lens_info.shutter < focal_35mm) 
+              fgs = FONT(FONT_LARGE,COLOR_YELLOW,bg); // OK, but be careful
       }
 
       text_font = FONT(FONT_LARGE,fgs,bg);
