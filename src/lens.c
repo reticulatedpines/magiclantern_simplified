@@ -146,7 +146,7 @@ char *aj_lens_format_dist( unsigned mm)
 
    if( mm > 100000 ) // 100 m
    {
-      snprintf( dist, sizeof(dist), "%3d.%1dm",mm / 1000, (mm % 1000) / 100);
+      snprintf( dist, sizeof(dist), "Infty");
    }
    else if( mm > 10000 ) // 10 m
    {
@@ -223,7 +223,7 @@ void draw_ml_bottombar()
       *******************/
       if (info->aperture)
       {
-		  text_font = FONT(FONT_LARGE,0x13,bg);   // ORANGE
+		  text_font = FONT(FONT_LARGE,COLOR_WHITE,bg);
 
 		  char focal[32];
 		  snprintf(focal, sizeof(focal), "%d",
@@ -243,7 +243,7 @@ void draw_ml_bottombar()
 						  "%d    ", info->aperture / 10) ;
 
 
-		  text_font = FONT(FONT_MED,0x13,bg);   // ORANGE
+		  text_font = FONT(FONT_MED,COLOR_WHITE,bg);
 
 		  bmp_printf( text_font, 
 					  x_origin + font_large.width * strlen(focal), 
@@ -347,10 +347,7 @@ void draw_ml_bottombar()
           bmp_printf( text_font, 
                   x_origin + 470 +8  , 
                   y_origin, 
-                  "%s",
-                  lens_info.focus_dist == 0xFFFF
-                  ? "Infty"
-                  : aj_lens_format_dist( lens_info.focus_dist * 10 )
+                  aj_lens_format_dist( lens_info.focus_dist * 10 )
                 );
 
 		//~ y += height;
