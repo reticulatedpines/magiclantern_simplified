@@ -599,7 +599,7 @@ menu_redraw_if_damaged()
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 ); 
 				menus_display( menus, 10, 40 ); 
 				if (is_menu_active(" (i)")) menu_show_version();
-				if (!audio_meters_are_drawn()) draw_ml_topbar();
+				draw_ml_topbar();
 			)
 			//~ update_stuff();
 			update_disp_mode_bits_from_params();

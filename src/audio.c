@@ -333,7 +333,7 @@ int audio_meters_are_drawn()
 {
 	return 
 		(
-			shooting_mode == SHOOTMODE_MOVIE && cfg_draw_meters && do_draw_meters && get_global_draw()
+			shooting_mode == SHOOTMODE_MOVIE && cfg_draw_meters && do_draw_meters && get_global_draw() && !gui_menu_shown()
 		)
 		||
 		(
