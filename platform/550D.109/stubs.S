@@ -213,3 +213,6 @@ NSTUB(0xffffaf20, write_bootflags_to_card)
 NSTUB(0xFF06E358, CreateRecursiveLock)
 NSTUB(0xff1d2ea8, AcquireRecursiveLock)
 NSTUB(0xff1d2fbc, ReleaseRecursiveLock)
+
+NSTUB(0xFF3026F8, CancelBottomInfoDispTimer)
+NSTUB(0xFF2FDCBC, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer

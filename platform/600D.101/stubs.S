@@ -209,3 +209,6 @@ NSTUB( 0xff039d4c, PD_GetBatteryPower )
 NSTUB(0xff075500, CreateRecursiveLock)
 NSTUB(0xff1f5d8c, AcquireRecursiveLock)
 NSTUB(0xff1f5ea0, ReleaseRecursiveLock)
+
+NSTUB(0xFF37FAF4, CancelBottomInfoDispTimer)
+NSTUB(0xff378968, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer

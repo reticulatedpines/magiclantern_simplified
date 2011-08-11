@@ -168,6 +168,13 @@ char *aj_lens_format_dist( unsigned mm)
 } /* end of aj_lens_format_dist() */
 
 
+void erase_bottom_bar()
+{
+	msleep(10);
+	GMT_LOCK( if (LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe(); )
+	draw_ml_bottombar();
+}
+
 void
 update_lens_display()
 {
@@ -180,9 +187,12 @@ update_lens_display()
 		if (!zebra_should_run()) return;
 	}
 	
-	if (!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
+	if (lv_disp_mode == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
 	{
-		draw_ml_bottombar();
+		if (LV_BOTTOM_BAR_DISPLAYED)
+			task_create("erase_bottom_bar", 0x1f, 0, erase_bottom_bar, 0);
+		else
+			draw_ml_bottombar();
 	}
 	/*else
 	{
@@ -324,6 +334,8 @@ void draw_ml_bottombar()
 					  y_origin, 
 					  "A-ISO");
 
+      if (ISO_ADJUSTMENT_ACTIVE) return;
+      
 		// kelvins
       text_font = FONT(
       FONT_LARGE, 

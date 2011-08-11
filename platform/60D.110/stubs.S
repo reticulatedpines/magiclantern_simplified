@@ -216,3 +216,6 @@ NSTUB(0x370d0, main_ctrl_functbl)
 NSTUB(0xff072a14, CreateRecursiveLock)
 NSTUB(0xff1d6e10, AcquireRecursiveLock)
 NSTUB(0xff1d6f24, ReleaseRecursiveLock)
+
+NSTUB(0xFF37477C, CancelBottomInfoDispTimer)
+NSTUB(0xff36e574, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
