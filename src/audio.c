@@ -28,9 +28,12 @@
 #include "menu.h"
 #include "gui.h"
 
-void audio_configure(int force);
-void volume_display();
-void volume_display_clear();
+static void audio_configure(int force);
+static void volume_display();
+static void volume_display_clear();
+
+static void audio_monitoring_display_headphones_connected_or_not();
+static void audio_menus_init();
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -354,8 +357,6 @@ meter_task( void* unused )
 		msleep( 50 );
 
 		if (is_menu_help_active()) continue;
-
-		static int a_prev = 0;
 		
 		if (audio_meters_are_drawn())
 		{
@@ -617,7 +618,7 @@ int get_mic_power(int input_source)
 	return (input_source >= 2) ? mic_power : 1;
 }
 
-void
+static void
 audio_configure( int force )
 {
 #ifdef CONFIG_600D
@@ -995,7 +996,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
-void audio_monitoring_force_display(int x)
+static void audio_monitoring_force_display(int x)
 {
 	prop_deliver(*(int*)(HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
 }
@@ -1198,7 +1199,7 @@ void sounddev_task();
  *
  * This task disables the AGC when the sound device is activated.
  */
-void
+static void
 my_sounddev_task()
 {
 	msleep( 2000 );
@@ -1350,16 +1351,16 @@ my_audio_level_task( void )
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 #endif
 
-void volume_display_schedule()
+static void volume_display_schedule()
 {
 	show_volume = 10;
 }
-void volume_display()
+static void volume_display()
 {
 	int mgain_db = mgain_index2gain(mgain);
 	bmp_printf(FONT_MED, 50, 40, "Vol: %d + (%d,%d) dB     ", mgain_db, dgain_l, dgain_r);
 }
-void volume_display_clear()
+static void volume_display_clear()
 {
 	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
 }
@@ -1394,7 +1395,7 @@ void volume_down()
 	volume_display_schedule();
 }
 
-void audio_menus_init()
+static void audio_menus_init()
 {
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 }

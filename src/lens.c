@@ -28,8 +28,11 @@
 #include "bmp.h"
 #include "config.h"
 #include "menu.h"
+#include "math.h"
 
 void update_stuff();
+void draw_ml_topbar();
+void draw_ml_bottombar();
 
 CONFIG_INT("movie.log", movie_log, 1);
 #ifndef CONFIG_FULLFRAME
@@ -203,14 +206,14 @@ void draw_ml_bottombar()
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
-	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
+	//~ unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
-	unsigned height	= fontspec_height( font );
+	//~ unsigned height	= fontspec_height( font );
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 	
 	unsigned x = 420;
-	unsigned y = 480 - height - 10;
+	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 	
 	{
@@ -463,9 +466,9 @@ void draw_ml_topbar()
 	int bg = TOPBAR_BGCOLOR;
 	unsigned f = audio_meters_are_drawn() && !get_halfshutter_pressed() ? FONT_SMALL : FONT_MED;
 	unsigned font	= FONT(f, COLOR_WHITE, bg);
-	unsigned font_err	= FONT( f, COLOR_RED, bg);
-	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
-	unsigned height	= fontspec_height( font );
+	//~ unsigned font_err	= FONT( f, COLOR_RED, bg);
+	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
+	//~ unsigned height	= fontspec_height( font );
 	
 	unsigned x = 80;
 	unsigned y = 0;
@@ -501,7 +504,7 @@ void draw_ml_topbar()
 	);
 
 	x += 60;
-	bmp_printf( font, x, y, get_picstyle_shortname(lens_info.raw_picstyle));
+	bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
 	x += 80;
 	#ifdef CONFIG_60D

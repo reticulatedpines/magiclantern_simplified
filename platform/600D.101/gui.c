@@ -622,7 +622,7 @@ void fake_gui_event(int type, int param, int obj, int arg)
 	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
 	fake_event.type = type,
 	fake_event.param = param,
-	fake_event.obj = obj,
+	fake_event.obj = (void*)obj,
 	fake_event.arg = arg,
 	msg_queue_post(gui_main_struct.msg_queue_550d, &fake_event, 0, 0);
 }

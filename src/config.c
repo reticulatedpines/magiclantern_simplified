@@ -33,7 +33,7 @@ is_space( char c )
 	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-struct config *
+static struct config *
 config_parse_line(
 	const char *		line
 )
@@ -118,7 +118,7 @@ parse_error:
 char* config_file_buf = 0;
 int config_file_size = 0;
 int config_file_pos = 0;
-int get_char_from_config_file(char* out)
+static int get_char_from_config_file(char* out)
 {
 	if (config_file_pos >= config_file_size) return 0;
 	*out = config_file_buf[config_file_pos++];
@@ -260,7 +260,7 @@ config_save_file(
 }
 
 
-struct config *
+static struct config *
 config_parse() {
 	char line_buf[ 1000 ];
 	struct config *	cfg = 0;
@@ -297,6 +297,22 @@ error:
 int config_autosave = 1;
 #define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 
+static int config_flag_file_setting_load(char* file)
+{
+	unsigned size;
+	return ( FIO_GetFileSize( file, &size ) == 0 );
+}
+
+static void config_flag_file_setting_save(char* file, int setting)
+{
+	FIO_RemoveFile(file);
+	if (setting)
+	{
+		FILE* f = FIO_CreateFile(file);
+		FIO_CloseFile(f);
+	}
+}
+
 void
 config_autosave_toggle(void* priv)
 {
@@ -312,7 +328,7 @@ config_parse_file(
 {
 	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 
-	config_file_buf = read_entire_file(filename, &config_file_size);
+	config_file_buf = (void*)read_entire_file(filename, &config_file_size);
 	if (!config_file_buf)
 	{
 		// if config file is not present, force Config Autosave: On
@@ -345,20 +361,4 @@ atoi(
 	}
 
 	return value;
-}
-
-int config_flag_file_setting_load(char* file)
-{
-	unsigned size;
-	return ( FIO_GetFileSize( file, &size ) == 0 );
-}
-
-void config_flag_file_setting_save(char* file, int setting)
-{
-	FIO_RemoveFile(file);
-	if (setting)
-	{
-		FILE* f = FIO_CreateFile(file);
-		FIO_CloseFile(f);
-	}
 }

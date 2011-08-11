@@ -610,7 +610,7 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
 
 	return CACHEABLE(buf);
 
-fail_buf_copy:
+//~ fail_buf_copy:
 read_fail:
 	free_dma_memory( buf );
 malloc_fail:
@@ -816,7 +816,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 				if (bmp_line[1]==0) { bmp_line += 2; bmp_y_pos--; } else
 				if (bmp_line[1]==1) return;
 				if (y<0) return;
-				if (bmp_line>bmp+bmp->image_size) return;
+				if (bmp_line>(uint8_t*)bmp+bmp->image_size) return;
 			}
 			uint8_t* bmp_col = bmp_line; // store the actual position inside the bitmap
 			int bmp_x_pos_start = 0; // store the start of the line
@@ -827,10 +827,10 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 				x = (xs-x0)*bmp->width/xmax;
 				while (x>=bmp_x_pos_end) {
 					// skip to this position
-					if (bmp_col>bmp+bmp->image_size) break;
+					if (bmp_col>(uint8_t*)bmp+bmp->image_size) break;
 					if (bmp_col[0]==0) break;
 					bmp_col+=2;
-					if (bmp_col>bmp+bmp->image_size) break;
+					if (bmp_col>(uint8_t*)bmp+bmp->image_size) break;
 					if (bmp_col[0]==0) break;
 					bmp_x_pos_start = bmp_x_pos_end;
 					bmp_x_pos_end = bmp_x_pos_start + bmp_col[0];

@@ -38,35 +38,35 @@ void movie_end();
 void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
 
-CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
+static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
-//~ CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
-CONFIG_INT( "audio.release-level", audio_release_level, 10);
-CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
-//~ CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
-CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
-CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
+//~ static CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
+static CONFIG_INT( "audio.release-level", audio_release_level, 10);
+static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
+//~ static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
+static CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
 #define silent_pic_burst (silent_pic_submode == 1)
 #define silent_pic_fullhd (silent_pic_submode == 2)
-CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
-CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
-CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
-CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
-CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
-CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
-CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
-CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
-CONFIG_INT( "bulb.duration.index", bulb_duration_index, 0);
-CONFIG_INT( "mlu.auto", mlu_auto, 1);
+static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
+static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
+static CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
+static CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
+static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
+static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
+static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
+static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
+static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 0);
+static CONFIG_INT( "mlu.auto", mlu_auto, 1);
 
 extern int lcd_release_running;
 
 //New option for the sensitivty of the motion release
-CONFIG_INT( "motion.release-level", motion_detect_level, 8);
+static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
-CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
+static CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
@@ -1674,7 +1674,7 @@ saturation_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_WARNING, (s + 4) * 100 / 8);
 }
 
-CONFIG_INT("picstyle.rec", picstyle_rec, 0);
+static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
 int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
 
 const char* get_picstyle_name(int raw_picstyle)
@@ -1709,7 +1709,7 @@ const char* get_picstyle_shortname(int raw_picstyle)
 static void 
 picstyle_display( void * priv, int x, int y, int selected )
 {
-	int p = get_prop_picstyle_from_index(picstyle_rec && recording ? picstyle_before_rec : lens_info.picstyle);
+	int p = get_prop_picstyle_from_index(picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -1791,7 +1791,7 @@ PROP_HANDLER(PROP_MVR_REC_START)
 			{
 				bmp_printf(FONT_LARGE, 50, 50, "Picture Style : %s", get_picstyle_name(p));
 				prop_request_change(PROP_PICTURE_STYLE, &p, 4);
-				task_create("redraw", 0x1f, 0, redraw_after, 2000);
+				task_create("redraw", 0x1f, 0, redraw_after, (void*)2000);
 			}
 		}
 		else if (prev == 2 && rec == 0) // recording => will stop
@@ -1801,7 +1801,7 @@ PROP_HANDLER(PROP_MVR_REC_START)
 			{
 				bmp_printf(FONT_LARGE, 50, 50, "Picture Style : %s", get_picstyle_name(p));
 				prop_request_change(PROP_PICTURE_STYLE, &p, 4);
-				task_create("redraw", 0x1f, 0, redraw_after, 2000);
+				task_create("redraw", 0x1f, 0, redraw_after, (void*)2000);
 			}
 			picstyle_before_rec = 0;
 		}
@@ -2110,6 +2110,7 @@ intervalometer_wait_toggle(void* priv)
 	intervalometer_wait = !intervalometer_wait;
 }
 
+#if 0
 static void
 picq_display( void * priv, int x, int y, int selected )
 {
@@ -2204,6 +2205,7 @@ static void picq_toggle(void* priv)
 	int newp = picq_next(pic_quality);
 	set_pic_quality(newp);
 }
+#endif
 
 struct menu_entry shoot_menus[] = {
 	{

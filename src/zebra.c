@@ -50,30 +50,30 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
-CONFIG_INT("disp.mode", disp_mode, 0);
-CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
-CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295001);
-CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88090);
-CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x2c5051);
+static CONFIG_INT("disp.mode", disp_mode, 0);
+static CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
+static CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295001);
+static CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88090);
+static CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x2c5051);
 
-CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
-CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
-CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
-CONFIG_INT( "livev.playback", livev_playback, 0);
-CONFIG_INT( "global.draw", 	global_draw, 1 );
-CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
-CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
-CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
-CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
-CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
-CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
-CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
-CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
-CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
-CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
-CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
-CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
-CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
+       CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
+static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
+static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
+static CONFIG_INT( "livev.playback", livev_playback, 0);
+static CONFIG_INT( "global.draw", 	global_draw, 1 );
+static CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
+static CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
+static CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
+       CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
+static CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
+       CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
+static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
+static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
+static CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
+static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
+static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
+static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
+static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_mode() 
 { 
 	if (!get_global_draw()) return 0;
@@ -93,36 +93,36 @@ int get_zoom_overlay()
 	return zoom_overlay;
 }
 
-CONFIG_INT( "focus.peaking", focus_peaking, 0);
-CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
-CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
+static CONFIG_INT( "focus.peaking", focus_peaking, 0);
+static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
+static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 
-//~ CONFIG_INT( "focus.graph", focus_graph, 0);
+//~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 //~ int get_crop_black_border() { return crop_black_border; }
 
-//~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
-CONFIG_INT( "hist.draw",	hist_draw,	0 );
-CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
-CONFIG_INT( "hist.y",		hist_y,		100 );
-CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
-//~ CONFIG_INT( "waveform.x",	waveform_x,	720 - WAVEFORM_WIDTH );
-//~ CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
-CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
+//~ static CONFIG_INT( "edge.draw",	edge_draw,	0 );
+static CONFIG_INT( "hist.draw",	hist_draw,	0 );
+static CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
+static CONFIG_INT( "hist.y",		hist_y,		100 );
+static CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
+//~ static CONFIG_INT( "waveform.x",	waveform_x,	720 - WAVEFORM_WIDTH );
+//~ static CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
+static CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 
-CONFIG_INT( "clear.preview", clearscreen, 1); // 2 is always
-CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
+static CONFIG_INT( "clear.preview", clearscreen, 1); // 2 is always
+static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
 
-CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
-CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
-CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
+static CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
+static CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
+static CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
 
-//~ CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
-//~ CONFIG_INT( "zebra.density", zebra_density, 0); 
-//~ CONFIG_INT( "hd.vram", use_hd_vram, 0); 
+//~ static CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
+//~ static CONFIG_INT( "zebra.density", zebra_density, 0); 
+//~ static CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
-CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0);
-CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
-CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
+static CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0);
+static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
+static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 
 
 int crop_dirty = 0;
@@ -584,7 +584,7 @@ waveform_draw_image(
 	if( hist_max == 0 )
 		hist_max = 1;
 
-	unsigned i, y;
+	int i, y;
 
 	// vertical line up to the hist size
 	for( y=WAVEFORM_HEIGHT*WAVEFORM_FACTOR-1 ; y>0 ; y-- )
@@ -928,7 +928,7 @@ int zebra_color_word_row(int c, int y)
 
 static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
-static int very_dirty = 0;
+//~ static int very_dirty = 0;
 
 int zebra_color_word_row_thick(int c, int y)
 {
@@ -2164,7 +2164,7 @@ int get_spot_motion(int dx, int draw)
 	if( !vram->vram )
 		return 0;
 	const uint16_t*		vr1 = (void*)YUV422_LV_BUFFER_DMA_ADDR;
-	const uint16_t*		vr2 = get_fastrefresh_422_buf();
+	const uint16_t*		vr2 = (void*)get_fastrefresh_422_buf();
 	uint8_t * const		bm = bmp_vram();
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
@@ -2317,7 +2317,7 @@ void zoom_overlay_size_toggle(void* priv)
 	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
-CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
+static CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
 
 static void
 disp_profiles_0_display(
@@ -2369,7 +2369,7 @@ void transparent_overlay_offset(int dx, int dy)
 	BMP_LOCK( show_overlay(); )
 }
 
-void transparent_overlay_offset_clear(int dx, int dy)
+void transparent_overlay_offset_clear(void* priv)
 {
 	transparent_overlay_offx = transparent_overlay_offy = 0;
 }
@@ -2646,13 +2646,6 @@ static struct menu_entry cfg_menus[] = {
 	},
 };
 
-PROP_HANDLER(PROP_LV_ACTION)
-{
-	zoom_overlay_countdown = 0;
-	idle_display_undim(); // restore LCD brightness, especially for shutdown
-	idle_wakeup_reset_counters();
-	return prop_cleanup( token, property );
-}
 
 /*PROP_HANDLER(PROP_MVR_REC_START)
 {
@@ -3078,9 +3071,9 @@ int idle_countdown_clrscr_prev = 100;
 void idle_wakeup_reset_counters() // called from handle_buttons
 {
 	//~ clearscreen_countdown = 3;
-	idle_countdown_display_off = MAX(idle_display_turn_off_after * 10, idle_countdown_display_off);
-	idle_countdown_display_dim = MAX(idle_display_dim_after * 10, idle_countdown_display_dim);
-	idle_countdown_globaldraw = MAX(idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
+	idle_countdown_display_off = MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
+	idle_countdown_display_dim = MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
+	idle_countdown_globaldraw = MAX((int)idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
 	idle_countdown_clrscr = 30;
 }
 
@@ -3428,7 +3421,7 @@ livev_lopriority_task( void* unused )
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
-/*CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
+/*static CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
 static unsigned int picstyle_disppreset = 0;
 PROP_HANDLER(PROP_PICTURE_STYLE)
 {
@@ -3660,3 +3653,11 @@ void transparent_overlay_from_play()
 }
 
 INIT_FUNC("bvram_mirror_init", bvram_mirror_init);
+
+PROP_HANDLER(PROP_LV_ACTION)
+{
+	zoom_overlay_countdown = 0;
+	idle_display_undim(); // restore LCD brightness, especially for shutdown
+	idle_wakeup_reset_counters();
+	return prop_cleanup( token, property );
+}

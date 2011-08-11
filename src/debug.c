@@ -13,13 +13,15 @@
 //#include "lua.h"
 
 extern int config_autosave;
+extern void config_autosave_toggle(void* unused);
+
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
 //////////////////////////////////////////////////////////
 
 CONFIG_INT("dm.enable", dm_enable, 0);
 
-void dm_update()
+static void dm_update()
 {
 	if (dm_enable) dmstart();
 	else dmstop();
@@ -48,10 +50,10 @@ static void dm_toggle(void* priv)
 }
 //////////////////////////////////////////////////////////
 
-extern void bootdisk_disable();
+//~ extern void bootdisk_disable();
 
 
-void take_screenshot( void * priv )
+static void take_screenshot( void * priv )
 {
 	call( "dispcheck" );
 	silent_pic_take_lv_dbg();
@@ -125,8 +127,6 @@ delete_config( void * priv )
 	if (config_autosave) config_autosave_toggle(0);
 }
 
-extern void config_autosave_toggle(void* unused);
-
 static void
 config_autosave_display(
 	void *			priv,
@@ -153,7 +153,7 @@ static int vmax(int* x, int n)
 	return m;
 }
 
-void dump_rom(void* priv)
+static void dump_rom(void* priv)
 {
 	FILE * f = FIO_CreateFile("B:/ROM0.BIN");
 	if (f != (void*) -1)
@@ -181,7 +181,7 @@ void ui_lock(int x)
 	msleep(200);
 }
 
-void xx_test(void* priv)
+static void xx_test(void* priv)
 {
 	ui_lock(0x41000001);
 }
@@ -224,17 +224,17 @@ static int dbg_memspy_get_addr(int i)
 
 // for debugging purpises only
 int _t = 0;
-int _get_timestamp(struct tm * t)
+static int _get_timestamp(struct tm * t)
 {
 	return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
 }
-void _tic()
+static void _tic()
 {
 	struct tm now;
 	LoadCalendarFromRTC(&now);
 	_t = _get_timestamp(&now);
 }
-int _toc()
+static int _toc()
 {
 	struct tm now;
 	LoadCalendarFromRTC(&now);
@@ -322,7 +322,7 @@ static void dbg_memspy_update()
 }
 #endif
 
-void display_info()
+static void display_info()
 {
 	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 40, "CMOS Temperature: %d", efic_temp);
 	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y,      "Shutter Counter : %d", shutter_count + liveview_actuations);
@@ -331,7 +331,7 @@ void display_info()
 	msleep(500);
 }
 
-void display_shortcut_key_hints_lv()
+static void display_shortcut_key_hints_lv()
 {
 	static int old_mode = 0;
 	int mode = 0;

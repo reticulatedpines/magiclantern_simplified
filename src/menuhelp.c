@@ -83,7 +83,7 @@ void menu_help_go_to_label(char* label)
 	// hack: use config file routines to parse menu index file
 	extern int config_file_size, config_file_pos;
 	extern char* config_file_buf;
-	config_file_buf = read_entire_file("B:/doc/menuidx.dat", &config_file_size);
+	config_file_buf = (void*)read_entire_file("B:/doc/menuidx.dat", &config_file_size);
 	config_file_pos = 0;
 
 	char line_buf[ 100 ];

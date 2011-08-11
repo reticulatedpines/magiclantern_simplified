@@ -16,7 +16,7 @@
 //**********************************************************************
 CONFIG_INT( "expsim.auto", expsim_auto, 1);
 
-void set_expsim( int x )
+static void set_expsim( int x )
 {
 	if (expsim != x)
 		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
@@ -52,7 +52,7 @@ expsim_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, shooting_mode == SHOOTMODE_MOVIE ? MNI_WARNING : expsim_auto ? MNI_AUTO : MNI_BOOL(expsim), 0);
 }
 
-void expsim_update()
+static void expsim_update()
 {
 	if (!lv) return;
 	if (shooting_mode == SHOOTMODE_MOVIE) return;
@@ -129,7 +129,7 @@ CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
 int burst_count = 0;
 
-void set_pic_quality(int q)
+static void set_pic_quality(int q)
 {
 	if (q == -1) return;
 	prop_request_change(PROP_PIC_QUALITY, &q, 4);
@@ -138,7 +138,7 @@ void set_pic_quality(int q)
 }
 
 int picq_saved = -1;
-void decrease_pic_quality()
+static void decrease_pic_quality()
 {
 	if (picq_saved == -1) picq_saved = pic_quality; // save only first change
 	
@@ -170,13 +170,13 @@ void decrease_pic_quality()
  	if (newpicq) set_pic_quality(newpicq);
 }
  
-void restore_pic_quality()
+static void restore_pic_quality()
 {
 	if (picq_saved != -1) set_pic_quality(picq_saved);
 	picq_saved = -1;
 }
 
-void adjust_burst_pic_quality()
+static void adjust_burst_pic_quality()
 {
 	if (burst_count < 3) decrease_pic_quality();
 	else if (burst_count >= 3) restore_pic_quality();
@@ -297,7 +297,7 @@ int display_turned_off_by_halfshutter = 0; // 1 = display was turned off, -1 = d
 
 PROP_INT(PROP_INFO_BUTTON_FUNCTION, info_button_function);
 
-void display_on_and_go_to_main_shooting_screen()
+static void display_on_and_go_to_main_shooting_screen()
 {
 	if (lv) return;
 	if (tft_status == 0) return; // display already on
@@ -324,7 +324,7 @@ int handle_disp_button_in_photo_mode() // called from handle_buttons
 	return 1;
 }
 
-void display_off_by_halfshutter()
+static void display_off_by_halfshutter()
 {
 	static int prev_gui_state = 0;
 	if (prev_gui_state != GUISTATE_IDLE) 
@@ -662,7 +662,7 @@ struct menu_entry tweak_menus[] = {
 	},*/
 };
 
-void tweak_init()
+static void tweak_init()
 {
 	menu_add( "Tweak", tweak_menus, COUNT(tweak_menus) );
 }

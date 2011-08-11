@@ -52,6 +52,10 @@ int get_menu_font_sel()
 	else return FONT(FONT_LARGE,COLOR_WHITE,13);
 }
 
+static void menu_help_go_to_selected_entry();
+//~ static void menu_init( void );
+static void menu_show_version(void);
+
 extern int gui_state;
 void menu_show_only_selected()
 {
@@ -344,7 +348,7 @@ void menu_draw_icon(int x, int y, int type, int arg)
 }
 
 
-void
+static void
 menu_display(
 	struct menu_entry *	menu,
 	int			x,
@@ -385,7 +389,7 @@ menu_display(
 }
 
 
-void
+static void
 menus_display(
 	struct menu *		menu,
 	int			orig_x,
@@ -419,7 +423,7 @@ menus_display(
 }
 
 
-void
+static void
 menu_entry_select(
 	struct menu *	menu,
 	int mode // 0 = normal, 1 = reverse, 2 = auto setting
@@ -462,7 +466,7 @@ menu_entry_select(
 }
 
 /** Scroll side to side in the list of menus */
-void
+static void
 menu_move(
 	struct menu *		menu,
 	int			direction
@@ -508,7 +512,7 @@ menu_move(
 
 
 /** Scroll up or down in the currently displayed menu */
-void
+static void
 menu_entry_move(
 	struct menu *		menu,
 	int			direction
@@ -567,7 +571,7 @@ menu_entry_move(
 	give_semaphore( menu_sem );
 }
 
-void menu_select_current(int reverse)
+static void menu_select_current(int reverse)
 {
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
@@ -1107,7 +1111,7 @@ void select_menu_by_name(char* name, char* entry_name)
 	}
 }
 
-void
+static void
 menu_help_go_to_selected_entry(
 	struct menu *	menu
 )
@@ -1126,7 +1130,7 @@ menu_help_go_to_selected_entry(
 	menu_help_go_to_label(entry->name);
 }
 
-void menu_show_version()
+static void menu_show_version(void)
 {
 	bmp_printf(FONT_MED, 10, 410,
 		"Magic Lantern version : %s\n"
