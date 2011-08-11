@@ -964,3 +964,69 @@ PROP_HANDLER(PROP_SHUTTER)
 	}
 	return prop_cleanup(token, property);
 }*/
+
+#ifndef CONFIG_60D
+
+int iso_intercept = 1;
+
+void iso_adj(int prev_iso, int sign)
+{
+	if (sign)
+	{
+		lens_info.raw_iso = prev_iso;
+		iso_intercept = 0;
+		iso_toggle(sign);
+		iso_intercept = 1;
+	}
+}
+
+int iso_adj_flag = 0;
+int iso_adj_old = 0;
+int iso_adj_sign = 0;
+
+void iso_adj_task(void* unused)
+{
+	while(1)
+	{
+		msleep(50);
+		if (iso_adj_flag)
+		{
+			iso_adj_flag = 0;
+			iso_adj(iso_adj_old, iso_adj_sign);
+			msleep(50);
+			draw_ml_bottombar();
+		}
+	}
+}
+
+TASK_CREATE("iso_adj_task", iso_adj_task, 0, 0x1a, 0);
+
+PROP_HANDLER(PROP_ISO)
+{
+	static int prev_iso = 0;
+	if (!prev_iso) prev_iso = lens_info.raw_iso;
+	static int k = 0;
+	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0)
+	{
+		if ((prev_iso && buf[0] && prev_iso < buf[0]) || // 100 -> 200 => +
+			(prev_iso >= 112 && buf[0] == 0)) // 3200+ -> auto => +
+		{
+			//~ bmp_printf(FONT_LARGE, 50, 50, "[%d] ISO+", k++);
+			iso_adj_old = prev_iso;
+			iso_adj_sign = 1;
+			iso_adj_flag = 1;
+		}
+		else if ((prev_iso && buf[0] && prev_iso > buf[0]) || // 200 -> 100 => -
+			(prev_iso <= 88 && buf[0] == 0)) // 400- -> auto => -
+		{
+			//~ bmp_printf(FONT_LARGE, 50, 50, "[%d] ISO-", k++);
+			iso_adj_old = prev_iso;
+			iso_adj_sign = -1;
+			iso_adj_flag = 1;
+		}
+	}
+	prev_iso = buf[0];
+	return prop_cleanup(token, property);
+}
+
+#endif
