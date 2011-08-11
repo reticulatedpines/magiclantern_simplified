@@ -1086,7 +1086,7 @@ int is_lowgain_iso(int iso)
 
 int is_round_iso(int iso)
 {
-	return is_native_iso(iso) || is_lowgain_iso(iso);
+	return is_native_iso(iso) || is_lowgain_iso(iso) || iso == 0;
 }
 
 CONFIG_INT("iso.round.only", iso_round_only, 1);
