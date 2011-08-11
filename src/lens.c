@@ -134,14 +134,48 @@ lens_format_dist(
 	return dist;
 }
 
+/********************************************************************
+*                                                                   *
+*  aj_lens_format_dist() -    Private version of ML lens.c routine  *                                      
+*                                                                   *
+********************************************************************/
+
+char *aj_lens_format_dist( unsigned mm)
+{
+   static char dist[ 32 ];
+
+   if( mm > 100000 ) // 100 m
+   {
+      snprintf( dist, sizeof(dist), "%3d.%1dm",mm / 1000, (mm % 1000) / 100);
+   }
+   else if( mm > 10000 ) // 10 m
+   {
+      snprintf( dist, sizeof(dist), "%2d.%01dm", mm / 1000,  (mm % 1000) / 100);
+   }
+   else	if( mm >  1000 ) // 1 m 
+   {
+      snprintf( dist, sizeof(dist), "%1d.%02dm", mm / 1000, (mm % 1000)/10 );
+   }
+   else
+   {
+      snprintf( dist, sizeof(dist),"%3dcm", mm / 10 );
+   }
+
+   return (dist);
+} /* end of aj_lens_format_dist() */
+
+
 void
 update_lens_display()
 {
-	if (!gui_menu_shown() || audio_meters_are_drawn())
+	if (is_menu_help_active()) return;
+
+	draw_ml_topbar();
+
+	if (!gui_menu_shown())
 	{
 		if (!zebra_should_run()) return;
 	}
-	if (is_menu_help_active()) return;
 	
 	if (!LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
 	{
@@ -161,8 +195,7 @@ update_lens_display()
 			#endif
 			);
 	}*/
-	if (!audio_meters_are_drawn())
-		draw_ml_topbar();
+	//~ if (!audio_meters_are_drawn())
 }
 
 void draw_ml_bottombar()
@@ -171,26 +204,168 @@ void draw_ml_bottombar()
 
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
-	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
-	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
+	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
+	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	unsigned height	= fontspec_height( font );
+	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 	
 	unsigned x = 420;
 	unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 	
 	{
+
+      unsigned int x_origin = 50;
+      unsigned int y_origin = 480 - 30;
+
+      /*******************
+      * FOCAL & APERTURE *
+      *******************/
+      if (info->aperture)
+      {
+		  text_font = FONT(FONT_LARGE,0x13,bg);   // ORANGE
+
+		  char focal[32];
+		  snprintf(focal, sizeof(focal), "%d",
+				   crop_info ? (int)roundf((double)info->focal_len * SENSORCROPFACTOR) : info->focal_len);
+
+		  bmp_printf( text_font, x_origin, y_origin, focal );
+
+		if (info->aperture < 100)
+			  bmp_printf( text_font, 
+						  x_origin + 70 + font_med.width  , 
+						  y_origin, 
+						  "%d.%d  ", info->aperture / 10, info->aperture % 10) ;
+		else
+			  bmp_printf( text_font, 
+						  x_origin + 70 + font_med.width  , 
+						  y_origin, 
+						  "%d    ", info->aperture / 10) ;
+
+
+		  text_font = FONT(FONT_MED,0x13,bg);   // ORANGE
+
+		  bmp_printf( text_font, 
+					  x_origin + font_large.width * strlen(focal), 
+					  480 - font_med.height, 
+					  crop_info ? "eq" : "mm");
+
+		  bmp_printf( text_font, 
+					  x_origin + 70  , 
+					  y_origin + 2, 
+					  "f") ;
+      }
+  
+      /*******************
+      *  SHUTTER         *
+      *******************/
+
+      int fgs = 0x73;
+      if (shooting_mode == SHOOTMODE_MOVIE) // check 180 degree rule
+      {
+           int shutter_degrees = 360 * video_mode_fps / lens_info.shutter;
+           if (ABS(shutter_degrees - 180) < 10)
+              fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg);
+           else if (shutter_degrees > 190)
+              fgs = FONT(FONT_LARGE,COLOR_RED,bg);
+           else if (shutter_degrees < 45)
+              fgs = FONT(FONT_LARGE,COLOR_RED,bg);
+      }
+
+      text_font = FONT(FONT_LARGE,fgs,bg);
+
+      bmp_printf( text_font, 
+                  x_origin + 150 + font_med.width*2  , 
+                  y_origin, 
+                  "%d  ", info->shutter);
+
+      text_font = FONT(FONT_MED,fgs,bg);   // BLUE
+
+      bmp_printf( text_font, 
+                  x_origin + 150  , 
+                  y_origin + 2, 
+                  "1/");
+
+
+      /*******************
+      *  ISO             *
+      *******************/
+
+      // good iso = 160 320 640 1250  - according to bloom video  
+      //  http://www.youtube.com/watch?v=TNNqUm_nSXk&NR=1
+
+      text_font = FONT(
+      FONT_LARGE, 
+      is_native_iso(lens_info.iso) ? COLOR_YELLOW :
+      is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
+      bg);
+
+		if (info->iso)
+			bmp_printf( text_font, 
+					  x_origin + 250  , 
+					  y_origin, 
+					  "%d   ", info->iso) ;
+		else
+			bmp_printf( text_font, 
+					  x_origin + 250  , 
+					  y_origin, 
+					  "A-ISO");
+
+		// kelvins
+      text_font = FONT(
+      FONT_LARGE, 
+      0x13, // orange
+      bg);
+
+		x = 400;
+		if( info->wb_mode == WB_KELVIN )
+			bmp_printf( text_font, x, y_origin,
+				"%5dK",
+				info->kelvin
+			);
+		else
+			bmp_printf( text_font, x, y_origin,
+				"%s",
+				(lens_info.wb_mode == 0 ? "AutoWB" : 
+				(lens_info.wb_mode == 1 ? "Sunny " :
+				(lens_info.wb_mode == 2 ? "Cloudy" : 
+				(lens_info.wb_mode == 3 ? "Tungst" : 
+				(lens_info.wb_mode == 4 ? "CFL   " : 
+				(lens_info.wb_mode == 5 ? "Flash " : 
+				(lens_info.wb_mode == 6 ? "Custom" : 
+				(lens_info.wb_mode == 8 ? "Shade " :
+				 "unk"))))))))
+			);
+
+      /*******************
+      *  Focus distance  *
+      *******************/
+
+      text_font = FONT(FONT_LARGE, COLOR_WHITE, bg );   // WHITE
+
+      if(lens_info.focus_dist)
+          bmp_printf( text_font, 
+                  x_origin + 470 +8  , 
+                  y_origin, 
+                  "%s",
+                  lens_info.focus_dist == 0xFFFF
+                  ? "Infty"
+                  : aj_lens_format_dist( lens_info.focus_dist * 10 )
+                );
+
 		//~ y += height;
-		x = 500;
+/*		x = 500;
 		bmp_printf( font, x+12, y,
 			"%s",
 			info->focus_dist == 0xFFFF
 				? "Infnty"
 				: lens_format_dist( info->focus_dist * 10 )
-		);
+		);*/
+		
+		// MODE
 		
 		x = 0;
-			bmp_printf( Font, x, y-8,
+			bmp_printf( text_font, x, y_origin,
 				shooting_mode == SHOOTMODE_P ? "P " :
 				shooting_mode == SHOOTMODE_M ? "M " :
 				shooting_mode == SHOOTMODE_TV ? "Tv" :
@@ -206,7 +381,7 @@ void draw_ml_bottombar()
 				shooting_mode == SHOOTMODE_NIGHT ? "NI" :
 				shooting_mode == SHOOTMODE_MOVIE ? "Mv" : "?"
 			);
-
+/*
 		x += 50;
 
 		bmp_printf( font, x, y,
@@ -273,45 +448,25 @@ void draw_ml_bottombar()
 		int ba = lens_info.wbs_ba;
 		if (ba) bmp_printf(font, x, y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
 		else bmp_printf(font, x, y, "  ");
-
-		x = 610;
-		bmp_printf( font, x, y,
-			"AE%s%d.%dEV ",
-			AE_VALUE < 0 ? "-" : " ",
+*/
+		x = 640;
+		text_font = FONT(FONT_LARGE, 0x73, bg );   // WHITE
+		bmp_printf( text_font, x, y_origin,
+			"%s%d.%d",
+			AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
 			ABS(AE_VALUE) / 8,
 			mod(ABS(AE_VALUE) * 10 / 8, 10)
 		);
 
 
-
-		#if 0
-		y += height;
-		bmp_printf( font, x, y,
-			"%s",
-			lens_format_dist( info->hyperfocal )
-		);
-
-		y += height;
-		bmp_printf( font, x, y,
-			"%s",
-			lens_format_dist( info->dof_near )
-		);
-
-		y += height;
-		bmp_printf( font, x, y,
-			"%s",
-			info->dof_far >= 1000*1000
-				? " Infnty"
-				: lens_format_dist( info->dof_far )
-		);
-		#endif
 	}
 }
 void draw_ml_topbar()
 {
 	int bg = TOPBAR_BGCOLOR;
-	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
-	unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
+	unsigned f = audio_meters_are_drawn() && !get_halfshutter_pressed() ? FONT_SMALL : FONT_MED;
+	unsigned font	= FONT(f, COLOR_WHITE, bg);
+	unsigned font_err	= FONT( f, COLOR_RED, bg);
 	unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	unsigned height	= fontspec_height( font );
 	

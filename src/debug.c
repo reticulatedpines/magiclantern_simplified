@@ -392,7 +392,8 @@ void display_clock()
 	LoadCalendarFromRTC( &now );
 	if (lv || gui_menu_shown())
 	{
-		uint32_t fnt = FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR);
+		unsigned f = audio_meters_are_drawn() && !get_halfshutter_pressed() ? FONT_SMALL : FONT_MED;
+		uint32_t fnt = FONT(f, COLOR_WHITE, TOPBAR_BGCOLOR);
 		bmp_printf(fnt, 0, 0, "%02d:%02d", now.tm_hour, now.tm_min);
 	}
 	else

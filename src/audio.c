@@ -183,6 +183,7 @@ db_peak_to_color(
 static void
 draw_meter(
 	int		y_origin,
+	int		meter_height,
 	struct	audio_level *	level,
     char *	label
 )
@@ -207,7 +208,6 @@ draw_meter(
 
 	const uint8_t bar_color = db_to_color( db_avg );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
-	const int meter_height = 12;
 
 	const uint32_t bar_color_word = color_word( bar_color );
 	const uint32_t peak_color_word = color_word( peak_color );
@@ -275,9 +275,22 @@ static void draw_meters(void)
 {
 	// The db values are multiplied by 8 to make them
 	// smoother.
-	draw_meter( 0, &audio_levels[0], left_label);
-	draw_ticks( 12, 4 );
-	draw_meter( 16, &audio_levels[1], right_label);
+	int hs = get_halfshutter_pressed();
+	static int prev_hs = 0;
+	if (hs != prev_hs) redraw();
+	prev_hs = hs;
+	if (!hs)
+	{
+		draw_meter( 12, 11, &audio_levels[0], left_label);
+		draw_ticks( 23, 3 );
+		draw_meter( 26, 11, &audio_levels[1], right_label);
+	}
+	else
+	{
+		draw_meter( 19, 8, &audio_levels[0], left_label);
+		draw_ticks( 27, 2 );
+		draw_meter( 29, 8, &audio_levels[1], right_label);
+	}
 	if (gui_menu_shown() && alc_enable)
 	{
 		int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
@@ -317,8 +330,7 @@ int audio_meters_are_drawn()
 {
 	return 
 		(
-			shooting_mode == SHOOTMODE_MOVIE && cfg_draw_meters && do_draw_meters && zebra_should_run()
-			&& !get_halfshutter_pressed()
+			shooting_mode == SHOOTMODE_MOVIE && cfg_draw_meters && do_draw_meters && get_global_draw()
 		)
 		||
 		(
@@ -344,23 +356,12 @@ meter_task( void* unused )
 		if (is_menu_help_active()) continue;
 
 		static int a_prev = 0;
-		int a = audio_meters_are_drawn();
-
-		if (a != a_prev && !gui_menu_shown())
-			BMP_LOCK( bmp_fill(TOPBAR_BGCOLOR, 0, 0, 640, 33); )
-
-		if (a)
+		
+		if (audio_meters_are_drawn())
 		{
 			if (!is_mvr_buffer_almost_full())
 				BMP_LOCK( draw_meters(); )
 		}
-		else
-		{
-			if (a != a_prev)
-				BMP_LOCK( draw_ml_topbar(); )
-			msleep( 500 );
-		}
-		a_prev = a;
 		
 		if (show_volume)
 		{
