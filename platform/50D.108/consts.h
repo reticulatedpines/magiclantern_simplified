@@ -6,24 +6,24 @@
 #define HIJACK_TASK_ADDR 0x1A70
 
 // 720x480, changes when external monitor is connected
- #define YUV422_LV_BUFFER 0x40D07800 
- #define YUV422_LV_PITCH 1440
+//#define YUV422_LV_BUFFER 0x40D07800 
+#define YUV422_LV_PITCH 1440
 //~ #define YUV422_LV_PITCH_RCA 1080
 //~ #define YUV422_LV_PITCH_HDMI 3840
 //~ #define YUV422_LV_HEIGHT 480
 //~ #define YUV422_LV_HEIGHT_RCA 540
 //~ #define YUV422_LV_HEIGHT_HDMI 1080
 
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x246c)
-#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x4c5c)
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x28D4)
+//#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
+ #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x4c5c) // NG
 
 
 // changes during record
-#define YUV422_HD_BUFFER 0x44000080
+//#define YUV422_HD_BUFFER 0x44000080
 //~ #define YUV422_HD_BUFFER_2 0x46000080
 
-#define YUV422_HD_PITCH_IDLE 2112
+/*#define YUV422_HD_PITCH_IDLE 2112
 #define YUV422_HD_HEIGHT_IDLE 704
 
 #define YUV422_HD_PITCH_ZOOM 2048
@@ -37,7 +37,7 @@
 #define YUV422_HD_HEIGHT_REC_720P 580
 
 #define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
+#define YUV422_HD_HEIGHT_REC_480P 480*/
 
 #define FOCUS_CONFIRMATION (*(int*)0x3ce0) // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1c14) // used for Trap Focus and Magic Off.
