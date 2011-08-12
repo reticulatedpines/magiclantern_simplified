@@ -27,7 +27,7 @@
 #include "arm-mcr.h"
 
 #define SIG_LEN 0x10000
-#define FIRMWARE_SIGNATURE 0x290106d8 // from FF010000
+#define FIRMWARE_SIGNATURE 0xb2311152 // from FF810000
 
 asm(
 ".text\n"
@@ -59,9 +59,9 @@ static void blink(int n)
 {
 	while (1)
 	{
-		*(int*)0xC0220134 |= 2;  // card LED on
+		*(int*)0xC02200BC |= 2;  // card LED on
 		busy_wait(n);
-		*(int*)0xC0220134 &= ~2;  // card LED off
+		*(int*)0xC02200BC &= ~2;  // card LED off
 		busy_wait(n);
 	}
 }
@@ -140,11 +140,11 @@ cstart( void )
 		// this can only be called from a "reboot" (updater) context,
 		// not from normal DryOS
 		
-		int (*write_bootflags_to_card)(int, int) = 0xffffaf70;
-		int not_ok = write_bootflags_to_card(1, 0);
+		//~ int (*write_bootflags_to_card)(int, int) = 0xffffaf70;
+		//~ int not_ok = write_bootflags_to_card(1, 0);
 		
-		if (not_ok)
-			fail();
+		//~ if (not_ok)
+			//~ fail();
 	}
 
 	// Copy the copy-and-restart blob somewhere
