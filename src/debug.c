@@ -965,7 +965,7 @@ PROP_HANDLER(PROP_SHUTTER)
 	return prop_cleanup(token, property);
 }*/
 
-#ifndef CONFIG_60D
+#ifdef CONFIG_550D
 
 int iso_intercept = 1;
 
@@ -988,12 +988,11 @@ void iso_adj_task(void* unused)
 {
 	while(1)
 	{
-		msleep(50);
+		msleep(20);
 		if (iso_adj_flag)
 		{
 			iso_adj_flag = 0;
 			iso_adj(iso_adj_old, iso_adj_sign);
-			msleep(50);
 			draw_ml_bottombar();
 		}
 	}
