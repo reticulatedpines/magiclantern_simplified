@@ -210,7 +210,7 @@
  #define MOV_REC_STATEOBJ (*(void**)0x5B34)
  #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
  
- #define AE_VALUE (*(int8_t*)0x14c25)
+#define AE_VALUE (*(int8_t*)0x7E14)
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
  #define DLG_WB 5

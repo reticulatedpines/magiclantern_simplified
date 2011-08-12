@@ -154,7 +154,10 @@
 //~ #define MOV_GOP_OPT_SIZE_HD 0x68d0
 //~ #define MOV_GOP_OPT_SIZE_VGA 0x68f8
 
-#define AE_VALUE (*(int8_t*)0x14c25)
+#define AE_VALUE (*(int8_t*)0x14c25) // struct 14c08, off 1d
+//~ ff326610:	ebfb53c4 	bl	@called_by:SetLvExposureDataToWinSystem	 <--- decompile that
+//~ ff326614:	e5c50005 	strb	r0, [r5, #5]
+//~ ff326618:	ebfba7cb 	bl	@sub_FF21054C	
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x39ac)
 #define DLG_WB 5
