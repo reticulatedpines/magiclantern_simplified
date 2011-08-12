@@ -12,6 +12,10 @@
 #include "lens.h"
 //#include "lua.h"
 
+#ifdef CONFIG_50D
+#include "disable-this-module.h"
+#endif
+
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused);
 
@@ -188,6 +192,7 @@ static void xx_test(void* priv)
 
 void toggle_mirror_display()
 {
+	#ifndef CONFIG_50D
 	//~ zebra_pause();
 	if (lv) msleep(200); // redrawing screen while zebra is active seems to cause trouble
 	static int i = 0;
@@ -196,6 +201,7 @@ void toggle_mirror_display()
 	i = !i;
 	msleep(200);
 	//~ zebra_resume();
+	#endif
 }
 
 /*void fake_simple_button(int bgmt_code)

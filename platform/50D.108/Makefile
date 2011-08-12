@@ -4,9 +4,9 @@ TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=109
-MODEL=550D
-UPDATE_NAME=550d_109.fir
+FW_VERSION=108
+MODEL=50D
+UPDATE_NAME=50d_108.fir
 ML_VERSION=unified1 
 
 #used in CFLAGS
@@ -49,7 +49,6 @@ ML_OBJS-y = \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
-	af_patterns.o \
 	focus.o \
 
 #include generic rules and definitions
@@ -59,10 +58,7 @@ include ../../Makefile.inc
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF010000
-RESTARTSTART		= 0x0008B000
-
-#not used but...
-FIRMWARE_ID_550D	= 0x80000270
+ROMBASEADDR		= 0xFF810000
+RESTARTSTART		= 0x0004b000
 
 all: autoexec.bin

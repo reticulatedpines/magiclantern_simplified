@@ -28,6 +28,10 @@
 #include "menu.h"
 #include "gui.h"
 
+#ifdef CONFIG_50D
+#include "disable-this-module.h"
+#endif
+
 static void audio_configure(int force);
 static void volume_display();
 static void volume_display_clear();

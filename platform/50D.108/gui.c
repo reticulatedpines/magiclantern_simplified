@@ -24,8 +24,22 @@
  */
 
 #include "dryos.h"
+#include "bmp.h"
+
+int zoom_in_pressed = 0;
+int zoom_out_pressed = 0;
+int set_pressed = 0;
+int get_zoom_in_pressed() { return zoom_in_pressed; }
+int get_zoom_out_pressed() { return zoom_out_pressed; }
+int get_set_pressed() { return set_pressed; }
+
+int get_halfshutter_pressed() { return FOCUS_CONFIRMATION_AF_PRESSED; }
 
 struct semaphore * gui_sem;
+
+int handle_buttons_active = 0;
+struct event fake_event;
+struct semaphore * fake_sem;
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
@@ -55,6 +69,16 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
+
+void fake_simple_button(int bgmt_code)
+{
+	//~ if (!handle_buttons_active) take_semaphore(fake_sem, 0);
+	fake_event.type = 0,
+	fake_event.param = bgmt_code, 
+	fake_event.obj = 0,
+	fake_event.arg = 0,
+	msg_queue_post(gui_main_struct.msg_queue, &fake_event, 0, 0);
+}
 
 // Replaces the gui_main_task
 static void
@@ -88,6 +112,15 @@ my_gui_main_task( void )
 				event->obj,
 				event->arg
 			);
+			static int kev = 0;
+			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+				kev++,
+				event->type, 
+				event->param, 
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
+				event->arg);
 		}
 #endif
 

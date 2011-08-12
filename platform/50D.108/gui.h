@@ -71,6 +71,7 @@ typedef enum {
 	DIAL_LEFT			= 0x82E,
 	DIAL_RIGHT			= 0x82F,
 	PRESS_DISP_BUTTON		= 0x10000000, // also play?
+	PRESS_PLAY_BUTTON		= 0x10000000,
 	PRESS_ERASE_BUTTON		= 0x10000001,
 	PRESS_DIRECT_PRINT_BUTTON	= 0x10000005,
 	PRESS_FUNC_BUTTON		= 0x10000007,
@@ -92,6 +93,7 @@ typedef enum {
 
 	EVENTID_METERING_START		= 0x10000039,
 	EVENTID_94			= 0x10000094,
+	EVENT_1 = 1
 } gui_event_t;
 
 
@@ -320,5 +322,18 @@ gui_stop_menu( void );
 
 extern void
 gui_hide_menu( int redisplay_time );
+
+#define GUISTATE_IDLE 0
+#define GUISTATE_PLAYMENU 1
+#define GUISTATE_MENUDISP 2 // warning
+#define GUISTATE_QR 3 // QuickReview
+// 3: lockoff warning (?)
+// 5: QR erase?
+// 6: OLC?
+// 7: LV?
+// 8: LV set?
+// 9: unavi? (user navigation?)
+// 10: unavi set?
+#define GUISTATE_QMENU 9
 
 #endif

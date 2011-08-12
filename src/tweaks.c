@@ -12,6 +12,10 @@
 #include "gui.h"
 #include "lens.h"
 
+#ifdef CONFIG_50D
+#include "disable-this-module.h"
+#endif
+
 // ExpSim
 //**********************************************************************
 CONFIG_INT( "expsim.auto", expsim_auto, 1);

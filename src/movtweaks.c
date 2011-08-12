@@ -11,6 +11,10 @@
 #include "gui.h"
 #include "lens.h"
 
+#ifdef CONFIG_50D
+#include "disable-this-module.h"
+#endif
+
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
 
 #ifndef CONFIG_600D

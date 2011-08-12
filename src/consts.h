@@ -9,3 +9,7 @@
 #ifdef CONFIG_600D
 #include "../platform/600D.101/consts.h"
 #endif
+
+#ifdef CONFIG_50D
+#include "../platform/50D.108/consts.h"
+#endif

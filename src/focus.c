@@ -13,6 +13,9 @@
 #include "config.h"
 #include "ptp.h"
 
+#ifdef CONFIG_50D
+#include "disable-this-module.h"
+#endif
 
 CONFIG_INT( "focus.step",	focus_stack_step, 100 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );

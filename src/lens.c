@@ -30,6 +30,10 @@
 #include "menu.h"
 #include "math.h"
 
+#ifdef CONFIG_50D
+#include "disable-this-module.h"
+#endif
+
 void update_stuff();
 void draw_ml_topbar();
 void draw_ml_bottombar();
@@ -171,7 +175,9 @@ char *aj_lens_format_dist( unsigned mm)
 void erase_bottom_bar()
 {
 	msleep(10);
+	#ifndef CONFIG_50D
 	GMT_LOCK( if (LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe(); )
+	#endif
 	draw_ml_bottombar();
 }
 

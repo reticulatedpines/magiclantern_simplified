@@ -132,9 +132,11 @@ copy_and_restart( int offset )
 	* install our own handlers.
 	*/
 
+#ifndef CONFIG_50D
 #ifndef CONFIG_EARLY_PORT
 	// Install our task creation hooks
 	task_dispatch_hook = my_task_dispatch_hook;
+#endif
 #endif
 
 	// This will jump into the RAM version of the firmware,
@@ -330,6 +332,11 @@ my_init_task(void)
 	additional_version[11] = build_version[7];
 	additional_version[12] = build_version[8];
 	additional_version[13] = '\0';
+
+#ifdef CONFIG_50D
+	bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+	return;
+#endif
 
 #ifndef CONFIG_EARLY_PORT
 
