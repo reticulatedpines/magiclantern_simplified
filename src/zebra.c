@@ -3063,14 +3063,14 @@ zebra_task( void )
 
 TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 ); */
 
-int idle_countdown_display_dim = 100;
-int idle_countdown_display_off = 100;
-int idle_countdown_globaldraw = 100;
-int idle_countdown_clrscr = 100;
-int idle_countdown_display_dim_prev = 100;
-int idle_countdown_display_off_prev = 100;
-int idle_countdown_globaldraw_prev = 100;
-int idle_countdown_clrscr_prev = 100;
+int idle_countdown_display_dim = 50;
+int idle_countdown_display_off = 50;
+int idle_countdown_globaldraw = 50;
+int idle_countdown_clrscr = 50;
+int idle_countdown_display_dim_prev = 50;
+int idle_countdown_display_off_prev = 50;
+int idle_countdown_globaldraw_prev = 50;
+int idle_countdown_clrscr_prev = 50;
 
 void idle_wakeup_reset_counters() // called from handle_buttons
 {
@@ -3220,7 +3220,7 @@ clearscreen_loop:
 	}
 }
 
-TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1b, 0x1000 );
 
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
