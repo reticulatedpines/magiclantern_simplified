@@ -279,10 +279,20 @@ void draw_ml_bottombar()
       *  SHUTTER         *
       *******************/
 
+      int shutter_x10 = (int) roundf(pow(2.0, (152 - info->raw_shutter)/8.0) / 400.0);
+      int shutter_reciprocal = (int) roundf(4000.0 / pow(2.0, (152 - info->raw_shutter)/8.0));
+      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * (int)roundf(shutter_reciprocal / 10.0);
+      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * (int)roundf(shutter_reciprocal / 100.0);
+      char shutter[32];
+      if (shutter_x10 >= 350) snprintf(shutter, sizeof(shutter), "BULB");
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
+      else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d ", shutter_x10 / 10, shutter_x10 % 10);
+      else snprintf(shutter, sizeof(shutter), "%d  ", (int)roundf(shutter_x10 / 10.0));
+
       int fgs = 0x73; // blue (neutral)
       if (shooting_mode == SHOOTMODE_MOVIE) // check 180 degree rule
       {
-           int shutter_degrees = 360 * video_mode_fps / lens_info.shutter;
+           int shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
            if (ABS(shutter_degrees - 180) < 10)
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg);
            else if (shutter_degrees > 190)
@@ -293,27 +303,28 @@ void draw_ml_bottombar()
       else if (info->aperture) // rule of thumb: shutter speed should be roughly equal to focal length
       {
            int focal_35mm = (int)roundf((double)info->focal_len * SENSORCROPFACTOR);
-           if (lens_info.shutter > focal_35mm * 15/10) 
+           if (shutter_reciprocal > focal_35mm * 15/10) 
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg); // very good
-           else if (lens_info.shutter < focal_35mm / 2) 
+           else if (shutter_reciprocal < focal_35mm / 2) 
               fgs = FONT(FONT_LARGE,COLOR_RED,bg); // you should have really steady hands
-           else if (lens_info.shutter < focal_35mm) 
+           else if (shutter_reciprocal < focal_35mm) 
               fgs = FONT(FONT_LARGE,COLOR_YELLOW,bg); // OK, but be careful
       }
 
       text_font = FONT(FONT_LARGE,fgs,bg);
 
       bmp_printf( text_font, 
-                  x_origin + 150 + font_med.width*2  , 
+                  x_origin + 143 + font_med.width*2  , 
                   y_origin, 
-                  "%d  ", info->shutter);
+                  shutter);
 
       text_font = FONT(FONT_MED,fgs,bg);   // BLUE
 
+      
       bmp_printf( text_font, 
-                  x_origin + 150  , 
+                  x_origin + 143  , 
                   y_origin + 2, 
-                  "1/");
+                  shutter_x10 > 3 ? "  " : "1/");
 
 
       /*******************
