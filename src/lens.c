@@ -217,6 +217,16 @@ update_lens_display()
 	//~ if (!audio_meters_are_drawn())
 }
 
+int raw2shutter_x100(int raw_shutter)
+{
+    return (int) roundf(powf(2.0, (152.0 - raw_shutter)/8.0) / 40.0);
+}
+int shutter_x100_to_raw(int shutter_x100)
+{
+	if (shutter_x100 == 0) return 160;
+	return (int) roundf(152 - log2f(shutter_x100 * 40) * 8);
+}
+
 void draw_ml_bottombar()
 {
 	struct lens_info *	info = &lens_info;
@@ -279,12 +289,13 @@ void draw_ml_bottombar()
       *  SHUTTER         *
       *******************/
 
-      int shutter_x10 = (int) roundf(pow(2.0, (152 - info->raw_shutter)/8.0) / 400.0);
-      int shutter_reciprocal = (int) roundf(4000.0 / pow(2.0, (152 - info->raw_shutter)/8.0));
+      int shutter_x10 = raw2shutter_x100(info->raw_shutter) / 10;
+      int shutter_reciprocal = (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0));
       if (shutter_reciprocal > 100) shutter_reciprocal = 10 * (int)roundf(shutter_reciprocal / 10.0);
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * (int)roundf(shutter_reciprocal / 100.0);
       char shutter[32];
-      if (shutter_x10 >= 350) snprintf(shutter, sizeof(shutter), "BULB");
+      if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
+      else if (shutter_x10 >= 350) snprintf(shutter, sizeof(shutter), "BULB");
       else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d ", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d  ", (int)roundf(shutter_x10 / 10.0));
@@ -325,7 +336,6 @@ void draw_ml_bottombar()
                   x_origin + 143  , 
                   y_origin + 2, 
                   shutter_x10 > 3 ? "  " : "1/");
-
 
       /*******************
       *  ISO             *
@@ -821,7 +831,7 @@ PROP_HANDLER( PROP_ISO )
 	return prop_cleanup( token, property );
 }
 
-PROP_HANDLER( PROP_SHUTTER )
+PROP_HANDLER( PROP_SHUTTER_ALSO )
 {
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_shutter = raw;

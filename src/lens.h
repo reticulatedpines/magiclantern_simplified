@@ -144,6 +144,7 @@ lens_set_rawshutter(
 	int32_t		shutter
 )
 {
+	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	lens_wait_readytotakepic(64);
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
 	msleep(100);
