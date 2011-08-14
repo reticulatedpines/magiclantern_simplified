@@ -147,6 +147,8 @@ config_autosave_display(
 	);
 }
 
+#ifdef CONFIG_DEBUGMSG
+
 static int vmax(int* x, int n)
 {
 	int i; 
@@ -157,8 +159,9 @@ static int vmax(int* x, int n)
 	return m;
 }
 
-static void dump_rom(void* priv)
+static void dump_rom_task(void* priv)
 {
+	msleep(200);
 	FILE * f = FIO_CreateFile("B:/ROM0.BIN");
 	if (f != (void*) -1)
 	{
@@ -167,6 +170,8 @@ static void dump_rom(void* priv)
 		FIO_CloseFile(f);
 	}
 
+	msleep(200);
+
 	f = FIO_CreateFile("B:/BOOT0.BIN");
 	if (f != (void*) -1)
 	{
@@ -174,7 +179,22 @@ static void dump_rom(void* priv)
 		FIO_WriteFile(f, (void*) 0xFFFF0000, 0x10000);
 		FIO_CloseFile(f);
 	}
+	
+	msleep(200);
+
+	dump_big_seg(0, "B:/RAM0.BIN");
 }
+
+static void dump_rom(void* priv)
+{
+	gui_stop_menu();
+	task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
+}
+static void xx_test(void* priv)
+{
+	ui_lock(0x41000001);
+}
+#endif
 
 void ui_lock(int x)
 {
@@ -183,11 +203,6 @@ void ui_lock(int x)
 	msleep(200);
 	prop_request_change(PROP_ICU_UILOCK, &x, 4);
 	msleep(200);
-}
-
-static void xx_test(void* priv)
-{
-	ui_lock(0x41000001);
 }
 
 void toggle_mirror_display()
@@ -552,6 +567,15 @@ struct menu_entry debug_menus[] = {
 		.help = "Take a screenshot after 10 seconds [SET] or right now [Q]."
 	},
 	{
+		.name = "Spy prop/evt/mem",
+		.select		= draw_prop_select,
+		.select_reverse = toggle_draw_event,
+		.select_auto = mem_spy_select,
+		.display	= spy_print,
+		.help = "Spy properties / events / memory addresses which change."
+	},
+#ifdef CONFIG_DEBUGMSG
+	{
 		.name = "Debug logging",
 		.priv = &dm_enable,
 		.select = dm_toggle, 
@@ -560,18 +584,10 @@ struct menu_entry debug_menus[] = {
 		.help = "While ON, debug messages are saved. [Q] => LOGnnn.LOG."
 	},
 	{
-		.name = "Spy prop/evt/mem",
-		.select		= draw_prop_select,
-		.select_reverse = toggle_draw_event,
-		.select_auto = mem_spy_select,
-		.display	= spy_print,
-		.help = "Spy properties / events / memory addresses which change."
-	},
-	{
-		.priv		= "Dump ROM",
+		.priv		= "Dump ROM and RAM",
 		.select		= dump_rom,
 		.display	= menu_print,
-		.help = "For developers: will dump ROM from FF010000 and FFFF0000."
+		.help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
 	},
 	{
 		.priv		= "Don't click me!",
@@ -579,6 +595,7 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "The camera may turn into a 1D Mark V or it may explode."
 	}
+#endif
 /*	{
 		.select = focus_test,
 		.display = focus_print,
