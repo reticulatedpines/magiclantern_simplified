@@ -96,6 +96,7 @@ prepare_zip:
 	cp ../../installer/550D.109/*.fir .
 	cp ../../installer/60D.110/*.fir .
 	cp ../../installer/600D.101/*.fir .
+	cp ../vram/rectilin.lut .
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
@@ -107,6 +108,7 @@ magiclantern-$(VERSION).zip: \
 	cropmks/* \
 	doc/* \
 	*.fir \
+	rectilin.lut \
 
 	-rm $@
 	chmod -x autoexec.bin
