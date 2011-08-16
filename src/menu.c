@@ -969,7 +969,7 @@ static struct menu_entry about_menu[] = {
 	}
 };*/
 
-static void
+void
 open_canon_menu()
 {
 	while(1)

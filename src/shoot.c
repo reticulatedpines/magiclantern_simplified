@@ -331,7 +331,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 static void silent_pic_mode_toggle(void* priv)
 {
-	#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	#if defined(CONFIG_600D)
 	silent_pic_mode = mod(silent_pic_mode + 1, 2); // only simple mode works on these cameras
 	#else
 	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
@@ -833,21 +833,21 @@ silent_pic_take_simple()
 {
 	int movie_started = silent_pic_ensure_movie_mode();
 	
-	struct vram_info * vram = get_yuv422_hd_vram();
-	
 	char* imgname = silent_pic_get_name();
 	
 	bmp_printf(FONT_MED, 100, 100, "Psst! Taking a pic      ");
-	//~ vsync(vram->vram + vram->pitch * vram->height - 100);
-	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
-	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a pic   ");
-	
-	if (movie_started) silent_pic_stop_dummy_movie();
 
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
+		if (!recording) { open_canon_menu(); msleep(400); clrscr(); }
 	}
+
+	struct vram_info * vram = get_yuv422_hd_vram();
+	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
+	if (MENU_MODE) { clrscr(); play_422(imgname); }
+	
+	if (movie_started) silent_pic_stop_dummy_movie();
 }
 
 void
@@ -941,7 +941,7 @@ silent_pic_take_sweep()
 static void
 silent_pic_take_slitscan(int interactive)
 {
-	#if defined(CONFIG_550D) || defined(CONFIG_500D)
+	#if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_60D)
 	if (recording) return; // vsync fails
 	if (!lv) return;
 	gui_stop_menu();

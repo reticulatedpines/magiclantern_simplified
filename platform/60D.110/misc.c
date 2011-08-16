@@ -72,10 +72,22 @@ void display_lcd_remote_icon(int x0, int y0) {}
 // image buffers
 // http://magiclantern.wikia.com/wiki/VRAM
 
+void* get_422_hd_idle_buf() // the one which is not updated by DMA
+{
+	switch (YUV422_HD_BUFFER_DMA_ADDR)
+	{
+		case YUV422_HD_BUFFER:
+			return YUV422_HD_BUFFER_2;
+		case YUV422_HD_BUFFER_2:
+			return YUV422_HD_BUFFER;
+	}
+	return YUV422_HD_BUFFER; // fall back to default
+}
+
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = YUV422_HD_BUFFER_DMA_ADDR;
+	_vram_info.vram = get_422_hd_idle_buf();
 	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
 									video_mode_resolution == 1 ? 1280 : 
 									video_mode_resolution == 2 ? 640 : 0)

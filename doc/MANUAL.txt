@@ -175,7 +175,7 @@ Misc shortcuts
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a transparent overlay from current image. You can then move the overlay around with arrow keys in LiveView mode. To deactivate the overlay, go to ``PLAY`` mode and back without pressing ``LV`` on a new image.
-* ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture).
+* ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
 * ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom.
 
 Magic Lantern menu
@@ -838,11 +838,11 @@ Functions for stills shooting (some of them work for movies, too).
   
   To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python, PIL and numpy). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
   
-  Note: FullHD option will cause errors during playback; they are caused by dummy videos which were removed by ML, but camera thinks they are still there. After restart, the errors will disappear.
+  Known bugs:
   
-  TODO: 
+  * FullHD option will cause errors during playback; they are caused by dummy videos which were removed by ML, but camera thinks they are still there. After restart, the errors will disappear.
+  * Burst mode may cause a horizontal cut in the images; this happens because LiveView buffers are updated faster than card writing speed, and ML can't slow them down.
   
-  * avoid that horizontal cut in pictures (vsync doesn't help and there's not enough RAM to buffer an entire image)
 
 .. _bulb timer:
 
