@@ -24,7 +24,7 @@ all: 60D 550D 600D
 
 install: all
 	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
-	cp $(SRC_DIR)/*.FNT /media/EOS_DIGITAL
+	cp $(SRC_DIR)/FONTS.DAT /media/EOS_DIGITAL
 	cp vram/rectilin.lut /media/EOS_DIGITAL
 	umount /media/EOS_DIGITAL
 

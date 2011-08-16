@@ -73,7 +73,7 @@ install: autoexec.bin
 
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
 	cp $(TOP_DIR)/cropmks/*.bmp $(CF_CARD)/cropmks/
-	cp $(SRC_DIR)/*.FNT $(CF_CARD)/
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -98,7 +98,7 @@ prepare_zip:
 	cp ../../installer/60D.110/*.fir .
 	cp ../../installer/600D.101/*.fir .
 	cp ../vram/rectilin.lut .
-	cp $(SRC_DIR)/*.fnt .
+	cp $(SRC_DIR)/FONTS.DAT .
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
@@ -110,7 +110,7 @@ magiclantern-$(VERSION).zip: \
 	cropmks/* \
 	doc/* \
 	*.fir \
-	*.fnt \
+	FONTS.DAT \
 	rectilin.lut \
 
 	-rm $@

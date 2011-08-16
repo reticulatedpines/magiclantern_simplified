@@ -22,9 +22,13 @@ static void load_fonts(void* unused)
 {
 	// if something goes wrong, you will see chinese fonts :)
 	int size;
-	font_small.bitmap = read_entire_file("B:/SMALL.FNT", &size);
-	font_med.bitmap = read_entire_file("B:/MEDIUM.FNT", &size);
-	font_large.bitmap = read_entire_file("B:/LARGE.FNT", &size);
+	
+	//cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
+	font_small.bitmap = read_entire_file("B:/FONTS.DAT", &size);
+	//~ font_med.bitmap = read_entire_file("B:/MEDIUM.FNT", &size);
+	//~ font_large.bitmap = read_entire_file("B:/LARGE.FNT", &size);
+	font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
+	font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
 }
 
 static void init_fonts()
