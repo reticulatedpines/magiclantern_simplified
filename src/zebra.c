@@ -3718,7 +3718,7 @@ void defish_draw()
 		int size = 0;
 		defish_lut = read_entire_file(defish_lut_file, &size);
 	}
-	if (defish_lut == INVALID_PTR)
+	if (defish_lut == NULL)
 	{
 		bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
 		return;

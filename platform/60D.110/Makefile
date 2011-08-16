@@ -25,9 +25,7 @@ ML_OBJS-y = \
 	stubs.o \
 	version.o \
 	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
+	font-dyn.o \
 	config.o \
 	menu.o \
 	debug.o \

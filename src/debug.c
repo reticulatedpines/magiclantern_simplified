@@ -455,6 +455,11 @@ static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
 	msleep(500);
+
+	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, "B:/large.fnt");
+	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, "B:/medium.fnt");
+	dump_seg(&(font_small.bitmap), ('~' + (11 << 7)) * 4, "B:/small.fnt");*/
+
 	int k;
 	for (k = 0; ; k++)
 	{

@@ -29,7 +29,7 @@ struct font
 {
 	unsigned	height;
 	unsigned	width;
-	unsigned 	bitmap[];
+	unsigned*	bitmap; // change to unsigned bitmap[] for static fonts
 };
 
 
