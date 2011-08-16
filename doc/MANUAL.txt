@@ -406,6 +406,14 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   To select the image, go to Play mode and press the ``LiveView`` button.
 
+**Live Defish: ON/OFF**
+
+  Preview the rectified (defished) image from `Samyang 8mm fisheye lens <http://amzn.to/ml-samyang-8mm>`_, using rectilinear projection.
+  
+  Warning: preview is displayed in grayscale, resolution is low at the corners and refresh rate is low.
+  
+  Defishing is computed with a LUT, from LiveView image buffer. It is possible to create LUT files for any other lens or projection by defishing ``vram/xy.png`` with your favorite defishing software, and then running ``vram/defish-lut.m`` to get the LUT file. All the required files are found in the ML source tree. Project files for nona (hugin) are provided for both Panini and rectilinear projections.
+  
 .. _spotmeter:
 
 **Spotmeter: OFF / Percent / IRE**

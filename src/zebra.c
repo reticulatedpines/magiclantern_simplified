@@ -2473,6 +2473,23 @@ void idle_timeout_toggle(void* priv, int sign)
 void idle_timeout_toggle_forward(void* priv) { idle_timeout_toggle(priv, 1); }
 void idle_timeout_toggle_reverse(void* priv) { idle_timeout_toggle(priv, -1); }
 
+CONFIG_INT("defish.preview", defish_preview, 0);
+static void
+defish_preview_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Live Defish : %s",
+		defish_preview ? "ON" : "OFF"
+	);
+}
+
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -2523,6 +2540,13 @@ struct menu_entry zebra_menus[] = {
 		.select = menu_binary_toggle,
 		.select_auto = transparent_overlay_offset_clear,
 		.help = "Overlay any image in LiveView. In PLAY mode, press LV btn."
+	},
+	{
+		.name = "Live Defish",
+		.priv = &defish_preview, 
+		.display = defish_preview_display, 
+		.select = menu_binary_toggle,
+		.help = "Preview rectilinear image from Samyang 8mm fisheye (gray)."
 	},
 	{
 		.name = "Spotmeter",
@@ -3352,6 +3376,10 @@ livev_hipriority_task( void* unused )
 				if (k % 4 == 0)
 					BMP_LOCK( if (lv) draw_false_downsampled(); )
 			}
+			else if (defish_preview)
+			{
+				BMP_LOCK( if (lv) defish_draw(); )
+			}
 			else
 			{
 				BMP_LOCK( if (lv) draw_zebra_and_focus(k % (recording ? 2 : 1) == 0, 1); )
@@ -3361,7 +3389,7 @@ livev_hipriority_task( void* unused )
 		
 		if (spotmeter_draw && k % 4 == 0)
 			BMP_LOCK( if (lv) spotmeter_step(); )
-
+		
 		if (crop_dirty)
 		{
 			//~ bmp_printf(FONT_MED, 100, 100, "%d ", crop_dirty);
@@ -3675,6 +3703,56 @@ void transparent_overlay_from_play()
 }
 
 INIT_FUNC("bvram_mirror_init", bvram_mirror_init);
+
+//~ CONFIG_STR("defish.lut", defish_lut_file, "B:/recti.lut");
+#define defish_lut_file "B:/rectilin.lut"
+
+uint8_t* defish_lut = INVALID_PTR;
+
+void defish_draw()
+{
+	if (defish_lut == INVALID_PTR)
+	{
+		int size = 0;
+		defish_lut = read_entire_file(defish_lut_file, &size);
+	}
+	if (defish_lut == INVALID_PTR)
+	{
+		bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
+		return;
+	}
+	int i,j;
+	struct vram_info * vram = get_yuv422_vram();
+	uint8_t * const lvram = vram->vram;
+	int lvpitch = YUV422_LV_PITCH;
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+
+	int y;
+	for (i = 0; i < 240; i++)
+	{
+		for (j = 0; j < 360; j++)
+		{
+			static const int off_i[] = {0,0,479,479};
+			static const int off_j[] = {0,719,0,719};
+			int id = defish_lut[(i * 360 + j) * 2 + 1];
+			int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+			int k;
+			for (k = 0; k < 4; k++)
+			{
+				int I = (off_i[k] ? off_i[k] - i : i);
+				int J = (off_j[k] ? off_j[k] - j : j);
+				int Id = (off_i[k] ? off_i[k] - id : id);
+				int Jd = (off_j[k] ? off_j[k] - jd : jd);
+				int lv_pixel = lvram[Id * lvpitch + Jd * 2 + 1];
+				uint8_t* bp = &(bvram[I * BMPPITCH + J]);
+				uint8_t* mp = &(bvram_mirror[I * BMPPITCH + J]);
+				if (*bp != 0 && *bp != *mp) continue;
+				*bp = *mp = (lv_pixel * 41 >> 8) + 38;
+			}
+		}
+	}
+}
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
