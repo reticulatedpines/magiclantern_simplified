@@ -120,6 +120,9 @@ os.system(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide-cam.tex")
 
 os.system(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide-cam.tex")
+os.system(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
+os.system(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
+os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
 
 #~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")

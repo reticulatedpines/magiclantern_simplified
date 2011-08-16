@@ -174,7 +174,7 @@ Misc shortcuts
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
-* ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a transparent overlay from current image. You can then move the overlay around with arrow keys in LiveView mode. To deactivate the overlay, go to ``PLAY`` mode and back without pressing ``LV`` on a new image.
+* ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
 * ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
 * ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom.
 
@@ -401,6 +401,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
 {{clr}}
 
+.. _transparent overlay:
+
 **Ghost image: OFF / Centered / Left / Right**
 
   Shows a transparent overlay which can be created from any image in Play mode.
@@ -413,7 +415,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   Warning: preview is displayed in grayscale, resolution is low at the corners and refresh rate is low.
   
-  Defishing is computed with a LUT, from LiveView image buffer. It is possible to create LUT files for any other lens or projection by defishing ``vram/xy.png`` with your favorite defishing software, and then running ``vram/defish-lut.m`` to get the LUT file. All the required files are found in the ML source tree. Project files for nona (hugin) are provided for both Panini and rectilinear projections.
+  Defishing is computed with a LUT, from LiveView image buffer. It is possible to create LUT files for any other lens or projection by defishing ``vram/xy.png`` with your favorite defishing software, and then running ``vram/defish-lut.m`` to get the LUT file. All the required files are found in the ML source tree. Project files (``*.PTO``) for nona (hugin) are provided for both rectilinear and Panini projections.
   
 .. _spotmeter:
 
@@ -721,7 +723,7 @@ Functions for stills shooting (some of them work for movies, too).
 
     The ``Wait/NoWait`` setting has no effect in movie, `HDR`_ or `bulb timer`_ modes.
 
-  * In movie mode, it takes a sequence of small videos
+  * In movie mode, it takes a sequence of small videos:
   
     - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
     - To use the intervalometer in movie mode, make sure `Silent Picture`_ is ``OFF``.
@@ -741,18 +743,22 @@ Functions for stills shooting (some of them work for movies, too).
   * In LiveView, ML will go to PLAY mode and turn the display off for you during idle times.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
-**AutoExpo for Timelapse: ON/OFF, percentile=20..99%** 
+**AutoExpo for Timelapse: ON/OFF, percentile=20...99\%** 
 
   Auto adjust shutter and ISO for timelapse:
     
   * Exposure is adjusted using a condition like this (for example): *90% of pixels (percentile) should be below 75% brightness (level)*;
   * Brightness level is measured with a user-defined percentile of luma channel:
+    
     - percentile >= 80% => measure highlights (should prevent overexposure);
     - percentile = 50% => median value of brightness (measure midtones; should reduce flicker, but may overexpose in harsh lighting conditions);
     - percentile <= 30% => measure shadows (not recommended);
+    
   * First 3 shots (+1EV, -1EV, 0EV) are used for calibration; ML will compute 2 parameters:
+    
     - brightness level for subsequent images (you can't set or change exposure compensation, so be careful and expose the first image well);
     - derivative of brightness level with respect to exposure value (EV), used to determine the thresholds when the exposure will be adjusted;
+    
   * It is assummed that lighting conditions will change slowly; fast changes in lighting are not handled well;
   * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the histogram);
   * Adjustment step is as small as the camera supports (1/8 EV best case);
@@ -1399,7 +1405,7 @@ LiveView
   * Lens focal length and aperture, 
   * `shutter`_, `ISO`_, `white balance`_, WB shift
   * [[Focus_distance]]
-  * Exposure compensation (codenamed AE)
+  * Exposure compensation
 
 * Top bar (displayed only when audio meters are not shown):
 

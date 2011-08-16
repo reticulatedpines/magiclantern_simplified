@@ -2285,7 +2285,7 @@ int measure_brightness_level()
 {
 	fake_simple_button(BGMT_PLAY);
 	while (!PLAY_MODE) msleep(100);
-	msleep(2000);
+	msleep(1000);
 	struct vram_info * vram = get_yuv422_vram();
 	hist_build(vram->vram, vram->width, vram->pitch);
 	int ans = hist_get_percentile_level(intervalometer_auto_expo_prc);
