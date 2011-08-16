@@ -48,6 +48,7 @@ NSTUB( 0xFF017B68, create_init_task )
 
 NSTUB( 0xFF1CB1E4, FIO_FindFirstEx )
 NSTUB( 0xFF1CB2D8, FIO_FindNextEx )
+NSTUB( 0xff1cb3b8, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)

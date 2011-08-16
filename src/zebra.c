@@ -1788,6 +1788,7 @@ static void find_cropmarks()
 			k++;
 		}
 	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
 	num_cropmarks = k;
 	sort_cropmarks();
 }
@@ -3828,6 +3829,7 @@ char* get_next_422()
 			return file.name;
 		}
 	}
+	FIO_CleanupAfterFindNext_maybe(dirent);
 	first = 1;
 	dirent = 0;
 	return 0;
@@ -3841,7 +3843,7 @@ void play_next_422()
 	char* fn = get_next_422();
 	if (!fn)
 	{
-		bmp_printf(FONT_LARGE, 0, 0, "No more 422 files.");
+		bmp_printf(FONT_LARGE, 0, 0, "No more 422's.");
 		goto end;
 	}
 	//~ msleep(2000);

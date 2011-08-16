@@ -46,6 +46,7 @@ NSTUB( 0xff817260, create_init_task )																		//d
 
 NSTUB( 0xff983470, FIO_FindFirstEx )																		//d
 NSTUB( 0xff98359c, FIO_FindNextEx )																			//d
+NSTUB( 0xff98369c, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0x3787c, LV_EX_X)		//couldn't find in 500d dump anywhere -- for hdmi related stuff
 NSTUB( 0x37880, LV_EX_Y)		//couldn't find in 500d dump anywhere -- for hdmi related stuff
