@@ -113,6 +113,7 @@ NSTUB( 0xff1ca564, FIO_GetFileSize )
 NSTUB( 0xFF06E61C, give_semaphore )
 NSTUB( 0xFF06E534, take_semaphore )
 NSTUB( 0xff06bc3c, dm_set_store_level ) // called by "dmstore"
+NSTUB( 0xFF06BBD4, dm_set_print_level )
 NSTUB( 0xff05b058, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xff05a9f0, prop_request_change )
 NSTUB( 0xff05afd0, prop_deliver ) 
