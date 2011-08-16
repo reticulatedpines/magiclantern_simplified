@@ -2152,10 +2152,7 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 
-	draw_line(width/2 - dx, height/2 - dx, width/2 + dx, height/2 - dx, COLOR_WHITE);
-	draw_line(width/2 + dx, height/2 - dx, width/2 + dx, height/2 + dx, COLOR_WHITE);
-	draw_line(width/2 + dx, height/2 + dx, width/2 - dx, height/2 + dx, COLOR_WHITE);
-	draw_line(width/2 - dx, height/2 + dx, width/2 - dx, height/2 - dx, COLOR_WHITE);
+	bmp_draw_rect(COLOR_WHITE, width/2 - dx, height/2 - dx, 2*dx, 2*dx);
 	
 	unsigned sy = 0;
 	int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
@@ -3051,6 +3048,10 @@ void draw_livev_for_playback()
 	{
 		draw_false_downsampled();
 	}
+	else if (defish_preview)
+	{
+		defish_draw();
+	}
 	else
 	{
 		draw_zebra_and_focus(1,0);
@@ -3760,4 +3761,95 @@ PROP_HANDLER(PROP_LV_ACTION)
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
 	idle_wakeup_reset_counters();
 	return prop_cleanup( token, property );
+}
+
+
+void play_422(char* filename)
+{
+	unsigned size;
+	if( FIO_GetFileSize( filename, &size ) != 0 ) return;
+	uint32_t * buf = YUV422_HD_BUFFER;
+
+    bmp_printf(FONT_LARGE, 500, 0, "%d", size);
+
+	int w,h;
+    if (size == 1056*704*2) { w = 1056; h = 704; }
+    else if (size == 1720*974*2) { w = 1720; h = 974; }
+    else if (size == 580*580*2)  { w = 580 ; h = 580; }
+    else if (size == 1280*580*2) { w = 1280; h = 580; }
+    else if (size == 640*480*2)  { w = 640 ; h = 480; }
+    else if (size == 1024*680*2) { w = 1024; h = 680; }
+    else if (size == 512*340*2)  { w = 512;  h = 340; }
+    else if (size == 720*480*2)  { w = 720;  h = 480; }
+    else return;
+    
+    bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
+	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
+	bmp_printf(FONT_MED, 0, 480 - font_med.height, "Do not press Delete!");
+
+	size_t rc = read_file( filename, buf, size );
+	if( rc != size ) return;
+
+	struct vram_info * vram = get_yuv422_vram();
+	uint32_t* lv = vram->vram;
+
+	int i,j;
+	for (i = 0; i < 480; i++)
+	{
+		for (j = 0; j < 720/2; j++)
+		{
+			lv[i * vram->width/2 + j] = buf[(i*h/480) * w/2 + (j*w/720)];
+		}
+	}
+}
+
+char* get_next_422()
+{
+	static struct fio_file file;
+	static int first = 1;
+	static struct fio_dirent * dirent = 0;
+	if (first)
+	{
+		dirent = FIO_FindFirstEx( "B:/DCIM/100CANON/", &file );
+		if( IS_ERROR(dirent) )
+		{
+			bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+			return 0;
+		}
+		first = 0;
+	}
+	while(FIO_FindNextEx( dirent, &file ) == 0)
+	{
+		//~ msleep(1000);
+		int n = strlen(file.name);
+		if ((n > 4) && (streq(file.name + n - 4, ".422")))
+		{
+			bmp_printf(FONT_LARGE, 0, 0, "%s ", file.name);
+			return file.name;
+		}
+	}
+	first = 1;
+	dirent = 0;
+	return 0;
+}
+
+static volatile int playing_422 = 0;
+void play_next_422()
+{
+	if (playing_422) return;
+	playing_422 = 1;
+	char* fn = get_next_422();
+	if (!fn)
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "No more 422 files.");
+		goto end;
+	}
+	//~ msleep(2000);
+	
+	char ffn[100];
+	snprintf(ffn, 100, "B:/DCIM/100CANON/%s", fn);
+	play_422(ffn);
+	
+end:
+	playing_422 = 0;
 }

@@ -51,10 +51,10 @@ int get_halfshutter_pressed()
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-//~ int set_pressed = 0;
+int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-//~ int get_set_pressed() { return set_pressed; }
+int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -596,6 +596,18 @@ static int handle_buttons(struct event * event)
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
 		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+	}
+
+	// 422 play
+
+	if (event->type == 0 && event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->type == 0 && event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->type == 0 && event->param == BGMT_PLAY) set_pressed = 0;
+
+	if ( PLAY_MODE && event->type == 0 && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
+	{
+		play_next_422();
+		return 0;
 	}
 
 	return 1;
