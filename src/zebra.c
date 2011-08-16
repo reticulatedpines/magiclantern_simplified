@@ -3786,7 +3786,7 @@ void play_422(char* filename)
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
 	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
-	bmp_printf(FONT_MED, 0, 480 - font_med.height, "Do not press Delete!");
+	bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;
