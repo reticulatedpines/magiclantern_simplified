@@ -147,7 +147,7 @@ config_autosave_display(
 	);
 }
 
-#ifdef CONFIG_DEBUGMSG
+#if CONFIG_DEBUGMSG
 
 static int vmax(int* x, int n)
 {
@@ -574,7 +574,7 @@ struct menu_entry debug_menus[] = {
 		.display	= spy_print,
 		.help = "Spy properties / events / memory addresses which change."
 	},
-#ifdef CONFIG_DEBUGMSG
+#if CONFIG_DEBUGMSG
 	{
 		.name = "Debug logging",
 		.priv = &dm_enable,
