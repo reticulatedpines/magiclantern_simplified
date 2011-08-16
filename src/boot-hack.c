@@ -376,6 +376,7 @@ my_init_task(void)
 	
 	// this is better in a separate task (not sure why, but causes instability if called right from here)
 	// let's try not to open files from here
+	msleep(100);
 	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
 	hold_your_horses(0); 
 
