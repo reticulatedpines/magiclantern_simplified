@@ -71,6 +71,8 @@ static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
 static CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
+static CONFIG_INT("intervalometer.auto.expo", intervalometer_auto_expo, 0);
+static CONFIG_INT("intervalometer.auto.expo.prc", intervalometer_auto_expo_prc, 90);
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
@@ -1128,7 +1130,7 @@ iso_toggle_reverse( void * priv )
 	iso_toggle(-1);
 }
 
-PROP_INT(PROP_ISO_AUTO, iso_auto_code);
+/*PROP_INT(PROP_ISO_AUTO, iso_auto_code);
 static int measure_auto_iso()
 {
 	// temporary changes during measurement:
@@ -1149,7 +1151,7 @@ static int measure_auto_iso()
 	int iso_auto_mode = 0;
 	prop_request_change(PROP_ISO, &iso_auto_mode, 4);   // force iso auto
 	msleep(500);
-	while (iso_auto_code == 0)
+	while (iso_auto_code == 0) // force metering event
 	{
 		SW1(1,100);
 		SW1(0,100);
@@ -1163,11 +1165,20 @@ static int measure_auto_iso()
 	lens_set_ae(ae0);
 	
 	return ans;
+}*/
+
+static int measure_auto_iso()
+{
+	SW1(1,10); // trigger metering event
+	SW1(0,100);
+	return COERCE(lens_info.raw_iso - AE_VALUE, 72, 128);
 }
+
 static void iso_auto_quick()
 {
-	if (MENU_MODE) return;
-	lens_set_rawiso(measure_auto_iso());
+	//~ if (MENU_MODE) return;
+	int new_iso = measure_auto_iso();
+	lens_set_rawiso(new_iso);
 }
 
 int iso_auto_flag = 0;
@@ -2031,7 +2042,7 @@ bulb_take_pic(int duration)
 		return;
 	}
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
-	if (get_mlu()) { lens_take_picture(64); msleep(2000); }
+	if (get_mlu() && !lv) { lens_take_picture(64); msleep(2000); }
 	SW1(1,100);
 	SW2(1,100);
 	int i;
@@ -2105,7 +2116,8 @@ mlu_display( void * priv, int x, int y, int selected )
 		#endif
 		: get_mlu() ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
+	if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, 0);
+	else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 
 static void 
@@ -2211,6 +2223,181 @@ static void picq_toggle(void* priv)
 }
 #endif
 
+int adjust_iso_for_timelapse_without_changing_exposure()
+{
+	int raw_shutter_0 = lens_info.raw_shutter;
+	int raw_iso_0 = lens_info.raw_iso;
+	
+	int d = timer_values[interval_timer_index]; // intervalometer delay, in seconds
+	int ideal_shutter_speed_x100 = d * 100 / (intervalometer_wait ? 1 : 2); // 180 degree rule => ideal value
+	ideal_shutter_speed_x100 = COERCE(ideal_shutter_speed_x100, 0, 1500); // no more than 15 seconds, if possible
+	int ideal_shutter_speed_raw = shutter_x100_to_raw(ideal_shutter_speed_x100);
+	ideal_shutter_speed_raw = COERCE(ideal_shutter_speed_raw, 16, 160); // 30s ... 1/8000
+
+	int delta = 0;  // between 90 and 180 degrees => OK
+	if (ideal_shutter_speed_raw > raw_shutter_0 + 8) delta = 8; // shutter too slow (more than 180 degrees -- ideal value) => boost ISO
+	if (ideal_shutter_speed_raw < raw_shutter_0) delta = -8; // shutter too fast (less than 90 degrees) => lower ISO
+	
+	if (delta) // should we change something?
+	{
+		int new_raw_iso = COERCE(lens_info.raw_iso + delta, 72, 120); // Allowed values: ISO 100 ... ISO 6400
+		delta = new_raw_iso - raw_iso_0;
+		if (delta == 0) return 0; // nothing to change
+		int new_raw_shutter = lens_info.raw_shutter + delta;
+		
+		lens_set_rawiso(new_raw_iso); // try to set new iso
+		msleep(50);
+		if (lens_info.raw_iso == new_raw_iso) // new iso accepted
+		{
+			lens_set_rawshutter(new_raw_shutter); // try to set new shutter
+			msleep(50);
+			if (lens_info.raw_shutter == new_raw_shutter) // new shutter accepted
+				return 1; // OK!
+		}
+		// if we are here, either iso or shutter was refused
+		// => restore old settings
+		lens_set_rawiso(raw_iso_0); 
+		lens_set_rawshutter(raw_shutter_0);
+	}
+	return 0; // nothing changed
+}
+
+
+void adjust_shutter_for_timelapse(int delta)
+{
+	int i;
+	int rs = lens_info.raw_shutter;
+	for (i = 1; i <= 8; i++)
+	{
+		int newrs = rs + delta * i; // changing shutter is tricky, camera may refuse some values
+		lens_set_rawshutter(newrs);
+		if (lens_info.raw_shutter == newrs)
+			return; // OK!
+	}
+}
+
+int aetl_reference_level = 0;
+int aetl_measured_level = 0;
+int aetl_level_ev_ratio_plus = 0;
+int aetl_level_ev_ratio_minus = 0;
+
+int measure_brightness_level()
+{
+	fake_simple_button(BGMT_PLAY);
+	while (!PLAY_MODE) msleep(100);
+	msleep(2000);
+	struct vram_info * vram = get_yuv422_vram();
+	hist_build(vram->vram, vram->width, vram->pitch);
+	int ans = hist_get_percentile_level(intervalometer_auto_expo_prc);
+	get_out_of_play_mode();
+	return ans;
+}
+
+void auto_exposure_for_timelapse_init()
+{
+	if (shooting_mode != SHOOTMODE_M)
+	{
+		bmp_printf(FONT_MED, 50, 200, "AutoExpo works only in Manual mode.");
+		intervalometer_stop();
+		msleep(1000);
+		return;
+	}
+	
+	static int init_done = 0;
+	if (init_done) return;
+	
+	
+	int rs0 = lens_info.raw_shutter;
+	lens_set_rawshutter(rs0 - 8);
+	hdr_shot(0, 1);
+	int level_plus1ev = measure_brightness_level();
+
+	lens_set_rawshutter(rs0 + 8);
+	hdr_shot(0, 1);
+	int level_minus1ev = measure_brightness_level();
+
+	lens_set_rawshutter(rs0);
+	hdr_shot(0, 1);
+	aetl_reference_level = measure_brightness_level();
+	
+	aetl_level_ev_ratio_plus = level_plus1ev - aetl_reference_level;
+	aetl_level_ev_ratio_minus = aetl_reference_level - level_minus1ev;
+	init_done = 1;
+}
+
+void compute_exposure_for_next_shot()
+{
+	
+	aetl_measured_level = measure_brightness_level();
+	
+	int thr_hi = aetl_reference_level + aetl_level_ev_ratio_plus / 3;
+	int thr_lo = aetl_reference_level - aetl_level_ev_ratio_minus / 3;
+	
+	if (aetl_measured_level > thr_hi)
+		adjust_shutter_for_timelapse(1);
+	
+	else if (aetl_measured_level < thr_lo)
+		adjust_shutter_for_timelapse(-1);
+	
+	adjust_iso_for_timelapse_without_changing_exposure();
+}
+
+static void auto_exposure_for_timelapse_showinfo()
+{
+	int s = raw2shutter_x100(lens_info.raw_shutter);
+	bmp_printf(FONT_MED, 50, 300, 
+		"Reference level (%d%%prc) : %d%% \n"
+		"Measured  level (%d%%prc) : %d%% \n"
+		"Exposure change thresh.  : +%d -%d \n"
+		"ISO     : %d   \n"
+		"Shutter : %d.%02d s (raw %d) ", 
+		intervalometer_auto_expo_prc, aetl_reference_level,
+		intervalometer_auto_expo_prc, aetl_measured_level,
+		aetl_level_ev_ratio_plus / 3, aetl_level_ev_ratio_minus / 3,
+		lens_info.iso,
+		s / 100, s % 100, 
+		lens_info.raw_shutter);
+}
+
+static int prc_values[] = {20, 30, 50, 70, 80, 90, 95, 98, 99};
+
+int find_prc_index(int prc)
+{
+	int i;
+	for (i = 0; i < COUNT(prc_values); i++)
+		if (prc >= prc_values[i]) return i;
+	return 0;
+}
+static void auto_exposure_for_timelapse_prc_toggle(int sign)
+{
+	int i = find_prc_index(intervalometer_auto_expo_prc);
+	i = mod(i + sign, COUNT(prc_values));
+	intervalometer_auto_expo_prc = prc_values[i];
+}
+
+static void auto_exposure_for_timelapse_prc_toggle_forward(void* priv)
+{
+	auto_exposure_for_timelapse_prc_toggle(1);
+}
+
+static void auto_exposure_for_timelapse_prc_toggle_reverse(void* priv)
+{
+	auto_exposure_for_timelapse_prc_toggle(-1);
+}
+
+static void 
+auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"AutoExpo4TmLapse: %s, prctile=%d%%",
+		intervalometer_auto_expo ? "ON" : "OFF", 
+		intervalometer_auto_expo_prc
+	);
+}
+
+
 struct menu_entry shoot_menus[] = {
 	{
 		.name = "HDR Bracket",
@@ -2236,6 +2423,15 @@ struct menu_entry shoot_menus[] = {
 		.display	= intervalometer_display,
 		.select_auto = intervalometer_wait_toggle,
 		.help = "Intervalometer. For precise timing, choose NoWait [Q]."
+	},
+	{
+		.name = "AutoExpo for Timelapse",
+		.priv		= &intervalometer_auto_expo,
+		.select		= menu_binary_toggle,
+		.display	= auto_exposure_for_timelapse_display,
+		.select_auto = auto_exposure_for_timelapse_prc_toggle_forward,
+		.select_reverse = auto_exposure_for_timelapse_prc_toggle_reverse,
+		.help = "Auto shutter & ISO for timelapse (must be in M mode)",
 	},
 	#ifdef CONFIG_550D
 	{
@@ -2446,7 +2642,7 @@ void hdr_shutter_release()
 	lens_wait_readytotakepic(64);
 	if (!silent_pic_mode || !lv)
 	{
-		if (get_mlu()) { lens_take_picture(64); msleep(500); }
+		if (get_mlu() && !lv) { lens_take_picture(64); msleep(500); }
 		lens_take_picture(64);
 	}
 	else { msleep(300); silent_pic_take(0); }
@@ -2651,7 +2847,7 @@ void remote_shot(int wait)
 	if (!wait) return;
 	
 	msleep(200);
-	if (get_mlu() && lens_info.job_state < 10) return; // mirror was just locked, nothing more to wait
+	if (get_mlu() && !lv && lens_info.job_state < 10) return; // mirror was just locked, nothing more to wait
 	
 	while (lens_info.job_state >= 10) msleep(500);
 	
@@ -2748,7 +2944,7 @@ void intervalometer_stop()
 {
 	if (intervalometer_running)
 	{
-		bmp_printf(FONT_MED, 20, (lv ? 40 : 3), "Stopped                                             ");
+		bmp_printf(FONT_LARGE, 20, (lv ? 40 : 3), "Intervalometer stopped.");
 		intervalometer_running = 0;
 		//~ display_on();
 	}
@@ -2765,6 +2961,8 @@ void wait_till_next_second()
 	{
 		LoadCalendarFromRTC( &now );
 		msleep(20);
+		call("DisablePowerSave"); // trick from AJ_MREQ_ISR
+		call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
 	}
 }
 
@@ -3041,10 +3239,12 @@ shoot_task( void* unused )
 		{
 			silent_pic_take(1);
 		}
-
-		// force powersave mode for intervalometer in silent mode
+		
 		if (intervalometer_running)
 		{
+			if (gui_state == GUISTATE_PLAYMENU)
+				get_out_of_play_mode();
+			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			
 			if (timer_values[interval_timer_index])
@@ -3054,39 +3254,45 @@ shoot_task( void* unused )
 			}
 			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-			if (get_halfshutter_pressed()) continue;
+
+			if (intervalometer_auto_expo)
+			{
+				auto_exposure_for_timelapse_init();
+				compute_exposure_for_next_shot();
+			}
 
 			hdr_shot(0, intervalometer_wait);
 			
-			// simulate a half-shutter press to avoid mirror going up
-			// once per minute is enough and easy to check
-			static int prev_min = 0;
-			LoadCalendarFromRTC( &now );
-			if (lv && now.tm_min != prev_min) 
-			{
-				prev_min = now.tm_min;
-				SW1(1,10);
-				SW1(0,10);
-			}
-			
+			int display_turned_off = 0;
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
 			{
 				card_led_blink(1, 50, 0);
 				wait_till_next_second();
 
-				if (intervalometer_running) bmp_printf(FONT_MED, 20, (lv ? 40 : 3), "Press PLAY or MENU to stop the intervalometer...%d   ", timer_values[interval_timer_index] - i - 1);
+				if (lv && !gui_menu_shown() && !display_turned_off)
+				{
+					// go to PLAY mode and turn off display to save power
+					fake_simple_button(BGMT_PLAY);
+					msleep(200);
+					display_off_force();
+					display_turned_off = 1;
+					// ... but only once per picture (don't be too aggressive)
+				}
+
+				if (intervalometer_running) 
+				{
+					bmp_printf(FONT_LARGE, 20, (lv ? 40 : 3), "Intervalometer [%d]   ", timer_values[interval_timer_index] - i - 1);
+					bmp_printf(FONT_MED, 20, (lv ? 40 : 3) + 50, "To stop, rotate mode dial or press PLAY or MENU.");
+				}
 				else break;
+
+				if (intervalometer_auto_expo)
+					auto_exposure_for_timelapse_showinfo();
 
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 
-				while (get_halfshutter_pressed()) msleep(100);
+				while (get_halfshutter_pressed()) msleep(100); // pause
 				
-				if (!lv)
-				{
-					SW1(1,10); // prevent camera from entering in "deep sleep" mode
-					SW1(0,10); // (some kind of sleep where it won't wake up from msleep)
-				}
-
 				//~ if (shooting_mode != SHOOTMODE_MOVIE)
 				//~ {
 					//~ if (lens_info.shutter > 100 && !silent_pic_mode) bmp_printf(FONT_MED, 0, 70,             "Tip: use shutter speeds slower than 1/100 to prevent flicker.");

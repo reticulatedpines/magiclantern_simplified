@@ -443,6 +443,24 @@ hist_build(void* vram, int width, int pitch)
 	}
 }
 
+int hist_get_percentile_level(int percentile)
+{
+	int total = 0;
+	int i;
+	for( i=0 ; i < hist_width ; i++ )
+		total += hist[i];
+	
+	int thr = total * percentile / 100;  // 50% => median
+	int n = 0;
+	for( i=0 ; i < hist_width ; i++ )
+	{
+		n += hist[i];
+		if (n >= thr)
+			return i * 100 / hist_width;
+	}
+	return -1; // invalid argument?
+}
+
 void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, int* over)
 {
 	*under = -1;

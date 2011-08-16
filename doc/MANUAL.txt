@@ -426,7 +426,6 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 .. _Display:
 .. _Clean LiveView display:
-.. _Turn off display:
 
 **ClearScreen: OFF / HalfShutter / WhenIdle**
 
@@ -707,7 +706,7 @@ Functions for stills shooting (some of them work for movies, too).
   Start/stop intervalometer.
   
   * In photo mode, it takes a sequence of photos with a fixed rate or delay (toggle with ``Q``):
-  
+
     - ``Wait``: intervalometer waits until the picture is taken and saved to card, then starts counting the time for the next picture (default, fixed delay with 1-second resolution).
     - ``NoWait``: timer for next shot starts as soon as current shot was triggered (it does not wait for exposure to finish, nor for picture to be saved). This ensures precise timing between shots (fixed rate). If the total time required for taking a picture is larger than the interval between two shots, it will miss some frames.
 
@@ -719,21 +718,39 @@ Functions for stills shooting (some of them work for movies, too).
     - To use the intervalometer in movie mode, make sure `Silent Picture`_ is ``OFF``.
   
   You can stop the intervalometer either from ML menu, or by pressing MENU or PLAY, or by changing the shooting mode. You can pause the intervalometer by holding the shutter halfway, or by opening ML menu.
-  
+
   Tips:
   
   * Shoot in manual mode and switch the lens to MF.
   * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
-  * Do not use the intervalometer in LiveView with "noisy" mode (otherwise your shutter will wear twice as fast than outside LV).
+  * When using the intervalometer in LiveView with "noisy" mode, your shutter will wear twice as fast than outside LiveView.
   * If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
 
   Power Saving:
   
-  * When not in LiveView, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
-  * In LiveView, enable the `Turn off display`_ option. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
+  * When not in LiveView, press ``DISP`` or ``INFO`` to turn the display off.
+  * In LiveView, ML will go to PLAY mode and turn the display off for you during idle times.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
-  Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.
+**AutoExpo for Timelapse: ON/OFF, percentile=20..99%** 
+
+  Auto adjust shutter and ISO for timelapse:
+    
+  * Exposure is adjusted using a condition like this (for example): *90% of pixels (percentile) should be below 75% brightness (level)*;
+  * Brightness level is measured with a user-defined percentile of luma channel:
+    - percentile >= 80% => measure highlights (should prevent overexposure);
+    - percentile = 50% => median value of brightness (measure midtones; should reduce flicker, but may overexpose in harsh lighting conditions);
+    - percentile <= 30% => measure shadows (not recommended);
+  * First 3 shots (+1EV, -1EV, 0EV) are used for calibration; ML will compute 2 parameters:
+    - brightness level for subsequent images (you can't set or change exposure compensation, so be careful and expose the first image well);
+    - derivative of brightness level with respect to exposure value (EV), used to determine the thresholds when the exposure will be adjusted;
+  * It is assummed that lighting conditions will change slowly; fast changes in lighting are not handled well;
+  * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the histogram);
+  * Adjustment step is as small as the camera supports (1/8 EV best case);
+  * ISO is chosen such as the resulting shutter speed obeys the 180 degree rule (if possible);
+  * Only native ISOs (100, 200, 400 etc) are used, for best dynamic range;
+  * To reduce flicker, a small hystheresis is used (less than 1 EV); this should avoid exposure changing back and forth due to metering noise;
+  * This feature only works in Manual mode (both LiveView and non-LiveView).
 
 .. _remote triggers:
 .. _LCD face sensor:
@@ -1266,6 +1283,8 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 **Dim display: OFF / after X seconds**
 
   In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
+
+.. _Turn off display:
 
 **Turn off display: OFF / after X seconds**
 
