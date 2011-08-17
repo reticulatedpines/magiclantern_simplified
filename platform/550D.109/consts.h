@@ -80,6 +80,8 @@
 
 #define BGMT_LV 0x18
 
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
 
 // these are not sent always
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD

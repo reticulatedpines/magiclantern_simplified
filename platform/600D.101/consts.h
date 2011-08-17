@@ -34,6 +34,9 @@
 #define BGMT_Q_ALT 0x13
 #define BGMT_LV 0x1D // new
 
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+
 #define BGMT_PRESS_SET 4 // same
 #define BGMT_UNPRESS_SET 5 // new, only in menu mode
 #define BGMT_PRESS_RIGHT 0x23 // was 0x1a
