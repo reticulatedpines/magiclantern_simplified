@@ -633,10 +633,6 @@ Functions specific to movie mode.
 
   Note: WBShift B/A can be only changed from Canon menu in photo mode, but with WB workaround enabled, WBShift settings will take effect in Movie mode, too (and also in auto modes, as a side effect).
 
-**Zebra when REC: Hide / Don't Hide**
-
-  You can disable zebras during recording.
-
 **Force LiveView: OFF / Start \& CPU lenses / Always**
 
   Force LiveView in Movie mode (bypass the dialog saying *Press LV button to activate movie shooting*).

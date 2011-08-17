@@ -302,7 +302,7 @@ wb_workaround_display(
 }
 #endif
 
-extern int zebra_nrec;
+/*extern int zebra_nrec;
 
 static void
 zebra_nrec_display(
@@ -319,7 +319,7 @@ zebra_nrec_display(
 		zebra_nrec ? "Hide" : "Show"
 	);
 	menu_draw_icon(x, y, MNI_BOOL(!zebra_nrec), 0);
-}
+}*/
 
 static void
 hdmi_force_display(
@@ -397,13 +397,13 @@ static struct menu_entry mov_menus[] = {
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
 #endif
-	{
+	/*{
 		.name = "Zebra when REC",
 		.priv = &zebra_nrec,
 		.select = menu_binary_toggle,
 		.display = zebra_nrec_display,
 		.help = "You can disable zebra during recording."
-	},
+	},*/
 	{
 		.name = "Force LiveView",
 		.priv = &enable_liveview,
