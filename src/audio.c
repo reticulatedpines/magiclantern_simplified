@@ -823,15 +823,17 @@ audio_dgain_toggle_reverse( void * priv )
 static void
 audio_dgain_display( void * priv, int x, int y, int selected )
 {
+	unsigned val = *(unsigned*) priv;
+	unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
 		x, y,
 		// 23456789012
 		"%s-DigitalGain : %d dB",
 		priv == &dgain_l ? "L" : "R",
-		*(unsigned*) priv
+		val
 	);
-	menu_draw_icon(x, y, alc_enable ? MNI_WARNING : MNI_PERCENT, (*(unsigned*) priv) * 100 / 36);
+	menu_draw_icon(x, y, alc_enable ? MNI_WARNING : MNI_PERCENT, val * 100 / 36);
 }
 
 
@@ -884,8 +886,9 @@ audio_o2gain_display( void * priv, int x, int y, int selected )
 static void
 audio_alc_display( void * priv, int x, int y, int selected )
 {
+	unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		FONT(fnt, alc_enable ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
 		x, y,
 		//23456789012
 		"AGC           : %s",
