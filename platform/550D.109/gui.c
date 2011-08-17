@@ -542,7 +542,19 @@ static int handle_buttons(struct event * event)
 		center_lv_afframe();
 		return 0;
 	}
-	
+
+	// 422 play
+
+	if (event->type == 0 && event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->type == 0 && event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->type == 0 && event->param == BGMT_PLAY) set_pressed = 0;
+
+	if ( PLAY_MODE && event->type == 0 && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
+	{
+		play_next_422();
+		return 0;
+	}
+
 	return 1;
 }
 

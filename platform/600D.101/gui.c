@@ -55,11 +55,11 @@ int get_flash_movie_pressed() { return flash_movie_pressed; }
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-//~ int set_pressed = 0;
+int set_pressed = 0;
 int disp_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-//~ int get_set_pressed() { return set_pressed; }
+int get_set_pressed() { return set_pressed; }
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 #define DIGITAL_ZOOMOUT_DELAY 2
@@ -600,6 +600,18 @@ static int handle_buttons(struct event * event)
 	{
 		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
 		return !BGMT_PRESS_FLASH_MOVIE;
+	}
+
+	// 422 play
+
+	if (event->type == 0 && event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->type == 0 && event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->type == 0 && event->param == BGMT_PLAY) set_pressed = 0;
+
+	if ( PLAY_MODE && event->type == 0 && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
+	{
+		play_next_422();
+		return 0;
 	}
 
 	return 1;
