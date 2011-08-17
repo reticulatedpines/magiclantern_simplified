@@ -3767,6 +3767,8 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 void play_422(char* filename)
 {
+	clrscr();
+	
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 	uint32_t * buf = YUV422_HD_BUFFER;
