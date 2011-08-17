@@ -57,6 +57,7 @@ clean:
 zip: all
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
+	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
