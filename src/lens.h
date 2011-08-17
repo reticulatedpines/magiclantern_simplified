@@ -40,6 +40,7 @@ struct lens_info
 	int				ae;        // exposure compensation, in 1/8 EV steps, signed
 	unsigned		shutter;
 	unsigned		iso;
+	unsigned		iso_auto;
 	unsigned		hyperfocal; // in mm
 	unsigned		dof_near; // in mm
 	unsigned		dof_far; // in mm
@@ -60,6 +61,7 @@ struct lens_info
 	uint8_t			raw_aperture;
 	uint8_t			raw_shutter;
 	uint8_t			raw_iso;
+	uint8_t			raw_iso_auto;
 	uint8_t			raw_picstyle;
 
 	float 			lens_rotation;

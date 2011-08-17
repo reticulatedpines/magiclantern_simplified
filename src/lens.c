@@ -38,6 +38,8 @@ void update_stuff();
 void draw_ml_topbar();
 void draw_ml_bottombar();
 
+CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
+
 CONFIG_INT("movie.log", movie_log, 1);
 #ifndef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 1.6
@@ -301,9 +303,10 @@ void draw_ml_bottombar()
       else snprintf(shutter, sizeof(shutter), "%d  ", (int)roundf(shutter_x10 / 10.0));
 
       int fgs = 0x73; // blue (neutral)
+      int shutter_degrees = -1;
       if (shooting_mode == SHOOTMODE_MOVIE) // check 180 degree rule
       {
-           int shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
+           shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
            if (ABS(shutter_degrees - 180) < 10)
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg);
            else if (shutter_degrees > 190)
@@ -322,20 +325,36 @@ void draw_ml_bottombar()
               fgs = FONT(FONT_LARGE,COLOR_YELLOW,bg); // OK, but be careful
       }
 
-      text_font = FONT(FONT_LARGE,fgs,bg);
+	text_font = FONT(FONT_LARGE,fgs,bg);
+	if (shooting_mode == SHOOTMODE_MOVIE && shutter_display_degrees)
+	{
+		snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
+		bmp_printf( text_font, 
+					x_origin + 143 + font_med.width*2  , 
+					y_origin, 
+					shutter);
 
-      bmp_printf( text_font, 
-                  x_origin + 143 + font_med.width*2  , 
-                  y_origin, 
-                  shutter);
+		text_font = FONT(FONT_MED,fgs,bg);
 
-      text_font = FONT(FONT_MED,fgs,bg);   // BLUE
+		bmp_printf( text_font, 
+					x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
+					y_origin, 
+					"o");
+	}
+	else
+	{
+		bmp_printf( text_font, 
+				x_origin + 143 + font_med.width*2  , 
+				y_origin, 
+				shutter);
 
-      
-      bmp_printf( text_font, 
-                  x_origin + 143  , 
-                  y_origin + 2, 
-                  shutter_x10 > 3 ? "  " : "1/");
+		text_font = FONT(FONT_MED,fgs,bg);
+
+		bmp_printf( text_font, 
+				x_origin + 143  , 
+				y_origin + 2, 
+				shutter_x10 > 3 ? "  " : "1/");
+	}
 
       /*******************
       *  ISO             *
@@ -359,7 +378,7 @@ void draw_ml_bottombar()
 			bmp_printf( text_font, 
 					  x_origin + 250  , 
 					  y_origin, 
-					  "A-ISO");
+					  "A%d   ", info->iso_auto);
 
       if (ISO_ADJUSTMENT_ACTIVE) return;
       
@@ -827,6 +846,15 @@ PROP_HANDLER( PROP_ISO )
 	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_iso = raw;
 	lens_info.iso = RAW2VALUE(iso, raw);
+	update_stuff();
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_ISO_AUTO )
+{
+	const uint32_t raw = *(uint32_t *) buf;
+	lens_info.raw_iso_auto = raw;
+	lens_info.iso_auto = RAW2VALUE(iso, raw);
 	update_stuff();
 	return prop_cleanup( token, property );
 }

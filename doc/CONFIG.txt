@@ -21,3 +21,9 @@ These settings can not be changed from the ML menu::
     # enable QScale
     h264.bitrate-mode = 2   # 0 is FW default, 1 is CBR, 2 is VBR
     h264.qscale.plus16 = 8  # QScale plus 16 (range: 0..32)
+
+    # shutter display in degrees on the bottom bar
+    shutter.display.degrees = 1
+    
+    # hide zebras when recording
+    zebra.nrec = 1
