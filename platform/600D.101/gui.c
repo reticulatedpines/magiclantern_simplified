@@ -137,12 +137,12 @@ static int handle_buttons(struct event * event)
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
 		{
-			volume_up();
+			kelvin_toggle(1);
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
 		{
-			volume_down();
+			kelvin_toggle(-1);
 			return 0;
 		}
 		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
