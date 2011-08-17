@@ -837,13 +837,14 @@ silent_pic_take_simple()
 	
 	bmp_printf(FONT_MED, 100, 100, "Psst! Taking a pic      ");
 
+	struct vram_info * vram = get_yuv422_hd_vram();
+
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 		if (!recording) { open_canon_menu(); msleep(400); clrscr(); }
 	}
 
-	struct vram_info * vram = get_yuv422_hd_vram();
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 	if (MENU_MODE) { clrscr(); play_422(imgname); }
 	
