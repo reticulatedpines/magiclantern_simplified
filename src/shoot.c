@@ -2276,6 +2276,7 @@ void adjust_shutter_for_timelapse(int delta)
 	}
 }
 
+int aetl_init_done = 0;
 int aetl_reference_level = 0;
 int aetl_measured_level = 0;
 int aetl_level_ev_ratio_plus = 0;
@@ -2303,8 +2304,7 @@ void auto_exposure_for_timelapse_init()
 		return;
 	}
 	
-	static int init_done = 0;
-	if (init_done) return;
+	if (aetl_init_done) return;
 	
 	
 	int rs0 = lens_info.raw_shutter;
@@ -2322,11 +2322,23 @@ void auto_exposure_for_timelapse_init()
 	
 	aetl_level_ev_ratio_plus = level_plus1ev - aetl_reference_level;
 	aetl_level_ev_ratio_minus = aetl_reference_level - level_minus1ev;
-	init_done = 1;
+
+	int thr_hi = aetl_reference_level + aetl_level_ev_ratio_plus / 3;
+	int thr_lo = aetl_reference_level - aetl_level_ev_ratio_minus / 3;
+	
+	if (thr_hi >= 100 || thr_lo <= 0)
+	{
+		bmp_printf(FONT_MED, 0, 0, "Image is too uoverexposed or too underexposed.");
+		intervalometer_stop();
+		return;
+	}
+
+	aetl_init_done = 1;
 }
 
 void compute_exposure_for_next_shot()
 {
+	if (!aetl_init_done) return;
 	
 	aetl_measured_level = measure_brightness_level();
 	
@@ -2351,9 +2363,9 @@ static void auto_exposure_for_timelapse_showinfo()
 		"Exposure change thresh.  : +%d -%d \n"
 		"ISO     : %d   \n"
 		"Shutter : %d.%02d s (raw %d) ", 
-		intervalometer_auto_expo_prc, aetl_reference_level,
-		intervalometer_auto_expo_prc, aetl_measured_level,
-		aetl_level_ev_ratio_plus / 3, aetl_level_ev_ratio_minus / 3,
+		intervalometer_auto_expo_prc, 0, aetl_reference_level, 0,
+		intervalometer_auto_expo_prc, 0, aetl_measured_level, 0,
+		aetl_reference_level + aetl_level_ev_ratio_plus / 3, aetl_reference_level - aetl_level_ev_ratio_minus / 3,
 		lens_info.iso,
 		s / 100, s % 100, 
 		lens_info.raw_shutter);
@@ -2365,7 +2377,7 @@ int find_prc_index(int prc)
 {
 	int i;
 	for (i = 0; i < COUNT(prc_values); i++)
-		if (prc >= prc_values[i]) return i;
+		if (prc_values[i] >= prc) return i;
 	return 0;
 }
 static void auto_exposure_for_timelapse_prc_toggle(int sign)
@@ -2391,7 +2403,7 @@ auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"AutoExpo4TmLapse: %s, prctile=%d%%",
+		"AutoExpo4TmLapse: %s,prctile=%d%%",
 		intervalometer_auto_expo ? "ON" : "OFF", 
 		intervalometer_auto_expo_prc
 	);
@@ -3261,7 +3273,8 @@ shoot_task( void* unused )
 				compute_exposure_for_next_shot();
 			}
 
-			hdr_shot(0, intervalometer_wait);
+			if (intervalometer_running)
+				hdr_shot(0, intervalometer_wait);
 			
 			int display_turned_off = 0;
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
@@ -3301,8 +3314,10 @@ shoot_task( void* unused )
 				//~ }
 			}
 		}
-		else
+		else // intervalometer not running
 		{
+			aetl_init_done = 0;
+			
 			if (audio_release_running) 
 			{
 				static int countdown = 0;
