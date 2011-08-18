@@ -32,10 +32,6 @@
 #include "lens.h"
 #include "gui.h"
 
-#ifdef CONFIG_50D
-#include "disable-this-module.h"
-#endif
-
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
