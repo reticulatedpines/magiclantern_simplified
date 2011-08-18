@@ -173,7 +173,7 @@ my_gui_main_task( void )
 
 			if( event->param == 0 )
 			{
-				gui_local_post( 0x12, 0, 0 );
+				gui_local_post( 0x10, 0, 0 );
 				if( gui_timer_struct.obj )
 					gui_timer_something( gui_timer_struct.obj, 4 );
 			}

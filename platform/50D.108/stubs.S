@@ -175,7 +175,7 @@ NSTUB( 0x1FAF0	 , main_ctrl_struct_2 )																		//d
 NSTUB( 0xff86671c, msg_queue_post )																			//d
 NSTUB( 0xff8898c8, gui_local_post )																		//d
 NSTUB( 0xff889354, gui_change_mode )   // GUI_ChangeMode_Post												//d
-NSTUB( 0xff889354, gui_other_post )																		//d
+NSTUB( 0xff889ca4, gui_other_post )																		//d
 NSTUB( 0xff888008, gui_massive_event_loop )   // GUI_Control_Post										//d
 
 NSTUB( 0xff968870, mvrFixQScale )																			//d
