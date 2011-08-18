@@ -12,10 +12,6 @@
 #include "lens.h"
 //#include "lua.h"
 
-#ifdef CONFIG_50D
-#include "disable-this-module.h"
-#endif
-
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused);
 
@@ -190,11 +186,34 @@ static void dump_rom(void* priv)
 	gui_stop_menu();
 	task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
 }
+#endif
+
+void try_to_record()
+{
+	msleep(1000);
+
+	bmp_printf(FONT_LARGE, 0, 0, "going to movie mode");
+
+	msleep(2000);
+
+	set_shooting_mode(SHOOTMODE_MOVIE);
+
+	msleep(10000);
+
+	bmp_printf(FONT_LARGE, 0, 0, "start recording");
+	movie_start();
+
+	msleep(10000);
+
+	bmp_printf(FONT_LARGE, 0, 0, "stop  recording");
+	movie_end();
+}
+
 static void xx_test(void* priv)
 {
-	ui_lock(0x41000001);
+	gui_stop_menu();
+	task_create("rec_start", 0x1c, 0, try_to_record, 0);
 }
-#endif
 
 void ui_lock(int x)
 {
@@ -594,6 +613,14 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
 	},
+	{
+		.priv		= "Don't click me!",
+		.select		= xx_test,
+		.display	= menu_print,
+		.help = "The camera may turn into a 1D Mark V or it may explode."
+	}
+#endif
+#if defined(CONFIG_50D) || defined(CONFIG_60D)
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
