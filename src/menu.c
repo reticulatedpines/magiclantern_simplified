@@ -709,6 +709,7 @@ menu_handler(
 		break;
 
 	case PRESS_UP_BUTTON:
+	case PRESS_JOY_UP:
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
 		menu_damage = 1;
@@ -718,6 +719,7 @@ menu_handler(
 		break;
 
 	case PRESS_DOWN_BUTTON:
+	case PRESS_JOY_DOWN:
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
 		menu_damage = 1;
@@ -728,6 +730,7 @@ menu_handler(
 
 	case DIAL_RIGHT:
 	case PRESS_RIGHT_BUTTON:
+	case PRESS_JOY_RIGHT:
 		menu_damage = 1;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
@@ -736,6 +739,7 @@ menu_handler(
 
 	case DIAL_LEFT:
 	case PRESS_LEFT_BUTTON:
+	case PRESS_JOY_LEFT:
 		menu_damage = 1;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
@@ -763,6 +767,7 @@ menu_handler(
 
 	case PRESS_DIRECT_PRINT_BUTTON:
 	case PRESS_FUNC_BUTTON:
+	case JOY_CENTER:
 		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
 		menu_entry_select( menu, 2 ); // auto setting select
 		menu_damage = 1;
