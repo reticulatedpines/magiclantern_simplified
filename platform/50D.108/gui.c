@@ -153,7 +153,6 @@ my_gui_main_task( void )
 			// Change the picture style button to show our menu
 			if( event->param == BGMT_PICSTYLE )
 			{
-				bmp_printf(FONT_LARGE, 0, 0, "OPEN ML MENU");
 				give_semaphore( gui_sem );
 				break;
 			}

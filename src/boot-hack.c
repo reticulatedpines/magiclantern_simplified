@@ -360,11 +360,6 @@ my_init_task(void)
 	debug_init();
 	call_init_funcs( 0 );
 
-#ifdef CONFIG_50D
-	bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-	return;
-#endif
-
 /*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
 		"Built on %s by %s\n",

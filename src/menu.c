@@ -1044,12 +1044,17 @@ menu_task( void* unused )
 		
 		menu_shown = 1;
 		
+		#ifndef CONFIG_50D
 		if (!lv && !MENU_MODE)
 		{
 			open_canon_menu();
 		}
+		#endif
 		msleep(100);
 		
+		#ifdef CONFIG_50D
+			bmp_printf(FONT_LARGE, 0, 50, "Creating menu task");
+		#endif
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;
 		menu_hidden = 0;
