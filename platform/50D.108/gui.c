@@ -99,7 +99,7 @@ my_gui_main_task( void )
 		if( !event )
 			goto event_loop_bottom;
 
-#if 1
+#if 0
 		if( event->type != 4
 		&&  (event->type != 2 && event->param != 0x16)
 		&&  (event->type != 2 && event->param != 0x31)
@@ -151,7 +151,7 @@ my_gui_main_task( void )
 			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
 
 			// Change the picture style button to show our menu
-			if( event->param == BGMT_PICSTYLE )
+			if( !magic_is_off() && event->param == BGMT_PICSTYLE )
 			{
 				give_semaphore( gui_sem );
 				break;
