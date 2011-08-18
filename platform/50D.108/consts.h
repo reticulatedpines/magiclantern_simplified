@@ -19,9 +19,9 @@
  #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x4c5c) // NG
 
 
-// changes during record
-//#define YUV422_HD_BUFFER 0x44000080
-//~ #define YUV422_HD_BUFFER_2 0x46000080
+// just to compile
+#define YUV422_HD_BUFFER 0x44000080
+#define YUV422_HD_BUFFER_2 0x46000080
 
 /*#define YUV422_HD_PITCH_IDLE 2112
 #define YUV422_HD_HEIGHT_IDLE 704
