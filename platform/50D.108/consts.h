@@ -51,31 +51,32 @@
 #define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task
 
 // button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x39
-#define BGMT_UNPRESS_LEFT 0x3a
-#define BGMT_PRESS_UP 0x3b
-#define BGMT_UNPRESS_UP 0x3c
-#define BGMT_PRESS_RIGHT 0x37
-#define BGMT_UNPRESS_RIGHT 0x38
-#define BGMT_PRESS_DOWN 0x3d
-#define BGMT_UNPRESS_DOWN 0x3e
+#define BGMT_PRESS_LEFT 0x1a
+//#define BGMT_UNPRESS_LEFT 0x3a
+#define BGMT_PRESS_UP 0x15
+//#define BGMT_UNPRESS_UP 0x3c
+#define BGMT_PRESS_RIGHT 0x19
+//#define BGMT_UNPRESS_RIGHT 0x38
+#define BGMT_PRESS_DOWN 0x1d
+//#define BGMT_UNPRESS_DOWN 0x3e
 #define BGMT_PRESS_SET 0x4
-#define BGMT_UNPRESS_SET 0x5
-#define BGMT_TRASH 0xA
-#define BGMT_MENU 6
-#define BGMT_DISP 7
+//~ #define BGMT_UNPRESS_SET 0x5
+#define BGMT_TRASH 9
+#define BGMT_MENU 5
+#define BGMT_DISP 6
 #define BGMT_Q 8
 #define BGMT_Q_ALT 0xF
-#define BGMT_PLAY 9
+#define BGMT_PLAY 8
 #define BGMT_PRESS_HALFSHUTTER 0x23
 #define BGMT_UNPRESS_HALFSHUTTER 0x24
 #define BGMT_PRESS_FULLSHUTTER 0x25
 #define BGMT_UNPRESS_FULLSHUTTER 0x26
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-
+#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
+#define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
+#define BGMT_PICSTYLE 0x13
+#define BGMT_FUNC 0x12
 #define BGMT_AV (0)
 
 #define BGMT_AV_MOVIE (0)
