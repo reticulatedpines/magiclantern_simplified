@@ -151,8 +151,9 @@ my_gui_main_task( void )
 			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
 
 			// Change the picture style button to show our menu
-			if( event->param == 0x13 )
+			if( event->param == BGMT_PICSTYLE )
 			{
+				bmp_printf(FONT_LARGE, 0, 0, "OPEN ML MENU");
 				give_semaphore( gui_sem );
 				break;
 			}

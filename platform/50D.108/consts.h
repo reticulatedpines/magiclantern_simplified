@@ -77,12 +77,8 @@
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
 #define BGMT_PICSTYLE 0x13
 #define BGMT_FUNC 0x12
-#define BGMT_AV (0)
 
-#define BGMT_AV_MOVIE (0)
-
-#define BGMT_PRESS_AV 0
-#define BGMT_UNPRESS_AV 0
+#define BGMT_LV 0xE
 
 #define BGMT_FLASH_MOVIE 0
 #define BGMT_PRESS_FLASH_MOVIE 0

@@ -132,11 +132,9 @@ copy_and_restart( int offset )
 	* install our own handlers.
 	*/
 
-#ifndef CONFIG_50D
 #ifndef CONFIG_EARLY_PORT
 	// Install our task creation hooks
 	task_dispatch_hook = my_task_dispatch_hook;
-#endif
 #endif
 
 	// This will jump into the RAM version of the firmware,
@@ -333,11 +331,6 @@ my_init_task(void)
 	additional_version[12] = build_version[8];
 	additional_version[13] = '\0';
 
-#ifdef CONFIG_50D
-	bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-	return;
-#endif
-
 #ifndef CONFIG_EARLY_PORT
 
 	msleep( 1500 );
@@ -357,13 +350,20 @@ my_init_task(void)
 		return;
 	}
 
+	#ifndef CONFIG_50D
 	ui_lock(UILOCK_EVERYTHING);
+	#endif
 	
 	msleep( 1000 );
 
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
+
+#ifdef CONFIG_50D
+	bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+	return;
+#endif
 
 /*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
@@ -411,7 +411,9 @@ my_init_task(void)
 	//~ );
 	msleep(500);
 
+	#ifndef CONFIG_50D
 	ui_lock(UILOCK_NONE);
+	#endif
 	ml_started = 1;
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
