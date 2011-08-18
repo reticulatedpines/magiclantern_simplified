@@ -1238,8 +1238,8 @@ my_sounddev_task()
 
 #ifdef CONFIG_AUDIO_REG_LOG
 	// Create the logging file
-	FIO_RemoveFile("B:/audioreg.txt");
-	reg_file = FIO_CreateFile( "B:/audioreg.txt" );
+	FIO_RemoveFile(CARD_DRIVE "audioreg.txt");
+	reg_file = FIO_CreateFile(CARD_DRIVE "audioreg.txt" );
 #endif
 
 	msleep(500);

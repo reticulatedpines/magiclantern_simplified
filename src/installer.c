@@ -312,7 +312,7 @@ bootflag_toggle( void * priv )
 // check if autoexec.bin is present on the card
 int check_autoexec()
 {
-	FILE * f = FIO_Open("B:/AUTOEXEC.BIN", 0);
+	FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
 	if (f != (void*) -1)
 	{
 		FIO_CloseFile(f);

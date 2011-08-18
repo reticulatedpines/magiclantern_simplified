@@ -269,7 +269,7 @@ void init_task_read_config()
 {
 	//~ show_logo();
 	display_clock();
-	config_parse_file( "B:/magic.cfg" );
+	config_parse_file( CARD_DRIVE "magic.cfg" );
 	debug_init_stuff();
 	_hold_your_horses = 0;
 }

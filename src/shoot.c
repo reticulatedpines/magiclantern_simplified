@@ -657,11 +657,11 @@ convert_all_yuvs_to_bmp_folder(char* folder) // folder includes /
 static void
 convert_all_yuvs_to_bmp()
 {
-	convert_yuv_to_bmp("B:/DCIM/100CANON/1324-001.422", "B:/DCIM/100CANON/1324-001.BMP");
+	convert_yuv_to_bmp(CARD_DRIVE "DCIM/100CANON/1324-001.422", CARD_DRIVE "DCIM/100CANON/1324-001.BMP");
 	return;
 	bmp_printf(FONT_MED, 0, 40, "yuv to bmp...");
 	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/DCIM/", &file );
+	struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/", &file );
 	if( IS_ERROR(dirent) )
 	{
 		bmp_printf( FONT_LARGE, 40, 40,
@@ -677,7 +677,7 @@ convert_all_yuvs_to_bmp()
 		if ((file.mode & 0x10) && (file.name[0] != '.')) // directory
 		{
 			char folder[100];
-			snprintf(folder, sizeof(folder), "B:/DCIM/%s/", file.name);
+			snprintf(folder, sizeof(folder), CARD_DRIVE "DCIM/%s/", file.name);
 			convert_all_yuvs_to_bmp_folder(folder);
 		}
 	} while( FIO_FindNextEx( dirent, &file ) == 0);
@@ -722,7 +722,7 @@ static char* silent_pic_get_name()
 		//~ int timelapse_number;
 		for ( ; silent_number < 100000000; silent_number++)
 		{
-			snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%08d.422", folder_number, silent_number);
+			snprintf(imgname, sizeof(imgname), CARD_DRIVE "DCIM/%03dCANON/%08d.422", folder_number, silent_number);
 			unsigned size;
 			if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
 			if (size == 0) break;
@@ -732,7 +732,7 @@ static char* silent_pic_get_name()
 	{
 		for ( ; silent_number < 1000; silent_number++)
 		{
-			snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+			snprintf(imgname, sizeof(imgname), CARD_DRIVE "DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
 			unsigned size;
 			if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
 			if (size == 0) break;
@@ -821,9 +821,9 @@ silent_pic_stop_dummy_movie()
 	#ifndef CONFIG_600D
 	movie_end();
 	char name[100];
-	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
+	snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
 	FIO_RemoveFile(name);
-	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
+	snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
 	FIO_RemoveFile(name);
 	#endif
 }
@@ -859,7 +859,7 @@ silent_pic_take_lv_dbg()
 	char imgname[100];
 	for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
 	{
-		snprintf(imgname, sizeof(imgname), "B:/VRAM%d.422", silent_number);
+		snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number);
 		unsigned size;
 		if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
 		if (size == 0) break;
@@ -2626,7 +2626,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 	FILE * f = INVALID_PTR;
 	char name[100];
 	int f0 = skip0 ? file_number_also : file_number_also+1;
-	snprintf(name, sizeof(name), "B:/DCIM/%03dCANON/%s_%04d.sh", folder_number, focus_stack ? "FST" : "HDR", f0);
+	snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/%s_%04d.sh", folder_number, focus_stack ? "FST" : "HDR", f0);
 	DEBUG("name=%s", name);
 	FIO_RemoveFile(name);
 	f = FIO_CreateFile(name);

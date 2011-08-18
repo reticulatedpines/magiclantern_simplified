@@ -726,11 +726,11 @@ int tic()
 /*
 void card_benchmark_wr(int bufsize, int K, int N)
 {
-	FIO_RemoveFile("B:/bench.tmp");
+	FIO_RemoveFile(CARD_DRIVE "bench.tmp");
 	msleep(1000);
 	int n = 0x10000000 / bufsize;
 	{
-		FILE* f = FIO_CreateFile("B:/bench.tmp");
+		FILE* f = FIO_CreateFile(CARD_DRIVE "bench.tmp");
 		int t0 = tic();
 		int i;
 		for (i = 0; i < n; i++)
@@ -753,7 +753,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
 		void* buf = AllocateMemory(bufsize);
 		if (buf)
 		{
-			FILE* f = FIO_Open("B:/bench.tmp", O_RDONLY | O_SYNC);
+			FILE* f = FIO_Open(CARD_DRIVE "bench.tmp", O_RDONLY | O_SYNC);
 			int t0 = tic();
 			int i;
 			for (i = 0; i < n; i++)
@@ -773,7 +773,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
 		}
 	}
 
-	FIO_RemoveFile("B:/bench.tmp");
+	FIO_RemoveFile(CARD_DRIVE "bench.tmp");
 	msleep(1000);
 	SW1(1,100);
 	SW1(0,100);
@@ -798,42 +798,42 @@ void card_benchmark_schedule()
 
 static void dump_vram()
 {
-	dump_big_seg(0, "B:/0.bin");
-	//dump_big_seg(4, "B:/4.bin");
-	dump_seg(0x1000, 0x100000, "B:/ram.bin");
-/*	dump_seg(0x40000000, 0x1000000, "B:/0.bin");
-	dump_seg(0x41000000, 0x1000000, "B:/1.bin");
-	dump_seg(0x42000000, 0x1000000, "B:/2.bin");
-	dump_seg(0x43000000, 0x1000000, "B:/3.bin");
-	dump_seg(0x44000000, 0x1000000, "B:/4.bin");
-	dump_seg(0x45000000, 0x1000000, "B:/5.bin");
-	dump_seg(0x46000000, 0x1000000, "B:/6.bin");
-	dump_seg(0x47000000, 0x1000000, "B:/7.bin");
-	dump_seg(0x48000000, 0x1000000, "B:/8.bin");
-	dump_seg(0x49000000, 0x1000000, "B:/9.bin");
-	dump_seg(0x4A000000, 0x1000000, "B:/A.bin");
-	dump_seg(0x4B000000, 0x1000000, "B:/B.bin");
-	dump_seg(0x4C000000, 0x1000000, "B:/C.bin");
-	dump_seg(0x4D000000, 0x1000000, "B:/D.bin");
-	dump_seg(0x4E000000, 0x1000000, "B:/E.bin");
-	dump_seg(0x4F000000, 0x1000000, "B:/F.bin");
-	dump_seg(0x50000000, 0x1000000, "B:/10.bin");
-	dump_seg(0x51000000, 0x1000000, "B:/11.bin");
-	dump_seg(0x52000000, 0x1000000, "B:/12.bin");
-	dump_seg(0x53000000, 0x1000000, "B:/13.bin");
-	dump_seg(0x54000000, 0x1000000, "B:/14.bin");
-	dump_seg(0x55000000, 0x1000000, "B:/15.bin");
-	dump_seg(0x56000000, 0x1000000, "B:/16.bin");
-	dump_seg(0x57000000, 0x1000000, "B:/17.bin");
-	dump_seg(0x58000000, 0x1000000, "B:/18.bin");
-	dump_seg(0x59000000, 0x1000000, "B:/19.bin");
-	dump_seg(0x5A000000, 0x1000000, "B:/1A.bin");
-	dump_seg(0x5B000000, 0x1000000, "B:/1B.bin");
-	dump_seg(0x5C000000, 0x1000000, "B:/1C.bin");
-	dump_seg(0x5D000000, 0x1000000, "B:/1D.bin");
-	dump_seg(0x5E000000, 0x1000000, "B:/1E.bin");
-	dump_seg(0x5F000000, 0x1000000, "B:/1F.bin");*/
-	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, "B:/VRAM.BIN");
+	dump_big_seg(0, CARD_DRIVE "0.bin");
+	//dump_big_seg(4, CARD_DRIVE "4.bin");
+	dump_seg(0x1000, 0x100000, CARD_DRIVE "ram.bin");
+/*	dump_seg(0x40000000, 0x1000000, CARD_DRIVE "0.bin");
+	dump_seg(0x41000000, 0x1000000, CARD_DRIVE "1.bin");
+	dump_seg(0x42000000, 0x1000000, CARD_DRIVE "2.bin");
+	dump_seg(0x43000000, 0x1000000, CARD_DRIVE "3.bin");
+	dump_seg(0x44000000, 0x1000000, CARD_DRIVE "4.bin");
+	dump_seg(0x45000000, 0x1000000, CARD_DRIVE "5.bin");
+	dump_seg(0x46000000, 0x1000000, CARD_DRIVE "6.bin");
+	dump_seg(0x47000000, 0x1000000, CARD_DRIVE "7.bin");
+	dump_seg(0x48000000, 0x1000000, CARD_DRIVE "8.bin");
+	dump_seg(0x49000000, 0x1000000, CARD_DRIVE "9.bin");
+	dump_seg(0x4A000000, 0x1000000, CARD_DRIVE "A.bin");
+	dump_seg(0x4B000000, 0x1000000, CARD_DRIVE "B.bin");
+	dump_seg(0x4C000000, 0x1000000, CARD_DRIVE "C.bin");
+	dump_seg(0x4D000000, 0x1000000, CARD_DRIVE "D.bin");
+	dump_seg(0x4E000000, 0x1000000, CARD_DRIVE "E.bin");
+	dump_seg(0x4F000000, 0x1000000, CARD_DRIVE "F.bin");
+	dump_seg(0x50000000, 0x1000000, CARD_DRIVE "10.bin");
+	dump_seg(0x51000000, 0x1000000, CARD_DRIVE "11.bin");
+	dump_seg(0x52000000, 0x1000000, CARD_DRIVE "12.bin");
+	dump_seg(0x53000000, 0x1000000, CARD_DRIVE "13.bin");
+	dump_seg(0x54000000, 0x1000000, CARD_DRIVE "14.bin");
+	dump_seg(0x55000000, 0x1000000, CARD_DRIVE "15.bin");
+	dump_seg(0x56000000, 0x1000000, CARD_DRIVE "16.bin");
+	dump_seg(0x57000000, 0x1000000, CARD_DRIVE "17.bin");
+	dump_seg(0x58000000, 0x1000000, CARD_DRIVE "18.bin");
+	dump_seg(0x59000000, 0x1000000, CARD_DRIVE "19.bin");
+	dump_seg(0x5A000000, 0x1000000, CARD_DRIVE "1A.bin");
+	dump_seg(0x5B000000, 0x1000000, CARD_DRIVE "1B.bin");
+	dump_seg(0x5C000000, 0x1000000, CARD_DRIVE "1C.bin");
+	dump_seg(0x5D000000, 0x1000000, CARD_DRIVE "1D.bin");
+	dump_seg(0x5E000000, 0x1000000, CARD_DRIVE "1E.bin");
+	dump_seg(0x5F000000, 0x1000000, CARD_DRIVE "1F.bin");*/
+	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
 }
 
 static uint8_t* bvram_mirror = 0;
@@ -1584,7 +1584,7 @@ draw_zebra( void )
 
     DebugMsg(DM_MAGIC, 3, "***************** draw_zebra() **********************");
     DebugMsg(DM_MAGIC, 3, "zebra_draw = %d, cfg_draw_meters = %x", zebra_draw, ext_cfg_draw_meters() );
-    //~ dump_seg(0x40D07800, 1440*480, "B:/vram1.dat");
+    //~ dump_seg(0x40D07800, 1440*480, CARD_DRIVE "vram1.dat");
     
 	// If we don't have a bitmap vram yet, nothing to do.
 	if( !bvram )
@@ -1768,7 +1768,7 @@ void sort_cropmarks()
 static void find_cropmarks()
 {
 	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( "B:/CROPMKS/", &file );
+	struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "CROPMKS/", &file );
 	if( IS_ERROR(dirent) )
 	{
 		bmp_printf( FONT_LARGE, 40, 40, "CROPMKS dir missing" );
@@ -1809,7 +1809,7 @@ static void reload_cropmark(int i)
 	if (i)
 	{
 		char bmpname[100];
-		snprintf(bmpname, sizeof(bmpname), "B:/CROPMKS/%s", cropmark_names[i-1]);
+		snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i-1]);
 		cropmarks = bmp_load(bmpname,1);
 		if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 	}
@@ -3644,8 +3644,8 @@ void make_overlay()
 			if ((y + (int)bp) % 2)
 				*bp = *mp = ((*lvp) * 41 >> 16) + 38;
 	}
-	FIO_RemoveFile("B:/overlay.dat");
-	FILE* f = FIO_CreateFile("B:/overlay.dat");
+	FIO_RemoveFile(CARD_DRIVE "overlay.dat");
+	FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
 	FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
 	FIO_CloseFile(f);
 	bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
@@ -3665,7 +3665,7 @@ void show_overlay()
 	
 	clrscr();
 
-	FILE* f = FIO_Open("B:/overlay.dat", O_RDONLY | O_SYNC);
+	FILE* f = FIO_Open(CARD_DRIVE "overlay.dat", O_RDONLY | O_SYNC);
 	if (f == INVALID_PTR) return;
 	FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE );
 	FIO_CloseFile(f);
@@ -3706,8 +3706,8 @@ void transparent_overlay_from_play()
 
 INIT_FUNC("bvram_mirror_init", bvram_mirror_init);
 
-//~ CONFIG_STR("defish.lut", defish_lut_file, "B:/recti.lut");
-#define defish_lut_file "B:/rectilin.lut"
+//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "recti.lut");
+#define defish_lut_file CARD_DRIVE "rectilin.lut"
 
 uint8_t* defish_lut = INVALID_PTR;
 
@@ -3813,7 +3813,7 @@ char* get_next_422()
 	static struct fio_dirent * dirent = 0;
 	if (first)
 	{
-		dirent = FIO_FindFirstEx( "B:/DCIM/100CANON/", &file );
+		dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
 		if( IS_ERROR(dirent) )
 		{
 			bmp_printf( FONT_LARGE, 40, 40, "dir err" );
@@ -3851,7 +3851,7 @@ void play_next_422()
 	//~ msleep(2000);
 	
 	char ffn[100];
-	snprintf(ffn, 100, "B:/DCIM/100CANON/%s", fn);
+	snprintf(ffn, 100, CARD_DRIVE "DCIM/100CANON/%s", fn);
 	play_422(ffn);
 	
 end:

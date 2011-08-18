@@ -122,12 +122,12 @@ int config_ok = 0;
 void
 save_config( void * priv )
 {
-	config_save_file( "B:/magic.cfg" );
+	config_save_file( CARD_DRIVE "magic.cfg" );
 }
 static void
 delete_config( void * priv )
 {
-	FIO_RemoveFile( "B:/magic.cfg" );
+	FIO_RemoveFile( CARD_DRIVE "magic.cfg" );
 	if (config_autosave) config_autosave_toggle(0);
 }
 
@@ -162,7 +162,7 @@ static int vmax(int* x, int n)
 static void dump_rom_task(void* priv)
 {
 	msleep(200);
-	FILE * f = FIO_CreateFile("B:/ROM0.BIN");
+	FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
 	if (f != (void*) -1)
 	{
 		bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
@@ -172,7 +172,7 @@ static void dump_rom_task(void* priv)
 
 	msleep(200);
 
-	f = FIO_CreateFile("B:/BOOT0.BIN");
+	f = FIO_CreateFile(CARD_DRIVE "BOOT0.BIN");
 	if (f != (void*) -1)
 	{
 		bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
@@ -182,7 +182,7 @@ static void dump_rom_task(void* priv)
 	
 	msleep(200);
 
-	dump_big_seg(0, "B:/RAM0.BIN");
+	dump_big_seg(0, CARD_DRIVE "RAM0.BIN");
 }
 
 static void dump_rom(void* priv)
@@ -456,9 +456,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
 	msleep(500);
 
-	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, "B:/large.fnt");
-	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, "B:/medium.fnt");
-	dump_seg(&(font_small.bitmap), ('~' + (11 << 7)) * 4, "B:/small.fnt");*/
+	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
+	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
+	dump_seg(&(font_small.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
 
 	int k;
 	for (k = 0; ; k++)
@@ -835,7 +835,7 @@ struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
 	if (logo == (void*) -1) 
-		logo = bmp_load("B:/logo.bmp",0);
+		logo = bmp_load(CARD_DRIVE "logo.bmp",0);
 }
 void show_logo()
 {

@@ -148,7 +148,7 @@ initial_install(void)
 	bmp_fill(COLOR_BG, 0, 0, 720, 480);
 	bmp_printf(FONT_LARGE, 0, 30, "Magic Lantern install");
 
-	FILE * f = FIO_CreateFile("B:/ROM0.BIN");
+	FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
 	if (f != (void*) -1)
 	{
 		bmp_printf(FONT_LARGE, 0, 60, "Writing RAM");

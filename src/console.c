@@ -27,8 +27,8 @@ void console_show()
 { 
 	console_visible = 1;
 	set_global_draw(0);
-	FIO_RemoveFile("B:/console.log");
-	console_log_file = FIO_CreateFile("B:/console.log");
+	FIO_RemoveFile(CARD_DRIVE "console.log");
+	console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
 	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
 }
 void console_hide() 
