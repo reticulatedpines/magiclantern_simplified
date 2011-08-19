@@ -825,7 +825,7 @@ silent_pic_stop_dummy_movie()
 }
 
 static void
-silent_pic_take_simple()
+silent_pic_take_simple(int interactive)
 {
 	int movie_started = silent_pic_ensure_movie_mode();
 	
@@ -838,11 +838,15 @@ silent_pic_take_simple()
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
-		if (!recording) { open_canon_menu(); msleep(400); clrscr(); }
+		if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
 	}
 
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
-	if (MENU_MODE) { clrscr(); play_422(imgname); }
+	if (MENU_MODE)
+	{
+		if (!interactive) { fake_simple_button(BGMT_MENU); }
+		else { clrscr(); play_422(imgname); }
+	}
 	
 	if (movie_started) silent_pic_stop_dummy_movie();
 }
@@ -1013,7 +1017,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 	set_global_draw(0);
 
 	if (silent_pic_mode == 1) // normal
-		silent_pic_take_simple();
+		silent_pic_take_simple(interactive);
 	//~ else if (silent_pic_mode == 2) // hi-res
 		//~ silent_pic_take_sweep();
 	//~ else if (silent_pic_mode == 3) // long exposure
@@ -2287,7 +2291,7 @@ int measure_brightness_level()
 	struct vram_info * vram = get_yuv422_vram();
 	hist_build(vram->vram, vram->width, vram->pitch);
 	int ans = hist_get_percentile_level(intervalometer_auto_expo_prc);
-	get_out_of_play_mode();
+	get_out_of_play_mode(500);
 	return ans;
 }
 
@@ -2812,7 +2816,7 @@ int is_movie_start_scheduled() { return movie_start_flag; }
 int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
-void get_out_of_play_mode()
+void get_out_of_play_mode(int extra_wait)
 {
 	if (gui_state == GUISTATE_QR)
 	{
@@ -2825,7 +2829,7 @@ void get_out_of_play_mode()
 		fake_simple_button(BGMT_PLAY);
 	}
 	while (PLAY_MODE) msleep(100);
-	msleep(500);
+	msleep(extra_wait);
 }
 
 // take one shot, a sequence of HDR shots, or start a movie
@@ -3252,7 +3256,7 @@ shoot_task( void* unused )
 		if (intervalometer_running)
 		{
 			if (gui_state == GUISTATE_PLAYMENU)
-				get_out_of_play_mode();
+				get_out_of_play_mode(0);
 			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			
@@ -3283,6 +3287,7 @@ shoot_task( void* unused )
 				{
 					// go to PLAY mode and turn off display to save power
 					fake_simple_button(BGMT_PLAY);
+					display_off_force();
 					msleep(200);
 					display_off_force();
 					display_turned_off = 1;
