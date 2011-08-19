@@ -2497,7 +2497,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.name = "Histo/Wavefm",
 		.priv		= &hist_draw,
-		.select		= menu_ternary_toggle,
+		.select		= menu_ternary_toggle_reverse,
 		.select_auto = waveform_toggle,
 		.display	= hist_display,
 		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
@@ -2505,7 +2505,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.name = "Zebras",
 		.priv		= &zebra_draw,
-		.select		= menu_ternary_toggle,
+		.select		= menu_ternary_toggle_reverse,
 		.select_reverse = zebra_lo_toggle, 
 		.select_auto = zebra_hi_toggle,
 		.display	= zebra_draw_display,
