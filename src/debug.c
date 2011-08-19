@@ -188,31 +188,26 @@ static void dump_rom(void* priv)
 }
 #endif
 
-void try_to_record()
+void beep()
 {
-	msleep(1000);
+	call("StartPlayWaveData");
+	msleep(100);
+	call("StopPlayWaveData");
+}
 
-	bmp_printf(FONT_LARGE, 0, 0, "going to movie mode");
-
+void run_test()
+{
 	msleep(2000);
-
-	set_shooting_mode(SHOOTMODE_MOVIE);
-
-	msleep(10000);
-
-	bmp_printf(FONT_LARGE, 0, 0, "start recording");
-	movie_start();
-
-	msleep(10000);
-
-	bmp_printf(FONT_LARGE, 0, 0, "stop  recording");
-	movie_end();
+	call("StartPlayWaveData");
+	msleep(100);
+	call("StopPlayWaveData");
+	msleep(5000);
 }
 
 static void xx_test(void* priv)
 {
 	gui_stop_menu();
-	task_create("rec_start", 0x1c, 0, try_to_record, 0);
+	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 void ui_lock(int x)
@@ -613,13 +608,13 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
 	},
+#endif
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
 		.help = "The camera may turn into a 1D Mark V or it may explode."
-	}
-#endif
+	},
 #if defined(CONFIG_50D) || defined(CONFIG_60D)
 	{
 		.priv		= "Don't click me!",
