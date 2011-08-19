@@ -939,7 +939,7 @@ static void
 silent_pic_take_slitscan(int interactive)
 {
 	#if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_60D)
-	if (recording) return; // vsync fails
+	//~ if (recording) return; // vsync fails
 	if (!lv) return;
 	gui_stop_menu();
 	while (get_halfshutter_pressed()) msleep(100);
