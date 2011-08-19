@@ -773,12 +773,19 @@ menu_handler(
 		menu_damage = 1;
 		break;
 
+#ifdef CONFIG_50D
+	case PRESS_JOY_LEFTUP:
+	case PRESS_JOY_LEFTDOWN:
+	case PRESS_JOY_RIGHTUP:
+	case PRESS_JOY_RIGHTDOWN:
+		break; // ignore
+#endif
+
 #if 0
 	case PRESS_ZOOM_IN_BUTTON:
 		gui_hide_menu( 100 );
 		lens_focus_start( 0 );
 		break;
-
 
 #if 0
 	// This breaks playback if enabled; figure out why!
