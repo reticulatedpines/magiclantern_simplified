@@ -394,10 +394,10 @@ static void display_shortcut_key_hints_lv()
 	}
 	else if (mode == 3)
 	{
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - 100 - font_med.width*2, 240 - font_med.height/2, "FF+ ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, "FF- ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, "FF++");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, "FF--");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - 100 - font_med.width*2, 240 - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
 	}
 	else
 	{
