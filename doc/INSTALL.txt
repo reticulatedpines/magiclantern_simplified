@@ -14,9 +14,11 @@ software before you are tempted to try running it on your camera.
 
 Translations: 
     `Deutsch  <http://magiclantern.wikia.com/wiki/Unified/Install/DE>`_ |
+    `Česky    <http://magiclantern.wikia.com/wiki/Unified/Install/CZ>`_ |
     `Español  <http://magiclantern.wikia.com/wiki/Unified/Install/ES>`_ |
     `Français <http://magiclantern.wikia.com/wiki/Unified/Install/FR>`_ |
     `Italiano <http://magiclantern.wikia.com/wiki/Unified/Install/IT>`_ |
+    `Chinese (simplified) <http://magiclantern.wikia.com/wiki/Unified/Install/CHS>`_ |
     `Japanese <http://magiclantern.wikia.com/wiki/Unified/Install/JA>`_
 
 .. raw:: latex
