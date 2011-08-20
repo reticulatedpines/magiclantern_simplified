@@ -3772,14 +3772,17 @@ void play_422(char* filename)
     bmp_printf(FONT_LARGE, 500, 0, "%d", size);
 
 	int w,h;
-    if (size == 1056*704*2) { w = 1056; h = 704; }
-    else if (size == 1720*974*2) { w = 1720; h = 974; }
+    if      (size == 1056*704*2) { w = 1056; h = 704; } // photo mode
+    else if (size == 1720*974*2) { w = 1720; h = 974; } // fullhd 550d, 60d
+    else if (size == 1720*974*2) { w = 1680; h = 945; } // fullhd 600d
+    else if (size == 1728*972*2) { w = 1728; h = 972; } // fullhd 3x 600d
     else if (size == 580*580*2)  { w = 580 ; h = 580; }
-    else if (size == 1280*580*2) { w = 1280; h = 580; }
+    else if (size == 1280*580*2) { w = 1280; h = 580; } // 720p 550d, 60d
+    else if (size == 1280*560*2) { w = 1280; h = 560; } // 720p 600d
     else if (size == 640*480*2)  { w = 640 ; h = 480; }
-    else if (size == 1024*680*2) { w = 1024; h = 680; }
+    else if (size == 1024*680*2) { w = 1024; h = 680; } // zoom mode (5x, 10x)
     else if (size == 512*340*2)  { w = 512;  h = 340; }
-    else if (size == 720*480*2)  { w = 720;  h = 480; }
+    else if (size == 720*480*2)  { w = 720;  h = 480; } // LiveView buffer
     else return;
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
