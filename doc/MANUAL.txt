@@ -176,7 +176,7 @@ Misc shortcuts
 * ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
 * ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
-* ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom.
+* ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom (see `DigitalZoom Shortcut`_).
 
 Magic Lantern menu
 ------------------
@@ -623,7 +623,7 @@ Functions specific to movie mode.
 
   This option enables you to start/stop movie recording by half-pressing the shutter button.
 
-.. WB workaround:
+.. _WB workaround:
 
 **WB workaround: ON/OFF**
 
@@ -633,6 +633,17 @@ Functions specific to movie mode.
   They will be shared between movie and photo modes.
 
   Note: WBShift B/A can be only changed from Canon menu in photo mode, but with WB workaround enabled, WBShift settings will take effect in Movie mode, too (and also in auto modes, as a side effect).
+
+.. _DigitalZoom Shortcut:
+
+**DigitalZoom Shortcut: 1x,3x / 3x...10x**
+
+  On 600D/T3i, this lets you customize the behavior of ``DISP`` + ``Zoom In / Zoom Out`` shortcut key in movie mode:
+
+  ``1x,3x`` : toggle between 1x and 3x digital zoom modes (FullHD)
+  ``3x...10x``: default Canon setting (change digital zoom value between 3x and 10x).
+  
+  Note: by default, Magic Lantern disables digital zoom values greater than 3x in order to avoid image quality degradation.
 
 **Force LiveView: OFF / Start \& CPU lenses / Always**
 

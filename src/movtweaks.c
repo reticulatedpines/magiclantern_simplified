@@ -337,6 +337,28 @@ hdmi_force_display(
 		hdmi_code
 	);
 }
+
+
+#ifdef CONFIG_600D
+CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
+
+void digital_zoom_shortcut_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"DigitalZoom Shortcut: %s",
+		digital_zoom_shortcut ? "1x, 3x" : "3x...10x"
+	);
+}
+
+#endif
+
 static struct menu_entry mov_menus[] = {
 	/*{
 		.priv = &bitrate_mode,
@@ -395,6 +417,15 @@ static struct menu_entry mov_menus[] = {
 		.display = wb_workaround_display, 
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
+	},
+#endif
+#ifdef CONFIG_600D
+	{
+		.name = "DigitalZoom Shortcut",
+		.priv = &digital_zoom_shortcut,
+		.display = digital_zoom_shortcut_display, 
+		.select = menu_binary_toggle,
+		.help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
 	},
 #endif
 	/*{
