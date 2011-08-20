@@ -1979,7 +1979,7 @@ static void zoom_toggle(void* priv)
 	}
 }
 
-int hdr_steps = 1;
+CONFIG_INT("hdr.steps", hdr_steps, 1);
 CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
 
 static void 
