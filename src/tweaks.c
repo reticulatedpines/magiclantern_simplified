@@ -590,6 +590,8 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.display	= lcd_sensor_shortcuts_print,
 	},
+	#endif
+	#ifndef CONFIG_60D // 60D doesn't need this
 	{
 		.name = "Auto BurstPicQuality",
 		.priv = &auto_burst_pic_quality, 
