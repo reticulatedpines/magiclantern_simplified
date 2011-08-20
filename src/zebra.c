@@ -1282,7 +1282,7 @@ draw_zebra_and_focus( int Z, int F )
 		// look in the HD buffer
 
 		#ifdef CONFIG_600D
-		int rec_off = 90;
+		int rec_off = (shooting_mode == SHOOTMODE_MOVIE ? 90 : 0);
 		#else
 		int rec_off = (recording ? 90 : 0);
 		#endif
