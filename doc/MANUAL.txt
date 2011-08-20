@@ -372,17 +372,18 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   Select cropmarks (cycle between them).
 
-  There are 4 predefined cropmarks in the zip archive:
+  There are 5 predefined cropmarks in ML zip archive:
   
-  * 16:9 black bars
-  * HD with Title & Action Safe
-  * Cinemascope
-  * Fisheye for stills framing with Samyang/8mm.
+  * 16:9 black bars (for 550D in video mode)
+  * Cinemascope (for videos)
+  * Cross meter (for photos)
+  * Passport (ISO/IEC 19794-5 compliant)
+  * Golden Mean / Phi (a version for photos and another for videos)
   
   .. figure:: Cropmarks550D.png
       :alt: 400px|center
       :align: center
-      :height: 2cm
+      :width: 13cm
   
   Notes:
   

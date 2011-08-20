@@ -66,7 +66,7 @@ def add_menu_items_to_contents(file):
     f.close()
 
 
-os.system("montage ../cropmks/16x9_blk.bmp ../cropmks/hd_ta.bmp ../cropmks/CineSco2.bmp ../cropmks/fish8r.bmp -tile 4x1 -geometry 300x200+5+5 Cropmarks550D.png")
+os.system("montage ../cropmks/16x9_blk.bmp ../cropmks/CineSco2.bmp ../cropmks/CrssMtr1.bmp ../cropmks/Passport.bmp  ../cropmks/PhiPhoto.bmp -tile 5x1 -geometry 300x200+5+5 Cropmarks550D.png")
 
 f = open("FEATURES.txt").readlines();
 m = open("MANUAL.txt").readlines();
