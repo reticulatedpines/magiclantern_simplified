@@ -51,23 +51,25 @@ sub("userguide.wiki", "= Magic Lantern 0.2.1 =", """[[Image:Logo.png|140px]]
 """)
 
 sub("userguide.wiki", "=== Audio ===", """<tabber>
- Audio=[[Image:AudioMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Audio]]
+ Audio=[[Image:AudioMenu-550D.png|360px|link=#Audio]]
 |-|
- LiveV=[[Image:LiveVMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#LiveV]]
+ LiveV=[[Image:LiveVMenu-550D.png|360px|link=#LiveV]]
 |-|
- Movie=[[Image:MovieMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Movie]]
+ Movie=[[Image:MovieMenu-550D.png|360px|link=#Movie]]
 |-|
- Shoot=[[Image:ShootMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Shoot]]
+ Shoot=[[Image:ShootMenu-550D.png|360px|link=#Shoot]]
 |-|
- Expo=[[Image:ExpoMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Expo]]
+ Expo=[[Image:ExpoMenu-550D.png|360px|link=#Expo]]
 |-|
- Focus=[[Image:FocusMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Focus]]
+ Focus=[[Image:FocusMenu-550D.png|360px|link=#Focus]]
 |-|
- Tweaks=[[Image:TweakMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Tweaks]]
+ Tweaks=[[Image:TweakMenu-550D.png|360px|link=#Tweaks]]
 |-|
- Debug=[[Image:DebugMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Debug]]
+ Debug=[[Image:DebugMenu-550D.png|360px|link=#Debug]]
 |-|
- Config=[[Image:ConfigMenu-550D.png|360px|link=http://magiclantern.wikia.com/wiki/Unified/UserGuide#Config]]
+ Config=[[Image:ConfigMenu-550D.png|360px|link=#Config]]
+|-|
+ (i)=[[Image:Page-001.png|360px|link=#Features]]
 </tabber>
 
 === Audio ===""")

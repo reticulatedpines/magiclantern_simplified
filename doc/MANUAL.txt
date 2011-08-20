@@ -131,7 +131,7 @@ Known issues
   
   With high-resolution HDMI displays, only cropmarks are known to work properly (from `LiveV`_ menu).
 
-* Not all ML features are available on all compatible cameras.
+* Not all ML features are available on all compatible cameras (go to [[Unified/Features]] to see what works on each camera).
 
 Keyboard shortcuts
 ------------------
