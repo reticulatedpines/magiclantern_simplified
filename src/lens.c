@@ -278,12 +278,12 @@ void draw_ml_bottombar()
 
 		  bmp_printf( text_font, 
 					  x_origin + font_large.width * strlen(focal), 
-					  480 - font_med.height, 
+					  480 - font_med.height + 1, 
 					  crop_info ? "eq" : "mm");
 
 		  bmp_printf( text_font, 
 					  x_origin + 70  , 
-					  y_origin + 2, 
+					  y_origin - 3, 
 					  "f") ;
       }
   
