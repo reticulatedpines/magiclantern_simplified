@@ -351,8 +351,8 @@ void draw_ml_bottombar()
 		text_font = FONT(FONT_MED,fgs,bg);
 
 		bmp_printf( text_font, 
-				x_origin + 143  , 
-				y_origin + 2, 
+				x_origin + 143 + 3  , 
+				y_origin - 3, 
 				shutter_x10 > 3 ? "  " : "1/");
 	}
 
