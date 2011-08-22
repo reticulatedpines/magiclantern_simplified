@@ -3036,6 +3036,7 @@ void clear_this_message_not_available_in_movie_mode()
 
 void draw_livev_for_playback()
 {
+BMP_LOCK(
 	cropmark_redraw();
 
 	if (spotmeter_draw)
@@ -3064,7 +3065,8 @@ void draw_livev_for_playback()
 		hist_draw_image( hist_x, hist_y );
 		
 	if( waveform_draw)
-		waveform_draw_image( 720 - WAVEFORM_WIDTH, 480 - WAVEFORM_HEIGHT - 50 );
+		waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET );
+)
 }
 
 /*
