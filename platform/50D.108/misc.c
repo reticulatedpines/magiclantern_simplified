@@ -96,28 +96,28 @@ void* get_fastrefresh_422_buf()
 {
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
-		case 0x40d07800:
-			return (void*) 0x4c233800;
-		case 0x4c233800:
-			return (void*) 0x4f11d800;
-		case 0x4f11d800:
-			return (void*) 0x40d07800;
+		case YUV422_LV_BUFFER_1:
+			return (void*) YUV422_LV_BUFFER_2;
+		case YUV422_LV_BUFFER_2:
+			return (void*) YUV422_LV_BUFFER_3;
+		case YUV422_LV_BUFFER_3:
+			return (void*) YUV422_LV_BUFFER_1;
 	}
-	return 0;
+	return YUV422_LV_BUFFER_1;
 }
 
 void* get_write_422_buf()
 {
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
-		case 0x40d07800:
-			return (void*) 0x40d07800;
-		case 0x4c233800:
-			return (void*) 0x4c233800;
-		case 0x4f11d800:
-			return (void*) 0x4f11d800;
+		case YUV422_LV_BUFFER_1:
+			return (void*) YUV422_LV_BUFFER_1;
+		case YUV422_LV_BUFFER_2:
+			return (void*) YUV422_LV_BUFFER_2;
+		case YUV422_LV_BUFFER_3:
+			return (void*) YUV422_LV_BUFFER_3;
 	}
-	return 0;
+	return YUV422_LV_BUFFER_1;
 }
 
 int vram_width = 720;
