@@ -255,6 +255,7 @@ void draw_ml_bottombar()
       if (info->aperture)
       {
 		  text_font = FONT(FONT_LARGE,COLOR_WHITE,bg);
+		  unsigned med_font = FONT(FONT_MED,COLOR_WHITE,bg);
 
 		  char focal[32];
 		  snprintf(focal, sizeof(focal), "%d",
@@ -263,26 +264,33 @@ void draw_ml_bottombar()
 		  bmp_printf( text_font, x_origin, y_origin, focal );
 
 		if (info->aperture < 100)
+		{
 			  bmp_printf( text_font, 
-						  x_origin + 70 + font_med.width  , 
+						  x_origin + 74 + font_med.width + font_large.width - 4, 
 						  y_origin, 
-						  "%d.%d  ", info->aperture / 10, info->aperture % 10) ;
+						  ".4");
+			  bmp_printf( text_font, 
+						  x_origin + 74 + font_med.width  , 
+						  y_origin, 
+						  "%d", info->aperture / 10);
+			  bmp_printf( text_font, 
+						  x_origin + 74 + font_med.width + font_large.width * 2 - 8, 
+						  y_origin, 
+						  "%d", info->aperture % 10);
+		}
 		else
 			  bmp_printf( text_font, 
-						  x_origin + 70 + font_med.width  , 
+						  x_origin + 74 + font_med.width  , 
 						  y_origin, 
 						  "%d    ", info->aperture / 10) ;
 
-
-		  text_font = FONT(FONT_MED,COLOR_WHITE,bg);
-
-		  bmp_printf( text_font, 
-					  x_origin + font_large.width * strlen(focal), 
+		  bmp_printf( med_font, 
+					  x_origin + font_large.width * strlen(focal) - 3, 
 					  480 - font_med.height + 1, 
 					  crop_info ? "eq" : "mm");
 
-		  bmp_printf( text_font, 
-					  x_origin + 70  , 
+		  bmp_printf( med_font, 
+					  x_origin + 74 + 2  , 
 					  y_origin - 3, 
 					  "f") ;
       }
@@ -351,7 +359,7 @@ void draw_ml_bottombar()
 		text_font = FONT(FONT_MED,fgs,bg);
 
 		bmp_printf( text_font, 
-				x_origin + 143 + 3  , 
+				x_origin + 143 + 1  , 
 				y_origin - 3, 
 				shutter_x10 > 3 ? "  " : "1/");
 	}
