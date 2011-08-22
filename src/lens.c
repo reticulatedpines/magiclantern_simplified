@@ -36,7 +36,7 @@ void draw_ml_bottombar();
 
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
-CONFIG_INT("movie.log", movie_log, 1);
+CONFIG_INT("movie.log", movie_log, 0);
 #ifndef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 1.6
 CONFIG_INT("crop.info", crop_info, 0);
