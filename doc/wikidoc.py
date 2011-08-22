@@ -91,7 +91,7 @@ def get_context(lines, i, nmax):
 
 def add_labels(line, labels):
     for label in labels:
-        line = ('<span id="%s"></span>' % label) + line.strip()
+        line = ('<span id="%s"></span>\n' % label) + line.strip()
     return line
 
 def add_eqn(line, eqn):
@@ -197,6 +197,9 @@ def fix_newlines_in_blockquote():
 
 fix_newlines_in_blockquote()
 
+sub("userguide.wiki", "<blockquote>", "<dl><dd>")
+sub("userguide.wiki", "</blockquote>", "</dd></dl>")
+
 #~ raise SystemExit
 
 go("http://magiclantern.wikia.com/index.php?title=Special:Signup")
@@ -231,4 +234,5 @@ ans = raw_input("submit? [y/n]")
 if ans == 'y':
     userguide_local = open("userguide.wiki").read()
     fv("1", "wpTextbox1", userguide_local)
+    fv("1", "wpSummary", "Automatic edit from wikidoc.py")
     submit()

@@ -173,10 +173,12 @@ Misc shortcuts
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
+* ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
 * ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
 * ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
 * ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom (see `DigitalZoom Shortcut`_).
+* Activating *AF mode* dialog when Manual Focus is active will toggle `Trap Focus`_.
 
 Magic Lantern menu
 ------------------
@@ -199,11 +201,13 @@ Audio
 ~~~~~
 
 .. figure:: AudioMenu-550D.png
-    :alt: thumb|right|Audio menu
+    :alt: 200px|right|Audio menu
     :align: center
     :width: 5cm
 
-[[Video:Ryan's T2i Tips and Reviews - Onboard Mic vs. ATR-3350 Lav vs Rode VideoMic|thumb|300px|right|Audio tests by Ryan Sauvé]]
+[[Video:Ryan's T2i Tips and Reviews - Onboard Mic vs. ATR-3350 Lav vs Rode VideoMic|200px|right|Audio tests by Ryan Sauvé]]
+[[Video:Canon_T2i/550D_with_Magic_Lantern:_DSLR_Audio_that_you_can_use!|200px|right]]
+[[Video:Audio_Conclusions|200px|right]]
 
 Manual audio controls.
 
@@ -253,7 +257,7 @@ from Magic Lantern. You can only use audio meters during recording.
   .. _balanced:
 
   .. figure:: XLRtoBalancedCable.jpg
-      :alt: thumb|right|XLR microphone to Balanced input pinouts
+      :alt: 200px|right|XLR microphone to Balanced input pinouts
       :align: center
       :width: 8cm
 
@@ -273,6 +277,8 @@ from Magic Lantern. You can only use audio meters during recording.
 .. _audio monitoring:
 
 **Monitoring-USB: ON/OFF**
+  
+  [[Video:Monitor_Realtime_T2i_550D_Audio_While_You_Record|200px|right]]
   
   Audio monitoring with headphones, via USB port.
 
@@ -301,7 +307,7 @@ LiveV
 ~~~~~
 
 .. figure:: LiveVMenu-550D.png
-    :alt: thumb|right|LiveV menu
+    :alt: 200px|right|LiveV menu
     :align: center
     :width: 5cm
 
@@ -321,19 +327,23 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **Histo/Wavefm: ON/Luma/RGB for histogram, OFF/Small/Large/Fullscreen for waveform**
 
+  [[Video:Canon_T2i_550D_Magic_Lantern_Meters_Tutorial|200px|right]]
+
   Shows the distribution of image brightness levels with:
   
   * a histogram plot (``Luma`` or ``RGB``, toggle with ``SET``)
   * a waveform plot (toggle with ``Q``)
 
   .. figure:: Histogram-and-waveform.png
-      :alt: thumb|right|Histogram and waveform
+      :alt: 200px|right|Histogram and waveform
       :align: center
       :height: 2cm
 
 .. _zebras:
 
 **Zebras: OFF/Luma/RGB, lo_level..hi_level**
+
+  [[Image:Zebras.jpg|200px|right]]
 
   Enable/disable zebra stripes. which indicate overexposed or underexposed areas.
     
@@ -360,7 +370,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   You can press ``Q`` to select one of the following color maps:
 
   .. figure:: falsecolor.png
-      :alt: thumb|right|False color palettes
+      :alt: 400px|center
       :align: center
       :width: 13cm
 
@@ -369,7 +379,9 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _Cropmark:
 
 **Cropmks(x/n)**
-
+  
+  [[Video:Cropmarks_Tutorial|200px|right]]
+  
   Select cropmarks (cycle between them).
 
   There are 5 predefined cropmarks in ML zip archive:
@@ -440,7 +452,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _Clean LiveView display:
 
 **ClearScreen: OFF / HalfShutter / WhenIdle**
-
+ 
   Clear bitmap overlays from LiveView display.
  
   * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
@@ -451,13 +463,15 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle.
     
-    The overlays (zebras & friends) will be back when you enter the Q menu or when you press the shutter half-way, and then they will disappear again if the camera is idle.
+    The overlays (zebras & various status displays) will be back when you press the Q button or when you press the shutter half-way, they will disappear again the the camera returns to idle.
 
-    This feature allows you to use an external HDMI recording device, such as `Atomos Ninja <http://amzn.to/ml-atomos-ninja>`_ or `Hyperdeck Shuttle <http://amzn.to/ml-hyperdeck-shuttle>`_. 
+    Tip: this feature may be useful with [[External Recorders]], since it removes the focus box and other graphics from the display.
 
 .. _focus peaking:
 
 **Focus Peak: OFF/HDIF/MORF, threshold, color_mode**
+  
+  [[Video:Magic_Lantern_Focus_Assist_Feature_on_550D|200px|right]]
 
   Experimental focus peaking, see [[Focus Assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
   
@@ -478,6 +492,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **Magic Zoom: OFF/Zrec/Zr+F/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
 
+  [[Video:Magic_Lantern_Magic_Zoom_13_March_2011_explained_by_Chung_Dha|200px|right]]
+  
   This function enables zoom while recording. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
   
   When ML believes you have achieved perfect focus, Magic Zoom borders will become green.
@@ -528,7 +544,7 @@ Movie
 ~~~~~
 
 .. figure:: MovieMenu-550D.png
-    :alt: thumb|right|Movie menu
+    :alt: 200px|right|Movie menu
     :align: center
     :width: 5cm
 
@@ -640,8 +656,8 @@ Functions specific to movie mode.
 
   On 600D/T3i, this lets you customize the behavior of ``DISP`` + ``Zoom In / Zoom Out`` shortcut key in movie mode:
 
-  ``1x,3x`` : toggle between 1x and 3x digital zoom modes (FullHD)
-  ``3x...10x``: default Canon setting (change digital zoom value between 3x and 10x).
+  * ``1x,3x`` : toggle between 1x and 3x digital zoom modes (FullHD)
+  * ``3x...10x``: default Canon setting (change digital zoom value between 3x and 10x).
   
   Note: by default, Magic Lantern disables digital zoom values greater than 3x in order to avoid image quality degradation.
 
@@ -663,7 +679,7 @@ Shoot
 ~~~~~
 
 .. figure:: ShootMenu-550D.png
-    :alt: thumb|right|Shoot menu
+    :alt: 200px|right|Shoot menu
     :align: center
     :width: 5cm
 
@@ -673,6 +689,10 @@ Functions for stills shooting (some of them work for movies, too).
 .. _HDR:
 
 **HDR Bracket**
+
+  [[Image:HDR-Karlskirche.jpg|200px|right|link=http://www.flickr.com/photos/stst31415/6046955226/in/pool-1676739@N21/]]
+  [[Image:HDR-StGiles-Cathedral.jpg|200px|right|link=http://www.flickr.com/photos/59839681@N04/5936774611/in/pool-1676739@N21/]]
+  [[Image:HDR-National-Museum-of-Scotland.jpg|200px|right|link=http://www.flickr.com/photos/59839681@N04/6012136909/in/pool-1676739@N21/]]
 
   AE Bracketing for HDR images and timelapses.
   
@@ -720,7 +740,8 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Intervalometer: ON/OFF, Wait/NoWait**
 
-  [[Video:T2i Timelapse|thumb|300px|right|Timelapse taken with the ML intervalometer, by Logan Stewart]]
+  [[Video:Hot_Air_Balloons_Timelapse|200px|right]]
+  [[Image:Stars-Intervalometer.jpg|200px|right|link=http://www.flickr.com/photos/jackschroeder/6022255031/in/pool-1676739@N21/]]
 
   Start/stop intervalometer.
   
@@ -809,6 +830,9 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Motion Detect: OFF / EXP / DIF**
 
+  [[Image:MotionDetection-Bird.jpg|200px|right|link=http://johnnyionix.blogspot.com/2011/05/usando-motion-detect-magic-lantern-para.html]]
+  [[Image:MotionDetection-Lightning-6-4-2011-3.jpg|200px|right|link=http://groups.google.com/group/ml-devel/browse_thread/thread/850497aa7e732a68]]
+
   Experimental motion detection.
   
   * ``EXP``: it only reacts to brightness (EXPosure) change in the middle of the LiveView image. Useful for large moving subjects which cause significant change in exposure.
@@ -824,7 +848,10 @@ Functions for stills shooting (some of them work for movies, too).
 .. _Silent Picture:
 .. _slit-scan pictures:
 
-**Silent Picture / Silent Pic HiRes / Slit-scan Pic**
+**Silent Picture / Slit-scan Pic**
+
+  [[Video:550D/T2i Magic Lantern Silent Shooting Mode Tutorial|200px|right]]
+  [[Image:SlitScan-Microscope.jpg|200px|right|link=http://imgur.com/H3tfw&kTLW1&GRiQEl&pVLZS&tlLF6&N7ZUr?full]]
 
   This can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
   
@@ -862,6 +889,8 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Bulb Timer: 1s...8h**
 
+  [[Image:LongExp.jpg|200px|right|link=http://www.flickr.com/photos/ajaykrishnan/5900337137/]]
+
   Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
   
   Bulb timer is started by half-shutter press, or by remote triggers / intervalometer.
@@ -886,7 +915,7 @@ Expo
 .. _image settings:
 
 .. figure:: ExpoMenu-550D.png
-    :alt: thumb|right|Expo menu
+    :alt: 200px|right|Expo menu
     :align: center
     :width: 5cm
 
@@ -946,19 +975,13 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   .. raw:: latex
   
        $$1/4000 \cdot 2^{k/8},\;\; k=[135:-1:-8]$$
-  
-  Assumming 30s is native, you will have:
-  
-  .. raw:: latex
-
-       $$30 \cdot 2^{k/8},\;\; k=[0:-1:-143]$$
-  
-  The difference between results in these two cases is around 1.3\%.
-  
+    
   Values displayed by ML (rounded to 2 digits):
   
   1/24, 26, 29, 31, 34, 37, 41, 44, 48, 53, 57, 63, 68, 74, 81, 88, 96, 110, 120, 130, 140, 150, 160, 180, 190, 210, 230, 250, 270, 300, 320, 350, 390, 420, 460, 500, 560, 600, 650, 710, 770, 840, 920, 1000, 1100, 1200, 1300, 1400, 1500, 1700, 1800, 2000, 2200, 2300, 2600, 2800, 3000, 3400, 3700, 4000, 4400, 4800, 5200, 5600, 6200, 6800, 7300, 8000.
-    
+  
+  Not all values are accepted by all cameras.
+  
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the shutter value automatically.
   
   * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
@@ -1001,7 +1024,7 @@ Focus
 ~~~~~
 
 .. figure:: FocusMenu-550D.png
-    :alt: thumb|right|Focus menu
+    :alt: 200px|right|Focus menu
     :align: center
     :width: 5cm
 
@@ -1009,6 +1032,8 @@ Focus
 .. _trap focus:
 
 **Trap Focus: ON/OFF**
+
+  [[Image:TrapFocus-Hummingbird.jpg|200px|right|link=http://www.flickr.com/photos/ml_kap/5404489873/]]
 
   Takes a picture when the subject comes into focus. You need to set the to Manual focus (MF) and hold the shutter pressed halfway.
   
@@ -1029,7 +1054,7 @@ Focus
   Custom focus patterns which can be used either with autofocus or `trap focus`_.
   
   .. figure:: AFP.png
-      :alt: thumb|right|AF patterns
+      :alt: 200px|right|AF patterns
       :align: center
       :width: 11.8cm
   
@@ -1047,6 +1072,8 @@ Focus
 .. _focus stacking:
 
 **Stack focus**
+
+  [[Video:DOF_and_Focus_stacking|200px|right]]
 
   This selection will shoot a series of photographs with varying focus points.
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
@@ -1096,7 +1123,7 @@ Focus
 
 .. _rack focus:
 
-[[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|thumb|300px|right|Rack Focus Tutorial by Daniel Thurau]]
+[[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|200px|right|Rack Focus Tutorial by Daniel Thurau]]
 
 **Focus dir**
 
@@ -1165,7 +1192,7 @@ Tweaks
 ~~~~~~
 
 .. figure:: TweakMenu-550D.png
-    :alt: thumb|right|Tweaks menu
+    :alt: 200px|right|Tweaks menu
     :align: center
     :width: 5cm
 
@@ -1269,7 +1296,7 @@ Debug
 ~~~~~
 
 .. figure:: DebugMenu-550D.png
-    :alt: thumb|right|Debug menu
+    :alt: 200px|right|Debug menu
     :align: center
     :width: 5cm
 
@@ -1321,7 +1348,7 @@ Config
 ~~~~~~
 
 .. figure:: ConfigMenu-550D.png
-    :alt: thumb|right|Config menu
+    :alt: 200px|right|Config menu
     :align: center
     :width: 5cm
 
@@ -1367,7 +1394,7 @@ Main shooting screen (outside LiveView)
 .. _clock:
 
 .. figure:: InfoDisplayShooting-550D.png
-    :alt: thumb|right|Extra shooting info display
+    :alt: 200px|right|Extra shooting info display
     :align: center
     :width: 5cm
 
@@ -1379,6 +1406,7 @@ Main shooting screen (outside LiveView)
 * `HDR`_ setting (under battery icon)
 * `MLU`_ setting (under ``Q`` icon)
 * `LCD remote`_ status icon: ⨂ ⨀ 〰
+* Free space on the card, in GB (under number of remaining shots)
 
 MENU->DISP / MENU->INFO
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1387,7 +1415,7 @@ MENU->DISP / MENU->INFO
 .. _CMOS temperature:
 
 .. figure:: InfoMenuDisp-550D.png
-    :alt: thumb|right|MENU->DISP info display
+    :alt: 200px|right|MENU->DISP info display
     :align: center
     :width: 5cm
 
@@ -1407,22 +1435,24 @@ LiveView
 
 .. _bottom bar:
 
-* Bottom bar (displayed only when Canon bottom bar is hidden):
+* Bottom bar (press ``DISP`` / ``INFO`` a few times to show it):
 
   * Current shooting mode
-  * Lens focal length and aperture, 
-  * `shutter`_, `ISO`_, `white balance`_, WB shift
+  * Lens focal length and aperture
+  * `shutter`_, `ISO`_, `white balance`_
   * [[Focus_distance]]
   * Exposure compensation
 
-* Top bar (displayed only when audio meters are not shown):
+* Top bar:
 
   * Clock
   * Current `display preset`_
   * Picture quality setting
+  * Picture style
   * CMOS temperature
+  * Battery indicator (60D) / `LCD remote`_ status icon (550D)
   * Number of pictures remaining (estimated)
-  * Free space remaining, in GB (may be incorrect on certain cards)
+  * Free space on the card, in GB
 
 * In the middle of the screen:
 

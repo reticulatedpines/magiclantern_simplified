@@ -2,6 +2,8 @@ function ShowLink(addr, name)
 	newname = name
 	if string.find(addr, "Video") then
 		return -- don't show videos
+	elseif string.find(addr, "Image") then
+		return -- don't show sample images
 	elseif string.find(addr, "magiclantern.wikia.com") and not string.find(name, "here") then
 		name = string.gsub(name, [[#]], [[\#]])
 		newname = "Wiki:" .. name
