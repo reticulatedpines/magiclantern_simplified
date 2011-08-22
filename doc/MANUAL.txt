@@ -553,13 +553,13 @@ Functions specific to movie mode.
 .. _Bitrate control:
 .. _bitrate:
 
-**Bit Rate: CBR, 0.1x ... 3x**
+**Bit Rate: CBR, 0.1x ... 2x**
 
   Controls H.264 bitrate used for video recording.
   
   Possible modes (only CBR is available from menu; others can be selected only from ``magic.cfg``):
   
-  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting. The implementation uses variable QScale, displayed near the recording dot.
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 2x. CBR 1x is the firmware default setting. The implementation uses variable QScale, displayed near the recording dot.
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 45mbps in 1080p, including sound).
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
