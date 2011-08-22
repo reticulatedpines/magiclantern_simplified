@@ -30,10 +30,6 @@
 #include "menu.h"
 #include "math.h"
 
-#ifdef CONFIG_50D
-#include "disable-this-module.h"
-#endif
-
 void update_stuff();
 void draw_ml_topbar();
 void draw_ml_bottombar();
