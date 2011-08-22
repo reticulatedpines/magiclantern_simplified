@@ -2401,12 +2401,14 @@ static void auto_exposure_for_timelapse_prc_toggle_reverse(void* priv)
 static void 
 auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
 {
+	char msg[100];
+	if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: ON,prctile=%d%%", intervalometer_auto_expo_prc);
+	else snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: OFF");
+
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"AutoExpo4TmLapse: %s,prctile=%d%%",
-		intervalometer_auto_expo ? "ON" : "OFF", 
-		intervalometer_auto_expo_prc
+		msg
 	);
 }
 
