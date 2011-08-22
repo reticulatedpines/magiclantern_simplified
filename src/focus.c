@@ -802,6 +802,11 @@ focus_misc_task(void* unused)
 			movie_af_step(fm);
 		}
 #endif
+		if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
+		{
+			trap_focus_toggle_from_af_dlg();
+			while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
+		}
 	}
 }
 
@@ -821,6 +826,20 @@ trap_focus_display( void * priv, int x, int y, int selected )
 
 
 extern int trap_focus;
+
+void trap_focus_toggle_from_af_dlg()
+{
+	trap_focus = !trap_focus;
+	
+	int i;
+	for (i = 0; i < 5; i++)
+	{
+		bmp_printf(FONT_LARGE, 30, 80, 
+			"Trap Focus: %s", 
+			trap_focus ? "ON" : "OFF");
+		msleep(100);
+	}
+}
 
 CONFIG_INT("focus.patterns", af_patterns, 0);
 

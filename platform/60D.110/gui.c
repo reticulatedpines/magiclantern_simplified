@@ -448,9 +448,15 @@ static int handle_buttons(struct event * event)
 	
 	if (event->type == 0 && event->param == BGMT_Q && !gui_menu_shown())
 	{
-		if (CURRENT_DIALOG_MAYBE == DLG_ISO)
+		if (ISO_ADJUSTMENT_ACTIVE)
 		{
 			select_menu("Expo", 0);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+		else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
+		{
+			select_menu("Focus", 0);
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
