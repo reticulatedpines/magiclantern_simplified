@@ -1058,7 +1058,7 @@ PROP_HANDLER(PROP_ISO)
 	static int prev_iso = 0;
 	if (!prev_iso) prev_iso = lens_info.raw_iso;
 	static int k = 0;
-	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0)
+	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0 && shooting_mode == SHOOTMODE_MOVIE)
 	{
 		if ((prev_iso && buf[0] && prev_iso < buf[0]) || // 100 -> 200 => +
 			(prev_iso >= 112 && buf[0] == 0)) // 3200+ -> auto => +
