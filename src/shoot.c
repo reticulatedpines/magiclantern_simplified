@@ -32,6 +32,8 @@
 #include "lens.h"
 #include "gui.h"
 
+PROP_INT(PROP_BEEP, beep_enabled);
+
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
@@ -2838,6 +2840,8 @@ void get_out_of_play_mode(int extra_wait)
 // to be called by remote triggers
 void remote_shot(int wait)
 {
+	if (beep_enabled) Beep();
+	
 	// save zoom value (x1, x5 or x10)
 	int zoom = lv_dispsize;
 	
@@ -3277,7 +3281,10 @@ shoot_task( void* unused )
 			}
 
 			if (intervalometer_running)
+			{
+				if (beep_enabled) Beep();
 				hdr_shot(0, intervalometer_wait);
+			}
 			
 			int display_turned_off = 0;
 			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)

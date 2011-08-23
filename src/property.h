@@ -317,6 +317,8 @@
 
 #define PROP_AFPOINT 0x8000000A
 
+#define PROP_BEEP 0x80000023
+
 /** Properties */
 extern void
 prop_register_slave(
