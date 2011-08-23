@@ -70,23 +70,9 @@ struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
 	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
-									video_mode_resolution == 1 ? 1280 : 
-									video_mode_resolution == 2 ? 640 : 0)
-								  : lv_dispsize > 1 ? 1024
-								  : shooting_mode != SHOOTMODE_MOVIE ? 1056
-								  : (video_mode_resolution == 0 ? 1056 : 
-								  	video_mode_resolution == 1 ? 1024 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
+	_vram_info.width = 1024;
 	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
-									video_mode_resolution == 1 ? 580 : 
-									video_mode_resolution == 2 ? 480 : 0)
-								  : lv_dispsize > 1 ? 680
-								  : shooting_mode != SHOOTMODE_MOVIE ? 704
-								  : (video_mode_resolution == 0 ? 704 : 
-								  	video_mode_resolution == 1 ? 680 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 480:680) : 0);
+	_vram_info.height = 680;
 
 	return &_vram_info;
 }
@@ -122,12 +108,6 @@ void* get_write_422_buf()
 
 int vram_width = 720;
 int vram_height = 480;
-PROP_HANDLER(PROP_VRAM_SIZE_MAYBE)
-{
-	vram_width = buf[1];
-	vram_height = buf[2];
-	return prop_cleanup(token, property);
-}
 
 struct vram_info * get_yuv422_vram()
 {
@@ -136,7 +116,7 @@ struct vram_info * get_yuv422_vram()
 	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 
 	_vram_info.width = vram_width;
-	_vram_info.height = vram_width * 2 / 3;
+	_vram_info.height = vram_height;
 	_vram_info.pitch = _vram_info.width * 2;
 
 	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
