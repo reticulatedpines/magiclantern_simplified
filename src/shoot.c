@@ -1014,6 +1014,8 @@ static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
 {
 	if (!lv) return;
+
+	if (beep_enabled) Beep();
 	
 	int g = get_global_draw();
 	set_global_draw(0);
@@ -2840,8 +2842,6 @@ void get_out_of_play_mode(int extra_wait)
 // to be called by remote triggers
 void remote_shot(int wait)
 {
-	if (beep_enabled) Beep();
-	
 	// save zoom value (x1, x5 or x10)
 	int zoom = lv_dispsize;
 	
@@ -3282,7 +3282,6 @@ shoot_task( void* unused )
 
 			if (intervalometer_running)
 			{
-				if (beep_enabled) Beep();
 				hdr_shot(0, intervalometer_wait);
 			}
 			

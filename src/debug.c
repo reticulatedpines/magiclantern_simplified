@@ -55,6 +55,7 @@ static void dm_toggle(void* priv)
 
 static void take_screenshot( void * priv )
 {
+	Beep();
 	call( "dispcheck" );
 	silent_pic_take_lv_dbg();
 }
