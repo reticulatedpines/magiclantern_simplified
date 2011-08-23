@@ -1773,7 +1773,7 @@ static void find_cropmarks()
 	int k = 0;
 	do {
 		int n = strlen(file.name);
-		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")) && (file.name[0] != '.'))
+		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")) && (file.name[0] != '.') && (file.name[0] != '_'))
 		{
 			if (k >= MAX_CROPMARKS)
 			{
