@@ -78,11 +78,10 @@ int motion_detect = 0;
 //int motion_detect_level = 8;
 int drive_mode_bk = -1;
 
-int gui_state = 0;
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 PROP_HANDLER(PROP_GUI_STATE)
 {
-	gui_state = buf[0];
+	int gui_state = buf[0];
 
 	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom && !intervalometer_running)
 	{
@@ -364,7 +363,7 @@ static void silent_pic_toggle_forward(void* priv)
 static void silent_pic_toggle_reverse(void* priv)
 { silent_pic_toggle(-1); }
 
-int afframe[26];
+volatile int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
 	memcpy(afframe, buf, 0x68);
 	return prop_cleanup( token, property );

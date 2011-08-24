@@ -595,7 +595,7 @@ void draw_ml_topbar()
 	);
 }
 
-int lv_focus_done = 1;
+volatile int lv_focus_done = 1;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
