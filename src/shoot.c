@@ -2054,7 +2054,7 @@ bulb_take_pic(int duration)
 	for (i = 0; i < d; i++)
 	{
 		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
-		msleep(1000);
+		wait_till_next_second();
 		if (lens_info.job_state == 0) break;
 	}
 	SW2(0,100);
@@ -2658,6 +2658,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 void hdr_shutter_release()
 {
 	lens_wait_readytotakepic(64);
+
 	if (!silent_pic_mode || !lv)
 	{
 		if (get_mlu() && !lv) { lens_take_picture(64); msleep(500); }
@@ -3154,11 +3155,12 @@ shoot_task( void* unused )
 					bmp_printf(FONT_LARGE, 0, 0, "[HS] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 					msleep(100);
 				}
+				wait_till_next_second();
 				bmp_printf(FONT_LARGE, 0, 0, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
-				msleep(1000);
+				wait_till_next_second();
 				if (gui_state != GUISTATE_IDLE) continue;
 				bmp_printf(FONT_LARGE, 0, 0, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
-				msleep(1000);
+				wait_till_next_second();
 				if (gui_state != GUISTATE_IDLE) continue;
 				bulb_take_pic(d * 1000);
 			}
