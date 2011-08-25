@@ -47,6 +47,7 @@ ML_OBJS-y = \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
+	af_patterns.o \
 	focus.o \
 
 #include generic rules and definitions

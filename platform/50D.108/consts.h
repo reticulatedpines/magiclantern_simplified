@@ -18,7 +18,7 @@
 //~ #define YUV422_LV_HEIGHT_RCA 540
 //~ #define YUV422_LV_HEIGHT_HDMI 1080
 
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x28D4)
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x28f8) // workaround
 //#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
 #define YUV422_HD_BUFFER_DMA_ADDR 0x44000080
 
@@ -64,8 +64,8 @@
 #define BGMT_TRASH 9
 #define BGMT_MENU 5
 #define BGMT_DISP 6
-#define BGMT_Q 8
-#define BGMT_Q_ALT 0xF
+//~ #define BGMT_Q 0xE
+//~ #define BGMT_Q_ALT 0xE
 #define BGMT_PLAY 8
 #define BGMT_PRESS_HALFSHUTTER 0x1f
 #define BGMT_UNPRESS_HALFSHUTTER 0x20
@@ -80,6 +80,9 @@
 #define BGMT_JOY_CENTER 0x1e // press the joystick maybe?
 
 #define BGMT_LV 0xE
+
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
 
 #define BGMT_FLASH_MOVIE 0
 #define BGMT_PRESS_FLASH_MOVIE 0
@@ -127,14 +130,14 @@
 
 #define AE_VALUE (*(int8_t*)0xfb30)
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3844)
+#define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
 #define DLG_WB 5
 #define DLG_FOCUS_MODE 9
 #define DLG_DRIVE_MODE 8
 #define DLG_PICTURE_STYLE 4
 #define DLG_PLAY 1
 #define DLG_MENU 2
-#define DLG_Q_UNAVI 0x1F
+#define DLG_Q_UNAVI 0x18
 #define DLG_FLASH_AE 0x22
 #define DLG_PICQ 6
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // (CURRENT_DIALOG_MAYBE == 0x1A)
@@ -144,8 +147,8 @@
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1af8 // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1b24 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
-#define PLAY_MODE 0 //(gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE 0 //(gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 

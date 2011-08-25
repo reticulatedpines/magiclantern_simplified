@@ -15,6 +15,7 @@ void set_mlu(int enable)
 }
 int get_mlu()
 {
+	return 0;
 }
 
 void assign_af_button_to_halfshutter() {}

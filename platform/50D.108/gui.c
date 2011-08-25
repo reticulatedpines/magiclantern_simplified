@@ -25,6 +25,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include <property.h>
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
@@ -33,6 +34,7 @@ int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 int get_set_pressed() { return set_pressed; }
 
+int halfshutter_pressed = 0;
 int get_halfshutter_pressed() { return FOCUS_CONFIRMATION_AF_PRESSED; }
 
 struct semaphore * gui_sem;
@@ -69,6 +71,123 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
+// return 0 if you want to block this event
+static int handle_buttons(struct event * event)
+{
+	// Change the picture style button to show our menu
+	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
+	{
+		give_semaphore( gui_sem );
+		return 0;
+	}
+
+	// AF patterns
+	extern int af_patterns;
+	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
+		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+	}
+
+	if (get_draw_event())
+	{
+		if (event->type == 0)
+		{
+			static int kev = 0;
+			kev++;
+			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+				kev,
+				event->type, 
+				event->param, 
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
+				event->arg);
+/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+				kev,
+				event->type, 
+				event->param, 
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
+				event->arg);*/
+			//msleep(250);
+		}
+	}
+
+	if (event->type == 0)
+	{
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
+		{
+			switch(event->param)
+			{
+				case BGMT_PRESS_LEFT:
+					lens_focus_start(1 * get_follow_focus_dir_h());
+					return 0;
+				case BGMT_PRESS_RIGHT:
+					lens_focus_start(-1 * get_follow_focus_dir_h());
+					return 0;
+				case BGMT_PRESS_UP:
+					lens_focus_start(5 * get_follow_focus_dir_v());
+					return 0;
+				case BGMT_PRESS_DOWN:
+					lens_focus_start(-5 * get_follow_focus_dir_v());
+					return 0;
+				case BGMT_UNPRESS_UDLR:
+					lens_focus_stop();
+					return 1;
+			}
+		}
+	}
+
+	if (event->type == 0)
+	{
+		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
+		if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
+	}
+
+	// for faster zoom in in Play mode
+	if (event->type == 0)
+	{
+		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
+		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
+		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+ 	}
+
+	// stop intervalometer with MENU or PLAY
+	if (event != &fake_event && event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+		intervalometer_stop();
+
+	// enable LiveV stuff in Play mode
+	if (event->type == 0 && PLAY_MODE) 
+	{
+		if (event->param == BGMT_FUNC)
+		{
+			livev_playback_toggle();
+			return 0;
+		}
+		else
+			livev_playback_reset();
+	}
+
+	// 422 play
+
+	if (event->type == 0 && event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->type == 0 && event->param == BGMT_UNPRESS_UDLR) set_pressed = 0;
+	if (event->type == 0 && event->param == BGMT_PLAY) set_pressed = 0;
+
+	if ( PLAY_MODE && event->type == 0 && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
+	{
+		play_next_422();
+		return 0;
+	}
+
+	return 1;
+}
 
 void fake_simple_button(int bgmt_code)
 {
@@ -84,6 +203,9 @@ void fake_simple_button(int bgmt_code)
 static void
 my_gui_main_task( void )
 {
+	fake_sem = create_named_semaphore("fake_sem", 1);
+	bmp_sem_init();
+
 	gui_init_end();
 	uint32_t * obj = 0;
 
@@ -99,31 +221,18 @@ my_gui_main_task( void )
 		if( !event )
 			goto event_loop_bottom;
 
-#if 0
-		if( event->type != 4
-		&&  (event->type != 2 && event->param != 0x16)
-		&&  (event->type != 2 && event->param != 0x31)
-		)
+		if (!magic_is_off())
 		{
-			DebugMsg( DM_MAGIC, 3,
-				"Event: %x, %x, %x, %x",
-				event->type,
-				event->param,
-				event->obj,
-				event->arg
-			);
-			static int kev = 0;
-			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
-				kev++,
-				event->type, 
-				event->param, 
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
-				event->arg);
+			// if fake_simple_button is called from handle_buttons, it will not wait; it will just overwrite last event (avoids crashing)
+			handle_buttons_active = 1;
+			int should_handle = handle_buttons(event); // ML button/event handler
+			handle_buttons_active = 0;
+			
+			if (should_handle == 0) // ML event handler said we should not pass this event to Canon handler
+				goto event_loop_bottom;
 		}
-#endif
 
+GMT_LOCK( // sync with other Canon calls => prevents some race conditions
 		switch( event->type )
 		{
 		case 0:
@@ -149,16 +258,7 @@ my_gui_main_task( void )
 				goto queue_clear;
 
 			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
-
-			// Change the picture style button to show our menu
-			if( !magic_is_off() && event->param == BGMT_PICSTYLE )
-			{
-				give_semaphore( gui_sem );
-				break;
-			}
-
 			gui_massive_event_loop( event->param, event->obj, event->arg );
-
 			break;
 
 		case 1:
@@ -233,8 +333,15 @@ my_gui_main_task( void )
 		default:
 			break;
 		}
+)
 
 event_loop_bottom:
+
+		if (event == &fake_event)
+		{
+			give_semaphore(fake_sem); // a fake event was handled; next, please :)
+		}
+
 		gui_main_struct.counter--;
 		continue;
 
