@@ -21,6 +21,7 @@ volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+volatile PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca)
 volatile PROP_INT(PROP_ALO, alo);
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);

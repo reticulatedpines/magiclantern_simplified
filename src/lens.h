@@ -32,40 +32,40 @@
 
 struct lens_info
 {
-	void *			token;
-	char 			name[ 32 ];
-	unsigned		focal_len; // in mm
-	unsigned		focus_dist; // in cm
-	unsigned		aperture;
-	int				ae;        // exposure compensation, in 1/8 EV steps, signed
-	unsigned		shutter;
-	unsigned		iso;
-	unsigned		iso_auto;
-	unsigned		hyperfocal; // in mm
-	unsigned		dof_near; // in mm
-	unsigned		dof_far; // in mm
-	unsigned		job_state; // see PROP_LAST_JOB_STATE
+volatile	void *			token;
+volatile	char 			name[ 32 ];
+volatile	unsigned		focal_len; // in mm
+volatile	unsigned		focus_dist; // in cm
+volatile	unsigned		aperture;
+volatile	int				ae;        // exposure compensation, in 1/8 EV steps, signed
+volatile	unsigned		shutter;
+volatile	unsigned		iso;
+volatile	unsigned		iso_auto;
+volatile	unsigned		hyperfocal; // in mm
+volatile	unsigned		dof_near; // in mm
+volatile	unsigned		dof_far; // in mm
+volatile	unsigned		job_state; // see PROP_LAST_JOB_STATE
 
-	unsigned		wb_mode;  // see property.h for possible values
-	unsigned		kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
-	int8_t		wbs_gm;
-	int8_t		wbs_ba;
+volatile	unsigned		wb_mode;  // see property.h for possible values
+volatile	unsigned		kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
+volatile	int8_t		wbs_gm;
+volatile	int8_t		wbs_ba;
 
-	unsigned		picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
+volatile	unsigned		picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
 /*	int32_t 		contrast;   // -4..4
 	uint32_t		sharpness;  // 0..7
 	uint32_t		saturation; // -4..4
 	uint32_t		color_tone; // -4..4 */
 
 	// Store the raw values before the lookup tables
-	uint8_t			raw_aperture;
-	uint8_t			raw_shutter;
-	uint8_t			raw_iso;
-	uint8_t			raw_iso_auto;
-	uint8_t			raw_picstyle;
+volatile	uint8_t			raw_aperture;
+volatile	uint8_t			raw_shutter;
+volatile	uint8_t			raw_iso;
+volatile	uint8_t			raw_iso_auto;
+volatile	uint8_t			raw_picstyle;
 
-	float 			lens_rotation;
-	float			lens_step;
+volatile	float 			lens_rotation;
+volatile	float			lens_step;
 };
 
 extern struct lens_info lens_info;

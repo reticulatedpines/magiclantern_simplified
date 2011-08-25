@@ -180,19 +180,13 @@ void crop_set_dirty(int value)
 	crop_dirty = MAX(crop_dirty, value);
 }
 
-volatile int ext_monitor_rca = 0;
-volatile int ext_monitor_hdmi = 0;
-#define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
-
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
-	ext_monitor_rca = buf[0];
 	crop_set_dirty(40);
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
-	ext_monitor_hdmi = buf[0];
 	crop_set_dirty(40);
 	return prop_cleanup( token, property );
 }

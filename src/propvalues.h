@@ -20,6 +20,7 @@ extern int shutter_count;
 extern int liveview_actuations;
 extern int ae_mode_movie;
 extern int ext_monitor_hdmi;
+extern int ext_monitor_rca;
 extern int alo;
 extern int file_number;
 extern int folder_number;
@@ -36,5 +37,7 @@ extern int backlight_level;
 extern int video_mode_crop;
 extern int video_mode_fps;
 extern int video_mode_resolution; // 0 if full hd, 1 if 720p, 2 if 480p
+
+#define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 
 #endif
