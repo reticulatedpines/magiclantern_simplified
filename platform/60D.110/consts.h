@@ -213,3 +213,5 @@
 
 #define FLASH_MAX_EV (3*8)
 #define FLASH_MIN_EV (-3*8)
+
+#define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / INFO" 

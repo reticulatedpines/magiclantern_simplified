@@ -419,6 +419,13 @@ menus_display(
 			);
 	}
 
+	if (!audio_meters_are_drawn())
+		bmp_printf(
+			FONT(FONT_MED, 55, COLOR_BLACK), // gray
+			720 - font_med.width * strlen(MENU_NAV_HELP_STRING), font_med.height, 
+				MENU_NAV_HELP_STRING
+		);
+
 	give_semaphore( menu_sem );
 }
 
