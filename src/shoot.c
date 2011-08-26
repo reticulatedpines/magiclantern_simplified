@@ -1704,11 +1704,11 @@ const char* get_picstyle_name(int raw_picstyle)
 		raw_picstyle == 0x83 ? "Landscape" :
 		raw_picstyle == 0x84 ? "Neutral" :
 		raw_picstyle == 0x85 ? "Faithful" :
-		raw_picstyle == 0x86 ? "Monochrome" :
+		raw_picstyle == 0x86 ? "Monochrom" :
 		raw_picstyle == 0x87 ? "Auto" :
-		raw_picstyle == 0x21 ? "User Def 1" :
-		raw_picstyle == 0x22 ? "User Def 2" :
-		raw_picstyle == 0x23 ? "User Def 3" : "Unknown";
+		raw_picstyle == 0x21 ? "UserDef1" :
+		raw_picstyle == 0x22 ? "UserDef2" :
+		raw_picstyle == 0x23 ? "UserDef3" : "Unknown";
 }
 
 const char* get_picstyle_shortname(int raw_picstyle)
@@ -1732,9 +1732,13 @@ picstyle_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"PictureStyle: %s%s",
+		"PictureStyle: %s%s(%d,%d,%d,%d)",
 		get_picstyle_name(p),
-		picstyle_before_rec ? "*" : ""
+		picstyle_before_rec ? "*" : " ",
+		lens_get_sharpness(),
+		lens_get_contrast(),
+		ABS(lens_get_saturation()) < 10 ? lens_get_saturation() : 0,
+		ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
@@ -1768,12 +1772,27 @@ picstyle_toggle_reverse( void * priv )
 static void 
 picstyle_rec_display( void * priv, int x, int y, int selected )
 {
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"REC PicStyle: %s ",
-		picstyle_rec ? get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec)) : "Don't change"
-	);
+	if (!picstyle_rec)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"REC PicStyle: Don't change"
+		);
+	}
+	else
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"REC PicStyle: %s (%d,%d,%d,%d)",
+			get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec)),
+			lens_get_from_other_picstyle_sharpness(picstyle_rec),
+			lens_get_from_other_picstyle_contrast(picstyle_rec),
+			ABS(lens_get_from_other_picstyle_saturation(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec) : 0,
+			ABS(lens_get_from_other_picstyle_color_tone(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_color_tone(picstyle_rec) : 0
+		);
+	}
 }
 
 static void

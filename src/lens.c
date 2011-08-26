@@ -1114,6 +1114,13 @@ lens_get_##param() \
 	return picstyle_settings[i].param; \
 } \
 
+#define LENS_GET_FROM_OTHER_PICSTYLE(param) \
+int \
+lens_get_from_other_picstyle_##param(int picstyle_index) \
+{ \
+	return picstyle_settings[picstyle_index].param; \
+} \
+
 // set contrast/saturation/etc in the current picture style (change is permanent!)
 #define LENS_SET_IN_PICSTYLE(param,lo,hi) \
 void \
@@ -1130,6 +1137,11 @@ LENS_GET_FROM_PICSTYLE(contrast)
 LENS_GET_FROM_PICSTYLE(sharpness)
 LENS_GET_FROM_PICSTYLE(saturation)
 LENS_GET_FROM_PICSTYLE(color_tone)
+
+LENS_GET_FROM_OTHER_PICSTYLE(contrast)
+LENS_GET_FROM_OTHER_PICSTYLE(sharpness)
+LENS_GET_FROM_OTHER_PICSTYLE(saturation)
+LENS_GET_FROM_OTHER_PICSTYLE(color_tone)
 
 LENS_SET_IN_PICSTYLE(contrast, -4, 4)
 LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
