@@ -177,6 +177,7 @@ NSTUB( 0xff8898c8, gui_local_post )																		//d
 NSTUB( 0xff889354, gui_change_mode )   // GUI_ChangeMode_Post												//d
 NSTUB( 0xff889ca4, gui_other_post )																		//d
 NSTUB( 0xff888008, gui_massive_event_loop )   // GUI_Control_Post										//d
+NSTUB( 0xff822ab0, GUI_Control )
 
 NSTUB( 0xff968870, mvrFixQScale )																			//d
 NSTUB( 0xff96868c, mvrSetDefQScale )																	//d

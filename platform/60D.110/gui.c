@@ -30,6 +30,9 @@
 #include <consts.h>
 #include <lens.h>
 
+#define FAKE_BTN -123456
+#define IS_FAKE(event) (event->arg == FAKE_BTN)
+
 CONFIG_INT("swap.menu", swap_menu, 0);
 
 void gui_unlock( void )
@@ -57,11 +60,6 @@ int get_zoom_out_pressed() { return zoom_out_pressed; }
 int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
-
-int handle_buttons_active = 0;
-struct event fake_event;
-struct semaphore * fake_sem;
-
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
@@ -142,7 +140,7 @@ static int handle_buttons(struct event * event)
 	}*/
 	
 
-	if (swap_menu && event != &fake_event)
+	if (swap_menu && !IS_FAKE(event))
 	{
 		if (event->type == 0 && event->param == BGMT_TRASH)
 		{
@@ -349,7 +347,7 @@ static int handle_buttons(struct event * event)
 	}
 	
 	// stop intervalometer with MENU or PLAY
-	if (event != &fake_event && event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+	if (!IS_FAKE(event) && event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
 		intervalometer_stop();
 		
 	
@@ -619,26 +617,9 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
-// if called from handle_buttons, only last fake button will be executed
-// if called from some other task, the function waits until the previous fake button was handled
 void fake_simple_button(int bgmt_code)
 {
-	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
-	fake_event.type = 0,
-	fake_event.param = bgmt_code, 
-	fake_event.obj = 0,
-	fake_event.arg = 0,
-	msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
-}
-
-void fake_gui_event(int type, int param, int obj, int arg)
-{
-	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
-	fake_event.type = type,
-	fake_event.param = param,
-	fake_event.obj = (void*)obj,
-	fake_event.arg = arg,
-	msg_queue_post(gui_main_struct.msg_queue_550d, &fake_event, 0, 0);
+	GUI_Control(bgmt_code, 0, 0, 0);
 }
 
 void send_event_to_IDLEHandler(int event)
@@ -648,7 +629,6 @@ void send_event_to_IDLEHandler(int event)
 
 static void gui_main_task_60d()
 {
-	fake_sem = create_named_semaphore("fake_sem", 1);
 	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
@@ -664,14 +644,11 @@ static void gui_main_task_60d()
 		
 		if (!magic_is_off())
 		{
-			// if fake_simple_button is called from handle_buttons, it will not wait; it will just overwrite last event (avoids crashing)
-			handle_buttons_active = 1;
-			int should_handle = handle_buttons(event); // ML button/event handler
-			handle_buttons_active = 0;
-			
-			if (should_handle == 0) // ML event handler said we should not pass this event to Canon handler
-				goto bottom;
+			if (handle_buttons(event) == 0) // ML button/event handler
+				continue;
 		}
+
+		if (IS_FAKE(event)) event->arg = 0;
 
 		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
@@ -680,12 +657,6 @@ static void gui_main_task_60d()
 			void(*f)(struct event *) = funcs[index];
 			f(event);
 		)
-
-bottom:
-		if (event == &fake_event) 
-		{
-			give_semaphore(fake_sem);
-		}
 	}
 } 
 

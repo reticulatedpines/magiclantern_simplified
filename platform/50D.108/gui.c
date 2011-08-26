@@ -27,6 +27,9 @@
 #include "bmp.h"
 #include <property.h>
 
+#define FAKE_BTN -123456
+#define IS_FAKE(event) (event->arg == FAKE_BTN)
+
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
 int set_pressed = 0;
@@ -38,10 +41,6 @@ int halfshutter_pressed = 0;
 int get_halfshutter_pressed() { return FOCUS_CONFIRMATION_AF_PRESSED; }
 
 struct semaphore * gui_sem;
-
-int handle_buttons_active = 0;
-struct event fake_event;
-struct semaphore * fake_sem;
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
@@ -191,19 +190,13 @@ static int handle_buttons(struct event * event)
 
 void fake_simple_button(int bgmt_code)
 {
-	//~ if (!handle_buttons_active) take_semaphore(fake_sem, 0);
-	fake_event.type = 0,
-	fake_event.param = bgmt_code, 
-	fake_event.obj = 0,
-	fake_event.arg = 0,
-	msg_queue_post(gui_main_struct.msg_queue, &fake_event, 0, 0);
+	GUI_Control(bgmt_code, 0, 0, 0);
 }
 
 // Replaces the gui_main_task
 static void
 my_gui_main_task( void )
 {
-	fake_sem = create_named_semaphore("fake_sem", 1);
 	bmp_sem_init();
 
 	gui_init_end();
@@ -223,14 +216,11 @@ my_gui_main_task( void )
 
 		if (!magic_is_off())
 		{
-			// if fake_simple_button is called from handle_buttons, it will not wait; it will just overwrite last event (avoids crashing)
-			handle_buttons_active = 1;
-			int should_handle = handle_buttons(event); // ML button/event handler
-			handle_buttons_active = 0;
-			
-			if (should_handle == 0) // ML event handler said we should not pass this event to Canon handler
+			if (handle_buttons(event) == 0) // ML button/event handler
 				goto event_loop_bottom;
 		}
+
+		if (IS_FAKE(event)) event->arg = 0;
 
 GMT_LOCK( // sync with other Canon calls => prevents some race conditions
 		switch( event->type )
@@ -336,12 +326,6 @@ GMT_LOCK( // sync with other Canon calls => prevents some race conditions
 )
 
 event_loop_bottom:
-
-		if (event == &fake_event)
-		{
-			give_semaphore(fake_sem); // a fake event was handled; next, please :)
-		}
-
 		gui_main_struct.counter--;
 		continue;
 

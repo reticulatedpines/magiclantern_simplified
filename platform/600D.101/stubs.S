@@ -149,9 +149,10 @@ NSTUB( 0xff021f78, gui_init_end )     // EndGuiInit
 NSTUB( 0x4588, gui_timer_struct )     // in GUI_Control_Post  
 NSTUB( 0x1C38, gui_main_struct )      //  in gui_main_task
 NSTUB( 0xff1f5a54, msg_queue_receive )
-NSTUB( FF0AA5A4, gui_local_post )
+NSTUB( 0xFF0AA5A4, gui_local_post )
 NSTUB( 0xFF0A9E34, gui_change_mode )   // GUI_ChangeMode_Post
-NSTUB( FF0AAB3C, gui_other_post )
+NSTUB( 0xFF0AAB3C, gui_other_post )
+NSTUB( 0xff021928, GUI_Control )
 
 NSTUB( 0xff56dccc, gui_main_task_functbl ) // 7 functions
 

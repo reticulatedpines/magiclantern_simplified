@@ -185,6 +185,8 @@ NSTUB( 0xFF0A7F84, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF0A8C88, gui_other_post )     // just after gui_local_post. found only by Alex tool
 /* 0xFF0248C8 GUI_CHANGE_MODE */
 
+NSTUB( 0xff024500, GUI_Control )
+
 NSTUB( 0xFF53D82C, gui_main_task_functbl )
 
 NSTUB( 0xff04efa0, mvrSetBitRate )
