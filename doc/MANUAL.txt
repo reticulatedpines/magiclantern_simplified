@@ -526,8 +526,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   Notes:
   
-  * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
-  * It does **not** work in certain video modes (e.g. 720p) when not recording.
+  * Magic Zoom does **not** work in video modes other than 1080p (Full HD).
+  * On HDMI displays, it only works well in VGA mode. It does not work on SD (RCA) displays.
   * `Zebras`_, `focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will hide the zoom overlay.
 

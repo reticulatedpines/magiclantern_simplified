@@ -77,11 +77,13 @@ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross,
 int get_zoom_overlay_mode() 
 { 
 	if (!get_global_draw()) return 0;
+	if (video_mode_resolution != 0) return 0;
 	return zoom_overlay_mode;
 }
 int get_zoom_overlay_z() 
 { 
 	if (!get_global_draw()) return 0;
+	if (video_mode_resolution != 0) return 0;
 	return zoom_overlay_mode == 1 || zoom_overlay_mode == 2;
 }
 
@@ -2079,7 +2081,11 @@ zoom_overlay_display(
 			zoom_overlay_pos == 3 ? "SE" :
 			zoom_overlay_pos == 4 ? "SW" : "err"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode), 0);
+
+	if (zoom_overlay_mode && video_mode_resolution != 0)
+		menu_draw_icon(x, y, MNI_WARNING, 0);
+	else
+		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode), 0);
 }
 
 static void
@@ -3268,6 +3274,7 @@ void redraw()
 		BMP_LOCK( GMT_LOCK( RedrawDisplay(); ) )
 		afframe_set_dirty();
 		crop_set_dirty(20);
+		menu_set_dirty();
 	}
 }
 
