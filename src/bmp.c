@@ -218,6 +218,8 @@ bmp_puts_w(
 }
 
 
+static char bmp_printf_buf[1024];
+
 void
 bmp_printf(
 	unsigned		fontspec,
@@ -228,13 +230,12 @@ bmp_printf(
 )
 {
 	va_list			ap;
-	char			buf[ 1024 ];
 
 	va_start( ap, fmt );
-	vsnprintf( buf, sizeof(buf), fmt, ap );
+	vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
 	va_end( ap );
 
-	bmp_puts( fontspec, &x, &y, buf );
+	bmp_puts( fontspec, &x, &y, bmp_printf_buf );
 }
 
 void
