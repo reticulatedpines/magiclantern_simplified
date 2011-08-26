@@ -150,6 +150,7 @@ NSTUB( 0xFF1D2B70, msg_queue_receive )
 NSTUB( 0xFF0952F0, gui_local_post )
 NSTUB( 0xFF094CF4, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF095728, gui_other_post )
+NSTUB( 0xFF020350, GUI_Control )
 
 NSTUB( 0xFF453E14, gui_main_task_functbl )
 
