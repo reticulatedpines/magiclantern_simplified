@@ -13,6 +13,6 @@ Features
 * Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation; integration with bracketing.
 * Astro- and night photography: `bulb timer`_ for very long exposures (up to 8h).
 * Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, `clock`_.
-* For strobists: `flash exposure compensation`_ from -10 to +3 EV.
+* For strobists: `flash exposure compensation`_, range up to -5 to +3 EV (depends on the camera).
 * Power management: `Turn off display`_ in LiveView mode; quickly adjust `LCD backlight level`_.
 * Fun stuff: `slit-scan pictures`_.

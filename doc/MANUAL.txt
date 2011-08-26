@@ -1016,9 +1016,11 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 .. _flash exposure compensation:
 .. _Flash AEcomp:
 
-**Flash AEcomp: -10..3 EV**
+**Flash AEcomp: up to -5..+3 EV**
 
   Flash exposure compensation.
+  
+  Allowed range depends on the camera model.
 
 Focus
 ~~~~~

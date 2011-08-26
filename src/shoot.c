@@ -1836,9 +1836,9 @@ static void
 flash_ae_toggle( int sign )
 {
 	int ae = (int8_t)flash_ae;
-	int newae = ae + sign * (ABS(ae) <= 16 ? 4 : 8);
-	if (newae > 24) newae = -80;
-	if (newae < -80) newae = 24;
+	int newae = ae + sign * (ABS(ae + sign) <= 24 ? 4 : 8);
+	if (newae > FLASH_MAX_EV * 8) newae = FLASH_MIN_EV;
+	if (newae < FLASH_MIN_EV * 8) newae = FLASH_MAX_EV;
 	ae &= 0xFF;
 	prop_request_change(PROP_STROBO_AECOMP, &newae, 4);
 }
@@ -2610,6 +2610,7 @@ struct menu_entry expo_menus[] = {
 		.select_reverse		= saturation_toggle_reverse,
 		.help = "Adjust saturation in current picture style."
 	},
+#ifndef CONFIG_60D
 	{
 		.name = "Flash AEcomp",
 		.display	= flash_ae_display,
@@ -2617,6 +2618,7 @@ struct menu_entry expo_menus[] = {
 		.select_reverse		= flash_ae_toggle_reverse,
 		.help = "Flash exposure compensation, from -10EV to +3EV."
 	},
+#endif
 	/*{
 		.display	= sharpness_display,
 		.select		= sharpness_toggle_forward,

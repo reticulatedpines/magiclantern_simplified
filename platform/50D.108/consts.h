@@ -176,3 +176,6 @@
 #define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
 #define MOVIE_MODE_REMAP_X_STR "A-DEP"
 #define MOVIE_MODE_REMAP_Y_STR "CA"
+
+#define FLASH_MAX_EV (3*8)
+#define FLASH_MIN_EV (-10*8) // not sure if it actually works
