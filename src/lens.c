@@ -378,11 +378,16 @@ void draw_ml_bottombar()
 					  x_origin + 250  , 
 					  y_origin, 
 					  "%d   ", info->iso) ;
-		else
+		else if (info->iso_auto)
 			bmp_printf( text_font, 
 					  x_origin + 250  , 
 					  y_origin, 
 					  "A%d   ", info->iso_auto);
+		else
+			bmp_printf( text_font, 
+					  x_origin + 250  , 
+					  y_origin, 
+					  "Auto ");
 
       if (ISO_ADJUSTMENT_ACTIVE) return;
       
