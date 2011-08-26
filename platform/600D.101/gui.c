@@ -356,6 +356,19 @@ static int handle_buttons(struct event * event)
 		}
  	}
 
+	// move magic zoom around when recording
+	if (recording && get_zoom_overlay_mode())
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+			move_lv_afframe(-200, 0);
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+			move_lv_afframe(200, 0);
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+			move_lv_afframe(0, -200);
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+			move_lv_afframe(0, 200);
+	}
+
 	// shortcut for 3x zoom mode
 	extern int digital_zoom_shortcut;
 	if (digital_zoom_shortcut && lv && shooting_mode == SHOOTMODE_MOVIE && !recording && disp_pressed && event->type == 0)
