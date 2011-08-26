@@ -209,11 +209,20 @@ void Beep()
 
 void run_test()
 {
-	msleep(2000);
-	call("StartPlayWaveData");
-	msleep(100);
-	call("StopPlayWaveData");
-	msleep(5000);
+	gui_stop_menu();
+	msleep(1000);
+	int i;
+	fake_simple_button(BGMT_LV);
+	msleep(1000);
+	for (i = 0; i < 100; i++)
+	{
+		fake_simple_button(BGMT_PLAY);
+		msleep(100);
+		card_led_on();
+		SW1(1,100);
+		SW1(0,100);
+		card_led_off();
+	}
 }
 
 static void xx_test(void* priv)
@@ -477,6 +486,7 @@ static unsigned dbg_last_changed_propindex = 0;
 #endif
 int screenshot_sec = 0;
 
+PROP_INT(PROP_ICU_UILOCK, uilock);
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -505,7 +515,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
 		//~ extern int disp_pressed;
-		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", disp_pressed);
+		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", uilock);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
