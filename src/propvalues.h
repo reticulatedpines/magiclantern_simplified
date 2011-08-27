@@ -37,6 +37,7 @@ extern int backlight_level;
 extern int video_mode_crop;
 extern int video_mode_fps;
 extern int video_mode_resolution; // 0 if full hd, 1 if 720p, 2 if 480p
+extern int beep_enabled;
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 

@@ -244,16 +244,17 @@ movtweak_task( void* unused )
 	{
 		msleep(50);
 		
-		if (movie_restart)
+		static int recording_prev = 0;
+		if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
 		{
-			static int recording_prev = 0;
-			if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
+			if (beep_enabled) Beep();
+			if (movie_restart)
 			{
 				msleep(1000);
 				movie_start();
 			}
-			recording_prev = recording;
 		}
+		recording_prev = recording;
 		
 		do_movie_mode_remap();
 		

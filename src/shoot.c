@@ -32,8 +32,6 @@
 #include "lens.h"
 #include "gui.h"
 
-PROP_INT(PROP_BEEP, beep_enabled);
-
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
@@ -2629,15 +2627,13 @@ struct menu_entry expo_menus[] = {
 		.select_reverse		= saturation_toggle_reverse,
 		.help = "Adjust saturation in current picture style."
 	},
-#ifndef CONFIG_60D
 	{
 		.name = "Flash AEcomp",
 		.display	= flash_ae_display,
 		.select		= flash_ae_toggle_forward,
 		.select_reverse		= flash_ae_toggle_reverse,
-		.help = "Flash exposure compensation, from -10EV to +3EV."
+		.help = "Flash exposure compensation, from -5EV to +3EV."
 	},
-#endif
 	/*{
 		.display	= sharpness_display,
 		.select		= sharpness_toggle_forward,
