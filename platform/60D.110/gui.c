@@ -97,9 +97,12 @@ extern void* gui_main_task_functbl;
 static int handle_buttons(struct event * event)
 {
 	extern int ml_started;
-	if (event->type == 0 && event->param == BGMT_LV && !ml_started)
+	if (!ml_started)
 	{
-		return 0; // discard REC button if it's pressed too early
+		if (event->type == 0 && event->param == BGMT_LV)
+			return 0; // discard REC button if it's pressed too early
+		else
+			return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
 	if (event->type == 0 && event->param != 0x5a)

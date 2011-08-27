@@ -73,6 +73,12 @@ extern struct gui_timer_struct gui_timer_struct;
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
+	extern int ml_started;
+	if (!ml_started)
+	{
+		return 1; // don't alter any other buttons/events until ML is fully initialized
+	}
+
 	// Change the picture style button to show our menu
 	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
 	{
