@@ -217,22 +217,14 @@ enable_liveview_print(
 
 void force_liveview()
 {
-	if (shooting_mode == SHOOTMODE_MOVIE)
-	{
-		set_shooting_mode(SHOOTMODE_NIGHT); // you can run, but you cannot hide :)
-		call( "FA_StartLiveView" );
-		set_shooting_mode(SHOOTMODE_MOVIE);
-	}
-	else
-	{
-		call( "FA_StartLiveView" );
-	}
-	while (gui_state != GUISTATE_IDLE) msleep(1000);
+	fake_simple_button(BGMT_LV);
+	msleep(1000);
 }
 
 static void
 movtweak_task( void* unused )
 {
+	msleep(500);
 	if (!lv && enable_liveview && shooting_mode == SHOOTMODE_MOVIE
 		&& (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
 	{
