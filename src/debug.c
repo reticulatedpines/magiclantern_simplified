@@ -211,18 +211,7 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(1000);
-	int i;
-	fake_simple_button(BGMT_LV);
-	msleep(1000);
-	for (i = 0; i < 100; i++)
-	{
-		fake_simple_button(BGMT_PLAY);
-		msleep(100);
-		card_led_on();
-		SW1(1,100);
-		SW1(0,100);
-		card_led_off();
-	}
+	call( "DisableMainFirm" );
 }
 
 static void xx_test(void* priv)
