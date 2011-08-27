@@ -810,16 +810,24 @@ silent_pic_ensure_movie_mode()
 	return 0;
 }
 
+void stop_recording_and_delete_movie()
+{
+	if (recording)
+	{
+		movie_end();
+		char name[100];
+		snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
+		FIO_RemoveFile(name);
+		snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
+		FIO_RemoveFile(name);
+	}
+}
+
 static void
 silent_pic_stop_dummy_movie()
 { 
 	#ifndef CONFIG_600D
-	movie_end();
-	char name[100];
-	snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
-	FIO_RemoveFile(name);
-	snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
-	FIO_RemoveFile(name);
+	stop_recording_and_delete_movie();
 	#endif
 }
 
