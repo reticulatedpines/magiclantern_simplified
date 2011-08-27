@@ -77,6 +77,8 @@ Step 1. Preparing your camera
 
 * Make sure you have a `SD card reader <http://amzn.to/oHENg3>`_; you won't be able to copy ML files via USB cable.
 
+.. _these links:
+
 * If your firmware version is not the same as the one required by Magic Lantern, upgrade:
 
   - for **Canon 550D / T2i / Kiss X4**: upgrade to firmware `1.0.9 <http://web.canon.jp/imaging/eosd/firm-e/eosdigital7/firmware.html>`_
@@ -154,6 +156,7 @@ Uninstalling ML from the camera
 Troubleshooting
 ===============
 
+* If the card LED blinks continuously after running Firmware Upgrade, it's because Magic Lantern did not recognize the firmware version. To fix it, install the official Canon firmware upgrade from `these links`_, even if you already have the correct version number. 
 * Check if all doors are closed. The camera will not boot if any of the SD card or battery doors are open !
 * If the camera does not boot (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot '''without''' Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
 * **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 seconds, switching off is not enough !!!**

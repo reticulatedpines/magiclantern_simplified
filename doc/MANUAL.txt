@@ -889,6 +889,7 @@ Functions for stills shooting (some of them work for movies, too).
 
 **Bulb Timer: 1s...8h**
 
+  [[Image:BulbTimer-Intervalometer-60x60s-M31-Brent.jpg|200px|right|link=http://www.flickr.com/photos/74588953@N00/6082369585/in/pool-1676739@N21/]]
   [[Image:LongExp.jpg|200px|right|link=http://www.flickr.com/photos/ajaykrishnan/5900337137/]]
 
   Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
