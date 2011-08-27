@@ -27,10 +27,14 @@ ML_OBJS-y = \
 	font-large.o \
 	font-med.o \
 	font-small.o \
+	property.o \
+	propvalues.o \
 
 #include generic rules and definitions
-#TOP_DIR defined in upper Makefile
-include ../../Makefile.inc
+
+include  $(TOP_DIR)/Makefile.inc
+
+CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
