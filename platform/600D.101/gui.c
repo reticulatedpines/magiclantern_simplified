@@ -103,16 +103,18 @@ extern void* gui_main_task_functbl;
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
+	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
+
 	extern int ml_started;
 	if (!ml_started)
 	{
-		if (event->type == 0 && event->param == BGMT_LV)
+		if (event->param == BGMT_LV)
 			return 0; // discard REC button if it's pressed too early
 		else
 			return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
-	if (event->type == 0 && event->param != 0x5a)
+	if (event->param != 0x5a)
  	{
 		idle_wakeup_reset_counters();
  	}
@@ -121,11 +123,11 @@ static int handle_buttons(struct event * event)
 	extern int af_patterns;
 	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
 	{
-		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+		if (event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
+		if (event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
+		if (event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
+		if (event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
+		if (event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
 	}
 
 	static int kev = 0;
@@ -134,22 +136,22 @@ static int handle_buttons(struct event * event)
 	
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
-		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+		if (event->param == BGMT_PRESS_UP)
 		{
 			kelvin_toggle(1);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+		if (event->param == BGMT_PRESS_DOWN)
 		{
 			kelvin_toggle(-1);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+		if (event->param == BGMT_PRESS_LEFT)
 		{
 			iso_toggle(-1);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+		if (event->param == BGMT_PRESS_RIGHT)
 		{
 			iso_toggle(1);
 			return 0;
@@ -157,13 +159,13 @@ static int handle_buttons(struct event * event)
 	}
 	
     // enable the Q button when ML menu is active
-	if (event->type == 0 && (event->param == BGMT_Q || event->param == BGMT_Q_ALT) && gui_menu_shown())
+	if ((event->param == BGMT_Q || event->param == BGMT_Q_ALT) && gui_menu_shown())
 	{
         menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
         return 0;
     }
 	
-	if (event->type == 0 && event->param == BGMT_TRASH)
+	if (event->param == BGMT_TRASH)
 	{
 		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
 		{
@@ -179,7 +181,7 @@ static int handle_buttons(struct event * event)
 	
 	if (get_draw_event())
 	{
-		if (event->type == 0)
+		if (1)
 		{
 			kev++;
 			bmp_printf(FONT_SMALL, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
@@ -202,7 +204,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
-	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
+	if (gui_menu_shown()) // some buttons hard to detect from main menu loop
 	{
 		if (lv && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 		{
@@ -219,11 +221,11 @@ static int handle_buttons(struct event * event)
 	}
 	if (gui_menu_shown())
 	{
-		if (event->type == 0 && event->param == 0x5a) return 0;
+		if (event->param == 0x5a) return 0;
 	}
 	
 	/*
-	if (get_lcd_sensor_shortcuts() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
+	if (get_lcd_sensor_shortcuts() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys
 		if (!gui_menu_shown())
 		{
@@ -253,7 +255,7 @@ static int handle_buttons(struct event * event)
 		}
 	}*/
 
-	if (event->type == 0)
+	if (1)
 	{
 		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
 		{
@@ -281,7 +283,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
-	if (event->type == 0)
+	if (1)
 	{
 		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
 		if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
@@ -289,14 +291,14 @@ static int handle_buttons(struct event * event)
 	
 	// force a SET press in photo mode when you adjust the settings and press half-shutter
 	/*
-	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv && !gui_menu_shown())
+	if (set_on_halfshutter && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv && !gui_menu_shown())
 	{
 		fake_simple_button(BGMT_PRESS_SET);
 		fake_simple_button(BGMT_UNPRESS_SET);
 	}*/
 	
 	// for faster zoom in in Play mode
-	if (event->type == 0)
+	if (1)
 	{
 		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
 		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
@@ -306,7 +308,7 @@ static int handle_buttons(struct event * event)
 
 	// override DISP button in LiveView mode
 	
-	/*if (event->type == 0 && event->param == BGMT_DISP && lv && zebra_should_run())
+	/*if (event->param == BGMT_DISP && lv && zebra_should_run())
 	{
 		if (lv_disp_mode == 0)
 			return toggle_disp_mode();
@@ -314,40 +316,40 @@ static int handle_buttons(struct event * event)
 			schedule_disp_mode_change();
 	}*/
 
-	if (lv && !gui_menu_shown() && event->type == 0 && event->param == BGMT_INFO)
+	if (lv && !gui_menu_shown() && event->param == BGMT_INFO)
 	{
 		redraw();
 	}
 
 	// MENU while recording => force a redraw
-	if (recording && event->type == 0 && event->param == BGMT_MENU)
+	if (recording && event->param == BGMT_MENU)
 	{
 		redraw();
 	}
 	
 	// stop intervalometer with MENU or PLAY
-	if (!IS_FAKE(event) && event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+	if (!IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
 		intervalometer_stop();
 		
 	
 	// zoom overlay
 	
-	if (get_zoom_overlay_mode() && recording == 2 && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_mode() && recording == 2 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
 	}
 
-	if (lv && get_zoom_overlay() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv && get_zoom_overlay() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
 	}
 	
-	if (event->type == 0 && event->param == BGMT_PRESS_DISP) disp_pressed = 1;
-	if (event->type == 0 && event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
+	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
+	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
 
-	if (lv && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv && get_zoom_overlay_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
  	{
 		// magic zoom toggled by zoom in
 		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed() && !disp_pressed)
@@ -360,19 +362,19 @@ static int handle_buttons(struct event * event)
 	// move magic zoom around when recording
 	if (recording && get_zoom_overlay_mode())
 	{
-		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+		if (event->param == BGMT_PRESS_LEFT)
 			move_lv_afframe(-200, 0);
-		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+		if (event->param == BGMT_PRESS_RIGHT)
 			move_lv_afframe(200, 0);
-		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+		if (event->param == BGMT_PRESS_UP)
 			move_lv_afframe(0, -200);
-		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+		if (event->param == BGMT_PRESS_DOWN)
 			move_lv_afframe(0, 200);
 	}
 
 	// shortcut for 3x zoom mode
 	extern int digital_zoom_shortcut;
-	if (digital_zoom_shortcut && lv && shooting_mode == SHOOTMODE_MOVIE && !recording && disp_pressed && event->type == 0)
+	if (digital_zoom_shortcut && lv && shooting_mode == SHOOTMODE_MOVIE && !recording && disp_pressed)
 	{
 		if (!video_mode_crop)
 		{
@@ -401,7 +403,7 @@ static int handle_buttons(struct event * event)
 	}
 
 	/*
-	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
+	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{
 		zoom_overlay_toggle();
 		return 0;
@@ -410,13 +412,13 @@ static int handle_buttons(struct event * event)
 	/*
 	if (recording && get_zoom_overlay_mode())
 	{
-		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+		if (event->param == BGMT_PRESS_LEFT)
 			move_lv_afframe(-200, 0);
-		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+		if (event->param == BGMT_PRESS_RIGHT)
 			move_lv_afframe(200, 0);
-		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+		if (event->param == BGMT_PRESS_UP)
 			move_lv_afframe(0, -200);
-		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+		if (event->param == BGMT_PRESS_DOWN)
 			move_lv_afframe(0, 200);
 	}*/
 
@@ -468,7 +470,7 @@ static int handle_buttons(struct event * event)
 	*/
 	
 	// quick access to some menu items
-	if (event->type == 0 && event->param == BGMT_Q_ALT && !gui_menu_shown())
+	if (event->param == BGMT_Q_ALT && !gui_menu_shown())
 	{
 		if (ISO_ADJUSTMENT_ACTIVE)
 		{
@@ -561,7 +563,7 @@ static int handle_buttons(struct event * event)
 	}*/
 	
 	// movie mode shortcut
-	if (event->type == 0 && event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
+	if (event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
 	{
 		if (shooting_mode != SHOOTMODE_MOVIE)
 		{
@@ -572,7 +574,7 @@ static int handle_buttons(struct event * event)
 	
 	// enable LiveV stuff in Play mode
     
-	if (event->type == 0 && PLAY_MODE)
+	if (PLAY_MODE)
 	{
 		if (event->param == BGMT_PRESS_DISP)
 		{
@@ -586,7 +588,7 @@ static int handle_buttons(struct event * event)
 	extern int transparent_overlay;
 	// move transparent overlay
 
-	if (transparent_overlay && event->type == 0 && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
+	if (transparent_overlay && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
 	{
 		schedule_transparent_overlay();
 		return 0;
@@ -594,27 +596,27 @@ static int handle_buttons(struct event * event)
 
 	if (transparent_overlay && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
 	{
-		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+		if (event->param == BGMT_PRESS_UP)
 		{
 			transparent_overlay_offset(0, -40);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+		if (event->param == BGMT_PRESS_DOWN)
 		{
 			transparent_overlay_offset(0, 40);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+		if (event->param == BGMT_PRESS_LEFT)
 		{
 			transparent_overlay_offset(-40, 0);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+		if (event->param == BGMT_PRESS_RIGHT)
 		{
 			transparent_overlay_offset(40, 0);
 			return 0;
 		}
-		if (event->type == 0 && event->param == BGMT_PRESS_SET)
+		if (event->param == BGMT_PRESS_SET)
 		{
 			transparent_overlay_offset_clear();
 			transparent_overlay_offset(0, 0);
@@ -630,11 +632,11 @@ static int handle_buttons(struct event * event)
 
 	// 422 play
 
-	if (event->type == 0 && event->param == BGMT_PRESS_SET) set_pressed = 1;
-	if (event->type == 0 && event->param == BGMT_UNPRESS_SET) set_pressed = 0;
-	if (event->type == 0 && event->param == BGMT_PLAY) set_pressed = 0;
+	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->param == BGMT_PLAY) set_pressed = 0;
 
-	if ( PLAY_MODE && event->type == 0 && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
+	if ( PLAY_MODE && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
 	{
 		play_next_422();
 		return 0;
@@ -663,7 +665,7 @@ static void gui_main_task_60d()
 		if (event == NULL) continue;
 		index = event->type;
 		
-		if (!magic_is_off())
+		if (!magic_is_off() && event->type == 0)
 		{
 			if (handle_buttons(event) == 0) // ML button/event handler
 				continue;

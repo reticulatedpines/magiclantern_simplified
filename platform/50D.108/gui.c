@@ -73,6 +73,8 @@ extern struct gui_timer_struct gui_timer_struct;
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
+	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
+	
 	extern int ml_started;
 	if (!ml_started)
 	{
@@ -90,16 +92,16 @@ static int handle_buttons(struct event * event)
 	extern int af_patterns;
 	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
 	{
-		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
-		if (event->type == 0 && event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+		if (event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
+		if (event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
+		if (event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
+		if (event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
+		if (event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
 	}
 
 	if (get_draw_event())
 	{
-		if (event->type == 0)
+		if (1)
 		{
 			static int kev = 0;
 			kev++;
@@ -123,7 +125,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 
-	if (event->type == 0)
+	if (1)
 	{
 		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
 		{
@@ -148,14 +150,14 @@ static int handle_buttons(struct event * event)
 		}
 	}
 
-	if (event->type == 0)
+	if (1)
 	{
 		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
 		if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
 	}
 
 	// for faster zoom in in Play mode
-	if (event->type == 0)
+	if (1)
 	{
 		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
 		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
@@ -164,11 +166,11 @@ static int handle_buttons(struct event * event)
  	}
 
 	// stop intervalometer with MENU or PLAY
-	if (event != &fake_event && event->type == 0 && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+	if (event != &fake_event && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
 		intervalometer_stop();
 
 	// enable LiveV stuff in Play mode
-	if (event->type == 0 && PLAY_MODE) 
+	if (PLAY_MODE) 
 	{
 		if (event->param == BGMT_FUNC)
 		{
@@ -181,11 +183,11 @@ static int handle_buttons(struct event * event)
 
 	// 422 play
 
-	if (event->type == 0 && event->param == BGMT_PRESS_SET) set_pressed = 1;
-	if (event->type == 0 && event->param == BGMT_UNPRESS_UDLR) set_pressed = 0;
-	if (event->type == 0 && event->param == BGMT_PLAY) set_pressed = 0;
+	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->param == BGMT_UNPRESS_UDLR) set_pressed = 0;
+	if (event->param == BGMT_PLAY) set_pressed = 0;
 
-	if ( PLAY_MODE && event->type == 0 && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
+	if ( PLAY_MODE && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
 	{
 		play_next_422();
 		return 0;
@@ -220,7 +222,7 @@ my_gui_main_task( void )
 		if( !event )
 			goto event_loop_bottom;
 
-		if (!magic_is_off())
+		if (!magic_is_off() && event->type == 0)
 		{
 			if (handle_buttons(event) == 0) // ML button/event handler
 				goto event_loop_bottom;
