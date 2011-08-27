@@ -262,16 +262,55 @@ int magic_is_off()
 	return magic_off; 
 }
 
-int _hold_your_horses = 1;
+int _hold_your_horses = 1; // 0 after config is read
+int ml_started = 0; // 1 after ML is fully loaded
 
-// only after this task finished, the others are started
-void init_task_read_config()
+// Only after this task finished, the others are started
+// From here we can do file I/O and maybe other complex stuff
+void my_big_init_task()
 {
-	//~ show_logo();
 	display_clock();
 	config_parse_file( CARD_DRIVE "magic.cfg" );
 	debug_init_stuff();
-	_hold_your_horses = 0;
+
+	_hold_your_horses = 0; // config read, other overriden tasks may start doing their job
+
+	// Create all of our auto-create tasks
+	extern struct task_create _tasks_start[];
+	extern struct task_create _tasks_end[];
+	struct task_create * task = _tasks_start;
+
+	int ml_tasks = 0;
+	for( ; task < _tasks_end ; task++ )
+	{
+		//~ DebugMsg( DM_MAGIC, 3,
+			//~ "Creating task %s(%d) pri=%02x flags=%08x",
+			//~ task->name,
+			//~ task->arg,
+			//~ task->priority,
+			//~ task->flags
+		//~ );
+
+		task_create(
+			task->name,
+			task->priority,
+			task->flags,
+			task->entry,
+			task->arg
+		);
+		ml_tasks++;
+	}
+	//~ bmp_printf( FONT_MED, 0, 85,
+		//~ "Magic Lantern is up and running... %d tasks started.",
+		//~ ml_tasks
+	//~ );
+	msleep(500);
+
+	#ifndef CONFIG_50D
+	ui_lock(UILOCK_NONE);
+	#endif
+	ml_started = 1;
+	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 }
 
 void hold_your_horses(int showlogo)
@@ -281,8 +320,6 @@ void hold_your_horses(int showlogo)
 		msleep( 100 );
 	}
 }
-
-int ml_started = 0;
 
 /** Initial task setup.
  *
@@ -336,9 +373,11 @@ my_init_task(void)
 	msleep( 1500 );
 
 	magic_off = FOCUS_CONFIRMATION_AF_PRESSED ? 1 : 0;
+
 	if (magic_off)
 	{
 		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
+		extern char additional_version[];
 		additional_version[0] = '-';
 		additional_version[1] = 'm';
 		additional_version[2] = 'l';
@@ -354,62 +393,20 @@ my_init_task(void)
 	ui_lock(UILOCK_EVERYTHING);
 	#endif
 	
-	msleep( 1000 );
+	msleep( 500 );
 
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
+	msleep(200);
 
-/*	bmp_printf( FONT_MED, 0, 40,
-		"Magic Lantern v.%s (%s)\n"
-		"Built on %s by %s\n",
-		build_version,
-		build_id,
-		build_date,
-		build_user
-	);*/
-	
-	// this is better in a separate task (not sure why, but causes instability if called right from here)
-	// let's try not to open files from here
-	msleep(100);
-	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
-	hold_your_horses(0); 
-
-	// Create all of our auto-create tasks
-	extern struct task_create _tasks_start[];
-	extern struct task_create _tasks_end[];
-	struct task_create * task = _tasks_start;
-
-	int ml_tasks = 0;
-	for( ; task < _tasks_end ; task++ )
-	{
-		//~ DebugMsg( DM_MAGIC, 3,
-			//~ "Creating task %s(%d) pri=%02x flags=%08x",
-			//~ task->name,
-			//~ task->arg,
-			//~ task->priority,
-			//~ task->flags
-		//~ );
-
-		task_create(
-			task->name,
-			task->priority,
-			task->flags,
-			task->entry,
-			task->arg
-		);
-		ml_tasks++;
-	}
-	//~ bmp_printf( FONT_MED, 0, 85,
-		//~ "Magic Lantern is up and running... %d tasks started.",
-		//~ ml_tasks
-	//~ );
-	msleep(500);
+	// It's better to start a new task which does the init
+	// Guess: stack overflow in this task?
+	task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
 
 	#ifndef CONFIG_50D
-	ui_lock(UILOCK_NONE);
+	//~ ui_lock(UILOCK_NONE); // if you don't start my_big_init_task, uncomment this
 	#endif
-	ml_started = 1;
-	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
+
 #endif // !CONFIG_EARLY_PORT
 }
