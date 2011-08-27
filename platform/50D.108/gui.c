@@ -228,7 +228,11 @@ my_gui_main_task( void )
 
 		if (IS_FAKE(event)) event->arg = 0;
 
-GMT_LOCK( // sync with other Canon calls => prevents some race conditions
+// sync with other Canon calls => prevents some race conditions
+// weak version will timeout after 300ms
+// so if there's some hidden bug, it will not freeze at least
+// not a good programming practice... but works for an undocumented system
+GMT_LOCK_WEAK(
 		switch( event->type )
 		{
 		case 0:
