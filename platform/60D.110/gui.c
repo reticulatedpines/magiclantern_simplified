@@ -671,7 +671,7 @@ static void gui_main_task_60d()
 
 // 5D2 has a different version for gui_main_task
 
-//~ TASK_OVERRIDE( gui_main_task, gui_main_task_60d );
+TASK_OVERRIDE( gui_main_task, gui_main_task_60d );
 
 /*
 
