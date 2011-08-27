@@ -855,9 +855,9 @@ menu_init( void )
 
 	menu_find_by_name( "Audio" );
 	menu_find_by_name( "LiveV" );
+	menu_find_by_name( "Expo" );
 	menu_find_by_name( "Movie" );
 	menu_find_by_name( "Shoot" );
-	menu_find_by_name( "Expo" );
 	//~ menu_find_by_name( "Brack" );
 	menu_find_by_name( "Focus" );
 	//~ menu_find_by_name( "LUA" );
