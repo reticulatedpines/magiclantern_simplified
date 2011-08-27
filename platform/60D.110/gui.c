@@ -30,7 +30,7 @@
 #include <consts.h>
 #include <lens.h>
 
-#define FAKE_BTN -123456
+#define FAKE_BTN 123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
 CONFIG_INT("swap.menu", swap_menu, 0);
@@ -622,7 +622,7 @@ static int handle_buttons(struct event * event)
 
 void fake_simple_button(int bgmt_code)
 {
-	GUI_Control(bgmt_code, 0, 0, 0);
+	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
 void send_event_to_IDLEHandler(int event)

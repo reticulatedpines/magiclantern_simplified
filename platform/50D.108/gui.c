@@ -196,7 +196,7 @@ static int handle_buttons(struct event * event)
 
 void fake_simple_button(int bgmt_code)
 {
-	GUI_Control(bgmt_code, 0, 0, 0);
+	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
 // Replaces the gui_main_task
