@@ -90,7 +90,7 @@ PROP_HANDLER(PROP_GUI_STATE)
 }
 
 int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
-int timer_values_ms[] = {100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 30000, 50000, 60000, 120000, 180000, 300000, 600000, 900000, 1800000};
+int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -299,19 +299,21 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			SILENTPIC_NC
 		);
 		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
-	}
+	}*/
 	else if (silent_pic_mode == 3)
 	{
-		int t = timer_values_ms[mod(silent_pic_longexp_time_index, COUNT(timer_values_ms))];
+		int t = timer_values_longexp[mod(silent_pic_longexp_time_index, COUNT(timer_values_longexp))];
+		unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
 		bmp_printf(
-			selected ? MENU_FONT_SEL : MENU_FONT,
+			FONT(fnt, COLOR_RED, FONT_BG(fnt)),
 			x, y,
-			"Silent Pic LongX: %s%ds,%s",
-			t < 1000 ? "0." : "",
-			t < 1000 ? t / 100 : t / 1000,
-			silent_pic_longexp_method ? "MAX" : "AVG"
+			"Silent Pic LongX: %ds",
+			t
+			//~ silent_pic_longexp_method == 0 ? "AVG" :
+			//~ silent_pic_longexp_method == 1 ? "MAX" :
+			//~ silent_pic_longexp_method == 2 ? "SUM" : "err"
 		);
-	}*/
+	}
 	else if (silent_pic_mode == 4)
 	{
 		bmp_printf(
@@ -324,15 +326,16 @@ silent_pic_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_BOOL_LV(silent_pic_mode), 0);
 }
 
+static void silent_pic_mode_increment()
+{
+	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
+}
 static void silent_pic_mode_toggle(void* priv)
 {
-	#if defined(CONFIG_600D)
-	silent_pic_mode = mod(silent_pic_mode + 1, 2); // only simple mode works on these cameras
-	#else
-	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
-	if (silent_pic_mode == 3) silent_pic_mode = 4; // skip longx, not working
-	if (silent_pic_mode == 2) silent_pic_mode = 4; // skip hi-res
-	#endif
+	silent_pic_mode_increment();
+	if (silent_pic_mode == 2) silent_pic_mode_increment(); // skip hi-res
+	//~ if (silent_pic_mode == 3) silent_pic_mode_increment(); // skip longx, not working
+	//~ if (silent_pic_mode == 4) silent_pic_mode_increment(); // skip slit
 }
 
 static void silent_pic_toggle(int sign)
@@ -340,18 +343,11 @@ static void silent_pic_toggle(int sign)
 	if (silent_pic_mode == 1)
 		silent_pic_submode = mod(silent_pic_submode + 1, 3);
 	/*else if (silent_pic_mode == 2) 
-		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));
-	else if (silent_pic_mode == 3) 
+		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));*/
+	else if (silent_pic_mode == 3)
 	{
-		if (sign < 0)
-		{
-			silent_pic_longexp_method = !silent_pic_longexp_method;
-		}
-		else
-		{
-			silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + 1, COUNT(timer_values_ms));
-		}
-	}*/
+		silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + sign, COUNT(timer_values_longexp));
+	}
 	else if (silent_pic_mode == 4)
 		silent_pic_slitscan_skipframes = mod(silent_pic_slitscan_skipframes + sign - 1, 4) + 1;
 }
@@ -736,7 +732,7 @@ static char* silent_pic_get_name()
 	bmp_printf(FONT_MED, 100, 130, "%s    ", imgname);
 	return imgname;
 }
-/*
+
 int ms100_clock = 0;
 static void
 ms100_clock_task( void )
@@ -747,50 +743,118 @@ ms100_clock_task( void )
 		ms100_clock += 100;
 	}
 }
-TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );*/
+TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
+static int compute_signature(int* start, int num)
+{
+	int c = 0;
+	int* p;
+	for (p = start; p < start + num; p++)
+	{
+		c += *p;
+	}
+	//~ return SIG_60D_110;
+	return c;
+}
 
-// not working
-/*
+void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
+{
+	int16_t* accs = acc;
+	uint16_t* accu = acc;
+	int8_t* srcs = src;
+	uint8_t* srcu = src;
+	int i;
+	for (i = 0; i < numpix; i++)
+	{
+		accs[i*2] += srcs[i*2]; // chroma, signed
+		accu[i*2+1] += srcu[i*2+1]; // luma, unsigned
+	}
+}
+
+void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den)
+{
+	int8_t* dsts = dst;
+	uint8_t* dstu = dst;
+	int16_t* srcs = src;
+	uint16_t* srcu = src;
+	int i;
+	for (i = 0; i < numpix; i++)
+	{
+		dsts[i*2] = srcs[i*2] / den; // chroma, signed
+		dstu[i*2+1] = srcu[i*2+1] / den; // luma, unsigned
+	}
+}
+
+void add_yuv_acc32bit_src8bit(void* acc, void* src, int numpix)
+{
+	int32_t* accs = acc;
+	uint32_t* accu = acc;
+	int8_t* srcs = src;
+	uint8_t* srcu = src;
+	int i;
+	for (i = 0; i < numpix; i++)
+	{
+		accs[i*2] += srcs[i*2]; // chroma, signed
+		accu[i*2+1] += srcu[i*2+1]; // luma, unsigned
+	}
+}
+
+void div_yuv_by_const_dst8bit_src32bit(void* dst, void* src, int numpix, int den)
+{
+	int8_t* dsts = dst;
+	uint8_t* dstu = dst;
+	int32_t* srcs = src;
+	uint32_t* srcu = src;
+	int i;
+	for (i = 0; i < numpix; i++)
+	{
+		dsts[i*2] = srcs[i*2] / den; // chroma, signed
+		dstu[i*2+1] = srcu[i*2+1] / den; // luma, unsigned
+	}
+}
+
 static void
 silent_pic_take_longexp()
 {
+	bmp_printf(FONT_MED, 100, 100, "Psst!");
 	struct vram_info * vram = get_yuv422_hd_vram();
-	uint8_t* buf = AllocateMemory(vram->pitch * vram->width * 2);
-	if (!buf)
+	int bufsize = vram->height * vram->pitch;
+	int numpix = vram->height * vram->width;
+	void* longexp_buf = 0x44000060 + bufsize + 4096;
+	bzero32(longexp_buf, bufsize*2);
+	
+	// check if the buffer appears to be used
+	int i;
+	int s1 = compute_signature(longexp_buf, bufsize/2);
+	msleep(100);
+	int s2 = compute_signature(longexp_buf, bufsize/2);
+	if (s1 != s2) { bmp_printf(FONT_MED, 100, 100, "Psst! can't use buffer at %x ", longexp_buf); return; }
+
+	ms100_clock = 0;
+	int tmax = timer_values_longexp[silent_pic_longexp_time_index] * 1000;
+	int num = 0;
+	while (ms100_clock < tmax)
 	{
-		bmp_printf(FONT_MED, 100, 100, "Psst! Not enough memory :(  ");
+		bmp_printf(FONT_MED, 100, 100, "Psst! Taking a long-exp silent pic (%dimg,%ds/%ds)...   ", num, ms100_clock/1000, tmax/1000);
+		add_yuv_acc16bit_src8bit(longexp_buf, vram->vram, numpix);
+		num += 1;
+	}
+	open_canon_menu();
+	msleep(500);
+	div_yuv_by_const_dst8bit_src16bit(vram->vram, longexp_buf, numpix, num);
+	char* imgname = silent_pic_get_name();
+	FIO_RemoveFile(imgname);
+	FILE* f = FIO_CreateFile(imgname);
+	if (f == INVALID_PTR)
+	{
+		bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
 		return;
 	}
-	FreeMemory(buf);
-	
-	char* imgname = silent_pic_get_name();
-//~ 
-	//~ FIO_RemoveFile(imgname);
-	//~ FILE* f = FIO_CreateFile(imgname);
-	//~ if (f == INVALID_PTR)
-	//~ {
-		//~ bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
-		//~ return;
-	//~ }
-//~ 
-	//~ ms100_clock = 0;
-	//~ int tmax = timer_values_ms[silent_pic_longexp_time_index];
-	//~ while (ms100_clock < tmax)
-	//~ {
-		//~ bmp_printf(FONT_MED, 100, 100, "Psst! Taking a long-exp silent pic (%d/%d)...   ", ms100_clock, tmax);
-		//~ int ans = FIO_WriteFile(f, vram->vram, vram->height * vram->pitch);
-		//~ msleep(10);
-	//~ }
-	//~ FIO_CloseFile(f);
-	//~ 
+	FIO_WriteFile(f, vram->vram, vram->height * vram->pitch);
+	FIO_CloseFile(f);
+	clrscr(); play_422(imgname);
 	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a long-exp silent pic   ");
-	
-	if (!silent_pic_burst) // single mode
-	{
-		while (get_halfshutter_pressed()) msleep(100);
-	}
-}*/
+}
 
 static int
 silent_pic_ensure_movie_mode()
@@ -848,7 +912,7 @@ silent_pic_take_simple(int interactive)
 		if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
 	}
 
-	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
+	dump_seg(vram->vram, vram->pitch * vram->height * 10, imgname);
 	if (MENU_MODE)
 	{
 		if (!interactive) { fake_simple_button(BGMT_MENU); }
@@ -1029,8 +1093,8 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 		silent_pic_take_simple(interactive);
 	//~ else if (silent_pic_mode == 2) // hi-res
 		//~ silent_pic_take_sweep();
-	//~ else if (silent_pic_mode == 3) // long exposure
-		//~ silent_pic_take_longexp();
+	else if (silent_pic_mode == 3) // long exposure
+		silent_pic_take_longexp();
 	else if (silent_pic_mode == 4) // slit-scan
 		silent_pic_take_slitscan(interactive);
 
