@@ -166,7 +166,7 @@ static int handle_buttons(struct event * event)
  	}
 
 	// stop intervalometer with MENU or PLAY
-	if (event != &fake_event && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+	if (~IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
 		intervalometer_stop();
 
 	// enable LiveV stuff in Play mode
