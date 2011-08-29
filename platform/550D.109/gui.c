@@ -564,6 +564,19 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
+	// exposure fusion preview
+	extern int expfuse_running;
+	if (set_pressed == 0) expfuse_running = 0;
+	if ( PLAY_MODE && event->param == BGMT_WHEEL_LEFT && get_set_pressed())
+	{
+		if (!IS_FAKE(event))
+		{
+			expfuse_preview_update();
+			return 0;
+		}
+		else return 1;
+	}
+
 	return 1;
 }
 
