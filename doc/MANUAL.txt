@@ -133,8 +133,16 @@ Known issues
 
 * Not all ML features are available on all compatible cameras (go to [[Unified/Features]] to see what works on each camera).
 
-Keyboard shortcuts
-------------------
+Key shortcuts
+-------------
+
+PLAY mode shortcuts
+~~~~~~~~~~~~~~~~~~~
+
+* ``Q`` (550D), ``UNLOCK`` (60D) or ``DISP`` (600D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
+* ``LV``: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
+* ``SET`` + ``Main Dial Left`` in ``PLAY`` mode: combine images with a very simple `exposure fusion`_ technique. Useful for previewing `HDR`_ images or multiple exposures in the camera.
+* ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
 
 LCD sensor shortcuts
 ~~~~~~~~~~~~~~~~~~~~
@@ -174,9 +182,6 @@ Misc shortcuts
 * ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
-* ``Q`` (550D), ``Unlock`` (60D) or ``DISP`` (600D) in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
-* ``LV`` button in ``PLAY`` or ``QuickReview`` mode: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
-* ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
 * ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom (see `DigitalZoom Shortcut`_).
 * Activating *AF mode* dialog when Manual Focus is active will toggle `Trap Focus`_.
 
@@ -710,12 +715,17 @@ Functions for stills shooting (some of them work for movies, too).
   * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used. Also, this mode only works with 3 images or more.
 
   For best results, either use manual focus, or assign autofocus to ``*`` button.
+
+.. _exposure fusion:
+
+  To preview HDR images in camera, press ``PLAY``, hold ``SET`` and turn the main wheel to the left. Magic Lantern computes a naive weighted sum in YUV colorspace, which is fast, but image quality is low. The `algorithm used by Enfuse <http://research.edm.uhasselt.be/%7Etmertens/papers/exposure_fusion_reduced.pdf>`_ will yield much better results.
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
   with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x). The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
   e.g. if the HDR sequence is created from ``IMG_1001.JPG ... IMG_1005.JPG``, the HDR script will be named 
   ``HDR_1001.SH`` and the resulting HDR image will be saved as ``HDR_1001.JPG``.
   
+  For more info on enfuse and exposure fusion, check this article: `Exposure Fusion: What is it? How does it Compare to HDR? How Do I Do It? <http://www.digital-photography-school.com/exposure-fusion-what-is-it-how-does-it-compare-to-hdr-how-do-i-do-it>`_.
 
   To run the HDR scripts on the computer, move the scripts and the JPGs in the same directory and run (for example)::
   
@@ -1080,7 +1090,12 @@ Focus
 
   This selection will shoot a series of photographs with varying focus points.
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
+
+  Note: before using this feature, **you have to assign autofocus to a separate button** (for example, the ``*`` button), from Canon Menu, Custom Functions:
   
+  * ``Shutter/AE lock button`` -> ``1:AE lock/AF`` on Rebel cameras;
+  * ``AF and metering buttons`` -> any option without AF on shutter button.
+
   This function will also create scripts named like named ``FST_1234.SH``, which can be used for stacking the images with enfuse. See `Exposure bracketing`_ for details on how to use these scripts, and the `focus stacking section <http://panorama.dyndns.org/EandE-documentation/enfuse.html#Focus-Stacks>`_ from Enfuse reference manual.
   
   Keys:
@@ -1089,8 +1104,6 @@ Focus
   * ``Q``: change the focus step size
   * ``PLAY``: run the stack focus sequence
   
-  Note: before using this feature, you have to assign autofocus to a separate button (for example, the ``*`` button), from Custom Functions.
-
 .. _focus speed:
 
 **Focus speed**
