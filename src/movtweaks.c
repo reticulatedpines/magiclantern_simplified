@@ -221,6 +221,40 @@ void force_liveview()
 	msleep(1000);
 }
 
+CONFIG_INT("shutter.lock", shutter_lock, 0);
+CONFIG_INT("shutter.lock.value", shutter_lock_value, 0);
+static void
+shutter_lock_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Lock ShutterTv: %s",
+		shutter_lock ? "ON" : "OFF"
+	);
+}
+
+void shutter_lock_step()
+{
+	if (shooting_mode == SHOOTMODE_MOVIE) // no effect in photo mode
+	{
+		int shutter = lens_info.raw_shutter;
+		if (shutter_lock_value == 0) shutter_lock_value = shutter; // make sure it's some valid value
+		if (!gui_menu_shown()) // lock shutter
+ 		{
+			if (shutter != shutter_lock_value) // i.e. revert it if changed
+				lens_set_rawshutter(shutter_lock_value);
+		}
+		else
+			shutter_lock_value = shutter; // accept change from ML menu
+	}
+}
+
 static void
 movtweak_task( void* unused )
 {
@@ -253,6 +287,8 @@ movtweak_task( void* unused )
 #ifndef CONFIG_600D
 		save_kelvin_wb();
 #endif
+
+		if (shutter_lock) shutter_lock_step();
 
 		if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
 			(enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
@@ -352,6 +388,7 @@ void digital_zoom_shortcut_display(
 
 #endif
 
+
 static struct menu_entry mov_menus[] = {
 	/*{
 		.priv = &bitrate_mode,
@@ -402,6 +439,13 @@ static struct menu_entry mov_menus[] = {
 		.display = movie_rec_key_print, 
 		.select = menu_binary_toggle,
 		.help = "Change the button used for recording. Hint: wired remote."
+	},
+	{
+		.name = "Lock ShutterTv",
+		.priv = &shutter_lock,
+		.display = shutter_lock_print, 
+		.select = menu_binary_toggle,
+		.help = "Lock shutter value in movie mode (change from Expo only)."
 	},
 #ifndef CONFIG_600D
 	{
