@@ -3397,7 +3397,8 @@ livev_hipriority_task( void* unused )
 			crop_dirty--;
 			if (!crop_dirty)
 			{
-				if (lv) cropmark_redraw();
+				if (lv) 
+					task_create("crop_redraw", 0x1e, 0, cropmark_redraw, 0); // redraw, but with lower priority
 			}
 		}
 
