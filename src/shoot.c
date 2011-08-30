@@ -845,22 +845,31 @@ void expfuse_preview_update_task()
 	int numpix = 720*480;
 	if (!expfuse_running)
 	{
+		// first image 
 		weighted_mean_yuv_init_acc32bit_ws16bit(buf_acc, buf_ws, numpix);
 		weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(buf_acc, buf_lv, buf_ws, numpix);
 		expfuse_num_images = 1;
 		expfuse_running = 1;
 	}
 
+	// ask for next image
 	fake_simple_button(BGMT_WHEEL_LEFT);
-	msleep(700);
-
+	int k = 0;
+	// wait for image buffer location to be flipped => next image was loaded
+	while (get_yuv422_vram()->vram == buf_lv && k < 50) 
+	{
+		msleep(100);
+		k++;
+	}
 	buf_lv = get_yuv422_vram()->vram; // refresh
+	// add new image
 
 	weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(buf_acc, buf_lv, buf_ws, numpix);
 	weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(buf_lv, buf_acc, buf_ws, numpix);
 	expfuse_num_images++;
 	bmp_printf(FONT_MED, 0, 0, "%d images  ", expfuse_num_images);
-	
+	bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
+
 	give_semaphore(expfuse_sem);
 }
 
