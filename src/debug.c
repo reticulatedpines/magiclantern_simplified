@@ -211,7 +211,8 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(1000);
-	call( "DisableMainFirm" );
+	beep();
+	test_dialog_create();
 }
 
 static void xx_test(void* priv)
