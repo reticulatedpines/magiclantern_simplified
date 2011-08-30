@@ -19,7 +19,8 @@ static int curr_palette = 0;
 static int 
 test_dialog_btn_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
 {
-	bmp_printf(FONT_MED, 0, 100, "dlg=%x tmpl=%x btn=%x %x %x %x %x", dialog, template, event, arg3, arg4, arg5, arg6, code);
+	bmp_printf(FONT_MED, 0, 100, "dlg=%x template=%x btn=%x %x %x %x %x", dialog, template, event, arg3, arg4, arg5, arg6, code);
+    bmp_printf(FONT_MED, 0, 150, "palette = %d...", curr_palette);
 	switch (event) {
 	case INITIALIZE_CONTROLLER:
 		return 0;
