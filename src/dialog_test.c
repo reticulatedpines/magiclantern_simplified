@@ -21,6 +21,7 @@ test_dialog_btn_handler(void * dialog, int tmpl, gui_event_t event, int arg3, in
 {
 	bmp_printf(FONT_MED, 0, 100, "dlg=%x template=%x btn=%x %x %x %x %x", dialog, template, event, arg3, arg4, arg5, arg6, code);
     bmp_printf(FONT_MED, 0, 150, "palette = %d...", curr_palette);
+	//~ return 1;
 	switch (event) {
 	case INITIALIZE_CONTROLLER:
 		return 0;
