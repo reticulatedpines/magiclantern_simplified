@@ -685,6 +685,7 @@ menu_handler(
 		break;
 	case LOST_TOP_OF_CONTROL:
 		gui_stop_menu();
+		break;
 
 	case TERMINATE_WINSYS:
 		// Must propagate to all gui elements
