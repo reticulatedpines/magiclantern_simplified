@@ -508,20 +508,23 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", uilock);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
-		(
-			display_clock();
-			display_shooting_info();
-			free_space_show_photomode();
-		)
+		if (get_global_draw())
+		{
+			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
+			(
+				display_clock();
+				display_shooting_info();
+				free_space_show_photomode();
+			)
 		
-		if (lv && !gui_menu_shown()) BMP_LOCK
-		(
-			display_shooting_info_lv();
-			if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
-				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, "!!! Auto exposure !!!\nSet 'Movie exposure: Manual' in Canon menu");
-			display_shortcut_key_hints_lv();
-		)
+			if (lv && !gui_menu_shown()) BMP_LOCK
+			(
+				display_shooting_info_lv();
+				if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
+					bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, "!!! Auto exposure !!!\nSet 'Movie exposure: Manual' in Canon menu");
+				display_shortcut_key_hints_lv();
+			)
+		}
 		
 		if (screenshot_sec)
 		{

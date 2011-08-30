@@ -13,13 +13,13 @@
 #include "lens.h"
 
 void * test_dialog = 0;
-static int template = 0x8d;
+static int template = 1;
 static int curr_palette = 0;
 
 static int 
-test_dialog_btn_handler(void * dialog, int arg1, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
+test_dialog_btn_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
 {
-	bmp_printf(FONT_MED, 0, 100, "%x %x %x %x %x %x %x", dialog, arg1, event, arg3, arg4, arg5, arg6, code);
+	bmp_printf(FONT_MED, 0, 100, "dlg=%x tmpl=%x btn=%x %x %x %x %x", dialog, template, event, arg3, arg4, arg5, arg6, code);
 	switch (event) {
 	case INITIALIZE_CONTROLLER:
 		return 0;
@@ -42,13 +42,14 @@ test_dialog_btn_handler(void * dialog, int arg1, gui_event_t event, int arg3, in
 		return 0;
 
         case PRESS_INFO_BUTTON:
-                if (template>=110) {
+                if (template>=0xa0) {
                         DeleteDialogBox(test_dialog);
                         test_dialog = NULL;
                 }
                 template++;
                 curr_palette = 0;
                 bmp_printf(FONT_MED, 0, 0, "incrementing template to [%d]", template);
+                msleep(100);
                 test_dialog_create();
                 return 0; // block
         case PRESS_MENU_BUTTON:
@@ -61,7 +62,7 @@ test_dialog_btn_handler(void * dialog, int arg1, gui_event_t event, int arg3, in
                 test_dialog_create();
                 return 0;
         default:
-                bmp_printf(FONT_MED, 0, 0, "btn: [%d] pressed.", event);
+                bmp_printf(FONT_MED, 0, 0, "btn: [%x] pressed.", event);
                 break;
         }
         return 1;
@@ -82,7 +83,7 @@ void test_dialog_create() {
         int i;
         for (i = 0; i<255; i++) {
                 char s[30];
-                snprintf(s, sizeof(s), "[%d,%d]",template,i);
+                snprintf(s, sizeof(s), "%d", i);
                 dialog_set_property_str(test_dialog, i, s);
         }
 
