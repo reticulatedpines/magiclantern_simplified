@@ -558,13 +558,13 @@ Functions specific to movie mode.
 .. _Bitrate control:
 .. _bitrate:
 
-**Bit Rate: CBR, 0.1x ... 2x**
+**Bit Rate: CBR, 0.1x ... 3x**
 
   Controls H.264 bitrate used for video recording.
   
   Possible modes (only CBR is available from menu; others can be selected only from ``magic.cfg``):
   
-  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 2x. CBR 1x is the firmware default setting. The implementation uses variable QScale, displayed near the recording dot.
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting. The implementation uses variable QScale, displayed near the recording dot.
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 45mbps in 1080p, including sound).
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
@@ -575,6 +575,7 @@ Functions specific to movie mode.
   
   Notes:
   
+  * You can push the bitrate higher if you record without sound, then use `Audio RemoteShot`_ to sync the video with an external audio track.
   * There is a bitrate / QScale display near the red recording dot, updated every second.
   * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain cards labeled as Class10.
   * In QScale mode, bitrate varies a lot with frame complexity, and you have no direct control over its value.
@@ -692,6 +693,7 @@ Functions for stills shooting (some of them work for movies, too).
 
 .. _exposure bracketing:
 .. _HDR:
+.. _exposure fusion:
 
 **HDR Bracket**
 
@@ -715,8 +717,6 @@ Functions for stills shooting (some of them work for movies, too).
   * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used. Also, this mode only works with 3 images or more.
 
   For best results, either use manual focus, or assign autofocus to ``*`` button.
-
-.. _exposure fusion:
 
   To preview HDR images in camera, press ``PLAY``, hold ``SET`` and turn the main wheel to the left. Magic Lantern computes a naive weighted sum in YUV colorspace, which is fast, but image quality is low. The `algorithm used by Enfuse <http://research.edm.uhasselt.be/%7Etmertens/papers/exposure_fusion_reduced.pdf>`_ will yield much better results.
   
@@ -824,6 +824,7 @@ Functions for stills shooting (some of them work for movies, too).
   In Movie mode, the ``Wave`` 〰 setting is able to start and stop recording movies. The other modes can only start recording (because it's too easy to stop recording by mistake).
   
 .. _audio trigger:
+.. _audio RemoteShot:
 
 **Audio RemoteShot: ON/OFF**
 
@@ -831,7 +832,8 @@ Functions for stills shooting (some of them work for movies, too).
   
   You can also start movie recording with this feature.
   
-  
+  Tip: with the audio trigger you can sync a video *recorded without sound* with an *external audio track* `(see this topic) <http://groups.google.com/group/ml-devel/browse_thread/thread/14522b5d65a43cbf/e472d79ab8c4e57b?show_docid=e472d79ab8c4e57b>`_
+
   In photo mode, you can combine this option with the self-timer (may be useful for group or self pictures).
   
   

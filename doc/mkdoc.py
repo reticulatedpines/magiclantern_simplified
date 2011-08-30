@@ -25,7 +25,10 @@ def fixwikilinks(file):
         origstr = "[[" + m.groups()[0] + m.groups()[1] + "]]"
         print origstr
         x = m.groups()[0]
-        txt = txt.replace(origstr, "`%s <http://magiclantern.wikia.com/wiki/%s>`_" % (x, urllib.quote(x)))
+        if 'Image:' in txt:
+            txt = txt.replace(origstr, "")
+        else:
+            txt = txt.replace(origstr, "`%s <http://magiclantern.wikia.com/wiki/%s>`_" % (x, urllib.quote(x)))
         
     #~ sub("INSTALL.rst", , ")
 

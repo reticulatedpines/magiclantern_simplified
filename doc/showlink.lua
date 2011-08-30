@@ -15,6 +15,7 @@ function ShowLink(addr, name)
 		a = string.gsub(a, [[&]], [[\&]])
 		a = string.gsub(a, [[_]], [[\_]])
 		a = string.gsub(a, [[#]], [[\#]])
+		a = string.gsub(a, [[%%]], [[\%%]])
 		a = string.gsub(a, [[/]], [[/\phantom{-}\hskip-1ex]])
 		newname = newname .. [[{ \scriptsize \textlangle ]] .. a .. [[\textrangle }]]
 	end
