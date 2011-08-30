@@ -223,3 +223,8 @@ NSTUB(0xff1d6f24, ReleaseRecursiveLock)
 
 NSTUB(0xFF37477C, CancelBottomInfoDispTimer)
 NSTUB(0xff36e574, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
+
+NSTUB(0xFF3076D8, CreateDialogBox)
+NSTUB(0xFF306E6C, DeleteDialogBox)
+NSTUB(0xFF307FEC, dialog_redraw)
+NSTUB(0xFF21ADB8, dialog_set_property_str)
