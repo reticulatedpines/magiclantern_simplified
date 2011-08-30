@@ -139,7 +139,7 @@ bitrate_toggle_forward(void* priv)
 	if (bitrate_mode == 0)
 		return;
 	else if (bitrate_mode == 1 && !recording)
-		bitrate_factor = mod(bitrate_factor + 1 - 1, 20) + 1;
+		bitrate_factor = mod(bitrate_factor + 1 - 1, 30) + 1;
 	else if (bitrate_mode == 2)
 		qscale_plus16 = mod(qscale_plus16 - 1, 33);
 }
@@ -151,7 +151,7 @@ bitrate_toggle_reverse(void* priv)
 	if (bitrate_mode == 0)
 		return;
 	else if (bitrate_mode == 1)
-		bitrate_factor = mod(bitrate_factor - 1 - 1, 20) + 1;
+		bitrate_factor = mod(bitrate_factor - 1 - 1, 30) + 1;
 	else if (bitrate_mode == 2)
 		qscale_plus16 = mod(qscale_plus16 + 1, 33);
 }
