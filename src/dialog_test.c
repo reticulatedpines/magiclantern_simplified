@@ -74,7 +74,7 @@ void test_dialog_create() {
                 test_dialog = NULL;
         }
 
-        test_dialog = CreateDialogBox(0, 0, test_dialog_btn_handler, template);
+        test_dialog = CreateDialogBox(0, 0, test_dialog_btn_handler, template, 0);
 
         bmp_printf(FONT_MED, 0, 0, "Creating dialog [%d] => %x", template, test_dialog);
 
@@ -97,7 +97,7 @@ void test_menu() {
                 test_dialog = NULL;
         }
 
-        test_dialog = CreateDialogBox(0, 0, test_dialog_btn_handler, template);
+        test_dialog = CreateDialogBox(0, 0, test_dialog_btn_handler, template, 0);
         dialog_set_property_str(test_dialog, 4, "Hello, World!");
         dialog_redraw(test_dialog);
 }
@@ -106,23 +106,13 @@ volatile void* notify_box_dlg = 0;
 
 int NotifyBox_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
 {
-    //~ msleep(1000);
-    //~ return 1;
-    switch (event) {
-    case LOST_TOP_OF_CONTROL:
-        notify_box_dlg = NULL;
-        return 1;
-        
     case TERMINATE_WINSYS:
-        notify_box_dlg = NULL;
-        return 0;
+        notify_box_dlg = NULL; // don't destroy the dialog here!
+        return 1;
 
     case DELETE_DIALOG_REQUEST:
-        //~ beep();
-        //~ bmp_printf(FONT_LARGE, 0, 0, "DEL %x %x %x   ", notify_box_dlg, dialog, arg4);
-        //~ msleep(1000);
-        //~ if (dialog) DeleteDialogBox(dialog);
-        notify_box_dlg = NULL;
+        if (notify_box_dlg) DeleteDialogBox(notify_box_dlg); // not sure if I have to delete it here or not
+        notify_box_dlg = NULL; 
         return dialog != arg4;
     }
     return 1;
@@ -143,9 +133,19 @@ void NotifyBox_task(char* msg)
 
     int template = (notify_box_type == NOTIFY_BOX_POPUP) ? 0x72 : 0x2a;
     int stri = (notify_box_type == NOTIFY_BOX_POPUP) ? 3 : 3;
-    notify_box_dlg = CreateDialogBox(0, 0, NotifyBox_handler, template); // 25 on 60d
-    dialog_set_property_str(notify_box_dlg, stri, msg);
-    dialog_redraw(notify_box_dlg);
+    
+    bmp_printf(FONT_LARGE, 0, 0, "crea");
+    GMT_LOCK (
+        winsys_struct_1e774_set_0x30();
+        dialog_something_1();
+        notify_box_dlg = CreateDialogBox(0, 0, NotifyBox_handler, template, 0); // 25 on 60d
+        dialog_set_property_str(notify_box_dlg, stri, msg);
+        dialog_redraw(notify_box_dlg);
+        winsys_struct_1e774_clr_0x30();
+        AJ_KerRLock_n_WindowSig(notify_box_dlg);
+        struct_1e774_0x40_something();
+    )
+    bmp_printf(FONT_LARGE, 0, 0, "crok");
     
     int i;
     for (i = 0; i < notify_box_timeout/100; i++)
@@ -153,9 +153,18 @@ void NotifyBox_task(char* msg)
         msleep(50);
         if (notify_box_stop_request) break;
     }
+
     if (notify_box_dlg)
     {
-        DeleteDialogBox(notify_box_dlg); notify_box_dlg = NULL;
+        bmp_printf(FONT_LARGE, 0, 0, "dele");
+        GMT_LOCK (
+            winsys_struct_1e774_set_0x30();
+            dialog_something_1();
+            DeleteDialogBox(notify_box_dlg); notify_box_dlg = NULL;
+            winsys_struct_1e774_clr_0x30();
+            struct_1e774_0x40_something();
+        )
+        bmp_printf(FONT_LARGE, 0, 0, "deok");
     }
 
     afframe_set_dirty();

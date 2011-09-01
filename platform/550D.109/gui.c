@@ -620,7 +620,7 @@ static void gui_main_task_550d()
  		// weak version will timeout after 300ms
  		// so if there's some hidden bug, it will not freeze at least
 		// not a good programming practice... but works for an undocumented system
-		GMT_LOCK_WEAK(
+		GMT_LOCK(
 			void(*f)(struct event *) = funcs[index];
 			f(event);
 		)
