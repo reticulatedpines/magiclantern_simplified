@@ -18,6 +18,8 @@ struct font font_small = {
 	.bitmap		= 0,
 };
 
+int fonts_done = 0;
+
 static void load_fonts(void* unused)
 {
 	// if something goes wrong, you will see chinese fonts :)
@@ -29,11 +31,21 @@ static void load_fonts(void* unused)
 	//~ font_large.bitmap = read_entire_file(CARD_DRIVE "LARGE.FNT", &size);
 	font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
 	font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
+
+	if (font_small.bitmap == 0) // fonts not loaded
+	{
+		NotifyBox(2000, "FONTS.DAT not found" );
+		NotifyBox(2000, "Please copy all ML files!" );
+		msleep(2000);
+	}
+
+	fonts_done = 1;
 }
 
 static void init_fonts()
 {
 	task_create("load_fonts", 0x1c, 0, load_fonts, 0);
+	while (!fonts_done) msleep(100);
 }
 
 INIT_FUNC(__FILE__, init_fonts);

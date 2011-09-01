@@ -191,7 +191,7 @@ update_lens_display()
 		if (!zebra_should_run()) return;
 	}
 	
-	if (lv_disp_mode == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
+	if ((lv_disp_mode & 0xFF) == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
 	{
 		if (LV_BOTTOM_BAR_DISPLAYED)
 			task_create("erase_bottom_bar", 0x1f, 0, erase_bottom_bar, 0);

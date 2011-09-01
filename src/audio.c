@@ -34,7 +34,6 @@
 
 static void audio_configure(int force);
 static void volume_display();
-static void volume_display_clear();
 
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
@@ -331,8 +330,6 @@ compute_audio_levels(
 	level->peak = ( level->peak * 31 + level->avg ) / 32;
 }
 
-int show_volume = 0;
-
 int audio_meters_are_drawn()
 {
 	return 
@@ -367,14 +364,7 @@ meter_task( void* unused )
 			if (!is_mvr_buffer_almost_full())
 				BMP_LOCK( draw_meters(); )
 		}
-		
-		if (show_volume)
-		{
-			volume_display();
-			show_volume--;
-			if (show_volume == 0) volume_display_clear();
-		}
-		
+				
 		if (audio_monitoring)
 		{
 			static int hp = 0;
@@ -597,10 +587,18 @@ audio_reg_close( void )
 
 #endif
 
-int mic_inserted = 0;
+int mic_inserted = -1;
 PROP_HANDLER( PROP_MIC_INSERTED )
 {
+	if (mic_inserted != -1)
+		NotifyBox(2000,
+			"Microphone %s", 
+			buf[0] ? 
+				"connected" :
+				"disconnected");
+
    mic_inserted = buf[0];
+
    audio_configure( 1 );
    menu_set_dirty();
    return prop_cleanup( token, property );
@@ -1011,22 +1009,11 @@ static void audio_monitoring_force_display(int x)
 
 void audio_monitoring_display_headphones_connected_or_not()
 {
-	zebra_pause();
-	msleep(200);
-	//~ redraw();
-	BMP_LOCK(
-		bmp_printf(FONT_MED, 10, 50, 
-			"                         \n"
-			" Audio monitoring:       \n"
-			" Headphones %s \n"
-			"                         ", 
-			AUDIO_MONITORING_HEADPHONES_CONNECTED ?
-			"connected   " :
+	NotifyBox(2000,
+		"Headphones %s", 
+		AUDIO_MONITORING_HEADPHONES_CONNECTED ? 
+			"connected" :
 			"disconnected");
-	);
-	msleep(2000);
-	redraw();
-	zebra_resume();
 }
 
 static void audio_monitoring_update()
@@ -1359,18 +1346,11 @@ my_audio_level_task( void )
 TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 #endif
 
-static void volume_display_schedule()
-{
-	show_volume = 10;
-}
 static void volume_display()
 {
 	int mgain_db = mgain_index2gain(mgain);
-	bmp_printf(FONT_MED, 50, 40, "Vol: %d + (%d,%d) dB     ", mgain_db, dgain_l, dgain_r);
-}
-static void volume_display_clear()
-{
-	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
+	NotifyBoxHide();
+	NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
 }
 
 void volume_up()
@@ -1386,7 +1366,7 @@ void volume_up()
 			audio_dgain_toggle(&dgain_r);
 		}
 	}
-	volume_display_schedule();
+	volume_display();
 }
 
 void volume_down()
@@ -1400,7 +1380,7 @@ void volume_down()
 	}
 	else if (mgain_db > 0)
 		audio_mgain_toggle_reverse(&mgain);
-	volume_display_schedule();
+	volume_display();
 }
 
 static void audio_menus_init()

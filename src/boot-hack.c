@@ -269,7 +269,6 @@ int ml_started = 0; // 1 after ML is fully loaded
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
-	display_clock();
 	config_parse_file( CARD_DRIVE "magic.cfg" );
 	debug_init_stuff();
 
@@ -306,10 +305,9 @@ void my_big_init_task()
 	//~ );
 	msleep(500);
 
-	#ifndef CONFIG_50D
 	ui_lock(UILOCK_NONE);
-	#endif
 	ml_started = 1;
+	NotifyBoxHide();
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 }
 
@@ -389,24 +387,19 @@ my_init_task(void)
 		return;
 	}
 
-	#ifndef CONFIG_50D
+	NotifyBox(5000, "Magic Lantern");
+
 	ui_lock(UILOCK_EVERYTHING);
-	#endif
 	
 	msleep( 500 );
 
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
-	msleep(200);
 
 	// It's better to start a new task which does the init
 	// Guess: stack overflow in this task?
 	task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
-
-	#ifndef CONFIG_50D
-	//~ ui_lock(UILOCK_NONE); // if you don't start my_big_init_task, uncomment this
-	#endif
-
+	
 #endif // !CONFIG_EARLY_PORT
 }

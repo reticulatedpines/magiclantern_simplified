@@ -34,7 +34,7 @@
 #define PROP_LENS			0x80030011 // info about lens? flags?
 #define PROP_HDMI_CHANGE	0x8003002c // 1 if HDMI display connected
 #define PROP_HDMI_CHANGE_CODE	0x8003002e // edidc?
-#define PROP_USBRCA_MONITOR 0x80030018 // not sure
+#define PROP_USBRCA_MONITOR 0x80030018
 #define PROP_MVR_REC_START	0x80030033 // 0 = no, 1 = stating, 2 = recording
 
 
@@ -59,14 +59,15 @@
 #define PROP_LV_LENS_STABILIZE	0x80050005 // 0 = off, e0000 = on
 #define PROP_LV_MANIPULATION	0x80050006
 #define PROP_LV_AFFRAME		0x80050007 // called by ptp handler 915a
-#define PROP_LV_FOCUS		0x80050001 // only works in liveview mode
+#define PROP_LV_FOCUS		0x80050001 // only works in liveview mode; LVCAF_LensDriveStart
 #define PROP_LV_FOCUS_DONE	0x80050002 // output when focus motor is done?
+#define PROP_LV_FOCUS_STOP	0x80050003 // LVCAF_LensDriveStop
 #define PROP_LV_FOCUS_BAD	0x80050029 // true if camera couldn't focus?
 #define PROP_LV_FOCUS_STATE	0x80050009 // 1 OK, 101 bad, 201 not done?
 #define PROP_LV_FOCUS_CMD	0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
 #define PROP_LV_FOCUS_DATA	0x80050026 // 8 integers; updates quickly when AF is active
 #define PROP_LVAF_0003		0x80050003
-#define PROP_LVAF_001D		0x8005001d
+#define PROP_LVAF_001D		0x8005001d // LVCAF_LensSearchDriveStart
 #define PROP_LV_STATE		0x8005000f // output very often
 #define PROP_LV_DISPSIZE	0x80050015 // used to control LV zoom (1 / 5 / A)
 #define PROP_LVCAF_STATE	0x8005001B // unknown meaning

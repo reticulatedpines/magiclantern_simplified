@@ -226,7 +226,8 @@ void adjust_backlight_level(int delta)
 	call("TurnOnDisplay");
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
-	if (!lv) bmp_printf(FONT_LARGE, 200, 240, "Backlight: %d", level);
+	NotifyBoxHide();
+	NotifyBox(2000, "LCD Backlight: %d", level);
 }
 void set_backlight_level(int level)
 {

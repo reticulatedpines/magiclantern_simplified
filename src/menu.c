@@ -907,7 +907,7 @@ gui_stop_menu( void )
 	}
 	else
 	{
-		redraw();
+		//~ redraw();
 	}
 	
 	extern int config_autosave;
@@ -916,9 +916,7 @@ gui_stop_menu( void )
 		save_config(0);
 		config_dirty = 0;
 	}
-
-	msleep(200);
-	redraw();
+	redraw_after(300);
 
 	menu_shown = 0;
 }
@@ -1018,7 +1016,7 @@ menu_task( void* unused )
 	msleep(500);
 	while(1)
 	{
-		int rc = take_semaphore( gui_sem, 500 );
+		int rc = take_semaphore( gui_sem, 250 );
 		if( rc != 0 )
 		{
 			// We woke up after 1 second

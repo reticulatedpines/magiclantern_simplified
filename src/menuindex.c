@@ -34,8 +34,8 @@ struct menu_entry help_menus[] = {
         .display = menu_print,
     },
     {
-        .name = "Keyboard shortcuts",
-        .priv = "Keyboard shortcuts",
+        .name = "Key shortcuts",
+        .priv = "Key shortcuts",
         .select = menu_help_go_to_label,
         .display = menu_print,
     },
@@ -79,7 +79,7 @@ help_menu_init( void* unused )
 
 INIT_FUNC( "help_menu", help_menu_init );
 
-int help_pages = 117;
+int help_pages = 121;
 int help_menus_num = 10;
 
 

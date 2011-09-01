@@ -968,7 +968,8 @@ silent_pic_take_simple(int interactive)
 	
 	char* imgname = silent_pic_get_name();
 	
-	bmp_printf(FONT_MED, 100, 100, "Psst! Taking a pic      ");
+	NotifyBoxHide();
+	NotifyBox(10000, "Psst! Taking a picture");
 
 	struct vram_info * vram = get_yuv422_hd_vram();
 
@@ -978,7 +979,7 @@ silent_pic_take_simple(int interactive)
 		if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
 	}
 
-	dump_seg(vram->vram, vram->pitch * vram->height * 10, imgname);
+	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 	if (MENU_MODE)
 	{
 		if (!interactive) { fake_simple_button(BGMT_MENU); }
@@ -1094,7 +1095,7 @@ silent_pic_take_slitscan(int interactive)
 	#define BMPPITCH 960
 
 	struct vram_info * vram = get_yuv422_hd_vram();
-	bmp_printf(FONT_MED, 100, 100, "Psst! Taking a slit-scan pic (%dx%d)", vram->width, vram->height);
+	NotifyBox(60000, "Psst! Slit-scan pic (%dx%d)", vram->width, vram->height);
 
 	char* imgname = silent_pic_get_name();
 
@@ -1127,14 +1128,16 @@ silent_pic_take_slitscan(int interactive)
 			FIO_CloseFile(f);
 			FIO_RemoveFile(imgname);
 			clrscr();
-			bmp_printf(FONT_MED, 100, 100, "Slit-scan cancelled.");
+			NotifyBoxHide();
+			NotifyBox(2000, "Slit-scan cancelled.");
 			while (get_halfshutter_pressed()) msleep(100);
 			return;
 		}
 	}
 	FIO_CloseFile(f);
 
-	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a slit-scan pic   ");
+	NotifyBoxHide();
+	NotifyBox(2000, "Psst! Just took a slit-scan pic");
 
 	if (!interactive) return;
 	// wait half-shutter press and clear the screen
@@ -1606,9 +1609,7 @@ static void kelvin_auto()
 	if (lv) kelvin_auto_flag = 1;
 	else
 	{
-		bmp_printf(FONT_LARGE, 20,450, "Only works in LiveView");
-		msleep(1000);
-		bmp_printf(FONT_LARGE, 20,450, "                      ");
+		NotifyBox(2000, "Auto WB only works in LiveView");
 	}
 }
 
@@ -1617,9 +1618,7 @@ static void wbs_gm_auto()
 	if (lv) wbs_gm_auto_flag = 1;
 	else
 	{
-		bmp_printf(FONT_LARGE, 20,450, "Only works in LiveView");
-		msleep(1000);
-		bmp_printf(FONT_LARGE, 20,450, "                      ");
+		NotifyBox(2000, "Auto WBS only works in LiveView");
 	}
 }
 
@@ -1945,10 +1944,15 @@ picstyle_rec_toggle_reverse( void * priv )
 	picstyle_rec = mod(picstyle_rec - 1, NUM_PICSTYLES + 1);
 }
 
-void redraw_after(int msec)
+void redraw_after_task(int msec)
 {
 	msleep(msec);
 	redraw();
+}
+
+void redraw_after(int msec)
+{
+	task_create("redraw", 0x1d, 0, redraw_after_task, msec);
 }
 
 PROP_HANDLER(PROP_MVR_REC_START)
@@ -1963,9 +1967,8 @@ PROP_HANDLER(PROP_MVR_REC_START)
 			int p = get_prop_picstyle_from_index(picstyle_rec);
 			if (p)
 			{
-				bmp_printf(FONT_LARGE, 50, 50, "Picture Style : %s", get_picstyle_name(p));
+				NotifyBox(2000, "Picture Style : %s", get_picstyle_name(p));
 				prop_request_change(PROP_PICTURE_STYLE, &p, 4);
-				task_create("redraw", 0x1f, 0, redraw_after, (void*)2000);
 			}
 		}
 		else if (prev == 2 && rec == 0) // recording => will stop
@@ -1973,9 +1976,8 @@ PROP_HANDLER(PROP_MVR_REC_START)
 			int p = get_prop_picstyle_from_index(picstyle_before_rec);
 			if (p)
 			{
-				bmp_printf(FONT_LARGE, 50, 50, "Picture Style : %s", get_picstyle_name(p));
+				NotifyBox(2000, "Picture Style : %s", get_picstyle_name(p));
 				prop_request_change(PROP_PICTURE_STYLE, &p, 4);
-				task_create("redraw", 0x1f, 0, redraw_after, (void*)2000);
 			}
 			picstyle_before_rec = 0;
 		}
@@ -2197,9 +2199,10 @@ bulb_take_pic(int duration)
 {
 	if (!is_bulb_mode())
 	{
-		bmp_printf(FONT_LARGE, 0, 30, "Pls select bulb mode");
+		NotifyBox(2000, "Please select bulb mode");
 		return;
 	}
+	assign_af_button_to_star_button();
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	if (get_mlu() && !lv) { lens_take_picture(64); msleep(2000); }
 	SW1(1,100);
@@ -2208,12 +2211,13 @@ bulb_take_pic(int duration)
 	int d = duration/1000;
 	for (i = 0; i < d; i++)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+		//~ NotifyBox(1000, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 		wait_till_next_second();
 		if (lens_info.job_state == 0) break;
 	}
 	SW2(0,100);
 	SW1(0,100);
+	restore_af_button_assignment();
 }
 
 static void bulb_toggle_fwd(void* priv)
@@ -2457,7 +2461,8 @@ void auto_exposure_for_timelapse_init()
 {
 	if (shooting_mode != SHOOTMODE_M)
 	{
-		bmp_printf(FONT_MED, 50, 200, "AutoExpo works only in Manual mode.");
+		NotifyBox(2000, "AutoExpo only works in M mode.");
+		msleep(2000);
 		intervalometer_stop();
 		msleep(1000);
 		return;
@@ -2487,7 +2492,7 @@ void auto_exposure_for_timelapse_init()
 	
 	if (thr_hi >= 100 || thr_lo <= 0)
 	{
-		bmp_printf(FONT_MED, 0, 0, "Image is too uoverexposed or too underexposed.");
+		NotifyBox(2000, "Image is too over/under-exposed.");
 		intervalometer_stop();
 		return;
 	}
@@ -2498,6 +2503,10 @@ void auto_exposure_for_timelapse_init()
 void compute_exposure_for_next_shot()
 {
 	if (!aetl_init_done) return;
+	
+	NotifyBoxHide();
+	NotifyBox(2000, "Exposure for next shot...");
+	msleep(500);
 	
 	aetl_measured_level = measure_brightness_level();
 	
@@ -2511,6 +2520,7 @@ void compute_exposure_for_next_shot()
 		adjust_shutter_for_timelapse(-1);
 	
 	adjust_iso_for_timelapse_without_changing_exposure();
+	NotifyBoxHide();
 }
 
 static void auto_exposure_for_timelapse_showinfo()
@@ -2833,7 +2843,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		for( i = -steps/2; i <= steps/2; i ++  )
 		{
 			if (skip0 && (i == 0)) continue;
-			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
+			//~ if (steps > 1) NotifyBox(1000, "Bracketing: %d", i);
 			int new_s = COERCE(s - step_size * i, 0x10, 160);
 			lens_set_rawshutter( new_s );
 			hdr_shutter_release();
@@ -2847,7 +2857,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 		for( i = -steps/2; i <= steps/2; i ++  )
 		{
 			if (skip0 && (i == 0)) continue;
-			bmp_printf(FONT_LARGE, 0, 200, "%d   ", i);
+			//~ if (steps > 1) NotifyBox(1000, "Bracketing: %d", i);
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
 			hdr_shutter_release();
@@ -2860,12 +2870,12 @@ void movie_start()
 {
 	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Not in movie (%d,%d) ", shooting_type, shooting_mode);
+		NotifyBox(2000, "Not in movie mode (%d,%d) ", shooting_type, shooting_mode);
 		return;
 	}
 	if (recording)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Already recording ");
+		NotifyBox(2000, "Already recording ");
 		return;
 	}
 	
@@ -2880,12 +2890,12 @@ void movie_end()
 {
 	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Not in movie (%d,%d) ", shooting_type, shooting_mode);
+		NotifyBox(2000, "Not in movie mode (%d,%d) ", shooting_type, shooting_mode);
 		return;
 	}
 	if (!recording)
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "Not recording ");
+		NotifyBox(2000, "Not recording ");
 		return;
 	}
 
@@ -2910,7 +2920,7 @@ hdr_take_mov(int steps, int step_size)
 	const int s = lens_info.raw_shutter;
 	for( i = -steps/2; i <= steps/2; i ++  )
 	{
-		bmp_printf(FONT_LARGE, 30, 30, "%d   ", i);
+		NotifyBox(2000, "Movie Bracketing: %d ", i);
 		int new_s = COERCE(s - step_size * i, 96, 152);
 		lens_set_rawshutter( new_s );
 		msleep(timer_values[interval_movie_duration_index] * 1000);
@@ -2926,16 +2936,20 @@ void hdr_shot(int skip0, int wait)
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
 	//~ msleep(2000);
+	NotifyBoxHide();
 	if (is_bulb_mode())
 	{
+		//~ NotifyBox(1000, "Bulb shot...");
 		bulb_take_pic(timer_values[bulb_duration_index] * 1000);
 	}
 	else if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
 	{
+		//~ NotifyBox(1000, "Movie record...");
 		hdr_take_mov(hdr_steps, hdr_stepsize);
 	}
 	else if (hdr_steps > 1)
 	{
+		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8);
 		int drive_mode_bak = 0;
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 		{
@@ -2953,10 +2967,12 @@ void hdr_shot(int skip0, int wait)
 	{
 		if (wait)
 		{
+			//~ NotifyBox(1000, "Remote release (wait)...");
 			hdr_take_pics(0,0,0);
 		}
 		else
 		{
+			//~ NotifyBox(1000, "Remote release (no wait)...");
 			if (!silent_pic_mode || !lv) lens_take_picture(0);
 			else silent_pic_take(0);
 			return;
@@ -3118,8 +3134,8 @@ void intervalometer_stop()
 {
 	if (intervalometer_running)
 	{
-		bmp_printf(FONT_LARGE, 20, (lv ? 40 : 3), "Intervalometer stopped.");
 		intervalometer_running = 0;
+		NotifyBox(2000, "Intervalometer stopped.");
 		//~ display_on();
 	}
 }
@@ -3305,17 +3321,22 @@ shoot_task( void* unused )
 			if (was_idle_not_pressed && is_idle_and_pressed)
 			{
 				int d = timer_values[bulb_duration_index];
+				NotifyBoxHide();
+				NotifyBox(10000, "[HalfShutter] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				while (get_halfshutter_pressed())
 				{
-					bmp_printf(FONT_LARGE, 0, 0, "[HS] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 					msleep(100);
 				}
 				wait_till_next_second();
-				bmp_printf(FONT_LARGE, 0, 0, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+				NotifyBoxHide();
+				NotifyBox(2000, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
+				if (get_halfshutter_pressed()) continue;
 				if (gui_state != GUISTATE_IDLE) continue;
-				bmp_printf(FONT_LARGE, 0, 0, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+				NotifyBoxHide();
+				NotifyBox(2000, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
+				if (get_halfshutter_pressed()) continue;
 				if (gui_state != GUISTATE_IDLE) continue;
 				bulb_take_pic(d * 1000);
 			}
@@ -3324,7 +3345,7 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
 		{
-			if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
+			if (hdr_steps > 1 && shooting_mode != SHOOTMODE_MOVIE) hdr_shot(1,1); // skip the middle exposure, which was just taken
 		}
 
 		// toggle flash on/off for next picture
@@ -3447,7 +3468,7 @@ shoot_task( void* unused )
 				card_led_blink(1, 50, 0);
 				wait_till_next_second();
 
-				if (lv && !gui_menu_shown() && !display_turned_off)
+				if (intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
 				{
 					// go to PLAY mode and turn off display to save power
 					fake_simple_button(BGMT_PLAY);
@@ -3460,8 +3481,9 @@ shoot_task( void* unused )
 
 				if (intervalometer_running) 
 				{
-					bmp_printf(FONT_LARGE, 20, (lv ? 40 : 3), "Intervalometer [%d]   ", timer_values[interval_timer_index] - i - 1);
-					bmp_printf(FONT_MED, 20, (lv ? 40 : 3) + 50, "To stop, rotate mode dial or press PLAY or MENU.");
+					NotifyBoxHide();
+					NotifyBox(2000, "Intervalometer: %d", timer_values[interval_timer_index] - i - 1);
+					//~ bmp_printf(FONT_MED, 20, (lv ? 40 : 3) + 50, "To stop, rotate mode dial or press PLAY or MENU.");
 				}
 				else break;
 

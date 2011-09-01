@@ -211,14 +211,44 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(1000);
-	beep();
+	//~ test_dialog_create();
+	int i;
+	for (i = 0; i < 1000; i++)
+	{
+		NotifyBox(50, "NotifyBox test: %d", i);
+	}
+}
+
+void dlg_test_task()
+{
+	gui_stop_menu();
+	msleep(1000);
 	test_dialog_create();
 }
+
+void dlg_test(void* priv)
+{
+	task_create("dlg_test", 0x1c, 0, dlg_test_task, 0);
+}
+
+volatile int aff[26];
 
 static void xx_test(void* priv)
 {
 	gui_stop_menu();
 	task_create("run_test", 0x1c, 0, run_test, 0);
+	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
+	//~ static int x = 0;
+	//~ bmp_printf(FONT_LARGE, 0, 0, "LV manip: %d ", x);
+	//~ msleep(1000);
+	//~ prop_request_change(PROP_LV_MANIPULATION, &x, 4);
+	//~ x++;
+}
+
+static void xx_test2(void* priv)
+{
+	extern volatile int afframe[26];
+	memcpy(aff, afframe, 0x68);
 }
 
 void ui_lock(int x)
@@ -499,17 +529,20 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
-		//~ bmp_hexdump(FONT_SMALL, 0, 200, 0x26B8, 32*5);
+		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
 		//~ extern int disp_pressed;
-		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", uilock);
+		//~ bmp_printf(FONT_MED, 0, 50, "%x  ", MEM(0x246C));
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (get_global_draw())
 		{
+			extern struct semaphore * notify_box_sem;
+			take_semaphore(notify_box_sem, 0);
+			
 			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
 			(
 				display_clock();
@@ -520,10 +553,21 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			if (lv && !gui_menu_shown()) BMP_LOCK
 			(
 				display_shooting_info_lv();
+				static int ae_warned = 0;
 				if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
-					bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, "!!! Auto exposure !!!\nSet 'Movie exposure: Manual' in Canon menu");
+				{
+					if (!ae_warned)
+					{
+						NotifyBox(2000, "!!! Auto exposure !!!");
+						NotifyBox(2000, "Set 'Movie Exposure -> Manual'");
+						ae_warned = 1;
+					}
+				}
+				else ae_warned = 0;
 				display_shortcut_key_hints_lv();
 			)
+			
+			give_semaphore(notify_box_sem);
 		}
 		
 		if (screenshot_sec)
@@ -608,6 +652,12 @@ struct menu_entry debug_menus[] = {
 		.display	= spy_print,
 		.help = "Spy properties / events / memory addresses which change."
 	},
+	{
+		.priv		= "Dialog test",
+		.select		= dlg_test,
+		.display	= menu_print,
+		.help = "Dialog templates (up/dn) and color palettes (left/right)"
+	},
 #if CONFIG_DEBUGMSG
 	{
 		.name = "Debug logging",
@@ -627,6 +677,7 @@ struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
+		.select_reverse = xx_test2,
 		.display	= menu_print,
 		.help = "The camera may turn into a 1D Mark V or it may explode."
 	},
@@ -889,8 +940,8 @@ debug_init_stuff( void )
 	config_ok = 1;
 	restore_kelvin_wb();
 
-	/*dm_set_store_level( 255, 0);
-	dm_set_print_level( 255, 0);*/
+	//~ dm_set_store_level( 255, 0);
+	//~ dm_set_print_level( 255, 0);
 
 	dm_update();
 	

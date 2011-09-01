@@ -88,19 +88,22 @@ void focus_stack_ensure_preconditions()
 	while (lens_info.job_state) msleep(100);
 	if (!lv)
 	{
-		get_out_of_play_mode(500);
 		while (!lv)
 		{
-			bmp_printf(FONT_LARGE, 10, 30, "Please switch to LiveView");
-			msleep(100);
+			get_out_of_play_mode(500);
+			if (lv) break;
+			NotifyBoxHide();
+			NotifyBox(2000, "Please switch to LiveView");
+			msleep(200);
 		}
 		msleep(200);
 	}
 
 	while (is_manual_focus())
 	{
-		bmp_printf(FONT_LARGE, 10, 30, "Please enable autofocus");
-		msleep(100);
+		NotifyBoxHide();
+		NotifyBox(2000, "Please enable autofocus");
+		msleep(200);
 	}
 }
 
@@ -110,7 +113,7 @@ focus_stack(
 	int			step
 )
 {
-	bmp_printf( FONT_LARGE, 10, 30, "Focus stack: %dx%d", count, step );
+	NotifyBox(1000, "Focus stack: %dx%d", count, step );
 	hdr_create_script(count, 0, 1);
 	msleep(1000);
 	
@@ -121,11 +124,15 @@ focus_stack(
 	{
 		if (gui_menu_shown()) break;
 		
-		bmp_printf( FONT_LARGE, 10, 30, "Focus stack: %d of %d", i+1, count );
-		msleep( 500 );
+		NotifyBox(1000, "Focus stack: %d of %d", i+1, count );
+		msleep( 1000 );
 		
 		focus_stack_ensure_preconditions();
+		
+		assign_af_button_to_star_button();
 		lens_take_picture( 64 );
+		msleep(100);
+		restore_af_button_assignment();
 		
 		if( count-1 == i )
 			break;
@@ -138,7 +145,8 @@ focus_stack(
 	}
 
 	msleep(1000);
-	bmp_printf( FONT_LARGE, 10, 30, "Focus stack done!         " );
+	NotifyBoxHide();
+	NotifyBox(2000, "Focus stack done!" );
 
 	// Restore to the starting focus position
 	focus_stack_ensure_preconditions();
@@ -152,12 +160,12 @@ focus_stack_task( void* unused )
 	while(1)
 	{
 		take_semaphore( focus_stack_sem, 0 );
-		msleep( 100 );
+		msleep( 500 );
 		focus_stack( focus_stack_count, focus_stack_step );
 	}
 }
 
-TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1c, 0x1000 );
 
 static struct semaphore * focus_task_sem;
 static int focus_task_dir;
@@ -830,15 +838,9 @@ extern int trap_focus;
 void trap_focus_toggle_from_af_dlg()
 {
 	trap_focus = !trap_focus;
-	
-	int i;
-	for (i = 0; i < 5; i++)
-	{
-		bmp_printf(FONT_LARGE, 30, 80, 
-			"Trap Focus: %s", 
-			trap_focus ? "ON" : "OFF");
-		msleep(100);
-	}
+	clrscr();
+	NotifyBoxHide();
+	NotifyBox(2000, "Trap Focus: %s", trap_focus ? "ON" : "OFF");
 }
 
 CONFIG_INT("focus.patterns", af_patterns, 0);
