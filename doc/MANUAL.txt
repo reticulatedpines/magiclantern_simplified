@@ -31,7 +31,7 @@ To go back to Canon firmware, you may:
 * Format your card (this will remove ML from that card).
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
-How do I erase all the images without removing ML?
+How do I erase all of the images without removing ML?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Canon menu (Play) -> Erase images -> All images on card.
@@ -78,6 +78,8 @@ Does ML eat batteries faster, or cause overheating?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yes and no, depending on what features you have enabled. For example, focus peaking, false colors, waveform, zebras (and maybe others) are CPU hungry. It can even reduce power consumption by turning off the LCD screen, or by letting you change the backlight level quickly. See `Power saving`_ for details.
+
+Don't forget that time flies when you're having fun :)
 
 Tip: `batteries are not expensive <http://amzn.to/ml-lp-e8>`_; however, third-party models may last less than original Canon batteries. See `this topic <http://vimeo.com/groups/magiclantern/forumthread:238190>`_.
 
