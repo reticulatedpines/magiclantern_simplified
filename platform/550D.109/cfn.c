@@ -49,6 +49,15 @@ void assign_af_button_to_halfshutter()
 	prop_request_change(PROP_CFN, cfn, CFN1_LEN);
 }
 
+// for stack focus
+void assign_af_button_to_star_button()
+{
+	af_button_assignment = cfn[2] & 0xF00;
+	cfn[2] &= ~0xF00;
+	cfn[2] |= 0x100;
+	prop_request_change(PROP_CFN, cfn, CFN1_LEN);
+}
+
 void restore_af_button_assignment()
 {
 	if (af_button_assignment == -1) return;
