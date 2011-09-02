@@ -16,6 +16,8 @@ void * test_dialog = 0;
 static int template = 1;
 static int curr_palette = 0;
 
+static void dlg_init();
+
 static int 
 test_dialog_btn_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
 {
@@ -106,14 +108,20 @@ volatile void* notify_box_dlg = 0;
 
 int NotifyBox_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
 {
+    switch (event) {
     case TERMINATE_WINSYS:
         notify_box_dlg = NULL; // don't destroy the dialog here!
-        return 1;
+        msleep(100);           // breathe, winsys, breathe!
+        return 0;              // Canon handlers return 1 here, but when I do this, it crashes...
 
     case DELETE_DIALOG_REQUEST:
+        winsys_struct_1e774_set_0x30();  // is it needed? no idea
+        dialog_something_1();            // idem
         if (notify_box_dlg) DeleteDialogBox(notify_box_dlg); // not sure if I have to delete it here or not
-        notify_box_dlg = NULL; 
-        return dialog != arg4;
+        notify_box_dlg = NULL;
+        winsys_struct_1e774_clr_0x30();
+        struct_1e774_0x40_something();
+        return dialog != arg4;           // ?!
     }
     return 1;
 }
@@ -134,29 +142,26 @@ void NotifyBox_task(char* msg)
     int template = (notify_box_type == NOTIFY_BOX_POPUP) ? 0x72 : 0x2a;
     int stri = (notify_box_type == NOTIFY_BOX_POPUP) ? 3 : 3;
     
-    bmp_printf(FONT_LARGE, 0, 0, "crea");
     GMT_LOCK (
         winsys_struct_1e774_set_0x30();
         dialog_something_1();
-        notify_box_dlg = CreateDialogBox(0, 0, NotifyBox_handler, template, 0); // 25 on 60d
-        dialog_set_property_str(notify_box_dlg, stri, msg);
+        notify_box_dlg = CreateDialogBox(0, 0, NotifyBox_handler, template, 0, 0, 0); // 25 on 60d
+        dialog_set_property_str(notify_box_dlg, stri, msg, 0);
         dialog_redraw(notify_box_dlg);
         winsys_struct_1e774_clr_0x30();
         AJ_KerRLock_n_WindowSig(notify_box_dlg);
         struct_1e774_0x40_something();
     )
-    bmp_printf(FONT_LARGE, 0, 0, "crok");
     
     int i;
     for (i = 0; i < notify_box_timeout/100; i++)
     {
-        msleep(50);
+        msleep(100);
         if (notify_box_stop_request) break;
     }
 
     if (notify_box_dlg)
     {
-        bmp_printf(FONT_LARGE, 0, 0, "dele");
         GMT_LOCK (
             winsys_struct_1e774_set_0x30();
             dialog_something_1();
@@ -164,7 +169,6 @@ void NotifyBox_task(char* msg)
             winsys_struct_1e774_clr_0x30();
             struct_1e774_0x40_something();
         )
-        bmp_printf(FONT_LARGE, 0, 0, "deok");
     }
 
     afframe_set_dirty();
@@ -210,10 +214,10 @@ void RedrawBox()
     // otherwise, the current notify box will do a redraw when closed => nothing to do
 }
 
-void dlg_init()
+static void dlg_init()
 {
     if (notify_box_sem == 0)
-        notify_box_sem = create_named_semaphore("notify_box_sem", 1);
+        notify_box_sem = create_named_semaphore("nbox_sem", 1);
 }
 
-INIT_FUNC(__FILE__, dlg_init);
+//~ INIT_FUNC(__FILE__, dlg_init);
