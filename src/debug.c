@@ -213,9 +213,11 @@ void run_test()
 	msleep(1000);
 	//~ test_dialog_create();
 	int i;
-	for (i = 0; i < 1000; i++)
+	for (i = 0; i < 10000; i++)
 	{
 		NotifyBox(50, "NotifyBox test: %d", i);
+		//~ bmp_printf(FONT_LARGE, 0, 0, "%d", i);
+		//~ msleep(100);
 	}
 }
 
@@ -239,7 +241,7 @@ void fake_buttons()
 {
 	msleep(2000);
 	int i;
-	for (i = 0; i < 1000; i++)
+	for (i = 0; i < 10000; i++)
 	{
 		switch(rand() % 4) {
 			case 0: 
@@ -273,7 +275,7 @@ void dlg_test(void* priv)
 
 volatile int aff[26];
 
-static void xx_test(void* priv)
+void xx_test(void* priv)
 {
 	gui_stop_menu();
 	task_create("run_test", 0x1c, 0, run_test, 0);
@@ -556,7 +558,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
 	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
 	dump_seg(&(font_small.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
-
+	
 	int k;
 	for (k = 0; ; k++)
 	{
