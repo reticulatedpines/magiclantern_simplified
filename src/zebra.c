@@ -184,12 +184,16 @@ void crop_set_dirty(int value)
 
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
-	redraw_after(2000);
+	static int first_time = 1;
+	if (!first_time) redraw_after(2000);
+	first_time = 0;
 	return prop_cleanup( token, property );
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
-	redraw_after(2000);
+	static int first_time = 1;
+	if (!first_time) redraw_after(2000);
+	first_time = 0;
 	return prop_cleanup( token, property );
 }
 
