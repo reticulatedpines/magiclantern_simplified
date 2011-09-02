@@ -110,8 +110,8 @@ int NotifyBox_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int 
 {
     switch (event) {
     case TERMINATE_WINSYS:
-        notify_box_dlg = NULL; // don't destroy the dialog here!
         msleep(100);           // breathe, winsys, breathe!
+        notify_box_dlg = NULL; // don't destroy the dialog here!
         return 0;              // Canon handlers return 1 here, but when I do this, it crashes...
 
     case DELETE_DIALOG_REQUEST:
