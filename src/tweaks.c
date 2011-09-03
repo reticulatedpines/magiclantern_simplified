@@ -513,7 +513,7 @@ iso_round_only_display(
 }
 
 
-extern int swap_menu;
+CONFIG_INT("swap.menu", swap_menu, 0);
 static void
 swap_menu_display(
         void *                  priv,
@@ -564,6 +564,24 @@ picstyle_disppreset_display(
 		picstyle_disppreset_enabled ? "ON" : "OFF"
 	);
 }*/
+
+extern int display_dont_mirror;
+static void
+display_dont_mirror_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Mirrored Display    : %s", 
+		display_dont_mirror ? "Don't allow": "Allow"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(!display_dont_mirror), 0);
+}
 
 
 struct menu_entry tweak_menus[] = {
@@ -654,7 +672,16 @@ struct menu_entry tweak_menus[] = {
 		.display = display_off_by_halfshutter_print, 
 		.select = menu_binary_toggle,
 		.help = "Outside LV, turn off display with long half-shutter press."
-	}
+	},
+	#endif
+	#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	{
+		.name = "Mirrored Display",
+		.priv = &display_dont_mirror,
+		.display = display_dont_mirror_display, 
+		.select = menu_binary_toggle,
+		.help = "Prevents display mirroring, which may reverse ML texts."
+	},
 	#endif
 /*	{
 		.priv = &lv_metering,

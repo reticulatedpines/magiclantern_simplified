@@ -35,7 +35,7 @@
 
 unsigned int button_center_lvafframe = BGMT_PRESS_SET;
 
-int swap_menu = 0; // not used on 550D
+//~ int swap_menu = 0; // not used on 550D
 
 // halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
 int halfshutter_pressed = 0;

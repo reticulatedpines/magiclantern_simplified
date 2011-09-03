@@ -196,6 +196,15 @@ PROP_HANDLER(PROP_HDMI_CHANGE)
 	return prop_cleanup( token, property );
 }
 
+volatile int lcd_position = 0;
+volatile int display_dont_mirror_dirty;
+PROP_HANDLER(PROP_LCD_POSITION)
+{
+	if (lcd_position != buf[0]) display_dont_mirror_dirty = 1;
+	lcd_position = buf[0];
+	redraw_after(100);
+	return prop_cleanup( token, property );
+}
 
 /*int gui_state;
 PROP_HANDLER(PROP_GUI_STATE) {
@@ -3280,6 +3289,7 @@ clearscreen_loop:
 TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1b, 0x1000 );
 
 CONFIG_INT("disable.redraw", disable_redraw, 0);
+CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
@@ -3287,6 +3297,13 @@ CONFIG_INT("disable.redraw", disable_redraw, 0);
 void redraw()
 {
 BMP_LOCK (
+
+	if (display_dont_mirror && display_dont_mirror_dirty)
+	{
+		if (lcd_position == 1) NormalDisplay();
+		display_dont_mirror_dirty = 0;
+	}
+
 	if (disable_redraw) 
 	{
 		clrscr(); // safest possible redraw method :)

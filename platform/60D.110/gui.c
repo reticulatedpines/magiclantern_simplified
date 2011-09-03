@@ -33,7 +33,7 @@
 #define FAKE_BTN 123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
-CONFIG_INT("swap.menu", swap_menu, 0);
+extern int swap_menu;
 
 void gui_unlock( void )
 {

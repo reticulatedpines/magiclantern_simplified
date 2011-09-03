@@ -211,7 +211,6 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(1000);
-	ChangeHDMIOutputSizeToFULLHD();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -674,8 +673,21 @@ spy_print(
 	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
+void NormalDisplay();
+void MirrorDisplay();
+void ReverseDisplay();
 
 struct menu_entry debug_menus[] = {
+#ifndef CONFIG_50D
+	{
+		.priv		= "Display: Normal/Reverse/Mirror",
+		.select		= NormalDisplay,
+		.select_reverse = ReverseDisplay,
+		.select_auto = MirrorDisplay,
+		.display	= menu_print,
+		.help = "Display image: Normal [SET] / Reverse [PLAY] / Mirror [Q]"
+	},
+#endif
 	{
 		.name = "Draw palette",
 		.priv		= "Draw palette",
