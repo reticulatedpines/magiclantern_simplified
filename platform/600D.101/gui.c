@@ -114,6 +114,10 @@ static int handle_buttons(struct event * event)
 			return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
+	// notify boxes
+	if (event->param == MLEV_NOTIFY_BOX_OPEN || event->param == MLEV_NOTIFY_BOX_CLOSE)
+		return handle_notifybox_bgmt(event);
+
 	if (event->param != 0x5a)
  	{
 		idle_wakeup_reset_counters();
@@ -690,10 +694,7 @@ static void gui_main_task_60d()
 			continue;
 		
 		// sync with other Canon calls => prevents some race conditions
- 		// weak version will timeout after 300ms
- 		// so if there's some hidden bug, it will not freeze at least
-		// not a good programming practice... but works for an undocumented system
-		GMT_LOCK_WEAK(
+		GMT_LOCK(
 			void(*f)(struct event *) = funcs[index];
 			f(event);
 		)

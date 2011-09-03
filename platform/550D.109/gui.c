@@ -87,7 +87,7 @@ extern void* gui_main_task_functbl;
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
-{
+{	
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 
 	extern int ml_started;
@@ -98,6 +98,10 @@ static int handle_buttons(struct event * event)
 		else
 			return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
+
+	// notify boxes
+	if (event->param == MLEV_NOTIFY_BOX_OPEN || event->param == MLEV_NOTIFY_BOX_CLOSE)
+		return handle_notifybox_bgmt(event);
 	
 	if (event->param != 0x56)
  	{
@@ -617,9 +621,6 @@ static void gui_main_task_550d()
 			continue;
 		
 		// sync with other Canon calls => prevents some race conditions
- 		// weak version will timeout after 300ms
- 		// so if there's some hidden bug, it will not freeze at least
-		// not a good programming practice... but works for an undocumented system
 		GMT_LOCK(
 			void(*f)(struct event *) = funcs[index];
 			f(event);

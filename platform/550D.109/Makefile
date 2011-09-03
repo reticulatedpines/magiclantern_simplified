@@ -49,7 +49,7 @@ ML_OBJS-y = \
 	menuindex.o \
 	af_patterns.o \
 	focus.o \
-	dialog_test.o \
+	notify_box.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -387,7 +387,7 @@ my_init_task(void)
 		return;
 	}
 
-	NotifyBox(5000, "Magic Lantern");
+	//~ NotifyBox(5000, "Magic Lantern");
 
 	ui_lock(UILOCK_EVERYTHING);
 	
@@ -396,6 +396,7 @@ my_init_task(void)
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
+
 
 	// It's better to start a new task which does the init
 	// Guess: stack overflow in this task?

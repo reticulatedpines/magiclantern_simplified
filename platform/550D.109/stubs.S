@@ -203,8 +203,8 @@ NSTUB( 0xFF21023C, GuiEdLedOn )
 NSTUB( 0xff01d838, main_ctrl_task )
 NSTUB( 0xFF0364A0, LVCAF_LensDriveStart )
 
-NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
-NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
+//NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
+//NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 
 NSTUB(0xFF1D2D5C, msg_queue_post)
 
@@ -231,3 +231,5 @@ NSTUB(0xFF2CFB18, winsys_struct_1e774_set_0x30)
 NSTUB(0xFF2CFB08, winsys_struct_1e774_clr_0x30)
 NSTUB(0xFF2CFAE4, struct_1e774_0x40_something)
 NSTUB(0xFF2B5164, AJ_KerRLock_n_WindowSig)
+
+NSTUB(0x1E638, gui_task_list)

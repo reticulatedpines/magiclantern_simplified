@@ -201,8 +201,8 @@ NSTUB( 0xFF082704, strcmp )     // used to cmp "akashimorino"
 NSTUB( 0x6290, mvr_config )
 
 NSTUB( 0xff1f5c40, msg_queue_post)
-NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
-NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
+//NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
+//NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 NSTUB( 0xff29e25c, AfCtrl_SetLensParameterRemote )
 
 NSTUB( 0xff039d4c, PD_GetBatteryPower )
@@ -218,3 +218,5 @@ NSTUB(0xFF31DA7C, CreateDialogBox)
 NSTUB(0xFF31D214, DeleteDialogBox)
 NSTUB(0xFF31E390, dialog_redraw)
 NSTUB(0xFF234DF4, dialog_set_property_str)
+
+NSTUB(0xAC30, gui_task_list)

@@ -676,9 +676,6 @@ static void gui_main_task_60d()
 			continue;
 		
 		// sync with other Canon calls => prevents some race conditions
- 		// weak version will timeout after 300ms
- 		// so if there's some hidden bug, it will not freeze at least
-		// not a good programming practice... but works for an undocumented system
 		GMT_LOCK(
 			void(*f)(struct event *) = funcs[index];
 			f(event);

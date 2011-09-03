@@ -340,4 +340,7 @@ gui_hide_menu( int redisplay_time );
 // 10: unavi set?
 #define GUISTATE_QMENU 9
 
+#define MLEV_NOTIFY_BOX_OPEN 0x1234
+#define MLEV_NOTIFY_BOX_CLOSE 0x1235
+
 #endif

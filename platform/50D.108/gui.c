@@ -81,6 +81,10 @@ static int handle_buttons(struct event * event)
 		return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
+	// notify boxes
+	if (event->param == MLEV_NOTIFY_BOX_OPEN || event->param == MLEV_NOTIFY_BOX_CLOSE)
+		return handle_notifybox_bgmt(event);
+
 	// Change the picture style button to show our menu
 	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
 	{
@@ -244,10 +248,7 @@ my_gui_main_task( void )
 		if (IS_FAKE(event)) event->arg = 0;
 
 // sync with other Canon calls => prevents some race conditions
-// weak version will timeout after 300ms
-// so if there's some hidden bug, it will not freeze at least
-// not a good programming practice... but works for an undocumented system
-GMT_LOCK_WEAK(
+GMT_LOCK(
 		switch( event->type )
 		{
 		case 0:
