@@ -2401,8 +2401,12 @@ int adjust_iso_for_timelapse_without_changing_exposure()
 	if (!is_bulb_mode()) ideal_shutter_speed_raw = COERCE(ideal_shutter_speed_raw, 16, 160); // 30s ... 1/8000
 
 	int delta = 0;  // between 90 and 180 degrees => OK
-	if (ideal_shutter_speed_raw > raw_shutter_0 + 8) delta = 8; // shutter too slow (more than 180 degrees -- ideal value) => boost ISO
-	if (ideal_shutter_speed_raw < raw_shutter_0) delta = -8; // shutter too fast (less than 90 degrees) => lower ISO
+
+	if (ideal_shutter_speed_raw > raw_shutter_0)
+		delta = 8; // shutter too slow (more than 180 degrees -- ideal value) => boost ISO
+
+	if (ideal_shutter_speed_raw < raw_shutter_0 - 8)
+		delta = -8; // shutter too fast (less than 90 degrees) => lower ISO
 	
 	if (delta) // should we change something?
 	{
@@ -2422,6 +2426,7 @@ int adjust_iso_for_timelapse_without_changing_exposure()
 			if (is_bulb_mode())
 			{
 				bulb_shutter_value = new_bulb_shutter;
+				return 1;
 			}
 			else
 			{
@@ -2550,11 +2555,24 @@ void compute_exposure_for_next_shot()
 	int thr_hi = aetl_reference_level + aetl_level_ev_ratio_plus / 3;
 	int thr_lo = aetl_reference_level - aetl_level_ev_ratio_minus / 3;
 	
-	if (aetl_measured_level > thr_hi)
-		adjust_shutter_for_timelapse(1);
-	
-	else if (aetl_measured_level < thr_lo)
-		adjust_shutter_for_timelapse(-1);
+	if (is_bulb_mode()) // free adjustment
+	{
+		int level_ev_ratio = (aetl_level_ev_ratio_plus + aetl_level_ev_ratio_minus) / 2;
+		int err = aetl_measured_level - aetl_reference_level;
+		if (ABS(err) <= 1) err = 0;
+		int correction_ev_x100 = - 100 * err / level_ev_ratio / 2;
+		bulb_shutter_value = bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100;
+		NotifyBox(1000, "Exposure difference: %d%% ", err);
+		msleep(500);
+	}
+	else // 1/8 EV step limit
+	{
+		if (aetl_measured_level > thr_hi)
+			adjust_shutter_for_timelapse(1);
+		
+		else if (aetl_measured_level < thr_lo)
+			adjust_shutter_for_timelapse(-1);
+	}
 	
 	adjust_iso_for_timelapse_without_changing_exposure();
 	NotifyBoxHide();
