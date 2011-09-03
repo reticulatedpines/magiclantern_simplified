@@ -428,7 +428,10 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   Shows a transparent overlay which can be created from any image in Play mode.
   
-  To select the image, go to Play mode and press the ``LiveView`` button.
+  Usage:
+  
+  * To select the image, go to Play mode and press the ``LiveView`` button.
+  * Move the ghost image in LiveView with arrow keys, and center it with ``SET``.
 
 **Live Defish: ON/OFF**
 
