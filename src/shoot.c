@@ -2908,6 +2908,11 @@ void hdr_shutter_release()
 	if (!silent_pic_mode || !lv)
 	{
 		if (get_mlu() && !lv) { lens_take_picture(64); msleep(500); }
+
+		#ifdef CONFIG_600D
+		msleep(100);
+		#endif
+
 		lens_take_picture(64);
 	}
 	else { msleep(300); silent_pic_take(0); }
