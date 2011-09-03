@@ -106,26 +106,6 @@ void test_menu() {
 
 volatile void* notify_box_dlg = 0;
 
-int NotifyBox_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
-{
-    switch (event) {
-    case TERMINATE_WINSYS:
-        msleep(100);           // breathe, winsys, breathe!
-        notify_box_dlg = NULL; // don't destroy the dialog here!
-        return 0;              // Canon handlers return 1 here, but when I do this, it crashes...
-
-    case DELETE_DIALOG_REQUEST:
-        winsys_struct_1e774_set_0x30();  // is it needed? no idea
-        dialog_something_1();            // idem
-        if (notify_box_dlg) DeleteDialogBox(notify_box_dlg); // not sure if I have to delete it here or not
-        notify_box_dlg = NULL;
-        winsys_struct_1e774_clr_0x30();
-        struct_1e774_0x40_something();
-        return dialog != arg4;           // ?!
-    }
-    return 1;
-}
-
 #define NOTIFY_BOX_POPUP 0
 #define NOTIFY_BOX_FULLSCREEN 1
 
@@ -133,49 +113,90 @@ struct semaphore * notify_box_sem = 0;
 int notify_box_timeout = 0;
 int notify_box_stop_request = 0;
 int notify_box_type = NOTIFY_BOX_POPUP;
-void NotifyBox_task(char* msg)
+char notify_box_msg[100];
+
+int NotifyBox_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
 {
-    notify_box_stop_request = 0;
+    switch (event) {
+    case TERMINATE_WINSYS:
+        //~ notify_box_stop_request = 1;
+        notify_box_dlg = NULL; // don't destroy the dialog here!
+        return 0;              // Canon handlers return 1 here, but when I do this, it crashes...
 
-    if (gui_menu_shown()) { gui_stop_menu(); msleep(300); }
-
-    int template = (notify_box_type == NOTIFY_BOX_POPUP) ? 0x72 : 0x2a;
-    int stri = (notify_box_type == NOTIFY_BOX_POPUP) ? 3 : 3;
-    
-    GMT_LOCK (
-        winsys_struct_1e774_set_0x30();
-        dialog_something_1();
-        notify_box_dlg = CreateDialogBox(0, 0, NotifyBox_handler, template, 0, 0, 0); // 25 on 60d
-        dialog_set_property_str(notify_box_dlg, stri, msg, 0);
-        dialog_redraw(notify_box_dlg);
-        winsys_struct_1e774_clr_0x30();
-        AJ_KerRLock_n_WindowSig(notify_box_dlg);
-        struct_1e774_0x40_something();
-    )
-    
-    int i;
-    for (i = 0; i < notify_box_timeout/100; i++)
-    {
-        msleep(100);
-        if (notify_box_stop_request) break;
+    case DELETE_DIALOG_REQUEST:
+        if (notify_box_dlg) DeleteDialogBox(notify_box_dlg); notify_box_dlg = NULL;
+        //~ _NotifyBox_close();
+        //~ notify_box_stop_request = 1;
+        return dialog != arg4;           // ?!
     }
+    return 0;
+}
 
+/*void _NotifyBox_open()
+{
+    if (notify_box_dlg) _NotifyBox_close();
+    int template = (notify_box_type == NOTIFY_BOX_POPUP) ? 0x72 : 0x72; //0x2a;
+    int stri = (notify_box_type == NOTIFY_BOX_POPUP) ? 3 : 3;
+    winsys_struct_1e774_set_0x30();
+    dialog_something_1();
+    notify_box_dlg = CreateDialogBox(0, 0, NotifyBox_handler, template, 0, 0, 0); // 25 on 60d
+    dialog_set_property_str(notify_box_dlg, stri, notify_box_msg, 0);
+    dialog_redraw(notify_box_dlg);
+    winsys_struct_1e774_clr_0x30();
+    AJ_KerRLock_n_WindowSig(notify_box_dlg);
+    struct_1e774_0x40_something();
+}
+void _NotifyBox_close()
+{
     if (notify_box_dlg)
     {
-        GMT_LOCK (
-            winsys_struct_1e774_set_0x30();
-            dialog_something_1();
-            DeleteDialogBox(notify_box_dlg); notify_box_dlg = NULL;
-            winsys_struct_1e774_clr_0x30();
-            struct_1e774_0x40_something();
-        )
+        winsys_struct_1e774_set_0x30();
+        dialog_something_1();
+        if (notify_box_dlg) DeleteDialogBox(notify_box_dlg); notify_box_dlg = NULL;
+        winsys_struct_1e774_clr_0x30();
+        struct_1e774_0x40_something();
     }
-
     afframe_set_dirty();
     crop_set_dirty(5);
     menu_set_dirty();
+}*/
 
-    give_semaphore(notify_box_sem);
+int handle_notifybox_bgmt(struct event * event)
+{
+    //~ bmp_printf(FONT_LARGE, 0, 0, "BGMT %x ", event->param);
+    if (event->param == MLEV_NOTIFY_BOX_OPEN)
+    {
+        //~ BMP_LOCK ( bfnt_puts(notify_box_msg, 50, 50, COLOR_WHITE, COLOR_BLACK); )
+        BMP_LOCK ( bmp_printf(FONT_LARGE, 50, 50, notify_box_msg); )
+        //~ _NotifyBox_open();
+    }
+    else if (event->param == MLEV_NOTIFY_BOX_CLOSE)
+    {
+        //~ _NotifyBox_close();
+        BMP_LOCK ( RedrawDisplay(); )
+        give_semaphore(notify_box_sem);
+    }
+    return 0;
+}
+
+void NotifyBox_task(void* priv)
+{
+    notify_box_stop_request = 0;
+    //~ if (gui_menu_shown()) { gui_stop_menu(); msleep(100); }
+
+    //~ bmp_printf(FONT_LARGE, 0, 0, "NBOX %s ", notify_box_msg);
+
+    fake_simple_button(MLEV_NOTIFY_BOX_OPEN);
+
+    int i;
+    for (i = 0; i < notify_box_timeout/50; i++)
+    {
+        msleep(50);
+        fake_simple_button(MLEV_NOTIFY_BOX_OPEN); // hack to redraw the message
+        if (notify_box_stop_request) break;
+    }
+
+    fake_simple_button(MLEV_NOTIFY_BOX_CLOSE);
 }
 
 void NotifyBoxHide()
@@ -189,19 +210,18 @@ void NotifyBox(int timeout, char* fmt, ...)
     dlg_init();
     take_semaphore(notify_box_sem, 0);
     va_list ap;
-    static char buf[100];
     va_start( ap, fmt );
-    vsnprintf( buf, sizeof(buf), fmt, ap );
+    vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
     va_end( ap );
 
-    notify_box_timeout = timeout;
+    notify_box_timeout = MAX(timeout, 100);
     notify_box_type = (lv || PLAY_MODE || gui_state == GUISTATE_QR) ? NOTIFY_BOX_POPUP : NOTIFY_BOX_FULLSCREEN;
-    task_create("NotifyBox_task", 0x1d, 0, NotifyBox_task, buf);
-    //~ msleep(200);
+    task_create("NotifyBox_task", 0x1a, 0, NotifyBox_task, 0);
 }
 
 void RedrawBox()
 {
+    return;
     if (gui_menu_shown()) return;
     dlg_init();
     int s = take_semaphore(notify_box_sem, 1);
@@ -209,7 +229,8 @@ void RedrawBox()
     {
         notify_box_timeout = 0;
         notify_box_type = NOTIFY_BOX_POPUP;
-        task_create("NotifyBox_task", 0x1d, 0, NotifyBox_task, "");
+        snprintf(notify_box_msg, sizeof(notify_box_msg), "");
+        task_create("NotifyBox_task", 0x1a, 0, NotifyBox_task, 0);
     }
     // otherwise, the current notify box will do a redraw when closed => nothing to do
 }

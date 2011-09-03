@@ -208,8 +208,9 @@ NSTUB( 0xFF538000, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 
 NSTUB( 0x5dd0, mvr_config )
 
-NSTUB(0xff370158, ChangeHDMIOutputSizeToVGA)
-NSTUB(0xff36fed4, ChangeHDMIOutputSizeToFULLHD)
+// not safe to call
+//NSTUB(0xff370158, ChangeHDMIOutputSizeToVGA)
+//NSTUB(0xff36fed4, ChangeHDMIOutputSizeToFULLHD)
 
 NSTUB(0xff382e10, StartShootOlcAFFrameApp)
 
@@ -228,3 +229,7 @@ NSTUB(0xFF3076D8, CreateDialogBox)
 NSTUB(0xFF306E6C, DeleteDialogBox)
 NSTUB(0xFF307FEC, dialog_redraw)
 NSTUB(0xFF21ADB8, dialog_set_property_str)
+
+NSTUB(0xFF325774, struct_1e774_0x40_something )
+NSTUB(0xFF36FADC, StartDialogRefreshTimer);
+NSTUB(0x28760, gui_task_list);

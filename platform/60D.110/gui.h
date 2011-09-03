@@ -345,4 +345,7 @@ gui_hide_menu( int redisplay_time );
 
 void fake_simple_button(int bgmt_code);
 
+#define MLEV_NOTIFY_BOX_OPEN 0x1234
+#define MLEV_NOTIFY_BOX_CLOSE 0x1235
+
 #endif
