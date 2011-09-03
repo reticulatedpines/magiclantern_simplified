@@ -42,6 +42,9 @@ static int edit_mode = 0;
 static int config_dirty = 0;
 int menu_help_active = 0;
 
+static int x0 = 0;
+static int y0 = 0;
+
 void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
@@ -379,7 +382,7 @@ menu_display(
 		if (menu->selected && menu->help)
 			bmp_printf(
 				FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-				10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, 450, 
+				x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, x0 + 450, 
 				menu->help
 			);
 
@@ -422,7 +425,7 @@ menus_display(
 	if (!audio_meters_are_drawn())
 		bmp_printf(
 			FONT(FONT_MED, 55, COLOR_BLACK), // gray
-			720 - font_med.width * strlen(MENU_NAV_HELP_STRING), font_med.height, 
+			x0 + 720 - font_med.width * strlen(MENU_NAV_HELP_STRING), y0 + font_med.height, 
 				MENU_NAV_HELP_STRING
 		);
 
@@ -603,8 +606,8 @@ menu_redraw_if_damaged()
 			//~ if (MENU_MODE || lv) clrscr();
 			menu_damage = 0;
 			BMP_LOCK (
-				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 720, 480 ); 
-				menus_display( menus, 10, 40 ); 
+				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
+				menus_display( menus, x0 + 10, y0 + 40 ); 
 				if (is_menu_active(" (i)")) menu_show_version();
 				draw_ml_topbar();
 			)
@@ -1068,9 +1071,16 @@ menu_task( void* unused )
 		{
 			open_canon_menu();
 		}
+		else if (lv && hdmi_code == 2 && !recording)
+		{
+			ChangeHDMIOutputSizeToFULLHD();
+		}
 		#endif
 		msleep(100);
-		
+
+		x0 = hdmi_code == 5 ? 120 : 0;
+		y0 = hdmi_code == 5 ? 40 : 0;
+
 		#ifdef CONFIG_50D
 			bmp_printf(FONT_LARGE, 0, 50, "Creating menu task");
 		#endif
@@ -1156,7 +1166,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-	bmp_printf(FONT_MED, 10, 410,
+	bmp_printf(FONT_MED, x0 + 10, y0 + 410,
 		"Magic Lantern version : %s\n"
 		"Mercurial changeset   : %s\n"
 		"Built on %s by %s.",

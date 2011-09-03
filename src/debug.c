@@ -211,14 +211,7 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(1000);
-	//~ test_dialog_create();
-	int i;
-	for (i = 0; i < 10000; i++)
-	{
-		NotifyBox(50, "NotifyBox test: %d", i);
-		//~ bmp_printf(FONT_LARGE, 0, 0, "%d", i);
-		//~ msleep(100);
-	}
+	ChangeHDMIOutputSizeToFULLHD();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -261,7 +254,7 @@ void fake_buttons()
 	}
 }
 
-void dlg_test_task()
+/*void dlg_test_task()
 {
 	gui_stop_menu();
 	msleep(1000);
@@ -271,15 +264,27 @@ void dlg_test_task()
 void dlg_test(void* priv)
 {
 	task_create("dlg_test", 0x1c, 0, dlg_test_task, 0);
-}
+}*/
 
 volatile int aff[26];
+
+void ChangeHDMIOutputSizeToVGA()
+{
+	int x[] = {2,0,0,0,0,0,0,0};
+	prop_request_change(PROP_HDMI_CHANGE_CODE, x, 32);
+}
+
+void ChangeHDMIOutputSizeToFULLHD()
+{
+	int x[] = {5,0,0,0,0,0,0,0};
+	prop_request_change(PROP_HDMI_CHANGE_CODE, x, 32);
+}
 
 void xx_test(void* priv)
 {
 	gui_stop_menu();
 	task_create("run_test", 0x1c, 0, run_test, 0);
-	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
+	/*task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);*/
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
 	//~ bmp_printf(FONT_LARGE, 0, 0, "LV manip: %d ", x);
@@ -578,7 +583,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
 		//~ extern int disp_pressed;
-		//~ bmp_printf(FONT_MED, 0, 50, "%x  ", MEM(0x246C));
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (get_global_draw())
@@ -695,12 +699,12 @@ struct menu_entry debug_menus[] = {
 		.display	= spy_print,
 		.help = "Spy properties / events / memory addresses which change."
 	},
-	{
+/*	{
 		.priv		= "Dialog test",
 		.select		= dlg_test,
 		.display	= menu_print,
 		.help = "Dialog templates (up/dn) and color palettes (left/right)"
-	},
+	},*/
 #if CONFIG_DEBUGMSG
 	{
 		.name = "Debug logging",

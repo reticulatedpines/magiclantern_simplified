@@ -179,9 +179,13 @@ void erase_bottom_bar()
 	draw_ml_bottombar();
 }
 
+int lens_display_dirty = 0;
+void lens_display_set_dirty() { lens_display_dirty = 1; }
+
 void
 update_lens_display()
 {
+	if (!lens_display_dirty) return;
 	if (is_menu_help_active()) return;
 
 	draw_ml_topbar();
@@ -198,21 +202,7 @@ update_lens_display()
 		else
 			draw_ml_bottombar();
 	}
-	/*else
-	{
-		bmp_printf(FONT_SMALL, 10, 400, "bottom bar debug: %d %x %x ", LV_BOTTOM_BAR_DISPLAYED, 
-			#ifdef CONFIG_550D
-			*(int*)0x5780, *(int*)0x20164
-			#endif
-			#ifdef CONFIG_600D
-			 *(int*)0x5B28, *(int*)0xC84C
-			#endif
-			#ifdef CONFIG_60D
-			*(int*)0x5680, *(int*)0x2A434
-			#endif
-			);
-	}*/
-	//~ if (!audio_meters_are_drawn())
+	lens_display_dirty = 0;
 }
 
 int raw2shutter_x100(int raw_shutter)
@@ -230,20 +220,25 @@ void draw_ml_bottombar()
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
+	if (shooting_mode == SHOOTMODE_MOVIE) bg = COLOR_BLACK;
 	//~ unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	//~ unsigned height	= fontspec_height( font );
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 	
+	unsigned bottom = 480;
+	if (ext_monitor_rca) bottom = 420;
+	if (hdmi_code == 2) bottom = 405;
+	if (hdmi_code == 5) bottom = 525;
 	unsigned x = 420;
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 	
-	{
+     unsigned int x_origin = 50;
+     unsigned int y_origin = bottom - 30;
 
-      unsigned int x_origin = 50;
-      unsigned int y_origin = 480 - 30;
+	if (hdmi_code == 5) x_origin = 150;
 
       /*******************
       * FOCAL & APERTURE *
@@ -282,7 +277,7 @@ void draw_ml_bottombar()
 
 		  bmp_printf( med_font, 
 					  x_origin + font_large.width * strlen(focal) - 3, 
-					  480 - font_med.height + 1, 
+					  bottom - font_med.height + 1, 
 					  crop_info ? "eq" : "mm");
 
 		  bmp_printf( med_font, 
@@ -441,8 +436,7 @@ void draw_ml_bottombar()
 		
 		// MODE
 		
-		x = 0;
-			bmp_printf( text_font, x, y_origin,
+			bmp_printf( text_font, x_origin - 50, y_origin,
 				shooting_mode == SHOOTMODE_P ? "P " :
 				shooting_mode == SHOOTMODE_M ? "M " :
 				shooting_mode == SHOOTMODE_TV ? "Tv" :
@@ -526,18 +520,32 @@ void draw_ml_bottombar()
 		if (ba) bmp_printf(font, x, y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
 		else bmp_printf(font, x, y, "  ");
 */
-		x = 640;
 		text_font = FONT(FONT_LARGE, 0x73, bg );   // WHITE
-		bmp_printf( text_font, x, y_origin,
+		bmp_printf( text_font, x_origin + 590, y_origin,
 			"%s%d.%d",
 			AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
 			ABS(AE_VALUE) / 8,
 			mod(ABS(AE_VALUE) * 10 / 8, 10)
 		);
 
+	if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
+	if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
+}
 
+void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
+{
+	// shave the bottom bar a bit :)
+	int i,j;
+	for (i = y0; i < y0 + h; i++)
+	{
+		int new_color = bmp_getpixel(x0+1,i);
+		for (j = x0; j < x0+w; j++)
+			if (bmp_getpixel(j,i) == shaved_color)
+				bmp_putpixel(j,i,new_color);
+		//~ bmp_putpixel(x0+5,i,COLOR_RED);
 	}
 }
+
 void draw_ml_topbar()
 {
 	int bg = TOPBAR_BGCOLOR;
@@ -549,6 +557,23 @@ void draw_ml_topbar()
 	
 	unsigned x = 80;
 	unsigned y = 0;
+	if (ext_monitor_rca) y = 10;
+	if (hdmi_code == 2) y = 15;
+
+	if (hdmi_code == 5)
+	{
+		if (gui_menu_shown())
+		{
+			x = 120;
+			y = 45;
+		}
+		else
+		{
+			x = 100;
+			y = 30;
+			if (f == FONT_SMALL) return;
+		}
+	}
 
 	bmp_printf( font, x, y,
 		"DISP %d", get_disp_mode()

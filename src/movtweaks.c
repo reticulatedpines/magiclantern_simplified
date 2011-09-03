@@ -301,11 +301,15 @@ movtweak_task( void* unused )
 		{
 			if (hdmi_code == 5)
 			{
+				int g = get_global_draw();
+				set_global_draw(0);
 				msleep(1000);
 				GMT_LOCK (
 					ChangeHDMIOutputSizeToVGA();
 				)
-				msleep(1000);
+				msleep(2000);
+				set_global_draw(g);
+				NotifyBox(2000, "HDMI resolution: 720x480");
 			}
 		}
 	}

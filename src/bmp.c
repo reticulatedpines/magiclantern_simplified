@@ -34,52 +34,33 @@
 
 #define USE_LUT
 
-extern int LV_EX_X;
-extern int LV_EX_Y;
 extern int ext_monitor_rca;
 extern int ext_monitor_hdmi;
 extern int recording;
 
 void calc_ov_loc_size(bmp_ov_loc_size_t *os)
 {
-	int ov_x, ov_y;
-	os->lv_ex_x = LV_EX_X;
-	os->lv_ex_y = LV_EX_Y;
-	if ((ext_monitor_hdmi && hdmi_code == 5) || ext_monitor_rca) {
-		// Parameters of challenge
-		// HDMI output is 1920x1080 (16:9) / 640x480 (4:3)
-		// BMP overlay 960x540 (4:3) / 720x480 (4:3)
-		// LV centered with aspect ratio of 3:2
-		int disp_x, disp_y;
-		
-		if(recording || ext_monitor_rca) {
-			disp_x=640;
-			disp_y=480;
-			ov_x=720;
-			ov_y=480;
-			if(ext_monitor_rca) {
-				os->lv_ex_y = 394;
-			}
-			os->lv_ex_x = 570; // we have different live view dimensions than reported (3:2 -> 4:3)
-		} else {
-			disp_x=1920;
-			disp_y=1080;
-			ov_x=960;
-			ov_y=540;
-		}
-		os->bmp_ex_x=os->lv_ex_x*ov_x/disp_x;
-		os->bmp_ex_y=os->lv_ex_y*ov_y/disp_y;
-		os->bmp_of_y=(recording||ext_monitor_rca||os->lv_ex_y==880)?24:0; //screen layout differs beween rec mode and standby
-		os->bmp_of_x=ext_monitor_rca?(ov_x-os->bmp_ex_x)/3:((ov_x-os->bmp_ex_x)>>1);
-	} else {
-		ov_x = os->bmp_ex_x=720;
-		ov_y = os->bmp_ex_y=480;
-		os->bmp_of_x=0;
-		os->bmp_of_y=0;
+	if (hdmi_code == 2 || ext_monitor_rca)
+	{
+		os->x0 = 40;
+		os->y0 = 24;
+		os->x_ex = 640;
+		os->y_ex = 388;
 	}
-	os->bmp_sz_x = ov_x;
-	os->bmp_sz_y = ov_y;
-//	bmp_printf( FONT_MED, 10, 40, "calc_ov_loc_size: %d %d %d %d %d %d %d %d", os->bmp_sz_x, os->bmp_sz_y, os->bmp_ex_x, os->bmp_ex_y, os->bmp_of_x, os->bmp_of_y, os->lv_pitch, os->lv_height);
+	else if (hdmi_code == 5)
+	{
+		os->x0 = (1920-1620) / 4;
+		os->y0 = 0;
+		os->x_ex = 540 * 3/2;
+		os->y_ex = 540;
+	}
+	else
+	{
+		os->x0 = 0;
+		os->y0 = 0;
+		os->x_ex = 720;
+		os->y_ex = 480;
+	}
 }
 
 static void
@@ -351,13 +332,10 @@ bmp_fill(
 {
 	//~ if (!bmp_enabled) return;
 
-	bmp_ov_loc_size_t os;
-	calc_ov_loc_size(&os);
-	                
 	const uint32_t start = x;
-	const uint32_t width = os.bmp_sz_x;
+	const uint32_t width = 960;
 	const uint32_t pitch = BMPPITCH;
-	const uint32_t height = os.bmp_sz_y;
+	const uint32_t height = 540;
 
 	// Convert to words and limit to the width of the LCD
 	if( start + w > width )
@@ -1050,3 +1028,4 @@ void bmp_sem_init()
 }
 
 //~ INIT_FUNC(__FILE__, bmp_init);
+

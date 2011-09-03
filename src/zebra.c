@@ -191,9 +191,8 @@ PROP_HANDLER(PROP_USBRCA_MONITOR)
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
-	static int first_time = 1;
-	if (!first_time) redraw_after(2000);
-	first_time = 0;
+	redraw_after(2000);
+	set_global_draw(0);
 	return prop_cleanup( token, property );
 }
 
@@ -1399,15 +1398,18 @@ draw_zebra_and_focus( int Z, int F )
 		int zll = zebra_level_lo;
 
 		uint8_t * const lvram = get_yuv422_vram()->vram;
-		int lvpitch = YUV422_LV_PITCH;
-		for( y = 40; y < 440; y += 2 )
+		int lvpitch = hdmi_code == 5 ? 3840 : 1440;
+		int lvp_step_x = hdmi_code == 5 ? 4 : 2;
+		int lvp_step_y = hdmi_code == 5 ? 2 : 1;
+		int lvheight = hdmi_code == 5 ? 540 : 480;
+		for( y = 40; y < lvheight - 40; y += 2 )
 		{
 			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
 			uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
 			uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
 			uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
 			
-			uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );          // 2 pixels
+			uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch * lvp_step_y );          // 2 pixels
 			uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);          // 4 pixels
 			uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );  // 4 pixels
 			
@@ -1415,7 +1417,7 @@ draw_zebra_and_focus( int Z, int F )
 			uint32_t* bp;  // through bmp vram
 			uint32_t* mp;  // through mirror
 
-			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + YUV422_LV_PITCH/4 ; lvp += 2, bp++, mp++)
+			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + lvpitch/4 ; lvp += lvp_step_x, bp++, mp++)
 			{
 				#define BP (*bp)
 				#define MP (*mp)
@@ -2285,8 +2287,8 @@ void spotmeter_step()
 	if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
 	int bg = falsecolor_draw ? COLOR_BG : 0;
 
-	int xc = (ext_monitor_hdmi && !recording) ? 480 : 360;
-	int yc = (ext_monitor_hdmi && !recording) ? 270 : 240;
+	int xc = (hdmi_code == 5) ? 480 : 360;
+	int yc = (hdmi_code == 5) ? 270 : 240;
 	bmp_draw_rect(fg, xc - dx, yc - dx, 2*dx+1, 2*dx+1);
 	yc += dx + 20;
 	yc -= font_med.height/2;
@@ -2693,11 +2695,11 @@ static struct menu_entry cfg_menus[] = {
 };
 
 
-/*PROP_HANDLER(PROP_MVR_REC_START)
+PROP_HANDLER(PROP_MVR_REC_START)
 {
-	if (buf[0] != 1) redraw();
+	if (buf[0] != 1) redraw_after(2000);
 	return prop_cleanup( token, property );
-}*/
+}
 
 void 
 cropmark_draw()
@@ -2710,7 +2712,8 @@ cropmark_draw()
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
 	calc_ov_loc_size(&os);
-	bmp_draw_scaled_ex(cropmarks, os.bmp_of_x, os.bmp_of_y, os.bmp_ex_x, os.bmp_ex_y, bvram_mirror, 0);
+	//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
+	bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
 }
 static void
 cropmark_redraw()
@@ -3031,14 +3034,6 @@ void zebra_sleep_when_tired()
 		crop_set_dirty(20);
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
-	
-	static int prev_recording = 0;
-	if (prev_recording != recording)
-	{
-		msleep(3000);
-		redraw();
-		prev_recording = recording;
-	}
 }
 
 void clear_this_message_not_available_in_movie_mode()
@@ -3284,12 +3279,31 @@ clearscreen_loop:
 
 TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1b, 0x1000 );
 
+CONFIG_INT("disable.redraw", disable_redraw, 0);
+
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
 // * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
 void redraw()
 {
-	RedrawBox();
+BMP_LOCK (
+	if (disable_redraw) 
+	{
+		clrscr(); // safest possible redraw method :)
+	}
+	else
+	{
+		struct gui_task * current = gui_task_list.current;
+		struct dialog * dialog = current->priv;
+		if (dialog && MEM(dialog->type) == 0x006e4944) // if dialog seems valid
+		{
+			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
+		}
+		else
+			clrscr(); // out of luck, fallback
+	}
+)
+	// ask other stuff to redraw
 	afframe_set_dirty();
 	crop_set_dirty(5);
 	menu_set_dirty();
@@ -3414,8 +3428,11 @@ livev_hipriority_task( void* unused )
 			crop_dirty--;
 			if (!crop_dirty)
 			{
-				if (lv) 
+				if (lv)
+				{
 					task_create("crop_redraw", 0x1e, 0, cropmark_redraw, 0); // redraw, but with lower priority
+					msleep(100);
+				}
 			}
 		}
 
@@ -3425,19 +3442,10 @@ livev_hipriority_task( void* unused )
 			crop_set_dirty(10);
 		}
 		
+		if (k % 5 == 0) lens_display_set_dirty();
+		
 		if (LV_BOTTOM_BAR_DISPLAYED || get_halfshutter_pressed())
 			crop_set_dirty(10);
-		
-		static int rec = 0;
-		if (rec != recording)
-		{
-			if (recording == 2 || recording == 0)
-			{
-				msleep(1000);
-				redraw();
-			}
-		}
-		rec = recording;
 	}
 }
 

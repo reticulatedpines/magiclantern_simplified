@@ -188,6 +188,7 @@ db_peak_to_color(
 
 static void
 draw_meter(
+	int		x_origin,
 	int		y_origin,
 	int		meter_height,
 	struct	audio_level *	level,
@@ -203,7 +204,7 @@ draw_meter(
 	// Skip to the desired y coord and over the
 	// space for the numerical levels
 	// .. and the space for showing the channel and source.
-	row += (pitch/4) * y_origin + AUDIO_METER_OFFSET;
+	row += (pitch/4) * y_origin + AUDIO_METER_OFFSET + x_origin/4;
 
 	const int db_avg = audio_level_to_db( level->avg );
 	const int db_peak = audio_level_to_db( level->peak );
@@ -240,12 +241,13 @@ draw_meter(
 	}
 
 	// Write the current level
-	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), 0, y_origin, "%s %2d", label, db_avg );
+	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), x_origin, y_origin, "%s %2d", label, db_avg );
 }
 
 
 static void
 draw_ticks(
+	int		x,
 	int		y,
 	int		tick_height
 )
@@ -255,7 +257,7 @@ draw_ticks(
 	uint32_t * row = (uint32_t*) bmp_vram();
 	if( !row )
 		return;
-	row += (pitch/4) * y + AUDIO_METER_OFFSET - 2 ;//seems to need less of an offset
+	row += (pitch/4) * y + AUDIO_METER_OFFSET - 2 + x/4;//seems to need less of an offset
 
 	const uint32_t white_word = 0
 		| ( COLOR_WHITE << 24 )
@@ -285,17 +287,38 @@ static void draw_meters(void)
 	static int prev_hs = 0;
 	if (hs != prev_hs) redraw();
 	prev_hs = hs;
-	if (!hs)
+	int x0 = 0;
+	int y0 = 0;
+	if (ext_monitor_rca) y0 = 10;
+	if (hdmi_code == 2) y0 = 15;
+	int small = hs;
+	if (hdmi_code) small = 1;
+	if (hdmi_code == 5)
 	{
-		draw_meter( 12, 11, &audio_levels[0], left_label);
-		draw_ticks( 23, 3 );
-		draw_meter( 26, 11, &audio_levels[1], right_label);
+		if (gui_menu_shown())
+		{
+			x0 = 120;
+			y0 = 40;
+		}
+		else
+		{
+			x0 = 100;
+			y0 = 0;
+			if (hs) return;
+		}
+	}
+
+	if (!small)
+	{
+		draw_meter( x0, y0 + 12, 11, &audio_levels[0], left_label);
+		draw_ticks( x0, y0 + 23, 3 );
+		draw_meter( x0, y0 + 26, 11, &audio_levels[1], right_label);
 	}
 	else
 	{
-		draw_meter( 19, 8, &audio_levels[0], left_label);
-		draw_ticks( 27, 2 );
-		draw_meter( 29, 8, &audio_levels[1], right_label);
+		draw_meter( x0, y0 + 19, 8, &audio_levels[0], left_label);
+		draw_ticks( x0, y0 + 27, 2 );
+		draw_meter( x0, y0 + 29, 8, &audio_levels[1], right_label);
 	}
 	if (gui_menu_shown() && alc_enable)
 	{
@@ -591,11 +614,14 @@ int mic_inserted = -1;
 PROP_HANDLER( PROP_MIC_INSERTED )
 {
 	if (mic_inserted != -1)
+	{
+		NotifyBoxHide();
 		NotifyBox(2000,
 			"Microphone %s", 
 			buf[0] ? 
 				"connected" :
 				"disconnected");
+	}
 
    mic_inserted = buf[0];
 
@@ -1009,6 +1035,7 @@ static void audio_monitoring_force_display(int x)
 
 void audio_monitoring_display_headphones_connected_or_not()
 {
+	NotifyBoxHide();
 	NotifyBox(2000,
 		"Headphones %s", 
 		AUDIO_MONITORING_HEADPHONES_CONNECTED ? 

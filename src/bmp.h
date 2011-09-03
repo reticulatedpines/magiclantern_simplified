@@ -212,16 +212,13 @@ bmp_load(
         uint32_t                compression // what compression to load the file into. 0: none, 1: RLE8
 );
 
-typedef struct bmp_ov_loc_size 
+// this has the position of the 3:2 image (onto which we draw cropmarks)
+typedef struct bmp_ov_loc_size
 {
-	int bmp_of_x; //live view x offset within OSD
-	int bmp_of_y; //live view y offset within OSD
-	int bmp_ex_x; //live view x extend
-	int bmp_ex_y; //live view y extend
-	int bmp_sz_x; //bitmap x size
-	int bmp_sz_y; //bitmap y size
-	int lv_ex_x;
-	int lv_ex_y;
+	int x0; //live view x offset within OSD
+	int y0; //live view y offset within OSD
+	int x_ex; //live view x extend (x0 + x_ex = xmax)
+	int y_ex; //live view y extend
 } bmp_ov_loc_size_t;
 
 void calc_ov_loc_size(bmp_ov_loc_size_t *os);
@@ -241,8 +238,15 @@ uint8_t bmp_getpixel(int x, int y);
 void* bmp_lock;
 void* gmt_lock;
 
-#define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock); }
-#define GMT_LOCK(x) { AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock); }
-#define GMT_LOCK_WEAK(x) { AcquireRecursiveLock(gmt_lock, 300); x; ReleaseRecursiveLock(gmt_lock); }
+#if CONFIG_DEBUGMSG
+//~ #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0                                 "); ReleaseRecursiveLock(bmp_lock);}
+//~ #define GMT_LOCK(x) { bmp_printf(FONT_SMALL, 50, 150, "GMT_LOCK try %s:%d", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 0); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0                                 "); ReleaseRecursiveLock(gmt_lock);}
+#else
+#define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
+#define GMT_LOCK(x) { AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock);}
+#endif
+
+#define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
+#define GMT_LOCK(x) { AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock);}
 
 #endif
