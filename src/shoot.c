@@ -2628,15 +2628,15 @@ auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
 {
 	char msg[100];
 	
-	if (is_bulb_mode())
-	{
-		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "Auto BulbRamping: ON,prctile=%d%%", intervalometer_auto_expo_prc);
-		else snprintf(msg, sizeof(msg), "Auto BulbRamping: OFF");
-	}
-	else
+	if (shooting_mode == SHOOTMODE_M && !is_bulb_mode())
 	{
 		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: ON,prctile=%d%%", intervalometer_auto_expo_prc);
 		else snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: OFF");
+	}
+	else
+	{
+		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "Auto BulbRamping: ON,prctile=%d%%", intervalometer_auto_expo_prc);
+		else snprintf(msg, sizeof(msg), "Auto BulbRamping: OFF");
 	}
 
 	bmp_printf(

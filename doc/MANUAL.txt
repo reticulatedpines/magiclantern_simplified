@@ -788,9 +788,13 @@ Functions for stills shooting (some of them work for movies, too).
   * In LiveView, ML will go to PLAY mode and turn the display off for you during idle times.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
-**AutoExpo for Timelapse: ON/OFF, percentile=20...99\%** 
+**Auto BulbRamping / AutoExpo for Timelapse: ON/OFF, percentile=20...99\%** 
 
-  Auto adjust shutter and ISO for timelapse:
+  Both options will adjust shutter and ISO for timelapse automatically. Each option has its own exposure algorithm, with advantages and limitations.
+
+  ``BulbRamping`` is only available in ``BULB`` mode; ``AutoExpo`` is only available in ``M`` mode;
+  
+  Notes for both algorithms:
     
   * Exposure is adjusted using a condition like this (for example): *90% of pixels (percentile) should be below 75% brightness (level)*;
   * Brightness level is measured with a user-defined percentile of luma channel:
@@ -799,18 +803,45 @@ Functions for stills shooting (some of them work for movies, too).
     - percentile = 50% => median value of brightness (measure midtones; should reduce flicker, but may overexpose in harsh lighting conditions);
     - percentile <= 30% => measure shadows (not recommended);
     
-  * First 3 shots (+1EV, -1EV, 0EV) are used for calibration; ML will compute 2 parameters:
+  * First 3 shots (+1EV, -1EV, 0EV) are used for calibration; from these, ML will compute 2 parameters:
     
     - brightness level for subsequent images (you can't set or change exposure compensation, so be careful and expose the first image well);
-    - derivative of brightness level with respect to exposure value (EV), used to determine the thresholds when the exposure will be adjusted;
-    
-  * It is assummed that lighting conditions will change slowly; fast changes in lighting are not handled well;
-  * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the histogram);
+    - derivative of brightness level with respect to exposure value (EV), used to determine when or how much the exposure will be adjusted;
+  
+  * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the `histogram`_);
+  * ISO is chosen such as the resulting shutter speed stays between 90 and 180 degrees, according to delay between shots (if possible);
+  * Only native ISOs (100, 200, 400 etc) are used, for best dynamic range.
+
+  Notes for ``BulbRamping`` in ``BULB`` mode:
+  
+  * You should set the shutter speed for first image from `Bulb Timer`_ menu item (see below);
+  * Shutter speed can be adjusted at milisecond level in theory;
+  * There is a limit for the fastest shutter speed available, depending on the camera (1/10s ... 1s);
+  * Exposure algorithm is a `P feedback controller <http://en.wikipedia.org/wiki/Proportional_control>`_, with gain equal to 0.5. It should handle relatively quick light variations (in theory, of course);
+  * It can go from 1s @ ISO 100 (dusk) to several minutes of exposure time @ ISO 6400 (complete darkness). For daylight usage you may need to use a `ND filter <http://amzn.to/ml-nd-filter>`_.
+
+  Notes for ``AutoExpo`` in ``M`` mode:
+  
+  * Current exposure settings (ISO, shutter, aperture) will be used as reference;
   * Adjustment step is as small as the camera supports (1/8 EV best case);
-  * ISO is chosen such as the resulting shutter speed obeys the 180 degree rule (if possible);
-  * Only native ISOs (100, 200, 400 etc) are used, for best dynamic range;
+  * It is assummed that lighting conditions will change slowly; fast changes in lighting are not handled well;
   * To reduce flicker, a small hystheresis is used (less than 1 EV); this should avoid exposure changing back and forth due to metering noise;
-  * This feature only works in Manual mode (both LiveView and non-LiveView).
+  * This feature only works in Manual mode (both LiveView and non-LiveView);
+  * It can go from 1/4000 @ ISO 100 (sunlight) to 30s @ ISO 6400 (moonlight).
+  
+
+.. _bulb timer:
+
+**Bulb Timer: 1s...8h**
+
+  [[Image:BulbTimer-Intervalometer-60x60s-M31-Brent.jpg|200px|right|link=http://www.flickr.com/photos/74588953@N00/6082369585/in/pool-1676739@N21/]]
+  [[Image:LongExp.jpg|200px|right|link=http://www.flickr.com/photos/ajaykrishnan/5900337137/]]
+
+  Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
+  
+  Bulb timer is started by half-shutter press, or by remote triggers / intervalometer.
+  
+  Tip: you can cancel the exposure earlier by half-pressing the shutter button.
 
 .. _remote triggers:
 .. _LCD face sensor:
@@ -902,20 +933,6 @@ Functions for stills shooting (some of them work for movies, too).
   * FullHD option will cause errors during playback; they are caused by dummy videos which were removed by ML, but camera thinks they are still there. After restart, the errors will disappear.
   * Burst mode may cause a horizontal cut in the images; this happens because LiveView buffers are updated faster than card writing speed, and ML can't slow them down.
   
-
-.. _bulb timer:
-
-**Bulb Timer: 1s...8h**
-
-  [[Image:BulbTimer-Intervalometer-60x60s-M31-Brent.jpg|200px|right|link=http://www.flickr.com/photos/74588953@N00/6082369585/in/pool-1676739@N21/]]
-  [[Image:LongExp.jpg|200px|right|link=http://www.flickr.com/photos/ajaykrishnan/5900337137/]]
-
-  Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
-  
-  Bulb timer is started by half-shutter press, or by remote triggers / intervalometer.
-  
-  Tip: you can cancel the exposure earlier by half-pressing the shutter button.
-
 .. _mirror lockup:
 .. _MLU:
 
