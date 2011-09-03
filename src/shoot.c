@@ -38,6 +38,8 @@ void movie_end();
 void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
 
+int bulb_shutter_value = 0;
+
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
 //~ static CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
@@ -2195,7 +2197,7 @@ int is_bulb_mode()
 	if (lens_info.raw_shutter != 0xC) return 0;
 	return 1;
 }
-static void
+void
 bulb_take_pic(int duration)
 {
 	if (!is_bulb_mode())
@@ -2204,30 +2206,30 @@ bulb_take_pic(int duration)
 		return;
 	}
 	assign_af_button_to_star_button();
+	msleep(100);
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	if (get_mlu() && !lv) { lens_take_picture(64); msleep(2000); }
 	SW1(1,100);
 	SW2(1,100);
-	int i;
-	int d = duration/1000;
-	for (i = 0; i < d; i++)
-	{
-		//~ NotifyBox(1000, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
-		wait_till_next_second();
-		if (lens_info.job_state == 0) break;
-	}
+	msleep(duration);
 	SW2(0,100);
 	SW1(0,100);
+	msleep(100);
 	restore_af_button_assignment();
+	lens_wait_readytotakepic(64);
+	get_out_of_play_mode(1000);
+	msleep(1000);
 }
 
 static void bulb_toggle_fwd(void* priv)
 {
 	bulb_duration_index = mod(bulb_duration_index + 1, COUNT(timer_values));
+	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 }
 static void bulb_toggle_rev(void* priv)
 {
 	bulb_duration_index = mod(bulb_duration_index - 1, COUNT(timer_values));
+	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 }
 
 static void
@@ -2240,7 +2242,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		"Bulb Timer %s: %d%s",
 		is_bulb_mode() ? "     " : "(N/A)",
 		d < 60 ? d : d/60, 
-		d < 60 ? "s" : "min"
+		d == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
 	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, bulb_duration_index * 100 / COUNT(timer_values));
 }
@@ -2389,14 +2391,14 @@ static void picq_toggle(void* priv)
 
 int adjust_iso_for_timelapse_without_changing_exposure()
 {
-	int raw_shutter_0 = lens_info.raw_shutter;
+	int raw_shutter_0 = is_bulb_mode() ? shutter_x100_to_raw(bulb_shutter_value/10) : lens_info.raw_shutter;
 	int raw_iso_0 = lens_info.raw_iso;
 	
 	int d = timer_values[interval_timer_index]; // intervalometer delay, in seconds
 	int ideal_shutter_speed_x100 = d * 100 / (intervalometer_wait ? 1 : 2); // 180 degree rule => ideal value
-	ideal_shutter_speed_x100 = COERCE(ideal_shutter_speed_x100, 0, 1500); // no more than 15 seconds, if possible
+	if (!is_bulb_mode()) ideal_shutter_speed_x100 = COERCE(ideal_shutter_speed_x100, 0, 1500); // no more than 15 seconds, if possible
 	int ideal_shutter_speed_raw = shutter_x100_to_raw(ideal_shutter_speed_x100);
-	ideal_shutter_speed_raw = COERCE(ideal_shutter_speed_raw, 16, 160); // 30s ... 1/8000
+	if (!is_bulb_mode()) ideal_shutter_speed_raw = COERCE(ideal_shutter_speed_raw, 16, 160); // 30s ... 1/8000
 
 	int delta = 0;  // between 90 and 180 degrees => OK
 	if (ideal_shutter_speed_raw > raw_shutter_0 + 8) delta = 8; // shutter too slow (more than 180 degrees -- ideal value) => boost ISO
@@ -2408,15 +2410,26 @@ int adjust_iso_for_timelapse_without_changing_exposure()
 		delta = new_raw_iso - raw_iso_0;
 		if (delta == 0) return 0; // nothing to change
 		int new_raw_shutter = lens_info.raw_shutter + delta;
+		int new_bulb_shutter = 
+			delta ==  8 ? bulb_shutter_value / 2 :
+			delta == -8 ? bulb_shutter_value * 2 :
+			bulb_shutter_value;
 		
 		lens_set_rawiso(new_raw_iso); // try to set new iso
 		msleep(50);
 		if (lens_info.raw_iso == new_raw_iso) // new iso accepted
 		{
-			lens_set_rawshutter(new_raw_shutter); // try to set new shutter
-			msleep(50);
-			if (lens_info.raw_shutter == new_raw_shutter) // new shutter accepted
-				return 1; // OK!
+			if (is_bulb_mode())
+			{
+				bulb_shutter_value = new_bulb_shutter;
+			}
+			else
+			{
+				lens_set_rawshutter(new_raw_shutter); // try to set new shutter
+				msleep(50);
+				if (lens_info.raw_shutter == new_raw_shutter) // new shutter accepted
+					return 1; // OK!
+			}
 		}
 		// if we are here, either iso or shutter was refused
 		// => restore old settings
@@ -2429,14 +2442,21 @@ int adjust_iso_for_timelapse_without_changing_exposure()
 
 void adjust_shutter_for_timelapse(int delta)
 {
-	int i;
-	int rs = lens_info.raw_shutter;
-	for (i = 1; i <= 8; i++)
+	if (is_bulb_mode())
 	{
-		int newrs = rs + delta * i; // changing shutter is tricky, camera may refuse some values
-		lens_set_rawshutter(newrs);
-		if (lens_info.raw_shutter == newrs)
-			return; // OK!
+		bulb_shutter_value -= delta * bulb_shutter_value / 50;
+	}
+	else
+	{
+		int i;
+		int rs = lens_info.raw_shutter;
+		for (i = 1; i <= 8; i++)
+		{
+			int newrs = rs + delta * i; // changing shutter is tricky, camera may refuse some values
+			lens_set_rawshutter(newrs);
+			if (lens_info.raw_shutter == newrs)
+				return; // OK!
+		}
 	}
 }
 
@@ -2460,9 +2480,9 @@ int measure_brightness_level()
 
 void auto_exposure_for_timelapse_init()
 {
-	if (shooting_mode != SHOOTMODE_M)
+	if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_BULB)
 	{
-		NotifyBox(2000, "AutoExpo only works in M mode.");
+		NotifyBox(2000, "AutoExpo requires BULB or M mode.");
 		msleep(2000);
 		intervalometer_stop();
 		msleep(1000);
@@ -2473,15 +2493,17 @@ void auto_exposure_for_timelapse_init()
 	
 	
 	int rs0 = lens_info.raw_shutter;
-	lens_set_rawshutter(rs0 - 8);
+	int bs0 = bulb_shutter_value;
+	
+	lens_set_rawshutter(rs0 - 8); bulb_shutter_value = bs0 * 2;
 	hdr_shot(0, 1);
 	int level_plus1ev = measure_brightness_level();
 
-	lens_set_rawshutter(rs0 + 8);
+	lens_set_rawshutter(rs0 + 8);  bulb_shutter_value = bs0 / 2;
 	hdr_shot(0, 1);
 	int level_minus1ev = measure_brightness_level();
 
-	lens_set_rawshutter(rs0);
+	lens_set_rawshutter(rs0);  bulb_shutter_value = bs0;
 	hdr_shot(0, 1);
 	aetl_reference_level = measure_brightness_level();
 	
@@ -2493,11 +2515,25 @@ void auto_exposure_for_timelapse_init()
 	
 	if (thr_hi >= 100 || thr_lo <= 0)
 	{
-		NotifyBox(2000, "Image is too over/under-exposed.");
+		NotifyBox(5000, "Image is too over/under-exposed.");
+		auto_exposure_for_timelapse_showinfo();
+		msleep(5000);
 		intervalometer_stop();
 		return;
 	}
 
+	if (thr_hi <= aetl_reference_level || thr_lo >= aetl_reference_level)
+	{
+		NotifyBox(5000, "Calibration error, incorrect thresholds");
+		auto_exposure_for_timelapse_showinfo();
+		msleep(5000);
+		intervalometer_stop();
+		return;
+	}
+
+	auto_exposure_for_timelapse_showinfo();
+	
+	bulb_duration_index = 0; // disable bulb timer to avoid interference
 	aetl_init_done = 1;
 }
 
@@ -2524,18 +2560,20 @@ void compute_exposure_for_next_shot()
 	NotifyBoxHide();
 }
 
-static void auto_exposure_for_timelapse_showinfo()
+void auto_exposure_for_timelapse_showinfo()
 {
 	int s = raw2shutter_x100(lens_info.raw_shutter);
+	if (is_bulb_mode()) s = bulb_shutter_value/10;
 	bmp_printf(FONT_MED, 50, 300, 
 		"Reference level (%d%%prc) : %d%% \n"
 		"Measured  level (%d%%prc) : %d%% \n"
-		"Exposure change thresh.  : +%d -%d \n"
+		"Exposure change thresh.  : %d...%d \n"
 		"ISO     : %d   \n"
 		"Shutter : %d.%02d s (raw %d) ", 
 		intervalometer_auto_expo_prc, 0, aetl_reference_level, 0,
 		intervalometer_auto_expo_prc, 0, aetl_measured_level, 0,
-		aetl_reference_level + aetl_level_ev_ratio_plus / 3, aetl_reference_level - aetl_level_ev_ratio_minus / 3,
+		aetl_reference_level - aetl_level_ev_ratio_minus / 3,
+		aetl_reference_level + aetl_level_ev_ratio_plus / 3, 
 		lens_info.iso,
 		s / 100, s % 100, 
 		lens_info.raw_shutter);
@@ -2571,8 +2609,17 @@ static void
 auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
 {
 	char msg[100];
-	if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: ON,prctile=%d%%", intervalometer_auto_expo_prc);
-	else snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: OFF");
+	
+	if (is_bulb_mode())
+	{
+		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "Auto BulbRamping: ON,prctile=%d%%", intervalometer_auto_expo_prc);
+		else snprintf(msg, sizeof(msg), "Auto BulbRamping: OFF");
+	}
+	else
+	{
+		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: ON,prctile=%d%%", intervalometer_auto_expo_prc);
+		else snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: OFF");
+	}
 
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
@@ -2615,7 +2662,15 @@ struct menu_entry shoot_menus[] = {
 		.display	= auto_exposure_for_timelapse_display,
 		.select_auto = auto_exposure_for_timelapse_prc_toggle_forward,
 		.select_reverse = auto_exposure_for_timelapse_prc_toggle_reverse,
-		.help = "Auto shutter & ISO for timelapse (must be in M mode)",
+		.help = "Bulb ramping (BULB) or Auto shutter/ISO (M) for timelapse.",
+	},
+	{
+		.name = "Bulb Timer",
+		.display = bulb_display, 
+		.select = bulb_toggle_fwd, 
+		.select_reverse = bulb_toggle_rev,
+		.select_auto = bulb_toggle_fwd,
+		.help = "Bulb timer for very long exposures, useful for astrophotos"
 	},
 	#ifdef CONFIG_550D
 	{
@@ -2659,14 +2714,6 @@ struct menu_entry shoot_menus[] = {
 		.select_auto = silent_pic_toggle_forward,
 		.display = silent_pic_display,
 		.help = "Take pics in LiveView without increasing shutter count."
-	},
-	{
-		.name = "Bulb Timer",
-		.display = bulb_display, 
-		.select = bulb_toggle_fwd, 
-		.select_reverse = bulb_toggle_rev,
-		.select_auto = bulb_toggle_fwd,
-		.help = "Bulb timer for very long exposures, useful for astrophotos"
 	},
 	{
 		.name = "Mirror Lockup",
@@ -2941,7 +2988,7 @@ void hdr_shot(int skip0, int wait)
 	if (is_bulb_mode())
 	{
 		//~ NotifyBox(1000, "Bulb shot...");
-		bulb_take_pic(timer_values[bulb_duration_index] * 1000);
+		bulb_take_pic(bulb_shutter_value);
 	}
 	else if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
 	{
@@ -3167,6 +3214,8 @@ shoot_task( void* unused )
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
 	menu_add( "Tweak", vid_menus, COUNT(vid_menus) );
+
+	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 
 	// :-)
 	struct tm now;
