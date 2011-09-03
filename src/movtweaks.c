@@ -11,10 +11,6 @@
 #include "gui.h"
 #include "lens.h"
 
-#ifdef CONFIG_50D
-#include "disable-this-module.h"
-#endif
-
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
 
 #ifndef CONFIG_600D
@@ -117,11 +113,19 @@ void set_shooting_mode(int m)
 
 void do_movie_mode_remap()
 {
+	if (gui_state == GUISTATE_PLAYMENU) return;
+	if (gui_menu_shown()) return;
 	if (!movie_mode_remap) return;
 	if (mode_remap_done) return;
 	if (setting_shooting_mode) return;
 	int movie_newmode = movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X : MOVIE_MODE_REMAP_Y;
-	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
+	if (shooting_mode == movie_newmode)
+	{
+		msleep(1000);
+		NotifyBox(1000, "Movie mode...");
+		msleep(1000);
+		set_shooting_mode(SHOOTMODE_MOVIE);
+	}
 	//~ else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
 	mode_remap_done = 1;
 }
