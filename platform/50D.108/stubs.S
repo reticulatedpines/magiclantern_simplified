@@ -206,10 +206,16 @@ NSTUB( 0xff889e7c, gui_change_shoot_type_post )													//d
 NSTUB( 0xff889f14, gui_change_lcd_state_post )														//d
 NSTUB( 0xff98a98c, gui_timer_something )															//d
 
-NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
-NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
+//NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
+//NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
 
 NSTUB(0xff86af14, CreateRecursiveLock)
 NSTUB(0xff98ad24, AcquireRecursiveLock)
 NSTUB(0xff98ae38, ReleaseRecursiveLock) // not sure, these are not called anywhere
+
+NSTUB(0xffa47a7c, dialog_redraw) // called by CreateDialogBox
+NSTUB(0x12A58, gui_task_list) // look in gui_task_create
+
+NSTUB(0xffa854cc, BeginMovieRecSequence)
+NSTUB( 0xFFA850DC, EndMovieRecSequence )
 

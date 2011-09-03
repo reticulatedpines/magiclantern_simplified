@@ -18,5 +18,6 @@ int get_mlu()
 	return 0;
 }
 
+void assign_af_button_to_star_button() {}
 void assign_af_button_to_halfshutter() {}
 void restore_af_button_assignment() {}
