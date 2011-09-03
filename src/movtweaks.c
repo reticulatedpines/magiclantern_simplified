@@ -221,6 +221,7 @@ enable_liveview_print(
 
 void force_liveview()
 {
+	while (get_halfshutter_pressed()) msleep(100);
 	fake_simple_button(BGMT_LV);
 	msleep(1000);
 }

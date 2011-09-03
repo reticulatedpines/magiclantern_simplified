@@ -325,7 +325,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			silent_pic_slitscan_skipframes
 		);
 	}
-	menu_draw_icon(x, y, MNI_BOOL_LV(silent_pic_mode), 0);
+	//~ menu_draw_icon(x, y, MNI_BOOL_LV(silent_pic_mode), 0);
 }
 
 static void silent_pic_mode_increment()
@@ -925,13 +925,25 @@ silent_pic_take_longexp()
 	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a long-exp silent pic   ");
 }
 
+void ensure_movie_mode()
+{
+	if (!lv) force_liveview();
+	if (shooting_mode != SHOOTMODE_MOVIE)
+	{
+		set_shooting_mode(SHOOTMODE_MOVIE);
+		msleep(500); 
+		int x = 2;
+		prop_request_change(PROP_LV_MODE, &x, 4);
+		msleep(500); 
+	}
+}
+
 static int
 silent_pic_ensure_movie_mode()
 {
 	if (silent_pic_fullhd && shooting_mode != SHOOTMODE_MOVIE) 
 	{ 
-		set_shooting_mode(SHOOTMODE_MOVIE);
-		msleep(1000); 
+		ensure_movie_mode();
 	}
 	#ifndef CONFIG_600D // on 600D you only have to go in movie mode
 	if (silent_pic_fullhd && !recording)
@@ -983,9 +995,12 @@ silent_pic_take_simple(int interactive)
 	}
 
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
+
+	NotifyBoxHide(); msleep(100);
+
 	if (MENU_MODE)
 	{
-		if (!interactive) { fake_simple_button(BGMT_MENU); }
+		if (!interactive) { fake_simple_button(BGMT_MENU); while (MENU_MODE) msleep(100); msleep(100); }
 		else { clrscr(); play_422(imgname); }
 	}
 	
@@ -1154,7 +1169,7 @@ silent_pic_take_slitscan(int interactive)
 static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
 {
-	if (!lv) return;
+	if (!lv) force_liveview();
 
 	if (beep_enabled) Beep();
 	
@@ -2932,13 +2947,21 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 	}
 }
 
+void press_rec_button()
+{
+#ifdef CONFIG_50D
+	fake_simple_button(BGMT_PRESS_SET);
+	msleep(100);
+	fake_simple_button(BGMT_UNPRESS_UDLR);
+#else
+	fake_simple_button(BGMT_LV);
+#endif
+}
+
 void movie_start()
 {
-	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
-	{
-		NotifyBox(2000, "Not in movie mode (%d,%d) ", shooting_type, shooting_mode);
-		return;
-	}
+	ensure_movie_mode();
+	
 	if (recording)
 	{
 		NotifyBox(2000, "Already recording ");
@@ -2946,8 +2969,9 @@ void movie_start()
 	}
 	
 	while (get_halfshutter_pressed()) msleep(100);
-
-	call("MovieStart");
+	
+	press_rec_button();
+	
 	while (recording != 2) msleep(100);
 	msleep(500);
 }
@@ -2968,7 +2992,7 @@ void movie_end()
 	while (get_halfshutter_pressed()) msleep(100);
 	msleep(500);
 
-	call("MovieEnd");
+	press_rec_button();
 
 	while (recording) msleep(100);
 	msleep(500);
@@ -3039,7 +3063,7 @@ void hdr_shot(int skip0, int wait)
 		else
 		{
 			//~ NotifyBox(1000, "Remote release (no wait)...");
-			if (!silent_pic_mode || !lv) lens_take_picture(0);
+			if (!silent_pic_mode) lens_take_picture(0);
 			else silent_pic_take(0);
 			return;
 		}
@@ -3092,7 +3116,7 @@ void remote_shot(int wait)
 	}
 	else
 	{
-		if (silent_pic_mode && lv)
+		if (silent_pic_mode)
 			silent_pic_take(0);
 		else if (shooting_mode == SHOOTMODE_MOVIE)
 			movie_start();
@@ -3499,9 +3523,17 @@ shoot_task( void* unused )
 			}
 		}
 
-		if (silent_pic_mode && lv && get_halfshutter_pressed())
+		if (silent_pic_mode && get_halfshutter_pressed())
 		{
-			silent_pic_take(1);
+			if (hdr_steps == 1) silent_pic_take(1);
+			else 
+			{
+				NotifyBox(5000, "HDR silent picture...");
+				if (beep_enabled) Beep();
+				while (get_halfshutter_pressed()) msleep(100);
+				if (!lv) force_liveview();
+				hdr_shot(0,1);
+			}
 		}
 		
 		if (intervalometer_running)
