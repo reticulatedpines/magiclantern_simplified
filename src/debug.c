@@ -244,7 +244,9 @@ void fake_buttons()
 				fake_simple_button(BGMT_MENU); msleep(rand() % 200);
 				break;
 			case 2:
+#ifndef CONFIG_50D
 				fake_simple_button(BGMT_Q); msleep(rand() % 200);
+#endif
 				break;
 			case 3:
 				SW1(1,rand() % 200);

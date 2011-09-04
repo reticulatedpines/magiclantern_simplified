@@ -3298,11 +3298,13 @@ void redraw()
 {
 BMP_LOCK (
 
+#ifndef CONFIG_50D
 	if (display_dont_mirror && display_dont_mirror_dirty)
 	{
 		if (lcd_position == 1) NormalDisplay();
 		display_dont_mirror_dirty = 0;
 	}
+#endif
 
 	if (disable_redraw) 
 	{
