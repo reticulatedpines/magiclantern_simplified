@@ -3610,7 +3610,7 @@ void do_disp_mode_change()
 	NotifyBox(1000, "Display preset: %d", disp_mode);
 	update_disp_mode_params_from_bits();
 	//~ draw_ml_topbar();
-	//~ crop_dirty = 1;
+	crop_set_dirty(40);
 }
 
 int livev_playback = 0;
