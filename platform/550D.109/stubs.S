@@ -129,6 +129,10 @@ NSTUB( 0x26258, cf_device )                // in cfReadBlk
 NSTUB( 0xFF3F1664, sdReadBlk )
 NSTUB( 0x26284, sd_device )                // in sdReadBlk
 
+// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
+// => first partition table; see http://www.datarescue.com/laboratory/partition.htm
+NSTUB( 0xFF3866E8, fsuDecodePartitionTable )
+
 NSTUB( 0xFF01A734, hotplug_task )
 NSTUB( 0x1A6C, hotplug_struct )
 NSTUB( 0x1AA0, hotplug_usb_buf )          // after "USB Disconnect" 

@@ -162,6 +162,10 @@ NSTUB( 0x350FC, cf_device )                // in cfReadBlk
 NSTUB( 0xff4c0ed4, sdReadBlk )
 NSTUB( 0x35120, sd_device )                // in sdReadBlk
 
+// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
+// => first partition table; see http://www.datarescue.com/laboratory/partition.htm
+NSTUB( 0xff404aa4, fsuDecodePartitionTable )
+
 NSTUB( 0xff01b1a0, hotplug_task )
 NSTUB( 0x1A7C, hotplug_struct )            // found only by Alex tool!
 NSTUB( 0x1AC8, hotplug_usb_buf )          // after "USB Disconnect" 

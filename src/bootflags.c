@@ -92,41 +92,68 @@ my_memcpy(
 		*dest++ = *src++;
 }
 
+struct partition_table 
+{
+	uint8_t state; // 0x80 = bootable
+	uint8_t start_head;
+	uint16_t start_cylinder_sector;
+	uint8_t type;
+	uint8_t end_head;
+	uint16_t end_cylinder_sector;
+	uint32_t sectors_before_partition;
+	uint32_t sectors_in_partition;
+}__attribute__((aligned,packed));
 
 void
 bootflag_write_bootblock( void )
 {
-	gui_stop_menu();
+	//~ gui_stop_menu();
+	//~ msleep(1000);
 
-	bmp_printf( FONT_SMALL, 0, 30, "cf=%08lx sd=%08lx", (uint32_t)sd_device[0], (uint32_t) sd_device[1]);
+	console_printf("cf=%08lx sd=%08lx\n", (uint32_t)sd_device[0], (uint32_t) sd_device[1]);
 
 	struct cf_device * const dev = sd_device[1];
 
 
-	uint8_t *block = alloc_dma_memory( 0x200*0x40 );
+	uint8_t *block = alloc_dma_memory( 0x200*0x80 );
 	uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
 	int i;
-	DebugMsg(DM_MAGIC, 3, "%s: buf=%08x", __func__, (uint32_t)block);
+	console_printf("%s: buf=%08x\n", __func__, (uint32_t)block);
 	for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
-	bmp_printf( FONT_SMALL, 0, 40, "mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
+	console_printf("mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
 	bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
 
-	dm_set_store_level(0x23, 0);
-	int rc = dev->read_block( dev, block, 0x0, 0x40 );
-	clean_d_cache();
-        flush_caches();
+	dm_set_store_level(35, 0);
+	dm_set_print_level(35, 0);
+	dmstart();
+	msleep(1000);
+	
+	int rc = dev->read_block( dev, block, 0, 0x40 );
 
+	struct partition_table p;
+	fsuDecodePartitionTable(block + 446, &p);
+	bmp_printf(FONT_MED, 0, 0, "partition: %x %d %d ", p.type, p.sectors_before_partition, p.sectors_in_partition);
+	
+	uint8_t* first_partition = block + p.sectors_before_partition * 512;
+	
+	
+	my_memcpy( first_partition + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
+	my_memcpy( first_partition + 0x5C, (uint8_t*) "BOOTDISK", 0x8 );
+	
+	msleep(1000);
 
-	dm_set_store_level(0x23, 3);
-	DebugMsg(DM_MAGIC, 3, "%s: rc=%d %08x %08x", __func__,
+	dmstop();
+	dumpf();
+
+	console_printf("%s: rc=%d %08x %08x\n", __func__,
 		rc,
 		*(uint32_t*) &user_block[0x47],
 		*(uint32_t*) &user_block[0x5C]
 	);
-	msleep( 100 );
-
 	bmp_printf( FONT_MED, 600, 40, "read=%d", rc );
-	bmp_hexdump( FONT_SMALL, 0, 60, user_block, 0x100 );
+	bmp_hexdump( FONT_SMALL, 0, 60, user_block + 446, 0x100 );
+
+	msleep(5000);
 
 /*
 	// Update the first partition header to include the magic
@@ -229,11 +256,11 @@ powersave_toggle( void )
 
 
 struct menu_entry boot_menus[] = {
-	//~ {
-		//~ .display	= menu_print,
-		//~ .priv		= "Write MBR",
-		//~ .select		= bootflag_write_bootblock,
-	//~ },
+	{
+		.display	= menu_print,
+		.priv		= "Write MBR",
+		.select		= bootflag_write_bootblock,
+	},
 
 	/*{
 		.display	= bootflag_display,
