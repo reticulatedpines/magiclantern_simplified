@@ -2849,7 +2849,7 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 }
 
 void draw_zoom_overlay(int dirty)
-{
+{	
 	//~ if (vram_width > 720) return;
 	if (!lv) return;
 	if (!get_global_draw()) return;
@@ -2861,6 +2861,9 @@ void draw_zoom_overlay(int dirty)
 	
 	struct vram_info *	lv = get_yuv422_vram();
 	struct vram_info *	hd = get_yuv422_hd_vram();
+
+	yuv_resize(hd->vram, hd->width, hd->height, lv->vram, 1920, 1080);
+	return;
 	
 	//~ lv->width = 1920;
 
@@ -3793,6 +3796,17 @@ PROP_HANDLER(PROP_LV_ACTION)
 	return prop_cleanup( token, property );
 }
 
+void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
+{
+	int i,j;
+	for (i = 0; i < src_w; i++)
+	{
+		for (j = 0; j < dst_w/2; j++)
+		{
+			dst[i * dst_w/2 + j] = src[(i*src_h/dst_h) * src_w/2 + (j*src_w/dst_w)];
+		}
+	}
+}
 
 void play_422(char* filename)
 {
@@ -3826,16 +3840,7 @@ void play_422(char* filename)
 	if( rc != size ) return;
 
 	struct vram_info * vram = get_yuv422_vram();
-	uint32_t* lv = vram->vram;
-
-	int i,j;
-	for (i = 0; i < 480; i++)
-	{
-		for (j = 0; j < 720/2; j++)
-		{
-			lv[i * vram->width/2 + j] = buf[(i*h/480) * w/2 + (j*w/720)];
-		}
-	}
+	yuv_resize(buf, w, h, vram->vram, vram->width, vram->height);
 }
 
 char* get_next_422()
