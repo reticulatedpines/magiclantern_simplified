@@ -26,7 +26,7 @@ int handle_notifybox_bgmt(struct event * event)
     }
     else if (event->param == MLEV_NOTIFY_BOX_CLOSE)
     {
-        BMP_LOCK ( RedrawDisplay(); )
+        redraw();
         give_semaphore(notify_box_sem);
     }
     return 0;
