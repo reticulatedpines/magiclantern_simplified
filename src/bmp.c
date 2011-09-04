@@ -1021,11 +1021,13 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 	}
 }
 
+void * bmp_lock = 0;
+void * gmt_lock = 0;
+
 void bmp_sem_init()
 {
-	bmp_lock = CreateRecursiveLock("bmp_lock", 1);
-	gmt_lock = CreateRecursiveLock("gmt_lock", 1);
+	bmp_lock = CreateRecursiveLock(0);
+	gmt_lock = CreateRecursiveLock(0);
 }
 
-//~ INIT_FUNC(__FILE__, bmp_init);
 

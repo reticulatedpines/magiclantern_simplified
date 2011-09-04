@@ -235,18 +235,17 @@ uint8_t bmp_getpixel(int x, int y);
 //~ #define BMP_SEM(x) { bmp_printf(FONT_LARGE, 50, 100, "B1 %s:%d", __func__, __LINE__); take_semaphore(bmp_sem, 0); x; give_semaphore(bmp_sem); bmp_printf(FONT_LARGE, 50, 100, "B0                                 ");}
 //~ #define GMT_SEM(x) { bmp_printf(FONT_LARGE, 50, 50, "G1 %s:%d", __func__, __LINE__); card_led_on(); take_semaphore(gmt_sem, 0); x; give_semaphore(gmt_sem);  card_led_off(); bmp_printf(FONT_LARGE, 50, 50, "G0                                 "); }
 
-void* bmp_lock;
-void* gmt_lock;
+extern void* bmp_lock;
+extern void* gmt_lock;
+//~ extern int bmp_ctr;
 
-#if CONFIG_DEBUGMSG
-//~ #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0                                 "); ReleaseRecursiveLock(bmp_lock);}
-//~ #define GMT_LOCK(x) { bmp_printf(FONT_SMALL, 50, 150, "GMT_LOCK try %s:%d", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 0); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0                                 "); ReleaseRecursiveLock(gmt_lock);}
-#else
-#define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
-#define GMT_LOCK(x) { AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock);}
-#endif
+//~ #define BMP_LOCK(x) { if(bmp_lock) AcquireRecursiveLock(bmp_lock, 0); x; if(bmp_lock) ReleaseRecursiveLock(bmp_lock, 0);}
+//~ #define GMT_LOCxK(x) { if(gmt_lock) AcquireRecursiveLock(gmt_lock, 0); x; if(gmt_lock) ReleaseRecursiveLock(gmt_lock, 0);}
 
 #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
 #define GMT_LOCK(x) { AcquireRecursiveLock(gmt_lock, 0); x; ReleaseRecursiveLock(gmt_lock);}
+
+//~ #define BMP_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 150, "BMP_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(bmp_lock, 500); bmp_printf(FONT_SMALL, 50, 150, "                          "); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 releasing...                    "); ReleaseRecursiveLock(bmp_lock); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
+//~ #define GMT_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 200, "GMT_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 500); bmp_printf(FONT_SMALL, 50, 200, "                          "); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 releasing...                    "); ReleaseRecursiveLock(gmt_lock); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
 
 #endif
