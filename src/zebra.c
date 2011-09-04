@@ -94,6 +94,8 @@ int get_zoom_overlay()
 	return zoom_overlay;
 }
 
+int zoom_overlay_dirty = 0;
+
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
@@ -2512,14 +2514,6 @@ struct menu_entry zebra_menus[] = {
 
 	},
 	{
-		.name = "Histo/Wavefm",
-		.priv		= &hist_draw,
-		.select		= menu_ternary_toggle_reverse,
-		.select_auto = waveform_toggle,
-		.display	= hist_display,
-		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
-	},
-	{
 		.name = "Zebras",
 		.priv		= &zebra_draw,
 		.select		= menu_ternary_toggle_reverse,
@@ -2529,12 +2523,30 @@ struct menu_entry zebra_menus[] = {
 		.help = "Zebra stripes: show overexposed or underexposed areas."
 	},
 	{
-		.name = "False color",
-		.priv		= &falsecolor_draw,
-		.display	= falsecolor_display,
-		.select		= menu_binary_toggle,
-		.select_auto = falsecolor_palette_toggle,
-		.help = "Shows brightness level as color-coded. [Q]: change palette."
+		.name = "Focus Peak",
+		.priv			= &focus_peaking,
+		.display		= focus_peaking_display,
+		.select			= menu_ternary_toggle,
+		.select_reverse = focus_peaking_adjust_color, 
+		.select_auto    = focus_peaking_adjust_thr,
+		.help = "Show tiny dots on focused edges. Params: method,thr,color."
+	},
+	{
+		.name = "Magic Zoom",
+		.priv = &zoom_overlay_pos,
+		.display = zoom_overlay_display,
+		.select = zoom_overlay_main_toggle,
+		.select_reverse = zoom_overlay_size_toggle,
+		.select_auto = menu_quinternary_toggle,
+		.help = "Zoom box for focusing. Can be used while recording."
+	},
+	{
+		.name = "Split Screen",
+		.priv = &zoom_overlay_split,
+		.display = split_display, 
+		.select = menu_binary_toggle,
+		.select_auto = split_zerocross_toggle,
+		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
 	},
 	{
 		.name = "Cropmks(x/n)",
@@ -2568,30 +2580,20 @@ struct menu_entry zebra_menus[] = {
 		.help = "Measure brightness in the frame center. [Q]: Percent/IRE."
 	},
 	{
-		.name = "Focus Peak",
-		.priv			= &focus_peaking,
-		.display		= focus_peaking_display,
-		.select			= menu_ternary_toggle,
-		.select_reverse = focus_peaking_adjust_color, 
-		.select_auto    = focus_peaking_adjust_thr,
-		.help = "Show tiny dots on focused edges. Params: method,thr,color."
+		.name = "False color",
+		.priv		= &falsecolor_draw,
+		.display	= falsecolor_display,
+		.select		= menu_binary_toggle,
+		.select_auto = falsecolor_palette_toggle,
+		.help = "Shows brightness level as color-coded. [Q]: change palette."
 	},
 	{
-		.name = "Magic Zoom",
-		.priv = &zoom_overlay_pos,
-		.display = zoom_overlay_display,
-		.select = zoom_overlay_main_toggle,
-		.select_reverse = zoom_overlay_size_toggle,
-		.select_auto = menu_quinternary_toggle,
-		.help = "Zoom box for focusing. Can be used while recording."
-	},
-	{
-		.name = "Split Screen",
-		.priv = &zoom_overlay_split,
-		.display = split_display, 
-		.select = menu_binary_toggle,
-		.select_auto = split_zerocross_toggle,
-		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
+		.name = "Histo/Wavefm",
+		.priv		= &hist_draw,
+		.select		= menu_ternary_toggle_reverse,
+		.select_auto = waveform_toggle,
+		.display	= hist_display,
+		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
 	},
 	{
 		.name = "ClearScreen",
@@ -2728,6 +2730,7 @@ static void
 cropmark_redraw()
 {
 	BMP_LOCK( cropmark_draw(); )
+	zoom_overlay_dirty = 1;
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
@@ -3326,6 +3329,7 @@ BMP_LOCK (
 	afframe_set_dirty();
 	crop_set_dirty(5);
 	menu_set_dirty();
+	zoom_overlay_dirty = 1;
 }
 
 /*
@@ -3412,16 +3416,16 @@ livev_hipriority_task( void* unused )
 		
 		zebra_sleep_when_tired();
 
-		static int dirty = 0;
 		if (should_draw_zoom_overlay())
 		{
 			guess_fastrefresh_direction();
-			BMP_LOCK( if (lv) draw_zoom_overlay(dirty); )
-			if (dirty) { clrscr_mirror(); dirty = 0; }
+			if (zoom_overlay_dirty) clrscr_mirror(); 
+			BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
+			zoom_overlay_dirty = 0;
 		}
 		else
 		{
-			dirty = 1;
+			zoom_overlay_dirty = 1;
 			if (falsecolor_draw)
 			{
 				if (k % 4 == 0)
