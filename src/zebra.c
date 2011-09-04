@@ -76,7 +76,7 @@ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross,
 int get_zoom_overlay_mode() 
 { 
 	if (!get_global_draw()) return 0;
-	if (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0) return 0;
+	if (is_movie_mode() && video_mode_resolution != 0) return 0;
 	return zoom_overlay_mode;
 }
 int get_zoom_overlay_z() 
@@ -1020,7 +1020,7 @@ static void draw_zebra_and_focus_unified( void )
 
 		int bm_lv_y = 0;
 
-		if(shooting_mode == SHOOTMODE_MOVIE) {
+		if(is_movie_mode()) {
 			bm_lv_y = (os.bmp_ex_y-os.bmp_ex_x*9/16);
 			if(((ext_monitor_hdmi || ext_monitor_rca) && !recording ) || (!ext_monitor_hdmi && !ext_monitor_rca)){
 				bm_lv_y>>=1;
@@ -1221,7 +1221,7 @@ draw_zebra_and_focus( int Z, int F )
 	*/
 	
 	//~ if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
-	//~ if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (shooting_mode == SHOOTMODE_MOVIE && video_mode_resolution != 0)))
+	//~ if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (is_movie_mode() && video_mode_resolution != 0)))
 		//~ { draw_zebra_and_focus_unified(); return; }
 	
 	if (!global_draw) return;
@@ -1290,7 +1290,7 @@ draw_zebra_and_focus( int Z, int F )
 		// look in the HD buffer
 
 		#ifdef CONFIG_600D
-		int rec_off = (shooting_mode == SHOOTMODE_MOVIE ? 90 : 0);
+		int rec_off = (is_movie_mode() ? 90 : 0);
 		#else
 		int rec_off = (recording ? 90 : 0);
 		#endif
@@ -1625,7 +1625,7 @@ draw_zebra( void )
 	for( y=1 ; y < 480; y++ )
 	{
         // if audio meters are enabled, don't draw in this area
-        if (y < 33 && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && shooting_mode == SHOOTMODE_MOVIE))) continue;
+        if (y < 33 && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && is_movie_mode()))) continue;
         
 		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
 		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH );
@@ -1648,7 +1648,7 @@ draw_zebra( void )
 			uint16_t mirror = m_row[x/2];
 
 			// cropmarks: black border in movie mode
-			if (crop_black_border && (pixel == 0 || pixel == (COLOR_BG << 8 | COLOR_BG)) && shooting_mode == SHOOTMODE_MOVIE && (y < 40 || y > 440))
+			if (crop_black_border && (pixel == 0 || pixel == (COLOR_BG << 8 | COLOR_BG)) && is_movie_mode() && (y < 40 || y > 440))
 			{
 				b_row[x/2] = (2 << 8 | 2); // black borders by default
 				if( crop_draw) check_crop( x, y, b_row, v_row, vram->pitch, m_row);
@@ -1974,7 +1974,7 @@ crop_display( void * priv, int x, int y, int selected )
 	//~ int h = font_large.height;
 	//~ int w = h * 720 / 480;
 	//~ bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
-	if (index && cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE)
+	if (index && cropmark_movieonly && !is_movie_mode())
 		menu_draw_icon(x, y, MNI_WARNING, 0);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(index), 0);
 }
@@ -2716,7 +2716,7 @@ cropmark_draw()
 	ChangeColorPaletteLV(2);
 	if (!get_global_draw()) return;
 	if (transparent_overlay) show_overlay();
-	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE) return;
+	if (cropmark_movieonly && !is_movie_mode()) return;
 	reload_cropmark(crop_draw); // reloads only when changed
 	clrscr_mirror();
 	bmp_ov_loc_size_t os;
@@ -2861,9 +2861,6 @@ void draw_zoom_overlay(int dirty)
 	
 	struct vram_info *	lv = get_yuv422_vram();
 	struct vram_info *	hd = get_yuv422_hd_vram();
-
-	yuv_resize(hd->vram, hd->width, hd->height, lv->vram, 1920, 1080);
-	return;
 	
 	//~ lv->width = 1920;
 

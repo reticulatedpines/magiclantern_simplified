@@ -220,7 +220,7 @@ void draw_ml_bottombar()
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
-	if (shooting_mode == SHOOTMODE_MOVIE) bg = COLOR_BLACK;
+	if (is_movie_mode()) bg = COLOR_BLACK;
 	//~ unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
@@ -303,7 +303,7 @@ void draw_ml_bottombar()
 
       int fgs = 0x73; // blue (neutral)
       int shutter_degrees = -1;
-      if (shooting_mode == SHOOTMODE_MOVIE) // check 180 degree rule
+      if (is_movie_mode()) // check 180 degree rule
       {
            shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
            if (ABS(shutter_degrees - 180) < 10)
@@ -325,7 +325,7 @@ void draw_ml_bottombar()
       }
 
 	text_font = FONT(FONT_LARGE,fgs,bg);
-	if (shooting_mode == SHOOTMODE_MOVIE && shutter_display_degrees)
+	if (is_movie_mode() && shutter_display_degrees)
 	{
 		snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
 		bmp_printf( text_font, 
@@ -437,6 +437,7 @@ void draw_ml_bottombar()
 		// MODE
 		
 			bmp_printf( text_font, x_origin - 50, y_origin,
+				is_movie_mode() ? "Mv" : 
 				shooting_mode == SHOOTMODE_P ? "P " :
 				shooting_mode == SHOOTMODE_M ? "M " :
 				shooting_mode == SHOOTMODE_TV ? "Tv" :
@@ -450,7 +451,7 @@ void draw_ml_bottombar()
 				shooting_mode == SHOOTMODE_MACRO ? "MC" :
 				shooting_mode == SHOOTMODE_SPORTS ? "SP" :
 				shooting_mode == SHOOTMODE_NIGHT ? "NI" :
-				shooting_mode == SHOOTMODE_MOVIE ? "Mv" : "?"
+				"?"
 			);
 /*
 		x += 50;

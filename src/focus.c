@@ -516,7 +516,7 @@ int can_lv_trap_focus_be_active()
 	if (!lv) return 0;
 	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
 	if (dofpreview) return 0;
-	if (shooting_mode == SHOOTMODE_MOVIE) return 0;
+	if (is_movie_mode()) return 0;
 	if (gui_state != GUISTATE_IDLE) return 0;
 	if (get_silent_pic_mode()) return 0;
 	if (!is_manual_focus()) return 0;
@@ -554,7 +554,7 @@ int is_manual_focus()
 #ifdef CONFIG_MOVIE_AF
 int movie_af_active()
 {
-	return shooting_mode == SHOOTMODE_MOVIE && lv && !is_manual_focus() && (focus_done || movie_af==3);
+	return is_movie_mode() && lv && !is_manual_focus() && (focus_done || movie_af==3);
 }
 
 static void movie_af_step(int mag)

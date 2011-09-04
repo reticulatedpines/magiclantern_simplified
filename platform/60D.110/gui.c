@@ -120,7 +120,7 @@ static int handle_buttons(struct event * event)
 	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
 	/*
-	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
+	if (is_movie_mode() && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
 		if (event->param == BGMT_PRESS_UP)
 		{
@@ -542,7 +542,7 @@ static int handle_buttons(struct event * event)
 	// movie mode shortcut
 	if (event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE || CURRENT_DIALOG_MAYBE == DLG_METERING))
 	{
-		if (shooting_mode != SHOOTMODE_MOVIE)
+		if (!is_movie_mode())
 		{
 			set_shooting_mode(SHOOTMODE_MOVIE);
 			return 0;

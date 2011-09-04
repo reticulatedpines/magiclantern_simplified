@@ -281,8 +281,10 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	gui_stop_menu();
-	task_create("run_test", 0x1c, 0, run_test, 0);
+	call("EnableMovie");
+	//~ ChangeHDMIOutputSizeToVGA();
+	//~ gui_stop_menu();
+	//~ task_create("run_test", 0x1c, 0, run_test, 0);
 	/*task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);*/
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
@@ -459,7 +461,7 @@ static void display_shortcut_key_hints_lv()
 	static int old_mode = 0;
 	int mode = 0;
 	if (!zebra_should_run()) return;
-	if (shooting_mode == SHOOTMODE_MOVIE && FLASH_BTN_MOVIE_MODE) mode = 1;
+	if (is_movie_mode() && FLASH_BTN_MOVIE_MODE) mode = 1;
 	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) mode = 2;
 	else if (is_follow_focus_active() && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
 	if (mode == 0 && old_mode == 0) return;
@@ -572,7 +574,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 50, 50, "%x %x %x %x %x %x %x  ", sca, scb, scl, ll, afss, afsr, mec);
+		bmp_printf(FONT_MED, 50, 50, "%x ", lv_movie_select);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -600,7 +602,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			(
 				display_shooting_info_lv();
 				static int ae_warned = 0;
-				if (shooting_mode == SHOOTMODE_MOVIE && !ae_mode_movie && !gui_menu_shown()) 
+				if (is_movie_mode() && !ae_mode_movie && !gui_menu_shown()) 
 				{
 					if (!ae_warned)
 					{
@@ -1117,7 +1119,7 @@ PROP_HANDLER(PROP_APERTURE)
 /*
 PROP_HANDLER(PROP_SHUTTER)
 {
-	if (lv && shooting_mode == SHOOTMODE_MOVIE)
+	if (lv && is_movie_mode())
 	{
 		static volatile int old = 0;
 		
@@ -1175,7 +1177,7 @@ PROP_HANDLER(PROP_ISO)
 	static int prev_iso = 0;
 	if (!prev_iso) prev_iso = lens_info.raw_iso;
 	static int k = 0;
-	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0 && shooting_mode == SHOOTMODE_MOVIE)
+	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0 && is_movie_mode())
 	{
 		if ((prev_iso && buf[0] && prev_iso < buf[0]) || // 100 -> 200 => +
 			(prev_iso >= 112 && buf[0] == 0)) // 3200+ -> auto => +

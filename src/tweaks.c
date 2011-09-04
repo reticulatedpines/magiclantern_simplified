@@ -53,13 +53,13 @@ expsim_display( void * priv, int x, int y, int selected )
 		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
 		expsim ? "ON " : "OFF"
 	);
-	menu_draw_icon(x, y, shooting_mode == SHOOTMODE_MOVIE ? MNI_WARNING : expsim_auto ? MNI_AUTO : MNI_BOOL(expsim), 0);
+	menu_draw_icon(x, y, is_movie_mode() ? MNI_WARNING : expsim_auto ? MNI_AUTO : MNI_BOOL(expsim), 0);
 }
 
 static void expsim_update()
 {
 	if (!lv) return;
-	if (shooting_mode == SHOOTMODE_MOVIE) return;
+	if (is_movie_mode()) return;
 	if (expsim_auto)
 	{
 		if ((lv_dispsize > 1 || should_draw_zoom_overlay()) && !get_halfshutter_pressed()) set_expsim(0);
@@ -396,7 +396,7 @@ tweak_task( void* unused)
 	{
 		msleep(50);
 		
-		/*if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv && k % 10 == 0)
+		/*if (lv_metering && !is_movie_mode() && lv && k % 10 == 0)
 		{
 			lv_metering_adjust();
 		}*/

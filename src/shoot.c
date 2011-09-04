@@ -109,7 +109,7 @@ static int bin_search(int lo, int hi, CritFunc crit)
 static void
 interval_timer_display( void * priv, int x, int y, int selected )
 {
-	if (shooting_mode != SHOOTMODE_MOVIE || silent_pic_mode)
+	if (!is_movie_mode() || silent_pic_mode)
 	{
 		int d = timer_values[*(int*)priv];
 		if (!d)
@@ -157,7 +157,7 @@ interval_timer_toggle_reverse( void * priv )
 static void
 interval_movie_duration_toggle( void * priv )
 {
-	if (shooting_mode == SHOOTMODE_MOVIE && silent_pic_mode == 0)
+	if (is_movie_mode() && silent_pic_mode == 0)
 		interval_movie_duration_index = mod(interval_movie_duration_index + 1, COUNT(timer_values));
 }
 
@@ -928,12 +928,13 @@ silent_pic_take_longexp()
 void ensure_movie_mode()
 {
 	if (!lv) force_liveview();
-	if (shooting_mode != SHOOTMODE_MOVIE)
+	if (!is_movie_mode())
 	{
+		#ifdef CONFIG_50D
+		call("EnableMovie");
+		#else
 		set_shooting_mode(SHOOTMODE_MOVIE);
-		msleep(500); 
-		int x = 2;
-		prop_request_change(PROP_LV_MODE, &x, 4);
+		#endif
 		msleep(500); 
 	}
 }
@@ -941,7 +942,7 @@ void ensure_movie_mode()
 static int
 silent_pic_ensure_movie_mode()
 {
-	if (silent_pic_fullhd && shooting_mode != SHOOTMODE_MOVIE) 
+	if (silent_pic_fullhd && !is_movie_mode()) 
 	{ 
 		ensure_movie_mode();
 	}
@@ -1399,7 +1400,7 @@ static void
 shutter_display( void * priv, int x, int y, int selected )
 {
 	char msg[100];
-	if (shooting_mode == SHOOTMODE_MOVIE)
+	if (is_movie_mode())
 	{
 		snprintf(msg, sizeof(msg),
 			"Shutter     : 1/%d, %d",
@@ -2923,7 +2924,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 {
 	if (step_size) hdr_create_script(steps, skip0, 0);
 	int i;
-	if ((lens_info.iso && shooting_mode == SHOOTMODE_M) || (shooting_mode == SHOOTMODE_MOVIE))
+	if ((lens_info.iso && shooting_mode == SHOOTMODE_M) || (is_movie_mode()))
 	{
 		const int s = lens_info.raw_shutter;
 		for( i = -steps/2; i <= steps/2; i ++  )
@@ -2983,7 +2984,7 @@ void movie_start()
 
 void movie_end()
 {
-	if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
+	if (shooting_type != 3 && !is_movie_mode())
 	{
 		NotifyBox(2000, "Not in movie mode (%d,%d) ", shooting_type, shooting_mode);
 		return;
@@ -3037,7 +3038,7 @@ void hdr_shot(int skip0, int wait)
 		//~ NotifyBox(1000, "Bulb shot...");
 		bulb_take_pic(bulb_shutter_value);
 	}
-	else if (shooting_mode == SHOOTMODE_MOVIE && !silent_pic_mode)
+	else if (is_movie_mode() && !silent_pic_mode)
 	{
 		//~ NotifyBox(1000, "Movie record...");
 		hdr_take_mov(hdr_steps, hdr_stepsize);
@@ -3123,7 +3124,7 @@ void remote_shot(int wait)
 	{
 		if (silent_pic_mode)
 			silent_pic_take(0);
-		else if (shooting_mode == SHOOTMODE_MOVIE)
+		else if (is_movie_mode())
 			movie_start();
 		else
 			lens_take_picture(64); // hdr_shot messes with the self timer mode
@@ -3442,11 +3443,11 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
 		{
-			if (hdr_steps > 1 && shooting_mode != SHOOTMODE_MOVIE) hdr_shot(1,1); // skip the middle exposure, which was just taken
+			if (hdr_steps > 1 && !is_movie_mode()) hdr_shot(1,1); // skip the middle exposure, which was just taken
 		}
 
 		// toggle flash on/off for next picture
-		/*if (shooting_mode != SHOOTMODE_MOVIE && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+		/*if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
 		{
 			strobo_firing = file_number % 2;
 			set_flash_firing(strobo_firing);
@@ -3599,7 +3600,7 @@ shoot_task( void* unused )
 
 				while (get_halfshutter_pressed()) msleep(100); // pause
 				
-				//~ if (shooting_mode != SHOOTMODE_MOVIE)
+				//~ if (!is_movie_mode())
 				//~ {
 					//~ if (lens_info.shutter > 100 && !silent_pic_mode) bmp_printf(FONT_MED, 0, 70,             "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
 					//~ else if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");

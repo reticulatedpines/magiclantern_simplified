@@ -35,7 +35,12 @@ volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 volatile PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
 volatile PROP_INT(PROP_BEEP, beep_enabled);
+volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 
+int is_movie_mode()
+{
+	return shooting_mode == SHOOTMODE_MOVIE || lv_movie_select == LVMS_ENABLE_MOVIE;
+}
 
 volatile int shutter_count = 0;
 volatile int liveview_actuations = 0;

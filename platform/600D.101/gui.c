@@ -138,7 +138,7 @@ static int handle_buttons(struct event * event)
 	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
 	
-	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
+	if (is_movie_mode() && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
 		if (event->param == BGMT_PRESS_UP)
 		{
@@ -378,7 +378,7 @@ static int handle_buttons(struct event * event)
 
 	// shortcut for 3x zoom mode
 	extern int digital_zoom_shortcut;
-	if (digital_zoom_shortcut && lv && shooting_mode == SHOOTMODE_MOVIE && !recording && disp_pressed)
+	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
 	{
 		if (!video_mode_crop)
 		{
@@ -569,7 +569,7 @@ static int handle_buttons(struct event * event)
 	// movie mode shortcut
 	if (event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
 	{
-		if (shooting_mode != SHOOTMODE_MOVIE)
+		if (!is_movie_mode())
 		{
 			set_shooting_mode(SHOOTMODE_MOVIE);
 			return 0;
