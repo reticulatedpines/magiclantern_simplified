@@ -150,6 +150,7 @@ copy_and_restart( int offset )
 }
 
 int autoexec_ok; // true if autoexec.bin was found
+int fonts_ok; // true if fonts.dat was found
 int old_shooting_mode; // to detect when mode dial changes
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
 #define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
@@ -205,6 +206,7 @@ void install_task()
 	ui_lock(UILOCK_EVERYTHING);
 
 	autoexec_ok = check_autoexec();
+	fonts_ok = check_fonts();
 
 	initial_install();
 
@@ -347,6 +349,14 @@ initial_install(void)
 		return;
 	}
 
+	if (!fonts_ok)
+	{
+		PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, 
+			"FONTS.DAT not found!  \n"
+			"Skipping initial install.");
+		return;
+	}
+
 	bmp_fill(COLOR_BG, 0, 0, 720, 480);
 
 	int y = 0;
@@ -439,6 +449,18 @@ int check_autoexec()
 	return 0;
 }
 
+// check if fonts.dat is present on the card
+int check_fonts()
+{
+	FILE * f = FIO_Open(CARD_DRIVE "FONTS.DAT", 0);
+	if (f != (void*) -1)
+	{
+		FIO_CloseFile(f);
+		return 1;
+	}
+	return 0;
+}
+
 // check ML installation and print a message
 void check_install()
 {
@@ -468,23 +490,46 @@ void check_install()
 	{
 		if (autoexec_ok)
 		{
-			bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
-				"                                    \n"
-				" BOOTDISK flag is ENABLED.          \n"
-				"                                    \n"
-				" AUTOEXEC.BIN found.                \n"
-				"                                    \n"
-				"                                    \n"
-				"                                    \n"
-				" Magic Lantern is installed.        \n"
-				" You may now restart your camera.   \n"
-				"                                    \n"
-				"                                    \n"
-				" To disable the BOOTDISK flag,      \n"
-				" turn the mode dial one notch       \n"
-				" in any direction.                  \n"
-				"                                    \n"
-			);
+			if (fonts_ok)
+			{
+				bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
+					"                                    \n"
+					" BOOTDISK flag is ENABLED.          \n"
+					"                                    \n"
+					" AUTOEXEC.BIN found.                \n"
+					"                                    \n"
+					"                                    \n"
+					"                                    \n"
+					" Magic Lantern is installed.        \n"
+					" You may now restart your camera.   \n"
+					"                                    \n"
+					"                                    \n"
+					" To disable the BOOTDISK flag,      \n"
+					" turn the mode dial one notch       \n"
+					" in any direction.                  \n"
+					"                                    \n"
+				);
+			}
+			else
+			{
+				bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, 0), 0, 0, 
+					"                                    \n"
+					" BOOTDISK flag is ENABLED.          \n"
+					" AUTOEXEC.BIN found.                \n"
+					"                                    \n"
+					" !!! FONTS.DAT NOT FOUND !!!        \n"
+					"                                    \n"
+					" Please copy ALL ML files on your   \n"
+					" SD card. They only take a few MB.  \n"
+					"                                    \n"
+					" You may now turn off your camera.  \n"
+					"                                    \n"
+					" To disable the BOOTDISK flag,      \n"
+					" turn the mode dial one notch       \n"
+					" in any direction.                  \n"
+					"                                    \n"
+				);
+			}
 		}
 		else
 		{
@@ -492,7 +537,7 @@ void check_install()
 				"                                    \n"
 				" BOOTDISK flag is ENABLED.          \n"
 				"                                    \n"
-				" AUTOEXEC.BIN NOT FOUND!!!          \n"
+				" !!! AUTOEXEC.BIN NOT FOUND !!!     \n"
 				"                                    \n"
 				" Remove battery and card            \n"
 				" and copy AUTOEXEC.BIN,             \n"
