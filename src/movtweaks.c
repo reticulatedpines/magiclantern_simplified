@@ -69,13 +69,29 @@ movie_rec_key_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Movie REC key : %s ",
-		movie_rec_key ? "HalfShutter" : "Default"
+		movie_rec_key == 1 ? "HalfShutter" :
+		movie_rec_key == 2 ? "SET" :
+		"Default"
 	);
+}
+
+int handle_movie_rec_key(struct event * event)
+{
+	if (movie_rec_key == 2 && is_movie_mode() && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+	{
+		if (event->param == BGMT_PRESS_SET)
+		{
+			if (!recording) schedule_movie_start();
+			else schedule_movie_end();
+			return 0;
+		}
+	}
+	return 1;
 }
 
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
-	if (movie_rec_key && buf[0] && is_movie_mode() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+	if (movie_rec_key == 1 && buf[0] && is_movie_mode() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
 	{
 		if (!recording) schedule_movie_start();
 		else schedule_movie_end();
@@ -304,14 +320,14 @@ movtweak_task( void* unused )
 		extern int ext_monitor_hdmi;
 		if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && ext_monitor_hdmi && !recording && !gui_menu_shown())
 		{
-			if (hdmi_code == 5)
+			if (ext_monitor_hdmi && hdmi_code == 5)
 			{
 				int g = get_global_draw();
 				set_global_draw(0);
 				msleep(1000);
-				GMT_LOCK (
-					ChangeHDMIOutputSizeToVGA();
-				)
+				//~ GMT_LOCfK (
+					//~ ChangeHDMIOutputSizeToVGA();
+				//~ )
 				msleep(2000);
 				set_global_draw(g);
 				NotifyBox(2000, "HDMI resolution: 720x480");
@@ -446,7 +462,8 @@ static struct menu_entry mov_menus[] = {
 		.name = "Movie REC key",
 		.priv = &movie_rec_key, 
 		.display = movie_rec_key_print, 
-		.select = menu_binary_toggle,
+		.select = menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
 		.help = "Change the button used for recording. Hint: wired remote."
 	},
 	{

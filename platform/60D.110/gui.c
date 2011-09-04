@@ -111,6 +111,9 @@ static int handle_buttons(struct event * event)
 	if (event->param == MLEV_NOTIFY_BOX_OPEN || event->param == MLEV_NOTIFY_BOX_CLOSE)
 		return handle_notifybox_bgmt(event);
 
+	// movie REC key
+	if (handle_movie_rec_key(event) == 0) return 0;
+
 	if (event->param != 0x5a)
  	{
 		idle_wakeup_reset_counters();
