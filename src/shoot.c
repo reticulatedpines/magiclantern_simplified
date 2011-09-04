@@ -931,7 +931,8 @@ void ensure_movie_mode()
 	if (!is_movie_mode())
 	{
 		#ifdef CONFIG_50D
-		call("EnableMovie");
+		GUI_SetLvMode(2);
+		GUI_SetMovieSize_b(1);
 		#else
 		set_shooting_mode(SHOOTMODE_MOVIE);
 		#endif

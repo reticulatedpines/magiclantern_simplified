@@ -219,3 +219,6 @@ NSTUB(0x12A58, gui_task_list) // look in gui_task_create
 NSTUB(0xffa854cc, BeginMovieRecSequence)
 NSTUB( 0xFFA850DC, EndMovieRecSequence )
 
+NSTUB(0xff9a4670, GUI_SetLvMode)
+NSTUB(0xff9a4748, GUI_SetMovieSize_a)
+NSTUB(0xFF9A4844, GUI_SetMovieSize_b)

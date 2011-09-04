@@ -246,6 +246,7 @@
 
 #define PROP_STROBO_FIRING 0x80040013 // 0 = enable, 1 = disable?
 
+#define PROP_MOVIE_SIZE_50D 0x205000E
 #define PROP_VIDEO_MODE 0x80000039 
 // buf[0]: 8 if crop else 0
 // buf[1]: 0 if full hd, 1 if 720p, 2 if 680p

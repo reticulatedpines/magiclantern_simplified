@@ -209,9 +209,9 @@ void Beep()
 
 void run_test()
 {
-	gui_stop_menu();
-	msleep(1000);
-	call("MovieStart");
+	//~ gui_stop_menu();
+	//~ msleep(1000);
+	//~ call("MovieStart");
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -284,8 +284,9 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	gui_stop_menu();
-	task_create("run_test", 0x1c, 0, run_test, 0);
+	//~ GUI_SetMovieSize_a(1);
+	//~ gui_stop_menu();
+	//~ task_create("run_test", 0x1c, 0, run_test, 0);
 	/*task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);*/
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
@@ -297,8 +298,7 @@ void xx_test(void* priv)
 
 static void xx_test2(void* priv)
 {
-	extern volatile int afframe[26];
-	memcpy(aff, afframe, 0x68);
+	//~ GUI_SetMovieSize_b(1);
 }
 
 void ui_lock(int x)
@@ -557,6 +557,7 @@ static unsigned dbg_last_changed_propindex = 0;
 int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
+
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -575,7 +576,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 50, 50, "%x %x %x ", bmp_lock, gmt_lock, bmp_ctr);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -675,8 +675,12 @@ spy_print(
 	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
+#ifdef CONFIG_50D
+
+PROP_INT(PROP_MOVIE_SIZE_50D, movie_size_50d);
+
 static void
-lv_func_print(
+lv_movie_print(
 	void *			priv,
 	int			x,
 	int			y,
@@ -686,37 +690,67 @@ lv_func_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LiveView Func.: %s",
-		lv_movie_select == 0 ? "Disable" :
-		lv_movie_select == 1 ? "Stills" :
-		lv_movie_select == 2 ? "Stills + Movie" : "err"
+		"Movie Recording : %s",
+		lv_movie_select != 2 ? "Disabled" :
+		movie_size_50d == 1 ? "1920x1088 @ 30fps" : "Invalid"
 	);
+	menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
 }
 
-void lv_func_toggle(int delta)
+void lv_movie_toggle(void* priv)
 {
-	int newvalue = mod(lv_movie_select + delta, 3);
-	if (newvalue == 0) call("DisableMovie");
-	else if (newvalue == 1) prop_request_change(PROP_LV_MOVIE_SELECT, &newvalue, 4);
-	else call("EnableMovie");
+	int newvalue = lv_movie_select == 2 ? 1 : 2;
+	GUI_SetLvMode(newvalue);
+	if (newvalue == 2) GUI_SetMovieSize_b(1);
+}
+/*
+static void
+movie_size_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Movie size      : %s",
+		movie_size_50d == 0 ? "Invalid" :
+		movie_size_50d == 1 ? "1920x1088" :
+		movie_size_50d == 2 ? "640x480" : "err" // not sure
+	);
+	menu_draw_icon(x, y, movie_size_50d == 0 ? MNI_WARNING : MNI_ON, 0);
 }
 
-void lv_func_toggle_forward(void* priv) { lv_func_toggle(1); }
-void lv_func_toggle_reverse(void* priv) { lv_func_toggle(-1); }
+void movie_size_toggle(void* priv)
+{
+	int newvalue = movie_size_50d == 1 ? 2 : 1;
+	GUI_SetMovieSize_b(newvalue);
+}*/
+
+#endif
 
 void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
 struct menu_entry debug_menus[] = {
+#ifdef CONFIG_50D
 	{
-		.name		= "LiveView Func",
+		.name		= "Movie recording",
 		.priv = &lv_movie_select,
-		.select		= lv_func_toggle_forward,
-		.select_reverse = lv_func_toggle_reverse,
-		.display	= lv_func_print,
-		.help = "LiveView Func : Disable / Stills / Stills + Movie"
+		.select		= lv_movie_toggle,
+		.display	= lv_movie_print,
+		.help = "Enable movie recording on 50D :) "
 	},
+#endif
+	/*{
+		.name		= "Movie size",
+		.select		= movie_size_toggle,
+		.display	= movie_size_print,
+		.help = "Movie recording size maybe, on 50D :) "
+	},*/
 #ifndef CONFIG_50D
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
