@@ -211,6 +211,7 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(1000);
+	call("MovieStart");
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -281,10 +282,8 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	call("EnableMovie");
-	//~ ChangeHDMIOutputSizeToVGA();
-	//~ gui_stop_menu();
-	//~ task_create("run_test", 0x1c, 0, run_test, 0);
+	gui_stop_menu();
+	task_create("run_test", 0x1c, 0, run_test, 0);
 	/*task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);*/
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
@@ -574,7 +573,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		bmp_printf(FONT_MED, 50, 50, "%x ", lv_movie_select);
+		//~ bmp_printf(FONT_MED, 50, 50, "%x %x %x ", bmp_lock, gmt_lock, bmp_ctr);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -588,9 +587,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		if (get_global_draw())
 		{
-			extern struct semaphore * notify_box_sem;
-			take_semaphore(notify_box_sem, 0);
-			
 			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
 			(
 				display_clock();
@@ -598,24 +594,26 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				free_space_show_photomode();
 			)
 		
-			if (lv && !gui_menu_shown()) BMP_LOCK
-			(
-				display_shooting_info_lv();
-				static int ae_warned = 0;
+			if (lv && !gui_menu_shown())
+			{
+				BMP_LOCK (
+					display_shooting_info_lv();
+					display_shortcut_key_hints_lv();
+				)
 				if (is_movie_mode() && !ae_mode_movie && !gui_menu_shown()) 
 				{
+					static int ae_warned = 0;
 					if (!ae_warned)
 					{
 						NotifyBox(2000, "!!! Auto exposure !!!");
 						NotifyBox(2000, "Set 'Movie Exposure -> Manual'");
+						msleep(5000);
 						ae_warned = 1;
 					}
+					else ae_warned = 0;
 				}
-				else ae_warned = 0;
-				display_shortcut_key_hints_lv();
-			)
-			
-			give_semaphore(notify_box_sem);
+
+			}
 		}
 		
 		if (screenshot_sec)
@@ -675,11 +673,48 @@ spy_print(
 	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
+static void
+lv_func_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"LiveView Func.: %s",
+		lv_movie_select == 0 ? "Disable" :
+		lv_movie_select == 1 ? "Stills" :
+		lv_movie_select == 2 ? "Stills + Movie" : "err"
+	);
+}
+
+void lv_func_toggle(int delta)
+{
+	int newvalue = mod(lv_movie_select + delta, 3);
+	if (newvalue == 0) call("DisableMovie");
+	else if (newvalue == 1) prop_request_change(PROP_LV_MOVIE_SELECT, &newvalue, 4);
+	else call("EnableMovie");
+}
+
+void lv_func_toggle_forward(void* priv) { lv_func_toggle(1); }
+void lv_func_toggle_reverse(void* priv) { lv_func_toggle(-1); }
+
 void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
 struct menu_entry debug_menus[] = {
+	{
+		.name		= "LiveView Func",
+		.priv = &lv_movie_select,
+		.select		= lv_func_toggle_forward,
+		.select_reverse = lv_func_toggle_reverse,
+		.display	= lv_func_print,
+		.help = "LiveView Func : Disable / Stills / Stills + Movie"
+	},
 #ifndef CONFIG_50D
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
