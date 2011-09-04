@@ -325,9 +325,9 @@ movtweak_task( void* unused )
 				int g = get_global_draw();
 				set_global_draw(0);
 				msleep(1000);
-				//~ GMT_LOCfK (
-					//~ ChangeHDMIOutputSizeToVGA();
-				//~ )
+				GMT_LOCK (
+					ChangeHDMIOutputSizeToVGA();
+				)
 				msleep(2000);
 				set_global_draw(g);
 				NotifyBox(2000, "HDMI resolution: 720x480");
