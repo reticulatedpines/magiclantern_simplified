@@ -81,10 +81,6 @@ static int handle_buttons(struct event * event)
 		return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
-	// notify boxes
-	if (event->param == MLEV_NOTIFY_BOX_OPEN || event->param == MLEV_NOTIFY_BOX_CLOSE)
-		return handle_notifybox_bgmt(event);
-
 	// Change the picture style button to show our menu
 	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
 	{

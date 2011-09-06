@@ -107,10 +107,6 @@ static int handle_buttons(struct event * event)
 			return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
-	// notify boxes
-	if (event->param == MLEV_NOTIFY_BOX_OPEN || event->param == MLEV_NOTIFY_BOX_CLOSE)
-		return handle_notifybox_bgmt(event);
-
 	// movie REC key
 	if (handle_movie_rec_key(event) == 0) return 0;
 

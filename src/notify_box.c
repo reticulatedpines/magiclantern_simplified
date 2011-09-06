@@ -12,12 +12,14 @@
 #include "gui.h"
 #include "lens.h"
 
-struct semaphore * notify_box_sem = 0;
+struct semaphore * notify_box_show_sem = 0;
+struct semaphore * notify_box_main_sem = 0;
+
 int notify_box_timeout = 0;
 int notify_box_stop_request = 0;
 char notify_box_msg[100];
 
-int handle_notifybox_bgmt(struct event * event)
+/*int handle_notifybox_bgmt(struct event * event)
 {
     if (event->param == MLEV_NOTIFY_BOX_OPEN)
     {
@@ -30,23 +32,30 @@ int handle_notifybox_bgmt(struct event * event)
         give_semaphore(notify_box_sem);
     }
     return 0;
-}
+}*/
 
 void NotifyBox_task(void* priv)
 {
-    notify_box_stop_request = 0;
-    fake_simple_button(MLEV_NOTIFY_BOX_OPEN);
-
-    int i;
-    for (i = 0; i < notify_box_timeout/50; i++)
+    while (1)
     {
-        msleep(50);
-        fake_simple_button(MLEV_NOTIFY_BOX_OPEN); // hack to redraw the message
-        if (notify_box_stop_request) break;
+        // wait until some other task asks for a notification
+        take_semaphore(notify_box_show_sem, 0);
+        
+        // show notification for a while, then redraw to erase it
+        bmp_printf(FONT_LARGE, 50, 50, notify_box_msg);
+        notify_box_stop_request = 0;
+        int i;
+        for (i = 0; i < notify_box_timeout/50; i++)
+        {
+            msleep(50);
+            bmp_printf(FONT_LARGE, 50, 50, notify_box_msg);
+            if (notify_box_stop_request) break;
+        }
+        redraw();
     }
-
-    fake_simple_button(MLEV_NOTIFY_BOX_CLOSE);
 }
+
+TASK_CREATE( "notifybox_task", NotifyBox_task, 0, 0x1b, 0x1000 );
 
 void NotifyBoxHide()
 {
@@ -55,20 +64,23 @@ void NotifyBoxHide()
 
 void NotifyBox(int timeout, char* fmt, ...) 
 {
-    take_semaphore(notify_box_sem, 0);
+    // make sure this is thread safe
+    take_semaphore(notify_box_main_sem, 0);
+    
+    notify_box_timeout = MAX(timeout, 100);
     va_list ap;
     va_start( ap, fmt );
     vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
     va_end( ap );
 
-    notify_box_timeout = MAX(timeout, 100);
-    task_create("NotifyBox_task", 0x1a, 0, NotifyBox_task, 0);
+    give_semaphore(notify_box_show_sem); // request displaying the notification box
+    give_semaphore(notify_box_main_sem); // done, other call can be made now
 }
 
 static void dlg_init()
 {
-    if (notify_box_sem == 0)
-        notify_box_sem = create_named_semaphore("nbox_sem", 1);
+    notify_box_show_sem = create_named_semaphore("nbox_show_sem", 0);
+    notify_box_main_sem = create_named_semaphore("nbox_done_sem", 1);
 }
 
 INIT_FUNC(__FILE__, dlg_init);
