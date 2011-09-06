@@ -128,13 +128,14 @@ static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 
 
-int crop_dirty = 0;
+int crop_redraw_flag = 0; // redraw cropmarks now
+int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
 int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
 	if (lv && !MENU_MODE && bmp_is_on())
-		GMT_LOCK( ChangeColorPalette(x); )
+		GMT_LOCK( if (lv) ChangeColorPalette(x); )
 }
 
 /*
@@ -3045,7 +3046,7 @@ void zebra_sleep_when_tired()
 		if (lv && !gui_menu_shown()) redraw();
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
-		crop_set_dirty(20);
+		crop_set_dirty(5);
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
 }
@@ -3288,6 +3289,15 @@ clearscreen_loop:
 
 		if (clearscreen == 2) // clear overlay when idle
 			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
+
+		// since this task runs at 10Hz, I prefer cropmark redrawing here
+		if (crop_dirty)
+		{
+			crop_dirty--;
+			if (crop_dirty == 0)
+				crop_redraw_flag = 1;
+		}
+
 	}
 }
 
@@ -3329,7 +3339,7 @@ BMP_LOCK (
 )
 	// ask other stuff to redraw
 	afframe_set_dirty();
-	crop_set_dirty(5);
+	crop_set_dirty(2);
 	menu_set_dirty();
 	zoom_overlay_dirty = 1;
 }
@@ -3446,31 +3456,17 @@ livev_hipriority_task( void* unused )
 		
 		if (spotmeter_draw && k % 4 == 0)
 			BMP_LOCK( if (lv) spotmeter_step(); )
-		
-		if (crop_dirty)
-		{
-			//~ bmp_printf(FONT_MED, 100, 100, "%d ", crop_dirty);
-			crop_dirty--;
-			if (!crop_dirty)
-			{
-				if (lv)
-				{
-					task_create("crop_redraw", 0x1e, 0, cropmark_redraw, 0); // redraw, but with lower priority
-					msleep(100);
-				}
-			}
-		}
 
 		if (zoom_overlay_countdown)
 		{
 			zoom_overlay_countdown--;
-			crop_set_dirty(10);
+			crop_set_dirty(5);
 		}
 		
 		if (k % 5 == 0) lens_display_set_dirty();
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || get_halfshutter_pressed())
-			crop_set_dirty(10);
+			crop_set_dirty(5);
 	}
 }
 
@@ -3517,6 +3513,14 @@ livev_lopriority_task( void* unused )
 		
 		if( waveform_draw && zebra_should_run())
 			BMP_LOCK( waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
+			
+		loprio_sleep();
+		
+		if (crop_redraw_flag)
+		{
+			cropmark_redraw();
+			crop_redraw_flag = 0;
+		}
 	}
 }
 
@@ -3616,7 +3620,7 @@ void do_disp_mode_change()
 	NotifyBox(1000, "Display preset: %d", disp_mode);
 	update_disp_mode_params_from_bits();
 	//~ draw_ml_topbar();
-	crop_set_dirty(40);
+	crop_set_dirty(10);
 }
 
 int livev_playback = 0;
