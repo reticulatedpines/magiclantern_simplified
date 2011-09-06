@@ -425,7 +425,7 @@ menus_display(
 	if (!audio_meters_are_drawn())
 		bmp_printf(
 			FONT(FONT_MED, 55, COLOR_BLACK), // gray
-			x0 + 720 - font_med.width * strlen(MENU_NAV_HELP_STRING), y0 + font_med.height, 
+			x0 + 10, y0 + 420, 
 				MENU_NAV_HELP_STRING
 		);
 
@@ -607,9 +607,9 @@ menu_redraw_if_damaged()
 			menu_damage = 0;
 			BMP_LOCK (
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
-				menus_display( menus, x0 + 10, y0 + 40 ); 
+				menus_display( menus, x0 + 10, y0 + 10 ); 
 				if (is_menu_active(" (i)")) menu_show_version();
-				draw_ml_topbar();
+				//~ draw_ml_topbar();
 			)
 			//~ update_stuff();
 			update_disp_mode_bits_from_params();

@@ -289,18 +289,22 @@ static void draw_meters(void)
 	prev_hs = hs;
 	int x0 = 0;
 	int y0 = 0;
-	if (ext_monitor_rca) y0 = 10;
-	if (hdmi_code == 2) y0 = 15;
-	int small = hs;
-	if (hdmi_code) small = 1;
-	if (hdmi_code == 5)
+	int small = 0;
+
+	if (gui_menu_shown())
 	{
-		if (gui_menu_shown())
-		{
-			x0 = 120;
-			y0 = 40;
-		}
-		else
+		x0 = hdmi_code == 5 ? 120 : 0;
+		y0 = hdmi_code == 5 ? 40 : 0;
+		y0 += 400;
+		x0 += 10;
+	}
+	else
+	{
+		if (ext_monitor_rca) y0 = 10;
+		if (hdmi_code == 2) y0 = 15;
+		small = hs;
+		if (hdmi_code) small = 1;
+		if (hdmi_code == 5)
 		{
 			x0 = 100;
 			y0 = 0;
@@ -323,7 +327,7 @@ static void draw_meters(void)
 	if (gui_menu_shown() && alc_enable)
 	{
 		int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
-		bmp_printf(FONT_MED, 10, 420, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
+		bmp_printf(FONT_MED, 10, 390, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
 	}
 }
 
@@ -1093,7 +1097,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
-		.help = "Digital gain applied only to the LEFT channel."
+		.help = "Digital (LEFT). Any nonzero value reduces quality."
 	},
 	{
 		.name = "L-DigitalGain", // hack
@@ -1101,7 +1105,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
-		.help = "Digital gain applied only to the RIGHT channel."
+		.help = "Digital (RIGHT). Any nonzero value reduces quality."
 	},
 	{
 		.name = "AGC",
