@@ -174,7 +174,7 @@ void erase_bottom_bar()
 {
 	msleep(10);
 	#ifndef CONFIG_50D
-	GMT_LOCK( if (LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe(); )
+	GMT_LOCK( if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe(); )
 	#endif
 	draw_ml_bottombar();
 }
@@ -195,7 +195,7 @@ update_lens_display()
 		if (!zebra_should_run()) return;
 	}
 	
-	if ((lv_disp_mode & 0xFF) == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
+	if (lv && (lv_disp_mode & 0xFF) == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
 	{
 		if (LV_BOTTOM_BAR_DISPLAYED)
 			task_create("erase_bottom_bar", 0x1f, 0, erase_bottom_bar, 0);
