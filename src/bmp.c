@@ -787,8 +787,8 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 		for( ys = y0 + ymax - 1 ; ys >= y0; ys-- )
 		{
 			y = (ys-y0)*bmp->height/ymax;
-			uint8_t * const b_row = bvram + ys * bmppitch;
-			uint8_t * const m_row = (uint8_t*)( mirror + (y + y0) * bmppitch );
+			uint8_t * const b_row = bvram + COERCE(ys, 0, 540) * bmppitch;
+			uint8_t * const m_row = (uint8_t*)( mirror + COERCE(y + y0, 0, 540) * bmppitch );
 			while (y != bmp_y_pos) {
 				// search for the next line
 				if (bmp_line[0]!=0) { bmp_line += 2; } else
@@ -803,7 +803,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 			uint8_t bmp_color = bmp_col[1]; // store the actual color to use
 			for (xs = x0; xs < (x0 + xmax); xs++)
 			{
-				x = (xs-x0)*bmp->width/xmax;
+				x = COERCE((xs-x0)*bmp->width/xmax, 0, 960);
 				while (x>=bmp_x_pos_end) {
 					// skip to this position
 					if (bmp_col>bmp+bmp->image_size) break;
