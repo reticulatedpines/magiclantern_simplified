@@ -13,7 +13,6 @@
 
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
 
-#ifndef CONFIG_600D
 // WB workaround (not saved in movie mode)
 //**********************************************************************
 CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
@@ -28,18 +27,15 @@ void save_kelvin_wb()
 	workaround_wbs_gm = lens_info.wbs_gm + 100;
 	workaround_wbs_ba = lens_info.wbs_ba + 100;
 }
-#endif
 
 void restore_kelvin_wb()
 {
-	#ifndef CONFIG_600D
 	if (!white_balance_workaround) return;
 	
 	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
 	lens_set_kelvin_value_only(workaround_wb_kelvin);
 	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
 	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
-	#endif
 }
 
 int mode_remap_done = 0;
@@ -305,9 +301,7 @@ movtweak_task( void* unused )
 		
 		do_movie_mode_remap();
 		
-#ifndef CONFIG_600D
 		save_kelvin_wb();
-#endif
 
 		if (shutter_lock) shutter_lock_step();
 
@@ -338,7 +332,6 @@ movtweak_task( void* unused )
 
 TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1f, 0x1000 );
 
-#ifndef CONFIG_600D
 static void
 wb_workaround_display(
         void *                  priv,
@@ -354,7 +347,6 @@ wb_workaround_display(
 		white_balance_workaround ? "ON(save WB in cfg)" : "OFF"
 	);
 }
-#endif
 
 /*extern int zebra_nrec;
 
@@ -473,7 +465,6 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Lock shutter value in movie mode (change from Expo only)."
 	},
-#ifndef CONFIG_600D
 	{
 		.name = "WB workaround",
 		.priv = &white_balance_workaround,
@@ -481,7 +472,6 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
-#endif
 #ifdef CONFIG_600D
 	{
 		.name = "DigitalZoom Shortcut",
