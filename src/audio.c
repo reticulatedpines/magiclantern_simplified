@@ -1009,7 +1009,7 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
 		audio_monitoring ? "ON" : "OFF"
 	);
 }
-
+/*
 static void
 audio_micpower_display( void * priv, int x, int y, int selected )
 {
@@ -1023,7 +1023,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 		"OFF (High Z)"
 	);
 	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, 0);
-}
+}*/
 
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
@@ -1139,14 +1139,14 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &loopback,
 		.select		= audio_binary_toggle,
 		.display	= audio_loopback_display,
-	},*/
+	},
 	{
 		.name = "Mic Power",
 		.priv		= &mic_power,
 		.select		= audio_binary_toggle,
 		.display	= audio_micpower_display,
 		.help = "Needed for int. and some other mics, but lowers impedance."
-	},
+	},*/
 	{
 		.name = "Output volume (dB)",
 		.priv		= &lovl,

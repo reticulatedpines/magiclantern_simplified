@@ -78,6 +78,7 @@ int motion_detect = 0;
 //int motion_detect_level = 8;
 int drive_mode_bk = -1;
 
+/*
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 PROP_HANDLER(PROP_GUI_STATE)
 {
@@ -89,7 +90,7 @@ PROP_HANDLER(PROP_GUI_STATE)
 	}
 
 	return prop_cleanup(token, property);
-}
+}*/
 
 int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
 int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
@@ -302,7 +303,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 		);
 		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
 	}*/
-	else if (silent_pic_mode == 3)
+	/*else if (silent_pic_mode == 3)
 	{
 		int t = timer_values_longexp[mod(silent_pic_longexp_time_index, COUNT(timer_values_longexp))];
 		unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
@@ -315,7 +316,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			//~ silent_pic_longexp_method == 1 ? "MAX" :
 			//~ silent_pic_longexp_method == 2 ? "SUM" : "err"
 		);
-	}
+	}*/
 	else if (silent_pic_mode == 4)
 	{
 		bmp_printf(
@@ -336,7 +337,7 @@ static void silent_pic_mode_toggle(void* priv)
 {
 	silent_pic_mode_increment();
 	if (silent_pic_mode == 2) silent_pic_mode_increment(); // skip hi-res
-	//~ if (silent_pic_mode == 3) silent_pic_mode_increment(); // skip longx, not working
+	if (silent_pic_mode == 3) silent_pic_mode_increment(); // skip longx
 	//~ if (silent_pic_mode == 4) silent_pic_mode_increment(); // skip slit
 }
 
@@ -346,10 +347,10 @@ static void silent_pic_toggle(int sign)
 		silent_pic_submode = mod(silent_pic_submode + 1, 3);
 	/*else if (silent_pic_mode == 2) 
 		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));*/
-	else if (silent_pic_mode == 3)
+	/*else if (silent_pic_mode == 3)
 	{
 		silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + sign, COUNT(timer_values_longexp));
-	}
+	}*/
 	else if (silent_pic_mode == 4)
 		silent_pic_slitscan_skipframes = mod(silent_pic_slitscan_skipframes + sign - 1, 4) + 1;
 }
@@ -881,7 +882,7 @@ void expfuse_preview_update()
 	task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, 0);
 }
 
-
+/*
 static void
 silent_pic_take_longexp()
 {
@@ -924,6 +925,7 @@ silent_pic_take_longexp()
 	clrscr(); play_422(imgname);
 	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a long-exp silent pic   ");
 }
+*/
 
 void ensure_movie_mode()
 {
@@ -1182,8 +1184,8 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 		silent_pic_take_simple(interactive);
 	//~ else if (silent_pic_mode == 2) // hi-res
 		//~ silent_pic_take_sweep();
-	else if (silent_pic_mode == 3) // long exposure
-		silent_pic_take_longexp();
+	//~ else if (silent_pic_mode == 3) // long exposure
+		//~ silent_pic_take_longexp();
 	else if (silent_pic_mode == 4) // slit-scan
 		silent_pic_take_slitscan(interactive);
 

@@ -2013,6 +2013,7 @@ hist_display( void * priv, int x, int y, int selected )
 		x, y,
 		"Histo/Wavefm: %s/%s",
 		hist_draw == 1 ? "Luma" : hist_draw == 2 ? "RGB" : "OFF",
+		//~ hist_draw ? "RGB" : "OFF",
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : waveform_draw == 3 ? "FullScreen" : "OFF"
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
@@ -2092,7 +2093,7 @@ zoom_overlay_display(
 			zoom_overlay_size == 2 ? "Large, " :
 			zoom_overlay_size == 3 ? "SmallX2, " :
 			zoom_overlay_size == 4 ? "MedX2, " :
-			zoom_overlay_size == 5 ? "LargeX2, " :  "720x480",
+			zoom_overlay_size == 5 ? "LargeX2, " :  "720x480, ",
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_pos == 0 ? "AFF" :
 			zoom_overlay_pos == 1 ? "NW" :
@@ -2107,6 +2108,7 @@ zoom_overlay_display(
 		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode), 0);
 }
 
+/*
 static void
 split_display(
 	void *			priv,
@@ -2128,7 +2130,7 @@ split_display(
 static void split_zerocross_toggle(void* priv)
 {
 	zoom_overlay_split_zerocross = !zoom_overlay_split_zerocross;
-}
+}*/
 
 static void
 spotmeter_menu_display(
@@ -2349,7 +2351,7 @@ void zoom_overlay_main_toggle(void* priv)
 
 void zoom_overlay_size_toggle(void* priv)
 {
-	zoom_overlay_size = mod(zoom_overlay_size + 1, 7);
+	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
 static CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
@@ -2540,14 +2542,14 @@ struct menu_entry zebra_menus[] = {
 		.select_auto = menu_quinternary_toggle,
 		.help = "Zoom box for focusing. Can be used while recording."
 	},
-	{
+	/*{
 		.name = "Split Screen",
 		.priv = &zoom_overlay_split,
 		.display = split_display, 
 		.select = menu_binary_toggle,
 		.select_auto = split_zerocross_toggle,
 		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
-	},
+	},*/
 	{
 		.name = "Cropmks(x/n)",
 		.priv = &crop_draw,
@@ -2936,12 +2938,12 @@ void draw_zoom_overlay(int dirty)
 			return;
 	}
 	
-	if (zoom_overlay_size == 6)
+	/*if (zoom_overlay_size == 6)
 	{
 		x0 = 360;
 		y0 = 240;
 		x2 = 0;
-	}
+	}*/
 
 	if (zoom_overlay_pos)
 	{

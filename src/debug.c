@@ -762,19 +762,20 @@ struct menu_entry debug_menus[] = {
 	},
 #endif
 	{
-		.name = "Draw palette",
-		.priv		= "Draw palette",
-		.select		= (void(*)(void*))bmp_draw_palette,
-		.display	= menu_print,
-		.help = "Display a test pattern to see the color palette."
-	},
-	{
 		.name = "Screenshot (10 s)",
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
 		.select_auto = take_screenshot,
 		.display	= menu_print,
 		.help = "Take a screenshot after 10 seconds [SET] or right now [Q]."
+	},
+#if CONFIG_DEBUGMSG
+	{
+		.name = "Draw palette",
+		.priv		= "Draw palette",
+		.select		= (void(*)(void*))bmp_draw_palette,
+		.display	= menu_print,
+		.help = "Display a test pattern to see the color palette."
 	},
 	{
 		.name = "Spy prop/evt/mem",
@@ -790,7 +791,6 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "Dialog templates (up/dn) and color palettes (left/right)"
 	},*/
-#if CONFIG_DEBUGMSG
 	{
 		.name = "Debug logging",
 		.priv = &dm_enable,
