@@ -2447,7 +2447,7 @@ idle_display_turn_off_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Turn off display   : %s",
+		"Turn off LCD and LV: %s",
 		idle_time_format(*(int*)priv)
 	);
 }
@@ -2649,12 +2649,12 @@ struct menu_entry dbg_menus[] = {
 		.help = "Dim LCD display in LiveView when idle, to save power."
 	},
 	{
-		.name = "Turn off display",
+		.name = "Turn off LCD and LV",
 		.priv			= &idle_display_turn_off_after,
 		.display		= idle_display_turn_off_print,
 		.select			= idle_timeout_toggle_forward,
 		.select_reverse	= idle_timeout_toggle_reverse,
-		.help = "Turn off display in LiveView when idle, to save power."
+		.help = "Turn off display and pause LiveView when idle."
 	},
 	{
 		.name = "Turn off GlobalDraw",
@@ -3198,14 +3198,20 @@ void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void),
 
 void idle_display_off()
 {
-	bmp_printf(FONT_LARGE, 10, 40, "DISPLAY OFF");
-	msleep(1000);
-	redraw();
+	wait_till_next_second();
+	NotifyBox(1000, "DISPLAY OFF");
+	GUI_SetLvAction(1); msleep(50); clrscr(); // this action will "wakeup" idle counters
+	lv = 1; // we are not in photo mode...
+	idle_countdown_display_off = 0;
+	wait_till_next_second();
 	display_off_force();
 }
 void idle_display_on()
 {
+	//~ card_led_blink(5, 50, 50);
+	GUI_SetLvAction(0);
 	display_on_force();
+	redraw();
 }
 
 void idle_bmp_off()
@@ -3246,7 +3252,11 @@ clearscreen_task( void* unused )
 	for (;;k++)
 	{
 clearscreen_loop:
+		//~ msleep(100);
+		call("DisablePowerSave");
+		call("EnablePowerSave");
 		msleep(100);
+		//~ card_led_blink(1,10,90);
 		
 		//~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
@@ -3259,7 +3269,7 @@ clearscreen_loop:
 		}*/
 
 		if (k % 50 == 0 && !display_is_on())
-			card_led_blink(2, 50, 50);
+			card_led_blink(1, 50, 50);
 
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && get_halfshutter_pressed())
