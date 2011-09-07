@@ -91,6 +91,7 @@ void focus_stack_ensure_preconditions()
 		while (!lv)
 		{
 			get_out_of_play_mode(500);
+			if (!lv) force_liveview();
 			if (lv) break;
 			NotifyBoxHide();
 			NotifyBox(2000, "Please switch to LiveView");
