@@ -77,7 +77,7 @@ void assign_af_button_to_star_button()
 {
 	af_button_assignment = cfn4[0] & 0xF00;
 	cfn4[0] &= ~0xF00;
-	cfn4[0] |= 0x100;
+	cfn4[0] |= 0x400;
 	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
 }
 
