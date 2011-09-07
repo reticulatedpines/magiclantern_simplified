@@ -1097,7 +1097,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
-		.help = "Digital (LEFT). Any nonzero value reduces quality."
+		.help = "Digital gain (LEFT). Any nonzero value reduces quality."
 	},
 	{
 		.name = "L-DigitalGain", // hack
@@ -1105,7 +1105,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
-		.help = "Digital (RIGHT). Any nonzero value reduces quality."
+		.help = "Digital gain (RIGHT). Any nonzero value reduces quality."
 	},
 	{
 		.name = "AGC",
