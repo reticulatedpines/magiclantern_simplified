@@ -130,7 +130,12 @@ focus_stack(
 		focus_stack_ensure_preconditions();
 		
 		assign_af_button_to_star_button();
-		lens_take_picture( 64 );
+		//~ lens_take_picture( 64 );
+		
+		schedule_remote_shot();
+		extern int remote_shot_flag;
+		while (remote_shot_flag) msleep(100);
+		
 		msleep(100);
 		restore_af_button_assignment();
 		
