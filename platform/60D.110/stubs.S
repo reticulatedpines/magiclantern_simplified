@@ -238,3 +238,8 @@ NSTUB(0xFF21ADB8, dialog_set_property_str)
 NSTUB(0xFF325774, struct_1e774_0x40_something )
 NSTUB(0xFF36FADC, StartDialogRefreshTimer);
 NSTUB(0x28760, gui_task_list);
+
+NSTUB(0xFF3257A8, winsys_struct_1e774_set_0x30)
+NSTUB(0xFF325798, winsys_struct_1e774_clr_0x30)
+NSTUB(0xFF325774, struct_1e774_0x40_something)
+NSTUB(0xFF325680, dialog_something_1)

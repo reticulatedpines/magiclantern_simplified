@@ -134,8 +134,8 @@ int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
-	if (lv && !MENU_MODE && bmp_is_on())
-		GMT_LOCK( if (lv) ChangeColorPalette(x); )
+	if (zebra_should_run())
+		GMT_LOCK( if (zebra_should_run()) ChangeColorPalette(x); )
 }
 
 /*
@@ -3042,7 +3042,7 @@ void zebra_sleep_when_tired()
 	{
 		while (clearscreen == 1 && get_halfshutter_pressed()) msleep(100);
 		if (zebra_should_run()) return;
-		if (!gui_menu_shown()) ChangeColorPaletteLV(4);
+		//~ if (!gui_menu_shown()) ChangeColorPaletteLV(4);
 		if (lv && !gui_menu_shown()) redraw();
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
@@ -3066,6 +3066,9 @@ void clear_this_message_not_available_in_movie_mode()
 
 void draw_livev_for_playback()
 {
+	clrscr();
+	if (!get_global_draw()) return;
+	
 BMP_LOCK(
 	cropmark_redraw();
 
