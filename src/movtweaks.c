@@ -233,8 +233,11 @@ enable_liveview_print(
 
 void force_liveview()
 {
+	ResumeLiveView();
 	while (get_halfshutter_pressed()) msleep(100);
-	fake_simple_button(BGMT_LV);
+	get_out_of_play_mode();
+	msleep(100);
+	if (!lv) fake_simple_button(BGMT_LV);
 	msleep(1000);
 }
 

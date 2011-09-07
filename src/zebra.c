@@ -2654,7 +2654,7 @@ struct menu_entry dbg_menus[] = {
 		.display		= idle_display_turn_off_print,
 		.select			= idle_timeout_toggle_forward,
 		.select_reverse	= idle_timeout_toggle_reverse,
-		.help = "Turn off display and pause LiveView when idle."
+		.help = "Turn off display and pause LiveView when idle and not REC."
 	},
 	{
 		.name = "Turn off GlobalDraw",
@@ -3196,12 +3196,35 @@ void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void),
 	*prev_countdown = c;
 }
 
+int lv_paused = 0;
+void PauseLiveView()
+{
+	if (lv && !lv_paused)
+	{
+		GUI_SetLvAction(1); msleep(100);
+		clrscr();
+		lv_paused = 1;
+		lv = 1;
+	}
+}
+
+void ResumeLiveView()
+{
+	if (lv && lv_paused)
+	{
+		lv = 0;
+		GUI_SetLvAction(0);
+		while (!lv) msleep(100);
+	}
+	lv_paused = 0;
+}
+
 void idle_display_off()
 {
+	if (recording) return;
 	wait_till_next_second();
 	NotifyBox(1000, "DISPLAY OFF");
-	GUI_SetLvAction(1); msleep(50); clrscr(); // this action will "wakeup" idle counters
-	lv = 1; // we are not in photo mode...
+	PauseLiveView();
 	idle_countdown_display_off = 0;
 	wait_till_next_second();
 	display_off_force();
@@ -3209,7 +3232,7 @@ void idle_display_off()
 void idle_display_on()
 {
 	//~ card_led_blink(5, 50, 50);
-	GUI_SetLvAction(0);
+	ResumeLiveView();
 	display_on_force();
 	redraw();
 }

@@ -990,34 +990,28 @@ silent_pic_take_simple(int interactive)
 	NotifyBoxHide();
 	NotifyBox(10000, "Psst! Taking a picture");
 
-	struct vram_info * vram = get_yuv422_hd_vram();
-
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 		//~ if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
 	}
 
-	if (!silent_pic_burst)
-	{
-		GUI_SetLvAction(1); msleep(50);
-		clrscr();
-	}
+	if (!silent_pic_burst) PauseLiveView();
 
-	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
-
-	NotifyBoxHide();
+	struct vram_info * vram = get_yuv422_hd_vram();
+	dump_seg(YUV422_HD_BUFFER_DMA_ADDR, vram->pitch * vram->height, imgname);
 
 	if (interactive && !silent_pic_burst)
 	{
-		msleep(200); play_422(imgname);
+		msleep(500); clrscr(); play_422(imgname);
 		msleep(2000);
+		clrscr();
 	}
+
+	NotifyBoxHide();
 	
-	if (!silent_pic_burst)
-	{
-		GUI_SetLvAction(0);
-	}
+	if (!silent_pic_burst) ResumeLiveView();
+	
 	if (movie_started) silent_pic_stop_dummy_movie();
 }
 
@@ -3558,9 +3552,7 @@ shoot_task( void* unused )
 		
 		if (intervalometer_running)
 		{
-			static int lv_stopped = 0;
-			
-			if (lv_stopped) { GUI_SetLvAction(0); msleep(500); }
+			ResumeLiveView();
 			
 			//~ if (gui_state == GUISTATE_PLAYMENU)
 				//~ get_out_of_play_mode(0);
@@ -3596,8 +3588,7 @@ shoot_task( void* unused )
 				{
 					// stop LiveView and turn off display to save power
 					//~ fake_simple_button(BGMT_PLAY);
-					lv_stopped = 1;
-					GUI_SetLvAction(1);
+					PauseLiveView();
 					display_off_force();
 					msleep(200);
 					display_off_force();
