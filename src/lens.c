@@ -240,6 +240,27 @@ void draw_ml_bottombar()
 
 	if (hdmi_code == 5) x_origin = 150;
 
+		// MODE
+		
+			bmp_printf( text_font, x_origin - 50, y_origin,
+				"%s         ",
+				is_movie_mode() ? "Mv" : 
+				shooting_mode == SHOOTMODE_P ? "P " :
+				shooting_mode == SHOOTMODE_M ? "M " :
+				shooting_mode == SHOOTMODE_TV ? "Tv" :
+				shooting_mode == SHOOTMODE_AV ? "Av" :
+				shooting_mode == SHOOTMODE_CA ? "CA" :
+				shooting_mode == SHOOTMODE_ADEP ? "AD" :
+				shooting_mode == SHOOTMODE_AUTO ? "[]" :
+				shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
+				shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
+				shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
+				shooting_mode == SHOOTMODE_MACRO ? "MC" :
+				shooting_mode == SHOOTMODE_SPORTS ? "SP" :
+				shooting_mode == SHOOTMODE_NIGHT ? "NI" :
+				"?"
+			);
+
       /*******************
       * FOCAL & APERTURE *
       *******************/
@@ -259,7 +280,7 @@ void draw_ml_bottombar()
 			  bmp_printf( text_font, 
 						  x_origin + 74 + font_med.width + font_large.width - 4, 
 						  y_origin, 
-						  ".4");
+						  ".");
 			  bmp_printf( text_font, 
 						  x_origin + 74 + font_med.width  , 
 						  y_origin, 
@@ -395,22 +416,39 @@ void draw_ml_bottombar()
 		x = 400;
 		if( info->wb_mode == WB_KELVIN )
 			bmp_printf( text_font, x, y_origin,
-				"%5dK",
+				"%5dK ",
 				info->kelvin
 			);
 		else
 			bmp_printf( text_font, x, y_origin,
-				"%s",
+				"%s ",
 				(lens_info.wb_mode == 0 ? "AutoWB" : 
-				(lens_info.wb_mode == 1 ? "Sunny " :
+				(lens_info.wb_mode == 1 ? " Sunny" :
 				(lens_info.wb_mode == 2 ? "Cloudy" : 
 				(lens_info.wb_mode == 3 ? "Tungst" : 
-				(lens_info.wb_mode == 4 ? "CFL   " : 
-				(lens_info.wb_mode == 5 ? "Flash " : 
+				(lens_info.wb_mode == 4 ? "Fluor." : 
+				(lens_info.wb_mode == 5 ? " Flash" : 
 				(lens_info.wb_mode == 6 ? "Custom" : 
-				(lens_info.wb_mode == 8 ? "Shade " :
+				(lens_info.wb_mode == 8 ? " Shade" :
 				 "unk"))))))))
 			);
+		
+		x += font_large.width * 6;
+		int gm = lens_info.wbs_gm;
+		int ba = lens_info.wbs_ba;
+		if (gm) 
+			bmp_printf(
+				FONT(ba ? FONT_MED : FONT_LARGE, gm > 0 ? COLOR_GREEN1 : 14 /* magenta */, bg),
+				x, y_origin + (ba ? -3 : 0), 
+				"%d", ABS(gm)
+			);
+
+		if (ba) 
+			bmp_printf(
+				FONT(gm ? FONT_MED : FONT_LARGE, ba > 0 ? COLOR_RED : COLOR_BLUE, bg), 
+				x, y_origin + (gm ? 14 : 0), 
+				"%d", ABS(ba));
+
 
       /*******************
       *  Focus distance  *
@@ -420,7 +458,7 @@ void draw_ml_bottombar()
 
       if(lens_info.focus_dist)
           bmp_printf( text_font, 
-                  x_origin + 470 +8  , 
+                  x_origin + 495  , 
                   y_origin, 
                   aj_lens_format_dist( lens_info.focus_dist * 10 )
                 );
@@ -434,25 +472,6 @@ void draw_ml_bottombar()
 				: lens_format_dist( info->focus_dist * 10 )
 		);*/
 		
-		// MODE
-		
-			bmp_printf( text_font, x_origin - 50, y_origin,
-				is_movie_mode() ? "Mv" : 
-				shooting_mode == SHOOTMODE_P ? "P " :
-				shooting_mode == SHOOTMODE_M ? "M " :
-				shooting_mode == SHOOTMODE_TV ? "Tv" :
-				shooting_mode == SHOOTMODE_AV ? "Av" :
-				shooting_mode == SHOOTMODE_CA ? "CA" :
-				shooting_mode == SHOOTMODE_ADEP ? "AD" :
-				shooting_mode == SHOOTMODE_AUTO ? "[]" :
-				shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
-				shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
-				shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
-				shooting_mode == SHOOTMODE_MACRO ? "MC" :
-				shooting_mode == SHOOTMODE_SPORTS ? "SP" :
-				shooting_mode == SHOOTMODE_NIGHT ? "NI" :
-				"?"
-			);
 /*
 		x += 50;
 
@@ -520,14 +539,34 @@ void draw_ml_bottombar()
 		int ba = lens_info.wbs_ba;
 		if (ba) bmp_printf(font, x, y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
 		else bmp_printf(font, x, y, "  ");
-*/
-		text_font = FONT(FONT_LARGE, 0x73, bg );   // WHITE
+
 		bmp_printf( text_font, x_origin + 590, y_origin,
 			"%s%d.%d",
 			AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
 			ABS(AE_VALUE) / 8,
 			mod(ABS(AE_VALUE) * 10 / 8, 10)
 		);
+*/
+
+	  text_font = FONT(FONT_LARGE, 0x73, bg );   // cyan
+
+	  bmp_printf( text_font, 
+				  x_origin + 600 + font_large.width * 2 - 4, 
+				  y_origin, 
+				  ".");
+	  bmp_printf( text_font, 
+				  x_origin + 600, 
+				  y_origin, 
+				  "%s%d", 
+					AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
+					ABS(AE_VALUE) / 8
+				  );
+	  bmp_printf( text_font, 
+				  x_origin + 600 + font_large.width * 3 - 8, 
+				  y_origin, 
+				  "%d",
+					mod(ABS(AE_VALUE) * 10 / 8, 10)
+				  );
 
 	if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
 	if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);

@@ -374,17 +374,22 @@ menu_display(
 		}
 		
 		// this should be after menu->display, in order to allow it to override the icon
-		if (menu->priv)
+		if (menu->priv && !show_only_selected)
 		{
 			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
 		}
 		
-		if (menu->selected && menu->help)
+		if (menu->selected && menu->help && !show_only_selected)
 			bmp_printf(
 				FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
 				x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, x0 + 450, 
 				menu->help
 			);
+		if (show_only_selected)
+		{
+			draw_ml_topbar();
+			draw_ml_bottombar();
+		}
 
 		y += font_large.height;
 		menu = menu->next;
@@ -422,7 +427,7 @@ menus_display(
 			);
 	}
 
-	if (!audio_meters_are_drawn())
+	if (!audio_meters_are_drawn() && !show_only_selected)
 		bmp_printf(
 			FONT(FONT_MED, 55, COLOR_BLACK), // gray
 			x0 + 10, y0 + 420, 

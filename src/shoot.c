@@ -1250,6 +1250,7 @@ int is_lowgain_iso(int iso)
 		case 640:
 		case 1250:
 		case 2500:
+		case 5000:
 		return 1;
 	}
 	return 0;
