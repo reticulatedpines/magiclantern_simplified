@@ -995,19 +995,29 @@ silent_pic_take_simple(int interactive)
 	if (!silent_pic_burst) // single mode
 	{
 		while (get_halfshutter_pressed()) msleep(100);
-		if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
+		//~ if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
+	}
+
+	if (!silent_pic_burst)
+	{
+		GUI_SetLvAction(1); msleep(50);
+		clrscr();
 	}
 
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 
-	NotifyBoxHide(); msleep(100);
+	NotifyBoxHide();
 
-	if (MENU_MODE)
+	if (interactive && !silent_pic_burst)
 	{
-		if (!interactive) { fake_simple_button(BGMT_MENU); while (MENU_MODE) msleep(100); msleep(100); }
-		else { clrscr(); play_422(imgname); }
+		msleep(200); play_422(imgname);
+		msleep(2000);
 	}
 	
+	if (!silent_pic_burst)
+	{
+		GUI_SetLvAction(0);
+	}
 	if (movie_started) silent_pic_stop_dummy_movie();
 }
 
@@ -3548,8 +3558,12 @@ shoot_task( void* unused )
 		
 		if (intervalometer_running)
 		{
-			if (gui_state == GUISTATE_PLAYMENU)
-				get_out_of_play_mode(0);
+			static int lv_stopped = 0;
+			
+			if (lv_stopped) { GUI_SetLvAction(0); msleep(500); }
+			
+			//~ if (gui_state == GUISTATE_PLAYMENU)
+				//~ get_out_of_play_mode(0);
 			
 			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 			
@@ -3580,8 +3594,10 @@ shoot_task( void* unused )
 
 				if (intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
 				{
-					// go to PLAY mode and turn off display to save power
-					fake_simple_button(BGMT_PLAY);
+					// stop LiveView and turn off display to save power
+					//~ fake_simple_button(BGMT_PLAY);
+					lv_stopped = 1;
+					GUI_SetLvAction(1);
 					display_off_force();
 					msleep(200);
 					display_off_force();
