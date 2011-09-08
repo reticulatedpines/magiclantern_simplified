@@ -3515,10 +3515,28 @@ livev_hipriority_task( void* unused )
 	}
 }
 
-void loprio_sleep()
+static void loprio_sleep()
 {
 	msleep(10);
 	while (is_mvr_buffer_almost_full()) msleep(100);
+}
+
+static void black_bars()
+{
+	if (!get_global_draw()) return;
+	bmp_ov_loc_size_t os;
+	calc_ov_loc_size(&os);
+	int i,j;
+	for (i = 0; i < os.y0 + os.y_ex; i++)
+	{
+		if (i < os.y0 + 50 || i > os.y0 + os.y_ex - 50)
+		{
+			int newcolor = (i < os.y0 + 35 || i > os.y0 + os.y_ex - 37) ? COLOR_BLACK : COLOR_BG;
+			for (j = os.x0; j < os.x_ex; j++)
+				if (bmp_getpixel(j,i) == COLOR_BG)
+					bmp_putpixel(j,i,newcolor);
+		}
+	}
 }
 
 // Items which do not need a high FPS, but are CPU intensive
@@ -3528,6 +3546,10 @@ livev_lopriority_task( void* unused )
 {
 	while(1)
 	{
+		#ifdef CONFIG_550D
+		black_bars();
+		#endif
+		
 		if (transparent_overlay_flag)
 		{
 			transparent_overlay_from_play();

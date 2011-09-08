@@ -314,15 +314,15 @@ static void draw_meters(void)
 
 	if (!small)
 	{
-		draw_meter( x0, y0 + 12, 11, &audio_levels[0], left_label);
-		draw_ticks( x0, y0 + 23, 3 );
-		draw_meter( x0, y0 + 26, 11, &audio_levels[1], right_label);
+		draw_meter( x0, y0 + 12, 10, &audio_levels[0], left_label);
+		draw_ticks( x0, y0 + 22, 3 );
+		draw_meter( x0, y0 + 24, 10, &audio_levels[1], right_label);
 	}
 	else
 	{
-		draw_meter( x0, y0 + 19, 8, &audio_levels[0], left_label);
-		draw_ticks( x0, y0 + 27, 2 );
-		draw_meter( x0, y0 + 29, 8, &audio_levels[1], right_label);
+		draw_meter( x0, y0 + 19, 7, &audio_levels[0], left_label);
+		draw_ticks( x0, y0 + 26, 2 );
+		draw_meter( x0, y0 + 27, 7, &audio_levels[1], right_label);
 	}
 	if (gui_menu_shown() && alc_enable)
 	{
