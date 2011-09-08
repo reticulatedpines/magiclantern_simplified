@@ -234,25 +234,41 @@ void fake_buttons()
 {
 	msleep(2000);
 	int i;
+	int delay = 1000;
 	for (i = 0; i < 10000; i++)
 	{
-		switch(rand() % 4) {
+		switch(rand() % 5) {
 			case 0: 
-				fake_simple_button(BGMT_PLAY); msleep(rand() % 200);
+				fake_simple_button(BGMT_PLAY); msleep(rand() % delay);
 				break;
 			case 1:
-				fake_simple_button(BGMT_MENU); msleep(rand() % 200);
+				fake_simple_button(BGMT_MENU); msleep(rand() % delay);
 				break;
 			case 2:
 #ifndef CONFIG_50D
-				fake_simple_button(BGMT_Q); msleep(rand() % 200);
+				fake_simple_button(BGMT_Q); msleep(rand() % delay);
 #endif
 				break;
 			case 3:
-				SW1(1,rand() % 200);
-				SW1(0,rand() % 200);
+				SW1(1,rand() % 2000);
+				SW1(0,rand() % 2000);
+				break;
+			case 4:
+				fake_simple_button(BGMT_LV); msleep(rand() % delay);
 				break;
 		}
+	}
+}
+
+void change_colors_like_crazy()
+{
+	msleep(2000);
+	int i;
+	int delay = 100;
+	for (i = 0; i < 10000; i++)
+	{
+		ChangeColorPalette(rand() % 5);
+		msleep(rand() % delay);
 	}
 }
 
@@ -285,9 +301,10 @@ void ChangeHDMIOutputSizeToFULLHD()
 void xx_test(void* priv)
 {
 	//~ GUI_SetMovieSize_a(1);
-	//~ gui_stop_menu();
+	gui_stop_menu();
 	//~ task_create("run_test", 0x1c, 0, run_test, 0);
-	/*task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);*/
+	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
+	//~ task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
 	//~ bmp_printf(FONT_LARGE, 0, 0, "LV manip: %d ", x);
@@ -589,7 +606,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		if (get_global_draw())
 		{
-			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_LOCK
+			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && CURRENT_DIALOG_MAYBE == 0) BMP_LOCK
 			(
 				display_clock();
 				display_shooting_info();
