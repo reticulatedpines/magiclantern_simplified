@@ -37,8 +37,6 @@ extern int help_pages;
 
 void menu_help_show_page(int page)
 {
-	int x0 = hdmi_code == 5 ? 120 : 0;
-	int y0 = hdmi_code == 5 ? 40 : 0;
 	menu_help_active = 1;
 	char path[100];
 	snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmp", page);
@@ -46,7 +44,9 @@ void menu_help_show_page(int page)
 	doc = bmp_load(path, 1);
 	if (doc)
 	{
-		bmp_draw_scaled_ex(doc, x0, y0, 720, 480, 0, 0);
+		bmp_ov_loc_size_t os;
+		calc_ov_loc_size(&os);
+		bmp_draw_scaled_ex(doc, os.x0, os.y0, os.x_ex, os.y_ex, 0, 0);
 		FreeMemory(doc);
 	}
 	else
