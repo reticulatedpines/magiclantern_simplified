@@ -382,7 +382,7 @@ menu_display(
 		if (menu->selected && menu->help && !show_only_selected)
 			bmp_printf(
 				FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-				x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, x0 + 450, 
+				x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, y0 + 450, 
 				menu->help
 			);
 		if (show_only_selected)
@@ -433,6 +433,9 @@ menus_display(
 			x0 + 10, y0 + 420, 
 				MENU_NAV_HELP_STRING
 		);
+	
+	if (hdmi_code == 2)
+		BMP_LOCK( bmp_zoom(x0 + 360, y0 + 160, 9, 10, 75, 100); )
 
 	give_semaphore( menu_sem );
 }
@@ -1075,10 +1078,6 @@ menu_task( void* unused )
 		if (!lv && !MENU_MODE)
 		{
 			open_canon_menu();
-		}
-		else if (lv && hdmi_code == 2 && !recording)
-		{
-			ChangeHDMIOutputSizeToFULLHD();
 		}
 		#endif
 		msleep(100);

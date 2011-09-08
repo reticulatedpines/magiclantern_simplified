@@ -134,8 +134,10 @@ int clearscreen_countdown = 20;
 
 void ChangeColorPaletteLV(int x)
 {
-	if (zebra_should_run())
-		GMT_LOCK( if (zebra_should_run()) ChangeColorPalette(x); )
+	//~ #ifndef CONFIG_50D
+	//~ if (zebra_should_run())
+		//~ GMT_LOCK( if (zebra_should_run()) ChangeColorPalette(x); )
+	//~ #endif
 }
 
 /*
@@ -3199,6 +3201,7 @@ void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void),
 int lv_paused = 0;
 void PauseLiveView()
 {
+	#ifndef CONFIG_50D
 	if (lv && !lv_paused)
 	{
 		GUI_SetLvAction(1); msleep(100);
@@ -3206,10 +3209,12 @@ void PauseLiveView()
 		lv_paused = 1;
 		lv = 1;
 	}
+	#endif
 }
 
 void ResumeLiveView()
 {
+	#ifndef CONFIG_50D
 	if (lv && lv_paused)
 	{
 		lv = 0;
@@ -3217,6 +3222,7 @@ void ResumeLiveView()
 		while (!lv) msleep(100);
 	}
 	lv_paused = 0;
+	#endif
 }
 
 void idle_display_off()
@@ -3766,6 +3772,26 @@ void show_overlay()
 				*bp = *mp;
 	}
 	
+	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+}
+
+void bmp_zoom(int x0, int y0, int numx, int denx, int numy, int deny)
+{
+	uint8_t * bvram = bmp_vram();
+	if (!bvram) return;
+	#define BMPPITCH 960
+	memcpy(bvram_mirror, bvram, BVRAM_MIRROR_SIZE);
+	int i,j;
+	for (i = 0; i < 540; i++)
+	{
+		for (j = 0; j < 960; j++)
+		{
+			int is = (i - y0) * deny / numy + y0;
+			int js = (j - x0) * denx / numx + x0;
+			bvram[i * BMPPITCH + j] = (is >= 0 && js >= 0 && is < 540 && js < 960) ? bvram_mirror[is * BMPPITCH + js] : 0;
+			
+		}
+	}
 	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
 }
 
