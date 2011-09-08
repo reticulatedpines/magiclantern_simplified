@@ -438,14 +438,14 @@ void draw_ml_bottombar()
 		int ba = lens_info.wbs_ba;
 		if (gm) 
 			bmp_printf(
-				FONT(ba ? FONT_MED : FONT_LARGE, gm > 0 ? COLOR_GREEN1 : 14 /* magenta */, bg),
+				FONT(ba ? FONT_MED : FONT_LARGE, COLOR_WHITE, gm > 0 ? COLOR_GREEN2 : 14 /* magenta */),
 				x, y_origin + (ba ? -3 : 0), 
 				"%d", ABS(gm)
 			);
 
 		if (ba) 
 			bmp_printf(
-				FONT(gm ? FONT_MED : FONT_LARGE, ba > 0 ? COLOR_RED : COLOR_BLUE, bg), 
+				FONT(gm ? FONT_MED : FONT_LARGE, COLOR_WHITE, ba > 0 ? 12 : COLOR_BLUE), 
 				x, y_origin + (gm ? 14 : 0), 
 				"%d", ABS(ba));
 
@@ -548,7 +548,7 @@ void draw_ml_bottombar()
 		);
 */
 
-	  text_font = FONT(FONT_LARGE, 0x73, bg );   // cyan
+	  text_font = FONT(FONT_LARGE, COLOR_CYAN, bg ); 
 
 	  bmp_printf( text_font, 
 				  x_origin + 600 + font_large.width * 2 - 4, 
