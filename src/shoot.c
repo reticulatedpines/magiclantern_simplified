@@ -986,9 +986,12 @@ silent_pic_take_simple(int interactive)
 	int movie_started = silent_pic_ensure_movie_mode();
 	
 	char* imgname = silent_pic_get_name();
-	
-	NotifyBoxHide();
-	NotifyBox(10000, "Psst! Taking a picture");
+
+	if (interactive)
+	{
+		NotifyBoxHide();
+		NotifyBox(10000, "Psst! Taking a picture");
+	}
 
 	if (!silent_pic_burst) // single mode
 	{
@@ -996,19 +999,18 @@ silent_pic_take_simple(int interactive)
 		//~ if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
 	}
 
-	if (!silent_pic_burst) PauseLiveView();
+	if (!silent_pic_burst) { PauseLiveView(); }
 
 	struct vram_info * vram = get_yuv422_hd_vram();
-	dump_seg(YUV422_HD_BUFFER_DMA_ADDR, vram->pitch * vram->height, imgname);
+	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 
 	if (interactive && !silent_pic_burst)
 	{
-		msleep(500); clrscr(); play_422(imgname);
-		msleep(2000);
-		clrscr();
+		NotifyBoxHide();
+		msleep(500); clrscr();
+		play_422(imgname);
+		msleep(1000);
 	}
-
-	NotifyBoxHide();
 	
 	if (!silent_pic_burst) ResumeLiveView();
 	
@@ -3604,7 +3606,7 @@ shoot_task( void* unused )
 			
 			if (timer_values[interval_timer_index])
 			{
-				card_led_blink(5, 50, 50);
+				//~ card_led_blink(5, 50, 50);
 				wait_till_next_second();
 			}
 			
