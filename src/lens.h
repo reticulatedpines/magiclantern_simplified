@@ -221,7 +221,7 @@ lens_format_dist(
 );
 
 #define KELVIN_MIN 1500
-#define KELVIN_MAX 12000
+#define KELVIN_MAX 15000
 #define KELVIN_STEP 100
 
 // exact ISO values would break the feature of coloring ISO's :)
