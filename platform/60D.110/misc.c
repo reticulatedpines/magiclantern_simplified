@@ -201,9 +201,9 @@ int GetBatteryLevel()
 	static int prev_m = 0;
 	if (m != prev_m) // don't be too aggressive... refresh battery level only once per minute
 	{
-		if (!is_safe_to_mess_with_the_display(0)) return -1;
 		prev_m = m;
-		send_event_to_IDLEHandler(LOCAL_REFRESH_BATTERIESHISTORY); 
+		int x = 31;
+		prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
 	}
 
 	return battery_level;

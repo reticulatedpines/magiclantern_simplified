@@ -643,10 +643,11 @@ void fake_simple_button(int bgmt_code)
 	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
-void send_event_to_IDLEHandler(int event)
-{
-	ctrlman_dispatch_event((void*)GMT_IDLEHANDLER_TASK, event, 0, 0);
-}
+//~ unsafe to call
+//~ void send_event_to_IDLEHandler(int event)
+//~ {
+	//~ ctrlman_dispatch_event((void*)GMT_IDLEHANDLER_TASK, event, 0, 0);
+//~ }
 
 static void gui_main_task_60d()
 {
