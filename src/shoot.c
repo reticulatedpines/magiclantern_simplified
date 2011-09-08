@@ -1431,7 +1431,7 @@ shutter_display( void * priv, int x, int y, int selected )
 		msg
 	);
 	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
-	menu_draw_icon(x, y, MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
+	menu_draw_icon(x, y, lens_info.raw_shutter ? MNI_PERCENT : MNI_WARNING, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
 }
 
 static void
@@ -1748,6 +1748,42 @@ static void
 wbs_gm_toggle_reverse( void * priv )
 {
 	wbs_gm_toggle(1);
+}
+
+static void 
+wbs_ba_display( void * priv, int x, int y, int selected )
+{
+		int ba = lens_info.wbs_ba;
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"WBShift B/A : %s%d", 
+			ba > 0 ? "Amber " : (ba < 0 ? "Blue " : ""), 
+			ABS(ba)
+		);
+		menu_draw_icon(x, y, MNI_PERCENT, (-lens_info.wbs_gm + 9) * 100 / 18);
+}
+
+static void
+wbs_ba_toggle( int sign )
+{
+	int ba = lens_info.wbs_ba;
+	int newba = mod((ba + 9 + sign), 19) - 9;
+	newba = newba & 0xFF;
+	prop_request_change(PROP_WBS_BA, &newba, 4);
+	menu_show_only_selected();
+}
+
+static void
+wbs_ba_toggle_forward( void * priv )
+{
+	wbs_ba_toggle(1);
+}
+
+static void
+wbs_ba_toggle_reverse( void * priv )
+{
+	wbs_ba_toggle(-1);
 }
 
 static void
@@ -2812,6 +2848,13 @@ struct menu_entry expo_menus[] = {
 		.select_reverse = wbs_gm_toggle_reverse,
 		.select_auto = wbs_gm_auto,
 		.help = "Green-Magenta white balance shift, for fluorescent lights."
+	},
+	{
+		.name = "WBShift B/A",
+		.display = wbs_ba_display, 
+		.select = wbs_ba_toggle_forward, 
+		.select_reverse = wbs_ba_toggle_reverse,
+		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis."
 	},
 	{
 		.name = "Shutter",
