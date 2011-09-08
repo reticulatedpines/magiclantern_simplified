@@ -295,7 +295,7 @@ static void draw_meters(void)
 	{
 		x0 = hdmi_code == 5 ? 120 : 0;
 		y0 = hdmi_code == 5 ? 40 : 0;
-		y0 += 400;
+		y0 += 350;
 		x0 += 10;
 	}
 	else
@@ -327,7 +327,7 @@ static void draw_meters(void)
 	if (gui_menu_shown() && alc_enable)
 	{
 		int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
-		bmp_printf(FONT_MED, 10, 390, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
+		bmp_printf(FONT_MED, 10, 340, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
 	}
 }
 
