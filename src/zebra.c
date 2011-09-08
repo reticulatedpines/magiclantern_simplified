@@ -3204,7 +3204,9 @@ void PauseLiveView()
 	#ifndef CONFIG_50D
 	if (lv && !lv_paused)
 	{
-		GUI_SetLvAction(1); msleep(100);
+		int x = 1;
+		prop_request_change(PROP_LV_ACTION, &x, 4);
+		msleep(100);
 		clrscr();
 		lv_paused = 1;
 		lv = 1;
@@ -3218,7 +3220,8 @@ void ResumeLiveView()
 	if (lv && lv_paused)
 	{
 		lv = 0;
-		GUI_SetLvAction(0);
+		int x = 0;
+		prop_request_change(PROP_LV_ACTION, &x, 4);
 		while (!lv) msleep(100);
 	}
 	lv_paused = 0;
@@ -3905,7 +3908,7 @@ void play_422(char* filename)
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
 	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
-	bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
+	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;
