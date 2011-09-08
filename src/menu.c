@@ -338,6 +338,7 @@ void menu_draw_icon(int x, int y, int type, int arg)
 	if (icon_drawn) return;
 	icon_drawn = 1;
 	x -= 40;
+	bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
 	switch(type)
 	{
 		case MNI_OFF: batsu(x, y); return;
@@ -408,6 +409,14 @@ menus_display(
 
 	take_semaphore( menu_sem, 0 );
 
+
+	if (!show_only_selected)
+		bmp_printf(
+			FONT(FONT_MED, 55, COLOR_BLACK), // gray
+			x0 + 10, y0 + 430, 
+				MENU_NAV_HELP_STRING
+		);
+
 	for( ; menu ; menu = menu->next )
 	{
 		unsigned fontspec = FONT(
@@ -426,13 +435,6 @@ menus_display(
 				1
 			);
 	}
-
-	if (!audio_meters_are_drawn() && !show_only_selected)
-		bmp_printf(
-			FONT(FONT_MED, 55, COLOR_BLACK), // gray
-			x0 + 10, y0 + 420, 
-				MENU_NAV_HELP_STRING
-		);
 	
 	if (hdmi_code == 2)
 		BMP_LOCK( bmp_zoom(x0 + 360, y0 + 160, 9, 10, 75, 100); )
