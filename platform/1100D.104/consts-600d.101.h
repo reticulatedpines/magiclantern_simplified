@@ -1,11 +1,13 @@
 #define CARD_DRIVE "B:/"
 
+#ifndef CONFIG_1100D
 #define HIJACK_INSTR_BL_CSTART  0xff01019c
 #define HIJACK_INSTR_BSS_END 0xff0110d0
 #define HIJACK_FIXBR_BZERO32 0xff011038
 #define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
 #define HIJACK_INSTR_MY_ITASK 0xff0110dc
 #define HIJACK_TASK_ADDR 0x1a2c
+#endif
 
 // BGMT Button codes as received by gui_main_task
 
@@ -180,8 +182,9 @@
  #define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x479C) 
+#ifndef CONFIG_1100D
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // same as 60D
-
+#endif
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
  #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
