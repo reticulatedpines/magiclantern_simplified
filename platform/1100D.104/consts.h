@@ -11,7 +11,10 @@
 
 // USED TO MAKE ML COMPILE
 #define FOCUS_CONFIRMATION_AF_PRESSED 0 // only used to show trap focus status
-
+#define CURRENT_DIALOG_MAYBE 0 // GUIMode_maybe
+#define LV_BOTTOM_BAR_DISPLAYED 0
+#define ISO_ADJUSTMENT_ACTIVE 0
+#define SHOOTING_MODE 0
 // RESTARTSTART 0x7f000
 #if 0
 

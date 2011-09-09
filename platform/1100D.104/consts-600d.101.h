@@ -206,9 +206,8 @@
 
  #define AJ_LCD_Palette 0x2CDB0
 
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
-#define SHOOTING_MODE (*(int*)0x3364)
+
+
 
  #define COLOR_FG_NONLV 80
 
@@ -219,8 +218,12 @@
  #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
  
 #define AE_VALUE (*(int8_t*)0x7E14)
-
+#ifndef CONFIG_1100D
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
+#define SHOOTING_MODE (*(int*)0x3364)
+#endif
  #define DLG_WB 5
  #define DLG_FOCUS_MODE 9
  #define DLG_DRIVE_MODE 8
