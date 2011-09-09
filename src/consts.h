@@ -13,3 +13,7 @@
 #ifdef CONFIG_50D
 #include "../platform/50D.108/consts.h"
 #endif
+
+#ifdef CONFIG_1100D
+#include "../platform/1100D.104/consts.h"
+#endif

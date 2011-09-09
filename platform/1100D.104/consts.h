@@ -1,5 +1,5 @@
 // constants for 1100D 1.0.4
-
+#include "consts-600d.101.h"
 #define CARD_DRIVE "B:/"
 
 #define HIJACK_INSTR_BL_CSTART  0xFF01019C
@@ -9,8 +9,10 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
 
-// RESTARTSTART 0x7f000
+// USED TO MAKE ML COMPILE
+#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x0) // only used to show trap focus status
 
+// RESTARTSTART 0x7f000
 #if 0
 
 // below not changed yet (60d)
@@ -46,6 +48,7 @@
 #define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
+#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 #define DISPLAY_SENSOR 0x2dec
 #define DISPLAY_SENSOR_MAYBE 0xC0220104
 
@@ -87,5 +90,4 @@
 
 #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
-
 #endif

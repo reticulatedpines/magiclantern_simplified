@@ -1,8 +1,8 @@
 #generic makefile
 
-ARM_PATH=~/arm-toolchain
+ARM_PATH=~/sat
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.6.0
+GCC_VERSION=4.5.2
 CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
 AR=$(ARM_BINPATH)/arm-elf-ar

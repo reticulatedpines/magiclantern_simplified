@@ -13,3 +13,7 @@
 #ifdef CONFIG_50D
 #include "../platform/50D.108/mvr.h"
 #endif
+
+#ifdef CONFIG_1100D
+#include "../platform/1100D.104/mvr.h"
+#endif

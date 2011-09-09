@@ -28,6 +28,7 @@ tags
 *.wav
 *.i
 *.log
+platform/*.OLD
 docs/html
 docs/latex
 pymite-nat.c

@@ -11,7 +11,7 @@
 #include "gui.h"
 #include "lens.h"
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_1100D)
 #include "disable-this-module.h"
 #endif
 

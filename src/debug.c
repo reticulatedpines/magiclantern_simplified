@@ -12,6 +12,9 @@
 #include "lens.h"
 //#include "lua.h"
 
+#ifdef CONFIG_1100D
+#include "disable-this-module.h"
+#endif
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused);
 

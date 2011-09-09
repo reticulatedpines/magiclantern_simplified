@@ -21,6 +21,8 @@ all: 60D 550D 600D
 600D:
 	$(MAKE) -C $(PLATFORM_PATH)/600D.101
 
+1100D:
+	$(MAKE) -C $(PLATFORM_PATH)/1100D.104
 
 install: all
 	cp platform/all/autoexec.bin /media/EOS_DIGITAL/

@@ -58,8 +58,8 @@ typedef enum {
 	PRESS_PICSTYLE_BUTTON		= 0x81C,
 	PRESS_ZOOM_IN_BUTTON		= 0x819,
 	UNPRESS_ZOOM_IN_BUTTON		= 0x81A,
-	//PRESS_ZOOM_OUT_BUTTON		= 0x10000039,
-	//UNPRESS_ZOOM_OUT_BUTTON		= 0x1000003A,
+	PRESS_ZOOM_OUT_BUTTON		= 0x10000039,
+	UNPRESS_ZOOM_OUT_BUTTON		= 0x1000003A,
 	PRESS_JOY_LEFT			= 0x820,
 	PRESS_JOY_UP			= 0x822,
 	PRESS_JOY_DOWN			= 0x824,
@@ -70,7 +70,7 @@ typedef enum {
 	ELECTRONIC_SUB_DIAL_LEFT	= 0x82C,
 	DIAL_LEFT			= 0x82E,
 	DIAL_RIGHT			= 0x82F,
-	PRESS_DISP_BUTTON		= 0x10000000, // also play?
+	PRESS_PLAY_BUTTON		= 0x10000000,
 	PRESS_ERASE_BUTTON		= 0x10000001,
 	PRESS_DIRECT_PRINT_BUTTON	= 0x10000005,
 	PRESS_FUNC_BUTTON		= 0x10000007,
@@ -89,9 +89,13 @@ typedef enum {
 	GUICMD_START_AS_CHECK		= 0x100000A2,
 	GUICMD_LOCK_OFF			= 0x100000A3,
 	GUICMD_LOCK_ON			= 0x100000A4,
+	PRESS_HALFSHUTTER_MAYBE = 0x10000048,
+	UNPRESS_HALFSHUTTER_MAYBE = 0x10000049,
 
 	EVENTID_METERING_START		= 0x10000039,
 	EVENTID_94			= 0x10000094,
+	EVENT_10000086 = 0x10000086,
+	EVENT_1 = 1
 } gui_event_t;
 
 
@@ -221,11 +225,7 @@ gui_lock(
 );
 
 
-static inline void
-gui_unlock( void )
-{
-	gui_lock( 0, 1, 2 );
-}
+void gui_unlock( void );
 
 
 
@@ -321,8 +321,20 @@ gui_stop_menu( void );
 extern void
 gui_hide_menu( int redisplay_time );
 
-extern int gui_state;
 #define GUISTATE_IDLE 0
 #define GUISTATE_PLAYMENU 1
+#define GUISTATE_MENUDISP 2 // warning
+#define GUISTATE_QR 3 // QuickReview
+// 3: lockoff warning (?)
+// 5: QR erase?
+// 6: OLC?
+// 7: LV?
+// 8: LV set?
+// 9: unavi? (user navigation?)
+// 10: unavi set?
+#define GUISTATE_QMENU 9
+
+#define MLEV_NOTIFY_BOX_OPEN 0x1234
+#define MLEV_NOTIFY_BOX_CLOSE 0x1235
 
 #endif

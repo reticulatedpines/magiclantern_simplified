@@ -11,6 +11,10 @@
 #include "gui.h"
 #include "lens.h"
 
+#ifdef CONFIG_1100D
+#include "disable-this-module.h"
+#endif
+
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
 
 // WB workaround (not saved in movie mode)
