@@ -84,7 +84,8 @@ NSTUB( 0xFF06F65C, give_semaphore )
 NSTUB( 0xFF06F574, take_semaphore )
 NSTUB( 0xFF06CC7C, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF05BACC, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
-NSTUB( 0xFF05B464, prop_request_change )
+//TODO: Re-enable
+//NSTUB( 0xFF05B464, prop_request_change )
 NSTUB( 0xFF05BA44, prop_deliver ) 
 NSTUB( 0xFF05BBEC, prop_cleanup )
 NSTUB( 0xFF05BC84, prop_get_value )

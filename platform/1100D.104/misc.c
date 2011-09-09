@@ -215,6 +215,11 @@ void HideBottomInfoDisp_maybe(){}
 void AJ_guess_LED_ON(){}
 void AJ_guess_LED_OFF(){}
 
+void prop_request_change(unsigned property, void * addr, size_t len) {}
+
+
 int digital_zoom_shortcut = 0;
 struct mvr_config mvr_config;
 struct gui_task_list gui_task_list;
+
+
