@@ -9,6 +9,19 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
 
+// Found by Alex using Heavendew dump
+#define YUV422_LV_BUFFER   0x41ae8e50
+#define YUV422_LV_BUFFER_2 0x412c8e50
+#define YUV422_LV_BUFFER_3 0x416d8e50
+#define YUV422_HD_BUFFER   0x468cb600
+#define YUV422_HD_BUFFER_2 0x4e8cb600
+
+// PLACEHOLDER UNTIL WE GET THE REAL VALUES
+#define YUV422_LV_BUFFER_DMA_ADDR 0x41ae8e50
+#define YUV422_HD_BUFFER_DMA_ADDR 0x468cb600
+
+// changes during record
+
 // USED TO MAKE ML COMPILE
 #define FOCUS_CONFIRMATION_AF_PRESSED 0 // only used to show trap focus status
 #define CURRENT_DIALOG_MAYBE 0 // GUIMode_maybe

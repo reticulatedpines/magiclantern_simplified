@@ -94,9 +94,11 @@
 
 
 // 720x480, changes when external monitor is connected
+#ifndef CONFIG_1100D
 #define YUV422_LV_BUFFER 0x40d07800 
 #define YUV422_LV_BUFFER_2 0x4c233800
 #define YUV422_LV_BUFFER_3 0x4f11d800
+#endif
 #define YUV422_LV_PITCH 1440
  //~ #define YUV422_LV_PITCH_RCA 1080
  //~ #define YUV422_LV_PITCH_HDMI 3840
@@ -157,14 +159,14 @@
 
 // Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
 
-
+#ifndef CONFIG_1100D
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
 #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
 
 // changes during record
  #define YUV422_HD_BUFFER 0x44000080
  #define YUV422_HD_BUFFER_2 0x46000080
-
+#endif
  #define YUV422_HD_PITCH_IDLE 2112
  #define YUV422_HD_HEIGHT_IDLE 704
 
