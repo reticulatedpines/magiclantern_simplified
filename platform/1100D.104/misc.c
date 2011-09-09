@@ -177,3 +177,44 @@ int GetBatteryLevel()
 	return -1;
 	//~ return PD_GetBatteryPower() + 1;
 }*/
+
+
+// dummy stubs, just to compile
+
+int CreateRecursiveLock(){ return 0; }
+void AcquireRecursiveLock(){}
+void ReleaseRecursiveLock(){}
+
+
+struct fio_dirent *
+FIO_FindFirstEx(
+	const char *		dirname,
+	struct fio_file *	file
+)
+{
+	return 1;
+}
+
+
+/** Returns 0 on success */
+int
+FIO_FindNextEx(
+	struct fio_dirent *	dirent,
+	struct fio_file *	file
+)
+{ return 1;} 
+
+void FIO_CleanupAfterFindNext_maybe(){}
+void ChangeColorPalette(){}
+void MirrorDisplay(){}
+void NormalDisplay(){}
+void ReverseDisplay(){}
+void GUI_Control(){}
+void dialog_redraw(){}
+void HideBottomInfoDisp_maybe(){}
+void AJ_guess_LED_ON(){}
+void AJ_guess_LED_OFF(){}
+
+int digital_zoom_shortcut = 0;
+struct mvr_config mvr_config;
+struct gui_task_list gui_task_list;

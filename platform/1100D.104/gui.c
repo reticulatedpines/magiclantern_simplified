@@ -69,22 +69,22 @@ PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 struct semaphore * gui_sem;
 
 struct gui_main_struct {
-	void *			obj;		// off_0x00;
-	uint32_t		counter;	// off_0x04;
-	uint32_t		off_0x08;
-	uint32_t		counter_60d;    //off_0x0c;
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	uint32_t		off_0x20;
-	uint32_t		off_0x24;
-	uint32_t		off_0x28;
-	uint32_t		off_0x2c;
-	struct msg_queue *	msg_queue_60d;	// off_0x30;
-	struct msg_queue *	msg_queue;	// off_0x34;
-	struct msg_queue *	msg_queue_550d;	// off_0x38;
-	uint32_t		off_0x3c;
+  void *			obj;		// off_0x00;
+  uint32_t		counter;	// off_0x04;
+  uint32_t		off_0x08;;
+  uint32_t		counter_1100d; // off_0x0c;
+  uint32_t		off_0x10;
+  uint32_t		off_0x14;
+  uint32_t		off_0x18;
+  uint32_t		off_0x1c;
+  uint32_t		off_0x20;
+  uint32_t		off_0x24;
+  uint32_t		off_0x28;
+  uint32_t		off_0x2c;
+  struct msg_queue *	msg_queue_1100d; // off_0x30;
+  struct msg_queue *	msg_queue;	// off_0x34;
+  struct msg_queue *	msg_queue_550d;	// off_0x38;
+  uint32_t		off_0x3c;
 };
 
 extern struct gui_main_struct gui_main_struct;
@@ -666,40 +666,42 @@ void fake_simple_button(int bgmt_code)
 	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
-static void gui_main_task_60d()
+// updated for 1100d 104
+#define NFUNCS 7
+#define gui_main_task_functable 0xFF536110
+
+static void my_gui_main_task()
 {
-	bmp_sem_init();
+	int kev = 0;
 	struct event * event = NULL;
 	int index = 0;
-	void* funcs[GMT_NFUNCS];
-	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
+	void* funcs[NFUNCS];
+	memcpy(funcs, gui_main_task_functable, 4*NFUNCS);  // copy 8 functions in an array
 	gui_init_end();
 	while(1)
 	{
-		msg_queue_receive(gui_main_struct.msg_queue_60d, &event, 0);
-		gui_main_struct.counter_60d--;
+		msg_queue_receive(gui_main_struct.msg_queue_1100d, &event, 0);
+		gui_main_struct.counter_1100d--;
 		if (event == NULL) continue;
 		index = event->type;
-		
-		if (!magic_is_off() && event->type == 0)
-		{
-			if (handle_buttons(event) == 0) // ML button/event handler
-				continue;
-		}
+		if ((index >= NFUNCS) || (index < 0))
+			continue;
 
 		if (IS_FAKE(event)) event->arg = 0;
 
-		if ((index >= GMT_NFUNCS) || (index < 0))
-			continue;
+		if (event->type == 0)
+		{
+			static int kev = 0;
+			kev++;
+			bmp_printf(FONT_MED, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
+		}
 		
-		// sync with other Canon calls => prevents some race conditions
-		GMT_LOCK(
-			void(*f)(struct event *) = funcs[index];
-			f(event);
-		)
+		void(*f)(struct event *) = funcs[index];
+		f(event);
 	}
 } 
 
 // 5D2 has a different version for gui_main_task
 
-TASK_OVERRIDE( gui_main_task, gui_main_task_60d );
+// uncomment this when you are ready to find buttons
+//~ TASK_OVERRIDE( gui_main_task, my_gui_main_task );

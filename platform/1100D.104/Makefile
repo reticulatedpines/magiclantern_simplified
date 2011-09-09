@@ -53,7 +53,6 @@ ML_OBJS-y = \
 
 include  $(TOP_DIR)/Makefile.inc
 
-
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #

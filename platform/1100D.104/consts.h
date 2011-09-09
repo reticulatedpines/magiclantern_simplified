@@ -10,7 +10,7 @@
 #define HIJACK_TASK_ADDR 0x1a2c
 
 // USED TO MAKE ML COMPILE
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x0) // only used to show trap focus status
+#define FOCUS_CONFIRMATION_AF_PRESSED 0 // only used to show trap focus status
 
 // RESTARTSTART 0x7f000
 #if 0

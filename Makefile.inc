@@ -1,8 +1,8 @@
 #generic makefile
 
-ARM_PATH=~/sat
+ARM_PATH=~/arm-toolchain
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.5.2
+GCC_VERSION=4.6.0
 CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
 AR=$(ARM_BINPATH)/arm-elf-ar
@@ -241,18 +241,20 @@ ML_OBJS-$(CONFIG_CONSOLE) += \
 	console.o \
 
 # Extract the stdio files that we need
-#~ STDIO_OBJ = \
-	#~ lib_a-setjmp.o \
-#~ 
-#~ ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
-#~ 
-#~ $(STDIO_OBJ): $(ARM_LIBC_A)
-	#~ $(AR) xv $? $(STDIO_OBJ)
-#~ libstdio.a: $(STDIO_OBJ)
-	#~ $(AR) cr $@ $^
+STDIO_OBJ = \
+	lib_a-setjmp.o \
+	lib_a-strcmp.o \
+	lib_a-strlen.o \
+
+ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
+
+$(STDIO_OBJ): $(ARM_LIBC_A)
+	$(AR) xv $? $(STDIO_OBJ)
+libstdio.a: $(STDIO_OBJ)
+	$(AR) cr $@ $^
 
 
-magiclantern: $(ML_OBJS-y)
+magiclantern: $(ML_OBJS-y) libstdio.a
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
