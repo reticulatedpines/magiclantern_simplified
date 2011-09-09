@@ -36,7 +36,8 @@ void set_mlu(int enable)
 }
 int get_mlu()
 {
-	return cfn[2] & 0x1;
+	return 0; // DISABLE FOR NOW
+//	return cfn[2] & 0x1;
 }
 
 // used for showing AF patterns

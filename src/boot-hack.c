@@ -36,6 +36,10 @@
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
 #undef CONFIG_EARLY_PORT
 
+#ifdef CONFIG_1100D
+#define CONFIG_EARLY_PORT
+#endif
+
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
 void my_init_task(void);
