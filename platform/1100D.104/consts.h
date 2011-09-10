@@ -34,7 +34,6 @@
 // below not changed yet (60d)
 
 // 720x480, changes when external monitor is connected
-#define YUV422_LV_BUFFER 0x46000080
 #define YUV422_LV_PITCH 1440
 #define YUV422_LV_PITCH_RCA 1080
 #define YUV422_LV_PITCH_HDMI 3840
@@ -42,10 +41,6 @@
 #define YUV422_LV_HEIGHT_RCA 540
 #define YUV422_LV_HEIGHT_HDMI 1080
 
-
-// changes during record
-#define YUV422_HD_BUFFER 0x46000080
-#define YUV422_HD_BUFFER_2 0x46000080
 
 #define YUV422_HD_PITCH_IDLE 2112
 #define YUV422_HD_HEIGHT_IDLE 704

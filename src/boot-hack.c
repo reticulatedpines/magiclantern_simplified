@@ -134,9 +134,7 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
 	// Install our task creation hooks
-#ifndef CONFIG_1100D
 	task_dispatch_hook = my_task_dispatch_hook;
-#endif
 #endif
 
 	// This will jump into the RAM version of the firmware,
@@ -400,9 +398,6 @@ my_init_task(void)
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
-
-	msleep( 5000 );
-	bmp_printf(FONT_LARGE, 0, 0, "Magic LANTERN");
 
 	// It's better to start a new task which does the init
 	// Guess: stack overflow in this task?

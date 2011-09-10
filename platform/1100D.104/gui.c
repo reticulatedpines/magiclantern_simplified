@@ -693,7 +693,8 @@ static void my_gui_main_task()
 		{
 			static int kev = 0;
 			kev++;
-			bmp_printf(FONT_MED, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
+			bmp_printf(FONT_LARGE, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
+			msleep(500);
 		}
 		
 		void(*f)(struct event *) = funcs[index];
@@ -704,4 +705,4 @@ static void my_gui_main_task()
 // 5D2 has a different version for gui_main_task
 
 // uncomment this when you are ready to find buttons
-//~ TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+TASK_OVERRIDE( gui_main_task, my_gui_main_task );

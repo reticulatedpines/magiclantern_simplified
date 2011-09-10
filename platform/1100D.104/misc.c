@@ -181,11 +181,7 @@ int GetBatteryLevel()
 
 // dummy stubs, just to compile
 
-int CreateRecursiveLock(){ return 0; }
-void AcquireRecursiveLock(){}
-void ReleaseRecursiveLock(){}
-
-
+// 0xFF1DA424 might be good (dumps=1, score=18)
 struct fio_dirent *
 FIO_FindFirstEx(
 	const char *		dirname,
@@ -195,7 +191,7 @@ FIO_FindFirstEx(
 	return 1;
 }
 
-
+// 0xFF1DA518  might be good (dumps=1, score=17)
 /** Returns 0 on success */
 int
 FIO_FindNextEx(
@@ -204,22 +200,22 @@ FIO_FindNextEx(
 )
 { return 1;} 
 
+void prop_request_change(unsigned property, void * addr, size_t len) {} // 0xFF05B464 might be good (dumps=1, score=86)
+struct gui_task_list gui_task_list; // 0xAF6C  might be good (dumps=1, score=10)
+struct mvr_config mvr_config; // 0x5B4C  might be good (dumps=1, score=8.1)
+void GUI_Control(){} // 0xFF020E04 might be good (dumps=1, score=6.4)
+int CreateRecursiveLock(){ return 0; } // 0xFF073A84  might be good (dumps=1, score=3.3)
+void MirrorDisplay(){} // 0xFF337C34 might be good (dumps=1, score=3.3)
+void NormalDisplay(){} // 0xFF337C94 might be good (dumps=1, score=3.3)
+void AJ_guess_LED_ON(){} // 0xFF347830 might be good (dumps=1, score=2.8)
+void AJ_guess_LED_OFF(){} // 0xFF347800 might be good (dumps=1, score=1.9)
+
+void AcquireRecursiveLock(){}
+void ReleaseRecursiveLock(){}
 void FIO_CleanupAfterFindNext_maybe(){}
 void ChangeColorPalette(){}
-void MirrorDisplay(){}
-void NormalDisplay(){}
-void ReverseDisplay(){}
-void GUI_Control(){}
+void ReverseDisplay(){}  
 void dialog_redraw(){}
 void HideBottomInfoDisp_maybe(){}
-void AJ_guess_LED_ON(){}
-void AJ_guess_LED_OFF(){}
-
-void prop_request_change(unsigned property, void * addr, size_t len) {}
-
 
 int digital_zoom_shortcut = 0;
-struct mvr_config mvr_config;
-struct gui_task_list gui_task_list;
-
-
