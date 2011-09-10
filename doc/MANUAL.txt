@@ -32,7 +32,7 @@ To go back to Canon firmware, you may:
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
 How do I erase all of the images without removing ML?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Canon menu (Play) -> Erase images -> All images on card.
 
@@ -787,6 +787,8 @@ Functions for stills shooting (some of them work for movies, too).
   * When not in LiveView, press ``DISP`` or ``INFO`` to turn the display off.
   * In LiveView, ML will go to PLAY mode and turn the display off for you during idle times.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
+
+.. _bulb-ramping:
 
 **Auto BulbRamping / AutoExpo for Timelapse: ON/OFF, percentile=20...99\%** 
 
