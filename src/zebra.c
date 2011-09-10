@@ -200,8 +200,7 @@ PROP_HANDLER(PROP_USBRCA_MONITOR)
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
-	redraw_after(2000);
-	set_global_draw(0);
+	redraw_after(4000);
 	return prop_cleanup( token, property );
 }
 

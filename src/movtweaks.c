@@ -137,9 +137,6 @@ void do_movie_mode_remap()
 	int movie_newmode = movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X : MOVIE_MODE_REMAP_Y;
 	if (shooting_mode == movie_newmode)
 	{
-		msleep(1000);
-		NotifyBox(1000, "Movie mode...");
-		msleep(1000);
 		ensure_movie_mode();
 	}
 	//~ else if (is_movie_mode()) set_shooting_mode(movie_newmode);
@@ -323,15 +320,13 @@ movtweak_task( void* unused )
 		{
 			if (ext_monitor_hdmi && hdmi_code == 5)
 			{
-				int g = get_global_draw();
-				set_global_draw(0);
 				msleep(1000);
 				GMT_LOCK (
 					ChangeHDMIOutputSizeToVGA();
 				)
 				msleep(2000);
-				set_global_draw(g);
 				NotifyBox(2000, "HDMI resolution: 720x480");
+				msleep(5000);
 			}
 		}
 	}
