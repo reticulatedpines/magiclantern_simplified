@@ -694,7 +694,6 @@ static void my_gui_main_task()
 			static int kev = 0;
 			kev++;
 			bmp_printf(FONT_LARGE, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
-			msleep(500);
 		}
 		
 		void(*f)(struct event *) = funcs[index];

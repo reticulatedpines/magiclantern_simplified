@@ -79,6 +79,8 @@ NSTUB( 0xFF1D97A4, FIO_GetFileSize )
 NSTUB( 0xFF1D9578, FIO_WriteFile )
 NSTUB( 0xFF1D93D8, FIO_ReadFile )
 NSTUB( 0xff1d9330, FIO_RemoveFile )
+NSTUB( 0xFF1DA424, FIO_FindFirstEx )
+NSTUB( 0xFF1DA518, FIO_FindNextEx )
 
 NSTUB( 0xFF06F65C, give_semaphore )
 NSTUB( 0xFF06F574, take_semaphore )
@@ -154,7 +156,11 @@ NSTUB( 0xFF1E8864, msg_queue_receive )
 NSTUB( 0xFF0A7B98, gui_local_post )    // GUI_Local_Post
 NSTUB( 0xFF0A7428, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF0A8130, gui_other_post )   // GUI_Other_Post
+NSTUB( 0xFF020E04, GUI_Control )
 
+NSTUB(0xAF6C, gui_task_list)
+
+NSTUB( 0x5B4C, mvr_config )
 NSTUB(0xff1b954c, mvrFixQScale)
 //NSTUB(mvrSetBitRate, 0xff04e7e8)
 NSTUB(0xff1b9028, mvrSetDefQScale)
@@ -169,6 +175,12 @@ NSTUB(mvrSetQscale, 0xff1b8f58)
 NSTUB(mvrSetVGAOptSize, 0xff1b9208)
 */
 
+NSTUB( 0xFF347830, AJ_guess_LED_ON )   // led for SD/CF read and write ops
+NSTUB( 0xFF347800, AJ_guess_LED_OFF )
+NSTUB(0xFF073A84, CreateRecursiveLock)
+NSTUB( 0xFF337C34, MirrorDisplay )
+NSTUB( 0xFF337C94, NormalDisplay )
+
 #if 0   // not checked yet in 1.0.9
 NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xFF096208, gui_init_event )
@@ -177,3 +189,10 @@ NSTUB( 0xFF095AC8, gui_change_lcd_state_post )
  NSTUB( 0xFF093108, gui_massive_event_loop )   // GUI_Control_Post
 NSTUB( 0xFF1D2760, gui_timer_something )
 #endif
+
+// From 550D possible-code-matches.txt
+NSTUB(0xFF1E8B9C, AcquireRecursiveLock) // (AJ_KernelDry_KerRLock.c) (mean=7, stdev=9.8, num=17)
+NSTUB(0xFF1E8CB0, ReleaseRecursiveLock) // (AJ_KernelDry_KerRLock.c_p2) (mean=6.2, stdev=9.5, num=16)
+NSTUB(0xFF1DA5F8, FIO_CleanupAfterFindNext_maybe) //  (AJ__switch_0x1A50_n_calls_fstOpenDir) (mean=25, stdev=10, num=11)
+NSTUB(0xFF337C64, ReverseDisplay) //  (Reverse) (mean=0.89, stdev=0, num=1)
+NSTUB(0xFF31D3F4, dialog_redraw) // (dialog_draw) (mean=19, stdev=3.9, num=68)

@@ -183,8 +183,8 @@
  #define YUV422_HD_PITCH_REC_480P 1280
  #define YUV422_HD_HEIGHT_REC_480P 480
 
-#define FOCUS_CONFIRMATION (*(int*)0x479C) 
 #ifndef CONFIG_1100D
+#define FOCUS_CONFIRMATION (*(int*)0x479C) 
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // same as 60D
 #endif
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)

@@ -23,11 +23,13 @@
 // changes during record
 
 // USED TO MAKE ML COMPILE
-#define FOCUS_CONFIRMATION_AF_PRESSED 0 // only used to show trap focus status
-#define CURRENT_DIALOG_MAYBE 0 // GUIMode_maybe
-#define LV_BOTTOM_BAR_DISPLAYED 0
-#define ISO_ADJUSTMENT_ACTIVE 0
+#define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
+#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
+#define CURRENT_DIALOG_MAYBE (*(int*)0x3960) // GUIMode_maybe in Indy's IDC
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged
 #define SHOOTING_MODE 0
+
 // RESTARTSTART 0x7f000
 #if 0
 
