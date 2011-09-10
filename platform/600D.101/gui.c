@@ -574,7 +574,13 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 	}
-	
+
+	if (event->param == BGMT_INFO && ISO_ADJUSTMENT_ACTIVE && gui_state == GUISTATE_IDLE)
+	{
+		toggle_disp_mode();
+		return 0;
+	}
+
 	// enable LiveV stuff in Play mode
     
 	if (PLAY_MODE)

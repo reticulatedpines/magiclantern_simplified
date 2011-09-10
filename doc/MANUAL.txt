@@ -175,8 +175,8 @@ Misc shortcuts
 ~~~~~~~~~~~~~~
 
 * Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). You may have to be in one of these modes: P, Tv, Av or M.
-* ``ISO`` then ``LV``: switch to Movie mode (from photo mode). To switch back to photo mode, you need to turn the mode dial back and forth one notch.
-* ``ISO`` then ``DISP`` (550D) / Metering (60D): change current `display preset`_.
+* ``ISO`` -> ``LV``: switch to Movie mode (from photo mode). To switch back to photo mode, you need to turn the mode dial back and forth one notch.
+* ``ISO`` -> ``DISP`` (550D) / ``ISO`` -> ``INFO`` (600D) / Metering (60D): change current `display preset`_.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Bulb timer`_, `Movie REC key`_.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
