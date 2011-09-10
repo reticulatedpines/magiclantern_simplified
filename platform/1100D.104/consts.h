@@ -23,12 +23,29 @@
 // changes during record
 
 // USED TO MAKE ML COMPILE
+#define SHOOTING_MODE 0
+
+// From Alex
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3960) // GUIMode_maybe in Indy's IDC
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged
-#define SHOOTING_MODE 0
+// From CURRENT_DIALOG_MAYBE
+#define DLG_WB 0x2b
+#define DLG_FOCUS_MODE 9
+#define DLG_DRIVE_MODE 8
+#define DLG_PICTURE_STYLE 0x2a
+#define DLG_PLAY 1
+#define DLG_MENU 2
+#define DLG_Q_UNAVI 0x23
+#define DLG_FLASH_AE 0x28
+#define DLG_PICQ 0x2d
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
+
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 // RESTARTSTART 0x7f000
 #if 0

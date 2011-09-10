@@ -682,6 +682,7 @@ static void my_gui_main_task()
 	{
 		msg_queue_receive(gui_main_struct.msg_queue_1100d, &event, 0);
 		gui_main_struct.counter_1100d--;
+		bmp_printf(FONT_LARGE, 30, 30, "DLG: %8x", CURRENT_DIALOG_MAYBE);
 		if (event == NULL) continue;
 		index = event->type;
 		if ((index >= NFUNCS) || (index < 0))
@@ -689,13 +690,6 @@ static void my_gui_main_task()
 
 		if (IS_FAKE(event)) event->arg = 0;
 
-		if (event->type == 0)
-		{
-			static int kev = 0;
-			kev++;
-			bmp_printf(FONT_LARGE, 30, 30, "Ev%d: %8x/%8x/%8x", kev, event->param, event->obj ? *(unsigned*)(event->obj) : 0,  event->arg);
-		}
-		
 		void(*f)(struct event *) = funcs[index];
 		f(event);
 	}

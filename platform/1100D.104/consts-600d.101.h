@@ -225,24 +225,21 @@
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
 #define SHOOTING_MODE (*(int*)0x3364)
-#endif
- #define DLG_WB 5
- #define DLG_FOCUS_MODE 9
- #define DLG_DRIVE_MODE 8
- #define DLG_PICTURE_STYLE 4
- #define DLG_PLAY 1
- #define DLG_MENU 2
- #define DLG_Q_UNAVI 0x1F
- #define DLG_FLASH_AE 0x22
- #define DLG_PICQ 6
+#define DLG_WB 5
+#define DLG_FOCUS_MODE 9
+#define DLG_DRIVE_MODE 8
+#define DLG_PICTURE_STYLE 4
+#define DLG_PLAY 1
+#define DLG_MENU 2
+#define DLG_Q_UNAVI 0x1F
+#define DLG_FLASH_AE 0x22
+#define DLG_PICQ 6
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
-//~ #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
-//~ #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
-
+#endif
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
