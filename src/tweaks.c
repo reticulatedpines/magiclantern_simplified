@@ -18,13 +18,14 @@
 
 // ExpSim
 //**********************************************************************
-CONFIG_INT( "expsim.auto", expsim_auto, 1);
+CONFIG_INT( "expsim", expsim_setting, 2);
 
 static void set_expsim( int x )
 {
 	if (expsim != x)
 		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
 }
+/*
 static void
 expsim_toggle( void * priv )
 {
@@ -42,28 +43,46 @@ expsim_toggle( void * priv )
 		expsim_auto = 0;
 		set_expsim(0);
 	}
-}
+}*/
 static void
 expsim_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Exposure Simulation : %s",
-		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
-		expsim ? "ON " : "OFF"
+		"Exposure Simulation : %s%s",
+		expsim_setting == 2 ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
+		expsim ? "ON" : "OFF",
+		expsim == get_expsim_auto_value() ? "" : " [!]"
 	);
-	menu_draw_icon(x, y, is_movie_mode() ? MNI_WARNING : expsim_auto ? MNI_AUTO : MNI_BOOL(expsim), 0);
+	menu_draw_icon(x, y, expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), 0);
 }
 
+int get_expsim_auto_value()
+{
+	if (expsim_setting == 2)
+	{
+		if ((lv_dispsize > 1 || should_draw_zoom_overlay()) && !get_halfshutter_pressed()) return 0;
+		else return 1;
+	}
+	else return expsim_setting;
+}
 static void expsim_update()
 {
 	if (!lv) return;
 	if (is_movie_mode()) return;
-	if (expsim_auto)
+	int expsim_auto_value = get_expsim_auto_value();
+	if (expsim_auto_value != expsim)
 	{
-		if ((lv_dispsize > 1 || should_draw_zoom_overlay()) && !get_halfshutter_pressed()) set_expsim(0);
-		else set_expsim(1);
+		if (MENU_MODE && !gui_menu_shown()) // ExpSim changed from Canon menu
+		{ 
+			expsim_setting = expsim;
+			NotifyBox(2000, "ML: Auto ExpSim disabled.");
+		}
+		else
+		{
+			set_expsim(expsim_auto_value); // shooting mode, ML decides to toggle ExpSim
+		}
 	}
 }
 
@@ -587,9 +606,11 @@ display_dont_mirror_display(
 struct menu_entry tweak_menus[] = {
 	{
 		.name = "Exposure Simulation",
-		.select = expsim_toggle, 
+		.priv = &expsim_setting,
+		.select = menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display = expsim_display,
-		.help = "ExpSim: LCD image reflects exposure settings."
+		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av)."
 	},
 	{
 		.name = "AF frame display",

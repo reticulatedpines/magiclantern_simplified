@@ -3385,8 +3385,7 @@ shoot_task( void* unused )
 					if (MENU_MODE && !gui_menu_shown()) // MLU changed from Canon menu
 					{ 
 						mlu_auto = 0;
-						msleep(200);
-						bmp_printf(FONT_LARGE, 0, 0, "Warning: disabling Auto MLU.");
+						NotifyBox(2000, "ML: Auto MLU disabled");
 					}
 					else
 					{
