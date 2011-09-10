@@ -270,7 +270,9 @@ int ml_started = 0; // 1 after ML is fully loaded
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
+	#ifndef CONFIG_1100D
 	config_parse_file( CARD_DRIVE "magic.cfg" );
+	#endif
 	debug_init_stuff();
 
 	_hold_your_horses = 0; // config read, other overriden tasks may start doing their job
@@ -373,7 +375,7 @@ my_init_task(void)
 	msleep( 1500 );
 
 	magic_off = FOCUS_CONFIRMATION_AF_PRESSED ? 1 : 0;
-
+#ifndef CONFIG_1100D
 	if (magic_off)
 	{
 		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
@@ -388,7 +390,7 @@ my_init_task(void)
 		additional_version[7] = '\0';
 		return;
 	}
-
+#endif
 	//~ NotifyBox(5000, "Magic Lantern");
 #ifndef CONFIG_1100D
 	ui_lock(UILOCK_EVERYTHING);
@@ -401,8 +403,6 @@ my_init_task(void)
 
 	// It's better to start a new task which does the init
 	// Guess: stack overflow in this task?
-	#ifndef CONFIG_1100D
 	task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
-	#endif
 #endif // !CONFIG_EARLY_PORT
 }

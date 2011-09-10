@@ -21,6 +21,16 @@
 #define YUV422_HD_BUFFER_DMA_ADDR 0x468cb600
 
 // changes during record
+#define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
+			(is_movie_mode() && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
+			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
+			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
+
+#define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x61 && (is_movie_mode() && event->arg == 0xa))
+#define BGMT_PRESS_AV (BGMT_AV && (*(int*)(event->obj) == 0x3010040))
+#define BGMT_UNPRESS_AV (BGMT_AV && (*(int*)(event->obj) == 0x1010040))
 
 // USED TO MAKE ML COMPILE
 #define SHOOTING_MODE 0
@@ -46,6 +56,10 @@
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+
+// for gui_main_task (1100d 104)
+#define GMT_NFUNCS 7
+#define GMT_FUNCTABLE 0xFF536110
 
 // RESTARTSTART 0x7f000
 #if 0
@@ -81,10 +95,6 @@
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 #define DISPLAY_SENSOR 0x2dec
 #define DISPLAY_SENSOR_MAYBE 0xC0220104
-
-// for gui_main_task (1100d 104)
-#define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF536110
 
 // button codes as received by gui_main_task
 #define BGMT_PRESS_LEFT 0x1c

@@ -191,9 +191,11 @@
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
  #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
 
+#ifndef CONFIG_1100D
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xff56dccc
+#endif
 
 
  #define SENSOR_RES_X 5184

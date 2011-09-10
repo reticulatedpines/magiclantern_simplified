@@ -745,7 +745,7 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 	focus_mag_a = buf[2];
 	focus_mag_b = buf[3];
 	focus_mag_c = buf[4];
-	#ifdef CONFIG_600D
+	#if defined(CONFIG_600D) || defined(CONFIG_1100D)
 	int focus_mag = focus_mag_c;
 	#else
 	int focus_mag = focus_mag_a + focus_mag_b;
