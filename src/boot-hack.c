@@ -36,10 +36,6 @@
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
 #undef CONFIG_EARLY_PORT
 
-#ifdef CONFIG_1100D
-#define CONFIG_EARLY_PORT
-#endif
-
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
 void my_init_task(void);
@@ -138,7 +134,9 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
 	// Install our task creation hooks
+#ifndef CONFIG_1100D
 	task_dispatch_hook = my_task_dispatch_hook;
+#endif
 #endif
 
 	// This will jump into the RAM version of the firmware,
@@ -232,6 +230,7 @@ struct config * global_config;
 
 static volatile int init_funcs_done;
 
+
 static void
 call_init_funcs( void * priv )
 {
@@ -253,8 +252,8 @@ call_init_funcs( void * priv )
 
 }
 
-#endif // !CONFIG_EARLY_PORT
 
+#endif // !CONFIG_EARLY_PORT
 
 static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
@@ -308,8 +307,9 @@ void my_big_init_task()
 		//~ ml_tasks
 	//~ );
 	msleep(500);
-
+#ifndef CONFIG_1100D
 	ui_lock(UILOCK_NONE);
+#endif
 	ml_started = 1;
 	NotifyBoxHide();
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
@@ -392,19 +392,22 @@ my_init_task(void)
 	}
 
 	//~ NotifyBox(5000, "Magic Lantern");
-
+#ifndef CONFIG_1100D
 	ui_lock(UILOCK_EVERYTHING);
-	
+#endif
 	msleep( 500 );
 
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
 
+	msleep( 5000 );
+	bmp_printf(FONT_LARGE, 0, 0, "Magic LANTERN");
 
 	// It's better to start a new task which does the init
 	// Guess: stack overflow in this task?
+	#ifndef CONFIG_1100D
 	task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
-	
+	#endif
 #endif // !CONFIG_EARLY_PORT
 }
