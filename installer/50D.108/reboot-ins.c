@@ -140,8 +140,9 @@ cstart( void )
 		// this can only be called from a "reboot" (updater) context,
 		// not from normal DryOS
 		
-		//~ int (*write_bootflags_to_card)(int, int) = 0xffffaf70;
-		//~ int not_ok = write_bootflags_to_card(1, 0);
+		// doesn'tworkstation..
+		//~ int (*write_bootflags_to_card)(int) = 0xffff5170;
+		//~ int not_ok = write_bootflags_to_card(0);
 		
 		//~ if (not_ok)
 			//~ fail();

@@ -4,9 +4,9 @@ TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=101
-MODEL=600D
-UPDATE_NAME=600d_101.fir
+FW_VERSION=108
+MODEL=50D
+UPDATE_NAME=50d_108.fir
 ML_VERSION=unified1 
 FIRMWARE_ID	= 0x80000261
 
@@ -29,10 +29,14 @@ ML_OBJS-y = \
 	font-large.o \
 	font-med.o \
 	font-small.o \
+	property.o \
+	propvalues.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
+
+CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

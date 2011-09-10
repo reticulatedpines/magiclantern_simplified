@@ -183,13 +183,19 @@ void fake_simple_button(int bgmt_code)
 void install_task()
 {
 	
+	PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Install task starting...");
+	
 	while (sensor_cleaning) Msleep(500);
+
+	PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Sensor cleaning done... ");
 	
 	Msleep(500);
 	
 	#ifdef CONFIG_600D
 	#define BGMT_DISP BGMT_INFO
 	#endif
+
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status: %d          ", tft_status);
 	
 	if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
 	if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
@@ -198,21 +204,38 @@ void install_task()
 	if (tft_status || gui_state != GUISTATE_IDLE) { SW1(1,100); SW1(0,100); Msleep(500); }
 	if (tft_status || gui_state != GUISTATE_IDLE)
 	{
+		PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status error...     ");
+		card_led_blink(10, 10, 90);
+		card_led_blink(10, 90, 10);
+		card_led_blink(10, 10, 90);
+		card_led_blink(10, 90, 10);
+		card_led_blink(10, 10, 90);
+		card_led_blink(10, 90, 10);
 		beep();
 		return; // display off, can't install
 	}
 	Msleep(500);
+
+	PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
 	
 	ui_lock(UILOCK_EVERYTHING);
+
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
 
 	autoexec_ok = check_autoexec();
 	fonts_ok = check_fonts();
 
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Autoexec & fonts checked");
+
 	initial_install();
 
 	old_shooting_mode = shooting_mode;
+
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Initial install DONE!!! ");
 	
 	ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Going interactive.......");
 	
 	int k = 0;
 	for (;;k++)
@@ -480,7 +503,7 @@ void check_install()
 			" formatted card.                    \n"
 			"                                    \n"
 			" To fix this (at your own risk!):   \n"
-			" a) Turn the mode dial one notch    \n"
+			" a) Turn the mode dial (P/Tv/Av/M)  \n"
 			"    (ML will try to fix this)       \n"
 			" b) Reinstall Canon firmware.       \n"
 			"                                    \n"
@@ -493,20 +516,20 @@ void check_install()
 			if (fonts_ok)
 			{
 				bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
+					" *********************************  \n"
+					" *            SUCCESS!           *  \n"
+					" *********************************  \n"
 					"                                    \n"
 					" BOOTDISK flag is ENABLED.          \n"
-					"                                    \n"
 					" AUTOEXEC.BIN found.                \n"
-					"                                    \n"
-					"                                    \n"
 					"                                    \n"
 					" Magic Lantern is installed.        \n"
 					" You may now restart your camera.   \n"
 					"                                    \n"
 					"                                    \n"
 					" To disable the BOOTDISK flag,      \n"
-					" turn the mode dial one notch       \n"
-					" in any direction.                  \n"
+					" change the shooting mode from the  \n"
+					" mode dial (P/Tv/Av/M).             \n"
 					"                                    \n"
 				);
 			}
@@ -525,8 +548,8 @@ void check_install()
 					" You may now turn off your camera.  \n"
 					"                                    \n"
 					" To disable the BOOTDISK flag,      \n"
-					" turn the mode dial one notch       \n"
-					" in any direction.                  \n"
+					" change the shooting mode from the  \n"
+					" mode dial (P/Tv/Av/M).             \n"
 					"                                    \n"
 				);
 			}
@@ -546,8 +569,8 @@ void check_install()
 				"                                    \n"
 				"                                    \n"
 				" To disable the BOOTDISK flag,      \n"
-				" turn the mode dial one notch       \n"
-				" in any direction.                  \n"
+				" change the shooting mode from the  \n"
+				" mode dial (P/Tv/Av/M).             \n"
 				"                                    \n"
 			);
 		}
@@ -567,8 +590,8 @@ void check_install()
 				"                                    \n"
 				"                                    \n"
 				" To enable the BOOTDISK flag,       \n"
-				" turn the mode dial one notch       \n"
-				" in any direction.                  \n"
+				" change the shooting mode from the  \n"
+				" mode dial (P/Tv/Av/M).             \n"
 				"                                    \n"
 			);
 	}
