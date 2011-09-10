@@ -20,7 +20,7 @@
 #define YUV422_LV_BUFFER_DMA_ADDR 0x41ae8e50
 #define YUV422_HD_BUFFER_DMA_ADDR 0x468cb600
 
-// changes during record
+// AV / AE COMP button 
 #define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
 			(is_movie_mode() && event->arg == 0xa) || \
 			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
