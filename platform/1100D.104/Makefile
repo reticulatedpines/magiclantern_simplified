@@ -48,6 +48,7 @@ ML_OBJS-y = \
 	af_patterns.o \
 	focus.o \
 	notify_box.o \
+	qtimer.o \
 
 #include generic rules and definitions
 
