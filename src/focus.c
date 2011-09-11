@@ -245,7 +245,15 @@ focus_toggle( void * priv )
 	give_semaphore( focus_task_sem );
 }
 
+#ifdef CONFIG_60D
 int rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
+#else
+#ifdef CONFIG_550D
+int rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100};
+#else
+int rack_speed_values[] = {1,2,3};
+#endif
+#endif
 
 static void
 focus_rack_speed_display(
@@ -966,6 +974,10 @@ focus_init( void* unused )
 	focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
 
 	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
+	
+	// make sure it's some valid value from the array
+	focus_rack_speed_increment(0);
+	focus_rack_speed_decrement(0);
 }
 
 /*
