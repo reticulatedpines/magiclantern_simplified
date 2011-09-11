@@ -181,7 +181,9 @@ int GetBatteryLevel()
 
 // dummy stubs, just to compile
 
-void prop_request_change(unsigned property, void * addr, size_t len) {} // 0xFF05B464 might be good (dumps=1, score=86)
+void prop_request_change(unsigned property, void * addr, size_t len) {
+	bmp_printf(FONT_LARGE,10,10, "%8x %8x %d", property, addr, len);
+} // 0xFF05B464 might be good (dumps=1, score=86)
 
 void ChangeColorPalette(){}
 void HideBottomInfoDisp_maybe(){}

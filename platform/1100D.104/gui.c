@@ -30,6 +30,8 @@
 #include <consts.h>
 #include <lens.h>
 
+#include "qtimer.h"
+
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
@@ -59,10 +61,12 @@ int get_flash_movie_pressed() { return flash_movie_pressed; }
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
 int set_pressed = 0;
+int av_pressed = 0;
 int disp_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 int get_set_pressed() { return set_pressed; }
+int get_av_pressed() { return av_pressed; }
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
@@ -167,8 +171,10 @@ static int handle_buttons(struct event * event)
         menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
         return 0;
     }
+	if (BGMT_PRESS_AV)   av_pressed = 1;
+	if (BGMT_UNPRESS_AV) av_pressed = 0;
 	
-	if (event->param == BGMT_TRASH)
+	if ((BGMT_UNPRESS_AV && !av_long_pressed) || event->param == BGMT_TRASH)
 	{
 		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
 		{
@@ -667,35 +673,40 @@ void fake_simple_button(int bgmt_code)
 }
 
 // updated for 1100d 104
-#define NFUNCS 7
-#define gui_main_task_functable 0xFF536110
-
-static void my_gui_main_task()
+static void gui_main_task_1100d()
 {
-	int kev = 0;
+	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
-	void* funcs[NFUNCS];
-	memcpy(funcs, gui_main_task_functable, 4*NFUNCS);  // copy 8 functions in an array
-	gui_init_end();
+	void* funcs[GMT_NFUNCS];
+	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
+	gui_init_end(); // no params?
 	while(1)
 	{
 		msg_queue_receive(gui_main_struct.msg_queue_1100d, &event, 0);
 		gui_main_struct.counter_1100d--;
-		bmp_printf(FONT_LARGE, 30, 30, "DLG: %8x", CURRENT_DIALOG_MAYBE);
 		if (event == NULL) continue;
 		index = event->type;
-		if ((index >= NFUNCS) || (index < 0))
+		if (!magic_is_off() && event->type == 0)
+		{
+			if (handle_buttons(event) == 0) // ML button/event handler
 			continue;
+		}
 
 		if (IS_FAKE(event)) event->arg = 0;
-
-		void(*f)(struct event *) = funcs[index];
+		//DebugMsg(DM_MAGIC, 3, "calling function: %d", funcs[index]);
+		if ((index >= GMT_NFUNCS) || (index < 0))
+			continue;
+		
+		// sync with other Canon calls => prevents some race conditions
+		GMT_LOCK(
+			void(*f)(struct event *) = funcs[index];
 		f(event);
+		)
 	}
 } 
 
 // 5D2 has a different version for gui_main_task
 
 // uncomment this when you are ready to find buttons
-TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+TASK_OVERRIDE( gui_main_task, gui_main_task_1100d );
