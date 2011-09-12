@@ -3295,6 +3295,9 @@ clearscreen_loop:
 		
 		//~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
+		if (k % 50 == 0 && (tft_status || !display_is_on()))
+			card_led_blink(1, 50, 50);
+
 		if (!lv) continue;
 		
 /*		if (k % 10 == 0)
@@ -3302,9 +3305,6 @@ clearscreen_loop:
 			bmp_printf(FONT_MED, 50, 50, "%d fps ", fps_ticks);
 			fps_ticks = 0;
 		}*/
-
-		if (k % 50 == 0 && !display_is_on())
-			card_led_blink(1, 50, 50);
 
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && get_halfshutter_pressed())
