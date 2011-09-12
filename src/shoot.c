@@ -3566,7 +3566,9 @@ shoot_task( void* unused )
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
 				if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
 				{
+					assign_af_button_to_star_button();
 					remote_shot(1);
+					restore_af_button_assignment();
 					//~ msleep(trap_focus_delay);
 					K = 0;
 				}
@@ -3578,7 +3580,9 @@ shoot_task( void* unused )
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
 				if (K > 50 && d >= (int)motion_detect_level)
 				{
+					assign_af_button_to_star_button();
 					remote_shot(1);
+					restore_af_button_assignment();
 					//~ msleep(trap_focus_delay);
 					K = 0;
 				}
