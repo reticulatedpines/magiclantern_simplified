@@ -2759,8 +2759,17 @@ int is_safe_to_mess_with_the_display(int timeout_ms)
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (_bmp_cleared) { BMP_LOCK(GMT_LOCK( call("MuteOff"); )) msleep(100); _bmp_cleared = 0;}
+	//~ if (!is_safe_to_mess_with_the_display(500)) return;
+	if (_bmp_cleared) 
+	{// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
+		cli_save();
+		if (tft_status == 0 && lv)
+		{
+			MuteOff_0();
+			_bmp_cleared = 0;
+		}
+		sei_restore();
+	}
 }
 void bmp_on_force()
 {
@@ -2769,11 +2778,22 @@ void bmp_on_force()
 }
 void bmp_off()
 {
-	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (!_bmp_cleared) { _bmp_cleared = 1; msleep(100); BMP_LOCK(GMT_LOCK( call("MuteOn")); )}
+	//~ clrscr();
+	//~ if (!is_safe_to_mess_with_the_display(500)) return;
+	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
+	{
+		cli_save();
+		if (tft_status == 0 && lv)
+		{
+			_bmp_cleared = 1;
+			MuteOn_0();
+		}
+		sei_restore();
+	}
 }
 int bmp_is_on() { return !_bmp_cleared; }
 
+/*
 int _lvimage_cleared = 0;
 void lvimage_on()
 {
@@ -2786,7 +2806,7 @@ void lvimage_off()
 	if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_lvimage_cleared) GMT_LOCK( call("MuteOnImage"); )
 	_lvimage_cleared = 0;
-}
+}*/
 
 int _display_is_off = 0;
 void display_on()
@@ -3295,7 +3315,7 @@ clearscreen_loop:
 		
 		//~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
-		if (k % 50 == 0 && (tft_status || !display_is_on()))
+		if (k % 50 == 0 && (tft_status || !display_is_on()) && lens_info.job_state == 0)
 			card_led_blink(1, 50, 50);
 
 		if (!lv) continue;

@@ -196,3 +196,6 @@ NSTUB(0xFF1E8CB0, ReleaseRecursiveLock) // (AJ_KernelDry_KerRLock.c_p2) (mean=6.
 NSTUB(0xFF1DA5F8, FIO_CleanupAfterFindNext_maybe) //  (AJ__switch_0x1A50_n_calls_fstOpenDir) (mean=25, stdev=10, num=11)
 NSTUB(0xFF337C64, ReverseDisplay) //  (Reverse) (mean=0.89, stdev=0, num=1)
 NSTUB(0xFF31D3F4, dialog_redraw) // (dialog_draw) (mean=19, stdev=3.9, num=68)
+
+NSTUB(0xff1dc714, MuteOn_0)
+NSTUB(0xff1dc75c, MuteOff_0)

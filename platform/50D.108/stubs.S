@@ -222,3 +222,6 @@ NSTUB( 0xFFA850DC, EndMovieRecSequence )
 NSTUB(0xff9a4670, GUI_SetLvMode)
 NSTUB(0xff9a4748, GUI_SetMovieSize_a)
 NSTUB(0xFF9A4844, GUI_SetMovieSize_b)
+
+NSTUB(0xff85ddd8, MuteOff_0) // not quite the same as in other cameras, but should work
+NSTUB(0xff85dd94, MuteOn_0) // idem

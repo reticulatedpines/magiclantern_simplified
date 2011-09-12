@@ -238,3 +238,6 @@ NSTUB(0xFF2CFAE4, struct_1e774_0x40_something)
 NSTUB(0xFF2B5164, AJ_KerRLock_n_WindowSig)
 
 NSTUB(0x1E638, gui_task_list)
+
+NSTUB(0xFF1C98A8, MuteOff_0)
+NSTUB(0xFF1C9860, MuteOn_0)

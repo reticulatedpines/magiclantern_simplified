@@ -267,11 +267,19 @@ void change_colors_like_crazy()
 {
 	msleep(2000);
 	int i;
-	int delay = 100;
+	int delay = 200;
 	for (i = 0; i < 10000; i++)
 	{
-		ChangeColorPalette(rand() % 5);
+		bmp_off();
 		msleep(rand() % delay);
+		bmp_on();
+		msleep(rand() % delay);
+		redraw();
+		msleep(rand() % delay);
+		//~ cli_save();
+		//~ if (tft_status == 1 && lv) ChangeColorPalette(rand() % 5);
+		//~ sei_restore();
+		//~ msleep(rand() % delay);
 	}
 }
 
@@ -307,7 +315,7 @@ void xx_test(void* priv)
 	gui_stop_menu();
 	//~ task_create("run_test", 0x1c, 0, run_test, 0);
 	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
-	//~ task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
+	task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
 	//~ bmp_printf(FONT_LARGE, 0, 0, "LV manip: %d ", x);

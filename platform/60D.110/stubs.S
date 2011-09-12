@@ -245,3 +245,6 @@ NSTUB(0xFF325774, struct_1e774_0x40_something)
 NSTUB(0xFF325680, dialog_something_1)
 
 NSTUB(0xFF20CA98, GUI_SetLvAction)
+
+NSTUB(0xff1cd32c, MuteOff_0)
+NSTUB(0xff1cd2e4, MuteOn_0)

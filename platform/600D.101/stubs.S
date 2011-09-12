@@ -225,3 +225,6 @@ NSTUB(0xFF31E390, dialog_redraw)
 NSTUB(0xFF234DF4, dialog_set_property_str)
 
 NSTUB(0xAC30, gui_task_list)
+
+NSTUB(0xff1e963c, MuteOff_0)
+NSTUB(0xff1e95f4, MuteOn_0)
