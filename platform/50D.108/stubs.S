@@ -53,8 +53,8 @@ NSTUB( 0x37880, LV_EX_Y)		//couldn't find in 500d dump anywhere -- for hdmi rela
 
 NSTUB( 0xFF822CB0, GUI_ChangeMode )																			//d
 
-NSTUB( 0xffa71330, AJ_guess_LED_ON )																		//d
-NSTUB( 0xffa71350, AJ_guess_LED_OFF )																		//d
+//NSTUB( 0xffa71330, AJ_guess_LED_ON )																		//d
+//NSTUB( 0xffa71350, AJ_guess_LED_OFF )																		//d
 NSTUB( 0xff9add24, DispSensorStart )																		//d
 //NSTUB( 0xFF822A9C, GUI_CONTROL )																			//d
 NSTUB( 0xffaab7e4, ChangeColorPalette )																		//d

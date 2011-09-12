@@ -175,8 +175,8 @@ NSTUB(mvrSetQscale, 0xff1b8f58)
 NSTUB(mvrSetVGAOptSize, 0xff1b9208)
 */
 
-NSTUB( 0xFF347830, AJ_guess_LED_ON )   // led for SD/CF read and write ops
-NSTUB( 0xFF347800, AJ_guess_LED_OFF )
+//NSTUB( 0xFF347830, AJ_guess_LED_ON )   // led for SD/CF read and write ops
+//NSTUB( 0xFF347800, AJ_guess_LED_OFF )
 NSTUB(0xFF073A84, CreateRecursiveLock)
 NSTUB( 0xFF337C34, MirrorDisplay )
 NSTUB( 0xFF337C94, NormalDisplay )

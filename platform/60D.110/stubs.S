@@ -53,8 +53,8 @@ NSTUB( 0xff1cb3b8, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFi
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)
 
-NSTUB( 0xFF334E6C, AJ_guess_LED_ON )
-NSTUB( 0xFF334E9C, AJ_guess_LED_OFF )
+//NSTUB( 0xFF334E6C, AJ_guess_LED_ON )
+//NSTUB( 0xFF334E9C, AJ_guess_LED_OFF )
 // NSTUB( 0xFF0825B0, DispSensorStart ) shouldn't be used in 60D
 // NSTUB( 0xFF024860, GUI_CONTROL ) replaced by fake_simple_button
 NSTUB( 0xFF21AF90, ChangeColorPalette )

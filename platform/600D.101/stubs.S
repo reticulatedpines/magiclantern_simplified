@@ -185,8 +185,8 @@ NSTUB( 0x37880, LV_EX_Y)
 NSTUB( 0xFF021A28, GUI_ChangeMode )
 NSTUB( 0xFF0A7F90, gui_massive_event_loop )   // GUI_Control_Post
 
-NSTUB( 0xFF34B6F4, AJ_guess_LED_ON )   // led for SD/CF read and write ops
-NSTUB( 0xFF34B724, AJ_guess_LED_OFF )
+//NSTUB( 0xFF34B6F4, AJ_guess_LED_ON )   // led for SD/CF read and write ops
+//NSTUB( 0xFF34B724, AJ_guess_LED_OFF )
 
 // NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )               // not found
 // NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )

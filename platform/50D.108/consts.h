@@ -1,4 +1,5 @@
 #define CARD_DRIVE "A:/"
+#define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 
 #define HIJACK_INSTR_BL_CSTART  0xff812ae8
 #define HIJACK_INSTR_BSS_END 0xff81093c
