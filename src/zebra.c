@@ -3253,7 +3253,11 @@ void ResumeLiveView()
 
 void idle_display_off()
 {
-	if (recording) return;
+	if (recording) return; // don't turn sensor off during recording :)
+
+	extern int motion_detect;
+	if (motion_detect) return; // let motion detect run with display off
+
 	wait_till_next_second();
 	NotifyBox(1000, "DISPLAY OFF");
 	PauseLiveView();
