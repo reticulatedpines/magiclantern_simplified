@@ -460,7 +460,7 @@ static int handle_buttons(struct event * event)
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
-		else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
+		else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
 		{
 			select_menu("Focus", 0);
 			give_semaphore( gui_sem ); 
@@ -539,7 +539,7 @@ static int handle_buttons(struct event * event)
 	}*/
 	
 	// movie mode shortcut
-	if (event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE || CURRENT_DIALOG_MAYBE == DLG_METERING))
+	if (event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE_2 == DLG2_DRIVE_MODE || CURRENT_DIALOG_MAYBE_2 == DLG2_ISO || CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE || CURRENT_DIALOG_MAYBE_2 == DLG2_METERING))
 	{
 		if (!is_movie_mode())
 		{

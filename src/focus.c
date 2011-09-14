@@ -828,10 +828,18 @@ focus_misc_task(void* unused)
 			movie_af_step(fm);
 		}
 #endif
+#ifdef CONFIG_60D
+		if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE && is_manual_focus())
+#else
 		if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
+#endif
 		{
 			trap_focus_toggle_from_af_dlg();
+			#ifdef CONFIG_60D
+			while (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE) msleep(100);
+			#else
 			while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
+			#endif
 		}
 	}
 }
