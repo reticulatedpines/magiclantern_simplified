@@ -127,7 +127,7 @@ static CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1
 //~ static CONFIG_INT( "zebra.density", zebra_density, 0); 
 //~ static CONFIG_INT( "hd.vram", use_hd_vram, 0); 
 
-static CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0);
+CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0); // this also enables power saving for intervalometer
 static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 
@@ -2766,9 +2766,9 @@ void bmp_on()
 		if (tft_status == 0 && lv)
 		{
 			MuteOff_0();
-			_bmp_cleared = 0;
 		}
 		sei_restore();
+		_bmp_cleared = 0;
 	}
 }
 void bmp_on_force()
@@ -3253,14 +3253,20 @@ void ResumeLiveView()
 
 void idle_display_off()
 {
-	if (recording) return; // don't turn sensor off during recording :)
-
 	extern int motion_detect;
-	if (motion_detect) return; // let motion detect run with display off
 
 	wait_till_next_second();
-	NotifyBox(1000, "DISPLAY OFF");
-	PauseLiveView();
+
+	if (motion_detect || recording)
+	{
+		NotifyBox(1000, "DISPLAY OFF");
+	}
+	else
+	{
+		NotifyBox(1000, "DISPLAY AND SENSOR OFF");
+		PauseLiveView();
+	}
+
 	idle_countdown_display_off = 0;
 	wait_till_next_second();
 	display_off_force();
@@ -3312,8 +3318,11 @@ clearscreen_task( void* unused )
 	{
 clearscreen_loop:
 		//~ msleep(100);
-		call("DisablePowerSave");
-		call("EnablePowerSave");
+		if (lens_info.job_state == 0) // unsafe otherwise?
+		{
+			call("DisablePowerSave");
+			call("EnablePowerSave");
+		}
 		msleep(100);
 		//~ card_led_blink(1,10,90);
 		
@@ -3373,7 +3382,7 @@ clearscreen_loop:
 	}
 }
 
-TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1b, 0x1000 );
+TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1a, 0x1000 );
 
 CONFIG_INT("disable.redraw", disable_redraw, 0);
 CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
