@@ -242,7 +242,7 @@ extern int lcd_sensor_shortcuts;
 void adjust_backlight_level(int delta)
 {
 	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
-	call("TurnOnDisplay");
+	display_on_force();
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
 	NotifyBoxHide();
