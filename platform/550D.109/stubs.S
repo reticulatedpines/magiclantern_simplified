@@ -241,3 +241,8 @@ NSTUB(0x1E638, gui_task_list)
 
 NSTUB(0xFF1C98A8, MuteOff_0)
 NSTUB(0xFF1C9860, MuteOn_0)
+
+NSTUB(0xFF13F898, ptpPropButtonSW1)
+NSTUB(0xFF13FA00, ptpPropButtonSW2)
+NSTUB(0xFF13F7B4, RemoteRelease)
+

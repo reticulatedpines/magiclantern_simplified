@@ -706,7 +706,8 @@ lens_take_picture(
 	lens_wait_readytotakepic(64);
 
 	//~ bmp_printf(FONT_LARGE, 50, 50, "Release");
-	call( "Release", 0 );
+	//~ call( "Release", 0 );
+	RemoteRelease(0);
 	//~ bmp_printf(FONT_LARGE, 50, 50, "Release OK");
 
 	if( !wait )
@@ -1220,12 +1221,16 @@ LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
 void SW1(int v, int wait)
 {
-	prop_request_change(PROP_REMOTE_SW1, &v, 2);
+	int unused;
+	ptpPropButtonSW1(v, 0, &unused);
+	//~ prop_request_change(PROP_REMOTE_SW1, &v, 2);
 	msleep(wait);
 }
 
 void SW2(int v, int wait)
 {
-	prop_request_change(PROP_REMOTE_SW2, &v, 2);
+	int unused;
+	ptpPropButtonSW2(v, 0, &unused);
+	//~ prop_request_change(PROP_REMOTE_SW2, &v, 2);
 	msleep(wait);
 }
