@@ -60,8 +60,8 @@ zero_bss( void )
 		*(bss++) = 0;
 }
 
-void card_led_on() { AJ_guess_LED_ON(1); }
-void card_led_off() { AJ_guess_LED_OFF(1); }
+void card_led_on() { cli_save(); *(int*)CARD_LED_ADDRESS |= 2; sei_restore(); }
+void card_led_off() { cli_save(); *(int*)CARD_LED_ADDRESS &= ~2; sei_restore(); }
 void card_led_blink(int times, int delay_on, int delay_off)
 {
 	int i;
