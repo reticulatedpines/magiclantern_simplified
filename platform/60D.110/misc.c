@@ -50,6 +50,8 @@ void display_shooting_info() // called from debug task
 	else
 		bmp_printf(fnt, 190, 450, "         ");
 
+	bmp_printf(fnt, 290, 415, "%d%% ", GetBatteryLevel());
+
 	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 
 		//~ strobo_firing == 0 ? " ON" : 
 		//~ strobo_firing == 1 ? "OFF" : "Auto"
