@@ -18,6 +18,8 @@
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused);
 
+CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
+
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
 //////////////////////////////////////////////////////////
@@ -275,6 +277,9 @@ void change_colors_like_crazy()
 		bmp_on();
 		msleep(rand() % delay);
 		redraw();
+		PauseLiveView();
+		msleep(rand() % delay);
+		ResumeLiveView();
 		msleep(rand() % delay);
 		//~ cli_save();
 		//~ if (tft_status == 1 && lv) ChangeColorPalette(rand() % 5);
@@ -314,7 +319,7 @@ void xx_test(void* priv)
 	//~ GUI_SetMovieSize_a(1);
 	gui_stop_menu();
 	//~ task_create("run_test", 0x1c, 0, run_test, 0);
-	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
+	//~ task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
 	task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
 	//~ static int x = 0;
@@ -610,14 +615,14 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
-			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
+			//bmp_printf(FONT_MED, 0, 50, "%x %x %x %x %x %x ", CURRENT_DIALOG_MAYBE, MEM(0x3D70), lens_info.job_state, lv_dispsize, gui_state, mirror_down, bmp_is_on());
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (get_global_draw())
 		{
-			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && CURRENT_DIALOG_MAYBE == 0) BMP_LOCK
+			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && CURRENT_DIALOG_MAYBE == 0 && !ISO_ADJUSTMENT_ACTIVE) BMP_LOCK
 			(
 				display_clock();
 				display_shooting_info();
@@ -673,7 +678,18 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		}
 		#endif
 		
-		msleep(200);
+		if (fake_halfshutter && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !get_halfshutter_pressed())
+		{
+			SW1(1,5);
+			SW1(0,0);
+			if (fake_halfshutter == 1) msleep(1000);
+			else if (fake_halfshutter == 2) msleep(200);
+			else msleep(20);
+		}
+		else
+		{
+			msleep(200);
+		}
 	}
 }
 
@@ -701,6 +717,25 @@ spy_print(
 		mem_spy ? "MEM" : "mem"
 	);
 	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
+}
+
+static void
+fake_halfshutter_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Half-press shutter : %s",
+		fake_halfshutter == 1 ? "every second" : 
+		fake_halfshutter == 2 ? "every 200ms" : 
+		fake_halfshutter == 3 ? "every 20ms" : 
+		"OFF"
+	);
 }
 
 #ifdef CONFIG_50D
@@ -869,6 +904,14 @@ struct menu_entry debug_menus[] = {
 		.select		= clear_config,
 		.display	= menu_print,
 	}, */
+	{
+		.name		= "Half-press shutter",
+		.priv = &fake_halfshutter,
+		.select		= menu_quaternary_toggle,
+		.select_reverse = menu_quaternary_toggle_reverse,
+		.display	= fake_halfshutter_print,
+		.help = "Emulate halfway shutter presses while camera is idle"
+	},
 };
 
 static struct menu_entry cfg_menus[] = {
