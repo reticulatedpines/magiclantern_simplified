@@ -210,6 +210,7 @@ bmp_printf(
 	...
 )
 {
+BMP_LOCK(
 	va_list			ap;
 
 	va_start( ap, fmt );
@@ -217,6 +218,7 @@ bmp_printf(
 	va_end( ap );
 
 	bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+)
 }
 
 void
