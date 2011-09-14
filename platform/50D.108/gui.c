@@ -96,7 +96,7 @@ static int handle_buttons(struct event * event)
 		if (event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
 		if (event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
 		if (event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
-		if (event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+		if (event->param == BGMT_JOY_CENTER)   { afp_center(); return 0; }
 	}
 
 	if (get_draw_event())
