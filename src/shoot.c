@@ -42,7 +42,7 @@ void movie_end();
 void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
 
-int bulb_shutter_value = 0;
+volatile int bulb_shutter_value = 0;
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
@@ -749,6 +749,11 @@ ms100_clock_task( void )
 	{
 		msleep(100);
 		ms100_clock += 100;
+
+		// redraw hack 
+		if (!gui_menu_shown() && intervalometer_running && intervalometer_auto_expo)
+			auto_exposure_for_timelapse_showinfo();
+
 	}
 }
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
@@ -2301,14 +2306,14 @@ static void bulb_toggle_rev(void* priv)
 static void
 bulb_display( void * priv, int x, int y, int selected )
 {
-	int d = timer_values[bulb_duration_index];
+	int d = bulb_shutter_value/1000;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Bulb Timer %s: %d%s",
 		is_bulb_mode() ? "     " : "(N/A)",
 		d < 60 ? d : d/60, 
-		d == 0 ? " (OFF)" : d < 60 ? "s" : "min"
+		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
 	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, bulb_duration_index * 100 / COUNT(timer_values));
 }
@@ -2566,15 +2571,15 @@ void auto_exposure_for_timelapse_init()
 	int rs0 = lens_info.raw_shutter;
 	int bs0 = bulb_shutter_value;
 	
-	lens_set_rawshutter(rs0 - 8); bulb_shutter_value = bs0 * 2;
+	if (is_bulb_mode()) bulb_shutter_value = bs0 * 2; else lens_set_rawshutter(rs0 - 8);
 	hdr_shot(0, 1);
 	int level_plus1ev = measure_brightness_level();
 
-	lens_set_rawshutter(rs0 + 8);  bulb_shutter_value = bs0 / 2;
+	if (is_bulb_mode()) bulb_shutter_value = bs0 / 2; else lens_set_rawshutter(rs0 + 8);
 	hdr_shot(0, 1);
 	int level_minus1ev = measure_brightness_level();
 
-	lens_set_rawshutter(rs0);  bulb_shutter_value = bs0;
+	if (is_bulb_mode()) bulb_shutter_value = bs0; else lens_set_rawshutter(rs0);
 	hdr_shot(0, 1);
 	aetl_reference_level = measure_brightness_level();
 	
@@ -2595,7 +2600,7 @@ void auto_exposure_for_timelapse_init()
 
 	if (thr_hi <= aetl_reference_level || thr_lo >= aetl_reference_level)
 	{
-		NotifyBox(5000, "Calibration error, incorrect thresholds");
+		NotifyBox(5000, "Calibration error\nIncorrect thresholds\nCheck for correct exposure");
 		auto_exposure_for_timelapse_showinfo();
 		msleep(5000);
 		intervalometer_stop();
@@ -3171,7 +3176,7 @@ void remote_shot(int wait)
 	
 	if (is_bulb_mode())
 	{
-		bulb_take_pic(timer_values[bulb_duration_index] * 1000);
+		bulb_take_pic(bulb_shutter_value);
 	}
 	else if (hdr_steps > 1)
 	{
@@ -3304,8 +3309,11 @@ void wait_till_next_second()
 	{
 		LoadCalendarFromRTC( &now );
 		msleep(20);
-		call("DisablePowerSave"); // trick from AJ_MREQ_ISR
-		call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
+/*		if (lens_info.job_state == 0) // unsafe otherwise?
+		{
+			call("DisablePowerSave"); // trick from AJ_MREQ_ISR
+			call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
+		}*/
 	}
 }
 
@@ -3474,7 +3482,7 @@ shoot_task( void* unused )
 
 			if (was_idle_not_pressed && is_idle_and_pressed)
 			{
-				int d = timer_values[bulb_duration_index];
+				int d = bulb_shutter_value/1000;
 				NotifyBoxHide();
 				NotifyBox(10000, "[HalfShutter] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				while (get_halfshutter_pressed())
@@ -3613,7 +3621,7 @@ shoot_task( void* unused )
 			
 			if (timer_values[interval_timer_index])
 			{
-				//~ card_led_blink(5, 50, 50);
+				card_led_blink(5, 50, 50);
 				wait_till_next_second();
 			}
 			
@@ -3636,12 +3644,13 @@ shoot_task( void* unused )
 				card_led_blink(1, 50, 0);
 				wait_till_next_second();
 
-				if (intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
+				extern int idle_display_turn_off_after;
+				if (idle_display_turn_off_after && gui_state == GUISTATE_IDLE && intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
 				{
 					// stop LiveView and turn off display to save power
 					//~ fake_simple_button(BGMT_PLAY);
 					PauseLiveView();
-					display_off_force();
+					//~ display_off_force();
 					msleep(200);
 					display_off_force();
 					display_turned_off = 1;
