@@ -82,7 +82,7 @@ int motion_detect = 0;
 //int motion_detect_level = 8;
 int drive_mode_bk = -1;
 
-/*
+
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 PROP_HANDLER(PROP_GUI_STATE)
 {
@@ -94,7 +94,7 @@ PROP_HANDLER(PROP_GUI_STATE)
 	}
 
 	return prop_cleanup(token, property);
-}*/
+}
 
 int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
 int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
@@ -2280,11 +2280,11 @@ bulb_take_pic(int duration)
 	msleep(100);
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	if (get_mlu() && !lv) { lens_take_picture(64); msleep(2000); }
-	SW1(1,100);
-	SW2(1,100);
+	SW1(1,0);
+	SW2(1,0);
 	msleep(duration);
-	SW2(0,100);
-	SW1(0,100);
+	SW2(0,0);
+	SW1(0,0);
 	msleep(100);
 	restore_af_button_assignment();
 	lens_wait_readytotakepic(64);
@@ -3645,7 +3645,7 @@ shoot_task( void* unused )
 				wait_till_next_second();
 
 				extern int idle_display_turn_off_after;
-				if (idle_display_turn_off_after && gui_state == GUISTATE_IDLE && intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
+				if (idle_display_turn_off_after && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE && intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
 				{
 					// stop LiveView and turn off display to save power
 					//~ fake_simple_button(BGMT_PLAY);

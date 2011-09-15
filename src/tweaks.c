@@ -477,7 +477,7 @@ tweak_task( void* unused)
 }
 
 TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );
-/*
+
 extern int quick_review_allow_zoom;
 
 static void
@@ -494,7 +494,7 @@ qrplay_display(
 		"After taking a photo: %s", 
 		quick_review_allow_zoom ? "Hold->Play" : "QuickReview"
 	);
-}*/
+}
 /*
 extern int set_on_halfshutter;
 
@@ -635,13 +635,13 @@ struct menu_entry tweak_menus[] = {
 		.display = auto_burst_pic_display,
 	},
 	#endif
-/*	{
+	{
 		.name = "After taking a photo",
 		.priv = &quick_review_allow_zoom, 
 		.select = menu_binary_toggle, 
 		.display = qrplay_display,
 		.help = "When you set \"ImageReview: Hold\", it will go to Play mode."
-	},*/
+	},
 	{
 		.name = "Zoom in PLAY mode",
 		.priv = &quickzoom, 
