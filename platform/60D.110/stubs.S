@@ -248,3 +248,8 @@ NSTUB(0xFF20CA98, GUI_SetLvAction)
 
 NSTUB(0xff1cd32c, MuteOff_0)
 NSTUB(0xff1cd2e4, MuteOn_0)
+
+NSTUB(0xFF134B38, RemoteRelease)
+NSTUB(0xFF134C1C, ptpPropButtonSW1)
+NSTUB(0xFF134D5C, ptpPropButtonSW2)
+

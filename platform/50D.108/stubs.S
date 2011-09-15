@@ -225,3 +225,7 @@ NSTUB(0xFF9A4844, GUI_SetMovieSize_b)
 
 NSTUB(0xff85ddd8, MuteOff_0) // not quite the same as in other cameras, but should work
 NSTUB(0xff85dd94, MuteOn_0) // idem
+
+NSTUB(0xFF90EC28, RemoteRelease)
+NSTUB(0xFF90ED54, ptpPropButtonSW1)
+NSTUB(0xff90ede4, ptpPropButtonSW2)

@@ -199,3 +199,7 @@ NSTUB(0xFF31D3F4, dialog_redraw) // (dialog_draw) (mean=19, stdev=3.9, num=68)
 
 NSTUB(0xff1dc714, MuteOn_0)
 NSTUB(0xff1dc75c, MuteOff_0)
+
+NSTUB(0xFF139A08, RemoteRelease)
+NSTUB(0xFF13ACCC, PtpPropButtonSW1)
+NSTUB(0xFF13AD70, PtpPropButtonSW2)
