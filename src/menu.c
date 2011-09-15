@@ -787,8 +787,10 @@ menu_handler(
 		break;
 
 	case PRESS_DIRECT_PRINT_BUTTON:
+#ifdef CONFIG_50D
 	case PRESS_FUNC_BUTTON:
 	case JOY_CENTER:
+#endif
 		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
 		menu_entry_select( menu, 2 ); // auto setting select
 		menu_damage = 1;
