@@ -99,6 +99,11 @@ static int handle_buttons(struct event * event)
 			return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
+	if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT)
+	{
+		return handle_keep_ml_after_format_toggle();
+	}
+	
 	// movie REC key
 	if (handle_movie_rec_key(event) == 0) return 0;
 

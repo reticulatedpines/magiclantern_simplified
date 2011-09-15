@@ -658,7 +658,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			if (!screenshot_sec)
 				take_screenshot(0);
 		}
-		
+
+		if (MENU_MODE) 
+		{
+			GMT_LOCK( HijackFormatDialogBox(); )
+		}
+
 		//~ if (BTN_METERING_PRESSED_IN_LV)
 		//~ {
 			//~ while (BTN_METERING_PRESSED_IN_LV) msleep(100);
@@ -1343,3 +1348,40 @@ PROP_HANDLER(PROP_ISO)
 }
 
 #endif
+
+int keep_ml_after_format = 1;
+
+void HijackFormatDialogBox()
+{
+	if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
+	struct gui_task * current = gui_task_list.current;
+	struct dialog * dialog = current->priv;
+	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+	if (keep_ml_after_format)
+		dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern [Q]");
+	else
+		dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern [Q]");
+	dialog_redraw(dialog);
+}
+
+int handle_keep_ml_after_format_toggle()
+{
+	if (!MENU_MODE) return 1;
+	if (MEM(DIALOG_MnCardFormatBegin) == 0) return 1;
+	keep_ml_after_format = !keep_ml_after_format;
+	GMT_LOCK( HijackFormatDialogBox(); )
+	return 0;
+}
+
+void HijackDialogBox()
+{
+	struct gui_task * current = gui_task_list.current;
+	struct dialog * dialog = current->priv;
+	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+	int i;
+	for (i = 0; i<255; i++) {
+			char s[30];
+			snprintf(s, sizeof(s), "%d", i);
+			dialog_set_property_str(dialog, i, s);
+	}
+}

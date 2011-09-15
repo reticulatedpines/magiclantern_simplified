@@ -182,3 +182,5 @@
 #define FLASH_MIN_EV (-10*8) // not sure if it actually works
 
 #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
+
+#define DIALOG_MnCardFormatBegin (0x1e5a4+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there

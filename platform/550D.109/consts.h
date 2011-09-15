@@ -215,3 +215,6 @@
 #define FLASH_MIN_EV (-5*8)
 
 #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / DISP" 
+
+#define DIALOG_MnCardFormatBegin (0x2524c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+

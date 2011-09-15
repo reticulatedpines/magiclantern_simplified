@@ -62,6 +62,8 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF536110
 
+#define DIALOG_MnCardFormatBegin (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+
 // RESTARTSTART 0x7f000
 #if 0
 
