@@ -81,7 +81,7 @@ void opt_set(int num, int den)
 void bitrate_set()
 {
 	if (!lv) return;
-	if (is_movie_mode()) return; 
+	if (!is_movie_mode()) return; 
 	if (gui_menu_shown()) return;
 	if (recording) return; 
 	
