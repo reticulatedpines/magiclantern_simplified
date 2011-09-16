@@ -800,7 +800,7 @@ mvr_update_logfile(
 		info->wb_mode == WB_KELVIN ? info->kelvin : 0,
 		info->wbs_gm, 
 		info->wbs_ba,
-		get_picstyle_name(info->picstyle),
+		get_picstyle_name(info->raw_picstyle),
 		lens_get_contrast(),
 		lens_get_saturation(), 
 		lens_get_sharpness(), 
