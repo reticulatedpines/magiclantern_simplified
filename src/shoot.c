@@ -915,7 +915,7 @@ void expfuse_preview_update_task()
 	weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(buf_lv, buf_acc, buf_ws, numpix);
 	expfuse_num_images++;
 	bmp_printf(FONT_MED, 0, 0, "%d images  ", expfuse_num_images);
-	bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
+	//~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
 	give_semaphore(expfuse_sem);
 }

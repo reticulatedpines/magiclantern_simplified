@@ -423,7 +423,7 @@ cropmarks_play_display(
 	);
 }
 
-CONFIG_INT("play.set.wheel", play_set_wheel_action, 0);
+CONFIG_INT("play.set.wheel", play_set_wheel_action, 2);
 
 static void
 play_set_wheel_display(
