@@ -81,11 +81,6 @@ static int handle_buttons(struct event * event)
 		return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
-	if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT)
-	{
-		return handle_keep_ml_after_format_toggle();
-	}
-
 	// Change the picture style button to show our menu
 	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
 	{
