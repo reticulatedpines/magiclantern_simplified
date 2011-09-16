@@ -786,7 +786,7 @@ mvr_update_logfile(
 
 	my_fprintf(
 		mvr_logfile,
-		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%d,%d\n",
 		now.tm_hour,
 		now.tm_min,
 		now.tm_sec,
@@ -800,7 +800,7 @@ mvr_update_logfile(
 		info->wb_mode == WB_KELVIN ? info->kelvin : 0,
 		info->wbs_gm, 
 		info->wbs_ba,
-		info->picstyle, 
+		get_picstyle_name(info->picstyle),
 		lens_get_contrast(),
 		lens_get_saturation(), 
 		lens_get_sharpness(), 
