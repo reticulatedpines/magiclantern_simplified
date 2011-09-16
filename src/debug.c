@@ -214,9 +214,9 @@ void Beep()
 
 void run_test()
 {
-	//~ gui_stop_menu();
-	//~ msleep(1000);
-	//~ call("MovieStart");
+	gui_stop_menu();
+	msleep(2000);
+	HijackDialogBox();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -316,22 +316,14 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	//~ GUI_SetMovieSize_a(1);
-	gui_stop_menu();
-	//~ task_create("run_test", 0x1c, 0, run_test, 0);
-	//~ task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
-	task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
-	//~ prop_request_change(PROP_LV_AFFRAME, aff, 0x68);
-	//~ static int x = 0;
-	//~ bmp_printf(FONT_LARGE, 0, 0, "LV manip: %d ", x);
-	//~ msleep(1000);
-	//~ prop_request_change(PROP_LV_MANIPULATION, &x, 4);
-	//~ x++;
+	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 static void xx_test2(void* priv)
 {
-	//~ GUI_SetMovieSize_b(1);
+	gui_stop_menu();
+	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
+	task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 }
 
 void ui_lock(int x)
@@ -635,6 +627,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 					display_shooting_info_lv();
 					display_shortcut_key_hints_lv();
 				)
+				#ifndef CONFIG_50D
 				if (is_movie_mode() && !ae_mode_movie && !gui_menu_shown()) 
 				{
 					static int ae_warned = 0;
@@ -647,7 +640,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 					}
 					else ae_warned = 0;
 				}
-
+				#endif
 			}
 		}
 		
@@ -659,10 +652,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				take_screenshot(0);
 		}
 
+		#ifndef CONFIG_50D
 		if (MENU_MODE) 
 		{
 			GMT_LOCK( HijackFormatDialogBox(); )
 		}
+		#endif
 
 		//~ if (BTN_METERING_PRESSED_IN_LV)
 		//~ {
@@ -921,6 +916,11 @@ struct menu_entry debug_menus[] = {
 
 static struct menu_entry cfg_menus[] = {
 	{
+		.priv = "Config",
+		.display	= menu_title_hack_print,
+		.help = "Options related to config file (MAGIC.CFG)"
+	},
+	{
 		.name = "Config AutoSave",
 		.priv = &config_autosave,
 		.display	= config_autosave_display,
@@ -1108,8 +1108,12 @@ thats_all:
 	);
 #endif
 
+	extern struct menu_entry livev_dbg_menus[];
+	extern struct menu_entry livev_cfg_menus[];
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+    menu_add( "Debug", livev_dbg_menus, 4 );
+    menu_add( "Debug", cfg_menus, COUNT(cfg_menus) );
+    menu_add( "Debug", livev_cfg_menus, 1 );
 }
 
 CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
@@ -1351,6 +1355,7 @@ PROP_HANDLER(PROP_ISO)
 
 int keep_ml_after_format = 1;
 
+#ifndef CONFIG_50D
 void HijackFormatDialogBox()
 {
 	if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -1358,7 +1363,7 @@ void HijackFormatDialogBox()
 	struct dialog * dialog = current->priv;
 	if (dialog && MEM(dialog->type) != 0x006e4944) return;
 	if (keep_ml_after_format)
-		dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern [Q]");
+		dialog_set_property_str(dialog, 4, "Format card, keep ML (not working) [Q]");
 	else
 		dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern [Q]");
 	dialog_redraw(dialog);
@@ -1384,4 +1389,6 @@ void HijackDialogBox()
 			snprintf(s, sizeof(s), "%d", i);
 			dialog_set_property_str(dialog, i, s);
 	}
+	dialog_redraw(dialog);
 }
+#endif

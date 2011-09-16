@@ -632,8 +632,7 @@ static int handle_buttons(struct event * event)
 		}
 		if (event->param == BGMT_PRESS_SET)
 		{
-			transparent_overlay_offset_clear();
-			transparent_overlay_offset(0, 0);
+			transparent_overlay_center_or_toggle();
 			return 0;
 		}
 	}
@@ -644,26 +643,22 @@ static int handle_buttons(struct event * event)
 		return !BGMT_PRESS_FLASH_MOVIE;
 	}
 
-	// 422 play
-
+	// SET button pressed
 	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
 	if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
 	if (event->param == BGMT_PLAY) set_pressed = 0;
 
-	if ( PLAY_MODE && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
-	{
-		play_next_422();
-		return 0;
-	}
-
-	// exposure fusion preview
+	// reset exposure fusion preview
 	extern int expfuse_running;
 	if (set_pressed == 0) expfuse_running = 0;
-	if ( PLAY_MODE && event->param == BGMT_WHEEL_LEFT && get_set_pressed())
+
+	// SET+Wheel action in PLAY mode
+	if ( PLAY_MODE && get_set_pressed())
 	{
-		if (!IS_FAKE(event))
+		if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT))
 		{
-			expfuse_preview_update();
+			int dir = event->param == BGMT_WHEEL_RIGHT ? 1 : -1;
+			playback_set_wheel_action(dir);
 			return 0;
 		}
 		else return 1;

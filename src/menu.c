@@ -879,8 +879,9 @@ menu_init( void )
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Tweak" );
+	menu_find_by_name( "Play" );
 	menu_find_by_name( "Debug" );
-	menu_find_by_name( "Config" );
+	//~ menu_find_by_name( "Config" );
 	menu_find_by_name( " (i)" );
 	//~ menu_find_by_name( "Boot" );
 
@@ -1182,4 +1183,26 @@ static void menu_show_version(void)
 		build_id,
 		build_date,
 		build_user);
+}
+
+void
+menu_title_hack_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	unsigned fontspec = FONT(
+		FONT_MED,
+		selected ? COLOR_WHITE : COLOR_YELLOW,
+		selected ? 13 : COLOR_BLACK
+	);
+
+	menu_draw_icon(x, y, -1, 0);
+	bmp_printf(
+		fontspec,
+		x - 35, y + 10,
+		(char*)priv
+	);
 }

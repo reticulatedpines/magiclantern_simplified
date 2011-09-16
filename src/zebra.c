@@ -63,6 +63,8 @@ static CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x2c5051);
        CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
+int transparent_overlay_hidden = 0;
+
 static CONFIG_INT( "global.draw", 	global_draw, 1 );
 static CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
 static CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
@@ -2403,13 +2405,30 @@ transparent_overlay_display(
 			transparent_overlay ? "ON" : "OFF"
 		);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay), 0);
+	transparent_overlay_hidden = 0;
 }
 
 void transparent_overlay_offset(int dx, int dy)
 {
 	transparent_overlay_offx = COERCE((int)transparent_overlay_offx + dx, -650, 650);
 	transparent_overlay_offy = COERCE((int)transparent_overlay_offy + dy, -400, 400);
+	transparent_overlay_hidden = 0;
 	BMP_LOCK( show_overlay(); )
+}
+
+void transparent_overlay_center_or_toggle()
+{
+	if (transparent_overlay_offx || transparent_overlay_offy) // if off-center, just center it
+	{
+		transparent_overlay_offset_clear();
+		transparent_overlay_offset(0, 0);
+	}
+	else // if centered, hide it or show it back
+	{
+		transparent_overlay_hidden = !transparent_overlay_hidden;
+		if (!transparent_overlay_hidden) BMP_LOCK( show_overlay(); )
+		else redraw();
+	}
 }
 
 void transparent_overlay_offset_clear(void* priv)
@@ -2644,7 +2663,12 @@ struct menu_entry zebra_menus[] = {
 	//~ },
 };
 
-struct menu_entry dbg_menus[] = {
+struct menu_entry livev_dbg_menus[] = {
+	{
+		.priv = "Powersave",
+		.display	= menu_title_hack_print,
+		.help = "Options for power saving in LiveView"
+	},
 	{
 		.name = "Dim display",
 		.priv			= &idle_display_dim_after,
@@ -2702,7 +2726,7 @@ struct menu_entry dbg_menus[] = {
 	}*/
 };
 
-static struct menu_entry cfg_menus[] = {
+struct menu_entry livev_cfg_menus[] = {
 	{
 		.name = "DISP presets",
 		.priv		= &disp_profiles_0,
@@ -2725,7 +2749,7 @@ cropmark_draw()
 {
 	ChangeColorPaletteLV(2);
 	if (!get_global_draw()) return;
-	if (transparent_overlay) show_overlay();
+	if (transparent_overlay && !transparent_overlay_hidden) show_overlay();
 	if (cropmark_movieonly && !is_movie_mode()) return;
 	reload_cropmark(crop_draw); // reloads only when changed
 	clrscr_mirror();
@@ -2734,7 +2758,7 @@ cropmark_draw()
 	//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
 	bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
 }
-static void
+void
 cropmark_redraw()
 {
 	BMP_LOCK( cropmark_draw(); )
@@ -3746,13 +3770,12 @@ void livev_playback_reset()
 }
 
 
-
 static void zebra_init_menus()
 {
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
-    menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
+    //~ menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
-    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+    //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 }
 
 INIT_FUNC(__FILE__, zebra_init_menus);
@@ -3931,11 +3954,27 @@ PROP_HANDLER(PROP_LV_ACTION)
 void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
 {
 	int i,j;
-	for (i = 0; i < src_w; i++)
+	for (i = 0; i < dst_h; i++)
 	{
 		for (j = 0; j < dst_w/2; j++)
 		{
 			dst[i * dst_w/2 + j] = src[(i*src_h/dst_h) * src_w/2 + (j*src_w/dst_w)];
+		}
+	}
+}
+
+void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
+{
+	int i,j;
+	for (i = 0; i < h; i++)
+	{
+		for (j = 0; j < w/2; j++)
+		{
+			int sign = j - i * w/h/2;
+			if ((top_half && sign > 0) || (!top_half && sign <= 0))
+			{
+				dst[i * w/2 + j] = src[i * w/2 + j];
+			}
 		}
 	}
 }

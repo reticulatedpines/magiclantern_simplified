@@ -304,7 +304,7 @@ quickzoom_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Zoom in PLAY mode   : %s", 
+		"Zoom in PLAY mode : %s", 
 		quickzoom ? "Fast" : "Normal"
 	);
 }
@@ -405,6 +405,52 @@ display_off_by_halfshutter_print(
 
 #endif
 
+CONFIG_INT("crop.playback", cropmarks_play, 0);
+
+static void
+cropmarks_play_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Cropmarks (PLAY)  : %s", 
+		cropmarks_play ? "ON" : "OFF"
+	);
+}
+
+CONFIG_INT("play.set.wheel", play_set_wheel_action, 0);
+
+static void
+play_set_wheel_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"SET+MainDial(PLAY): %s", 
+		play_set_wheel_action == 0 ? "Play 422" :
+		play_set_wheel_action == 1 ? "ExposureFusion" : 
+		play_set_wheel_action == 2 ? "CompareImages" : "err"
+	);
+	menu_draw_icon(x, y, MNI_ON, 0);
+}
+
+void playback_set_wheel_action(int dir)
+{
+	if (play_set_wheel_action == 0) play_next_422();
+	else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
+	else if (play_set_wheel_action == 2) playback_compare_last_two_images();
+}
+
 static void
 tweak_task( void* unused)
 {
@@ -466,6 +512,12 @@ tweak_task( void* unused)
 			redraw();
 		}
 		
+		if (cropmarks_play && PLAY_MODE)
+		{
+			cropmark_redraw();
+			msleep(2000);
+		}
+		
 		#ifdef CONFIG_60D
 		if (display_off_by_halfshutter_enabled)
 			display_off_by_halfshutter();
@@ -491,7 +543,7 @@ qrplay_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"After taking a photo: %s", 
+		"After taking a pic: %s", 
 		quick_review_allow_zoom ? "Hold->Play" : "QuickReview"
 	);
 }
@@ -635,20 +687,6 @@ struct menu_entry tweak_menus[] = {
 		.display = auto_burst_pic_display,
 	},
 	#endif
-	{
-		.name = "After taking a photo",
-		.priv = &quick_review_allow_zoom, 
-		.select = menu_binary_toggle, 
-		.display = qrplay_display,
-		.help = "When you set \"ImageReview: Hold\", it will go to Play mode."
-	},
-	{
-		.name = "Zoom in PLAY mode",
-		.priv = &quickzoom, 
-		.select = menu_binary_toggle, 
-		.display = quickzoom_display,
-		.help = "Faster zoom in Play mode, for pixel peeping :)"
-	},
 	#if 0
 	{
 		.name = "HalfShutter in DLGs",
@@ -713,9 +751,43 @@ struct menu_entry tweak_menus[] = {
 	},*/
 };
 
+
+struct menu_entry play_menus[] = {
+	{
+		.name = "After taking a photo",
+		.priv = &quick_review_allow_zoom, 
+		.select = menu_binary_toggle, 
+		.display = qrplay_display,
+		.help = "When you set \"ImageReview: Hold\", it will go to Play mode."
+	},
+	{
+		.name = "Zoom in PLAY mode",
+		.priv = &quickzoom, 
+		.select = menu_binary_toggle, 
+		.display = quickzoom_display,
+		.help = "Faster zoom in Play mode, for pixel peeping :)"
+	},
+	{
+		.name = "Cropmarks in PLAY mode",
+		.priv = &cropmarks_play, 
+		.select = menu_binary_toggle, 
+		.display = cropmarks_play_display,
+		.help = "Show cropmarks in PLAY mode"
+	},
+	{
+		.name = "SET+Wheel in PLAY mode",
+		.priv = &play_set_wheel_action, 
+		.select = menu_ternary_toggle, 
+		.select_reverse = menu_quaternary_toggle,
+		.display = play_set_wheel_display,
+		.help = "What to do when you hold SET and turn MainDial (Wheel)"
+	},
+};
+
 static void tweak_init()
 {
 	menu_add( "Tweak", tweak_menus, COUNT(tweak_menus) );
+	menu_add( "Play", play_menus, COUNT(play_menus) );
 }
 
 INIT_FUNC(__FILE__, tweak_init);

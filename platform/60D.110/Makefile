@@ -50,7 +50,6 @@ ML_OBJS-y = \
 	af_patterns.o \
 	focus.o \
 	notify_box.o \
-	bootflags.o \
 
 #include generic rules and definitions
 

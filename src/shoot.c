@@ -847,15 +847,58 @@ void weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(void* dst, void* src, void* 
 	}
 }
 
+void next_image_in_play_mode(int dir)
+{
+	if (!PLAY_MODE) return;
+	void* buf_lv = get_yuv422_vram()->vram;
+	// ask for next image
+	fake_simple_button(dir > 0 ? BGMT_WHEEL_RIGHT : BGMT_WHEEL_LEFT);
+	int k = 0;
+	// wait for image buffer location to be flipped => next image was loaded
+	while (get_yuv422_vram()->vram == buf_lv && k < 50) 
+	{
+		msleep(100);
+		k++;
+	}
+}
+
+void playback_compare_last_two_images_task(int dir)
+{
+	if (expfuse_sem == 0) expfuse_sem = create_named_semaphore(expfuse_sem, 1);
+	take_semaphore(expfuse_sem, 0);
+	
+	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
+	if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
+	
+	void* aux_buf = YUV422_HD_BUFFER;
+	void* current_buf;
+	int w = get_yuv422_vram()->width;
+	int h = get_yuv422_vram()->height;
+	int buf_size = w * h * 2;
+	current_buf = get_yuv422_vram()->vram;
+	yuv_halfcopy(aux_buf, current_buf, w, h, 1);
+	next_image_in_play_mode(dir);
+	current_buf = get_yuv422_vram()->vram;
+	yuv_halfcopy(aux_buf, current_buf, w, h, 0);
+	current_buf = get_yuv422_vram()->vram;
+	memcpy(current_buf, aux_buf, buf_size);
+	give_semaphore(expfuse_sem);
+}
+
+void playback_compare_last_two_images(int dir)
+{
+	task_create("expfuse_task", 0x1c, 0, playback_compare_last_two_images_task, dir);
+}
+
 void expfuse_preview_update_task()
 {
 	if (expfuse_sem == 0) expfuse_sem = create_named_semaphore(expfuse_sem, 1);
 
 	take_semaphore(expfuse_sem, 0);
-	void* buf_acc = 0x44000080;
-	void* buf_ws = 0x46000080;
+	void* buf_acc = YUV422_HD_BUFFER;
+	void* buf_ws = YUV422_HD_BUFFER_2;
 	void* buf_lv = get_yuv422_vram()->vram;
-	int numpix = 720*480;
+	int numpix = get_yuv422_vram()->width * get_yuv422_vram()->height;
 	if (!expfuse_running)
 	{
 		// first image 
@@ -864,16 +907,7 @@ void expfuse_preview_update_task()
 		expfuse_num_images = 1;
 		expfuse_running = 1;
 	}
-
-	// ask for next image
-	fake_simple_button(BGMT_WHEEL_LEFT);
-	int k = 0;
-	// wait for image buffer location to be flipped => next image was loaded
-	while (get_yuv422_vram()->vram == buf_lv && k < 50) 
-	{
-		msleep(100);
-		k++;
-	}
+	next_image_in_play_mode(-1);
 	buf_lv = get_yuv422_vram()->vram; // refresh
 	// add new image
 
@@ -3612,6 +3646,7 @@ shoot_task( void* unused )
 		
 		if (intervalometer_running)
 		{
+			get_out_of_play_mode(0);
 			ResumeLiveView();
 			
 			//~ if (gui_state == GUISTATE_PLAYMENU)
@@ -3639,10 +3674,21 @@ shoot_task( void* unused )
 			}
 			
 			int display_turned_off = 0;
-			for (i = 0; i < timer_values[interval_timer_index] - 1; i++)
+			int n = timer_values[interval_timer_index] - 1;
+			for (i = 0; i < n; i++)
 			{
 				card_led_blink(1, 50, 0);
 				wait_till_next_second();
+				
+
+				if (i == 2 && n >= 4 && image_review_time > 2)
+				{
+					playback_compare_last_two_images(-1);
+				}
+				if (PLAY_MODE && i >= image_review_time)
+				{
+					get_out_of_play_mode(0);
+				}
 
 				extern int idle_display_turn_off_after;
 				if (idle_display_turn_off_after && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE && intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
