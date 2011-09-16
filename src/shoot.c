@@ -74,7 +74,7 @@ int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable
 
 static CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
 static CONFIG_INT("intervalometer.auto.expo", intervalometer_auto_expo, 0);
-static CONFIG_INT("intervalometer.auto.expo.prc", intervalometer_auto_expo_prc, 90);
+static CONFIG_INT("intervalometer.auto.expo.prc", intervalometer_auto_expo_prc, 70);
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
