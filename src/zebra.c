@@ -1226,6 +1226,14 @@ void sort_cropmarks()
 	}
 }
 
+int is_valid_cropmark_filename(char* filename)
+{
+	int n = strlen(filename);
+	if ((n > 4) && (streq(filename + n - 4, ".BMP") || streq(filename + n - 4, ".bmp")) && (filename[0] != '.') && (filename[0] != '_'))
+		return 1;
+	return 0;
+}
+
 static void find_cropmarks()
 {
 	struct fio_file file;
@@ -1239,8 +1247,7 @@ static void find_cropmarks()
 	}
 	int k = 0;
 	do {
-		int n = strlen(file.name);
-		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")) && (file.name[0] != '.') && (file.name[0] != '_'))
+		if (is_valid_cropmark_filename(file.name))
 		{
 			if (k >= MAX_CROPMARKS)
 			{
@@ -2204,7 +2211,7 @@ int is_safe_to_mess_with_the_display(int timeout_ms)
 int _bmp_cleared = 0;
 void bmp_on()
 {
-	return;
+	//~ return;
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_bmp_cleared) 
 	{// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
@@ -2224,7 +2231,7 @@ void bmp_on_force()
 }
 void bmp_off()
 {
-	return;
+	//~ return;
 	//~ clrscr();
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}

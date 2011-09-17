@@ -80,7 +80,8 @@ NSTUB( 0xFF1E6830, FIO_GetFileSize )
 NSTUB( 0xFF1E6604, FIO_WriteFile )
 NSTUB( 0xFF1E6464, FIO_ReadFile )
 NSTUB( 0xFF1E63BC, FIO_RemoveFile )
-	
+NSTUB( 0xFF1E6EF0, FIO_CreateDirectory)
+
 NSTUB( 0xFF0710D8, give_semaphore )
 NSTUB( 0xFF070FF0, take_semaphore )
 NSTUB( 0xFF06E6F8, dm_set_store_level ) // called by "dmstore"

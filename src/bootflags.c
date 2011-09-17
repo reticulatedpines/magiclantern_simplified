@@ -81,7 +81,7 @@ bootflag_display(
 
 
 // gcc mempcy has odd alignment issues?
-static inline void
+inline void
 my_memcpy(
 	uint8_t *		dest,
 	const uint8_t *		src,
@@ -104,67 +104,47 @@ struct partition_table
 	uint32_t sectors_in_partition;
 }__attribute__((aligned,packed));
 
+// http://www.datarescue.com/laboratory/partition.htm
+// http://magiclantern.wikia.com/wiki/Bootdisk
 void
 bootflag_write_bootblock( void )
 {
 	//~ gui_stop_menu();
 	//~ msleep(1000);
 
-	console_printf("cf=%08lx sd=%08lx\n", (uint32_t)sd_device[0], (uint32_t) sd_device[1]);
+	//~ console_printf("cf=%08lx sd=%08lx\n", (uint32_t)sd_device[0], (uint32_t) sd_device[1]);
 
 	struct cf_device * const dev = sd_device[1];
 
-
-	uint8_t *block = alloc_dma_memory( 0x200*0x80 );
+	uint8_t *block = alloc_dma_memory( 512 );
 	uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
 	int i;
-	console_printf("%s: buf=%08x\n", __func__, (uint32_t)block);
+	//~ console_printf("%s: buf=%08x\n", __func__, (uint32_t)block);
 	for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
-	console_printf("mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
-	bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
+	//~ console_printf("mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
+	//~ bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
 
-	dm_set_store_level(35, 0);
-	dm_set_print_level(35, 0);
-	dmstart();
-	msleep(1000);
 	
-	int rc = dev->read_block( dev, block, 0, 0x40 );
+	int rc = dev->read_block( dev, block, 0, 1 );
 
 	struct partition_table p;
 	fsuDecodePartitionTable(block + 446, &p);
-	bmp_printf(FONT_MED, 0, 0, "partition: %x %d %d ", p.type, p.sectors_before_partition, p.sectors_in_partition);
-	
-	uint8_t* first_partition = block + p.sectors_before_partition * 512;
-	
-	
-	my_memcpy( first_partition + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
-	my_memcpy( first_partition + 0x5C, (uint8_t*) "BOOTDISK", 0x8 );
-	
-	msleep(1000);
 
-	dmstop();
-	dumpf();
-
-	console_printf("%s: rc=%d %08x %08x\n", __func__,
-		rc,
-		*(uint32_t*) &user_block[0x47],
-		*(uint32_t*) &user_block[0x5C]
-	);
-	bmp_printf( FONT_MED, 600, 40, "read=%d", rc );
-	bmp_hexdump( FONT_SMALL, 0, 60, user_block + 446, 0x100 );
-
-	msleep(5000);
-
-/*
-	// Update the first partition header to include the magic
-	// strings
-	my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
-	my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0x8 );
-
-	rc = dev->write_block( dev, 0x0, 1, block );
-	bmp_printf( FONT_MED, 600, 60, "write=%d", rc );
+	if (p.type == 6 || p.type == 0xb || p.type == 0xc) // FAT16 or FAT32
+	{
+		int rc = dev->read_block( dev, block, p.sectors_before_partition, 1 );
+		int off1 = p.type == 6 ? 0x2b : 0x47;
+		int off2 = p.type == 6 ? 0x40 : 0x5c;
+		my_memcpy( block + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+		my_memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
+		rc = dev->write_block( dev, block, p.sectors_before_partition, 1 );
+		if (rc != 1) NotifyBox(1000, "Bootflag write failed\np.type=%d, p.sec = %d, rc=%d", p.type, p.sectors_before_partition, rc);
+	}
+	else
+	{
+		NotifyBox(2000, "Unknown partition: %d", p.type);
+	}
 	free_dma_memory( block );
-*/
 }
 
 
@@ -221,7 +201,7 @@ bootflag_display_all(
 }
 #endif
 
-
+/*
 CONFIG_INT( "disable-powersave", disable_powersave, 0 );
 
 static void
@@ -252,8 +232,9 @@ powersave_toggle( void )
 		disable_powersave ? EM_PROHIBIT : EM_ALLOW
 	);
 }
+*/
 
-
+#if 0
 
 struct menu_entry boot_menus[] = {
 	{
@@ -282,7 +263,7 @@ struct menu_entry boot_menus[] = {
 	},
 #endif
 };
-
+#endif
 
 static void
 bootflags_init( void )
@@ -290,7 +271,7 @@ bootflags_init( void )
 	if( autoboot_loaded == 0 )
 		initial_install();
 
-	menu_add( "Debug", boot_menus, COUNT(boot_menus) );
+	//~ menu_add( "Play", boot_menus, COUNT(boot_menus) );
 
 	/*if( disable_powersave )
 	{
@@ -305,4 +286,4 @@ bootflags_init( void )
 }
 
 
-INIT_FUNC( __FILE__, bootflags_init );
+//~ INIT_FUNC( __FILE__, bootflags_init );

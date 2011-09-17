@@ -81,6 +81,7 @@ NSTUB( 0xFF1D93D8, FIO_ReadFile )
 NSTUB( 0xff1d9330, FIO_RemoveFile )
 NSTUB( 0xFF1DA424, FIO_FindFirstEx )
 NSTUB( 0xFF1DA518, FIO_FindNextEx )
+NSTUB( 0xFF1D9E64, FIO_CreateDirectory)
 
 NSTUB( 0xFF06F65C, give_semaphore )
 NSTUB( 0xFF06F574, take_semaphore )

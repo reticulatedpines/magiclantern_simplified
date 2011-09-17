@@ -79,7 +79,9 @@ NSTUB( 0xFF1C6B68, FIO_GetFileSize )
 NSTUB( 0xFF1C693C, FIO_WriteFile )
 NSTUB( 0xFF1C679C, FIO_ReadFile )
 NSTUB( 0xFF1C66F4, FIO_RemoveFile )
-	
+NSTUB( 0xFF1C71A0, FIO_CreateDirectory)
+
+
 NSTUB( 0xFF069F58, give_semaphore )
 NSTUB( 0xFF069E70, take_semaphore )
 NSTUB( 0xFF067748, dm_set_store_level ) // called by "dmstore"
@@ -131,7 +133,7 @@ NSTUB( 0x26284, sd_device )                // in sdReadBlk
 
 // called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
 // => first partition table; see http://www.datarescue.com/laboratory/partition.htm
-NSTUB( 0xFF3866E8, fsuDecodePartitionTable )
+NSTUB( 0xFF386714, fsuDecodePartitionTable )
 
 NSTUB( 0xFF01A734, hotplug_task )
 NSTUB( 0x1A6C, hotplug_struct )

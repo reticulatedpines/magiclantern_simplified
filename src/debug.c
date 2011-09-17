@@ -330,9 +330,9 @@ void ui_lock(int x)
 {
 	int unlocked = UILOCK_NONE;
 	prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-	msleep(200);
+	msleep(50);
 	prop_request_change(PROP_ICU_UILOCK, &x, 4);
-	msleep(200);
+	msleep(50);
 }
 
 void toggle_mirror_display()
@@ -655,7 +655,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		#ifndef CONFIG_50D
 		if (MENU_MODE) 
 		{
-			GMT_LOCK( HijackFormatDialogBox(); )
+			HijackFormatDialogBox_main();
 		}
 		#endif
 
@@ -1363,9 +1363,18 @@ void HijackFormatDialogBox()
 	struct dialog * dialog = current->priv;
 	if (dialog && MEM(dialog->type) != 0x006e4944) return;
 	if (keep_ml_after_format)
-		dialog_set_property_str(dialog, 4, "Format card, keep ML (not working) [Q]");
+		dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern [Q]");
 	else
 		dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern [Q]");
+	dialog_redraw(dialog);
+}
+
+void HijackCurrentDialogBox(int string_id, char* msg)
+{
+	struct gui_task * current = gui_task_list.current;
+	struct dialog * dialog = current->priv;
+	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+	dialog_set_property_str(dialog, string_id, msg);
 	dialog_redraw(dialog);
 }
 
@@ -1391,4 +1400,181 @@ void HijackDialogBox()
 	}
 	dialog_redraw(dialog);
 }
+
+unsigned GetFileSize(char* filename)
+{
+	unsigned size;
+	if( FIO_GetFileSize( filename, &size ) != 0 )
+		return 0;
+	return size;
+}
+
+
+int ReadFileToBuffer(char* filename, void* buf, int maxsize)
+{
+	unsigned size = GetFileSize(filename);
+	if (!size) return 0;
+
+	FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+	if (f == INVALID_PTR) return 0;
+	int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
+	FIO_CloseFile(f);
+	return r;
+}
+
+struct tmp_file {
+	char name[30];
+	void* buf;
+	int size;
+	int sig;
+};
+
+struct tmp_file * tmp_files = 0;
+const void* tmp_buffers[5] = {YUV422_HD_BUFFER, YUV422_HD_BUFFER_2, YUV422_LV_BUFFER, YUV422_LV_BUFFER_2, YUV422_LV_BUFFER_3};
+int tmp_file_index = 0;
+int tmp_buffer_index = 0;
+void* tmp_buffer_ptr = 0;
+#define TMP_MAX_BUF_SIZE 4000000
+
+void TmpMem_Init()
+{
+	tmp_file_index = 0;
+	tmp_buffer_index = 0;
+	tmp_buffer_ptr = tmp_buffers[0];
+	if (!tmp_files) tmp_files = AllocateMemory(200 * sizeof(struct tmp_file));
+}
+
+void TmpMem_AddFile(char* filename)
+{
+	if (!tmp_files) return;
+
+	int filesize = GetFileSize(filename);
+	if (filesize == 0) return;
+	if (filesize > TMP_MAX_BUF_SIZE) return;
+	if (tmp_buffer_ptr + filesize > tmp_buffers[tmp_buffer_index] + TMP_MAX_BUF_SIZE) tmp_buffer_index++;
+	if (tmp_buffer_index >= COUNT(tmp_buffers)) return;
+	
+	//~ NotifyBoxHide();
+	//~ NotifyBox(300, "Reading %s...", filename);
+	char msg[100];
+	snprintf(msg, sizeof(msg), "Reading %s...", filename);
+	HijackCurrentDialogBox(4, msg);
+	ReadFileToBuffer(filename, tmp_buffer_ptr, filesize);
+	my_memcpy(tmp_files[tmp_file_index].name, filename, 30);
+	tmp_files[tmp_file_index].buf = tmp_buffer_ptr;
+	tmp_files[tmp_file_index].size = filesize;
+	tmp_files[tmp_file_index].sig = compute_signature(tmp_buffer_ptr, filesize/4);
+	tmp_file_index++;
+	tmp_buffer_ptr += (filesize + 10) & ~3;
+}
+
+
+void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+	if( IS_ERROR(dirent) )
+		return;
+
+	do {
+		if (!cropmarks_flag || is_valid_cropmark_filename(file.name))
+		{
+			char fn[30];
+			snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
+			TmpMem_AddFile(fn);
+		}
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
+}
+
+void CopyMLFilesToRAM_BeforeFormat()
+{
+	TmpMem_Init();
+	TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
+	TmpMem_AddFile(CARD_DRIVE "FONTS.DAT");
+	TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
+	CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "CROPMKS/", 1);
+	CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "DOC/", 0);
+	CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
+}
+
+void CopyMLFilesBack_AfterFormat()
+{
+	FIO_CreateDirectory(CARD_DRIVE "CROPMKS");
+	FIO_CreateDirectory(CARD_DRIVE "DOC");
+	int i;
+	for (i = 0; i < tmp_file_index; i++)
+	{
+		//~ NotifyBoxHide();
+		//~ NotifyBox(1000, "Restoring %s...   ", tmp_files[i].name);
+		char msg[100];
+		snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
+		HijackCurrentDialogBox(11, msg);
+		dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
+		int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4); 
+		if (sig != tmp_files[i].sig)
+		{
+			NotifyBox(2000, "Could not restore %s :(", tmp_files[i].name);
+			FIO_RemoveFile(tmp_files[i].name);
+			if (i > 1) return; // if it copies AUTOEXEC.BIN and fonts, ignore the error, it's safe to run
+		}
+	}
+	
+	HijackCurrentDialogBox(11, "Saving config...");
+	save_config(0);
+	HijackCurrentDialogBox(11, "Writing bootflags...");
+	bootflag_write_bootblock();
+
+	HijackCurrentDialogBox(11, "Magic Lantern restored :)");
+	msleep(1000);
+	HijackCurrentDialogBox(11, "Format");
+	//~ NotifyBox(2000, "Magic Lantern restored :)   ");
+}
+
+// check if autoexec.bin is present on the card
+int check_autoexec()
+{
+	FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
+	if (f != (void*) -1)
+	{
+		FIO_CloseFile(f);
+		return 1;
+	}
+	return 0;
+}
+
+void HijackFormatDialogBox_main()
+{
+	if (!MENU_MODE) return;
+	if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
+	// at this point, Format dialog box is active
+
+	// make sure we have something to restore :)
+	if (!check_autoexec()) return;
+	
+	// before user attempts to do something, copy ML files to RAM
+	ui_lock(UILOCK_EVERYTHING);
+	CopyMLFilesToRAM_BeforeFormat();
+	ui_lock(UILOCK_NONE);
+
+	// all files copied, we can change the message in the format box and let the user know what's going on
+	GMT_LOCK( HijackFormatDialogBox(); )
+	
+	// waiting to exit the format dialog somehow
+	while (MEM(DIALOG_MnCardFormatBegin))
+		msleep(200);
+	
+	// and maybe to finish formatting the card
+	while (MEM(DIALOG_MnCardFormatExecute))
+		msleep(50);
+
+	// card was formatted (autoexec no longer there) => restore ML
+	if (keep_ml_after_format && !check_autoexec())
+	{
+		ui_lock(UILOCK_EVERYTHING);
+		CopyMLFilesBack_AfterFormat();
+		ui_lock(UILOCK_NONE);
+	}
+}
+
 #endif

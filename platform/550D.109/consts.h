@@ -10,6 +10,8 @@
 
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER 0x40D07800 
+#define YUV422_LV_BUFFER_2 0x4c233800
+#define YUV422_LV_BUFFER_3 0x4f11d800
 #define YUV422_LV_PITCH 1440
 //~ #define YUV422_LV_PITCH_RCA 1080
 //~ #define YUV422_LV_PITCH_HDMI 3840
@@ -216,5 +218,5 @@
 
 #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / DISP" 
 
-#define DIALOG_MnCardFormatBegin (0x2524c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-
+#define DIALOG_MnCardFormatBegin   (0x2524c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x26434+4) // similar

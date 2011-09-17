@@ -110,7 +110,8 @@ NSTUB( 0xff1ca198, FIO_ReadFile )
 NSTUB( 0xff1ca338, FIO_WriteFile )
 NSTUB( 0xff1ca3e8, FIO_CloseFile )
 NSTUB( 0xff1ca564, FIO_GetFileSize )
-	
+NSTUB( 0xFF1CAC24, FIO_CreateDirectory)
+
 NSTUB( 0xFF06E61C, give_semaphore )
 NSTUB( 0xFF06E534, take_semaphore )
 NSTUB( 0xff06bc3c, dm_set_store_level ) // called by "dmstore"

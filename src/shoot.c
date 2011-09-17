@@ -762,7 +762,7 @@ int expfuse_running = 0;
 int expfuse_num_images = 0;
 struct semaphore * expfuse_sem = 0;
 
-static int compute_signature(int* start, int num)
+int compute_signature(int* start, int num)
 {
 	int c = 0;
 	int* p;
