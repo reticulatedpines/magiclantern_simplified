@@ -42,4 +42,6 @@ extern int lv_movie_select;
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 
+extern struct bmp_ov_loc_size os;
+
 #endif

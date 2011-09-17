@@ -42,13 +42,12 @@ void NotifyBox_task(void* priv)
         take_semaphore(notify_box_show_sem, 0);
         
         // show notification for a while, then redraw to erase it
-        bmp_printf(FONT_LARGE, 50, 50, notify_box_msg);
         notify_box_stop_request = 0;
         int i;
         for (i = 0; i < notify_box_timeout/50; i++)
         {
+            bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, notify_box_msg);
             msleep(50);
-            bmp_printf(FONT_LARGE, 50, 50, notify_box_msg);
             if (notify_box_stop_request) break;
         }
         redraw();

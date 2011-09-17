@@ -111,8 +111,8 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 
 //~ static CONFIG_INT( "edge.draw",	edge_draw,	0 );
 static CONFIG_INT( "hist.draw",	hist_draw,	0 );
-static CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
-static CONFIG_INT( "hist.y",		hist_y,		100 );
+//~ static CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
+//~ static CONFIG_INT( "hist.y",		hist_y,		100 );
 static CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
 //~ static CONFIG_INT( "waveform.x",	waveform_x,	720 - WAVEFORM_WIDTH );
 //~ static CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
@@ -145,37 +145,6 @@ void ChangeColorPaletteLV(int x)
 		//~ GMT_LOCK( if (zebra_should_run()) ChangeColorPalette(x); )
 	//~ #endif
 }
-
-/*
-static void
-unified_loop_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"UnifLoop (experim): %s",
-		unified_loop == 0 ? "OFF" : unified_loop == 1 ? "ON" : "Auto"
-	);
-	menu_draw_icon(x, y, MNI_BOOL_AUTO(unified_loop), 0);
-}
-
-static void
-zebra_mode_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Zebra Density: %d", zebra_density);
-}
-
-static void
-use_hd_vram_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Use HD VRAM: %s", use_hd_vram?"yes":"no");
-}*/
 
 int recording = 0;
 
@@ -242,126 +211,6 @@ void set_global_draw(int g)
 {
 	global_draw = g;
 }
-
-/** Sobel edge detection */
-/*
-static int32_t
-edge_detect(
-	uint32_t *		buf,
-	uint32_t		pitch
-)
-{	
-	const uint32_t		pixel1	= buf[0];
-	const int32_t		p00	= (pixel1 & 0xFFFF);
-	const int32_t		p01	= pixel1 >> 16;
-	const uint32_t		pixel2	= buf[1];
-	const int32_t		p02	= (pixel2 & 0xFFFF);
-	const uint32_t		pixel3	= buf[pitch];
-	const int32_t		p10	= (pixel3 & 0xFFFF);
-	const int32_t		p11	= pixel3 >> 16;
-	const uint32_t		pixel4	= buf[pitch+1];
-	const int32_t		p12	= (pixel4 & 0xFFFF);
-	
-	int32_t sx1 = p00 - p11;
-	int32_t sy1 = p01 - p10;
-	
-	int32_t sx2 = p01 - p12;
-	int32_t sy2 = p02 - p11;
-
-	// abs value
-	sx1 = ( sx1 ^ (sx1 >> 15) ) - (sx1 >> 15);
-	sy1 = ( sy1 ^ (sy1 >> 15) ) - (sy1 >> 15);
-	
-	sx2 = ( sx2 ^ (sx2 >> 15) ) - (sx2 >> 15);
-	sy2 = ( sy2 ^ (sy2 >> 15) ) - (sy2 >> 15);
-	
-	return (((sx2 + sy2) >> 1 ) & 0xFF00 ) | ((sx1 + sy1) >> 9);
-}
-
-
-static unsigned
-check_edge(
-	unsigned		x,
-	unsigned		y,
-	uint16_t *		b_row,
-	uint32_t *		v_row,
-	unsigned		vram_pitch
-)
-{
-	const unsigned dx = x/2;
-	// Check for contrast
-	uint32_t grad = edge_detect(
-		&v_row[dx],
-		vram_pitch
-	);
-	
-	// Check for any high gradients in either pixel
-	if( (grad & 0xF8F8) == 0 )
-		return 0;
-
-	// Color coding (using the blue colors starting at 0x70)
-	b_row[dx] = 0x7070 | ((grad & 0xF8F8) >> 3) ;			
-	return 1;
-	
-}
-
-
-static unsigned
-check_zebra(
-	unsigned		x,
-	unsigned		y,
-	uint16_t *		b_row,
-	uint32_t *		v_row,
-	unsigned		vram_pitch, // unused?
-	uint16_t * 		m_row
-)
-{
-	// Determine if we are a zig or a zag line
-	if (((y >> 3) ^ (x >> 3)) & 1) return 0;
-
-	uint32_t pixel = v_row[x/2];
-	uint32_t p0 = ((pixel >> 16) & 0xFF00) >> 8; // odd bytes are luma
-	uint32_t p1 = ((pixel >>  0) & 0xFF00) >> 8;
-
-	// If neither pixel is overexposed or underexposed, ignore it
-	if( p0 <= zebra_level_hi && p1 <= zebra_level_hi && p0 >= zebra_level_lo && p1 >= zebra_level_lo)
-		return 0;
-
- 	uint8_t zebra_color_1 = 12; // red
-   if (p0 < zebra_level_lo || p1 < zebra_level_lo)
-        zebra_color_1 = 13; // blue 
-
-	b_row[x/2] = (zebra_color_1<<8) | (zebra_color_1<<0);
-	m_row[x/2] = (zebra_color_1<<8) | (zebra_color_1<<0);
-	return 1;
-}
-
-
-static unsigned
-check_crop(
-	unsigned		x,
-	unsigned		y,
-	uint16_t *		b_row,
-	uint32_t *		v_row,
-	unsigned		vram_pitch,
-	uint16_t * m_row
-)
-{
-	if( !cropmarks )
-		return 0;
-
-	uint8_t * pixbuf = &cropmarks->image[
-		x + cropmarks->width * (cropmarks->height - y)
-	];
-	uint16_t pix = *(uint16_t*) pixbuf;
-	if( pix == 0 )
-		return 0;
-
-	b_row[ x/2 ] = pix;
-	m_row[ x/2 ] = pix;
-	return 1;
-}
-*/
 
 /** Store the waveform data for each of the WAVEFORM_WIDTH bins with
  * 128 levels
@@ -667,22 +516,6 @@ waveform_draw_image(
 }
 
 
-/** Master video overlay drawing code.
- *
- * This routine controls the display of the zebras, histogram,
- * edge detection, cropmarks and so on.
- *
- * The stacking order of the overlays is:
- *
- * - Histogram
- * - Cropping bitmap
- * - Zebras
- * - Edge detection
- *
- * This should be done with a proper OO controller that allows modules
- * to register new drawing functions, but for right now they are hardcoded.
- */
-
 static FILE * g_aj_logfile = INVALID_PTR;
 unsigned int aj_create_log_file( char * name)
 {
@@ -737,7 +570,8 @@ int tic()
 	LoadCalendarFromRTC(&now);
 	return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
 }
-/*
+
+#if CONFIG_DEBUGMSG
 void card_benchmark_wr(int bufsize, int K, int N)
 {
 	FIO_RemoveFile(CARD_DRIVE "bench.tmp");
@@ -808,7 +642,8 @@ void card_benchmark_schedule()
 {
 	gui_stop_menu();
 	card_benchmark_start = 1;
-}*/
+}
+#endif
 
 static void dump_vram()
 {
@@ -990,229 +825,6 @@ int zebra_color_word_row_thick(int c, int y)
 	return cw;
 }
 
-// thresholded edge detection
-#if 0
-static void draw_zebra_and_focus_unified( void )
-{
-	if (!global_draw) return;
-	
-	fps_ticks++;
-	
-	//~ bvram_mirror_init();
-
-	uint8_t * const bvram = bmp_vram();
-	if (!bvram) return;
-	if (!bvram_mirror) return;
-	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
-
-	int x,y;
-	int zd = zebra_draw && (expsim || PLAY_MODE) && (!zebra_nrec || !recording); // when to draw zebras
-	if (focus_peaking || zd) {
-  		// clear previously written pixels
-  		#define MAX_DIRTY_PIXELS 5000
-		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
-  		if (!dirty_pixels) return;
-  		bmp_ov_loc_size_t os;
-  		calc_ov_loc_size(&os);
-  		struct vram_info * _vram;
-  		
-  		if(use_hd_vram) { 
-  			_vram=get_yuv422_hd_vram();
-		} else {
-			_vram=get_yuv422_vram();
-		}
-		if (gui_state == GUISTATE_PLAYMENU) _vram->vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
-
-  		uint8_t * const vram = /*UNCACHEABLE*/(_vram->vram);
-		int vr_width  = _vram->width<<1;
-  		int vr_height = _vram->height;
-		int vr_pitch =  _vram->pitch;
-
-		int bm_lv_y = 0;
-
-		if(is_movie_mode()) {
-			bm_lv_y = (os.bmp_ex_y-os.bmp_ex_x*9/16);
-			if(((ext_monitor_hdmi || ext_monitor_rca) && !recording ) || (!ext_monitor_hdmi && !ext_monitor_rca)){
-				bm_lv_y>>=1;
-			}
-		}
-
-		os.bmp_ex_x>>=2; //reduce x size to quad pixels 
-		os.bmp_of_x>>=2; //reduce offset to quad pixels
-		
-		int vr_x_of_corr = 0;
-		int vr_x_ex_corr = 0;
-		int vr_y_of_corr = 0;
-		int vr_y_ex_corr = 0;
-		
-		if(use_hd_vram) {
-			vr_y_of_corr = recording ? bm_lv_y:0;
-			vr_y_ex_corr = recording ? bm_lv_y+os.bmp_of_y:0;
-			if(!ext_monitor_hdmi && !ext_monitor_rca) {
-				vr_y_ex_corr<<=1;
-			}
-		} else {
-			vr_x_of_corr = os.bmp_of_x; // number of double pixels we go left
-			vr_x_ex_corr = os.bmp_of_x<<((ext_monitor_hdmi || ext_monitor_rca)&&recording?2:3);
-			
-			vr_y_of_corr=-os.bmp_of_y;
-			vr_height=os.lv_ex_y;
-			if(ext_monitor_hdmi && video_mode_resolution) {
-				vr_height>>=1;
-				if(video_mode_crop) { // FIXME crop mode with external displays
-					vr_x_of_corr<<=2;
-					vr_height>>=1;
-					vr_width>>=2;
-				}
-			}
-		}
-		
-//		bmp_printf(FONT_MED, 30, 100, "HD %dx%dp:%d vxc:%d vxo:%d vyc:%d vyo:%d byo:%d blvy:%d", vr_width>>1, vr_height, vr_pitch, vr_x_ex_corr, vr_x_of_corr, vr_y_ex_corr, vr_y_of_corr, os.bmp_of_y,  bm_lv_y);
-
-  		int ymin = os.bmp_of_y + bm_lv_y;
-  		int ymax = os.bmp_ex_y + os.bmp_of_y - bm_lv_y;
-  		int xmin = os.bmp_of_x;
-  		int xmax = os.bmp_ex_x + os.bmp_of_x;
-
- 		ymin=COERCE(ymin, 0, 540);
-  		ymax=COERCE(ymax, 0, 540);
-  		xmin=COERCE(xmin, 0, 960);
-  		xmax=COERCE(xmax, 0, 960);
-
-  		static int16_t* xcalc = 0;
-  		if (!xcalc) xcalc = AllocateMemory(960 * 2);
-  		if (!xcalc) return;
-  		static int xcalc_done=0;
-  		
-  		if(!xcalc_done || crop_dirty) {
-	  		for (x = xmin; x < xmax; x++) {
-  				xcalc[x]=(x-os.bmp_of_x+vr_x_of_corr)*((vr_width>>2)-vr_x_ex_corr)/os.bmp_ex_x;
-			}
-			xcalc_done=1;
-		}
-
-		uint32_t zlh = zebra_level_hi << 8;
-		uint32_t zll = zebra_level_lo << 8;
-		if(focus_peaking) {
-			int i;
-			for (i = 0; i < dirty_pixels_num; i++) {
-				dirty_pixels[i] = COERCE(dirty_pixels[i], 0, 960*540);
-				#define B1 *(uint16_t*)(bvram + dirty_pixels[i])
-				#define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
-				#define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
-				#define M2 *(uint16_t*)(bvram_mirror + dirty_pixels[i] + BMPPITCH)
-				if ((B1 == 0 || B1 == M1) && (B2 == 0 || B2 == M2))
-					B1 = B2 = M1 = M2 = 0;
-				#undef B1
-				#undef B2
-				#undef M1
-				#undef M2
-			}
-			dirty_pixels_num = 0;
-  		}
-  
-  		static int thr = 50;
-  		int n_over = 0;
-  		
-  		
-		for( y = ymin; y < ymax; y+=2 ) {
-			uint32_t * const vr_row = (uint32_t*)( vram + (y-os.bmp_of_y-vr_y_of_corr) * vr_height/(os.bmp_ex_y-vr_y_ex_corr) * vr_pitch ); // 2 pixels
-			int b_row_off = y * BMPPITCH;
-			uint32_t * const b_row = (uint32_t*)( bvram + b_row_off );   // 4 pixels
-			uint32_t * const m_row = (uint32_t*)( bvram_mirror + b_row_off );   // 4 pixels
-  
-			for ( x = xmin; x < xmax; x++ ) {
-				#define BP (b_row[x])
-				#define MP (m_row[x])
-				#define BN (b_row[x + (BMPPITCH>>2)])
-				#define MN (m_row[x + (BMPPITCH>>2)])
-
-				uint32_t pixel = vr_row[xcalc[x]];
-
-				uint32_t bp = BP;
-				uint32_t mp = MP;
-				uint32_t bn = BN;
-				uint32_t mn = MN;
-				
-//				BP=(pixel&0xff)>>8 | (pixel&0xff000000)>>24;
-
-				if (zd) {
-					int zebra_done = 0;
-					if (bp != 0 && bp != mp) { little_cleanup(b_row + x, m_row + x); zebra_done = 1; }
-					if (bn != 0 && bn != mn) { little_cleanup(b_row + x + (BMPPITCH>>1), m_row + x + (BMPPITCH>>1)); zebra_done = 1; }
-
-					if(!zebra_done) {
-						uint32_t p0 = pixel & 0xFF00;
-						int color = 0;
-					
-						if (p0 > zlh) {
-							color = COLOR_RED;
-						} else if (p0 < zll) {
-							color = COLOR_BLUE;
-						}
-						
-						switch(zebra_density) {
-							case 0:
-								BP = MP = color;
-								BN = MN = color<<16;
-								break;
-							case 1:
-								BP = MP = color<<8 | color;
-								BN = MN = color<<24 | color<<16;
-								break;
-							case 2:
-								if(!(y&2)) {
-										BP = MP = color<<8 | color;
-										BN = MN = color<<16 | color<<8;
-								} else {
-										BP = MP = color<<16 | color<<24;
-										BN = MN = color<<24 | color;
-								}
-								break;
-						}
-					}
-  				}
-
-				if(focus_peaking) {
-					int32_t p0 = (pixel >> 24) & 0xFF;
-					int32_t p1 = (pixel >>  8) & 0xFF;
-					int32_t d = ABS(p0-p1);
-					if (d < thr) continue;
-					n_over++;
-					// executed for 1% of pixels
-					if (n_over > MAX_DIRTY_PIXELS) { // threshold too low, abort
-						thr = MIN(thr+2, 255);
-						continue;
-					}
-
-					int color = get_focus_color(thr, d);
-					color = (color << 8) | color;   
-					if ((bp == 0 || bp == mp) && (bn == 0 || bn == mn)) { // safe to draw
-						BP = BN = MP = MN = color;
-						if (dirty_pixels_num < MAX_DIRTY_PIXELS) {
-							dirty_pixels[dirty_pixels_num++] = (x<<2) + b_row_off;
-						}
-					}
-  				}
-  				#undef MP
-  				#undef BP
-				#undef BN
-				#undef MN
-  			}
-  		}
-		int yy=250 * n_over / (os.bmp_ex_x * (os.bmp_ex_y - (bm_lv_y<<1)));
-		//~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
-//		bmp_printf(FONT_LARGE, 10, 50, "%d %d %d>%d ", thr, n_over, yy, focus_peaking_pthr);
-		if ( yy > (int)focus_peaking_pthr) {
-			thr++;
-		} else {
-			thr--;
-		}
-		int thr_min = (lens_info.iso > 1600 ? 15 : 10);
-		thr = COERCE(thr, thr_min, 255);
-  	}
-}
-#endif
 
 int focus_peaking_debug = 0;
 
@@ -1522,37 +1134,6 @@ clrscr_mirror( void )
 	}
 }
 
-/*
-void
-draw_false( void )
-{
-	if (!global_draw) return;
-	bvram_mirror_init();
-	uint8_t * const bvram = bmp_vram();
-	if (!bvram) return;
-	if (!bvram_mirror) return;
-
-	uint32_t x,y;
-	uint8_t * const lvram = CACHEABLE(YUV422_LV_BUFFER);
-	int lvpitch = YUV422_LV_PITCH;
-	for( y = 100; y < 480-100; y++ )
-	{
-		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
-		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH );  // 1 pixel
-		
-		uint16_t* lvp; // that's a moving pointer through lv vram
-		uint8_t* bp;  // through bmp vram
-		uint8_t* mp;  // through mirror
-
-		for (lvp = v_row + 100, bp = b_row + 100, mp = m_row + 100; lvp < v_row + 720-100 ; lvp++, bp++, mp++)
-		{
-			if (*bp != 0 && *bp != *mp) continue;
-			*mp = *bp = false_colour[(*lvp) >> 8];
-		}
-	}
-}*/
-
 void
 draw_false_downsampled( void )
 {
@@ -1587,143 +1168,6 @@ draw_false_downsampled( void )
 		}
 	}
 }
-
-/*
-static void
-draw_zebra( void )
-{
-	if (!lv) return;
-	
-	uint8_t * const bvram = bmp_vram();
-    uint32_t a = 0;
-    
-	bvram_mirror_init();
-
-    DebugMsg(DM_MAGIC, 3, "***************** draw_zebra() **********************");
-    DebugMsg(DM_MAGIC, 3, "zebra_draw = %d, cfg_draw_meters = %x", zebra_draw, ext_cfg_draw_meters() );
-    //~ dump_seg(0x40D07800, 1440*480, CARD_DRIVE "vram1.dat");
-    
-	// If we don't have a bitmap vram yet, nothing to do.
-	if( !bvram )
-	{
-		DebugMsg( DM_MAGIC, 3, "draw_zebra() no bvram, fail");
-		return;
-	}
-	if (!bvram_mirror)
-	{
-		DebugMsg( DM_MAGIC, 3, "draw_zebra() no bvram_mirror, fail");
-		return;
-	}
-
-	struct vram_info * vram = get_yuv422_vram();
-    if (hist_draw)
-    {
-        // something is fishy here => camera refused to boot due to this function...
-        hist_build(vram->vram, vram->width, vram->pitch);
-    }
-
-    DebugMsg(DM_MAGIC, 3, "yay!");
-
-	// skip the audio meter at the top and the bar at the bottom
-	// hardcoded; should use a constant based on the type of display
-	// 33 is the bottom of the meters; 55 is the crop mark
-	uint32_t x,y;
-	int cfg_draw_meters = ext_cfg_draw_meters();
-	//int BMPPITCH = bmp_pitch();
-	
-	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
-	for( y=1 ; y < 480; y++ )
-	{
-        // if audio meters are enabled, don't draw in this area
-        if (y < 33 && (cfg_draw_meters == 1 || (cfg_draw_meters == 2 && is_movie_mode()))) continue;
-        
-		uint32_t * const v_row = (uint32_t*)( vram->vram + y * vram->pitch );
-		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH );
-		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * BMPPITCH );
-
-		//~ bmp_printf(FONT_MED, 30, 50, "Row: %8x/%8x", b_row, m_row);
-		//~ bmp_printf(FONT_MED, 30, 70, "Pixel: %8x/%8x", b_row[8], m_row[8]);
-
-		// Iterate over the pixels in the scan row
-		// two at a time to read the pixel buf in 32 bit chunks
-		// otherwise we get err70 aborts while drawing regions
-		// in the bitmap vram.
-		for( x=2 ; x < vram->width-2 ; x+=2 ) // width = 720
-		{
-			// Abort as soon as the new menu is drawn
-			if( gui_menu_task || !lv )
-				return;
-
-			uint16_t pixel = b_row[x/2];
-			uint16_t mirror = m_row[x/2];
-
-			// cropmarks: black border in movie mode
-			if (crop_black_border && (pixel == 0 || pixel == (COLOR_BG << 8 | COLOR_BG)) && is_movie_mode() && (y < 40 || y > 440))
-			{
-				b_row[x/2] = (2 << 8 | 2); // black borders by default
-				if( crop_draw) check_crop( x, y, b_row, v_row, vram->pitch, m_row);
-			}
-
-			if (pixel != 0 && pixel != mirror)
-			{
-				continue; // Canon code has drawn here, do not overwrite
-			}
-				
-			// Ignore the regions where the histogram will be drawn
-			if( hist_draw
-			&&  y >= hist_y
-			&&  y <  hist_y + hist_height
-			&&  x >= hist_x
-			&&  x <  hist_x + hist_width + 4
-			)
-				continue; // histogram does not overwrite any Canon stuff => no problem!
-
-			// Ignore the regions where the waveform will be drawn
-			//~ if( waveform_draw
-			//~ &&  y >= waveform_y
-			//~ &&  y <  waveform_y + WAVEFORM_HEIGHT
-			//~ &&  x >= waveform_x
-			//~ &&  x <  waveform_x + WAVEFORM_WIDTH
-			//~ )
-				//~ continue;
-
-			// Ignore the timecode region
-			//~ if( y >= timecode_y
-			//~ &&  y <  timecode_y + timecode_height
-			//~ &&  x >= timecode_x
-			//~ &&  x <  timecode_x + timecode_width
-			//~ )
-				//~ continue;
-
-			if( crop_draw && check_crop( x, y, b_row, v_row, vram->pitch, m_row) )
-			{
-				//~ m_row[x/2] = b_row[x/2];
-				continue;
-			}
-			//~ if( edge_draw && check_edge( x, y, b_row, v_row, vram->pitch ) )
-				//~ continue;
-
-			if( zd && check_zebra( x, y, b_row, v_row, vram->pitch, m_row) )
-			{
-				//~ m_row[x/2] = b_row[x/2];
-				continue;
-			}
-
-			// Nobody drew on it, make it clear
-			if (pixel) b_row[x/2] = 0;
-			//m_row[x/2] = 0;
-		}
-	}
-
-	if( hist_draw )
-		hist_draw_image( hist_x, hist_y );
-
-	if( spotmeter_draw)
-		spotmeter_step();
-	//~ if( waveform_draw )
-		//~ waveform_draw_image( waveform_x, waveform_y );
-    DebugMsg(DM_MAGIC, 3, "***************** draw_zebra done **********************");
-}*/
 
 static void
 zebra_lo_toggle( void * priv )
@@ -1850,30 +1294,6 @@ static void crop_toggle_reverse(void* priv)
 {
 	crop_toggle(-1);
 }
-
-/*
-static void
-zebra_hi_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf( 
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"ZebraThrHI  : %d   ",
-		*(unsigned*) priv
-	);
-}
-
-static void
-zebra_lo_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf( 
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"ZebraThrLO  : %d   ",
-		*(unsigned*) priv
-	);
-}*/
-
 
 static void
 zebra_draw_display( void * priv, int x, int y, int selected )
@@ -2664,6 +2084,13 @@ struct menu_entry zebra_menus[] = {
 };
 
 struct menu_entry livev_dbg_menus[] = {
+#if CONFIG_DEBUGMSG
+	{
+		.priv = "Card Benchmark",
+		.select = card_benchmark_schedule,
+		.display = menu_print,
+	},
+#endif
 	{
 		.priv = "Powersave",
 		.display	= menu_title_hack_print,
@@ -2693,11 +2120,7 @@ struct menu_entry livev_dbg_menus[] = {
 		.select_reverse	= idle_timeout_toggle_reverse,
 		.help = "Turn off GlobalDraw when idle, to save some CPU cycles."
 	},
-	/*{
-		.priv = "Card Benchmark",
-		.select = card_benchmark_schedule,
-		.display = menu_print,
-	},
+	/*
 	{
 		.priv = "Dump RAM",
 		.display = menu_print, 
@@ -2753,8 +2176,6 @@ cropmark_draw()
 	if (cropmark_movieonly && !is_movie_mode()) return;
 	reload_cropmark(crop_draw); // reloads only when changed
 	clrscr_mirror();
-	bmp_ov_loc_size_t os;
-	calc_ov_loc_size(&os);
 	//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
 	bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
 }
@@ -2783,6 +2204,7 @@ int is_safe_to_mess_with_the_display(int timeout_ms)
 int _bmp_cleared = 0;
 void bmp_on()
 {
+	return;
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_bmp_cleared) 
 	{// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
@@ -2802,6 +2224,7 @@ void bmp_on_force()
 }
 void bmp_off()
 {
+	return;
 	//~ clrscr();
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
@@ -3136,7 +2559,13 @@ BMP_LOCK(
 	{
 		draw_zebra_and_focus(1,0);
 	}
+	
+	draw_histogram_and_waveform();
+)
+}
 
+void draw_histogram_and_waveform()
+{
 	if (hist_draw || waveform_draw)
 	{
 		struct vram_info * vram = get_yuv422_vram();
@@ -3144,13 +2573,11 @@ BMP_LOCK(
 	}
 	
 	if( hist_draw)
-		hist_draw_image( hist_x, hist_y );
+		hist_draw_image( os.x_max - hist_width, os.y0 + 100 );
 		
 	if( waveform_draw)
-		waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET );
-)
+		waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET );
 }
-
 /*
 //this function is a mess... but seems to work
 static void
@@ -3449,30 +2876,6 @@ BMP_LOCK (
 	zoom_overlay_dirty = 1;
 }
 
-/*
-static void
-redraw_task( void )
-{
-	while(1)
-	{
-		msleep(50);
-		if (redraw_requested)
-		{
-			bmp_enabled = 0;
-			msleep(50);
-			RedrawDisplay();
-			bmp_enabled = 1;
-
-			afframe_set_dirty();
-			redraw_requested = 0;
-			msleep(200);
-			redraw_requested = 0;
-		}
-	}
-}
-
-TASK_CREATE( "redraw_task", redraw_task, 0, 0x1e, 0x1000 );*/
-
 void test_fps(int* x)
 {
 	int x0 = 0;
@@ -3572,6 +2975,14 @@ livev_hipriority_task( void* unused )
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || get_halfshutter_pressed())
 			crop_set_dirty(5);
+
+#if CONFIG_DEBUGMSG
+		if (card_benchmark_start)
+		{
+			card_benchmark();
+			card_benchmark_start = 0;
+		}
+#endif
 	}
 }
 
@@ -3584,8 +2995,6 @@ static void loprio_sleep()
 static void black_bars()
 {
 	if (!get_global_draw()) return;
-	bmp_ov_loc_size_t os;
-	calc_ov_loc_size(&os);
 	int i,j;
 	for (i = 0; i < os.y0 + os.y_ex; i++)
 	{
@@ -3625,23 +3034,7 @@ livev_lopriority_task( void* unused )
 
 		loprio_sleep();
 
-		if ((hist_draw || waveform_draw) && zebra_should_run())
-		{
-			struct vram_info * vram = get_yuv422_vram();
-			hist_build(vram->vram, vram->width, vram->pitch);
-		}
-
-		loprio_sleep();
-		
-		if( hist_draw && zebra_should_run())
-			BMP_LOCK( hist_draw_image( hist_x, hist_y ); )
-
-		loprio_sleep();
-		
-		if( waveform_draw && zebra_should_run())
-			BMP_LOCK( waveform_draw_image( 720 - WAVEFORM_WIDTH*WAVEFORM_FACTOR, 480 - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
-			
-		loprio_sleep();
+		draw_histogram_and_waveform();
 		
 		if (crop_redraw_flag)
 		{

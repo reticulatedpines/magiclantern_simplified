@@ -3,6 +3,7 @@
  */
 
 #include "dryos.h"
+#include "bmp.h"
 
 #define _propvalues_h_
 #include "property.h"
@@ -20,8 +21,6 @@ volatile PROP_INT(PROP_MVR_REC_START, recording);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
-volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
-volatile PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca)
 volatile PROP_INT(PROP_ALO, alo);
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
@@ -32,7 +31,6 @@ volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
-volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code)
 volatile PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
 volatile PROP_INT(PROP_BEEP, beep_enabled);
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
@@ -74,5 +72,60 @@ volatile int lv;
 PROP_HANDLER( PROP_LV_ACTION )
 {
 	lv = !buf[0];
+	return prop_cleanup( token, property );
+}
+
+
+// External monitors
+
+struct bmp_ov_loc_size os;
+
+volatile int ext_monitor_hdmi;
+volatile int ext_monitor_rca;
+volatile int hdmi_code;
+
+static void calc_ov_loc_size(struct bmp_ov_loc_size * os)
+{
+	if (hdmi_code == 2 || ext_monitor_rca)
+	{
+		os->x0 = 40;
+		os->y0 = 24;
+		os->x_ex = 640;
+		os->y_ex = 388;
+	}
+	else if (hdmi_code == 5)
+	{
+		os->x0 = (1920-1620) / 4;
+		os->y0 = 0;
+		os->x_ex = 540 * 3/2;
+		os->y_ex = 540;
+	}
+	else
+	{
+		os->x0 = 0;
+		os->y0 = 0;
+		os->x_ex = 720;
+		os->y_ex = 480;
+	}
+	os->x_max = os->x0 + os->x_ex;
+	os->y_max = os->y0 + os->y_ex;
+}
+
+PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
+{
+	hdmi_code = buf[0];
+	calc_ov_loc_size(&os);
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER(PROP_HDMI_CHANGE)
+{
+	ext_monitor_hdmi = buf[0];
+	calc_ov_loc_size(&os);
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER(PROP_USBRCA_MONITOR)
+{
+	ext_monitor_rca = buf[0];
+	calc_ov_loc_size(&os);
 	return prop_cleanup( token, property );
 }

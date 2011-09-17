@@ -213,15 +213,16 @@ bmp_load(
 );
 
 // this has the position of the 3:2 image (onto which we draw cropmarks)
-typedef struct bmp_ov_loc_size
+struct bmp_ov_loc_size
 {
 	int x0; //live view x offset within OSD
 	int y0; //live view y offset within OSD
 	int x_ex; //live view x extend (x0 + x_ex = xmax)
 	int y_ex; //live view y extend
-} bmp_ov_loc_size_t;
+	int x_max; // x0 + x_ex
+	int y_max; // y0 + y_ex
+};
 
-void calc_ov_loc_size(bmp_ov_loc_size_t *os);
 void clrscr();
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear);
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);

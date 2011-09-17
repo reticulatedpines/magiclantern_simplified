@@ -44,8 +44,6 @@ void menu_help_show_page(int page)
 	doc = bmp_load(path, 1);
 	if (doc)
 	{
-		bmp_ov_loc_size_t os;
-		calc_ov_loc_size(&os);
 		bmp_draw_scaled_ex(doc, os.x0, os.y0, os.x_ex, os.y_ex, 0, 0);
 		FreeMemory(doc);
 	}

@@ -34,35 +34,6 @@
 
 #define USE_LUT
 
-extern int ext_monitor_rca;
-extern int ext_monitor_hdmi;
-extern int recording;
-
-void calc_ov_loc_size(bmp_ov_loc_size_t *os)
-{
-	if (hdmi_code == 2 || ext_monitor_rca)
-	{
-		os->x0 = 40;
-		os->y0 = 24;
-		os->x_ex = 640;
-		os->y_ex = 388;
-	}
-	else if (hdmi_code == 5)
-	{
-		os->x0 = (1920-1620) / 4;
-		os->y0 = 0;
-		os->x_ex = 540 * 3/2;
-		os->y_ex = 540;
-	}
-	else
-	{
-		os->x0 = 0;
-		os->y0 = 0;
-		os->x_ex = 720;
-		os->y_ex = 480;
-	}
-}
-
 static void
 _draw_char(
 	unsigned	fontspec,
