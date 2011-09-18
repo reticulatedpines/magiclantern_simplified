@@ -1405,7 +1405,7 @@ unsigned GetFileSize(char* filename)
 {
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 )
-		return 0;
+		return 0xFFFFFFFF;
 	return size;
 }
 
@@ -1449,7 +1449,7 @@ void TmpMem_AddFile(char* filename)
 	if (!tmp_files) return;
 
 	int filesize = GetFileSize(filename);
-	if (filesize == 0) return;
+	if (filesize == 0xFFFFFFFF) return;
 	if (filesize > TMP_MAX_BUF_SIZE) return;
 	if (tmp_buffer_index > 200) return;
 	if (tmp_buffer_ptr + filesize > tmp_buffers[tmp_buffer_index] + TMP_MAX_BUF_SIZE) tmp_buffer_index++;
@@ -1494,6 +1494,7 @@ void CopyMLFilesToRAM_BeforeFormat()
 	TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
 	TmpMem_AddFile(CARD_DRIVE "FONTS.DAT");
 	TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
+	TmpMem_AddFile(CARD_DRIVE "MAGIC.CFG");
 	CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "CROPMKS/", 1);
 	CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "DOC/", 0);
 	CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
@@ -1521,8 +1522,6 @@ void CopyMLFilesBack_AfterFormat()
 		}
 	}
 	
-	HijackCurrentDialogBox(11, "Saving config...");
-	save_config(0);
 	HijackCurrentDialogBox(11, "Writing bootflags...");
 	bootflag_write_bootblock();
 
