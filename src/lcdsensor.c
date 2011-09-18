@@ -47,7 +47,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		v == 1 ? "Near" : v == 2 ? (get_mlu() ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
 	);
 	if (v) display_lcd_remote_icon(x-25, y+5);
-	menu_draw_icon(x, y, v ? -1 : MNI_OFF, 0);
+	menu_draw_icon(x, y, v ? MNI_NONE : MNI_OFF, 0);
 }
 
 extern int remote_shot_flag; // from shoot.c

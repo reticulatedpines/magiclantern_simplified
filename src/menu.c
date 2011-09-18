@@ -338,7 +338,7 @@ void menu_draw_icon(int x, int y, int type, int arg)
 	if (icon_drawn) return;
 	icon_drawn = 1;
 	x -= 40;
-	bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
+	if (type >= 0) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
 	switch(type)
 	{
 		case MNI_OFF: batsu(x, y); return;

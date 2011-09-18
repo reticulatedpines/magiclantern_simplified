@@ -37,6 +37,8 @@
 #define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
 #define MENU_FONT_SEL	get_menu_font_sel()
 
+int get_menu_font_sel();
+
 struct menu_entry
 {
 	struct menu_entry *	next;
@@ -121,6 +123,7 @@ menu_init( void );
 
 void menu_draw_icon(int x, int y, int type, int arg);
 
+#define MNI_NONE -1
 #define MNI_OFF 0
 #define MNI_ON 1
 #define MNI_AUTO 2
