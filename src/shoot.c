@@ -972,10 +972,10 @@ silent_pic_take_longexp()
 
 void ensure_movie_mode()
 {
-	if (!lv) force_liveview();
 	if (!is_movie_mode())
 	{
 		#ifdef CONFIG_50D
+		if (!lv) force_liveview();
 		GUI_SetLvMode(2);
 		GUI_SetMovieSize_b(1);
 		#else
@@ -983,6 +983,7 @@ void ensure_movie_mode()
 		#endif
 		msleep(500); 
 	}
+	if (!lv) force_liveview();
 }
 
 static int
