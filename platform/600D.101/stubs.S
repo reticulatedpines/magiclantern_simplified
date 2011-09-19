@@ -135,7 +135,7 @@ NSTUB( 0x1574C, sd_device )                // in sdReadBlk
 
 // called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
 // => first partition table; see http://www.datarescue.com/laboratory/partition.htm
-NSTUB( 0xffb30ab4, fsuDecodePartitionTable )
+NSTUB( 0xFF4319A4, fsuDecodePartitionTable )
 
 
 NSTUB( 0xff01b5d8, hotplug_task )

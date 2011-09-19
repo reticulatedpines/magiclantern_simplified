@@ -3051,7 +3051,13 @@ livev_lopriority_task( void* unused )
 	}
 }
 
-TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
+#ifdef CONFIG_600D
+#define HIPRIORITY_TASK_PRIO 0x19
+#else
+#define HIPRIORITY_TASK_PRIO 0x1a
+#endif
+
+TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
 /*static CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
