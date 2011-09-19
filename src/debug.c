@@ -1478,15 +1478,14 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 		return;
 
 	do {
-		if (file.name[0] != '.' && file.name[0] != '_')
-		{
-			if (!cropmarks_flag || is_valid_cropmark_filename(file.name))
-			{
-				char fn[30];
-				snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
-				TmpMem_AddFile(fn);
-			}
-		}
+		if (file.mode & 0x10) continue; // is a directory
+		if (file.name[0] == '.' || file.name[0] == '_') continue;
+		if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
+
+		char fn[30];
+		snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
+		TmpMem_AddFile(fn);
+
 	} while( FIO_FindNextEx( dirent, &file ) == 0);
 	FIO_CleanupAfterFindNext_maybe(dirent);
 }
