@@ -192,6 +192,7 @@ BMP_LOCK(
 )
 }
 
+#if 0
 void
 con_printf(
 	unsigned		fontspec,
@@ -248,8 +249,9 @@ con_printf(
 		}
 	}
 }
+#endif
 
-
+#if CONFIG_DEBUGMSG
 void
 bmp_hexdump(
 	unsigned		fontspec,
@@ -289,7 +291,7 @@ bmp_hexdump(
 		len -= 32;
 	} while(len);
 }
-
+#endif
 
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
@@ -577,6 +579,7 @@ void clrscr()
 	BMP_LOCK( bmp_fill( 0x0, 0, 0, 960, 540 ); )
 }
 
+#if 0
 // mirror can be NULL
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear)
 {
@@ -623,6 +626,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 		}
 	}
 }
+#endif
 /*
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax)
 {
@@ -810,6 +814,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 	}
 }
 
+#if 0
 
 // built-in fonts found by Pel
 // http://groups.google.com/group/ml-devel/browse_thread/thread/aec4c80eef1cdd6a
@@ -993,6 +998,8 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 		s++;
 	}
 }
+
+#endif
 
 void * bmp_lock = 0;
 void * gmt_lock = 0;

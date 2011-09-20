@@ -81,7 +81,7 @@ bootflag_display(
 
 
 // gcc mempcy has odd alignment issues?
-inline void
+void
 my_memcpy(
 	uint8_t *		dest,
 	const uint8_t *		src,
