@@ -127,6 +127,7 @@ CFLAGS=\
 	-Wno-implicit-function-declaration \
 	-Wno-unused-function \
 	-Wno-format \
+	-std=gnu99 \
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR)
