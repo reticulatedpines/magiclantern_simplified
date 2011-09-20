@@ -61,7 +61,7 @@ void afp_show_in_viewfinder()
 
 void set_af_point(int afpoint)
 {
-	Beep();
+	if (beep_enabled) Beep();
 	prop_request_change(PROP_AFPOINT, &afpoint, 4);
 	task_create("afp_tmp", 0x18, 0, afp_show_in_viewfinder, 0);
 }
