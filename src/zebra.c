@@ -2771,6 +2771,8 @@ void idle_globaldraw_en()
 static void
 clearscreen_task( void* unused )
 {
+	idle_wakeup_reset_counters();
+	
 	int k = 0;
 	for (;;k++)
 	{
