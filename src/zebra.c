@@ -2500,7 +2500,7 @@ int liveview_display_idle()
 {
 	return
 		lv && 
-		!gui_menu_shown() &&
+		(!gui_menu_shown() || menu_get_show_only_selected()) &&
 		gui_state == GUISTATE_IDLE && 
 		CURRENT_DIALOG_MAYBE <= 3 && 
 		lv_dispsize == 1 &&
@@ -2579,8 +2579,12 @@ void draw_histogram_and_waveform()
 		hist_build(vram->vram, vram->width, vram->pitch);
 	}
 	
+	if (gui_menu_shown() && !menu_get_show_only_selected()) return; // hack: not to draw histo over menu
+	
 	if( hist_draw)
 		hist_draw_image( os.x_max - hist_width, os.y0 + 100 );
+
+	if (gui_menu_shown() && !menu_get_show_only_selected()) return;
 		
 	if( waveform_draw)
 		waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET );
@@ -2962,11 +2966,12 @@ livev_hipriority_task( void* unused )
 			}
 			else if (defish_preview)
 			{
-				BMP_LOCK( if (lv) defish_draw(); )
+				if (k % 4 == 0)
+					BMP_LOCK( if (lv) defish_draw(); )
 			}
 			else
 			{
-				BMP_LOCK( if (lv) draw_zebra_and_focus(k % (recording ? 2 : 1) == 0, 1); )
+				BMP_LOCK( if (lv) draw_zebra_and_focus(k % 2 == 0, 1); )
 			}
 			msleep(20);
 		}
@@ -3035,11 +3040,8 @@ livev_lopriority_task( void* unused )
 		}
 		
 		loprio_sleep();
-		if (!zebra_should_run()) continue;
-		/*if (should_draw_zoom_overlay())
-		{
-			draw_zebra_and_focus(1,0); // when magic zoom is active, zebra can work at low priority
-		}*/
+		if (!zebra_should_run())
+			continue;
 
 		loprio_sleep();
 

@@ -65,6 +65,7 @@ void menu_show_only_selected()
 	show_only_selected = 1;
 	menu_damage = 1;
 }
+int menu_get_show_only_selected() { return show_only_selected; }
 
 int draw_event = 0;
 CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
