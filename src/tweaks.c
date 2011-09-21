@@ -242,7 +242,7 @@ extern int lcd_sensor_shortcuts;
 void adjust_backlight_level(int delta)
 {
 	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
-	display_on_force();
+	if (tft_status) call("TurnOnDisplay");
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
 	NotifyBoxHide();
@@ -778,7 +778,7 @@ struct menu_entry play_menus[] = {
 		.name = "SET+Wheel in PLAY mode",
 		.priv = &play_set_wheel_action, 
 		.select = menu_ternary_toggle, 
-		.select_reverse = menu_quaternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display = play_set_wheel_display,
 		.help = "What to do when you hold SET and turn MainDial (Wheel)"
 	},

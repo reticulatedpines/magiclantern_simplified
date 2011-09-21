@@ -3647,7 +3647,7 @@ shoot_task( void* unused )
 		
 		if (intervalometer_running)
 		{
-			get_out_of_play_mode(0);
+			if (PLAY_MODE) get_out_of_play_mode(0);
 			ResumeLiveView();
 			
 			//~ if (gui_state == GUISTATE_PLAYMENU)
