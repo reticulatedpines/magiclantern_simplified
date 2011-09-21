@@ -49,12 +49,17 @@ PROP_INT(PROP_AFPOINT, af_point);
 
 void afp_show_in_viewfinder()
 {
+	#ifdef CONFIG_60D
+	int delay = 50;
+	#else
+	int delay = 0;
+	#endif
 	msleep(50);
 	assign_af_button_to_halfshutter();
 	msleep(50);
-	SW1(1,0);
+	SW1(1,delay);
 	msleep(50);
-	SW1(0,0);
+	SW1(0,delay);
 	msleep(50);
 	restore_af_button_assignment();
 }
