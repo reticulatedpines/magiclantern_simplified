@@ -70,8 +70,8 @@ get_current_task(void);
  * \note Overridden by reboot shim.
  * \internal
  */
-extern void
-init_task( void );
+extern int
+init_task( int a, int b, int c, int d );
 
 /** Official routine to create the init task.
  * \internal

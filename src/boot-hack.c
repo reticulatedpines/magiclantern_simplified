@@ -38,7 +38,7 @@
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
-void my_init_task(void);
+int my_init_task(int a, int b, int c, int d);
 void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
@@ -329,12 +329,12 @@ void hold_your_horses(int showlogo)
  * It does all of the stuff to bring up the debug manager,
  * the terminal drivers, stdio, stdlib and armlib.
  */
-void
-my_init_task(void)
+int
+my_init_task(int a, int b, int c, int d)
 {
 	// Call their init task
-	init_task();
-
+	int ans = init_task(a,b,c,d);
+	
 #ifndef CONFIG_EARLY_PORT
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
@@ -388,9 +388,11 @@ my_init_task(void)
 		additional_version[5] = 'f';
 		additional_version[6] = 'f';
 		additional_version[7] = '\0';
-		return;
+		return ans;
 	}
 #endif
+	//~ asm("nop");
+	//~ asm("nop");
 	//~ NotifyBox(5000, "Magic Lantern");
 #ifndef CONFIG_1100D
 	ui_lock(UILOCK_EVERYTHING);
@@ -404,5 +406,7 @@ my_init_task(void)
 	// It's better to start a new task which does the init
 	// Guess: stack overflow in this task?
 	task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
+	//~ bmp_printf(FONT_LARGE, 0, 0, "%x", ans);
+	return ans;
 #endif // !CONFIG_EARLY_PORT
 }
