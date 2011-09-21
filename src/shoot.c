@@ -1702,7 +1702,7 @@ int crit_kelvin(int k)
 	if (k > 0)
 	{
 		lens_set_kelvin(k * KELVIN_STEP);
-		msleep(500);
+		msleep(750);
 	}
 
 	int Y, U, V;
