@@ -101,4 +101,6 @@ dm_event_dispatch(
 extern void
 debug_init( void );
 
+#define DEBUG_LOG_THIS(x) {	dm_set_print_level(255,0); dm_set_store_level(255,0); dmstart(); msleep(1000); DryosDebugMsg(DM_MAGIC, 3, ">>>>>>>>>>>>>>"); x; DryosDebugMsg(DM_MAGIC, 3, "<<<<<<<<<<<<<<<"); msleep(1000); dmstop(); dumpf(); }
+
 #endif
