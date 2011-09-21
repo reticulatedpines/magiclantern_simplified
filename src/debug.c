@@ -588,6 +588,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
 	msleep(500);
 
+	config_menu_init();
+	
 	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
 	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
 	dump_seg(&(font_small.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
@@ -814,7 +816,7 @@ struct menu_entry debug_menus[] = {
 		.display	= movie_size_print,
 		.help = "Movie recording size maybe, on 50D :) "
 	},*/
-#ifndef CONFIG_50D
+#if !defined(CONFIG_50D) && !defined(CONFIG_550D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
 		.select		= NormalDisplay,
@@ -1112,8 +1114,6 @@ thats_all:
 	extern struct menu_entry livev_cfg_menus[];
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
     menu_add( "Debug", livev_dbg_menus, 4 );
-    menu_add( "Debug", cfg_menus, COUNT(cfg_menus) );
-    menu_add( "Debug", livev_cfg_menus, 1 );
 }
 
 CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
@@ -1580,3 +1580,10 @@ void HijackFormatDialogBox_main()
 }
 
 #endif
+
+void config_menu_init()
+{
+	extern struct menu_entry livev_cfg_menus[];
+    menu_add( "Play", cfg_menus, COUNT(cfg_menus) ); // space is tight :)
+    menu_add( "Play", livev_cfg_menus, 1 );
+}
