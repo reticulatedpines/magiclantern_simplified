@@ -847,6 +847,7 @@ static void meminfo_display(
 		"Free memory: %dK/%dK",
 		b/1024, a/1024
 	);
+	//~ menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 int display_gain = 0;
