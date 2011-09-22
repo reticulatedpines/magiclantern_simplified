@@ -29,9 +29,6 @@ struct cf_device
 	void *			soft_reset;
 };
 
-extern struct cf_device * const cf_device[];
-extern struct cf_device * const sd_device[];
-
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
 #define NVRAM_BOOTFLAGS		((void*) 0xF8000000)
@@ -92,6 +89,11 @@ my_memcpy(
 		*dest++ = *src++;
 }
 
+#ifndef CONFIG_50D
+
+extern struct cf_device * const cf_device[];
+extern struct cf_device * const sd_device[];
+
 struct partition_table 
 {
 	uint8_t state; // 0x80 = bootable
@@ -114,10 +116,14 @@ bootflag_write_bootblock( void )
 
 	//~ console_printf("cf=%08lx sd=%08lx\n", (uint32_t)sd_device[0], (uint32_t) sd_device[1]);
 
+	#ifdef CONFIG_50D
+	struct cf_device * const dev = cf_device[1];
+	#else
 	struct cf_device * const dev = sd_device[1];
+	#endif
 
 	uint8_t *block = alloc_dma_memory( 512 );
-	uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
+	//~ uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
 	int i;
 	//~ console_printf("%s: buf=%08x\n", __func__, (uint32_t)block);
 	for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
@@ -147,6 +153,46 @@ bootflag_write_bootblock( void )
 	free_dma_memory( block );
 }
 
+#else // cameras with CF card, like 50D
+
+extern struct cf_device * const cf_device;
+
+void bootflag_write_bootblock( void )
+{
+   uint8_t *block = alloc_dma_memory( 0x200 );
+
+   /* AJ
+   bmp_printf( FONT_MED, 0, 40, "mem=%08x read=%08x", 
+                    (unsigned int) block, 
+                    (unsigned int) cf_device->read_block );
+   */
+
+   int rc = cf_device->read_block( cf_device, 0x0, 1, block );
+   msleep( 100 );
+
+   /* AJ
+   bmp_printf( FONT_MED, 600, 40, "read=%d", rc );
+   bmp_hexdump( FONT_SMALL, 0, 60, block, 0x100 );
+   */
+
+   /*******************************************************************
+   *  Update the first partition header to include the magic strings  *
+   *******************************************************************/
+
+   my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
+   my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0x8 );
+
+   rc = cf_device->write_block( cf_device, 0x0, 1, block );
+
+   /* AJ
+   bmp_printf( FONT_MED, 600, 60, "write=%d", rc );
+   */
+
+   free_dma_memory( block );
+
+} /* end of write_bootblock_for_autoboot() */
+
+#endif
 
 /** Perform an initial install and configuration */
 static void
