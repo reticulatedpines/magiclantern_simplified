@@ -31,7 +31,7 @@
 #include "consts.h"
 
 /** These are called when new tasks are created */
-void my_init_task(void);
+int my_init_task(int a, int b, int c, int d);
 void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
@@ -293,11 +293,10 @@ void Msleep(int ms)
  * It does all of the stuff to bring up the debug manager,
  * the terminal drivers, stdio, stdlib and armlib.
  */
-void
-my_init_task(void)
+int my_init_task(int a, int b, int c, int d)
 {
 	// Call their init task
-	init_task();
+	int ans = init_task(a,b,c,d);
 
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
@@ -328,6 +327,7 @@ my_init_task(void)
 	Msleep(1000);
 
 	task_create("install_task", 0x1b, 0, install_task, 0);
+	return ans;
 }
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
