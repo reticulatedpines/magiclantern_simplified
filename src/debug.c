@@ -1027,10 +1027,12 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulate halfway shutter presses while camera is idle"
 	},
+	#ifndef CONFIG_50D
 	{
 		.display = meminfo_display,
 		.help = "Memory information (from AllocateMemory)"
 	}
+	#endif
 };
 
 static struct menu_entry cfg_menus[] = {
@@ -1227,10 +1229,6 @@ thats_all:
 	);
 #endif
 
-	extern struct menu_entry livev_dbg_menus[];
-	extern struct menu_entry livev_cfg_menus[];
-	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-    menu_add( "Debug", livev_dbg_menus, 4 );
 }
 
 CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
@@ -1700,7 +1698,10 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
+	extern struct menu_entry livev_dbg_menus[];
 	extern struct menu_entry livev_cfg_menus[];
-    menu_add( "Play", cfg_menus, COUNT(cfg_menus) ); // space is tight :)
-    menu_add( "Play", livev_cfg_menus, 1 );
+	menu_add( "Play", cfg_menus, COUNT(cfg_menus) ); // space is tight :)
+	menu_add( "Play", livev_cfg_menus, 1 );
+	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
+	menu_add( "Debug", livev_dbg_menus, 4 );
 }
