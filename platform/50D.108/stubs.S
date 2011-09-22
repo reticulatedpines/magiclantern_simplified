@@ -229,3 +229,5 @@ NSTUB(0xff85dd94, MuteOn_0) // idem
 NSTUB(0xFF90EC28, RemoteRelease)
 NSTUB(0xFF90ED54, ptpPropButtonSW1)
 NSTUB(0xff90ede4, ptpPropButtonSW2)
+
+NSTUB(0xFF8764B0, GetMemoryInformation) // called from AllocateMemory

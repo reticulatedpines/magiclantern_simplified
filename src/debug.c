@@ -216,7 +216,9 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
+#ifndef CONFIG_50D
 	HijackDialogBox();
+#endif
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -316,6 +318,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
+	//~ int a = AllocateMemory(102400);
 	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
@@ -610,7 +613,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		//~ if (recording == 2)
 			//bmp_printf(FONT_MED, 0, 50, "%x %x %x %x %x %x ", CURRENT_DIALOG_MAYBE, MEM(0x3D70), lens_info.job_state, lv_dispsize, gui_state, mirror_down, bmp_is_on());
-			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
+			//~ bmp_hexdump(FONT_SMALL, 0, 20, MEM(0x51e4), 32*20);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
@@ -800,6 +803,23 @@ void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
+static void meminfo_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int a,b;
+	GetMemoryInformation(&a,&b);
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Free memory: %dK/%dK",
+		b/1024, a/1024
+	);
+}
+
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_50D
 	{
@@ -914,6 +934,10 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulate halfway shutter presses while camera is idle"
 	},
+	{
+		.display = meminfo_display,
+		.help = "Memory information (from AllocateMemory)"
+	}
 };
 
 static struct menu_entry cfg_menus[] = {
