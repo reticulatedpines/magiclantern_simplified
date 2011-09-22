@@ -654,8 +654,40 @@ display_dont_mirror_display(
 	menu_draw_icon(x, y, MNI_BOOL(!display_dont_mirror), 0);
 }
 
+int night_vision = 0;
+void night_vision_toggle(void* priv)
+{
+	night_vision = !night_vision;
+	call("lvae_setdispgain", night_vision ? 65535 : 0);
+	menu_show_only_selected();
+}
+
+static void night_vision_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Night Vision Mode   : %s", 
+		night_vision ? "ON" : "OFF"
+	);
+	if (night_vision && (!lv || is_movie_mode()))
+		menu_draw_icon(x, y, MNI_WARNING, 0);
+}
+
 
 struct menu_entry tweak_menus[] = {
+	{
+		.name = "Night Vision Mode",
+		.priv = &night_vision, 
+		.select = night_vision_toggle, 
+		.display = night_vision_print,
+		.help = "Maximize LV display gain for framing in darkness (photo)"
+	},
 	{
 		.name = "Exposure Simulation",
 		.priv = &expsim_setting,
