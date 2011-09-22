@@ -574,6 +574,19 @@ void draw_ml_bottombar()
 
 	if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
 	if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
+
+	extern int display_gain;
+	if (display_gain)
+	{
+		text_font = FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK ); 
+		int gain_ev = gain_to_ev(display_gain) - 10;
+		bmp_printf( text_font, 
+				  x_origin + 590, 
+				  y_origin - font_large.height, 
+				  "+%dEV", 
+				  gain_ev);
+	}
+
 }
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
