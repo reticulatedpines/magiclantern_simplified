@@ -216,8 +216,14 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
+	
+	//~ int x = 2;
+	//~ prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
+	//~ msleep(1000);
+	call("lv_ae", 0);
+	NotifyBox(1000, "ok");
 #ifndef CONFIG_50D
-	HijackDialogBox();
+	//~ HijackDialogBox();
 #endif
 }
 
@@ -613,7 +619,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		//~ if (recording == 2)
 			//bmp_printf(FONT_MED, 0, 50, "%x %x %x %x %x %x ", CURRENT_DIALOG_MAYBE, MEM(0x3D70), lens_info.job_state, lv_dispsize, gui_state, mirror_down, bmp_is_on());
-			//~ bmp_hexdump(FONT_SMALL, 0, 20, MEM(0x51e4), 32*20);
+			//~ void* x = get_lvae_info();
+			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
@@ -799,6 +806,28 @@ void movie_size_toggle(void* priv)
 
 #endif
 
+int movie_expo_lock = 0;
+static void movie_expo_lock_toggle()
+{
+	if (!is_movie_mode()) return;
+	movie_expo_lock = !movie_expo_lock;
+	call("lv_ae", !movie_expo_lock);
+}
+static void movie_expo_lock_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"MOV ExposureLock: %s",
+		movie_expo_lock ? "ON" : "OFF"
+	);
+}
+
 void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
@@ -820,21 +849,80 @@ static void meminfo_display(
 	);
 }
 
+int display_gain = 0;
+void display_gain_toggle(void* priv)
+{
+	display_gain = MAX(display_gain, 1) * 2;
+	call("lvae_setdispgain", display_gain);
+	menu_show_only_selected();
+}
+void display_gain_toggle_reverse(void* priv)
+{
+	display_gain /= 2;
+	call("lvae_setdispgain", display_gain);
+	menu_show_only_selected();
+}
+void display_gain_reset(void* priv)
+{
+	display_gain = 0;
+	call("lvae_setdispgain", display_gain);
+	menu_show_only_selected();
+}
+void display_gain_max(void* priv)
+{
+	display_gain = 65535;
+	call("lvae_setdispgain", display_gain);
+	menu_show_only_selected();
+}
+
+
+static void display_gain_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Display Gain: %d",
+		display_gain
+	);
+}
+
+
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_50D
 	{
 		.name		= "Movie recording",
-		.priv = &lv_movie_select,
+		.priv		= &lv_movie_select,
 		.select		= lv_movie_toggle,
 		.display	= lv_movie_print,
-		.help = "Enable movie recording on 50D :) "
+		.help		= "Enable movie recording on 50D :) "
 	},
 #endif
+	{
+		.name		= "Movie exposure lock",
+		.priv		= &movie_expo_lock,
+		.select		= movie_expo_lock_toggle,
+		.display	= movie_expo_lock_print,
+		.help		= "Lock the exposure in movie mode (50D/500D)"
+	},
 	/*{
 		.name		= "Movie size",
 		.select		= movie_size_toggle,
 		.display	= movie_size_print,
 		.help = "Movie recording size maybe, on 50D :) "
+	},*/
+	/*{
+		.name = "Display Gain", 
+		.priv = &display_gain,
+		.select = display_gain_toggle, 
+		.select_reverse = display_gain_toggle_reverse,
+		.select_auto = display_gain_reset,
+		.display = display_gain_print, 
+		.help = "LiveView display gain",
 	},*/
 #if !defined(CONFIG_50D) && !defined(CONFIG_550D)
 	{
