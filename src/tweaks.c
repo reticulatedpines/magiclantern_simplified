@@ -12,7 +12,7 @@
 #include "gui.h"
 #include "lens.h"
 
-#if defined(CONFIG_50D) || defined(CONFIG_1100D)
+#if defined(CONFIG_1100D)
 #include "disable-this-module.h"
 #endif
 
@@ -654,6 +654,7 @@ display_dont_mirror_display(
 	menu_draw_icon(x, y, MNI_BOOL(!display_dont_mirror), 0);
 }
 
+/*
 int night_vision = 0;
 void night_vision_toggle(void* priv)
 {
@@ -678,16 +679,16 @@ static void night_vision_print(
 	if (night_vision && (!lv || is_movie_mode()))
 		menu_draw_icon(x, y, MNI_WARNING, 0);
 }
-
+*/
 
 struct menu_entry tweak_menus[] = {
-	{
+/*	{
 		.name = "Night Vision Mode",
 		.priv = &night_vision, 
 		.select = night_vision_toggle, 
 		.display = night_vision_print,
 		.help = "Maximize LV display gain for framing in darkness (photo)"
-	},
+	},*/
 	{
 		.name = "Exposure Simulation",
 		.priv = &expsim_setting,

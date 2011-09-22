@@ -324,8 +324,9 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
+	bootflag_write_bootblock();
 	//~ int a = AllocateMemory(102400);
-	task_create("run_test", 0x1c, 0, run_test, 0);
+	//~ task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 static void xx_test2(void* priv)
@@ -847,35 +848,35 @@ static void meminfo_display(
 		"Free memory: %dK/%dK",
 		b/1024, a/1024
 	);
-	//~ menu_draw_icon(x, y, MNI_ON, 0);
+	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 int display_gain = 0;
-void display_gain_toggle(void* priv)
+void display_gain_toggle(int dir)
 {
-	display_gain = MAX(display_gain, 1) * 2;
-	call("lvae_setdispgain", display_gain);
+	if (dir > 0)
+	{
+		display_gain = MAX(display_gain * 2, 2048);
+		if (display_gain > 65536) display_gain = 0;
+	}
+	else if (dir < 0)
+	{
+		if (display_gain && display_gain <= 2048) display_gain = 0;
+		else if (display_gain) display_gain /= 2; 
+		else display_gain = 65536;
+	}
+	else display_gain = 0;
+	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
 	menu_show_only_selected();
 }
-void display_gain_toggle_reverse(void* priv)
-{
-	display_gain /= 2;
-	call("lvae_setdispgain", display_gain);
-	menu_show_only_selected();
-}
-void display_gain_reset(void* priv)
-{
-	display_gain = 0;
-	call("lvae_setdispgain", display_gain);
-	menu_show_only_selected();
-}
-void display_gain_max(void* priv)
-{
-	display_gain = 65535;
-	call("lvae_setdispgain", display_gain);
-	menu_show_only_selected();
-}
+void display_gain_toggle_forward(void* priv) { display_gain_toggle(1); }
+void display_gain_toggle_reverse(void* priv) { display_gain_toggle(-1); }
+void display_gain_reset(void* priv) { display_gain_toggle(0); }
 
+int gain_to_ev(int gain)
+{
+	return (int) roundf(log2f(gain));
+}
 
 static void display_gain_print(
 	void *			priv,
@@ -884,10 +885,13 @@ static void display_gain_print(
 	int			selected
 )
 {
+	int gain_ev = 0;
+	if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Display Gain: %d",
+		"Display Gain: %d EV (%d raw)",
+		gain_ev,
 		display_gain
 	);
 }
@@ -916,15 +920,15 @@ struct menu_entry debug_menus[] = {
 		.display	= movie_size_print,
 		.help = "Movie recording size maybe, on 50D :) "
 	},*/
-	/*{
+	{
 		.name = "Display Gain", 
 		.priv = &display_gain,
-		.select = display_gain_toggle, 
+		.select = display_gain_toggle_forward, 
 		.select_reverse = display_gain_toggle_reverse,
 		.select_auto = display_gain_reset,
 		.display = display_gain_print, 
-		.help = "LiveView display gain",
-	},*/
+		.help = "LV display gain, for night vision or manual lenses (photo)",
+	},
 #if !defined(CONFIG_50D) && !defined(CONFIG_550D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
