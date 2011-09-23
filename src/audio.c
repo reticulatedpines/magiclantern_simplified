@@ -1416,5 +1416,9 @@ void volume_down()
 
 static void audio_menus_init()
 {
+#if defined(CONFIG_550D) || defined(CONFIG_60D)
 	menu_add( "Audio", audio_menus, COUNT(audio_menus) );
+#else
+	menu_add( "LiveV", audio_menus, 1 );
+#endif
 }

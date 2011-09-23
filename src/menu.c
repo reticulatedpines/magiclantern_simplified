@@ -870,7 +870,9 @@ menu_init( void )
 	menu_sem = create_named_semaphore( "menus", 1 );
 	gui_sem = create_named_semaphore( "gui", 0 );
 
+#if defined(CONFIG_550D) || defined(CONFIG_60D)
 	menu_find_by_name( "Audio" );
+#endif
 	menu_find_by_name( "LiveV" );
 	menu_find_by_name( "Expo" );
 	menu_find_by_name( "Movie" );
