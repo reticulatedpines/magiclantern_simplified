@@ -51,6 +51,7 @@ void NotifyBox_task(void* priv)
             if (notify_box_stop_request) break;
         }
         redraw();
+        give_semaphore(notify_box_main_sem); // done, other call can be made now
     }
 }
 
@@ -73,7 +74,6 @@ void NotifyBox(int timeout, char* fmt, ...)
     va_end( ap );
 
     give_semaphore(notify_box_show_sem); // request displaying the notification box
-    give_semaphore(notify_box_main_sem); // done, other call can be made now
 }
 
 static void dlg_init()
