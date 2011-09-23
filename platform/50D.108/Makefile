@@ -39,7 +39,6 @@ ML_OBJS-y = \
 	lens.o \
 	lensfocus.o \
 	cfn.o \
-	lcdsensor.o \
 	zebra.o \
 	shoot.o \
 	chdk-gui_draw.o \
