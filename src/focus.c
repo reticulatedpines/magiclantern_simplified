@@ -401,12 +401,17 @@ rack_focus(
 		delta = -delta;
 	}
 
+	int delta0 = delta;
+
 	while( delta )
 	{
 		if( speed > delta )
 			speed = delta;
-
+		
 		delta -= speed;
+
+		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%%", ABS(delta0 - delta) * 100 / ABS(delta0));
+		
 		lens_focus( 0x7, speed_cmd );
 		msleep(1 << lens_focus_delay);
 		gui_hide_menu( 10 );
@@ -422,20 +427,24 @@ focus_task( void* unused )
 		msleep(50);
 		take_semaphore( focus_task_sem, 0 );
 
-		int movie_started_by_ml = 0;
-		if (focus_rack_auto_record)
-		{
-			ensure_movie_mode();
-			if (!recording)
-			{
-				movie_started_by_ml = 1;
-				movie_start();
-			}
-		}
-		if (focus_rack_delay) msleep(2000);
-
 		if( focus_rack_delta )
 		{
+
+			gui_hide_menu(50);
+			int movie_started_by_ml = 0;
+			if (focus_rack_auto_record)
+			{
+				gui_stop_menu();
+				NotifyBox(2000, "Rack Focus: REC Start");
+				ensure_movie_mode();
+				if (!recording)
+				{
+					movie_started_by_ml = 1;
+					movie_start();
+				}
+			}
+			if (focus_rack_delay) msleep(2000);
+
 			gui_hide_menu( 10 );
 			rack_focus(
 				focus_rack_speed,
@@ -443,6 +452,14 @@ focus_task( void* unused )
 			);
 
 			focus_rack_delta = 0;
+
+			if (movie_started_by_ml)
+			{
+				NotifyBox(2000, "Rack Focus: REC Stop");
+				msleep(2000);
+				movie_end();
+			}
+
 			continue;
 		}
 
@@ -453,17 +470,10 @@ focus_task( void* unused )
 			msleep(1 << lens_focus_delay);
 			focus_task_delta += step;
 		}
-
-		if (focus_rack_auto_record && movie_started_by_ml)
-		{
-			msleep(2000);
-			movie_end();
-		}
-
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x1d, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x1a, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )
@@ -1052,6 +1062,9 @@ INIT_FUNC( __FILE__, focus_init );
 
 int handle_rack_focus(struct event * event)
 {
+	if (is_manual_focus()) return 1;
+	if (!lv) return 1;
+	
 	if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
 	{
 		if (lv && (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE))

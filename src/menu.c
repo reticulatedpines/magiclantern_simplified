@@ -65,7 +65,8 @@ void menu_show_only_selected()
 	show_only_selected = 1;
 	menu_damage = 1;
 }
-int menu_get_show_only_selected() { return show_only_selected; }
+int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
+int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected || menu_hidden ); }
 
 int draw_event = 0;
 CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
@@ -946,9 +947,10 @@ gui_hide_menu(
 	int			redisplay_time
 )
 {
+	if (!menu_hidden)
+		bmp_fill( 0, 0, 0, 720, 480 );
 	menu_hidden = redisplay_time;
 	menu_damage = 1;
-	bmp_fill( 0, 0, 0, 720, 480 );
 }
 
 int

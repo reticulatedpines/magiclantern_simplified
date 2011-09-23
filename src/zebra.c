@@ -2351,7 +2351,7 @@ void draw_zoom_overlay(int dirty)
 	//~ if (vram_width > 720) return;
 	if (!lv) return;
 	if (!get_global_draw()) return;
-	if (gui_menu_shown()) return;
+	//~ if (gui_menu_shown()) return;
 	if (!bmp_is_on()) return;
 	if (lv_dispsize != 1) return;
 	//~ if (get_halfshutter_pressed() && clearscreen != 2) return;
@@ -2514,7 +2514,7 @@ int liveview_display_idle()
 {
 	return
 		lv && 
-		(!gui_menu_shown() || menu_get_show_only_selected()) &&
+		!menu_active_and_not_hidden() &&
 		gui_state == GUISTATE_IDLE && 
 		CURRENT_DIALOG_MAYBE <= 3 && 
 		lv_dispsize == 1 &&
@@ -2593,12 +2593,12 @@ void draw_histogram_and_waveform()
 		hist_build(vram->vram, vram->width, vram->pitch);
 	}
 	
-	if (gui_menu_shown() && !menu_get_show_only_selected()) return; // hack: not to draw histo over menu
+	if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
 	
 	if( hist_draw)
 		hist_draw_image( os.x_max - hist_width, os.y0 + 100 );
 
-	if (gui_menu_shown() && !menu_get_show_only_selected()) return;
+	if (menu_active_and_not_hidden()) return;
 		
 	if( waveform_draw)
 		waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET );
