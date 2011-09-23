@@ -23,7 +23,10 @@ CONFIG_INT( "expsim", expsim_setting, 2);
 static void set_expsim( int x )
 {
 	if (expsim != x)
+	{
 		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+		msleep(100);
+	}
 }
 /*
 static void
