@@ -4,42 +4,6 @@
 #include <bmp.h>
 #include <config.h>
 
-extern int lv_focus_done;
-
-void
-lens_focus(
-	unsigned		mode,
-	int			step
-)
-{
-	if (!lv) return;
-	if (is_manual_focus()) return;
-
-	while (lens_info.job_state) msleep(100);
-
-	step = COERCE(step, -3, 3);
-	int focus_cmd = step;
-	if (step < 0) focus_cmd = 0x8000 - step;
-	
-	prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
-	msleep(100);
-
-	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
-}
-
-/*
-void lens_focus_ex(unsigned mode, int step, int active)
-{
-	struct prop_focus focus = {
-		.active		= active,
-		.mode		= mode,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-	};
-
-	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
-}*/
-
 int get_prop_picstyle_from_index(int index)
 {
 	switch(index)

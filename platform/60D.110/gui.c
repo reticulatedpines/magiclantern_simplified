@@ -234,82 +234,15 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
-	if (gui_menu_shown()) // some buttons hard to detect from main menu loop
-	{
-		if (lv && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
-		{
-			gui_hide_menu( 2 );
-			lens_focus_stop();
-			return 0;
-		}
-		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-		{
-			gui_hide_menu( 50 );
-			lens_focus_start( get_focus_dir() );
-			return 0;
-		}
-	}
+	// Rack and follow focus
+	if (handle_rack_focus(event) == 0) return 0;
+	if (handle_follow_focus(event) == 0) return 0;
+
 	if (gui_menu_shown())
 	{
 		if (event->param == 0x5a) return 0;
 	}
 
-	/*
-	if (get_lcd_sensor_shortcuts() && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
-	{ // those are shortcut keys
-		if (!gui_menu_shown())
-		{
-			if (event->param == BGMT_PRESS_UP)
-			{
-				adjust_backlight_level(1);
-				return 0;
-			}
-			else if (event->param == BGMT_PRESS_DOWN)
-			{
-				adjust_backlight_level(-1);
-				return 0;
-			}
-		}
-		if (lv)
-		{
-			if (event->param == BGMT_PRESS_LEFT)
-			{
-				kelvin_toggle(-1);
-				return 0;
-			}
-			else if (event->param == BGMT_PRESS_RIGHT)
-			{
-				kelvin_toggle(1);
-				return 0;
-			}
-		}
-	}*/
-
-	if (1)
-	{
-		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
-		{
-			switch(event->param)
-			{
-				case BGMT_PRESS_LEFT:
-					lens_focus_start(1 * get_follow_focus_dir_h());
-					return 0;
-				case BGMT_PRESS_RIGHT:
-					lens_focus_start(-1 * get_follow_focus_dir_h());
-					return 0;
-				case BGMT_PRESS_UP:
-					lens_focus_start(5 * get_follow_focus_dir_v());
-					return 0;
-				case BGMT_PRESS_DOWN:
-					lens_focus_start(-5 * get_follow_focus_dir_v());
-					return 0;
-				case BGMT_UNPRESS_UDLR:
-					lens_focus_stop();
-					return 1;
-			}
-		}
-	}
-	
 	if (1)
 	{
 		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;

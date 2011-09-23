@@ -181,8 +181,8 @@ static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
-CONFIG_INT( "focus.rack-speed", focus_rack_speed, 100 );
-CONFIG_INT( "focus.delay", lens_focus_delay, 85 );
+CONFIG_INT( "focus.rack-speed", focus_rack_speed, 2 );
+CONFIG_INT( "focus.delay", lens_focus_delay, 3 );
 
 void follow_focus_reverse_dir()
 {
@@ -236,6 +236,8 @@ focus_reset_a( void * priv )
 	focus_task_delta = 0;
 }
 
+int focus_rack_delay = 0;
+int focus_rack_auto_record = 0;
 
 static void
 focus_toggle( void * priv )
@@ -245,15 +247,41 @@ focus_toggle( void * priv )
 	give_semaphore( focus_task_sem );
 }
 
-#ifdef CONFIG_60D
-int rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100,150,200,300,500,1000};
-#else
-#ifdef CONFIG_550D
-int rack_speed_values[] = {1,2,3,4,5,7,10,15,20,25,30,40,50,60,75,85,100};
-#else
-int rack_speed_values[] = {1,2,3};
-#endif
-#endif
+static void
+rack_focus_start_now( void * priv )
+{
+	focus_rack_delay = 0;
+	focus_rack_auto_record = 0;
+	focus_toggle(priv);
+}
+
+static void
+rack_focus_start_delayed( void * priv )
+{
+	focus_rack_delay = 1;
+	focus_rack_auto_record = 0;
+	focus_toggle(priv);
+}
+
+static void
+rack_focus_start_auto_record( void * priv )
+{
+	focus_rack_delay = 1;
+	focus_rack_auto_record = 1;
+	focus_toggle(priv);
+}
+
+static void
+focus_rack_speed_increment(void* priv)
+{
+	focus_rack_speed = mod(focus_rack_speed, 3) + 1;
+}
+
+static void
+focus_rack_speed_decrement(void* priv)
+{
+	focus_rack_speed = mod(focus_rack_speed - 2, 3) + 1;
+}
 
 static void
 focus_rack_speed_display(
@@ -269,30 +297,7 @@ focus_rack_speed_display(
 		"Focus speed   : %d",
 		focus_rack_speed
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, current_speed_index(focus_rack_speed) * 100 / COUNT(rack_speed_values));
-}
-
-
-int current_speed_index(int speed)
-{
-	int i;
-	for (i = 0; i < COUNT(rack_speed_values); i++)
-		if (speed == rack_speed_values[i]) return i;
-	return 0;
-}
-
-static void
-focus_rack_speed_increment( void * priv )
-{
-	int i = current_speed_index(focus_rack_speed);
-	focus_rack_speed = rack_speed_values[mod(i + 1, COUNT(rack_speed_values))];
-}
-
-static void
-focus_rack_speed_decrement( void * priv )
-{
-	int i = current_speed_index(focus_rack_speed);
-	focus_rack_speed = rack_speed_values[mod(i - 1, COUNT(rack_speed_values))];
+	menu_draw_icon(x, y, MNI_PERCENT, focus_rack_speed * 100 / 3);
 }
 
 static void
@@ -307,16 +312,15 @@ focus_delay_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Focus delay   : %d",
-		lens_focus_delay
+		1 << lens_focus_delay
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, current_speed_index(lens_focus_delay) * 100 / COUNT(rack_speed_values));
+	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 7);
 }
 
 static void
 focus_stack_step_increment( void * priv )
 {
-	int i = current_speed_index(focus_stack_step);
-	focus_stack_step = rack_speed_values[mod(i + 1, COUNT(rack_speed_values))];
+	focus_stack_step = mod(focus_stack_step, 3) + 1;
 }
 
 static void
@@ -329,8 +333,7 @@ focus_stack_count_increment( void * priv )
 static void
 focus_delay_toggle( int sign)
 {
-	int i = current_speed_index(lens_focus_delay);
-	lens_focus_delay = rack_speed_values[mod(i + sign, COUNT(rack_speed_values))];
+	lens_focus_delay = mod(lens_focus_delay + sign, 8);
 }
 static void focus_delay_increment(void* priv) { focus_delay_toggle(1); }
 static void focus_delay_decrement(void* priv) { focus_delay_toggle(-1); }
@@ -405,7 +408,8 @@ rack_focus(
 
 		delta -= speed;
 		lens_focus( 0x7, speed_cmd );
-		msleep(lens_focus_delay);
+		msleep(1 << lens_focus_delay);
+		gui_hide_menu( 10 );
 	}
 }
 
@@ -417,6 +421,18 @@ focus_task( void* unused )
 	{
 		msleep(50);
 		take_semaphore( focus_task_sem, 0 );
+
+		int movie_started_by_ml = 0;
+		if (focus_rack_auto_record)
+		{
+			ensure_movie_mode();
+			if (!recording)
+			{
+				movie_started_by_ml = 1;
+				movie_start();
+			}
+		}
+		if (focus_rack_delay) msleep(2000);
 
 		if( focus_rack_delta )
 		{
@@ -434,9 +450,16 @@ focus_task( void* unused )
 		{
 			int step = focus_task_dir * focus_rack_speed;
 			lens_focus( 1, step );
-			msleep(lens_focus_delay);
+			msleep(1 << lens_focus_delay);
 			focus_task_delta += step;
 		}
+
+		if (focus_rack_auto_record && movie_started_by_ml)
+		{
+			msleep(2000);
+			movie_end();
+		}
+
 	}
 }
 
@@ -931,7 +954,7 @@ static struct menu_entry focus_menu[] = {
 		.display	= focus_rack_speed_display,
 		.select		= focus_rack_speed_increment,
 		.select_reverse	= focus_rack_speed_decrement,
-		.help = "Speed for rack focus and follow focus, in raw steps."
+		.help = "Speed for rack/follow focus (same units as in EOS Utility)"
 	},
 	{
 		.name = "Focus delay",
@@ -940,13 +963,13 @@ static struct menu_entry focus_menu[] = {
 		.select_reverse	= focus_delay_decrement,
 		.help = "Delay between two successive focus commands."
 	},
-	{
+	/*{
 		.name = "Focus dir",
 		.priv		= &focus_dir,
 		.display	= focus_dir_display,
 		.select		= menu_binary_toggle,
 		.help = "Focus direction used when you press the 'Zoom In' button."
-	},
+	},*/
 	{
 		.name = "Focus A",
 		.display	= focus_show_a,
@@ -957,8 +980,10 @@ static struct menu_entry focus_menu[] = {
 		.name = "Rack Focus",
 		.priv		= "Rack focus",
 		.display	= menu_print,
-		.select		= focus_toggle,
-		.help = "Start the rack focus operation."
+		.select		= rack_focus_start_delayed,
+		.select_auto		= rack_focus_start_now,
+		.select_reverse = rack_focus_start_auto_record,
+		.help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
 	},
 	{
 		.name = "Stack focus",
@@ -1025,3 +1050,61 @@ PTP_HANDLER( 0x9998, 0 )
 
 INIT_FUNC( __FILE__, focus_init );
 
+int handle_rack_focus(struct event * event)
+{
+	if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
+	{
+		if (lv && (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE))
+		{
+			gui_hide_menu( 5 );
+			lens_focus_stop();
+			return 0;
+		}
+		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+		{
+			gui_hide_menu( 50 );
+			lens_focus_start( 1 );
+			return 0;
+		}
+		if (lv && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
+		{
+			gui_hide_menu( 50 );
+			lens_focus_start( -1 );
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int handle_follow_focus(struct event * event)
+{
+	if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
+	{
+		switch(event->param)
+		{
+			case BGMT_PRESS_LEFT:
+				lens_focus_start(1 * get_follow_focus_dir_h());
+				return 0;
+			case BGMT_PRESS_RIGHT:
+				lens_focus_start(-1 * get_follow_focus_dir_h());
+				return 0;
+			case BGMT_PRESS_UP:
+				lens_focus_start(2 * get_follow_focus_dir_v());
+				return 0;
+			case BGMT_PRESS_DOWN:
+				lens_focus_start(-2 * get_follow_focus_dir_v());
+				return 0;
+			#ifdef BGMT_UNPRESS_UDLR:
+			case BGMT_UNPRESS_UDLR:
+			#else
+			case BGMT_UNPRESS_LEFT:
+			case BGMT_UNPRESS_RIGHT:
+			case BGMT_UNPRESS_UP:
+			case BGMT_UNPRESS_DOWN:
+			#endif
+				lens_focus_stop();
+				return 1;
+		}
+	}
+	return 1;
+}

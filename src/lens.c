@@ -701,6 +701,27 @@ lens_focus_wait( void )
 	}
 }
 
+// this is compatible with all cameras so far, but allows only 3 speeds
+void
+lens_focus(
+	unsigned		mode,
+	int			step
+)
+{
+	if (!lv) return;
+	if (is_manual_focus()) return;
+
+	while (lens_info.job_state) msleep(100);
+
+	step = COERCE(step, -3, 3);
+	int focus_cmd = step;
+	if (step < 0) focus_cmd = 0x8000 - step;
+	
+	prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+
+	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
+}
+
 void lens_wait_readytotakepic(int wait)
 {
 	int i;
