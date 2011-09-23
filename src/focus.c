@@ -833,8 +833,11 @@ focus_misc_task(void* unused)
 #else
 		if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
 #endif
-		{
+		{	
+			#ifndef CONFIG_50D
 			trap_focus_toggle_from_af_dlg();
+			#endif
+			
 			#ifdef CONFIG_60D
 			while (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE) msleep(100);
 			#else
