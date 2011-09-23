@@ -824,7 +824,7 @@ static void movie_expo_lock_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"MOV ExposureLock: %s",
+		"MOV Exposure Lock  : %s",
 		movie_expo_lock ? "ON" : "OFF"
 	);
 }
@@ -845,7 +845,7 @@ static void meminfo_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Free memory: %dK/%dK",
+		"Free Memory (Heap) : %dK/%dK",
 		b/1024, a/1024
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
@@ -890,9 +890,9 @@ static void display_gain_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Display Gain: %d EV (%d raw)",
-		gain_ev,
-		display_gain
+		"NightVision LV Gain: %s%d EV",
+		gain_ev ? "+" : "",
+		gain_ev
 	);
 }
 
@@ -907,13 +907,13 @@ struct menu_entry debug_menus[] = {
 		.help		= "Enable movie recording on 50D :) "
 	},
 #endif
-	{
+	/*{
 		.name		= "Movie exposure lock",
 		.priv		= &movie_expo_lock,
 		.select		= movie_expo_lock_toggle,
 		.display	= movie_expo_lock_print,
 		.help		= "Lock the exposure in movie mode (50D/500D)"
-	},
+	},*/
 	/*{
 		.name		= "Movie size",
 		.select		= movie_size_toggle,
