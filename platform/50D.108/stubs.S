@@ -152,6 +152,8 @@ NSTUB( 0x1D6FC, cf_device )                // in cfReadBlk
 NSTUB( 0xffb6e8fc, sdReadBlk )
 NSTUB( 0x1d744, sd_device )                // in sdReadBlk
 
+NSTUB( 0xffb0a9b0, fsuDecodePartitionTable )
+
 NSTUB( 0xff81d9d4, hotplug_task )
 NSTUB( 0x1AF0	 , hotplug_struct )																		//d
 NSTUB( 0x1B28	 , hotplug_usb_buf )          // after "USB Disconnect"									//d
