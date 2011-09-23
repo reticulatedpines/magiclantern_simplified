@@ -697,7 +697,7 @@ void vsync(volatile int* addr)
 	for (i = 0; i < 100; i++)
 	{
 		if (*addr != v0) return;
-		msleep(1);
+		msleep(10);
 	}
 	bmp_printf(FONT_MED, 30, 100, "vsync failed");
 }

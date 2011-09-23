@@ -88,7 +88,7 @@ int get_zoom_overlay_mode()
 int get_zoom_overlay_z() 
 { 
 	if (!get_global_draw()) return 0;
-	if (video_mode_resolution != 0) return 0;
+	if (is_movie_mode() && video_mode_resolution != 0) return 0;
 	return zoom_overlay_mode == 1 || zoom_overlay_mode == 2;
 }
 
@@ -848,8 +848,6 @@ draw_zebra_and_focus( int Z, int F )
 	
 	if (!global_draw) return;
 	
-	fps_ticks++;
-	
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
 	// record: 1720: 2.38 ratio (yuck!)
@@ -1093,6 +1091,8 @@ draw_zebra_and_focus( int Z, int F )
 					
 				#undef MP
 				#undef BP
+				#undef BN
+				#undef MN
 			}
 		}
 	}
@@ -1150,21 +1150,34 @@ draw_false_downsampled( void )
 	int y;
 	uint8_t * const lvram = get_yuv422_vram()->vram;
 	int lvpitch = YUV422_LV_PITCH;
-	for( y = 40; y < 440; y++ )
+	uint8_t* fc = false_colour[falsecolor_palette];
+	for( y = 40; y < 440; y += 2 )
 	{
 		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
 		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
 		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * BMPPITCH );  // 2 pixel
 		
-		uint32_t* lvp; // that's a moving pointer through lv vram
+		uint8_t* lvp; // that's a moving pointer through lv vram
 		uint16_t* bp;  // through bmp vram
 		uint16_t* mp;  // through mirror
-
-		for (lvp = v_row, bp = b_row, mp = m_row; lvp < v_row + 720 ; lvp++, bp++, mp++)
+		
+		for (lvp = ((uint8_t*)v_row)+1, bp = b_row, mp = m_row; lvp < v_row + 720/2 ; lvp += 4, bp++, mp++)
 		{
-			if (*bp != 0 && *bp != *mp) continue;
-			int16_t c = false_colour[falsecolor_palette][((*lvp) >> 8) & 0xFF];
-			*mp = *bp = c | (c << 8);
+			#define BP (*bp)
+			#define MP (*mp)
+			#define BN (*(bp + BMPPITCH/2))
+			#define MN (*(mp + BMPPITCH/2))
+			
+			if (BP != 0 && BP != MP) continue;
+			if (BN != 0 && BN != MN) continue;
+			int c = fc[*lvp]; c |= (c << 8);
+			MP = BP = c;
+			MN = BN = c;
+
+			#undef BP
+			#undef MP
+			#undef BN
+			#undef MN
 		}
 	}
 }
@@ -2481,6 +2494,7 @@ void draw_zoom_overlay(int dirty)
 			s += hd->width;
 		}
 	}
+
 	memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
 	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
 	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
@@ -2797,7 +2811,7 @@ clearscreen_loop:
 
 		if (!lv) continue;
 		
-/*		if (k % 10 == 0)
+		/*if (k % 10 == 0)
 		{
 			bmp_printf(FONT_MED, 50, 50, "%d fps ", fps_ticks);
 			fps_ticks = 0;
@@ -2943,6 +2957,8 @@ livev_hipriority_task( void* unused )
 	for (;;k++)
  	{
 		msleep(10);
+		//~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
+		fps_ticks++;
 
 		while (is_mvr_buffer_almost_full())
 			msleep(100);
@@ -2961,7 +2977,7 @@ livev_hipriority_task( void* unused )
 			zoom_overlay_dirty = 1;
 			if (falsecolor_draw)
 			{
-				if (k % 4 == 0)
+				if (k % 2 == 0)
 					BMP_LOCK( if (lv) draw_false_downsampled(); )
 			}
 			else if (defish_preview)
@@ -2973,7 +2989,7 @@ livev_hipriority_task( void* unused )
 			{
 				BMP_LOCK( if (lv) draw_zebra_and_focus(k % 2 == 0, 1); )
 			}
-			msleep(20);
+			//~ msleep(20);
 		}
 		
 		if (spotmeter_draw && k % 4 == 0)
