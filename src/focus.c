@@ -455,8 +455,8 @@ focus_task( void* unused )
 
 			if (movie_started_by_ml)
 			{
-				NotifyBox(2000, "Rack Focus: REC Stop");
 				msleep(2000);
+				NotifyBox(2000, "Rack Focus: REC Stop");
 				movie_end();
 			}
 
