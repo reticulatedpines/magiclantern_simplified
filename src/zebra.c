@@ -132,6 +132,7 @@ static CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1
 CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0); // this also enables power saving for intervalometer
 static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
+static CONFIG_INT("idle.rec", idle_rec, 0);
 
 
 int crop_redraw_flag = 0; // redraw cropmarks now
@@ -1533,7 +1534,7 @@ zoom_overlay_display(
 		zoom_overlay_mode == 0 ? "OFF" :
 		zoom_overlay_mode == 1 ? "Zrec, " :
 		zoom_overlay_mode == 2 ? "Zr+F, " :
-		zoom_overlay_mode == 3 ? "(+), " : "err",
+		zoom_overlay_mode == 3 ? "(+), " : "ALW, ",
 
 		zoom_overlay_mode == 0 ? "" :
 			zoom_overlay_size == 0 ? "Small, " :
@@ -1794,7 +1795,7 @@ void hdmi_test_toggle(void* priv)
 
 void zoom_overlay_main_toggle(void* priv)
 {
-	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 4);
+	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 5);
 }
 
 void zoom_overlay_size_toggle(void* priv)
@@ -1913,6 +1914,22 @@ idle_display_turn_off_print(
 		x, y,
 		"Turn off LCD and LV: %s",
 		idle_time_format(*(int*)priv)
+	);
+}
+
+static void
+idle_rec_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Save power when REC: %s",
+		idle_rec ? "ON" : "OFF"
 	);
 }
 
@@ -2140,6 +2157,14 @@ struct menu_entry livev_dbg_menus[] = {
 		.select_reverse	= idle_timeout_toggle_reverse,
 		.help = "Turn off GlobalDraw when idle, to save some CPU cycles."
 	},
+	{
+		.name = "Save power when REC",
+		.priv			= &idle_rec,
+		.display		= idle_rec_print,
+		.select			= menu_binary_toggle,
+		.help = "If enabled, camera will save power during recording."
+	},
+
 	/*
 	{
 		.priv = "Dump RAM",
@@ -2837,6 +2862,9 @@ clearscreen_loop:
 			//~ idle_action_do(&idle_countdown_display_clear, bmp_off, bmp_on);
 		//~ }
 
+		if (recording && !idle_rec) // don't go to powersave when recording
+			idle_wakeup_reset_counters();
+		
 		if (idle_display_dim_after)
 			idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
 
@@ -2926,6 +2954,7 @@ void test_fps(int* x)
 
 int should_draw_zoom_overlay()
 {
+	if (zoom_overlay_mode == 4 && zebra_should_run() && get_global_draw()) return 1;
 	if (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
 	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
 	return 0;
