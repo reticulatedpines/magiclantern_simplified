@@ -49,7 +49,8 @@ PROP_INT(PROP_AFPOINT, af_point);
 
 void afp_show_in_viewfinder()
 {
-	#ifdef CONFIG_60D
+	card_led_on();
+	#if defined(CONFIG_60D) || defined(CONFIG_50D)
 	int delay = 50;
 	#else
 	int delay = 0;
@@ -62,6 +63,7 @@ void afp_show_in_viewfinder()
 	SW1(0,delay);
 	msleep(50);
 	restore_af_button_assignment();
+	card_led_off();
 }
 
 void set_af_point(int afpoint)
