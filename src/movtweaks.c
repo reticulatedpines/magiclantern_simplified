@@ -48,7 +48,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 	static int shooting_mode = -1;
 	if (shooting_mode != (int)buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
-	restore_kelvin_wb();
+	if (is_movie_mode()) restore_kelvin_wb();
 	intervalometer_stop();
 	return prop_cleanup(token, property);
 }
@@ -305,7 +305,8 @@ movtweak_task( void* unused )
 		
 		do_movie_mode_remap();
 		
-		save_kelvin_wb();
+		if (is_movie_mode())
+			save_kelvin_wb();
 
 		if (shutter_lock) shutter_lock_step();
 
