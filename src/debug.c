@@ -520,10 +520,16 @@ static void display_shortcut_key_hints_lv()
 	}
 	else if (mode == 3)
 	{
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - 100 - font_med.width*2, 240 - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+		int xf = is_follow_focus_active() == 1 ? 360 : 650;
+		int yf = is_follow_focus_active() == 1 ? 240 : 50;
+		int xs = is_follow_focus_active() == 1 ? 100 : 30;
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+		if (is_follow_focus_active() == 1) // arrows
+		{
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+		}
 	}
 	else
 	{
@@ -619,7 +625,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
-			//bmp_printf(FONT_MED, 0, 50, "%x %x %x %x %x %x ", CURRENT_DIALOG_MAYBE, MEM(0x3D70), lens_info.job_state, lv_dispsize, gui_state, mirror_down, bmp_is_on());
+			//~ bmp_printf(FONT_MED, 0, 50, "%x %x %x ", MEM(0x52e8), MEM(0x5568), MEM(0x53e0));
 			//~ void* x = get_lvae_info();
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
@@ -907,13 +913,13 @@ struct menu_entry debug_menus[] = {
 		.help		= "Enable movie recording on 50D :) "
 	},
 #endif
-	/*{
+	{
 		.name		= "Movie exposure lock",
 		.priv		= &movie_expo_lock,
 		.select		= movie_expo_lock_toggle,
 		.display	= movie_expo_lock_print,
 		.help		= "Lock the exposure in movie mode (50D/500D)"
-	},*/
+	},
 	/*{
 		.name		= "Movie size",
 		.select		= movie_size_toggle,

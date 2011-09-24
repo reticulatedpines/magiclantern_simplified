@@ -43,7 +43,7 @@ CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down but
 static int focus_dir;
 int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() { return follow_focus; }
-int get_follow_focus_stop_on_focus() { return follow_focus == 2; }
+int get_follow_focus_stop_on_focus() { return 0; }
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
@@ -538,12 +538,13 @@ follow_focus_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Follow Focus   : %s",
-		follow_focus ? "ON" : "OFF"
+		follow_focus == 1 ? "Arrows" :
+		follow_focus == 2 ? "Zoom In/Out" : "OFF"
 	);
 	if (follow_focus)
 	{
-		bmp_printf(FONT_MED, x + 480, y+5, follow_focus_reverse_h ? "- +" : "+ -");
-		bmp_printf(FONT_MED, x + 480 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
+		bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
+		if (follow_focus == 1) bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
 	menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus), 0);
 }
@@ -962,13 +963,21 @@ static struct menu_entry focus_menu[] = {
 		.help = "Custom AF patterns (photo mode only; ported from 400plus)"
 	},
 	{
+		.name = "Stack focus",
+		.display	= focus_stack_print,
+		.select		= focus_stack_count_increment,
+		.select_auto		= focus_stack_step_increment,
+		.select_reverse		= focus_stack_unlock,
+		.help = "Focus bracketing, useful for macro shots."
+	},
+	{
 		.name = "Follow Focus",
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
-		.select		= menu_binary_toggle,
+		.select		= menu_ternary_toggle,
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
-		.help = "Simple follow focus with arrow keys."
+		.help = "Simple follow focus with arrows or zoom in/out buttons."
 	},
 #ifdef CONFIG_MOVIE_AF
 	{
@@ -981,6 +990,21 @@ static struct menu_entry focus_menu[] = {
 		.help = "Custom AF algorithm in movie mode. Not very efficient."
 	},
 #endif
+	{
+		.name = "Rack Focus",
+		.priv		= "Rack focus",
+		.display	= menu_print,
+		.select		= rack_focus_start_delayed,
+		.select_auto		= rack_focus_start_now,
+		.select_reverse = rack_focus_start_auto_record,
+		.help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
+	},
+	{
+		.name = "Focus End Point",
+		.display	= focus_show_a,
+		.select		= focus_reset_a,
+		.help = "Press SET to fix here the end point of rack focus."
+	},
 	{
 		.name = "Focus StepSize",
 		.display	= focus_rack_speed_display,
@@ -1002,29 +1026,6 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_binary_toggle,
 		.help = "Focus direction used when you press the 'Zoom In' button."
 	},*/
-	{
-		.name = "Focus A",
-		.display	= focus_show_a,
-		.select		= focus_reset_a,
-		.help = "Press SET to fix here the end point of rack focus."
-	},
-	{
-		.name = "Rack Focus",
-		.priv		= "Rack focus",
-		.display	= menu_print,
-		.select		= rack_focus_start_delayed,
-		.select_auto		= rack_focus_start_now,
-		.select_reverse = rack_focus_start_auto_record,
-		.help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
-	},
-	{
-		.name = "Stack focus",
-		.display	= focus_stack_print,
-		.select		= focus_stack_count_increment,
-		.select_auto		= focus_stack_step_increment,
-		.select_reverse		= focus_stack_unlock,
-		.help = "Focus bracketing, useful for macro shots."
-	},
 	{
 		.name = "Focus Dist",
 		.display	= display_lens_hyperfocal,
@@ -1091,6 +1092,7 @@ int handle_rack_focus(struct event * event)
 		{
 			gui_hide_menu( 5 );
 			lens_focus_stop();
+			if (AF_BUTTON_PRESSED_LV) return 1; // don't override the AF button
 			return 0;
 		}
 		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
@@ -1101,6 +1103,7 @@ int handle_rack_focus(struct event * event)
 		}
 		if (lv && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
 		{
+			if (AF_BUTTON_PRESSED_LV) return 1; // don't override the AF button
 			gui_hide_menu( 50 );
 			lens_focus_start( -get_follow_focus_dir_h() );
 			return 0;
@@ -1113,30 +1116,52 @@ int handle_follow_focus(struct event * event)
 {
 	if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE)
 	{
-		switch(event->param)
+		if (follow_focus == 1) // arrows
 		{
-			case BGMT_PRESS_LEFT:
-				lens_focus_start(-1 * get_follow_focus_dir_h());
-				return 0;
-			case BGMT_PRESS_RIGHT:
-				lens_focus_start(1 * get_follow_focus_dir_h());
-				return 0;
-			case BGMT_PRESS_UP:
-				lens_focus_start(-2 * get_follow_focus_dir_v());
-				return 0;
-			case BGMT_PRESS_DOWN:
-				lens_focus_start(2 * get_follow_focus_dir_v());
-				return 0;
-			#ifdef BGMT_UNPRESS_UDLR:
-			case BGMT_UNPRESS_UDLR:
-			#else
-			case BGMT_UNPRESS_LEFT:
-			case BGMT_UNPRESS_RIGHT:
-			case BGMT_UNPRESS_UP:
-			case BGMT_UNPRESS_DOWN:
-			#endif
-				lens_focus_stop();
-				return 1;
+			switch(event->param)
+			{
+				case BGMT_PRESS_LEFT:
+					lens_focus_start(-1 * get_follow_focus_dir_h());
+					return 0;
+				case BGMT_PRESS_RIGHT:
+					lens_focus_start(1 * get_follow_focus_dir_h());
+					return 0;
+				case BGMT_PRESS_UP:
+					lens_focus_start(-2 * get_follow_focus_dir_v());
+					return 0;
+				case BGMT_PRESS_DOWN:
+					lens_focus_start(2 * get_follow_focus_dir_v());
+					return 0;
+				#ifdef BGMT_UNPRESS_UDLR:
+				case BGMT_UNPRESS_UDLR:
+				#else
+				case BGMT_UNPRESS_LEFT:
+				case BGMT_UNPRESS_RIGHT:
+				case BGMT_UNPRESS_UP:
+				case BGMT_UNPRESS_DOWN:
+				#endif
+					lens_focus_stop();
+					return 1;
+			}
+		}
+		else if (follow_focus == 2) // zoom in/out
+		{
+			switch(event->param)
+			{
+				case BGMT_PRESS_ZOOMOUT_MAYBE:
+				case BGMT_PRESS_HALFSHUTTER:
+					if (AF_BUTTON_PRESSED_LV) return 1;
+					lens_focus_start(-1 * get_follow_focus_dir_h());
+					return 0;
+				case BGMT_PRESS_ZOOMIN_MAYBE:
+					lens_focus_start(1 * get_follow_focus_dir_h());
+					return 0;
+				case BGMT_UNPRESS_ZOOMIN_MAYBE:
+				case BGMT_UNPRESS_HALFSHUTTER:
+				case BGMT_UNPRESS_ZOOMOUT_MAYBE:
+					lens_focus_stop();
+					return 1;
+			}
 		}
 	}
 	return 1;

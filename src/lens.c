@@ -727,13 +727,16 @@ lens_focus(
 	for (int i = 0; i < num_steps; i++)
 	{
 		lv_focus_done = 0;
+		card_led_on();
 		prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
 		lens_focus_wait();
+		card_led_off();
 		if (extra_delay > 5) msleep(extra_delay);
 	}
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
-	draw_ml_bottombar();
+	if (get_global_draw()) draw_ml_bottombar();
+	idle_wakeup_reset_counters();
 }
 
 void lens_wait_readytotakepic(int wait)
