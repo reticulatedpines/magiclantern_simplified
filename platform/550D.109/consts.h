@@ -45,7 +45,9 @@
 #define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x41d0) // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // used for Trap Focus and Magic Off.
+#define HALFSHUTTER_PRESSED (*(int*)0x1bb0) // used for Trap Focus and Magic Off.
+#define AF_BUTTON_PRESSED_LV (*(int*)0x4b5c) // that's either half-shutter or star
+
 // To find it, go to MainCtrl task and take the number from the second line minus 4.
 // See also "cam event metering"
 

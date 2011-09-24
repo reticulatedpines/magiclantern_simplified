@@ -181,7 +181,8 @@
  #define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x479C) 
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // same as 60D
+#define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // same as 60D
+#define AF_BUTTON_PRESSED_LV 0
 
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)

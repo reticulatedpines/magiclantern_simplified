@@ -38,7 +38,8 @@
 
 // From Alex
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
+#define HALFSHUTTER_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
+#define AF_BUTTON_PRESSED_LV 0
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3960) // GUIMode_maybe in Indy's IDC
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged

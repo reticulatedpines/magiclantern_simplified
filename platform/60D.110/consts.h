@@ -42,9 +42,9 @@
 #define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x4680)
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
-//~ #define DISPLAY_SENSOR 0x2dec
-//~ #define DISPLAY_SENSOR_MAYBE 0xC0220104
+#define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
+#define AF_BUTTON_PRESSED_LV 0
+
 #define DISPLAY_SENSOR_POWERED 0
 
 // for gui_main_task
