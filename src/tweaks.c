@@ -172,7 +172,7 @@ static void decrease_pic_quality()
  	switch(pic_quality)
  	{
 		case PICQ_RAW_JPG_LARGE_FINE:
- 			newpicq = PICQ_RAW;
+ 			newpicq = PICQ_LARGE_FINE;
  			break;
  		case PICQ_RAW:
 			newpicq = PICQ_LARGE_FINE;
@@ -204,8 +204,9 @@ static void restore_pic_quality()
 
 static void adjust_burst_pic_quality()
 {
-	if (burst_count < 3) decrease_pic_quality();
-	else if (burst_count >= 3) restore_pic_quality();
+	if (lens_info.job_state == 0) { restore_pic_quality(); return; }
+	if (burst_count < 4) decrease_pic_quality();
+	else if (burst_count >= 5) restore_pic_quality();
 }
 
 PROP_HANDLER(PROP_BURST_COUNT)
