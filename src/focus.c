@@ -17,7 +17,23 @@
 #include "disable-this-module.h"
 #endif
 
-CONFIG_INT( "focus.step",	focus_stack_step, 100 );
+
+CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
+CONFIG_INT( "focus.delay", lens_focus_delay, 6 );
+
+// all focus commands from this module are done with the configured step size and delay
+void LensFocus(int num_steps)
+{
+	lens_focus(num_steps, lens_focus_stepsize, 1<<lens_focus_delay);
+}
+
+void LensFocus2(int num_steps, int step_size)
+{
+	lens_focus(num_steps, step_size, 1<<lens_focus_delay);
+}
+
+
+CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
 CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
@@ -103,6 +119,15 @@ void focus_stack_ensure_preconditions()
 		}
 		msleep(200);
 	}
+	
+	if (is_movie_mode())
+	{
+		while (is_movie_mode())
+		{
+			NotifyBox(2000, "Please switch to photo mode");
+			msleep(2000);
+		}
+	}
 
 	while (is_manual_focus())
 	{
@@ -114,11 +139,11 @@ void focus_stack_ensure_preconditions()
 
 void
 focus_stack(
-	unsigned		count,
-	int			step
+	unsigned	count,
+	int			num_steps
 )
 {
-	NotifyBox(1000, "Focus stack: %dx%d", count, step );
+	NotifyBox(1000, "Focus stack: %dx%d", count, num_steps );
 	hdr_create_script(count, 0, 1);
 	msleep(1000);
 	
@@ -149,9 +174,8 @@ focus_stack(
 		
 		focus_stack_ensure_preconditions();
 
-		lens_focus( 1, step );
-		//~ lens_focus_wait();
-		focus_moved_total += step;
+		LensFocus(num_steps);
+		focus_moved_total += num_steps;
 	}
 
 	msleep(1000);
@@ -160,7 +184,8 @@ focus_stack(
 
 	// Restore to the starting focus position
 	focus_stack_ensure_preconditions();
-	lens_focus( 0, -focus_moved_total );
+	
+	LensFocus(-focus_moved_total);
 }
 
 
@@ -171,7 +196,7 @@ focus_stack_task( void* unused )
 	{
 		take_semaphore( focus_stack_sem, 0 );
 		msleep( 500 );
-		focus_stack( focus_stack_count, focus_stack_step );
+		focus_stack( focus_stack_count, focus_stack_steps_per_picture );
 	}
 }
 
@@ -181,8 +206,6 @@ static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
-CONFIG_INT( "focus.rack-speed", focus_rack_speed, 2 );
-CONFIG_INT( "focus.delay", lens_focus_delay, 3 );
 
 void follow_focus_reverse_dir()
 {
@@ -219,12 +242,13 @@ focus_show_a(
 	int			y,
 	int			selected
 ) {
-
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus A       : %d",
-		focus_task_delta
+		"Focus End Point: %s%d steps",
+		focus_task_delta > 0 ? "+" : 
+		focus_task_delta < 0 ? "-" : "",
+		ABS(focus_task_delta)
 	);
 	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
@@ -272,15 +296,15 @@ rack_focus_start_auto_record( void * priv )
 }
 
 static void
-focus_rack_speed_increment(void* priv)
+focus_stepsize_increment(void* priv)
 {
-	focus_rack_speed = mod(focus_rack_speed, 3) + 1;
+	lens_focus_stepsize = mod(lens_focus_stepsize, 3) + 1;
 }
 
 static void
-focus_rack_speed_decrement(void* priv)
+focus_stepsize_decrement(void* priv)
 {
-	focus_rack_speed = mod(focus_rack_speed - 2, 3) + 1;
+	lens_focus_stepsize = mod(lens_focus_stepsize - 2, 3) + 1;
 }
 
 static void
@@ -294,10 +318,10 @@ focus_rack_speed_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus speed   : %d",
-		focus_rack_speed
+		"Focus StepSize : %d",
+		lens_focus_stepsize
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, focus_rack_speed * 100 / 3);
+	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_stepsize * 100 / 3);
 }
 
 static void
@@ -311,16 +335,16 @@ focus_delay_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus delay   : %d",
+		"Focus StepDelay: %d ms",
 		1 << lens_focus_delay
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 7);
+	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
 
 static void
 focus_stack_step_increment( void * priv )
 {
-	focus_stack_step = mod(focus_stack_step, 3) + 1;
+	focus_stack_steps_per_picture = mod(focus_stack_steps_per_picture, 10) + 1;
 }
 
 static void
@@ -333,7 +357,7 @@ focus_stack_count_increment( void * priv )
 static void
 focus_delay_toggle( int sign)
 {
-	lens_focus_delay = mod(lens_focus_delay + sign, 8);
+	lens_focus_delay = mod(lens_focus_delay + sign, 10);
 }
 static void focus_delay_increment(void* priv) { focus_delay_toggle(1); }
 static void focus_delay_decrement(void* priv) { focus_delay_toggle(-1); }
@@ -349,8 +373,8 @@ focus_stack_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Stack focus   : %dx%d",
-		focus_stack_count, focus_stack_step
+		"Stack focus    : %dx%d",
+		focus_stack_count, focus_stack_steps_per_picture
 	);
 	bmp_printf(FONT_MED, x + 450, y-1, "PLAY: Run\nSET/Q: Adjust");
 	menu_draw_icon(x, y, MNI_ACTION, 0);
@@ -408,12 +432,12 @@ rack_focus(
 		if( speed > delta )
 			speed = delta;
 		
-		delta -= speed;
+		delta --;
 
 		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%%", ABS(delta0 - delta) * 100 / ABS(delta0));
+		draw_ml_bottombar();
 		
-		lens_focus( 0x7, speed_cmd );
-		msleep(1 << lens_focus_delay);
+		LensFocus( speed_cmd );
 		gui_hide_menu( 10 );
 	}
 }
@@ -447,7 +471,7 @@ focus_task( void* unused )
 
 			gui_hide_menu( 10 );
 			rack_focus(
-				focus_rack_speed,
+				lens_focus_stepsize,
 				focus_rack_delta
 			);
 
@@ -465,10 +489,8 @@ focus_task( void* unused )
 
 		while( focus_task_dir )
 		{
-			int step = focus_task_dir * focus_rack_speed;
-			lens_focus( 1, step );
-			msleep(1 << lens_focus_delay);
-			focus_task_delta += step;
+			LensFocus2(1, focus_task_dir * lens_focus_stepsize);
+			focus_task_delta += focus_task_dir;
 		}
 	}
 }
@@ -515,7 +537,7 @@ follow_focus_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Follow Focus  : %s",
+		"Follow Focus   : %s",
 		follow_focus ? "ON" : "OFF"
 	);
 	if (follow_focus)
@@ -678,7 +700,7 @@ static void movie_af_step(int mag)
 	static int focus_pos = 0;
 	int focus_delta = movie_af_stepsize * SGN(dir);
 	focus_pos += focus_delta;
-	lens_focus(7, focus_delta);  // send focus command
+	LensFocus(focus_delta);  // send focus command
 
 	//~ bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
 	
@@ -889,7 +911,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Trap Focus    : %s",
+		"Trap Focus     : %s",
 		t == 1 ? "Hold" : t == 2 ? "Cont." : "OFF"
 	);
 }
@@ -918,7 +940,7 @@ afp_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus Patterns: %s",
+		"Focus Patterns : %s",
 		af_patterns ? "ON" : "OFF"
 	);
 	if (lv && af_patterns) menu_draw_icon(x, y, MNI_WARNING, 0);
@@ -960,14 +982,14 @@ static struct menu_entry focus_menu[] = {
 	},
 #endif
 	{
-		.name = "Focus speed",
+		.name = "Focus StepSize",
 		.display	= focus_rack_speed_display,
-		.select		= focus_rack_speed_increment,
-		.select_reverse	= focus_rack_speed_decrement,
-		.help = "Speed for rack/follow focus (same units as in EOS Utility)"
+		.select		= focus_stepsize_increment,
+		.select_reverse	= focus_stepsize_decrement,
+		.help = "Step size for focus commands (same units as in EOS Utility)"
 	},
 	{
-		.name = "Focus delay",
+		.name = "Focus StepDelay",
 		.display	= focus_delay_display,
 		.select		= focus_delay_increment,
 		.select_reverse	= focus_delay_decrement,
@@ -1021,9 +1043,6 @@ focus_init( void* unused )
 
 	menu_add( "Focus", focus_menu, COUNT(focus_menu) );
 	
-	// make sure it's some valid value from the array
-	focus_rack_speed_increment(0);
-	focus_rack_speed_decrement(0);
 }
 
 /*
@@ -1062,6 +1081,7 @@ INIT_FUNC( __FILE__, focus_init );
 
 int handle_rack_focus(struct event * event)
 {
+	if (!is_movie_mode()) return 1;
 	if (is_manual_focus()) return 1;
 	if (!lv) return 1;
 	
@@ -1076,13 +1096,13 @@ int handle_rack_focus(struct event * event)
 		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
 			gui_hide_menu( 50 );
-			lens_focus_start( 1 );
+			lens_focus_start( get_follow_focus_dir_h() );
 			return 0;
 		}
 		if (lv && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
 		{
 			gui_hide_menu( 50 );
-			lens_focus_start( -1 );
+			lens_focus_start( -get_follow_focus_dir_h() );
 			return 0;
 		}
 	}
@@ -1091,21 +1111,21 @@ int handle_rack_focus(struct event * event)
 
 int handle_follow_focus(struct event * event)
 {
-	if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && gui_state == GUISTATE_IDLE)
+	if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE)
 	{
 		switch(event->param)
 		{
 			case BGMT_PRESS_LEFT:
-				lens_focus_start(1 * get_follow_focus_dir_h());
-				return 0;
-			case BGMT_PRESS_RIGHT:
 				lens_focus_start(-1 * get_follow_focus_dir_h());
 				return 0;
+			case BGMT_PRESS_RIGHT:
+				lens_focus_start(1 * get_follow_focus_dir_h());
+				return 0;
 			case BGMT_PRESS_UP:
-				lens_focus_start(2 * get_follow_focus_dir_v());
+				lens_focus_start(-2 * get_follow_focus_dir_v());
 				return 0;
 			case BGMT_PRESS_DOWN:
-				lens_focus_start(-2 * get_follow_focus_dir_v());
+				lens_focus_start(2 * get_follow_focus_dir_v());
 				return 0;
 			#ifdef BGMT_UNPRESS_UDLR:
 			case BGMT_UNPRESS_UDLR:

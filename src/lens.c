@@ -326,7 +326,7 @@ void draw_ml_bottombar()
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d ", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d  ", (int)roundf(shutter_x10 / 10.0));
 
-      int fgs = 0x73; // blue (neutral)
+      int fgs = COLOR_CYAN; // blue (neutral)
       int shutter_degrees = -1;
       if (is_movie_mode()) // check 180 degree rule
       {
@@ -704,8 +704,9 @@ lens_focus_wait( void )
 // this is compatible with all cameras so far, but allows only 3 speeds
 void
 lens_focus(
-	unsigned		mode,
-	int			step
+	int num_steps, 
+	int stepsize, 
+	int extra_delay
 )
 {
 	if (!lv) return;
@@ -713,13 +714,26 @@ lens_focus(
 
 	while (lens_info.job_state) msleep(100);
 
-	step = COERCE(step, -3, 3);
-	int focus_cmd = step;
-	if (step < 0) focus_cmd = 0x8000 - step;
+	if (num_steps < 0)
+	{
+		num_steps = -num_steps;
+		stepsize = -stepsize;
+	}
+
+	stepsize = COERCE(stepsize, -3, 3);
+	int focus_cmd = stepsize;
+	if (stepsize < 0) focus_cmd = 0x8000 - stepsize;
 	
-	prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+	for (int i = 0; i < num_steps; i++)
+	{
+		lv_focus_done = 0;
+		prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+		lens_focus_wait();
+		if (extra_delay > 5) msleep(extra_delay);
+	}
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
+	draw_ml_bottombar();
 }
 
 void lens_wait_readytotakepic(int wait)

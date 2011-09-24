@@ -198,8 +198,9 @@ lens_take_picture(
 /** Will block if it is not safe to send the focus command */
 extern void
 lens_focus(
-	unsigned		mode,
-	int			step
+	int num_steps, 
+	int stepsize, 
+	int extra_delay
 );
 
 /** Wait for the last command to complete */
