@@ -63,6 +63,7 @@
 #define BGMT_PRESS_DOWN 0x1d
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_UDLR 0x15
+#define BGMT_UNPRESS_SET 0x5
 #define BGMT_TRASH 9
 #define BGMT_MENU 5
 #define BGMT_DISP 6
@@ -94,6 +95,9 @@
 #define BGMT_ISO_MOVIE 0
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
+
+// not sure (from 60D)
+#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
 
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168

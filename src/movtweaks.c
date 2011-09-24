@@ -513,3 +513,17 @@ void movtweak_init()
 }
 
 INIT_FUNC(__FILE__, movtweak_init);
+
+int handle_movie_mode_shortcut(struct event * event)
+{
+	// movie mode shortcut
+	if (event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
+	{
+		if (!is_movie_mode())
+		{
+			set_shooting_mode(SHOOTMODE_MOVIE);
+			return 0;
+		}
+	}
+	return 1;
+}

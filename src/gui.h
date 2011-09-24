@@ -1,3 +1,6 @@
+#define FAKE_BTN -123456
+#define IS_FAKE(event) (event->arg == FAKE_BTN)
+
 #ifdef CONFIG_550D
 #include "../platform/550D.109/gui.h"
 #endif

@@ -1877,6 +1877,45 @@ void transparent_overlay_offset_clear(void* priv)
 	transparent_overlay_offx = transparent_overlay_offy = 0;
 }
 
+int handle_transparent_overlay(struct event * event)
+{
+	if (transparent_overlay && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
+	{
+		schedule_transparent_overlay();
+		return 0;
+	}
+
+	if (transparent_overlay && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+	{
+		if (event->param == BGMT_PRESS_UP)
+		{
+			transparent_overlay_offset(0, -40);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_DOWN)
+		{
+			transparent_overlay_offset(0, 40);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_LEFT)
+		{
+			transparent_overlay_offset(-40, 0);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_RIGHT)
+		{
+			transparent_overlay_offset(40, 0);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_SET)
+		{
+			transparent_overlay_center_or_toggle();
+			return 0;
+		}
+	}
+	return 1;
+}
+
 char* idle_time_format(int t)
 {
 	static char msg[50];
@@ -2343,6 +2382,53 @@ void zoom_overlay_toggle()
 	}
 }
 
+int handle_zoom_overlay(struct event * event)
+{
+	// zoom in when recording => enable Magic Zoom 
+	if (get_zoom_overlay_mode() && recording == 2 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	{
+		zoom_overlay_toggle();
+		return 0;
+	}
+
+	// if magic zoom is enabled, Zoom In should always disable it 
+	if (lv && get_zoom_overlay() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	{
+		zoom_overlay_toggle();
+		return 0;
+	}
+	
+	if (lv && get_zoom_overlay_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	{
+		// magic zoom toggled by sensor+zoom in (modes Zr and Zr+F)
+		if (get_zoom_overlay_mode() < 3 && get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+		{
+			zoom_overlay_toggle();
+			return 0;
+		}
+		// (*): magic zoom toggled by zoom in, normal zoom by sensor+zoom in
+		else if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed() && !(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
+		{
+			zoom_overlay_toggle();
+			return 0;
+		}
+	}
+	
+	// move AF frame when recording
+	if (recording && get_zoom_overlay_mode())
+	{
+		if (event->param == BGMT_PRESS_LEFT)
+			move_lv_afframe(-200, 0);
+		if (event->param == BGMT_PRESS_RIGHT)
+			move_lv_afframe(200, 0);
+		if (event->param == BGMT_PRESS_UP)
+			move_lv_afframe(0, -200);
+		if (event->param == BGMT_PRESS_DOWN)
+			move_lv_afframe(0, 200);
+	}
+
+	return 1;
+}
 //~ void zoom_overlay_enable()
 //~ {
 	//~ zoom_overlay = 1;
@@ -3222,6 +3308,22 @@ void livev_playback_toggle()
 void livev_playback_reset()
 {
 	livev_playback = 0;
+}
+
+int handle_livev_playback(struct event * event, int button)
+{
+	// enable LiveV stuff in Play mode
+	if (PLAY_MODE)
+	{
+		if (event->param == button)
+		{
+			livev_playback_toggle();
+			return 0;
+		}
+		else
+			livev_playback_reset();
+	}
+	return 1;
 }
 
 

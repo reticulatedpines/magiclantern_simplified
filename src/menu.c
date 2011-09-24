@@ -1211,3 +1211,49 @@ menu_title_hack_print(
 		(char*)priv
 	);
 }
+
+// this should work on most cameras
+int handle_ml_menu_erase(struct event * event)
+{
+	if (event->param == BGMT_TRASH)
+	{
+		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
+		{
+			give_semaphore( gui_sem );
+			return 0;
+		}
+		else if (gui_menu_shown())
+		{
+			gui_stop_menu();
+			return 0;
+		}
+	}
+	return 1;
+}
+
+#ifndef CONFIG_50D
+int handle_quick_access_menu_items(struct event * event)
+{
+	// quick access to some menu items
+	if (event->param == BGMT_Q_ALT && !gui_menu_shown())
+	{
+		if (ISO_ADJUSTMENT_ACTIVE)
+		{
+			select_menu("Expo", 0);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+#ifdef CURRENT_DIALOG_MAYBE_2
+		else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
+#else
+		else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
+#endif
+		{
+			select_menu("Focus", 0);
+			give_semaphore( gui_sem ); 
+			return 0;
+		}
+	}
+	return 1;
+}
+#endif

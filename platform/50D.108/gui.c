@@ -27,20 +27,49 @@
 #include "bmp.h"
 #include <property.h>
 
-#define FAKE_BTN -123456
-#define IS_FAKE(event) (event->arg == FAKE_BTN)
-
-int zoom_in_pressed = 0;
-int zoom_out_pressed = 0;
-int set_pressed = 0;
-int get_zoom_in_pressed() { return zoom_in_pressed; }
-int get_zoom_out_pressed() { return zoom_out_pressed; }
-int get_set_pressed() { return set_pressed; }
-
-int halfshutter_pressed = 0;
-int get_halfshutter_pressed() { return FOCUS_CONFIRMATION_AF_PRESSED; }
-
 struct semaphore * gui_sem;
+
+// return 0 if you want to block this event
+static int handle_buttons(struct event * event)
+{
+	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
+
+	/*extern int ml_started;
+	if (!ml_started) 	{
+		 return 1; // don't alter any other buttons/events until ML is fully initialized
+	}*/
+
+	// Change the picture style button to show our menu
+	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
+	{
+		give_semaphore( gui_sem );
+		return 0;
+	}
+
+	// common to all cameras
+	spy_event(event); // for debugging only
+	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
+	if (event->param != OLC_INFO_CHANGED) idle_wakeup_reset_counters();
+	//~ if (handle_swap_menu_erase(event) == 0) return 0;
+	if (handle_buttons_being_held(event) == 0) return 0;
+	//~ if (handle_ml_menu_erase(event) == 0) return 0;
+	if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+	if (handle_rack_focus(event) == 0) return 0;
+	if (handle_follow_focus(event) == 0) return 0;
+	if (handle_intervalometer(event) == 0) return 0;
+	if (handle_zoom_overlay(event) == 0) return 0;
+	if (handle_livev_playback(event, BGMT_FUNC) == 0) return 0;
+	if (handle_transparent_overlay(event) == 0) return 0;
+	if (handle_af_patterns(event) == 0) return 0;
+	if (handle_set_wheel_play(event) == 0) return 0;
+	if (handle_flash_button_shortcuts(event) == 0) return 0;
+	if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
+	if (handle_movie_mode_shortcut(event) == 0) return 0;
+	//~ if (handle_quick_access_menu_items(event) == 0) return 0;
+	//~ if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT) return handle_keep_ml_after_format_toggle();
+
+	return 1;
+}
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
@@ -69,129 +98,6 @@ struct gui_timer_struct
 };
 
 extern struct gui_timer_struct gui_timer_struct;
-
-// return 0 if you want to block this event
-static int handle_buttons(struct event * event)
-{
-	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
-	
-	extern int ml_started;
-	if (!ml_started)
-	{
-		return 1; // don't alter any other buttons/events until ML is fully initialized
-	}
-
-	// Change the picture style button to show our menu
-	if( !magic_is_off() && event->param == BGMT_PICSTYLE )
-	{
-		give_semaphore( gui_sem );
-		return 0;
-	}
-
-	// AF patterns
-	extern int af_patterns;
-	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
-	{
-		if (event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
-		if (event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
-		if (event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
-		if (event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
-		if (event->param == BGMT_JOY_CENTER)   { afp_center(); return 0; }
-	}
-
-	if (get_draw_event())
-	{
-		if (1)
-		{
-			static int kev = 0;
-			kev++;
-			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
-				kev,
-				event->type, 
-				event->param, 
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
-				event->arg);
-/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
-				kev,
-				event->type, 
-				event->param, 
-				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
-				event->arg);*/
-			//msleep(250);
-		}
-	}
-
-	// Rack and follow focus
-	if (handle_rack_focus(event) == 0) return 0;
-	if (handle_follow_focus(event) == 0) return 0;
-
-	if (1)
-	{
-		if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
-		if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-	}
-
-	// for faster zoom in in Play mode
-	if (1)
-	{
-		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
-		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
-		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
-		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
- 	}
-
-	// stop intervalometer with MENU or PLAY
-	if (~IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
-		intervalometer_stop();
-
-	// enable LiveV stuff in Play mode
-	if (PLAY_MODE) 
-	{
-		if (event->param == BGMT_FUNC)
-		{
-			livev_playback_toggle();
-			return 0;
-		}
-		else
-			livev_playback_reset();
-	}
-
-	// 422 play
-
-	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
-	if (event->param == BGMT_UNPRESS_UDLR) set_pressed = 0;
-	if (event->param == BGMT_PLAY) set_pressed = 0;
-
-	if ( PLAY_MODE && event->param == BGMT_WHEEL_RIGHT && get_set_pressed())
-	{
-		play_next_422();
-		return 0;
-	}
-
-	// exposure fusion preview
-	extern int expfuse_running;
-	if (set_pressed == 0) expfuse_running = 0;
-	if ( PLAY_MODE && event->param == BGMT_WHEEL_LEFT && get_set_pressed())
-	{
-		if (!IS_FAKE(event))
-		{
-			expfuse_preview_update();
-			return 0;
-		}
-		else return 1;
-	}
-
-	return 1;
-}
-
-void fake_simple_button(int bgmt_code)
-{
-	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
-}
 
 // Replaces the gui_main_task
 static void

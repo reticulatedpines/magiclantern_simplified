@@ -3333,6 +3333,14 @@ void intervalometer_stop()
 	}
 }
 
+int handle_intervalometer(struct event * event)
+{
+	// stop intervalometer with MENU or PLAY
+	if (!IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
+		intervalometer_stop();
+	return 1;
+}
+
 // this syncs with real-time clock
 void wait_till_next_second()
 {

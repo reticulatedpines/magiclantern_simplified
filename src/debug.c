@@ -1711,3 +1711,128 @@ void config_menu_init()
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 	menu_add( "Debug", livev_dbg_menus, 4 );
 }
+
+void spy_event(struct event * event)
+{
+	if (get_draw_event())
+	{
+		static int kev = 0;
+		kev++;
+		bmp_printf(FONT_SMALL, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+			kev,
+			event->type, 
+			event->param, 
+			event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
+			event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
+			event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
+			event->arg);
+		console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+			kev,
+			event->type, 
+			event->param, 
+			event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
+			event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
+			event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
+			event->arg);
+	}
+}
+
+int flash_movie_pressed = 0;
+int get_flash_movie_pressed() { return flash_movie_pressed; }
+
+int halfshutter_pressed = 0;
+int get_halfshutter_pressed() { return halfshutter_pressed; }
+
+int zoom_in_pressed = 0;
+int zoom_out_pressed = 0;
+int set_pressed = 0;
+int get_zoom_in_pressed() { return zoom_in_pressed; }
+int get_zoom_out_pressed() { return zoom_out_pressed; }
+int get_set_pressed() { return set_pressed; }
+
+int handle_buttons_being_held(struct event * event)
+{
+	// keep track of buttons being pressed
+	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
+	if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
+	if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
+	if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+	if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
+	if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+
+	if (BGMT_FLASH_MOVIE)
+	{
+		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
+		return !BGMT_PRESS_FLASH_MOVIE;
+	}
+	return 1;
+}
+
+int handle_flash_button_shortcuts(struct event * event)
+{
+	if (is_movie_mode() && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
+	{
+		if (event->param == BGMT_PRESS_UP)
+		{
+			kelvin_toggle(1);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_DOWN)
+		{
+			kelvin_toggle(-1);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_LEFT)
+		{
+			iso_toggle(-1);
+			return 0;
+		}
+		if (event->param == BGMT_PRESS_RIGHT)
+		{
+			iso_toggle(1);
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int handle_lcd_sensor_shortcuts(struct event * event)
+{
+	if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
+	{ // those are shortcut keys
+		if (!gui_menu_shown())
+		{
+			if (event->param == BGMT_PRESS_UP)
+			{
+				adjust_backlight_level(1);
+				return 0;
+			}
+			else if (event->param == BGMT_PRESS_DOWN)
+			{
+				adjust_backlight_level(-1);
+				return 0;
+			}
+		}
+		if (lv)
+		{
+			if (event->param == BGMT_PRESS_LEFT)
+			{
+				volume_down();
+				return 0;
+			}
+			else if (event->param == BGMT_PRESS_RIGHT)
+			{
+				volume_up();
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+void fake_simple_button(int bgmt_code)
+{
+	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
+}

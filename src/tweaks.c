@@ -455,6 +455,33 @@ void playback_set_wheel_action(int dir)
 	else if (play_set_wheel_action == 2) playback_compare_last_two_images();
 }
 
+int handle_set_wheel_play(struct event * event)
+{
+	static int set_pressed;
+	// SET button pressed
+	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
+	if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->param == BGMT_PLAY) set_pressed = 0;
+
+	// reset exposure fusion preview
+	extern int expfuse_running;
+	if (set_pressed == 0) expfuse_running = 0;
+
+	// SET+Wheel action in PLAY mode
+	if ( PLAY_MODE && get_set_pressed())
+	{
+		if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT))
+		{
+			int dir = event->param == BGMT_WHEEL_RIGHT ? 1 : -1;
+			playback_set_wheel_action(dir);
+			return 0;
+		}
+		else return 1;
+	}
+	
+	return 1;
+}
+
 static void
 tweak_task( void* unused)
 {
@@ -603,6 +630,24 @@ swap_menu_display(
 		"Swap MENU <-> ERASE : %s", 
 		swap_menu ? "ON" : "OFF"
 	);
+}
+
+int handle_swap_menu_erase(struct event * event)
+{
+	if (swap_menu && !IS_FAKE(event))
+	{
+		if (event->param == BGMT_TRASH)
+		{
+			fake_simple_button(BGMT_MENU);
+			return 0;
+		}
+		if (event->param == BGMT_MENU)
+		{
+			fake_simple_button(BGMT_TRASH);
+			return 0;
+		}
+	}
+	return 1;
 }
 
 extern int cropmark_movieonly;

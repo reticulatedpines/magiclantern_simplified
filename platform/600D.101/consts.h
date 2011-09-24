@@ -64,6 +64,8 @@
 
 #define BGMT_SHUTDOWN 0x53 // new
 
+// not sure (from 60D)
+#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
 
 
 // these were found in ROM, but not tested yet

@@ -95,6 +95,11 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
 
+#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
+
+#define BGMT_FLASH_MOVIE 0 
+#define BGMT_PRESS_FLASH_MOVIE 0 
+#define BGMT_UNPRESS_FLASH_MOVIE 0 
 
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465

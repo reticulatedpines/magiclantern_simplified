@@ -123,3 +123,17 @@ int afp_transformer (int pattern, type_DIRECTION direction) {
 	// Just in case something goes wrong
 	return AF_PATTERN_CENTER;
 }
+
+int handle_af_patterns(struct event * event)
+{
+	extern int af_patterns;
+	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
+	{
+		if (event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
+		if (event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
+		if (event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
+		if (event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
+		if (event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+	}
+	return 1;
+}
