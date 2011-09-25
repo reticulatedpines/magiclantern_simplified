@@ -667,7 +667,7 @@ crop_movieonly_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Show cropmarks in   : %s", 
-		cropmark_movieonly ? "Movie mode" : "All modes"
+		cropmark_movieonly ? "Movie mode" : "Movie&Photo"
 	);
 }
 

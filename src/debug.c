@@ -1654,7 +1654,7 @@ void config_menu_init()
 	menu_add( "Play", cfg_menus, COUNT(cfg_menus) ); // space is tight :)
 	menu_add( "Play", livev_cfg_menus, 1 );
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-	menu_add( "Debug", livev_dbg_menus, 4 );
+	menu_add( "Debug", livev_dbg_menus, 5 );
 }
 
 void spy_event(struct event * event)
