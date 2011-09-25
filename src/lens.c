@@ -687,7 +687,7 @@ volatile int lv_focus_done = 1;
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
 	lv_focus_done = 1;
-	if (buf[0] & 0x100) NotifyBox("Focus: soft limit reached");
+	if (buf[0] & 0x1000) NotifyBox(1000, "Focus: soft limit reached");
 	return prop_cleanup( token, property );
 }
 
@@ -702,7 +702,7 @@ lens_focus_wait( void )
 		if (is_manual_focus()) return;
 	}
 	NotifyBox(1000, "Focus error :("); msleep(1000);
-	NotifyBox(1000, "Press PLAY twice or reboot");
+	//~ NotifyBox(1000, "Press PLAY twice or reboot");
 }
 
 // this is compatible with all cameras so far, but allows only 3 speeds
