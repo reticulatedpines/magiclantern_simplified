@@ -118,7 +118,7 @@
 #define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000))
 #define BGMT_UNPRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000) == 0)
 
-#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
+#define OLC_INFO_CHANGED 0x56 // backtrace copyOlcDataToStorage call in IDLEHandler
 
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465

@@ -749,7 +749,7 @@ lens_focus(
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 	if (get_global_draw()) draw_ml_bottombar();
-	idle_wakeup_reset_counters();
+	idle_wakeup_reset_counters(-10);
 }
 
 void lens_wait_readytotakepic(int wait)
@@ -1141,7 +1141,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	if (lv && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
 		if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
-		idle_wakeup_reset_counters();
+		idle_wakeup_reset_counters(-11);
 		menu_set_dirty(); // force a redraw
 	}
 	old_focus_dist = lens_info.focus_dist;

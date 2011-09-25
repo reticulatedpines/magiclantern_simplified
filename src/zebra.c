@@ -2759,8 +2759,11 @@ int idle_countdown_display_off_prev = 50;
 int idle_countdown_globaldraw_prev = 50;
 int idle_countdown_clrscr_prev = 50;
 
-void idle_wakeup_reset_counters() // called from handle_buttons
+void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
+#if CONFIG_DEBUGMSG
+	NotifyBox(1000, "wakeup: %x   ", reason);
+#endif
 	//~ clearscreen_countdown = 3;
 	idle_countdown_display_off = MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
 	idle_countdown_display_dim = MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
@@ -2779,11 +2782,11 @@ void update_idle_countdown(int* countdown)
 	}
 	else
 	{
-		idle_wakeup_reset_counters(); // will reset all idle countdowns
+		idle_wakeup_reset_counters(-100); // will reset all idle countdowns
 	}
 	
 	if (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
-		idle_wakeup_reset_counters();
+		idle_wakeup_reset_counters(-1);
 }
 
 void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void), void(*action_off)(void))
@@ -2900,7 +2903,7 @@ void idle_globaldraw_en()
 static void
 clearscreen_task( void* unused )
 {
-	idle_wakeup_reset_counters();
+	idle_wakeup_reset_counters(0);
 	
 	int k = 0;
 	for (;;k++)
@@ -2935,6 +2938,7 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
+				lens_display_set_dirty();
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
@@ -2949,7 +2953,7 @@ clearscreen_loop:
 		//~ }
 
 		if (recording && !idle_rec) // don't go to powersave when recording
-			idle_wakeup_reset_counters();
+			idle_wakeup_reset_counters(-2);
 		
 		if (idle_display_dim_after)
 			idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
@@ -3276,7 +3280,7 @@ int get_disp_mode() { return disp_mode; }
 
 int toggle_disp_mode()
 {
-	idle_wakeup_reset_counters();
+	idle_wakeup_reset_counters(-3);
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	BMP_LOCK( do_disp_mode_change(); )
 	menu_set_dirty();
@@ -3512,7 +3516,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
 	zoom_overlay_countdown = 0;
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
-	idle_wakeup_reset_counters();
+	idle_wakeup_reset_counters(-4);
 	return prop_cleanup( token, property );
 }
 
