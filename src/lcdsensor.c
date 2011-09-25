@@ -86,9 +86,9 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 
 void lcd_release_step() // to be called from shoot_task
 {
-	if (!DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
+	if (lcd_sensor_shortcuts && lv && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
 	{
-		DispSensorStart();
+		GMT_LOCK( DispSensorStart(); ) msleep(500);
 	}
 
 	if (wave_count_countdown)
