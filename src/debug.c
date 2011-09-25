@@ -866,7 +866,6 @@ struct menu_entry debug_menus[] = {
 		.display	= lv_movie_print,
 		.help		= "Enable movie recording on 50D :) "
 	},
-#endif
 	{
 		.name		= "Movie exposure lock",
 		.priv		= &movie_expo_lock,
@@ -874,6 +873,7 @@ struct menu_entry debug_menus[] = {
 		.display	= movie_expo_lock_print,
 		.help		= "Lock the exposure in movie mode (50D/500D)"
 	},
+#endif
 	/*{
 		.name		= "Movie size",
 		.select		= movie_size_toggle,
