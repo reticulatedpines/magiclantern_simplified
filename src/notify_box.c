@@ -41,6 +41,8 @@ void NotifyBox_task(void* priv)
         // wait until some other task asks for a notification
         take_semaphore(notify_box_show_sem, 0);
         
+        redraw();
+        
         // show notification for a while, then redraw to erase it
         notify_box_stop_request = 0;
         int i;
