@@ -381,7 +381,11 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
       :align: center
       :width: 13cm
 
-  Tip: you may configure a `display preset`_ with False Color and toggle it with a single button press.
+  Tips:
+  
+  * you may configure a `display preset`_ with False Color and toggle it with a single button press.
+  * you may use the transparent false color presets to highlight areas exposed at 50 IRE or 70 IRE.
+  * you may use the last preset to reveal color banding, especially with low-contrast picture styles.
   
 .. _Cropmark:
 
@@ -431,7 +435,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Usage:
   
   * To select the image, go to Play mode and press the ``LiveView`` button.
-  * Move the ghost image in LiveView with arrow keys, and center it with ``SET``.
+  * Move the ghost image in LiveView with arrow keys; center or hide it with ``SET``.
 
 **Live Defish: ON/OFF**
 
@@ -515,6 +519,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``Zrec``: triggered by ``Zoom In`` button, pressed either while recording or while the LCD sensor is covered
   * ``Zr+F``: triggered by ``Zoom In`` button while recording, and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `rack focus`_).
   * ``(*)``: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, cover the LCD sensor or press both zoom buttons at the same time.
+  * ``ALW``: always on (unless you use the 5x/10x zoom from Canon).
   
   Size / magnification (change with ``PLAY``): 
   
@@ -657,10 +662,7 @@ Functions specific to movie mode.
 
   Workaround for remembering Kelvin temperature and WBShift G/M and B/A values in Movie mode.
     
-  If this setting is on, these values are stored in config file.
-  They will be shared between movie and photo modes.
-
-  Note: WBShift B/A can be only changed from Canon menu in photo mode, but with WB workaround enabled, WBShift settings will take effect in Movie mode, too (and also in auto modes, as a side effect).
+  If this setting is ``ON``, white balance values are stored in ML config file.
 
 .. _DigitalZoom Shortcut:
 
@@ -686,6 +688,18 @@ Functions specific to movie mode.
   
   * Avoids getting black screen when you start recording;
   * Lets you use most items from `LiveV`_ menu (zebras, false color, histogram...)
+
+**Movie Recording: ON/OFF (50D only)**
+  
+  Enable movie recording on 50D (1920x1080, 30fps, without sound). To start recording, go to LiveView (P/Tv/Av/M) and press SET.
+  
+  There are no manual controls, but you can lock the exposure with the ``*`` button or from ML menu.
+  
+  This setting remains active even if you start the camera with standard firmware (until you clear your settings).
+
+**MOV Exposure Lock: ON/OFF (50D only)**
+
+  Locks the exposure in movie mode. You can also use the ``*`` button (you don't have to hold it pressed).
 
 Shoot
 ~~~~~
@@ -785,7 +799,7 @@ Functions for stills shooting (some of them work for movies, too).
   Power Saving:
   
   * When not in LiveView, press ``DISP`` or ``INFO`` to turn the display off.
-  * In LiveView, ML will go to PLAY mode and turn the display off for you during idle times.
+  * In LiveView, ML will the display and the sensor off during idle times if you enable this option from ``Powersave`` menu.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
 .. _bulb-ramping:
@@ -965,13 +979,8 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Fine-tuning for ISO, in 1/8 EV steps.
   
-  Possible values (not all values are accepted by all cameras):
-  
-  0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
-
-  To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions. To get ISO lower than 200, turn HTP off. 
-  In video mode, ISO only goes up to 6400. This is also true without ML.
-  
+  Not all values are accepted by all cameras or in all modes. See your camera manual for details.
+    
   To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, see `ISO selection`_.
 
   
@@ -1007,18 +1016,16 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 **Shutter: 1/24...1/4000**
 
   Custom steps for shutter speed, in 1/8 EV steps.
+
+  Magic Lantern displays shutter values rounded to 2 significant digits, which may be slightly different than values displayed by Canon firmware (e.g. 1/50 is displayed by ML as 1/48). This is not a bug.
   
-  Assumming 1/4000 is native, you can use the `EV definition <http://en.wikipedia.org/wiki/Exposure_value>`_ to compute all available shutter speeds between 30s and 1/8000, resulting:
+  Assumming 1/4000 is native, you can use the `EV definition <http://en.wikipedia.org/wiki/Exposure_value>`_ to compute all available shutter speeds between 30s and 1/8000:
   
   .. raw:: latex
   
        $$1/4000 \cdot 2^{k/8},\;\; k=[135:-1:-8]$$
-    
-  Values displayed by ML (rounded to 2 digits):
   
-  1/24, 26, 29, 31, 34, 37, 41, 44, 48, 53, 57, 63, 68, 74, 81, 88, 96, 110, 120, 130, 140, 150, 160, 180, 190, 210, 230, 250, 270, 300, 320, 350, 390, 420, 460, 500, 560, 600, 650, 710, 770, 840, 920, 1000, 1100, 1200, 1300, 1400, 1500, 1700, 1800, 2000, 2200, 2300, 2600, 2800, 3000, 3400, 3700, 4000, 4400, 4800, 5200, 5600, 6200, 6800, 7300, 8000.
-  
-  Not all values are accepted by all cameras.
+  Not all shutter values are accepted by all cameras in all modes.
   
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the shutter value automatically.
   
@@ -1109,6 +1116,63 @@ Focus
 
   This feature was ported from `400plus <http://code.google.com/p/400plus/>`_.
 
+.. _follow focus:
+
+**Follow Focus: OFF / Arrows / ZoomIn/AF**
+
+  Very simple follow focus (like a rack focus controlled manually).
+  
+  ``Arrows``: you will be able to focus with the arrow keys;
+  ``ZoomIn/AF``: you will be able to focus with ``ZoomIn`` and ``AF`` keys. This works best if you assign ``AF`` to ``ZoomOut (*)`` from Custom Functions. It does not work with Quick Focus mode.
+
+  You can reverse the focus direction with ``Q`` and ``PLAY``.
+
+.. _focus speed:
+
+**Focus StepSize: Small/Medium/Large**
+
+  Step size for one focus command, as used by EOS Utility.
+
+**Focus StepDelay: Wait, 1...512 ms**
+
+  Delay between two successive focus commands.
+  
+  If ``Wait`` is not active, ML will only wait a for fixed delay before sending next focus command. This will reduce stutter, but may affect rack focus accuracy. This setting is recommended if you only use follow focus.
+
+  If ``Wait`` is active, ML will wait until each focus command is completed, and then it will wait for a fixed delay, as configured here. This will increase rack focus accuracy, but may cause stutter with certain lenses.
+
+**Focus End Point**
+
+    This is end point of rack focus. To set, focus the lens, then press "Set".
+    
+    The start point will be the point where you are before running the rack focus.
+
+.. _rack focus:
+
+**Rack Focus**
+
+  Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
+    
+  * ``SET``: rack focus will start after 2 seconds;
+  * ``Q``: rack focus will start immediately;
+  * ``PLAY``: ML will automatically record a short clip with the rack focus operation.
+
+  Step-by-step:
+  
+  1. Pick the end point of rack focus by focusing on it (manually or with AF).
+
+  2. Configure focus parameters (step size and delay). Different lenses may require different parameters.
+
+  3. Open the ``Focus`` menu, go to ``Focus End Point`` and press ``Set`` to zero it out.
+  
+  4. Pick the start point by focusing on it with the Zoom In/Out buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus.
+    
+  5. Go to ``Rack Focus`` and press ``SET``, ``Q`` or ``PLAY`` to start rack focus.
+  
+  6. To return to the beginning point, you can press ``SET``, ``Q`` or ``PLAY`` again.
+
+  **Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
+
 .. _focus stacking:
 
 **Stack focus**
@@ -1118,69 +1182,13 @@ Focus
   This selection will shoot a series of photographs with varying focus points.
   It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
 
-  Note: before using this feature, **you have to assign autofocus to a separate button** (for example, the ``*`` button), from Canon Menu, Custom Functions:
-  
-  * ``Shutter/AE lock button`` -> ``1:AE lock/AF`` on Rebel cameras;
-  * ``AF and metering buttons`` -> any option without AF on shutter button.
-
   This function will also create scripts named like named ``FST_1234.SH``, which can be used for stacking the images with enfuse. See `Exposure bracketing`_ for details on how to use these scripts, and the `focus stacking section <http://panorama.dyndns.org/EandE-documentation/enfuse.html#Focus-Stacks>`_ from Enfuse reference manual.
   
   Keys:
   
   * ``SET``: change the number of photos
-  * ``Q``: change the focus step size
+  * ``Q``: change the number of focus steps between two shots
   * ``PLAY``: run the stack focus sequence
-  
-.. _focus speed:
-
-**Focus speed**
-
-  Adjust speed for rack focus and follow focus, in focus steps.
-
-**Focus delay**
-
-  Delay between two successive focus commands. See `this article <http://www.okii.net/Articles.asp?ID=238>`_ for details.
-
-.. _follow focus:
-
-**Follow Focus: ON / OFF**
-
-  Very simple follow focus (like a rack focus controlled manually).
-  
-  When this setting is enabled, it will change the default behavior of arrow keys, according to the following table:
-
-
-  =========  =====  ====  ====  ======  ===
-    Key      Speed        Direction        
-  =========  ===========  =================
-  ``LEFT``   slow   *1x*  far    ``+``   ↶
-  ``RIGHT``  slow   *1x*  near   ``-``   ↷
-  ``UP``     fast   *5x*  far    ``+``   ⤿
-  ``DOWN``   fast   *5x*  near   ``-``   ⤸ 
-  =========  =====  ====  ====  ======  ===
-  
-  You can reverse the direction for these keybindings:
-  
-  * Press ``Q`` to reverse the direction for ``LEFT/RIGHT`` keys (slow speed)
-  * Press ``PLAY`` to reverse the direction for ``UP/DOWN`` keys (fast speed)
-
-.. _rack focus:
-
-[[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|200px|right|Rack Focus Tutorial by Daniel Thurau]]
-
-**Focus dir**
-
-  This is the direction the lens moves when pressing the camera's Zoom In button to set the focus start and end points.
-
-**Focus A**
-
-    This is end point of rack focus. To set, focus the lens with the Zoom In button, then press "Set".
-    
-    The start point will be the point where you are before selecting ``Rack focus`` in the menu.
-
-**Rack Focus**
-
-    Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
 
 .. _focus and DOF info:
 
@@ -1204,33 +1212,6 @@ The following items are display only:
 
   The farthest distance in which objects appear in focus. 
 
-**How rack focus works**
-
-  Now that you know what the buttons are about, here is how you make it work:
-  
-  1. Pick the end point of rack focus by focusing on it (manually or with AF).
-
-  2. Open the Focus menu, go to ``Focus A`` and press ``Set`` to zero it out.
-  
-  3. Pick the start point by focusing on it **from ML controls**. Do NOT use autofocus and do NOT focus manually from the lens ring.
-  
-    To focus the lens, make sure it is set on AF and use one of the following:
-    
-    * Option 1: choose ``Focus dir`` and hold on the ``Zoom In`` button while Focus menu is active.
-    * Option 2: enable `Follow focus`_, close the focus menu and focus with the arrows.
-
-  4. Select the focus speed. The number varies between different lenses and represents raw encoder steps for the focus motor.
-  
-  5. Next, start movie recording (you can do that while ML menu is active).
-  
-  6. Go to ``Rack Focus`` and press ``SET`` to start rack focus. You should see the rack focus commence and complete its cycle.
-  
-  7. To return to the beginning point, you can press ``SET`` again to return to that point, once again.
-
-**Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
-
-See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
-
 Tweaks
 ~~~~~~
 
@@ -1241,6 +1222,18 @@ Tweaks
 
 Miscellanous settings.
 
+**NightVision LV Gain: up to +6EV**
+
+  This feature lets you frame the image in extremely dark places, or with strong ND or infrared filters.
+
+  It works by increasing the digital gain applied to LiveView image. The gain is not applied to pictures, but it is applied to videos.
+
+  You can also use this feature to record at ISO higher than 6400, up to ISO 409600:
+  
+  * To use night vision in movie mode, first you need to enable Auto ISO.
+  * Since the scene is very dark, camera should select ISO 6400.
+  * To get the equivalent of ISO 25600 (for example), you need to increase display gain by +2EV.
+  
 **AF frame display: Show / AutoHide**
 
   Control the appearance of AF frame:
@@ -1262,10 +1255,16 @@ Miscellanous settings.
 
   When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
   
-  This function will reduce picture quality in the following steps:
+  This function will reduce picture quality if the buffer has space for less than 4 pictures:
 
-  * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
-  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``  
+  * ``RAW+JPG`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+  * ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+  
+  Possible results (550D, Transcend Class 10, your mileage may vary):
+  
+  * ``RAW+JPG``, ``JPG-L``, all others ``JPG-M``
+  * ``RAW``, ``RAW``, all others ``JPG-M``
 
 **Exposure Simulation: OFF / ON / Auto**
 
@@ -1279,20 +1278,6 @@ Miscellanous settings.
     - enabled otherwise.
   
   When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
-
-**After taking a photo: QuickReview / Hold->Play**
-
-  Image review behavior.
-  
-  * ``QuickReview``: just like in standard firmware
-  * ``Hold->Play``: if you set ``Image Review:Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``).
-
-**Zoom in PLAY mode**
-
-  Increase the speed of zoom function in ``PLAY`` mode.
-  
-  * ``Normal``: just like in standard firmware
-  * ``Fast``: zoom on steroids
 
 .. _Show cropmarks in:
 
@@ -1335,6 +1320,25 @@ Miscellanous settings.
   * ``x5x10``: both settings available (Canon default)
   * ``:-)`` Enable zoom in Face Detection mode
 
+Play
+~~~~
+
+Features for Playback mode.
+
+**After taking a photo: QuickReview / Hold->Play**
+
+  Image review behavior.
+  
+  * ``QuickReview``: just like in standard firmware
+  * ``Hold->Play``: if you set ``Image Review:Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``).
+
+**Zoom in PLAY mode**
+
+  Increase the speed of zoom function in ``PLAY`` mode.
+  
+  * ``Normal``: just like in standard firmware
+  * ``Fast``: zoom on steroids
+
 Debug
 ~~~~~
 
@@ -1373,19 +1377,26 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
   To enable this feature, compile Magic Lantern with ``CONFIG_DEBUGMSG = 1``.
 
+Powersave
+~~~~~~~~~
+
 **Dim display: OFF / after X seconds**
 
   In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
 
 .. _Turn off display:
 
-**Turn off display: OFF / after X seconds**
+**Turn off LCD and Lv: OFF / after X seconds**
 
-  In LiveView, if the camera is idle, Magic Lantern will turn off the built-in LCD display in order to save power.
+  In LiveView, if the camera is idle, Magic Lantern will turn off the built-in LCD display and pause LiveView (turn off the sensor) in order to save power. If the camera is recording or motion detection is active, only display will be turned off.
 
 **Turn off GlobalDraw: OFF / after X seconds**
 
   In LiveView, if the camera is idle, Magic Lantern will turn off `Global Draw`_ in order to save power.
+
+**Save power when REC: ON/OFF**
+
+  If enabled, camera will save power during recording.
 
 Config
 ~~~~~~
