@@ -730,6 +730,83 @@ static void night_vision_print(
 }
 */
 
+int display_gain = 0;
+void display_gain_toggle(int dir)
+{
+	if (dir > 0)
+	{
+		display_gain = MAX(display_gain * 2, 2048);
+		if (display_gain > 65536) display_gain = 0;
+	}
+	else if (dir < 0)
+	{
+		if (display_gain && display_gain <= 2048) display_gain = 0;
+		else if (display_gain) display_gain /= 2; 
+		else display_gain = 65536;
+	}
+	else display_gain = 0;
+	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
+	menu_show_only_selected();
+}
+void display_gain_toggle_forward(void* priv) { display_gain_toggle(1); }
+void display_gain_toggle_reverse(void* priv) { display_gain_toggle(-1); }
+void display_gain_reset(void* priv) { display_gain_toggle(0); }
+
+int gain_to_ev(int gain)
+{
+	return (int) roundf(log2f(gain));
+}
+
+static void display_gain_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int gain_ev = 0;
+	if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"LVGain (NightVision): %s%d EV",
+		gain_ev ? "+" : "",
+		gain_ev
+	);
+}
+
+/*
+PROP_INT(PROP_ELECTRIC_SHUTTER, eshutter);
+
+static void eshutter_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int gain_ev = 0;
+	if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Electric Shutter    : %d",
+		eshutter
+	);
+}
+static void set_eshutter(int e)
+{
+	e = COERCE(e, 0, 2);
+	call("lv_eshutter", e);
+	eshutter = e;
+	GUI_SetElectricShutter(e);
+	//~ prop_request_change(PROP_ELECTRIC_SHUTTER, &e, 4);
+}
+static void eshutter_toggle(void* priv)
+{
+	set_eshutter(mod(eshutter + 1, 3));
+}*/
+
 struct menu_entry tweak_menus[] = {
 /*	{
 		.name = "Night Vision Mode",
@@ -739,6 +816,15 @@ struct menu_entry tweak_menus[] = {
 		.help = "Maximize LV display gain for framing in darkness (photo)"
 	},*/
 	{
+		.name = "LVGain (NightVision)", 
+		.priv = &display_gain,
+		.select = display_gain_toggle_forward, 
+		.select_reverse = display_gain_toggle_reverse,
+		.select_auto = display_gain_reset,
+		.display = display_gain_print, 
+		.help = "Boosts LV digital display gain (Photo, Movie w.AutoISO)",
+	},
+	{
 		.name = "Exposure Simulation",
 		.priv = &expsim_setting,
 		.select = menu_ternary_toggle,
@@ -746,6 +832,13 @@ struct menu_entry tweak_menus[] = {
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av)."
 	},
+	/*{
+		.name = "Electric Shutter",
+		.priv = &eshutter,
+		.select = eshutter_toggle,
+		.display = eshutter_display,
+		.help = "For enabling third-party flashes in LiveView."
+	},*/
 	{
 		.name = "AF frame display",
 		.priv = &af_frame_autohide, 
