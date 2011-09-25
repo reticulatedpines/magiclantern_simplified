@@ -3285,6 +3285,7 @@ void do_disp_mode_change()
 	
 	display_on();
 	bmp_on();
+	redraw();
 	NotifyBox(1000, "Display preset: %d", disp_mode);
 	update_disp_mode_params_from_bits();
 	//~ draw_ml_topbar();
