@@ -32,6 +32,10 @@
 #include "lens.h"
 #include "gui.h"
 
+
+CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
+int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
+
 CONFIG_INT( "lcd.release", lcd_release_running, 0);
 
 void display_lcd_remote_icon(int x0, int y0);
@@ -148,10 +152,6 @@ void display_lcd_remote_icon(int x0, int y0)
 
 // sensor shortcuts
 //**********************************************************************
-
-CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
-
-int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
 
 void
 lcd_sensor_shortcuts_print(
