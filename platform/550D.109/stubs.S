@@ -250,3 +250,4 @@ NSTUB(0xFF13FA00, ptpPropButtonSW2)
 NSTUB(0xFF13F7B4, RemoteRelease)
 
 NSTUB(0xFF06B014, GetMemoryInformation) // called from AllocateMemory
+NSTUB(0xFF204C8C, GUI_SetElectricShutter)

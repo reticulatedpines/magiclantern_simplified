@@ -325,6 +325,8 @@
 
 #define PROP_BEEP 0x80000023
 
+#define PROP_ELECTRIC_SHUTTER 0x80040011
+
 /** Properties */
 extern void
 prop_register_slave(
