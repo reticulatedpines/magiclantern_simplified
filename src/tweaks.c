@@ -25,7 +25,6 @@ static void set_expsim( int x )
 	if (expsim != x)
 	{
 		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
-		msleep(100);
 	}
 }
 /*
@@ -87,6 +86,16 @@ static void expsim_update()
 			set_expsim(expsim_auto_value); // shooting mode, ML decides to toggle ExpSim
 		}
 	}
+}
+
+static void expsim_toggle(void* priv)
+{
+	menu_ternary_toggle(priv); msleep(100);
+}
+
+static void expsim_toggle_reverse(void* priv)
+{
+	menu_ternary_toggle_reverse(priv); msleep(100);
 }
 
 // LV metering
@@ -821,8 +830,8 @@ struct menu_entry tweak_menus[] = {
 	{
 		.name = "Exposure Simulation",
 		.priv = &expsim_setting,
-		.select = menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select = expsim_toggle,
+		.select_reverse = expsim_toggle_reverse,
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av)."
 	},
