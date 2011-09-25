@@ -43,7 +43,7 @@
 
 #define FOCUS_CONFIRMATION (*(int*)0x4680)
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
-#define AF_BUTTON_PRESSED_LV 0
+//~ #define AF_BUTTON_PRESSED_LV 0
 
 #define DISPLAY_SENSOR_POWERED 0
 

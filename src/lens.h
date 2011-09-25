@@ -200,6 +200,7 @@ extern void
 lens_focus(
 	int num_steps, 
 	int stepsize, 
+	int wait,
 	int extra_delay
 );
 

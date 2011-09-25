@@ -184,7 +184,7 @@
 
 #define FOCUS_CONFIRMATION (*(int*)0x479C) 
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // same as 60D
-#define AF_BUTTON_PRESSED_LV 0
+//~ #define AF_BUTTON_PRESSED_LV 0
 
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)

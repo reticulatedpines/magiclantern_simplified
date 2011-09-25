@@ -19,17 +19,18 @@
 
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
-CONFIG_INT( "focus.delay", lens_focus_delay, 6 );
+CONFIG_INT( "focus.delay", lens_focus_delay, 1 );
+CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
 
 // all focus commands from this module are done with the configured step size and delay
 void LensFocus(int num_steps)
 {
-	lens_focus(num_steps, lens_focus_stepsize, 1<<lens_focus_delay);
+	lens_focus(num_steps, lens_focus_stepsize, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
 }
 
 void LensFocus2(int num_steps, int step_size)
 {
-	lens_focus(num_steps, step_size, 1<<lens_focus_delay);
+	lens_focus(num_steps, step_size, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
 }
 
 
@@ -335,8 +336,9 @@ focus_delay_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Focus StepDelay: %d ms",
-		1 << lens_focus_delay
+		"Focus StepDelay: %s%dms",
+		lens_focus_waitflag ? "Wait + " : "",
+		(1 << lens_focus_delay) * 10
 	);
 	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
@@ -425,6 +427,8 @@ rack_focus(
 		delta = -delta;
 	}
 
+	speed_cmd = speed_cmd > 0 ? 1 : -1;
+	
 	int delta0 = delta;
 
 	while( delta )
@@ -434,7 +438,7 @@ rack_focus(
 		
 		delta --;
 
-		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%%", ABS(delta0 - delta) * 100 / ABS(delta0));
+		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%% ", ABS(delta0 - delta) * 100 / ABS(delta0));
 		draw_ml_bottombar();
 		
 		LensFocus( speed_cmd );
@@ -489,8 +493,9 @@ focus_task( void* unused )
 
 		while( focus_task_dir )
 		{
-			LensFocus2(1, focus_task_dir * lens_focus_stepsize);
-			focus_task_delta += focus_task_dir;
+			int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
+			LensFocus2(1, f * lens_focus_stepsize);
+			focus_task_delta += f;
 		}
 	}
 }
@@ -963,14 +968,6 @@ static struct menu_entry focus_menu[] = {
 		.help = "Custom AF patterns (photo mode only; ported from 400plus)"
 	},
 	{
-		.name = "Stack focus",
-		.display	= focus_stack_print,
-		.select		= focus_stack_count_increment,
-		.select_auto		= focus_stack_step_increment,
-		.select_reverse		= focus_stack_unlock,
-		.help = "Focus bracketing, useful for macro shots."
-	},
-	{
 		.name = "Follow Focus",
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
@@ -991,21 +988,6 @@ static struct menu_entry focus_menu[] = {
 	},
 #endif
 	{
-		.name = "Rack Focus",
-		.priv		= "Rack focus",
-		.display	= menu_print,
-		.select		= rack_focus_start_delayed,
-		.select_auto		= rack_focus_start_now,
-		.select_reverse = rack_focus_start_auto_record,
-		.help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
-	},
-	{
-		.name = "Focus End Point",
-		.display	= focus_show_a,
-		.select		= focus_reset_a,
-		.help = "Press SET to fix here the end point of rack focus."
-	},
-	{
 		.name = "Focus StepSize",
 		.display	= focus_rack_speed_display,
 		.select		= focus_stepsize_increment,
@@ -1014,10 +996,27 @@ static struct menu_entry focus_menu[] = {
 	},
 	{
 		.name = "Focus StepDelay",
+		.priv = &lens_focus_waitflag,
 		.display	= focus_delay_display,
 		.select		= focus_delay_increment,
 		.select_reverse	= focus_delay_decrement,
-		.help = "Delay between two successive focus commands."
+		.select_auto = menu_binary_toggle, 
+		.help = "Delay between two successive focus commands. [Q]: Wait."
+	},
+	{
+		.name = "Focus End Point",
+		.display	= focus_show_a,
+		.select		= focus_reset_a,
+		.help = "Press SET to fix here the end point of rack focus."
+	},
+	{
+		.name = "Rack Focus",
+		.priv		= "Rack focus",
+		.display	= menu_print,
+		.select		= rack_focus_start_delayed,
+		.select_auto		= rack_focus_start_now,
+		.select_reverse = rack_focus_start_auto_record,
+		.help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
 	},
 	/*{
 		.name = "Focus dir",
@@ -1026,6 +1025,14 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_binary_toggle,
 		.help = "Focus direction used when you press the 'Zoom In' button."
 	},*/
+	{
+		.name = "Stack focus",
+		.display	= focus_stack_print,
+		.select		= focus_stack_count_increment,
+		.select_auto		= focus_stack_step_increment,
+		.select_reverse		= focus_stack_unlock,
+		.help = "Focus bracketing, useful for macro shots."
+	},
 	{
 		.name = "Focus Dist",
 		.display	= display_lens_hyperfocal,
@@ -1092,7 +1099,6 @@ int handle_rack_focus(struct event * event)
 		{
 			gui_hide_menu( 5 );
 			lens_focus_stop();
-			if (AF_BUTTON_PRESSED_LV) return 1; // don't override the AF button
 			return 0;
 		}
 		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
@@ -1103,7 +1109,6 @@ int handle_rack_focus(struct event * event)
 		}
 		if (lv && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
 		{
-			if (AF_BUTTON_PRESSED_LV) return 1; // don't override the AF button
 			gui_hide_menu( 50 );
 			lens_focus_start( -get_follow_focus_dir_h() );
 			return 0;
@@ -1132,7 +1137,7 @@ int handle_follow_focus(struct event * event)
 				case BGMT_PRESS_DOWN:
 					lens_focus_start(2 * get_follow_focus_dir_v());
 					return 0;
-				#ifdef BGMT_UNPRESS_UDLR:
+				#ifdef BGMT_UNPRESS_UDLR
 				case BGMT_UNPRESS_UDLR:
 				#else
 				case BGMT_UNPRESS_LEFT:
@@ -1146,11 +1151,14 @@ int handle_follow_focus(struct event * event)
 		}
 		else if (follow_focus == 2) // zoom in/out
 		{
+			if (lvaf_mode == 0) return 1; // not compatible with quick focus
 			switch(event->param)
 			{
 				case BGMT_PRESS_ZOOMOUT_MAYBE:
 				case BGMT_PRESS_HALFSHUTTER:
-					if (AF_BUTTON_PRESSED_LV) return 1;
+					#ifdef AF_BUTTON_PRESSED_LV
+					if (!AF_BUTTON_PRESSED_LV) return 0; // only override the AF button
+					#endif
 					lens_focus_start(-1 * get_follow_focus_dir_h());
 					return 0;
 				case BGMT_PRESS_ZOOMIN_MAYBE:

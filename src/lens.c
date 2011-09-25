@@ -687,18 +687,22 @@ volatile int lv_focus_done = 1;
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
 	lv_focus_done = 1;
+	if (buf[0] & 0x100) NotifyBox("Focus: soft limit reached");
 	return prop_cleanup( token, property );
 }
 
 void
 lens_focus_wait( void )
 {
-	while (!lv_focus_done)
+	for (int i = 0; i < 100; i++)
 	{
 		msleep(10);
+		if (lv_focus_done) break;
 		if (!lv) break;
 		if (is_manual_focus()) break;
 	}
+	NotifyBox(1000, "Focus error :("); msleep(1000);
+	NotifyBox(1000, "Press PLAY twice or reboot");
 }
 
 // this is compatible with all cameras so far, but allows only 3 speeds
@@ -706,6 +710,7 @@ void
 lens_focus(
 	int num_steps, 
 	int stepsize, 
+	int wait,
 	int extra_delay
 )
 {
@@ -728,10 +733,18 @@ lens_focus(
 	{
 		lv_focus_done = 0;
 		card_led_on();
-		prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
-		lens_focus_wait();
+		if (lv && !mirror_down && tft_status == 0)
+			prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+		if (wait)
+		{
+			lens_focus_wait(); // this will sleep at least 10ms
+			if (extra_delay > 10) msleep(extra_delay - 10); 
+		}
+		else
+		{
+			msleep(extra_delay);
+		}
 		card_led_off();
-		if (extra_delay > 5) msleep(extra_delay);
 	}
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
