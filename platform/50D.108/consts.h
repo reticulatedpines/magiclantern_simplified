@@ -97,7 +97,7 @@
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
 // not sure (from 60D)
-#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
+#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168

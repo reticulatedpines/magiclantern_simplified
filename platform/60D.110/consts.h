@@ -95,7 +95,7 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
 
-#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
+#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 #define BGMT_FLASH_MOVIE 0 
 #define BGMT_PRESS_FLASH_MOVIE 0 

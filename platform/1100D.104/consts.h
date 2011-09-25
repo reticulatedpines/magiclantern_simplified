@@ -128,8 +128,8 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 
-// not sure (from 60D)
-#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in IDLEHandler
+// not sure (from 600D)
+#define OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
 
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
