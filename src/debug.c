@@ -324,7 +324,9 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	bootflag_write_bootblock();
+	//~ set_shooting_mode(SHOOTMODE_BULB);
+	
+	//~ bootflag_write_bootblock();
 	//~ int a = AllocateMemory(102400);
 	//~ task_create("run_test", 0x1c, 0, run_test, 0);
 }
@@ -334,6 +336,232 @@ static void xx_test2(void* priv)
 	gui_stop_menu();
 	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
 	task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
+}
+
+static void stress_test_picture(int n, int delay)
+{
+	msleep(delay);
+	for (int i = 0; i < n; i++)
+	{
+		NotifyBox(10000, "Picture taking: %d/%d", i+1, n);
+		msleep(200);
+		assign_af_button_to_star_button();
+		lens_take_picture(64);
+		restore_af_button_assignment();
+	}
+	lens_wait_readytotakepic(64);
+	msleep(delay);
+}
+
+static void stress_test_task(void* unused)
+{
+	NotifyBox(10000, "Stability Test..."); msleep(2000);
+
+	for (int i = 0; i <= 10; i++)
+	{
+		NotifyBox(10000, "LED blinking: %d", i*10);
+		card_led_blink(10, i*3, (10-i)*3);
+	}
+	
+	msleep(2000);
+	
+	for (int i = 0; i <= 100; i++)
+	{
+		NotifyBox(10000, "Redraw test: %d", i);
+		msleep(50);
+		redraw();
+		msleep(50);
+	}
+
+	msleep(2000);
+
+	NotifyBox(10000, "Menu scrolling");
+	open_canon_menu();
+	for (int i = 0; i < 5000; i++)
+		fake_simple_button(BGMT_WHEEL_LEFT);
+	for (int i = 0; i < 5000; i++)
+		fake_simple_button(BGMT_WHEEL_RIGHT);
+	SW1(1,0);
+	SW1(0,0);
+
+	stress_test_picture(2, 2000); // make sure we have at least 2 pictures for scrolling :)
+
+	NotifyBox(10000, "Play scrolling");
+	fake_simple_button(BGMT_PLAY); msleep(1000);
+	for (int i = 0; i < 50; i++)
+	{
+		NotifyBox(10000, "Play scrolling: %d", i);
+		next_image_in_play_mode(1);
+	}
+	for (int i = 0; i < 50; i++)
+	{
+		NotifyBox(10000, "Play scrolling: %d", i+50);
+		next_image_in_play_mode(-1);
+	}
+	get_out_of_play_mode();
+
+	msleep(2000);
+
+	NotifyBox(10000, "LiveView");
+	set_shooting_mode(SHOOTMODE_M);
+	if (!lv) force_liveview();
+	for (int i = 0; i < 21; i++)
+	{
+		fake_simple_button(BGMT_LV); msleep(100);
+	}
+
+	stress_test_picture(2, 2000);
+
+	msleep(2000);
+	if (lv) fake_simple_button(BGMT_LV); // make sure we are outside LV
+	msleep(1000);
+
+	/*for (int i = 0; i <= 0x14; i++)
+	{
+		NotifyBox(10000, "Mode switching: %d", i);
+		set_shooting_mode(i);
+		msleep(1000);
+	}
+	for (int i = 0x14; i >= 0; i--)
+	{
+		NotifyBox(10000, "Mode switching: %d", i);
+		set_shooting_mode(i);
+		msleep(1000);
+	}*/
+
+	for (int i = 0; i <= 10; i++)
+	{
+		NotifyBox(10000, "Mode switching: %d", i*10);
+		set_shooting_mode(SHOOTMODE_AUTO);	msleep(100);
+		set_shooting_mode(SHOOTMODE_MOVIE);	msleep(100);
+		set_shooting_mode(SHOOTMODE_SPORTS);	msleep(100);
+		set_shooting_mode(SHOOTMODE_NIGHT);	msleep(100);
+		set_shooting_mode(SHOOTMODE_CA);	msleep(100);
+		set_shooting_mode(SHOOTMODE_M);	msleep(100);
+		set_shooting_mode(SHOOTMODE_TV);	msleep(100);
+		set_shooting_mode(SHOOTMODE_AV);	msleep(100);
+		set_shooting_mode(SHOOTMODE_P);	msleep(100);
+	}
+	
+	stress_test_picture(2, 2000);
+
+	if (!lv) force_liveview();
+	NotifyBox(10000, "Focus tests...");
+	msleep(2000);
+	for (int i = 1; i <= 3; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			lens_focus( 1, i, 1, 0);
+			lens_focus(-1, i, 1, 0);
+		}
+	}
+
+	msleep(2000);
+
+	NotifyBox(10000, "Expo tests...");
+	
+	if (!lv) force_liveview();
+	msleep(1000);
+	for (int i = KELVIN_MIN; i <= KELVIN_MAX; i += KELVIN_STEP)
+	{
+		NotifyBox(10000, "Kelvin: %d", i);
+		lens_set_kelvin(i); msleep(200);
+	}
+	lens_set_kelvin(6500);
+
+	stress_test_picture(2, 2000);
+
+	set_shooting_mode(SHOOTMODE_M);
+
+	if (!lv) force_liveview();
+	msleep(1000);
+
+	for (int i = 72; i <= 136; i++)
+	{
+		NotifyBox(10000, "ISO: raw %d  ", i);
+		lens_set_rawiso(i); msleep(200);
+	}
+	lens_set_iso(88);
+
+	stress_test_picture(2, 2000);
+
+	msleep(2000);
+	if (!lv) force_liveview();
+	msleep(1000);
+
+	for (int i = 0; i <= 100; i++)
+	{
+		NotifyBox(10000, "Pause LiveView: %d", i);
+		PauseLiveView(); msleep(100);
+		ResumeLiveView(); msleep(100);
+	}
+
+	stress_test_picture(2, 2000);
+
+	msleep(2000);
+	if (!lv) force_liveview();
+	msleep(1000);
+
+	for (int i = 0; i <= 100; i++)
+	{
+		NotifyBox(10000, "BMP overlay: %d", i);
+		bmp_off(); msleep(100);
+		bmp_on(); msleep(100);
+	}
+
+	stress_test_picture(2, 2000);
+
+	msleep(2000);
+	if (!lv) force_liveview();
+	msleep(1000);
+
+	for (int i = 0; i <= 100; i++)
+	{
+		NotifyBox(10000, "Display on/off: %d", i);
+		display_off_force(); msleep(100);
+		display_on_force(); msleep(100);
+	}
+
+	stress_test_picture(2, 2000);
+
+#ifdef CONFIG_60D // can't set bulb mode from ML on other cameras...
+	set_shooting_mode(SHOOTMODE_BULB);
+	
+	msleep(1000);
+	for (int i = 0; i <= 5; i++)
+	{
+		NotifyBox(10000, "Bulb picture taking: %d", i);
+		bulb_take_pic(500 + i * 500);
+	}
+#endif
+
+	NotifyBox(10000, "Movie recording");
+	ensure_movie_mode();
+	msleep(1000);
+	for (int i = 0; i <= 5; i++)
+	{
+		NotifyBox(10000, "Movie recording: %d", i);
+		movie_start();
+		msleep(5000);
+		movie_end();
+		msleep(5000);
+	}
+
+	stress_test_picture(2, 2000);
+
+	NotifyBox(2000, "Test complete."); msleep(2000);
+	NotifyBox(2000, "Is the camera still working?"); msleep(2000);
+	NotifyBox(10000, ":)");
+	//~ NotifyBox(10000, "Burn-in test (will take hours!)");
+	//~ set_shooting_mode(SHOOTMODE_M);
+	//~ xx_test2(0);
+}
+
+static void stress_test()
+{
+	gui_stop_menu();
+	task_create("stress_test", 0x1c, 0, stress_test_task, 0);
 }
 
 void ui_lock(int x)
@@ -941,6 +1169,12 @@ struct menu_entry debug_menus[] = {
 		.select_reverse = xx_test2,
 		.display	= menu_print,
 		.help = "The camera may turn into a 1D Mark V or it may explode."
+	},
+	{
+		.priv		= "Quick stability test",
+		.select		= stress_test,
+		.display	= menu_print,
+		.help = "Run this to test the stability of Magic Lantern."
 	},
 /*	{
 		.select = focus_test,
