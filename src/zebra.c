@@ -2970,7 +2970,6 @@ clearscreen_loop:
 			if (crop_dirty == 0)
 				crop_redraw_flag = 1;
 		}
-
 	}
 }
 
@@ -3169,7 +3168,15 @@ livev_lopriority_task( void* unused )
 			transparent_overlay_from_play();
 			transparent_overlay_flag = 0;
 		}
-		
+
+		// here, redrawing cropmarks does not block fast zoom
+		extern int cropmarks_play; // from tweak.c
+		if (cropmarks_play && PLAY_MODE)
+		{
+			cropmark_redraw();
+			msleep(2000);
+		}
+
 		loprio_sleep();
 		if (!zebra_should_run())
 			continue;

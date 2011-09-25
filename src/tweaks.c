@@ -543,12 +543,6 @@ tweak_task( void* unused)
 			redraw();
 		}
 		
-		if (cropmarks_play && PLAY_MODE)
-		{
-			cropmark_redraw();
-			msleep(2000);
-		}
-		
 		#ifdef CONFIG_60D
 		if (display_off_by_halfshutter_enabled)
 			display_off_by_halfshutter();
