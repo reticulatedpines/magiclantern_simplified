@@ -697,9 +697,9 @@ lens_focus_wait( void )
 	for (int i = 0; i < 100; i++)
 	{
 		msleep(10);
-		if (lv_focus_done) break;
-		if (!lv) break;
-		if (is_manual_focus()) break;
+		if (lv_focus_done) return;
+		if (!lv) return;
+		if (is_manual_focus()) return;
 	}
 	NotifyBox(1000, "Focus error :("); msleep(1000);
 	NotifyBox(1000, "Press PLAY twice or reboot");

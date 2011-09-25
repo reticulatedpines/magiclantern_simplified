@@ -1133,7 +1133,7 @@ Focus
 
   Step size for one focus command, as used by EOS Utility.
 
-**Focus StepDelay: Wait, 1...512 ms**
+**Focus StepDelay: Wait, 10...640 ms**
 
   Delay between two successive focus commands.
   

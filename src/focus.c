@@ -359,7 +359,7 @@ focus_stack_count_increment( void * priv )
 static void
 focus_delay_toggle( int sign)
 {
-	lens_focus_delay = mod(lens_focus_delay + sign, 10);
+	lens_focus_delay = mod(lens_focus_delay + sign, 7);
 }
 static void focus_delay_increment(void* priv) { focus_delay_toggle(1); }
 static void focus_delay_decrement(void* priv) { focus_delay_toggle(-1); }
