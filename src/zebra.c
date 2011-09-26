@@ -409,6 +409,7 @@ hist_draw_image(
 		if (!expsim) return;
 	}
 	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
 
 	// Align the x origin, just in case
 	x_origin &= ~3;
@@ -464,6 +465,7 @@ waveform_draw_image(
 	x_origin &= ~3;
 
 	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
 	unsigned pitch = BMPPITCH;
 	uint8_t * row = bvram + x_origin + y_origin * pitch;
 	if( hist_max == 0 )
@@ -1652,6 +1654,7 @@ int get_spot_motion(int dx, int draw)
 	const uint16_t*		vr1 = (void*)YUV422_LV_BUFFER_DMA_ADDR;
 	const uint16_t*		vr2 = (void*)get_fastrefresh_422_buf();
 	uint8_t * const		bm = bmp_vram();
+	if (!bm) return;
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
@@ -1803,7 +1806,7 @@ void zoom_overlay_size_toggle(void* priv)
 	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
 
-static CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
+CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
 
 static void
 disp_profiles_0_display(
@@ -2475,6 +2478,7 @@ void draw_zoom_overlay(int dirty)
 
 	if( !lv->vram )	return;
 	if( !hd->vram )	return;
+	if( !bmp_vram()) return;
 
 	uint16_t*		lvr = (uint16_t*) lv->vram;
 	uint16_t*		hdr = (uint16_t*) hd->vram;
@@ -3082,6 +3086,7 @@ livev_hipriority_task( void* unused )
 			msleep(100);
 		
 		zebra_sleep_when_tired();
+		
 
 		if (should_draw_zoom_overlay())
 		{
@@ -3197,7 +3202,7 @@ livev_lopriority_task( void* unused )
 	}
 }
 
-#ifdef CONFIG_600D
+#if defined(CONFIG_600D) || defined(CONFIG_50D)
 #define HIPRIORITY_TASK_PRIO 0x19
 #else
 #define HIPRIORITY_TASK_PRIO 0x1a
