@@ -58,6 +58,7 @@ extern int remote_shot_flag; // from shoot.c
 extern int intervalometer_running;
 int wave_count = 0;
 int wave_count_countdown = 0;
+int lcd_ff_dir = 1;
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	static int prev = 0;
@@ -68,7 +69,20 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	prev = on;
 	
 	if (remote_shot_flag) goto end;
-	
+
+	if (lv && job_state == 0 && lcd_release_running == 0 && is_follow_focus_active()==3) // FF on LCD sensor
+	{
+		if (on)
+		{
+			lens_focus_start( lcd_ff_dir * get_follow_focus_dir_h() );
+		}
+		else
+		{
+			lens_focus_stop();
+			lcd_ff_dir = -lcd_ff_dir;
+		}
+	}
+
 	if (lcd_release_running && gui_state == GUISTATE_IDLE && !intervalometer_running)
 	{
 		if (gui_menu_shown()) goto end;
@@ -79,7 +93,14 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 		if (lcd_release_running == 3 && wave_count < 5) goto end;
 
 		if (lcd_release_running == 3 && recording) schedule_movie_end(); // wave mode is allowed to stop movies
-		else schedule_remote_shot();
+		else if (recording && is_rack_focus_enabled())
+		{
+			rack_focus_start_now(0);
+		}
+		else
+		{
+			schedule_remote_shot();
+		}
 		wave_count = 0;
 	}
 	else wave_count = 0;
@@ -140,6 +161,11 @@ void display_lcd_remote_icon(int x0, int y0)
 			draw_line(x0 + 2*step, ydn, x0 + 3*step, yup, wave_count > 4 ? cl_on : cl_off);
 			x0++;
 		}
+	}
+	else if (lcd_release_running == 0 && is_follow_focus_active()==3 && lv)
+	{
+		bmp_printf(FONT_MED, x0-10, y0, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "+" : "-");
+		bmp_printf(FONT_LARGE, 650, 50, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "+" : "-");
 	}
 	
 	if (gui_menu_shown()) return;

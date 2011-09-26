@@ -748,15 +748,18 @@ static void display_shortcut_key_hints_lv()
 	}
 	else if (mode == 3)
 	{
-		int xf = is_follow_focus_active() == 1 ? 360 : 650;
-		int yf = is_follow_focus_active() == 1 ? 240 : 50;
-		int xs = is_follow_focus_active() == 1 ? 100 : 30;
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-		if (is_follow_focus_active() == 1) // arrows
+		if (is_follow_focus_active() < 3)
 		{
-			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+			int xf = is_follow_focus_active() == 1 ? 360 : 650;
+			int yf = is_follow_focus_active() == 1 ? 240 : 50;
+			int xs = is_follow_focus_active() == 1 ? 100 : 30;
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+			if (is_follow_focus_active() == 1) // arrows
+			{
+				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+			}
 		}
 	}
 	else

@@ -214,6 +214,8 @@ static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
 
+int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
+
 void follow_focus_reverse_dir()
 {
 	focus_task_dir = -focus_task_dir;
@@ -258,7 +260,7 @@ focus_show_a(
 		focus_task_delta < 0 ? "-" : "",
 		ABS(focus_task_delta)
 	);
-	menu_draw_icon(x, y, MNI_ACTION, 0);
+	menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
 }
 
 static void
@@ -269,10 +271,12 @@ rack_focus_print(
 	int			selected
 ) {
 	if (selected) override_zoom_buttons = 1;
+	extern int lcd_release_running;
 	bmp_printf(
 		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
 		x, y,
-		"Rack focus"
+		"Rack focus %s",
+		lcd_release_running && lcd_release_running < 3 && recording ? "(also w. LCD sensor)" : ""
 	);
 	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
@@ -295,7 +299,7 @@ focus_toggle( void * priv )
 	give_semaphore( focus_task_sem );
 }
 
-static void
+void
 rack_focus_start_now( void * priv )
 {
 	focus_rack_delay = 0;
@@ -569,7 +573,8 @@ follow_focus_print(
 		x, y,
 		"Follow Focus   : %s",
 		follow_focus == 1 ? "Arrows" :
-		follow_focus == 2 ? "Zoom In/Out" : "OFF"
+		follow_focus == 2 ? "Zoom In/Out" :
+		follow_focus == 3 ? "LCD sensor" : "OFF"
 	);
 	if (follow_focus)
 	{
@@ -996,7 +1001,11 @@ static struct menu_entry focus_menu[] = {
 		.name = "Follow Focus",
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
+		#ifdef CONFIG_550D
+		.select		= menu_quaternary_toggle,
+		#else
 		.select		= menu_ternary_toggle,
+		#endif
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
 		.help = "Simple follow focus with arrows or zoom in/out buttons."
