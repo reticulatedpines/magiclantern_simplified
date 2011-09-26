@@ -1807,7 +1807,7 @@ wbs_ba_display( void * priv, int x, int y, int selected )
 			ba > 0 ? "Amber " : (ba < 0 ? "Blue " : ""), 
 			ABS(ba)
 		);
-		menu_draw_icon(x, y, MNI_PERCENT, (-lens_info.wbs_gm + 9) * 100 / 18);
+		menu_draw_icon(x, y, MNI_PERCENT, (lens_info.wbs_ba + 9) * 100 / 18);
 }
 
 static void

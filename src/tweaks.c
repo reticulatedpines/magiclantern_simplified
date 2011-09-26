@@ -776,6 +776,11 @@ static void display_gain_print(
 		gain_ev ? "+" : "",
 		gain_ev
 	);
+	if (display_gain)
+	{
+		if (lv) menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
+		else menu_draw_icon(x, y, MNI_WARNING, 0);
+	}
 }
 
 /*
@@ -946,14 +951,14 @@ struct menu_entry play_menus[] = {
 		.help = "Faster zoom in Play mode, for pixel peeping :)"
 	},
 	{
-		.name = "Cropmarks in PLAY mode",
+		.name = "Cropmarks (PLAY)",
 		.priv = &cropmarks_play, 
 		.select = menu_binary_toggle, 
 		.display = cropmarks_play_display,
 		.help = "Show cropmarks in PLAY mode"
 	},
 	{
-		.name = "SET+Wheel in PLAY mode",
+		.name = "SET+MainDial (PLAY)",
 		.priv = &play_set_wheel_action, 
 		.select = menu_ternary_toggle, 
 		.select_reverse = menu_ternary_toggle_reverse,
