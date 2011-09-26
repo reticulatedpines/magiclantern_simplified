@@ -51,7 +51,7 @@ int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
 int get_menu_font_sel() 
 {
-	if (edit_mode) return FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED);
+	if (edit_mode) return FONT(FONT_LARGE,COLOR_WHITE,COLOR_GREEN2);
 	else return FONT(FONT_LARGE,COLOR_WHITE,13);
 }
 
@@ -411,6 +411,8 @@ menus_display(
 
 	take_semaphore( menu_sem, 0 );
 
+	extern int override_zoom_buttons; // from focus.c
+	override_zoom_buttons = 0; // will override them only if rack focus items are selected
 
 	if (!show_only_selected)
 		bmp_printf(

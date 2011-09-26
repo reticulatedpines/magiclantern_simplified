@@ -17,6 +17,12 @@
 #include "disable-this-module.h"
 #endif
 
+int override_zoom_buttons; // while focus menu is active and rack focus items are selected
+
+int should_override_zoom_buttons()
+{
+	return (override_zoom_buttons && is_movie_mode() && !is_manual_focus() && lv);
+}
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
 CONFIG_INT( "focus.delay", lens_focus_delay, 1 );
@@ -243,13 +249,30 @@ focus_show_a(
 	int			y,
 	int			selected
 ) {
+	if (selected) override_zoom_buttons = 1;
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
 		x, y,
 		"Focus End Point: %s%d steps",
 		focus_task_delta > 0 ? "+" : 
 		focus_task_delta < 0 ? "-" : "",
 		ABS(focus_task_delta)
+	);
+	menu_draw_icon(x, y, MNI_ACTION, 0);
+}
+
+static void
+rack_focus_print( 
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+) {
+	if (selected) override_zoom_buttons = 1;
+	bmp_printf(
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
+		x, y,
+		"Rack focus"
 	);
 	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
@@ -316,8 +339,9 @@ focus_rack_speed_display(
 	int			selected
 )
 {
+	if (selected) override_zoom_buttons = 1;
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
 		x, y,
 		"Focus StepSize : %d",
 		lens_focus_stepsize
@@ -333,8 +357,9 @@ focus_delay_display(
 	int			selected
 )
 {
+	if (selected) override_zoom_buttons = 1;
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
 		x, y,
 		"Focus StepDelay: %s%dms",
 		lens_focus_waitflag ? "Wait + " : "",
@@ -1012,7 +1037,7 @@ static struct menu_entry focus_menu[] = {
 	{
 		.name = "Rack Focus",
 		.priv		= "Rack focus",
-		.display	= menu_print,
+		.display	= rack_focus_print,
 		.select		= rack_focus_start_delayed,
 		.select_auto		= rack_focus_start_now,
 		.select_reverse = rack_focus_start_auto_record,
@@ -1089,9 +1114,7 @@ INIT_FUNC( __FILE__, focus_init );
 
 int handle_rack_focus(struct event * event)
 {
-	if (!is_movie_mode()) return 1;
-	if (is_manual_focus()) return 1;
-	if (!lv) return 1;
+	if (!should_override_zoom_buttons()) return 1;
 	
 	if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
 	{
