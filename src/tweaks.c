@@ -531,11 +531,12 @@ tweak_task( void* unused)
 				BMP_LOCK( clear_lv_afframe(); )
 		}
 		
+		extern int disp_profiles_0;
 		if (FLASH_BTN_MOVIE_MODE)
 		{
 			int k = 0;
 			int longpress = 0;
-			bmp_printf(FONT_MED, 245, 100, "DISP preset toggle");
+			if (disp_profiles_0) bmp_printf(FONT_MED, 245, 100, "DISP preset toggle");
 			while (FLASH_BTN_MOVIE_MODE)
 			{
 				msleep(100);
@@ -544,11 +545,11 @@ tweak_task( void* unused)
 				if (k > 3)
 				{
 					longpress = 1; // long press doesn't toggle
-					bmp_printf(FONT(FONT_MED, 1, 0), 245, 100, "                  ");
+					if (disp_profiles_0) bmp_printf(FONT(FONT_MED, 1, 0), 245, 100, "                  ");
 				}
 					
 			}
-			if (!longpress) toggle_disp_mode();
+			if (disp_profiles_0 && !longpress) toggle_disp_mode();
 			redraw();
 		}
 		
