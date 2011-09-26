@@ -43,6 +43,40 @@ static int handle_buttons(struct event * event)
 		else return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
+	// shortcut for 3x zoom mode
+	static int disp_pressed = 0;
+	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
+	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
+
+	extern int digital_zoom_shortcut;
+	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
+	{
+		if (!video_mode_crop)
+		{
+			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+			{
+				int zoom[] = {0xc, 0, video_mode_fps, 0xc, 2};
+				prop_request_change(PROP_VIDEO_MODE, zoom, 20);
+				return 0;
+			}
+		}
+		else
+		{
+			if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+			{
+				int x = 300;
+				prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
+				return 0; // don't allow more than 3x zoom
+			}
+			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+			{
+				int nozoom[] = {0, 0, video_mode_fps, 0xc, 0};
+				prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
+				return 0;
+			}
+		}
+	}
+
 	// common to all cameras
 	spy_event(event); // for debugging only
 	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
@@ -80,40 +114,6 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
-	// shortcut for 3x zoom mode
-	static int disp_pressed = 0;
-	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
-	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
-
-	extern int digital_zoom_shortcut;
-	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
-	{
-		if (!video_mode_crop)
-		{
-			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-			{
-				int zoom[] = {0xc, 0, video_mode_fps, 0xc, 2};
-				prop_request_change(PROP_VIDEO_MODE, zoom, 20);
-				return 0;
-			}
-		}
-		else
-		{
-			if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-			{
-				int x = 300;
-				prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
-				return 0; // don't allow more than 3x zoom
-			}
-			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
-			{
-				int nozoom[] = {0, 0, video_mode_fps, 0xc, 0};
-				prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
-				return 0;
-			}
-		}
-	}
-	
 	return 1;
 }
 
