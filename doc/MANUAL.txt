@@ -143,8 +143,7 @@ PLAY mode shortcuts
 
 * ``Q`` (550D), ``UNLOCK`` (60D) or ``DISP`` (600D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
 * ``LV``: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
-* ``SET`` + ``Main Dial Left`` in ``PLAY`` mode: combine images with a very simple `exposure fusion`_ technique. Useful for previewing `HDR`_ images or multiple exposures in the camera.
-* ``SET`` + ``Main Dial Right`` in ``PLAY`` mode: display next 422 file (silent picture) from ``DCIM/100CANON``.
+* ``SET`` + ``Main Dial (Wheel)`` in ``PLAY`` mode: see `SET+MainDial`_.
 
 LCD sensor shortcuts
 ~~~~~~~~~~~~~~~~~~~~
@@ -738,7 +737,8 @@ Functions for stills shooting (some of them work for movies, too).
 
   For best results, either use manual focus, or assign autofocus to ``*`` button.
 
-  To preview HDR images in camera, press ``PLAY``, hold ``SET`` and turn the main wheel to the left. Magic Lantern computes a naive weighted sum in YUV colorspace, which is fast, but image quality is low. The `algorithm used by Enfuse <http://research.edm.uhasselt.be/%7Etmertens/papers/exposure_fusion_reduced.pdf>`_ will yield much better results.
+  To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Tweaks`_ menu, 
+  then go to playback mode, hold ``SET`` and turn the main dial (wheel). Magic Lantern computes a naive weighted sum in YUV colorspace, which is fast, but image quality is low. The `algorithm used by Enfuse <http://research.edm.uhasselt.be/%7Etmertens/papers/exposure_fusion_reduced.pdf>`_ will yield much better results.
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
   with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x). The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
@@ -799,7 +799,7 @@ Functions for stills shooting (some of them work for movies, too).
   Power Saving:
   
   * When not in LiveView, press ``DISP`` or ``INFO`` to turn the display off.
-  * In LiveView, ML will the display and the sensor off during idle times if you enable this option from ``Powersave`` menu.
+  * In LiveView, ML will turn the display and the sensor off during idle times if you enable this option from ``Powersave`` menu.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
 .. _bulb-ramping:
@@ -1122,8 +1122,8 @@ Focus
 
   Very simple follow focus (like a rack focus controlled manually).
   
-  ``Arrows``: you will be able to focus with the arrow keys;
-  ``ZoomIn/AF``: you will be able to focus with ``ZoomIn`` and ``AF`` keys. This works best if you assign ``AF`` to ``ZoomOut (*)`` from Custom Functions. It does not work with Quick Focus mode.
+  * ``Arrows``: you will be able to focus with the arrow keys;
+  * ``ZoomIn/AF``: you will be able to focus with ``ZoomIn`` and ``AF`` keys. This works best if you assign ``AF`` to ``ZoomOut (*)`` from Custom Functions. It does not work with Quick Focus mode.
 
   You can reverse the focus direction with ``Q`` and ``PLAY``.
 
@@ -1137,9 +1137,9 @@ Focus
 
   Delay between two successive focus commands.
   
-  If ``Wait`` is not active, ML will only wait a for fixed delay before sending next focus command. This will reduce stutter, but may affect rack focus accuracy. This setting is recommended if you only use follow focus.
+  * If ``Wait`` is not active, ML will only wait a for fixed delay before sending next focus command. This will reduce stutter, but may affect rack focus accuracy. This setting is recommended if you only use follow focus.
 
-  If ``Wait`` is active, ML will wait until each focus command is completed, and then it will wait for a fixed delay, as configured here. This will increase rack focus accuracy, but may cause stutter with certain lenses.
+  * If ``Wait`` is active, ML will wait until each focus command is completed, and then it will wait for a fixed delay, as configured here. This will increase rack focus accuracy, but may cause stutter with certain lenses.
 
 **Focus End Point**
 
@@ -1281,7 +1281,7 @@ Miscellanous settings.
 
 .. _Show cropmarks in:
 
-**Show cropmarks in: Movie mode / All modes**
+**Show cropmarks in: Movie mode / Movie+Photo**
 
   It does just that. See `Cropmark`_ for more info.
 
@@ -1338,6 +1338,25 @@ Features for Playback mode.
   
   * ``Normal``: just like in standard firmware
   * ``Fast``: zoom on steroids
+
+**Cropmarks (PLAY): ON/OFF**
+
+  Enables cropmarks in Playback mode.
+
+.. _SET+MainDial:
+
+**SET+MainDial (PLAY)**
+
+  .. figure:: Compare_and_hdr.png
+      :alt: 200px|right|Comparing two images and HDR preview
+      :align: center
+      :width: 10cm
+ 
+  When you hold SET and turn MainDial, the camera may:
+  
+  * ``Play 422``: display silent pictures from ``DCIM/100CANON``;
+  * ``ExposureFusion``: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
+  * ``CompareImages``: compare two images with a diagonal split view. The current image will always end up in the top half.
 
 Debug
 ~~~~~
