@@ -117,6 +117,9 @@ interval_timer_display( void * priv, int x, int y, int selected )
 	if (!is_movie_mode() || silent_pic_mode)
 	{
 		int d = timer_values[*(int*)priv];
+		int d_total = intervalometer_wait ? d + get_approx_exposure_time_seconds() + 1 : d;
+		int total_time_s = d_total * avail_shot;
+		int total_time_m = total_time_s / 60;
 		if (!d)
 			bmp_printf(
 				selected ? MENU_FONT_SEL : MENU_FONT,
@@ -127,9 +130,11 @@ interval_timer_display( void * priv, int x, int y, int selected )
 			bmp_printf(
 				selected ? MENU_FONT_SEL : MENU_FONT,
 				x, y,
-				"Take a pic every: %d%s",
+				"Take a pic every: %d%s (%02dh%02dm)",
 				d < 60 ? d : d/60, 
-				d < 60 ? "s" : "min"
+				d < 60 ? "s" : "min",
+				total_time_m / 60, 
+				total_time_m % 60
 			);
 	}
 	else
@@ -2494,6 +2499,12 @@ static void picq_toggle(void* priv)
 	set_pic_quality(newp);
 }
 #endif
+
+int get_approx_exposure_time_seconds()
+{
+	if (is_bulb_mode()) return bulb_shutter_value/1000;
+	else return raw2shutter_x100(lens_info.raw_shutter)/100;
+}
 
 int adjust_iso_for_timelapse_without_changing_exposure()
 {
