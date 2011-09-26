@@ -719,8 +719,7 @@ lens_focus(
 {
 	if (!lv) return;
 	if (is_manual_focus()) return;
-
-	while (lens_info.job_state) msleep(100);
+	if (lens_info.job_state) return;
 
 	if (num_steps < 0)
 	{
@@ -736,7 +735,7 @@ lens_focus(
 	{
 		lv_focus_done = 0;
 		card_led_on();
-		if (lv && !mirror_down && tft_status == 0)
+		if (lv && !mirror_down && tft_status == 0 && lens_info.job_state == 0)
 			prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
 		if (wait)
 		{

@@ -70,7 +70,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	
 	if (remote_shot_flag) goto end;
 
-	if (lv && job_state == 0 && lcd_release_running == 0 && is_follow_focus_active()==3) // FF on LCD sensor
+	if (lv && lens_info.job_state == 0 && lcd_release_running == 0 && is_follow_focus_active()==3) // FF on LCD sensor
 	{
 		if (on)
 		{
