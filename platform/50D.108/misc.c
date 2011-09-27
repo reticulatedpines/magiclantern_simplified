@@ -72,11 +72,11 @@ struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
 	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width = 1 ? 1560 : 1024;
+	_vram_info.width = recording ? 1560 : 1024;
 	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height = 1 ? 1048 : 680;
+	_vram_info.height = recording ? 1048 : 680;
 	
-	NotifyBox(1000, "%d %d", recording, mvr_rec);
+	NotifyBox(1000, "%d ", recording);
 	return &_vram_info;
 }
 

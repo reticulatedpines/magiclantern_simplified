@@ -11,13 +11,11 @@
 volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
 volatile PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
 volatile PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
-volatile PROP_INT(PROP_MVR_REC_START, recording);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
@@ -129,3 +127,18 @@ PROP_HANDLER(PROP_USBRCA_MONITOR)
 	calc_ov_loc_size(&os);
 	return prop_cleanup( token, property );
 }
+
+
+#ifdef CONFIG_50D
+int recording = 0;
+int shooting_type = 0;
+PROP_HANDLER(PROP_SHOOTING_TYPE)
+{
+	shooting_type = buf[0];
+	recording = (shooting_type == 4 ? 2 : 0);
+	return prop_cleanup( token, property );
+}
+#else
+volatile PROP_INT(PROP_MVR_REC_START, recording);
+volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
+#endif
