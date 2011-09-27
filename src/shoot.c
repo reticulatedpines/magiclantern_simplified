@@ -111,15 +111,29 @@ static int bin_search(int lo, int hi, CritFunc crit)
 	return bin_search(lo, m, crit);
 }
 
+static void timelapse_calc_display(void* priv, int x, int y, int selected)
+{
+	int d = timer_values[*(int*)priv];
+	int d_total = intervalometer_wait ? d + get_approx_exposure_time_seconds() + 1 : d;
+	int total_time_s = d_total * avail_shot;
+	int total_time_m = total_time_s / 60;
+	bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), 
+		x, y,
+		"%dh%02dm, %dshots, %dfps => %02dm%02ds", 
+		total_time_m / 60, 
+		total_time_m % 60, 
+		avail_shot, video_mode_fps, 
+		(avail_shot / video_mode_fps) / 60, 
+		(avail_shot / video_mode_fps) % 60
+	);
+}
+
 static void
 interval_timer_display( void * priv, int x, int y, int selected )
 {
 	if (!is_movie_mode() || silent_pic_mode)
 	{
 		int d = timer_values[*(int*)priv];
-		int d_total = intervalometer_wait ? d + get_approx_exposure_time_seconds() + 1 : d;
-		int total_time_s = d_total * avail_shot;
-		int total_time_m = total_time_s / 60;
 		if (!d)
 			bmp_printf(
 				selected ? MENU_FONT_SEL : MENU_FONT,
@@ -127,16 +141,17 @@ interval_timer_display( void * priv, int x, int y, int selected )
 				"Take pics like crazy"
 			);
 		else
+		{
 			bmp_printf(
 				selected ? MENU_FONT_SEL : MENU_FONT,
 				x, y,
-				"Take a pic every: %d%s (%02dh%02dm)",
+				"Take a pic every: %d%s",
 				d < 60 ? d : d/60, 
-				d < 60 ? "s" : "min",
-				total_time_m / 60, 
-				total_time_m % 60
+				d < 60 ? "s" : "m"
 			);
-	}
+			if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
+		}
+ 	}
 	else
 	{
 		bmp_printf(
@@ -182,6 +197,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 		p ? "ON" : "OFF",
 		p ? (intervalometer_wait ? ",Wait" : ",NoWait") : ""
 	);
+	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 8, selected);
 }
 
 // in lcdsensor.c
@@ -2356,6 +2372,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
 	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, bulb_duration_index * 100 / COUNT(timer_values));
+	if (selected && is_bulb_mode()) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 6, selected);
 }
 
 // like expsim_toggle
@@ -2761,6 +2778,7 @@ auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
 		x, y,
 		msg
 	);
+	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 7, selected);
 }
 
 
