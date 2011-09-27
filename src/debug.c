@@ -486,7 +486,7 @@ static void stress_test_task(void* unused)
 
 	stress_test_picture(2, 2000);
 
-	msleep(2000);
+	msleep(5000);
 	if (!lv) force_liveview();
 	msleep(1000);
 
@@ -988,83 +988,7 @@ fake_halfshutter_print(
 	);
 }
 
-#ifdef CONFIG_50D
 
-PROP_INT(PROP_MOVIE_SIZE_50D, movie_size_50d);
-
-static void
-lv_movie_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Movie Recording : %s",
-		lv_movie_select != 2 ? "Disabled" :
-		movie_size_50d == 1 ? "1920x1088 @ 30fps" : "Invalid"
-	);
-	menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
-}
-
-void lv_movie_toggle(void* priv)
-{
-	int newvalue = lv_movie_select == 2 ? 1 : 2;
-	GUI_SetLvMode(newvalue);
-	if (newvalue == 2) GUI_SetMovieSize_b(1);
-}
-/*
-static void
-movie_size_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Movie size      : %s",
-		movie_size_50d == 0 ? "Invalid" :
-		movie_size_50d == 1 ? "1920x1088" :
-		movie_size_50d == 2 ? "640x480" : "err" // not sure
-	);
-	menu_draw_icon(x, y, movie_size_50d == 0 ? MNI_WARNING : MNI_ON, 0);
-}
-
-void movie_size_toggle(void* priv)
-{
-	int newvalue = movie_size_50d == 1 ? 2 : 1;
-	GUI_SetMovieSize_b(newvalue);
-}*/
-
-#endif
-
-int movie_expo_lock = 0;
-static void movie_expo_lock_toggle()
-{
-	if (!is_movie_mode()) return;
-	movie_expo_lock = !movie_expo_lock;
-	call("lv_ae", !movie_expo_lock);
-}
-static void movie_expo_lock_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"MOV Exposure Lock  : %s",
-		movie_expo_lock ? "ON" : "OFF"
-	);
-}
 
 void NormalDisplay();
 void MirrorDisplay();
@@ -1089,28 +1013,6 @@ static void meminfo_display(
 }
 
 struct menu_entry debug_menus[] = {
-#ifdef CONFIG_50D
-	{
-		.name		= "Movie recording",
-		.priv		= &lv_movie_select,
-		.select		= lv_movie_toggle,
-		.display	= lv_movie_print,
-		.help		= "Enable movie recording on 50D :) "
-	},
-	{
-		.name		= "Movie exposure lock",
-		.priv		= &movie_expo_lock,
-		.select		= movie_expo_lock_toggle,
-		.display	= movie_expo_lock_print,
-		.help		= "Lock the exposure in movie mode (50D/500D)"
-	},
-#endif
-	/*{
-		.name		= "Movie size",
-		.select		= movie_size_toggle,
-		.display	= movie_size_print,
-		.help = "Movie recording size maybe, on 50D :) "
-	},*/
 #if !defined(CONFIG_50D) && !defined(CONFIG_550D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",

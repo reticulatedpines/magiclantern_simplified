@@ -53,7 +53,7 @@ static int handle_buttons(struct event * event)
 	//~ if (handle_swap_menu_erase(event) == 0) return 0;
 	if (handle_buttons_being_held(event) == 0) return 0;
 	//~ if (handle_ml_menu_erase(event) == 0) return 0;
-	if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+	//~ if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
 	if (handle_rack_focus(event) == 0) return 0;
 	if (handle_follow_focus(event) == 0) return 0;
 	if (handle_intervalometer(event) == 0) return 0;

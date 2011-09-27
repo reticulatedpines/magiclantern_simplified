@@ -408,7 +408,106 @@ void digital_zoom_shortcut_display(
 #endif
 
 
+#ifdef CONFIG_50D
+
+PROP_INT(PROP_MOVIE_SIZE_50D, movie_size_50d);
+
+static void
+lv_movie_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Movie Recording : %s",
+		lv_movie_select != 2 ? "Disabled" :
+		movie_size_50d == 1 ? "1920x1088 @ 30fps" : "Invalid"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
+}
+
+void lv_movie_toggle(void* priv)
+{
+	int newvalue = lv_movie_select == 2 ? 1 : 2;
+	GUI_SetLvMode(newvalue);
+	if (newvalue == 2) GUI_SetMovieSize_b(1);
+}
+/*
+static void
+movie_size_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Movie size      : %s",
+		movie_size_50d == 0 ? "Invalid" :
+		movie_size_50d == 1 ? "1920x1088" :
+		movie_size_50d == 2 ? "640x480" : "err" // not sure
+	);
+	menu_draw_icon(x, y, movie_size_50d == 0 ? MNI_WARNING : MNI_ON, 0);
+}
+
+void movie_size_toggle(void* priv)
+{
+	int newvalue = movie_size_50d == 1 ? 2 : 1;
+	GUI_SetMovieSize_b(newvalue);
+}*/
+
+int movie_expo_lock = 0;
+static void movie_expo_lock_toggle()
+{
+	if (!is_movie_mode()) return;
+	movie_expo_lock = !movie_expo_lock;
+	call("lv_ae", !movie_expo_lock);
+}
+static void movie_expo_lock_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"MOV Exposure Lock  : %s",
+		movie_expo_lock ? "ON" : "OFF"
+	);
+}
+#endif
+
 static struct menu_entry mov_menus[] = {
+#ifdef CONFIG_50D
+	{
+		.name		= "Movie recording",
+		.priv		= &lv_movie_select,
+		.select		= lv_movie_toggle,
+		.display	= lv_movie_print,
+		.help		= "Enable movie recording on 50D :) "
+	},
+	{
+		.name		= "Movie exposure lock",
+		.priv		= &movie_expo_lock,
+		.select		= movie_expo_lock_toggle,
+		.display	= movie_expo_lock_print,
+		.help		= "Lock the exposure in movie mode (50D/500D)"
+	},
+#endif
+	/*{
+		.name		= "Movie size",
+		.select		= movie_size_toggle,
+		.display	= movie_size_print,
+		.help = "Movie recording size maybe, on 50D :) "
+	},*/
 	/*{
 		.priv = &bitrate_mode,
 		.display	= bitrate_print,
@@ -420,6 +519,7 @@ static struct menu_entry mov_menus[] = {
 		.display	= vbr_print,
 		.select		= vbr_toggle,
 	},*/
+	#ifndef CONFIG_50D
 	{
 		.name = "Movie Restart",
 		.priv = &movie_restart,
@@ -427,6 +527,7 @@ static struct menu_entry mov_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "Auto-restart movie recording, if it happens to stop."
 	},
+	#endif
 	/*{
 		.priv = &movie_af,
 		.display	= movie_af_print,
@@ -434,6 +535,7 @@ static struct menu_entry mov_menus[] = {
 		.select_reverse = movie_af_noisefilter_bump,
 		.select_auto = movie_af_aggressiveness_bump,
 	},*/
+	#ifndef CONFIG_50D
 	{
 		.name = "MovieModeRemap",
 		.priv = &movie_mode_remap,
@@ -441,6 +543,7 @@ static struct menu_entry mov_menus[] = {
 		.select		= menu_ternary_toggle,
 		.help = "Remap movie mode to A-DEP, CA or C."
 	},
+	#endif
 	/*{
 		.priv = &as_swap_enable, 
 		.display = as_swap_print,
@@ -452,6 +555,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Cover LCD sensor and adjust aperture => ISO changes too."
 	},*/
+	#ifndef CONFIG_50D
 	{
 		.name = "Movie REC key",
 		.priv = &movie_rec_key, 
@@ -467,6 +571,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Lock shutter value in movie mode (change from Expo only)."
 	},
+	#endif
 	{
 		.name = "WB workaround",
 		.priv = &white_balance_workaround,
