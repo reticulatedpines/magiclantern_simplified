@@ -363,10 +363,10 @@ static struct menu_entry mov_menus[] = {
 		.select		= bitrate_toggle_forward,
 		#ifdef CONFIG_50D
 		.select_auto	= bitrate_toggle_mode,
-		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: change mode."
+		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: change mode.",
 		#else
 		.select_auto	= bitrate_reset,
-		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: reset to 1x."
+		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: reset to 1x.",
 		#endif
 		.select_reverse	= bitrate_toggle_reverse,
 	},
