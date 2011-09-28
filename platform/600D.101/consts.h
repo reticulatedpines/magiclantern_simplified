@@ -274,8 +274,8 @@
 #define MOVIE_MODE_REMAP_X_STR "A-DEP"
 #define MOVIE_MODE_REMAP_Y_STR "CA"
 
-#define FLASH_MAX_EV (3*8)
-#define FLASH_MIN_EV (-5*8)
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -5
 
 #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / INFO" 
 

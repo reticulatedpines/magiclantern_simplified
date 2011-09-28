@@ -219,8 +219,8 @@
 #define BGMT_GUICMD_OPEN_SLOT_COVER 78
 #define BGMT_GUICMD_CLOSE_SLOT_COVER 79
 
-#define FLASH_MAX_EV (3*8)
-#define FLASH_MIN_EV (-5*8)
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -5
 
 #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / INFO" 
 
