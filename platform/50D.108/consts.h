@@ -96,8 +96,7 @@
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
-// not sure (from 60D)
-#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
@@ -183,9 +182,10 @@
 #define MOVIE_MODE_REMAP_X_STR "A-DEP"
 #define MOVIE_MODE_REMAP_Y_STR "CA"
 
-#define FLASH_MAX_EV (3*8)
-#define FLASH_MIN_EV (-10*8) // not sure if it actually works
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -10 // not sure if it actually works
 
 #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
 
-#define DIALOG_MnCardFormatBegin (0x1e5a4+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatBegin (0x1e704+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x1E7B8+4) // similar

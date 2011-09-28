@@ -423,9 +423,9 @@ lv_movie_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Movie Recording : %s",
+		"Movie Record  : %s",
 		lv_movie_select != 2 ? "Disabled" :
-		movie_size_50d == 1 ? "1920x1088 @ 30fps" : "Invalid"
+		movie_size_50d == 1 ? "1920x1088, 30fps" : "Invalid"
 	);
 	menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
 }
@@ -479,7 +479,7 @@ static void movie_expo_lock_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"MOV Exposure Lock  : %s",
+		"Exposure Lock : %s",
 		movie_expo_lock ? "ON" : "OFF"
 	);
 }
@@ -488,14 +488,14 @@ static void movie_expo_lock_print(
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
 	{
-		.name		= "Movie recording",
+		.name		= "Movie Record",
 		.priv		= &lv_movie_select,
 		.select		= lv_movie_toggle,
 		.display	= lv_movie_print,
 		.help		= "Enable movie recording on 50D :) "
 	},
 	{
-		.name		= "Movie exposure lock",
+		.name		= "Exposure Lock",
 		.priv		= &movie_expo_lock,
 		.select		= movie_expo_lock_toggle,
 		.display	= movie_expo_lock_print,

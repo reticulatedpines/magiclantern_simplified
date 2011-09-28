@@ -11,7 +11,7 @@
 #include "gui.h"
 #include "lens.h"
 
-#if defined(CONFIG_50D) || defined(CONFIG_1100D)
+#if defined(CONFIG_1100D)
 #include "disable-this-module.h"
 #endif
 
@@ -361,9 +361,14 @@ static struct menu_entry mov_menus[] = {
 		.priv = &bitrate_mode,
 		.display	= bitrate_print,
 		.select		= bitrate_toggle_forward,
+		#ifdef CONFIG_50D
+		.select_auto	= bitrate_toggle_mode,
+		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: change mode."
+		#else
 		.select_auto	= bitrate_reset,
-		.select_reverse	= bitrate_toggle_reverse,
 		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: reset to 1x."
+		#endif
+		.select_reverse	= bitrate_toggle_reverse,
 	},
 	{
 		.name = "BuffWarnLevel",

@@ -30,19 +30,19 @@ ML_OBJS-y = \
 	debug.o \
 	stdio.o \
 	audio.o \
-	bitrate.o \
 	property.o \
 	propvalues.o \
 	gui.o \
 	misc.o \
 	tweaks.o \
+	movtweaks.o \
+	bitrate.o \
 	lens.o \
 	lensfocus.o \
 	cfn.o \
 	zebra.o \
 	shoot.o \
 	chdk-gui_draw.o \
-	movtweaks.o \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
