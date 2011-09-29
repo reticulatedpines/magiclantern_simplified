@@ -72,9 +72,8 @@ static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
 
-static CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
-static CONFIG_INT("intervalometer.auto.expo", intervalometer_auto_expo, 0);
-static CONFIG_INT("intervalometer.auto.expo.prc", bramp_percentile, 70);
+static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
+static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 70);
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
@@ -114,7 +113,7 @@ static int bin_search(int lo, int hi, CritFunc crit)
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
 	int d = timer_values[*(int*)priv];
-	int d_total = intervalometer_wait ? d + get_approx_exposure_time_seconds() + 1 : d;
+	int d_total = MAX(d, get_approx_exposure_time_seconds() + 1);
 	int total_time_s = d_total * avail_shot;
 	int total_time_m = total_time_s / 60;
 	bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), 
@@ -193,9 +192,8 @@ intervalometer_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Intervalometer  : %s%s",
-		p ? "ON" : "OFF",
-		p ? (intervalometer_wait ? ",Wait" : ",NoWait") : ""
+		"Intervalometer  : %s",
+		p ? "ON" : "OFF"
 	);
 	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 8, selected);
 }
@@ -770,14 +768,24 @@ ms100_clock_task( void )
 	{
 		msleep(100);
 		ms100_clock += 100;
-
-		// redraw hack 
-		if (!gui_menu_shown() && intervalometer_running && intervalometer_auto_expo)
-			bulb_ramping_showinfo();
-
 	}
 }
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
+
+int seconds_clock = 0;
+static void
+seconds_clock_task( void )
+{
+	while(1)
+	{
+		wait_till_next_second();
+		seconds_clock++;
+
+		if (intervalometer_running)
+			card_led_blink(1, 50, 0);
+	}
+}
+TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
 
 int expfuse_running = 0;
 int expfuse_num_images = 0;
@@ -2420,12 +2428,6 @@ mlu_display( void * priv, int x, int y, int selected )
 	else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 
-static void 
-intervalometer_wait_toggle(void* priv)
-{
-	intervalometer_wait = !intervalometer_wait;
-}
-
 #if 0
 static void
 picq_display( void * priv, int x, int y, int selected )
@@ -2771,7 +2773,7 @@ bulb_ramping_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Bulb Ramping    : %s", 
-		intervalometer_auto_expo ? "ON" : "OFF"
+		bulb_ramping_enabled ? "ON" : "OFF"
 	);
 	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 7, selected);
 }
@@ -2800,12 +2802,11 @@ struct menu_entry shoot_menus[] = {
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
-		.select_auto = intervalometer_wait_toggle,
 		.help = "Intervalometer. For precise timing, choose NoWait [Q]."
 	},
 	{
 		.name = "Bulb Ramping",
-		.priv		= &intervalometer_auto_expo,
+		.priv		= &bulb_ramping_enabled,
 		.select		= menu_binary_toggle,
 		.display	= bulb_ramping_display,
 		.help = "Automatic bulb ramping for day-to-night timelapse",
@@ -3677,50 +3678,37 @@ shoot_task( void* unused )
 		}
 
 		static int intervalometer_pictures_taken = 0;
-		
+		static int intervalometer_next_shot_time = 0;
+		#define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
+		#define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
+
 		if (intervalometer_running)
 		{
-			if (PLAY_MODE) get_out_of_play_mode(0);
-			ResumeLiveView();
-			
-			//~ if (gui_state == GUISTATE_PLAYMENU)
-				//~ get_out_of_play_mode(0);
-			
-			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-			
-			if (timer_values[interval_timer_index])
-			{
-				card_led_blink(5, 50, 50);
-				wait_till_next_second();
-			}
-			
-			if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
-
-			if (intervalometer_auto_expo)
-			{
-				bulb_ramping_init();
-				compute_exposure_for_next_shot();
-			}
-
-			if (intervalometer_running)
-			{
-				hdr_shot(0, intervalometer_wait);
-				intervalometer_pictures_taken++;
-			}
-			
+			int seconds_clock_0 = seconds_clock;
 			int display_turned_off = 0;
-			int n = timer_values[interval_timer_index] - 1;
-			for (i = 0; i < n; i++)
+			while (SECONDS_REMAINING > 0)
 			{
-				card_led_blink(1, 50, 0);
-				wait_till_next_second();
-				
-
-				if (i == 2 && n >= 4 && image_review_time > 2)
+				if (gui_menu_shown() || get_halfshutter_pressed())
 				{
-					playback_compare_images(0);
+					intervalometer_next_shot_time++;
+					wait_till_next_second();
+					continue;
 				}
-				if (PLAY_MODE && i >= image_review_time)
+				bmp_printf(FONT_LARGE, 50, 50, 
+								" Intervalometer:%4d \n"
+								" Pictures taken:%4d ", 
+								SECONDS_REMAINING,
+								intervalometer_pictures_taken);
+
+				if (bulb_ramping_enabled)
+					bulb_ramping_showinfo();
+
+				if (SECONDS_ELAPSED == 2 && SECONDS_REMAINING >= 2 && image_review_time > 2)
+				{
+					playback_compare_images(0); 
+					while (SECONDS_ELAPSED == 2) msleep(100); // make sure it won't do this twice
+				}
+				if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
 				{
 					get_out_of_play_mode(0);
 				}
@@ -3729,45 +3717,40 @@ shoot_task( void* unused )
 				if (idle_display_turn_off_after && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE && intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
 				{
 					// stop LiveView and turn off display to save power
-					//~ fake_simple_button(BGMT_PLAY);
 					PauseLiveView();
-					//~ display_off_force();
 					msleep(200);
 					display_off_force();
-					display_turned_off = 1;
-					// ... but only once per picture (don't be too aggressive)
+					display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
 				}
 
-				if (intervalometer_running) 
-				{
-					NotifyBoxHide();
-					NotifyBox(2000, "Intervalometer:%4d\n"
-					                "Pictures taken:%4d", 
-					                timer_values[interval_timer_index] - i - 1, 
-					                intervalometer_pictures_taken);
-					//~ bmp_printf(FONT_MED, 20, (lv ? 40 : 3) + 50, "To stop, rotate mode dial or press PLAY or MENU.");
-				}
-				else break;
+				msleep(100);
+			}
+			
+			if (PLAY_MODE) get_out_of_play_mode(0);
+			ResumeLiveView();
 
-				if (intervalometer_auto_expo)
-					bulb_ramping_showinfo();
+			if (bulb_ramping_enabled)
+			{
+				bulb_ramping_init();
+				compute_exposure_for_next_shot();
+			}
 
-				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
+			if (intervalometer_running)
+			{
+				int dt = timer_values[interval_timer_index];
+				// compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
+				intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock - dt, seconds_clock + dt);
 
-				while (get_halfshutter_pressed()) msleep(100); // pause
+				hdr_shot(0, 1);
+				intervalometer_pictures_taken++;
 				
-				//~ if (!is_movie_mode())
-				//~ {
-					//~ if (lens_info.shutter > 100 && !silent_pic_mode) bmp_printf(FONT_MED, 0, 70,             "Tip: use shutter speeds slower than 1/100 to prevent flicker.");
-					//~ else if (shooting_mode != SHOOTMODE_M || lens_info.iso == 0) bmp_printf(FONT_MED, 0, 70, "Tip: use fully manual exposure to prevent flicker.           ");
-					//~ else if ((af_mode & 0xF) != 3) bmp_printf(FONT_MED, 0, 70,                               "Tip: use manual focus                                        ");
-				//~ }
 			}
 		}
 		else // intervalometer not running
 		{
 			bramp_init_done = 0;
 			intervalometer_pictures_taken = 0;
+			intervalometer_next_shot_time = seconds_clock + 3;
 			
 			if (audio_release_running) 
 			{
