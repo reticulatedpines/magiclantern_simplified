@@ -3686,6 +3686,7 @@ shoot_task( void* unused )
 		{
 			int seconds_clock_0 = seconds_clock;
 			int display_turned_off = 0;
+			int images_compared = 0;
 			while (SECONDS_REMAINING > 0)
 			{
 				if (gui_menu_shown() || get_halfshutter_pressed())
@@ -3703,10 +3704,10 @@ shoot_task( void* unused )
 				if (bulb_ramping_enabled)
 					bulb_ramping_showinfo();
 
-				if (SECONDS_ELAPSED == 2 && SECONDS_REMAINING >= 2 && image_review_time > 2)
+				if (!images_compared && SECONDS_ELAPSED >= 2 && SECONDS_REMAINING >= 2 && image_review_time - SECONDS_ELAPSED >= 1)
 				{
-					playback_compare_images(0); 
-					while (SECONDS_ELAPSED == 2) msleep(100); // make sure it won't do this twice
+					playback_compare_images(0);
+					images_compared = 1; // do this only once
 				}
 				if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
 				{
