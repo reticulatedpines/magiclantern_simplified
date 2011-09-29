@@ -145,3 +145,4 @@
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 
 
+#define BULB_MIN_EXPOSURE 1000

@@ -781,6 +781,9 @@ seconds_clock_task( void )
 		wait_till_next_second();
 		seconds_clock++;
 
+		if (bulb_ramping_enabled && intervalometer_running)
+			bulb_ramping_showinfo();
+
 		if (intervalometer_running)
 			card_led_blink(1, 50, 0);
 	}
@@ -2341,6 +2344,7 @@ int is_bulb_mode()
 void
 bulb_take_pic(int duration)
 {
+	duration = MAX(duration, BULB_MIN_EXPOSURE);
 	if (!is_bulb_mode())
 	{
 		NotifyBox(2000, "Please select bulb mode");
@@ -2359,7 +2363,6 @@ bulb_take_pic(int duration)
 	restore_af_button_assignment();
 	lens_wait_readytotakepic(64);
 	get_out_of_play_mode(1000);
-	msleep(1000);
 }
 
 static void bulb_toggle_fwd(void* priv)
@@ -2557,6 +2560,8 @@ int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalomete
 			delta == -8 ? bulb_shutter_value * 2 :
 			bulb_shutter_value;
 		
+		if (bulb_shutter_value < BULB_MIN_EXPOSURE) return;
+		
 		lens_set_rawiso(new_raw_iso); // try to set new iso
 		msleep(50);
 		if (lens_info.raw_iso == new_raw_iso) // new iso accepted
@@ -2595,7 +2600,17 @@ int measure_brightness_level(int initial_wait)
 void bramp_change_percentile(int dir)
 {
 	bramp_percentile = COERCE(bramp_percentile + dir * 5, 5, 95);
-	bramp_reference_level = measure_brightness_level(0); // at bramp_percentile
+	
+	int i;
+	for (i = 0; i <= 20; i++)
+	{
+		bramp_reference_level = measure_brightness_level(0); // at bramp_percentile
+		if (bramp_reference_level > 90) bramp_percentile = COERCE(bramp_percentile - 5, 5, 95);
+		else if (bramp_reference_level < 10) bramp_percentile = COERCE(bramp_percentile + 5, 5, 95);
+		else break;
+	}
+	if (i >= 20) { NotifyBox(1000, "Image not properly exposed"); return; }
+
 	int level_8bit = bramp_reference_level * 255 / 100;
 	clrscr();
 	highlight_luma_range(level_8bit - 5, level_8bit + 5, COLOR_BLACK, COLOR_WHITE);
@@ -2655,14 +2670,14 @@ void bulb_ramping_init()
 	
 	NotifyBox(100000, "Calibration...");
 	
-	bulb_shutter_value = 1000;
+	bulb_shutter_value = MAX(1000, BULB_MIN_EXPOSURE*2);
 	bulb_take_pic(bulb_shutter_value);
 	bramp_measured_level = measure_brightness_level(1000);
 
 	while (bramp_measured_level < bramp_reference_level)
 	{
-		bulb_shutter_value *= 2;
-		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
+		bulb_shutter_value = MAX(bulb_shutter_value*2, BULB_MIN_EXPOSURE*2);
+		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(MAX(1, BULB_MIN_EXPOSURE*4/1000));
 		bulb_take_pic(bulb_shutter_value);
 		
 		int prev_level = bramp_measured_level;
@@ -2672,12 +2687,15 @@ void bulb_ramping_init()
 			NotifyBox(5000, "Could not change exposure"); msleep(5000);
 			intervalometer_stop(); return;
 		}
+		if (!intervalometer_running) return;
 	}
 
 	while (bramp_measured_level > bramp_reference_level)
 	{
-		bulb_shutter_value /= 2;
-		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
+		bulb_shutter_value = MAX(bulb_shutter_value/2, BULB_MIN_EXPOSURE*2);
+		if (bulb_shutter_value == BULB_MIN_EXPOSURE*2) break; // can't go lower than that
+		
+		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(MAX(1, BULB_MIN_EXPOSURE*4/1000));
 		bulb_take_pic(bulb_shutter_value);
 		
 		int prev_level = bramp_measured_level;
@@ -2699,7 +2717,12 @@ void bulb_ramping_init()
 
 	int level0 = measure_brightness_level(1000);
 
-	int bs0 = bulb_shutter_value;
+	int bs0 = bulb_shutter_value; 
+	if (bulb_shutter_value < BULB_MIN_EXPOSURE * 2)
+	{
+		NotifyBox(2000, "Internal error (bug)"); msleep(2000);
+		intervalometer_stop(); return;
+	}
 	
 	bulb_shutter_value = bs0 * 2;
 	bulb_take_pic(bulb_shutter_value);
@@ -2711,7 +2734,7 @@ void bulb_ramping_init()
 
 	int bramp_level_ev_ratio_plus = level_plus1ev - level0;
 	int bramp_level_ev_ratio_minus = level0 - level_minus1ev;
-	bramp_level_ev_ratio = (bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2;
+	bramp_level_ev_ratio = COERCE(bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2, 10, 50);
 
 	if (bramp_level_ev_ratio == 0)
 	{
@@ -2741,7 +2764,7 @@ void compute_exposure_for_next_shot()
 	int err = bramp_measured_level - bramp_reference_level;
 	if (ABS(err) <= 1) err = 0;
 	int correction_ev_x100 = - 100 * err / bramp_level_ev_ratio / 2;
-	bulb_shutter_value = bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100;
+	bulb_shutter_value = MAX(BULB_MIN_EXPOSURE, bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100);
 	NotifyBox(1000, "Exposure difference: %d%% ", err);
 	msleep(500);
 
@@ -3155,7 +3178,6 @@ void hdr_shot(int skip0, int wait)
 	NotifyBoxHide();
 	if (is_bulb_mode())
 	{
-		if (bulb_shutter_value == 0) NotifyBox(1000, "Bulb timer is disabled.");
 		bulb_take_pic(bulb_shutter_value);
 	}
 	else if (is_movie_mode() && !silent_pic_mode)
@@ -3701,10 +3723,7 @@ shoot_task( void* unused )
 								SECONDS_REMAINING,
 								intervalometer_pictures_taken);
 
-				if (bulb_ramping_enabled)
-					bulb_ramping_showinfo();
-
-				if (!images_compared && SECONDS_ELAPSED >= 2 && SECONDS_REMAINING >= 2 && image_review_time - SECONDS_ELAPSED >= 1)
+				if (!images_compared && SECONDS_ELAPSED >= 2 && SECONDS_REMAINING >= 2 && image_review_time - SECONDS_ELAPSED >= 1 && bramp_init_done)
 				{
 					playback_compare_images(0);
 					images_compared = 1; // do this only once
@@ -3726,9 +3745,11 @@ shoot_task( void* unused )
 
 				msleep(100);
 			}
-			
+
 			if (PLAY_MODE) get_out_of_play_mode(0);
 			ResumeLiveView();
+
+			if (!intervalometer_running) continue;
 
 			if (bulb_ramping_enabled)
 			{
@@ -3736,16 +3757,15 @@ shoot_task( void* unused )
 				compute_exposure_for_next_shot();
 			}
 
-			if (intervalometer_running)
-			{
-				int dt = timer_values[interval_timer_index];
-				// compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
-				intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock - dt, seconds_clock + dt);
+			if (!intervalometer_running) continue;
 
-				hdr_shot(0, 1);
-				intervalometer_pictures_taken++;
-				
-			}
+			int dt = timer_values[interval_timer_index];
+			// compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
+			intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock - dt, seconds_clock + dt);
+
+			hdr_shot(0, 1);
+			intervalometer_pictures_taken++;
+			
 		}
 		else // intervalometer not running
 		{

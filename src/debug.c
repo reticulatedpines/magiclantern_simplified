@@ -216,12 +216,12 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	
+	bulb_take_pic(100);
 	//~ int x = 2;
 	//~ prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
 	//~ msleep(1000);
-	call("lv_ae", 0);
-	NotifyBox(1000, "ok");
+	//~ call("lv_ae", 0);
+	//~ NotifyBox(1000, "ok");
 #ifndef CONFIG_50D
 	//~ HijackDialogBox();
 #endif
@@ -328,7 +328,7 @@ void xx_test(void* priv)
 	
 	//~ bootflag_write_bootblock();
 	//~ int a = AllocateMemory(102400);
-	//~ task_create("run_test", 0x1c, 0, run_test, 0);
+	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 static void xx_test2(void* priv)
