@@ -2734,7 +2734,7 @@ void bulb_ramping_init()
 
 	int bramp_level_ev_ratio_plus = level_plus1ev - level0;
 	int bramp_level_ev_ratio_minus = level0 - level_minus1ev;
-	bramp_level_ev_ratio = COERCE(bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2, 10, 50);
+	bramp_level_ev_ratio = COERCE((bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2, 10, 50);
 
 	if (bramp_level_ev_ratio == 0)
 	{
