@@ -321,9 +321,7 @@ movtweak_task( void* unused )
 			if (ext_monitor_hdmi && hdmi_code == 5)
 			{
 				msleep(1000);
-				GMT_LOCK (
-					ChangeHDMIOutputSizeToVGA();
-				)
+				fake_simple_button(MLEV_ChangeHDMIOutputSizeToVGA);
 				msleep(2000);
 				NotifyBox(2000, "HDMI resolution: 720x480");
 				msleep(5000);

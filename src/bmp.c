@@ -1002,12 +1002,10 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 #endif
 
 void * bmp_lock = 0;
-void * gmt_lock = 0;
 
 void bmp_sem_init()
 {
 	bmp_lock = CreateRecursiveLock(0);
-	gmt_lock = CreateRecursiveLock(0);
 }
 
 

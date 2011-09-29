@@ -48,6 +48,7 @@ static int handle_buttons(struct event * event)
 
 	// common to all cameras
 	spy_event(event); // for debugging only
+	if (handle_tricky_canon_calls(event) == 0) return 0;
 	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
 	if (event->param != OLC_INFO_CHANGED) idle_wakeup_reset_counters(event->param);
 	//~ if (handle_swap_menu_erase(event) == 0) return 0;
@@ -129,8 +130,6 @@ my_gui_main_task( void )
 
 		if (IS_FAKE(event)) event->arg = 0;
 
-// sync with other Canon calls => prevents some race conditions
-GMT_LOCK(
 		switch( event->type )
 		{
 		case 0:
@@ -231,7 +230,6 @@ GMT_LOCK(
 		default:
 			break;
 		}
-)
 
 event_loop_bottom:
 		gui_main_struct.counter--;

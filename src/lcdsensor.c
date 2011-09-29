@@ -113,7 +113,8 @@ void lcd_release_step() // to be called from shoot_task
 {
 	if (lcd_sensor_shortcuts && lv && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
 	{
-		GMT_LOCK( DispSensorStart(); ) msleep(500);
+		fake_simple_button(MLEV_LCD_SENSOR_START);
+		msleep(500);
 	}
 
 	if (wave_count_countdown)

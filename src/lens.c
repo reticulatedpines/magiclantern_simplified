@@ -177,10 +177,7 @@ char *aj_lens_format_dist( unsigned mm)
 void erase_bottom_bar()
 {
 	msleep(10);
-	#ifndef CONFIG_50D
-	GMT_LOCK( if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe(); )
-	#endif
-	draw_ml_bottombar();
+	fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
 }
 
 int lens_display_dirty = 0;

@@ -1591,7 +1591,7 @@ int handle_keep_ml_after_format_toggle()
 	if (!MENU_MODE) return 1;
 	if (MEM(DIALOG_MnCardFormatBegin) == 0) return 1;
 	keep_ml_after_format = !keep_ml_after_format;
-	GMT_LOCK( HijackFormatDialogBox(); )
+	fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
 	return 0;
 }
 
@@ -1768,7 +1768,7 @@ void HijackFormatDialogBox_main()
 	ui_lock(UILOCK_NONE);
 
 	// all files copied, we can change the message in the format box and let the user know what's going on
-	GMT_LOCK( HijackFormatDialogBox(); )
+	fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
 	
 	// waiting to exit the format dialog somehow
 	while (MEM(DIALOG_MnCardFormatBegin))
@@ -1925,3 +1925,62 @@ void fake_simple_button(int bgmt_code)
 {
 	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
+
+
+
+int _display_is_off = 0;
+
+// those functions seem not to be thread safe
+// calling them from gui_main_task seems to sync them with other Canon calls properly
+int handle_tricky_canon_calls(struct event * event)
+{
+	switch (event->param)
+	{
+		case MLEV_HIJACK_FORMAT_DIALOG_BOX:
+			HijackFormatDialogBox();
+			break;
+		case MLEV_TURN_ON_DISPLAY:
+			if (_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOnDisplay");
+			break;
+		case MLEV_TURN_OFF_DISPLAY:
+			if (!_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOffDisplay");
+			break;
+		case MLEV_HIDE_CANON_BOTTOM_BAR:
+			#ifndef CONFIG_50D
+			if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
+			#endif
+			draw_ml_bottombar();
+			break;
+		case MLEV_ChangeHDMIOutputSizeToVGA:
+			ChangeHDMIOutputSizeToVGA();
+			break;
+		case MLEV_LCD_SENSOR_START:
+			#ifdef CONFIG_550D
+			DispSensorStart();
+			#endif
+			break;
+	}
+	if (event->param < 0) return 0;
+	return 1;
+}
+
+void display_on()
+{
+	fake_simple_button(MLEV_TURN_ON_DISPLAY);
+}
+void display_on_force()
+{
+	_display_is_off = 1;
+	display_on();
+}
+void display_off()
+{
+	fake_simple_button(MLEV_TURN_OFF_DISPLAY);
+}
+void display_off_force()
+{
+	_display_is_off = 0;
+	display_off();
+}
+int display_is_on() { return !_display_is_off; }
+

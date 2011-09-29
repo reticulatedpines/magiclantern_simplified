@@ -2373,39 +2373,6 @@ void lvimage_off()
 	_lvimage_cleared = 0;
 }*/
 
-int _display_is_off = 0;
-void display_on()
-{
-	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (_display_is_off)
-	{
-		GMT_LOCK( call("TurnOnDisplay"); )
-		_display_is_off = 0;
-	}
-}
-void display_on_force()
-{
-	_display_is_off = 1;
-	display_on();
-}
-void display_off()
-{
-	if (!is_safe_to_mess_with_the_display(500)) return;
-	if (!_display_is_off)
-	{
-		GMT_LOCK( call("TurnOffDisplay"); )
-		_display_is_off = 1;
-	}
-}
-void display_off_force()
-{
-	if (!is_safe_to_mess_with_the_display(500)) return;
-	_display_is_off = 0;
-	display_off();
-}
-int display_is_on() { return !_display_is_off; }
-
-
 void zoom_overlay_toggle()
 {
 	zoom_overlay = !zoom_overlay;
