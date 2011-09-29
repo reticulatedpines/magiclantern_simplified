@@ -35,7 +35,11 @@ volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 
 int is_movie_mode()
 {
-	return shooting_mode == SHOOTMODE_MOVIE || lv_movie_select == LVMS_ENABLE_MOVIE;
+	#ifdef CONFIG_50D
+	return lv && lv_movie_select == LVMS_ENABLE_MOVIE;
+	#else
+	return shooting_mode == SHOOTMODE_MOVIE;
+	#endif
 }
 
 volatile int shutter_count = 0;
