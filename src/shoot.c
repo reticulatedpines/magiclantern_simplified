@@ -2596,8 +2596,8 @@ void bramp_change_percentile(int dir)
 	bramp_reference_level = measure_brightness_level(0); // at bramp_percentile
 	int level_8bit = bramp_reference_level * 255 / 100;
 	clrscr();
-	highlight_luma_range(level_8bit - 5, level_8bit + 5, 19, COLOR_CYAN);
-	bmp_printf(FONT_LARGE, 50, 400, 
+	highlight_luma_range(level_8bit - 5, level_8bit + 5, COLOR_BLACK, COLOR_WHITE);
+	bmp_printf(FONT_LARGE, 50, 420, 
 		"%d%% brightness at %dth percentile\n",
 		bramp_reference_level, 0,
 		bramp_percentile);
@@ -2606,13 +2606,14 @@ void bramp_change_percentile(int dir)
 int bramp_init_state = 0;
 int handle_bulb_ramping_keys(struct event * event)
 {
-	if (bramp_init_state)
+	if (intervalometer_running && bramp_init_state)
 	{
 		switch (event->param)
 		{
 			case BGMT_PRESS_SET:
 			{
 				bramp_init_state = 0; // OK :)
+				NotifyBox(1000, "OK");
 				return 1;
 			}
 			case BGMT_WHEEL_LEFT:
@@ -2645,8 +2646,9 @@ void bulb_ramping_init()
 	                  "and what tones to measure.   \n"
 	                  "Keys: arrows, main dial, SET.");
 	
+	msleep(200);
 	bramp_change_percentile(0); // show current selection;
-	while (PLAY_MODE && bramp_init_state == 1) msleep(100);
+	while (PLAY_MODE && bramp_init_state == 1) msleep(1000);
 	if (!PLAY_MODE) { intervalometer_stop(); return; }
 	
 	NotifyBox(100000, "Calibration...");
@@ -2693,7 +2695,7 @@ void bulb_ramping_init()
 
 	NotifyBox(10000, "Level/EV ratio..."); msleep(1000);
 
-	bramp_reference_level = measure_brightness_level(1000);
+	int level0 = measure_brightness_level(1000);
 
 	int bs0 = bulb_shutter_value;
 	
@@ -2705,8 +2707,8 @@ void bulb_ramping_init()
 	bulb_take_pic(bulb_shutter_value);
 	int level_minus1ev = measure_brightness_level(1000);
 
-	int bramp_level_ev_ratio_plus = level_plus1ev - bramp_reference_level;
-	int bramp_level_ev_ratio_minus = bramp_reference_level - level_minus1ev;
+	int bramp_level_ev_ratio_plus = level_plus1ev - level0;
+	int bramp_level_ev_ratio_minus = level0 - level_minus1ev;
 	bramp_level_ev_ratio = (bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2;
 
 	if (bramp_level_ev_ratio == 0)
@@ -2749,11 +2751,11 @@ void bulb_ramping_showinfo()
 {
 	int s = bulb_shutter_value/10;
 	bmp_printf(FONT_MED, 50, 300, 
-		"Reference level (%2dth prc) : %d%% \n"
-		"Measured  level (%2dth prc) : %d%% \n"
-		"Level/EV ratio             : %d%%/EV \n"
-		"ISO     : %d   \n"
-		"Shutter : %d.%02d s ", 
+		"Reference level (%2dth prc) :%3d%%    \n"
+		"Measured  level (%2dth prc) :%3d%%    \n"
+		"Level/EV ratio             :%3d%%/EV \n"
+		"ISO                        :%5d   \n"
+		"Shutter                    :%3d.%02d s",
 		bramp_percentile, bramp_reference_level, 0,
 		bramp_percentile, bramp_measured_level, 0,
 		bramp_level_ev_ratio, 0,
@@ -3348,6 +3350,7 @@ void intervalometer_stop()
 	if (intervalometer_running)
 	{
 		intervalometer_running = 0;
+		bramp_init_state = 0;
 		NotifyBox(2000, "Intervalometer stopped.");
 		//~ display_on();
 	}
@@ -3672,6 +3675,8 @@ shoot_task( void* unused )
 				hdr_shot(0,1);
 			}
 		}
+
+		int intervalometer_pictures_taken = 0;
 		
 		if (intervalometer_running)
 		{
@@ -3700,6 +3705,7 @@ shoot_task( void* unused )
 			if (intervalometer_running)
 			{
 				hdr_shot(0, intervalometer_wait);
+				intervalometer_pictures_taken++;
 			}
 			
 			int display_turned_off = 0;
@@ -3735,7 +3741,10 @@ shoot_task( void* unused )
 				if (intervalometer_running) 
 				{
 					NotifyBoxHide();
-					NotifyBox(2000, "Intervalometer: %d", timer_values[interval_timer_index] - i - 1);
+					NotifyBox(2000, "Intervalometer:%4d\n"
+					                "Pictures taken:%4d", 
+					                timer_values[interval_timer_index] - i - 1, 
+					                intervalometer_pictures_taken);
 					//~ bmp_printf(FONT_MED, 20, (lv ? 40 : 3) + 50, "To stop, rotate mode dial or press PLAY or MENU.");
 				}
 				else break;
@@ -3758,6 +3767,7 @@ shoot_task( void* unused )
 		else // intervalometer not running
 		{
 			bramp_init_done = 0;
+			intervalometer_pictures_taken = 0;
 			
 			if (audio_release_running) 
 			{

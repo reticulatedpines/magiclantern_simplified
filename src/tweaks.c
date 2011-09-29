@@ -466,11 +466,11 @@ void playback_set_wheel_action(int dir)
 
 int handle_set_wheel_play(struct event * event)
 {
-	static int set_pressed;
+	extern int set_pressed;
 	// SET button pressed
-	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
-	if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
-	if (event->param == BGMT_PLAY) set_pressed = 0;
+	//~ if (event->param == BGMT_PRESS_SET) set_pressed = 1;
+	//~ if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	//~ if (event->param == BGMT_PLAY) set_pressed = 0;
 
 	// reset exposure fusion preview
 	extern int expfuse_running;

@@ -1839,6 +1839,8 @@ int handle_buttons_being_held(struct event * event)
 	// keep track of buttons being pressed
 	if (event->param == BGMT_PRESS_SET) set_pressed = 1;
 	if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
+	if (event->param == BGMT_PLAY) set_pressed = 0;
+	if (event->param == BGMT_MENU) set_pressed = 0;
 	if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
 	if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
 	if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
