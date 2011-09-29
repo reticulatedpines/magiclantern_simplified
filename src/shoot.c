@@ -3154,7 +3154,7 @@ void hdr_shot(int skip0, int wait)
 	NotifyBoxHide();
 	if (is_bulb_mode())
 	{
-		//~ NotifyBox(1000, "Bulb shot...");
+		if (bulb_shutter_value == 0) NotifyBox(1000, "Bulb timer is disabled.");
 		bulb_take_pic(bulb_shutter_value);
 	}
 	else if (is_movie_mode() && !silent_pic_mode)
@@ -3676,7 +3676,7 @@ shoot_task( void* unused )
 			}
 		}
 
-		int intervalometer_pictures_taken = 0;
+		static int intervalometer_pictures_taken = 0;
 		
 		if (intervalometer_running)
 		{
