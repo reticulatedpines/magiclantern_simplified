@@ -1937,7 +1937,9 @@ int handle_tricky_canon_calls(struct event * event)
 	switch (event->param)
 	{
 		case MLEV_HIJACK_FORMAT_DIALOG_BOX:
+			#ifndef CONFIG_50D
 			HijackFormatDialogBox();
+			#endif
 			break;
 		case MLEV_TURN_ON_DISPLAY:
 			if (_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOnDisplay");
