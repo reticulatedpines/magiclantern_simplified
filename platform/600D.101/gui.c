@@ -98,6 +98,7 @@ static int handle_buttons(struct event * event)
 	if (handle_movie_mode_shortcut(event) == 0) return 0;
 	if (handle_quick_access_menu_items(event) == 0) return 0;
 	if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT) return handle_keep_ml_after_format_toggle();
+	if (handle_bulb_ramping_keys(event) == 0) return 0;
 
 	// camera-specific:
 
@@ -167,10 +168,10 @@ static void gui_main_task_60d()
 			continue;
 		
 		// sync with other Canon calls => prevents some race conditions
-		GMT_LOCK(
+		//~ GMT_LOCK(
 			void(*f)(struct event *) = funcs[index];
 			f(event);
-		)
+		//~ )
 	}
 } 
 

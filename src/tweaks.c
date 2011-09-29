@@ -461,7 +461,7 @@ void playback_set_wheel_action(int dir)
 {
 	if (play_set_wheel_action == 0) play_next_422();
 	else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
-	else if (play_set_wheel_action == 2) playback_compare_last_two_images();
+	else if (play_set_wheel_action == 2) playback_compare_images(dir);
 }
 
 int handle_set_wheel_play(struct event * event)

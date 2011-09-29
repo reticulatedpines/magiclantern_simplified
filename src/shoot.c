@@ -74,7 +74,7 @@ int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable
 
 static CONFIG_INT("intervalometer.wait", intervalometer_wait, 1);
 static CONFIG_INT("intervalometer.auto.expo", intervalometer_auto_expo, 0);
-static CONFIG_INT("intervalometer.auto.expo.prc", intervalometer_auto_expo_prc, 70);
+static CONFIG_INT("intervalometer.auto.expo.prc", bramp_percentile, 70);
 
 int intervalometer_running = 0;
 int audio_release_running = 0;
@@ -773,7 +773,7 @@ ms100_clock_task( void )
 
 		// redraw hack 
 		if (!gui_menu_shown() && intervalometer_running && intervalometer_auto_expo)
-			auto_exposure_for_timelapse_showinfo();
+			bulb_ramping_showinfo();
 
 	}
 }
@@ -883,13 +883,19 @@ void next_image_in_play_mode(int dir)
 	}
 }
 
-void playback_compare_last_two_images_task(int dir)
+void playback_compare_images_task(int dir)
 {
 	if (expfuse_sem == 0) expfuse_sem = create_named_semaphore(expfuse_sem, 1);
 	take_semaphore(expfuse_sem, 0);
 	
 	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
 	if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
+	
+	if (dir == 0) // reserved for intervalometer
+	{
+		next_image_in_play_mode(-1);
+		dir = 1;
+	}
 	
 	void* aux_buf = YUV422_HD_BUFFER;
 	void* current_buf;
@@ -906,12 +912,12 @@ void playback_compare_last_two_images_task(int dir)
 	give_semaphore(expfuse_sem);
 }
 
-void playback_compare_last_two_images(int dir)
+void playback_compare_images(int dir)
 {
-	task_create("expfuse_task", 0x1c, 0, playback_compare_last_two_images_task, dir);
+	task_create("expfuse_task", 0x1c, 0, playback_compare_images_task, dir);
 }
 
-void expfuse_preview_update_task()
+void expfuse_preview_update_task(int dir)
 {
 	if (expfuse_sem == 0) expfuse_sem = create_named_semaphore(expfuse_sem, 1);
 
@@ -928,7 +934,7 @@ void expfuse_preview_update_task()
 		expfuse_num_images = 1;
 		expfuse_running = 1;
 	}
-	next_image_in_play_mode(-1);
+	next_image_in_play_mode(dir);
 	buf_lv = get_yuv422_vram()->vram; // refresh
 	// add new image
 
@@ -941,9 +947,9 @@ void expfuse_preview_update_task()
 	give_semaphore(expfuse_sem);
 }
 
-void expfuse_preview_update()
+void expfuse_preview_update(int dir)
 {
-	task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, 0);
+	task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, dir);
 }
 
 /*
@@ -2523,16 +2529,13 @@ int get_approx_exposure_time_seconds()
 	else return raw2shutter_x100(lens_info.raw_shutter)/100;
 }
 
-int adjust_iso_for_timelapse_without_changing_exposure()
+int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalometer_delay)
 {
-	int raw_shutter_0 = is_bulb_mode() ? shutter_x100_to_raw(bulb_shutter_value/10) : lens_info.raw_shutter;
+	int raw_shutter_0 = shutter_x100_to_raw(bulb_shutter_value/10);
 	int raw_iso_0 = lens_info.raw_iso;
 	
-	int d = timer_values[interval_timer_index]; // intervalometer delay, in seconds
-	int ideal_shutter_speed_x100 = d * 100 / (intervalometer_wait ? 1 : 2); // 180 degree rule => ideal value
-	if (!is_bulb_mode()) ideal_shutter_speed_x100 = COERCE(ideal_shutter_speed_x100, 0, 1500); // no more than 15 seconds, if possible
+	int ideal_shutter_speed_x100 = intervalometer_delay * 100 / 2; // 180 degree rule => ideal value
 	int ideal_shutter_speed_raw = shutter_x100_to_raw(ideal_shutter_speed_x100);
-	if (!is_bulb_mode()) ideal_shutter_speed_raw = COERCE(ideal_shutter_speed_raw, 16, 160); // 30s ... 1/8000
 
 	int delta = 0;  // between 90 and 180 degrees => OK
 
@@ -2547,7 +2550,6 @@ int adjust_iso_for_timelapse_without_changing_exposure()
 		int new_raw_iso = COERCE(lens_info.raw_iso + delta, 72, 120); // Allowed values: ISO 100 ... ISO 6400
 		delta = new_raw_iso - raw_iso_0;
 		if (delta == 0) return 0; // nothing to change
-		int new_raw_shutter = lens_info.raw_shutter + delta;
 		int new_bulb_shutter = 
 			delta ==  8 ? bulb_shutter_value / 2 :
 			delta == -8 ? bulb_shutter_value * 2 :
@@ -2557,226 +2559,217 @@ int adjust_iso_for_timelapse_without_changing_exposure()
 		msleep(50);
 		if (lens_info.raw_iso == new_raw_iso) // new iso accepted
 		{
-			if (is_bulb_mode())
-			{
-				bulb_shutter_value = new_bulb_shutter;
-				return 1;
-			}
-			else
-			{
-				lens_set_rawshutter(new_raw_shutter); // try to set new shutter
-				msleep(50);
-				if (lens_info.raw_shutter == new_raw_shutter) // new shutter accepted
-					return 1; // OK!
-			}
+			bulb_shutter_value = new_bulb_shutter;
+			return 1;
 		}
-		// if we are here, either iso or shutter was refused
-		// => restore old settings
+		// if we are here, either iso was refused
+		// => restore old iso, just to be sure
 		lens_set_rawiso(raw_iso_0); 
-		lens_set_rawshutter(raw_shutter_0);
 	}
 	return 0; // nothing changed
 }
 
 
-void adjust_shutter_for_timelapse(int delta)
-{
-	if (is_bulb_mode())
-	{
-		bulb_shutter_value -= delta * bulb_shutter_value / 50;
-	}
-	else
-	{
-		int i;
-		int rs = lens_info.raw_shutter;
-		for (i = 1; i <= 8; i++)
-		{
-			int newrs = rs + delta * i; // changing shutter is tricky, camera may refuse some values
-			lens_set_rawshutter(newrs);
-			if (lens_info.raw_shutter == newrs)
-				return; // OK!
-		}
-	}
-}
+int bramp_init_done = 0;
+int bramp_reference_level = 0;
+int bramp_measured_level = 0;
+int bramp_level_ev_ratio = 0;
 
-int aetl_init_done = 0;
-int aetl_reference_level = 0;
-int aetl_measured_level = 0;
-int aetl_level_ev_ratio_plus = 0;
-int aetl_level_ev_ratio_minus = 0;
-
-int measure_brightness_level()
+int measure_brightness_level(int initial_wait)
 {
-	fake_simple_button(BGMT_PLAY);
-	while (!PLAY_MODE) msleep(100);
-	msleep(1000);
+	if (!PLAY_MODE)
+	{
+		fake_simple_button(BGMT_PLAY);
+		while (!PLAY_MODE) msleep(100);
+	}
+	msleep(initial_wait);
 	struct vram_info * vram = get_yuv422_vram();
 	hist_build(vram->vram, vram->width, vram->pitch);
-	int ans = hist_get_percentile_level(intervalometer_auto_expo_prc);
-	get_out_of_play_mode(500);
+	int ans = hist_get_percentile_level(bramp_percentile);
+	//~ get_out_of_play_mode(500);
 	return ans;
 }
 
-void auto_exposure_for_timelapse_init()
+void bramp_change_percentile(int dir)
 {
-	if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_BULB)
+	bramp_percentile = COERCE(bramp_percentile + dir * 5, 5, 95);
+	bramp_reference_level = measure_brightness_level(0); // at bramp_percentile
+	int level_8bit = bramp_reference_level * 255 / 100;
+	clrscr();
+	highlight_luma_range(level_8bit - 5, level_8bit + 5, 19, COLOR_CYAN);
+	bmp_printf(FONT_LARGE, 50, 400, 
+		"%d%% brightness at %dth percentile\n",
+		bramp_reference_level, 0,
+		bramp_percentile);
+}
+
+int bramp_init_state = 0;
+int handle_bulb_ramping_keys(struct event * event)
+{
+	if (bramp_init_state)
 	{
-		NotifyBox(2000, "AutoExpo requires BULB or M mode.");
-		msleep(2000);
-		intervalometer_stop();
-		msleep(1000);
-		return;
+		switch (event->param)
+		{
+			case BGMT_PRESS_SET:
+			{
+				bramp_init_state = 0; // OK :)
+				return 1;
+			}
+			case BGMT_WHEEL_LEFT:
+			case BGMT_WHEEL_RIGHT:
+			{
+				int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
+				bramp_change_percentile(dir);
+				return 0;
+			}
+		}
 	}
+
+	return 1;
+}
+
+void bulb_ramping_init()
+{
+	if (bramp_init_done) return;
 	
-	if (aetl_init_done) return;
+	if (!PLAY_MODE) fake_simple_button(BGMT_PLAY);
+	msleep(1000);
 	
+	if (!PLAY_MODE) { NotifyBox(1000, "BRamp: could not go to PLAY mode"); msleep(2000); intervalometer_stop(); return; }
 	
-	int rs0 = lens_info.raw_shutter;
+	bramp_level_ev_ratio = 0;
+	bramp_measured_level = 0;
+	
+	bramp_init_state = 1;
+	NotifyBox(100000, "Choose a well-exposed photo  \n"
+	                  "and what tones to measure.   \n"
+	                  "Keys: arrows, main dial, SET.");
+	
+	bramp_change_percentile(0); // show current selection;
+	while (PLAY_MODE && bramp_init_state == 1) msleep(100);
+	if (!PLAY_MODE) { intervalometer_stop(); return; }
+	
+	NotifyBox(100000, "Calibration...");
+	
+	bulb_shutter_value = 1000;
+	bulb_take_pic(bulb_shutter_value);
+	bramp_measured_level = measure_brightness_level(1000);
+
+	while (bramp_measured_level < bramp_reference_level)
+	{
+		bulb_shutter_value *= 2;
+		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
+		bulb_take_pic(bulb_shutter_value);
+		
+		int prev_level = bramp_measured_level;
+		bramp_measured_level = measure_brightness_level(1000);
+		if (bramp_measured_level == prev_level)
+		{
+			NotifyBox(5000, "Could not change exposure"); msleep(5000);
+			intervalometer_stop(); return;
+		}
+	}
+
+	while (bramp_measured_level > bramp_reference_level)
+	{
+		bulb_shutter_value /= 2;
+		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
+		bulb_take_pic(bulb_shutter_value);
+		
+		int prev_level = bramp_measured_level;
+		bramp_measured_level = measure_brightness_level(1000);
+		if (bulb_shutter_value == 0)
+		{
+			NotifyBox(5000, "Image is overexposed"); msleep(5000);
+			intervalometer_stop(); return;
+		}
+		if (bramp_measured_level == prev_level)
+		{
+			NotifyBox(5000, "Could not change exposure"); msleep(5000);
+			intervalometer_stop(); return;
+		}
+	}
+
+
+	NotifyBox(10000, "Level/EV ratio..."); msleep(1000);
+
+	bramp_reference_level = measure_brightness_level(1000);
+
 	int bs0 = bulb_shutter_value;
 	
-	if (is_bulb_mode()) bulb_shutter_value = bs0 * 2; else lens_set_rawshutter(rs0 - 8);
-	hdr_shot(0, 1);
-	int level_plus1ev = measure_brightness_level();
+	bulb_shutter_value = bs0 * 2;
+	bulb_take_pic(bulb_shutter_value);
+	int level_plus1ev = measure_brightness_level(1000);
 
-	if (is_bulb_mode()) bulb_shutter_value = bs0 / 2; else lens_set_rawshutter(rs0 + 8);
-	hdr_shot(0, 1);
-	int level_minus1ev = measure_brightness_level();
+	bulb_shutter_value = bs0 / 2;
+	bulb_take_pic(bulb_shutter_value);
+	int level_minus1ev = measure_brightness_level(1000);
 
-	if (is_bulb_mode()) bulb_shutter_value = bs0; else lens_set_rawshutter(rs0);
-	hdr_shot(0, 1);
-	aetl_reference_level = measure_brightness_level();
-	
-	aetl_level_ev_ratio_plus = level_plus1ev - aetl_reference_level;
-	aetl_level_ev_ratio_minus = aetl_reference_level - level_minus1ev;
+	int bramp_level_ev_ratio_plus = level_plus1ev - bramp_reference_level;
+	int bramp_level_ev_ratio_minus = bramp_reference_level - level_minus1ev;
+	bramp_level_ev_ratio = (bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2;
 
-	int thr_hi = aetl_reference_level + aetl_level_ev_ratio_plus / 3;
-	int thr_lo = aetl_reference_level - aetl_level_ev_ratio_minus / 3;
-	
-	if (thr_hi >= 100 || thr_lo <= 0)
+	if (bramp_level_ev_ratio == 0)
 	{
-		NotifyBox(5000, "Image is too over/under-exposed.");
-		auto_exposure_for_timelapse_showinfo();
+		NotifyBox(5000, "Calibration error");
+		bulb_ramping_showinfo();
 		msleep(5000);
 		intervalometer_stop();
 		return;
 	}
 
-	if (thr_hi <= aetl_reference_level || thr_lo >= aetl_reference_level)
-	{
-		NotifyBox(5000, "Calibration error\nIncorrect thresholds\nCheck for correct exposure");
-		auto_exposure_for_timelapse_showinfo();
-		msleep(5000);
-		intervalometer_stop();
-		return;
-	}
-
-	auto_exposure_for_timelapse_showinfo();
+	bulb_ramping_showinfo();
 	
 	bulb_duration_index = 0; // disable bulb timer to avoid interference
-	aetl_init_done = 1;
+	bramp_init_done = 1;
 }
 
 void compute_exposure_for_next_shot()
 {
-	if (!aetl_init_done) return;
+	if (!bramp_init_done) return;
 	
 	NotifyBoxHide();
 	NotifyBox(2000, "Exposure for next shot...");
 	msleep(500);
 	
-	aetl_measured_level = measure_brightness_level();
+	bramp_measured_level = measure_brightness_level(1000);
 	
-	int thr_hi = aetl_reference_level + aetl_level_ev_ratio_plus / 3;
-	int thr_lo = aetl_reference_level - aetl_level_ev_ratio_minus / 3;
-	
-	if (is_bulb_mode()) // free adjustment
-	{
-		int level_ev_ratio = (aetl_level_ev_ratio_plus + aetl_level_ev_ratio_minus) / 2;
-		int err = aetl_measured_level - aetl_reference_level;
-		if (ABS(err) <= 1) err = 0;
-		int correction_ev_x100 = - 100 * err / level_ev_ratio / 2;
-		bulb_shutter_value = bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100;
-		NotifyBox(1000, "Exposure difference: %d%% ", err);
-		msleep(500);
-	}
-	else // 1/8 EV step limit
-	{
-		if (aetl_measured_level > thr_hi)
-			adjust_shutter_for_timelapse(1);
-		
-		else if (aetl_measured_level < thr_lo)
-			adjust_shutter_for_timelapse(-1);
-	}
-	
-	adjust_iso_for_timelapse_without_changing_exposure();
+	int err = bramp_measured_level - bramp_reference_level;
+	if (ABS(err) <= 1) err = 0;
+	int correction_ev_x100 = - 100 * err / bramp_level_ev_ratio / 2;
+	bulb_shutter_value = bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100;
+	NotifyBox(1000, "Exposure difference: %d%% ", err);
+	msleep(500);
+
+	bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
 	NotifyBoxHide();
 }
 
-void auto_exposure_for_timelapse_showinfo()
+void bulb_ramping_showinfo()
 {
-	int s = raw2shutter_x100(lens_info.raw_shutter);
-	if (is_bulb_mode()) s = bulb_shutter_value/10;
+	int s = bulb_shutter_value/10;
 	bmp_printf(FONT_MED, 50, 300, 
-		"Reference level (%d%%prc) : %d%% \n"
-		"Measured  level (%d%%prc) : %d%% \n"
-		"Exposure change thresh.  : %d...%d \n"
+		"Reference level (%2dth prc) : %d%% \n"
+		"Measured  level (%2dth prc) : %d%% \n"
+		"Level/EV ratio             : %d%%/EV \n"
 		"ISO     : %d   \n"
-		"Shutter : %d.%02d s (raw %d) ", 
-		intervalometer_auto_expo_prc, 0, aetl_reference_level, 0,
-		intervalometer_auto_expo_prc, 0, aetl_measured_level, 0,
-		aetl_reference_level - aetl_level_ev_ratio_minus / 3,
-		aetl_reference_level + aetl_level_ev_ratio_plus / 3, 
+		"Shutter : %d.%02d s ", 
+		bramp_percentile, bramp_reference_level, 0,
+		bramp_percentile, bramp_measured_level, 0,
+		bramp_level_ev_ratio, 0,
 		lens_info.iso,
-		s / 100, s % 100, 
-		lens_info.raw_shutter);
+		s / 100, s % 100);
 }
 
-static int prc_values[] = {20, 30, 50, 70, 80, 90, 95, 98, 99};
-
-int find_prc_index(int prc)
-{
-	int i;
-	for (i = 0; i < COUNT(prc_values); i++)
-		if (prc_values[i] >= prc) return i;
-	return 0;
-}
-static void auto_exposure_for_timelapse_prc_toggle(int sign)
-{
-	int i = find_prc_index(intervalometer_auto_expo_prc);
-	i = mod(i + sign, COUNT(prc_values));
-	intervalometer_auto_expo_prc = prc_values[i];
-}
-
-static void auto_exposure_for_timelapse_prc_toggle_forward(void* priv)
-{
-	auto_exposure_for_timelapse_prc_toggle(1);
-}
-
-static void auto_exposure_for_timelapse_prc_toggle_reverse(void* priv)
-{
-	auto_exposure_for_timelapse_prc_toggle(-1);
-}
 
 static void 
-auto_exposure_for_timelapse_display( void * priv, int x, int y, int selected )
+bulb_ramping_display( void * priv, int x, int y, int selected )
 {
-	char msg[100];
-	
-	if (shooting_mode == SHOOTMODE_M && !is_bulb_mode())
-	{
-		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: ON,prctile=%d%%", intervalometer_auto_expo_prc);
-		else snprintf(msg, sizeof(msg), "AutoExpo4TmLapse: OFF");
-	}
-	else
-	{
-		if (intervalometer_auto_expo) snprintf(msg, sizeof(msg), "Auto BulbRamping: ON,prctile=%d%%", intervalometer_auto_expo_prc);
-		else snprintf(msg, sizeof(msg), "Auto BulbRamping: OFF");
-	}
-
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		msg
+		"Bulb Ramping    : %s", 
+		intervalometer_auto_expo ? "ON" : "OFF"
 	);
 	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 7, selected);
 }
@@ -2809,13 +2802,11 @@ struct menu_entry shoot_menus[] = {
 		.help = "Intervalometer. For precise timing, choose NoWait [Q]."
 	},
 	{
-		.name = "AutoExpo for Timelapse",
+		.name = "Bulb Ramping",
 		.priv		= &intervalometer_auto_expo,
 		.select		= menu_binary_toggle,
-		.display	= auto_exposure_for_timelapse_display,
-		.select_auto = auto_exposure_for_timelapse_prc_toggle_forward,
-		.select_reverse = auto_exposure_for_timelapse_prc_toggle_reverse,
-		.help = "Bulb ramping (BULB) or Auto shutter/ISO (M) for timelapse.",
+		.display	= bulb_ramping_display,
+		.help = "Automatic bulb ramping for day-to-night timelapse",
 	},
 	{
 		.name = "Bulb Timer",
@@ -3702,7 +3693,7 @@ shoot_task( void* unused )
 
 			if (intervalometer_auto_expo)
 			{
-				auto_exposure_for_timelapse_init();
+				bulb_ramping_init();
 				compute_exposure_for_next_shot();
 			}
 
@@ -3721,7 +3712,7 @@ shoot_task( void* unused )
 
 				if (i == 2 && n >= 4 && image_review_time > 2)
 				{
-					playback_compare_last_two_images(-1);
+					playback_compare_images(0);
 				}
 				if (PLAY_MODE && i >= image_review_time)
 				{
@@ -3750,7 +3741,7 @@ shoot_task( void* unused )
 				else break;
 
 				if (intervalometer_auto_expo)
-					auto_exposure_for_timelapse_showinfo();
+					bulb_ramping_showinfo();
 
 				if (gui_menu_shown() || gui_state == GUISTATE_PLAYMENU) continue;
 
@@ -3766,7 +3757,7 @@ shoot_task( void* unused )
 		}
 		else // intervalometer not running
 		{
-			aetl_init_done = 0;
+			bramp_init_done = 0;
 			
 			if (audio_release_running) 
 			{
