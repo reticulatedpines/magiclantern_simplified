@@ -573,13 +573,13 @@ follow_focus_print(
 		x, y,
 		"Follow Focus   : %s",
 		follow_focus == 1 ? "Arrows" :
-		follow_focus == 2 ? "Zoom In/Out" :
-		follow_focus == 3 ? "LCD sensor" : "OFF"
+		//~ follow_focus == 2 ? "Zoom In/Out" :
+		follow_focus == 2 ? "LCD sensor" : "OFF"
 	);
-	if (follow_focus)
+	if (follow_focus == 1)
 	{
 		bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
-		if (follow_focus == 1) bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
+		bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
 	menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus), 0);
 }
@@ -1002,9 +1002,9 @@ static struct menu_entry focus_menu[] = {
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
 		#ifdef CONFIG_550D
-		.select		= menu_quaternary_toggle,
-		#else
 		.select		= menu_ternary_toggle,
+		#else
+		.select		= menu_binary_toggle,
 		#endif
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
@@ -1181,7 +1181,8 @@ int handle_follow_focus(struct event * event)
 					return 1;
 			}
 		}
-		else if (follow_focus == 2) // zoom in/out
+		/*
+		else if (follow_focus == 3) // zoom in/out
 		{
 			if (lvaf_mode == 0) return 1; // not compatible with quick focus
 			switch(event->param)
@@ -1189,7 +1190,7 @@ int handle_follow_focus(struct event * event)
 				case BGMT_PRESS_ZOOMOUT_MAYBE:
 				case BGMT_PRESS_HALFSHUTTER:
 					#ifdef AF_BUTTON_PRESSED_LV
-					if (!AF_BUTTON_PRESSED_LV) return 0; // only override the AF button
+					if (AF_BUTTON_PRESSED_LV) return 0; // don't override the AF button
 					#endif
 					lens_focus_start(-1 * get_follow_focus_dir_h());
 					return 0;
@@ -1202,7 +1203,7 @@ int handle_follow_focus(struct event * event)
 					lens_focus_stop();
 					return 1;
 			}
-		}
+		}*/
 	}
 	return 1;
 }

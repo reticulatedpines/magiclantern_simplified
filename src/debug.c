@@ -727,7 +727,7 @@ static void display_shortcut_key_hints_lv()
 	if (!zebra_should_run()) return;
 	if (is_movie_mode() && FLASH_BTN_MOVIE_MODE) mode = 1;
 	else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) mode = 2;
-	else if (is_follow_focus_active() && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
+	else if (is_follow_focus_active()==1 && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
 	if (mode == 0 && old_mode == 0) return;
 
 	int mz = (mode == 2 && get_zoom_overlay_z() && lv_dispsize == 1);
@@ -748,19 +748,22 @@ static void display_shortcut_key_hints_lv()
 	}
 	else if (mode == 3)
 	{
-		if (is_follow_focus_active() < 3)
-		{
-			int xf = is_follow_focus_active() == 1 ? 360 : 650;
-			int yf = is_follow_focus_active() == 1 ? 240 : 50;
-			int xs = is_follow_focus_active() == 1 ? 100 : 30;
+		//~ if (is_follow_focus_active() == 1)
+		//~ {
+			//~ int xf = is_follow_focus_active() == 1 ? 360 : 650;
+			//~ int yf = is_follow_focus_active() == 1 ? 240 : 50;
+			//~ int xs = is_follow_focus_active() == 1 ? 100 : 30;
+			const int xf = 360;
+			const int yf = 240;
+			const int xs = 30;
 			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
 			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-			if (is_follow_focus_active() == 1) // arrows
-			{
-				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-				bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
-			}
-		}
+			//~ if (is_follow_focus_active() == 1) // arrows
+			//~ {
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+			//~ }
+		//~ }
 	}
 	else
 	{
