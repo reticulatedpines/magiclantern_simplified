@@ -1,6 +1,26 @@
 #ifndef _big_gui_h_
 #define _big_gui_h_
 
+#ifdef CONFIG_550D
+#include "../platform/550D.109/gui.h"
+#endif
+
+#ifdef CONFIG_60D
+#include "../platform/60D.110/gui.h"
+#endif
+
+#ifdef CONFIG_600D
+#include "../platform/600D.101/gui.h"
+#endif
+
+#ifdef CONFIG_50D
+#include "../platform/50D.108/gui.h"
+#endif
+
+#ifdef CONFIG_1100D
+#include "../platform/1100D.104/gui.h"
+#endif
+
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
@@ -10,7 +30,6 @@
 #define MLEV_HIDE_CANON_BOTTOM_BAR -4
 #define MLEV_ChangeHDMIOutputSizeToVGA -5
 #define MLEV_LCD_SENSOR_START -6
-
 
 /** \file
  * DryOS GUI structures and functions.
@@ -165,26 +184,5 @@ gui_hide_menu( int redisplay_time );
 #define GUISTATE_QMENU 9
 
 void fake_simple_button(int bgmt_code);
-
-#ifdef CONFIG_550D
-#include "../platform/550D.109/gui.h"
-#endif
-
-#ifdef CONFIG_60D
-#include "../platform/60D.110/gui.h"
-#endif
-
-#ifdef CONFIG_600D
-#include "../platform/600D.101/gui.h"
-#endif
-
-#ifdef CONFIG_50D
-#include "../platform/50D.108/gui.h"
-#endif
-
-#ifdef CONFIG_1100D
-#include "../platform/1100D.104/gui.h"
-#endif
-
 
 #endif
