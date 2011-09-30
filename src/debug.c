@@ -331,7 +331,7 @@ void xx_test(void* priv)
 	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
-static void xx_test2(void* priv)
+static void stress_test_long(void* priv)
 {
 	gui_stop_menu();
 	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
@@ -1056,15 +1056,15 @@ struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,
-		.select_reverse = xx_test2,
 		.display	= menu_print,
 		.help = "The camera may turn into a 1D Mark V or it may explode."
 	},
 	{
-		.priv		= "Quick stability test",
+		.priv		= "Stability tests: SET / PLAY",
 		.select		= stress_test,
 		.display	= menu_print,
-		.help = "Run this to test the stability of Magic Lantern."
+		.select_reverse = stress_test_long,
+		.help = "SET: quick test; PLAY: burn-in test (around 2 hours)"
 	},
 /*	{
 		.select = focus_test,
