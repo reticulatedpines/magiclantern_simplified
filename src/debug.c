@@ -402,33 +402,6 @@ static void stress_test_task(void* unused)
 
 	msleep(2000);
 
-	NotifyBox(10000, "LiveView");
-	set_shooting_mode(SHOOTMODE_M);
-	if (!lv) force_liveview();
-	for (int i = 0; i < 21; i++)
-	{
-		fake_simple_button(BGMT_LV); msleep(100);
-	}
-
-	stress_test_picture(2, 2000);
-
-	msleep(2000);
-	if (lv) fake_simple_button(BGMT_LV); // make sure we are outside LV
-	msleep(1000);
-
-	/*for (int i = 0; i <= 0x14; i++)
-	{
-		NotifyBox(10000, "Mode switching: %d", i);
-		set_shooting_mode(i);
-		msleep(1000);
-	}
-	for (int i = 0x14; i >= 0; i--)
-	{
-		NotifyBox(10000, "Mode switching: %d", i);
-		set_shooting_mode(i);
-		msleep(1000);
-	}*/
-
 	for (int i = 0; i <= 10; i++)
 	{
 		NotifyBox(10000, "Mode switching: %d", i*10);
@@ -521,6 +494,15 @@ static void stress_test_task(void* unused)
 		NotifyBox(10000, "Display on/off: %d", i);
 		display_off_force(); msleep(100);
 		display_on_force(); msleep(100);
+	}
+
+	stress_test_picture(2, 2000);
+
+	NotifyBox(10000, "LiveView switch...");
+	set_shooting_mode(SHOOTMODE_M);
+	for (int i = 0; i < 21; i++)
+	{
+		fake_simple_button(BGMT_LV); msleep(100);
 	}
 
 	stress_test_picture(2, 2000);
