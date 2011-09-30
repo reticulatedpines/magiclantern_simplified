@@ -30,6 +30,7 @@
 #define MLEV_HIDE_CANON_BOTTOM_BAR -4
 #define MLEV_ChangeHDMIOutputSizeToVGA -5
 #define MLEV_LCD_SENSOR_START -6
+#define MLEV_REDRAW -7
 
 /** \file
  * DryOS GUI structures and functions.

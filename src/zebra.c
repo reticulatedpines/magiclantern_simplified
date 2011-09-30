@@ -2987,7 +2987,7 @@ CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
 // * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
-void redraw()
+void redraw_do()
 {
 BMP_LOCK (
 
@@ -3020,6 +3020,11 @@ BMP_LOCK (
 	crop_set_dirty(2);
 	menu_set_dirty();
 	zoom_overlay_dirty = 1;
+}
+
+void redraw()
+{
+	fake_simple_button(MLEV_REDRAW);
 }
 
 void test_fps(int* x)

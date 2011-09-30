@@ -266,9 +266,9 @@ void fake_buttons()
 				SW1(1,rand() % 2000);
 				SW1(0,rand() % 2000);
 				break;
-			case 4:
-				fake_simple_button(BGMT_LV); msleep(rand() % delay);
-				break;
+			//~ case 4:
+				//~ fake_simple_button(BGMT_LV); msleep(rand() % delay);
+				//~ break;
 		}
 	}
 }
@@ -288,6 +288,10 @@ void change_colors_like_crazy()
 		PauseLiveView();
 		msleep(rand() % delay);
 		ResumeLiveView();
+		msleep(rand() % delay);
+		display_on();
+		msleep(rand() % delay);
+		display_off();
 		msleep(rand() % delay);
 		//~ cli_save();
 		//~ if (tft_status == 1 && lv) ChangeColorPalette(rand() % 5);
@@ -1942,6 +1946,9 @@ int handle_tricky_canon_calls(struct event * event)
 			#ifdef CONFIG_550D
 			DispSensorStart();
 			#endif
+			break;
+		case MLEV_REDRAW:
+			redraw_do();
 			break;
 	}
 	if (event->param < 0) return 0;
