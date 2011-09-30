@@ -2612,8 +2612,10 @@ void bramp_change_percentile(int dir)
 	if (i >= 20) { NotifyBox(1000, "Image not properly exposed"); return; }
 
 	int level_8bit = bramp_reference_level * 255 / 100;
+	int level_8bit_plus = hist_get_percentile_level(bramp_percentile + 2);
+	int level_8bit_minus = hist_get_percentile_level(bramp_percentile - 2);
 	clrscr();
-	highlight_luma_range(level_8bit - 5, level_8bit + 5, COLOR_BLACK, COLOR_WHITE);
+	highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLACK, COLOR_WHITE);
 	bmp_printf(FONT_LARGE, 50, 420, 
 		"%d%% brightness at %dth percentile\n",
 		bramp_reference_level, 0,
@@ -2660,7 +2662,7 @@ void bulb_ramping_init()
 	
 	bramp_init_state = 1;
 	NotifyBox(100000, "Choose a well-exposed photo  \n"
-	                  "and what tones to measure.   \n"
+	                  "and tonal range to meter for.\n"
 	                  "Keys: arrows, main dial, SET.");
 	
 	msleep(200);

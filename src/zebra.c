@@ -1205,7 +1205,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 		for (lvp = ((uint8_t*)v_row)+1, bp = b_row; lvp < v_row + 720/2 ; lvp += 4, bp++)
 		{
 			int x = ((int)lvp) / 2;
-			int color = (y/4 - x/4) % 2 ? color1 | color1 << 8 : color2 | color2 << 8;
+			int color = (y/2 - x/2) % 2 ? color1 | color1 << 8 : color2 | color2 << 8;
 			#define BP (*bp)
 			#define BN (*(bp + BMPPITCH/2))
 			int c = *lvp >= lo && *lvp <= hi ? color : 0;
