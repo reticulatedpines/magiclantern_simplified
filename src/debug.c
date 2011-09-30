@@ -433,7 +433,7 @@ static void stress_test_task(void* unused)
 	{
 		NotifyBox(10000, "Mode switching: %d", i*10);
 		set_shooting_mode(SHOOTMODE_AUTO);	msleep(100);
-		set_shooting_mode(SHOOTMODE_MOVIE);	msleep(100);
+		set_shooting_mode(SHOOTMODE_MOVIE);	msleep(2000);
 		set_shooting_mode(SHOOTMODE_SPORTS);	msleep(100);
 		set_shooting_mode(SHOOTMODE_NIGHT);	msleep(100);
 		set_shooting_mode(SHOOTMODE_CA);	msleep(100);

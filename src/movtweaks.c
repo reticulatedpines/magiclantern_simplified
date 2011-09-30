@@ -42,12 +42,8 @@ void restore_kelvin_wb()
 	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
 }
 
-int mode_remap_done = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
-	static int shooting_mode = -1;
-	if (shooting_mode != (int)buf[0]) mode_remap_done = 0;
-	shooting_mode = buf[0];
 	if (is_movie_mode()) restore_kelvin_wb();
 	intervalometer_stop();
 	return prop_cleanup(token, property);
@@ -116,15 +112,10 @@ movie_restart_print(
 	);
 }
 
-int setting_shooting_mode = 0;
 void set_shooting_mode(int m)
 {
-	setting_shooting_mode = 1;
-	msleep(100);
 	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
-	msleep(500);
-	mode_remap_done = 1;
-	setting_shooting_mode = 0;
+	msleep(100);
 }
 
 void do_movie_mode_remap()
@@ -132,15 +123,11 @@ void do_movie_mode_remap()
 	if (gui_state == GUISTATE_PLAYMENU) return;
 	if (gui_menu_shown()) return;
 	if (!movie_mode_remap) return;
-	if (mode_remap_done) return;
-	if (setting_shooting_mode) return;
 	int movie_newmode = movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X : MOVIE_MODE_REMAP_Y;
 	if (shooting_mode == movie_newmode)
 	{
 		ensure_movie_mode();
 	}
-	//~ else if (is_movie_mode()) set_shooting_mode(movie_newmode);
-	mode_remap_done = 1;
 }
 /*
 CONFIG_INT("dof.adjust", dof_adjust, 1);
