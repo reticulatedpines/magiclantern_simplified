@@ -2670,6 +2670,7 @@ void bulb_ramping_init()
 	
 	NotifyBox(100000, "Calibration...");
 	
+	lens_set_iso(400);
 	bulb_shutter_value = MAX(1000, BULB_MIN_EXPOSURE*2);
 	bulb_take_pic(bulb_shutter_value);
 	bramp_measured_level = measure_brightness_level(1000);
