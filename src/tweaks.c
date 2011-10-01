@@ -751,6 +751,10 @@ static void night_vision_print(
 }
 */
 
+void set_display_gain(int display_gain)
+{
+	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
+}
 int display_gain = 0;
 void display_gain_toggle(int dir)
 {
@@ -766,7 +770,7 @@ void display_gain_toggle(int dir)
 		else display_gain = 65536;
 	}
 	else display_gain = 0;
-	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
+	set_display_gain(display_gain);
 	menu_show_only_selected();
 }
 void display_gain_toggle_forward(void* priv) { display_gain_toggle(1); }

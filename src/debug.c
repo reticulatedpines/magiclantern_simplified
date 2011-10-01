@@ -216,8 +216,11 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
+	bulb_take_pic(2000);
 	bulb_take_pic(100);
+	bulb_take_pic(1500);
 	bulb_take_pic(10);
+	bulb_take_pic(1000);
 	bulb_take_pic(1);
 	//~ int x = 2;
 	//~ prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
@@ -363,6 +366,35 @@ static void stress_test_task(void* unused)
 {
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
+	if (!lv) force_liveview();
+	for (int k = 0; k < 100; k++)
+	{
+		NotifyBox(10000, "LiveView / Playback (%d)...", k);
+		fake_simple_button(BGMT_PLAY);
+		msleep(rand() % 2000);
+		SW1(1, rand()%100);
+		SW1(0, rand()%100);
+		msleep(rand() % 2000);
+	}
+	if (!lv) force_liveview();
+	NotifyBox(10000, "LiveView gain test...");
+	msleep(2000);
+	for (int k = 0; k < 5; k++)
+	{
+		for (int i = 0; i <= 16; i++)
+		{
+			set_display_gain(1<<i);
+			msleep(100);
+		}
+		for (int i = 16; i >= 0; i--)
+		{
+			set_display_gain(1<<i);
+			msleep(100);
+		}
+		set_display_gain(0);
+		msleep(100);
+	}
+	return;
 	for (int i = 0; i <= 10; i++)
 	{
 		NotifyBox(10000, "LED blinking: %d", i*10);

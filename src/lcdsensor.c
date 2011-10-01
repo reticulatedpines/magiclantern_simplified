@@ -55,7 +55,6 @@ lcd_release_display( void * priv, int x, int y, int selected )
 }
 
 extern int remote_shot_flag; // from shoot.c
-extern int intervalometer_running;
 int wave_count = 0;
 int wave_count_countdown = 0;
 int lcd_ff_dir = 1;
@@ -83,7 +82,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 		}
 	}
 
-	if (lcd_release_running && gui_state == GUISTATE_IDLE && !intervalometer_running)
+	if (lcd_release_running && gui_state == GUISTATE_IDLE && !is_intervalometer_running())
 	{
 		if (gui_menu_shown()) goto end;
 		

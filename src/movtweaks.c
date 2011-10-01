@@ -52,6 +52,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 
 void set_shooting_mode(int m)
 {
+	if (shooting_mode == m) return;
 	ml_changing_shooting_mode = 1;
 	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
 	msleep(200);
