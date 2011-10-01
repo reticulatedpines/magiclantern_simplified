@@ -42,11 +42,20 @@ void restore_kelvin_wb()
 	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
 }
 
+int ml_changing_shooting_mode = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
 	if (is_movie_mode()) restore_kelvin_wb();
-	intervalometer_stop();
+	if (!ml_changing_shooting_mode) intervalometer_stop();
 	return prop_cleanup(token, property);
+}
+
+void set_shooting_mode(int m)
+{
+	ml_changing_shooting_mode = 1;
+	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
+	msleep(200);
+	ml_changing_shooting_mode = 0;
 }
 
 CONFIG_INT("movie.restart", movie_restart,0);
@@ -110,12 +119,6 @@ movie_restart_print(
 		"Movie Restart : %s ",
 		movie_restart ? "ON " : "OFF"
 	);
-}
-
-void set_shooting_mode(int m)
-{
-	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
-	msleep(100);
 }
 
 void do_movie_mode_remap()

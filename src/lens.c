@@ -206,14 +206,14 @@ update_lens_display()
 	lens_display_dirty = 0;
 }
 
-int raw2shutter_x100(int raw_shutter)
+int raw2shutter_ms(int raw_shutter)
 {
-    return (int) roundf(powf(2.0, (152.0 - raw_shutter)/8.0) / 40.0);
+    return (int) roundf(powf(2.0, (152.0 - raw_shutter)/8.0) / 4.0);
 }
-int shutter_x100_to_raw(int shutter_x100)
+int shutter_ms_to_raw(int shutter_ms)
 {
-	if (shutter_x100 == 0) return 160;
-	return (int) roundf(152 - log2f(shutter_x100 * 40) * 8);
+	if (shutter_ms == 0) return 160;
+	return (int) roundf(152 - log2f(shutter_ms * 4) * 8);
 }
 
 void draw_ml_bottombar()
@@ -312,7 +312,7 @@ void draw_ml_bottombar()
       *  SHUTTER         *
       *******************/
 
-      int shutter_x10 = raw2shutter_x100(info->raw_shutter) / 10;
+      int shutter_x10 = raw2shutter_ms(info->raw_shutter) / 100;
       int shutter_reciprocal = (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0));
       if (shutter_reciprocal > 100) shutter_reciprocal = 10 * (int)roundf(shutter_reciprocal / 10.0);
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * (int)roundf(shutter_reciprocal / 100.0);

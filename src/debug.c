@@ -217,6 +217,8 @@ void run_test()
 	gui_stop_menu();
 	msleep(2000);
 	bulb_take_pic(100);
+	bulb_take_pic(10);
+	bulb_take_pic(1);
 	//~ int x = 2;
 	//~ prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
 	//~ msleep(1000);

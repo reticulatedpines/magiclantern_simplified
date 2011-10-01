@@ -2328,11 +2328,13 @@ bulb_take_pic(int duration)
 {
 	if (duration < BULB_MIN_EXPOSURE)
 	{
-		lens_set_rawshutter(shutter_x100_to_raw(duration/10));
+		set_shooting_mode(SHOOTMODE_M);
+		lens_set_rawshutter(shutter_ms_to_raw(duration));
 		lens_take_picture(64);
+		set_shooting_mode(SHOOTMODE_BULB);
 		return;
 	}
-	duration = MAX(duration, BULB_MIN_EXPOSURE);
+	//~ duration = MAX(duration, BULB_MIN_EXPOSURE);
 	if (!is_bulb_mode())
 	{
 		#ifdef CONFIG_60D
@@ -2523,21 +2525,21 @@ static void picq_toggle(void* priv)
 int get_approx_exposure_time_seconds()
 {
 	if (is_bulb_mode()) return bulb_shutter_value/1000;
-	else return raw2shutter_x100(lens_info.raw_shutter)/100;
+	else return raw2shutter_ms(lens_info.raw_shutter)/1000;
 }
 
 int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalometer_delay)
 {
-	int raw_shutter_0 = shutter_x100_to_raw(bulb_shutter_value/10);
+	int raw_shutter_0 = shutter_ms_to_raw(bulb_shutter_value);
 	int raw_iso_0 = lens_info.raw_iso;
 	
-	int ideal_shutter_speed_x100 = intervalometer_delay * 100 / 2; // 180 degree rule => ideal value
-	int ideal_shutter_speed_raw = shutter_x100_to_raw(ideal_shutter_speed_x100);
+	int ideal_shutter_speed_ms = intervalometer_delay * 1000 / 2; // 180 degree rule => ideal value
+	int ideal_shutter_speed_raw = shutter_ms_to_raw(ideal_shutter_speed_ms);
 
 	int delta = 0;  // between 90 and 180 degrees => OK
 
-	if (ideal_shutter_speed_raw > raw_shutter_0)
-		delta = 8; // shutter too slow (more than 180 degrees -- ideal value) => boost ISO
+	if (ideal_shutter_speed_raw > raw_shutter_0 + 4)
+		delta = 8; // shutter too slow (more than 270 degrees -- ideal value) => boost ISO
 
 	if (ideal_shutter_speed_raw < raw_shutter_0 - 8)
 		delta = -8; // shutter too fast (less than 90 degrees) => lower ISO
@@ -2552,7 +2554,7 @@ int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalomete
 			delta == -8 ? bulb_shutter_value * 2 :
 			bulb_shutter_value;
 		
-		if (bulb_shutter_value < BULB_MIN_EXPOSURE) return;
+		//~ if (bulb_shutter_value < BULB_MIN_EXPOSURE) return;
 		
 		lens_set_rawiso(new_raw_iso); // try to set new iso
 		msleep(50);
@@ -2595,15 +2597,16 @@ TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
 
 int measure_brightness_level(int initial_wait)
 {
+	if (!PLAY_MODE)
+	{
+		fake_simple_button(BGMT_PLAY);
+		while (!PLAY_MODE) msleep(100);
+		bramp_hist_dirty = 1;
+	}
+	msleep(initial_wait);
+
 	if (bramp_hist_dirty)
 	{
-		if (!PLAY_MODE)
-		{
-			fake_simple_button(BGMT_PLAY);
-			while (!PLAY_MODE) msleep(100);
-		}
-		msleep(initial_wait);
-		
 		struct vram_info * vram = get_yuv422_vram();
 		hist_build(vram->vram, vram->width, vram->pitch);
 		bramp_hist_dirty = 0;
@@ -2704,32 +2707,32 @@ void bulb_ramping_init()
 	NotifyBox(100000, "Calibration...");
 	
 	lens_set_iso(400);
-	bulb_shutter_value = MAX(1000, BULB_MIN_EXPOSURE*2);
+	bulb_shutter_value = 1000;
 	bulb_take_pic(bulb_shutter_value);
 	bramp_measured_level = measure_brightness_level(1000);
 
 	while (bramp_measured_level < bramp_reference_level)
 	{
-		bulb_shutter_value = MAX(bulb_shutter_value*2, BULB_MIN_EXPOSURE*2);
-		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(MAX(1, BULB_MIN_EXPOSURE*4/1000));
+		bulb_shutter_value = bulb_shutter_value*2;
+		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
 		bulb_take_pic(bulb_shutter_value);
 		
 		int prev_level = bramp_measured_level;
 		bramp_measured_level = measure_brightness_level(1000);
-		if (bramp_measured_level == prev_level)
-		{
-			NotifyBox(5000, "Could not change exposure"); msleep(5000);
-			intervalometer_stop(); return;
-		}
+		//~ if (bramp_measured_level == prev_level)
+		//~ {
+			//~ NotifyBox(5000, "Could not change exposure"); msleep(5000);
+			//~ intervalometer_stop(); return;
+		//~ }
 		if (!intervalometer_running) return;
 	}
 
 	while (bramp_measured_level > bramp_reference_level)
 	{
-		bulb_shutter_value = MAX(bulb_shutter_value/2, BULB_MIN_EXPOSURE*2);
-		if (bulb_shutter_value == BULB_MIN_EXPOSURE*2) break; // can't go lower than that
+		bulb_shutter_value = bulb_shutter_value/2;
+		//~ if (bulb_shutter_value == BULB_MIN_EXPOSURE*2) break; // can't go lower than that
 		
-		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(MAX(1, BULB_MIN_EXPOSURE*4/1000));
+		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
 		bulb_take_pic(bulb_shutter_value);
 		
 		int prev_level = bramp_measured_level;
@@ -2739,11 +2742,11 @@ void bulb_ramping_init()
 			NotifyBox(5000, "Image is overexposed"); msleep(5000);
 			intervalometer_stop(); return;
 		}
-		if (bramp_measured_level == prev_level)
-		{
-			NotifyBox(5000, "Could not change exposure"); msleep(5000);
-			intervalometer_stop(); return;
-		}
+		//~ if (bramp_measured_level == prev_level)
+		//~ {
+			//~ NotifyBox(5000, "Could not change exposure"); msleep(5000);
+			//~ intervalometer_stop(); return;
+		//~ }
 	}
 
 
@@ -2752,11 +2755,6 @@ void bulb_ramping_init()
 	int level0 = measure_brightness_level(1000);
 
 	int bs0 = bulb_shutter_value; 
-	if (bulb_shutter_value < BULB_MIN_EXPOSURE * 2)
-	{
-		NotifyBox(2000, "Internal error (bug)"); msleep(2000);
-		intervalometer_stop(); return;
-	}
 	
 	bulb_shutter_value = bs0 * 2;
 	bulb_take_pic(bulb_shutter_value);
@@ -2794,13 +2792,14 @@ void compute_exposure_for_next_shot()
 	int err = bramp_measured_level - bramp_reference_level;
 	if (ABS(err) <= 1) err = 0;
 	int correction_ev_x100 = - 100 * err / bramp_level_ev_ratio / 2;
-	bulb_shutter_value = MAX(BULB_MIN_EXPOSURE, bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100);
+	bulb_shutter_value = bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100;
 	NotifyBox(1000, "Exposure difference: %d%% ", err);
 	msleep(500);
 
 	bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
 	
-	bulb_shutter_value = MIN(bulb_shutter_value, timer_values[interval_timer_index] - 2); // don't go slower than intervalometer, and reserve 2 seconds just in case
+	// don't go slower than intervalometer, and reserve 2 seconds just in case
+	bulb_shutter_value = MIN(bulb_shutter_value, timer_values[interval_timer_index] - 2);
 	
 	NotifyBoxHide();
 }
@@ -3085,7 +3084,7 @@ void hdr_shutter_release(int raw_shutter, int ae)
 	if (ae) lens_set_ae(ae);
 	if (raw_shutter)
 	{
-		int shutter_ms = raw2shutter_x100(raw_shutter) * 10;
+		int shutter_ms = raw2shutter_ms(raw_shutter);
 		if (is_bulb_mode() && shutter_ms >= BULB_MIN_EXPOSURE)
 		{
 			bulb_take_pic(shutter_ms);
