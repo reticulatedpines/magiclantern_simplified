@@ -401,7 +401,8 @@ static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, in
 static void
 hist_draw_image(
 	unsigned		x_origin,
-	unsigned		y_origin
+	unsigned		y_origin,
+	int highlight_level
 )
 {
 	if (!PLAY_MODE)
@@ -419,6 +420,9 @@ hist_draw_image(
 		hist_max = 1;
 
 	unsigned i, y;
+	
+	if (highlight_level >= 0) 
+		highlight_level = highlight_level * hist_width / 256;
 
 	for( i=0 ; i < hist_width ; i++ )
 	{
@@ -432,16 +436,23 @@ hist_draw_image(
 		// vertical line up to the hist size
 		for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
 		{
-			if (hist_draw == 2) // RGB
+			if (highlight_level >= 0)
+			{
+				int hilight = ABS(i-highlight_level) <= 1;
+				*col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
+			}
+			else if (hist_draw == 2) // RGB
 				*col = hist_rgb_color(y, sizeR, sizeG, sizeB);
 			else
 				*col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
 		}
 	}
-
-	hist_max = 0;
 }
 
+void hist_highlight(int level)
+{
+	hist_draw_image( os.x_max - hist_width, os.y0 + 100, level );
+}
 
 /** Draw the waveform image into the bitmap framebuffer.
  *
@@ -1208,7 +1219,8 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 			int color = (y/2 - x/2) % 2 ? color1 | color1 << 8 : color2 | color2 << 8;
 			#define BP (*bp)
 			#define BN (*(bp + BMPPITCH/2))
-			int c = *lvp >= lo && *lvp <= hi ? color : 0;
+			int pix = (*lvp + *(lvp+2))/2;
+			int c = pix >= lo && *lvp <= hi ? color : 0;
 			BN = BP = c;
 			#undef BP
 			#undef BN
@@ -2709,7 +2721,7 @@ void draw_histogram_and_waveform()
 	if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
 	
 	if( hist_draw)
-		hist_draw_image( os.x_max - hist_width, os.y0 + 100 );
+		hist_draw_image( os.x_max - hist_width, os.y0 + 100, -1);
 
 	if (menu_active_and_not_hidden()) return;
 		

@@ -772,24 +772,6 @@ ms100_clock_task( void )
 }
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
-int seconds_clock = 0;
-static void
-seconds_clock_task( void )
-{
-	while(1)
-	{
-		wait_till_next_second();
-		seconds_clock++;
-
-		if (bulb_ramping_enabled && intervalometer_running)
-			bulb_ramping_showinfo();
-
-		if (intervalometer_running)
-			card_led_blink(1, 50, 0);
-	}
-}
-TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
-
 int expfuse_running = 0;
 int expfuse_num_images = 0;
 struct semaphore * expfuse_sem = 0;
@@ -2344,11 +2326,21 @@ int is_bulb_mode()
 void
 bulb_take_pic(int duration)
 {
+	if (duration < BULB_MIN_EXPOSURE)
+	{
+		lens_set_rawshutter(shutter_x100_to_raw(duration/10));
+		lens_take_picture(64);
+		return;
+	}
 	duration = MAX(duration, BULB_MIN_EXPOSURE);
 	if (!is_bulb_mode())
 	{
+		#ifdef CONFIG_60D
+		set_shooting_mode(SHOOTMODE_BULB);
+		#else
 		NotifyBox(2000, "Please select bulb mode");
 		return;
+		#endif
 	}
 	assign_af_button_to_star_button();
 	msleep(100);
@@ -2380,11 +2372,11 @@ static void
 bulb_display( void * priv, int x, int y, int selected )
 {
 	int d = bulb_shutter_value/1000;
+	if (!bulb_duration_index) d = 0;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Bulb Timer %s: %d%s",
-		is_bulb_mode() ? "     " : "(N/A)",
+		"Bulb Timer      : %d%s",
 		d < 60 ? d : d/60, 
 		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
@@ -2576,22 +2568,46 @@ int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalomete
 	return 0; // nothing changed
 }
 
-
+int bramp_init_state = 0;
 int bramp_init_done = 0;
 int bramp_reference_level = 0;
 int bramp_measured_level = 0;
 int bramp_level_ev_ratio = 0;
+int bramp_hist_dirty = 0;
+
+int seconds_clock = 0;
+static void
+seconds_clock_task( void )
+{
+	while(1)
+	{
+		wait_till_next_second();
+		seconds_clock++;
+
+		if (bulb_ramping_enabled && intervalometer_running && bramp_init_state == 0)
+			bulb_ramping_showinfo();
+
+		if (intervalometer_running)
+			card_led_blink(1, 50, 0);
+	}
+}
+TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
 
 int measure_brightness_level(int initial_wait)
 {
-	if (!PLAY_MODE)
+	if (bramp_hist_dirty)
 	{
-		fake_simple_button(BGMT_PLAY);
-		while (!PLAY_MODE) msleep(100);
+		if (!PLAY_MODE)
+		{
+			fake_simple_button(BGMT_PLAY);
+			while (!PLAY_MODE) msleep(100);
+		}
+		msleep(initial_wait);
+		
+		struct vram_info * vram = get_yuv422_vram();
+		hist_build(vram->vram, vram->width, vram->pitch);
+		bramp_hist_dirty = 0;
 	}
-	msleep(initial_wait);
-	struct vram_info * vram = get_yuv422_vram();
-	hist_build(vram->vram, vram->width, vram->pitch);
 	int ans = hist_get_percentile_level(bramp_percentile);
 	//~ get_out_of_play_mode(500);
 	return ans;
@@ -2612,17 +2628,17 @@ void bramp_change_percentile(int dir)
 	if (i >= 20) { NotifyBox(1000, "Image not properly exposed"); return; }
 
 	int level_8bit = bramp_reference_level * 255 / 100;
-	int level_8bit_plus = hist_get_percentile_level(bramp_percentile + 2);
-	int level_8bit_minus = hist_get_percentile_level(bramp_percentile - 2);
+	int level_8bit_plus = level_8bit + 5; //hist_get_percentile_level(bramp_percentile + 5) * 255 / 100;
+	int level_8bit_minus = level_8bit - 5; //hist_get_percentile_level(bramp_percentile - 5) * 255 / 100;
 	clrscr();
-	highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLACK, COLOR_WHITE);
+	highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLUE, COLOR_WHITE);
+	hist_highlight(level_8bit);
 	bmp_printf(FONT_LARGE, 50, 420, 
 		"%d%% brightness at %dth percentile\n",
 		bramp_reference_level, 0,
 		bramp_percentile);
 }
 
-int bramp_init_state = 0;
 int handle_bulb_ramping_keys(struct event * event)
 {
 	if (intervalometer_running && bramp_init_state)
@@ -2640,6 +2656,7 @@ int handle_bulb_ramping_keys(struct event * event)
 			{
 				int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
 				bramp_change_percentile(dir);
+				NotifyBoxHide();
 				return 0;
 			}
 		}
@@ -2651,7 +2668,9 @@ int handle_bulb_ramping_keys(struct event * event)
 void bulb_ramping_init()
 {
 	if (bramp_init_done) return;
-	
+
+	bulb_duration_index = 0; // disable bulb timer to avoid interference
+
 	if (!PLAY_MODE) fake_simple_button(BGMT_PLAY);
 	msleep(1000);
 	
@@ -2666,8 +2685,20 @@ void bulb_ramping_init()
 	                  "Keys: arrows, main dial, SET.");
 	
 	msleep(200);
+	bramp_hist_dirty = 1;
 	bramp_change_percentile(0); // show current selection;
-	while (PLAY_MODE && bramp_init_state == 1) msleep(1000);
+	
+	int play_buf = get_yuv422_vram()->vram;
+	while (PLAY_MODE && bramp_init_state == 1)
+	{
+		if (get_yuv422_vram()->vram != play_buf) // another image selected
+		{
+			bramp_hist_dirty = 1;
+			bramp_change_percentile(0); // update current selection
+			play_buf = get_yuv422_vram()->vram;
+		}
+		msleep(100);
+	}
 	if (!PLAY_MODE) { intervalometer_stop(); return; }
 	
 	NotifyBox(100000, "Calibration...");
@@ -2747,10 +2778,6 @@ void bulb_ramping_init()
 		intervalometer_stop();
 		return;
 	}
-
-	bulb_ramping_showinfo();
-	
-	bulb_duration_index = 0; // disable bulb timer to avoid interference
 	bramp_init_done = 1;
 }
 
@@ -2772,6 +2799,9 @@ void compute_exposure_for_next_shot()
 	msleep(500);
 
 	bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
+	
+	bulb_shutter_value = MIN(bulb_shutter_value, timer_values[interval_timer_index] - 2); // don't go slower than intervalometer, and reserve 2 seconds just in case
+	
 	NotifyBoxHide();
 }
 
@@ -3048,9 +3078,24 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 	DEBUG();
 }
 
-void hdr_shutter_release()
+void hdr_shutter_release(int raw_shutter, int ae)
 {
 	lens_wait_readytotakepic(64);
+
+	if (ae) lens_set_ae(ae);
+	if (raw_shutter)
+	{
+		int shutter_ms = raw2shutter_x100(raw_shutter) * 10;
+		if (is_bulb_mode() && shutter_ms >= BULB_MIN_EXPOSURE)
+		{
+			bulb_take_pic(shutter_ms);
+			return;
+		}
+		else
+		{
+			lens_set_rawshutter( raw_shutter );
+		}
+	}
 
 	if (!silent_pic_mode || !lv)
 	{
@@ -3078,8 +3123,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			if (skip0 && (i == 0)) continue;
 			//~ if (steps > 1) NotifyBox(1000, "Bracketing: %d", i);
 			int new_s = COERCE(s - step_size * i, 0x10, 160);
-			lens_set_rawshutter( new_s );
-			hdr_shutter_release();
+			hdr_shutter_release(new_s, 0);
 		}
 		msleep(100);
 		lens_set_rawshutter( s );
@@ -3093,7 +3137,7 @@ void hdr_take_pics(int steps, int step_size, int skip0)
 			//~ if (steps > 1) NotifyBox(1000, "Bracketing: %d", i);
 			int new_ae = ae + step_size * i;
 			lens_set_ae( new_ae );
-			hdr_shutter_release();
+			hdr_shutter_release(0, new_ae);
 		}
 		lens_set_ae( ae );
 	}
@@ -3409,8 +3453,6 @@ void wait_till_next_second()
 	}
 }
 
-int sw1_pressed = 0;
-
 static void
 shoot_task( void* unused )
 {
@@ -3714,6 +3756,8 @@ shoot_task( void* unused )
 			int images_compared = 0;
 			while (SECONDS_REMAINING > 0)
 			{
+				if (!intervalometer_running) continue;
+				
 				if (gui_menu_shown() || get_halfshutter_pressed())
 				{
 					intervalometer_next_shot_time++;
@@ -3748,6 +3792,8 @@ shoot_task( void* unused )
 
 				msleep(100);
 			}
+
+			if (!intervalometer_running) continue;
 
 			if (PLAY_MODE) get_out_of_play_mode(0);
 			ResumeLiveView();
