@@ -464,6 +464,8 @@ void playback_set_wheel_action(int dir)
 	else if (play_set_wheel_action == 2) playback_compare_images(dir);
 }
 
+int timelapse_playback = 0;
+
 int handle_set_wheel_play(struct event * event)
 {
 	extern int set_pressed;
@@ -485,7 +487,12 @@ int handle_set_wheel_play(struct event * event)
 			playback_set_wheel_action(dir);
 			return 0;
 		}
-		else return 1;
+		
+		if (event->param == BGMT_PRESS_RIGHT || event->param == BGMT_WHEEL_DOWN)
+		{
+			timelapse_playback = 1;
+			return 0;
+		}
 	}
 	
 	return 1;
@@ -505,6 +512,16 @@ tweak_task( void* unused)
 		{
 			lv_metering_adjust();
 		}*/
+		
+		// timelapse playback
+		if (timelapse_playback)
+		{
+			if (!PLAY_MODE) { timelapse_playback = 0; continue; }
+			
+			//~ NotifyBox(1000, "Timelapse...");
+			fake_simple_button(BGMT_WHEEL_DOWN);
+			continue;
+		}
 		
 		// faster zoom in play mode
 		if (quickzoom && gui_state == GUISTATE_PLAYMENU)

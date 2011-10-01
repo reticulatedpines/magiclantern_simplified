@@ -39,6 +39,8 @@
 
 #define BGMT_WHEEL_LEFT 2
 #define BGMT_WHEEL_RIGHT 3
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
 
 #define BGMT_PRESS_SET 4 // same
 #define BGMT_UNPRESS_SET 5 // new, only in menu mode
