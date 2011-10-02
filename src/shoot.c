@@ -2615,7 +2615,7 @@ static int measure_brightness_level(int initial_wait)
 	}
 	msleep(initial_wait);
 
-	if (1)
+	if (bramp_hist_dirty)
 	{
 		struct vram_info * vram = get_yuv422_vram();
 		hist_build(vram->vram, vram->width, vram->pitch);
