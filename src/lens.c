@@ -768,7 +768,8 @@ lens_take_picture(
 {
 	lens_wait_readytotakepic(64);
 
-	//~ bmp_printf(FONT_LARGE, 50, 50, "Release");
+	//~ bmp_printf(FONT_LARGE, 50, 50, "Release [%d]", get_exposure_time_raw());
+	//~ msleep(3000);
 	call( "Release", 0 );
 	//~ RemoteRelease(0);
 	//~ bmp_printf(FONT_LARGE, 50, 50, "Release OK");

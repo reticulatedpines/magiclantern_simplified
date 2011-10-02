@@ -82,7 +82,6 @@ int motion_detect = 0;
 //int motion_detect_level = 8;
 static int drive_mode_bk = -1;
 
-
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 PROP_HANDLER(PROP_GUI_STATE)
 {
@@ -111,16 +110,22 @@ static int bin_search(int lo, int hi, CritFunc crit)
 	return bin_search(lo, m, crit);
 }
 
-static int get_approx_exposure_time_seconds()
+static int get_exposure_time_ms()
 {
-	if (is_bulb_mode()) return bulb_shutter_value/1000;
-	else return raw2shutter_ms(lens_info.raw_shutter)/1000;
+	if (is_bulb_mode()) return bulb_shutter_value;
+	else return raw2shutter_ms(lens_info.raw_shutter);
+}
+
+int get_exposure_time_raw()
+{
+	if (is_bulb_mode()) return shutter_ms_to_raw(bulb_shutter_value);
+	return lens_info.raw_shutter;
 }
 
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
 	int d = timer_values[*(int*)priv];
-	int d_total = MAX(d, get_approx_exposure_time_seconds() + 1);
+	int d_total = MAX(d, get_exposure_time_ms()/1000 + 1);
 	int total_time_s = d_total * avail_shot;
 	int total_time_m = total_time_s / 60;
 	bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), 
@@ -873,7 +878,7 @@ void next_image_in_play_mode(int dir)
 	if (!PLAY_MODE) return;
 	void* buf_lv = get_yuv422_vram()->vram;
 	// ask for next image
-	fake_simple_button(dir > 0 ? BGMT_WHEEL_RIGHT : BGMT_WHEEL_LEFT);
+	fake_simple_button(dir > 0 ? BGMT_WHEEL_DOWN : BGMT_WHEEL_UP);
 	int k = 0;
 	// wait for image buffer location to be flipped => next image was loaded
 	while (get_yuv422_vram()->vram == buf_lv && k < 50) 
@@ -2334,7 +2339,9 @@ int is_bulb_mode()
 void ensure_bulb_mode()
 {
 	#ifdef CONFIG_60D
+	int a = lens_info.raw_aperture;
 	set_shooting_mode(SHOOTMODE_BULB);
+	lens_set_rawaperture(a);
 	#else
 	if (shooting_mode != SHOOTMODE_M)
 		set_shooting_mode(SHOOTMODE_M);
@@ -2343,28 +2350,22 @@ void ensure_bulb_mode()
 	#endif
 }
 
+// goes to Bulb mode and takes a pic with the specified duration (ms)
 void
 bulb_take_pic(int duration)
 {
 	//~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
-	if (duration < BULB_MIN_EXPOSURE)
-	{
-		duration = MAX(duration, 1);
-		set_shooting_mode(SHOOTMODE_M);
-		lens_set_rawshutter(shutter_ms_to_raw(duration));
-		lens_take_picture(64);
-		ensure_bulb_mode();
-		return;
-	}
 	duration = MAX(duration, BULB_MIN_EXPOSURE);
 	ensure_bulb_mode();
 	assign_af_button_to_star_button();
 	msleep(100);
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	if (get_mlu() && !lv) { lens_take_picture(64); msleep(2000); } 
+	//~ NotifyBox(3000, "BulbStart (%d)", duration);
 	SW1(1,50);
 	SW2(1,0);
 	msleep(duration);
+	//~ NotifyBox(3000, "BulbEnd");
 	SW2(0,50);
 	SW1(0,0);
 	msleep(100);
@@ -2925,7 +2926,7 @@ static void compute_exposure_for_next_shot()
 	int correction_ev_x100 = bramp_luma_to_ev_x100(bramp_reference_level*255/100) - bramp_luma_to_ev_x100(bramp_measured_level*255/100);
 	NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", correction_ev_x100 < 0 ? "-" : "+", ABS(correction_ev_x100)/100, ABS(correction_ev_x100)%100);
 	correction_ev_x100 = correction_ev_x100 * 80 / 100; // do only 80% of the correction
-	bulb_shutter_value = bulb_shutter_value * roundf(100 * powf(2, correction_ev_x100 / 100.0)) / 100;
+	bulb_shutter_value = bulb_shutter_value * roundf(1000.0*powf(2, correction_ev_x100 / 100.0))/1000;
 
 	msleep(2000);
 
@@ -3213,68 +3214,82 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 	DEBUG();
 }
 
-static void hdr_shutter_release(int raw_shutter, int ae)
+// normal pic, silent pic, bulb pic...
+static void take_a_pic()
 {
+	if (silent_pic_mode)
+	{
+		msleep(300);
+		silent_pic_take(0); 
+	}
+	else
+	{
+		if (get_mlu() && !lv) { lens_take_picture(64); msleep(500); } // raise mirror
+		
+		if (is_bulb_mode()) bulb_take_pic(bulb_shutter_value);
+		else lens_take_picture(64);
+	}
+	lens_wait_readytotakepic(64);
+}
+
+// Here, you specify the correction in 1/8 EV steps (for shutter or exposure compensation)
+// The function chooses the best method for applying this correction (as exposure compensation, altering shutter value, or bulb timer)
+// And then it takes a picture
+// .. and restores settings back
+static void hdr_shutter_release(int ev_x8)
+{
+	NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
 	lens_wait_readytotakepic(64);
 
-	if (ae) lens_set_ae(ae);
-	if (raw_shutter)
+	int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
+	if (!manual) // auto modes
 	{
-		int shutter_ms = raw2shutter_ms(raw_shutter);
-		if (is_bulb_mode() || bulb_ramping_enabled)
+		int ae0 = lens_get_ae();
+		lens_set_ae(ae0 + ev_x8);
+		take_a_pic();
+		lens_set_ae(ae0);
+	}
+	else // manual mode or bulb
+	{
+
+		if (lens_info.raw_iso == 0) // it's set on auto ISO
+			iso_auto_quick(); // => lock the ISO here, otherwise it won't bracket
+
+		// apply EV correction in both "domains" (milliseconds and EV)
+		int ms = get_exposure_time_ms();
+		int msc = ms * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000;
+		
+		int rs = get_exposure_time_raw();
+		int rc = rs - ev_x8;
+
+		// then choose the best option (bulb for long exposures, regular for short exposures)
+		if (msc >= BULB_MIN_EXPOSURE)
 		{
-			bulb_take_pic(shutter_ms);
-			return;
+			int m = shooting_mode;
+			bulb_take_pic(msc);
+			set_shooting_mode(m);
 		}
 		else
 		{
-			lens_set_rawshutter( raw_shutter );
+			int s0r = lens_info.raw_shutter; // just for restoring settings back
+			lens_set_rawshutter(rc);
+			take_a_pic();
+			lens_set_rawshutter(s0r);
 		}
 	}
-
-	if (!silent_pic_mode || !lv)
-	{
-		if (get_mlu() && !lv) { lens_take_picture(64); msleep(500); }
-
-		#ifdef CONFIG_600D
-		msleep(100);
-		#endif
-
-		lens_take_picture(64);
-	}
-	else { msleep(300); silent_pic_take(0); }
 }
 
 // skip0: don't take the middle exposure
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
-	if (step_size) hdr_create_script(steps, skip0, 0);
+	NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
+	hdr_create_script(steps, skip0, 0);
 	int i;
-	if ((lens_info.iso && shooting_mode == SHOOTMODE_M) || (is_movie_mode()) || is_bulb_mode())
+	
+	for( i = -steps/2; i <= steps/2; i ++  )
 	{
-		const int s = lens_info.raw_shutter;
-		for( i = -steps/2; i <= steps/2; i ++  )
-		{
-			if (skip0 && (i == 0)) continue;
-			//~ if (steps > 1) NotifyBox(1000, "Bracketing: %d", i);
-			int new_s = s - step_size * i;
-			hdr_shutter_release(new_s, 0);
-		}
-		msleep(100);
-		lens_set_rawshutter( s );
-	}
-	else
-	{
-		const int ae = lens_get_ae();
-		for( i = -steps/2; i <= steps/2; i ++  )
-		{
-			if (skip0 && (i == 0)) continue;
-			//~ if (steps > 1) NotifyBox(1000, "Bracketing: %d", i);
-			int new_ae = ae + step_size * i;
-			lens_set_ae( new_ae );
-			hdr_shutter_release(0, new_ae);
-		}
-		lens_set_ae( ae );
+		if (skip0 && (i == 0)) continue;
+		hdr_shutter_release(step_size * i);
 	}
 }
 
@@ -3329,6 +3344,7 @@ void movie_end()
 	msleep(500);
 }
 
+/*
 static void
 hdr_take_mov(int steps, int step_size)
 {
@@ -3349,27 +3365,17 @@ hdr_take_mov(int steps, int step_size)
 	lens_set_rawshutter( s );
 	movie_end();
 	set_global_draw(g);
-}
+}*/
 
-// take a HDR shot (sequence of stills or a small movie)
+// take one picture or a HDR / focus stack sequence
 // to be used with the intervalometer
 void hdr_shot(int skip0, int wait)
 {
-	//~ bmp_printf(FONT_LARGE, 50, 50, "SKIP%d", skip0);
-	//~ msleep(2000);
 	NotifyBoxHide();
-	if (is_bulb_mode() || bulb_ramping_enabled)
+	if (hdr_steps > 1)
 	{
-		bulb_take_pic(bulb_shutter_value);
-	}
-	else if (is_movie_mode() && !silent_pic_mode)
-	{
-		//~ NotifyBox(1000, "Movie record...");
-		hdr_take_mov(hdr_steps, hdr_stepsize);
-	}
-	else if (hdr_steps > 1)
-	{
-		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8);
+		NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8);
+		msleep(1000);
 		int drive_mode_bak = 0;
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 		{
@@ -3383,24 +3389,10 @@ void hdr_shot(int skip0, int wait)
 		while (lens_info.job_state > 10) msleep(100);
 		if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
 	}
-	else // regular pic
+	else // regular pic (not HDR)
 	{
-		//~ if (wait)
-		//~ {
-			//~ NotifyBox(1000, "Remote release (wait)...");
-			hdr_take_pics(0,0,0);
-		//~ }
-		//~ else
-		//~ {
-			//~ NotifyBox(1000, "Remote release (no wait)...");
-			//~ if (!silent_pic_mode) lens_take_picture(0);
-			//~ else silent_pic_take(0);
-			//~ return;
-		//~ }
+		hdr_shutter_release(0);
 	}
-
-	//~ while (lens_info.job_state) msleep(500);
-
 }
 
 int remote_shot_flag = 0;
@@ -3433,27 +3425,23 @@ void get_out_of_play_mode(int extra_wait)
 // to be called by remote triggers
 void remote_shot(int wait)
 {
+	extern int focus_stack_enabled;
+	
 	// save zoom value (x1, x5 or x10)
 	int zoom = lv_dispsize;
 	
-	if (is_bulb_mode() || (bulb_ramping_enabled && intervalometer_running))
+	if (is_movie_mode())
 	{
-		bulb_take_pic(bulb_shutter_value);
+		movie_start();
 	}
-	else if (hdr_steps > 1)
+	else if (focus_stack_enabled)
 	{
-		hdr_shot(0,1);
+		focus_stack_run();
 	}
 	else
 	{
-		if (silent_pic_mode)
-			silent_pic_take(0);
-		else if (is_movie_mode())
-			movie_start();
-		else
-			lens_take_picture(64); // hdr_shot messes with the self timer mode
+		hdr_shot(0, wait);
 	}
-	
 	if (!wait) return;
 	
 	msleep(200);
