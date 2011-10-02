@@ -367,20 +367,20 @@ static void stress_test_task(void* unused)
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
 	if (!lv) force_liveview();
-	for (int k = 0; k < 100; k++)
+	for (int k = 0; k < 10; k++)
 	{
-		NotifyBox(10000, "LiveView / Playback (%d)...", k);
+		NotifyBox(10000, "LiveView / Playback (%d)...", k*10);
 		fake_simple_button(BGMT_PLAY);
-		msleep(rand() % 2000);
+		msleep(rand() % 1000);
 		SW1(1, rand()%100);
 		SW1(0, rand()%100);
-		msleep(rand() % 2000);
+		msleep(rand() % 1000);
 	}
 	if (!lv) force_liveview();
-	NotifyBox(10000, "LiveView gain test...");
 	msleep(2000);
 	for (int k = 0; k < 5; k++)
 	{
+		NotifyBox(10000, "LiveView gain test: %d", k*20);
 		for (int i = 0; i <= 16; i++)
 		{
 			set_display_gain(1<<i);
@@ -391,10 +391,11 @@ static void stress_test_task(void* unused)
 			set_display_gain(1<<i);
 			msleep(100);
 		}
-		set_display_gain(0);
-		msleep(100);
 	}
-	return;
+	set_display_gain(0);
+
+	msleep(1000);
+	
 	for (int i = 0; i <= 10; i++)
 	{
 		NotifyBox(10000, "LED blinking: %d", i*10);
@@ -449,6 +450,7 @@ static void stress_test_task(void* unused)
 		set_shooting_mode(SHOOTMODE_NIGHT);	msleep(100);
 		set_shooting_mode(SHOOTMODE_CA);	msleep(100);
 		set_shooting_mode(SHOOTMODE_M);	msleep(100);
+		ensure_bulb_mode(); msleep(100);
 		set_shooting_mode(SHOOTMODE_TV);	msleep(100);
 		set_shooting_mode(SHOOTMODE_AV);	msleep(100);
 		set_shooting_mode(SHOOTMODE_P);	msleep(100);
