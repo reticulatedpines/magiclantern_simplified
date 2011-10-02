@@ -706,7 +706,7 @@ lens_focus_wait( void )
 }
 
 // this is compatible with all cameras so far, but allows only 3 speeds
-void
+int
 lens_focus(
 	int num_steps, 
 	int stepsize, 
@@ -714,9 +714,9 @@ lens_focus(
 	int extra_delay
 )
 {
-	if (!lv) return;
-	if (is_manual_focus()) return;
-	if (lens_info.job_state) return;
+	if (!lv) return 0;
+	if (is_manual_focus()) return 0;
+	if (lens_info.job_state) return 0;
 
 	if (num_steps < 0)
 	{
@@ -749,6 +749,7 @@ lens_focus(
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 	if (get_global_draw()) draw_ml_bottombar();
 	idle_wakeup_reset_counters(-10);
+	return 1;
 }
 
 void lens_wait_readytotakepic(int wait)

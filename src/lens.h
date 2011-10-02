@@ -196,7 +196,7 @@ lens_take_picture(
 
 
 /** Will block if it is not safe to send the focus command */
-extern void
+extern int
 lens_focus(
 	int num_steps, 
 	int stepsize, 

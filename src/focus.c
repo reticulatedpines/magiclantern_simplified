@@ -29,14 +29,14 @@ CONFIG_INT( "focus.delay", lens_focus_delay, 1 );
 CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
 
 // all focus commands from this module are done with the configured step size and delay
-void LensFocus(int num_steps)
+int LensFocus(int num_steps)
 {
-	lens_focus(num_steps, lens_focus_stepsize, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
+	return lens_focus(num_steps, lens_focus_stepsize, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
 }
 
-void LensFocus2(int num_steps, int step_size)
+int LensFocus2(int num_steps, int step_size)
 {
-	lens_focus(num_steps, step_size, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
+	return lens_focus(num_steps, step_size, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
 }
 
 
@@ -52,7 +52,11 @@ CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down but
 
 static int focus_dir;
 int get_focus_dir() { return focus_dir; }
-int is_follow_focus_active() { return follow_focus; }
+int is_follow_focus_active() 
+{ 
+	if (!is_manual_focus()) return follow_focus;
+	return 0;
+}
 int get_follow_focus_stop_on_focus() { return 0; }
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
@@ -570,13 +574,14 @@ focus_task( void* unused )
 		{
 			int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
 			int n = is_movie_mode() ? 1 : focus_stack_steps_per_picture;
-			LensFocus2(n, f * lens_focus_stepsize);
+			if (LensFocus2(n, f * lens_focus_stepsize) == 0) break;
 			focus_task_delta += f * n;
+			//~ msleep(10);
 		}
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )
