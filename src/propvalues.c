@@ -33,6 +33,8 @@ volatile PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
 volatile PROP_INT(PROP_BEEP, beep_enabled);
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 
+volatile int lv;
+
 int is_movie_mode()
 {
 	#ifdef CONFIG_50D
@@ -70,7 +72,6 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 	return prop_cleanup( token, property );
 }
 
-volatile int lv;
 PROP_HANDLER( PROP_LV_ACTION )
 {
 	lv = !buf[0];
