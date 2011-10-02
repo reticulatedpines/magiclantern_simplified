@@ -1380,7 +1380,7 @@ debug_init_stuff( void )
 {
 	//~ set_pic_quality(PICQ_RAW);
 	config_ok = 1;
-	restore_kelvin_wb();
+	if (is_movie_mode()) restore_kelvin_wb();
 
 	//~ dm_set_store_level( 255, 0);
 	//~ dm_set_print_level( 255, 0);
