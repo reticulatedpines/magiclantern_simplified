@@ -2330,6 +2330,7 @@ hdr_reset( void * priv )
 
 int is_bulb_mode()
 {
+	if (bulb_ramping_enabled && intervalometer_running) return 1; // this will force bulb mode when needed
 	if (shooting_mode == SHOOTMODE_BULB) return 1;
 	if (shooting_mode != SHOOTMODE_M) return 0;
 	if (lens_info.raw_shutter != 0xC) return 0;
@@ -2769,12 +2770,13 @@ void bulb_ramping_init()
 
 calib_start:
 	lens_set_ae(0);
-	int gain0 = bin_search(1, 65535, crit_dispgain_50);
+	int gain0 = bin_search(500, 2500, crit_dispgain_50);
 	set_display_gain(gain0);
 	msleep(400);
 	int Y,U,V;
 	get_spot_yuv(200, &Y, &U, &V);
-	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, or maybe  \n"
+	                                     "too dark/bright, retrying..."); goto calib_start;}
 	
 	for (int i = -5; i <= 5; i++)
 	{
@@ -2793,6 +2795,14 @@ calib_start:
 		bramp_plot_luma_ev();
 		//~ set_display_gain(1<<i);
 	}
+	
+	// final check
+	set_display_gain(gain0);
+	msleep(400);
+	get_spot_yuv(200, &Y, &U, &V);
+	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+
+	// calibration accepted :)
 	set_display_gain(0);
 	lens_set_ae(0);
 	fake_simple_button(BGMT_LV);
@@ -2952,9 +2962,13 @@ void bulb_ramping_showinfo()
 		//~ bramp_level_ev_ratio, 0,
 		lens_info.iso,
 		s / 1000, s % 1000);
-	bramp_plot_luma_ev();
-	bramp_plot_luma_ev_point(bramp_measured_level * 255/100, COLOR_RED);
-	bramp_plot_luma_ev_point(bramp_reference_level * 255/100, COLOR_BLUE);
+	
+	if (gui_state != GUISTATE_IDLE)
+	{
+		bramp_plot_luma_ev();
+		bramp_plot_luma_ev_point(bramp_measured_level * 255/100, COLOR_RED);
+		bramp_plot_luma_ev_point(bramp_reference_level * 255/100, COLOR_BLUE);
+	}
 }
 
 
@@ -3238,7 +3252,7 @@ static void take_a_pic()
 // .. and restores settings back
 static void hdr_shutter_release(int ev_x8)
 {
-	NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
+	//~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
 	lens_wait_readytotakepic(64);
 
 	int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
@@ -3277,12 +3291,14 @@ static void hdr_shutter_release(int ev_x8)
 			lens_set_rawshutter(s0r);
 		}
 	}
+	msleep(100);
+	lens_wait_readytotakepic(64);
 }
 
 // skip0: don't take the middle exposure
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
-	NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
+	//~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
 	hdr_create_script(steps, skip0, 0);
 	int i;
 	
@@ -3374,8 +3390,8 @@ void hdr_shot(int skip0, int wait)
 	NotifyBoxHide();
 	if (hdr_steps > 1)
 	{
-		NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8);
-		msleep(1000);
+		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8);
+		//~ msleep(1000);
 		int drive_mode_bak = 0;
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 		{
@@ -3425,8 +3441,6 @@ void get_out_of_play_mode(int extra_wait)
 // to be called by remote triggers
 void remote_shot(int wait)
 {
-	extern int focus_stack_enabled;
-	
 	// save zoom value (x1, x5 or x10)
 	int zoom = lv_dispsize;
 	
@@ -3434,7 +3448,7 @@ void remote_shot(int wait)
 	{
 		movie_start();
 	}
-	else if (focus_stack_enabled)
+	else if (is_focus_stack_enabled())
 	{
 		focus_stack_run();
 	}
@@ -3720,7 +3734,7 @@ shoot_task( void* unused )
 
 		// avoid camera shake for HDR shots => force self timer
 		
-		if (hdr_steps > 1 && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
+		if ((hdr_steps > 1 || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
 		{
 			drive_mode_bk = drive_mode;
 			lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
@@ -3767,7 +3781,8 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
 		{
-			if (hdr_steps > 1 && !is_movie_mode()) hdr_shot(1,1); // skip the middle exposure, which was just taken
+			if (is_focus_stack_enabled()) focus_stack_run();
+			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
 		}
 
 		// toggle flash on/off for next picture

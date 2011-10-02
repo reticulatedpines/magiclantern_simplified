@@ -21,7 +21,7 @@ int override_zoom_buttons; // while focus menu is active and rack focus items ar
 
 int should_override_zoom_buttons()
 {
-	return (override_zoom_buttons && is_movie_mode() && !is_manual_focus() && lv);
+	return (override_zoom_buttons && !is_manual_focus() && lv);
 }
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
@@ -40,8 +40,11 @@ void LensFocus2(int num_steps, int step_size)
 }
 
 
+CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
 CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
-CONFIG_INT( "focus.count",	focus_stack_count, 5 );
+//~ CONFIG_INT( "focus.count",	FOCUS_STACK_COUNT, 5 );
+
+#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture)
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
 CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
@@ -57,17 +60,17 @@ int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 #define FOCUS_MAX 1700
 //~ static int focus_position;
 
-static struct semaphore * focus_stack_sem;
+//~ static struct semaphore * focus_stack_sem;
 
 
 
 
-static void
+/*static void
 focus_stack_unlock( void * priv )
 {
 	gui_stop_menu();
 	give_semaphore( focus_stack_sem );
-}
+}*/
 
 
 static void
@@ -142,8 +145,13 @@ void focus_stack_ensure_preconditions()
 		NotifyBox(2000, "Please enable autofocus");
 		msleep(200);
 	}
+
+	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
+	
+	msleep(1000);
 }
 
+// will be called from shoot_task
 void
 focus_stack(
 	unsigned	count,
@@ -152,12 +160,12 @@ focus_stack(
 {
 	NotifyBox(1000, "Focus stack: %dx%d", count, num_steps );
 	hdr_create_script(count, 0, 1);
-	msleep(1000);
+	msleep(5000);
 	
 	int focus_moved_total = 0;
 
 	unsigned i;
-	for( i=0 ; i < count ; i++ )
+	for( i=0 ; i <= count ; i++ )
 	{
 		if (gui_menu_shown()) break;
 		
@@ -165,24 +173,29 @@ focus_stack(
 		msleep( 1000 );
 		
 		focus_stack_ensure_preconditions();
+
+		//~ NotifyBox(1000, "Focus(%d)", num_steps);
+		LensFocus(num_steps);
+		focus_moved_total += num_steps;
+		
+		msleep(500);
 		
 		assign_af_button_to_star_button();
 		//~ lens_take_picture( 64 );
 		
-		schedule_remote_shot();
-		extern int remote_shot_flag;
-		while (remote_shot_flag) msleep(100);
+		//~ NotifyBox(1000, "snap");
+		hdr_shot(0,1);
+		//~ schedule_remote_shot();
+		//~ extern int remote_shot_flag;
+		//~ while (remote_shot_flag) msleep(100);
 		
-		msleep(100);
+		msleep(500);
 		restore_af_button_assignment();
+		
+		focus_stack_ensure_preconditions();
 		
 		if( count-1 == i )
 			break;
-		
-		focus_stack_ensure_preconditions();
-
-		LensFocus(num_steps);
-		focus_moved_total += num_steps;
 	}
 
 	msleep(1000);
@@ -195,7 +208,7 @@ focus_stack(
 	LensFocus(-focus_moved_total);
 }
 
-
+/*
 static void
 focus_stack_task( void* unused )
 {
@@ -203,16 +216,23 @@ focus_stack_task( void* unused )
 	{
 		take_semaphore( focus_stack_sem, 0 );
 		msleep( 500 );
-		focus_stack( focus_stack_count, focus_stack_steps_per_picture );
+		focus_stack( FOCUS_STACK_COUNT, focus_stack_steps_per_picture );
 	}
-}
+}*/
 
-TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1c, 0x1000 );
+//~ TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1c, 0x1000 );
 
 static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
+
+int is_focus_stack_enabled() { return focus_stack_enabled && focus_task_delta; }
+
+void focus_stack_run()
+{
+	focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture );
+}
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
 
@@ -379,11 +399,18 @@ focus_stack_step_increment( void * priv )
 }
 
 static void
+focus_stack_step_decrement( void * priv )
+{
+	focus_stack_steps_per_picture = mod(focus_stack_steps_per_picture - 2, 10) + 1;
+}
+
+/*
+static void
 focus_stack_count_increment( void * priv )
 {
-	focus_stack_count = focus_stack_count * 2;
-	if (focus_stack_count > 150) focus_stack_count = 2;
-}
+	FOCUS_STACK_COUNT = FOCUS_STACK_COUNT * 2;
+	if (FOCUS_STACK_COUNT > 150) FOCUS_STACK_COUNT = 2;
+}*/
 
 static void
 focus_delay_toggle( int sign)
@@ -401,14 +428,33 @@ focus_stack_print(
 	int			selected
 )
 {
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Stack focus    : %dx%d",
-		focus_stack_count, focus_stack_steps_per_picture
-	);
-	bmp_printf(FONT_MED, x + 450, y-1, "PLAY: Run\nSET/Q: Adjust");
-	menu_draw_icon(x, y, MNI_ACTION, 0);
+	if (selected) override_zoom_buttons = 1;
+	int fnt = !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL;
+	if (focus_stack_enabled)
+	{
+		bmp_printf(
+			fnt,
+			x, y,
+			"Stack focus    : ON,every %d steps",
+			focus_stack_steps_per_picture
+		);
+		bmp_printf(
+			fnt,
+			x + font_large.width * 17, y + font_large.height,
+			"=> %d pictures",
+			FOCUS_STACK_COUNT
+		);
+	}
+	else
+	{
+		bmp_printf(
+			fnt,
+			x, y,
+			"Stack focus    : OFF"
+		);
+	}
+	if (focus_stack_enabled && !focus_task_delta)
+		menu_draw_icon(x, y, MNI_WARNING, 0);
 }
 
 void
@@ -523,8 +569,9 @@ focus_task( void* unused )
 		while( focus_task_dir )
 		{
 			int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
-			LensFocus2(1, f * lens_focus_stepsize);
-			focus_task_delta += f;
+			int n = is_movie_mode() ? 1 : focus_stack_steps_per_picture;
+			LensFocus2(n, f * lens_focus_stepsize);
+			focus_task_delta += f * n;
 		}
 	}
 }
@@ -1061,10 +1108,11 @@ static struct menu_entry focus_menu[] = {
 	},*/
 	{
 		.name = "Stack focus",
+		.priv = &focus_stack_enabled,
 		.display	= focus_stack_print,
-		.select		= focus_stack_count_increment,
+		.select		= menu_binary_toggle,
 		.select_auto		= focus_stack_step_increment,
-		.select_reverse		= focus_stack_unlock,
+		.select_reverse		= focus_stack_step_decrement,
 		.help = "Focus bracketing, useful for macro shots."
 	},
 	{
@@ -1080,7 +1128,7 @@ static struct menu_entry focus_menu[] = {
 static void
 focus_init( void* unused )
 {
-	focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
+	//~ focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
 	focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
 
 	menu_add( "Focus", focus_menu, COUNT(focus_menu) );

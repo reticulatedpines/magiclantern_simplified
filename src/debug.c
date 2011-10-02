@@ -777,7 +777,7 @@ static void display_shortcut_key_hints_lv()
 			//~ int xs = is_follow_focus_active() == 1 ? 100 : 30;
 			const int xf = 360;
 			const int yf = 240;
-			const int xs = 30;
+			const int xs = 100;
 			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
 			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
 			//~ if (is_follow_focus_active() == 1) // arrows
