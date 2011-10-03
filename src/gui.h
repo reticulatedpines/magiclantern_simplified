@@ -31,6 +31,8 @@
 #define MLEV_ChangeHDMIOutputSizeToVGA -5
 #define MLEV_LCD_SENSOR_START -6
 #define MLEV_REDRAW -7
+#define MLEV_KILL_FLICKER -8
+#define MLEV_STOP_KILLING_FLICKER -9
 
 /** \file
  * DryOS GUI structures and functions.

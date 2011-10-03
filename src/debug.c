@@ -356,6 +356,17 @@ static void stress_test_task(void* unused)
 {
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
+	for (int i = 0; i < 100; i++)
+	{
+		NotifyBox(1000, "Disabling Canon GUI (%d)...", i);
+		kill_flicker();
+		msleep(rand()%300);
+		stop_killing_flicker();
+		msleep(rand()%300);
+	}
+	
+	msleep(2000);
+
 	NotifyBox(10000, "LCD backlight...");
 	int old_backlight_level = backlight_level;
 	for (int i = 0; i < 5; i++)
@@ -376,7 +387,7 @@ static void stress_test_task(void* unused)
 	if (!lv) force_liveview();
 	for (int k = 0; k < 10; k++)
 	{
-		NotifyBox(10000, "LiveView / Playback (%d)...", k*10);
+		NotifyBox(1000, "LiveView / Playback (%d)...", k*10);
 		fake_simple_button(BGMT_PLAY);
 		msleep(rand() % 1000);
 		SW1(1, rand()%100);
@@ -387,7 +398,7 @@ static void stress_test_task(void* unused)
 	msleep(2000);
 	for (int k = 0; k < 5; k++)
 	{
-		NotifyBox(10000, "LiveView gain test: %d", k*20);
+		NotifyBox(1000, "LiveView gain test: %d", k*20);
 		for (int i = 0; i <= 16; i++)
 		{
 			set_display_gain(1<<i);
@@ -405,7 +416,7 @@ static void stress_test_task(void* unused)
 	
 	for (int i = 0; i <= 10; i++)
 	{
-		NotifyBox(10000, "LED blinking: %d", i*10);
+		NotifyBox(1000, "LED blinking: %d", i*10);
 		card_led_blink(10, i*3, (10-i)*3);
 	}
 	
@@ -413,7 +424,7 @@ static void stress_test_task(void* unused)
 	
 	for (int i = 0; i <= 100; i++)
 	{
-		NotifyBox(10000, "Redraw test: %d", i);
+		NotifyBox(1000, "Redraw test: %d", i);
 		msleep(50);
 		redraw();
 		msleep(50);
@@ -436,14 +447,14 @@ static void stress_test_task(void* unused)
 	fake_simple_button(BGMT_PLAY); msleep(1000);
 	for (int i = 0; i < 50; i++)
 	{
-		NotifyBox(10000, "Play scrolling: %d", i);
+		NotifyBox(1000, "Play scrolling: %d", i);
 		next_image_in_play_mode(1);
 	}
 	extern int timelapse_playback;
 	timelapse_playback = 1;
 	for (int i = 0; i < 50; i++)
 	{
-		NotifyBox(10000, "Play scrolling: %d", i+50);
+		NotifyBox(1000, "Play scrolling: %d", i+50);
 		msleep(200);
 	}
 	timelapse_playback = 0;
@@ -453,7 +464,7 @@ static void stress_test_task(void* unused)
 
 	for (int i = 0; i <= 10; i++)
 	{
-		NotifyBox(10000, "Mode switching: %d", i*10);
+		NotifyBox(1000, "Mode switching: %d", i*10);
 		set_shooting_mode(SHOOTMODE_AUTO);	msleep(100);
 		set_shooting_mode(SHOOTMODE_MOVIE);	msleep(2000);
 		set_shooting_mode(SHOOTMODE_SPORTS);	msleep(100);
@@ -488,7 +499,7 @@ static void stress_test_task(void* unused)
 	msleep(1000);
 	for (int i = KELVIN_MIN; i <= KELVIN_MAX; i += KELVIN_STEP)
 	{
-		NotifyBox(10000, "Kelvin: %d", i);
+		NotifyBox(1000, "Kelvin: %d", i);
 		lens_set_kelvin(i); msleep(200);
 	}
 	lens_set_kelvin(6500);
@@ -502,7 +513,7 @@ static void stress_test_task(void* unused)
 
 	for (int i = 72; i <= 136; i++)
 	{
-		NotifyBox(10000, "ISO: raw %d  ", i);
+		NotifyBox(1000, "ISO: raw %d  ", i);
 		lens_set_rawiso(i); msleep(200);
 	}
 	lens_set_iso(88);
@@ -515,7 +526,7 @@ static void stress_test_task(void* unused)
 
 	for (int i = 0; i <= 100; i++)
 	{
-		NotifyBox(10000, "Pause LiveView: %d", i);
+		NotifyBox(1000, "Pause LiveView: %d", i);
 		PauseLiveView(); msleep(100);
 		ResumeLiveView(); msleep(100);
 	}
@@ -528,7 +539,7 @@ static void stress_test_task(void* unused)
 
 	for (int i = 0; i <= 100; i++)
 	{
-		NotifyBox(10000, "BMP overlay: %d", i);
+		NotifyBox(1000, "BMP overlay: %d", i);
 		bmp_off(); msleep(100);
 		bmp_on(); msleep(100);
 	}
@@ -541,7 +552,7 @@ static void stress_test_task(void* unused)
 
 	for (int i = 0; i <= 100; i++)
 	{
-		NotifyBox(10000, "Display on/off: %d", i);
+		NotifyBox(1000, "Display on/off: %d", i);
 		display_off_force(); msleep(100);
 		display_on_force(); msleep(100);
 	}
@@ -1995,6 +2006,12 @@ int handle_tricky_canon_calls(struct event * event)
 			break;
 		case MLEV_REDRAW:
 			redraw_do();
+			break;
+		case MLEV_KILL_FLICKER:
+			kill_flicker_do();
+			break;
+		case MLEV_STOP_KILLING_FLICKER:
+			stop_killing_flicker_do();
 			break;
 	}
 	if (event->param < 0) return 0;
