@@ -9,7 +9,7 @@
 #define HIJACK_TASK_ADDR 0x1A70
 
 // 720x480, changes when external monitor is connected
-#define YUV422_LV_BUFFER_1 0x41B00000
+#define YUV422_LV_BUFFER 0x41B00000
 #define YUV422_LV_BUFFER_2 0x5C000000
 #define YUV422_LV_BUFFER_3 0x5F600000
 #define YUV422_LV_PITCH 1440

@@ -102,6 +102,7 @@ NSTUB( 0xff982b80, FIO_GetFileSize )							//d
 NSTUB( 0xff9829cc, FIO_WriteFile )								//d
 NSTUB( 0xff98281c, FIO_ReadFile )								//d
 NSTUB( 0xff982700, FIO_RemoveFile )								//d
+NSTUB( 0xff982df0, FIO_CreateDirectory)
 	
 NSTUB( 0xff866a18, give_semaphore )																		//d
 NSTUB( 0xff866930, take_semaphore )																		//d
@@ -232,4 +233,9 @@ NSTUB(0xFF90EC28, RemoteRelease)
 NSTUB(0xFF90ED54, ptpPropButtonSW1)
 NSTUB(0xff90ede4, ptpPropButtonSW2)
 
-NSTUB(0xFF8764B0, GetMemoryInformation) // called from AllocateMemory
+// NSTUB(0xFF8764B0, GetMemoryInformation) // called from AllocateMemory
+
+NSTUB(0xffa47178, CreateDialogBox)
+NSTUB(0xffa46c10, DeleteDialogBox)
+NSTUB(0xFFA47A7C, dialog_redraw)
+NSTUB(0xFFAAB650, dialog_set_property_str)

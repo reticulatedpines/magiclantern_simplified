@@ -971,12 +971,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				take_screenshot(0);
 		}
 
-		#ifndef CONFIG_50D
 		if (MENU_MODE) 
 		{
 			HijackFormatDialogBox_main();
 		}
-		#endif
 
 		//~ if (BTN_METERING_PRESSED_IN_LV)
 		//~ {
@@ -1629,7 +1627,6 @@ PROP_HANDLER(PROP_ISO)
 
 int keep_ml_after_format = 1;
 
-#ifndef CONFIG_50D
 void HijackFormatDialogBox()
 {
 	if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -1852,8 +1849,6 @@ void HijackFormatDialogBox_main()
 		ui_lock(UILOCK_NONE);
 	}
 }
-
-#endif
 
 void config_menu_init()
 {
