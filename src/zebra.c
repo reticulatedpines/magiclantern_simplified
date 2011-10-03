@@ -3621,11 +3621,13 @@ void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
 
 void play_422(char* filename)
 {
+    //~ bmp_printf(FONT_LARGE, 0, 0, filename);
+	//~ return;
 	clrscr();
 	
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 ) return;
-	uint32_t * buf = YUV422_HD_BUFFER;
+	uint32_t * buf = YUV422_HD_BUFFER_2;
 
     bmp_printf(FONT_LARGE, 500, 0, "%d", size);
 
@@ -3654,7 +3656,7 @@ void play_422(char* filename)
 	yuv_resize(buf, w, h, vram->vram, vram->width, vram->height);
 }
 
-char* get_next_422()
+/*char* get_next_422()
 {
 	static struct fio_file file;
 	static int first = 1;
@@ -3683,25 +3685,4 @@ char* get_next_422()
 	first = 1;
 	dirent = 0;
 	return 0;
-}
-
-static volatile int playing_422 = 0;
-void play_next_422()
-{
-	if (playing_422) return;
-	playing_422 = 1;
-	char* fn = get_next_422();
-	if (!fn)
-	{
-		bmp_printf(FONT_LARGE, 0, 0, "No more 422's.");
-		goto end;
-	}
-	//~ msleep(2000);
-	
-	char ffn[100];
-	snprintf(ffn, 100, CARD_DRIVE "DCIM/100CANON/%s", fn);
-	play_422(ffn);
-	
-end:
-	playing_422 = 0;
-}
+}*/

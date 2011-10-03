@@ -786,7 +786,7 @@ TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
 int expfuse_running = 0;
 int expfuse_num_images = 0;
-struct semaphore * expfuse_sem = 0;
+struct semaphore * set_maindial_sem = 0;
 
 int compute_signature(int* start, int num)
 {
@@ -890,8 +890,7 @@ void next_image_in_play_mode(int dir)
 
 void playback_compare_images_task(int dir)
 {
-	if (expfuse_sem == 0) expfuse_sem = create_named_semaphore(expfuse_sem, 1);
-	take_semaphore(expfuse_sem, 0);
+	take_semaphore(set_maindial_sem, 0);
 	
 	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
 	if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
@@ -902,7 +901,7 @@ void playback_compare_images_task(int dir)
 		dir = 1;
 	}
 	
-	void* aux_buf = YUV422_HD_BUFFER;
+	void* aux_buf = YUV422_HD_BUFFER_2;
 	void* current_buf;
 	int w = get_yuv422_vram()->width;
 	int h = get_yuv422_vram()->height;
@@ -914,19 +913,17 @@ void playback_compare_images_task(int dir)
 	yuv_halfcopy(aux_buf, current_buf, w, h, 0);
 	current_buf = get_yuv422_vram()->vram;
 	memcpy(current_buf, aux_buf, buf_size);
-	give_semaphore(expfuse_sem);
+	give_semaphore(set_maindial_sem);
 }
 
 void playback_compare_images(int dir)
 {
-	task_create("expfuse_task", 0x1c, 0, playback_compare_images_task, dir);
+	task_create("playcompare_task", 0x1c, 0, playback_compare_images_task, dir);
 }
 
 void expfuse_preview_update_task(int dir)
 {
-	if (expfuse_sem == 0) expfuse_sem = create_named_semaphore(expfuse_sem, 1);
-
-	take_semaphore(expfuse_sem, 0);
+	take_semaphore(set_maindial_sem, 0);
 	void* buf_acc = YUV422_HD_BUFFER;
 	void* buf_ws = YUV422_HD_BUFFER_2;
 	void* buf_lv = get_yuv422_vram()->vram;
@@ -949,13 +946,92 @@ void expfuse_preview_update_task(int dir)
 	bmp_printf(FONT_MED, 0, 0, "%d images  ", expfuse_num_images);
 	//~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
-	give_semaphore(expfuse_sem);
+	give_semaphore(set_maindial_sem);
 }
 
 void expfuse_preview_update(int dir)
 {
 	task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, dir);
 }
+
+// that's extremely inefficient
+int find_422(int * index, char* fn)
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = 0;
+	int N = 0;
+	
+	dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
+	if( IS_ERROR(dirent) )
+	{
+		bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+		return 0;
+	}
+
+	do {
+		if (file.mode & 0x10) continue; // is a directory
+		int n = strlen(file.name);
+		if ((n > 4) && (streq(file.name + n - 4, ".422")))
+			N++;
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
+
+	*index = mod(*index, N);
+
+	dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
+	if( IS_ERROR(dirent) )
+	{
+		bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+		return 0;
+	}
+
+	int k = 0;
+	int found = 0;
+	do {
+		if (file.mode & 0x10) continue; // is a directory
+		int n = strlen(file.name);
+		if ((n > 4) && (streq(file.name + n - 4, ".422")))
+		{
+			if (k == *index)
+			{
+				snprintf(fn, 100, CARD_DRIVE "DCIM/100CANON/%s", file.name);
+				found = 1;
+			}
+			k++;
+		}
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
+	return found;
+}
+
+void play_next_422_task(int dir)
+{
+	take_semaphore(set_maindial_sem, 0);
+	
+	static int index = -1;
+	static char ffn[100];
+	
+	index += dir;
+	
+	if (find_422(&index, ffn))
+	{
+		play_422(ffn);
+		//~ bmp_printf(FONT_LARGE, 0, 0, ffn);
+	}
+	else
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "No 422 files found");
+	}
+
+	give_semaphore(set_maindial_sem);
+}
+
+
+void play_next_422(int dir)
+{
+	task_create("422_task", 0x1c, 0, play_next_422_task, dir);
+}
+
 
 /*
 static void
@@ -3984,3 +4060,10 @@ shoot_task( void* unused )
 }
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x1000 );
+
+void shoot_init()
+{
+	set_maindial_sem = create_named_semaphore(set_maindial_sem, 1);
+}
+
+INIT_FUNC("shoot", shoot_init);

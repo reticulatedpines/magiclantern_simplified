@@ -459,7 +459,7 @@ play_set_wheel_display(
 
 void playback_set_wheel_action(int dir)
 {
-	if (play_set_wheel_action == 0) play_next_422();
+	if (play_set_wheel_action == 0) play_next_422(dir);
 	else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
 	else if (play_set_wheel_action == 2) playback_compare_images(dir);
 }

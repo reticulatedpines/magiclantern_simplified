@@ -169,6 +169,10 @@ struct fio_file {
 	uint32_t		timestamp;	// off_0x08;
 	uint32_t		off_0x0c;
 	char			name[ 0x80 ];
+	uint32_t		a;
+	uint32_t		b;
+	uint32_t		c;
+	uint32_t		d;
 };
 
 extern struct fio_dirent *

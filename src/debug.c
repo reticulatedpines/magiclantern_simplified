@@ -353,6 +353,51 @@ static void stress_test_task(void* unused)
 {
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
+	fake_simple_button(BGMT_PLAY); msleep(1000);
+	for (int i = 0; i < 100; i++)
+	{
+		NotifyBox(1000, "PLAY: image compare: %d", i);
+		playback_compare_images_task(1);
+	}
+	get_out_of_play_mode();
+	msleep(2000);
+
+	fake_simple_button(BGMT_PLAY); msleep(1000);
+	for (int i = 0; i < 10; i++)
+	{
+		NotifyBox(1000, "PLAY: exposure fusion: %d", i);
+		expfuse_preview_update_task(1);
+	}
+	get_out_of_play_mode();
+	msleep(2000);
+
+	fake_simple_button(BGMT_PLAY); msleep(1000);
+	for (int i = 0; i < 100; i++)
+	{
+		NotifyBox(1000, "PLAY: 422 scrolling: %d", i);
+		play_next_422_task(1);
+	}
+	get_out_of_play_mode();
+	msleep(2000);
+
+	fake_simple_button(BGMT_PLAY); msleep(1000);
+	for (int i = 0; i < 50; i++)
+	{
+		NotifyBox(1000, "PLAY scrolling: %d", i);
+		next_image_in_play_mode(1);
+	}
+	extern int timelapse_playback;
+	timelapse_playback = 1;
+	for (int i = 0; i < 50; i++)
+	{
+		NotifyBox(1000, "PLAY scrolling: %d", i+50);
+		msleep(200);
+	}
+	timelapse_playback = 0;
+	get_out_of_play_mode();
+
+	return;
+
 	for (int i = 0; i < 100; i++)
 	{
 		NotifyBox(1000, "Disabling Canon GUI (%d)...", i);
@@ -439,23 +484,6 @@ static void stress_test_task(void* unused)
 	SW1(0,0);
 
 	stress_test_picture(2, 2000); // make sure we have at least 2 pictures for scrolling :)
-
-	NotifyBox(10000, "Play scrolling");
-	fake_simple_button(BGMT_PLAY); msleep(1000);
-	for (int i = 0; i < 50; i++)
-	{
-		NotifyBox(1000, "Play scrolling: %d", i);
-		next_image_in_play_mode(1);
-	}
-	extern int timelapse_playback;
-	timelapse_playback = 1;
-	for (int i = 0; i < 50; i++)
-	{
-		NotifyBox(1000, "Play scrolling: %d", i+50);
-		msleep(200);
-	}
-	timelapse_playback = 0;
-	get_out_of_play_mode();
 
 	msleep(2000);
 
