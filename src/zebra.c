@@ -3573,6 +3573,11 @@ PROP_HANDLER(PROP_LV_ACTION)
 	zoom_overlay_countdown = 0;
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
 	idle_wakeup_reset_counters(-4);
+	#ifdef CONFIG_KILL_FLICKER
+	idle_globaldraw_disable = 1;
+	#else
+	idle_globaldraw_disable = 0;
+	#endif
 	return prop_cleanup( token, property );
 }
 
