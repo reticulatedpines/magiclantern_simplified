@@ -527,8 +527,8 @@ static void stress_test_task(void* unused)
 	for (int i = 0; i <= 100; i++)
 	{
 		NotifyBox(1000, "Pause LiveView: %d", i);
-		PauseLiveView(); msleep(100);
-		ResumeLiveView(); msleep(100);
+		PauseLiveView(); msleep(rand()%200);
+		ResumeLiveView(); msleep(rand()%200);
 	}
 
 	stress_test_picture(2, 2000);
@@ -540,8 +540,8 @@ static void stress_test_task(void* unused)
 	for (int i = 0; i <= 100; i++)
 	{
 		NotifyBox(1000, "BMP overlay: %d", i);
-		bmp_off(); msleep(100);
-		bmp_on(); msleep(100);
+		bmp_off(); msleep(rand()%200);
+		bmp_on(); msleep(rand()%200);
 	}
 
 	stress_test_picture(2, 2000);
@@ -553,8 +553,8 @@ static void stress_test_task(void* unused)
 	for (int i = 0; i <= 100; i++)
 	{
 		NotifyBox(1000, "Display on/off: %d", i);
-		display_off_force(); msleep(100);
-		display_on_force(); msleep(100);
+		display_off_force(); msleep(rand()%200);
+		display_on_force(); msleep(rand()%200);
 	}
 
 	stress_test_picture(2, 2000);
@@ -563,7 +563,7 @@ static void stress_test_task(void* unused)
 	set_shooting_mode(SHOOTMODE_M);
 	for (int i = 0; i < 21; i++)
 	{
-		fake_simple_button(BGMT_LV); msleep(100);
+		fake_simple_button(BGMT_LV); msleep(rand()%200);
 	}
 
 	stress_test_picture(2, 2000);
