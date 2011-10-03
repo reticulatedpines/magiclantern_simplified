@@ -59,6 +59,8 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
+CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
+
 static CONFIG_INT("disp.mode", disp_mode, 0);
 static CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
 static CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295001);
@@ -1528,6 +1530,8 @@ global_draw_display( void * priv, int x, int y, int selected )
 		"Global Draw : %s",
 		global_draw ? "ON " : "OFF"
 	);
+	if (disp_profiles_0)
+		bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), x + 540, y, "DISP %d", get_disp_mode());
 }
 
 static void
@@ -1853,8 +1857,6 @@ void zoom_overlay_size_toggle(void* priv)
 {
 	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
 }
-
-CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
 
 static void
 disp_profiles_0_display(
