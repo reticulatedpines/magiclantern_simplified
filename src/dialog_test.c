@@ -109,8 +109,10 @@ int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, i
     return 1;
 }
 
+int flicker_being_killed() { return test_dialog != 0; }
 
 void kill_flicker() {
+BMP_LOCK(
         if (test_dialog != NULL) {
                 DeleteDialogBox(test_dialog);
                 test_dialog = NULL;
@@ -119,14 +121,17 @@ void kill_flicker() {
         test_dialog = CreateDialogBox(0, 0, test_minimal_handler, 1, 0);
         dialog_redraw(test_dialog);
         clrscr();
+)
 }
 
 void stop_killing_flicker() {
+BMP_LOCK(
     if (test_dialog != NULL) {
             DeleteDialogBox(test_dialog);
             test_dialog = NULL;
     }
     redraw();
+)
 }
 
 #if 0

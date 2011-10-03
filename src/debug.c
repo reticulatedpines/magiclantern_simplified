@@ -217,6 +217,9 @@ void run_test()
 	gui_stop_menu();
 	msleep(2000);
 	kill_flicker();
+	msleep(2000);
+	card_led_blink(5,50,50);
+	redraw();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c

@@ -32,6 +32,11 @@
 #include "gui.h"
 #include "lens.h"
 
+#if 1
+//~ #ifdef CONFIG_50D
+#define CONFIG_KILL_FLICKER
+#endif
+
 #ifdef CONFIG_1100D
 #include "disable-this-module.h"
 #endif
@@ -2712,6 +2717,7 @@ BMP_LOCK(
 
 void draw_histogram_and_waveform()
 {
+	if (!get_global_draw()) return;
 	if (hist_draw || waveform_draw)
 	{
 		struct vram_info * vram = get_yuv422_vram();
@@ -2719,11 +2725,13 @@ void draw_histogram_and_waveform()
 	}
 	
 	if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
+	if (!get_global_draw()) return;
 	
 	if( hist_draw)
 		hist_draw_image( os.x_max - hist_width, os.y0 + 100, -1);
 
 	if (menu_active_and_not_hidden()) return;
+	if (!get_global_draw()) return;
 		
 	if( waveform_draw)
 		waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET );
@@ -2768,10 +2776,12 @@ int idle_countdown_display_dim = 50;
 int idle_countdown_display_off = 50;
 int idle_countdown_globaldraw = 50;
 int idle_countdown_clrscr = 50;
+int idle_countdown_killflicker = 20;
 int idle_countdown_display_dim_prev = 50;
 int idle_countdown_display_off_prev = 50;
 int idle_countdown_globaldraw_prev = 50;
 int idle_countdown_clrscr_prev = 50;
+int idle_countdown_killflicker_prev = 20;
 
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
@@ -2783,6 +2793,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 	idle_countdown_display_dim = MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
 	idle_countdown_globaldraw = MAX((int)idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
 	idle_countdown_clrscr = 30;
+	idle_countdown_killflicker = 20;
 }
 
 // called at 10 Hz
@@ -2913,12 +2924,26 @@ void idle_globaldraw_en()
 	idle_globaldraw_disable = 0;
 }
 
+void idle_kill_flicker()
+{
+	idle_globaldraw_disable = 0;
+	kill_flicker();
+}
+void idle_stop_killing_flicker()
+{
+	idle_globaldraw_disable = 1;
+	stop_killing_flicker();
+}
+
 
 static void
 clearscreen_task( void* unused )
 {
 	idle_wakeup_reset_counters(0);
-	
+	#ifdef CONFIG_KILL_FLICKER
+	idle_stop_killing_flicker();
+	#endif
+
 	int k = 0;
 	for (;;k++)
 	{
@@ -2980,6 +3005,11 @@ clearscreen_loop:
 
 		if (clearscreen == 2) // clear overlay when idle
 			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
+		
+		#ifdef CONFIG_KILL_FLICKER
+		if (global_draw && !gui_menu_shown())
+			idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
+		#endif
 
 		// since this task runs at 10Hz, I prefer cropmark redrawing here
 		if (crop_dirty)
@@ -3019,7 +3049,7 @@ BMP_LOCK (
 	{
 		struct gui_task * current = gui_task_list.current;
 		struct dialog * dialog = current->priv;
-		if (dialog && MEM(dialog->type) == 0x006e4944) // if dialog seems valid
+		if (dialog && MEM(dialog->type) == 0x006e4944 && !flicker_being_killed()) // if dialog seems valid
 		{
 			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
 		}
