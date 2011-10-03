@@ -919,7 +919,7 @@ gui_stop_menu( void )
 	
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
-	stop_killing_flicker();
+	idle_stop_killing_flicker();
 
 	lens_focus_stop();
 	show_only_selected = 0;
@@ -1098,7 +1098,7 @@ menu_task( void* unused )
 		x0 = hdmi_code == 5 ? 120 : 0;
 		y0 = hdmi_code == 5 ? 40 : 0;
 
-		kill_flicker();
+		idle_kill_flicker();
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;
 		menu_hidden = 0;
