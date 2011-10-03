@@ -93,17 +93,43 @@ void test_dialog_create() {
         dialog_redraw(test_dialog);
 }
 
-void test_menu() {
+int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
+{
+    //~ bmp_printf(FONT_MED, 0, 0, "dlg=%x template=%x btn=%x %x %x %x\ncode=%x", dialog, template, event, arg3, arg4, arg5, arg6, code);
+    switch (event) {
+    case TERMINATE_WINSYS:
+        test_dialog = NULL;
+        return 1;
+
+    case DELETE_DIALOG_REQUEST:
+        if (test_dialog) DeleteDialogBox(test_dialog);
+        test_dialog = NULL;
+        return dialog != arg4;  // ?!
+    }
+    return 1;
+}
+
+
+void kill_flicker() {
         if (test_dialog != NULL) {
                 DeleteDialogBox(test_dialog);
                 test_dialog = NULL;
         }
 
-        test_dialog = CreateDialogBox(0, 0, test_dialog_btn_handler, template, 0);
-        dialog_set_property_str(test_dialog, 4, "Hello, World!");
+        test_dialog = CreateDialogBox(0, 0, test_minimal_handler, 1, 0);
         dialog_redraw(test_dialog);
+        clrscr();
 }
 
+void stop_killing_flicker() {
+    if (test_dialog != NULL) {
+            DeleteDialogBox(test_dialog);
+            test_dialog = NULL;
+    }
+    redraw();
+}
+
+#if 0
 volatile void* notify_box_dlg = 0;
 
 #define NOTIFY_BOX_POPUP 0
@@ -242,3 +268,4 @@ static void dlg_init()
 }
 
 //~ INIT_FUNC(__FILE__, dlg_init);
+#endif

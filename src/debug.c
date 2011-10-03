@@ -216,20 +216,7 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	bulb_take_pic(2000);
-	bulb_take_pic(100);
-	bulb_take_pic(1500);
-	bulb_take_pic(10);
-	bulb_take_pic(1000);
-	bulb_take_pic(1);
-	//~ int x = 2;
-	//~ prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
-	//~ msleep(1000);
-	//~ call("lv_ae", 0);
-	//~ NotifyBox(1000, "ok");
-#ifndef CONFIG_50D
-	//~ HijackDialogBox();
-#endif
+	kill_flicker();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c

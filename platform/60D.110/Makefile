@@ -51,6 +51,7 @@ ML_OBJS-y = \
 	focus.o \
 	notify_box.o \
 	bootflags.o \
+	dialog_test.o \
 
 #include generic rules and definitions
 
