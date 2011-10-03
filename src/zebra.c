@@ -2788,10 +2788,16 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 #if CONFIG_DEBUGMSG
 	NotifyBox(1000, "wakeup: %x   ", reason);
 #endif
-	//~ clearscreen_countdown = 3;
+
+	// those are for powersaving
 	idle_countdown_display_off = MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
 	idle_countdown_display_dim = MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
 	idle_countdown_globaldraw = MAX((int)idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
+
+	if (reason == -2345) // disable powersave during recording 
+		return;
+
+	// those are not for powersaving
 	idle_countdown_clrscr = 30;
 	idle_countdown_killflicker = 20;
 }
@@ -2992,7 +2998,7 @@ clearscreen_loop:
 		//~ }
 
 		if (recording && !idle_rec) // don't go to powersave when recording
-			idle_wakeup_reset_counters(-2);
+			idle_wakeup_reset_counters(-2345);
 		
 		if (idle_display_dim_after)
 			idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);

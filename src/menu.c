@@ -298,7 +298,7 @@ static void batsu(int x, int y)
 	}
 }
 
-static void maru(int x, int y, int color)
+void maru(int x, int y, int color)
 {
 	int r;
 	for (r = 0; r < 10; r++)

@@ -274,6 +274,10 @@ void time_indicator_show()
 			ABS(mvr_config.actual_qscale_maybe)
 		);
 	}
+	if (flicker_being_killed()) // this also kills recording dot
+	{
+		maru(timecode_x + 9 * fontspec_font(timecode_font)->width, timecode_y + 12, COLOR_RED);
+	}
 }
 
 void measure_bitrate() // called once / second
