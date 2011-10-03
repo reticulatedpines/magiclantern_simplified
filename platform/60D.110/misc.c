@@ -7,13 +7,6 @@
 #include <consts.h>
 #include <lens.h>
 
-int lv_disp_mode;
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
-{
-	lv_disp_mode = buf[1];
-	return prop_cleanup(token, property);
-}
-
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -74,18 +67,6 @@ void display_lcd_remote_icon(int x0, int y0) {}
 // image buffers
 // http://magiclantern.wikia.com/wiki/VRAM
 
-void* get_422_hd_idle_buf() // the one which is not updated by DMA
-{
-	switch (YUV422_HD_BUFFER_DMA_ADDR)
-	{
-		case YUV422_HD_BUFFER:
-			return YUV422_HD_BUFFER_2;
-		case YUV422_HD_BUFFER_2:
-			return YUV422_HD_BUFFER;
-	}
-	return YUV422_HD_BUFFER; // fall back to default
-}
-
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
@@ -110,84 +91,6 @@ struct vram_info * get_yuv422_hd_vram()
 
 	return &_vram_info;
 }
-
-static int fastrefresh_direction = 0;
-
-
-void* get_fastrefresh_422_buf()
-{
-	if (fastrefresh_direction) {
-		switch (YUV422_LV_BUFFER_DMA_ADDR)
-		{
-			case YUV422_LV_BUFFER:
-				return YUV422_LV_BUFFER_2;
-			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER_3;
-			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER;
-		}
-		return YUV422_LV_BUFFER; // fall back to default
-	} else {
-		switch (YUV422_LV_BUFFER_DMA_ADDR)
-		{
-			case YUV422_LV_BUFFER:
-				return YUV422_LV_BUFFER_3;
-			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER;
-			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER_2;
-		}
-		return YUV422_LV_BUFFER; // fall back to default
-
-	}
-}
-
-void guess_fastrefresh_direction() {
-	static int old_pos = YUV422_LV_BUFFER;
-	if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
-	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
-	old_pos = YUV422_LV_BUFFER_DMA_ADDR;
-}
-
-void* get_write_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case YUV422_LV_BUFFER:
-			return YUV422_LV_BUFFER;
-		case YUV422_LV_BUFFER_2:
-			return YUV422_LV_BUFFER_2;
-		case YUV422_LV_BUFFER_3:
-			return YUV422_LV_BUFFER_3;
-	}
-	return YUV422_LV_BUFFER; // fall back to default
-}
-
-int vram_width = 720;
-int vram_height = 480;
-PROP_HANDLER(PROP_VRAM_SIZE_MAYBE)
-{
-	vram_width = buf[1];
-	vram_height = buf[2];
-	return prop_cleanup(token, property);
-}
-
-struct vram_info * get_yuv422_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = get_fastrefresh_422_buf();
-	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
-
-	_vram_info.width = vram_width;
-	_vram_info.height = vram_width * 2 / 3;
-	_vram_info.pitch = _vram_info.width * 2;
-
-	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
-
-	return &_vram_info;
-}
-
 
 int battery_level = 0;
 PROP_HANDLER(PROP_BATTERY_REPORT)

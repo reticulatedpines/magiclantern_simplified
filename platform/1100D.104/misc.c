@@ -7,13 +7,6 @@
 #include <consts.h>
 #include <lens.h>
 
-int lv_disp_mode;
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
-{
-	lv_disp_mode = buf[1];
-	return prop_cleanup(token, property);
-}
-
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -93,59 +86,6 @@ struct vram_info * get_yuv422_hd_vram()
 	return &_vram_info;
 }
 
-static int fastrefresh_direction = 0;
-
-
-void* get_fastrefresh_422_buf()
-{
-	if (fastrefresh_direction) {
-		switch (YUV422_LV_BUFFER_DMA_ADDR)
-		{
-			case YUV422_LV_BUFFER:
-				return YUV422_LV_BUFFER_2;
-			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER_3;
-			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER;
-		}
-		return YUV422_LV_BUFFER; // fall back to default
-	} else {
-		switch (YUV422_LV_BUFFER_DMA_ADDR)
-		{
-			case YUV422_LV_BUFFER:
-				return YUV422_LV_BUFFER_3;
-			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER;
-			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER_2;
-		}
-		return YUV422_LV_BUFFER; // fall back to default
-
-	}
-}
-
-void guess_fastrefresh_direction() {
-	static int old_pos = YUV422_LV_BUFFER;
-	if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
-	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
-	old_pos = YUV422_LV_BUFFER_DMA_ADDR;
-}
-
-void* get_write_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case YUV422_LV_BUFFER:
-			return YUV422_LV_BUFFER;
-		case YUV422_LV_BUFFER_2:
-			return YUV422_LV_BUFFER_2;
-		case YUV422_LV_BUFFER_3:
-			return YUV422_LV_BUFFER_3;
-	}
-	return YUV422_LV_BUFFER; // fall back to default
-}
-
 int vram_width = 720;
 int vram_height = 480;
 PROP_HANDLER(PROP_VRAM_SIZE_MAYBE)
@@ -169,21 +109,6 @@ struct vram_info * get_yuv422_vram()
 
 	return &_vram_info;
 }
-
-/*
-int GetBatteryLevel()
-{
-	if (!is_safe_to_mess_with_the_display(0)) return -1;
-	return -1;
-	//~ return PD_GetBatteryPower() + 1;
-}*/
-
-
-// dummy stubs, just to compile
-
-void prop_request_change(unsigned property, void * addr, size_t len) {
-	bmp_printf(FONT_LARGE,10,10, "%8x %8x %d", property, addr, len);
-} // 0xFF05B464 might be good (dumps=1, score=86)
 
 void ChangeColorPalette(){}
 void HideBottomInfoDisp_maybe(){}

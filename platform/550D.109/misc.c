@@ -7,13 +7,6 @@
 #include <consts.h>
 #include <lens.h>
 
-int lv_disp_mode;
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
-{
-	lv_disp_mode = buf[0];
-	return prop_cleanup(token, property);
-}
-
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -62,7 +55,6 @@ void display_shooting_info() // called from debug task
 }
 
 
-
 // image buffers
 // http://magiclantern.wikia.com/wiki/VRAM
 
@@ -90,66 +82,3 @@ struct vram_info * get_yuv422_hd_vram()
 
 	return &_vram_info;
 }
-
-
-void* get_fastrefresh_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case 0x40d07800:
-			return (void*) 0x4c233800;
-		case 0x4c233800:
-			return (void*) 0x4f11d800;
-		case 0x4f11d800:
-			return (void*) 0x40d07800;
-	}
-	return 0x40d07800;
-}
-
-void* get_write_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case 0x40d07800:
-			return (void*) 0x40d07800;
-		case 0x4c233800:
-			return (void*) 0x4c233800;
-		case 0x4f11d800:
-			return (void*) 0x4f11d800;
-	}
-	return 0x40d07800;
-}
-
-int vram_width = 720;
-int vram_height = 480;
-PROP_HANDLER(PROP_VRAM_SIZE_MAYBE)
-{
-	vram_width = buf[1];
-	vram_height = buf[2];
-	return prop_cleanup(token, property);
-}
-
-struct vram_info * get_yuv422_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = get_fastrefresh_422_buf();
-	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
-
-	_vram_info.width = vram_width;
-	_vram_info.height = vram_width * 2 / 3;
-	_vram_info.pitch = _vram_info.width * 2;
-
-	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
-
-	return &_vram_info;
-}
-
-void guess_fastrefresh_direction(){};
-/*
-int GetBatteryLevel()
-{
-	return -1;
-	if (!is_safe_to_mess_with_the_display(0)) return -1;
-	return PD_GetBatteryPower() + 1;
-}
-*/

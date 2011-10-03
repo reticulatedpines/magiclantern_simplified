@@ -7,13 +7,6 @@
 #include <consts.h>
 #include <lens.h>
 
-int lv_disp_mode;
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
-{
-	lv_disp_mode = buf[0];
-	return prop_cleanup(token, property);
-}
-
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -79,64 +72,6 @@ struct vram_info * get_yuv422_hd_vram()
 	NotifyBox(1000, "%d ", recording);
 	return &_vram_info;
 }
-
-
-void* get_fastrefresh_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case YUV422_LV_BUFFER_1:
-			return (void*) YUV422_LV_BUFFER_2;
-		case YUV422_LV_BUFFER_2:
-			return (void*) YUV422_LV_BUFFER_3;
-		case YUV422_LV_BUFFER_3:
-			return (void*) YUV422_LV_BUFFER_1;
-	}
-	return YUV422_LV_BUFFER_1;
-}
-
-void* get_write_422_buf()
-{
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case YUV422_LV_BUFFER_1:
-			return (void*) YUV422_LV_BUFFER_1;
-		case YUV422_LV_BUFFER_2:
-			return (void*) YUV422_LV_BUFFER_2;
-		case YUV422_LV_BUFFER_3:
-			return (void*) YUV422_LV_BUFFER_3;
-	}
-	return YUV422_LV_BUFFER_1;
-}
-
-int vram_width = 720;
-int vram_height = 480;
-
-struct vram_info * get_yuv422_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = get_fastrefresh_422_buf();
-	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
-
-	_vram_info.width = vram_width;
-	_vram_info.height = vram_height;
-	_vram_info.pitch = _vram_info.width * 2;
-
-	//~ bmp_printf(FONT_LARGE, 100, 100, "%d x %d", _vram_info.width, _vram_info.height);
-
-	return &_vram_info;
-}
-
-void guess_fastrefresh_direction(){};
-/*
-int GetBatteryLevel()
-{
-	return -1;
-	if (!is_safe_to_mess_with_the_display(0)) return -1;
-	return PD_GetBatteryPower() + 1;
-}
-*/
-
 
 // some dummy stubs
 int lcd_release_running = 0;

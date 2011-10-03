@@ -51,6 +51,7 @@ ML_OBJS-y = \
 	notify_box.o \
 	bootflags.o \
 	dialog_test.o \
+	vram.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

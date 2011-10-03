@@ -28,37 +28,31 @@ You will still be able to access all Canon functionality.
 To go back to Canon firmware, you may:
 
 * Hold the shutter button half-pressed at startup to bypass ML only once (for the current session).
-* Format your card (this will remove ML from that card).
+* Format your card in the camera and choose to remove Magic Lantern (press ``Q``)
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
 How do I erase all of the images without removing ML?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Canon menu (Play) -> Erase images -> All images on card.
+Canon menu -> Format -> Format card, keep Magic Lantern.
 
-Notes:
+How do I record for more than 12 minutes?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* This will not remove files created by ML (like ``*.LOG``, ``*.422``, ``*.SH``). You will have to delete these files from PC.
-* Formatting the card will remove ML from that card. If you did this, you will have to copy ML files and make the card bootable again (see [[Unified/Install#Step_2._Installation]]).
+* Lower the `bitrate`_ (CBR 0.4 will let you record continuously for 30 minutes).
+* Use `Movie restart`_, but you will lose a few seconds when a new file is created.
+* To record continuously for more than 30 minutes, you need to use a [[HDMI recorder]]. Select ``ClearScreen: WhenIdle`` to hide all graphical overlays and enable ``Half-press shutter: Every second`` to prevent the camera from shutting down.
 
-How do I record more than 12 minutes?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There's no 12 minute limit. There's a 30 minute limit and a 4 GB limit, whichever comes first. You can either lower the `bitrate`_ or use `Movie restart`_.
-
-With default bitrate settings, the 4 GB limit is reached after around 12 minutes (more or less).
-
-
-Can I record more than 30 minutes / 4 GB continuously?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can use `Movie Restart`_, but you will lose a few seconds when a new file is created.
-
+Technically, there's no 12 minute limit. There's a 30 minute limit and a 4 GB limit, whichever comes first. With default bitrate settings, the 4 GB limit is reached after around 12 minutes (more or less).
 
 How do I get exposure times longer than 30 seconds?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use `Bulb timer`_ together with `LCD remote shot`_, `audio trigger`_ or `intervalometer`_.
+You may use:
+
+* `Bulb timer`_ (for a single photo).
+* `HDR`_ bracketing in manual mode.
+* `Bulb ramping`_ (for timelapse).
 
 How do I see shutter counter / CMOS temperature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,18 +94,21 @@ Why does the camera take pictures when pressing the shutter half-way?
 
 `Trap focus`_ may be active.
 
-Can the intervalometer be more accurate?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+My camera freezes / I get ERR70/80/99 / I get corrupted files. Why?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Select the ``NoWait`` mode and it will be as accurate as the camera's realtime clock.
+* Format your card. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
+* Run the stability test from the Debug menu. If it fails, upgrade Magic Lantern and run the test again.
+* If you still have problems, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_.
 
-If the process of saving a picture takes longer than the programmed delay between two shots (e.g. if you shoot RAW), the intervalometer will skip some frames.
+What about ERR20 when taking pictures?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-My camera freezes and I have to remove the battery, or saves corrupted files. Why?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This problem is not related to (or caused by) Magic Lantern.
 
-You may have an unstable build of ML. Upgrade to the latest one; if you still have problems, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_.
+You will get this error when your shutter mechanism no longer works properly. Contact your Canon service center.
 
+Consider entering your shutter count in the `Camera Shutter Life Database <http://www.olegkikin.com/shutterlife/>`_.
 
 Why feature X doesn't work properly?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,14 +122,10 @@ Why feature X doesn't work properly?
 Known issues
 ------------
 
-* First second of recorded audio may be very loud
+* First second of recorded audio may be very loud.
 * Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
 * Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
-* External monitors are not yet fully supported (some functions may not work / display correctly). In order to use most Magic Lantern graphical overlays, 
-  (items from `LiveV`_ menu), you need to enable Force HDMI-VGA.
-  
-  With high-resolution HDMI displays, only cropmarks are known to work properly (from `LiveV`_ menu).
-
+* External monitors are not yet fully supported (`work in progress <http://bit.ly/ml-hdmi-support>`_).
 * Not all ML features are available on all compatible cameras (go to [[Unified/Features]] to see what works on each camera).
 
 Key shortcuts
@@ -142,8 +135,9 @@ PLAY mode shortcuts
 ~~~~~~~~~~~~~~~~~~~
 
 * ``Q`` (550D), ``UNLOCK`` (60D) or ``DISP`` (600D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
-* ``LV``: create a `transparent overlay`_ from current image. You can then move the overlay around with arrow keys in LiveView mode.
+* ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can then move the overlay around with arrow keys in LiveView mode.
 * ``SET`` + ``Main Dial (Wheel)`` in ``PLAY`` mode: see `SET+MainDial`_.
+* ``SET`` + ``Right Arrow``: timelapse playback (it will just scroll through all your pictures quickly).
 
 LCD sensor shortcuts
 ~~~~~~~~~~~~~~~~~~~~
@@ -152,7 +146,8 @@ This feature is only available on 550D and 500D.
 
 .. _LCD sensor:
 
-LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ) or as shift key (see also `SensorShortcuts`_ option).
+LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ), as a simple wireless `follow focus`_,
+or as shift key (see also `SensorShortcuts`_ option).
 
 .. _LCD backlight level:
 
@@ -426,8 +421,9 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 {{clr}}
 
 .. _transparent overlay:
+.. _ghost image:
 
-**Ghost image: OFF / Centered / Left / Right**
+**Ghost image: ON/OFF**
 
   Shows a transparent overlay which can be created from any image in Play mode.
   
@@ -688,11 +684,23 @@ Functions specific to movie mode.
   * Avoids getting black screen when you start recording;
   * Lets you use most items from `LiveV`_ menu (zebras, false color, histogram...)
 
-**Movie Recording: ON/OFF (50D only)**
+**Movie Record: ON/OFF (50D only)**
   
   Enable movie recording on 50D (1920x1080, 30fps, without sound). To start recording, go to LiveView (P/Tv/Av/M) and press SET.
   
-  There are no manual controls, but you can lock the exposure with the ``*`` button or from ML menu.
+  **WARNING**
+  
+  Canon 50D was **NOT** designed to record movies. Keep in mind:
+  
+  * This feature was not thoroughly tested and may be unstable.
+  * Always disable movie recording when you don't use it.
+  * Battery will drain quickly when recording movies; also, the camera may overheat.
+  
+  Limitations:
+  
+  * There are no manual exposure controls, but you can lock the exposure with the ``*`` button or from ML menu.
+  * The camera will not record sound. You can use an external recorder (for example, `Zoom H1, H2 or H4n <http://amzn.to/zoom-h>`_) and sync the sound in post with a clapperboard.
+  * You can't play back movies in the camera.
   
   This setting remains active even if you start the camera with standard firmware (until you clear your settings).
 
@@ -768,30 +776,22 @@ Functions for stills shooting (some of them work for movies, too).
   
   There is also a mode named ``Take pics like crazy``, which does exactly that. This is the best tool for killing your shutter.
 
-**Intervalometer: ON/OFF, Wait/NoWait**
+**Intervalometer: ON/OFF**
 
   [[Video:Hot_Air_Balloons_Timelapse|200px|right]]
   [[Image:Stars-Intervalometer.jpg|200px|right|link=http://www.flickr.com/photos/jackschroeder/6022255031/in/pool-1676739@N21/]]
+  [[Video:Timelapse_Workflow_Tutorial_using_Free_Software|200px|right]]
 
   Start/stop intervalometer.
   
-  * In photo mode, it takes a sequence of photos with a fixed rate or delay (toggle with ``Q``):
-
-    - ``Wait``: intervalometer waits until the picture is taken and saved to card, then starts counting the time for the next picture (default, fixed delay with 1-second resolution).
-    - ``NoWait``: timer for next shot starts as soon as current shot was triggered (it does not wait for exposure to finish, nor for picture to be saved). This ensures precise timing between shots (fixed rate). If the total time required for taking a picture is larger than the interval between two shots, it will miss some frames.
-
-    The ``Wait/NoWait`` setting has no effect in movie, `HDR`_ or `bulb timer`_ modes.
-
-  * In movie mode, it takes a sequence of small videos:
-  
-    - When ``HDR Bracket`` is active, each movie will be exposed according to the bracketing settings, and the duration of the movie will be multiplied by number of exposures.
-    - To use the intervalometer in movie mode, make sure `Silent Picture`_ is ``OFF``.
-  
-  You can stop the intervalometer either from ML menu, or by pressing MENU or PLAY, or by changing the shooting mode. You can pause the intervalometer by holding the shutter halfway, or by opening ML menu.
+  * In photo mode, it takes a sequence of photos
+  * In movie mode, it takes a sequence of small videos (unless `Silent Picture`_ is active)
+    
+  You can stop the intervalometer either from ML menu, or by pressing ``MENU`` or ``PLAY``, or by changing the shooting mode. You can pause the intervalometer by holding the shutter halfway, or by opening ML menu.
 
   Tips:
   
-  * Shoot in manual mode and switch the lens to MF.
+  * To avoid flicker, shoot in manual mode or use `Bulb Ramping`_, avoid short exposure times and switch the lens to MF.
   * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
   * When using the intervalometer in LiveView with "noisy" mode, your shutter will wear twice as fast than outside LiveView.
   * If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
@@ -803,48 +803,62 @@ Functions for stills shooting (some of them work for movies, too).
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
 .. _bulb-ramping:
+.. _bulb ramping:
 
-**Auto BulbRamping / AutoExpo for Timelapse: ON/OFF, percentile=20...99\%** 
+**Bulb Ramping: ON/OFF** 
 
-  Both options will adjust shutter and ISO for timelapse automatically. Each option has its own exposure algorithm, with advantages and limitations.
+  [[Video:Bulb_ramping_example|200px|right]]
 
-  ``BulbRamping`` is only available in ``BULB`` mode; ``AutoExpo`` is only available in ``M`` mode;
+  Bulb Ramping allows the capture of a timelapse that gradually changes
+  exposure over the duration of the shoot, compensating for the
+  transition from day to night. 
+
+  This option will adjust shutter and ISO automatically, using the 180 degree rule. Aperture is not adjusted (you can adjust it manually while running, but you will lose a few frames).
+
+  Quick start:
   
-  Notes for both algorithms:
-    
-  * Exposure is adjusted using a condition like this (for example): *90% of pixels (percentile) should be below 75% brightness (level)*;
-  * Brightness level is measured with a user-defined percentile of luma channel:
-    
-    - percentile >= 80% => measure highlights (should prevent overexposure);
-    - percentile = 50% => median value of brightness (measure midtones; should reduce flicker, but may overexpose in harsh lighting conditions);
-    - percentile <= 30% => measure shadows (not recommended);
-    
-  * First 3 shots (+1EV, -1EV, 0EV) are used for calibration; from these, ML will compute 2 parameters:
-    
-    - brightness level for subsequent images (you can't set or change exposure compensation, so be careful and expose the first image well);
-    - derivative of brightness level with respect to exposure value (EV), used to determine when or how much the exposure will be adjusted;
+  1. Take a picture of your scene. You will use this picture to say "I want my timelapse to be exposed like this picture".
+  2. Enable Bulb Ramping and Intervalometer.
+  3. Leave the camera still while ML runs a calibration step:
   
-  * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the `histogram`_);
-  * ISO is chosen such as the resulting shutter speed stays between 90 and 180 degrees, according to delay between shots (if possible);
+    - Make sure you have a static and well-lit scene (any static scene which does not require long exposure should be fine).
+    - After calibration, you should get a nice S-curve on the screen.
+    
+  4. Now you will have to say what tone range to meter for (i.e. highlights, midtones...). Follow the wizard:
+  
+    - Use arrow keys to select your reference picture (which you just took).
+    - Use the main dial to select the tone range to meter for. You can't perfectly match two images just by varying one parameter (exposure), so you have to choose what's important for you in this picture.
+    - For lowest flicker, meter for midtones (choose the 50th percentile, i.e. median). Leave some headroom for highlights (underexpose a bit).
+    - If highlights are important, meter for them (choose 80th percentile for example). You will get more flicker; shoot RAW to remove it easier in post.
+    - The algorithm works best when brightness is close to 50% (try not to choose extreme values for it).
+    - When you are ready to start, press ``SET``.
+    
+  5. Sit back and relax :)
+
+  Tips: 
+  
+  * Don't adjust ISO and shutter before the timelapse, they are fully automatic.
+  * You can use this option with a HDR timelapse. In this case, when configuring the exposure parameters, choose the *brightest* picture in the HDR sequence (the *last* one).
+  * Use a `ND filter <http://amzn.to/ml-nd-filter>`_ to reduce flicker during daylight.
+  * Reduce flicker in post. You may try VirtualDub with MSU Deflicker plugin (free, works with Windows and Wine). See also `Timelapse workflow using free software tutorial <http://vimeo.com/groups/magiclantern/videos/19854305>`_.
+  * The delay between two shots affects how ISO and shutter are chosen, according to 180 degree rule:
+  
+    - For example, let's say you set "Take pics every 30 seconds"
+    - Shutter speed will be chosen between 90 and 270 degrees if possible. In our example, it will be chosen between 10 and 20 seconds if the light conditions allow it.
+    - If it's not possible to get a correct exposure between 90 and 270 degrees, shutter will be chosen between 1/1000 (at ISO 100) and (*d* - 2) seconds (at ISO 6400), where *d* is the delay between two shots.
+
+  Techincal notes:
+    
+  * Exposure is adjusted using a condition like this (for example): *70% of pixels should be below 50% brightness*.
+  * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the `histogram`_).
+  * ISO is chosen using the 180 degree rule, so the resulting shutter speed stays between 90 and 270 degrees (that is, between 1/4 and 3/4 of the delay between two shots).
+  * Maximum exposure time will be the delay between two shots, minus two seconds.
   * Only native ISOs (100, 200, 400 etc) are used, for best dynamic range.
-
-  Notes for ``BulbRamping`` in ``BULB`` mode:
-  
-  * You should set the shutter speed for first image from `Bulb Timer`_ menu item (see below);
-  * Shutter speed can be adjusted at milisecond level in theory;
-  * There is a limit for the fastest shutter speed available, depending on the camera (1/10s ... 1s);
-  * Exposure algorithm is a `P feedback controller <http://en.wikipedia.org/wiki/Proportional_control>`_, with gain equal to 0.5. It should handle relatively quick light variations (in theory, of course);
-  * It can go from 1s @ ISO 100 (dusk) to several minutes of exposure time @ ISO 6400 (complete darkness). For daylight usage you may need to use a `ND filter <http://amzn.to/ml-nd-filter>`_.
-
-  Notes for ``AutoExpo`` in ``M`` mode:
-  
-  * Current exposure settings (ISO, shutter, aperture) will be used as reference;
-  * Adjustment step is as small as the camera supports (1/8 EV best case);
-  * It is assummed that lighting conditions will change slowly; fast changes in lighting are not handled well;
-  * To reduce flicker, a small hystheresis is used (less than 1 EV); this should avoid exposure changing back and forth due to metering noise;
-  * This feature only works in Manual mode (both LiveView and non-LiveView);
-  * It can go from 1/4000 @ ISO 100 (sunlight) to 30s @ ISO 6400 (moonlight).
-  
+  * Shutter speed can be adjusted with a resolution of 10ms.
+  * Frames with fast shutter speeds (less than 1 second in Rebel cameras, less 0.1 seconds in 60D) are taken in Manual mode. You will get flicker.
+  * It can go from 1/1000s @ ISO 100 (daylight) to several minutes of exposure time @ ISO 6400 (complete darkness).
+  * Exposure algorithm is a `P feedback controller <http://en.wikipedia.org/wiki/Proportional_control>`_, with gain equal to 0.8 (at each step, it performs 80% of the correction). Process model is a nonlinear gain with dead time (the S-curve you see on the screen, which is the relationship between luma and EV ).
+  * If the lighting changes suddenly a few stops between two shots, the algorithm should recover completely after 2 or 3 shots.
 
 .. _bulb timer:
 
@@ -1118,14 +1132,12 @@ Focus
 
 .. _follow focus:
 
-**Follow Focus: OFF / Arrows / ZoomIn/AF**
+**Follow Focus: OFF / Arrows / LCD sensor**
 
   Very simple follow focus (like a rack focus controlled manually).
   
-  * ``Arrows``: you will be able to focus with the arrow keys;
-  * ``ZoomIn/AF``: you will be able to focus with ``ZoomIn`` and ``AF`` keys. This works best if you assign ``AF`` to ``ZoomOut (*)`` from Custom Functions. It does not work with Quick Focus mode.
-
-  You can reverse the focus direction with ``Q`` and ``PLAY``.
+  * ``Arrows``: you will be able to focus with the arrow keys. You can reverse the focus direction with ``Q`` and ``PLAY``.
+  * ``LCD Sensor``: on 550D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you also need to disable `LCD Remote Shot`_ and enable `SensorShortcuts`_.
 
 .. _focus speed:
 
@@ -1170,6 +1182,8 @@ Focus
   5. Go to ``Rack Focus`` and press ``SET``, ``Q`` or ``PLAY`` to start rack focus.
   
   6. To return to the beginning point, you can press ``SET``, ``Q`` or ``PLAY`` again.
+  
+  Tip: when `LCD Remote Shot`_ is set on ``Near`` or ``Away``, you can trigger rack focus from the LCD sensor, avoiding shake.
 
   **Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
 
@@ -1184,11 +1198,13 @@ Focus
 
   This function will also create scripts named like named ``FST_1234.SH``, which can be used for stacking the images with enfuse. See `Exposure bracketing`_ for details on how to use these scripts, and the `focus stacking section <http://panorama.dyndns.org/EandE-documentation/enfuse.html#Focus-Stacks>`_ from Enfuse reference manual.
   
-  Keys:
+  Usage:
   
-  * ``SET``: change the number of photos
-  * ``Q``: change the number of focus steps between two shots
-  * ``PLAY``: run the stack focus sequence
+  1. Configure `rack focus`_ and use it to preview the focus range. 
+  2. Select the number of focus steps to skip. This will determine the number of pictures to be taken.
+  3. Close ML menu and take a picture. ML will continue the focus sequence.
+  
+  You can also combine this function with `HDR`_ bracketing.
 
 .. _focus and DOF info:
 
@@ -1245,7 +1261,7 @@ Miscellanous settings.
 
 **LCD Sensor Shortcuts: ON/OFF**
 
-  Enable the use of `LCD sensor`_ as an extra shift key. This function allows you to adjust `white balance`_, LCD backlight level, move the AF frame when `follow focus`_ is active, or trigger `Magic Zoom`_ when not recording.
+  Enables the use of `LCD sensor`_ as an extra shift key, and also enables the LCD sensor in LiveView. See `LCD Sensor Shortcuts`_ for details.
 
   To fully disable the `LCD sensor`_ in Magic Lantern, disable ``LCD auto off`` from Canon menu (Wrench 1). You need to do this if you are using a device which covers the LCD sensor (e.g. a loupe).
 

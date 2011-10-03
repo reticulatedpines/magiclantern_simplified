@@ -148,3 +148,15 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 volatile PROP_INT(PROP_MVR_REC_START, recording);
 volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 #endif
+
+
+#ifdef CONFIG_60D
+int lv_disp_mode;
+PROP_HANDLER(PROP_HOUTPUT_TYPE)
+{
+	lv_disp_mode = buf[1];
+	return prop_cleanup(token, property);
+}
+#else
+PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
+#endif
