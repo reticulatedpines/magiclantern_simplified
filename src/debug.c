@@ -366,6 +366,23 @@ static void stress_test_task(void* unused)
 {
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
+	NotifyBox(10000, "LCD backlight...");
+	int old_backlight_level = backlight_level;
+	for (int i = 0; i < 5; i++)
+	{
+		for (int k = 1; k <= 7; k++)
+		{
+			set_backlight_level(k);
+			msleep(50);
+		}
+		for (int k = 7; k >= 1; k--)
+		{
+			set_backlight_level(k);
+			msleep(50);
+		}
+	}
+	set_backlight_level(old_backlight_level);
+
 	if (!lv) force_liveview();
 	for (int k = 0; k < 10; k++)
 	{
@@ -432,11 +449,14 @@ static void stress_test_task(void* unused)
 		NotifyBox(10000, "Play scrolling: %d", i);
 		next_image_in_play_mode(1);
 	}
+	extern int timelapse_playback;
+	timelapse_playback = 1;
 	for (int i = 0; i < 50; i++)
 	{
 		NotifyBox(10000, "Play scrolling: %d", i+50);
-		next_image_in_play_mode(-1);
+		msleep(200);
 	}
+	timelapse_playback = 0;
 	get_out_of_play_mode();
 
 	msleep(2000);
@@ -547,16 +567,16 @@ static void stress_test_task(void* unused)
 
 	stress_test_picture(2, 2000);
 
-#ifdef CONFIG_60D // can't set bulb mode from ML on other cameras...
 	set_shooting_mode(SHOOTMODE_BULB);
 	
 	msleep(1000);
-	for (int i = 0; i <= 5; i++)
-	{
-		NotifyBox(10000, "Bulb picture taking: %d", i);
-		bulb_take_pic(500 + i * 500);
-	}
-#endif
+	NotifyBox(10000, "Bulb picture taking");
+	bulb_take_pic(2000);
+	bulb_take_pic(100);
+	bulb_take_pic(1500);
+	bulb_take_pic(10);
+	bulb_take_pic(1000);
+	bulb_take_pic(1);
 
 	NotifyBox(10000, "Movie recording");
 	ensure_movie_mode();
