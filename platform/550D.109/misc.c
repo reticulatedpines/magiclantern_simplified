@@ -103,7 +103,7 @@ void* get_fastrefresh_422_buf()
 		case 0x4f11d800:
 			return (void*) 0x40d07800;
 	}
-	return 0;
+	return 0x40d07800;
 }
 
 void* get_write_422_buf()
@@ -117,7 +117,7 @@ void* get_write_422_buf()
 		case 0x4f11d800:
 			return (void*) 0x4f11d800;
 	}
-	return 0;
+	return 0x40d07800;
 }
 
 int vram_width = 720;

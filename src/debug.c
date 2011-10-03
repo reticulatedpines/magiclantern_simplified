@@ -396,8 +396,6 @@ static void stress_test_task(void* unused)
 	timelapse_playback = 0;
 	get_out_of_play_mode();
 
-	return;
-
 	for (int i = 0; i < 100; i++)
 	{
 		NotifyBox(1000, "Disabling Canon GUI (%d)...", i);
