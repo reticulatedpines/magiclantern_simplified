@@ -488,7 +488,7 @@ int handle_set_wheel_play(struct event * event)
 			return 0;
 		}
 		
-		if (event->param == BGMT_PRESS_RIGHT || event->param == BGMT_WHEEL_DOWN)
+		if (event->param == BGMT_PRESS_RIGHT)
 		{
 			timelapse_playback = 1;
 			return 0;
