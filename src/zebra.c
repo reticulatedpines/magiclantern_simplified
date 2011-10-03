@@ -2937,7 +2937,9 @@ void idle_kill_flicker()
 }
 void idle_stop_killing_flicker()
 {
+	#ifdef CONFIG_KILL_FLICKER
 	idle_globaldraw_disable = 1;
+	#endif
 	stop_killing_flicker();
 }
 
