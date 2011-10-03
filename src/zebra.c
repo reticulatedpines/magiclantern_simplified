@@ -32,10 +32,10 @@
 #include "gui.h"
 #include "lens.h"
 
-#if 1
-//~ #ifdef CONFIG_50D
-#define CONFIG_KILL_FLICKER
-#endif
+//~ #if 1
+#ifdef CONFIG_50D
+#define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
+#endif                      // but it will display ML graphics
 
 #ifdef CONFIG_1100D
 #include "disable-this-module.h"
