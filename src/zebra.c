@@ -210,11 +210,17 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
 
 int idle_globaldraw_disable = 0;
 
-int get_global_draw()
+int get_global_draw() // menu setting, or off if 
 {
-	return global_draw && !idle_globaldraw_disable;
+	return global_draw && !idle_globaldraw_disable && !sensor_cleaning && bmp_is_on() && tft_status == 0 && recording != 1;
 }
-void set_global_draw(int g)
+
+int get_global_draw_setting() // whatever is set in menu
+{
+	return global_draw;
+}
+
+void set_globalf_draw(int g)
 {
 	global_draw = g;
 }
@@ -2658,7 +2664,7 @@ int liveview_display_idle()
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
-	return liveview_display_idle() && get_global_draw() && bmp_is_on();
+	return liveview_display_idle() && get_global_draw();
 }
 
 void zebra_sleep_when_tired()

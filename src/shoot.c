@@ -1259,9 +1259,8 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
 	if (beep_enabled) Beep();
 	
-	int g = get_global_draw();
-	set_global_draw(0);
-
+	idle_globaldraw_dis();
+	
 	if (silent_pic_mode == 1) // normal
 		silent_pic_take_simple(interactive);
 	//~ else if (silent_pic_mode == 2) // hi-res
@@ -1271,7 +1270,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 	else if (silent_pic_mode == 4) // slit-scan
 		silent_pic_take_slitscan(interactive);
 
-	set_global_draw(g);
+	idle_globaldraw_en();
 }
 
 
