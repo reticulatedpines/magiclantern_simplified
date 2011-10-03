@@ -91,7 +91,7 @@ display_lens_hyperfocal(
 	bmp_printf( font, x, y,
 		"Focus dist: %s",
 		lens_info.focus_dist == 0xFFFF
-                        ? " Infnty"
+                        ? " Infty"
                         : lens_format_dist( lens_info.focus_dist * 10 )
 	);
 
@@ -111,7 +111,7 @@ display_lens_hyperfocal(
 	bmp_printf( font, x, y,
 		"DOF Far:    %s",
 		lens_info.dof_far >= 1000*1000
-			? " Infnty"
+			? " Infty"
 			: lens_format_dist( lens_info.dof_far )
 	);
 }
@@ -573,7 +573,7 @@ focus_task( void* unused )
 		while( focus_task_dir )
 		{
 			int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
-			int n = is_movie_mode() ? 1 : focus_stack_steps_per_picture;
+			int n = is_movie_mode() || !focus_stack_enabled ? 1 : focus_stack_steps_per_picture;
 			if (LensFocus2(n, f * lens_focus_stepsize) == 0) break;
 			focus_task_delta += f * n;
 			//~ msleep(10);
