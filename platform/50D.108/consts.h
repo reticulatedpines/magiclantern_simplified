@@ -63,7 +63,7 @@
 #define BGMT_PRESS_DOWN 0x1d
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_UDLR 0x15
-#define BGMT_UNPRESS_SET 0x5
+#define BGMT_UNPRESS_SET 0x15
 #define BGMT_TRASH 9
 #define BGMT_MENU 5
 #define BGMT_DISP 6
