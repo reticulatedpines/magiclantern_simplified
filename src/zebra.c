@@ -41,6 +41,8 @@
 #include "disable-this-module.h"
 #endif
 
+int lv_paused = 0;
+
 void waveform_init();
 void histo_init();
 void do_disp_mode_change();
@@ -212,7 +214,7 @@ int idle_globaldraw_disable = 0;
 
 int get_global_draw() // menu setting, or off if 
 {
-	return global_draw && !idle_globaldraw_disable && !sensor_cleaning && bmp_is_on() && tft_status == 0 && recording != 1;
+	return global_draw && !idle_globaldraw_disable && !sensor_cleaning && bmp_is_on() && tft_status == 0 && recording != 1 && !lv_paused;
 }
 
 int get_global_draw_setting() // whatever is set in menu
@@ -2850,7 +2852,6 @@ void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void),
 	*prev_countdown = c;
 }
 
-int lv_paused = 0;
 void PauseLiveView()
 {
 	#ifndef CONFIG_50D
@@ -3148,6 +3149,8 @@ livev_hipriority_task( void* unused )
 
 		while (is_mvr_buffer_almost_full())
 			msleep(100);
+		
+		get_422_hd_idle_buf(); // just to keep it up-to-date
 		
 		zebra_sleep_when_tired();
 		
