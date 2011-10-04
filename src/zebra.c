@@ -3127,6 +3127,9 @@ void schedule_transparent_overlay()
 	transparent_overlay_flag = 1;
 }
 
+volatile int lens_display_dirty = 0;
+void lens_display_set_dirty() { lens_display_dirty = 1; }
+
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
@@ -3185,7 +3188,11 @@ livev_hipriority_task( void* unused )
 			crop_set_dirty(5);
 		}
 		
-		if (k % 5 == 0) lens_display_set_dirty();
+		if (lens_display_dirty && k % 5 == 0)
+		{
+			BMP_LOCK( update_lens_display(); );
+			lens_display_dirty = 0;
+		}
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || get_halfshutter_pressed())
 			crop_set_dirty(5);

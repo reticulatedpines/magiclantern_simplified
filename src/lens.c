@@ -176,34 +176,21 @@ char *aj_lens_format_dist( unsigned mm)
 
 void erase_bottom_bar()
 {
-	msleep(10);
 	fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
 }
-
-int lens_display_dirty = 0;
-void lens_display_set_dirty() { lens_display_dirty = 1; }
 
 void
 update_lens_display()
 {
-	if (!lens_display_dirty) return;
-	if (is_menu_help_active()) return;
-
 	draw_ml_topbar();
 
-	if (!gui_menu_shown())
-	{
-		if (!zebra_should_run()) return;
-	}
-	
-	if (lv && ((lv_disp_mode & 0xFF) == 0 || flicker_being_killed()) && !gui_menu_shown() && !get_halfshutter_pressed())
+	if (!get_halfshutter_pressed())
 	{
 		if (LV_BOTTOM_BAR_DISPLAYED)
-			task_create("erase_bottom_bar", 0x1f, 0, erase_bottom_bar, 0);
+			erase_bottom_bar();
 		else
 			draw_ml_bottombar();
 	}
-	lens_display_dirty = 0;
 }
 
 int raw2shutter_ms(int raw_shutter)
@@ -1122,7 +1109,7 @@ lens_set_kelvin_value_only(int k)
 void update_stuff()
 {
 	calc_dof( &lens_info );
-	if (lv && get_global_draw()) BMP_LOCK( update_lens_display(); )
+	lens_display_set_dirty();
 	if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
 }
 
