@@ -479,9 +479,15 @@ int handle_set_wheel_play(struct event * event)
 	//~ if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
 	//~ if (event->param == BGMT_PLAY) set_pressed = 0;
 
+	static int timelapse_playback_locked = 0;
+
 	// reset exposure fusion preview
 	extern int expfuse_running;
-	if (set_pressed == 0) expfuse_running = 0;
+	if (set_pressed == 0)
+	{
+		expfuse_running = 0;
+		timelapse_playback_locked = 0;
+	}
 
 	// SET+Wheel action in PLAY mode
 	if ( PLAY_MODE && get_set_pressed())
@@ -490,10 +496,11 @@ int handle_set_wheel_play(struct event * event)
 		{
 			int dir = event->param == BGMT_WHEEL_RIGHT ? 1 : -1;
 			playback_set_wheel_action(dir);
+			timelapse_playback_locked = 1;
 			return 0;
 		}
 		
-		if (event->param == BGMT_PRESS_RIGHT)
+		if (event->param == BGMT_PRESS_RIGHT && !timelapse_playback_locked)
 		{
 			timelapse_playback = 1;
 			return 0;
