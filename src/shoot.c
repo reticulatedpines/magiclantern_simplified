@@ -3022,7 +3022,7 @@ static void compute_exposure_for_next_shot()
 	bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
 	
 	// don't go slower than intervalometer, and reserve 2 seconds just in case
-	bulb_shutter_value = COERCE(bulb_shutter_value, 1, 1000 * timer_values[interval_timer_index] - 2);
+	bulb_shutter_value = COERCE(bulb_shutter_value, 1, 1000 * MAX(2, timer_values[interval_timer_index] - 2));
 	
 	NotifyBoxHide();
 }
