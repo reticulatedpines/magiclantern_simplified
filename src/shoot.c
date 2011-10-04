@@ -980,6 +980,13 @@ int find_422(int * index, char* fn)
 	} while( FIO_FindNextEx( dirent, &file ) == 0);
 	FIO_CleanupAfterFindNext_maybe(dirent);
 
+	static int old_N = 0;
+	if (N != old_N) // number of pictures was changed, display the last one
+	{
+		old_N = N;
+		*index = N-1;
+	}
+	
 	*index = mod(*index, N);
 
 	dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
