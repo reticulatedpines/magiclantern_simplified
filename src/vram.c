@@ -122,7 +122,9 @@ struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
 	_vram_info.vram = get_fastrefresh_422_buf();
-	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
+	extern int lv_paused;
+	if (gui_state == GUISTATE_PLAYMENU || lv_paused)
+		_vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 
 	//~ _vram_info.width = SL.LV.W;
 	//~ _vram_info.height = SL.LV.H;
