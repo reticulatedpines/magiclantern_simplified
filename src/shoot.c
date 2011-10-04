@@ -3956,8 +3956,20 @@ shoot_task( void* unused )
 			}
 		}
 
+		static int silent_pic_countdown;
+		if (gui_state != GUISTATE_IDLE || gui_menu_shown())
+		{
+			silent_pic_countdown = 10;
+		}
+		else if (!get_halfshutter_pressed())
+		{
+			if (silent_pic_countdown) silent_pic_countdown--;
+		}
+
 		if (silent_pic_mode && get_halfshutter_pressed())
 		{
+			if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
+				continue;
 			if (is_focus_stack_enabled()) focus_stack_run();
 			else if (hdr_steps == 1) silent_pic_take(1);
 			else 
