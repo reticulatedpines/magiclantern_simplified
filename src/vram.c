@@ -47,23 +47,23 @@ void* get_write_422_buf()
 {
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
-		case YUV422_LV_BUFFER:
-			return YUV422_LV_BUFFER;
+		case YUV422_LV_BUFFER_1:
+			return YUV422_LV_BUFFER_1;
 		case YUV422_LV_BUFFER_2:
 			return YUV422_LV_BUFFER_2;
 		case YUV422_LV_BUFFER_3:
 			return YUV422_LV_BUFFER_3;
 	}
-	return YUV422_LV_BUFFER; // fall back to default
+	return YUV422_LV_BUFFER_1; // fall back to default
 }
 
 static int fastrefresh_direction = 0;
 
 void guess_fastrefresh_direction() {
-	static int old_pos = YUV422_LV_BUFFER;
+	static int old_pos = YUV422_LV_BUFFER_1;
 	if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
-	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
+	if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
+	if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
 	old_pos = YUV422_LV_BUFFER_DMA_ADDR;
 }
 
@@ -73,40 +73,48 @@ void* get_fastrefresh_422_buf()
 	if (fastrefresh_direction) {
 		switch (YUV422_LV_BUFFER_DMA_ADDR)
 		{
-			case YUV422_LV_BUFFER:
+			case YUV422_LV_BUFFER_1:
 				return YUV422_LV_BUFFER_2;
 			case YUV422_LV_BUFFER_2:
 				return YUV422_LV_BUFFER_3;
 			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER;
+				return YUV422_LV_BUFFER_1;
 		}
-		return YUV422_LV_BUFFER; // fall back to default
+		return YUV422_LV_BUFFER_1; // fall back to default
 	} else {
 		switch (YUV422_LV_BUFFER_DMA_ADDR)
 		{
-			case YUV422_LV_BUFFER:
+			case YUV422_LV_BUFFER_1:
 				return YUV422_LV_BUFFER_3;
 			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER;
+				return YUV422_LV_BUFFER_1;
 			case YUV422_LV_BUFFER_3:
 				return YUV422_LV_BUFFER_2;
 		}
-		return YUV422_LV_BUFFER; // fall back to default
+		return YUV422_LV_BUFFER_1; // fall back to default
 
 	}
 }
 
 
-void* get_422_hd_idle_buf() // the one which is not updated by DMA
+// YUV422_HD_BUFFER_DMA_ADDR returns many possible values, but usually cycles between last two
+// This function returns the value which was used just before the current one
+// That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
+void* get_422_hd_idle_buf()
 {
-	switch (YUV422_HD_BUFFER_DMA_ADDR)
+	static void* idle_buf = YUV422_HD_BUFFER_1;
+	static void* current_buf = YUV422_HD_BUFFER_2;
+
+	void* hd = YUV422_HD_BUFFER_DMA_ADDR;
+	if (IS_HD_BUFFER(hd))
 	{
-		case YUV422_HD_BUFFER:
-			return YUV422_HD_BUFFER_2;
-		case YUV422_HD_BUFFER_2:
-			return YUV422_HD_BUFFER;
+		if (hd != current_buf)
+		{
+			idle_buf = current_buf;
+			current_buf = hd;
+		}
 	}
-	return YUV422_HD_BUFFER; // fall back to default
+	return idle_buf;
 }
 
 

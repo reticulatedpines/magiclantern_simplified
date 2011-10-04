@@ -928,7 +928,7 @@ void playback_compare_images(int dir)
 void expfuse_preview_update_task(int dir)
 {
 	take_semaphore(set_maindial_sem, 0);
-	void* buf_acc = YUV422_HD_BUFFER;
+	void* buf_acc = YUV422_HD_BUFFER_1;
 	void* buf_ws = YUV422_HD_BUFFER_2;
 	void* buf_lv = get_yuv422_vram()->vram;
 	int numpix = get_yuv422_vram()->width * get_yuv422_vram()->height;
@@ -1272,7 +1272,7 @@ silent_pic_take_slitscan(int interactive)
 	msleep(500);
 	clrscr();
 
-	uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER);
+	uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER_1);
 	int lvpitch = YUV422_LV_PITCH;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;

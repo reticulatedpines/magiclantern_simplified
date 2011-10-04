@@ -9,7 +9,7 @@
 #define HIJACK_TASK_ADDR 0x1a2c
 
 // 720x480, changes when external monitor is connected
-#define YUV422_LV_BUFFER   0x41B07800
+#define YUV422_LV_BUFFER_1 0x41B07800
 #define YUV422_LV_BUFFER_2 0x5C307800
 #define YUV422_LV_BUFFER_3 0x5F11D800
 #define YUV422_LV_PITCH 1440
@@ -22,8 +22,12 @@
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2518)
 #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x529d0) // modified mem-spy
 
-#define YUV422_HD_BUFFER   0x46000080
-#define YUV422_HD_BUFFER_2 0x48000080
+#define YUV422_HD_BUFFER_1 0x44000080
+#define YUV422_HD_BUFFER_2 0x46000080
+#define YUV422_HD_BUFFER_3 0x48000080
+#define YUV422_HD_BUFFER_4 0x4e000080
+#define YUV422_HD_BUFFER_5 0x50000080
+#define IS_HD_BUFFER(x)  ( 0x40FFFFFF & (x) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 #define YUV422_HD_PITCH_IDLE 2112
 #define YUV422_HD_HEIGHT_IDLE 704

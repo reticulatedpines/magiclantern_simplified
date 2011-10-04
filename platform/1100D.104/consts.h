@@ -11,11 +11,14 @@
 #define HIJACK_TASK_ADDR 0x1a2c
 
 // Found by Alex using Heavendew dump
-#define YUV422_LV_BUFFER   0x41ae8e50
+#define YUV422_LV_BUFFER_1 0x41ae8e50
 #define YUV422_LV_BUFFER_2 0x412c8e50
 #define YUV422_LV_BUFFER_3 0x416d8e50
-#define YUV422_HD_BUFFER   0x468cb600
+
+#define YUV422_HD_BUFFER_1 0x468cb600
 #define YUV422_HD_BUFFER_2 0x4e8cb600
+// maybe there are more
+#define IS_HD_BUFFER(x)  ( 0x40FFFFFF & (x) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define YUV422_LV_BUFFER_DMA_ADDR 0x41ae8e50
