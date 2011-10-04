@@ -925,7 +925,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
-			//~ bmp_printf(FONT_MED, 0, 50, "%x ", YUV422_HD_BUFFER_DMA_ADDR);
+			//~ bmp_printf(FONT_MED, 0, 50, "%x %x %x", YUV422_HD_BUFFER_DMA_ADDR, get_422_hd_idle_buf(), IS_HD_BUFFER(YUV422_HD_BUFFER_DMA_ADDR));
 			//~ void* x = get_lvae_info();
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;

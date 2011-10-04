@@ -102,10 +102,10 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
-	static void* idle_buf = YUV422_HD_BUFFER_1;
-	static void* current_buf = YUV422_HD_BUFFER_2;
+	static int idle_buf = YUV422_HD_BUFFER_1;
+	static int current_buf = YUV422_HD_BUFFER_2;
 
-	void* hd = YUV422_HD_BUFFER_DMA_ADDR;
+	int hd = YUV422_HD_BUFFER_DMA_ADDR;
 	if (IS_HD_BUFFER(hd))
 	{
 		if (hd != current_buf)
@@ -114,7 +114,7 @@ void* get_422_hd_idle_buf()
 			current_buf = hd;
 		}
 	}
-	return idle_buf;
+	return (void*)idle_buf;
 }
 
 
