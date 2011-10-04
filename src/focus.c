@@ -44,7 +44,7 @@ CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
 CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
 //~ CONFIG_INT( "focus.count",	FOCUS_STACK_COUNT, 5 );
 
-#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture)
+#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture + 1)
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
 CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
@@ -152,7 +152,7 @@ void focus_stack_ensure_preconditions()
 
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	
-	msleep(1000);
+	msleep(300);
 }
 
 // will be called from shoot_task
@@ -162,27 +162,20 @@ focus_stack(
 	int			num_steps
 )
 {
-	NotifyBox(1000, "Focus stack: %dx%d", count, num_steps );
+	NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
 	hdr_create_script(count, 0, 1);
-	msleep(5000);
+	msleep(1000);
 	
 	int focus_moved_total = 0;
 
 	unsigned i;
-	for( i=0 ; i <= count ; i++ )
+	for( i=0 ; i < count ; i++ )
 	{
 		if (gui_menu_shown()) break;
 		
 		NotifyBox(1000, "Focus stack: %d of %d", i+1, count );
-		msleep( 1000 );
 		
 		focus_stack_ensure_preconditions();
-
-		//~ NotifyBox(1000, "Focus(%d)", num_steps);
-		LensFocus(num_steps);
-		focus_moved_total += num_steps;
-		
-		msleep(500);
 		
 		assign_af_button_to_star_button();
 		//~ lens_take_picture( 64 );
@@ -193,18 +186,27 @@ focus_stack(
 		//~ extern int remote_shot_flag;
 		//~ while (remote_shot_flag) msleep(100);
 		
-		msleep(500);
+		msleep(300);
 		restore_af_button_assignment();
+
+		if( count-1 == i )
+			break;
 		
 		focus_stack_ensure_preconditions();
 		
-		if( count-1 == i )
+		NotifyBox(1000, "Focusing...");
+		if (LensFocus(num_steps) == 0)
 			break;
+		focus_moved_total += num_steps;
 	}
 
 	msleep(1000);
 	NotifyBoxHide();
-	NotifyBox(2000, "Focus stack done!" );
+	
+	if (i >= count-1)
+		NotifyBox(2000, "Focus stack done!" );
+	else
+		NotifyBox(2000, "Focus stack error :(" );
 
 	// Restore to the starting focus position
 	focus_stack_ensure_preconditions();
@@ -520,7 +522,7 @@ rack_focus(
 		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%% ", ABS(delta0 - delta) * 100 / ABS(delta0));
 		draw_ml_bottombar();
 		
-		LensFocus( speed_cmd );
+		if (LensFocus( speed_cmd ) == 0) break;
 		gui_hide_menu( 10 );
 	}
 }
@@ -581,7 +583,7 @@ focus_task( void* unused )
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x1a, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )
@@ -1182,7 +1184,7 @@ int handle_rack_focus(struct event * event)
 	{
 		if (lv && (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE))
 		{
-			gui_hide_menu( 5 );
+			gui_hide_menu( 10 );
 			lens_focus_stop();
 			return 0;
 		}

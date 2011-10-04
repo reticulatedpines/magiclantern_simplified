@@ -670,11 +670,16 @@ void draw_ml_topbar()
 }
 
 volatile int lv_focus_done = 1;
+volatile int lv_focus_error = 0;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
 	lv_focus_done = 1;
-	if (buf[0] & 0x1000) NotifyBox(1000, "Focus: soft limit reached");
+	if (buf[0] & 0x1000) 
+	{
+		NotifyBox(1000, "Focus: soft limit reached");
+		lv_focus_error = 1;
+	}
 	return prop_cleanup( token, property );
 }
 
@@ -689,6 +694,7 @@ lens_focus_wait( void )
 		if (is_manual_focus()) return;
 	}
 	NotifyBox(1000, "Focus error :("); msleep(1000);
+	lv_focus_error = 1;
 	//~ NotifyBox(1000, "Press PLAY twice or reboot");
 }
 
@@ -736,6 +742,8 @@ lens_focus(
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 	if (get_global_draw()) draw_ml_bottombar();
 	idle_wakeup_reset_counters(-10);
+	
+	if (lv_focus_error) { lv_focus_error = 0; return 0; }
 	return 1;
 }
 
