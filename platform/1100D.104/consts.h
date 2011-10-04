@@ -18,7 +18,7 @@
 #define YUV422_HD_BUFFER_1 0x468cb600
 #define YUV422_HD_BUFFER_2 0x4e8cb600
 // maybe there are more
-#define IS_HD_BUFFER(x)  ( 0x40FFFFFF & (x) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
+#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define YUV422_LV_BUFFER_DMA_ADDR 0x41ae8e50

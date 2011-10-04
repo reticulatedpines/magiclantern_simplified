@@ -106,6 +106,7 @@ void* get_422_hd_idle_buf()
 	static int current_buf = YUV422_HD_BUFFER_2;
 
 	int hd = YUV422_HD_BUFFER_DMA_ADDR;
+	//~ bmp_printf(FONT_LARGE, 50, 200, "%x %x %x", hd, current_buf, IS_HD_BUFFER(hd));
 	if (IS_HD_BUFFER(hd))
 	{
 		if (hd != current_buf)

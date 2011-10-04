@@ -169,7 +169,7 @@
 #define YUV422_HD_BUFFER_3 0x48000080
 #define YUV422_HD_BUFFER_4 0x4e000080
 #define YUV422_HD_BUFFER_5 0x50000080
-#define IS_HD_BUFFER(x)  ( 0x40FFFFFF & (x) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
  #define YUV422_HD_PITCH_IDLE 2112
  #define YUV422_HD_HEIGHT_IDLE 704
