@@ -1202,10 +1202,15 @@ silent_pic_take_sweep()
 {
 	if (recording) return;
 	if (!lv) return;
-	if ((af_mode & 0xF) != 3 )
+	if (SILENTPIC_NL > 4 || SILENTPIC_NC > 4)
 	{
-		NotifyBox(2000, "Please switch to Manual Focus."); 
-		return; 
+		if ((af_mode & 0xF) != 3 )
+		{
+			NotifyBox(2000, "Matrices higher than 4x4\n"
+							"require manual focus.   "); 
+			msleep(2000);
+			return; 
+		}
 	}
 
 	bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
