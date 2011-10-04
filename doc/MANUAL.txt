@@ -137,7 +137,6 @@ PLAY mode shortcuts
 * ``Q`` (550D), ``UNLOCK`` (60D) or ``DISP`` (600D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
 * ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can then move the overlay around with arrow keys in LiveView mode.
 * ``SET`` + ``Main Dial (Wheel)`` in ``PLAY`` mode: see `SET+MainDial`_.
-* ``SET`` + ``Right Arrow``: timelapse playback (it will just scroll through all your pictures quickly).
 
 LCD sensor shortcuts
 ~~~~~~~~~~~~~~~~~~~~
@@ -1375,6 +1374,7 @@ Features for Playback mode.
   * ``Play 422``: display silent pictures from ``DCIM/100CANON``;
   * ``ExposureFusion``: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
   * ``CompareImages``: compare two images with a diagonal split view. The current image will always end up in the top half.
+  * ``TimelapsePlay``: scroll through all your pictures quickly.
 
   Note: high-resolution silent pictures can't be previewed in the camera.
 

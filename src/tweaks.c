@@ -457,19 +457,21 @@ play_set_wheel_display(
 		"SET+MainDial(PLAY): %s", 
 		play_set_wheel_action == 0 ? "Play 422" :
 		play_set_wheel_action == 1 ? "ExposureFusion" : 
-		play_set_wheel_action == 2 ? "CompareImages" : "err"
+		play_set_wheel_action == 2 ? "CompareImages" : 
+		play_set_wheel_action == 3 ? "TimelapsePlay" : "err"
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
+
+int timelapse_playback = 0;
 
 void playback_set_wheel_action(int dir)
 {
 	if (play_set_wheel_action == 0) play_next_422(dir);
 	else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
 	else if (play_set_wheel_action == 2) playback_compare_images(dir);
+	else if (play_set_wheel_action == 3) timelapse_playback += dir;
 }
-
-int timelapse_playback = 0;
 
 int handle_set_wheel_play(struct event * event)
 {
@@ -479,14 +481,11 @@ int handle_set_wheel_play(struct event * event)
 	//~ if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
 	//~ if (event->param == BGMT_PLAY) set_pressed = 0;
 
-	static int timelapse_playback_locked = 0;
-
 	// reset exposure fusion preview
 	extern int expfuse_running;
 	if (set_pressed == 0)
 	{
 		expfuse_running = 0;
-		timelapse_playback_locked = 0;
 	}
 
 	// SET+Wheel action in PLAY mode
@@ -496,13 +495,6 @@ int handle_set_wheel_play(struct event * event)
 		{
 			int dir = event->param == BGMT_WHEEL_RIGHT ? 1 : -1;
 			playback_set_wheel_action(dir);
-			timelapse_playback_locked = 1;
-			return 0;
-		}
-		
-		if (event->param == BGMT_PRESS_RIGHT && !timelapse_playback_locked)
-		{
-			timelapse_playback = 1;
 			return 0;
 		}
 	}
@@ -531,7 +523,7 @@ tweak_task( void* unused)
 			if (!PLAY_MODE) { timelapse_playback = 0; continue; }
 			
 			//~ NotifyBox(1000, "Timelapse...");
-			fake_simple_button(BGMT_WHEEL_DOWN);
+			fake_simple_button(timelapse_playback > 0 ? BGMT_WHEEL_DOWN : BGMT_WHEEL_UP);
 			continue;
 		}
 		
@@ -998,8 +990,8 @@ struct menu_entry play_menus[] = {
 	{
 		.name = "SET+MainDial (PLAY)",
 		.priv = &play_set_wheel_action, 
-		.select = menu_ternary_toggle, 
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select = menu_quaternary_toggle, 
+		.select_reverse = menu_quaternary_toggle_reverse,
 		.display = play_set_wheel_display,
 		.help = "What to do when you hold SET and turn MainDial (Wheel)"
 	},
