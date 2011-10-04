@@ -216,7 +216,7 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	HijackDialogBox();
+	bulb_take_pic(3000);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -925,7 +925,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
-			//~ bmp_printf(FONT_MED, 0, 50, "%x %x %x ", MEM(0x52e8), MEM(0x5568), MEM(0x53e0));
+			//~ bmp_printf(FONT_MED, 0, 50, "%x ", YUV422_HD_BUFFER_DMA_ADDR);
 			//~ void* x = get_lvae_info();
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
@@ -1701,7 +1701,7 @@ struct tmp_file {
 };
 
 struct tmp_file * tmp_files = 0;
-const void* tmp_buffers[5] = {YUV422_HD_BUFFER, YUV422_HD_BUFFER_2, YUV422_LV_BUFFER, YUV422_LV_BUFFER_2, YUV422_LV_BUFFER_3};
+const void* tmp_buffers[5] = {YUV422_HD_BUFFER_1, YUV422_HD_BUFFER_2, YUV422_LV_BUFFER_1, YUV422_LV_BUFFER_2, YUV422_LV_BUFFER_3};
 int tmp_file_index = 0;
 int tmp_buffer_index = 0;
 void* tmp_buffer_ptr = 0;
@@ -2004,9 +2004,11 @@ int handle_tricky_canon_calls(struct event * event)
 			break;
 		case MLEV_TURN_ON_DISPLAY:
 			if (_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOnDisplay");
+			_display_is_off = 0;
 			break;
 		case MLEV_TURN_OFF_DISPLAY:
 			if (!_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOffDisplay");
+			_display_is_off = 1;
 			break;
 		case MLEV_HIDE_CANON_BOTTOM_BAR:
 			#ifndef CONFIG_50D
