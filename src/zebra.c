@@ -3635,6 +3635,7 @@ void play_422(char* filename)
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 	uint32_t * buf = YUV422_HD_BUFFER_2;
+	struct vram_info * vram = get_yuv422_vram();
 
 	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
     bmp_printf(FONT_LARGE, 500, 0, "%d", size);
@@ -3654,6 +3655,7 @@ void play_422(char* filename)
     else
     {
 		bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
+		bzero32(vram->vram, vram->width * vram->height * 2);
 		return;
 	}
     
@@ -3663,7 +3665,6 @@ void play_422(char* filename)
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;
 
-	struct vram_info * vram = get_yuv422_vram();
 	yuv_resize(buf, w, h, vram->vram, vram->width, vram->height);
 }
 
