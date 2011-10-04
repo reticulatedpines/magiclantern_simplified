@@ -3636,6 +3636,7 @@ void play_422(char* filename)
 	if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 	uint32_t * buf = YUV422_HD_BUFFER_2;
 
+	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
     bmp_printf(FONT_LARGE, 500, 0, "%d", size);
 
 	int w,h;
@@ -3650,10 +3651,13 @@ void play_422(char* filename)
     else if (size == 1024*680*2) { w = 1024; h = 680; } // zoom mode (5x, 10x)
     else if (size == 512*340*2)  { w = 512;  h = 340; }
     else if (size == 720*480*2)  { w = 720;  h = 480; } // LiveView buffer
-    else return;
+    else
+    {
+		bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
+		return;
+	}
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
-	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
 	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
 	size_t rc = read_file( filename, buf, size );

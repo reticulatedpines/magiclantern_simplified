@@ -1206,7 +1206,7 @@ Focus
   2. Select the number of focus steps to skip. This will determine the number of pictures to be taken.
   3. Close ML menu and take a picture. ML will continue the focus sequence.
   
-  You can also combine this function with `HDR`_ bracketing.
+  You can also combine this function with `HDR`_ bracketing and `silent pictures`_.
 
 .. _focus and DOF info:
 
@@ -1375,6 +1375,8 @@ Features for Playback mode.
   * ``Play 422``: display silent pictures from ``DCIM/100CANON``;
   * ``ExposureFusion``: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
   * ``CompareImages``: compare two images with a diagonal split view. The current image will always end up in the top half.
+
+  Note: high-resolution silent pictures can't be previewed in the camera.
 
 Debug
 ~~~~~

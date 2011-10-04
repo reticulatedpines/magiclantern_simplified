@@ -3698,6 +3698,8 @@ shoot_task( void* unused )
 	{
 		msleep(10);
 		
+		if (gui_menu_shown()) continue; // be patient :)
+
 		lcd_release_step();
 		
 		if (iso_auto_flag)
@@ -3813,7 +3815,7 @@ shoot_task( void* unused )
 			center_lv_afframe_do();
 			center_lv_aff = 0;
 		}
-
+		
 		// avoid camera shake for HDR shots => force self timer
 		
 		if ((hdr_steps > 1 || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
@@ -3956,7 +3958,8 @@ shoot_task( void* unused )
 
 		if (silent_pic_mode && get_halfshutter_pressed())
 		{
-			if (hdr_steps == 1) silent_pic_take(1);
+			if (is_focus_stack_enabled()) focus_stack_run();
+			else if (hdr_steps == 1) silent_pic_take(1);
 			else 
 			{
 				NotifyBox(5000, "HDR silent picture...");
