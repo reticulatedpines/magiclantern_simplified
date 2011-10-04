@@ -300,7 +300,8 @@ void clear_lv_afframe()
 	if( !lv->vram )	return;
 	int xaf,yaf;
 	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
-	bmp_fill(0, MAX(xaf,100) - 100, MAX(yaf,100) - 100, 200, 200 );
+	//~ bmp_printf(FONT_LARGE, 200, 200, "af %d %d ", xaf, yaf);
+	bmp_fill(0, COERCE(xaf,100, 860) - 100, COERCE(yaf,100, 440) - 100, 200, 200 );
 	crop_set_dirty(5);
 }
 
