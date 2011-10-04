@@ -62,6 +62,10 @@ expsim_display( void * priv, int x, int y, int selected )
 
 int get_expsim_auto_value()
 {
+	// silent pic in matrix mode requires expsim on
+	extern int silent_pic_sweep_running;
+	if (silent_pic_sweep_running) return 1;
+	
 	if (expsim_setting == 2)
 	{
 		if ((lv_dispsize > 1 || should_draw_zoom_overlay()) && !get_halfshutter_pressed()) return 0;

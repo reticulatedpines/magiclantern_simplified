@@ -843,8 +843,8 @@ Functions for stills shooting (some of them work for movies, too).
   * Reduce flicker in post. You may try VirtualDub with MSU Deflicker plugin (free, works with Windows and Wine). See also `Timelapse workflow using free software tutorial <http://vimeo.com/groups/magiclantern/videos/19854305>`_.
   * The delay between two shots affects how ISO and shutter are chosen, according to 180 degree rule:
   
-    - For example, let's say you set "Take pics every 30 seconds"
-    - Shutter speed will be chosen between 90 and 270 degrees if possible. In our example, it will be chosen between 10 and 20 seconds if the light conditions allow it.
+    - For example, let's say you set "Take pics every 40 seconds"
+    - Shutter speed will be chosen between 90 and 270 degrees if possible. In our example, it will be chosen between 10 and 30 seconds if the light conditions allow it.
     - If it's not possible to get a correct exposure between 90 and 270 degrees, shutter will be chosen between 1/1000 (at ISO 100) and (*d* - 2) seconds (at ISO 6400), where *d* is the delay between two shots.
 
   Techincal notes:
@@ -927,7 +927,7 @@ Functions for stills shooting (some of them work for movies, too).
 .. _Silent Picture:
 .. _slit-scan pictures:
 
-**Silent Picture / Slit-scan Pic**
+**Silent Picture / Silent Pic HiRes / Slit-scan Pic**
 
   [[Video:550D/T2i Magic Lantern Silent Shooting Mode Tutorial|200px|right]]
   [[Image:SlitScan-Microscope.jpg|200px|right|link=http://imgur.com/H3tfw&kTLW1&GRiQEl&pVLZS&tlLF6&N7ZUr?full]]
@@ -939,6 +939,7 @@ Functions for stills shooting (some of them work for movies, too).
   Modes:
   
   * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie. `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
+  * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing the shutter count.
   * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
   
   Keys:
@@ -947,9 +948,10 @@ Functions for stills shooting (some of them work for movies, too).
   * ``PLAY/Q``: toggle between:
   
     * ``Single/Burst/FullHD`` in normal mode
+    * available matrix sizes (which give the image resolutions) in Hi-Res mode.
     * timing (number of clocks to skip after each line) in Slit-scan mode.
   
-  Silent picture setting is applied to `intervalometer`_ and `remote triggers`_ when used in LiveView mode.
+  Silent picture setting is applied to `intervalometer`_ and `remote triggers`_. It will also go to LiveView when you press the shutter half-way. Therefore, you should only enable this setting when you actually use it.
   
   Images are saved in ``DCIM/1xxCANON/`` after the following rules:
   

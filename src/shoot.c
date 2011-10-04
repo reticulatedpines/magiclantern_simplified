@@ -301,10 +301,10 @@ flash_and_no_flash_toggle( void * priv )
 }*/
 
                                                  //2  4  6  9 12 16 20 25
-//~ static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
-//~ static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
-//~ #define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
-//~ #define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
+static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
+static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
+#define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
+#define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
 
 static void 
 silent_pic_display( void * priv, int x, int y, int selected )
@@ -327,7 +327,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			silent_pic_fullhd ? "FullHD" : "Single"
 		);
 	}
-/*	else if (silent_pic_mode == 2)
+	else if (silent_pic_mode == 2)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -337,7 +337,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			SILENTPIC_NC
 		);
 		bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
-	}*/
+	}
 	/*else if (silent_pic_mode == 3)
 	{
 		int t = timer_values_longexp[mod(silent_pic_longexp_time_index, COUNT(timer_values_longexp))];
@@ -371,7 +371,7 @@ static void silent_pic_mode_increment()
 static void silent_pic_mode_toggle(void* priv)
 {
 	silent_pic_mode_increment();
-	if (silent_pic_mode == 2) silent_pic_mode_increment(); // skip hi-res
+	//~ if (silent_pic_mode == 2) silent_pic_mode_increment(); // skip hi-res
 	if (silent_pic_mode == 3) silent_pic_mode_increment(); // skip longx
 	//~ if (silent_pic_mode == 4) silent_pic_mode_increment(); // skip slit
 }
@@ -380,8 +380,8 @@ static void silent_pic_toggle(int sign)
 {
 	if (silent_pic_mode == 1)
 		silent_pic_submode = mod(silent_pic_submode + 1, 3);
-	/*else if (silent_pic_mode == 2) 
-		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));*/
+	else if (silent_pic_mode == 2) 
+		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));
 	/*else if (silent_pic_mode == 3)
 	{
 		silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + sign, COUNT(timer_values_longexp));
@@ -1189,14 +1189,15 @@ silent_pic_take_lv_dbg()
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
 
-/*static void
+int silent_pic_sweep_running = 0;
+static void
 silent_pic_take_sweep()
 {
 	if (recording) return;
 	if (!lv) return;
 	if ((af_mode & 0xF) != 3 )
 	{
-		bmp_printf(FONT_MED, 100, 100, "Please switch to Manual Focus."); 
+		NotifyBox(2000, "Please switch to Manual Focus."); 
 		return; 
 	}
 
@@ -1208,6 +1209,7 @@ silent_pic_take_sweep()
 	int afx0 = afframe[2];
 	int afy0 = afframe[3];
 
+	silent_pic_sweep_running = 1;
 	int zoom = 5;
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 	msleep(1000);
@@ -1256,10 +1258,11 @@ silent_pic_take_sweep()
 	afframe[2] = afx0;
 	afframe[3] = afy0;
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+	silent_pic_sweep_running = 0;
 
 	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 
-}*/
+}
 
 static void
 silent_pic_take_slitscan(int interactive)
@@ -1343,8 +1346,8 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 	
 	if (silent_pic_mode == 1) // normal
 		silent_pic_take_simple(interactive);
-	//~ else if (silent_pic_mode == 2) // hi-res
-		//~ silent_pic_take_sweep();
+	else if (silent_pic_mode == 2) // hi-res
+		silent_pic_take_sweep();
 	//~ else if (silent_pic_mode == 3) // long exposure
 		//~ silent_pic_take_longexp();
 	else if (silent_pic_mode == 4) // slit-scan
