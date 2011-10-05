@@ -1015,8 +1015,8 @@ static struct menu_entry about_menu[] = {
 void
 open_canon_menu()
 {
-	while(1)
-	{
+	//~ while(1)
+	//~ {
 		fake_simple_button(BGMT_MENU);
 		int i;
 		for (i = 0; i < 10; i++)
@@ -1024,7 +1024,7 @@ open_canon_menu()
 			if (MENU_MODE) return;
 			msleep(100);
 		}
-	}
+	//~ }
 }
 
 static void
@@ -1085,10 +1085,12 @@ menu_task( void* unused )
 			continue;
 		}
 		
+		if (recording && !lv) continue;
+		
 		menu_shown = 1;
 		
 		#ifndef CONFIG_50D
-		if (!lv && !MENU_MODE)
+		if (!lv && !MENU_MODE && !is_movie_mode())
 		{
 			open_canon_menu();
 		}
