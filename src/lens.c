@@ -758,6 +758,20 @@ void lens_wait_readytotakepic(int wait)
 	}
 }
 
+
+int mirror_locked = 0;
+void mlu_lock_mirror_if_needed()
+{
+	if (get_mlu() && !lv)
+	{
+		if (!mirror_locked)
+		{
+			mirror_locked = 1;
+			lens_take_picture(64); msleep(1000);
+		}
+	}
+}
+
 int
 lens_take_picture(
 	uint32_t			wait
@@ -765,6 +779,8 @@ lens_take_picture(
 {
 	lens_wait_readytotakepic(64);
 
+	mlu_lock_mirror_if_needed();
+	
 	//~ bmp_printf(FONT_LARGE, 50, 50, "Release [%d]", get_exposure_time_raw());
 	//~ msleep(3000);
 	call( "Release", 0 );
@@ -1153,6 +1169,7 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 	const uint32_t state = *(uint32_t*) buf;
 	lens_info.job_state = state;
 	DEBUG("job state: %d", state);
+	mirror_locked = 0;
 	return prop_cleanup( token, property );
 }
 

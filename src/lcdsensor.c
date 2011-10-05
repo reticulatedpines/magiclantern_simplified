@@ -87,7 +87,11 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 		if (gui_menu_shown()) goto end;
 		
 		if (lcd_release_running == 1 && off) goto end;
-		if (lcd_release_running == 2 && on && !get_mlu()) goto end;
+		if (lcd_release_running == 2 && on )
+		{
+			if (get_mlu()) schedule_mlu_lock();
+			goto end;
+		}
 		if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
 		if (lcd_release_running == 3 && wave_count < 5) goto end;
 

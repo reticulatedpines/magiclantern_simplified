@@ -216,7 +216,10 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	bulb_take_pic(3000);
+	//~ bulb_take_pic(3000);
+	call("Release");
+	msleep(2000);
+	set_shooting_mode(SHOOTMODE_P);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c

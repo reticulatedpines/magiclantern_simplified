@@ -2456,7 +2456,7 @@ bulb_take_pic(int duration)
 	assign_af_button_to_star_button();
 	msleep(100);
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
-	if (get_mlu() && !lv) { lens_take_picture(64); msleep(2000); } 
+	mlu_lock_mirror_if_needed();
 	//~ NotifyBox(3000, "BulbStart (%d)", duration);
 	SW1(1,50);
 	SW2(1,0);
@@ -3258,8 +3258,6 @@ static void take_a_pic()
 	}
 	else
 	{
-		if (get_mlu() && !lv) { lens_take_picture(64); msleep(500); } // raise mirror
-		
 		if (is_bulb_mode()) bulb_take_pic(bulb_shutter_value);
 		else lens_take_picture(64);
 	}
@@ -3437,6 +3435,9 @@ void hdr_shot(int skip0, int wait)
 int remote_shot_flag = 0;
 void schedule_remote_shot() { remote_shot_flag = 1; }
 
+int mlu_lock_flag = 0;
+void schedule_mlu_lock() { mlu_lock_flag = 1; }
+
 int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
 int is_movie_start_scheduled() { return movie_start_flag; }
@@ -3481,12 +3482,8 @@ void remote_shot(int wait)
 	}
 	if (!wait) return;
 	
-	msleep(200);
-	if (get_mlu() && !lv && lens_info.job_state < 10) return; // mirror was just locked, nothing more to wait
-	
-	while (lens_info.job_state >= 10) msleep(500);
-	
-	msleep(1000);
+	lens_wait_readytotakepic(64);
+	msleep(500);
 	while (gui_state != GUISTATE_IDLE) msleep(100);
 	msleep(500);
 	// restore zoom
@@ -3667,6 +3664,11 @@ shoot_task( void* unused )
 		{
 			remote_shot(1);
 			remote_shot_flag = 0;
+		}
+		if (mlu_lock_flag)
+		{
+			mlu_lock_mirror_if_needed();
+			mlu_lock_flag = 0;
 		}
 		if (movie_start_flag)
 		{
@@ -4029,7 +4031,7 @@ TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x4000 );
 
 void shoot_init()
 {
-	set_maindial_sem = create_named_semaphore(set_maindial_sem, 1);
+	set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 }
 
 INIT_FUNC("shoot", shoot_init);
