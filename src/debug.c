@@ -353,6 +353,23 @@ static void stress_test_task(void* unused)
 {
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
+	ensure_movie_mode();
+	msleep(1000);
+	for (int i = 0; i <= 5; i++)
+	{
+		NotifyBox(1000, "Pics while recording: %d", i);
+		movie_start();
+		msleep(1000);
+		lens_take_picture(64);
+		msleep(1000);
+		lens_take_picture(64);
+		msleep(1000);
+		lens_take_picture(64);
+		msleep(1000);
+		movie_end();
+		msleep(2000);
+	}
+
 	fake_simple_button(BGMT_PLAY); msleep(1000);
 	for (int i = 0; i < 100; i++)
 	{
@@ -624,7 +641,7 @@ static void stress_test_task(void* unused)
 	//~ xx_test2(0);
 }
 
-static void stress_test()
+void stress_test()
 {
 	gui_stop_menu();
 	task_create("stress_test", 0x1c, 0, stress_test_task, 0);
@@ -1588,7 +1605,7 @@ void iso_adj_task(void* unused)
 		{
 			iso_adj_flag = 0;
 			iso_adj(iso_adj_old, iso_adj_sign);
-			draw_ml_bottombar();
+			lens_display_set_dirty();
 		}
 	}
 }
