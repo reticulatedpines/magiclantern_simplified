@@ -3278,17 +3278,18 @@ static struct menu_entry expo_menus[] = {
 		.help = "Adjust saturation in current picture style."
 	},
 	{
+		.display	= sharpness_display,
+		.select		= sharpness_toggle_forward,
+		.select_reverse		= sharpness_toggle_reverse,
+		.help = "Adjust sharpness in current picture style."
+	},
+	{
 		.name = "Flash AEcomp",
 		.display	= flash_ae_display,
 		.select		= flash_ae_toggle_forward,
 		.select_reverse		= flash_ae_toggle_reverse,
 		.help = "Flash exposure compensation, from -5EV to +3EV."
 	},
-	/*{
-		.display	= sharpness_display,
-		.select		= sharpness_toggle_forward,
-		.select_reverse		= sharpness_toggle_reverse,
-	},*/
 };
 
 void hdr_create_script(int steps, int skip0, int focus_stack)
