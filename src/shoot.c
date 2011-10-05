@@ -1341,14 +1341,18 @@ silent_pic_take_slitscan(int interactive)
 	FIO_CloseFile(f);
 
 	NotifyBoxHide();
-	NotifyBox(2000, "Psst! Just took a slit-scan pic");
+	//~ NotifyBox(2000, "Psst! Just took a slit-scan pic");
 
 	if (!interactive) return;
+
+	PauseLiveView();
+	play_422(imgname);
 	// wait half-shutter press and clear the screen
 	while (!get_halfshutter_pressed()) msleep(100);
-	clrscr();
 	while (get_halfshutter_pressed()) msleep(100);
 	clrscr();
+	ResumeLiveView();
+	
 	#endif
 }
 
