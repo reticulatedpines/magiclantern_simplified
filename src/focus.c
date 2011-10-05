@@ -159,11 +159,12 @@ void focus_stack_ensure_preconditions()
 void
 focus_stack(
 	unsigned	count,
-	int			num_steps
+	int			num_steps,
+	int skip_first
 )
 {
 	NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
-	hdr_create_script(count, 0, 1);
+	hdr_create_script(count, skip_first, 1);
 	msleep(1000);
 	
 	int focus_moved_total = 0;
@@ -177,17 +178,13 @@ focus_stack(
 		
 		focus_stack_ensure_preconditions();
 		
-		assign_af_button_to_star_button();
-		//~ lens_take_picture( 64 );
-		
-		//~ NotifyBox(1000, "snap");
-		hdr_shot(0,1);
-		//~ schedule_remote_shot();
-		//~ extern int remote_shot_flag;
-		//~ while (remote_shot_flag) msleep(100);
-		
-		msleep(300);
-		restore_af_button_assignment();
+		if (i > 0 || !skip_first)
+		{
+			assign_af_button_to_star_button();
+			hdr_shot(0,1);
+			msleep(300);
+			restore_af_button_assignment();
+		}
 
 		if( count-1 == i )
 			break;
@@ -235,9 +232,9 @@ static int focus_rack_delta;
 
 int is_focus_stack_enabled() { return focus_stack_enabled && focus_task_delta; }
 
-void focus_stack_run()
+void focus_stack_run(int skip_first)
 {
-	focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture );
+	focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture, skip_first );
 }
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }

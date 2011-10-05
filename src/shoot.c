@@ -3877,7 +3877,7 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
 		{
-			if (is_focus_stack_enabled()) focus_stack_run();
+			if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
 			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
 		}
 
@@ -3982,7 +3982,7 @@ shoot_task( void* unused )
 		{
 			if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
 				continue;
-			if (is_focus_stack_enabled()) focus_stack_run();
+			if (is_focus_stack_enabled()) focus_stack_run(0); // shoot all frames
 			else if (hdr_steps == 1) silent_pic_take(1);
 			else 
 			{
