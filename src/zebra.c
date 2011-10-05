@@ -222,11 +222,6 @@ int get_global_draw_setting() // whatever is set in menu
 	return global_draw;
 }
 
-void set_globalf_draw(int g)
-{
-	global_draw = g;
-}
-
 /** Store the waveform data for each of the WAVEFORM_WIDTH bins with
  * 128 levels
  */

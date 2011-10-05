@@ -26,7 +26,6 @@ FILE* console_log_file = 0;
 void console_show() 
 { 
 	console_visible = 1;
-	set_global_draw(0);
 	FIO_RemoveFile(CARD_DRIVE "console.log");
 	console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
 	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
@@ -35,7 +34,6 @@ void console_hide()
 { 
 	console_visible = 0;
 	msleep(500);
-	set_global_draw(1);
 	clrscr();
 	FIO_CloseFile(console_log_file);
 	console_log_file = 0;
@@ -160,7 +158,6 @@ console_task( void )
 	{
 		if (console_visible && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
 		{
-			set_global_draw(0);
 			console_draw();
 		}
 		msleep(200);
