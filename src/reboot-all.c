@@ -106,23 +106,23 @@ void* RESTARTSTART = 0;
 
 static int guess_firmware_version()
 {
-	int s = compute_signature(ROMBASEADDR, SIG_LEN);
+	int s = compute_signature((int*)ROMBASEADDR, SIG_LEN);
 	switch(s)
 	{
 		case SIG_550D_109:
 			blob_start = &blob_start_550;
 			blob_end = &blob_end_550;
-			RESTARTSTART = RESTARTSTART_550;
+			RESTARTSTART = (void*)RESTARTSTART_550;
 			return 1;
 		case SIG_60D_110:
 			blob_start = &blob_start_60;
 			blob_end = &blob_end_60;
-			RESTARTSTART = RESTARTSTART_60;
+			RESTARTSTART = (void*)RESTARTSTART_60;
 			return 1;
 		case SIG_600D_101:
 			blob_start = &blob_start_600;
 			blob_end = &blob_end_600;
-			RESTARTSTART = RESTARTSTART_600;
+			RESTARTSTART = (void*)RESTARTSTART_600;
 			return 1;
 		default:
 			fail();

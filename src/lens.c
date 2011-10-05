@@ -203,6 +203,8 @@ int shutter_ms_to_raw(int shutter_ms)
 	return (int) roundf(152 - log2f(shutter_ms * 4) * 8);
 }
 
+void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
+
 void draw_ml_bottombar()
 {
 	struct lens_info *	info = &lens_info;
@@ -968,7 +970,7 @@ PROP_HANDLER( PROP_LENS_NAME )
 {
 	if( len > sizeof(lens_info.name) )
 		len = sizeof(lens_info.name);
-	memcpy( lens_info.name, buf, len );
+	memcpy( (char*)lens_info.name, buf, len );
 	return prop_cleanup( token, property );
 }
 

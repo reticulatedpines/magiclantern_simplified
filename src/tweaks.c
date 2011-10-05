@@ -11,6 +11,7 @@
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
+#include "math.h"
 
 #if defined(CONFIG_1100D)
 #include "disable-this-module.h"

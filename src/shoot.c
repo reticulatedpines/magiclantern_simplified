@@ -31,6 +31,7 @@
 #include "property.h"
 #include "lens.h"
 #include "gui.h"
+#include "math.h"
 
 #ifdef CONFIG_1100D
 #include "disable-this-module.h"
@@ -41,6 +42,10 @@ void movie_start();
 void movie_end();
 void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
+void intervalometer_stop();
+void bulb_ramping_showinfo();
+void get_out_of_play_mode();
+void wait_till_next_second();
 
 volatile int bulb_shutter_value = 0;
 
@@ -75,9 +80,9 @@ int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 70);
 
-static volatile int intervalometer_running = 0;
+static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
-static volatile int audio_release_running = 0;
+static int audio_release_running = 0;
 int motion_detect = 0;
 //int motion_detect_level = 8;
 static int drive_mode_bk = -1;
@@ -395,7 +400,7 @@ static void silent_pic_toggle_forward(void* priv)
 static void silent_pic_toggle_reverse(void* priv)
 { silent_pic_toggle(-1); }
 
-volatile int afframe[26];
+int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
 	memcpy(afframe, buf, 0x68);
 	return prop_cleanup( token, property );
@@ -778,7 +783,7 @@ static char* silent_pic_get_name()
 
 int ms100_clock = 0;
 static void
-ms100_clock_task( void )
+ms100_clock_task( void* unused )
 {
 	while(1)
 	{
@@ -905,7 +910,7 @@ void playback_compare_images_task(int dir)
 		dir = 1;
 	}
 	
-	void* aux_buf = YUV422_HD_BUFFER_2;
+	void* aux_buf = (void*)YUV422_HD_BUFFER_2;
 	void* current_buf;
 	int w = get_yuv422_vram()->width;
 	int h = get_yuv422_vram()->height;
@@ -922,14 +927,14 @@ void playback_compare_images_task(int dir)
 
 void playback_compare_images(int dir)
 {
-	task_create("playcompare_task", 0x1c, 0, playback_compare_images_task, dir);
+	task_create("playcompare_task", 0x1c, 0, playback_compare_images_task, (void*)dir);
 }
 
 void expfuse_preview_update_task(int dir)
 {
 	take_semaphore(set_maindial_sem, 0);
-	void* buf_acc = YUV422_HD_BUFFER_1;
-	void* buf_ws = YUV422_HD_BUFFER_2;
+	void* buf_acc = (void*)YUV422_HD_BUFFER_1;
+	void* buf_ws = (void*)YUV422_HD_BUFFER_2;
 	void* buf_lv = get_yuv422_vram()->vram;
 	int numpix = get_yuv422_vram()->width * get_yuv422_vram()->height;
 	if (!expfuse_running)
@@ -955,7 +960,7 @@ void expfuse_preview_update_task(int dir)
 
 void expfuse_preview_update(int dir)
 {
-	task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, dir);
+	task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, (void*)dir);
 }
 
 // that's extremely inefficient
@@ -1040,7 +1045,7 @@ void play_next_422_task(int dir)
 
 void play_next_422(int dir)
 {
-	task_create("422_task", 0x1c, 0, play_next_422_task, dir);
+	task_create("422_task", 0x1c, 0, play_next_422_task, (void*)dir);
 }
 
 
@@ -1256,7 +1261,7 @@ silent_pic_take_sweep()
 			prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 			//~ msleep(500);
 			msleep(silent_pic_sweepdelay);
-			int ans = FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
+			FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
 			//~ bmp_printf(FONT_MED, 20, 150, "=> %d", ans);
 			msleep(50);
 		}
@@ -2187,7 +2192,7 @@ void redraw_after_task(int msec)
 
 void redraw_after(int msec)
 {
-	task_create("redraw", 0x1d, 0, redraw_after_task, msec);
+	task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
 }
 
 PROP_HANDLER(PROP_MVR_REC_START)
@@ -2684,7 +2689,7 @@ static int bramp_hist_dirty = 0;
 
 static int seconds_clock = 0;
 static void
-seconds_clock_task( void )
+seconds_clock_task( void* unused )
 {
 	while(1)
 	{
@@ -2919,7 +2924,7 @@ calib_start:
 	bramp_hist_dirty = 1;
 	bramp_change_percentile(0); // show current selection;
 	
-	int play_buf = get_yuv422_vram()->vram;
+	void* play_buf = get_yuv422_vram()->vram;
 	while (PLAY_MODE && bramp_init_state == 1)
 	{
 		if (get_yuv422_vram()->vram != play_buf) // another image selected
@@ -3616,7 +3621,7 @@ static int intervalometer_next_shot_time = 0;
 static void
 shoot_task( void* unused )
 {
-	int i = 0;
+	//~ int i = 0;
 	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);

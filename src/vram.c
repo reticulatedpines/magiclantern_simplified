@@ -48,19 +48,19 @@ void* get_write_422_buf()
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
 		case YUV422_LV_BUFFER_1:
-			return YUV422_LV_BUFFER_1;
+			return (void*)YUV422_LV_BUFFER_1;
 		case YUV422_LV_BUFFER_2:
-			return YUV422_LV_BUFFER_2;
+			return (void*)YUV422_LV_BUFFER_2;
 		case YUV422_LV_BUFFER_3:
-			return YUV422_LV_BUFFER_3;
+			return (void*)YUV422_LV_BUFFER_3;
 	}
-	return YUV422_LV_BUFFER_1; // fall back to default
+	return (void*)YUV422_LV_BUFFER_1; // fall back to default
 }
 
 static int fastrefresh_direction = 0;
 
 void guess_fastrefresh_direction() {
-	static int old_pos = YUV422_LV_BUFFER_1;
+	static unsigned old_pos = YUV422_LV_BUFFER_1;
 	if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
 	if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
 	if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
@@ -74,24 +74,24 @@ void* get_fastrefresh_422_buf()
 		switch (YUV422_LV_BUFFER_DMA_ADDR)
 		{
 			case YUV422_LV_BUFFER_1:
-				return YUV422_LV_BUFFER_2;
+				return (void*)YUV422_LV_BUFFER_2;
 			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER_3;
+				return (void*)YUV422_LV_BUFFER_3;
 			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER_1;
+				return (void*)YUV422_LV_BUFFER_1;
 		}
-		return YUV422_LV_BUFFER_1; // fall back to default
+		return (void*)YUV422_LV_BUFFER_1; // fall back to default
 	} else {
 		switch (YUV422_LV_BUFFER_DMA_ADDR)
 		{
 			case YUV422_LV_BUFFER_1:
-				return YUV422_LV_BUFFER_3;
+				return (void*)YUV422_LV_BUFFER_3;
 			case YUV422_LV_BUFFER_2:
-				return YUV422_LV_BUFFER_1;
+				return (void*)YUV422_LV_BUFFER_1;
 			case YUV422_LV_BUFFER_3:
-				return YUV422_LV_BUFFER_2;
+				return (void*)YUV422_LV_BUFFER_2;
 		}
-		return YUV422_LV_BUFFER_1; // fall back to default
+		return (void*)YUV422_LV_BUFFER_1; // fall back to default
 
 	}
 }

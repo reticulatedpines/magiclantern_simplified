@@ -18,6 +18,17 @@
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused);
 
+void Beep();
+void NormalDisplay();
+void MirrorDisplay();
+void HijackFormatDialogBox_main();
+void config_menu_init();
+void display_on();
+void display_on_force();
+void display_off();
+void display_off_force();
+
+
 CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
 
 //////////////////////////////////////////////////////////
@@ -1705,7 +1716,7 @@ unsigned GetFileSize(char* filename)
 
 int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 {
-	unsigned size = GetFileSize(filename);
+	int size = GetFileSize(filename);
 	if (!size) return 0;
 
 	FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
@@ -1723,7 +1734,7 @@ struct tmp_file {
 };
 
 struct tmp_file * tmp_files = 0;
-const void* tmp_buffers[5] = {YUV422_HD_BUFFER_1, YUV422_HD_BUFFER_2, YUV422_LV_BUFFER_1, YUV422_LV_BUFFER_2, YUV422_LV_BUFFER_3};
+void* tmp_buffers[5] = {(void*)YUV422_HD_BUFFER_1, (void*)YUV422_HD_BUFFER_2, (void*)YUV422_LV_BUFFER_1, (void*)YUV422_LV_BUFFER_2, (void*)YUV422_LV_BUFFER_3};
 int tmp_file_index = 0;
 int tmp_buffer_index = 0;
 void* tmp_buffer_ptr = 0;
@@ -1742,7 +1753,7 @@ void TmpMem_AddFile(char* filename)
 	if (!tmp_files) return;
 
 	int filesize = GetFileSize(filename);
-	if (filesize == 0xFFFFFFFF) return;
+	if (filesize == -1) return;
 	if (filesize > TMP_MAX_BUF_SIZE) return;
 	if (tmp_buffer_index > 200) return;
 	if (tmp_buffer_ptr + filesize > tmp_buffers[tmp_buffer_index] + TMP_MAX_BUF_SIZE) tmp_buffer_index++;

@@ -254,7 +254,7 @@ void shutter_lock_step()
 {
 	if (is_movie_mode()) // no effect in photo mode
 	{
-		int shutter = lens_info.raw_shutter;
+		unsigned shutter = lens_info.raw_shutter;
 		if (shutter_lock_value == 0) shutter_lock_value = shutter; // make sure it's some valid value
 		if (!gui_menu_shown()) // lock shutter
  		{

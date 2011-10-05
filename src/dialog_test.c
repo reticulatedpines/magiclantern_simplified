@@ -13,7 +13,8 @@
 #include "lens.h"
 
 void * test_dialog = 0;
-static int template = 1;
+
+/*static int template = 1;
 static int curr_palette = 0;
 
 static void dlg_init();
@@ -76,7 +77,7 @@ void test_dialog_create() {
                 test_dialog = NULL;
         }
 
-        test_dialog = CreateDialogBox(0, 0, test_dialog_btn_handler, template, 0);
+        test_dialog = (void*)CreateDialogBox(0, 0, test_dialog_btn_handler, template, 0);
 
         bmp_printf(FONT_MED, 0, 0, "Creating dialog [%d] => %x", template, test_dialog);
 
@@ -91,9 +92,9 @@ void test_dialog_create() {
 
         bmp_printf(FONT_MED, 0, 0, "Drawing dialog %x...", test_dialog);
         dialog_redraw(test_dialog);
-}
+}*/
 
-int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, int arg4, int arg5, int arg6, int code) 
+int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
 {
     //~ bmp_printf(FONT_MED, 0, 0, "dlg=%x template=%x btn=%x %x %x %x\ncode=%x", dialog, template, event, arg3, arg4, arg5, arg6, code);
     switch (event) {
@@ -105,6 +106,8 @@ int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, i
         if (test_dialog) DeleteDialogBox(test_dialog);
         test_dialog = NULL;
         return dialog != arg4;  // ?!
+    default:
+        break;
     }
     return 1;
 }
@@ -120,7 +123,7 @@ void kill_flicker_do() {
                 test_dialog = NULL;
         }
 
-        test_dialog = CreateDialogBox(0, 0, test_minimal_handler, 1, 0);
+        test_dialog = (void*)CreateDialogBox(0, 0, test_minimal_handler, 1, 0);
         dialog_redraw(test_dialog);
         clrscr();
 }

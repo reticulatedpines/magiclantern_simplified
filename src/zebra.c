@@ -48,6 +48,11 @@ void histo_init();
 void do_disp_mode_change();
 void show_overlay();
 void transparent_overlay_from_play();
+void transparent_overlay_offset_clear(void* priv);
+void draw_histogram_and_waveform();
+void schedule_transparent_overlay();
+void lens_display_set_dirty();
+void defish_draw();
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -188,7 +193,7 @@ volatile int lcd_position = 0;
 volatile int display_dont_mirror_dirty;
 PROP_HANDLER(PROP_LCD_POSITION)
 {
-	if (lcd_position != buf[0]) display_dont_mirror_dirty = 1;
+	if (lcd_position != (int)buf[0]) display_dont_mirror_dirty = 1;
 	lcd_position = buf[0];
 	redraw_after(100);
 	return prop_cleanup( token, property );
@@ -1184,7 +1189,7 @@ draw_false_downsampled( void )
 		uint16_t* bp;  // through bmp vram
 		uint16_t* mp;  // through mirror
 		
-		for (lvp = ((uint8_t*)v_row)+1, bp = b_row, mp = m_row; lvp < v_row + 720/2 ; lvp += 4, bp++, mp++)
+		for (lvp = ((uint8_t*)v_row)+1, bp = b_row, mp = m_row; lvp < (uint8_t*)(v_row + 720/2) ; lvp += 4, bp++, mp++)
 		{
 			#define BP (*bp)
 			#define MP (*mp)
@@ -1223,7 +1228,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 		uint8_t* lvp; // that's a moving pointer through lv vram
 		uint16_t* bp;  // through bmp vram
 		
-		for (lvp = ((uint8_t*)v_row)+1, bp = b_row; lvp < v_row + 720/2 ; lvp += 4, bp++)
+		for (lvp = ((uint8_t*)v_row)+1, bp = b_row; lvp < (uint8_t*)(v_row + 720/2) ; lvp += 4, bp++)
 		{
 			int x = ((int)lvp) / 2;
 			int color = (y/2 - x/2) % 2 ? color1 | color1 << 8 : color2 | color2 << 8;
@@ -1709,7 +1714,7 @@ int get_spot_motion(int dx, int draw)
 	const uint16_t*		vr1 = (void*)YUV422_LV_BUFFER_DMA_ADDR;
 	const uint16_t*		vr2 = (void*)get_fastrefresh_422_buf();
 	uint8_t * const		bm = bmp_vram();
-	if (!bm) return;
+	if (!bm) return 0;
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
@@ -1917,7 +1922,7 @@ void transparent_overlay_center_or_toggle()
 {
 	if (transparent_overlay_offx || transparent_overlay_offy) // if off-center, just center it
 	{
-		transparent_overlay_offset_clear();
+		transparent_overlay_offset_clear(0);
 		transparent_overlay_offset(0, 0);
 	}
 	else // if centered, hide it or show it back
@@ -3543,7 +3548,7 @@ void defish_draw()
 	if (defish_lut == INVALID_PTR)
 	{
 		int size = 0;
-		defish_lut = read_entire_file(defish_lut_file, &size);
+		defish_lut = (uint8_t*)read_entire_file(defish_lut_file, &size);
 	}
 	if (defish_lut == NULL)
 	{
@@ -3557,7 +3562,7 @@ void defish_draw()
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
-	int y;
+	//~ int y;
 	for (i = 0; i < 240; i++)
 	{
 		for (j = 0; j < 360; j++)
@@ -3632,7 +3637,7 @@ void play_422(char* filename)
 	
 	unsigned size;
 	if( FIO_GetFileSize( filename, &size ) != 0 ) return;
-	uint32_t * buf = YUV422_HD_BUFFER_2;
+	uint32_t * buf = (uint32_t*)YUV422_HD_BUFFER_2;
 	struct vram_info * vram = get_yuv422_vram();
 
 	bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
@@ -3663,7 +3668,7 @@ void play_422(char* filename)
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;
 
-	yuv_resize(buf, w, h, vram->vram, vram->width, vram->height);
+	yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
 }
 
 /*char* get_next_422()
