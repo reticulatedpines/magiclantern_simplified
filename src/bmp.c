@@ -34,6 +34,8 @@
 
 #define USE_LUT
 
+#define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)
+
 static void
 _draw_char(
 	unsigned	fontspec,
@@ -310,7 +312,7 @@ bmp_fill(
 	const uint32_t start = x;
 	const uint32_t width = 960;
 	const uint32_t pitch = BMPPITCH;
-	const uint32_t height = 540;
+	const uint32_t height = BMP_HEIGHT;
 
 	// Convert to words and limit to the width of the LCD
 	if( start + w > width )
@@ -576,7 +578,7 @@ getfilesize_fail:
 
 void clrscr()
 {
-	BMP_LOCK( bmp_fill( 0x0, 0, 0, 960, 540 ); )
+	BMP_LOCK( bmp_fill( 0x0, 0, 0, 960, BMP_HEIGHT ); )
 }
 
 #if 0
@@ -591,7 +593,7 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 	if (!bvram) return;
 	
 	x0 = COERCE(x0, 0, 960 - (int)bmp->width);
-	y0 = COERCE(y0, 0, 540 - (int)bmp->height);
+	y0 = COERCE(y0, 0, BMP_HEIGHT - (int)bmp->height);
 	if (x0 < 0) return;
 	if (x0 + bmp->width > 960) return;
 	if (y0 < 0) return;
@@ -682,7 +684,7 @@ void bmp_putpixel(int x, int y, uint8_t color)
 	if (!bvram) return;
 	int bmppitch = BMPPITCH;
 	x = COERCE(x, 0, 960);
-	y = COERCE(y, 0, 540);
+	y = COERCE(y, 0, BMP_HEIGHT);
 	uint8_t * const b_row = bvram + y * bmppitch;
 	b_row[x] = color;
 }
@@ -693,7 +695,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 	if (!bvram) return;
 	
 	int x, y;
-	#define P(X,Y) bvram[COERCE(X, 0, 960) + COERCE(Y, 0, 540) * BMPPITCH]
+	#define P(X,Y) bvram[COERCE(X, 0, 960) + COERCE(Y, 0, BMP_HEIGHT) * BMPPITCH]
 	for (x = x0; x <= x0 + w; x++)
 		P(x, y0) = P(x, y0+h) = color;
 	for (y = y0; y <= y0 + h; y++)
@@ -764,8 +766,8 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 		for( ys = y0 + ymax - 1 ; ys >= y0; ys-- )
 		{
 			y = (ys-y0)*bmp->height/ymax;
-			uint8_t * const b_row = bvram + COERCE(ys, 0, 540) * bmppitch;
-			uint8_t * const m_row = (uint8_t*)( mirror + COERCE(y + y0, 0, 540) * bmppitch );
+			uint8_t * const b_row = bvram + COERCE(ys, 0, BMP_HEIGHT) * bmppitch;
+			uint8_t * const m_row = (uint8_t*)( mirror + COERCE(y + y0, 0, BMP_HEIGHT) * bmppitch );
 			while (y != bmp_y_pos) {
 				// search for the next line
 				if (bmp_line[0]!=0) { bmp_line += 2; } else
