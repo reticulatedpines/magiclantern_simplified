@@ -456,7 +456,7 @@ play_set_wheel_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"SET+MainDial(PLAY): %s", 
-		play_set_wheel_action == 0 ? "Play 422" :
+		play_set_wheel_action == 0 ? "422 Preview" :
 		play_set_wheel_action == 1 ? "ExposureFusion" : 
 		play_set_wheel_action == 2 ? "CompareImages" : 
 		play_set_wheel_action == 3 ? "TimelapsePlay" : "err"
@@ -968,6 +968,21 @@ struct menu_entry tweak_menus[] = {
 
 struct menu_entry play_menus[] = {
 	{
+		.name = "SET+MainDial (PLAY)",
+		.priv = &play_set_wheel_action, 
+		.select = menu_quaternary_toggle, 
+		.select_reverse = menu_quaternary_toggle_reverse,
+		.display = play_set_wheel_display,
+		.help = "What to do when you hold SET and turn MainDial (Wheel)"
+	},
+	{
+		.name = "Cropmarks (PLAY)",
+		.priv = &cropmarks_play, 
+		.select = menu_binary_toggle, 
+		.display = cropmarks_play_display,
+		.help = "Show cropmarks in PLAY mode"
+	},
+	{
 		.name = "After taking a photo",
 		.priv = &quick_review_allow_zoom, 
 		.select = menu_binary_toggle, 
@@ -980,21 +995,6 @@ struct menu_entry play_menus[] = {
 		.select = menu_binary_toggle, 
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)"
-	},
-	{
-		.name = "Cropmarks (PLAY)",
-		.priv = &cropmarks_play, 
-		.select = menu_binary_toggle, 
-		.display = cropmarks_play_display,
-		.help = "Show cropmarks in PLAY mode"
-	},
-	{
-		.name = "SET+MainDial (PLAY)",
-		.priv = &play_set_wheel_action, 
-		.select = menu_quaternary_toggle, 
-		.select_reverse = menu_quaternary_toggle_reverse,
-		.display = play_set_wheel_display,
-		.help = "What to do when you hold SET and turn MainDial (Wheel)"
 	},
 };
 
