@@ -365,6 +365,8 @@ static void stress_test_task(void* unused)
 		lens_take_picture(64);
 		msleep(1000);
 		lens_take_picture(64);
+		while (lens_info.job_state) msleep(100);
+		while (!lv) msleep(100);
 		msleep(1000);
 		movie_end();
 		msleep(2000);
