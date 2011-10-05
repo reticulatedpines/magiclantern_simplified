@@ -2935,82 +2935,6 @@ calib_start:
 	bramp_init_done = 1; // OK :)
 	set_shooting_mode(SHOOTMODE_M);
 	msleep(1000);
-	
-	//~ intervalometer_stop();
-
-	/*
-	lens_set_iso(400);
-	bulb_shutter_value = 1000;
-	bulb_take_pic(bulb_shutter_value);
-	bramp_measured_level = measure_brightness_level(1000);
-
-	while (bramp_measured_level < bramp_reference_level)
-	{
-		bulb_shutter_value = bulb_shutter_value*2;
-		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
-		bulb_take_pic(bulb_shutter_value);
-		
-		int prev_level = bramp_measured_level;
-		bramp_measured_level = measure_brightness_level(1000);
-		//~ if (bramp_measured_level == prev_level)
-		//~ {
-			//~ NotifyBox(5000, "Could not change exposure"); msleep(5000);
-			//~ intervalometer_stop(); return;
-		//~ }
-		if (!intervalometer_running) return;
-	}
-
-	while (bramp_measured_level > bramp_reference_level)
-	{
-		bulb_shutter_value = bulb_shutter_value/2;
-		//~ if (bulb_shutter_value == BULB_MIN_EXPOSURE*2) break; // can't go lower than that
-		
-		bulb_ramping_adjust_iso_180_rule_without_changing_exposure(1);
-		bulb_take_pic(bulb_shutter_value);
-		
-		int prev_level = bramp_measured_level;
-		bramp_measured_level = measure_brightness_level(1000);
-		if (bulb_shutter_value == 0)
-		{
-			NotifyBox(5000, "Image is overexposed"); msleep(5000);
-			intervalometer_stop(); return;
-		}
-		//~ if (bramp_measured_level == prev_level)
-		//~ {
-			//~ NotifyBox(5000, "Could not change exposure"); msleep(5000);
-			//~ intervalometer_stop(); return;
-		//~ }
-	}
-
-
-	NotifyBox(10000, "Level/EV ratio..."); msleep(1000);
-
-	int level0 = measure_brightness_level(1000);
-
-	int bs0 = bulb_shutter_value; 
-	
-	bulb_shutter_value = bs0 * 2;
-	bulb_take_pic(bulb_shutter_value);
-	int level_plus1ev = measure_brightness_level(1000);
-
-	bulb_shutter_value = bs0 / 2;
-	bulb_take_pic(bulb_shutter_value);
-	int level_minus1ev = measure_brightness_level(1000);
-
-	int bramp_level_ev_ratio_plus = level_plus1ev - level0;
-	int bramp_level_ev_ratio_minus = level0 - level_minus1ev;
-	bramp_level_ev_ratio = COERCE((bramp_level_ev_ratio_plus + bramp_level_ev_ratio_minus)/2, 10, 50);
-
-	if (bramp_level_ev_ratio == 0)
-	{
-		NotifyBox(5000, "Calibration error");
-		bulb_ramping_showinfo();
-		msleep(5000);
-		intervalometer_stop();
-		return;
-	}
-	bramp_init_done = 1;
-	*/
 }
 
 static void compute_exposure_for_next_shot()
@@ -3371,20 +3295,23 @@ static void hdr_shutter_release(int ev_x8)
 		int rs = get_exposure_time_raw();
 		int rc = rs - ev_x8;
 
+		int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
+		int m0r = shooting_mode;
+
 		// then choose the best option (bulb for long exposures, regular for short exposures)
 		if (msc >= BULB_MIN_EXPOSURE)
 		{
-			int m = shooting_mode;
 			bulb_take_pic(msc);
-			set_shooting_mode(m);
 		}
 		else
 		{
-			int s0r = lens_info.raw_shutter; // just for restoring settings back
 			lens_set_rawshutter(rc);
 			take_a_pic();
-			lens_set_rawshutter(s0r);
 		}
+
+		// restore settings back
+		set_shooting_mode(m0r);
+		lens_set_rawshutter(s0r);
 	}
 	msleep(100);
 	lens_wait_readytotakepic(64);
@@ -3395,6 +3322,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 {
 	//~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
 	hdr_create_script(steps, skip0, 0);
+	//~ NotifyBox(2000, "HDR script created"); msleep(2000);
 	int i;
 	
 	for( i = -steps/2; i <= steps/2; i ++  )
@@ -3485,8 +3413,7 @@ void hdr_shot(int skip0, int wait)
 	NotifyBoxHide();
 	if (hdr_steps > 1)
 	{
-		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8);
-		//~ msleep(1000);
+		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
 		int drive_mode_bak = 0;
 		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
 		{
@@ -3878,8 +3805,11 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
 		{
+			//~ lens_wait_readytotakepic(64);
+			//~ if (beep_enabled) beep();
 			if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
 			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
+			//~ if (beep_enabled) beep();
 		}
 
 		// toggle flash on/off for next picture
@@ -4094,7 +4024,7 @@ shoot_task( void* unused )
 	}
 }
 
-TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x4000 );
 
 void shoot_init()
 {
