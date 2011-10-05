@@ -129,11 +129,35 @@ int handle_af_patterns(struct event * event)
 	extern int af_patterns;
 	if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
 	{
-		if (event->param == BGMT_PRESS_LEFT)   { afp_left(); return 0; }
-		if (event->param == BGMT_PRESS_RIGHT)  { afp_right(); return 0; }
-		if (event->param == BGMT_PRESS_UP)     { afp_top(); return 0; }
-		if (event->param == BGMT_PRESS_DOWN)   { afp_bottom(); return 0; }
-		if (event->param == BGMT_PRESS_SET)    { afp_center(); return 0; }
+		switch (event->param)
+		{
+		case BGMT_PRESS_LEFT:
+			afp_left();
+			return 0;
+		case BGMT_PRESS_RIGHT:
+			afp_right();
+			return 0;
+		case BGMT_PRESS_UP:
+			afp_top();
+			return 0;
+		case BGMT_PRESS_DOWN:
+			afp_bottom();
+			return 0;
+		case BGMT_PRESS_SET:
+			#ifdef CONFIG_60D
+			if (get_cfn_function_for_set_button()) return 1; // do that custom function instead
+			#endif
+			afp_center();
+			return 0;
+		#ifdef BGMT_PRESS_UP_LEFT
+		case BGMT_PRESS_UP_LEFT:
+		case BGMT_PRESS_UP_RIGHT:
+		case BGMT_PRESS_DOWN_LEFT:
+		case BGMT_PRESS_DOWN_RIGHT:
+			afp_center();
+			return 0;
+		#endif
+		}
 	}
 	return 1;
 }

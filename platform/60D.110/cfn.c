@@ -89,3 +89,8 @@ void restore_af_button_assignment()
 	af_button_assignment = -1;
 	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
 }
+
+int get_cfn_function_for_set_button()
+{
+	return cfn4[0] & 0x10000;
+}
