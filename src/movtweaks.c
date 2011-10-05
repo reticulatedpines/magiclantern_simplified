@@ -245,7 +245,7 @@ shutter_lock_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Lock ShutterTv: %s",
+		"Lock Shutter  : %s",
 		shutter_lock ? "ON" : "OFF"
 	);
 }
@@ -552,14 +552,14 @@ static struct menu_entry mov_menus[] = {
 		.select_reverse = menu_ternary_toggle_reverse,
 		.help = "Change the button used for recording. Hint: wired remote."
 	},
+	#endif
 	{
-		.name = "Lock ShutterTv",
+		.name = "Lock Shutter",
 		.priv = &shutter_lock,
 		.display = shutter_lock_print, 
 		.select = menu_binary_toggle,
 		.help = "Lock shutter value in movie mode (change from Expo only)."
 	},
-	#endif
 	{
 		.name = "WB workaround",
 		.priv = &white_balance_workaround,
