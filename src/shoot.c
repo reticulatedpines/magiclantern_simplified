@@ -2433,6 +2433,7 @@ int is_bulb_mode()
 
 void ensure_bulb_mode()
 {
+	lens_wait_readytotakepic(64);
 	#ifdef CONFIG_60D
 	int a = lens_info.raw_aperture;
 	set_shooting_mode(SHOOTMODE_BULB);
@@ -3299,7 +3300,7 @@ static void hdr_shutter_release(int ev_x8)
 		int m0r = shooting_mode;
 
 		// then choose the best option (bulb for long exposures, regular for short exposures)
-		if (msc >= BULB_MIN_EXPOSURE)
+		if (msc >= 1000)
 		{
 			bulb_take_pic(msc);
 		}

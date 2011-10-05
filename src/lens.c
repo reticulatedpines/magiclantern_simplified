@@ -749,10 +749,11 @@ lens_focus(
 
 void lens_wait_readytotakepic(int wait)
 {
+	extern int burst_count;
 	int i;
 	for (i = 0; i < wait * 10; i++)
 	{
-		if (lens_info.job_state <= 0xA) break;
+		if (lens_info.job_state <= 0xA && burst_count > 0) break;
 		msleep(100);
 	}
 }
