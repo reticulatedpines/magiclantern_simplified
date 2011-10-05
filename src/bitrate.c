@@ -190,11 +190,29 @@ void free_space_show()
 
 	bmp_printf(
 		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-		timecode_x + 7 * fontspec_font(timecode_font)->width,
+		timecode_x + 7 * font_med.width,
 		timecode_y,
 		"%d.%dGB",
 		fsg,
 		fsgf
+	);
+}
+
+void fps_show()
+{
+	if (!get_global_draw()) return;
+	if (gui_menu_shown()) return;
+	if (!is_movie_mode() || recording) return;
+	
+	bmp_printf(
+		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+		720 - 6 * font_med.width,
+		timecode_y + font_med.height,
+		"%d%s%s", 
+		video_mode_fps, 
+		video_mode_crop ? "+" : "p",
+		video_mode_resolution == 0 ? "FHD" : // not enough space to write 1080
+		video_mode_resolution == 1 ? "720" : "VGA"
 	);
 }
 
@@ -203,7 +221,7 @@ void free_space_show_photomode()
 	int fsg = free_space_32k >> 15;
 	int fsgr = free_space_32k - (fsg << 15);
 	int fsgf = (fsgr * 10) >> 15;
-	int x = timecode_x + 2 * fontspec_font(timecode_font)->width;
+	int x = timecode_x + 2 * font_med.width;
 	int y = 452;
 	bmp_printf(
 		FONT(FONT_LARGE, COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
@@ -243,7 +261,7 @@ void time_indicator_show()
 	{
 		bmp_printf(
 			time_4gb < timecode_warning ? timecode_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-			timecode_x + 5 * fontspec_font(timecode_font)->width,
+			timecode_x + 5 * font_med.width,
 			timecode_y,
 			"%4d:%02d",
 			dispvalue / 60,
@@ -253,7 +271,7 @@ void time_indicator_show()
 	if (bitrate_indicator)
 	{
 		bmp_printf( FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
-			timecode_x + 9 * fontspec_font(timecode_font)->width,
+			timecode_x + 9 * font_med.width,
 			timecode_y + 38,
 			"A%3d",
 			movie_bytes_written_32k * 32 * 80 / 1024 / movie_elapsed_time_01s);
@@ -261,13 +279,13 @@ void time_indicator_show()
 		int fnts = FONT(FONT_SMALL, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
 		int fntm = FONT(FONT_MED, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
 		bmp_printf(fntm,
-			timecode_x + 5 * fontspec_font(timecode_font)->width,
+			timecode_x + 5 * font_med.width,
 			timecode_y + 18,
 			"%4d",
 			measured_bitrate
 		);
 		bmp_printf(fnts,
-			timecode_x + 11 * fontspec_font(timecode_font)->width + 5,
+			timecode_x + 11 * font_med.width + 5,
 			timecode_y + 25,
 			"%s%d ",
 			mvr_config.actual_qscale_maybe < 0 ? "-" : "+",
@@ -276,7 +294,7 @@ void time_indicator_show()
 	}
 	if (flicker_being_killed()) // this also kills recording dot
 	{
-		maru(timecode_x + 9 * fontspec_font(timecode_font)->width, timecode_y + 12, COLOR_RED);
+		maru(timecode_x + 9 * font_med.width, timecode_y + 12, COLOR_RED);
 	}
 }
 
@@ -429,7 +447,10 @@ bitrate_task( void* unused )
 				bitrate_set();
 		}
 		if (zebra_should_run()) 
-			BMP_LOCK( free_space_show(); )
+			BMP_LOCK(
+				free_space_show(); 
+				fps_show();
+			)
 	}
 }
 
