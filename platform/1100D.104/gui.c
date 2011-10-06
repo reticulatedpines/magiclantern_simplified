@@ -58,7 +58,6 @@ static int handle_buttons(struct event * event)
 	//~ if (handle_ml_menu_erase(event) == 0) return 0;
 	if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
 	if (handle_rack_focus(event) == 0) return 0;
-	if (handle_follow_focus(event) == 0) return 0;
 	if (handle_intervalometer(event) == 0) return 0;
 	if (handle_zoom_overlay(event) == 0) return 0;
 	if (handle_livev_playback(event, BGMT_PRESS_DISP) == 0) return 0;
@@ -67,6 +66,7 @@ static int handle_buttons(struct event * event)
 	if (handle_set_wheel_play(event) == 0) return 0;
 	if (handle_flash_button_shortcuts(event) == 0) return 0;
 	if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
+	if (handle_follow_focus(event) == 0) return 0;
 	if (handle_movie_mode_shortcut(event) == 0) return 0;
 	if (handle_quick_access_menu_items(event) == 0) return 0;
 	if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT) return handle_keep_ml_after_format_toggle();
