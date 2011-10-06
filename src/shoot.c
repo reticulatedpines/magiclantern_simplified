@@ -3483,7 +3483,7 @@ void remote_shot(int wait)
 	}
 	else if (is_focus_stack_enabled())
 	{
-		focus_stack_run();
+		focus_stack_run(0);
 	}
 	else
 	{
@@ -3644,11 +3644,7 @@ shoot_task( void* unused )
 	while(1)
 	{
 		msleep(10);
-		
-		if (gui_menu_shown()) continue; // be patient :)
 
-		lcd_release_step();
-		
 		if (iso_auto_flag)
 		{
 			iso_auto_run();
@@ -3669,6 +3665,11 @@ shoot_task( void* unused )
 			wbs_gm_auto_run();
 			wbs_gm_auto_flag = 0;
 		}
+		
+		if (gui_menu_shown()) continue; // be patient :)
+
+		lcd_release_step();
+		
 		if (remote_shot_flag)
 		{
 			remote_shot(1);
