@@ -30,9 +30,11 @@ dofp_display( void * priv, int x, int y, int selected )
 	);
 }
 
+int dofp_value = 0;
 static void
 dofp_set(int value)
 {
+	dofp_value = value;
 	prop_request_change(PROP_DOF_PREVIEW_MAYBE, &value, 2);
 }
 
@@ -40,6 +42,12 @@ static void
 dofp_lock(void* priv)
 {
 	dofp_set(1);
+}
+
+PROP_HANDLER(PROP_LAST_JOB_STATE)
+{
+	if (dofp_value) dofp_set(0);
+	return prop_cleanup(token, property);
 }
 
 static void 
