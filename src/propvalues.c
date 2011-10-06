@@ -17,7 +17,6 @@ volatile PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
-volatile PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 volatile PROP_INT(PROP_ALO, alo);
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
@@ -33,6 +32,13 @@ volatile PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
 volatile PROP_INT(PROP_BEEP, beep_enabled);
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
+
+volatile int dofpreview;
+PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
+{
+	dofpreview = buf[0] & 0xFFFF;
+	return prop_cleanup(token, property);
+}
 
 volatile int lv;
 

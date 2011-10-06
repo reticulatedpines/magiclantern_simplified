@@ -17,6 +17,70 @@
 #include "disable-this-module.h"
 #endif
 
+CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
+
+static void
+dofp_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"DOF Preview (photos): %s",
+		dofpreview_sticky  ? "Sticky" : "Normal"
+	);
+}
+
+static void
+dofp_set(int value)
+{
+	prop_request_change(PROP_DOF_PREVIEW_MAYBE, &value, 2);
+}
+
+static void 
+dofp_lock(void* priv)
+{
+	dofp_set(1);
+}
+
+static void 
+dofp_update()
+{
+	static int state = 0;
+	// 0: allow 0->1, disallow 1->0 (first DOF press)
+	// 1: allow everything => reset things (second DOF presss)
+	
+	static int old_value = 0;
+	
+	//~ bmp_printf(FONT_MED, 0, 0, "DOFp: btn=%d old=%d state=%d hs=%d ", dofpreview, old_value, state, HALFSHUTTER_PRESSED);
+	
+	if (dofpreview_sticky == 1)
+	{
+		if (dofpreview) bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF");
+		else if (old_value) redraw();
+		
+		if (dofpreview != old_value) // transition
+		{
+			if (state == 0)
+			{
+				if (old_value && !dofpreview)
+				{
+					//~ beep();
+					dofp_set(1);
+					msleep(100);
+					state = 1;
+				}
+			}
+			else
+			{
+				if (dofpreview == 0) state = 0;
+				//~ beep();
+			}
+		}
+		old_value = dofpreview;
+	}
+}
+
+
 // ExpSim
 //**********************************************************************
 CONFIG_INT( "expsim", expsim_setting, 2);
@@ -545,6 +609,8 @@ tweak_task( void* unused)
 		}
 		
 		expsim_update();
+		
+		dofp_update();
 
 		#ifndef CONFIG_50D
 		if (af_frame_autohide && afframe_countdown && liveview_display_idle())
@@ -868,6 +934,14 @@ struct menu_entry tweak_menus[] = {
 		.select_reverse = expsim_toggle_reverse,
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av)."
+	},
+	{
+		.name = "DOF Preview", 
+		.priv = &dofpreview_sticky, 
+		.select = menu_binary_toggle, 
+		.select_auto = dofp_lock,
+		.display = dofp_display,
+		.help = "Sticky = click DOF to toggle. Or, press [Q] to lock now."
 	},
 	/*{
 		.name = "Electric Shutter",

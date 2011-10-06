@@ -227,10 +227,8 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	//~ bulb_take_pic(3000);
-	call("Release");
-	msleep(2000);
-	set_shooting_mode(SHOOTMODE_P);
+	int x = 1;
+	prop_request_change(PROP_DOF_PREVIEW_MAYBE, &x, 2);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -932,6 +930,7 @@ int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
 
+
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -958,7 +957,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
-			//~ bmp_printf(FONT_MED, 0, 50, "%x %x %x", YUV422_HD_BUFFER_DMA_ADDR, get_422_hd_idle_buf(), IS_HD_BUFFER(YUV422_HD_BUFFER_DMA_ADDR));
 			//~ void* x = get_lvae_info();
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
