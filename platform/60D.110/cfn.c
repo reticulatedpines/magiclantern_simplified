@@ -67,27 +67,36 @@ int get_mlu()
 int af_button_assignment = -1;
 void assign_af_button_to_halfshutter()
 {
+	msleep(10);
+	lens_wait_readytotakepic();
 	af_button_assignment = cfn4[0] & 0xF00;
 	cfn4[0] &= ~0xF00;
 	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
+	msleep(10);
 }
 
 // for stack focus
 void assign_af_button_to_star_button()
 {
+	msleep(10);
+	lens_wait_readytotakepic();
 	af_button_assignment = cfn4[0] & 0xF00;
 	cfn4[0] &= ~0xF00;
 	cfn4[0] |= 0x400;
 	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
+	msleep(10);
 }
 
 void restore_af_button_assignment()
 {
+	msleep(10);
+	lens_wait_readytotakepic();
 	if (af_button_assignment == -1) return;
 	cfn4[0] &= ~0xF00;
 	cfn4[0] |= af_button_assignment;
 	af_button_assignment = -1;
 	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
+	msleep(10);
 }
 
 int get_cfn_function_for_set_button()

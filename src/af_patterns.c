@@ -51,7 +51,7 @@ void afp_show_in_viewfinder()
 {
 	card_led_on();
 	#if defined(CONFIG_60D) || defined(CONFIG_50D)
-	int delay = 50;
+	int delay = 100;
 	#else
 	int delay = 0;
 	#endif
