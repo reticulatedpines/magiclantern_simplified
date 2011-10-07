@@ -1940,6 +1940,10 @@ int handle_buttons_being_held(struct event * event)
 		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
 		return !BGMT_PRESS_FLASH_MOVIE;
 	}
+	if (recording == 1 || event->param == BGMT_LV) // workaround for issue 688
+	{
+		flash_movie_pressed = 0;
+	}
 	return 1;
 }
 
