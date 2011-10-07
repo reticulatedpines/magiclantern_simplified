@@ -329,6 +329,19 @@ static void playicon(int x, int y)
 	}
 }
 
+static int playicon_square(int x, int y, int color)
+{
+	bmp_draw_rect(color,x+1,y+4,38,32);
+	bmp_draw_rect(color,x+2,y+5,36,30);
+	int i;
+	for (i = 12; i < 40-12; i++)
+	{
+		draw_line(x + 10, y + i, x + 30, y + 20, color);
+		draw_line(x + 10, y + i, x + 30, y + 20, color);
+	}
+	return 40;
+}
+
 // By default, icon type is MNI_BOOL(*(int*)priv)
 // To override, call menu_draw_icon from the display functions
 
@@ -423,8 +436,8 @@ menus_display(
 				MENU_NAV_HELP_STRING
 		);
 
-	bmp_fill(40, orig_x, y, 720, 40);
-	bmp_fill(70, orig_x, y+40, 720, 1);
+	bmp_fill(40, orig_x, y, 720, 42);
+	bmp_fill(70, orig_x, y+42, 720, 1);
 	for( ; menu ; menu = menu->next )
 	{
 		int fg = menu->selected ? COLOR_WHITE : 70;
@@ -436,19 +449,22 @@ menus_display(
 		);
 		if (!show_only_selected)
 		{
+			int w = fontspec_font( fontspec )->width * 6 + 10;
+			int h = fontspec_font( fontspec )->height;
+			int icon_w = 0;
 			if (menu->icon)
 			{
 				bmp_fill(bg, x, y, 200, 40);
-				bfnt_draw_char(menu->icon, x, y, fg, bg);
-				x += 49;
+				if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
+				else icon_w = bfnt_draw_char(menu->icon, x, y, fg, bg);
 			}
 			if (!menu->icon || menu->selected)
 			{
-				int w = fontspec_font( fontspec )->width * 6 + 10;
-				int h = fontspec_font( fontspec )->height;
-				bmp_printf( fontspec, x+5, y + (40 - h)/2, "%6s", menu->name );
+				bfnt_puts(menu->name, x + icon_w + 5, y, fg, bg);
+				//~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
 				x += w;
 			}
+			x += 49;
 			//~ if (menu->selected)
 			//~ {
 				//~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
@@ -909,7 +925,7 @@ menu_init( void )
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Tweaks", ICON_SMILE );
-	menu_find_by_name( "Play", ICON_MONITOR );
+	menu_find_by_name( "Play", ICON_ML_PLAY );
 	menu_find_by_name( "Config", ICON_CF );
 	menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
 	menu_find_by_name( "Power", ICON_P_SQUARE );

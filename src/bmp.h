@@ -301,3 +301,5 @@ extern void* gmt_lock;
 #define ICON_VIDEOCAM 0x9b9aee
 #define ICON_FLASH_A 0xa29aee
 #define ICON_FLASH_B 0xa59aee
+
+#define ICON_ML_PLAY -1
