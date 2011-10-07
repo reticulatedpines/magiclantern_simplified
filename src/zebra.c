@@ -2443,16 +2443,18 @@ int handle_zoom_overlay(struct event * event)
 	}
 	
 	// move AF frame when recording
-	if (recording && get_zoom_overlay_mode())
+	if (recording && get_zoom_overlay_mode() && liveview_display_idle())
 	{
 		if (event->param == BGMT_PRESS_LEFT)
-			move_lv_afframe(-200, 0);
+			{ move_lv_afframe(-200, 0); return 0; }
 		if (event->param == BGMT_PRESS_RIGHT)
-			move_lv_afframe(200, 0);
+			{ move_lv_afframe(200, 0); return 0; }
 		if (event->param == BGMT_PRESS_UP)
-			move_lv_afframe(0, -200);
+			{ move_lv_afframe(0, -200); return 0; }
 		if (event->param == BGMT_PRESS_DOWN)
-			move_lv_afframe(0, 200);
+			{ move_lv_afframe(0, 200); return 0; }
+		if (event->param == BGMT_PRESS_SET)
+			{ center_lv_afframe(); return 0; }
 	}
 
 	return 1;
@@ -2988,7 +2990,7 @@ clearscreen_loop:
 		}*/
 
 		// clear overlays on shutter halfpress
-		if (clearscreen == 1 && get_halfshutter_pressed())
+		if (clearscreen == 1 && get_halfshutter_pressed() && !gui_menu_shown())
 		{
 			BMP_LOCK( clrscr_mirror(); )
 			int i;
