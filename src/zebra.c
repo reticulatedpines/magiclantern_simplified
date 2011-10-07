@@ -2784,12 +2784,12 @@ int idle_countdown_display_dim = 50;
 int idle_countdown_display_off = 50;
 int idle_countdown_globaldraw = 50;
 int idle_countdown_clrscr = 50;
-int idle_countdown_killflicker = 10;
+int idle_countdown_killflicker = 5;
 int idle_countdown_display_dim_prev = 50;
 int idle_countdown_display_off_prev = 50;
 int idle_countdown_globaldraw_prev = 50;
 int idle_countdown_clrscr_prev = 50;
-int idle_countdown_killflicker_prev = 10;
+int idle_countdown_killflicker_prev = 5;
 
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
@@ -2807,7 +2807,11 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 
 	// those are not for powersaving
 	idle_countdown_clrscr = 30;
-	idle_countdown_killflicker = 10;
+	
+	if (reason == -10 || reason == -11) // focus event (todo: should define constants for those)
+		return;
+	
+	idle_countdown_killflicker = 5;
 }
 
 // called at 10 Hz
