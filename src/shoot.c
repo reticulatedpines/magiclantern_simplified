@@ -1203,7 +1203,7 @@ silent_pic_take_lv_dbg()
 
 int silent_pic_sweep_running = 0;
 static void
-silent_pic_take_sweep()
+silent_pic_take_sweep(int interactive)
 {
 	if (recording) return;
 	if (!lv) return;
@@ -1221,8 +1221,12 @@ silent_pic_take_sweep()
 	bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
 	while (get_halfshutter_pressed()) msleep(100);
 	gui_stop_menu();
-	msleep(100);
 
+	bmp_draw_rect(COLOR_WHITE, (5-SILENTPIC_NC) * 360/5, (5-SILENTPIC_NL)*240/5, SILENTPIC_NC*720/5-1, SILENTPIC_NL*480/5-1);
+	msleep(200);
+	if (interactive) msleep(2000);
+	redraw(); msleep(100);
+	
 	int afx0 = afframe[2];
 	int afy0 = afframe[3];
 
@@ -1368,7 +1372,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 	if (silent_pic_mode == 1) // normal
 		silent_pic_take_simple(interactive);
 	else if (silent_pic_mode == 2) // hi-res
-		silent_pic_take_sweep();
+		silent_pic_take_sweep(interactive);
 	//~ else if (silent_pic_mode == 3) // long exposure
 		//~ silent_pic_take_longexp();
 	else if (silent_pic_mode == 4) // slit-scan
@@ -3629,7 +3633,7 @@ shoot_task( void* unused )
 	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 	msleep(1000);
-	menu_add( "Tweak", vid_menus, COUNT(vid_menus) );
+	menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
 	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 
