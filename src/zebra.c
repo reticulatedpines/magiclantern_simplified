@@ -2122,7 +2122,7 @@ struct menu_entry zebra_menus[] = {
 		.select = zoom_overlay_main_toggle,
 		.select_reverse = zoom_overlay_size_toggle,
 		.select_auto = menu_quinternary_toggle,
-		.help = "Zoom box for focusing. Can be used while recording."
+		.help = "Zoom box for checking focus. Can be used while recording."
 	},
 	/*{
 		.name = "Split Screen",
