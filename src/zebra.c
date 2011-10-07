@@ -2898,7 +2898,7 @@ void idle_display_off()
 		NotifyBox(1000, "DISPLAY AND SENSOR OFF");
 	}
 
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 30; i++)
 	{
 		if (idle_countdown_display_off) { NotifyBoxHide(); return; }
 		msleep(100);
