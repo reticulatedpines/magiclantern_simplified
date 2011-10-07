@@ -170,7 +170,8 @@ menu_print(
 
 static struct menu *
 menu_find_by_name(
-	const char *		name
+	const char *		name,
+	int icon
 )
 {
 	take_semaphore( menu_sem, 0 );
@@ -199,6 +200,7 @@ menu_find_by_name(
 	}
 
 	new_menu->name		= name;
+	new_menu->icon		= icon;
 	new_menu->prev		= menu;
 	new_menu->next		= NULL; // Inserting at end
 	new_menu->children	= NULL;
@@ -229,7 +231,7 @@ menu_add(
 {
 #if 1
 	// Walk the menu list to find a menu
-	struct menu *		menu = menu_find_by_name( name );
+	struct menu *		menu = menu_find_by_name( name, 0);
 	if( !menu )
 		return;
 
@@ -394,7 +396,7 @@ menu_display(
 			draw_ml_bottombar();
 		}
 
-		y += font_large.height;
+		y += font_large.height - 1;
 		menu = menu->next;
 	}
 }
@@ -421,21 +423,43 @@ menus_display(
 				MENU_NAV_HELP_STRING
 		);
 
+	bmp_fill(40, orig_x, y, 720, 40);
+	bmp_fill(70, orig_x, y+40, 720, 1);
 	for( ; menu ; menu = menu->next )
 	{
+		int fg = menu->selected ? COLOR_WHITE : 70;
+		int bg = menu->selected ? 13 : 40;
 		unsigned fontspec = FONT(
-			FONT_MED,
-			menu->selected ? COLOR_WHITE : COLOR_YELLOW,
-			menu->selected ? 13 : COLOR_BLACK
+			menu->selected ? FONT_LARGE : FONT_MED,
+			fg,
+			bg
 		);
-		if (!show_only_selected) bmp_printf( fontspec, x, y, "%6s", menu->name );
-		x += fontspec_font( fontspec )->width * 6;
+		if (!show_only_selected)
+		{
+			if (menu->icon)
+			{
+				bmp_fill(bg, x, y, 200, 40);
+				bfnt_draw_char(menu->icon, x, y, fg, bg);
+				x += 49;
+			}
+			if (!menu->icon || menu->selected)
+			{
+				int w = fontspec_font( fontspec )->width * 6 + 10;
+				int h = fontspec_font( fontspec )->height;
+				bmp_printf( fontspec, x+5, y + (40 - h)/2, "%6s", menu->name );
+				x += w;
+			}
+			//~ if (menu->selected)
+			//~ {
+				//~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
+			//~ }
+		}
 
 		if( menu->selected )
 			menu_display(
 				menu->children,
 				orig_x + 40,
-				y + fontspec_font( fontspec )->height + 4,
+				y + 45,
 				1
 			);
 	}
@@ -621,8 +645,8 @@ menu_redraw_if_damaged()
 			menu_damage = 0;
 			BMP_LOCK (
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
-				menus_display( menus, x0 + 10, y0 + 10 ); 
-				if (is_menu_active(" (i)")) menu_show_version();
+				menus_display( menus, x0 + 5, y0 ); 
+				if (is_menu_active("Help")) menu_show_version();
 				//~ draw_ml_topbar();
 			)
 			//~ update_stuff();
@@ -874,21 +898,23 @@ menu_init( void )
 	gui_sem = create_named_semaphore( "gui", 0 );
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D)
-	menu_find_by_name( "Audio" );
+	menu_find_by_name( "Audio", ICON_MIC);
 #endif
-	menu_find_by_name( "LiveV" );
-	menu_find_by_name( "Expo" );
-	menu_find_by_name( "Movie" );
-	menu_find_by_name( "Shoot" );
+	menu_find_by_name( "LiveV", ICON_LV);
+	menu_find_by_name( "Expo", ICON_AE);
+	menu_find_by_name( "Movie", ICON_VIDEOCAM );
+	menu_find_by_name( "Shoot", ICON_PHOTOCAM );
 	//~ menu_find_by_name( "Brack" );
-	menu_find_by_name( "Focus" );
+	menu_find_by_name( "Focus", ICON_COLOR_DIHTER_SOMETHING );
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
-	menu_find_by_name( "Tweak" );
-	menu_find_by_name( "Play" );
-	menu_find_by_name( "Debug" );
+	menu_find_by_name( "Tweaks", ICON_SMILE );
+	menu_find_by_name( "Play", ICON_MONITOR );
+	menu_find_by_name( "Config", ICON_CF );
+	menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
+	menu_find_by_name( "Power", ICON_P_SQUARE );
 	//~ menu_find_by_name( "Config" );
-	menu_find_by_name( " (i)" );
+	menu_find_by_name( "Help", ICON_i );
 	//~ menu_find_by_name( "Boot" );
 
 /*
@@ -1203,7 +1229,7 @@ menu_title_hack_print(
 {
 	unsigned fontspec = FONT(
 		FONT_MED,
-		selected ? COLOR_WHITE : COLOR_YELLOW,
+		selected ? COLOR_WHITE : 60,
 		selected ? 13 : COLOR_BLACK
 	);
 

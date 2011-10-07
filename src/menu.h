@@ -72,6 +72,7 @@ struct menu
 	const char *		name;
 	struct menu_entry *	children;
 	int			selected;
+	int icon;
 };
 
 

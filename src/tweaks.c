@@ -1082,7 +1082,7 @@ struct menu_entry play_menus[] = {
 
 static void tweak_init()
 {
-	menu_add( "Tweak", tweak_menus, COUNT(tweak_menus) );
+	menu_add( "Tweaks", tweak_menus, COUNT(tweak_menus) );
 	menu_add( "Play", play_menus, COUNT(play_menus) );
 }
 

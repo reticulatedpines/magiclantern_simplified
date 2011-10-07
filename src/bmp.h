@@ -158,6 +158,7 @@ bmp_fill(
 #define COLOR_BG_DARK		0x03 // transparent black
 #define COLOR_WHITE		0x01 // Normal white
 #define COLOR_BLUE		0x0B // normal blue
+#define COLOR_LIGHTBLUE 9
 #define COLOR_RED		0x08 // normal red
 #define COLOR_YELLOW		0x0F // normal yellow
 #define COLOR_BLACK 2
@@ -251,3 +252,52 @@ extern void* gmt_lock;
 //~ #define GMT_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 200, "GMT_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 500); bmp_printf(FONT_SMALL, 50, 200, "                          "); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 releasing...                    "); ReleaseRecursiveLock(gmt_lock); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
 
 #endif
+
+
+
+
+
+// Canon built-in icons (CanonGothic font)
+#define ICON_TAB 0xa496ee
+#define ICON_PRINT 0xac96ee
+#define ICON_CONTRAST 0xae96ee
+#define ICON_SATURATION 0xaf96ee
+#define ICON_COLOR_BW_FILTER 0xb096ee
+#define ICON_COLOR_BW_TONING_PAINTBRUSH 0xb196ee
+#define ICON_SHARPNESS 0xb296ee
+#define ICON_COLOR_TONE 0xb396ee
+#define ICON_i 0xb496ee
+#define ICON_FILM 0xb596ee
+#define ICON_HEAD_WITH_RAYS 0xb696ee
+#define ICON_CUSTOMWB 0xb996ee
+#define ICON_PHOTOCAM 0xbb96ee
+#define ICON_LANDSCAPE 0xbd96ee
+#define ICON_MONITOR 0xbe96ee
+#define ICON_BW 0x8297ee
+#define ICON_KEY 0x819aee
+#define ICON_MIC 0x829aee
+#define ICON_SUBDIAL 0x839aee
+#define ICON_MAINDIAL 0x849aee
+#define ICON_CF1 0x869aee
+#define ICON_SD2 0x879aee
+#define ICON_CYL 0x889aee
+#define ICON_KEY_SQUARE 0x899aee
+#define ICON_L_SQUARE 0x8a9aee
+#define ICON_N_SQUARE 0x8b9aee
+#define ICON_P_SQUARE 0x8c9aee
+#define ICON_RECTANGLE_VERT 0x8d9aee
+#define ICON_CF 0x8e9aee
+#define ICON_4NEIGHBOURS 0x909aee
+#define ICON_AE 0x919aee
+#define ICON_ISO 0x929aee
+#define ICON_8ARROWS 0x939aee
+#define ICON_SMILE 0x949aee
+#define ICON_GRID1 0x959aee
+#define ICON_GRID2 0x969aee
+#define ICON_STAR 0x979aee
+#define ICON_LV 0x989aee
+#define ICON_RECTANGLE_ROUNDED 0x999aee
+#define ICON_VOICE 0x9a9aee
+#define ICON_VIDEOCAM 0x9b9aee
+#define ICON_FLASH_A 0xa29aee
+#define ICON_FLASH_B 0xa59aee

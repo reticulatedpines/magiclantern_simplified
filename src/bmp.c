@@ -816,15 +816,9 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 	}
 }
 
-#if 0
-
 // built-in fonts found by Pel
 // http://groups.google.com/group/ml-devel/browse_thread/thread/aec4c80eef1cdd6a
 // http://chdk.setepontos.com/index.php?topic=6204.0
-
-#define BFNT_CHAR_CODES    0xFF661AA4
-#define BFNT_BITMAP_OFFSET 0xFF663F84
-#define BFNT_BITMAP_DATA   0xFF666464
 
 // quick sanity test
 int bfnt_ok()
@@ -883,7 +877,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 	
 	//~ bmp_printf(FONT_SMALL, 0, 0, "%x %d %d %d %d %d %d", chardata, cw, ch, crw, xo, yo, bb);
 	
-	if (crw+xo > 50) return 0;
+	if (crw+xo > 100) return 0;
 	if (ch+yo > 50) return 0;
 	
 	bmp_fill(bg, px, py, crw+xo+3, 40);
@@ -1001,7 +995,28 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 	}
 }
 
-#endif
+void
+bfnt_test()
+{
+	while(1)
+	{
+		beep();
+		kill_flicker();
+		int* codes = (int*) BFNT_CHAR_CODES;
+		static int c = 0;
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				bfnt_draw_char(codes[c], j*70, i*40, COLOR_WHITE, COLOR_BLACK);
+				bmp_printf(FONT_SMALL, j*70, i*40, "%x", codes[c]);
+				c++;
+			}
+		}
+		while (!get_set_pressed()) msleep(100);
+	}
+}
+
 
 void * bmp_lock = 0;
 

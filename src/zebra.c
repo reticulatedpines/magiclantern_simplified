@@ -2228,11 +2228,35 @@ struct menu_entry livev_dbg_menus[] = {
 		.display = menu_print,
 	},
 #endif
+	/*
 	{
-		.priv = "Powersave",
-		.display	= menu_title_hack_print,
-		.help = "Options for power saving in LiveView"
+		.priv = "Dump RAM",
+		.display = menu_print, 
+		.select = dump_vram,
 	},
+	{
+		.priv		= &unified_loop,
+		.select		= menu_ternary_toggle,
+		.display	= unified_loop_display,
+		.help = "Unique loop for zebra and FP. Used with HDMI and 720p."
+	},
+	{
+		.priv		= &zebra_density,
+		.select		= menu_ternary_toggle,
+		.display	= zebra_mode_display,
+	},
+	{
+		.priv		= &use_hd_vram,
+		.select		= menu_binary_toggle,
+		.display	= use_hd_vram_display,
+	},
+	{
+		.priv = &focus_peaking_debug,
+		.select = menu_binary_toggle, 
+		.display = focus_debug_display,
+	}*/
+};
+struct menu_entry powersave_menus[] = {
 	{
 		.name = "Dim display",
 		.priv			= &idle_display_dim_after,
@@ -2264,34 +2288,6 @@ struct menu_entry livev_dbg_menus[] = {
 		.select			= menu_binary_toggle,
 		.help = "If enabled, camera will save power during recording."
 	},
-
-	/*
-	{
-		.priv = "Dump RAM",
-		.display = menu_print, 
-		.select = dump_vram,
-	},
-	{
-		.priv		= &unified_loop,
-		.select		= menu_ternary_toggle,
-		.display	= unified_loop_display,
-		.help = "Unique loop for zebra and FP. Used with HDMI and 720p."
-	},
-	{
-		.priv		= &zebra_density,
-		.select		= menu_ternary_toggle,
-		.display	= zebra_mode_display,
-	},
-	{
-		.priv		= &use_hd_vram,
-		.select		= menu_binary_toggle,
-		.display	= use_hd_vram_display,
-	},
-	{
-		.priv = &focus_peaking_debug,
-		.select = menu_binary_toggle, 
-		.display = focus_debug_display,
-	}*/
 };
 
 struct menu_entry livev_cfg_menus[] = {
@@ -3423,6 +3419,7 @@ static void zebra_init_menus()
     //~ menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+	menu_add( "Power", powersave_menus, COUNT(powersave_menus) );
 }
 
 INIT_FUNC(__FILE__, zebra_init_menus);

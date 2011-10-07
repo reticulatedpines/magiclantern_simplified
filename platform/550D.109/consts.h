@@ -232,3 +232,8 @@
 #define DIALOG_MnCardFormatExecute (0x26434+4) // similar
 
 #define BULB_MIN_EXPOSURE 1000
+
+//HCanonGothic
+#define BFNT_CHAR_CODES    0xFF661AA4
+#define BFNT_BITMAP_OFFSET 0xFF663F84
+#define BFNT_BITMAP_DATA   0xFF666464

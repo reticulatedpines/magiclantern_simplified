@@ -227,8 +227,7 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	int x = 1;
-	prop_request_change(PROP_DOF_PREVIEW_MAYBE, &x, 2);
+	bfnt_test();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -1225,11 +1224,6 @@ struct menu_entry debug_menus[] = {
 
 static struct menu_entry cfg_menus[] = {
 	{
-		.priv = "Config",
-		.display	= menu_title_hack_print,
-		.help = "Options related to config file (MAGIC.CFG)"
-	},
-	{
 		.name = "Config AutoSave",
 		.priv = &config_autosave,
 		.display	= config_autosave_display,
@@ -1885,10 +1879,9 @@ void config_menu_init()
 {
 	extern struct menu_entry livev_dbg_menus[];
 	extern struct menu_entry livev_cfg_menus[];
-	menu_add( "Play", cfg_menus, COUNT(cfg_menus) ); // space is tight :)
-	menu_add( "Play", livev_cfg_menus, 1 );
+	menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+	menu_add( "Config", livev_cfg_menus,  1);
 	menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-	menu_add( "Debug", livev_dbg_menus, 5 );
 }
 
 void spy_event(struct event * event)
