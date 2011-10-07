@@ -227,7 +227,6 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	bfnt_test();
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c

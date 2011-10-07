@@ -995,6 +995,7 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 	}
 }
 
+#if CONFIG_DEBUGMSG
 void
 bfnt_test()
 {
@@ -1016,7 +1017,7 @@ bfnt_test()
 		while (!get_set_pressed()) msleep(100);
 	}
 }
-
+#endif
 
 void * bmp_lock = 0;
 

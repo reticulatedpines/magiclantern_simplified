@@ -289,3 +289,8 @@
 #define DIALOG_MnCardFormatExecute (0x158BC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 
 #define BULB_MIN_EXPOSURE 1000
+
+// http://magiclantern.wikia.com/wiki/Fonts
+#define BFNT_CHAR_CODES    0xff89477c
+#define BFNT_BITMAP_OFFSET 0xff8971b0
+#define BFNT_BITMAP_DATA   0xff899be4

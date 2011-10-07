@@ -905,7 +905,7 @@ menu_init( void )
 	menu_find_by_name( "Movie", ICON_VIDEOCAM );
 	menu_find_by_name( "Shoot", ICON_PHOTOCAM );
 	//~ menu_find_by_name( "Brack" );
-	menu_find_by_name( "Focus", ICON_COLOR_DIHTER_SOMETHING );
+	menu_find_by_name( "Focus", ICON_SHARPNESS );
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
 	menu_find_by_name( "Tweaks", ICON_SMILE );
