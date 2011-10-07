@@ -167,8 +167,6 @@ void ui_lock(int x)
 	Msleep(200);
 }
 
-volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
-
 void beep()
 {
 	call("StartPlayWaveData");
@@ -613,6 +611,5 @@ void check_install()
 int ext_monitor_hdmi = 0;
 int ext_monitor_rca = 0;
 int hdmi_code = 0;
-int recording = 0;
 int lv = 0;
 
