@@ -41,10 +41,8 @@ int LensFocus2(int num_steps, int step_size)
 
 
 CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
-CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
-//~ CONFIG_INT( "focus.count",	FOCUS_STACK_COUNT, 5 );
-
-#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture + 1)
+//~ CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
+CONFIG_INT( "focus.count",	focus_stack_count, 5 );
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
 CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
@@ -158,18 +156,18 @@ void focus_stack_ensure_preconditions()
 // will be called from shoot_task
 void
 focus_stack(
-	unsigned	count,
-	int			num_steps,
+	int	count,
+	int			total_steps,
 	int skip_first
 )
 {
-	NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
+	NotifyBox(1000, "Focus stack: %d pics, %d steps", count, ABS(total_steps) );
 	hdr_create_script(count, skip_first, 1);
 	msleep(1000);
 	
 	int focus_moved_total = 0;
 
-	unsigned i;
+	int i;
 	for( i=0 ; i < count ; i++ )
 	{
 		if (gui_menu_shown()) break;
@@ -191,7 +189,9 @@ focus_stack(
 		
 		focus_stack_ensure_preconditions();
 		
-		NotifyBox(1000, "Focusing...");
+		int num_steps = ((total_steps * (i+1) / (count-1))) - (total_steps * i / (count-1));
+		
+		NotifyBox(1000, "Focus %d steps...", num_steps); msleep(500);
 		if (LensFocus(num_steps) == 0)
 			break;
 		focus_moved_total += num_steps;
@@ -234,7 +234,18 @@ int is_focus_stack_enabled() { return focus_stack_enabled && focus_task_delta; }
 
 void focus_stack_run(int skip_first)
 {
-	focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture, skip_first );
+	focus_stack( focus_stack_count, -focus_task_delta, skip_first );
+}
+
+void focus_stack_trigger_from_menu(void* priv)
+{
+	if (focus_task_delta == 0) { beep(); return; }
+	gui_stop_menu(); clrscr();
+	NotifyBox(2000, "Focus stack..."); msleep(2000);
+	focus_stack_enabled = 1;
+	schedule_remote_shot();
+	msleep(1000);
+	focus_stack_enabled = 0;
 }
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
@@ -276,7 +287,7 @@ focus_show_a(
 ) {
 	if (selected) override_zoom_buttons = 1;
 	bmp_printf(
-		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
 		x, y,
 		"Focus End Point: %s%d steps",
 		focus_task_delta > 0 ? "+" : 
@@ -296,7 +307,7 @@ rack_focus_print(
 	if (selected) override_zoom_buttons = 1;
 	extern int lcd_release_running;
 	bmp_printf(
-		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
 		x, y,
 		"Rack focus %s",
 		lcd_release_running && lcd_release_running < 3 && recording ? "(also w. LCD sensor)" : ""
@@ -368,7 +379,7 @@ focus_rack_speed_display(
 {
 	if (selected) override_zoom_buttons = 1;
 	bmp_printf(
-		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
 		x, y,
 		"Focus StepSize : %d",
 		lens_focus_stepsize
@@ -386,7 +397,7 @@ focus_delay_display(
 {
 	if (selected) override_zoom_buttons = 1;
 	bmp_printf(
-		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL,
+		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
 		x, y,
 		"Focus StepDelay: %s%dms",
 		lens_focus_waitflag ? "Wait + " : "",
@@ -394,7 +405,7 @@ focus_delay_display(
 	);
 	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
-
+/*
 static void
 focus_stack_step_increment( void * priv )
 {
@@ -405,15 +416,16 @@ static void
 focus_stack_step_decrement( void * priv )
 {
 	focus_stack_steps_per_picture = mod(focus_stack_steps_per_picture - 2, 10) + 1;
-}
+}*/
 
-/*
+
 static void
 focus_stack_count_increment( void * priv )
 {
-	FOCUS_STACK_COUNT = FOCUS_STACK_COUNT * 2;
-	if (FOCUS_STACK_COUNT > 150) FOCUS_STACK_COUNT = 2;
-}*/
+	focus_stack_count = focus_stack_count * 2;
+	if (focus_stack_count == 256) focus_stack_count = 5;
+	if (focus_stack_count > 200) focus_stack_count = 2;
+}
 
 static void
 focus_delay_toggle( int sign)
@@ -432,32 +444,27 @@ focus_stack_print(
 )
 {
 	if (selected) override_zoom_buttons = 1;
-	int fnt = !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED) : MENU_FONT_SEL;
-	if (focus_stack_enabled)
-	{
-		bmp_printf(
-			fnt,
-			x, y,
-			"Stack focus    : ON,every %d steps",
-			focus_stack_steps_per_picture
-		);
-		bmp_printf(
-			fnt,
-			x + font_large.width * 17, y + font_large.height,
-			"=> %d pictures",
-			FOCUS_STACK_COUNT
-		);
-	}
-	else
-	{
-		bmp_printf(
-			fnt,
-			x, y,
-			"Stack focus    : OFF"
-		);
-	}
-	if (focus_stack_enabled && !focus_task_delta)
-		menu_draw_icon(x, y, MNI_WARNING, 0);
+	int fnt = !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL;
+	bmp_printf(
+		fnt,
+		x, y,
+		"Stack focus    : run=%s,%dim",
+		focus_stack_enabled ? "TakePic" : "PLAY",
+		focus_stack_count
+	);
+	int step = ABS(focus_task_delta) / (focus_stack_count-1);
+	int perfect_division = (focus_stack_count-1) * step == ABS(focus_task_delta);
+	bmp_printf(
+		FONT_MED,
+		x + font_large.width * 15, y + font_large.height,
+		"(will take pic every %d%d steps)",
+		perfect_division ? 0 : step, 
+		perfect_division ? step : -(step+1)
+	);
+	if (!focus_task_delta)
+		menu_draw_icon(x, y, MNI_OFF, 0);
+	if (!focus_stack_enabled)
+		menu_draw_icon(x, y, MNI_ACTION, 0);
 }
 
 void
@@ -572,15 +579,14 @@ focus_task( void* unused )
 		while( focus_task_dir )
 		{
 			int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
-			int n = is_movie_mode() || !focus_stack_enabled ? 1 : focus_stack_steps_per_picture;
-			if (LensFocus2(n, f * lens_focus_stepsize) == 0) break;
-			focus_task_delta += f * n;
+			if (LensFocus2(1, f * lens_focus_stepsize) == 0) break;
+			focus_task_delta += f;
 			//~ msleep(10);
 		}
 	}
 }
 
-TASK_CREATE( "focus_task", focus_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
 
 
 //~ PROP_HANDLER( PROP_LV_FOCUS )
@@ -1114,10 +1120,10 @@ static struct menu_entry focus_menu[] = {
 		.name = "Stack focus",
 		.priv = &focus_stack_enabled,
 		.display	= focus_stack_print,
-		.select		= menu_binary_toggle,
-		.select_auto		= focus_stack_step_increment,
-		.select_reverse		= focus_stack_step_decrement,
-		.help = "Focus bracketing, useful for macro shots."
+		.select	= menu_binary_toggle,
+		.select_auto		= focus_stack_count_increment,
+		.select_reverse		= focus_stack_trigger_from_menu,
+		.help = "Focus bracketing, increases DOF while keeping bokeh."
 	},
 	{
 		.name = "Focus Dist",
@@ -1181,19 +1187,19 @@ int handle_rack_focus(struct event * event)
 	{
 		if (lv && (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE))
 		{
-			gui_hide_menu( 10 );
+			menu_show_only_selected();
 			lens_focus_stop();
 			return 0;
 		}
 		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
-			gui_hide_menu( 50 );
+			menu_show_only_selected();
 			lens_focus_start( get_follow_focus_dir_h() );
 			return 0;
 		}
 		if (lv && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
 		{
-			gui_hide_menu( 50 );
+			menu_show_only_selected();
 			lens_focus_start( -get_follow_focus_dir_h() );
 			return 0;
 		}
@@ -1203,7 +1209,7 @@ int handle_rack_focus(struct event * event)
 
 int handle_follow_focus(struct event * event)
 {
-	if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE)
+	if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed())
 	{
 		if (follow_focus == 1) // arrows
 		{
@@ -1233,29 +1239,7 @@ int handle_follow_focus(struct event * event)
 					return 1;
 			}
 		}
-		/*
-		else if (follow_focus == 3) // zoom in/out
-		{
-			if (lvaf_mode == 0) return 1; // not compatible with quick focus
-			switch(event->param)
-			{
-				case BGMT_PRESS_ZOOMOUT_MAYBE:
-				case BGMT_PRESS_HALFSHUTTER:
-					#ifdef AF_BUTTON_PRESSED_LV
-					if (AF_BUTTON_PRESSED_LV) return 0; // don't override the AF button
-					#endif
-					lens_focus_start(-1 * get_follow_focus_dir_h());
-					return 0;
-				case BGMT_PRESS_ZOOMIN_MAYBE:
-					lens_focus_start(1 * get_follow_focus_dir_h());
-					return 0;
-				case BGMT_UNPRESS_ZOOMIN_MAYBE:
-				case BGMT_UNPRESS_HALFSHUTTER:
-				case BGMT_UNPRESS_ZOOMOUT_MAYBE:
-					lens_focus_stop();
-					return 1;
-			}
-		}*/
+		else lens_focus_stop();
 	}
 	return 1;
 }

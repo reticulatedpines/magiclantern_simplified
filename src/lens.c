@@ -1230,7 +1230,7 @@ lens_init( void* unused )
 	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 	menu_add("Movie", lens_menus, COUNT(lens_menus));
 #ifndef CONFIG_FULLFRAME
-	menu_add("Tweak", tweak_menus, COUNT(tweak_menus));
+	menu_add("Tweaks", tweak_menus, COUNT(tweak_menus));
 #endif
 
 	lens_info.lens_rotation = 0.1;
