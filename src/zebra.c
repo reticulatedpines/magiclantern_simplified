@@ -2896,12 +2896,17 @@ void idle_display_off()
 	else
 	{
 		NotifyBox(1000, "DISPLAY AND SENSOR OFF");
-		PauseLiveView();
 	}
 
-	idle_countdown_display_off = 0;
-	wait_till_next_second();
+	for (int i = 0; i < 10; i++)
+	{
+		if (idle_countdown_display_off) { NotifyBoxHide(); return; }
+		msleep(100);
+	}
+	PauseLiveView();
 	display_off_force();
+	msleep(100);
+	idle_countdown_display_off = 0;
 }
 void idle_display_on()
 {
