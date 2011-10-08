@@ -134,6 +134,7 @@ static int guess_firmware_version()
 			blob_end = &blob_end_50;
 			RESTARTSTART = (void*)RESTARTSTART_50;
 			ROMSTART = 0xFF810000;
+			return 1;
 		default:
 			fail();
 	}
