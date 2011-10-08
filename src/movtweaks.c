@@ -284,7 +284,6 @@ movtweak_task( void* unused )
 		static int recording_prev = 0;
 		if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
 		{
-			if (beep_enabled) Beep();
 			if (movie_restart)
 			{
 				msleep(1000);

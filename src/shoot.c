@@ -2207,6 +2207,9 @@ PROP_HANDLER(PROP_MVR_REC_START)
 {
 	static int prev = -1;
 	int rec = buf[0];
+
+	if (beep_enabled && rec != 2) beep();
+	
 	if (picstyle_rec)
 	{
 		if (prev == 0 && rec == 1) // will start recording
