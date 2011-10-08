@@ -329,10 +329,42 @@ extern int lcd_sensor_shortcuts;
 // backlight adjust
 //**********************************************************************
 
+int display_gain = 0;
+
+void show_display_gain()
+{
+	int gain_ev = 0;
+	if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
+	NotifyBox(2000, "Display Gain: %s%d EV", display_gain ? "+" : "", gain_ev);
+	redraw();
+}
+
 void adjust_backlight_level(int delta)
 {
 	if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
 	if (tft_status) call("TurnOnDisplay");
+	
+	// if we run out of backlight, adjust display gain instead
+	
+	if (lv)
+	{
+		if (backlight_level == 7 && delta > 0)
+		{
+			beep();
+			display_gain_toggle(1);
+			show_display_gain();
+			return;
+		}
+
+		if (backlight_level == 7 && delta < 0 && display_gain)
+		{
+			beep();
+			display_gain_toggle(-1);
+			show_display_gain();
+			return;
+		}
+	}
+	
 	int level = COERCE(backlight_level + delta, 1, 7);
 	prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
 	NotifyBoxHide();
@@ -836,7 +868,6 @@ void set_display_gain(int display_gain)
 {
 	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
 }
-int display_gain = 0;
 void display_gain_toggle(int dir)
 {
 	if (dir > 0)
@@ -860,6 +891,7 @@ void display_gain_reset(void* priv) { display_gain_toggle(0); }
 
 int gain_to_ev(int gain)
 {
+	if (gain == 0) return 0;
 	return (int) roundf(log2f(gain));
 }
 
