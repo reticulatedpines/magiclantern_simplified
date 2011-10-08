@@ -108,6 +108,8 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	}
 	else wave_count = 0;
 
+	idle_wakeup_reset_counters(-20);
+
 	end:
 	return prop_cleanup(token, property);
 }
