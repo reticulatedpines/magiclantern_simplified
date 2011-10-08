@@ -124,7 +124,6 @@ Known issues
 
 * First second of recorded audio may be very loud.
 * Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
-* Sometimes the menu gets overwritten by Canon's drawing routines, or flickers. 
 * External monitors are not yet fully supported (`work in progress <http://bit.ly/ml-hdmi-support>`_).
 * Not all ML features are available on all compatible cameras (go to [[Unified/Features]] to see what works on each camera).
 
@@ -134,7 +133,7 @@ Key shortcuts
 PLAY mode shortcuts
 ~~~~~~~~~~~~~~~~~~~
 
-* ``Q`` (550D), ``UNLOCK`` (60D) or ``DISP`` (600D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
+* ``Q`` (550D), ``UNLOCK`` (60D), ``DISP`` (600D) or ``FUNC`` (50D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
 * ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can then move the overlay around with arrow keys in LiveView mode.
 * ``SET`` + ``Main Dial (Wheel)`` in ``PLAY`` mode: see `SET+MainDial`_.
 
