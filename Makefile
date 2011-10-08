@@ -8,7 +8,7 @@
 TOP_DIR=$(PWD)
 include Makefile.top
 
-all: 60D 550D 600D
+all: 60D 550D 600D 50D
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
 
