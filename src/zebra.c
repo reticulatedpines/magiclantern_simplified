@@ -2903,7 +2903,7 @@ void idle_display_off()
 		if (idle_countdown_display_off) { NotifyBoxHide(); return; }
 		msleep(100);
 	}
-	PauseLiveView();
+	if (!(motion_detect || recording)) PauseLiveView();
 	display_off_force();
 	msleep(100);
 	idle_countdown_display_off = 0;
