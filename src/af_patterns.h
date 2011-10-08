@@ -10,6 +10,18 @@
 // AF patterns, from 400plus's main.h (codes are slightly different)
 // These might be camera-specific, but codes are the same on 550D and 60D
 // [5] Values for "af_point" (can be ORed together to form patterns)
+
+#ifdef CONFIG_50D
+#define AF_POINT_C  0x01 // Center
+#define AF_POINT_T  0x02 // Top
+#define AF_POINT_B  0x04 // Bottom
+#define AF_POINT_TL 0x08 // Top-left
+#define AF_POINT_TR 0x10 // Top-right
+#define AF_POINT_BL 0x20 // Bottom-left
+#define AF_POINT_BR 0x40 // Bottom-right
+#define AF_POINT_L  0x80 // Left
+#define AF_POINT_R  0x100 // Right
+#else
 #define AF_POINT_C  0x0100 // Center
 #define AF_POINT_T  0x0200 // Top
 #define AF_POINT_B  0x0400 // Bottom
@@ -19,7 +31,7 @@
 #define AF_POINT_BR 0x4000 // Bottom-right
 #define AF_POINT_L  0x8000 // Left
 #define AF_POINT_R  0x0001 // Right
-
+#endif
 
 #define AF_PATTERN_NONE            0
 
