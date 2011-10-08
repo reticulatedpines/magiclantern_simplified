@@ -79,13 +79,14 @@ Step 1. Preparing your camera
 
 .. _these links:
 
-* If your firmware version is not the same as the one required by Magic Lantern, upgrade:
+* Upgrade your Canon firmware:
 
   - for **Canon 550D / T2i / Kiss X4**: upgrade to firmware `1.0.9 <http://web.canon.jp/imaging/eosd/firm-e/eosdigital7/firmware.html>`_
   - for **Canon 60D**: upgrade to firmware `1.1.0 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_60d#DriversAndSoftware>`_
   - for **Canon 600D / T3i / Kiss X5**: upgrade to firmware `1.0.1 <http://www.canon.co.uk/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_600D.aspx?DLtcmuri=tcm:14-839391&page=1&type=download>`_
+  - for **Canon 50D**: upgrade to firmware `1.0.8 <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_50D.aspx?DLtcmuri=tcm:13-845724&page=1&type=download>`_
 
-* Rotate your mode dial to **Manual (M)** position (550D, 600D) or **Bulb (B)** position (60D)
+* Rotate your mode dial to **Manual (M)** position.
 
 * Restore your camera to default settings (``Clear all camera settings``, ``Wrench 3`` menu) 
 
@@ -94,21 +95,23 @@ Step 2. Installation
 
 * Format the SD card **from the camera** (low level, from Wrench 1 menu).
 
-* Unzip all the files from from Magic Lantern zip archive on the SD card.
+* Unzip all the files from from Magic Lantern zip archive on the root of your SD card.
 
 * Launch the **Firmware Update** process. For this, start the camera and select ``Firmware ver 1.x.x`` from the ``Wrench 3`` menu.
 
 * The installer (``ml-*.fir``) will perform two actions:
 
   - enables the ``BOOTDISK`` flag in NVRAM by calling the ``EnableBootDisk()`` function from Canon firmware. This change is persistent, but it can be reverted easily.
-  - makes the card bootable, by writing the ``BOOTDISK`` and ``EOS_DEVELOP`` strings on the SD card according to [[Bootdisk]] page. 
+  - (for all cameras except 50D) makes the card bootable, by writing the ``BOOTDISK`` and ``EOS_DEVELOP`` strings on the SD card according to [[Bootdisk]] page. 
 
-* Once you see the green confirmation screen, restart your camera. Done. 
+* Once you see the green confirmation screen, restart your camera.
 
 .. figure:: BootdiskEnabled.png
     :alt: thumb|right|Magic Lantern install - confirmation screen
     :align: center
-    :width: 5cm
+    :width: 3cm
+
+* 50D only: **make the card bootable** with a special utility: `EOSCard <http://pel.hu/down/EOScard.exe>`_ for Windows, `MacBoot <http://www.zenoshrdlu.com/macboot/macboot.html>`_ for Mac, or `make_bootable.sh <http://groups.google.com/group/ml-devel/browse_thread/thread/1161d4e6e93232de/41a65807171f71a0>`_ for Mac/Linux in command line.
 
 Installing Magic Lantern on other cards
 =======================================
@@ -122,7 +125,7 @@ Updating Magic Lantern
 
 * Bookmark this page ([[Unified#Downloads]]) and check for updates periodically.
 
-* To install an updated version, just unzip all Magic Lantern files on your SD card and overwrite the old ones.
+* To install an updated version, just unzip (or copy) all Magic Lantern files on your SD card and overwrite the old ones.
 
 Uninstalling Magic Lantern
 ==========================
@@ -140,7 +143,7 @@ Uninstalling Magic Lantern
 Uninstalling ML from one card
 -------------------------------
 
-* Format that card from the camera and reboot. Your camera will load the original firmware when you use that card.
+* Format that card from the camera (select this option: ``Format card, remove Magic Lantern``) and reboot. Your camera will load the original firmware when you use that card.
 
 Uninstalling ML from the camera
 -------------------------------
@@ -150,14 +153,20 @@ Uninstalling ML from the camera
 .. figure:: BootdiskDisabled.png
     :alt: thumb|right|Magic Lantern install - confirmation screen
     :align: center
-    :width: 5cm
+    :width: 3cm
 
+
+.. raw:: latex
+
+   \newpage
 
 Troubleshooting
 ===============
 
-* If the card LED blinks continuously after running Firmware Upgrade, it's because Magic Lantern did not recognize the firmware version. To fix it, install the official Canon firmware upgrade from `these links`_, even if you already have the correct version number. 
-* Check if all doors are closed. The camera will not boot if any of the SD card or battery doors are open !
-* If the camera does not boot (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot '''without''' Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
-* **Again, NEVER let a prepared card without a working autoexec.bin on it, remove the battery immediatly during 5 seconds, switching off is not enough !!!**
-* Look in the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues>`_ for similar problems; if you can't find the solution, create a new issue there.
+* **If the camera asks for a firmware update**, place Canon firmware on the card. (it may happen on 60D `when the FIR is started with display off <https://bitbucket.org/hudson/magic-lantern/issue/614/no-green-confirmation-screen-on-60d>`_)
+* **If the card LED blinks continuously after running Firmware Upgrade**, it's because Magic Lantern did not recognize the firmware version. To fix it, install the official Canon firmware upgrade from `these links`_, even if you already have the correct version number.
+* **If the screen does not turn on, but autofocus works**, remove the battery and format the card. This happens when the card is bootable, but autoexec.bin is not there.
+* **Check if all doors are closed.** The camera will not boot if any of the SD card or battery doors are open !
+* **If the camera does not boot** (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
+* **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!**
+* Check the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues issue tracker>`_ for similar problems; if you can't find the solution, create a new issue there.
