@@ -61,13 +61,13 @@ static int handle_buttons(struct event * event)
 	if (handle_transparent_overlay(event) == 0) return 0;
 	if (handle_af_patterns(event) == 0) return 0;
 	if (handle_set_wheel_play(event) == 0) return 0;
-	if (handle_flash_button_shortcuts(event) == 0) return 0;
-	if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
+	//~ if (handle_flash_button_shortcuts(event) == 0) return 0;
+	//~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
 	if (handle_follow_focus(event) == 0) return 0;
 	if (handle_zoom_overlay(event) == 0) return 0;
 	if (handle_movie_mode_shortcut(event) == 0) return 0;
 	//~ if (handle_quick_access_menu_items(event) == 0) return 0;
-	//~ if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT) return handle_keep_ml_after_format_toggle();
+	if (MENU_MODE && event->param == BGMT_FUNC) return handle_keep_ml_after_format_toggle();
 	if (handle_bulb_ramping_keys(event) == 0) return 0;
 
 	return 1;

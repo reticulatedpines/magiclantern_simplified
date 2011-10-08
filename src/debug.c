@@ -1657,10 +1657,17 @@ void HijackFormatDialogBox()
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
 	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+
+#ifdef CONFIG_50D
+#define FORMAT_BTN "[FUNC]"
+#else
+#define FORMAT_BTN "[Q]"
+#endif
+
 	if (keep_ml_after_format)
-		dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern [Q]");
+		dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern " FORMAT_BTN);
 	else
-		dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern [Q]");
+		dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern " FORMAT_BTN);
 	dialog_redraw(dialog);
 }
 
