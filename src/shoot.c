@@ -3325,6 +3325,8 @@ static void hdr_shutter_release(int ev_x8)
 
 		int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
 		int m0r = shooting_mode;
+		
+		//~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
 		// then choose the best option (bulb for long exposures, regular for short exposures)
 		if (msc >= 1000)
@@ -3333,8 +3335,13 @@ static void hdr_shutter_release(int ev_x8)
 		}
 		else
 		{
+			int b = bulb_ramping_enabled;
+			bulb_ramping_enabled = 0; // to force a pic in manual mode
+			
 			lens_set_rawshutter(rc);
 			take_a_pic();
+			
+			bulb_ramping_enabled = b;
 		}
 
 		// restore settings back
