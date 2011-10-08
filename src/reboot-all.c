@@ -71,9 +71,11 @@ static void blink(int n)
 {
 	while (1)
 	{
-		*(int*)0xC0220134 |= 2;  // card LED on
+		*(int*)0xC0220134 |= 2;  // SD card LED on
+		*(int*)0xC02200BC |= 2;  // CF card LED on
 		busy_wait(n);
-		*(int*)0xC0220134 &= ~2;  // card LED off
+		*(int*)0xC0220134 &= ~2;  // SD card LED off
+		*(int*)0xC02200BC &= ~2;  // CF card LED off
 		busy_wait(n);
 	}
 }
