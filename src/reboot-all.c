@@ -30,6 +30,7 @@
 #define RESTARTSTART_550 0x8B000
 #define RESTARTSTART_60 0x5f000
 #define RESTARTSTART_600 0x82000
+#define RESTARTSTART_50 0x4b000
 
 #define SIG_LEN 0x10000
 
@@ -37,6 +38,7 @@
 #define SIG_550D_109 0x851320e6 // from FF010000
 #define SIG_600D_101 0x290106d8 // from FF010000
 #define SIG_500D_110 0x4c0e5a7e // from FF010000
+#define SIG_50D_108  0xb2311152 // from FF010000
 #define SIG_50D_107  0x20e3a085 // from FF810000
 #define SIG_5D2_204  0x41d8373d // from FF810000
 
@@ -100,13 +102,16 @@ extern uint8_t blob_start_60;
 extern uint8_t blob_end_60;
 extern uint8_t blob_start_600;
 extern uint8_t blob_end_600;
+extern uint8_t blob_start_50;
+extern uint8_t blob_end_50;
 void* blob_start = 0;
 void* blob_end = 0;
 void* RESTARTSTART = 0;
+void* ROMSTART = 0xFF010000;
 
 static int guess_firmware_version()
 {
-	int s = compute_signature((int*)ROMBASEADDR, SIG_LEN);
+	int s = compute_signature((int*)0xFF010000, SIG_LEN);
 	switch(s)
 	{
 		case SIG_550D_109:
@@ -124,6 +129,11 @@ static int guess_firmware_version()
 			blob_end = &blob_end_600;
 			RESTARTSTART = (void*)RESTARTSTART_600;
 			return 1;
+		case SIG_50D_108:
+			blob_start = &blob_start_50;
+			blob_end = &blob_end_50;
+			RESTARTSTART = (void*)RESTARTSTART_50;
+			ROMSTART = 0xFF810000;
 		default:
 			fail();
 	}
@@ -154,6 +164,13 @@ asm(
 	".align 12\n"
 	"blob_end_600:"
 	".globl blob_end_600\n"
+
+	".globl blob_start_50\n"
+	"blob_start_50:\n"
+	".incbin \"../50D.108/magiclantern.bin\"\n" // 
+	".align 12\n"
+	"blob_end_50:"
+	".globl blob_end_50\n"
 );
 
 
@@ -209,7 +226,7 @@ cstart( void )
 		= (void*) RESTARTSTART;
 
 	void __attribute__((noreturn))(*firmware_start)(void)
-		= (void*) ROMBASEADDR;
+		= (void*) ROMSTART;
 
 	if( 1 )
 		copy_and_restart(offset);

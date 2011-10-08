@@ -24,6 +24,9 @@ all: 60D 550D 600D
 1100D:
 	$(MAKE) -C $(PLATFORM_PATH)/1100D.104
 
+50D:
+	$(MAKE) -C $(PLATFORM_PATH)/50D.108
+
 install: all
 	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
 	cp $(SRC_DIR)/FONTS.DAT /media/EOS_DIGITAL
@@ -34,14 +37,17 @@ fir:
 	cd installer/550D.109/; $(MAKE) clean
 	cd installer/60D.110/; $(MAKE) clean
 	cd installer/600D.101/; $(MAKE) clean
+	cd installer/50D.108/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
 	$(MAKE) -C installer/60D.110/
 	$(MAKE) -C installer/600D.101/
+	$(MAKE) -C installer/50D.108/
 
 install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
 	cp installer/60D.110/ml-60d-110.fir /media/EOS_DIGITAL/
 	cp installer/600D.101/ml-600d-101.fir /media/EOS_DIGITAL/
+	cp installer/50D.108/ml-50d-108.fir /media/EOS_DIGITAL/
 
 clean:
 	-$(RM) \
@@ -54,6 +60,7 @@ clean:
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/50D.108/; $(MAKE) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
 zip: all
