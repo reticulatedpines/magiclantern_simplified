@@ -239,3 +239,5 @@ NSTUB(0xffa47178, CreateDialogBox)
 NSTUB(0xffa46c10, DeleteDialogBox)
 NSTUB(0xFFA47A7C, dialog_redraw)
 NSTUB(0xFFAAB650, dialog_set_property_str)
+
+NSTUB(0xffbe75b8, StartFactoryMenuApp)
