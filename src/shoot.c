@@ -2203,16 +2203,13 @@ void redraw_after(int msec)
 	task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
 }
 
-PROP_HANDLER(PROP_MVR_REC_START)
+void rec_picstyle_change(int rec)
 {
 	static int prev = -1;
-	int rec = buf[0];
 
-	if (beep_enabled && rec != 2) beep();
-	
 	if (picstyle_rec)
 	{
-		if (prev == 0 && rec == 1) // will start recording
+		if (prev == 0 && rec) // will start recording
 		{
 			picstyle_before_rec = lens_info.picstyle;
 			int p = get_prop_picstyle_from_index(picstyle_rec);
@@ -2234,8 +2231,24 @@ PROP_HANDLER(PROP_MVR_REC_START)
 		}
 	}
 	prev = rec;
+}
+
+#ifdef CONFIG_50D
+PROP_HANDLER(PROP_SHOOTING_TYPE)
+{
+	int rec = (shooting_type == 4 ? 2 : 0);
+	rec_picstyle_change(rec);
 	return prop_cleanup(token, property);
 }
+#else
+PROP_HANDLER(PROP_MVR_REC_START)
+{
+	int rec = buf[0];
+	if (beep_enabled && rec != 2) beep();
+	rec_picstyle_change(rec);
+	return prop_cleanup(token, property);
+}
+#endif
 
 
 PROP_INT(PROP_STROBO_AECOMP, flash_ae);
