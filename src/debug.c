@@ -227,6 +227,10 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
+	#ifdef CONFIG_50D
+	NotifyBox(2000, "Factory menu..."); msleep(2000);
+	StartFactoryMenuApp();
+	#endif
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
