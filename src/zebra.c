@@ -3073,7 +3073,7 @@ BMP_LOCK (
 	{
 		struct gui_task * current = gui_task_list.current;
 		struct dialog * dialog = current->priv;
-		if (dialog && MEM(dialog->type) == 0x006e4944 && !flicker_being_killed()) // if dialog seems valid
+		if (dialog && MEM(dialog->type) == DLG_SIGNATURE && !flicker_being_killed()) // if dialog seems valid
 		{
 			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
 		}

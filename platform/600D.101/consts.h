@@ -294,3 +294,5 @@
 #define BFNT_CHAR_CODES    0xff89477c
 #define BFNT_BITMAP_OFFSET 0xff8971b0
 #define BFNT_BITMAP_DATA   0xff899be4
+
+#define DLG_SIGNATURE 0x006e4944 // just print it
