@@ -53,6 +53,7 @@ ML_OBJS-y = \
 	bootflags.o \
 	dialog_test.o \
 	vram.o \
+	morse.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
