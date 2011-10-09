@@ -2,13 +2,21 @@
 // Original author: mrobbins@mit.edu
 // Ported to Magic Lantern by Alex Dumitrache <broscutamaker@gmail.com>
 
+#if 0
 #include "dryos.h"
 #include "bmp.h"
 #include "menu.h"
-
+#include "propvalues.h"
 
 #define INTERSYMBOL_TIMEOUT 100
 #define LONGSHORT_CUTOFF 20
+
+int morse_pressed()
+{
+    if (get_halfshutter_pressed()) return 1;
+    if (display_sensor && DISPLAY_SENSOR_POWERED) return 1;
+    return 0;
+}
 
 uint8_t time_next_keypress() {
   uint16_t counter;
@@ -21,14 +29,14 @@ uint8_t time_next_keypress() {
   
   // wait FOREVER until the button is released
   // (to prevent resets from triggering a new dit or dah)
-  while(get_halfshutter_pressed()) {}
+  while(morse_pressed()) {}
 
   // turn off LED
   card_led_off();
   
   counter = 0;
   // wait until pressed
-  while(!get_halfshutter_pressed()) {
+  while(!morse_pressed()) {
     msleep(10);
     counter++;
     
@@ -47,9 +55,11 @@ uint8_t time_next_keypress() {
   
   // wait until released
   counter = 0;
-  while(get_halfshutter_pressed()) {
+  while(morse_pressed()) {
     msleep(10);
     counter++;
+    
+    morse_redraw(counter < LONGSHORT_CUTOFF ? '.' : '-');
     
     if(counter == 255) {
       // timeout #2: key wasn't released within 255 timer cycles.
@@ -179,6 +189,12 @@ struct menu_entry morse_menus[] = {
 	},
 };
 
+void morse_redraw(int current_char)
+{
+    bmp_printf(FONT_LARGE, 0, 50, "%s%s     \n%s     ", morse_code, &current_char, morse_string);
+    bmp_printf(FONT_SMALL, 0, 200, morse_table);
+}
+
 void morse_task(void* unused) 
 {
     msleep(1000);
@@ -256,9 +272,7 @@ void morse_task(void* unused)
       ditdahs++;
       spacetimes = 0;
     }
-
-    bmp_printf(FONT_LARGE, 0, 50, "%s   \n%s   \n%d   ", morse_code, morse_string, counter);
-    bmp_printf(FONT_SMALL, 0, 200, morse_table);
+    morse_redraw(0);
   }
   
   return 0;
@@ -266,3 +280,5 @@ void morse_task(void* unused)
 
 
 TASK_CREATE( "morse_task", morse_task, 0, 0x19, 0x1000 );
+
+#endif
