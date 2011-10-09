@@ -68,8 +68,6 @@ struct vram_info * get_yuv422_hd_vram()
 	_vram_info.width = recording ? 1560 : 1024;
 	_vram_info.pitch = _vram_info.width << 1; 
 	_vram_info.height = recording ? 1048 : 680;
-	
-	NotifyBox(1000, "%d ", recording);
 	return &_vram_info;
 }
 
