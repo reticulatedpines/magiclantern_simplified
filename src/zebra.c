@@ -2856,7 +2856,6 @@ void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void),
 
 void PauseLiveView()
 {
-	#ifndef CONFIG_50D
 	if (lv && !lv_paused)
 	{
 		int x = 1;
@@ -2866,12 +2865,10 @@ void PauseLiveView()
 		lv_paused = 1;
 		lv = 1;
 	}
-	#endif
 }
 
 void ResumeLiveView()
 {
-	#ifndef CONFIG_50D
 	if (lv && lv_paused)
 	{
 		lv = 0;
@@ -2880,7 +2877,6 @@ void ResumeLiveView()
 		while (!lv) msleep(100);
 	}
 	lv_paused = 0;
-	#endif
 }
 
 void idle_display_off()
