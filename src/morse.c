@@ -4,6 +4,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "menu.h"
 
 
 #define INTERSYMBOL_TIMEOUT 100
@@ -152,8 +153,37 @@ const char morse_table[] =
 "G --.    N -.     U ..-          \n"
 ;
 
+int morse_enabled = 0;
+
+static void morse_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Morse code input   : %s",
+		morse_enabled ? "ON" : "OFF"
+	);
+}
+
+struct menu_entry morse_menus[] = {
+	{
+		.name = "Morse code input",
+        .priv = &morse_enabled,
+		.select = menu_binary_toggle,
+		.display = morse_print,
+	},
+};
+
 void morse_task(void* unused) 
 {
+    msleep(1000);
+    menu_add("Debug", morse_menus, COUNT(morse_menus));
+    
   unsigned counter=0;
   unsigned ditdahs=0; // counts dits and dahs along the top row
   int curchar=0, lastchar='_';
@@ -161,6 +191,8 @@ void morse_task(void* unused)
   unsigned spacetimes=0;  // counts number of intersymbol times (before we call it a space)
   
   while(1) {
+    if (!morse_enabled) { msleep(1000); continue; }
+      
     counter = time_next_keypress();
     
     // decide what to do based on the timing
@@ -225,11 +257,12 @@ void morse_task(void* unused)
       spacetimes = 0;
     }
 
-    bmp_printf(FONT_LARGE, 0, 0, "%s   \n%s   \n%d   ", morse_code, morse_string, counter);
+    bmp_printf(FONT_LARGE, 0, 50, "%s   \n%s   \n%d   ", morse_code, morse_string, counter);
     bmp_printf(FONT_SMALL, 0, 200, morse_table);
   }
   
   return 0;
 }
+
 
 TASK_CREATE( "morse_task", morse_task, 0, 0x19, 0x1000 );
