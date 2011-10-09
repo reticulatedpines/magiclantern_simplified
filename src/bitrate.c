@@ -26,7 +26,7 @@ int timecode_y = 0;
 int timecode_width = 160;
 int timecode_height = 20;
 int timecode_warning = 120;
-static int timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BG );
+static int timecode_font	= FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
 int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;
