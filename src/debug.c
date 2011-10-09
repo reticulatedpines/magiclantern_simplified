@@ -227,10 +227,8 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	#ifdef CONFIG_50D
-	NotifyBox(2000, "Factory menu..."); msleep(2000);
-	StartFactoryMenuApp();
-	#endif
+	NotifyBox(2000, "Blocking shutter button..."); msleep(2000);
+	ui_lock(UILOCK_SHUTTER);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
