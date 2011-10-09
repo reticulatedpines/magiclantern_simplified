@@ -1131,12 +1131,10 @@ menu_task( void* unused )
 		
 		menu_shown = 1;
 		
-		#ifndef CONFIG_50D
 		if (!lv && !MENU_MODE && !is_movie_mode())
 		{
 			open_canon_menu();
 		}
-		#endif
 		msleep(100);
 
 		x0 = hdmi_code == 5 ? 120 : 0;
