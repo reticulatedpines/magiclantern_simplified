@@ -3058,6 +3058,8 @@ CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 // * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
 void redraw_do()
 {
+	extern int ml_started;
+	if (!ml_started) return;
 BMP_LOCK (
 
 #ifndef CONFIG_50D
