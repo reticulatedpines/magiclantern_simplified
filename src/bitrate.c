@@ -433,15 +433,12 @@ bitrate_task( void* unused )
 
 	while(1)
 	{
-		msleep(100);
+		wait_till_next_second();
 		if (recording) 
 		{
-			movie_elapsed_time_01s += 1;
-			if (movie_elapsed_time_01s % 10 == 0)
-			{
-				measure_bitrate();
-				BMP_LOCK( time_indicator_show(); )
-			}
+			movie_elapsed_time_01s += 10;
+			measure_bitrate();
+			BMP_LOCK( time_indicator_show(); )
 			BMP_LOCK( show_mvr_buffer_status(); )
 		}
 		else
@@ -458,4 +455,4 @@ bitrate_task( void* unused )
 	}
 }
 
-TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1a, 0x1000 );
+TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
