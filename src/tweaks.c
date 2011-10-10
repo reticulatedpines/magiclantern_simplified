@@ -652,14 +652,12 @@ tweak_task( void* unused)
 		
 		dofp_update();
 
-		#ifndef CONFIG_50D
-		if (af_frame_autohide && afframe_countdown && liveview_display_idle())
+		if (af_frame_autohide && afframe_countdown && liveview_display_idle() && !flicker_being_killed())
 		{
 			afframe_countdown--;
 			if (!afframe_countdown) 
 				BMP_LOCK( clear_lv_afframe(); )
 		}
-		#endif
 		
 		extern int disp_profiles_0;
 		if (FLASH_BTN_MOVIE_MODE)
@@ -990,7 +988,6 @@ struct menu_entry tweak_menus[] = {
 		.display = eshutter_display,
 		.help = "For enabling third-party flashes in LiveView."
 	},*/
-	#ifndef CONFIG_50D
 	{
 		.name = "AF frame display",
 		.priv = &af_frame_autohide, 
@@ -998,7 +995,6 @@ struct menu_entry tweak_menus[] = {
 		.display = af_frame_autohide_display,
 		.help = "You can hide the AF frame (the little white rectangle)."
 	},
-	#endif
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
 		.name = "LCD Sensor Shortcuts",
