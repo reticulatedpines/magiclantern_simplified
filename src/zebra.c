@@ -1027,7 +1027,11 @@ draw_zebra_and_focus( int Z, int F )
 					int color = get_focus_color(thr, e);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
+					#ifdef CONFIG_50D
+					int b_row_off = COERCE(y * bm_width / hd_width * 8/9, 0, 539) * BMPPITCH;
+					#else
 					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
+					#endif
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					

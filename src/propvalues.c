@@ -115,7 +115,11 @@ static void calc_ov_loc_size(struct bmp_ov_loc_size * os)
 		os->x0 = 0;
 		os->y0 = 0;
 		os->x_ex = 720;
+#ifdef CONFIG_50D
+		os->y_ex = 480 * 9/8; // BMP is 4:3, image is 3:2;
+#else
 		os->y_ex = 480;
+#endif
 	}
 	os->x_max = os->x0 + os->x_ex;
 	os->y_max = os->y0 + os->y_ex;
