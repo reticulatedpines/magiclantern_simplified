@@ -2,7 +2,7 @@
 // Original author: mrobbins@mit.edu
 // Ported to Magic Lantern by Alex Dumitrache <broscutamaker@gmail.com>
 
-#if 0
+#if 1
 #include "dryos.h"
 #include "bmp.h"
 #include "menu.h"
@@ -13,7 +13,7 @@
 
 int morse_pressed()
 {
-    if (get_halfshutter_pressed()) return 1;
+    if (HALFSHUTTER_PRESSED) return 1;
     if (display_sensor && DISPLAY_SENSOR_POWERED) return 1;
     return 0;
 }
@@ -29,7 +29,7 @@ uint8_t time_next_keypress() {
   
   // wait FOREVER until the button is released
   // (to prevent resets from triggering a new dit or dah)
-  while(morse_pressed()) {}
+  while(morse_pressed()) msleep(10);
 
   // turn off LED
   card_led_off();
@@ -208,13 +208,13 @@ void morse_task(void* unused)
   
   while(1) {
     if (!morse_enabled) { msleep(1000); continue; }
-      
+
     counter = time_next_keypress();
     
     // decide what to do based on the timing
     if(counter == 254) {
       // clear everything
-      clrscr();
+      //~ clrscr();
       snprintf(morse_code, sizeof(morse_code), "");
       snprintf(morse_string, sizeof(morse_string), "");
       ditdahs = 0;
