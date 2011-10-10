@@ -149,7 +149,7 @@ int get_expsim_auto_value()
 static void expsim_update()
 {
 	if (!lv) return;
-	if (is_movie_mode()) return;
+	if (shooting_mode == SHOOTMODE_MOVIE) return;
 	int expsim_auto_value = get_expsim_auto_value();
 	if (expsim_auto_value != expsim)
 	{
