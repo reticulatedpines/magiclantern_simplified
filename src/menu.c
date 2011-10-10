@@ -757,6 +757,10 @@ menu_handler(
 		return 0;
 
 	case PRESS_MENU_BUTTON:
+	#ifdef CONFIG_50D
+		gui_stop_menu();
+		return 0;
+	#endif
 	case EVENTID_METERING_START: // If they press the shutter halfway
 	case 0x10000048:
 	case 0x10000062:
