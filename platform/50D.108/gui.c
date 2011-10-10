@@ -44,20 +44,15 @@ static int handle_buttons(struct event * event)
 	// Change the picture style button to show our menu
 	if( event->param == BGMT_PICSTYLE)
 	{
-		if (!gui_menu_shown() && (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_PLAYMENU)) 
+		if (gui_menu_shown() || gui_state == GUISTATE_IDLE || gui_state == GUISTATE_PLAYMENU)
 		{
 			give_semaphore( gui_sem );
-			return 0;
-		}
-		else if (gui_menu_shown())
-		{
-			gui_stop_menu();
 			return 0;
 		}
 	}
 	if (event->param == BGMT_PRESS_HALFSHUTTER && gui_menu_shown())
 	{
-		gui_stop_menu();
+		give_semaphore( gui_sem );
 	}
 
 	// common to all cameras

@@ -1260,14 +1260,9 @@ int handle_ml_menu_erase(struct event * event)
 {
 	if (event->param == BGMT_TRASH)
 	{
-		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
+		if (gui_menu_shown() || gui_state == GUISTATE_IDLE) 
 		{
 			give_semaphore( gui_sem );
-			return 0;
-		}
-		else if (gui_menu_shown())
-		{
-			gui_stop_menu();
 			return 0;
 		}
 	}
