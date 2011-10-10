@@ -3315,8 +3315,8 @@ static void hdr_shutter_release(int ev_x8)
 	else // manual mode or bulb
 	{
 
-		if (lens_info.raw_iso == 0) // it's set on auto ISO
-			iso_auto_quick(); // => lock the ISO here, otherwise it won't bracket
+		//~ if (lens_info.raw_iso == 0) // it's set on auto ISO
+			//~ iso_auto_quick(); // => lock the ISO here, otherwise it won't bracket
 
 		// apply EV correction in both "domains" (milliseconds and EV)
 		int ms = get_exposure_time_ms();
@@ -3348,7 +3348,7 @@ static void hdr_shutter_release(int ev_x8)
 
 		// restore settings back
 		set_shooting_mode(m0r);
-		lens_set_rawshutter(s0r);
+		prop_request_change( PROP_SHUTTER, &s0r, 4 );
 	}
 	msleep(100);
 	lens_wait_readytotakepic(64);
