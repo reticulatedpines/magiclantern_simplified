@@ -2655,6 +2655,9 @@ int liveview_display_idle()
 		!menu_active_and_not_hidden() &&
 		gui_state == GUISTATE_IDLE && 
 		CURRENT_DIALOG_MAYBE <= 3 && 
+		#ifdef CURRENT_DIALOG_MAYBE_2
+		CURRENT_DIALOG_MAYBE_2 <= 3 &&
+		#endif
 		lv_dispsize == 1 &&
 		lens_info.job_state < 10 &&
 		!mirror_down &&
@@ -3027,6 +3030,9 @@ clearscreen_loop:
 			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
 		
 		#ifdef CONFIG_KILL_FLICKER
+		if (recording)
+			idle_countdown_killflicker = 5; // no flicker problems during recording
+
 		if (global_draw && !gui_menu_shown())
 			idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
 		#endif

@@ -141,6 +141,7 @@
 #define AE_VALUE (*(int8_t*)0xfb30)
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
+#define CURRENT_DIALOG_MAYBE_2 (*(int*)0x6A50)
 #define DLG_WB 5
 #define DLG_FOCUS_MODE 9
 #define DLG_DRIVE_MODE 8
