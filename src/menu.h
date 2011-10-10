@@ -85,15 +85,6 @@ menu_print(
 );
 
 extern void
-menu_title_hack_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-);
-
-
-extern void
 menu_binary_toggle(
 	void *			priv
 );
