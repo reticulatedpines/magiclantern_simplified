@@ -3080,6 +3080,7 @@ static struct menu_entry shoot_menus[] = {
 		.select		= menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
+		.help = "Avoid shake using the LCD face sensor as a simple remote."
 	},
 	#endif
 	#ifndef CONFIG_600D
