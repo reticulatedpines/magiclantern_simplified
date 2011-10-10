@@ -250,7 +250,6 @@
 // buf[2]: 0x19 if 25fps, 18 if 24fps, 32 if 50fps, maybe other values if I change region
 // buf[3]: always c
 
-#define PROP_WORKING_ON_IMAGE 0x8003000c // not sure, may be dangerous to set it
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
 
 #define PROP_REMOTE_SW1 0x80020015
@@ -262,12 +261,14 @@
 #define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
 #define PROP_FILE_NUMBER_ALSO  0x02010003 // seems to mirror the previous one, but it's increased earlier
 #define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
+#define PROP_CARD_RECORD       0x8003000b // set when writing on the card
 #else
 #define PROP_CLUSTER_SIZE      0x02010007
-#define PROP_FREE_SPACE        0x0201000a // unit is 32kbytes maybe, or filesystem-dependent
+#define PROP_FREE_SPACE        0x0201000a // in clusters
 #define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
 #define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one, but it's increased earlier
 #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
+#define PROP_CARD_RECORD       0x8003000c // set when writing on the card
 #endif
 
 #define PROP_BACKLIGHT_LEVEL	0x02040000
