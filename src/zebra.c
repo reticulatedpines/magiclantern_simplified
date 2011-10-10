@@ -228,7 +228,7 @@ int get_global_draw() // menu setting, or off if
 		tft_status == 0 && 
 		recording != 1 && 
 		#ifdef CONFIG_KILL_FLICKER
-		(flicker_being_killed() || recording) &&
+		flicker_being_killed() &&
 		#endif
 		!lv_paused && 
 		!(recording && !lv);
@@ -3042,9 +3042,8 @@ clearscreen_loop:
 			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
 		
 		#ifdef CONFIG_KILL_FLICKER
-		if (recording)
-			idle_countdown_killflicker = 5; // no flicker problems during recording
-
+		//~ if (recording)
+			//~ idle_countdown_killflicker = 5; // <strike>no</strike> flicker problems during recording
 		if (global_draw && !gui_menu_shown())
 			idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
 		#endif
