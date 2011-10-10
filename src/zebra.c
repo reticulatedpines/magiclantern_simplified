@@ -220,7 +220,18 @@ int idle_globaldraw_disable = 0;
 int get_global_draw() // menu setting, or off if 
 {
 	extern int ml_started;
-	return global_draw && ml_started && !idle_globaldraw_disable && !sensor_cleaning && bmp_is_on() && tft_status == 0 && recording != 1 && !lv_paused && !(recording && !lv);
+	return global_draw && 
+		ml_started && 
+		!idle_globaldraw_disable && 
+		!sensor_cleaning && 
+		bmp_is_on() &&
+		tft_status == 0 && 
+		recording != 1 && 
+		#ifdef CONFIG_KILL_FLICKER
+		(flicker_being_killed() || recording) &&
+		#endif
+		!lv_paused && 
+		!(recording && !lv);
 }
 
 int get_global_draw_setting() // whatever is set in menu
@@ -2948,14 +2959,10 @@ void idle_globaldraw_en()
 
 void idle_kill_flicker()
 {
-	idle_globaldraw_disable = 0;
 	kill_flicker();
 }
 void idle_stop_killing_flicker()
 {
-	#ifdef CONFIG_KILL_FLICKER
-	idle_globaldraw_disable = 1;
-	#endif
 	stop_killing_flicker();
 }
 
@@ -3606,11 +3613,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 	zoom_overlay_countdown = 0;
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
 	idle_wakeup_reset_counters(-4);
-	#ifdef CONFIG_KILL_FLICKER
-	idle_globaldraw_disable = 1;
-	#else
 	idle_globaldraw_disable = 0;
-	#endif
 	return prop_cleanup( token, property );
 }
 
