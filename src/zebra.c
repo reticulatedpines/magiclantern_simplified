@@ -219,7 +219,8 @@ int idle_globaldraw_disable = 0;
 
 int get_global_draw() // menu setting, or off if 
 {
-	return global_draw && !idle_globaldraw_disable && !sensor_cleaning && bmp_is_on() && tft_status == 0 && recording != 1 && !lv_paused && !(recording && !lv);
+	extern int ml_started;
+	return global_draw && ml_started && !idle_globaldraw_disable && !sensor_cleaning && bmp_is_on() && tft_status == 0 && recording != 1 && !lv_paused && !(recording && !lv);
 }
 
 int get_global_draw_setting() // whatever is set in menu
