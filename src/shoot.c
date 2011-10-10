@@ -2244,7 +2244,8 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	int rec = buf[0];
-	if (beep_enabled && rec != 2) beep();
+	extern int ml_started;
+	if (beep_enabled && rec != 2 && ml_started) beep();
 	rec_picstyle_change(rec);
 	return prop_cleanup(token, property);
 }
