@@ -1433,6 +1433,7 @@ void show_logo()
 	load_logo();
 	if ((int)logo > 0)
 	{
+		kill_flicker(); msleep(100);
 		bmp_draw_scaled_ex(logo, 360 - logo->width/2, 240 - logo->height/2, logo->width, logo->height, 0, 0);
 	}
 }

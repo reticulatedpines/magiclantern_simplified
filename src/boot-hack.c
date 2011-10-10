@@ -270,7 +270,6 @@ int ml_started = 0; // 1 after ML is fully loaded
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
-	kill_flicker(); msleep(100);
 	show_logo();
 	#ifndef CONFIG_1100D
 	config_parse_file( CARD_DRIVE "magic.cfg" );
