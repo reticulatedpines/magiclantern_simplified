@@ -200,6 +200,10 @@ void free_space_show()
 
 void fps_show()
 {
+	#ifdef CONFIG_50D
+	return;
+	#endif
+	
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
 	if (!is_movie_mode() || recording) return;
