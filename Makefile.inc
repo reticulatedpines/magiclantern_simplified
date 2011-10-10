@@ -120,7 +120,7 @@ magiclantern-$(VERSION).zip: \
 
 CFLAGS=\
 	$(FLAGS) \
-	-O2 \
+	-O1 \
 	-Wall \
 	-W \
 	-mstructure-size-boundary=32 \
