@@ -24,6 +24,11 @@
 #ifndef _arm_mcr_h_
 #define _arm_mcr_h_
 
+asm(
+	".text\n"
+	".align 4\n"
+);
+
 #include <stdint.h>
 #include <limits.h>
 #include <sys/types.h>
