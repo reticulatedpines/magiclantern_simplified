@@ -201,9 +201,6 @@
 
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
-#define PROP_FILE_NUMBER       0x02040008   // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one, but it's increased earlier
-#define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
 
 #define PROP_PICTURE_STYLE 0x80000028   // 0x81 = std, 82 = portrait, 83 = landscape, 84 = neutral, 85 = faithful, 86 = monochrome, 21 = user 1, 22 = user 2, 23 = user 3
 #define PROP_PICSTYLE_SETTINGS_STANDARD   0x02060001 // 02060001 for std, 02060002 for portrait... 02060007 for user 1 ... 02060009 for user 3
@@ -259,7 +256,19 @@
 #define PROP_REMOTE_SW1 0x80020015
 #define PROP_REMOTE_SW2 0x80020016
 
-#define PROP_FREE_SPACE 0x0201000a // unit is 32kbytes maybe, or filesystem-dependent
+#ifdef CONFIG_50D
+#define PROP_CLUSTER_SIZE      0x02010006
+#define PROP_FREE_SPACE        0x02010009
+#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+#define PROP_FILE_NUMBER_ALSO  0x02010003 // seems to mirror the previous one, but it's increased earlier
+#define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
+#else
+#define PROP_CLUSTER_SIZE      0x02010007
+#define PROP_FREE_SPACE        0x0201000a // unit is 32kbytes maybe, or filesystem-dependent
+#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+#define PROP_FILE_NUMBER_ALSO  0x02010004 // seems to mirror the previous one, but it's increased earlier
+#define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
+#endif
 
 #define PROP_BACKLIGHT_LEVEL	0x02040000
 

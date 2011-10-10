@@ -174,7 +174,7 @@ bitrate_reset(void* priv)
 
 int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
-PROP_INT(PROP_CARD2_CLUSTER_SIZE, cluster_size);
+PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
