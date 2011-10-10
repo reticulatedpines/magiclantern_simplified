@@ -270,6 +270,8 @@ int ml_started = 0; // 1 after ML is fully loaded
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
+	kill_flicker(); msleep(100);
+	show_logo();
 	#ifndef CONFIG_1100D
 	config_parse_file( CARD_DRIVE "magic.cfg" );
 	#endif
@@ -310,6 +312,7 @@ void my_big_init_task()
 #ifndef CONFIG_1100D
 	ui_lock(UILOCK_NONE);
 #endif
+	stop_killing_flicker();
 	ml_started = 1;
 	//~ NotifyBoxHide();
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
@@ -397,6 +400,7 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_1100D
 	ui_lock(UILOCK_EVERYTHING);
 #endif
+
 	msleep( 500 );
 
 	menu_init();

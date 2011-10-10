@@ -37,6 +37,8 @@ static int handle_buttons(struct event * event)
 {
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 
+	if (handle_tricky_canon_calls(event) == 0) return 0;
+
 	extern int ml_started;
 	if (!ml_started) 	{
 		if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
@@ -79,7 +81,6 @@ static int handle_buttons(struct event * event)
 
 	// common to all cameras
 	spy_event(event); // for debugging only
-	if (handle_tricky_canon_calls(event) == 0) return 0;
 	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
 	if (event->param != OLC_INFO_CHANGED) idle_wakeup_reset_counters(event->param);
 	//~ if (handle_swap_menu_erase(event) == 0) return 0;

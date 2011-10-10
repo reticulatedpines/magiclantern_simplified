@@ -934,7 +934,8 @@ PROP_INT(PROP_ICU_UILOCK, uilock);
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
-	msleep(500);
+	extern int ml_started;
+	while (!ml_started) msleep(100);
 
 	config_menu_init();
 	
@@ -1420,7 +1421,7 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 //~ CONFIG_INT( "debug.dumpaddr", dump_addr, 0 );
 //~ CONFIG_INT( "debug.dumplen", dump_len, 0 );
 
-/*
+
 struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
@@ -1432,16 +1433,9 @@ void show_logo()
 	load_logo();
 	if ((int)logo > 0)
 	{
-		bmp_draw(logo, 360 - logo->width/2, 240 - logo->height/2, 0, 0);
+		bmp_draw_scaled_ex(logo, 360 - logo->width/2, 240 - logo->height/2, logo->width, logo->height, 0, 0);
 	}
-	else
-	{
-		bmp_printf( FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 200, 100,
-			"Magic Lantern\n"
-			"...loading...\n"
-		);
-	}
-}*/
+}
 
 void
 debug_init_stuff( void )
