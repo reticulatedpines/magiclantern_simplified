@@ -184,12 +184,15 @@ update_lens_display()
 {
 	draw_ml_topbar();
 
-	if (!get_halfshutter_pressed())
+	if (lv_disp_mode == 0 || flicker_being_killed())
 	{
-		if (LV_BOTTOM_BAR_DISPLAYED)
-			erase_bottom_bar();
-		else
-			draw_ml_bottombar();
+		if (!get_halfshutter_pressed())
+		{
+			if (LV_BOTTOM_BAR_DISPLAYED)
+				erase_bottom_bar();
+			else
+				draw_ml_bottombar();
+		}
 	}
 }
 
