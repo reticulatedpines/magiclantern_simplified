@@ -2465,8 +2465,10 @@ int handle_zoom_overlay(struct event * event)
 			{ move_lv_afframe(0, -200); return 0; }
 		if (event->param == BGMT_PRESS_DOWN)
 			{ move_lv_afframe(0, 200); return 0; }
+		#ifndef CONFIG_50D
 		if (event->param == BGMT_PRESS_SET)
 			{ center_lv_afframe(); return 0; }
+		#endif
 	}
 
 	return 1;
