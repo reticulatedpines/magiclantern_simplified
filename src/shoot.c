@@ -3331,7 +3331,7 @@ static void hdr_shutter_release(int ev_x8)
 		//~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
 		// then choose the best option (bulb for long exposures, regular for short exposures)
-		if (msc >= 1000)
+		if (msc >= 10000)
 		{
 			bulb_take_pic(msc);
 		}
@@ -3349,6 +3349,7 @@ static void hdr_shutter_release(int ev_x8)
 		// restore settings back
 		set_shooting_mode(m0r);
 		prop_request_change( PROP_SHUTTER, &s0r, 4 );
+		prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
 	}
 	msleep(100);
 	lens_wait_readytotakepic(64);
