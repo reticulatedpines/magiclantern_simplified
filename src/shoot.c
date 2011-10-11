@@ -199,7 +199,7 @@ static void
 interval_movie_duration_toggle( void * priv )
 {
 	if (is_movie_mode() && silent_pic_mode == 0)
-		interval_movie_duration_index = mod(interval_movie_duration_index + 1, COUNT(timer_values));
+		interval_movie_duration_index = mod(interval_movie_duration_index + 1, 35);
 }
 
 static void 
@@ -3421,28 +3421,14 @@ void movie_end()
 	msleep(500);
 }
 
-/*
-static void
-hdr_take_mov(int steps, int step_size)
-{
-	int g = get_global_draw();
-	set_global_draw(0);
-	clrscr();
 
+static void
+short_movie()
+{
 	movie_start();
-	int i;
-	const int s = lens_info.raw_shutter;
-	for( i = -steps/2; i <= steps/2; i ++  )
-	{
-		NotifyBox(2000, "Movie Bracketing: %d ", i);
-		int new_s = COERCE(s - step_size * i, 96, 152);
-		lens_set_rawshutter( new_s );
-		msleep(timer_values[interval_movie_duration_index] * 1000);
-	}
-	lens_set_rawshutter( s );
+	msleep(timer_values[interval_movie_duration_index] * 1000);
 	movie_end();
-	set_global_draw(g);
-}*/
+}
 
 // take one picture or a HDR / focus stack sequence
 // to be used with the intervalometer
@@ -3976,6 +3962,7 @@ shoot_task( void* unused )
 			int seconds_clock_0 = seconds_clock;
 			int display_turned_off = 0;
 			int images_compared = 0;
+			msleep(100);
 			while (SECONDS_REMAINING > 0)
 			{
 				msleep(100);
@@ -4032,7 +4019,10 @@ shoot_task( void* unused )
 			// compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
 			intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock - dt, seconds_clock + dt);
 
-			hdr_shot(0, 1);
+			if (!is_movie_mode() || silent_pic_mode)
+				hdr_shot(0, 1);
+			else
+				short_movie();
 			intervalometer_pictures_taken++;
 			
 		}
