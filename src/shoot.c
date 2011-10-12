@@ -3353,6 +3353,7 @@ static void hdr_shutter_release(int ev_x8)
 	}
 	msleep(100);
 	lens_wait_readytotakepic(64);
+	msleep(100);
 }
 
 // skip0: don't take the middle exposure
