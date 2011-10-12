@@ -2,7 +2,7 @@
 // Original author: mrobbins@mit.edu
 // Ported to Magic Lantern by Alex Dumitrache <broscutamaker@gmail.com>
 
-#if 1
+#if 0
 #include "dryos.h"
 #include "bmp.h"
 #include "menu.h"
@@ -395,4 +395,6 @@ void morse_task(void* unused)
 
 TASK_CREATE( "morse_task", morse_task, 0, 0x19, 0x1000 );
 
+#else
+int handle_morse_keys(struct event * event) { return 1; }
 #endif
