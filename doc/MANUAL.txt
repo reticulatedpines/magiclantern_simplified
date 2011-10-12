@@ -182,19 +182,14 @@ Misc shortcuts
 Magic Lantern menu
 ------------------
 
-Press ``ERASE`` button to show the menu; use the arrow keys to navigate.
+* Press ``ERASE`` (550D/60D/600D,500D), ``Picture Style`` (50D) or ``AV`` (1100D) to bring up the Magic Lantern menu.
+* Use arrow keys or joystick to navigate.
+* Use ``SET``, ``PLAY`` and ``Q`` to change values.
+* Press ``DISP`` or ``INFO`` button to get help.
 
-To change values, use ``SET``, ``PLAY`` and ``Q``. For most menu items, you can:
-
-* press ``SET`` to change values forwards
-* press ``PLAY`` to change values backwards
-* press ``Q`` to invoke a special action (see the help text or the on-screen hints)
-
-Complex menu items may use different actions for these 3 keys. Please see the documentation of the particular menu item you want to use.
+On 500D, ``Q`` is the LiveView button; on 50D it's the joystick press or the ``FUNC`` button.
 
 In photo mode, outside LiveView, you can use the wheel(s) to navigate in ML menu. Press ``Zoom In`` button to activate edit mode and change values of a menu item with the wheel (experimental).
-
-Press the ``DISP`` or ``INFO`` button to get help about a particular menu item.
 
 Audio
 ~~~~~
