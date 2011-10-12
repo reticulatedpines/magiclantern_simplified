@@ -9,8 +9,9 @@
 void console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
-#define CONSOLE_W 80
-#define CONSOLE_H 25
+#define CONSOLE_W 55
+#define CONSOLE_H 15
+#define CONSOLE_FONT FONT_MED
 
 // buffer is circular and filled with spaces
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
@@ -28,7 +29,8 @@ void console_show()
 	console_visible = 1;
 	FIO_RemoveFile(CARD_DRIVE "console.log");
 	console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
-	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
+	//~ bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
+	console_printf("\nMagic Lantern console\n");
 }
 void console_hide() 
 { 
@@ -37,7 +39,7 @@ void console_hide()
 	clrscr();
 	FIO_CloseFile(console_log_file);
 	console_log_file = 0;
-	bmp_printf(FONT_LARGE, 0, 0, "CONSOLE OFF");
+	//~ bmp_printf(FONT_LARGE, 0, 0, "CONSOLE OFF");
 }
 
 static void
@@ -101,7 +103,7 @@ void console_puts(const char* str) // don't DebugMsg from here!
 	#define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
 	
 	if (console_log_file)
-		FIO_WriteFile( console_log_file, UNCACHEABLE(str), strlen(str) );
+		my_fprintf( console_log_file, "%s", str );
 	
 	if (!console_buffer) return 0;
 	char* c = str;
@@ -116,10 +118,16 @@ void console_puts(const char* str) // don't DebugMsg from here!
 			while (mod(mod(console_buffer_index, CONSOLE_W), 4) != 0) 
 				NEW_CHAR(' ');
 		}
+		else if (*c == 8)
+		{
+			console_buffer_index = mod(console_buffer_index - 1, BUFSIZE);
+			console_buffer[mod(console_buffer_index, BUFSIZE)] = 0;
+		}
 		else
 			NEW_CHAR(*c);
 		c++;
 	}
+	console_buffer[mod(console_buffer_index, BUFSIZE)] = 0;
 }
 
 void console_printf(const char* fmt, ...) // don't DebugMsg from here!
@@ -136,17 +144,30 @@ void console_draw()
 {
 	if (!console_buffer) return 0;
 	if (!console_puts_buffer) return 0;
-	unsigned x0 = 720/2 - font_small.width * CONSOLE_W/2;
-	unsigned y0 = 480/2 - font_small.height * CONSOLE_H/2;
-	unsigned w = font_small.width * CONSOLE_W;
-	unsigned h = font_small.height * CONSOLE_H;
+	unsigned x0 = 720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
+	unsigned y0 = 480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
+	unsigned w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W;
+	unsigned h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H;
 	int i;
+
+	int found_cursor = 0;
 	for (i = 0; i < BUFSIZE; i++)
 	{
-		console_puts_buffer[i] = console_buffer[mod(console_buffer_index + i, BUFSIZE)];
+		// last character should be on last line => this ensures proper scrolling
+		int cbpos = mod((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W + i, BUFSIZE);
+		if (console_buffer[cbpos] == 0) // end of data
+		{ 
+			if (!found_cursor)
+			{
+				console_puts_buffer[i] = '_';
+				found_cursor = 1;
+				continue;
+			}
+		}
+		console_puts_buffer[i] = found_cursor ? ' ' : console_buffer[cbpos];
 	}
 	console_puts_buffer[BUFSIZE] = 0;
-	bmp_puts_w(FONT(FONT_SMALL,COLOR_WHITE,COLOR_BG_DARK), &x0, &y0, CONSOLE_W, console_puts_buffer);
+	bmp_puts_w(FONT(CONSOLE_FONT,COLOR_WHITE,COLOR_BG_DARK), &x0, &y0, CONSOLE_W, console_puts_buffer);
 }
 
 
@@ -156,7 +177,7 @@ console_task( void )
 	console_init();
 	while(1)
 	{
-		if (console_visible && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
+		if (console_visible && !gui_menu_shown())
 		{
 			console_draw();
 		}
