@@ -29,6 +29,7 @@ ML_OBJS-y = \
 	font-small.o \
 	property.o \
 	propvalues.o \
+	dialog_test.o \
 
 #include generic rules and definitions
 

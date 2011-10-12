@@ -181,13 +181,13 @@ void fake_simple_button(int bgmt_code)
 void install_task()
 {
 	
-	PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Install task starting...");
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Install task starting...");
 	
-	while (sensor_cleaning) Msleep(500);
+	while (sensor_cleaning) Msleep(200);
 
-	PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Sensor cleaning done... ");
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Sensor cleaning done... ");
 	
-	Msleep(500);
+	Msleep(200);
 	
 	#ifdef CONFIG_600D
 	#define BGMT_DISP BGMT_INFO
@@ -212,10 +212,10 @@ void install_task()
 		beep();
 		return; // display off, can't install
 	}
-	Msleep(500);
+	//~ Msleep(500);
 
-	PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
-	
+	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
+	kill_flicker_do();
 	ui_lock(UILOCK_EVERYTHING);
 
 	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
@@ -246,9 +246,11 @@ void install_task()
 		}
 		old_shooting_mode = shooting_mode;
 		
-		Msleep(10);
+		Msleep(100);
 	}
 }
+
+void redraw() { clrscr(); }
 
 static volatile int init_funcs_done;
 
@@ -523,7 +525,11 @@ void check_install()
 					"                                    \n"
 					" Magic Lantern is installed.        \n"
 					" You may now restart your camera.   \n"
+#ifdef CONFIG_50D
+					" DON'T FORGET to make card bootable!\n"
+#else
 					"                                    \n"
+#endif
 					"                                    \n"
 					" To disable the BOOTDISK flag,      \n"
 					" change the shooting mode from the  \n"
