@@ -2,14 +2,16 @@
 // Original author: mrobbins@mit.edu
 // Ported to Magic Lantern by Alex Dumitrache <broscutamaker@gmail.com>
 
-#if 0
+#if 1
 #include "dryos.h"
 #include "bmp.h"
 #include "menu.h"
 #include "propvalues.h"
 
-#define INTERSYMBOL_TIMEOUT 100
-#define LONGSHORT_CUTOFF 20
+#define INTERSYMBOL_TIMEOUT 50
+#define LONGSHORT_CUTOFF 15
+
+int morse_enabled = 0;
 
 int morse_pressed()
 {
@@ -18,7 +20,38 @@ int morse_pressed()
     return 0;
 }
 
-int time_next_keypress() {
+int morse_key = 0;
+
+int handle_morse_keys(struct event * event)
+{
+    if (!morse_enabled) return 1;
+    switch (event->param)
+    {
+        case BGMT_PRESS_RIGHT:
+        case BGMT_WHEEL_RIGHT:
+        case BGMT_WHEEL_DOWN:
+            morse_key = 1;
+            return 0;
+        case BGMT_PRESS_LEFT:
+        case BGMT_WHEEL_LEFT:
+        case BGMT_WHEEL_UP:
+            morse_key = 2;
+            return 0;
+        case BGMT_PRESS_SET:
+            morse_key = 10; // return
+            return 0;
+        case BGMT_TRASH:
+            morse_key = 8; // backspace
+            return 0;
+        case BGMT_MENU:
+            morse_enabled = 0;
+            redraw();
+            return 0;
+    }
+    return 1;
+}
+
+int morse_get_key() {
   int counter;
   
   // waits until the button is pressed
@@ -40,6 +73,8 @@ int time_next_keypress() {
     msleep(10);
     counter++;
     
+    if (morse_key) { int m = morse_key; morse_key = 0; return m; }
+    
     if(counter == INTERSYMBOL_TIMEOUT) {
       // timeout #1: key wasn't pressed within X timer cycles.
       // (should happen between different symbols)
@@ -49,7 +84,7 @@ int time_next_keypress() {
 
   // turn on LED
   card_led_on();
-  
+
   // wait one cycle as a cheap "debouncing" mechanism
   msleep(10); // probably not needed in ML
   
@@ -70,15 +105,15 @@ int time_next_keypress() {
   
   // turn off LED
   card_led_off();
-  
-  return counter;
+
+  return counter >= LONGSHORT_CUTOFF ? 2 : 1;
 }
 
 // defining the lookup table.
 // bits   7 6 5 4 3 2 1 0
 // MSByte defines the length
 // LSByte defines dits (0) and dahs (1)
-#define MORSE_SIZE 26+10
+#define MORSE_SIZE 26+10+17
 #define MORSE(s, x)  ((s<<8) | x)
 #define DIT(x) (x<<1)
 #define DAH(x) ((x<<1) | 1)
@@ -120,10 +155,30 @@ unsigned int morse_coded[MORSE_SIZE] =
   MORSE(5, DAH(DAH(DAH(DIT(DIT(0)))))),	//8
   MORSE(5, DAH(DAH(DAH(DAH(DIT(0)))))),	//9
   MORSE(5, DAH(DAH(DAH(DAH(DAH(0)))))),	//0
+  MORSE(6, DIT(DAH(DIT(DAH(DIT(DAH(0))))))), // .
+  MORSE(6, DAH(DAH(DIT(DIT(DAH(DAH(0))))))), // ,
+  MORSE(6, DIT(DIT(DAH(DAH(DIT(DIT(0))))))), // ?
+  MORSE(6, DIT(DAH(DAH(DAH(DAH(DIT(0))))))), // '
+  MORSE(6, DAH(DIT(DAH(DIT(DAH(DAH(0))))))), // !
+  MORSE(5, DAH(DIT(DIT(DAH(DIT(0)))))), // /
+  MORSE(5, DAH(DIT(DAH(DAH(DIT(0)))))), // (
+  MORSE(6, DAH(DIT(DAH(DAH(DIT(DAH(0))))))), // )
+  MORSE(5, DIT(DAH(DIT(DIT(DIT(0)))))), // &
+  MORSE(6, DAH(DAH(DAH(DIT(DIT(DIT(0))))))), // :
+  MORSE(6, DAH(DIT(DAH(DIT(DAH(DIT(0))))))), // ;
+  MORSE(5, DAH(DIT(DIT(DIT(DAH(0)))))), // =
+  MORSE(5, DIT(DAH(DIT(DAH(DIT(0)))))), // +
+  MORSE(6, DAH(DIT(DIT(DIT(DIT(DAH(0))))))), // -
+  MORSE(6, DIT(DIT(DAH(DAH(DIT(DAH(0))))))), // _
+  MORSE(6, DIT(DAH(DIT(DIT(DAH(DIT(0))))))), // "
+  MORSE(6, DIT(DAH(DAH(DIT(DAH(DIT(0))))))), // *
+
 };
 unsigned char morse_alpha[MORSE_SIZE] =
 { 
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+  '.', ',', '?', '\'','!', '/', '(', ')', '&', ':', ';', '=', '+', '-', '_', '"', '*',
 };
 
 unsigned morse_lookup(unsigned in) {
@@ -159,21 +214,18 @@ unsigned bitwise_reverse(unsigned in, unsigned max) {
   return b;
 }
 
-char morse_code[100] = "";
-char morse_string[100] = "";
+char morse_code[10] = "";
 #define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig), fmt, ## __VA_ARGS__);
 
 const char morse_table[] = 
-"A .-     H ....   O ---   V ...- \n"
-"B -...   I ..     P .--.  W .--  \n"
-"C -.-.   J .---   Q --.-  X -..- \n"
-"D -..    K -.-    R .-.   Y -.-- \n"
-"E .      L .-..   S ...   Z --.. \n"
-"F ..-.   M --     T -            \n"
-"G --.    N -.     U ..-          \n"
+"A .-     H ....   O ---   V ...-   3 ...--  0 -----  ( -.--.  - -....- \n"
+"B -...   I ..     P .--.  W .--    4 ....-  . .-.-.- ) -.--.- _ ..--.- \n"
+"C -.-.   J .---   Q --.-  X -..-   5 .....  , --..-- & .-...  \" .-..-. \n"
+"D -..    K -.-    R .-.   Y -.--   6 -....  ? ..--.. : ---... * .--.-. \n"
+"E .      L .-..   S ...   Z --..   7 --...  ' .----. ; -.-.-.          \n"
+"F ..-.   M --     T -     1 .----  8 ---..  ! -.-.-- = -...-           \n"
+"G --.    N -.     U ..-   2 ..---  9 ----.  / --..-. + .-.-.           \n"
 ;
-
-int morse_enabled = 0;
 
 static void morse_print(
 	void *			priv,
@@ -201,8 +253,8 @@ struct menu_entry morse_menus[] = {
 
 void morse_redraw(int current_char)
 {
-    bmp_printf(FONT_LARGE, 0, 50, "%s%s     \n%s     ", morse_code, &current_char, morse_string);
-    bmp_printf(FONT_SMALL, 0, 200, morse_table);
+    bmp_printf(FONT_LARGE, 570, 50, "%s%s        ", morse_code, &current_char);
+    bmp_printf(FONT_SMALL, 0, 395, morse_table);
 }
 
 void morse_task(void* unused) 
@@ -210,30 +262,28 @@ void morse_task(void* unused)
     msleep(1000);
     menu_add("Debug", morse_menus, COUNT(morse_menus));
     
-  unsigned counter=0;
+  unsigned key=0;
   unsigned ditdahs=0; // counts dits and dahs along the top row
   int curchar=0, lastchar='_';
-  unsigned chars=0;   // counts chars along the bottom row
   unsigned spacetimes=0;  // counts number of intersymbol times (before we call it a space)
   
   while(1) {
     if (!morse_enabled) { msleep(1000); continue; }
+    if (!flicker_being_killed()) kill_flicker();
 
-    counter = time_next_keypress();
+    key = morse_get_key();
     
     // decide what to do based on the timing
-    if(counter == 254) {
+    if(key == 254) {
       // clear everything
-      //~ clrscr();
+      console_clear();
       snprintf(morse_code, sizeof(morse_code), "");
-      snprintf(morse_string, sizeof(morse_string), "");
       ditdahs = 0;
-      chars = 0;
       curchar = 0;
       lastchar = '_';
       spacetimes = 0;
       
-    } else if(counter == 255) {
+    } else if(key == 255) {
     
       // intersymbol timeout: clear 1st row
       snprintf(morse_code, sizeof(morse_code), "");
@@ -244,10 +294,8 @@ void morse_task(void* unused)
         curchar = morse_lookup(curchar);
         
         // print it
-        //~ STR_APPEND(morse_string, "%s", &curchar);
-        snprintf(morse_string, sizeof(morse_string), "%s", &curchar);
-        
-        switch (curchar)
+        console_puts(&curchar);
+        /*switch (curchar)
         {
             case 'L': 
                 fake_simple_button(BGMT_PRESS_LEFT); 
@@ -287,36 +335,49 @@ void morse_task(void* unused)
             case 'X': 
                 lens_take_picture(64);
                 break;
-        }
+        }*/
 
-        chars++;
         lastchar = curchar;
         spacetimes = 0;
-      } else if(lastchar != '_') {
+      } else if(lastchar != ' ' && lastchar != 10 && lastchar != 8) {
         spacetimes++;
         if(spacetimes == 4) {
           // as long as the last character wasn't a space, print a space 
           // (as an underscore so we can see it)
-          curchar = '_';
+          curchar = ' ';
 
           // print it
-          STR_APPEND(morse_string, "%s", &curchar);
+          console_puts(" ");
         
-          chars++;
           lastchar = curchar;
         }
       }
-      
       curchar = 0;
       ditdahs = 0;
+    } else if (key == 8) { // backspace
+      if (ditdahs)
+      {
+        snprintf(morse_code, sizeof(morse_code), "");
+        ditdahs = 0;
+      }
+      else
+      {
+        console_puts(&key);
+      }
+      lastchar = key;
+      curchar = 0;
+    } else if (key > 2) { // some char code
+          console_puts(&key);
+          lastchar = key;
+          curchar = 0;
+          ditdahs = 0;
     } else {
-
       // dit or dah
-      if(counter >= LONGSHORT_CUTOFF) {
+      if(key == 2) {
         // dah
         STR_APPEND(morse_code, "-");
         curchar = DAH(curchar);
-      } else {
+      } else if (key == 1) {
         // dit
         STR_APPEND(morse_code, ".");
         curchar = DIT(curchar);
