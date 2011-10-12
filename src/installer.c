@@ -212,7 +212,7 @@ void install_task()
 		beep();
 		return; // display off, can't install
 	}
-	//~ Msleep(500);
+	Msleep(500);
 
 	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
 	kill_flicker_do();
@@ -516,9 +516,9 @@ void check_install()
 			if (fonts_ok)
 			{
 				bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
-					" *********************************  \n"
-					" *            SUCCESS!           *  \n"
-					" *********************************  \n"
+					" ********************************** \n"
+					" *            SUCCESS!            * \n"
+					" ********************************** \n"
 					"                                    \n"
 					" BOOTDISK flag is ENABLED.          \n"
 					" AUTOEXEC.BIN found.                \n"
