@@ -369,7 +369,7 @@ int is_mvr_buffer_almost_full()
 	// 2
 	
 	int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
-	if (ans) warning = 10;
+	if (ans) warning = 1;
 	return warning;
 }
 
@@ -433,7 +433,6 @@ bitrate_task( void* unused )
 		{
 			movie_elapsed_time_01s += 10;
 			measure_bitrate();
-			BMP_LOCK( time_indicator_show(); )
 			BMP_LOCK( show_mvr_buffer_status(); )
 		}
 		else
@@ -442,11 +441,21 @@ bitrate_task( void* unused )
 			if (movie_elapsed_time_01s % 10 == 0)
 				bitrate_set();
 		}
-		if (zebra_should_run()) 
-			BMP_LOCK(
-				free_space_show(); 
-				fps_show();
-			)
+	}
+}
+
+void movie_indicators_show()
+{
+	if (recording)
+	{
+		BMP_LOCK( time_indicator_show(); )
+	}
+	else
+	{
+		BMP_LOCK(
+			free_space_show(); 
+			fps_show();
+		)
 	}
 }
 

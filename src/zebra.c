@@ -33,6 +33,7 @@
 #include "lens.h"
 
 //~ #if 1
+//~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #ifdef CONFIG_50D
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
@@ -1075,6 +1076,9 @@ draw_zebra_and_focus( int Z, int F )
 		int lvp_step_x = hdmi_code == 5 ? 4 : 2;
 		int lvp_step_y = hdmi_code == 5 ? 2 : 1;
 		int lvheight = hdmi_code == 5 ? 540 : 480;
+		#ifdef CONFIG_50D
+		lvheight = 426;
+		#endif
 		for( y = 40; y < lvheight - 40; y += 2 )
 		{
 			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
@@ -3099,7 +3103,9 @@ BMP_LOCK (
 			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
 		}
 		else
+		{
 			clrscr(); // out of luck, fallback
+		}
 	}
 )
 	// ask other stuff to redraw
@@ -3221,8 +3227,15 @@ livev_hipriority_task( void* unused )
 		
 		if (lens_display_dirty && k % 5 == 0)
 		{
+			#ifdef CONFIG_KILL_FLICKER
+			if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
+			#endif
+
+			movie_indicators_show();
+
 			BMP_LOCK( update_lens_display(); );
 			lens_display_dirty = 0;
+			
 		}
 		
 		if (LV_BOTTOM_BAR_DISPLAYED || get_halfshutter_pressed())
@@ -3260,6 +3273,16 @@ static void black_bars()
 	}
 }
 
+void bars_16x9_50D()
+{
+	if (!get_global_draw()) return;
+	bmp_fill(COLOR_BLACK, 0, 0, 720, 33);
+	bmp_fill(45, 0, 33, 720, 1);
+	bmp_fill(COLOR_BLACK, 0, 394, 720, 32);
+	bmp_fill(45, 0, 393, 720, 1);
+}
+
+
 // Items which do not need a high FPS, but are CPU intensive
 // histogram, waveform...
 static void
@@ -3270,7 +3293,7 @@ livev_lopriority_task( void* unused )
 		#ifdef CONFIG_550D
 		black_bars();
 		#endif
-		
+
 		if (transparent_overlay_flag)
 		{
 			transparent_overlay_from_play();
