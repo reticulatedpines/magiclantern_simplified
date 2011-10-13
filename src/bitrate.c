@@ -323,7 +323,7 @@ time_indicator_display( void * priv, int x, int y, int selected )
 		time_indicator == 2 ? "Remain.Card" :
 		time_indicator == 3 ? "Remain.4GB" : "OFF"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(time_indicator), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(time_indicator));
 }
 
 static void
@@ -335,7 +335,7 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
 		"Bitrate Info  : %s",
 		bitrate_indicator ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(bitrate_indicator), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(bitrate_indicator));
 }
 
 CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);

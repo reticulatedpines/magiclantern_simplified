@@ -862,7 +862,8 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 		priv == &dgain_l ? "L" : "R",
 		val
 	);
-	menu_draw_icon(x, y, alc_enable ? MNI_WARNING : MNI_PERCENT, val * 100 / 36);
+	if (!alc_enable) menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
+	else menu_draw_icon(x, y, MNI_WARNING, "AGC is enabled");
 }
 
 
@@ -876,7 +877,8 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 		"Output volume : %d dB",
 		2 * *(unsigned*) priv
 	);
-	menu_draw_icon(x, y, !audio_monitoring ? MNI_WARNING : MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
+	if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
+	else menu_draw_icon(x, y, MNI_WARNING, "Audio monitoring is disabled");
 }
 
 static void
@@ -889,7 +891,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
 		"Audio Meters  : %s",
 		v ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, v && !get_global_draw() ? MNI_WARNING : MNI_BOOL(v), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(v));
 }
 
 
@@ -1022,11 +1024,9 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Mic Power     : %s",
-		mic_pow && mic_power ? "ON (Low Z)" :
-		mic_pow && !mic_power ? "ON(req.by int mic)" :
-		"OFF (High Z)"
+		mic_pow ? "ON (Low Z)" : "OFF (High Z)"
 	);
-	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, 0);
+	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, "Mic power is required by internal mic");
 }
 
 

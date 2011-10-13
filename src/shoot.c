@@ -179,7 +179,8 @@ interval_timer_display( void * priv, int x, int y, int selected )
 		);
 	}
 	
-	menu_draw_icon(x, y, intervalometer_running ? MNI_PERCENT : MNI_WARNING, (*(int*)priv) * 100 / COUNT(timer_values));
+	if (intervalometer_running) menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
+	else menu_draw_icon(x, y, MNI_WARNING, "Intervalometer is not active");
 }
 
 static void
@@ -273,7 +274,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
 		motion_detect == 2 ? "DIF" : "err",
 		motion_detect_level
 	);
-	menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect), 0);
+	menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
 }
 
 
@@ -2073,7 +2074,8 @@ saturation_display( void * priv, int x, int y, int selected )
 			"Saturation  : N/A",
 		s
 	);
-	menu_draw_icon(x, y, s >= -4 && s <= 4 ? MNI_PERCENT : MNI_WARNING, (s + 4) * 100 / 8);
+	if (s >= -4 && s <= 4) menu_draw_icon(x, y, MNI_PERCENT, (s + 4) * 100 / 8);
+	else menu_draw_icon(x, y, MNI_WARNING, 0);
 }
 
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
@@ -2487,11 +2489,11 @@ bulb_take_pic(int duration)
 	msleep(100);
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	mlu_lock_mirror_if_needed();
-	//~ NotifyBox(3000, "BulbStart (%d)", duration);
+	NotifyBox(3000, "BulbStart (%d)", duration);
 	SW1(1,50);
 	SW2(1,0);
 	msleep(duration);
-	//~ NotifyBox(3000, "BulbEnd");
+	NotifyBox(3000, "BulbEnd");
 	SW2(0,50);
 	SW1(0,0);
 	msleep(100);
@@ -2523,7 +2525,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		d < 60 ? d : d/60, 
 		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
-	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, bulb_duration_index * 100 / COUNT(timer_values));
+	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? bulb_duration_index * 100 / COUNT(timer_values) : "Bulb timer only works in BULB mode");
 	if (selected && is_bulb_mode()) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 6, selected);
 }
 
@@ -2562,7 +2564,7 @@ mlu_display( void * priv, int x, int y, int selected )
 		#endif
 		: get_mlu() ? "ON" : "OFF"
 	);
-	if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, 0);
+	if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, "Mirror Lockup does not work in LiveView");
 	else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 

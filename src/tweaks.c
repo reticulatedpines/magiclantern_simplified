@@ -125,16 +125,19 @@ expsim_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Exposure Simulation : %s%s",
-		expsim_setting == 2 ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
-		expsim ? "ON" : "OFF",
-		expsim == get_expsim_auto_value() ? "" : " [!]"
+		"Exposure Simulation : %s",
+		expsim == 2 ? "Movie" :
+		expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
+		get_expsim_auto_value() ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), 0);
+	if (!lv) menu_draw_icon(x, y, MNI_WARNING, "This option works only in LiveView");
+	else menu_draw_icon(x, y, expsim == 2 ? MNI_AUTO : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), "Could not set ExpSim");
 }
 
 int get_expsim_auto_value()
 {
+	if (is_movie_mode()) return 2;
+	
 	// silent pic in matrix mode requires expsim on
 	extern int silent_pic_sweep_running;
 	if (silent_pic_sweep_running) return 1;
@@ -167,12 +170,16 @@ static void expsim_update()
 
 static void expsim_toggle(void* priv)
 {
+	if (is_movie_mode()) return;
 	menu_ternary_toggle(priv); msleep(100);
+	menu_show_only_selected();
 }
 
 static void expsim_toggle_reverse(void* priv)
 {
+	if (is_movie_mode()) return;
 	menu_ternary_toggle_reverse(priv); msleep(100);
+	menu_show_only_selected();
 }
 
 // LV metering
@@ -392,6 +399,7 @@ af_frame_autohide_display(
 		"AF frame display    : %s", 
 		af_frame_autohide ? "AutoHide" : "Show"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_LV(af_frame_autohide));
 }
 
 int afframe_countdown = 0;
@@ -800,6 +808,7 @@ crop_movieonly_display(
 		"Show cropmarks in   : %s", 
 		cropmark_movieonly ? "Movie mode" : "Movie&Photo"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_LV(1));
 }
 
 /*extern int picstyle_disppreset_enabled;
@@ -914,7 +923,7 @@ static void display_gain_print(
 	if (display_gain)
 	{
 		if (lv) menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
-		else menu_draw_icon(x, y, MNI_WARNING, 0);
+		else menu_draw_icon(x, y, MNI_WARNING, "This option works only in LiveView");
 	}
 }
 

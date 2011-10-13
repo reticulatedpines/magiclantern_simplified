@@ -638,7 +638,7 @@ follow_focus_print(
 		bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
 		bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
-	menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus), 0);
+	menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus));
 }
 
 CONFIG_INT("movie.af", movie_af, 0);
@@ -1036,7 +1036,7 @@ afp_display(
 		"Focus Patterns : %s",
 		af_patterns ? "ON" : "OFF"
 	);
-	if (lv && af_patterns) menu_draw_icon(x, y, MNI_WARNING, 0);
+	if (lv && af_patterns) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns won't work in LiveView");
 }
 
 static struct menu_entry focus_menu[] = {

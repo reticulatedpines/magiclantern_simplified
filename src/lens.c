@@ -1307,7 +1307,7 @@ void SW1(int v, int wait)
 	//~ int unused;
 	//~ ptpPropButtonSW1(v, 0, &unused);
 	prop_request_change(PROP_REMOTE_SW1, &v, 2);
-	msleep(wait);
+	if (wait) msleep(wait);
 }
 
 void SW2(int v, int wait)
@@ -1315,5 +1315,5 @@ void SW2(int v, int wait)
 	//~ int unused;
 	//~ ptpPropButtonSW2(v, 0, &unused);
 	prop_request_change(PROP_REMOTE_SW2, &v, 2);
-	msleep(wait);
+	if (wait) msleep(wait);
 }

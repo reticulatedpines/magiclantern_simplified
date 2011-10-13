@@ -40,6 +40,7 @@ static int menu_shown = 0;
 static int show_only_selected; // for ISO, kelvin...
 static int edit_mode = 0;
 static int config_dirty = 0;
+static char* warning_msg = 0;
 int menu_help_active = 0;
 
 static int x0 = 0;
@@ -356,11 +357,12 @@ void menu_draw_icon(int x, int y, int type, int arg)
 	icon_drawn = 1;
 	x -= 40;
 	if (type >= 0) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
+	warning_msg = 0;
 	switch(type)
 	{
 		case MNI_OFF: batsu(x, y); return;
 		case MNI_ON: maru(x, y, COLOR_GREEN1); return;
-		case MNI_WARNING: maru(x, y, COLOR_RED); return;
+		case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = arg; return;
 		case MNI_AUTO: maru(x, y, 9); return;
 		case MNI_PERCENT: percent(x, y, arg); return;
 		case MNI_ACTION: playicon(x, y); return;
@@ -407,6 +409,21 @@ menu_display(
 		{
 			draw_ml_topbar();
 			draw_ml_bottombar();
+		}
+		
+		// if there's a warning message set, display it
+		if (menu->selected && warning_msg)
+		{
+			bmp_printf(
+				FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+				x0 + 10, y0 + 430, 
+					"                                                   "
+			);
+			bmp_printf(
+				FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+				x0 + 10, y0 + 430, 
+					warning_msg
+			);
 		}
 
 		y += font_large.height - 1;

@@ -1403,7 +1403,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(z), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(z));
 }
 
 static void
@@ -1420,7 +1420,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
 	{
 		draw_line(x + 364 + i, y + 2, x + 364 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
 	}
-	menu_draw_icon(x, y, MNI_BOOL_GDR(falsecolor_draw), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(falsecolor_draw));
 }
 
 static void
@@ -1468,7 +1468,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 			x, y,
 			"Focus Peak  : OFF"
 		);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(f), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(f));
 }
 
 static void focus_peaking_adjust_thr(void* priv)
@@ -1502,8 +1502,8 @@ crop_display( void * priv, int x, int y, int selected )
 	//~ int w = h * 720 / 480;
 	//~ bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
 	if (index && cropmark_movieonly && !is_movie_mode())
-		menu_draw_icon(x, y, MNI_WARNING, 0);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(index), 0);
+		menu_draw_icon(x, y, MNI_WARNING, "Cropmarks are only displayed in movie mode");
+	menu_draw_icon(x, y, MNI_BOOL_GDR(index));
 }
 
 /*
@@ -1542,7 +1542,7 @@ hist_display( void * priv, int x, int y, int selected )
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : waveform_draw == 3 ? "FullScreen" : "OFF"
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
-	menu_draw_icon(x, y, MNI_BOOL_GDR(hist_draw || waveform_draw), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(hist_draw || waveform_draw));
 }
 
 static void
@@ -1567,7 +1567,7 @@ waveform_display( void * priv, int x, int y, int selected )
 		"Waveform    : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(*(unsigned*) priv), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(*(unsigned*) priv));
 }
 static void 
 waveform_toggle(void* priv)
@@ -1629,10 +1629,10 @@ zoom_overlay_display(
 			zoom_overlay_pos == 4 ? "SW" : "err"
 	);
 
-	if (zoom_overlay_mode && !get_zoom_overlay_mode()) // MZ enabled, but for some reason it doesn't work in current mode
-		menu_draw_icon(x, y, MNI_WARNING, 0);
+	if (zoom_overlay_mode && !get_zoom_overlay_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
+		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom is not available in this mode");
 	else
-		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode), 0);
+		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode));
 }
 
 /*
@@ -1651,7 +1651,7 @@ split_display(
 		zoom_overlay_split ? "ON" : "OFF",
 		zoom_overlay_split && zoom_overlay_split_zerocross ? ", zerocross" : ""
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_split), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_split));
 }
 
 static void split_zerocross_toggle(void* priv)
@@ -1674,7 +1674,7 @@ spotmeter_menu_display(
 		"Spotmeter   : %s",
 		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(spotmeter_draw), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(spotmeter_draw));
 }
 
 static void 
@@ -1922,7 +1922,7 @@ transparent_overlay_display(
 			"Ghost Image : %s", 
 			transparent_overlay ? "ON" : "OFF"
 		);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay), 0);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay));
 	transparent_overlay_hidden = 0;
 }
 
