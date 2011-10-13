@@ -3223,7 +3223,7 @@ static struct menu_entry expo_menus[] = {
 		.help = "You can use a different picture style when recording."
 	},
 	{
-		.name = "Contrast/Saturation",
+		.name = "Contrast/Saturation/Sharpness",
 		.display	= contrast_display,
 		.select		= contrast_toggle_forward,
 		.select_reverse		= contrast_toggle_reverse,
@@ -3231,13 +3231,14 @@ static struct menu_entry expo_menus[] = {
 		.help = "Adjust contrast in current picture style."
 	},
 	{
-		.name = "Contrast/Saturation",
+		.name = "Contrast/Saturation/Sharpness",
 		.display	= saturation_display,
 		.select		= saturation_toggle_forward,
 		.select_reverse		= saturation_toggle_reverse,
 		.help = "Adjust saturation in current picture style."
 	},
 	{
+		.name = "Contrast/Saturation/Sharpness",
 		.display	= sharpness_display,
 		.select		= sharpness_toggle_forward,
 		.select_reverse		= sharpness_toggle_reverse,

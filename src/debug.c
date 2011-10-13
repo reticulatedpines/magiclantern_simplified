@@ -1263,6 +1263,7 @@ struct menu_entry debug_menus[] = {
 	},
 	#ifndef CONFIG_50D
 	{
+		.name = 'Free Memory',
 		.display = meminfo_display,
 		.help = "Memory information (from AllocateMemory)"
 	}

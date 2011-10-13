@@ -2286,7 +2286,7 @@ struct menu_entry powersave_menus[] = {
 		.help = "Dim LCD display in LiveView when idle, to save power."
 	},
 	{
-		.name = "Turn off LCD and LV",
+		.name = "Turn off LCD",
 		.priv			= &idle_display_turn_off_after,
 		.display		= idle_display_turn_off_print,
 		.select			= idle_timeout_toggle_forward,

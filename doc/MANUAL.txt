@@ -643,6 +643,10 @@ Functions specific to movie mode.
 
   This option enables you to start/stop movie recording by half-pressing the shutter button.
 
+**Lock Shutter: ON/OFF**
+
+  This option locks the shutter value in movie mode (you will be able to change it only from ML menu).
+
 .. _WB workaround:
 
 **WB workaround: ON/OFF**
@@ -671,10 +675,7 @@ Functions specific to movie mode.
 
 **Force HDMI-VGA: ON/OFF**
 
-  This option will force a low-resolution mode on HDMI displays (720x480), which:
-  
-  * Avoids getting black screen when you start recording;
-  * Lets you use most items from `LiveV`_ menu (zebras, false color, histogram...)
+  This option will force a low-resolution mode on HDMI displays (720x480), which avoids black screen when you start/stop recording.
 
 **Movie Record: ON/OFF (50D only)**
   
@@ -1068,9 +1069,9 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 .. _Contrast:
 
-**Contrast/Saturation: -4..4**
+**Contrast/Saturation/Sharpness**
 
-  Adjusts the contrast and the saturation of the current picture style.
+  Adjusts the contrast, the saturation and the sharpness in the current picture style.
 
 .. _flash exposure compensation:
 .. _Flash AEcomp:
@@ -1155,13 +1156,14 @@ Focus
 
   * If ``Wait`` is active, ML will wait until each focus command is completed, and then it will wait for a fixed delay, as configured here. This will increase rack focus accuracy, but may cause stutter with certain lenses.
 
-**Focus End Point**
-
-    This is end point of rack focus. To set, focus the lens, then press "Set".
-    
-    The start point will be the point where you are before running the rack focus.
-
 .. _rack focus:
+
+**Focus End Point**
+  
+  This is end point of rack focus. To set, focus the lens, then press ``SET``.
+  
+  The start point will be the point where you are before running the rack focus.
+
 
 **Rack Focus**
 
@@ -1243,7 +1245,7 @@ Miscellanous settings.
  
 .. _night vision:
 
-**NightVision LV Gain: up to +6EV**
+**LVGain (NightVision): up to +6EV**
 
   This feature lets you frame the image in extremely dark places, or with strong ND or infrared filters.
 
@@ -1254,7 +1256,11 @@ Miscellanous settings.
   * To use night vision in movie mode, first you need to enable Auto ISO.
   * Since the scene is very dark, camera should select ISO 6400.
   * To get the equivalent of ISO 25600 (for example), you need to increase display gain by +2EV.
-  
+
+**DOF Preview: Normal/Sticky**
+
+  If you select ``Sticky``, the DOF preview button will become sticky (click to toggle). To lock the DOF preview button only once, press ``Q``.
+
 **AF frame display: Show / AutoHide**
 
   Control the appearance of AF frame:
@@ -1452,6 +1458,18 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
   To enable this feature, compile Magic Lantern with ``CONFIG_DEBUGMSG = 1``.
 
+**Stability tests**
+
+  This option runs various tests to make sure Magic Lantern is stable and will not crash. You can use it to test your particular configuration.
+  
+**Half-press shutter: OFF / every second / every 200 ms / every 20 ms**
+
+  Experimental: ML emulates periodic presses of half-shutter button. You can use it to disable powersaving, to keep the light meter always on, or maybe for other tricks (please share).
+
+**Free Memory**
+
+  Displays the amount of available RAM.
+
 Powersave
 ~~~~~~~~~
 
@@ -1461,7 +1479,7 @@ Powersave
 
 .. _Turn off display:
 
-**Turn off LCD and Lv: OFF / after X seconds**
+**Turn off LCD and LV: OFF / after X seconds**
 
   In LiveView, if the camera is idle, Magic Lantern will turn off the built-in LCD display and pause LiveView (turn off the sensor) in order to save power. If the camera is recording or motion detection is active, only display will be turned off.
 
