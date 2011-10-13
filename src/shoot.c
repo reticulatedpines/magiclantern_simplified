@@ -2243,8 +2243,7 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
 	int rec = (shooting_type == 4 ? 2 : 0);
 	rec_picstyle_change(rec);
-	if (rec) ui_lock(UILOCK_SHUTTER);
-	else ui_lock(UILOCK_NONE);
+	shutter_block_do(rec);
 	return prop_cleanup(token, property);
 }
 #else

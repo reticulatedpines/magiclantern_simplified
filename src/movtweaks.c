@@ -245,7 +245,7 @@ shutter_lock_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Lock Shutter  : %s",
+		"Shutter Lock  : %s",
 		shutter_lock ? "ON" : "OFF"
 	);
 }
@@ -265,6 +265,33 @@ void shutter_lock_step()
 			shutter_lock_value = shutter; // accept change from ML menu
 	}
 }
+
+#ifdef CONFIG_50D
+CONFIG_INT("shutter.block.rec", shutter_block, 1);
+
+static void
+shutter_block_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"ShutterButtons: %s",
+		shutter_block ? "Block during REC" : "Leave unchanged"
+	);
+}
+
+void shutter_block_do(int rec)
+{
+	if (!shutter_block) return;
+	if (rec) ui_lock(UILOCK_SHUTTER);
+	else ui_lock(UILOCK_NONE);
+}
+#endif
 
 static void
 movtweak_task( void* unused )
@@ -489,6 +516,22 @@ static struct menu_entry mov_menus[] = {
 		.help		= "Lock the exposure in movie mode (50D/500D)"
 	},
 #endif
+	{
+		.name = "Shutter Lock",
+		.priv = &shutter_lock,
+		.display = shutter_lock_print, 
+		.select = menu_binary_toggle,
+		.help = "Lock shutter value in movie mode (change from Expo only)."
+	},
+#ifdef CONFIG_50D
+	{
+		.name = "ShutterButtons",
+		.priv = &shutter_block,
+		.display = shutter_block_print, 
+		.select = menu_binary_toggle,
+		.help = "Prevent taking pictures while recording (avoids ERR99)."
+	},
+#endif
 	/*{
 		.name		= "Movie size",
 		.select		= movie_size_toggle,
@@ -552,13 +595,6 @@ static struct menu_entry mov_menus[] = {
 		.help = "Change the button used for recording. Hint: wired remote."
 	},
 	#endif
-	{
-		.name = "Lock Shutter",
-		.priv = &shutter_lock,
-		.display = shutter_lock_print, 
-		.select = menu_binary_toggle,
-		.help = "Lock shutter value in movie mode (change from Expo only)."
-	},
 	{
 		.name = "WB workaround",
 		.priv = &white_balance_workaround,
