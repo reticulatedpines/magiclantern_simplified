@@ -195,7 +195,7 @@ NSTUB( 0xff968800, mvrSetVGAOptSize )																	//d
 NSTUB( 0xff968638, mvrSetDeblockingFilter )																//d
 
 NSTUB( 0xff875214, strlen )																				//d
-NSTUB( 0xff968638, strcmp )																				//d
+NSTUB( 0xff8751d0, strcmp )																				//d
 NSTUB( 0xff820e7c, main_ctrl_task )																		//d
 NSTUB( 0xff834b00, LVCAF_LensDriveStart )																//d
 NSTUB( 0x7674	 , mvr_config )																			//d
