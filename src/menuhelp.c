@@ -44,7 +44,11 @@ void menu_help_show_page(int page)
 	doc = bmp_load(path, 1);
 	if (doc)
 	{
+#ifdef CONFIG_50D
+		bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0, 0);
+#else
 		bmp_draw_scaled_ex(doc, os.x0, os.y0, os.x_ex, os.y_ex, 0, 0);
+#endif
 		FreeMemory(doc);
 	}
 	else
