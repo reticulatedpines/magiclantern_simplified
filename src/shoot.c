@@ -2726,7 +2726,7 @@ seconds_clock_task( void* unused )
 		if (bulb_ramping_enabled && intervalometer_running)
 			bulb_ramping_showinfo();
 
-		if (intervalometer_running)
+		if (intervalometer_running && lens_info.job_state == 0)
 			card_led_blink(1, 50, 0);
 	}
 }
