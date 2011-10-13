@@ -1036,7 +1036,7 @@ draw_zebra_and_focus( int Z, int F )
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
-					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
+					int x = 2 * (hdp - hd_row) * bm_width / hd_width + 12;
 					x = COERCE(x, 0, 960);
 					
 					uint16_t pixel = b_row[x/2];
