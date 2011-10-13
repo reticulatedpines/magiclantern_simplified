@@ -3198,6 +3198,7 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= aperture_toggle_reverse,
 		.help = "Adjust aperture. Useful if the wheel stops working."
 	},
+#ifndef CONFIG_50D
 	{
 		.name = "Light Adjust",
 		.display	= ladj_display,
@@ -3205,6 +3206,7 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= ladj_toggle_reverse,
 		.help = "Enable/disable HTP and ALO from the same place."
 	},
+#endif
 	{
 		.name = "PictureStyle",
 		.display	= picstyle_display,

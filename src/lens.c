@@ -1195,6 +1195,7 @@ movielog_display( void * priv, int x, int y, int selected )
 	);
 }
 static struct menu_entry lens_menus[] = {
+#ifndef CONFIG_50D
 	{
 		.name = "Movie logging",
 		.priv = &movie_log,
@@ -1202,6 +1203,7 @@ static struct menu_entry lens_menus[] = {
 		.display = movielog_display,
 		.help = "Save metadata for each movie, e.g. MVI_1234.LOG"
 	},
+#endif
 };
 
 #ifndef CONFIG_FULLFRAME
