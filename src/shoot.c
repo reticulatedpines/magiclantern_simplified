@@ -3833,7 +3833,7 @@ shoot_task( void* unused )
 			was_idle_not_pressed = is_idle_not_pressed;
 		}
 
-		if (lens_info.job_state > 10) // just took a picture, maybe we should take another one
+		if (lens_info.job_state > 10 && !recording) // just took a picture, maybe we should take another one
 		{
 			//~ lens_wait_readytotakepic(64);
 			//~ if (beep_enabled) beep();
