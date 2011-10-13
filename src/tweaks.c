@@ -194,7 +194,7 @@ lv_metering_print( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LV Metering (M-ISO) : %s",
+		"LV Auto ISO (M mode): %s",
 		lv_metering == 0 ? "OFF" :
 		lv_metering == 1 ? "Spotmeter" :
 		lv_metering == 2 ? "CenteredHist" :
@@ -1135,7 +1135,7 @@ struct menu_entry tweak_menus[] = {
 	},
 	#endif
 	{
-		.name = "LV Metering (M-ISO)",
+		.name = "LV Auto ISO (M mode)",
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 

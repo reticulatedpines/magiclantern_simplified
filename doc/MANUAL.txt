@@ -1333,13 +1333,15 @@ Miscellanous settings.
   * ``x5x10``: both settings available (Canon default)
   * ``:-)`` Enable zoom in Face Detection mode
 
-**LV Metering (M-ISO)**
+.. _lv-auto-iso:
 
-  Experimental metering methods for stills in LiveView.
+**LV Auto ISO (M mode)**
+
+  Experimental Auto ISO for still photos in LiveView.
 
   This feature only works in ``M`` mode and it will only alter the ISO in 1 EV steps. 
   
-  * ``Default``: disable this feature (use default Canon metering).
+  * ``OFF``: disable this feature.
   * ``Spotmeter``: meter the image so that `spotmeter`_ shows around 50%.
   * ``CenteredHist``: center the histogram. In high-contrast scenes, the amounts of underexposed and overexposed pixels will be equal.
   * ``HighlightPri``: highlight priority:
@@ -1351,7 +1353,7 @@ Miscellanous settings.
   
   Notes:
 
-  * This feature is highly experimental and may not work as one would expect. There **are** many limitations (see below).
+  * This feature is highly experimental and may be counter-intuitive at first sight.
   * You can fine-tune the exposure by adjusting contrast (if you shoot RAW). For ETTR methods, more contrast = smaller ISO.
   * Both ``HighlightPri`` and ``NoOverexpose`` can be used for ETTR (Expose To The Right). The difference is in how they handle the shadows (``NoOverexpose`` simply ignores them completely).
   * You set shutter and aperture, ML suggests two ISO values. You can choose any of them by holding the shutter pressed halfway.
