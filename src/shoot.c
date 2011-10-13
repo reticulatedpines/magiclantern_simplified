@@ -49,6 +49,9 @@ void wait_till_next_second();
 
 volatile int bulb_shutter_value = 0;
 
+CONFIG_INT("hdr.steps", hdr_steps, 1);
+CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
+
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
 //~ static CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
@@ -92,7 +95,7 @@ PROP_HANDLER(PROP_GUI_STATE)
 {
 	int gui_state = buf[0];
 
-	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom && !intervalometer_running)
+	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom && !intervalometer_running && hdr_steps == 1)
 	{
 		fake_simple_button(BGMT_PLAY);
 	}
@@ -2405,9 +2408,6 @@ static void zoom_toggle(void* priv)
 		zoom_disable_x10 = 0;
 	}
 }
-
-CONFIG_INT("hdr.steps", hdr_steps, 1);
-CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
 
 static void 
 hdr_display( void * priv, int x, int y, int selected )
