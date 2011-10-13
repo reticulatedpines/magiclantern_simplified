@@ -227,8 +227,20 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	NotifyBox(2000, "Blocking shutter button..."); msleep(2000);
-	ui_lock(UILOCK_SHUTTER);
+	//~ NotifyBox(2000, "Blocking shutter button..."); msleep(2000);
+	//~ bulb_take_pic(2000);
+	//~ bulb_take_pic(100);
+	
+	ensure_bulb_mode();
+	lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+	for (int i = 0; i < 5; i++)
+	{
+		SW1(1,0); SW2(1,0);
+		msleep(1500);
+		SW2(0,0); SW1(0,0);
+	}
+	msleep(100);
+	lens_set_drivemode(DRIVE_SINGLE);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -367,18 +379,20 @@ static void stress_test_task(void* unused)
 
 	extern struct semaphore * gui_sem;
 
+	NotifyBox(1000, "ML menu scroll...");
 	give_semaphore(gui_sem);
 	msleep(1000);
-	for (int i = 0; i <= 500; i++)
+	for (int i = 0; i <= 1000; i++)
 	{
-		NotifyBox(1000, "ML menu scroll: %d", i);
-		switch(rand()%4)
+		static int dir = 0;
+		switch(dir)
 		{
 			case 0: fake_simple_button(BGMT_WHEEL_LEFT); break;
 			case 1: fake_simple_button(BGMT_WHEEL_RIGHT); break;
 			case 2: fake_simple_button(BGMT_WHEEL_UP); break;
 			case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
 		}
+		dir = mod(dir + rand()%3 - 1, 4);
 		msleep(10);
 	}
 	give_semaphore(gui_sem);
@@ -1930,7 +1944,7 @@ void spy_event(struct event * event)
 			event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
 			event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
 			event->arg);
-		console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+		console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\n", 
 			kev,
 			event->type, 
 			event->param, 
