@@ -142,7 +142,7 @@
 #endif
 
 #define FLASH_MAX_EV 3
-#define FLASH_MIN_EV -5
+#define FLASH_MIN_EV -10
 
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
