@@ -2037,7 +2037,7 @@ sharpness_display( void * priv, int x, int y, int selected )
 		"Sharpness   : %d ",
 		lens_get_sharpness()
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, (lens_get_sharpness() + 4) * 100 / 8);
+	menu_draw_icon(x, y, MNI_PERCENT, lens_get_sharpness() * 100 / 7);
 }
 
 static void
