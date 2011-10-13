@@ -365,6 +365,35 @@ static void stress_test_task(void* unused)
 {
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
+	extern struct semaphore * gui_sem;
+
+	give_semaphore(gui_sem);
+	msleep(1000);
+	for (int i = 0; i <= 500; i++)
+	{
+		NotifyBox(1000, "ML menu scroll: %d", i);
+		switch(rand()%4)
+		{
+			case 0: fake_simple_button(BGMT_WHEEL_LEFT); break;
+			case 1: fake_simple_button(BGMT_WHEEL_RIGHT); break;
+			case 2: fake_simple_button(BGMT_WHEEL_UP); break;
+			case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
+		}
+		msleep(10);
+	}
+	give_semaphore(gui_sem);
+
+	msleep(2000);
+	if (!lv) force_liveview();
+	for (int i = 0; i <= 100; i++)
+	{
+		NotifyBox(1000, "ML menu toggle: %d", i);
+		give_semaphore(gui_sem);
+		msleep(50);
+	}
+
+	msleep(2000);
+
 	ensure_movie_mode();
 	msleep(1000);
 	for (int i = 0; i <= 5; i++)
