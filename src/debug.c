@@ -408,6 +408,7 @@ static void stress_test_task(void* unused)
 
 	msleep(2000);
 
+	#ifndef CONFIG_50D
 	ensure_movie_mode();
 	msleep(1000);
 	for (int i = 0; i <= 5; i++)
@@ -426,6 +427,7 @@ static void stress_test_task(void* unused)
 		movie_end();
 		msleep(2000);
 	}
+	#endif
 
 	fake_simple_button(BGMT_PLAY); msleep(1000);
 	for (int i = 0; i < 100; i++)
