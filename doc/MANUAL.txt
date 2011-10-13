@@ -134,7 +134,7 @@ PLAY mode shortcuts
 ~~~~~~~~~~~~~~~~~~~
 
 * ``Q`` (550D), ``UNLOCK`` (60D), ``DISP`` (600D) or ``FUNC`` (50D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
-* ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can then move the overlay around with arrow keys in LiveView mode.
+* ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can use it for panoramas or for repeating shots.
 * ``SET`` + ``Main Dial (Wheel)`` in ``PLAY`` mode: see `SET+MainDial`_.
 
 LCD sensor shortcuts
@@ -143,11 +143,10 @@ LCD sensor shortcuts
 This feature is only available on 550D and 500D.
 
 .. _LCD sensor:
+.. _LCD backlight level:
 
 LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ), as a simple wireless `follow focus`_,
 or as shift key (see also `SensorShortcuts`_ option).
-
-.. _LCD backlight level:
 
 * LCD sensor + ``UP / DOWN``: adjust LCD backlight level.
 * LCD sensor + ``LEFT / RIGHT`` in LiveView: adjust `audio`_ gain (volume for recording).
@@ -561,10 +560,9 @@ Functions specific to movie mode.
 
   Controls H.264 bitrate used for video recording.
   
-  Possible modes (only CBR is available from menu; others can be selected only from ``magic.cfg``):
+  Possible modes (only CBR is available from menu; QScale is a hidden setting):
   
-  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting. The implementation uses variable QScale, displayed near the recording dot.
-  * ``FW default``: default bitrate used by Canon firmware (CBR, around 45mbps in 1080p, including sound).
+  * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
@@ -574,11 +572,12 @@ Functions specific to movie mode.
   
   Notes:
   
+  * CBR actually works by varying QScale; the instant value is displayed near the recording dot.
   * You can push the bitrate higher if you record without sound, then use `Audio RemoteShot`_ to sync the video with an external audio track.
-  * There is a bitrate / QScale display near the red recording dot, updated every second.
+  * There is a bitrate / QScale display near the red recording dot.
   * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain cards labeled as Class10.
   * In QScale mode, bitrate varies a lot with frame complexity, and you have no direct control over its value.
-  * In CBR mode, on scenes without a lot of details, QScale will not go further than -16, and bitrate will be lower than requested. As soon as frame complexity increases, the bitrate will increase too, and video may stop recording. In this case, bitrate meter will be displayed in red.
+  * In CBR mode, on scenes without a lot of details, QScale will not go further than -16, and bitrate **will be lower** than requested. As soon as frame complexity increases, the bitrate will increase too, and video may stop recording. In this case, bitrate meter will be displayed in red.
   * You can't change this setting during recording.
   * A red ``X`` means Magic Lantern did not make any changes to bitrate settings.
   
@@ -780,11 +779,11 @@ Functions for stills shooting (some of them work for movies, too).
   * In photo mode, it takes a sequence of photos
   * In movie mode, it takes a sequence of small videos (unless `Silent Picture`_ is active)
     
-  You can stop the intervalometer either from ML menu, or by pressing ``MENU`` or ``PLAY``, or by changing the shooting mode. You can pause the intervalometer by holding the shutter halfway, or by opening ML menu.
+  You can stop the intervalometer by rotating the mode dial.
 
   Tips:
   
-  * To avoid flicker, shoot in manual mode or use `Bulb Ramping`_, avoid short exposure times and switch the lens to MF.
+  * To avoid flicker, shoot in **manual** mode or use `Bulb Ramping`_, use **manual** white balance, **avoid short exposure** times and switch the lens to **MF**.
   * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
   * When using the intervalometer in LiveView with "noisy" mode, your shutter will wear twice as fast than outside LiveView.
   * If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
@@ -803,21 +802,23 @@ Functions for stills shooting (some of them work for movies, too).
   [[Video:Bulb_ramping_example|200px|right]]
 
   Bulb Ramping allows the capture of a timelapse that gradually changes
-  exposure over the duration of the shoot, compensating for the
+  exposure, compensating for the
   transition from day to night. 
 
   This option will adjust shutter and ISO automatically, using the 180 degree rule. Aperture is not adjusted (you can adjust it manually while running, but you will lose a few frames).
 
-  Quick start:
+  **Quick start:**
   
-  1. Take a picture of your scene. You will use this picture to say "I want my timelapse to be exposed like this picture".
-  2. Enable Bulb Ramping and Intervalometer.
-  3. Leave the camera still while ML runs a calibration step:
+  **1.** Take a picture of your scene. You will use it to say: "I want my timelapse to be exposed like this picture".
+
+  **2.** Enable Bulb Ramping and Intervalometer.
+
+  **3.** Leave the camera still while ML runs a calibration step:
   
     - Make sure you have a static and well-lit scene (any static scene which does not require long exposure should be fine).
     - After calibration, you should get a nice S-curve on the screen.
     
-  4. Now you will have to say what tone range to meter for (i.e. highlights, midtones...). Follow the wizard:
+  **4.** Now you will have to say what tone range to meter for (i.e. highlights, midtones...). Follow the wizard:
   
     - Use arrow keys to select your reference picture (which you just took).
     - Use the main dial to select the tone range to meter for. You can't perfectly match two images just by varying one parameter (exposure), so you have to choose what's important for you in this picture.
@@ -826,7 +827,7 @@ Functions for stills shooting (some of them work for movies, too).
     - The algorithm works best when brightness is close to 50% (try not to choose extreme values for it).
     - When you are ready to start, press ``SET``.
     
-  5. Sit back and relax :)
+  **5.** Sit back and relax :)
 
   Tips: 
   
@@ -932,7 +933,7 @@ Functions for stills shooting (some of them work for movies, too).
   Modes:
   
   * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie. `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
-  * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing the shutter count.
+  * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing shutter count.
   * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
   
   Keys:
@@ -995,7 +996,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the ISO value automatically. 
    
-  * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
+  * When LiveView is active, ML performs a binary search, trying to achieve a good balance between overexposure and underexposure.
   * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
 
   To compute exact ISO values from 100 to 6400, assumming 1/8 EV steps, use this formula:
@@ -1020,6 +1021,10 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Green-Magenta white balance shift. Useful for fluorescent lighting.
 
+**WBShift B/A: Blue 0..9 / Amber 0..9**
+
+  Blue-Amber white balance shift. 1 unit = 5 mireks on Kelvin axis, according to `this post <http://www.openphotographyforums.com/forums/archive/index.php/t-5450.html>`_.
+
 .. _shutter:
 
 **Shutter: 1/24...1/4000**
@@ -1038,8 +1043,8 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the shutter value automatically.
   
-  * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
-  * When LiveView is off, the shutter value is computed with the help of Auto ISO feature from Canon firmware, in 1EV steps. This feature is still experimental and sometimes it does not work.
+  * When LiveView is active, ML uses binary search, similar to ISO.
+  * When LiveView is off, the shutter value is computed with the help of Auto ISO feature from Canon firmware, in 1EV steps.
 
 **Aperture: f/1.2...f/45.0**
 
@@ -1235,6 +1240,9 @@ Tweaks
 
 Miscellanous settings.
 
+ 
+.. _night vision:
+
 **NightVision LV Gain: up to +6EV**
 
   This feature lets you frame the image in extremely dark places, or with strong ND or infrared filters.
@@ -1362,6 +1370,8 @@ Miscellanous settings.
   * Only the luma (Y) channel is checked for overexposure. Individual channels (R, G or B) may still be overexposed without any warning. Adjust your white balance properly to avoid this.
   * It's too slow for action scenes; it should work for landscapes :)
   * To override this method temporarily, just change the ISO and hold the shutter pressed halfway.
+
+
 
 Play
 ~~~~

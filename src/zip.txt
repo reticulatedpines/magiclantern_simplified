@@ -1,11 +1,13 @@
-*******************************
-* Please see the README file! *
-* THIS IS A PRE-ALPHA RELEASE *
-* IT MIGHT CORRUPT THE CAMERA *
-*******************************
+***************************************************
+*                                                 *
+* THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
+*   IF IT BREAKS, YOU GET TO KEEP BOTH PIECES.    *
+*                                                 *
+*  !!! PLEASE READ THE MANUALS BEFORE USING !!!   *
+*                                                 *
+***************************************************
 
-Information:     http://magiclantern.wikia.com/
-Donate:          http://tinyurl.com/magiclantern-donate
-
+Information:     http://magiclantern.wikia.com/unified
+Donate:          http://goo.gl/79JgB
 
 .

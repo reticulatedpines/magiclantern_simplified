@@ -88,7 +88,6 @@ prepare_zip:
 	cp $(TOP_DIR)/README .
 	cp $(DOC_DIR)/INSTALL.pdf .
 	cp $(DOC_DIR)/UserGuide.pdf .
-	cp $(SRC_DIR)/422-jpg.py .
 	mkdir cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp cropmks/
 	mkdir doc || echo "ok"
@@ -100,6 +99,7 @@ prepare_zip:
 	cp ../../installer/50D.108/*.fir .
 	cp ../../vram/rectilin.lut .
 	cp $(SRC_DIR)/FONTS.DAT .
+	cp $(SRC_DIR)/logo.bmp .
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
@@ -107,12 +107,12 @@ magiclantern-$(VERSION).zip: \
 	README \
 	INSTALL.pdf \
 	UserGuide.pdf \
-	422-jpg.py \
 	cropmks/* \
 	doc/* \
 	*.fir \
 	FONTS.DAT \
 	rectilin.lut \
+	logo.bmp \
 
 	-rm $@
 	chmod -x autoexec.bin
