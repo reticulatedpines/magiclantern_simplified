@@ -170,7 +170,6 @@ FLAGS=\
 	-Wp,-MMD,$(dir $@).$(notdir $@).d \
 	-Wp,-MT,$@ \
 	-nostdlib \
-	-mlong-calls \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
