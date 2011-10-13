@@ -136,6 +136,7 @@ lens_set_rawiso(
 )
 {
 	lens_wait_readytotakepic(64);
+	iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
 	prop_request_change( PROP_ISO, &iso, 4 );
 	//~ msleep(100);
 }

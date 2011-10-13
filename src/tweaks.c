@@ -184,7 +184,7 @@ static void expsim_toggle_reverse(void* priv)
 
 // LV metering
 //**********************************************************************
-/*
+
 CONFIG_INT("lv.metering", lv_metering, 0);
 
 static void
@@ -194,52 +194,107 @@ lv_metering_print( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LV Metering Override: %s",
+		"LV Metering (M-ISO) : %s",
 		lv_metering == 0 ? "OFF" :
 		lv_metering == 1 ? "Spotmeter" :
 		lv_metering == 2 ? "CenteredHist" :
 		lv_metering == 3 ? "HighlightPri" :
 		lv_metering == 4 ? "NoOverexpose" : "err"
 	);
+	if (shooting_mode != SHOOTMODE_M || !lv)
+		menu_draw_icon(x, y, MNI_WARNING, "Only works in photo mode (M), LiveView");
+	if (!expsim)
+		menu_draw_icon(x, y, MNI_WARNING, "ExpSim is OFF");
+}
+
+static void
+shutter_alter( int sign)
+{
+	#ifdef CONFIG_60D
+	sign *= 3;
+	#endif
+	
+	if (AE_VALUE > 5*8 && sign < 0) return;
+	if (AE_VALUE < -5*8 && sign > 0) return;
+	
+	int rs = lens_info.raw_shutter;
+	//~ for (int k = 0; k < 8; k++)
+	{
+		rs += sign;
+		lens_set_rawshutter(rs);
+		msleep(10);
+		if (lens_info.raw_shutter == rs) return;
+	}
+}
+
+static void
+iso_alter( int sign)
+{
+	sign = -sign;
+	sign *= 8;
+	
+	if (AE_VALUE > 5*8 && sign < 0) return;
+	if (AE_VALUE < -5*8 && sign > 0) return;
+	
+	int ri = lens_info.raw_iso;
+	//~ for (int k = 0; k < 8; k++)
+	{
+		ri += sign;
+		ri = MIN(ri, 120); // max ISO 6400
+		lens_set_rawiso(ri);
+		msleep(10);
+		if (lens_info.raw_iso == ri) return;
+	}
 }
 
 static void
 lv_metering_adjust()
 {
 	if (!lv) return;
+	if (!expsim) return;
+	if (gui_menu_shown()) return;
+	if (!liveview_display_idle()) return;
+	if (ISO_ADJUSTMENT_ACTIVE) return;
 	if (get_halfshutter_pressed()) return;
 	if (lv_dispsize != 1) return;
-	if (shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV) return;
+	//~ if (shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV) return;
+	if (shooting_mode != SHOOTMODE_M) return;
 	
 	if (lv_metering == 1)
 	{
 		uint8_t Y,U,V;
 		get_spot_yuv(5, &Y, &U, &V);
 		//bmp_printf(FONT_LARGE, 0, 100, "Y %d AE %d  ", Y, lens_info.ae);
-		lens_set_ae(COERCE(lens_info.ae + (128 - Y) / 5, -40, 40));
+		iso_alter(SGN(Y-128));
 	}
 	else if (lv_metering == 2) // centered histogram
 	{
 		int under, over;
 		get_under_and_over_exposure_autothr(&under, &over);
-		if (over > under) lens_set_ae(lens_info.ae - 1);
-		else lens_set_ae(lens_info.ae + 1);
+		//~ bmp_printf(FONT_MED, 10, 40, "over=%d under=%d ", over, under);
+		if (over > under) iso_alter(1);
+		else iso_alter(-1);
 	}
 	else if (lv_metering == 3) // highlight priority
 	{
 		int under, over;
-		get_under_and_over_exposure(5, 240, &under, &over);
-		if (over > 100 && under < over * 5) lens_set_ae(lens_info.ae - 1);
-		else lens_set_ae(lens_info.ae + 1);
+		get_under_and_over_exposure(10, 235, &under, &over);
+		//~ bmp_printf(FONT_MED, 10, 40, "over=%d under=%d ", over, under);
+		if (over > 100 && under < over * 5) iso_alter(1);
+		else iso_alter(-1);
 	}
 	else if (lv_metering == 4) // don't overexpose
 	{
 		int under, over;
-		get_under_and_over_exposure(5, 240, &under, &over);
-		if (over > 1000) lens_set_ae(lens_info.ae - 1);
-		else lens_set_ae(lens_info.ae + 1);
+		get_under_and_over_exposure(5, 235, &under, &over);
+		//~ bmp_printf(FONT_MED, 10, 40, "over=%d ", over);
+		if (over > 100) iso_alter(1);
+		else iso_alter(-1);
 	}
-}*/
+	msleep(500);
+	//~ bee
+	//~ beep();
+}
 
 // auto burst pic quality
 //**********************************************************************
@@ -625,10 +680,10 @@ tweak_task( void* unused)
 	{
 		msleep(50);
 		
-		/*if (lv_metering && !is_movie_mode() && lv && k % 10 == 0)
+		if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
 		{
 			lv_metering_adjust();
-		}*/
+		}
 		
 		// timelapse playback
 		if (timelapse_playback)
@@ -1079,13 +1134,14 @@ struct menu_entry tweak_menus[] = {
 		.help = "Prevents display mirroring, which may reverse ML texts."
 	},
 	#endif
-/*	{
+	{
+		.name = "LV Metering (M-ISO)",
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
-		.help = "Custom metering methods in LiveView; too slow for real use."
-	},*/
+		.help = "Experimental LV metering (Auto ISO). Too slow for real use."
+	},
 };
 
 

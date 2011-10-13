@@ -1333,6 +1333,34 @@ Miscellanous settings.
   * ``x5x10``: both settings available (Canon default)
   * ``:-)`` Enable zoom in Face Detection mode
 
+**LV Metering (M-ISO)**
+
+  Experimental metering methods for stills in LiveView.
+
+  This feature only works in ``M`` mode and it will only alter the ISO in 1 EV steps. 
+  
+  * ``Default``: disable this feature (use default Canon metering).
+  * ``Spotmeter``: meter the image so that `spotmeter`_ shows around 50%.
+  * ``CenteredHist``: center the histogram. In high-contrast scenes, the amounts of underexposed and overexposed pixels will be equal.
+  * ``HighlightPri``: highlight priority:
+  
+    - In low-contrast scenes, it will expose to the right without overexposing.
+    - In high-contrast scenes, it will allow 5x more underexposed pixels than overexposed. If this is not possible, it will overexpose the highlights.
+    
+  * ``NoOverexpose``: this will avoid overexposure, but will underexpose a lot in high-contrast scenes. For low-contrast scenes, this is ETTR (Expose To The Right).
+  
+  Notes:
+
+  * This feature is highly experimental and may not work as one would expect. There **are** many limitations (see below).
+  * You can fine-tune the exposure by adjusting contrast (if you shoot RAW). For ETTR methods, more contrast = smaller ISO.
+  * Both ``HighlightPri`` and ``NoOverexpose`` can be used for ETTR (Expose To The Right). The difference is in how they handle the shadows (``NoOverexpose`` simply ignores them completely).
+  * You set shutter and aperture, ML suggests two ISO values. You can choose any of them by holding the shutter pressed halfway.
+  * ISO is limited to full stops (1 EV). This you the best possible dynamic range, but causes flicker.
+  * Flickering (between two ISO values) is a feature. It allows you to fine-tune the result on the fly. Learn to use it.
+  * Only the luma (Y) channel is checked for overexposure. Individual channels (R, G or B) may still be overexposed without any warning. Adjust your white balance properly to avoid this.
+  * It's too slow for action scenes; it should work for landscapes :)
+  * To override this method temporarily, just change the ISO and hold the shutter pressed halfway.
+
 Play
 ~~~~
 
