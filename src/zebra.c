@@ -1403,7 +1403,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(z));
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
 }
 
 static void
@@ -1420,7 +1420,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
 	{
 		draw_line(x + 364 + i, y + 2, x + 364 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
 	}
-	menu_draw_icon(x, y, MNI_BOOL_GDR(falsecolor_draw));
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
 }
 
 static void
@@ -1542,7 +1542,7 @@ hist_display( void * priv, int x, int y, int selected )
 		waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : waveform_draw == 3 ? "FullScreen" : "OFF"
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
-	menu_draw_icon(x, y, MNI_BOOL_GDR(hist_draw || waveform_draw));
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw));
 }
 
 static void
@@ -1567,7 +1567,7 @@ waveform_display( void * priv, int x, int y, int selected )
 		"Waveform    : %s",
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(*(unsigned*) priv));
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
 }
 static void 
 waveform_toggle(void* priv)
@@ -1674,7 +1674,7 @@ spotmeter_menu_display(
 		"Spotmeter   : %s",
 		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
 	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(spotmeter_draw));
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
 
 static void 
@@ -1791,6 +1791,10 @@ int get_spot_focus(int dx)
 void spotmeter_step()
 {
     //~ if (!lv) return;
+	if (!PLAY_MODE)
+	{
+		if (!expsim) return;
+	}
 	struct vram_info *	vram = get_yuv422_vram();
 
 	if( !vram->vram )
