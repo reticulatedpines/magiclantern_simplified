@@ -1219,7 +1219,7 @@ struct menu_entry debug_menus[] = {
 		.help = "The camera may turn into a 1D Mark V or it may explode."
 	},
 	{
-		.priv		= "Stability tests: SET / PLAY",
+		.priv		= "Stability tests",
 		.select		= stress_test,
 		.display	= menu_print,
 		.select_reverse = stress_test_long,
