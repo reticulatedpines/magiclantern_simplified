@@ -1204,6 +1204,7 @@ void select_menu(char* name, int entry_index)
 				entry->selected = (i == entry_index);
 		}
 	}
+	menu_damage = 1;
 }
 
 void select_menu_by_name(char* name, char* entry_name)
@@ -1218,9 +1219,10 @@ void select_menu_by_name(char* name, char* entry_name)
 			
 			int i;
 			for(i = 0 ; entry ; entry = entry->next, i++ )
-				entry->selected = !strcmp(menu->name, name);
+				entry->selected = !strcmp(entry->name, entry_name);
 		}
 	}
+	menu_damage = 1;
 }
 
 static void
