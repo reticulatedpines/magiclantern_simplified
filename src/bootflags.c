@@ -112,7 +112,7 @@ bootflag_write_bootblock( void )
 	//~ gui_stop_menu();
 	//~ msleep(1000);
 
-	NotifyBox(1000, "cf0=%08lx cf1=%08lx\n", (uint32_t)cf_device[0], (uint32_t) cf_device[1]);
+	//~ NotifyBox(1000, "cf0=%08lx cf1=%08lx\n", (uint32_t)cf_device[0], (uint32_t) cf_device[1]);
 
 	#ifdef CONFIG_50D
 	struct cf_device * const dev = cf_device[0];
@@ -120,9 +120,9 @@ bootflag_write_bootblock( void )
 	struct cf_device * const dev = sd_device[1];
 	#endif
 
-	NotifyBox(1000, "malloc'ing");
+	//~ NotifyBox(1000, "malloc'ing");
 	uint8_t *block = alloc_dma_memory( 512 );
-	NotifyBox(1000, "malloc => %x", block);
+	//~ NotifyBox(1000, "malloc => %x", block);
 	//~ uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
 	int i;
 	//~ console_printf("%s: buf=%08x\n", __func__, (uint32_t)block);
@@ -132,12 +132,12 @@ bootflag_write_bootblock( void )
 
 	
 	int rc = dev->read_block( dev, block, 0, 1 );
-	NotifyBox(1000, "read_block => %x", rc);
+	//~ NotifyBox(1000, "read_block => %x", rc);
 
 	struct partition_table p;
 	fsuDecodePartitionTable(block + 446, &p);
 
-	NotifyBox(1000, "decoded => %x,%x,%x", p.type, p.sectors_before_partition, p.sectors_in_partition);
+	//~ NotifyBox(1000, "decoded => %x,%x,%x", p.type, p.sectors_before_partition, p.sectors_in_partition);
 
 	if (p.type == 6 || p.type == 0xb || p.type == 0xc) // FAT16 or FAT32
 	{
@@ -146,7 +146,7 @@ bootflag_write_bootblock( void )
 		int off2 = p.type == 6 ? 0x40 : 0x5c;
 		my_memcpy( block + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
 		my_memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
-		NotifyBox(1000, "writing");
+		//~ NotifyBox(1000, "writing");
 		rc = dev->write_block( dev, block, p.sectors_before_partition, 1 );
 		if (rc != 1) NotifyBox(1000, "Bootflag write failed\np.type=%d, p.sec = %d, rc=%d", p.type, p.sectors_before_partition, rc);
 	}
@@ -154,9 +154,9 @@ bootflag_write_bootblock( void )
 	{
 		NotifyBox(2000, "Unknown partition: %d", p.type);
 	}
-	NotifyBox(1000, "cleanup");
+	//~ NotifyBox(1000, "cleanup");
 	free_dma_memory( block );
-	NotifyBox(1000, "done");
+	//~ NotifyBox(1000, "done");
 }
 
 /** Perform an initial install and configuration */

@@ -1048,11 +1048,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				take_screenshot(0);
 		}
 
+#ifndef CONFIG_50D
 		if (MENU_MODE) 
 		{
 			HijackFormatDialogBox_main();
 		}
-
+#endif
 		//~ if (BTN_METERING_PRESSED_IN_LV)
 		//~ {
 			//~ while (BTN_METERING_PRESSED_IN_LV) msleep(100);
