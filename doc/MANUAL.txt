@@ -701,11 +701,12 @@ Functions specific to movie mode.
 
   Locks the exposure in movie mode. You can also use the ``*`` button (you don't have to hold it pressed).
 
-**ShutterButtons: Block during REC / Leave unchanged (50D only)**
+**Shutter Button: Leave unchanged / Block during REC / Hold during REC (IS) (50D only)**
 
-  This option lets you block the shutter and related (AF, *) buttons while recording. In 50D, taking pictures while recording would result in ERR99; with this option, you can avoid taking pictures while recording by mistake. 
+  * ``Leave unchanged``: obvious :)
+  * ``Block during REC``: blocks the shutter and related (AF, ``*``) buttons while recording. In 50D, taking pictures while recording would result in ERR99; with this option, you can avoid taking pictures while recording by mistake. Side effect: this will disable image stabilization during recording.
+  * ``Hold during REC (IS)``: ML will keep the shutter button pressed half-way during recording, which will enable image stabilization (IS). Side effect: you need to press the shutter button half way to turn IS off before the camera will let you stop recording.
   
-  Warning: this will disable image stabilization during recording.
 
 Shoot
 ~~~~~

@@ -27,3 +27,6 @@ These settings can not be changed from the ML menu::
     
     # hide zebras when recording
     zebra.nrec = 1
+    
+    # Enable "Split Screen" display for Magic Zoom
+    zoom_overlay_split = 1

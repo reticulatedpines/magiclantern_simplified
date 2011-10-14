@@ -267,10 +267,10 @@ void shutter_lock_step()
 }
 
 #ifdef CONFIG_50D
-CONFIG_INT("shutter.block.rec", shutter_block, 1);
+CONFIG_INT("shutter.btn.rec", shutter_btn_rec, 1);
 
 static void
-shutter_block_print(
+shutter_btn_rec_print(
 	void *			priv,
 	int			x,
 	int			y,
@@ -280,16 +280,25 @@ shutter_block_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ShutterButtons: %s",
-		shutter_block ? "Block during REC" : "Leave unchanged"
+		"Shutter Button: %s",
+		shutter_btn_rec == 0 ? "Leave unchanged" :
+		shutter_btn_rec == 1 ? "Block during REC" :
+		shutter_btn_rec == 2 ? "Hold during REC (IS)" : "err"
 	);
 }
 
-void shutter_block_do(int rec)
+void shutter_btn_rec_do(int rec)
 {
-	if (!shutter_block) return;
-	if (rec) ui_lock(UILOCK_SHUTTER);
-	else ui_lock(UILOCK_NONE);
+	if (shutter_btn_rec == 1)
+	{
+		if (rec) ui_lock(UILOCK_SHUTTER);
+		else ui_lock(UILOCK_NONE);
+	}
+	else if (shutter_btn_rec == 2)
+	{
+		if (rec) SW1(1,0);
+		else SW1(0,0);
+	}
 }
 #endif
 
@@ -525,11 +534,12 @@ static struct menu_entry mov_menus[] = {
 	},
 #ifdef CONFIG_50D
 	{
-		.name = "ShutterButtons",
-		.priv = &shutter_block,
-		.display = shutter_block_print, 
-		.select = menu_binary_toggle,
-		.help = "Prevent taking pictures while recording (avoids ERR99)."
+		.name = "Shutter Button",
+		.priv = &shutter_btn_rec,
+		.display = shutter_btn_rec_print, 
+		.select = menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		.help = "Block it while REC (avoids ERR99) or hold it (enables IS)."
 	},
 #endif
 	/*{
