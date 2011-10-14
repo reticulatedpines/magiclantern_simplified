@@ -88,7 +88,6 @@ int is_intervalometer_running() { return intervalometer_running; }
 static int audio_release_running = 0;
 int motion_detect = 0;
 //int motion_detect_level = 8;
-static int drive_mode_bk = -1;
 
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 PROP_HANDLER(PROP_GUI_STATE)
@@ -423,6 +422,30 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 
 int face_zoom_request = 0;
 
+
+void halfshutter_action(int v)
+{
+	static int prev_v;
+	if (v == prev_v) return;
+	prev_v = v;
+
+
+	// avoid camera shake for HDR shots => force self timer
+	static int drive_mode_bk = -1;
+	if (v == 1 && (hdr_steps > 1 || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC)
+	{
+		drive_mode_bk = drive_mode;
+		lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+	}
+
+	// restore drive mode if it was changed
+	if (v == 0 && drive_mode_bk >= 0)
+	{
+		lens_set_drivemode(drive_mode_bk);
+		drive_mode_bk = -1;
+	}
+}
+
 int hs = 0;
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	int v = *(int*)buf;
@@ -435,7 +458,26 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	{
 		gui_stop_menu();
 	}*/
+	
+	halfshutter_action(v);
+	
 	return prop_cleanup( token, property );
+}
+
+int handle_shutter_events(struct event * event)
+{
+	switch(event->param)
+	{
+		case BGMT_PRESS_HALFSHUTTER:
+		case BGMT_UNPRESS_HALFSHUTTER:
+		{
+			int h = HALFSHUTTER_PRESSED;
+			if (!h) msleep(50); // avoids cancelling self-timer too early
+			halfshutter_action(h);
+		}
+	}
+	return 1;
+
 }
 
 /*int sweep_lv_on = 0;
@@ -3790,21 +3832,6 @@ shoot_task( void* unused )
 		{
 			center_lv_afframe_do();
 			center_lv_aff = 0;
-		}
-		
-		// avoid camera shake for HDR shots => force self timer
-		
-		if ((hdr_steps > 1 || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC)
-		{
-			drive_mode_bk = drive_mode;
-			lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-		}
-
-		// restore drive mode if it was changed
-		if (!get_halfshutter_pressed() && drive_mode_bk >= 0)
-		{
-			lens_set_drivemode(drive_mode_bk);
-			drive_mode_bk = -1;
 		}
 		
 		if (bulb_duration_index && is_bulb_mode() && !gui_menu_shown())
