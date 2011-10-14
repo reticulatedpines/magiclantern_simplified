@@ -422,9 +422,11 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 
 int face_zoom_request = 0;
 
+int hdr_intercept = 1;
 
 void halfshutter_action(int v)
 {
+	if (!hdr_intercept) return;
 	static int prev_v;
 	if (v == prev_v) return;
 	prev_v = v;
@@ -459,21 +461,24 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 		gui_stop_menu();
 	}*/
 	
-	halfshutter_action(v);
+	if (hdr_steps > 1) halfshutter_action(v);
 	
 	return prop_cleanup( token, property );
 }
 
 int handle_shutter_events(struct event * event)
 {
-	switch(event->param)
+	if (hdr_steps > 1)
 	{
-		case BGMT_PRESS_HALFSHUTTER:
-		case BGMT_UNPRESS_HALFSHUTTER:
+		switch(event->param)
 		{
-			int h = HALFSHUTTER_PRESSED;
-			if (!h) msleep(50); // avoids cancelling self-timer too early
-			halfshutter_action(h);
+			case BGMT_PRESS_HALFSHUTTER:
+			case BGMT_UNPRESS_HALFSHUTTER:
+			{
+				int h = HALFSHUTTER_PRESSED;
+				if (!h) msleep(50); // avoids cancelling self-timer too early
+				halfshutter_action(h);
+			}
 		}
 	}
 	return 1;
@@ -2532,11 +2537,11 @@ bulb_take_pic(int duration)
 	msleep(100);
 	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	mlu_lock_mirror_if_needed();
-	NotifyBox(3000, "BulbStart (%d)", duration);
+	//~ NotifyBox(3000, "BulbStart (%d)", duration);
 	SW1(1,50);
 	SW2(1,0);
 	msleep(duration);
-	NotifyBox(3000, "BulbEnd");
+	//~ NotifyBox(3000, "BulbEnd");
 	SW2(0,50);
 	SW1(0,0);
 	msleep(100);
@@ -3868,11 +3873,13 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10 && !recording) // just took a picture, maybe we should take another one
 		{
+			hdr_intercept = 0;
 			//~ lens_wait_readytotakepic(64);
 			//~ if (beep_enabled) beep();
 			if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
 			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
 			//~ if (beep_enabled) beep();
+			hdr_intercept = 1;
 		}
 
 		// toggle flash on/off for next picture
