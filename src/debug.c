@@ -365,9 +365,7 @@ static void stress_test_picture(int n, int delay)
 	{
 		NotifyBox(10000, "Picture taking: %d/%d", i+1, n);
 		msleep(200);
-		assign_af_button_to_star_button();
-		lens_take_picture(64);
-		restore_af_button_assignment();
+		lens_take_picture(64, 0);
 	}
 	lens_wait_readytotakepic(64);
 	msleep(delay);
@@ -416,11 +414,11 @@ static void stress_test_task(void* unused)
 		NotifyBox(1000, "Pics while recording: %d", i);
 		movie_start();
 		msleep(1000);
-		lens_take_picture(64);
+		lens_take_picture(64, 0);
 		msleep(1000);
-		lens_take_picture(64);
+		lens_take_picture(64, 0);
 		msleep(1000);
-		lens_take_picture(64);
+		lens_take_picture(64, 0);
 		while (lens_info.job_state) msleep(100);
 		while (!lv) msleep(100);
 		msleep(1000);

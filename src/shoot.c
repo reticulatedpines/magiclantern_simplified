@@ -422,6 +422,7 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 
 int face_zoom_request = 0;
 
+#if 0
 int hdr_intercept = 1;
 
 void halfshutter_action(int v)
@@ -434,7 +435,7 @@ void halfshutter_action(int v)
 
 	// avoid camera shake for HDR shots => force self timer
 	static int drive_mode_bk = -1;
-	if (v == 1 && (hdr_steps > 1 || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC)
+	if (v == 1 && (hdr_steps > 1 || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
 	{
 		drive_mode_bk = drive_mode;
 		lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
@@ -447,6 +448,7 @@ void halfshutter_action(int v)
 		drive_mode_bk = -1;
 	}
 }
+#endif
 
 int hs = 0;
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
@@ -461,13 +463,15 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 		gui_stop_menu();
 	}*/
 	
-	if (hdr_steps > 1) halfshutter_action(v);
+	//~ if (hdr_steps > 1) halfshutter_action(v);
 	
 	return prop_cleanup( token, property );
 }
 
 int handle_shutter_events(struct event * event)
 {
+	return 1;
+#if 0 // not reliable
 	if (hdr_steps > 1)
 	{
 		switch(event->param)
@@ -482,7 +486,7 @@ int handle_shutter_events(struct event * event)
 		}
 	}
 	return 1;
-
+#endif
 }
 
 /*int sweep_lv_on = 0;
@@ -3345,7 +3349,7 @@ static void take_a_pic()
 	else
 	{
 		if (is_bulb_mode()) bulb_take_pic(bulb_shutter_value);
-		else lens_take_picture(64);
+		else lens_take_picture(64, 0);
 	}
 	lens_wait_readytotakepic(64);
 }
@@ -3840,7 +3844,23 @@ shoot_task( void* unused )
 			center_lv_afframe_do();
 			center_lv_aff = 0;
 		}
+
+		// avoid camera shake for HDR shots => force self timer
+		static int drive_mode_bk = -1;
+		if ((hdr_steps > 1 || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+		{
+			drive_mode_bk = drive_mode;
+			lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+		}
 		
+		// restore drive mode if it was changed
+		if (!get_halfshutter_pressed() && drive_mode_bk >= 0)
+		{
+			msleep(50);
+			lens_set_drivemode(drive_mode_bk);
+			drive_mode_bk = -1;
+		}
+	
 		if (bulb_duration_index && is_bulb_mode() && !gui_menu_shown())
 		{
 			// look for a transition of half-shutter during idle state
@@ -3875,13 +3895,13 @@ shoot_task( void* unused )
 
 		if (lens_info.job_state > 10 && !recording) // just took a picture, maybe we should take another one
 		{
-			hdr_intercept = 0;
+			//~ hdr_intercept = 0;
 			//~ lens_wait_readytotakepic(64);
 			//~ if (beep_enabled) beep();
 			if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
 			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
 			//~ if (beep_enabled) beep();
-			hdr_intercept = 1;
+			//~ hdr_intercept = 1;
 		}
 
 		// toggle flash on/off for next picture
@@ -3924,6 +3944,7 @@ shoot_task( void* unused )
 
 		if (tfx) // MF
 		{
+			if (HALFSHUTTER_PRESSED) card_led_on(); else card_led_off();
 			if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
 			{
 				remote_shot(0);
@@ -3948,9 +3969,7 @@ shoot_task( void* unused )
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
 				if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
 				{
-					assign_af_button_to_star_button();
 					remote_shot(1);
-					restore_af_button_assignment();
 					//~ msleep(trap_focus_delay);
 					K = 0;
 				}
@@ -3962,9 +3981,7 @@ shoot_task( void* unused )
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
 				if (K > 50 && d >= (int)motion_detect_level)
 				{
-					assign_af_button_to_star_button();
 					remote_shot(1);
-					restore_af_button_assignment();
 					//~ msleep(trap_focus_delay);
 					K = 0;
 				}
@@ -3981,7 +3998,7 @@ shoot_task( void* unused )
 			if (silent_pic_countdown) silent_pic_countdown--;
 		}
 
-		if (silent_pic_mode && get_halfshutter_pressed())
+		if (lv && silent_pic_mode && get_halfshutter_pressed())
 		{
 			if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
 				continue;
