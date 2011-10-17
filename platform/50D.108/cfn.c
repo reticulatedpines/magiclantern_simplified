@@ -67,6 +67,14 @@ int get_mlu()
 	return cfn3[1] & 0x10000;
 }
 
-void assign_af_button_to_star_button() {}
-void assign_af_button_to_halfshutter() {}
-void restore_af_button_assignment() {}
+void cfn_set_af_button(int value)
+{
+	//~ cfn[2] &= ~0xF00;
+	//~ cfn[2] |= (value << 8) & 0xF00;
+	//~ prop_request_change(PROP_CFN, cfn, CFN1_LEN);
+}
+
+int cfn_get_af_button_assignment()
+{
+	//~ return (cfn[2] & 0xF00) >> 8;
+}

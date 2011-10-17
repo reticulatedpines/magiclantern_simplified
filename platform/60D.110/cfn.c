@@ -62,41 +62,16 @@ int get_mlu()
 	return cfn3[1] & 0x100;
 }
 
-// used for showing AF patterns
-// todo: find a more elegant method to trigger AF points display in viewfinder 
-int af_button_assignment = -1;
-void assign_af_button_to_halfshutter()
+void cfn_set_af_button(int value)
 {
-	msleep(10);
-	lens_wait_readytotakepic();
-	af_button_assignment = cfn4[0] & 0xF00;
 	cfn4[0] &= ~0xF00;
+	cfn4[0] |= (value << 8) & 0xF00;
 	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
-	msleep(10);
 }
 
-// for stack focus
-void assign_af_button_to_star_button()
+int cfn_get_af_button_assignment()
 {
-	msleep(10);
-	lens_wait_readytotakepic();
-	af_button_assignment = cfn4[0] & 0xF00;
-	cfn4[0] &= ~0xF00;
-	cfn4[0] |= 0x400;
-	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
-	msleep(10);
-}
-
-void restore_af_button_assignment()
-{
-	msleep(10);
-	lens_wait_readytotakepic();
-	if (af_button_assignment == -1) return;
-	cfn4[0] &= ~0xF00;
-	cfn4[0] |= af_button_assignment;
-	af_button_assignment = -1;
-	prop_request_change(PROP_CFN4, cfn4, CFN4_LEN);
-	msleep(10);
+	return (cfn4[0] & 0xF00) >> 8;
 }
 
 int get_cfn_function_for_set_button()

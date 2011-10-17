@@ -296,3 +296,7 @@
 #define BFNT_BITMAP_DATA   0xff899be4
 
 #define DLG_SIGNATURE 0x006e4944 // just print it
+
+// from CFn
+#define AF_BTN_HALFSHUTTER 0
+#define AF_BTN_STAR 1

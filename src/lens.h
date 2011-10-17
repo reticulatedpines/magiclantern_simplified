@@ -192,7 +192,8 @@ int lens_get_ae();
 
 extern int
 lens_take_picture(
-	uint32_t		wait
+	int		wait, 
+	int allow_af
 );
 
 

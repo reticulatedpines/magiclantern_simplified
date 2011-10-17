@@ -763,42 +763,85 @@ void lens_wait_readytotakepic(int wait)
 	}
 }
 
-
 int mirror_locked = 0;
-void mlu_lock_mirror_if_needed()
+void mlu_lock_mirror_if_needed() // called by lens_take_picture
 {
 	if (get_mlu() && !lv)
 	{
 		if (!mirror_locked)
 		{
 			mirror_locked = 1;
-			lens_take_picture(64); msleep(1000);
+			call("Release");
+			msleep(1000);
 		}
 	}
 }
 
+int af_button_assignment = -1;
+// to preview AF patterns
+void assign_af_button_to_halfshutter()
+{
+	take_semaphore(lens_sem, 0);
+	msleep(10);
+	lens_wait_readytotakepic(64);
+	if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
+	cfn_set_af_button(AF_BTN_HALFSHUTTER);
+	msleep(10);
+	give_semaphore(lens_sem);
+}
+
+// to prevent AF
+void assign_af_button_to_star_button()
+{
+	take_semaphore(lens_sem, 0);
+	msleep(10);
+	lens_wait_readytotakepic(64);
+	if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
+	cfn_set_af_button(AF_BTN_STAR);
+	msleep(10);
+	give_semaphore(lens_sem);
+}
+
+void restore_af_button_assignment()
+{
+	take_semaphore(lens_sem, 0);
+	msleep(10);
+	lens_wait_readytotakepic(64);
+	if (af_button_assignment == -1) return;
+	cfn_set_af_button(af_button_assignment);
+	msleep(10);
+	give_semaphore(lens_sem);
+}
+
+
 int
 lens_take_picture(
-	uint32_t			wait
+	int			wait, 
+	int allow_af
 )
 {
+	if (!allow_af) assign_af_button_to_star_button();
+	take_semaphore(lens_sem, 0);
 	lens_wait_readytotakepic(64);
-
-	mlu_lock_mirror_if_needed();
 	
-	//~ bmp_printf(FONT_LARGE, 50, 50, "Release [%d]", get_exposure_time_raw());
-	//~ msleep(3000);
+	mlu_lock_mirror_if_needed();
+
 	call( "Release", 0 );
-	//~ RemoteRelease(0);
-	//~ bmp_printf(FONT_LARGE, 50, 50, "Release OK");
-
+	
 	if( !wait )
+	{
+		give_semaphore(lens_sem);
+		if (!allow_af) restore_af_button_assignment();
 		return 0;
-
-	msleep(200);
-	lens_wait_readytotakepic(wait);
-
-	return lens_info.job_state;
+	}
+	else
+	{
+		msleep(200);
+		lens_wait_readytotakepic(wait);
+		give_semaphore(lens_sem);
+		if (!allow_af) restore_af_button_assignment();
+		return lens_info.job_state;
+	}
 }
 
 static FILE * mvr_logfile = INVALID_PTR;
