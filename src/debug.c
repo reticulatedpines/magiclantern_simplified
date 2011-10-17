@@ -1963,7 +1963,7 @@ int flash_movie_pressed = 0;
 int get_flash_movie_pressed() { return flash_movie_pressed; }
 
 int halfshutter_pressed = 0;
-int get_halfshutter_pressed() { return halfshutter_pressed; }
+int get_halfshutter_pressed() { return halfshutter_pressed && !dofpreview; }
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;

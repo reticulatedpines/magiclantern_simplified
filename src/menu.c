@@ -1281,6 +1281,8 @@ menu_title_hack_print(
 // this should work on most cameras
 int handle_ml_menu_erase(struct event * event)
 {
+	if (dofpreview) return 1; // don't open menu when DOF preview is locked
+	
 	if (event->param == BGMT_TRASH)
 	{
 		if (gui_menu_shown() || gui_state == GUISTATE_IDLE) 

@@ -1600,7 +1600,7 @@ clearscreen_display(
 		"ClearScreen : %s",
 		//~ mode ? "ON (HalfShutter)" : "OFF"
 		mode == 0 ? "OFF" : 
-		mode == 1 ? "HalfShutter" : 
+		mode == 1 ? "HalfShutter/DOF" : 
 		mode == 2 ? "WhenIdle" : "err"
 	);
 }
@@ -2692,7 +2692,7 @@ int liveview_display_idle()
 		lens_info.job_state < 10 &&
 		!mirror_down &&
 		//~ !zebra_paused &&
-		!(clearscreen == 1 && get_halfshutter_pressed());
+		!(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
@@ -2704,7 +2704,7 @@ void zebra_sleep_when_tired()
 {
 	if (!zebra_should_run())
 	{
-		while (clearscreen == 1 && get_halfshutter_pressed()) msleep(100);
+		while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
 		if (zebra_should_run()) return;
 		//~ if (!gui_menu_shown()) ChangeColorPaletteLV(4);
 		if (lv && !gui_menu_shown()) redraw();
@@ -2827,7 +2827,7 @@ int idle_countdown_killflicker_prev = 5;
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
 #if CONFIG_DEBUGMSG
-	NotifyBox(1000, "wakeup: %x   ", reason);
+	NotifyBox(1000, "wakeup: %d   ", reason);
 #endif
 
 	// those are for powersaving
@@ -3020,7 +3020,7 @@ clearscreen_loop:
 		}*/
 
 		// clear overlays on shutter halfpress
-		if (clearscreen == 1 && get_halfshutter_pressed() && !gui_menu_shown())
+		if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
 		{
 			BMP_LOCK( clrscr_mirror(); )
 			int i;
@@ -3028,11 +3028,11 @@ clearscreen_loop:
 			{
 				lens_display_set_dirty();
 				msleep(10);
-				if (!get_halfshutter_pressed() || dofpreview)
+				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;
 			}
 			bmp_off();
-			while (get_halfshutter_pressed()) msleep(100);
+			while ((get_halfshutter_pressed() || dofpreview)) msleep(100);
 			bmp_on();
 		}
 		//~ else if (clearscreen == 2)  // always clear overlays
