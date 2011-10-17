@@ -50,6 +50,7 @@ static int handle_buttons(struct event * event)
 	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
 	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
 
+	#if 0
 	extern int digital_zoom_shortcut;
 	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
 	{
@@ -78,6 +79,7 @@ static int handle_buttons(struct event * event)
 			}
 		}
 	}
+	#endif
 
 	// common to all cameras
 	spy_event(event); // for debugging only

@@ -410,7 +410,7 @@ hdmi_force_display(
 }
 
 
-#ifdef CONFIG_600D
+#if 0
 CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
 
 void digital_zoom_shortcut_display(
@@ -612,7 +612,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
-#ifdef CONFIG_600D
+#if 0
 	{
 		.name = "DigitalZoom Shortcut",
 		.priv = &digital_zoom_shortcut,
