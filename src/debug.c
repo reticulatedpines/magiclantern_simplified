@@ -231,16 +231,9 @@ void run_test()
 	//~ bulb_take_pic(2000);
 	//~ bulb_take_pic(100);
 	
-	ensure_bulb_mode();
-	lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-	for (int i = 0; i < 5; i++)
-	{
-		SW1(1,0); SW2(1,0);
-		msleep(1500);
-		SW2(0,0); SW1(0,0);
-	}
-	msleep(100);
-	lens_set_drivemode(DRIVE_SINGLE);
+	static int zoom[] = {0xc, 0, 30, 0xc, 2};
+	zoom[2] = video_mode_fps;
+	prop_request_change(PROP_VIDEO_MODE, zoom, 20);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c

@@ -410,8 +410,8 @@ hdmi_force_display(
 }
 
 
-#if 0
-CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
+#if 1
+CONFIG_INT("t3i.digital.zoom.shortcut", digital_zoom_shortcut, 0);
 
 void digital_zoom_shortcut_display(
         void *                  priv,
@@ -612,7 +612,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
-#if 0
+#if 1
 	{
 		.name = "DigitalZoom Shortcut",
 		.priv = &digital_zoom_shortcut,

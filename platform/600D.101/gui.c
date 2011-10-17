@@ -50,7 +50,7 @@ static int handle_buttons(struct event * event)
 	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
 	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
 
-	#if 0
+	#if 1
 	extern int digital_zoom_shortcut;
 	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
 	{
@@ -58,7 +58,8 @@ static int handle_buttons(struct event * event)
 		{
 			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 			{
-				int zoom[] = {0xc, 0, video_mode_fps, 0xc, 2};
+				static int zoom[] = {0xc, 0, 30, 0xc, 2};
+				zoom[2] = video_mode_fps;
 				prop_request_change(PROP_VIDEO_MODE, zoom, 20);
 				return 0;
 			}
@@ -73,7 +74,8 @@ static int handle_buttons(struct event * event)
 			}
 			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
 			{
-				int nozoom[] = {0, 0, video_mode_fps, 0xc, 0};
+				static int nozoom[] = {0, 0, 30, 0xc, 0};
+				nozoom[2] = video_mode_fps;
 				prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
 				return 0;
 			}
