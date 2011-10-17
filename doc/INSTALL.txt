@@ -56,6 +56,16 @@ There are 2 ways of running user code on Canon DSLR cameras:
 2. using the bootdisk process: the ``autoexec.bin`` file is loaded and executed. 
    This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
 
+With great power comes great responsibility!
+============================================
+
+Before installing Magic Lantern, you need to:
+
+* Know how to use a computer (how to download a file, how to unzip an archive, how to open a PDF document...)
+* `Know your camera. <http://blog.epicedits.com/2007/11/12/how-well-do-you-really-know-your-camera/>`_ Please don't ask us how to change ISO in video mode or what is Highlight Tone Priority. Magic Lantern `is a tool for power users <http://groups.google.com/group/ml-devel/msg/95e8e9d468eaf624>`_, not a cool toy for beginners. We recommend you to use your camera for a few months (or more!) before even thinking of installing third-party firmware.
+* Do your research. Read the `user guide <http://magiclantern.wikia.com/wiki/Unified/UserGuide>`_ and the [[FAQ]], explore the `wiki <http://magiclantern.wikia.com/wiki/Special:AllPages>`_ and the `forums <http://magiclantern.wikia.com/wiki/Unified#Magic_Lantern_Community>`_.
+* Be patient. Magic Lantern is actually very easy to use once you know the basics.
+
 First-time installation 
 =======================
 
@@ -127,6 +137,10 @@ Updating Magic Lantern
 
 * To install an updated version, just unzip (or copy) all Magic Lantern files on your SD card and overwrite the old ones.
 
+.. raw:: latex
+
+   \newpage
+
 Uninstalling Magic Lantern
 ==========================
 
@@ -156,10 +170,6 @@ Uninstalling ML from the camera
     :width: 3cm
 
 
-.. raw:: latex
-
-   \newpage
-
 Troubleshooting
 ===============
 
@@ -168,5 +178,5 @@ Troubleshooting
 * **If the screen does not turn on, but autofocus works**, remove the battery and format the card. This happens when the card is bootable, but autoexec.bin is not there.
 * **Check if all doors are closed.** The camera will not boot if any of the SD card or battery doors are open !
 * **If the camera does not boot** (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
-* **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!**
+* **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!
 * Check the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues issue tracker>`_ for similar problems; if you can't find the solution, create a new issue there.
