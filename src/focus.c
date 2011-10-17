@@ -83,6 +83,9 @@ display_lens_hyperfocal(
 	int			selected
 )
 {
+	if (!lv) return;
+	if (!lens_info.focus_dist) return;
+	
 	unsigned		font = FONT_MED;
 	unsigned		height = fontspec_height( font );
 
