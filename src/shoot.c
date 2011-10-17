@@ -4065,7 +4065,11 @@ shoot_task( void* unused )
 			if (!is_movie_mode() || silent_pic_mode)
 				hdr_shot(0, 1);
 			else
+			{
 				short_movie();
+				// in movie mode, time starts since the end of last movie (not since the start)
+				intervalometer_next_shot_time = seconds_clock + dt;
+			}
 			intervalometer_pictures_taken++;
 			
 		}
