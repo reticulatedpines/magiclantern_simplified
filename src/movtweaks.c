@@ -227,9 +227,9 @@ void force_liveview()
 {
 	ResumeLiveView();
 	while (get_halfshutter_pressed()) msleep(100);
-	get_out_of_play_mode(2000);
+	get_out_of_play_mode(500);
 	if (!lv) fake_simple_button(BGMT_LV);
-	msleep(1000);
+	msleep(500);
 }
 
 CONFIG_INT("shutter.lock", shutter_lock, 0);
