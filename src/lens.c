@@ -184,7 +184,7 @@ update_lens_display()
 {
 	draw_ml_topbar();
 
-	if (lv_disp_mode == 0 || flicker_being_killed())
+	if (lv_disp_mode == 0 || flicker_being_killed() || EXT_MONITOR_CONNECTED)
 	{
 		if (!get_halfshutter_pressed())
 		{
