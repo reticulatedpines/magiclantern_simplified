@@ -1024,17 +1024,15 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 					display_shortcut_key_hints_lv();
 				)
 				#ifndef CONFIG_50D
-				if (is_movie_mode() && !ae_mode_movie && !gui_menu_shown()) 
+				static int ae_warned = 0;
+				if (is_movie_mode() && !ae_mode_movie) 
 				{
-					static int ae_warned = 0;
-					if (!ae_warned)
+					if (!ae_warned && !gui_menu_shown())
 					{
-						NotifyBox(2000, "!!! Auto exposure !!!");
-						NotifyBox(2000, "Set 'Movie Exposure -> Manual'");
-						msleep(5000);
+						NotifyBox(2000, "!!! Auto exposure !!!"); msleep(2000);
+						NotifyBox(2000, "Set 'Movie Exposure -> Manual'"); msleep(2000);
 						ae_warned = 1;
 					}
-					else ae_warned = 0;
 				}
 				#endif
 			}
