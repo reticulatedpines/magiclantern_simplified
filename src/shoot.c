@@ -2298,7 +2298,9 @@ PROP_HANDLER(PROP_MVR_REC_START)
 {
 	int rec = buf[0];
 	extern int ml_started;
+	#ifndef CONFIG_600D // beep disables the audio device on 600D?!
 	if (beep_enabled && rec != 2 && ml_started) beep();
+	#endif
 	rec_picstyle_change(rec);
 	return prop_cleanup(token, property);
 }
