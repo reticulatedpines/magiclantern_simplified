@@ -2465,7 +2465,7 @@ void zoom_overlay_toggle()
 int handle_zoom_overlay(struct event * event)
 {
 	// zoom in when recording => enable Magic Zoom 
-	if (get_zoom_overlay_mode() && recording == 2 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
