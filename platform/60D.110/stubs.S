@@ -255,3 +255,5 @@ NSTUB(0xFF134C1C, ptpPropButtonSW1)
 NSTUB(0xFF134D5C, ptpPropButtonSW2)
 
 NSTUB(0xff06f6d8, GetMemoryInformation) // called from AllocateMemory
+
+NSTUB(0xff20ba7c, GUI_SetRollingPitchingLevelStatus);

@@ -73,7 +73,7 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
         }
     } while (dx<=dy);
 }
-/*
+
 #include "cordic-16bit.h"
 
 void cordic_ex(int theta, int* s, int* c, int n)
@@ -105,4 +105,11 @@ void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
         draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
     }
 }
-*/
+
+void draw_angled_line(int x, int y, int r, int ang, color cl)
+{
+	int s, c;
+	cordic_ex(ang * MUL / 573, &s, &c, 16);
+	draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
+}
+

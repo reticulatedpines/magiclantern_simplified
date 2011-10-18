@@ -231,9 +231,11 @@ void run_test()
 	//~ bulb_take_pic(2000);
 	//~ bulb_take_pic(100);
 	
-	static int zoom[] = {0xc, 0, 30, 0xc, 2};
-	zoom[2] = video_mode_fps;
-	prop_request_change(PROP_VIDEO_MODE, zoom, 20);
+	//~ roll_spy();
+	//~ GUI_SetRollingPitchingLevelStatus(0);
+	//~ static int zoom[] = {0xc, 0, 30, 0xc, 2};
+	//~ zoom[2] = video_mode_fps;
+	//~ prop_request_change(PROP_VIDEO_MODE, zoom, 20);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -945,10 +947,10 @@ struct rolling_pitching
 {
 	uint8_t status;
 	uint8_t cameraposture;
-	int8_t roll_sensor1;
-	int8_t roll_sensor2;
-	int8_t pitch_sensor1;
-	int8_t pitch_sensor2;
+	uint8_t roll_sensor1;
+	uint8_t roll_sensor2;
+	uint8_t pitch_sensor1;
+	uint8_t pitch_sensor2;
 };
 struct rolling_pitching level_data;
 
@@ -966,6 +968,66 @@ int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
 
+#ifdef CONFIG_60D
+void
+memfilt(void* m, void* M, int value)
+{
+	int k = 0;
+	bmp_printf(FONT_SMALL, 0, 0, "%8x", value);
+	for (void* i = m; i < M; i ++)
+	{
+		if ((*(uint8_t*)i) == value)
+		{
+			int x = 10 + 4 * 22 * (k % 8);
+			int y = 10 + 12 * (k / 8);
+			bmp_printf(FONT_SMALL, x, y, "%8x", i);
+			k = (k + 1) % 240;
+		}
+	}
+	int x = 10 + 4 * 22 * (k % 8);
+	int y = 10 + 12 * (k / 8);
+	bmp_printf(FONT_SMALL, x, y, "        ");
+}
+
+void draw_electronic_level(int angle, int prev_angle)
+{
+	if (angle == prev_angle) return;
+	int x0 = os.x0 + os.x_ex/2;
+	int y0 = os.y0 + os.y_ex/2;
+	int r = 200;
+	draw_angled_line(x0, y0, r, prev_angle, 0);
+	draw_angled_line(x0+1, y0+1, r, prev_angle, 0);
+	draw_angled_line(x0, y0, r, angle, angle % 900 ? COLOR_BLACK : COLOR_GREEN1);
+	draw_angled_line(x0+1, y0+1, r, angle, angle % 900 ? COLOR_WHITE : COLOR_GREEN2);
+}
+
+void show_electronic_level()
+{
+	if (level_data.status != 2)
+	{
+		GUI_SetRollingPitchingLevelStatus(0);
+		msleep(100);
+	}
+	static int prev_angle10 = 0;
+	int angle100 = level_data.roll_sensor1 * 256 + level_data.roll_sensor2;
+	int angle10 = angle100/10;
+	draw_electronic_level(angle10, prev_angle10);
+	draw_electronic_level(angle10 + 1800, prev_angle10 + 1800);
+	//~ draw_line(x0, y0, x0 + r * cos(angle), y0 + r * sin(angle), COLOR_BLUE);
+	prev_angle10 = angle10;
+	
+	if (angle10 > 1800) angle10 -= 3600;
+	bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
+}
+
+void roll_spy()
+{
+	show_electronic_level();
+	NotifyBox(1000, "%x", level_data.roll_sensor1); msleep(1000);
+	memfilt(0xC0220000, 0xC0230000, level_data.roll_sensor1);
+	beep();
+}
+#endif
 
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
@@ -1001,6 +1063,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		if (get_global_draw())
 		{
+			
 			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && CURRENT_DIALOG_MAYBE == 0 && !ISO_ADJUSTMENT_ACTIVE) BMP_LOCK
 			(
 				display_clock();

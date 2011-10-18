@@ -2117,6 +2117,24 @@ defish_preview_display(
 }
 
 
+CONFIG_INT("electronic.level", electronic_level, 1);
+static void
+electronic_level_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Level Indic.: %s",
+		electronic_level ? "ON" : "OFF"
+	);
+}
+
+
 struct menu_entry zebra_menus[] = {
 	{
 		.name = "Global Draw",
@@ -2208,6 +2226,15 @@ struct menu_entry zebra_menus[] = {
 		.display	= hist_display,
 		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
 	},
+	#ifdef CONFIG_60D
+	{
+		.name = "Level Indic.", 
+		.priv = &electronic_level, 
+		.select = menu_binary_toggle, 
+		.display = electronic_level_display,
+		.help = "Electronic level indicator"
+	},
+	#endif
 	{
 		.name = "ClearScreen",
 		.priv			= &clearscreen,
@@ -3224,6 +3251,11 @@ livev_hipriority_task( void* unused )
 		if (spotmeter_draw && k % 4 == 0)
 			BMP_LOCK( if (lv) spotmeter_step(); )
 
+		#ifdef CONFIG_60D
+		if (electronic_level)
+			BMP_LOCK( show_electronic_level(); )
+		#endif
+		
 		if (zoom_overlay_countdown)
 		{
 			zoom_overlay_countdown--;
