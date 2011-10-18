@@ -232,6 +232,7 @@ int get_global_draw() // menu setting, or off if
 		flicker_being_killed() &&
 		#endif
 		!lv_paused && 
+		lens_info.job_state <= 10 &&
 		!(recording && !lv);
 }
 
@@ -2920,11 +2921,11 @@ void idle_display_off()
 
 	if (motion_detect || recording)
 	{
-		NotifyBox(1000, "DISPLAY OFF");
+		NotifyBox(3000, "DISPLAY OFF");
 	}
 	else
 	{
-		NotifyBox(1000, "DISPLAY AND SENSOR OFF");
+		NotifyBox(3000, "DISPLAY AND SENSOR OFF");
 	}
 
 	for (int i = 0; i < 30; i++)
