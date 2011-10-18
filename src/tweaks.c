@@ -136,7 +136,11 @@ expsim_display( void * priv, int x, int y, int selected )
 
 int get_expsim_auto_value()
 {
+	#ifdef CONFIG_50D
+	if (is_movie_mode()) return expsim_setting;
+	#else
 	if (is_movie_mode()) return 2;
+	#endif
 	
 	// silent pic in matrix mode requires expsim on
 	extern int silent_pic_sweep_running;
