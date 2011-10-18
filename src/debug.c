@@ -2041,11 +2041,8 @@ int handle_buttons_being_held(struct event * event)
 	if (BGMT_FLASH_MOVIE)
 	{
 		flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
-		return !BGMT_PRESS_FLASH_MOVIE;
-	}
-	if (recording == 1 || event->param == BGMT_LV) // workaround for issue 688
-	{
-		flash_movie_pressed = 0;
+		if (recording && MVR_FRAME_NUMBER < 50) flash_movie_pressed = 0; // workaround for issue 688
+		return !flash_movie_pressed;
 	}
 	return 1;
 }
