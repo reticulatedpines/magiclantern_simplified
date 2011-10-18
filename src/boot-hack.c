@@ -385,7 +385,7 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_1100D
 	if (magic_off)
 	{
-		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
+		bfnt_puts(0, 0, "Magic OFF", COLOR_WHITE, COLOR_BLACK);
 		extern char additional_version[];
 		additional_version[0] = '-';
 		additional_version[1] = 'm';
