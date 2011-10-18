@@ -3683,6 +3683,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
 	idle_wakeup_reset_counters(-4);
 	idle_globaldraw_disable = 0;
+	lv_paused = 0;
 	return prop_cleanup( token, property );
 }
 
