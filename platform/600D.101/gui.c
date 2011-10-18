@@ -60,6 +60,7 @@ static int handle_buttons(struct event * event)
 			{
 				static int zoom[] = {0xc, 0, 30, 0xc, 2};
 				zoom[2] = video_mode_fps;
+				zoom[3] = video_mode_fps/2;
 				prop_request_change(PROP_VIDEO_MODE, zoom, 20);
 				return 0;
 			}
@@ -76,6 +77,7 @@ static int handle_buttons(struct event * event)
 			{
 				static int nozoom[] = {0, 0, 30, 0xc, 0};
 				nozoom[2] = video_mode_fps;
+				nozoom[3] = video_mode_fps/2;
 				prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
 				return 0;
 			}
