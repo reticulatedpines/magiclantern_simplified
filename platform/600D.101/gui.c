@@ -32,6 +32,14 @@
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
+int video_mode[5];
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+	memcpy(video_mode, buf, 20);
+	return prop_cleanup(token, property);
+}
+
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -58,10 +66,9 @@ static int handle_buttons(struct event * event)
 		{
 			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 			{
-				static int zoom[] = {0xc, 0, 30, 0xc, 2};
-				zoom[2] = video_mode_fps;
-				zoom[3] = video_mode_fps/2;
-				prop_request_change(PROP_VIDEO_MODE, zoom, 20);
+				video_mode[0] = 0xc;
+				video_mode[4] = 2;
+				prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
 				return 0;
 			}
 		}
@@ -75,10 +82,9 @@ static int handle_buttons(struct event * event)
 			}
 			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
 			{
-				static int nozoom[] = {0, 0, 30, 0xc, 0};
-				nozoom[2] = video_mode_fps;
-				nozoom[3] = video_mode_fps/2;
-				prop_request_change(PROP_VIDEO_MODE, nozoom, 20);
+				video_mode[0] = 0;
+				video_mode[4] = 0;
+				prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
 				return 0;
 			}
 		}

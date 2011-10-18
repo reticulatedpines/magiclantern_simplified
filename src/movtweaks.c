@@ -410,8 +410,7 @@ hdmi_force_display(
 }
 
 
-#if 1
-CONFIG_INT("t3i.digital.zoom.shortcut", digital_zoom_shortcut, 0);
+CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
 
 void digital_zoom_shortcut_display(
         void *                  priv,
@@ -427,8 +426,6 @@ void digital_zoom_shortcut_display(
 		digital_zoom_shortcut ? "1x, 3x" : "3x...10x"
 	);
 }
-
-#endif
 
 
 #ifdef CONFIG_50D
@@ -612,7 +609,6 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
-#if 1
 	{
 		.name = "DigitalZoom Shortcut",
 		.priv = &digital_zoom_shortcut,
@@ -620,7 +616,6 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
 	},
-#endif
 	/*{
 		.name = "Zebra when REC",
 		.priv = &zebra_nrec,
