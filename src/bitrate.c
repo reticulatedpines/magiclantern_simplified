@@ -207,6 +207,7 @@ void fps_show()
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
 	if (!is_movie_mode() || recording) return;
+	if (hdmi_code == 5) return; // workaround
 	
 	bmp_printf(
 		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
