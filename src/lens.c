@@ -198,6 +198,7 @@ update_lens_display()
 
 int raw2shutter_ms(int raw_shutter)
 {
+	if (!raw_shutter) return 0;
     return (int) roundf(powf(2.0, (152.0 - raw_shutter)/8.0) / 4.0);
 }
 int shutter_ms_to_raw(int shutter_ms)

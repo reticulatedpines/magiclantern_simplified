@@ -132,8 +132,7 @@ int get_exposure_time_raw()
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
 	int d = timer_values[*(int*)priv];
-	int d_total = MAX(d, get_exposure_time_ms()/1000 + 1);
-	int total_time_s = d_total * avail_shot;
+	int total_time_s = d * avail_shot;
 	int total_time_m = total_time_s / 60;
 	bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), 
 		x, y,
