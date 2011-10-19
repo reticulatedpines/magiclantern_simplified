@@ -17,6 +17,10 @@
 #include "../platform/50D.108/gui.h"
 #endif
 
+#ifdef CONFIG_500D
+#include "../platform/500D.111/gui.h"
+#endif
+
 #ifdef CONFIG_1100D
 #include "../platform/1100D.104/gui.h"
 #endif

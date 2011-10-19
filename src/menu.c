@@ -939,6 +939,9 @@ menu_init( void )
 #endif
 	menu_find_by_name( "LiveV", ICON_LV);
 	menu_find_by_name( "Expo", ICON_AE);
+#if defined(CONFIG_500D)
+	menu_find_by_name( "Movie", ICON_FILM );
+#endif
 	menu_find_by_name( "Movie", ICON_VIDEOCAM );
 	menu_find_by_name( "Shoot", ICON_PHOTOCAM );
 	//~ menu_find_by_name( "Brack" );
@@ -1074,6 +1077,7 @@ static struct menu_entry about_menu[] = {
 		.display = about_print
 	}
 };*/
+
 
 void
 open_canon_menu()

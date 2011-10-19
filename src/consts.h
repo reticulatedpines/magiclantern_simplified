@@ -14,6 +14,10 @@
 #include "../platform/50D.108/consts.h"
 #endif
 
+#ifdef CONFIG_500D
+#include "../platform/500D.111/consts.h"
+#endif
+
 #ifdef CONFIG_1100D
 #include "../platform/1100D.104/consts.h"
 #endif

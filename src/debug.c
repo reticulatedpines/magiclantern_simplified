@@ -1210,7 +1210,7 @@ static void meminfo_display(
 }
 
 struct menu_entry debug_menus[] = {
-#if !defined(CONFIG_50D) && !defined(CONFIG_550D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
 		.select		= NormalDisplay,
@@ -1314,7 +1314,7 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulate halfway shutter presses while camera is idle"
 	},
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	{
 		.name = 'Free Memory',
 		.display = meminfo_display,
