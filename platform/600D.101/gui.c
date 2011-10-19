@@ -106,6 +106,7 @@ static int handle_buttons(struct event * event)
 	if (handle_transparent_overlay(event) == 0) return 0;
 	if (handle_af_patterns(event) == 0) return 0;
 	if (handle_set_wheel_play(event) == 0) return 0;
+	if (handle_lv_play(event) == 0) return 0;
 	if (handle_flash_button_shortcuts(event) == 0) return 0;
 	if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
 	if (handle_follow_focus(event) == 0) return 0;

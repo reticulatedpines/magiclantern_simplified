@@ -674,6 +674,41 @@ int handle_set_wheel_play(struct event * event)
 	return 1;
 }
 
+CONFIG_INT("play.lv.button", play_lv_action, 1);
+
+static void
+play_lv_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"LV button   (PLAY): %s", 
+		play_lv_action == 0 ? "Default" :
+		play_lv_action == 1 ? "Protect Image" : "err"
+	);
+}
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+int handle_lv_play(struct event * event)
+{
+	if (!play_lv_action) return 1;
+	
+	if (event->param == BGMT_LV && PLAY_MODE)
+	{
+		fake_simple_button(BGMT_Q); // toggle protect current image
+		fake_simple_button(BGMT_WHEEL_DOWN);
+		fake_simple_button(BGMT_Q);
+		return 0;
+	}
+	return 1;
+}
+#endif
+
 static void
 tweak_task( void* unused)
 {
@@ -704,7 +739,7 @@ tweak_task( void* unused)
 		{
 			if (get_zoom_in_pressed()) 
 			{
-				if (PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
+				if (PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
 				{
 					MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
 					MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
@@ -1184,6 +1219,15 @@ struct menu_entry play_menus[] = {
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)"
 	},
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	{
+		.name = "LV button (PLAY)",
+		.priv = &play_lv_action, 
+		.select = menu_binary_toggle, 
+		.display = play_lv_display,
+		.help = "You may use the LiveView button to protect images quickly."
+	},
+#endif
 };
 
 static void tweak_init()
