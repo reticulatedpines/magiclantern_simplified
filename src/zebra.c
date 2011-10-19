@@ -2114,6 +2114,7 @@ defish_preview_display(
 		"Live Defish : %s",
 		defish_preview ? "ON" : "OFF"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
 }
 
 
@@ -2132,6 +2133,7 @@ electronic_level_display(
 		"Level Indic.: %s",
 		electronic_level ? "ON" : "OFF"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
 }
 
 
@@ -3379,8 +3381,8 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
 }*/
 
 int unused = 0;
-unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay};
-int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2};
+unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay, &electronic_level, &defish_preview};
+int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2,                    1,                 1};
 
 void update_disp_mode_bits_from_params()
 {
