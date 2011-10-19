@@ -200,7 +200,14 @@ void install_task()
 	if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
 	if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
 	if (tft_status || gui_state != GUISTATE_IDLE) { SW1(1,100); SW1(0,100); Msleep(500); }
+#ifdef CONFIG_50D
+	if (tft_status) { fake_simple_button(BGMT_DISP); Msleep(500); }
+	if (tft_status) { fake_simple_button(BGMT_DISP); Msleep(500); }
+	if (tft_status) { fake_simple_button(BGMT_DISP); Msleep(500); }
+	if (tft_status)
+#else
 	if (tft_status || gui_state != GUISTATE_IDLE)
+#endif
 	{
 		PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status error...     ");
 		card_led_blink(10, 10, 90);
