@@ -214,4 +214,4 @@
 #define AF_BTN_STAR 1
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x14BB0) // dec GuiImageZoomDown and look for a negative counter
-#define IMGPLAY_ZOOM_LEVEL_MAX 10
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
