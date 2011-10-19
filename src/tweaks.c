@@ -495,7 +495,9 @@ quickzoom_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Zoom in PLAY mode : %s", 
-		quickzoom ? "Fast" : "Normal"
+		quickzoom == 0 ? "Normal" :
+		quickzoom == 1 ? "Fast+100%" :
+		quickzoom == 2 ? "Fast" : "err"
 	);
 }
 
@@ -739,7 +741,7 @@ tweak_task( void* unused)
 		{
 			if (get_zoom_in_pressed()) 
 			{
-				if (PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
+				if (quickzoom == 1 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
 				{
 					MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
 					MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
@@ -1215,7 +1217,8 @@ struct menu_entry play_menus[] = {
 	{
 		.name = "Zoom in PLAY mode",
 		.priv = &quickzoom, 
-		.select = menu_binary_toggle, 
+		.select = menu_ternary_toggle, 
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)"
 	},
