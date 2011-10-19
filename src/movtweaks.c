@@ -609,6 +609,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},
+	#ifdef CONFIG_600D
 	{
 		.name = "DigitalZoom Shortcut",
 		.priv = &digital_zoom_shortcut,
@@ -616,6 +617,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
 	},
+	#endif
 	/*{
 		.name = "Zebra when REC",
 		.priv = &zebra_nrec,
