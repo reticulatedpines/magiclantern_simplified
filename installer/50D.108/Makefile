@@ -32,6 +32,7 @@ ML_OBJS-y = \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
+	bootflags.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

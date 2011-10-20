@@ -140,11 +140,11 @@ cstart( void )
 		// this can only be called from a "reboot" (updater) context,
 		// not from normal DryOS
 		
-		int (*write_bootflags_to_card)(int, int) = 0xffffaed8; // auto-named str:completion._EOS_DEVELOP_SET_failure._OK._start
-		int not_ok = write_bootflags_to_card(1, 0);            // look for EOS_DEVELOP and BOOTDISK
+		//~ int (*write_bootflags_to_card)(int, int) = 0xffffaed8; // auto-named str:completion._EOS_DEVELOP_SET_failure._OK._start
+		//~ int not_ok = write_bootflags_to_card(1, 0);            // look for EOS_DEVELOP and BOOTDISK
 		
-		if (not_ok)
-			fail();
+		//~ if (not_ok)
+			//~ fail();
 	}
 
 	// Copy the copy-and-restart blob somewhere

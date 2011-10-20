@@ -59,6 +59,7 @@ bootflag_toggle( void * priv )
 }
 
 
+#if 0
 void
 bootflag_display(
 	void *			priv,
@@ -75,6 +76,7 @@ bootflag_display(
 		boot_flags->bootdisk != 0 ? "ON " : "OFF"
 	);
 }
+#endif
 
 
 // gcc mempcy has odd alignment issues?
@@ -106,7 +108,7 @@ struct partition_table
 
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
-void
+int
 bootflag_write_bootblock( void )
 {
 	//~ gui_stop_menu();
@@ -115,6 +117,7 @@ bootflag_write_bootblock( void )
 	//~ NotifyBox(1000, "cf0=%08lx cf1=%08lx\n", (uint32_t)cf_device[0], (uint32_t) cf_device[1]);
 
 	#ifdef CONFIG_50D
+	return 0; // doesn't work yet
 	struct cf_device * const dev = cf_device[0];
 	#else
 	struct cf_device * const dev = sd_device[1];
@@ -129,7 +132,6 @@ bootflag_write_bootblock( void )
 	for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
 	//~ console_printf("mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
 	//~ bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
-
 	
 	int rc = dev->read_block( dev, block, 0, 1 );
 	//~ NotifyBox(1000, "read_block => %x", rc);
@@ -148,15 +150,28 @@ bootflag_write_bootblock( void )
 		my_memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
 		//~ NotifyBox(1000, "writing");
 		rc = dev->write_block( dev, block, p.sectors_before_partition, 1 );
-		if (rc != 1) NotifyBox(1000, "Bootflag write failed\np.type=%d, p.sec = %d, rc=%d", p.type, p.sectors_before_partition, rc);
+		if (rc != 1)
+		{
+			NotifyBox(2000, "Bootflag write failed\np.type=%d, p.sec = %d, rc=%d", p.type, p.sectors_before_partition, rc); 
+			msleep(2000);
+			return 0;
+		}
 	}
 	else
 	{
-		NotifyBox(2000, "Unknown partition: %d", p.type);
+		NotifyBox(2000, "Unknown partition: %d", p.type); msleep(2000);
+		return 0;
 	}
-	//~ NotifyBox(1000, "cleanup");
 	free_dma_memory( block );
-	//~ NotifyBox(1000, "done");
+	return 1; // success!
+}
+
+void boot_test()
+{
+	clrscr();
+	bmp_printf(FONT_LARGE, 0, 0, "%x", sd_device[1]);
+	//~ bmp_hexdump(FONT_SMALL, 0, 20, sd_device[0], 32*5);
+	msleep(5000);
 }
 
 /** Perform an initial install and configuration */

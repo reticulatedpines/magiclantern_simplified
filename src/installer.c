@@ -30,6 +30,18 @@
 #include "property.h"
 #include "consts.h"
 
+
+void NotifyBox(int timeout, char* fmt, ...) 
+{
+	beep();
+    static char notify_box_msg[100];
+    va_list ap;
+    va_start( ap, fmt );
+    vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
+    va_end( ap );
+    bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
+}
+
 /** These are called when new tasks are created */
 int my_init_task(int a, int b, int c, int d);
 void my_bzero( uint8_t * base, uint32_t size );
@@ -152,6 +164,7 @@ copy_and_restart( int offset )
 int autoexec_ok; // true if autoexec.bin was found
 int fonts_ok; // true if fonts.dat was found
 int old_shooting_mode; // to detect when mode dial changes
+int bootflag_written = 0;
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
 #define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
 
@@ -369,43 +382,51 @@ void SW2(int v, int wait)
 void
 initial_install(void)
 {
-	if ( boot_flags->bootdisk ) return; // nothing to do
-	
+	bmp_fill(0, 0, 0, 720, 480);
+
+	int y = 0;
+	bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
+
 	if (!autoexec_ok)
 	{
-		PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, 
-			"AUTOEXEC.BIN not found!  \n"
-			"Skipping initial install.");
+		bmp_printf(FONT_LARGE, 0, y+=30, "AUTOEXEC.BIN not found!");
+		msleep(5000);
 		return;
 	}
 
 	if (!fonts_ok)
 	{
-		PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, 
-			"FONTS.DAT not found!  \n"
-			"Skipping initial install.");
+		bmp_printf(FONT_LARGE, 0, y+=30, "FONTS.DAT not found!");
+		msleep(5000);
 		return;
 	}
 
-	bmp_fill(COLOR_BG, 0, 0, 720, 480);
-
-	int y = 0;
-	bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
-
-	if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
+	if (!boot_flags->bootdisk )
 	{
-		bmp_printf(FONT_LARGE, 0, y+=30, "Setting boot flag");
-		call( "EnableBootDisk" );
+		if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
+		{
+			bmp_printf(FONT_LARGE, 0, y+=30, "Setting boot flag");
+			call( "EnableBootDisk" );
+		}
+		else
+		{
+			bmp_printf(FONT_LARGE, 0, y+=30, "Did not enable boot flag.");
+			msleep(5000);
+			return;
+		}
 	}
-	else
+
+	bmp_printf(FONT_LARGE, 0, y+=30, "Making card bootable...");
+	bootflag_written = bootflag_write_bootblock();
+	if (!bootflag_written)
 	{
-		PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, 
-			"Did not enable boot flag.\n"
-			"Preconditions not met.   ");
-		return;
+		bmp_printf(FONT_LARGE, 0, y, "You need to run EOSCard/MacBoot.");
+		msleep(5000);
+		
 	}
-	bmp_printf(FONT_LARGE, 0, y+=30, "Writing boot log");
-	dumpf();
+	
+	//~ bmp_printf(FONT_LARGE, 0, y+=30, "Writing boot log");
+	//~ dumpf();
 
 	bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
 	Msleep(1000);
@@ -532,16 +553,15 @@ void check_install()
 					"                                    \n"
 					" Magic Lantern is installed.        \n"
 					" You may now restart your camera.   \n"
-#ifdef CONFIG_50D
-					" DON'T FORGET to make card bootable!\n"
-#else
-					"                                    \n"
-#endif
+					"%s"
 					"                                    \n"
 					" To disable the BOOTDISK flag,      \n"
 					" change the shooting mode from the  \n"
 					" mode dial (P/Tv/Av/M).             \n"
-					"                                    \n"
+					"                                    \n",
+					bootflag_written ?
+					"                                    \n" : 
+					" DON'T FORGET to make card bootable!\n"
 				);
 			}
 			else
