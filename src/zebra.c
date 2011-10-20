@@ -1029,7 +1029,7 @@ draw_zebra_and_focus( int Z, int F )
 					int color = get_focus_color(thr, e);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
-					#ifdef CONFIG_50D
+					#if defined(CONFIG_50D) || defined(CONFIG_500D)
 					int b_row_off = COERCE(y * bm_width / hd_width * 8/9, 0, 539) * BMPPITCH;
 					#else
 					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
@@ -1039,7 +1039,11 @@ draw_zebra_and_focus( int Z, int F )
 					
 					#ifdef CONFIG_50D
 					int x = 2 * (hdp - hd_row) * bm_width / hd_width + 12;
-					#else
+					#endif
+					#ifdef CONFIG_500D
+					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
+					#endif					
+					#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
 					#endif
 					x = COERCE(x, 0, 960);
@@ -1081,7 +1085,7 @@ draw_zebra_and_focus( int Z, int F )
 		int lvp_step_x = hdmi_code == 5 ? 4 : 2;
 		int lvp_step_y = hdmi_code == 5 ? 2 : 1;
 		int lvheight = hdmi_code == 5 ? 540 : 480;
-		#ifdef CONFIG_50D
+		#if defined(CONFIG_50D) || defined(CONFIG_500D)
 		lvheight = 426;
 		#endif
 		for( y = 40; y < lvheight - 40; y += 2 )

@@ -244,11 +244,22 @@
 #define PROP_STROBO_FIRING 0x80040013 // 0 = enable, 1 = disable?
 
 #define PROP_MOVIE_SIZE_50D 0x205000E
+
+
+#ifdef CONFIG_500D
+#define PROP_VIDEO_MODE 0x2050010
+// buf[0]: 0 if 1080p, 1 if 720p, 2 if 480p
+// buf[1]: 14 if 1080p (20fps), 1e if 720p or 480p (30fps)
+// buf[2]: a if 1080p (1/2 of 20fps??), f if 720p or 480p (1/2 of 30fps??)
+#endif
+
+#ifndef CONFIG_500D
 #define PROP_VIDEO_MODE 0x80000039 
 // buf[0]: 8 if crop else 0
 // buf[1]: 0 if full hd, 1 if 720p, 2 if 680p
 // buf[2]: 0x19 if 25fps, 18 if 24fps, 32 if 50fps, maybe other values if I change region
 // buf[3]: always c
+#endif
 
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
 

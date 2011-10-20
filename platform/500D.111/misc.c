@@ -64,7 +64,7 @@ PROP_INT(0x80030002, mvr_rec)
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = YUV422_HD_BUFFER_DMA_ADDR;
+	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
 	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1576 :
 									video_mode_resolution == 1 ? 928 :
 									video_mode_resolution == 2 ? 720 : 0)
