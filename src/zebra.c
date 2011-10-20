@@ -2738,6 +2738,9 @@ void zebra_sleep_when_tired()
 		if (zebra_should_run()) return;
 		//~ if (!gui_menu_shown()) ChangeColorPaletteLV(4);
 		if (lv && !gui_menu_shown()) redraw();
+#ifdef CONFIG_60D
+		disable_electronic_level();
+#endif
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_set_dirty(5);

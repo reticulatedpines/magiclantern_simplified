@@ -227,15 +227,12 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	//~ NotifyBox(2000, "Blocking shutter button..."); msleep(2000);
-	//~ bulb_take_pic(2000);
-	//~ bulb_take_pic(100);
-	
-	//~ roll_spy();
-	//~ GUI_SetRollingPitchingLevelStatus(0);
-	//~ static int zoom[] = {0xc, 0, 30, 0xc, 2};
-	//~ zoom[2] = video_mode_fps;
-	//~ prop_request_change(PROP_VIDEO_MODE, zoom, 20);
+	fake_simple_button(BGMT_PLAY);
+	msleep(2000);
+	MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
+	MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
+	msleep(2000);
+	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -1001,6 +998,15 @@ void draw_electronic_level(int angle, int prev_angle)
 	draw_angled_line(x0+1, y0+1, r, angle, angle % 900 ? COLOR_WHITE : COLOR_GREEN2);
 }
 
+void disable_electronic_level()
+{
+	if (level_data.status == 2)
+	{
+		GUI_SetRollingPitchingLevelStatus(1);
+		msleep(100);
+	}
+}
+
 void show_electronic_level()
 {
 	if (level_data.status != 2)
@@ -1210,7 +1216,7 @@ static void meminfo_display(
 }
 
 struct menu_entry debug_menus[] = {
-#if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_550D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
 		.select		= NormalDisplay,
@@ -1314,7 +1320,7 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulate halfway shutter presses while camera is idle"
 	},
-	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+	#ifndef CONFIG_50D
 	{
 		.name = 'Free Memory',
 		.display = meminfo_display,
@@ -1752,7 +1758,7 @@ void HijackFormatDialogBox()
 	if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
-	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+	if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
 #ifdef CONFIG_50D
 #define FORMAT_BTN "[FUNC]"
@@ -1771,7 +1777,7 @@ void HijackCurrentDialogBox(int string_id, char* msg)
 {
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
-	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+	if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 	dialog_set_property_str(dialog, string_id, msg);
 	dialog_redraw(dialog);
 }
@@ -1789,7 +1795,7 @@ void HijackDialogBox()
 {
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
-	if (dialog && MEM(dialog->type) != 0x006e4944) return;
+	if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 	int i;
 	for (i = 0; i<255; i++) {
 			char s[30];
