@@ -258,6 +258,8 @@ void install_task()
 	int k = 0;
 	for (;;k++)
 	{
+		while (sensor_cleaning) msleep(100);
+		
 		check_install();
 	
 		if (shooting_mode != old_shooting_mode)
