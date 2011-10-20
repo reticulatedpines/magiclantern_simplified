@@ -173,9 +173,13 @@ char *aj_lens_format_dist( unsigned mm)
    return (dist);
 } /* end of aj_lens_format_dist() */
 
+int redraw_first_time = 1;
 void
 update_lens_display()
 {
+	if (redraw_first_time)
+		redraw();
+	redraw_first_time = 0;
 	draw_ml_topbar();
 
 	if (lv_disp_mode == 0 || flicker_being_killed() || EXT_MONITOR_CONNECTED)
