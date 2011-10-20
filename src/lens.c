@@ -173,12 +173,6 @@ char *aj_lens_format_dist( unsigned mm)
    return (dist);
 } /* end of aj_lens_format_dist() */
 
-
-void erase_bottom_bar()
-{
-	fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
-}
-
 void
 update_lens_display()
 {
@@ -187,12 +181,7 @@ update_lens_display()
 	if (lv_disp_mode == 0 || flicker_being_killed() || EXT_MONITOR_CONNECTED)
 	{
 		if (!get_halfshutter_pressed())
-		{
-			if (LV_BOTTOM_BAR_DISPLAYED)
-				erase_bottom_bar();
-			else
-				draw_ml_bottombar();
-		}
+			draw_ml_bottombar();
 	}
 }
 

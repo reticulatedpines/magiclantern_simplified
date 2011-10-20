@@ -35,6 +35,7 @@ static int handle_buttons(struct event * event)
 
 	if (handle_tricky_canon_calls(event) == 0) return 0;
 	
+	
 	// common to all cameras
 	spy_event(event); // for debugging only
 	if (handle_shutter_events(event) == 0) return 0;

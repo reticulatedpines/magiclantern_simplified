@@ -115,8 +115,7 @@
 
 //~ #define AJ_LCD_Palette 0x2CDB0
 
-//#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
-#define LV_BOTTOM_BAR_DISPLAYED 0
+
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x77BC) == 0xF)
 #define SHOOTING_MODE (*(int*)0x313C)
 

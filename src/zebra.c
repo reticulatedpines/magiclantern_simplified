@@ -34,7 +34,7 @@
 
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D)// && defined(CONFIG_500D)
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
@@ -3119,7 +3119,7 @@ void redraw_do()
 	if (!ml_started) return;
 BMP_LOCK (
 
-#ifndef CONFIG_50D
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	if (display_dont_mirror && display_dont_mirror_dirty)
 	{
 		if (lcd_position == 1) NormalDisplay();
@@ -3280,7 +3280,7 @@ livev_hipriority_task( void* unused )
 			
 		}
 		
-		if (LV_BOTTOM_BAR_DISPLAYED || get_halfshutter_pressed())
+		if ((lv_disp_mode) || get_halfshutter_pressed())
 			crop_set_dirty(5);
 
 #if CONFIG_DEBUGMSG

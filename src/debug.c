@@ -336,7 +336,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	dumpf();
+	// test code goes here.
 }
 
 static void stress_test_long(void* priv)
@@ -703,7 +703,7 @@ void ui_lock(int x)
 
 void toggle_mirror_display()
 {
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	//~ zebra_pause();
 	if (lv) msleep(200); // redrawing screen while zebra is active seems to cause trouble
 	static int i = 0;
@@ -1051,7 +1051,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		{
 			display_info();
 		}
-
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
@@ -2124,8 +2123,6 @@ void fake_simple_button(int bgmt_code)
 	GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
-
-
 int _display_is_off = 0;
 
 // those functions seem not to be thread safe
@@ -2146,12 +2143,6 @@ int handle_tricky_canon_calls(struct event * event)
 		case MLEV_TURN_OFF_DISPLAY:
 			if (!_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOffDisplay");
 			_display_is_off = 1;
-			break;
-		case MLEV_HIDE_CANON_BOTTOM_BAR:
-			#ifndef CONFIG_50D
-			if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
-			#endif
-			draw_ml_bottombar();
 			break;
 		case MLEV_ChangeHDMIOutputSizeToVGA:
 			ChangeHDMIOutputSizeToVGA();

@@ -169,11 +169,3 @@ NSTUB( 0xFF23AC68, vram_get_number )
 NSTUB( 0xFF198194, vram_get_pos_and_size )
 NSTUB( 0x37384	 , vram_info ) // located in vram_get_number
 NSTUB( 0xFF1A442C, vsnprintf )	/** Look in DebugMsg, near the bottom.  It calls vsnprintf() -- with a buffer size of 0x4C. */
-
-
-//these aren't right, just making the compiler happy for now.
-NSTUB(0xFF06B014, GetMemoryInformation) // called from AllocateMemory
-NSTUB( 0xFF2CFA54, MirrorDisplay )
-NSTUB( 0xFF2CFAB4, NormalDisplay )
-NSTUB(0xFF2FDCBC, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
-NSTUB( 0xFF2CFA84, ReverseDisplay)
