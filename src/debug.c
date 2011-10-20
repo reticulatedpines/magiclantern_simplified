@@ -1105,12 +1105,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				take_screenshot(0);
 		}
 
-#ifndef CONFIG_50D
 		if (MENU_MODE) 
 		{
 			HijackFormatDialogBox_main();
 		}
-#endif
 		//~ if (BTN_METERING_PRESSED_IN_LV)
 		//~ {
 			//~ while (BTN_METERING_PRESSED_IN_LV) msleep(100);
@@ -1215,7 +1213,7 @@ static void meminfo_display(
 }
 
 struct menu_entry debug_menus[] = {
-#if !defined(CONFIG_50D) && !defined(CONFIG_550D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
 		.select		= NormalDisplay,
@@ -1319,7 +1317,7 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulate halfway shutter presses while camera is idle"
 	},
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	{
 		.name = 'Free Memory',
 		.display = meminfo_display,
@@ -2135,9 +2133,7 @@ int handle_tricky_canon_calls(struct event * event)
 	switch (event->param)
 	{
 		case MLEV_HIJACK_FORMAT_DIALOG_BOX:
-			#ifndef CONFIG_50D
 			HijackFormatDialogBox();
-			#endif
 			break;
 		case MLEV_TURN_ON_DISPLAY:
 			if (_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOnDisplay");

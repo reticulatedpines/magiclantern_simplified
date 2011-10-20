@@ -108,7 +108,7 @@ struct partition_table
 
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
-#ifndef CONFIG_500D
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D)
 int
 bootflag_write_bootblock( void )
 {
@@ -117,12 +117,7 @@ bootflag_write_bootblock( void )
 
 	//~ NotifyBox(1000, "cf0=%08lx cf1=%08lx\n", (uint32_t)cf_device[0], (uint32_t) cf_device[1]);
 
-	#ifdef CONFIG_50D
-	return 0; // doesn't work yet
-	struct cf_device * const dev = cf_device[0];
-	#else
 	struct cf_device * const dev = sd_device[1];
-	#endif
 
 	//~ NotifyBox(1000, "malloc'ing");
 	uint8_t *block = alloc_dma_memory( 512 );
@@ -167,24 +162,19 @@ bootflag_write_bootblock( void )
 	return 1; // success!
 }
 
-void boot_test()
-{
-	clrscr();
-	bmp_printf(FONT_LARGE, 0, 0, "%x", sd_device[1]);
-	//~ bmp_hexdump(FONT_SMALL, 0, 20, sd_device[0], 32*5);
-	msleep(5000);
-}
-#endif
-
-
-#ifdef CONFIG_500D
+#else
 // 500D doesn't use partition table like the 550d and other cameras.
 // This method is a mix of Trammell's old code and a lot of testing / verifying by me.
 // -Coutts
-void
+int
 bootflag_write_bootblock( void )
 {
+	#ifdef CONFIG_500D
 	struct cf_device * const dev = sd_device[1];
+	#endif
+	#ifdef CONFIG_50D
+	struct cf_device * const dev = cf_device[5];
+	#endif
 	
 	uint8_t *block = alloc_dma_memory( 512 );
 	
@@ -203,12 +193,21 @@ bootflag_write_bootblock( void )
 		my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
 		rc = dev->write_block( dev, 0, 1, block );
 	}
-	else // if it's not FAT32, don't do anything.
+	if( strncmp(block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
 	{
-		NotifyBox(2000, "Error: No FAT32 Partition Detected");
+		int rc = dev->read_block( dev, 0, 1, block );
+		my_memcpy( block + 0x2B, (uint8_t*) "EOS_DEVELOP", 0xB );
+		my_memcpy( block + 0x40, (uint8_t*) "BOOTDISK", 0xB );
+		rc = dev->write_block( dev, 0, 1, block );
+	}
+	else // if it's not FAT16 neither FAT32, don't do anything.
+	{
+		NotifyBox(2000, "Error: No FAT16/FAT32 Partition Detected");
+		return 0;
 	}
 	
 	free_dma_memory( block );
+	return 1;
 }
 #endif
 
