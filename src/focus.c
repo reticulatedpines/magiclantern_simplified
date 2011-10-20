@@ -1218,7 +1218,7 @@ int handle_rack_focus(struct event * event)
 
 int handle_follow_focus(struct event * event)
 {
-	if (is_follow_focus_active() && !is_manual_focus() && liveview_display_idle() && !gui_menu_shown() && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed())
+	if (is_follow_focus_active() && !is_manual_focus() && lv && !gui_menu_shown() && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed())
 	{
 		if (follow_focus == 1) // arrows
 		{
