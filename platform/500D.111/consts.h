@@ -21,7 +21,7 @@
 
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x26A8) // workaround
 //#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
-#define YUV422_HD_BUFFER_DMA_ADDR 0x48a0
+#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x48a0)
 
 
 #define YUV422_HD_BUFFER_1 0x44000080
