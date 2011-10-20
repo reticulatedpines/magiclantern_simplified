@@ -108,6 +108,7 @@ struct partition_table
 
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
+#ifndef CONFIG_500D
 int
 bootflag_write_bootblock( void )
 {
@@ -173,6 +174,44 @@ void boot_test()
 	//~ bmp_hexdump(FONT_SMALL, 0, 20, sd_device[0], 32*5);
 	msleep(5000);
 }
+#endif
+
+
+#ifdef CONFIG_500D
+// 500D doesn't use partition table like the 550d and other cameras.
+// This method is a mix of Trammell's old code and a lot of testing / verifying by me.
+// -Coutts
+void
+bootflag_write_bootblock( void )
+{
+	struct cf_device * const dev = sd_device[1];
+	
+	uint8_t *block = alloc_dma_memory( 512 );
+	
+	int i;
+	for(i=0; i<512; i++) block[i] = 0xAA;
+	
+	int rc = dev->read_block( dev, 0, 1, block ); //overwrite our AAAs in our buffer with the MBR partition of the SD card.
+	
+	// figure out if we are a FAT32 partitioned drive. this spells out FAT32 in chars.
+	// FAT16 not supported yet - I don't have a small enough card to test with.
+	//if( block[0x52] == 0x46 && block[0x53] == 0x41 && block[0x54] == 0x54 && block[0x55] == 0x33 && block[0x56] == 0x32 )
+	if( strncmp(block + 0x52, "FAT32", 5) == 0 ) //check if this card is FAT32
+	{
+		int rc = dev->read_block( dev, 0, 1, block );
+		my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
+		my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
+		rc = dev->write_block( dev, 0, 1, block );
+	}
+	else // if it's not FAT32, don't do anything.
+	{
+		NotifyBox(2000, "Error: No FAT32 Partition Detected");
+	}
+	
+	free_dma_memory( block );
+}
+#endif
+
 
 /** Perform an initial install and configuration */
 static void

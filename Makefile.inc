@@ -246,6 +246,7 @@ STDIO_OBJ = \
 	lib_a-setjmp.o \
 	lib_a-strcmp.o \
 	lib_a-strlen.o \
+	lib_a-strncmp.o \
 
 ARM_LIBC_A = $(ARM_PATH)/arm-none-eabi/lib/libc.a
 
