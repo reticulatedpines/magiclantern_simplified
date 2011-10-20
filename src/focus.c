@@ -641,6 +641,11 @@ follow_focus_print(
 		bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
 		bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
 	}
+	if (follow_focus)
+	{
+		if (!lv) menu_draw_icon(x, y, MNI_WARNING, "Follow focus only works in LiveView.");
+		if (is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, "Follow focus requires autofocus enabled.");
+	}
 	menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus));
 }
 
@@ -1010,6 +1015,11 @@ trap_focus_display( void * priv, int x, int y, int selected )
 		"Trap Focus     : %s",
 		t == 1 ? "Hold" : t == 2 ? "Cont." : "OFF"
 	);
+	if (t)
+	{
+		if (!is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, "Trap focus only works with manual focus.");
+		if (!lv && !lens_info.raw_aperture) menu_draw_icon(x, y, MNI_WARNING, "Trap focus outside LiveView requires a chipped lens");
+	}
 }
 
 
@@ -1045,7 +1055,11 @@ afp_display(
 		"Focus Patterns : %s",
 		af_patterns ? "ON" : "OFF"
 	);
-	if (lv && af_patterns) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns won't work in LiveView");
+	if (af_patterns)
+	{
+		if (lv) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns won't work in LiveView");
+		if (!lens_info.raw_aperture) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns require a chipped lens");
+	}
 }
 
 static struct menu_entry focus_menu[] = {

@@ -1259,6 +1259,7 @@ static void cropinfo_display( void * priv, int x, int y, int selected )
 		"Crop Factor Display : %s",
 		crop_info ? "ON,35mm eq." : "OFF"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_LV(crop_info));
 }
 static struct menu_entry tweak_menus[] = {
 	{

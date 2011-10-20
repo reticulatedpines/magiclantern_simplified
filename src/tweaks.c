@@ -205,10 +205,13 @@ lv_metering_print( void * priv, int x, int y, int selected )
 		lv_metering == 3 ? "HighlightPri" :
 		lv_metering == 4 ? "NoOverexpose" : "err"
 	);
-	if (shooting_mode != SHOOTMODE_M || !lv)
-		menu_draw_icon(x, y, MNI_WARNING, "Only works in photo mode (M), LiveView");
-	if (!expsim)
-		menu_draw_icon(x, y, MNI_WARNING, "ExpSim is OFF");
+	if (lv_metering)
+	{
+		if (shooting_mode != SHOOTMODE_M || !lv)
+			menu_draw_icon(x, y, MNI_WARNING, "Only works in photo mode (M), LiveView");
+		if (!expsim)
+			menu_draw_icon(x, y, MNI_WARNING, "ExpSim is OFF");
+	}
 }
 
 static void
@@ -593,6 +596,8 @@ display_off_by_halfshutter_print(
 		"DispOFF in PhotoMode: %s", // better name for this?
 		display_off_by_halfshutter_enabled ? "HalfShutter" : "OFF"
 	);
+	if (display_off_by_halfshutter_enabled && lv)
+		menu_draw_icon(x, y, MNI_WARNING, "This option does not work in LiveView");
 }
 
 #endif
@@ -855,6 +860,7 @@ iso_round_only_display(
 		"ISO selection       : %s", 
 		iso_round_only ? "100x, 160x" : "All values"
 	);
+	menu_draw_icon(x, y, iso_round_only ? MNI_ON : MNI_AUTO, 0);
 }
 
 

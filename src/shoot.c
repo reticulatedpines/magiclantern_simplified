@@ -2437,7 +2437,7 @@ zoom_display( void * priv, int x, int y, int selected )
 		zoom_disable_x10 ? "" : "x10", 
 		zoom_enable_face ? ":-)" : ""
 	);
-	menu_draw_icon(x, y, MNI_BOOL(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10), 0);
+	menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10));
 }
 
 static void zoom_toggle(void* priv)
