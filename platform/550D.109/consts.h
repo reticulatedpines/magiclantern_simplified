@@ -162,6 +162,7 @@
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 5
 #define MOV_OPT_STEP 5
+#define MOV_GOP_OPT_STEP 5
 
 //~ #define MOV_OPT_SIZE_FULLHD 0x67e8
 //~ #define MOV_OPT_SIZE_HD 0x6824

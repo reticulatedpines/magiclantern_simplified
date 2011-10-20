@@ -27,17 +27,42 @@
 #include "bmp.h"
 #include <property.h>
 
-struct semaphore * gui_sem;
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 
+	if (handle_tricky_canon_calls(event) == 0) return 0;
+	
+	// common to all cameras
+	spy_event(event); // for debugging only
+	if (handle_shutter_events(event) == 0) return 0;
+	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
+	if (event->param != OLC_INFO_CHANGED) idle_wakeup_reset_counters(event->param);
+	if (handle_swap_menu_erase(event) == 0) return 0;
+	if (handle_buttons_being_held(event) == 0) return 0;
 	if (handle_ml_menu_erase(event) == 0) return 0;
+	//~ if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+	if (handle_rack_focus(event) == 0) return 0;
+	if (handle_intervalometer(event) == 0) return 0;
+	if (handle_livev_playback(event, BGMT_Q) == 0) return 0;
+	if (handle_transparent_overlay(event) == 0) return 0;
+	if (handle_af_patterns(event) == 0) return 0;
+	if (handle_set_wheel_play(event) == 0) return 0;
+	//~ if (handle_flash_button_shortcuts(event) == 0) return 0;
+	//~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
+	if (handle_follow_focus(event) == 0) return 0;
+	if (handle_zoom_overlay(event) == 0) return 0;
+	if (handle_movie_mode_shortcut(event) == 0) return 0;
+	//~ if (handle_quick_access_menu_items(event) == 0) return 0;
+	if (MENU_MODE && event->param == BGMT_Q) return handle_keep_ml_after_format_toggle();
+	if (handle_bulb_ramping_keys(event) == 0) return 0;	
 
 	return 1;
 }
+
+struct semaphore * gui_sem;
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;

@@ -336,11 +336,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	//~ set_shooting_mode(SHOOTMODE_BULB);
-	
-	//~ bootflag_write_bootblock();
-	//~ int a = AllocateMemory(102400);
-	task_create("run_test", 0x1c, 0, run_test, 0);
+	dumpf();
 }
 
 static void stress_test_long(void* priv)
@@ -1040,12 +1036,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
 	extern int ml_started;
 	while (!ml_started) msleep(100);
-
+	
 	config_menu_init();
 	
 	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
 	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
-	dump_seg(&(font_small.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
+	dump_seg(&(FONT_SMALL.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
 	
 	int k;
 	for (k = 0; ; k++)
@@ -1055,6 +1051,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		{
 			display_info();
 		}
+
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
@@ -1393,7 +1390,7 @@ static void dbg_draw_props(int changed)
 	for (i = 0; i < dbg_propn; i++)
 	{
 		unsigned x = 80;
-		unsigned y = 15 + i * font_small.height;
+		unsigned y = 15 + i * FONT_SMALL.height;
 		unsigned property = dbg_props[i];
 		unsigned len = dbg_props_len[i];
 		unsigned fnt = FONT_SMALL;
@@ -1762,8 +1759,15 @@ void HijackFormatDialogBox()
 
 #ifdef CONFIG_50D
 #define FORMAT_BTN "[FUNC]"
+#define STR_LOC 12
+#else
+#ifdef CONFIG_500D
+#define FORMAT_BTN "[REC]"
+#define STR_LOC 12
 #else
 #define FORMAT_BTN "[Q]"
+#define STR_LOC 11
+#endif
 #endif
 
 	if (keep_ml_after_format)
@@ -1917,7 +1921,7 @@ void CopyMLFilesBack_AfterFormat()
 		//~ NotifyBox(1000, "Restoring %s...   ", tmp_files[i].name);
 		char msg[100];
 		snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
-		HijackCurrentDialogBox(11, msg);
+		HijackCurrentDialogBox(STR_LOC, msg);
 		dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
 		int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4); 
 		if (sig != tmp_files[i].sig)
@@ -1928,12 +1932,12 @@ void CopyMLFilesBack_AfterFormat()
 		}
 	}
 	
-	HijackCurrentDialogBox(11, "Writing bootflags...");
+	HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
 	bootflag_write_bootblock();
 
-	HijackCurrentDialogBox(11, "Magic Lantern restored :)");
+	HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
 	msleep(1000);
-	HijackCurrentDialogBox(11, "Format");
+	HijackCurrentDialogBox(STR_LOC, "Format");
 	//~ NotifyBox(2000, "Magic Lantern restored :)   ");
 }
 

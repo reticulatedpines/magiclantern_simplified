@@ -137,6 +137,7 @@
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 0
 #define MOV_OPT_STEP 2
+#define MOV_GOP_OPT_STEP 2
 
 #define AE_VALUE (*(int8_t*)0xfb30)
 

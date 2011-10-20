@@ -64,16 +64,23 @@ PROP_INT(0x80030002, mvr_rec)
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width = recording ? 1560 : 1024;
+	_vram_info.vram = YUV422_HD_BUFFER_DMA_ADDR;
+	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1576 :
+									video_mode_resolution == 1 ? 928 :
+									video_mode_resolution == 2 ? 720 : 0)
+	: lv_dispsize > 1 ? 944
+	: shooting_mode != SHOOTMODE_MOVIE ? 928
+	: (video_mode_resolution == 0 ? 1576 :
+	   video_mode_resolution == 1 ? 928 :
+	   video_mode_resolution == 2 ? 928 : 0);
 	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height = recording ? 1048 : 680;
+	_vram_info.height = recording ? (video_mode_resolution == 0 ? 1048:
+									 video_mode_resolution == 1 ? 616 :
+									 video_mode_resolution == 2 ? 480 : 0)
+	: lv_dispsize > 1 ? 632
+	: shooting_mode != SHOOTMODE_MOVIE ? 616
+	: (video_mode_resolution == 0 ? 1048 :
+	   video_mode_resolution == 1 ? 616 :
+	   video_mode_resolution == 2 ? 616 : 0);
 	return &_vram_info;
 }
-
-// some dummy stubs
-/*int lcd_release_running = 0;
-void lcd_release_step() {};
-int get_lcd_sensor_shortcuts() { return 0; }
-void display_lcd_remote_icon(int x0, int y0) {}
-*/

@@ -1,12 +1,12 @@
 #generic makefile
 
-ARM_PATH=~/arm-toolchain
+ARM_PATH=~/yagarto/yagarto-4.6.0
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.0
-CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
-AR=$(ARM_BINPATH)/arm-elf-ar
-RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
+CC=$(ARM_BINPATH)/arm-none-eabi-gcc-$(GCC_VERSION)
+OBJCOPY=$(ARM_BINPATH)/arm-none-eabi-objcopy
+AR=$(ARM_BINPATH)/arm-none-eabi-ar
+RANLIB=$(ARM_BINPATH)/arm-none-eabi-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
@@ -247,7 +247,7 @@ STDIO_OBJ = \
 	lib_a-strcmp.o \
 	lib_a-strlen.o \
 
-ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
+ARM_LIBC_A = $(ARM_PATH)/arm-none-eabi/lib/libc.a
 
 $(STDIO_OBJ): $(ARM_LIBC_A)
 	$(AR) xv $? $(STDIO_OBJ)
@@ -333,7 +333,7 @@ autoexec: reboot.o
 		$^ \
 	); \
 	stat -c "autoexec.bin: %s bytes" autoexec.bin; \
-	readelf -l magiclantern | grep -C 2 MemSiz
+	arm-none-eabi-readelf -l magiclantern | grep -C 2 MemSiz
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\

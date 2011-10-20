@@ -269,7 +269,7 @@ int ml_started = 0; // 1 after ML is fully loaded
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
-{
+{	
 	#ifndef CONFIG_1100D
 	config_parse_file( CARD_DRIVE "magic.cfg" );
 	#endif

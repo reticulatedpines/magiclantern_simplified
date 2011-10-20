@@ -68,6 +68,7 @@ NSTUB( 0xFF2C9128, dialog_set_property_str)
 NSTUB( 0xFF198F74, dispcheck )
 NSTUB( 0xFF079B68, DispSensorStart )						
 NSTUB( 0x2D18	 , dm_names )                // in DebugMsg, before the 1st loop target
+NSTUB( 0xFF066D7C, dm_set_print_level )
 NSTUB( 0xFF066DE4, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF066A18, dmstart )	/** Debugging commands are all registered by name.  Search for the strings */
 NSTUB( 0xFF066A58, dmstop )

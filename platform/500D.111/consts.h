@@ -54,22 +54,20 @@
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
 #define DISPLAY_SENSOR_POWERED (*(int*)0x328c) // dec AJ_Req_DispSensorStart
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task	//??what?!?
-
 // button codes as received by gui_main_task
 #define BGMT_PRESS_LEFT 0x39
 #define BGMT_PRESS_UP 0x3b
 #define BGMT_PRESS_RIGHT 0x37
 #define BGMT_PRESS_DOWN 0x3d
-#define BGMT_PRESS_SET 0x4
+#define BGMT_PRESS_SET 4
 #define BGMT_UNPRESS_UDLR 0x15				//? what's this???!?
-#define BGMT_UNPRESS_SET 0x5
+#define BGMT_UNPRESS_SET 5
 #define BGMT_TRASH 0xA
-#define BGMT_MENU 0x6
-#define BGMT_DISP 0x7
-#define BGMT_Q 0x8					//not used?
-#define BGMT_Q_ALT 0xF				//not used maybe
-#define BGMT_PLAY 0x9
+#define BGMT_MENU 6
+#define BGMT_DISP 7
+#define BGMT_Q 8
+#define BGMT_Q_ALT 0xF
+#define BGMT_PLAY 9
 #define BGMT_PRESS_HALFSHUTTER 0x23
 #define BGMT_UNPRESS_HALFSHUTTER 0x24
 #define BGMT_PRESS_FULLSHUTTER 0x25
@@ -79,7 +77,6 @@
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
 #define BGMT_PICSTYLE 0x13				//????
-#define BGMT_FUNC 0x12					// ???
 #define BGMT_JOY_CENTER 0x1e // press the joystick maybe?		???
 
 #define BGMT_LV 0xE						// idk?
@@ -89,16 +86,26 @@
 #define BGMT_WHEEL_UP 0						// "
 #define BGMT_WHEEL_DOWN 1					// "
 
-#define BGMT_FLASH_MOVIE 0					// idk yet
-#define BGMT_PRESS_FLASH_MOVIE 0			// "
-#define BGMT_UNPRESS_FLASH_MOVIE 0			// "
-#define FLASH_BTN_MOVIE_MODE 0				// "
+/*#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x3f && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
+#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000))
+#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000) == 0)
+#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
+
+#define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
+#define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0x1000000))
+#define BGMT_UNPRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0x1000000) == 0)*/
+
+#define BGMT_FLASH_MOVIE 0
+#define BGMT_PRESS_FLASH_MOVIE 0
+#define BGMT_UNPRESS_FLASH_MOVIE 0
+#define FLASH_BTN_MOVIE_MODE 0
 
 #define BGMT_ISO_MOVIE 0
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
-#define OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+
+#define OLC_INFO_CHANGED 63 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
@@ -108,48 +115,48 @@
 
 //~ #define AJ_LCD_Palette 0x2CDB0
 
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x6A50) == 0xF)
+//#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
+#define LV_BOTTOM_BAR_DISPLAYED 0
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x77BC) == 0xF)
 #define SHOOTING_MODE (*(int*)0x313C)
 
 #define COLOR_FG_NONLV 80
 
-#define MVR_190_STRUCT (*(void**)0x1ed8) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_190_STRUCT (*(void**)0x1e90) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE div_maybe(-100*MEM(236 + MVR_190_STRUCT) - 100*MEM(244 + MVR_190_STRUCT) - 100*MEM(384 + MVR_190_STRUCT) - 100*MEM(392 + MVR_190_STRUCT) + 100*MEM(240 + MVR_190_STRUCT) + 100*MEM(248 + MVR_190_STRUCT), -MEM(236 + MVR_190_STRUCT) - MEM(244 + MVR_190_STRUCT) + MEM(240 + MVR_190_STRUCT) + MEM(248 + MVR_190_STRUCT))
-
+#define MVR_BUFFER_USAGE div_maybe(-100*MEM(316 + MVR_190_STRUCT) - 100*MEM(324 + MVR_190_STRUCT) - 100*MEM(496 + MVR_190_STRUCT) - 100*MEM(504 + MVR_190_STRUCT) + 100*MEM(320 + MVR_190_STRUCT) + 100*MEM(328 + MVR_190_STRUCT), -MEM(316 + MVR_190_STRUCT) - MEM(324 + MVR_190_STRUCT) + MEM(320 + MVR_190_STRUCT) + MEM(328 + MVR_190_STRUCT))
 #define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
-//#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(216 + MVR_190_STRUCT))
+//#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_190_STRUCT))
+#define MVR_BYTES_WRITTEN (*(int*)(292 + MVR_190_STRUCT))
 
 #define MOV_REC_STATEOBJ (*(void**)0x5B34)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
-#define MOV_RES_AND_FPS_COMBINATIONS 2
+#define MOV_RES_AND_FPS_COMBINATIONS 3
 #define MOV_OPT_NUM_PARAMS 2
-#define MOV_GOP_OPT_NUM_PARAMS 0
-#define MOV_OPT_STEP 2
+#define MOV_GOP_OPT_NUM_PARAMS 3
+#define MOV_OPT_STEP 5
+#define MOV_GOP_OPT_STEP 3
 
-#define AE_VALUE (*(int8_t*)0xfb30)
+#define AE_VALUE (*(int8_t*)0x14C55)
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
-#define CURRENT_DIALOG_MAYBE_2 (*(int*)0x6A50)
-#define DLG_WB 5
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
+#define CURRENT_DIALOG_MAYBE (*(int*)0x3a9c)
+#define DLG_WB 6
+#define DLG_FOCUS_MODE 0xA
+#define DLG_DRIVE_MODE 9
+#define DLG_PICTURE_STYLE 5
 #define DLG_PLAY 1
 #define DLG_MENU 2
-#define DLG_Q_UNAVI 0x18
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // (CURRENT_DIALOG_MAYBE == 0x1A)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME 0 // (CURRENT_DIALOG_MAYBE == 0x1B)
+#define DLG_Q_UNAVI 0x1E
+#define DLG_FLASH_AE 0x21
+#define DLG_PICQ 26
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1B)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1B)
 
 #define DLG2_FOCUS_MODE 0xA
 #define DLG2_DRIVE_MODE 0xB
@@ -164,8 +171,6 @@
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
-
-#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // position for displaying shutter count and other info
 #define MENU_DISP_INFO_POS_X 0
@@ -197,8 +202,8 @@
 
 #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
 
-#define DIALOG_MnCardFormatBegin (0x1e704+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-#define DIALOG_MnCardFormatExecute (0x1E7B8+4) // similar
+#define DIALOG_MnCardFormatBegin (0x242AC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x24398+4) // similar
 
 #define BULB_MIN_EXPOSURE 100
 
