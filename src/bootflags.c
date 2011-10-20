@@ -180,7 +180,7 @@ bootflag_write_bootblock( void )
 	
 	int i;
 	for(i=0; i<512; i++) block[i] = 0xAA;
-	
+
 	int rc = dev->read_block( dev, 0, 1, block ); //overwrite our AAAs in our buffer with the MBR partition of the SD card.
 	
 	// figure out if we are a FAT32 partitioned drive. this spells out FAT32 in chars.
@@ -193,7 +193,7 @@ bootflag_write_bootblock( void )
 		my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
 		rc = dev->write_block( dev, 0, 1, block );
 	}
-	if( strncmp(block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
+	else if( strncmp(block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
 	{
 		int rc = dev->read_block( dev, 0, 1, block );
 		my_memcpy( block + 0x2B, (uint8_t*) "EOS_DEVELOP", 0xB );
