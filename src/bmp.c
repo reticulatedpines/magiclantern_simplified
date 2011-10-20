@@ -253,7 +253,7 @@ con_printf(
 }
 #endif
 
-#if CONFIG_DEBUGMSG
+#if 1
 void
 bmp_hexdump(
 	unsigned		fontspec,

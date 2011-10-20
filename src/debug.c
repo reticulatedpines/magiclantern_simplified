@@ -334,9 +334,84 @@ void ChangeHDMIOutputSizeToFULLHD()
 	prop_request_change(PROP_HDMI_CHANGE_CODE, x, 32);
 }
 
+struct cf_device
+{
+	// If block has the top bit set the physical blocks will be read
+	// instead of from the first partition.  Cool.
+	int                     (*read_block)(
+										  struct cf_device *              dev,
+										  uintptr_t                       block,
+										  size_t                          num_blocks,
+										  void *                          buf
+										  );
+	
+	int                     (*write_block)(
+										   struct cf_device *              dev,
+										   uintptr_t                       block,
+										   size_t                          num_blocks,
+										   const void *                    buf
+										   );
+	
+	void *                  io_control;
+	void *                  soft_reset;
+};
+
+extern struct cf_device * const sd_device[];
+
+
+void
+bootflags_write( void )
+{
+	
+	struct cf_device * const dev = sd_device[1];
+	
+
+	uint8_t *block = alloc_dma_memory( 512 );
+	
+	int i;
+	for(i=0 ; i<0x200 ; i++)
+	{
+		block[i] = 0xAA;
+	}
+	
+	int rc = dev->read_block( dev, 0, 1, block );
+
+	FILE * f = FIO_CreateFile(CARD_DRIVE "block_before.BIN");
+	if (f != (void*) -1)
+	{
+		bmp_printf(FONT_LARGE, 0, 60, "Dumping block to file...");
+		FIO_WriteFile(f, (void*) block, 512);
+		FIO_CloseFile(f);
+	}
+	
+	bmp_printf(FONT_MED, 0, 200, "dev->read_block: %x", rc);
+	msleep(1000);
+	
+	my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
+	my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
+	
+	rc = dev->write_block( dev, 0, 1, block );
+	bmp_printf(FONT_MED, 0, 220, "dev->write_block: %x", rc);
+	msleep(1000);
+	
+	f = FIO_CreateFile(CARD_DRIVE "block_after.BIN");
+	if (f != (void*) -1)
+	{
+		bmp_printf(FONT_LARGE, 0, 60, "Dumping new block to file...");
+		FIO_WriteFile(f, (void*) block, 512);
+		FIO_CloseFile(f);
+	}
+	
+	call( "dispcheck" );
+	
+	free_dma_memory( block );
+}
+
+
+
 void xx_test(void* priv)
 {
-	// test code goes here.
+	bootflags_write();
 }
 
 static void stress_test_long(void* priv)
