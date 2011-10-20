@@ -1149,6 +1149,12 @@ Focus
   * ``Arrows``: you will be able to focus with the arrow keys. You can reverse the focus direction with ``Q`` and ``PLAY``.
   * ``LCD Sensor``: on 550D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you also need to disable `LCD Remote Shot`_ and enable `SensorShortcuts`_.
 
+  Recommended focus step settings: 
+  
+  * Focus StepSize: 1 or 2
+  * Focus StepDelay: small values, without ``Wait`` flag.
+  * If the motion is not smooth, try larger delays (100ms)
+
 .. _focus speed:
 
 **Focus StepSize: Small/Medium/Large**
@@ -1198,6 +1204,13 @@ Focus
 
   **Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
 
+  Recommended focus step settings: 
+  
+  * Focus StepSize: 1 or 2
+  * Focus StepDelay:
+    - without ``Wait`` flag: large delays (around 100 ms) => will ignore small position errors
+    - with ``Wait`` flag: small delays (only lens is in very good mechanical condition)
+
 .. _focus stacking:
 
 **Stack focus**
@@ -1216,6 +1229,8 @@ Focus
   3. Close ML menu and take a picture. ML will continue the focus sequence.
   
   You can also combine this function with `HDR`_ bracketing and `silent pictures`_.
+
+  Recommended focus step settings: same as `rack focus`_.
 
 .. _focus and DOF info:
 
