@@ -51,14 +51,9 @@ void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
 BMP_LOCK( // reuse this for locking
 	card_led_on();
-	#if defined(CONFIG_60D) || defined(CONFIG_50D)
-	int delay = 100;
-	#else
-	int delay = 0;
-	#endif
 	assign_af_button_to_halfshutter(); // this has semaphores
-	SW1(1,delay);
-	SW1(0,delay);
+	SW1(1,50);
+	SW1(0,50);
 	restore_af_button_assignment();
 	card_led_off();
 )
