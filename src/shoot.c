@@ -2315,8 +2315,8 @@ flash_ae_toggle( int sign )
 {
 	int ae = (int8_t)flash_ae;
 	int newae = ae + sign * (ABS(ae + sign) <= 24 ? 4 : 8);
-	if (newae > FLASH_MAX_EV * 8) newae = FLASH_MIN_EV;
-	if (newae < FLASH_MIN_EV * 8) newae = FLASH_MAX_EV;
+	if (newae > FLASH_MAX_EV * 8) newae = FLASH_MIN_EV * 8;
+	if (newae < FLASH_MIN_EV * 8) newae = FLASH_MAX_EV * 8;
 	ae &= 0xFF;
 	prop_request_change(PROP_STROBO_AECOMP, &newae, 4);
 }
