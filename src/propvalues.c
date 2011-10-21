@@ -177,7 +177,5 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 	#else
 	lv_disp_mode = buf[0];
 	#endif
-	extern int ml_started;
-	if (ml_started) redraw();
 	return prop_cleanup(token, property);
 }

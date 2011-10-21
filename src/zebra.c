@@ -190,6 +190,13 @@ PROP_HANDLER(PROP_HDMI_CHANGE)
 	return prop_cleanup( token, property );
 }
 
+PROP_HANDLER(PROP_HOUTPUT_TYPE)
+{
+	extern int ml_started;
+	if (ml_started) redraw();
+	return prop_cleanup(token, property);
+}
+
 volatile int lcd_position = 0;
 volatile int display_dont_mirror_dirty;
 PROP_HANDLER(PROP_LCD_POSITION)
