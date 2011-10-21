@@ -225,11 +225,18 @@ void Beep()
 
 void run_test()
 {
-	gui_stop_menu();
-	msleep(5000);
-	HijackDialogBox();
-	msleep(1000);
-	call("dispcheck");
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			console_printf("CFn(%d,%d) => %d\n", i, j, GetCFnData(i,j));
+		}
+	}
+	//~ gui_stop_menu();
+	//~ msleep(5000);
+	//~ HijackDialogBox();
+	//~ msleep(1000);
+	//~ call("dispcheck");
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -1387,7 +1394,7 @@ static void dbg_draw_props(int changed)
 	for (i = 0; i < dbg_propn; i++)
 	{
 		unsigned x = 80;
-		unsigned y = 15 + i * FONT_SMALL.height;
+		unsigned y = 15 + i * font_small.height;
 		unsigned property = dbg_props[i];
 		unsigned len = dbg_props_len[i];
 		unsigned fnt = FONT_SMALL;

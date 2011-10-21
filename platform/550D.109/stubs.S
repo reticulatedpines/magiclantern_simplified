@@ -253,3 +253,6 @@ NSTUB(0xFF06B014, GetMemoryInformation) // called from AllocateMemory
 NSTUB(0xFF204C8C, GUI_SetElectricShutter)
 
 NSTUB(0xFF2045E0, GUI_SetRollingPitchingLevelStatus)
+
+NSTUB(0xFF42E15C, GetCFnData)
+NSTUB(0xFF42E364, SetCFnData)

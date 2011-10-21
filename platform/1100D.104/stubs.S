@@ -206,3 +206,6 @@ NSTUB(0xFF13ACCC, PtpPropButtonSW1)
 NSTUB(0xFF13AD70, PtpPropButtonSW2)
 
 NSTUB(0xFF070718, GetMemoryInformation) // called from AllocateMemory
+
+NSTUB(0xFF510C24, GetCFnData)
+NSTUB(0xFF510E50, SetCFnData)

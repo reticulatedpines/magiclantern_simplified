@@ -261,3 +261,6 @@ NSTUB(0xff20ba7c, GUI_SetRollingPitchingLevelStatus);
 NSTUB(0xFF1BF058, AJ_MREQ_ISR)
 NSTUB(0xFF1BF0E8, AJ_SIO3_ISR)
 NSTUB(0xff1d68ac, register_interrupt)
+
+NSTUB(0xFF51BB90, GetCFnData)
+NSTUB(0xFF51BD98, SetCFnData)

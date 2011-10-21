@@ -518,6 +518,11 @@ extern int autoboot_loaded;
 extern void DryosDebugMsg(int,int,const char *,...);
 //~ #define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 
+/** custom functions */
+// group starts from 0, number starts from 1
+extern int GetCFnData(int group, int number);
+extern void SetCFnData(int group, int number, int value);
+
 #if CONFIG_DEBUGMSG
 	#define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #else

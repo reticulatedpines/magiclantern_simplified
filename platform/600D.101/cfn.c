@@ -1,52 +1,13 @@
 #include <dryos.h>
-#include <property.h>
 
-#define PROP_CFN 0x80010004 // 13 bytes
-#define CFN1_LEN 13
+// look on camera menu or review sites to get custom function numbers
 
-uint32_t cfn[4];
-PROP_HANDLER( PROP_CFN )
-{
-	cfn[0] = buf[0];
-	cfn[1] = buf[1];
-	cfn[2] = buf[2];
-	cfn[3] = buf[3] & 0xFF;
-	//~ bmp_printf(FONT_MED, 0, 450, "cfn: %x/%x/%x/%x", cfn[0], cfn[1], cfn[2], cfn[3]);
-	return prop_cleanup( token, property );
-}
+int get_htp() { return GetCFnData(0, 6); }
+void set_htp(int value) { SetCFnData(0, 6, value); }
 
-int get_htp()
-{
-	if (cfn[1] & 0x10000) return 1;
-	return 0;
-}
+int get_mlu() { return GetCFnData(0, 8); }
+void set_mlu(int value) { SetCFnData(0, 8, value); }
 
-void set_htp(int enable)
-{
-	if (enable) cfn[1] |= 0x10000;
-	else cfn[1] &= ~0x10000;
-	prop_request_change(PROP_CFN, cfn, 0xD);
-}
+int cfn_get_af_button_assignment() { return GetCFnData(0, 9); }
+void cfn_set_af_button(int value) { SetCFnData(0, 9, value); }
 
-void set_mlu(int enable)
-{
-	if (enable) cfn[2] |= 0x1;
-	else cfn[2] &= ~0x1;
-	prop_request_change(PROP_CFN, cfn, 0xD);
-}
-int get_mlu()
-{
-	return cfn[2] & 0x1;
-}
-
-void cfn_set_af_button(int value)
-{
-	cfn[2] &= ~0xF00;
-	cfn[2] |= (value << 8) & 0xF00;
-	prop_request_change(PROP_CFN, cfn, CFN1_LEN);
-}
-
-int cfn_get_af_button_assignment()
-{
-	return (cfn[2] & 0xF00) >> 8;
-}

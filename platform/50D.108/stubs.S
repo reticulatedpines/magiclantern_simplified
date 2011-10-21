@@ -241,3 +241,6 @@ NSTUB(0xFFA47A7C, dialog_redraw)
 NSTUB(0xFFAAB650, dialog_set_property_str)
 
 NSTUB(0xffbe75b8, StartFactoryMenuApp)
+
+NSTUB(0xFFB38BB4, GetCFnData)
+NSTUB(0xFFB38CBC, SetCFnData)
