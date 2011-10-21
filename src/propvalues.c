@@ -169,26 +169,15 @@ volatile PROP_INT(PROP_MVR_REC_START, recording);
 volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 #endif
 
-
-#ifdef CONFIG_60D
 int lv_disp_mode;
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
+	#ifdef CONFIG_60D
 	lv_disp_mode = buf[1];
-	return prop_cleanup(token, property);
-}
-#endif
-
-#ifdef CONFIG_500D
-int lv_disp_mode;
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
-{
+	#else
 	lv_disp_mode = buf[0];
-	redraw();
+	#endif
+	extern int ml_started;
+	if (ml_started) redraw();
 	return prop_cleanup(token, property);
 }
-#endif
-
-#if !defined(CONFIG_500D) && !defined(CONFIG_60D)
-PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
-#endif
