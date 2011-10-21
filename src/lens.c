@@ -641,6 +641,7 @@ void draw_ml_topbar()
 	);
 
 	x += 80;
+	int alo = get_alo();
 	bmp_printf( font, x, y,
 		get_htp() ? "HTP" :
 		alo == ALO_LOW ? "alo" :

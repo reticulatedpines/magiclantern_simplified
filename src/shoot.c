@@ -2349,15 +2349,10 @@ flash_ae_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_PERCENT, (ae_ev + 80) * 100 / (24+80));
 }
 
-void set_alo(int value)
-{
-	value = COERCE(value, 0, 3);
-	prop_request_change(PROP_ALO, &value, 4);
-}
-
 // 0 = off, 1 = alo, 2 = htp
 int get_ladj()
 {
+	int alo = get_alo();
 	if (get_htp()) return 4;
 	if (alo == ALO_LOW) return 1;
 	if (alo == ALO_STD) return 2;
@@ -2413,6 +2408,7 @@ static void
 ladj_display( void * priv, int x, int y, int selected )
 {
 	int htp = get_htp();
+	int alo = get_alo();
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -3251,7 +3247,6 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= aperture_toggle_reverse,
 		.help = "Adjust aperture. Useful if the wheel stops working."
 	},
-#ifndef CONFIG_50D
 	{
 		.name = "Light Adjust",
 		.display	= ladj_display,
@@ -3259,7 +3254,6 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= ladj_toggle_reverse,
 		.help = "Enable/disable HTP and ALO from the same place."
 	},
-#endif
 	{
 		.name = "PictureStyle",
 		.display	= picstyle_display,

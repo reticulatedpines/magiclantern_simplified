@@ -18,7 +18,6 @@ volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
-volatile PROP_INT(PROP_ALO, alo);
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 volatile PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);

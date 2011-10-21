@@ -1,4 +1,5 @@
 #include <dryos.h>
+#include <property.h>
 
 // look on camera menu or review sites to get custom function numbers
 
@@ -11,3 +12,12 @@ void set_mlu(int value) { SetCFnData(0, 8, value); }
 int cfn_get_af_button_assignment() { return GetCFnData(0, 9); }
 void cfn_set_af_button(int value) { SetCFnData(0, 9, value); }
 
+// on some cameras, ALO is CFn
+PROP_INT(PROP_ALO, alo);
+int get_alo() { return alo; }
+
+void set_alo(int value)
+{
+	value = COERCE(value, 0, 3);
+	prop_request_change(PROP_ALO, &value, 4);
+}

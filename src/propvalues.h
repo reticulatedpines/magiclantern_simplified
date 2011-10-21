@@ -21,7 +21,6 @@ extern int liveview_actuations;
 extern int ae_mode_movie;
 extern int ext_monitor_hdmi;
 extern int ext_monitor_rca;
-extern int alo;
 extern int file_number;
 extern int folder_number;
 extern int file_number_also;
