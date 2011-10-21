@@ -226,13 +226,10 @@ void Beep()
 void run_test()
 {
 	gui_stop_menu();
-	msleep(2000);
-	fake_simple_button(BGMT_PLAY);
-	msleep(2000);
-	MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
-	MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
-	msleep(2000);
-	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+	msleep(5000);
+	HijackDialogBox();
+	msleep(1000);
+	call("dispcheck");
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -337,7 +334,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void xx_test(void* priv)
 {
-	
+	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 static void stress_test_long(void* priv)
@@ -1759,7 +1756,7 @@ void HijackFormatDialogBox()
 
 #ifdef CONFIG_50D
 #define FORMAT_BTN "[FUNC]"
-#define STR_LOC 12
+#define STR_LOC 6
 #else
 #ifdef CONFIG_500D
 #define FORMAT_BTN "[DISP]"
