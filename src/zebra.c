@@ -3266,6 +3266,8 @@ livev_hipriority_task( void* unused )
 			BMP_LOCK( show_electronic_level(); )
 		#endif
 		
+		if (k % 4 == 0) rec_notify_continuous();
+		
 		if (zoom_overlay_countdown)
 		{
 			zoom_overlay_countdown--;

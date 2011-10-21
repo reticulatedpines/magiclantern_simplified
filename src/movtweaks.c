@@ -331,9 +331,12 @@ movtweak_task( void* unused )
 		do_movie_mode_remap();
 		
 		if (is_movie_mode())
+		{
 			save_kelvin_wb();
 
-		if (shutter_lock) shutter_lock_step();
+			if (shutter_lock) shutter_lock_step();
+			
+		}
 
 		if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
 			(enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
@@ -505,6 +508,76 @@ static void movie_expo_lock_print(
 }
 #endif
 
+CONFIG_INT("rec.notify", rec_notify, 0);
+static void rec_notify_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"REC/STBY notif: %s",
+		rec_notify == 0 ? "OFF" :
+		rec_notify == 1 ? "Red Crossout" :
+		rec_notify == 2 ? "Message" :
+		rec_notify == 3 ? "Beeps (start/stop)" :
+		"err"
+	);
+}
+
+void rec_notify_continuous()
+{
+	if (!is_movie_mode()) return;
+	if (!zebra_should_run()) return;
+	
+	static int prev = 0;
+	
+	if (rec_notify == 1)
+	{
+		if (!recording)
+		{
+			int xc = os.x0 + os.x_ex/2;
+			int yc = os.y0 + os.y_ex/2;
+			int r = os.y_ex/4;
+			int rd = r * 707 / 1000;
+			draw_circle(xc, yc, r, COLOR_RED);
+			draw_circle(xc, yc, r-1, COLOR_RED);
+			draw_line(xc + rd, yc - rd, xc - rd, yc + rd, COLOR_RED);
+			draw_line(xc + rd, yc - rd + 1, xc - rd, yc + rd + 1, COLOR_RED);
+			//~ bmp_draw_rect(COLOR_RED, os.x0 + 50, os.y0 + 75, os.x_ex - 100, os.y_ex - 150);
+			//~ bmp_draw_rect(COLOR_RED, os.x0 + 51, os.y0 + 76, os.x_ex - 102, os.y_ex - 152);
+			//~ draw_line(os.x0 + 50, os.y0 + 75, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 75, COLOR_RED);
+			//~ draw_line(os.x0 + 50, os.y0 + 76, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 74, COLOR_RED);
+		}
+		if (prev != recording) redraw();
+	}
+	else if (rec_notify == 2)
+	{
+		if (recording)
+			bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 3, os.y0 + 50, "REC");
+		else
+			bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "STBY");
+		if (prev != recording) redraw();
+	}
+	
+	prev = recording;
+}
+void rec_notify_trigger(int rec)
+{
+#if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+	if (rec_notify == 3)
+	{
+		extern int ml_started;
+		if (rec != 2 && ml_started) beep();
+		if (!rec) { msleep(100); beep(); }
+	}
+#endif
+}
+
+
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
 	{
@@ -592,6 +665,18 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Cover LCD sensor and adjust aperture => ISO changes too."
 	},*/
+	{
+		.name = "REC/STBY notify", 
+		.priv = &rec_notify, 
+		.display = rec_notify_print, 
+		#if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+		.select = menu_quaternary_toggle, 
+		.select_reverse = menu_quaternary_toggle_reverse,
+		#else
+		.select = menu_ternary_toggle, 
+		.select_reverse = menu_ternary_toggle_reverse,
+		#endif
+	},
 	#ifndef CONFIG_50D
 	{
 		.name = "Movie REC key",
@@ -602,13 +687,13 @@ static struct menu_entry mov_menus[] = {
 		.help = "Change the button used for recording. Hint: wired remote."
 	},
 	#endif
-	{
+	/*{
 		.name = "WB workaround",
 		.priv = &white_balance_workaround,
 		.display = wb_workaround_display, 
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
-	},
+	},*/
 	#ifdef CONFIG_600D
 	{
 		.name = "DigitalZoom Shortcut",

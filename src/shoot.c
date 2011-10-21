@@ -2294,16 +2294,14 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 	int rec = (shooting_type == 4 ? 2 : 0);
 	rec_picstyle_change(rec);
 	shutter_btn_rec_do(rec);
+	rec_notify_trigger(rec);
 	return prop_cleanup(token, property);
 }
 #else
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	int rec = buf[0];
-	extern int ml_started;
-	#ifndef CONFIG_600D // beep disables the audio device on 600D?!
-	if (beep_enabled && rec != 2 && ml_started) beep();
-	#endif
+	rec_notify_trigger(rec);
 	rec_picstyle_change(rec);
 	return prop_cleanup(token, property);
 }
