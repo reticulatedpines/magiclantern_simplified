@@ -41,8 +41,9 @@ int LensFocus2(int num_steps, int step_size)
 
 
 CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
-//~ CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
-CONFIG_INT( "focus.count",	focus_stack_count, 5 );
+CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
+//~ CONFIG_INT( "focus.count",	focus_stack_count, 5 );
+#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture + 1)
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
 CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
@@ -159,12 +160,12 @@ void focus_stack_ensure_preconditions()
 // will be called from shoot_task
 void
 focus_stack(
-	int	count,
-	int			total_steps,
+	int count,
+	int num_steps,
 	int skip_first
 )
 {
-	NotifyBox(1000, "Focus stack: %d pics, %d steps", count, ABS(total_steps) );
+	NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
 	hdr_create_script(count, skip_first, 1);
 	msleep(1000);
 	
@@ -192,9 +193,9 @@ focus_stack(
 		
 		focus_stack_ensure_preconditions();
 		
-		int num_steps = ((total_steps * (i+1) / (count-1))) - (total_steps * i / (count-1));
+		//~ int num_steps = ((total_steps * (i+1) / (count-1))) - (total_steps * i / (count-1));
 		
-		NotifyBox(1000, "Focus %d steps...", num_steps); msleep(500);
+		NotifyBox(1000, "Focusing..."); msleep(500);
 		if (LensFocus(num_steps) == 0)
 			break;
 		focus_moved_total += num_steps;
@@ -237,7 +238,8 @@ int is_focus_stack_enabled() { return focus_stack_enabled && focus_task_delta; }
 
 void focus_stack_run(int skip_first)
 {
-	focus_stack( focus_stack_count, -focus_task_delta, skip_first );
+	//~ focus_stack( focus_stack_count, -focus_task_delta, skip_first );
+	focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture, skip_first );
 }
 
 void focus_stack_trigger_from_menu(void* priv)
@@ -408,7 +410,7 @@ focus_delay_display(
 	);
 	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
-/*
+
 static void
 focus_stack_step_increment( void * priv )
 {
@@ -419,16 +421,16 @@ static void
 focus_stack_step_decrement( void * priv )
 {
 	focus_stack_steps_per_picture = mod(focus_stack_steps_per_picture - 2, 10) + 1;
-}*/
+}
 
-
+/*
 static void
 focus_stack_count_increment( void * priv )
 {
 	focus_stack_count = focus_stack_count * 2;
 	if (focus_stack_count == 256) focus_stack_count = 5;
 	if (focus_stack_count > 200) focus_stack_count = 2;
-}
+}*/
 
 static void
 focus_delay_toggle( int sign)
@@ -451,18 +453,15 @@ focus_stack_print(
 	bmp_printf(
 		fnt,
 		x, y,
-		"Stack focus    : run=%s,%dim",
-		focus_stack_enabled ? "TakePic" : "PLAY",
-		focus_stack_count
+		"Stack focus    : %s,stepsize=%d",
+		focus_stack_enabled ? "SNAP" : "PLAY",
+		focus_stack_steps_per_picture
 	);
-	int step = ABS(focus_task_delta) / (focus_stack_count-1);
-	int perfect_division = (focus_stack_count-1) * step == ABS(focus_task_delta);
 	bmp_printf(
 		FONT_MED,
-		x + font_large.width * 15, y + font_large.height,
-		"(will take pic every %d%d steps)",
-		perfect_division ? 0 : step, 
-		perfect_division ? step : -(step+1)
+		x + font_large.width * 17, y + font_large.height,
+		"(will take %d pictures)",
+		focus_task_delta ? FOCUS_STACK_COUNT : 0
 	);
 	if (!focus_task_delta)
 		menu_draw_icon(x, y, MNI_OFF, 0);
@@ -527,7 +526,7 @@ rack_focus(
 		delta --;
 
 		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%% ", ABS(delta0 - delta) * 100 / ABS(delta0));
-		draw_ml_bottombar();
+		//~ draw_ml_bottombar();
 		
 		if (LensFocus( speed_cmd ) == 0) break;
 		gui_hide_menu( 10 );
@@ -1144,7 +1143,7 @@ static struct menu_entry focus_menu[] = {
 		.priv = &focus_stack_enabled,
 		.display	= focus_stack_print,
 		.select	= menu_binary_toggle,
-		.select_auto		= focus_stack_count_increment,
+		.select_auto		= focus_stack_step_increment,
 		.select_reverse		= focus_stack_trigger_from_menu,
 		.help = "Focus bracketing, increases DOF while keeping bokeh."
 	},
