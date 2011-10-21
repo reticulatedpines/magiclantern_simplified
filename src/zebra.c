@@ -2945,6 +2945,7 @@ void ResumeLiveView()
 		int x = 0;
 		prop_request_change(PROP_LV_ACTION, &x, 4);
 		while (!lv) msleep(100);
+		msleep(200);
 	}
 	lv_paused = 0;
 }
