@@ -805,7 +805,7 @@ tweak_task( void* unused)
 			display_off_by_halfshutter();
 		#endif
 		
-		if ((lv_disp_mode) || ISO_ADJUSTMENT_ACTIVE)
+		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
 			idle_wakeup_reset_counters();
 	}
 }

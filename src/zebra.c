@@ -3287,7 +3287,7 @@ livev_hipriority_task( void* unused )
 			
 		}
 		
-		if ((lv_disp_mode) || get_halfshutter_pressed())
+		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
 			crop_set_dirty(5);
 
 #if CONFIG_DEBUGMSG
