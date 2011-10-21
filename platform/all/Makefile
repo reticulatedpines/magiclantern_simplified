@@ -3,7 +3,7 @@
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
-MODEL=550D.109.60D.110.600D.101.50D.108
+MODEL=550D.60D.600D.50D
 
 include  $(TOP_DIR)/Makefile.inc
 
