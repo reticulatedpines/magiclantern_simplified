@@ -47,29 +47,28 @@ int afp_transformer (int pattern, type_DIRECTION direction);
 
 PROP_INT(PROP_AFPOINT, af_point);
 
-void afp_show_in_viewfinder()
+void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
+BMP_LOCK( // reuse this for locking
 	card_led_on();
 	#if defined(CONFIG_60D) || defined(CONFIG_50D)
 	int delay = 100;
 	#else
 	int delay = 0;
 	#endif
-	msleep(50);
-	assign_af_button_to_halfshutter();
-	msleep(50);
+	assign_af_button_to_halfshutter(); // this has semaphores
 	SW1(1,delay);
-	msleep(50);
 	SW1(0,delay);
-	msleep(50);
 	restore_af_button_assignment();
 	card_led_off();
+)
 }
 
 void set_af_point(int afpoint)
 {
 	if (beep_enabled) Beep();
 	prop_request_change(PROP_AFPOINT, &afpoint, 4);
+	af_point = afpoint;
 	task_create("afp_tmp", 0x18, 0, afp_show_in_viewfinder, 0);
 }
 
