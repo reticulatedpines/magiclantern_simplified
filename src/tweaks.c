@@ -642,6 +642,23 @@ play_set_wheel_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+CONFIG_INT("quick.delete", quick_delete, 0);
+static void
+quick_delete_print(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Quick Erase       : %s", 
+		quick_delete ? "SET+Erase" : "OFF"
+	);
+}
+
 int timelapse_playback = 0;
 
 void playback_set_wheel_action(int dir)
@@ -675,6 +692,18 @@ int handle_set_wheel_play(struct event * event)
 			int dir = event->param == BGMT_WHEEL_RIGHT ? 1 : -1;
 			playback_set_wheel_action(dir);
 			return 0;
+		}
+		
+		if (quick_delete)
+		{
+			if (event->param == BGMT_TRASH)
+			{
+				fake_simple_button(BGMT_UNPRESS_SET);
+				fake_simple_button(BGMT_TRASH);
+				fake_simple_button(BGMT_WHEEL_DOWN);
+				fake_simple_button(BGMT_PRESS_SET);
+				return 0;
+			}
 		}
 	}
 	
@@ -1240,6 +1269,13 @@ struct menu_entry play_menus[] = {
 		.help = "You may use the LiveView button to protect images quickly."
 	},
 #endif
+	{
+		.name = "Quick Erase",
+		.priv = &quick_delete, 
+		.select = menu_binary_toggle, 
+		.display = quick_delete_print,
+		.help = "Delete files quickly with SET+Erase (be careful!!!)"
+	},
 };
 
 static void tweak_init()
