@@ -2164,6 +2164,11 @@ int handle_tricky_canon_calls(struct event * event)
 		case MLEV_STOP_KILLING_FLICKER:
 			stop_killing_flicker_do();
 			break;
+		case MLEV_HIDE_CANON_BOTTOM_BAR:
+			#if !defined(CONFIG_50D) && !defined(CONFIG_50D)
+			if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
+			#endif
+			break;
 	}
 	if (event->param < 0) return 0;
 	return 1;

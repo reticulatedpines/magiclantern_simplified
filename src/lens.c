@@ -204,6 +204,12 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
 void draw_ml_bottombar()
 {
+	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
+	{
+		fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
+		return;
+	}
+	
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
