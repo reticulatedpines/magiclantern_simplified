@@ -36,7 +36,10 @@ Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by
  `Pelican <http://pel.hu>`_,
  `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_,
  tested by `Smeangol <http://www.youtube.com/user/UML50D>`_,
- `Max Chen <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=max chen&qt_g=Search+this+group>`_ and `others <http://chdk.setepontos.com/index.php?topic=6161.90>`_.
+ `Max Chen <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=max chen&qt_g=Search+this+group>`_
+ `ectaVgen <http://chdk.setepontos.com/index.php?action=profile;u=20756>`_,
+ `ilguercio <http://chdk.setepontos.com/index.php?action=profile;u=16461>`_
+  and `others <http://chdk.setepontos.com/index.php?topic=6161.90>`_,
 
 **1100D port by**
  `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
@@ -94,10 +97,11 @@ Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by
  `Dod3032 <http://www.youtube.com/user/Dod3032>`_, 
  `3615geek <http://vimeo.com/user5714625>`_, 
  `CineDigital.tv <http://www.cinedigital.tv/>`_,
- `jeveuxdoncjevilme <http://www.jeveuxdoncjefilme.fr/>`_
+ `jeveuxdoncjevilme <http://www.jeveuxdoncjefilme.fr/>`_, 
+ `Chadwick Shoults <http://vimeo.com/30803116>`_
 
 **Magic Lantern logo by**
- `Joseph <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=eljoseph&qt_g=Search+this+group>`_
+ `elJoseph <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=eljoseph&qt_g=Search+this+group>`_
 
 Thanks to all the users who `provided feedback <http://groups.google.com/group/ml-devel>`_, `reported bugs <http://bitbucket.org/hudson/magic-lantern/issues>`_, 
 and supported the Magic Lantern project by `donations <https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=ELJ6U9GGFPL3U&lc=RO&item_name=Magic%20Lantern%20firmware%20for%20Canon%20550D&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest>`_!
