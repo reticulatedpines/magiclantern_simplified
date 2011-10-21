@@ -3135,7 +3135,7 @@ static struct menu_entry shoot_menus[] = {
 		.help = "Avoid shake using the LCD face sensor as a simple remote."
 	},
 	#endif
-	#ifndef CONFIG_600D
+	#if !defined(CONFIG_600D) && !defined(CONFIG_50D)
  	{
 		.name = "Audio RemoteShot",
 		.priv		= &audio_release_running,
