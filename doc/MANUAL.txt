@@ -647,13 +647,13 @@ Functions specific to movie mode.
 
   This option locks the shutter value in movie mode (you will be able to change it only from ML menu).
 
-.. _WB workaround:
+**REC/STDBY notify**
 
-**WB workaround: ON/OFF**
-
-  Workaround for remembering Kelvin temperature and WBShift G/M and B/A values in Movie mode.
-    
-  If this setting is ``ON``, white balance values are stored in ML config file.
+  Custom notifications for recording or standby:
+  
+  * Red Crossout (highly recommended if you forget to press record)
+  * Message (it shows ``STDBY`` or ``REC``)
+  * Beeps (it will beep when recording starts or stops)
 
 .. _DigitalZoom Shortcut:
 
@@ -1198,11 +1198,9 @@ Focus
     
   5. Go to ``Rack Focus`` and press ``SET``, ``Q`` or ``PLAY`` to start rack focus.
   
-  6. To return to the beginning point, you can press ``SET``, ``Q`` or ``PLAY`` again.
+  6. To return to the beginning point, run rack focus again.
   
   Tip: when `LCD Remote Shot`_ is set on ``Near`` or ``Away``, you can trigger rack focus from the LCD sensor, avoiding shake.
-
-  **Note:** the rack focus command may "stutter" while racking with some lenses, causing overshoot or undershoot of the desired position. This feature is still under development and should be more mature in a later version.
 
   Recommended focus step settings: 
   
@@ -1226,7 +1224,7 @@ Focus
   
   1. Configure `rack focus`_ and use it to preview the focus range. 
   2. Select the number of focus steps to skip. This will determine the number of pictures to be taken.
-  3. Close ML menu and take a picture. ML will continue the focus sequence.
+  3. Press PLAY to start the focus sequence (``PLAY`` mode) or take the first picture (``SNAP`` mode).
   
   You can also combine this function with `HDR`_ bracketing and `silent pictures`_.
 
@@ -1419,6 +1417,7 @@ Features for Playback mode.
   
   * ``Normal``: just like in standard firmware
   * ``Fast``: zoom on steroids
+  * ``Fast+100%``: first ``ZoomIn`` press will zoom to 100%
 
 **Cropmarks (PLAY): ON/OFF**
 
@@ -1431,16 +1430,25 @@ Features for Playback mode.
   .. figure:: Compare_and_hdr.png
       :alt: 200px|right|Comparing two images and HDR preview
       :align: center
-      :width: 10cm
+      :width: 7cm
  
   When you hold SET and turn MainDial, the camera may:
   
-  * ``Play 422``: display silent pictures from ``DCIM/100CANON``;
+  * ``Play 422``: display silent pictures from ``DCIM/100CANON`` (low-res only).
   * ``ExposureFusion``: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
   * ``CompareImages``: compare two images with a diagonal split view. The current image will always end up in the top half.
   * ``TimelapsePlay``: scroll through all your pictures quickly.
 
-  Note: high-resolution silent pictures can't be previewed in the camera.
+**LV button (PLAY): Default / Protect image**
+
+  Customize the LiveView button in ``PLAY`` mode:
+  
+  * Default (enter LiveView)
+  * Protect image
+
+**Quick Erase**
+
+  Shortcut for erasing images without confirmation (hold SET and press ERASE). Be careful!
 
 Debug
 ~~~~~

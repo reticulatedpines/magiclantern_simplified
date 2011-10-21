@@ -615,7 +615,7 @@ cropmarks_play_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Cropmarks (PLAY)  : %s", 
+		"Cropmarks   (PLAY): %s", 
 		cropmarks_play ? "ON" : "OFF"
 	);
 }
