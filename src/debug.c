@@ -225,8 +225,10 @@ void Beep()
 
 void run_test()
 {
-	//~ gui_stop_menu();
-	//~ msleep(5000);
+	gui_stop_menu();
+	msleep(2000);
+	int x = 1;
+	prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
 	//~ HijackDialogBox();
 	//~ msleep(1000);
 	//~ call("dispcheck");
@@ -1003,12 +1005,13 @@ void disable_electronic_level()
 
 void show_electronic_level()
 {
+	static int prev_angle10 = 0;
 	if (level_data.status != 2)
 	{
 		GUI_SetRollingPitchingLevelStatus(0);
 		msleep(100);
+		prev_angle10 = 12345678; // force update
 	}
-	static int prev_angle10 = 0;
 	int angle100 = level_data.roll_sensor1 * 256 + level_data.roll_sensor2;
 	int angle10 = angle100/10;
 	draw_electronic_level(angle10, prev_angle10);
@@ -1125,18 +1128,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		}
 		#endif
 		
-		if (fake_halfshutter && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !get_halfshutter_pressed())
-		{
-			SW1(1,5);
-			SW1(0,0);
-			if (fake_halfshutter == 1) msleep(1000);
-			else if (fake_halfshutter == 2) msleep(200);
-			else msleep(20);
-		}
+		if (fake_halfshutter)
+			fake_halfshutter_step(); // this one should msleep as needed
 		else
-		{
 			msleep(200);
-		}
 	}
 }
 
@@ -1178,16 +1173,68 @@ fake_halfshutter_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Half-press shutter : %s",
-		fake_halfshutter == 1 ? "every second" : 
-		fake_halfshutter == 2 ? "every 200ms" : 
-		fake_halfshutter == 3 ? "every 20ms" : 
-		"OFF [Q]"
+		fake_halfshutter == 1 ? "sticky" : 
+		fake_halfshutter == 2 ? "every second" : 
+		fake_halfshutter == 3 ? "every 200ms" : 
+		fake_halfshutter == 4 ? "every 20ms" : 
+		"OFF"
 	);
 }
 
-void fake_halfshutter_now()
+void hs_show()
 {
-	SW1(1,0);
+	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
+}
+void hs_hide()
+{
+	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
+}
+
+void 
+fake_halfshutter_step()
+{
+	if (gui_menu_shown()) return;
+	if (fake_halfshutter >= 2)
+	{
+		if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !get_halfshutter_pressed())
+		hs_show();
+		SW1(1,5);
+		SW1(0,0);
+		hs_hide();
+		if (fake_halfshutter == 2) msleep(1000);
+		else if (fake_halfshutter == 3) msleep(200);
+		else msleep(20);
+	}
+	else if (fake_halfshutter == 1) // sticky
+	{
+		static int state = 0;
+		// 0: allow 0->1, disallow 1->0 (first press)
+		// 1: allow everything => reset things (second presss)
+
+		static int old_value = 0;
+		int hs = HALFSHUTTER_PRESSED;
+		
+		if (hs) hs_show();
+		else if (old_value) redraw();
+		
+		if (hs != old_value) // transition
+		{
+			if (state == 0)
+			{
+				if (old_value && !hs)
+				{
+					card_led_on();
+					SW1(1,50);
+					state = 1;
+				}
+			}
+			else
+			{
+				if (hs == 0) { state = 0; card_led_off(); }
+			}
+		}
+		old_value = hs;
+	}
 }
 
 PROP_INT(PROP_STROBO_REDEYE, red_eye);
@@ -1200,6 +1247,7 @@ void flashlight_frontled_task()
 	int x = 1;
 	int l = lv;
 	int m = shooting_mode;
+	int d = drive_mode;
 	set_shooting_mode(SHOOTMODE_AUTO);
 	msleep(100);
 	if (lv) { fake_simple_button(BGMT_LV); while (lv) msleep(100); }
@@ -1207,10 +1255,12 @@ void flashlight_frontled_task()
 	prop_request_change(PROP_POPUP_BUILTIN_FLASH, &x, 4);
 	assign_af_button_to_star_button();
 	prop_request_change(PROP_STROBO_REDEYE, &x, 4);
+	lens_set_drivemode(DRIVE_SINGLE);
 	msleep(100);
 	SW1(1,0);
 	msleep(100);
 	while (get_halfshutter_pressed()) { msleep(100); display_off_force(); }
+	lens_set_drivemode(d);
 	prop_request_change(PROP_STROBO_REDEYE, &r, 4);
 	restore_af_button_assignment();
 	set_shooting_mode(m);
@@ -1286,11 +1336,10 @@ struct menu_entry debug_menus[] = {
 	{
 		.name		= "Half-press shutter",
 		.priv = &fake_halfshutter,
-		.select		= menu_quaternary_toggle,
-		.select_reverse = menu_quaternary_toggle_reverse,
-		.select_auto = fake_halfshutter_now,
+		.select		= menu_quinternary_toggle,
+		.select_reverse = menu_quinternary_toggle_reverse,
 		.display	= fake_halfshutter_print,
-		.help = "Emulates half-shutter presses. [Q]:press now w/o releasing."
+		.help = "Emulates half-shutter press, or make half-shutter sticky."
 	},
 #if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
 	{
