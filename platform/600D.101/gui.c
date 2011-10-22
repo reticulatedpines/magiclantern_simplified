@@ -53,6 +53,13 @@ static int handle_buttons(struct event * event)
 		else return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
+	// enable the Q button when ML menu is active
+	if ((event->param == BGMT_Q || event->param == BGMT_Q_ALT) && gui_menu_shown())
+	{
+		menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
+		return 0;
+	}
+
 	// shortcut for 3x zoom mode
 	static int disp_pressed = 0;
 	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
@@ -117,13 +124,6 @@ static int handle_buttons(struct event * event)
 	if (handle_bulb_ramping_keys(event) == 0) return 0;
 
 	// camera-specific:
-
-	// enable the Q button when ML menu is active
-	if ((event->param == BGMT_Q || event->param == BGMT_Q_ALT) && gui_menu_shown())
-	{
-		menu_send_event(PRESS_DIRECT_PRINT_BUTTON);
-		return 0;
-	}
 
 	if (event->param == BGMT_INFO && ISO_ADJUSTMENT_ACTIVE && gui_state == GUISTATE_IDLE)
 	{
