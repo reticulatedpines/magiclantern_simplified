@@ -982,9 +982,10 @@ memfilt(void* m, void* M, int value)
 	bmp_printf(FONT_SMALL, x, y, "        ");
 }
 
-void draw_electronic_level(int angle, int prev_angle)
+void draw_electronic_level(int angle, int prev_angle, int force_redraw)
 {
-	if (angle == prev_angle) return;
+	if (!force_redraw && angle == prev_angle) return;
+	
 	int x0 = os.x0 + os.x_ex/2;
 	int y0 = os.y0 + os.y_ex/2;
 	int r = 200;
@@ -1006,16 +1007,22 @@ void disable_electronic_level()
 void show_electronic_level()
 {
 	static int prev_angle10 = 0;
+	int force_redraw = 0;
 	if (level_data.status != 2)
 	{
 		GUI_SetRollingPitchingLevelStatus(0);
 		msleep(100);
-		prev_angle10 = 12345678; // force update
+		force_redraw = 1;
 	}
+	
+	static int k = 0;
+	k++;
+	if (k % 10 == 0) force_redraw = 1;
+	
 	int angle100 = level_data.roll_sensor1 * 256 + level_data.roll_sensor2;
 	int angle10 = angle100/10;
-	draw_electronic_level(angle10, prev_angle10);
-	draw_electronic_level(angle10 + 1800, prev_angle10 + 1800);
+	draw_electronic_level(angle10, prev_angle10, force_redraw);
+	draw_electronic_level(angle10 + 1800, prev_angle10 + 1800, force_redraw);
 	//~ draw_line(x0, y0, x0 + r * cos(angle), y0 + r * sin(angle), COLOR_BLUE);
 	prev_angle10 = angle10;
 	
