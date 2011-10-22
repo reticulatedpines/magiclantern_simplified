@@ -1496,25 +1496,32 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
   With this option you can get all sorts of cool tricks.
   
-  **Disable powersaving:**
+  **Disable powersaving in LiveView**
+  
   Set this option to "every second". Enable manual focus or back-button focus to avoid side effects.
   
   **Keep the meter reading always on**
+  
   Same as above.
   
   **Trap focus without having to hold the shutter**
+  
   Assign AF to half-shutter button, enable trap focus and set this option to "sticky".
   
   **Use front LED as AF-assist light (550D)**
+  
   Enable red-eye reduction, disable AF-assist beam firing, enable back-button focus, pop up the flash and make this option "sticky". Focus with the back button (``*``). If you don't want to take the picture with flash, close it after focusing.
   
   **Highlight current AF points**
+  
   In photo mode, set this option to "every 20 ms" and assign AF to half-shutter button.
   
-  **Continuous autofocus**
+  **Continuous autofocus (photo mode)**
+  
   Set AF to "servo" mode and this option to "sticky".
   
   **Exposure lock in movie mode**
+  
   Set focus to manual or back-button and make half-shutter "sticky".
 
 **Free Memory**

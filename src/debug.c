@@ -29,7 +29,8 @@ void display_off();
 void display_off_force();
 
 
-CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
+//~ CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
+int fake_halfshutter = 0;
 
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
@@ -228,7 +229,7 @@ void run_test()
 	gui_stop_menu();
 	msleep(2000);
 	int x = 1;
-	prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
+	//~ prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
 	//~ HijackDialogBox();
 	//~ msleep(1000);
 	//~ call("dispcheck");
