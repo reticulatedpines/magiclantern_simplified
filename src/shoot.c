@@ -2531,22 +2531,30 @@ bulb_take_pic(int duration)
 {
 	//~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
 	duration = MAX(duration, BULB_MIN_EXPOSURE);
+	int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
+	int m0r = shooting_mode;
 	ensure_bulb_mode();
-	assign_af_button_to_star_button();
+	//~ assign_af_button_to_star_button();
 	msleep(100);
-	if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
-	mlu_lock_mirror_if_needed();
+	//~ if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
+	//~ mlu_lock_mirror_if_needed();
 	//~ NotifyBox(3000, "BulbStart (%d)", duration);
-	SW1(1,50);
-	SW2(1,0);
+	//~ SW1(1,50);
+	//~ SW2(1,0);
+	int x = 1;
+	prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
 	msleep(duration);
+	prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
-	SW2(0,50);
-	SW1(0,0);
-	msleep(100);
-	restore_af_button_assignment();
+	//~ SW2(0,50);
+	//~ SW1(0,0);
+	//~ msleep(100);
+	//~ restore_af_button_assignment();
 	lens_wait_readytotakepic(64);
 	get_out_of_play_mode(1000);
+	set_shooting_mode(m0r);
+	prop_request_change( PROP_SHUTTER, &s0r, 4 );
+	prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
 }
 
 static void bulb_toggle_fwd(void* priv)
