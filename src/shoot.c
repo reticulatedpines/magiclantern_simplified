@@ -3433,8 +3433,6 @@ static void press_rec_button()
 {
 #ifdef CONFIG_50D
 	fake_simple_button(BGMT_PRESS_SET);
-	msleep(100);
-	fake_simple_button(BGMT_UNPRESS_UDLR);
 #else
 	fake_simple_button(BGMT_LV);
 #endif
