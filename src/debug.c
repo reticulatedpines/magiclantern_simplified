@@ -225,13 +225,6 @@ void Beep()
 
 void run_test()
 {
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 10; j++)
-		{
-			console_printf("CFn(%d,%d) => %d\n", i, j, GetCFnData(i,j));
-		}
-	}
 	//~ gui_stop_menu();
 	//~ msleep(5000);
 	//~ HijackDialogBox();
@@ -1188,10 +1181,63 @@ fake_halfshutter_print(
 		fake_halfshutter == 1 ? "every second" : 
 		fake_halfshutter == 2 ? "every 200ms" : 
 		fake_halfshutter == 3 ? "every 20ms" : 
-		"OFF"
+		"OFF [Q]"
 	);
 }
 
+void fake_halfshutter_now()
+{
+	SW1(1,0);
+}
+
+PROP_INT(PROP_STROBO_REDEYE, red_eye);
+void flashlight_frontled_task()
+{
+	gui_stop_menu();
+	msleep(100);
+	int r = red_eye;
+	int x = 1;
+	int m = shooting_mode;
+	set_shooting_mode(SHOOTMODE_AUTO);
+	msleep(100);
+	prop_request_change(PROP_POPUP_BUILTIN_FLASH, &x, 4);
+	assign_af_button_to_star_button();
+	prop_request_change(PROP_STROBO_REDEYE, &x, 4);
+	msleep(100);
+	SW1(1,0);
+	msleep(100);
+	while (get_halfshutter_pressed()) msleep(100);
+	prop_request_change(PROP_STROBO_REDEYE, &r, 4);
+	restore_af_button_assignment();
+	set_shooting_mode(m);
+}
+
+static void flashlight_frontled(void* priv)
+{
+	gui_stop_menu();
+	task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
+}
+
+void flashlight_lcd_task()
+{
+	gui_stop_menu();
+	idle_globaldraw_dis();
+	msleep(100);
+	kill_flicker();
+	bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
+	int b = backlight_level;
+	set_backlight_level(7);
+	while (!get_halfshutter_pressed() && tft_status == 0) msleep(50);
+	set_backlight_level(b);
+	stop_killing_flicker();
+	idle_globaldraw_en();
+}
+
+static void flashlight_lcd(void* priv)
+{
+	gui_stop_menu();
+	task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
+}
 
 
 void NormalDisplay();
@@ -1217,6 +1263,13 @@ static void meminfo_display(
 }
 
 struct menu_entry debug_menus[] = {
+	{
+		.priv		= "Flashlight [SET/Q]",
+		.select		= flashlight_frontled,
+		.select_auto = flashlight_lcd,
+		.display	= menu_print,
+		.help = "Turn on the front LED [SET] or make display bright [Q]."
+	},
 #if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
@@ -1319,8 +1372,9 @@ struct menu_entry debug_menus[] = {
 		.priv = &fake_halfshutter,
 		.select		= menu_quaternary_toggle,
 		.select_reverse = menu_quaternary_toggle_reverse,
+		.select_auto = fake_halfshutter_now,
 		.display	= fake_halfshutter_print,
-		.help = "Emulate halfway shutter presses while camera is idle"
+		.help = "Emulates half-shutter presses. [Q]:press now w/o releasing."
 	},
 	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	{

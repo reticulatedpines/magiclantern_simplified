@@ -233,6 +233,7 @@
 #define PROP_STROBO_AECOMP    0x80000009  // in 1/8 EV steps, 8-bit signed, len=4
 #define PROP_STROBO_SETTING   0x80030038  // len=22
 #define PROP_STROBO_REDEYE    0x80000025  // 1 = enable, 0 = disable
+#define PROP_POPUP_BUILTIN_FLASH 0x80020019 // request with 1
 //strobo_setting[0] & 0xFF000000 = strobo_aecomp << 24
 //strobo_setting[1] & 2 = 2 if strobo_curtain else 0
 //strobo_setting[1] & 8 = 8 if e-ttl meter = average else 0
