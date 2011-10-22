@@ -1195,10 +1195,14 @@ void flashlight_frontled_task()
 {
 	gui_stop_menu();
 	msleep(100);
+	display_off_force();
 	int r = red_eye;
 	int x = 1;
+	int l = lv;
 	int m = shooting_mode;
 	set_shooting_mode(SHOOTMODE_AUTO);
+	msleep(100);
+	if (lv) { fake_simple_button(BGMT_LV); while (lv) msleep(100); }
 	msleep(100);
 	prop_request_change(PROP_POPUP_BUILTIN_FLASH, &x, 4);
 	assign_af_button_to_star_button();
@@ -1206,10 +1210,12 @@ void flashlight_frontled_task()
 	msleep(100);
 	SW1(1,0);
 	msleep(100);
-	while (get_halfshutter_pressed()) msleep(100);
+	while (get_halfshutter_pressed()) { msleep(100); display_off_force(); }
 	prop_request_change(PROP_STROBO_REDEYE, &r, 4);
 	restore_af_button_assignment();
 	set_shooting_mode(m);
+	display_on();
+	if (l) force_liveview();
 }
 
 static void flashlight_frontled(void* priv)
@@ -1221,13 +1227,20 @@ static void flashlight_frontled(void* priv)
 void flashlight_lcd_task()
 {
 	gui_stop_menu();
+	msleep(200);
+	while (get_halfshutter_pressed()) msleep(100);
 	idle_globaldraw_dis();
 	msleep(100);
 	kill_flicker();
-	bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
 	int b = backlight_level;
 	set_backlight_level(7);
-	while (!get_halfshutter_pressed() && tft_status == 0) msleep(50);
+	PauseLiveView();
+	while (!get_halfshutter_pressed() && tft_status == 0)
+	{
+		bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
+		msleep(50);
+	}
+	ResumeLiveView();
 	set_backlight_level(b);
 	stop_killing_flicker();
 	idle_globaldraw_en();
