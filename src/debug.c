@@ -1270,6 +1270,15 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "Turn on the front LED [SET] or make display bright [Q]."
 	},
+	{
+		.name		= "Half-press shutter",
+		.priv = &fake_halfshutter,
+		.select		= menu_quaternary_toggle,
+		.select_reverse = menu_quaternary_toggle_reverse,
+		.select_auto = fake_halfshutter_now,
+		.display	= fake_halfshutter_print,
+		.help = "Emulates half-shutter presses. [Q]:press now w/o releasing."
+	},
 #if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
@@ -1367,15 +1376,6 @@ struct menu_entry debug_menus[] = {
 		.select		= clear_config,
 		.display	= menu_print,
 	}, */
-	{
-		.name		= "Half-press shutter",
-		.priv = &fake_halfshutter,
-		.select		= menu_quaternary_toggle,
-		.select_reverse = menu_quaternary_toggle_reverse,
-		.select_auto = fake_halfshutter_now,
-		.display	= fake_halfshutter_print,
-		.help = "Emulates half-shutter presses. [Q]:press now w/o releasing."
-	},
 	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	{
 		.name = 'Free Memory',
