@@ -406,14 +406,13 @@ void draw_ml_bottombar()
       0x13, // orange
       bg);
 
-		x = 400;
 		if( info->wb_mode == WB_KELVIN )
-			bmp_printf( text_font, x, y_origin,
+			bmp_printf( text_font, x_origin + 350, y_origin,
 				"%5dK ",
 				info->kelvin
 			);
 		else
-			bmp_printf( text_font, x, y_origin,
+			bmp_printf( text_font, x_origin + 350, y_origin,
 				"%s ",
 				(lens_info.wb_mode == 0 ? "AutoWB" : 
 				(lens_info.wb_mode == 1 ? " Sunny" :
