@@ -2738,15 +2738,14 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
 	
 	if (delta) // should we change something?
 	{
-		int new_raw_iso = COERCE(lens_info.raw_iso + delta, 72, 120); // Allowed values: ISO 100 ... ISO 6400
+		int max_auto_iso = auto_iso_range & 0xFF;
+		int new_raw_iso = COERCE(lens_info.raw_iso + delta, get_htp() ? 78 : 72, max_auto_iso); // Allowed values: ISO 100 (or 200 with HTP) ... max auto ISO from Canon menu
 		delta = new_raw_iso - raw_iso_0;
 		if (delta == 0) return 0; // nothing to change
 		int new_bulb_shutter = 
 			delta ==  8 ? bulb_shutter_value / 2 :
 			delta == -8 ? bulb_shutter_value * 2 :
 			bulb_shutter_value;
-		
-		//~ if (bulb_shutter_value < BULB_MIN_EXPOSURE) return;
 		
 		lens_set_rawiso(new_raw_iso); // try to set new iso
 		msleep(50);

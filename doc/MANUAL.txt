@@ -791,7 +791,7 @@ Functions for stills shooting (some of them work for movies, too).
 
   Tips:
   
-  * To avoid flicker, shoot in **manual** mode or use `Bulb Ramping`_, use **manual** white balance, **avoid short exposure** times and switch the lens to **MF**.
+  * To avoid flicker, shoot in **manual** mode or use `Bulb Ramping`_, use **manual white balance**, **avoid short exposure** times and **use a manual lens** (if you use an EF lens, lock the aperture and **unscrew** it).
   * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
   * When using the intervalometer in LiveView with "noisy" mode, your shutter will wear twice as fast than outside LiveView.
   * If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
@@ -813,7 +813,7 @@ Functions for stills shooting (some of them work for movies, too).
   exposure, compensating for the
   transition from day to night. 
 
-  This option will adjust shutter and ISO automatically, using the 180 degree rule. Aperture is not adjusted (you can adjust it manually while running, but you will lose a few frames).
+  This option will adjust shutter and ISO automatically, using the 180 degree rule.
 
   **Quick start:**
   
@@ -836,7 +836,13 @@ Functions for stills shooting (some of them work for movies, too).
     - When you are ready to start, press ``SET``.
     
   **5.** Sit back and relax :)
-
+  
+  Limits:
+  
+    * ISO is chosen between 100 and maximum auto ISO value from Canon menu.
+    * Shutter speed is chosen between 1/1000 (lower limit) by the delay between two shots minus two seconds (upper limit). Example: for 10-second intervals, shutter speed will be between 1/1000 and 8 seconds).
+    * Aperture is fixed (you can change it manually).
+ 
   Tips: 
   
   * Don't adjust ISO and shutter before the timelapse, they are fully automatic.
@@ -847,21 +853,20 @@ Functions for stills shooting (some of them work for movies, too).
   
     - For example, let's say you set "Take pics every 40 seconds"
     - Shutter speed will be chosen between 90 and 270 degrees if possible. In our example, it will be chosen between 10 and 30 seconds if the light conditions allow it.
-    - If it's not possible to get a correct exposure between 90 and 270 degrees, shutter will be chosen between 1/1000 (at ISO 100) and (*d* - 2) seconds (at ISO 6400), where *d* is the delay between two shots.
+    - If it's not possible to get a correct exposure between 90 and 270 degrees, shutter will be chosen between 1/1000 (at ISO 100) and (*d* - 2) seconds (at max auto ISO setting, up to 6400), where *d* is the delay between two shots.
 
   Techincal notes:
     
   * Exposure is adjusted using a condition like this (for example): *70% of pixels should be below 50% brightness*.
   * Exposure for every shot is computed from previous shot only (camera will go to Play mode for one second to compute the exposure from the `histogram`_).
   * ISO is chosen using the 180 degree rule, so the resulting shutter speed stays between 90 and 270 degrees (that is, between 1/4 and 3/4 of the delay between two shots).
-  * Maximum exposure time will be the delay between two shots, minus two seconds.
   * Only native ISOs (100, 200, 400 etc) are used, for best dynamic range.
   * Shutter speed can be adjusted with a resolution of 10ms.
   * Frames with fast shutter speeds (less than 1 second in Rebel cameras, less 0.1 seconds in 60D) are taken in Manual mode. You will get flicker.
   * It can go from 1/1000s @ ISO 100 (daylight) to several minutes of exposure time @ ISO 6400 (complete darkness).
   * Exposure algorithm is a `P feedback controller <http://en.wikipedia.org/wiki/Proportional_control>`_, with gain equal to 0.8 (at each step, it performs 80% of the correction). Process model is a nonlinear gain with dead time (the S-curve you see on the screen, which is the relationship between luma and EV ).
   * If the lighting changes suddenly a few stops between two shots, the algorithm should recover completely after 2 or 3 shots.
-
+  
 .. _bulb timer:
 
 **Bulb Timer: 1s...8h**

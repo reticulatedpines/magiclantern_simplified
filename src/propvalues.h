@@ -8,7 +8,7 @@ extern int shooting_mode;
 extern int shooting_type;
 extern int efic_temp;
 extern int gui_state;
-extern int max_auto_iso;
+extern int auto_iso_range;
 extern int pic_quality;
 //~ extern int burst_count;
 extern int avail_shot;

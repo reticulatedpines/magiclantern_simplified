@@ -13,7 +13,7 @@ volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
 volatile PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
-volatile PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
+volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
