@@ -1002,7 +1002,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, see `ISO selection`_.
 
   
-  In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the ISO value automatically. 
+  In manual exposure modes (photo and video), press ``Q`` for one-time auto ISO. 
    
   * When LiveView is active, ML performs a binary search, trying to achieve a good balance between overexposure and underexposure.
   * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
@@ -1023,11 +1023,11 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
   On 60D, extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range, i.e. 2500...10000.
 
-  In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
+  In LiveView, press ``Q`` to auto-tune Kelvin WB for the current scene. ML will use the center (200x200 pixels rectangle) as reference gray.
 
 **WBShift G/M: Green 0..9 / Magenta 0..9**
 
-  Green-Magenta white balance shift. Useful for fluorescent lighting.
+  Green-Magenta white balance shift. Useful for fluorescent lighting. Can be auto-tuned with ``Q`` button.
 
 **WBShift B/A: Blue 0..9 / Amber 0..9**
 
@@ -1049,7 +1049,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   
   Not all shutter values are accepted by all cameras in all modes.
   
-  In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the shutter value automatically.
+  In manual exposure modes (photo and video), press ``Q`` for one-time auto shutter speed. 
   
   * When LiveView is active, ML uses binary search, similar to ISO.
   * When LiveView is off, the shutter value is computed with the help of Auto ISO feature from Canon firmware, in 1EV steps.
