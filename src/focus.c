@@ -84,12 +84,17 @@ display_lens_hyperfocal(
 	int			selected
 )
 {
-	if (!lv) return;
-	if (!lens_info.focus_dist) return;
-	
 	unsigned		font = FONT_MED;
 	unsigned		height = fontspec_height( font );
 
+	if (!lv || !lens_info.focus_dist)
+	{
+		bmp_printf( font, x, y,
+			"Focus dist: N/A",
+		);
+		return;
+	}
+	
 	bmp_printf( font, x, y,
 		"Focus dist: %s",
 		lens_info.focus_dist == 0xFFFF
