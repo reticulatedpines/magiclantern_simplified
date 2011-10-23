@@ -32,12 +32,15 @@ static void load_fonts(void* unused)
 	font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
 	font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
 
-/*	if (font_small.bitmap == 0) // fonts not loaded
+	if (font_small.bitmap == 0) // fonts not loaded
 	{
-		NotifyBox(2000, "FONTS.DAT not found" );
-		NotifyBox(2000, "Please copy all ML files!" );
+		bfnt_puts("FONTS.DAT not found", 0, 0, COLOR_WHITE, COLOR_BLACK);
+		beep();
 		msleep(2000);
-	}*/
+		bfnt_puts("Please copy all ML files!", 0, 0, COLOR_WHITE, COLOR_BLACK);
+		beep();
+		msleep(2000);
+	}
 
 	fonts_done = 1;
 }
