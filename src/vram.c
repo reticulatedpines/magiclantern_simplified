@@ -43,7 +43,7 @@ void lut_init()
 
 #include "bmp.h"
 
-void* get_write_422_buf()
+void* get_lcd_422_buf()
 {
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
@@ -122,10 +122,12 @@ void* get_422_hd_idle_buf()
 struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = get_fastrefresh_422_buf();
 	extern int lv_paused;
 	if (gui_state == GUISTATE_PLAYMENU || lv_paused)
-		_vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
+		_vram_info.vram = get_lcd_422_buf();
+	else
+		_vram_info.vram = get_fastrefresh_422_buf();
+
 
 	//~ _vram_info.width = SL.LV.W;
 	//~ _vram_info.height = SL.LV.H;
