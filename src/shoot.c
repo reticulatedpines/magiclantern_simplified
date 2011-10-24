@@ -2358,6 +2358,40 @@ int get_ladj()
 	return 0;
 }
 
+#ifdef CONFIG_500D
+static void
+alo_toggle( void * priv )
+{
+	int alo = get_alo();
+	switch (alo)
+	{
+		case ALO_OFF:
+			set_alo(ALO_STD);
+			break;
+		case ALO_STD:
+			set_alo(ALO_LOW);
+			break;
+		case ALO_LOW:
+			set_alo(ALO_HIGH);
+			break;
+		case ALO_HIGH:
+			set_alo(ALO_OFF);
+			break;
+	}
+}
+
+static void
+htp_toggle( void * priv )
+{
+	int htp = get_htp();
+	if (htp)
+		set_htp(0);
+	else
+		set_htp(1);
+}
+
+#endif
+
 static void
 ladj_toggle( int sign )
 {
@@ -2402,23 +2436,42 @@ ladj_toggle_reverse( void * priv )
 	ladj_toggle(-1);
 }
 
+#ifdef CONFIG_500D
+ladj_display( void * priv, int x, int y, int selected )
+{
+	int htp = get_htp();
+	int alo = get_alo();
+	bmp_printf(
+			   selected ? MENU_FONT_SEL : MENU_FONT,
+			   x, y,
+			   "HTP/ALO     : %s/%s",
+			   (htp ? "ON" : "OFF"),
+			   (alo == ALO_STD ? "Standard" :
+				alo == ALO_LOW ? "Low" :
+				alo == ALO_HIGH ? "Strong" :
+				alo == ALO_OFF ? "OFF" : "err")
+			   );
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(htp || (alo != ALO_OFF)));
+}
+#else
 static void 
 ladj_display( void * priv, int x, int y, int selected )
 {
 	int htp = get_htp();
 	int alo = get_alo();
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Light Adjust: %s",
-		(htp ? "HTP" :
-		(alo == ALO_STD ? "ALO std" :
-		(alo == ALO_LOW ? "ALO low" : 
-		(alo == ALO_HIGH ? "ALO strong " :
-		(alo == ALO_OFF ? "OFF" : "err")))))
-	);
+			   selected ? MENU_FONT_SEL : MENU_FONT,
+			   x, y,
+			   "Light Adjust: %s",
+			   (htp ? "HTP" :
+				(alo == ALO_STD ? "ALO std" :
+				 (alo == ALO_LOW ? "ALO low" : 
+				  (alo == ALO_HIGH ? "ALO strong " :
+				   (alo == ALO_OFF ? "OFF" : "err")))))
+			   );
 	menu_draw_icon(x, y, alo != ALO_OFF ? MNI_ON : htp ? MNI_AUTO : MNI_OFF, 0);
 }
+#endif
 
 static void 
 zoom_display( void * priv, int x, int y, int selected )
@@ -3252,6 +3305,15 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= aperture_toggle_reverse,
 		.help = "Adjust aperture. Useful if the wheel stops working."
 	},
+#ifdef CONFIG_500D
+	{
+		.name		 = "Light Adjust",
+		.select		 = htp_toggle,
+		.select_auto = alo_toggle,
+		.display	 = ladj_display,
+		.help = "Enable/disable HTP and ALO from the same place."
+	},
+#else
 	{
 		.name = "Light Adjust",
 		.display	= ladj_display,
@@ -3259,6 +3321,7 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= ladj_toggle_reverse,
 		.help = "Enable/disable HTP and ALO from the same place."
 	},
+#endif
 	{
 		.name = "PictureStyle",
 		.display	= picstyle_display,

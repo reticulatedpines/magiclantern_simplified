@@ -104,6 +104,9 @@
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
+#define LV_BOTTOM_BAR_DISPLAYED 0
+
+
 
 #define OLC_INFO_CHANGED 63 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 

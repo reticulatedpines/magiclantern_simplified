@@ -1075,6 +1075,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		ui_lock(UILOCK_NONE); msleep(1000);
 		
+		bmp_printf(FONT_MED, 0, 200, "0x3B34: %x", MEM(0x3B34));
+		
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);

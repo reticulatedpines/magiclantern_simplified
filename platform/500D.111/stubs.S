@@ -89,6 +89,7 @@ NSTUB( 0xFF019044, free )
 NSTUB( 0xFF1A72CC, free_dma_memory )
 NSTUB( 0xFF06B044, FreeMemory ) // release_mem in Indy's IDC
 NSTUB( 0xFF330304, fsuDecodePartitionTable )
+NSTUB( 0xFF359804, GetCFnData )
 NSTUB( 0xFF0699B8, give_semaphore )
 NSTUB( 0xFF09186C, gui_change_lcd_state_post )		
 NSTUB( 0xFF090C4C, gui_change_mode )   // GUI_ChangeMode_Post
@@ -155,6 +156,7 @@ NSTUB( 0x23624	 , sd_device )                // in sdReadBlk
 NSTUB( 0xFF392DC8, sdReadBlk )
 NSTUB( 0xFF012E58, sei_restore )						
 NSTUB( 0xFF05FF18, SetBitmapVramAddress ) // where to find bmp_vram_info
+NSTUB( 0xFF359A0C, SetCFnData )
 NSTUB( 0x1F04	 , sounddev )                    // in sounddev_task
 NSTUB( 0xFF054B8C, sounddev_active_in )
 NSTUB( 0xFF0549E8, sounddev_task )
