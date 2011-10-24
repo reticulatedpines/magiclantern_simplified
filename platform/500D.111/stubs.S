@@ -45,7 +45,7 @@ NSTUB( 0xFF1A0D44, AcquireRecursiveLock)
 NSTUB( 0x150FC	 , additional_version )	/** Find the additional version string in GUI_GetFirmVersion */
 NSTUB( 0xFF1A7298, alloc_dma_memory )
 NSTUB( 0xFF06ACB4, AllocateMemory ) // thanks Alex
-NSTUB( 0xFF48E6AC, audio_thresholds )        // after ptr to "ALVFactorySemSignature"
+NSTUB( 0xFF48E58C, audio_thresholds )
 NSTUB( 0x27E04	 , bmp_vram_info )
 NSTUB( 0xFF06670C, bootdisk_disable )
 NSTUB( 0xFF066700, bootdisk_enable )
