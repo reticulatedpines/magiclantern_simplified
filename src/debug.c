@@ -227,8 +227,11 @@ void Beep()
 void run_test()
 {
 	gui_stop_menu();
-	msleep(2000);
-	int x = 1;
+	msleep(5000);
+	//~ int x = 1;
+	//~ NotifyBox(1000, "StartMnStroboWirelessApp"); msleep(1000);
+	//~ StartMnStroboFnSettingApp();
+	//~ StartMnStroboWirelessApp();
 	//~ prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
 	//~ HijackDialogBox();
 	//~ msleep(1000);
@@ -335,9 +338,18 @@ void ChangeHDMIOutputSizeToFULLHD()
 }
 
 
+int8_t strobo_setting[0x22];
+PROP_HANDLER(PROP_STROBO_SETTING)
+{
+	memcpy(strobo_setting, buf, 0x22);
+}
+
 void xx_test(void* priv)
 {
-	task_create("run_test", 0x1c, 0, run_test, 0);
+	strobo_setting[1] = 1;
+	strobo_setting[5] = 16;
+	prop_request_change(PROP_STROBO_SETTING, strobo_setting, 0x22);
+	//~ task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 static void stress_test_long(void* priv)
@@ -1061,6 +1073,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
+		ui_lock(UILOCK_NONE); msleep(1000);
 		
 		
 		//~ struct tm now;

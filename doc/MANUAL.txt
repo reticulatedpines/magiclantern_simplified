@@ -938,6 +938,7 @@ Functions for stills shooting (some of them work for movies, too).
 
   [[Video:550D/T2i Magic Lantern Silent Shooting Mode Tutorial|200px|right]]
   [[Image:SlitScan-Microscope.jpg|200px|right|link=http://i.imgur.com/GRiQE.jpg]]
+  [[Video:Silent_mode_timelapse|200px|right]]
 
   This can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
   

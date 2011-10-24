@@ -4100,7 +4100,11 @@ shoot_task( void* unused )
 
 				extern struct audio_level audio_levels[];
 				bmp_printf(FONT_MED, 20, lv ? 40 : 3, "Audio release ON (%d / %d)   ", audio_levels[0].peak / audio_levels[0].avg, audio_release_level);
-				if (audio_levels[0].peak > audio_levels[0].avg * (int)audio_release_level) 
+				static int avg_prev0 = 1000;
+				static int avg_prev1 = 1000;
+				static int avg_prev2 = 1000;
+				static int avg_prev3 = 1000;
+				if (audio_levels[0].peak > avg_prev3 * (int)audio_release_level) 
 				{
 					remote_shot(1);
 					msleep(100);
@@ -4112,6 +4116,10 @@ shoot_task( void* unused )
 					 * TODO: should this be fixed in remote_shot itself? */
 					while (lens_info.job_state) msleep(100);
 				}
+				avg_prev3 = avg_prev2;
+				avg_prev2 = avg_prev1;
+				avg_prev1 = avg_prev0;
+				avg_prev0 = audio_levels[0].avg;
 			}
 		}
 	}

@@ -162,11 +162,11 @@ db_to_color(
 	int			db
 )
 {
-	if( db < -35 )
+	if( db < -25 )
 		return 0x2F; // white
-	if( db < -20 )
+	if( db < -12 )
 		return 0x06; // dark green
-	if( db < -15 )
+	if( db < -3 )
 		return 0x0F; // yellow
 	return 0x0c; // dull red
 }
@@ -176,11 +176,11 @@ db_peak_to_color(
 	int			db
 )
 {
-	if( db < -35 )
+	if( db < -25 )
 		return 11; // dark blue
-	if( db < -20 )
+	if( db < -12 )
 		return 11; // dark blue
-	if( db < -15 )
+	if( db < -3 )
 		return 15; // bright yellow
 	return 0x08; // bright red
 }
@@ -206,14 +206,14 @@ draw_meter(
 	// .. and the space for showing the channel and source.
 	row += (pitch/4) * y_origin + AUDIO_METER_OFFSET + x_origin/4;
 
-	const int db_avg = audio_level_to_db( level->avg );
+	const int db_peak_fast = audio_level_to_db( level->peak_fast );
 	const int db_peak = audio_level_to_db( level->peak );
 
 	// levels go from -40 to 0, so -40 * 14 == 560 (=width)
-	const uint32_t x_db_avg = (width + db_avg * 14) / 4;
+	const uint32_t x_db_peak_fast = (width + db_peak_fast * 14) / 4;
 	const uint32_t x_db_peak = (width + db_peak * 14) / 4;
 
-	const uint8_t bar_color = db_to_color( db_avg );
+	const uint8_t bar_color = db_to_color( db_peak_fast );
 	const uint8_t peak_color = db_peak_to_color( db_peak );
 
 	const uint32_t bar_color_word = color_word( bar_color );
@@ -227,7 +227,7 @@ draw_meter(
 		uint32_t x;
 		for( x=0 ; x<width/4 ; x++ )
 		{
-			if( x < x_db_avg )
+			if( x < x_db_peak_fast )
 				row[x] = bar_color_word;
 			else
 			if( x < x_db_peak )
@@ -241,7 +241,7 @@ draw_meter(
 	}
 
 	// Write the current level
-	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), x_origin, y_origin, "%s %2d", label, db_avg );
+	bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), x_origin, y_origin, "%s %02d", label, MIN(db_peak, -1) );
 }
 
 
@@ -353,8 +353,12 @@ compute_audio_levels(
 	if( raw > level->peak )
 		level->peak = raw;
 
+	if( raw > level->peak_fast )
+		level->peak_fast = raw;
+
 	// Decay the peak to the average
-	level->peak = ( level->peak * 31 + level->avg ) / 32;
+	level->peak = ( level->peak * 63 + level->avg ) / 64;
+	level->peak_fast = ( level->peak_fast * 7 + level->avg ) / 8;
 }
 
 int audio_meters_are_drawn()
@@ -1073,7 +1077,7 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &cfg_draw_meters,
 		.select		= menu_binary_toggle,
 		.display	= audio_meter_display,
-		.help = "Meters show average value and peaks, from -40 dB to 0 dB."
+		.help = "Bar peak decay, from -40 dB to 0 dB, yellow at -12dB."
 	},
 #ifndef CONFIG_600D
 #if 0
