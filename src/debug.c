@@ -1075,7 +1075,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		ui_lock(UILOCK_NONE); msleep(1000);
 		
-		bmp_printf(FONT_MED, 0, 200, "0x3B34: %x", MEM(0x3B34));
+		bmp_printf(FONT_MED, 0, 150, "0x329D8: %x", MEM(0x329D8));
 		
 		
 		//~ struct tm now;
@@ -2305,7 +2305,14 @@ int handle_tricky_canon_calls(struct event * event)
 			stop_killing_flicker_do();
 			break;
 		case MLEV_HIDE_CANON_BOTTOM_BAR:
-			#if !defined(CONFIG_50D) && !defined(CONFIG_50D)
+			#ifdef CONFIG_500D
+			if (lv && LV_BOTTOM_BAR_DISPLAYED)
+			{
+				prop_change__DispType(3);
+				SetOutputTypeByPressInfoToStorage(GetDisplayType(), 0);
+				set_lv_stuff_to_win_system__maybe(2, 2);
+			}
+			#else if !defined(CONFIG_50D)
 			if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
 			#endif
 			break;
