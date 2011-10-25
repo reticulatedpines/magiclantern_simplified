@@ -2306,8 +2306,10 @@ int handle_tricky_canon_calls(struct event * event)
 				SetOutputTypeByPressInfoToStorage(GetDisplayType(), 0);
 				set_lv_stuff_to_win_system__maybe(2, 2);
 			}
-			#else if !defined(CONFIG_50D)
-			if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
+			#else 
+				#ifndef CONFIG_50D
+				if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
+				#endif
 			#endif
 			break;
 	}
