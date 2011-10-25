@@ -104,7 +104,9 @@ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross,
 int get_zoom_overlay_mode() 
 { 
 	if (!get_global_draw()) return 0;
+#ifndef CONFIG_500D
 	if (is_movie_mode() && video_mode_resolution != 0) return 0;
+#endif
 	return zoom_overlay_mode;
 }
 int get_zoom_overlay_z() 

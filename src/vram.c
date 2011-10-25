@@ -145,7 +145,7 @@ struct vram_info * get_yuv422_vram()
 	else
 	{
 		_vram_info.width = 720;
-		#ifdef CONFIG_50D
+		#if defined(CONFIG_50D) || defined(CONFIG_500D)
 		_vram_info.height = 480 * 8/9;
 		#else
 		_vram_info.height = 480;
