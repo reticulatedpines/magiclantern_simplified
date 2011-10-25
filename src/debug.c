@@ -1072,7 +1072,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		ui_lock(UILOCK_NONE); msleep(1000);
 		
-		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -1100,7 +1099,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 					display_shooting_info_lv();
 					display_shortcut_key_hints_lv();
 				)
-				#ifndef CONFIG_50D
+				#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 				static int ae_warned = 0;
 				if (is_movie_mode() && !ae_mode_movie) 
 				{
