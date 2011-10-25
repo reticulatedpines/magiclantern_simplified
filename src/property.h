@@ -231,29 +231,12 @@
 #define PROP_STROBO_ETTLMETER 0x80040014  // 0 = evaluative, 1 = average
 #define PROP_STROBO_CURTAIN   0x80040015  // 0 = first, 1 = second
 #define PROP_STROBO_AECOMP    0x80000009  // in 1/8 EV steps, 8-bit signed, len=4
-#define PROP_STROBO_SETTING   0x80030038  // len=0x22
+#define PROP_STROBO_SETTING   0x80030038  // len=22
 #define PROP_STROBO_REDEYE    0x80000025  // 1 = enable, 0 = disable
 #define PROP_POPUP_BUILTIN_FLASH 0x80020019 // request with 1
 //strobo_setting[0] & 0xFF000000 = strobo_aecomp << 24
 //strobo_setting[1] & 2 = 2 if strobo_curtain else 0
 //strobo_setting[1] & 8 = 8 if e-ttl meter = average else 0
-
-// 60D (int8 array)
-// [0]
-// [1] => mode? 0=ETTL2, 1=manual
-// [2]
-// [3] => aecomp
-
-// [4] => curtain 1/2 (0 or 2), evaluative/average (0 or 8)
-// [5] => manual flash power (positive 1/8 EV steps)
-// [6]
-// [7]
-
-// [8]
-// [9] => wifi mode?
-//[10] => wifi channel (0..3)
-//[11]
-
 
 #define PROP_LCD_BRIGHTNESS 0x2040000     // 1 .. 7
 

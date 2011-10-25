@@ -346,7 +346,7 @@ PROP_HANDLER(PROP_STROBO_SETTING)
 
 void xx_test(void* priv)
 {
-	dumpf();
+	task_create("run_test", 0x1c, 0, run_test, 0);
 }
 
 static void stress_test_long(void* priv)
