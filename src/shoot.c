@@ -2609,7 +2609,7 @@ bulb_take_pic(int duration)
 		wait_till_next_second();
 		if (lens_info.job_state == 0) break;
 	}
-	msleep(d % 1000);
+	msleep(duration % 1000);
 	prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
 	SW1(1,50);
