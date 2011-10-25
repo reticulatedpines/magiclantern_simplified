@@ -2847,7 +2847,7 @@ seconds_clock_task( void* unused )
 		if (bulb_ramping_enabled && intervalometer_running)
 			bulb_ramping_showinfo();
 
-		if (intervalometer_running && lens_info.job_state == 0)
+		if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown())
 			card_led_blink(1, 50, 0);
 	}
 }
@@ -3825,7 +3825,7 @@ shoot_task( void* unused )
 			wbs_gm_auto_flag = 0;
 		}
 		
-		if (gui_menu_shown()) continue; // be patient :)
+		//~ if (gui_menu_shown()) continue; // be patient :)
 
 		lcd_release_step();
 		
