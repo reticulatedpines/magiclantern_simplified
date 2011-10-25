@@ -227,7 +227,10 @@ void Beep()
 void run_test()
 {
 	gui_stop_menu();
-	msleep(5000);
+	msleep(2000);
+	bulb_take_pic(2500);
+
+	//~ bulb_take_pic(2000);
 	//~ int x = 1;
 	//~ NotifyBox(1000, "StartMnStroboWirelessApp"); msleep(1000);
 	//~ StartMnStroboFnSettingApp();

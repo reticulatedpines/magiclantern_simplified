@@ -2595,13 +2595,25 @@ bulb_take_pic(int duration)
 	//~ NotifyBox(3000, "BulbStart (%d)", duration);
 	//~ SW1(1,50);
 	//~ SW2(1,0);
-	int x = 1;
+	
+	wait_till_next_second();
+	
+	int x = 0;
 	prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
-	msleep(duration);
+	
+	//~ msleep(duration);
+	int d = duration/1000;
+	for (int i = 0; i < d; i++)
+	{
+		bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+		wait_till_next_second();
+		if (lens_info.job_state == 0) break;
+	}
+	if (lens_info.job_state) msleep(d % 1000);
 	prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
-	//~ SW2(0,50);
-	//~ SW1(0,0);
+	SW1(1,50);
+	SW1(0,50);
 	//~ msleep(100);
 	//~ restore_af_button_assignment();
 	lens_wait_readytotakepic(64);
