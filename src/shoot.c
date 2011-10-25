@@ -2609,7 +2609,7 @@ bulb_take_pic(int duration)
 		wait_till_next_second();
 		if (lens_info.job_state == 0) break;
 	}
-	if (lens_info.job_state) msleep(d % 1000);
+	msleep(d % 1000);
 	prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
 	SW1(1,50);
@@ -3465,7 +3465,7 @@ static void hdr_shutter_release(int ev_x8)
 		//~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
 		// then choose the best option (bulb for long exposures, regular for short exposures)
-		if (msc >= 10000)
+		if (msc >= 10000 || (bulb_ramping_enabled && msc > BULB_MIN_EXPOSURE))
 		{
 			bulb_take_pic(msc);
 		}
