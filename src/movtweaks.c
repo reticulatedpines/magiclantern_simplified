@@ -459,6 +459,7 @@ void lv_movie_toggle(void* priv)
 	GUI_SetLvMode(newvalue);
 	if (newvalue == 2) GUI_SetMovieSize_b(1);
 }
+#endif
 /*
 static void
 movie_size_print(
@@ -484,7 +485,7 @@ void movie_size_toggle(void* priv)
 	int newvalue = movie_size_50d == 1 ? 2 : 1;
 	GUI_SetMovieSize_b(newvalue);
 }*/
-
+#if defined(CONFIG_50D) || defined(CONFIG_500D)
 int movie_expo_lock = 0;
 static void movie_expo_lock_toggle()
 {
@@ -587,6 +588,8 @@ static struct menu_entry mov_menus[] = {
 		.display	= lv_movie_print,
 		.help		= "Enable movie recording on 50D :) "
 	},
+#endif
+#if defined(CONFIG_50D) //|| defined(CONFIG_500D)
 	{
 		.name		= "Exposure Lock",
 		.priv		= &movie_expo_lock,
@@ -594,7 +597,7 @@ static struct menu_entry mov_menus[] = {
 		.display	= movie_expo_lock_print,
 		.help		= "Lock the exposure in movie mode (50D/500D)"
 	},
-#endif
+//#endif
 	{
 		.name = "Shutter Lock",
 		.priv = &shutter_lock,
@@ -602,7 +605,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Lock shutter value in movie mode (change from Expo only)."
 	},
-#ifdef CONFIG_50D
+//#ifdef CONFIG_50D
 	{
 		.name = "Shutter Button",
 		.priv = &shutter_btn_rec,

@@ -110,6 +110,11 @@ def convert_422_bmp(input, output):
         w, h = 1680, 945
     elif len(data) == 1280*720*2:
         w, h = 1280, 720
+    #silent pic resolutions for 500d:
+    elif len(data) == 928*616*2:        #1.1MP from HD buffer in LV
+        w, h = 928, 616
+    elif len(data) == 1576*1048*2:      #3.3MP from HD buffer in 1080p mode (same size recording and idle)
+        w, h = 1576, 1048
     elif len(data) % 1024*680*2 == 0:
         return convert_422_hires(input,output)
     else:
