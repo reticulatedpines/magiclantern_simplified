@@ -256,7 +256,3 @@ NSTUB(0xFF2045E0, GUI_SetRollingPitchingLevelStatus)
 
 NSTUB(0xFF42E15C, GetCFnData)
 NSTUB(0xFF42E364, SetCFnData)
-
-NSTUB(0xff3c99f8, StartMnStroboBuiltInSettingApp)
-NSTUB(0xff42c518, StartMnStroboControlApp)
-NSTUB(0xff4480fc, StartMnStroboFnSettingApp)

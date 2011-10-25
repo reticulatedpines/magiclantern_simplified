@@ -187,7 +187,7 @@ struct audio_level
 	int		last;
 	int		avg;
 	int		peak;
-	int		peak_fast;
+	int		pad;
 };
 
 /** Read the raw level from the audio device.
