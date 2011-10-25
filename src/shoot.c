@@ -4168,7 +4168,7 @@ shoot_task( void* unused )
 				static int avg_prev1 = 1000;
 				static int avg_prev2 = 1000;
 				static int avg_prev3 = 1000;
-				static int current_pulse_level = audio_levels[0].peak / avg_prev3;
+				int current_pulse_level = audio_levels[0].peak / avg_prev3;
 	
 				bmp_printf(FONT_MED, 20, lv ? 40 : 3, "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
 				if (current_pulse_level > (int)audio_release_level) 
