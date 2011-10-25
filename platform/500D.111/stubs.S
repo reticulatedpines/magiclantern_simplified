@@ -38,7 +38,6 @@ name = addr
 NSTUB( ROMBASEADDR, firmware_entry )
 
 /** These must be found first for any progress to be made */
-
 NSTUB( 0xFF056EB0, _audio_ic_read )
 NSTUB( 0xFF056064, _audio_ic_write )
 NSTUB( 0xFF1A0D44, AcquireRecursiveLock)

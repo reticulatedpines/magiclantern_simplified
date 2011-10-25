@@ -347,9 +347,10 @@ PROP_HANDLER(PROP_STROBO_SETTING)
 	memcpy(strobo_setting, buf, 0x22);
 }
 
+
 void xx_test(void* priv)
 {
-	task_create("run_test", 0x1c, 0, run_test, 0);
+
 }
 
 static void stress_test_long(void* priv)
@@ -1073,7 +1074,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		ui_lock(UILOCK_NONE); msleep(1000);
+		//ui_lock(UILOCK_NONE); msleep(1000);		for debugging purposes (A1ex)
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);

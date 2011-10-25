@@ -3740,6 +3740,10 @@ void play_422(char* filename)
     else if (size == 1024*680*2) { w = 1024; h = 680; } // zoom mode (5x, 10x)
     else if (size == 512*340*2)  { w = 512;  h = 340; }
     else if (size == 720*480*2)  { w = 720;  h = 480; } // LiveView buffer
+	else if (size == 928*616*2)  { w = 928;  h = 616; } // 500d LV HD buffer dimensions.
+	else if (size == 720*424*2)  { w = 720;  h = 424; } // 500d LV buffer in movie mode.
+	else if (size == 1576*632*2) { w = 1567; h = 632; } // 500d 720p recording lv buffer dimensions.
+	else if (size == 1576*1048*2){ w = 1576; h = 1048;} // 500d HD buffer dimensions in 1080p/720p mode and LV mode.
     else
     {
 		bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
