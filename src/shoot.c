@@ -2573,8 +2573,9 @@ void ensure_bulb_mode()
 	#else
 	if (shooting_mode != SHOOTMODE_M)
 		set_shooting_mode(SHOOTMODE_M);
-	int shutter = 15; // huh?!
+	int shutter = 12; // huh?!
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
+	prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
 	#endif
 }
 
