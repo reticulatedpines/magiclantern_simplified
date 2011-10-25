@@ -2621,6 +2621,7 @@ bulb_take_pic(int duration)
 	set_shooting_mode(m0r);
 	prop_request_change( PROP_SHUTTER, &s0r, 4 );
 	prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
+	msleep(200);
 }
 
 static void bulb_toggle_fwd(void* priv)
@@ -3480,7 +3481,7 @@ static void hdr_shutter_release(int ev_x8)
 		}
 
 		// restore settings back
-		set_shooting_mode(m0r);
+		//~ set_shooting_mode(m0r);
 		prop_request_change( PROP_SHUTTER, &s0r, 4 );
 		prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
 	}
@@ -3497,10 +3498,20 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 	//~ NotifyBox(2000, "HDR script created"); msleep(2000);
 	int i;
 	
+	int m = shooting_mode;
+	
 	for( i = -steps/2; i <= steps/2; i ++  )
 	{
 		if (skip0 && (i == 0)) continue;
 		hdr_shutter_release(step_size * i);
+		
+		// cancel bracketing
+		if (shooting_mode != m || MENU_MODE) 
+		{ 
+			beep(); 
+			while (lens_info.job_state) msleep(100); 
+			return; 
+		}
 	}
 }
 
