@@ -2588,7 +2588,11 @@ bulb_take_pic(int duration)
 	int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
 	int m0r = shooting_mode;
 	ensure_bulb_mode();
-	//~ assign_af_button_to_star_button();
+	
+	#ifdef CONFIG_600D
+	assign_af_button_to_star_button();
+	#endif
+	
 	msleep(100);
 	//~ if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
 	//~ mlu_lock_mirror_if_needed();
@@ -2612,10 +2616,12 @@ bulb_take_pic(int duration)
 	msleep(duration % 1000);
 	prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
-	SW1(1,50);
-	SW1(0,50);
+	SW1(1,10);
+	SW1(0,10);
 	//~ msleep(100);
-	//~ restore_af_button_assignment();
+	#ifdef CONFIG_600D
+	restore_af_button_assignment();
+	#endif
 	lens_wait_readytotakepic(64);
 	get_out_of_play_mode(1000);
 	set_shooting_mode(m0r);
@@ -3023,8 +3029,16 @@ calib_start:
 	msleep(400);
 	int Y,U,V;
 	get_spot_yuv(200, &Y, &U, &V);
-	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, or maybe  \n"
-	                                     "too dark/bright, retrying..."); goto calib_start;}
+	if (ABS(Y-128) > 1) 
+	{
+		NotifyBox(1000, "Scene not static, or maybe  \n"
+	                    "too dark/bright, retrying..."); 
+
+		zoom = zoom == 10 ? 5 : zoom == 5 ? 1 : 10;
+		prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	    
+	    goto calib_start;
+	}
 	
 	for (int i = -5; i <= 5; i++)
 	{
