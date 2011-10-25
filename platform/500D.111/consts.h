@@ -65,7 +65,7 @@
 #define BGMT_TRASH 0xA
 #define BGMT_MENU 6
 #define BGMT_DISP 7
-#define BGMT_Q 8
+#define BGMT_Q 0xF
 #define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 9
 #define BGMT_PRESS_HALFSHUTTER 0x23
@@ -76,10 +76,9 @@
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-#define BGMT_PICSTYLE 0x13				//????
 #define BGMT_JOY_CENTER 0x1e // press the joystick maybe?		???
 
-#define BGMT_LV 0xE						// idk?
+#define BGMT_LV 0xf						// idk?
 
 #define BGMT_WHEEL_LEFT 2					// no wheel in 500d ***
 #define BGMT_WHEEL_RIGHT 3					// "

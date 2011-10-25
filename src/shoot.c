@@ -2850,7 +2850,7 @@ seconds_clock_task( void* unused )
 		wait_till_next_second();
 		seconds_clock++;
 
-		if (bulb_ramping_enabled && intervalometer_running)
+		if (bulb_ramping_enabled && intervalometer_running && !gui_menu_shown())
 			bulb_ramping_showinfo();
 
 		if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown())
@@ -3067,7 +3067,11 @@ calib_start:
 	// calibration accepted :)
 	set_display_gain(0);
 	lens_set_ae(0);
+#ifdef CONFIG_500D
+	fake_simple_button(BGMT_Q);
+#else
 	fake_simple_button(BGMT_LV);
+#endif
 	msleep(500);
 	fake_simple_button(BGMT_PLAY);
 	msleep(1000);
