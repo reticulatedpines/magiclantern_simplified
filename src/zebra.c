@@ -58,6 +58,13 @@ void defish_draw();
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 
+//compensate for 500d's lv vram size as 720x424 not 720x480
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
+#define lv_width_const 424
+#else
+#define lv_width_const 480
+#endif
+
 #define hist_height			64
 #define hist_width			128
 #define WAVEFORM_WIDTH 180
@@ -304,7 +311,7 @@ hist_build(void* vram, int width, int pitch)
 				waveform[y][x] = 0;
 	}
 
-	for( y=1 ; y<480; y++, v_row += (pitch/4) )
+	for( y=1 ; y<lv_width_const; y++, v_row += (pitch/4) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -374,7 +381,7 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 	int pitch = vramstruct->pitch;
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
-	for( y=1 ; y<480; y++, v_row += (pitch/4) )
+	for( y=1 ; y<lv_width_const; y++, v_row += (pitch/4) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -905,7 +912,7 @@ draw_zebra_and_focus( int Z, int F )
 		
 		int bm_pitch = (ext_monitor_hdmi && !recording) ? 960 : 720; // or other value for ext monitor
 		int bm_width = bm_pitch;  // 8-bit palette image
-		int bm_height = (ext_monitor_hdmi && !recording) ? 540 : 480;
+		int bm_height = (ext_monitor_hdmi && !recording) ? 540 : lv_width_const;
 		
 		struct vram_info * hd_vram = get_yuv422_hd_vram();
 		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
@@ -1005,22 +1012,14 @@ draw_zebra_and_focus( int Z, int F )
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
 					#if defined(CONFIG_50D) || defined(CONFIG_500D)
-					int b_row_off = COERCE(y * bm_width / hd_width * 8/9, 0, 539) * BMPPITCH;
+					int b_row_off = COERCE(y * bm_height / hd_height, 0, 539) * BMPPITCH;
 					#else
 					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
 					#endif
 					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
 					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
-					#ifdef CONFIG_50D
-					int x = 2 * (hdp - hd_row) * bm_width / hd_width + 12;
-					#endif
-					#ifdef CONFIG_500D
 					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
-					#endif					
-					#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
-					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
-					#endif
 					x = COERCE(x, 0, 960);
 					
 					uint16_t pixel = b_row[x/2];
@@ -1059,7 +1058,7 @@ draw_zebra_and_focus( int Z, int F )
 		int lvpitch = hdmi_code == 5 ? 3840 : 1440;
 		int lvp_step_x = hdmi_code == 5 ? 4 : 2;
 		int lvp_step_y = hdmi_code == 5 ? 2 : 1;
-		int lvheight = hdmi_code == 5 ? 540 : 480;
+		int lvheight = hdmi_code == 5 ? 540 : lv_width_const;
 		#if defined(CONFIG_50D) || defined(CONFIG_500D)
 		lvheight = 426;
 		#endif
@@ -1143,7 +1142,7 @@ clrscr_mirror( void )
 	if (!bvram_mirror) return;
 
 	int y;
-	for( y = 0; y < 480; y++ )
+	for( y = 0; y < lv_width_const; y++ )
 	{
 		uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);
 		uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );
@@ -1183,7 +1182,11 @@ draw_false_downsampled( void )
 	uint8_t * const lvram = get_yuv422_vram()->vram;
 	int lvpitch = YUV422_LV_PITCH;
 	uint8_t* fc = false_colour[falsecolor_palette];
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
+	for( y = 40; y < 384; y += 2 ) //on 500d, lv vram is 720x424 not 720x480 like bmp vram (such as in 550d).
+#else
 	for( y = 40; y < 440; y += 2 )
+#endif
 	{
 		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
 		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
@@ -1224,7 +1227,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 	int y;
 	uint8_t * const lvram = get_yuv422_vram()->vram;
 	int lvpitch = YUV422_LV_PITCH;
-	for( y = 0; y < 480; y += 2 )
+	for( y = 0; y < lv_width_const; y += 2 )
 	{
 		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
 		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
@@ -1274,7 +1277,7 @@ zebra_hi_toggle_reverse( void * priv )
 static void global_draw_toggle(void* priv)
 {
 	menu_binary_toggle(priv);
-	if (!global_draw && lv) bmp_fill(0, 0, 0, 720, 480);
+	if (!global_draw && lv) bmp_fill(0, 0, 0, 720, lv_width_const);
 }
 
 #define MAX_CROP_NAME_LEN 15
@@ -1820,7 +1823,7 @@ void spotmeter_step()
 	if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
 	int bg = falsecolor_draw ? COLOR_BG : 0;
 
-	int xc = (hdmi_code == 5) ? 480 : 360;
+	int xc = (hdmi_code == 5) ? lv_width_const : 360;
 	int yc = (hdmi_code == 5) ? 270 : 240;
 	bmp_draw_rect(fg, xc - dx, yc - dx, 2*dx+1, 2*dx+1);
 	yc += dx + 20;
@@ -2598,11 +2601,11 @@ void draw_zoom_overlay(int dirty)
 			break;
 		case 3: // SE
 			x0 = 720 - W/2 - 50;
-			y0 = 480 - H/2 - 50;
+			y0 = lv_width_const - H/2 - 50;
 			break;
 		case 4: // SV
 			x0 = W/2 + 50;
-			y0 = 480 - H/2 - 50;
+			y0 = lv_width_const - H/2 - 50;
 			break;
 		default:
 			return;
@@ -2624,16 +2627,16 @@ void draw_zoom_overlay(int dirty)
 			w >>= 1;
 			h >>= 1;
 		}
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 1, 0, 480) * lv->width, 0,    w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 2, 0, 480) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 1, 0, 480) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 2, 0, 480) * lv->width, 0,    w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 1, 0, lv_width_const) * lv->width, 0,    w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 2, 0, lv_width_const) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 1, 0, lv_width_const) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 2, 0, lv_width_const) * lv->width, 0,    w<<1);
 	}
 
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
 	int y;
 	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
-	int y0c = COERCE(y0 - (H>>1), 0, 480-H);
+	int y0c = COERCE(y0 - (H>>1), 0, lv_width_const-H);
 
 	extern int focus_value;
 	int rawoff = COERCE(80 - focus_value, 0, 100) >> 2;
@@ -2735,9 +2738,9 @@ void clear_this_message_not_available_in_movie_mode()
 	fp = f;
 	if (!f) return;
 	
-	bmp_fill(0, 0, 330, 720, 480-330);
+	bmp_fill(0, 0, 330, 720, lv_width_const-330);
 	msleep(50);
-	bmp_fill(0, 0, 330, 720, 480-330);
+	bmp_fill(0, 0, 330, 720, lv_width_const-330);
 }
 
 void draw_livev_for_playback()
@@ -3519,7 +3522,11 @@ void make_overlay()
 	#define BMPPITCH 960
 
 	int y;
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
+	for (y = 52; y < vram->height; y++) // compensate for black top bar in play mode in 500d/50d.
+#else
 	for (y = 0; y < vram->height; y++)
+#endif
 	{
 		//~ int k;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
@@ -3639,12 +3646,17 @@ void defish_draw()
 	if (!bvram) return;
 
 	//~ int y;
-	for (i = 0; i < 240; i++)
+	for (i = 0; i < 212; i++)
 	{
 		for (j = 0; j < 360; j++)
 		{
-			static const int off_i[] = {0,0,479,479};
-			static const int off_j[] = {0,719,0,719};
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
+			static const int off_i[] = {0,  0,423,423};
+			static const int off_j[] = {0,719,  0,719};
+#else
+			static const int off_i[] = {0,  0,479,479};
+			static const int off_j[] = {0,719,  0,719};
+#endif
 			int id = defish_lut[(i * 360 + j) * 2 + 1];
 			int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
 			int k;
@@ -3736,7 +3748,7 @@ void play_422(char* filename)
 	}
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
-	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
+	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, lv_width_const - font_large.height, "Do not press Delete!");
 
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;
