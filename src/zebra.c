@@ -696,41 +696,9 @@ void card_benchmark_schedule()
 
 static void dump_vram()
 {
-	dump_big_seg(0, CARD_DRIVE "0.bin");
-	//dump_big_seg(4, CARD_DRIVE "4.bin");
-	dump_seg(0x1000, 0x100000, CARD_DRIVE "ram.bin");
-/*	dump_seg(0x40000000, 0x1000000, CARD_DRIVE "0.bin");
-	dump_seg(0x41000000, 0x1000000, CARD_DRIVE "1.bin");
-	dump_seg(0x42000000, 0x1000000, CARD_DRIVE "2.bin");
-	dump_seg(0x43000000, 0x1000000, CARD_DRIVE "3.bin");
-	dump_seg(0x44000000, 0x1000000, CARD_DRIVE "4.bin");
-	dump_seg(0x45000000, 0x1000000, CARD_DRIVE "5.bin");
-	dump_seg(0x46000000, 0x1000000, CARD_DRIVE "6.bin");
-	dump_seg(0x47000000, 0x1000000, CARD_DRIVE "7.bin");
-	dump_seg(0x48000000, 0x1000000, CARD_DRIVE "8.bin");
-	dump_seg(0x49000000, 0x1000000, CARD_DRIVE "9.bin");
-	dump_seg(0x4A000000, 0x1000000, CARD_DRIVE "A.bin");
-	dump_seg(0x4B000000, 0x1000000, CARD_DRIVE "B.bin");
-	dump_seg(0x4C000000, 0x1000000, CARD_DRIVE "C.bin");
-	dump_seg(0x4D000000, 0x1000000, CARD_DRIVE "D.bin");
-	dump_seg(0x4E000000, 0x1000000, CARD_DRIVE "E.bin");
-	dump_seg(0x4F000000, 0x1000000, CARD_DRIVE "F.bin");
-	dump_seg(0x50000000, 0x1000000, CARD_DRIVE "10.bin");
-	dump_seg(0x51000000, 0x1000000, CARD_DRIVE "11.bin");
-	dump_seg(0x52000000, 0x1000000, CARD_DRIVE "12.bin");
-	dump_seg(0x53000000, 0x1000000, CARD_DRIVE "13.bin");
-	dump_seg(0x54000000, 0x1000000, CARD_DRIVE "14.bin");
-	dump_seg(0x55000000, 0x1000000, CARD_DRIVE "15.bin");
-	dump_seg(0x56000000, 0x1000000, CARD_DRIVE "16.bin");
-	dump_seg(0x57000000, 0x1000000, CARD_DRIVE "17.bin");
-	dump_seg(0x58000000, 0x1000000, CARD_DRIVE "18.bin");
-	dump_seg(0x59000000, 0x1000000, CARD_DRIVE "19.bin");
-	dump_seg(0x5A000000, 0x1000000, CARD_DRIVE "1A.bin");
-	dump_seg(0x5B000000, 0x1000000, CARD_DRIVE "1B.bin");
-	dump_seg(0x5C000000, 0x1000000, CARD_DRIVE "1C.bin");
-	dump_seg(0x5D000000, 0x1000000, CARD_DRIVE "1D.bin");
-	dump_seg(0x5E000000, 0x1000000, CARD_DRIVE "1E.bin");
-	dump_seg(0x5F000000, 0x1000000, CARD_DRIVE "1F.bin");*/
+	dump_big_seg(4, CARD_DRIVE "4.bin");
+	dump_big_seg(4, CARD_DRIVE "4-1.bin");
+	//dump_seg(0x1000, 0x100000, CARD_DRIVE "ram.bin");
 	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
 }
 
@@ -2272,11 +2240,6 @@ struct menu_entry zebra_menus[] = {
 		//~ .display = menu_print, 
 		//~ .select = hdmi_test_toggle,
 	//~ }
-	/*	{
-		 .priv = "[debug] dump vram", 
-		 .display = menu_print, 
-		 .select = dump_vram,
-	 }*/
 	//~ {
 		//~ .priv		= &edge_draw,
 		//~ .select		= menu_binary_toggle,
@@ -2357,6 +2320,11 @@ struct menu_entry powersave_menus[] = {
 		.select			= menu_binary_toggle,
 		.help = "If enabled, camera will save power during recording."
 	},
+	/*{
+		.priv = "[debug] dump vram", 
+		.display = menu_print, 
+		.select = dump_vram,
+	}*/
 };
 
 struct menu_entry livev_cfg_menus[] = {

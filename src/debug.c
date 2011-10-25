@@ -346,7 +346,7 @@ PROP_HANDLER(PROP_STROBO_SETTING)
 
 void xx_test(void* priv)
 {
-	bootdisk_disable();
+	dumpf();
 }
 
 static void stress_test_long(void* priv)
