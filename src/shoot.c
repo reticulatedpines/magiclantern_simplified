@@ -3960,17 +3960,20 @@ shoot_task( void* unused )
 				{
 					msleep(100);
 				}
+				int m0 = shooting_mode;
 				wait_till_next_second();
 				NotifyBoxHide();
 				NotifyBox(2000, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
 				if (get_halfshutter_pressed()) continue;
 				if (gui_state != GUISTATE_IDLE) continue;
+				if (m0 != shooting_mode) continue;
 				NotifyBoxHide();
 				NotifyBox(2000, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
 				if (get_halfshutter_pressed()) continue;
 				if (gui_state != GUISTATE_IDLE) continue;
+				if (m0 != shooting_mode) continue;
 				bulb_take_pic(d * 1000);
 			}
 			was_idle_not_pressed = is_idle_not_pressed;
