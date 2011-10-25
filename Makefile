@@ -41,19 +41,19 @@ fir:
 	cd installer/60D.110/; $(MAKE) clean
 	cd installer/600D.101/; $(MAKE) clean
 	cd installer/50D.108/; $(MAKE) clean
-#	cd installer/500D.111/; $(MAKE) clean
+	cd installer/500D.111/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
 	$(MAKE) -C installer/60D.110/
 	$(MAKE) -C installer/600D.101/
 	$(MAKE) -C installer/50D.108/
-#	$(MAKE) -C installer/500D.111/
+	$(MAKE) -C installer/500D.111/
 
 install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
 	cp installer/60D.110/ml-60d-110.fir /media/EOS_DIGITAL/
 	cp installer/600D.101/ml-600d-101.fir /media/EOS_DIGITAL/
 	cp installer/50D.108/ml-50d-108.fir /media/EOS_DIGITAL/
-#	cp installer/500D.111/ml-500d-111.fir /media/EOS_DIGITAL/
+	cp installer/500D.111/ml-500d-111.fir /media/EOS_DIGITAL/
 
 clean:
 	-$(RM) \
