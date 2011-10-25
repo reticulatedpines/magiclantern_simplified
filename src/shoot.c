@@ -83,7 +83,7 @@ int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 70);
 
-static int intervalometer_running = 0;
+static volatile int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
 static int audio_release_running = 0;
 int motion_detect = 0;
@@ -4163,10 +4163,13 @@ shoot_task( void* unused )
 
 			int dt = timer_values[interval_timer_index];
 			// compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
-			intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock - dt, seconds_clock + dt);
+			intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
 
 			if (!is_movie_mode() || silent_pic_mode)
+			{
 				hdr_shot(0, 1);
+				intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
+			}
 			else
 			{
 				short_movie();
