@@ -1076,7 +1076,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		//ui_lock(UILOCK_NONE); msleep(1000);		for debugging purposes (A1ex)
 		
-		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);

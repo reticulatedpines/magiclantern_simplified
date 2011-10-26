@@ -3405,6 +3405,7 @@ static struct menu_entry expo_menus[] = {
 	},
 };
 
+// only being called in live view for some reason.
 void hdr_create_script(int steps, int skip0, int focus_stack)
 {
 	if (steps <= 1) return;
