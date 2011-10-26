@@ -2340,8 +2340,9 @@ flash_ae_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Flash AEcomp: %d.%d EV",
-		ae_ev / 10, 
+		"Flash AEcomp: %s%d.%d EV",
+		ae_ev < 0 ? "-" : "",
+		ABS(ae_ev) / 10, 
 		ABS(ae_ev % 10)
 	);
 	menu_draw_icon(x, y, MNI_PERCENT, (ae_ev + 80) * 100 / (24+80));
