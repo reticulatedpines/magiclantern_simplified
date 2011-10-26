@@ -2589,22 +2589,26 @@ bulb_take_pic(int duration)
 	int m0r = shooting_mode;
 	ensure_bulb_mode();
 	
-	#ifdef CONFIG_600D
+	//~ #ifdef CONFIG_600D
 	assign_af_button_to_star_button();
-	#endif
+	//~ #endif
 	
 	msleep(100);
+	if (beep_enabled) beep();
+	
 	//~ if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
-	//~ mlu_lock_mirror_if_needed();
-	//~ NotifyBox(3000, "BulbStart (%d)", duration);
+	//~ NotifyBox(3000, "BulbStart (%d)", duration); msleep(1000);
+	mlu_lock_mirror_if_needed();
 	//~ SW1(1,50);
 	//~ SW2(1,0);
 	
 	wait_till_next_second();
 	
-	int x = 0;
-	prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
-	
+	//~ int x = 0;
+	//~ prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
+	SW1(1,50);
+	SW2(1,0);
+
 	//~ msleep(duration);
 	int d = duration/1000;
 	for (int i = 0; i < d; i++)
@@ -2614,15 +2618,16 @@ bulb_take_pic(int duration)
 		if (lens_info.job_state == 0) break;
 	}
 	msleep(duration % 1000);
-	prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
+	//~ prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
-	SW1(1,10);
-	SW1(0,10);
+	SW2(0,0);
+	SW1(0,50);
 	//~ msleep(100);
-	#ifdef CONFIG_600D
-	restore_af_button_assignment();
-	#endif
+	//~ #ifdef CONFIG_600D
 	lens_wait_readytotakepic(64);
+	if (beep_enabled) beep();
+	restore_af_button_assignment();
+	//~ #endif
 	get_out_of_play_mode(1000);
 	set_shooting_mode(m0r);
 	prop_request_change( PROP_SHUTTER, &s0r, 4 );
@@ -3024,7 +3029,7 @@ void bulb_ramping_init()
 
 calib_start:
 	lens_set_ae(0);
-	int gain0 = bin_search(500, 2500, crit_dispgain_50);
+	int gain0 = bin_search(128, 2500, crit_dispgain_50);
 	set_display_gain(gain0);
 	msleep(400);
 	int Y,U,V;
@@ -3437,7 +3442,6 @@ static void take_a_pic()
 {
 	if (silent_pic_mode)
 	{
-		msleep(300);
 		silent_pic_take(0); 
 	}
 	else
@@ -4171,6 +4175,7 @@ shoot_task( void* unused )
 			ResumeLiveView();
 
 			if (!intervalometer_running) continue;
+			if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
 			if (bulb_ramping_enabled)
 			{
@@ -4179,12 +4184,17 @@ shoot_task( void* unused )
 			}
 
 			if (!intervalometer_running) continue;
+			if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
 			int dt = timer_values[interval_timer_index];
 			// compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
 			intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
 
-			if (!is_movie_mode() || silent_pic_mode)
+			if (dt == 0)
+			{
+				take_a_pic();
+			}
+			else if (!is_movie_mode() || silent_pic_mode)
 			{
 				hdr_shot(0, 1);
 				intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);

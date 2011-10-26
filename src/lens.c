@@ -814,6 +814,7 @@ void restore_af_button_assignment()
 	lens_wait_readytotakepic(64);
 	if (af_button_assignment == -1) return;
 	cfn_set_af_button(af_button_assignment);
+	af_button_assignment = -1;
 	msleep(10);
 	give_semaphore(lens_sem);
 }
