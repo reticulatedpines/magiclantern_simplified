@@ -2909,7 +2909,9 @@ void PauseLiveView()
 	if (lv && !lv_paused)
 	{
 		int x = 1;
+		while (get_halfshutter_pressed()) msleep(10);
 		prop_request_change(PROP_LV_ACTION, &x, 4);
+		ui_lock(UILOCK_SHUTTER); // pressing shutter halfway while LV is paused may cause ERR80
 		msleep(100);
 		clrscr();
 		lv_paused = 1;
@@ -2923,7 +2925,9 @@ void ResumeLiveView()
 	{
 		lv = 0;
 		int x = 0;
+		while (get_halfshutter_pressed()) msleep(10);
 		prop_request_change(PROP_LV_ACTION, &x, 4);
+		ui_lock(UILOCK_NONE);
 		while (!lv) msleep(100);
 		msleep(300);
 	}

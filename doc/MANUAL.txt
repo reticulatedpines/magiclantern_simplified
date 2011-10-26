@@ -1545,6 +1545,8 @@ Powersave
 **Turn off LCD and LV: OFF / after X seconds**
 
   In LiveView, if the camera is idle, Magic Lantern will turn off the built-in LCD display and pause LiveView (turn off the sensor) in order to save power. If the camera is recording or motion detection is active, only display will be turned off.
+  
+  Note: you cannot wake-up the camera by pressing the shutter half-way. You have to press some other button (for example, SET).
 
 **Turn off GlobalDraw: OFF / after X seconds**
 
