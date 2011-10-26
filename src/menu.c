@@ -1161,6 +1161,7 @@ menu_task( void* unused )
 			open_canon_menu();
 		}
 		msleep(100);
+		bmp_on();
 
 		x0 = hdmi_code == 5 ? 120 : 0;
 		y0 = hdmi_code == 5 ? 40 : 0;

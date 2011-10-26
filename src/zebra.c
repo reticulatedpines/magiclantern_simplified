@@ -2120,6 +2120,12 @@ electronic_level_display(
 	menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
 }
 
+static void clearscreen_now()
+{
+	gui_stop_menu();
+	bmp_on();
+	bmp_off();
+}
 
 struct menu_entry zebra_menus[] = {
 	{
@@ -2227,7 +2233,8 @@ struct menu_entry zebra_menus[] = {
 		.display		= clearscreen_display,
 		.select			= menu_ternary_toggle,
 		.select_reverse	= menu_ternary_toggle_reverse,
-		.help = "Clear bitmap overlays from LiveView display."
+		.select_auto	= clearscreen_now,
+		.help = "Clear bitmap overlays from LiveView display. [Q]: clr now."
 	},
 	/*{
 		.priv			= &focus_graph,
