@@ -85,7 +85,6 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	if (lcd_release_running && gui_state == GUISTATE_IDLE && !is_intervalometer_running())
 	{
 		if (gui_menu_shown()) goto end;
-		msleep(1000);
 		if (lcd_release_running == 1 && off) goto end;
 		if (lcd_release_running == 2 && on )
 		{

@@ -2918,13 +2918,8 @@ int handle_bulb_ramping_keys(struct event * event)
 				NotifyBox(1000, "OK");
 				return 1;
 			}
-#ifdef CONFIG_500D
-			case BGMT_PRESS_LEFT:
-			case BGMT_PRESS_RIGHT:
-#else
 			case BGMT_WHEEL_LEFT:
 			case BGMT_WHEEL_RIGHT:
-#endif
 			{
 				int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
 				bramp_change_percentile(dir);
@@ -3486,7 +3481,7 @@ static void hdr_shutter_release(int ev_x8)
 		int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
 		int m0r = shooting_mode;
 		
-		//~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
+		//NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
 		// then choose the best option (bulb for long exposures, regular for short exposures)
 		if (msc >= 10000 || (bulb_ramping_enabled && msc > BULB_MIN_EXPOSURE))
@@ -3615,7 +3610,7 @@ void hdr_shot(int skip0, int wait)
 			hdr_take_pics(hdr_steps, hdr_stepsize/2, 1);
 		else
 			hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
-		while (lens_info.job_state > 10) msleep(100);
+		while (lens_info.job_state >= 10) msleep(100);
 		if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
 	}
 	else // regular pic (not HDR)
@@ -4002,8 +3997,8 @@ shoot_task( void* unused )
 			}
 			was_idle_not_pressed = is_idle_not_pressed;
 		}
-
-		if (lens_info.job_state > 10 && !recording) // just took a picture, maybe we should take another one
+		
+		if (lens_info.job_state >= 10 && !recording) // just took a picture, maybe we should take another one
 		{
 			//~ hdr_intercept = 0;
 			//~ lens_wait_readytotakepic(64);

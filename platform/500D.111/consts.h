@@ -80,10 +80,10 @@
 
 #define BGMT_LV 0xf						// idk?
 
-#define BGMT_WHEEL_LEFT 0					// no wheel in 500d ***
-#define BGMT_WHEEL_RIGHT 0					// "
-#define BGMT_WHEEL_UP 0						// "
-#define BGMT_WHEEL_DOWN 0					// "
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
 
 /*#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x3f && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000))
