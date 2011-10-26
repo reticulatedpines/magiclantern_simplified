@@ -320,13 +320,17 @@ static void draw_meters(void)
 	{
 		draw_meter( x0, y0 + 12, 10, &audio_levels[0], left_label);
 		draw_ticks( x0, y0 + 22, 3 );
+#ifndef CONFIG_500D         // mono mic on 500d :(
 		draw_meter( x0, y0 + 24, 10, &audio_levels[1], right_label);
+#endif
 	}
 	else
 	{
 		draw_meter( x0, y0 + 19, 7, &audio_levels[0], left_label);
 		draw_ticks( x0, y0 + 26, 2 );
+#ifndef CONFIG_500D
 		draw_meter( x0, y0 + 27, 7, &audio_levels[1], right_label);
+#endif
 	}
 	if (gui_menu_shown() && alc_enable)
 	{
