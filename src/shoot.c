@@ -3121,10 +3121,10 @@ static void compute_exposure_for_next_shot()
 	
 	NotifyBoxHide();
 	NotifyBox(2000, "Exposure for next shot...");
-	msleep(500);
+	//~ msleep(500);
 	
-	bramp_measured_level = measure_brightness_level(2000);
-	NotifyBox(1000, "Exposure level: %d ", bramp_measured_level); msleep(1000);
+	bramp_measured_level = measure_brightness_level(500);
+	//~ NotifyBox(1000, "Exposure level: %d ", bramp_measured_level); msleep(1000);
 	
 	//~ int err = bramp_measured_level - bramp_reference_level;
 	//~ if (ABS(err) <= 1) err = 0;
@@ -3134,7 +3134,7 @@ static void compute_exposure_for_next_shot()
 	correction_ev_x100 = correction_ev_x100 * 80 / 100; // do only 80% of the correction
 	bulb_shutter_value = bulb_shutter_value * roundf(1000.0*powf(2, correction_ev_x100 / 100.0))/1000;
 
-	msleep(2000);
+	msleep(500);
 
 	bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
 	
