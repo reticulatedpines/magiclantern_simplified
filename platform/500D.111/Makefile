@@ -31,14 +31,15 @@ ML_OBJS-y = \
 	stdio.o \
 	audio.o \
 	bitrate.o \
-	tweaks.o \
-	lens.o \
 	property.o \
 	propvalues.o \
 	gui.o \
 	misc.o \
+	tweaks.o \
+	lens.o \
 	lensfocus.o \
 	cfn.o \
+	lcdsensor.o \
 	zebra.o \
 	shoot.o \
 	chdk-gui_draw.o \
@@ -53,7 +54,6 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	morse.o \
-	lcdsensor.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

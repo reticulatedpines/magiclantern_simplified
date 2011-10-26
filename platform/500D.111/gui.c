@@ -41,10 +41,10 @@ static int handle_buttons(struct event * event)
 	if (handle_shutter_events(event) == 0) return 0;
 	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
 	if (event->param != OLC_INFO_CHANGED) idle_wakeup_reset_counters(event->param);
-	if (handle_swap_menu_erase(event) == 0) return 0;
+	//~ if (handle_swap_menu_erase(event) == 0) return 0;
 	if (handle_buttons_being_held(event) == 0) return 0;
 	if (handle_ml_menu_erase(event) == 0) return 0;
-	//~ if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+	if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
 	if (handle_rack_focus(event) == 0) return 0;
 	if (handle_intervalometer(event) == 0) return 0;
 	if (handle_livev_playback(event, BGMT_Q) == 0) return 0;
@@ -52,7 +52,7 @@ static int handle_buttons(struct event * event)
 	if (handle_af_patterns(event) == 0) return 0;
 	if (handle_set_wheel_play(event) == 0) return 0;
 	//~ if (handle_flash_button_shortcuts(event) == 0) return 0;
-	//~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
+	if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
 	if (handle_follow_focus(event) == 0) return 0;
 	if (handle_zoom_overlay(event) == 0) return 0;
 	if (handle_movie_mode_shortcut(event) == 0) return 0;

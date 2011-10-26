@@ -80,10 +80,10 @@
 
 #define BGMT_LV 0xf						// idk?
 
-#define BGMT_WHEEL_LEFT 2					// no wheel in 500d ***
-#define BGMT_WHEEL_RIGHT 3					// "
+#define BGMT_WHEEL_LEFT 0					// no wheel in 500d ***
+#define BGMT_WHEEL_RIGHT 0					// "
 #define BGMT_WHEEL_UP 0						// "
-#define BGMT_WHEEL_DOWN 1					// "
+#define BGMT_WHEEL_DOWN 0					// "
 
 /*#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x3f && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000))
@@ -135,9 +135,6 @@
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_190_STRUCT))
 #define MVR_BYTES_WRITTEN (*(int*)(292 + MVR_190_STRUCT))
 
-#define MOV_REC_STATEOBJ (*(void**)0x5B34)
-#define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
-
 #define MOV_RES_AND_FPS_COMBINATIONS 3
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 3
@@ -158,13 +155,6 @@
 #define DLG_PICQ 26
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1B)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1B)
-
-#define DLG2_FOCUS_MODE 0xA
-#define DLG2_DRIVE_MODE 0xB
-#define DLG2_ISO 0xF
-#define DLG2_METERING 0xC
-#define DLG2_AF_POINTS 0xE
-#define DLG2_Q_UNAVI 0x1F
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1af8 // this prop_deliver performs the action for Video Connect and Video Disconnect

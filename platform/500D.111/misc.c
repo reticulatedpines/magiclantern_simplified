@@ -59,8 +59,6 @@ void display_shooting_info() // called from debug task
 // image buffers
 // http://magiclantern.wikia.com/wiki/VRAM
 
-PROP_INT(0x80030002, mvr_rec)
-
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;

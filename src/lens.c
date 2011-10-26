@@ -173,16 +173,16 @@ char *aj_lens_format_dist( unsigned mm)
    return (dist);
 } /* end of aj_lens_format_dist() */
 
-int redraw_first_time = 1;
 void
 update_lens_display()
 {
-	if (redraw_first_time)
-		redraw();
-	redraw_first_time = 0;
 	draw_ml_topbar();
 
+#ifdef CONFIG_500D
+	if (lv_disp_mode == 0 && !LV_BOTTOM_BAR_DISPLAYED || EXT_MONITOR_CONNECTED)
+#else
 	if (lv_disp_mode == 0 || flicker_being_killed() || EXT_MONITOR_CONNECTED)
+#endif
 	{
 		if (!get_halfshutter_pressed())
 			draw_ml_bottombar();
@@ -204,6 +204,11 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
 void draw_ml_bottombar()
 {
+#ifdef CONFIG_500D
+	if (lv_disp_mode != 0 && !LV_BOTTOM_BAR_DISPLAYED)
+		return;
+#endif
+		
 	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
 	{
 		fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);

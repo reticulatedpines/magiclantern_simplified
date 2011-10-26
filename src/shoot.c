@@ -2918,8 +2918,13 @@ int handle_bulb_ramping_keys(struct event * event)
 				NotifyBox(1000, "OK");
 				return 1;
 			}
+#ifdef CONFIG_500D
+			case BGMT_PRESS_LEFT:
+			case BGMT_PRESS_RIGHT:
+#else
 			case BGMT_WHEEL_LEFT:
 			case BGMT_WHEEL_RIGHT:
+#endif
 			{
 				int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
 				bramp_change_percentile(dir);
@@ -3215,7 +3220,7 @@ static struct menu_entry shoot_menus[] = {
 		.select_auto = bulb_toggle_fwd,
 		.help = "Bulb timer for very long exposures, useful for astrophotos"
 	},
-	#ifdef CONFIG_550D
+	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
 		.name = "LCD Remote Shot",
 		.priv		= &lcd_release_running,

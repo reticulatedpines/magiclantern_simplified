@@ -1086,7 +1086,7 @@ static struct menu_entry focus_menu[] = {
 		.name = "Follow Focus",
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
-		#ifdef CONFIG_550D
+		#if defined(CONFIG_550D) || defined(CONFIG_500D)
 		.select		= menu_ternary_toggle,
 		#else
 		.select		= menu_binary_toggle,

@@ -61,11 +61,13 @@ PROP_HANDLER(PROP_SHUTTER_COUNTER)
 
 volatile int display_sensor = 0;
 
+#ifndef CONFIG_500D
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	display_sensor = !buf[0];
 	return prop_cleanup(token, property);
 }
+#endif
 
 volatile int video_mode_crop = 0;
 volatile int video_mode_fps = 0;

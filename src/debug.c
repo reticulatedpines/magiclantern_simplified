@@ -2293,7 +2293,7 @@ int handle_tricky_canon_calls(struct event * event)
 			ChangeHDMIOutputSizeToVGA();
 			break;
 		case MLEV_LCD_SENSOR_START:
-			#ifdef CONFIG_550D
+			#if defined(CONFIG_550D) || defined(CONFIG_500D)
 			DispSensorStart();
 			#endif
 			break;
@@ -2314,12 +2314,12 @@ int handle_tricky_canon_calls(struct event * event)
 				SetOutputTypeByPressInfoToStorage(GetDisplayType(), 0);
 				set_lv_stuff_to_win_system__maybe(2, 2);
 			}
-			#else 
+			#else
 				#ifndef CONFIG_50D
 				if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
 				#endif
-			#endif
 			break;
+			#endif
 	}
 	if (event->param < 0) return 0;
 	return 1;
