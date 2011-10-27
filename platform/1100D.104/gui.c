@@ -54,7 +54,7 @@ static int handle_buttons(struct event * event)
 	spy_event(event); // for debugging only
 	if (handle_shutter_events(event) == 0) return 0;
 	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
-	if (event->param != OLC_INFO_CHANGED) idle_wakeup_reset_counters(event->param);
+	idle_wakeup_reset_counters(event->param);
 	//~ if (handle_swap_menu_erase(event) == 0) return 0;
 	if (handle_buttons_being_held(event) == 0) return 0;
 	//~ if (handle_ml_menu_erase(event) == 0) return 0;
