@@ -2949,7 +2949,7 @@ static int crit_dispgain_50(int gain)
 	if (!lv) return 0;
 
 	set_display_gain(gain);
-	msleep(400);
+	msleep(500);
 	
 	int Y,U,V;
 	get_spot_yuv(200, &Y, &U, &V);
@@ -3034,7 +3034,7 @@ calib_start:
 	lens_set_ae(0);
 	int gain0 = bin_search(128, 2500, crit_dispgain_50);
 	set_display_gain(gain0);
-	msleep(400);
+	msleep(500);
 	int Y,U,V;
 	get_spot_yuv(200, &Y, &U, &V);
 	if (ABS(Y-128) > 1) 
@@ -3052,7 +3052,7 @@ calib_start:
 	{
 		set_display_gain(gain0 * (1 << (i+10)) / 1024);
 		//~ lens_set_ae(i*4);
-		msleep(400);
+		msleep(500);
 		get_spot_yuv(200, &Y, &U, &V);
 		NotifyBox(500, "%d EV => luma=%d  ", i, Y);
 		if (i == 0) // here, luma should be 128
@@ -3068,7 +3068,7 @@ calib_start:
 	
 	// final check
 	set_display_gain(gain0);
-	msleep(400);
+	msleep(500);
 	get_spot_yuv(200, &Y, &U, &V);
 	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
 
