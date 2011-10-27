@@ -2860,9 +2860,9 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 	int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
 
 	// those are for powersaving
-	idle_countdown_display_off = sensor_status ? 30 : MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
-	idle_countdown_display_dim = sensor_status ? 30 : MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
-	idle_countdown_globaldraw  = sensor_status ? 30 : MAX((int)idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
+	idle_countdown_display_off = sensor_status ? 25 : idle_display_turn_off_after * 10;
+	idle_countdown_display_dim = sensor_status ? 25 : idle_display_dim_after * 10;
+	idle_countdown_globaldraw  = sensor_status ? 25 : idle_display_global_draw_off_after * 10;
 
 	if (reason == -2345) // disable powersave during recording 
 		return;
