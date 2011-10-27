@@ -97,6 +97,7 @@ prepare_zip:
 	cp ../../installer/60D.110/*.fir .
 	cp ../../installer/600D.101/*.fir .
 	cp ../../installer/50D.108/*.fir .
+	cp ../../installer/500D.111/*.fir .
 	cp ../../vram/rectilin.lut .
 	cp $(SRC_DIR)/FONTS.DAT .
 	cp $(SRC_DIR)/logo.bmp .
