@@ -2856,10 +2856,13 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 
 	if (lv && !lv_paused && reason == OLC_INFO_CHANGED) return;
 
+	// when sensor is covered, timeout changes to 3 seconds
+	int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+
 	// those are for powersaving
-	idle_countdown_display_off = MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
-	idle_countdown_display_dim = MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
-	idle_countdown_globaldraw = MAX((int)idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
+	idle_countdown_display_off = sensor_status ? 30 : MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
+	idle_countdown_display_dim = sensor_status ? 30 : MAX((int)idle_display_dim_after * 10, idle_countdown_display_dim);
+	idle_countdown_globaldraw  = sensor_status ? 30 : MAX((int)idle_display_global_draw_off_after * 10, idle_countdown_display_dim);
 
 	if (reason == -2345) // disable powersave during recording 
 		return;
@@ -2887,8 +2890,13 @@ void update_idle_countdown(int* countdown)
 		idle_wakeup_reset_counters(-100); // will reset all idle countdowns
 	}
 	
-	if (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+	int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+	static int prev_sensor_status = 0;
+
+	if (sensor_status != prev_sensor_status)
 		idle_wakeup_reset_counters(-1);
+	
+	prev_sensor_status = sensor_status;
 }
 
 void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void), void(*action_off)(void))
@@ -2958,10 +2966,13 @@ void idle_display_off()
 		NotifyBox(3000, "DISPLAY AND SENSOR OFF");
 	}
 
-	for (int i = 0; i < 30; i++)
+	if (!(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
 	{
-		if (idle_countdown_display_off) { NotifyBoxHide(); return; }
-		msleep(100);
+		for (int i = 0; i < 30; i++)
+		{
+			if (idle_countdown_display_off) { NotifyBoxHide(); return; }
+			msleep(100);
+		}
 	}
 	if (!(motion_detect || recording)) PauseLiveView();
 	display_off_force();
