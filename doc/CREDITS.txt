@@ -5,6 +5,10 @@
 Magic Lantern is an open (GPL) framework for developing enhancements to the amazing Canon 5D Mark II and 550D/T2i digital SLRs. 
 Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by a small team, helped by a very enthusiastic and respectful `user community <http://vimeo.com/groups/magiclantern>`_.
 
+.. raw:: latex
+
+    { \scriptsize \vspace{5mm}
+
 **Initial version by** `Trammell Hudson <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ (original author and lead of Magic Lantern project)
 
 **Crypto tools and firmware analysis by**
@@ -36,10 +40,10 @@ Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by
  `Pelican <http://pel.hu>`_,
  `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_,
  tested by `Smeangol <http://www.youtube.com/user/UML50D>`_,
- `Max Chen <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=max chen&qt_g=Search+this+group>`_
+ `Max Chen <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=max chen&qt_g=Search+this+group>`_,
  `ectaVgen <http://chdk.setepontos.com/index.php?action=profile;u=20756>`_,
  `ilguercio <http://chdk.setepontos.com/index.php?action=profile;u=16461>`_
-  and `others <http://chdk.setepontos.com/index.php?topic=6161.90>`_,
+  and `others <http://chdk.setepontos.com/index.php?topic=6161.90>`_
 
 **1100D port by**
  `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
@@ -110,4 +114,4 @@ Also, thanks to `CHDK team <http://chdk.wikia.com/>`_ and all the `contributors 
 
 .. raw:: latex
 
-    }
+    }}
