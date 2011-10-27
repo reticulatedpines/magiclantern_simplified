@@ -2597,7 +2597,8 @@ bulb_take_pic(int duration)
 	msleep(100);
 	if (beep_enabled) beep();
 	
-	//~ if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
+	int d0 = drive_mode;
+	lens_set_drivemode(DRIVE_SINGLE);
 	//~ NotifyBox(3000, "BulbStart (%d)", duration); msleep(1000);
 	mlu_lock_mirror_if_needed();
 	//~ SW1(1,50);
@@ -2609,7 +2610,7 @@ bulb_take_pic(int duration)
 	//~ prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
 	SW1(1,50);
 	SW2(1,0);
-
+	
 	//~ msleep(duration);
 	int d = duration/1000;
 	for (int i = 0; i < d; i++)
@@ -2630,9 +2631,10 @@ bulb_take_pic(int duration)
 	restore_af_button_assignment();
 	//~ #endif
 	get_out_of_play_mode(1000);
-	set_shooting_mode(m0r);
+	lens_set_drivemode(d0);
 	prop_request_change( PROP_SHUTTER, &s0r, 4 );
 	prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
+	set_shooting_mode(m0r);
 	msleep(200);
 }
 
