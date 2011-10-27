@@ -1103,6 +1103,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_mgain_display,
 		.help = "Gain applied to both inputs in analog domain (preferred)."
 	},
+#ifndef CONFIG_500D
 	{
 		.name = "L-DigitalGain",
 		.priv		= &dgain_l,
@@ -1119,6 +1120,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_dgain_display,
 		.help = "Digital gain (RIGHT). Any nonzero value reduces quality."
 	},
+#endif
 	{
 		.name = "AGC",
 		.priv		= &alc_enable,

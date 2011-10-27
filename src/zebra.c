@@ -3364,7 +3364,7 @@ livev_lopriority_task( void* unused )
 	}
 }
 
-#if defined(CONFIG_600D) || defined(CONFIG_50D)
+#if defined(CONFIG_600D) || defined(CONFIG_50D) || defined(CONFIG_500D)
 #define HIPRIORITY_TASK_PRIO 0x19
 #else
 #define HIPRIORITY_TASK_PRIO 0x1a
