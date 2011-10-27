@@ -2854,7 +2854,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 	NotifyBox(1000, "wakeup: %d   ", reason);
 #endif
 
-	if (lv && !lv_paused && reason != OLC_INFO_CHANGED) return;
+	if (lv && !lv_paused && reason == OLC_INFO_CHANGED) return;
 
 	// those are for powersaving
 	idle_countdown_display_off = MAX((int)idle_display_turn_off_after * 10, idle_countdown_display_off);
