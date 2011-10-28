@@ -224,23 +224,6 @@ void Beep()
 	task_create("beep", 0x1c, 0, beep, 0);
 }
 
-void run_test()
-{
-	gui_stop_menu();
-	msleep(2000);
-	bulb_take_pic(2500);
-
-	//~ bulb_take_pic(2000);
-	//~ int x = 1;
-	//~ NotifyBox(1000, "StartMnStroboWirelessApp"); msleep(1000);
-	//~ StartMnStroboFnSettingApp();
-	//~ StartMnStroboWirelessApp();
-	//~ prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
-	//~ HijackDialogBox();
-	//~ msleep(1000);
-	//~ call("dispcheck");
-}
-
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
 unsigned int rand (void)
 {
@@ -347,10 +330,17 @@ PROP_HANDLER(PROP_STROBO_SETTING)
 	memcpy(strobo_setting, buf, 0x22);
 }
 
+void run_test()
+{
+	gui_stop_menu();
+	msleep(2000);
+	lens_take_picture(64, 0);
+	bulb_take_pic(250);
+}
 
 void xx_test(void* priv)
 {
-
+	task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
 }
 
 static void stress_test_long(void* priv)

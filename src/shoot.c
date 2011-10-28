@@ -2585,11 +2585,7 @@ void
 bulb_take_pic(int duration)
 {
 	//~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
-#ifdef CONFIG_500D
-	duration = MAX(duration, BULB_MIN_EXPOSURE) + 150;
-#else
-	duration = MAX(duration, BULB_MIN_EXPOSURE);
-#endif
+	duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
 	int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
 	int m0r = shooting_mode;
 	ensure_bulb_mode();
@@ -2612,11 +2608,7 @@ bulb_take_pic(int duration)
 	
 	//~ int x = 0;
 	//~ prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
-#ifdef CONFIG_500D
 	SW1(1,0);
-#else
-	SW1(1,50);
-#endif
 	SW2(1,0);
 	
 	//~ msleep(duration);
@@ -2631,11 +2623,7 @@ bulb_take_pic(int duration)
 	//~ prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
 	//~ NotifyBox(3000, "BulbEnd");
 	SW2(0,0);
-#ifdef CONFIG_500D
 	SW1(0,0);
-#else
-	SW1(0,50);
-#endif
 	//~ msleep(100);
 	//~ #ifdef CONFIG_600D
 	lens_wait_readytotakepic(64);

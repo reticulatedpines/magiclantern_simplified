@@ -160,3 +160,5 @@
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 1
+
+#define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
