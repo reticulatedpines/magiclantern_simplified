@@ -1019,7 +1019,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	if (t)
 	{
 		if (!is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, "Trap focus only works with manual focus.");
-		if (!lv && !lens_info.raw_aperture) menu_draw_icon(x, y, MNI_WARNING, "Trap focus outside LiveView requires a chipped lens");
+		if (!lv && !lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, "Trap focus outside LiveView requires a chipped lens");
 	}
 }
 
@@ -1059,7 +1059,7 @@ afp_display(
 	if (af_patterns)
 	{
 		if (lv) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns won't work in LiveView");
-		if (!lens_info.raw_aperture) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns require a chipped lens");
+		if (!lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, "Focus patterns require a chipped lens");
 	}
 }
 
