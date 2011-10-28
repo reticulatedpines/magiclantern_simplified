@@ -526,13 +526,9 @@ rack_focus(
 
 	while( delta )
 	{
-		if( speed > delta )
-			speed = delta;
-		
 		delta --;
 
 		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%% ", ABS(delta0 - delta) * 100 / ABS(delta0));
-		//~ draw_ml_bottombar();
 		
 		if (LensFocus( speed_cmd ) == 0) break;
 		gui_hide_menu( 10 );
