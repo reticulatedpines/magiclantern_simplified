@@ -58,19 +58,20 @@ dofp_update()
 	// 1: allow everything => reset things (second DOF presss)
 	
 	static int old_value = 0;
+	int d = dofpreview; // to avoid race condition
 	
 	//~ bmp_printf(FONT_MED, 0, 0, "DOFp: btn=%d old=%d state=%d hs=%d ", dofpreview, old_value, state, HALFSHUTTER_PRESSED);
 	
 	if (dofpreview_sticky == 1)
 	{
-		if (dofpreview) bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF");
-		else if (old_value) redraw();
+		if (d) {bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF"); card_led_on(); }
+		else if (old_value) { redraw(); card_led_off(); }
 		
-		if (dofpreview != old_value) // transition
+		if (d != old_value) // transition
 		{
 			if (state == 0)
 			{
-				if (old_value && !dofpreview)
+				if (old_value && !d)
 				{
 					//~ beep();
 					dofp_set(1);
@@ -80,11 +81,11 @@ dofp_update()
 			}
 			else
 			{
-				if (dofpreview == 0) state = 0;
+				if (d == 0) state = 0;
 				//~ beep();
 			}
 		}
-		old_value = dofpreview;
+		old_value = d;
 	}
 }
 
