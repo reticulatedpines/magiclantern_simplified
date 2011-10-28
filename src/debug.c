@@ -843,15 +843,6 @@ static void dbg_memspy_update()
 }
 #endif
 
-static void display_info()
-{
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 40, "CMOS Temperature: %d", efic_temp);
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y,      "Shutter Counter : %d", shutter_count + liveview_actuations);
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 20,      " -> %d pics + %d LV", shutter_count, liveview_actuations);
-	bmp_printf(FONT_MED, MENU_DISP_INFO_POS_X, MENU_DISP_INFO_POS_Y + 60, "Lens: %s          ", lens_info.name);
-	msleep(500);
-}
-
 static void display_shortcut_key_hints_lv()
 {
 	static int old_mode = 0;
@@ -1059,10 +1050,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 	for (k = 0; ; k++)
 	{
 		msleep(10);
-		if (gui_state == GUISTATE_MENUDISP)
-		{
-			display_info();
-		}
 		
 		//ui_lock(UILOCK_NONE); msleep(1000);		for debugging purposes (A1ex)
 		
@@ -1288,10 +1275,15 @@ static void flashlight_frontled(void* priv)
 void flashlight_lcd_task()
 {
 	gui_stop_menu();
-	msleep(200);
+	msleep(500);
 	while (get_halfshutter_pressed()) msleep(100);
 	idle_globaldraw_dis();
 	msleep(100);
+	#ifdef CONFIG_600D
+	#define BGMT_DISP BGMT_INFO
+	#endif
+	if (tft_status) { fake_simple_button(BGMT_DISP); msleep(500); }
+
 	kill_flicker();
 	int b = backlight_level;
 	set_backlight_level(7);
@@ -1330,10 +1322,59 @@ static void meminfo_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Free Memory (Heap) : %dK/%dK",
+		"Free Memory  : %dK/%dK",
 		b/1024, a/1024
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
+}
+
+static void shuttercount_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Shutter Count:%3dK = %d+%d",
+		(shutter_count + liveview_actuations + 500) / 1000,
+		shutter_count, liveview_actuations
+	);
+	menu_draw_icon(x, y, shutter_count + liveview_actuations > 50000 ? MNI_WARNING : MNI_ON, 0);
+}
+
+static void efictemp_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"CMOS Temperat: %d",
+		efic_temp
+	);
+	menu_draw_icon(x, y, MNI_ON, 0);
+}
+
+static void lensname_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Lens: %s",
+		lens_info.name[0] ? lens_info.name : "(n/a)"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(lens_info.name[0]), 0);
 }
 
 struct menu_entry debug_menus[] = {
@@ -1454,8 +1495,23 @@ struct menu_entry debug_menus[] = {
 		.name = 'Free Memory',
 		.display = meminfo_display,
 		.help = "Memory information (from AllocateMemory)"
-	}
+	},
 	#endif
+	{
+		.name = 'Shutter Count',
+		.display = shuttercount_display,
+		.help = "Number of pics taken + number of LiveView actuations"
+	},
+	{
+		.name = 'EFIC temperature',
+		.display = efictemp_display,
+		.help = "EFIC temperature, in raw units (don't rely on it)."
+	},
+	{
+		.name = 'Lens Name',
+		.display = lensname_display,
+		.help = "The name of your current lens"
+	}
 };
 
 static struct menu_entry cfg_menus[] = {

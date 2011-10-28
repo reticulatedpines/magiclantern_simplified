@@ -57,9 +57,7 @@ You may use:
 How do I see shutter counter / CMOS temperature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ``MENU -> DISP`` (550D, 500D).
-* Press ``INFO`` button in photo mode, outside LiveView (60D, 600D).
-
+Look in `Debug`_ menu.
 
 Do I have to adjust ISO/shutter/aperture/WB from ML menu only?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,7 +170,6 @@ Misc shortcuts
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Bulb timer`_, `Movie REC key`_.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
-* ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
 * ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom (see `DigitalZoom Shortcut`_).
@@ -1619,28 +1616,6 @@ Main shooting screen (outside LiveView)
 * `MLU`_ setting (under ``Q`` icon)
 * `LCD remote`_ status icon: ⨂ ⨀ 〰
 * Free space on the card, in GB (under number of remaining shots)
-
-MENU->DISP / MENU->INFO
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _shutter count:
-.. _CMOS temperature:
-
-.. figure:: InfoMenuDisp-550D.png
-    :alt: 200px|right|MENU->DISP info display
-    :align: center
-    :width: 5cm
-
-* Shutter counter:
-
-  - total
-  - number of pictures taken
-  - LV switches + quick focus attempts
-
-* CMOS temp: temperature of the CMOS sensor (EFIC temperature), in raw units.
-* Lens name
-
-This info also appears on error displays (e.g. ERR 70).
 
 LiveView
 ~~~~~~~~
