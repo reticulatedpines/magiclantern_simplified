@@ -58,13 +58,6 @@ void defish_draw();
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 
-//compensate for 500d's lv vram size as 720x424 not 720x480
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
-#define lv_width_const 424
-#else
-#define lv_width_const 480
-#endif
-
 #define hist_height			64
 #define hist_width			128
 #define WAVEFORM_WIDTH 180
@@ -313,7 +306,7 @@ hist_build(void* vram, int width, int pitch)
 				waveform[y][x] = 0;
 	}
 
-	for( y=1 ; y<lv_width_const; y++, v_row += (pitch/4) )
+	for( y=1 ; y<480; y++, v_row += (pitch/4) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -383,7 +376,7 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 	int pitch = vramstruct->pitch;
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
-	for( y=1 ; y<lv_width_const; y++, v_row += (pitch/4) )
+	for( y=1 ; y<480; y++, v_row += (pitch/4) )
 	{
 		for( x=0 ; x<width ; x += 2 )
 		{
@@ -1114,7 +1107,7 @@ clrscr_mirror( void )
 	if (!bvram_mirror) return;
 
 	int y;
-	for( y = 0; y < lv_width_const; y++ )
+	for( y = 0; y < 480; y++ )
 	{
 		uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);
 		uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );
@@ -1200,7 +1193,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 	int y;
 	uint8_t * const lvram = get_yuv422_vram()->vram;
 	int lvpitch = YUV422_LV_PITCH;
-	for( y = 0; y < lv_width_const; y += 2 )
+	for( y = 0; y < 480; y += 2 )
 	{
 		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
 		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
@@ -1245,12 +1238,6 @@ static void
 zebra_hi_toggle_reverse( void * priv )
 {
 	zebra_level_hi = 200 + mod(zebra_level_hi - 200 - 1, 56);
-}
-
-static void global_draw_toggle(void* priv)
-{
-	menu_binary_toggle(priv);
-	if (!global_draw && lv) bmp_fill(0, 0, 0, 720, lv_width_const);
 }
 
 #define MAX_CROP_NAME_LEN 15
@@ -1776,7 +1763,7 @@ void spotmeter_step()
 	int ycb = os.y0 + os.y_ex/2;
 	int xcl = BM2LV_X(xcb);
 	int ycl = BM2LV_X(ycb);
-	int dxl = BM2LV_X(dxb) - BM2LV_X(0);
+	int dxl = BM2LV_DX(dxb);
 	
 	// Sum the values around the center
 	for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
@@ -2106,7 +2093,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.name = "Global Draw",
 		.priv		= &global_draw,
-		.select		= global_draw_toggle,
+		.select		= menu_binary_toggle,
 		.display	= global_draw_display,
 		.help = "Enable/disable ML overlay graphics (zebra, cropmarks...)"
 
@@ -2534,28 +2521,37 @@ void draw_zoom_overlay(int dirty)
 	
 	if (!lvr) return;
 
-	int hx0,hy0; 
-	get_afframe_pos(hd->width, hd->height, &hx0, &hy0);
+	// center of AF frame
+	int aff_x0_lv, aff_y0_lv; 
+	get_afframe_pos(lv->width, lv->height, &aff_x0_lv, &aff_y0_lv);
+	aff_x0_lv += BM2LV_X(os.x0);
+	aff_y0_lv += BM2LV_Y(os.y0);
 	
-	int W = 240;
-	int H = 240;
+	int aff_x0_hd = LV2HD_X(aff_x0_lv);
+	int aff_y0_hd = LV2HD_Y(aff_y0_lv);
+	
+	int aff_x0_bm = LV2BM_X(aff_x0_lv);
+	int aff_y0_bm = LV2BM_Y(aff_y0_lv);
+	
+	int W = os.x_ex / 3;
+	int H = os.y_ex / 2;
 	
 	switch(zoom_overlay_size)
 	{
 		case 0:
 		case 3:
-			W = 150;
-			H = 150;
+			W = os.x_ex / 5;
+			H = os.y_ex / 4;
 			break;
 		case 1:
 		case 4:
-			W = 250;
-			H = 200;
+			W = os.x_ex / 3;
+			H = os.y_ex * 2/5;
 			break;
 		case 2:
 		case 5:
-			W = 500;
-			H = 350;
+			W = os.x_ex * 2/3;
+			H = os.y_ex * 3/4;
 			break;
 		case 6:
 			W = 720;
@@ -2565,31 +2561,29 @@ void draw_zoom_overlay(int dirty)
 	
 	int x2 = (zoom_overlay_size > 2) ? 1 : 0;
 
-	int x0,y0; 
-	int xaf,yaf;
-	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
+	int zb_x0_lv, zb_y0_lv; // center of zoom box
 
 	switch(zoom_overlay_pos)
 	{
 		case 0: // AFF
-			x0 = xaf;
-			y0 = yaf;
+			zb_x0_lv = aff_x0_lv;
+			zb_y0_lv = aff_y0_lv;
 			break;
 		case 1: // NW
-			x0 = W/2 + 50;
-			y0 = H/2 + 50;
+			zb_x0_lv = W/2 + 50;
+			zb_y0_lv = H/2 + 50;
 			break;
 		case 2: // NE
-			x0 = 720 - W/2 - 50;
-			y0 = H/2 + 50;
+			zb_x0_lv = BM2LV_X(os.x_max) - W/2 - 50;
+			zb_y0_lv = H/2 + 50;
 			break;
 		case 3: // SE
-			x0 = 720 - W/2 - 50;
-			y0 = lv_width_const - H/2 - 50;
+			zb_x0_lv = BM2LV_X(os.x_max) - W/2 - 50;
+			zb_y0_lv = BM2LV_Y(os.y_max) - H/2 - 50;
 			break;
 		case 4: // SV
-			x0 = W/2 + 50;
-			y0 = lv_width_const - H/2 - 50;
+			zb_x0_lv = W/2 + 50;
+			zb_y0_lv = BM2LV_Y(os.y_max) - H/2 - 50;
 			break;
 		default:
 			return;
@@ -2611,16 +2605,16 @@ void draw_zoom_overlay(int dirty)
 			w >>= 1;
 			h >>= 1;
 		}
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 1, 0, lv_width_const) * lv->width, 0,    w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf - (h>>1) - 2, 0, lv_width_const) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 1, 0, lv_width_const) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(xaf - (w>>1), 0, 720-w) + COERCE(yaf + (h>>1) + 2, 0, lv_width_const) * lv->width, 0,    w<<1);
+		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
+		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, 0xFF, w<<1);
+		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, 0,    w<<1);
 	}
 
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
 	int y;
-	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
-	int y0c = COERCE(y0 - (H>>1), 0, lv_width_const-H);
+	int x0c = COERCE(zb_x0_lv - (W>>1), 0, lv->width-W);
+	int y0c = COERCE(zb_x0_lv - (H>>1), 0, lv->height-H);
 
 	extern int focus_value;
 	int rawoff = COERCE(80 - focus_value, 0, 100) >> 2;
@@ -2635,7 +2629,7 @@ void draw_zoom_overlay(int dirty)
 	if (x2)
 	{
 		uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
-		uint16_t* s = hdr + (hy0 - (H>>2)) * hd->width + (hx0 - (W>>2));
+		uint16_t* s = hdr + (aff_y0_hd - (H>>2)) * hd->width + (aff_x0_hd - (W>>2));
 		for (y = 2; y < H-2; y++)
 		{
 			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
@@ -2648,7 +2642,7 @@ void draw_zoom_overlay(int dirty)
 	else
 	{
 		uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
-		uint16_t* s = hdr + (hy0 - (H>>1)) * hd->width + (hx0 - (W>>1));
+		uint16_t* s = hdr + (aff_y0_hd - (H>>1)) * hd->width + (aff_x0_hd - (W>>1));
 		for (y = 2; y < H-2; y++)
 		{
 			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
@@ -2663,7 +2657,7 @@ void draw_zoom_overlay(int dirty)
 	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
 	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
 	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-	if (dirty) bmp_fill(0, x0c, y0c + 2, W, H - 4);
+	if (dirty) bmp_fill(COLOR_GREEN, LV2BM_X(x0c), LV2BM_Y(y0c) + 2, LV2BM_DX(W), LV2BM_DY(H) - 4);
 	//~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c, W, 1);
 	//~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c+1, y0c, W, 1);
 	//~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c, y0c + H - 1, W, 1);
@@ -2712,19 +2706,6 @@ void zebra_sleep_when_tired()
 		crop_set_dirty(5);
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
-}
-
-void clear_this_message_not_available_in_movie_mode()
-{
-	static int fp = -1;
-	int f = FLASH_BTN_MOVIE_MODE;
-	if (f == fp) return; // clear the message only once
-	fp = f;
-	if (!f) return;
-	
-	bmp_fill(0, 0, 330, 720, lv_width_const-330);
-	msleep(50);
-	bmp_fill(0, 0, 330, 720, lv_width_const-330);
 }
 
 void draw_livev_for_playback()
@@ -3760,7 +3741,7 @@ void play_422(char* filename)
 	}
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
-	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, lv_width_const - font_large.height, "Do not press Delete!");
+	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;
