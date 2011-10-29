@@ -1377,6 +1377,12 @@ static void lensname_display(
 	menu_draw_icon(x, y, MNI_BOOL(lens_info.name[0]), 0);
 }
 
+void menu_kill_flicker()
+{
+	gui_stop_menu();
+	kill_flicker();
+}
+
 struct menu_entry debug_menus[] = {
 	{
 		.priv		= "Flashlight [SET/Q]",
@@ -1448,6 +1454,12 @@ struct menu_entry debug_menus[] = {
 		.help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
 	},
 #endif
+	{
+		.priv		= "Kill Canon GUI",
+		.select		= menu_kill_flicker,
+		.display	= menu_print,
+		.help = "Disables all Canon graphics elements."
+	},
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,

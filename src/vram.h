@@ -261,6 +261,7 @@ extern struct vram_info vram_lv;
 extern struct vram_info vram_bm;
 
 
+ // offsets on one axis, in pixels
 #define BM2LV_X(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
 #define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
 
@@ -279,6 +280,7 @@ extern struct vram_info vram_bm;
 #define HD2BM_X(x) LV2BM_X(HD2LV_X(x))
 #define HD2BM_Y(y) LV2BM_Y(HD2LV_Y(y))
 
+// offsets in image matrix, in bytes
 #define BM2LV(x,y) (BM2LV_Y(y) * vram_lv.pitch + BM2LV_X(x))
 #define LV2BM(x,y) (LV2BM_Y(y) * vram_bm.pitch + LV2BM_X(x))
 

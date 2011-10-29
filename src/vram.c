@@ -27,43 +27,64 @@ struct vram_info vram_bm = {
 	.height = 480,
 };
 
-PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
+
+struct trans2d bm2lv = { 
+	.tx = 0,
+	.ty = 0,
+	.sx = 1024,
+	.sy = 1024,
+};
+
+struct trans2d lv2hd = { 
+	.tx = 0,
+	.ty = 0,
+	.sx = 2048, // dummy
+	.sy = 2048, // dummy
+};
 
 // area from BMP where the LV image (3:2) is effectively drawn, without black bars
 // in this area we'll draw cropmarks, zebras and so on
-struct bmp_ov_loc_size os;
+struct bmp_ov_loc_size os = {
+	.x0 = 0,
+	.y0 = 0,
+	.x_ex = 480,
+	.y_ex = 720,
+};
 
-static void calc_ov_loc_size(struct bmp_ov_loc_size * os)
-{
-	if (hdmi_code == 2 || ext_monitor_rca)
-	{
-		os->x0 = 40;
-		os->y0 = 24;
-		os->x_ex = 640;
-		os->y_ex = 388;
-	}
-	else if (hdmi_code == 5)
-	{
-		os->x0 = (1920-1620) / 4;
-		os->y0 = 0;
-		os->x_ex = 540 * 3/2;
-		os->y_ex = 540;
-	}
-	else
-	{
-		os->x0 = 0;
-		os->y0 = 0;
-		os->x_ex = 720;
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
-		os->y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
-#else
-		os->y_ex = 480;
-#endif
-	}
-	os->x_max = os->x0 + os->x_ex;
-	os->y_max = os->y0 + os->y_ex;
-	os->off_169 = (os->y_ex - os->y_ex * 3/2*9/16) / 2;
-}
+// LV aspect ratio is 3:2 (so far)
+// HD aspect ratio may vary (3:2, 16:9, 4:3)
+#define lv_ratio_num 3
+#define lv_ratio_den 2
+int hd_ratio_num = 3;
+int hd_ratio_den = 2;
+
+int increment = 4;
+
+int* vram_params[] = { 
+	&increment,
+	&vram_bm.width, &vram_bm.height, 
+	&os.x0, &os.y0, &os.x_ex, &os.y_ex, 
+	&vram_lv.width, &vram_lv.height, 
+	&bm2lv.tx, &bm2lv.ty, &bm2lv.sx, &bm2lv.sy,
+	&vram_hd.width, &vram_hd.height, 
+	&hd_ratio_num, &hd_ratio_den ,
+	&lv2hd.tx, &lv2hd.ty, &lv2hd.sx, &lv2hd.sy,
+};
+char vram_param_names[][12] = {
+	"increment ",
+	"bmp.width ", "bmp.height",
+	"os.x_left ", "os.y_top  ",
+	"os.x_ex   ", "os.y_ex   ",
+	"lv.width  ", "lv.height ",
+	"bm2lv.tx  ", "bm2lv.ty  ",
+	"bm2lv.sx  ", "bm2lv.sy  ",
+	"hd.width  ", "hd.height ",
+	"ratio_num ", "ratio_den ",
+	"lv2hd.tx* ", "lv2hd.ty* ",
+	"lv2hd.sx* ", "lv2hd.sy* ",
+};
+
+PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
 
 // these buffer sizes include any black bars
@@ -71,12 +92,21 @@ void update_vram_params()
 {
 	// BMP (used for overlays)
 	vram_bm.width  = hdmi_code == 5 ? 960 : 720;
-	vram_bm.height = hdmi_code == 5 ? 960 : 480;
+	vram_bm.height = hdmi_code == 5 ? 540 : 480;
 	vram_bm.pitch = 960;
 	
+	// LV crop area
+	os.x0   = hdmi_code == 5 ?  75 : (hdmi_code == 2 || ext_monitor_rca) ? 40 :    0;
+	os.y0   = hdmi_code == 5 ?   0 : (hdmi_code == 2 || ext_monitor_rca) ? 40 :    0;
+	os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
+	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
+#if defined(CONFIG_50D) || defined(CONFIG_500D)
+	os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
+#endif
+
 	// LV buffer (used for display)
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
-	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 512 : 720 * 8/9;
+	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 512 : 720;
 	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? 512 : 480 * 8/9;
 #endif
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
@@ -87,9 +117,11 @@ void update_vram_params()
 	vram_lv.width  = 720;
 	vram_lv.height = 240;
 #endif
-	vram_lv.pitch = vram_lv.width * 2; 
 
 	// HD buffer (used for recording)
+	hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
+	hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
+
 #ifdef CONFIG_50D
 	vram_hd.width = recording ? 1560 : 1024;
 	vram_hd.height = recording ? 1048 : 680;
@@ -110,24 +142,37 @@ void update_vram_params()
 	vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
 	vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
 #endif
-	vram_hd.pitch = vram_hd.width * 2;
-	
-	calc_ov_loc_size(&os);
+
+	update_vram_params_calc();
 }
 
-struct trans2d bm2lv = { 
-	.tx = 0,
-	.ty = 0,
-	.sx = 1024,
-	.sy = 1024,
-};
+void update_vram_params_calc()
+{
+	// those params are dependent on others
+	// they can be computed (these formulas should be generic, not camera-specific)
+	os.x_max = os.x0 + os.x_ex;
+	os.y_max = os.y0 + os.y_ex;
+	os.off_169 = (os.y_ex - os.y_ex * 3/2*9/16) / 2;
 
-struct trans2d lv2hd = { 
-	.tx = 0,
-	.ty = 0,
-	.sx = 2048, // dummy
-	.sy = 2048, // dummy
-};
+	vram_lv.pitch = vram_lv.width * 2; 
+	vram_hd.pitch = vram_hd.width * 2;
+	
+	// here we assume HD and LV are always centered, but their aspect ratios (and sizes) may differ
+	if (lv_ratio_num * hd_ratio_den > lv_ratio_den * hd_ratio_num) // crop sides
+	{
+		lv2hd.tx = - (vram_hd.width * lv_ratio_num / lv_ratio_den * hd_ratio_den / hd_ratio_num - vram_hd.width) / 2;
+		lv2hd.ty = 0;
+		lv2hd.sx = 1024 * vram_hd.width / vram_lv.width * lv_ratio_num / lv_ratio_den * hd_ratio_den / hd_ratio_num;
+		lv2hd.sy = 1024 * vram_hd.height / vram_lv.height;
+	}
+	else // crop top and bottom
+	{
+		lv2hd.tx = 0;
+		lv2hd.ty = - (vram_hd.height * lv_ratio_den / lv_ratio_num * hd_ratio_num / hd_ratio_den - vram_hd.height) / 2;
+		lv2hd.sx = 1024 * vram_hd.width / vram_lv.width;
+		lv2hd.sy = 1024 * vram_hd.height / vram_lv.height * lv_ratio_den / lv_ratio_num * hd_ratio_num / hd_ratio_den;
+	}
+}
 
 /*
 int* lut_bm2lv_x = 0;
@@ -306,8 +351,6 @@ PROP_HANDLER(PROP_LV_ACTION)
 	return prop_cleanup(token, property);
 }
 
-int vram_delta = 0;
-
 static void
 vram_print(
 	void *			priv,
@@ -316,42 +359,63 @@ vram_print(
 	int			selected
 )
 {
+	unsigned		menu_font = selected ? MENU_FONT_SEL : MENU_FONT;
+	unsigned		font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
+	unsigned		height = fontspec_height( font );
+
+	y = y * 2/3 + 20;
+	if (y > 400) { y = y - 400 + 50; x = 360; }
 	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
+		font,
 		x, y,
-		"VRAM param %x: %d [+/- %d]",
-		((int)priv - (int)(&bm2lv.tx))/4, MEM(priv), 
-		1<<vram_delta
+		"%s = %d",
+		vram_param_names[(int)priv], MEM(vram_params[(int)priv])
 	);
+	menu_draw_icon(x,y,MNI_NONE,0);
 }
 
 static void vram_toggle(void* priv, int delta)
 {
-	MEM(priv) += delta;
+	MEM(vram_params[(int)priv]) += priv ? delta : SGN(delta);
 	menu_show_only_selected();
+	crop_set_dirty(1);
+	update_vram_params_calc();
 }
 
-static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  (1<<vram_delta)); }
-static void vram_toggle_rev(void* priv) { vram_toggle(priv, -(1<<vram_delta)); }
-static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&vram_delta); }
+static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
+static void vram_toggle_rev(void* priv) { vram_toggle(priv, -increment); }
+static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment); }
 
 #define VRAM_MENU_ENTRY(x)	{ \
-		.priv = &x, \
+		.priv = x, \
 		.display	= vram_print, \
 		.select		= vram_toggle_fwd, \
 		.select_reverse = vram_toggle_rev, \
-		.select_auto = vram_toggle_delta, \
+		.select_auto = update_vram_params_calc, \
 	}, \
 
 static struct menu_entry vram_menus[] = {
-	VRAM_MENU_ENTRY(bm2lv.tx)
-	VRAM_MENU_ENTRY(bm2lv.ty)
-	VRAM_MENU_ENTRY(bm2lv.sx)
-	VRAM_MENU_ENTRY(bm2lv.sy)
-	VRAM_MENU_ENTRY(lv2hd.tx)
-	VRAM_MENU_ENTRY(lv2hd.ty)
-	VRAM_MENU_ENTRY(lv2hd.sx)
-	VRAM_MENU_ENTRY(lv2hd.sy)
+	VRAM_MENU_ENTRY(0)
+	VRAM_MENU_ENTRY(1)
+	VRAM_MENU_ENTRY(2)
+	VRAM_MENU_ENTRY(3)
+	VRAM_MENU_ENTRY(4)
+	VRAM_MENU_ENTRY(5)
+	VRAM_MENU_ENTRY(6)
+	VRAM_MENU_ENTRY(7)
+	VRAM_MENU_ENTRY(8)
+	VRAM_MENU_ENTRY(9)
+	VRAM_MENU_ENTRY(10)
+	VRAM_MENU_ENTRY(11)
+	VRAM_MENU_ENTRY(12)
+	VRAM_MENU_ENTRY(13)
+	VRAM_MENU_ENTRY(14)
+	VRAM_MENU_ENTRY(15)
+	VRAM_MENU_ENTRY(16)
+	VRAM_MENU_ENTRY(17)
+	VRAM_MENU_ENTRY(18)
+	VRAM_MENU_ENTRY(19)
+	VRAM_MENU_ENTRY(20)
 };
 
 void vram_menus_init()

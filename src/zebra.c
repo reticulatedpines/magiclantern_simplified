@@ -912,45 +912,23 @@ draw_zebra_and_focus( int Z, int F )
 		}
 		dirty_pixels_num = 0;
 		
-		int bm_pitch = (ext_monitor_hdmi && !recording) ? 960 : 720; // or other value for ext monitor
-		int bm_width = bm_pitch;  // 8-bit palette image
-		int bm_height = (ext_monitor_hdmi && !recording) ? 540 : lv_width_const;
-		
 		struct vram_info * hd_vram = get_yuv422_hd_vram();
 		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
-		int hd_pitch  = hd_vram->pitch;
-		int hd_height = hd_vram->height;
-		int hd_width  = hd_vram->width;
-		
-		//~ bmp_printf(FONT_MED, 30, 100, "HD %dx%d ", hd_width, hd_height);
-		
-		int bm_skipv = 50;
-		int bm_skiph = 100;
-		int hd_skipv = bm_skipv * hd_height / bm_height;
-		int hd_skiph = bm_skiph * hd_width / bm_width;
 		
 		static int thr = 50;
 		
 		int n_over = 0;
 		int n_total = 0;
-		// look in the HD buffer
 
-		#ifdef CONFIG_600D
-		int rec_off = (is_movie_mode() ? 90 : 0);
-		#else
-		int rec_off = (recording ? 90 : 0);
-		#endif
-		int step = (focus_peaking == 1) 
-						? (recording ? 2 : 1)
-						: (recording ? 4 : 2);
-		for(int y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
+		// look in the HD buffer
+		for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 		{
-			uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
-			uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
+			uint16_t * const hd_row = (uint32_t*)( hdvram + BM2HD(0,y)); // 2 pixels
 			
 			uint32_t* hdp; // that's a moving pointer
-			for (hdp = hd_row + hd_skiph/2 ; hdp < hd_row_end ; hdp += step )
+			for (int x = os.x0; x < os.x_max; x += 2)
 			{
+				hdp = hd_row + BM2HD_X(x);
 				#define PX_AB (*hdp)        // current pixel group
 				#define PX_CD (*(hdp + 1))  // next pixel group
 				#define a ((int32_t)(PX_AB >>  8) & 0xFF)
@@ -1013,16 +991,9 @@ draw_zebra_and_focus( int Z, int F )
 					int color = get_focus_color(thr, e);
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
-					#if defined(CONFIG_50D) || defined(CONFIG_500D)
-					int b_row_off = COERCE(y * bm_height / hd_height, 0, 539) * BMPPITCH;
-					#else
-					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
-					#endif
-					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
-					uint16_t * const m_row = (uint16_t*)( bvram_mirror + b_row_off );   // 2 pixels
 					
-					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
-					x = COERCE(x, 0, 960);
+					uint16_t * const b_row = (uint16_t*)( bvram + BM(0,y) );   // 2 pixels
+					uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM(0,y) );   // 2 pixels
 					
 					uint16_t pixel = b_row[x/2];
 					uint16_t mirror = m_row[x/2];
@@ -1036,7 +1007,7 @@ draw_zebra_and_focus( int Z, int F )
 						m_row[x/2 + BMPPITCH/2] = color;
 						if (dirty_pixels_num < MAX_DIRTY_PIXELS)
 						{
-							dirty_pixels[dirty_pixels_num++] = x + b_row_off;
+							dirty_pixels[dirty_pixels_num++] = BM(x,y);
 						}
 					}
 				}
@@ -3211,6 +3182,12 @@ void schedule_transparent_overlay()
 volatile int lens_display_dirty = 0;
 void lens_display_set_dirty() { lens_display_dirty = 1; }
 
+void draw_cropmark_area()
+{
+	bmp_draw_rect(COLOR_BLUE, os.x0, os.y0, os.x_ex, os.y_ex);
+	draw_line(os.x0, os.y0, os.x_max, os.y_max, COLOR_BLUE);
+	draw_line(os.x0, os.y_max, os.x_max, os.y0, COLOR_BLUE);
+}
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
@@ -3234,6 +3211,7 @@ livev_hipriority_task( void* unused )
 		
 		zebra_sleep_when_tired();
 		
+		draw_cropmark_area(); // just for debugging
 
 		if (should_draw_zoom_overlay())
 		{
