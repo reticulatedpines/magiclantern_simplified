@@ -1183,22 +1183,23 @@ draw_false_downsampled( void )
 	uint8_t * const lvram = get_yuv422_vram()->vram;
 	int lvpitch = YUV422_LV_PITCH;
 	uint8_t* fc = false_colour[falsecolor_palette];
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
-	for( y = 40; y < 384; y += 2 ) //on 500d, lv vram is 720x424 not 720x480 like bmp vram (such as in 550d).
-#else
-	for( y = 40; y < 440; y += 2 )
-#endif
+
+	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 	{
-		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
-		uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
-		uint16_t * const m_row = (uint16_t*)( bvram_mirror + y * BMPPITCH );  // 2 pixel
+		uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV(0,y)    );  // 2 pixels
+		uint16_t * const b_row = (uint16_t*)( bvram        + BM(0,y)       );  // 2 pixels
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM(0,y)       );  // 2 pixels
 		
 		uint8_t* lvp; // that's a moving pointer through lv vram
 		uint16_t* bp;  // through bmp vram
 		uint16_t* mp;  // through mirror
 		
-		for (lvp = ((uint8_t*)v_row)+1, bp = b_row, mp = m_row; lvp < (uint8_t*)(v_row + 720/2) ; lvp += 4, bp++, mp++)
+		for (int x = os.x0; x < os.x_max; x += 2)
 		{
+			lvp = v_row + BM2LV_X(x)/2; lvp++;
+			bp = b_row + x/2;
+			mp = m_row + x/2;
+			
 			#define BP (*bp)
 			#define MP (*mp)
 			#define BN (*(bp + BMPPITCH/2))
