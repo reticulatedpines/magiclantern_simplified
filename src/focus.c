@@ -90,8 +90,14 @@ display_lens_hyperfocal(
 
 	if (!lv || !lens_info.focus_dist)
 	{
+		y += height;
 		bmp_printf( font, x, y,
-			"Focus dist: N/A"
+			"Hyperfocal: %s",
+			lens_format_dist( lens_info.hyperfocal )
+		);
+		y += height;
+		bmp_printf( font, x, y,
+			"Your lens did not report focus distance"
 		);
 		return;
 	}
