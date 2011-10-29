@@ -1768,18 +1768,24 @@ void spotmeter_step()
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
-	const unsigned		dx = spotmeter_size;
+	const unsigned		dxb = spotmeter_size;
 	unsigned		sum = 0;
 	unsigned		x, y;
 
+	int xcb = os.x0 + os.x_ex/2;
+	int ycb = os.y0 + os.y_ex/2;
+	int xcl = BM2LV_X(xcb);
+	int ycl = BM2LV_X(ycb);
+	int dxl = BM2LV_X(dxb) - BM2LV_X(0);
+	
 	// Sum the values around the center
-	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
 	{
-		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
+		for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
 			sum += (vr[ x + y * width]) & 0xFF00;
 	}
 
-	sum /= (2 * dx + 1) * (2 * dx + 1);
+	sum /= (2 * dxl + 1) * (2 * dxl + 1);
 
 	// Scale to 100%
 	const unsigned		scaled = (100 * sum) / 0xFF00;
@@ -1796,18 +1802,16 @@ void spotmeter_step()
 	if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
 	int bg = falsecolor_draw ? COLOR_BG : 0;
 
-	int xc = (hdmi_code == 5) ? lv_width_const : 360;
-	int yc = (hdmi_code == 5) ? 270 : 240;
-	bmp_draw_rect(fg, xc - dx, yc - dx, 2*dx+1, 2*dx+1);
-	yc += dx + 20;
-	yc -= font_med.height/2;
-	xc -= 2 * font_med.width;
+	bmp_draw_rect(fg, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
+	ycb += dxb + 20;
+	ycb -= font_med.height/2;
+	xcb -= 2 * font_med.width;
 
 	if (spotmeter_formula == 0)
 	{
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
-			xc, yc, 
+			xcb, ycb, 
 			"%3d%%",
 			scaled
 		);
@@ -1820,14 +1824,14 @@ void spotmeter_step()
 		
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
-			xc, yc, 
+			xcb, ycb, 
 			"%s%3d", // why does %4d display garbage?!
 			ire < 0 ? "-" : " ",
 			ire < 0 ? -ire : ire
 		);
 		bmp_printf(
 			FONT(FONT_SMALL, fg, 0),
-			xc + font_med.width*4, yc,
+			xcb + font_med.width*4, ycb,
 			"IRE\n%s",
 			spotmeter_formula == 1 ? "-1..101" : "0..108"
 		);
