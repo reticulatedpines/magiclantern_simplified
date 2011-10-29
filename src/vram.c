@@ -7,6 +7,7 @@
 #include "property.h"
 #include "propvalues.h"
 #include "bmp.h"
+#include "menu.h"
 
 struct vram_info vram_lv = {
 	.pitch = 720 * 2,
@@ -304,3 +305,58 @@ PROP_HANDLER(PROP_LV_ACTION)
 	update_vram_params();
 	return prop_cleanup(token, property);
 }
+
+int vram_delta = 0;
+
+static void
+vram_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"VRAM param %x: %d [+/- %d]",
+		((int)priv - (int)(&bm2lv.tx))/4, MEM(priv), 
+		1<<vram_delta
+	);
+}
+
+static void vram_toggle(void* priv, int delta)
+{
+	MEM(priv) += delta;
+	menu_show_only_selected();
+}
+
+static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  (1<<vram_delta)); }
+static void vram_toggle_rev(void* priv) { vram_toggle(priv, -(1<<vram_delta)); }
+static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&vram_delta); }
+
+#define VRAM_MENU_ENTRY(x)	{ \
+		.priv = &x, \
+		.display	= vram_print, \
+		.select		= vram_toggle_fwd, \
+		.select_reverse = vram_toggle_rev, \
+		.select_auto = vram_toggle_delta, \
+	}, \
+
+static struct menu_entry vram_menus[] = {
+	VRAM_MENU_ENTRY(bm2lv.tx)
+	VRAM_MENU_ENTRY(bm2lv.ty)
+	VRAM_MENU_ENTRY(bm2lv.sx)
+	VRAM_MENU_ENTRY(bm2lv.sy)
+	VRAM_MENU_ENTRY(lv2hd.tx)
+	VRAM_MENU_ENTRY(lv2hd.ty)
+	VRAM_MENU_ENTRY(lv2hd.sx)
+	VRAM_MENU_ENTRY(lv2hd.sy)
+};
+
+void vram_menus_init()
+{
+	menu_add("VRAM", vram_menus, COUNT(vram_menus));
+}
+
+INIT_FUNC(__FILE__, vram_menus_init);
