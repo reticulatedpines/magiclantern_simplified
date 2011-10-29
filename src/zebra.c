@@ -887,7 +887,7 @@ draw_zebra_and_focus( int Z, int F )
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 	//~ int BMPPITCH = bmp_pitch();
-	int y;
+	//~ int y;
 
 	if (F && focus_peaking)
 	{
@@ -943,7 +943,7 @@ draw_zebra_and_focus( int Z, int F )
 		int step = (focus_peaking == 1) 
 						? (recording ? 2 : 1)
 						: (recording ? 4 : 2);
-		for( y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
+		for(int y = hd_skipv; y < hd_height - hd_skipv; y += 2 )
 		{
 			uint32_t * const hd_row = (uint32_t*)( hdvram + y * hd_pitch ); // 2 pixels
 			uint32_t * const hd_row_end = hd_row + hd_width/2 - hd_skiph/2;
@@ -1057,30 +1057,29 @@ draw_zebra_and_focus( int Z, int F )
 		int zll = zebra_level_lo;
 
 		uint8_t * const lvram = get_yuv422_vram()->vram;
-		int lvpitch = hdmi_code == 5 ? 3840 : 1440;
-		int lvp_step_x = hdmi_code == 5 ? 4 : 2;
-		int lvp_step_y = hdmi_code == 5 ? 2 : 1;
-		int lvheight = hdmi_code == 5 ? 540 : lv_width_const;
-		#if defined(CONFIG_50D) || defined(CONFIG_500D)
-		lvheight = 426;
-		#endif
-		for( y = 40; y < lvheight - 40; y += 2 )
+		
+		// draw zebra in 16:9 frame
+		// y is in BM coords
+		for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 		{
 			uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
 			uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
 			uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
 			uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
 			
-			uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch * lvp_step_y );          // 2 pixels
-			uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);          // 4 pixels
-			uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );  // 4 pixels
+			uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV(0,y)    );  // 2 pixels
+			uint32_t * const b_row = (uint32_t*)( bvram        + BM(0,y)       );  // 4 pixels
+			uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM(0,y)       );  // 4 pixels
 			
 			uint32_t* lvp; // that's a moving pointer through lv vram
 			uint32_t* bp;  // through bmp vram
 			uint32_t* mp;  // through mirror
 
-			for (lvp = v_row, bp = b_row, mp = m_row ; lvp < v_row + lvpitch/4 ; lvp += lvp_step_x, bp++, mp++)
+			for (int x = os.x0; x < os.x_max; x += 4)
 			{
+				lvp = v_row + BM2LV_X(x)/2;
+				bp = b_row + x/4;
+				mp = m_row + x/4;
 				#define BP (*bp)
 				#define MP (*mp)
 				#define BN (*(bp + BMPPITCH/4))

@@ -222,6 +222,7 @@ struct bmp_ov_loc_size
 	int y_ex; //live view y extend
 	int x_max; // x0 + x_ex
 	int y_max; // y0 + y_ex
+	int off_169; // width of one 16:9 bar
 };
 
 void clrscr();

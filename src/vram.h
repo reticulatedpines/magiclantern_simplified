@@ -236,4 +236,61 @@ void redraw();
 struct vram_info * get_yuv422_vram();
 struct vram_info * get_yuv422_hd_vram();
 
+
+// [ sx   0   x ]
+// [  0  sy   y ]
+// [  0   0   1 ]
+
+// inverse:
+// [ 1/sx     0   -x/sx ]
+// [    0  1/sy   -y/sy ]
+// [    0     0       1 ]
+
+struct trans2d // 2D homogeneous transformation matrix with translation and scaling components
+{
+	int tx;
+	int ty;
+	int sx; // * 1024
+	int sy; // * 1024
+};
+
+extern struct trans2d bm2lv;
+extern struct trans2d lv2hd;
+extern struct vram_info vram_hd;
+extern struct vram_info vram_lv;
+extern struct vram_info vram_bm;
+
+
+#define BM2LV_X(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
+#define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
+
+#define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
+#define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sx)
+
+#define LV2HD_X(x) ((x) * lv2hd.sx / 1024 + lv2hd.tx)
+#define LV2HD_Y(y) ((y) * lv2hd.sy / 1024 + lv2hd.ty)
+
+#define HD2LV_X(x) ((x) * 1024 / lv2hd.sx - lv2hd.tx * 1024 / lv2hd.sx)
+#define HD2LV_Y(y) ((y) * 1024 / lv2hd.sy - lv2hd.ty * 1024 / lv2hd.sx)
+
+#define BM2HD_X(x) LV2HD_X(BM2LV_X(x))
+#define BM2HD_Y(y) LV2HD_Y(BM2LV_Y(y))
+
+#define HD2BM_X(x) LV2BM_X(HD2LV_X(x))
+#define HD2BM_Y(y) LV2BM_Y(HD2LV_Y(y))
+
+#define BM2LV(x,y) (BM2LV_Y(y) * vram_lv.pitch + BM2LV_X(x))
+#define LV2BM(x,y) (LV2BM_Y(y) * vram_bm.pitch + LV2BM_X(x))
+
+#define LV2HD(x,y) (LV2HD_Y(y) * vram_hd.pitch + LV2HD_X(x))
+#define HD2LV(x,y) (HD2LV_Y(y) * vram_lv.pitch + HD2LV_X(x))
+
+#define BM2HD(x,y) (BM2HD_Y(y) * vram_hd.pitch + BM2HD_X(x))
+#define HD2BM(x,y) (HD2BM_Y(y) * vram_bm.pitch + HD2BM_X(x))
+
+#define BM(x,y) (x + y * vram_bm.pitch)
+#define LV(x,y) (x + y * vram_lv.pitch)
+#define HD(x,y) (x + y * vram_lv.pitch)
+
+
 #endif
