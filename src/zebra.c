@@ -278,9 +278,11 @@ static uint32_t hist_max;
  * bottom.
  */
 void
-hist_build(void* vram, int width, int pitch)
+hist_build()
 {
-	uint32_t * 	v_row = (uint32_t*) vram;
+	struct vram_info * lv = get_yuv422_vram();
+
+	uint32_t * 	v_row = (uint32_t*) lv->vram;
 	int x,y;
 
 	histo_init();
@@ -306,9 +308,9 @@ hist_build(void* vram, int width, int pitch)
 				waveform[y][x] = 0;
 	}
 
-	for( y=1 ; y<480; y++, v_row += (pitch/4) )
+	for( y = os.y0 ; y < os.y_max; y += 2, v_row += (lv->pitch/2) )
 	{
-		for( x=0 ; x<width ; x += 2 )
+		for( x = os.x0 ; x < os.x_max ; x += 2 )
 		{
 			// Average each of the two pixels
 			uint32_t pixel = v_row[x/2];
@@ -339,7 +341,7 @@ hist_build(void* vram, int width, int pitch)
 				hist_max = count;
 			
 			// Update the waveform plot
-			if (waveform_draw) waveform[ COERCE((x * WAVEFORM_WIDTH) / width, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
+			if (waveform_draw) waveform[ COERCE((x * WAVEFORM_WIDTH) / lv->width, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
 		}
 	}
 }
@@ -366,19 +368,19 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 {
 	*under = -1;
 	*over = -1;
-	struct vram_info * vramstruct = get_yuv422_vram();
-	if (!vramstruct) return;
+	struct vram_info * lv = get_yuv422_vram();
+	if (!lv) return;
 
 	*under = 0;
 	*over = 0;
-	void* vram = vramstruct->vram;
-	int width = vramstruct->width;
-	int pitch = vramstruct->pitch;
+	void* vram = lv->vram;
+	int width = lv->width;
+	int pitch = lv->pitch;
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
-	for( y=1 ; y<480; y++, v_row += (pitch/4) )
+	for( y = os.y0 ; y < os.y_max; y += 2, v_row += (lv->pitch/2) )
 	{
-		for( x=0 ; x<width ; x += 2 )
+		for( x = os.x0 ; x < os.y_max ; x += 4 )
 		{
 			uint32_t pixel = v_row[x/2];
 			uint32_t p1 = (pixel >> 16) & 0xFFFF;
@@ -1636,7 +1638,7 @@ spotmeter_formula_toggle(void* priv)
 
 
 
-void get_spot_yuv(int dx, int* Y, int* U, int* V)
+void get_spot_yuv(int dxb, int* Y, int* U, int* V)
 {
 	struct vram_info *	vram = get_yuv422_vram();
 
@@ -1648,14 +1650,20 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 
-	bmp_draw_rect(COLOR_WHITE, width/2 - dx, height/2 - dx, 2*dx, 2*dx);
+	int xcb = os.x0 + os.x_ex/2;
+	int ycb = os.y0 + os.y_ex/2;
+	int xcl = BM2LV_X(xcb);
+	int ycl = BM2LV_X(ycb);
+	int dxl = BM2LV_DX(dxb);
+
+	bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb, 2*dxb);
 	
 	unsigned sy = 0;
 	int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
 	// Sum the values around the center
-	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
 	{
-		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
+		for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
 		{
 			uint16_t p = vr[ x + y * width ];
 			sy += (p >> 8) & 0xFF;
@@ -1663,16 +1671,16 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 		}
 	}
 
-	sy /= (2 * dx + 1) * (2 * dx + 1);
-	su /= (dx + 1) * (2 * dx + 1);
-	sv /= (dx + 1) * (2 * dx + 1);
+	sy /= (2 * dxl + 1) * (2 * dxl + 1);
+	su /= (dxl + 1) * (2 * dxl + 1);
+	sv /= (dxl + 1) * (2 * dxl + 1);
 
 	*Y = sy;
 	*U = su;
 	*V = sv;
 }
 
-int get_spot_motion(int dx, int draw)
+int get_spot_motion(int dxb, int draw)
 {
 	struct vram_info *	vram = get_yuv422_vram();
 
@@ -1687,15 +1695,21 @@ int get_spot_motion(int dx, int draw)
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 
-	draw_line(width/2 - dx, height/2 - dx, width/2 + dx, height/2 - dx, COLOR_WHITE);
-	draw_line(width/2 + dx, height/2 - dx, width/2 + dx, height/2 + dx, COLOR_WHITE);
-	draw_line(width/2 + dx, height/2 + dx, width/2 - dx, height/2 + dx, COLOR_WHITE);
-	draw_line(width/2 - dx, height/2 + dx, width/2 - dx, height/2 - dx, COLOR_WHITE);
+	int xcb = os.x0 + os.x_ex/2;
+	int ycb = os.y0 + os.y_ex/2;
+	int xcl = BM2LV_X(xcb);
+	int ycl = BM2LV_X(ycb);
+	int dxl = BM2LV_DX(dxb);
+
+	draw_line(xcb - dxb, ycb - dxb, xcb + dxb, ycb - dxb, COLOR_WHITE);
+	draw_line(xcb + dxb, ycb - dxb, xcb + dxb, ycb + dxb, COLOR_WHITE);
+	draw_line(xcb + dxb, ycb + dxb, xcb - dxb, ycb + dxb, COLOR_WHITE);
+	draw_line(xcb - dxb, ycb + dxb, xcb - dxb, ycb - dxb, COLOR_WHITE);
 	
 	unsigned D = 0;
-	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
 	{
-		for( x = width/2 - dx ; x <= width/2 + dx ; x++ )
+		for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
 		{
 			int p1 = (vr1[ x + y * width ] >> 8) & 0xFF;
 			int p2 = (vr2[ x + y * width ] >> 8) & 0xFF;
@@ -1706,11 +1720,11 @@ int get_spot_motion(int dx, int draw)
 	}
 	
 	D = D * 2;
-	D /= (2 * dx + 1) * (2 * dx + 1);
+	D /= (2 * dxl + 1) * (2 * dxl + 1);
 	return D;
 }
 
-int get_spot_focus(int dx)
+int get_spot_focus(int dxb)
 {
 	struct vram_info *	vram = get_yuv422_vram();
 
@@ -1724,10 +1738,17 @@ int get_spot_focus(int dx)
 	
 	unsigned sf = 0;
 	unsigned br = 0;
+
+	int xcb = os.x0 + os.x_ex/2;
+	int ycb = os.y0 + os.y_ex/2;
+	int xcl = BM2LV_X(xcb);
+	int ycl = BM2LV_X(ycb);
+	int dxl = BM2LV_DX(dxb);
+	
 	// Sum the absolute difference of values around the center
-	for( y = height/2 - dx ; y <= height/2 + dx ; y++ )
+	for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
 	{
-		for( x = width/2 - dx ; x <= width/2 + dx ; x += 2 )
+		for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
 		{
 			uint32_t p = vr[ x/2 + y * width/2 ];
 			int32_t p0 = (p >> 24) & 0xFF;
@@ -2657,7 +2678,7 @@ void draw_zoom_overlay(int dirty)
 	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
 	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
 	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-	if (dirty) bmp_fill(COLOR_GREEN, LV2BM_X(x0c), LV2BM_Y(y0c) + 2, LV2BM_DX(W), LV2BM_DY(H) - 4);
+	if (dirty) bmp_fill(0, LV2BM_X(x0c), LV2BM_Y(y0c) + 2, LV2BM_DX(W), LV2BM_DY(H) - 4);
 	//~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c, W, 1);
 	//~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c+1, y0c, W, 1);
 	//~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c, y0c + H - 1, W, 1);
@@ -2741,8 +2762,7 @@ void draw_histogram_and_waveform()
 	if (!get_global_draw()) return;
 	if (hist_draw || waveform_draw)
 	{
-		struct vram_info * vram = get_yuv422_vram();
-		hist_build(vram->vram, vram->width, vram->pitch);
+		hist_build();
 	}
 	
 	if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
