@@ -97,65 +97,9 @@ PROP_HANDLER( PROP_LV_ACTION )
 	return prop_cleanup( token, property );
 }
 
-
-// External monitors
-
-struct bmp_ov_loc_size os;
-
-volatile int ext_monitor_hdmi;
-volatile int ext_monitor_rca;
-volatile int hdmi_code;
-
-static void calc_ov_loc_size(struct bmp_ov_loc_size * os)
-{
-	if (hdmi_code == 2 || ext_monitor_rca)
-	{
-		os->x0 = 40;
-		os->y0 = 24;
-		os->x_ex = 640;
-		os->y_ex = 388;
-	}
-	else if (hdmi_code == 5)
-	{
-		os->x0 = (1920-1620) / 4;
-		os->y0 = 0;
-		os->x_ex = 540 * 3/2;
-		os->y_ex = 540;
-	}
-	else
-	{
-		os->x0 = 0;
-		os->y0 = 0;
-		os->x_ex = 720;
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
-		os->y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
-#else
-		os->y_ex = 480;
-#endif
-	}
-	os->x_max = os->x0 + os->x_ex;
-	os->y_max = os->y0 + os->y_ex;
-}
-
-PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
-{
-	hdmi_code = buf[0];
-	calc_ov_loc_size(&os);
-	return prop_cleanup( token, property );
-}
-PROP_HANDLER(PROP_HDMI_CHANGE)
-{
-	ext_monitor_hdmi = buf[0];
-	calc_ov_loc_size(&os);
-	return prop_cleanup( token, property );
-}
-PROP_HANDLER(PROP_USBRCA_MONITOR)
-{
-	ext_monitor_rca = buf[0];
-	calc_ov_loc_size(&os);
-	return prop_cleanup( token, property );
-}
-
+volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
+volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+volatile PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca);
 
 #ifdef CONFIG_50D
 int recording = 0;
@@ -174,7 +118,7 @@ volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 int lv_disp_mode;
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-	#ifdef CONFIG_60D
+	#if defined(CONFIG_60D) || defined(CONFIG_600D)
 	lv_disp_mode = buf[1];
 	#else
 	lv_disp_mode = buf[0];

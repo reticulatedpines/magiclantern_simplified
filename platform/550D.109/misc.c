@@ -53,32 +53,3 @@ void display_shooting_info() // called from debug task
 	display_lcd_remote_icon(480, 0);
 	display_trap_focus_info();
 }
-
-
-// image buffers
-// http://magiclantern.wikia.com/wiki/VRAM
-
-struct vram_info * get_yuv422_hd_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
-									video_mode_resolution == 1 ? 1280 : 
-									video_mode_resolution == 2 ? 640 : 0)
-								  : lv_dispsize > 1 ? 1024
-								  : !is_movie_mode() ? 1056
-								  : (video_mode_resolution == 0 ? 1056 : 
-								  	video_mode_resolution == 1 ? 1024 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height = recording ? (video_mode_resolution == 0 ? 974 : 
-									video_mode_resolution == 1 ? 580 : 
-									video_mode_resolution == 2 ? 480 : 0)
-								  : lv_dispsize > 1 ? 680
-								  : !is_movie_mode() ? 704
-								  : (video_mode_resolution == 0 ? 704 : 
-								  	video_mode_resolution == 1 ? 680 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 480:680) : 0);
-
-	return &_vram_info;
-}

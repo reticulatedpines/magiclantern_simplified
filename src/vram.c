@@ -1,9 +1,178 @@
 /** \file
  * Common functions for image buffers
+ * http://magiclantern.wikia.com/wiki/VRAM
  */
 
 #include "dryos.h"
+#include "property.h"
 #include "propvalues.h"
+#include "bmp.h"
+
+struct vram_info vram_lv = {
+	.pitch = 720 * 2,
+	.width = 720,
+	.height = 480,
+};
+
+struct vram_info vram_hd = {
+	.pitch = 1056 * 2,
+	.width = 1056,
+	.height = 704,
+};
+
+struct vram_info vram_bm = {
+	.pitch = 960,
+	.width = 720,
+	.height = 480,
+};
+
+PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
+
+// area from BMP where the LV image (3:2) is effectively drawn, without black bars
+// in this area we'll draw cropmarks, zebras and so on
+struct bmp_ov_loc_size os;
+
+static void calc_ov_loc_size(struct bmp_ov_loc_size * os)
+{
+	if (hdmi_code == 2 || ext_monitor_rca)
+	{
+		os->x0 = 40;
+		os->y0 = 24;
+		os->x_ex = 640;
+		os->y_ex = 388;
+	}
+	else if (hdmi_code == 5)
+	{
+		os->x0 = (1920-1620) / 4;
+		os->y0 = 0;
+		os->x_ex = 540 * 3/2;
+		os->y_ex = 540;
+	}
+	else
+	{
+		os->x0 = 0;
+		os->y0 = 0;
+		os->x_ex = 720;
+#if defined(CONFIG_50D) || defined(CONFIG_500D)
+		os->y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
+#else
+		os->y_ex = 480;
+#endif
+	}
+	os->x_max = os->x0 + os->x_ex;
+	os->y_max = os->y0 + os->y_ex;
+}
+
+
+// these buffer sizes include any black bars
+void update_vram_params()
+{
+	// BMP (used for overlays)
+	vram_bm.width  = hdmi_code == 5 ? 960 : 720;
+	vram_bm.height = hdmi_code == 5 ? 960 : 480;
+	vram_bm.pitch = 960;
+	
+	// LV buffer (used for display)
+#if defined(CONFIG_50D) || defined(CONFIG_500D)
+	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 512 : 720 * 8/9;
+	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? 512 : 480 * 8/9;
+#endif
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 512 : 720;
+	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? 512 : 480;
+#endif
+#ifdef CONFIG_1100D
+	vram_lv.width  = 720;
+	vram_lv.height = 240;
+#endif
+	vram_lv.pitch = vram_lv.width * 2; 
+
+	// HD buffer (used for recording)
+#ifdef CONFIG_50D
+	vram_hd.width = recording ? 1560 : 1024;
+	vram_hd.height = recording ? 1048 : 680;
+#endif
+#ifdef CONFIG_500D
+	vram_hd.width  = lv_dispsize > 1 ?  944 : !is_movie_mode() ?  928 : recording ? (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 1576 : video_mode_resolution == 2 ? 720 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 928 : video_mode_resolution == 2 ? 928 : 0);
+	vram_hd.height = lv_dispsize > 1 ?  632 : !is_movie_mode() ?  616 : recording ? (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ?  632 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ? 616 : video_mode_resolution == 2 ? 616 : 0);
+#endif
+#if defined(CONFIG_550D) || defined(CONFIG_60D)
+	vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : recording ? (video_mode_resolution == 0 ? 1720 : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1056 : video_mode_resolution == 1 ? 1024 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
+	vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : recording ? (video_mode_resolution == 0 ?  974 : video_mode_resolution == 1 ?  580 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ?  704 : video_mode_resolution == 1 ?  680 : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
+#endif
+#ifdef CONFIG_600D
+	vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
+	vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
+#endif
+#ifdef CONFIG_1100D // not tested, just copied from 600D
+	vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
+	vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
+#endif
+	vram_hd.pitch = vram_hd.width * 2;
+	
+	calc_ov_loc_size(&os);
+}
+
+// [ sx   0   x ]
+// [  0  sy   y ]
+// [  0   0   1 ]
+
+// inverse:
+// [ 1/sx     0   -x/sx ]
+// [    0  1/sy   -y/sy ]
+// [    0     0       1 ]
+
+struct trans2d // 2D homogeneous transformation matrix with translation and scaling components
+{
+	int tx;
+	int ty;
+	int sx; // * 1024
+	int sy; // * 1024
+};
+
+struct trans2d bm2lv = { 
+	.tx = 0,
+	.ty = 0,
+	.sx = 1024,
+	.sy = 1024,
+};
+
+struct trans2d lv2hd = { 
+	.tx = 0,
+	.ty = 0,
+	.sx = 2048, // dummy
+	.sy = 2048, // dummy
+};
+
+
+#define BM2LV_X(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
+#define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
+
+#define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
+#define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sx)
+
+#define LV2HD_X(x) ((x) * lv2hd.sx / 1024 + lv2hd.tx)
+#define LV2HD_Y(y) ((y) * lv2hd.sy / 1024 + lv2hd.ty)
+
+#define HD2LV_X(x) ((x) * 1024 / lv2hd.sx - lv2hd.tx * 1024 / lv2hd.sx)
+#define HD2LV_Y(y) ((y) * 1024 / lv2hd.sy - lv2hd.ty * 1024 / lv2hd.sx)
+
+#define BM2HD_X(x) LV2HD_X(BM2LV_X(x))
+#define BM2HD_Y(y) LV2HD_Y(BM2LV_Y(y))
+
+#define HD2BM_X(x) LV2BM_X(HD2LV_X(x))
+#define HD2BM_Y(y) LV2BM_Y(HD2LV_Y(y))
+
+#define BM2LV(x,y) (BM2LV_Y(y) * vram_lv.pitch + BM2LV_X(x))
+#define LV2BM(x,y) (LV2BM_Y(y) * vram_bm.pitch + LV2BM_X(x))
+
+#define LV2HD(x,y) (LV2HD_Y(y) * vram_hd.pitch + LV2HD_X(x))
+#define HD2LV(x,y) (HD2LV_Y(y) * vram_lv.pitch + HD2LV_X(x))
+
+#define BM2HD(x,y) (BM2HD_Y(y) * vram_hd.pitch + BM2HD_X(x))
+#define HD2BM(x,y) (HD2BM_Y(y) * vram_bm.pitch + HD2BM_X(x))
+
+
 
 /*
 int* lut_bm2lv_x = 0;
@@ -123,38 +292,61 @@ void* get_422_hd_idle_buf()
 
 struct vram_info * get_yuv422_vram()
 {
-	static struct vram_info _vram_info;
 	extern int lv_paused;
 	if (gui_state == GUISTATE_PLAYMENU || lv_paused)
-		_vram_info.vram = get_lcd_422_buf();
+		vram_lv.vram = get_lcd_422_buf();
 	else
-		_vram_info.vram = get_fastrefresh_422_buf();
+		vram_lv.vram = get_fastrefresh_422_buf();
+	return &vram_lv;
+}
+
+struct vram_info * get_yuv422_hd_vram()
+{
+	vram_hd.vram = get_422_hd_idle_buf();
+	return &vram_hd;
+}
 
 
-	//~ _vram_info.width = SL.LV.W;
-	//~ _vram_info.height = SL.LV.H;
+// those properties may signal a screen layout change
 
-	if (hdmi_code == 5)
-	{
-		_vram_info.width = 1920;
-		_vram_info.height = 1080;
-	}
-	else if (ext_monitor_rca)
-	{
-		_vram_info.width = 512;
-		_vram_info.height = 512;
-	}
-	else
-	{
-		_vram_info.width = 720;
-		#if defined(CONFIG_50D) || defined(CONFIG_500D)
-		_vram_info.height = 480 * 8/9;
-		#else
-		_vram_info.height = 480;
-		#endif
-	}
-	
-	_vram_info.pitch = _vram_info.width * 2;
+PROP_HANDLER(PROP_HDMI_CHANGE)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
+}
 
-	return &_vram_info;
+PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_USBRCA_MONITOR)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_MVR_REC_START)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_SHOOTING_TYPE)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_LV_ACTION)
+{
+	update_vram_params();
+	return prop_cleanup(token, property);
 }

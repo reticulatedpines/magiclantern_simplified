@@ -55,22 +55,6 @@ void display_shooting_info() // called from debug task
 }
 
 
-
-// image buffers
-// http://magiclantern.wikia.com/wiki/VRAM
-
-PROP_INT(0x80030002, mvr_rec)
-
-struct vram_info * get_yuv422_hd_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = (uint8_t*)YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width = recording ? 1560 : 1024;
-	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height = recording ? 1048 : 680;
-	return &_vram_info;
-}
-
 // some dummy stubs
 int lcd_release_running = 0;
 void lcd_release_step() {};

@@ -62,26 +62,3 @@ void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 
-// image buffers
-// http://magiclantern.wikia.com/wiki/VRAM
-
-PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
-
-struct vram_info * get_yuv422_hd_vram()
-{
-	static struct vram_info _vram_info;
-	_vram_info.vram = YUV422_HD_BUFFER_DMA_ADDR;
-	_vram_info.width =			 lv_dispsize > 1 ? 1024
-								  : !is_movie_mode() ? 1056
-								  : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : 
-								  	video_mode_resolution == 1 ? 1280 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-	_vram_info.pitch = _vram_info.width << 1; 
-	_vram_info.height =			lv_dispsize > 1 ? 680
-								  : !is_movie_mode() ? 704
-								  : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 972 : 945) : 
-								  	video_mode_resolution == 1 ? 560 :
-									 video_mode_resolution == 2 ? (video_mode_crop? 480:680) : 0);
-
-	return &_vram_info;
-}
