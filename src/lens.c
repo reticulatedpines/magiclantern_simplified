@@ -674,7 +674,7 @@ void draw_ml_topbar()
 
 	x = 550;
 	bmp_printf( font, x, y,
-		"[%d]  ",
+		"[%d]",
 		avail_shot
 	);
 }

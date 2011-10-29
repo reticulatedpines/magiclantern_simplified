@@ -2635,7 +2635,7 @@ void draw_zoom_overlay(int dirty)
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
 	int y;
 	int x0c = COERCE(zb_x0_lv - (W>>1), 0, lv->width-W);
-	int y0c = COERCE(zb_x0_lv - (H>>1), 0, lv->height-H);
+	int y0c = COERCE(zb_y0_lv - (H>>1), 0, lv->height-H);
 
 	extern int focus_value;
 	int rawoff = COERCE(80 - focus_value, 0, 100) >> 2;
@@ -3044,7 +3044,7 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
-				lens_display_set_dirty();
+				BMP_LOCK( update_lens_display(); )
 				msleep(10);
 				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;
@@ -3216,7 +3216,7 @@ livev_hipriority_task( void* unused )
 		
 		zebra_sleep_when_tired();
 		
-		draw_cropmark_area(); // just for debugging
+		//~ draw_cropmark_area(); // just for debugging
 
 		if (should_draw_zoom_overlay())
 		{
