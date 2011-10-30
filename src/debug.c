@@ -336,7 +336,7 @@ void run_test()
 	msleep(2000);
 	//~ lens_take_picture(64, 0);
 	//~ bulb_take_pic(250);
-	trans_test();
+	//~ trans_test();
 }
 
 void xx_test(void* priv)
@@ -1093,6 +1093,19 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 					}
 				}
 				#endif
+
+				/*static int rca_warned = 0;
+				if (ext_monitor_rca) 
+				{
+					beep();
+					if (!rca_warned && !gui_menu_shown())
+					{
+						msleep(2000);
+						NotifyBox(2000, "SD monitors are NOT supported!"); msleep(2000);
+						NotifyBox(2000, "RGB tools and magic zoom\nwill not work well.'"); msleep(2000);
+						rca_warned = 1;
+					}
+				}*/
 			}
 		}
 		

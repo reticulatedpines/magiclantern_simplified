@@ -155,8 +155,8 @@ void update_vram_params()
 	lv2hd.sx = 1024 * vram_hd.width / BM2LV_X(os.x_ex);
 	lv2hd.sy = 1024 * vram_hd.height / BM2LV_Y(os.y_ex);
 	
-	lv2hd.tx = hdmi_code == 5 ? -64 : hdmi_code == 2 ? -(40 * vram_hd.width / 1056) : 0;
-	lv2hd.ty = hdmi_code == 5 ?   0 : hdmi_code == 2 ? -40 : 0;
+	lv2hd.tx = hdmi_code == 5 ? -64 : (hdmi_code == 2 || ext_monitor_rca) ? -(40 * vram_hd.width / 1056) : 0;
+	lv2hd.ty = hdmi_code == 5 ?   0 : (hdmi_code == 2 || ext_monitor_rca) ? -40 : 0;
 	
 
 	update_vram_params_calc();
@@ -177,6 +177,7 @@ void update_vram_params_calc()
 	{
 		lv2hd.sy = lv2hd.sy * 2*16/3/9;
 		lv2hd.ty -= BM2HD_DY(os.off_169);
+		if (ext_monitor_rca) lv2hd.ty -= pal ? 32 : 16; // fine tune
 	}
 }
 

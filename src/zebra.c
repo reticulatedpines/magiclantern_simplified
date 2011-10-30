@@ -97,15 +97,11 @@ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross,
 int get_zoom_overlay_mode() 
 { 
 	if (!get_global_draw()) return 0;
-#ifndef CONFIG_500D
-	if (is_movie_mode() && video_mode_resolution != 0) return 0;
-#endif
 	return zoom_overlay_mode;
 }
 int get_zoom_overlay_z() 
 { 
 	if (!get_global_draw()) return 0;
-	if (is_movie_mode() && video_mode_resolution != 0) return 0;
 	return zoom_overlay_mode == 1 || zoom_overlay_mode == 2;
 }
 
@@ -1582,7 +1578,11 @@ zoom_overlay_display(
 			zoom_overlay_pos == 4 ? "SW" : "err"
 	);
 
-	if (zoom_overlay_mode && !get_zoom_overlay_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
+	if (ext_monitor_rca)
+		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom does not work with SD monitors");
+	else if (is_movie_mode() && video_mode_resolution)
+		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom does not work well in current video mode");
+	else if (zoom_overlay_mode && !get_zoom_overlay_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
 		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom is not available in this mode");
 	else
 		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode));
@@ -2617,7 +2617,7 @@ void draw_zoom_overlay(int dirty)
 		x2 = 0;
 	}*/
 
-	bmp_printf(FONT_LARGE, 50, 50, "%d,%d %d,%d", W, H, aff_x0_lv);
+	//~ bmp_printf(FONT_LARGE, 50, 50, "%d,%d %d,%d", W, H, aff_x0_lv);
 
 	if (zoom_overlay_pos)
 	{
@@ -2727,6 +2727,8 @@ void zebra_sleep_when_tired()
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_set_dirty(5);
+		//~ update_vram_params();
+
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
 }
@@ -3218,7 +3220,7 @@ livev_hipriority_task( void* unused )
 		
 		zebra_sleep_when_tired();
 		
-		draw_cropmark_area(); // just for debugging
+		//~ draw_cropmark_area(); // just for debugging
 
 		if (should_draw_zoom_overlay())
 		{

@@ -122,7 +122,7 @@ Known issues
 
 * First second of recorded audio may be very loud.
 * Sometimes, rack & stack focus simply refuse to work, and you need to restart your camera.
-* External monitors are not yet fully supported (`work in progress <http://bit.ly/ml-hdmi-support>`_).
+* SD monitors are NOT supported. Image format is not YUV422 (unlike with built-in LCD display and HDMI).
 * Not all ML features are available on all compatible cameras (go to [[Unified/Features]] to see what works on each camera).
 
 Key shortcuts
