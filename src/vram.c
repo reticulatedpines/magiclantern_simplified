@@ -89,6 +89,8 @@ PROP_INT(PROP_VIDEO_SYSTEM, pal);
 // these buffer sizes include any black bars
 void update_vram_params()
 {
+	msleep(50); // just to make sure all prop handlers finished after mode change
+	
 	// BMP (used for overlays)
 	vram_bm.width  = hdmi_code == 5 ? 960 : 720;
 	vram_bm.height = hdmi_code == 5 ? 540 : 480;
@@ -336,45 +338,52 @@ struct vram_info * get_yuv422_hd_vram()
 
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
-	update_vram_params();
+	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
+
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+	vram_params_set_dirty();
+	return prop_cleanup(token, property);
+}
+
 
 static void
 vram_print(

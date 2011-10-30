@@ -43,6 +43,7 @@
 #endif
 
 int lv_paused = 0;
+int vram_params_dirty = 1;
 
 void waveform_init();
 void histo_init();
@@ -2727,7 +2728,8 @@ void zebra_sleep_when_tired()
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_set_dirty(5);
-		//~ update_vram_params();
+		BMP_LOCK( update_vram_params(); )
+		vram_params_dirty = 0;
 
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
@@ -3197,6 +3199,10 @@ void draw_cropmark_area()
 	draw_line(os.x0, os.y0, os.x_max, os.y_max, COLOR_BLUE);
 	draw_line(os.x0, os.y_max, os.x_max, os.y0, COLOR_BLUE);
 }
+
+void vram_params_set_dirty() { vram_params_dirty = 1; }
+
+
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
@@ -3218,6 +3224,12 @@ livev_hipriority_task( void* unused )
 		
 		get_422_hd_idle_buf(); // just to keep it up-to-date
 		
+		if (vram_params_dirty)
+		{
+			BMP_LOCK( update_vram_params(); )
+			vram_params_dirty = 0;
+		}
+
 		zebra_sleep_when_tired();
 		
 		//~ draw_cropmark_area(); // just for debugging
