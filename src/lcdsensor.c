@@ -153,8 +153,8 @@ void display_lcd_remote_icon(int x0, int y0)
 	}
 	else if (lcd_release_running == 3)
 	{
-		int yup = 5+y0;
-		int ydn = 15+y0;
+		int yup = y0;
+		int ydn = 10+y0;
 		int step = 5;
 		int k;
 		for (k = 0; k < 2; k++)
