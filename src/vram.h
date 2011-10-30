@@ -266,13 +266,13 @@ extern struct vram_info vram_bm;
 #define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
 
 #define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
-#define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sx)
+#define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sy)
 
 #define LV2HD_X(x) ((x) * lv2hd.sx / 1024 + lv2hd.tx)
 #define LV2HD_Y(y) ((y) * lv2hd.sy / 1024 + lv2hd.ty)
 
 #define HD2LV_X(x) ((x) * 1024 / lv2hd.sx - lv2hd.tx * 1024 / lv2hd.sx)
-#define HD2LV_Y(y) ((y) * 1024 / lv2hd.sy - lv2hd.ty * 1024 / lv2hd.sx)
+#define HD2LV_Y(y) ((y) * 1024 / lv2hd.sy - lv2hd.ty * 1024 / lv2hd.sy)
 
 #define BM2HD_X(x) LV2HD_X(BM2LV_X(x))
 #define BM2HD_Y(y) LV2HD_Y(BM2LV_Y(y))

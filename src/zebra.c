@@ -908,7 +908,7 @@ draw_zebra_and_focus( int Z, int F )
 		dirty_pixels_num = 0;
 		
 		struct vram_info * hd_vram = get_yuv422_hd_vram();
-		uint8_t * const hdvram = UNCACHEABLE(hd_vram->vram);
+		uint32_t * const hdvram = UNCACHEABLE(hd_vram->vram);
 		
 		static int thr = 50;
 		
@@ -918,7 +918,7 @@ draw_zebra_and_focus( int Z, int F )
 		// look in the HD buffer
 		for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 		{
-			uint16_t * const hd_row = (uint32_t*)( hdvram + BM2HD(0,y)); // 2 pixels
+			uint16_t * const hd_row = hdvram + BM2HD(0,y) / 4; // 2 pixels
 			
 			uint32_t* hdp; // that's a moving pointer
 			for (int x = os.x0; x < os.x_max; x += 2)
@@ -2617,6 +2617,8 @@ void draw_zoom_overlay(int dirty)
 		x2 = 0;
 	}*/
 
+	bmp_printf(FONT_LARGE, 50, 50, "%d,%d %d,%d", W, H, aff_x0_lv);
+
 	if (zoom_overlay_pos)
 	{
 		int w = W * lv->width / hd->width;
@@ -3216,7 +3218,7 @@ livev_hipriority_task( void* unused )
 		
 		zebra_sleep_when_tired();
 		
-		//~ draw_cropmark_area(); // just for debugging
+		draw_cropmark_area(); // just for debugging
 
 		if (should_draw_zoom_overlay())
 		{
@@ -3761,7 +3763,7 @@ void play_422(char* filename)
 	}
     
     bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
-	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
+	if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, os.y_max - font_large.height, "Do not press Delete!");
 
 	size_t rc = read_file( filename, buf, size );
 	if( rc != size ) return;

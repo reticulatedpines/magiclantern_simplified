@@ -334,8 +334,9 @@ void run_test()
 {
 	gui_stop_menu();
 	msleep(2000);
-	lens_take_picture(64, 0);
-	bulb_take_pic(250);
+	//~ lens_take_picture(64, 0);
+	//~ bulb_take_pic(250);
+	trans_test();
 }
 
 void xx_test(void* priv)

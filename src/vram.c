@@ -51,10 +51,8 @@ struct bmp_ov_loc_size os = {
 	.y_ex = 720,
 };
 
-// LV aspect ratio is 3:2 (so far)
-// HD aspect ratio may vary (3:2, 16:9, 4:3)
-#define lv_ratio_num 3
-#define lv_ratio_den 2
+int lv_ratio_num = 3;
+int lv_ratio_den = 2;
 int hd_ratio_num = 3;
 int hd_ratio_den = 2;
 
@@ -98,7 +96,7 @@ void update_vram_params()
 	
 	// LV crop area
 	os.x0   = hdmi_code == 5 ?  75 : hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0;
-	os.y0   = hdmi_code == 5 ?   0 : hdmi_code == 2 ? 40 : ext_monitor_rca ? 28 :    0;
+	os.y0   = hdmi_code == 5 ?   0 : hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0;
 	os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
 	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
@@ -107,8 +105,8 @@ void update_vram_params()
 
 	// LV buffer (used for display)
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
-	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 512 : 720;
-	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? 512 : 480 * 8/9;
+	vram_lv.width  = 720;
+	vram_lv.height = 480 * 8/9;
 #endif
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
 	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 540 : 720;
@@ -125,6 +123,9 @@ void update_vram_params()
 	bm2lv.ty = 0;
 	bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
 	bm2lv.sy = 1024 * vram_lv.height / vram_bm.height; // no black bars at top or bottom
+
+	lv_ratio_num = hdmi_code == 5 ? 16 : 3;
+	lv_ratio_den = hdmi_code == 5 ?  9 : 2;
 
 	// HD buffer (used for recording)
 	hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
@@ -151,6 +152,13 @@ void update_vram_params()
 	vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
 #endif
 
+	lv2hd.sx = 1024 * vram_hd.width / BM2LV_X(os.x_ex);
+	lv2hd.sy = 1024 * vram_hd.height / BM2LV_Y(os.y_ex);
+	
+	lv2hd.tx = hdmi_code == 5 ? -64 : hdmi_code == 2 ? -(40 * vram_hd.width / 1056) : 0;
+	lv2hd.ty = hdmi_code == 5 ?   0 : hdmi_code == 2 ? -40 : 0;
+	
+
 	update_vram_params_calc();
 }
 
@@ -164,21 +172,29 @@ void update_vram_params_calc()
 
 	vram_lv.pitch = vram_lv.width * 2; 
 	vram_hd.pitch = vram_hd.width * 2;
-	
-	// here we assume HD and LV are always centered, but their aspect ratios (and sizes) may differ
-	if (lv_ratio_num * hd_ratio_den > lv_ratio_den * hd_ratio_num) // crop sides
+
+	if (recording) // 3:2 -> 16:9 compensation
 	{
-		lv2hd.tx = - (vram_hd.width * lv_ratio_num / lv_ratio_den * hd_ratio_den / hd_ratio_num - vram_hd.width) / 2;
-		lv2hd.ty = 0;
-		lv2hd.sx = 1024 * vram_hd.width / vram_lv.width * lv_ratio_num / lv_ratio_den * hd_ratio_den / hd_ratio_num;
-		lv2hd.sy = 1024 * vram_hd.height / vram_lv.height;
+		lv2hd.sy = lv2hd.sy * 2*16/3/9;
+		lv2hd.ty -= BM2HD_DY(os.off_169);
 	}
-	else // crop top and bottom
+}
+
+void trans_test()
+{
+	for (int i = 0; i < 1000; i += 10)
 	{
-		lv2hd.tx = 0;
-		lv2hd.ty = - (vram_hd.height * lv_ratio_den / lv_ratio_num * hd_ratio_num / hd_ratio_den - vram_hd.height) / 2;
-		lv2hd.sx = 1024 * vram_hd.width / vram_lv.width;
-		lv2hd.sy = 1024 * vram_hd.height / vram_lv.height * lv_ratio_den / lv_ratio_num * hd_ratio_num / hd_ratio_den;
+		// should say almost "i"
+		bmp_printf(FONT_MED, 50, 50, "%d => %d %d %d %d %d %d ", 
+			i,
+			BM2LV_X(LV2BM_X(i)), 
+			BM2LV_Y(LV2BM_Y(i)),
+			LV2HD_X(HD2LV_X(i)), 
+			LV2HD_Y(HD2LV_Y(i)), 
+			BM2HD_X(HD2BM_X(i)), 
+			BM2HD_Y(HD2BM_Y(i))
+		);
+		msleep(300);
 	}
 }
 
@@ -387,7 +403,7 @@ static void vram_toggle(void* priv, int delta)
 	MEM(vram_params[(int)priv]) += priv ? delta : SGN(delta);
 	menu_show_only_selected();
 	crop_set_dirty(1);
-	update_vram_params_calc();
+	//~ update_vram_params_calc();
 }
 
 static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
