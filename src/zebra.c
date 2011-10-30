@@ -2728,8 +2728,7 @@ void zebra_sleep_when_tired()
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_set_dirty(5);
-		BMP_LOCK( update_vram_params(); )
-		vram_params_dirty = 0;
+		vram_params_dirty = 1;
 
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
@@ -3224,14 +3223,14 @@ livev_hipriority_task( void* unused )
 		
 		get_422_hd_idle_buf(); // just to keep it up-to-date
 		
+		zebra_sleep_when_tired();
+
 		if (vram_params_dirty)
 		{
 			BMP_LOCK( update_vram_params(); )
 			vram_params_dirty = 0;
 		}
 
-		zebra_sleep_when_tired();
-		
 		//~ draw_cropmark_area(); // just for debugging
 
 		if (should_draw_zoom_overlay())
