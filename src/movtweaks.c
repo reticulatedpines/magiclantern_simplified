@@ -576,6 +576,11 @@ void rec_notify_trigger(int rec)
 		if (!rec) { msleep(100); beep(); }
 	}
 #endif
+
+#ifdef CONFIG_600D
+	extern int flash_movie_pressed; // another workaround for issue 688
+	flash_movie_pressed = 0;
+#endif
 }
 
 
