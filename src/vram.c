@@ -86,6 +86,7 @@ char vram_param_names[][12] = {
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
+PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 // these buffer sizes include any black bars
 void update_vram_params()
@@ -96,8 +97,8 @@ void update_vram_params()
 	vram_bm.pitch = 960;
 	
 	// LV crop area
-	os.x0   = hdmi_code == 5 ?  75 : (hdmi_code == 2 || ext_monitor_rca) ? 40 :    0;
-	os.y0   = hdmi_code == 5 ?   0 : (hdmi_code == 2 || ext_monitor_rca) ? 40 :    0;
+	os.x0   = hdmi_code == 5 ?  75 : hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0;
+	os.y0   = hdmi_code == 5 ?   0 : hdmi_code == 2 ? 40 : ext_monitor_rca ? 28 :    0;
 	os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
 	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
@@ -110,19 +111,20 @@ void update_vram_params()
 	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? 512 : 480 * 8/9;
 #endif
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 512 : 720;
-	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? 512 : 480;
+	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 540 : 720;
+	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
 #endif
 #ifdef CONFIG_1100D
 	vram_lv.width  = 720;
 	vram_lv.height = 240;
 #endif
 
+
 	// bmp to lv transformation
-	bm2lv.tx = 0;
+	bm2lv.tx = ext_monitor_rca ? 4 : 0;
 	bm2lv.ty = 0;
-	bm2lv.sx = hdmi_code == 5 ? 2048 : 1024;
-	bm2lv.sy = hdmi_code == 5 ? 2048 : 1024;
+	bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
+	bm2lv.sy = 1024 * vram_lv.height / vram_bm.height; // no black bars at top or bottom
 
 	// HD buffer (used for recording)
 	hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
