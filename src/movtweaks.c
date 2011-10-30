@@ -345,12 +345,12 @@ movtweak_task( void* unused )
 		}
 		
 		extern int ext_monitor_hdmi;
-		if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && ext_monitor_hdmi && !recording && !gui_menu_shown())
+		if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
 		{
-			if (ext_monitor_hdmi && hdmi_code == 5)
+			if (hdmi_code == 5)
 			{
-				msleep(2000);
-				NotifyBox(4000, "HDMI resolution: 720x480");
+				msleep(1000);
+				NotifyBox(2000, "HDMI resolution: 720x480");
 				fake_simple_button(MLEV_ChangeHDMIOutputSizeToVGA);
 				msleep(7000);
 			}
