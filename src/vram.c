@@ -118,6 +118,12 @@ void update_vram_params()
 	vram_lv.height = 240;
 #endif
 
+	// bmp to lv transformation
+	bm2lv.tx = 0;
+	bm2lv.ty = 0;
+	bm2lv.sx = hdmi_code == 5 ? 2048 : 1024;
+	bm2lv.sy = hdmi_code == 5 ? 2048 : 1024;
+
 	// HD buffer (used for recording)
 	hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
 	hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
