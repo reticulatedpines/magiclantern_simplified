@@ -3600,7 +3600,7 @@ void show_overlay()
 	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
 }
 
-void bmp_zoom(int x0, int y0, int numx, int denx, int numy, int deny)
+void bmp_zoom(int x0, int y0, int denx, int deny)
 {
 	uint8_t * bvram = bmp_vram();
 	if (!bvram) return;
@@ -3611,10 +3611,9 @@ void bmp_zoom(int x0, int y0, int numx, int denx, int numy, int deny)
 	{
 		for (j = 0; j < 960; j++)
 		{
-			int is = (i - y0) * deny / numy + y0;
-			int js = (j - x0) * denx / numx + x0;
+			int is = (i - y0) * deny / 128 + y0;
+			int js = (j - x0) * denx / 128 + x0;
 			bvram[i * BMPPITCH + j] = (is >= 0 && js >= 0 && is < 540 && js < 960) ? bvram_mirror[is * BMPPITCH + js] : 0;
-			
 		}
 	}
 	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);

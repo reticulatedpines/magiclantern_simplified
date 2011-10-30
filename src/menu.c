@@ -498,7 +498,7 @@ menus_display(
 	}
 	
 	if (hdmi_code == 2)
-		BMP_LOCK( bmp_zoom(x0 + 360, y0 + 160, 9, 10, 75, 100); )
+		BMP_LOCK( bmp_zoom(x0 + 360, y0 + 160, /* 128 div */ 143, /* 128 div */ 171); )
 
 	give_semaphore( menu_sem );
 }
