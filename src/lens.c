@@ -209,7 +209,7 @@ void draw_ml_bottombar()
 		return;
 #endif
 		
-	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
+	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !ISO_ADJUSTMENT_ACTIVE)
 	{
 		fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
 		return;
