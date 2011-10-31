@@ -3068,7 +3068,7 @@ calib_start:
 	
 	// final check
 	set_display_gain(gain0);
-	msleep(500);
+	msleep(2000);
 	get_spot_yuv(200, &Y, &U, &V);
 	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
 
