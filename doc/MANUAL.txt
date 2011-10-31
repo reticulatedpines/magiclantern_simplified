@@ -1530,6 +1530,18 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
   Displays the amount of available RAM.
 
+.. _CMOS temperature:
+
+**EFIC temperature**
+
+  Displays the internal EFIC temperature, in raw units.
+
+.. _shutter count:
+
+**Shutter Count**
+
+  Displays the number of shutter actuations.
+
 Powersave
 ~~~~~~~~~
 
