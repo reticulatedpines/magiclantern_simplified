@@ -1016,6 +1016,15 @@ static void night_vision_print(
 void set_display_gain(int display_gain)
 {
 	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
+	
+	#ifdef CONFIG_600D
+	if (recording) return;
+	int zoom = lv_dispsize;
+	int zoom2 = zoom == 10 ? 5 : zoom == 5 ? 1 : 10;
+	msleep(100);
+	prop_request_change(PROP_LV_DISPSIZE, &zoom2, 4);
+	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	#endif
 }
 void display_gain_toggle(int dir)
 {
