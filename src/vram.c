@@ -191,6 +191,7 @@ void update_vram_params_calc()
 		lv2hd.sy = lv2hd.sy * 2*16/3/9;
 		lv2hd.ty -= BM2HD_DY(os.off_169);
 		if (ext_monitor_rca) lv2hd.ty -= pal ? 32 : 16; // fine tune
+		if (hdmi_code == 2) lv2hd.ty = -160;
 	}
 	#endif
 }

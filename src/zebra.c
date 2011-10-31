@@ -175,7 +175,7 @@ void crop_set_dirty(int value)
 	crop_dirty = MAX(crop_dirty, value);
 }
 
-PROP_HANDLER(PROP_USBRCA_MONITOR)
+/*PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
 	static int first_time = 1;
 	if (!first_time) redraw_after(2000);
@@ -184,9 +184,9 @@ PROP_HANDLER(PROP_USBRCA_MONITOR)
 }
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
-	redraw_after(4000);
+	redraw_after(2000);
 	return prop_cleanup( token, property );
-}
+}*/
 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
@@ -2334,15 +2334,17 @@ struct menu_entry livev_cfg_menus[] = {
 };
 
 
-PROP_HANDLER(PROP_MVR_REC_START)
+/*PROP_HANDLER(PROP_MVR_REC_START)
 {
 	if (buf[0] != 1) redraw_after(2000);
 	return prop_cleanup( token, property );
-}
+}*/
 
 void 
 cropmark_draw()
 {
+	extern int af_frame_autohide;
+	if (af_frame_autohide) clear_lv_afframe();
 	ChangeColorPaletteLV(2);
 	if (!get_global_draw()) return;
 	if (transparent_overlay && !transparent_overlay_hidden) show_overlay();
@@ -2351,6 +2353,7 @@ cropmark_draw()
 	clrscr_mirror();
 	//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
 	bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
+	crop_dirty = 0;
 }
 void
 cropmark_redraw()
@@ -2726,7 +2729,7 @@ void zebra_sleep_when_tired()
 #endif
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
-		crop_set_dirty(5);
+		crop_set_dirty(10);
 		vram_params_set_dirty();
 
 		//~ if (lv && !gui_menu_shown()) redraw();
@@ -3136,7 +3139,7 @@ BMP_LOCK (
 )
 	// ask other stuff to redraw
 	afframe_set_dirty();
-	crop_set_dirty(2);
+	crop_set_dirty(5);
 	menu_set_dirty();
 	zoom_overlay_dirty = 1;
 }
@@ -3333,6 +3336,7 @@ void bars_16x9_50D()
 static void
 livev_lopriority_task( void* unused )
 {
+	msleep(2000);
 	while(1)
 	{
 		#ifdef CONFIG_550D

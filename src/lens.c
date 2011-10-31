@@ -209,10 +209,11 @@ void draw_ml_bottombar()
 		return;
 #endif
 		
+	static int K;
 	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !ISO_ADJUSTMENT_ACTIVE)
 	{
+		msleep(300);
 		fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
-		return;
 	}
 	
 	struct lens_info *	info = &lens_info;
@@ -223,7 +224,6 @@ void draw_ml_bottombar()
 	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	//~ unsigned height	= fontspec_height( font );
-	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 	
 	unsigned bottom = 480;
 	extern int screen_layout;
@@ -231,17 +231,22 @@ void draw_ml_bottombar()
 	else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
 	else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
 	else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) bottom = 480;
+
+	if (screen_layout == SCREENLAYOUT_16_9)
+		bg = bmp_getpixel(os.x0 + 123, bottom-36);
 	//unsigned x = 420;
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 	
-     unsigned int x_origin = os.x0 + os.x_ex/2 - 360 + 50;
-     unsigned int y_origin = bottom - 30;
+    unsigned int x_origin = os.x0 + os.x_ex/2 - 360 + 50;
+    unsigned int y_origin = bottom - 30;
+	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 
+	 bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
 		
 			bmp_printf( text_font, x_origin - 50, y_origin,
-				"%s                                  ",
+				"%s",
 				is_movie_mode() ? "Mv" : 
 				shooting_mode == SHOOTMODE_P ? "P " :
 				shooting_mode == SHOOTMODE_M ? "M " :
@@ -564,8 +569,11 @@ void draw_ml_bottombar()
 					mod(ABS(AE_VALUE) * 10 / 8, 10)
 				  );
 
-	if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
-	if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
+	//~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
+	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
+	int y169 = os.y_max - os.off_169;
+	int ytop = bottom - 35;
+	shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 
 	extern int display_gain;
 	if (display_gain)
@@ -587,7 +595,8 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 	int i,j;
 	for (i = y0; i < y0 + h; i++)
 	{
-		int new_color = bmp_getpixel(x0+1,i);
+		int new_color = bmp_getpixel(os.x0 + 123, y0-1);
+		//~ int new_color = 0;
 		for (j = x0; j < x0+w; j++)
 			if (bmp_getpixel(j,i) == shaved_color)
 				bmp_putpixel(j,i,new_color);
@@ -623,8 +632,10 @@ void draw_ml_topbar()
 	}
 	
 	extern int bitrate_indic_x, bitrate_indic_y; // for bitrate indicators
-	bitrate_indic_x = os.x0 + os.x_ex/2 + 360 - 160;
+	bitrate_indic_x = os.x_max - 160;
 	bitrate_indic_y = y;
+	if (bitrate_indic_x < 720-160 && audio_meters_are_drawn())
+		bitrate_indic_y += font_med.height; // otherwise will overlap audio meters
 
 	if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
 

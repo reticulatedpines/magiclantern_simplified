@@ -309,8 +309,8 @@ static void draw_meters(void)
 		small = hs;
 		x0 = os.x0 + os.x_ex/2 - 360;
 		if (screen_layout == SCREENLAYOUT_3_2) y0 = os.y0; // just above the 16:9 frame
-		else if (screen_layout == SCREENLAYOUT_16_9) y0 = os.y0 + os.off_169; // meters just below 16:9 border
-		else if (screen_layout == SCREENLAYOUT_16_10) y0 = os.y0 + os.off_1610; // meters just below 16:10 border
+		else if (screen_layout == SCREENLAYOUT_16_9) { small = 1; y0 = os.y0 + os.off_169; } // meters just below 16:9 border
+		else if (screen_layout == SCREENLAYOUT_16_10) {small = 1; y0 = os.y0 + os.off_1610; } // meters just below 16:10 border
 		else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) y0 = 480*8/9;
 		if (hdmi_code) small = 1;
 	}
@@ -319,13 +319,13 @@ static void draw_meters(void)
 	{
 		bmp_fill(
 			screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR ? BOTTOMBAR_BGCOLOR : TOPBAR_BGCOLOR,
-			x0, y0, 720, 34
+			x0, y0, 720, small ? 20 : 34
 		);
 	}
 	else if (hs) return; // will draw top bar instead
 	else if (!small)
 	{
-		draw_meter( x0, y0 + 00, 10, &audio_levels[0], left_label);
+		draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
 		draw_ticks( x0, y0 + 10, 3 );
 #ifndef CONFIG_500D         // mono mic on 500d :(
 		draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
@@ -333,10 +333,10 @@ static void draw_meters(void)
 	}
 	else
 	{
-		draw_meter( x0, y0 + 07, 7, &audio_levels[0], left_label);
-		draw_ticks( x0, y0 + 14, 2 );
+		draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
+		draw_ticks( x0, y0 + 7, 2 );
 #ifndef CONFIG_500D
-		draw_meter( x0, y0 + 15, 7, &audio_levels[1], right_label);
+		draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
 	}
 	if (gui_menu_shown() && alc_enable)
