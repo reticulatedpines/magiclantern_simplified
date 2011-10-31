@@ -470,6 +470,10 @@ void afframe_set_dirty()
 {
 	afframe_countdown = 20;
 }
+void afframe_clr_dirty()
+{
+	afframe_countdown = 0;
+}
 
 void clear_lv_afframe()
 {
@@ -1024,6 +1028,7 @@ void set_display_gain(int display_gain)
 	msleep(100);
 	prop_request_change(PROP_LV_DISPSIZE, &zoom2, 4);
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	if (!gui_menu_shown()) msleep(1000);
 	#endif
 }
 void display_gain_toggle(int dir)
