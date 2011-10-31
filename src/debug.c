@@ -915,13 +915,7 @@ void display_clock()
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
-	if (lv || gui_menu_shown())
-	{
-		unsigned f = audio_meters_are_drawn() && !get_halfshutter_pressed() ? FONT_SMALL : FONT_MED;
-		uint32_t fnt = FONT(f, COLOR_WHITE, TOPBAR_BGCOLOR);
-		bmp_printf(fnt, 0, 0, "%02d:%02d", now.tm_hour, now.tm_min);
-	}
-	else
+	if (!lv)
 	{
 		uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
 		bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
@@ -2387,7 +2381,10 @@ int handle_tricky_canon_calls(struct event * event)
 			}
 			#else
 				#ifndef CONFIG_50D
-				if (lv && LV_BOTTOM_BAR_DISPLAYED) HideBottomInfoDisp_maybe();
+				if (lv && LV_BOTTOM_BAR_DISPLAYED)
+				{
+					HideBottomInfoDisp_maybe();
+				}
 				#endif
 			break;
 			#endif

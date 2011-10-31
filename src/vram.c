@@ -180,6 +180,7 @@ void update_vram_params_calc()
 	os.x_max = os.x0 + os.x_ex;
 	os.y_max = os.y0 + os.y_ex;
 	os.off_169 = (os.y_ex - os.y_ex * 3/2*9/16) / 2;
+	os.off_1610 = (os.y_ex - os.y_ex * 3/2*10/16) / 2;
 
 	vram_lv.pitch = vram_lv.width * 2; 
 	vram_hd.pitch = vram_hd.width * 2;

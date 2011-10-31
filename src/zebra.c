@@ -3267,7 +3267,10 @@ livev_hipriority_task( void* unused )
 			crop_set_dirty(5);
 		}
 		
-		if (lens_display_dirty && k % 5 == 0)
+		if (LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !ISO_ADJUSTMENT_ACTIVE)
+			lens_display_dirty = 1;
+		
+		if (lens_display_dirty)
 		{
 			#ifdef CONFIG_KILL_FLICKER
 			if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )

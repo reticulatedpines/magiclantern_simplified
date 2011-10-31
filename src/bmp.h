@@ -223,6 +223,7 @@ struct bmp_ov_loc_size
 	int x_max; // x0 + x_ex
 	int y_max; // y0 + y_ex
 	int off_169; // width of one 16:9 bar
+	int off_1610; // width of one 16:10 bar
 };
 
 void clrscr();

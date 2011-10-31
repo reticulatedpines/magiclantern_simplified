@@ -313,5 +313,9 @@ extern struct vram_info vram_bm;
 #define LV(x,y) (x + y * vram_lv.pitch)
 #define HD(x,y) (x + y * vram_lv.pitch)
 
+#define SCREENLAYOUT_3_2 0
+#define SCREENLAYOUT_16_10 1
+#define SCREENLAYOUT_16_9 2
+#define SCREENLAYOUT_4_3_BOTTOMBAR 3 // 500D/50D
 
 #endif

@@ -412,6 +412,25 @@ hdmi_force_display(
 	);
 }
 
+CONFIG_INT("screen.layout", screen_layout, SCREENLAYOUT_3_2);
+static void
+screen_layout_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Screen Layout : %s", 
+		screen_layout == SCREENLAYOUT_3_2 ?   "3:2 (default)" :
+		screen_layout == SCREENLAYOUT_16_10 ? "16:10 (HDMI)" :
+		screen_layout == SCREENLAYOUT_16_9 ?  "16:9 (HDMI)" :
+		screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR ? "4:3 (bottom)" : "err"
+	);
+}
 
 CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
 
@@ -731,6 +750,14 @@ static struct menu_entry mov_menus[] = {
 		.display = hdmi_force_display, 
 		.select = menu_binary_toggle,
 		.help = "Force low resolution (720x480) on HDMI displays."
+	},
+	{
+		.name = "Screen Layout",
+		.priv = &screen_layout, 
+		.display = screen_layout_display, 
+		.select = menu_quaternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		.help = "Position of top/bottom bars, useful for external displays."
 	}
 };
 
