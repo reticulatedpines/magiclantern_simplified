@@ -43,7 +43,6 @@
 #endif
 
 int lv_paused = 0;
-int vram_params_dirty = 1;
 
 void waveform_init();
 void histo_init();
@@ -2728,7 +2727,7 @@ void zebra_sleep_when_tired()
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
 		crop_set_dirty(5);
-		vram_params_dirty = 1;
+		vram_params_set_dirty();
 
 		//~ if (lv && !gui_menu_shown()) redraw();
 	}
@@ -3199,8 +3198,6 @@ void draw_cropmark_area()
 	draw_line(os.x0, os.y_max, os.x_max, os.y0, COLOR_BLUE);
 }
 
-void vram_params_set_dirty() { vram_params_dirty = 1; }
-
 
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
@@ -3224,12 +3221,6 @@ livev_hipriority_task( void* unused )
 		get_422_hd_idle_buf(); // just to keep it up-to-date
 		
 		zebra_sleep_when_tired();
-
-		if (vram_params_dirty)
-		{
-			BMP_LOCK( update_vram_params(); )
-			vram_params_dirty = 0;
-		}
 
 		//~ draw_cropmark_area(); // just for debugging
 
@@ -3533,6 +3524,8 @@ INIT_FUNC(__FILE__, zebra_init_menus);
 
 void make_overlay()
 {
+	draw_cropmark_area();
+	msleep(1000);
 	//~ bvram_mirror_init();
 	clrscr();
 
@@ -3545,23 +3538,26 @@ void make_overlay()
 	if (!bvram) return;
 	#define BMPPITCH 960
 
-	int y;
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
-	for (y = 52; y < vram->height; y++) // compensate for black top bar in play mode in 500d/50d.
-#else
-	for (y = 0; y < vram->height; y++)
-#endif
+	// difficulty: in play mode, image buffer may have different size/position than in LiveView
+	// => normalized xn and yn will fix this
+	for (int yn = 0; yn < 480; yn++)
 	{
+		int y = yn * os.y_ex / 480 + os.y0;
 		//~ int k;
-		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
-		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH);   // 1 pixel
+		uint16_t * const v_row = (uint16_t*)( lvram        + BM2LV(0,y)); // 1 pixel
+		uint8_t  * const b_row = (uint8_t*) ( bvram        + BM(0,y));    // 1 pixel
+		uint8_t  * const m_row = (uint8_t*) ( bvram_mirror + BM(0,yn));    // 1 pixel
 		uint16_t* lvp; // that's a moving pointer through lv vram
-		uint8_t* bp;  // through bmp vram
-		uint8_t* mp;  //through bmp vram mirror
-		for (lvp = v_row, bp = b_row, mp = m_row; lvp < v_row + 720 ; lvp++, bp++, mp++)
-			if ((y + (int)bp) % 2)
-				*bp = *mp = ((*lvp) * 41 >> 16) + 38;
+		uint8_t* bp;   // through bmp vram
+		uint8_t* mp;   // through bmp vram mirror
+		for (int xn = 0; xn < 720; xn++)
+		{
+			int x = xn * os.x_ex / 720 + os.x0;
+			lvp = v_row + BM2LV_X(x);
+			bp = b_row + x;
+			mp = m_row + xn;
+			*bp = *mp = ((*lvp) * 41 >> 16) + 38;
+		}
 	}
 	FIO_RemoveFile(CARD_DRIVE "overlay.dat");
 	FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
@@ -3589,26 +3585,34 @@ void show_overlay()
 	FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE );
 	FIO_CloseFile(f);
 
-	int y;
-	for (y = 0; y < vram->height; y++)
+	for (int y = os.y0; y < os.y_max; y++)
 	{
+		int yn = (y - os.y0) * 480 / os.y_ex;
+		int ym = yn - (int)transparent_overlay_offy; // normalized with offset applied
 		//~ int k;
 		//~ uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
 		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-		uint8_t * const m_row = (uint8_t*)( bvram_mirror + (y - (int)transparent_overlay_offy) * BMPPITCH);   // 1 pixel
+		uint8_t * const m_row = (uint8_t*)( bvram_mirror + ym * BMPPITCH);   // 1 pixel
 		uint8_t* bp;  // through bmp vram
 		uint8_t* mp;  //through bmp vram mirror
-		if (y - (int)transparent_overlay_offy < 0 || y - (int)transparent_overlay_offy > 480) continue;
+		if (ym < 0 || ym > 480) continue;
 		//~ int offm = 0;
 		//~ int offb = 0;
 		//~ if (transparent_overlay == 2) offm = 720/2;
 		//~ if (transparent_overlay == 3) offb = 720/2;
-		for (bp = b_row, mp = m_row - (int)transparent_overlay_offx; bp < b_row + 720 ; bp++, mp++)
-			if (((y + (int)bp) % 2) && mp > m_row && mp < m_row + 720)
+		for (int x = os.x0; x < os.x_max; x++)
+		{
+			int xn = (x - os.x0) * 720 / os.x_ex;
+			int xm = xn - (int)transparent_overlay_offx;
+			bp = b_row + x;
+			mp = m_row + xm;
+			if (((x+y) % 2) && xm >= 0 && xm <= 720)
 				*bp = *mp;
+		}
 	}
 	
 	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+	afframe_clr_dirty();
 }
 
 void bmp_zoom(int x0, int y0, int denx, int deny)

@@ -58,6 +58,9 @@ int hd_ratio_den = 2;
 
 int increment = 4;
 
+int vram_params_dirty = 1;
+void vram_params_set_dirty() { vram_params_dirty = 1; }
+
 int* vram_params[] = { 
 	&increment,
 	&vram_bm.width, &vram_bm.height, 
@@ -90,7 +93,7 @@ PROP_INT(PROP_VIDEO_SYSTEM, pal);
 void update_vram_params()
 {
 	msleep(50); // just to make sure all prop handlers finished after mode change
-	
+
 	// BMP (used for overlays)
 	vram_bm.width  = hdmi_code == 5 ? 960 : 720;
 	vram_bm.height = hdmi_code == 5 ? 540 : 480;
@@ -103,12 +106,13 @@ void update_vram_params()
 	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 	os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
+	if (PLAY_MODE) { os.y0 = 52; os.y_ex -= 52; }
 #endif
 
 	// LV buffer (used for display)
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 	vram_lv.width  = 720;
-	vram_lv.height = 480 * 8/9;
+	vram_lv.height = 480;
 #endif
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
 	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 540 : 720;
@@ -125,6 +129,11 @@ void update_vram_params()
 	bm2lv.ty = 0;
 	bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
 	bm2lv.sy = 1024 * vram_lv.height / vram_bm.height; // no black bars at top or bottom
+	
+	#ifdef CONFIG_50D
+	bm2lv.tx = -4;
+	bm2lv.ty = -180;
+	#endif
 
 	lv_ratio_num = hdmi_code == 5 ? 16 : 3;
 	lv_ratio_den = hdmi_code == 5 ?  9 : 2;
@@ -175,12 +184,14 @@ void update_vram_params_calc()
 	vram_lv.pitch = vram_lv.width * 2; 
 	vram_hd.pitch = vram_hd.width * 2;
 
+	#ifndef CONFIG_50D
 	if (recording) // 3:2 -> 16:9 compensation
 	{
 		lv2hd.sy = lv2hd.sy * 2*16/3/9;
 		lv2hd.ty -= BM2HD_DY(os.off_169);
 		if (ext_monitor_rca) lv2hd.ty -= pal ? 32 : 16; // fine tune
 	}
+	#endif
 }
 
 void trans_test()
@@ -319,6 +330,12 @@ void* get_422_hd_idle_buf()
 
 struct vram_info * get_yuv422_vram()
 {
+	if (vram_params_dirty)
+	{
+		BMP_LOCK( update_vram_params(); )
+		vram_params_dirty = 0;
+	}
+
 	extern int lv_paused;
 	if (gui_state == GUISTATE_PLAYMENU || lv_paused)
 		vram_lv.vram = get_lcd_422_buf();
@@ -329,6 +346,12 @@ struct vram_info * get_yuv422_vram()
 
 struct vram_info * get_yuv422_hd_vram()
 {
+	if (vram_params_dirty)
+	{
+		BMP_LOCK( update_vram_params(); )
+		vram_params_dirty = 0;
+	}
+
 	vram_hd.vram = get_422_hd_idle_buf();
 	return &vram_hd;
 }
