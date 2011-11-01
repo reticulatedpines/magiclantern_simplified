@@ -51,11 +51,11 @@ int is_movie_mode()
 }
 
 volatile int shutter_count = 0;
-volatile int liveview_actuations = 0;
+volatile int shutter_count_plus_lv_actuations = 0;
 PROP_HANDLER(PROP_SHUTTER_COUNTER)
 {
 	shutter_count = buf[0];
-	liveview_actuations = buf[1];
+	shutter_count_plus_lv_actuations = buf[1];
 	return prop_cleanup(token, property);
 }
 

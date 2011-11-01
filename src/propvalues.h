@@ -17,7 +17,7 @@ extern int af_mode;
 extern int dofpreview;
 extern int display_sensor;
 extern int shutter_count;
-extern int liveview_actuations;
+extern int shutter_count_plus_lv_actuations;
 extern int ae_mode_movie;
 extern int ext_monitor_hdmi;
 extern int ext_monitor_rca;

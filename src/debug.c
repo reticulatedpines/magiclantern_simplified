@@ -1347,10 +1347,10 @@ static void shuttercount_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Shutter Count:%3dK = %d+%d",
-		(shutter_count + liveview_actuations + 500) / 1000,
-		shutter_count, liveview_actuations
+		(shutter_count_plus_lv_actuations + 500) / 1000,
+		shutter_count, shutter_count_plus_lv_actuations - shutter_count
 	);
-	menu_draw_icon(x, y, shutter_count + liveview_actuations > 50000 ? MNI_WARNING : MNI_ON, 0);
+	menu_draw_icon(x, y, shutter_count_plus_lv_actuations > 50000 ? MNI_WARNING : MNI_ON, 0);
 }
 
 static void efictemp_display(
