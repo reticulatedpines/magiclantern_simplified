@@ -528,7 +528,7 @@ static void movie_expo_lock_print(
 }
 #endif
 
-CONFIG_INT("rec.notify", rec_notify, 1);
+CONFIG_INT("rec.notify", rec_notify, 2);
 static void rec_notify_print(
 	void *			priv,
 	int			x,

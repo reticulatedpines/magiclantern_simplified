@@ -20,7 +20,7 @@ CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-CONFIG_INT( "bitrate.indicator", bitrate_indicator, 1);
+CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
 int bitrate_indic_x = 720 - 160;
 int bitrate_indic_y = 0;
 int bitrate_indic_width = 160;
