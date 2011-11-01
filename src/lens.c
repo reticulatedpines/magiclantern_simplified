@@ -682,7 +682,7 @@ void draw_ml_topbar()
 	x += 60;
 	bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
-	x += 80;
+	x += 70;
 	#ifdef CONFIG_60D
 		bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
 	#else
@@ -692,10 +692,10 @@ void draw_ml_topbar()
 	display_clock();
 	free_space_show();
 
-	x = 550;
+	x = 540;
 	bmp_printf( font, x, y,
-		"[%d]",
-		avail_shot
+		is_movie_mode() ? "MVI-%04d" : "[%d]",
+		is_movie_mode() ? file_number_also : avail_shot
 	);
 }
 
