@@ -154,6 +154,28 @@ audio_ic_write(
 extern void
 audio_ic_sweep_message_queue( void );
 
+	#ifdef CONFIG_500D
+#define AUDIO_IC_PM1	0x2000
+#define AUDIO_IC_PM2	0x2100
+#define AUDIO_IC_SIG1	0x2200
+#define AUDIO_IC_SIG2	0x2300
+#define AUDIO_IC_MODE1  0x2400
+#define AUDIO_IC_MODE2  0x2500
+#define AUDIO_IC_TIMER	0x2600
+#define AUDIO_IC_ALC1	0x2700
+#define AUDIO_IC_ALC2	0x2800
+#define AUDIO_IC_IDVC	0x2900
+#define AUDIO_IC_ODVC	0x2A00
+#define AUDIO_IC_ALC3	0x2B00
+#define AUDIO_IC_VIDCTRL 0x2C00
+#define AUDIO_IC_ALCVOL	0x2D00
+#define AUDIO_IC_SIG3	0x2E00
+#define AUDIO_IC_DVC	0x2F00
+#define AUDIO_IC_SIG4	0x3000
+#define AUDIO_IC_FIL1	0x3100
+
+	#else
+
 #define AUDIO_IC_PM1	0x2000
 #define AUDIO_IC_PM2	0x2100
 #define AUDIO_IC_SIG1	0x2200
@@ -177,7 +199,7 @@ audio_ic_sweep_message_queue( void );
 #define AUDIO_IC_LPF1	0x6D00
 #define AUDIO_IC_LPF2	0x6E00
 #define AUDIO_IC_LPF3	0x6F00
-
+	#endif
 
 /** Table of calibrations for audio levels to db */
 extern int audio_thresholds[];
