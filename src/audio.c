@@ -804,7 +804,11 @@ audio_configure( int force )
 #endif
 	
 	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
+#ifdef CONFIG_500D //500d only has internal mono audio :(
+	int input_source = 0;
+#else
 	int input_source = get_input_source();
+#endif
 	
     
 	//those char*'s cause a memory corruption, don't know why
@@ -859,6 +863,8 @@ audio_configure( int force )
                    | 0x04 // external, no gain
                    | ( lovl & 0x3) << 0 // line output level
                    );
+	
+	
     
 #ifdef CONFIG_500D
     audio_ic_write( AUDIO_IC_SIG4 | pm3[input_source] );
@@ -877,6 +883,7 @@ audio_configure( int force )
 	audio_ic_set_input_volume( 0, dgain_r );
 	audio_ic_set_input_volume( 1, dgain_l );
 #endif
+	
 	audio_ic_set_mgain( mgain );
     
 	if (disable_filters) {
@@ -884,10 +891,7 @@ audio_configure( int force )
 	}
     
 #ifdef CONFIG_500D
-    // not worrying about other things yet - too much to fixup now.
-	//uint32_t loopmode = audio_ic_read( AUDIO_IC_SIG2 );
-    //loopmode &= ~0x3e;
-    //audio_ic_write( AUDIO_IC_SIG2 | loopmode | loopback << 6 | (o2gain & 0x3) << 2 );
+// nothing here yet.
 #else
 	
 	// Enable loop mode and output digital volume2
@@ -1300,6 +1304,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= menu_print,
 	},
 #endif
+#ifndef CONFIG_500D
 	{
 		.name = "Input source",
 		.priv		= &input_choice,
@@ -1308,11 +1313,13 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_input_display,
 		.help = "Audio input: internal / external / both / balanced / auto."
 	},
+#endif
 	/*{
      .priv		= &loopback,
      .select		= audio_binary_toggle,
      .display	= audio_loopback_display,
      },*/
+#ifndef CONFIG_500D
 	{
 		.name = "Mic Power",
 		.priv		= &mic_power,
@@ -1328,6 +1335,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_lovl_display,
 		.help = "Output volume for audio monitoring (headphones only)."
 	},
+#endif
 	{
 		.name = "Monitoring-USB",
 		.priv = &audio_monitoring,
