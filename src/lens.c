@@ -226,11 +226,12 @@ void draw_ml_bottombar()
 	//~ unsigned height	= fontspec_height( font );
 	
 	unsigned bottom = 480;
-	extern int screen_layout;
+	int screen_layout = get_screen_layout();
 	if (screen_layout == SCREENLAYOUT_3_2) bottom = os.y_max;
 	else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
 	else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
-	else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) bottom = os.y_max + 54;
+		else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, vram_bm.height);
+		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, vram_bm.height);
 
 	if (screen_layout == SCREENLAYOUT_16_9)
 		bg = bmp_getpixel(os.x0 + 123, bottom-36);
@@ -615,7 +616,7 @@ void draw_ml_topbar()
 	unsigned x = 80;
 	unsigned y = 0;
 
-	extern int screen_layout;
+	int screen_layout = get_screen_layout();
 
 	if (gui_menu_shown())
 	{
@@ -628,14 +629,15 @@ void draw_ml_topbar()
 		if (screen_layout == SCREENLAYOUT_3_2) y = os.y0; // just above the 16:9 frame
 		else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
 		else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
-		else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) y = 480*8/9;
+		else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, vram_bm.height - 54);
+		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, vram_bm.height - 54);
 	}
 	
 	extern int bitrate_indic_x, bitrate_indic_y; // for bitrate indicators
 	bitrate_indic_x = os.x_max - 160;
 	bitrate_indic_y = y;
-	if (bitrate_indic_x < 720-160 && audio_meters_are_drawn())
-		bitrate_indic_y += font_med.height; // otherwise will overlap audio meters
+	if (bitrate_indic_x < 720-160)
+		bitrate_indic_y = MAX(bitrate_indic_y + font_med.height, os.y0 + os.off_169); // otherwise will overlap audio meters
 
 	if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
 

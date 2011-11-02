@@ -227,8 +227,8 @@ void fps_show()
 	if (gui_menu_shown()) return;
 	if (!is_movie_mode() || recording) return;
 	//~ if (hdmi_code == 5) return; // workaround
-	extern int screen_layout;
-	if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) return;
+	int screen_layout = get_screen_layout();
+	if (screen_layout >= SCREENLAYOUT_UNDER_3_2) return;
 	
 	bmp_printf(
 		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),

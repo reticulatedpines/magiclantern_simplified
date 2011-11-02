@@ -316,6 +316,7 @@ extern struct vram_info vram_bm;
 #define SCREENLAYOUT_3_2 0
 #define SCREENLAYOUT_16_10 1
 #define SCREENLAYOUT_16_9 2
-#define SCREENLAYOUT_4_3_BOTTOMBAR 3 // 500D/50D
+#define SCREENLAYOUT_UNDER_3_2 3 // 500D/50D
+#define SCREENLAYOUT_UNDER_16_9 4 // HDMI VGA and SD
 
 #endif

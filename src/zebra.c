@@ -3285,7 +3285,7 @@ livev_hipriority_task( void* unused )
 			lens_display_dirty = 0;
 			
 		}
-		
+
 		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
 			crop_set_dirty(5);
 
@@ -3309,12 +3309,12 @@ static void black_bars()
 {
 	if (!get_global_draw()) return;
 	int i,j;
-	for (i = 0; i < os.y0 + os.y_ex; i++)
+	for (i = os.y0; i < os.y_max; i++)
 	{
-		if (i < os.y0 + 50 || i > os.y0 + os.y_ex - 50)
+		if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
 		{
-			int newcolor = (i < os.y0 + 35 || i > os.y0 + os.y_ex - 37) ? COLOR_BLACK : COLOR_BG;
-			for (j = os.x0; j < os.x_ex; j++)
+			int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
+			for (j = os.x0; j < os.x_max; j++)
 				if (bmp_getpixel(j,i) == COLOR_BG)
 					bmp_putpixel(j,i,newcolor);
 		}

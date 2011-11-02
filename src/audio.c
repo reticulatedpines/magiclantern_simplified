@@ -285,7 +285,7 @@ static int audio_cmd_to_gain_x1000(int cmd);
 /* Normal VU meter */
 static void draw_meters(void)
 {
-	extern int screen_layout;
+	int screen_layout = get_screen_layout();
 	// The db values are multiplied by 8 to make them
 	// smoother.
 	int erase = 0;
@@ -311,14 +311,15 @@ static void draw_meters(void)
 		if (screen_layout == SCREENLAYOUT_3_2) y0 = os.y0; // just above the 16:9 frame
 		else if (screen_layout == SCREENLAYOUT_16_9) { small = 1; y0 = os.y0 + os.off_169; } // meters just below 16:9 border
 		else if (screen_layout == SCREENLAYOUT_16_10) {small = 1; y0 = os.y0 + os.off_1610; } // meters just below 16:10 border
-		else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) y0 = os.y_max;
+		else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y0 = MIN(os.y_max, vram_bm.height - 54);
+		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y0 = MIN(os.y_max - os.off_169, vram_bm.height - 54);
 		if (hdmi_code) small = 1;
 	}
     
 	if (erase)
 	{
 		bmp_fill(
-                 screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR ? BOTTOMBAR_BGCOLOR : TOPBAR_BGCOLOR,
+                 screen_layout >= SCREENLAYOUT_UNDER_3_2 ? BOTTOMBAR_BGCOLOR : TOPBAR_BGCOLOR,
                  x0, y0, 720, small ? 20 : 34
                  );
 	}

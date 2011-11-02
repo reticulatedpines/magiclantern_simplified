@@ -412,7 +412,11 @@ hdmi_force_display(
 	);
 }
 
-CONFIG_INT("screen.layout", screen_layout, SCREENLAYOUT_3_2);
+CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2);
+CONFIG_INT("screen.layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
+int* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
+int* get_screen_layout() { return *get_screen_layout_ptr(); }
+
 static void
 screen_layout_display(
         void *                  priv,
@@ -421,16 +425,23 @@ screen_layout_display(
         int                     selected
 )
 {
+	int screen_layout = get_screen_layout();
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Screen Layout : %s", 
-		screen_layout == SCREENLAYOUT_3_2 ?   "3:2 (default)" :
-		screen_layout == SCREENLAYOUT_16_10 ? "16:10 (HDMI)" :
-		screen_layout == SCREENLAYOUT_16_9 ?  "16:9 (HDMI)" :
-		screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR ? "4:3 (bottom)" : "err"
+		"ML info bars  : %s", 
+		screen_layout == SCREENLAYOUT_3_2 ?   "Inside 3:2 (top/bottom)" :
+		screen_layout == SCREENLAYOUT_16_10 ? "Inside 16:10 (top/bottom)" :
+		screen_layout == SCREENLAYOUT_16_9 ?  "Inside 16:9 (top/bottom)" :
+		screen_layout == SCREENLAYOUT_UNDER_3_2 ? "Under 3:2 (bottom)" :
+		screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9 (bottom)" :
+		 "err"
 	);
+	menu_draw_icon(x, y, EXT_MONITOR_CONNECTED ? MNI_AUTO : MNI_ON, 0);
 }
+
+void screen_layout_toggle() { menu_quinternary_toggle(get_screen_layout_ptr()); }
+void screen_layout_toggle_reverse() { menu_quinternary_toggle_reverse(get_screen_layout_ptr()); }
 
 CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
 
@@ -752,10 +763,9 @@ static struct menu_entry mov_menus[] = {
 	},
 	{
 		.name = "Screen Layout",
-		.priv = &screen_layout, 
 		.display = screen_layout_display, 
-		.select = menu_quaternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
+		.select = screen_layout_toggle,
+		.select_reverse = screen_layout_toggle_reverse,
 		.help = "Position of top/bottom bars, useful for external displays."
 	}
 };
