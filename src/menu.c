@@ -951,8 +951,8 @@ menu_init( void )
 	menu_find_by_name( "Tweaks", ICON_SMILE );
 	menu_find_by_name( "Play", ICON_ML_PLAY );
 	menu_find_by_name( "Config", ICON_CF );
-	menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
 	menu_find_by_name( "Power", ICON_P_SQUARE );
+	menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
 	//~ menu_find_by_name( "Config" );
 	menu_find_by_name( "Help", ICON_i );
 	//~ menu_find_by_name( "Boot" );
