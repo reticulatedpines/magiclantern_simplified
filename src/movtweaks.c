@@ -572,7 +572,6 @@ void rec_notify_continuous()
 			//~ draw_line(os.x0 + 50, os.y0 + 75, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 75, COLOR_RED);
 			//~ draw_line(os.x0 + 50, os.y0 + 76, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 74, COLOR_RED);
 		}
-		if (prev != recording) redraw();
 	}
 	else if (rec_notify == 2)
 	{
@@ -580,9 +579,9 @@ void rec_notify_continuous()
 			bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 3, os.y0 + 50, "REC");
 		else
 			bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "STBY");
-		if (prev != recording) redraw();
 	}
 	
+	if (prev != recording) redraw();
 	prev = recording;
 }
 void rec_notify_trigger(int rec)
