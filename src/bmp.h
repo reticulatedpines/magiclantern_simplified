@@ -36,6 +36,9 @@ extern int bmp_enabled;
 /** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
 uint8_t * bmp_vram(void);
 
+/** Returns a pointer to mirror BMP vram */
+uint8_t* get_bvram_mirror();
+
 #define BMPPITCH 960
 #define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)
 

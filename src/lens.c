@@ -185,7 +185,7 @@ update_lens_display()
 #endif
 	{
 		if (!get_halfshutter_pressed())
-			draw_ml_bottombar();
+			BMP_LOCK( draw_ml_bottombar(); )
 	}
 }
 
@@ -246,7 +246,7 @@ void draw_ml_bottombar()
 	int ytop = bottom - 35;
 	
 	// start drawing to mirror buffer to avoid flicker
-	memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
+	memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 34 * BMPPITCH);
 	bmp_draw_to_mirror(1);
 	
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
@@ -597,8 +597,8 @@ void draw_ml_bottombar()
 end:
 	// done drawing, copy image to main BMP buffer
 	bmp_draw_to_mirror(0);
-	memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
-	bzero32(get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
+	memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 34 * BMPPITCH);
+	bzero32(get_bvram_mirror() + BM(0,ytop), 34 * BMPPITCH);
 }
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
@@ -653,6 +653,8 @@ void draw_ml_topbar()
 	bitrate_indic_y = y;
 	if (bitrate_indic_x < 720-160)
 		bitrate_indic_y = MAX(bitrate_indic_y + font_med.height, os.y0 + os.off_169); // otherwise will overlap audio meters
+	
+	if (bitrate_indic_y > 450) bitrate_indic_y = 450;
 
 	if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
 
@@ -787,7 +789,7 @@ lens_focus(
 	}
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
-	if (get_global_draw()) draw_ml_bottombar();
+	//~ if (get_global_draw()) BMP_LOCK( draw_ml_bottombar(); )
 	idle_wakeup_reset_counters(-10);
 	
 	if (lv_focus_error) { lv_focus_error = 0; return 0; }
