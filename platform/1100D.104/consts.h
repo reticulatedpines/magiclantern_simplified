@@ -131,9 +131,6 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 
-// not sure (from 600D)
-#define OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
-
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
 
@@ -144,6 +141,7 @@
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 
+#define OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
 
 #define BULB_MIN_EXPOSURE 1000
 
