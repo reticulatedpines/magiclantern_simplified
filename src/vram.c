@@ -480,7 +480,7 @@ static struct menu_entry vram_menus[] = {
 
 void vram_init()
 {
-#ifdef CONFIG_DEBUGMSG
+#if CONFIG_DEBUGMSG
 	menu_add("VRAM", vram_menus, COUNT(vram_menus));
 #endif
 	update_vram_params();

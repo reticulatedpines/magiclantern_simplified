@@ -607,6 +607,8 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 
 void draw_ml_topbar()
 {
+	if (!get_global_draw()) return;
+	
 	int bg = TOPBAR_BGCOLOR;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( f, COLOR_RED, bg);
@@ -694,7 +696,7 @@ void draw_ml_topbar()
 	display_clock();
 	free_space_show();
 
-	x = 540;
+	x += 170;
 	bmp_printf( font, x, y,
 		is_movie_mode() ? "MVI-%04d" : "[%d]",
 		is_movie_mode() ? file_number_also : avail_shot
