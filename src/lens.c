@@ -233,17 +233,23 @@ void draw_ml_bottombar()
 		else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, vram_bm.height);
 		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, vram_bm.height);
 
-	if (screen_layout == SCREENLAYOUT_16_9)
-		bg = bmp_getpixel(os.x0 + 123, bottom-36);
+	//~ if (screen_layout == SCREENLAYOUT_16_9)
+		//~ bg = bmp_getpixel(os.x0 + 123, bottom-36);
 	//unsigned x = 420;
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
-	
+
     unsigned int x_origin = os.x0 + os.x_ex/2 - 360 + 50;
     unsigned int y_origin = bottom - 30;
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 
-	 bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
+	int ytop = bottom - 35;
+	
+	// start drawing to mirror buffer to avoid flicker
+	memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
+	bmp_draw_to_mirror(1);
+	
+    bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
 		
 			bmp_printf( text_font, x_origin - 50, y_origin,
@@ -409,7 +415,7 @@ void draw_ml_bottombar()
 					  y_origin, 
 					  "Auto ");
 
-      if (ISO_ADJUSTMENT_ACTIVE) return;
+      if (ISO_ADJUSTMENT_ACTIVE) goto end;
       
 		// kelvins
       text_font = FONT(
@@ -573,7 +579,6 @@ void draw_ml_bottombar()
 	//~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
 	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
 	int y169 = os.y_max - os.off_169;
-	int ytop = bottom - 35;
 	if (!gui_menu_shown())
 		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 
@@ -589,15 +594,22 @@ void draw_ml_bottombar()
 				  gain_ev);
 	}
 
+end:
+	// done drawing, copy image to main BMP buffer
+	bmp_draw_to_mirror(0);
+	memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
+	bzero32(get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
 }
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 {
 	// shave the bottom bar a bit :)
 	int i,j;
+	bmp_draw_to_mirror(0);
+	int new_color = bmp_getpixel(os.x0 + 123, y0-1);
+	bmp_draw_to_mirror(1);
 	for (i = y0; i < y0 + h; i++)
 	{
-		int new_color = bmp_getpixel(os.x0 + 123, y0-1);
 		//~ int new_color = 0;
 		for (j = x0; j < x0+w; j++)
 			if (bmp_getpixel(j,i) == shaved_color)
