@@ -676,7 +676,7 @@ menu_redraw_if_damaged()
 			//~ menu_damage = 0;
 			BMP_LOCK (
 				// draw to mirror buffer to avoid flicker
-				bmp_mirror_copy(0);
+				//~ bmp_mirror_copy(0); // no need, drawing is fullscreen anyway
 				bmp_draw_to_mirror(1);
 				
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 

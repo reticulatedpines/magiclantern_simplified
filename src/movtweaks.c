@@ -436,11 +436,11 @@ screen_layout_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"ML info bars  : %s", 
-		screen_layout == SCREENLAYOUT_3_2 ?        "Inside 3:2 (top/bot)" :
-		screen_layout == SCREENLAYOUT_16_10 ?      "Inside 16:10 (to/bo)" :
-		screen_layout == SCREENLAYOUT_16_9 ?       "Inside 16:9 (to/bo)"  :
-		screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Under 3:2 (bottom)"   :
-		screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9 (bottom)"  :
+		screen_layout == SCREENLAYOUT_3_2 ?        "Inside 3:2,top/bot" :
+		screen_layout == SCREENLAYOUT_16_10 ?      "Inside 16:10,top/b" :
+		screen_layout == SCREENLAYOUT_16_9 ?       "Inside 16:9,top/bo" :
+		screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Under 3:2, bottom " :
+		screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9,bottom" :
 		 "err"
 	);
 	menu_draw_icon(x, y, EXT_MONITOR_CONNECTED ? MNI_AUTO : MNI_ON, 0);
