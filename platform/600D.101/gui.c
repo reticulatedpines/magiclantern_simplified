@@ -39,6 +39,9 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 	return prop_cleanup(token, property);
 }
 
+int disp_pressed = 0;
+int get_disp_pressed() { return disp_pressed; }
+
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -61,7 +64,6 @@ static int handle_buttons(struct event * event)
 	}
 
 	// shortcut for 3x zoom mode
-	static int disp_pressed = 0;
 	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
 	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
 

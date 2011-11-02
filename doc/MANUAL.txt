@@ -154,7 +154,7 @@ or as shift key (see also `SensorShortcuts`_ option).
 Flash button shortcuts
 ~~~~~~~~~~~~~~~~~~~~~~
 
-This feature is only available on 550D, 500D and 600D.
+This feature is only available on 550D and 500D. On 600D, the ``DISP`` button is used instead.
 
 * Flash in Movie mode (short press): change current `display preset`_.
 * Flash + ``UP / DOWN`` in Movie mode: adjust `Kelvin white balance`_.
@@ -1604,7 +1604,8 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
   To change the presets, press:
   
   * on 550D/500D: Flash button in Movie mode, or ``ISO`` followed by ``DISP`` in all modes;
-  * on 60D: the Metering button.
+  * on 60D: the ``Metering`` button.
+  * on 600D: the ``DISP`` button, or ``ISO`` followed by ``INFO``.
 
 Extra info displays
 -------------------

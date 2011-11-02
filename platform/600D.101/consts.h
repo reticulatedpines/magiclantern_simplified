@@ -207,7 +207,7 @@
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
+#define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && is_movie_mode())
 
  #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
