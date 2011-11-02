@@ -1287,7 +1287,7 @@ void flashlight_lcd_task()
 	while (get_halfshutter_pressed()) msleep(100);
 	idle_globaldraw_dis();
 	msleep(100);
-	#ifdef CONFIG_600D
+	#if defined(CONFIG_600D) || defined(CONFIG_1100D)
 	#define BGMT_DISP BGMT_INFO
 	#endif
 	if (tft_status) { fake_simple_button(BGMT_DISP); msleep(500); }
