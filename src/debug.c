@@ -311,18 +311,25 @@ void dlg_test(void* priv)
 
 volatile int aff[26];
 
+int hdmi_code_array[8];
+
+PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
+{
+	memcpy(hdmi_code_array, buf, 32);
+	return prop_cleanup(token, property);
+}
+
 void ChangeHDMIOutputSizeToVGA()
 {
-	int x[] = {2,0,0,0,0,0,0,0};
-	prop_request_change(PROP_HDMI_CHANGE_CODE, x, 32);
+	hdmi_code_array[0] = 2;
+	prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 }
 
 void ChangeHDMIOutputSizeToFULLHD()
 {
-	int x[] = {5,0,0,0,0,0,0,0};
-	prop_request_change(PROP_HDMI_CHANGE_CODE, x, 32);
+	hdmi_code_array[0] = 5;
+	prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 }
-
 
 int8_t strobo_setting[0x22];
 PROP_HANDLER(PROP_STROBO_SETTING)
@@ -369,7 +376,7 @@ static void stress_test_task(void* unused)
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
 	extern struct semaphore * gui_sem;
-
+/*
 	NotifyBox(1000, "ML menu scroll...");
 	give_semaphore(gui_sem);
 	msleep(1000);
@@ -396,7 +403,7 @@ static void stress_test_task(void* unused)
 		give_semaphore(gui_sem);
 		msleep(50);
 	}
-
+*/
 	msleep(2000);
 
 	#ifndef CONFIG_50D
