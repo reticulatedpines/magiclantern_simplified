@@ -230,7 +230,7 @@ void draw_ml_bottombar()
 	if (screen_layout == SCREENLAYOUT_3_2) bottom = os.y_max;
 	else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
 	else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
-	else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) bottom = 480;
+	else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) bottom = os.y_max + 54;
 
 	if (screen_layout == SCREENLAYOUT_16_9)
 		bg = bmp_getpixel(os.x0 + 123, bottom-36);

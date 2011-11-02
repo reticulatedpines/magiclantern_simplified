@@ -107,7 +107,7 @@ void update_vram_params()
 	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 	os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
-	if (PLAY_MODE) { os.y0 = 52; os.y_ex -= 52; }
+	if (PLAY_MODE) os.y0 = 54; // black bar is at the top in play mode
 #endif
 
 	// LV buffer (used for display)
