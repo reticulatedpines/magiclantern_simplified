@@ -703,6 +703,7 @@ static void dump_vram()
 }
 
 static uint8_t* bvram_mirror = 0;
+uint8_t* get_bvram_mirror() { return bvram_mirror; }
 
 void spotmeter_step();
 
@@ -742,6 +743,10 @@ void histo_init()
 	if (!hist_b) fail("HistB malloc failed");
 }
 
+void bvram_mirror_clear()
+{
+	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+}
 static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
@@ -752,7 +757,7 @@ static void bvram_mirror_init()
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
-		bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+		bvram_mirror_clear();
 	}
 }
 
@@ -3618,7 +3623,7 @@ void show_overlay()
 		}
 	}
 	
-	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+	bvram_mirror_clear();
 	afframe_clr_dirty();
 }
 
@@ -3638,7 +3643,7 @@ void bmp_zoom(int x0, int y0, int denx, int deny)
 			bvram[i * BMPPITCH + j] = (is >= 0 && js >= 0 && is < 540 && js < 960) ? bvram_mirror[is * BMPPITCH + js] : 0;
 		}
 	}
-	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+	bvram_mirror_clear();
 }
 
 void transparent_overlay_from_play()

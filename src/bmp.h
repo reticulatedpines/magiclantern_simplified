@@ -33,13 +33,11 @@
 
 extern int bmp_enabled;
 
-/** Returns a pointer to the real BMP vram */
-static inline uint8_t *
-bmp_vram(void)
-{
-	return bmp_vram_info[1].vram2;
-}
+/** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
+uint8_t * bmp_vram(void);
+
 #define BMPPITCH 960
+#define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)
 
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK		0x000F0000

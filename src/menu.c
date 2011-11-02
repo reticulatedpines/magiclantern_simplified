@@ -675,14 +675,26 @@ menu_redraw_if_damaged()
 		{
 			if (!lv) show_only_selected = 0;
 			//~ if (MENU_MODE || lv) clrscr();
+
+			
 			menu_damage = 0;
 			BMP_LOCK (
+				// draw to mirror buffer to avoid flicker
+				bmp_mirror_copy(0);
+				bmp_draw_to_mirror(1);
+				
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
 				menus_display( menus, x0 + 5, y0 ); 
 				if (is_menu_active("Help")) menu_show_version();
 				//~ draw_ml_topbar();
+				
+				// copy image to main buffer
+				bmp_mirror_copy(1);
+				bmp_draw_to_mirror(0);
+				bvram_mirror_clear();
 			)
 			//~ update_stuff();
+
 			update_disp_mode_bits_from_params();
 		}
 	}

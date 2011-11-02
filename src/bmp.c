@@ -32,9 +32,26 @@
 
 //~ int bmp_enabled = 1;
 
-#define USE_LUT
+static int bmp_mirror_flag = 0;
+void bmp_draw_to_mirror(int value) { bmp_mirror_flag = value; }
 
-#define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)
+// 0 = copy BMP to mirror
+// 1 = copy mirror to BMP
+void bmp_mirror_copy(int direction)
+{
+	if (direction)
+		memcpy(bmp_vram_info[1].vram2, get_bvram_mirror(), BMP_HEIGHT * BMPPITCH);
+	else
+		memcpy(get_bvram_mirror(), bmp_vram_info[1].vram2, BMP_HEIGHT * BMPPITCH);
+}
+
+/** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
+uint8_t * bmp_vram(void)
+{
+	return bmp_mirror_flag ? get_bvram_mirror() : bmp_vram_info[1].vram2;
+}
+
+#define USE_LUT
 
 static void
 _draw_char(
