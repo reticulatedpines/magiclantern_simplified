@@ -37,6 +37,8 @@ int get_av_pressed() { return av_pressed; }
 
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
+struct semaphore * gui_sem;
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -103,8 +105,6 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
-
-struct semaphore * gui_sem;
 
 struct gui_main_struct {
   void *			obj;		// off_0x00;

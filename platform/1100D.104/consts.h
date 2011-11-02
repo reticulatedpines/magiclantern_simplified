@@ -141,9 +141,6 @@
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 #endif
 
-#define FLASH_MAX_EV 3
-#define FLASH_MIN_EV -10
-
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 
@@ -162,3 +159,8 @@
 #define AF_BTN_STAR 1
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
+
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1

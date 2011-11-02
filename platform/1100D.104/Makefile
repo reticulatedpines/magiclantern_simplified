@@ -50,6 +50,7 @@ ML_OBJS-y = \
 	notify_box.o \
 	qtimer.o \
 	dialog_test.o \
+	bootflags.o \
 	vram.o \
 
 #include generic rules and definitions

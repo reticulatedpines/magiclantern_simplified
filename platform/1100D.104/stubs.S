@@ -87,8 +87,7 @@ NSTUB( 0xFF06F65C, give_semaphore )
 NSTUB( 0xFF06F574, take_semaphore )
 NSTUB( 0xFF06CC7C, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF05BACC, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
-//TODO: Re-enable
-//NSTUB( 0xFF05B464, prop_request_change )
+NSTUB( 0xFF05B464, prop_request_change )
 NSTUB( 0xFF05BA44, prop_deliver ) 
 NSTUB( 0xFF05BBEC, prop_cleanup )
 NSTUB( 0xFF05BC84, prop_get_value )
@@ -209,3 +208,9 @@ NSTUB(0xFF070718, GetMemoryInformation) // called from AllocateMemory
 
 NSTUB(0xFF510C24, GetCFnData)
 NSTUB(0xFF510E50, SetCFnData)
+
+NSTUB(0xff31cae0, CreateDialogBox)
+NSTUB(0xff31c278, DeleteDialogBox)
+NSTUB(0xff2277f0, dialog_set_property_str)
+
+NSTUB(0xff416874, fsuDecodePartitionTable)

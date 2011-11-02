@@ -87,6 +87,7 @@
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 5
 #define MOV_OPT_STEP 5
+#define MOV_GOP_OPT_STEP 5
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
@@ -282,3 +283,6 @@
 #define FLASH_MIN_EV (-5*8)
 
 #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / INFO" 
+
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x8428+12) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
