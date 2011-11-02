@@ -772,7 +772,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     mic_inserted = buf[0];
     
     audio_configure( 1 );
-    menu_set_dirty();
+    //~ menu_set_dirty();
     return prop_cleanup( token, property );
 }
 

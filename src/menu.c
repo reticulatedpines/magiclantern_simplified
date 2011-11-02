@@ -33,7 +33,7 @@
 
 static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
-static int menu_damage;
+//~ static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
 static int menu_shown = 0;
@@ -46,7 +46,7 @@ int menu_help_active = 0;
 static int x0 = 0;
 static int y0 = 0;
 
-void menu_set_dirty() { menu_damage = 1; }
+//void menu_set_dirty() { //~ menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
@@ -64,7 +64,7 @@ extern int gui_state;
 void menu_show_only_selected()
 {
 	show_only_selected = 1;
-	menu_damage = 1;
+	//~ menu_damage = 1;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected || menu_hidden ); }
@@ -496,10 +496,6 @@ menus_display(
 				1
 			);
 	}
-	
-	if (hdmi_code == 2)
-		BMP_LOCK( bmp_zoom(x0 + 360, y0 + 160, /* 128 div */ 143, /* 128 div */ 171); )
-
 	give_semaphore( menu_sem );
 }
 
@@ -553,7 +549,7 @@ menu_move(
 	int			direction
 )
 {
-	menu_damage = 1;
+	//~ menu_damage = 1;
 
 	if( !menu )
 		return;
@@ -664,12 +660,12 @@ static void menu_select_current(int reverse)
 static void 
 menu_redraw_if_damaged()
 {
-	if( menu_damage )
+	//~ if( menu_damage )
 	{
 		if (menu_help_active)
 		{
 			menu_help_redraw();
-			menu_damage = 0;
+			//~ menu_damage = 0;
 		}
 		else
 		{
@@ -677,7 +673,7 @@ menu_redraw_if_damaged()
 			//~ if (MENU_MODE || lv) clrscr();
 
 			
-			menu_damage = 0;
+			//~ menu_damage = 0;
 			BMP_LOCK (
 				// draw to mirror buffer to avoid flicker
 				bmp_mirror_copy(0);
@@ -687,10 +683,13 @@ menu_redraw_if_damaged()
 				menus_display( menus, x0 + 5, y0 ); 
 				if (is_menu_active("Help")) menu_show_version();
 				//~ draw_ml_topbar();
-				
+
 				// copy image to main buffer
-				bmp_mirror_copy(1);
 				bmp_draw_to_mirror(0);
+				if (hdmi_code == 2) // copy at a smaller scale to fit the screen
+					bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+				else
+					bmp_mirror_copy(1);
 				bvram_mirror_clear();
 			)
 			//~ update_stuff();
@@ -765,9 +764,9 @@ menu_handler(
 
 	case GOT_TOP_OF_CONTROL:
 		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		menu_redraw_if_damaged();
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		break;
 	case LOST_TOP_OF_CONTROL:
 		gui_stop_menu();
@@ -802,7 +801,7 @@ menu_handler(
 	
 	case PRESS_ZOOM_IN_BUTTON:
 		edit_mode = !edit_mode;
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		menu_help_active = 0;
 		break;
 
@@ -810,7 +809,7 @@ menu_handler(
 	case PRESS_JOY_UP:
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
 		else menu_entry_move( menu, -1 );
@@ -820,7 +819,7 @@ menu_handler(
 	case PRESS_JOY_DOWN:
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
 		else menu_entry_move( menu, 1 );
@@ -829,7 +828,7 @@ menu_handler(
 	case DIAL_RIGHT:
 	case PRESS_RIGHT_BUTTON:
 	case PRESS_JOY_RIGHT:
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
 		else menu_move( menu, 1 );
@@ -838,29 +837,29 @@ menu_handler(
 	case DIAL_LEFT:
 	case PRESS_LEFT_BUTTON:
 	case PRESS_JOY_LEFT:
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
 		else menu_move( menu, -1 );
 		break;
 
 	case PRESS_SET_BUTTON:
-		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
+		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
 		if (edit_mode) edit_mode = 0;
 		else menu_entry_select( menu, 0 ); // normal select
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		break;
 
 	case PRESS_INFO_BUTTON:
 		menu_help_active = !menu_help_active;
 		if (menu_help_active) menu_help_go_to_selected_entry(menu);
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		break;
 
     case PRESS_PLAY_BUTTON:
-		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
+		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
 		menu_entry_select( menu, 1 ); // reverse select
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		break;
 
 	case PRESS_DIRECT_PRINT_BUTTON:
@@ -868,9 +867,9 @@ menu_handler(
 	case PRESS_FUNC_BUTTON:
 	case JOY_CENTER:
 #endif
-		if (menu_help_active) { menu_help_active = 0; menu_damage = 1; break; }
+		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
 		menu_entry_select( menu, 2 ); // auto setting select
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		break;
 
 #ifdef CONFIG_50D
@@ -907,7 +906,7 @@ menu_handler(
 
 	//~ case 0x10000097: // canon code might have drawn over menu
 	case 0x100000e8: // when you press Q on ISO
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		break;
 
 	default:
@@ -990,7 +989,7 @@ void
 gui_stop_menu( void )
 {
 	menu_hidden = 0;
-	menu_damage = 0;
+	//~ menu_damage = 0;
 
 	if( !gui_menu_task )
 		return;
@@ -1031,7 +1030,7 @@ gui_hide_menu(
 	if (!menu_hidden)
 		bmp_fill( 0, 0, 0, 720, 480 );
 	menu_hidden = redisplay_time;
-	menu_damage = 1;
+	//~ menu_damage = 1;
 }
 
 int
@@ -1180,7 +1179,7 @@ menu_task( void* unused )
 
 		idle_kill_flicker();
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
-		menu_damage = 1;
+		//~ menu_damage = 1;
 		menu_hidden = 0;
 		edit_mode = 0;
 		menu_help_active = 0;
@@ -1221,7 +1220,7 @@ void select_menu(char* name, int entry_index)
 				entry->selected = (i == entry_index);
 		}
 	}
-	menu_damage = 1;
+	//~ menu_damage = 1;
 }
 
 void select_menu_by_name(char* name, char* entry_name)
@@ -1239,7 +1238,7 @@ void select_menu_by_name(char* name, char* entry_name)
 				entry->selected = !strcmp(entry->name, entry_name);
 		}
 	}
-	menu_damage = 1;
+	//~ menu_damage = 1;
 }
 
 static void

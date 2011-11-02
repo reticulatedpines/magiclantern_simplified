@@ -3145,7 +3145,7 @@ BMP_LOCK (
 	// ask other stuff to redraw
 	afframe_set_dirty();
 	crop_set_dirty(5);
-	menu_set_dirty();
+	//~ menu_set_dirty();
 	zoom_overlay_dirty = 1;
 }
 
@@ -3464,7 +3464,7 @@ int toggle_disp_mode()
 	idle_wakeup_reset_counters(-3);
 	disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
 	BMP_LOCK( do_disp_mode_change(); )
-	menu_set_dirty();
+	//~ menu_set_dirty();
 	return disp_mode == 0;
 }
 void do_disp_mode_change()
@@ -3627,23 +3627,20 @@ void show_overlay()
 	afframe_clr_dirty();
 }
 
-void bmp_zoom(int x0, int y0, int denx, int deny)
+void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
 {
-	uint8_t * bvram = bmp_vram();
-	if (!bvram) return;
-	#define BMPPITCH 960
-	memcpy(bvram_mirror, bvram, BVRAM_MIRROR_SIZE);
+	if (!dst) return;
 	int i,j;
-	for (i = 0; i < 540; i++)
+	for (i = 0; i < vram_bm.height; i++)
 	{
-		for (j = 0; j < 960; j++)
+		for (j = 0; j < vram_bm.width; j++)
 		{
 			int is = (i - y0) * deny / 128 + y0;
 			int js = (j - x0) * denx / 128 + x0;
-			bvram[i * BMPPITCH + j] = (is >= 0 && js >= 0 && is < 540 && js < 960) ? bvram_mirror[is * BMPPITCH + js] : 0;
+			dst[BM(j,i)] = (is >= 0 && js >= 0 && is < vram_bm.height && js < vram_bm.width) 
+				? src[BM(js,is)] : 0;
 		}
 	}
-	bvram_mirror_clear();
 }
 
 void transparent_overlay_from_play()
