@@ -376,7 +376,7 @@ static void stress_test_task(void* unused)
 	NotifyBox(10000, "Stability Test..."); msleep(2000);
 
 	extern struct semaphore * gui_sem;
-/*
+
 	NotifyBox(1000, "ML menu scroll...");
 	give_semaphore(gui_sem);
 	msleep(1000);
@@ -403,7 +403,7 @@ static void stress_test_task(void* unused)
 		give_semaphore(gui_sem);
 		msleep(50);
 	}
-*/
+
 	msleep(2000);
 
 	#ifndef CONFIG_50D

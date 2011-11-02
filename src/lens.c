@@ -574,7 +574,8 @@ void draw_ml_bottombar()
 	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
 	int y169 = os.y_max - os.off_169;
 	int ytop = bottom - 35;
-	shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
+	if (!gui_menu_shown())
+		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 
 	extern int display_gain;
 	if (display_gain)
