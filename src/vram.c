@@ -92,6 +92,7 @@ PROP_INT(PROP_VIDEO_SYSTEM, pal);
 // these buffer sizes include any black bars
 void update_vram_params()
 {
+	if (is_menu_active("VRAM")) return;
 	msleep(50); // just to make sure all prop handlers finished after mode change
 
 	// BMP (used for overlays)
@@ -482,4 +483,6 @@ void vram_menus_init()
 	menu_add("VRAM", vram_menus, COUNT(vram_menus));
 }
 
+#ifdef CONFIG_DEBUGMSG
 INIT_FUNC(__FILE__, vram_menus_init);
+#endif
