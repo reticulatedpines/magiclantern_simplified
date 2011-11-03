@@ -207,17 +207,15 @@ void draw_ml_bottombar(int double_buffering)
 	//~ beep();
 	if (!get_global_draw()) return;
 	
-#ifdef CONFIG_500D
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
 	if (lv_disp_mode != 0 && !LV_BOTTOM_BAR_DISPLAYED)
 		return;
-#endif
-		
-	static int K;
+#else		
 	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !ISO_ADJUSTMENT_ACTIVE)
 	{
-		msleep(300);
-		fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
+		HideBottomInfoDisp_maybe(); 
 	}
+#endif
 	
 	struct lens_info *	info = &lens_info;
 

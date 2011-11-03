@@ -3277,6 +3277,9 @@ livev_hipriority_task( void* unused )
 		
 		if (LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !ISO_ADJUSTMENT_ACTIVE)
 			lens_display_dirty = 1;
+
+		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
+			crop_set_dirty(20);
 		
 		if (lens_display_dirty && !gui_menu_shown())
 		{
@@ -3290,9 +3293,6 @@ livev_hipriority_task( void* unused )
 			lens_display_dirty = 0;
 			
 		}
-
-		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
-			crop_set_dirty(5);
 
 #if CONFIG_DEBUGMSG
 		if (card_benchmark_start)
