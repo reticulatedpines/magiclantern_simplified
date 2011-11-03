@@ -747,7 +747,7 @@ void bvram_mirror_clear()
 {
 	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
 }
-static void bvram_mirror_init()
+void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
@@ -3654,8 +3654,6 @@ void transparent_overlay_from_play()
 	BMP_LOCK( show_overlay(); )
 	//~ transparent_overlay = 1;
 }
-
-INIT_FUNC("bvram_mirror_init", bvram_mirror_init);
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "recti.lut");
 #define defish_lut_file CARD_DRIVE "rectilin.lut"

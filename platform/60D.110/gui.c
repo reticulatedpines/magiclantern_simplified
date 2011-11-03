@@ -109,7 +109,6 @@ extern struct gui_main_struct gui_main_struct;
 
 static void gui_main_task_60d()
 {
-	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];

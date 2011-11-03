@@ -130,7 +130,6 @@ extern struct gui_main_struct gui_main_struct;
 // updated for 1100d 104
 static void gui_main_task_1100d()
 {
-	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];

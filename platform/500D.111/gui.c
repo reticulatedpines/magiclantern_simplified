@@ -97,8 +97,6 @@ extern struct gui_timer_struct gui_timer_struct;
 static void
 my_gui_main_task( void )
 {
-	bmp_sem_init();
-
 	gui_init_end();
 	uint32_t * obj = 0;
 

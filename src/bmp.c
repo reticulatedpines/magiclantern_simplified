@@ -39,10 +39,12 @@ void bmp_draw_to_mirror(int value) { bmp_mirror_flag = value; }
 // 1 = copy mirror to BMP
 void bmp_mirror_copy(int direction)
 {
+	uint8_t* mirror = get_bvram_mirror();
+	if (!mirror) { beep(); return; }
 	if (direction)
-		memcpy(bmp_vram_info[1].vram2, get_bvram_mirror(), BMP_HEIGHT * BMPPITCH);
+		memcpy(bmp_vram_info[1].vram2, mirror, BMP_HEIGHT * BMPPITCH);
 	else
-		memcpy(get_bvram_mirror(), bmp_vram_info[1].vram2, BMP_HEIGHT * BMPPITCH);
+		memcpy(mirror, bmp_vram_info[1].vram2, BMP_HEIGHT * BMPPITCH);
 }
 
 /** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
@@ -1038,9 +1040,12 @@ bfnt_test()
 
 void * bmp_lock = 0;
 
-void bmp_sem_init()
+void bmp_init()
 {
 	bmp_lock = CreateRecursiveLock(0);
+	bvram_mirror_init();
+	update_vram_params();
 }
 
 
+INIT_FUNC(__FILE__, bmp_init);
