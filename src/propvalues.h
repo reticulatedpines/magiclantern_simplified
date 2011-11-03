@@ -39,6 +39,7 @@ extern int video_mode_resolution; // 0 if full hd, 1 if 720p, 2 if 480p
 extern int beep_enabled;
 extern int lv_movie_select;
 extern int sensor_cleaning;
+extern int burst_count;
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 

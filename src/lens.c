@@ -798,7 +798,6 @@ lens_focus(
 
 void lens_wait_readytotakepic(int wait)
 {
-	extern int burst_count;
 	int i;
 	for (i = 0; i < wait * 10; i++)
 	{

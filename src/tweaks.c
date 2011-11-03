@@ -309,8 +309,6 @@ lv_metering_adjust()
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
-int burst_count = 0;
-
 static void set_pic_quality(int q)
 {
 	if (q == -1) return;
@@ -367,7 +365,7 @@ static void adjust_burst_pic_quality()
 
 PROP_HANDLER(PROP_BURST_COUNT)
 {
-	burst_count = buf[0];
+	int burst_count = buf[0];
 
 	if (auto_burst_pic_quality && avail_shot > burst_count)
 	{
