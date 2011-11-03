@@ -36,7 +36,7 @@
 
 void update_stuff();
 void draw_ml_topbar();
-void draw_ml_bottombar();
+void draw_ml_bottombar(int double_buffering);
 
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
@@ -185,7 +185,7 @@ update_lens_display()
 #endif
 	{
 		if (!get_halfshutter_pressed())
-			BMP_LOCK( draw_ml_bottombar(); )
+			BMP_LOCK( draw_ml_bottombar(0); )
 	}
 }
 
@@ -202,8 +202,11 @@ int shutter_ms_to_raw(int shutter_ms)
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
-void draw_ml_bottombar()
+void draw_ml_bottombar(int double_buffering)
 {
+	//~ beep();
+	if (!get_global_draw()) return;
+	
 #ifdef CONFIG_500D
 	if (lv_disp_mode != 0 && !LV_BOTTOM_BAR_DISPLAYED)
 		return;
@@ -219,7 +222,7 @@ void draw_ml_bottombar()
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
-	if (is_movie_mode()) bg = COLOR_BLACK;
+	if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
 	//~ unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
@@ -246,8 +249,12 @@ void draw_ml_bottombar()
 	int ytop = bottom - 35;
 	
 	// start drawing to mirror buffer to avoid flicker
-	memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 34 * BMPPITCH);
-	bmp_draw_to_mirror(1);
+	if (double_buffering)
+	{
+		bmp_mirror_copy(0);
+		//~ memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
+		bmp_draw_to_mirror(1);
+	}
 	
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
@@ -595,19 +602,22 @@ void draw_ml_bottombar()
 	}
 
 end:
-	// done drawing, copy image to main BMP buffer
-	bmp_draw_to_mirror(0);
-	memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 34 * BMPPITCH);
-	bzero32(get_bvram_mirror() + BM(0,ytop), 34 * BMPPITCH);
+
+	if (double_buffering)
+	{
+		// done drawing, copy image to main BMP buffer
+		bmp_draw_to_mirror(0);
+		bmp_mirror_copy(1);
+		memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
+		bzero32(get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
+	}
 }
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 {
 	// shave the bottom bar a bit :)
 	int i,j;
-	bmp_draw_to_mirror(0);
 	int new_color = bmp_getpixel(os.x0 + 123, y0-1);
-	bmp_draw_to_mirror(1);
 	for (i = y0; i < y0 + h; i++)
 	{
 		//~ int new_color = 0;
@@ -623,6 +633,7 @@ void draw_ml_topbar()
 	if (!get_global_draw()) return;
 	
 	int bg = TOPBAR_BGCOLOR;
+	if (gui_menu_shown()) bg = COLOR_BLACK;
 	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( f, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
@@ -1250,7 +1261,7 @@ PROP_HANDLER( PROP_LV_LENS )
 		//~ menu_set_dirty(); // force a redraw
 	}
 	old_focus_dist = lens_info.focus_dist;
-	
+
 	update_stuff();
 	
 	return prop_cleanup( token, property );

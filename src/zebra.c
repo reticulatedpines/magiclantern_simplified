@@ -745,7 +745,7 @@ void histo_init()
 
 void bvram_mirror_clear()
 {
-	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+	BMP_LOCK( bzero32(bvram_mirror, BVRAM_MIRROR_SIZE); )
 }
 void bvram_mirror_init()
 {
@@ -3235,7 +3235,7 @@ livev_hipriority_task( void* unused )
 		if (should_draw_zoom_overlay())
 		{
 			guess_fastrefresh_direction();
-			if (zoom_overlay_dirty) clrscr_mirror(); 
+			if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
 			BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
 			zoom_overlay_dirty = 0;
 		}
@@ -3278,7 +3278,7 @@ livev_hipriority_task( void* unused )
 		if (LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !ISO_ADJUSTMENT_ACTIVE)
 			lens_display_dirty = 1;
 		
-		if (lens_display_dirty)
+		if (lens_display_dirty && !gui_menu_shown())
 		{
 			#ifdef CONFIG_KILL_FLICKER
 			if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )

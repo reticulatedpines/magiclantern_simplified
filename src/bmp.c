@@ -47,11 +47,18 @@ void bmp_mirror_copy(int direction)
 		memcpy(mirror, bmp_vram_info[1].vram2, BMP_HEIGHT * BMPPITCH);
 }
 
-/** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
+/** Returns a pointer to the real BMP vram */
+uint8_t* bmp_vram_real()
+{
+	return bmp_vram_info[1].vram2;
+}
+
+/** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
 	return bmp_mirror_flag ? get_bvram_mirror() : bmp_vram_info[1].vram2;
 }
+
 
 #define USE_LUT
 
@@ -690,11 +697,7 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
 uint8_t bmp_getpixel(int x, int y)
 {
 	uint8_t * const bvram = bmp_vram();
-	if (!bvram) return 0;
-	int bmppitch = BMPPITCH;
-
-	uint8_t * const b_row = bvram + y * bmppitch;
-	return b_row[x];
+	return bvram[x + y * BMPPITCH];
 }
 void bmp_putpixel(int x, int y, uint8_t color)
 {

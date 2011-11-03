@@ -405,11 +405,6 @@ menu_display(
 				x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, y0 + 450, 
 				menu->help
 			);
-		if (show_only_selected)
-		{
-			draw_ml_topbar();
-			draw_ml_bottombar();
-		}
 		
 		// if there's a warning message set, display it
 		if (menu->selected && warning_msg)
@@ -672,7 +667,6 @@ menu_redraw_if_damaged()
 			if (!lv) show_only_selected = 0;
 			//~ if (MENU_MODE || lv) clrscr();
 
-			
 			//~ menu_damage = 0;
 			BMP_LOCK (
 				// draw to mirror buffer to avoid flicker
@@ -680,9 +674,15 @@ menu_redraw_if_damaged()
 				bmp_draw_to_mirror(1);
 				
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
-				menus_display( menus, x0 + 5, y0 ); 
+				menus_display( menus, x0, y0 ); 
 				if (is_menu_active("Help")) menu_show_version();
 				//~ draw_ml_topbar();
+
+				if (show_only_selected) 
+				{
+					draw_ml_topbar();
+					draw_ml_bottombar(0);
+				}
 
 				// copy image to main buffer
 				bmp_draw_to_mirror(0);
