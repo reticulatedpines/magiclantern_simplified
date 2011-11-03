@@ -661,9 +661,9 @@ void draw_ml_topbar()
 	bitrate_indic_x = os.x_max - 160;
 	bitrate_indic_y = y;
 	if (bitrate_indic_x < 720-160)
-		bitrate_indic_y = MAX(bitrate_indic_y + font_med.height, os.y0 + os.off_169); // otherwise will overlap audio meters
+		bitrate_indic_y = MAX(bitrate_indic_y + ( bitrate_indic_y < os.y0 + os.x_ex/2 ? 1 : -1) * font_med.height, os.y0 + os.off_169); // otherwise will overlap audio meters
 	
-	if (bitrate_indic_y > 450) bitrate_indic_y = 450;
+	if (bitrate_indic_y > vram_bm.height - 30) bitrate_indic_y = vram_bm.height - 30;
 
 	if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
 
