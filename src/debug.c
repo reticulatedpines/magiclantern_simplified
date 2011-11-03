@@ -427,6 +427,8 @@ static void stress_test_task(void* unused)
 	}
 	#endif
 
+	msleep(2000);
+	beep();
 	fake_simple_button(BGMT_PLAY); msleep(1000);
 	for (int i = 0; i < 100; i++)
 	{
