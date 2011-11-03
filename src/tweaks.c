@@ -827,7 +827,7 @@ tweak_task( void* unused)
 					longpress = 1; // long press doesn't toggle
 					if (disp_profiles_0) bmp_printf(FONT(FONT_MED, 1, 0), 245, 100, "                  ");
 				}
-					
+				BMP_LOCK( draw_ml_bottombar(0); )
 			}
 			if (disp_profiles_0 && !longpress) toggle_disp_mode();
 			redraw();
