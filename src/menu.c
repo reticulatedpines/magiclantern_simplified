@@ -659,7 +659,7 @@ menu_redraw_if_damaged()
 	{
 		if (menu_help_active)
 		{
-			menu_help_redraw();
+			BMP_LOCK( menu_help_redraw(); )
 			//~ menu_damage = 0;
 		}
 		else
@@ -688,6 +688,8 @@ menu_redraw_if_damaged()
 				bmp_draw_to_mirror(0);
 				if (hdmi_code == 2) // copy at a smaller scale to fit the screen
 					bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+				else if (ext_monitor_rca)
+					bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
 				else
 					bmp_mirror_copy(1);
 				bvram_mirror_clear();
@@ -1144,7 +1146,7 @@ menu_task( void* unused )
 					0,
 					0
 				);
-			} else {
+			} else if (!menu_help_active) {
 				// Inject a synthetic timing event
 				ctrlman_dispatch_event(
 					gui_menu_task,
@@ -1249,6 +1251,8 @@ menu_help_go_to_selected_entry(
 	if( !menu )
 		return;
 
+	take_semaphore(menu_sem, 0);
+
 	struct menu_entry * entry = menu->children;
 
 	for( ; entry ; entry = entry->next )
@@ -1258,6 +1262,8 @@ menu_help_go_to_selected_entry(
 	}
 	
 	menu_help_go_to_label(entry->name);
+	
+	give_semaphore(menu_sem);
 }
 
 static void menu_show_version(void)
