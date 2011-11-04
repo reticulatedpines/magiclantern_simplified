@@ -360,6 +360,7 @@ static void stress_test_long(void* priv)
 
 static void stress_test_picture(int n, int delay)
 {
+	if (shutter_count > 50000) { beep(); return; }
 	msleep(delay);
 	for (int i = 0; i < n; i++)
 	{
