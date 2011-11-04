@@ -1306,13 +1306,12 @@ void flashlight_lcd_task()
 	kill_flicker();
 	int b = backlight_level;
 	set_backlight_level(7);
-	PauseLiveView();
+	
 	while (!get_halfshutter_pressed() && tft_status == 0)
 	{
 		bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
 		msleep(50);
 	}
-	ResumeLiveView();
 	set_backlight_level(b);
 	stop_killing_flicker();
 	idle_globaldraw_en();
