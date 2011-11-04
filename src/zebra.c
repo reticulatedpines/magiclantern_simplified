@@ -2090,7 +2090,7 @@ defish_preview_display(
 }
 
 
-CONFIG_INT("electronic.level", electronic_level, 1);
+CONFIG_INT("electronic.level", electronic_level, 0);
 static void
 electronic_level_display(
 	void *			priv,
