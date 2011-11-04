@@ -512,6 +512,7 @@ static void stress_test_task(void* unused)
 	}
 	if (!lv) force_liveview();
 	msleep(2000);
+	lens_set_rawiso(0);
 	for (int k = 0; k < 5; k++)
 	{
 		NotifyBox(1000, "LiveView gain test: %d", k*20);
