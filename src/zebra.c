@@ -3238,7 +3238,9 @@ livev_hipriority_task( void* unused )
 		
 		zebra_sleep_when_tired();
 
-		//~ draw_cropmark_area(); // just for debugging
+		#if CONFIG_DEBUGMSG
+		draw_cropmark_area(); // just for debugging
+		#endif
 
 		if (should_draw_zoom_overlay())
 		{

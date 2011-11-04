@@ -240,7 +240,7 @@ void draw_ml_bottombar(int double_buffering)
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 
-    unsigned int x_origin = os.x0 + os.x_ex/2 - 360 + 50;
+    unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 
@@ -644,12 +644,12 @@ void draw_ml_topbar()
 
 	if (gui_menu_shown())
 	{
-		x = os.x0 + os.x_ex/2 - 360;
-		y = os.y0 + os.y_ex/2 - 240;
+		x = MAX(os.x0 + os.x_ex/2 - 360, 0);
+		y = MAX(os.y0 + os.y_ex/2 - 240, os.y0);
 	}
 	else
 	{
-		x = os.x0 + os.x_ex/2 - 360;
+		x = MAX(os.x0 + os.x_ex/2 - 360, 0);
 		if (screen_layout == SCREENLAYOUT_3_2) y = os.y0; // just above the 16:9 frame
 		else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
 		else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border

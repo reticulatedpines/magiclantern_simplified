@@ -439,7 +439,7 @@ static void vram_toggle(void* priv, int delta)
 	MEM(vram_params[(int)priv]) += priv ? delta : SGN(delta);
 	menu_show_only_selected();
 	crop_set_dirty(1);
-	//~ update_vram_params_calc();
+	update_vram_params_calc();
 }
 
 static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
