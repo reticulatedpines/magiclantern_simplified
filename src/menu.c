@@ -1198,7 +1198,7 @@ menu_task( void* unused )
 					0,
 					0
 				);
-			} else if (!menu_help_active) {
+			} else if (!menu_help_active && !show_only_selected) {
 				// Inject a synthetic timing event
 				ctrlman_dispatch_event(
 					gui_menu_task,
