@@ -1653,9 +1653,6 @@ shutter_display( void * priv, int x, int y, int selected )
 			"Shutter     : 1/%d, %d",
 			lens_info.shutter, 
 			360 * video_mode_fps / lens_info.shutter);
-		int xc = x + font_large.width * strlen(msg);
-		draw_circle(xc + 2, y + 7, 3, COLOR_WHITE);
-		draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
 	}
 	else
 	{
@@ -1669,6 +1666,12 @@ shutter_display( void * priv, int x, int y, int selected )
 		x, y,
 		msg
 	);
+	if (is_movie_mode())
+	{
+		int xc = x + font_large.width * strlen(msg);
+		draw_circle(xc + 2, y + 7, 3, COLOR_WHITE);
+		draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
+	}
 	bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 	menu_draw_icon(x, y, lens_info.raw_shutter ? MNI_PERCENT : MNI_WARNING, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
 }
