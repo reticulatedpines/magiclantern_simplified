@@ -60,6 +60,7 @@ struct menu_entry
 		int			y,
 		int			selected
 	);
+	int essential; // set to 1 to show it in simple mode
 	const char * help;
 	const char * name; // for now it's used only for context help; will be used for display too.
 };

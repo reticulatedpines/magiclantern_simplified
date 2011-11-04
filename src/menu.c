@@ -43,6 +43,8 @@ static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
 
+static CONFIG_INT("menu.advanced", advanced_mode, 0);
+
 static int x0 = 0;
 static int y0 = 0;
 
@@ -370,6 +372,19 @@ void menu_draw_icon(int x, int y, int type, int arg)
 	#endif
 }
 
+static int
+menu_has_visible_items(struct menu_entry *	menu)
+{
+	while( menu )
+	{
+		if (advanced_mode || menu->essential)
+		{
+			return 1;
+		}
+		menu = menu->next;
+	}
+	return 0;
+}
 
 static void
 menu_display(
@@ -381,47 +396,51 @@ menu_display(
 {
 	while( menu )
 	{
-		icon_drawn = 0;
-		
-		if (!show_only_selected || menu->selected)
+		if (advanced_mode || menu->essential)
 		{
-			menu->display(
-				menu->priv,
-				x,
-				y,
-				menu->selected
-			);
-		}
-		
-		// this should be after menu->display, in order to allow it to override the icon
-		if (menu->priv && !show_only_selected)
-		{
-			menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
-		}
-		
-		if (menu->selected && menu->help && !show_only_selected)
-			bmp_printf(
-				FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-				x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, y0 + 450, 
-				menu->help
-			);
-		
-		// if there's a warning message set, display it
-		if (menu->selected && warning_msg)
-		{
-			bmp_printf(
-				FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-				x0 + 10, y0 + 430, 
-					"                                                   "
-			);
-			bmp_printf(
-				FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-				x0 + 10, y0 + 430, 
-					warning_msg
-			);
-		}
+			icon_drawn = 0;
+			
+			if (!show_only_selected || menu->selected)
+			{
+				menu->display(
+					menu->priv,
+					x,
+					y,
+					menu->selected
+				);
+			}
+			
+			// this should be after menu->display, in order to allow it to override the icon
+			if (menu->priv && !show_only_selected)
+			{
+				menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
+			}
+			
+			if (menu->selected && menu->help && !show_only_selected)
+				bmp_printf(
+					FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
+					x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, y0 + 450, 
+					menu->help
+				);
+			
+			// if there's a warning message set, display it
+			if (menu->selected && warning_msg)
+			{
+				bmp_printf(
+					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+					x0 + 10, y0 + 430, 
+						"                                                   "
+				);
+				bmp_printf(
+					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+					x0 + 10, y0 + 430, 
+						warning_msg
+				);
+			}
 
-		y += font_large.height - 1;
+			y += font_large.height - 1;
+			
+		}
 		menu = menu->next;
 	}
 }
@@ -452,6 +471,9 @@ menus_display(
 	bmp_fill(70, orig_x, y+42, 720, 1);
 	for( ; menu ; menu = menu->next )
 	{
+		if (!menu_has_visible_items(menu->children))
+			continue; // empty menu
+		
 		int fg = menu->selected ? COLOR_WHITE : 70;
 		int bg = menu->selected ? 13 : 40;
 		unsigned fontspec = FONT(
@@ -580,6 +602,10 @@ menu_move(
 	// Select the new one (which might be the same)
 	menu->selected		= 1;
 	give_semaphore( menu_sem );
+	
+	if (!menu_has_visible_items(menu->children))
+		menu_move(menu, direction); // this menu is hidden, skip it (try again)
+		// will fail if no menus are displayed!
 }
 
 
@@ -591,6 +617,9 @@ menu_entry_move(
 )
 {
 	if( !menu )
+		return;
+	
+	if (!menu_has_visible_items(menu->children))
 		return;
 
 	show_only_selected = 0;
@@ -641,6 +670,10 @@ menu_entry_move(
 	// Select the new one, which might be the same as the old one
 	entry->selected = 1;
 	give_semaphore( menu_sem );
+	
+	if (!advanced_mode && !entry->essential)
+		menu_entry_move(menu, direction); // try again, skip hidden items
+		// warning: would block if the menu is empty
 }
 
 static void menu_select_current(int reverse)
@@ -706,6 +739,15 @@ void menu_send_event(int event)
 	ctrlman_dispatch_event(gui_menu_task, event, 0, 0);
 }
 
+static struct menu * get_selected_menu()
+{
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+		if( menu->selected )
+			break;
+	return menu;
+}
+
 static int
 menu_handler(
 	void *			priv,
@@ -754,10 +796,15 @@ menu_handler(
 	//~ }
 
 	// Find the selected menu (should be cached?)
-	struct menu * menu = menus;
-	for( ; menu ; menu = menu->next )
-		if( menu->selected )
-			break;
+	struct menu * menu = get_selected_menu();
+	
+	// Make sure we are not displaying an empty menu
+	if (!menu_has_visible_items(menu->children))
+	{
+		menu_move(menu, -1); menu = get_selected_menu();
+		menu_move(menu, 1); menu = get_selected_menu();
+	}
+	
 	switch( event )
 	{
 	case INITIALIZE_CONTROLLER:
@@ -787,10 +834,15 @@ menu_handler(
 		return 0;
 
 	case PRESS_MENU_BUTTON:
+		advanced_mode = !advanced_mode;
+		break;
+
+	/*
 	#ifdef CONFIG_50D
 		gui_stop_menu();
 		return 0;
-	#endif
+	#endif 
+	*/
 	case EVENTID_METERING_START: // If they press the shutter halfway
 	case 0x10000048:
 	case 0x10000062:

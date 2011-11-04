@@ -1240,13 +1240,6 @@ audio_monitoring_toggle( void * priv)
 }
 
 static struct menu_entry audio_menus[] = {
-	{
-		.name = "Audio Meters",
-		.priv		= &cfg_draw_meters,
-		.select		= menu_binary_toggle,
-		.display	= audio_meter_display,
-		.help = "Bar peak decay, from -40 dB to 0 dB, yellow at -12dB."
-	},
 #ifndef CONFIG_600D
 #if 0
 	{
@@ -1261,7 +1254,8 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_mgain_toggle,
 		.select_reverse	= audio_mgain_toggle_reverse,
 		.display	= audio_mgain_display,
-		.help = "Gain applied to both inputs in analog domain (preferred)."
+		.help = "Gain applied to both inputs in analog domain (preferred).",
+		.essential = 1,
 	},
 #ifndef CONFIG_500D
 	{
@@ -1270,7 +1264,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
-		.help = "Digital gain (LEFT). Any nonzero value reduces quality."
+		.help = "Digital gain (LEFT). Any nonzero value reduces quality.",
 	},
 	{
 		.name = "L-DigitalGain", // hack
@@ -1278,7 +1272,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_dgain_toggle,
 		.select_reverse = audio_dgain_toggle_reverse,
 		.display	= audio_dgain_display,
-		.help = "Digital gain (RIGHT). Any nonzero value reduces quality."
+		.help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
 	},
 #endif
 	{
@@ -1286,7 +1280,7 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &alc_enable,
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
-		.help = "Automatic Gain Control - turn it off :)"
+		.help = "Automatic Gain Control - turn it off :)",
 	},
 	/*{
      .priv		= &windcut_mode,
@@ -1312,7 +1306,8 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_input_toggle,
 		.select_reverse		= audio_input_toggle_reverse,
 		.display	= audio_input_display,
-		.help = "Audio input: internal / external / both / balanced / auto."
+		.help = "Audio input: internal / external / both / balanced / auto.",
+		.essential = 1,
 	},
 #endif
 	/*{
@@ -1326,7 +1321,8 @@ static struct menu_entry audio_menus[] = {
 		.priv		= &mic_power,
 		.select		= audio_binary_toggle,
 		.display	= audio_micpower_display,
-		.help = "Needed for int. and some other mics, but lowers impedance."
+		.help = "Needed for int. and some other mics, but lowers impedance.",
+		.essential = 1,
 	},
 	{
 		.name = "Output volume (dB)",
@@ -1334,7 +1330,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_3bit_toggle,
 		.select_reverse		= audio_3bit_toggle_reverse,
 		.display	= audio_lovl_display,
-		.help = "Output volume for audio monitoring (headphones only)."
+		.help = "Output volume for audio monitoring (headphones only).",
 	},
 #endif
 	{
@@ -1342,9 +1338,18 @@ static struct menu_entry audio_menus[] = {
 		.priv = &audio_monitoring,
 		.select		= audio_monitoring_toggle,
 		.display	= audio_monitoring_display,
-		.help = "Audio monitoring via USB. Disable if you use a SD display."
+		.help = "Audio monitoring via USB. Disable if you use a SD display.",
+		.essential = 1,
 	},
-#endif
+#endif // 600D
+	{
+		.name = "Audio Meters",
+		.priv		= &cfg_draw_meters,
+		.select		= menu_binary_toggle,
+		.display	= audio_meter_display,
+		.help = "Bar peak decay, from -40 dB to 0 dB, yellow at -12dB.",
+		.essential = 1,
+	},
 };
 
 

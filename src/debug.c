@@ -1432,7 +1432,8 @@ struct menu_entry debug_menus[] = {
 		.select		= screenshot_start,
 		.select_auto = take_screenshot,
 		.display	= menu_print,
-		.help = "Take a screenshot after 10 seconds [SET] or right now [Q]."
+		.help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
+		.essential = 1,
 	},
 #if CONFIG_DEBUGMSG
 	{
@@ -1489,7 +1490,8 @@ struct menu_entry debug_menus[] = {
 		.select		= stress_test,
 		.display	= menu_print,
 		.select_reverse = stress_test_long,
-		.help = "SET: quick test; PLAY: burn-in test (around 2 hours)"
+		.help = "SET: quick test; PLAY: burn-in test (around 2 hours)",
+		.essential = 1,
 	},
 /*	{
 		.select = focus_test,
@@ -1523,23 +1525,27 @@ struct menu_entry debug_menus[] = {
 	{
 		.name = 'Free Memory',
 		.display = meminfo_display,
-		.help = "Memory information (from AllocateMemory)"
+		.help = "Memory information (from AllocateMemory)",
+		.essential = 0,
 	},
 	#endif
 	{
 		.name = 'Shutter Count',
 		.display = shuttercount_display,
-		.help = "Number of pics taken + number of LiveView actuations"
+		.help = "Number of pics taken + number of LiveView actuations",
+		.essential = 1,
 	},
 	{
 		.name = 'EFIC temperature',
 		.display = efictemp_display,
-		.help = "EFIC temperature, in raw units (don't rely on it)."
+		.help = "EFIC temperature, in raw units (don't rely on it).",
+		.essential = 1,
 	},
 	{
 		.name = 'Lens Name',
 		.display = lensname_display,
-		.help = "The name of your current lens"
+		.help = "The name of your current lens",
+		.essential = 1,
 	}
 };
 

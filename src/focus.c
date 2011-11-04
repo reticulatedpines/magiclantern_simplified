@@ -1075,14 +1075,16 @@ static struct menu_entry focus_menu[] = {
 		.priv		= &trap_focus,
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
-		.help = "Takes a picture when the subject comes in focus. MF only."
+		.help = "Takes a picture when the subject comes in focus. MF only.",
+		.essential = 1,
 	},
 	{
 		.name = "Focus Patterns",
 		.priv = &af_patterns,
 		.display	= afp_display,
 		.select = menu_binary_toggle,
-		.help = "Custom AF patterns (photo mode only; ported from 400plus)"
+		.help = "Custom AF patterns (photo mode only; ported from 400plus)",
+		.essential = 1,
 	},
 	{
 		.name = "Follow Focus",
@@ -1095,7 +1097,8 @@ static struct menu_entry focus_menu[] = {
 		#endif
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
-		.help = "Simple follow focus with arrows or zoom in/out buttons."
+		.help = "Simple follow focus with arrows or zoom in/out buttons.",
+		.essential = 1,
 	},
 #ifdef CONFIG_MOVIE_AF
 	{
@@ -1158,7 +1161,8 @@ static struct menu_entry focus_menu[] = {
 	{
 		.name = "Focus Dist",
 		.display	= display_lens_hyperfocal,
-		.help = "Focus distance and DOF info (read-only)"
+		.help = "Focus distance and DOF info (read-only)",
+		.essential = 1,
 	},
 };
 

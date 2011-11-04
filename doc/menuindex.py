@@ -21,6 +21,7 @@ struct menu_entry help_menus[] = {
         .priv = "About Magic Lantern",
         .select = menu_help_go_to_label,
         .display = menu_print,
+        .essential = 1,
     },"""
 
 print >> o, "001 About Magic Lantern"
@@ -57,6 +58,7 @@ for l in f[1:]:
         .priv = "%s",
         .select = menu_help_go_to_label,
         .display = menu_print,
+        .essential = 1,
     },""" % (item, item)
 
     if type == "end":

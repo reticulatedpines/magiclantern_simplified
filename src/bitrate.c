@@ -412,6 +412,7 @@ static struct menu_entry mov_menus[] = {
 		.select_auto	= bitrate_reset,
 		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: reset to 1x.",
 		.select_reverse	= bitrate_toggle_reverse,
+		.essential = 1,
 	},
 	{
 		.name = "BuffWarnLevel",
@@ -426,7 +427,8 @@ static struct menu_entry mov_menus[] = {
 		.select		= menu_quaternary_toggle,
 		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= time_indicator_display,
-		.help = "Time indicator during recording"
+		.help = "Time indicator during recording",
+		.essential = 1,
 	},
 	{
 		.name = "Bitrate Info",

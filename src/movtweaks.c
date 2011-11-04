@@ -626,7 +626,8 @@ static struct menu_entry mov_menus[] = {
 		.priv		= &lv_movie_select,
 		.select		= lv_movie_toggle,
 		.display	= lv_movie_print,
-		.help		= "Enable movie recording on 50D :) "
+		.help		= "Enable movie recording on 50D :) ",
+		.essential = 1,
 	},
 #endif
 #if defined(CONFIG_50D) //|| defined(CONFIG_500D)
@@ -678,7 +679,8 @@ static struct menu_entry mov_menus[] = {
 		.priv = &movie_restart,
 		.display	= movie_restart_print,
 		.select		= menu_binary_toggle,
-		.help = "Auto-restart movie recording, if it happens to stop."
+		.help = "Auto-restart movie recording, if it happens to stop.",
+		.essential = 1,
 	},
 	#endif
 	/*{
@@ -694,7 +696,8 @@ static struct menu_entry mov_menus[] = {
 		.priv = &movie_mode_remap,
 		.display	= mode_remap_print,
 		.select		= menu_ternary_toggle,
-		.help = "Remap movie mode to A-DEP, CA or C."
+		.help = "Remap movie mode to A-DEP, CA or C.",
+		.essential = 1,
 	},
 	#endif
 	/*{
@@ -719,6 +722,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_ternary_toggle, 
 		.select_reverse = menu_ternary_toggle_reverse,
 		#endif
+		.essential = 1,
 	},
 	#ifndef CONFIG_50D
 	{

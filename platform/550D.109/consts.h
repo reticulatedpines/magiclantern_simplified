@@ -227,7 +227,7 @@
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10
 
-#define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / DISP" 
+#define MENU_NAV_HELP_STRING "SET/PLAY/Q=change values    MENU=Easy/Advanced    DISP=Help"
 
 #define DIALOG_MnCardFormatBegin   (0x2524c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x26434+4) // similar

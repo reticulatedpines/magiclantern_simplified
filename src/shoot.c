@@ -3190,7 +3190,8 @@ static struct menu_entry shoot_menus[] = {
 		.select		= hdr_steps_toggle,
 		.select_reverse = hdr_stepsize_toggle,
 		.select_auto = hdr_reset,
-		.help = "Exposure bracketing, useful for HDR images."
+		.help = "Exposure bracketing, useful for HDR images.",
+		.essential = 1,
 	},
 	{
 		.name = "Take a pic every",
@@ -3199,14 +3200,16 @@ static struct menu_entry shoot_menus[] = {
 		.select		= interval_timer_toggle,
 		.select_reverse	= interval_timer_toggle_reverse,
 		.select_auto = interval_movie_duration_toggle,
-		.help = "Intervalometer setting: duration between two shots."
+		.help = "Intervalometer setting: duration between two shots.",
+		.essential = 1,
 	},
 	{
 		.name = "Intervalometer",
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
-		.help = "Intervalometer. For precise timing, choose NoWait [Q]."
+		.help = "Intervalometer. For precise timing, choose NoWait [Q].",
+		.essential = 1,
 	},
 	{
 		.name = "Bulb Ramping",
@@ -3221,7 +3224,7 @@ static struct menu_entry shoot_menus[] = {
 		.select = bulb_toggle_fwd, 
 		.select_reverse = bulb_toggle_rev,
 		.select_auto = bulb_toggle_fwd,
-		.help = "Bulb timer for very long exposures, useful for astrophotos"
+		.help = "Bulb timer for very long exposures, useful for astrophotos",
 	},
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
@@ -3230,7 +3233,8 @@ static struct menu_entry shoot_menus[] = {
 		.select		= menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
-		.help = "Avoid shake using the LCD face sensor as a simple remote."
+		.help = "Avoid shake using the LCD face sensor as a simple remote.",
+		.essential = 1,
 	},
 	#endif
 	#if !defined(CONFIG_600D) && !defined(CONFIG_50D)
@@ -3241,7 +3245,8 @@ static struct menu_entry shoot_menus[] = {
 		.display	= audio_release_display,
 		.select_auto = audio_release_level_toggle, 
 		.select_reverse = audio_release_level_toggle_reverse,
-		.help = "Clap your hands or pop a balloon to take a picture."
+		.help = "Clap your hands or pop a balloon to take a picture.",
+		.essential = 1,
 	},
 	#endif
 	{
@@ -3251,7 +3256,8 @@ static struct menu_entry shoot_menus[] = {
 		.display	= motion_detect_display,
 		.select_auto = motion_release_level_toggle, 
 		.select_reverse = motion_release_level_toggle_reverse,
-		.help = "LV Motion detection: EXPosure change / frame DIFference."
+		.help = "LV Motion detection: EXPosure change / frame DIFference.",
+		.essential = 1,
 	},
 /*	{
 		.select		= flash_and_no_flash_toggle,
@@ -3265,14 +3271,14 @@ static struct menu_entry shoot_menus[] = {
 		.select_reverse = silent_pic_toggle_reverse,
 		.select_auto = silent_pic_toggle_forward,
 		.display = silent_pic_display,
-		.help = "Take pics in LiveView without increasing shutter count."
+		.help = "Take pics in LiveView without increasing shutter count.",
 	},
 	{
 		.name = "Mirror Lockup",
 		.priv = &mlu_auto,
 		.display = mlu_display, 
 		.select = mlu_toggle,
-		.help = "MLU setting can be linked with self-timer and LCD remote."
+		.help = "MLU setting can be linked with self-timer and LCD remote.",
 	},
 	/*{
 		.display = picq_display, 
@@ -3305,7 +3311,8 @@ static struct menu_entry expo_menus[] = {
 		.select		= iso_toggle_forward,
 		.select_reverse		= iso_toggle_reverse,
 		.select_auto = iso_auto,
-		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning."
+		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
+		.essential = 1,
 	},
 	{
 		.name = "WhiteBalance",
@@ -3313,7 +3320,8 @@ static struct menu_entry expo_menus[] = {
 		.select		= kelvin_toggle_forward,
 		.select_reverse		= kelvin_toggle_reverse,
 		.select_auto = kelvin_auto,
-		.help = "Adjust Kelvin WB. Press [Q] for auto tuning."
+		.help = "Adjust Kelvin WB. Press [Q] for auto tuning.",
+		.essential = 1,
 	},
 	{
 		.name = "WBShift G/M",
@@ -3321,14 +3329,16 @@ static struct menu_entry expo_menus[] = {
 		.select = wbs_gm_toggle_forward, 
 		.select_reverse = wbs_gm_toggle_reverse,
 		.select_auto = wbs_gm_auto,
-		.help = "Green-Magenta white balance shift, for fluorescent lights."
+		.help = "Green-Magenta white balance shift, for fluorescent lights.",
+		.essential = 1,
 	},
 	{
 		.name = "WBShift B/A",
 		.display = wbs_ba_display, 
 		.select = wbs_ba_toggle_forward, 
 		.select_reverse = wbs_ba_toggle_reverse,
-		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis."
+		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
+		.essential = 1,
 	},
 	{
 		.name = "Shutter",
@@ -3336,14 +3346,15 @@ static struct menu_entry expo_menus[] = {
 		.select		= shutter_toggle_forward,
 		.select_reverse		= shutter_toggle_reverse,
 		.select_auto = shutter_auto,
-		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits."
+		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits.",
+		.essential = 1,
 	},
 	{
 		.name = "Aperture",
 		.display	= aperture_display,
 		.select		= aperture_toggle_forward,
 		.select_reverse		= aperture_toggle_reverse,
-		.help = "Adjust aperture. Useful if the wheel stops working."
+		.help = "Adjust aperture. Useful if the wheel stops working.",
 	},
 #ifdef CONFIG_500D
 	{
@@ -3367,7 +3378,8 @@ static struct menu_entry expo_menus[] = {
 		.display	= picstyle_display,
 		.select		= picstyle_toggle_forward,
 		.select_reverse		= picstyle_toggle_reverse,
-		.help = "Change current picture style."
+		.help = "Change current picture style.",
+		.essential = 1,
 	},
 	{
 		.priv = &picstyle_rec,
@@ -3375,7 +3387,7 @@ static struct menu_entry expo_menus[] = {
 		.display	= picstyle_rec_display,
 		.select		= picstyle_rec_toggle,
 		.select_reverse		= picstyle_rec_toggle_reverse,
-		.help = "You can use a different picture style when recording."
+		.help = "You can use a different picture style when recording.",
 	},
 	{
 		.name = "Contrast/Saturation/Sharpness",
@@ -3383,21 +3395,24 @@ static struct menu_entry expo_menus[] = {
 		.select		= contrast_toggle_forward,
 		.select_reverse		= contrast_toggle_reverse,
 		//~ .select_auto = contrast_auto,
-		.help = "Adjust contrast in current picture style."
+		.help = "Adjust contrast in current picture style.",
+		.essential = 1,
 	},
 	{
 		.name = "Contrast/Saturation/Sharpness",
 		.display	= saturation_display,
 		.select		= saturation_toggle_forward,
 		.select_reverse		= saturation_toggle_reverse,
-		.help = "Adjust saturation in current picture style."
+		.help = "Adjust saturation in current picture style.",
+		.essential = 1,
 	},
 	{
 		.name = "Contrast/Saturation/Sharpness",
 		.display	= sharpness_display,
 		.select		= sharpness_toggle_forward,
 		.select_reverse		= sharpness_toggle_reverse,
-		.help = "Adjust sharpness in current picture style."
+		.help = "Adjust sharpness in current picture style.",
+		.essential = 1,
 	},
 	{
 		.name = "Flash AEcomp",

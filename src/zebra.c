@@ -1593,7 +1593,7 @@ zoom_overlay_display(
 		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode));
 }
 
-/*
+
 static void
 split_display(
 	void *			priv,
@@ -1615,7 +1615,7 @@ split_display(
 static void split_zerocross_toggle(void* priv)
 {
 	zoom_overlay_split_zerocross = !zoom_overlay_split_zerocross;
-}*/
+}
 
 static void
 spotmeter_menu_display(
@@ -2121,8 +2121,8 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &global_draw,
 		.select		= menu_binary_toggle,
 		.display	= global_draw_display,
-		.help = "Enable/disable ML overlay graphics (zebra, cropmarks...)"
-
+		.help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
+		.essential = 1,
 	},
 	{
 		.name = "Zebras",
@@ -2131,7 +2131,8 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = zebra_lo_toggle, 
 		.select_auto = zebra_hi_toggle,
 		.display	= zebra_draw_display,
-		.help = "Zebra stripes: show overexposed or underexposed areas."
+		.help = "Zebra stripes: show overexposed or underexposed areas.",
+		.essential = 1,
 	},
 	{
 		.name = "Focus Peak",
@@ -2140,7 +2141,8 @@ struct menu_entry zebra_menus[] = {
 		.select			= menu_ternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
-		.help = "Show tiny dots on focused edges. Params: method,thr,color."
+		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
+		.essential = 1,
 	},
 	{
 		.name = "Magic Zoom",
@@ -2149,23 +2151,25 @@ struct menu_entry zebra_menus[] = {
 		.select = zoom_overlay_main_toggle,
 		.select_reverse = zoom_overlay_size_toggle,
 		.select_auto = menu_quinternary_toggle,
-		.help = "Zoom box for checking focus. Can be used while recording."
+		.help = "Zoom box for checking focus. Can be used while recording.",
+		.essential = 1,
 	},
-	/*{
+	{
 		.name = "Split Screen",
 		.priv = &zoom_overlay_split,
 		.display = split_display, 
 		.select = menu_binary_toggle,
 		.select_auto = split_zerocross_toggle,
 		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
-	},*/
+	},
 	{
 		.name = "Cropmks(x/n)",
 		.priv = &crop_draw,
 		.display	= crop_display,
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,
-		.help = "Cropmarks for framing. Usually shown only in Movie mode."
+		.help = "Cropmarks for framing. Usually shown only in Movie mode.",
+		.essential = 1,
 	},
 	{
 		.name = "Ghost image",
@@ -2180,7 +2184,7 @@ struct menu_entry zebra_menus[] = {
 		.priv = &defish_preview, 
 		.display = defish_preview_display, 
 		.select = menu_binary_toggle,
-		.help = "Preview rectilinear image from Samyang 8mm fisheye (gray)."
+		.help = "Preview rectilinear image from Samyang 8mm fisheye (gray).",
 	},
 	{
 		.name = "Spotmeter",
@@ -2188,7 +2192,8 @@ struct menu_entry zebra_menus[] = {
 		.select			= menu_binary_toggle,
 		.select_auto	= spotmeter_formula_toggle,
 		.display		= spotmeter_menu_display,
-		.help = "Measure brightness in the frame center. [Q]: Percent/IRE."
+		.help = "Measure brightness in the frame center. [Q]: Percent/IRE.",
+		.essential = 1,
 	},
 	{
 		.name = "False color",
@@ -2196,7 +2201,8 @@ struct menu_entry zebra_menus[] = {
 		.display	= falsecolor_display,
 		.select		= menu_binary_toggle,
 		.select_auto = falsecolor_palette_toggle,
-		.help = "Shows brightness level as color-coded. [Q]: change palette."
+		.help = "Shows brightness level as color-coded. [Q]: change palette.",
+		.essential = 1,
 	},
 	{
 		.name = "Histo/Wavefm",
@@ -2204,7 +2210,8 @@ struct menu_entry zebra_menus[] = {
 		.select		= menu_ternary_toggle_reverse,
 		.select_auto = waveform_toggle,
 		.display	= hist_display,
-		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure."
+		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
+		.essential = 1,
 	},
 	#ifdef CONFIG_60D
 	{
@@ -2222,7 +2229,8 @@ struct menu_entry zebra_menus[] = {
 		.select			= menu_ternary_toggle,
 		.select_reverse	= menu_ternary_toggle_reverse,
 		.select_auto	= clearscreen_now,
-		.help = "Clear bitmap overlays from LiveView display. [Q]: clr now."
+		.help = "Clear bitmap overlays from LiveView display. [Q]: clr now.",
+		.essential = 1,
 	},
 	/*{
 		.priv			= &focus_graph,
