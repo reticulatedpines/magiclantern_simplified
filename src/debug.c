@@ -1482,7 +1482,7 @@ struct menu_entry debug_menus[] = {
 		.priv		= "Don't click me!",
 		.select		= xx_test,
 		.display	= menu_print,
-		.help = "The camera may turn into a 1D Mark V or it may explode."
+		.help = "The camera may turn into a 1DX or it may explode."
 	},
 	{
 		.name		= "Stability tests",
