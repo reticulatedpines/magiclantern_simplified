@@ -722,6 +722,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_ternary_toggle, 
 		.select_reverse = menu_ternary_toggle_reverse,
 		#endif
+		.help = "Custom REC/STANDBY notifications, visual or audible",
 		.essential = 1,
 	},
 	#ifndef CONFIG_50D
