@@ -68,6 +68,7 @@ void menu_show_only_selected()
 {
 	show_only_selected = 1;
 	//~ menu_damage = 1;
+	edit_mode = 1;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected || menu_hidden ); }
@@ -769,7 +770,7 @@ menu_handler(
 	)
 		return 1; // 0 is too aggressive :)
 
-#if 0
+#if CONFIG_DEBUGMSG
 	if( event > 1 && event < 0x10000000)
 	{
 		bmp_printf( FONT_SMALL, 400, 40,
@@ -900,9 +901,12 @@ menu_handler(
 
 	case PRESS_SET_BUTTON:
 		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-		if (edit_mode) edit_mode = 0;
 		else menu_entry_select( menu, 0 ); // normal select
+		edit_mode = 1;
 		//~ menu_damage = 1;
+		break;
+	case UNPRESS_SET_BUTTON:
+		edit_mode = 0;
 		break;
 
 	case PRESS_INFO_BUTTON:
@@ -957,6 +961,9 @@ menu_handler(
 #endif
 
 	case EVENT_1:          // Synthetic redraw event
+		#ifdef CONFIG_60D
+		if (lv) edit_mode = 0; // in LiveView, UNPRESS SET event is not sent => can't detect when SET is being held
+		#endif
 		break;
 
 	//~ case 0x10000097: // canon code might have drawn over menu

@@ -178,6 +178,7 @@
 // trial and error
 // choose a gui mode which lets you:
 // * use the wheel and all other keys for menu navigation
+// * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
 // * see LiveView image under menu
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
 #define GUIMODE_ML_MENU (lv ? 0x45 : 2)
