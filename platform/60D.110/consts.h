@@ -180,7 +180,8 @@
 // * use the wheel and all other keys for menu navigation
 // * see LiveView image under menu
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
-#define GUIMODE_ML_MENU 0x45
+#define GUIMODE_ML_MENU (lv ? 0x45 : 2)
+// outside LiveView, Canon menu is a good choice
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect

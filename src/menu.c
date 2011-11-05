@@ -430,7 +430,7 @@ menu_display(
 				bmp_printf(
 					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
 					x0 + 10, y0 + 430, 
-						"                                                   "
+						"                                                           "
 				);
 				bmp_printf(
 					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
@@ -1236,13 +1236,13 @@ menu_task( void* unused )
 			open_canon_menu();
 		}
 		#endif
+		idle_kill_flicker();
 		msleep(100);
 		bmp_on();
 
 		x0 = hdmi_code == 5 ? 120 : 0;
 		y0 = hdmi_code == 5 ? 40 : 0;
 
-		idle_kill_flicker();
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		//~ menu_damage = 1;
 		menu_hidden = 0;
