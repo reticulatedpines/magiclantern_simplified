@@ -264,3 +264,6 @@ NSTUB(0xff1d68ac, register_interrupt)
 
 NSTUB(0xFF51BB90, GetCFnData)
 NSTUB(0xFF51BD98, SetCFnData)
+
+NSTUB(0xFF0A4040, SetGUIRequestMode)
+NSTUB(0xFF4838A8, StartShootOlcMeteringApp)

@@ -54,7 +54,8 @@ int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
 int get_menu_font_sel() 
 {
-	if (edit_mode) return FONT(FONT_LARGE,COLOR_WHITE,0x12);
+	if (recording) return FONT(FONT_LARGE,COLOR_WHITE,COLOR_RED);
+	else if (edit_mode) return FONT(FONT_LARGE,COLOR_WHITE,0x12);
 	else return FONT(FONT_LARGE,COLOR_WHITE,13);
 }
 
@@ -1047,7 +1048,7 @@ gui_stop_menu( void )
 
 	if( !gui_menu_task )
 		return;
-	
+
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 	idle_stop_killing_flicker();
@@ -1071,6 +1072,12 @@ gui_stop_menu( void )
 		config_dirty = 0;
 	}
 	redraw_after(300);
+
+	//~ SetGUIRequestMode(0x42);
+	//~ beep();
+	#ifdef GUIMODE_ML_MENU
+	SetGUIRequestMode(0);
+	#endif
 
 	menu_shown = 0;
 }
@@ -1221,10 +1228,14 @@ menu_task( void* unused )
 		
 		menu_shown = 1;
 		
+		#ifdef GUIMODE_ML_MENU
+		SetGUIRequestMode(GUIMODE_ML_MENU);
+		#else
 		if (!lv && !MENU_MODE && !is_movie_mode())
 		{
 			open_canon_menu();
 		}
+		#endif
 		msleep(100);
 		bmp_on();
 

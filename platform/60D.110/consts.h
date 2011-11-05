@@ -164,7 +164,7 @@
 #define AE_VALUE (*(int8_t*)0x24bd9)
 
 #define CURRENT_DIALOG_MAYBE_2 MEM(0x5680)
-#define CURRENT_DIALOG_MAYBE MEM(0x3d70)
+#define CURRENT_DIALOG_MAYBE MEM(0x3d70) // that's actually GUIMode
 #define DLG2_FOCUS_MODE 0xA
 #define DLG2_DRIVE_MODE 0xB
 #define DLG2_ISO 0xF
@@ -175,6 +175,12 @@
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1c)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1d)
 
+// trial and error
+// choose a gui mode which lets you:
+// * use the wheel and all other keys for menu navigation
+// * see LiveView image under menu
+// * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
+#define GUIMODE_ML_MENU 0x45
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
