@@ -901,11 +901,13 @@ menu_handler(
 
 	case PRESS_SET_BUTTON:
 		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-		else if (edit_mode) edit_mode = 0;
 		else
 		{
-			menu_entry_select( menu, 0 ); // normal select
 			edit_mode = 1;
+			#ifdef CONFIG_60D
+			if (lv) edit_mode = 0; // in LiveView, UNPRESS SET event is not sent => can't detect when SET is being held
+			#endif
+			menu_entry_select( menu, 0 ); // normal select
 		}
 		//~ menu_damage = 1;
 		break;
@@ -965,9 +967,6 @@ menu_handler(
 #endif
 
 	case EVENT_1:          // Synthetic redraw event
-		#ifdef CONFIG_60D
-		if (lv) edit_mode = 0; // in LiveView, UNPRESS SET event is not sent => can't detect when SET is being held
-		#endif
 		break;
 
 	//~ case 0x10000097: // canon code might have drawn over menu
