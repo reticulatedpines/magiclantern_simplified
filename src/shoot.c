@@ -1621,25 +1621,25 @@ int crit_iso(int iso_index)
 	if (iso_index >= 0)
 	{
 		lens_set_rawiso(codes_iso[iso_index]);
-		msleep(500);
+		msleep(750);
 	}
 
 	int under, over;
 	get_under_and_over_exposure_autothr(&under, &over);
-	menu_show_only_selected();
+	BMP_LOCK( draw_ml_bottombar(0); )
 	return under - over;
 }
 
 static void iso_auto_run()
 {
-	menu_show_only_selected();
+	gui_stop_menu();
 	if (lens_info.raw_iso == 0) { lens_set_rawiso(96); msleep(500); }
 	int c0 = crit_iso(-1); // test current iso
 	int i;
 	if (c0 > 0) i = bin_search(raw2index_iso(lens_info.raw_iso), COUNT(codes_iso), crit_iso);
 	else i = bin_search(get_htp() ? 9 : 1, raw2index_iso(lens_info.raw_iso)+1, crit_iso);
 	lens_set_rawiso(codes_iso[i]);
-	//~ clrscr();
+	redraw();
 }
 
 
@@ -1733,24 +1733,24 @@ int crit_shutter(int shutter_index)
 	if (shutter_index >= 0)
 	{
 		lens_set_rawshutter(codes_shutter[shutter_index]);
-		msleep(500);
+		msleep(750);
 	}
 
 	int under, over;
 	get_under_and_over_exposure_autothr(&under, &over);
-	menu_show_only_selected();
+	BMP_LOCK( draw_ml_bottombar(0); )
 	return over - under;
 }
 
 static void shutter_auto_run()
 {
-	menu_show_only_selected();
+	gui_stop_menu();
 	int c0 = crit_shutter(-1); // test current shutter
 	int i;
 	if (c0 > 0) i = bin_search(raw2index_shutter(lens_info.raw_shutter), COUNT(codes_shutter), crit_shutter);
 	else i = bin_search(1, raw2index_shutter(lens_info.raw_shutter)+1, crit_shutter);
 	lens_set_rawshutter(codes_shutter[i]);
-	//~ clrscr();
+	redraw();
 }
 
 static void 
@@ -1903,7 +1903,7 @@ int crit_kelvin(int k)
 
 	int Y, U, V;
 	get_spot_yuv(100, &Y, &U, &V);
-	menu_show_only_selected();
+	BMP_LOCK( draw_ml_bottombar(0); )
 
 	int R = Y + 1437 * V / 1024;
 	//~ int G = Y -  352 * U / 1024 - 731 * V / 1024;
@@ -1916,12 +1916,9 @@ int crit_wbs_gm(int k)
 {
 	if (!lv) return 0;
 
-	if (k < 10 && k > -10)
-	{
-		lens_set_wbs_gm(k);
-		msleep(500);
-		menu_show_only_selected();
-	}
+	k = COERCE(k, -10, 10);
+	lens_set_wbs_gm(k);
+	msleep(750);
 
 	int Y, U, V;
 	get_spot_yuv(100, &Y, &U, &V);
@@ -1930,29 +1927,30 @@ int crit_wbs_gm(int k)
 	int G = Y -  352 * U / 1024 - 731 * V / 1024;
 	int B = Y + 1812 * U / 1024;
 
-	menu_show_only_selected();
+	BMP_LOCK( draw_ml_bottombar(0); )
 	return (R+B)/2 - G;
 }
 
 static void kelvin_auto_run()
 {
-	menu_show_only_selected();
+	gui_stop_menu();
 	int c0 = crit_kelvin(-1); // test current kelvin
 	int i;
 	if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
 	else i = bin_search(KELVIN_MIN/KELVIN_STEP, lens_info.kelvin/KELVIN_STEP + 1, crit_kelvin);
 	lens_set_kelvin(i * KELVIN_STEP);
-	//~ clrscr();
+	redraw();
 }
 
 static void wbs_gm_auto_run()
 {
-	menu_show_only_selected();
+	gui_stop_menu();
 	int c0 = crit_wbs_gm(100); // test current value
 	int i;
 	if (c0 > 0) i = bin_search(lens_info.wbs_gm, 10, crit_wbs_gm);
 	else i = bin_search(-9, lens_info.wbs_gm + 1, crit_wbs_gm);
 	lens_set_wbs_gm(i);
+	redraw();
 }
 
 static void 
