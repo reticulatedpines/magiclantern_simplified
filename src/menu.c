@@ -901,8 +901,12 @@ menu_handler(
 
 	case PRESS_SET_BUTTON:
 		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-		else menu_entry_select( menu, 0 ); // normal select
-		edit_mode = 1;
+		else if (edit_mode) edit_mode = 0;
+		else
+		{
+			menu_entry_select( menu, 0 ); // normal select
+			edit_mode = 1;
+		}
 		//~ menu_damage = 1;
 		break;
 	case UNPRESS_SET_BUTTON:
