@@ -42,6 +42,7 @@ static int handle_buttons(struct event * event)
 	extern int ml_started;
 	if (!ml_started) 	{
 		if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
+		if (event->param == BGMT_MENU) return 0; // discard MENU button if it's pressed too early
 		else return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
