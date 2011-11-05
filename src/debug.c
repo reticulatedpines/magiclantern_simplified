@@ -1379,6 +1379,42 @@ static void efictemp_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+CONFIG_INT("prop.i", prop_i, 0);
+CONFIG_INT("prop.j", prop_j, 0);
+CONFIG_INT("prop.k", prop_k, 0);
+
+static void prop_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	unsigned prop = (prop_i << 24) | (prop_j << 16) | (prop_k);
+	int* data = 0;
+	int len = 0;
+	prop_get_value(prop, &data, &len);
+	bmp_printf(
+		FONT_MED,
+		x, y,
+		"PROP %8x: %d: %8x %8x %8x %8x\n"
+		"'%s'",
+		prop,
+		len,
+		len > 0x00 ? data[0] : 0,
+		len > 0x04 ? data[1] : 0,
+		len > 0x08 ? data[2] : 0,
+		len > 0x0c ? data[3] : 0,
+		strlen(data) < 100 ? data : ""
+	);
+	menu_draw_icon(x, y, MNI_BOOL(len), 0);
+}
+
+static void prop_toggle_i(void* priv) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
+static void prop_toggle_j(void* priv) {prop_j = mod(prop_j + 1, 0x10); }
+static void prop_toggle_k(void* priv) {prop_k = mod(prop_k + 1, 0x51); }
+
+
 void menu_kill_flicker()
 {
 	gui_stop_menu();
@@ -1526,6 +1562,14 @@ struct menu_entry debug_menus[] = {
 		.help = "EFIC temperature, in raw units (don't rely on it).",
 		.essential = 1,
 	},
+	{
+		.name = 'PROP display',
+		.display = prop_display,
+		.select = prop_toggle_k, 
+		.select_reverse = prop_toggle_j,
+		.select_auto = prop_toggle_i,
+		.help = "Raw property display (read-only)",
+	},
 };
 
 static struct menu_entry cfg_menus[] = {
@@ -1671,7 +1715,7 @@ ack:
 #endif
 
 #ifndef CONFIG_500D
-#define num_properties 4096
+#define num_properties 8192
 #else
 #define num_properties 2048
 #endif
@@ -1692,9 +1736,9 @@ debug_init( void )
 	unsigned is[] = {0x80, 0xe, 0x5, 0x4, 0x2, 0x1, 0x0};
 	for( i=0 ; i<COUNT(is) ; i++ )
 	{
-		for( j=0 ; j<=0x8 ; j++ )
+		for( j=0 ; j<=0xA ; j++ )
 		{
-			for( k=0 ; k<0x40 ; k++ )
+			for( k=0 ; k<0x50 ; k++ )
 			{
 				unsigned prop = 0
 					| (is[i] << 24) 
