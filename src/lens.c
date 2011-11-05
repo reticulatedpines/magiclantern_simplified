@@ -116,7 +116,7 @@ lens_format_dist(
 
 	if( mm > 100000 ) // 100 m
 		snprintf( dist, sizeof(dist),
-			"%3d.%1dm",
+			"%d.%1dm",
 			mm / 1000,
 			(mm % 1000) / 100
 		);
@@ -136,7 +136,7 @@ lens_format_dist(
 		);
 	else
 		snprintf( dist, sizeof(dist),
-			"%4dcm",
+			"%dcm",
 			mm / 10
 		);
 

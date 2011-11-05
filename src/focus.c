@@ -88,6 +88,17 @@ display_lens_hyperfocal(
 	unsigned		font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
 	unsigned		height = fontspec_height( font );
 
+	menu_draw_icon(x, y + height * 2, MNI_BOOL(lens_info.name[0] && lens_info.focus_dist && lens_info.raw_aperture), 0);
+
+	y += height;
+	bmp_printf( font, x, y,
+		"Lens: %s, %dmm f/%d.%d",
+		lens_info.name[0] ? lens_info.name : "(n/a)",
+		lens_info.focal_len, 
+		lens_info.aperture / 10, 
+		lens_info.aperture % 10
+	);
+
 	if (!lv || !lens_info.focus_dist)
 	{
 		y += height;
@@ -101,7 +112,9 @@ display_lens_hyperfocal(
 		);
 		return;
 	}
-	
+
+	y += height;
+
 	bmp_printf( font, x, y,
 		"Focus dist: %s",
 		lens_info.focus_dist == 0xFFFF

@@ -1379,22 +1379,6 @@ static void efictemp_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
-static void lensname_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Lens: %s",
-		lens_info.name[0] ? lens_info.name : "(n/a)"
-	);
-	menu_draw_icon(x, y, MNI_BOOL(lens_info.name[0]), 0);
-}
-
 void menu_kill_flicker()
 {
 	gui_stop_menu();
@@ -1542,12 +1526,6 @@ struct menu_entry debug_menus[] = {
 		.help = "EFIC temperature, in raw units (don't rely on it).",
 		.essential = 1,
 	},
-	{
-		.name = 'Lens Name',
-		.display = lensname_display,
-		.help = "The name of your current lens",
-		.essential = 1,
-	}
 };
 
 static struct menu_entry cfg_menus[] = {
