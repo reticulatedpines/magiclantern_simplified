@@ -1246,8 +1246,8 @@ menu_task( void* unused )
 			open_canon_menu();
 		}
 		#endif
-		idle_kill_flicker();
 		msleep(100);
+		idle_kill_flicker();
 		bmp_on();
 
 		x0 = hdmi_code == 5 ? 120 : 0;
