@@ -1379,6 +1379,7 @@ static void efictemp_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+#if CONFIG_DEBUGMSG
 CONFIG_INT("prop.i", prop_i, 0);
 CONFIG_INT("prop.j", prop_j, 0);
 CONFIG_INT("prop.k", prop_k, 0);
@@ -1393,12 +1394,12 @@ static void prop_display(
 	unsigned prop = (prop_i << 24) | (prop_j << 16) | (prop_k);
 	int* data = 0;
 	int len = 0;
-	prop_get_value(prop, &data, &len);
+	int err = prop_get_value(prop, &data, &len);
 	bmp_printf(
 		FONT_MED,
 		x, y,
 		"PROP %8x: %d: %8x %8x %8x %8x\n"
-		"'%s'",
+		"'%s' ",
 		prop,
 		len,
 		len > 0x00 ? data[0] : 0,
@@ -1407,13 +1408,59 @@ static void prop_display(
 		len > 0x0c ? data[3] : 0,
 		strlen(data) < 100 ? data : ""
 	);
-	menu_draw_icon(x, y, MNI_BOOL(len), 0);
+	menu_draw_icon(x, y, MNI_BOOL(!err), 0);
+}
+
+void prop_dump()
+{
+	FIO_RemoveFile(CARD_DRIVE "PROP.LOG");
+	FILE* f = FIO_CreateFile(CARD_DRIVE "PROP.LOG");
+
+	FIO_RemoveFile(CARD_DRIVE "PROP-STR.LOG");
+	FILE* g = FIO_CreateFile(CARD_DRIVE "PROP-STR.LOG");
+	
+	unsigned i, j, k;
+	unsigned actual_num_properties = 0;
+	
+	for( i=0 ; i<256 ; i++ )
+	{
+		if (i > 0x10 && i != 0x80) continue;
+		for( j=0 ; j<=0xA ; j++ )
+		{
+			for( k=0 ; k<0x50 ; k++ )
+			{
+				unsigned prop = 0
+					| (i << 24) 
+					| (j << 16)
+					| (k <<  0);
+		
+				bmp_printf(FONT_LARGE, 0, 0, "PROP %x...", prop);
+				int* data = 0;
+				int len = 0;
+				int err = prop_get_value(prop, &data, &len);
+				if (!err)
+				{
+					my_fprintf(f, "\nPROP %8x: %5d:", prop, len );
+					my_fprintf(g, "\nPROP %8x: %5d:", prop, len );
+					for (int i = 0; i < (MIN(len,40)+3)/4; i++)
+					{
+						my_fprintf(f, "%8x ", data[i]);
+					}
+					if (strlen(data) < 100) my_fprintf(g, "'%s'", data);
+				}
+			}
+		}
+	}
+	FIO_CloseFile(f);
+	FIO_CloseFile(g);
+	beep();
+	redraw();
 }
 
 static void prop_toggle_i(void* priv) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
 static void prop_toggle_j(void* priv) {prop_j = mod(prop_j + 1, 0x10); }
 static void prop_toggle_k(void* priv) {prop_k = mod(prop_k + 1, 0x51); }
-
+#endif
 
 void menu_kill_flicker()
 {
@@ -1562,6 +1609,7 @@ struct menu_entry debug_menus[] = {
 		.help = "EFIC temperature, in raw units (don't rely on it).",
 		.essential = 1,
 	},
+	#if CONFIG_DEBUGMSG
 	{
 		.name = 'PROP display',
 		.display = prop_display,
@@ -1570,6 +1618,7 @@ struct menu_entry debug_menus[] = {
 		.select_auto = prop_toggle_i,
 		.help = "Raw property display (read-only)",
 	},
+	#endif
 };
 
 static struct menu_entry cfg_menus[] = {

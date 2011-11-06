@@ -402,12 +402,16 @@ prop_request_change(
 
 /** Get the current value of a property.
  *
- * \todo Does initial value of len matter?
+ * int* data = 0;
+ * int len = 0;
+ * int err = prop_get_value(prop, &data, &len);
+ * 
+ * Returns 0 on success.
  */
-extern void
+extern int
 prop_get_value(
 	unsigned	property,
-	void *		addr,
+	void **		addr,
 	size_t *	len
 );
 
