@@ -256,3 +256,5 @@ NSTUB(0xFF2045E0, GUI_SetRollingPitchingLevelStatus)
 
 NSTUB(0xFF42E15C, GetCFnData)
 NSTUB(0xFF42E364, SetCFnData)
+
+NSTUB(0xFF092558, SetGUIRequestMode)

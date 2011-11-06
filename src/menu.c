@@ -1253,7 +1253,7 @@ menu_task( void* unused )
 		#else
 		if (!lv && !MENU_MODE && !is_movie_mode())
 		{
-			open_canon_menu();
+			if (!PLAY_MODE) open_canon_menu();
 		}
 		#endif
 		msleep(200);

@@ -1175,7 +1175,6 @@ struct menu_entry tweak_menus[] = {
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
-		.essential = FOR_PHOTO,
 	},
 	#endif
 	#if 0
