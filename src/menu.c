@@ -530,7 +530,6 @@ menu_entry_select(
 		return;
 
 	show_only_selected = 0;
-	menu_help_active = 0;
 	take_semaphore( menu_sem, 0 );
 	struct menu_entry * entry = menu->children;
 
@@ -575,7 +574,6 @@ menu_move(
 		return;
 
 	show_only_selected = 0;
-	menu_help_active = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -626,7 +624,6 @@ menu_entry_move(
 		return;
 
 	show_only_selected = 0;
-	menu_help_active = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -807,6 +804,9 @@ menu_handler(
 		menu_move(menu, -1); menu = get_selected_menu();
 		menu_move(menu, 1); menu = get_selected_menu();
 	}
+	
+	menu_entry_move(menu, -1);
+	menu_entry_move(menu, 1);
 	
 	switch( event )
 	{
@@ -1082,7 +1082,6 @@ gui_stop_menu( void )
 		save_config(0);
 		config_dirty = 0;
 	}
-	redraw_after(300);
 
 	//~ SetGUIRequestMode(0x42);
 	//~ beep();
@@ -1091,6 +1090,9 @@ gui_stop_menu( void )
 	#endif
 
 	menu_shown = 0;
+
+	if (!PLAY_MODE) redraw_after(300);
+	else draw_livev_for_playback();
 }
 
 
@@ -1247,7 +1249,7 @@ menu_task( void* unused )
 			open_canon_menu();
 		}
 		#endif
-		msleep(100);
+		msleep(200);
 		idle_kill_flicker();
 		bmp_on();
 

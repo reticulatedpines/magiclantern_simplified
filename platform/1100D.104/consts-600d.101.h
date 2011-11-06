@@ -282,7 +282,7 @@
 #define FLASH_MAX_EV (3*8)
 #define FLASH_MIN_EV (-5*8)
 
-#define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q / INFO" 
+#define MENU_NAV_HELP_STRING (PLAY_MODE ? "DISP outside menu: show LiveV tools         SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x8428+12) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
