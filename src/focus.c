@@ -1089,7 +1089,7 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
 		.help = "Takes a picture when the subject comes in focus. MF only.",
-		.essential = FOR_PHOTO_NON_LIVEVIEW,
+		.essential = FOR_PHOTO,
 	},
 	{
 		.name = "Focus Patterns",
