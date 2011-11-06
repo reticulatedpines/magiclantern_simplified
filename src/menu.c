@@ -430,12 +430,12 @@ menu_display(
 			{
 				bmp_printf(
 					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-					x0 + 10, y0 + 430, 
+					x0 + 10, y0 + 450, 
 						"                                                           "
 				);
 				bmp_printf(
 					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-					x0 + 10, y0 + 430, 
+					x0 + 10, y0 + 450, 
 						warning_msg
 				);
 			}
