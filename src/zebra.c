@@ -3700,7 +3700,7 @@ void defish_draw()
 	if (!bvram) return;
 
 	//~ int y;
-	for (i = 0; i < 212; i++)
+	for (i = 0; i < 240; i++)
 	{
 		for (j = 0; j < 360; j++)
 		{
