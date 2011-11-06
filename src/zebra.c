@@ -3700,7 +3700,11 @@ void defish_draw()
 	if (!bvram) return;
 
 	//~ int y;
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
+	for (i = 0; i < 212; i++)
+#else
 	for (i = 0; i < 240; i++)
+#endif
 	{
 		for (j = 0; j < 360; j++)
 		{
