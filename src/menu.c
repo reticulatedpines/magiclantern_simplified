@@ -835,6 +835,9 @@ menu_handler(
 
 	case PRESS_MENU_BUTTON:
 		advanced_mode = !advanced_mode;
+		show_only_selected = 0;
+		menu_help_active = 0;
+		edit_mode = 0;
 		break;
 
 	/*
