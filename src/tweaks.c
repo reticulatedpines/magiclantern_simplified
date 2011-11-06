@@ -1135,7 +1135,7 @@ struct menu_entry tweak_menus[] = {
 		.select = expsim_toggle,
 		.select_reverse = expsim_toggle_reverse,
 		.display = expsim_display,
-		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av)."
+		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
 	},
 	{
 		.name = "DOF Preview", 
@@ -1143,7 +1143,7 @@ struct menu_entry tweak_menus[] = {
 		.select = menu_binary_toggle, 
 		.select_auto = dofp_lock,
 		.display = dofp_display,
-		.help = "Sticky = click DOF to toggle. Or, press [Q] to lock now."
+		.help = "Sticky = click DOF to toggle. Or, press [Q] to lock now.",
 	},
 	/*{
 		.name = "Electric Shutter",
@@ -1175,6 +1175,7 @@ struct menu_entry tweak_menus[] = {
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
+		.essential = FOR_PHOTO,
 	},
 	#endif
 	#if 0
@@ -1250,21 +1251,24 @@ struct menu_entry play_menus[] = {
 		.select = menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.display = play_set_wheel_display,
-		.help = "What to do when you hold SET and turn MainDial (Wheel)"
+		.help = "What to do when you hold SET and turn MainDial (Wheel)",
+		.essential = FOR_PLAYBACK,
 	},
 	{
 		.name = "Cropmarks (PLAY)",
 		.priv = &cropmarks_play, 
 		.select = menu_binary_toggle, 
 		.display = cropmarks_play_display,
-		.help = "Show cropmarks in PLAY mode"
+		.help = "Show cropmarks in PLAY mode",
+		.essential = FOR_PLAYBACK,
 	},
 	{
 		.name = "After taking a photo",
 		.priv = &quick_review_allow_zoom, 
 		.select = menu_binary_toggle, 
 		.display = qrplay_display,
-		.help = "When you set \"ImageReview: Hold\", it will go to Play mode."
+		.help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
+		.essential = FOR_PLAYBACK,
 	},
 	{
 		.name = "Zoom in PLAY mode",
@@ -1272,7 +1276,8 @@ struct menu_entry play_menus[] = {
 		.select = menu_ternary_toggle, 
 		.select_reverse = menu_ternary_toggle_reverse,
 		.display = quickzoom_display,
-		.help = "Faster zoom in Play mode, for pixel peeping :)"
+		.help = "Faster zoom in Play mode, for pixel peeping :)",
+		.essential = FOR_PLAYBACK,
 	},
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
@@ -1280,7 +1285,8 @@ struct menu_entry play_menus[] = {
 		.priv = &play_lv_action, 
 		.select = menu_binary_toggle, 
 		.display = play_lv_display,
-		.help = "You may use the LiveView button to protect images quickly."
+		.help = "You may use the LiveView button to protect images quickly.",
+		.essential = FOR_PLAYBACK,
 	},
 #endif
 	{
@@ -1288,7 +1294,8 @@ struct menu_entry play_menus[] = {
 		.priv = &quick_delete, 
 		.select = menu_binary_toggle, 
 		.display = quick_delete_print,
-		.help = "Delete files quickly with SET+Erase (be careful!!!)"
+		.help = "Delete files quickly with SET+Erase (be careful!!!)",
+		.essential = FOR_PLAYBACK,
 	},
 };
 

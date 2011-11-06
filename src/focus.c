@@ -1089,7 +1089,7 @@ static struct menu_entry focus_menu[] = {
 		.select		= menu_binary_toggle,
 		.display	= trap_focus_display,
 		.help = "Takes a picture when the subject comes in focus. MF only.",
-		.essential = 1,
+		.essential = FOR_PHOTO_NON_LIVEVIEW,
 	},
 	{
 		.name = "Focus Patterns",
@@ -1097,7 +1097,7 @@ static struct menu_entry focus_menu[] = {
 		.display	= afp_display,
 		.select = menu_binary_toggle,
 		.help = "Custom AF patterns (photo mode only; ported from 400plus)",
-		.essential = 1,
+		.essential = FOR_PHOTO_NON_LIVEVIEW,
 	},
 	{
 		.name = "Follow Focus",
@@ -1111,7 +1111,7 @@ static struct menu_entry focus_menu[] = {
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
 		.help = "Simple follow focus with arrows or zoom in/out buttons.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW,
 	},
 #ifdef CONFIG_MOVIE_AF
 	{
@@ -1129,7 +1129,8 @@ static struct menu_entry focus_menu[] = {
 		.display	= focus_rack_speed_display,
 		.select		= focus_stepsize_increment,
 		.select_reverse	= focus_stepsize_decrement,
-		.help = "Step size for focus commands (same units as in EOS Utility)"
+		.help = "Step size for focus commands (same units as in EOS Utility)",
+		.essential = FOR_LIVEVIEW,
 	},
 	{
 		.name = "Focus StepDelay",
@@ -1138,7 +1139,8 @@ static struct menu_entry focus_menu[] = {
 		.select		= focus_delay_increment,
 		.select_reverse	= focus_delay_decrement,
 		.select_auto = menu_binary_toggle, 
-		.help = "Delay between two successive focus commands. [Q]: Wait."
+		.help = "Delay between two successive focus commands. [Q]: Wait.",
+		.essential = FOR_LIVEVIEW,
 	},
 	{
 		.name = "Focus End Point",
@@ -1175,7 +1177,7 @@ static struct menu_entry focus_menu[] = {
 		.name = "Focus Dist",
 		.display	= display_lens_hyperfocal,
 		.help = "Focus distance and DOF info (read-only)",
-		.essential = 1,
+		.essential = FOR_PHOTO | FOR_MOVIE,
 	},
 };
 

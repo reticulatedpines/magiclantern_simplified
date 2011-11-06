@@ -226,8 +226,11 @@ int idle_globaldraw_disable = 0;
 int get_global_draw() // menu setting, or off if 
 {
 	extern int ml_started;
+	if (!ml_started) return 0;
+	
+	if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
+	
 	return global_draw && 
-		ml_started && 
 		!idle_globaldraw_disable && 
 		!sensor_cleaning && 
 		bmp_is_on() &&
@@ -868,7 +871,7 @@ draw_zebra_and_focus( int Z, int F )
 	//~ if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (is_movie_mode() && video_mode_resolution != 0)))
 		//~ { draw_zebra_and_focus_unified(); return; }
 	
-	if (!global_draw) return;
+	if (!get_global_draw()) return;
 	
 	// HD to LV coordinate transform:
 	// non-record: 1056 px: 1.46 ratio (yuck!)
@@ -1103,7 +1106,7 @@ void
 clrscr_mirror( void )
 {
 	if (!lv) return;
-	if (!global_draw) return;
+	if (!get_global_draw()) return;
 
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -2122,7 +2125,7 @@ struct menu_entry zebra_menus[] = {
 		.select		= menu_binary_toggle,
 		.display	= global_draw_display,
 		.help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW,
 	},
 	{
 		.name = "Zebras",
@@ -2132,7 +2135,7 @@ struct menu_entry zebra_menus[] = {
 		.select_auto = zebra_hi_toggle,
 		.display	= zebra_draw_display,
 		.help = "Zebra stripes: show overexposed or underexposed areas.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 	},
 	{
 		.name = "Focus Peak",
@@ -2142,7 +2145,7 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW,
 	},
 	{
 		.name = "Magic Zoom",
@@ -2152,7 +2155,7 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse = zoom_overlay_size_toggle,
 		.select_auto = menu_quinternary_toggle,
 		.help = "Zoom box for checking focus. Can be used while recording.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW,
 	},
 	{
 		.name = "Split Screen",
@@ -2169,7 +2172,7 @@ struct menu_entry zebra_menus[] = {
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,
 		.help = "Cropmarks for framing. Usually shown only in Movie mode.",
-		.essential = 1,
+		.essential = FOR_MOVIE,
 	},
 	{
 		.name = "Ghost image",
@@ -2177,7 +2180,8 @@ struct menu_entry zebra_menus[] = {
 		.display = transparent_overlay_display, 
 		.select = menu_binary_toggle,
 		.select_auto = transparent_overlay_offset_clear,
-		.help = "Overlay any image in LiveView. In PLAY mode, press LV btn."
+		.help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
+		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 	},
 	{
 		.name = "Live Defish",
@@ -2193,7 +2197,7 @@ struct menu_entry zebra_menus[] = {
 		.select_auto	= spotmeter_formula_toggle,
 		.display		= spotmeter_menu_display,
 		.help = "Measure brightness in the frame center. [Q]: Percent/IRE.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 	},
 	{
 		.name = "False color",
@@ -2202,7 +2206,7 @@ struct menu_entry zebra_menus[] = {
 		.select		= menu_binary_toggle,
 		.select_auto = falsecolor_palette_toggle,
 		.help = "Shows brightness level as color-coded. [Q]: change palette.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 	},
 	{
 		.name = "Histo/Wavefm",
@@ -2211,7 +2215,7 @@ struct menu_entry zebra_menus[] = {
 		.select_auto = waveform_toggle,
 		.display	= hist_display,
 		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 	},
 	#ifdef CONFIG_60D
 	{
@@ -2219,7 +2223,8 @@ struct menu_entry zebra_menus[] = {
 		.priv = &electronic_level, 
 		.select = menu_binary_toggle, 
 		.display = electronic_level_display,
-		.help = "Electronic level indicator"
+		.help = "Electronic level indicator",
+		.essential = FOR_LIVEVIEW,
 	},
 	#endif
 	{
@@ -2230,7 +2235,7 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse	= menu_ternary_toggle_reverse,
 		.select_auto	= clearscreen_now,
 		.help = "Clear bitmap overlays from LiveView display. [Q]: clr now.",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW,
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -2752,7 +2757,6 @@ void zebra_sleep_when_tired()
 void draw_livev_for_playback()
 {
 	clrscr();
-	if (!get_global_draw()) return;
 	
 BMP_LOCK(
 	cropmark_redraw();

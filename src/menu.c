@@ -379,7 +379,7 @@ menu_has_visible_items(struct menu_entry *	menu)
 {
 	while( menu )
 	{
-		if (advanced_mode || menu->essential)
+		if (advanced_mode || IS_ESSENTIAL(menu))
 		{
 			return 1;
 		}
@@ -398,7 +398,7 @@ menu_display(
 {
 	while( menu )
 	{
-		if (advanced_mode || menu->essential)
+		if (advanced_mode || IS_ESSENTIAL(menu))
 		{
 			icon_drawn = 0;
 			
@@ -674,7 +674,7 @@ menu_entry_move(
 	entry->selected = 1;
 	give_semaphore( menu_sem );
 	
-	if (!advanced_mode && !entry->essential)
+	if (!advanced_mode && !IS_ESSENTIAL(entry))
 		menu_entry_move(menu, direction); // try again, skip hidden items
 		// warning: would block if the menu is empty
 }
@@ -1087,7 +1087,7 @@ gui_stop_menu( void )
 	//~ SetGUIRequestMode(0x42);
 	//~ beep();
 	#ifdef GUIMODE_ML_MENU
-	SetGUIRequestMode(0);
+	if (!PLAY_MODE) SetGUIRequestMode(0);
 	#endif
 
 	menu_shown = 0;
@@ -1240,7 +1240,7 @@ menu_task( void* unused )
 		menu_shown = 1;
 		
 		#ifdef GUIMODE_ML_MENU
-		SetGUIRequestMode(GUIMODE_ML_MENU);
+		if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
 		#else
 		if (!lv && !MENU_MODE && !is_movie_mode())
 		{
@@ -1387,6 +1387,13 @@ int handle_ml_menu_erase(struct event * event)
 			return 0;
 		}
 	}
+
+	if (event->param == BGMT_MENU && PLAY_MODE)
+	{
+		give_semaphore( gui_sem );
+		return 0;
+	}
+
 	return 1;
 }
 

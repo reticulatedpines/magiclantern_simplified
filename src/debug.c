@@ -1343,7 +1343,7 @@ static void meminfo_display(
 		"Free Memory  : %dK/%dK",
 		b/1024, a/1024
 	);
-	menu_draw_icon(x, y, MNI_ON, 0);
+	menu_draw_icon(x, y, MNI_BOOL(b > 1024*1024), 0);
 }
 
 static void shuttercount_display(
@@ -1501,7 +1501,7 @@ struct menu_entry debug_menus[] = {
 		.select_auto = take_screenshot,
 		.display	= menu_print,
 		.help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
-		.essential = 1,
+		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 #if CONFIG_DEBUGMSG
 	{
@@ -1559,7 +1559,7 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.select_reverse = stress_test_long,
 		.help = "SET: quick test; PLAY: burn-in test (around 2 hours)",
-		.essential = 1,
+		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 /*	{
 		.select = focus_test,
@@ -1601,13 +1601,13 @@ struct menu_entry debug_menus[] = {
 		.name = 'Shutter Count',
 		.display = shuttercount_display,
 		.help = "Number of pics taken + number of LiveView actuations",
-		.essential = 1,
+		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 	{
 		.name = 'EFIC temperature',
 		.display = efictemp_display,
 		.help = "EFIC temperature, in raw units (don't rely on it).",
-		.essential = 1,
+		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 	#if CONFIG_DEBUGMSG
 	{

@@ -60,11 +60,25 @@ struct menu_entry
 		int			y,
 		int			selected
 	);
-	int essential; // set to 1 to show it in simple mode
+	int essential;
 	const char * help;
 	const char * name; // for now it's used only for context help; will be used for display too.
 };
 
+// these can be combined with OR
+#define FOR_MOVIE 1
+#define FOR_PHOTO 2 // LV + non-LV
+#define FOR_LIVEVIEW 4 // photo and movie
+#define FOR_PHOTO_NON_LIVEVIEW 8 // photo only, non_liveview
+#define FOR_PLAYBACK 16 // photo and movie
+
+#define IS_ESSENTIAL(menu) ( \
+	(menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
+	(menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
+	(menu->essential & FOR_LIVEVIEW && lv) || \
+	(menu->essential & FOR_PHOTO_NON_LIVEVIEW && !lv && !PLAY_MODE) || \
+	(menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
+0)
 
 struct menu
 {
