@@ -442,6 +442,7 @@ menu_display(
 
 			y += font_large.height - 1;
 			
+			if (y > vram_bm.height - font_large.height) return;
 		}
 		menu = menu->next;
 	}
