@@ -68,7 +68,7 @@ void menu_show_only_selected()
 {
 	show_only_selected = 1;
 	//~ menu_damage = 1;
-	edit_mode = 1;
+	if (lv) edit_mode = 1;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected || menu_hidden ); }
@@ -529,7 +529,6 @@ menu_entry_select(
 	if( !menu )
 		return;
 
-	show_only_selected = 0;
 	take_semaphore( menu_sem, 0 );
 	struct menu_entry * entry = menu->children;
 
@@ -573,7 +572,6 @@ menu_move(
 	if( !menu )
 		return;
 
-	show_only_selected = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -623,7 +621,6 @@ menu_entry_move(
 	if (!menu_has_visible_items(menu->children))
 		return;
 
-	show_only_selected = 0;
 	int rc = take_semaphore( menu_sem, 100 );
 	if( rc != 0 )
 		return;
@@ -867,6 +864,7 @@ menu_handler(
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
 		//~ menu_damage = 1;
+		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
 		else menu_entry_move( menu, -1 );
@@ -877,24 +875,29 @@ menu_handler(
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
 		//~ menu_damage = 1;
+		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
 		else menu_entry_move( menu, 1 );
 		break;
 
-	case DIAL_RIGHT:
 	case PRESS_RIGHT_BUTTON:
 	case PRESS_JOY_RIGHT:
+		edit_mode = 0;
+	case DIAL_RIGHT:
 		//~ menu_damage = 1;
+		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
 		else menu_move( menu, 1 );
 		break;
 
-	case DIAL_LEFT:
 	case PRESS_LEFT_BUTTON:
 	case PRESS_JOY_LEFT:
+		edit_mode = 0;
+	case DIAL_LEFT:
 		//~ menu_damage = 1;
+		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
 		else menu_move( menu, -1 );
@@ -918,6 +921,7 @@ menu_handler(
 
 	case PRESS_INFO_BUTTON:
 		menu_help_active = !menu_help_active;
+		show_only_selected = 0;
 		if (menu_help_active) menu_help_go_to_selected_entry(menu);
 		//~ menu_damage = 1;
 		break;
