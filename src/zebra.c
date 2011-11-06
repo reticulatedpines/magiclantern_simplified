@@ -2402,12 +2402,14 @@ void bmp_on()
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_bmp_cleared) 
 	{// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
-		cli_save();
-		if (tft_status == 0 && lv)
-		{
-			MuteOff_0();
-		}
-		sei_restore();
+		BMP_LOCK(
+			cli_save();
+			if (tft_status == 0 && lv && !lv_paused)
+			{
+				MuteOff_0();
+			}
+			sei_restore();
+		)
 		_bmp_cleared = 0;
 	}
 }
@@ -2423,13 +2425,15 @@ void bmp_off()
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
 	{
-		cli_save();
-		if (tft_status == 0 && lv)
-		{
-			_bmp_cleared = 1;
-			MuteOn_0();
-		}
-		sei_restore();
+		BMP_LOCK(
+			cli_save();
+			if (tft_status == 0 && lv && !lv_paused)
+			{
+				_bmp_cleared = 1;
+				MuteOn_0();
+			}
+			sei_restore();
+		)
 	}
 }
 int bmp_is_on() { return !_bmp_cleared; }
@@ -2851,7 +2855,7 @@ int idle_countdown_killflicker_prev = 5;
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
 #if CONFIG_DEBUGMSG
-	NotifyBox(1000, "wakeup: %d   ", reason);
+	NotifyBox(2000, "wakeup: %d   ", reason);
 #endif
 
 	if (lv && !lv_paused && reason == OLC_INFO_CHANGED) return;
@@ -2927,12 +2931,13 @@ void PauseLiveView()
 	{
 		int x = 1;
 		while (get_halfshutter_pressed()) msleep(10);
-		prop_request_change(PROP_LV_ACTION, &x, 4);
-		ui_lock(UILOCK_SHUTTER); // pressing shutter halfway while LV is paused may cause ERR80
-		msleep(100);
-		clrscr();
-		lv_paused = 1;
-		lv = 1;
+		BMP_LOCK(
+			prop_request_change(PROP_LV_ACTION, &x, 4);
+			msleep(100);
+			clrscr();
+			lv_paused = 1;
+			lv = 1;
+		)
 	}
 }
 
@@ -2943,9 +2948,10 @@ void ResumeLiveView()
 		lv = 0;
 		int x = 0;
 		while (get_halfshutter_pressed()) msleep(10);
-		prop_request_change(PROP_LV_ACTION, &x, 4);
-		ui_lock(UILOCK_NONE);
-		while (!lv) msleep(100);
+		BMP_LOCK(
+			prop_request_change(PROP_LV_ACTION, &x, 4);
+			while (!lv) msleep(100);
+		)
 		msleep(300);
 	}
 	lv_paused = 0;
@@ -3728,7 +3734,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
 	zoom_overlay_countdown = 0;
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
-	idle_wakeup_reset_counters(-4);
+	//~ idle_wakeup_reset_counters(-4);
 	idle_globaldraw_disable = 0;
 	lv_paused = 0;
 	return prop_cleanup( token, property );
