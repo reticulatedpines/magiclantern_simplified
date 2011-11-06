@@ -3461,7 +3461,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 }
 
 // normal pic, silent pic, bulb pic...
-static void take_a_pic()
+static void take_a_pic(int allow_af)
 {
 	if (silent_pic_mode)
 	{
@@ -3470,7 +3470,7 @@ static void take_a_pic()
 	else
 	{
 		if (is_bulb_mode()) bulb_take_pic(bulb_shutter_value);
-		else lens_take_picture(64, 0);
+		else lens_take_picture(64, allow_af);
 	}
 	lens_wait_readytotakepic(64);
 }
@@ -3479,7 +3479,7 @@ static void take_a_pic()
 // The function chooses the best method for applying this correction (as exposure compensation, altering shutter value, or bulb timer)
 // And then it takes a picture
 // .. and restores settings back
-static void hdr_shutter_release(int ev_x8)
+static void hdr_shutter_release(int ev_x8, int allow_af)
 {
 	//~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
 	lens_wait_readytotakepic(64);
@@ -3489,7 +3489,7 @@ static void hdr_shutter_release(int ev_x8)
 	{
 		int ae0 = lens_get_ae();
 		lens_set_ae(ae0 + ev_x8);
-		take_a_pic();
+		take_a_pic(allow_af);
 		lens_set_ae(ae0);
 	}
 	else // manual mode or bulb
@@ -3521,7 +3521,7 @@ static void hdr_shutter_release(int ev_x8)
 			bulb_ramping_enabled = 0; // to force a pic in manual mode
 			
 			lens_set_rawshutter(rc);
-			take_a_pic();
+			take_a_pic(allow_af);
 			
 			bulb_ramping_enabled = b;
 		}
@@ -3549,7 +3549,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 	for( i = -steps/2; i <= steps/2; i ++  )
 	{
 		if (skip0 && (i == 0)) continue;
-		hdr_shutter_release(step_size * i);
+		hdr_shutter_release(step_size * i, 0);
 		
 		// cancel bracketing
 		if (shooting_mode != m || MENU_MODE) 
@@ -3642,7 +3642,7 @@ void hdr_shot(int skip0, int wait)
 	}
 	else // regular pic (not HDR)
 	{
-		hdr_shutter_release(0);
+		hdr_shutter_release(0, 1);
 	}
 }
 
@@ -4215,7 +4215,7 @@ shoot_task( void* unused )
 
 			if (dt == 0)
 			{
-				take_a_pic();
+				take_a_pic(1);
 			}
 			else if (!is_movie_mode() || silent_pic_mode)
 			{
