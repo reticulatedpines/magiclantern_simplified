@@ -364,7 +364,7 @@ movtweak_task( void* unused )
 	}
 }
 
-TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1f, 0x1000 );
+TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
 
 static void
 wb_workaround_display(
@@ -638,15 +638,16 @@ static struct menu_entry mov_menus[] = {
 		.display	= movie_expo_lock_print,
 		.help		= "Lock the exposure in movie mode (50D/500D)"
 	},
-//#endif
+#endif
 	{
 		.name = "Shutter Lock",
 		.priv = &shutter_lock,
 		.display = shutter_lock_print, 
 		.select = menu_binary_toggle,
-		.help = "Lock shutter value in movie mode (change from Expo only)."
+		.help = "Lock shutter value in movie mode (change from Expo only).",
+		.essential = FOR_MOVIE,
 	},
-//#ifdef CONFIG_50D
+#ifdef CONFIG_50D
 	{
 		.name = "Shutter Button",
 		.priv = &shutter_btn_rec,
