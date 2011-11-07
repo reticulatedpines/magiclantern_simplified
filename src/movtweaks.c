@@ -449,23 +449,6 @@ screen_layout_display(
 void screen_layout_toggle() { menu_quinternary_toggle(get_screen_layout_ptr()); }
 void screen_layout_toggle_reverse() { menu_quinternary_toggle_reverse(get_screen_layout_ptr()); }
 
-CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
-
-void digital_zoom_shortcut_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"DigitalZoom Shortcut: %s",
-		digital_zoom_shortcut ? "1x, 3x" : "3x...10x"
-	);
-}
-
 
 #ifdef CONFIG_50D
 
@@ -743,15 +726,6 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Without this, camera forgets some WB params in Movie mode."
 	},*/
-	#ifdef CONFIG_600D
-	{
-		.name = "DigitalZoom Shortcut",
-		.priv = &digital_zoom_shortcut,
-		.display = digital_zoom_shortcut_display, 
-		.select = menu_binary_toggle,
-		.help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
-	},
-	#endif
 	/*{
 		.name = "Zebra when REC",
 		.priv = &zebra_nrec,

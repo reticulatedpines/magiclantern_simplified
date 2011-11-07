@@ -1112,6 +1112,24 @@ static void eshutter_toggle(void* priv)
 	set_eshutter(mod(eshutter + 1, 3));
 }*/
 
+CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
+
+void digital_zoom_shortcut_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"DigitalZoom Shortcut: %s",
+		digital_zoom_shortcut ? "1x, 3x" : "3x...10x"
+	);
+}
+
+
 struct menu_entry tweak_menus[] = {
 /*	{
 		.name = "Night Vision Mode",
@@ -1240,6 +1258,15 @@ struct menu_entry tweak_menus[] = {
 		.display = lv_metering_print,
 		.help = "Experimental LV metering (Auto ISO). Too slow for real use."
 	},
+	#ifdef CONFIG_600D
+	{
+		.name = "DigitalZoom Shortcut",
+		.priv = &digital_zoom_shortcut,
+		.display = digital_zoom_shortcut_display, 
+		.select = menu_binary_toggle,
+		.help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
+	},
+	#endif
 };
 
 
