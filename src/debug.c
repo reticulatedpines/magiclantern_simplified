@@ -1097,8 +1097,11 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				{
 					if (!ae_warned && !gui_menu_shown())
 					{
-						NotifyBox(2000, "!!! Auto exposure !!!"); msleep(2000);
-						NotifyBox(2000, "Set 'Movie Exposure -> Manual'"); msleep(2000);
+						bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, 
+							"!!! Auto exposure !!!\n"
+							"Set 'Movie Exposure -> Manual'");
+						msleep(2000);
+						redraw();
 						ae_warned = 1;
 					}
 				}
