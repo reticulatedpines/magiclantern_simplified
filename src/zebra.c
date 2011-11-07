@@ -1530,7 +1530,6 @@ static void
 waveform_toggle(void* priv)
 {
 	waveform_draw = mod(waveform_draw+1, 4);
-	bmp_fill(0, 360, 240-50, 360, 240);
 }
 
 
