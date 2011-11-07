@@ -1036,25 +1036,24 @@ gui_stop_menu( void )
 	if( !gui_menu_task )
 		return;
 
+	gui_task_destroy( gui_menu_task );
+	gui_menu_task = NULL;
+
+	stop_killing_flicker_do();
+
 	#ifdef GUIMODE_ML_MENU
 	if (!PLAY_MODE) SetGUIRequestMode(0);
 	#endif
 
-	gui_task_destroy( gui_menu_task );
-	gui_menu_task = NULL;
-	stop_killing_flicker_do();
-
 	lens_focus_stop();
 	show_only_selected = 0;
 
+	#ifndef GUIMODE_ML_MENU
 	if (MENU_MODE && !get_halfshutter_pressed())
 	{
 		fake_simple_button(BGMT_MENU);
 	}
-	else
-	{
-		//~ redraw();
-	}
+	#endif
 	
 	extern int config_autosave;
 	if (config_autosave && config_dirty && !recording)
