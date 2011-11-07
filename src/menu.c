@@ -721,7 +721,7 @@ menu_redraw_if_damaged()
 				{
 					if (screen_layout == SCREENLAYOUT_16_10)
 						bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
-					if (screen_layout == SCREENLAYOUT_16_9)
+					else if (screen_layout == SCREENLAYOUT_16_9)
 						bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
 					else
 						bmp_mirror_copy(1);
