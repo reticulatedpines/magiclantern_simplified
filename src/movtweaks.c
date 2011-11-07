@@ -593,9 +593,9 @@ void rec_notify_continuous()
 	else if (rec_notify == 2)
 	{
 		if (recording)
-			bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 3, os.y0 + 50, "REC");
+			bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "REC");
 		else
-			bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "STBY");
+			bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
 	}
 	
 	if (prev != recording) redraw();
