@@ -717,7 +717,14 @@ menu_redraw_if_damaged()
 				// copy image to main buffer
 				bmp_draw_to_mirror(0);
 				if (hdmi_code == 2) // copy at a smaller scale to fit the screen
-					bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+				{
+					if (screen_layout == SCREENLAYOUT_16_10)
+						bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+					if (screen_layout == SCREENLAYOUT_16_9)
+						bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
+					else
+						bmp_mirror_copy(1);
+				}
 				else if (ext_monitor_rca)
 					bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
 				else
