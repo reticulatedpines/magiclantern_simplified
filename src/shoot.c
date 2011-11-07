@@ -3594,21 +3594,27 @@ void movie_end()
 {
 	if (shooting_type != 3 && !is_movie_mode())
 	{
-		NotifyBox(2000, "Not in movie mode (%d,%d) ", shooting_type, shooting_mode);
+		NotifyBox(2000, "movie_end: not movie mode (%d,%d) ", shooting_type, shooting_mode);
 		return;
 	}
 	if (!recording)
 	{
-		NotifyBox(2000, "Not recording ");
+		NotifyBox(2000, "movie_end: not recording ");
 		return;
 	}
 
 	while (get_halfshutter_pressed()) msleep(100);
+
 	msleep(500);
 
 	press_rec_button();
 
-	while (recording) msleep(100);
+	// wait until it stops recording, but not more than 2s
+	for (int i = 0; i < 20; i++)
+	{
+		msleep(100);
+		if (!recording) break;
+	}
 	msleep(500);
 }
 
