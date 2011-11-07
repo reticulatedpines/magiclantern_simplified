@@ -3032,6 +3032,8 @@ void bulb_ramping_init()
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 
 calib_start:
+	SW1(1,50); // reset power management timers
+	SW1(0,50);
 	lens_set_ae(0);
 	int gain0 = bin_search(128, 2500, crit_dispgain_50);
 	set_display_gain(gain0);
