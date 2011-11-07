@@ -2719,15 +2719,17 @@ int liveview_display_idle()
 {
 	return
 		lv && 
-		!menu_active_and_not_hidden() &&
-		gui_state == GUISTATE_IDLE && 
-		CURRENT_DIALOG_MAYBE <= 3 && 
-		#ifdef CURRENT_DIALOG_MAYBE_2
-		CURRENT_DIALOG_MAYBE_2 <= 3 &&
-		#endif
-		lv_dispsize == 1 &&
-		lens_info.job_state < 10 &&
-		!mirror_down &&
+		!menu_active_and_not_hidden() && 
+		(gui_menu_shown() || // force LiveView when menu is active, but hidden
+			( gui_state == GUISTATE_IDLE && 
+			CURRENT_DIALOG_MAYBE <= 3 && 
+			#ifdef CURRENT_DIALOG_MAYBE_2
+			CURRENT_DIALOG_MAYBE_2 <= 3 &&
+			#endif
+			lv_dispsize == 1 &&
+			lens_info.job_state < 10 &&
+			!mirror_down )
+		) &&
 		//~ !zebra_paused &&
 		!(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
