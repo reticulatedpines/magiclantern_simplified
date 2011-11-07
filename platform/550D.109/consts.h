@@ -190,6 +190,17 @@
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1A)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1B)
 
+// trial and error
+// choose a gui mode which lets you:
+// * use the wheel and all other keys for menu navigation
+// * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
+// * see LiveView image under menu
+// * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
+// * does not interfere with recording
+//~ #define GUIMODE_ML_MENU guimode_ml_menu
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 45 : 2)
+// outside LiveView, Canon menu is a good choice
+
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a74 // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1a9c // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)

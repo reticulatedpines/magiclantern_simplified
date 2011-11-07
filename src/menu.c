@@ -1005,6 +1005,27 @@ menu_init( void )
 }
 
 
+CONFIG_INT("guimode.ml.menu", guimode_ml_menu, 2);
+
+static void
+guimode_ml_menu_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"GUIMode for ML menu: %d",
+		guimode_ml_menu
+	);
+}
+
+static void guimode_ml_menu_inc(void* priv) { guimode_ml_menu++; }
+static void guimode_ml_menu_dec(void* priv) { guimode_ml_menu--; }
+
 // this function should be called only from gui event handlers
 void
 gui_stop_menu( void )
@@ -1106,15 +1127,15 @@ about_print(
 		.select		= toggle_draw_event,
 	},
 };*/
-/*
-static struct menu_entry about_menu[] = {
+
+static struct menu_entry dbg_menu[] = {
 	{
-		.display = about_print_0
+		.priv = &guimode_ml_menu,
+		.display = guimode_ml_menu_print,
+		.select = guimode_ml_menu_inc,
+		.select_reverse = guimode_ml_menu_dec,
 	},
-	{
-		.display = about_print
-	}
-};*/
+};
 
 
 void
@@ -1139,7 +1160,9 @@ menu_task( void* unused )
 	DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
 	// Add the draw_prop menu
-	//~ menu_add( "Debug", draw_prop_menus, COUNT(draw_prop_menus) );
+	#if 0
+	menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
+	#endif
 	//~ menu_add( " (i)", about_menu, COUNT(about_menu));
 	
 	msleep(500);
