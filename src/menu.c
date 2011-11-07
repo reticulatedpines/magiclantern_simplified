@@ -793,7 +793,8 @@ menu_handler(
 
 	case GOT_TOP_OF_CONTROL:
 		//~ NotifyBox(2000, "GOT_TOP_OF_CONTROL");
-		break;
+		menu_redraw_if_damaged();
+		return 0;
 
 	case LOST_TOP_OF_CONTROL:
 		//~ NotifyBox(2000, "LOST_TOP_OF_CONTROL");
@@ -1195,13 +1196,14 @@ menu_task( void* unused )
 		
 		#ifdef GUIMODE_ML_MENU
 		if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
+		if (GUIMODE_ML_MENU == 2) msleep(100);
 		#else
 		if (!lv && !MENU_MODE && !is_movie_mode())
 		{
 			if (!PLAY_MODE) open_canon_menu();
 		}
 		#endif
-		msleep(200);
+		msleep(100);
 		idle_kill_flicker();
 		bmp_on();
 
