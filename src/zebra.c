@@ -340,7 +340,7 @@ hist_build()
 				hist_max = count;
 			
 			// Update the waveform plot
-			if (waveform_draw) waveform[ COERCE((x * WAVEFORM_WIDTH) / lv->width, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
+			if (waveform_draw) waveform[ COERCE(((x-os.x0) * WAVEFORM_WIDTH) / os.x_max, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
 		}
 	}
 }
