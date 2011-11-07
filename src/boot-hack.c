@@ -315,12 +315,12 @@ void my_big_init_task()
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 }
 
-void logo_task(void* unused)
+/*void logo_task(void* unused)
 {
 	show_logo();
 	while (!ml_started) msleep(100);
 	stop_killing_flicker();
-}
+}*/
 
 void hold_your_horses(int showlogo)
 {
@@ -402,7 +402,7 @@ my_init_task(int a, int b, int c, int d)
 	//~ asm("nop");
 	//~ NotifyBox(5000, "Magic Lantern");
 
-	task_create("logo_task", 0x1e, 0x1000, logo_task, 0 );
+	//~ task_create("logo_task", 0x1e, 0x1000, logo_task, 0 );
 
 #ifndef CONFIG_1100D
 	//~ ui_lock(UILOCK_EVERYTHING);

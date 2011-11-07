@@ -1824,7 +1824,7 @@ CONFIG_INT( "debug.timed-dump",		timed_dump, 0 );
 //~ CONFIG_INT( "debug.dumpaddr", dump_addr, 0 );
 //~ CONFIG_INT( "debug.dumplen", dump_len, 0 );
 
-
+/*
 struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
@@ -1839,7 +1839,7 @@ void show_logo()
 		kill_flicker(); msleep(100);
 		bmp_draw_scaled_ex(logo, 360 - logo->width/2, 240 - logo->height/2, logo->width, logo->height, 0, 0);
 	}
-}
+}*/
 
 void
 debug_init_stuff( void )
