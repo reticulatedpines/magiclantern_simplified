@@ -716,6 +716,7 @@ menu_redraw_if_damaged()
 
 				// copy image to main buffer
 				bmp_draw_to_mirror(0);
+				int screen_layout = get_screen_layout();
 				if (hdmi_code == 2) // copy at a smaller scale to fit the screen
 				{
 					if (screen_layout == SCREENLAYOUT_16_10)
@@ -761,17 +762,6 @@ menu_handler(
 	unsigned		arg4
 )
 {
-	static int k = 0;
-	// Ignore periodic events (pass them on)
-	if( 0
-	||  event == GUI_TIMER2
-	||  event == GUI_TIMER3
-	||  event == GUI_TIMER4
-	||  event == 0x1000007c
-	||  event == 0x10000078
-	)
-		return 1; // 0 is too aggressive :)
-
 #if CONFIG_DEBUGMSG
 	if( event > 1 && event < 0x10000000)
 	{
@@ -781,23 +771,6 @@ menu_handler(
 		);
 	}
 #endif
-
-		// Mine!  No one else gets it
-		//~ return 0;
-	//~ }
-
-	//~ if( event != 1 )
-	//~ {
-		DebugMsg( DM_MAGIC, 3, "%s: event %x", __func__, event );
-		if( draw_event )
-        {
-			bmp_printf( FONT_SMALL, 20, 10 + ((k) % 8) * 10, "EVENT%2d: %x args %8x/%8x; %8x/%8x; %8x/%8x", k % 100, event, arg2, arg2 ? (*(int*)arg2) : 0, arg3, arg3 ? (*(int*)arg3) : 0, arg4, arg4 ? (*(int*)arg4) : 0);
-			bmp_printf( FONT_SMALL, 20, 10 + ((k+1) % 8) * 10, "                                             ");
-            k += 1;
-            // not dangerous any more :)
-			//~ if (event != PRESS_LEFT_BUTTON && event != PRESS_RIGHT_BUTTON && event != PRESS_UP_BUTTON && event != PRESS_DOWN_BUTTON && event != PRESS_SET_BUTTON) return 0;
-        }
-	//~ }
 
 	// Find the selected menu (should be cached?)
 	struct menu * menu = get_selected_menu();
@@ -815,30 +788,30 @@ menu_handler(
 	switch( event )
 	{
 	case INITIALIZE_CONTROLLER:
-		DebugMsg( DM_MAGIC, 3, "Menu task INITIALIZE_CONTROLLER" );
+		//~ NotifyBox(2000, "INITIALIZE_CONTROLLER");
 		return 0;
 
 	case GOT_TOP_OF_CONTROL:
-		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
-		//~ menu_damage = 1;
-		menu_redraw_if_damaged();
-		//~ menu_damage = 1;
+		//~ NotifyBox(2000, "GOT_TOP_OF_CONTROL");
 		break;
+
 	case LOST_TOP_OF_CONTROL:
+		//~ NotifyBox(2000, "LOST_TOP_OF_CONTROL");
 		gui_stop_menu();
-		break;
+		return 0;
 
 	case TERMINATE_WINSYS:
 		// Must propagate to all gui elements
-		DebugMsg( DM_MAGIC, 3, "%s: TERMINATE_WINSYS", __func__ );
+		//~ NotifyBox(2000, "TERMINATE_WINSYS");
 		gui_stop_menu();
 		return 1;
 
 	case DELETE_DIALOG_REQUEST:
 		// Must not propagate
-		DebugMsg( DM_MAGIC, 3, "%s: DELETE_DIALOG", __func__ );
+		//~ NotifyBox(2000, "DELETE_DIALOG_REQUEST");
 		gui_stop_menu();
 		return 0;
+
 
 	case PRESS_MENU_BUTTON:
 		advanced_mode = !advanced_mode;
@@ -847,15 +820,7 @@ menu_handler(
 		edit_mode = 0;
 		break;
 
-	/*
-	#ifdef CONFIG_50D
-		gui_stop_menu();
-		return 0;
-	#endif 
-	*/
 	case EVENTID_METERING_START: // If they press the shutter halfway
-	case 0x10000048:
-	case 0x10000062:
 		gui_stop_menu();
 		return 1;
 	
@@ -960,33 +925,7 @@ menu_handler(
 		break; // ignore
 #endif
 
-#if 0
-	case PRESS_ZOOM_IN_BUTTON:
-		gui_hide_menu( 100 );
-		lens_focus_start( 0 );
-		break;
-
-#if 0
-	// This breaks playback if enabled; figure out why!
-	case PRESS_ZOOM_OUT_BUTTON:
-		gui_hide_menu( 100 );
-		lens_focus_start( -1 );
-		break;
-#endif
-
-	case UNPRESS_ZOOM_IN_BUTTON:
-	//case UNPRESS_ZOOM_OUT_BUTTON:
-		gui_hide_menu( 2 );
-		lens_focus_stop();
-		break;
-#endif
-
 	case EVENT_1:          // Synthetic redraw event
-		break;
-
-	//~ case 0x10000097: // canon code might have drawn over menu
-	case 0x100000e8: // when you press Q on ISO
-		//~ menu_damage = 1;
 		break;
 
 	default:
@@ -1065,6 +1004,7 @@ menu_init( void )
 }
 
 
+// this function should be called only from gui event handlers
 void
 gui_stop_menu( void )
 {
@@ -1074,9 +1014,13 @@ gui_stop_menu( void )
 	if( !gui_menu_task )
 		return;
 
+	#ifdef GUIMODE_ML_MENU
+	if (!PLAY_MODE) SetGUIRequestMode(0);
+	#endif
+
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
-	idle_stop_killing_flicker();
+	stop_killing_flicker_do();
 
 	lens_focus_stop();
 	show_only_selected = 0;
@@ -1091,17 +1035,11 @@ gui_stop_menu( void )
 	}
 	
 	extern int config_autosave;
-	if (config_autosave && config_dirty)
+	if (config_autosave && config_dirty && !recording)
 	{
 		save_config(0);
 		config_dirty = 0;
 	}
-
-	//~ SetGUIRequestMode(0x42);
-	//~ beep();
-	#ifdef GUIMODE_ML_MENU
-	if (!PLAY_MODE) SetGUIRequestMode(0);
-	#endif
 
 	menu_shown = 0;
 
@@ -1411,6 +1349,13 @@ int handle_ml_menu_erase(struct event * event)
 	}
 
 	return 1;
+}
+
+// this can be called from any task
+void menu_stop()
+{
+	if (gui_menu_shown())
+		give_semaphore( gui_sem );
 }
 
 #ifndef CONFIG_50D

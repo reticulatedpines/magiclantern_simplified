@@ -570,7 +570,7 @@ focus_task( void* unused )
 			int movie_started_by_ml = 0;
 			if (focus_rack_auto_record)
 			{
-				gui_stop_menu();
+				menu_stop();
 				NotifyBox(2000, "Rack Focus: REC Start");
 				ensure_movie_mode();
 				if (!recording)

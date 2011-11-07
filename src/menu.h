@@ -128,6 +128,8 @@ menu_add(
 extern void
 menu_init( void );
 
+extern void menu_stop(void);
+
 void menu_draw_icon(int x, int y, int type, int arg);
 
 #define MNI_NONE -1

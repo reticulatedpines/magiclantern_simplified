@@ -459,7 +459,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	}
 /*	if (v && gui_menu_shown() && !is_menu_active("Focus"))
 	{
-		gui_stop_menu();
+		menu_stop();
 	}*/
 	
 	//~ if (hdr_steps > 1) halfshutter_action(v);
@@ -529,7 +529,7 @@ sweep_lv()
 {
 	if (recording) return;
 	if (!lv) return;
-	gui_stop_menu();
+	menu_stop();
 	msleep(2000);
 	int zoom = 5;
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
@@ -1274,7 +1274,7 @@ silent_pic_take_sweep(int interactive)
 
 	bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
 	while (get_halfshutter_pressed()) msleep(100);
-	gui_stop_menu();
+	menu_stop();
 
 	bmp_draw_rect(COLOR_WHITE, (5-SILENTPIC_NC) * 360/5, (5-SILENTPIC_NL)*240/5, SILENTPIC_NC*720/5-1, SILENTPIC_NL*480/5-1);
 	msleep(200);
@@ -1345,7 +1345,7 @@ silent_pic_take_slitscan(int interactive)
 	#if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_60D)
 	//~ if (recording) return; // vsync fails
 	if (!lv) return;
-	gui_stop_menu();
+	menu_stop();
 	while (get_halfshutter_pressed()) msleep(100);
 	msleep(500);
 	clrscr();
@@ -1632,7 +1632,7 @@ int crit_iso(int iso_index)
 
 static void iso_auto_run()
 {
-	gui_stop_menu();
+	menu_stop();
 	if (lens_info.raw_iso == 0) { lens_set_rawiso(96); msleep(500); }
 	int c0 = crit_iso(-1); // test current iso
 	int i;
@@ -1744,7 +1744,7 @@ int crit_shutter(int shutter_index)
 
 static void shutter_auto_run()
 {
-	gui_stop_menu();
+	menu_stop();
 	int c0 = crit_shutter(-1); // test current shutter
 	int i;
 	if (c0 > 0) i = bin_search(raw2index_shutter(lens_info.raw_shutter), COUNT(codes_shutter), crit_shutter);
@@ -1933,7 +1933,7 @@ int crit_wbs_gm(int k)
 
 static void kelvin_auto_run()
 {
-	gui_stop_menu();
+	menu_stop();
 	int c0 = crit_kelvin(-1); // test current kelvin
 	int i;
 	if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
@@ -1944,7 +1944,7 @@ static void kelvin_auto_run()
 
 static void wbs_gm_auto_run()
 {
-	gui_stop_menu();
+	menu_stop();
 	int c0 = crit_wbs_gm(100); // test current value
 	int i;
 	if (c0 > 0) i = bin_search(lens_info.wbs_gm, 10, crit_wbs_gm);

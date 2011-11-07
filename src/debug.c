@@ -339,7 +339,6 @@ PROP_HANDLER(PROP_STROBO_SETTING)
 
 void run_test()
 {
-	gui_stop_menu();
 	msleep(2000);
 	//~ lens_take_picture(64, 0);
 	//~ bulb_take_pic(250);
@@ -348,6 +347,7 @@ void run_test()
 
 void xx_test(void* priv)
 {
+	gui_stop_menu();
 	task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
 }
 
@@ -1069,6 +1069,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
+		//~ bmp_printf(FONT_LARGE, 0, 0, "%x ", CURRENT_DIALOG_MAYBE);
 		
 		if (get_global_draw())
 		{
@@ -1257,7 +1258,6 @@ fake_halfshutter_step()
 PROP_INT(PROP_STROBO_REDEYE, red_eye);
 void flashlight_frontled_task()
 {
-	gui_stop_menu();
 	msleep(100);
 	display_off_force();
 	int r = red_eye;
@@ -1293,7 +1293,6 @@ static void flashlight_frontled(void* priv)
 
 void flashlight_lcd_task()
 {
-	gui_stop_menu();
 	msleep(500);
 	while (get_halfshutter_pressed()) msleep(100);
 	idle_globaldraw_dis();

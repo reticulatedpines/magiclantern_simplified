@@ -692,7 +692,7 @@ void card_benchmark()
 int card_benchmark_start = 0;
 void card_benchmark_schedule()
 {
-	gui_stop_menu();
+	menu_stop();
 	card_benchmark_start = 1;
 }
 #endif
