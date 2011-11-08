@@ -693,6 +693,8 @@ void playback_set_wheel_action(int dir)
 
 int handle_set_wheel_play(struct event * event)
 {
+	if (gui_menu_shown()) return 1;
+	
 	extern int set_pressed;
 	// SET button pressed
 	//~ if (event->param == BGMT_PRESS_SET) set_pressed = 1;
