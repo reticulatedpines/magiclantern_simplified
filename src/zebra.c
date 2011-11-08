@@ -2402,6 +2402,9 @@ void bmp_on()
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_bmp_cleared) 
 	{// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
+	#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_550D)
+		stop_killing_flicker_do();
+	#else
 		BMP_LOCK(
 			cli_save();
 			if (tft_status == 0 && lv && !lv_paused)
@@ -2410,6 +2413,7 @@ void bmp_on()
 			}
 			sei_restore();
 		)
+	#endif
 		_bmp_cleared = 0;
 	}
 }
@@ -2425,6 +2429,10 @@ void bmp_off()
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
 	{
+	#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_550D)
+		_bmp_cleared = 1;
+		kill_flicker_do();
+	#else
 		BMP_LOCK(
 			cli_save();
 			if (tft_status == 0 && lv && !lv_paused)
@@ -2434,6 +2442,7 @@ void bmp_off()
 			}
 			sei_restore();
 		)
+	#endif
 	}
 }
 int bmp_is_on() { return !_bmp_cleared; }
@@ -3404,10 +3413,14 @@ livev_lopriority_task( void* unused )
 	}
 }
 
-#if defined(CONFIG_600D) || defined(CONFIG_50D) || defined(CONFIG_500D)
-#define HIPRIORITY_TASK_PRIO 0x19
+#if defined(CONFIG_600D)
+ #define HIPRIORITY_TASK_PRIO 0x19
 #else
-#define HIPRIORITY_TASK_PRIO 0x1a
+ #if defined(CONFIG_50D) || defined(CONFIG_500D)
+  #define HIPRIORITY_TASK_PRIO 0x1b
+ #else
+  #define HIPRIORITY_TASK_PRIO 0x1a
+ #endif
 #endif
 
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x1000 );
