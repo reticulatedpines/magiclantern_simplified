@@ -145,7 +145,7 @@ void update_vram_params()
 
 #ifdef CONFIG_50D
 	vram_hd.width = recording ? 1560 : 1024;
-	vram_hd.height = recording ? 1048 : 680;
+	vram_hd.height = recording ? 884 : 680;
 #endif
 #ifdef CONFIG_500D
 	vram_hd.width  = lv_dispsize > 1 ?  944 : !is_movie_mode() ?  928 : recording ? (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 1576 : video_mode_resolution == 2 ? 720 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 928 : video_mode_resolution == 2 ? 928 : 0);
@@ -328,6 +328,11 @@ void* get_422_hd_idle_buf()
 			current_buf = hd;
 		}
 	}
+	
+	#ifdef CONFIG_50D
+	return (void*)idle_buf - 24;
+	#endif
+	
 	return (void*)idle_buf;
 }
 
