@@ -2360,10 +2360,11 @@ struct menu_entry livev_cfg_menus[] = {
 void 
 cropmark_draw()
 {
-	extern int af_frame_autohide;
-	if (af_frame_autohide) clear_lv_afframe();
 	ChangeColorPaletteLV(2);
 	if (!get_global_draw()) return;
+
+	clear_lv_affframe_if_dirty();
+
 	if (transparent_overlay && !transparent_overlay_hidden) show_overlay();
 	if (cropmark_movieonly && !is_movie_mode()) return;
 	reload_cropmark(crop_draw); // reloads only when changed

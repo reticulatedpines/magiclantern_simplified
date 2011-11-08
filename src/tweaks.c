@@ -473,7 +473,25 @@ void afframe_clr_dirty()
 	afframe_countdown = 0;
 }
 
-void clear_lv_afframe()
+// this should be thread safe
+void clear_lv_affframe_if_dirty()
+{
+	#ifndef CONFIG_50D
+	if (af_frame_autohide && afframe_countdown && liveview_display_idle() && !flicker_being_killed())
+	{
+		BMP_LOCK (
+			if (afframe_countdown)
+			{
+				afframe_countdown--;
+				if (!afframe_countdown) 
+					clear_lv_affframe();
+			}
+		)
+	}
+	#endif
+}
+
+void clear_lv_affframe()
 {
 	if (!lv) return;
 	if (gui_menu_shown()) return;
@@ -802,14 +820,7 @@ tweak_task( void* unused)
 		
 		dofp_update();
 
-		#ifndef CONFIG_50D
-		if (af_frame_autohide && afframe_countdown && liveview_display_idle() && !flicker_being_killed())
-		{
-			afframe_countdown--;
-			if (!afframe_countdown) 
-				BMP_LOCK( clear_lv_afframe(); )
-		}
-		#endif
+		clear_lv_affframe_if_dirty();
 		
 		extern int disp_profiles_0;
 		if (FLASH_BTN_MOVIE_MODE)
