@@ -754,14 +754,16 @@ static struct menu_entry mov_menus[] = {
 		.priv = &hdmi_force_vga, 
 		.display = hdmi_force_display, 
 		.select = menu_binary_toggle,
-		.help = "Force low resolution (720x480) on HDMI displays."
+		.help = "Force low resolution (720x480) on HDMI displays.",
+		.essential = FOR_EXT_MONITOR,
 	},
 	{
 		.name = "Screen Layout",
 		.display = screen_layout_display, 
 		.select = screen_layout_toggle,
 		.select_reverse = screen_layout_toggle_reverse,
-		.help = "Position of top/bottom bars, useful for external displays."
+		.help = "Position of top/bottom bars, useful for external displays.",
+		.essential = FOR_EXT_MONITOR,
 	}
 };
 
