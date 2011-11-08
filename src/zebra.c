@@ -3682,6 +3682,19 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
 	}
 }
 
+void bmp_flip(uint8_t* dst, uint8_t* src)
+{
+	if (!dst) return;
+	int i,j;
+	for (i = 0; i < vram_bm.height; i++)
+	{
+		for (j = 0; j < vram_bm.width; j++)
+		{
+			dst[BM(j,i)] = src[BM(vram_bm.width-j, vram_bm.height-i)];
+		}
+	}
+}
+
 void transparent_overlay_from_play()
 {
 	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }

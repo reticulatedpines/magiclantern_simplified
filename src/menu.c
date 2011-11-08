@@ -682,6 +682,8 @@ static void menu_select_current(int reverse)
 	menu_entry_select(menu,reverse);
 }
 
+CONFIG_INT("menu.upside.down", menu_upside_down, 0);
+
 static void 
 menu_redraw_if_damaged()
 {
@@ -724,12 +726,18 @@ menu_redraw_if_damaged()
 					else if (screen_layout == SCREENLAYOUT_16_9)
 						bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
 					else
-						bmp_mirror_copy(1);
+					{
+						if (menu_upside_down) bmp_flip(bmp_vram(), get_bvram_mirror());
+						else bmp_mirror_copy(1);
+					}
 				}
 				else if (ext_monitor_rca)
 					bmp_zoom(bmp_vram(), get_bvram_mirror(), x0 + 360, y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
 				else
-					bmp_mirror_copy(1);
+				{
+					if (menu_upside_down) bmp_flip(bmp_vram(), get_bvram_mirror());
+					else bmp_mirror_copy(1);
+				}
 				bvram_mirror_clear();
 			)
 			//~ update_stuff();

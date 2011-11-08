@@ -320,12 +320,12 @@ extern struct vram_info vram_bm;
 #define BM2HD_R(y) (BM2HD_Y(y) * vram_hd.pitch)
 #define HD2BM_R(y) (HD2BM_Y(y) * vram_bm.pitch)
 
-#define BM(x,y) (x + y * vram_bm.pitch)
-#define LV(x,y) (x + y * vram_lv.pitch)
-#define HD(x,y) (x + y * vram_hd.pitch)
-#define BM_R(y) (y * vram_bm.pitch)
-#define LV_R(y) (y * vram_lv.pitch)
-#define HD_R(y) (y * vram_hd.pitch)
+#define BM(x,y) ((x) + (y) * vram_bm.pitch)
+#define LV(x,y) ((x) + (y) * vram_lv.pitch)
+#define HD(x,y) ((x) + (y) * vram_hd.pitch)
+#define BM_R(y) ((y) * vram_bm.pitch)
+#define LV_R(y) ((y) * vram_lv.pitch)
+#define HD_R(y) ((y) * vram_hd.pitch)
 
 #define SCREENLAYOUT_3_2 0
 #define SCREENLAYOUT_16_10 1
