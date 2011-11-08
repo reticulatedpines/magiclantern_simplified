@@ -418,7 +418,11 @@ hdmi_force_display(
 	);
 }
 
+#if defined(CONFIG_50D) || defined(CONFIG_500D)
+CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_UNDER_3_2);
+#else
 CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2);
+#endif
 CONFIG_INT("screen.layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 int* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
 int* get_screen_layout() { return *get_screen_layout_ptr(); }
