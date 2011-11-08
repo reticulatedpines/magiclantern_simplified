@@ -315,6 +315,7 @@ static void draw_meters(void)
 		else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y0 = MIN(os.y_max, vram_bm.height - 54);
 		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y0 = MIN(os.y_max - os.off_169, vram_bm.height - 54);
 		if (hdmi_code) small = 1;
+		if (screen_layout >= SCREENLAYOUT_UNDER_3_2) small = 1;
 	}
     
 	if (erase)
