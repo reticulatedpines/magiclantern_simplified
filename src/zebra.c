@@ -2365,9 +2365,12 @@ cropmark_draw()
 	if (transparent_overlay && !transparent_overlay_hidden) show_overlay();
 	if (cropmark_movieonly && !is_movie_mode()) return;
 	reload_cropmark(crop_draw); // reloads only when changed
-	clrscr_mirror();
-	//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
-	bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
+	if (cropmarks) 
+	{
+		clrscr_mirror();
+		//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
+		bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
+	}
 	crop_dirty = 0;
 }
 void
@@ -2750,7 +2753,7 @@ void zebra_sleep_when_tired()
 #endif
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
-		crop_set_dirty(10);
+		crop_set_dirty(25);
 		vram_params_set_dirty();
 
 		//~ if (lv && !gui_menu_shown()) redraw();
@@ -3161,7 +3164,7 @@ BMP_LOCK (
 )
 	// ask other stuff to redraw
 	afframe_set_dirty();
-	crop_set_dirty(5);
+	crop_set_dirty(10);
 	//~ menu_set_dirty();
 	zoom_overlay_dirty = 1;
 }
@@ -3295,7 +3298,7 @@ livev_hipriority_task( void* unused )
 		if (zoom_overlay_countdown)
 		{
 			zoom_overlay_countdown--;
-			crop_set_dirty(5);
+			crop_set_dirty(10);
 		}
 		
 		if (LV_BOTTOM_BAR_DISPLAYED && lv_disp_mode == 0 && !ISO_ADJUSTMENT_ACTIVE)

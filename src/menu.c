@@ -1076,7 +1076,7 @@ gui_stop_menu( void )
 
 	menu_shown = 0;
 
-	if (!PLAY_MODE) redraw_after(300);
+	if (!PLAY_MODE) {}//redraw_after(300);
 	else draw_livev_for_playback();
 }
 
