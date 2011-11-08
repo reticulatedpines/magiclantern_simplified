@@ -854,7 +854,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
-		else menu_entry_move( menu, -1 );
+		else menu_entry_move( menu, menu_upside_down ? 1 : -1 );
 		break;
 
 #ifdef CONFIG_50D
@@ -868,7 +868,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
-		else menu_entry_move( menu, 1 );
+		else menu_entry_move( menu, menu_upside_down ? -1 : 1 );
 		break;
 
 #ifdef CONFIG_50D
@@ -882,7 +882,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
-		else menu_move( menu, 1 );
+		else menu_move( menu, menu_upside_down ? -1 : 1 );
 		break;
 
 #ifdef CONFIG_50D
@@ -896,7 +896,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
-		else menu_move( menu, -1 );
+		else menu_move( menu, menu_upside_down ? 1 : -1 );
 		break;
 
 	case PRESS_SET_BUTTON:
@@ -906,6 +906,9 @@ menu_handler(
 			edit_mode = 1;
 			#ifdef CONFIG_60D
 			if (lv) edit_mode = 0; // in LiveView, UNPRESS SET event is not sent => can't detect when SET is being held
+			#endif
+			#ifdef CONFIG_550D
+			if (is_movie_mode()) edit_mode = 0; // in movie mode, UNPRESS SET event is not sent => can't detect when SET is being held
 			#endif
 			menu_entry_select( menu, 0 ); // normal select
 		}

@@ -1385,6 +1385,23 @@ static void efictemp_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+extern int menu_upside_down;
+static void menu_upside_down_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Upside-down mode   : %s",
+		menu_upside_down ? "ON" : "OFF"
+	);
+}
+
+
 #if CONFIG_DEBUGMSG
 CONFIG_INT("prop.i", prop_i, 0);
 CONFIG_INT("prop.j", prop_j, 0);
@@ -1500,6 +1517,13 @@ struct menu_entry debug_menus[] = {
 		.help = "Display image: Normal [SET] / Reverse [PLAY] / Mirror [Q]"
 	},
 #endif
+	{
+		.name = 'Upside-down mode',
+		.priv = &menu_upside_down,
+		.display = menu_upside_down_print,
+		.select = menu_binary_toggle,
+		.help = "Displays ML menu upside down. Half-press shutter in LV.",
+	},
 	{
 		.name = "Screenshot (10 s)",
 		.priv		= "Screenshot (10 s)",
@@ -1649,6 +1673,7 @@ static struct menu_entry cfg_menus[] = {
 		.select		= delete_config,
 		.help = "Use this to restore ML default settings. Restart needed."
 	},
+	
 };
 
 

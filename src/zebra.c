@@ -3410,6 +3410,24 @@ livev_lopriority_task( void* unused )
 			cropmark_redraw();
 			crop_redraw_flag = 0;
 		}
+
+		extern int menu_upside_down;
+		if (menu_upside_down && get_halfshutter_pressed())
+		{
+			idle_globaldraw_dis();
+			BMP_LOCK(
+				clrscr_mirror();
+				bmp_mirror_copy(0);
+			)
+			kill_flicker();
+			msleep(100);
+			bmp_flip(bmp_vram(), get_bvram_mirror());
+
+			while (get_halfshutter_pressed()) msleep(100);
+			idle_globaldraw_en();
+			stop_killing_flicker();
+		}
+
 	}
 }
 
