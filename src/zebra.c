@@ -922,12 +922,13 @@ draw_zebra_and_focus( int Z, int F )
 		// look in the HD buffer
 		for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 		{
-			uint16_t * const hd_row = hdvram + BM2HD(0,y) / 4; // 2 pixels
+			uint16_t * const hd_row = hdvram + BM2HD_R(y) / 4; // 2 pixels
 			
 			uint32_t* hdp; // that's a moving pointer
 			for (int x = os.x0; x < os.x_max; x += 2)
 			{
 				hdp = hd_row + BM2HD_X(x);
+				//~ hdp = hdvram + BM2HD(x,y)/4;
 				#define PX_AB (*hdp)        // current pixel group
 				#define PX_CD (*(hdp + 1))  // next pixel group
 				#define a ((int32_t)(PX_AB >>  8) & 0xFF)
@@ -968,12 +969,8 @@ draw_zebra_and_focus( int Z, int F )
 				
 				/*if (focus_peaking_debug)
 				{
-					int b_row_off = COERCE((y + rec_off) * bm_width / hd_width, 0, 539) * BMPPITCH;
-					uint16_t * const b_row = (uint16_t*)( bvram + b_row_off );   // 2 pixels
-					int x = 2 * (hdp - hd_row) * bm_width / hd_width;
-					x = COERCE(x, 0, 960);
 					int c = (COERCE(e, 0, thr*2) * 41 / thr / 2) + 38;
-					b_row[x/2] = c | (c << 8);
+					bvram[BM(x,y)] = c | (c << 8);
 				}*/
 				
 				n_total++;
@@ -991,8 +988,8 @@ draw_zebra_and_focus( int Z, int F )
 					//~ int color = COLOR_RED;
 					color = (color << 8) | color;   
 					
-					uint16_t * const b_row = (uint16_t*)( bvram + BM(0,y) );   // 2 pixels
-					uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM(0,y) );   // 2 pixels
+					uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
+					uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
 					
 					uint16_t pixel = b_row[x/2];
 					uint16_t mirror = m_row[x/2];
@@ -1037,9 +1034,9 @@ draw_zebra_and_focus( int Z, int F )
 			uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
 			uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
 			
-			uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV(0,y)    );  // 2 pixels
-			uint32_t * const b_row = (uint32_t*)( bvram        + BM(0,y)       );  // 4 pixels
-			uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM(0,y)       );  // 4 pixels
+			uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
+			uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(y)       );  // 4 pixels
+			uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(y)       );  // 4 pixels
 			
 			uint32_t* lvp; // that's a moving pointer through lv vram
 			uint32_t* bp;  // through bmp vram
@@ -1156,9 +1153,9 @@ draw_false_downsampled( void )
 
 	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 	{
-		uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV(0,y)    );  // 2 pixels
-		uint16_t * const b_row = (uint16_t*)( bvram        + BM(0,y)       );  // 2 pixels
-		uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM(0,y)       );  // 2 pixels
+		uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
+		uint16_t * const b_row = (uint16_t*)( bvram        + BM_R(y)       );  // 2 pixels
+		uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y)       );  // 2 pixels
 		
 		uint8_t* lvp; // that's a moving pointer through lv vram
 		uint16_t* bp;  // through bmp vram
@@ -3224,6 +3221,10 @@ void draw_cropmark_area()
 	bmp_draw_rect(COLOR_BLUE, os.x0, os.y0, os.x_ex, os.y_ex);
 	draw_line(os.x0, os.y0, os.x_max, os.y_max, COLOR_BLUE);
 	draw_line(os.x0, os.y_max, os.x_max, os.y0, COLOR_BLUE);
+	
+	bmp_draw_rect(COLOR_RED, HD2BM_X(0), HD2BM_Y(0), HD2BM_DX(vram_hd.width), HD2BM_DY(vram_hd.height));
+	draw_line(HD2BM_X(0), HD2BM_Y(0), HD2BM_X(vram_hd.width), HD2BM_Y(vram_hd.height), COLOR_RED);
+	draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
 }
 
 
@@ -3578,9 +3579,9 @@ void make_overlay()
 	{
 		int y = yn * os.y_ex / 480 + os.y0;
 		//~ int k;
-		uint16_t * const v_row = (uint16_t*)( lvram        + BM2LV(0,y)); // 1 pixel
-		uint8_t  * const b_row = (uint8_t*) ( bvram        + BM(0,y));    // 1 pixel
-		uint8_t  * const m_row = (uint8_t*) ( bvram_mirror + BM(0,yn));    // 1 pixel
+		uint16_t * const v_row = (uint16_t*)( lvram        + BM2LV_R(y)); // 1 pixel
+		uint8_t  * const b_row = (uint8_t*) ( bvram        + BM_R(y));    // 1 pixel
+		uint8_t  * const m_row = (uint8_t*) ( bvram_mirror + BM_R(yn));    // 1 pixel
 		uint16_t* lvp; // that's a moving pointer through lv vram
 		uint8_t* bp;   // through bmp vram
 		uint8_t* mp;   // through bmp vram mirror

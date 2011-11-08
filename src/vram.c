@@ -110,6 +110,11 @@ void update_vram_params()
 	if (PLAY_MODE) os.y0 = 54; // black bar is at the top in play mode
 #endif
 
+	os.x_max = os.x0 + os.x_ex;
+	os.y_max = os.y0 + os.y_ex;
+	os.off_169 = (os.y_ex - os.y_ex * 3/2*9/16) / 2;
+	os.off_1610 = (os.y_ex - os.y_ex * 3/2*10/16) / 2;
+
 	// LV buffer (used for display)
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 	vram_lv.width  = 720;
@@ -131,11 +136,6 @@ void update_vram_params()
 	bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
 	bm2lv.sy = 1024 * vram_lv.height / vram_bm.height; // no black bars at top or bottom
 	
-	#ifdef CONFIG_50D
-	bm2lv.tx = -4;
-	bm2lv.ty = -180;
-	#endif
-
 	lv_ratio_num = hdmi_code == 5 ? 16 : 3;
 	lv_ratio_den = hdmi_code == 5 ?  9 : 2;
 
@@ -164,28 +164,28 @@ void update_vram_params()
 	vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
 #endif
 
-	lv2hd.sx = 1024 * vram_hd.width / BM2LV_X(os.x_ex);
-	lv2hd.sy = 1024 * vram_hd.height / BM2LV_Y(os.y_ex);
-	
-	lv2hd.tx = hdmi_code == 5 ? -64 : (hdmi_code == 2 || ext_monitor_rca) ? -(40 * vram_hd.width / 1056) : 0;
-	lv2hd.ty = hdmi_code == 5 ?   0 : (hdmi_code == 2 || ext_monitor_rca) ? -40 : 0;
-	
+	vram_lv.pitch = vram_lv.width * 2; 
+	vram_hd.pitch = vram_hd.width * 2;
 
-	update_vram_params_calc();
+	int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
+
+	// gray bars for 16:9 or 4:3
+	int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
+	int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
+	
+	lv2hd.sx = 1024 * vram_hd.width / BM2LV_DX(os.x_ex - bar_x * 2);
+	lv2hd.sy = 1024 * vram_hd.height / BM2LV_DY(os.y_ex - bar_y * 2);
+	
+	lv2hd.tx = -BM2HD_DX(os.x0 + bar_x);
+	lv2hd.ty = -BM2HD_DY(os.y0 + bar_y);
+
+	//~ update_vram_params_calc();
 }
 
 void update_vram_params_calc()
 {
-	// those params are dependent on others
-	// they can be computed (these formulas should be generic, not camera-specific)
-	os.x_max = os.x0 + os.x_ex;
-	os.y_max = os.y0 + os.y_ex;
-	os.off_169 = (os.y_ex - os.y_ex * 3/2*9/16) / 2;
-	os.off_1610 = (os.y_ex - os.y_ex * 3/2*10/16) / 2;
 
-	vram_lv.pitch = vram_lv.width * 2; 
-	vram_hd.pitch = vram_hd.width * 2;
-
+/*
 	#ifndef CONFIG_50D
 	if (recording) // 3:2 -> 16:9 compensation
 	{
@@ -195,6 +195,7 @@ void update_vram_params_calc()
 		if (hdmi_code == 2) lv2hd.ty = -160;
 	}
 	#endif
+	*/
 }
 
 void trans_test()
