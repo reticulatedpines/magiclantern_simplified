@@ -572,7 +572,7 @@ menu_move(
 	if( !menu )
 		return;
 
-	int rc = take_semaphore( menu_sem, 100 );
+	int rc = take_semaphore( menu_sem, 1000 );
 	if( rc != 0 )
 		return;
 
@@ -617,12 +617,12 @@ menu_entry_move(
 {
 	if( !menu )
 		return;
+
+	int rc = take_semaphore( menu_sem, 1000 );
+	if( rc != 0 )
+		return;
 	
 	if (!menu_has_visible_items(menu->children))
-		return;
-
-	int rc = take_semaphore( menu_sem, 100 );
-	if( rc != 0 )
 		return;
 
 	struct menu_entry *	entry = menu->children;
@@ -835,8 +835,11 @@ menu_handler(
 		menu_help_active = 0;
 		break;
 
-	case PRESS_UP_BUTTON:
+#ifdef CONFIG_50D
 	case PRESS_JOY_UP:
+#else
+	case PRESS_UP_BUTTON:
+#endif
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
 		//~ menu_damage = 1;
@@ -846,8 +849,11 @@ menu_handler(
 		else menu_entry_move( menu, -1 );
 		break;
 
-	case PRESS_DOWN_BUTTON:
+#ifdef CONFIG_50D
 	case PRESS_JOY_DOWN:
+#else
+	case PRESS_DOWN_BUTTON:
+#endif
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
 		//~ menu_damage = 1;
@@ -857,8 +863,11 @@ menu_handler(
 		else menu_entry_move( menu, 1 );
 		break;
 
-	case PRESS_RIGHT_BUTTON:
+#ifdef CONFIG_50D
 	case PRESS_JOY_RIGHT:
+#else
+	case PRESS_RIGHT_BUTTON:
+#endif
 		edit_mode = 0;
 	case DIAL_RIGHT:
 		//~ menu_damage = 1;
@@ -868,8 +877,11 @@ menu_handler(
 		else menu_move( menu, 1 );
 		break;
 
-	case PRESS_LEFT_BUTTON:
+#ifdef CONFIG_50D
 	case PRESS_JOY_LEFT:
+#else
+	case PRESS_LEFT_BUTTON:
+#endif
 		edit_mode = 0;
 	case DIAL_LEFT:
 		//~ menu_damage = 1;
@@ -1246,7 +1258,7 @@ menu_task( void* unused )
 	}
 }
 
-TASK_CREATE( "menu_task", menu_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );
 
 int is_menu_active(char* name)
 {
