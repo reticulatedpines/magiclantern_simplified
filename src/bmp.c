@@ -85,12 +85,16 @@ _draw_char(
 
 	const uint32_t	pitch		= BMPPITCH / 4;
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
+	
+	// boundary checking, don't write past this address
+	uint32_t* end = BMP_END - font->width; 
 
 	//uint32_t flags = cli();
 	for( i=0 ; i<font->height ; i++ )
 	{
 		// Start this scanline
 		uint32_t * row = front_row;
+		if (row >= end) return;
 
 		// move to the next scanline
 		front_row += pitch;

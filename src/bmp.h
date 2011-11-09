@@ -41,6 +41,7 @@ uint8_t* get_bvram_mirror();
 
 #define BMPPITCH 960
 #define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)
+#define BMP_END (bmp_vram() + BMP_HEIGHT * BMPPITCH)
 
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK		0x000F0000
