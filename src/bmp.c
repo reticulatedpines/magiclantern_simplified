@@ -340,7 +340,7 @@ bmp_fill(
 	//~ if (!bmp_enabled) return;
 
 	const uint32_t start = x;
-	const uint32_t width = 960;
+	const uint32_t width = BMP_WIDTH;
 	const uint32_t pitch = BMPPITCH;
 	const uint32_t height = BMP_HEIGHT;
 
@@ -608,7 +608,7 @@ getfilesize_fail:
 
 void clrscr()
 {
-	BMP_LOCK( bmp_fill( 0x0, 0, 0, 960, BMP_HEIGHT ); )
+	BMP_LOCK( bmp_fill( 0x0, 0, 0, BMP_WIDTH, BMP_HEIGHT ); )
 }
 
 #if 0
@@ -622,12 +622,12 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	
-	x0 = COERCE(x0, 0, 960 - (int)bmp->width);
+	x0 = COERCE(x0, 0, BMP_WIDTH  - (int)bmp->width);
 	y0 = COERCE(y0, 0, BMP_HEIGHT - (int)bmp->height);
 	if (x0 < 0) return;
-	if (x0 + bmp->width > 960) return;
+	if (x0 + bmp->width >= BMP_WIDTH) return;
 	if (y0 < 0) return;
-	if (y0 + bmp->height > 960) return;
+	if (y0 + bmp->height >= BMP_WIDTH) return;
 	
 	int bmppitch = BMPPITCH;
 	uint32_t x,y;
@@ -705,14 +705,12 @@ uint8_t bmp_getpixel(int x, int y)
 }
 void bmp_putpixel(int x, int y, uint8_t color)
 {
-	//~ if (!bmp_enabled) return;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	int bmppitch = BMPPITCH;
-	x = COERCE(x, 0, 960);
-	y = COERCE(y, 0, BMP_HEIGHT);
-	uint8_t * const b_row = bvram + y * bmppitch;
-	b_row[x] = color;
+	x = COERCE(x, 0, BMP_WIDTH-1);
+	y = COERCE(y, 0, BMP_HEIGHT-1);
+	bvram[x + y * BMPPITCH] = color;
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
@@ -721,7 +719,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 	if (!bvram) return;
 	
 	int x, y;
-	#define P(X,Y) bvram[COERCE(X, 0, 960) + COERCE(Y, 0, BMP_HEIGHT) * BMPPITCH]
+	#define P(X,Y) bvram[COERCE(X, 0, BMP_WIDTH-1) + COERCE(Y, 0, BMP_HEIGHT-1) * BMPPITCH]
 	for (x = x0; x <= x0 + w; x++)
 		P(x, y0) = P(x, y0+h) = color;
 	for (y = y0; y <= y0 + h; y++)
@@ -808,7 +806,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 			uint8_t bmp_color = bmp_col[1]; // store the actual color to use
 			for (xs = x0; xs < (x0 + xmax); xs++)
 			{
-				x = COERCE((xs-x0)*bmp->width/xmax, 0, 960);
+				x = COERCE((xs-x0)*bmp->width/xmax, 0, BMP_WIDTH-1);
 				while (x>=bmp_x_pos_end) {
 					// skip to this position
 					if (bmp_col>(uint8_t*)(bmp+bmp->image_size)) break;
