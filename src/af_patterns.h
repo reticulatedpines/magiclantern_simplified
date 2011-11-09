@@ -2,8 +2,8 @@
 #define AF_PATTERNS_H_
 
 // some definitions from main.h 
-#define IS_EOL(item) (item->_eol_)
-#define END_OF_LIST  {_eol_ : TRUE}
+#define IS_EOL(item) (item->pattern == AF_PATTERN_END_OF_LIST)
+#define END_OF_LIST  {AF_PATTERN_END_OF_LIST, 0, 0, 0, 0, 0 }
 #define TRUE  1
 // done 
 
@@ -68,6 +68,8 @@
 
 #define AF_PATTERN_ALL             AF_POINT_C | AF_POINT_T | AF_POINT_B | AF_POINT_TL | AF_POINT_TR | AF_POINT_BL | AF_POINT_BR | AF_POINT_L | AF_POINT_R
 
+#define AF_PATTERN_END_OF_LIST		-1
+
 typedef struct {
 	int pattern;
 	int next_center;
@@ -75,7 +77,6 @@ typedef struct {
 	int next_bottom;
 	int next_left;
 	int next_right;
-	int _eol_;
 } type_PATTERN_MAP_ITEM;
 
 typedef enum {
