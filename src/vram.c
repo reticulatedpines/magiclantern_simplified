@@ -427,7 +427,6 @@ vram_print(
 {
 	unsigned		menu_font = selected ? MENU_FONT_SEL : MENU_FONT;
 	unsigned		font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
-	unsigned		height = fontspec_height( font );
 
 	y = y * 2/3 + 20;
 	if (y > 400) { y = y - 400 + 50; x = 360; }
@@ -460,6 +459,7 @@ static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment)
 		.select_auto = update_vram_params_calc, \
 	}, \
 
+#if CONFIG_DEBUGMSG
 static struct menu_entry vram_menus[] = {
 	VRAM_MENU_ENTRY(0)
 	VRAM_MENU_ENTRY(1)
@@ -484,7 +484,6 @@ static struct menu_entry vram_menus[] = {
 	VRAM_MENU_ENTRY(20)
 };
 
-#if CONFIG_DEBUGMSG
 void vram_init()
 {
 	menu_add("VRAM", vram_menus, COUNT(vram_menus));

@@ -179,7 +179,7 @@ update_lens_display()
 	draw_ml_topbar();
 
 #ifdef CONFIG_500D
-	if (lv_disp_mode == 0 && !LV_BOTTOM_BAR_DISPLAYED || EXT_MONITOR_CONNECTED)
+	if ((lv_disp_mode == 0 && !LV_BOTTOM_BAR_DISPLAYED) || EXT_MONITOR_CONNECTED)
 #else
 	if (lv_disp_mode == 0 || flicker_being_killed() || EXT_MONITOR_CONNECTED)
 #endif
@@ -661,7 +661,7 @@ void draw_ml_topbar()
 	bitrate_indic_x = os.x_max - 160;
 	bitrate_indic_y = y;
 	if (bitrate_indic_x < 720-160)
-		bitrate_indic_y = MAX(bitrate_indic_y + ( bitrate_indic_y < os.y0 + os.x_ex/2 ? 1 : -1) * font_med.height, os.y0 + os.off_169); // otherwise will overlap audio meters
+		bitrate_indic_y = MAX((int)(bitrate_indic_y + ( bitrate_indic_y < os.y0 + os.x_ex/2 ? 1 : -1) * font_med.height), os.y0 + os.off_169); // otherwise will overlap audio meters
 	
 	if (bitrate_indic_y > vram_bm.height - 30) bitrate_indic_y = vram_bm.height - 30;
 

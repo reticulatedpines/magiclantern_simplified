@@ -354,7 +354,7 @@ static int playicon_square(int x, int y, int color)
 // Only the first call is executed
 
 int icon_drawn = 0;
-void menu_draw_icon(int x, int y, int type, int arg)
+void menu_draw_icon(int x, int y, int type, intptr_t arg)
 {
 	#if !CONFIG_DEBUGMSG
 	if (icon_drawn) return;
@@ -366,7 +366,7 @@ void menu_draw_icon(int x, int y, int type, int arg)
 	{
 		case MNI_OFF: batsu(x, y); return;
 		case MNI_ON: maru(x, y, COLOR_GREEN1); return;
-		case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = arg; return;
+		case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
 		case MNI_AUTO: maru(x, y, 9); return;
 		case MNI_PERCENT: percent(x, y, arg); return;
 		case MNI_ACTION: playicon(x, y); return;
@@ -442,7 +442,7 @@ menu_display(
 
 			y += font_large.height - 1;
 			
-			if (y > vram_bm.height - font_large.height) return;
+			if ((unsigned)y > vram_bm.height - font_large.height) return;
 		}
 		menu = menu->next;
 	}
@@ -487,7 +487,7 @@ menus_display(
 		if (!show_only_selected)
 		{
 			int w = fontspec_font( fontspec )->width * 6 + 10;
-			int h = fontspec_font( fontspec )->height;
+			//int h = fontspec_font( fontspec )->height;
 			int icon_w = 0;
 			if (menu->icon)
 			{
@@ -1150,14 +1150,14 @@ about_print(
 	},
 };*/
 
-static struct menu_entry dbg_menu[] = {
+/*static struct menu_entry dbg_menu[] = {
 	{
 		.priv = &guimode_ml_menu,
 		.display = guimode_ml_menu_print,
 		.select = guimode_ml_menu_inc,
 		.select_reverse = guimode_ml_menu_dec,
 	},
-};
+};*/
 
 
 void

@@ -120,21 +120,6 @@ expsim_toggle( void * priv )
 		set_expsim(0);
 	}
 }*/
-static void
-expsim_display( void * priv, int x, int y, int selected )
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Exposure Simulation : %s",
-		expsim == 2 ? "Movie" :
-		expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
-		get_expsim_auto_value() ? "ON" : "OFF"
-	);
-	if (!lv) menu_draw_icon(x, y, MNI_WARNING, "This option works only in LiveView");
-	else menu_draw_icon(x, y, expsim == 2 ? MNI_AUTO : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), "Could not set ExpSim");
-}
-
 int get_expsim_auto_value()
 {
 	#ifdef CONFIG_50D
@@ -154,6 +139,22 @@ int get_expsim_auto_value()
 	}
 	else return expsim_setting;
 }
+
+static void
+expsim_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Exposure Simulation : %s",
+		expsim == 2 ? "Movie" :
+		expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
+		get_expsim_auto_value() ? "ON" : "OFF"
+	);
+	if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+	else menu_draw_icon(x, y, expsim == 2 ? MNI_AUTO : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), (intptr_t) "Could not set ExpSim");
+}
+
 static void expsim_update()
 {
 	if (!lv) return;
@@ -195,7 +196,7 @@ CONFIG_INT("lv.metering", lv_metering, 0);
 static void
 lv_metering_print( void * priv, int x, int y, int selected )
 {
-	unsigned z = *(unsigned*) priv;
+	//unsigned z = *(unsigned*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -209,9 +210,9 @@ lv_metering_print( void * priv, int x, int y, int selected )
 	if (lv_metering)
 	{
 		if (shooting_mode != SHOOTMODE_M || !lv)
-			menu_draw_icon(x, y, MNI_WARNING, "Only works in photo mode (M), LiveView");
+			menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in photo mode (M), LiveView");
 		if (!expsim)
-			menu_draw_icon(x, y, MNI_WARNING, "ExpSim is OFF");
+			menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "ExpSim is OFF");
 	}
 }
 
@@ -270,7 +271,7 @@ lv_metering_adjust()
 	
 	if (lv_metering == 1)
 	{
-		uint8_t Y,U,V;
+		int Y,U,V;
 		get_spot_yuv(5, &Y, &U, &V);
 		//bmp_printf(FONT_LARGE, 0, 100, "Y %d AE %d  ", Y, lens_info.ae);
 		iso_alter(SGN(Y-128));
@@ -392,7 +393,7 @@ auto_burst_pic_display(
 }
 
 void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
-extern int lcd_sensor_shortcuts;
+extern unsigned lcd_sensor_shortcuts;
 
 // backlight adjust
 //**********************************************************************
@@ -824,7 +825,7 @@ tweak_task( void* unused)
 
 		clear_lv_affframe_if_dirty();
 		
-		extern int disp_profiles_0;
+		extern unsigned disp_profiles_0;
 		if (FLASH_BTN_MOVIE_MODE)
 		{
 			int k = 0;
@@ -948,7 +949,7 @@ int handle_swap_menu_erase(struct event * event)
 	return 1;
 }
 
-extern int cropmark_movieonly;
+extern unsigned cropmark_movieonly;
 
 static void
 crop_movieonly_display(
@@ -984,7 +985,7 @@ picstyle_disppreset_display(
 	);
 }*/
 
-extern int display_dont_mirror;
+extern unsigned display_dont_mirror;
 static void
 display_dont_mirror_display(
         void *                  priv,
@@ -1089,7 +1090,7 @@ static void display_gain_print(
 	if (display_gain)
 	{
 		if (lv) menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
-		else menu_draw_icon(x, y, MNI_WARNING, "This option works only in LiveView");
+		else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 	}
 }
 

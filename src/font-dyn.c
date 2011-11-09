@@ -26,7 +26,7 @@ static void load_fonts(void* unused)
 	int size;
 	
 	//cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
-	font_small.bitmap = read_entire_file(CARD_DRIVE "FONTS.DAT", &size);
+	font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "FONTS.DAT", &size);
 	//~ font_med.bitmap = read_entire_file(CARD_DRIVE "MEDIUM.FNT", &size);
 	//~ font_large.bitmap = read_entire_file(CARD_DRIVE "LARGE.FNT", &size);
 	font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT

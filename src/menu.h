@@ -132,7 +132,7 @@ menu_init( void );
 
 extern void menu_stop(void);
 
-void menu_draw_icon(int x, int y, int type, int arg);
+void menu_draw_icon(int x, int y, int type, intptr_t arg);
 
 #define MNI_NONE -1
 #define MNI_OFF 0
@@ -143,7 +143,7 @@ void menu_draw_icon(int x, int y, int type, int arg);
 #define MNI_ACTION 5
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
-#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), "GlobalDraw is OFF"
-#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && expsim ? MNI_ON : MNI_WARNING ) : MNI_OFF), !get_global_draw() ? "GlobalDraw is OFF" : "ExpSim is OFF"
-#define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), "This option works only in LiveView" 
+#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "GlobalDraw is OFF"
+#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && expsim ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? "GlobalDraw is OFF" : "ExpSim is OFF" )
+#define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option works only in LiveView" 
 #endif

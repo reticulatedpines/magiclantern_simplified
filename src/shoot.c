@@ -181,7 +181,7 @@ interval_timer_display( void * priv, int x, int y, int selected )
 	}
 	
 	if (intervalometer_running) menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
-	else menu_draw_icon(x, y, MNI_WARNING, "Intervalometer is not active");
+	else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Intervalometer is not active");
 }
 
 static void
@@ -2439,6 +2439,7 @@ ladj_toggle_reverse( void * priv )
 }
 
 #ifdef CONFIG_500D
+static void 
 ladj_display( void * priv, int x, int y, int selected )
 {
 	int htp = get_htp();
@@ -2662,7 +2663,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		d < 60 ? d : d/60, 
 		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
-	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? bulb_duration_index * 100 / COUNT(timer_values) : "Bulb timer only works in BULB mode");
+	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
 	if (selected && is_bulb_mode()) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 6, selected);
 }
 
@@ -2701,7 +2702,7 @@ mlu_display( void * priv, int x, int y, int selected )
 		#endif
 		: get_mlu() ? "ON" : "OFF"
 	);
-	if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, "Mirror Lockup does not work in LiveView");
+	if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
 	else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 
@@ -3508,7 +3509,6 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 		int rc = rs - ev_x8;
 
 		int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
-		int m0r = shooting_mode;
 		
 		//NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 

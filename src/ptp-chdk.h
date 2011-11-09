@@ -99,7 +99,7 @@ static int send_ptp_data(struct ptp_context *data, const char *buf, int size)
   tmpsize = size;
   while ( size >= BUF_SIZE )
   {
-    if ( data->send_data(data->handle,buf,BUF_SIZE,tmpsize,0,0,0) )
+    if ( data->send_data(data->handle,(void *)buf,BUF_SIZE,tmpsize,0,0,0) )
     {
       return 0;
     }
@@ -110,7 +110,7 @@ static int send_ptp_data(struct ptp_context *data, const char *buf, int size)
   }
   if ( size != 0 )
   {
-    if ( data->send_data(data->handle,buf,size,tmpsize,0,0,0) )
+    if ( data->send_data(data->handle,(void *)buf,size,tmpsize,0,0,0) )
     {
       return 0;
     }

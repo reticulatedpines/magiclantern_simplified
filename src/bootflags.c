@@ -186,14 +186,14 @@ bootflag_write_bootblock( void )
 	// figure out if we are a FAT32 partitioned drive. this spells out FAT32 in chars.
 	// FAT16 not supported yet - I don't have a small enough card to test with.
 	//if( block[0x52] == 0x46 && block[0x53] == 0x41 && block[0x54] == 0x54 && block[0x55] == 0x33 && block[0x56] == 0x32 )
-	if( strncmp(block + 0x52, "FAT32", 5) == 0 ) //check if this card is FAT32
+	if( strncmp((const char*) block + 0x52, "FAT32", 5) == 0 ) //check if this card is FAT32
 	{
 		int rc = dev->read_block( dev, 0, 1, block );
 		my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
 		my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
 		rc = dev->write_block( dev, 0, 1, block );
 	}
-	else if( strncmp(block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
+	else if( strncmp((const char*) block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
 	{
 		int rc = dev->read_block( dev, 0, 1, block );
 		my_memcpy( block + 0x2B, (uint8_t*) "EOS_DEVELOP", 0xB );

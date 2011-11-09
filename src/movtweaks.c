@@ -344,7 +344,6 @@ movtweak_task( void* unused )
 			force_liveview();
 		}
 		
-		extern int ext_monitor_hdmi;
 		if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
 		{
 			if (hdmi_code == 5)
@@ -424,8 +423,8 @@ CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_UNDER_3_2);
 CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2);
 #endif
 CONFIG_INT("screen.layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
-int* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
-int* get_screen_layout() { return *get_screen_layout_ptr(); }
+unsigned* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
+int get_screen_layout() { return (int) *get_screen_layout_ptr(); }
 
 static void
 screen_layout_display(

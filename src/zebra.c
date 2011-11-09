@@ -373,8 +373,6 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 	*under = 0;
 	*over = 0;
 	void* vram = lv->vram;
-	int width = lv->width;
-	int pitch = lv->pitch;
 	uint32_t * 	v_row = (uint32_t*) vram;
 	int x,y;
 	for( y = os.y0 ; y < os.y_max; y += 2, v_row += (lv->pitch/2) )
@@ -1146,9 +1144,7 @@ draw_false_downsampled( void )
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 
-	int y;
 	uint8_t * const lvram = get_yuv422_vram()->vram;
-	int lvpitch = YUV422_LV_PITCH;
 	uint8_t* fc = false_colour[falsecolor_palette];
 
 	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
@@ -1456,7 +1452,7 @@ crop_display( void * priv, int x, int y, int selected )
 	//~ int w = h * 720 / 480;
 	//~ bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
 	if (index && cropmark_movieonly && !is_movie_mode())
-		menu_draw_icon(x, y, MNI_WARNING, "Cropmarks are only displayed in movie mode");
+		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
 	menu_draw_icon(x, y, MNI_BOOL_GDR(index));
 }
 
@@ -1583,11 +1579,11 @@ zoom_overlay_display(
 	);
 
 	if (ext_monitor_rca)
-		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom does not work with SD monitors");
+		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
 	else if (is_movie_mode() && video_mode_resolution)
-		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom does not work well in current video mode");
+		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
 	else if (zoom_overlay_mode && !get_zoom_overlay_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
-		menu_draw_icon(x, y, MNI_WARNING, "Magic Zoom is not available in this mode");
+		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
 	else
 		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode));
 }
@@ -1651,8 +1647,8 @@ void get_spot_yuv(int dxb, int* Y, int* U, int* V)
 	const uint16_t*		vr = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
-	const unsigned		height = vram->height;
-	unsigned		x, y;
+	//~ const unsigned		height = vram->height;
+	int 				x, y;
 
 	int xcb = os.x0 + os.x_ex/2;
 	int ycb = os.y0 + os.y_ex/2;
@@ -1696,8 +1692,8 @@ int get_spot_motion(int dxb, int draw)
 	if (!bm) return 0;
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
-	const unsigned		height = vram->height;
-	unsigned		x, y;
+	//~ const unsigned		height = vram->height;
+	int					x, y;
 
 	int xcb = os.x0 + os.x_ex/2;
 	int ycb = os.y0 + os.y_ex/2;
@@ -1737,8 +1733,8 @@ int get_spot_focus(int dxb)
 	const uint32_t*		vr = (uint32_t*) vram->vram; // 2px
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
-	const unsigned		height = vram->height;
-	unsigned		x, y;
+	//~ const unsigned		height = vram->height;
+	int					x, y;
 	
 	unsigned sf = 0;
 	unsigned br = 0;
@@ -1779,10 +1775,10 @@ void spotmeter_step()
 	const uint16_t*		vr = (uint16_t*) vram->vram;
 	const unsigned		width = vram->width;
 	//~ const unsigned		pitch = vram->pitch;
-	const unsigned		height = vram->height;
+	//~ const unsigned		height = vram->height;
 	const unsigned		dxb = spotmeter_size;
 	unsigned		sum = 0;
-	unsigned		x, y;
+	int					x, y;
 
 	int xcb = os.x0 + os.x_ex/2;
 	int ycb = os.y0 + os.y_ex/2;
@@ -2585,8 +2581,8 @@ void draw_zoom_overlay(int dirty)
 	int aff_x0_hd = LV2HD_X(aff_x0_lv);
 	int aff_y0_hd = LV2HD_Y(aff_y0_lv);
 	
-	int aff_x0_bm = LV2BM_X(aff_x0_lv);
-	int aff_y0_bm = LV2BM_Y(aff_y0_lv);
+	//~ int aff_x0_bm = LV2BM_X(aff_x0_lv);
+	//~ int aff_y0_bm = LV2BM_Y(aff_y0_lv);
 	
 	int W = os.x_ex / 3;
 	int H = os.y_ex / 2;
@@ -3390,7 +3386,7 @@ livev_lopriority_task( void* unused )
 		}
 
 		// here, redrawing cropmarks does not block fast zoom
-		extern int cropmarks_play; // from tweak.c
+		extern unsigned cropmarks_play; // from tweak.c
 		if (cropmarks_play && PLAY_MODE)
 		{
 			cropmark_redraw();
@@ -3602,7 +3598,7 @@ void make_overlay()
 
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
-	int lvpitch = YUV422_LV_PITCH;
+	//~ int lvpitch = YUV422_LV_PITCH;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	#define BMPPITCH 960
@@ -3640,7 +3636,7 @@ void make_overlay()
 void show_overlay()
 {
 	//~ bvram_mirror_init();
-	struct vram_info * vram = get_yuv422_vram();
+	//~ struct vram_info * vram = get_yuv422_vram();
 	//~ uint8_t * const lvram = vram->vram;
 	//~ int lvpitch = YUV422_LV_PITCH;
 	uint8_t * const bvram = bmp_vram();
@@ -3839,7 +3835,7 @@ void play_422(char* filename)
 	int w,h;
     if      (size == 1056*704*2) { w = 1056; h = 704; } // photo mode
     else if (size == 1720*974*2) { w = 1720; h = 974; } // fullhd 550d, 60d
-    else if (size == 1720*974*2) { w = 1680; h = 945; } // fullhd 600d
+    else if (size == 1680*974*2) { w = 1680; h = 974; } // fullhd 600d
     else if (size == 1728*972*2) { w = 1728; h = 972; } // fullhd 3x 600d
     else if (size == 580*580*2)  { w = 580 ; h = 580; }
     else if (size == 1280*580*2) { w = 1280; h = 580; } // 720p 550d, 60d
@@ -3850,7 +3846,7 @@ void play_422(char* filename)
     else if (size == 720*480*2)  { w = 720;  h = 480; } // LiveView buffer
 	else if (size == 928*616*2)  { w = 928;  h = 616; } // 500d LV HD buffer dimensions.
 	else if (size == 720*424*2)  { w = 720;  h = 424; } // 500d LV buffer in movie mode.
-	else if (size == 1576*632*2) { w = 1567; h = 632; } // 500d 720p recording lv buffer dimensions.
+	else if (size == 1576*632*2) { w = 1576; h = 632; } // 500d 720p recording lv buffer dimensions.
 	else if (size == 1576*1048*2){ w = 1576; h = 1048;} // 500d HD buffer dimensions in 1080p/720p mode and LV mode.
     else
     {

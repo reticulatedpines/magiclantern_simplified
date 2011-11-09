@@ -80,7 +80,7 @@ void menu_help_go_to_page(int page)
 	menu_help_active = 1;
 }
 
-void menu_help_go_to_label(char* label)
+void menu_help_go_to_label(void* label)
 {
 	int page = 1;
 	

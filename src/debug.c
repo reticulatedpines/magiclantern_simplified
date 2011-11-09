@@ -1518,7 +1518,7 @@ struct menu_entry debug_menus[] = {
 	},
 #endif
 	{
-		.name = 'Upside-down mode',
+		.name = "Upside-down mode",
 		.priv = &menu_upside_down,
 		.display = menu_upside_down_print,
 		.select = menu_binary_toggle,
@@ -1621,27 +1621,27 @@ struct menu_entry debug_menus[] = {
 	}, */
 	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	{
-		.name = 'Free Memory',
+		.name = "Free Memory",
 		.display = meminfo_display,
 		.help = "Memory information (from AllocateMemory)",
 		.essential = 0,
 	},
 	#endif
 	{
-		.name = 'Shutter Count',
+		.name = "Shutter Count",
 		.display = shuttercount_display,
 		.help = "Number of pics taken + number of LiveView actuations",
 		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 	{
-		.name = 'EFIC temperature',
+		.name = "EFIC temperature",
 		.display = efictemp_display,
 		.help = "EFIC temperature, in raw units (don't rely on it).",
 		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 	#if CONFIG_DEBUGMSG
 	{
-		.name = 'PROP display',
+		.name = "PROP display",
 		.display = prop_display,
 		.select = prop_toggle_k, 
 		.select_reverse = prop_toggle_j,

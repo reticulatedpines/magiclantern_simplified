@@ -68,7 +68,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
     */
     
-  bmp_printf(FONT_LARGE, 0, 0, "PTP: %8x %8x %8x", param1, param2, param3);
+  bmp_printf(FONT_LARGE, 0, 0, "PTP: %8x %8x %8x", (unsigned int) param1, (unsigned int) param2, (unsigned int) param3);
 
   // ported from CHDK
 
@@ -195,7 +195,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
     case PTP_CHDK_UploadFile:
 	{
         FILE *f;
-        int s,r,fn_len;
+        int s,fn_len;
         char *buf, *fn;
 
         s = context->get_data_size(context->handle);
@@ -255,7 +255,8 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
     case PTP_CHDK_DownloadFile:
 	{
         FILE *f;
-        int tmp,t,s,r,fn_len;
+        int tmp,t,r,fn_len;
+		unsigned s;
 
 		bmp_printf(FONT_LARGE, 0, 0, "DL request");
 
