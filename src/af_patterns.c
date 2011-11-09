@@ -45,7 +45,13 @@ static type_PATTERN_MAP_ITEM pattern_map[] = {
 
 int afp_transformer (int pattern, type_DIRECTION direction);
 
-PROP_INT(PROP_AFPOINT, af_point);
+int afp[2];
+PROP_HANDLER(PROP_AFPOINT)
+{
+	afp[0] = buf[0];
+	afp[1] = buf[1];
+}
+#define af_point afp[0]
 
 void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
@@ -62,8 +68,8 @@ BMP_LOCK( // reuse this for locking
 void set_af_point(int afpoint)
 {
 	if (beep_enabled) Beep();
-	prop_request_change(PROP_AFPOINT, &afpoint, 4);
-	af_point = afpoint;
+	afp[0] = afpoint;
+	prop_request_change(PROP_AFPOINT, afp, 7);
 	task_create("afp_tmp", 0x18, 0, afp_show_in_viewfinder, 0);
 }
 
