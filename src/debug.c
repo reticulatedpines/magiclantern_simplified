@@ -336,6 +336,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
 	msleep(2000);
+	prop_dump();
 	//~ lens_take_picture(64, 0);
 	//~ bulb_take_pic(250);
 	//~ trans_test();
@@ -343,12 +344,12 @@ void run_test()
 
 void xx_test(void* priv)
 {
-	#ifdef CONFIG_550D
-	gui_stop_menu();
-	SetGUIRequestMode(29); // Jackie Chan :)
-	#endif
+	//~ #ifdef CONFIG_550D
 	//~ gui_stop_menu();
-	//~ task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
+	//~ SetGUIRequestMode(29); // Jackie Chan :)
+	//~ #endif
+	gui_stop_menu();
+	task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
 }
 
 static void stress_test_long(void* priv)
@@ -1398,7 +1399,7 @@ static void menu_upside_down_print(
 }
 
 
-#if CONFIG_DEBUGMSG
+#if 1
 CONFIG_INT("prop.i", prop_i, 0);
 CONFIG_INT("prop.j", prop_j, 0);
 CONFIG_INT("prop.k", prop_k, 0);
