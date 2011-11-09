@@ -28,6 +28,8 @@ void display_on_force();
 void display_off();
 void display_off_force();
 
+void fake_halfshutter_step();
+
 
 //~ CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
 int fake_halfshutter = 0;
@@ -2347,7 +2349,7 @@ int flash_movie_pressed = 0;
 int get_flash_movie_pressed() { return flash_movie_pressed; }
 
 int halfshutter_pressed = 0;
-int get_halfshutter_pressed() { return halfshutter_pressed && !dofpreview; }
+bool get_halfshutter_pressed() { return halfshutter_pressed && !dofpreview; }
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;

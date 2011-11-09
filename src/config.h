@@ -100,4 +100,6 @@ __config_##VAR = \
 //~ void config_flag_file_setting_save(char* file, int setting);
 //~ int config_flag_file_setting_load(char* file);
 
+int read_line( char *buf, size_t size );
+
 #endif

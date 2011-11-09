@@ -1,6 +1,7 @@
 /** \file
  * Tweaks to default UI behavior
  */
+#include "zebra.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -12,6 +13,10 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+
+void display_gain_toggle(int dir);
+void clear_lv_affframe();
+
 
 #if defined(CONFIG_1100D)
 #include "disable-this-module.h"

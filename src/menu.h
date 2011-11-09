@@ -33,11 +33,15 @@
 #ifndef _menu_h_
 #define _menu_h_
 
+#include <stdint.h>
+#include <stdbool.h>
 
 #define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
 #define MENU_FONT_SEL	get_menu_font_sel()
 
 int get_menu_font_sel();
+bool gui_menu_shown();
+void menu_show_only_selected();
 
 struct menu_entry
 {

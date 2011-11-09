@@ -1,5 +1,8 @@
 #ifndef _debug_h_
 #define _debug_h_
+
+#include <stdbool.h>
+
 /** \file
  * Debug macros and functions.
  */
@@ -90,6 +93,10 @@ extern void dmstop( void );
 extern void dumpentire( void );
 extern void dumpf( void );
 extern void dm_set_store_level( uint32_t class, uint32_t level );
+
+extern void card_led_on();
+extern void card_led_off();
+extern bool get_halfshutter_pressed();
 
 extern void
 dm_event_dispatch(

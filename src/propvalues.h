@@ -45,4 +45,6 @@ extern int burst_count;
 
 extern struct bmp_ov_loc_size os;
 
+bool is_movie_mode();
+
 #endif

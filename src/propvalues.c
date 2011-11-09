@@ -42,7 +42,7 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 
 volatile int lv;
 
-int is_movie_mode()
+bool is_movie_mode()
 {
 	#ifdef CONFIG_50D
 	return lv && lv_movie_select == LVMS_ENABLE_MOVIE;

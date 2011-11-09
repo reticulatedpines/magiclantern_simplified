@@ -36,7 +36,7 @@ extern struct semaphore * gui_sem;
 //~ static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
-static int menu_shown = 0;
+static bool menu_shown = false;
 static int show_only_selected; // for ISO, kelvin...
 static int edit_mode = 0;
 static int config_dirty = 0;
@@ -1085,7 +1085,7 @@ gui_stop_menu( void )
 		config_dirty = 0;
 	}
 
-	menu_shown = 0;
+	menu_shown = false;
 
 	if (!PLAY_MODE) {}//redraw_after(300);
 	else draw_livev_for_playback();
@@ -1103,7 +1103,7 @@ gui_hide_menu(
 	//~ menu_damage = 1;
 }
 
-int
+bool
 gui_menu_shown( void )
 {
 	return menu_shown;
@@ -1237,7 +1237,7 @@ menu_task( void* unused )
 		
 		if (recording && !lv) continue;
 		
-		menu_shown = 1;
+		menu_shown = true;
 		
 		#ifdef GUIMODE_ML_MENU
 		if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);

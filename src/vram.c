@@ -89,6 +89,8 @@ PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
+void update_vram_params_calc();
+
 // these buffer sizes include any black bars
 void update_vram_params()
 {

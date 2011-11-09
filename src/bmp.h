@@ -31,6 +31,8 @@
 #include "dryos.h"
 #include "font.h"
 
+uint8_t* read_entire_file(const char * filename, int* buf_size);
+
 extern int bmp_enabled;
 
 /** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
@@ -232,6 +234,7 @@ struct bmp_ov_loc_size
 void clrscr();
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear);
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);
+void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear);
 uint8_t bmp_getpixel(int x, int y);
 
 #define TOPBAR_BGCOLOR (bmp_getpixel(os.x0,os.y0))

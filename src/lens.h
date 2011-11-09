@@ -30,6 +30,8 @@
 
 #include "property.h"
 
+int get_htp();
+
 struct lens_info
 {
 volatile	void *			token;

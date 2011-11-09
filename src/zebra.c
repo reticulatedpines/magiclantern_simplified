@@ -23,6 +23,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include "zebra.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
@@ -57,6 +58,11 @@ void defish_draw();
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
+static bool _bmp_cleared = false;
+static bool bmp_is_on() { return !_bmp_cleared; }
+void bmp_on();
+void bmp_off();
+void bmp_flip();
 
 #define hist_height			64
 #define hist_width			128
@@ -2391,7 +2397,6 @@ int is_safe_to_mess_with_the_display(int timeout_ms)
 	return 1;
 }
 
-int _bmp_cleared = 0;
 void bmp_on()
 {
 	//~ return;
@@ -2410,12 +2415,12 @@ void bmp_on()
 			sei_restore();
 		)
 	#endif
-		_bmp_cleared = 0;
+		_bmp_cleared = false;
 	}
 }
 void bmp_on_force()
 {
-	_bmp_cleared = 1;
+	_bmp_cleared = true;
 	bmp_on();
 }
 void bmp_off()
@@ -2426,14 +2431,14 @@ void bmp_off()
 	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
 	{
 	#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_550D)
-		_bmp_cleared = 1;
+		_bmp_cleared = true;
 		kill_flicker_do();
 	#else
 		BMP_LOCK(
 			cli_save();
 			if (tft_status == 0 && lv && !lv_paused)
 			{
-				_bmp_cleared = 1;
+				_bmp_cleared = true;
 				MuteOn_0();
 			}
 			sei_restore();
@@ -2441,7 +2446,6 @@ void bmp_off()
 	#endif
 	}
 }
-int bmp_is_on() { return !_bmp_cleared; }
 
 /*
 int _lvimage_cleared = 0;
@@ -2721,7 +2725,7 @@ void draw_zoom_overlay(int dirty)
 //~ void zebra_pause() { zebra_paused = 1; }
 //~ void zebra_resume() { zebra_paused = 0; }
 
-int liveview_display_idle()
+bool liveview_display_idle()
 {
 	return
 		lv && 
@@ -3200,12 +3204,12 @@ void test_fps(int* x)
 }
 
 
-int should_draw_zoom_overlay()
+bool should_draw_zoom_overlay()
 {
-	if (zoom_overlay_mode == 4 && zebra_should_run() && get_global_draw()) return 1;
-	if (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
-	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
-	return 0;
+	if (zoom_overlay_mode == 4 && zebra_should_run() && get_global_draw()) return true;
+	if (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return true;
+	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return true;
+	return false;
 }
 
 
