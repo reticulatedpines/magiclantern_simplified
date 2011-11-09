@@ -56,7 +56,7 @@
 
 // button codes as received by gui_main_task
 #define BGMT_PRESS_LEFT 0x39
-#define BGMT_UNPRESS_LEFT 0x40
+#define BGMT_UNPRESS_LEFT 0x3a
 #define BGMT_PRESS_UP 0x3b
 #define BGMT_UNPRESS_UP 0x3c
 #define BGMT_PRESS_RIGHT 0x37
