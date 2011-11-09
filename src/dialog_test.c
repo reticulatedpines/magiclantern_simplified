@@ -106,7 +106,8 @@ int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, v
         if (test_dialog) DeleteDialogBox(test_dialog);
         test_dialog = NULL;
         return dialog != arg4;  // ?!
-
+	default:
+		break;
     }
     return 1;
 }

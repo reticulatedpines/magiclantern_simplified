@@ -396,5 +396,6 @@ void morse_task(void* unused)
 TASK_CREATE( "morse_task", morse_task, 0, 0x19, 0x1000 );
 
 #else
+#include "bmp.h"
 int handle_morse_keys(struct event * event) { return 1; }
 #endif

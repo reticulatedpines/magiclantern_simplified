@@ -331,12 +331,6 @@ void ChangeHDMIOutputSizeToFULLHD()
 	prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 }
 
-int8_t strobo_setting[0x22];
-PROP_HANDLER(PROP_STROBO_SETTING)
-{
-	memcpy(strobo_setting, buf, 0x22);
-}
-
 void run_test()
 {
 	msleep(2000);
@@ -2318,7 +2312,6 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
-	extern struct menu_entry livev_dbg_menus[];
 	extern struct menu_entry livev_cfg_menus[];
 	menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 	menu_add( "Config", livev_cfg_menus,  1);

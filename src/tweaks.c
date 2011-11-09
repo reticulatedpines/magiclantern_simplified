@@ -620,7 +620,7 @@ display_off_by_halfshutter_print(
 		display_off_by_halfshutter_enabled ? "HalfShutter" : "OFF"
 	);
 	if (display_off_by_halfshutter_enabled && lv)
-		menu_draw_icon(x, y, MNI_WARNING, "This option does not work in LiveView");
+		menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"This option does not work in LiveView");
 }
 
 #endif
