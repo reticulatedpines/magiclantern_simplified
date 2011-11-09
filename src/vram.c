@@ -452,7 +452,7 @@ static void vram_toggle_rev(void* priv) { vram_toggle(priv, -increment); }
 static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment); }
 
 #define VRAM_MENU_ENTRY(x)	{ \
-		.priv = x, \
+		.priv = (void *) x, \
 		.display	= vram_print, \
 		.select		= vram_toggle_fwd, \
 		.select_reverse = vram_toggle_rev, \

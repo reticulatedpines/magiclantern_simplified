@@ -457,7 +457,7 @@ static struct menu_entry ptp_menus[] = {
 
 
 static void
-ptp_init( void )
+ptp_init( void *unused )
 {
 	extern struct ptp_handler _ptp_handlers_start[];
 	extern struct ptp_handler _ptp_handlers_end[];

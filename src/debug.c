@@ -1039,7 +1039,7 @@ void roll_spy()
 {
 	show_electronic_level();
 	NotifyBox(1000, "%x", level_data.roll_sensor1); msleep(1000);
-	memfilt(0xC0220000, 0xC0230000, level_data.roll_sensor1);
+	memfilt((void*)0xC0220000, (void*)0xC0230000, level_data.roll_sensor1);
 	beep();
 }
 #endif

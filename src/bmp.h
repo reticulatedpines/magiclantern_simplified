@@ -249,6 +249,10 @@ extern void* gmt_lock;
 //~ #define BMP_LOCK(x) { if(bmp_lock) AcquireRecursiveLock(bmp_lock, 0); x; if(bmp_lock) ReleaseRecursiveLock(bmp_lock, 0);}
 //~ #define GMT_LOCxK(x) { if(gmt_lock) AcquireRecursiveLock(gmt_lock, 0); x; if(gmt_lock) ReleaseRecursiveLock(gmt_lock, 0);}
 
+extern void *AcquireRecursiveLock(void *lock, int n);
+extern void *CreateRecursiveLock(int n);
+extern void *ReleaseRecursiveLock(void *lock);
+
 #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
 #define GMT_LOCK(x) { error }
 

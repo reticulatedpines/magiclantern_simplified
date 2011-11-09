@@ -1045,7 +1045,7 @@ bfnt_test()
 
 void * bmp_lock = 0;
 
-void bmp_init()
+void bmp_init(void* unused)
 {
 	bmp_lock = CreateRecursiveLock(0);
 	bvram_mirror_init();
