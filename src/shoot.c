@@ -412,11 +412,6 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 {
 	*x = (afframe[2] + afframe[4]/2) * W / afframe[0];
 	*y = (afframe[3] + afframe[5]/2) * H / afframe[1];
-	if (hdmi_code == 5)
-	{
-		*x /= 2;
-		*y /= 2;
-	}
 }
 
 int face_zoom_request = 0;
