@@ -327,6 +327,30 @@ extern struct vram_info vram_bm;
 #define LV_R(y) ((y) * vram_lv.pitch)
 #define HD_R(y) ((y) * vram_hd.pitch)
 
+// normalized coordinates (0,0 ... 720,480)
+#define BM2N_X(x) (((x) - os.x0) * 720 / os.x_ex)
+#define BM2N_Y(y) (((y) - os.y0) * 480 / os.y_ex)
+#define LV2N_X(x) BM2N_X(LV2BM_X(x))
+#define LV2N_Y(y) BM2N_Y(LV2BM_Y(y))
+#define HD2N_X(x) BM2N_X(HD2BM_X(x))
+#define HD2N_Y(y) BM2N_Y(HD2BM_Y(y))
+
+#define N2BM_X(xn) ((xn) * os.x_ex / 720 + os.x0)
+#define N2BM_Y(yn) ((yn) * os.y_ex / 480 + os.y0)
+#define N2LV_X(xn) BM2LV_X(N2BM_X(xn))
+#define N2LV_Y(yn) BM2LV_Y(N2BM_Y(yn))
+#define N2HD_X(xn) BM2HD_X(N2BM_X(xn))
+#define N2HD_Y(yn) BM2HD_Y(N2BM_Y(yn))
+
+#define BM2N(x,y) (BM2N_Y(y) * 720 + LV2N_X(x))
+#define LV2N(x,y) (LV2N_Y(y) * 720 + LV2N_X(x))
+#define HD2N(x,y) (HD2N_Y(y) * 720 + HD2N_X(x))
+#define N2BM(x,y) (N2BM_Y(y) * vram_bm.pitch + N2LV_X(x) * 1)
+#define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + N2LV_X(x) * 2)
+#define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + N2HD_X(x) * 2)
+
+
+
 #define SCREENLAYOUT_3_2 0
 #define SCREENLAYOUT_16_10 1
 #define SCREENLAYOUT_16_9 2
