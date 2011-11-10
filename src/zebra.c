@@ -3176,7 +3176,7 @@ BMP_LOCK (
 	// ask other stuff to redraw
 	afframe_set_dirty();
 	crop_set_dirty(10);
-	//~ menu_set_dirty();
+	menu_set_dirty();
 	zoom_overlay_dirty = 1;
 }
 
@@ -3318,7 +3318,7 @@ livev_hipriority_task( void* unused )
 		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
 			crop_set_dirty(20);
 		
-		if (lens_display_dirty && !gui_menu_shown())
+		if (lens_display_dirty)
 		{
 			#ifdef CONFIG_KILL_FLICKER
 			if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )

@@ -242,7 +242,6 @@ void draw_ml_bottombar(int double_buffering)
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 
-	bg = COLOR_BLACK;
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
@@ -1181,7 +1180,6 @@ PROP_HANDLER( PROP_LV_LENS )
 	{
 		if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 		idle_wakeup_reset_counters(-11);
-		//~ menu_set_dirty(); // force a redraw
 	}
 	old_focus_dist = lens_info.focus_dist;
 

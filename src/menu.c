@@ -50,7 +50,7 @@ int get_menu_advanced_mode() { return advanced_mode; }
 static int x0 = 0;
 static int y0 = 0;
 
-//void menu_set_dirty() { //~ menu_damage = 1; }
+void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
@@ -743,7 +743,8 @@ menu_redraw()
 				bvram_mirror_clear();
 			)
 			//~ update_stuff();
-
+			
+			lens_display_set_dirty();
 			update_disp_mode_bits_from_params();
 		}
 }
