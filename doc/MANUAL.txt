@@ -1175,11 +1175,16 @@ Focus
 
 **Focus End Point**
   
-  This is end point of rack focus. To set, focus the lens, then press ``SET``.
+  This is end point of rack focus (X focus steps from the start point, i.e. from current focus point).
   
-  The start point will be the point where you are before running the rack focus.
-
-
+  First you have to set the end point. Focus the lens, then press ``SET`` on this menu item.
+  
+  After pressing SET, ML will display ``Focus End Point: 0 steps from here.``.
+  This means the end point is now assigned to current focus position.
+  
+  At this point, you will see the LiveView image and set the start point using the main dial (wheel) or ``ZoomIn/AF`` buttons.
+  The start point will be always the current focus point (which you are changing); the end point will remain fixed.
+  
 **Rack Focus**
 
   Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
@@ -1196,7 +1201,7 @@ Focus
 
   3. Open the ``Focus`` menu, go to ``Focus End Point`` and press ``Set`` to zero it out.
   
-  4. Pick the start point by focusing on it with the Zoom In/Out buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus.
+  4. Pick the start point by focusing on it with the Zoom In/Out buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus. You can fine-tune the start focus point with the main dial (wheel) while LiveView display is active.
     
   5. Go to ``Rack Focus`` and press ``SET``, ``Q`` or ``PLAY`` to start rack focus.
   
