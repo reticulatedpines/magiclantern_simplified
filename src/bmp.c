@@ -50,6 +50,7 @@ void bmp_idle_copy(int direction)
 /** Returns a pointer to the real BMP vram */
 uint8_t* bmp_vram_real()
 {
+	//~ NotifyBox(1000, "%x", bmp_vram_info[1].vram2);
 	return bmp_vram_info[1].vram2;
 }
 

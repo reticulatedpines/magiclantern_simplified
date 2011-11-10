@@ -252,7 +252,7 @@ void draw_ml_bottombar(int double_buffering)
 	if (double_buffering)
 	{
 		//~ bmp_mirror_copy(0);
-		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
+		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 35 * BMPPITCH);
 		bmp_draw_to_idle(1);
 	}
 	
@@ -531,6 +531,7 @@ end:
 		bmp_draw_to_idle(0);
 		//~ bmp_mirror_copy(1);
 		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+		bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
 	}
 }
 

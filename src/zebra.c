@@ -713,8 +713,9 @@ static void dump_vram()
 	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
 }
 
-static uint8_t* bvram_mirror = 0;
-uint8_t* get_bvram_mirror() { return bvram_mirror; }
+//~ static uint8_t* bvram_mirror = 0;
+//~ uint8_t* get_bvram_mirror() { return bvram_mirror; }
+#define bvram_mirror bmp_vram_idle()
 
 void spotmeter_step();
 
@@ -760,6 +761,7 @@ void bvram_mirror_clear()
 }
 void bvram_mirror_init()
 {
+	/*
 	if (!bvram_mirror)
 	{
 		bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
@@ -769,7 +771,7 @@ void bvram_mirror_init()
 			return;
 		}
 		bvram_mirror_clear();
-	}
+	}*/
 }
 
 int get_focus_color(int thr, int d)
@@ -3762,7 +3764,7 @@ void defish_draw()
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
-	for (int y = os.y0; y < os.y0 + os.y_ex/2; y += 2)
+	for (int y = os.y0 + (is_movie_mode() ? os.off_169 : 0); y < os.y0 + os.y_ex/2; y += 2)
 	{
 		for (int x = os.x0; x < os.x0 + os.x_ex/2; x += 4)
 		{
