@@ -491,9 +491,9 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **Magic Zoom: OFF/Zrec/Zr+F/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
 
-  [[Video:Magic_Lantern_Magic_Zoom_13_March_2011_explained_by_Chung_Dha|200px|right]]
+  [[Video:Magic_Lantern_Tip_1_Magic_Zoom|200px|right]]
   
-  This function enables zoom while recording. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
+  This function displays a zoom box for focus assist. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
   
   When ML believes you have achieved perfect focus, Magic Zoom borders will become green.
 
