@@ -3133,7 +3133,7 @@ clearscreen_loop:
 
 TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1a, 0x1000 );
 
-CONFIG_INT("disable.redraw", disable_redraw, 0);
+//~ CONFIG_INT("disable.redraw", disable_redraw, 0);
 CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 
 // this should be synchronized with
@@ -3153,11 +3153,11 @@ BMP_LOCK (
 	}
 #endif
 
-	if (disable_redraw) 
-	{
-		clrscr(); // safest possible redraw method :)
-	}
-	else
+	//~ if (disable_redraw) 
+	//~ {
+		//~ clrscr(); // safest possible redraw method :)
+	//~ }
+	//~ else
 	{
 		struct gui_task * current = gui_task_list.current;
 		struct dialog * dialog = current->priv;
