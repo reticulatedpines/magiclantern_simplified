@@ -110,8 +110,14 @@ void update_vram_params()
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 	os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
 	if (PLAY_MODE) os.y0 = 54; // black bar is at the top in play mode
+#else
+	if (PLAY_MODE && hdmi_code == 2)
+	{
+		os.y_ex = 480 * 8/9;
+		os.y0 = 54;
+	}
 #endif
-
+	
 	os.x_max = os.x0 + os.x_ex;
 	os.y_max = os.y0 + os.y_ex;
 	os.off_169 = (os.y_ex - os.y_ex * 3/2*9/16) / 2;

@@ -2772,6 +2772,7 @@ void zebra_sleep_when_tired()
 
 void draw_livev_for_playback()
 {
+	get_yuv422_vram(); // just to refresh VRAM params
 	clrscr();
 	
 BMP_LOCK(
@@ -3771,13 +3772,13 @@ void defish_draw()
 			int k;
 			for (k = 0; k < 4; k++)
 			{
-				int I = (off_i[k] ? off_i[k] - i - 1 : i);
-				int J = (off_j[k] ? off_j[k] - j : j);
+				int Y = (off_i[k] ? N2BM_Y(off_i[k]) - y + os.y0 - 1 : y);
+				int X = (off_j[k] ? N2BM_X(off_j[k]) - x + os.x0 : x);
 				int Id = (off_i[k] ? off_i[k] - id : id);
 				int Jd = (off_j[k] ? off_j[k] - jd : jd);
 				int lv_pixel = lvram[N2LV(Jd&~1,Id&~1) + 1];
-				uint32_t* bp = &(bvram[N2BM(J,I)]);
-				uint32_t* mp = &(bvram_mirror[N2BM(J,I)]);
+				uint32_t* bp = &(bvram[BM(X,Y)]);
+				uint32_t* mp = &(bvram_mirror[BM(X,Y)]);
 				if (*bp != 0 && *bp != *mp) continue;
 				int c = (lv_pixel * 41 >> 8) + 38;
 				c = c | (c << 8);
@@ -3806,13 +3807,13 @@ void defish_draw_play()
 
 	memcpy(aux_buf, lvram, buf_size);
 
-	for (int y = os.y0; y < os.y0 + os.y_ex/2; y++)
+	for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
 	{
-		for (int x = os.x0; x < os.x0 + os.x_ex/2; x++)
+		for (int x = BM2LV_X(os.x0); x < BM2LV_X(os.x0 + os.x_ex/2); x++)
 		{
 			// i,j are normalized values: [0,0 ... 720x480)
-			int j = BM2N_X(x);
-			int i = BM2N_Y(y);
+			int j = LV2N_X(x);
+			int i = LV2N_Y(y);
 
 			static int off_i[] = {0,  0,479,479};
 			static int off_j[] = {0,719,  0,719};
@@ -3822,12 +3823,12 @@ void defish_draw_play()
 			int k;
 			for (k = 0; k < 4; k++)
 			{
-				int I = (off_i[k] ? off_i[k] - i : i);
-				int J = (off_j[k] ? off_j[k] - j : j);
+				int Y = (off_i[k] ? N2LV_Y(off_i[k]) - y + BM2LV_Y(os.y0) - 1 : y);
+				int X = (off_j[k] ? N2LV_X(off_j[k]) - x + BM2LV_X(os.x0) : x);
 				int Id = (off_i[k] ? off_i[k] - id : id);
 				int Jd = (off_j[k] ? off_j[k] - jd : jd);
 				
-				lvram[N2LV(J,I)/4] = aux_buf[N2LV(Jd,Id)/4];
+				lvram[LV(X,Y)/4] = aux_buf[N2LV(Jd,Id)/4];
 			}
 		}
 	}
