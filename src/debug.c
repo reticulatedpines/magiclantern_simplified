@@ -2185,7 +2185,7 @@ void TmpMem_AddFile(char* filename)
 	int filesize = GetFileSize(filename);
 	if (filesize == -1) return;
 	if (filesize > TMP_MAX_BUF_SIZE) return;
-	if (tmp_buffer_index > 200) return;
+	if (tmp_file_index >= 200) return;
 	if (tmp_buffer_ptr + filesize > tmp_buffers[tmp_buffer_index] + TMP_MAX_BUF_SIZE) tmp_buffer_index++;
 	if (tmp_buffer_index >= COUNT(tmp_buffers)) return;
 	
