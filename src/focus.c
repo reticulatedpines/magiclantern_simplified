@@ -634,6 +634,8 @@ focus_task( void* unused )
 				break;
 			}
 			focus_task_delta += f;
+			menu_set_dirty();
+			
 			if (queued_focus_steps)
 			{
 				queued_focus_steps--;

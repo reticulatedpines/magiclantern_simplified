@@ -724,6 +724,7 @@ lens_focus(
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 	//~ if (get_global_draw()) BMP_LOCK( draw_ml_bottombar(); )
 	idle_wakeup_reset_counters(-10);
+	lens_display_set_dirty();
 	
 	if (lv_focus_error) { lv_focus_error = 0; return 0; }
 	return 1;
