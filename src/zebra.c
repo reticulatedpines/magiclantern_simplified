@@ -2179,7 +2179,7 @@ struct menu_entry zebra_menus[] = {
 		.select = menu_binary_toggle,
 		.select_auto = transparent_overlay_offset_clear,
 		.help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
-		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+		.essential = FOR_PLAYBACK,
 	},
 	{
 		.name = "Defishing",
@@ -2187,6 +2187,7 @@ struct menu_entry zebra_menus[] = {
 		.display = defish_preview_display, 
 		.select = menu_binary_toggle,
 		.help = "Preview rectilinear image from Samyang 8mm fisheye (gray).",
+		.essential = FOR_PLAYBACK,
 	},
 	{
 		.name = "Spotmeter",
