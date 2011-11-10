@@ -505,7 +505,9 @@ void clear_lv_affframe()
 	struct vram_info *	lv = get_yuv422_vram();
 	if( !lv->vram )	return;
 	int xaf,yaf;
-	get_afframe_pos(lv->width, lv->height, &xaf, &yaf);
+	get_afframe_pos(720, 480, &xaf, &yaf);
+	xaf = N2BM_X(xaf);
+	yaf = N2BM_Y(yaf);
 	//~ bmp_printf(FONT_LARGE, 200, 200, "af %d %d ", xaf, yaf);
 	bmp_fill(0, COERCE(xaf,100, BMP_WIDTH-100) - 100, COERCE(yaf,100, BMP_HEIGHT-100) - 100, 200, 200 );
 	crop_set_dirty(5);

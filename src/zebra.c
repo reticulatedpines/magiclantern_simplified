@@ -2583,9 +2583,9 @@ void draw_zoom_overlay(int dirty)
 
 	// center of AF frame
 	int aff_x0_lv, aff_y0_lv; 
-	get_afframe_pos(lv->width, lv->height, &aff_x0_lv, &aff_y0_lv);
-	aff_x0_lv += BM2LV_X(os.x0);
-	aff_y0_lv += BM2LV_Y(os.y0);
+	get_afframe_pos(720, 480, &aff_x0_lv, &aff_y0_lv);
+	aff_x0_lv = N2LV_X(aff_x0_lv);
+	aff_y0_lv = N2LV_Y(aff_y0_lv);
 	
 	int aff_x0_hd = LV2HD_X(aff_x0_lv);
 	int aff_y0_hd = LV2HD_Y(aff_y0_lv);
