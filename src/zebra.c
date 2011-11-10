@@ -3284,7 +3284,7 @@ livev_hipriority_task( void* unused )
 			}
 			else if (defish_preview)
 			{
-				if (k % 4 == 0)
+				if (k % 2 == 0)
 					BMP_LOCK( if (lv) defish_draw(); )
 			}
 			else
@@ -3754,13 +3754,13 @@ void defish_draw()
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
-	for (int y = os.y0; y < os.y0 + os.y_ex/2; y++)
+	for (int y = os.y0; y < os.y0 + os.y_ex/2; y += 2)
 	{
-		for (int x = os.x0; x < os.x0 + os.x_ex/2; x++)
+		for (int x = os.x0; x < os.x0 + os.x_ex/2; x += 4)
 		{
 			// i,j are normalized values: [0,0 ... 720x480)
-			int j = (x - os.x0) * 720 / os.x_ex;
-			int i = (y - os.y0) * 480 / os.y_ex;
+			int j = BM2N_X(x);
+			int i = BM2N_Y(y);
 
 			static int off_i[] = {0,  0,479,479};
 			static int off_j[] = {0,719,  0,719};
@@ -3770,15 +3770,18 @@ void defish_draw()
 			int k;
 			for (k = 0; k < 4; k++)
 			{
-				int I = (off_i[k] ? off_i[k] - i : i);
+				int I = (off_i[k] ? off_i[k] - i - 1 : i);
 				int J = (off_j[k] ? off_j[k] - j : j);
 				int Id = (off_i[k] ? off_i[k] - id : id);
 				int Jd = (off_j[k] ? off_j[k] - jd : jd);
 				int lv_pixel = lvram[N2LV(Jd&~1,Id&~1) + 1];
-				uint8_t* bp = &(bvram[N2BM(J,I)]);
-				uint8_t* mp = &(bvram_mirror[N2BM(J,I)]);
+				uint32_t* bp = &(bvram[N2BM(J,I)]);
+				uint32_t* mp = &(bvram_mirror[N2BM(J,I)]);
 				if (*bp != 0 && *bp != *mp) continue;
-				*bp = *mp = (lv_pixel * 41 >> 8) + 38;
+				int c = (lv_pixel * 41 >> 8) + 38;
+				c = c | (c << 8);
+				c = c | (c << 16);
+				*bp = *mp = *(bp + BMPPITCH/4) = *(mp + BMPPITCH/4) = c;
 			}
 		}
 	}
