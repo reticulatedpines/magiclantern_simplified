@@ -2084,7 +2084,7 @@ defish_preview_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Live Defish : %s",
+		"Defishing   : %s",
 		defish_preview ? "ON" : "OFF"
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
@@ -2182,7 +2182,7 @@ struct menu_entry zebra_menus[] = {
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 	},
 	{
-		.name = "Live Defish",
+		.name = "Defishing",
 		.priv = &defish_preview, 
 		.display = defish_preview_display, 
 		.select = menu_binary_toggle,
@@ -2785,7 +2785,7 @@ BMP_LOCK(
 	}
 	else if (defish_preview)
 	{
-		defish_draw();
+		defish_draw_play();
 	}
 	else
 	{
@@ -3611,7 +3611,7 @@ void make_overlay()
 	// => normalized xn and yn will fix this
 	for (int yn = 0; yn < 480; yn++)
 	{
-		int y = yn * os.y_ex / 480 + os.y0;
+		int y = N2BM_Y(yn);
 		//~ int k;
 		uint16_t * const v_row = (uint16_t*)( lvram        + BM2LV_R(y)); // 1 pixel
 		uint8_t  * const b_row = (uint8_t*) ( bvram        + BM_R(y));    // 1 pixel
@@ -3621,7 +3621,7 @@ void make_overlay()
 		uint8_t* mp;   // through bmp vram mirror
 		for (int xn = 0; xn < 720; xn++)
 		{
-			int x = xn * os.x_ex / 720 + os.x0;
+			int x = N2BM_X(xn);
 			lvp = v_row + BM2LV_X(x);
 			bp = b_row + x;
 			mp = m_row + xn;
@@ -3656,7 +3656,7 @@ void show_overlay()
 
 	for (int y = os.y0; y < os.y_max; y++)
 	{
-		int yn = (y - os.y0) * 480 / os.y_ex;
+		int yn = BM2N_Y(y);
 		int ym = yn - (int)transparent_overlay_offy; // normalized with offset applied
 		//~ int k;
 		//~ uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
@@ -3671,7 +3671,7 @@ void show_overlay()
 		//~ if (transparent_overlay == 3) offb = 720/2;
 		for (int x = os.x0; x < os.x_max; x++)
 		{
-			int xn = (x - os.x0) * 720 / os.x_ex;
+			int xn = BM2N_X(x);
 			int xm = xn - (int)transparent_overlay_offx;
 			bp = b_row + x;
 			mp = m_row + xm;
@@ -3730,7 +3730,7 @@ void transparent_overlay_from_play()
 
 uint8_t* defish_lut = INVALID_PTR;
 
-void defish_draw()
+void defish_lut_load()
 {
 	if (defish_lut == INVALID_PTR)
 	{
@@ -3742,6 +3742,11 @@ void defish_draw()
 		bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
 		return;
 	}
+}
+
+void defish_draw()
+{
+	defish_lut_load();
 	int i,j;
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
@@ -3749,22 +3754,17 @@ void defish_draw()
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
-	//~ int y;
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
-	for (i = 0; i < 212; i++)
-#else
-	for (i = 0; i < 240; i++)
-#endif
+	for (int y = os.y0; y < os.y0 + os.y_ex/2; y++)
 	{
-		for (j = 0; j < 360; j++)
+		for (int x = os.x0; x < os.x0 + os.x_ex/2; x++)
 		{
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
-			static const int off_i[] = {0,  0,423,423};
-			static const int off_j[] = {0,719,  0,719};
-#else
-			static const int off_i[] = {0,  0,479,479};
-			static const int off_j[] = {0,719,  0,719};
-#endif
+			// i,j are normalized values: [0,0 ... 720x480)
+			int j = (x - os.x0) * 720 / os.x_ex;
+			int i = (y - os.y0) * 480 / os.y_ex;
+
+			static int off_i[] = {0,  0,479,479};
+			static int off_j[] = {0,719,  0,719};
+
 			int id = defish_lut[(i * 360 + j) * 2 + 1];
 			int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
 			int k;
@@ -3774,11 +3774,58 @@ void defish_draw()
 				int J = (off_j[k] ? off_j[k] - j : j);
 				int Id = (off_i[k] ? off_i[k] - id : id);
 				int Jd = (off_j[k] ? off_j[k] - jd : jd);
-				int lv_pixel = lvram[Id * lvpitch + Jd * 2 + 1];
-				uint8_t* bp = &(bvram[I * BMPPITCH + J]);
-				uint8_t* mp = &(bvram_mirror[I * BMPPITCH + J]);
+				int lv_pixel = lvram[N2LV(Jd&~1,Id&~1) + 1];
+				uint8_t* bp = &(bvram[N2BM(J,I)]);
+				uint8_t* mp = &(bvram_mirror[N2BM(J,I)]);
 				if (*bp != 0 && *bp != *mp) continue;
 				*bp = *mp = (lv_pixel * 41 >> 8) + 38;
+			}
+		}
+	}
+}
+
+void defish_draw_play()
+{
+	defish_lut_load();
+	int i,j;
+	struct vram_info * vram = get_yuv422_vram();
+
+	uint32_t * lvram = vram->vram;
+	uint32_t * aux_buf = (void*)YUV422_HD_BUFFER_2;
+
+	//~ int lvpitch = YUV422_LV_PITCH;
+	uint8_t * const bvram = bmp_vram();
+	if (!bvram) return;
+
+	int w = vram->width;
+	int h = vram->height;
+	int buf_size = w * h * 2;
+
+	memcpy(aux_buf, lvram, buf_size);
+
+	beep();
+	for (int y = os.y0; y < os.y0 + os.y_ex/2; y++)
+	{
+		for (int x = os.x0; x < os.x0 + os.x_ex/2; x++)
+		{
+			// i,j are normalized values: [0,0 ... 720x480)
+			int j = BM2N_X(x);
+			int i = BM2N_Y(y);
+
+			static int off_i[] = {0,  0,479,479};
+			static int off_j[] = {0,719,  0,719};
+
+			int id = defish_lut[(i * 360 + j) * 2 + 1];
+			int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+			int k;
+			for (k = 0; k < 4; k++)
+			{
+				int I = (off_i[k] ? off_i[k] - i : i);
+				int J = (off_j[k] ? off_j[k] - j : j);
+				int Id = (off_i[k] ? off_i[k] - id : id);
+				int Jd = (off_j[k] ? off_j[k] - jd : jd);
+				
+				lvram[N2LV(J,I)/4] = aux_buf[N2LV(Jd,Id)/4];
 			}
 		}
 	}
