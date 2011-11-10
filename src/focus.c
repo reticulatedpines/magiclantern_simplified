@@ -23,7 +23,7 @@ int override_zoom_buttons; // while focus menu is active and rack focus items ar
 
 int should_override_zoom_buttons()
 {
-	return (override_zoom_buttons && !is_manual_focus() && lv);
+	return (override_zoom_buttons && !is_manual_focus() && lv && get_menu_advanced_mode());
 }
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
@@ -162,7 +162,7 @@ void focus_stack_ensure_preconditions()
 		}
 		msleep(200);
 	}
-	
+
 	if (is_movie_mode())
 	{
 		while (is_movie_mode())
@@ -321,9 +321,9 @@ focus_show_a(
 	bmp_printf(
 		!selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
 		x, y,
-		"Focus End Point: %s%d steps",
+		"Focus End Point:%s%dsteps from here",
 		focus_task_delta > 0 ? "+" : 
-		focus_task_delta < 0 ? "-" : "",
+		focus_task_delta < 0 ? "-" : " ",
 		ABS(focus_task_delta)
 	);
 	menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
@@ -352,6 +352,21 @@ static void
 focus_reset_a( void * priv )
 {
 	focus_task_delta = 0;
+	menu_show_only_selected();
+}
+
+static void
+focus_inc_a( void * priv )
+{
+	menu_show_only_selected();
+	lens_focus_enqueue_step(1);
+}
+
+static void
+focus_dec_a( void * priv )
+{
+	menu_show_only_selected();
+	lens_focus_enqueue_step(-1);
 }
 
 int focus_rack_delay = 0;
@@ -360,6 +375,7 @@ int focus_rack_auto_record = 0;
 static void
 focus_toggle( void * priv )
 {
+	menu_show_only_selected();
 	focus_task_delta = -focus_task_delta;
 	focus_rack_delta = focus_task_delta;
 	give_semaphore( focus_task_sem );
@@ -509,6 +525,13 @@ lens_focus_start(
 	give_semaphore( focus_task_sem );
 }
 
+int queued_focus_steps = 0;
+void lens_focus_enqueue_step(int dir)
+{
+	queued_focus_steps += ABS(dir);
+	lens_focus_start(dir);
+}
+
 
 void
 lens_focus_stop( void )
@@ -549,10 +572,10 @@ rack_focus(
 	{
 		delta --;
 
-		bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%% ", ABS(delta0 - delta) * 100 / ABS(delta0));
+		//~ bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, "Rack Focus: %d%% ", ABS(delta0 - delta) * 100 / ABS(delta0));
 		
 		if (LensFocus( speed_cmd ) == 0) break;
-		gui_hide_menu( 10 );
+		//~ gui_hide_menu( 10 );
 	}
 }
 
@@ -568,7 +591,7 @@ focus_task( void* unused )
 		if( focus_rack_delta )
 		{
 
-			gui_hide_menu(50);
+			//~ gui_hide_menu(50);
 			int movie_started_by_ml = 0;
 			if (focus_rack_auto_record)
 			{
@@ -583,7 +606,7 @@ focus_task( void* unused )
 			}
 			if (focus_rack_delay) msleep(2000);
 
-			gui_hide_menu( 10 );
+			//~ gui_hide_menu( 10 );
 			rack_focus(
 				lens_focus_stepsize,
 				focus_rack_delta
@@ -604,9 +627,18 @@ focus_task( void* unused )
 		while( focus_task_dir )
 		{
 			int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
-			if (LensFocus2(1, f * lens_focus_stepsize) == 0) break;
+			if (LensFocus2(1, f * lens_focus_stepsize) == 0) 
+			{
+				queued_focus_steps = 0;
+				focus_task_dir = 0;
+				break;
+			}
 			focus_task_delta += f;
-			//~ msleep(10);
+			if (queued_focus_steps)
+			{
+				queued_focus_steps--;
+				if (queued_focus_steps == 0) focus_task_dir = 0;
+			}
 		}
 	}
 }
@@ -1148,6 +1180,8 @@ static struct menu_entry focus_menu[] = {
 		.name = "Focus End Point",
 		.display	= focus_show_a,
 		.select		= focus_reset_a,
+		.select_auto = focus_inc_a,
+		.select_reverse = focus_dec_a,
 		.help = "Press SET to fix here the end point of rack focus."
 	},
 	{
@@ -1233,26 +1267,42 @@ INIT_FUNC( __FILE__, focus_init );
 int handle_rack_focus(struct event * event)
 {
 	if (!should_override_zoom_buttons()) return 1;
+	if (!lv) return 1;
 	
 	if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
 	{
-		if (lv && (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE))
+		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE)
 		{
 			menu_show_only_selected();
 			lens_focus_stop();
 			return 0;
 		}
-		if (lv && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 		{
 			menu_show_only_selected();
 			lens_focus_start( get_follow_focus_dir_h() );
 			return 0;
 		}
-		if (lv && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
+		if (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE) // zoom out press, shared with halfshutter
 		{
 			menu_show_only_selected();
 			lens_focus_start( -get_follow_focus_dir_h() );
 			return 0;
+		}
+		if (menu_active_but_hidden())
+		{
+			if (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_UP)
+			{
+				menu_show_only_selected();
+				lens_focus_enqueue_step( -get_follow_focus_dir_h() );
+				return 0;
+			}
+			if (event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_DOWN)
+			{
+				menu_show_only_selected();
+				lens_focus_enqueue_step( get_follow_focus_dir_h() );
+				return 0;
+			}
 		}
 	}
 	return 1;
