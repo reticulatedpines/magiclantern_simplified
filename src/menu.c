@@ -33,7 +33,7 @@
 
 static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
-//~ static int menu_damage;
+static int menu_damage;
 static int menu_hidden;
 static int menu_timeout;
 static bool menu_shown = false;
@@ -44,6 +44,8 @@ static char* warning_msg = 0;
 int menu_help_active = 0;
 
 static CONFIG_INT("menu.advanced", advanced_mode, 0);
+
+int get_menu_advanced_mode() { return advanced_mode; }
 
 static int x0 = 0;
 static int y0 = 0;
@@ -67,7 +69,7 @@ extern int gui_state;
 void menu_show_only_selected()
 {
 	show_only_selected = 1;
-	//~ menu_damage = 1;
+	menu_damage = 1;
 	if (lv) edit_mode = 1;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
@@ -685,10 +687,10 @@ static void menu_select_current(int reverse)
 CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 
 static void 
-menu_redraw_if_damaged()
+menu_redraw()
 {
-	//~ if( menu_damage )
-	{
+		menu_damage = 0;
+
 		if (menu_help_active)
 		{
 			BMP_LOCK( menu_help_redraw(); )
@@ -744,7 +746,6 @@ menu_redraw_if_damaged()
 
 			update_disp_mode_bits_from_params();
 		}
-	}
 }
 
 void menu_send_event(int event)
@@ -801,7 +802,7 @@ menu_handler(
 
 	case GOT_TOP_OF_CONTROL:
 		//~ NotifyBox(2000, "GOT_TOP_OF_CONTROL");
-		menu_redraw_if_damaged();
+		menu_redraw();
 		return 0;
 
 	case LOST_TOP_OF_CONTROL:
@@ -971,7 +972,7 @@ menu_handler(
 	if( menu_hidden || !gui_menu_task )
 		return 0;
 
-	menu_redraw_if_damaged();
+	menu_redraw();
 
 	return 0;
 }
@@ -1216,8 +1217,8 @@ menu_task( void* unused )
 					0,
 					0
 				);
-			} else if (!menu_help_active && !show_only_selected) {
-				// Inject a synthetic timing event
+			} else if ((!menu_help_active && !show_only_selected) || menu_damage) {
+				// Inject a synthetic redraw event
 				ctrlman_dispatch_event(
 					gui_menu_task,
 					1,

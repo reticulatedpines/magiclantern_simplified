@@ -42,6 +42,7 @@
 int get_menu_font_sel();
 bool gui_menu_shown();
 void menu_show_only_selected();
+int get_menu_advanced_mode();
 
 struct menu_entry
 {
