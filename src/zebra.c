@@ -3796,7 +3796,6 @@ void defish_draw_play()
 	uint32_t * lvram = vram->vram;
 	uint32_t * aux_buf = (void*)YUV422_HD_BUFFER_2;
 
-	//~ int lvpitch = YUV422_LV_PITCH;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 
@@ -3806,7 +3805,6 @@ void defish_draw_play()
 
 	memcpy(aux_buf, lvram, buf_size);
 
-	beep();
 	for (int y = os.y0; y < os.y0 + os.y_ex/2; y++)
 	{
 		for (int x = os.x0; x < os.x0 + os.x_ex/2; x++)
