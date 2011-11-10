@@ -3685,13 +3685,13 @@ void remote_shot(int wait)
 	// save zoom value (x1, x5 or x10)
 	int zoom = lv_dispsize;
 	
-	if (is_movie_mode())
-	{
-		movie_start();
-	}
-	else if (is_focus_stack_enabled())
+	if (is_focus_stack_enabled())
 	{
 		focus_stack_run(0);
+	}
+	else if (is_movie_mode())
+	{
+		movie_start();
 	}
 	else
 	{
