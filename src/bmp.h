@@ -35,11 +35,14 @@ uint8_t* read_entire_file(const char * filename, int* buf_size);
 
 extern int bmp_enabled;
 
-/** Returns a pointer to the real BMP vram (or to mirror BMP vram) */
+/** Returns a pointer to the real BMP vram (or to idle BMP vram) */
 uint8_t * bmp_vram(void);
 
-/** Returns a pointer to mirror BMP vram */
-uint8_t* get_bvram_mirror();
+/** Returns a pointer to idle BMP vram */
+uint8_t* bmp_vram_idle();
+
+/** Returns a pointer to real BMP vram */
+uint8_t* bmp_vram_real();
 
 #define BMPPITCH 960
 #define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)

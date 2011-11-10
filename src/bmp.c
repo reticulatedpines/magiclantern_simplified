@@ -32,19 +32,19 @@
 
 //~ int bmp_enabled = 1;
 
-static int bmp_mirror_flag = 0;
-void bmp_draw_to_mirror(int value) { bmp_mirror_flag = value; }
+static int bmp_idle_flag = 0;
+void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
-// 0 = copy BMP to mirror
-// 1 = copy mirror to BMP
-void bmp_mirror_copy(int direction)
+// 0 = copy BMP to idle
+// 1 = copy idle to BMP
+void bmp_idle_copy(int direction)
 {
-	uint8_t* mirror = get_bvram_mirror();
-	if (!mirror) { beep(); return; }
+	uint8_t* real = bmp_vram_real();
+	uint8_t* idle = bmp_vram_idle();
 	if (direction)
-		memcpy(bmp_vram_info[1].vram2, mirror, BMP_HEIGHT * BMPPITCH);
+		memcpy(real, idle, BMP_HEIGHT * BMPPITCH);
 	else
-		memcpy(mirror, bmp_vram_info[1].vram2, BMP_HEIGHT * BMPPITCH);
+		memcpy(idle, real, BMP_HEIGHT * BMPPITCH);
 }
 
 /** Returns a pointer to the real BMP vram */
@@ -53,10 +53,15 @@ uint8_t* bmp_vram_real()
 	return bmp_vram_info[1].vram2;
 }
 
+uint8_t* bmp_vram_idle()
+{
+	return (uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000;
+}
+
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
-	return bmp_mirror_flag ? get_bvram_mirror() : bmp_vram_info[1].vram2;
+	return bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
 }
 
 
@@ -376,12 +381,12 @@ bmp_fill(
 		for( x=0 ; x<w/4 ; x++ )
 		{
 			row[ x ] = word;
-			#if defined(CONFIG_500D) || defined(CONFIG_50D) // what's going on here?!?!
+			//~ #if defined(CONFIG_500D) || defined(CONFIG_50D) // what's going on here?!?!
 			asm( "nop" );
 			asm( "nop" );
 			asm( "nop" );
 			asm( "nop" );
-			#endif
+			//~ #endif
 		}
 	}
 }

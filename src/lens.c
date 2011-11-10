@@ -252,8 +252,8 @@ void draw_ml_bottombar(int double_buffering)
 	if (double_buffering)
 	{
 		//~ bmp_mirror_copy(0);
-		memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
-		bmp_draw_to_mirror(1);
+		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
+		bmp_draw_to_idle(1);
 	}
 	
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
@@ -528,10 +528,9 @@ end:
 	if (double_buffering)
 	{
 		// done drawing, copy image to main BMP buffer
-		bmp_draw_to_mirror(0);
+		bmp_draw_to_idle(0);
 		//~ bmp_mirror_copy(1);
-		memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
-		bzero32(get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
+		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
 	}
 }
 

@@ -564,6 +564,10 @@ waveform_draw_image(
 			// Draw the pixel, rounding down to the nearest
 			// quad word write (and then nop to avoid err70).
 			*(uint32_t*)( row + (i & ~3)  ) = pixel;
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
 			pixel = 0;
 		}
 
@@ -3419,11 +3423,11 @@ livev_lopriority_task( void* unused )
 			idle_globaldraw_dis();
 			BMP_LOCK(
 				clrscr_mirror();
-				bmp_mirror_copy(0);
+				bmp_idle_copy(0);
 			)
 			kill_flicker();
 			msleep(100);
-			bmp_flip(bmp_vram(), get_bvram_mirror());
+			bmp_flip(bmp_vram_real(), bmp_vram_idle());
 
 			while (get_halfshutter_pressed()) msleep(100);
 			idle_globaldraw_en();
