@@ -564,17 +564,18 @@ void rec_notify_continuous()
 		{
 			int xc = os.x0 + os.x_ex/2;
 			int yc = os.y0 + os.y_ex/2;
-			int r = os.y_ex/3;
+			int rx = os.y_ex * 2/7;
+			int ry = rx * 85/100; 
 			bmp_printf(
 				FONT(FONT_MED, COLOR_RED, 0), 
-				xc - font_med.width * 7, yc - r - font_med.height, 
+				xc - font_med.width * 7, yc - ry - font_med.height, 
 				"Not recording");
-			bmp_draw_rect(COLOR_RED, xc - r, yc - r, r * 2, r * 2);
-			bmp_draw_rect(COLOR_RED, xc - r + 1, yc - r + 1, r * 2 - 2, r * 2 - 2);
+			bmp_draw_rect(COLOR_RED, xc - rx, yc - ry, rx * 2, ry * 2);
+			bmp_draw_rect(COLOR_RED, xc - rx + 1, yc - ry + 1, rx * 2 - 2, ry * 2 - 2);
 			//~ draw_circle(xc, yc, r, COLOR_RED);
 			//~ draw_circle(xc, yc, r-1, COLOR_RED);
-			draw_line(xc + r, yc - r, xc - r, yc + r, COLOR_RED);
-			draw_line(xc + r, yc - r + 1, xc - r, yc + r + 1, COLOR_RED);
+			draw_line(xc + rx, yc - ry, xc - rx, yc + ry, COLOR_RED);
+			draw_line(xc + rx, yc - ry + 1, xc - rx, yc + ry + 1, COLOR_RED);
 			//~ bmp_draw_rect(COLOR_RED, os.x0 + 50, os.y0 + 75, os.x_ex - 100, os.y_ex - 150);
 			//~ bmp_draw_rect(COLOR_RED, os.x0 + 51, os.y0 + 76, os.x_ex - 102, os.y_ex - 152);
 			//~ draw_line(os.x0 + 50, os.y0 + 75, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 75, COLOR_RED);
