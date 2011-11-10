@@ -338,15 +338,15 @@ bmp_fill(
 )
 {
 	//~ if (!bmp_enabled) return;
+	x = COERCE(x, 0, BMP_WIDTH);
+	y = COERCE(y, 0, BMP_HEIGHT);
+	w = COERCE(w, 0, BMP_WIDTH-x);
+	h = COERCE(h, 0, BMP_HEIGHT-y);
 
 	const uint32_t start = x;
-	const uint32_t width = BMP_WIDTH;
+	//~ const uint32_t width = BMP_WIDTH;
 	const uint32_t pitch = BMPPITCH;
-	const uint32_t height = BMP_HEIGHT;
-
-	// Convert to words and limit to the width of the LCD
-	if( start + w > width )
-		w = width - start;
+	//~ const uint32_t height = BMP_HEIGHT;
 	
 	const uint32_t word = 0
 		| (color << 24)
@@ -354,12 +354,7 @@ bmp_fill(
 		| (color <<  8)
 		| (color <<  0);
 
-	if( y > height )
-		y = height;
-
 	uint16_t y_end = y + h;
-	if( y_end > height )
-		y_end = height;
 
 	if( w == 0 || h == 0 )
 		return;
@@ -381,10 +376,12 @@ bmp_fill(
 		for( x=0 ; x<w/4 ; x++ )
 		{
 			row[ x ] = word;
-			//~ asm( "nop" );
-			//~ asm( "nop" );
-			//~ asm( "nop" );
-			//~ asm( "nop" );
+			#if defined(CONFIG_500D) || defined(CONFIG_50D) // what's going on here?!?!
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+			#endif
 		}
 	}
 }
@@ -707,7 +704,7 @@ void bmp_putpixel(int x, int y, uint8_t color)
 {
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
-	int bmppitch = BMPPITCH;
+	//~ int bmppitch = BMPPITCH;
 	x = COERCE(x, 0, BMP_WIDTH-1);
 	y = COERCE(y, 0, BMP_HEIGHT-1);
 	bvram[x + y * BMPPITCH] = color;
