@@ -3714,12 +3714,6 @@ void remote_shot(int wait)
 
 void iso_refresh_display()
 {
-	if (lv)
-	{
-		update_lens_display(lens_info);
-		return;
-	}
-	
 	int bg = bmp_getpixel(MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;

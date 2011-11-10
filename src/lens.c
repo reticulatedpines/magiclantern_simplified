@@ -42,7 +42,7 @@ CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
 CONFIG_INT("movie.log", movie_log, 0);
 #ifndef CONFIG_FULLFRAME
-#define SENSORCROPFACTOR 1.6
+#define SENSORCROPFACTOR 16
 CONFIG_INT("crop.info", crop_info, 0);
 #endif
 
@@ -185,7 +185,7 @@ update_lens_display()
 #endif
 	{
 		if (!get_halfshutter_pressed())
-			BMP_LOCK( draw_ml_bottombar(0); )
+			BMP_LOCK( draw_ml_bottombar(1); )
 	}
 }
 
@@ -210,7 +210,7 @@ void draw_ml_bottombar(int double_buffering)
 #if defined(CONFIG_500D) || defined(CONFIG_50D)
 	if (lv_disp_mode != 0 && !LV_BOTTOM_BAR_DISPLAYED)
 		return;
-#else		
+#else
 	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !ISO_ADJUSTMENT_ACTIVE)
 	{
 		HideBottomInfoDisp_maybe(); 
@@ -233,6 +233,8 @@ void draw_ml_bottombar(int double_buffering)
 	else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
 		else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, vram_bm.height);
 		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, vram_bm.height);
+	
+	//~ bottom -= 10;
 
 	//~ if (screen_layout == SCREENLAYOUT_16_9)
 		//~ bg = bmp_getpixel(os.x0 + 123, bottom-36);
@@ -240,6 +242,7 @@ void draw_ml_bottombar(int double_buffering)
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 
+	bg = COLOR_BLACK;
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
@@ -249,8 +252,8 @@ void draw_ml_bottombar(int double_buffering)
 	// start drawing to mirror buffer to avoid flicker
 	if (double_buffering)
 	{
-		bmp_mirror_copy(0);
-		//~ memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
+		//~ bmp_mirror_copy(0);
+		memcpy(get_bvram_mirror() + BM(0,ytop), bmp_vram() + BM(0,ytop), 35 * BMPPITCH);
 		bmp_draw_to_mirror(1);
 	}
 	
@@ -279,14 +282,15 @@ void draw_ml_bottombar(int double_buffering)
       /*******************
       * FOCAL & APERTURE *
       *******************/
+      
       if (info->aperture)
       {
 		  text_font = FONT(FONT_LARGE,COLOR_WHITE,bg);
 		  unsigned med_font = FONT(FONT_MED,COLOR_WHITE,bg);
 
-		  char focal[32];
+		  static char focal[32];
 		  snprintf(focal, sizeof(focal), "%d",
-				   crop_info ? (int)roundf((double)info->focal_len * SENSORCROPFACTOR) : info->focal_len);
+				   crop_info ? (info->focal_len * SENSORCROPFACTOR + 5) / 10 : info->focal_len);
 
 		  bmp_printf( text_font, x_origin, y_origin, focal );
 
@@ -326,16 +330,17 @@ void draw_ml_bottombar(int double_buffering)
       *  SHUTTER         *
       *******************/
 
+
       int shutter_x10 = raw2shutter_ms(info->raw_shutter) / 100;
-      int shutter_reciprocal = (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0));
-      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * (int)roundf(shutter_reciprocal / 10.0);
-      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * (int)roundf(shutter_reciprocal / 100.0);
-      char shutter[32];
+      int shutter_reciprocal = info->raw_shutter ? (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0)) : 0;
+      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
+      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
+      static char shutter[32];
       if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
       else if (shutter_x10 >= 350) snprintf(shutter, sizeof(shutter), "BULB");
       else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d ", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d  ", (int)roundf(shutter_x10 / 10.0));
+      else snprintf(shutter, sizeof(shutter), "%d  ", (shutter_x10+5) / 10);
 
       int fgs = COLOR_CYAN; // blue (neutral)
       int shutter_degrees = -1;
@@ -351,7 +356,7 @@ void draw_ml_bottombar(int double_buffering)
       }
       else if (info->aperture) // rule of thumb: shutter speed should be roughly equal to focal length
       {
-           int focal_35mm = (int)roundf((double)info->focal_len * SENSORCROPFACTOR);
+           int focal_35mm = (info->focal_len * SENSORCROPFACTOR + 5) / 10;
            if (shutter_reciprocal > focal_35mm * 15/10) 
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg); // very good
            else if (shutter_reciprocal < focal_35mm / 2) 
@@ -476,90 +481,6 @@ void draw_ml_bottombar(int double_buffering)
                   aj_lens_format_dist( lens_info.focus_dist * 10 )
                 );
 
-		//~ y += height;
-/*		x = 500;
-		bmp_printf( font, x+12, y,
-			"%s",
-			info->focus_dist == 0xFFFF
-				? "Infnty"
-				: lens_format_dist( info->focus_dist * 10 )
-		);*/
-		
-/*
-		x += 50;
-
-		bmp_printf( font, x, y,
-#ifndef CONFIG_FULLFRAME
-			crop_info ? "%deq/%d.%d  " : "%d f/%d.%d  ",
-			crop_info ? (int)roundf((double)info->focal_len * SENSORCROPFACTOR) : info->focal_len,
-#else
-			"%d f/%d.%d  ",
-			info->focal_len,
-#endif
-			info->aperture / 10,
-			info->aperture % 10
-		);
-
-		x += 120;
-		if( info->shutter )
-			bmp_printf( font, x, y,
-				"1/%d  ",
-				info->shutter
-			);
-		else
-			bmp_printf( font_err, x, y,
-				"1/0x%02x",
-				info->raw_shutter
-			);
-
-		x += 80;
-		if( info->iso )
-			bmp_printf( font, x, y,
-				"ISO%5d",
-				info->iso
-			);
-		else
-			bmp_printf( font, x, y,
-				"ISO Auto"
-			);
-
-		x += 110;
-		if( info->wb_mode == WB_KELVIN )
-			bmp_printf( font, x, y,
-				"%5dK",
-				info->kelvin
-			);
-		else
-			bmp_printf( font, x, y,
-				"%s",
-				(lens_info.wb_mode == 0 ? "AutoWB" : 
-				(lens_info.wb_mode == 1 ? "Sunny " :
-				(lens_info.wb_mode == 2 ? "Cloudy" : 
-				(lens_info.wb_mode == 3 ? "Tungst" : 
-				(lens_info.wb_mode == 4 ? "CFL   " : 
-				(lens_info.wb_mode == 5 ? "Flash " : 
-				(lens_info.wb_mode == 6 ? "Custom" : 
-				(lens_info.wb_mode == 8 ? "Shade " :
-				 "unk"))))))))
-			);
-		x += font_med.width * 7;
-
-		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(font, x, y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-		else bmp_printf(font, x, y, "  ");
-
-		x += font_med.width * 2;
-		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(font, x, y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(font, x, y, "  ");
-
-		bmp_printf( text_font, x_origin + 590, y_origin,
-			"%s%d.%d",
-			AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
-			ABS(AE_VALUE) / 8,
-			mod(ABS(AE_VALUE) * 10 / 8, 10)
-		);
-*/
 
 	  text_font = FONT(FONT_LARGE, COLOR_CYAN, bg ); 
 
@@ -584,8 +505,12 @@ void draw_ml_bottombar(int double_buffering)
 	//~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
 	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
 	int y169 = os.y_max - os.off_169;
+	
+	// these have a black bar at the bottom => no problems
+	#if !defined(CONFIG_500D) && !defined(CONFIG_50D)
 	if (!gui_menu_shown())
 		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
+	#endif
 
 	extern int display_gain;
 	if (display_gain)
@@ -605,7 +530,7 @@ end:
 	{
 		// done drawing, copy image to main BMP buffer
 		bmp_draw_to_mirror(0);
-		bmp_mirror_copy(1);
+		//~ bmp_mirror_copy(1);
 		memcpy(bmp_vram() + BM(0,ytop), get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
 		bzero32(get_bvram_mirror() + BM(0,ytop), 35 * BMPPITCH);
 	}
