@@ -649,7 +649,7 @@ Functions specific to movie mode.
   Custom notifications for recording or standby:
   
   * Red Crossout (highly recommended if you forget to press record)
-  * Message (it shows ``STDBY`` or ``REC``)
+  * Message (it shows ``STBY`` or ``REC``)
   * Beeps (it will beep when recording starts or stops)
 
 .. _DigitalZoom Shortcut:
@@ -837,7 +837,7 @@ Functions for stills shooting (some of them work for movies, too).
   Limits:
   
     * ISO is chosen between 100 and maximum auto ISO value from Canon menu.
-    * Shutter speed is chosen between 1/1000 (lower limit) by the delay between two shots minus two seconds (upper limit). Example: for 10-second intervals, shutter speed will be between 1/1000 and 8 seconds).
+    * Shutter speed is chosen between 1/1000 (lower limit) and the delay between two shots minus two seconds (upper limit). Example: for 10-second intervals, shutter speed will be between 1/1000 and 8 seconds).
     * Aperture is fixed (you can change it manually).
  
   Tips: 
@@ -849,8 +849,8 @@ Functions for stills shooting (some of them work for movies, too).
   * The delay between two shots affects how ISO and shutter are chosen, according to 180 degree rule:
   
     - For example, let's say you set "Take pics every 40 seconds"
-    - Shutter speed will be chosen between 90 and 270 degrees if possible. In our example, it will be chosen between 10 and 30 seconds if the light conditions allow it.
-    - If it's not possible to get a correct exposure between 90 and 270 degrees, shutter will be chosen between 1/1000 (at ISO 100) and (*d* - 2) seconds (at max auto ISO setting, up to 6400), where *d* is the delay between two shots.
+    - ML will try to set the shutter speed between 90 and 270 degrees. In our example, it will be chosen between 10 and 30 seconds if the light conditions allow it.
+    - If the scene is too bright or too dark, shutter will be chosen between 1/1000 (at ISO 100) and (*d* - 2) seconds (at max auto ISO, up to 6400), where *d* is the delay between two shots.
 
   Techincal notes:
     
@@ -1498,6 +1498,8 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 **Stability tests**
 
   This option runs various tests to make sure Magic Lantern is stable and will not crash. You can use it to test your particular configuration.
+  
+  If it crashes, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_.
   
 **Half-press shutter: OFF / sticky / every second / every 200 ms / every 20 ms**
 
