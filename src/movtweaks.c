@@ -632,6 +632,7 @@ static struct menu_entry mov_menus[] = {
 		.help		= "Lock the exposure in movie mode (50D/500D)"
 	},
 #endif
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	{
 		.name = "Shutter Lock",
 		.priv = &shutter_lock,
@@ -640,6 +641,7 @@ static struct menu_entry mov_menus[] = {
 		.help = "Lock shutter value in movie mode (change from Expo only).",
 		.essential = FOR_MOVIE,
 	},
+#endif
 #ifdef CONFIG_50D
 	{
 		.name = "Shutter Button",
