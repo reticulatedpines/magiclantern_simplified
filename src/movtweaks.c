@@ -551,10 +551,11 @@ static void rec_notify_print(
 	);
 }
 
-void rec_notify_continuous()
+void rec_notify_continuous(int called_from_menu)
 {
 	if (!is_movie_mode()) return;
 	if (!zebra_should_run()) return;
+	if (gui_menu_shown() && !called_from_menu) return;
 	
 	static int prev = 0;
 	

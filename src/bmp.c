@@ -47,6 +47,11 @@ void bmp_idle_copy(int direction)
 		memcpy(idle, real, BMP_HEIGHT * BMPPITCH);
 }
 
+void bmp_idle_clear()
+{
+	bzero32(bmp_vram_idle(), BMP_HEIGHT * BMPPITCH);
+}
+
 /** Returns a pointer to the real BMP vram */
 uint8_t* bmp_vram_real()
 {

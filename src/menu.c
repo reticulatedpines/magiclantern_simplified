@@ -708,14 +708,18 @@ menu_redraw()
 				bmp_draw_to_idle(1);
 
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
+
+				if (show_only_selected) 
+					rec_notify_continuous(1);
+
 				menus_display( menus, x0, y0 ); 
 				if (is_menu_active("Help")) menu_show_version();
 				//~ draw_ml_topbar();
 
 				if (show_only_selected) 
 				{
-					//~ draw_ml_topbar();
-					//~ draw_ml_bottombar(0);
+					draw_ml_topbar();
+					draw_ml_bottombar(0);
 				}
 
 				// copy image to main buffer
@@ -742,7 +746,7 @@ menu_redraw()
 					if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
 					else bmp_idle_copy(1);
 				}
-
+				bmp_idle_clear();
 			)
 			//~ update_stuff();
 			
