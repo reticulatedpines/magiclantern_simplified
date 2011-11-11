@@ -713,9 +713,9 @@ static void dump_vram()
 	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
 }
 
-//~ static uint8_t* bvram_mirror = 0;
-//~ uint8_t* get_bvram_mirror() { return bvram_mirror; }
-#define bvram_mirror bmp_vram_idle()
+static uint8_t* bvram_mirror = 0;
+uint8_t* get_bvram_mirror() { return bvram_mirror; }
+//~ #define bvram_mirror bmp_vram_idle()
 
 void spotmeter_step();
 
@@ -761,7 +761,7 @@ void bvram_mirror_clear()
 }
 void bvram_mirror_init()
 {
-	/*
+	
 	if (!bvram_mirror)
 	{
 		bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
@@ -771,7 +771,7 @@ void bvram_mirror_init()
 			return;
 		}
 		bvram_mirror_clear();
-	}*/
+	}
 }
 
 int get_focus_color(int thr, int d)
@@ -3259,6 +3259,8 @@ void reenable_idle_globaldraw_after(int msec)
 
 int handle_pause_zebras(struct event * event)
 {
+	return 1; // not needed with dynamic BMP mirror
+	
 	// temporarily disable globaldraw and wait for current ML graphics operation to finish
 	// otherwise it may draw over Canon menu
 	if (event->param == BGMT_MENU)
