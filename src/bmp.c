@@ -711,6 +711,13 @@ uint8_t bmp_getpixel(int x, int y)
 	uint8_t * const bvram = bmp_vram();
 	return bvram[x + y * BMPPITCH];
 }
+
+uint8_t bmp_getpixel_real(int x, int y)
+{
+	uint8_t * const bvram = bmp_vram_real();
+	return bvram[x + y * BMPPITCH];
+}
+
 void bmp_putpixel(int x, int y, uint8_t color)
 {
 	uint8_t * const bvram = bmp_vram();

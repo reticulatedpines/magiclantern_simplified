@@ -539,7 +539,7 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 {
 	// shave the bottom bar a bit :)
 	int i,j;
-	int new_color = bmp_getpixel(os.x0 + 123, y0-1);
+	int new_color = bmp_getpixel_real(os.x0 + 123, y0-5);
 	for (i = y0; i < y0 + h; i++)
 	{
 		//~ int new_color = 0;
