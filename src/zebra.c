@@ -2738,6 +2738,7 @@ bool liveview_display_idle()
 {
 	return
 		lv && 
+		tft_status == 0 &&
 		!menu_active_and_not_hidden() && 
 		(gui_menu_shown() || // force LiveView when menu is active, but hidden
 			( gui_state == GUISTATE_IDLE && 
@@ -3250,6 +3251,27 @@ void draw_cropmark_area()
 }
 
 
+void reenable_idle_globaldraw_after(int msec)
+{
+	msleep(msec);
+	idle_globaldraw_en();
+}
+
+int handle_pause_zebras(struct event * event)
+{
+	// temporarily disable globaldraw and wait for current ML graphics operation to finish
+	// otherwise it may draw over Canon menu
+	if (event->param == BGMT_MENU)
+	{
+		idle_globaldraw_dis(); 
+		BMP_LOCK(); 
+		task_create("re_gdr", 0x1d, 0, reenable_idle_globaldraw_after, (void*)1000);
+		return 1;
+	}
+	return 1;
+}
+
+
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
@@ -3312,7 +3334,7 @@ livev_hipriority_task( void* unused )
 			BMP_LOCK( show_electronic_level(); )
 		#endif
 		
-		if (k % 4 == 0) rec_notify_continuous();
+		if (k % 4 == 0) rec_notify_continuous(0);
 		
 		if (zoom_overlay_countdown)
 		{
