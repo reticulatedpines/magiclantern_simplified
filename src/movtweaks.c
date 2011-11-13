@@ -620,7 +620,7 @@ static struct menu_entry mov_menus[] = {
 		.select		= lv_movie_toggle,
 		.display	= lv_movie_print,
 		.help		= "Enable movie recording on 50D :) ",
-		.essential = 1,
+		.essential = FOR_LIVEVIEW,
 	},
 #endif
 #if defined(CONFIG_50D) //|| defined(CONFIG_500D)
@@ -630,6 +630,7 @@ static struct menu_entry mov_menus[] = {
 		.select		= movie_expo_lock_toggle,
 		.display	= movie_expo_lock_print,
 		.help		= "Lock the exposure in movie mode (50D/500D)"
+		.essential = FOR_MOVIE,
 	},
 #endif
 #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
@@ -650,6 +651,7 @@ static struct menu_entry mov_menus[] = {
 		.select = menu_ternary_toggle,
 		.select_reverse = menu_ternary_toggle_reverse,
 		.help = "Block it while REC (avoids ERR99) or hold it (enables IS)."
+		.essential = FOR_MOVIE,
 	},
 #endif
 	/*{
@@ -676,7 +678,7 @@ static struct menu_entry mov_menus[] = {
 		.display	= movie_restart_print,
 		.select		= menu_binary_toggle,
 		.help = "Auto-restart movie recording, if it happens to stop.",
-		.essential = 1,
+		.essential = FOR_MOVIE,
 	},
 	#endif
 	/*{
@@ -693,7 +695,7 @@ static struct menu_entry mov_menus[] = {
 		.display	= mode_remap_print,
 		.select		= menu_ternary_toggle,
 		.help = "Remap movie mode to A-DEP, CA or C.",
-		.essential = 1,
+		.essential = FOR_MOVIE,
 	},
 	#endif
 	/*{
@@ -719,7 +721,7 @@ static struct menu_entry mov_menus[] = {
 		.select_reverse = menu_ternary_toggle_reverse,
 		#endif
 		.help = "Custom REC/STANDBY notifications, visual or audible",
-		.essential = 1,
+		.essential = FOR_MOVIE,
 	},
 	#ifndef CONFIG_50D
 	{
