@@ -545,7 +545,7 @@ static void rec_notify_print(
 		"REC/STBY notif: %s",
 		rec_notify == 0 ? "OFF" :
 		rec_notify == 1 ? "Red Crossout" :
-		rec_notify == 2 ? "Message" :
+		rec_notify == 2 ? "REC/STBY" :
 		rec_notify == 3 ? "Beeps (start/stop)" :
 		"err"
 	);
