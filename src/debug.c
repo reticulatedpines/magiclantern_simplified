@@ -1289,12 +1289,6 @@ void flashlight_frontled_task()
 	if (l) force_liveview();
 }
 
-static void flashlight_frontled(void* priv)
-{
-	gui_stop_menu();
-	task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
-}
-
 void flashlight_lcd_task()
 {
 	msleep(500);
@@ -1318,6 +1312,13 @@ void flashlight_lcd_task()
 	set_backlight_level(b);
 	stop_killing_flicker();
 	idle_globaldraw_en();
+}
+
+static void flashlight_frontled(void* priv)
+{
+	gui_stop_menu();
+	if (is_movie_mode()) task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
+	else task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
 }
 
 static void flashlight_lcd(void* priv)
