@@ -45,6 +45,7 @@ static int handle_buttons(struct event * event)
 
 	// common to all cameras
 	spy_event(event); // for debugging only
+	if (handle_upside_down(event) == 0) return 0;
 	if (handle_shutter_events(event) == 0) return 0;
 	if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
 	idle_wakeup_reset_counters(event->param);

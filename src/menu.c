@@ -862,7 +862,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
-		else menu_entry_move( menu, menu_upside_down ? 1 : -1 );
+		else menu_entry_move( menu, -1 );
 		break;
 
 #ifdef CONFIG_50D
@@ -876,7 +876,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
-		else menu_entry_move( menu, menu_upside_down ? -1 : 1 );
+		else menu_entry_move( menu, 1 );
 		break;
 
 #ifdef CONFIG_50D
@@ -890,7 +890,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
-		else menu_move( menu, menu_upside_down ? -1 : 1 );
+		else menu_move( menu, 1 );
 		break;
 
 #ifdef CONFIG_50D
@@ -904,7 +904,7 @@ menu_handler(
 		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
-		else menu_move( menu, menu_upside_down ? 1 : -1 );
+		else menu_move( menu, -1 );
 		break;
 
 	case PRESS_SET_BUTTON:

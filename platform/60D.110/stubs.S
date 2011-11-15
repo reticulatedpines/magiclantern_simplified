@@ -61,7 +61,7 @@ NSTUB( 0xFF21AF90, ChangeColorPalette )
 NSTUB( 0xff3256e4, MirrorDisplay )
 NSTUB( 0xff325744, NormalDisplay )
 NSTUB( 0xFF325714, ReverseDisplay)
-//NSTUB( 0xff323e98, RedrawDisplay )
+NSTUB( 0xff323e98, RedrawDisplay )
 
 /*NSTUB( 0xff27e574, af_control_handler )*/
 NSTUB( 0xff27f3e4, AfCtrl_SetLensParameterRemote )
@@ -267,3 +267,5 @@ NSTUB(0xFF51BD98, SetCFnData)
 
 NSTUB(0xFF0A4040, SetGUIRequestMode)
 NSTUB(0xFF4838A8, StartShootOlcMeteringApp)
+
+NSTUB(0xff31ed74, ReverseDraftVram)

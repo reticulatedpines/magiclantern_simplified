@@ -3445,8 +3445,7 @@ livev_lopriority_task( void* unused )
 			crop_redraw_flag = 0;
 		}
 
-		extern int menu_upside_down;
-		if (menu_upside_down && get_halfshutter_pressed())
+		/*if (menu_upside_down && get_halfshutter_pressed())
 		{
 			idle_globaldraw_dis();
 			BMP_LOCK(
@@ -3460,7 +3459,7 @@ livev_lopriority_task( void* unused )
 			while (get_halfshutter_pressed()) msleep(100);
 			idle_globaldraw_en();
 			stop_killing_flicker();
-		}
+		}*/
 
 	}
 }

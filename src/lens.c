@@ -185,7 +185,7 @@ update_lens_display()
 #endif
 	{
 		if (!get_halfshutter_pressed())
-			BMP_LOCK( draw_ml_bottombar(1); )
+			BMP_LOCK( draw_ml_bottombar(0); )
 	}
 }
 

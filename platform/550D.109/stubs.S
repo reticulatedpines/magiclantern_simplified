@@ -198,7 +198,7 @@ NSTUB( 0xFF31CFCC, ChangeColorPalette )
 NSTUB( 0xFF2CFA54, MirrorDisplay )
 NSTUB( 0xFF2CFAB4, NormalDisplay )
 NSTUB( 0xFF2CFA84, ReverseDisplay)
-//NSTUB( 0xFF2CE1F0, RedrawDisplay )
+NSTUB( 0xFF2CE1F0, RedrawDisplay )
 
 NSTUB( 0xFF0181A4, strlen )
 NSTUB( 0xFF07B498, strcmp )
@@ -258,3 +258,5 @@ NSTUB(0xFF42E15C, GetCFnData)
 NSTUB(0xFF42E364, SetCFnData)
 
 NSTUB(0xFF092558, SetGUIRequestMode)
+
+NSTUB(0xFF2CAAAC, ReverseDraftVram)

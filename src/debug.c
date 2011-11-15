@@ -336,7 +336,13 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
 	msleep(2000);
-	prop_dump();
+	//~ ReverseDraftVram();
+	//~ NotifyBox(2000, "%x", MEM(MEM(0x267C)+4)+0x10);
+	//~ MEM(0x288D8) = 1;
+	//~ beep();
+	//~ RedrawDisplay();
+	//~ bmp_idle_copy(1);
+	//~ prop_dump();
 	//~ lens_take_picture(64, 0);
 	//~ bulb_take_pic(250);
 	//~ trans_test();
@@ -345,10 +351,11 @@ void run_test()
 void xx_test(void* priv)
 {
 	//~ #ifdef CONFIG_550D
-	//~ gui_stop_menu();
+	gui_stop_menu();
 	//~ SetGUIRequestMode(29); // Jackie Chan :)
 	//~ #endif
-	gui_stop_menu();
+	//~ gui_stop_menu();
+	//~ set_display_gain(512);
 	task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
 }
 
@@ -1041,6 +1048,41 @@ void roll_spy()
 }
 #endif
 
+// reverse arrow keys
+int handle_upside_down(struct event * event)
+{
+	extern int menu_upside_down;
+	if (menu_upside_down && !IS_FAKE(event))
+	{
+		switch (event->param)
+		{
+			case BGMT_PRESS_LEFT:
+				fake_simple_button(BGMT_PRESS_RIGHT); return 0;
+			case BGMT_PRESS_RIGHT:
+				fake_simple_button(BGMT_PRESS_LEFT); return 0;
+			case BGMT_PRESS_UP:
+				fake_simple_button(BGMT_PRESS_DOWN); return 0;
+			case BGMT_PRESS_DOWN:
+				fake_simple_button(BGMT_PRESS_UP); return 0;
+			
+			#ifdef BGMT_PRESS_UP_LEFT
+			case BGMT_PRESS_UP_LEFT:
+				fake_simple_button(BGMT_PRESS_DOWN_RIGHT); return 0;
+				return 0;
+			case BGMT_PRESS_DOWN_RIGHT:
+				fake_simple_button(BGMT_PRESS_UP_LEFT); return 0;
+				return 0;
+			case BGMT_PRESS_UP_RIGHT:
+				fake_simple_button(BGMT_PRESS_DOWN_LEFT); return 0;
+			case BGMT_PRESS_DOWN_LEFT:
+				fake_simple_button(BGMT_PRESS_UP_RIGHT); return 0;
+			#endif
+		}
+	}
+	
+	return 1;
+}
+
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -1070,8 +1112,29 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
-		//~ bmp_printf(FONT_LARGE, 0, 0, "%x ", CURRENT_DIALOG_MAYBE);
-		
+		//~ bmp_printf(FONT_LARGE, 0, 0, "%x %x ", MEM(0x1e7a4), MEM(0x1e7a0));
+
+		extern int menu_upside_down;
+		if (menu_upside_down)
+		{
+			if (!gui_menu_shown())
+			{
+				bmp_draw_to_idle(1);
+				if (WINSYS_BMP_DIRTY_BIT_NEG == 0)
+				{
+					redraw();
+					WINSYS_BMP_DIRTY_BIT_NEG = 1;
+				}
+				else
+				{
+					BMP_LOCK(
+						bmp_flip(bmp_vram_real(), bmp_vram_idle());
+					)
+				}
+			}
+			//~ msleep(100);
+		}
+
 		if (get_global_draw())
 		{
 			
@@ -1153,7 +1216,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		if (fake_halfshutter)
 			fake_halfshutter_step(); // this one should msleep as needed
 		else
-			msleep(200);
+			msleep(50);
 	}
 }
 
