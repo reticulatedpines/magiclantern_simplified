@@ -38,9 +38,11 @@ static int handle_buttons(struct event * event)
 	if (handle_tricky_canon_calls(event) == 0) return 0;
 
 	extern int ml_started;
+	extern int magic_off;
 	if (!ml_started) 	{
+		if (event->param == BGMT_MENU) { magic_off = 1; return 0;} // don't load ML
 		if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
-		else return 1; // don't alter any other buttons/events until ML is fully initialized
+		return 1; // don't alter any other buttons/events until ML is fully initialized
 	}
 
 	// common to all cameras

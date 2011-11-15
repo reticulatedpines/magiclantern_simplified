@@ -381,7 +381,7 @@ my_init_task(int a, int b, int c, int d)
 
 	msleep( 2000 );
 
-	magic_off = HALFSHUTTER_PRESSED ? 1 : 0;
+	//~ magic_off = HALFSHUTTER_PRESSED ? 1 : 0;
 #ifndef CONFIG_1100D
 	if (magic_off)
 	{
