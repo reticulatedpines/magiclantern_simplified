@@ -1051,20 +1051,30 @@ void set_display_gain(int display_gain)
 	if (!gui_menu_shown()) msleep(1000);
 	#endif
 }
+
+// 1024 = 0 EV
+// +: off, +1EV, +2EV, ... , +6EV, -3EV, -2EV, -1EV, off
+// -: reverse
 void display_gain_toggle(int dir)
 {
+	int d = display_gain;
+	if (!d) d = 1024;
+	 
 	if (dir > 0)
 	{
-		display_gain = MAX(display_gain * 2, 2048);
-		if (display_gain > 65536) display_gain = 0;
+		display_gain = d * 2;
+		if (display_gain > 65536) display_gain = 128;
 	}
 	else if (dir < 0)
 	{
-		if (display_gain && display_gain <= 2048) display_gain = 0;
+		if (display_gain && display_gain <= 128) display_gain = 0;
 		else if (display_gain) display_gain /= 2; 
 		else display_gain = 65536;
 	}
 	else display_gain = 0;
+
+	if (display_gain == 1024) display_gain = 0;
+
 	set_display_gain(display_gain);
 	menu_show_only_selected();
 }
@@ -1091,7 +1101,7 @@ static void display_gain_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"LVGain (NightVision): %s%d EV",
-		gain_ev ? "+" : "",
+		gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
 		gain_ev
 	);
 	if (display_gain)

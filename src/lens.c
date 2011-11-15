@@ -531,7 +531,8 @@ end:
 		bmp_printf( text_font, 
 				  x_origin + 590, 
 				  y_origin - font_large.height, 
-				  "+%dEV", 
+				  "%s%dEV", 
+				  gain_ev > 0 ? "+" : "-",
 				  gain_ev);
 	}
 }
