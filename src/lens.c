@@ -511,6 +511,18 @@ void draw_ml_bottombar(int double_buffering)
 		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 	#endif
 
+end:
+
+	if (double_buffering)
+	{
+		// done drawing, copy image to main BMP buffer
+		bmp_draw_to_idle(0);
+		//~ bmp_mirror_copy(1);
+		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+		bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+	}
+
+	// this is not really part of the bottom bar, but it's close to it :)
 	extern int display_gain;
 	if (display_gain)
 	{
@@ -521,17 +533,6 @@ void draw_ml_bottombar(int double_buffering)
 				  y_origin - font_large.height, 
 				  "+%dEV", 
 				  gain_ev);
-	}
-
-end:
-
-	if (double_buffering)
-	{
-		// done drawing, copy image to main BMP buffer
-		bmp_draw_to_idle(0);
-		//~ bmp_mirror_copy(1);
-		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
-		bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
 	}
 }
 
