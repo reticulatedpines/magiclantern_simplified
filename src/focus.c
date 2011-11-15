@@ -876,6 +876,7 @@ static void movie_af_step(int mag)
 static int mags[NMAGS] = {0};
 #define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
 int maxmagf = 1;
+int trap_focus_autoscaling = 1;
 
 static void update_focus_mag(int mag)
 {
@@ -888,7 +889,9 @@ static void update_focus_mag(int mag)
 	#endif
 	for (i = 0; i < NMAGS-1; i++)
 		if (mags[i] * WEIGHT(i) > maxmag) maxmag = mags[i] * WEIGHT(i);
-	maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
+	
+	if (trap_focus_autoscaling)
+		maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
 	
 	for (i = 0; i < NMAGS-1; i++)
 		mags[i] = mags[i+1];
@@ -909,13 +912,23 @@ static void plot_focus_mag()
 		for (i = 0; i < NMAGS-1; i++)
 		{
 			bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
-			bmp_draw_rect(COLOR_YELLOW, 8 + i, 150 - FH, 0, FH);
+			bmp_draw_rect(trap_focus_autoscaling ? COLOR_YELLOW : COLOR_RED, 8 + i, 150 - FH, 0, FH);
 		}
 		//~ ff_check_autolock();
 	)
 }
 #undef FH
 #undef NMAGS
+
+int handle_trap_focus(struct event * event)
+{
+	if (event->param == BGMT_PRESS_SET && get_trap_focus() && can_lv_trap_focus_be_active() && zebra_should_run())
+	{
+		trap_focus_autoscaling = !trap_focus_autoscaling;
+		return 0;
+	}
+	return 1;
+}
 
 /*
 void ff_check_autolock()
