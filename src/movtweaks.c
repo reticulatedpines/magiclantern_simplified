@@ -629,7 +629,7 @@ static struct menu_entry mov_menus[] = {
 		.priv		= &movie_expo_lock,
 		.select		= movie_expo_lock_toggle,
 		.display	= movie_expo_lock_print,
-		.help		= "Lock the exposure in movie mode (50D/500D)"
+		.help		= "Lock the exposure in movie mode (50D/500D)",
 		.essential = FOR_MOVIE,
 	},
 #endif
@@ -650,7 +650,7 @@ static struct menu_entry mov_menus[] = {
 		.display = shutter_btn_rec_print, 
 		.select = menu_ternary_toggle,
 		.select_reverse = menu_ternary_toggle_reverse,
-		.help = "Block it while REC (avoids ERR99) or hold it (enables IS)."
+		.help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
 		.essential = FOR_MOVIE,
 	},
 #endif
