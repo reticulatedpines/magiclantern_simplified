@@ -3901,7 +3901,7 @@ shoot_task( void* unused )
 			{
 				int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (hdr_steps < 2)) ? 1 : 0;
 				int mlu_current_value = get_mlu() ? 1 : 0;
-				if (mlu_auto_value != mlu_current_value)
+				if (mlu_auto_value != mlu_current_value && !is_movie_mode() && !lv)
 				{
 					if (MENU_MODE && !gui_menu_shown()) // MLU changed from Canon menu
 					{ 
