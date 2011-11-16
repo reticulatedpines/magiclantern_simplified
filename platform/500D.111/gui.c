@@ -44,12 +44,6 @@ static int handle_buttons(struct event * event)
 		return 0;
 	}
 
-	if (lv && event->param == BGMT_PRESS_SET && !gui_menu_shown())
-	{
-		center_lv_afframe();
-		return 0;
-	}
-
 	return 1;
 }
 
