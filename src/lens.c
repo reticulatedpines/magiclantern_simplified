@@ -533,7 +533,7 @@ end:
 				  y_origin - font_large.height, 
 				  "%s%dEV", 
 				  gain_ev > 0 ? "+" : "-",
-				  gain_ev);
+				  ABS(gain_ev));
 	}
 }
 

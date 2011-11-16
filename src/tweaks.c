@@ -1102,7 +1102,7 @@ static void display_gain_print(
 		x, y,
 		"LVGain (NightVision): %s%d EV",
 		gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
-		gain_ev
+		ABS(gain_ev)
 	);
 	if (display_gain)
 	{
