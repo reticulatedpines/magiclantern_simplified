@@ -48,6 +48,8 @@ static int handle_buttons(struct event * event)
 {
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 	if (handle_common_events_startup(event) == 0) return 0;
+	extern int ml_started;
+	if (!ml_started) return 1;
 
 	// shortcut for 3x zoom mode
 	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;

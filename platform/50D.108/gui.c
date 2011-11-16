@@ -34,6 +34,8 @@ static int handle_buttons(struct event * event)
 {
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 	if (handle_common_events_startup(event) == 0) return 0;
+	extern int ml_started;
+	if (!ml_started) return 1;
 
 	// Change the picture style button to show our menu
 	if( event->param == BGMT_PICSTYLE)

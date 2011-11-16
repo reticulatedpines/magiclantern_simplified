@@ -35,6 +35,9 @@ static int handle_buttons(struct event * event)
 {	
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 	if (handle_common_events_startup(event) == 0) return 0;
+	extern int ml_started;
+	if (!ml_started) return 1;
+	
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	// camera-specific:
@@ -105,7 +108,5 @@ static void gui_main_task_550d()
 		f(event);
 	}
 } 
-
-// 5D2 has a different version for gui_main_task
 
 TASK_OVERRIDE( gui_main_task, gui_main_task_550d );
