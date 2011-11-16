@@ -257,3 +257,5 @@
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK
+
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x288A0+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP

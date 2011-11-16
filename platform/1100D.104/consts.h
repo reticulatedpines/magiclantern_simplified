@@ -163,3 +163,4 @@
 #define BGMT_WHEEL_UP 0
 #define BGMT_WHEEL_DOWN 1
 
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0xB198+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP

@@ -217,3 +217,7 @@
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK
+
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1888c+0x30)
+// DebugMsg(4, 2, msg='Whole Screen Backup end')
+// winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x188BC*/ = 0

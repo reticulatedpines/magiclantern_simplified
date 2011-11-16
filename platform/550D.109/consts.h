@@ -261,4 +261,4 @@
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
 
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1e7a0) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1E774+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
