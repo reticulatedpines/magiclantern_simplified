@@ -25,25 +25,23 @@
 
 
 
+
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+#define BGMT_PRESS_SET 4 // same
+#define BGMT_UNPRESS_SET 5 // new, only in menu mode
 #define BGMT_MENU 6 // same
 #define BGMT_INFO 7 // new, old value for BGMT_DISP
 #define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
 #define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
-#define BGMT_ZOOM_OUT 0xE // new
-
-#define BGMT_Q 0x1C // was 8
+#define BGMT_ZOOM_OUT 0xE // new (unpress?)
 #define BGMT_Q_ALT 0x13
+#define BGMT_Q 0x1C // was 8
 #define BGMT_LV 0x1D // new
-
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-
-#define BGMT_PRESS_SET 4 // same
-#define BGMT_UNPRESS_SET 5 // new, only in menu mode
 #define BGMT_PRESS_RIGHT 0x23 // was 0x1a
 #define BGMT_UNPRESS_RIGHT 0x24 // was 0x1b
 #define BGMT_PRESS_LEFT 0x25 // was 0x1c
@@ -53,16 +51,11 @@
 #define BGMT_PRESS_DOWN 0x29 // was 0x20
 #define BGMT_UNPRESS_DOWN 0x2A // was 0x21
 
-
 #define BGMT_ISO 0x33 // new
-
-
 
 #define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
 #define BGMT_UNPRESS_HALFSHUTTER 0x49 // was 0x40, shared with magnify/zoom out, shared with unpress full shutter?
 #define BGMT_PRESS_FULLSHUTTER 0x52    // was 0x41, can't return 0 to block this (to verify)...
-
-
 
 #define BGMT_SHUTDOWN 0x53 // new
 
@@ -201,8 +194,8 @@
 #define GMT_FUNCTABLE 0xff56dccc
 
 
- #define SENSOR_RES_X 5184
- #define SENSOR_RES_Y 3456
+#define SENSOR_RES_X 5202
+#define SENSOR_RES_Y 3465
 
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
@@ -306,3 +299,5 @@
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
+
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0xad80+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP

@@ -940,6 +940,9 @@ menu_handler(
 		break;
 
 	case PRESS_DIRECT_PRINT_BUTTON:
+#ifdef PRESS_DIRECT_PRINT_BUTTON_ALT
+	case PRESS_DIRECT_PRINT_BUTTON_ALT:
+#endif
 #ifdef CONFIG_50D
 	case PRESS_FUNC_BUTTON:
 	case JOY_CENTER:
