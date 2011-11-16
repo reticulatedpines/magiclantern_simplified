@@ -258,6 +258,7 @@ void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
 int magic_off = 0;
+int magic_off_request = 0;
 int magic_is_off() 
 {
 	return magic_off; 
@@ -380,11 +381,9 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_EARLY_PORT
 
 	msleep( 2000 );
-
-	//~ magic_off = HALFSHUTTER_PRESSED ? 1 : 0;
-#ifndef CONFIG_1100D
-	if (magic_off)
+	if (magic_off_request)
 	{
+		magic_off = 1;	// magic off request might be sent later (until ml is fully started), but will be ignored
 		bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
 		extern char additional_version[];
 		additional_version[0] = '-';
@@ -397,16 +396,13 @@ my_init_task(int a, int b, int c, int d)
 		additional_version[7] = '\0';
 		return ans;
 	}
-#endif
+
 	//~ asm("nop");
 	//~ asm("nop");
 	//~ NotifyBox(5000, "Magic Lantern");
 
 	//~ task_create("logo_task", 0x1e, 0x1000, logo_task, 0 );
 
-#ifndef CONFIG_1100D
-	//~ ui_lock(UILOCK_EVERYTHING);
-#endif
 
 	msleep( 500 );
 

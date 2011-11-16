@@ -1413,7 +1413,7 @@ void sounddev_task();
 static void
 my_sounddev_task()
 {
-	msleep( 2000 );
+	msleep( 1500 );
 	if (magic_is_off()) { sounddev_task(); return; }
     
 	hold_your_horses(1);
