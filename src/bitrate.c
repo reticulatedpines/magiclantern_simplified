@@ -21,12 +21,12 @@ CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
-int bitrate_indic_x = 720 - 160;
-int bitrate_indic_y = 0;
-int bitrate_indic_width = 160;
-int bitrate_indic_height = 20;
-int bitrate_indic_warning = 120;
-static int bitrate_indic_font	= FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
+int time_indic_x = 720 - 160;
+int time_indic_y = 0;
+int time_indic_width = 160;
+int time_indic_height = 20;
+int time_indic_warning = 120;
+static int time_indic_font	= FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
 int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;
@@ -209,8 +209,8 @@ void free_space_show()
 
 	bmp_printf(
 		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-		bitrate_indic_x + 7 * font_med.width,
-		bitrate_indic_y,
+		time_indic_x + 7 * font_med.width,
+		time_indic_y,
 		"%d.%dGB",
 		fsg,
 		fsgf
@@ -232,8 +232,8 @@ void fps_show()
 	
 	bmp_printf(
 		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-		bitrate_indic_x + 160 - 6 * font_med.width,
-		bitrate_indic_y + font_med.height,
+		time_indic_x + 160 - 6 * font_med.width,
+		time_indic_y + font_med.height,
 		"%d%s%s", 
 		video_mode_fps, 
 		video_mode_crop ? "+" : "p",
@@ -247,7 +247,7 @@ void free_space_show_photomode()
 	int fsg = free_space_32k >> 15;
 	int fsgr = free_space_32k - (fsg << 15);
 	int fsgf = (fsgr * 10) >> 15;
-	int x = bitrate_indic_x + 2 * font_med.width;
+	int x = time_indic_x + 2 * font_med.width;
 	int y = 452;
 	bmp_printf(
 		FONT(FONT_LARGE, COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
@@ -286,9 +286,9 @@ void time_indicator_show()
 	if (time_indicator)
 	{
 		bmp_printf(
-			time_4gb < bitrate_indic_warning ? bitrate_indic_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-			bitrate_indic_x + 5 * font_med.width,
-			bitrate_indic_y,
+			time_4gb < time_indic_warning ? time_indic_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+			time_indic_x + 5 * font_med.width,
+			time_indic_y,
 			"%4d:%02d",
 			dispvalue / 60,
 			dispvalue % 60
@@ -296,32 +296,33 @@ void time_indicator_show()
 	}
 	if (bitrate_indicator)
 	{
-		bmp_printf( FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR), 
-			bitrate_indic_x + 9 * font_med.width,
-			bitrate_indic_y + 38,
-			"A%3d",
+		bmp_printf( FONT_SMALL,
+			680 - font_small.width * 5,
+			55,
+			"A%3d ",
 			movie_bytes_written_32k * 32 * 80 / 1024 / movie_elapsed_time_01s);
 
-		int fnts = FONT(FONT_SMALL, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
-		int fntm = FONT(FONT_MED, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_WHITE, TOPBAR_BGCOLOR);
-		bmp_printf(fntm,
-			bitrate_indic_x + 5 * font_med.width,
-			bitrate_indic_y + 18,
-			"%4d",
+		bmp_printf(FONT_SMALL,
+			680 - font_small.width * 5,
+			55 + font_small.height,
+			"B%3d ",
 			measured_bitrate
 		);
+
+		int fnts = FONT(FONT_SMALL, COLOR_WHITE, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_BLACK);
 		bmp_printf(fnts,
-			bitrate_indic_x + 11 * font_med.width + 5,
-			bitrate_indic_y + 25,
-			"%s%d ",
+			680,
+			55 + font_small.height,
+			" Q%s%02d",
 			mvr_config.actual_qscale_maybe < 0 ? "-" : "+",
 			ABS(mvr_config.actual_qscale_maybe)
 		);
 	}
-	if (flicker_being_killed()) // this also kills recording dot
-	{
-		maru(bitrate_indic_x + 9 * font_med.width, bitrate_indic_y + 12, COLOR_RED);
-	}
+	
+	//~ if (flicker_being_killed()) // this also kills recording dot
+	//~ {
+		//~ maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
+	//~ }
 }
 
 void measure_bitrate() // called once / second
@@ -399,7 +400,7 @@ void show_mvr_buffer_status()
 {
 	int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
 	if (warning) warning--;
-	if (recording && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 60, "%3d%%", MVR_BUFFER_USAGE);
+	if (recording && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 
 
