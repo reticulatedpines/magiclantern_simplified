@@ -181,7 +181,7 @@ update_lens_display()
 #ifdef CONFIG_500D
 	if ((lv_disp_mode == 0 && !LV_BOTTOM_BAR_DISPLAYED) || EXT_MONITOR_CONNECTED)
 #else
-	if (lv_disp_mode == 0 || flicker_being_killed() || EXT_MONITOR_CONNECTED)
+	if (lv_disp_mode == 0 || EXT_MONITOR_CONNECTED)
 #endif
 	{
 		if (!get_halfshutter_pressed())
@@ -583,13 +583,11 @@ void draw_ml_topbar()
 		else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, vram_bm.height - 54);
 	}
 	
-	extern int bitrate_indic_x, bitrate_indic_y; // for bitrate indicators
-	bitrate_indic_x = os.x_max - 160;
-	bitrate_indic_y = y;
-	if (bitrate_indic_x < 720-160)
-		bitrate_indic_y = MAX((int)(bitrate_indic_y + ( bitrate_indic_y < os.y0 + os.x_ex/2 ? 1 : -1) * font_med.height), os.y0 + os.off_169); // otherwise will overlap audio meters
+	extern int time_indic_x, time_indic_y; // for bitrate indicators
+	time_indic_x = os.x_max - 160;
+	time_indic_y = y;
 	
-	if (bitrate_indic_y > vram_bm.height - 30) bitrate_indic_y = vram_bm.height - 30;
+	if (time_indic_y > vram_bm.height - 30) time_indic_y = vram_bm.height - 30;
 
 	if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
 

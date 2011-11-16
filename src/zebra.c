@@ -35,7 +35,7 @@
 
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-#if defined(CONFIG_50D)// && defined(CONFIG_500D)
+#if defined(CONFIG_50D)// || defined(CONFIG_60D)
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
@@ -3092,6 +3092,8 @@ clearscreen_loop:
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
 		{
+			idle_stop_killing_flicker();
+			
 			BMP_LOCK( clrscr_mirror(); )
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
@@ -3352,9 +3354,9 @@ livev_hipriority_task( void* unused )
 		
 		if (lens_display_dirty)
 		{
-			#ifdef CONFIG_KILL_FLICKER
-			if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
-			#endif
+			//~ #ifdef CONFIG_KILL_FLICKER
+			//~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
+			//~ #endif
 
 			movie_indicators_show();
 
@@ -3444,7 +3446,7 @@ livev_lopriority_task( void* unused )
 			cropmark_redraw();
 			crop_redraw_flag = 0;
 		}
-
+		
 		/*if (menu_upside_down && get_halfshutter_pressed())
 		{
 			idle_globaldraw_dis();

@@ -482,8 +482,8 @@ void afframe_clr_dirty()
 // this should be thread safe
 void clear_lv_affframe_if_dirty()
 {
-	#ifndef CONFIG_50D
-	if (af_frame_autohide && afframe_countdown && liveview_display_idle() && !flicker_being_killed())
+	//~ #ifndef CONFIG_50D
+	if (af_frame_autohide && afframe_countdown && liveview_display_idle())
 	{
 		BMP_LOCK (
 			if (afframe_countdown)
@@ -494,7 +494,7 @@ void clear_lv_affframe_if_dirty()
 			}
 		)
 	}
-	#endif
+	//~ #endif
 }
 
 void clear_lv_affframe()
