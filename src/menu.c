@@ -690,7 +690,8 @@ static void
 menu_redraw()
 {
 		menu_damage = 0;
-
+		kill_flicker(); // prevent Canon GUI from drawing over our menu
+		
 		if (menu_help_active)
 		{
 			BMP_LOCK( menu_help_redraw(); )
@@ -1260,7 +1261,6 @@ menu_task( void* unused )
 		}
 		#endif
 		msleep(100);
-		idle_kill_flicker();
 		bmp_on();
 
 		x0 = hdmi_code == 5 ? 120 : 0;

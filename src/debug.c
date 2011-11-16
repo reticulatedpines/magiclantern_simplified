@@ -1142,7 +1142,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
-		//~ bmp_printf(FONT_LARGE, 0, 0, "%x %x ", MEM(0x1e7a4), MEM(0x1e7a0));
+		//~ bmp_printf(FONT_LARGE, 0, 0, "%x ", WINSYS_BMP_DIRTY_BIT_NEG);
 
 		extern int menu_upside_down;
 		if (menu_upside_down)
@@ -1150,18 +1150,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			if (!gui_menu_shown())
 			{
 				bmp_draw_to_idle(1);
-				if (WINSYS_BMP_DIRTY_BIT_NEG == 0)
-				{
-					WINSYS_BMP_DIRTY_BIT_NEG = 1;
-					//~ clrscr();
-					redraw();
-				}
-				else
-				{
-					BMP_LOCK(
-						bmp_flip(bmp_vram_real(), bmp_vram_idle());
-					)
-				}
+				kill_flicker();
+				BMP_LOCK(
+					bmp_flip(bmp_vram_real(), bmp_vram_idle());
+				)
 			}
 			//~ msleep(100);
 		}
