@@ -11,7 +11,11 @@ int handle_common_events_startup(struct event * event)
 	extern int ml_started;
 	extern int magic_off_request;
 	if (!ml_started) 	{
-		if (event->param == BGMT_MENU) { magic_off_request = 1; return 0;} // don't load ML
+		if (event->param == BGMT_PRESS_SET) { magic_off_request = 1; return 0;} // don't load ML
+
+		#ifdef CONFIG_60D
+		if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
+		#endif
 		
 		#ifndef CONFIG_50D
 		if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
