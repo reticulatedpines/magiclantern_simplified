@@ -2369,10 +2369,11 @@ cropmark_draw()
 	ChangeColorPaletteLV(2);
 	if (!get_global_draw()) return;
 
+	get_yuv422_vram(); // just to refresh VRAM params
 	clear_lv_affframe_if_dirty();
 
 	if (transparent_overlay && !transparent_overlay_hidden) show_overlay();
-	if (cropmark_movieonly && !is_movie_mode()) return;
+	if (cropmark_movieonly && !is_movie_mode() && !PLAY_MODE) return;
 	reload_cropmark(crop_draw); // reloads only when changed
 	if (cropmarks) 
 	{
