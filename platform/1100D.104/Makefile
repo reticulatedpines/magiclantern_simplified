@@ -35,6 +35,7 @@ ML_OBJS-y = \
 	property.o \
 	propvalues.o \
 	gui.o \
+	gui-common.o \
 	misc.o \
 	lensfocus.o \
 	cfn.o \
