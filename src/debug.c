@@ -1152,8 +1152,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 				bmp_draw_to_idle(1);
 				if (WINSYS_BMP_DIRTY_BIT_NEG == 0)
 				{
-					redraw();
 					WINSYS_BMP_DIRTY_BIT_NEG = 1;
+					//~ clrscr();
+					redraw();
 				}
 				else
 				{

@@ -112,6 +112,25 @@ int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, v
     return 1;
 }
 
+void kill_flicker() { fake_simple_button(MLEV_KILL_FLICKER); }
+void stop_killing_flicker() { fake_simple_button(MLEV_STOP_KILLING_FLICKER); }
+
+void kill_flicker_do() {
+    if (WINSYS_BMP_DIRTY_BIT_NEG == 0)
+    {
+        WINSYS_BMP_DIRTY_BIT_NEG = 1;
+        redraw();
+    }
+}
+
+void stop_killing_flicker_do() {
+    WINSYS_BMP_DIRTY_BIT_NEG = 0;
+    redraw();
+}
+
+int flicker_being_killed() { return WINSYS_BMP_DIRTY_BIT_NEG; }
+
+/*
 int flicker_being_killed() { return test_dialog != 0; }
 
 void kill_flicker() { fake_simple_button(MLEV_KILL_FLICKER); }
@@ -134,7 +153,7 @@ void stop_killing_flicker_do() {
             test_dialog = NULL;
     }
     redraw();
-}
+}*/
 
 #if 0
 volatile void* notify_box_dlg = 0;
