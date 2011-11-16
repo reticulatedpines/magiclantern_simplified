@@ -185,7 +185,7 @@ update_lens_display()
 #endif
 	{
 		if (!get_halfshutter_pressed())
-			BMP_LOCK( draw_ml_bottombar(0); )
+			BMP_LOCK( draw_ml_bottombar(!flicker_being_killed()); )
 	}
 }
 
