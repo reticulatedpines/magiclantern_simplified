@@ -32,6 +32,8 @@ volatile PROP_INT(PROP_BEEP, beep_enabled);
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
+volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
+//~ int battery_level_bars = 0;
 
 volatile int dofpreview;
 PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2

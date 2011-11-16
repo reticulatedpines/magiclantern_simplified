@@ -3738,7 +3738,7 @@ static void display_expsim_status()
 
 void display_shooting_info_lv()
 {
-	display_lcd_remote_icon(480, 0);
+	display_lcd_remote_icon(480, 40);
 	display_trap_focus_info();
 	display_expsim_status();
 }

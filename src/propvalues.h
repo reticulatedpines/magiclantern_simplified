@@ -40,6 +40,7 @@ extern int beep_enabled;
 extern int lv_movie_select;
 extern int sensor_cleaning;
 extern int burst_count;
+extern int battery_level_bars;
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 
