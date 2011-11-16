@@ -1051,35 +1051,65 @@ void roll_spy()
 // reverse arrow keys
 int handle_upside_down(struct event * event)
 {
+	// only reverse first arrow press
+	// then wait for unpress event (or different arrow press) before reversing again
+	
 	extern int menu_upside_down;
-	if (menu_upside_down && !IS_FAKE(event))
+	static int last_arrow_faked = 0;
+
+	if (menu_upside_down && !IS_FAKE(event) && last_arrow_faked)
+	{
+		switch (event->param)
+		{
+			#ifdef BGMT_UNPRESS_UDLR
+			case BGMT_UNPRESS_UDLR:
+			#else
+			case BGMT_UNPRESS_LEFT:
+			case BGMT_UNPRESS_RIGHT:
+			case BGMT_UNPRESS_UP:
+			case BGMT_UNPRESS_DOWN:
+			#endif
+				last_arrow_faked = 0;
+				return 1;
+		}
+	}
+
+	if (menu_upside_down && !IS_FAKE(event) && last_arrow_faked != event->param)
 	{
 		switch (event->param)
 		{
 			case BGMT_PRESS_LEFT:
-				fake_simple_button(BGMT_PRESS_RIGHT); return 0;
+				last_arrow_faked = BGMT_PRESS_RIGHT;
+				break;
 			case BGMT_PRESS_RIGHT:
-				fake_simple_button(BGMT_PRESS_LEFT); return 0;
+				last_arrow_faked = BGMT_PRESS_LEFT;
+				break;
 			case BGMT_PRESS_UP:
-				fake_simple_button(BGMT_PRESS_DOWN); return 0;
+				last_arrow_faked = BGMT_PRESS_DOWN;
+				break;
 			case BGMT_PRESS_DOWN:
-				fake_simple_button(BGMT_PRESS_UP); return 0;
-			
+				last_arrow_faked = BGMT_PRESS_UP;
+				break;
 			#ifdef BGMT_PRESS_UP_LEFT
 			case BGMT_PRESS_UP_LEFT:
-				fake_simple_button(BGMT_PRESS_DOWN_RIGHT); return 0;
-				return 0;
+				last_arrow_faked = BGMT_PRESS_DOWN_RIGHT;
+				break;
 			case BGMT_PRESS_DOWN_RIGHT:
-				fake_simple_button(BGMT_PRESS_UP_LEFT); return 0;
-				return 0;
+				last_arrow_faked = BGMT_PRESS_UP_LEFT;
+				break;
 			case BGMT_PRESS_UP_RIGHT:
-				fake_simple_button(BGMT_PRESS_DOWN_LEFT); return 0;
+				last_arrow_faked = BGMT_PRESS_DOWN_LEFT;
+				break;
 			case BGMT_PRESS_DOWN_LEFT:
-				fake_simple_button(BGMT_PRESS_UP_RIGHT); return 0;
+				last_arrow_faked = BGMT_PRESS_UP_RIGHT;
+				break;
 			#endif
+			default:
+				return 1;
 		}
+		fake_simple_button(last_arrow_faked); return 0;
 	}
-	
+
 	return 1;
 }
 
