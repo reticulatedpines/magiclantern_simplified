@@ -2047,7 +2047,10 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 	if (buf[0] == 0) 
 	{ 
 		if (config_autosave) save_config(0);
-		card_led_on(); 
+		card_led_on();
+		#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+		call("EdLedOn");
+		#endif
 		msleep(50); 
 	}
 	return prop_cleanup(token, property);
