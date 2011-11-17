@@ -727,7 +727,7 @@ void ui_lock(int x)
 
 void toggle_mirror_display()
 {
-	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+	#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 	//~ zebra_pause();
 	if (lv) msleep(200); // redrawing screen while zebra is active seems to cause trouble
 	static int i = 0;
@@ -1591,7 +1591,7 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulates half-shutter press, or make half-shutter sticky."
 	},
-#if !defined(CONFIG_50D) && !defined(CONFIG_550D) && !defined(CONFIG_500D)
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
 		.select		= NormalDisplay,
@@ -1703,7 +1703,7 @@ struct menu_entry debug_menus[] = {
 		.select		= clear_config,
 		.display	= menu_print,
 	}, */
-	#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+	#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 	{
 		.name = "Free Memory",
 		.display = meminfo_display,
@@ -2170,7 +2170,7 @@ void HijackFormatDialogBox()
 	struct dialog * dialog = current->priv;
 	if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 #define FORMAT_BTN "[FUNC]"
 #define STR_LOC 6
 #else
@@ -2581,7 +2581,7 @@ int handle_tricky_canon_calls(struct event * event)
 				set_lv_stuff_to_win_system__maybe(2, 2);
 			}
 			#else
-				#ifndef CONFIG_50D
+				#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 				if (lv && LV_BOTTOM_BAR_DISPLAYED)
 				{
 					HideBottomInfoDisp_maybe();

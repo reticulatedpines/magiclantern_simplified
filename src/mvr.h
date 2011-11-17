@@ -21,3 +21,7 @@
 #ifdef CONFIG_1100D
 #include "../platform/1100D.104/mvr.h"
 #endif
+
+#ifdef CONFIG_5D2
+#include "../platform/5D2.211/mvr.h"
+#endif

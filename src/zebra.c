@@ -1203,7 +1203,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 	if (!bvram_mirror) return;
 	int y;
 	uint8_t * const lvram = get_yuv422_vram()->vram;
-	int lvpitch = YUV422_LV_PITCH;
+	int lvpitch = get_yuv422_vram()->pitch;
 	for( y = 0; y < 480; y += 2 )
 	{
 		uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
@@ -2411,7 +2411,7 @@ void bmp_on()
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (_bmp_cleared) 
 	{// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
-	#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_550D)
+	#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
 		stop_killing_flicker_do();
 	#else
 		BMP_LOCK(
@@ -2438,7 +2438,7 @@ void bmp_off()
 	//~ if (!is_safe_to_mess_with_the_display(500)) return;
 	if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
 	{
-	#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_550D)
+	#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
 		_bmp_cleared = true;
 		kill_flicker_do();
 	#else
@@ -2525,7 +2525,7 @@ int handle_zoom_overlay(struct event * event)
 			{ move_lv_afframe(0, -200); return 0; }
 		if (event->param == BGMT_PRESS_DOWN)
 			{ move_lv_afframe(0, 200); return 0; }
-		#ifndef CONFIG_50D
+		#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 		if (event->param == BGMT_PRESS_SET)
 			{ center_lv_afframe(); return 0; }
 		#endif
@@ -3159,7 +3159,7 @@ void redraw_do()
 	if (!ml_started) return;
 BMP_LOCK (
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 	if (display_dont_mirror && display_dont_mirror_dirty)
 	{
 		if (lcd_position == 1) NormalDisplay();
@@ -3470,7 +3470,7 @@ livev_lopriority_task( void* unused )
 #if defined(CONFIG_600D)
  #define HIPRIORITY_TASK_PRIO 0x19
 #else
- #if defined(CONFIG_50D) || defined(CONFIG_500D)
+ #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
   #define HIPRIORITY_TASK_PRIO 0x1b
  #else
   #define HIPRIORITY_TASK_PRIO 0x1a
@@ -3786,7 +3786,7 @@ void defish_draw()
 	int i,j;
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
-	int lvpitch = YUV422_LV_PITCH;
+	int lvpitch = vram->pitch;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 

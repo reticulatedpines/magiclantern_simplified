@@ -747,7 +747,7 @@ menu_redraw()
 					if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
 					else bmp_idle_copy(1);
 				}
-				bmp_idle_clear();
+				//~ bmp_idle_clear();
 			)
 			//~ update_stuff();
 			
