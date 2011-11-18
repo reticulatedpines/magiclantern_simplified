@@ -19,10 +19,12 @@ CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
 
 // WB workaround (not saved in movie mode)
 //**********************************************************************
-CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
+//~ CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
 CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
 CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
 CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
+
+int kelvin_wb_dirty = 1;
 
 void save_kelvin_wb()
 {
@@ -30,22 +32,37 @@ void save_kelvin_wb()
 	workaround_wb_kelvin = lens_info.kelvin;
 	workaround_wbs_gm = lens_info.wbs_gm + 100;
 	workaround_wbs_ba = lens_info.wbs_ba + 100;
+	//~ NotifyBox(1000, "Saved WB: %dK GM%d BA%d", workaround_wb_kelvin, workaround_wbs_gm, workaround_wbs_ba);
 }
 
 void restore_kelvin_wb()
 {
-	if (!white_balance_workaround) return;
-	
+	//~ if (!white_balance_workaround) return;
+	msleep(500); // to make sure mode switch is complete
 	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
 	lens_set_kelvin_value_only(workaround_wb_kelvin);
 	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
 	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
+	//~ NotifyBox(1000, "Restored WB: %dK GM%d BA%d", workaround_wb_kelvin, workaround_wbs_gm, workaround_wbs_ba); msleep(1000);
+}
+
+void kelvin_wb_workaround_step()
+{
+	if (!kelvin_wb_dirty)
+	{
+		save_kelvin_wb();
+	}
+	else
+	{
+		restore_kelvin_wb();
+		kelvin_wb_dirty = 0;
+	}
 }
 
 int ml_changing_shooting_mode = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
-	if (is_movie_mode()) restore_kelvin_wb();
+	kelvin_wb_dirty = 1;
 	if (!ml_changing_shooting_mode) intervalometer_stop();
 	return prop_cleanup(token, property);
 }
@@ -332,10 +349,9 @@ movtweak_task( void* unused )
 		
 		if (is_movie_mode())
 		{
-			save_kelvin_wb();
+			kelvin_wb_workaround_step();
 
 			if (shutter_lock) shutter_lock_step();
-			
 		}
 
 		if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
@@ -365,6 +381,7 @@ movtweak_task( void* unused )
 
 TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
 
+/*
 static void
 wb_workaround_display(
         void *                  priv,
@@ -379,7 +396,7 @@ wb_workaround_display(
 		"WB workaround : %s", 
 		white_balance_workaround ? "ON(save WB in cfg)" : "OFF"
 	);
-}
+}*/
 
 /*extern int zebra_nrec;
 
