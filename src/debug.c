@@ -1350,7 +1350,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		if (fake_halfshutter)
 			fake_halfshutter_step(); // this one should msleep as needed
 		else
-			msleep(50);
+			msleep(200);
 	}
 }
 

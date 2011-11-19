@@ -3241,14 +3241,18 @@ BMP_LOCK (
 		struct dialog * dialog = current->priv;
 		if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
 		{
+			#ifdef CONFIG_KILL_FLICKER
 			// to redraw, we need access to front buffer
 			int d = canon_gui_front_buffer_disabled();
 			canon_gui_enable_front_buffer(0);
+			#endif
 			
 			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
 			
+			#ifdef CONFIG_KILL_FLICKER
 			// restore things back
 			if (d) idle_kill_flicker();
+			#endif
 		}
 		else
 		{
