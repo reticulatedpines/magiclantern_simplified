@@ -207,6 +207,7 @@
  #define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
+#define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x7DF7) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
 #define SHOOTING_MODE (*(int*)0x3364)
 

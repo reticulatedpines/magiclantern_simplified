@@ -55,6 +55,8 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	morse.o \
+	liveview.o \
+	reloc.o \
 
 #include generic rules and definitions
 

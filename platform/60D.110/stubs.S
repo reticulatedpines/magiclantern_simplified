@@ -268,8 +268,6 @@ NSTUB(0xFF51BD98, SetCFnData)
 NSTUB(0xFF0A4040, SetGUIRequestMode)
 NSTUB(0xFF4838A8, StartShootOlcMeteringApp)
 
-NSTUB(0xff31ed74, ReverseDraftVram)
-
-NSTUB(0xff36f848, JudgeBottomInfoDispTimerState)
-NSTUB(0xff36f708, JudgeHandleAvButtonOrMainDial)
 NSTUB(0xff372258, LiveViewApp_handler)
+NSTUB(0xff37281c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
+NSTUB(0xff373e00, LiveViewApp_handler_end) // start of next function

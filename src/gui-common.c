@@ -15,53 +15,19 @@ int handle_other_events(struct event * event)
 	extern int ml_started;
 	if (!ml_started) return 1;
 
-	extern int kill_canon_gui_mode;
-
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-	if (lv && get_global_draw_setting() && kill_canon_gui_mode == 1) // hide bottom bar
+	if (lv)
 	{
-		
-		//~ if (!get_global_draw()) beep();
-		//~ if (event->type == 2) bmp_printf(FONT_LARGE, 200, 200, "%x  ", event->param);
-			//~ BMP_LOCK( msleep(10); )
-		if (event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
+		if (lv_disp_mode == 0 && get_global_draw_setting())
 		{
-			if (lv_disp_mode == 0 && !ISO_ADJUSTMENT_ACTIVE && liveview_display_idle())
-			{
-				int ja = JudgeHandleAvButtonOrMainDial(0, 2);
-				int jb = JudgeBottomInfoDispTimerState(ja);
-				
-				if ((ja || jb || get_halfshutter_pressed()))
-				{
-					bottom_bar_dirty = 5;
-
-					if (ja) hide_bottom_bar_timer = 5; // bottom bar appeared and successfully blocked
-					if (jb && !hide_bottom_bar_timer) hide_bottom_bar_timer = 20; // bottom bar appeared, but was blocked a bit too late
-					if (get_halfshutter_pressed()) bottom_bar_dirty = 20;
-				}
-			}
-
-			if (bottom_bar_dirty)
-			{
-				canon_gui_disable_front_buffer();
-				bottom_bar_dirty--;
-			}
-			else
-			{
-				canon_gui_enable_front_buffer(0);
-			}
+			// install a modified handler which does not activate bottom bar display timer
+			reloc_liveviewapp_install(); 
 			
-			if (hide_bottom_bar_timer)
-			{
-				hide_bottom_bar_timer--;
-				if (hide_bottom_bar_timer == 0)
-					HideBottomInfoDisp_maybe();
-			}
+			// force bottom bar state to "hidden" (when you press shutter halfway, ISO... etc)
+			LV_BOTTOM_BAR_STATE = 0;
 		}
-		/*if (event->type == 2 && event->param == GMT_OLC_BLINK_TIMER)
-		{
-			return 0;
-		}*/
+		else
+			reloc_liveviewapp_uninstall();
 	}
 #endif
 	return 1;

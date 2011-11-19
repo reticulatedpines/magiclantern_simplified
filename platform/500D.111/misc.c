@@ -54,3 +54,5 @@ void display_shooting_info() // called from debug task
 	display_trap_focus_info();
 }
 
+// dummy stub
+int new_LiveViewApp_handler = 0xff123456;
