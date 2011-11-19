@@ -690,7 +690,8 @@ static void
 menu_redraw()
 {
 		menu_damage = 0;
-		kill_flicker(); // prevent Canon GUI from drawing over our menu
+		
+		int double_buffering = 1;
 		
 		if (menu_help_active)
 		{
@@ -704,9 +705,12 @@ menu_redraw()
 
 			//~ menu_damage = 0;
 			BMP_LOCK (
-				// draw to mirror buffer to avoid flicker
-				//~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
-				bmp_draw_to_idle(1);
+				if (double_buffering)
+				{
+					// draw to mirror buffer to avoid flicker
+					//~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
+					bmp_draw_to_idle(1);
+				}
 
 				bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
 
@@ -715,7 +719,6 @@ menu_redraw()
 
 				menus_display( menus, x0, y0 ); 
 				if (is_menu_active("Help")) menu_show_version();
-				//~ draw_ml_topbar();
 
 				if (show_only_selected) 
 				{
@@ -723,31 +726,33 @@ menu_redraw()
 					draw_ml_bottombar(0);
 				}
 
-				// copy image to main buffer
-
-				bmp_draw_to_idle(0);
-
-				int screen_layout = get_screen_layout();
-				if (hdmi_code == 2) // copy at a smaller scale to fit the screen
+				if (double_buffering)
 				{
-					if (screen_layout == SCREENLAYOUT_16_10)
-						bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
-					else if (screen_layout == SCREENLAYOUT_16_9)
-						bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
+					// copy image to main buffer
+					bmp_draw_to_idle(0);
+
+					int screen_layout = get_screen_layout();
+					if (hdmi_code == 2) // copy at a smaller scale to fit the screen
+					{
+						if (screen_layout == SCREENLAYOUT_16_10)
+							bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+						else if (screen_layout == SCREENLAYOUT_16_9)
+							bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
+						else
+						{
+							if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
+							else bmp_idle_copy(1);
+						}
+					}
+					else if (ext_monitor_rca)
+						bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
 					else
 					{
 						if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
 						else bmp_idle_copy(1);
 					}
+					//~ bmp_idle_clear();
 				}
-				else if (ext_monitor_rca)
-					bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
-				else
-				{
-					if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
-					else bmp_idle_copy(1);
-				}
-				//~ bmp_idle_clear();
 			)
 			//~ update_stuff();
 			
@@ -1074,7 +1079,7 @@ gui_stop_menu( void )
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
 
-	stop_killing_flicker_do();
+	canon_gui_enable_gmt();
 
 	#ifdef GUIMODE_ML_MENU
 	if (!PLAY_MODE) SetGUIRequestMode(0);
@@ -1261,7 +1266,11 @@ menu_task( void* unused )
 		}
 		#endif
 		msleep(100);
+
 		bmp_on();
+
+		// prevent Canon GUI from drawing over our menu
+		if (!canon_gui_disabled()) canon_gui_disable();
 
 		x0 = hdmi_code == 5 ? 120 : 0;
 		y0 = hdmi_code == 5 ? 40 : 0;
