@@ -2483,7 +2483,8 @@ void zoom_overlay_toggle()
 	if (!zoom_overlay)
 	{
 		zoom_overlay_countdown = 0;
-		redraw_after(500);
+		crop_set_dirty(10);
+		//~ redraw_after(500);
 	}
 }
 
