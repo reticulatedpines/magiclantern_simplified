@@ -26,6 +26,15 @@ int handle_other_events(struct event * event)
 			#ifdef CONFIG_550D // might also work on 600D; doesn't work on 60D
 			// force bottom bar state to "hidden" (when you press shutter halfway, ISO... etc)
 			LV_BOTTOM_BAR_STATE = 0;
+			
+			#else
+
+			if (get_halfshutter_pressed()) bottom_bar_dirty = 20;
+			if (bottom_bar_dirty) bottom_bar_dirty--;
+			if (bottom_bar_dirty && liveview_display_idle())
+				canon_gui_disable_front_buffer();
+			else
+				canon_gui_enable_front_buffer(0);
 			#endif
 		}
 		else

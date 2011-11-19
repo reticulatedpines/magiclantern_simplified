@@ -179,7 +179,7 @@ update_lens_display()
 	draw_ml_topbar();
 	
 	extern int menu_upside_down; // don't use double buffer in this mode
-	draw_ml_bottombar(!menu_upside_down); 
+	draw_ml_bottombar(!menu_upside_down && !is_canon_bottom_bar_dirty()); 
 }
 
 int should_draw_bottom_bar()
@@ -187,11 +187,7 @@ int should_draw_bottom_bar()
 	if (!get_global_draw()) return 0;
 	if (EXT_MONITOR_CONNECTED) return 1;
 	if (canon_gui_front_buffer_disabled()) return 1;
-	if (lv_disp_mode == 0
-	#if defined(CONFIG_600D)
-		&& !get_halfshutter_pressed()
-	#endif
-	) return 1;
+	if (lv_disp_mode == 0) return 1;
 	return 0;
 }
 
