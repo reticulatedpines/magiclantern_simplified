@@ -112,48 +112,54 @@ int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, v
     return 1;
 }
 
-void kill_flicker() { fake_simple_button(MLEV_KILL_FLICKER); }
-void stop_killing_flicker() { fake_simple_button(MLEV_STOP_KILLING_FLICKER); }
-
-void kill_flicker_do() {
+void canon_gui_disable_front_buffer()
+{
     if (WINSYS_BMP_DIRTY_BIT_NEG == 0)
     {
         WINSYS_BMP_DIRTY_BIT_NEG = 1;
-        redraw();
+        //~ redraw();
     }
 }
 
-void stop_killing_flicker_do() {
-    WINSYS_BMP_DIRTY_BIT_NEG = 0;
-    redraw();
+void canon_gui_enable_front_buffer(int also_redraw)
+{
+    if (WINSYS_BMP_DIRTY_BIT_NEG)
+    {
+        WINSYS_BMP_DIRTY_BIT_NEG = 0;
+        if (also_redraw) redraw();
+    }
 }
 
-int flicker_being_killed() { return WINSYS_BMP_DIRTY_BIT_NEG; }
+int canon_gui_front_buffer_disabled() { return WINSYS_BMP_DIRTY_BIT_NEG; }
 
-/*
-int flicker_being_killed() { return test_dialog != 0; }
 
-void kill_flicker() { fake_simple_button(MLEV_KILL_FLICKER); }
-void stop_killing_flicker() { fake_simple_button(MLEV_STOP_KILLING_FLICKER); }
+void canon_gui_disable() { fake_simple_button(MLEV_KILL_FLICKER); }
+void canon_gui_enable() { fake_simple_button(MLEV_STOP_KILLING_FLICKER); }
 
-void kill_flicker_do() {
+int canon_gui_disabled() { return test_dialog != 0; }
+
+// to be called from gui_main_task only:
+
+void canon_gui_disable_gmt() {
         if (test_dialog != NULL) {
                 DeleteDialogBox(test_dialog);
                 test_dialog = NULL;
         }
 
+        canon_gui_disable_front_buffer(0);
         test_dialog = (void*)CreateDialogBox(0, 0, test_minimal_handler, 1, 0);
         dialog_redraw(test_dialog);
         clrscr();
 }
 
-void stop_killing_flicker_do() {
+void canon_gui_enable_gmt() {
     if (test_dialog != NULL) {
             DeleteDialogBox(test_dialog);
             test_dialog = NULL;
     }
+    canon_gui_enable_front_buffer(0);
     redraw();
-}*/
+}
 
 #if 0
 volatile void* notify_box_dlg = 0;

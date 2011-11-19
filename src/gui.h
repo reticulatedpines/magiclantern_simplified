@@ -197,4 +197,13 @@ gui_hide_menu( int redisplay_time );
 
 void fake_simple_button(int bgmt_code);
 
+
+void canon_gui_disable_front_buffer();
+void canon_gui_enable_front_buffer(int also_redraw);
+int canon_gui_front_buffer_disabled();
+
+void canon_gui_disable();
+void canon_gui_enable();
+int canon_gui_disabled();
+
 #endif
