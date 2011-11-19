@@ -35,9 +35,9 @@
 
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-//~ #if defined(CONFIG_50D)// || defined(CONFIG_60D)
-//~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-//~ #endif                      // but it will display ML graphics
+#if defined(CONFIG_50D)// || defined(CONFIG_60D)
+#define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
+#endif                      // but it will display ML graphics
 
 #ifdef CONFIG_1100D
 #include "disable-this-module.h"
@@ -244,9 +244,9 @@ int get_global_draw() // menu setting, or off if
 		bmp_is_on() &&
 		tft_status == 0 && 
 		recording != 1 && 
-		//~ #ifdef CONFIG_KILL_FLICKER
-		!(lv && kill_canon_gui_mode >= 2 && !canon_gui_front_buffer_disabled()) &&
-		//~ #endif
+		#ifdef CONFIG_KILL_FLICKER
+		!(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
+		#endif
 		!lv_paused && 
 		lens_info.job_state <= 10 &&
 		!(recording && !lv);
@@ -2743,6 +2743,7 @@ bool liveview_display_idle()
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
 	extern thunk LiveViewApp_handler;
+	extern thunk new_LiveViewApp_handler;
 	extern thunk test_minimal_handler;
 
 	if (dialog->handler == &test_minimal_handler)
@@ -2757,7 +2758,7 @@ bool liveview_display_idle()
 		!menu_active_and_not_hidden() && 
 		(gui_menu_shown() || // force LiveView when menu is active, but hidden
 			( gui_state == GUISTATE_IDLE && 
-			dialog->handler == &LiveViewApp_handler &&
+			(dialog->handler == &LiveViewApp_handler || dialog->handler == new_LiveViewApp_handler) &&
 			CURRENT_DIALOG_MAYBE <= 3 && 
 			#ifdef CURRENT_DIALOG_MAYBE_2
 			CURRENT_DIALOG_MAYBE_2 <= 3 &&
@@ -3064,10 +3065,18 @@ void idle_globaldraw_en()
 	idle_globaldraw_disable = 0;
 }
 
+void clear_liveview_area()
+{
+	if (is_movie_mode())
+		bmp_fill(0, os.x0, os.y0 + os.off_169, os.x_ex, os.y_ex - os.off_169 * 2 + 2);
+	else
+		bmp_fill(0, os.x0, os.y0, os.x_ex, os.y_ex);
+}
+
 void idle_kill_flicker()
 {
 	canon_gui_disable_front_buffer();
-	//~ clrscr();
+	clear_liveview_area();
 }
 void idle_stop_killing_flicker()
 {
@@ -3109,8 +3118,9 @@ clearscreen_loop:
 		//~ else canon_gui_enable_front_buffer(0);
 
 		// especially for 50D
+		#ifdef CONFIG_KILL_FLICKER
 		extern int kill_canon_gui_mode;
-		if (kill_canon_gui_mode == 2)
+		if (kill_canon_gui_mode == 1)
 		{
 			if (global_draw && !gui_menu_shown())
 			{
@@ -3120,7 +3130,7 @@ clearscreen_loop:
 					if (!canon_gui_front_buffer_disabled())
 					{
 						canon_gui_disable_front_buffer();
-						//~ clrscr();
+						clear_liveview_area();
 					}
 				}
 				else
@@ -3132,8 +3142,7 @@ clearscreen_loop:
 				}
 			}
 		}
-		
-		
+		#endif
 		
 		/*if (k % 10 == 0)
 		{
@@ -3144,14 +3153,15 @@ clearscreen_loop:
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
 		{
-			if (kill_canon_gui_mode == 3)
-				idle_stop_killing_flicker();
-			
+			#ifdef CONFIG_KILL_FLICKER
+			idle_stop_killing_flicker();
+			#endif
+
 			BMP_LOCK( clrscr_mirror(); )
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
-				if (kill_canon_gui_mode == 1 && i % 10 == 0) BMP_LOCK( update_lens_display(); )
+				if (i % 10 == 0) BMP_LOCK( update_lens_display(); )
 				msleep(10);
 				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;
@@ -3180,11 +3190,13 @@ clearscreen_loop:
 		if (clearscreen == 2) // clear overlay when idle
 			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
 		
-		if (kill_canon_gui_mode == 3) // LV transparent menus and key presses
+		#ifdef CONFIG_KILL_FLICKER
+		if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
 		{
 			if (global_draw && !gui_menu_shown())
 				idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
 		}
+		#endif
 
 		// since this task runs at 10Hz, I prefer cropmark redrawing here
 		if (crop_dirty)
@@ -3236,7 +3248,7 @@ BMP_LOCK (
 			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
 			
 			// restore things back
-			if (d) canon_gui_disable_front_buffer();
+			if (d) idle_kill_flicker();
 		}
 		else
 		{
@@ -3455,14 +3467,13 @@ static void black_bars()
 	}
 }
 
+/*
 void bars_16x9_50D()
 {
 	if (!get_global_draw()) return;
-	bmp_fill(COLOR_BLACK, 0, 0, 720, 33);
-	bmp_fill(45, 0, 33, 720, 1);
-	bmp_fill(COLOR_BLACK, 0, 394, 720, 32);
-	bmp_fill(45, 0, 393, 720, 1);
-}
+	bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
+	bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
+}*/
 
 
 // Items which do not need a high FPS, but are CPU intensive
@@ -3473,7 +3484,7 @@ livev_lopriority_task( void* unused )
 	msleep(2000);
 	while(1)
 	{
-		#ifdef CONFIG_550D
+		#if defined(CONFIG_550D)
 		black_bars();
 		#endif
 

@@ -12,6 +12,11 @@
 #include "lens.h"
 //#include "lua.h"
 
+#if defined(CONFIG_50D)// || defined(CONFIG_60D)
+#define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
+#endif                      // but it will display ML graphics
+
+
 #ifdef CONFIG_1100D
 #include "disable-this-module.h"
 #endif
@@ -431,9 +436,11 @@ int spy_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4
 void run_test()
 {
 	msleep(2000);
-	struct gui_task * current = gui_task_list.current;
-	struct dialog * dialog = current->priv;
-	dialog->handler = spy_handler;
+	//~ struct gui_task * current = gui_task_list.current;
+	//~ struct dialog * dialog = current->priv;
+	//~ dialog->handler = spy_handler;
+	//~ reloc_liveviewapp_install();
+	//~ beep();
 
 	//~ ReverseDraftVram();
 	//~ NotifyBox(2000, "%x", MEM(MEM(0x267C)+4)+0x10);
@@ -1248,7 +1255,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
 		//~ bmp_printf(FONT_LARGE, 0, 50, "%x ", (int8_t)MEM(0x14C08) );
-		//~ *(uint8_t*)0x14c08 = 0xf;
 		extern int menu_upside_down;
 		if (menu_upside_down)
 		{
@@ -1590,18 +1596,8 @@ static void menu_upside_down_print(
 	);
 }
 
-CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 
-#ifdef CONFIG_50D
-2
-#else
-  #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-  1
-  #else
-  0
-  #endif
-#endif
-
-);
+#ifdef CONFIG_KILL_FLICKER
+CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
 
 static void kill_canon_gui_print(
 	void *			priv,
@@ -1615,13 +1611,14 @@ static void kill_canon_gui_print(
 		x, y,
 		"Freeze Canon GUI : %s",
 		kill_canon_gui_mode == 0 ? "OFF" :
-		kill_canon_gui_mode == 1 ? "BottomBar" :
-		kill_canon_gui_mode == 2 ? "Idle/Menus" :
-		kill_canon_gui_mode == 3 ? "Idle/Menus+Keys" :
+		//~ kill_canon_gui_mode == 1 ? "BottomBar" :
+		kill_canon_gui_mode == 1 ? "Idle/Menus" :
+		kill_canon_gui_mode == 2 ? "Idle/Menus+Keys" :
 		 "err"
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(kill_canon_gui_mode));
 }
+#endif
 
 
 #if 1
@@ -1746,14 +1743,16 @@ struct menu_entry debug_menus[] = {
 		.display	= fake_halfshutter_print,
 		.help = "Emulates half-shutter press, or make half-shutter sticky."
 	},
+#ifdef CONFIG_KILL_FLICKER
 	{
 		.name		= "Kill Canon GUI",
 		.priv		= &kill_canon_gui_mode,
-		.select		= menu_quaternary_toggle,
-		.select_reverse = menu_quaternary_toggle_reverse,
+		.select		= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
 		.display	= kill_canon_gui_print,
 		.help = "Workarounds for disabling Canon graphics elements."
 	},
+#endif
 	{
 		.name = "Screenshot (10 s)",
 		.priv		= "Screenshot (10 s)",

@@ -177,9 +177,7 @@ void
 update_lens_display()
 {
 	draw_ml_topbar();
-	
-	// only use double buffering when Canon does not (attempt to) draw their bottom bar
-	draw_ml_bottombar(!is_canon_bottom_bar_dirty()); 
+	draw_ml_bottombar(1); 
 }
 
 int should_draw_bottom_bar()
@@ -189,7 +187,7 @@ int should_draw_bottom_bar()
 	if (canon_gui_front_buffer_disabled()) return 1;
 	if (lv_disp_mode == 0
 	#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-		&& !LV_BOTTOM_BAR_DISPLAYED && !get_halfshutter_pressed()
+		&& !get_halfshutter_pressed()
 	#endif
 	) return 1;
 	return 0;
@@ -252,7 +250,7 @@ void draw_ml_bottombar(int double_buffering)
 		bmp_draw_to_idle(1);
 	}
 
-	if (is_canon_bottom_bar_dirty())
+	if (is_canon_bottom_bar_dirty() || ISO_ADJUSTMENT_ACTIVE)
 		bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
@@ -636,7 +634,12 @@ void draw_ml_topbar()
 	#ifdef CONFIG_60D
 		bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
 	#else
-		bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, battery_level_bars);
+		bmp_printf( font, x, y,"T=%d BAT%s%s%s%s", efic_temp, 
+			battery_level_bars >= 0 ? "*" : "",
+			battery_level_bars >= 1 ? "*" : "",
+			battery_level_bars >= 2 ? "*" : "",
+			battery_level_bars >= 3 ? "*" : ""
+			);
 	#endif
 
 	display_clock();
