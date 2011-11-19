@@ -187,7 +187,11 @@ int should_draw_bottom_bar()
 	if (!get_global_draw()) return 0;
 	if (EXT_MONITOR_CONNECTED) return 1;
 	if (canon_gui_front_buffer_disabled()) return 1;
-	if (lv_disp_mode == 0) return 1;
+	if (lv_disp_mode == 0
+	#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+		&& !LV_BOTTOM_BAR_DISPLAYED && !get_halfshutter_pressed()
+	#endif
+	) return 1;
 	return 0;
 }
 
@@ -247,8 +251,9 @@ void draw_ml_bottombar(int double_buffering)
 		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 60 * BMPPITCH);
 		bmp_draw_to_idle(1);
 	}
-	
-	bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
+
+	if (is_canon_bottom_bar_dirty())
+		bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
 		
@@ -500,7 +505,7 @@ void draw_ml_bottombar(int double_buffering)
 	
 	// these have a black bar at the bottom => no problems
 	#if !defined(CONFIG_500D) && !defined(CONFIG_50D)
-	if (!gui_menu_shown())
+	if (!gui_menu_shown() && (screen_layout == SCREENLAYOUT_16_9 || screen_layout == SCREENLAYOUT_16_10 || hdmi_code == 2 || ext_monitor_rca))
 		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 	#endif
 

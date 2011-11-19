@@ -1244,9 +1244,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		//~ maru(50, 50, canon_gui_front_buffer_disabled() ? COLOR_RED : COLOR_GREEN1);
+		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
+		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
-		//~ bmp_printf(FONT_LARGE, 0, 50, "%x %x ", MEM(0x20164), MEM(0x7cf1c) );
+		//~ bmp_printf(FONT_LARGE, 0, 50, "%x ", (int8_t)MEM(0x14C08) );
 		//~ *(uint8_t*)0x14c08 = 0xf;
 		extern int menu_upside_down;
 		if (menu_upside_down)
@@ -1384,7 +1385,7 @@ fake_halfshutter_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Half-press shutter : %s",
+		"HalfPress Shutter: %s",
 		fake_halfshutter == 1 ? "sticky" : 
 		fake_halfshutter == 2 ? "every second" : 
 		fake_halfshutter == 3 ? "every 200ms" : 
@@ -1584,12 +1585,23 @@ static void menu_upside_down_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Upside-down mode   : %s",
+		"Upside-down mode : %s",
 		menu_upside_down ? "ON" : "OFF"
 	);
 }
 
-CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
+CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 
+#ifdef CONFIG_50D
+2
+#else
+  #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+  1
+  #else
+  0
+  #endif
+#endif
+
+);
 
 static void kill_canon_gui_print(
 	void *			priv,
@@ -1601,11 +1613,14 @@ static void kill_canon_gui_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Kill Canon GUI     : %s",
+		"Kill Canon GUI   : %s",
 		kill_canon_gui_mode == 0 ? "OFF" :
-		kill_canon_gui_mode == 1 ? "Auto" :
-		kill_canon_gui_mode == 2 ? "Always" : "err"
+		kill_canon_gui_mode == 1 ? "BottomBar" :
+		kill_canon_gui_mode == 2 ? "Idle/Menus" :
+		kill_canon_gui_mode == 3 ? "Idle/Menus+Keys" :
+		 "err"
 	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR(kill_canon_gui_mode));
 }
 
 
@@ -1706,14 +1721,6 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "Turn on the front LED [SET] or make display bright [Q]."
 	},
-	{
-		.name		= "Half-press shutter",
-		.priv = &fake_halfshutter,
-		.select		= menu_quinternary_toggle,
-		.select_reverse = menu_quinternary_toggle_reverse,
-		.display	= fake_halfshutter_print,
-		.help = "Emulates half-shutter press, or make half-shutter sticky."
-	},
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
 		.priv		= "Display: Normal/Reverse/Mirror",
@@ -1730,6 +1737,22 @@ struct menu_entry debug_menus[] = {
 		.display = menu_upside_down_print,
 		.select = menu_binary_toggle,
 		.help = "Displays ML menu upside down. Half-press shutter in LV.",
+	},
+	{
+		.name		= "Half-press shutter",
+		.priv = &fake_halfshutter,
+		.select		= menu_quinternary_toggle,
+		.select_reverse = menu_quinternary_toggle_reverse,
+		.display	= fake_halfshutter_print,
+		.help = "Emulates half-shutter press, or make half-shutter sticky."
+	},
+	{
+		.name		= "Kill Canon GUI",
+		.priv		= &kill_canon_gui_mode,
+		.select		= menu_quaternary_toggle,
+		.select_reverse = menu_quaternary_toggle_reverse,
+		.display	= kill_canon_gui_print,
+		.help = "Workarounds for disabling Canon graphics elements."
 	},
 	{
 		.name = "Screenshot (10 s)",
@@ -1777,14 +1800,6 @@ struct menu_entry debug_menus[] = {
 		.help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
 	},
 #endif
-	{
-		.name		= "Kill Canon GUI",
-		.priv		= &kill_canon_gui_mode,
-		.select		= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
-		.display	= kill_canon_gui_print,
-		.help = "Disables all Canon graphics elements."
-	},
 	{
 		.priv		= "Don't click me!",
 		.select		= xx_test,

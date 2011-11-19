@@ -236,14 +236,16 @@ int get_global_draw() // menu setting, or off if
 	
 	if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
 	
-	return global_draw && 
+	extern int kill_canon_gui_mode;
+	
+	return global_draw &&
 		!idle_globaldraw_disable && 
 		!sensor_cleaning && 
 		bmp_is_on() &&
 		tft_status == 0 && 
 		recording != 1 && 
 		//~ #ifdef CONFIG_KILL_FLICKER
-		//~ canon_gui_front_buffer_disabled() &&
+		!(lv && kill_canon_gui_mode >= 2 && !canon_gui_front_buffer_disabled()) &&
 		//~ #endif
 		!lv_paused && 
 		lens_info.job_state <= 10 &&
@@ -2741,6 +2743,13 @@ bool liveview_display_idle()
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
 	extern thunk LiveViewApp_handler;
+	extern thunk test_minimal_handler;
+
+	if (dialog->handler == &test_minimal_handler)
+	{ // ML is clearing the screen with a fake dialog, let's see what's underneath
+		current = current->next;
+		dialog = current->priv;
+	}
 
 	return
 		lv && 
@@ -2756,14 +2765,15 @@ bool liveview_display_idle()
 			lv_dispsize == 1 &&
 			lens_info.job_state < 10 &&
 			!mirror_down )
-		) &&
+		);
 		//~ !zebra_paused &&
-		!(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
+		//~ !(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
-	return liveview_display_idle() && get_global_draw();
+	return liveview_display_idle() && get_global_draw() &&
+		!(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
 
 void zebra_sleep_when_tired()
@@ -2913,7 +2923,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 void update_idle_countdown(int* countdown)
 {
 	//~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
-	if (!get_halfshutter_pressed() && liveview_display_idle())
+	if (liveview_display_idle() && !get_halfshutter_pressed())
 	{
 		if (*countdown)
 			(*countdown)--;
@@ -2959,7 +2969,7 @@ void PauseLiveView()
 	if (lv && !lv_paused)
 	{
 		int x = 1;
-		while (get_halfshutter_pressed()) msleep(10);
+		//~ while (get_halfshutter_pressed()) msleep(10);
 		BMP_LOCK(
 			prop_request_change(PROP_LV_ACTION, &x, 4);
 			msleep(100);
@@ -2976,7 +2986,7 @@ void ResumeLiveView()
 	{
 		lv = 0;
 		int x = 0;
-		while (get_halfshutter_pressed()) msleep(10);
+		//~ while (get_halfshutter_pressed()) msleep(10);
 		BMP_LOCK(
 			prop_request_change(PROP_LV_ACTION, &x, 4);
 			while (!lv) msleep(100);
@@ -3052,14 +3062,15 @@ void idle_globaldraw_en()
 	idle_globaldraw_disable = 0;
 }
 
-//~ void idle_kill_flicker()
-//~ {
-	//~ canon_gui_disable_front_buffer();
-//~ }
-//~ void idle_stop_killing_flicker()
-//~ {
-	//~ canon_gui_enable_front_buffer(1);
-//~ }
+void idle_kill_flicker()
+{
+	canon_gui_disable_front_buffer();
+	clrscr();
+}
+void idle_stop_killing_flicker()
+{
+	canon_gui_enable_front_buffer(1);
+}
 
 
 static void
@@ -3095,35 +3106,30 @@ clearscreen_loop:
 			//~ canon_gui_disable_front_buffer();
 		//~ else canon_gui_enable_front_buffer(0);
 
-		/*
+		// especially for 50D
 		extern int kill_canon_gui_mode;
-		if (kill_canon_gui_mode == 1) // auto
+		if (kill_canon_gui_mode == 2)
 		{
-			if (liveview_display_idle() && lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
+			if (global_draw && !gui_menu_shown())
 			{
-				if (!canon_gui_front_buffer_disabled())
+				static int k;
+				if (liveview_display_idle())
 				{
-					canon_gui_disable_front_buffer();
-					card_led_on();
+					if (!canon_gui_front_buffer_disabled())
+					{
+						canon_gui_disable_front_buffer();
+						clrscr();
+					}
 				}
-			}
-			else
-			{
-				if (canon_gui_front_buffer_disabled())
+				else
 				{
-					canon_gui_enable_front_buffer(0);
-					card_led_off();
+					if (canon_gui_front_buffer_disabled())
+					{
+						canon_gui_enable_front_buffer(1);
+					}
 				}
 			}
 		}
-		else if (kill_canon_gui_mode == 2) // always)
-		{
-			if (!canon_gui_front_buffer_disabled())
-			{
-				canon_gui_disable_front_buffer();
-				clrscr();
-			}
-		}*/
 		
 		
 		
@@ -3136,13 +3142,14 @@ clearscreen_loop:
 		// clear overlays on shutter halfpress
 		if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
 		{
-			//~ idle_stop_killing_flicker();
+			if (kill_canon_gui_mode == 3)
+				idle_stop_killing_flicker();
 			
 			BMP_LOCK( clrscr_mirror(); )
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
-				if (i % 10 == 0) BMP_LOCK( update_lens_display(); )
+				if (kill_canon_gui_mode == 1 && i % 10 == 0) BMP_LOCK( update_lens_display(); )
 				msleep(10);
 				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;
@@ -3171,12 +3178,11 @@ clearscreen_loop:
 		if (clearscreen == 2) // clear overlay when idle
 			idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
 		
-		//~ #ifdef CONFIG_KILL_FLICKER
-		//~ if (recording)
-			//~ idle_countdown_killflicker = 5; // <strike>no</strike> flicker problems during recording
-		//~ if (global_draw && !gui_menu_shown())
-			//~ idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
-		//~ #endif
+		if (kill_canon_gui_mode == 3) // LV transparent menus and key presses
+		{
+			if (global_draw && !gui_menu_shown())
+				idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
+		}
 
 		// since this task runs at 10Hz, I prefer cropmark redrawing here
 		if (crop_dirty)
@@ -3200,6 +3206,7 @@ void redraw_do()
 {
 	extern int ml_started;
 	if (!ml_started) return;
+	
 BMP_LOCK (
 
 #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
@@ -3229,6 +3236,7 @@ BMP_LOCK (
 		}
 	}
 )
+
 	// ask other stuff to redraw
 	afframe_set_dirty();
 	crop_set_dirty(10);
@@ -3391,8 +3399,8 @@ livev_hipriority_task( void* unused )
 			crop_set_dirty(10);
 		}
 		
-		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
-			crop_set_dirty(20);
+		//~ if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
+			//~ crop_set_dirty(20);
 		
 		//~ if (lens_display_dirty)
 		if (k % 10 == 0)

@@ -15,8 +15,10 @@ int handle_other_events(struct event * event)
 	extern int ml_started;
 	if (!ml_started) return 1;
 
+	extern int kill_canon_gui_mode;
+
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-	if (lv && lv_disp_mode == 0 && get_global_draw()) // hide bottom bar
+	if (lv && get_global_draw_setting() && kill_canon_gui_mode == 1) // hide bottom bar
 	{
 		
 		//~ if (!get_global_draw()) beep();
@@ -24,17 +26,20 @@ int handle_other_events(struct event * event)
 			//~ BMP_LOCK( msleep(10); )
 		if (event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
 		{
-			int ja = JudgeHandleAvButtonOrMainDial(0, 2);
-			int jb = JudgeBottomInfoDispTimerState(ja);
-			
-			if (ja || jb || get_halfshutter_pressed()) 
+			if (lv_disp_mode == 0 && !ISO_ADJUSTMENT_ACTIVE && liveview_display_idle())
 			{
-				bottom_bar_dirty = 5;
-			}
+				int ja = JudgeHandleAvButtonOrMainDial(0, 2);
+				int jb = JudgeBottomInfoDispTimerState(ja);
+				
+				if ((ja || jb || get_halfshutter_pressed()))
+				{
+					bottom_bar_dirty = 5;
 
-			if (ja) hide_bottom_bar_timer = 5; // bottom bar appeared and successfully blocked
-			if (jb && !hide_bottom_bar_timer) hide_bottom_bar_timer = 20; // bottom bar appeared, but was blocked a bit too late
-			if (get_halfshutter_pressed()) bottom_bar_dirty = 20;
+					if (ja) hide_bottom_bar_timer = 5; // bottom bar appeared and successfully blocked
+					if (jb && !hide_bottom_bar_timer) hide_bottom_bar_timer = 20; // bottom bar appeared, but was blocked a bit too late
+					if (get_halfshutter_pressed()) bottom_bar_dirty = 20;
+				}
+			}
 
 			if (bottom_bar_dirty)
 			{

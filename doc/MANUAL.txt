@@ -1470,6 +1470,15 @@ Functions for troubleshooting, development, and possibly unstable features.
 Some items from this menu may not be available in release builds; 
 you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 
+**Kill Canon GUI**
+
+  Workarounds which disable Canon graphics elements in order to avoid conflicts with ML graphics in LiveView.
+  
+  * ``OFF``: disable all workarounds; ML graphics may flicker.
+  * ``BottomBar``: disable Canon graphics when they try to display the bottom bar over ML bar. Recommended for 550D, 60D and 600D.
+  * ``Idle/Menus``: only enable Canon graphics when some transparent menu from LiveView is active. Recommended for 50D. Side effect: it disables all Canon display modes (histogram etc).
+  * ``Idle/Menus+Keys``: only enable Canon graphics when you press some keys or navigate the transparent menus from LiveView.
+
 **Draw palette**
 
   Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
