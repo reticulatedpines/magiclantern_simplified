@@ -1254,7 +1254,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
-		//~ bmp_printf(FONT_LARGE, 0, 50, "%x ", (int8_t)MEM(0x14C08) );
+		//~ bmp_printf(FONT_LARGE, 0, 50, "%x ", LV_BOTTOM_BAR_STATE);
 		extern int menu_upside_down;
 		if (menu_upside_down)
 		{

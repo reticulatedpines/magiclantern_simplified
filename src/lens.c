@@ -177,7 +177,9 @@ void
 update_lens_display()
 {
 	draw_ml_topbar();
-	draw_ml_bottombar(1); 
+	
+	extern int menu_upside_down; // don't use double buffer in this mode
+	draw_ml_bottombar(!menu_upside_down); 
 }
 
 int should_draw_bottom_bar()
@@ -186,7 +188,7 @@ int should_draw_bottom_bar()
 	if (EXT_MONITOR_CONNECTED) return 1;
 	if (canon_gui_front_buffer_disabled()) return 1;
 	if (lv_disp_mode == 0
-	#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+	#if defined(CONFIG_60D) || defined(CONFIG_600D)
 		&& !get_halfshutter_pressed()
 	#endif
 	) return 1;
