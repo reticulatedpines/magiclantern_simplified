@@ -177,16 +177,18 @@ void
 update_lens_display()
 {
 	draw_ml_topbar();
+	
+	// only use double buffering when Canon does not (attempt to) draw their bottom bar
+	draw_ml_bottombar(!is_canon_bottom_bar_dirty()); 
+}
 
-#ifdef CONFIG_500D
-	if ((lv_disp_mode == 0 && !LV_BOTTOM_BAR_DISPLAYED) || EXT_MONITOR_CONNECTED)
-#else
-	if (lv_disp_mode == 0 || EXT_MONITOR_CONNECTED)
-#endif
-	{
-		if (!get_halfshutter_pressed())
-			BMP_LOCK( draw_ml_bottombar(!flicker_being_killed()); )
-	}
+int should_draw_bottom_bar()
+{
+	if (!get_global_draw()) return 0;
+	if (EXT_MONITOR_CONNECTED) return 1;
+	if (canon_gui_front_buffer_disabled()) return 1;
+	if (lv_disp_mode == 0) return 1;
+	return 0;
 }
 
 int raw2shutter_ms(int raw_shutter)
@@ -205,18 +207,8 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 void draw_ml_bottombar(int double_buffering)
 {
 	//~ beep();
-	if (!get_global_draw()) return;
-	
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
-	if (lv_disp_mode != 0 && !LV_BOTTOM_BAR_DISPLAYED)
-		return;
-#else
-	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !ISO_ADJUSTMENT_ACTIVE)
-	{
-		HideBottomInfoDisp_maybe(); 
-	}
-#endif
-	
+	if (!should_draw_bottom_bar()) return;
+		
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
@@ -246,20 +238,21 @@ void draw_ml_bottombar(int double_buffering)
     unsigned int y_origin = bottom - 30;
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 
-	int ytop = bottom - 35;
+	int ytop = bottom - 60;
 	
 	// start drawing to mirror buffer to avoid flicker
 	if (double_buffering)
 	{
 		//~ bmp_mirror_copy(0);
-		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 35 * BMPPITCH);
+		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 60 * BMPPITCH);
 		bmp_draw_to_idle(1);
 	}
 	
+	bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
 		
-			bmp_printf( text_font, x_origin - 50, y_origin,
+			bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
 				"%s",
 				is_movie_mode() ? "Mv" : 
 				shooting_mode == SHOOTMODE_P ? "P " :
@@ -518,8 +511,8 @@ end:
 		// done drawing, copy image to main BMP buffer
 		bmp_draw_to_idle(0);
 		//~ bmp_mirror_copy(1);
-		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
-		bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 60 * BMPPITCH);
+		bzero32(bmp_vram_idle() + BM(0,ytop), 60 * BMPPITCH);
 	}
 
 	// this is not really part of the bottom bar, but it's close to it :)
@@ -598,10 +591,10 @@ void draw_ml_topbar()
 	x += 80;
 
 	bmp_printf( font, x, y,
-		"DISP %d", get_disp_mode()
+		"DISP%d", get_disp_mode()
 	);
 
-	x += 80;
+	x += 70;
 
 	int raw = pic_quality & 0x60000;
 	int rawsize = pic_quality & 0xF;
@@ -631,7 +624,7 @@ void draw_ml_topbar()
 		alo == ALO_HIGH ? "ALO" : "   "
 	);
 
-	x += 60;
+	x += 45;
 	bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
 	x += 70;
@@ -644,7 +637,7 @@ void draw_ml_topbar()
 	display_clock();
 	free_space_show();
 
-	x += 170;
+	x += 160;
 	bmp_printf( font, x, y,
 		is_movie_mode() ? "MVI-%04d" : "[%d]",
 		is_movie_mode() ? file_number_also : avail_shot

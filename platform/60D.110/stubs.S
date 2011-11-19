@@ -269,3 +269,7 @@ NSTUB(0xFF0A4040, SetGUIRequestMode)
 NSTUB(0xFF4838A8, StartShootOlcMeteringApp)
 
 NSTUB(0xff31ed74, ReverseDraftVram)
+
+NSTUB(0xff36f848, JudgeBottomInfoDispTimerState)
+NSTUB(0xff36f708, JudgeHandleAvButtonOrMainDial)
+NSTUB(0xff372258, LiveViewApp_handler)

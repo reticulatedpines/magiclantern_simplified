@@ -99,7 +99,8 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
 
-#define OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x10000098 in 60d, backtrace it in gui_local_post
 
 #define BGMT_FLASH_MOVIE 0 
 #define BGMT_PRESS_FLASH_MOVIE 0 

@@ -55,7 +55,7 @@
 // => BGMT_PRESS_LEFT 0x35
 
 // But for 5D2 we'll use the joystick instead of arrows
-// => S press_mlt_ => bgmt 0x820 => #define BGMT_PRESS_LEFT 0x13 
+// => S press_mlt_left => bgmt 0x820 => #define BGMT_PRESS_LEFT 0x1a or 0x1e (not sure, but in 50D it's 1a)
 
 #define BGMT_PRESS_LEFT 0x1a
 #define BGMT_PRESS_UP 0x16

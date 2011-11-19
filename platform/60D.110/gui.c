@@ -93,10 +93,18 @@ static void gui_main_task_60d()
 		if (event == NULL) continue;
 		index = event->type;
 		
-		if (!magic_is_off() && event->type == 0)
+		if (!magic_is_off())
 		{
-			if (handle_buttons(event) == 0) // ML button/event handler
-				continue;
+			if (event->type == 0)
+			{
+				if (handle_buttons(event) == 0) // ML button/event handler
+					continue;
+			}
+			else
+			{
+				if (handle_other_events(event) == 0)
+					continue;
+			}
 		}
 
 		if (IS_FAKE(event)) event->arg = 0;

@@ -27,7 +27,7 @@ You will still be able to access all Canon functionality.
 
 To go back to Canon firmware, you may:
 
-* Hold the shutter button half-pressed at startup to bypass ML only once (for the current session).
+* Press and hold ``MENU`` at startup to bypass ML only once (for the current session).
 * Format your card in the camera and choose to remove Magic Lantern (press ``Q``)
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
@@ -378,19 +378,18 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   Select cropmarks (cycle between them).
 
-  There are 6 predefined cropmarks in ML zip archive:
+  There are 5 predefined cropmarks in ML zip archive:
 
   * HD with Title and Action Safe
   * Cinemascope (for videos)
   * Cross meter (for photos)
   * Passport (ISO/IEC 19794-5 compliant)
   * Golden Mean / Phi (a version for photos and another for videos)
-  * 16:9 black bars (for 550D in video mode)
 
   .. figure:: Cropmarks550D.png
       :alt: 400px|center
       :align: center
-      :width: 13cm
+      :width: 12cm
   
   Notes:
   
@@ -1119,6 +1118,7 @@ Focus
       - You may have to turn the lens back and forth a few times in order to let ML
         compute the correct focus scaling factor for the current scene. 
       - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
+      - Press ``SET`` to temporarily disable automatic scaling of focus magnitude.
 
 .. _AF patterns:
 

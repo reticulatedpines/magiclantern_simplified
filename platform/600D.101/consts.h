@@ -59,8 +59,8 @@
 
 #define BGMT_SHUTDOWN 0x53 // new
 
-#define OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
-
+#define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
 
 // these were found in ROM, but not tested yet
 

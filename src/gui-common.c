@@ -3,6 +3,64 @@
  */
 #include <dryos.h>
 #include <propvalues.h>
+#include <bmp.h>
+
+static int bottom_bar_dirty = 0;
+static int hide_bottom_bar_timer = 0;
+
+int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
+
+int handle_other_events(struct event * event)
+{
+	extern int ml_started;
+	if (!ml_started) return 1;
+
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+	if (lv && lv_disp_mode == 0 && get_global_draw()) // hide bottom bar
+	{
+		
+		//~ if (!get_global_draw()) beep();
+		//~ if (event->type == 2) bmp_printf(FONT_LARGE, 200, 200, "%x  ", event->param);
+			//~ BMP_LOCK( msleep(10); )
+		if (event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
+		{
+			int ja = JudgeHandleAvButtonOrMainDial(0, 2);
+			int jb = JudgeBottomInfoDispTimerState(ja);
+			
+			if (ja || jb || get_halfshutter_pressed()) 
+			{
+				bottom_bar_dirty = 5;
+			}
+
+			if (ja) hide_bottom_bar_timer = 5; // bottom bar appeared and successfully blocked
+			if (jb && !hide_bottom_bar_timer) hide_bottom_bar_timer = 20; // bottom bar appeared, but was blocked a bit too late
+			if (get_halfshutter_pressed()) bottom_bar_dirty = 20;
+
+			if (bottom_bar_dirty)
+			{
+				canon_gui_disable_front_buffer();
+				bottom_bar_dirty--;
+			}
+			else
+			{
+				canon_gui_enable_front_buffer(0);
+			}
+			
+			if (hide_bottom_bar_timer)
+			{
+				hide_bottom_bar_timer--;
+				if (hide_bottom_bar_timer == 0)
+					HideBottomInfoDisp_maybe();
+			}
+		}
+		/*if (event->type == 2 && event->param == GMT_OLC_BLINK_TIMER)
+		{
+			return 0;
+		}*/
+	}
+#endif
+	return 1;
+}
 
 int handle_common_events_startup(struct event * event)
 {	

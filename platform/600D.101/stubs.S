@@ -240,3 +240,7 @@ NSTUB(0xff227f64, GUI_SetRollingPitchingLevelStatus)
 
 NSTUB(0xFF54F9E0, GetCFnData)
 NSTUB(0xFF54FC0C, SetCFnData)
+
+NSTUB(0xff37a850, JudgeBottomInfoDispTimerState)
+NSTUB(0xff37a720, JudgeHandleAvButtonOrMainDial)
+NSTUB(0xff37d5c4, LiveViewApp_handler)

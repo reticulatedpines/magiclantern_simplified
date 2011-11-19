@@ -141,7 +141,7 @@
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 
-#define OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
+#define BGMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
 
 #define BULB_MIN_EXPOSURE 1000
 

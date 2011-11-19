@@ -244,3 +244,5 @@ NSTUB(0xffbe75b8, StartFactoryMenuApp)
 
 NSTUB(0xFFB38BB4, GetCFnData)
 NSTUB(0xFFB38CBC, SetCFnData)
+
+NSTUB(0xffa86e88, LiveViewApp_handler)

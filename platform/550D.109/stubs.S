@@ -260,3 +260,26 @@ NSTUB(0xFF42E364, SetCFnData)
 NSTUB(0xFF092558, SetGUIRequestMode)
 
 NSTUB(0xFF2CAAAC, ReverseDraftVram)
+
+NSTUB(0xFF300BA0, LiveViewApp_handler)
+
+NSTUB(0xFF2FE5C4, StartDialogRefreshTimer)
+
+NSTUB(0xff2fe2c8, JudgeHandleAvButtonOrMainDial)
+NSTUB(0xff2fe408, JudgeBottomInfoDispTimerState)
+
+/* only for debugging
+NSTUB(0xff3025d4, DlgLiveView_error_something)
+NSTUB(0xff300a80, DlgLiveView_error_something_2)
+NSTUB(0xff2b727c, AJ_pDialog_pSignature_related_p2)
+NSTUB(0xff21b090, AJ_DlgMnStroboWirelessSetting_c_related)
+NSTUB(0xFF092F70, sub_FF092F70)
+NSTUB(0xff302988, CancelUnaviFeedBackTimer)
+NSTUB(0xff2fdf18, StartUnaviFeedBackTimer)
+NSTUB(0xff2fd874, ShowCardError_related_maybe)
+NSTUB(0xff092264, GUI_GetDisplayType_maybe)
+NSTUB(0xff2fe690, VectorAnim)
+NSTUB(0xff32dc60, UpdateLvDialogItemPosition)
+NSTUB(0xff2cfb08, struct_1e774_clr_0x30)
+NSTUB(0xff2fe634, StartOlcBlinkTimer)
+*/

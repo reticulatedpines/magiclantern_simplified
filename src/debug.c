@@ -333,9 +333,108 @@ void ChangeHDMIOutputSizeToFULLHD()
 	prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 }
 
+
+
+
+int spy_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
+{
+	//~ if (event != 0x100000b5 && event != 0x10000078 && event != 0x100000a6)
+		//~ bmp_printf(FONT_LARGE, 50, 50, "%x %x %x ", event, arg3, arg4);
+	/*if (event == 0x1000007D)
+	{
+		static int i;
+		maru(50, 50, i++);
+		//~ beep();
+		//~ return 0;
+		winsys_struct_1e774_set_0x30();
+		if (MEM(0x14C44) != 0)
+		{
+			DlgLiveView_error_something();
+		}
+
+		int ds = AJ_pDialog_pSignature_related_p2(MEM(0x20150));
+		int j = 0;
+		if (ds == 1)
+		{
+			ShowCardError_related_maybe((int8_t)MEM(0x14C08));
+			int a = DlgLiveView_error_something_2();
+			j = JudgeHandleAvButtonOrMainDial(a, 2);
+		}
+		else
+		{
+			j = JudgeHandleAvButtonOrMainDial(ds, 2);
+		}
+
+		if (MEM(0x3A74) == 1)
+		{
+			int sw = AJ_DlgMnStroboWirelessSetting_c_related((int8_t)MEM(0x14C08));
+			if (sw != 1)
+			{
+				if (j == 1)
+				{
+					sub_FF092F70(0x0);
+					CancelUnaviFeedBackTimer();
+				}
+			}
+			else
+			{
+				sub_FF092F70(0x0);
+				CancelUnaviFeedBackTimer();
+			}
+		}
+
+		//~ MEM(0x20198) = 0;
+		MEM(0x20164) = 0x17;
+		int jb = JudgeBottomInfoDispTimerState(j);
+		bmp_printf(FONT_LARGE, 100, 100, "%x ", jb);
+		//~ jb = 0;
+		MEM(0x20150+0x48) = jb;
+		if (jb == 0)
+		{
+			CancelBottomInfoDispTimer();
+		}
+
+		StartUnaviFeedBackTimer(0x1, 0x1, 0x1);
+		ds = AJ_pDialog_pSignature_related_p2(MEM(0x20150));
+		if (ds == 0)
+		{
+			ShowCardError_related_maybe((int8_t)MEM(0x14C08));
+			DlgLiveView_error_something_2();
+		}
+
+		int gdt = GUI_GetDisplayType_maybe();
+		UpdateLvDialogItemPosition(MEM(0x20150));
+		AJ_KerRLock_n_WindowSig(MEM(0x20150));
+		struct_1e774_clr_0x30();
+		int w = VectorAnim(0, 0x0, gdt, arg3);
+		if (w == 1)
+		{
+			StartOlcBlinkTimer();
+		}
+
+		if (MEM(0x3A4C) != 0)
+		{
+			if (MEM(0x20150+0x30) != 0)
+			{
+				msleep(0x8);
+				MEM(0x20150+0x30) = 0x10000048;
+			}
+		}
+				
+		StartDialogRefreshTimer();
+		return 0;
+	}
+	else*/
+		//~ return LiveViewApp_handler(dialog, tmpl, event, arg3, arg4, arg5, arg6, code);
+}
+
 void run_test()
 {
 	msleep(2000);
+	struct gui_task * current = gui_task_list.current;
+	struct dialog * dialog = current->priv;
+	dialog->handler = spy_handler;
+
 	//~ ReverseDraftVram();
 	//~ NotifyBox(2000, "%x", MEM(MEM(0x267C)+4)+0x10);
 	//~ MEM(0x288D8) = 1;
@@ -351,12 +450,14 @@ void run_test()
 void xx_test(void* priv)
 {
 	//~ #ifdef CONFIG_550D
-	gui_stop_menu();
+	//~ gui_stop_menu();
 	//~ SetGUIRequestMode(29); // Jackie Chan :)
 	//~ #endif
-	//~ gui_stop_menu();
+	//~ *(uint8_t*)0x14c08 = 0x3;
+	gui_stop_menu();
 	//~ set_display_gain(512);
 	task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
+	//~ guiNotifyDialogRefresh();
 }
 
 static void stress_test_long(void* priv)
@@ -484,9 +585,9 @@ static void stress_test_task(void* unused)
 	for (int i = 0; i < 100; i++)
 	{
 		NotifyBox(1000, "Disabling Canon GUI (%d)...", i);
-		kill_flicker();
+		canon_gui_disable();
 		msleep(rand()%300);
-		stop_killing_flicker();
+		canon_gui_enable();
 		msleep(rand()%300);
 	}
 	
@@ -1142,15 +1243,18 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 			//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
-		//~ bmp_printf(FONT_LARGE, 0, 0, "%x ", WINSYS_BMP_DIRTY_BIT_NEG);
+		
+		//~ maru(50, 50, canon_gui_front_buffer_disabled() ? COLOR_RED : COLOR_GREEN1);
 
+		//~ bmp_printf(FONT_LARGE, 0, 50, "%x %x ", MEM(0x20164), MEM(0x7cf1c) );
+		//~ *(uint8_t*)0x14c08 = 0xf;
 		extern int menu_upside_down;
 		if (menu_upside_down)
 		{
 			if (!gui_menu_shown())
 			{
 				bmp_draw_to_idle(1);
-				kill_flicker();
+				canon_gui_disable_front_buffer();
 				BMP_LOCK(
 					bmp_flip(bmp_vram_real(), bmp_vram_idle());
 				)
@@ -1386,7 +1490,7 @@ void flashlight_lcd_task()
 	#endif
 	if (tft_status) { fake_simple_button(BGMT_DISP); msleep(500); }
 
-	kill_flicker();
+	canon_gui_disable_front_buffer();
 	int b = backlight_level;
 	set_backlight_level(7);
 	
@@ -1396,7 +1500,7 @@ void flashlight_lcd_task()
 		msleep(50);
 	}
 	set_backlight_level(b);
-	stop_killing_flicker();
+	canon_gui_enable_front_buffer(1);
 	idle_globaldraw_en();
 }
 
@@ -1482,6 +1586,25 @@ static void menu_upside_down_print(
 		x, y,
 		"Upside-down mode   : %s",
 		menu_upside_down ? "ON" : "OFF"
+	);
+}
+
+CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
+
+static void kill_canon_gui_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Kill Canon GUI     : %s",
+		kill_canon_gui_mode == 0 ? "OFF" :
+		kill_canon_gui_mode == 1 ? "Auto" :
+		kill_canon_gui_mode == 2 ? "Always" : "err"
 	);
 }
 
@@ -1572,7 +1695,7 @@ static void prop_toggle_k(void* priv) {prop_k = mod(prop_k + 1, 0x51); }
 void menu_kill_flicker()
 {
 	gui_stop_menu();
-	kill_flicker();
+	canon_gui_disable_front_buffer();
 }
 
 struct menu_entry debug_menus[] = {
@@ -1655,9 +1778,11 @@ struct menu_entry debug_menus[] = {
 	},
 #endif
 	{
-		.priv		= "Kill Canon GUI",
-		.select		= menu_kill_flicker,
-		.display	= menu_print,
+		.name		= "Kill Canon GUI",
+		.priv		= &kill_canon_gui_mode,
+		.select		= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		.display	= kill_canon_gui_print,
 		.help = "Disables all Canon graphics elements."
 	},
 	{
@@ -2570,10 +2695,10 @@ int handle_tricky_canon_calls(struct event * event)
 			redraw_do();
 			break;
 		case MLEV_KILL_FLICKER:
-			kill_flicker_do();
+			canon_gui_disable_gmt();
 			break;
 		case MLEV_STOP_KILLING_FLICKER:
-			stop_killing_flicker_do();
+			canon_gui_enable_gmt();
 			break;
 		case MLEV_HIDE_CANON_BOTTOM_BAR:
 			#ifdef CONFIG_500D
