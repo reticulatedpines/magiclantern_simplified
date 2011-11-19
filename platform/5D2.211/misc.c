@@ -85,3 +85,6 @@ int GetBatteryLevel()
 
 	return battery_level;
 }
+
+// dummy stub
+int new_LiveViewApp_handler = 0xff123456;
