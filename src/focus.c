@@ -715,6 +715,7 @@ int movie_af_stepsize = 10;
 
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
+int focus_min_value = 0; // to confirm focus variation 
 
 volatile int focus_done = 0;
 volatile uint32_t focus_done_raw = 0;
@@ -733,7 +734,7 @@ int get_focus_graph()
 		return !is_manual_focus() && zebra_should_run();
 
 	if (get_trap_focus() && can_lv_trap_focus_be_active())
-		return zebra_should_run() || get_halfshutter_pressed();
+		return zebra_should_run() || get_halfshutter_pressed() || (lv_dispsize > 1 && get_global_draw());
 
 	return 0;
 }
@@ -877,10 +878,12 @@ static int mags[NMAGS] = {0};
 #define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
 int maxmagf = 1;
 int trap_focus_autoscaling = 1;
+int minmag = 0;
 
 static void update_focus_mag(int mag)
 {
 	int maxmag = 1;
+	int minmag = 100000000;
 	int i;
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	#define WEIGHT(i) (i > 40 ? 1 : 0.2)
@@ -888,18 +891,22 @@ static void update_focus_mag(int mag)
 	#define WEIGHT(i) 1
 	#endif
 	for (i = 0; i < NMAGS-1; i++)
+	{
 		if (mags[i] * WEIGHT(i) > maxmag) maxmag = mags[i] * WEIGHT(i);
+		if (mags[i] < minmag) minmag = mags[i];
+	}
 	
 	if (trap_focus_autoscaling)
-		maxmagf = (maxmagf * 4 + maxmag * 1) / 5;
+		maxmagf = (maxmagf * 9 + maxmag * 1) / 10;
 	
 	for (i = 0; i < NMAGS-1; i++)
 		mags[i] = mags[i+1];
 	mags[i] = mag;
 
 	focus_value_delta = FH * 2 - focus_value;
-	focus_value = FH * 2;
-	lv_focus_confirmation = (focus_value + focus_value_delta*3 > 110);
+	focus_value = (focus_value + FH * 2) / 2;
+	focus_min_value = COERCE(minmag * 45 / maxmagf, 0, 50) * 2;
+	lv_focus_confirmation = (focus_value > 80 && focus_min_value < 60);
 }
 static void plot_focus_mag()
 {
