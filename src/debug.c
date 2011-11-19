@@ -1609,7 +1609,7 @@ static void kill_canon_gui_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Freeze Canon GUI : %s",
+		"Kill Canon GUI   : %s",
 		kill_canon_gui_mode == 0 ? "OFF" :
 		//~ kill_canon_gui_mode == 1 ? "BottomBar" :
 		kill_canon_gui_mode == 1 ? "Idle/Menus" :

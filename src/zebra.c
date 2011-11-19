@@ -2374,7 +2374,11 @@ cropmark_draw()
 	get_yuv422_vram(); // just to refresh VRAM params
 	clear_lv_affframe_if_dirty();
 
-	if (transparent_overlay && !transparent_overlay_hidden) show_overlay();
+	if (transparent_overlay && !transparent_overlay_hidden)
+	{
+		show_overlay();
+		zoom_overlay_dirty = 1;
+	}
 	if (cropmark_movieonly && !is_movie_mode() && !PLAY_MODE) return;
 	reload_cropmark(crop_draw); // reloads only when changed
 	if (cropmarks) 
@@ -2382,6 +2386,7 @@ cropmark_draw()
 		clrscr_mirror();
 		//~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
 		bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
+		zoom_overlay_dirty = 1;
 	}
 	crop_dirty = 0;
 }
@@ -2389,7 +2394,6 @@ void
 cropmark_redraw()
 {
 	BMP_LOCK( cropmark_draw(); )
-	zoom_overlay_dirty = 1;
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
@@ -2687,7 +2691,10 @@ void draw_zoom_overlay(int dirty)
 	int y0c = COERCE(zb_y0_lv - (H>>1), 0, lv->height-H);
 
 	extern int focus_value;
+	extern int focus_min_value;
+	//~ bmp_printf(FONT_MED, 300, 100, "%d %d ", focus_value, focus_min_value);
 	int rawoff = COERCE(80 - focus_value, 0, 100) >> 2;
+	if (focus_min_value > 60) rawoff = 1; // out of focus?
 	
 	// reverse the sign of split when perfect focus is achieved
 	static int rev = 0;

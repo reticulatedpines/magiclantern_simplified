@@ -3721,16 +3721,17 @@ void iso_refresh_display()
 static void display_expsim_status()
 {
 	static int prev_expsim = 0;
+	int x = 610 + 2 * font_med.width;
+	int y = 400;
 	if (!expsim)
 	{
-		int x = 610 + 2 * font_med.width;
-		int y = 400;
 		bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "ExpSim" );
 		draw_line(x-5, y + font_med.height * 3/4, x + font_med.width * 6, y + font_med.height * 1/4, COLOR_WHITE);
 	}
 	else
 	{
-		if (expsim != prev_expsim) redraw();
+		if (expsim != prev_expsim)// redraw();
+			bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "      " );
 	}
 	prev_expsim = expsim;
 }
