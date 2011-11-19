@@ -2897,6 +2897,8 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 	NotifyBox(2000, "wakeup: %d   ", reason);
 #endif
 
+	//~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
+	
 	if (lv && !lv_paused && reason == GMT_OLC_INFO_CHANGED) return;
 
 	// when sensor is covered, timeout changes to 3 seconds
@@ -3065,7 +3067,7 @@ void idle_globaldraw_en()
 void idle_kill_flicker()
 {
 	canon_gui_disable_front_buffer();
-	clrscr();
+	//~ clrscr();
 }
 void idle_stop_killing_flicker()
 {
@@ -3118,7 +3120,7 @@ clearscreen_loop:
 					if (!canon_gui_front_buffer_disabled())
 					{
 						canon_gui_disable_front_buffer();
-						clrscr();
+						//~ clrscr();
 					}
 				}
 				else
@@ -3227,8 +3229,14 @@ BMP_LOCK (
 		struct dialog * dialog = current->priv;
 		if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
 		{
+			// to redraw, we need access to front buffer
+			int d = canon_gui_front_buffer_disabled();
 			canon_gui_enable_front_buffer(0);
+			
 			dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
+			
+			// restore things back
+			if (d) canon_gui_disable_front_buffer();
 		}
 		else
 		{
