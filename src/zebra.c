@@ -894,7 +894,7 @@ draw_zebra_and_focus( int Z, int F )
 
 	//~ bvram_mirror_init();
 
-	uint8_t * const bvram = bmp_vram();
+	uint8_t * const bvram = bmp_vram_real();
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 	//~ int BMPPITCH = bmp_pitch();
@@ -1154,7 +1154,7 @@ draw_false_downsampled( void )
 		if (!expsim) return;
 	}
 	//~ bvram_mirror_init();
-	uint8_t * const bvram = bmp_vram();
+	uint8_t * const bvram = bmp_vram_real();
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 
@@ -3747,7 +3747,7 @@ void show_overlay()
 	//~ struct vram_info * vram = get_yuv422_vram();
 	//~ uint8_t * const lvram = vram->vram;
 	//~ int lvpitch = YUV422_LV_PITCH;
-	uint8_t * const bvram = bmp_vram();
+	uint8_t * const bvram = bmp_vram_real();
 	if (!bvram) return;
 	#define BMPPITCH 960
 	
@@ -3855,7 +3855,7 @@ void defish_draw()
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
 	int lvpitch = vram->pitch;
-	uint8_t * const bvram = bmp_vram();
+	uint8_t * const bvram = bmp_vram_real();
 	if (!bvram) return;
 
 	for (int y = os.y0 + (is_movie_mode() ? os.off_169 : 0); y < os.y0 + os.y_ex/2; y += 2)
