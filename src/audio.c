@@ -322,7 +322,7 @@ static void draw_meters(void)
 	{
 		bmp_fill(
                  screen_layout >= SCREENLAYOUT_UNDER_3_2 ? BOTTOMBAR_BGCOLOR : TOPBAR_BGCOLOR,
-                 x0, y0, 670, small ? 20 : 34
+                 x0, y0, 640, small ? 24 : 34
                  );
 	}
 	else if (hs) return; // will draw top bar instead

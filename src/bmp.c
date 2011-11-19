@@ -1041,7 +1041,7 @@ bfnt_test()
 	while(1)
 	{
 		beep();
-		kill_flicker();
+		canon_gui_disable_front_buffer();
 		int* codes = (int*) BFNT_CHAR_CODES;
 		static int c = 0;
 		for (int i = 0; i < 10; i++)
