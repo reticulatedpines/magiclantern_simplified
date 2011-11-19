@@ -16,7 +16,7 @@ int handle_other_events(struct event * event)
 	if (!ml_started) return 1;
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-	if (lv)
+	if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
 	{
 		if (lv_disp_mode == 0 && get_global_draw_setting())
 		{

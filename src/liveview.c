@@ -61,11 +61,37 @@ reloc_liveviewapp_init( void )
 	// Skip the call to JudgeBottomInfoDispTimerState
 	// and make it return 0 (i.e. no bottom bar displayed)
 	*(uint32_t*)(reloc_buf + (uintptr_t)&LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState + offset) = MOV_R0_0_INSTR;
-
 }
 
 void reloc_liveviewapp_install()
 {
+	#ifdef CONFIG_60D
+	// temporarily NOP out the calls to @StartUnaviFeedBackTimer and @StartOlcBlinkTimer
+	// when shutter is pressed halfway
+	// this hides bottom bar when you press shutter halfway
+	// (those block all LiveView redraw events, except for Q menu)
+	const uintptr_t offset = new_LiveViewApp_handler - reloc_buf - reloc_start;
+	static int dirty = 0;
+	if (get_halfshutter_pressed()) dirty = 20;
+	if (dirty) dirty--;
+	static int a = 0;
+	static int b = 0;
+	if (dirty)
+	{
+		maru(50, 50, COLOR_RED);
+		if (!a) a = *(uint32_t*)(reloc_buf + 0xff372950 + offset);
+		if (!b) b = *(uint32_t*)(reloc_buf + 0xff372984 + offset);
+		*(uint32_t*)(reloc_buf + 0xff372950 + offset) = NOP_INSTR;
+		*(uint32_t*)(reloc_buf + 0xff372984 + offset) = NOP_INSTR;
+	}
+	else
+	{
+		maru(50, 50, COLOR_GREEN1);
+		if (a) *(uint32_t*)(reloc_buf + 0xff372950 + offset) = a;
+		if (b) *(uint32_t*)(reloc_buf + 0xff372984 + offset) = b;
+	}
+	#endif
+
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
 	if (dialog->handler == &LiveViewApp_handler)
