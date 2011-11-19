@@ -53,6 +53,7 @@ ML_OBJS-y = \
 	dialog_test.o \
 	bootflags.o \
 	vram.o \
+	morse.o \
 
 #include generic rules and definitions
 

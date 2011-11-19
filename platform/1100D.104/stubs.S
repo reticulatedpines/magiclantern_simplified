@@ -214,3 +214,4 @@ NSTUB(0xff31c278, DeleteDialogBox)
 NSTUB(0xff2277f0, dialog_set_property_str)
 
 NSTUB(0xff416874, fsuDecodePartitionTable)
+NSTUB(0xFF300BA0, LiveViewApp_handler)
