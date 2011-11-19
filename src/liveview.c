@@ -78,7 +78,6 @@ void reloc_liveviewapp_install()
 	static int b = 0;
 	if (dirty)
 	{
-		maru(50, 50, COLOR_RED);
 		if (!a) a = *(uint32_t*)(reloc_buf + 0xff372950 + offset);
 		if (!b) b = *(uint32_t*)(reloc_buf + 0xff372984 + offset);
 		*(uint32_t*)(reloc_buf + 0xff372950 + offset) = NOP_INSTR;
@@ -86,7 +85,6 @@ void reloc_liveviewapp_install()
 	}
 	else
 	{
-		maru(50, 50, COLOR_GREEN1);
 		if (a) *(uint32_t*)(reloc_buf + 0xff372950 + offset) = a;
 		if (b) *(uint32_t*)(reloc_buf + 0xff372984 + offset) = b;
 	}
