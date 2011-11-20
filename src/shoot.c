@@ -1152,7 +1152,11 @@ void ensure_movie_mode()
 		GUI_SetLvMode(2);
 		GUI_SetMovieSize_b(1);
 		#else
-		set_shooting_mode(SHOOTMODE_MOVIE);
+		 #ifdef CONFIG_5D2
+			GUI_SetLvMode(2);
+		 #else
+		  set_shooting_mode(SHOOTMODE_MOVIE);
+		 #endif
 		#endif
 		msleep(500); 
 	}
@@ -3560,7 +3564,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 
 static void press_rec_button()
 {
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	fake_simple_button(BGMT_PRESS_SET);
 #else
 	fake_simple_button(BGMT_LV);

@@ -371,7 +371,7 @@ bmp_fill(
 		return;
 
 	uint8_t * const vram = bmp_vram();
-	uint32_t * row = (void*)( vram + y * pitch + start );
+	uint32_t * row = UNCACHEABLE((void*)( vram + y * pitch + start ));
 
 	if( !vram || ( 1 & (uintptr_t) vram ) )
 	{

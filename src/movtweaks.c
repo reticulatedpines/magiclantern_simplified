@@ -434,7 +434,7 @@ hdmi_force_display(
 	);
 }
 
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
+#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
 CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_UNDER_3_2);
 #else
 CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2);
@@ -730,7 +730,7 @@ static struct menu_entry mov_menus[] = {
 		.name = "REC/STBY notify", 
 		.priv = &rec_notify, 
 		.display = rec_notify_print, 
-		#if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+		#if defined(CONFIG_550D) || defined(CONFIG_60D) // others can't "beep"
 		.select = menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		#else

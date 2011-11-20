@@ -45,7 +45,7 @@ NSTUB(0xFF9D8250, DispSensorStart)                // might be good (dumps=1, sco
 NSTUB(0xFF86AF64, DryosDebugMsg)                  // might be good (dumps=1, score=4.6e+02)
 NSTUB(0xFF9ABE20, FIO_CleanupAfterFindNext_maybe) // might be good (dumps=1, score=18)
 NSTUB(0xFF9AAD10, FIO_CloseFile)                  // Good. Found matches: ff9aad10/42, ff95ac28/6.2
-NSTUB(0xFF95B48C, FIO_CreateDirectory)            // Ambiguous match. Found matches: ff95b48c/7.5, ff9ab574/5.7
+NSTUB(0xFF9AB574, FIO_CreateDirectory)            // Ambiguous match. Found matches: ff95b48c/7.5, ff9ab574/5.7
 NSTUB(0xFF9AAC68, FIO_CreateFile)                 // might be good (dumps=1, score=29)
 NSTUB(0xFF9ABBF4, FIO_FindFirstEx)                // might be good (dumps=1, score=16)
 NSTUB(0xFF9ABD20, FIO_FindNextEx)                 // might be good (dumps=1, score=16)
@@ -59,9 +59,9 @@ NSTUB(0xFF824060, GUI_ChangeMode)                 // might be good (dumps=1, sco
 NSTUB(0xFF823E60, GUI_Control)                    // Good. Found matches: ff823e60/15, ff83a970/-0.45
 NSTUB(0xFF9D6128, GUI_GetFirmVersion)             // might be good (dumps=1, score=6.1)
 NSTUB(0xFF9CE5D8, GUI_SetLvMode)                  // might be good (dumps=1, score=1.7)
-NSTUB(0xFF9CE7D0, GUI_SetMovieSize_a)             // might be good (dumps=1, score=-3.1)
+//NSTUB(0xFF9CE7D0, GUI_SetMovieSize_a)             // might be good (dumps=1, score=-3.1)
 NSTUB(0xFFB5E88C, GetCFnData)                     // might be good (dumps=1, score=5.4)
-NSTUB(0xFF9854A0, GuiEdLedBlink)                  // Good. Found matches: ff9854a0/10, ff9d7f88/1.4
+NSTUB(0xff9d7f88, GuiEdLedBlink)                  // Good. Found matches: ff9854a0/10, ff9d7f88/1.4
 NSTUB(0xFF9D7F64, GuiEdLedOff)                    // might be good (dumps=1, score=13)
 NSTUB(0xFF9D7F40, GuiEdLedOn)                     // might be good (dumps=1, score=5.6)
 NSTUB(0xFF8377D0, LVCAF_LensDriveStart)           // might be good (dumps=1, score=2.3)
@@ -80,7 +80,7 @@ NSTUB(0xff859638, _audio_ic_write)                // no match
 NSTUB(   0x13428, additional_version)             // might be good (dumps=1, score=3.6)
 NSTUB(0xFF9BA190, alloc_dma_memory)               // might be good (dumps=1, score=35)
 NSTUB(0xffcb4ae4, audio_thresholds)               // no match
-NSTUB(   0x27624, bmp_vram_info )
+NSTUB(   0x27624, bmp_vram_info )                 // look in dispcheck
 NSTUB(0xFFC458D4, bzero32)                        // might be good (dumps=1, score=66)
 NSTUB(0xFF86BCE0, call)                           // might be good (dumps=1, score=63)
 NSTUB(0xC0220000, camera_engine)                  // no match

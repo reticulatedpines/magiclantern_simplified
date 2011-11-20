@@ -11,7 +11,7 @@
 // These might be camera-specific, but codes are the same on 550D and 60D
 // [5] Values for "af_point" (can be ORed together to form patterns)
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 #define AF_POINT_C  0x01 // Center
 #define AF_POINT_T  0x02 // Top
 #define AF_POINT_B  0x04 // Bottom

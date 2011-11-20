@@ -107,7 +107,7 @@ void update_vram_params()
 	os.y0   = hdmi_code == 5 ?   0 : hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0;
 	os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
 	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
+#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
 	os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
 	if (PLAY_MODE) os.y0 = 54; // black bar is at the top in play mode
 #else
@@ -124,7 +124,7 @@ void update_vram_params()
 	os.off_1610 = (os.y_ex - os.y_ex * 3/2*10/16) / 2;
 
 	// LV buffer (used for display)
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
+#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
 	vram_lv.width  = 720;
 	vram_lv.height = 480;
 #endif
@@ -151,6 +151,10 @@ void update_vram_params()
 	hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
 	hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
 
+#ifdef CONFIG_5D2
+	vram_hd.width  = recording ? 1872 : 1024;
+	vram_hd.height = recording ? 1053 : 680; // not sure
+#endif
 #ifdef CONFIG_50D
 	vram_hd.width = recording ? 1560 : 1024;
 	vram_hd.height = recording ? 884 : 680;

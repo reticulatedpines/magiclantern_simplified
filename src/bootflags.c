@@ -108,7 +108,7 @@ struct partition_table
 
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
-#if !defined(CONFIG_500D) && !defined(CONFIG_50D)
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 int
 bootflag_write_bootblock( void )
 {
@@ -172,7 +172,7 @@ bootflag_write_bootblock( void )
 	#ifdef CONFIG_500D
 	struct cf_device * const dev = sd_device[1];
 	#endif
-	#ifdef CONFIG_50D
+	#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	struct cf_device * const dev = cf_device[5];
 	#endif
 	
