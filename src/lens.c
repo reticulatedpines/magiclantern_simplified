@@ -238,18 +238,18 @@ void draw_ml_bottombar(int double_buffering)
     unsigned int y_origin = bottom - 30;
 	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 
-	int ytop = bottom - 60;
+	int ytop = bottom - 35;
 	
 	// start drawing to mirror buffer to avoid flicker
 	if (double_buffering)
 	{
 		//~ bmp_mirror_copy(0);
-		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 60 * BMPPITCH);
+		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 35 * BMPPITCH);
 		bmp_draw_to_idle(1);
 	}
 
-	if (is_canon_bottom_bar_dirty() || ISO_ADJUSTMENT_ACTIVE)
-		bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
+	//~ if (is_canon_bottom_bar_dirty() || ISO_ADJUSTMENT_ACTIVE)
+		//~ bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
 		
@@ -512,8 +512,8 @@ end:
 		// done drawing, copy image to main BMP buffer
 		bmp_draw_to_idle(0);
 		//~ bmp_mirror_copy(1);
-		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 60 * BMPPITCH);
-		bzero32(bmp_vram_idle() + BM(0,ytop), 60 * BMPPITCH);
+		memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+		bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
 	}
 
 	// this is not really part of the bottom bar, but it's close to it :)
