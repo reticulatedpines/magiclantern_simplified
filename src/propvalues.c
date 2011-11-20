@@ -122,9 +122,9 @@ int lv_disp_mode;
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
 	#if defined(CONFIG_60D) || defined(CONFIG_600D)
-	lv_disp_mode = buf[1];
+	lv_disp_mode = (uint8_t)buf[1];
 	#else
-	lv_disp_mode = buf[0];
+	lv_disp_mode = (uint8_t)buf[0];
 	#endif
 	return prop_cleanup(token, property);
 }
