@@ -208,7 +208,11 @@ void draw_ml_bottombar(int double_buffering)
 {
 	//~ beep();
 	if (!should_draw_bottom_bar()) return;
-		
+
+	#ifdef CONFIG_500D
+    double_buffering = 0;
+    #endif
+	
 	struct lens_info *	info = &lens_info;
 
 	int bg = TOPBAR_BGCOLOR;
@@ -250,7 +254,9 @@ void draw_ml_bottombar(int double_buffering)
 
 	//~ if (is_canon_bottom_bar_dirty() || ISO_ADJUSTMENT_ACTIVE)
 		//~ bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
+	#ifndef CONFIG_500D
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
+    #endif
 		// MODE
 		
 			bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
