@@ -385,9 +385,9 @@ bmp_fill(
 		int x;
 
 		#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
-		for( x=0 ; x<w/4 ; x++ )
-		#else
 		for( x=w/4-1 ; x >= 0 ; x-- )
+		#else
+		for( x=0 ; x<w/4 ; x++ )
 		#endif
 		{
 			row[ x ] = word;
