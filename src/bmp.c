@@ -382,17 +382,25 @@ bmp_fill(
 
 	for( ; y<y_end ; y++, row += pitch/4 )
 	{
-		uint32_t x;
+		int x;
 
+		#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
 		for( x=0 ; x<w/4 ; x++ )
+		#else
+		for( x=w/4-1 ; x >= 0 ; x-- )
+		#endif
 		{
 			row[ x ] = word;
-			//~ #if defined(CONFIG_500D) || defined(CONFIG_50D) // what's going on here?!?!
+			#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
 			asm( "nop" );
 			asm( "nop" );
 			asm( "nop" );
 			asm( "nop" );
-			//~ #endif
+			#endif
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
+			asm( "nop" );
 		}
 	}
 }
