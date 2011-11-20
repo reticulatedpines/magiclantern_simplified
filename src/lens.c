@@ -155,19 +155,19 @@ char *aj_lens_format_dist( unsigned mm)
 
    if( mm > 100000 ) // 100 m
    {
-      snprintf( dist, sizeof(dist), "Infty");
+      snprintf( dist, sizeof(dist), "Inf.");
    }
    else if( mm > 10000 ) // 10 m
    {
-      snprintf( dist, sizeof(dist), "%2d.%01dm", mm / 1000,  (mm % 1000) / 100);
+      snprintf( dist, sizeof(dist), "%2d.%1dm", mm / 1000,  (mm % 1000) / 1000);
    }
    else	if( mm >  1000 ) // 1 m 
    {
-      snprintf( dist, sizeof(dist), "%1d.%02dm", mm / 1000, (mm % 1000)/10 );
+      snprintf( dist, sizeof(dist), "%1d.%1dm", mm / 1000, (mm % 1000)/100 );
    }
    else
    {
-      snprintf( dist, sizeof(dist),"%3dcm", mm / 10 );
+      snprintf( dist, sizeof(dist),"%2dcm", mm / 10 );
    }
 
    return (dist);
@@ -473,6 +473,22 @@ void draw_ml_bottombar(int double_buffering)
                   y_origin, 
                   aj_lens_format_dist( lens_info.focus_dist * 10 )
                 );
+
+		// battery indicator
+		int xr = x_origin + 600 - font_large.width - 4;
+
+	#ifdef CONFIG_60D
+		int bat = GetBatteryLevel();
+	#else
+		int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
+	#endif
+		
+		int col = bat <= 10 ? COLOR_RED : bat <= 50 ? COLOR_YELLOW : bat <= 80 ? COLOR_WHITE : COLOR_GREEN1;
+		bat = bat * 22 / 100;
+		bmp_fill(col, xr+4, y_origin-3, 8, 3);
+		bmp_draw_rect(col, xr-2, y_origin, 15, 29);
+		bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
+		bmp_fill(col, xr+4, y_origin + 26 - bat, 8, bat);
 
 
 	  text_font = FONT(FONT_LARGE, COLOR_CYAN, bg ); 
