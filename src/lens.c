@@ -209,7 +209,7 @@ void draw_ml_bottombar(int double_buffering)
 	//~ beep();
 	if (!should_draw_bottom_bar()) return;
 
-	#ifdef CONFIG_500D
+	#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
     double_buffering = 0;
     #endif
 	
@@ -254,7 +254,7 @@ void draw_ml_bottombar(int double_buffering)
 
 	//~ if (is_canon_bottom_bar_dirty() || ISO_ADJUSTMENT_ACTIVE)
 		//~ bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
-	#ifndef CONFIG_500D
+	#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
     #endif
 		// MODE
