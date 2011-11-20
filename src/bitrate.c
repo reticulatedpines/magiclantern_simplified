@@ -209,7 +209,7 @@ void free_space_show()
 
 	bmp_printf(
 		FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-		time_indic_x + 7 * font_med.width,
+		time_indic_x + 160 - 6 * font_med.width,
 		time_indic_y,
 		"%d.%dGB",
 		fsg,
@@ -287,7 +287,7 @@ void time_indicator_show()
 	{
 		bmp_printf(
 			time_4gb < time_indic_warning ? time_indic_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-			time_indic_x + 5 * font_med.width,
+			time_indic_x + 160 - 7 * font_med.width,
 			time_indic_y,
 			"%4d:%02d",
 			dispvalue / 60,
