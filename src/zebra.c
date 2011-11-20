@@ -2680,10 +2680,13 @@ void draw_zoom_overlay(int dirty)
 			w >>= 1;
 			h >>= 1;
 		}
-		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
-		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, 0xFF, w<<1);
-		memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, 0,    w<<1);
+		if (video_mode_resolution == 0 || !is_movie_mode())
+		{
+			memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
+			memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, 0xFF, w<<1);
+			memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, 0xFF, w<<1);
+			memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, 0,    w<<1);
+		}
 	}
 
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
@@ -2731,10 +2734,13 @@ void draw_zoom_overlay(int dirty)
 		}
 	}
 
-	memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-	memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
-	memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
-	memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
+	if (video_mode_resolution == 0 || !is_movie_mode())
+	{
+		memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
+		memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
+		memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
+		memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
+	}
 	if (dirty) bmp_fill(0, LV2BM_X(x0c), LV2BM_Y(y0c) + 2, LV2BM_DX(W), LV2BM_DY(H) - 4);
 	//~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c, W, 1);
 	//~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c+1, y0c, W, 1);
@@ -3413,16 +3419,16 @@ livev_hipriority_task( void* unused )
 				BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
 			}
 			//~ msleep(20);
-		}
 		
-		if (spotmeter_draw && k % 4 == 0)
-			BMP_LOCK( if (lv) spotmeter_step(); )
+			if (spotmeter_draw && k % 4 == 0)
+				BMP_LOCK( if (lv) spotmeter_step(); )
 
-		#ifdef CONFIG_60D
-		if (electronic_level)
-			BMP_LOCK( show_electronic_level(); )
-		#endif
-		
+			#ifdef CONFIG_60D
+			if (electronic_level && k % 4 == 0)
+				BMP_LOCK( show_electronic_level(); )
+			#endif
+		}
+
 		if (k % 4 == 0) rec_notify_continuous(0);
 		
 		if (zoom_overlay_countdown)
@@ -3442,6 +3448,10 @@ livev_hipriority_task( void* unused )
 			//~ #endif
 
 			movie_indicators_show();
+
+			#if defined(CONFIG_550D)
+			BMP_LOCK( black_bars(); )
+			#endif
 
 			BMP_LOCK( update_lens_display(); );
 			//~ lens_display_dirty = 0;
@@ -3463,18 +3473,20 @@ static void loprio_sleep()
 	while (is_mvr_buffer_almost_full()) msleep(100);
 }
 
-static void black_bars()
+void black_bars()
 {
 	if (!get_global_draw()) return;
+	if (!is_movie_mode()) return;
 	int i,j;
+	uint8_t * const bvram = bmp_vram();
 	for (i = os.y0; i < os.y_max; i++)
 	{
 		if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
 		{
 			int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
 			for (j = os.x0; j < os.x_max; j++)
-				if (bmp_getpixel(j,i) == COLOR_BG)
-					bmp_putpixel(j,i,newcolor);
+				if (bvram[BM(j,i)] == COLOR_BG)
+					bvram[BM(j,i)] = newcolor;
 		}
 	}
 }
@@ -3496,10 +3508,6 @@ livev_lopriority_task( void* unused )
 	msleep(2000);
 	while(1)
 	{
-		#if defined(CONFIG_550D)
-		BMP_LOCK( black_bars(); )
-		#endif
-
 		if (transparent_overlay_flag)
 		{
 			transparent_overlay_from_play();

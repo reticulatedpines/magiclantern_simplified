@@ -4,7 +4,10 @@
 void* memset(void* dest, int val, size_t n)
 {
 	size_t i;
-	for(i = 0; i < n; i++)
-		*(char*)dest++ = val;
-	return dest;
+	int* dst = (int*) dest;
+	val = (val) | (val<<8);
+	val = (val) | (val<<16);
+	for(i = 0; i < n/4; i++)
+		*(int*)dst++ = val;
+	return (void*)dst;
 }
