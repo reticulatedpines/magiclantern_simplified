@@ -545,6 +545,8 @@ static void movie_expo_lock_print(
 		"Exposure Lock : %s",
 		movie_expo_lock ? "ON" : "OFF"
 	);
+	if (!is_movie_mode())
+		menu_draw_icon(x, y, MNI_WARNING, "Only works in LiveView, with movie recording enabled.");
 }
 #endif
 
