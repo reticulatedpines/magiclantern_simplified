@@ -3169,7 +3169,7 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
-				if (i % 10 == 0) BMP_LOCK( update_lens_display(); )
+				if (i % 20 == 0) BMP_LOCK( update_lens_display(); )
 				msleep(10);
 				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;
@@ -3435,7 +3435,7 @@ livev_hipriority_task( void* unused )
 			//~ crop_set_dirty(20);
 		
 		//~ if (lens_display_dirty)
-		if (k % 10 == 0)
+		if (k % 20 == 0)
 		{
 			//~ #ifdef CONFIG_KILL_FLICKER
 			//~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
@@ -3497,7 +3497,7 @@ livev_lopriority_task( void* unused )
 	while(1)
 	{
 		#if defined(CONFIG_550D)
-		black_bars();
+		BMP_LOCK( black_bars(); )
 		#endif
 
 		if (transparent_overlay_flag)
