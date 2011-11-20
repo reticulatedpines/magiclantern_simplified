@@ -857,7 +857,7 @@ menu_handler(
 		menu_help_active = 0;
 		break;
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	case PRESS_JOY_UP:
 #else
 	case PRESS_UP_BUTTON:
@@ -871,7 +871,7 @@ menu_handler(
 		else menu_entry_move( menu, -1 );
 		break;
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	case PRESS_JOY_DOWN:
 #else
 	case PRESS_DOWN_BUTTON:
@@ -885,7 +885,7 @@ menu_handler(
 		else menu_entry_move( menu, 1 );
 		break;
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	case PRESS_JOY_RIGHT:
 #else
 	case PRESS_RIGHT_BUTTON:
@@ -899,7 +899,7 @@ menu_handler(
 		else menu_move( menu, 1 );
 		break;
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	case PRESS_JOY_LEFT:
 #else
 	case PRESS_LEFT_BUTTON:
@@ -949,7 +949,7 @@ menu_handler(
 #ifdef PRESS_DIRECT_PRINT_BUTTON_ALT
 	case PRESS_DIRECT_PRINT_BUTTON_ALT:
 #endif
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	case PRESS_FUNC_BUTTON:
 	case JOY_CENTER:
 #endif
@@ -961,7 +961,7 @@ menu_handler(
 		//~ menu_damage = 1;
 		break;
 
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	case PRESS_JOY_LEFTUP:
 	case PRESS_JOY_LEFTDOWN:
 	case PRESS_JOY_RIGHTUP:
@@ -1428,7 +1428,7 @@ void menu_stop()
 		give_semaphore( gui_sem );
 }
 
-#ifndef CONFIG_50D
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 int handle_quick_access_menu_items(struct event * event)
 {
 	// quick access to some menu items

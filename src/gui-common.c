@@ -69,7 +69,7 @@ int handle_common_events_startup(struct event * event)
 		if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
 		#endif
 		
-		#ifndef CONFIG_50D
+		#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 		if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
 		#endif
 		
@@ -96,7 +96,7 @@ int handle_common_events_by_feature(struct event * event)
 	if (handle_ml_menu_erase(event) == 0) return 0;
 	#endif
 	
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 	if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
 	#endif
 	
@@ -107,7 +107,7 @@ int handle_common_events_by_feature(struct event * event)
 	if (handle_af_patterns(event) == 0) return 0;
 	if (handle_set_wheel_play(event) == 0) return 0;
 	
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 	if (handle_flash_button_shortcuts(event) == 0) return 0;
 	if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
 	#endif
@@ -116,11 +116,11 @@ int handle_common_events_by_feature(struct event * event)
 	if (handle_zoom_overlay(event) == 0) return 0;
 	if (handle_movie_mode_shortcut(event) == 0) return 0;
 	
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 	if (handle_quick_access_menu_items(event) == 0) return 0;
 	#endif
 	
-	#ifndef CONFIG_50D
+	#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 	if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT)
 	#else
 	if (MENU_MODE && event->param == BGMT_FUNC)
