@@ -648,12 +648,7 @@ void draw_ml_topbar()
 	#ifdef CONFIG_60D
 		bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
 	#else
-		bmp_printf( font, x, y,"T=%d BAT%s%s%s%s", efic_temp, 
-			battery_level_bars >= 0 ? "*" : "",
-			battery_level_bars >= 1 ? "*" : "",
-			battery_level_bars >= 2 ? "*" : "",
-			battery_level_bars >= 3 ? "*" : ""
-			);
+		bmp_printf( font, x, y,"T=%d", efic_temp);
 	#endif
 
 	display_clock();
