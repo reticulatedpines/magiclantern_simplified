@@ -369,6 +369,7 @@ static void adjust_burst_pic_quality()
 	else if (burst_count >= 5) restore_pic_quality();
 }
 
+#if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 PROP_HANDLER(PROP_BURST_COUNT)
 {
 	int burst_count = buf[0];
@@ -380,6 +381,7 @@ PROP_HANDLER(PROP_BURST_COUNT)
 
 	return prop_cleanup(token, property);
 }
+#endif
 
 static void
 auto_burst_pic_display(
@@ -505,6 +507,7 @@ void clear_lv_affframe()
 	struct vram_info *	lv = get_yuv422_vram();
 	if( !lv->vram )	return;
 	int xaf,yaf;
+	
 	get_afframe_pos(720, 480, &xaf, &yaf);
 	xaf = N2BM_X(xaf);
 	yaf = N2BM_Y(yaf);
@@ -1201,7 +1204,6 @@ struct menu_entry tweak_menus[] = {
 		.display = eshutter_display,
 		.help = "For enabling third-party flashes in LiveView."
 	},*/
-	#ifndef CONFIG_50D
 	{
 		.name = "AF frame display",
 		.priv = &af_frame_autohide, 
@@ -1209,7 +1211,6 @@ struct menu_entry tweak_menus[] = {
 		.display = af_frame_autohide_display,
 		.help = "You can hide the AF frame (the little white rectangle)."
 	},
-	#endif
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
 		.name = "LCD Sensor Shortcuts",
@@ -1218,7 +1219,7 @@ struct menu_entry tweak_menus[] = {
 		.display	= lcd_sensor_shortcuts_print,
 	},
 	#endif
-	#if !defined(CONFIG_60D) && !defined(CONFIG_50D) // 60D doesn't need this
+	#if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) // 60D doesn't need this
 	{
 		.name = "Auto BurstPicQuality",
 		.priv = &auto_burst_pic_quality, 
