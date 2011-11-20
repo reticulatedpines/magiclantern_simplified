@@ -539,14 +539,17 @@ static void movie_expo_lock_print(
 	int			selected
 )
 {
+	if (!is_movie_mode())
+	{
+		menu_draw_icon(x, y, MNI_WARNING, "Only works in LiveView, with movie recording enabled.");
+		movie_expo_lock = 0;
+	}
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Exposure Lock : %s",
 		movie_expo_lock ? "ON" : "OFF"
 	);
-	if (!is_movie_mode())
-		menu_draw_icon(x, y, MNI_WARNING, "Only works in LiveView, with movie recording enabled.");
 }
 #endif
 
