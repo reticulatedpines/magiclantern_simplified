@@ -230,6 +230,7 @@ NSTUB(0xff1d6f24, ReleaseRecursiveLock)
 
 NSTUB(0xFF37477C, CancelBottomInfoDispTimer)
 NSTUB(0xff36e574, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
+NSTUB(0xff36e740, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
 NSTUB(0xFF3076D8, CreateDialogBox)
 NSTUB(0xFF306E6C, DeleteDialogBox)

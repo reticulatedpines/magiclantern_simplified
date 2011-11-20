@@ -101,6 +101,7 @@
 
 #define GMT_OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x10000098 in 60d, backtrace it in gui_local_post
+#define GMT_LOCAL_UNAVI_FEED_BACK 0x35 // event type = 2, sent when Q menu disappears; look for StartUnaviFeedBackTimer
 
 #define BGMT_FLASH_MOVIE 0 
 #define BGMT_PRESS_FLASH_MOVIE 0 
@@ -127,6 +128,7 @@
 #define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x24BF7) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5680) == 0xF) // dec ptpNotifyOlcInfoChanged
 #define SHOOTING_MODE (*(int*)0x3274)
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x2A430) != 0x17) // dec CancelUnaviFeedBackTimer
 
 #define COLOR_FG_NONLV 1
 
