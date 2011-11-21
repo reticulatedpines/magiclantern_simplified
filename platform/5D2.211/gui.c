@@ -37,20 +37,6 @@ static int handle_buttons(struct event * event)
 	extern int ml_started;
 	if (!ml_started) return 1;
 
-	// Change the picture style button to show our menu
-	if( event->param == BGMT_PICSTYLE)
-	{
-		if (gui_menu_shown() || gui_state == GUISTATE_IDLE || gui_state == GUISTATE_PLAYMENU)
-		{
-			give_semaphore( gui_sem );
-			return 0;
-		}
-	}
-	if (event->param == BGMT_PRESS_HALFSHUTTER && gui_menu_shown())
-	{
-		give_semaphore( gui_sem );
-	}
-
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	return 1;

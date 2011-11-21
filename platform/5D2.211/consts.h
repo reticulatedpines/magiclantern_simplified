@@ -10,16 +10,16 @@
 #define HIJACK_TASK_ADDR 0x1A24
 
 // 720x480, changes when external monitor is connected
-#define YUV422_LV_BUFFER_1 0x41B0FF50
-#define YUV422_LV_BUFFER_2 0x5C00FF50
-#define YUV422_LV_BUFFER_3 0x5F60FF50
+#define YUV422_LV_BUFFER_1 0x41B07800
+#define YUV422_LV_BUFFER_2 0x5C007800
+#define YUV422_LV_BUFFER_3 0x5F607800
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 //~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x27E0+something))
 
 // just to compile (todo: replace them with the pointer):
-#define YUV422_LV_BUFFER_DMA_ADDR 0x41B0FF50
+#define YUV422_LV_BUFFER_DMA_ADDR 0x41B07800
 #define YUV422_HD_BUFFER_DMA_ADDR 0x44000080
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
@@ -77,7 +77,7 @@
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
 #define BGMT_PICSTYLE 0x13
-#define BGMT_FUNC 0x12
+//~ #define BGMT_FUNC 0x12
 #define BGMT_JOY_CENTER 0x1e
 #define BGMT_LV 0xE
 #define BGMT_WHEEL_LEFT 2
@@ -181,7 +181,7 @@
 #define FLASH_MIN_EV -10 // not sure if it actually works
 
 //~ #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "FUNC outside menu: show LiveV tools      SET/PLAY/Q(J)/INFO" : "SET/PLAY/Q(JoyPress)=edit values  MENU=Easy/Adv.  INFO=Help")
+#define MENU_NAV_HELP_STRING (PLAY_MODE ? "PicStyle outside menu: show LV tools    SET/PLAY/Q(PS)/INFO" : "SET/PLAY/Q(PicStyle)=edit values  MENU=Easy/Adv.  INFO=Help")
 
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
@@ -208,4 +208,4 @@
 // DebugMsg(4, 2, msg='Whole Screen Backup end')
 // winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x12BBC*/ = 0
 
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode

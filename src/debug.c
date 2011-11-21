@@ -2312,17 +2312,22 @@ void HijackFormatDialogBox()
 	struct dialog * dialog = current->priv;
 	if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
+#ifdef CONFIG_50D
 #define FORMAT_BTN "[FUNC]"
 #define STR_LOC 6
 #else
-#ifdef CONFIG_500D
-#define FORMAT_BTN "[DISP]"
-#define STR_LOC 12
-#else
-#define FORMAT_BTN "[Q]"
-#define STR_LOC 11
-#endif
+ #ifdef CONFIG_500D
+  #define FORMAT_BTN "[DISP]"
+  #define STR_LOC 12
+ #else
+  #ifdef CONFIG_5D2
+   #define FORMAT_BTN "[PicSty]"
+   #define STR_LOC 6
+  #else
+   #define FORMAT_BTN "[Q]"
+   #define STR_LOC 11
+  #endif
+ #endif
 #endif
 
 	if (keep_ml_after_format)
