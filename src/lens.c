@@ -250,13 +250,9 @@ void draw_ml_bottombar(int double_buffering)
 		//~ bmp_mirror_copy(0);
 		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 35 * BMPPITCH);
 		bmp_draw_to_idle(1);
+		bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 	}
 
-	//~ if (is_canon_bottom_bar_dirty() || ISO_ADJUSTMENT_ACTIVE)
-		//~ bmp_fill(0,  x_origin-50, bottom-60, 720, 60-35); 
-	#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-    bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
-    #endif
 		// MODE
 		
 			bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
@@ -480,6 +476,28 @@ void draw_ml_bottombar(int double_buffering)
                   aj_lens_format_dist( lens_info.focus_dist * 10 )
                 );
 
+
+	  text_font = FONT(FONT_LARGE, COLOR_CYAN, bg ); 
+
+	  bmp_printf( text_font, 
+				  x_origin + 600 + font_large.width * 2 - 4, 
+				  y_origin, 
+				  ".");
+	  bmp_printf( text_font, 
+				  x_origin + 600 - font_large.width, 
+				  y_origin, 
+				  " %s%d", 
+					AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
+					ABS(AE_VALUE) / 8
+				  );
+	  bmp_printf( text_font, 
+				  x_origin + 600 + font_large.width * 3 - 8, 
+				  y_origin, 
+				  "%d",
+					mod(ABS(AE_VALUE) * 10 / 8, 10)
+				  );
+
+
 		// battery indicator
 		int xr = x_origin + 600 - font_large.width - 4;
 
@@ -496,26 +514,6 @@ void draw_ml_bottombar(int double_buffering)
 		bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
 		bmp_fill(col, xr+4, y_origin + 26 - bat, 8, bat);
 
-
-	  text_font = FONT(FONT_LARGE, COLOR_CYAN, bg ); 
-
-	  bmp_printf( text_font, 
-				  x_origin + 600 + font_large.width * 2 - 4, 
-				  y_origin, 
-				  ".");
-	  bmp_printf( text_font, 
-				  x_origin + 600, 
-				  y_origin, 
-				  "%s%d", 
-					AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
-					ABS(AE_VALUE) / 8
-				  );
-	  bmp_printf( text_font, 
-				  x_origin + 600 + font_large.width * 3 - 8, 
-				  y_origin, 
-				  "%d",
-					mod(ABS(AE_VALUE) * 10 / 8, 10)
-				  );
 
 	//~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
 	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
