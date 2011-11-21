@@ -3448,14 +3448,14 @@ livev_hipriority_task( void* unused )
 			//~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
 			//~ #endif
 
-			movie_indicators_show();
-
 			#if defined(CONFIG_550D)
 			BMP_LOCK( black_bars(); )
 			#endif
 
 			BMP_LOCK( update_lens_display(); );
 			lens_display_dirty = 0;
+
+			movie_indicators_show();
 		}
 
 #if CONFIG_DEBUGMSG
