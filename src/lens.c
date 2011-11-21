@@ -179,7 +179,7 @@ update_lens_display()
 	draw_ml_topbar();
 	
 	extern int menu_upside_down; // don't use double buffer in this mode
-	draw_ml_bottombar(!menu_upside_down && !is_canon_bottom_bar_dirty()); 
+	draw_ml_bottombar(!menu_upside_down && !is_canon_bottom_bar_dirty() && !recording && !should_draw_zoom_overlay()); 
 }
 
 int should_draw_bottom_bar()

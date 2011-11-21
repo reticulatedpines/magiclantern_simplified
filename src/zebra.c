@@ -3148,17 +3148,12 @@ clearscreen_loop:
 				if (liveview_display_idle())
 				{
 					if (!canon_gui_front_buffer_disabled())
-					{
-						canon_gui_disable_front_buffer();
-						clear_liveview_area();
-					}
+						idle_kill_flicker();
 				}
 				else
 				{
 					if (canon_gui_front_buffer_disabled())
-					{
-						canon_gui_enable_front_buffer(1);
-					}
+						idle_stop_killing_flicker();
 				}
 			}
 		}
@@ -3426,16 +3421,16 @@ livev_hipriority_task( void* unused )
 			}
 			//~ msleep(20);
 		
-			if (spotmeter_draw && k % 4 == 0)
+			if (spotmeter_draw && k % 4 == 2)
 				BMP_LOCK( if (lv) spotmeter_step(); )
 
 			#ifdef CONFIG_60D
-			if (electronic_level && k % 4 == 0)
+			if (electronic_level && k % 4 == 3)
 				BMP_LOCK( show_electronic_level(); )
 			#endif
 		}
 
-		if (k % 4 == 0) rec_notify_continuous(0);
+		if (k % 4 == 3) rec_notify_continuous(0);
 		
 		if (zoom_overlay_countdown)
 		{
@@ -3460,7 +3455,7 @@ livev_hipriority_task( void* unused )
 			#endif
 
 			BMP_LOCK( update_lens_display(); );
-			//~ lens_display_dirty = 0;
+			lens_display_dirty = 0;
 		}
 
 #if CONFIG_DEBUGMSG
@@ -3561,15 +3556,7 @@ livev_lopriority_task( void* unused )
 	}
 }
 
-#if defined(CONFIG_600D)
- #define HIPRIORITY_TASK_PRIO 0x19
-#else
- #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-  #define HIPRIORITY_TASK_PRIO 0x1b
- #else
-  #define HIPRIORITY_TASK_PRIO 0x1a
- #endif
-#endif
+#define HIPRIORITY_TASK_PRIO 0x19
 
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
