@@ -501,7 +501,7 @@ void draw_ml_bottombar(int double_buffering)
 		// battery indicator
 		int xr = x_origin + 600 - font_large.width - 4;
 
-	#ifdef CONFIG_60D
+	#if defined(CONFIG_60D) || defined(CONFIG_5D2)
 		int bat = GetBatteryLevel();
 	#else
 		int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;

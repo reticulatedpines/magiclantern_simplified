@@ -954,9 +954,12 @@ menu_handler(
 #ifdef PRESS_DIRECT_PRINT_BUTTON_ALT
 	case PRESS_DIRECT_PRINT_BUTTON_ALT:
 #endif
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
+#ifdef CONFIG_50D
 	case PRESS_FUNC_BUTTON:
 	case JOY_CENTER:
+#endif
+#ifdef CONFIG_5D2
+	case PRESS_PICTURE_STYLE_BUTTON:
 #endif
 #ifdef CONFIG_500D
 	if (recording) return 1; // ?!?! causes err70

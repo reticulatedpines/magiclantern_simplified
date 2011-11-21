@@ -46,7 +46,7 @@ volatile int lv;
 
 bool is_movie_mode()
 {
-	#ifdef CONFIG_50D
+	#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	return lv && lv_movie_select == LVMS_ENABLE_MOVIE;
 	#else
 	return shooting_mode == SHOOTMODE_MOVIE;
@@ -119,7 +119,7 @@ volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 int lv_disp_mode;
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-	#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
 	lv_disp_mode = (uint8_t)buf[1];
 	#else
 	lv_disp_mode = (uint8_t)buf[0];
