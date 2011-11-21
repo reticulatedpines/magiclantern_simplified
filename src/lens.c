@@ -506,8 +506,14 @@ void draw_ml_bottombar(int double_buffering)
 	#else
 		int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
 	#endif
+
+		int col = battery_level_bars == 0 ? COLOR_RED :
+				  battery_level_bars == 1 ? COLOR_YELLOW : 
+				#if defined(CONFIG_60D)
+				  battery_level_bars == 2 ? COLOR_WHITE : 
+				#endif
+				  COLOR_GREEN1;
 		
-		int col = bat <= 10 ? COLOR_RED : bat <= 50 ? COLOR_YELLOW : bat <= 80 ? COLOR_WHITE : COLOR_GREEN1;
 		bat = bat * 22 / 100;
 		bmp_fill(col, xr+4, y_origin-3, 8, 3);
 		bmp_draw_rect(col, xr-2, y_origin, 15, 29);
