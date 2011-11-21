@@ -3079,18 +3079,24 @@ void idle_globaldraw_en()
 	idle_globaldraw_disable = 0;
 }
 
-void clear_liveview_area()
+/*void clear_liveview_area()
 {
 	if (is_movie_mode())
 		bmp_fill(0, os.x0, os.y0 + os.off_169, os.x_ex, os.y_ex - os.off_169 * 2 + 2);
 	else
 		bmp_fill(0, os.x0, os.y0, os.x_ex, os.y_ex);
-}
+}*/
 
 void idle_kill_flicker()
 {
 	canon_gui_disable_front_buffer();
-	clear_liveview_area();
+	clrscr();
+	if (is_movie_mode())
+	{
+		black_bars_16x9();
+		if (recording)
+			maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
+	}
 }
 void idle_stop_killing_flicker()
 {
@@ -3491,13 +3497,13 @@ void black_bars()
 	}
 }
 
-/*
-void bars_16x9_50D()
+
+void black_bars_16x9()
 {
 	if (!get_global_draw()) return;
 	bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
 	bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
-}*/
+}
 
 
 // Items which do not need a high FPS, but are CPU intensive
