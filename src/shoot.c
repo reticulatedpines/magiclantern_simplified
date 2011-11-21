@@ -4034,7 +4034,7 @@ shoot_task( void* unused )
 		if (lens_info.job_state >= 10 && !recording) // just took a picture, maybe we should take another one
 		{
 			//~ hdr_intercept = 0;
-			//~ lens_wait_readytotakepic(64);
+			lens_wait_readytotakepic(64);
 			//~ if (beep_enabled) beep();
 			if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
 			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken

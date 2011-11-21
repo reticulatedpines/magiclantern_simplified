@@ -94,7 +94,9 @@ void update_vram_params_calc();
 // these buffer sizes include any black bars
 void update_vram_params()
 {
+	#if CONFIG_DEBUGMSG
 	if (is_menu_active("VRAM")) return;
+	#endif
 	msleep(50); // just to make sure all prop handlers finished after mode change
 
 	// BMP (used for overlays)
