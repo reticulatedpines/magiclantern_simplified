@@ -173,11 +173,11 @@ void display_lcd_remote_icon(int x0, int y0)
 		bmp_printf(FONT_LARGE, 650, 50, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "-" : "+");
 	}
 	
-	if (gui_menu_shown()) return;
+	//~ if (gui_menu_shown()) return;
 	
-	static unsigned int prev_lr = 0;
-	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
-	prev_lr = lcd_release_running;
+	//~ static unsigned int prev_lr = 0;
+	//~ if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
+	//~ prev_lr = lcd_release_running;
 }
 
 
