@@ -2933,7 +2933,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 	if (reason == -10 || reason == -11) // focus event (todo: should define constants for those)
 		return;
 	
-	idle_countdown_killflicker = 5;
+	idle_countdown_killflicker = 10;
 }
 
 // called at 10 Hz
@@ -3089,18 +3089,24 @@ void idle_globaldraw_en()
 
 void idle_kill_flicker()
 {
-	canon_gui_disable_front_buffer();
-	clrscr();
-	if (is_movie_mode())
+	if (!canon_gui_front_buffer_disabled())
 	{
-		black_bars_16x9();
-		if (recording)
-			maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
+		canon_gui_disable_front_buffer();
+		clrscr();
+		if (is_movie_mode())
+		{
+			black_bars_16x9();
+			if (recording)
+				maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
+		}
 	}
 }
 void idle_stop_killing_flicker()
 {
-	canon_gui_enable_front_buffer(1);
+	if (canon_gui_front_buffer_disabled())
+	{
+		canon_gui_enable_front_buffer(1);
+	}
 }
 
 
