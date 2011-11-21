@@ -3743,7 +3743,11 @@ static void display_expsim_status()
 
 void display_shooting_info_lv()
 {
-	display_lcd_remote_icon(480, 40);
+	int screen_layout = get_screen_layout();
+	int audio_meters_at_top = audio_meters_are_drawn() 
+		&& (screen_layout == SCREENLAYOUT_3_2 || screen_layout == SCREENLAYOUT_16_10);
+
+	display_lcd_remote_icon(480, audio_meters_at_top ? 40 : 0);
 	display_trap_focus_info();
 	display_expsim_status();
 }
