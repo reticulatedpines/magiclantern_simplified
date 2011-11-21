@@ -444,7 +444,12 @@ menu_display(
 
 			y += font_large.height - 1;
 			
-			if ((unsigned)y > vram_bm.height - font_large.height) return;
+			if ((unsigned)y > vram_bm.height - font_large.height 
+				#if CONFIG_DEBUGMSG
+				&& !is_menu_active("VRAM")
+				#endif
+			) 
+				return;
 		}
 		menu = menu->next;
 	}
