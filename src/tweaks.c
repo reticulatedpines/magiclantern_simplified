@@ -127,6 +127,10 @@ expsim_toggle( void * priv )
 }*/
 int get_expsim_auto_value()
 {
+	extern int bulb_ramp_calibration_running; 
+	if (bulb_ramp_calibration_running) 
+		return 0; // temporarily disable ExpSim to make sure display gain will work
+	
 	#ifdef CONFIG_50D
 	if (is_movie_mode()) return expsim_setting;
 	#else
@@ -1043,16 +1047,6 @@ static void night_vision_print(
 void set_display_gain(int display_gain)
 {
 	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
-	
-	#ifdef CONFIG_600D
-	if (recording) return;
-	int zoom = lv_dispsize;
-	int zoom2 = zoom == 10 ? 5 : zoom == 5 ? 1 : 10;
-	msleep(100);
-	prop_request_change(PROP_LV_DISPSIZE, &zoom2, 4);
-	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-	if (!gui_menu_shown()) msleep(1000);
-	#endif
 }
 
 // 1024 = 0 EV

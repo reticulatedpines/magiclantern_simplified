@@ -3015,6 +3015,7 @@ static void bramp_plot_luma_ev_point(int luma, int color)
 	draw_circle(x, y, 6, COLOR_WHITE);
 }
 
+int bulb_ramp_calibration_running = 0;
 void bulb_ramping_init()
 {
 	if (bramp_init_done) return;
@@ -3023,6 +3024,7 @@ void bulb_ramping_init()
 
 	NotifyBox(100000, "Calibration...");
 	
+	bulb_ramp_calibration_running = 1;
 	set_shooting_mode(SHOOTMODE_P);
 	msleep(1000);
 	lens_set_rawiso(0);
@@ -3076,6 +3078,7 @@ calib_start:
 	if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
 
 	// calibration accepted :)
+	bulb_ramp_calibration_running = 0;
 	set_display_gain(0);
 	lens_set_ae(0);
 #ifdef CONFIG_500D
