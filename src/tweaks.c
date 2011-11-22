@@ -806,7 +806,7 @@ tweak_task( void* unused)
 		}
 		
 		// faster zoom in play mode
-		if (quickzoom && gui_state == GUISTATE_PLAYMENU)
+		if (quickzoom && PLAY_MODE)
 		{
 			if (get_zoom_in_pressed()) 
 			{

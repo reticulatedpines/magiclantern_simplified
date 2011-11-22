@@ -1254,7 +1254,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
-		//~ bmp_printf(FONT_LARGE, 0, 50, "%x ", LV_BOTTOM_BAR_STATE);
+		//~ bmp_printf(FONT_LARGE, 0, 50, "%8x ", YUV422_HD_BUFFER_DMA_ADDR);
 		extern int menu_upside_down;
 		if (menu_upside_down)
 		{
@@ -2139,7 +2139,7 @@ debug_init_stuff( void )
 
 
 //~ TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
-TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1d, 0x1000 );
+TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1e, 0x1000 );
 
 //~ CONFIG_INT( "debug.timed-start",	timed_start, 0 );
 /*

@@ -2491,7 +2491,7 @@ void zoom_overlay_toggle()
 	if (!zoom_overlay)
 	{
 		zoom_overlay_countdown = 0;
-		crop_set_dirty(10);
+		//~ crop_set_dirty(10);
 		//~ redraw_after(500);
 	}
 }
@@ -2851,7 +2851,6 @@ void draw_histogram_and_waveform()
 {
 	if (menu_active_and_not_hidden()) return;
 	if (!get_global_draw()) return;
-	if (should_draw_zoom_overlay()) return;
 	
 	if (hist_draw || waveform_draw)
 	{
@@ -2860,14 +2859,12 @@ void draw_histogram_and_waveform()
 	
 	if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
 	if (!get_global_draw()) return;
-	if (should_draw_zoom_overlay()) return;
 	
 	if( hist_draw)
 		BMP_LOCK( hist_draw_image( os.x_max - hist_width, os.y0 + 100, -1); )
 
 	if (menu_active_and_not_hidden()) return;
 	if (!get_global_draw()) return;
-	if (should_draw_zoom_overlay()) return;
 		
 	if( waveform_draw)
 		BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
@@ -3412,6 +3409,8 @@ livev_hipriority_task( void* unused )
 			if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
 			BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
 			zoom_overlay_dirty = 0;
+			crop_set_dirty(20); // don't draw cropmarks while magic zoom is active
+			// but redraw them after MZ is turned off
 		}
 		else
 		{
@@ -3431,22 +3430,22 @@ livev_hipriority_task( void* unused )
 				BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
 			}
 			//~ msleep(20);
-		
-			if (spotmeter_draw && k % 4 == 2)
-				BMP_LOCK( if (lv) spotmeter_step(); )
-
-			#ifdef CONFIG_60D
-			if (electronic_level && k % 4 == 3)
-				BMP_LOCK( show_electronic_level(); )
-			#endif
 		}
 
-		if (k % 4 == 3) rec_notify_continuous(0);
+		
+		if (spotmeter_draw && k % 8 == 3)
+			BMP_LOCK( if (lv) spotmeter_step(); )
+
+		#ifdef CONFIG_60D
+		if (electronic_level && k % 8 == 5)
+			BMP_LOCK( show_electronic_level(); )
+		#endif
+
+		if (k % 8 == 7) rec_notify_continuous(0);
 		
 		if (zoom_overlay_countdown)
 		{
 			zoom_overlay_countdown--;
-			crop_set_dirty(10);
 		}
 		
 		//~ if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
@@ -3570,7 +3569,7 @@ livev_lopriority_task( void* unused )
 #define HIPRIORITY_TASK_PRIO 0x19
 
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x1000 );
-TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
 /*static CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
 static unsigned int picstyle_disppreset = 0;
