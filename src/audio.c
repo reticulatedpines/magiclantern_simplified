@@ -383,7 +383,7 @@ int audio_meters_are_drawn()
 {
 	return 
     (
-     is_movie_mode() && cfg_draw_meters && do_draw_meters && get_global_draw() && !gui_menu_shown() && lv_dispsize == 1
+     is_movie_mode() && cfg_draw_meters && do_draw_meters && zebra_should_run() && !gui_menu_shown() && lv_dispsize == 1
      )
     ||
     (
