@@ -359,6 +359,8 @@
 
 #define PROP_ELECTRIC_SHUTTER 0x80040011
 
+#define PROP_MOVIE_SOUND_RECORD 0x205000E
+
 /** Properties */
 extern void
 prop_register_slave(

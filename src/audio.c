@@ -32,6 +32,9 @@
 #include "disable-this-module.h"
 #endif
 
+PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
+
 #ifdef CONFIG_500D
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
@@ -381,6 +384,9 @@ compute_audio_levels(
 
 int audio_meters_are_drawn()
 {
+	if (!SOUND_RECORDING_ENABLED)
+		return 0;
+
 	return 
     (
      is_movie_mode() && cfg_draw_meters && do_draw_meters && zebra_should_run() && !gui_menu_shown() && lv_dispsize == 1
@@ -995,6 +1001,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
                "Analog Gain   : %d dB",
                mgain_index2gain(gain_index)
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 	menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
 
@@ -1036,6 +1043,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                priv == &dgain_l ? "L" : "R",
                val
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 	if (!alc_enable) menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 	else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
 }
@@ -1051,6 +1059,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                "Output volume : %d dB",
                2 * *(unsigned*) priv
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 	if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
 	else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Audio monitoring is disabled");
 }
@@ -1065,6 +1074,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
                "Audio Meters  : %s",
                v ? "ON" : "OFF"
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 	menu_draw_icon(x, y, MNI_BOOL_GDR(v));
 }
 
@@ -1099,6 +1109,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
                "AGC           : %s",
                alc_enable ? "ON " : "OFF"
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 }
 
 
@@ -1117,6 +1128,7 @@ audio_input_display( void * priv, int x, int y, int selected )
                    (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
                     "error")))))
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 	menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
 }
 static void
@@ -1188,6 +1200,7 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
                "Monitoring-USB: %s",
                audio_monitoring ? "ON" : "OFF"
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 }
 
 static void
@@ -1200,6 +1213,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
                "Mic Power     : %s",
                mic_pow ? "ON (Low Z)" : "OFF (High Z)"
                );
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
 	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic");
 }
 
