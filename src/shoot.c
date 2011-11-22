@@ -2596,7 +2596,7 @@ bulb_take_pic(int duration)
 	//~ #endif
 	
 	msleep(100);
-	if (beep_enabled) beep();
+	//~ if (beep_enabled) beep();
 	
 	int d0 = drive_mode;
 	lens_set_drivemode(DRIVE_SINGLE);
@@ -2628,7 +2628,7 @@ bulb_take_pic(int duration)
 	//~ msleep(100);
 	//~ #ifdef CONFIG_600D
 	lens_wait_readytotakepic(64);
-	if (beep_enabled) beep();
+	//~ if (beep_enabled) beep();
 	restore_af_button_assignment();
 	//~ #endif
 	get_out_of_play_mode(1000);
