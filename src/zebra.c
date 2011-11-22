@@ -3581,7 +3581,7 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
 
 int unused = 0;
 unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay, &electronic_level, &defish_preview};
-int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2,                    1,                 1};
+int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            3,                   2,                    1,                 1};
 
 void update_disp_mode_bits_from_params()
 {
