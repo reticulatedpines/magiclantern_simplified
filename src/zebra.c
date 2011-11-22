@@ -3409,7 +3409,7 @@ livev_hipriority_task( void* unused )
 			if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
 			BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
 			zoom_overlay_dirty = 0;
-			crop_set_dirty(20); // don't draw cropmarks while magic zoom is active
+			crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
 			// but redraw them after MZ is turned off
 		}
 		else
