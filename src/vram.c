@@ -89,9 +89,6 @@ PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
-void update_vram_params_calc();
-
-// these buffer sizes include any black bars
 void update_vram_params()
 {
 	#if CONFIG_DEBUGMSG
@@ -110,8 +107,11 @@ void update_vram_params()
 	os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
 	os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-	os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
-	if (PLAY_MODE) os.y0 = 54; // black bar is at the top in play mode
+	if (!EXT_MONITOR_CONNECTED)
+	{
+		os.y_ex = 480 * 8/9; // BMP is 4:3, image is 3:2;
+		if (PLAY_MODE) os.y0 = 54; // black bar is at the top in play mode
+	}
 #else
 	if (PLAY_MODE && hdmi_code == 2)
 	{
@@ -126,17 +126,13 @@ void update_vram_params()
 	os.off_1610 = (os.y_ex - os.y_ex * 3/2*10/16) / 2;
 
 	// LV buffer (used for display)
-#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-	vram_lv.width  = 720;
-	vram_lv.height = 480;
-#endif
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 540 : 720;
-	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
-#endif
+	// these buffer sizes include any black bars
 #ifdef CONFIG_1100D
 	vram_lv.width  = 720;
 	vram_lv.height = 240;
+#else
+	vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 540 : 720;
+	vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
 #endif
 
 
@@ -201,21 +197,6 @@ void update_vram_params()
 	//~ update_vram_params_calc();
 }
 
-void update_vram_params_calc()
-{
-
-/*
-	#ifndef CONFIG_50D
-	if (recording) // 3:2 -> 16:9 compensation
-	{
-		lv2hd.sy = lv2hd.sy * 2*16/3/9;
-		lv2hd.ty -= BM2HD_DY(os.off_169);
-		if (ext_monitor_rca) lv2hd.ty -= pal ? 32 : 16; // fine tune
-		if (hdmi_code == 2) lv2hd.ty = -160;
-	}
-	#endif
-	*/
-}
 
 void trans_test()
 {
@@ -332,6 +313,16 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
+
+// single-buffered HD buffer
+#if defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D2) || defined(CONFIG_50D) 
+	int hd = YUV422_HD_BUFFER_DMA_ADDR;
+	if (IS_HD_BUFFER(hd))
+		return hd;
+	else
+		return YUV422_HD_BUFFER_1;
+#else // double-buffered HD buffer (works better for silent pics)
+
 	static int idle_buf = 0;
 	static int current_buf = 0;
 	
@@ -353,6 +344,7 @@ void* get_422_hd_idle_buf()
 	#endif
 	
 	return (void*)idle_buf;
+#endif
 }
 
 
