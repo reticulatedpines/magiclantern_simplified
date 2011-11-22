@@ -27,7 +27,7 @@ You will still be able to access all Canon functionality.
 
 To go back to Canon firmware, you may:
 
-* Press and hold ``MENU`` at startup to bypass ML only once (for the current session).
+* Press and hold ``SET`` at startup to bypass ML only once (for the current session).
 * Format your card in the camera and choose to remove Magic Lantern (press ``Q``)
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
