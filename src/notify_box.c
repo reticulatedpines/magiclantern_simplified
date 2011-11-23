@@ -50,6 +50,7 @@ void NotifyBox_task(void* priv)
         {
             bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, notify_box_msg);
             msleep(50);
+            crop_set_dirty(10); // should match the value from redraw_do
             if (notify_box_stop_request) break;
         }
         redraw();
