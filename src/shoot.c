@@ -2864,6 +2864,10 @@ seconds_clock_task( void* unused )
 
 		if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown())
 			card_led_blink(1, 50, 0);
+		
+		#ifdef CONFIG_60D
+		RefreshBatteryLevel_1Hz();
+		#endif
 	}
 }
 TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );

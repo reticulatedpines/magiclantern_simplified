@@ -3359,7 +3359,7 @@ void reenable_idle_globaldraw_after(int msec)
 	idle_globaldraw_en();
 }
 
-int handle_pause_zebras(struct event * event)
+/*int handle_pause_zebras(struct event * event)
 {
 	return 1; // not needed with dynamic BMP mirror
 	
@@ -3373,7 +3373,7 @@ int handle_pause_zebras(struct event * event)
 		return 1;
 	}
 	return 1;
-}
+}*/
 
 
 // Items which need a high FPS

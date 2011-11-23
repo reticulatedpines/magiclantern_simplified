@@ -510,7 +510,7 @@ void draw_ml_bottombar(int double_buffering)
 		int col = battery_level_bars == 0 ? COLOR_RED :
 				  battery_level_bars == 1 ? COLOR_YELLOW : 
 				#if defined(CONFIG_60D)
-				  battery_level_bars == 2 ? COLOR_WHITE : 
+				  bat <= 70 ? COLOR_WHITE : 
 				#endif
 				  COLOR_GREEN1;
 		

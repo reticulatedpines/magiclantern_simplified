@@ -1580,6 +1580,27 @@ static void efictemp_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+static void batt_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int l = GetBatteryLevel();
+	int r = GetBatteryTimeRemaining();
+	int d = GetBatteryDrainRate();
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Battery level: %d%%,%dh%02dm%02ds,%d%%/h",
+		l, 0, 
+		r / 3600, (r % 3600) / 60, (r % 3600) % 60,
+		d, 0
+	);
+	menu_draw_icon(x, y, MNI_ON, 0);
+}
+
 extern int menu_upside_down;
 static void menu_upside_down_print(
 	void *			priv,
@@ -1862,6 +1883,14 @@ struct menu_entry debug_menus[] = {
 		.help = "EFIC temperature, in raw units (don't rely on it).",
 		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
+	#ifdef CONFIG_60D
+	{
+		.name = "Battery remaining",
+		.display = batt_display,
+		.help = "Battery remaining. Wait for 2% discharge before reading.",
+		.essential = FOR_MOVIE | FOR_PHOTO,
+	},
+	#endif
 	#if CONFIG_DEBUGMSG
 	{
 		.name = "PROP display",
