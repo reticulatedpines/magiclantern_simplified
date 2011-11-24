@@ -55,6 +55,7 @@ ML_OBJS-y = \
 	morse.o \
 	liveview.o \
 	reloc.o \
+	aj_port.o \
 
 #include generic rules and definitions
 

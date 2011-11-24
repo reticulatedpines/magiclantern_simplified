@@ -54,6 +54,7 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	morse.o \
+	aj_port.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

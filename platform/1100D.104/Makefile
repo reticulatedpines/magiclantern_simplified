@@ -54,6 +54,7 @@ ML_OBJS-y = \
 	bootflags.o \
 	vram.o \
 	morse.o \
+	aj_port.o \
 
 #include generic rules and definitions
 
