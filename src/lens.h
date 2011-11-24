@@ -128,7 +128,8 @@ lens_set_rawaperture(
 )
 {
 	lens_wait_readytotakepic(64);
-	prop_request_change( PROP_APERTURE, &aperture, sizeof(aperture) );
+	if (!CONTROL_BV) prop_request_change( PROP_APERTURE, &aperture, sizeof(aperture) );
+	else { CONTROL_BV_AV = aperture; bv_update(); }
 }
 
 
@@ -139,7 +140,9 @@ lens_set_rawiso(
 {
 	lens_wait_readytotakepic(64);
 	if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
-	prop_request_change( PROP_ISO, &iso, 4 );
+
+	if (!CONTROL_BV) prop_request_change( PROP_ISO, &iso, 4 );
+	else { CONTROL_BV_ISO = MAX(iso, 72); bv_update(); }
 	//~ msleep(100);
 }
 
@@ -151,7 +154,8 @@ lens_set_rawshutter(
 {
 	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	lens_wait_readytotakepic(64);
-	prop_request_change( PROP_SHUTTER, &shutter, 4 );
+	if (!CONTROL_BV) prop_request_change( PROP_SHUTTER, &shutter, 4 );
+	else { CONTROL_BV_TV = shutter; bv_update(); }
 	msleep(100);
 }
 

@@ -1774,16 +1774,22 @@ aperture_toggle( int sign)
 	int a = lens_info.raw_aperture;
 	int a0 = a;
 
-	int k;
-	for (k = 0; k < 20; k++)
+	if (CONTROL_BV)
 	{
-		a += sign;
-		if (a > amax) a = amin;
-		if (a < amin) a = amax;
+		lens_set_rawaperture(lens_info.raw_aperture + sign);
+	}
+	else
+	{
+		for (int k = 0; k < 20; k++)
+		{
+			a += sign;
+			if (a > amax) a = amin;
+			if (a < amin) a = amax;
 
-		lens_set_rawaperture(a);
-		msleep(100);
-		if (lens_info.raw_aperture != a0) break;
+			lens_set_rawaperture(a);
+			msleep(100);
+			if (lens_info.raw_aperture != a0) break;
+		}
 	}
 	menu_show_only_selected();
 }

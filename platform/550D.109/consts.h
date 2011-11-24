@@ -267,3 +267,10 @@
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1E774+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_Q_ALT // what button to use for zebras in Play mode
+
+// manual exposure overrides
+#define CONTROL_BV      (*(uint16_t*)0x52b6) // EP_SetControlBv
+#define CONTROL_BV_TV   (*(uint16_t*)0x52b8) // EP_SetControlParam
+#define CONTROL_BV_AV   (*(uint16_t*)0x52ba)
+#define CONTROL_BV_ISO  (*(uint16_t*)0x52bc)
+#define CONTROL_BV_ZERO (*(uint16_t*)0x52be)

@@ -209,3 +209,10 @@
 // winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x12BBC*/ = 0
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
+
+// manual exposure overrides
+#define CONTROL_BV      (*(uint16_t*)0x473E) // EP_SetControlBv
+#define CONTROL_BV_TV   (*(uint16_t*)0x4740) // EP_SetControlParam
+#define CONTROL_BV_AV   (*(uint16_t*)0x4742)
+#define CONTROL_BV_ISO  (*(uint16_t*)0x4744)
+#define CONTROL_BV_ZERO (*(uint16_t*)0x4746)

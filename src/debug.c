@@ -1557,7 +1557,57 @@ void menu_kill_flicker()
 	canon_gui_disable_front_buffer();
 }
 
+
+static void bv_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Exposure Override : %s", 
+		CONTROL_BV ? "ON" : "OFF"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(CONTROL_BV), 0);
+}
+
+static void bv_toggle()
+{
+	call("lvae_setcontrolbv", !CONTROL_BV);
+	if (CONTROL_BV)
+	{
+		CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : 111;
+		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
+		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
+		CONTROL_BV_ZERO = 0;
+	}
+	else
+	{
+		CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
+	}
+	bv_update();
+	menu_show_only_selected();
+}
+
+void bv_update()
+{
+	if (CONTROL_BV)
+	{
+		lensinfo_set_shutter(CONTROL_BV_TV);
+		lensinfo_set_aperture(CONTROL_BV_AV);
+		lensinfo_set_iso(CONTROL_BV_ISO);
+	}
+}
+
 struct menu_entry debug_menus[] = {
+	{
+		.select		= bv_toggle,
+		.display	= bv_display,
+		.help = "Unlocks full manual exposure controls."
+	},
 	{
 		.priv		= "Flashlight [SET/Q]",
 		.select		= flashlight_frontled,

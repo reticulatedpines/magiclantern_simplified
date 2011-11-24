@@ -1043,12 +1043,30 @@ RAWVAL_FUNC(aperture)
 #define RAW2VALUE(param,rawvalue) values_##param[raw2index_##param(rawvalue)]
 #define VALUE2RAW(param,value) val2raw_##param(value)
 
-PROP_HANDLER( PROP_ISO )
+void lensinfo_set_iso(int raw)
 {
-	const uint32_t raw = *(uint32_t *) buf;
 	lens_info.raw_iso = raw;
 	lens_info.iso = RAW2VALUE(iso, raw);
 	update_stuff();
+}
+
+void lensinfo_set_shutter(int raw)
+{
+	lens_info.raw_shutter = raw;
+	lens_info.shutter = RAW2VALUE(shutter, raw);
+	update_stuff();
+}
+
+void lensinfo_set_aperture(int raw)
+{
+	lens_info.raw_aperture = raw;
+	lens_info.aperture = RAW2VALUE(aperture, raw);
+	update_stuff();
+}
+
+PROP_HANDLER( PROP_ISO )
+{
+	if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
 	return prop_cleanup( token, property );
 }
 
@@ -1063,19 +1081,13 @@ PROP_HANDLER( PROP_ISO_AUTO )
 
 PROP_HANDLER( PROP_SHUTTER_ALSO )
 {
-	const uint32_t raw = *(uint32_t *) buf;
-	lens_info.raw_shutter = raw;
-	lens_info.shutter = RAW2VALUE(shutter, raw);
-	update_stuff();
+	if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
 	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_APERTURE2 )
 {
-	const uint32_t raw = *(uint32_t *) buf;
-	lens_info.raw_aperture = raw;
-	lens_info.aperture = RAW2VALUE(aperture, raw);
-	update_stuff();
+	if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
 	return prop_cleanup( token, property );
 }
 
