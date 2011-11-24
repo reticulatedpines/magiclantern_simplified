@@ -85,7 +85,14 @@ char vram_param_names[][12] = {
 	"lv2hd.sx* ", "lv2hd.sy* ",
 };
 
-PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
+int digital_zoom_ratio = 0;
+
+PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
+{
+	digital_zoom_ratio = buf[0];
+	vram_params_set_dirty();
+	return prop_cleanup(token, property);
+}
 
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
@@ -426,7 +433,6 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 	vram_params_set_dirty();
 	return prop_cleanup(token, property);
 }
-
 
 static void
 vram_print(
