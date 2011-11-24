@@ -1399,7 +1399,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
 			falsecolor_palette == 0 ? "Marshal" :
 			falsecolor_palette == 1 ? "SmallHD" :
 			falsecolor_palette == 2 ? "50-55%" :
-			falsecolor_palette == 3 ? "66-72%" :
+			falsecolor_palette == 3 ? "67-72%" :
 			falsecolor_palette == 4 ? "Banding" :
 			falsecolor_palette == 5 ? "GreenSc" : "Unk"
 			)
