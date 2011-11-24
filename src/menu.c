@@ -493,22 +493,22 @@ menus_display(
 		);
 		if (!show_only_selected)
 		{
-			int w = fontspec_font( fontspec )->width * 6 + 10;
+			int w = fontspec_font( fontspec )->width * 6;
 			//int h = fontspec_font( fontspec )->height;
 			int icon_w = 0;
 			if (menu->icon)
 			{
-				bmp_fill(bg, x, y, 200, 40);
+				bmp_fill(bg, x+1, y, 200, 40);
 				if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
 				else icon_w = bfnt_draw_char(menu->icon, x, y, fg, bg);
 			}
 			if (!menu->icon || menu->selected)
 			{
-				bfnt_puts(menu->name, x + icon_w + 5, y, fg, bg);
+				bfnt_puts(menu->name, x + icon_w, y, fg, bg);
 				//~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
 				x += w;
 			}
-			x += 49;
+			x += 47;
 			//~ if (menu->selected)
 			//~ {
 				//~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
@@ -1030,6 +1030,7 @@ menu_init( void )
 	menu_find_by_name( "Focus", ICON_SHARPNESS );
 	//~ menu_find_by_name( "LUA" );
 	//menu_find_by_name( "Games" );
+	menu_find_by_name( "Display", ICON_MONITOR );
 	menu_find_by_name( "Tweaks", ICON_SMILE );
 	menu_find_by_name( "Play", ICON_ML_PLAY );
 	menu_find_by_name( "Config", ICON_CF );

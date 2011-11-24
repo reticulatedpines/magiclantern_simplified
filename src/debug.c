@@ -37,7 +37,6 @@ void fake_halfshutter_step();
 
 
 //~ CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
-int fake_halfshutter = 0;
 
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
@@ -77,7 +76,7 @@ static void dm_toggle(void* priv)
 //~ extern void bootdisk_disable();
 
 
-static void take_screenshot( void * priv )
+void take_screenshot( void * priv )
 {
 	Beep();
 	call( "dispcheck" );
@@ -1156,70 +1155,6 @@ void roll_spy()
 }
 #endif
 
-// reverse arrow keys
-int handle_upside_down(struct event * event)
-{
-	// only reverse first arrow press
-	// then wait for unpress event (or different arrow press) before reversing again
-	
-	extern int menu_upside_down;
-	static int last_arrow_faked = 0;
-
-	if (menu_upside_down && !IS_FAKE(event) && last_arrow_faked)
-	{
-		switch (event->param)
-		{
-			#ifdef BGMT_UNPRESS_UDLR
-			case BGMT_UNPRESS_UDLR:
-			#else
-			case BGMT_UNPRESS_LEFT:
-			case BGMT_UNPRESS_RIGHT:
-			case BGMT_UNPRESS_UP:
-			case BGMT_UNPRESS_DOWN:
-			#endif
-				last_arrow_faked = 0;
-				return 1;
-		}
-	}
-
-	if (menu_upside_down && !IS_FAKE(event) && last_arrow_faked != event->param)
-	{
-		switch (event->param)
-		{
-			case BGMT_PRESS_LEFT:
-				last_arrow_faked = BGMT_PRESS_RIGHT;
-				break;
-			case BGMT_PRESS_RIGHT:
-				last_arrow_faked = BGMT_PRESS_LEFT;
-				break;
-			case BGMT_PRESS_UP:
-				last_arrow_faked = BGMT_PRESS_DOWN;
-				break;
-			case BGMT_PRESS_DOWN:
-				last_arrow_faked = BGMT_PRESS_UP;
-				break;
-			#ifdef BGMT_PRESS_UP_LEFT
-			case BGMT_PRESS_UP_LEFT:
-				last_arrow_faked = BGMT_PRESS_DOWN_RIGHT;
-				break;
-			case BGMT_PRESS_DOWN_RIGHT:
-				last_arrow_faked = BGMT_PRESS_UP_LEFT;
-				break;
-			case BGMT_PRESS_UP_RIGHT:
-				last_arrow_faked = BGMT_PRESS_DOWN_LEFT;
-				break;
-			case BGMT_PRESS_DOWN_LEFT:
-				last_arrow_faked = BGMT_PRESS_UP_RIGHT;
-				break;
-			#endif
-			default:
-				return 1;
-		}
-		fake_simple_button(last_arrow_faked); return 0;
-	}
-
-	return 1;
-}
 
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
@@ -1255,19 +1190,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
 		//~ bmp_printf(FONT_LARGE, 0, 50, "%8x ", YUV422_HD_BUFFER_DMA_ADDR);
-		extern int menu_upside_down;
-		if (menu_upside_down)
-		{
-			if (!gui_menu_shown())
-			{
-				bmp_draw_to_idle(1);
-				canon_gui_disable_front_buffer();
-				BMP_LOCK(
-					bmp_flip(bmp_vram_real(), bmp_vram_idle());
-				)
-			}
-			//~ msleep(100);
-		}
 
 		if (get_global_draw())
 		{
@@ -1347,14 +1269,11 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		}
 		#endif
 		
-		if (fake_halfshutter)
-			fake_halfshutter_step(); // this one should msleep as needed
-		else
-			msleep(200);
+		msleep(200);
 	}
 }
 
-static void screenshot_start(void* priv)
+void screenshot_start(void* priv)
 {
 	screenshot_sec = 10;
 }
@@ -1380,81 +1299,7 @@ spy_print(
 	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
-static void
-fake_halfshutter_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"HalfPress Shutter: %s",
-		fake_halfshutter == 1 ? "sticky" : 
-		fake_halfshutter == 2 ? "every second" : 
-		fake_halfshutter == 3 ? "every 200ms" : 
-		fake_halfshutter == 4 ? "every 20ms" : 
-		"OFF"
-	);
-}
 
-void hs_show()
-{
-	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
-}
-void hs_hide()
-{
-	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
-}
-
-void 
-fake_halfshutter_step()
-{
-	if (gui_menu_shown()) return;
-	if (fake_halfshutter >= 2)
-	{
-		if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !get_halfshutter_pressed())
-		hs_show();
-		SW1(1,5);
-		SW1(0,0);
-		hs_hide();
-		if (fake_halfshutter == 2) msleep(1000);
-		else if (fake_halfshutter == 3) msleep(200);
-		else msleep(20);
-	}
-	else if (fake_halfshutter == 1) // sticky
-	{
-		static int state = 0;
-		// 0: allow 0->1, disallow 1->0 (first press)
-		// 1: allow everything => reset things (second presss)
-
-		static int old_value = 0;
-		int hs = HALFSHUTTER_PRESSED;
-		
-		if (hs) hs_show();
-		else if (old_value) redraw();
-		
-		if (hs != old_value) // transition
-		{
-			if (state == 0)
-			{
-				if (old_value && !hs)
-				{
-					card_led_on();
-					SW1(1,50);
-					state = 1;
-				}
-			}
-			else
-			{
-				if (hs == 0) { state = 0; card_led_off(); }
-			}
-		}
-		old_value = hs;
-	}
-}
 
 PROP_INT(PROP_STROBO_REDEYE, red_eye);
 void flashlight_frontled_task()
@@ -1525,10 +1370,6 @@ static void flashlight_lcd(void* priv)
 }
 
 
-void NormalDisplay();
-void MirrorDisplay();
-void ReverseDisplay();
-
 static void meminfo_display(
 	void *			priv,
 	int			x,
@@ -1593,29 +1434,14 @@ static void batt_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Battery level: %d%%,%dh%02dm%02ds,%d%%/h",
+		"Battery level: %d%%, %dh%02dm, %d%%/h",
 		l, 0, 
-		r / 3600, (r % 3600) / 60, (r % 3600) % 60,
+		r / 3600, (r % 3600) / 60,
 		d, 0
 	);
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
-extern int menu_upside_down;
-static void menu_upside_down_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Upside-down mode : %s",
-		menu_upside_down ? "ON" : "OFF"
-	);
-}
 
 #ifdef CONFIG_KILL_FLICKER
 CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
@@ -1739,50 +1565,6 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "Turn on the front LED [SET] or make display bright [Q]."
 	},
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-	{
-		.priv		= "Display: Normal/Reverse/Mirror",
-		.select		= NormalDisplay,
-		.select_reverse = ReverseDisplay,
-		.select_auto = MirrorDisplay,
-		.display	= menu_print,
-		.help = "Display image: Normal [SET] / Reverse [PLAY] / Mirror [Q]"
-	},
-#endif
-	{
-		.name = "Upside-down mode",
-		.priv = &menu_upside_down,
-		.display = menu_upside_down_print,
-		.select = menu_binary_toggle,
-		.help = "Displays ML menu upside down. Half-press shutter in LV.",
-	},
-	{
-		.name		= "Half-press shutter",
-		.priv = &fake_halfshutter,
-		.select		= menu_quinternary_toggle,
-		.select_reverse = menu_quinternary_toggle_reverse,
-		.display	= fake_halfshutter_print,
-		.help = "Emulates half-shutter press, or make half-shutter sticky."
-	},
-#ifdef CONFIG_KILL_FLICKER
-	{
-		.name		= "Kill Canon GUI",
-		.priv		= &kill_canon_gui_mode,
-		.select		= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
-		.display	= kill_canon_gui_print,
-		.help = "Workarounds for disabling Canon graphics elements."
-	},
-#endif
-	{
-		.name = "Screenshot (10 s)",
-		.priv		= "Screenshot (10 s)",
-		.select		= screenshot_start,
-		.select_auto = take_screenshot,
-		.display	= menu_print,
-		.help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
-		.essential = FOR_MOVIE | FOR_PHOTO,
-	},
 #if CONFIG_DEBUGMSG
 	{
 		.name = "Draw palette",
@@ -1887,7 +1669,7 @@ struct menu_entry debug_menus[] = {
 	{
 		.name = "Battery remaining",
 		.display = batt_display,
-		.help = "Battery remaining. Wait for 2% discharge before reading.",
+		.help = "Battery remaining. Wait for 2%% discharge before reading.",
 		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
 	#endif

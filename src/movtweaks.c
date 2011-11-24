@@ -428,7 +428,7 @@ hdmi_force_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Force HDMI-VGA: %s [code=%d]", 
+		"Force HDMI-VGA : %s [code=%d]", 
 		hdmi_force_vga ? "ON" : "OFF",
 		hdmi_code
 	);
@@ -455,10 +455,10 @@ screen_layout_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"ML info bars  : %s", 
-		screen_layout == SCREENLAYOUT_3_2 ?        "Inside 3:2,top/bot" :
-		screen_layout == SCREENLAYOUT_16_10 ?      "Inside 16:10,top/b" :
-		screen_layout == SCREENLAYOUT_16_9 ?       "Inside 16:9,top/bo" :
+		"ML info bars   : %s", 
+		screen_layout == SCREENLAYOUT_3_2 ?        "Inside 3:2,  t/b" :
+		screen_layout == SCREENLAYOUT_16_10 ?      "Inside 16:10,t/b" :
+		screen_layout == SCREENLAYOUT_16_9 ?       "Inside 16:9, t/b" :
 		screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Under 3:2, bottom " :
 		screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9,bottom" :
 		 "err"
@@ -776,6 +776,17 @@ static struct menu_entry mov_menus[] = {
 		.select		= menu_ternary_toggle,
 		.help = "Force LiveView in movie mode, even with an unchipped lens."
 	},
+};
+
+static struct menu_entry display_menus[] = {
+	{
+		.name = "Screen Layout",
+		.display = screen_layout_display, 
+		.select = screen_layout_toggle,
+		.select_reverse = screen_layout_toggle_reverse,
+		.help = "Position of top/bottom bars, useful for external displays.",
+		.essential = FOR_EXT_MONITOR,
+	},
 	{
 		.name = "Force HDMI-VGA",
 		.priv = &hdmi_force_vga, 
@@ -784,19 +795,11 @@ static struct menu_entry mov_menus[] = {
 		.help = "Force low resolution (720x480) on HDMI displays.",
 		.essential = FOR_EXT_MONITOR,
 	},
-	{
-		.name = "Screen Layout",
-		.display = screen_layout_display, 
-		.select = screen_layout_toggle,
-		.select_reverse = screen_layout_toggle_reverse,
-		.help = "Position of top/bottom bars, useful for external displays.",
-		.essential = FOR_EXT_MONITOR,
-	}
 };
-
 void movtweak_init()
 {
 	menu_add( "Movie", mov_menus, COUNT(mov_menus) );
+	menu_add( "Display", display_menus, COUNT(display_menus) );
 }
 
 INIT_FUNC(__FILE__, movtweak_init);

@@ -155,7 +155,7 @@ expsim_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Exposure Simulation : %s",
+		"Expo.Simulation: %s",
 		expsim == 2 ? "Movie" :
 		expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
 		get_expsim_auto_value() ? "ON" : "OFF"
@@ -415,7 +415,7 @@ void show_display_gain()
 {
 	int gain_ev = 0;
 	if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
-	NotifyBox(2000, "Display Gain: %s%d EV", display_gain ? "+" : "", gain_ev);
+	NotifyBox(2000, "Display Gain : %s%d EV", display_gain ? "+" : "", gain_ev);
 	redraw();
 }
 
@@ -630,7 +630,7 @@ display_off_by_halfshutter_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"DispOFF in PhotoMode: %s", // better name for this?
+		"DispOFF(Photo) : %s", // better name for this?
 		display_off_by_halfshutter_enabled ? "HalfShutter" : "OFF"
 	);
 	if (display_off_by_halfshutter_enabled && lv)
@@ -784,6 +784,86 @@ int handle_lv_play(struct event * event)
 }
 #endif
 
+
+// don't save it in config file, it's easy to forget it activated
+int fake_halfshutter = 0;
+
+static void
+fake_halfshutter_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Shutter Half-Press  : %s",
+		fake_halfshutter == 1 ? "Sticky" : 
+		fake_halfshutter == 2 ? "Every second" : 
+		fake_halfshutter == 3 ? "Every 200ms" : 
+		fake_halfshutter == 4 ? "Every 20ms" : 
+		"OFF"
+	);
+}
+
+void hs_show()
+{
+	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
+}
+void hs_hide()
+{
+	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
+}
+
+void 
+fake_halfshutter_step()
+{
+	if (gui_menu_shown()) return;
+	if (fake_halfshutter >= 2)
+	{
+		if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !get_halfshutter_pressed())
+		hs_show();
+		SW1(1,5);
+		SW1(0,0);
+		hs_hide();
+		if (fake_halfshutter == 2) msleep(1000);
+		else if (fake_halfshutter == 3) msleep(200);
+		else msleep(20);
+	}
+	else if (fake_halfshutter == 1) // sticky
+	{
+		static int state = 0;
+		// 0: allow 0->1, disallow 1->0 (first press)
+		// 1: allow everything => reset things (second presss)
+
+		static int old_value = 0;
+		int hs = HALFSHUTTER_PRESSED;
+		
+		if (hs) hs_show();
+		else if (old_value) redraw();
+		
+		if (hs != old_value) // transition
+		{
+			if (state == 0)
+			{
+				if (old_value && !hs)
+				{
+					card_led_on();
+					SW1(1,50);
+					state = 1;
+				}
+			}
+			else
+			{
+				if (hs == 0) { state = 0; card_led_off(); }
+			}
+		}
+		old_value = hs;
+	}
+}
+
 static void
 tweak_task( void* unused)
 {
@@ -792,7 +872,10 @@ tweak_task( void* unused)
 	int k;
 	for (k = 0; ; k++)
 	{
-		msleep(50);
+		if (fake_halfshutter)
+			fake_halfshutter_step(); // this one should msleep as needed
+		else
+			msleep(50);
 		
 		if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
 		{
@@ -865,6 +948,8 @@ tweak_task( void* unused)
 		if (display_off_by_halfshutter_enabled)
 			display_off_by_halfshutter();
 		#endif
+		
+		upside_down_step();
 		
 		if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
 			idle_wakeup_reset_counters();
@@ -1011,7 +1096,7 @@ display_dont_mirror_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Mirrored Display    : %s", 
+		"Auto Mirroring : %s", 
 		display_dont_mirror ? "Don't allow": "Allow"
 	);
 	menu_draw_icon(x, y, MNI_BOOL(!display_dont_mirror), 0);
@@ -1097,7 +1182,7 @@ static void display_gain_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LVGain (NightVision): %s%d EV",
+		"LV Display Gain: %s%d EV",
 		gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
 		ABS(gain_ev)
 	);
@@ -1157,7 +1242,6 @@ void digital_zoom_shortcut_display(
 	);
 }
 
-
 struct menu_entry tweak_menus[] = {
 /*	{
 		.name = "Night Vision Mode",
@@ -1167,29 +1251,20 @@ struct menu_entry tweak_menus[] = {
 		.help = "Maximize LV display gain for framing in darkness (photo)"
 	},*/
 	{
-		.name = "LVGain (NightVision)", 
-		.priv = &display_gain,
-		.select = display_gain_toggle_forward, 
-		.select_reverse = display_gain_toggle_reverse,
-		.select_auto = display_gain_reset,
-		.display = display_gain_print, 
-		.help = "Boosts LV digital display gain (Photo, Movie w.AutoISO)",
-	},
-	{
-		.name = "Exposure Simulation",
-		.priv = &expsim_setting,
-		.select = expsim_toggle,
-		.select_reverse = expsim_toggle_reverse,
-		.display = expsim_display,
-		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
-	},
-	{
 		.name = "DOF Preview", 
 		.priv = &dofpreview_sticky, 
 		.select = menu_binary_toggle, 
 		.select_auto = dofp_lock,
 		.display = dofp_display,
 		.help = "Sticky = click DOF to toggle. Or, press [Q] to lock now.",
+	},
+	{
+		.name		= "Half-press shutter",
+		.priv = &fake_halfshutter,
+		.select		= menu_quinternary_toggle,
+		.select_reverse = menu_quinternary_toggle_reverse,
+		.display	= fake_halfshutter_print,
+		.help = "Emulates half-shutter press, or make half-shutter sticky."
 	},
 	/*{
 		.name = "Electric Shutter",
@@ -1259,22 +1334,6 @@ struct menu_entry tweak_menus[] = {
 		.select		= menu_binary_toggle,
 		.help = "Swaps MENU and ERASE buttons."
 	},
-	{
-		.name = "DispOFF in PhotoMode",
-		.priv = &display_off_by_halfshutter_enabled,
-		.display = display_off_by_halfshutter_print, 
-		.select = menu_binary_toggle,
-		.help = "Outside LV, turn off display with long half-shutter press."
-	},
-	#endif
-	#if defined(CONFIG_60D) || defined(CONFIG_600D)
-	{
-		.name = "Mirrored Display",
-		.priv = &display_dont_mirror,
-		.display = display_dont_mirror_display, 
-		.select = menu_binary_toggle,
-		.help = "Prevents display mirroring, which may reverse ML texts."
-	},
 	#endif
 	{
 		.name = "LV Auto ISO (M mode)",
@@ -1295,6 +1354,185 @@ struct menu_entry tweak_menus[] = {
 	#endif
 };
 
+
+
+extern int menu_upside_down;
+static void menu_upside_down_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"UpsideDown mode: %s",
+		menu_upside_down ? "ON" : "OFF"
+	);
+}
+
+void NormalDisplay();
+void MirrorDisplay();
+void ReverseDisplay();
+
+// reverse arrow keys
+int handle_upside_down(struct event * event)
+{
+	// only reverse first arrow press
+	// then wait for unpress event (or different arrow press) before reversing again
+	
+	extern int menu_upside_down;
+	static int last_arrow_faked = 0;
+
+	if (menu_upside_down && !IS_FAKE(event) && last_arrow_faked)
+	{
+		switch (event->param)
+		{
+			#ifdef BGMT_UNPRESS_UDLR
+			case BGMT_UNPRESS_UDLR:
+			#else
+			case BGMT_UNPRESS_LEFT:
+			case BGMT_UNPRESS_RIGHT:
+			case BGMT_UNPRESS_UP:
+			case BGMT_UNPRESS_DOWN:
+			#endif
+				last_arrow_faked = 0;
+				return 1;
+		}
+	}
+
+	if (menu_upside_down && !IS_FAKE(event) && last_arrow_faked != event->param)
+	{
+		switch (event->param)
+		{
+			case BGMT_PRESS_LEFT:
+				last_arrow_faked = BGMT_PRESS_RIGHT;
+				break;
+			case BGMT_PRESS_RIGHT:
+				last_arrow_faked = BGMT_PRESS_LEFT;
+				break;
+			case BGMT_PRESS_UP:
+				last_arrow_faked = BGMT_PRESS_DOWN;
+				break;
+			case BGMT_PRESS_DOWN:
+				last_arrow_faked = BGMT_PRESS_UP;
+				break;
+			#ifdef BGMT_PRESS_UP_LEFT
+			case BGMT_PRESS_UP_LEFT:
+				last_arrow_faked = BGMT_PRESS_DOWN_RIGHT;
+				break;
+			case BGMT_PRESS_DOWN_RIGHT:
+				last_arrow_faked = BGMT_PRESS_UP_LEFT;
+				break;
+			case BGMT_PRESS_UP_RIGHT:
+				last_arrow_faked = BGMT_PRESS_DOWN_LEFT;
+				break;
+			case BGMT_PRESS_DOWN_LEFT:
+				last_arrow_faked = BGMT_PRESS_UP_RIGHT;
+				break;
+			#endif
+			default:
+				return 1;
+		}
+		fake_simple_button(last_arrow_faked); return 0;
+	}
+
+	return 1;
+}
+
+void upside_down_step()
+{
+	extern int menu_upside_down;
+	if (menu_upside_down)
+	{
+		if (!gui_menu_shown())
+		{
+			bmp_draw_to_idle(1);
+			canon_gui_disable_front_buffer();
+			BMP_LOCK(
+				bmp_flip(bmp_vram_real(), bmp_vram_idle());
+			)
+		}
+		//~ msleep(100);
+	}
+}
+
+void screenshot_start();
+void take_screenshot();
+
+static struct menu_entry display_menus[] = {
+	{
+		.name = "LVGain (NightVision)", 
+		.priv = &display_gain,
+		.select = display_gain_toggle_forward, 
+		.select_reverse = display_gain_toggle_reverse,
+		.select_auto = display_gain_reset,
+		.display = display_gain_print, 
+		.help = "Boosts LV digital display gain (Photo, Movie w.AutoISO)",
+	},
+	{
+		.name = "Exposure Simulation",
+		.priv = &expsim_setting,
+		.select = expsim_toggle,
+		.select_reverse = expsim_toggle_reverse,
+		.display = expsim_display,
+		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
+	},
+	{
+		.name = "Upside-Down",
+		.priv = &menu_upside_down,
+		.display = menu_upside_down_print,
+		.select = menu_binary_toggle,
+		.help = "Displays all graphics upside-down and flips arrow keys.",
+	},
+#ifdef CONFIG_KILL_FLICKER
+	{
+		.name		= "Kill Canon GUI",
+		.priv		= &kill_canon_gui_mode,
+		.select		= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		.display	= kill_canon_gui_print,
+		.help = "Workarounds for disabling Canon graphics elements."
+	},
+#endif
+	#ifdef CONFIG_60D
+	{
+		.name = "DispOFF in PhotoMode",
+		.priv = &display_off_by_halfshutter_enabled,
+		.display = display_off_by_halfshutter_print, 
+		.select = menu_binary_toggle,
+		.help = "Outside LV, turn off display with long half-shutter press."
+	},
+	#endif
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	{
+		.name = "Auto Mirroring",
+		.priv = &display_dont_mirror,
+		.display = display_dont_mirror_display, 
+		.select = menu_binary_toggle,
+		.help = "Prevents display mirroring, which may reverse ML texts."
+	},
+#endif
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	{
+		.priv		= "Display: Normal/Reverse/Mirror",
+		.select		= NormalDisplay,
+		.select_reverse = ReverseDisplay,
+		.select_auto = MirrorDisplay,
+		.display	= menu_print,
+		.help = "Display image: Normal [SET] / Reverse [PLAY] / Mirror [Q]"
+	},
+#endif
+	{
+		.name = "Screenshot (10 s)",
+		.priv		= "Screenshot (10 s)",
+		.select		= screenshot_start,
+		.select_auto = take_screenshot,
+		.display	= menu_print,
+		.help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
+	},
+};
 
 struct menu_entry play_menus[] = {
 	{
@@ -1355,6 +1593,7 @@ static void tweak_init()
 {
 	menu_add( "Tweaks", tweak_menus, COUNT(tweak_menus) );
 	menu_add( "Play", play_menus, COUNT(play_menus) );
+	menu_add( "Display", display_menus, COUNT(display_menus) );
 }
 
 INIT_FUNC(__FILE__, tweak_init);
