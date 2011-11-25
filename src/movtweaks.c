@@ -834,7 +834,9 @@ static struct menu_entry mov_menus[] = {
 		.select		= bv_toggle,
 		.display	= bv_display,
 		.help = "Low-level manual exposure controls (bypasses Canon limits)",
+		#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_1100D)
 		.essential = FOR_MOVIE,
+		#endif
 	},
 };
 
