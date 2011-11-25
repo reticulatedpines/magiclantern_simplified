@@ -531,6 +531,14 @@ void draw_ml_bottombar(int double_buffering)
 		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 	#endif
 
+	// mark the BV mode somehow
+    if(CONTROL_BV)
+    {
+		bmp_draw_rect(COLOR_RED, x_origin + 70, y_origin - 4, 280, 35);
+		bmp_draw_rect(COLOR_RED, x_origin + 71, y_origin - 3, 280-2, 35-2);
+	}
+
+
 end:
 
 	if (double_buffering)
@@ -1425,7 +1433,7 @@ void bv_update_props()
 
 void bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); }
 void bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo(); }
-void bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = iso; bv_update_lensinfo(); }
+void bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = MAX(iso, 72); bv_update_lensinfo(); }
 
 
 /** Camera control functions */
