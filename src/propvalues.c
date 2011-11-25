@@ -111,6 +111,12 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 	recording = (shooting_type == 4 ? 2 : 0);
 	return prop_cleanup( token, property );
 }
+
+PROP_HANDLER(PROP_MOVIE_SIZE_50D)
+{
+	video_mode_resolution = buf[0];
+	return prop_cleanup( token, property );
+}
 #else
 volatile PROP_INT(PROP_MVR_REC_START, recording);
 volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);

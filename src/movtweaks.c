@@ -472,8 +472,6 @@ void screen_layout_toggle_reverse() { menu_quinternary_toggle_reverse(get_screen
 
 #ifdef CONFIG_50D
 
-PROP_INT(PROP_MOVIE_SIZE_50D, movie_size_50d);
-
 static void
 lv_movie_print(
 	void *			priv,
@@ -487,7 +485,8 @@ lv_movie_print(
 		x, y,
 		"Movie Record  : %s",
 		lv_movie_select != 2 ? "Disabled" :
-		movie_size_50d == 1 ? "1920x1088, 30fps" : "Invalid"
+		video_mode_resolution == 0 ? "1920x1088, 30fps" : 
+		video_mode_resolution == 2 ? "640x480, 30fps" : "Invalid"
 	);
 	menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
 }
@@ -497,6 +496,12 @@ void lv_movie_toggle(void* priv)
 	int newvalue = lv_movie_select == 2 ? 1 : 2;
 	GUI_SetLvMode(newvalue);
 	if (newvalue == 2) GUI_SetMovieSize_b(1);
+}
+
+void lv_movie_size_toggle(void* priv)
+{
+	int s = video_mode_resolution ? 2 : 0;
+	GUI_SetMovieSize_a(s);
 }
 #endif
 /*
@@ -640,6 +645,7 @@ static struct menu_entry mov_menus[] = {
 		.name		= "Movie Record",
 		.priv		= &lv_movie_select,
 		.select		= lv_movie_toggle,
+		.select_auto = lv_movie_size_toggle,
 		.display	= lv_movie_print,
 		.help		= "Enable movie recording on 50D :) ",
 		.essential = FOR_LIVEVIEW,

@@ -3524,8 +3524,17 @@ void black_bars()
 void black_bars_16x9()
 {
 	if (!get_global_draw()) return;
-	bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
-	bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
+	if (video_mode_resolution > 1)
+	{
+		int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
+		bmp_fill(COLOR_BLACK, os.x0, os.y0, off_43, os.y_ex);
+		bmp_fill(COLOR_BLACK, os.x_max - off_43, os.y0, off_43, os.y_ex);
+	}
+	else
+	{
+		bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
+		bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
+	}
 }
 
 

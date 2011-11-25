@@ -244,7 +244,7 @@
 
 #define PROP_STROBO_FIRING 0x80040013 // 0 = enable, 1 = disable?
 
-#define PROP_MOVIE_SIZE_50D 0x205000E
+#define PROP_MOVIE_SIZE_50D 0x205000C
 
 
 #ifdef CONFIG_500D
