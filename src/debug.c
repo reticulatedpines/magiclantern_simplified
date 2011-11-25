@@ -1575,6 +1575,15 @@ static void bv_display(
 	menu_draw_icon(x, y, MNI_BOOL(CONTROL_BV), 0);
 }
 
+int get_prop(int prop)
+{
+	int* data = 0;
+	int len = 0;
+	int err = prop_get_value(prop, &data, &len);
+	if (!err) return data[0];
+	return 0;
+}
+
 static void bv_toggle()
 {
 	call("lvae_setcontrolbv", !CONTROL_BV);
@@ -1585,11 +1594,13 @@ static void bv_toggle()
 		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
 		CONTROL_BV_ZERO = 0;
 		bv_update_lensinfo();
-		bv_update_props();
 	}
 	else
 	{
 		CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
+		lensinfo_set_iso(get_prop(PROP_ISO));
+		lensinfo_set_shutter(get_prop(PROP_SHUTTER_ALSO));
+		lensinfo_set_aperture(get_prop(PROP_APERTURE2));
 	}
 	menu_show_only_selected();
 }
