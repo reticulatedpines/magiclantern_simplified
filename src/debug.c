@@ -1559,59 +1559,7 @@ void menu_kill_flicker()
 }
 
 
-static void bv_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Exposure Override : %s", 
-		CONTROL_BV ? "ON" : "OFF"
-	);
-	menu_draw_icon(x, y, MNI_BOOL(CONTROL_BV), 0);
-}
-
-int get_prop(int prop)
-{
-	int* data = 0;
-	int len = 0;
-	int err = prop_get_value(prop, &data, &len);
-	if (!err) return data[0];
-	return 0;
-}
-
-static void bv_toggle()
-{
-	call("lvae_setcontrolbv", !CONTROL_BV);
-	if (CONTROL_BV)
-	{
-		CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : 111;
-		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
-		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
-		CONTROL_BV_ZERO = 0;
-		bv_update_lensinfo();
-	}
-	else
-	{
-		CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
-		lensinfo_set_iso(get_prop(PROP_ISO));
-		lensinfo_set_shutter(get_prop(PROP_SHUTTER_ALSO));
-		lensinfo_set_aperture(get_prop(PROP_APERTURE2));
-	}
-	menu_show_only_selected();
-}
-
-
 struct menu_entry debug_menus[] = {
-	{
-		.select		= bv_toggle,
-		.display	= bv_display,
-		.help = "Unlocks full manual exposure controls."
-	},
 	{
 		.priv		= "Flashlight [SET/Q]",
 		.select		= flashlight_frontled,

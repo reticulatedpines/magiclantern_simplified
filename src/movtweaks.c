@@ -639,6 +639,54 @@ void rec_notify_trigger(int rec)
 }
 
 
+
+static void bv_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Expo.Override : %s", 
+		CONTROL_BV ? "ON" : "OFF"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(CONTROL_BV), 0);
+}
+
+int get_prop(int prop)
+{
+	int* data = 0;
+	int len = 0;
+	int err = prop_get_value(prop, &data, &len);
+	if (!err) return data[0];
+	return 0;
+}
+
+static void bv_toggle()
+{
+	call("lvae_setcontrolbv", !CONTROL_BV);
+	if (CONTROL_BV)
+	{
+		CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : 111;
+		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
+		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
+		CONTROL_BV_ZERO = 0;
+		bv_update_lensinfo();
+	}
+	else
+	{
+		CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
+		lensinfo_set_iso(get_prop(PROP_ISO));
+		lensinfo_set_shutter(get_prop(PROP_SHUTTER_ALSO));
+		lensinfo_set_aperture(get_prop(PROP_APERTURE2));
+	}
+	menu_show_only_selected();
+}
+
+
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
 	{
@@ -649,26 +697,6 @@ static struct menu_entry mov_menus[] = {
 		.display	= lv_movie_print,
 		.help		= "Enable movie recording on 50D :) ",
 		.essential = FOR_LIVEVIEW,
-	},
-#endif
-#if defined(CONFIG_50D) //|| defined(CONFIG_500D)
-	{
-		.name		= "Exposure Lock",
-		.priv		= &movie_expo_lock,
-		.select		= movie_expo_lock_toggle,
-		.display	= movie_expo_lock_print,
-		.help		= "Lock the exposure in movie mode (50D/500D)",
-		.essential = FOR_MOVIE,
-	},
-#endif
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
-	{
-		.name = "Shutter Lock",
-		.priv = &shutter_lock,
-		.display = shutter_lock_print, 
-		.select = menu_binary_toggle,
-		.help = "Lock shutter value in movie mode (change from Expo only).",
-		.essential = FOR_MOVIE,
 	},
 #endif
 #ifdef CONFIG_50D
@@ -781,6 +809,32 @@ static struct menu_entry mov_menus[] = {
 		.display	= enable_liveview_print,
 		.select		= menu_ternary_toggle,
 		.help = "Force LiveView in movie mode, even with an unchipped lens."
+	},
+#if defined(CONFIG_50D) //|| defined(CONFIG_500D)
+	{
+		.name		= "Exposure Lock",
+		.priv		= &movie_expo_lock,
+		.select		= movie_expo_lock_toggle,
+		.display	= movie_expo_lock_print,
+		.help		= "Lock the exposure in movie mode (50D/500D)",
+		.essential = FOR_MOVIE,
+	},
+#endif
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+	{
+		.name = "Shutter Lock",
+		.priv = &shutter_lock,
+		.display = shutter_lock_print, 
+		.select = menu_binary_toggle,
+		.help = "Lock shutter value in movie mode (change from Expo only).",
+		.essential = FOR_MOVIE,
+	},
+#endif
+	{
+		.select		= bv_toggle,
+		.display	= bv_display,
+		.help = "Low-level manual exposure controls (bypasses Canon limits)",
+		.essential = FOR_MOVIE,
 	},
 };
 
