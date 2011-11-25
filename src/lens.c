@@ -1061,6 +1061,7 @@ void lensinfo_set_aperture(int raw)
 {
 	lens_info.raw_aperture = raw;
 	lens_info.aperture = RAW2VALUE(aperture, raw);
+	//~ BMP_LOCK( lens_info.aperture = (int)roundf(10.0 * sqrtf(powf(2.0, (raw-8.0)/8.0))); )
 	update_stuff();
 }
 
@@ -1372,4 +1373,102 @@ void SW2(int v, int wait)
 	//~ ptpPropButtonSW2(v, 0, &unused);
 	prop_request_change(PROP_REMOTE_SW2, &v, 2);
 	if (wait) msleep(wait);
+}
+
+/** exposure primitives (the "clean" way, via properties) */
+
+void prop_set_rawaperture(unsigned aperture)
+{
+	lens_wait_readytotakepic(64);
+	aperture = COERCE(aperture, 8, 200);
+	prop_request_change( PROP_APERTURE, &aperture, 4 );
+	msleep(10);
+}
+
+void prop_set_rawshutter(unsigned shutter)
+{
+	lens_wait_readytotakepic(64);
+	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
+	prop_request_change( PROP_SHUTTER, &shutter, 4 );
+	msleep(10);
+}
+
+void prop_set_rawiso(unsigned iso)
+{
+	lens_wait_readytotakepic(64);
+	if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
+	prop_request_change( PROP_ISO, &iso, 4 );
+	msleep(10);
+}
+
+/** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
+
+void bv_update_lensinfo()
+{
+	if (CONTROL_BV) // sync lens info and camera properties with overriden values
+	{
+		lensinfo_set_iso(CONTROL_BV_ISO);
+		lensinfo_set_shutter(CONTROL_BV_TV);
+		lensinfo_set_aperture(CONTROL_BV_AV);
+	}
+}
+
+void bv_update_props()
+{
+	if (CONTROL_BV) // sync lens info and camera properties with overriden values
+	{
+		prop_set_rawiso(CONTROL_BV_ISO);
+		prop_set_rawshutter(CONTROL_BV_TV);
+		prop_set_rawaperture(CONTROL_BV_AV);
+	}
+}
+
+void bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); }
+void bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo(); }
+void bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = iso; bv_update_lensinfo(); }
+
+
+/** Camera control functions */
+void lens_set_rawaperture( int aperture)
+{
+	if (!CONTROL_BV) prop_set_rawaperture(aperture);
+	else { bv_set_rawaperture(aperture); }
+}
+
+void lens_set_rawiso( int iso )
+{
+	if (!CONTROL_BV) prop_set_rawiso(iso);
+	else { bv_set_rawiso(iso); }
+}
+
+void lens_set_rawshutter( int shutter )
+{
+	if (!CONTROL_BV) prop_set_rawshutter(shutter);
+	else { bv_set_rawshutter(shutter); }
+}
+
+
+void lens_set_ae( int ae )
+{
+	prop_request_change( PROP_AE, &ae, 4 );
+	msleep(10);
+}
+
+void lens_set_drivemode( int dm )
+{
+	lens_wait_readytotakepic(64);
+	prop_request_change( PROP_DRIVE, &dm, 4 );
+	msleep(10);
+}
+
+void lens_set_wbs_gm(int value)
+{
+	value = COERCE(value, -9, 9);
+	prop_request_change(PROP_WBS_GM, &value, 4);
+}
+
+void lens_set_wbs_ba(int value)
+{
+	value = COERCE(value, -9, 9);
+	prop_request_change(PROP_WBS_BA, &value, 4);
 }

@@ -435,6 +435,7 @@ int spy_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4
 void run_test()
 {
 	msleep(2000);
+	//~ GUI_SetMovieSize_a(2);
 	//~ struct gui_task * current = gui_task_list.current;
 	//~ struct dialog * dialog = current->priv;
 	//~ dialog->handler = spy_handler;
@@ -1583,24 +1584,16 @@ static void bv_toggle()
 		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
 		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
 		CONTROL_BV_ZERO = 0;
+		bv_update_lensinfo();
+		bv_update_props();
 	}
 	else
 	{
 		CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
 	}
-	bv_update();
 	menu_show_only_selected();
 }
 
-void bv_update()
-{
-	if (CONTROL_BV)
-	{
-		lensinfo_set_shutter(CONTROL_BV_TV);
-		lensinfo_set_aperture(CONTROL_BV_AV);
-		lensinfo_set_iso(CONTROL_BV_ISO);
-	}
-}
 
 struct menu_entry debug_menus[] = {
 	{

@@ -121,80 +121,18 @@ SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 
 void lens_wait_readytotakepic(int wait);
 
-/** Camera control functions */
-static inline void
-lens_set_rawaperture(
-	unsigned		aperture
-)
-{
-	lens_wait_readytotakepic(64);
-	if (!CONTROL_BV) prop_request_change( PROP_APERTURE, &aperture, sizeof(aperture) );
-	else { CONTROL_BV_AV = aperture; bv_update(); }
-}
+extern void lens_set_rawaperture( int aperture);
+extern void lens_set_rawiso( int iso );
+extern void lens_set_rawshutter( int shutter );
+extern void lens_set_ae( int ae );
+extern void lens_set_drivemode( int dm );
+extern void lens_set_wbs_gm(int value);
+extern void lens_set_wbs_ba(int value);
 
-
-static inline void
-lens_set_rawiso(
-	uint32_t		iso
-)
-{
-	lens_wait_readytotakepic(64);
-	if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
-
-	if (!CONTROL_BV) prop_request_change( PROP_ISO, &iso, 4 );
-	else { CONTROL_BV_ISO = MAX(iso, 72); bv_update(); }
-	//~ msleep(100);
-}
-
-
-static inline void
-lens_set_rawshutter(
-	int32_t		shutter
-)
-{
-	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
-	lens_wait_readytotakepic(64);
-	if (!CONTROL_BV) prop_request_change( PROP_SHUTTER, &shutter, 4 );
-	else { CONTROL_BV_TV = shutter; bv_update(); }
-	msleep(100);
-}
-
-
-static inline void
-lens_set_ae(
-	int32_t			cmd
-)
-{
-	prop_request_change( PROP_AE, &cmd, 4 );
-	msleep(100);
-}
-
-static inline void
-lens_set_drivemode(
-	uint32_t		dm
-)
-{
-	lens_wait_readytotakepic(64);
-	prop_request_change( PROP_DRIVE, &dm, 4 );
-	msleep(100);
-}
-
-static void
-lens_set_wbs_gm(int value)
-{
-	value = value & 0xFF;
-	prop_request_change(PROP_WBS_GM, &value, 4);
-}
-static void
-lens_set_wbs_ba(int value)
-{
-	value = value & 0xFF;
-	prop_request_change(PROP_WBS_BA, &value, 4);
-}
-
-
-int lens_get_ae();
-
+void bv_update();
+void bv_set_rawshutter(unsigned shutter);
+void bv_set_rawaperture(unsigned aperture);
+void bv_set_rawiso(unsigned iso);
 
 extern int
 lens_take_picture(
