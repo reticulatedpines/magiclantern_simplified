@@ -500,7 +500,7 @@ void lv_movie_toggle(void* priv)
 
 void lv_movie_size_toggle(void* priv)
 {
-	int s = video_mode_resolution ? 2 : 0;
+	int s = video_mode_resolution ? 0 : 2;
 	GUI_SetMovieSize_a(s);
 }
 #endif
