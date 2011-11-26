@@ -55,8 +55,14 @@ static int focus_dir;
 int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() 
 { 
-	if (!is_manual_focus()) return follow_focus;
-	return 0;
+	if (!follow_focus) return 0;
+	if (!lv) return 0;
+	if (is_manual_focus()) return 0;
+	if (!liveview_display_idle()) return 0;
+	if (gui_menu_shown()) return 0;
+	if (display_sensor && get_lcd_sensor_shortcuts()) return 0;
+	if (get_halfshutter_pressed()) return 0;
+	return 1;
 }
 int get_follow_focus_stop_on_focus() { return 0; }
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
@@ -730,11 +736,11 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 
 int get_focus_graph() 
 { 
-	if (movie_af || get_follow_focus_stop_on_focus())
+	if (movie_af && is_movie_mode())
 		return !is_manual_focus() && zebra_should_run();
 
 	if (get_trap_focus() && can_lv_trap_focus_be_active())
-		return zebra_should_run() || get_halfshutter_pressed() || (lv_dispsize > 1 && get_global_draw());
+		return (liveview_display_idle() && get_global_draw()) || get_halfshutter_pressed();
 
 	return 0;
 }
@@ -1332,7 +1338,7 @@ int handle_rack_focus(struct event * event)
 
 int handle_follow_focus(struct event * event)
 {
-	if (is_follow_focus_active() && !is_manual_focus() && lv && !gui_menu_shown() && (!display_sensor || !get_lcd_sensor_shortcuts()) && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed())
+	if (is_follow_focus_active())
 	{
 		if (follow_focus == 1) // arrows
 		{

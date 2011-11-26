@@ -47,6 +47,12 @@ void bulb_ramping_showinfo();
 void get_out_of_play_mode();
 void wait_till_next_second();
 
+bool display_idle()
+{
+	if (lv) return liveview_display_idle();
+	else return gui_state == GUISTATE_IDLE && !gui_menu_shown();
+}
+
 volatile int bulb_shutter_value = 0;
 
 CONFIG_INT("hdr.steps", hdr_steps, 1);
@@ -512,7 +518,7 @@ void center_lv_afframe_do()
 
 void move_lv_afframe(int dx, int dy)
 {
-	if (!lv || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
+	if (!liveview_display_idle()) return;
 	afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
 	afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
@@ -3177,7 +3183,7 @@ void bulb_ramping_showinfo()
 		lens_info.iso,
 		s / 1000, s % 1000);
 	
-	if (gui_state != GUISTATE_IDLE)
+	if (display_idle())
 	{
 		bramp_plot_luma_ev();
 		bramp_plot_luma_ev_point(bramp_measured_level * 255/100, COLOR_RED);
@@ -4013,8 +4019,8 @@ shoot_task( void* unused )
 		{
 			// look for a transition of half-shutter during idle state
 			static int was_idle_not_pressed = 0;
-			int is_idle_not_pressed = !get_halfshutter_pressed() && gui_state == GUISTATE_IDLE;
-			int is_idle_and_pressed = get_halfshutter_pressed() && gui_state == GUISTATE_IDLE;
+			int is_idle_not_pressed = !get_halfshutter_pressed() && display_idle();
+			int is_idle_and_pressed = get_halfshutter_pressed() && display_idle();
 
 			if (was_idle_not_pressed && is_idle_and_pressed)
 			{
@@ -4031,13 +4037,13 @@ shoot_task( void* unused )
 				NotifyBox(2000, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
 				if (get_halfshutter_pressed()) continue;
-				if (gui_state != GUISTATE_IDLE) continue;
+				if (!display_idle()) continue;
 				if (m0 != shooting_mode) continue;
 				NotifyBoxHide();
 				NotifyBox(2000, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
 				if (get_halfshutter_pressed()) continue;
-				if (gui_state != GUISTATE_IDLE) continue;
+				if (display_idle()) continue;
 				if (m0 != shooting_mode) continue;
 				bulb_take_pic(d * 1000);
 			}
@@ -4065,10 +4071,10 @@ shoot_task( void* unused )
 		//~ static int sw1_countdown = 0;
 		
 		// trap focus (outside LV) and all the preconditions
-		int tfx = trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running;
+		int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running;
 
 		// same for motion detect
-		int mdx = motion_detect && gui_state == GUISTATE_IDLE && !gui_menu_shown() && lv && !recording;
+		int mdx = motion_detect && liveview_display_idle() && !recording;
 		
 		//Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
 		static int K = 0;
@@ -4140,7 +4146,7 @@ shoot_task( void* unused )
 		}
 
 		static int silent_pic_countdown;
-		if (gui_state != GUISTATE_IDLE || gui_menu_shown())
+		if (!display_idle())
 		{
 			silent_pic_countdown = 10;
 		}
@@ -4203,7 +4209,7 @@ shoot_task( void* unused )
 				}
 
 				extern int idle_display_turn_off_after;
-				if (idle_display_turn_off_after && lens_info.job_state == 0 && gui_state == GUISTATE_IDLE && intervalometer_running && lv && !gui_menu_shown() && !display_turned_off)
+				if (idle_display_turn_off_after && lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
 				{
 					// stop LiveView and turn off display to save power
 					PauseLiveView();
@@ -4259,7 +4265,7 @@ shoot_task( void* unused )
 			if (audio_release_running) 
 			{
 				static int countdown = 0;
-				if (gui_state != GUISTATE_IDLE || gui_menu_shown()) countdown = 50;
+				if (!display_idle()) countdown = 50;
 				if (countdown) { countdown--; continue; }
 
 				extern struct audio_level audio_levels[];

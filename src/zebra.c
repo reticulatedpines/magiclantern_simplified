@@ -2803,17 +2803,19 @@ bool liveview_display_idle()
 			#ifdef CURRENT_DIALOG_MAYBE_2
 			CURRENT_DIALOG_MAYBE_2 <= 3 &&
 			#endif
-			lv_dispsize == 1 &&
 			lens_info.job_state < 10 &&
 			!mirror_down )
 		);
 		//~ !zebra_paused &&
 		//~ !(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
+
+
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
 {
 	return liveview_display_idle() && get_global_draw() &&
+		lv_dispsize == 1 &&
 		!(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
 
