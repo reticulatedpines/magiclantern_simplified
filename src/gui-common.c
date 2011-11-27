@@ -18,16 +18,16 @@ int handle_other_events(struct event * event)
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
 	if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
 	{
-		if (lv_disp_mode == 0 && get_global_draw_setting())
+		if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle())
 		{
 			// install a modified handler which does not activate bottom bar display timer
 			reloc_liveviewapp_install(); 
 			
-			#ifdef CONFIG_550D // might also work on 600D; doesn't work on 60D
+			#ifndef CONFIG_60D // might also work on 600D; doesn't work on 60D
 			// force bottom bar state to "hidden" (when you press shutter halfway, ISO... etc)
 			LV_BOTTOM_BAR_STATE = 0;
 			#else
-			if (get_halfshutter_pressed()) bottom_bar_dirty = 20;
+			if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 			#endif
 		}
 		else
@@ -36,7 +36,7 @@ int handle_other_events(struct event * event)
 			bottom_bar_dirty = 0;
 		}
 
-		#ifndef CONFIG_550D
+		#ifdef CONFIG_60D
 
 		if (UNAVI_FEEDBACK_TIMER_ACTIVE)
 		{
@@ -47,9 +47,14 @@ int handle_other_events(struct event * event)
 		if (!liveview_display_idle()) bottom_bar_dirty = 0;
 		if (bottom_bar_dirty) bottom_bar_dirty--;
 		if (bottom_bar_dirty)
-			canon_gui_disable_front_buffer();
+		{
+			//~ canon_gui_disable_front_buffer();
+		}
 		else
-			canon_gui_enable_front_buffer(0);
+		{
+			//~ canon_gui_enable_front_buffer(0);
+			lens_display_set_dirty();
+		}
 		#endif
 	}
 #endif
