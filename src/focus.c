@@ -988,6 +988,7 @@ int focus_mag_b = 0;
 int focus_mag_c = 0;
 PROP_HANDLER(PROP_LV_FOCUS_DATA)
 {
+	focus_done = 1;
 	focus_mag_a = buf[2];
 	focus_mag_b = buf[3];
 	focus_mag_c = buf[4];

@@ -705,7 +705,7 @@ lens_focus_wait( void )
 		if (!lv) return;
 		if (is_manual_focus()) return;
 	}
-	NotifyBox(1000, "Focus error :("); msleep(1000);
+	NotifyBox(1000, "Focus error :(");
 	lv_focus_error = 1;
 	//~ NotifyBox(1000, "Press PLAY twice or reboot");
 }
@@ -756,7 +756,7 @@ lens_focus(
 	idle_wakeup_reset_counters(-10);
 	lens_display_set_dirty();
 	
-	if (lv_focus_error) { lv_focus_error = 0; return 0; }
+	if (lv_focus_error) { msleep(200); lv_focus_error = 0; return 0; }
 	return 1;
 }
 
@@ -1416,8 +1416,8 @@ bool prop_set_rawaperture(unsigned aperture)
 	lens_wait_readytotakepic(64);
 	aperture = COERCE(aperture, 8, 200);
 	prop_request_change( PROP_APERTURE, &aperture, 4 );
-	msleep(10);
-	return get_prop(PROP_APERTURE) == aperture;
+	msleep(100);
+	return get_prop(PROP_APERTURE2) == aperture;
 }
 
 bool prop_set_rawshutter(unsigned shutter)
@@ -1425,8 +1425,8 @@ bool prop_set_rawshutter(unsigned shutter)
 	lens_wait_readytotakepic(64);
 	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
-	msleep(10);
-	return get_prop(PROP_SHUTTER) == shutter;
+	msleep(100);
+	return get_prop(PROP_SHUTTER_ALSO) == shutter;
 }
 
 bool prop_set_rawiso(unsigned iso)
@@ -1434,7 +1434,7 @@ bool prop_set_rawiso(unsigned iso)
 	lens_wait_readytotakepic(64);
 	if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
 	prop_request_change( PROP_ISO, &iso, 4 );
-	msleep(10);
+	msleep(100);
 	return get_prop(PROP_ISO) == iso;
 }
 
@@ -1460,9 +1460,9 @@ void bv_update_props()
 	}
 }
 
-bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); return 1; }
-bool bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo();  return 1; }
-bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = MAX(iso, 72); bv_update_lensinfo();  return 1; }
+bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); return shutter != 0; }
+bool bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo();  return aperture != 0; }
+bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = MAX(iso, 72); bv_update_lensinfo();  return iso != 0; }
 
 int bv_auto_should_enable()
 {
