@@ -2549,6 +2549,15 @@ int handle_tricky_canon_calls(struct event * event)
 				#endif
 			break;
 			#endif
+		case MLEV_BV_ENABLE:
+			bv_enable_do();
+			break;
+		case MLEV_BV_DISABLE:
+			bv_disable_do();
+			break;
+		case MLEV_BV_AUTO_UPDATE:
+			bv_auto_update_do();
+			break;
 	}
 	if (event->param < 0) return 0;
 	return 1;

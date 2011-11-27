@@ -121,18 +121,19 @@ SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 
 void lens_wait_readytotakepic(int wait);
 
-extern void lens_set_rawaperture( int aperture);
-extern void lens_set_rawiso( int iso );
-extern void lens_set_rawshutter( int shutter );
+// return true on success
+extern bool lens_set_rawaperture( int aperture);
+extern bool lens_set_rawiso( int iso );
+extern bool lens_set_rawshutter( int shutter );
 extern void lens_set_ae( int ae );
 extern void lens_set_drivemode( int dm );
 extern void lens_set_wbs_gm(int value);
 extern void lens_set_wbs_ba(int value);
 
-void bv_update();
-void bv_set_rawshutter(unsigned shutter);
-void bv_set_rawaperture(unsigned aperture);
-void bv_set_rawiso(unsigned iso);
+extern void bv_update();
+extern bool bv_set_rawshutter(unsigned shutter);
+extern bool bv_set_rawaperture(unsigned aperture);
+extern bool bv_set_rawiso(unsigned iso);
 
 extern int
 lens_take_picture(
@@ -175,8 +176,8 @@ lens_format_dist(
 // exact ISO values would break the feature of coloring ISO's :)
 // sprintf("%d,", round(12800 ./ 2.^([56:-1:0]./8)))
                                //~ 100,109,119,130,141,154,168,183,200,218,238,259,283,308,336,367,400,436,476,519,566,617,673,734,800,872,951,1037,1131,1234,1345,1467,1600,1745,1903,2075,2263,2468,2691,2934,3200,3490,3805,4150,4525,4935,5382,5869,6400,6979,7611,12800,25600};
-static const int values_iso[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,580,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2750,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,7200,8000,12800,25600};
-static const int codes_iso[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,  128,  136}; 
+static const int values_iso[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,580,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2750,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,12800,25600};
+static const int codes_iso[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,  128,  136}; 
 
 // assumming 1/4000 is native, and 1/8EV steps =>
 // octave> sprintf("%4d,", round(4000 ./ 2.^([59:-1:-8]./8)))

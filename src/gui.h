@@ -42,6 +42,10 @@
 #define MLEV_REDRAW -7
 #define MLEV_KILL_FLICKER -8
 #define MLEV_STOP_KILLING_FLICKER -9
+#define MLEV_BV_DISABLE -10
+#define MLEV_BV_ENABLE -11
+#define MLEV_BV_AUTO_UPDATE -12
+
 
 /** \file
  * DryOS GUI structures and functions.

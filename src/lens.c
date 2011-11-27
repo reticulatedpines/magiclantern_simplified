@@ -278,7 +278,7 @@ void draw_ml_bottombar(int double_buffering)
       * FOCAL & APERTURE *
       *******************/
       
-      if (info->aperture)
+      if (info->aperture && info->name[0])
       {
 		  text_font = FONT(FONT_LARGE,COLOR_WHITE,bg);
 		  unsigned med_font = FONT(FONT_MED,COLOR_WHITE,bg);
@@ -1073,9 +1073,20 @@ void lensinfo_set_aperture(int raw)
 	update_stuff();
 }
 
+extern int bv_auto;
+int bv_auto_needed_by_iso = 0;
+int bv_auto_needed_by_shutter = 0;
+int bv_auto_needed_by_aperture = 0;
+
 PROP_HANDLER( PROP_ISO )
 {
 	if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
+	else if (bv_auto && buf[0] && !gui_menu_shown())
+	{
+		bv_set_rawiso(buf[0]);
+		bv_auto_needed_by_iso = 0;
+	}
+	bv_auto_update();
 	return prop_cleanup( token, property );
 }
 
@@ -1091,12 +1102,24 @@ PROP_HANDLER( PROP_ISO_AUTO )
 PROP_HANDLER( PROP_SHUTTER_ALSO )
 {
 	if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
+	else if (bv_auto && buf[0] && !gui_menu_shown())
+	{
+		bv_set_rawshutter(buf[0]);
+		bv_auto_needed_by_shutter = 0;
+	}
+	bv_auto_update();
 	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_APERTURE2 )
 {
 	if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+	else if (bv_auto && buf[0] && !gui_menu_shown())
+	{
+		bv_set_rawaperture(buf[0]);
+		bv_auto_needed_by_aperture = 0;
+	}
+	bv_auto_update();
 	return prop_cleanup( token, property );
 }
 
@@ -1242,6 +1265,7 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
 	update_stuff();
+	//~ bv_auto_update();
 	return prop_cleanup( token, property );
 }
 
@@ -1385,28 +1409,31 @@ void SW2(int v, int wait)
 
 /** exposure primitives (the "clean" way, via properties) */
 
-void prop_set_rawaperture(unsigned aperture)
+bool prop_set_rawaperture(unsigned aperture)
 {
 	lens_wait_readytotakepic(64);
 	aperture = COERCE(aperture, 8, 200);
 	prop_request_change( PROP_APERTURE, &aperture, 4 );
 	msleep(10);
+	return get_prop(PROP_APERTURE) == aperture;
 }
 
-void prop_set_rawshutter(unsigned shutter)
+bool prop_set_rawshutter(unsigned shutter)
 {
 	lens_wait_readytotakepic(64);
 	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
 	msleep(10);
+	return get_prop(PROP_SHUTTER) == shutter;
 }
 
-void prop_set_rawiso(unsigned iso)
+bool prop_set_rawiso(unsigned iso)
 {
 	lens_wait_readytotakepic(64);
 	if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
 	prop_request_change( PROP_ISO, &iso, 4 );
 	msleep(10);
+	return get_prop(PROP_ISO) == iso;
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
@@ -1431,28 +1458,92 @@ void bv_update_props()
 	}
 }
 
-void bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); }
-void bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo(); }
-void bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = MAX(iso, 72); bv_update_lensinfo(); }
+bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); return 1; }
+bool bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo();  return 1; }
+bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = MAX(iso, 72); bv_update_lensinfo();  return 1; }
 
+int bv_auto_should_enable()
+{
+	if (!bv_auto) return 0;
+	if (!lv) return 0;
+	
+	// cameras without manual exposure control
+	#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
+	if (is_movie_mode()) return 1;
+	#endif
+
+	// extra ISO values in movie mode
+	if (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture) 
+		return 1;
+	
+	// temporarily cancel it in photo mode
+	//~ if (!is_movie_mode() && get_halfshutter_pressed())
+		//~ return 0;
+	
+	// underexposure bug with manual lenses in M mode
+	#if defined(CONFIG_60D)
+	if (shooting_mode == SHOOTMODE_M && 
+		!lens_info.name[0] && 
+		lens_info.raw_iso != 0 && 
+		lens_info.raw_shutter >= 93 // otherwise the image will be dark, better turn off ExpSim
+	)
+		return 1;
+	#endif
+
+	return 0;
+}
+
+void bv_auto_update_do()
+{
+	if (!bv_auto) return;
+	take_semaphore(lens_sem, 0);
+	if (bv_auto_should_enable()) bv_enable();
+	else bv_disable();
+	lens_display_set_dirty();
+	give_semaphore(lens_sem);
+}
+void bv_auto_update()
+{
+	if (!bv_auto) return;
+	fake_simple_button(MLEV_BV_AUTO_UPDATE);
+}
 
 /** Camera control functions */
-void lens_set_rawaperture( int aperture)
+bool lens_set_rawaperture( int aperture)
 {
-	if (!CONTROL_BV) prop_set_rawaperture(aperture);
-	else { bv_set_rawaperture(aperture); }
+	if (bv_auto && is_movie_mode())
+	{
+		bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
+		bv_auto_update(); 
+		if (!bv_auto_needed_by_aperture) return 1;                    // if not accepted, try to set it again with BV
+	}
+	if (!CONTROL_BV) return prop_set_rawaperture(aperture);
+	else return bv_set_rawaperture(aperture);
 }
 
-void lens_set_rawiso( int iso )
+bool lens_set_rawiso( int iso )
 {
-	if (!CONTROL_BV) prop_set_rawiso(iso);
-	else { bv_set_rawiso(iso); }
+	if (bv_auto && is_movie_mode())
+	{
+		bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
+		bv_auto_update(); 
+		if (!bv_auto_needed_by_iso) return 1;          // if not accepted, try to set it again with BV
+		else return bv_set_rawiso(iso);
+	}
+	if (!CONTROL_BV) return prop_set_rawiso(iso);
+	else return bv_set_rawiso(iso);
 }
 
-void lens_set_rawshutter( int shutter )
+bool lens_set_rawshutter( int shutter )
 {
-	if (!CONTROL_BV) prop_set_rawshutter(shutter);
-	else { bv_set_rawshutter(shutter); }
+	if (bv_auto && is_movie_mode())
+	{
+		bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
+		bv_auto_update(); 
+		if (!bv_auto_needed_by_shutter) return 1;                  // if not accepted, try to set it again with BV
+	}
+	if (!CONTROL_BV) return prop_set_rawshutter(shutter);
+	else return bv_set_rawshutter(shutter);
 }
 
 
