@@ -136,7 +136,18 @@ int get_expsim_auto_value()
 	#else
 	if (is_movie_mode()) return 2;
 	#endif
-	
+
+	// underexposure bug with manual lenses in M mode
+	#if defined(CONFIG_60D)
+	if (expsim_setting == 2 &&
+		shooting_mode == SHOOTMODE_M && 
+		!lens_info.name[0] && 
+		lens_info.raw_iso != 0 && 
+		lens_info.raw_shutter < 93 // the image will be too dark to preview via BV mode, better turn off ExpSim
+	)
+		return 0;
+	#endif
+
 	// silent pic in matrix mode requires expsim on
 	extern int silent_pic_sweep_running;
 	if (silent_pic_sweep_running) return 1;
@@ -1149,9 +1160,8 @@ void display_gain_toggle(int dir)
 	}
 	else if (dir < 0)
 	{
-		if (display_gain && display_gain <= 128) display_gain = 0;
-		else if (display_gain) display_gain /= 2; 
-		else display_gain = 65536;
+		if (d <= 128) display_gain = 65536;
+		else display_gain = d / 2; 
 	}
 	else display_gain = 0;
 

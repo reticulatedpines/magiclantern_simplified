@@ -61,5 +61,14 @@ prop_init( void* unused )
 	}
 }
 
+// for reading simple integer properties
+int get_prop(int prop)
+{
+	int* data = 0;
+	int len = 0;
+	int err = prop_get_value(prop, &data, &len);
+	if (!err) return data[0];
+	return 0;
+}
 
 INIT_FUNC( __FILE__, prop_init );

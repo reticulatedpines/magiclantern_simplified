@@ -64,6 +64,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 {
 	kelvin_wb_dirty = 1;
 	if (!ml_changing_shooting_mode) intervalometer_stop();
+	bv_auto_update();
 	return prop_cleanup(token, property);
 }
 
@@ -638,7 +639,36 @@ void rec_notify_trigger(int rec)
 #endif
 }
 
+/**
+ * Exposure override mode
+ * ======================
+ * 
+ * This mode bypasses exposure settings (ISO, Tv, Av) and uses some overriden values instead.
+ * 
+ * It's good for bypassing Canon limits:
+ * 
+ * - Manual video exposure controls in cameras without it (500D, 50D, 1100D)
+ * - 1/25s in movie mode (24p/25p) -> 1/3 stops better in low light
+ * - ISO 12800 is allowed in movie mode
+ * - No restrictions on certain ISO values and shutter speeds (e.g. on 60D)
+ * - Does not have the LiveView underexposure bug with manual lenses
+ * - Previews DOF all the time in photo mode
+ * 
+ * Side effects:
+ * 
+ * - In photo mode, anything slower than 1/25 seconds will be underexposed in LiveView
+ * - No exposure simulation; it's wysiwyg, like in movie mode
+ * - You can't use display gain (night vision)
+ *  
+ * In menu:
+ * 
+ * - OFF: Canon default mode.
+ * - ON: only values from Expo are used; Canon graphics may display other values.
+ * - Auto: ML enables it only when needed. It also syncs it with Canon properties.
+ * 
+ */
 
+CONFIG_INT("bv.auto", bv_auto, 1);
 
 static void bv_display(
 	void *			priv,
@@ -651,38 +681,48 @@ static void bv_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Expo.Override : %s", 
+		bv_auto ? "Auto" :
 		CONTROL_BV ? "ON" : "OFF"
 	);
-	menu_draw_icon(x, y, MNI_BOOL(CONTROL_BV), 0);
+	menu_draw_icon(x, y, bv_auto ? MNI_AUTO : MNI_BOOL(CONTROL_BV), 0);
 }
 
-int get_prop(int prop)
+void bv_enable_do()
 {
-	int* data = 0;
-	int len = 0;
-	int err = prop_get_value(prop, &data, &len);
-	if (!err) return data[0];
-	return 0;
+	//~ bmp_printf(FONT_LARGE, 50, 50, "EN     ");
+	if (CONTROL_BV) return;
+	//~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
+	call("lvae_setcontrolbv", 1);
+	CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : 111;
+	CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
+	CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
+	CONTROL_BV_ZERO = 0;
+	bv_update_lensinfo();
 }
 
-static void bv_toggle()
+void bv_enable() { fake_simple_button(MLEV_BV_ENABLE); }
+void bv_disable() { fake_simple_button(MLEV_BV_DISABLE); }
+
+
+void bv_disable_do()
 {
-	call("lvae_setcontrolbv", !CONTROL_BV);
-	if (CONTROL_BV)
-	{
-		CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : 111;
-		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
-		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
-		CONTROL_BV_ZERO = 0;
-		bv_update_lensinfo();
-	}
-	else
-	{
-		CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
-		lensinfo_set_iso(get_prop(PROP_ISO));
-		lensinfo_set_shutter(get_prop(PROP_SHUTTER_ALSO));
-		lensinfo_set_aperture(get_prop(PROP_APERTURE2));
-	}
+	//~ bmp_printf(FONT_LARGE, 50, 50, "DIS    ");
+	if (!CONTROL_BV) return;
+	call("lvae_setcontrolbv", 0);
+	CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
+	if (!lv) return;
+
+	//~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
+	lensinfo_set_iso(get_prop(PROP_ISO));
+	lensinfo_set_shutter(get_prop(PROP_SHUTTER_ALSO));
+	lensinfo_set_aperture(get_prop(PROP_APERTURE2));
+}
+
+static void bv_toggle() // off, on, auto
+{
+	if (bv_auto) { bv_auto = 0; bv_disable(); }
+	else if (CONTROL_BV) { bv_auto = 1; bv_auto_update(); }
+	else { bv_enable(); }
 	menu_show_only_selected();
 }
 
@@ -834,9 +874,7 @@ static struct menu_entry mov_menus[] = {
 		.select		= bv_toggle,
 		.display	= bv_display,
 		.help = "Low-level manual exposure controls (bypasses Canon limits)",
-		#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_1100D)
-		.essential = FOR_MOVIE,
-		#endif
+		.essential = FOR_LIVEVIEW,
 	},
 };
 

@@ -1523,11 +1523,9 @@ iso_toggle( int sign )
 		
 		while (iso_round_only && !is_round_iso(values_iso[i]))
 			i = mod(i + sign, COUNT(codes_iso));
+		bmp_printf(FONT_LARGE, 100, 100, "%d ", values_iso[i]);
 		
-		lens_set_rawiso(codes_iso[i]);
-		msleep(100);
-		int j = raw2index_iso(lens_info.raw_iso);
-		if (i == j) break;
+		if (lens_set_rawiso(codes_iso[i])) break;
 	}
 	menu_show_only_selected();
 }
@@ -1689,10 +1687,7 @@ shutter_toggle( int sign)
 	for (k = 0; k < 10; k++)
 	{
 		i = mod(i + sign, COUNT(codes_shutter));
-		lens_set_rawshutter(codes_shutter[i]);
-		msleep(10);
-		int j = raw2index_shutter(lens_info.raw_shutter);
-		if (i == j) break;
+		if (lens_set_rawshutter(codes_shutter[i])) break;
 	}
 	menu_show_only_selected();
 }
@@ -1780,22 +1775,13 @@ aperture_toggle( int sign)
 	int a = lens_info.raw_aperture;
 	int a0 = a;
 
-	if (CONTROL_BV)
+	for (int k = 0; k < 20; k++)
 	{
-		lens_set_rawaperture(lens_info.raw_aperture + sign);
-	}
-	else
-	{
-		for (int k = 0; k < 20; k++)
-		{
-			a += sign;
-			if (a > amax) a = amin;
-			if (a < amin) a = amax;
+		a += sign;
+		if (a > amax) a = amin;
+		if (a < amin) a = amax;
 
-			lens_set_rawaperture(a);
-			msleep(100);
-			if (lens_info.raw_aperture != a0) break;
-		}
+		if (lens_set_rawaperture(a)) break;
 	}
 	menu_show_only_selected();
 }
@@ -3744,17 +3730,17 @@ void iso_refresh_display()
 static void display_expsim_status()
 {
 	static int prev_expsim = 0;
-	int x = 610 + 2 * font_med.width;
+	int x = 610 + font_med.width;
 	int y = 400;
 	if (!expsim)
 	{
-		bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "ExpSim" );
-		draw_line(x-5, y + font_med.height * 3/4, x + font_med.width * 6, y + font_med.height * 1/4, COLOR_WHITE);
+		bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, " ExpSim " );
+		draw_line(x-5 + font_med.width, y + font_med.height * 3/4, x + font_med.width * 7, y + font_med.height * 1/4, COLOR_WHITE);
 	}
 	else
 	{
 		if (expsim != prev_expsim)// redraw();
-			bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "      " );
+			bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "        " );
 	}
 	prev_expsim = expsim;
 }

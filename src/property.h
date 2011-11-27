@@ -471,6 +471,9 @@ PROP_HANDLER(id) { \
 	return prop_cleanup( token, property ); \
 }
 
+/**for reading simple integer properties */
+int get_prop(int prop);
+
 #include "propvalues.h"
 
 #endif

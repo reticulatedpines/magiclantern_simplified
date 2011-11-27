@@ -3995,6 +3995,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 	//~ idle_wakeup_reset_counters(-4);
 	idle_globaldraw_disable = 0;
 	lv_paused = 0;
+	bv_auto_update();
 	return prop_cleanup( token, property );
 }
 

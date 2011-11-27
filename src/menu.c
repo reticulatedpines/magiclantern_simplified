@@ -1219,7 +1219,7 @@ menu_task( void* unused )
 	msleep(500);
 	while(1)
 	{
-		int rc = take_semaphore( gui_sem, 250 );
+		int rc = take_semaphore( gui_sem, 500 );
 		if( rc != 0 )
 		{
 			// We woke up after 1 second
