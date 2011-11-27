@@ -961,9 +961,6 @@ menu_handler(
 #ifdef CONFIG_5D2
 	case PRESS_PICTURE_STYLE_BUTTON:
 #endif
-#ifdef CONFIG_500D
-	if (recording) return 1; // ?!?! causes err70
-#endif
 		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
 		menu_entry_select( menu, 2 ); // auto setting select
 		//~ menu_damage = 1;
