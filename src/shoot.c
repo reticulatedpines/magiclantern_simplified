@@ -76,6 +76,7 @@ static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
 static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
+static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 1);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 0);
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
 
@@ -462,9 +463,15 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 	{
 		menu_stop();
 	}*/
-	
+	zoom_sharpen_step();
 	//~ if (hdr_steps > 1) halfshutter_action(v);
 	
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+	zoom_sharpen_step();
 	return prop_cleanup( token, property );
 }
 
@@ -1523,7 +1530,6 @@ iso_toggle( int sign )
 		
 		while (iso_round_only && !is_round_iso(values_iso[i]))
 			i = mod(i + sign, COUNT(codes_iso));
-		bmp_printf(FONT_LARGE, 100, 100, "%d ", values_iso[i]);
 		
 		if (lens_set_rawiso(codes_iso[i])) break;
 	}
@@ -1653,7 +1659,7 @@ shutter_display( void * priv, int x, int y, int selected )
 	if (is_movie_mode())
 	{
 		snprintf(msg, sizeof(msg),
-			"Shutter     : 1/%d, %d",
+			"Shutter     : 1/%d, %d ",
 			lens_info.shutter, 
 			360 * video_mode_fps / lens_info.shutter);
 	}
@@ -1671,7 +1677,7 @@ shutter_display( void * priv, int x, int y, int selected )
 	);
 	if (is_movie_mode())
 	{
-		int xc = x + font_large.width * strlen(msg);
+		int xc = x + font_large.width * (strlen(msg) - 1);
 		draw_circle(xc + 2, y + 7, 3, COLOR_WHITE);
 		draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
 	}
@@ -2509,6 +2515,104 @@ static void zoom_toggle(void* priv)
 	}
 }
 
+void zoom_lv_step()
+{
+	if (!lv) return;
+	if (recording) return;
+	if (face_zoom_request && lv_dispsize == 1 && !recording)
+	{
+		if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
+		{
+			int afmode = 1;
+			int zoom = 5;
+			int afx = afframe[2];
+			int afy = afframe[3];
+			prop_request_change(PROP_LVAF_MODE, &afmode, 4);
+			msleep(100);
+			afframe[2] = afx;
+			afframe[3] = afy;
+			prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+			msleep(1);
+			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+			msleep(1);
+		}
+		else if (lvaf_mode == 1) // back from temporary live focus mode
+		{
+			int afmode = 2;
+			prop_request_change(PROP_LVAF_MODE, &afmode, 4);
+			msleep(100);
+			face_zoom_request = 0;
+			//~ bmp_printf(FONT_LARGE, 10, 50, "       ");
+		}
+		else // cancel zoom request
+		{
+			msleep(100);
+			face_zoom_request = 0;
+			//~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
+		}
+	}
+	if (zoom_disable_x5 && lv_dispsize == 5)
+	{
+		int zoom = 10;
+		prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+		msleep(100);
+	}
+	if (zoom_disable_x10 && lv_dispsize == 10)
+	{
+		int zoom = 1;
+		prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+		msleep(100);
+	}
+}
+
+static void 
+zoom_sharpen_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Zoom SharpContrast++: %s",
+		zoom_sharpen ? "ON" : "OFF"
+	);
+}
+
+static struct semaphore * zoom_sem;
+
+// [guess] should be thread safe, since it's called from more property handlers
+void zoom_sharpen_step()
+{
+	if (!zoom_sharpen) return;
+	take_semaphore(zoom_sem, 0);
+
+	static int co = 100;
+	static int sa = 100;
+	static int sh = 100;
+	
+	if (zoom_sharpen && lv && lv_dispsize > 1 && !HALFSHUTTER_PRESSED && !gui_menu_shown()) // bump contrast/sharpness
+	{
+		if (co == 100)
+		{
+			co = lens_get_contrast();
+			sh = lens_get_sharpness();
+			sa = lens_get_saturation();
+			lens_set_contrast(4);
+			lens_set_sharpness(7);
+			lens_set_saturation(MAX(0, sa));
+		}
+	}
+	else // restore contrast/sharpness
+	{
+		if (co < 100)
+		{
+			lens_set_contrast(co);
+			lens_set_sharpness(sh);
+			lens_set_saturation(sa);
+			co = sa = sh = 100;
+		}
+	}
+	give_semaphore(zoom_sem);
+}
+
 static void 
 hdr_display( void * priv, int x, int y, int selected )
 {
@@ -3312,6 +3416,13 @@ static struct menu_entry vid_menus[] = {
 		.display = zoom_display,
 		.help = "Disable x5 or x10, or enable zoom during Face Detection :)"
 	},
+	{
+		.name = "Zoom SharpContrast++",
+		.priv = &zoom_sharpen,
+		.select = menu_binary_toggle,
+		.display = zoom_sharpen_display,
+		.help = "Increase contrast and sharpness when you zoom in LiveView."
+	},
 };
 
 static struct menu_entry expo_menus[] = {
@@ -3930,50 +4041,7 @@ shoot_task( void* unused )
 			}
 		}
 		
-		if (lv && face_zoom_request && lv_dispsize == 1 && !recording)
-		{
-			if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
-			{
-				int afmode = 1;
-				int zoom = 5;
-				int afx = afframe[2];
-				int afy = afframe[3];
-				prop_request_change(PROP_LVAF_MODE, &afmode, 4);
-				msleep(100);
-				afframe[2] = afx;
-				afframe[3] = afy;
-				prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
-				msleep(1);
-				prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-				msleep(1);
-			}
-			else if (lvaf_mode == 1) // back from temporary live focus mode
-			{
-				int afmode = 2;
-				prop_request_change(PROP_LVAF_MODE, &afmode, 4);
-				msleep(100);
-				face_zoom_request = 0;
-				//~ bmp_printf(FONT_LARGE, 10, 50, "       ");
-			}
-			else // cancel zoom request
-			{
-				msleep(100);
-				face_zoom_request = 0;
-				//~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
-			}
-		}
-		if (zoom_disable_x5 && lv_dispsize == 5)
-		{
-			int zoom = 10;
-			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-			msleep(100);
-		}
-		if (zoom_disable_x10 && lv_dispsize == 10)
-		{
-			int zoom = 1;
-			prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-			msleep(100);
-		}
+		zoom_lv_step();
 		/*if (sweep_lv_on)
 		{
 			sweep_lv();
@@ -4289,6 +4357,7 @@ TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x4000 );
 void shoot_init()
 {
 	set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
+	zoom_sem = create_named_semaphore("zoom_sem", 1);
 }
 
 INIT_FUNC("shoot", shoot_init);
