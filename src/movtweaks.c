@@ -270,6 +270,7 @@ shutter_lock_print(
 
 void shutter_lock_step()
 {
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
 	if (is_movie_mode()) // no effect in photo mode
 	{
 		unsigned shutter = lens_info.raw_shutter;
@@ -282,6 +283,7 @@ void shutter_lock_step()
 		else
 			shutter_lock_value = shutter; // accept change from ML menu
 	}
+#endif
 }
 
 #ifdef CONFIG_50D
