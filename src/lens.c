@@ -1478,6 +1478,10 @@ int bv_auto_should_enable()
 {
 	if (!bv_auto) return 0;
 	if (!lv) return 0;
+
+	extern int bulb_ramp_calibration_running; 
+	if (bulb_ramp_calibration_running) 
+		return 0; // temporarily disable BV mode to make sure display gain will work
 	
 	// cameras without manual exposure control
 	#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
