@@ -1083,11 +1083,13 @@ int bv_auto_needed_by_aperture = 0;
 PROP_HANDLER( PROP_ISO )
 {
 	if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
-	else if (bv_auto && buf[0] && !gui_menu_shown())
+	#ifndef CONFIG_500D
+	else if (bv_auto && buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE)
 	{
 		bv_set_rawiso(buf[0]);
 		bv_auto_needed_by_iso = 0;
 	}
+	#endif
 	bv_auto_update();
 	return prop_cleanup( token, property );
 }
@@ -1104,11 +1106,13 @@ PROP_HANDLER( PROP_ISO_AUTO )
 PROP_HANDLER( PROP_SHUTTER_ALSO )
 {
 	if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
+	#ifndef CONFIG_500D
 	else if (bv_auto && buf[0] && !gui_menu_shown())
 	{
 		bv_set_rawshutter(buf[0]);
 		bv_auto_needed_by_shutter = 0;
 	}
+	#endif
 	bv_auto_update();
 	return prop_cleanup( token, property );
 }
@@ -1116,11 +1120,13 @@ PROP_HANDLER( PROP_SHUTTER_ALSO )
 PROP_HANDLER( PROP_APERTURE2 )
 {
 	if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+	#ifndef CONFIG_500D
 	else if (bv_auto && buf[0] && !gui_menu_shown())
 	{
 		bv_set_rawaperture(buf[0]);
 		bv_auto_needed_by_aperture = 0;
 	}
+	#endif
 	bv_auto_update();
 	return prop_cleanup( token, property );
 }
@@ -1460,9 +1466,13 @@ void bv_update_props()
 	}
 }
 
-bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = shutter; bv_update_lensinfo(); return shutter != 0; }
-bool bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = aperture; bv_update_lensinfo();  return aperture != 0; }
-bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = MAX(iso, 72); bv_update_lensinfo();  return iso != 0; }
+extern int bv_iso;
+extern int bv_tv;
+extern int bv_av;
+
+bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo(); return shutter != 0; }
+bool bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = bv_av = aperture; bv_update_lensinfo();  return aperture != 0; }
+bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = bv_iso = MAX(iso, 72); bv_update_lensinfo();  return iso != 0; }
 
 int bv_auto_should_enable()
 {
@@ -1472,10 +1482,11 @@ int bv_auto_should_enable()
 	// cameras without manual exposure control
 	#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
 	if (is_movie_mode()) return 1;
+	else return 0;
 	#endif
 
 	// extra ISO values in movie mode
-	if (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture) 
+	if (is_movie_mode() && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
 		return 1;
 	
 	// temporarily cancel it in photo mode
@@ -1513,37 +1524,43 @@ void bv_auto_update()
 /** Camera control functions */
 bool lens_set_rawaperture( int aperture)
 {
+	#ifndef CONFIG_500D
 	if (bv_auto && is_movie_mode())
 	{
 		bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
 		bv_auto_update(); 
-		if (!bv_auto_needed_by_aperture) return 1;                    // if not accepted, try to set it again with BV
+		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
 	}
+	#endif
 	if (!CONTROL_BV) return prop_set_rawaperture(aperture);
 	else return bv_set_rawaperture(aperture);
 }
 
 bool lens_set_rawiso( int iso )
 {
+	#ifndef CONFIG_500D
 	if (bv_auto && is_movie_mode())
 	{
 		bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
 		bv_auto_update(); 
-		if (!bv_auto_needed_by_iso) return 1;          // if not accepted, try to set it again with BV
+		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
 		else return bv_set_rawiso(iso);
 	}
+	#endif
 	if (!CONTROL_BV) return prop_set_rawiso(iso);
 	else return bv_set_rawiso(iso);
 }
 
 bool lens_set_rawshutter( int shutter )
 {
+	#ifndef CONFIG_500D
 	if (bv_auto && is_movie_mode())
 	{
 		bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
 		bv_auto_update(); 
-		if (!bv_auto_needed_by_shutter) return 1;                  // if not accepted, try to set it again with BV
+		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
 	}
+	#endif
 	if (!CONTROL_BV) return prop_set_rawshutter(shutter);
 	else return bv_set_rawshutter(shutter);
 }

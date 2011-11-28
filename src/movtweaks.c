@@ -687,15 +687,28 @@ static void bv_display(
 	menu_draw_icon(x, y, bv_auto ? MNI_AUTO : MNI_BOOL(CONTROL_BV), 0);
 }
 
+CONFIG_INT("bv.iso", bv_iso, 88);
+CONFIG_INT("bv.tv", bv_tv, 111);
+CONFIG_INT("bv.av", bv_av, 48);
+
 void bv_enable_do()
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "EN     ");
 	if (CONTROL_BV) return;
 	//~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
 	call("lvae_setcontrolbv", 1);
-	CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : 111;
-	CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : 48;
-	CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : 88;
+	if (!ae_mode_movie)
+	{
+		CONTROL_BV_TV = bv_tv;
+		CONTROL_BV_AV = bv_av;
+		CONTROL_BV_ISO = bv_iso;
+	}
+	else
+	{
+		CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : bv_tv;
+		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
+		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : bv_iso;
+	}
 	CONTROL_BV_ZERO = 0;
 	bv_update_lensinfo();
 }
