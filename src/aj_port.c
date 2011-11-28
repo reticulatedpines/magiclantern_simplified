@@ -46,10 +46,17 @@ void aj_green_screen()
 
    unsigned int vpix, lum1, lum2; 
 
-   unsigned int total_luma   = 0;
-   unsigned int highest_luma = 0;
-   unsigned int lowest_luma  = 256;
-   unsigned int total_pixels = 0;
+   // results from previous loop, used for display
+   static int total_luma   = 0;
+   static int highest_luma = 0;
+   static int lowest_luma  = 256;
+   static int total_pixels = 0;
+
+   // results for current loop, being updated (will be used at next loop)
+   int total_luma_tmp   = 0;
+   int highest_luma_tmp = 0;
+   int lowest_luma_tmp  = 256;
+   int total_pixels_tmp = 0;
 
    /****************************************************************
    *   Set address pointers up to first line in Vram               *   
@@ -60,108 +67,7 @@ void aj_green_screen()
    uint16_t* bm16 = bmp_vram();
    uint8_t* bm_mirror = get_bvram_mirror();
 
-   /******************************************************************
-   *   Go through Crop area.  Note highest and lowest luma, average  *   
-   ******************************************************************/
-
-	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y+=2 )
-	{
-		for (int x = os.x0; x < os.x_max; x += 2)
-		{
-         /********************************************
-         *  Get 4 bytes of vram (ie two vram Pixels) *
-         ********************************************/
-
-         // vpix   = [LSB=pix on left] u y1 v y2  [MSB=pix on right] 
-         vpix = lv[BM2LV(x,y)/4];
-
-         total_pixels += 2;
- 
-         lum1 = ( vpix & 0x0000FF00 ) >>  8;  // y1
-         lum2 = ( vpix & 0xFF000000 ) >> 24;  // y2
-
-         /*************************
-         *  Update total luma     *
-         *************************/
-
-         total_luma += lum1 + lum2;
-
-         /*************************
-         *  new Maximum ?         *
-         *************************/
-
-         if (lum1 > highest_luma)
-            highest_luma = lum1;
-
-         if (lum2 > highest_luma)
-            highest_luma = lum2;
-     
-
-         /*************************
-         *  new Miniumum ?         *
-         *************************/
-
-         if (lum1 < lowest_luma)
-            lowest_luma = lum1;
-
-         if (lum2 < lowest_luma)
-            lowest_luma = lum2;
-      }
-   } // end of (y loop)
-
-
-   /************************
-   *   Quick sanity Check  *   
-   ************************/
-
-   if (total_pixels == 0)
-   {
-      bmp_printf( FONT(FONT_MED,1,COLOR_BG), 
-               150,g_bmp_height -24*2, 
-               "Err: Green screen: total_pixels = 0! ");
-      return;  
-   }
-
-   /**********************************
-   *   Display average, min and max  *   
-   **********************************/
-
    unsigned int average_luma = total_luma / total_pixels;
-
-   bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-               os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 47, 
-               "Average = %03d",average_luma);
-
-   bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
-               os.x0, os.y_max - os.off_169 - 47, 
-               "MIN = %03d",lowest_luma);
-
-   bmp_printf( FONT(FONT_MED,COLOR_YELLOW, COLOR_BLACK), 
-               os.x_max - font_med.width*9,
-               os.y_max - os.off_169 - 47, 
-               "%03d = MAX",highest_luma);
-
-
-   bmp_printf( FONT(FONT_MED,COLOR_WHITE, COLOR_BLACK), 
-               os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 27, 
-               "Accurracy=%02d%%",((255-(highest_luma-lowest_luma))*99 )/255
-             );
-
-   bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
-               os.x0, os.y_max - os.off_169 - 27, 
-               "delta %03d",average_luma - lowest_luma);
-
-   bmp_printf( FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 
-               os.x_max - font_med.width*9,
-               os.y_max - os.off_169 - 27, 
-               "%03d delta",highest_luma - average_luma);
-
-   /*************  FIRST PASS DONE ... ON THE NEXT ONE WE'LL UPDATE THE OVERLAY *********/
-
-   /****************************************************************
-   *   Set address pointers up to first line in Vram / and Overlay *   
-   ****************************************************************/
-
    unsigned int high_delta = highest_luma - average_luma;  // used to work out colour scale
    unsigned int low_delta  = average_luma - lowest_luma;   // colour scale for darker pixels
 
@@ -195,16 +101,43 @@ void aj_green_screen()
          // vpix   = [LSB=pix on left] u y1 v y2  [MSB=pix on right] 
          vpix = lv[BM2LV(x,y)/4];
 
-         total_pixels += 2;
+         total_pixels_tmp += 2;
  
          lum1 = ( vpix & 0x0000FF00 ) >>  8;  // y1
          lum2 = ( vpix & 0xFF000000 ) >> 24;  // y2
 
-         int lum = (lum1 + lum2) / 2;
+         /*************************
+         *  Update total luma     *
+         *************************/
+
+         total_luma_tmp += lum1 + lum2;
+
+         /*************************
+         *  new Maximum ?         *
+         *************************/
+
+         if (lum1 > highest_luma_tmp)
+            highest_luma_tmp = lum1;
+
+         if (lum2 > highest_luma_tmp)
+            highest_luma_tmp = lum2;
+     
+
+         /*************************
+         *  new Miniumum ?         *
+         *************************/
+
+         if (lum1 < lowest_luma_tmp)
+            lowest_luma_tmp = lum1;
+
+         if (lum2 < lowest_luma_tmp)
+            lowest_luma_tmp = lum2;
+
          /*********************************************************
          *  Initialise writeback colour of overlay to 0  for LUM1 *
          *********************************************************/
 
+         int lum = (lum1 + lum2) / 2;
          int col = 0;
 
          /**************************************
@@ -257,6 +190,48 @@ void aj_green_screen()
 
    } // end of (y loop)
   
+
+   /**********************************
+   * commit statistics for next loop *
+   **********************************/
+
+   total_luma = total_luma_tmp;
+   highest_luma = highest_luma_tmp;
+   lowest_luma = lowest_luma_tmp;
+   total_pixels = total_pixels_tmp;
+
+   /**********************************
+   *   Display average, min and max  *   
+   **********************************/
+
+   bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
+               os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 47, 
+               "Average = %03d",average_luma);
+
+   bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
+               os.x0, os.y_max - os.off_169 - 47, 
+               "MIN = %03d",lowest_luma);
+
+   bmp_printf( FONT(FONT_MED,COLOR_YELLOW, COLOR_BLACK), 
+               os.x_max - font_med.width*9,
+               os.y_max - os.off_169 - 47, 
+               "%03d = MAX",highest_luma);
+
+
+   bmp_printf( FONT(FONT_MED,COLOR_WHITE, COLOR_BLACK), 
+               os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 27, 
+               "Accurracy=%02d%%",((255-(highest_luma-lowest_luma))*99 )/255
+             );
+
+   bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
+               os.x0, os.y_max - os.off_169 - 27, 
+               "delta %03d", COERCE(average_luma - lowest_luma, 0, 255));
+
+   bmp_printf( FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 
+               os.x_max - font_med.width*9,
+               os.y_max - os.off_169 - 27, 
+               "%03d delta", COERCE(highest_luma - average_luma, 0, 255));
+
    msleep(10); // don't kill the battery :)
 
 } /* end of aj_green_screen() */
