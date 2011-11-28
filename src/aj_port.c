@@ -128,32 +128,32 @@ void aj_green_screen()
 
    unsigned int average_luma = total_luma / total_pixels;
 
-   bmp_printf( FONT(FONT_LARGE,1,COLOR_BG), 
-               g_bmp_width/2-font_large.width*7,g_bmp_height -56 - 40, 
+   bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
+               os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 47, 
                "Average = %03d",average_luma);
 
-   bmp_printf( FONT(FONT_LARGE,0x74,COLOR_BG), 
-               0,g_bmp_height -56 - 40, 
+   bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
+               os.x0, os.y_max - os.off_169 - 47, 
                "MIN = %03d",lowest_luma);
 
-   bmp_printf( FONT(FONT_LARGE,0x8,COLOR_BG), 
-               g_bmp_width - font_large.width*9,
-               g_bmp_height -56 - 40, 
+   bmp_printf( FONT(FONT_MED,COLOR_YELLOW, COLOR_BLACK), 
+               os.x_max - font_med.width*9,
+               os.y_max - os.off_169 - 47, 
                "%03d = MAX",highest_luma);
 
 
-   bmp_printf( FONT(FONT_LARGE,COLOR_BG,1), 
-               g_bmp_width/2-font_large.width*7,g_bmp_height -27 - 40, 
+   bmp_printf( FONT(FONT_MED,COLOR_WHITE, COLOR_BLACK), 
+               os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 27, 
                "Accurracy=%02d%%",((255-(highest_luma-lowest_luma))*99 )/255
              );
 
-   bmp_printf( FONT(FONT_LARGE,0x74,COLOR_BG), 
-               0,g_bmp_height -27 - 40, 
+   bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
+               os.x0, os.y_max - os.off_169 - 27, 
                "delta %03d",average_luma - lowest_luma);
 
-   bmp_printf( FONT(FONT_LARGE,0x8,COLOR_BG), 
-               g_bmp_width - font_large.width*9,
-               g_bmp_height -27 - 40, 
+   bmp_printf( FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 
+               os.x_max - font_med.width*9,
+               os.y_max - os.off_169 - 27, 
                "%03d delta",highest_luma - average_luma);
 
    /*************  FIRST PASS DONE ... ON THE NEXT ONE WE'LL UPDATE THE OVERLAY *********/
