@@ -1264,7 +1264,8 @@ menu_task( void* unused )
 		if (recording && !lv) continue;
 		
 		menu_shown = true;
-		
+		show_only_selected = 0;
+
 		#ifdef GUIMODE_ML_MENU
 		if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
 		if (GUIMODE_ML_MENU == 2) msleep(100);
@@ -1294,7 +1295,6 @@ menu_task( void* unused )
 		//~ zebra_pause();
 		//~ display_on(); // ensure the menu is visible even if display was off
 		//~ bmp_on();
-		show_only_selected = 0;
 	}
 }
 
