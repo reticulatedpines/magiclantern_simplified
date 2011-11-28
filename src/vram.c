@@ -187,7 +187,7 @@ void update_vram_params()
 	int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
 
 	// gray bars for 16:9 or 4:3
-	#if defined(CONFIG_600D) || defined(CONFIG_500D)
+	#if defined(CONFIG_600D)
 	int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
 	int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
 	#else
