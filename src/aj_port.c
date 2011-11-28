@@ -169,6 +169,9 @@ void aj_green_screen()
    *   Go through Crop area.  Note highest and lowest luma, average  *   
    ******************************************************************/
 
+    int high_delta_factor = 1024 / high_delta; // replace division with multiplication
+    int low_delta_factor = 1024 / low_delta;
+
 	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 	{
 		uint32_t * const v_row = (uint32_t*)( lv        + BM2LV_R(y)    );  // 2 pixels
@@ -210,7 +213,7 @@ void aj_green_screen()
        
          if (lum > average_luma)
          {
-            col = ((lum-average_luma)*12) / high_delta;
+            col = ((lum-average_luma)*12) * high_delta_factor / 1024;
             
             if (col > 12)
                col=12; 
@@ -224,7 +227,7 @@ void aj_green_screen()
             *  LUM1   Lower than average luma     *
             **************************************/
 
-            col = ((average_luma-lum)*12) / low_delta;
+            col = ((average_luma-lum)*12) * low_delta / 1024;
 
             if (col > 12)
                col=12; 
@@ -254,6 +257,6 @@ void aj_green_screen()
 
    } // end of (y loop)
   
-   msleep(100); // don't kill the battery :)
+   msleep(10); // don't kill the battery :)
 
 } /* end of aj_green_screen() */
