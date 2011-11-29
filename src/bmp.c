@@ -1066,6 +1066,34 @@ bfnt_test()
 }
 #endif
 
+void bmp_flip(uint8_t* dst, uint8_t* src)
+{
+	if (!dst) return;
+	int i,j;
+	for (i = 0; i < vram_bm.height; i++)
+	{
+		for (j = 0; j < vram_bm.width; j++)
+		{
+			dst[BM(j,i)] = src[BM(vram_bm.width-j, vram_bm.height-i)];
+		}
+	}
+}
+
+void bmp_dim()
+{
+	uint32_t* b = bmp_vram();
+	if (!b) return;
+	int i,j;
+	for (i = 0; i < vram_bm.height; i += 2)
+	{
+		for (j = 0; j < vram_bm.width; j += 4)
+		{
+			b[BM(j,i  )/4] &= 0x00FF00FF;
+			b[BM(j,i+1)/4] &= 0xFF00FF00;
+		}
+	}
+}
+
 void * bmp_lock = 0;
 
 void bmp_init(void* unused)
@@ -1074,6 +1102,5 @@ void bmp_init(void* unused)
 	bvram_mirror_init();
 	update_vram_params();
 }
-
 
 INIT_FUNC(__FILE__, bmp_init);
