@@ -171,7 +171,8 @@ expsim_display( void * priv, int x, int y, int selected )
 		expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
 		get_expsim_auto_value() ? "ON" : "OFF"
 	);
-	if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+	if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
+	else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 	else menu_draw_icon(x, y, expsim == 2 ? MNI_AUTO : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), (intptr_t) "Could not set ExpSim");
 }
 
@@ -1198,8 +1199,9 @@ static void display_gain_print(
 	);
 	if (display_gain)
 	{
-		if (lv) menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
-		else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+		if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
+		else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+		else menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
 	}
 }
 
