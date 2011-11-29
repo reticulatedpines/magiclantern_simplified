@@ -194,4 +194,7 @@ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,4
 
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
+void draw_ml_topbar();
+void draw_ml_bottombar(int double_buffering, int clear);
+
 #endif

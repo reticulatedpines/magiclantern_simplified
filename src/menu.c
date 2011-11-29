@@ -728,7 +728,7 @@ menu_redraw()
 				if (show_only_selected) 
 				{
 					draw_ml_topbar();
-					draw_ml_bottombar(0);
+					draw_ml_bottombar(0, 1);
 				}
 
 				if (double_buffering)
@@ -870,10 +870,9 @@ menu_handler(
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
 		//~ menu_damage = 1;
-		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
-		else menu_entry_move( menu, -1 );
+		else { menu_entry_move( menu, -1 ); show_only_selected = 0; }
 		break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
@@ -884,10 +883,9 @@ menu_handler(
 		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
 		//~ menu_damage = 1;
-		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
-		else menu_entry_move( menu, 1 );
+		else { menu_entry_move( menu, 1 ); show_only_selected = 0; }
 		break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
@@ -898,10 +896,9 @@ menu_handler(
 		edit_mode = 0;
 	case DIAL_RIGHT:
 		//~ menu_damage = 1;
-		show_only_selected = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 0 );
-		else menu_move( menu, 1 );
+		else { menu_move( menu, 1 ); show_only_selected = 0; }
 		break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
@@ -912,10 +909,9 @@ menu_handler(
 		edit_mode = 0;
 	case DIAL_LEFT:
 		//~ menu_damage = 1;
-		show_only_selected = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
 		if (edit_mode) menu_entry_select( menu, 1 );
-		else menu_move( menu, -1 );
+		else { menu_move( menu, -1 ); show_only_selected = 0; }
 		break;
 
 	case PRESS_SET_BUTTON:

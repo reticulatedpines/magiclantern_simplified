@@ -1635,7 +1635,7 @@ int crit_iso(int iso_index)
 
 	int under, over;
 	get_under_and_over_exposure_autothr(&under, &over);
-	BMP_LOCK( draw_ml_bottombar(0); )
+	//~ BMP_LOCK( draw_ml_bottombar(0,0); )
 	return under - over;
 }
 
@@ -1744,7 +1744,7 @@ int crit_shutter(int shutter_index)
 
 	int under, over;
 	get_under_and_over_exposure_autothr(&under, &over);
-	BMP_LOCK( draw_ml_bottombar(0); )
+	//~ BMP_LOCK( draw_ml_bottombar(0,0); )
 	return over - under;
 }
 
@@ -1906,7 +1906,7 @@ int crit_kelvin(int k)
 
 	int Y, U, V;
 	get_spot_yuv(100, &Y, &U, &V);
-	BMP_LOCK( draw_ml_bottombar(0); )
+	//~ BMP_LOCK( draw_ml_bottombar(0,0); )
 
 	int R = Y + 1437 * V / 1024;
 	//~ int G = Y -  352 * U / 1024 - 731 * V / 1024;
@@ -1930,7 +1930,7 @@ int crit_wbs_gm(int k)
 	int G = Y -  352 * U / 1024 - 731 * V / 1024;
 	int B = Y + 1812 * U / 1024;
 
-	BMP_LOCK( draw_ml_bottombar(0); )
+	//~ BMP_LOCK( draw_ml_bottombar(0,0); )
 	return (R+B)/2 - G;
 }
 

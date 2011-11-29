@@ -3472,7 +3472,7 @@ livev_hipriority_task( void* unused )
 			//~ crop_set_dirty(20);
 		
 		//~ if (lens_display_dirty)
-		if (k % 20 == 0 || lens_display_dirty)
+		if ((k % 20 == 0 || lens_display_dirty) && !gui_menu_shown())
 		{
 			//~ #ifdef CONFIG_KILL_FLICKER
 			//~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )

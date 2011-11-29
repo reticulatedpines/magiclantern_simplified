@@ -35,8 +35,6 @@
 #endif
 
 void update_stuff();
-void draw_ml_topbar();
-void draw_ml_bottombar(int double_buffering);
 
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
@@ -179,7 +177,8 @@ update_lens_display()
 	draw_ml_topbar();
 	
 	extern int menu_upside_down; // don't use double buffer in this mode
-	draw_ml_bottombar(!menu_upside_down && !is_canon_bottom_bar_dirty() && !should_draw_zoom_overlay()); 
+	int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty() && !should_draw_zoom_overlay();
+	draw_ml_bottombar(double_buffering, double_buffering); 
 }
 
 int should_draw_bottom_bar()
@@ -206,7 +205,7 @@ int shutter_ms_to_raw(int shutter_ms)
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
-void draw_ml_bottombar(int double_buffering)
+void draw_ml_bottombar(int double_buffering, int clear)
 {
 	//~ beep();
 	if (!should_draw_bottom_bar()) return;
@@ -252,6 +251,10 @@ void draw_ml_bottombar(int double_buffering)
 		//~ bmp_mirror_copy(0);
 		memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 35 * BMPPITCH);
 		bmp_draw_to_idle(1);
+	}
+
+	if (clear)
+	{
 		bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 	}
 
