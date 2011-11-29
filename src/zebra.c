@@ -946,7 +946,7 @@ draw_zebra_and_focus( int Z, int F )
 			uint16_t * const hd_row = hdvram + BM2HD_R(y) / 4; // 2 pixels
 			
 			uint32_t* hdp; // that's a moving pointer
-			for (int x = os.x0; x < os.x_max; x += 2)
+			for (int x = os.x0 + 8; x < os.x_max - 8; x += 2)
 			{
 				hdp = hd_row + BM2HD_X(x);
 				//~ hdp = hdvram + BM2HD(x,y)/4;
@@ -979,14 +979,39 @@ draw_zebra_and_focus( int Z, int F )
 				#define e_morph (ABS(b - ((BDE + BED) >> 1)) << 3)
 				//~ #define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
 				//~ #define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
+				
+				/** simple Laplacian filter
+				 *     -1
+				 *  -1  4 -1
+				 *     -1
+				 * 
+				 * Big endian:
+				 *  uyvy uyvy uyvy
+				 *  uyvy uYvy uyvy
+				 *  uyvy uyvy uyvy
+				 */
+				#define P (vram_hd.pitch/4)
+				#define p_cc ((int32_t)((*(hdp  )) >>  8) & 0xFF)
+				#define p_rc ((int32_t)((*(hdp  )) >> 24) & 0xFF)
+				#define p_lc ((int32_t)((*(hdp-1)) >> 24) & 0xFF)
+				#define p_cu ((int32_t)((*(hdp-P)) >>  8) & 0xFF)
+				#define p_cd ((int32_t)((*(hdp+P)) >>  8) & 0xFF)
+				
+				#define e_laplacian_x  ABS(p_cc * 2 - p_lc - p_rc)
+				#define e_laplacian_xy ABS(p_cc * 4 - p_lc - p_rc - p_cu - p_cd)
+				#define e_dx           ABS(p_rc - p_cc)
+				#define e_dy           ABS(p_cd - p_cc)
 
-				int e = (focus_peaking == 1) ? ABS(D1) :
-						(focus_peaking == 2) ? e_morph : 0;
+				int e = (focus_peaking == 1) ? e_dx :
+						(focus_peaking == 2) ? MAX(e_dx, e_dy) :
+						(focus_peaking == 3) ? e_laplacian_x :
+					  /*(focus_peaking == 4)*/ e_laplacian_xy ;
 				#undef a
 				#undef b
 				#undef c
 				#undef d
 				#undef z
+				#undef P
 				
 				/*if (focus_peaking_debug)
 				{
@@ -1018,10 +1043,8 @@ draw_zebra_and_focus( int Z, int F )
 					uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
 					if ((pixel == 0 || pixel == mirror) && (pixel2 == 0 || pixel2 == mirror2)) // safe to draw
 					{
-						b_row[x/2] = color;
-						b_row[x/2 + BMPPITCH/2] = color;
-						m_row[x/2] = color;
-						m_row[x/2 + BMPPITCH/2] = color;
+						b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
+						m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
 						if (dirty_pixels_num < MAX_DIRTY_PIXELS)
 						{
 							dirty_pixels[dirty_pixels_num++] = BM(x,y);
@@ -1440,8 +1463,11 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Focus Peak  : %s,%d.%d,%s", 
-			focus_peaking == 1 ? "HDIF" : 
-			focus_peaking == 2 ? "MORF" : "?",
+			focus_peaking == 1 ? "D1x " : 
+			focus_peaking == 2 ? "D1xy" :
+			focus_peaking == 3 ? "D2x " :
+			focus_peaking == 4 ? "D2xy" :
+			 "?",
 			focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
 			focus_peaking_color == 0 ? "R" :
 			focus_peaking_color == 1 ? "G" :
@@ -2173,7 +2199,7 @@ struct menu_entry zebra_menus[] = {
 		.name = "Focus Peak",
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
-		.select			= menu_ternary_toggle,
+		.select			= menu_quinternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
