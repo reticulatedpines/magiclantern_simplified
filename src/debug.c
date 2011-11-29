@@ -1194,13 +1194,14 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 
 		if (get_global_draw())
 		{
-			
+			#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 			if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && CURRENT_DIALOG_MAYBE == 0 && !ISO_ADJUSTMENT_ACTIVE && !EXT_MONITOR_CONNECTED) BMP_LOCK
 			(
 				display_clock();
 				display_shooting_info();
 				free_space_show_photomode();
 			)
+			#endif
 		
 			if (lv && !gui_menu_shown())
 			{
