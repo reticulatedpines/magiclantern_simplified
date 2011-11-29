@@ -699,18 +699,25 @@ void bv_enable_do()
 	if (CONTROL_BV) return;
 	//~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
 	call("lvae_setcontrolbv", 1);
-	if (!ae_mode_movie)
+
+#ifdef CONFIG_500D
+		CONTROL_BV_TV = bv_tv;
+		CONTROL_BV_AV = bv_av;
+		CONTROL_BV_ISO = bv_iso;
+#else
+	if (ae_mode_movie == 0) // auto movie mode
 	{
 		CONTROL_BV_TV = bv_tv;
 		CONTROL_BV_AV = bv_av;
 		CONTROL_BV_ISO = bv_iso;
 	}
-	else
+	else // manual movie mode or photo mode, try to sync with Canon values
 	{
 		CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : bv_tv;
 		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
 		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : bv_iso;
 	}
+#endif
 	CONTROL_BV_ZERO = 0;
 	bv_update_lensinfo();
 }
