@@ -1002,10 +1002,13 @@ draw_zebra_and_focus( int Z, int F )
 				#define e_dx           ABS(p_rc - p_cc)
 				#define e_dy           ABS(p_cd - p_cc)
 
+#if 0
 				int e = (focus_peaking == 1) ? e_dx :
 						(focus_peaking == 2) ? MAX(e_dx, e_dy) :
 						(focus_peaking == 3) ? e_laplacian_x :
 					  /*(focus_peaking == 4)*/ e_laplacian_xy ;
+#endif
+				int e = focus_peaking == 1 ? MAX(e_dx, e_dy) : e_laplacian_xy ;
 				#undef a
 				#undef b
 				#undef c
@@ -1463,10 +1466,8 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Focus Peak  : %s,%d.%d,%s", 
-			focus_peaking == 1 ? "D1x " : 
-			focus_peaking == 2 ? "D1xy" :
-			focus_peaking == 3 ? "D2x " :
-			focus_peaking == 4 ? "D2xy" :
+			focus_peaking == 1 ? "D1xy" : 
+			focus_peaking == 2 ? "D2xy" :
 			 "?",
 			focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
 			focus_peaking_color == 0 ? "R" :
@@ -2199,7 +2200,7 @@ struct menu_entry zebra_menus[] = {
 		.name = "Focus Peak",
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
-		.select			= menu_quinternary_toggle,
+		.select			= menu_ternary_toggle,
 		.select_reverse = focus_peaking_adjust_color, 
 		.select_auto    = focus_peaking_adjust_thr,
 		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
