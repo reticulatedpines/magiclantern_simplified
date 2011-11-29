@@ -179,7 +179,7 @@ static void
 bitrate_toggle_mode(void* priv)
 {
 	if (recording) return;
-	menu_ternary_toggle(priv);
+	menu_ternary_toggle(priv, 1);
 }
 
 static void 

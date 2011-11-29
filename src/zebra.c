@@ -1273,30 +1273,6 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 	}
 }
 
-static void
-zebra_lo_toggle( void * priv )
-{
-	zebra_level_lo = mod(zebra_level_lo + 1, 50);
-}
-
-static void
-zebra_lo_toggle_reverse( void * priv )
-{
-	zebra_level_lo = mod(zebra_level_lo - 1, 50);
-}
-
-static void
-zebra_hi_toggle( void * priv )
-{
-	zebra_level_hi = 200 + mod(zebra_level_hi - 200 + 1, 56);
-}
-
-static void
-zebra_hi_toggle_reverse( void * priv )
-{
-	zebra_level_hi = 200 + mod(zebra_level_hi - 200 - 1, 56);
-}
-
 #define MAX_CROP_NAME_LEN 15
 #define MAX_CROPMARKS 9
 int num_cropmarks = 0;
@@ -1488,12 +1464,13 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_BOOL_GDR(f));
 }
 
-static void focus_peaking_adjust_thr(void* priv)
+static void focus_peaking_adjust_thr(void* priv, int delta)
 {
 	if (focus_peaking)
 	{
-		focus_peaking_pthr += (focus_peaking_pthr < 10 ? 1 : 5);
-		if (focus_peaking_pthr > 50) focus_peaking_pthr = 1;
+		focus_peaking_pthr = (int)focus_peaking_pthr + (focus_peaking_pthr < 10 ? 1 : 5) * delta;
+		if ((int)focus_peaking_pthr > 50) focus_peaking_pthr = 1;
+		if ((int)focus_peaking_pthr <= 0) focus_peaking_pthr = 50;
 	}
 }
 static void focus_peaking_adjust_color(void* priv)
@@ -2190,11 +2167,25 @@ struct menu_entry zebra_menus[] = {
 		.name = "Zebras",
 		.priv		= &zebra_draw,
 		.select		= menu_ternary_toggle_reverse,
-		.select_reverse = zebra_lo_toggle, 
-		.select_auto = zebra_hi_toggle,
+		.select_reverse = menu_ternary_toggle, 
 		.display	= zebra_draw_display,
 		.help = "Zebra stripes: show overexposed or underexposed areas.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Low Level",
+				.priv = &zebra_level_lo, 
+				.min = 0,
+				.max = 50,
+			},
+			{
+				.name = "High Level", 
+				.priv = &zebra_level_hi,
+				.min = 200,
+				.max = 255,
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Focus Peak",
@@ -2205,6 +2196,27 @@ struct menu_entry zebra_menus[] = {
 		.select_auto    = focus_peaking_adjust_thr,
 		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
 		.essential = FOR_LIVEVIEW,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Method",
+				.priv = &focus_peaking, 
+				.min = 1,
+				.max = 2,
+				.choices = (const char *[]) {"D1xy", "D2xy"},
+			},
+			{
+				.name = "Threshold", 
+				.priv = &focus_peaking_pthr,
+				.select = focus_peaking_adjust_thr,
+			},
+			{
+				.name = "Color", 
+				.priv = &focus_peaking_color,
+				.max = 7,
+				.choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global", "Local"},
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Magic Zoom",
@@ -2215,14 +2227,27 @@ struct menu_entry zebra_menus[] = {
 		.select_auto = menu_quinternary_toggle,
 		.help = "Zoom box for checking focus. Can be used while recording.",
 		.essential = FOR_LIVEVIEW,
-	},
-	{
-		.name = "Split Screen",
-		.priv = &zoom_overlay_split,
-		.display = split_display, 
-		.select = menu_binary_toggle,
-		.select_auto = split_zerocross_toggle,
-		.help = "Magic Zoom will be split when image is out of focus. [Q]:ZC"
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Mode",
+				.priv = &zoom_overlay_mode, 
+				.min = 1,
+				.max = 4,
+				.choices = (const char *[]) {"Zoom.REC", "REC+Focus", "ZoomIn(+)", "Always"},
+			},
+			{
+				.name = "Size", 
+				.priv = &zoom_overlay_size,
+				.max = 4,
+				.choices = (const char *[]) {"Small", "Medium", "Large", "Small X2", "Medium X2"},
+			},
+			{
+				.name = "Split Screen", 
+				.priv = &zoom_overlay_split,
+				.max = 1,
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Cropmks(x/n)",

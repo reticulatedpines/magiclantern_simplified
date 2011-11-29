@@ -198,14 +198,14 @@ static void expsim_update()
 static void expsim_toggle(void* priv)
 {
 	if (is_movie_mode()) return;
-	menu_ternary_toggle(priv); msleep(100);
+	menu_ternary_toggle(priv, 1); msleep(100);
 	menu_show_only_selected();
 }
 
 static void expsim_toggle_reverse(void* priv)
 {
 	if (is_movie_mode()) return;
-	menu_ternary_toggle_reverse(priv); msleep(100);
+	menu_ternary_toggle_reverse(priv, -1); msleep(100);
 	menu_show_only_selected();
 }
 

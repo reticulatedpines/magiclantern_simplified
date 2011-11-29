@@ -1134,13 +1134,13 @@ audio_input_display( void * priv, int x, int y, int selected )
 static void
 audio_input_toggle( void * priv )
 {
-	menu_quinternary_toggle(priv);
+	menu_quinternary_toggle(priv, 1);
 	audio_configure( 1 );
 }
 static void
 audio_input_toggle_reverse( void * priv )
 {
-	menu_quinternary_toggle_reverse(priv);
+	menu_quinternary_toggle_reverse(priv, -1);
 	audio_configure( 1 );
 }
 

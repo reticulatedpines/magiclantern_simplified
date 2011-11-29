@@ -215,7 +215,6 @@ unsigned bitwise_reverse(unsigned in, unsigned max) {
 }
 
 char morse_code[10] = "";
-#define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig), fmt, ## __VA_ARGS__);
 
 const char morse_table[] = 
 "A .-     H ....   O ---   V ...-   3 ...--  0 -----  ( -.--.  - -....- \n"

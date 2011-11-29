@@ -469,8 +469,8 @@ screen_layout_display(
 	menu_draw_icon(x, y, EXT_MONITOR_CONNECTED ? MNI_AUTO : MNI_ON, 0);
 }
 
-void screen_layout_toggle() { menu_quinternary_toggle(get_screen_layout_ptr()); }
-void screen_layout_toggle_reverse() { menu_quinternary_toggle_reverse(get_screen_layout_ptr()); }
+void screen_layout_toggle() { menu_quinternary_toggle(get_screen_layout_ptr(), 1); }
+void screen_layout_toggle_reverse() { menu_quinternary_toggle_reverse(get_screen_layout_ptr(), -1); }
 
 
 #ifdef CONFIG_50D

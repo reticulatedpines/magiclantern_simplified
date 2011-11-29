@@ -42,6 +42,7 @@ static int edit_mode = 0;
 static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
+static int submenu_mode = 0;
 
 static CONFIG_INT("menu.advanced", advanced_mode, 0);
 
@@ -64,6 +65,7 @@ int get_menu_font_sel()
 static void menu_help_go_to_selected_entry();
 //~ static void menu_init( void );
 static void menu_show_version(void);
+static struct menu * get_current_submenu();
 
 extern int gui_state;
 void menu_show_only_selected()
@@ -114,47 +116,35 @@ static struct menu * menus;
 
 void
 menu_binary_toggle(
-	void *			priv
+	void *			priv,
+	int unused
 )
 {
 	unsigned * val = priv;
 	*val = !*val;
 }
 
-void menu_ternary_toggle(void* priv)
+void menu_ternary_toggle(void* priv, int delta)
 {
 	unsigned * val = priv;
-	*val = mod(*val + 1, 3);
+	*val = mod(*val + delta, 3);
 }
 
-void menu_ternary_toggle_reverse( void* priv)
+void menu_quaternary_toggle(void* priv, int delta)
 {
 	unsigned * val = priv;
-	*val = mod(*val - 1, 3);
+	*val = mod(*val + delta, 4);
 }
 
-void menu_quaternary_toggle(void* priv)
+void menu_quinternary_toggle(void* priv, int delta)
 {
 	unsigned * val = priv;
-	*val = mod(*val + 1, 4);
+	*val = mod(*val + delta, 5);
 }
 
-void menu_quaternary_toggle_reverse( void* priv)
+void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
-	unsigned * val = priv;
-	*val = mod(*val - 1, 4);
-}
-
-void menu_quinternary_toggle(void* priv)
-{
-	unsigned * val = priv;
-	*val = mod(*val + 1, 5);
-}
-
-void menu_quinternary_toggle_reverse( void* priv)
-{
-	unsigned * val = priv;
-	*val = mod(*val - 1, 5);
+	*val = mod(*val - min + delta, max - min + 1) + min;
 }
 
 void
@@ -172,6 +162,37 @@ menu_print(
 		(const char*) priv
 	);
 	menu_draw_icon(x, y, MNI_ACTION, 0);
+}
+
+void
+submenu_print(
+	struct menu_entry * entry,
+	int			x,
+	int			y
+)
+{
+	char msg[100] = "";
+	STR_APPEND(msg, "%s", entry->name);
+	int l = strlen(entry->name);
+	for (int i = 0; i < 12 - l; i++)
+		STR_APPEND(msg, " ");
+	if (entry->choices)
+	{
+		STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv) - entry->min]);
+	}
+	else if (entry->min == 0 && entry->max == 1)
+	{
+		STR_APPEND(msg, ": %s", MEM(entry->priv) ? "ON" : "OFF");
+	}
+	else
+	{
+		STR_APPEND(msg, ": %d", MEM(entry->priv));
+	}
+	bmp_printf(
+		entry->selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		msg
+	);
 }
 
 
@@ -271,6 +292,20 @@ menu_add(
 		new_entry++;
 	}
 	give_semaphore( menu_sem );
+
+
+	// create submenus
+	for (struct menu_entry * entry = head; entry; entry = entry->prev)
+	{
+		if (entry->children)
+		{
+			int count = 0;
+			struct menu_entry * child = entry->children;
+			while (!MENU_IS_EOL(child)) { count++; child++; }
+			menu_add(entry->name, entry->children, count);
+		}
+	}
+
 #else
 	// Maybe later...
 	struct menu_entry * child = head->child;
@@ -394,8 +429,7 @@ static void
 menu_display(
 	struct menu_entry *	menu,
 	int			x,
-	int			y,
-	int			selected
+	int			y
 )
 {
 	while( menu )
@@ -406,12 +440,15 @@ menu_display(
 			
 			if (!show_only_selected || menu->selected)
 			{
-				menu->display(
-					menu->priv,
-					x,
-					y,
-					menu->selected
-				);
+				if (menu->display)
+					menu->display(
+						menu->priv,
+						x,
+						y,
+						menu->selected
+					);
+				else
+					submenu_print(menu, x, y);
 			}
 			
 			// this should be after menu->display, in order to allow it to override the icon
@@ -519,13 +556,24 @@ menus_display(
 			menu_display(
 				menu->children,
 				orig_x + 40,
-				y + 45,
-				1
+				y + 45
 			);
 	}
 	give_semaphore( menu_sem );
 }
 
+static void
+submenu_display(struct menu * submenu)
+{
+	if (!submenu) return;
+	bmp_fill(40, 100, 100, 520, 50);
+	bmp_fill(COLOR_BLACK, 100, 150, 520, 250);
+	bmp_draw_rect(70, 100, 100, 520, 50);
+	bmp_draw_rect(COLOR_WHITE, 100, 100, 520, 300);
+	bfnt_puts(submenu->name, 105, 105, COLOR_WHITE, 40);
+
+	menu_display(submenu->children, 100 + 50, 100 + 50 + 20);
+}
 
 static void
 menu_entry_select(
@@ -551,17 +599,21 @@ menu_entry_select(
 
 	if(mode == 1)
 	{
-		if( entry->select_reverse ) entry->select_reverse( entry->priv );
-		else if (entry->select) entry->select( entry->priv );
+		if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
+		else if (entry->select) entry->select( entry->priv, -1);
+		else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
 	}
 	else if (mode == 2)
 	{
-		if( entry->select_auto ) entry->select_auto( entry->priv );
-		else if (entry->select) entry->select( entry->priv );
+		if (entry->children || submenu_mode) submenu_mode = !submenu_mode;
+		else if( entry->select_auto ) entry->select_auto( entry->priv, 1);
+		else if (entry->select) entry->select( entry->priv, 1);
+		else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
 	}
 	else 
 	{
-		if( entry->select ) entry->select( entry->priv );
+		if( entry->select ) entry->select( entry->priv, 1);
+		else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
 	}
 	
 	config_dirty = 1;
@@ -680,14 +732,14 @@ menu_entry_move(
 		// warning: would block if the menu is empty
 }
 
-static void menu_select_current(int reverse)
+/*static void menu_select_current(int reverse)
 {
 	struct menu * menu = menus;
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
 			break;
 	menu_entry_select(menu,reverse);
-}
+}*/
 
 CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 
@@ -724,6 +776,13 @@ menu_redraw()
 
 				menus_display( menus, x0, y0 ); 
 				if (is_menu_active("Help")) menu_show_version();
+
+				if (submenu_mode)
+				{
+					bmp_dim();
+					struct menu * submenu = get_current_submenu();
+					submenu_display(submenu);
+				}
 
 				if (show_only_selected) 
 				{
@@ -780,6 +839,22 @@ static struct menu * get_selected_menu()
 	return menu;
 }
 
+static struct menu * get_current_submenu()
+{
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+		if( menu->selected )
+			break;
+	struct menu_entry * entry = menu->children;
+	for( ; entry ; entry = entry->next )
+		if( entry->selected )
+			break;
+	if (entry->children)
+		return menu_find_by_name(entry->name, 0);
+
+	return 0;
+}
+
 static int
 menu_handler(
 	void *			priv,
@@ -811,6 +886,9 @@ menu_handler(
 	
 	menu_entry_move(menu, -1);
 	menu_entry_move(menu, 1);
+	
+	if (submenu_mode)
+		menu = get_current_submenu();
 	
 	switch( event )
 	{
@@ -893,11 +971,11 @@ menu_handler(
 #else
 	case PRESS_RIGHT_BUTTON:
 #endif
-		edit_mode = 0;
+		if (!submenu_mode) edit_mode = 0;
 	case DIAL_RIGHT:
 		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_next_page(); break; }
-		if (edit_mode) menu_entry_select( menu, 0 );
+		if (edit_mode || submenu_mode) menu_entry_select( menu, 0 );
 		else { menu_move( menu, 1 ); show_only_selected = 0; }
 		break;
 
@@ -906,11 +984,11 @@ menu_handler(
 #else
 	case PRESS_LEFT_BUTTON:
 #endif
-		edit_mode = 0;
+		if (!submenu_mode) edit_mode = 0;
 	case DIAL_LEFT:
 		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_prev_page(); break; }
-		if (edit_mode) menu_entry_select( menu, 1 );
+		if (edit_mode || submenu_mode) menu_entry_select( menu, 1 );
 		else { menu_move( menu, -1 ); show_only_selected = 0; }
 		break;
 
@@ -1428,6 +1506,16 @@ void menu_stop()
 {
 	if (gui_menu_shown())
 		give_semaphore( gui_sem );
+}
+
+void menu_open_submenu(struct menu_entry * entry)
+{
+	submenu_mode = 1;
+}
+
+void menu_close_submenu()
+{
+	submenu_mode = 0;
 }
 
 #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
