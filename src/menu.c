@@ -174,11 +174,11 @@ submenu_print(
 	char msg[100] = "";
 	STR_APPEND(msg, "%s", entry->name);
 	int l = strlen(entry->name);
-	for (int i = 0; i < 12 - l; i++)
+	for (int i = 0; i < 14 - l; i++)
 		STR_APPEND(msg, " ");
 	if (entry->choices)
 	{
-		STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv) - entry->min]);
+		STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv)]);
 	}
 	else if (entry->min == 0 && entry->max == 1)
 	{
@@ -281,7 +281,7 @@ menu_add(
 	while( head->next )
 		head = head->next;
 
-	while( count-- )
+	for (int i = 0; i < count; i++)
 	{
 		new_entry->selected	= 0;
 		new_entry->next		= head->next;
@@ -295,15 +295,20 @@ menu_add(
 
 
 	// create submenus
-	for (struct menu_entry * entry = head; entry; entry = entry->prev)
+	
+	struct menu_entry * entry = head;
+	for (int i = 0; i <= count; i++)
 	{
 		if (entry->children)
 		{
 			int count = 0;
 			struct menu_entry * child = entry->children;
 			while (!MENU_IS_EOL(child)) { count++; child++; }
+			menu_find_by_name( entry->name, ICON_ML_SUBMENU);
 			menu_add(entry->name, entry->children, count);
 		}
+		entry = entry->prev;
+		if (!entry) break;
 	}
 
 #else
@@ -429,12 +434,13 @@ static void
 menu_display(
 	struct menu_entry *	menu,
 	int			x,
-	int			y
+	int			y,
+	int is_submenu
 )
 {
 	while( menu )
 	{
-		if (advanced_mode || IS_ESSENTIAL(menu))
+		if (advanced_mode || IS_ESSENTIAL(menu) || is_submenu)
 		{
 			icon_drawn = 0;
 			
@@ -520,7 +526,9 @@ menus_display(
 	{
 		if (!menu_has_visible_items(menu->children))
 			continue; // empty menu
-		
+		if (IS_SUBMENU(menu))
+			continue;
+
 		int fg = menu->selected ? COLOR_WHITE : 70;
 		int bg = menu->selected ? 13 : 40;
 		unsigned fontspec = FONT(
@@ -556,7 +564,8 @@ menus_display(
 			menu_display(
 				menu->children,
 				orig_x + 40,
-				y + 45
+				y + 45,
+				0
 			);
 	}
 	give_semaphore( menu_sem );
@@ -566,13 +575,19 @@ static void
 submenu_display(struct menu * submenu)
 {
 	if (!submenu) return;
-	bmp_fill(40, 100, 100, 520, 50);
-	bmp_fill(COLOR_BLACK, 100, 150, 520, 250);
-	bmp_draw_rect(70, 100, 100, 520, 50);
-	bmp_draw_rect(COLOR_WHITE, 100, 100, 520, 300);
-	bfnt_puts(submenu->name, 105, 105, COLOR_WHITE, 40);
+	
+	int bx = 50;
+	int by = 70;
+	if (!show_only_selected)
+	{
+		bmp_fill(40, x0 + bx, y0 + by, 720-2*bx, 50);
+		bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx, 250);
+		bmp_draw_rect(70, x0 + bx, y0 + by, 720-2*bx, 50);
+		bmp_draw_rect(COLOR_WHITE, x0 + bx, y0 + by, 720-2*bx, 300);
+		bfnt_puts(submenu->name, x0 + bx + 5, y0 + by + 5, COLOR_WHITE, 40);
+	}
 
-	menu_display(submenu->children, 100 + 50, 100 + 50 + 20);
+	menu_display(submenu->children, x0 + bx + 50, y0 + by + 50 + 20, 1);
 }
 
 static void
@@ -605,7 +620,7 @@ menu_entry_select(
 	}
 	else if (mode == 2)
 	{
-		if (entry->children || submenu_mode) submenu_mode = !submenu_mode;
+		if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
 		else if( entry->select_auto ) entry->select_auto( entry->priv, 1);
 		else if (entry->select) entry->select( entry->priv, 1);
 		else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
@@ -661,7 +676,7 @@ menu_move(
 	menu->selected		= 1;
 	give_semaphore( menu_sem );
 	
-	if (!menu_has_visible_items(menu->children))
+	if (IS_SUBMENU(menu) || !menu_has_visible_items(menu->children))
 		menu_move(menu, direction); // this menu is hidden, skip it (try again)
 		// will fail if no menus are displayed!
 }
@@ -920,7 +935,8 @@ menu_handler(
 
 
 	case PRESS_MENU_BUTTON:
-		advanced_mode = !advanced_mode;
+		if (submenu_mode) submenu_mode = 0;
+		else advanced_mode = !advanced_mode;
 		show_only_selected = 0;
 		menu_help_active = 0;
 		edit_mode = 0;
@@ -1339,6 +1355,7 @@ menu_task( void* unused )
 		
 		menu_shown = true;
 		show_only_selected = 0;
+		submenu_mode = 0;
 
 		#ifdef GUIMODE_ML_MENU
 		if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);

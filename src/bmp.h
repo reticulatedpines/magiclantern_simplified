@@ -318,3 +318,4 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_FLASH_B 0xa59aee
 
 #define ICON_ML_PLAY -1
+#define ICON_ML_SUBMENU -100

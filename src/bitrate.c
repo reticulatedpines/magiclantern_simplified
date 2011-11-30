@@ -151,43 +151,59 @@ bitrate_print(
 	}
 }
 
+static void
+cbr_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "CBR factor    : %d.%dx", bitrate_factor/10, bitrate_factor%10);
+	if (bitrate_mode == 1) menu_draw_icon(x, y, MNI_PERCENT, bitrate_factor * 100 / 30);
+	else menu_draw_icon(x, y, MNI_WARNING, "CBR mode inactive.");
+}
+
+static void
+qscale_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "QScale factor : %d", qscale);
+	if (bitrate_mode == 2) menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
+	else menu_draw_icon(x, y, MNI_WARNING, "VBR mode inactive.");
+}
+
+
 static void 
-bitrate_toggle_forward(void* priv)
+bitrate_factor_toggle(void* priv, int delta)
 {
 	if (recording) return;
-	if (bitrate_mode == 0)
-		return;
-	else if (bitrate_mode == 1 && !recording)
-		bitrate_factor = mod(bitrate_factor + 1 - 1, 30) + 1;
-	else if (bitrate_mode == 2)
-		qscale_plus16 = mod(qscale_plus16 - 1, 33);
+	bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
 }
 
 static void 
-bitrate_toggle_reverse(void* priv)
+bitrate_qscale_toggle(void* priv, int delta)
 {
 	if (recording) return;
-	if (bitrate_mode == 0)
-		return;
-	else if (bitrate_mode == 1)
-		bitrate_factor = mod(bitrate_factor - 1 - 1, 30) + 1;
-	else if (bitrate_mode == 2)
-		qscale_plus16 = mod(qscale_plus16 + 1, 33);
+	qscale_plus16 = mod(qscale_plus16 - delta, 33);
 }
 
 static void 
-bitrate_toggle_mode(void* priv)
+bitrate_toggle_mode(void* priv, int delta)
 {
 	if (recording) return;
-	menu_ternary_toggle(priv, 1);
+	menu_ternary_toggle(priv, delta);
 }
 
 static void 
-bitrate_reset(void* priv)
+bitrate_toggle(void* priv, int delta)
 {
-	if (recording) return;
-	bitrate_mode = 1;
-	bitrate_factor = 10;
+	if (bitrate_mode == 1) bitrate_factor_toggle(priv, delta);
+	else if (bitrate_mode == 2) bitrate_qscale_toggle(priv, delta);
 }
 
 
@@ -374,15 +390,12 @@ buffer_warning_level_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_PERCENT, buffer_warning_level);
 }
 
-static void buffer_warning_level_toggle(int step)
+static void buffer_warning_level_toggle(void* priv, int step)
 {
 	buffer_warning_level += step;
 	if (buffer_warning_level > 100) buffer_warning_level = 30;
 	if (buffer_warning_level < 30) buffer_warning_level = 100;
 }
-
-static void buffer_warning_level_toggle_forward() { buffer_warning_level_toggle(5); }
-static void buffer_warning_level_toggle_reverse() { buffer_warning_level_toggle(-5); }
 
 int warning = 0;
 int is_mvr_buffer_almost_full() 
@@ -409,34 +422,54 @@ static struct menu_entry mov_menus[] = {
 		.name = "Bit Rate",
 		.priv = &bitrate_mode,
 		.display	= bitrate_print,
-		.select		= bitrate_toggle_forward,
-		.select_auto	= bitrate_reset,
-		.help = "H.264 bitrate. [SET/PLAY]: change value; [Q]: reset to 1x.",
-		.select_reverse	= bitrate_toggle_reverse,
+		.select		= bitrate_toggle,
+		.help = "H.264 bitrate settings.",
 		.essential = 1,
-	},
-	{
-		.name = "BuffWarnLevel",
-		.select		= buffer_warning_level_toggle_forward,
-		.select_reverse	= buffer_warning_level_toggle_reverse,
-		.display	= buffer_warning_level_display,
-		.help = "ML will pause CPU-intensive graphics if buffer gets full."
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Mode",
+				.priv = &bitrate_mode,
+				.max = 2,
+				.select = bitrate_toggle_mode,
+				.choices = (const char *[]) {"FW default", "CBR", "VBR (QScale)"},
+				.help = "Firmware default / CBR (recommended) / VBR (very risky)"
+			},
+			{
+				.name = "CBR factor",
+				.priv = &bitrate_factor,
+				.select = bitrate_factor_toggle,
+				.display = cbr_display,
+				.help = "Bitrate multiplication factor. 1.0x = Canon default."
+			},
+			{
+				.name = "QScale",
+				.priv = &qscale_plus16,
+				.select = bitrate_qscale_toggle,
+				.display = qscale_display,
+				.help = "Quality factor (-16 = best quality). Try not to use it!"
+			},
+			{
+				.name = "Bitrate Info",
+				.priv		= &bitrate_indicator,
+				.max = 1,
+				.help = "Bitrate info (instant, average and qscale) around REC dot."
+			},
+			{
+				.name = "BuffWarnLevel",
+				.select		= buffer_warning_level_toggle,
+				.display	= buffer_warning_level_display,
+				.help = "ML will pause CPU-intensive graphics if buffer gets full."
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Time Indicator",
 		.priv		= &time_indicator,
 		.select		= menu_quaternary_toggle,
-		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= time_indicator_display,
 		.help = "Time indicator during recording",
 		.essential = 1,
-	},
-	{
-		.name = "Bitrate Info",
-		.priv		= &bitrate_indicator,
-		.select		= menu_binary_toggle,
-		.display	= bitrate_indicator_display,
-		.help = "Bitrate info (instant, average and qscale) around REC dot."
 	},
 };
 

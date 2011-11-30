@@ -111,8 +111,8 @@ struct prop_picstyle_settings
 {
 	int32_t 	contrast;   // -4..4
 	uint32_t	sharpness;  // 0..7
-	uint32_t	saturation; // 0..7
-	uint32_t	color_tone; // 0..7
+	int32_t		saturation; // -4..4
+	int32_t		color_tone; // -4..4
 	uint32_t	off_0x10;   // deadbeaf?!
 	uint32_t	off_0x14;   // deadbeaf?!
 } __attribute__((aligned,packed));  

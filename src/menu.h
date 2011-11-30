@@ -104,6 +104,7 @@ struct menu
 	int icon;
 };
 
+#define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
 
 extern void
 menu_print(

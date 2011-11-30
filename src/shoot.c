@@ -1806,7 +1806,7 @@ aperture_toggle_reverse( void * priv )
 
 
 void
-kelvin_toggle( int sign )
+kelvin_toggle( void* priv, int sign )
 {
 	int k;
 	switch (lens_info.wb_mode)
@@ -1823,18 +1823,6 @@ kelvin_toggle( int sign )
 	k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * KELVIN_STEP, KELVIN_MAX - KELVIN_MIN + KELVIN_STEP);
 	lens_set_kelvin(k);
 	menu_show_only_selected();
-}
-
-static void
-kelvin_toggle_forward( void * priv )
-{
-	kelvin_toggle(1);
-}
-
-static void
-kelvin_toggle_reverse( void * priv )
-{
-	kelvin_toggle(-1);
 }
 
 PROP_INT( PROP_WB_KELVIN_PH, wb_kelvin_ph );
@@ -2030,7 +2018,7 @@ wbs_ba_toggle_reverse( void * priv )
 }
 
 static void
-contrast_toggle( int sign )
+contrast_toggle( void * priv, int sign )
 {
 	int c = lens_get_contrast();
 	if (c < -4 || c > 4) return;
@@ -2039,17 +2027,6 @@ contrast_toggle( int sign )
 	menu_show_only_selected();
 }
 
-static void
-contrast_toggle_forward( void * priv )
-{
-	contrast_toggle(1);
-}
-
-static void
-contrast_toggle_reverse( void * priv )
-{
-	contrast_toggle(-1);
-}
 
 static void 
 contrast_display( void * priv, int x, int y, int selected )
@@ -2064,25 +2041,13 @@ contrast_display( void * priv, int x, int y, int selected )
 }
 
 static void
-sharpness_toggle( int sign )
+sharpness_toggle( void * priv, int sign )
 {
 	int c = lens_get_sharpness();
 	if (c < 0 || c > 7) return;
 	int newc = mod(c + sign, 8);
 	lens_set_sharpness(newc);
 	menu_show_only_selected();
-}
-
-static void
-sharpness_toggle_forward( void * priv )
-{
-	sharpness_toggle(1);
-}
-
-static void
-sharpness_toggle_reverse( void * priv )
-{
-	sharpness_toggle(-1);
 }
 
 static void 
@@ -2098,25 +2063,13 @@ sharpness_display( void * priv, int x, int y, int selected )
 }
 
 static void
-saturation_toggle( int sign )
+saturation_toggle( void * priv, int sign )
 {
 	int c = lens_get_saturation();
 	if (c < -4 || c > 4) return;
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_saturation(newc);
 	menu_show_only_selected();
-}
-
-static void
-saturation_toggle_forward( void * priv )
-{
-	saturation_toggle(1);
-}
-
-static void
-saturation_toggle_reverse( void * priv )
-{
-	saturation_toggle(-1);
 }
 
 static void 
@@ -2134,6 +2087,33 @@ saturation_display( void * priv, int x, int y, int selected )
 	if (s >= -4 && s <= 4) menu_draw_icon(x, y, MNI_PERCENT, (s + 4) * 100 / 8);
 	else menu_draw_icon(x, y, MNI_WARNING, 0);
 }
+
+static void
+color_tone_toggle( void * priv, int sign )
+{
+	int c = lens_get_color_tone();
+	if (c < -4 || c > 4) return;
+	int newc = mod((c + 4 + sign), 9) - 4;
+	lens_set_color_tone(newc);
+	menu_show_only_selected();
+}
+
+static void 
+color_tone_display( void * priv, int x, int y, int selected )
+{
+	int s = lens_get_color_tone();
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		(s >= -4 && s <= 4) ? 
+			"Color Tone  : %d " :
+			"Color Tone  : N/A",
+		s
+	);
+	if (s >= -4 && s <= 4) menu_draw_icon(x, y, MNI_PERCENT, (s + 4) * 100 / 8);
+	else menu_draw_icon(x, y, MNI_WARNING, 0);
+}
+
 
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
 int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
@@ -3294,7 +3274,6 @@ bulb_ramping_display( void * priv, int x, int y, int selected )
 	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 7, selected);
 }
 
-
 static struct menu_entry shoot_menus[] = {
 	{
 		.name = "HDR Bracket",
@@ -3381,10 +3360,36 @@ static struct menu_entry shoot_menus[] = {
 		.name = "Silent Picture",
 		.priv = &silent_pic_mode,
 		.select = silent_pic_mode_toggle,
-		.select_reverse = silent_pic_toggle_reverse,
-		.select_auto = silent_pic_toggle_forward,
 		.display = silent_pic_display,
 		.help = "Take pics in LiveView without increasing shutter count.",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Mode",
+				.priv = &silent_pic_mode, 
+				.max = 4,
+				.select = silent_pic_mode_toggle,
+				.choices = (const char *[]) {"OFF", "Simple", "Hi-Res", "LongExp", "SlitScan"},
+			},
+			{
+				.name = "Flags", 
+				.priv = &silent_pic_submode,
+				.max = 2,
+				.choices = (const char *[]) {"None", "Burst","FullHD"},
+			},
+			{
+				.name = "Hi-Res", 
+				.priv = &silent_pic_highres,
+				.max = 7,
+				.choices = (const char *[]) {"2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"},
+			},
+			{
+				.name = "Slit Skip", 
+				.priv = &silent_pic_slitscan_skipframes,
+				.min = 1,
+				.max = 4,
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Mirror Lockup",
@@ -3427,21 +3432,10 @@ static struct menu_entry vid_menus[] = {
 
 static struct menu_entry expo_menus[] = {
 	{
-		.name = "ISO",
-		.display	= iso_display,
-		.select		= iso_toggle_forward,
-		.select_reverse		= iso_toggle_reverse,
-		.select_auto = iso_auto,
-		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
-		.essential = FOR_PHOTO | FOR_MOVIE,
-	},
-	{
 		.name = "WhiteBalance",
 		.display	= kelvin_display,
-		.select		= kelvin_toggle_forward,
-		.select_reverse		= kelvin_toggle_reverse,
-		.select_auto = kelvin_auto,
-		.help = "Adjust Kelvin WB. Press [Q] for auto tuning.",
+		.select		= kelvin_toggle,
+		.help = "Adjust Kelvin white balance.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
 	},
 	{
@@ -3449,9 +3443,7 @@ static struct menu_entry expo_menus[] = {
 		.display = wbs_gm_display, 
 		.select = wbs_gm_toggle_forward, 
 		.select_reverse = wbs_gm_toggle_reverse,
-		.select_auto = wbs_gm_auto,
 		.help = "Green-Magenta white balance shift, for fluorescent lights.",
-		.essential = FOR_PHOTO | FOR_MOVIE,
 	},
 	{
 		.name = "WBShift B/A",
@@ -3459,6 +3451,14 @@ static struct menu_entry expo_menus[] = {
 		.select = wbs_ba_toggle_forward, 
 		.select_reverse = wbs_ba_toggle_reverse,
 		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
+	},
+	{
+		.name = "ISO",
+		.display	= iso_display,
+		.select		= iso_toggle_forward,
+		.select_reverse		= iso_toggle_reverse,
+		.select_auto = iso_auto,
+		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
 	},
 	{
@@ -3477,6 +3477,7 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= aperture_toggle_reverse,
 		.help = "Adjust aperture. Useful if the wheel stops working.",
 	},
+/*
 #ifdef CONFIG_500D
 	{
 		.name		 = "Light Adjust",
@@ -3494,6 +3495,7 @@ static struct menu_entry expo_menus[] = {
 		.help = "Enable/disable HTP and ALO from the same place."
 	},
 #endif
+*/
 	{
 		.name = "PictureStyle",
 		.display	= picstyle_display,
@@ -3501,6 +3503,33 @@ static struct menu_entry expo_menus[] = {
 		.select_reverse		= picstyle_toggle_reverse,
 		.help = "Change current picture style.",
 		.essential = FOR_MOVIE,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Contrast/Saturation/Sharpness",
+				.display	= sharpness_display,
+				.select		= sharpness_toggle,
+				.help = "Adjust sharpness in current picture style.",
+			},
+			{
+				.name = "Contrast/Saturation/Sharpness",
+				.display	= contrast_display,
+				.select		= contrast_toggle,
+				.help = "Adjust contrast in current picture style.",
+			},
+			{
+				.name = "Contrast/Saturation/Sharpness",
+				.display	= saturation_display,
+				.select		= saturation_toggle,
+				.help = "Adjust saturation in current picture style.",
+			},
+			{
+				.name = "Contrast/Saturation/Sharpness",
+				.display	= color_tone_display,
+				.select		= color_tone_toggle,
+				.help = "Adjust color tone in current picture style.",
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.priv = &picstyle_rec,
@@ -3509,31 +3538,6 @@ static struct menu_entry expo_menus[] = {
 		.select		= picstyle_rec_toggle,
 		.select_reverse		= picstyle_rec_toggle_reverse,
 		.help = "You can use a different picture style when recording.",
-		.essential = FOR_MOVIE,
-	},
-	{
-		.name = "Contrast/Saturation/Sharpness",
-		.display	= contrast_display,
-		.select		= contrast_toggle_forward,
-		.select_reverse		= contrast_toggle_reverse,
-		//~ .select_auto = contrast_auto,
-		.help = "Adjust contrast in current picture style.",
-		.essential = FOR_MOVIE,
-	},
-	{
-		.name = "Contrast/Saturation/Sharpness",
-		.display	= saturation_display,
-		.select		= saturation_toggle_forward,
-		.select_reverse		= saturation_toggle_reverse,
-		.help = "Adjust saturation in current picture style.",
-		.essential = FOR_MOVIE,
-	},
-	{
-		.name = "Contrast/Saturation/Sharpness",
-		.display	= sharpness_display,
-		.select		= sharpness_toggle_forward,
-		.select_reverse		= sharpness_toggle_reverse,
-		.help = "Adjust sharpness in current picture style.",
 		.essential = FOR_MOVIE,
 	},
 	{
@@ -3953,10 +3957,6 @@ static void
 shoot_task( void* unused )
 {
 	//~ int i = 0;
-	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
-	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
-	msleep(1000);
-	menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
 	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 
@@ -4358,6 +4358,14 @@ void shoot_init()
 {
 	set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 	zoom_sem = create_named_semaphore("zoom_sem", 1);
+	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
+	menu_add( "Expo", expo_menus, COUNT(expo_menus) );
+	menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
+	
+	extern struct menu_entry expo_tweak_menus[];
+	extern struct menu_entry expo_override_menus[];
+	menu_add( "Expo", expo_tweak_menus, 2 );
+	menu_add( "Expo", expo_override_menus, 1 );
 }
 
 INIT_FUNC("shoot", shoot_init);

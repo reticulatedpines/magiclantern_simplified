@@ -682,7 +682,7 @@ static void bv_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Expo.Override : %s", 
+		"Exp.Override: %s", 
 		bv_auto ? "Auto" :
 		CONTROL_BV ? "ON" : "OFF"
 	);
@@ -892,6 +892,9 @@ static struct menu_entry mov_menus[] = {
 		.essential = FOR_MOVIE,
 	},
 #endif
+};
+
+struct menu_entry expo_override_menus[] = {
 	{
 		.select		= bv_toggle,
 		.display	= bv_display,

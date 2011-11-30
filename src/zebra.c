@@ -88,9 +88,9 @@ int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw", 	global_draw, 1 );
 static CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
-static CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
-static CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
-       CONFIG_INT( "zebra.nrec",	zebra_nrec,	0 );
+static CONFIG_INT( "zebra.level.hi",	zebra_level_hi,	95 );
+static CONFIG_INT( "zebra.level.lo",	zebra_level_lo,	5 );
+       CONFIG_INT( "zebra.rec",	zebra_rec,	0 );
 static CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
        CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
@@ -99,7 +99,7 @@ static CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
 static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
-static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
+//~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_mode() 
 { 
 	if (!get_global_draw()) return 0;
@@ -1064,11 +1064,11 @@ draw_zebra_and_focus( int Z, int F )
 		thr = COERCE(thr, thr_min, 255);
 	}
 	
-	int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (!zebra_nrec || !recording); // when to draw zebras
+	int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (zebra_rec || !recording); // when to draw zebras
 	if (zd)
 	{
-		int zlh = zebra_level_hi;
-		int zll = zebra_level_lo;
+		int zlh = zebra_level_hi * 255 / 100;
+		int zll = zebra_level_lo * 255 / 100;
 
 		uint8_t * const lvram = get_yuv422_vram()->vram;
 		
@@ -1383,7 +1383,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Zebras      : %s, %d..%d",
+		"Zebras      : %s, %d..%d%%",
 		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
@@ -1466,18 +1466,11 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 
 static void focus_peaking_adjust_thr(void* priv, int delta)
 {
-	if (focus_peaking)
-	{
-		focus_peaking_pthr = (int)focus_peaking_pthr + (focus_peaking_pthr < 10 ? 1 : 5) * delta;
-		if ((int)focus_peaking_pthr > 50) focus_peaking_pthr = 1;
-		if ((int)focus_peaking_pthr <= 0) focus_peaking_pthr = 50;
-	}
+	focus_peaking_pthr = (int)focus_peaking_pthr + (focus_peaking_pthr < 10 ? 1 : 5) * delta;
+	if ((int)focus_peaking_pthr > 50) focus_peaking_pthr = 1;
+	if ((int)focus_peaking_pthr <= 0) focus_peaking_pthr = 50;
 }
-static void focus_peaking_adjust_color(void* priv)
-{
-	if (focus_peaking)
-		focus_peaking_color = mod(focus_peaking_color + 1, 8);
-}
+
 static void
 crop_display( void * priv, int x, int y, int selected )
 {
@@ -1632,29 +1625,6 @@ zoom_overlay_display(
 		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode));
 }
 
-
-static void
-split_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Split Screen: %s%s",
-		zoom_overlay_split ? "ON" : "OFF",
-		zoom_overlay_split && zoom_overlay_split_zerocross ? ", zerocross" : ""
-	);
-	menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_split));
-}
-
-static void split_zerocross_toggle(void* priv)
-{
-	zoom_overlay_split_zerocross = !zoom_overlay_split_zerocross;
-}
 
 static void
 spotmeter_menu_display(
@@ -2173,16 +2143,22 @@ struct menu_entry zebra_menus[] = {
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
 			{
-				.name = "Low Level",
+				.name = "Underexposure",
 				.priv = &zebra_level_lo, 
 				.min = 0,
-				.max = 50,
+				.max = 20,
 			},
 			{
-				.name = "High Level", 
+				.name = "Overexposure", 
 				.priv = &zebra_level_hi,
-				.min = 200,
-				.max = 255,
+				.min = 80,
+				.max = 100,
+			},
+			{
+				.name = "When recording", 
+				.priv = &zebra_rec,
+				.max = 1,
+				.choices = (const char *[]) {"Hide", "Show"},
 			},
 			MENU_EOL
 		},
@@ -2192,8 +2168,6 @@ struct menu_entry zebra_menus[] = {
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
 		.select			= menu_ternary_toggle,
-		.select_reverse = focus_peaking_adjust_color, 
-		.select_auto    = focus_peaking_adjust_thr,
 		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
 		.essential = FOR_LIVEVIEW,
 		.children =  (struct menu_entry[]) {
@@ -2202,7 +2176,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &focus_peaking, 
 				.min = 1,
 				.max = 2,
-				.choices = (const char *[]) {"D1xy", "D2xy"},
+				.choices = (const char *[]) {"OFF", "1st deriv.", "2nd deriv."},
 			},
 			{
 				.name = "Threshold", 
@@ -2223,8 +2197,6 @@ struct menu_entry zebra_menus[] = {
 		.priv = &zoom_overlay_pos,
 		.display = zoom_overlay_display,
 		.select = zoom_overlay_main_toggle,
-		.select_reverse = zoom_overlay_size_toggle,
-		.select_auto = menu_quinternary_toggle,
 		.help = "Zoom box for checking focus. Can be used while recording.",
 		.essential = FOR_LIVEVIEW,
 		.children =  (struct menu_entry[]) {
@@ -2233,7 +2205,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zoom_overlay_mode, 
 				.min = 1,
 				.max = 4,
-				.choices = (const char *[]) {"Zoom.REC", "REC+Focus", "ZoomIn(+)", "Always"},
+				.choices = (const char *[]) {"OFF", "Zoom.REC", "ZREC+Focus", "ZoomIn(+)", "Always On"},
 			},
 			{
 				.name = "Size", 
@@ -2242,21 +2214,37 @@ struct menu_entry zebra_menus[] = {
 				.choices = (const char *[]) {"Small", "Medium", "Large", "Small X2", "Medium X2"},
 			},
 			{
+				.name = "Position", 
+				.priv = &zoom_overlay_pos,
+				.max = 4,
+				.choices = (const char *[]) {"AF Frame", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
+			},
+			{
 				.name = "Split Screen", 
 				.priv = &zoom_overlay_split,
-				.max = 1,
+				.max = 2,
+				.choices = (const char *[]) {"OFF", "Simple", "ZeroCross"},
 			},
 			MENU_EOL
 		},
 	},
 	{
-		.name = "Cropmks(x/n)",
+		.name = "Cropmarks",
 		.priv = &crop_draw,
 		.display	= crop_display,
 		.select		= crop_toggle_forward,
 		.select_reverse		= crop_toggle_reverse,
 		.help = "Cropmarks for framing. Usually shown only in Movie mode.",
 		.essential = FOR_MOVIE,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Show in",
+				.priv = &cropmark_movieonly, 
+				.max = 1,
+				.choices = (const char *[]) {"Movie mode", "Movie&Photo"},
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Ghost image",
@@ -2783,7 +2771,7 @@ void draw_zoom_overlay(int dirty)
 	static int poff = 0;
 	if (rawoff != 0 && poff == 0) rev = !rev;
 	poff = rawoff;
-	if (!zoom_overlay_split_zerocross) rev = 0;
+	if (zoom_overlay_split == 1 /* non zerocross */) rev = 0;
 
 	if (x2)
 	{
@@ -3771,7 +3759,7 @@ void livev_playback_reset()
 int handle_livev_playback(struct event * event, int button)
 {
 	// enable LiveV stuff in Play mode
-	if (PLAY_MODE)
+	if (PLAY_MODE && !gui_menu_shown())
 	{
 		if (event->param == button)
 		{

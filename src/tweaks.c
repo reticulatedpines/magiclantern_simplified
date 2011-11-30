@@ -166,7 +166,7 @@ expsim_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Expo.Simulation: %s",
+		"Exp.Sim     : %s",
 		expsim == 2 ? "Movie" :
 		expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
 		get_expsim_auto_value() ? "ON" : "OFF"
@@ -1060,25 +1060,6 @@ int handle_swap_menu_erase(struct event * event)
 	return 1;
 }
 
-extern unsigned cropmark_movieonly;
-
-static void
-crop_movieonly_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Show cropmarks in   : %s", 
-		cropmark_movieonly ? "Movie mode" : "Movie&Photo"
-	);
-	menu_draw_icon(x, y, MNI_BOOL_LV(1));
-}
-
 /*extern int picstyle_disppreset_enabled;
 static void
 picstyle_disppreset_display(
@@ -1193,7 +1174,7 @@ static void display_gain_print(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LV Display Gain: %s%d EV",
+		"LV Disp.Gain: %s%d EV",
 		gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
 		ABS(gain_ev)
 	);
@@ -1317,13 +1298,6 @@ struct menu_entry tweak_menus[] = {
 		.help = "Half-shutter press in dialog boxes => OK (SET) or Cancel."
 	},
 	#endif
-	{
-		.name = "Show cropmarks in",
-		.priv = &cropmark_movieonly,
-		.display	= crop_movieonly_display,
-		.select		= menu_binary_toggle,
-		.help = "Cromparks can be in Movie mode only, or in Photo modes too."
-	},
 	{
 		.name = "ISO selection",
 		.priv = &iso_round_only,
@@ -1473,7 +1447,7 @@ void upside_down_step()
 void screenshot_start();
 void take_screenshot();
 
-static struct menu_entry display_menus[] = {
+struct menu_entry expo_tweak_menus[] = {
 	{
 		.name = "LVGain (NightVision)", 
 		.priv = &display_gain,
@@ -1491,6 +1465,9 @@ static struct menu_entry display_menus[] = {
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
 	},
+};
+
+static struct menu_entry display_menus[] = {
 	{
 		.name = "Upside-Down",
 		.priv = &menu_upside_down,
@@ -1498,25 +1475,6 @@ static struct menu_entry display_menus[] = {
 		.select = menu_binary_toggle,
 		.help = "Displays all graphics upside-down and flips arrow keys.",
 	},
-#ifdef CONFIG_KILL_FLICKER
-	{
-		.name		= "Kill Canon GUI",
-		.priv		= &kill_canon_gui_mode,
-		.select		= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
-		.display	= kill_canon_gui_print,
-		.help = "Workarounds for disabling Canon graphics elements."
-	},
-#endif
-	#ifdef CONFIG_60D
-	{
-		.name = "DispOFF in PhotoMode",
-		.priv = &display_off_by_halfshutter_enabled,
-		.display = display_off_by_halfshutter_print, 
-		.select = menu_binary_toggle,
-		.help = "Outside LV, turn off display with long half-shutter press."
-	},
-	#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
 		.name = "Auto Mirroring",
@@ -1544,6 +1502,25 @@ static struct menu_entry display_menus[] = {
 		.display	= menu_print,
 		.help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
 	},
+#ifdef CONFIG_KILL_FLICKER
+	{
+		.name		= "Kill Canon GUI",
+		.priv		= &kill_canon_gui_mode,
+		.select		= menu_ternary_toggle,
+		.select_reverse = menu_ternary_toggle_reverse,
+		.display	= kill_canon_gui_print,
+		.help = "Workarounds for disabling Canon graphics elements."
+	},
+#endif
+	#ifdef CONFIG_60D
+	{
+		.name = "DispOFF in PhotoMode",
+		.priv = &display_off_by_halfshutter_enabled,
+		.display = display_off_by_halfshutter_print, 
+		.select = menu_binary_toggle,
+		.help = "Outside LV, turn off display with long half-shutter press."
+	},
+	#endif
 };
 
 struct menu_entry play_menus[] = {
@@ -1551,7 +1528,6 @@ struct menu_entry play_menus[] = {
 		.name = "SET+MainDial (PLAY)",
 		.priv = &play_set_wheel_action, 
 		.select = menu_quaternary_toggle, 
-		.select_reverse = menu_quaternary_toggle_reverse,
 		.display = play_set_wheel_display,
 		.help = "What to do when you hold SET and turn MainDial (Wheel)",
 		.essential = FOR_PLAYBACK,
@@ -1576,7 +1552,6 @@ struct menu_entry play_menus[] = {
 		.name = "Zoom in PLAY mode",
 		.priv = &quickzoom, 
 		.select = menu_ternary_toggle, 
-		.select_reverse = menu_ternary_toggle_reverse,
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)",
 		.essential = FOR_PLAYBACK,
