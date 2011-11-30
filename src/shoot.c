@@ -222,7 +222,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 			"Intervalometer  : ON, %d%s%s",
 			d < 60 ? d : d/60, 
 			d < 60 ? "s" : "m",
-			bulb_ramping_enabled ? ", bramp" : (!is_movie_mode() || silent_pic_mode) ? "" : ", mov"
+			bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_mode) ? "" : ", Movie"
 		);
 		if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 10, selected);
 	}
