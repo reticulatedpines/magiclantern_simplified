@@ -331,10 +331,18 @@ void* get_422_hd_idle_buf()
 // single-buffered HD buffer
 #if defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D2) || defined(CONFIG_50D) 
 	int hd = YUV422_HD_BUFFER_DMA_ADDR;
+	int failsafe = YUV422_HD_BUFFER_1;
+
+	#ifdef CONFIG_50D // odd horizontal misalignment
+	hd -= 24;
+	failsafe -= 24;
+	#endif
+
 	if (IS_HD_BUFFER(hd))
 		return hd;
 	else
-		return YUV422_HD_BUFFER_1;
+		return failsafe;
+
 #else // double-buffered HD buffer (works better for silent pics)
 
 	static int idle_buf = 0;
@@ -352,10 +360,6 @@ void* get_422_hd_idle_buf()
 			current_buf = hd;
 		}
 	}
-	
-	#ifdef CONFIG_50D
-	return (void*)idle_buf - 24;
-	#endif
 	
 	return (void*)idle_buf;
 #endif
