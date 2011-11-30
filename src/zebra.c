@@ -942,7 +942,7 @@ draw_zebra_and_focus( int Z, int F )
 		int n_total = 0;
 
 		// look in the HD buffer
-		for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+		for(int y = os.y0 + os.off_169 + 8; y < os.y_max - os.off_169 - 8; y += 2 )
 		{
 			uint16_t * const hd_row = hdvram + BM2HD_R(y) / 4; // 2 pixels
 			
