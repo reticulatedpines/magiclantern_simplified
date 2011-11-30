@@ -103,6 +103,13 @@ void update_vram_params()
 	#endif
 	msleep(50); // just to make sure all prop handlers finished after mode change
 
+	// force a redraw when you connect the external monitor
+	static int prev_hdmi_code = 0;
+	static int prev_ext_monitor_rca = 0;
+	if (prev_hdmi_code != hdmi_code || prev_ext_monitor_rca != ext_monitor_rca) redraw();
+	prev_hdmi_code = hdmi_code;
+	prev_ext_monitor_rca = ext_monitor_rca;
+
 	// BMP (used for overlays)
 	vram_bm.width  = hdmi_code == 5 ? 960 : 720;
 	vram_bm.height = hdmi_code == 5 ? 540 : 480;
