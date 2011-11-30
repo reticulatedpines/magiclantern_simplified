@@ -84,6 +84,7 @@ struct menu_entry
 #define FOR_PHOTO_NON_LIVEVIEW 8 // photo only, non_liveview
 #define FOR_PLAYBACK 16 // photo and movie
 #define FOR_EXT_MONITOR 32 // HDMI or SD
+#define FOR_SUBMENU (1<<20)
 
 #define IS_ESSENTIAL(menu) ( \
 	(menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
@@ -92,6 +93,7 @@ struct menu_entry
 	(menu->essential & FOR_PHOTO_NON_LIVEVIEW && !lv && !PLAY_MODE) || \
 	(menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
 	(menu->essential & FOR_EXT_MONITOR && EXT_MONITOR_CONNECTED) || \
+	(menu->essential & FOR_SUBMENU && submenu_mode) || \
 0)
 
 struct menu

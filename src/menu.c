@@ -273,6 +273,7 @@ menu_add(
 		new_entry->next		= NULL;
 		new_entry->prev		= NULL;
 		new_entry->selected	= 1;
+		if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
 		new_entry++;
 		count--;
 	}
@@ -284,6 +285,7 @@ menu_add(
 	for (int i = 0; i < count; i++)
 	{
 		new_entry->selected	= 0;
+		if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
 		new_entry->next		= head->next;
 		new_entry->prev		= head;
 		head->next		= new_entry;
@@ -434,13 +436,12 @@ static void
 menu_display(
 	struct menu_entry *	menu,
 	int			x,
-	int			y,
-	int is_submenu
+	int			y
 )
 {
 	while( menu )
 	{
-		if (advanced_mode || IS_ESSENTIAL(menu) || is_submenu)
+		if (advanced_mode || IS_ESSENTIAL(menu))
 		{
 			icon_drawn = 0;
 			
@@ -571,8 +572,7 @@ menus_display(
 			menu_display(
 				menu->children,
 				orig_x + 40,
-				y + 45,
-				0
+				y + 45
 			);
 	}
 	give_semaphore( menu_sem );
@@ -594,7 +594,7 @@ submenu_display(struct menu * submenu)
 		bfnt_puts(submenu->name, x0 + bx + 15, y0 + by + 5, COLOR_WHITE, 40);
 	}
 
-	menu_display(submenu->children, x0 + bx + 50, y0 + by + 50 + 20, 1);
+	menu_display(submenu->children, x0 + bx + 50, y0 + by + 50 + 20);
 }
 
 static void
