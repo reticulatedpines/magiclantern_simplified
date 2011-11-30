@@ -6,63 +6,124 @@ extern struct state_object * mvr_state;
 
 // tab size: 4
 
-struct mvr_config
+/***** Added by from AJ 2.0.4 IDC *************************************************************
+*                                                                                             *
+*  mvr_config  (also called aAJ_Movie_CompressionRate_struct_0x86AC_0x00_to_0xA8 in AJ 2.0.4  *
+*                                                                                             *
+***********************************************************************************************
+*  Callable DRYOS functions that relate to configuring the H264 compression. 
+*
+*  "mvrSetQscale"
+*  "mvrSetQscaleYC"
+*  "mvrSetDeblockingFilter"
+*  "mvrSetLimitQScale"
+*  "mvrSetDefQScale"
+*  "mvrSetTimeConst"
+*  "mvrSetFullHDOptSize"
+*  "mvrSetVGAOptSize"
+*  "mvrSetGopOptSizeFULLHD"
+*  "mvrSetGopOptSizeVGA"
+*  "mvrSetD_FULLHD"
+*  "mvrSetD_VGA"
+*  "mvrFixQScale"
+*  "mvrSetDefDBFilter"
+*  "mvrSetPrintMovieLog"
+*
+**********************************************************************************************/
+
+struct mvr_config   // used in aj_bitrate.c to change the CBR and VBR     mvr_config=0x86AC
 {
-	uint16_t		debug_flag;				// 0x00,
-	uint16_t		qscale_mode;			// 0x02,
-	uint16_t		db_filter_a;			// 0x04,
-	uint16_t		db_filter_b;			// 0x06,
-	int16_t			def_q_scale;			// 0x08,
-	int16_t 		actual_qscale_maybe;	// 0x0a,
-	int16_t 		qscale_related_2;		// 0x0c,
-	int16_t 		qscale_related_3;		// 0x0e,
+   uint16_t   debug_flag;              // 0x00, 1 = write debugmsg's
+   uint16_t   qscale_mode;             // 0x02, {CBR=0, VBR(QScale)=1} AJ_mvrFixQScale()
 
-	uint32_t		off_0x10;
+   uint16_t   db_filter_a;             // 0x04, AJ_mvrSetDefDBFilter()  Alex: No effect?
+   uint16_t   db_filter_b;             // 0x06, AJ_mvrSetDefDBFilter()  Alex: No effect?
 
-	uint32_t 		fullhd_30fps_opt_size_I;// 0x14,
-	uint32_t		fullhd_30fps_opt_size_P;// 0x18,
-	uint32_t		D1_30fps;				// 0x1c
-	uint32_t		D2_30fps;				// 0x20
-	uint32_t		off_0x24;				// 0x24
+   int16_t    def_q_scale;             // 0x08, AJ_mvrSetDefQScale() VBR works when qscale_mode=1      
+   int16_t    def_q_scale2;            // 0x0A  
 
-	uint32_t 		fullhd_25fps_opt_size_I;// 0x28,
-	uint32_t		fullhd_25fps_opt_size_P;// 0x2c,
-	uint32_t		D1_25fps;				// 0x30
-	uint32_t		D2_25fps;				// 0x34
-	uint32_t		off_0x38;				// 0x38
+   int16_t    qscale_limit_L;          // 0x0C, AJ_mvrSetLimitQScale()
+   int16_t    qscale_limit_H;          // 0x0E, AJ_mvrSetLimitQScale()
 
-	uint32_t 		fullhd_24fps_opt_size_I;// 0x3c,
-	uint32_t		fullhd_24fps_opt_size_P;// 0x40,
-	uint32_t		D1_24fps;				// 0x44
-	uint32_t		D2_24fps;				// 0x48
-	uint32_t		off_0x48;				// 0x4c
+   uint16_t   time_const;              // 0x10, AJ_mvrSetTimeConst()  [0..255]?
+                                       //       AJ_mvrFixQScale() <-- prints out in this
+   uint16_t   x12;                     // 0x12					
 
-	uint32_t		vga_30fps_opt_size_I;	// 0x50
-	uint32_t		vga_30fps_opt_size_P;	// 0x54
-	uint32_t		vga_30fps_D1;			// 0x58
-	uint32_t		vga_30fps_D2;			// 0x5c
-	uint32_t		off_0x60;				// 0x60
+   /***************************************
+   *   1920 pix @ 30 fps  -------  CBR    *
+   ***************************************/ 
 
-	uint32_t		vga_25fps_opt_size_I;	// 0x64
-	uint32_t		vga_25fps_opt_size_P;	// 0x68
-	uint32_t		vga_25fps_D1;			// 0x6c
-	uint32_t		vga_25fps_D2;			// 0x70
-	uint32_t		off_0x74;				// 0x74
+   unsigned int   v1920_30fps_opt_size_I;    // 0x14   AJ_mvrSetFullHDOptSize() [I]
+   unsigned int   v1920_30fps_opt_size_P;    // 0x18   AJ_mvrSetFullHDOptSize() [P]
+   unsigned int   v1920_30fps_D_H;           // 0x1C   AJ_mvrSetD_FULLHD() copy to -> 0x30
+   unsigned int   v1920_30fps_D_L;           // 0x20   AJ_mvrSetD_FULLHD() copy to -> 0x34,0x44,0x48
+   unsigned int   v1920_30fps_kinda_counter; // 0x24 
 
-	uint32_t		off_0x78;
-	uint32_t		off_0x7c;
-	uint32_t		off_0x80;
-	uint32_t		off_0x84;
-	uint32_t		off_0x88;
-	uint32_t		off_0x8c;
-	uint32_t		off_0x90;
-	uint32_t		off_0x94;
-	uint32_t		off_0x98;
-	uint32_t		off_0x9c;
-	uint32_t		off_0xa0;
-	uint32_t		off_0xa4;
-	uint32_t		off_0xa8;
 
+   /***************************************
+   *   1920 pix @ 25 fps  -------  CBR    *
+   ***************************************/ 
+
+   unsigned int   v1920_25fps_opt_size_I;    // 0x28  AJ_mvrSetFullHDOptSize() [I]
+   unsigned int   v1920_25fps_opt_size_P;    // 0x2C  AJ_mvrSetFullHDOptSize() [P]
+   unsigned int   v1920_25fps_D_H;           // 0x30  AJ_mvrSetD_FULLHD() <-- 0x1C
+   unsigned int   v1920_25fps_D_L;           // 0x34  AJ_mvrSetD_FULLHD() <-- 0x20
+   unsigned int   v1920_25fps_kinda_counter; // 0x38  
+
+
+   /***************************************
+   *   1920 pix @ 24 fps  -------  CBR    *
+   ***************************************/ 
+
+   unsigned int   v1920_24fps_opt_size_I;    // 0x3C  AJ_mvrSetFullHDOptSize()   IOptSize
+   unsigned int   v1920_24fps_opt_size_P;    // 0x40  AJ_mvrSetFullHDOptSize()   POptSize
+   unsigned int   v1920_24fps_D_H;           // 0x44  AJ_mvrSetD_FULLHD() <-- 0x20
+   unsigned int   v1920_24fps_D_L;           // 0x48  AJ_mvrSetD_FULLHD() <-- 0x20
+   unsigned int   v1920_24fps_kinda_counter; // 0x4C
+
+   /***************************************
+   *   640 pix @ 30 fps   -------  CBR    *
+   ***************************************/   
+
+   unsigned int   v640_30fps_opt_size_I;     // 0x50   AJ_mvrSetVGAOptSize() [I]   
+   unsigned int   v640_30fps_opt_size_P;     // 0x54   AJ_mvrSetVGAOptSize() [P] 
+   unsigned int   v640_30fps_D_H;            // 0x58   AJ_mvrSetD_VGA() --> 0x6C
+   unsigned int   v640_30fps_D_L;            // 0x5C   AJ_mvrSetD_VGA() --> 0x70
+   unsigned int   v640_30fps_kinda_counter;  // 0x60 
+
+   /***************************************
+   *   640 pix @ 25 fps   -------  CBR    *
+   ***************************************/ 
+
+   unsigned int   v640_25fps_opt_size_I;     // 0x64   AJ_mvrSetVGAOptSize() [I]
+   unsigned int   v640_25fps_opt_size_P;     // 0x68   AJ_mvrSetVGAOptSize() [P]
+   unsigned int   v640_25fps_D_H;            // 0x6C   AJ_mvrSetD_VGA() <-- 0x58
+   unsigned int   v640_25fps_D_L;            // 0x70   AJ_mvrSetD_VGA() <-- 0x70
+   unsigned int   v640_25fps_kinda_counter;  // 0x74 
+
+
+   /***************************************/ 
+   /***************************************/ 
+   /***************************************/ 
+
+
+   unsigned int   DefQScale;            // 0x78  AJ_Movie_CompressionRateAdjuster.c
+   unsigned int   IniQScale;            // 0x7C  AJ_Movie_CompressionRateAdjuster.c
+   int            actual_qscale_maybe;  // 0x80  inited #0x8000_0000
+    				        //       in AJ_Movie_CompressionRateAdjuster.c
+
+   unsigned int   _IOptSize;            // 0x84   XXX OPT XXX
+   unsigned int   _POptSize;            // 0x88   XXX OPT XXX
+
+   unsigned int   IOptSize2;            // 0x8C  AJ_MovieCompression_setup_Gop_size_Qscale()
+   unsigned int   POptSize2;            // 0x90  AJ_MovieCompression_setup_Gop_size_Qscale()
+   unsigned int   GopSize;              // 0x94  AJ_MovieCompression_setup_Gop_size_Qscale()
+   unsigned int   ABC_zone_NowIndex;    // 0x98  A, B or C Zone _NowIndex
+   unsigned int   GopOpt_struct_ptr;    // 0x9C   &Struct [2,3,4,5,6] -> Copied into here
+
+   unsigned int   D1_DH;                // 0xA0  XXX GOPT XXX
+   unsigned int   D2_DL;     		// 0xA4  XXX GOPT XXX   
+   unsigned int   kinda_counter;            
 
 	uint32_t		fullhd_30fps_gop_opt_0; // 0xac
 	uint32_t		fullhd_30fps_gop_opt_1; // 0xb0

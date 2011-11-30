@@ -65,36 +65,27 @@ void opt_set(int num, int den)
 	for (i = 0; i < MOV_RES_AND_FPS_COMBINATIONS; i++) // 7 combinations of resolution / fps
 	{
 #ifdef CONFIG_500D
-		for (j = 0; j < MOV_OPT_NUM_PARAMS; j++)
-		{
-			int* opt0 = (int*) &(mvr_config_copy.fullhd_20fps_opt_size_I) + i * MOV_OPT_STEP + j;
-			int* opt = (int*) &(mvr_config.fullhd_20fps_opt_size_I) + i * MOV_OPT_STEP + j;
-			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
-			(*opt) = (*opt0) * num / den;
-		}
-		for (j = 0; j < MOV_GOP_OPT_NUM_PARAMS; j++)
-		{
-			int* opt0 = (int*) &(mvr_config_copy.fullhd_20fps_gop_opt_0) + i * MOV_GOP_OPT_STEP + j;
-			int* opt = (int*) &(mvr_config.fullhd_20fps_gop_opt_0) + i * MOV_GOP_OPT_STEP + j;
-			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
-			(*opt) = (*opt0) * num / den;
-		}
-#else
+#define fullhd_30fps_opt_size_I fullhd_20fps_opt_size_I
+#define fullhd_30fps_gop_opt_0 fullhd_20fps_gop_opt_0
+#endif
+
+#ifdef CONFIG_5D2
+#define fullhd_30fps_opt_size_I v1920_30fps_opt_size_I
+#endif
 		for (j = 0; j < MOV_OPT_NUM_PARAMS; j++)
 		{
 			int* opt0 = (int*) &(mvr_config_copy.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
 			int* opt = (int*) &(mvr_config.fullhd_30fps_opt_size_I) + i * MOV_OPT_STEP + j;
-			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
+			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err %d %d %d ", i, j, *opt0); return; }
 			(*opt) = (*opt0) * num / den;
 		}
 		for (j = 0; j < MOV_GOP_OPT_NUM_PARAMS; j++)
 		{
 			int* opt0 = (int*) &(mvr_config_copy.fullhd_30fps_gop_opt_0) + i * MOV_GOP_OPT_STEP + j;
 			int* opt = (int*) &(mvr_config.fullhd_30fps_gop_opt_0) + i * MOV_GOP_OPT_STEP + j;
-			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err!"); return; }
+			if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "gop_set: err %d %d %d ", i, j, *opt0); return; }
 			(*opt) = (*opt0) * num / den;
 		}
-#endif
 	}
 }
 void bitrate_set()
