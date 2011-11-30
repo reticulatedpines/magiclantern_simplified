@@ -796,12 +796,15 @@ menu_redraw()
 				if (show_only_selected) 
 					rec_notify_continuous(1);
 
-				menus_display( menus, x0, y0 ); 
-				if (is_menu_active("Help")) menu_show_version();
+				if (!show_only_selected || !submenu_mode)
+				{
+					menus_display( menus, x0, y0 ); 
+					if (is_menu_active("Help")) menu_show_version();
+				}
 
 				if (submenu_mode)
 				{
-					bmp_dim();
+					if (!show_only_selected) bmp_dim();
 					struct menu * submenu = get_current_submenu();
 					submenu_display(submenu);
 				}
