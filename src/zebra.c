@@ -3500,7 +3500,7 @@ livev_hipriority_task( void* unused )
 			{
 				BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
 			}
-			//~ msleep(20);
+			msleep(10);
 		}
 
 		
