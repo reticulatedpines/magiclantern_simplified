@@ -90,13 +90,14 @@ static CONFIG_INT( "global.draw", 	global_draw, 1 );
 static CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
 static CONFIG_INT( "zebra.level.hi",	zebra_level_hi,	95 );
 static CONFIG_INT( "zebra.level.lo",	zebra_level_lo,	5 );
-       CONFIG_INT( "zebra.rec",	zebra_rec,	0 );
+       CONFIG_INT( "zebra.rec",	zebra_rec,	1 );
 static CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
        CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 static CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
-static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 4);
+static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
+static CONFIG_INT( "zoom.overlay.x2", zoom_overlay_x2, 1);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
@@ -1591,28 +1592,36 @@ zoom_overlay_display(
 	int			selected
 )
 {
+	zoom_overlay_size = mod(zoom_overlay_size, 3);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Magic Zoom  : %s%s%s",
+		"Magic Zoom  : %s%s%s%s%s",
 		zoom_overlay_mode == 0 ? "OFF" :
-		zoom_overlay_mode == 1 ? "Zrec, " :
-		zoom_overlay_mode == 2 ? "Zr+F, " :
-		zoom_overlay_mode == 3 ? "(+), " : "ALW, ",
+		zoom_overlay_mode == 1 ? "Zrec," :
+		zoom_overlay_mode == 2 ? "Zr+F," :
+		zoom_overlay_mode == 3 ? "(+)," : "ALW,",
 
 		zoom_overlay_mode == 0 ? "" :
-			zoom_overlay_size == 0 ? "Small, " :
-			zoom_overlay_size == 1 ? "Med, " :
-			zoom_overlay_size == 2 ? "Large, " :
-			zoom_overlay_size == 3 ? "SmallX2, " :
-			zoom_overlay_size == 4 ? "MedX2, " :
-			zoom_overlay_size == 5 ? "LargeX2, " :  "720x480, ",
+			zoom_overlay_size == 0 ? "Small," :
+			zoom_overlay_size == 1 ? "Med," :
+			zoom_overlay_size == 2 ? "Large," : "err",
+
 		zoom_overlay_mode == 0 ? "" :
-			zoom_overlay_pos == 0 ? "AFF" :
-			zoom_overlay_pos == 1 ? "NW" :
-			zoom_overlay_pos == 2 ? "NE" :
-			zoom_overlay_pos == 3 ? "SE" :
-			zoom_overlay_pos == 4 ? "SW" : "err"
+			zoom_overlay_pos == 0 ? "AFF," :
+			zoom_overlay_pos == 1 ? "NW," :
+			zoom_overlay_pos == 2 ? "NE," :
+			zoom_overlay_pos == 3 ? "SE," :
+			zoom_overlay_pos == 4 ? "SW," : "err",
+
+		zoom_overlay_mode == 0 ? "" :
+			zoom_overlay_x2 == 0 ? "1:1" : "2:1",
+
+		zoom_overlay_mode == 0 ? "" :
+			zoom_overlay_split == 0 ? "" :
+			zoom_overlay_split == 1 ? ",Ss" :
+			zoom_overlay_split == 2 ? ",Sz" : "err"
+
 	);
 
 	if (ext_monitor_rca)
@@ -1865,16 +1874,6 @@ void hdmi_test_toggle(void* priv)
 	ext_monitor_hdmi = !ext_monitor_hdmi;
 }
 
-
-void zoom_overlay_main_toggle(void* priv)
-{
-	zoom_overlay_mode = mod(zoom_overlay_mode + 1, 5);
-}
-
-void zoom_overlay_size_toggle(void* priv)
-{
-	zoom_overlay_size = mod(zoom_overlay_size + 1, 5);
-}
 
 static void
 disp_profiles_0_display(
@@ -2197,9 +2196,10 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.name = "Magic Zoom",
-		.priv = &zoom_overlay_pos,
+		.priv = &zoom_overlay_mode,
 		.display = zoom_overlay_display,
-		.select = zoom_overlay_main_toggle,
+		.min = 0,
+		.max = 4,
 		.help = "Zoom box for checking focus. Can be used while recording.",
 		.essential = FOR_LIVEVIEW,
 		.children =  (struct menu_entry[]) {
@@ -2214,14 +2214,20 @@ struct menu_entry zebra_menus[] = {
 			{
 				.name = "Size", 
 				.priv = &zoom_overlay_size,
-				.max = 4,
-				.choices = (const char *[]) {"Small", "Medium", "Large", "Small X2", "Medium X2"},
+				.max = 2,
+				.choices = (const char *[]) {"Small", "Medium", "Large"},
 			},
 			{
 				.name = "Position", 
 				.priv = &zoom_overlay_pos,
 				.max = 4,
 				.choices = (const char *[]) {"AF Frame", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
+			},
+			{
+				.name = "Magnification", 
+				.priv = &zoom_overlay_x2,
+				.max = 1,
+				.choices = (const char *[]) {"1:1", "2:1"},
 			},
 			{
 				.name = "Split Screen", 
@@ -2703,7 +2709,7 @@ void draw_zoom_overlay(int dirty)
 			break;
 	}
 	
-	int x2 = (zoom_overlay_size > 2) ? 1 : 0;
+	int x2 = zoom_overlay_x2;
 
 	int zb_x0_lv, zb_y0_lv; // center of zoom box
 

@@ -591,7 +591,7 @@ submenu_display(struct menu * submenu)
 		bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx+4, 250);
 		bmp_draw_rect(70, x0 + bx, y0 + by, 720-2*bx, 50);
 		bmp_draw_rect(COLOR_WHITE, x0 + bx, y0 + by, 720-2*bx, 300);
-		bfnt_puts(submenu->name, x0 + bx + 5, y0 + by + 5, COLOR_WHITE, 40);
+		bfnt_puts(submenu->name, x0 + bx + 15, y0 + by + 5, COLOR_WHITE, 40);
 	}
 
 	menu_display(submenu->children, x0 + bx + 50, y0 + by + 50 + 20, 1);
