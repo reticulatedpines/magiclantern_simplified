@@ -1178,7 +1178,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
+		//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*30);
 		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
 		
 		//~ if (recording == 2)
@@ -2131,7 +2131,7 @@ void HijackFormatDialogBox()
 #define STR_LOC 6
 #else
  #ifdef CONFIG_500D
-  #define FORMAT_BTN "[DISP]"
+  #define FORMAT_BTN "[LV]"
   #define STR_LOC 12
  #else
   #ifdef CONFIG_5D2
