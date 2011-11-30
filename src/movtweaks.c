@@ -767,7 +767,6 @@ static struct menu_entry mov_menus[] = {
 		.priv = &shutter_btn_rec,
 		.display = shutter_btn_rec_print, 
 		.select = menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
 		.help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
 		.essential = FOR_MOVIE,
 	},
@@ -833,10 +832,8 @@ static struct menu_entry mov_menus[] = {
 		.display = rec_notify_print, 
 		#if defined(CONFIG_550D) || defined(CONFIG_60D) // others can't "beep"
 		.select = menu_quaternary_toggle, 
-		.select_reverse = menu_quaternary_toggle_reverse,
 		#else
 		.select = menu_ternary_toggle, 
-		.select_reverse = menu_ternary_toggle_reverse,
 		#endif
 		.help = "Custom REC/STANDBY notifications, visual or audible",
 		.essential = FOR_MOVIE,
@@ -847,7 +844,6 @@ static struct menu_entry mov_menus[] = {
 		.priv = &movie_rec_key, 
 		.display = movie_rec_key_print, 
 		.select = menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
 		.help = "Change the button used for recording. Hint: wired remote."
 	},
 	#endif
@@ -908,7 +904,6 @@ static struct menu_entry display_menus[] = {
 		.name = "Screen Layout",
 		.display = screen_layout_display, 
 		.select = screen_layout_toggle,
-		.select_reverse = screen_layout_toggle_reverse,
 		.help = "Position of top/bottom bars, useful for external displays.",
 		.essential = FOR_EXT_MONITOR,
 	},

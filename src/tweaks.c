@@ -14,7 +14,7 @@
 #include "lens.h"
 #include "math.h"
 
-void display_gain_toggle(int dir);
+void display_gain_toggle(void* priv, int dir);
 void clear_lv_affframe();
 
 
@@ -195,17 +195,10 @@ static void expsim_update()
 	}
 }
 
-static void expsim_toggle(void* priv)
+static void expsim_toggle(void* priv, int delta)
 {
 	if (is_movie_mode()) return;
-	menu_ternary_toggle(priv, 1); msleep(100);
-	menu_show_only_selected();
-}
-
-static void expsim_toggle_reverse(void* priv)
-{
-	if (is_movie_mode()) return;
-	menu_ternary_toggle_reverse(priv, -1); msleep(100);
+	menu_ternary_toggle(priv, delta); msleep(100);
 	menu_show_only_selected();
 }
 
@@ -443,7 +436,7 @@ void adjust_backlight_level(int delta)
 		if (backlight_level == 7 && delta > 0)
 		{
 			beep();
-			display_gain_toggle(1);
+			display_gain_toggle(0, 1);
 			show_display_gain();
 			return;
 		}
@@ -451,7 +444,7 @@ void adjust_backlight_level(int delta)
 		if (backlight_level == 7 && delta < 0 && display_gain)
 		{
 			beep();
-			display_gain_toggle(-1);
+			display_gain_toggle(0, -1);
 			show_display_gain();
 			return;
 		}
@@ -1130,7 +1123,7 @@ void set_display_gain(int display_gain)
 // 1024 = 0 EV
 // +: off, +1EV, +2EV, ... , +6EV, -3EV, -2EV, -1EV, off
 // -: reverse
-void display_gain_toggle(int dir)
+void display_gain_toggle(void* priv, int dir)
 {
 	int d = display_gain;
 	if (!d) d = 1024;
@@ -1152,9 +1145,7 @@ void display_gain_toggle(int dir)
 	set_display_gain(display_gain);
 	menu_show_only_selected();
 }
-void display_gain_toggle_forward(void* priv) { display_gain_toggle(1); }
-void display_gain_toggle_reverse(void* priv) { display_gain_toggle(-1); }
-void display_gain_reset(void* priv) { display_gain_toggle(0); }
+void display_gain_reset(void* priv) { display_gain_toggle(0,0); }
 
 int gain_to_ev(int gain)
 {
@@ -1255,7 +1246,6 @@ struct menu_entry tweak_menus[] = {
 		.name		= "Half-press shutter",
 		.priv = &fake_halfshutter,
 		.select		= menu_quinternary_toggle,
-		.select_reverse = menu_quinternary_toggle_reverse,
 		.display	= fake_halfshutter_print,
 		.help = "Emulates half-shutter press, or make half-shutter sticky."
 	},
@@ -1325,7 +1315,6 @@ struct menu_entry tweak_menus[] = {
 		.name = "LV Auto ISO (M mode)",
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
-		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 		.help = "Experimental LV metering (Auto ISO). Too slow for real use."
 	},
@@ -1451,8 +1440,7 @@ struct menu_entry expo_tweak_menus[] = {
 	{
 		.name = "LVGain (NightVision)", 
 		.priv = &display_gain,
-		.select = display_gain_toggle_forward, 
-		.select_reverse = display_gain_toggle_reverse,
+		.select = display_gain_toggle, 
 		.select_auto = display_gain_reset,
 		.display = display_gain_print, 
 		.help = "Boosts LV digital display gain (Photo, Movie w.AutoISO)",
@@ -1461,7 +1449,6 @@ struct menu_entry expo_tweak_menus[] = {
 		.name = "Exposure Simulation",
 		.priv = &expsim_setting,
 		.select = expsim_toggle,
-		.select_reverse = expsim_toggle_reverse,
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
 	},
@@ -1507,7 +1494,6 @@ static struct menu_entry display_menus[] = {
 		.name		= "Kill Canon GUI",
 		.priv		= &kill_canon_gui_mode,
 		.select		= menu_ternary_toggle,
-		.select_reverse = menu_ternary_toggle_reverse,
 		.display	= kill_canon_gui_print,
 		.help = "Workarounds for disabling Canon graphics elements."
 	},

@@ -260,26 +260,16 @@ audio_release_display( void * priv, int x, int y, int selected )
 }
 
 static void
-audio_release_level_toggle(void* priv)
+audio_release_level_toggle(void* priv, int delta)
 {
-	audio_release_level = mod(audio_release_level - 5 + 1, 26) + 5;
-}
-static void
-audio_release_level_toggle_reverse(void* priv)
-{
-	audio_release_level = mod(audio_release_level - 5 - 1, 26) + 5;
+	audio_release_level = mod(audio_release_level - 5 + delta, 26) + 5;
 }
 
 //GUI Functions for the motion detect sensitivity.	
 static void
-motion_release_level_toggle(void* priv)
+motion_release_level_toggle(void* priv, int delta)
 {
-	motion_detect_level = mod(motion_detect_level - 1 + 1, 31) + 1;
-}
-static void
-motion_release_level_toggle_reverse(void* priv)
-{
-	motion_detect_level = mod(motion_detect_level - 1 - 1, 31) + 1;
+	motion_detect_level = mod(motion_detect_level - 1 + delta, 31) + 1;
 }
 
 static void 
@@ -1686,7 +1676,7 @@ shutter_display( void * priv, int x, int y, int selected )
 }
 
 static void
-shutter_toggle( int sign)
+shutter_toggle(void* priv, int sign)
 {
 	int i = raw2index_shutter(lens_info.raw_shutter);
 	int k;
@@ -1696,18 +1686,6 @@ shutter_toggle( int sign)
 		if (lens_set_rawshutter(codes_shutter[i])) break;
 	}
 	menu_show_only_selected();
-}
-
-static void
-shutter_toggle_forward( void * priv )
-{
-	shutter_toggle(1);
-}
-
-static void
-shutter_toggle_reverse( void * priv )
-{
-	shutter_toggle(-1);
 }
 
 static void shutter_auto_quick()
@@ -1773,7 +1751,7 @@ aperture_display( void * priv, int x, int y, int selected )
 }
 
 static void
-aperture_toggle( int sign)
+aperture_toggle( void* priv, int sign)
 {
 	int amin = codes_aperture[1];
 	int amax = codes_aperture[COUNT(codes_aperture)-1];
@@ -1790,18 +1768,6 @@ aperture_toggle( int sign)
 		if (lens_set_rawaperture(a)) break;
 	}
 	menu_show_only_selected();
-}
-
-static void
-aperture_toggle_forward( void * priv )
-{
-	aperture_toggle(1);
-}
-
-static void
-aperture_toggle_reverse( void * priv )
-{
-	aperture_toggle(-1);
 }
 
 
@@ -2143,7 +2109,7 @@ picstyle_display( void * priv, int x, int y, int selected )
 }
 
 static void
-picstyle_toggle( int sign )
+picstyle_toggle(void* priv, int sign )
 {
 	if (recording) return;
 	int p = lens_info.picstyle;
@@ -2154,18 +2120,6 @@ picstyle_toggle( int sign )
 		prop_request_change(PROP_PICTURE_STYLE, &p, 4);
 	}
 	menu_show_only_selected();
-}
-
-static void
-picstyle_toggle_forward( void * priv )
-{
-	picstyle_toggle(1);
-}
-
-static void
-picstyle_toggle_reverse( void * priv )
-{
-	picstyle_toggle(-1);
 }
 
 static void 
@@ -2195,17 +2149,10 @@ picstyle_rec_display( void * priv, int x, int y, int selected )
 }
 
 static void
-picstyle_rec_toggle( void * priv )
+picstyle_rec_toggle( void * priv, int delta )
 {
 	if (recording) return;
-	picstyle_rec = mod(picstyle_rec + 1, NUM_PICSTYLES + 1);
-}
-
-static void
-picstyle_rec_toggle_reverse( void * priv )
-{
-	if (recording) return;
-	picstyle_rec = mod(picstyle_rec - 1, NUM_PICSTYLES + 1);
+	picstyle_rec = mod(picstyle_rec + delta, NUM_PICSTYLES + 1);
 }
 
 void redraw_after_task(int msec)
@@ -2272,7 +2219,7 @@ PROP_HANDLER(PROP_MVR_REC_START)
 PROP_INT(PROP_STROBO_AECOMP, flash_ae);
 
 static void
-flash_ae_toggle( int sign )
+flash_ae_toggle(void* priv, int sign )
 {
 	int ae = (int8_t)flash_ae;
 	int newae = ae + sign * (ABS(ae + sign) <= 24 ? 4 : 8);
@@ -2280,18 +2227,6 @@ flash_ae_toggle( int sign )
 	if (newae < FLASH_MIN_EV * 8) newae = FLASH_MAX_EV * 8;
 	ae &= 0xFF;
 	prop_request_change(PROP_STROBO_AECOMP, &newae, 4);
-}
-
-static void
-flash_ae_toggle_forward( void * priv )
-{
-	flash_ae_toggle(1);
-}
-
-static void
-flash_ae_toggle_reverse( void * priv )
-{
-	flash_ae_toggle(-1);
 }
 
 static void 
@@ -2355,7 +2290,7 @@ htp_toggle( void * priv )
 #endif
 
 static void
-ladj_toggle( int sign )
+ladj_toggle(void* priv, int sign )
 {
 	int ladj = get_ladj();
 	ladj = mod(ladj + sign, 5);
@@ -2384,18 +2319,6 @@ ladj_toggle( int sign )
 		set_htp(1); // this disables ALO
 	}
 	menu_show_only_selected();
-}
-
-static void
-ladj_toggle_forward( void * priv )
-{
-	ladj_toggle(1);
-}
-
-static void
-ladj_toggle_reverse( void * priv )
-{
-	ladj_toggle(-1);
 }
 
 #ifdef CONFIG_500D
@@ -2698,14 +2621,9 @@ bulb_take_pic(int duration)
 	msleep(200);
 }
 
-static void bulb_toggle_fwd(void* priv)
+static void bulb_toggle(void* priv, int delta)
 {
-	bulb_duration_index = mod(bulb_duration_index + 1, COUNT(timer_values));
-	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
-}
-static void bulb_toggle_rev(void* priv)
-{
-	bulb_duration_index = mod(bulb_duration_index - 1, COUNT(timer_values));
+	bulb_duration_index = mod(bulb_duration_index + delta, COUNT(timer_values));
 	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 }
 
@@ -3295,9 +3213,7 @@ static struct menu_entry shoot_menus[] = {
 	{
 		.name = "Bulb Timer",
 		.display = bulb_display, 
-		.select = bulb_toggle_fwd, 
-		.select_reverse = bulb_toggle_rev,
-		.select_auto = bulb_toggle_fwd,
+		.select = bulb_toggle, 
 		.help = "Bulb timer for very long exposures, useful for astrophotos",
 		.essential = FOR_PHOTO,
 	},
@@ -3306,7 +3222,6 @@ static struct menu_entry shoot_menus[] = {
 		.name = "LCD Remote Shot",
 		.priv		= &lcd_release_running,
 		.select		= menu_quaternary_toggle, 
-		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
 		.help = "Avoid shake using the LCD face sensor as a simple remote.",
 		.essential = FOR_PHOTO,
@@ -3319,7 +3234,7 @@ static struct menu_entry shoot_menus[] = {
 		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
 		.select_auto = audio_release_level_toggle, 
-		.select_reverse = audio_release_level_toggle_reverse,
+		.select_reverse = audio_release_level_toggle,
 		.help = "Clap your hands or pop a balloon to take a picture.",
 		.essential = FOR_PHOTO,
 	},
@@ -3327,10 +3242,10 @@ static struct menu_entry shoot_menus[] = {
 	{
 		.name = "Motion Detect",
 		.priv		= &motion_detect,
-		.select		= menu_ternary_toggle, 
+		.select		= menu_ternary_toggle,
 		.display	= motion_detect_display,
 		.select_auto = motion_release_level_toggle, 
-		.select_reverse = motion_release_level_toggle_reverse,
+		.select_reverse = motion_release_level_toggle,
 		.help = "LV Motion detection: EXPosure change / frame DIFference.",
 		.essential = FOR_PHOTO,
 	},
@@ -3415,6 +3330,29 @@ static struct menu_entry vid_menus[] = {
 
 static struct menu_entry expo_menus[] = {
 	{
+		.name = "ISO",
+		.display	= iso_display,
+		.select		= iso_toggle,
+		.select_auto = iso_auto,
+		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
+		.essential = FOR_PHOTO | FOR_MOVIE,
+	},
+	{
+		.name = "Aperture",
+		.display	= aperture_display,
+		.select		= aperture_toggle,
+		.help = "Adjust aperture in 1/8 EV steps.",
+		.essential = FOR_PHOTO | FOR_MOVIE,
+	},
+	{
+		.name = "Shutter",
+		.display	= shutter_display,
+		.select		= shutter_toggle,
+		.select_auto = shutter_auto,
+		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits.",
+		.essential = FOR_PHOTO | FOR_MOVIE,
+	},
+	{
 		.name = "WhiteBalance",
 		.display	= kelvin_display,
 		.select		= kelvin_toggle,
@@ -3435,30 +3373,6 @@ static struct menu_entry expo_menus[] = {
 		.select = wbs_ba_toggle, 
 		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
 	},
-	{
-		.name = "ISO",
-		.display	= iso_display,
-		.select		= iso_toggle,
-		.select_auto = iso_auto,
-		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
-		.essential = FOR_PHOTO | FOR_MOVIE,
-	},
-	{
-		.name = "Shutter",
-		.display	= shutter_display,
-		.select		= shutter_toggle_forward,
-		.select_reverse		= shutter_toggle_reverse,
-		.select_auto = shutter_auto,
-		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits.",
-		.essential = FOR_PHOTO | FOR_MOVIE,
-	},
-	{
-		.name = "Aperture",
-		.display	= aperture_display,
-		.select		= aperture_toggle_forward,
-		.select_reverse		= aperture_toggle_reverse,
-		.help = "Adjust aperture. Useful if the wheel stops working.",
-	},
 /*
 #ifdef CONFIG_500D
 	{
@@ -3472,8 +3386,7 @@ static struct menu_entry expo_menus[] = {
 	{
 		.name = "Light Adjust",
 		.display	= ladj_display,
-		.select		= ladj_toggle_forward,
-		.select_reverse		= ladj_toggle_reverse,
+		.select		= ladj_toggle,
 		.help = "Enable/disable HTP and ALO from the same place."
 	},
 #endif
@@ -3481,8 +3394,7 @@ static struct menu_entry expo_menus[] = {
 	{
 		.name = "PictureStyle",
 		.display	= picstyle_display,
-		.select		= picstyle_toggle_forward,
-		.select_reverse		= picstyle_toggle_reverse,
+		.select		= picstyle_toggle,
 		.help = "Change current picture style.",
 		.essential = FOR_MOVIE,
 		.children =  (struct menu_entry[]) {
@@ -3518,15 +3430,13 @@ static struct menu_entry expo_menus[] = {
 		.name = "REC PicStyle",
 		.display	= picstyle_rec_display,
 		.select		= picstyle_rec_toggle,
-		.select_reverse		= picstyle_rec_toggle_reverse,
 		.help = "You can use a different picture style when recording.",
 		.essential = FOR_MOVIE,
 	},
 	{
 		.name = "Flash AEcomp",
 		.display	= flash_ae_display,
-		.select		= flash_ae_toggle_forward,
-		.select_reverse		= flash_ae_toggle_reverse,
+		.select		= flash_ae_toggle,
 		.help = "Flash exposure compensation, from -5EV to +3EV.",
 		.essential = FOR_PHOTO,
 	},

@@ -362,17 +362,10 @@ focus_reset_a( void * priv )
 }
 
 static void
-focus_inc_a( void * priv )
+focus_alter_a( void * priv, int delta )
 {
 	menu_show_only_selected();
-	lens_focus_enqueue_step(1);
-}
-
-static void
-focus_dec_a( void * priv )
-{
-	menu_show_only_selected();
-	lens_focus_enqueue_step(-1);
+	lens_focus_enqueue_step(delta);
 }
 
 int focus_rack_delay = 0;
@@ -412,15 +405,9 @@ rack_focus_start_auto_record( void * priv )
 }
 
 static void
-focus_stepsize_increment(void* priv)
+focus_stepsize_toggle(void* priv, int delta)
 {
-	lens_focus_stepsize = mod(lens_focus_stepsize, 3) + 1;
-}
-
-static void
-focus_stepsize_decrement(void* priv)
-{
-	lens_focus_stepsize = mod(lens_focus_stepsize - 2, 3) + 1;
+	lens_focus_stepsize = mod(lens_focus_stepsize - 1 + delta, 3) + 1;
 }
 
 static void
@@ -471,12 +458,10 @@ focus_stack_count_increment( void * priv )
 }*/
 
 static void
-focus_delay_toggle( int sign)
+focus_delay_toggle( void* priv, int sign)
 {
 	lens_focus_delay = mod(lens_focus_delay + sign, 7);
 }
-static void focus_delay_increment(void* priv) { focus_delay_toggle(1); }
-static void focus_delay_decrement(void* priv) { focus_delay_toggle(-1); }
 
 static void
 focus_stack_print(
@@ -1179,8 +1164,7 @@ static struct menu_entry focus_menu[] = {
 	{
 		.name = "Focus StepSize",
 		.display	= focus_rack_speed_display,
-		.select		= focus_stepsize_increment,
-		.select_reverse	= focus_stepsize_decrement,
+		.select		= focus_stepsize_toggle,
 		.help = "Step size for focus commands (same units as in EOS Utility)",
 		.essential = FOR_LIVEVIEW,
 	},
@@ -1188,8 +1172,7 @@ static struct menu_entry focus_menu[] = {
 		.name = "Focus StepDelay",
 		.priv = &lens_focus_waitflag,
 		.display	= focus_delay_display,
-		.select		= focus_delay_increment,
-		.select_reverse	= focus_delay_decrement,
+		.select		= focus_delay_toggle,
 		.select_auto = menu_binary_toggle, 
 		.help = "Delay between two successive focus commands. [Q]: Wait.",
 		.essential = FOR_LIVEVIEW,
@@ -1198,8 +1181,8 @@ static struct menu_entry focus_menu[] = {
 		.name = "Focus End Point",
 		.display	= focus_show_a,
 		.select		= focus_reset_a,
-		.select_auto = focus_inc_a,
-		.select_reverse = focus_dec_a,
+		.select_auto = focus_alter_a,
+		.select_reverse = focus_alter_a,
 		.help = "Press SET to fix here the end point of rack focus."
 	},
 	{

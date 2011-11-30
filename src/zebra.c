@@ -1361,20 +1361,10 @@ static void reload_cropmark(int i)
 }
 
 static void
-crop_toggle( int sign )
+crop_toggle( void* priv, int sign )
 {
 	crop_draw = mod(crop_draw + sign, num_cropmarks + 1);  // 0 = off, 1..num_cropmarks = cropmarks
 	reload_cropmark(crop_draw);
-}
-
-static void crop_toggle_forward(void* priv)
-{
-	crop_toggle(1);
-}
-
-static void crop_toggle_reverse(void* priv)
-{
-	crop_toggle(-1);
 }
 
 static void
@@ -1389,6 +1379,12 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		zebra_level_lo, zebra_level_hi
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
+}
+
+static void
+zebra_toggle( void* priv, int sign )
+{
+	menu_ternary_toggle(priv, -sign);
 }
 
 static void
@@ -2076,9 +2072,6 @@ void idle_timeout_toggle(void* priv, int sign)
 	*(int*)priv = timeout_values[i];
 }
 
-void idle_timeout_toggle_forward(void* priv) { idle_timeout_toggle(priv, 1); }
-void idle_timeout_toggle_reverse(void* priv) { idle_timeout_toggle(priv, -1); }
-
 CONFIG_INT("defish.preview", defish_preview, 0);
 static void
 defish_preview_display(
@@ -2135,8 +2128,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.name = "Zebras",
 		.priv		= &zebra_draw,
-		.select		= menu_ternary_toggle_reverse,
-		.select_reverse = menu_ternary_toggle, 
+		.select		= zebra_toggle,
 		.display	= zebra_draw_display,
 		.help = "Zebra stripes: show overexposed or underexposed areas.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
@@ -2243,8 +2235,7 @@ struct menu_entry zebra_menus[] = {
 		.name = "Cropmarks",
 		.priv = &crop_draw,
 		.display	= crop_display,
-		.select		= crop_toggle_forward,
-		.select_reverse		= crop_toggle_reverse,
+		.select		= crop_toggle,
 		.help = "Cropmarks for framing. Usually shown only in Movie mode.",
 		.essential = FOR_MOVIE,
 		.children =  (struct menu_entry[]) {
@@ -2295,7 +2286,7 @@ struct menu_entry zebra_menus[] = {
 	{
 		.name = "Histo/Wavefm",
 		.priv		= &hist_draw,
-		.select		= menu_ternary_toggle_reverse,
+		.select		= zebra_toggle,
 		.select_auto = waveform_toggle,
 		.display	= hist_display,
 		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
@@ -2316,7 +2307,6 @@ struct menu_entry zebra_menus[] = {
 		.priv			= &clearscreen,
 		.display		= clearscreen_display,
 		.select			= menu_ternary_toggle,
-		.select_reverse	= menu_ternary_toggle_reverse,
 		.select_auto	= clearscreen_now,
 		.help = "Clear bitmap overlays from LiveView display. [Q]: clr now.",
 		.essential = FOR_LIVEVIEW,
@@ -2390,24 +2380,21 @@ struct menu_entry powersave_menus[] = {
 		.name = "Dim display",
 		.priv			= &idle_display_dim_after,
 		.display		= idle_display_dim_print,
-		.select			= idle_timeout_toggle_forward,
-		.select_reverse	= idle_timeout_toggle_reverse,
+		.select			= idle_timeout_toggle,
 		.help = "Dim LCD display in LiveView when idle, to save power."
 	},
 	{
 		.name = "Turn off LCD",
 		.priv			= &idle_display_turn_off_after,
 		.display		= idle_display_turn_off_print,
-		.select			= idle_timeout_toggle_forward,
-		.select_reverse	= idle_timeout_toggle_reverse,
+		.select			= idle_timeout_toggle,
 		.help = "Turn off display and pause LiveView when idle and not REC."
 	},
 	{
 		.name = "Turn off GlobalDraw",
 		.priv			= &idle_display_global_draw_off_after,
 		.display		= idle_display_global_draw_off_print,
-		.select			= idle_timeout_toggle_forward,
-		.select_reverse	= idle_timeout_toggle_reverse,
+		.select			= idle_timeout_toggle,
 		.help = "Turn off GlobalDraw when idle, to save some CPU cycles."
 	},
 	{
@@ -2429,7 +2416,6 @@ struct menu_entry livev_cfg_menus[] = {
 		.name = "DISP presets",
 		.priv		= &disp_profiles_0,
 		.select		= menu_quaternary_toggle,
-		.select_reverse	= menu_quaternary_toggle_reverse,
 		.display	= disp_profiles_0_display,
 		.help = "No. of LiveV disp. presets. Switch w Metering or ISO+DISP."
 	},
