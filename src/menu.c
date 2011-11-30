@@ -464,11 +464,18 @@ menu_display(
 			}
 			
 			if (menu->selected && menu->help && !show_only_selected)
+			{
+				bmp_printf(
+					FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+					x0 + 10, y0 + 450, 
+						"                                                           "
+				);
 				bmp_printf(
 					FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
 					x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, y0 + 450, 
 					menu->help
 				);
+			}
 			
 			// if there's a warning message set, display it
 			if (menu->selected && warning_msg)
@@ -580,8 +587,8 @@ submenu_display(struct menu * submenu)
 	int by = 70;
 	if (!show_only_selected)
 	{
-		bmp_fill(40, x0 + bx, y0 + by, 720-2*bx, 50);
-		bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx, 250);
+		bmp_fill(40, x0 + bx, y0 + by, 720-2*bx+4, 50);
+		bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx+4, 250);
 		bmp_draw_rect(70, x0 + bx, y0 + by, 720-2*bx, 50);
 		bmp_draw_rect(COLOR_WHITE, x0 + bx, y0 + by, 720-2*bx, 300);
 		bfnt_puts(submenu->name, x0 + bx + 5, y0 + by + 5, COLOR_WHITE, 40);

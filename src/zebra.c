@@ -2177,17 +2177,20 @@ struct menu_entry zebra_menus[] = {
 				.min = 1,
 				.max = 2,
 				.choices = (const char *[]) {"OFF", "1st deriv.", "2nd deriv."},
+				.help = "Edge detection method.",
 			},
 			{
 				.name = "Threshold", 
 				.priv = &focus_peaking_pthr,
 				.select = focus_peaking_adjust_thr,
+				.help = "How many pixels are considered in focus (percentage).",
 			},
 			{
 				.name = "Color", 
 				.priv = &focus_peaking_color,
 				.max = 7,
-				.choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global", "Local"},
+				.choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global Focus", "Local Focus"},
+				.help = "Focus peaking color (fixed or color coding).",
 			},
 			MENU_EOL
 		},
@@ -2205,7 +2208,8 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zoom_overlay_mode, 
 				.min = 1,
 				.max = 4,
-				.choices = (const char *[]) {"OFF", "Zoom.REC", "ZREC+Focus", "ZoomIn(+)", "Always On"},
+				.choices = (const char *[]) {"OFF", "Zoom.REC", "ZREC+Focus", "ZoomIn (+)", "Always On"},
+				.help = "Zoom when recording / trigger from focus ring / Zoom button",
 			},
 			{
 				.name = "Size", 
@@ -2224,6 +2228,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zoom_overlay_split,
 				.max = 2,
 				.choices = (const char *[]) {"OFF", "Simple", "ZeroCross"},
+				.help = "Display focus confirmation as a split focus screen.",
 			},
 			MENU_EOL
 		},

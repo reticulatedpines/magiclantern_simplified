@@ -460,17 +460,6 @@ focus_delay_display(
 	menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
 
-static void
-focus_stack_step_increment( void * priv )
-{
-	focus_stack_steps_per_picture = mod(focus_stack_steps_per_picture, 10) + 1;
-}
-
-static void
-focus_stack_step_decrement( void * priv )
-{
-	focus_stack_steps_per_picture = mod(focus_stack_steps_per_picture - 2, 10) + 1;
-}
 
 /*
 static void
@@ -1234,9 +1223,25 @@ static struct menu_entry focus_menu[] = {
 		.priv = &focus_stack_enabled,
 		.display	= focus_stack_print,
 		.select	= menu_binary_toggle,
-		.select_auto		= focus_stack_step_increment,
 		.select_reverse		= focus_stack_trigger_from_menu,
-		.help = "Focus bracketing, increases DOF while keeping bokeh."
+		.help = "Focus bracketing, increases DOF while keeping bokeh.",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Step Size",
+				.priv = &focus_stack_steps_per_picture, 
+				.min = 1,
+				.max = 10,
+				.help = "Focus step size between two pictures.",
+			},
+			{
+				.name = "Trigger mode",
+				.priv = &focus_stack_enabled, 
+				.max = 1,
+				.choices = (const char *[]) {"Press PLAY", "Take a pic"},
+				.help = "Choose how to start the focus stacking sequence.",
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Focus Dist",

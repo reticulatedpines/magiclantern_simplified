@@ -141,7 +141,7 @@ static void timelapse_calc_display(void* priv, int x, int y, int selected)
 	int d = timer_values[*(int*)priv];
 	int total_time_s = d * avail_shot;
 	int total_time_m = total_time_s / 60;
-	bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), 
+	bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 
 		x, y,
 		"%dh%02dm, %dshots, %dfps => %02dm%02ds", 
 		total_time_m / 60, 
@@ -155,73 +155,85 @@ static void timelapse_calc_display(void* priv, int x, int y, int selected)
 static void
 interval_timer_display( void * priv, int x, int y, int selected )
 {
-	if (!is_movie_mode() || silent_pic_mode)
-	{
-		int d = timer_values[*(int*)priv];
-		if (!d)
-			bmp_printf(
-				selected ? MENU_FONT_SEL : MENU_FONT,
-				x, y,
-				"Take pics like crazy"
-			);
-		else
-		{
-			bmp_printf(
-				selected ? MENU_FONT_SEL : MENU_FONT,
-				x, y,
-				"Take a pic every: %d%s",
-				d < 60 ? d : d/60, 
-				d < 60 ? "s" : "m"
-			);
-			if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
-		}
- 	}
+	int d = timer_values[*(int*)priv];
+	if (!d)
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Take pics like crazy"
+		);
 	else
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"Record %ds, pause %ds",
-			timer_values[interval_movie_duration_index],
-			timer_values[*(int*)priv]
+			"%s: %d%s",
+			(!is_movie_mode() || silent_pic_mode) ? 
+				"Take a pic every" : 
+				"REC a clip every",
+			d < 60 ? d : d/60, 
+			d < 60 ? "s" : "m"
 		);
 	}
 	
-	if (intervalometer_running) menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
-	else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Intervalometer is not active");
+	menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
 }
 
 static void
-interval_timer_toggle( void * priv )
+interval_movie_stop_display( void * priv, int x, int y, int selected )
 {
-	unsigned * ptr = priv;
-	*ptr = mod(*ptr + 1, COUNT(timer_values));
-}
-static void
-interval_timer_toggle_reverse( void * priv )
-{
-	unsigned * ptr = priv;
-	*ptr = mod(*ptr - 1, COUNT(timer_values));
+	interval_movie_duration_index = COERCE(interval_movie_duration_index, 0, interval_timer_index-1);
+	int d = timer_values[interval_movie_duration_index];
+
+	if ((is_movie_mode() && !silent_pic_mode) || selected)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Stop REC after  : %d%s",
+			d < 60 ? d : d/60, 
+			d < 60 ? "s" : "m"
+		);
+		if (!is_movie_mode() || silent_pic_mode)
+			menu_draw_icon(x, y, MNI_WARNING, "Movie mode inactive.");
+		else
+			menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
+	}
+	else menu_draw_icon(x, y, MNI_NONE, 0);
 }
 
 static void
-interval_movie_duration_toggle( void * priv )
+interval_timer_toggle( void * priv, int delta )
 {
-	if (is_movie_mode() && silent_pic_mode == 0)
-		interval_movie_duration_index = mod(interval_movie_duration_index + 1, 35);
+	int * ptr = priv;
+	*ptr = mod(*ptr + delta, COUNT(timer_values));
 }
 
 static void 
 intervalometer_display( void * priv, int x, int y, int selected )
 {
 	int p = *(int*)priv;
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Intervalometer  : %s",
-		p ? "ON" : "OFF"
-	);
-	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 8, selected);
+	if (p)
+	{
+		int d = timer_values[interval_timer_index];
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Intervalometer  : ON, %d%s%s",
+			d < 60 ? d : d/60, 
+			d < 60 ? "s" : "m",
+			bulb_ramping_enabled ? ", bramp" : (!is_movie_mode() || silent_pic_mode) ? "" : ", mov"
+		);
+		if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 10, selected);
+	}
+	else
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Intervalometer  : OFF"
+		);
+	}
 }
 
 // in lcdsensor.c
@@ -1520,7 +1532,7 @@ CONFIG_INT("iso.round.only", iso_round_only, 1);
 
 
 void
-iso_toggle( int sign )
+iso_toggle( void * priv, int sign )
 {
 	int i = raw2index_iso(lens_info.raw_iso);
 	int k;
@@ -1534,18 +1546,6 @@ iso_toggle( int sign )
 		if (lens_set_rawiso(codes_iso[i])) break;
 	}
 	menu_show_only_selected();
-}
-
-static void
-iso_toggle_forward( void * priv )
-{
-	iso_toggle(1);
-}
-
-static void
-iso_toggle_reverse( void * priv )
-{
-	iso_toggle(-1);
 }
 
 /*PROP_INT(PROP_ISO_AUTO, iso_auto_code);
@@ -1960,7 +1960,7 @@ wbs_gm_display( void * priv, int x, int y, int selected )
 }
 
 static void
-wbs_gm_toggle( int sign )
+wbs_gm_toggle( void * priv, int sign )
 {
 	int gm = lens_info.wbs_gm;
 	int newgm = mod((gm + 9 + sign), 19) - 9;
@@ -1969,17 +1969,6 @@ wbs_gm_toggle( int sign )
 	menu_show_only_selected();
 }
 
-static void
-wbs_gm_toggle_forward( void * priv )
-{
-	wbs_gm_toggle(-1);
-}
-
-static void
-wbs_gm_toggle_reverse( void * priv )
-{
-	wbs_gm_toggle(1);
-}
 
 static void 
 wbs_ba_display( void * priv, int x, int y, int selected )
@@ -1996,25 +1985,13 @@ wbs_ba_display( void * priv, int x, int y, int selected )
 }
 
 static void
-wbs_ba_toggle( int sign )
+wbs_ba_toggle( void * priv, int sign )
 {
 	int ba = lens_info.wbs_ba;
 	int newba = mod((ba + 9 + sign), 19) - 9;
 	newba = newba & 0xFF;
 	prop_request_change(PROP_WBS_BA, &newba, 4);
 	menu_show_only_selected();
-}
-
-static void
-wbs_ba_toggle_forward( void * priv )
-{
-	wbs_ba_toggle(1);
-}
-
-static void
-wbs_ba_toggle_reverse( void * priv )
-{
-	wbs_ba_toggle(-1);
 }
 
 static void
@@ -2745,7 +2722,7 @@ bulb_display( void * priv, int x, int y, int selected )
 		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
 	);
 	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
-	if (selected && is_bulb_mode()) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 6, selected);
+	if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
 }
 
 // like expsim_toggle
@@ -3271,7 +3248,6 @@ bulb_ramping_display( void * priv, int x, int y, int selected )
 		"Bulb Ramping    : %s", 
 		bulb_ramping_enabled ? "ON" : "OFF"
 	);
-	if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 7, selected);
 }
 
 static struct menu_entry shoot_menus[] = {
@@ -3285,29 +3261,36 @@ static struct menu_entry shoot_menus[] = {
 		.essential = FOR_PHOTO,
 	},
 	{
-		.name = "Take a pic every",
-		.priv		= &interval_timer_index,
-		.display	= interval_timer_display,
-		.select		= interval_timer_toggle,
-		.select_reverse	= interval_timer_toggle_reverse,
-		.select_auto = interval_movie_duration_toggle,
-		.help = "Intervalometer setting: duration between two shots.",
-		.essential = FOR_PHOTO,
-	},
-	{
 		.name = "Intervalometer",
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
 		.help = "Intervalometer. For precise timing, choose NoWait [Q].",
 		.essential = FOR_PHOTO,
-	},
-	{
-		.name = "Bulb Ramping",
-		.priv		= &bulb_ramping_enabled,
-		.select		= menu_binary_toggle,
-		.display	= bulb_ramping_display,
-		.help = "Automatic bulb ramping for day-to-night timelapse",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Take a pic every",
+				.priv		= &interval_timer_index,
+				.display	= interval_timer_display,
+				.select		= interval_timer_toggle,
+				.help = "Duration between two shots.",
+			},
+			{
+				.name = "Bulb Ramping",
+				.priv		= &bulb_ramping_enabled,
+				.select		= menu_binary_toggle,
+				.display	= bulb_ramping_display,
+				.help = "Automatic bulb ramping for day-to-night timelapse",
+			},
+			{
+				.name = "Stop REC after",
+				.priv		= &interval_movie_duration_index,
+				.display	= interval_movie_stop_display,
+				.select		= interval_timer_toggle,
+				.help = "Duration for each video clip.",
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Bulb Timer",
@@ -3435,28 +3418,27 @@ static struct menu_entry expo_menus[] = {
 		.name = "WhiteBalance",
 		.display	= kelvin_display,
 		.select		= kelvin_toggle,
+		.select_auto = kelvin_auto,
 		.help = "Adjust Kelvin white balance.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
 	},
 	{
 		.name = "WBShift G/M",
 		.display = wbs_gm_display, 
-		.select = wbs_gm_toggle_forward, 
-		.select_reverse = wbs_gm_toggle_reverse,
+		.select = wbs_gm_toggle,
+		.select_auto = wbs_gm_auto,
 		.help = "Green-Magenta white balance shift, for fluorescent lights.",
 	},
 	{
 		.name = "WBShift B/A",
 		.display = wbs_ba_display, 
-		.select = wbs_ba_toggle_forward, 
-		.select_reverse = wbs_ba_toggle_reverse,
+		.select = wbs_ba_toggle, 
 		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
 	},
 	{
 		.name = "ISO",
 		.display	= iso_display,
-		.select		= iso_toggle_forward,
-		.select_reverse		= iso_toggle_reverse,
+		.select		= iso_toggle,
 		.select_auto = iso_auto,
 		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
@@ -4299,14 +4281,12 @@ shoot_task( void* unused )
 			else if (!is_movie_mode() || silent_pic_mode)
 			{
 				hdr_shot(0, 1);
-				intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
 			}
 			else
 			{
 				short_movie();
-				// in movie mode, time starts since the end of last movie (not since the start)
-				intervalometer_next_shot_time = seconds_clock + dt;
 			}
+			intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
 			intervalometer_pictures_taken++;
 			
 		}

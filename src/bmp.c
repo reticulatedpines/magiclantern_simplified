@@ -927,7 +927,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 	if (crw+xo > 100) return 0;
 	if (ch+yo > 50) return 0;
 	
-	bmp_fill(bg, px, py, crw+xo+3, 40);
+	//~ bmp_fill(bg, px, py, crw+xo+3, 40);
 	
 	int i,j,k;
 	for (i = 0; i < ch; i++)
@@ -1090,6 +1090,8 @@ void bmp_dim()
 		{
 			b[BM(j,i  )/4] &= 0x00FF00FF;
 			b[BM(j,i+1)/4] &= 0xFF00FF00;
+			b[BM(j,i  )/4] |= 0x02000200;
+			b[BM(j,i+1)/4] |= 0x00020002;
 		}
 	}
 }

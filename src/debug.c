@@ -2436,22 +2436,22 @@ int handle_flash_button_shortcuts(struct event * event)
 	{
 		if (event->param == BGMT_PRESS_UP)
 		{
-			kelvin_toggle(1);
+			kelvin_toggle(0, 1);
 			return 0;
 		}
 		if (event->param == BGMT_PRESS_DOWN)
 		{
-			kelvin_toggle(-1);
+			kelvin_toggle(0, -1);
 			return 0;
 		}
 		if (event->param == BGMT_PRESS_LEFT)
 		{
-			iso_toggle(-1);
+			iso_toggle(0, -1);
 			return 0;
 		}
 		if (event->param == BGMT_PRESS_RIGHT)
 		{
-			iso_toggle(1);
+			iso_toggle(0, 1);
 			return 0;
 		}
 	}
