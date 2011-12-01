@@ -123,8 +123,8 @@ mem_spy_select( void * priv )
 	mem_spy = !mem_spy;
 }
 
-void card_led_on() { cli_save(); *(int*)CARD_LED_ADDRESS |= 2; sei_restore(); }
-void card_led_off() { cli_save(); *(int*)CARD_LED_ADDRESS &= ~2; sei_restore(); }
+void card_led_on() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(); }
+void card_led_off() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(); }
 void card_led_blink(int times, int delay_on, int delay_off)
 {
 	int i;
@@ -981,7 +981,7 @@ static void display_shortcut_key_hints_lv()
 	else if (is_follow_focus_active()==1 && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
 	if (mode == 0 && old_mode == 0) return;
 
-	int mz = (mode == 2 && get_zoom_overlay_z() && lv_dispsize == 1);
+	int mz = (mode == 2 && get_zoom_overlay_trigger_mode() <= 2 && lv_dispsize == 1);
 	
 	if (mode == 1)
 	{

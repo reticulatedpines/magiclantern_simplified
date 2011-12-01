@@ -745,7 +745,6 @@ static void bv_toggle() // off, on, auto
 	if (bv_auto) { bv_auto = 0; bv_disable(); }
 	else if (CONTROL_BV) { bv_auto = 1; bv_auto_update(); }
 	else { bv_enable(); }
-	menu_show_only_selected();
 }
 
 
@@ -896,6 +895,7 @@ struct menu_entry expo_override_menus[] = {
 		.display	= bv_display,
 		.help = "Low-level manual exposure controls (bypasses Canon limits)",
 		.essential = FOR_LIVEVIEW,
+		.show_liveview = 1,
 	},
 };
 

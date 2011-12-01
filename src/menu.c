@@ -164,6 +164,70 @@ menu_print(
 	menu_draw_icon(x, y, MNI_ACTION, 0);
 }
 
+
+static void entry_draw_icon(
+	struct menu_entry * entry,
+	int			x,
+	int			y
+)
+{
+	if (entry->icon_type == IT_AUTO)
+	{
+		if(entry->choices)
+		{
+			char* first_choice = entry->choices[0];
+			char* current_choice = entry->choices[MEM(entry->priv)];
+			if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
+				entry->icon_type = IT_BOOL;
+			else if (streq(first_choice, "ON"))
+				entry->icon_type = IT_BOOL_NEG;
+			else if (streq(first_choice, "Small"))
+				entry->icon_type = IT_SIZE;
+			else
+				entry->icon_type = IT_DICE;
+		}
+		else if (entry->min != entry->max)
+		{
+			entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL : IT_PERCENT;
+		}
+	}
+	
+	switch (entry->icon_type)
+	{
+		case IT_BOOL:
+			menu_draw_icon(x, y, MNI_BOOL(MEM(entry->priv)), 0);
+			break;
+
+		case IT_BOOL_NEG:
+			menu_draw_icon(x, y, MNI_BOOL(!MEM(entry->priv)), 0);
+			break;
+
+		case IT_ACTION:
+			menu_draw_icon(x, y, MNI_ACTION, 0);
+			break;
+
+		case IT_ALWAYS_ON:
+			menu_draw_icon(x, y, MNI_ON, 0);
+			break;
+			
+		case IT_SIZE:
+			menu_draw_icon(x, y, MNI_SIZE, MEM(entry->priv) | ((entry->max+1) << 16));
+			break;
+
+		case IT_DICE:
+			menu_draw_icon(x, y, MNI_DICE, MEM(entry->priv) | ((entry->max+1) << 16));
+			break;
+		
+		case IT_PERCENT:
+			menu_draw_icon(x, y, MNI_PERCENT, (MEM(entry->priv) - entry->min) * 100 / (entry->max - entry->min));
+			break;
+
+		case IT_NAMED_COLOR:
+			menu_draw_icon(x, y, MNI_NAMED_COLOR, entry->choices[MEM(entry->priv)]);
+			break;
+	}
+}
+
 void
 submenu_print(
 	struct menu_entry * entry,
@@ -171,6 +235,8 @@ submenu_print(
 	int			y
 )
 {
+	
+	
 	char msg[100] = "";
 	STR_APPEND(msg, "%s", entry->name);
 	int l = strlen(entry->name);
@@ -193,6 +259,8 @@ submenu_print(
 		x, y,
 		msg
 	);
+
+	entry_draw_icon(entry, x, y);
 }
 
 
@@ -349,14 +417,20 @@ static void batsu(int x, int y)
 	}
 }
 
-void maru(int x, int y, int color)
+static void dot(int x, int y, int color, int radius)
 {
 	int r;
-	for (r = 0; r < 10; r++)
+	for (r = 0; r < radius; r++)
 	{
 		draw_circle(x + 16, y + 16, r, color);
 		draw_circle(x + 17, y + 16, r, color);
 	}
+}
+
+
+void maru(int x, int y, int color)
+{
+	dot(x, y, color, 10);
 }
 
 static void percent(int x, int y, int value)
@@ -365,7 +439,7 @@ static void percent(int x, int y, int value)
 	y -= 2;
 	value = value * 28 / 100;
 	for (i = 0; i < 28; i++)
-		draw_line(x + 2 + i, y + 30, x + 2 + i, y + 30 - i,  i <= value ? 9 : 60);
+		draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/2,  i <= value ? 9 : 60);
 }
 
 static void playicon(int x, int y)
@@ -391,6 +465,131 @@ static int playicon_square(int x, int y, int color)
 	return 40;
 }
 
+void submenu_icon(int x, int y)
+{
+	int color = COLOR_WHITE;
+	x -= 40;
+	for (int r = 0; r < 2; r++)
+	{
+		draw_circle(x + 30, y + 28, r, color);
+		draw_circle(x + 23, y + 28, r, color);
+		draw_circle(x + 16, y + 28, r, color);
+	}
+}
+
+void size_icon(int x, int y, int current, int nmax)
+{
+	dot(x, y, COLOR_GREEN1, current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3);
+}
+
+void dice_icon(int x, int y, int current, int nmax)
+{
+	#define C(i) (current == (i) ? COLOR_GREEN1 : 50), (current == (i) ? 6 : 4)
+	//~ x -= 40;
+	//~ x += 16; y += 16;
+	switch (nmax)
+	{
+		case 2:
+			dot(x - 6, y + 6, C(0)+2);
+			dot(x + 6, y - 6, C(1)+2);
+			break;
+		case 3:
+			dot(x - 8, y + 8, C(0));
+			dot(x,     y,     C(1));
+			dot(x + 8, y - 8, C(2));
+			break;
+		case 4:
+			dot(x - 8, y - 8, C(0));
+			dot(x + 8, y - 8, C(1));
+			dot(x - 8, y + 8, C(2));
+			dot(x + 8, y + 8, C(3));
+			break;
+		case 5:
+			dot(x,     y,     C(0));
+			dot(x - 8, y - 8, C(1));
+			dot(x + 8, y - 8, C(2));
+			dot(x + 8, y + 8, C(3));
+			dot(x - 8, y + 8, C(4));
+			break;
+		case 6:
+			dot(x - 10, y - 10, C(0));
+			dot(x     , y - 10, C(1));
+			dot(x + 10, y - 10, C(2));
+			dot(x - 10, y + 10, C(3));
+			dot(x     , y + 10, C(4));
+			dot(x + 10, y + 10, C(5));
+			break;
+		case 7:
+			dot(x - 10, y - 10, C(0));
+			dot(x     , y - 10, C(1));
+			dot(x + 10, y - 10, C(2));
+			dot(x - 10, y + 10, C(3));
+			dot(x     , y + 10, C(4));
+			dot(x + 10, y + 10, C(5));
+			dot(x     , y     , C(6));
+			break;
+		case 8:
+			dot(x - 10, y - 10, C(0));
+			dot(x     , y - 10, C(1));
+			dot(x + 10, y - 10, C(2));
+			dot(x - 10, y + 10, C(3));
+			dot(x     , y + 10, C(4));
+			dot(x + 10, y + 10, C(5));
+			dot(x -  5, y     , C(6));
+			dot(x +  5, y     , C(7));
+			break;
+		case 9:
+			dot(x - 10, y - 10, C(0));
+			dot(x     , y - 10, C(1));
+			dot(x + 10, y - 10, C(2));
+			dot(x - 10, y     , C(3));
+			dot(x     , y     , C(4));
+			dot(x + 10, y     , C(5));
+			dot(x - 10, y + 10, C(6));
+			dot(x     , y + 10, C(7));
+			dot(x + 10, y + 10, C(10));
+			break;
+		default:
+			size_icon(x, y, current, nmax);
+			break;
+	}
+	#undef C
+}
+
+void color_icon(int x, int y, char* color)
+{
+	if (streq(color, "Red"))
+		maru(x, y, COLOR_RED);
+	else if (streq(color, "Green"))
+		maru(x, y, COLOR_GREEN1);
+	else if (streq(color, "Blue"))
+		maru(x, y, COLOR_LIGHTBLUE);
+	else if (streq(color, "Cyan"))
+		maru(x, y, COLOR_CYAN);
+	else if (streq(color, "Magenta"))
+		maru(x, y, 14);
+	else if (streq(color, "Yellow"))
+		maru(x, y, COLOR_YELLOW);
+	else if (streq(color, "White"))
+		maru(x, y, COLOR_WHITE);
+	else if (streq(color, "Black"))
+		maru(x, y, COLOR_WHITE);
+	else if (streq(color, "Luma"))
+		maru(x, y, 60);
+	else if (streq(color, "RGB"))
+	{
+		dot(x,     y - 7, COLOR_RED, 5);
+		dot(x - 7, y + 3, COLOR_GREEN2, 5);
+		dot(x + 7, y + 3, COLOR_LIGHTBLUE, 5);
+	}
+	else
+	{
+		dot(x,     y - 7, COLOR_CYAN, 5);
+		dot(x - 7, y + 3, COLOR_RED, 5);
+		dot(x + 7, y + 3, COLOR_YELLOW, 5);
+	}
+}
+
 // By default, icon type is MNI_BOOL(*(int*)priv)
 // To override, call menu_draw_icon from the display functions
 
@@ -414,6 +613,9 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 		case MNI_AUTO: maru(x, y, 9); return;
 		case MNI_PERCENT: percent(x, y, arg); return;
 		case MNI_ACTION: playicon(x, y); return;
+		case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
+		case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
+		case MNI_NAMED_COLOR: color_icon(x, y, arg); return;
 	}
 	#endif
 }
@@ -463,6 +665,9 @@ menu_display(
 			{
 				menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
 			}
+			
+			if (menu->children && !show_only_selected)
+				submenu_icon(x, y);
 			
 			if (menu->selected && menu->help && !show_only_selected)
 			{
@@ -618,6 +823,9 @@ menu_entry_select(
 
 	if( !entry )
 		return;
+
+	if (entry->show_liveview)
+		menu_show_only_selected();
 
 	if(mode == 1)
 	{

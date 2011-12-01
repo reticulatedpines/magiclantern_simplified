@@ -72,10 +72,22 @@ struct menu_entry
 		int			selected
 	);
 	int essential;
+	int icon_type;
+	int show_liveview;
 	const char * help;
 	const char * name; // for now it's used only for context help; will be used for display too.
 	struct menu_entry * children;
 };
+
+#define IT_AUTO 0
+#define IT_BOOL 1
+#define IT_SIZE 2
+#define IT_DICE 3
+#define IT_PERCENT 4
+#define IT_ALWAYS_ON 5
+#define IT_ACTION 6
+#define IT_NAMED_COLOR 7
+#define IT_BOOL_NEG 8
 
 // these can be combined with OR
 #define FOR_MOVIE 1
@@ -154,6 +166,9 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg);
 #define MNI_WARNING 3
 #define MNI_PERCENT 4
 #define MNI_ACTION 5
+#define MNI_DICE 6
+#define MNI_SIZE 7
+#define MNI_NAMED_COLOR 8
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
 #define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "GlobalDraw is OFF"

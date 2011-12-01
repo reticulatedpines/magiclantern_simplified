@@ -88,6 +88,7 @@ int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw", 	global_draw, 1 );
 static CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
+static CONFIG_INT( "zebra.mode",	zebra_mode,	1 );// luma/rgb
 static CONFIG_INT( "zebra.level.hi",	zebra_level_hi,	95 );
 static CONFIG_INT( "zebra.level.lo",	zebra_level_lo,	5 );
        CONFIG_INT( "zebra.rec",	zebra_rec,	1 );
@@ -95,42 +96,45 @@ static CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
        CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
-static CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
+
+#define MZ_ZOOM_WHILE_RECORDING 1
+#define MZ_ZOOMREC_N_FOCUS_RING 2
+#define MZ_TAKEOVER_ZOOM_IN_BTN 3
+#define MZ_ALWAYS_ON            4
+static CONFIG_INT( "zoom.overlay", zoom_overlay_enabled, 0);
+static CONFIG_INT( "zoom.overlay.trig", zoom_overlay_trigger_mode, MZ_TAKEOVER_ZOOM_IN_BTN);
 static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
 static CONFIG_INT( "zoom.overlay.x2", zoom_overlay_x2, 1);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
-int get_zoom_overlay_mode() 
+int get_zoom_overlay_trigger_mode() 
 { 
 	if (!get_global_draw()) return 0;
-	return zoom_overlay_mode;
-}
-int get_zoom_overlay_z() 
-{ 
-	if (!get_global_draw()) return 0;
-	return zoom_overlay_mode == 1 || zoom_overlay_mode == 2;
+	if (!zoom_overlay_enabled) return 0;
+	return zoom_overlay_trigger_mode;
 }
 
-int zoom_overlay = 0;
-int zoom_overlay_countdown = 0;
-int get_zoom_overlay() 
+int zoom_overlay_triggered_by_zoom_btn = 0;
+int zoom_overlay_triggered_by_focus_ring_countdown = 0;
+int is_zoom_overlay_triggered_by_zoom_btn() 
 { 
 	if (!get_global_draw()) return 0;
-	return zoom_overlay;
+	return zoom_overlay_triggered_by_zoom_btn;
 }
 
 int zoom_overlay_dirty = 0;
 
 bool should_draw_zoom_overlay()
 {
-	if (zoom_overlay_mode == 4 && zebra_should_run() && get_global_draw()) return true;
-	if (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return true;
-	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return true;
+	if (zoom_overlay_trigger_mode == 4 && zebra_should_run() && get_global_draw()) return true;
+	if (zebra_should_run() && get_global_draw() && zoom_overlay_trigger_mode && (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown)) return true;
+	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_trigger_mode && (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown)) return true;
 	return false;
 }
 
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
+static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 0);
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 
@@ -1003,13 +1007,7 @@ draw_zebra_and_focus( int Z, int F )
 				#define e_dx           ABS(p_rc - p_cc)
 				#define e_dy           ABS(p_cd - p_cc)
 
-#if 0
-				int e = (focus_peaking == 1) ? e_dx :
-						(focus_peaking == 2) ? MAX(e_dx, e_dy) :
-						(focus_peaking == 3) ? e_laplacian_x :
-					  /*(focus_peaking == 4)*/ e_laplacian_xy ;
-#endif
-				int e = focus_peaking == 1 ? MAX(e_dx, e_dy) : e_laplacian_xy ;
+				int e = focus_peaking_method == 0 ? MAX(e_dx, e_dy) : e_laplacian_xy ;
 				#undef a
 				#undef b
 				#undef c
@@ -1102,7 +1100,7 @@ draw_zebra_and_focus( int Z, int F )
 				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
 				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
 				
-				if (zebra_draw == 2) // rgb
+				if (zebra_mode == 1) // rgb
 				{
 					uint32_t pixel = *lvp;
 					uint32_t p1 = (pixel >> 24) & 0xFF;
@@ -1365,19 +1363,27 @@ crop_toggle( void* priv, int sign )
 {
 	crop_draw = mod(crop_draw + sign, num_cropmarks + 1);  // 0 = off, 1..num_cropmarks = cropmarks
 	reload_cropmark(crop_draw);
+	crop_set_dirty(10);
 }
 
 static void
 zebra_draw_display( void * priv, int x, int y, int selected )
 {
 	unsigned z = *(unsigned*) priv;
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Zebras      : %s, %d..%d%%",
-		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
-		zebra_level_lo, zebra_level_hi
-	);
+	if (!z)
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Zebras      : OFF"
+		);
+	else
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Zebras      : %s, %d..%d%%",
+			zebra_mode ? "RGB" : "Luma",
+			zebra_level_lo, zebra_level_hi
+		);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
 }
 
@@ -1438,10 +1444,8 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"Focus Peak  : %s,%d.%d,%s", 
-			focus_peaking == 1 ? "D1xy" : 
-			focus_peaking == 2 ? "D2xy" :
-			 "?",
+			"Focus Peak  : %s,%d.%d,%s",
+			focus_peaking_method == 0 ? "D1xy" : "D2xy",
 			focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
 			focus_peaking_color == 0 ? "R" :
 			focus_peaking_color == 1 ? "G" :
@@ -1449,8 +1453,8 @@ focus_peaking_display( void * priv, int x, int y, int selected )
 			focus_peaking_color == 3 ? "C" :
 			focus_peaking_color == 4 ? "M" :
 			focus_peaking_color == 5 ? "Y" :
-			focus_peaking_color == 6 ? "cc1" :
-			focus_peaking_color == 7 ? "cc2" : "err"
+			focus_peaking_color == 6 ? "global" :
+			focus_peaking_color == 7 ? "local" : "err"
 		);
 	else
 		bmp_printf(
@@ -1477,10 +1481,9 @@ crop_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Cropmks(%d/%d): %s%s",
-		 index, num_cropmarks,
+		"Cropmarks   : %s (%d/%d)",
 		 index  ? cropmark_names[index-1] : "OFF",
-		 (cropmarks || !index) ? "" : "!" // ! means error
+		 index, num_cropmarks
 	);
 	//~ int h = font_large.height;
 	//~ int w = h * 720 / 480;
@@ -1589,31 +1592,41 @@ zoom_overlay_display(
 )
 {
 	zoom_overlay_size = mod(zoom_overlay_size, 3);
+
+	if (!zoom_overlay_enabled)
+	{
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Magic Zoom  : OFF");
+		return;
+	}
+
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Magic Zoom  : %s%s%s%s%s",
-		zoom_overlay_mode == 0 ? "OFF" :
-		zoom_overlay_mode == 1 ? "Zrec," :
-		zoom_overlay_mode == 2 ? "Zr+F," :
-		zoom_overlay_mode == 3 ? "(+)," : "ALW,",
+		zoom_overlay_trigger_mode == 0 ? "err" :
+		zoom_overlay_trigger_mode == 1 ? "Zrec," :
+		zoom_overlay_trigger_mode == 2 ? "Zr+F," :
+		zoom_overlay_trigger_mode == 3 ? "(+)," : "ALW,",
 
-		zoom_overlay_mode == 0 ? "" :
+		zoom_overlay_trigger_mode == 0 ? "" :
 			zoom_overlay_size == 0 ? "Small," :
 			zoom_overlay_size == 1 ? "Med," :
 			zoom_overlay_size == 2 ? "Large," : "err",
 
-		zoom_overlay_mode == 0 ? "" :
+		zoom_overlay_trigger_mode == 0 ? "" :
 			zoom_overlay_pos == 0 ? "AFF," :
 			zoom_overlay_pos == 1 ? "NW," :
 			zoom_overlay_pos == 2 ? "NE," :
 			zoom_overlay_pos == 3 ? "SE," :
 			zoom_overlay_pos == 4 ? "SW," : "err",
 
-		zoom_overlay_mode == 0 ? "" :
+		zoom_overlay_trigger_mode == 0 ? "" :
 			zoom_overlay_x2 == 0 ? "1:1" : "2:1",
 
-		zoom_overlay_mode == 0 ? "" :
+		zoom_overlay_trigger_mode == 0 ? "" :
 			zoom_overlay_split == 0 ? "" :
 			zoom_overlay_split == 1 ? ",Ss" :
 			zoom_overlay_split == 2 ? ",Sz" : "err"
@@ -1624,10 +1637,10 @@ zoom_overlay_display(
 		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
 	else if (is_movie_mode() && video_mode_resolution)
 		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
-	else if (zoom_overlay_mode && !get_zoom_overlay_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
+	else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
 		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
 	else
-		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_mode));
+		menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_trigger_mode));
 }
 
 
@@ -1648,14 +1661,6 @@ spotmeter_menu_display(
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
-
-static void 
-spotmeter_formula_toggle(void* priv)
-{
-	spotmeter_formula = mod(spotmeter_formula + 1, 3);
-}
-
-
 
 void get_spot_yuv(int dxb, int* Y, int* U, int* V)
 {
@@ -2128,28 +2133,39 @@ struct menu_entry zebra_menus[] = {
 	{
 		.name = "Zebras",
 		.priv		= &zebra_draw,
-		.select		= zebra_toggle,
+		.select		= menu_binary_toggle,
 		.display	= zebra_draw_display,
 		.help = "Zebra stripes: show overexposed or underexposed areas.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
 			{
+				.name = "Mode",
+				.priv = &zebra_mode, 
+				.max = 1,
+				.choices = (const char *[]) {"Luma", "RGB"},
+				.icon_type = IT_NAMED_COLOR,
+				.help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
+			},
+			{
 				.name = "Underexposure",
 				.priv = &zebra_level_lo, 
 				.min = 0,
 				.max = 20,
+				.help = "Underexposure threshold (0=disable).",
 			},
 			{
 				.name = "Overexposure", 
 				.priv = &zebra_level_hi,
 				.min = 80,
 				.max = 100,
+				.help = "Overexposure threshold (100=disable).",
 			},
 			{
 				.name = "When recording", 
 				.priv = &zebra_rec,
 				.max = 1,
 				.choices = (const char *[]) {"Hide", "Show"},
+				.help = "You can hide zebras when recording.",
 			},
 			MENU_EOL
 		},
@@ -2158,16 +2174,15 @@ struct menu_entry zebra_menus[] = {
 		.name = "Focus Peak",
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
-		.select			= menu_ternary_toggle,
+		.select			= menu_binary_toggle,
 		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
 		.essential = FOR_LIVEVIEW,
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Method",
-				.priv = &focus_peaking, 
-				.min = 1,
-				.max = 2,
-				.choices = (const char *[]) {"OFF", "1st deriv.", "2nd deriv."},
+				.priv = &focus_peaking_method, 
+				.max = 1,
+				.choices = (const char *[]) {"1st deriv.", "2nd deriv."},
 				.help = "Edge detection method.",
 			},
 			{
@@ -2182,22 +2197,23 @@ struct menu_entry zebra_menus[] = {
 				.max = 7,
 				.choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global Focus", "Local Focus"},
 				.help = "Focus peaking color (fixed or color coding).",
+				.icon_type = IT_NAMED_COLOR,
 			},
 			MENU_EOL
 		},
 	},
 	{
 		.name = "Magic Zoom",
-		.priv = &zoom_overlay_mode,
+		.priv = &zoom_overlay_enabled,
 		.display = zoom_overlay_display,
 		.min = 0,
-		.max = 4,
+		.max = 1,
 		.help = "Zoom box for checking focus. Can be used while recording.",
 		.essential = FOR_LIVEVIEW,
 		.children =  (struct menu_entry[]) {
 			{
-				.name = "Mode",
-				.priv = &zoom_overlay_mode, 
+				.name = "Trigger mode",
+				.priv = &zoom_overlay_trigger_mode, 
 				.min = 1,
 				.max = 4,
 				.choices = (const char *[]) {"OFF", "Zoom.REC", "ZREC+Focus", "ZoomIn (+)", "Always On"},
@@ -2208,18 +2224,24 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zoom_overlay_size,
 				.max = 2,
 				.choices = (const char *[]) {"Small", "Medium", "Large"},
+				.icon_type = IT_SIZE,
+				.help = "Size of zoom box (small / medium / large).",
 			},
 			{
 				.name = "Position", 
 				.priv = &zoom_overlay_pos,
 				.max = 4,
 				.choices = (const char *[]) {"AF Frame", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
+				.icon_type = IT_DICE,
+				.help = "Position of zoom box (fixed or linked to AF frame).",
 			},
 			{
 				.name = "Magnification", 
 				.priv = &zoom_overlay_x2,
 				.max = 1,
 				.choices = (const char *[]) {"1:1", "2:1"},
+				.icon_type = IT_SIZE,
+				.help = "Magnification: 2:1 doubles the pixels.",
 			},
 			{
 				.name = "Split Screen", 
@@ -2236,14 +2258,15 @@ struct menu_entry zebra_menus[] = {
 		.priv = &crop_draw,
 		.display	= crop_display,
 		.select		= crop_toggle,
-		.help = "Cropmarks for framing. Usually shown only in Movie mode.",
+		.help = "Cropmarks or custom grids for framing. Draw them in Paint.",
 		.essential = FOR_MOVIE,
+		.show_liveview = 1,
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Show in",
 				.priv = &cropmark_movieonly, 
 				.max = 1,
-				.choices = (const char *[]) {"Movie mode", "Movie&Photo"},
+				.choices = (const char *[]) {"Movie&Photo", "Movie mode"},
 			},
 			MENU_EOL
 		},
@@ -2269,10 +2292,20 @@ struct menu_entry zebra_menus[] = {
 		.name = "Spotmeter",
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
-		.select_auto	= spotmeter_formula_toggle,
 		.display		= spotmeter_menu_display,
-		.help = "Measure brightness in the frame center. [Q]: Percent/IRE.",
+		.help = "Measure brightness in the center of the frame.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Unit",
+				.priv = &spotmeter_formula, 
+				.max = 2,
+				.choices = (const char *[]) {"Percent", "IRE -1..101", "IRE 0..108"},
+				.icon_type = IT_DICE,
+				.help = "Measurement unit for brightness level.",
+			},
+			MENU_EOL
+		}
 	},
 	{
 		.name = "False color",
@@ -2542,10 +2575,10 @@ void lvimage_off()
 
 void zoom_overlay_toggle()
 {
-	zoom_overlay = !zoom_overlay;
-	if (!zoom_overlay)
+	zoom_overlay_triggered_by_zoom_btn = !zoom_overlay_triggered_by_zoom_btn;
+	if (!zoom_overlay_triggered_by_zoom_btn)
 	{
-		zoom_overlay_countdown = 0;
+		zoom_overlay_triggered_by_focus_ring_countdown = 0;
 		//~ crop_set_dirty(10);
 		//~ redraw_after(500);
 	}
@@ -2556,29 +2589,29 @@ int handle_zoom_overlay(struct event * event)
 	if (gui_menu_shown()) return 1;
 	
 	// zoom in when recording => enable Magic Zoom 
-	if (get_zoom_overlay_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
 	}
 
 	// if magic zoom is enabled, Zoom In should always disable it 
-	if (lv && get_zoom_overlay() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv && is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
 	}
 	
-	if (lv && get_zoom_overlay_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv && get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
 		// magic zoom toggled by sensor+zoom in (modes Zr and Zr+F)
-		if (get_zoom_overlay_mode() < 3 && get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+		if (get_zoom_overlay_trigger_mode() < 3 && get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
 		{
 			zoom_overlay_toggle();
 			return 0;
 		}
 		// (*): magic zoom toggled by zoom in, normal zoom by sensor+zoom in
-		else if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed() && !(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
+		else if (get_zoom_overlay_trigger_mode() == MZ_TAKEOVER_ZOOM_IN_BTN && !get_halfshutter_pressed() && !(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
 		{
 			zoom_overlay_toggle();
 			return 0;
@@ -2586,7 +2619,7 @@ int handle_zoom_overlay(struct event * event)
 	}
 	
 	// move AF frame when recording
-	if (recording && get_zoom_overlay_mode() && liveview_display_idle() && is_manual_focus())
+	if (recording && get_zoom_overlay_trigger_mode() && liveview_display_idle() && is_manual_focus())
 	{
 		if (event->param == BGMT_PRESS_LEFT)
 			{ move_lv_afframe(-200, 0); return 0; }
@@ -2606,18 +2639,18 @@ int handle_zoom_overlay(struct event * event)
 }
 //~ void zoom_overlay_enable()
 //~ {
-	//~ zoom_overlay = 1;
+	//~ zoom_overlay_triggered_by_zoom_btn = 1;
 //~ }
 
 void zoom_overlay_disable()
 {
-	zoom_overlay = 0;
-	zoom_overlay_countdown = 0;
+	zoom_overlay_triggered_by_zoom_btn = 0;
+	zoom_overlay_triggered_by_focus_ring_countdown = 0;
 }
 
 void zoom_overlay_set_countdown(int x)
 {
-	zoom_overlay_countdown = x;
+	zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
 
 void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
@@ -2869,7 +2902,7 @@ void zebra_sleep_when_tired()
 #endif
 		while (!zebra_should_run()) msleep(100);
 		ChangeColorPaletteLV(2);
-		crop_set_dirty(25);
+		if (!gui_menu_shown()) crop_set_dirty(25);
 		vram_params_set_dirty();
 
 		//~ if (lv && !gui_menu_shown()) redraw();
@@ -3500,9 +3533,9 @@ livev_hipriority_task( void* unused )
 
 		if (k % 8 == 7) rec_notify_continuous(0);
 		
-		if (zoom_overlay_countdown)
+		if (zoom_overlay_triggered_by_focus_ring_countdown)
 		{
-			zoom_overlay_countdown--;
+			zoom_overlay_triggered_by_focus_ring_countdown--;
 		}
 		
 		//~ if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
@@ -3646,8 +3679,8 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
 }*/
 
 int unused = 0;
-unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay, &electronic_level, &defish_preview};
-int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            3,                   2,                    1,                 1};
+unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_enabled, &transparent_overlay, &electronic_level, &defish_preview};
+int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            3,                     2,                    1,                 1};
 
 void update_disp_mode_bits_from_params()
 {
@@ -4014,7 +4047,7 @@ void defish_draw_play()
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
-	zoom_overlay_countdown = 0;
+	zoom_overlay_triggered_by_focus_ring_countdown = 0;
 	idle_display_undim(); // restore LCD brightness, especially for shutdown
 	//~ idle_wakeup_reset_counters(-4);
 	idle_globaldraw_disable = 0;

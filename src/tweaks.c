@@ -199,7 +199,6 @@ static void expsim_toggle(void* priv, int delta)
 {
 	if (is_movie_mode()) return;
 	menu_ternary_toggle(priv, delta); msleep(100);
-	menu_show_only_selected();
 }
 
 // LV metering
@@ -1143,7 +1142,6 @@ void display_gain_toggle(void* priv, int dir)
 	if (display_gain == 1024) display_gain = 0;
 
 	set_display_gain(display_gain);
-	menu_show_only_selected();
 }
 void display_gain_reset(void* priv) { display_gain_toggle(0,0); }
 
@@ -1444,6 +1442,7 @@ struct menu_entry expo_tweak_menus[] = {
 		.select_auto = display_gain_reset,
 		.display = display_gain_print, 
 		.help = "Boosts LV digital display gain (Photo, Movie w.AutoISO)",
+		.show_liveview = 1,
 	},
 	{
 		.name = "Exposure Simulation",
@@ -1451,6 +1450,7 @@ struct menu_entry expo_tweak_menus[] = {
 		.select = expsim_toggle,
 		.display = expsim_display,
 		.help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
+		.show_liveview = 1,
 	},
 };
 

@@ -729,7 +729,7 @@ int can_lv_trap_focus_be_active()
 	if (dofpreview) return 0;
 	if (is_movie_mode()) return 0;
 	if (gui_state != GUISTATE_IDLE) return 0;
-	if (get_silent_pic_mode()) return 0;
+	if (get_silent_pic()) return 0;
 	if (!is_manual_focus()) return 0;
 	//~ bmp_printf(FONT_MED, 100, 100, "LVTF 1");
 	return 1;
@@ -742,7 +742,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
 	hsp = buf[0];
 	hsp_countdown = 3;
-	if (get_zoom_overlay_z()) zoom_overlay_set_countdown(0);
+	if (get_zoom_overlay_trigger_mode() <= 2) zoom_overlay_set_countdown(0);
 	
 	return prop_cleanup(token, property);
 }
@@ -1147,7 +1147,7 @@ static struct menu_entry focus_menu[] = {
 		#endif
 		.select_reverse = follow_focus_toggle_dir_v,
 		.select_auto = follow_focus_toggle_dir_h,
-		.help = "Simple follow focus with arrows or zoom in/out buttons.",
+		.help = "Simple follow focus with arrow keys.",
 		.essential = FOR_LIVEVIEW,
 	},
 #ifdef CONFIG_MOVIE_AF

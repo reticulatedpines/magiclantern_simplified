@@ -64,19 +64,21 @@ CONFIG_INT( "focus.trap", trap_focus, 0);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 //~ static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
-static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );        // 0 = off, 1 = normal, 2 = hi-res, 3 = long-exp, 4 = slit-scan
+static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = hi-res, 2 = slit-scan, 3 = long-exp
 static CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
 #define silent_pic_burst (silent_pic_submode == 1)
 #define silent_pic_fullhd (silent_pic_submode == 2)
 static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 static CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
-static CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
-static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
+//~ static CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
+//~ static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
 static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 1);
+static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 0);
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
 
@@ -84,8 +86,9 @@ extern int lcd_release_running;
 
 //New option for the sensitivty of the motion release
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
+static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
 
-int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
+int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 70);
@@ -168,7 +171,7 @@ interval_timer_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"%s: %d%s",
-			(!is_movie_mode() || silent_pic_mode) ? 
+			(!is_movie_mode() || silent_pic_enabled) ? 
 				"Take a pic every" : 
 				"REC a clip every",
 			d < 60 ? d : d/60, 
@@ -185,7 +188,7 @@ interval_movie_stop_display( void * priv, int x, int y, int selected )
 	interval_movie_duration_index = COERCE(interval_movie_duration_index, 0, interval_timer_index-1);
 	int d = timer_values[interval_movie_duration_index];
 
-	if ((is_movie_mode() && !silent_pic_mode) || selected)
+	if ((is_movie_mode() && !silent_pic_enabled) || selected)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -194,7 +197,7 @@ interval_movie_stop_display( void * priv, int x, int y, int selected )
 			d < 60 ? d : d/60, 
 			d < 60 ? "s" : "m"
 		);
-		if (!is_movie_mode() || silent_pic_mode)
+		if (!is_movie_mode() || silent_pic_enabled)
 			menu_draw_icon(x, y, MNI_WARNING, "Movie mode inactive.");
 		else
 			menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
@@ -222,7 +225,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 			"Intervalometer  : ON, %d%s%s",
 			d < 60 ? d : d/60, 
 			d < 60 ? "s" : "m",
-			bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_mode) ? "" : ", Movie"
+			bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_enabled) ? "" : ", Movie"
 		);
 		if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 10, selected);
 	}
@@ -259,18 +262,7 @@ audio_release_display( void * priv, int x, int y, int selected )
 	//~ menu_draw_icon(x, y, audio_release_running ? MNI_PERCENT : MNI_OFF, audio_release_level * 100 / 30);
 }
 
-static void
-audio_release_level_toggle(void* priv, int delta)
-{
-	audio_release_level = mod(audio_release_level - 5 + delta, 26) + 5;
-}
-
 //GUI Functions for the motion detect sensitivity.	
-static void
-motion_release_level_toggle(void* priv, int delta)
-{
-	motion_detect_level = mod(motion_detect_level - 1 + delta, 31) + 1;
-}
 
 static void 
 motion_detect_display( void * priv, int x, int y, int selected )
@@ -280,8 +272,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
 		x, y,
 		"Motion Detect   : %s, level=%d",
 		motion_detect == 0 ? "OFF" :
-		motion_detect == 1 ? "EXP" :
-		motion_detect == 2 ? "DIF" : "err",
+		motion_detect_trigger == 0 ? "EXP" : "DIF",
 		motion_detect_level
 	);
 	menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
@@ -325,7 +316,7 @@ static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
 static void 
 silent_pic_display( void * priv, int x, int y, int selected )
 {
-	if (silent_pic_mode == 0)
+	if (!silent_pic_enabled)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -333,7 +324,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			"Silent/Slit Pic : OFF"
 		);
 	}
-	else if (silent_pic_mode == 1)
+	else if (silent_pic_mode == 0)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -343,7 +334,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			silent_pic_fullhd ? "FullHD" : "Single"
 		);
 	}
-	else if (silent_pic_mode == 2)
+	else if (silent_pic_mode == 1)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -368,7 +359,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			//~ silent_pic_longexp_method == 2 ? "SUM" : "err"
 		);
 	}*/
-	else if (silent_pic_mode == 4)
+	else if (silent_pic_mode == 2)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -377,39 +368,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 			silent_pic_slitscan_skipframes
 		);
 	}
-	//~ menu_draw_icon(x, y, MNI_BOOL_LV(silent_pic_mode), 0);
 }
-
-static void silent_pic_mode_increment()
-{
-	silent_pic_mode = mod(silent_pic_mode + 1, 5); // off, normal, hi-res, long-exp, slit
-}
-static void silent_pic_mode_toggle(void* priv)
-{
-	silent_pic_mode_increment();
-	//~ if (silent_pic_mode == 2) silent_pic_mode_increment(); // skip hi-res
-	if (silent_pic_mode == 3) silent_pic_mode_increment(); // skip longx
-	//~ if (silent_pic_mode == 4) silent_pic_mode_increment(); // skip slit
-}
-
-static void silent_pic_toggle(int sign)
-{
-	if (silent_pic_mode == 1)
-		silent_pic_submode = mod(silent_pic_submode + 1, 3);
-	else if (silent_pic_mode == 2) 
-		silent_pic_highres = mod(silent_pic_highres + sign, COUNT(silent_pic_sweep_modes_c));
-	/*else if (silent_pic_mode == 3)
-	{
-		silent_pic_longexp_time_index = mod(silent_pic_longexp_time_index + sign, COUNT(timer_values_longexp));
-	}*/
-	else if (silent_pic_mode == 4)
-		silent_pic_slitscan_skipframes = mod(silent_pic_slitscan_skipframes + sign - 1, 4) + 1;
-}
-static void silent_pic_toggle_forward(void* priv)
-{ silent_pic_toggle(1); }
-
-static void silent_pic_toggle_reverse(void* priv)
-{ silent_pic_toggle(-1); }
 
 int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
@@ -1360,6 +1319,9 @@ silent_pic_take_slitscan(int interactive)
 	//~ if (recording) return; // vsync fails
 	if (!lv) return;
 	menu_stop();
+
+	int movie_started = silent_pic_ensure_movie_mode();
+
 	while (get_halfshutter_pressed()) msleep(100);
 	msleep(500);
 	clrscr();
@@ -1407,10 +1369,12 @@ silent_pic_take_slitscan(int interactive)
 			NotifyBoxHide();
 			NotifyBox(2000, "Slit-scan cancelled.");
 			while (get_halfshutter_pressed()) msleep(100);
+			if (movie_started) silent_pic_stop_dummy_movie();
 			return;
 		}
 	}
 	FIO_CloseFile(f);
+	if (movie_started) silent_pic_stop_dummy_movie();
 
 	NotifyBoxHide();
 	//~ NotifyBox(2000, "Psst! Just took a slit-scan pic");
@@ -1431,20 +1395,21 @@ silent_pic_take_slitscan(int interactive)
 static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
 {
+	if (!silent_pic_enabled) return;
 	if (!lv) force_liveview();
 
 	if (beep_enabled) Beep();
 	
 	idle_globaldraw_dis();
 	
-	if (silent_pic_mode == 1) // normal
+	if (silent_pic_mode == 0) // normal
 		silent_pic_take_simple(interactive);
-	else if (silent_pic_mode == 2) // hi-res
+	else if (silent_pic_mode == 1) // hi-res
 		silent_pic_take_sweep(interactive);
+	else if (silent_pic_mode == 2) // slit-scan
+		silent_pic_take_slitscan(interactive);
 	//~ else if (silent_pic_mode == 3) // long exposure
 		//~ silent_pic_take_longexp();
-	else if (silent_pic_mode == 4) // slit-scan
-		silent_pic_take_slitscan(interactive);
 
 	idle_globaldraw_en();
 }
@@ -1535,7 +1500,6 @@ iso_toggle( void * priv, int sign )
 		
 		if (lens_set_rawiso(codes_iso[i])) break;
 	}
-	menu_show_only_selected();
 }
 
 /*PROP_INT(PROP_ISO_AUTO, iso_auto_code);
@@ -1685,7 +1649,6 @@ shutter_toggle(void* priv, int sign)
 		i = mod(i + sign, COUNT(codes_shutter));
 		if (lens_set_rawshutter(codes_shutter[i])) break;
 	}
-	menu_show_only_selected();
 }
 
 static void shutter_auto_quick()
@@ -1767,7 +1730,6 @@ aperture_toggle( void* priv, int sign)
 
 		if (lens_set_rawaperture(a)) break;
 	}
-	menu_show_only_selected();
 }
 
 
@@ -1788,7 +1750,6 @@ kelvin_toggle( void* priv, int sign )
 	k = (k/KELVIN_STEP) * KELVIN_STEP;
 	k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * KELVIN_STEP, KELVIN_MAX - KELVIN_MIN + KELVIN_STEP);
 	lens_set_kelvin(k);
-	menu_show_only_selected();
 }
 
 PROP_INT( PROP_WB_KELVIN_PH, wb_kelvin_ph );
@@ -1932,7 +1893,6 @@ wbs_gm_toggle( void * priv, int sign )
 	int newgm = mod((gm + 9 + sign), 19) - 9;
 	newgm = newgm & 0xFF;
 	prop_request_change(PROP_WBS_GM, &newgm, 4);
-	menu_show_only_selected();
 }
 
 
@@ -1957,7 +1917,6 @@ wbs_ba_toggle( void * priv, int sign )
 	int newba = mod((ba + 9 + sign), 19) - 9;
 	newba = newba & 0xFF;
 	prop_request_change(PROP_WBS_BA, &newba, 4);
-	menu_show_only_selected();
 }
 
 static void
@@ -1967,7 +1926,6 @@ contrast_toggle( void * priv, int sign )
 	if (c < -4 || c > 4) return;
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_contrast(newc);
-	menu_show_only_selected();
 }
 
 
@@ -1990,7 +1948,6 @@ sharpness_toggle( void * priv, int sign )
 	if (c < 0 || c > 7) return;
 	int newc = mod(c + sign, 8);
 	lens_set_sharpness(newc);
-	menu_show_only_selected();
 }
 
 static void 
@@ -2002,7 +1959,7 @@ sharpness_display( void * priv, int x, int y, int selected )
 		"Sharpness   : %d ",
 		lens_get_sharpness()
 	);
-	menu_draw_icon(x, y, MNI_PERCENT, lens_get_sharpness() * 100 / 7);
+	menu_draw_icon(x, y, MNI_PERCENT, (lens_get_sharpness()) * 100 / 7);
 }
 
 static void
@@ -2012,7 +1969,6 @@ saturation_toggle( void * priv, int sign )
 	if (c < -4 || c > 4) return;
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_saturation(newc);
-	menu_show_only_selected();
 }
 
 static void 
@@ -2038,7 +1994,6 @@ color_tone_toggle( void * priv, int sign )
 	if (c < -4 || c > 4) return;
 	int newc = mod((c + 4 + sign), 9) - 4;
 	lens_set_color_tone(newc);
-	menu_show_only_selected();
 }
 
 static void 
@@ -2108,6 +2063,20 @@ picstyle_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+static void 
+picstyle_display_submenu( void * priv, int x, int y, int selected )
+{
+	int p = get_prop_picstyle_from_index(picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle);
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"PictureStyle: %s%s",
+		get_picstyle_name(p),
+		picstyle_before_rec ? "*" : " "
+	);
+	menu_draw_icon(x, y, MNI_ON, 0);
+}
+
 static void
 picstyle_toggle(void* priv, int sign )
 {
@@ -2119,7 +2088,6 @@ picstyle_toggle(void* priv, int sign )
 		p = get_prop_picstyle_from_index(p);
 		prop_request_change(PROP_PICTURE_STYLE, &p, 4);
 	}
-	menu_show_only_selected();
 }
 
 static void 
@@ -2318,7 +2286,6 @@ ladj_toggle(void* priv, int sign )
 	{
 		set_htp(1); // this disables ALO
 	}
-	menu_show_only_selected();
 }
 
 #ifdef CONFIG_500D
@@ -2365,12 +2332,13 @@ zoom_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"LiveView Zoom       : %s%s %s",
+		"LiveView Zoom       : %s%s%s %s",
 		zoom_disable_x5 ? "" : "x5", 
 		zoom_disable_x10 ? "" : "x10", 
-		zoom_enable_face ? ":-)" : ""
+		zoom_enable_face ? ":-)" : "",
+		zoom_sharpen ? "SC++" : ""
 	);
-	menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10));
+	menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10 || zoom_sharpen));
 }
 
 static void zoom_toggle(void* priv)
@@ -2623,7 +2591,7 @@ bulb_take_pic(int duration)
 
 static void bulb_toggle(void* priv, int delta)
 {
-	bulb_duration_index = mod(bulb_duration_index + delta, COUNT(timer_values));
+	bulb_duration_index = mod(bulb_duration_index + delta - 1, COUNT(timer_values) - 1) + 1;
 	bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 }
 
@@ -2632,15 +2600,37 @@ bulb_display( void * priv, int x, int y, int selected )
 {
 	int d = bulb_shutter_value/1000;
 	if (!bulb_duration_index) d = 0;
+	if (!bulb_timer)
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Bulb Timer      : OFF"
+		);
+	else
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Bulb Timer      : %d%s",
+			d < 60 ? d : d/60, 
+			d < 60 ? "s" : "min"
+		);
+	menu_draw_icon(x, y, !bulb_timer ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
+	if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
+}
+
+static void
+bulb_display_submenu( void * priv, int x, int y, int selected )
+{
+	int d = bulb_shutter_value/1000;
+	if (!bulb_duration_index) d = 0;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Bulb Timer      : %d%s",
+		"Bulb Exposure : %d%s",
 		d < 60 ? d : d/60, 
-		bulb_duration_index == 0 ? " (OFF)" : d < 60 ? "s" : "min"
+		d < 60 ? "s" : "min"
 	);
-	menu_draw_icon(x, y, !bulb_duration_index ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
-	if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
+	menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
 
 // like expsim_toggle
@@ -3212,10 +3202,19 @@ static struct menu_entry shoot_menus[] = {
 	},
 	{
 		.name = "Bulb Timer",
+		.priv = &bulb_timer,
 		.display = bulb_display, 
-		.select = bulb_toggle, 
+		.select = menu_binary_toggle, 
 		.help = "Bulb timer for very long exposures, useful for astrophotos",
 		.essential = FOR_PHOTO,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Bulb exposure",
+				.select = bulb_toggle,
+				.display = bulb_display_submenu,
+			},
+			MENU_EOL
+		},
 	},
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
@@ -3233,21 +3232,42 @@ static struct menu_entry shoot_menus[] = {
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
 		.display	= audio_release_display,
-		.select_auto = audio_release_level_toggle, 
-		.select_reverse = audio_release_level_toggle,
 		.help = "Clap your hands or pop a balloon to take a picture.",
 		.essential = FOR_PHOTO,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Trigger level",
+				.priv = &audio_release_level, 
+				.min = 5,
+				.max = 30,
+			},
+			MENU_EOL
+		},
 	},
 	#endif
 	{
 		.name = "Motion Detect",
 		.priv		= &motion_detect,
-		.select		= menu_ternary_toggle,
+		.select		= menu_binary_toggle,
 		.display	= motion_detect_display,
-		.select_auto = motion_release_level_toggle, 
-		.select_reverse = motion_release_level_toggle,
-		.help = "LV Motion detection: EXPosure change / frame DIFference.",
+		.help = "Motion detection: EXPosure change / frame DIFference.",
 		.essential = FOR_PHOTO,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Trigger by",
+				.priv = &motion_detect_trigger, 
+				.max = 1,
+				.choices = (const char *[]) {"Expo. change", "Frame diff."},
+				.icon_type = IT_DICE,
+			},
+			{
+				.name = "Trigger level",
+				.priv = &motion_detect_level, 
+				.min = 1,	
+				.max = 30,
+			},
+			MENU_EOL
+		},
 	},
 /*	{
 		.select		= flash_and_no_flash_toggle,
@@ -3256,35 +3276,41 @@ static struct menu_entry shoot_menus[] = {
 	},*/
 	{
 		.name = "Silent Picture",
-		.priv = &silent_pic_mode,
-		.select = silent_pic_mode_toggle,
+		.priv = &silent_pic_enabled,
+		.select = menu_binary_toggle,
 		.display = silent_pic_display,
 		.help = "Take pics in LiveView without increasing shutter count.",
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Mode",
 				.priv = &silent_pic_mode, 
-				.max = 4,
-				.select = silent_pic_mode_toggle,
-				.choices = (const char *[]) {"OFF", "Simple", "Hi-Res", "LongExp", "SlitScan"},
+				.max = 2,
+				.choices = (const char *[]) {"Simple", "Hi-Res", "SlitScan"},
+				.icon_type = IT_DICE,
+				.help = "Silent picture mode: simple, high-resolution or slit-scan."
 			},
 			{
 				.name = "Flags", 
 				.priv = &silent_pic_submode,
 				.max = 2,
 				.choices = (const char *[]) {"None", "Burst","FullHD"},
+				.help = "Enables burst mode (for simple pics) or FullHD resolution."
 			},
 			{
 				.name = "Hi-Res", 
 				.priv = &silent_pic_highres,
 				.max = 7,
 				.choices = (const char *[]) {"2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"},
+				.icon_type = IT_SIZE,
+				.help = "For hi-res matrix mode: select number of subpictures."
 			},
 			{
 				.name = "Slit Skip", 
 				.priv = &silent_pic_slitscan_skipframes,
 				.min = 1,
 				.max = 4,
+				.icon_type = IT_PERCENT,
+				.help = "For slit-scan: how many frames to skip between two lines."
 			},
 			MENU_EOL
 		},
@@ -3314,17 +3340,42 @@ static struct menu_entry vid_menus[] = {
 	{
 		.name = "LiveView Zoom",
 		.priv = &zoom_enable_face,
-		.select = menu_binary_toggle,
-		.select_reverse = zoom_toggle, 
+		.select = zoom_toggle,
+		.select_reverse = menu_binary_toggle, 
 		.display = zoom_display,
-		.help = "Disable x5 or x10, or enable zoom during Face Detection :)"
-	},
-	{
-		.name = "Zoom SharpContrast++",
-		.priv = &zoom_sharpen,
-		.select = menu_binary_toggle,
-		.display = zoom_sharpen_display,
-		.help = "Increase contrast and sharpness when you zoom in LiveView."
+		.help = "Disable x5 or x10, boost contrast/sharpness...",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Zoom x5",
+				.priv = &zoom_disable_x5, 
+				.max = 1,
+				.choices = (const char *[]) {"ON", "Disable"},
+				.help = "Disable x5 zoom in LiveView."
+			},
+			{
+				.name = "Zoom x10",
+				.priv = &zoom_disable_x10, 
+				.max = 1,
+				.choices = (const char *[]) {"ON", "Disable"},
+				.help = "Disable x10 zoom in LiveView."
+			},
+			{
+				.name = "Zoom :-)",
+				.priv = &zoom_enable_face, 
+				.max = 1,
+				.icon_type = IT_BOOL,
+				.help = "Enable zoom when Face Detection is active."
+			},
+			{
+				.name = "Sharp+Contrast",
+				.priv = &zoom_sharpen,
+				.max = 1,
+				.choices = (const char *[]) {"Don't change", "Increase"},
+				.icon_type = IT_BOOL,
+				.help = "Increase contrast and sharpness when you zoom in LiveView."
+			},
+			MENU_EOL
+		},
 	},
 };
 
@@ -3336,6 +3387,7 @@ static struct menu_entry expo_menus[] = {
 		.select_auto = iso_auto,
 		.help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
+		.show_liveview = 1,
 	},
 	{
 		.name = "Aperture",
@@ -3343,6 +3395,7 @@ static struct menu_entry expo_menus[] = {
 		.select		= aperture_toggle,
 		.help = "Adjust aperture in 1/8 EV steps.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
+		.show_liveview = 1,
 	},
 	{
 		.name = "Shutter",
@@ -3351,6 +3404,7 @@ static struct menu_entry expo_menus[] = {
 		.select_auto = shutter_auto,
 		.help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
+		.show_liveview = 1,
 	},
 	{
 		.name = "WhiteBalance",
@@ -3359,6 +3413,7 @@ static struct menu_entry expo_menus[] = {
 		.select_auto = kelvin_auto,
 		.help = "Adjust Kelvin white balance.",
 		.essential = FOR_PHOTO | FOR_MOVIE,
+		.show_liveview = 1,
 	},
 	{
 		.name = "WBShift G/M",
@@ -3366,12 +3421,14 @@ static struct menu_entry expo_menus[] = {
 		.select = wbs_gm_toggle,
 		.select_auto = wbs_gm_auto,
 		.help = "Green-Magenta white balance shift, for fluorescent lights.",
+		.show_liveview = 1,
 	},
 	{
 		.name = "WBShift B/A",
 		.display = wbs_ba_display, 
 		.select = wbs_ba_toggle, 
 		.help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
+		.show_liveview = 1,
 	},
 /*
 #ifdef CONFIG_500D
@@ -3396,31 +3453,43 @@ static struct menu_entry expo_menus[] = {
 		.display	= picstyle_display,
 		.select		= picstyle_toggle,
 		.help = "Change current picture style.",
+		.show_liveview = 1,
 		.essential = FOR_MOVIE,
 		.children =  (struct menu_entry[]) {
+			{
+				.name = "PictureStyle",
+				.display	= picstyle_display_submenu,
+				.select		= picstyle_toggle,
+				.help = "Change current picture style.",
+				.show_liveview = 1,
+			},
 			{
 				.name = "Contrast/Saturation/Sharpness",
 				.display	= sharpness_display,
 				.select		= sharpness_toggle,
 				.help = "Adjust sharpness in current picture style.",
+				.show_liveview = 1,
 			},
 			{
 				.name = "Contrast/Saturation/Sharpness",
 				.display	= contrast_display,
 				.select		= contrast_toggle,
 				.help = "Adjust contrast in current picture style.",
+				.show_liveview = 1,
 			},
 			{
 				.name = "Contrast/Saturation/Sharpness",
 				.display	= saturation_display,
 				.select		= saturation_toggle,
 				.help = "Adjust saturation in current picture style.",
+				.show_liveview = 1,
 			},
 			{
 				.name = "Contrast/Saturation/Sharpness",
 				.display	= color_tone_display,
 				.select		= color_tone_toggle,
 				.help = "Adjust color tone in current picture style.",
+				.show_liveview = 1,
 			},
 			MENU_EOL
 		},
@@ -3477,7 +3546,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack)
 // normal pic, silent pic, bulb pic...
 static void take_a_pic(int allow_af)
 {
-	if (silent_pic_mode)
+	if (silent_pic_enabled)
 	{
 		silent_pic_take(0); 
 	}
@@ -3961,7 +4030,7 @@ shoot_task( void* unused )
 			drive_mode_bk = -1;
 		}
 	
-		if (bulb_duration_index && is_bulb_mode() && !gui_menu_shown())
+		if (bulb_timer && is_bulb_mode() && !gui_menu_shown())
 		{
 			// look for a transition of half-shutter during idle state
 			static int was_idle_not_pressed = 0;
@@ -4060,7 +4129,7 @@ shoot_task( void* unused )
 			K = COERCE(K+1, 0, 1000);
 			//~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
 
-			if (motion_detect == 1)
+			if (motion_detect_trigger == 0)
 			{
 				int aev = 0;
 				//If the new value has changed by more than the detection level, shoot.
@@ -4078,7 +4147,7 @@ shoot_task( void* unused )
 				}
 				old_ae_avg = old_ae_avg * 90/100 + aev * 10;
 			}
-			else if (motion_detect == 2)
+			else if (motion_detect_trigger == 1)
 			{
 				int d = get_spot_motion(100, get_global_draw());
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
@@ -4101,7 +4170,7 @@ shoot_task( void* unused )
 			if (silent_pic_countdown) silent_pic_countdown--;
 		}
 
-		if (lv && silent_pic_mode && get_halfshutter_pressed())
+		if (lv && silent_pic_enabled && get_halfshutter_pressed())
 		{
 			if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
 				continue;
@@ -4176,6 +4245,14 @@ shoot_task( void* unused )
 				bulb_ramping_init();
 				compute_exposure_for_next_shot();
 			}
+			
+			if (lv && silent_pic_enabled) // half-press shutter to disable power management
+			{
+				assign_af_button_to_halfshutter();
+				SW1(1,10);
+				SW1(0,0);
+				restore_af_button_assignment();
+			}
 
 			if (!intervalometer_running) continue;
 			if (gui_menu_shown() || get_halfshutter_pressed()) continue;
@@ -4188,7 +4265,7 @@ shoot_task( void* unused )
 			{
 				take_a_pic(1);
 			}
-			else if (!is_movie_mode() || silent_pic_mode)
+			else if (!is_movie_mode() || silent_pic_enabled)
 			{
 				hdr_shot(0, 1);
 			}

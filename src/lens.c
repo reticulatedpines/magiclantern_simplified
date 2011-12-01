@@ -754,7 +754,7 @@ lens_focus(
 		card_led_off();
 	}
 
-	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
+	if (get_zoom_overlay_trigger_mode()==2) zoom_overlay_set_countdown(300);
 	//~ if (get_global_draw()) BMP_LOCK( draw_ml_bottombar(); )
 	idle_wakeup_reset_counters(-10);
 	lens_display_set_dirty();
@@ -1254,7 +1254,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	static unsigned old_focus_dist = 0;
 	if (lv && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
-		if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
+		if (get_zoom_overlay_trigger_mode()==2) zoom_overlay_set_countdown(300);
 		idle_wakeup_reset_counters(-11);
 	}
 	old_focus_dist = lens_info.focus_dist;
