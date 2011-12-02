@@ -1207,7 +1207,16 @@ silent_pic_take_simple(int interactive)
 		msleep(1000);
 	}
 	
-	if (!silent_pic_burst) ResumeLiveView();
+	extern int idle_display_turn_off_after;
+	int intervalometer_w_powersave = intervalometer_running && idle_display_turn_off_after;
+	if (!silent_pic_burst)
+	{
+		if (!intervalometer_w_powersave)
+			ResumeLiveView();
+		else
+			display_off_force();
+	}
+
 	
 	if (movie_started) silent_pic_stop_dummy_movie();
 }
