@@ -331,6 +331,8 @@ movtweak_task( void* unused )
 	{
 		force_liveview();
 	}
+	
+	bv_auto_update();
 
 	int k;
 	for (k = 0; ; k++)

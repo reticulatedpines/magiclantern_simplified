@@ -1525,6 +1525,10 @@ void bv_auto_update_do()
 void bv_auto_update()
 {
 	if (!bv_auto) return;
+	
+	extern int ml_started;
+	if (!ml_started) return;
+	
 	fake_simple_button(MLEV_BV_AUTO_UPDATE);
 }
 
