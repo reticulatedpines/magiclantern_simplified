@@ -127,6 +127,7 @@ int zoom_overlay_dirty = 0;
 
 bool should_draw_zoom_overlay()
 {
+	if (!zoom_overlay_enabled) return 0;
 	if (zoom_overlay_trigger_mode == 4 && zebra_should_run() && get_global_draw()) return true;
 	if (zebra_should_run() && get_global_draw() && zoom_overlay_trigger_mode && (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown)) return true;
 	if (lv && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_trigger_mode && (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown)) return true;
