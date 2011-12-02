@@ -1031,6 +1031,15 @@ PROP_HANDLER( PROP_LENS_NAME )
 	return prop_cleanup( token, property );
 }
 
+PROP_HANDLER(PROP_LENS)
+{
+	uint8_t* info = buf;
+	lens_info.raw_aperture_min = info[1];
+	lens_info.raw_aperture_max = info[2];
+	bv_update_lensinfo();
+	return prop_cleanup( token, property );
+}
+
 // it may be slow; if you need faster speed, replace this with a binary search or something better
 #define RAWVAL_FUNC(param) \
 int raw2index_##param(int raw) \
@@ -1072,6 +1081,7 @@ void lensinfo_set_shutter(int raw)
 
 void lensinfo_set_aperture(int raw)
 {
+	raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
 	lens_info.raw_aperture = raw;
 	lens_info.aperture = RAW2VALUE(aperture, raw);
 	//~ BMP_LOCK( lens_info.aperture = (int)roundf(10.0 * sqrtf(powf(2.0, (raw-8.0)/8.0))); )
@@ -1474,8 +1484,19 @@ extern int bv_tv;
 extern int bv_av;
 
 bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo(); return shutter != 0; }
-bool bv_set_rawaperture(unsigned aperture) { CONTROL_BV_AV = bv_av = aperture; bv_update_lensinfo();  return aperture != 0; }
 bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = bv_iso = MAX(iso, 72); bv_update_lensinfo();  return iso != 0; }
+bool bv_set_rawaperture(unsigned aperture) 
+{ 
+	if (aperture >= lens_info.raw_aperture_min && aperture <= lens_info.raw_aperture_max) 
+	{ 
+		CONTROL_BV_AV = bv_av = aperture; bv_update_lensinfo(); 
+		return 1; 
+	}
+	else
+	{
+		return 0;
+	}
+}
 
 int bv_auto_should_enable()
 {

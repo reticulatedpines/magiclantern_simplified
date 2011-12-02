@@ -66,6 +66,9 @@ volatile	uint8_t			raw_iso;
 volatile	uint8_t			raw_iso_auto;
 volatile	uint8_t			raw_picstyle;
 
+volatile	uint8_t		raw_aperture_min;
+volatile	uint8_t		raw_aperture_max;
+
 volatile	float 			lens_rotation;
 volatile	float			lens_step;
 };
