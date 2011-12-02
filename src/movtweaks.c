@@ -334,7 +334,9 @@ movtweak_task( void* unused )
 	{
 		force_liveview();
 	}
-	
+
+	extern int ml_started;
+	while (!ml_started) msleep(100);
 	bv_auto_update();
 
 	int k;
