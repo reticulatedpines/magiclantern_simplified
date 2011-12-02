@@ -2588,6 +2588,7 @@ void zoom_overlay_toggle()
 int handle_zoom_overlay(struct event * event)
 {
 	if (gui_menu_shown()) return 1;
+	if (!lv) return 1;
 	
 	// zoom in when recording => enable Magic Zoom 
 	if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
@@ -2597,13 +2598,13 @@ int handle_zoom_overlay(struct event * event)
 	}
 
 	// if magic zoom is enabled, Zoom In should always disable it 
-	if (lv && is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
 	}
 	
-	if (lv && get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 	{
 		// magic zoom toggled by sensor+zoom in (modes Zr and Zr+F)
 		if (get_zoom_overlay_trigger_mode() < 3 && get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
