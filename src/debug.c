@@ -1156,7 +1156,6 @@ void roll_spy()
 }
 #endif
 
-
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -1164,7 +1163,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 	while (!ml_started) msleep(100);
 	
 	config_menu_init();
-	
+		
 	/*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
 	dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
 	dump_seg(&(FONT_SMALL.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
@@ -1189,8 +1188,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
-
-		//~ bmp_printf(FONT_LARGE, 0, 50, "%8x ", YUV422_HD_BUFFER_DMA_ADDR);
 
 		if (get_global_draw())
 		{
@@ -1993,21 +1990,34 @@ movie_start( void )
 
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
 
+void ml_shutdown()
+{
+	static int config_saved = 0;
+	if (config_autosave && !config_saved)
+	{
+		config_saved = 1;
+		save_config(0);
+	}
+	card_led_on();
+	#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+	call("EdLedOn");
+	#endif
+	msleep(50); 
+}
 
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
 	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
-	if (buf[0] == 0) 
-	{ 
-		if (config_autosave) save_config(0);
-		card_led_on();
-		#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-		call("EdLedOn");
-		#endif
-		msleep(50); 
-	}
+	if (buf[0] == 0)  ml_shutdown();
 	return prop_cleanup(token, property);
 }
+
+PROP_HANDLER(PROP_CARD_COVER)
+{
+	if (buf[0] == 1) ml_shutdown();
+	return prop_cleanup(token, property);
+}
+
 
 /*
 PROP_HANDLER(PROP_APERTURE)
