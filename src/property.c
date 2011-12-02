@@ -71,4 +71,14 @@ int get_prop(int prop)
 	return 0;
 }
 
+// for strings
+char* get_prop_str(int prop)
+{
+	char* data = 0;
+	int len = 0;
+	int err = prop_get_value(prop, &data, &len);
+	if (!err) return data;
+	return 0;
+}
+
 INIT_FUNC( __FILE__, prop_init );

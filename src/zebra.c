@@ -3211,6 +3211,7 @@ void idle_stop_killing_flicker()
 	}
 }
 
+PROP_INT(PROP_LOGICAL_CONNECT, logical_connect); // EOS utility?
 
 static void
 clearscreen_task( void* unused )
@@ -3300,6 +3301,9 @@ clearscreen_loop:
 
 		if (recording && !idle_rec) // don't go to powersave when recording
 			idle_wakeup_reset_counters(-2345);
+		
+		if (logical_connect)
+			idle_wakeup_reset_counters(-305); // EOS utility
 		
 		if (idle_display_dim_after)
 			idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
