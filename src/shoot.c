@@ -2986,6 +2986,9 @@ static void bramp_plot_luma_ev_point(int luma, int color)
 	draw_circle(x, y, 6, COLOR_WHITE);
 }
 
+void bramp_calibration_set_dirty() { bramp_init_done = 0; }
+
+
 int bulb_ramp_calibration_running = 0;
 void bulb_ramping_init()
 {
@@ -4282,7 +4285,7 @@ shoot_task( void* unused )
 		}
 		else // intervalometer not running
 		{
-			bramp_init_done = 0;
+			//~ bramp_init_done = 0;
 			intervalometer_pictures_taken = 0;
 			intervalometer_next_shot_time = seconds_clock + 3;
 			
