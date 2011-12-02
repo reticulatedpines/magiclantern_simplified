@@ -1081,7 +1081,8 @@ void lensinfo_set_shutter(int raw)
 
 void lensinfo_set_aperture(int raw)
 {
-	raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+	if (lens_info.raw_aperture_min && lens_info.raw_aperture_max)
+		raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
 	lens_info.raw_aperture = raw;
 	lens_info.aperture = RAW2VALUE(aperture, raw);
 	//~ BMP_LOCK( lens_info.aperture = (int)roundf(10.0 * sqrtf(powf(2.0, (raw-8.0)/8.0))); )
