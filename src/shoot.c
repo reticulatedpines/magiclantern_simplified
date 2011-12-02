@@ -3015,8 +3015,11 @@ calib_start:
 	get_spot_yuv(200, &Y, &U, &V);
 	if (ABS(Y-128) > 1) 
 	{
-		NotifyBox(1000, "Scene not static, or maybe  \n"
-	                    "too dark/bright, retrying..."); 
+		NotifyBox(1000, "Scene %s, retrying...", 
+			gain0 > 2450 ? "too dark" :
+			gain0 < 150 ? "too bright" : 
+			"not static"
+		); 
 
 		zoom = zoom == 10 ? 5 : zoom == 5 ? 1 : 10;
 		prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
