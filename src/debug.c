@@ -2408,7 +2408,11 @@ int flash_movie_pressed = 0;
 int get_flash_movie_pressed() { return flash_movie_pressed; }
 
 int halfshutter_pressed = 0;
+#ifdef CONFIG_500D
+bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
+#else
 bool get_halfshutter_pressed() { return halfshutter_pressed && !dofpreview; }
+#endif
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
