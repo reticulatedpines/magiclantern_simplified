@@ -4073,7 +4073,7 @@ shoot_task( void* unused )
 				NotifyBox(2000, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
 				wait_till_next_second();
 				if (get_halfshutter_pressed()) continue;
-				if (display_idle()) continue;
+				if (!display_idle()) continue;
 				if (m0 != shooting_mode) continue;
 				bulb_take_pic(d * 1000);
 			}
