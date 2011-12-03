@@ -1420,7 +1420,8 @@ falsecolor_display( void * priv, int x, int y, int selected )
 		"False Color : %s",
 		falsecolor_draw ? falsecolor_palette_name() : "OFF"
 	);
-	falsecolor_palette_preview(x, y);
+	if (falsecolor_draw)
+		falsecolor_palette_preview(x, y);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
 }
 

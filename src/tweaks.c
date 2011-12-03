@@ -524,7 +524,7 @@ void clear_lv_affframe()
 	afframe_countdown = 0;
 }
 
-CONFIG_INT("play.quick.zoom", quickzoom, 1);
+CONFIG_INT("play.quick.zoom", quickzoom, 2);
 
 static void
 quickzoom_display(
@@ -539,8 +539,8 @@ quickzoom_display(
 		x, y,
 		"Zoom in PLAY mode : %s", 
 		quickzoom == 0 ? "Normal" :
-		quickzoom == 1 ? "Fast+100%" :
-		quickzoom == 2 ? "Fast" : "err"
+		quickzoom == 2 ? "Fast+100%" :
+		quickzoom == 1 ? "Fast" : "err"
 	);
 }
 
@@ -679,7 +679,6 @@ play_set_wheel_display(
 		play_set_wheel_action == 2 ? "CompareImages" : 
 		play_set_wheel_action == 3 ? "TimelapsePlay" : "err"
 	);
-	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 CONFIG_INT("quick.delete", quick_delete, 0);
@@ -902,7 +901,7 @@ tweak_task( void* unused)
 			{
 				for (int i = 0; i < 10; i++)
 				{
-					if (quickzoom == 1 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
+					if (quickzoom == 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
 					{
 						MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
 						MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
@@ -1514,10 +1513,11 @@ struct menu_entry play_menus[] = {
 	{
 		.name = "SET+MainDial (PLAY)",
 		.priv = &play_set_wheel_action, 
-		.select = menu_quaternary_toggle, 
+		.max = 3,
 		.display = play_set_wheel_display,
 		.help = "What to do when you hold SET and turn MainDial (Wheel)",
 		.essential = FOR_PLAYBACK,
+		.icon_type = IT_DICE,
 	},
 	{
 		.name = "Cropmarks (PLAY)",
@@ -1539,10 +1539,11 @@ struct menu_entry play_menus[] = {
 	{
 		.name = "Zoom in PLAY mode",
 		.priv = &quickzoom, 
-		.select = menu_ternary_toggle, 
+		.max = 2,
 		.display = quickzoom_display,
 		.help = "Faster zoom in Play mode, for pixel peeping :)",
 		.essential = FOR_PLAYBACK,
+		.icon_type = IT_DICE,
 	},
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{

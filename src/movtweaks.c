@@ -473,7 +473,7 @@ screen_layout_display(
 		screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9,bottom" :
 		 "err"
 	);
-	menu_draw_icon(x, y, EXT_MONITOR_CONNECTED ? MNI_AUTO : MNI_ON, 0);
+	menu_draw_icon(x, y, MNI_DICE, screen_layout + (5<<16));
 }
 
 void screen_layout_toggle() { menu_quinternary_toggle(get_screen_layout_ptr(), 1); }
