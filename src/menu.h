@@ -88,6 +88,9 @@ struct menu_entry
 #define IT_ACTION 6
 #define IT_NAMED_COLOR 7
 #define IT_BOOL_NEG 8
+#define IT_DISABLE_SOME_FEATURE 9
+#define IT_DISABLE_SOME_FEATURE_NEG 10
+#define IT_REPLACE_SOME_FEATURE 11
 
 // these can be combined with OR
 #define FOR_MOVIE 1
@@ -169,6 +172,8 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg);
 #define MNI_DICE 6
 #define MNI_SIZE 7
 #define MNI_NAMED_COLOR 8
+#define MNI_NEUTRAL 9
+#define MNI_DISABLE 10
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
 #define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "GlobalDraw is OFF"

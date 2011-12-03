@@ -79,7 +79,7 @@ static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 1);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
-static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 0);
+static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
 
 extern int lcd_release_running;
@@ -3365,14 +3365,16 @@ static struct menu_entry vid_menus[] = {
 				.priv = &zoom_disable_x5, 
 				.max = 1,
 				.choices = (const char *[]) {"ON", "Disable"},
-				.help = "Disable x5 zoom in LiveView."
+				.help = "Disable x5 zoom in LiveView.",
+				.icon_type = IT_DISABLE_SOME_FEATURE,
 			},
 			{
 				.name = "Zoom x10",
 				.priv = &zoom_disable_x10, 
 				.max = 1,
 				.choices = (const char *[]) {"ON", "Disable"},
-				.help = "Disable x10 zoom in LiveView."
+				.help = "Disable x10 zoom in LiveView.",
+				.icon_type = IT_DISABLE_SOME_FEATURE,
 			},
 			{
 				.name = "Zoom :-)",

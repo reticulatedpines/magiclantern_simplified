@@ -1297,6 +1297,7 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_binary_toggle,
 		.display	= audio_alc_display,
 		.help = "Automatic Gain Control - turn it off :)",
+		.icon_type = IT_DISABLE_SOME_FEATURE_NEG,
 	},
 	/*{
      .priv		= &windcut_mode,

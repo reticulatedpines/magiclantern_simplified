@@ -48,6 +48,7 @@ CONFIG_INT( "focus.step",	focus_stack_steps_per_picture, 5 );
 #define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture + 1)
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
+CONFIG_INT( "focus.follow.mode", follow_focus_mode, 0 ); // 0=arrows, 1=LCD sensor
 CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
 CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
 
@@ -60,11 +61,21 @@ int is_follow_focus_active()
 	if (is_manual_focus()) return 0;
 	if (!liveview_display_idle()) return 0;
 	if (gui_menu_shown()) return 0;
-	if (display_sensor && get_lcd_sensor_shortcuts()) return 0;
+	if (display_sensor && get_lcd_sensor_shortcuts() && follow_focus_mode==0) return 0;
 	if (get_halfshutter_pressed()) return 0;
 	return 1;
 }
-int get_follow_focus_stop_on_focus() { return 0; }
+
+int get_follow_focus_mode()
+{
+	#if defined(CONFIG_550D) || defined(CONFIG_500D)
+	return follow_focus_mode;
+	#else
+	return 0; // no LCD sensor, use arrows only
+	#endif
+}
+
+
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
@@ -668,9 +679,8 @@ follow_focus_print(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Follow Focus   : %s",
-		follow_focus == 1 ? "Arrows" :
-		//~ follow_focus == 2 ? "Zoom In/Out" :
-		follow_focus == 2 ? "LCD sensor" : "OFF"
+		follow_focus == 0 ? "OFF" :
+		get_follow_focus_mode() == 0 ? "Arrows" : "LCD sensor"
 	);
 	if (follow_focus == 1)
 	{
@@ -1140,15 +1150,38 @@ static struct menu_entry focus_menu[] = {
 		.name = "Follow Focus",
 		.priv = &follow_focus,
 		.display	= follow_focus_print,
-		#if defined(CONFIG_550D) || defined(CONFIG_500D)
-		.select		= menu_ternary_toggle,
-		#else
 		.select		= menu_binary_toggle,
-		#endif
-		.select_reverse = follow_focus_toggle_dir_v,
-		.select_auto = follow_focus_toggle_dir_h,
+
 		.help = "Simple follow focus with arrow keys.",
 		.essential = FOR_LIVEVIEW,
+
+		.children =  (struct menu_entry[]) {
+			#if defined(CONFIG_550D) || defined(CONFIG_500D)
+			{
+				.name = "Focus using",
+				.priv = &follow_focus_mode, 
+				.max = 1,
+				.choices = (const char *[]) {"Arrow keys", "LCD sensor"},
+				.help = "You can focus with arrow keys or with the LCD sensor",
+			},
+			#endif
+			{
+				.name = "Left/Right dir",
+				.priv = &follow_focus_reverse_h, 
+				.max = 1,
+				.choices = (const char *[]) {"+ / -", "- / +"},
+				.help = "Focus direction for Left and Right keys",
+			},
+			{
+				.name = "Up/Down dir",
+				.priv = &follow_focus_reverse_v, 
+				.max = 1,
+				.choices = (const char *[]) {"+ / -", "- / +"},
+				.help = "Focus direction for Up and Down keys",
+			},
+			MENU_EOL
+		},
+
 	},
 #ifdef CONFIG_MOVIE_AF
 	{
@@ -1329,7 +1362,7 @@ int handle_follow_focus(struct event * event)
 {
 	if (is_follow_focus_active())
 	{
-		if (follow_focus == 1) // arrows
+		if (get_follow_focus_mode() == 0) // arrows
 		{
 			switch(event->param)
 			{

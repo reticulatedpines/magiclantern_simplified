@@ -69,7 +69,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 	
 	if (remote_shot_flag) goto end;
 
-	if (lv && lens_info.job_state == 0 && lcd_release_running == 0 && is_follow_focus_active()==2) // FF on LCD sensor
+	if (lv && lens_info.job_state == 0 && lcd_release_running == 0 && is_follow_focus_active() && get_follow_focus_mode()==1) // FF on LCD sensor
 	{
 		if (on)
 		{
@@ -115,7 +115,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 
 void lcd_release_step() // to be called from shoot_task
 {
-	if (lcd_sensor_shortcuts && (lv || PLAY_MODE) && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
+	if ((lcd_sensor_shortcuts || get_follow_focus_mode()==1) && (lv || PLAY_MODE) && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
 	{
 		fake_simple_button(MLEV_LCD_SENSOR_START); // look at this***
 		msleep(500);
@@ -167,7 +167,7 @@ void display_lcd_remote_icon(int x0, int y0)
 			x0++;
 		}
 	}
-	else if (lcd_release_running == 0 && is_follow_focus_active()==2 && lv)
+	else if (lcd_release_running == 0 && is_follow_focus_active() && get_follow_focus_mode()==1 && lv)
 	{
 		bmp_printf(FONT_MED, x0-10, y0, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "-" : "+");
 		bmp_printf(FONT_LARGE, 650, 50, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "-" : "+");

@@ -92,7 +92,8 @@ static CONFIG_INT( "zebra.mode",	zebra_mode,	1 );// luma/rgb
 static CONFIG_INT( "zebra.level.hi",	zebra_level_hi,	95 );
 static CONFIG_INT( "zebra.level.lo",	zebra_level_lo,	5 );
        CONFIG_INT( "zebra.rec",	zebra_rec,	1 );
-static CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
+static CONFIG_INT( "crop.enable",	crop_enabled,	0 ); // index of crop file
+static CONFIG_INT( "crop.index",	crop_index,	0 ); // index of crop file
        CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
@@ -1349,21 +1350,18 @@ static void reload_cropmark(int i)
 		cropmarks = 0;
 	}
 	
-	i = COERCE(i, 0, num_cropmarks);
-	if (i)
-	{
-		char bmpname[100];
-		snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i-1]);
-		cropmarks = bmp_load(bmpname,1);
-		if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
-	}
+	i = COERCE(i, 0, num_cropmarks-1);
+	char bmpname[100];
+	snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i]);
+	cropmarks = bmp_load(bmpname,1);
+	if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 }
 
 static void
 crop_toggle( void* priv, int sign )
 {
-	crop_draw = mod(crop_draw + sign, num_cropmarks + 1);  // 0 = off, 1..num_cropmarks = cropmarks
-	reload_cropmark(crop_draw);
+	crop_index = mod(crop_index + sign, num_cropmarks);
+	reload_cropmark(crop_index);
 	crop_set_dirty(10);
 }
 
@@ -1394,6 +1392,25 @@ zebra_toggle( void* priv, int sign )
 	menu_ternary_toggle(priv, -sign);
 }
 
+static char* falsecolor_palette_name()
+{
+	return
+		falsecolor_palette == 0 ? "Marshall" :
+		falsecolor_palette == 1 ? "SmallHD" :
+		falsecolor_palette == 2 ? "50-55%" :
+		falsecolor_palette == 3 ? "67-72%" :
+		falsecolor_palette == 4 ? "Banding detection" :
+		falsecolor_palette == 5 ? "GreenScreen" : "Unk";
+}
+
+static void falsecolor_palette_preview(int x, int y)
+{
+	for (int i = 0; i < 256; i++)
+	{
+		draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height, false_colour[falsecolor_palette][i]);
+	}
+}
+
 static void
 falsecolor_display( void * priv, int x, int y, int selected )
 {
@@ -1401,22 +1418,22 @@ falsecolor_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"False Color : %s",
-		falsecolor_draw ? (
-			falsecolor_palette == 0 ? "Marshal" :
-			falsecolor_palette == 1 ? "SmallHD" :
-			falsecolor_palette == 2 ? "50-55%" :
-			falsecolor_palette == 3 ? "67-72%" :
-			falsecolor_palette == 4 ? "Banding" :
-			falsecolor_palette == 5 ? "GreenSc" : "Unk"
-			)
-		: "OFF"
+		falsecolor_draw ? falsecolor_palette_name() : "OFF"
 	);
-	int i;
-	for (i = 0; i < 256; i++)
-	{
-		draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
-	}
+	falsecolor_palette_preview(x, y);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
+}
+
+static void
+falsecolor_display_palette( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Palette : %s",
+		falsecolor_palette_name()
+	);
+	falsecolor_palette_preview(x - 420, y + font_large.height + 10);
 }
 
 static void
@@ -1477,21 +1494,39 @@ static void
 crop_display( void * priv, int x, int y, int selected )
 {
 	//~ extern int retry_count;
-	int index = crop_draw;
+	int index = crop_index;
+	index = COERCE(index, 0, num_cropmarks-1);
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Cropmarks   : %s",
+		 crop_enabled  ? cropmark_names[index] : "OFF"
+	);
+	if (crop_enabled && cropmark_movieonly && !is_movie_mode())
+		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
+}
+
+static void
+crop_display_submenu( void * priv, int x, int y, int selected )
+{
+	//~ extern int retry_count;
+	int index = crop_index;
 	index = COERCE(index, 0, num_cropmarks);
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Cropmarks   : %s (%d/%d)",
-		 index  ? cropmark_names[index-1] : "OFF",
-		 index, num_cropmarks
+		"Bitmap (%d/%d)  : %s",
+		 index+1, num_cropmarks,
+		 cropmark_names[index]
 	);
-	//~ int h = font_large.height;
-	//~ int w = h * 720 / 480;
-	//~ bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
-	if (index && cropmark_movieonly && !is_movie_mode())
-		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
-	menu_draw_icon(x, y, MNI_BOOL_GDR(index));
+	int h = 150;
+	int w = h * 720 / 480;
+	int xc = x + 150;
+	int yc = y + font_large.height * 2 + 10;
+	reload_cropmark(crop_index);
+	bmp_fill(0, xc, yc, w, h);
+	bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0, 0);
+	bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
 }
 
 /*
@@ -2167,6 +2202,7 @@ struct menu_entry zebra_menus[] = {
 				.max = 1,
 				.choices = (const char *[]) {"Hide", "Show"},
 				.help = "You can hide zebras when recording.",
+				.icon_type = IT_DISABLE_SOME_FEATURE_NEG,
 			},
 			MENU_EOL
 		},
@@ -2256,13 +2292,19 @@ struct menu_entry zebra_menus[] = {
 	},
 	{
 		.name = "Cropmarks",
-		.priv = &crop_draw,
+		.priv = &crop_enabled,
 		.display	= crop_display,
-		.select		= crop_toggle,
+		.select		= menu_binary_toggle,
 		.help = "Cropmarks or custom grids for framing. Draw them in Paint.",
 		.essential = FOR_MOVIE,
-		.show_liveview = 1,
 		.children =  (struct menu_entry[]) {
+			{
+				.name = "Bitmap",
+				.priv = &crop_index, 
+				.select = crop_toggle,
+				.display	= crop_display_submenu,
+				.icon_type = IT_ALWAYS_ON,
+			},
 			{
 				.name = "Show in",
 				.priv = &cropmark_movieonly, 
@@ -2313,9 +2355,19 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
 		.select		= menu_binary_toggle,
-		.select_auto = falsecolor_palette_toggle,
 		.help = "Shows brightness level as color-coded. [Q]: change palette.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Palette",
+				.priv = &falsecolor_palette, 
+				.max = COUNT(false_colour)-1,
+				.icon_type = IT_DICE,
+				.display = falsecolor_display_palette,
+				.help = "Each brightness level has a color coding.",
+			},
+			MENU_EOL
+		}
 	},
 	{
 		.name = "Histo/Wavefm",
@@ -2476,8 +2528,11 @@ cropmark_draw()
 		show_overlay();
 		zoom_overlay_dirty = 1;
 	}
+	crop_dirty = 0;
+
+	if (!crop_enabled) return;
 	if (cropmark_movieonly && !is_movie_mode() && !PLAY_MODE) return;
-	reload_cropmark(crop_draw); // reloads only when changed
+	reload_cropmark(crop_index); // reloads only when changed
 	if (cropmarks) 
 	{
 		clrscr_mirror();
@@ -3685,7 +3740,7 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
 }*/
 
 int unused = 0;
-unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_enabled, &transparent_overlay, &electronic_level, &defish_preview};
+unsigned int * disp_mode_params[] = {&crop_enabled, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_enabled, &transparent_overlay, &electronic_level, &defish_preview};
 int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            3,                     2,                    1,                 1};
 
 void update_disp_mode_bits_from_params()

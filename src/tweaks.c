@@ -476,7 +476,6 @@ af_frame_autohide_display(
 		"AF frame display    : %s", 
 		af_frame_autohide ? "AutoHide" : "Show"
 	);
-	menu_draw_icon(x, y, MNI_BOOL_LV(af_frame_autohide));
 }
 
 int afframe_countdown = 0;
@@ -1259,7 +1258,8 @@ struct menu_entry tweak_menus[] = {
 		.priv = &af_frame_autohide, 
 		.select = menu_binary_toggle,
 		.display = af_frame_autohide_display,
-		.help = "You can hide the AF frame (the little white rectangle)."
+		.help = "You can hide the AF frame (the little white rectangle).",
+		.icon_type = IT_DISABLE_SOME_FEATURE,
 	},
 	#if defined(CONFIG_550D) || defined(CONFIG_500D)
 	{
@@ -1468,7 +1468,8 @@ static struct menu_entry display_menus[] = {
 		.priv = &display_dont_mirror,
 		.display = display_dont_mirror_display, 
 		.select = menu_binary_toggle,
-		.help = "Prevents display mirroring, which may reverse ML texts."
+		.help = "Prevents display mirroring, which may reverse ML texts.",
+		.icon_type = IT_DISABLE_SOME_FEATURE,
 	},
 #endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
@@ -1533,6 +1534,7 @@ struct menu_entry play_menus[] = {
 		.display = qrplay_display,
 		.help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
 		.essential = FOR_PLAYBACK,
+		.icon_type = IT_REPLACE_SOME_FEATURE,
 	},
 	{
 		.name = "Zoom in PLAY mode",

@@ -176,7 +176,6 @@ static void entry_draw_icon(
 		if(entry->choices)
 		{
 			char* first_choice = entry->choices[0];
-			char* current_choice = entry->choices[MEM(entry->priv)];
 			if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
 				entry->icon_type = IT_BOOL;
 			else if (streq(first_choice, "ON"))
@@ -190,6 +189,8 @@ static void entry_draw_icon(
 		{
 			entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL : IT_PERCENT;
 		}
+		else
+			entry->icon_type = IT_BOOL;
 	}
 	
 	switch (entry->icon_type)
@@ -225,6 +226,15 @@ static void entry_draw_icon(
 		case IT_NAMED_COLOR:
 			menu_draw_icon(x, y, MNI_NAMED_COLOR, entry->choices[MEM(entry->priv)]);
 			break;
+		
+		case IT_DISABLE_SOME_FEATURE:
+			menu_draw_icon(x, y, MEM(entry->priv) ? MNI_DISABLE : MNI_NEUTRAL, 0);
+
+		case IT_DISABLE_SOME_FEATURE_NEG:
+			menu_draw_icon(x, y, MEM(entry->priv) ? MNI_NEUTRAL : MNI_DISABLE, 0);
+
+		case IT_REPLACE_SOME_FEATURE:
+			menu_draw_icon(x, y, MEM(entry->priv) ? MNI_ON : MNI_NEUTRAL, 0);
 	}
 }
 
@@ -326,6 +336,10 @@ menu_add(
 )
 {
 #if 1
+	// There is nothing to display. Sounds crazy (but might result from ifdef's)
+	if ( count == 0 )
+		return;
+
 	// Walk the menu list to find a menu
 	struct menu *		menu = menu_find_by_name( name, 0);
 	if( !menu )
@@ -414,6 +428,20 @@ static void batsu(int x, int y)
 	{
 		draw_line(x + 5 + i, y + 5, x + 22 + i, y + 22, COLOR_RED);
 		draw_line(x + 22 + i, y + 5, x + 5 + i, y + 22, COLOR_RED);
+	}
+}
+
+static void crossout(int x, int y, int color)
+{
+	x += 16;
+	y += 16;
+	int r;
+	for (r = 9; r < 10; r++)
+	{
+		int i = r-9;
+		draw_circle(x,     y, r, color);
+		draw_circle(x + 1, y, r, color);
+		draw_line(x + 5 + i, y - 5, x - 5 + i, y + 5, color);
 	}
 }
 
@@ -512,12 +540,12 @@ void dice_icon(int x, int y, int current, int nmax)
 			dot(x - 8, y + 8, C(4));
 			break;
 		case 6:
-			dot(x - 10, y - 10, C(0));
-			dot(x     , y - 10, C(1));
-			dot(x + 10, y - 10, C(2));
-			dot(x - 10, y + 10, C(3));
-			dot(x     , y + 10, C(4));
-			dot(x + 10, y + 10, C(5));
+			dot(x - 10, y - 8, C(0));
+			dot(x     , y - 8, C(1));
+			dot(x + 10, y - 8, C(2));
+			dot(x - 10, y + 8, C(3));
+			dot(x     , y + 8, C(4));
+			dot(x + 10, y + 8, C(5));
 			break;
 		case 7:
 			dot(x - 10, y - 10, C(0));
@@ -561,7 +589,7 @@ void color_icon(int x, int y, char* color)
 	if (streq(color, "Red"))
 		maru(x, y, COLOR_RED);
 	else if (streq(color, "Green"))
-		maru(x, y, COLOR_GREEN1);
+		maru(x, y, COLOR_GREEN2);
 	else if (streq(color, "Blue"))
 		maru(x, y, COLOR_LIGHTBLUE);
 	else if (streq(color, "Cyan"))
@@ -582,6 +610,10 @@ void color_icon(int x, int y, char* color)
 		dot(x - 7, y + 3, COLOR_GREEN2, 5);
 		dot(x + 7, y + 3, COLOR_LIGHTBLUE, 5);
 	}
+	else if (streq(color, "ON"))
+		maru(x, y, COLOR_GREEN1);
+	else if (streq(color, "OFF"))
+		batsu(x, y);
 	else
 	{
 		dot(x,     y - 7, COLOR_CYAN, 5);
@@ -609,6 +641,8 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 	{
 		case MNI_OFF: batsu(x, y); return;
 		case MNI_ON: maru(x, y, COLOR_GREEN1); return;
+		case MNI_DISABLE: crossout(x, y, COLOR_RED); return;
+		case MNI_NEUTRAL: maru(x, y, 60); return;
 		case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
 		case MNI_AUTO: maru(x, y, 9); return;
 		case MNI_PERCENT: percent(x, y, arg); return;
@@ -663,7 +697,7 @@ menu_display(
 			// this should be after menu->display, in order to allow it to override the icon
 			if (menu->priv && !show_only_selected)
 			{
-				menu_draw_icon(x, y, MNI_BOOL(*(int*)menu->priv), 0);
+				entry_draw_icon(menu, x, y);
 			}
 			
 			if (menu->children && !show_only_selected)
@@ -837,8 +871,8 @@ menu_entry_select(
 	{
 		if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
 		else if( entry->select_auto ) entry->select_auto( entry->priv, 1);
-		else if (entry->select) entry->select( entry->priv, 1);
-		else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+		//~ else if (entry->select) entry->select( entry->priv, 1);
+		//~ else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
 	}
 	else 
 	{
