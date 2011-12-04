@@ -22,6 +22,8 @@ int fonts_done = 0;
 
 static void load_fonts(void* unused)
 {
+	msleep(500);
+	
 	// if something goes wrong, you will see chinese fonts :)
 	int size;
 	
