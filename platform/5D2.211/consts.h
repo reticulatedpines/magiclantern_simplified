@@ -57,36 +57,39 @@
 // But for 5D2 we'll use the joystick instead of arrows
 // => S press_mlt_left => bgmt 0x820 => #define BGMT_PRESS_LEFT 0x1a or 0x1e (not sure, but in 50D it's 1a)
 
-#define BGMT_PRESS_LEFT 0x1a
-#define BGMT_PRESS_UP 0x16
-#define BGMT_PRESS_RIGHT 0x19
-#define BGMT_PRESS_DOWN 0x1d
-#define BGMT_PRESS_SET 0x4
-#define BGMT_UNPRESS_UDLR 0x15
-#define BGMT_UNPRESS_SET 0x15
-#define BGMT_TRASH 9
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+#define BGMT_PRESS_SET 4
 #define BGMT_MENU 5
 #define BGMT_DISP 6
 #define BGMT_PLAY 8
-#define BGMT_PRESS_HALFSHUTTER 0x1f
-#define BGMT_UNPRESS_HALFSHUTTER 0x20
-#define BGMT_PRESS_FULLSHUTTER 0x21
-#define BGMT_UNPRESS_FULLSHUTTER 0x22
+#define BGMT_TRASH 9
+
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xA
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_PICSTYLE 0x13
-//~ #define BGMT_FUNC 0x12
-#define BGMT_JOY_CENTER 0x1e
-#define BGMT_LV 0xE
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
 
+#define BGMT_LV 0xE
 #define BGMT_Q 0xE
 #define BGMT_Q_ALT 0xE
+
+//~ #define BGMT_FUNC 0x12
+#define BGMT_PICSTYLE 0x13
+#define BGMT_JOY_CENTER 0x3b
+
+#define BGMT_PRESS_LEFT 0x1a
+#define BGMT_PRESS_UP 0x16
+#define BGMT_PRESS_RIGHT 0x19
+#define BGMT_PRESS_DOWN 0x1d
+#define BGMT_UNPRESS_UDLR 0x15
+#define BGMT_UNPRESS_SET 0x15
+#define BGMT_PRESS_HALFSHUTTER 0x1f
+#define BGMT_UNPRESS_HALFSHUTTER 0x20
+#define BGMT_PRESS_FULLSHUTTER 0x21
+#define BGMT_UNPRESS_FULLSHUTTER 0x22
 
 #define BGMT_FLASH_MOVIE 0
 #define BGMT_PRESS_FLASH_MOVIE 0

@@ -39,6 +39,13 @@ static int handle_buttons(struct event * event)
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
+	// camera-specific:
+	if (event->param == BGMT_DISP && ISO_ADJUSTMENT_ACTIVE && gui_state == GUISTATE_IDLE)
+	{
+		toggle_disp_mode();
+		return 0;
+	}
+
 	return 1;
 }
 
