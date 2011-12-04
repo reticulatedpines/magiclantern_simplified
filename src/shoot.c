@@ -3189,7 +3189,7 @@ static struct menu_entry shoot_menus[] = {
 			{
 				.name = "Frames",
 				.priv		= &hdr_steps,
-				.min = 1,
+				.min = 2,
 				.max = 9,
 				.help = "Number of bracketed frames.",
 			},
@@ -3217,10 +3217,10 @@ static struct menu_entry shoot_menus[] = {
 				.choices = (const char *[]) {"OFF", "Auto"},
 			},
 			{
-				.name = "ISO 100/6400 ",
+				.name = "ISO shifting",
 				.priv		= &hdr_iso,
 				.max = 1,
-				.help = "Maximize DR for a fixed Tv+Av. Takes 2 pics for each frame.",
+				.help = "Adjust ISO instead of shutter whenever possible.",
 				.choices = (const char *[]) {"OFF", "ON (M only)"},
 			},
 			MENU_EOL
@@ -3630,7 +3630,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 
 	int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
 	int dont_change_exposure = ev_x8 == 0 && !hdr_enabled && !bulb_ramping_enabled;
-	
+
 	if (dont_change_exposure)
 	{
 		take_a_pic(allow_af);
@@ -3644,6 +3644,23 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 	}
 	else // manual mode or bulb
 	{
+		int iso0 = lens_info.raw_iso;
+
+		if (hdr_iso) // dynamic range optimization
+		{
+			if (ev_x8 < 0)
+			{
+				int iso_delta = MIN(iso0 - 72, -ev_x8)/8*8; // lower ISO, down to ISO 100
+				ev_x8 += iso_delta;
+				lens_set_rawiso(iso0 - iso_delta);
+			}
+			else if (ev_x8 > 0)
+			{
+				int iso_delta = MIN(120 - iso0, ev_x8)/8*8; // raise ISO, up to ISO 6400
+				ev_x8 -= iso_delta;
+				lens_set_rawiso(iso0 + iso_delta);
+			}
+		}
 
 		//~ if (lens_info.raw_iso == 0) // it's set on auto ISO
 			//~ iso_auto_quick(); // => lock the ISO here, otherwise it won't bracket
@@ -3679,6 +3696,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 		//~ set_shooting_mode(m0r);
 		prop_request_change( PROP_SHUTTER, &s0r, 4 );
 		prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
+		lens_set_rawiso(iso0);
 	}
 	msleep(100);
 	lens_wait_readytotakepic(64);
@@ -3745,7 +3763,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 	hdr_check_cancel(1);
 	
 	// first exposure is always at 0 EV (and might be skipped)
-	if (!skip0 || hdr_iso) hdr_iso_brack_or_shutter_release(skip0, 0, 0);
+	if (!skip0) hdr_shutter_release(0, 0);
 	if (hdr_check_cancel(0)) return;
 	
 	switch (hdr_sequence)
@@ -3754,12 +3772,12 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			for( i = 1; i <= steps/2; i ++  )
 			{
-				hdr_iso_brack_or_shutter_release(0, -step_size * i, 0);
+				hdr_shutter_release(-step_size * i, 0);
 				if (hdr_check_cancel(0)) return;
 
 				if (steps == 2) break;
 				
-				hdr_iso_brack_or_shutter_release(0, step_size * i, 0);
+				hdr_shutter_release(step_size * i, 0);
 				if (hdr_check_cancel(0)) return;
 			}
 			break;
@@ -3769,7 +3787,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			for( i = 1; i < steps; i ++  )
 			{
-				hdr_iso_brack_or_shutter_release(0, step_size * i * (hdr_sequence == 1 ? 1 : -1), 0);
+				hdr_shutter_release(step_size * i * (hdr_sequence == 1 ? 1 : -1), 0);
 				if (hdr_check_cancel(0)) return;
 			}
 			break;
