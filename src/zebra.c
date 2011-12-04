@@ -68,8 +68,8 @@ void bmp_flip();
 #define hist_width			128
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
-#define WAVEFORM_FACTOR (1 << (waveform_draw - 1)) // 1, 2 or 4
-#define WAVEFORM_OFFSET (waveform_draw <= 2 ? 60 : 0)
+#define WAVEFORM_FACTOR (1 << waveform_size) // 1, 2 or 4
+#define WAVEFORM_OFFSET (waveform_size <= 1 ? 60 : 0)
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
@@ -88,7 +88,7 @@ int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw", 	global_draw, 1 );
 static CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
-static CONFIG_INT( "zebra.mode",	zebra_mode,	1 );// luma/rgb
+static CONFIG_INT( "zebra.mode",	zebra_colorspace,	1 );// luma/rgb
 static CONFIG_INT( "zebra.level.hi",	zebra_level_hi,	95 );
 static CONFIG_INT( "zebra.level.lo",	zebra_level_lo,	5 );
        CONFIG_INT( "zebra.rec",	zebra_rec,	1 );
@@ -145,9 +145,11 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 
 //~ static CONFIG_INT( "edge.draw",	edge_draw,	0 );
 static CONFIG_INT( "hist.draw",	hist_draw,	0 );
+static CONFIG_INT( "hist.colorspace",	hist_colorspace,	1 );
 //~ static CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 //~ static CONFIG_INT( "hist.y",		hist_y,		100 );
 static CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
+static CONFIG_INT( "waveform.size",	waveform_size,	0 );
 //~ static CONFIG_INT( "waveform.x",	waveform_x,	720 - WAVEFORM_WIDTH );
 //~ static CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
 static CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
@@ -341,7 +343,7 @@ hist_build()
 			uint32_t p2 = (pixel >>  0) & 0xFF00;
 			int Y = ((p1+p2) / 2) >> 8;
 
-			if (hist_draw == 2)
+			if (hist_colorspace == 1) // rgb
 			{
 				int8_t U = (pixel >>  0) & 0xFF;
 				int8_t V = (pixel >> 16) & 0xFF;
@@ -502,7 +504,7 @@ hist_draw_image(
 				int hilight = ABS(i-highlight_level) <= 1;
 				*col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
 			}
-			else if (hist_draw == 2) // RGB
+			else if (hist_colorspace == 1) // RGB
 				*col = hist_rgb_color(y, sizeR, sizeG, sizeB);
 			else
 				*col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
@@ -1102,7 +1104,7 @@ draw_zebra_and_focus( int Z, int F )
 				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
 				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
 				
-				if (zebra_mode == 1) // rgb
+				if (zebra_colorspace == 1) // rgb
 				{
 					uint32_t pixel = *lvp;
 					uint32_t p1 = (pixel >> 24) & 0xFF;
@@ -1380,7 +1382,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
 			"Zebras      : %s, %d..%d%%",
-			zebra_mode ? "RGB" : "Luma",
+			zebra_colorspace ? "RGB" : "Luma",
 			zebra_level_lo, zebra_level_hi
 		);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
@@ -1505,6 +1507,7 @@ crop_display( void * priv, int x, int y, int selected )
 	);
 	if (crop_enabled && cropmark_movieonly && !is_movie_mode())
 		menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
+	menu_draw_icon(x, y, MNI_BOOL_GDR(crop_enabled));
 }
 
 static void
@@ -1554,7 +1557,7 @@ edge_display( void * priv, int x, int y, int selected )
 	);
 }*/
 
-static void
+/*static void
 hist_display( void * priv, int x, int y, int selected )
 {
 	bmp_printf(
@@ -1567,7 +1570,35 @@ hist_display( void * priv, int x, int y, int selected )
 	);
 	//~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw));
+}*/
+
+static void
+hist_print( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Histogram   : %s",
+		hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB"
+	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
 }
+
+static void
+waveform_print( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Waveform    : %s",
+		waveform_draw == 0 ? "OFF" : 
+		waveform_size == 0 ? "Small" : 
+		waveform_size == 1 ? "Large" : 
+		waveform_size == 2 ? "FullScreen" : "err"
+	);
+	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(waveform_draw));
+}
+
 
 static void
 global_draw_display( void * priv, int x, int y, int selected )
@@ -1592,11 +1623,6 @@ waveform_display( void * priv, int x, int y, int selected )
 		*(unsigned*) priv ? "ON " : "OFF"
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
-}
-static void 
-waveform_toggle(void* priv)
-{
-	waveform_draw = mod(waveform_draw+1, 4);
 }
 
 
@@ -2176,8 +2202,8 @@ struct menu_entry zebra_menus[] = {
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
 			{
-				.name = "Mode",
-				.priv = &zebra_mode, 
+				.name = "Color space",
+				.priv = &zebra_colorspace, 
 				.max = 1,
 				.choices = (const char *[]) {"Luma", "RGB"},
 				.icon_type = IT_NAMED_COLOR,
@@ -2311,7 +2337,7 @@ struct menu_entry zebra_menus[] = {
 				.name = "Show in",
 				.priv = &cropmark_movieonly, 
 				.max = 1,
-				.choices = (const char *[]) {"Movie&Photo", "Movie mode"},
+				.choices = (const char *[]) {"Movie&Photo", "Movie only"},
 			},
 			MENU_EOL
 		},
@@ -2371,7 +2397,7 @@ struct menu_entry zebra_menus[] = {
 			MENU_EOL
 		}
 	},
-	{
+/*	{
 		.name = "Histo/Wavefm",
 		.priv		= &hist_draw,
 		.select		= zebra_toggle,
@@ -2379,6 +2405,43 @@ struct menu_entry zebra_menus[] = {
 		.display	= hist_display,
 		.help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+	},
+	*/
+	{
+		.name = "Histogram",
+		.priv		= &hist_draw,
+		.max = 1,
+		.display = hist_print,
+		.help = "Histogram for checking the exposure.",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Color space",
+				.priv = &hist_colorspace, 
+				.max = 1,
+				.choices = (const char *[]) {"Luma", "RGB"},
+				.icon_type = IT_NAMED_COLOR,
+				.help = "Color space for histogram: Luma channel (YUV) / RGB.",
+			},
+			MENU_EOL
+		},
+	},
+	{
+		.name = "Waveform",
+		.priv		= &waveform_draw,
+		.display = waveform_print,
+		.max = 1,
+		.help = "Waveform monitor for checking the exposure.",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Size",
+				.priv = &waveform_size, 
+				.max = 2,
+				.choices = (const char *[]) {"Small", "Large", "FullScreen"},
+				.icon_type = IT_SIZE,
+				.help = "Waveform size: Small / Large / FullScreen.",
+			},
+			MENU_EOL
+		},
 	},
 	#ifdef CONFIG_60D
 	{
