@@ -3220,7 +3220,7 @@ static struct menu_entry shoot_menus[] = {
 				.name = "ISO shifting",
 				.priv		= &hdr_iso,
 				.max = 1,
-				.help = "Adjust ISO instead of shutter whenever possible.",
+				.help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
 				.choices = (const char *[]) {"OFF", "ON (M only)"},
 			},
 			MENU_EOL
@@ -3656,7 +3656,9 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 			}
 			else if (ev_x8 > 0)
 			{
-				int iso_delta = MIN(120 - iso0, ev_x8)/8*8; // raise ISO, up to ISO 6400
+				int max_auto_iso = auto_iso_range & 0xFF;
+				int iso_delta = MIN(max_auto_iso - iso0, ev_x8)/8*8; // raise ISO, up to ISO 6400
+				if (iso_delta < 0) iso_delta = 0;
 				ev_x8 -= iso_delta;
 				lens_set_rawiso(iso0 + iso_delta);
 			}
