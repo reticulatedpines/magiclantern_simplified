@@ -36,8 +36,8 @@ void display_shooting_info() // called from debug task
 	bg = bmp_getpixel(15, 430);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
-	extern int hdr_steps, hdr_stepsize;
-	if (hdr_steps > 1)
+	extern int hdr_steps, hdr_stepsize, hdr_enabled;
+	if (hdr_enabled)
 		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
 	else
 		bmp_printf(fnt, 380, 450, "           ");

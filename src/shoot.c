@@ -60,6 +60,7 @@ CONFIG_INT("hdr.frames", hdr_steps, 3);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
 CONFIG_INT("hdr.delay", hdr_delay, 1);
 CONFIG_INT("hdr.sequence", hdr_sequence, 0);
+CONFIG_INT("hdr.iso", hdr_iso, 0);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
@@ -2518,6 +2519,8 @@ hdr_reset( void * priv )
 
 int is_bulb_mode()
 {
+	//~ bmp_printf(FONT_LARGE, 0, 0, "%d %d %d %d ", bulb_ramping_enabled, intervalometer_running, shooting_mode, lens_info.raw_shutter);
+	msleep(0); // what the duck?!
 	if (bulb_ramping_enabled && intervalometer_running) return 1; // this will force bulb mode when needed
 	if (shooting_mode == SHOOTMODE_BULB) return 1;
 	if (shooting_mode != SHOOTMODE_M) return 0;
@@ -3186,7 +3189,7 @@ static struct menu_entry shoot_menus[] = {
 			{
 				.name = "Frames",
 				.priv		= &hdr_steps,
-				.min = 2,
+				.min = 1,
 				.max = 9,
 				.help = "Number of bracketed frames.",
 			},
@@ -3196,7 +3199,7 @@ static struct menu_entry shoot_menus[] = {
 				.select		= hdr_stepsize_toggle,
 				.max = 40,
 				.unit = UNIT_1_8_EV,
-				.help = "Exposure difference between two frames",
+				.help = "Exposure difference between two frames.",
 			},
 			{
 				.name = "Sequence",
@@ -3210,8 +3213,15 @@ static struct menu_entry shoot_menus[] = {
 				.name = "2-second delay",
 				.priv		= &hdr_delay,
 				.max = 1,
-				.help = "Delay before starting the exposure",
+				.help = "Delay before starting the exposure.",
 				.choices = (const char *[]) {"OFF", "Auto"},
+			},
+			{
+				.name = "ISO 100/6400 ",
+				.priv		= &hdr_iso,
+				.max = 1,
+				.help = "Maximize DR for a fixed Tv+Av. Takes 2 pics for each frame.",
+				.choices = (const char *[]) {"OFF", "ON (M only)"},
 			},
 			MENU_EOL
 		},
@@ -3236,7 +3246,7 @@ static struct menu_entry shoot_menus[] = {
 				.priv		= &bulb_ramping_enabled,
 				.select		= menu_binary_toggle,
 				.display	= bulb_ramping_display,
-				.help = "Automatic bulb ramping for day-to-night timelapse",
+				.help = "Automatic bulb ramping for day-to-night timelapse.",
 			},
 			{
 				.name = "Stop REC after",
@@ -3646,7 +3656,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 
 		int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
 		
-		//NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
+		//~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
 		// then choose the best option (bulb for long exposures, regular for short exposures)
 		if (msc >= 10000 || (bulb_ramping_enabled && msc > BULB_MIN_EXPOSURE))
@@ -3674,6 +3684,36 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 	msleep(100);
 }
 
+static void hdr_iso_brack_or_shutter_release(int skip0, int ev_x8, int allow_af)
+{
+	int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
+	if (hdr_enabled && hdr_iso && manual)
+	{
+		int iso0 = lens_info.raw_iso;
+		
+		// skip0: current ISO + 100 ISO + 6400 ISO
+		// if current ISO is 100 or 6400, skip that extra frame
+		
+		// non-skip0: was triggered from remote shot, take both frames
+		
+		if (!skip0 || iso0 != 72) // iso 100
+		{
+			lens_set_iso(100);
+			hdr_shutter_release(ev_x8, allow_af);
+		}
+
+		if (!skip0 || iso0 != 120) // iso 6400
+		{
+			lens_set_iso(6400);
+			hdr_shutter_release(ev_x8, allow_af);
+		}
+		
+		lens_set_rawiso(iso0);
+	}
+	else if (!skip0)
+		hdr_shutter_release(ev_x8, allow_af);
+}
+
 static int hdr_check_cancel(int init)
 {
 	static int m;
@@ -3697,14 +3737,15 @@ static int hdr_check_cancel(int init)
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
 	//~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
-	hdr_create_script(steps, skip0, 0);
+	hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0);
 	//~ NotifyBox(2000, "HDR script created"); msleep(2000);
 	int i;
 	
 	hdr_check_cancel(1);
 	
 	// first exposure is always at 0 EV (and might be skipped)
-	if (!skip0) hdr_shutter_release(0, 0);
+	if (!skip0 || hdr_iso) hdr_iso_brack_or_shutter_release(skip0, 0, 0);
+	if (hdr_check_cancel(0)) return;
 	
 	switch (hdr_sequence)
 	{
@@ -3712,12 +3753,12 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			for( i = 1; i <= steps/2; i ++  )
 			{
-				hdr_shutter_release(-step_size * i, 0);
+				hdr_iso_brack_or_shutter_release(0, -step_size * i, 0);
 				if (hdr_check_cancel(0)) return;
 
 				if (steps == 2) break;
 				
-				hdr_shutter_release(step_size * i, 0);
+				hdr_iso_brack_or_shutter_release(0, step_size * i, 0);
 				if (hdr_check_cancel(0)) return;
 			}
 			break;
@@ -3727,7 +3768,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			for( i = 1; i < steps; i ++  )
 			{
-				hdr_shutter_release(step_size * i * (hdr_sequence == 1 ? 1 : -1), 0);
+				hdr_iso_brack_or_shutter_release(0, step_size * i * (hdr_sequence == 1 ? 1 : -1), 0);
 				if (hdr_check_cancel(0)) return;
 			}
 			break;
