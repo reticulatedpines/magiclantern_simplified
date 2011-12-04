@@ -52,6 +52,7 @@ struct menu_entry
 	void *			priv;
 	int min;
 	int max;
+	int unit;
 	const char** choices;
 	void			(*select)(
 		void *			priv,
@@ -91,6 +92,11 @@ struct menu_entry
 #define IT_DISABLE_SOME_FEATURE 9
 #define IT_DISABLE_SOME_FEATURE_NEG 10
 #define IT_REPLACE_SOME_FEATURE 11
+
+#define UNIT_1_8_EV 1
+#define UNIT_x10 2
+#define UNIT_PERCENT 3
+#define UNIT_PERCENT_x10 4
 
 // these can be combined with OR
 #define FOR_MOVIE 1

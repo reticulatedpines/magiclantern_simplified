@@ -262,7 +262,31 @@ submenu_print(
 	}
 	else
 	{
-		STR_APPEND(msg, ": %d", MEM(entry->priv));
+		switch (entry->unit)
+		{
+			case UNIT_1_8_EV:
+			case UNIT_x10:
+			case UNIT_PERCENT_x10:
+			{
+				int v = MEM(entry->priv);
+				int den = entry->unit == UNIT_1_8_EV ? 8 : 10;
+				STR_APPEND(msg, ":%s%d.%d%s", v < 0 ? "-" : " ", ABS(v)/den, (ABS(v)%den)*10/den,
+					entry->unit == UNIT_1_8_EV ? " EV" :
+					entry->unit == UNIT_PERCENT_x10 ? "%%" : ""
+				);
+				break;
+			}
+			case UNIT_PERCENT:
+			{
+				STR_APPEND(msg, ": %d%%", MEM(entry->priv));
+				break;
+			}
+			default:
+			{
+				STR_APPEND(msg, ": %d", MEM(entry->priv));
+				break;
+			}
+		}
 	}
 	bmp_printf(
 		entry->selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1302,6 +1326,7 @@ menu_handler(
 #endif
 #ifdef CONFIG_5D2
 	case PRESS_PICTURE_STYLE_BUTTON:
+	case JOY_CENTER:
 #endif
 		if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
 		menu_entry_select( menu, 2 ); // auto setting select

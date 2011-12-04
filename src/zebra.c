@@ -2228,6 +2228,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &focus_peaking_pthr,
 				.select = focus_peaking_adjust_thr,
 				.help = "How many pixels are considered in focus (percentage).",
+				.unit = UNIT_PERCENT_x10
 			},
 			{
 				.name = "Color", 

@@ -55,8 +55,11 @@ bool display_idle()
 
 volatile int bulb_shutter_value = 0;
 
-CONFIG_INT("hdr.steps", hdr_steps, 1);
-CONFIG_INT("hdr.stepsize", hdr_stepsize, 8);
+CONFIG_INT("hdr.enabled", hdr_enabled, 1);
+CONFIG_INT("hdr.frames", hdr_steps, 3);
+CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
+CONFIG_INT("hdr.delay", hdr_delay, 1);
+CONFIG_INT("hdr.sequence", hdr_sequence, 0);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
@@ -104,7 +107,7 @@ PROP_HANDLER(PROP_GUI_STATE)
 {
 	int gui_state = buf[0];
 
-	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom && !intervalometer_running && hdr_steps == 1)
+	if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom && !intervalometer_running && !hdr_enabled)
 	{
 		fake_simple_button(BGMT_PLAY);
 	}
@@ -397,7 +400,7 @@ void halfshutter_action(int v)
 
 	// avoid camera shake for HDR shots => force self timer
 	static int drive_mode_bk = -1;
-	if (v == 1 && (hdr_steps > 1 || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+	if (v == 1 && ((hdr_enabled && hdr_delay) || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
 	{
 		drive_mode_bk = drive_mode;
 		lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
@@ -425,7 +428,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 		menu_stop();
 	}*/
 	zoom_sharpen_step();
-	//~ if (hdr_steps > 1) halfshutter_action(v);
+	//~ if (hdr_enabled) halfshutter_action(v);
 	
 	return prop_cleanup( token, property );
 }
@@ -440,7 +443,7 @@ int handle_shutter_events(struct event * event)
 {
 	return 1;
 #if 0 // not reliable
-	if (hdr_steps > 1)
+	if (hdr_enabled)
 	{
 		switch(event->param)
 		{
@@ -2473,7 +2476,7 @@ void zoom_sharpen_step()
 static void 
 hdr_display( void * priv, int x, int y, int selected )
 {
-	if (hdr_steps == 1)
+	if (!hdr_enabled)
 	{
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
@@ -2492,20 +2495,18 @@ hdr_display( void * priv, int x, int y, int selected )
 			((hdr_stepsize/4) % 2) ? ".5" : ""
 		);
 	}
-	menu_draw_icon(x, y, MNI_BOOL(hdr_steps != 1), 0);
 }
 
+// 0,4,8,12,16, 24, 32, 40
 static void
-hdr_steps_toggle( void * priv )
+hdr_stepsize_toggle( void * priv, int delta )
 {
-	hdr_steps = mod(hdr_steps + (hdr_steps <= 2 ? 0 : 1), 10) + 1;
-}
-
-static void
-hdr_stepsize_toggle( void * priv )
-{
-	hdr_stepsize = (hdr_stepsize < 8) ? MAX(hdr_stepsize * 2, 4) : (hdr_stepsize/8)*8 + 8;
-	if (hdr_stepsize > 40) hdr_stepsize = 0;
+	int h = hdr_stepsize;
+	delta *= (h+delta < 16 ? 4 : 8);
+	h += delta;
+	if (h > 40) h = 0;
+	if (h < 0) h = 40;
+	hdr_stepsize = h;
 }
 
 static void
@@ -3175,13 +3176,45 @@ bulb_ramping_display( void * priv, int x, int y, int selected )
 
 static struct menu_entry shoot_menus[] = {
 	{
-		.name = "HDR Bracket",
+		.name = "HDR Bracketing",
+		.priv = &hdr_enabled,
 		.display	= hdr_display,
-		.select		= hdr_steps_toggle,
-		.select_reverse = hdr_stepsize_toggle,
-		.select_auto = hdr_reset,
+		.select		= menu_binary_toggle,
 		.help = "Exposure bracketing, useful for HDR images.",
 		.essential = FOR_PHOTO,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Frames",
+				.priv		= &hdr_steps,
+				.min = 2,
+				.max = 9,
+				.help = "Number of bracketed frames.",
+			},
+			{
+				.name = "EV increment",
+				.priv		= &hdr_stepsize,
+				.select		= hdr_stepsize_toggle,
+				.max = 40,
+				.unit = UNIT_1_8_EV,
+				.help = "Exposure difference between two frames",
+			},
+			{
+				.name = "Sequence",
+				.priv		= &hdr_sequence,
+				.max = 2,
+				.help = "Bracketing sequence order / type.",
+				.icon_type = IT_DICE,
+				.choices = (const char *[]) {"0 - + -- ++", "0 + ++", "0 - --"},
+			},
+			{
+				.name = "2-second delay",
+				.priv		= &hdr_delay,
+				.max = 1,
+				.help = "Delay before starting the exposure",
+				.choices = (const char *[]) {"OFF", "Auto"},
+			},
+			MENU_EOL
+		},
 	},
 	{
 		.name = "Intervalometer",
@@ -3585,7 +3618,13 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 	lens_wait_readytotakepic(64);
 
 	int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
-	if (!manual) // auto modes
+	int dont_change_exposure = ev_x8 == 0 && !hdr_enabled && !bulb_ramping_enabled;
+	
+	if (dont_change_exposure)
+	{
+		take_a_pic(allow_af);
+	}
+	else if (!manual) // auto modes
 	{
 		int ae0 = lens_get_ae();
 		lens_set_ae(ae0 + ev_x8);
@@ -3635,6 +3674,25 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 	msleep(100);
 }
 
+static int hdr_check_cancel(int init)
+{
+	static int m;
+	if (init)
+	{
+		m = shooting_mode;
+		return 0;
+	}
+
+	// cancel bracketing
+	if (shooting_mode != m || MENU_MODE) 
+	{ 
+		beep(); 
+		while (lens_info.job_state) msleep(100); 
+		return 1; 
+	}
+	return 0;
+}
+
 // skip0: don't take the middle exposure
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
@@ -3643,19 +3701,36 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 	//~ NotifyBox(2000, "HDR script created"); msleep(2000);
 	int i;
 	
-	int m = shooting_mode;
+	hdr_check_cancel(1);
 	
-	for( i = -steps/2; i <= steps/2; i ++  )
+	// first exposure is always at 0 EV (and might be skipped)
+	if (!skip0) hdr_shutter_release(0, 0);
+	
+	switch (hdr_sequence)
 	{
-		if (skip0 && (i == 0)) continue;
-		hdr_shutter_release(step_size * i, 0);
-		
-		// cancel bracketing
-		if (shooting_mode != m || MENU_MODE) 
-		{ 
-			beep(); 
-			while (lens_info.job_state) msleep(100); 
-			return; 
+		case 0: // 0 - + -- ++ 
+		{
+			for( i = 1; i <= steps/2; i ++  )
+			{
+				hdr_shutter_release(-step_size * i, 0);
+				if (hdr_check_cancel(0)) return;
+
+				if (steps == 2) break;
+				
+				hdr_shutter_release(step_size * i, 0);
+				if (hdr_check_cancel(0)) return;
+			}
+			break;
+		}
+		case 1: // 0 + ++
+		case 2: // 0 - --
+		{
+			for( i = 1; i < steps; i ++  )
+			{
+				hdr_shutter_release(step_size * i * (hdr_sequence == 1 ? 1 : -1), 0);
+				if (hdr_check_cancel(0)) return;
+			}
+			break;
 		}
 	}
 }
@@ -3729,7 +3804,7 @@ short_movie()
 void hdr_shot(int skip0, int wait)
 {
 	NotifyBoxHide();
-	if (hdr_steps > 1)
+	if (hdr_enabled)
 	{
 		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
 		int drive_mode_bak = 0;
@@ -3738,10 +3813,9 @@ void hdr_shot(int skip0, int wait)
 			drive_mode_bak = drive_mode;
 			lens_set_drivemode(DRIVE_CONTINUOUS);
 		}
-		if (hdr_steps == 2)
-			hdr_take_pics(hdr_steps, hdr_stepsize/2, 1);
-		else
-			hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
+
+		hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
+
 		while (lens_info.job_state >= 10) msleep(100);
 		if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
 	}
@@ -4002,7 +4076,7 @@ shoot_task( void* unused )
 			//~ if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
 			if (mlu_auto)
 			{
-				int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (hdr_steps < 2)) ? 1 : 0;
+				int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!hdr_enabled)) ? 1 : 0;
 				int mlu_current_value = get_mlu() ? 1 : 0;
 				if (mlu_auto_value != mlu_current_value && !is_movie_mode() && !lv)
 				{
@@ -4033,7 +4107,7 @@ shoot_task( void* unused )
 
 		// avoid camera shake for HDR shots => force self timer
 		static int drive_mode_bk = -1;
-		if ((hdr_steps > 1 || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+		if (((hdr_enabled && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
 		{
 			drive_mode_bk = drive_mode;
 			lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
@@ -4088,7 +4162,7 @@ shoot_task( void* unused )
 			lens_wait_readytotakepic(64);
 			//~ if (beep_enabled) beep();
 			if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
-			else if (hdr_steps > 1) hdr_shot(1,1); // skip the middle exposure, which was just taken
+			else if (hdr_enabled) hdr_shot(1,1); // skip the middle exposure, which was just taken
 			//~ if (beep_enabled) beep();
 			//~ hdr_intercept = 1;
 		}
@@ -4192,7 +4266,7 @@ shoot_task( void* unused )
 			if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
 				continue;
 			if (is_focus_stack_enabled()) focus_stack_run(0); // shoot all frames
-			else if (hdr_steps == 1) silent_pic_take(1);
+			else if (!hdr_enabled) silent_pic_take(1);
 			else 
 			{
 				NotifyBox(5000, "HDR silent picture...");
