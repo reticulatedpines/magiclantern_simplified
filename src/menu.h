@@ -48,11 +48,11 @@ struct menu_entry
 {
 	struct menu_entry *	next;
 	struct menu_entry *	prev;
-	int			selected;
+	uint8_t			selected;
 	void *			priv;
-	int min;
-	int max;
-	int unit;
+	int8_t min;
+	int8_t max;
+	int8_t unit;
 	const char** choices;
 	void			(*select)(
 		void *			priv,
@@ -72,9 +72,9 @@ struct menu_entry
 		int			y,
 		int			selected
 	);
-	int essential;
-	int icon_type;
-	int show_liveview;
+	int8_t essential;
+	int8_t icon_type;
+	int8_t show_liveview;
 	const char * help;
 	const char * name; // for now it's used only for context help; will be used for display too.
 	struct menu_entry * children;
@@ -105,7 +105,7 @@ struct menu_entry
 #define FOR_PHOTO_NON_LIVEVIEW 8 // photo only, non_liveview
 #define FOR_PLAYBACK 16 // photo and movie
 #define FOR_EXT_MONITOR 32 // HDMI or SD
-#define FOR_SUBMENU (1<<20)
+#define FOR_SUBMENU 64
 
 #define IS_ESSENTIAL(menu) ( \
 	(menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
