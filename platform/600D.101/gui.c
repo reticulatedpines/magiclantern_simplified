@@ -87,6 +87,12 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	#endif
+	
+	// hack for Q button in ML menu
+	if (event->param == BGMT_Q_ALT && gui_menu_shown())
+	{
+		fake_simple_button(BGMT_Q);
+	}
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
