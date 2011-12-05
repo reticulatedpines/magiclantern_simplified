@@ -1847,13 +1847,25 @@ int get_spot_focus(int dxb)
 	return sf / (br >> 14);
 }
 
+static int spotmeter_expsim_toggled()
+{
+	static int prev_expsim = 0;
+	int ans = 0;
+	if (prev_expsim != expsim) ans = 1;
+	prev_expsim = expsim;
+	return ans;
+}
+static void spotmeter_erase()
+{
+	int xcb = os.x0 + os.x_ex/2;
+	int ycb = os.y0 + os.y_ex/2;
+	bmp_fill(0, xcb-30, ycb-30, 60, 70);
+}
 void spotmeter_step()
 {
-    //~ if (!lv) return;
-	if (!PLAY_MODE)
-	{
-		if (!expsim) return;
-	}
+	if (spotmeter_expsim_toggled()) spotmeter_erase();
+	if (!PLAY_MODE && !expsim) return;
+	
 	struct vram_info *	vram = get_yuv422_vram();
 
 	if( !vram->vram )
@@ -3756,6 +3768,13 @@ livev_lopriority_task( void* unused )
 		{
 			cropmark_redraw();
 			msleep(2000);
+		}
+
+		// spotmeter exception: enable it in zoom mode
+		if (spotmeter_draw && liveview_display_idle() && get_global_draw() && lv_dispsize > 1 && !zebra_should_run())
+		{
+			msleep(500);
+			BMP_LOCK( if (lv) spotmeter_step(); )
 		}
 
 		loprio_sleep();
