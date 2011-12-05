@@ -467,23 +467,23 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 .. _focus peaking:
 
-**Focus Peak: OFF/HDIF/MORF, threshold, color_mode**
+**Focus Peak: OFF/D1xy/D2xy, threshold, color_mode**
   
   [[Video:Magic_Lantern_Focus_Assist_Feature_on_550D|200px|right]]
 
-  Experimental focus peaking, see [[Focus Assist]] and `discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/d29edd39ae8db9ae>`_.
+  Focus peaking. 
   
-  * ``SET``: toggle beteween available algorithms or turn the setting off
+  To see how it works, `check this article from Luminous Landscape. <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
   
-    - ``HDIF``: looks at difference between adjacent pixels. Detects horizontal edges only. It is fooled by high-contrast, out of focus edges.
-    - ``MORF``: looks for fine detail lost by morphological opening and closing (which is a kind of blurring). It handles high-contrast OOF edges well, but is very sensitive to ISO noise.
+  Methods:
+  
+    - ``D1xy``: computes first image derivative on X and Y axes and considers the highest value.
+    - ``D2xy``: computes second derivative with a simple 3x3 Laplacian kernel.
 
-  * ``Q``: adjust percentile threshold, between 0.1% and 5%.
-  * ``PLAY``: select color mode
+  Other parameters:
   
-    - one of ``R,G,B,C,M,Y`` (a single color)
-    - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
-    - ``cc2``: color coding 2 (show edge strength as color for every pixel)
+    - ``Threshold``: how many pixels are considered in focus (percentage).
+    - ``Color``: either fixed color, or a color coding according to focus intensity.
     
 .. _magic zoom:
 .. _zoom while recording:
@@ -770,7 +770,8 @@ Functions for stills shooting (some of them work for movies, too).
 
   Change the intervalometer settings (first setting appears in photo mode, second appears in movie mode).
   
-  There is also a mode named ``Take pics like crazy``, which does exactly that. This is the best tool for killing your shutter.
+  There is also a mode named ``Take pics like crazy``, which does exactly that. 
+  In this mode, the images are not recorded with the same temporal spacing; they are taken as fast as possible.
 
 **Intervalometer: ON/OFF**
 

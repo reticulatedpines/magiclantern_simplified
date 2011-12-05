@@ -160,6 +160,7 @@ static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
 static CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 static CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 static CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
+static CONFIG_INT( "spotmeter.position",		spotmeter_position,	0 ); // fixed / attached to AF frame
 
 //~ static CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 //~ static CONFIG_INT( "zebra.density", zebra_density, 0); 
@@ -1389,6 +1390,20 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 }
 
 static void
+zebra_level_display( void * priv, int x, int y, int selected )
+{
+	unsigned level = *(unsigned*) priv;
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"%s  : %d%% (%d)",
+		priv == &zebra_level_lo ? "Underexposure" : 
+								  "Overexposure ",
+		level, 0, 
+		(level * 255 + 50) / 100
+	);
+}
+static void
 zebra_toggle( void* priv, int sign )
 {
 	menu_ternary_toggle(priv, -sign);
@@ -1719,8 +1734,9 @@ spotmeter_menu_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Spotmeter   : %s",
-		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
+		"Spotmeter   : %s%s",
+		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108"),
+		spotmeter_draw && spotmeter_position ? ", AFF" : ""
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
@@ -1869,6 +1885,12 @@ void spotmeter_step()
 
 	int xcb = os.x0 + os.x_ex/2;
 	int ycb = os.y0 + os.y_ex/2;
+	if (spotmeter_position == 1) // AF frame
+	{
+		get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
+		xcb += os.x0;
+		ycb += os.y0;
+	}
 	int xcl = BM2LV_X(xcb);
 	int ycl = BM2LV_X(ycb);
 	int dxl = BM2LV_DX(dxb);
@@ -2214,6 +2236,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zebra_level_lo, 
 				.min = 0,
 				.max = 20,
+				.display = zebra_level_display,
 				.help = "Underexposure threshold (0=disable).",
 			},
 			{
@@ -2221,6 +2244,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zebra_level_hi,
 				.min = 80,
 				.max = 100,
+				.display = zebra_level_display,
 				.help = "Overexposure threshold (100=disable).",
 			},
 			{
@@ -2323,7 +2347,7 @@ struct menu_entry zebra_menus[] = {
 		.priv = &crop_enabled,
 		.display	= crop_display,
 		.select		= menu_binary_toggle,
-		.help = "Cropmarks or custom grids for framing. Draw them in Paint.",
+		.help = "Cropmarks or custom grids for framing.",
 		.essential = FOR_MOVIE,
 		.children =  (struct menu_entry[]) {
 			{
@@ -2332,12 +2356,14 @@ struct menu_entry zebra_menus[] = {
 				.select = crop_toggle,
 				.display	= crop_display_submenu,
 				.icon_type = IT_ALWAYS_ON,
+				.help = "You can draw your own cromparks in Paint.",
 			},
 			{
 				.name = "Show in",
 				.priv = &cropmark_movieonly, 
 				.max = 1,
 				.choices = (const char *[]) {"Movie&Photo", "Movie only"},
+				.help = "Cropmarks are mostly used in movie mode.",
 			},
 			MENU_EOL
 		},
@@ -2364,9 +2390,17 @@ struct menu_entry zebra_menus[] = {
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
 		.display		= spotmeter_menu_display,
-		.help = "Measure brightness in the center of the frame.",
+		.help = "Exposure aid: display brightness from a small spot.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
+			{
+				.name = "Position",
+				.priv = &spotmeter_position, 
+				.max = 1,
+				.choices = (const char *[]) {"Center", "AF Frame"},
+				.icon_type = IT_DICE,
+				.help = "Spotmeter position: center or attached to AF frame.",
+			},
 			{
 				.name = "Unit",
 				.priv = &spotmeter_formula, 
@@ -2383,7 +2417,7 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &falsecolor_draw,
 		.display	= falsecolor_display,
 		.select		= menu_binary_toggle,
-		.help = "Shows brightness level as color-coded. [Q]: change palette.",
+		.help = "Exposure aid: each brightness level is color-coded.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
 			{
@@ -2392,7 +2426,7 @@ struct menu_entry zebra_menus[] = {
 				.max = COUNT(false_colour)-1,
 				.icon_type = IT_DICE,
 				.display = falsecolor_display_palette,
-				.help = "Each brightness level has a color coding.",
+				.help = "False color palettes for exposure, banding, green screen...",
 			},
 			MENU_EOL
 		}
@@ -2412,7 +2446,7 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &hist_draw,
 		.max = 1,
 		.display = hist_print,
-		.help = "Histogram for checking the exposure.",
+		.help = "Exposure aid: shows the distribution of brightness levels.",
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Color space",
@@ -2430,7 +2464,7 @@ struct menu_entry zebra_menus[] = {
 		.priv		= &waveform_draw,
 		.display = waveform_print,
 		.max = 1,
-		.help = "Waveform monitor for checking the exposure.",
+		.help = "Exposure aid: useful for checking overall brightness.",
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Size",
@@ -2449,7 +2483,7 @@ struct menu_entry zebra_menus[] = {
 		.priv = &electronic_level, 
 		.select = menu_binary_toggle, 
 		.display = electronic_level_display,
-		.help = "Electronic level indicator",
+		.help = "Electronic level indicator in 0.5 degree steps.",
 		.essential = FOR_LIVEVIEW,
 	},
 	#endif
