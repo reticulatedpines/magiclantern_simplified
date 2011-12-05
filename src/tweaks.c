@@ -521,9 +521,9 @@ void clear_lv_affframe()
 	//~ bmp_printf(FONT_LARGE, 200, 200, "af %d %d ", xaf, yaf);
 	//~ bmp_fill(0, COERCE(xaf,100, BMP_WIDTH-100) - 90, COERCE(yaf,100, BMP_HEIGHT-100) - 75, 180, 150 );
 	int x0 = COERCE(xaf,100, BMP_WIDTH-100) - 100;
-	int y0 = COERCE(yaf,100, BMP_HEIGHT-100) - 100;
+	int y0 = COERCE(yaf, 75+os.off_169, BMP_HEIGHT-75-os.off_169) - 75;
 	int w = 200;
-	int h = 200;
+	int h = 150;
 	for (int i = y0; i < y0 + h; i++)
 	{
 		for (int j = x0; j < x0+w; j++)
@@ -531,6 +531,10 @@ void clear_lv_affframe()
 			int p = bmp_getpixel(j,i);
 			if (p == COLOR_BLACK || p == COLOR_WHITE)
 				bmp_putpixel(j,i,0);
+			asm("nop");
+			asm("nop");
+			asm("nop");
+			asm("nop"); // just in case
 		}
 	}
 	crop_set_dirty(5);
