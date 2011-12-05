@@ -3654,7 +3654,7 @@ livev_hipriority_task( void* unused )
 
 		if (should_draw_zoom_overlay())
 		{
-			msleep(10);
+			msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
 			guess_fastrefresh_direction();
 			if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
 			BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
