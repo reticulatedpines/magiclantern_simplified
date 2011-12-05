@@ -983,31 +983,34 @@ static void display_shortcut_key_hints_lv()
 
 	int mz = (mode == 2 && get_zoom_overlay_trigger_mode() <= 2 && lv_dispsize == 1);
 	
+	int x0 = os.x0 + os.x_ex/2;
+	int y0 = os.y0 + os.y_ex/2;
+	
 	if (mode == 1)
 	{
-		bmp_printf(FONT_MED, 360 - 100 - font_med.width*2, 240 - font_med.height/2, "ISO-");
-		bmp_printf(FONT_MED, 360 + 100 - font_med.width*2, 240 - font_med.height/2, "ISO+");
-		bmp_printf(FONT_MED, 360 - font_med.width*2, 240 - 100 - font_med.height/2, "Kel+");
-		bmp_printf(FONT_MED, 360 - font_med.width*2, 240 + 100 - font_med.height/2, "Kel-");
+		bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
+		bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
+		bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
+		bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
 	}
 	else if (mode == 2)
 	{
-		bmp_printf(FONT_MED, 360 - 100 - font_med.width*2, 240 - font_med.height/2, "Vol-");
-		bmp_printf(FONT_MED, 360 + 100 - font_med.width*2, 240 - font_med.height/2, "Vol+");
-		bmp_printf(FONT_MED, 360 - font_med.width*2, 240 - 100 - font_med.height/2, "LCD+");
-		bmp_printf(FONT_MED, 360 - font_med.width*2, 240 + 100 - font_med.height/2, "LCD-");
+		bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Vol");
+		bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
+		bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "LCD+");
+		bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-LCD");
 	}
 	else if (mode == 3)
 	{
 		//~ if (is_follow_focus_active() == 1)
 		//~ {
-			//~ int xf = is_follow_focus_active() == 1 ? 360 : 650;
-			//~ int yf = is_follow_focus_active() == 1 ? 240 : 50;
+			//~ int xf = is_follow_focus_active() == 1 ? x0 : 650;
+			//~ int yf = is_follow_focus_active() == 1 ? y0 : 50;
 			//~ int xs = is_follow_focus_active() == 1 ? 100 : 30;
-			const int xf = 360;
-			const int yf = 240;
-			const int xs = 100;
-			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF+ " : "FF- ");
+			const int xf = x0;
+			const int yf = y0;
+			const int xs = 150;
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
 			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
 			//~ if (is_follow_focus_active() == 1) // arrows
 			//~ {
@@ -1018,10 +1021,10 @@ static void display_shortcut_key_hints_lv()
 	}
 	else
 	{
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - 100 - font_med.width*2, 240 - font_med.height/2, "    ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, "    ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, "    ");
-		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, "    ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
+		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
 
 		if (!should_draw_zoom_overlay())
 			crop_set_dirty(20);
