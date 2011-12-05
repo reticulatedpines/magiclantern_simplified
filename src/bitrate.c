@@ -125,19 +125,23 @@ bitrate_print(
 	int			selected
 )
 {
+	int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+
 	if (bitrate_mode == 0)
 	{
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate      : FW default%s", bitrate_dirty ? "(reboot)" : "");
+		bmp_printf( fnt, x, y, "Bit Rate      : FW default%s", bitrate_dirty ? "(reboot)" : "");
 		menu_draw_icon(x, y, bitrate_dirty ? MNI_WARNING : MNI_OFF, 0);
 	}
 	else if (bitrate_mode == 1)
 	{
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate (CBR): %d.%dx%s", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
+		if (bitrate_factor > 13) fnt = FONT(fnt, COLOR_RED, FONT_BG(fnt));
+		bmp_printf( fnt, x, y, "Bit Rate (CBR): %d.%dx%s", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
 		menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
 	}
 	else if (bitrate_mode == 2)
 	{
-		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Bit Rate (VBR): QScale %d", qscale);
+		fnt = FONT(fnt, COLOR_RED, FONT_BG(fnt));
+		bmp_printf( fnt, x, y, "Bit Rate (VBR): QScale %d", qscale);
 		menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
 	}
 }
