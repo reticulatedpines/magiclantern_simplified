@@ -1484,7 +1484,18 @@ extern int bv_tv;
 extern int bv_av;
 
 bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo(); return shutter != 0; }
-bool bv_set_rawiso(unsigned iso) { CONTROL_BV_ISO = bv_iso = MAX(iso, 72); bv_update_lensinfo();  return iso != 0; }
+bool bv_set_rawiso(unsigned iso) 
+{ 
+	if (iso >= 72 && iso <= 128) // 100-12800
+	{
+		CONTROL_BV_ISO = bv_iso = iso; bv_update_lensinfo();  
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
 bool bv_set_rawaperture(unsigned aperture) 
 { 
 	if (aperture >= lens_info.raw_aperture_min && aperture <= lens_info.raw_aperture_max) 
