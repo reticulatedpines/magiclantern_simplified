@@ -3730,11 +3730,16 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 	//~ NotifyBox(2000, "HDR script created"); msleep(2000);
 	int i;
 	
+	// make sure it won't autofocus
+	// change it only once per HDR sequence to avoid slowdown
+	assign_af_button_to_star_button();
+	// be careful: don't return without restoring the setting back!
+	
 	hdr_check_cancel(1);
 	
 	// first exposure is always at 0 EV (and might be skipped)
-	if (!skip0) hdr_shutter_release(0, 0);
-	if (hdr_check_cancel(0)) return;
+	if (!skip0) hdr_shutter_release(0, 1);
+	if (hdr_check_cancel(0)) goto end;
 	
 	switch (hdr_sequence)
 	{
@@ -3742,13 +3747,13 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			for( i = 1; i <= steps/2; i ++  )
 			{
-				hdr_shutter_release(-step_size * i, 0);
-				if (hdr_check_cancel(0)) return;
+				hdr_shutter_release(-step_size * i, 1);
+				if (hdr_check_cancel(0)) goto end;
 
 				if (steps == 2) break;
 				
-				hdr_shutter_release(step_size * i, 0);
-				if (hdr_check_cancel(0)) return;
+				hdr_shutter_release(step_size * i, 1);
+				if (hdr_check_cancel(0)) goto end;
 			}
 			break;
 		}
@@ -3757,14 +3762,17 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		{
 			for( i = 1; i < steps; i ++  )
 			{
-				hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1), 0);
-				if (hdr_check_cancel(0)) return;
+				hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1), 1);
+				if (hdr_check_cancel(0)) goto end;
 			}
 			break;
 		}
 	}
 
 	hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, file_number_also - steps + 1);
+
+end:
+	restore_af_button_assignment();
 }
 
 static void press_rec_button()
