@@ -3130,7 +3130,7 @@ zebra_task( void )
 	while(1)
 	{
 		k++;
-		msleep(10); // safety msleep :)
+		msleep(MIN_MSLEEP); // safety msleep :)
 		if (recording) msleep(100);
 		
 		if (lv && disp_mode_change_request)
@@ -3242,7 +3242,7 @@ void PauseLiveView()
 	if (lv && !lv_paused)
 	{
 		int x = 1;
-		//~ while (get_halfshutter_pressed()) msleep(10);
+		//~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
 		BMP_LOCK(
 			prop_request_change(PROP_LV_ACTION, &x, 4);
 			msleep(100);
@@ -3259,7 +3259,7 @@ void ResumeLiveView()
 	{
 		lv = 0;
 		int x = 0;
-		//~ while (get_halfshutter_pressed()) msleep(10);
+		//~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
 		BMP_LOCK(
 			prop_request_change(PROP_LV_ACTION, &x, 4);
 			while (!lv) msleep(100);
@@ -3638,7 +3638,7 @@ livev_hipriority_task( void* unused )
 	int k = 0;
 	for (;;k++)
  	{
-		msleep(MIN_MSLEEP);
+		msleep(10);
 		//~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
 		fps_ticks++;
 
