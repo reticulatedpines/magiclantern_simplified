@@ -3638,7 +3638,6 @@ livev_hipriority_task( void* unused )
 	int k = 0;
 	for (;;k++)
  	{
-		msleep(MIN_MSLEEP);
 		//~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
 		fps_ticks++;
 
@@ -3655,6 +3654,7 @@ livev_hipriority_task( void* unused )
 
 		if (should_draw_zoom_overlay())
 		{
+			msleep(10);
 			guess_fastrefresh_direction();
 			if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
 			BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
@@ -3664,6 +3664,7 @@ livev_hipriority_task( void* unused )
 		}
 		else
 		{
+			msleep(MIN_MSLEEP);
 			zoom_overlay_dirty = 1;
 			if (falsecolor_draw)
 			{
