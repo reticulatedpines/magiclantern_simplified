@@ -3638,7 +3638,7 @@ livev_hipriority_task( void* unused )
 	int k = 0;
 	for (;;k++)
  	{
-		msleep(10);
+		msleep(MIN_MSLEEP);
 		//~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
 		fps_ticks++;
 
