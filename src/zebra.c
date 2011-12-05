@@ -160,6 +160,7 @@ static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
 static CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 static CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 static CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
+static CONFIG_INT( "spotmeter.position",		spotmeter_position,	0 ); // fixed / attached to AF frame
 
 //~ static CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 //~ static CONFIG_INT( "zebra.density", zebra_density, 0); 
@@ -1733,8 +1734,9 @@ spotmeter_menu_display(
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Spotmeter   : %s",
-		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108")
+		"Spotmeter   : %s%s",
+		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108"),
+		spotmeter_draw && spotmeter_position ? ", AFF" : ""
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
@@ -1895,6 +1897,12 @@ void spotmeter_step()
 
 	int xcb = os.x0 + os.x_ex/2;
 	int ycb = os.y0 + os.y_ex/2;
+	if (spotmeter_position == 1) // AF frame
+	{
+		get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
+		xcb += os.x0;
+		ycb += os.y0;
+	}
 	int xcl = BM2LV_X(xcb);
 	int ycl = BM2LV_X(ycb);
 	int dxl = BM2LV_DX(dxb);
@@ -2394,9 +2402,17 @@ struct menu_entry zebra_menus[] = {
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
 		.display		= spotmeter_menu_display,
-		.help = "Exposure aid: display brightness from the central spot.",
+		.help = "Exposure aid: display brightness from a small spot.",
 		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
+			{
+				.name = "Position",
+				.priv = &spotmeter_position, 
+				.max = 1,
+				.choices = (const char *[]) {"Center", "AF Frame"},
+				.icon_type = IT_DICE,
+				.help = "Spotmeter position: center or attached to AF frame.",
+			},
 			{
 				.name = "Unit",
 				.priv = &spotmeter_formula, 
