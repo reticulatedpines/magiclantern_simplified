@@ -1440,10 +1440,10 @@ bool prop_set_rawaperture(unsigned aperture)
 	return get_prop(PROP_APERTURE2) == aperture;
 }
 
-bool prop_set_rawshutter(unsigned shutter)
+bool prop_set_rawshutter(unsigned shutter, int coerce)
 {
 	lens_wait_readytotakepic(64);
-	shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
+	if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
 	msleep(50);
 	return get_prop(PROP_SHUTTER_ALSO) == shutter;
@@ -1475,7 +1475,7 @@ void bv_update_props()
 	if (CONTROL_BV) // sync lens info and camera properties with overriden values
 	{
 		prop_set_rawiso(CONTROL_BV_ISO);
-		prop_set_rawshutter(CONTROL_BV_TV);
+		prop_set_rawshutter(CONTROL_BV_TV, 1);
 		prop_set_rawaperture(CONTROL_BV_AV);
 	}
 }
@@ -1589,20 +1589,21 @@ bool lens_set_rawshutter( int shutter )
 	#ifndef CONFIG_500D
 	if (bv_auto && is_movie_mode())
 	{
-		bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
+		bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter, 1); // first try to set via property
 		bv_auto_update(); 
 		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
 	}
 	#endif
-	if (!CONTROL_BV) return prop_set_rawshutter(shutter);
+	if (!CONTROL_BV) return prop_set_rawshutter(shutter, 1);
 	else return bv_set_rawshutter(shutter);
 }
 
 
-void lens_set_ae( int ae )
+bool lens_set_ae( int ae )
 {
 	prop_request_change( PROP_AE, &ae, 4 );
 	msleep(10);
+	return get_prop(PROP_AE) == ae;
 }
 
 void lens_set_drivemode( int dm )
@@ -1622,4 +1623,31 @@ void lens_set_wbs_ba(int value)
 {
 	value = COERCE(value, -9, 9);
 	prop_request_change(PROP_WBS_BA, &value, 4);
+}
+
+// Functions to change camera settings during bracketing
+// They will check the operation and retry if necessary
+// Used for HDR bracketing
+bool hdr_set_rawiso(int iso)
+{
+	for (int i = 0; i < 10; i++)
+		if (prop_set_rawiso(iso))
+			return 1;
+	return 0;
+}
+
+bool hdr_set_rawshutter(int shutter)
+{
+	for (int i = 0; i < 10; i++)
+		if (prop_set_rawshutter(shutter, 0))
+			return 1;
+	return 0;
+}
+
+bool hdr_set_ae(int ae)
+{
+	for (int i = 0; i < 10; i++)
+		if (lens_set_ae(ae))
+			return 1;
+	return 0;
 }

@@ -59,7 +59,7 @@ CONFIG_INT("hdr.enabled", hdr_enabled, 1);
 CONFIG_INT("hdr.frames", hdr_steps, 3);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
 CONFIG_INT("hdr.delay", hdr_delay, 1);
-CONFIG_INT("hdr.sequence", hdr_sequence, 0);
+CONFIG_INT("hdr.seq", hdr_sequence, 1);
 CONFIG_INT("hdr.iso", hdr_iso, 0);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
@@ -2490,10 +2490,13 @@ hdr_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"HDR Bracketing  : %dx%d%sEV",
+			"HDR Bracketing  : %dx%d%sEV,%s%s%s",
 			hdr_steps, 
 			hdr_stepsize / 8,
-			((hdr_stepsize/4) % 2) ? ".5" : ""
+			((hdr_stepsize/4) % 2) ? ".5" : "", 
+			hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
+			hdr_delay ? ",2s" : "",
+			hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
 		);
 	}
 }
@@ -3207,7 +3210,7 @@ static struct menu_entry shoot_menus[] = {
 				.max = 2,
 				.help = "Bracketing sequence order / type.",
 				.icon_type = IT_DICE,
-				.choices = (const char *[]) {"0 - + -- ++", "0 + ++", "0 - --"},
+				.choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++",},
 			},
 			{
 				.name = "2-second delay",
@@ -3231,7 +3234,7 @@ static struct menu_entry shoot_menus[] = {
 		.priv		= &intervalometer_running,
 		.select		= menu_binary_toggle,
 		.display	= intervalometer_display,
-		.help = "Intervalometer. For precise timing, choose NoWait [Q].",
+		.help = "Take pictures or movies at fixed intervals (for timelapse).",
 		.essential = FOR_PHOTO,
 		.children =  (struct menu_entry[]) {
 			{
@@ -3253,7 +3256,7 @@ static struct menu_entry shoot_menus[] = {
 				.priv		= &interval_movie_duration_index,
 				.display	= interval_movie_stop_display,
 				.select		= interval_timer_toggle,
-				.help = "Duration for each video clip.",
+				.help = "Duration for each video clip (in movie mode only).",
 			},
 			MENU_EOL
 		},
@@ -3337,7 +3340,7 @@ static struct menu_entry shoot_menus[] = {
 		.priv = &silent_pic_enabled,
 		.select = menu_binary_toggle,
 		.display = silent_pic_display,
-		.help = "Take pics in LiveView without increasing shutter count.",
+		.help = "Take pics in LiveView without moving the shutter mechanism.",
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Mode",
@@ -3431,8 +3434,8 @@ static struct menu_entry vid_menus[] = {
 				.priv = &zoom_sharpen,
 				.max = 1,
 				.choices = (const char *[]) {"Don't change", "Increase"},
-				.icon_type = IT_BOOL,
-				.help = "Increase contrast and sharpness when you zoom in LiveView."
+				.icon_type = IT_REPLACE_SOME_FEATURE,
+				.help = "Increase sharpness and contrast when you zoom in LiveView."
 			},
 			MENU_EOL
 		},
@@ -3638,9 +3641,9 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 	else if (!manual) // auto modes
 	{
 		int ae0 = lens_get_ae();
-		lens_set_ae(ae0 + ev_x8);
+		hdr_set_ae(ae0 + ev_x8);
 		take_a_pic(allow_af);
-		lens_set_ae(ae0);
+		hdr_set_ae(ae0);
 	}
 	else // manual mode or bulb
 	{
@@ -3653,7 +3656,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 				int iso_delta = MIN(iso0 - 72, -ev_x8 / (hdr_iso == 2 ? 2 : 1)); // lower ISO, down to ISO 100
 				iso_delta = iso_delta/8*8; // round to full stops
 				ev_x8 += iso_delta;
-				lens_set_rawiso(iso0 - iso_delta);
+				hdr_set_rawiso(iso0 - iso_delta);
 			}
 			else if (ev_x8 > 0)
 			{
@@ -3662,12 +3665,9 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 				iso_delta = iso_delta/8*8; // round to full stops
 				if (iso_delta < 0) iso_delta = 0;
 				ev_x8 -= iso_delta;
-				lens_set_rawiso(iso0 + iso_delta);
+				hdr_set_rawiso(iso0 + iso_delta);
 			}
 		}
-
-		//~ if (lens_info.raw_iso == 0) // it's set on auto ISO
-			//~ iso_auto_quick(); // => lock the ISO here, otherwise it won't bracket
 
 		// apply EV correction in both "domains" (milliseconds and EV)
 		int ms = get_exposure_time_ms();
@@ -3690,7 +3690,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 			int b = bulb_ramping_enabled;
 			bulb_ramping_enabled = 0; // to force a pic in manual mode
 			
-			lens_set_rawshutter(rc);
+			hdr_set_rawshutter(rc);
 			take_a_pic(allow_af);
 			
 			bulb_ramping_enabled = b;
@@ -3698,43 +3698,12 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 
 		// restore settings back
 		//~ set_shooting_mode(m0r);
-		prop_request_change( PROP_SHUTTER, &s0r, 4 );
-		prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
-		lens_set_rawiso(iso0);
+		hdr_set_rawshutter(s0r);
+		hdr_set_rawiso(iso0);
 	}
 	msleep(100);
 	lens_wait_readytotakepic(64);
 	msleep(100);
-}
-
-static void hdr_iso_brack_or_shutter_release(int skip0, int ev_x8, int allow_af)
-{
-	int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
-	if (hdr_enabled && hdr_iso && manual)
-	{
-		int iso0 = lens_info.raw_iso;
-		
-		// skip0: current ISO + 100 ISO + 6400 ISO
-		// if current ISO is 100 or 6400, skip that extra frame
-		
-		// non-skip0: was triggered from remote shot, take both frames
-		
-		if (!skip0 || iso0 != 72) // iso 100
-		{
-			lens_set_iso(100);
-			hdr_shutter_release(ev_x8, allow_af);
-		}
-
-		if (!skip0 || iso0 != 120) // iso 6400
-		{
-			lens_set_iso(6400);
-			hdr_shutter_release(ev_x8, allow_af);
-		}
-		
-		lens_set_rawiso(iso0);
-	}
-	else if (!skip0)
-		hdr_shutter_release(ev_x8, allow_af);
 }
 
 static int hdr_check_cancel(int init)
@@ -3772,7 +3741,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 	
 	switch (hdr_sequence)
 	{
-		case 0: // 0 - + -- ++ 
+		case 1: // 0 - + -- ++ 
 		{
 			for( i = 1; i <= steps/2; i ++  )
 			{
@@ -3786,12 +3755,12 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 			}
 			break;
 		}
-		case 1: // 0 + ++
-		case 2: // 0 - --
+		case 0: // 0 - --
+		case 2: // 0 + ++
 		{
 			for( i = 1; i < steps; i ++  )
 			{
-				hdr_shutter_release(step_size * i * (hdr_sequence == 1 ? 1 : -1), 0);
+				hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1), 0);
 				if (hdr_check_cancel(0)) return;
 			}
 			break;
@@ -3872,10 +3841,10 @@ void hdr_shot(int skip0, int wait)
 	{
 		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
 		int drive_mode_bak = 0;
-		if (drive_mode != DRIVE_SINGLE && drive_mode != DRIVE_CONTINUOUS) 
+		if (drive_mode != DRIVE_SINGLE) 
 		{
 			drive_mode_bak = drive_mode;
-			lens_set_drivemode(DRIVE_CONTINUOUS);
+			lens_set_drivemode(DRIVE_SINGLE);
 		}
 
 		hdr_take_pics(hdr_steps, hdr_stepsize, skip0);

@@ -128,7 +128,7 @@ void lens_wait_readytotakepic(int wait);
 extern bool lens_set_rawaperture( int aperture);
 extern bool lens_set_rawiso( int iso );
 extern bool lens_set_rawshutter( int shutter );
-extern void lens_set_ae( int ae );
+extern bool lens_set_ae( int ae );
 extern void lens_set_drivemode( int dm );
 extern void lens_set_wbs_gm(int value);
 extern void lens_set_wbs_ba(int value);
