@@ -602,7 +602,7 @@ void rec_notify_continuous(int called_from_menu)
 		{
 			int xc = os.x0 + os.x_ex/2;
 			int yc = os.y0 + os.y_ex/2;
-			int rx = os.y_ex * 6/15;
+			int rx = os.y_ex * 7/15;
 			int ry = rx * 62/100; 
 			bmp_printf(
 				FONT(FONT_MED, COLOR_RED, 0), 
