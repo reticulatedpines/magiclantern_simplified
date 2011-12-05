@@ -123,8 +123,17 @@ void update_vram_params()
 #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
 	if (!EXT_MONITOR_CONNECTED)
 	{
-		os.y_ex = 480 - 52; // BMP is 4:3, image is 3:2;
-		if (PLAY_MODE) os.y0 = 52; // black bar is at the top in play mode
+		if (PLAY_MODE)
+		{
+			os.y0 = 52; // black bar is at the top in play mode, 48 with additional info
+			os.y_ex = 428; // 480 - os.y0; // screen height is 480px in total
+		}
+		else
+		{
+			os.y_ex = 424; // 480 * 8/9; // BMP is 4:3, image is 3:2;
+			//os.off_169 = (os.y_ex - (os.y_ex * 3*9 + 2*16-1) / 2 / 16 + 1) / 2;
+			os.off_169 = 32;
+		}
 	}
 #else
 	if (PLAY_MODE && hdmi_code == 2)
@@ -136,8 +145,8 @@ void update_vram_params()
 	
 	os.x_max = os.x0 + os.x_ex;
 	os.y_max = os.y0 + os.y_ex;
-	os.off_169 = (os.y_ex - os.y_ex * 3/2*9/16) / 2;
-	os.off_1610 = (os.y_ex - os.y_ex * 3/2*10/16) / 2;
+	os.off_169 = (os.y_ex - os.y_ex * 3/2 * 9/16) / 2;
+	os.off_1610 = (os.y_ex - os.y_ex * 3/2 * 10/16) / 2;
 
 	// LV buffer (used for display)
 	// these buffer sizes include any black bars

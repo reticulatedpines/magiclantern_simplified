@@ -272,3 +272,5 @@
 #define CONTROL_BV_AV   (*(uint16_t*)0x264FE)
 #define CONTROL_BV_ISO  (*(uint16_t*)0x26500)
 #define CONTROL_BV_ZERO (*(uint16_t*)0x26502)
+
+#define MIN_MSLEEP 10

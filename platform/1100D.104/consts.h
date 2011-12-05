@@ -173,3 +173,5 @@
 #define CONTROL_BV_AV   (*(uint16_t*)0x8B9C)
 #define CONTROL_BV_ISO  (*(uint16_t*)0x8B9E)
 #define CONTROL_BV_ZERO (*(uint16_t*)0x8BA0)
+
+#define MIN_MSLEEP 10

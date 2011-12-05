@@ -3437,10 +3437,10 @@ clearscreen_loop:
 
 			BMP_LOCK( clrscr_mirror(); )
 			int i;
-			for (i = 0; i < (int)clearscreen_delay/10; i++)
+			for (i = 0; i < (int)clearscreen_delay/20; i++)
 			{
-				if (i % 20 == 0) BMP_LOCK( update_lens_display(); )
-				msleep(10);
+				if (i % 10 == 0) BMP_LOCK( update_lens_display(); )
+				msleep(20);
 				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;
 			}
@@ -3638,7 +3638,7 @@ livev_hipriority_task( void* unused )
 	int k = 0;
 	for (;;k++)
  	{
-		msleep(10);
+		msleep(MIN_MSLEEP);
 		//~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
 		fps_ticks++;
 
@@ -3679,7 +3679,7 @@ livev_hipriority_task( void* unused )
 			{
 				BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
 			}
-			msleep(10);
+			msleep(MIN_MSLEEP);
 		}
 
 		
@@ -3730,7 +3730,7 @@ livev_hipriority_task( void* unused )
 
 static void loprio_sleep()
 {
-	msleep(10);
+	msleep(20);
 	while (is_mvr_buffer_almost_full()) msleep(100);
 }
 
