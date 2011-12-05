@@ -768,8 +768,8 @@ void lens_wait_readytotakepic(int wait)
 	int i;
 	for (i = 0; i < wait * 10; i++)
 	{
-		if (lens_info.job_state <= 0xA && burst_count > 0) break;
-		msleep(100);
+		if (lens_info.job_state <= 0xB && burst_count > 0) break;
+		msleep(20);
 	}
 }
 
@@ -787,40 +787,43 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
 	}
 }
 
-int af_button_assignment = -1;
+volatile int af_button_assignment = -1;
 // to preview AF patterns
 void assign_af_button_to_halfshutter()
 {
+	if (is_manual_focus()) return;
 	take_semaphore(lens_sem, 0);
-	msleep(10);
+	//~ msleep(10);
 	lens_wait_readytotakepic(64);
 	if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
 	cfn_set_af_button(AF_BTN_HALFSHUTTER);
-	msleep(10);
+	//~ msleep(10);
 	give_semaphore(lens_sem);
 }
 
 // to prevent AF
 void assign_af_button_to_star_button()
 {
+	if (is_manual_focus()) return;
 	take_semaphore(lens_sem, 0);
-	msleep(10);
+	//~ msleep(10);
 	lens_wait_readytotakepic(64);
 	if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
 	cfn_set_af_button(AF_BTN_STAR);
-	msleep(10);
+	//~ msleep(10);
 	give_semaphore(lens_sem);
 }
 
 void restore_af_button_assignment()
 {
+	if (is_manual_focus()) return;
 	take_semaphore(lens_sem, 0);
-	msleep(10);
+	msleep(50);
 	lens_wait_readytotakepic(64);
 	if (af_button_assignment == -1) return;
 	cfn_set_af_button(af_button_assignment);
 	af_button_assignment = -1;
-	msleep(10);
+	//~ msleep(10);
 	give_semaphore(lens_sem);
 }
 
@@ -1445,7 +1448,7 @@ bool prop_set_rawshutter(unsigned shutter, int coerce)
 	lens_wait_readytotakepic(64);
 	if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
-	msleep(50);
+	msleep(lv ? 50 : 20);
 	return get_prop(PROP_SHUTTER_ALSO) == shutter;
 }
 
@@ -1639,8 +1642,10 @@ bool hdr_set_rawiso(int iso)
 bool hdr_set_rawshutter(int shutter)
 {
 	for (int i = 0; i < 10; i++)
+	{
 		if (prop_set_rawshutter(shutter, 0))
 			return 1;
+	}
 	return 0;
 }
 

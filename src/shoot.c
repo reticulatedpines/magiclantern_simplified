@@ -764,7 +764,7 @@ void vsync(volatile int* addr)
 	for (i = 0; i < 100; i++)
 	{
 		if (*addr != v0) return;
-		msleep(10);
+		msleep(MIN_MSLEEP);
 	}
 	bmp_printf(FONT_MED, 30, 100, "vsync failed");
 }
@@ -3575,13 +3575,12 @@ static struct menu_entry expo_menus[] = {
 };
 
 // only being called in live view for some reason.
-void hdr_create_script(int steps, int skip0, int focus_stack)
+void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
 	if (steps <= 1) return;
 	DEBUG();
 	FILE * f = INVALID_PTR;
 	char name[100];
-	int f0 = skip0 ? file_number_also : file_number_also+1;
 	snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/%s_%04d.sh", folder_number, focus_stack ? "FST" : "HDR", f0);
 	DEBUG("name=%s", name);
 	FIO_RemoveFile(name);
@@ -3701,9 +3700,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 		hdr_set_rawshutter(s0r);
 		hdr_set_rawiso(iso0);
 	}
-	msleep(100);
 	lens_wait_readytotakepic(64);
-	msleep(100);
 }
 
 static int hdr_check_cancel(int init)
@@ -3716,10 +3713,11 @@ static int hdr_check_cancel(int init)
 	}
 
 	// cancel bracketing
-	if (shooting_mode != m || MENU_MODE) 
+	if (shooting_mode != m || MENU_MODE || PLAY_MODE) 
 	{ 
 		beep(); 
 		while (lens_info.job_state) msleep(100); 
+		NotifyBox(2000, "Bracketing stopped.");
 		return 1; 
 	}
 	return 0;
@@ -3729,7 +3727,6 @@ static int hdr_check_cancel(int init)
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
 	//~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
-	hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0);
 	//~ NotifyBox(2000, "HDR script created"); msleep(2000);
 	int i;
 	
@@ -3766,6 +3763,8 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 			break;
 		}
 	}
+
+	hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, (skip0 ? file_number_also : file_number_also+1) - steps);
 }
 
 static void press_rec_button()
@@ -4055,7 +4054,7 @@ shoot_task( void* unused )
 	
 	while(1)
 	{
-		msleep(10);
+		msleep(MIN_MSLEEP);
 
 		if (iso_auto_flag)
 		{
