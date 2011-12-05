@@ -160,7 +160,7 @@ static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
 static CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 static CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
 static CONFIG_INT( "spotmeter.formula",		spotmeter_formula, 0 ); // 0 percent, 1 IRE AJ, 2 IRE Piers
-static CONFIG_INT( "spotmeter.position",		spotmeter_position,	0 ); // fixed / attached to AF frame
+static CONFIG_INT( "spotmeter.position",		spotmeter_position,	1 ); // fixed / attached to AF frame
 
 //~ static CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 //~ static CONFIG_INT( "zebra.density", zebra_density, 0); 
@@ -1396,7 +1396,7 @@ zebra_level_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"%s  : %d%% (%d)",
+		"%s : %d%% (%d)",
 		priv == &zebra_level_lo ? "Underexposure" : 
 								  "Overexposure ",
 		level, 0, 
