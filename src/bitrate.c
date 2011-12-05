@@ -134,7 +134,7 @@ bitrate_print(
 	}
 	else if (bitrate_mode == 1)
 	{
-		if (bitrate_factor > 13) fnt = FONT(fnt, COLOR_RED, FONT_BG(fnt));
+		if (bitrate_factor > 10) fnt = FONT(fnt, bitrate_factor > 14 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
 		bmp_printf( fnt, x, y, "Bit Rate (CBR): %d.%dx%s", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
 		menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
 	}
@@ -418,7 +418,7 @@ static struct menu_entry mov_menus[] = {
 		.priv = &bitrate_mode,
 		.display	= bitrate_print,
 		.select		= bitrate_toggle,
-		.help = "H.264 bitrate settings.",
+		.help = "Change H.264 bitrate. Be careful, recording may stop!",
 		.essential = 1,
 		.children =  (struct menu_entry[]) {
 			{
@@ -434,7 +434,7 @@ static struct menu_entry mov_menus[] = {
 				.priv = &bitrate_factor,
 				.select = bitrate_factor_toggle,
 				.display = cbr_display,
-				.help = "Bitrate multiplication factor. 1.0x = Canon default."
+				.help = "1.0x = Canon default, 0.4x = 30minutes, 1.4x = fast card."
 			},
 			{
 				.name = "QScale",
@@ -447,7 +447,7 @@ static struct menu_entry mov_menus[] = {
 				.name = "Bitrate Info",
 				.priv		= &bitrate_indicator,
 				.max = 1,
-				.help = "Bitrate info (instant, average and qscale) around REC dot."
+				.help = "A = average, B = instant bitrate, Q = instant QScale."
 			},
 			{
 				.name = "BuffWarnLevel",
