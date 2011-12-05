@@ -1399,7 +1399,7 @@ zebra_level_display( void * priv, int x, int y, int selected )
 		priv == &zebra_level_lo ? "Underexposure" : 
 								  "Overexposure ",
 		level, 0, 
-		level * 255
+		(level * 255 + 50) / 100
 	);
 }
 static void
