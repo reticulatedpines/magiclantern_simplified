@@ -231,4 +231,4 @@
 #define CONTROL_BV_ISO  (*(uint16_t*)0x168D4)
 #define CONTROL_BV_ZERO (*(uint16_t*)0x168D6)
 
-#define MIN_MSLEEP 20
+#define MIN_MSLEEP 11
