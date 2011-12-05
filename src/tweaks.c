@@ -519,7 +519,20 @@ void clear_lv_affframe()
 	xaf = N2BM_X(xaf);
 	yaf = N2BM_Y(yaf);
 	//~ bmp_printf(FONT_LARGE, 200, 200, "af %d %d ", xaf, yaf);
-	bmp_fill(0, COERCE(xaf,100, BMP_WIDTH-100) - 100, COERCE(yaf,100, BMP_HEIGHT-100) - 100, 200, 200 );
+	//~ bmp_fill(0, COERCE(xaf,100, BMP_WIDTH-100) - 90, COERCE(yaf,100, BMP_HEIGHT-100) - 75, 180, 150 );
+	int x0 = COERCE(xaf,100, BMP_WIDTH-100) - 100;
+	int y0 = COERCE(yaf,100, BMP_HEIGHT-100) - 100;
+	int w = 200;
+	int h = 200;
+	for (int i = y0; i < y0 + h; i++)
+	{
+		for (int j = x0; j < x0+w; j++)
+		{
+			int p = bmp_getpixel(j,i);
+			if (p == COLOR_BLACK || p == COLOR_WHITE)
+				bmp_putpixel(j,i,0);
+		}
+	}
 	crop_set_dirty(5);
 	afframe_countdown = 0;
 }
