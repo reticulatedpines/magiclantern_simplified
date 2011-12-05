@@ -210,7 +210,6 @@ focus_stack(
 )
 {
 	NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
-	hdr_create_script(count, skip_first, 1, skip_first ? file_number_also : file_number_also+1);
 	msleep(1000);
 	
 	int focus_moved_total = 0;
@@ -247,9 +246,12 @@ focus_stack(
 
 	msleep(1000);
 	NotifyBoxHide();
-	
+
 	if (i >= count-1)
+	{
+		hdr_create_script(count, skip_first, 1, file_number_also - count + 1);
 		NotifyBox(2000, "Focus stack done!" );
+	}
 	else
 		NotifyBox(2000, "Focus stack error :(" );
 

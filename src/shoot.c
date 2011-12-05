@@ -3764,7 +3764,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 		}
 	}
 
-	hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, (skip0 ? file_number_also : file_number_also+1) - steps);
+	hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, file_number_also - steps + 1);
 }
 
 static void press_rec_button()
