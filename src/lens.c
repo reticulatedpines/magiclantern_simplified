@@ -793,11 +793,10 @@ void assign_af_button_to_halfshutter()
 {
 	if (is_manual_focus()) return;
 	take_semaphore(lens_sem, 0);
-	//~ msleep(10);
-	lens_wait_readytotakepic(64);
+	while (lens_info.job_state > 0xa) msleep(20);
 	if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
-	cfn_set_af_button(AF_BTN_HALFSHUTTER);
-	//~ msleep(10);
+	if (af_button_assignment != AF_BTN_HALFSHUTTER) cfn_set_af_button(AF_BTN_HALFSHUTTER);
+	else af_button_assignment = -1;
 	give_semaphore(lens_sem);
 }
 
@@ -806,24 +805,21 @@ void assign_af_button_to_star_button()
 {
 	if (is_manual_focus()) return;
 	take_semaphore(lens_sem, 0);
-	//~ msleep(10);
-	lens_wait_readytotakepic(64);
+	while (lens_info.job_state > 0xa) msleep(20);
 	if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
-	cfn_set_af_button(AF_BTN_STAR);
-	//~ msleep(10);
+	if (af_button_assignment != AF_BTN_STAR) cfn_set_af_button(AF_BTN_STAR);
+	else af_button_assignment = -1;
 	give_semaphore(lens_sem);
 }
 
 void restore_af_button_assignment()
 {
 	if (is_manual_focus()) return;
-	take_semaphore(lens_sem, 0);
-	msleep(50);
-	lens_wait_readytotakepic(64);
 	if (af_button_assignment == -1) return;
+	take_semaphore(lens_sem, 0);
+	while (lens_info.job_state > 0xa) msleep(20);
 	cfn_set_af_button(af_button_assignment);
 	af_button_assignment = -1;
-	//~ msleep(10);
 	give_semaphore(lens_sem);
 }
 
