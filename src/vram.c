@@ -131,8 +131,6 @@ void update_vram_params()
 		else
 		{
 			os.y_ex = 424; // 480 * 8/9; // BMP is 4:3, image is 3:2;
-			//os.off_169 = (os.y_ex - (os.y_ex * 3*9 + 2*16-1) / 2 / 16 + 1) / 2;
-			os.off_169 = 32;
 		}
 	}
 #else
@@ -207,10 +205,15 @@ void update_vram_params()
 	int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
 	int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
 	#else
-	int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
-	int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
+		#ifdef CONFIG_500D
+		int bar_x = 0;
+		int bar_y = 0;
+		#else
+		int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
+		int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
+		#endif
 	#endif
-	
+		
 	lv2hd.sx = 1024 * vram_hd.width / BM2LV_DX(os.x_ex - bar_x * 2);
 	lv2hd.sy = 1024 * vram_hd.height / BM2LV_DY(os.y_ex - bar_y * 2);
 	
