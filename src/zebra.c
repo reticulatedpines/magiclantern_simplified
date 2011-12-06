@@ -3178,7 +3178,7 @@ void draw_histogram_and_waveform()
 	if (!get_global_draw()) return;
 	
 	if( hist_draw)
-		BMP_LOCK( hist_draw_image( os.x_max - hist_width, os.y0 + 100, -1); )
+		BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
 
 	if (menu_active_and_not_hidden()) return;
 	if (!get_global_draw()) return;
