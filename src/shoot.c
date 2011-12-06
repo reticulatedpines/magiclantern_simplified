@@ -55,7 +55,7 @@ bool display_idle()
 
 volatile int bulb_shutter_value = 0;
 
-CONFIG_INT("hdr.enabled", hdr_enabled, 1);
+CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 CONFIG_INT("hdr.frames", hdr_steps, 3);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
 CONFIG_INT("hdr.delay", hdr_delay, 1);
