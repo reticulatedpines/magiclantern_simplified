@@ -391,6 +391,7 @@ int face_zoom_request = 0;
 #if 0
 int hdr_intercept = 1;
 
+/*
 void halfshutter_action(int v)
 {
 	if (!hdr_intercept) return;
@@ -413,7 +414,7 @@ void halfshutter_action(int v)
 		lens_set_drivemode(drive_mode_bk);
 		drive_mode_bk = -1;
 	}
-}
+}*/
 #endif
 
 int hs = 0;
@@ -3848,6 +3849,7 @@ void hdr_shot(int skip0, int wait)
 	{
 		//~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
 		int drive_mode_bak = 0;
+		while (lens_info.job_state > 0xA) msleep(20);
 		if (drive_mode != DRIVE_SINGLE) 
 		{
 			drive_mode_bak = drive_mode;
