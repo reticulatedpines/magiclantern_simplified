@@ -2627,7 +2627,7 @@ void EyeFi_RenameCR2toAVI(char* dir)
 
 	do {
 		if (file.mode & 0x10) continue; // is a directory
-		if (file.name[0] == '.' || file.name[0] == '_') continue;
+		if (file.name[0] == '.') continue;
 		if (!streq(file.name + 8, ".CR2")) continue;
 
 		static char oldname[50];
