@@ -146,6 +146,7 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 //~ static CONFIG_INT( "edge.draw",	edge_draw,	0 );
 static CONFIG_INT( "hist.draw",	hist_draw,	0 );
 static CONFIG_INT( "hist.colorspace",	hist_colorspace,	1 );
+static CONFIG_INT( "hist.warn",	hist_warn,	1 );
 //~ static CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 //~ static CONFIG_INT( "hist.y",		hist_y,		100 );
 static CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
@@ -509,6 +510,20 @@ hist_draw_image(
 				*col = hist_rgb_color(y, sizeR, sizeG, sizeB);
 			else
 				*col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
+		}
+		
+		if (hist_warn && i == hist_width - 1)
+		{
+			if (hist_colorspace == 1) // RGB
+			{
+				if (sizeR > 2) dot(x_origin + hist_width/2 - 30 - 16, y_origin + 10 - 16, COLOR_RED   , 7);
+				if (sizeG > 2) dot(x_origin + hist_width/2      - 16, y_origin + 10 - 16, COLOR_GREEN1, 7);
+				if (sizeB > 2) dot(x_origin + hist_width/2 + 30 - 16, y_origin + 10 - 16, COLOR_LIGHTBLUE  , 7);
+			}
+			else
+			{
+				if (size > 2) dot(x_origin + hist_width/2 - 16, y_origin + 10 - 16, COLOR_RED, 7);
+			}
 		}
 	}
 }
@@ -1735,7 +1750,11 @@ spotmeter_menu_display(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Spotmeter   : %s%s",
-		spotmeter_draw == 0 ? "OFF" : (spotmeter_formula == 0 ? "Percent" : spotmeter_formula == 1 ? "IRE -1..101" : "IRE 0..108"),
+		spotmeter_draw == 0    ? "OFF" : 
+		spotmeter_formula == 0 ? "Percent" :
+		spotmeter_formula == 1 ? "0..255" :
+		spotmeter_formula == 2 ? "IRE -1..101" 
+							   : "IRE 0..108",
 		spotmeter_draw && spotmeter_position ? ", AFF" : ""
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
@@ -1924,20 +1943,21 @@ void spotmeter_step()
 	ycb -= font_med.height/2;
 	xcb -= 2 * font_med.width;
 
-	if (spotmeter_formula == 0)
+	if (spotmeter_formula <= 1)
 	{
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
 			xcb, ycb, 
-			"%3d%%",
-			scaled
+			"%3d%s",
+			spotmeter_formula == 0 ? scaled : sum >> 8,
+			spotmeter_formula == 0 ? "%" : ""
 		);
 	}
 	else
 	{
 		int ire_aj = (((int)sum >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
 		int ire_piers = ((int)sum >> 8) * 108/255;           // formula from Piers: (0...255) -> (0...108)
-		int ire = (spotmeter_formula == 1) ? ire_aj : ire_piers;
+		int ire = (spotmeter_formula == 2) ? ire_aj : ire_piers;
 		
 		bmp_printf(
 			FONT(FONT_MED, fg, bg),
@@ -1950,7 +1970,7 @@ void spotmeter_step()
 			FONT(FONT_SMALL, fg, 0),
 			xcb + font_med.width*4, ycb,
 			"IRE\n%s",
-			spotmeter_formula == 1 ? "-1..101" : "0..108"
+			spotmeter_formula == 2 ? "-1..101" : "0..108"
 		);
 	}
 }
@@ -2333,11 +2353,12 @@ struct menu_entry zebra_menus[] = {
 				.help = "Magnification: 2:1 doubles the pixels.",
 			},
 			{
-				.name = "Split Screen", 
+				.name = "Focus confirmation", 
 				.priv = &zoom_overlay_split,
 				.max = 2,
-				.choices = (const char *[]) {"OFF", "Simple", "ZeroCross"},
-				.help = "Display focus confirmation as a split focus screen.",
+				.choices = (const char *[]) {"Green Bars", "SplitScreen", "SS ZeroCross"},
+				.icon_type = IT_DICE,
+				.help = "How to display focus confirmation (green bars or split focus screen).",
 			},
 			MENU_EOL
 		},
@@ -2404,8 +2425,8 @@ struct menu_entry zebra_menus[] = {
 			{
 				.name = "Unit",
 				.priv = &spotmeter_formula, 
-				.max = 2,
-				.choices = (const char *[]) {"Percent", "IRE -1..101", "IRE 0..108"},
+				.max = 3,
+				.choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108"},
 				.icon_type = IT_DICE,
 				.help = "Measurement unit for brightness level.",
 			},
@@ -2455,6 +2476,12 @@ struct menu_entry zebra_menus[] = {
 				.choices = (const char *[]) {"Luma", "RGB"},
 				.icon_type = IT_NAMED_COLOR,
 				.help = "Color space for histogram: Luma channel (YUV) / RGB.",
+			},
+			{
+				.name = "Clip warning",
+				.priv = &hist_warn, 
+				.max = 1,
+				.help = "Display warning dots when one color channel is clipped.",
 			},
 			MENU_EOL
 		},

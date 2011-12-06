@@ -469,7 +469,7 @@ static void crossout(int x, int y, int color)
 	}
 }
 
-static void dot(int x, int y, int color, int radius)
+void dot(int x, int y, int color, int radius)
 {
 	int r;
 	for (r = 0; r < radius; r++)
