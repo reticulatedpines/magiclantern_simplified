@@ -1904,7 +1904,7 @@ static void
 wbs_gm_toggle( void * priv, int sign )
 {
 	int gm = lens_info.wbs_gm;
-	int newgm = mod((gm + 9 + sign), 19) - 9;
+	int newgm = mod((gm + 9 - sign), 19) - 9;
 	newgm = newgm & 0xFF;
 	prop_request_change(PROP_WBS_GM, &newgm, 4);
 }
