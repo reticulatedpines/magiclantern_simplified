@@ -296,6 +296,9 @@ static uint32_t* hist_b = 0;
  * the box */
 static uint32_t hist_max;
 
+/** total number of pixels analyzed by histogram */
+static uint32_t hist_total_px;
+
 
 /** Generate the histogram data from the YUV frame buffer.
  *
@@ -323,6 +326,7 @@ hist_build()
 	if (!hist_b) return;
 
 	hist_max = 0;
+	hist_total_px = 0;
 	for( x=0 ; x<hist_width ; x++ )
 	{
 		hist[x] = 0;
@@ -349,6 +353,8 @@ hist_build()
 			uint32_t p2 = (pixel >>  0) & 0xFF00;
 			int Y = ((p1+p2) / 2) >> 8;
 
+			hist_total_px++;
+			
 			if (hist_colorspace == 1) // rgb
 			{
 				int8_t U = (pixel >>  0) & 0xFF;
@@ -518,15 +524,20 @@ hist_draw_image(
 		
 		if (hist_warn && i == hist_width - 1)
 		{
+			int thr = hist_total_px / (
+				hist_warn == 1 ? 100000 : // 0.001%
+				hist_warn == 2 ? 10000  : // 0.01%
+				hist_warn == 3 ? 1000   : // 0.01%
+				                 100);    // 1%
 			if (hist_colorspace == 1) // RGB
 			{
-				if (sizeR > 2) dot(x_origin + hist_width/2 - 30 - 16, y_origin + 10 - 16, COLOR_RED   , 7);
-				if (sizeG > 2) dot(x_origin + hist_width/2      - 16, y_origin + 10 - 16, COLOR_GREEN1, 7);
-				if (sizeB > 2) dot(x_origin + hist_width/2 + 30 - 16, y_origin + 10 - 16, COLOR_LIGHTBLUE  , 7);
+				if (hist_r[i] > thr) dot(x_origin + hist_width/2 - 30 - 16, y_origin + 10 - 16, COLOR_RED   , 7);
+				if (hist_g[i] > thr) dot(x_origin + hist_width/2      - 16, y_origin + 10 - 16, COLOR_GREEN1, 7);
+				if (hist_b[i] > thr) dot(x_origin + hist_width/2 + 30 - 16, y_origin + 10 - 16, COLOR_LIGHTBLUE  , 7);
 			}
 			else
 			{
-				if (size > 2) dot(x_origin + hist_width/2 - 16, y_origin + 10 - 16, COLOR_RED, 7);
+				if (hist[i] > thr) dot(x_origin + hist_width/2 - 16, y_origin + 10 - 16, COLOR_RED, 7);
 			}
 		}
 	}
@@ -1135,7 +1146,9 @@ draw_zebra_and_focus( int Z, int F )
 					int R = Y + 1437 * V / 1024;
 					int G = Y -  352 * U / 1024 - 731 * V / 1024;
 					int B = Y + 1812 * U / 1024;
-					
+					R = MIN(R, 255);
+					G = MIN(G, 255);
+					B = MIN(B, 255);
 					//~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
 
 					BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
@@ -1616,6 +1629,21 @@ hist_print( void * priv, int x, int y, int selected )
 		hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB"
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
+}
+
+static void
+hist_warn_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Clip warning  : %s",
+		hist_warn == 0 ? "OFF" :
+		hist_warn == 1 ? "0.001% px" :
+		hist_warn == 2 ? "0.01% px" :
+		hist_warn == 3 ? "0.1% px" : "1% px"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(hist_warn), 0);
 }
 
 static void
@@ -2484,7 +2512,8 @@ struct menu_entry zebra_menus[] = {
 			{
 				.name = "Clip warning",
 				.priv = &hist_warn, 
-				.max = 1,
+				.max = 4,
+				.display = hist_warn_display,
 				.help = "Display warning dots when one color channel is clipped.",
 			},
 			MENU_EOL
