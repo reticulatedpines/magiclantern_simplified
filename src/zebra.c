@@ -155,8 +155,12 @@ static CONFIG_INT( "waveform.size",	waveform_size,	0 );
 //~ static CONFIG_INT( "waveform.y",	waveform_y,	480 - 50 - WAVEFORM_WIDTH );
 static CONFIG_INT( "waveform.bg",	waveform_bg,	0x26 ); // solid black
 
-static CONFIG_INT( "clear.preview", clearscreen, 1); // 2 is always
+static CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
 static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
+static CONFIG_INT( "clear.preview.mode", clearscreen_mode, 0); // 2 is always
+
+// keep old program logic
+#define clearscreen (clearscreen_enabled ? clearscreen_mode+1 : 0)
 
 static CONFIG_INT( "spotmeter.size",		spotmeter_size,	5 );
 static CONFIG_INT( "spotmeter.draw",		spotmeter_draw, 1 );
@@ -1664,7 +1668,7 @@ clearscreen_display(
 	int			selected
 )
 {
-	int mode = *(int*) priv;
+	int mode = clearscreen;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -1672,7 +1676,7 @@ clearscreen_display(
 		//~ mode ? "ON (HalfShutter)" : "OFF"
 		mode == 0 ? "OFF" : 
 		mode == 1 ? "HalfShutter/DOF" : 
-		mode == 2 ? "WhenIdle" : "err"
+		mode == 2 ? "WhenIdle" : "Always"
 	);
 }
 
@@ -2516,12 +2520,23 @@ struct menu_entry zebra_menus[] = {
 	#endif
 	{
 		.name = "ClearScreen",
-		.priv			= &clearscreen,
+		.priv			= &clearscreen_enabled,
 		.display		= clearscreen_display,
-		.select			= menu_ternary_toggle,
-		.select_auto	= clearscreen_now,
-		.help = "Clear bitmap overlays from LiveView display. [Q]: clr now.",
+		.select			= menu_binary_toggle,
+		.help = "Clear bitmap overlays from LiveView display.",
 		.essential = FOR_LIVEVIEW,
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "Mode",
+				.priv = &clearscreen_mode, 
+				.min = 0,
+				.max = 2,
+				.choices = (const char *[]) {"HalfShutter", "WhenIdle", "Always"},
+				.icon_type = IT_DICE,
+				.help = "Clear screen when you hold shutter halfway or when idle.",
+			},
+			MENU_EOL
+		},
 	},
 	/*{
 		.priv			= &focus_graph,
@@ -3434,7 +3449,6 @@ clearscreen_loop:
 		{
 			if (global_draw && !gui_menu_shown())
 			{
-				static int k;
 				if (liveview_display_idle())
 				{
 					if (!canon_gui_front_buffer_disabled())
@@ -3448,6 +3462,18 @@ clearscreen_loop:
 			}
 		}
 		#endif
+		
+		if (clearscreen == 3)
+		{
+			if (liveview_display_idle())
+			{
+				bmp_off();
+			}
+			else
+			{
+				bmp_on();
+			}
+		}
 		
 		/*if (k % 10 == 0)
 		{
@@ -3867,8 +3893,8 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
 }*/
 
 int unused = 0;
-unsigned int * disp_mode_params[] = {&crop_enabled, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_enabled, &transparent_overlay, &electronic_level, &defish_preview};
-int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            3,                     2,                    1,                 1};
+unsigned int * disp_mode_params[] = {&crop_enabled, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen_enabled, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_enabled, &transparent_overlay, &electronic_level, &defish_preview};
+int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,                       2,             1,                   1,            3,                     2,                    1,                 1};
 
 void update_disp_mode_bits_from_params()
 {
