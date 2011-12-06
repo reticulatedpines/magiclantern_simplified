@@ -111,6 +111,7 @@ NSTUB( 0xff1ca338, FIO_WriteFile )
 NSTUB( 0xff1ca3e8, FIO_CloseFile )
 NSTUB( 0xff1ca564, FIO_GetFileSize )
 NSTUB( 0xFF1CAC24, FIO_CreateDirectory)
+NSTUB( 0xff1caa5c, FIO_RenameFile )
 
 NSTUB( 0xFF06E61C, give_semaphore )
 NSTUB( 0xFF06E534, take_semaphore )

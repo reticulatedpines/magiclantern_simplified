@@ -435,6 +435,8 @@ int spy_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4
 void run_test()
 {
 	msleep(2000);
+	//~ int ans = FIO_RenameFile("B:/README", "B:/FOO.BAR");
+	//~ NotifyBox(1000, "%x ", ans);
 	//~ GUI_SetMovieSize_a(2);
 	//~ struct gui_task * current = gui_task_list.current;
 	//~ struct dialog * dialog = current->priv;
@@ -1559,6 +1561,10 @@ void menu_kill_flicker()
 	canon_gui_disable_front_buffer();
 }
 
+static void CR2toAVI(void* priv)
+{
+	EyeFi_RenameCR2toAVI("B:/DCIM/100CANON");
+}
 
 struct menu_entry debug_menus[] = {
 	{
@@ -1568,6 +1574,14 @@ struct menu_entry debug_menus[] = {
 		.display	= menu_print,
 		.help = "Turn on the front LED [SET] or make display bright [Q]."
 	},
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	{
+		.priv		= "Rename CR2 to AVI",
+		.select		= CR2toAVI,
+		.display	= menu_print,
+		.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+	},
+#endif
 #if CONFIG_DEBUGMSG
 	{
 		.name = "Draw palette",
@@ -2601,3 +2615,34 @@ void display_off_force()
 }
 int display_is_on() { return !_display_is_off; }
 
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+
+void EyeFi_RenameCR2toAVI(char* dir)
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+	if( IS_ERROR(dirent) )
+		return;
+
+	do {
+		if (file.mode & 0x10) continue; // is a directory
+		if (file.name[0] == '.' || file.name[0] == '_') continue;
+		if (!streq(file.name + 8, ".CR2")) continue;
+
+		static char oldname[50];
+		static char newname[50];
+		snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+		strcpy(newname, oldname);
+		newname[strlen(newname) - 4] = 0;
+		STR_APPEND(newname, ".AVI");
+		bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+		FIO_RenameFile(oldname, newname);
+
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
+	beep();
+	redraw();
+}
+
+#endif
