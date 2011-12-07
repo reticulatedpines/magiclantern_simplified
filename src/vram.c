@@ -171,8 +171,8 @@ void update_vram_params()
 	hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
 
 #ifdef CONFIG_5D2
-	vram_hd.width  = recording ? 1872 : 1024;
-	vram_hd.height = recording ? 1053 : 680; // not sure
+	vram_hd.width  = lv_dispsize > 1 ? 1120 : recording ? 1872 : 1024;
+	vram_hd.height = lv_dispsize > 1 ?  746 : recording ? 1079 : 680; // not sure
 #endif
 #ifdef CONFIG_50D
 	vram_hd.width = recording ? 1560 : 1024;
