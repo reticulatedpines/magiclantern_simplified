@@ -279,7 +279,7 @@ void shutter_lock_step()
  		{
 			if (shutter != shutter_lock_value) // i.e. revert it if changed
 			{
-				lens_set_rawaperture(COERCE(lens_info.raw_aperture + shutter - shutter_lock_value, 16, 96));
+				//~ lens_set_rawaperture(COERCE(lens_info.raw_aperture + shutter - shutter_lock_value, 16, 96));
 				lens_set_rawshutter(shutter_lock_value);
 			}
 		}
