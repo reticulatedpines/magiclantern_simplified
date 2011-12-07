@@ -1572,7 +1572,7 @@ crop_display_submenu( void * priv, int x, int y, int selected )
 	);
 	int h = 150;
 	int w = h * 720 / 480;
-	int xc = x + 150;
+	int xc = x + 315;
 	int yc = y + font_large.height * 2 + 10;
 	reload_cropmark(crop_index);
 	bmp_fill(0, xc, yc, w, h);
@@ -2385,7 +2385,7 @@ struct menu_entry zebra_menus[] = {
 				.help = "Magnification: 2:1 doubles the pixels.",
 			},
 			{
-				.name = "Focus confirmation", 
+				.name = "Focus confirm", 
 				.priv = &zoom_overlay_split,
 				.max = 2,
 				.choices = (const char *[]) {"Green Bars", "SplitScreen", "SS ZeroCross"},

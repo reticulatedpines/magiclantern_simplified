@@ -72,7 +72,6 @@ void menu_show_only_selected()
 {
 	show_only_selected = 1;
 	menu_damage = 1;
-	if (lv) edit_mode = 1;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected || menu_hidden ); }
@@ -845,15 +844,20 @@ static void
 submenu_display(struct menu * submenu)
 {
 	if (!submenu) return;
-	
+
+	int count = 0;
+	struct menu_entry * child = submenu->children;
+	while (child) { count++; child = child->next; }
+	int h = (count + 4) * font_large.height;
+
 	int bx = 50;
-	int by = 70;
+	int by = (480 - h)/2 - 20;
 	if (!show_only_selected)
 	{
 		bmp_fill(40, x0 + bx, y0 + by, 720-2*bx+4, 50);
-		bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx+4, 250);
+		bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx+4, h-50);
 		bmp_draw_rect(70, x0 + bx, y0 + by, 720-2*bx, 50);
-		bmp_draw_rect(COLOR_WHITE, x0 + bx, y0 + by, 720-2*bx, 300);
+		bmp_draw_rect(COLOR_WHITE, x0 + bx, y0 + by, 720-2*bx, h);
 		bfnt_puts(submenu->name, x0 + bx + 15, y0 + by + 5, COLOR_WHITE, 40);
 	}
 
@@ -895,6 +899,7 @@ menu_entry_select(
 	{
 		if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
 		else if( entry->select_auto ) entry->select_auto( entry->priv, 1);
+		else menu_show_only_selected();
 		//~ else if (entry->select) entry->select( entry->priv, 1);
 		//~ else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
 	}
@@ -1237,12 +1242,10 @@ menu_handler(
 #else
 	case PRESS_UP_BUTTON:
 #endif
-		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_LEFT:
-		//~ menu_damage = 1;
+		edit_mode = 0;
 		if (menu_help_active) { menu_help_prev_page(); break; }
-		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 1 ); msleep(10); }}
-		else { menu_entry_move( menu, -1 ); show_only_selected = 0; }
+		menu_entry_move( menu, -1 ); show_only_selected = 0;
 		break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
@@ -1250,12 +1253,10 @@ menu_handler(
 #else
 	case PRESS_DOWN_BUTTON:
 #endif
-		edit_mode = 0;
 	case ELECTRONIC_SUB_DIAL_RIGHT:
-		//~ menu_damage = 1;
+		edit_mode = 0;
 		if (menu_help_active) { menu_help_next_page(); break; }
-		if (edit_mode) { int i; for (i = 0; i < 5; i++) { menu_entry_select( menu, 0 ); msleep(10); }}
-		else { menu_entry_move( menu, 1 ); show_only_selected = 0; }
+		menu_entry_move( menu, 1 ); show_only_selected = 0;
 		break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
@@ -1265,9 +1266,8 @@ menu_handler(
 #endif
 		if (!submenu_mode) edit_mode = 0;
 	case DIAL_RIGHT:
-		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_next_page(); break; }
-		if (edit_mode || submenu_mode) menu_entry_select( menu, 0 );
+		if (edit_mode || submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
 		else { menu_move( menu, 1 ); show_only_selected = 0; }
 		break;
 
@@ -1280,7 +1280,7 @@ menu_handler(
 	case DIAL_LEFT:
 		//~ menu_damage = 1;
 		if (menu_help_active) { menu_help_prev_page(); break; }
-		if (edit_mode || submenu_mode) menu_entry_select( menu, 1 );
+		if (edit_mode || submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
 		else { menu_move( menu, -1 ); show_only_selected = 0; }
 		break;
 
