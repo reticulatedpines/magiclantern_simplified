@@ -235,3 +235,116 @@ void aj_green_screen()
    msleep(10); // don't kill the battery :)
 
 } /* end of aj_green_screen() */
+
+
+
+#if 0 // doens'tworkstation
+/*************************************************************************************************
+*                                                                                                *
+*  aj_CLZ()  -  Do an asm( CLZ  )                                                                *
+*                                                                                                *
+*************************************************************************************************/
+
+unsigned int aj_CLZ( unsigned int input_num)
+{
+   asm volatile(
+
+"     CLZ r0,r0\n" 
+"     MOV r15,r14\n"     
+//===============================================
+//===============================================
+//=======   ^^ RETURN POINT OF ASM ^^  ==========
+//===============================================
+//===============================================	
+	
+      :             // Output operands   eg.  [output1]"+r"(g_r13_temp_store)
+      :             // Input operands    eg.  [input]"m"(parm1)
+      : "r0"        // eg "memory","cc"    =   Clobber list       
+   );  // end of asm volatile()
+
+   return( 666 );
+
+} /* end of aj_clz() */
+
+
+
+/********************************************************************
+*                                                                   *
+*  aj_log_length() -                                                *
+*                                                                   *
+********************************************************************/
+
+unsigned int aj_log_length( unsigned int val )
+{
+    /****************************************************************************
+    *            8 765 4321 = yclz (highest bit with 1 in it)                   *
+    *                                                                           *
+    *           val    =  1 010 0000                                            *
+    *         yclz       [1]          = Digit of first '1'bit from right = 8    *    
+    * Wipe top bit     =  x 010 0000                                            *
+    * 2 next sig bits  =         x10  = remainder                               *
+    *                                                                           *
+    *  Screen Length   = yclz x 4  + remainder = 8x4 +  1  = 33                 *
+    *****************************************************************************
+
+                          0 00 0 ->  0 x 4  + 0   = 0     (0)
+                          0 00 1 ->  1 x 4  + 0   = 4     (1)
+                          0 01 0 ->  2 x 4  + 0   = 8     (2)
+                          0 01 1 ->  2 x 4  + 2   = 10    (3)       (+2 because 1<<1)
+                          0 1 00 ->  3 x 4  + 0   = 12    (4 = 12-8) 
+                          0 1 01 ->  3 x 4  + 1   = 13    (5)
+                          0 1 10 ->  3 x 4  + 2   = 14    (6)
+                          0 1 11 ->  3 x 4  + 3   = 15    (7)
+                          1 0 00 ->  4 x 4  + 0   = 16    (8)
+     */
+
+
+   /*******************************************************************************************
+   *   Code looks cleaner hard coding the low values .. (it'll give you less of a headache!)  *
+   *******************************************************************************************/
+        
+   if ( val < 4 )
+   {
+      /* this is my first attempt
+
+      if (val == 0)
+         return( 0 );
+      if (val == 1)
+         return( 4 ); 
+      if (val == 2)
+         return( 8 );
+      return( 10 );
+      */
+
+      return( val ); // ie 0..3
+   }
+
+
+   /*******************************************************
+   *   OK .. use CLZ from ASM to count the leading Zeros  *
+   *******************************************************/
+   
+   unsigned int yclz = 32 - aj_CLZ( val );      // if val =0,        yclz= 0
+                                                // if val =2^32-1,   yclz= 32
+  
+   /********************************************        
+   *   Get 2nd and 3rd most significant bits   *              
+   ********************************************/            
+                             
+   val = (val >> (yclz - 3 ) ) & 3;     //   1 01 0000  yclz=7.  Need to shift right 4 bits.     
+ 
+   // return(  yclz*4  + val);       first attempt
+
+  
+   return(  yclz*4  + val - 8);    // first value = 12 - 8  = 4
+
+
+}  /* end of aj_log_length() */     
+ 
+#else
+int log_length(int v)
+{
+    if (!v) return 0;
+    return (int)(log2f(v) * 100);
+}
+#endif

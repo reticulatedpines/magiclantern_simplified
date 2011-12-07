@@ -109,6 +109,7 @@ static CONFIG_INT( "zoom.overlay.x2", zoom_overlay_x2, 1);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
+
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_trigger_mode() 
 { 
@@ -148,6 +149,7 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 static CONFIG_INT( "hist.draw",	hist_draw,	0 );
 static CONFIG_INT( "hist.colorspace",	hist_colorspace,	1 );
 static CONFIG_INT( "hist.warn",	hist_warn,	1 );
+static CONFIG_INT( "hist.log",	hist_log,	0 );
 //~ static CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 //~ static CONFIG_INT( "hist.y",		hist_y,		100 );
 static CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
@@ -500,13 +502,15 @@ hist_draw_image(
 	if (highlight_level >= 0) 
 		highlight_level = highlight_level * hist_width / 256;
 
+	int log_max = log_length(hist_max);
+	
 	for( i=0 ; i < hist_width ; i++ )
 	{
 		// Scale by the maximum bin value
-		const uint32_t size = (hist[i] * hist_height) / hist_max;
-		const uint32_t sizeR = (hist_r[i] * hist_height) / hist_max;
-		const uint32_t sizeG = (hist_g[i] * hist_height) / hist_max;
-		const uint32_t sizeB = (hist_b[i] * hist_height) / hist_max;
+		const uint32_t size  = hist_log ? log_length(hist[i])   * hist_height / log_max : (hist[i]   * hist_height) / hist_max;
+		const uint32_t sizeR = hist_log ? log_length(hist_r[i]) * hist_height / log_max : (hist_r[i] * hist_height) / hist_max;
+		const uint32_t sizeG = hist_log ? log_length(hist_g[i]) * hist_height / log_max : (hist_g[i] * hist_height) / hist_max;
+		const uint32_t sizeB = hist_log ? log_length(hist_b[i]) * hist_height / log_max : (hist_b[i] * hist_height) / hist_max;
 
 		uint8_t * col = row + i;
 		// vertical line up to the hist size
@@ -530,15 +534,16 @@ hist_draw_image(
 				hist_warn == 2 ? 10000  : // 0.01%
 				hist_warn == 3 ? 1000   : // 0.01%
 				                 100);    // 1%
+			int yw = y_origin + 10 - 16 + (hist_log ? hist_height - 20 : 0);
 			if (hist_colorspace == 1) // RGB
 			{
-				if (hist_r[i] > thr) dot(x_origin + hist_width/2 - 30 - 16, y_origin + 10 - 16, COLOR_RED   , 7);
-				if (hist_g[i] > thr) dot(x_origin + hist_width/2      - 16, y_origin + 10 - 16, COLOR_GREEN1, 7);
-				if (hist_b[i] > thr) dot(x_origin + hist_width/2 + 30 - 16, y_origin + 10 - 16, COLOR_LIGHTBLUE  , 7);
+				if (hist_r[i] > thr) dot(x_origin + hist_width/2 - 20 - 16, yw, COLOR_RED   , 7);
+				if (hist_g[i] > thr) dot(x_origin + hist_width/2      - 16, yw, COLOR_GREEN1, 7);
+				if (hist_b[i] > thr) dot(x_origin + hist_width/2 + 20 - 16, yw, COLOR_LIGHTBLUE  , 7);
 			}
 			else
 			{
-				if (hist[i] > thr) dot(x_origin + hist_width/2 - 16, y_origin + 10 - 16, COLOR_RED, 7);
+				if (hist[i] > thr) dot(x_origin + hist_width/2 - 16, yw, COLOR_RED, 7);
 			}
 		}
 	}
@@ -2516,6 +2521,14 @@ struct menu_entry zebra_menus[] = {
 				.choices = (const char *[]) {"Luma", "RGB"},
 				.icon_type = IT_NAMED_COLOR,
 				.help = "Color space for histogram: Luma channel (YUV) / RGB.",
+			},
+			{
+				.name = "Scaling",
+				.priv = &hist_log, 
+				.max = 1,
+				.choices = (const char *[]) {"Linear", "Logarithmic"},
+				.help = "Linear or logarithmic histogram.",
+				.icon_type = IT_DICE,
 			},
 			{
 				.name = "Clip warning",
