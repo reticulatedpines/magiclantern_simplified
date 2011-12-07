@@ -779,21 +779,21 @@ void spotmeter_step();
 
 int fps_ticks = 0;
 
-void fail(char* msg)
+/*void fail(char* msg)
 {
 	bmp_printf(FONT_LARGE, 30, 100, msg);
 	while(1) msleep(1);
-}
+}*/
 void waveform_init()
 {
 	if (!waveform)
 	{
 		waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
-		if (!waveform) fail("Waveform malloc failed");
+		//~ if (!waveform) fail("Waveform malloc failed");
 		int i;
 		for (i = 0; i < WAVEFORM_WIDTH; i++) {
 			waveform[i] = AllocateMemory(WAVEFORM_HEIGHT * sizeof(uint32_t));
-			if (!waveform[i]) fail("Waveform malloc failed");
+			//~ if (!waveform[i]) fail("Waveform malloc failed");
 		}
 	}
 }
@@ -801,16 +801,16 @@ void waveform_init()
 void histo_init()
 {
 	if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t*));
-	if (!hist) fail("Hist malloc failed");
+	//~ if (!hist) fail("Hist malloc failed");
 
 	if (!hist_r) hist_r = AllocateMemory(hist_width * sizeof(uint32_t*));
-	if (!hist_r) fail("HistR malloc failed");
+	//~ if (!hist_r) fail("HistR malloc failed");
 
 	if (!hist_g) hist_g = AllocateMemory(hist_width * sizeof(uint32_t*));
-	if (!hist_g) fail("HistG malloc failed");
+	//~ if (!hist_g) fail("HistG malloc failed");
 
 	if (!hist_b) hist_b = AllocateMemory(hist_width * sizeof(uint32_t*));
-	if (!hist_b) fail("HistB malloc failed");
+	//~ if (!hist_b) fail("HistB malloc failed");
 }
 
 void bvram_mirror_clear()
@@ -825,7 +825,7 @@ void bvram_mirror_init()
 		bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
 		if (!bvram_mirror) 
 		{	
-			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
+			//~ bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
 		bvram_mirror_clear();
