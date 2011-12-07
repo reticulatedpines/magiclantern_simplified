@@ -447,10 +447,10 @@ menu_add(
 static void batsu(int x, int y)
 {
 	int i;
-	for (i = 1; i < 5; i++)
+	for (i = 1; i < 4; i++)
 	{
-		draw_line(x + 5 + i, y + 5, x + 22 + i, y + 22, COLOR_RED);
-		draw_line(x + 22 + i, y + 5, x + 5 + i, y + 22, COLOR_RED);
+		draw_line(x + 8 + i, y + 9, x + 21 + i, y + 22, 12); // dark red
+		draw_line(x + 21 + i, y + 9, x + 8 + i, y + 22, 12);
 	}
 }
 
