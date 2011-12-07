@@ -3795,6 +3795,10 @@ void movie_start()
 		return;
 	}
 	
+	#ifdef CONFIG_500D // record button is used in ML menu => won't start recording
+	menu_stop(); msleep(200);
+	#endif
+	
 	while (get_halfshutter_pressed()) msleep(100);
 	
 	press_rec_button();
