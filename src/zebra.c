@@ -527,7 +527,8 @@ hist_draw_image(
 				*col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
 		}
 		
-		if (hist_warn && i == hist_width - 1)
+		if (hist_warn && i == hist_width - 1
+			&& !should_draw_zoom_overlay()) // magic zoom borders will be "overexposed" => will cause warning
 		{
 			int thr = hist_total_px / (
 				hist_warn == 1 ? 100000 : // 0.001%
