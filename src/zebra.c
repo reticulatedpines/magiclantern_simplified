@@ -108,6 +108,7 @@ static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
 static CONFIG_INT( "zoom.overlay.x2", zoom_overlay_x2, 1);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
+static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_trigger_mode() 
 { 
@@ -2392,6 +2393,13 @@ struct menu_entry zebra_menus[] = {
 				.icon_type = IT_DICE,
 				.help = "How to display focus confirmation (green bars or split focus screen).",
 			},
+			{
+				.name = "Look-up Table", 
+				.priv = &zoom_overlay_lut,
+				.max = 1,
+				.choices = (const char *[]) {"OFF", "CineStyle"},
+				.help = "LUT for increasing contrast in the zoom box.",
+			},
 			MENU_EOL
 		},
 	},
@@ -2892,6 +2900,42 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 	}
 }
 
+const unsigned char TechnicolLUT[256] = {
+	0,0,0,0,0,0,0,0,0,1,1,1,1,1,2,2,2,3,3,3,4,4,5,5,5,6,6,7,8,8,9,9,10,10,11,12,12,13,14,15,15,16,17,18,18,19,20,21,22,23,24,25,26,26,27,28,29,30,32,33,34,35,36,37,38,39,40,41,43,44,45,46,47,49,50,51,52,54,55,56,58,59,60,62,63,64,66,67,68,70,71,73,74,75,77,78,80,81,83,84,86,87,89,90,92,93,95,96,98,99,101,102,104,105,107,109,110,112,113,115,116,118,119,121,123,124,126,127,129,130,132,134,135,137,138,140,141,143,145,146,148,149,151,152,154,155,157,158,160,161,163,164,166,167,169,170,172,173,175,176,178,179,181,182,183,185,186,188,189,190,192,193,194,196,197,198,200,201,202,204,205,206,207,209,210,211,212,213,214,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,235,236,237,238,239,239,240,241,242,242,243,244,244,245,246,246,247,247,248,248,249,249,250,250,251,251,252,252,252,253,253,253,253,254,254,254,254,255,255,255,255,255,255,255,255,255,255 
+};
+
+void yuvcpy_lut(uint32_t* dst, uint32_t* src, int num_pix)
+{
+	dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+	src = (void*)((unsigned int)src & 0xFFFFFFFC);
+	uint32_t* last_s = src + (num_pix>>1);
+	for (; src < last_s; src++, dst++)
+	{
+		uint32_t chroma = (*src)  & 0x00FF00FF;
+		uint32_t luma1 = (*src >>  8) & 0xFF;
+		uint32_t luma2 = (*src >> 24) & 0xFF;
+		*(dst) = chroma | ((uint32_t)(TechnicolLUT[luma1]) << 8) | ((uint32_t)(TechnicolLUT[luma2]) << 24);
+	}
+}
+
+void yuvcpy_x2_lut(uint32_t* dst, uint32_t* src, int num_pix)
+{
+	dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+	src = (void*)((unsigned int)src & 0xFFFFFFFC);
+	uint32_t* last_s = src + (num_pix>>1);
+	for (; src < last_s; src++, dst += 2)
+	{
+		uint32_t chroma = (*src)  & 0x00FF00FF;
+		uint32_t luma1 = (*src >>  8) & 0xFF;
+		uint32_t luma2 = (*src >> 24) & 0xFF;
+		luma1 = TechnicolLUT[luma1];
+		luma2 = TechnicolLUT[luma2];
+		*(dst) = chroma | (luma1 << 8) | (luma1 << 24);
+		*(dst+1) = chroma | (luma2 << 8) | (luma2 << 24);
+	}
+}
+
+
 void draw_zoom_overlay(int dirty)
 {	
 	//~ if (vram_width > 720) return;
@@ -3038,7 +3082,8 @@ void draw_zoom_overlay(int dirty)
 		{
 			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
 			if (rev) off = -off;
-			yuvcpy_x2((uint32_t*)d, (uint32_t*)(s + off), W>>1);
+			if (zoom_overlay_lut) yuvcpy_x2_lut((uint32_t*)d, (uint32_t*)(s + off), W>>1);
+			else yuvcpy_x2((uint32_t*)d, (uint32_t*)(s + off), W>>1);
 			d += lv->width;
 			if (y & 1) s += hd->width;
 		}
@@ -3051,7 +3096,8 @@ void draw_zoom_overlay(int dirty)
 		{
 			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
 			if (rev) off = -off;
-			memcpy(d, s + off, W<<1);
+			if (zoom_overlay_lut) yuvcpy_lut(d, s + off, W);
+			else memcpy(d, s + off, W<<1);
 			d += lv->width;
 			s += hd->width;
 		}
