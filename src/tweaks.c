@@ -1131,6 +1131,7 @@ static void night_vision_print(
 
 void set_display_gain(int display_gain)
 {
+	if (CONTROL_BV) CONTROL_BV_ZERO = display_gain;
 	call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
 }
 
@@ -1184,8 +1185,7 @@ static void display_gain_print(
 	);
 	if (display_gain)
 	{
-		if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
-		else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+		if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 		else menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
 	}
 }

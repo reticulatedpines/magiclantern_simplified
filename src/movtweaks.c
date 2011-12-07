@@ -721,7 +721,9 @@ void bv_enable_do()
 		CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
 		CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : bv_iso;
 	}
-	CONTROL_BV_ZERO = 0;
+	
+	extern int display_gain;
+	CONTROL_BV_ZERO = display_gain;
 	bv_update_lensinfo();
 }
 

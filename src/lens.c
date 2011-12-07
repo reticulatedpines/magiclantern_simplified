@@ -1097,7 +1097,7 @@ PROP_HANDLER( PROP_ISO )
 {
 	if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
 	#ifndef CONFIG_500D
-	else if (bv_auto && buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE)
+	else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE)
 	{
 		bv_set_rawiso(buf[0]);
 		bv_auto_needed_by_iso = 0;
@@ -1120,7 +1120,7 @@ PROP_HANDLER( PROP_SHUTTER_ALSO )
 {
 	if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
 	#ifndef CONFIG_500D
-	else if (bv_auto && buf[0] && !gui_menu_shown())
+	else if (buf[0] && !gui_menu_shown())
 	{
 		bv_set_rawshutter(buf[0]);
 		bv_auto_needed_by_shutter = 0;
@@ -1134,7 +1134,7 @@ PROP_HANDLER( PROP_APERTURE2 )
 {
 	if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
 	#ifndef CONFIG_500D
-	else if (bv_auto && buf[0] && !gui_menu_shown())
+	else if (buf[0] && !gui_menu_shown())
 	{
 		bv_set_rawaperture(buf[0]);
 		bv_auto_needed_by_aperture = 0;
