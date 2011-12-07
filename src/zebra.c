@@ -1632,8 +1632,10 @@ hist_print( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"Histogram   : %s",
-		hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB"
+		"Histogram   : %s, %s%s",
+		hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB",
+		hist_log ? "Log" : "Lin",
+		hist_warn ? ", clip" : ""
 	);
 	menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
 }
