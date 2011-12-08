@@ -55,6 +55,7 @@ void draw_histogram_and_waveform();
 void schedule_transparent_overlay();
 void lens_display_set_dirty();
 void defish_draw();
+int log_length(int x);
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -62,7 +63,6 @@ static bool _bmp_cleared = false;
 static bool bmp_is_on() { return !_bmp_cleared; }
 void bmp_on();
 void bmp_off();
-void bmp_flip();
 
 #define hist_height			64
 #define hist_width			128
@@ -3006,8 +3006,8 @@ void draw_zoom_overlay(int dirty)
 			break;
 		case 2:
 		case 5:
-			W = os.x_ex * 2/3;
-			H = os.y_ex * 3/4;
+			W = os.x_ex/2;
+			H = os.y_ex/2;
 			break;
 		case 6:
 			W = 720;
@@ -3900,6 +3900,7 @@ void black_bars()
 
 void black_bars_16x9()
 {
+#ifdef CONFIG_KILL_FLICKER
 	if (!get_global_draw()) return;
 	if (video_mode_resolution > 1)
 	{
@@ -3912,6 +3913,7 @@ void black_bars_16x9()
 		bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
 		bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
 	}
+#endif
 }
 
 
