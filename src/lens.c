@@ -1575,45 +1575,26 @@ void bv_auto_update()
 /** Camera control functions */
 bool lens_set_rawaperture( int aperture)
 {
-	#ifndef CONFIG_500D
-	if (bv_auto && is_movie_mode())
-	{
-		bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
-		bv_auto_update(); 
-		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
-	}
-	#endif
-	if (!CONTROL_BV) return prop_set_rawaperture(aperture);
-	else return bv_set_rawaperture(aperture);
+	bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
+	bv_auto_update(); // auto flip between "BV" or "normal"
+	if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawaperture(aperture);
+	return !bv_auto_needed_by_aperture;
 }
 
 bool lens_set_rawiso( int iso )
 {
-	#ifndef CONFIG_500D
-	if (bv_auto && is_movie_mode())
-	{
-		bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
-		bv_auto_update(); 
-		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
-		else return bv_set_rawiso(iso);
-	}
-	#endif
-	if (!CONTROL_BV) return prop_set_rawiso(iso);
-	else return bv_set_rawiso(iso);
+	bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
+	bv_auto_update(); // auto flip between "BV" or "normal"
+	if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawiso(iso);
+	return !bv_auto_needed_by_iso;
 }
 
 bool lens_set_rawshutter( int shutter )
 {
-	#ifndef CONFIG_500D
-	if (bv_auto && is_movie_mode())
-	{
-		bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter, 1); // first try to set via property
-		bv_auto_update(); 
-		if (!bv_auto_should_enable()) return 1;                    // if not accepted, try to set it again with BV
-	}
-	#endif
-	if (!CONTROL_BV) return prop_set_rawshutter(shutter, 1);
-	else return bv_set_rawshutter(shutter);
+	bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter,1); // first try to set via property
+	bv_auto_update(); // auto flip between "BV" or "normal"
+	if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawshutter(shutter);
+	return !bv_auto_needed_by_shutter;
 }
 
 
