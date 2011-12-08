@@ -149,8 +149,8 @@ int get_expsim_auto_value()
 	#endif
 
 	// silent pic in matrix mode requires expsim on
-	extern int silent_pic_sweep_running;
-	if (silent_pic_sweep_running) return 1;
+	extern int silent_pic_running;
+	if (silent_pic_running) return 1;
 	
 	if (expsim_setting == 2)
 	{

@@ -526,238 +526,6 @@ sweep_lv()
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }*/
 
-#if 0 // does not work... out of memory?
-uint8_t* read_entire_file(const char * filename, int* buf_size)
-{
-	bmp_printf(FONT_LARGE, 0, 40, "read %s ", filename);
-	msleep(1000);
-
-	*buf_size = 0;
-	unsigned size;
-	if( FIO_GetFileSize( filename, &size ) != 0 )
-		goto getfilesize_fail;
-
-	DEBUG("File '%s' size %d bytes", filename, size);
-
-	bmp_printf(FONT_LARGE, 0, 40, "size %d ", size);
-	msleep(1000);
-
-	uint8_t * buf = alloc_dma_memory( size );
-	if( !buf )
-	{
-		DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
-		goto malloc_fail;
-	}
-
-	bmp_printf(FONT_LARGE, 0, 40, "alloc %x ", buf);
-	msleep(1000);
-
-	size_t rc = read_file( filename, buf, size );
-	if( rc != size )
-		goto read_fail;
-
-	bmp_printf(FONT_LARGE, 0, 40, "read ok ");
-	msleep(1000);
-
-	// Since the read was into uncacheable memory, it will
-	// be very slow to access.  Copy it into a cached buffer
-	// and release the uncacheable space.
-	//~ uint8_t * fast_buf = AllocateMemory( size + 32);
-	//~ if( !fast_buf )
-		//~ goto fail_buf_copy;
-
-	//~ bmp_printf(FONT_LARGE, 0, 40, "alloc fast %x ", fast_buf);
-	//~ msleep(1000);
-
-	//~ memcpy(fast_buf, buf, size);
-	//~ free_dma_memory( buf );
-	*buf_size = size;
-
-	bmp_printf(FONT_LARGE, 0, 40, "almost done ");
-	msleep(1000);
-
-	return buf;
-
-fail_buf_copy:
-read_fail:
-	free_dma_memory( buf );
-malloc_fail:
-getfilesize_fail:
-	DEBUG("failed");
-	return NULL;
-}
-
-static void
-convert_yuv_to_bmp(char* file_yuv, char* file_bmp)
-{
-	int yuv_size;
-	int width, height;
-	void* yuv = read_entire_file(file_yuv, &yuv_size);
-	if (!yuv)
-	{
-		bmp_printf(FONT_LARGE, 0, 40, "read error %s", file_yuv);
-		msleep(1000);
-		return;
-	}
-	if (yuv_size == 1056*704*2)
-	{
-		width = 1056;
-		height = 704;
-	}
-	else if (yuv_size == 1720*974*2)
-	{
-		width = 1720;
-		height = 974;
-	}
-	else
-	{
-		bmp_printf(FONT_LARGE, 0, 40, "unk yuv size: %d ", yuv_size);
-		free_dma_memory(yuv);
-		return;
-	}
-	
-	int bmp_size = width * height * 3;
-	void* bmpbuf = AllocateMemory(bmp_size + 32);
-	if (!bmpbuf)
-	{
-		bmp_printf(FONT_LARGE, 0, 40, "malloc error");
-		free_dma_memory(yuv);
-		return;
-	}
-	
-	// AJ equations for YUV -> RGB
-	// anyone wants to optimize this?
-	#define Y(i) (*(uint8_t*)(yuv + i * 2 + 1))
-	#define U(i) (*(int8_t*)(yuv + i * 4))
-	#define V(i) (*(int8_t*)(yuv + i * 4 + 2))
-	#define R(i) (*(uint8_t*)(bmpbuf + i * 3))
-	#define G(i) (*(uint8_t*)(bmpbuf + i * 3 + 1))
-	#define B(i) (*(uint8_t*)(bmpbuf + i * 3 + 2))
-	int i;
-	int N = width*height;
-	for (i = 0; i < N; i++)
-	{
-		R(i) = COERCE( Y(i) + 1.403 * V(i/2),                  0, 255);
-		G(i) = COERCE( Y(i) - 0.344 * U(i/2) - 0.714 * V(i/2), 0, 255);
-		B(i) = COERCE( Y(i) + 1.770 * U(i/2),                  0, 255);
-	}
-	#undef Y
-	#undef U
-	#undef V
-	#undef R
-	#undef G
-	#undef B
-
-	struct bmp_file_t bmp;
-	bmp.signature = 0x4D42;
-	bmp.size = bmp_size + sizeof(bmp);
-	bmp.res_0 = 0;
-	bmp.res_1 = 0;
-	bmp.image = 54; // offset
-	bmp.hdr_size = 40;
-	bmp.width = width;
-	bmp.height = height;
-	bmp.planes = 1;
-	bmp.bits_per_pixel = 24;
-	bmp.compression = 0;
-	bmp.image_size = bmp_size; // yuv buffers are always multiples of 16
-	bmp.hpix_per_meter = 2835; // from wikipedia
-	bmp.vpix_per_meter = 2835; // from wikipedia
-	bmp.num_colors = 0;
-	bmp.num_imp_colors = 0;
-
-
-	FILE *f;
-	FIO_RemoveFile(file_bmp);
-	f = FIO_CreateFile(file_bmp);
-	if (f == INVALID_PTR)
-	{
-		bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", file_bmp);
-		free_dma_memory(yuv);
-		FreeMemory(bmpbuf);
-		return;
-	}
-	FIO_WriteFile(f, &bmp, sizeof(bmp));
-	FIO_WriteFile(f, &bmpbuf, bmp_size);
-
-	FIO_CloseFile(f);
-	free_dma_memory(yuv);
-	FreeMemory(bmpbuf);
-}
-
-static void
-convert_all_yuvs_to_bmp_folder(char* folder) // folder includes /
-{
-	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( folder, &file );
-	if( IS_ERROR(dirent) )
-	{
-		bmp_printf( FONT_LARGE, 40, 40,
-			"%s: dirent=%08x!",
-			__func__,
-			(unsigned) dirent
-		);
-		return;
-	}
-
-	int k = 0;
-	do {
-		if (file.mode & 0x20) // regular file
-		{
-			char* s = strstr(file.name, ".422");
-			if (s)
-			{
-				char yuvname[100];
-				char bmpname[100];
-				snprintf(yuvname, sizeof(yuvname), "%s%s", folder, file.name);
-				*s = 0;
-				snprintf(bmpname, sizeof(yuvname), "%s%s.BMP", folder, file.name);
-				bmp_printf(FONT_MED, 0, 40, "bmp %s \nyuv %s ", bmpname, yuvname);
-				msleep(1000);
-				convert_yuv_to_bmp(yuvname, bmpname);
-				msleep(1000);
-				return;
-			}
-		}
-	} while( FIO_FindNextEx( dirent, &file ) == 0);
-}
-static void
-convert_all_yuvs_to_bmp()
-{
-	convert_yuv_to_bmp(CARD_DRIVE "DCIM/100CANON/1324-001.422", CARD_DRIVE "DCIM/100CANON/1324-001.BMP");
-	return;
-	bmp_printf(FONT_MED, 0, 40, "yuv to bmp...");
-	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/", &file );
-	if( IS_ERROR(dirent) )
-	{
-		bmp_printf( FONT_LARGE, 40, 40,
-			"%s: dirent=%08x!",
-			__func__,
-			(unsigned) dirent
-		);
-		return;
-	}
-
-	int k = 0;
-	do {
-		if ((file.mode & 0x10) && (file.name[0] != '.')) // directory
-		{
-			char folder[100];
-			snprintf(folder, sizeof(folder), CARD_DRIVE "DCIM/%s/", file.name);
-			convert_all_yuvs_to_bmp_folder(folder);
-		}
-	} while( FIO_FindNextEx( dirent, &file ) == 0);
-}
-
-int convert_yuv_bmp_flag = 0;
-static void
-convert_all_yuvs_start()
-{
-	convert_yuv_bmp_flag = 1;
-}
-#endif
-
 void vsync(volatile int* addr)
 {
 	int i;
@@ -1242,7 +1010,7 @@ silent_pic_take_lv_dbg()
 	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
 
-int silent_pic_sweep_running = 0;
+int silent_pic_running = 0;
 static void
 silent_pic_take_sweep(int interactive)
 {
@@ -1271,7 +1039,6 @@ silent_pic_take_sweep(int interactive)
 	int afx0 = afframe[2];
 	int afy0 = afframe[3];
 
-	silent_pic_sweep_running = 1;
 	int zoom = 5;
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 	msleep(1000);
@@ -1320,7 +1087,6 @@ silent_pic_take_sweep(int interactive)
 	afframe[2] = afx0;
 	afframe[3] = afy0;
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
-	silent_pic_sweep_running = 0;
 
 	bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 
@@ -1410,6 +1176,9 @@ static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
 {
 	if (!silent_pic_enabled) return;
+
+	silent_pic_running = 1;
+
 	if (!lv) force_liveview();
 
 	if (beep_enabled) Beep();
@@ -1426,6 +1195,9 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 		//~ silent_pic_take_longexp();
 
 	idle_globaldraw_en();
+
+	silent_pic_running = 0;
+
 }
 
 
