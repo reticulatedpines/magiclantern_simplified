@@ -768,7 +768,15 @@ void lens_wait_readytotakepic(int wait)
 	int i;
 	for (i = 0; i < wait * 10; i++)
 	{
-		if (lens_info.job_state <= 0xB && burst_count > 0) break;
+		if (lens_info.job_state <= 
+			
+			#ifdef CONFIG_60D
+			0xB
+			#else
+			0xA
+			#endif
+			
+			&& burst_count > 0) break;
 		msleep(20);
 	}
 }
