@@ -3523,7 +3523,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 				hdr_shutter_release(-step_size * i, 1);
 				if (hdr_check_cancel(0)) goto end;
 
-				if (steps == 2) break;
+				if (steps % 2 == 0 && i == steps/2) break;
 				
 				hdr_shutter_release(step_size * i, 1);
 				if (hdr_check_cancel(0)) goto end;
