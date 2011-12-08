@@ -1181,7 +1181,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
 	if (!lv) force_liveview();
 
-	if (beep_enabled) Beep();
+	//~ if (beep_enabled) Beep();
 	
 	idle_globaldraw_dis();
 	
@@ -4088,7 +4088,7 @@ shoot_task( void* unused )
 			else 
 			{
 				NotifyBox(5000, "HDR silent picture...");
-				if (beep_enabled) Beep();
+				//~ if (beep_enabled) Beep();
 				while (get_halfshutter_pressed()) msleep(100);
 				if (!lv) force_liveview();
 				hdr_shot(0,1);
