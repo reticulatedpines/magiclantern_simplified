@@ -432,6 +432,62 @@ int spy_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4
 		//~ return LiveViewApp_handler(dialog, tmpl, event, arg3, arg4, arg5, arg6, code);
 }
 
+#ifdef CONFIG_600D
+#define CB20 0xCB20
+#endif
+#ifdef CONFIG_60D
+#define CB20 0x2a668
+#endif
+
+//~ #define TIMER_TICK (0.00001894f)
+#define TIMER_TICK (0.00002f)
+#define FPS_TO_TIMER(fps) ((1/(float)fps) / TIMER_TICK)
+char cb20_buf[1024];
+
+int fps = 25;
+
+int video_mode[5];
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+	memcpy(video_mode, buf, 20);
+	return prop_cleanup(token, property);
+}
+
+void set_fps(void* priv, int delta)
+{
+	// toggle the setting from menu
+	fps = COERCE(fps + delta, 5, 60);
+	
+	// offsets seem identical on 60D, at least first 5
+    unsigned int cb20_dest;
+    unsigned int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+    
+    cb20_dest = *((unsigned int *)CB20);
+    memcpy(cb20_buf, (unsigned char*)cb20_dest,  sizeof(cb20_buf));
+    
+    *((unsigned int *)CB20) = (unsigned int)cb20_buf;
+    
+    /* patching mode 3 */
+    /* first sensor update timer */
+    ((uint16_t*)cb20_buf)[mode_offset_map[3]] = (int)FPS_TO_TIMER(fps);
+    
+    // not sure what this does, seems to work without it :P
+    /* then the CBR processing speed? not sure what to write here. just a wild guess */
+    //~ ((uint16_t*)cb20_buf)[0x2A + mode_offset_map[3]] = 0x03B0;    
+
+
+	// flip to 24p/25p to apply settings instantly
+	video_mode[2] = 24;
+	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+	msleep(100);
+	video_mode[2] = 25;
+	//~ video_mode[3] = fps/2;
+	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+
+	// show LiveView preview
+	menu_show_only_selected();
+}
+
 void run_test()
 {
 	msleep(2000);
@@ -1567,13 +1623,14 @@ static void CR2toAVI(void* priv)
 }
 
 struct menu_entry debug_menus[] = {
+	#if 0
 	{
-		.priv		= "Flashlight [SET/Q]",
-		.select		= flashlight_frontled,
-		.select_auto = flashlight_lcd,
-		.display	= menu_print,
-		.help = "Turn on the front LED [SET] or make display bright [Q]."
+		.name = "FPS override", 
+		.priv = &fps,
+		.select = set_fps,
+		.help = "Makes French Fries with the camera sensor."
 	},
+	#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
 		.priv		= "Rename CR2 to AVI",
@@ -1582,6 +1639,13 @@ struct menu_entry debug_menus[] = {
 		.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
 	},
 #endif
+	{
+		.priv		= "Flashlight [SET/Q]",
+		.select		= flashlight_frontled,
+		.select_auto = flashlight_lcd,
+		.display	= menu_print,
+		.help = "Turn on the front LED [SET] or make display bright [Q]."
+	},
 #if CONFIG_DEBUGMSG
 	{
 		.name = "Draw palette",
