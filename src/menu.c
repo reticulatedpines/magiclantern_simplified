@@ -62,7 +62,7 @@ int get_menu_font_sel()
 	else return FONT(FONT_LARGE,COLOR_WHITE,13);
 }
 
-static void menu_help_go_to_selected_entry();
+static void menu_help_go_to_selected_entry(struct menu * menu);
 //~ static void menu_init( void );
 static void menu_show_version(void);
 static struct menu * get_current_submenu();
@@ -1183,8 +1183,12 @@ menu_handler(
 	menu_entry_move(menu, -1);
 	menu_entry_move(menu, 1);
 	
+	struct menu * help_menu = menu;
 	if (submenu_mode)
+	{
+		help_menu = menu;
 		menu = get_current_submenu();
+	}
 	
 	switch( event )
 	{
@@ -1308,7 +1312,7 @@ menu_handler(
 	case PRESS_INFO_BUTTON:
 		menu_help_active = !menu_help_active;
 		show_only_selected = 0;
-		if (menu_help_active) menu_help_go_to_selected_entry(menu);
+		if (menu_help_active) menu_help_go_to_selected_entry(help_menu);
 		//~ menu_damage = 1;
 		break;
 
