@@ -2911,8 +2911,11 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 	uint32_t* last_s = src + (num_pix>>1);
 	for (; src < last_s; src++, dst += 2)
 	{
-		*(dst) = ((*src) & 0x00FFFFFF) | (((*src) & 0x0000FF00) << 16);
-		*(dst+1) = ((*src) & 0xFFFF00FF) | (((*src) & 0xFF000000) >> 16);
+		uint32_t chroma = (*src)  & 0x00FF00FF;
+		uint32_t luma1 = (*src >>  8) & 0xFF;
+		uint32_t luma2 = (*src >> 24) & 0xFF;
+		*(dst) = chroma | (luma1 << 8) | (luma1 << 24);
+		*(dst+1) = chroma | (luma2 << 8) | (luma2 << 24);
 	}
 }
 
