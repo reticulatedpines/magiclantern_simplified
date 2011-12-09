@@ -2324,7 +2324,7 @@ struct menu_entry zebra_menus[] = {
 		.priv			= &focus_peaking,
 		.display		= focus_peaking_display,
 		.select			= menu_binary_toggle,
-		.help = "Show tiny dots on focused edges. Params: method,thr,color.",
+		.help = "Show tiny dots on focused edges.",
 		.essential = FOR_LIVEVIEW,
 		.children =  (struct menu_entry[]) {
 			{
@@ -2399,7 +2399,7 @@ struct menu_entry zebra_menus[] = {
 				.max = 2,
 				.choices = (const char *[]) {"Green Bars", "SplitScreen", "SS ZeroCross"},
 				.icon_type = IT_DICE,
-				.help = "How to display focus confirmation (green bars or split focus screen).",
+				.help = "How to show focus confirmation (green bars / split screen).",
 			},
 			{
 				.name = "Look-up Table", 
@@ -2425,7 +2425,7 @@ struct menu_entry zebra_menus[] = {
 				.select = crop_toggle,
 				.display	= crop_display_submenu,
 				.icon_type = IT_ALWAYS_ON,
-				.help = "You can draw your own cromparks in Paint.",
+				.help = "You can draw your own cropmarks in Paint.",
 			},
 			{
 				.name = "Show in",
@@ -2451,7 +2451,7 @@ struct menu_entry zebra_menus[] = {
 		.priv = &defish_preview, 
 		.display = defish_preview_display, 
 		.select = menu_binary_toggle,
-		.help = "Preview rectilinear image from Samyang 8mm fisheye (gray).",
+		.help = "Preview rectilinear image from Samyang 8mm fisheye.",
 		.essential = FOR_PLAYBACK,
 	},
 	{
@@ -2697,7 +2697,22 @@ struct menu_entry livev_cfg_menus[] = {
 		.priv		= &disp_profiles_0,
 		.select		= menu_quaternary_toggle,
 		.display	= disp_profiles_0_display,
-		.help = "No. of LiveV disp. presets. Switch w Metering or ISO+DISP."
+		.help = "No. of LiveV display presets. Switch with"
+				#ifdef CONFIG_550D
+				"ISO+Disp or Flash."
+				#endif
+				#ifdef CONFIG_500D
+				"ISO+Disp."
+				#endif
+				#ifdef CONFIG_600D
+				"ISO+Info or Disp."
+				#endif
+				#ifdef CONFIG_60D
+				"Metering button."
+				#endif
+				#ifdef CONFIG_5D2
+				"Joystick press."
+				#endif
 	},
 };
 

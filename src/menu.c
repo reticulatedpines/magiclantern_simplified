@@ -1428,7 +1428,7 @@ menu_init( void )
 */
 }
 
-
+/*
 CONFIG_INT("guimode.ml.menu", guimode_ml_menu, 2);
 
 static void
@@ -1449,6 +1449,7 @@ guimode_ml_menu_print(
 
 static void guimode_ml_menu_inc(void* priv) { guimode_ml_menu++; }
 static void guimode_ml_menu_dec(void* priv) { guimode_ml_menu--; }
+*/
 
 // this function should be called only from gui event handlers
 void

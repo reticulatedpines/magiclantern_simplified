@@ -3011,21 +3011,21 @@ static struct menu_entry shoot_menus[] = {
 		.essential = FOR_PHOTO,
 		.children =  (struct menu_entry[]) {
 			{
-				.name = "Take a pic every",
+				//~ .name = "Take a pic every",
 				.priv		= &interval_timer_index,
 				.display	= interval_timer_display,
 				.select		= interval_timer_toggle,
 				.help = "Duration between two shots.",
 			},
 			{
-				.name = "Bulb Ramping",
+				//~ .name = "Bulb Ramping",
 				.priv		= &bulb_ramping_enabled,
 				.select		= menu_binary_toggle,
 				.display	= bulb_ramping_display,
 				.help = "Automatic bulb ramping for day-to-night timelapse.",
 			},
 			{
-				.name = "Stop REC after",
+				//~ .name = "Stop REC after",
 				.priv		= &interval_movie_duration_index,
 				.display	= interval_movie_stop_display,
 				.select		= interval_timer_toggle,
@@ -3043,7 +3043,7 @@ static struct menu_entry shoot_menus[] = {
 		.essential = FOR_PHOTO,
 		.children =  (struct menu_entry[]) {
 			{
-				.name = "Bulb exposure",
+				//~ .name = "Bulb exposure",
 				.select = bulb_toggle,
 				.display = bulb_display_submenu,
 			},
@@ -3293,35 +3293,35 @@ static struct menu_entry expo_menus[] = {
 		.essential = FOR_MOVIE,
 		.children =  (struct menu_entry[]) {
 			{
-				.name = "PictureStyle",
+				//~ .name = "PictureStyle",
 				.display	= picstyle_display_submenu,
 				.select		= picstyle_toggle,
 				.help = "Change current picture style.",
 				.show_liveview = 1,
 			},
 			{
-				.name = "Contrast/Saturation/Sharpness",
+				//~ .name = "Contrast/Saturation/Sharpness",
 				.display	= sharpness_display,
 				.select		= sharpness_toggle,
 				.help = "Adjust sharpness in current picture style.",
 				.show_liveview = 1,
 			},
 			{
-				.name = "Contrast/Saturation/Sharpness",
+				//~ .name = "Contrast/Saturation/Sharpness",
 				.display	= contrast_display,
 				.select		= contrast_toggle,
 				.help = "Adjust contrast in current picture style.",
 				.show_liveview = 1,
 			},
 			{
-				.name = "Contrast/Saturation/Sharpness",
+				//~ .name = "Contrast/Saturation/Sharpness",
 				.display	= saturation_display,
 				.select		= saturation_toggle,
 				.help = "Adjust saturation in current picture style.",
 				.show_liveview = 1,
 			},
 			{
-				.name = "Contrast/Saturation/Sharpness",
+				//~ .name = "Contrast/Saturation/Sharpness",
 				.display	= color_tone_display,
 				.select		= color_tone_toggle,
 				.help = "Adjust color tone in current picture style.",
