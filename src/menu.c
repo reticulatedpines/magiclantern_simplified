@@ -367,6 +367,8 @@ menu_add(
 	struct menu *		menu = menu_find_by_name( name, 0);
 	if( !menu )
 		return;
+	
+	int count0 = count; // for submenus
 
 	take_semaphore( menu_sem, 0 );
 
@@ -404,7 +406,7 @@ menu_add(
 	// create submenus
 	
 	struct menu_entry * entry = head;
-	for (int i = 0; i <= count; i++)
+	for (int i = 0; i < count0; i++)
 	{
 		if (entry->children)
 		{
