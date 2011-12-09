@@ -346,12 +346,12 @@ void ChangeHDMIOutputSizeToFULLHD()
 #define CB20 0x2a668
 #endif
 
-//~ #define TIMER_TICK (0.00001894f)
-#define TIMER_TICK (0.00002f)
+#define TIMER_TICK (0.000018939393939393f)
+//~ #define TIMER_TICK (0.00002f)
 #define FPS_TO_TIMER(fps) ((1/(float)fps) / TIMER_TICK)
 char cb20_buf[1024];
 
-int fps = 25;
+int fps = 30;
 
 int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -374,10 +374,11 @@ void set_fps(void* priv, int delta)
     
     *((unsigned int *)CB20) = (unsigned int)cb20_buf;
     
-    /* patching mode 3 */
+    /* patching mode 2 - 30fps */
     /* first sensor update timer */
-    ((uint16_t*)cb20_buf)[mode_offset_map[3]] = (int)FPS_TO_TIMER(fps);
-    
+    int fps_timer = (int)FPS_TO_TIMER(fps);
+    ((uint16_t*)cb20_buf)[mode_offset_map[2]] = fps_timer;
+
     // not sure what this does, seems to work without it :P
     /* then the CBR processing speed? not sure what to write here. just a wild guess */
     //~ ((uint16_t*)cb20_buf)[0x2A + mode_offset_map[3]] = 0x03B0;    
@@ -387,7 +388,7 @@ void set_fps(void* priv, int delta)
 	video_mode[2] = 24;
 	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
 	msleep(100);
-	video_mode[2] = 25;
+	video_mode[2] = 30;
 	//~ video_mode[3] = fps/2;
 	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
 
@@ -399,6 +400,12 @@ void set_fps(void* priv, int delta)
 void run_test()
 {
 	msleep(2000);
+	DEBUG_LOG_THIS(
+		video_mode[0] = 0xc;
+		video_mode[4] = 2;
+		prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+	)
+
 	//~ int ans = FIO_RenameFile("B:/README", "B:/FOO.BAR");
 	//~ NotifyBox(1000, "%x ", ans);
 	//~ GUI_SetMovieSize_a(2);
@@ -423,11 +430,11 @@ void run_test()
 void xx_test(void* priv)
 {
 	//~ #ifdef CONFIG_550D
-	//~ gui_stop_menu();
+	gui_stop_menu();
 	//~ SetGUIRequestMode(29); // Jackie Chan :)
 	//~ #endif
 	//~ *(uint8_t*)0x14c08 = 0x3;
-	gui_stop_menu();
+	//~ gui_stop_menu();
 	//~ set_display_gain(512);
 	task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
 	//~ guiNotifyDialogRefresh();
@@ -1125,6 +1132,7 @@ void roll_spy()
 }
 #endif
 
+PROP_INT(0x8005002E, dzoom);
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -1155,6 +1163,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
+		bmp_printf(FONT_LARGE, 50, 50, "%x ", MEM(MEM(0x3EE8)));
 		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
