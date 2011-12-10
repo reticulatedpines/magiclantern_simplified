@@ -518,6 +518,8 @@ void fps_change_all_modes(int fps)
 
 void reset_fps(void* priv, int delta)
 {
+	if (recording) return;
+
 	fps_override = 0;
 	fps_change_all_modes(0);
 	menu_show_only_selected();
@@ -525,6 +527,8 @@ void reset_fps(void* priv, int delta)
 
 void set_fps(void* priv, int delta)
 {
+	if (recording) return;
+
 	// first click won't change value
 	int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
 	if (fps_override) fps = COERCE(fps + delta, 5, 60);
