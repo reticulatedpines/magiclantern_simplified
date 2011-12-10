@@ -440,6 +440,7 @@ fps_print(
 
 void fps_change_mode(int mode, int fps)
 {
+    int ntsc = (mode % 2 == 0);
     /** 
      * 60fps = mode 0 - NTSC
      * 50fps = mode 1
@@ -448,25 +449,32 @@ void fps_change_mode(int mode, int fps)
      * 24fps = mode 4 - NTSC?
      **/
 
-
-    // NTSC is 29.97, not 30
-    int ntsc = (mode % 2 == 0);
-    int fps_x1000 = ntsc ? (fps * 1000 * 1000 / 1001) : (fps * 1000);
-    
-    // for PAL, 12.5 fps and 6.25 fps may be better rounding choices
-    if (fps_x1000 == 13000) fps_x1000 = 12500;
-    if (fps_x1000 == 6000) fps_x1000 = 6250; 
-    if (fps_x1000 == 3000) fps_x1000 = 3125; 
+    int fps_x1000 = fps * 1000;
 
     // convert fps into timer ticks (for sensor drive speed)
-    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
-    int fps_timer_default = sensor_timing_table_original[mode_offset_map[mode]];
+    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000*1000/1001) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
 
-    // make sure we set a valid value
+    // make sure we set a valid value (don't drive it too fast)
     int fps_timer_absolute_minimum = sensor_timing_table_original[21 + mode_offset_map[mode]];
     fps_timer = MAX(fps_timer_absolute_minimum * 120/100, fps_timer);
+
+    // NTSC is 29.97, not 30
+    // also try to round it in order to avoid flicker
+    if (ntsc)
+    {
+        int timer_120hz = FPS_x1000_TO_TIMER_NTSC(120000*1000/1001);
+        int fps_timer_rounded = ((fps_timer + timer_120hz/2) / timer_120hz) * timer_120hz;
+        if (ABS(TIMER_TO_FPS_x1000_NTSC(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+    }
+    else
+    {
+        int timer_100hz = FPS_x1000_TO_TIMER_PAL(100000);
+        int fps_timer_rounded = ((fps_timer + timer_100hz/2) / timer_100hz) * timer_100hz;
+        if (ABS(TIMER_TO_FPS_x1000_PAL(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+    }
     
     // fps = 0 means "don't override, use default"
+    int fps_timer_default = sensor_timing_table_original[mode_offset_map[mode]];
     sensor_timing_table_patched[mode_offset_map[mode]] = fps ? fps_timer : fps_timer_default;
 
     // use the patched sensor table
