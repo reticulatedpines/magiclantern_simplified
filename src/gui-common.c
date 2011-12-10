@@ -15,7 +15,7 @@ int handle_other_events(struct event * event)
 	extern int ml_started;
 	if (!ml_started) return 1;
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 	if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
 	{
 		if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle())
@@ -126,7 +126,7 @@ int handle_common_events_by_feature(struct event * event)
 	#endif
 	
 	#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-	if (MENU_MODE && event->param == BGMT_Q || event->param == BGMT_Q_ALT)
+	if (MENU_MODE && (event->param == BGMT_Q || event->param == BGMT_Q_ALT))
 	#endif
 	#ifdef CONFIG_50D
 	if (MENU_MODE && event->param == BGMT_FUNC)

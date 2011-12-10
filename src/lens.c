@@ -30,10 +30,6 @@
 #include "menu.h"
 #include "math.h"
 
-#ifdef CONFIG_1100D
-#include "disable-this-module.h"
-#endif
-
 void update_stuff();
 
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);

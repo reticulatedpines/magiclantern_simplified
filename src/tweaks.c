@@ -17,11 +17,6 @@
 void display_gain_toggle(void* priv, int dir);
 void clear_lv_affframe();
 
-
-#if defined(CONFIG_1100D)
-#include "disable-this-module.h"
-#endif
-
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
 static void

@@ -13,10 +13,6 @@
 #include "config.h"
 #include "ptp.h"
 
-#ifdef CONFIG_1100D
-#include "disable-this-module.h"
-#endif
-
 void trap_focus_toggle_from_af_dlg();
 
 int override_zoom_buttons; // while focus menu is active and rack focus items are selected

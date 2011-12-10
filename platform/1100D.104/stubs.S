@@ -215,3 +215,6 @@ NSTUB(0xff2277f0, dialog_set_property_str)
 
 NSTUB(0xff416874, fsuDecodePartitionTable)
 NSTUB(0xFF300BA0, LiveViewApp_handler)
+NSTUB(0xff3765fc, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
+NSTUB(0xff377c4c, LiveViewApp_handler_end) // start of next function
+NSTUB(0xff3714ac, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer

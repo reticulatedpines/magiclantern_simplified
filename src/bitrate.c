@@ -11,10 +11,6 @@
 #include "gui.h"
 #include "lens.h"
 
-#if defined(CONFIG_1100D)
-#include "disable-this-module.h"
-#endif
-
 //----------------begin qscale-----------------
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR

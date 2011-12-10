@@ -46,6 +46,9 @@
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3960) // GUIMode_maybe in Indy's IDC
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0xCBD0) != 0x17) // dec CancelUnaviFeedBackTimer
+
+
 // From CURRENT_DIALOG_MAYBE
 #define DLG_WB 0x2b
 #define DLG_FOCUS_MODE 9
@@ -142,6 +145,7 @@
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 
 #define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
 
 #define BULB_MIN_EXPOSURE 1000
 

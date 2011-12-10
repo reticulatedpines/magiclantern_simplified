@@ -64,4 +64,3 @@ void display_lcd_remote_icon(int x0, int y0) {}
 
 void ChangeColorPalette(){}
 void HideBottomInfoDisp_maybe(){}
-int new_LiveViewApp_handler = 0xff123456;

@@ -39,10 +39,6 @@
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
-#ifdef CONFIG_1100D
-#include "disable-this-module.h"
-#endif
-
 int lv_paused = 0;
 
 void waveform_init();
