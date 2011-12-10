@@ -512,8 +512,10 @@ void fps_change_all_modes(int fps)
 		f0 == 50 ? 25 :
 	  /*f0 == 60*/ 30;
 	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+	msleep(50);
 	video_mode[2] = f0;
 	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+	msleep(50);
 }
 
 void reset_fps(void* priv, int delta)
