@@ -275,3 +275,5 @@ NSTUB(0xff37281c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xff373e00, LiveViewApp_handler_end) // start of next function
 
 NSTUB(0xff0a5bdc, GUI_SetLvDZoomKey)
+
+NSTUB(0x52940, lv_path_struct) // first arg of SelectPathDriveMode

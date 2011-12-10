@@ -338,7 +338,15 @@ void ChangeHDMIOutputSizeToFULLHD()
 }
 
 
-#if 1
+#ifdef CONFIG_600D
+#define SENSOR_TIMING_TABLE MEM(0xCB20)
+#endif
+#ifdef CONFIG_60D
+#define SENSOR_TIMING_TABLE MEM(0x2a668)
+#endif
+
+#ifdef SENSOR_TIMING_TABLE
+
 /** 
  * FPS control
  * http://magiclantern.wikia.com/wiki/VideoTimer
@@ -358,13 +366,6 @@ struct lv_path_struct
 };
 
 extern struct lv_path_struct lv_path_struct;
-
-#ifdef CONFIG_600D
-#define SENSOR_TIMING_TABLE MEM(0xCB20)
-#endif
-#ifdef CONFIG_60D
-#define SENSOR_TIMING_TABLE MEM(0x2a668)
-#endif
 
 #define TG_FREQ_PAL  50000000
 #define TG_FREQ_NTSC 52747252
