@@ -36,7 +36,7 @@ int handle_other_events(struct event * event)
 			bottom_bar_dirty = 0;
 		}
 
-		#ifdef CONFIG_60D
+		#ifndef CONFIG_550D
 
 		if (UNAVI_FEEDBACK_TIMER_ACTIVE)
 		{
