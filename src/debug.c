@@ -344,6 +344,9 @@ void ChangeHDMIOutputSizeToFULLHD()
 #ifdef CONFIG_60D
 #define SENSOR_TIMING_TABLE MEM(0x2a668)
 #endif
+#ifdef CONFIG_1100D
+#define SENSOR_TIMING_TABLE MEM(0xce98)
+#endif
 
 #ifdef SENSOR_TIMING_TABLE
 
