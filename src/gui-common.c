@@ -23,7 +23,7 @@ int handle_other_events(struct event * event)
 			// install a modified handler which does not activate bottom bar display timer
 			reloc_liveviewapp_install(); 
 			
-			#ifndef CONFIG_60D // might also work on 600D; doesn't work on 60D
+			#ifdef CONFIG_550D
 			// force bottom bar state to "hidden" (when you press shutter halfway, ISO... etc)
 			LV_BOTTOM_BAR_STATE = 0;
 			#else
