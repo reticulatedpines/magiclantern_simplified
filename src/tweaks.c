@@ -131,7 +131,7 @@ int get_expsim_auto_value()
 	if (bulb_ramp_calibration_running) 
 		return 0; // temporarily disable ExpSim to make sure display gain will work
 	
-	#ifdef CONFIG_50D
+	#if defined(CONFIG_50D) || defined(CONFIG_5D2)
 	if (is_movie_mode()) return expsim_setting;
 	#else
 	if (is_movie_mode()) return 2;
