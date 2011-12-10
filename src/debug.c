@@ -483,8 +483,10 @@ void fps_change_all_modes(int fps)
 	else
 	{
 		// patch all video modes
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 2; i++)
 			fps_change_mode(i, fps);
+		for (int i = 2; i < 5; i++)
+			fps_change_mode(i, MIN(fps, 35));
 	}
 
 	if (!lv) return;
@@ -513,7 +515,7 @@ void set_fps(void* priv, int delta)
 {
 	// first click won't change value
 	int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-	if (fps_override) fps = COERCE(fps + delta, 1, 70);
+	if (fps_override) fps = COERCE(fps + delta, 5, 60);
 	fps_override = 1;
 	
 	fps_change_all_modes(fps);
