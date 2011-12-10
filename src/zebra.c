@@ -2512,6 +2512,7 @@ struct menu_entry zebra_menus[] = {
 		.max = 1,
 		.display = hist_print,
 		.help = "Exposure aid: shows the distribution of brightness levels.",
+		.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
 		.children =  (struct menu_entry[]) {
 			{
 				.name = "Color space",
