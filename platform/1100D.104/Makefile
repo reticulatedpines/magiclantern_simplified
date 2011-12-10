@@ -57,6 +57,7 @@ ML_OBJS-y = \
 	liveview.o \
 	reloc.o \
 	aj_port.o \
+	fps.o \
 
 #include generic rules and definitions
 

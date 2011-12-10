@@ -264,3 +264,4 @@ NSTUB(0xFF300BA0, LiveViewApp_handler)
 NSTUB(0xFF3010F4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF30204C, LiveViewApp_handler_end) // start of next function
 
+NSTUB(0xff4b39ac, lv_path_struct)
