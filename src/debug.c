@@ -338,20 +338,46 @@ void ChangeHDMIOutputSizeToFULLHD()
 }
 
 
-#if 0
+#if 1
+/** 
+ * FPS control
+ * http://magiclantern.wikia.com/wiki/VideoTimer
+ * 
+ * Found by g3gg0
+ **/
+
+struct lv_path_struct
+{
+	int SM; // ?! 1 in video mode, 0 in zoom and photo mode
+	int fps_sensor_mode; // 24p:4, 25p:3, 30p:2, 50p:1, 60p:0
+	int S; // 1920:0, 720:1, vgacrop:4, zoom:8
+	int R; // movie size: 1920:0, 720:1, 480:2
+	int Z; // (1 / 5 / A) << 16
+	int recording;
+	int DZ; // bool?
+};
+
+extern struct lv_path_struct lv_path_struct;
+
 #ifdef CONFIG_600D
-#define CB20 0xCB20
+#define SENSOR_TIMING_TABLE MEM(0xCB20)
 #endif
 #ifdef CONFIG_60D
-#define CB20 0x2a668
+#define SENSOR_TIMING_TABLE MEM(0x2a668)
 #endif
 
-#define TIMER_TICK (0.000018939393939393f)
-//~ #define TIMER_TICK (0.00002f)
-#define FPS_TO_TIMER(fps) ((1/(float)fps) / TIMER_TICK)
-char cb20_buf[1024];
+#define TG_FREQ_PAL  50000000
+#define TG_FREQ_NTSC 52747252
 
-int fps = 30;
+#define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
+#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC/(fps_x1000))
+#define TIMER_TO_FPS_x1000_PAL(t) (TG_FREQ_PAL/(t))
+#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC/(t))
+
+uint16_t * sensor_timing_table_original = 0;
+uint16_t sensor_timing_table_patched[128];
+
+int fps_override = 0;
 
 int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -360,52 +386,146 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 	return prop_cleanup(token, property);
 }
 
-void set_fps(void* priv, int delta)
+void fps_init()
 {
-	// toggle the setting from menu
-	fps = COERCE(fps + delta, 5, 60);
+	// make a copy of the original sensor timing table (so we can patch it)
+	sensor_timing_table_original = (void*)SENSOR_TIMING_TABLE;
+	memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
+}
+
+INIT_FUNC("fps", fps_init);
+
+const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+
+int fps_get_current_x1000()
+{
+	int mode = 
+		video_mode_fps == 60 ? 0 : 
+		video_mode_fps == 50 ? 1 : 
+		video_mode_fps == 30 ? 2 : 
+		video_mode_fps == 25 ? 3 : 
+		video_mode_fps == 24 ? 4 : 0;
+    int fps_timer = ((uint16_t*)SENSOR_TIMING_TABLE)[mode_offset_map[mode]];
+    int ntsc = (mode % 2 == 0);
+    int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
+    return fps_x1000;
+}
+
+static void
+fps_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int current_fps = fps_get_current_x1000();
 	
-	// offsets seem identical on 60D, at least first 5
-    unsigned int cb20_dest;
-    unsigned int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
-    
-    cb20_dest = *((unsigned int *)CB20);
-    memcpy(cb20_buf, (unsigned char*)cb20_dest,  sizeof(cb20_buf));
-    
-    *((unsigned int *)CB20) = (unsigned int)cb20_buf;
-    
-    /* patching mode 2 - 30fps */
-    /* first sensor update timer */
-    int fps_timer = (int)FPS_TO_TIMER(fps);
-    ((uint16_t*)cb20_buf)[mode_offset_map[2]] = fps_timer;
+	char msg[30];
+	snprintf(msg, sizeof(msg), "%d (%d.%03d)", 
+		(current_fps+500)/1000, 
+		current_fps/1000, current_fps%1000
+		);
+	
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"FPS override : %s",
+		fps_override ? msg : "OFF"
+	);
+	menu_draw_icon(x, y, MNI_BOOL(SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
+	//~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
+}
 
-    // not sure what this does, seems to work without it :P
-    /* then the CBR processing speed? not sure what to write here. just a wild guess */
-    //~ ((uint16_t*)cb20_buf)[0x2A + mode_offset_map[3]] = 0x03B0;    
+void fps_change_mode(int mode, int fps)
+{
+    /** 
+     * 60fps = mode 0 - NTSC
+     * 50fps = mode 1
+     * 30fps = mode 2 - NTSC
+     * 25fps = mode 3
+     * 24fps = mode 4 - NTSC?
+     **/
 
 
-	// flip to 24p/25p to apply settings instantly
-	video_mode[2] = 24;
+    // NTSC is 29.97, not 30
+    int ntsc = (mode % 2 == 0);
+    int fps_x1000 = ntsc ? (fps * 1000 * 1000 / 1001) : (fps * 1000);
+    
+    // for PAL, 12.5 fps and 6.25 fps may be better rounding choices
+    if (fps_x1000 == 13000) fps_x1000 = 12500;
+    if (fps_x1000 == 6000) fps_x1000 = 6250; 
+    if (fps_x1000 == 3000) fps_x1000 = 3125; 
+
+    // convert fps into timer ticks (for sensor drive speed)
+    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
+    int fps_timer_default = sensor_timing_table_original[mode_offset_map[mode]];
+
+    // make sure we set a valid value
+    int fps_timer_absolute_minimum = sensor_timing_table_original[21 + mode_offset_map[mode]];
+    fps_timer = MAX(fps_timer_absolute_minimum * 120/100, fps_timer);
+    
+    // fps = 0 means "don't override, use default"
+    sensor_timing_table_patched[mode_offset_map[mode]] = fps ? fps_timer : fps_timer_default;
+
+    // use the patched sensor table
+    SENSOR_TIMING_TABLE = sensor_timing_table_patched;
+}
+
+void fps_change_all_modes(int fps)
+{
+	if (!fps)
+	{
+		// use the original sensor table (firmware default)
+		SENSOR_TIMING_TABLE = sensor_timing_table_original;
+	}
+	else
+	{
+		// patch all video modes
+		for (int i = 0; i < 5; i++)
+			fps_change_mode(i, fps);
+	}
+
+	if (!lv) return;
+
+	// flip video mode back and forth to apply settings instantly
+	int f0 = video_mode[2];
+	video_mode[2] = 
+		f0 == 24 ? 30 : 
+		f0 == 25 ? 50 : 
+		f0 == 30 ? 24 : 
+		f0 == 50 ? 25 :
+	  /*f0 == 60*/ 30;
 	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-	msleep(100);
-	video_mode[2] = 30;
-	//~ video_mode[3] = fps/2;
+	video_mode[2] = f0;
 	prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+}
 
-	// show LiveView preview
+void reset_fps(void* priv, int delta)
+{
+	fps_override = 0;
+	fps_change_all_modes(0);
 	menu_show_only_selected();
 }
+
+void set_fps(void* priv, int delta)
+{
+	// first click won't change value
+	int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
+	if (fps_override) fps = COERCE(fps + delta, 1, 70);
+	fps_override = 1;
+	
+	fps_change_all_modes(fps);
+	menu_show_only_selected();
+}
+
 #endif
 
 void run_test()
 {
 	msleep(2000);
-	DEBUG_LOG_THIS(
-		video_mode[0] = 0xc;
-		video_mode[4] = 2;
-		prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-	)
-
+	//~ lv_path_struct.Z = 0x50000;
+	//~ beep();
 	//~ int ans = FIO_RenameFile("B:/README", "B:/FOO.BAR");
 	//~ NotifyBox(1000, "%x ", ans);
 	//~ GUI_SetMovieSize_a(2);
@@ -1155,7 +1275,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*30);
-		//~ bmp_hexdump(FONT_SMALL, 0, 200, aff, 32*5);
+		//~ bmp_hexdump(FONT_SMALL, 0, 200, &lv_path_struct, 32*5);
 		
 		//~ if (recording == 2)
 			//~ void* x = get_lvae_info();
@@ -1163,7 +1283,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		bmp_printf(FONT_LARGE, 50, 50, "%x ", MEM(MEM(0x3EE8)));
+		//~ bmp_printf(FONT_LARGE, 50, 50, "%x ", lv_path_struct.Z);
 		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
@@ -1540,12 +1660,14 @@ static void CR2toAVI(void* priv)
 }
 
 struct menu_entry debug_menus[] = {
-	#if 0
+	#ifdef SENSOR_TIMING_TABLE
 	{
 		.name = "FPS override", 
-		.priv = &fps,
+		.priv = &fps_override,
 		.select = set_fps,
-		.help = "Makes French Fries with the camera sensor."
+		.select_auto = reset_fps,
+		.display = fps_print,
+		.help = "Makes French Fries with the camera sensor. Turn off sound!"
 	},
 	#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
