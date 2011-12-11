@@ -3254,6 +3254,7 @@ static struct menu_entry expo_menus[] = {
 		.select_auto = wbs_gm_auto,
 		.help = "Green-Magenta white balance shift, for fluorescent lights.",
 		.show_liveview = 1,
+		.essential = FOR_MOVIE,
 	},
 	{
 		.name = "WBShift B/A",
@@ -3286,7 +3287,7 @@ static struct menu_entry expo_menus[] = {
 		.select		= picstyle_toggle,
 		.help = "Change current picture style.",
 		.show_liveview = 1,
-		.essential = FOR_MOVIE,
+		.essential = FOR_PHOTO | FOR_MOVIE,
 		.children =  (struct menu_entry[]) {
 			{
 				//~ .name = "PictureStyle",
