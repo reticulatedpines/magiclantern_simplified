@@ -69,7 +69,7 @@ void bmp_off();
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
-CONFIG_INT("lv.disp.profiles", disp_profiles_0, 1);
+CONFIG_INT("lv.disp.profiles", disp_profiles_0, 0);
 
 static CONFIG_INT("disp.mode", disp_mode, 0);
 static CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
@@ -2721,7 +2721,7 @@ struct menu_entry livev_cfg_menus[] = {
 		.priv		= &disp_profiles_0,
 		.select		= menu_quaternary_toggle,
 		.display	= disp_profiles_0_display,
-		.help = "No. of LiveV display presets. Switch with"
+		.help = "No.of LiveV display presets. Switch with "
 				#ifdef CONFIG_550D
 				"ISO+Disp or Flash."
 				#endif
