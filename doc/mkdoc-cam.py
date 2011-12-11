@@ -69,7 +69,23 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
     f.write(txt)
     f.close()
 
-nonewlineitems = ['WBShift','Aperture','PictureStyle','Contrast','Focus delay', 'Focus A', 'Rack Focus', 'Hyperfocal', 'DOF Near', 'DOF Far', 'Lockup', 'ISO selection', 'Screenshot', 'Spy', 'Save config', 'Delete config', 'Movie REC', 'Movie Restart', 'Zebra when REC', 'Gain', 'AGC', 'Zoom in PLAY', "Swap MENU", "Turn off", "Flash AE","Ghost image", "MOV Exposure Lock", "Light Adjust", "Focus StepD", "Rack Focus", "Focus Dist", "Cropmarks (PLAY)", "Save power when REC", "Lock Shutter", "Force HDMI", "AF frame display", "Free Memory", "EFIC temperature", "Shutter Count", "LV button", "Quick Erase"]
+nonewlineitems = [
+    'WBShift','Aperture','PictureStyle',"REC PicStyle",
+    'Focus delay', 'Focus A', 'Rack Focus', "Focus StepD", "Focus Dist",
+    'Hyperfocal', 'DOF Near', 'DOF Far', 
+    'Lockup', 
+    "LiveView Zoom", "Crop Factor Display",
+    'Screenshot', 
+    'Config', "config",
+    "Don't click",
+    "Mirror",
+    'Movie REC', 'Movie Restart', 
+    'Analog Gain', "DigitalGain", 'AGC', 'Zoom in PLAY', 
+    "Turn off", "Battery remaining",
+    "MOV Exposure Lock", "Light Adjust", "Cropmarks (PLAY)", 
+    "Lock Shutter", "Force HDMI", 
+    "Free Memory", "EFIC temperature", "Shutter Count", "Battery remaining"
+    "LV button", "Quick Erase", "Shutter Lock", "Shutter Button"]
 def should_add_newline(l):
     for it in nonewlineitems:
         if it in l:

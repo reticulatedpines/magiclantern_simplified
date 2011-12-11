@@ -70,7 +70,10 @@ Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by
  `msi <http://forum.slashcam.de/11-vt86738.html?postdays=0&postorder=asc&&start=350>`_,
  `robotsound <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!/page117>`_,
  `maclema <https://bitbucket.org/maclema/ml500d/overview>`_,
- `adijiwa <https://bitbucket.org/adijiwa/magic-lantern-for-500d-local-hacks/>`_
+ `adijiwa <https://bitbucket.org/adijiwa/magic-lantern-for-500d-local-hacks/>`_,
+ `g3gg0 <http://www.g3gg0.de/>`_,
+ `kyselejsyrecek <http://chdk.setepontos.com/index.php?action=profile;u=20247/>`_,
+ `mk11174 <http://chdk.setepontos.com/index.php?action=profile;u=17096/>`_
 
 **Card tools by** 
   `Pel <http://pel.hu>`_,

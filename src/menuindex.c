@@ -52,13 +52,6 @@ struct menu_entry help_menus[] = {
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
-        .name = "Extra info displays",
-        .priv = "Extra info displays",
-        .select = menu_help_go_to_label,
-        .display = menu_print,
-        .essential = FOR_MOVIE | FOR_PHOTO,
-    },
-    {
         .name = "Power saving",
         .priv = "Power saving",
         .select = menu_help_go_to_label,
@@ -89,7 +82,7 @@ help_menu_init( void* unused )
 
 INIT_FUNC( "help_menu", help_menu_init );
 
-int help_pages = 135;
-int help_menus_num = 10;
+int help_pages = 118;
+int help_menus_num = 9;
 
 

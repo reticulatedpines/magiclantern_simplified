@@ -41,7 +41,7 @@ How do I record for more than 12 minutes?
 
 * Lower the `bitrate`_ (CBR 0.4 will let you record continuously for 30 minutes).
 * Use `Movie restart`_, but you will lose a few seconds when a new file is created.
-* To record continuously for more than 30 minutes, you need to use a [[HDMI recorder]]. Select ``ClearScreen: WhenIdle`` to hide all graphical overlays and enable ``Half-press shutter: Every second`` to prevent the camera from shutting down.
+* To record continuously for more than 30 minutes, you need to use a [[HDMI recorder]]. Select ``ClearScreen: Always`` to hide all graphical overlays and enable ``Half-press shutter: Every second`` to prevent the camera from shutting down.
 
 Technically, there's no 12 minute limit. There's a 30 minute limit and a 4 GB limit, whichever comes first. With default bitrate settings, the 4 GB limit is reached after around 12 minutes (more or less).
 
@@ -59,19 +59,12 @@ How do I see shutter counter / CMOS temperature?
 
 Look in `Debug`_ menu.
 
-Do I have to adjust ISO/shutter/aperture/WB from ML menu only?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-No, you can adjust them both from ML menu or Canon user interface.
-
-Note: custom settings which are not available in standard firmware (like Kelvin white balance on Rebel cameras) may not be displayed properly by Canon GUI.
-
 Does ML eat batteries faster, or cause overheating?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes and no, depending on what features you have enabled. For example, focus peaking, false colors, waveform, zebras (and maybe others) are CPU hungry. It can even reduce power consumption by turning off the LCD screen, or by letting you change the backlight level quickly. See `Power saving`_ for details.
+No. Even with zebras and focus peaking active, the power draw only increases by 5%, compared to standard firmware. You can do `your own tests <http://bit.ly/ml-nov23>`_ if you have a 60D.
 
-Don't forget that time flies when you're having fun :)
+Magic Lantern can reduce power consumption by dimming or turning off the LCD screen, or by pausing LiveView without moving the mirror. See `Power saving`_ for details.
 
 Tip: `batteries are not expensive <http://amzn.to/ml-lp-e8>`_; however, third-party models may last less than original Canon batteries. See `this topic <http://vimeo.com/groups/magiclantern/forumthread:238190>`_.
 
@@ -134,14 +127,12 @@ PLAY mode shortcuts
 * ``Q`` (550D), ``UNLOCK`` (60D), ``DISP`` (600D) or ``FUNC`` (50D): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `LiveV`_ menu).
 * ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can use it for panoramas or for repeating shots.
 * ``SET`` + ``Main Dial (Wheel)`` in ``PLAY`` mode: see `SET+MainDial`_.
+* ``MENU``: open ML playback menu.
 
 LCD sensor shortcuts
 ~~~~~~~~~~~~~~~~~~~~
 
 This feature is only available on 550D and 500D.
-
-.. _LCD sensor:
-.. _LCD backlight level:
 
 LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ), as a simple wireless `follow focus`_,
 or as shift key (see also `SensorShortcuts`_ option).
@@ -151,41 +142,42 @@ or as shift key (see also `SensorShortcuts`_ option).
 * LCD sensor + Arrows: see `Follow Focus`_.
 * LCD sensor + ``Zoom In``: activates `Magic Zoom`_.
 
-Flash button shortcuts
-~~~~~~~~~~~~~~~~~~~~~~
+Flash/Disp button shortcuts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This feature is only available on 550D and 500D. On 600D, the ``DISP`` button is used instead.
+This feature is only available on 550D (Flash button in Movie mode) and 600D (``DISP`` button).
 
-* Flash in Movie mode (short press): change current `display preset`_.
-* Flash + ``UP / DOWN`` in Movie mode: adjust `Kelvin white balance`_.
-* Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
+* Flash/Disp (short press): change current `display preset`_.
+* Flash/Disp + ``UP / DOWN`` in Movie mode: adjust `Kelvin white balance`_.
+* Flash/Disp + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 
 Misc shortcuts
 ~~~~~~~~~~~~~~
 
-* Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). You may have to be in one of these modes: P, Tv, Av or M.
+* SET pressed at startup: loads vanilla firmware (does not load Magic Lantern).
 * ``ISO`` -> ``LV``: switch to Movie mode (from photo mode). To switch back to photo mode, you need to turn the mode dial back and forth one notch.
 * ``ISO`` -> ``DISP`` (550D) / ``ISO`` -> ``INFO`` (600D) / Metering (60D): change current `display preset`_.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
-* Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Bulb timer`_, `Movie REC key`_.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
-* ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
-* ``DISP`` + ``Zoom In / Zoom Out`` on 600D when not recording: quickly enable / disable 3x zoom (see `DigitalZoom Shortcut`_).
 * Activating *AF mode* dialog when Manual Focus is active will toggle `Trap Focus`_.
 
 Magic Lantern menu
 ------------------
 
-* Press ``ERASE`` (550D/60D/600D,500D), ``Picture Style`` (50D) or ``AV`` (1100D) to bring up the Magic Lantern menu.
-* Use arrow keys or joystick to navigate.
-* Use ``SET``, ``PLAY`` and ``Q`` to change values.
-* Press ``DISP`` or ``INFO`` button to get help.
+* Press ``ERASE`` (550D/60D/600D/500D/5D2), ``Picture Style`` (50D) or ``AV`` (1100D) to bring up the Magic Lantern menu.
+* Use arrow keys, joystick or scrollwheels to navigate.
+* Use ``SET`` and ``PLAY`` to toggle values.
+* Use ``Q`` to open a submenu with more settings.
+* Press ``INFO`` or ``DISP`` button to get help.
+* Press ``MENU`` to display the advanced menu.
 
-On 500D, ``Q`` is the LiveView button; on 50D it's the joystick press or the ``FUNC`` button.
+For cameras without ``Q``:
 
-In photo mode, outside LiveView, you can use the wheel(s) to navigate in ML menu. Press ``Zoom In`` button to activate edit mode and change values of a menu item with the wheel (experimental).
+* 5D Mark II: press the ``Picture Style`` button.
+* 50D: press the ``FUNC`` button.
+* 500D: press the LiveView button.
 
 Audio
 ~~~~~
@@ -210,9 +202,9 @@ from Magic Lantern. You can only use audio meters during recording.
 
 **Audio Meters: ON / OFF**
 
-  Draw the audio meters or not. This setting takes effect only in movie mode.
+  Self-explaining. Audio meters are only displayed in movie mode.
   
-  Audio level scale is from -40dB to 0dB.
+  Audio level scale is from -40dB to 0dB; meters become yellow at -12 dB and red at -3 dB.
 
 .. _manual audio controls:
 
@@ -222,7 +214,7 @@ from Magic Lantern. You can only use audio meters during recording.
 
 **L-DigitalGain** and **R-DigitalGain (dB)**
 
-  Digital gain applied separately to the L and R channel.
+  Digital gain applied separately to the L and R channel. Recommended setting: 0.
 
 .. _disable AGC:
 
@@ -230,7 +222,7 @@ from Magic Lantern. You can only use audio meters during recording.
 
   Enable/disable Automatic Gain Control. AGC is applied only in digital domain (i.e. it overrides digital gains, but you can still adjust analog gain). 
   
-  Disable this setting to prevent hiss noise when recording silence.
+  Recommended setting: OFF.
 
 .. _input source:
 
@@ -286,7 +278,7 @@ from Magic Lantern. You can only use audio meters during recording.
 
 **Output volume (dB)**
 
-  Volume for audio monitoring. It does not have effect on the internal camera speaker.
+  Digital output gain for audio monitoring. It does not have effect on the internal camera speaker.
 
   For best results, you should a pair of low impedance headphones, for example `Audio Technica ATH-M50 (38 ohms) <http://amzn.to/ml-athm50>`_.
   With high-impedance headphones, you may have to use a headphone amplifier like `FiiO E5 <http://amzn.to/fiio-e5>`_.
@@ -315,40 +307,33 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _histogram:
 .. _waveform:
 
-**Histo/Wavefm: ON/Luma/RGB for histogram, OFF/Small/Large/Fullscreen for waveform**
+**Histogram and Waveform**
 
-  [[Video:Canon_T2i_550D_Magic_Lantern_Meters_Tutorial|200px|right]]
+  [[Video:Using_The_Video_Histogram_To_Keep_Detail_in_the_Highlights|200px|right]]
 
-  Shows the distribution of image brightness levels with:
+  These exposure tools display the distribution of image brightness levels.
   
-  * a histogram plot (``Luma`` or ``RGB``, toggle with ``SET``)
-  * a waveform plot (toggle with ``Q``)
-
   .. figure:: Histogram-and-waveform.png
       :alt: 200px|right|Histogram and waveform
       :align: center
       :height: 2cm
 
+  To learn how to read these graphs, see `Understanding Histograms <http://www.luminous-landscape.com/tutorials/understanding-series/understanding-histograms.shtml>`_ and `Final Cut Waveform Monitor <http://www.youtube.com/watch?v=JXMvFk146R0>`_.
+
 .. _zebras:
 
-**Zebras: OFF/Luma/RGB, lo_level..hi_level**
+**Zebras**
 
   [[Image:Zebras.jpg|200px|right]]
 
   Enable/disable zebra stripes. which indicate overexposed or underexposed areas.
+  
+  Color spaces:
     
-  Modes:
-    
-  * ``Luma``: zebras are computed from Y channel only; overexposure is red, underexposure is blue.
-  * ``RGB``: overexposure zebras are computed from RGB channels; underexposure zebras are computed from Y. Clipped channels are displayed in the opposite color (i.e. clipped red displayed as cyan, underexposed displayed as white...).
+  * ``Luma``: zebras are computed from Y channel only.
+  * ``RGB``: check overexposure for each RGB channel. Clipped channels are displayed in the opposite color (i.e. clipped red displayed as cyan, underexposed displayed as white...).
   
-  Keys:
-  
-  * ``SET``: toggle between ``OFF/Luma/RGB``
-  * ``PLAY``: change threshold for underexposure (blacks)
-  * ``Q``: change threshold for overexposure (whites)
-  
-  Brightness values are between 0 and 255. A threshold equal to 0 will disable zebras for underexposure, and 255 will disable zebras for overexposure.
+  You may adjust thresholds for underexposure and overexposure.
   
   Note: when using the Technicolor CineStyle picture style, luma will have values between 16 and 255; therefore, you will have to set the underexposure threshold to 16 or greater.
 
@@ -357,7 +342,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 **False color**
 
   This is a tool for evaluating the exposure. It shows different luma (Y) levels using a color map.
-  You can press ``Q`` to select one of the following color maps:
+  You may select one of the following color maps:
 
   .. figure:: falsecolor.png
       :alt: 400px|center
@@ -367,24 +352,15 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Tips:
   
   * you may configure a `display preset`_ with False Color and toggle it with a single button press.
-  * you may use the transparent false color presets to highlight areas exposed at 50 IRE or 70 IRE.
-  * you may use the last preset to reveal color banding, especially with low-contrast picture styles.
+  * you may also use false colors highlight 50% and 70% brightness, to reveal color banding or to check for uniform green screen lighting.
   
 .. _Cropmark:
 
-**Cropmks(x/n)**
-  
+**Cropmarks**
+
   [[Video:Cropmarks_Tutorial|200px|right]]
-  
-  Select cropmarks (cycle between them).
-
-  There are 5 predefined cropmarks in ML zip archive:
-
-  * HD with Title and Action Safe
-  * Cinemascope (for videos)
-  * Cross meter (for photos)
-  * Passport (ISO/IEC 19794-5 compliant)
-  * Golden Mean / Phi (a version for photos and another for videos)
+ 
+  Cropmarks or custom grids for framing and composition.
 
   .. figure:: Cropmarks550D.png
       :alt: 400px|center
@@ -392,23 +368,10 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
       :width: 12cm
   
   Notes:
+    
+  * If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. You can place at most 9 cropmarks on the card.
+  * Get more cropmarks `from the ML cropmark repository <http://www.sawomedia.de/magiclantern/cropmarks/>`_ or draw your own (see [[Cropmarks]]).
   
-  * By default, cropmarks are displayed only in Movie mode. You can enable cropmarks in photo modes from the `Tweaks`_ menu, see `Show cropmarks in`_: Movie mode / All modes.
-  
-  * If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x/n)`` shows the selected cropmark number and the number of detected cropmarks. You can place at most 9 cropmarks on the card.
-  
-  * An exclamation mark (!) displayed in the menu means there was an error loading the cropmark image.
-  
-  * Get more cropmarks created by Magic Lantern users `from the ML cropmark repository <http://www.sawomedia.de/magiclantern/cropmarks/>`_.
-  
-  * See [[Cropmarks]] for how to create custom cropmarks. 
-  
-  * Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
-
-  
-{{clr}}
-
-.. _transparent overlay:
 .. _ghost image:
 
 **Ghost image: ON/OFF**
@@ -432,112 +395,83 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **Spotmeter: OFF / Percent / IRE**
 
-  Measure brightness in the center of the frame, and display it as a percentage or IRE value.
+  Measure brightness from a small spot in the frame.
   
-  Keys:
-  
-  * ``SET``: enable/disable spotmeter
-    
-  * ``Q``: change measurement unit:
+  Possible measurement units:
   
     - Percent (0..100%)
+    - Raw 8-bit levels (0..255)
     - IRE -1..101 (formula used by AJ, which maps 0-255 brightness levels to approx. -1..101 IRE)
     - IRE 0..108 (formula proposed by Piers, which maps 16-235 brightness levels to 7.5-100 IRE)
   
-  Note: when using low-contrast picture styles (like Marvels Cine or Superflat), the brightness might not reach the extreme values, even under strong under/over-exposure. This is OK.
-
 .. _Display:
 .. _Clean LiveView display:
 
-**ClearScreen: OFF / HalfShutter / WhenIdle**
+**ClearScreen**
  
   Clear bitmap overlays from LiveView display.
  
-  * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second,
-    and this will clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
-    It allows you to compose the picture without any extra distractions. 
+  * **HalfShutter**: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second
+    to clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
   
-    This works best when autofocus is assigned to the ``*`` button (from Custom Functions, set ``Shutter/AE lock button`` = ``AE lock/AF``).
+    Tip: assign autofocus to ``*`` button (from Custom Functions, set ``Shutter/AE lock button`` = ``AE lock/AF``).
   
-  * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle.
-    
-    The overlays (zebras & various status displays) will be back when you press the Q button or when you press the shutter half-way, they will disappear again the the camera returns to idle.
+  * **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle (i.e. you don't press any buttons).
 
+  * **Always**: In this mode, all the overlays are erased from the screen; you will have to change shooting settings blindly. You can still use the menus.
+  
     Tip: this feature may be useful with [[External Recorders]], since it removes the focus box and other graphics from the display.
 
 .. _focus peaking:
 
-**Focus Peak: OFF/D1xy/D2xy, threshold, color_mode**
+**Focus Peaking**
   
   [[Video:Magic_Lantern_Focus_Assist_Feature_on_550D|200px|right]]
 
-  Focus peaking. 
-  
-  To see how it works, `check this article from Luminous Landscape. <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
+  Focus assist function.
   
   Methods:
   
-    - ``D1xy``: computes first image derivative on X and Y axes and considers the highest value.
-    - ``D2xy``: computes second derivative with a simple 3x3 Laplacian kernel.
+    - ``D1xy``: computes first image derivative on X and Y and takes the max value.
+    - ``D2xy``: approximates second image derivative with a 3x3 Laplacian kernel.
 
   Other parameters:
   
     - ``Threshold``: how many pixels are considered in focus (percentage).
     - ``Color``: either fixed color, or a color coding according to focus intensity.
-    
+  
+  To see how it works, `check this article from Luminous Landscape. <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
+
 .. _magic zoom:
 .. _zoom while recording:
 
-**Magic Zoom: OFF/Zrec/Zr+F/ALW, Small/Med/Large, AFF/NW,NE/SE/SW**
+**Magic Zoom**
 
   [[Video:Magic_Lantern_Tip_1_Magic_Zoom|200px|right]]
   
-  This function displays a zoom box for focus assist. It is similar to `Magic Circles <http://www.youtube.com/watch?v=-nW25AtYjAk>`_ from AJ builds, but here it's square.
+  Displays a zoom box for focus assist. Can be used while recording.
   
-  When ML believes you have achieved perfect focus, Magic Zoom borders will become green.
+  Trigger modes:
+  
+  * ``Zoom.REC``: triggered by ``Zoom In`` button pressed while recording. If your camera has a LCD sensor, you may also cover it and press ``Zoom In``.
+  * ``ZREC+Focus``: triggered by turning the focus ring (**only** on lenses which report [[Focus distance]], or with `follow focus`_ / `rack focus`_). You may still trigger it with ``Zoom In`` while recording.
+  * ``Zoom In (*)``: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, press both zoom buttons at the same time or cover the LCD sensor.
+  * ``Always On``. You can use both Canon's 5x/10x zoom and Magic Zoom.
 
-  Modes (change with ``SET``):
-  
-  * ``OFF``
-  * ``Zrec``: triggered by ``Zoom In`` button, pressed either while recording or while the LCD sensor is covered
-  * ``Zr+F``: triggered by ``Zoom In`` button while recording, and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `rack focus`_).
-  * ``(*)``: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, cover the LCD sensor or press both zoom buttons at the same time.
-  * ``ALW``: always on (unless you use the 5x/10x zoom from Canon).
-  
-  Size / magnification (change with ``PLAY``): 
-  
-  * ``Small`` (150x150)
-  * ``Medium`` (250x200)
-  * ``Large`` (500x300)
-  * ``Small X2`` : small with *x2* magnification
-  * ``Med X2`` : medium with *x2* magnification
-  
-  Positions (change with ``Q``):
-  
-  * ``AFF``: moves with the AF frame (the little rectangle)
-  * ``NW``, ``NE``, ``SE``, ``SW``: the zoom overlay is placed in one of the 4 corners. The zoomed area is still linked to the AF frame.
+  When ML believes you have achieved perfect focus, Magic Zoom will display a focus confirmation (customizable):
 
-  Magnification (linear):
-  
-  * while recording FullHD: around 2.4x.
-  * while not recording: around 1.5x.
-  * *x2* setting doubles the magnification, but it does not add any extra detail (just doubles the pixels). It may be easier to see, though.
+  * ``Green Bars`` 
+  * ``Split Screen``: when the image is out of focus, the zoom box looks like a split focusing screen from old film cameras. 
+  * ``Split Screen with ZeroCross``: will reverse the split direction whenever you achieve perfect focus.
 
+  Other parameters: size, position, magnification.
+  
   Notes:
   
-  * Magic Zoom does **not** work in video modes other than 1080p (Full HD).
-  * On HDMI displays, it only works well in VGA mode. It does not work on SD (RCA) displays.
   * `Zebras`_, `focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
-  * Half-pressing the shutter will hide the zoom overlay.
-
-**Split Screen: ON/OFF, zerocross**
-
-  When the image is out of focus, Magic Zoom window looks similar to a split focusing screen commonly used in old film cameras.
+  * Half-pressing the shutter will temporarily hide the zoom overlay.
   
-  This is just an alternate display for `focus graph`_. It can't detect whether you are focusing too far or too close, 
-  and the display is only accurate a few seconds after you turn the focus ring and cross the perfect focus point.
-  
-  Zerocross option will reverse the split direction whenever you achieve perfect focus.
+  Original implementation:  `Magic Circles by AJ <http://www.youtube.com/watch?v=-nW25AtYjAk>`_.
   
 Movie
 ~~~~~
@@ -556,35 +490,24 @@ Functions specific to movie mode.
 
   Controls H.264 bitrate used for video recording.
   
-  Possible modes (only CBR is available from menu; QScale is a hidden setting):
+  Possible modes:
   
   * ``CBR``: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting.
   * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
+  * ``Firmware default``: completely disable bitrate control.
     
-  Keys:
-  
-  * Change numeric value with ``SET`` and ``PLAY``
-  * Reset bitrate to CBR 1x (firmware default) with ``Q``
-  
   Notes:
-  
-  * CBR actually works by varying QScale; the instant value is displayed near the recording dot.
+ 
+  * Increasing the bitrate **may cause recording to stop**. You need a fast card.
+  * CBR actually works by adjusting QScale on the fly; the instant value is displayed near the recording dot.
+  * In QScale mode, bitrate is completely out of control (don't use it!).
+  * In CBR mode, QScale will not go outside [-16...+16]. In this case, bitrate **will be different** than your CBR setting. Watch the bitrate indicators.
   * You can push the bitrate higher if you record without sound, then use `Audio RemoteShot`_ to sync the video with an external audio track.
-  * There is a bitrate / QScale display near the red recording dot.
-  * Slower cards will not handle high bitrates, and recording will stop automatically if you try to use them. This includes certain cards labeled as Class10.
-  * In QScale mode, bitrate varies a lot with frame complexity, and you have no direct control over its value.
-  * In CBR mode, on scenes without a lot of details, QScale will not go further than -16, and bitrate **will be lower** than requested. As soon as frame complexity increases, the bitrate will increase too, and video may stop recording. In this case, bitrate meter will be displayed in red.
   * You can't change this setting during recording.
   * A red ``X`` means Magic Lantern did not make any changes to bitrate settings.
+  * If buffer usage gets too high, ML will pause all CPU-intensive graphics. Change the ``BuffWarnLevel`` setting to customize this.
   
   See [[Bit rate]] page for details.
-
-.. _BuffWarnLevel:
-
-**BuffWarnLevel: 30\% ... 100\%**
-
-  If buffer usage gets higher than this value, ML will display the buffer indicator in red and will pause all CPU-intensive graphics (almost everything from `LiveV`_ menu), which will allow movie recording tasks to use all available CPU power in order to avoid a possible buffer overflow. 
-
 
 .. _time remaining display:
 
@@ -599,12 +522,6 @@ Functions specific to movie mode.
 
   Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
   However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
-
-.. _bitrate info:
-
-**Bitrate Info: ON/OFF**
-
-  Display bitrate info (instant bitrate, average bitrate and instant QScale factor) around the recording dot.
 
 .. _auto-restart:
 .. _movie restart:
@@ -669,10 +586,6 @@ Functions specific to movie mode.
   * Always: force LiveView even if you use an unchipped lens, or no lens at all. Be careful, you may get dust on the sensor while changing lenses.
   * Start & CPU lenses: it will force LiveView at startup, regardless of the lens used. After this, it will only bypass the dialog when a chipped lens is attached (i.e. it will enter LiveView as soon as you attach a chipped lens).
 
-**Force HDMI-VGA: ON/OFF**
-
-  This option will force a low-resolution mode on HDMI displays (720x480), which avoids black screen when you start/stop recording.
-
 **Movie Record: ON/OFF (50D only)**
   
   Enable movie recording on 50D (1920x1080, 30fps, without sound). To start recording, go to LiveView (P/Tv/Av/M) and press SET.
@@ -683,11 +596,10 @@ Functions specific to movie mode.
   
   * This feature was not thoroughly tested and may be unstable.
   * Always disable movie recording when you don't use it.
-  * Battery will drain quickly when recording movies; also, the camera may overheat.
+  * Battery will drain quickly when recording; also, the camera may overheat.
   
   Limitations:
   
-  * There are no manual exposure controls, but you can lock the exposure with the ``*`` button or from ML menu.
   * The camera will not record sound. You can use an external recorder (for example, `Zoom H1, H2 or H4n <http://amzn.to/zoom-h>`_) and sync the sound in post with a clapperboard.
   * You can't play back movies in the camera.
   
@@ -697,7 +609,7 @@ Functions specific to movie mode.
 
   Locks the exposure in movie mode. You can also use the ``*`` button (you don't have to hold it pressed).
 
-**Shutter Button: Leave unchanged / Block during REC / Hold during REC (IS) (50D only)**
+**Shutter Button (50D only)**
 
   * ``Leave unchanged``: obvious :)
   * ``Block during REC``: blocks the shutter and related (AF, ``*``) buttons while recording. In 50D, taking pictures while recording would result in ERR99; with this option, you can avoid taking pictures while recording by mistake. Side effect: this will disable image stabilization during recording.
@@ -718,7 +630,7 @@ Functions for stills shooting (some of them work for movies, too).
 .. _HDR:
 .. _exposure fusion:
 
-**HDR Bracket**
+**HDR Bracketing**
 
   [[Image:HDR-Karlskirche.jpg|200px|right|link=http://www.flickr.com/photos/stst31415/6046955226/in/pool-1676739@N21/]]
   [[Image:HDR-StGiles-Cathedral.jpg|200px|right|link=http://www.flickr.com/photos/59839681@N04/5936774611/in/pool-1676739@N21/]]
@@ -726,22 +638,11 @@ Functions for stills shooting (some of them work for movies, too).
 
   AE Bracketing for HDR images and timelapses.
   
-  
-  Select number of images with ``SET`` and step size with ``PLAY``. To turn this off quickly, press ``Q``.
-  
-    
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
 
+  To start bracketing, take the first picture and ML will continue the sequence.
 
-  HDR images can be taken with:
-  
-  * ML remote triggers: LCD face sensor & audio trigger.
-  * ML intervalometer (for HDR timelapse)
-  * Press the shutter. In this case, the first image will have the middle exposure (without EV compensation), and the 2-second self-timer will be used. Also, this mode only works with 3 images or more.
-
-  For best results, either use manual focus, or assign autofocus to ``*`` button.
-
-  To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Tweaks`_ menu, 
+  To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Play`_ menu, 
   then go to playback mode, hold ``SET`` and turn the main dial (wheel). Magic Lantern computes a naive weighted sum in YUV colorspace, which is fast, but image quality is low. The `algorithm used by Enfuse <http://research.edm.uhasselt.be/%7Etmertens/papers/exposure_fusion_reduced.pdf>`_ will yield much better results.
   
   For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
@@ -760,18 +661,10 @@ Functions for stills shooting (some of them work for movies, too).
         for f in $(ls *.SH); do bash $f ; done 
 
   On Windows, you can use Cygwin or MSYS to run the scripts.
-
   
   Don't forget to delete the scripts from the card; the camera won't delete them!
 
 .. _intervalometer:
-
-**Take a pic every X seconds** / **Record Y seconds, pause X seconds**
-
-  Change the intervalometer settings (first setting appears in photo mode, second appears in movie mode).
-  
-  There is also a mode named ``Take pics like crazy``, which does exactly that. 
-  In this mode, the images are not recorded with the same temporal spacing; they are taken as fast as possible.
 
 **Intervalometer: ON/OFF**
 
@@ -779,12 +672,15 @@ Functions for stills shooting (some of them work for movies, too).
   [[Image:Stars-Intervalometer.jpg|200px|right|link=http://www.flickr.com/photos/jackschroeder/6022255031/in/pool-1676739@N21/]]
   [[Video:Timelapse_Workflow_Tutorial_using_Free_Software|200px|right]]
 
-  Start/stop intervalometer.
-  
-  * In photo mode, it takes a sequence of photos
-  * In movie mode, it takes a sequence of small videos (unless `Silent Picture`_ is active)
-    
+  Take pictures or movies at fixed intervals.
+
   You can stop the intervalometer by rotating the mode dial.
+
+  Settings:
+
+  * Duration between two shots.
+  * Bulb ramping option (see below).
+  * In movie mode only: duration of a movie clip.
 
   Tips:
   
@@ -897,29 +793,26 @@ Functions for stills shooting (some of them work for movies, too).
 .. _audio trigger:
 .. _audio RemoteShot:
 
-**Audio RemoteShot: ON/OFF**
+**Audio RemoteShot**
 
   Start/stop remote audio trigger. To take a picture (or start recording a movie), make some loud noise, for example, clap your hands or pop a balloon.
   
-  You can also start movie recording with this feature.
-  
   Tip: with the audio trigger you can sync a video *recorded without sound* with an *external audio track* `(see this topic) <http://groups.google.com/group/ml-devel/browse_thread/thread/14522b5d65a43cbf/e472d79ab8c4e57b?show_docid=e472d79ab8c4e57b>`_
 
-  In photo mode, you can combine this option with the self-timer (may be useful for group or self pictures).
-  
-  
   Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
 
 
-**Motion Detect: OFF / EXP / DIF**
+**Motion Detect**
 
   [[Image:MotionDetection-Bird.jpg|200px|right|link=http://johnnyionix.blogspot.com/2011/05/usando-motion-detect-magic-lantern-para.html]]
   [[Image:MotionDetection-Lightning-6-4-2011-3.jpg|200px|right|link=http://groups.google.com/group/ml-devel/browse_thread/thread/850497aa7e732a68]]
 
-  Experimental motion detection.
-  
-  * ``EXP``: it only reacts to brightness (EXPosure) change in the middle of the LiveView image. Useful for large moving subjects which cause significant change in exposure.
-  * ``DIF``: it computes the DIFference between last two frames A and B (luma channel only); it is useful for detecting smaller movements which do not change exposure. Trigger condition is:
+  Motion detection in LiveView.
+
+  Trigger modes:
+    
+  * ``Exposure change``: it only reacts to brightness changes. Detects large moving subjects which cause significant change in exposure.
+  * ``Frame difference``: it computes the difference between last two frames A and B (luma channel only); detects smaller movements which do not change exposure. Trigger condition is:
   
   .. raw:: latex
   
@@ -942,18 +835,9 @@ Functions for stills shooting (some of them work for movies, too).
   
   Modes:
   
-  * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie. `Details here <http://magiclantern.wikia.com/wiki/VRAM/550D#0x44000080>`_.
+  * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie.
   * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing shutter count.
   * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
-  
-  Keys:
-  
-  * ``SET``: toggle modes (normal / slit-scan)
-  * ``PLAY/Q``: toggle between:
-  
-    * ``Single/Burst/FullHD`` in normal mode
-    * available matrix sizes (which give the image resolutions) in Hi-Res mode.
-    * timing (number of clocks to skip after each line) in Slit-scan mode.
   
   Silent picture setting is applied to `intervalometer`_ and `remote triggers`_. It will also go to LiveView when you press the shutter half-way. Therefore, you should only enable this setting when you actually use it.
   
@@ -997,13 +881,10 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 **ISO: 100-25600**
 
-  Fine-tuning for ISO, in 1/8 EV steps.
-  
-  Not all values are accepted by all cameras or in all modes. See your camera manual for details.
-    
-  To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, see `ISO selection`_.
+  Fine-tuning for ISO: 100/160 multiples or 1/8 EV steps. See also `ISO selection`_.
 
-  
+  Not all values are accepted by all cameras or in all modes. See your camera manual for details.
+
   In manual exposure modes (photo and video), press ``Q`` for one-time auto ISO. 
    
   * When LiveView is active, ML performs a binary search, trying to achieve a good balance between overexposure and underexposure.
@@ -1037,7 +918,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 .. _shutter:
 
-**Shutter: 1/24...1/4000**
+**Shutter: 1/24...1/8000**
 
   Custom steps for shutter speed, in 1/8 EV steps.
 
@@ -1060,27 +941,13 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Adjust aperture.
 
-**Light Adjust: OFF/ALO/HTP**
-
-  Select the light adjustment algorithm: 
-  
-  * OFF
-  * Auto Lighting Optimizer (low / standard / strong)
-  * Highlight Tone Priority.
-
 **PictureStyle**
 
-  Change picture style. You can see the effect on LiveView instantly.
+  Change picture style or adjust its parameters. You can see the effect on LiveView instantly.
   
 **REC PicStyle**
 
   You can use a different picture style when recording (toggled automagically).
-
-.. _Contrast:
-
-**Contrast/Saturation/Sharpness**
-
-  Adjusts the contrast, the saturation and the sharpness in the current picture style.
 
 .. _flash exposure compensation:
 .. _Flash AEcomp:
@@ -1092,6 +959,30 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   Warning: values lower than -5 may not work.
   
   Tip: you may use -10EV to trigger an external flash without putting light on the scene coming from the onboard flash.
+
+.. _exposure override:
+
+**Exp.Override**
+
+ This mode bypasses Canon exposure limitations (for ISO, Tv, Av). It enables:
+ 
+ * Manual video exposure controls in cameras without it (500D, 50D, 1100D).
+ * 1/25s in movie mode (24p/25p) -> 1/3 stops better in low light.
+ * 1/8000s in movie mode, `useful for slow motion <http://www.youtube.com/watch?v=5ztuUh3bgqA>`_.
+ * ISO 12800 is allowed in movie mode on 60D and 600D.
+ * Full-time DOF preview in photo mode, without blocking certain keys.
+
+ Settings:
+
+ * OFF: Canon default mode.
+ * ON: ML overrides exposure values (change them from Expo menu).
+ * Auto: ML enables it only when needed:
+
+    - For 500D, 50D, 1100D: in movie mode, to enable manual exposure controls.
+    - For 60D: in Manual mode with a manual lens, to fix the `LiveView underexposure bug <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
+    - For 550D/60D/600D/5D2: when you select a shutter speed, aperture or ISO value which is not available in standard firmware (e.g. 1/25s or 1/8000s in movie mode).
+
+ Side effect: in photo mode, anything slower than 1/25 seconds will be underexposed in LiveView.
 
 Focus
 ~~~~~
@@ -1112,7 +1003,7 @@ Focus
   
   * Outside LiveView, it only works with lenses with chip.
   * In LiveView it only works for photos, and it will take a picture 
-    when the focus indicator has (almost) maximum value on the `focus graph`_. 
+    when the focus indicator has (almost) maximum value on the focus graph. 
     
     Notes for LiveView trap focus:
     
@@ -1202,7 +1093,7 @@ Focus
 
   3. Open the ``Focus`` menu, go to ``Focus End Point`` and press ``Set`` to zero it out.
   
-  4. Pick the start point by focusing on it with the Zoom In/Out buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus. You can fine-tune the start focus point with the main dial (wheel) while LiveView display is active.
+  4. Pick the start point by focusing on it with the Zoom In/Out buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus. Fine-tune the position with Q, PLAY and scrollwheel.
     
   5. Go to ``Rack Focus`` and press ``SET``, ``Q`` or ``PLAY`` to start rack focus.
   
@@ -1269,11 +1160,10 @@ Tweaks
     :width: 5cm
 
 Miscellanous settings.
-
  
 .. _night vision:
 
-**LVGain (NightVision): up to +6EV**
+**LV Disp.Gain (NightVision): up to +6EV**
 
   This feature lets you frame the image in extremely dark places, or with strong ND or infrared filters.
 
@@ -1288,6 +1178,38 @@ Miscellanous settings.
 **DOF Preview: Normal/Sticky**
 
   If you select ``Sticky``, the DOF preview button will become sticky (click to toggle). To lock the DOF preview button only once, press ``Q``.
+  
+  Note: enabling DOF preview will block certain buttons.
+  
+  Tip: enable `Exposure Override`_ to preview DOF without blocking the buttons.
+
+**Shutter Half-press: OFF / sticky / every second / 200 ms / 20 ms**
+
+  With this option you can get all sorts of cool tricks.
+  
+  **Disable powersaving in LiveView**
+  
+  Set this option to "every second". Enable manual focus or back-button focus.
+  
+  **Keep the meter reading always on**
+  
+  Same as above.
+  
+  **Trap focus without having to hold the shutter**
+  
+  Assign AF to half-shutter button, enable trap focus and set this to "sticky".
+  
+  **Highlight current AF points**
+  
+  In photo mode, set this to "every 20 ms" and assign AF to half-shutter button.
+  
+  **Continuous autofocus (photo mode)**
+  
+  Set AF to "servo" mode and this option to "sticky".
+  
+  **Exposure lock in movie mode**
+  
+  Set focus to manual or back-button and make half-shutter "sticky".
 
 **AF frame display: Show / AutoHide**
 
@@ -1300,9 +1222,9 @@ Miscellanous settings.
 
 **LCD Sensor Shortcuts: ON/OFF**
 
-  Enables the use of `LCD sensor`_ as an extra shift key, and also enables the LCD sensor in LiveView. See `LCD Sensor Shortcuts`_ for details.
+  Enables the use of LCD sensor as an extra shift key, and also enables the LCD sensor in LiveView. See `LCD Sensor Shortcuts`_ for details.
 
-  To fully disable the `LCD sensor`_ in Magic Lantern, disable ``LCD auto off`` from Canon menu (Wrench 1). You need to do this if you are using a device which covers the LCD sensor (e.g. a loupe).
+  To fully disable the LCD sensor in Magic Lantern, disable ``LCD auto off`` from Canon menu (Wrench 1). You need to do this if you are using a device which covers the LCD sensor (e.g. a loupe).
 
 .. _Auto Burst PicQ:
 
@@ -1334,12 +1256,6 @@ Miscellanous settings.
   
   When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
 
-.. _Show cropmarks in:
-
-**Show cropmarks in: Movie mode / Movie+Photo**
-
-  It does just that. See `Cropmark`_ for more info.
-
 .. _ISO selection:
 
 **ISO selection**
@@ -1349,7 +1265,7 @@ Miscellanous settings.
 
 **Crop Factor Display**
 
-  If enabled, ML `bottom bar`_ will display the 35mm equivalent focal length, including crop factor (1.6x).
+  If enabled, ML bottom bar will display the 35mm equivalent focal length, including crop factor (1.6x).
   
   For example, a 50mm lens at f1.8 will be displayed as:
   
@@ -1360,20 +1276,13 @@ Miscellanous settings.
 
   Swaps ``MENU`` and ``ERASE`` buttons. This feature allows one-handed navigation in ML menu on 60D, but will have to use ``MENU`` button to delete the pictures.
 
-**DispOFF in PhotoMode**
-
-  On 60D, in photo mode, outside LiveView, a long half-shutter press will turn off the display if main shooting screen is active. You can turn it back on by pressing ``INFO``.
-
 .. _zoom in Face Detect mode:
 
-**LiveView Zoom: x5 / x10 / :-)**
+**LiveView Zoom**
 
-  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``PLAY`` and toggle ``:-)`` with ``SET``.
+  Fine-tune Canon's zoom feature (5x/10x) in LiveView. 
   
-  * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
-  * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
-  * ``x5x10``: both settings available (Canon default)
-  * ``:-)`` Enable zoom in Face Detection mode
+  You can disable one of those two settings, enable zoom in Face Detection mode, or increase sharpness/contrast when you zoom in.
 
 .. _lv-auto-iso:
 
@@ -1423,9 +1332,9 @@ Features for Playback mode.
 
   Increase the speed of zoom function in ``PLAY`` mode.
   
-  * ``Normal``: just like in standard firmware
-  * ``Fast``: zoom on steroids
-  * ``Fast+100%``: first ``ZoomIn`` press will zoom to 100%
+  * ``Normal``: just like in standard firmware.
+  * ``Fast``: zoom on steroids.
+  * ``Fast+100%``: first ``ZoomIn`` press will zoom to 100%.
 
 **Cropmarks (PLAY): ON/OFF**
 
@@ -1458,6 +1367,59 @@ Features for Playback mode.
 
   Shortcut for erasing images without confirmation (hold SET and press ERASE). Be careful!
 
+Display
+~~~~~~~
+
+Options for display.
+
+**UpsideDown mode**
+
+  This mode is useful if you want to `mount your camera upside-down <http://dl.dropbox.com/u/748408/video_stuff/cineskates.jpg>`_.
+
+**Screenshot (10 s)**
+
+  Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
+  
+  The card LED will blink every second, until the screenshot is taken.
+
+**ML info bars**
+
+  Choose screen layout (position of ML top and bottom bars), for different cameras or for external monitors.
+  
+  Top/bottom layouts:
+  
+  * Inside 3:2: default layout for 3:2-screen cameras (550D and newer).
+  * Inside 16:10: for 16:10 HDMI monitors.
+  * Inside 16:9: for 16:9 HDMI monitors.
+  
+  Bottom-only layouts:
+
+  * Under 3:2: default layout for 4:3-screen cameras (500D, 50D, 5D Mark 2).
+  * Under 16:9: suitable for low-resolution external monitors and for 4:3-screen cameras in movie mode.
+
+**Force HDMI-VGA: ON/OFF**
+
+  This option will force a low-resolution mode on HDMI displays (720x480), which avoids black screen when you start/stop recording.
+
+**DispOFF in PhotoMode**
+
+  On 60D, in photo mode, outside LiveView, a long half-shutter press will turn off the display if main shooting screen is active. You can turn it back on by pressing ``INFO``.
+
+**Auto Mirroring**
+
+  For cameras with flip-out LCD, this options prevents mirroring the display when you open it at 180 degrees.
+
+**Display: Normal/Reverse/Mirror**
+
+  For cameras with flip-out LCD, you may select a different flipping/mirroring option.
+
+**Kill Canon GUI**
+
+  For 50D only: disable Canon graphics elements to avoid conflicts with ML graphics in LiveView.
+ 
+  * ``Idle/Menus``: only enable Canon graphics when some transparent menu from LiveView is active.
+  * ``Idle/Menus+Keys``: only enable Canon graphics when you press some keys or navigate the transparent menus from LiveView.
+
 Debug
 ~~~~~
 
@@ -1468,82 +1430,30 @@ Debug
 
 Functions for troubleshooting, development, and possibly unstable features.
 
-Some items from this menu may not be available in release builds; 
-you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
+**FPS override**
 
-**Freeze Canon GUI**
+  **This setting is potentially dangerous.**
 
-  Workarounds which disable (freeze) Canon graphics elements in order to avoid conflicts with ML graphics in LiveView.
+  It alters FPS for all video modes. For stable operation, disable sound recording from Canon menu.
   
-  It is strongly recommended to disable all Canon graphics to minimize side effects (press ``DISP`` or ``INFO``).
+  Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
   
-  * ``OFF``: disable all workarounds; ML graphics may flicker.
-  * ``BottomBar``: disable Canon graphics when they try to display the bottom bar over ML bar. Recommended for 550D, 60D and 600D.
-  * ``Idle/Menus``: only enable Canon graphics when some transparent menu from LiveView is active. Recommended for 50D.
-  * ``Idle/Menus+Keys``: only enable Canon graphics when you press some keys or navigate the transparent menus from LiveView.
-
-**Draw palette**
-
-  Tests the 8-bit bitmap palette, which is used for video overlays. See [[VRAM]].
-
-**Screenshot (10 s)**
-
-  Print screen after 10 seconds. It it saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
-  
-  The card LED will blink every second, until the screenshot is taken.
-
-**Debug logging: ON/OFF**
-
-  When enabled, the camera stores a log which contains DebugMsg output. Press ``Q`` to dump the log to a file on the SD card. Disabling this setting might save a few CPU cycles.
-  
-  See [[Debugging Magic Lantern]] page.
-
-**Spy prop/evt/mem**
-  
-  * prop: display property changes in real-time. See [[Properties]].
-  * evt: Display GUI events in real-time. See [[GUI_Events/550D]].
-  * mem: Display memory addresses which change, but not those which change like mad. 
-    Useful for detecting interesting [[Memory Addresses]] inside the camera RAM (like sensor & button locations).
-
-  To enable this feature, compile Magic Lantern with ``CONFIG_DEBUGMSG = 1``.
+  * PAL modes: 25p/50p. Rounded frame rates: 33.333fps, 12.5fps, 11.111fps and so on.
+  * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
 
 **Stability tests**
 
   This option runs various tests to make sure Magic Lantern is stable and will not crash. You can use it to test your particular configuration.
   
   If it crashes, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_.
-  
-**Half-press shutter: OFF / sticky / every second / every 200 ms / every 20 ms**
 
-  With this option you can get all sorts of cool tricks.
-  
-  **Disable powersaving in LiveView**
-  
-  Set this option to "every second". Enable manual focus or back-button focus to avoid side effects.
-  
-  **Keep the meter reading always on**
-  
-  Same as above.
-  
-  **Trap focus without having to hold the shutter**
-  
-  Assign AF to half-shutter button, enable trap focus and set this option to "sticky".
-  
-  **Use front LED as AF-assist light (550D)**
-  
-  Enable red-eye reduction, disable AF-assist beam firing, enable back-button focus, pop up the flash and make this option "sticky". Focus with the back button (``*``). If you don't want to take the picture with flash, close it after focusing.
-  
-  **Highlight current AF points**
-  
-  In photo mode, set this option to "every 20 ms" and assign AF to half-shutter button.
-  
-  **Continuous autofocus (photo mode)**
-  
-  Set AF to "servo" mode and this option to "sticky".
-  
-  **Exposure lock in movie mode**
-  
-  Set focus to manual or back-button and make half-shutter "sticky".
+**Flashlight**
+
+  Make some light with a bright white screen or with the front LED.
+
+**Don't click me**
+
+  Don't click it :)
 
 **Free Memory**
 
@@ -1560,6 +1470,8 @@ you can uncomment them from ``debug.c`` and create a custom ``autoexec.bin``.
 **Shutter Count**
 
   Displays the number of shutter actuations.
+
+
 
 Powersave
 ~~~~~~~~~
@@ -1584,13 +1496,14 @@ Powersave
 
   If enabled, camera will save power during recording.
 
+**Battery remaining**
+
+  60D only: displays battery percentage, estimated time remaining and battery discharging rate.
+  
+  For accurate readings, wait until the percentage indicator decreases by at least 2% since powering on.
+
 Config
 ~~~~~~
-
-.. figure:: ConfigMenu-550D.png
-    :alt: 200px|right|Config menu
-    :align: center
-    :width: 5cm
 
 Magic Lantern saves its settings in a configuration file named `magic.cfg`_. This menu lets you customize how these settings are saved.
 
@@ -1619,139 +1532,19 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
   On the top bar, you will see ``DISP`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``LiveV`` menu. So you can, for example, configure ``DISP 1`` with false colors, ``DISP 2`` with zebras and focus peaking, and ``DISP 3`` with clear display.
 
   This menu item sets the maximum number of available DISP presets. To disable this feature, set the number of presets to 1.
-  
-  To change the presets, press:
-  
-  * on 550D/500D: Flash button in Movie mode, or ``ISO`` followed by ``DISP`` in all modes;
-  * on 60D: the ``Metering`` button.
-  * on 600D: the ``DISP`` button, or ``ISO`` followed by ``INFO``.
-
-Extra info displays
--------------------
-
-Main shooting screen (outside LiveView)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _clock:
-
-.. figure:: InfoDisplayShooting-550D.png
-    :alt: 200px|right|Extra shooting info display
-    :align: center
-    :width: 5cm
-
-* Clock (bottom of screen)
-* ISO value in finer increments (above Canon's ISO display)
-* Trap Focus status (near MF icon)
-* Kelvin temperature (in the white balance box)
-* WB shift values for BA and GM
-* `HDR`_ setting (under battery icon)
-* `MLU`_ setting (under ``Q`` icon)
-* `LCD remote`_ status icon: ⨂ ⨀ 〰
-* Free space on the card, in GB (under number of remaining shots)
-
-LiveView
-~~~~~~~~
-
-.. _bottom bar:
-
-* Bottom bar (press ``DISP`` / ``INFO`` a few times to show it):
-
-  * Current shooting mode
-  * Lens focal length and aperture
-  * `shutter`_, `ISO`_, `white balance`_
-  * [[Focus_distance]]
-  * Exposure compensation
-
-* Top bar:
-
-  * Clock
-  * Current `display preset`_
-  * Picture quality setting
-  * Picture style
-  * CMOS temperature
-  * Battery indicator (60D) / `LCD remote`_ status icon (550D)
-  * Number of pictures remaining (estimated)
-  * Free space on the card, in GB
-
-* In the middle of the screen:
-
-  * `Spotmeter`_
-
-* Around the recording dot: 
-
-  * `Time remaining display`_
-  * `Bitrate info`_ (instant and average bitrate, and qscale factor)
-  * Buffer indicator (see also `BuffWarnLevel`_)
-
-* Left side:
-
-  * Status for `trap focus`_ / `follow focus`_.
-
-* Top side:
-
-  * `Audio meters`_ and audio input source for each channel
-  * `LCD remote`_ status icon: ⨂ ⨀ 〰
-
-.. _focus graph:
-
-* Focus Graph
-
-  This item is displayed when you enable `Trap Focus`_.
-
-  It draws a small graph which shows the *amount* of focus in the AF frame (the little rectangle), over the last few seconds. Focus computation is done by Canon's autofocus algorithm.
-  
-  Since the function which measures the amount of focus is heavily influenced by other factors (like contrast and exposure), ML attempts to normalize the value.
-  
-  If you are focusing manually, try to position the lens such as you get a local maxima on the focus graph.
 
 Power saving
 ------------
 
 Magic Lantern can help you maximize battery life while shooting, which also results in reduced overheat.
 
-If you enable many CPU-intensive functions for `LiveV`_ menu, the battery will drain a bit faster.
+If you enable many CPU-intensive functions for `LiveV`_ menu, the battery may drain a bit faster.
 
 To save power, you may:
 
-* `Turn off display`_ in LiveView mode
-* Dim the display when idle
-* Turn off `Global Draw`_ when idle
-* Quickly adjust `LCD backlight level`_
+* `Turn off display`_ in LiveView mode;
+* Dim the display when idle;
+* Turn off `Global Draw`_ when idle;
+* Quickly adjust LCD backlight level (LCD sensor + up/down).
 
-Power consumption in movie mode, for Canon 550D, idle, 24p (approximate figures derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
-
-+------------------------------------+--------------------------+
-| Item                               | Current (approx)         |
-+====================================+==========================+
-| Camera body (without lens), LCD off| 360 mA                   |
-+------------------------------------+--------------------------+
-| Lens (Tamron 17-50/2.8)            | 20 mA                    | 
-+------------------------------------+--------------------------+
-| LCD backlight at level 1           | 40 mA                    |
-+------------------------------------+--------------------------+
-| LCD backlight at level 7           | 100 mA                   |
-+------------------------------------+--------------------------+
-| Magic Lantern with GlobalDraw off  | around 10 mA             |
-+------------------------------------+--------------------------+
-| Zebras                             | around 15 mA             |
-+------------------------------------+--------------------------+
-| Focus peaking                      | maybe 25 mA (not tested) |
-+------------------------------------+--------------------------+
-
-+------------+------------+------------+---------+
-| NTSC                    | PAL                  |
-+------------+------------+------------+---------+
-| Mode       | Current    | Mode       | Current |
-+============+=========+==+============+=========+
-| 1080 30p   | 480 mA  |  | 1080 25p   | 450 mA  |
-+------------+---------+--+------------+---------+
-| 1080 24p   | 440 mA  |  | 1080 24p   | 440 mA  |
-+------------+---------+--+------------+---------+
-| 720 60p    | 520 mA  |  | 720 50p    | 490 mA  |
-+------------+---------+--+------------+---------+
-| 480 60p    | 520 mA  |  | 480 50p    | 490 mA  |
-+------------+---------+--+------------+---------+
-| crop 60p   | 430 mA  |  | crop 50p   | 420 mA  |
-+------------+---------+--+------------+---------+
-
-Power consumption `varies with the frame rate <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2269449&viewfull=1#post2269449>`_. The table above shows the difference between video modes. The test was done on a 550d with ML, body cap only, movie standby, lcd brightness 4, default settings, i.e. no magic.cfg at startup.
+If you have a 60D, you can `measure power consumption with this autoexec <http://bit.ly/ml-nov23>`_.
