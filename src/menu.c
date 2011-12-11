@@ -44,6 +44,7 @@ static char* warning_msg = 0;
 int menu_help_active = 0;
 static int submenu_mode = 0;
 
+static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
 static CONFIG_INT("menu.advanced", advanced_mode, 0);
 
 int get_menu_advanced_mode() { return advanced_mode; }
@@ -792,12 +793,12 @@ menus_display(
 	extern int override_zoom_buttons; // from focus.c
 	override_zoom_buttons = 0; // will override them only if rack focus items are selected
 
-	if (!show_only_selected)
-		bmp_printf(
-			FONT(FONT_MED, 55, COLOR_BLACK), // gray
-			x0 + 10, y0 + 430, 
-				MENU_NAV_HELP_STRING
-		);
+	//~ if (!show_only_selected)
+		//~ bmp_printf(
+			//~ FONT(FONT_MED, 55, COLOR_BLACK), // gray
+			//~ x0 + 10, y0 + 430, 
+				//~ MENU_NAV_HELP_STRING
+		//~ );
 
 	bmp_fill(40, orig_x, y, 720, 42);
 	bmp_fill(70, orig_x, y+42, 720, 1);
@@ -961,6 +962,7 @@ menu_move(
 
 	// Select the new one (which might be the same)
 	menu->selected		= 1;
+	menu_first_by_icon = menu->icon;
 	give_semaphore( menu_sem );
 	
 	if (IS_SUBMENU(menu) || !menu_has_visible_items(menu->children))
@@ -1597,6 +1599,7 @@ menu_task( void* unused )
 	//~ menu_add( " (i)", about_menu, COUNT(about_menu));
 	
 	msleep(500);
+	select_menu_by_icon(menu_first_by_icon);
 	while(1)
 	{
 		int rc = take_semaphore( gui_sem, 500 );
@@ -1729,6 +1732,23 @@ void select_menu_by_name(char* name, char* entry_name)
 		}
 	}
 	//~ menu_damage = 1;
+}
+
+void select_menu_by_icon(int icon)
+{
+	take_semaphore(menu_sem, 0);
+	struct menu * menu = menus;
+	for( ; menu ; menu = menu->next )
+	{
+		if (menu->icon == icon) // found!
+		{
+			struct menu * menu = menus;
+			for( ; menu ; menu = menu->next )
+				menu->selected = menu->icon == icon;
+			break;
+		}
+	}
+	give_semaphore(menu_sem);
 }
 
 static void
