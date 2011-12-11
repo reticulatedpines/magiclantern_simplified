@@ -172,7 +172,11 @@ static void entry_draw_icon(
 {
 	if (entry->icon_type == IT_AUTO)
 	{
-		if(entry->choices)
+		if (!entry->priv)
+		{
+			entry->icon_type = IT_ACTION;
+		}
+		else if(entry->choices)
 		{
 			char* first_choice = entry->choices[0];
 			if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
@@ -248,42 +252,45 @@ submenu_print(
 	
 	char msg[100] = "";
 	STR_APPEND(msg, "%s", entry->name);
-	int l = strlen(entry->name);
-	for (int i = 0; i < 14 - l; i++)
-		STR_APPEND(msg, " ");
-	if (entry->choices)
+	if (entry->priv)
 	{
-		STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv)]);
-	}
-	else if (entry->min == 0 && entry->max == 1)
-	{
-		STR_APPEND(msg, ": %s", MEM(entry->priv) ? "ON" : "OFF");
-	}
-	else
-	{
-		switch (entry->unit)
+		int l = strlen(entry->name);
+		for (int i = 0; i < 14 - l; i++)
+			STR_APPEND(msg, " ");
+		if (entry->choices)
 		{
-			case UNIT_1_8_EV:
-			case UNIT_x10:
-			case UNIT_PERCENT_x10:
+			STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv)]);
+		}
+		else if (entry->min == 0 && entry->max == 1)
+		{
+			STR_APPEND(msg, ": %s", MEM(entry->priv) ? "ON" : "OFF");
+		}
+		else
+		{
+			switch (entry->unit)
 			{
-				int v = MEM(entry->priv);
-				int den = entry->unit == UNIT_1_8_EV ? 8 : 10;
-				STR_APPEND(msg, ":%s%d.%d%s", v < 0 ? "-" : " ", ABS(v)/den, (ABS(v)%den)*10/den,
-					entry->unit == UNIT_1_8_EV ? " EV" :
-					entry->unit == UNIT_PERCENT_x10 ? "%%" : ""
-				);
-				break;
-			}
-			case UNIT_PERCENT:
-			{
-				STR_APPEND(msg, ": %d%%", MEM(entry->priv));
-				break;
-			}
-			default:
-			{
-				STR_APPEND(msg, ": %d", MEM(entry->priv));
-				break;
+				case UNIT_1_8_EV:
+				case UNIT_x10:
+				case UNIT_PERCENT_x10:
+				{
+					int v = MEM(entry->priv);
+					int den = entry->unit == UNIT_1_8_EV ? 8 : 10;
+					STR_APPEND(msg, ":%s%d.%d%s", v < 0 ? "-" : " ", ABS(v)/den, (ABS(v)%den)*10/den,
+						entry->unit == UNIT_1_8_EV ? " EV" :
+						entry->unit == UNIT_PERCENT_x10 ? "%%" : ""
+					);
+					break;
+				}
+				case UNIT_PERCENT:
+				{
+					STR_APPEND(msg, ": %d%%", MEM(entry->priv));
+					break;
+				}
+				default:
+				{
+					STR_APPEND(msg, ": %d", MEM(entry->priv));
+					break;
+				}
 			}
 		}
 	}
