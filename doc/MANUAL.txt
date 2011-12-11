@@ -1040,7 +1040,7 @@ Focus
 
   Very simple follow focus (like a rack focus controlled manually).
   
-  * ``Arrows``: you will be able to focus with the arrow keys. You can reverse the focus direction with ``Q`` and ``PLAY``.
+  * ``Arrows``: you will be able to focus with the arrow keys.
   * ``LCD Sensor``: on 550D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you also need to disable `LCD Remote Shot`_ and enable `SensorShortcuts`_.
 
   Recommended focus step settings: 

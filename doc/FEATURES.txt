@@ -4,15 +4,15 @@ Features
 
 * Audio: `disable AGC`_ and digital filters, `audio meters`_, `manual audio controls`_, selectable `input source`_ (internal, internal+external, external stereo, `balanced`_), `audio monitoring`_ via USB.
 * Exposure helpers: `zebras`_, `false color`_, `histogram`_, `waveform`_, `spotmeter`_.
-* Focus tools: `focus peaking`_, `zoom while recording`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `focus graph`_, `zoom in Face Detect mode`_.
-* Movie helpers: `Bitrate control`_ (QScale or CBR), `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
+* Focus tools: `focus peaking`_, `zoom while recording`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `zoom in Face Detect mode`_.
+* Movie helpers: `Bitrate control`_ (QScale or CBR), `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
 * `Cropmark`_ images: user-editable overlays to assist framing and composition.
 * Fine control for `ISO`_, `Shutter`_, `Kelvin white balance`_ and other `image settings`_.
 * Remote release with `LCD face sensor`_ and `audio trigger`_, without extra hardware.
 * Bracketing: `exposure bracketing`_, `focus stacking`_.
-* Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation; integration with bracketing.
+* Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation.
 * Astro- and night photography: `bulb timer`_ for very long exposures (up to 8h).
-* Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, `clock`_.
+* Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, clock.
 * For strobists: `flash exposure compensation`_, range up to -5 to +3 EV (depends on the camera).
-* Power management: `Turn off display`_ in LiveView mode; quickly adjust `LCD backlight level`_.
+* Power saving: `Turn off display`_ or reduce backlight in LiveView during idle times.
 * Fun stuff: `slit-scan pictures`_.
