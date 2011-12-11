@@ -961,36 +961,11 @@ void display_clock()
 	}
 }
 
-PROP_INT(PROP_APERTURE, aper1);
-PROP_INT(PROP_APERTURE2, aper2);
-PROP_INT(PROP_APERTURE3, aper3);
-
-struct rolling_pitching 
-{
-	uint8_t status;
-	uint8_t cameraposture;
-	uint8_t roll_sensor1;
-	uint8_t roll_sensor2;
-	uint8_t pitch_sensor1;
-	uint8_t pitch_sensor2;
-};
-struct rolling_pitching level_data;
-
-PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
-{
-	memcpy(&level_data, buf, 6);
-	return prop_cleanup(token, property);
-}
 
 #if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
-#endif
-int screenshot_sec = 0;
 
-PROP_INT(PROP_ICU_UILOCK, uilock);
-
-#ifdef CONFIG_60D
 void
 memfilt(void* m, void* M, int value)
 {
@@ -1009,6 +984,29 @@ memfilt(void* m, void* M, int value)
 	int x = 10 + 4 * 22 * (k % 8);
 	int y = 10 + 12 * (k / 8);
 	bmp_printf(FONT_SMALL, x, y, "        ");
+}
+#endif
+int screenshot_sec = 0;
+
+PROP_INT(PROP_ICU_UILOCK, uilock);
+
+#ifdef CONFIG_60D
+
+struct rolling_pitching 
+{
+	uint8_t status;
+	uint8_t cameraposture;
+	uint8_t roll_sensor1;
+	uint8_t roll_sensor2;
+	uint8_t pitch_sensor1;
+	uint8_t pitch_sensor2;
+};
+struct rolling_pitching level_data;
+
+PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
+{
+	memcpy(&level_data, buf, 6);
+	return prop_cleanup(token, property);
 }
 
 void draw_electronic_level(int angle, int prev_angle, int force_redraw)
@@ -1059,16 +1057,8 @@ void show_electronic_level()
 	bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
 }
 
-void roll_spy()
-{
-	show_electronic_level();
-	NotifyBox(1000, "%x", level_data.roll_sensor1); msleep(1000);
-	memfilt((void*)0xC0220000, (void*)0xC0230000, level_data.roll_sensor1);
-	beep();
-}
 #endif
 
-PROP_INT(0x8005002E, dzoom);
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
