@@ -19,8 +19,8 @@
 //~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x27E0+something))
 
 // from AJ 5.9:
-#define YUV422_LV_BUFFER_DMA_ADDR ((unsigned)(vram_info[vram_get_number(2)].vram))
-#define YUV422_HD_BUFFER_DMA_ADDR (* (unsigned int *) (0x44FC + 0xC0) )
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2900)
+#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)(0x44FC + 0xC0))
 
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
