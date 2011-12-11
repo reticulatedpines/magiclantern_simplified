@@ -195,7 +195,7 @@
 #define FLASH_MIN_EV -10 // not sure if it actually works
 
 //~ #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q (LiveView) / DISP" 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "LiveV outside menu: show LV tools       SET/PLAY/Q(LV)/DISP" : "SET/PLAY/Q(LiveV)=change values   MENU=Easy/Adv.  DISP=Help")
+#define MENU_NAV_HELP_STRING (PLAY_MODE ? "LiveV outside menu: show LV tools          SET/PLAY/LV/DISP" : "SET/PLAY/LV=change values    MENU=Easy/Advanced   DISP=Help")
 
 #define DIALOG_MnCardFormatBegin (0x242AC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x24398+4) // similar

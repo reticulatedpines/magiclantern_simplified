@@ -187,7 +187,7 @@
 #define FLASH_MIN_EV -10 // not sure if it actually works
 
 //~ #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "PicStyle outside menu: show LV tools    SET/PLAY/Q(PS)/INFO" : "SET/PLAY/Q(PicStyle)=edit values  MENU=Easy/Adv.  INFO=Help")
+#define MENU_NAV_HELP_STRING (PLAY_MODE ? "PicSty outside menu: show LV tools     SET/PLAY/PicSty/INFO" : "SET/PLAY/PicSty=edit values   MENU=Easy/Advanced  INFO=Help")
 
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
