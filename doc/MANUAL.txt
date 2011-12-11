@@ -424,7 +424,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 .. _focus peaking:
 
-**Focus Peaking**
+**Focus Peak**
   
   [[Video:Magic_Lantern_Focus_Assist_Feature_on_550D|200px|right]]
 
@@ -1451,7 +1451,7 @@ Functions for troubleshooting, development, and possibly unstable features.
 
   Make some light with a bright white screen or with the front LED.
 
-**Don't click me**
+**Don't click me!**
 
   Don't click it :)
 

@@ -892,6 +892,7 @@ static struct menu_entry mov_menus[] = {
 
 struct menu_entry expo_override_menus[] = {
 	{
+		.name = "Exp.Override",
 		.select		= bv_toggle,
 		.display	= bv_display,
 		.help = "Low-level manual exposure controls (bypasses Canon limits)",
@@ -902,7 +903,7 @@ struct menu_entry expo_override_menus[] = {
 
 static struct menu_entry display_menus[] = {
 	{
-		.name = "Screen Layout",
+		.name = "ML info bars",
 		.display = screen_layout_display, 
 		.select = screen_layout_toggle,
 		.help = "Position of top/bottom bars, useful for external displays.",

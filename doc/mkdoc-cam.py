@@ -73,7 +73,6 @@ nonewlineitems = [
     'WBShift','Aperture','PictureStyle',"REC PicStyle",
     'Focus delay', 'Focus A', 'Rack Focus', "Focus StepD", "Focus Dist",
     'Hyperfocal', 'DOF Near', 'DOF Far', 
-    'Lockup', 
     "LiveView Zoom", "Crop Factor Display",
     'Screenshot', 
     'Config', "config",

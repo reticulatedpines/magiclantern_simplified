@@ -1467,7 +1467,7 @@ struct menu_entry expo_tweak_menus[] = {
 
 static struct menu_entry display_menus[] = {
 	{
-		.name = "Upside-Down",
+		.name = "UpsideDown mode",
 		.priv = &menu_upside_down,
 		.display = menu_upside_down_print,
 		.select = menu_binary_toggle,

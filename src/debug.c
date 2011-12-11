@@ -1447,25 +1447,21 @@ static void CR2toAVI(void* priv)
 struct menu_entry debug_menus[] = {
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
-		.priv		= "Rename CR2 to AVI",
+		.name		= "Rename CR2 to AVI",
 		.select		= CR2toAVI,
-		.display	= menu_print,
 		.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
 	},
 #endif
 	{
-		.priv		= "Flashlight [SET/Q]",
+		.name		= "Flashlight",
 		.select		= flashlight_frontled,
 		.select_auto = flashlight_lcd,
-		.display	= menu_print,
 		.help = "Turn on the front LED [SET] or make display bright [Q]."
 	},
 #if CONFIG_DEBUGMSG
 	{
 		.name = "Draw palette",
-		.priv		= "Draw palette",
 		.select		= (void(*)(void*))bmp_draw_palette,
-		.display	= menu_print,
 		.help = "Display a test pattern to see the color palette."
 	},
 	{
@@ -1477,9 +1473,8 @@ struct menu_entry debug_menus[] = {
 		.help = "Spy properties / events / memory addresses which change."
 	},
 /*	{
-		.priv		= "Dialog test",
+		.name		= "Dialog test",
 		.select		= dlg_test,
-		.display	= menu_print,
 		.help = "Dialog templates (up/dn) and color palettes (left/right)"
 	},*/
 	{
@@ -1491,9 +1486,8 @@ struct menu_entry debug_menus[] = {
 		.help = "While ON, debug messages are saved. [Q] => LOGnnn.LOG."
 	},
 	{
-		.priv		= "Dump ROM and RAM",
+		.name		= "Dump ROM and RAM",
 		.select		= dump_rom,
-		.display	= menu_print,
 		.help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
 	},
 #endif
@@ -1504,41 +1498,11 @@ struct menu_entry debug_menus[] = {
 	},
 	{
 		.name		= "Stability tests",
-		.priv		= "Stability tests",
 		.select		= stress_test,
-		.display	= menu_print,
 		.select_reverse = stress_test_long,
 		.help = "SET: quick test; PLAY: burn-in test (around 2 hours)",
 		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
-/*	{
-		.select = focus_test,
-		.display = focus_print,
-		.select_reverse = focus_en_bump,
-		.select_auto = focus_mod_bump
-	},
-	{
-		.priv = "CBR test", 
-		.select = cbr_set,
-		.display = menu_print,
-	}*/
-
-#if 0
-	{
-		.priv		= "Enable full HD",
-		.select		= enable_full_hd,
-		.display	= display_full_hd,
-	},
-	{
-		.display	= mvr_time_const_display,
-		.select		= mvr_time_const_select,
-	},
-#endif
-/*	{
-		.priv		= "Clear config",
-		.select		= clear_config,
-		.display	= menu_print,
-	}, */
 	#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 	{
 		.name = "Free Memory",
@@ -1581,15 +1545,11 @@ static struct menu_entry cfg_menus[] = {
 	},
 	{
 		.name = "Save config now",
-		.priv = "Save config now",
-		.display	= menu_print,
 		.select		= save_config,
 		.help = "Save ML settings to MAGIC.CFG"
 	},
 	{
 		.name = "Delete config file",
-		.priv = "Delete config file",
-		.display	= menu_print,
 		.select		= delete_config,
 		.help = "Use this to restore ML default settings. Restart needed."
 	},
