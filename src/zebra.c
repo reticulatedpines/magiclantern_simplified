@@ -3598,7 +3598,7 @@ clearscreen_loop:
 			int i;
 			for (i = 0; i < (int)clearscreen_delay/20; i++)
 			{
-				if (i % 10 == 0) BMP_LOCK( update_lens_display(); )
+				if (i % 10 == 0 && zebra_should_run()) BMP_LOCK( update_lens_display(); )
 				msleep(20);
 				if (!(get_halfshutter_pressed() || dofpreview))
 					goto clearscreen_loop;

@@ -18,7 +18,7 @@ int handle_other_events(struct event * event)
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 	if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
 	{
-		if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle())
+		if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
 		{
 			// install a modified handler which does not activate bottom bar display timer
 			reloc_liveviewapp_install(); 
