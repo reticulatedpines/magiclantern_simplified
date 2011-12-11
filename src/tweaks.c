@@ -1251,7 +1251,7 @@ struct menu_entry tweak_menus[] = {
 		.help = "Sticky = click DOF to toggle. Or, press [Q] to lock now.",
 	},
 	{
-		.name		= "Half-press shutter",
+		.name		= "Shutter Half-press",
 		.priv = &fake_halfshutter,
 		.select		= menu_quinternary_toggle,
 		.display	= fake_halfshutter_print,
@@ -1447,7 +1447,7 @@ void take_screenshot();
 
 struct menu_entry expo_tweak_menus[] = {
 	{
-		.name = "LVGain (NightVision)", 
+		.name = "LV Disp.Gain (NightVision)", 
 		.priv = &display_gain,
 		.select = display_gain_toggle, 
 		.select_auto = display_gain_reset,
@@ -1485,6 +1485,7 @@ static struct menu_entry display_menus[] = {
 #endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
+		.name = "Display: Normal/Reverse/Mirror",
 		.priv		= "Display: Normal/Reverse/Mirror",
 		.select		= NormalDisplay,
 		.select_reverse = ReverseDisplay,

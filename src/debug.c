@@ -1324,27 +1324,6 @@ static void efictemp_display(
 	menu_draw_icon(x, y, MNI_ON, 0);
 }
 
-static void batt_display(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
-)
-{
-	int l = GetBatteryLevel();
-	int r = GetBatteryTimeRemaining();
-	int d = GetBatteryDrainRate();
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Battery level: %d%%, %dh%02dm, %d%%/h",
-		l, 0, 
-		r / 3600, (r % 3600) / 60,
-		d, 0
-	);
-	menu_draw_icon(x, y, MNI_ON, 0);
-}
-
 
 #ifdef CONFIG_KILL_FLICKER
 CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
@@ -1519,9 +1498,8 @@ struct menu_entry debug_menus[] = {
 	},
 #endif
 	{
-		.priv		= "Don't click me!",
+		.name		= "Don't click me!",
 		.select		= xx_test,
-		.display	= menu_print,
 		.help = "The camera may turn into a 1DX or it may explode."
 	},
 	{
@@ -1581,14 +1559,6 @@ struct menu_entry debug_menus[] = {
 		.help = "EFIC temperature, in raw units (don't rely on it).",
 		.essential = FOR_MOVIE | FOR_PHOTO,
 	},
-	#ifdef CONFIG_60D
-	{
-		.name = "Battery remaining",
-		.display = batt_display,
-		.help = "Battery remaining. Wait for 2%% discharge before reading.",
-		.essential = FOR_MOVIE | FOR_PHOTO,
-	},
-	#endif
 	#if CONFIG_DEBUGMSG
 	{
 		.name = "PROP display",

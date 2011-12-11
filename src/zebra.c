@@ -1738,7 +1738,7 @@ zoom_overlay_display(
 		"Magic Zoom  : %s%s%s%s%s",
 		zoom_overlay_trigger_mode == 0 ? "err" :
 		zoom_overlay_trigger_mode == 1 ? "Zrec," :
-		zoom_overlay_trigger_mode == 2 ? "Zr+F," :
+		zoom_overlay_trigger_mode == 2 ? "F+Zr," :
 		zoom_overlay_trigger_mode == 3 ? "(+)," : "ALW,",
 
 		zoom_overlay_trigger_mode == 0 ? "" :
@@ -2362,7 +2362,7 @@ struct menu_entry zebra_menus[] = {
 				.priv = &zoom_overlay_trigger_mode, 
 				.min = 1,
 				.max = 4,
-				.choices = (const char *[]) {"OFF", "Zoom.REC", "ZREC+Focus", "ZoomIn (+)", "Always On"},
+				.choices = (const char *[]) {"OFF", "Zoom.REC", "Focus+ZREC", "ZoomIn (+)", "Always On"},
 				.help = "Zoom when recording / trigger from focus ring / Zoom button",
 			},
 			{
@@ -2541,7 +2541,7 @@ struct menu_entry zebra_menus[] = {
 		},
 	},
 	{
-		.name = "Waveform",
+		.name = "Histogram", // same help page as histogram
 		.priv		= &waveform_draw,
 		.display = waveform_print,
 		.max = 1,
@@ -2652,6 +2652,30 @@ struct menu_entry livev_dbg_menus[] = {
 		.display = focus_debug_display,
 	}*/
 };
+
+#ifdef CONFIG_60D
+static void batt_display(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int l = GetBatteryLevel();
+	int r = GetBatteryTimeRemaining();
+	int d = GetBatteryDrainRate();
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Battery level: %d%%, %dh%02dm, %d%%/h",
+		l, 0, 
+		r / 3600, (r % 3600) / 60,
+		d, 0
+	);
+	menu_draw_icon(x, y, MNI_ON, 0);
+}
+#endif
+
 struct menu_entry powersave_menus[] = {
 	{
 		.name = "Dim display",
@@ -2681,11 +2705,14 @@ struct menu_entry powersave_menus[] = {
 		.select			= menu_binary_toggle,
 		.help = "If enabled, camera will save power during recording."
 	},
-	/*{
-		.priv = "[debug] dump vram", 
-		.display = menu_print, 
-		.select = dump_vram,
-	}*/
+	#ifdef CONFIG_60D
+	{
+		.name = "Battery remaining",
+		.display = batt_display,
+		.help = "Battery remaining. Wait for 2%% discharge before reading.",
+		.essential = FOR_MOVIE | FOR_PHOTO,
+	},
+	#endif
 };
 
 struct menu_entry livev_cfg_menus[] = {
