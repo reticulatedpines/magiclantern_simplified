@@ -2909,7 +2909,7 @@ int handle_zoom_overlay(struct event * event)
 	}
 	
 	// move AF frame when recording
-	if (recording && get_zoom_overlay_trigger_mode() && liveview_display_idle() && is_manual_focus())
+	if (recording && liveview_display_idle() && is_manual_focus())
 	{
 		if (event->param == BGMT_PRESS_LEFT)
 			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(-200, 0);) return 0; }
