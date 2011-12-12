@@ -46,7 +46,7 @@ void cbr_init()
 void vbr_fix(uint16_t param)
 {
 	if (!lv) return;
-	if (is_movie_mode()) return; 
+	if (!is_movie_mode()) return; 
 	if (recording) return; // err70 if you do this while recording
 
 	mvrFixQScale(&param);
