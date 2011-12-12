@@ -1919,6 +1919,7 @@ void iso_adj(int prev_iso, int sign)
 		lens_info.raw_iso = prev_iso;
 		iso_intercept = 0;
 		iso_toggle(sign);
+		if (lens_info.iso > 6400) lens_set_rawiso(0);
 		iso_intercept = 1;
 	}
 }
