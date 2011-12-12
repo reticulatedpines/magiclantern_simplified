@@ -2912,16 +2912,16 @@ int handle_zoom_overlay(struct event * event)
 	if (recording && get_zoom_overlay_trigger_mode() && liveview_display_idle() && is_manual_focus())
 	{
 		if (event->param == BGMT_PRESS_LEFT)
-			{ move_lv_afframe(-200, 0); return 0; }
+			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(-200, 0);) return 0; }
 		if (event->param == BGMT_PRESS_RIGHT)
-			{ move_lv_afframe(200, 0); return 0; }
+			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(200, 0);) return 0; }
 		if (event->param == BGMT_PRESS_UP)
-			{ move_lv_afframe(0, -200); return 0; }
+			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(0, -200);) return 0; }
 		if (event->param == BGMT_PRESS_DOWN)
-			{ move_lv_afframe(0, 200); return 0; }
+			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(0, 200);) return 0; }
 		#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 		if (event->param == BGMT_PRESS_SET)
-			{ center_lv_afframe(); return 0; }
+			{ BMP_LOCK(clear_lv_affframe(); center_lv_afframe();) return 0; }
 		#endif
 	}
 
