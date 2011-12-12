@@ -1941,6 +1941,7 @@ void spotmeter_step()
 
 	int xcb = os.x0 + os.x_ex/2;
 	int ycb = os.y0 + os.y_ex/2;
+	
 	if (spotmeter_position == 1) // AF frame
 	{
 		get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
@@ -2912,16 +2913,16 @@ int handle_zoom_overlay(struct event * event)
 	if (recording && liveview_display_idle() && is_manual_focus())
 	{
 		if (event->param == BGMT_PRESS_LEFT)
-			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(-200, 0);) return 0; }
+			{ move_lv_afframe(-200, 0); return 0; }
 		if (event->param == BGMT_PRESS_RIGHT)
-			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(200, 0);) return 0; }
+			{ move_lv_afframe(200, 0); return 0; }
 		if (event->param == BGMT_PRESS_UP)
-			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(0, -200);) return 0; }
+			{ move_lv_afframe(0, -200); return 0; }
 		if (event->param == BGMT_PRESS_DOWN)
-			{ BMP_LOCK(clear_lv_affframe(); move_lv_afframe(0, 200);) return 0; }
+			{ move_lv_afframe(0, 200); return 0; }
 		#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
 		if (event->param == BGMT_PRESS_SET)
-			{ BMP_LOCK(clear_lv_affframe(); center_lv_afframe();) return 0; }
+			{ center_lv_afframe(); return 0; }
 		#endif
 	}
 
