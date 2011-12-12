@@ -341,7 +341,7 @@ void* get_422_hd_idle_buf()
 {
 
 // single-buffered HD buffer
-#if defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D2) || defined(CONFIG_50D) 
+#if 1
 	int hd = YUV422_HD_BUFFER_DMA_ADDR;
 	int failsafe = YUV422_HD_BUFFER_1;
 
@@ -355,7 +355,7 @@ void* get_422_hd_idle_buf()
 	else
 		return failsafe;
 
-#else // double-buffered HD buffer (works better for silent pics)
+#else // double-buffered HD buffer (might work better for silent pics)
 
 	static int idle_buf = 0;
 	static int current_buf = 0;

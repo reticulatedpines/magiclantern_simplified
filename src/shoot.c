@@ -969,10 +969,12 @@ silent_pic_take_simple(int interactive)
 		//~ if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
 	}
 
+	struct vram_info * vram = get_yuv422_hd_vram();
+	int p = vram->pitch;
+	int h = vram->height;
 	if (!silent_pic_burst) { PauseLiveView(); }
 
-	struct vram_info * vram = get_yuv422_hd_vram();
-	dump_seg(vram->vram, vram->pitch * vram->height, imgname);
+	dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
 
 	if (interactive && !silent_pic_burst)
 	{
