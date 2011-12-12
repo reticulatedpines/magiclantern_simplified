@@ -166,7 +166,7 @@ Misc shortcuts
 Magic Lantern menu
 ------------------
 
-* Press ``ERASE`` (550D/60D/600D/500D/5D2), ``Picture Style`` (50D) or ``AV`` (1100D) to bring up the Magic Lantern menu.
+* Press ``ERASE`` button (exception: ``Picture Style`` on 50D) to bring up the Magic Lantern menu.
 * Use arrow keys, joystick or scrollwheels to navigate.
 * Use ``SET`` and ``PLAY`` to toggle values.
 * Use ``Q`` to open a submenu with more settings.
@@ -307,7 +307,9 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _histogram:
 .. _waveform:
 
-**Histogram and Waveform**
+**Histogram**
+
+**Waveform**
 
   [[Video:Using_The_Video_Histogram_To_Keep_Detail_in_the_Highlights|200px|right]]
 
@@ -428,7 +430,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   [[Video:Magic_Lantern_Focus_Assist_Feature_on_550D|200px|right]]
 
-  Focus assist function.
+  Focus assist function. High-contrast lines will be marked by blinking dots showing which part of the image is in focus.
   
   Methods:
   
@@ -900,7 +902,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 .. _WhiteBalance:
 .. _Kelvin white balance:
 
-**WhiteBalance: 1500...12000**
+**WhiteBalance: 1500...15000**
 
   Kelvin white balance.
   
@@ -1374,7 +1376,7 @@ Options for display.
 
 **UpsideDown mode**
 
-  This mode is useful if you want to `mount your camera upside-down <http://dl.dropbox.com/u/748408/video_stuff/cineskates.jpg>`_.
+  This mode is useful if you want to `mount your camera upside-down <http://dl.dropbox.com/u/748408/ML/up_down.jpg>`_.
 
 **Screenshot (10 s)**
 

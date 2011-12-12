@@ -78,6 +78,7 @@ nonewlineitems = [
     'Config', "config",
     "Don't click",
     "Mirror",
+    "Waveform",
     'Movie REC', 'Movie Restart', 
     'Analog Gain', "DigitalGain", 'AGC', 'Zoom in PLAY', 
     "Turn off", "Battery remaining",
