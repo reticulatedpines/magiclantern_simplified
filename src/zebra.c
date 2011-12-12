@@ -2711,7 +2711,7 @@ struct menu_entry powersave_menus[] = {
 		.name = "Battery remaining",
 		.display = batt_display,
 		.help = "Battery remaining. Wait for 2%% discharge before reading.",
-		.essential = FOR_MOVIE | FOR_PHOTO,
+		//~ .essential = FOR_MOVIE | FOR_PHOTO,
 	},
 	#endif
 };
