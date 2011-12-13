@@ -108,9 +108,7 @@ Step 2. Installation
 
 * Launch the **Firmware Update** process.
 
-.. raw:: latex
-
-  \small{\hskip1cm If card LED starts to flash, upgrade Canon firmware (see Step 1) and try again.}
+* If the screen goes black and card LED starts blinking, **upgrade your Canon firmware** (see Step 1, even if you already have the correct version number) and try again.
 
 * Once you see the **green confirmation screen**, restart your camera. Done.
 
