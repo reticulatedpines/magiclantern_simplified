@@ -16,10 +16,6 @@
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
-
-#ifdef CONFIG_1100D
-#include "disable-this-module.h"
-#endif
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused);
 
