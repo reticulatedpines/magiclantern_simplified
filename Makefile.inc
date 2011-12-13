@@ -539,4 +539,5 @@ clean:
 		README \
 		cropmks/* \
 		doc/* \
+		$(SRC_DIR)/*.o \
 	|| echo clean done
