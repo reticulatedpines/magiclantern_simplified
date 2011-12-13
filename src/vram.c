@@ -341,7 +341,7 @@ void* get_422_hd_idle_buf()
 {
 
 // single-buffered HD buffer
-#if 1
+#ifndef CONFIG_60D
 	int hd = YUV422_HD_BUFFER_DMA_ADDR;
 	int failsafe = YUV422_HD_BUFFER_1;
 
