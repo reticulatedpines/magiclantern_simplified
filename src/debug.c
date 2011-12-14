@@ -399,6 +399,20 @@ static void stress_test_task(void* unused)
 
 	extern struct semaphore * gui_sem;
 
+	NotifyBox(1000, "Cropmarks preview...");
+	select_menu_by_name("LiveV", "Cropmarks");
+	give_semaphore( gui_sem );
+	msleep(500);
+	menu_open_submenu();
+	msleep(100);
+	for (int i = 0; i <= 100; i++)
+	{
+		fake_simple_button(BGMT_WHEEL_RIGHT);
+		msleep(rand()%100);
+	}
+	give_semaphore( gui_sem );
+	msleep(2000);
+
 	NotifyBox(1000, "ML menu scroll...");
 	give_semaphore(gui_sem);
 	msleep(1000);
