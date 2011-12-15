@@ -377,6 +377,24 @@ void draw_ml_bottombar(int double_buffering, int clear)
 					y_origin, 
 					"o");
 	}
+	#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	else if (get_shutter_override_degrees_x10())
+	{
+		int d = get_shutter_override_degrees_x10();
+		snprintf(shutter, sizeof(shutter), "%d%s  ", d/10, d%10==5?".5" : d%10==2?".2" : "");
+		bmp_printf( FONT(text_font,COLOR_ORANGE,bg), 
+					x_origin + 143 + font_med.width*2  , 
+					y_origin, 
+					shutter);
+
+		text_font = FONT(FONT_MED,COLOR_ORANGE,bg);
+
+		bmp_printf( text_font, 
+					x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
+					y_origin, 
+					"o");
+	}
+	#endif
 	else
 	{
 		bmp_printf( text_font, 

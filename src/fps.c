@@ -9,16 +9,23 @@
 #include "bmp.h"
 #include "property.h"
 #include "menu.h"
+#include "lens.h"
 
 #ifdef CONFIG_600D
 #define SENSOR_TIMING_TABLE MEM(0xCB20)
+#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
+#define LiveViewMgr_struct_ptr 0x1dcc  // aAJ_0x1D78_LiveViewMgr_struct_ptr
 #endif
 #ifdef CONFIG_60D
 #define SENSOR_TIMING_TABLE MEM(0x2a668)
+#define VIDEO_PARAMETERS_SRC_3 0x4FDA8
+#define LiveViewMgr_struct_ptr 0x1E80
 #endif
 #ifdef CONFIG_1100D
 #define SENSOR_TIMING_TABLE MEM(0xce98)
 #endif
+
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
 
 struct lv_path_struct
 {
@@ -45,6 +52,7 @@ uint16_t * sensor_timing_table_original = 0;
 uint16_t sensor_timing_table_patched[128];
 
 int fps_override = 0;
+int shutter_override = 0;
 
 int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -68,6 +76,53 @@ int fps_get_current_x1000()
     int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
     return fps_x1000;
 }
+
+int get_shutter_override_degrees_x10()
+{
+	// 0, 360, 270, 180, 90, 2, 1, 0.5, 0.2
+	if (shutter_override == 0) return 0;
+	if (shutter_override <= 4) return (5-shutter_override) * 900;
+	return 20 >> (shutter_override - 5);
+}
+
+int get_shutter_override_reciprocal_x1000()
+{
+	int mode = 
+		video_mode_fps == 60 ? 0 : 
+		video_mode_fps == 50 ? 1 : 
+		video_mode_fps == 30 ? 2 : 
+		video_mode_fps == 25 ? 3 : 
+		video_mode_fps == 24 ? 4 : 0;
+    int timer = shutter_get_timer(get_shutter_override_degrees_x10());
+    int ntsc = (mode % 2 == 0);
+    int shutter_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+    return shutter_x1000;
+}
+
+int get_shutter_override_degrees()
+{
+	return get_shutter_override_degrees_x10() / 10;
+}
+
+int shutter_get_timer(int degrees_x10)
+{
+	int mode = 
+		video_mode_fps == 60 ? 0 : 
+		video_mode_fps == 50 ? 1 : 
+		video_mode_fps == 30 ? 2 : 
+		video_mode_fps == 25 ? 3 : 
+		video_mode_fps == 24 ? 4 : 0;
+    int ntsc = (mode % 2 == 0);
+    int fps_x1000 = fps_get_current_x1000();
+    int timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000) 
+                     : FPS_x1000_TO_TIMER_PAL (fps_x1000);
+    return MAX(1, timer * degrees_x10 / 3600);
+}
+void shutter_set(int degrees_x10)
+{
+	FRAME_SHUTTER_TIMER = shutter_get_timer(degrees_x10);
+}
+
 
 static void
 fps_print(
@@ -97,6 +152,31 @@ fps_print(
 		menu_draw_icon(x, y, MNI_WARNING, "Turn off sound recording from Canon menu!");
 	menu_draw_icon(x, y, MNI_BOOL(SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
 	//~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
+}
+
+static void
+shutter_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int current_shutter = get_shutter_override_reciprocal_x1000();
+	int d = get_shutter_override_degrees_x10();
+	
+	char msg[30];
+	snprintf(msg, sizeof(msg), "%d.%ddeg 1/%d", 
+		d/10, d%10,
+		current_shutter/1000
+		);
+	
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Tv override  : %s",
+		shutter_override ? msg : "OFF"
+	);
 }
 
 void fps_change_mode(int mode, int fps)
@@ -181,7 +261,6 @@ void reset_fps(void* priv, int delta)
 
 	fps_override = 0;
 	fps_change_all_modes(0);
-	menu_show_only_selected();
 }
 
 void set_fps(void* priv, int delta)
@@ -190,12 +269,26 @@ void set_fps(void* priv, int delta)
 
 	// first click won't change value
 	int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-	if (fps_override) fps = COERCE(fps + delta, 5, 60);
+	if (fps_override) fps = COERCE(fps + delta, 4, 60);
 	fps_override = 1;
 	
 	fps_change_all_modes(fps);
-	menu_show_only_selected();
 }
+
+static void
+fps_task( void* unused ) // screenshot, draw_prop
+{
+	while(1)
+	{
+		msleep(10);
+		if (shutter_override)
+			shutter_set(get_shutter_override_degrees_x10());
+		else
+			msleep(500); // zzzZZZzzz
+	}
+}
+
+TASK_CREATE( "fps", fps_task, 0, 0x17, 0x1000 );
 
 
 struct menu_entry fps_menu[] = {
@@ -205,7 +298,16 @@ struct menu_entry fps_menu[] = {
 		.select = set_fps,
 		.select_auto = reset_fps,
 		.display = fps_print,
+		.show_liveview = 1,
 		.help = "Makes French Fries with the camera sensor. Turn off sound!"
+	},
+	{
+		.name = "Shutter Override", 
+		.priv = &shutter_override,
+		.max = 8,
+		.display = shutter_print,
+		.show_liveview = 1,
+		.help = "Override shutter speed. 1/fps ... 1/50000.",
 	},
 };
 
