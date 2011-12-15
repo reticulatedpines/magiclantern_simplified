@@ -26,6 +26,7 @@
 #endif
 
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
+#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 
 struct lv_path_struct
 {
@@ -53,6 +54,8 @@ uint16_t sensor_timing_table_patched[128];
 
 int fps_override = 0;
 int shutter_override = 0;
+int hdr_mode = 0;
+int hdr_ev = 2;
 
 int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -120,7 +123,20 @@ int shutter_get_timer(int degrees_x10)
 }
 void shutter_set(int degrees_x10)
 {
-	FRAME_SHUTTER_TIMER = shutter_get_timer(degrees_x10);
+	int odd_frame = YUV422_HD_BUFFER_DMA_ADDR == YUV422_HD_BUFFER_2;
+	int t = shutter_get_timer(degrees_x10);
+	if (hdr_mode == 1) // ISO
+	{
+		int iso_low = COERCE(lens_info.raw_iso - hdr_ev*4, 72, 120);
+		int iso_high = COERCE(lens_info.raw_iso + hdr_ev*4, 72, 120);
+		FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
+	}
+	else if (hdr_mode == 2) // shutter
+	{
+		int ev_x8 = odd_frame ? hdr_ev*4 : -hdr_ev*4;
+		t = shutter_get_timer(degrees_x10 * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000);
+	}
+	FRAME_SHUTTER_TIMER = t;
 }
 
 
@@ -166,9 +182,10 @@ shutter_print(
 	int d = get_shutter_override_degrees_x10();
 	
 	char msg[30];
-	snprintf(msg, sizeof(msg), "%d.%ddeg 1/%d", 
+	snprintf(msg, sizeof(msg), "%d.%ddeg 1/%d%s", 
 		d/10, d%10,
-		current_shutter/1000
+		current_shutter/1000,
+		hdr_ev ? " HDR" : ""
 		);
 	
 	bmp_printf(
@@ -307,7 +324,27 @@ struct menu_entry fps_menu[] = {
 		.max = 8,
 		.display = shutter_print,
 		.show_liveview = 1,
-		.help = "Override shutter speed. 1/fps ... 1/50000.",
+		.help = "Override shutter speed. 1/fps ... 1/50000, HDR option.",
+		.children =  (struct menu_entry[]) {
+			{
+				.name = "HDR mode",
+				.priv		= &hdr_mode,
+				.min = 0,
+				.max = 2,
+				.choices = (const char *[]) {"OFF", "ISO", "Shutter",},
+				.help = "HDR video: alternates exposure between frames",
+				.show_liveview = 1,
+			},
+			{
+				.name = "HDR EV spacing",
+				.priv		= &hdr_ev,
+				.min = 1,
+				.max = 6,
+				.help = "HDR video: alternates exposure between frames",
+				.show_liveview = 1,
+			},
+			MENU_EOL
+		},
 	},
 };
 
