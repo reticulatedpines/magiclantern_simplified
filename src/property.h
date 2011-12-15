@@ -367,6 +367,12 @@
 
 #define PROP_LOGICAL_CONNECT 0x8003000e
 
+#define PROP_BV 0x80050010
+#define PROP_LV_BV 0x80050008
+#define PROP_STROBO_CHARGE_INFO_MAYBE 0x8005000C
+#define PROP_FRAMERATE_SOMETHING 0x8005001C
+
+
 /** Properties */
 extern void
 prop_register_slave(
