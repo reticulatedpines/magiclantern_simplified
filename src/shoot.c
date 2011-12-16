@@ -1257,12 +1257,12 @@ int is_lowgain_iso(int iso)
 {
 	switch(iso)
 	{
-		case 160:
-		case 320:
-		case 640:
-		case 1250:
-		case 2500:
-		case 5000:
+		case 160:  // ISO 200 - 1/3EV
+		case 320:  // ISO 400 - 1/3EV
+		case 640:  // ISO 800 - 1/3EV
+		case 1250: // ISO 1600 - 1/3EV
+		case 2500: // ISO 3200 - 1/3EV
+		//~ case 5000: // this is ISO 3200 analog gain + 2/3EV digital gain
 		return 1;
 	}
 	return 0;
