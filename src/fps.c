@@ -66,22 +66,23 @@ extern struct lv_path_struct lv_path_struct;
 #define TIMER_TO_FPS_x1000_PAL(t) (TG_FREQ_PAL/(t))
 #define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC/(t))
 
-uint16_t * sensor_timing_table_original = 0;
-uint16_t sensor_timing_table_patched[128];
+static uint16_t * sensor_timing_table_original = 0;
+static uint16_t sensor_timing_table_patched[128];
 
-int fps_override = 0;
-int hard_expo_override = 0;
-CONFIG_INT("override.tv.mode", shutter_override_mode, 2); // 180 degrees
-int hdr_mode = 0;
-CONFIG_INT("hdrmov.iso", hdr_ev_iso, 2);
-CONFIG_INT("hdrmov.tv", hdr_ev_tv, 0);
+static int fps_override = 0;
+static int hard_expo_override = 0;
+static CONFIG_INT("override.tv.mode", shutter_override_mode, 2); // 180 degrees
 
-static void hdr_ev_iso_toggle(void* priv, int delta)
+static int hdr_enabled = 0;
+static CONFIG_INT("hdrmov.ev", hdr_ev, 2);
+static CONFIG_INT("hdrmov.mode", hdr_mode, 0);
+
+static void hdr_ev_toggle(void* priv, int delta)
 {
-    hdr_ev_iso = mod(hdr_ev_iso + delta*2, 8) & ~1;
+    MEM(priv) = mod(MEM(priv) + delta*16, 8*8) & ~3;
 }
 
-int iso_override = 0;
+static int iso_override = 0;
 static void iso_override_toggle(void* priv, int delta)
 {
     if (delta > 0)
@@ -98,16 +99,16 @@ static void iso_override_toggle(void* priv, int delta)
     }
 }
 
-int video_mode[5];
+static int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
     memcpy(video_mode, buf, 20);
     return prop_cleanup(token, property);
 }
 
-const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 
-int fps_get_current_x1000()
+static int fps_get_current_x1000()
 {
     int mode = 
         video_mode_fps == 60 ? 0 : 
@@ -121,7 +122,7 @@ int fps_get_current_x1000()
     return fps_x1000;
 }
 
-int shutter_get_timer(int degrees_x10)
+static int shutter_get_timer(int degrees_x10)
 {
     int mode = 
         video_mode_fps == 60 ? 0 : 
@@ -136,11 +137,11 @@ int shutter_get_timer(int degrees_x10)
     return MAX(1, timer * degrees_x10 / 3600);
 }
 
-char cartridge_table[0xF4];
-void (*cartridge_AfStopPathReal)(void *this) = NULL;
+static char cartridge_table[0xF4];
+static void (*cartridge_AfStopPathReal)(void *this) = NULL;
 
 
-void cartridge_AfStopPath(void *this)
+static void cartridge_AfStopPath(void *this)
 {
     /* force the ISO/exposure values */
     shutter_and_hdrvideo_set();
@@ -151,7 +152,7 @@ void cartridge_AfStopPath(void *this)
 
 
 // Q: what happes if this is called when Canon firmware flips the resolution?
-void update_hard_expo_override()
+static void update_hard_expo_override()
 {
     if (hard_expo_override)
     {
@@ -196,12 +197,12 @@ int get_shutter_override_degrees_x10()
     return 600 >> (shutter_override_mode - 5);
 }
 
-int get_shutter_override_degrees()
+static int get_shutter_override_degrees()
 {
     return get_shutter_override_degrees_x10() / 10;
 }
 
-int get_shutter_override_reciprocal_x1000()
+static int get_shutter_override_reciprocal_x1000()
 {
     int mode = 
         video_mode_fps == 60 ? 0 : 
@@ -242,17 +243,17 @@ void shutter_and_hdrvideo_set()
     
     int t = shutter_get_timer(degrees_x10);
 
-    if (hdr_mode && is_movie_mode())
+    if (hdr_enabled && is_movie_mode())
     {
-        if (hdr_ev_iso)
+        if (hdr_mode == 0) // ISO brack
         {
-            int iso_low = COERCE(lens_info.raw_iso - (int)hdr_ev_iso*4, 72, 120);
-            int iso_high = COERCE(lens_info.raw_iso + (int)hdr_ev_iso*4, 72, 120);
+            int iso_low = COERCE(lens_info.raw_iso - (int)hdr_ev/2, 72, 120);
+            int iso_high = COERCE(lens_info.raw_iso + (int)hdr_ev/2, 72, 120);
             FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
         }
-        if (hdr_ev_tv)
+        else // Shutter brack
         {
-            int ev_x8 = odd_frame ? -(int)hdr_ev_tv*4 : (int)hdr_ev_tv*4;
+            int ev_x8 = odd_frame ? -(int)hdr_ev/2 : (int)hdr_ev/2;
             t = shutter_get_timer(degrees_x10 * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000);
         }
     }
@@ -326,7 +327,7 @@ iso_print(
     );
 }
 
-void fps_change_mode(int mode, int fps)
+static void fps_change_mode(int mode, int fps)
 {
     int ntsc = (mode % 2 == 0);
     /** 
@@ -369,7 +370,7 @@ void fps_change_mode(int mode, int fps)
     SENSOR_TIMING_TABLE = sensor_timing_table_patched;
 }
 
-void fps_change_all_modes(int fps)
+static void fps_change_all_modes(int fps)
 {
     if (!fps)
     {
@@ -402,7 +403,7 @@ void fps_change_all_modes(int fps)
     msleep(50);
 }
 
-void reset_fps(void* priv, int delta)
+static void reset_fps(void* priv, int delta)
 {
     if (recording) return;
 
@@ -410,7 +411,7 @@ void reset_fps(void* priv, int delta)
     fps_change_all_modes(0);
 }
 
-void set_fps(void* priv, int delta)
+static void set_fps(void* priv, int delta)
 {
     if (recording) return;
 
@@ -453,34 +454,35 @@ struct menu_entry fps_menu[] = {
                 .select = iso_override_toggle,
                 .display = iso_print,
                 .show_liveview = 1,
-                .help = "Overrides the analog ISO component (100/200/400...3600).",
+                .help = "Overrides the analog ISO component (100/200/400...3200).",
             },
             MENU_EOL
         },
     },
     {
         .name = "HDR video",
-        .priv       = &hdr_mode,
+        .priv       = &hdr_enabled,
         .min = 0,
         .max = 1,
         .show_liveview = 1,
         .help = "Alternates exposure between frames. Enable expo hack first.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "ISO bracket",
-                .priv       = &hdr_ev_iso,
+                .name = "HDR mode",
+                .priv       = &hdr_mode,
                 .min = 0,
-                .max = 6,
-                .select = hdr_ev_iso_toggle,
-                .help = "Alternates ISO between odd/even frames",
-                .show_liveview = 1,
+                .max = 1,
+                .choices = (const char *[]) {"ISO", "Shutter"},
+                .help = "What setting to change for bracketing (ISO or shutter)",
             },
             {
-                .name = "Shutter brack",
-                .priv       = &hdr_ev_tv,
+                .name = "EV spacing",
+                .priv       = &hdr_ev,
                 .min = 0,
                 .max = 6,
-                .help = "Alternates shutter between odd/even frames",
+                .select = hdr_ev_toggle,
+                .unit = UNIT_1_8_EV,
+                .help = "Example: ISO 400 with 4 EV spacing => ISO 100/1600.",
                 .show_liveview = 1,
             },
             MENU_EOL
