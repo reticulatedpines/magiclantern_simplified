@@ -76,8 +76,13 @@ int hdr_mode = 0;
 CONFIG_INT("hdrmov.iso", hdr_ev_iso, 2);
 CONFIG_INT("hdrmov.tv", hdr_ev_tv, 0);
 
+static void hdr_ev_iso_toggle(void* priv, int delta)
+{
+    hdr_ev_iso = mod(hdr_ev_iso + delta*2, 8) & ~1;
+}
+
 int iso_override = 0;
-void iso_override_toggle(void* priv, int delta)
+static void iso_override_toggle(void* priv, int delta)
 {
     if (delta > 0)
     {
@@ -185,10 +190,10 @@ int is_hard_exposure_override_active()
 
 int get_shutter_override_degrees_x10()
 {
-    // 0, 360, 270, 180, 90, 45, 22.5, 11.25...
+    // 0, 360, 270, 180, 90, 60, 30, 15...
     if (shutter_override_mode == 0) return 0;
     if (shutter_override_mode <= 4) return (5-shutter_override_mode) * 900;
-    return 450 >> (shutter_override_mode - 5);
+    return 600 >> (shutter_override_mode - 5);
 }
 
 int get_shutter_override_degrees()
@@ -236,16 +241,20 @@ void shutter_and_hdrvideo_set()
     }
     
     int t = shutter_get_timer(degrees_x10);
-    if (hdr_mode && hdr_ev_iso)
+
+    if (hdr_mode && is_movie_mode())
     {
-        int iso_low = COERCE(lens_info.raw_iso - (int)hdr_ev_iso*4, 72, 120);
-        int iso_high = COERCE(lens_info.raw_iso + (int)hdr_ev_iso*4, 72, 120);
-        FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
-    }
-    if (hdr_mode && hdr_ev_tv)
-    {
-        int ev_x8 = odd_frame ? -(int)hdr_ev_tv*4 : (int)hdr_ev_tv*4;
-        t = shutter_get_timer(degrees_x10 * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000);
+        if (hdr_ev_iso)
+        {
+            int iso_low = COERCE(lens_info.raw_iso - (int)hdr_ev_iso*4, 72, 120);
+            int iso_high = COERCE(lens_info.raw_iso + (int)hdr_ev_iso*4, 72, 120);
+            FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
+        }
+        if (hdr_ev_tv)
+        {
+            int ev_x8 = odd_frame ? -(int)hdr_ev_tv*4 : (int)hdr_ev_tv*4;
+            t = shutter_get_timer(degrees_x10 * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000);
+        }
     }
     FRAME_SHUTTER_TIMER = t;
 }
@@ -429,12 +438,12 @@ struct menu_entry fps_menu[] = {
         .priv = &hard_expo_override,
         .max = 1,
         .show_liveview = 1,
-        .help = "Override shutter speed, ISO, allow HDR movie...",
+        .help = "Overrides shutter speed, ISO, allows HDR movie...",
         .children =  (struct menu_entry[]) {
             {
                 .priv = &shutter_override_mode,
                 .min = 1,
-                .max = 12,
+                .max = 13,
                 .display = shutter_print,
                 .show_liveview = 1,
                 .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
@@ -444,7 +453,7 @@ struct menu_entry fps_menu[] = {
                 .select = iso_override_toggle,
                 .display = iso_print,
                 .show_liveview = 1,
-                .help = "Override the analog ISO component (100/200/400...3600).",
+                .help = "Overrides the analog ISO component (100/200/400...3600).",
             },
             MENU_EOL
         },
@@ -455,14 +464,15 @@ struct menu_entry fps_menu[] = {
         .min = 0,
         .max = 1,
         .show_liveview = 1,
-        .help = "Alternate exposure between frames. Enable expo hack.",
+        .help = "Alternates exposure between frames. Enable expo hack first.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "ISO bracket",
                 .priv       = &hdr_ev_iso,
                 .min = 0,
                 .max = 6,
-                .help = "Alternate ISO between odd/even frames",
+                .select = hdr_ev_iso_toggle,
+                .help = "Alternates ISO between odd/even frames",
                 .show_liveview = 1,
             },
             {
@@ -470,7 +480,7 @@ struct menu_entry fps_menu[] = {
                 .priv       = &hdr_ev_tv,
                 .min = 0,
                 .max = 6,
-                .help = "Alternate shutter between odd/even frames",
+                .help = "Alternates shutter between odd/even frames",
                 .show_liveview = 1,
             },
             MENU_EOL

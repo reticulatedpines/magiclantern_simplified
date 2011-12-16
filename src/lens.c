@@ -381,7 +381,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
 	else if (is_hard_exposure_override_active())
 	{
 		int d = get_shutter_override_degrees_x10();
-		snprintf(shutter, sizeof(shutter), "%d%s  ", d/10, d%10==5?".5" : d%10==2?".2" : "");
+		int q = d/10;
+		int r = d%10;
+		int cr = r + '0';
+		snprintf(shutter, sizeof(shutter), "%d%s%s  ", q, r ? "." : "", r ? &cr : "");
 		bmp_printf( FONT(text_font,COLOR_ORANGE,bg), 
 					x_origin + 143 + font_med.width*2  , 
 					y_origin, 
