@@ -896,15 +896,6 @@ mvr_update_logfile(
 	static unsigned last_aperture;
 	static unsigned last_focal_len;
 	static unsigned last_focus_dist;
-	static unsigned last_wb_mode;
-	static unsigned last_kelvin;
-	static int last_wbs_gm;
-	static int last_wbs_ba;
-	static unsigned last_picstyle;
-	static int last_contrast;
-	static int last_saturation;
-	static int last_sharpness;
-	static int last_color_tone;
 
 	// Check if nothing changed and not forced.  Do not write.
 	if( !force
@@ -913,15 +904,6 @@ mvr_update_logfile(
 	&&  last_aperture	== info->aperture
 	&&  last_focal_len	== info->focal_len
 	&&  last_focus_dist	== info->focus_dist
-	&&  last_wb_mode	== info->wb_mode
-	&&  last_kelvin		== info->kelvin
-	&&  last_wbs_gm		== info->wbs_gm
-	&&  last_wbs_ba		== info->wbs_ba
-	&&  last_picstyle	== info->picstyle
-	&&  last_contrast	== lens_get_contrast()
-	&&  last_saturation	== lens_get_saturation()
-	&&  last_sharpness	== lens_get_sharpness()
-	&&  last_color_tone	== lens_get_color_tone()
 	)
 		return;
 
@@ -931,22 +913,13 @@ mvr_update_logfile(
 	last_aperture	= info->aperture;
 	last_focal_len	= info->focal_len;
 	last_focus_dist	= info->focus_dist;
-	last_wb_mode = info->wb_mode;
-	last_kelvin = info->kelvin;
-	last_wbs_gm = info->wbs_gm; 
-	last_wbs_ba = info->wbs_ba;
-	last_picstyle = info->picstyle;
-	last_contrast = lens_get_contrast(); 
-	last_saturation = lens_get_saturation();
-	last_sharpness = lens_get_sharpness();
-	last_color_tone = lens_get_color_tone();
 
 	struct tm now;
 	LoadCalendarFromRTC( &now );
 
 	my_fprintf(
 		mvr_logfile,
-		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%d,%d\n",
+		"%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
 		now.tm_hour,
 		now.tm_min,
 		now.tm_sec,
@@ -955,16 +928,7 @@ mvr_update_logfile(
 		info->aperture / 10,
 		info->aperture % 10,
 		info->focal_len,
-		info->focus_dist,
-		info->wb_mode, 
-		info->wb_mode == WB_KELVIN ? info->kelvin : 0,
-		info->wbs_gm, 
-		info->wbs_ba,
-		get_picstyle_name(info->raw_picstyle),
-		lens_get_contrast(),
-		lens_get_saturation(), 
-		lens_get_sharpness(), 
-		lens_get_color_tone()
+		info->focus_dist
 	);
 }
 
@@ -1021,9 +985,28 @@ mvr_create_logfile(
 	);
 
 	my_fprintf( mvr_logfile, "Lens: %s\n", lens_info.name );
+	
+	my_fprintf(mvr_logfile, "White Balance: %d, GM %d, BA %d\n",
+		lens_info.wb_mode == WB_KELVIN ? lens_info.kelvin : lens_info.wb_mode,
+		lens_info.wbs_gm, 
+		lens_info.wbs_ba
+		);
+
+	
+	my_fprintf( mvr_logfile, "Picture Style: %s (%d,%d,%d,%d)\n", 
+		get_picstyle_name(lens_info.raw_picstyle), 
+		lens_get_sharpness(),
+		lens_get_contrast(),
+		ABS(lens_get_saturation()) < 10 ? lens_get_saturation() : 0,
+		ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
+		);
+
+	#if defined(CONFIG_60D) || defined(CONFIG_600D)
+	fps_mvr_log(mvr_logfile);
+	#endif
 
 	my_fprintf( mvr_logfile, "%s\n",
-		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist,WB_Mode,Kelvin,WBShift_GM,WBShift_BA,PicStyle,Contrast,Saturation,Sharpness,ColorTone"
+		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
 	);
 
 	// Force the initial values to be written

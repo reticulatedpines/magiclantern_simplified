@@ -446,14 +446,14 @@ struct menu_entry fps_menu[] = {
                 .min = 1,
                 .max = 13,
                 .display = shutter_print,
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
                 .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
             },
             {
                 .priv = &iso_override,
                 .select = iso_override_toggle,
                 .display = iso_print,
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
                 .help = "Overrides the analog ISO component (100/200/400...3200).",
             },
             MENU_EOL
@@ -473,7 +473,7 @@ struct menu_entry fps_menu[] = {
                 .min = 0,
                 .max = 1,
                 .choices = (const char *[]) {"ISO", "Shutter"},
-                .help = "What setting to change for bracketing (ISO or shutter)",
+                .help = "What setting to change for bracketing (ISO or shutter).",
             },
             {
                 .name = "EV spacing",
@@ -483,7 +483,7 @@ struct menu_entry fps_menu[] = {
                 .select = hdr_ev_toggle,
                 .unit = UNIT_1_8_EV,
                 .help = "Example: ISO 400 with 4 EV spacing => ISO 100/1600.",
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
             },
             MENU_EOL
         },
@@ -512,3 +512,18 @@ static void fps_task()
 
 TASK_CREATE("fps_task", fps_task, 0, 0x1d, 0x1000 );
 
+
+void fps_mvr_log(FILE* mvr_logfile)
+{
+    int f = fps_get_current_x1000();
+    my_fprintf(mvr_logfile, "FPS: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
+    if (hard_expo_override)
+    {
+        int d = get_shutter_override_degrees_x10();
+        my_fprintf(mvr_logfile, "Hard shutter override: %d.%d deg\n", d/10, d%10);
+        if (iso_override)
+            my_fprintf(mvr_logfile, "Hard ISO override: %d\n", 100 << (iso_override/8 - 9));
+    }
+    if (hdr_enabled)
+        my_fprintf(mvr_logfile, "HDR: %s, %d EV\n", hdr_mode ? "Shutter" : "ISO", hdr_ev/8);
+}
