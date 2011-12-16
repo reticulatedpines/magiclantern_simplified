@@ -243,7 +243,7 @@ void shutter_and_hdrvideo_set()
     
     int t = shutter_get_timer(degrees_x10);
 
-    if (hdr_enabled && is_movie_mode())
+    if (hdr_enabled && is_movie_mode() && lens_info.raw_iso)
     {
         if (hdr_mode == 0) // ISO brack
         {
@@ -325,6 +325,26 @@ iso_print(
         "Analog ISO  : %d",
         iso_override ? (100 << (iso_override/8 - 9)) : 0
     );
+}
+
+static void
+hdr_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "HDR video     : %s",
+        hdr_enabled ? "ON" : "OFF"
+    );
+    if (hdr_enabled && !lens_info.raw_iso)
+        menu_draw_icon(x, y, MNI_WARNING, "HDR video won't work with Auto ISO.");
+    else if (hdr_enabled && !hard_expo_override)
+        menu_draw_icon(x, y, MNI_WARNING, "Enable Exposure Hack first!");
 }
 
 static void fps_change_mode(int mode, int fps)
@@ -438,7 +458,7 @@ struct menu_entry fps_menu[] = {
         .name = "Exposure Hack", 
         .priv = &hard_expo_override,
         .max = 1,
-        .show_liveview = 1,
+        //~ .show_liveview = 1,
         .help = "Overrides shutter speed, ISO, allows HDR movie...",
         .children =  (struct menu_entry[]) {
             {
@@ -464,8 +484,8 @@ struct menu_entry fps_menu[] = {
         .priv       = &hdr_enabled,
         .min = 0,
         .max = 1,
-        .show_liveview = 1,
-        .help = "Alternates exposure between frames. Enable expo hack first.",
+        .display = hdr_print,
+        .help = "Alternates exposure between frames.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "HDR mode",
