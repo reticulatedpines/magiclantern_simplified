@@ -5,6 +5,7 @@
  * Found by g3gg0
  **/
 
+#include "math.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "property.h"
@@ -369,7 +370,7 @@ static void fps_change_mode(int mode, int fps)
     sensor_timing_table_patched[mode_offset_map[mode]] = fps ? fps_timer : fps_timer_default;
 
     // use the patched sensor table
-    SENSOR_TIMING_TABLE = sensor_timing_table_patched;
+    SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_patched;
 }
 
 static void fps_change_all_modes(int fps)
@@ -377,7 +378,7 @@ static void fps_change_all_modes(int fps)
     if (!fps)
     {
         // use the original sensor table (firmware default)
-        SENSOR_TIMING_TABLE = sensor_timing_table_original;
+        SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
     }
     else
     {

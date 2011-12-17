@@ -6,7 +6,6 @@
 #include <bmp.h>
 
 static int bottom_bar_dirty = 0;
-static int hide_bottom_bar_timer = 0;
 
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 

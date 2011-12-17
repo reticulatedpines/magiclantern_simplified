@@ -32,6 +32,9 @@
 
 void update_stuff();
 
+void bv_update_lensinfo();
+void bv_auto_update();
+
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
 CONFIG_INT("movie.log", movie_log, 0);
@@ -545,10 +548,11 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
 	//~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
 	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
-	int y169 = os.y_max - os.off_169;
 	
 	// these have a black bar at the bottom => no problems
 	#if !defined(CONFIG_500D) && !defined(CONFIG_50D)
+	int y169 = os.y_max - os.off_169;
+
 	if (!gui_menu_shown() && (screen_layout == SCREENLAYOUT_16_9 || screen_layout == SCREENLAYOUT_16_10 || hdmi_code == 2 || ext_monitor_rca))
 		shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 	#endif
@@ -1040,7 +1044,7 @@ PROP_HANDLER( PROP_LENS_NAME )
 
 PROP_HANDLER(PROP_LENS)
 {
-	uint8_t* info = buf;
+	uint8_t* info = (uint8_t *) buf;
 	lens_info.raw_aperture_min = info[1];
 	lens_info.raw_aperture_max = info[2];
 	bv_update_lensinfo();
@@ -1444,7 +1448,7 @@ bool prop_set_rawaperture(unsigned aperture)
 	aperture = COERCE(aperture, 8, 200);
 	prop_request_change( PROP_APERTURE, &aperture, 4 );
 	msleep(100);
-	return get_prop(PROP_APERTURE2) == aperture;
+	return (unsigned int) get_prop(PROP_APERTURE2) == aperture;
 }
 
 bool prop_set_rawshutter(unsigned shutter, int coerce)
@@ -1453,7 +1457,7 @@ bool prop_set_rawshutter(unsigned shutter, int coerce)
 	if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
 	prop_request_change( PROP_SHUTTER, &shutter, 4 );
 	msleep(lv ? 50 : 20);
-	return get_prop(PROP_SHUTTER_ALSO) == shutter;
+	return (unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter;
 }
 
 bool prop_set_rawiso(unsigned iso)
@@ -1462,7 +1466,7 @@ bool prop_set_rawiso(unsigned iso)
 	if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
 	prop_request_change( PROP_ISO, &iso, 4 );
 	msleep(20);
-	return get_prop(PROP_ISO) == iso;
+	return (unsigned int) get_prop(PROP_ISO) == iso;
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */

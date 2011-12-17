@@ -129,7 +129,7 @@ bootflag_write_bootblock( void )
 	//~ console_printf("mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
 	//~ bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
 	
-	int rc = dev->read_block( dev, block, 0, 1 );
+	dev->read_block( dev, (uintptr_t) block, 0, (void *) 1 );
 	//~ NotifyBox(1000, "read_block => %x", rc);
 
 	struct partition_table p;
@@ -139,13 +139,13 @@ bootflag_write_bootblock( void )
 
 	if (p.type == 6 || p.type == 0xb || p.type == 0xc) // FAT16 or FAT32
 	{
-		int rc = dev->read_block( dev, block, p.sectors_before_partition, 1 );
+		int rc = dev->read_block( dev, (uintptr_t) block, p.sectors_before_partition, (void *) 1 );
 		int off1 = p.type == 6 ? 0x2b : 0x47;
 		int off2 = p.type == 6 ? 0x40 : 0x5c;
 		my_memcpy( block + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
 		my_memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
 		//~ NotifyBox(1000, "writing");
-		rc = dev->write_block( dev, block, p.sectors_before_partition, 1 );
+		rc = dev->write_block( dev, (uintptr_t) block, p.sectors_before_partition, (void *) 1 );
 		if (rc != 1)
 		{
 			NotifyBox(2000, "Bootflag write failed\np.type=%d, p.sec = %d, rc=%d", p.type, p.sectors_before_partition, rc); 
@@ -181,24 +181,24 @@ bootflag_write_bootblock( void )
 	int i;
 	for(i=0; i<512; i++) block[i] = 0xAA;
 
-	int rc = dev->read_block( dev, 0, 1, block ); //overwrite our AAAs in our buffer with the MBR partition of the SD card.
+	dev->read_block( dev, 0, 1, block ); //overwrite our AAAs in our buffer with the MBR partition of the SD card.
 	
 	// figure out if we are a FAT32 partitioned drive. this spells out FAT32 in chars.
 	// FAT16 not supported yet - I don't have a small enough card to test with.
 	//if( block[0x52] == 0x46 && block[0x53] == 0x41 && block[0x54] == 0x54 && block[0x55] == 0x33 && block[0x56] == 0x32 )
 	if( strncmp((const char*) block + 0x52, "FAT32", 5) == 0 ) //check if this card is FAT32
 	{
-		int rc = dev->read_block( dev, 0, 1, block );
+		dev->read_block( dev, 0, 1, block );
 		my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
 		my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
-		rc = dev->write_block( dev, 0, 1, block );
+		dev->write_block( dev, 0, 1, block );
 	}
 	else if( strncmp((const char*) block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
 	{
-		int rc = dev->read_block( dev, 0, 1, block );
+		dev->read_block( dev, 0, 1, block );
 		my_memcpy( block + 0x2B, (uint8_t*) "EOS_DEVELOP", 0xB );
 		my_memcpy( block + 0x40, (uint8_t*) "BOOTDISK", 0xB );
-		rc = dev->write_block( dev, 0, 1, block );
+		dev->write_block( dev, 0, 1, block );
 	}
 	else // if it's not FAT16 neither FAT32, don't do anything.
 	{

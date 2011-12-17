@@ -36,11 +36,11 @@ reloc_branch(
 uintptr_t new_LiveViewApp_handler = 0;
 
 static void
-reloc_liveviewapp_init( void )
+reloc_liveviewapp_init( void *unused )
 {
 	//~ bmp_printf(FONT_LARGE, 50, 50, "reloc_len = %x", reloc_len);
 	//~ msleep(2000);
-	if (!reloc_buf) reloc_buf = AllocateMemory(reloc_len + 64);
+	if (!reloc_buf) reloc_buf = (uintptr_t) AllocateMemory(reloc_len + 64);
 
 	//~ bmp_printf(FONT_LARGE, 50, 50, "reloc: %x, %x, %x ", reloc_buf, reloc_start, reloc_end );
 	//~ msleep(2000);
@@ -67,9 +67,9 @@ void reloc_liveviewapp_install()
 {
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
-	if (dialog->handler == &LiveViewApp_handler)
+	if (dialog->handler == (dialog_handler_t) &LiveViewApp_handler)
 	{
-		dialog->handler = new_LiveViewApp_handler;
+		dialog->handler = (dialog_handler_t) new_LiveViewApp_handler;
 		//~ beep();
 	}
 }
@@ -78,8 +78,8 @@ void reloc_liveviewapp_uninstall()
 {
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
-	if (dialog->handler == new_LiveViewApp_handler)
-		dialog->handler = &LiveViewApp_handler;
+	if ((uintptr_t) dialog->handler == new_LiveViewApp_handler)
+		dialog->handler = (dialog_handler_t) &LiveViewApp_handler;
 }
 
 INIT_FUNC(__FILE__, reloc_liveviewapp_init);
@@ -92,7 +92,7 @@ INIT_FUNC(__FILE__, reloc_liveviewapp_init);
 	*(uint32_t*) &reloc_buf[ 0xFFA97F28 + offset ] = NOP_INSTR;
 
 	// Fix up a few things, like the calls to ChangeHDMIOutputSizeToVGA
-	//*(uint32_t*) &reloc_buf[ 0xFFA97C6C + offset ] = LOOP_INSTR;
+	// *(uint32_t*) &reloc_buf[ 0xFFA97C6C + offset ] = LOOP_INSTR;
 
 	*(uint32_t*) &reloc_buf[ 0xFFA97D5C + offset ] = NOP_INSTR;
 	*(uint32_t*) &reloc_buf[ 0xFFA97D60 + offset ] = NOP_INSTR;

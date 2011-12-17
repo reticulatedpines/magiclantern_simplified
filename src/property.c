@@ -65,8 +65,8 @@ prop_init( void* unused )
 int get_prop(int prop)
 {
 	int* data = 0;
-	int len = 0;
-	int err = prop_get_value(prop, &data, &len);
+	size_t len = 0;
+	int err = prop_get_value(prop, (void **) &data, &len);
 	if (!err) return data[0];
 	return 0;
 }
@@ -75,8 +75,8 @@ int get_prop(int prop)
 char* get_prop_str(int prop)
 {
 	char* data = 0;
-	int len = 0;
-	int err = prop_get_value(prop, &data, &len);
+	size_t len = 0;
+	int err = prop_get_value(prop, (void **) &data, &len);
 	if (!err) return data;
 	return 0;
 }

@@ -37,6 +37,8 @@
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
+
+extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 
 int lv_paused = 0;
@@ -51,7 +53,14 @@ void draw_histogram_and_waveform();
 void schedule_transparent_overlay();
 void lens_display_set_dirty();
 void defish_draw();
-int log_length(int x);
+
+static void black_bars_16x9();
+static void black_bars();
+static void defish_draw_play();
+
+extern unsigned int log_length(int x);
+extern void zoom_sharpen_step();
+extern void bv_auto_update();
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -258,8 +267,6 @@ int get_global_draw() // menu setting, or off if
 	if (!ml_started) return 0;
 	
 	if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
-	
-	extern int kill_canon_gui_mode;
 	
 	return global_draw &&
 		!idle_globaldraw_disable && 
@@ -526,7 +533,7 @@ hist_draw_image(
 		if (hist_warn && i == hist_width - 1
 			&& !should_draw_zoom_overlay()) // magic zoom borders will be "overexposed" => will cause warning
 		{
-			int thr = hist_total_px / (
+			unsigned int thr = hist_total_px / (
 				hist_warn == 1 ? 100000 : // 0.001%
 				hist_warn == 2 ? 10000  : // 0.01%
 				hist_warn == 3 ? 1000   : // 0.01%
@@ -986,12 +993,12 @@ draw_zebra_and_focus( int Z, int F )
 		// look in the HD buffer
 		for(int y = os.y0 + os.off_169 + 8; y < os.y_max - os.off_169 - 8; y += 2 )
 		{
-			uint16_t * const hd_row = hdvram + BM2HD_R(y) / 4; // 2 pixels
+			uint16_t * const hd_row = (uint16_t *)(hdvram + BM2HD_R(y) / 4); // 2 pixels
 			
 			uint32_t* hdp; // that's a moving pointer
 			for (int x = os.x0 + 8; x < os.x_max - 8; x += 2)
 			{
-				hdp = hd_row + BM2HD_X(x);
+				hdp = (uint32_t *)(hd_row + BM2HD_X(x));
 				//~ hdp = hdvram + BM2HD(x,y)/4;
 				#define PX_AB (*hdp)        // current pixel group
 				#define PX_CD (*(hdp + 1))  // next pixel group
@@ -1256,7 +1263,7 @@ draw_false_downsampled( void )
 		
 		for (int x = os.x0; x < os.x_max; x += 2)
 		{
-			lvp = v_row + BM2LV_X(x)/2; lvp++;
+			lvp = (uint8_t *)(v_row + BM2LV_X(x)/2); lvp++;
 			bp = b_row + x/2;
 			mp = m_row + x/2;
 			
@@ -3169,7 +3176,7 @@ void draw_zoom_overlay(int dirty)
 		{
 			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
 			if (rev) off = -off;
-			if (zoom_overlay_lut) yuvcpy_lut(d, s + off, W);
+			if (zoom_overlay_lut) yuvcpy_lut((uint32_t *)d, (uint32_t *)(s + off), W);
 			else memcpy(d, s + off, W<<1);
 			d += lv->width;
 			s += hd->width;
@@ -3199,10 +3206,10 @@ bool liveview_display_idle()
 	struct gui_task * current = gui_task_list.current;
 	struct dialog * dialog = current->priv;
 	extern thunk LiveViewApp_handler;
-	extern thunk new_LiveViewApp_handler;
+	extern uintptr_t new_LiveViewApp_handler;
 	extern thunk test_minimal_handler;
 
-	if (dialog->handler == &test_minimal_handler)
+	if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
 	{ // ML is clearing the screen with a fake dialog, let's see what's underneath
 		current = current->next;
 		dialog = current->priv;
@@ -3214,7 +3221,7 @@ bool liveview_display_idle()
 		!menu_active_and_not_hidden() && 
 		(gui_menu_shown() || // force LiveView when menu is active, but hidden
 			( gui_state == GUISTATE_IDLE && 
-			(dialog->handler == &LiveViewApp_handler || dialog->handler == new_LiveViewApp_handler) &&
+              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler) &&
 			CURRENT_DIALOG_MAYBE <= 3 && 
 			#ifdef CURRENT_DIALOG_MAYBE_2
 			CURRENT_DIALOG_MAYBE_2 <= 3 &&
@@ -3592,7 +3599,6 @@ clearscreen_loop:
 
 		// especially for 50D
 		#ifdef CONFIG_KILL_FLICKER
-		extern int kill_canon_gui_mode;
 		if (kill_canon_gui_mode == 1)
 		{
 			if (global_draw && !gui_menu_shown())
@@ -3936,7 +3942,7 @@ static void loprio_sleep()
 	while (is_mvr_buffer_almost_full()) msleep(100);
 }
 
-void black_bars()
+static void black_bars()
 {
 	if (!get_global_draw()) return;
 	if (!is_movie_mode()) return;
@@ -3955,7 +3961,7 @@ void black_bars()
 }
 
 
-void black_bars_16x9()
+static void black_bars_16x9()
 {
 #ifdef CONFIG_KILL_FLICKER
 	if (!get_global_draw()) return;
@@ -4352,8 +4358,8 @@ void defish_draw()
 				int Id = (off_i[k] ? off_i[k] - id : id);
 				int Jd = (off_j[k] ? off_j[k] - jd : jd);
 				int lv_pixel = lvram[N2LV(Jd&~1,Id&~1) + 1];
-				uint32_t* bp = &(bvram[BM(X,Y)]);
-				uint32_t* mp = &(bvram_mirror[BM(X,Y)]);
+				uint32_t* bp = (uint32_t *)&(bvram[BM(X,Y)]);
+				uint32_t* mp = (uint32_t *)&(bvram_mirror[BM(X,Y)]);
 				if (*bp != 0 && *bp != *mp) continue;
 				int c = (lv_pixel * 41 >> 8) + 38;
 				c = c | (c << 8);
@@ -4364,13 +4370,13 @@ void defish_draw()
 	}
 }
 
-void defish_draw_play()
+static void defish_draw_play()
 {
 	defish_lut_load();
 	int i,j;
 	struct vram_info * vram = get_yuv422_vram();
 
-	uint32_t * lvram = vram->vram;
+	uint32_t * lvram = (uint32_t *)vram->vram;
 	uint32_t * aux_buf = (void*)YUV422_HD_BUFFER_2;
 
 	uint8_t * const bvram = bmp_vram();

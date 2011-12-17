@@ -1374,8 +1374,8 @@ static void prop_display(
 {
 	unsigned prop = (prop_i << 24) | (prop_j << 16) | (prop_k);
 	int* data = 0;
-	int len = 0;
-	int err = prop_get_value(prop, &data, &len);
+	size_t len = 0;
+	int err = prop_get_value(prop, (void **) &data, &len);
 	bmp_printf(
 		FONT_MED,
 		x, y,
@@ -1387,7 +1387,7 @@ static void prop_display(
 		len > 0x04 ? data[1] : 0,
 		len > 0x08 ? data[2] : 0,
 		len > 0x0c ? data[3] : 0,
-		strlen(data) < 100 ? data : ""
+		strlen((const char *) data) < 100 ? (const char *) data : ""
 	);
 	menu_draw_icon(x, y, MNI_BOOL(!err), 0);
 }
@@ -1417,17 +1417,17 @@ void prop_dump()
 		
 				bmp_printf(FONT_LARGE, 0, 0, "PROP %x...", prop);
 				int* data = 0;
-				int len = 0;
-				int err = prop_get_value(prop, &data, &len);
+				size_t len = 0;
+				int err = prop_get_value(prop, (void **) &data, &len);
 				if (!err)
 				{
 					my_fprintf(f, "\nPROP %8x: %5d:", prop, len );
 					my_fprintf(g, "\nPROP %8x: %5d:", prop, len );
-					for (int i = 0; i < (MIN(len,40)+3)/4; i++)
+					for (unsigned int i = 0; i < (MIN(len,40)+3)/4; i++)
 					{
 						my_fprintf(f, "%8x ", data[i]);
 					}
-					if (strlen(data) < 100) my_fprintf(g, "'%s'", data);
+					if (strlen((const char *) data) < 100) my_fprintf(g, "'%s'", data);
 				}
 			}
 		}
@@ -1448,6 +1448,37 @@ void menu_kill_flicker()
 	gui_stop_menu();
 	canon_gui_disable_front_buffer();
 }
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+
+void EyeFi_RenameCR2toAVI(char* dir)
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+	if( IS_ERROR(dirent) )
+		return;
+
+	do {
+		if (file.mode & 0x10) continue; // is a directory
+		if (file.name[0] == '.') continue;
+		if (!streq(file.name + 8, ".CR2")) continue;
+
+		static char oldname[50];
+		static char newname[50];
+		snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+		strcpy(newname, oldname);
+		newname[strlen(newname) - 4] = 0;
+		STR_APPEND(newname, ".AVI");
+		bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+		FIO_RenameFile(oldname, newname);
+
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
+	beep();
+	redraw();
+}
+
+#endif
 
 static void CR2toAVI(void* priv, int delta)
 {
@@ -1956,9 +1987,9 @@ TASK_CREATE("iso_adj_task", iso_adj_task, 0, 0x1a, 0);
 
 PROP_HANDLER(PROP_ISO)
 {
-	static int prev_iso = 0;
+	static unsigned int prev_iso = 0;
 	if (!prev_iso) prev_iso = lens_info.raw_iso;
-	static int k = 0;
+
 	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0 && is_movie_mode())
 	{
 		if ((prev_iso && buf[0] && prev_iso < buf[0]) || // 100 -> 200 => +
@@ -2456,33 +2487,3 @@ void display_off_force()
 int display_is_on() { return !_display_is_off; }
 
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-
-void EyeFi_RenameCR2toAVI(char* dir)
-{
-	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-	if( IS_ERROR(dirent) )
-		return;
-
-	do {
-		if (file.mode & 0x10) continue; // is a directory
-		if (file.name[0] == '.') continue;
-		if (!streq(file.name + 8, ".CR2")) continue;
-
-		static char oldname[50];
-		static char newname[50];
-		snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-		strcpy(newname, oldname);
-		newname[strlen(newname) - 4] = 0;
-		STR_APPEND(newname, ".AVI");
-		bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-		FIO_RenameFile(oldname, newname);
-
-	} while( FIO_FindNextEx( dirent, &file ) == 0);
-	FIO_CleanupAfterFindNext_maybe(dirent);
-	beep();
-	redraw();
-}
-
-#endif

@@ -186,8 +186,8 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg);
 #define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (expsim || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? "GlobalDraw is OFF" : "ExpSim is OFF" )
 #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option works only in LiveView" 
 
-#define MENU_EOL { .priv = -1 }
-#define MENU_IS_EOL(entry) ((entry)->priv == -1)
+#define MENU_EOL { .priv = (void *) -1 }
+#define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
 
 #endif

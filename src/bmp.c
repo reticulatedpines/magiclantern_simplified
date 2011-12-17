@@ -61,7 +61,7 @@ uint8_t* bmp_vram_real()
 
 uint8_t* bmp_vram_idle()
 {
-	return (uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000;
+	return (uint8_t *)((uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000);
 }
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
@@ -98,7 +98,7 @@ _draw_char(
 	uint32_t *	front_row	= (uint32_t *) bmp_vram_row;
 	
 	// boundary checking, don't write past this address
-	uint32_t* end = BMP_END - font->width; 
+	uint32_t* end = (uint32_t *)(BMP_END - font->width);
 
 	//uint32_t flags = cli();
 	for( i=0 ; i<font->height ; i++ )
@@ -387,7 +387,7 @@ bmp_fill(
 		#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
 		for( x=w/4-1 ; x >= 0 ; x-- )
 		#else
-		for( x=0 ; x<w/4 ; x++ )
+            for( x=0 ; x < (int)w/4 ; x++ )
 		#endif
 		{
 			row[ x ] = word;
@@ -1081,7 +1081,7 @@ void bmp_flip(uint8_t* dst, uint8_t* src)
 
 void bmp_dim()
 {
-	uint32_t* b = bmp_vram();
+	uint32_t* b = (uint32_t *)bmp_vram();
 	if (!b) return;
 	int i,j;
 	for (i = 0; i < vram_bm.height; i += 2)

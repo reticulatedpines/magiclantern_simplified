@@ -42,6 +42,7 @@ void intervalometer_stop();
 void bulb_ramping_showinfo();
 void get_out_of_play_mode();
 void wait_till_next_second();
+void zoom_sharpen_step();
 
 bool display_idle()
 {
@@ -2997,7 +2998,8 @@ static struct menu_entry shoot_menus[] = {
 				.max = 2,
 				.help = "Bracketing sequence order / type.",
 				.icon_type = IT_DICE,
-				.choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++",},
+				.choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++"},
+                .children = 0,
 			},
 			{
 				.name = "2-second delay",
@@ -3005,6 +3007,7 @@ static struct menu_entry shoot_menus[] = {
 				.max = 1,
 				.help = "Delay before starting the exposure.",
 				.choices = (const char *[]) {"OFF", "Auto"},
+                .children = 0,
 			},
 			{
 				.name = "ISO shifting",
@@ -3012,6 +3015,7 @@ static struct menu_entry shoot_menus[] = {
 				.max = 2,
 				.help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
 				.choices = (const char *[]) {"OFF", "Full, M only", "Half, M only"},
+                .children = 0,
 			},
 			MENU_EOL
 		},

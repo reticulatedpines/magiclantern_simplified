@@ -63,6 +63,8 @@ int get_menu_font_sel()
 	else return FONT(FONT_LARGE,COLOR_WHITE,13);
 }
 
+void select_menu_by_name(char* name, char* entry_name);
+static void select_menu_by_icon(int icon);
 static void menu_help_go_to_selected_entry(struct menu * menu);
 //~ static void menu_init( void );
 static void menu_show_version(void);
@@ -179,7 +181,7 @@ static void entry_draw_icon(
 		}
 		else if(entry->choices)
 		{
-			char* first_choice = entry->choices[0];
+			const char* first_choice = entry->choices[0];
 			if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
 				entry->icon_type = IT_BOOL;
 			else if (streq(first_choice, "ON"))
@@ -617,7 +619,7 @@ void dice_icon(int x, int y, int current, int nmax)
 	#undef C
 }
 
-void color_icon(int x, int y, char* color)
+void color_icon(int x, int y, const char* color)
 {
 	if (streq(color, "Red"))
 		maru(x, y, COLOR_RED);
@@ -682,7 +684,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 		case MNI_ACTION: playicon(x, y); return;
 		case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
 		case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
-		case MNI_NAMED_COLOR: color_icon(x, y, arg); return;
+		case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
 	}
 	#endif
 }
@@ -1734,7 +1736,7 @@ void select_menu_by_name(char* name, char* entry_name)
 	//~ menu_damage = 1;
 }
 
-void select_menu_by_icon(int icon)
+static void select_menu_by_icon(int icon)
 {
 	take_semaphore(menu_sem, 0);
 	struct menu * menu = menus;

@@ -17,6 +17,8 @@
 void display_gain_toggle(void* priv, int dir);
 void clear_lv_affframe();
 
+static void upside_down_step();
+
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
 static void
@@ -1429,7 +1431,7 @@ int handle_upside_down(struct event * event)
 	return 1;
 }
 
-void upside_down_step()
+static void upside_down_step()
 {
 	extern int menu_upside_down;
 	if (menu_upside_down)

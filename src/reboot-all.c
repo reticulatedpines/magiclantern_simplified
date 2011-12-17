@@ -113,7 +113,7 @@ extern uint8_t blob_end_500;
 void* blob_start = 0;
 void* blob_end = 0;
 void* RESTARTSTART = 0;
-void* ROMSTART = 0xFF010000;
+void* ROMSTART = (void *)0xFF010000;
 
 static int guess_firmware_version()
 {
@@ -139,7 +139,7 @@ static int guess_firmware_version()
 			blob_start = &blob_start_50;
 			blob_end = &blob_end_50;
 			RESTARTSTART = (void*)RESTARTSTART_50;
-			ROMSTART = 0xFF810000;
+			ROMSTART = (void *)0xFF810000;
 			return 1;
 		case SIG_500D_111:
 			blob_start = &blob_start_500;
