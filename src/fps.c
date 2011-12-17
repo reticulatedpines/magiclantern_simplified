@@ -224,6 +224,7 @@ void shutter_and_hdrvideo_set()
         }
     
         int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
+        mid_iso = ((mid_iso + 4) / 8) * 8;
         int iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
         int iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
         FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
@@ -324,9 +325,6 @@ hdr_print(
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }
-
-    if (HDR_ENABLED && !lens_info.raw_iso)
-        menu_draw_icon(x, y, MNI_WARNING, "HDR video won't work with Auto ISO.");
 }
 
 static void fps_change_mode(int mode, int fps)
@@ -443,6 +441,7 @@ struct menu_entry fps_menu[] = {
         .display = shutter_print,
         .select_auto = reset_tv,
         .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
+        .show_liveview = 1,
     },
     {
         .name = "HDR video",
