@@ -370,8 +370,17 @@ silent_pic_display( void * priv, int x, int y, int selected )
 	}
 }
 
+int afframe_needs_erasing = 0;
+
 int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
+	
+	if (afframe_needs_erasing)
+	{
+		clear_lv_affframe();
+		afframe_needs_erasing = 0;
+	}
+	
 	memcpy(afframe, buf, 0x68);
 	return prop_cleanup( token, property );
 }
@@ -483,6 +492,7 @@ void move_lv_afframe(int dx, int dy)
 	if (!liveview_display_idle()) return;
 	BMP_LOCK(
 		clear_lv_affframe();
+		afframe_needs_erasing = 0;
 		afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
 		afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
 

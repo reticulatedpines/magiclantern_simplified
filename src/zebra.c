@@ -2011,6 +2011,14 @@ void spotmeter_step()
 			spotmeter_formula == 2 ? "-1..101" : "0..108"
 		);
 	}
+	
+	if (spotmeter_position)
+	{
+		// spotmeter may need to be erased when moving the AF frame
+		extern int afframe_needs_erasing;
+		if (canon_gui_front_buffer_disabled() || recording)
+			afframe_needs_erasing = 1;
+	}
 }
 
 void hdmi_test_toggle(void* priv)
