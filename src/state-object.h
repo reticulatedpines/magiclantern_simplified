@@ -31,16 +31,17 @@
  *
  * Size 0x20
  */
-typedef struct state_object * (*state_function_t)(
-	void *			arg1,
-	void *			arg2,
-	void *			arg3
+typedef struct state_object * (*state_transition_function_t)(
+	void * x,
+	void * y,
+	void * z,
+	void * w
 );
 
-struct state_callback
+struct state_transition
 {
 	uint32_t		next_state;
-	state_function_t	handler;
+	state_transition_function_t	state_transition_function;
 };
 
 
@@ -51,29 +52,29 @@ struct state_object
 	uint32_t		auto_sequence;	// off 0x08, arg 1
 
 	// off 0x0c, always 0xff99a228 ?
-	void			(*callback)(
+	void			(*StateTransition_maybe)(
 		struct state_object *	self,
-		void *			arg1,
-		uint32_t		input,
-		void *			arg3,
-		void *			arg4
+		void *		x,
+		uint32_t	input,
+		void *		z,
+		void *		t
 	);
 
 	// Points to an array of size [max_inputs][max_states]
-	struct state_callback *	callbacks;	// off 0x10
+	struct state_transition *	state_matrix;	// off 0x10
 	uint32_t		max_inputs;	// off 0x14, arg 2
 	uint32_t		max_states;	// off 0x18, arg 3
-	uint32_t		state;		// off 0x1c, initially 0
+	uint32_t		current_state;		// off 0x1c, initially 0
 };
 
 SIZE_CHECK_STRUCT( state_object, 0x20 );
 
 
 extern struct state_object *
-state_object_create(
+CreateStateObject(
 	const char *		name,
 	int			auto_sequence,
-	state_function_t *	callbacks,
+	struct state_transition *	state_matrix,
 	int			max_inputs,
 	int			max_states
 );
@@ -88,5 +89,6 @@ state_object_dispatchc(
 	int			arg2
 );
 
+#define STATE_FUNC(stateobj,input,state) stateobj->state_matrix[(state) + (input) * stateobj->max_states].state_transition_function
 
 #endif
