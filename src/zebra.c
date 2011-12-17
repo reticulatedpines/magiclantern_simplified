@@ -2398,6 +2398,7 @@ struct menu_entry zebra_menus[] = {
 				.icon_type = IT_SIZE,
 				.help = "Magnification: 2:1 doubles the pixels.",
 			},
+			#ifndef CONFIG_50D
 			{
 				.name = "Focus confirm", 
 				.priv = &zoom_overlay_split,
@@ -2406,6 +2407,7 @@ struct menu_entry zebra_menus[] = {
 				.icon_type = IT_DICE,
 				.help = "How to show focus confirmation (green bars / split screen).",
 			},
+			#endif
 			{
 				.name = "Look-up Table", 
 				.priv = &zoom_overlay_lut,
@@ -3013,6 +3015,10 @@ void draw_zoom_overlay(int dirty)
 	if (lv_dispsize != 1) return;
 	//~ if (get_halfshutter_pressed() && clearscreen != 2) return;
 	if (recording == 1) return;
+	
+	#ifdef CONFIG_50D
+	zoom_overlay_split = 0; // 50D doesn't report focus
+	#endif
 	
 	struct vram_info *	lv = get_yuv422_vram();
 	struct vram_info *	hd = get_yuv422_hd_vram();

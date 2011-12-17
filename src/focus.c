@@ -731,6 +731,9 @@ int lv_focus_confirmation = 0;
 static int hsp_countdown = 0;
 int can_lv_trap_focus_be_active()
 {
+	#ifdef CONFIG_50D
+	return 0;
+	#endif
 	//~ bmp_printf(FONT_MED, 100, 100, "LVTF 0 lv=%d hsc=%d dof=%d sm=%d gs=%d sp=%d mf=%d",lv,hsp_countdown,dofpreview,shooting_mode,gui_state,get_silent_pic_mode(),is_manual_focus());
 	if (!lv) return 0;
 	if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
@@ -1084,6 +1087,9 @@ trap_focus_display( void * priv, int x, int y, int selected )
 	{
 		if (!is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus only works with manual focus.");
 		if (!lv && !lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus outside LiveView requires a chipped lens");
+		#ifdef CONFIG_50D
+		if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On 50D, trap focus doesn't work in LiveView.");
+		#endif
 	}
 }
 
