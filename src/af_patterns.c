@@ -50,6 +50,8 @@ PROP_HANDLER(PROP_AFPOINT)
 {
 	afp[0] = buf[0];
 	afp[1] = buf[1];
+
+	return prop_cleanup(token, property);
 }
 #define af_point afp[0]
 
