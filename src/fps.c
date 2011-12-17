@@ -70,34 +70,16 @@ static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[128];
 
 static int fps_override = 0;
-static int hard_expo_override = 0;
-static CONFIG_INT("override.tv.mode", shutter_override_mode, 2); // 180 degrees
+int shutter_override_mode = 0;
+static void reset_tv(void* priv, int delta) { shutter_override_mode = 0; }
 
-static int hdr_enabled = 0;
-static CONFIG_INT("hdrmov.ev", hdr_ev, 2);
-static CONFIG_INT("hdrmov.mode", hdr_mode, 0);
 
-static void hdr_ev_toggle(void* priv, int delta)
-{
-    MEM(priv) = (mod(MEM(priv) + delta*16 - 16, 6*8) + 16) & ~0xf;
-}
+static int hdr_ev = 0;
+#define HDR_ENABLED (hdr_ev != 0)
 
-static int iso_override = 0;
-static void iso_override_toggle(void* priv, int delta)
-{
-    if (delta > 0)
-    {
-        if (iso_override == 0) iso_override = 72;
-        else if (iso_override < 112) iso_override += 8;
-        else iso_override = 0;
-    }
-    else
-    {
-        if (iso_override == 0) iso_override = 112;
-        else if (iso_override > 72) iso_override -= 8;
-        else iso_override = 0;
-    }
-}
+static void hdr_ev_toggle(void* priv, int delta) { MEM(priv) = mod(MEM(priv) + delta*16, 8*8) & ~0xf; }
+static void reset_hdr(void* priv, int delta) { hdr_ev = 0; }
+
 
 static int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -154,7 +136,7 @@ static void cartridge_AfStopPath(void *this)
 // Q: what happes if this is called when Canon firmware flips the resolution?
 static void update_hard_expo_override()
 {
-    if (hard_expo_override)
+    if (shutter_override_mode || HDR_ENABLED)
     {
         // cartridge call table is sometimes overriden by Canon firmware
         // so this function polls the status periodically (and updates it if needed)
@@ -219,45 +201,33 @@ static int get_shutter_override_reciprocal_x1000()
 // called every frame
 void shutter_and_hdrvideo_set()
 {
-    if (!hard_expo_override) return;
     int degrees_x10 = get_shutter_override_degrees_x10();
+    if (degrees_x10)
+    {
+        int t = shutter_get_timer(degrees_x10);
+        FRAME_SHUTTER_TIMER = t;
+    }
 
-    static int odd_frame = 0;
-    static int frame;
-    frame++;
-    
-    if (recording)
+    if (HDR_ENABLED && is_movie_mode() && lens_info.raw_iso)
     {
-        odd_frame = frame % 2;
-    }
-    else
-    {
-        if (!HALFSHUTTER_PRESSED) odd_frame = (frame / (fps_get_current_x1000()/1000)) % 2;
-    }
-    
-    if (iso_override)
-    {
-        FRAME_ISO = iso_override;
-        lensinfo_set_iso(iso_override);
-    }
-    
-    int t = shutter_get_timer(degrees_x10);
-
-    if (hdr_enabled && is_movie_mode() && lens_info.raw_iso)
-    {
-        if (hdr_mode == 0) // ISO brack
+        static int odd_frame = 0;
+        static int frame;
+        frame++;
+        
+        if (recording)
         {
-            int iso_low = COERCE(lens_info.raw_iso - (int)hdr_ev/2, 72, 120);
-            int iso_high = COERCE(lens_info.raw_iso + (int)hdr_ev/2, 72, 120);
-            FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
+            odd_frame = frame % 2;
         }
-        else // Shutter brack
+        else
         {
-            int ev_x8 = odd_frame ? -(int)hdr_ev/2 : (int)hdr_ev/2;
-            t = shutter_get_timer(degrees_x10 * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000);
+            if (!HALFSHUTTER_PRESSED) odd_frame = (frame / (fps_get_current_x1000()/1000)) % 2;
         }
+    
+        int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
+        int iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
+        int iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
+        FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
     }
-    FRAME_SHUTTER_TIMER = t;
 }
 
 
@@ -280,7 +250,7 @@ fps_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "FPS override  : %s",
+        "FPS override : %s",
         fps_override ? msg : "OFF"
     );
     
@@ -302,29 +272,23 @@ shutter_print(
     int current_shutter = get_shutter_override_reciprocal_x1000();
     int d = get_shutter_override_degrees_x10();
     
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Tv Override : %d.%ddeg 1/%d",
-        d/10, d%10,
-        current_shutter/1000
-    );
-}
-
-static void
-iso_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Analog ISO  : %d",
-        iso_override ? (100 << (iso_override/8 - 9)) : 0
-    );
+    if (shutter_override_mode)
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "Tv Override  : %d.%ddeg 1/%d",
+            d/10, d%10,
+            current_shutter/1000
+        );
+    else
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "Tv Override  : OFF"
+        );
+        menu_draw_icon(x, y, MNI_OFF, 0);
+    }
 }
 
 static void
@@ -335,16 +299,34 @@ hdr_print(
     int         selected
 )
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "HDR video     : %s",
-        hdr_enabled ? "ON" : "OFF"
-    );
-    if (hdr_enabled && !lens_info.raw_iso)
+    if (HDR_ENABLED)
+    {
+        int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
+        int iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
+        int iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
+        
+        iso_low = 100 << (iso_low-72)/8;
+        iso_high = 100 << (iso_high-72)/8;
+
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "HDR video    : %dEV, %d/%d ISO",
+            hdr_ev/8, iso_low, iso_high
+        );
+    }
+    else
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "HDR video    : OFF"
+        );
+        menu_draw_icon(x, y, MNI_OFF, 0);
+    }
+
+    if (HDR_ENABLED && !lens_info.raw_iso)
         menu_draw_icon(x, y, MNI_WARNING, "HDR video won't work with Auto ISO.");
-    else if (hdr_enabled && !hard_expo_override)
-        menu_draw_icon(x, y, MNI_WARNING, "Enable Exposure Hack first!");
 }
 
 static void fps_change_mode(int mode, int fps)
@@ -455,58 +437,22 @@ struct menu_entry fps_menu[] = {
         .help = "Makes French Fries with the camera sensor. Turn off sound!"
     },
     {
-        .name = "Exposure Hack", 
-        .priv = &hard_expo_override,
-        .max = 1,
-        //~ .show_liveview = 1,
-        .help = "Overrides shutter speed, ISO, allows HDR movie...",
-        .children =  (struct menu_entry[]) {
-            {
-                .priv = &shutter_override_mode,
-                .min = 1,
-                .max = 13,
-                .display = shutter_print,
-                //~ .show_liveview = 1,
-                .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
-            },
-            /*{
-                .priv = &iso_override,
-                .select = iso_override_toggle,
-                .display = iso_print,
-                //~ .show_liveview = 1,
-                .help = "Overrides the analog ISO component (100/200/400...3200).",
-            },*/
-            MENU_EOL
-        },
+        .priv = &shutter_override_mode,
+        .min = 0,
+        .max = 13,
+        .display = shutter_print,
+        .select_auto = reset_tv,
+        .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
     },
     {
         .name = "HDR video",
-        .priv       = &hdr_enabled,
+        .priv       = &hdr_ev,
         .min = 0,
-        .max = 1,
+        .max = 6*8,
+        .select = hdr_ev_toggle,
+        .select_auto = reset_hdr,
         .display = hdr_print,
-        .help = "Alternates exposure between frames.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "HDR mode",
-                .priv       = &hdr_mode,
-                .min = 0,
-                .max = 1,
-                .choices = (const char *[]) {"ISO", "Shutter"},
-                .help = "What setting to change for bracketing (ISO or shutter).",
-            },
-            {
-                .name = "EV spacing",
-                .priv       = &hdr_ev,
-                .min = 0,
-                .max = 6*8,
-                .select = hdr_ev_toggle,
-                .unit = UNIT_1_8_EV,
-                .help = "Example: ISO 400 with 4 EV spacing => ISO 100/1600.",
-                //~ .show_liveview = 1,
-            },
-            MENU_EOL
-        },
+        .help = "Alternates ISO between frames.",
     }
 };
 
@@ -537,13 +483,11 @@ void fps_mvr_log(FILE* mvr_logfile)
 {
     int f = fps_get_current_x1000();
     my_fprintf(mvr_logfile, "FPS: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
-    if (hard_expo_override)
+    if (shutter_override_mode)
     {
         int d = get_shutter_override_degrees_x10();
-        my_fprintf(mvr_logfile, "Hard shutter override: %d.%d deg\n", d/10, d%10);
-        if (iso_override)
-            my_fprintf(mvr_logfile, "Hard ISO override: %d\n", 100 << (iso_override/8 - 9));
+        my_fprintf(mvr_logfile, "Tv override: %d.%d deg\n", d/10, d%10);
     }
-    if (hdr_enabled)
-        my_fprintf(mvr_logfile, "HDR: %s, %d EV\n", hdr_mode ? "Shutter" : "ISO", hdr_ev/8);
+    if (HDR_ENABLED)
+        my_fprintf(mvr_logfile, "HDR video: %d EV\n", hdr_ev/8);
 }
