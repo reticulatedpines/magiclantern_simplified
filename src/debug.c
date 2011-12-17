@@ -17,7 +17,7 @@
 #endif                      // but it will display ML graphics
 
 extern int config_autosave;
-extern void config_autosave_toggle(void* unused);
+extern void config_autosave_toggle(void* unused, int delta);
 
 void Beep();
 void NormalDisplay();
@@ -136,15 +136,15 @@ void card_led_blink(int times, int delay_on, int delay_off)
 int config_ok = 0;
 
 void
-save_config( void * priv )
+    save_config( void * priv, int delta )
 {
 	config_save_file( CARD_DRIVE "magic.cfg" );
 }
 static void
-delete_config( void * priv )
+delete_config( void * priv, int delta )
 {
 	FIO_RemoveFile( CARD_DRIVE "magic.cfg" );
-	if (config_autosave) config_autosave_toggle(0);
+	if (config_autosave) config_autosave_toggle(0, 0);
 }
 
 static void
@@ -359,7 +359,7 @@ void run_test()
 	//~ trans_test();
 }
 
-void xx_test(void* priv)
+void xx_test(void* priv, int delta)
 {
 	//~ #ifdef CONFIG_550D
 	gui_stop_menu();
@@ -372,7 +372,7 @@ void xx_test(void* priv)
 	//~ guiNotifyDialogRefresh();
 }
 
-static void stress_test_long(void* priv)
+static void stress_test_long(void* priv, int delta)
 {
 	gui_stop_menu();
 	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
@@ -1215,7 +1215,7 @@ spy_print(
 
 
 PROP_INT(PROP_STROBO_REDEYE, red_eye);
-void flashlight_frontled_task()
+void flashlight_frontled_task(void* priv)
 {
 	msleep(100);
 	display_off_force();
@@ -1244,7 +1244,7 @@ void flashlight_frontled_task()
 	if (l) force_liveview();
 }
 
-void flashlight_lcd_task()
+void flashlight_lcd_task(void *priv)
 {
 	msleep(500);
 	while (get_halfshutter_pressed()) msleep(100);
@@ -1269,14 +1269,14 @@ void flashlight_lcd_task()
 	idle_globaldraw_en();
 }
 
-static void flashlight_frontled(void* priv)
+static void flashlight_frontled(void* priv, int delta)
 {
 	gui_stop_menu();
 	if (is_movie_mode()) task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
 	else task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
 }
 
-static void flashlight_lcd(void* priv)
+static void flashlight_lcd(void* priv, int delta)
 {
 	gui_stop_menu();
 	task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
@@ -1449,7 +1449,7 @@ void menu_kill_flicker()
 	canon_gui_disable_front_buffer();
 }
 
-static void CR2toAVI(void* priv)
+static void CR2toAVI(void* priv, int delta)
 {
 	EyeFi_RenameCR2toAVI("B:/DCIM/100CANON");
 }
@@ -1852,7 +1852,7 @@ void ml_shutdown()
 	if (config_autosave && !config_saved)
 	{
 		config_saved = 1;
-		save_config(0);
+		save_config(0, 0);
 	}
 	card_led_on();
 	#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)

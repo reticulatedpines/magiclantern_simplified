@@ -46,7 +46,7 @@ void histo_init();
 void do_disp_mode_change();
 void show_overlay();
 void transparent_overlay_from_play();
-void transparent_overlay_offset_clear(void* priv);
+void transparent_overlay_offset_clear(void* priv, int delta);
 void draw_histogram_and_waveform();
 void schedule_transparent_overlay();
 void lens_display_set_dirty();
@@ -2083,7 +2083,7 @@ void transparent_overlay_center_or_toggle()
 {
 	if (transparent_overlay_offx || transparent_overlay_offy) // if off-center, just center it
 	{
-		transparent_overlay_offset_clear(0);
+		transparent_overlay_offset_clear(0, 0);
 		transparent_overlay_offset(0, 0);
 	}
 	else // if centered, hide it or show it back
@@ -2094,7 +2094,7 @@ void transparent_overlay_center_or_toggle()
 	}
 }
 
-void transparent_overlay_offset_clear(void* priv)
+void transparent_overlay_offset_clear(void* priv, int delta)
 {
 	transparent_overlay_offx = transparent_overlay_offy = 0;
 }

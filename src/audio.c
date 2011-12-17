@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "gui.h"
 
+
 #if defined(CONFIG_50D) || defined(CONFIG_1100D)
 #include "disable-this-module.h"
 #endif
@@ -934,7 +935,7 @@ audio_configure( int force )
 /** Menu handlers */
 
 static void
-audio_binary_toggle( void * priv )
+    audio_binary_toggle( void * priv, int delta )
 {
 	unsigned * ptr = priv;
 	*ptr = !*ptr;
@@ -943,7 +944,7 @@ audio_binary_toggle( void * priv )
 
 
 static void
-audio_3bit_toggle( void * priv )
+audio_3bit_toggle( void * priv, int delta )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x1) & 0x3;
@@ -951,7 +952,7 @@ audio_3bit_toggle( void * priv )
 }
 
 static void
-audio_3bit_toggle_reverse( void * priv )
+audio_3bit_toggle_reverse( void * priv, int delta )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr - 0x1) & 0x3;
@@ -959,7 +960,7 @@ audio_3bit_toggle_reverse( void * priv )
 }
 
 static void
-audio_mgain_toggle( void * priv )
+    audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
@@ -971,7 +972,7 @@ audio_mgain_toggle( void * priv )
 }
 
 static void
-audio_mgain_toggle_reverse( void * priv )
+    audio_mgain_toggle_reverse( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
@@ -1007,7 +1008,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 
 
 static void
-audio_dgain_toggle( void * priv )
+audio_dgain_toggle( void * priv, int delta )
 {
 	unsigned dgain = *(unsigned*) priv;
 	dgain += 6;
@@ -1018,7 +1019,7 @@ audio_dgain_toggle( void * priv )
 }
 
 static void
-audio_dgain_toggle_reverse( void * priv )
+audio_dgain_toggle_reverse( void * priv, int delta )
 {
 	unsigned dgain = *(unsigned*) priv;
 	if( dgain <= 0 ) {
@@ -1132,13 +1133,13 @@ audio_input_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
 }
 static void
-audio_input_toggle( void * priv )
+    audio_input_toggle( void * priv, int delta )
 {
 	menu_quinternary_toggle(priv, 1);
 	audio_configure( 1 );
 }
 static void
-audio_input_toggle_reverse( void * priv )
+audio_input_toggle_reverse( void * priv, int delta )
 {
 	menu_quinternary_toggle_reverse(priv, -1);
 	audio_configure( 1 );
@@ -1249,7 +1250,7 @@ static void audio_monitoring_update()
 }
 
 static void
-audio_monitoring_toggle( void * priv)
+    audio_monitoring_toggle( void * priv, int delta )
 {
 	audio_monitoring = !audio_monitoring;
 	audio_monitoring_update();
@@ -1588,13 +1589,13 @@ void volume_up()
 {
 	int mgain_db = mgain_index2gain(mgain);
 	if (mgain_db < 32)
-		audio_mgain_toggle(&mgain);
+		audio_mgain_toggle(&mgain, 0);
 	else
 	{
 		if( MAX(dgain_l, dgain_r) + 6 <= 40 )
 		{
-			audio_dgain_toggle(&dgain_l);
-			audio_dgain_toggle(&dgain_r);
+			audio_dgain_toggle(&dgain_l, 0);
+			audio_dgain_toggle(&dgain_r, 0);
 		}
 	}
 	volume_display();
@@ -1606,11 +1607,11 @@ void volume_down()
     
 	if( MIN(dgain_l, dgain_r) > 0 )
 	{
-		audio_dgain_toggle_reverse(&dgain_l);
-		audio_dgain_toggle_reverse(&dgain_r);
+		audio_dgain_toggle_reverse(&dgain_l, 0);
+		audio_dgain_toggle_reverse(&dgain_r, 0);
 	}
 	else if (mgain_db > 0)
-		audio_mgain_toggle_reverse(&mgain);
+		audio_mgain_toggle_reverse(&mgain, 0);
 	volume_display();
 }
 

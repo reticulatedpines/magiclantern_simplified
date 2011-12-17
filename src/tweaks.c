@@ -39,7 +39,7 @@ dofp_set(int value)
 }
 
 static void 
-dofp_lock(void* priv)
+    dofp_lock(void* priv, int delta)
 {
 	dofp_set(1);
 }
@@ -1154,7 +1154,11 @@ void display_gain_toggle(void* priv, int dir)
 
 	set_display_gain(display_gain);
 }
-void display_gain_reset(void* priv) { display_gain_toggle(0,0); }
+
+static void display_gain_reset(void* priv, int delta)
+{
+    display_gain_toggle(0,0);
+}
 
 int gain_to_ev(int gain)
 {

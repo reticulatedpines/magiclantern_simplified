@@ -2141,7 +2141,7 @@ zoom_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10 || zoom_sharpen));
 }
 
-static void zoom_toggle(void* priv)
+static void zoom_toggle(void* priv, int delta)
 {
 	// x5 x10
 	// x5
@@ -2438,7 +2438,7 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
 
 // like expsim_toggle
 static void
-mlu_toggle( void * priv )
+    mlu_toggle( void * priv, int delta )
 {
 	// off, on, auto
 	if (!mlu_auto && !get_mlu()) // off->on

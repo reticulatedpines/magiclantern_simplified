@@ -499,14 +499,14 @@ lv_movie_print(
 	menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
 }
 
-void lv_movie_toggle(void* priv)
+void lv_movie_toggle(void* priv, int delta)
 {
 	int newvalue = lv_movie_select == 2 ? 1 : 2;
 	GUI_SetLvMode(newvalue);
 	if (newvalue == 2) GUI_SetMovieSize_b(1);
 }
 
-void lv_movie_size_toggle(void* priv)
+void lv_movie_size_toggle(void* priv, int delta)
 {
 	int s = video_mode_resolution ? 0 : 2;
 	GUI_SetMovieSize_a(s);
