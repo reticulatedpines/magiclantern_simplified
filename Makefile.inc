@@ -155,6 +155,8 @@ AFLAGS=\
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
 %.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(PLATFORM_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
@@ -252,10 +254,10 @@ STDIO_OBJ = \
 ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 
 $(STDIO_OBJ): $(ARM_LIBC_A)
-	$(AR) xv $? $(STDIO_OBJ)
-libstdio.a: $(STDIO_OBJ)
-	$(AR) cr $@ $^
+	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
 
+libstdio.a: $(STDIO_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
 
 magiclantern: $(ML_OBJS-y) libstdio.a
 	$(call build,LD,$(LD) \
