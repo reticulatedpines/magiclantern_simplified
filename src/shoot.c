@@ -198,7 +198,7 @@ interval_movie_stop_display( void * priv, int x, int y, int selected )
 			d < 60 ? "s" : "m"
 		);
 		if (!is_movie_mode() || silent_pic_enabled)
-			menu_draw_icon(x, y, MNI_WARNING, "Movie mode inactive.");
+			menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Movie mode inactive.");
 		else
 			menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
 	}

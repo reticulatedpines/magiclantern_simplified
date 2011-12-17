@@ -228,7 +228,7 @@ static void entry_draw_icon(
 			break;
 
 		case IT_NAMED_COLOR:
-			menu_draw_icon(x, y, MNI_NAMED_COLOR, entry->choices[MEM(entry->priv)]);
+			menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[MEM(entry->priv)]);
 			break;
 		
 		case IT_DISABLE_SOME_FEATURE:

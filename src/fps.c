@@ -256,8 +256,8 @@ fps_print(
     
     extern int sound_recording_mode;
     if (fps_override && sound_recording_mode != 1)
-        menu_draw_icon(x, y, MNI_WARNING, "Turn off sound recording from Canon menu!");
-    menu_draw_icon(x, y, MNI_BOOL(SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off sound recording from Canon menu!");
+    menu_draw_icon(x, y, MNI_BOOL((uint16_t *) SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
     //~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
 }
 
