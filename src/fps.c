@@ -16,12 +16,12 @@
 #define SENSOR_TIMING_TABLE MEM(0xCB20)
 #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
 #define CARTIRIDGE_CALL_TABLE 0x8AAC
-#define LiveViewMgr_struct_ptr 0x1dcc  // aAJ_0x1D78_LiveViewMgr_struct_ptr
+#define AEWB_struct_ptr 0x1dcc
 #endif
 #ifdef CONFIG_60D
 #define SENSOR_TIMING_TABLE MEM(0x2a668)
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
-#define LiveViewMgr_struct_ptr 0x1E80
+#define AEWB_struct_ptr 0x1E80
 #define CARTIRIDGE_CALL_TABLE 0x26490
 #endif
 #ifdef CONFIG_1100D
@@ -79,7 +79,7 @@ static CONFIG_INT("hdrmov.mode", hdr_mode, 0);
 
 static void hdr_ev_toggle(void* priv, int delta)
 {
-    MEM(priv) = mod(MEM(priv) + delta*16, 8*8) & ~3;
+    MEM(priv) = (mod(MEM(priv) + delta*16 - 16, 6*8) + 16) & ~0xf;
 }
 
 static int iso_override = 0;
@@ -469,13 +469,13 @@ struct menu_entry fps_menu[] = {
                 //~ .show_liveview = 1,
                 .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
             },
-            {
+            /*{
                 .priv = &iso_override,
                 .select = iso_override_toggle,
                 .display = iso_print,
                 //~ .show_liveview = 1,
                 .help = "Overrides the analog ISO component (100/200/400...3200).",
-            },
+            },*/
             MENU_EOL
         },
     },
@@ -499,7 +499,7 @@ struct menu_entry fps_menu[] = {
                 .name = "EV spacing",
                 .priv       = &hdr_ev,
                 .min = 0,
-                .max = 6,
+                .max = 6*8,
                 .select = hdr_ev_toggle,
                 .unit = UNIT_1_8_EV,
                 .help = "Example: ISO 400 with 4 EV spacing => ISO 100/1600.",
