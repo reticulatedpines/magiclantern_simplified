@@ -79,7 +79,7 @@ static void shutter_and_hdrvideo_set();
 static int hdr_ev = 0;
 #define HDR_ENABLED (hdr_ev != 0)
 
-static void hdr_ev_toggle(void* priv, int delta) { MEM(priv) = mod(MEM(priv) + delta*16, 8*8) & ~0xf; }
+static void hdr_ev_toggle(void* priv, int delta) { MEM(priv) = mod(MEM(priv) + delta*8, 6*8) & ~0x7; }
 static void reset_hdr(void* priv, int delta) { hdr_ev = 0; }
 
 
@@ -203,7 +203,9 @@ static int get_shutter_override_reciprocal_x1000()
 void hdr_get_iso_range(int* iso_low, int* iso_high)
 {
     int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
-    mid_iso = ((mid_iso + 4) / 8) * 8;
+    mid_iso = ((mid_iso + 2) / 8) * 8;
+    if ((hdr_ev/8) % 2) // odd spacing
+        mid_iso += 4;
     *iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
     *iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
 }
