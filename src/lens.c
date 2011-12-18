@@ -387,7 +387,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 		int q = d/10;
 		int r = d%10;
 		int cr = r + '0';
-		snprintf(shutter, sizeof(shutter), "%d%s%s  ", q, r ? "." : "", r ? &cr : "");
+		snprintf(shutter, sizeof(shutter), "%d%s%s  ", q, r ? "." : "", r ? (char*)&cr : "");
 		bmp_printf( FONT(text_font,COLOR_ORANGE,bg), 
 					x_origin + 143 + font_med.width*2  , 
 					y_origin, 
@@ -1005,9 +1005,7 @@ mvr_create_logfile(
 		ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
 		);
 
-	#if defined(CONFIG_60D) || defined(CONFIG_600D)
 	fps_mvr_log(mvr_logfile);
-	#endif
 
 	my_fprintf( mvr_logfile, "%s\n",
 		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"

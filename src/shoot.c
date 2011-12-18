@@ -94,7 +94,7 @@ int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable t
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 70);
 
-static volatile int intervalometer_running = 0;
+static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
 static int audio_release_running = 0;
 int motion_detect = 0;
