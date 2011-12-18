@@ -203,7 +203,7 @@ static int get_shutter_override_reciprocal_x1000()
 void hdr_get_iso_range(int* iso_low, int* iso_high)
 {
     int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
-    mid_iso = ((mid_iso + 4) / 8) * 8;
+    mid_iso = (mid_iso / 8) * 8;
     if ((hdr_ev/8) % 2) // odd spacing
         mid_iso += 4;
     *iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
@@ -456,7 +456,7 @@ struct menu_entry fps_menu[] = {
         .name = "HDR video",
         .priv       = &hdr_ev,
         .min = 0,
-        .max = 6*8,
+        .max = 5*8,
         .select = hdr_ev_toggle,
         .select_auto = reset_hdr,
         .display = hdr_print,
