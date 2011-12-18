@@ -226,12 +226,17 @@ static void shutter_and_hdrvideo_set()
         static int frame;
         frame++;
         
-        if (recording)
+        static int first_frame = 0;
+        
+        if (recording == 2)
         {
+            if (first_frame) frame = 1;
             odd_frame = frame % 2;
+            first_frame = 0;
         }
         else
         {
+            first_frame = 1;
             if (!HALFSHUTTER_PRESSED) odd_frame = (frame / (fps_get_current_x1000()/1000)) % 2;
         }
     
