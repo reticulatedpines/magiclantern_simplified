@@ -101,7 +101,7 @@ static void fps_setup(int fps)
     safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 70);
 #endif
 #ifdef CONFIG_5D2
-    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 70);
+    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 37);
 #endif
 
     // no more than 30fps in photo mode
