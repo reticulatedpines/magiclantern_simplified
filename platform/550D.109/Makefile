@@ -58,6 +58,7 @@ ML_OBJS-y = \
 	liveview.o \
 	reloc.o \
 	aj_port.o \
+	fps-engio.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

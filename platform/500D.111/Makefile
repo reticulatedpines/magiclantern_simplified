@@ -56,6 +56,7 @@ ML_OBJS-y = \
 	vram.o \
 	morse.o \
 	aj_port.o \
+	fps-engio.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

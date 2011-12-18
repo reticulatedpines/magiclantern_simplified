@@ -176,3 +176,5 @@ NSTUB( 0x37384	 , vram_info ) // located in vram_get_number
 NSTUB( 0xFF1A442C, vsnprintf )	/** Look in DebugMsg, near the bottom.  It calls vsnprintf() -- with a buffer size of 0x4C. */
 
 NSTUB(0xff2ae79c, LiveViewApp_handler)
+
+NSTUB(0xff190cf4, engio_write)
