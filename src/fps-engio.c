@@ -103,14 +103,14 @@ static void fps_setup(int fps)
     }
 #endif
 #ifdef CONFIG_500D
-    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 21 : 37);
+    safe_limit = fps_get_timer(lv_dispsize > 1 ? 27 : video_mode_resolution == 0 ? 21 : 36);
 #endif
 #ifdef CONFIG_5D2
     safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 37);
 #endif
-#ifdef CONFIG_50D
-    safe_limit = fps_get_timer(30);
-#endif
+//~ #ifdef CONFIG_50D
+    //~ safe_limit = fps_get_timer(30);
+//~ #endif
 
     // no more than 30fps in photo mode
     if (!is_movie_mode()) safe_limit = MAX(safe_limit, fps_get_timer(30));
