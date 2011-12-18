@@ -45,7 +45,7 @@ reloc(
 {
 	uintptr_t		pc;
 	uint8_t * const		mem = ((uint8_t*) buf) - load_addr;
-	const uintptr_t		func_len = func_end - func_offset;
+	// const uintptr_t		func_len = func_end - func_offset;
 
 #ifndef __ARM__
 	printf( "Fixing from %08x to %08x\n", func_offset, func_end );
@@ -189,7 +189,7 @@ reloc(
 		if( load == LOAD_INSTR )
 		{
 			uint32_t reg_base	= (instr >> 16) & 0xF;
-			uint32_t reg_dest	= (instr >> 12) & 0xF;
+			// uint32_t reg_dest	= (instr >> 12) & 0xF;
 			int32_t offset		= (instr >>  0) & 0xFFF;
 
 			if( reg_base != REG_PC )

@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "gui.h"
 
+
 #if defined(CONFIG_50D) || defined(CONFIG_1100D)
 #include "disable-this-module.h"
 #endif
@@ -934,7 +935,7 @@ audio_configure( int force )
 /** Menu handlers */
 
 static void
-audio_binary_toggle( void * priv )
+    audio_binary_toggle( void * priv, int delta )
 {
 	unsigned * ptr = priv;
 	*ptr = !*ptr;
@@ -943,7 +944,7 @@ audio_binary_toggle( void * priv )
 
 
 static void
-audio_3bit_toggle( void * priv )
+audio_3bit_toggle( void * priv, int delta )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr + 0x1) & 0x3;
@@ -951,7 +952,7 @@ audio_3bit_toggle( void * priv )
 }
 
 static void
-audio_3bit_toggle_reverse( void * priv )
+audio_3bit_toggle_reverse( void * priv, int delta )
 {
 	unsigned * ptr = priv;
 	*ptr = (*ptr - 0x1) & 0x3;
@@ -959,7 +960,7 @@ audio_3bit_toggle_reverse( void * priv )
 }
 
 static void
-audio_mgain_toggle( void * priv )
+    audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
@@ -971,7 +972,7 @@ audio_mgain_toggle( void * priv )
 }
 
 static void
-audio_mgain_toggle_reverse( void * priv )
+    audio_mgain_toggle_reverse( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
@@ -1001,13 +1002,13 @@ audio_mgain_display( void * priv, int x, int y, int selected )
                "Analog Gain   : %d dB",
                mgain_index2gain(gain_index)
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 	menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
 
 
 static void
-audio_dgain_toggle( void * priv )
+audio_dgain_toggle( void * priv, int delta )
 {
 	unsigned dgain = *(unsigned*) priv;
 	dgain += 6;
@@ -1018,7 +1019,7 @@ audio_dgain_toggle( void * priv )
 }
 
 static void
-audio_dgain_toggle_reverse( void * priv )
+audio_dgain_toggle_reverse( void * priv, int delta )
 {
 	unsigned dgain = *(unsigned*) priv;
 	if( dgain <= 0 ) {
@@ -1043,7 +1044,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                priv == &dgain_l ? "L" : "R",
                val
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 	if (!alc_enable) menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 	else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
 }
@@ -1059,7 +1060,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                "Output volume : %d dB",
                2 * *(unsigned*) priv
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 	if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
 	else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Audio monitoring is disabled");
 }
@@ -1074,7 +1075,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
                "Audio Meters  : %s",
                v ? "ON" : "OFF"
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 	menu_draw_icon(x, y, MNI_BOOL_GDR(v));
 }
 
@@ -1109,7 +1110,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
                "AGC           : %s",
                alc_enable ? "ON " : "OFF"
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 }
 
 
@@ -1128,17 +1129,17 @@ audio_input_display( void * priv, int x, int y, int selected )
                    (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
                     "error")))))
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 	menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
 }
 static void
-audio_input_toggle( void * priv )
+    audio_input_toggle( void * priv, int delta )
 {
 	menu_quinternary_toggle(priv, 1);
 	audio_configure( 1 );
 }
 static void
-audio_input_toggle_reverse( void * priv )
+audio_input_toggle_reverse( void * priv, int delta )
 {
 	menu_quinternary_toggle_reverse(priv, -1);
 	audio_configure( 1 );
@@ -1200,7 +1201,7 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
                "Monitoring-USB: %s",
                audio_monitoring ? "ON" : "OFF"
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 }
 
 static void
@@ -1213,7 +1214,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
                "Mic Power     : %s",
                mic_pow ? "ON (Low Z)" : "OFF (High Z)"
                );
-	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, "Sound recording is disabled.");
+	if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
 	if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic");
 }
 
@@ -1249,7 +1250,7 @@ static void audio_monitoring_update()
 }
 
 static void
-audio_monitoring_toggle( void * priv)
+    audio_monitoring_toggle( void * priv, int delta )
 {
 	audio_monitoring = !audio_monitoring;
 	audio_monitoring_update();
@@ -1588,13 +1589,13 @@ void volume_up()
 {
 	int mgain_db = mgain_index2gain(mgain);
 	if (mgain_db < 32)
-		audio_mgain_toggle(&mgain);
+		audio_mgain_toggle(&mgain, 0);
 	else
 	{
 		if( MAX(dgain_l, dgain_r) + 6 <= 40 )
 		{
-			audio_dgain_toggle(&dgain_l);
-			audio_dgain_toggle(&dgain_r);
+			audio_dgain_toggle(&dgain_l, 0);
+			audio_dgain_toggle(&dgain_r, 0);
 		}
 	}
 	volume_display();
@@ -1606,11 +1607,11 @@ void volume_down()
     
 	if( MIN(dgain_l, dgain_r) > 0 )
 	{
-		audio_dgain_toggle_reverse(&dgain_l);
-		audio_dgain_toggle_reverse(&dgain_r);
+		audio_dgain_toggle_reverse(&dgain_l, 0);
+		audio_dgain_toggle_reverse(&dgain_r, 0);
 	}
 	else if (mgain_db > 0)
-		audio_mgain_toggle_reverse(&mgain);
+		audio_mgain_toggle_reverse(&mgain, 0);
 	volume_display();
 }
 

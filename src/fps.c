@@ -5,6 +5,7 @@
  * Found by g3gg0
  **/
 
+#include "math.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "property.h"
@@ -257,8 +258,8 @@ fps_print(
     
     extern int sound_recording_mode;
     if (fps_override && sound_recording_mode != 1)
-        menu_draw_icon(x, y, MNI_WARNING, "Turn off sound recording from Canon menu!");
-    menu_draw_icon(x, y, MNI_BOOL(SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off sound recording from Canon menu!");
+    menu_draw_icon(x, y, MNI_BOOL((uint16_t *) SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
     //~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
 }
 
@@ -367,7 +368,7 @@ static void fps_change_mode(int mode, int fps)
     sensor_timing_table_patched[mode_offset_map[mode]] = fps ? fps_timer : fps_timer_default;
 
     // use the patched sensor table
-    SENSOR_TIMING_TABLE = sensor_timing_table_patched;
+    SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_patched;
 }
 
 static void fps_change_all_modes(int fps)
@@ -375,7 +376,7 @@ static void fps_change_all_modes(int fps)
     if (!fps)
     {
         // use the original sensor table (firmware default)
-        SENSOR_TIMING_TABLE = sensor_timing_table_original;
+        SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
     }
     else
     {

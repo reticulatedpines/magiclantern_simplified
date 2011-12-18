@@ -2,6 +2,8 @@
  * 
  *  Copyright (C) 2011 AJ_NEWMAN         -   AJ's routine library for the 5D2                     */
 
+#include <math.h>
+
 #include <dryos.h>
 #include <bmp.h>
 #include <propvalues.h>
@@ -12,6 +14,7 @@
 #define g_bmp_width BMP_WIDTH
 #define g_bmp_height BMP_HEIGHT
 
+static unsigned int last_green_screen_state = 0;
 
 /********************************************************************
 *                                                                   *
@@ -21,8 +24,6 @@
 
 void aj_green_screen()
 {
-   static unsigned int last_green_screen_state = 0;
-
    /****************************************************
    *  .. if Canon menu is ACTIVE - return immediately  *
    ****************************************************/
@@ -37,11 +38,11 @@ void aj_green_screen()
    *   Masses of auto variables.   *
    ********************************/
 
-   unsigned int Xs,Xe;           // X_POSITION of  Cropmark_start/_end
+   // unsigned int Xs,Xe;           // X_POSITION of  Cropmark_start/_end
    //~ Xs = g_cropmark_x_start;      // First Pix drawn on (and a multiple of 4)
    //~ Xe = g_cropmark_x_end;        // First Pix not drawn on (multiple of 4)
  
-   unsigned int Vram_pixels = Xe - Xs;
+   // unsigned int Vram_pixels = Xe - Xs;
  
 
    unsigned int vpix, lum1, lum2; 
@@ -53,19 +54,19 @@ void aj_green_screen()
    static int total_pixels = 0;
 
    // results for current loop, being updated (will be used at next loop)
-   int total_luma_tmp   = 0;
-   int highest_luma_tmp = 0;
-   int lowest_luma_tmp  = 256;
-   int total_pixels_tmp = 0;
+   unsigned int total_luma_tmp   = 0;
+   unsigned int highest_luma_tmp = 0;
+   unsigned int lowest_luma_tmp  = 256;
+   unsigned int total_pixels_tmp = 0;
 
    /****************************************************************
    *   Set address pointers up to first line in Vram               *   
    ****************************************************************/
 
-   uint32_t* lv = get_yuv422_vram()->vram;
+   uint32_t* lv = (uint32_t *) get_yuv422_vram()->vram;
    uint8_t* bm = bmp_vram();
-   uint16_t* bm16 = bmp_vram();
-   uint8_t* bm_mirror = get_bvram_mirror();
+   // uint16_t* bm16 = (uint16_t *) bmp_vram();
+   uint8_t* bm_mirror = (uint8_t *) get_bvram_mirror();
 
    unsigned int average_luma = total_luma / total_pixels;
    unsigned int high_delta = highest_luma - average_luma;  // used to work out colour scale
@@ -76,7 +77,7 @@ void aj_green_screen()
    ******************************************************************/
 
     int high_delta_factor = 1024 / high_delta; // replace division with multiplication
-    int low_delta_factor = 1024 / low_delta;
+    // int low_delta_factor = 1024 / low_delta;
 
 	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 	{
@@ -90,7 +91,7 @@ void aj_green_screen()
 		
 		for (int x = os.x0; x < os.x_max; x += 2)
 		{
-			lvp = v_row + BM2LV_X(x)/2; lvp++;
+			lvp = (uint8_t *) (v_row + BM2LV_X(x)/2); lvp++;
 			bp = b_row + x/2;
 			mp = m_row + x/2;
 
@@ -137,8 +138,8 @@ void aj_green_screen()
          *  Initialise writeback colour of overlay to 0  for LUM1 *
          *********************************************************/
 
-         int lum = (lum1 + lum2) / 2;
-         int col = 0;
+         unsigned int lum = (lum1 + lum2) / 2;
+         unsigned int col = 0;
 
          /**************************************
          *  LUM1  Higher than average luma     *
@@ -169,7 +170,7 @@ void aj_green_screen()
          }
 
             if (col) col = ((col * 41) >> 8) + 38;
-            int c = col | (col << 8);
+            unsigned int c = col | (col << 8);
             
 			#define BP (*bp)
 			#define MP (*mp)
@@ -342,9 +343,9 @@ unsigned int aj_log_length( unsigned int val )
 }  /* end of aj_log_length() */     
  
 #else
-int log_length(int v)
+unsigned int log_length(int v)
 {
     if (!v) return 0;
-    return (int)(log2f(v) * 100);
+    return (unsigned int)(log2f(v) * 100);
 }
 #endif

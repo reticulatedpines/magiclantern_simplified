@@ -17,6 +17,8 @@
 void display_gain_toggle(void* priv, int dir);
 void clear_lv_affframe();
 
+static void upside_down_step();
+
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
 static void
@@ -39,7 +41,7 @@ dofp_set(int value)
 }
 
 static void 
-dofp_lock(void* priv)
+    dofp_lock(void* priv, int delta)
 {
 	dofp_set(1);
 }
@@ -1154,7 +1156,11 @@ void display_gain_toggle(void* priv, int dir)
 
 	set_display_gain(display_gain);
 }
-void display_gain_reset(void* priv) { display_gain_toggle(0,0); }
+
+static void display_gain_reset(void* priv, int delta)
+{
+    display_gain_toggle(0,0);
+}
 
 int gain_to_ev(int gain)
 {
@@ -1425,7 +1431,7 @@ int handle_upside_down(struct event * event)
 	return 1;
 }
 
-void upside_down_step()
+static void upside_down_step()
 {
 	extern int menu_upside_down;
 	if (menu_upside_down)

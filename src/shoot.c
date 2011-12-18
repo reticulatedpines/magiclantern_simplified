@@ -42,6 +42,7 @@ void intervalometer_stop();
 void bulb_ramping_showinfo();
 void get_out_of_play_mode();
 void wait_till_next_second();
+void zoom_sharpen_step();
 
 bool display_idle()
 {
@@ -198,7 +199,7 @@ interval_movie_stop_display( void * priv, int x, int y, int selected )
 			d < 60 ? "s" : "m"
 		);
 		if (!is_movie_mode() || silent_pic_enabled)
-			menu_draw_icon(x, y, MNI_WARNING, "Movie mode inactive.");
+			menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Movie mode inactive.");
 		else
 			menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
 	}
@@ -1520,7 +1521,6 @@ aperture_toggle( void* priv, int sign)
 	int amax = codes_aperture[COUNT(codes_aperture)-1];
 	
 	int a = lens_info.raw_aperture;
-	int a0 = a;
 
 	for (int k = 0; k < 20; k++)
 	{
@@ -2141,7 +2141,7 @@ zoom_display( void * priv, int x, int y, int selected )
 	menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10 || zoom_sharpen));
 }
 
-static void zoom_toggle(void* priv)
+static void zoom_toggle(void* priv, int delta)
 {
 	// x5 x10
 	// x5
@@ -2438,7 +2438,7 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
 
 // like expsim_toggle
 static void
-mlu_toggle( void * priv )
+    mlu_toggle( void * priv, int delta )
 {
 	// off, on, auto
 	if (!mlu_auto && !get_mlu()) // off->on
@@ -2997,7 +2997,8 @@ static struct menu_entry shoot_menus[] = {
 				.max = 2,
 				.help = "Bracketing sequence order / type.",
 				.icon_type = IT_DICE,
-				.choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++",},
+				.choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++"},
+                .children = 0,
 			},
 			{
 				.name = "2-second delay",
@@ -3005,6 +3006,7 @@ static struct menu_entry shoot_menus[] = {
 				.max = 1,
 				.help = "Delay before starting the exposure.",
 				.choices = (const char *[]) {"OFF", "Auto"},
+                .children = 0,
 			},
 			{
 				.name = "ISO shifting",
@@ -3012,6 +3014,7 @@ static struct menu_entry shoot_menus[] = {
 				.max = 2,
 				.help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
 				.choices = (const char *[]) {"OFF", "Full, M only", "Half, M only"},
+                .children = 0,
 			},
 			MENU_EOL
 		},

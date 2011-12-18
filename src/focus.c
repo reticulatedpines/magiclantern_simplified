@@ -14,6 +14,7 @@
 #include "ptp.h"
 
 void trap_focus_toggle_from_af_dlg();
+static void lens_focus_enqueue_step(int dir);
 
 int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
@@ -284,7 +285,7 @@ void focus_stack_run(int skip_first)
 	focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture, skip_first );
 }
 
-void focus_stack_trigger_from_menu(void* priv)
+void focus_stack_trigger_from_menu(void* priv, int delta)
 {
 	if (focus_task_delta == 0) { beep(); return; }
 	gui_stop_menu(); clrscr();
@@ -364,7 +365,7 @@ rack_focus_print(
 
 
 static void
-focus_reset_a( void * priv )
+    focus_reset_a( void * priv, int delta )
 {
 	focus_task_delta = 0;
 	menu_show_only_selected();
@@ -390,7 +391,7 @@ focus_toggle( void * priv )
 }
 
 void
-rack_focus_start_now( void * priv )
+    rack_focus_start_now( void * priv, int delta )
 {
 	focus_rack_delay = 0;
 	focus_rack_auto_record = 0;
@@ -398,7 +399,7 @@ rack_focus_start_now( void * priv )
 }
 
 static void
-rack_focus_start_delayed( void * priv )
+    rack_focus_start_delayed( void * priv, int delta )
 {
 	focus_rack_delay = 1;
 	focus_rack_auto_record = 0;
@@ -406,7 +407,7 @@ rack_focus_start_delayed( void * priv )
 }
 
 static void
-rack_focus_start_auto_record( void * priv )
+    rack_focus_start_auto_record( void * priv, int delta )
 {
 	focus_rack_delay = 1;
 	focus_rack_auto_record = 1;
@@ -515,7 +516,7 @@ lens_focus_start(
 }
 
 int queued_focus_steps = 0;
-void lens_focus_enqueue_step(int dir)
+static void lens_focus_enqueue_step(int dir)
 {
 	queued_focus_steps += ABS(dir);
 	lens_focus_start(dir);
@@ -554,8 +555,6 @@ rack_focus(
 	}
 
 	speed_cmd = speed_cmd > 0 ? 1 : -1;
-	
-	int delta0 = delta;
 
 	while( delta )
 	{

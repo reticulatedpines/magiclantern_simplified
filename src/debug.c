@@ -17,7 +17,7 @@
 #endif                      // but it will display ML graphics
 
 extern int config_autosave;
-extern void config_autosave_toggle(void* unused);
+extern void config_autosave_toggle(void* unused, int delta);
 
 void Beep();
 void NormalDisplay();
@@ -136,15 +136,15 @@ void card_led_blink(int times, int delay_on, int delay_off)
 int config_ok = 0;
 
 void
-save_config( void * priv )
+    save_config( void * priv, int delta )
 {
 	config_save_file( CARD_DRIVE "magic.cfg" );
 }
 static void
-delete_config( void * priv )
+delete_config( void * priv, int delta )
 {
 	FIO_RemoveFile( CARD_DRIVE "magic.cfg" );
-	if (config_autosave) config_autosave_toggle(0);
+	if (config_autosave) config_autosave_toggle(0, 0);
 }
 
 static void
@@ -359,7 +359,7 @@ void run_test()
 	//~ trans_test();
 }
 
-void xx_test(void* priv)
+void xx_test(void* priv, int delta)
 {
 	//~ #ifdef CONFIG_550D
 	gui_stop_menu();
@@ -372,7 +372,7 @@ void xx_test(void* priv)
 	//~ guiNotifyDialogRefresh();
 }
 
-static void stress_test_long(void* priv)
+static void stress_test_long(void* priv, int delta)
 {
 	gui_stop_menu();
 	task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
@@ -1215,7 +1215,7 @@ spy_print(
 
 
 PROP_INT(PROP_STROBO_REDEYE, red_eye);
-void flashlight_frontled_task()
+void flashlight_frontled_task(void* priv)
 {
 	msleep(100);
 	display_off_force();
@@ -1244,7 +1244,7 @@ void flashlight_frontled_task()
 	if (l) force_liveview();
 }
 
-void flashlight_lcd_task()
+void flashlight_lcd_task(void *priv)
 {
 	msleep(500);
 	while (get_halfshutter_pressed()) msleep(100);
@@ -1269,14 +1269,14 @@ void flashlight_lcd_task()
 	idle_globaldraw_en();
 }
 
-static void flashlight_frontled(void* priv)
+static void flashlight_frontled(void* priv, int delta)
 {
 	gui_stop_menu();
 	if (is_movie_mode()) task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
 	else task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
 }
 
-static void flashlight_lcd(void* priv)
+static void flashlight_lcd(void* priv, int delta)
 {
 	gui_stop_menu();
 	task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
@@ -1374,8 +1374,8 @@ static void prop_display(
 {
 	unsigned prop = (prop_i << 24) | (prop_j << 16) | (prop_k);
 	int* data = 0;
-	int len = 0;
-	int err = prop_get_value(prop, &data, &len);
+	size_t len = 0;
+	int err = prop_get_value(prop, (void **) &data, &len);
 	bmp_printf(
 		FONT_MED,
 		x, y,
@@ -1387,7 +1387,7 @@ static void prop_display(
 		len > 0x04 ? data[1] : 0,
 		len > 0x08 ? data[2] : 0,
 		len > 0x0c ? data[3] : 0,
-		strlen(data) < 100 ? data : ""
+		strlen((const char *) data) < 100 ? (const char *) data : ""
 	);
 	menu_draw_icon(x, y, MNI_BOOL(!err), 0);
 }
@@ -1401,7 +1401,6 @@ void prop_dump()
 	FILE* g = FIO_CreateFile(CARD_DRIVE "PROP-STR.LOG");
 	
 	unsigned i, j, k;
-	unsigned actual_num_properties = 0;
 	
 	for( i=0 ; i<256 ; i++ )
 	{
@@ -1417,17 +1416,17 @@ void prop_dump()
 		
 				bmp_printf(FONT_LARGE, 0, 0, "PROP %x...", prop);
 				int* data = 0;
-				int len = 0;
-				int err = prop_get_value(prop, &data, &len);
+				size_t len = 0;
+				int err = prop_get_value(prop, (void **) &data, &len);
 				if (!err)
 				{
 					my_fprintf(f, "\nPROP %8x: %5d:", prop, len );
 					my_fprintf(g, "\nPROP %8x: %5d:", prop, len );
-					for (int i = 0; i < (MIN(len,40)+3)/4; i++)
+					for (unsigned int i = 0; i < (MIN(len,40)+3)/4; i++)
 					{
 						my_fprintf(f, "%8x ", data[i]);
 					}
-					if (strlen(data) < 100) my_fprintf(g, "'%s'", data);
+					if (strlen((const char *) data) < 100) my_fprintf(g, "'%s'", data);
 				}
 			}
 		}
@@ -1449,7 +1448,38 @@ void menu_kill_flicker()
 	canon_gui_disable_front_buffer();
 }
 
-static void CR2toAVI(void* priv)
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+
+void EyeFi_RenameCR2toAVI(char* dir)
+{
+	struct fio_file file;
+	struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+	if( IS_ERROR(dirent) )
+		return;
+
+	do {
+		if (file.mode & 0x10) continue; // is a directory
+		if (file.name[0] == '.') continue;
+		if (!streq(file.name + 8, ".CR2")) continue;
+
+		static char oldname[50];
+		static char newname[50];
+		snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+		strcpy(newname, oldname);
+		newname[strlen(newname) - 4] = 0;
+		STR_APPEND(newname, ".AVI");
+		bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+		FIO_RenameFile(oldname, newname);
+
+	} while( FIO_FindNextEx( dirent, &file ) == 0);
+	FIO_CleanupAfterFindNext_maybe(dirent);
+	beep();
+	redraw();
+}
+
+#endif
+
+static void CR2toAVI(void* priv, int delta)
 {
 	EyeFi_RenameCR2toAVI("B:/DCIM/100CANON");
 }
@@ -1852,7 +1882,7 @@ void ml_shutdown()
 	if (config_autosave && !config_saved)
 	{
 		config_saved = 1;
-		save_config(0);
+		save_config(0, 0);
 	}
 	card_led_on();
 	#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
@@ -1956,9 +1986,9 @@ TASK_CREATE("iso_adj_task", iso_adj_task, 0, 0x1a, 0);
 
 PROP_HANDLER(PROP_ISO)
 {
-	static int prev_iso = 0;
+	static unsigned int prev_iso = 0;
 	if (!prev_iso) prev_iso = lens_info.raw_iso;
-	static int k = 0;
+
 	if (iso_intercept && ISO_ADJUSTMENT_ACTIVE && lv && lv_disp_mode == 0 && is_movie_mode())
 	{
 		if ((prev_iso && buf[0] && prev_iso < buf[0]) || // 100 -> 200 => +
@@ -2456,33 +2486,3 @@ void display_off_force()
 int display_is_on() { return !_display_is_off; }
 
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-
-void EyeFi_RenameCR2toAVI(char* dir)
-{
-	struct fio_file file;
-	struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-	if( IS_ERROR(dirent) )
-		return;
-
-	do {
-		if (file.mode & 0x10) continue; // is a directory
-		if (file.name[0] == '.') continue;
-		if (!streq(file.name + 8, ".CR2")) continue;
-
-		static char oldname[50];
-		static char newname[50];
-		snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-		strcpy(newname, oldname);
-		newname[strlen(newname) - 4] = 0;
-		STR_APPEND(newname, ".AVI");
-		bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-		FIO_RenameFile(oldname, newname);
-
-	} while( FIO_FindNextEx( dirent, &file ) == 0);
-	FIO_CleanupAfterFindNext_maybe(dirent);
-	beep();
-	redraw();
-}
-
-#endif

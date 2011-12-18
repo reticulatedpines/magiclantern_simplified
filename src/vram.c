@@ -350,10 +350,7 @@ void* get_422_hd_idle_buf()
 	failsafe -= 24;
 	#endif
 
-	if (IS_HD_BUFFER(hd))
-		return hd;
-	else
-		return failsafe;
+	return (void *) (IS_HD_BUFFER(hd) ? hd : failsafe);
 
 #else // double-buffered HD buffer (might work better for silent pics)
 
