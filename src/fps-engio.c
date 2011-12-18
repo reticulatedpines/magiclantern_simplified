@@ -88,15 +88,17 @@ static void fps_setup(int fps)
 {
     if (fps) frame_rate[1] = fps_get_timer(fps);
 
+    unsigned safe_limit = fps_get_timer(60);
 #ifdef CONFIG_550D
-    unsigned safe_limit = fps_get_timer(video_mode_fps);
-    frame_rate[1] = MAX(frame_rate[1], safe_limit);
+    safe_limit = fps_get_timer(video_mode_fps);
 #endif
-
 #ifdef CONFIG_500D
-    unsigned safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 60);
-    frame_rate[1] = MAX(frame_rate[1], safe_limit);
+    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 60);
 #endif
+#ifdef CONFIG_5D2
+    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 60);
+#endif
+    frame_rate[1] = MAX(frame_rate[1], safe_limit);
 
     engio_write(frame_rate);
 }
