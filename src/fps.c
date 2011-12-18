@@ -228,7 +228,7 @@ static void shutter_and_hdrvideo_set()
         
         static int first_frame = 0;
         
-        if (recording == 2)
+        if (recording)
         {
             if (first_frame) frame = 1;
             odd_frame = frame % 2;
