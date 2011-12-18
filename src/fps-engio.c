@@ -43,11 +43,16 @@ static int is_current_mode_ntsc()
 }
 
 #ifdef CONFIG_500D
-#define TG_FREQ_PAL  25000000
-#define TG_FREQ_NTSC 26373626
+    #define TG_FREQ_PAL  25000000
+    #define TG_FREQ_NTSC 26373626
 #else
-#define TG_FREQ_PAL  50000000
-#define TG_FREQ_NTSC 52747252
+    #ifdef CONFIG_50D
+        #define TG_FREQ_PAL  40000000
+        #define TG_FREQ_NTSC 42197802
+    #else
+        #define TG_FREQ_PAL  50000000
+        #define TG_FREQ_NTSC 52747252
+    #endif
 #endif
 
 #define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
@@ -103,7 +108,7 @@ static void fps_setup(int fps)
     }
 #endif
 #ifdef CONFIG_500D
-    safe_limit = fps_get_timer(lv_dispsize > 1 ? 27 : video_mode_resolution == 0 ? 21 : 36);
+    safe_limit = fps_get_timer(lv_dispsize > 1 ? 28 : video_mode_resolution == 0 ? 21 : 37);
 #endif
 #ifdef CONFIG_5D2
     safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 37);
