@@ -160,4 +160,4 @@ NSTUB(   0x38920, vram_info)                      // might be good (dumps=1, sco
 NSTUB(0xFF9B7324, vsnprintf)                      // might be good (dumps=1, score=2)
 NSTUB(0xFFAAEEB8, LiveViewApp_handler)
 
-NSTUB(0xFF9A5618, AJ_engio_write)
+NSTUB(0xFF9A5618, engio_write)

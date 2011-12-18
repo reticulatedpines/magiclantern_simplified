@@ -89,7 +89,12 @@ static void fps_setup(int fps)
     if (fps) frame_rate[1] = fps_get_timer(fps);
 
 #ifdef CONFIG_550D
-    int safe_limit = fps_get_timer(video_mode_fps);
+    unsigned safe_limit = fps_get_timer(video_mode_fps);
+    frame_rate[1] = MAX(frame_rate[1], safe_limit);
+#endif
+
+#ifdef CONFIG_500D
+    unsigned safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 60);
     frame_rate[1] = MAX(frame_rate[1], safe_limit);
 #endif
 
