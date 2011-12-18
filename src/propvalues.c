@@ -115,6 +115,7 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 PROP_HANDLER(PROP_MOVIE_SIZE_50D)
 {
 	video_mode_resolution = buf[0];
+	video_mode_fps = 30;
 	return prop_cleanup( token, property );
 }
 #else

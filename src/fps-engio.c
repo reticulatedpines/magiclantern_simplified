@@ -42,8 +42,13 @@ static int is_current_mode_ntsc()
     return 0;
 }
 
+#ifdef CONFIG_500D
+#define TG_FREQ_PAL  25000000
+#define TG_FREQ_NTSC 26373626
+#else
 #define TG_FREQ_PAL  50000000
 #define TG_FREQ_NTSC 52747252
+#endif
 
 #define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
 #define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC/(fps_x1000))
@@ -102,6 +107,9 @@ static void fps_setup(int fps)
 #endif
 #ifdef CONFIG_5D2
     safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 37);
+#endif
+#ifdef CONFIG_50D
+    safe_limit = fps_get_timer(30);
 #endif
 
     // no more than 30fps in photo mode
