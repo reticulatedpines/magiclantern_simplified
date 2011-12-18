@@ -4330,10 +4330,8 @@ void defish_lut_load()
 void defish_draw()
 {
 	defish_lut_load();
-	int i,j;
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
-	int lvpitch = vram->pitch;
 	uint8_t * const bvram = bmp_vram_real();
 	if (!bvram) return;
 
@@ -4373,7 +4371,6 @@ void defish_draw()
 static void defish_draw_play()
 {
 	defish_lut_load();
-	int i,j;
 	struct vram_info * vram = get_yuv422_vram();
 
 	uint32_t * lvram = (uint32_t *)vram->vram;

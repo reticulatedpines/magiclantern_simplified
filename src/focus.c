@@ -555,8 +555,6 @@ rack_focus(
 	}
 
 	speed_cmd = speed_cmd > 0 ? 1 : -1;
-	
-	int delta0 = delta;
 
 	while( delta )
 	{

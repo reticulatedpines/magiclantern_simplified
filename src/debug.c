@@ -1401,7 +1401,6 @@ void prop_dump()
 	FILE* g = FIO_CreateFile(CARD_DRIVE "PROP-STR.LOG");
 	
 	unsigned i, j, k;
-	unsigned actual_num_properties = 0;
 	
 	for( i=0 ; i<256 ; i++ )
 	{

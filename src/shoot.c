@@ -1521,7 +1521,6 @@ aperture_toggle( void* priv, int sign)
 	int amax = codes_aperture[COUNT(codes_aperture)-1];
 	
 	int a = lens_info.raw_aperture;
-	int a0 = a;
 
 	for (int k = 0; k < 20; k++)
 	{

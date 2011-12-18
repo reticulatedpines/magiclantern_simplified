@@ -38,11 +38,11 @@ void aj_green_screen()
    *   Masses of auto variables.   *
    ********************************/
 
-   unsigned int Xs,Xe;           // X_POSITION of  Cropmark_start/_end
+   // unsigned int Xs,Xe;           // X_POSITION of  Cropmark_start/_end
    //~ Xs = g_cropmark_x_start;      // First Pix drawn on (and a multiple of 4)
    //~ Xe = g_cropmark_x_end;        // First Pix not drawn on (multiple of 4)
  
-   unsigned int Vram_pixels = Xe - Xs;
+   // unsigned int Vram_pixels = Xe - Xs;
  
 
    unsigned int vpix, lum1, lum2; 
@@ -77,7 +77,7 @@ void aj_green_screen()
    ******************************************************************/
 
     int high_delta_factor = 1024 / high_delta; // replace division with multiplication
-    int low_delta_factor = 1024 / low_delta;
+    // int low_delta_factor = 1024 / low_delta;
 
 	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 	{
