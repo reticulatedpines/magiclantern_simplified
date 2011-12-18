@@ -199,6 +199,14 @@ static int get_shutter_override_reciprocal_x1000()
     return shutter_x1000;
 }
 
+void hdr_get_iso_range(int* iso_low, int* iso_high)
+{
+    int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
+    mid_iso = ((mid_iso + 4) / 8) * 8;
+    *iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
+    *iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
+}
+
 // called every frame
 void shutter_and_hdrvideo_set()
 {
@@ -224,10 +232,8 @@ void shutter_and_hdrvideo_set()
             if (!HALFSHUTTER_PRESSED) odd_frame = (frame / (fps_get_current_x1000()/1000)) % 2;
         }
     
-        int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
-        mid_iso = ((mid_iso + 4) / 8) * 8;
-        int iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
-        int iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
+        int iso_low, iso_high;
+        hdr_get_iso_range(&iso_low, &iso_high);
         FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
     }
 }
@@ -303,9 +309,8 @@ hdr_print(
 {
     if (HDR_ENABLED)
     {
-        int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
-        int iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
-        int iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
+        int iso_low, iso_high;
+        hdr_get_iso_range(&iso_low, &iso_high);
         
         iso_low = 100 << (iso_low-72)/8;
         iso_high = 100 << (iso_high-72)/8;
@@ -489,5 +494,11 @@ void fps_mvr_log(FILE* mvr_logfile)
         my_fprintf(mvr_logfile, "Tv override: %d.%d deg\n", d/10, d%10);
     }
     if (HDR_ENABLED)
-        my_fprintf(mvr_logfile, "HDR video: %d EV\n", hdr_ev/8);
+    {
+        int iso_low, iso_high;
+        hdr_get_iso_range(&iso_low, &iso_high);
+        iso_low = 100 << (iso_low-72)/8;
+        iso_high = 100 << (iso_high-72)/8;
+        my_fprintf(mvr_logfile, "HDR video: %d EV, ISO %d/%d\n", hdr_ev/8, iso_low, iso_high);
+    }
 }
