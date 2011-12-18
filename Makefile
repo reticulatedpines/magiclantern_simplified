@@ -56,13 +56,13 @@ install_fir: fir
 	cp installer/500D.111/ml-500d-111.fir /media/EOS_DIGITAL/
 
 clean:
-	-$(RM) \
+	$(call build,CLEAN,$(RM) -f \
 		$(SRC_DIR)/*.o \
 		$(SRC_DIR)/.*.d \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
-		*.pdf 
+		*.pdf)
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean

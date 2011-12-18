@@ -529,7 +529,8 @@ installdoc:
 	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/doc/
 
 clean:
-	$(RM) *.o   \
+	$(call build,CLEAN,$(RM) -f \
+		*.o   \
 		.*.d \
 		$(BIN_FILES) \
 		magiclantern.lds \
@@ -541,5 +542,4 @@ clean:
 		README \
 		cropmks/* \
 		doc/* \
-		$(SRC_DIR)/*.o \
-	|| echo clean done
+		$(SRC_DIR)/*.o)
