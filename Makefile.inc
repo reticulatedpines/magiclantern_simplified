@@ -319,7 +319,7 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 #		-name font_small \
 #	)
 
-version.c: FORCE
+$(PLATFORM_DIR)/version.c: FORCE
 	$(call build,VERSION,( \
 		echo 'const char build_version[] = "$(VERSION)";' ; \
 		echo 'const char build_id[] = "'`hg id`'";' ; \
