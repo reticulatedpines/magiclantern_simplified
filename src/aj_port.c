@@ -77,7 +77,7 @@ void aj_green_screen()
    ******************************************************************/
 
     int high_delta_factor = 1024 / high_delta; // replace division with multiplication
-    // int low_delta_factor = 1024 / low_delta;
+    int low_delta_factor = 1024 / low_delta;
 
 	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
 	{
@@ -161,7 +161,7 @@ void aj_green_screen()
             *  LUM1   Lower than average luma     *
             **************************************/
 
-            col = ((average_luma-lum)*12) * low_delta / 1024;
+            col = ((average_luma-lum)*12) * low_delta_factor / 1024;
 
             if (col > 12)
                col=12; 
