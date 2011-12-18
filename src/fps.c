@@ -33,14 +33,14 @@
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 
 #define HOOK_TABLE_FUNCTION(table,position,new,old) \
-    old = ((unsigned int*)table)[position];\
-    ((unsigned int*)table)[position] = new;\
+    old = (void*)((unsigned int*)table)[position];\
+    ((unsigned int*)table)[position] = (unsigned int)new;\
 
 #define UNHOOK_TABLE_FUNCTION(table,position,old) \
-    ((unsigned int*)table)[position] = old;\
+    ((unsigned int*)table)[position] = (unsigned int)old;\
 
 #define IS_TABLE_FUNCTION_HOOKED(table,position,new) \
-    (((unsigned int*)table)[position] == new) \
+    (((unsigned int*)table)[position] == (unsigned int)new) \
 
 #define REDIRECT_BUFFER(address,buffer) \
     memcpy(buffer, (unsigned char*)(*((unsigned int *)(address))), sizeof(buffer));\
@@ -74,6 +74,7 @@ static int fps_override = 0;
 int shutter_override_mode = 0;
 static void reset_tv(void* priv, int delta) { shutter_override_mode = 0; }
 
+static void shutter_and_hdrvideo_set();
 
 static int hdr_ev = 0;
 #define HDR_ENABLED (hdr_ev != 0)
@@ -168,7 +169,7 @@ static void update_hard_expo_override()
 
 int is_hard_exposure_override_active()
 {
-    return MEM(CARTIRIDGE_CALL_TABLE) == cartridge_table &&
+    return MEM(CARTIRIDGE_CALL_TABLE) == (int)cartridge_table &&
         IS_TABLE_FUNCTION_HOOKED(cartridge_table, 0x39, cartridge_AfStopPath);
 }
 
@@ -208,7 +209,7 @@ void hdr_get_iso_range(int* iso_low, int* iso_high)
 }
 
 // called every frame
-void shutter_and_hdrvideo_set()
+static void shutter_and_hdrvideo_set()
 {
     int degrees_x10 = get_shutter_override_degrees_x10();
     if (degrees_x10)

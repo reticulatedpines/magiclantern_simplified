@@ -52,7 +52,7 @@ static int is_current_mode_ntsc()
 
 static int fps_override = 0;
 
-unsigned long frame_rate[] = {
+static unsigned long frame_rate[] = {
     0xC0F06014, 0xFFFF, /* timer register */
     0xC0F06000, 0x01, /* coherent update */
     0xFFFFFFFF /* end of commands */ };
@@ -84,7 +84,7 @@ static int fps_get_timer(int fps)
     return fps_timer & 0xFFFF;
 }
 
-void fps_setup(int fps)
+static void fps_setup(int fps)
 {
     if (fps) frame_rate[1] = fps_get_timer(fps);
 
@@ -130,12 +130,12 @@ fps_print(
     
     extern int sound_recording_mode;
     if (fps_override && sound_recording_mode != 1)
-        menu_draw_icon(x, y, MNI_WARNING, "Turn off sound recording from Canon menu!");
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Turn off sound recording from Canon menu!");
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
     //~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
 }
 
-void flip_zoom()
+static void flip_zoom()
 {
     if (!lv) return;
     if (recording) return;
