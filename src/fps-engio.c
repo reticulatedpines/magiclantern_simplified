@@ -103,7 +103,7 @@ static void fps_setup(int fps)
     }
 #endif
 #ifdef CONFIG_500D
-    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 70);
+    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 21 : 37);
 #endif
 #ifdef CONFIG_5D2
     safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 37);
