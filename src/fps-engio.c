@@ -88,16 +88,25 @@ static void fps_setup(int fps)
 {
     if (fps) frame_rate[1] = fps_get_timer(fps);
 
-    unsigned safe_limit = fps_get_timer(60);
+    unsigned safe_limit = fps_get_timer(70);
 #ifdef CONFIG_550D
-    safe_limit = fps_get_timer(video_mode_fps);
+    safe_limit = fps_get_timer(video_mode_fps); // no overcranking possible
+    if (video_mode_crop)
+    {
+        frame_rate[1] = safe_limit;
+        return; // freeze
+    }
 #endif
 #ifdef CONFIG_500D
-    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 60);
+    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 40 : 70);
 #endif
 #ifdef CONFIG_5D2
-    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 60);
+    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 70);
 #endif
+
+    // no more than 30fps in photo mode
+    if (!is_movie_mode()) safe_limit = MAX(safe_limit, fps_get_timer(30));
+    
     frame_rate[1] = MAX(frame_rate[1], safe_limit);
 
     engio_write(frame_rate);
@@ -145,7 +154,11 @@ fps_print(
 static void flip_zoom()
 {
     if (!lv) return;
-    if (recording) return;
+    if (is_movie_mode())
+    {
+        if (recording) return;
+        if (video_mode_crop) return;
+    }
     
     // flip zoom mode back and forth to apply settings instantly
     int zoom0 = lv_dispsize;
@@ -166,7 +179,7 @@ static void set_fps(void* priv, int delta)
 {
     // first click won't change value
     int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-    if (fps_override) fps = COERCE(fps + delta, 4, 60);
+    if (fps_override) fps = COERCE(fps + delta, 4, 70);
     
     fps_setup(fps);
     
