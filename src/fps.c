@@ -60,7 +60,7 @@ struct lv_path_struct
 extern struct lv_path_struct lv_path_struct;
 
 #define TG_FREQ_PAL  50000000
-#define TG_FREQ_NTSC 52747252
+#define TG_FREQ_NTSC 52747200
 
 #define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
 #define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC/(fps_x1000))

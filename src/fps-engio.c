@@ -48,10 +48,10 @@ static int is_current_mode_ntsc()
 #else
     #ifdef CONFIG_50D
         #define TG_FREQ_PAL  40000000
-        #define TG_FREQ_NTSC 42197802
+        #define TG_FREQ_NTSC 42197760
     #else
         #define TG_FREQ_PAL  50000000
-        #define TG_FREQ_NTSC 52747252
+        #define TG_FREQ_NTSC 52747200
     #endif
 #endif
 
