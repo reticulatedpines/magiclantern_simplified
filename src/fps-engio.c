@@ -43,8 +43,8 @@ static int is_current_mode_ntsc()
 }
 
 #ifdef CONFIG_500D
-    #define TG_FREQ_PAL  25000000
-    #define TG_FREQ_NTSC 26373626
+    #define TG_FREQ_PAL  24660000
+    #define TG_FREQ_NTSC 23136840
 #else
     #ifdef CONFIG_50D
         #define TG_FREQ_PAL  40000000
