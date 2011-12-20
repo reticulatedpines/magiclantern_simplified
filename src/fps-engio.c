@@ -208,7 +208,7 @@ static struct menu_entry fps_menu[] = {
         .select_auto = reset_fps,
         .display = fps_print,
         .show_liveview = 1,
-        .help = "Makes French Fries with the camera sensor. Turn off sound!"
+        .help = "Changes FPS and forces shutter at 1/fps. Turn off sound!"
     },
 };
 

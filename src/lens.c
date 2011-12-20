@@ -998,6 +998,7 @@ mvr_create_logfile(
 		);
 
 	fps_mvr_log(mvr_logfile);
+	hdr_mvr_log(mvr_logfile);
 
 	my_fprintf( mvr_logfile, "%s\n",
 		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"

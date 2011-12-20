@@ -134,7 +134,7 @@
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
 #define MVR_BUFFER_USAGE div_maybe(-100*MEM(316 + MVR_190_STRUCT) - 100*MEM(324 + MVR_190_STRUCT) - 100*MEM(496 + MVR_190_STRUCT) - 100*MEM(504 + MVR_190_STRUCT) + 100*MEM(320 + MVR_190_STRUCT) + 100*MEM(328 + MVR_190_STRUCT), -MEM(316 + MVR_190_STRUCT) - MEM(324 + MVR_190_STRUCT) + MEM(320 + MVR_190_STRUCT) + MEM(328 + MVR_190_STRUCT))
-#define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
+#define MVR_FRAME_NUMBER (*(int*)(300 + MVR_190_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_190_STRUCT))
 #define MVR_BYTES_WRITTEN (*(int*)(292 + MVR_190_STRUCT))
 

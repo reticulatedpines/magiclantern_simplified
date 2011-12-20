@@ -59,6 +59,7 @@ ML_OBJS-y = \
 	reloc.o \
 	aj_port.o \
 	fps.o \
+	hdr.o \
 
 #include generic rules and definitions
 

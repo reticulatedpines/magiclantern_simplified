@@ -74,14 +74,7 @@ static int fps_override = 0;
 int shutter_override_mode = 0;
 static void reset_tv(void* priv, int delta) { shutter_override_mode = 0; }
 
-static void shutter_and_hdrvideo_set();
-
-static int hdr_ev = 0;
-#define HDR_ENABLED (hdr_ev != 0)
-
-static void hdr_ev_toggle(void* priv, int delta) { MEM(priv) = mod(MEM(priv) + delta*8, 6*8) & ~0x7; }
-static void reset_hdr(void* priv, int delta) { hdr_ev = 0; }
-
+static void shutter_set();
 
 static int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -128,7 +121,10 @@ static void (*cartridge_AfStopPathReal)(void *this) = NULL;
 static void cartridge_AfStopPath(void *this)
 {
     /* force the ISO/exposure values */
-    shutter_and_hdrvideo_set();
+    shutter_set();
+    
+    /* change ISO for HDR movie (will only work if HDR is enabled) */
+    hdr_step();
 
     /* call hooked function */
     cartridge_AfStopPathReal(this);
@@ -138,7 +134,8 @@ static void cartridge_AfStopPath(void *this)
 // Q: what happes if this is called when Canon firmware flips the resolution?
 static void update_hard_expo_override()
 {
-    if (shutter_override_mode || HDR_ENABLED)
+    extern int hdr_ev;
+    if (shutter_override_mode || hdr_ev)
     {
         // cartridge call table is sometimes overriden by Canon firmware
         // so this function polls the status periodically (and updates it if needed)
@@ -200,49 +197,14 @@ static int get_shutter_override_reciprocal_x1000()
     return shutter_x1000;
 }
 
-void hdr_get_iso_range(int* iso_low, int* iso_high)
-{
-    int mid_iso = COERCE(lens_info.raw_iso, 72 + (int)hdr_ev/2, 120 - (int)hdr_ev/2);
-    mid_iso = (mid_iso / 8) * 8;
-    if ((hdr_ev/8) % 2) // odd spacing
-        mid_iso += 4;
-    *iso_low = COERCE(mid_iso - (int)hdr_ev/2, 72, 120);
-    *iso_high = COERCE(mid_iso + (int)hdr_ev/2, 72, 120);
-}
-
 // called every frame
-static void shutter_and_hdrvideo_set()
+static void shutter_set()
 {
     int degrees_x10 = get_shutter_override_degrees_x10();
     if (degrees_x10)
     {
         int t = shutter_get_timer(degrees_x10);
         FRAME_SHUTTER_TIMER = t;
-    }
-
-    if (HDR_ENABLED && is_movie_mode() && lens_info.raw_iso)
-    {
-        static int odd_frame = 0;
-        static int frame;
-        frame++;
-        
-        static int first_frame = 0;
-        
-        if (recording)
-        {
-            if (first_frame) frame = 1;
-            odd_frame = frame % 2;
-            first_frame = 0;
-        }
-        else
-        {
-            first_frame = 1;
-            if (!HALFSHUTTER_PRESSED) odd_frame = (frame / (fps_get_current_x1000()/1000)) % 2;
-        }
-    
-        int iso_low, iso_high;
-        hdr_get_iso_range(&iso_low, &iso_high);
-        FRAME_ISO = odd_frame ? iso_low : iso_high; // ISO 100-1600
     }
 }
 
@@ -302,40 +264,6 @@ shutter_print(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Tv Override  : OFF"
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    }
-}
-
-static void
-hdr_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    if (HDR_ENABLED)
-    {
-        int iso_low, iso_high;
-        hdr_get_iso_range(&iso_low, &iso_high);
-        
-        iso_low = 100 << (iso_low-72)/8;
-        iso_high = 100 << (iso_high-72)/8;
-
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "HDR video    : %dEV, %d/%d ISO",
-            hdr_ev/8, iso_low, iso_high
-        );
-    }
-    else
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "HDR video    : OFF"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }
@@ -457,16 +385,6 @@ struct menu_entry fps_menu[] = {
         .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
         .show_liveview = 1,
     },
-    {
-        .name = "HDR video",
-        .priv       = &hdr_ev,
-        .min = 0,
-        .max = 5*8,
-        .select = hdr_ev_toggle,
-        .select_auto = reset_hdr,
-        .display = hdr_print,
-        .help = "Alternates ISO between frames.",
-    }
 };
 
 static void fps_init()
@@ -500,13 +418,5 @@ void fps_mvr_log(FILE* mvr_logfile)
     {
         int d = get_shutter_override_degrees_x10();
         my_fprintf(mvr_logfile, "Tv override: %d.%d deg\n", d/10, d%10);
-    }
-    if (HDR_ENABLED)
-    {
-        int iso_low, iso_high;
-        hdr_get_iso_range(&iso_low, &iso_high);
-        iso_low = 100 << (iso_low-72)/8;
-        iso_high = 100 << (iso_high-72)/8;
-        my_fprintf(mvr_logfile, "HDR video: %d EV, ISO %d/%d\n", hdr_ev/8, iso_low, iso_high);
     }
 }

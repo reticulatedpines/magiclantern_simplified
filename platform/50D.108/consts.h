@@ -128,7 +128,7 @@
 
 #define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(216 + MVR_190_STRUCT))
+#define MVR_BYTES_WRITTEN (*(int*)(212 + MVR_190_STRUCT))
 
  #define MOV_REC_STATEOBJ (*(void**)0x5B34)
  #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)

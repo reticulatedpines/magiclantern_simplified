@@ -124,9 +124,8 @@
 #define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(436 + MVR_516_STRUCT) + 100*MEM(424 + MVR_516_STRUCT), 0xa)
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
-// hexdump MVR_516_STRUCT and figure them out by their evolution in time
-#define MVR_FRAME_NUMBER 0
-#define MVR_BYTES_WRITTEN 0
+#define MVR_FRAME_NUMBER  (*(int*)(0xEC + MVR_516_STRUCT)) // in mvrExpStarted
+#define MVR_BYTES_WRITTEN (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5
 #define MOV_OPT_NUM_PARAMS 2
