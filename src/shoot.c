@@ -912,11 +912,14 @@ void ensure_movie_mode()
 		GUI_SetLvMode(2);
 		GUI_SetMovieSize_b(1);
 		#else
-		 #ifdef CONFIG_5D2
-			GUI_SetLvMode(2);
-		 #else
-		  set_shooting_mode(SHOOTMODE_MOVIE);
-		 #endif
+			#ifdef CONFIG_5D2
+				GUI_SetLvMode(2);
+			#else
+				#ifdef CONFIG_500D
+				if (shooting_mode == SHOOTMODE_ADEP) set_shooting_mode(SHOOTMODE_CA);
+				#endif
+				set_shooting_mode(SHOOTMODE_MOVIE);
+			#endif
 		#endif
 		msleep(500); 
 	}
