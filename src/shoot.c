@@ -4180,7 +4180,7 @@ shoot_task( void* unused )
 			{
 				assign_af_button_to_halfshutter();
 				SW1(1,10);
-				SW1(0,0);
+				SW1(0,50);
 				restore_af_button_assignment();
 			}
 
