@@ -689,7 +689,7 @@ void draw_ml_topbar()
 	bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
 	x += 70;
-	#ifdef CONFIG_60D
+	#if defined(CONFIG_60D) || defined(CONFIG_5D2)
 		bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
 	#else
 		bmp_printf( font, x, y,"T=%d", efic_temp);
@@ -789,15 +789,7 @@ void lens_wait_readytotakepic(int wait)
 	int i;
 	for (i = 0; i < wait * 10; i++)
 	{
-		if (lens_info.job_state <= 
-			
-			#ifdef CONFIG_60D
-			0xB
-			#else
-			0xA
-			#endif
-			
-			&& burst_count > 0) break;
+		if (lens_info.job_state <= 0xA && burst_count > 0) break;
 		msleep(20);
 	}
 }
