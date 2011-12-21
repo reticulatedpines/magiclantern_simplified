@@ -141,7 +141,7 @@ hdr_print(
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "HDR video    : %dEV, %d/%d ISO",
+            "HDR video     : %dEV, %d/%d ISO",
             hdr_ev/8, iso_low, iso_high
         );
     }
@@ -150,7 +150,7 @@ hdr_print(
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "HDR video    : OFF"
+            "HDR video     : OFF"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }
@@ -188,7 +188,7 @@ static void hdr_init()
         stateobj_start_spy(MOVREC_STATE);
     #endif
     
-    menu_add( "Debug", hdr_menu, COUNT(hdr_menu) );
+    menu_add( "Movie", hdr_menu, COUNT(hdr_menu) );
 }
 
 INIT_FUNC("hdr", hdr_init);

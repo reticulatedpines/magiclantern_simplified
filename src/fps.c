@@ -228,7 +228,7 @@ fps_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "FPS override : %s",
+        "FPS override  : %s",
         fps_override ? msg : "OFF"
     );
     
@@ -254,7 +254,7 @@ shutter_print(
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Tv Override  : %d.%ddeg 1/%d",
+            "Tv Override   : %d.%ddeg 1/%d",
             d/10, d%10,
             current_shutter/1000
         );
@@ -263,7 +263,7 @@ shutter_print(
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Tv Override  : OFF"
+            "Tv Override   : OFF"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }
@@ -374,7 +374,7 @@ struct menu_entry fps_menu[] = {
         .select_auto = reset_fps,
         .display = fps_print,
         .show_liveview = 1,
-        .help = "Makes French Fries with the camera sensor. Turn off sound!"
+        .help = "Changes frame rate. Turn off sound for stable operation!"
     },
     {
         .priv = &shutter_override_mode,
@@ -382,7 +382,7 @@ struct menu_entry fps_menu[] = {
         .max = 13,
         .display = shutter_print,
         .select_auto = reset_tv,
-        .help = "Override shutter speed, in degrees. 1/fps ... 1/50000.",
+        .help = "Overrides shutter speed, in degrees. 1/fps ... 1/50000.",
         .show_liveview = 1,
     },
 };
@@ -392,7 +392,7 @@ static void fps_init()
     // make a copy of the original sensor timing table (so we can patch it)
     sensor_timing_table_original = (void*)SENSOR_TIMING_TABLE;
     memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
-    menu_add( "Debug", fps_menu, COUNT(fps_menu) );
+    menu_add( "Movie", fps_menu, COUNT(fps_menu) );
 }
 
 INIT_FUNC("fps", fps_init);

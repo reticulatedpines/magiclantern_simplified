@@ -153,7 +153,7 @@ fps_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "FPS override : %s",
+        "FPS override  : %s",
         fps_override ? msg : "OFF"
     );
     
@@ -214,7 +214,7 @@ static struct menu_entry fps_menu[] = {
 
 static void fps_init()
 {
-    menu_add( "Debug", fps_menu, COUNT(fps_menu) );
+    menu_add( "Movie", fps_menu, COUNT(fps_menu) );
 }
 
 INIT_FUNC("fps", fps_init);
