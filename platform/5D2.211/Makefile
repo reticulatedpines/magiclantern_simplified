@@ -30,20 +30,20 @@ ML_OBJS-y = \
 	debug.o \
 	stdio.o \
 	audio.o \
+	bitrate.o \
 	property.o \
 	propvalues.o \
 	gui.o \
 	gui-common.o \
 	misc.o \
 	tweaks.o \
-	movtweaks.o \
-	bitrate.o \
 	lens.o \
 	lensfocus.o \
 	cfn.o \
 	zebra.o \
 	shoot.o \
 	chdk-gui_draw.o \
+	movtweaks.o \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
@@ -57,6 +57,7 @@ ML_OBJS-y = \
 	aj_port.o \
 	fps-engio.o \
 	hdr.o \
+
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
