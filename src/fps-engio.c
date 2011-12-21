@@ -234,5 +234,6 @@ TASK_CREATE("fps_task", fps_task, 0, 0x1d, 0x1000 );
 void fps_mvr_log(FILE* mvr_logfile)
 {
     int f = fps_get_current_x1000();
-    my_fprintf(mvr_logfile, "FPS: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
+    if (fps_override)
+		my_fprintf(mvr_logfile, "FPS+Tv override: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
 }

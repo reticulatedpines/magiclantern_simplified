@@ -201,6 +201,6 @@ void hdr_mvr_log(FILE* mvr_logfile)
         hdr_get_iso_range(&iso_low, &iso_high);
         iso_low = 100 << (iso_low-72)/8;
         iso_high = 100 << (iso_high-72)/8;
-        my_fprintf(mvr_logfile, "HDR video: %d EV, ISO %d/%d\n", hdr_ev/8, iso_low, iso_high);
+        my_fprintf(mvr_logfile, "HDR video      : %d EV, ISO %d/%d\n", hdr_ev/8, iso_low, iso_high);
     }
 }

@@ -971,7 +971,7 @@ mvr_create_logfile(
 	LoadCalendarFromRTC( &now );
 
 	my_fprintf( mvr_logfile,
-		"Start: %4d/%02d/%02d %02d:%02d:%02d\n",
+		"Start          : %4d/%02d/%02d %02d:%02d:%02d\n",
 		now.tm_year + 1900,
 		now.tm_mon + 1,
 		now.tm_mday,
@@ -980,16 +980,41 @@ mvr_create_logfile(
 		now.tm_sec
 	);
 
-	my_fprintf( mvr_logfile, "Lens: %s\n", lens_info.name );
-	
-	my_fprintf(mvr_logfile, "White Balance: %d, GM %d, BA %d\n",
+	my_fprintf( mvr_logfile, "Lens name      : %s\n", lens_info.name );
+
+	my_fprintf(
+		mvr_logfile,
+		"ISO            : %d\n"
+		"Shutter        : 1/%ds\n"
+		"Aperture       : f/%d.%d\n"
+		"Focal length   : %d mm\n"
+		"Focus distance : %d mm\n",
+		lens_info.iso,
+		lens_info.shutter,
+		lens_info.aperture / 10, lens_info.aperture % 10,
+		lens_info.focal_len,
+		lens_info.focus_dist
+	);
+
+	my_fprintf(mvr_logfile, 
+		"White Balance  : %d%s, %s %d, %s %d\n",
 		lens_info.wb_mode == WB_KELVIN ? lens_info.kelvin : lens_info.wb_mode,
-		lens_info.wbs_gm, 
-		lens_info.wbs_ba
+		lens_info.wb_mode == WB_KELVIN ? "K" : 
+		lens_info.wb_mode == 0 ? " - Auto" : 
+		lens_info.wb_mode == 1 ? " - Sunny" :
+		lens_info.wb_mode == 2 ? " - Cloudy" : 
+		lens_info.wb_mode == 3 ? " - Tungsten" : 
+		lens_info.wb_mode == 4 ? " - Fluorescent" : 
+		lens_info.wb_mode == 5 ? " - Flash" : 
+		lens_info.wb_mode == 6 ? " - Custom" : 
+		lens_info.wb_mode == 8 ? " - Shade" : " - unknown",
+		lens_info.wbs_gm > 0 ? "Green" : "Magenta", ABS(lens_info.wbs_gm), 
+		lens_info.wbs_ba > 0 ? "Amber" : "Blue", ABS(lens_info.wbs_ba)
 		);
 
 	
-	my_fprintf( mvr_logfile, "Picture Style: %s (%d,%d,%d,%d)\n", 
+	my_fprintf( mvr_logfile, 
+		"Picture Style  : %s (%d,%d,%d,%d)\n", 
 		get_picstyle_name(lens_info.raw_picstyle), 
 		lens_get_sharpness(),
 		lens_get_contrast(),
@@ -1000,7 +1025,7 @@ mvr_create_logfile(
 	fps_mvr_log(mvr_logfile);
 	hdr_mvr_log(mvr_logfile);
 
-	my_fprintf( mvr_logfile, "%s\n",
+	my_fprintf( mvr_logfile, "\n\nCSV data:\n%s\n",
 		"Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
 	);
 

@@ -413,10 +413,10 @@ TASK_CREATE("fps_task", fps_task, 0, 0x1d, 0x1000 );
 void fps_mvr_log(FILE* mvr_logfile)
 {
     int f = fps_get_current_x1000();
-    my_fprintf(mvr_logfile, "FPS: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
+    my_fprintf(mvr_logfile, "FPS override   : %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
     if (shutter_override_mode)
     {
         int d = get_shutter_override_degrees_x10();
-        my_fprintf(mvr_logfile, "Tv override: %d.%d deg\n", d/10, d%10);
+        my_fprintf(mvr_logfile, "Tv override    : %d.%d deg\n", d/10, d%10);
     }
 }
