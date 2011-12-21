@@ -1099,7 +1099,6 @@ display_dont_mirror_display(
 		"Auto Mirroring : %s", 
 		display_dont_mirror ? "Don't allow": "Allow"
 	);
-	menu_draw_icon(x, y, MNI_BOOL(!display_dont_mirror), 0);
 }
 
 /*
