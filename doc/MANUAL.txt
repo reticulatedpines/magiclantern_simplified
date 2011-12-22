@@ -28,7 +28,7 @@ You will still be able to access all Canon functionality.
 To go back to Canon firmware, you may:
 
 * Press and hold ``SET`` at startup to bypass ML only once (for the current session).
-* Format your card in the camera and choose to remove Magic Lantern (press ``Q``)
+* Format your card in the camera and choose to remove Magic Lantern.
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
 How do I erase all of the images without removing ML?
@@ -74,9 +74,6 @@ Why the audio is so quiet / noisy after disabling AGC?
 You will have to adjust the volume manually; use the audio meters to determine the proper level.
 
 Best audio is obtained by use of a preamp system fed to the camera. As a general rule, the use of a quiet preamp to send the signal to the camera will result in better the sound recorded in camera. Use of a preamped XLR adapter like the `JuicedLink CX231 <http://amzn.to/cx231>`_ or a field mixer will give superior results. You may also use a recorder like `Zoom H1, H2 or H4n <http://amzn.to/zoom-h>`_, but since the line out level is much higher than the mic level, you will have to `turn the output down from your recorder or use a pad cable <http://groups.google.com/group/ml-devel/browse_thread/thread/9d8c5bc96212ce71#>`_.
-
-If you don't use an external preamp, the `Rode VideoMic PRO <http://amzn.to/ml-rode-videomic-pro>`_ has a built-in +20dB amp designed for use with dSLR cameras. 
-The Rode VideoMic (non-pro) is known to have low output levels when used with Canon dSLRs without any preamps.
 
 For more info, check out the `Canon DSLR Audio thread on dvxuser <http://www.dvxuser.com/V6/showthread.php?240822-The-Canon-DSLR-Audio-thread>`_ and `AGC Disable - Magic Lantern vs. Juicedlink? on dvinfo <http://www.dvinfo.net/forum/all-things-audio/498727-agc-disable-magic-lantern-vs-juicedlink-2.html>`_.
 
@@ -210,11 +207,11 @@ from Magic Lantern. You can only use audio meters during recording.
 
 **Analog Gain (dB)**
 
-  Gain applied to both inputs in the analog domain - intended as mic-type preamp, but always preferable to digital gain (unless you want different gain or run out of analog).
+  Gain applied to both inputs in the analog domain. If you use an external preamp, set this parameter as low as possible; otherwise, set it as high as possible without clipping (audio meters should be green).
 
 **L-DigitalGain** and **R-DigitalGain (dB)**
 
-  Digital gain applied separately to the L and R channel. Recommended setting: 0.
+  Digital gain applied to left and right channel. Recommended setting: 0.
 
 .. _disable AGC:
 
@@ -263,6 +260,8 @@ from Magic Lantern. You can only use audio meters during recording.
   [[Video:Monitor_Realtime_T2i_550D_Audio_While_You_Record|200px|right]]
   
   Audio monitoring with headphones, via USB port.
+  
+  **Disable this setting if you are using a SD monitor!**
 
   **This feature is not available on 600D/T3i.**
 
@@ -328,12 +327,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   [[Image:Zebras.jpg|200px|right]]
 
-  Enable/disable zebra stripes. which indicate overexposed or underexposed areas.
+  Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
   
   Color spaces:
     
   * ``Luma``: zebras are computed from Y channel only.
-  * ``RGB``: check overexposure for each RGB channel. Clipped channels are displayed in the opposite color (i.e. clipped red displayed as cyan, underexposed displayed as white...).
+  * ``RGB``: check overexposure for each RGB channel. Clipped channels are displayed in the opposite color (i.e. clipped red shown as cyan, underexposed as white and so on).
   
   You may adjust thresholds for underexposure and overexposure.
   
@@ -616,7 +615,40 @@ Functions specific to movie mode.
   * ``Leave unchanged``: obvious :)
   * ``Block during REC``: blocks the shutter and related (AF, ``*``) buttons while recording. In 50D, taking pictures while recording would result in ERR99; with this option, you can avoid taking pictures while recording by mistake. Side effect: this will disable image stabilization during recording.
   * ``Hold during REC (IS)``: ML will keep the shutter button pressed half-way during recording, which will enable image stabilization (IS). Side effect: you need to press the shutter button half way to turn IS off before the camera will let you stop recording.
+
+**FPS override**
+
+  **This setting is potentially dangerous.**
+
+  It alters FPS for all video modes. For stable operation, disable sound recording from Canon menu.
+
+  On 550D and older cameras, this it will also force shutter speed to 1/fps.
   
+  Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
+  
+  * PAL modes: 25p/50p. Rounded frame rates: 33.333fps, 12.5fps, 11.111fps and so on.
+  * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
+
+  This function will not change the frame rate from the video header; the video will playback at the setting from Canon menu.
+
+
+**Tv override**
+
+  Forces the shutter (Tv) to a value linked to the frame rate. You will enter the shutter angle in degrees: 360 degrees means a shutter speed equal to 1/fps.
+  
+  Shutter speed may go as low as 1/50000 seconds.
+  
+  This feature is only available on 60D and 600D.
+
+**HDR video**
+  
+  [[Video:Magic_Lantern_HDR_video|200px|right]]
+
+  This feature allows you to shoot a high dynamic range video by alternating ISO every other frame.
+  
+  Select the desired EV spacing from menu. The actual values will be centered on current ISO. ML will only use full-stop ISO for best dynamic range.
+  
+  `Discussion thread, postprocessing workflow, FAQ... <http://vimeo.com/groups/magiclantern/forumthread:250295>`_
 
 Shoot
 ~~~~~
@@ -639,32 +671,16 @@ Functions for stills shooting (some of them work for movies, too).
   [[Image:HDR-National-Museum-of-Scotland.jpg|200px|right|link=http://www.flickr.com/photos/59839681@N04/6012136909/in/pool-1676739@N21/]]
 
   AE Bracketing for HDR images and timelapses.
-  
-  In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
+    
+  * In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
 
-  To start bracketing, take the first picture and ML will continue the sequence.
+  * To start bracketing, take the first picture and ML will continue the sequence.
 
-  To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Play`_ menu, 
-  then go to playback mode, hold ``SET`` and turn the main dial (wheel). Magic Lantern computes a naive weighted sum in YUV colorspace, which is fast, but image quality is low. The `algorithm used by Enfuse <http://research.edm.uhasselt.be/%7Etmertens/papers/exposure_fusion_reduced.pdf>`_ will yield much better results.
+  * To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Play`_ menu, 
+    then go to playback mode, hold ``SET`` and turn the main dial (wheel).
   
-  For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
-  with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x). The scripts are stored in ``DCIM/###CANON`` and are named after the first picture in set, 
-  e.g. if the HDR sequence is created from ``IMG_1001.JPG ... IMG_1005.JPG``, the HDR script will be named 
-  ``HDR_1001.SH`` and the resulting HDR image will be saved as ``HDR_1001.JPG``.
-  
-  For more info on enfuse and exposure fusion, check this article: `Exposure Fusion: What is it? How does it Compare to HDR? How Do I Do It? <http://www.digital-photography-school.com/exposure-fusion-what-is-it-how-does-it-compare-to-hdr-how-do-i-do-it>`_.
-
-  To run the HDR scripts on the computer, move the scripts and the JPGs in the same directory and run (for example)::
-  
-        bash HDR_1001.SH
-
-  or, for processing all the images at once::
-  
-        for f in $(ls *.SH); do bash $f ; done 
-
-  On Windows, you can use Cygwin or MSYS to run the scripts.
-  
-  Don't forget to delete the scripts from the card; the camera won't delete them!
+  * For each HDR picture set, Magic Lantern also writes a bash script for stacking the exposures
+    with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x). More info: `Exposure Fusion: What is it? How does it Compare to HDR? How Do I Do It? <http://www.digital-photography-school.com/exposure-fusion-what-is-it-how-does-it-compare-to-hdr-how-do-i-do-it>`_.
 
 .. _intervalometer:
 
@@ -1431,17 +1447,6 @@ Debug
     :width: 5cm
 
 Functions for troubleshooting, development, and possibly unstable features.
-
-**FPS override**
-
-  **This setting is potentially dangerous.**
-
-  It alters FPS for all video modes. For stable operation, disable sound recording from Canon menu.
-  
-  Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
-  
-  * PAL modes: 25p/50p. Rounded frame rates: 33.333fps, 12.5fps, 11.111fps and so on.
-  * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
 
 **Stability tests**
 
