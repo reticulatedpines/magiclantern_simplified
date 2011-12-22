@@ -243,5 +243,5 @@ void fps_mvr_log(FILE* mvr_logfile)
 }
 
 // FPS has a side effect: to force shutter speed at 1/fps. Let the bottom bar show this.
-void is_hard_exposure_override_active() { return fps_override; }
+int is_hard_exposure_override_active() { return fps_override; }
 int get_shutter_override_degrees_x10() { return fps_override ? 3600 : 0; }
