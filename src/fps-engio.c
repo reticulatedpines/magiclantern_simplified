@@ -108,7 +108,7 @@ static void fps_setup(int fps)
     }
 #endif
 #ifdef CONFIG_500D
-    safe_limit = fps_get_timer(lv_dispsize > 1 ? 28 : video_mode_resolution == 0 ? 21 : 37);
+    safe_limit = fps_get_timer(lv_dispsize > 1 ? 24 : video_mode_resolution == 0 ? 21 : 32);
 #endif
 #ifdef CONFIG_5D2
     safe_limit = fps_get_timer(video_mode_resolution == 0 ? 35 : 37);
@@ -180,9 +180,12 @@ static void flip_zoom()
     prop_request_change(PROP_LV_DISPSIZE, &zoom0, 4);
 }
 
+static int current_fps = 0;
+
 static void reset_fps(void* priv, int delta)
 {
     fps_override = 0;
+    current_fps = video_mode_fps;
     
     if (!recording) flip_zoom(); // this will force reconfiguring fps with Canon settings
     else fps_setup(video_mode_fps);
@@ -191,8 +194,8 @@ static void reset_fps(void* priv, int delta)
 static void set_fps(void* priv, int delta)
 {
     // first click won't change value
-    int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-    if (fps_override) fps = COERCE(fps + delta, 4, 70);
+    current_fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
+    if (fps_override) current_fps = COERCE(current_fps + delta, 4, 70);
     
     fps_setup(fps);
     
@@ -223,7 +226,8 @@ static void fps_task()
 {
     while(1)
     {
-        if (fps_override && lv) fps_setup(0);
+        if (fps_override && lv && !gui_menu_shown())
+			fps_setup(current_fps);
         msleep(1000);
     }
 }
