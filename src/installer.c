@@ -235,7 +235,7 @@ void install_task()
 	Msleep(500);
 
 	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
-	kill_flicker_do();
+	canon_gui_disable();
 	ui_lock(UILOCK_EVERYTHING);
 
 	//~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
@@ -647,4 +647,6 @@ int ext_monitor_hdmi = 0;
 int ext_monitor_rca = 0;
 int hdmi_code = 0;
 int lv = 0;
+int lv_paused = 0;
+void bvram_mirror_init(){};
 

@@ -94,6 +94,7 @@ Step 1. Preparing your camera
   - for **Canon 600D / T3i / Kiss X5**: upgrade to firmware `1.0.1 <http://www.canon.co.uk/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_600D.aspx?DLtcmuri=tcm:14-839391&page=1&type=download>`_.
   - for **Canon 50D**: upgrade to firmware `1.0.8 <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_50D.aspx?DLtcmuri=tcm:13-845724&page=1&type=download>`_.
   - for **Canon 500D**: upgrade to firmware `1.1.1 <http://www.usa.canon.com/cusa/windows_vista/cameras/eos_slr_camera_systems/eos_rebel_t1i#DriversAndSoftware>`_.
+  - for **Canon 5D Mark II**: upgrade to firmware `2.1.1 <http://usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_5d_mark_ii#DriversAndSoftware>`_.
 
 * Rotate your mode dial to **Manual (M)** position.
 
