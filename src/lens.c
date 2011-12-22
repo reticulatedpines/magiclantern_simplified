@@ -380,7 +380,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 					y_origin, 
 					"o");
 	}
-	else if (is_hard_exposure_override_active())
+	else if (is_movie_mode() && is_hard_exposure_override_active())
 	{
 		int d = get_shutter_override_degrees_x10();
 		int q = d/10;
