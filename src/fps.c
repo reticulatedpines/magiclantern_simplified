@@ -68,7 +68,7 @@ extern struct lv_path_struct lv_path_struct;
 #define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC/(t))
 
 static uint16_t * sensor_timing_table_original = 0;
-static uint16_t sensor_timing_table_patched[128];
+static uint16_t sensor_timing_table_patched[175*2];
 
 static int fps_override = 0;
 int shutter_override_mode = 0;
