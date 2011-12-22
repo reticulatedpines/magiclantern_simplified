@@ -380,7 +380,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
 					y_origin, 
 					"o");
 	}
-	#if defined(CONFIG_60D) || defined(CONFIG_600D)
 	else if (is_hard_exposure_override_active())
 	{
 		int d = get_shutter_override_degrees_x10();
@@ -400,7 +399,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
 					y_origin, 
 					"o");
 	}
-	#endif
 	else
 	{
 		bmp_printf( text_font, 
