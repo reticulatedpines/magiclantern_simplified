@@ -197,7 +197,7 @@ static void set_fps(void* priv, int delta)
     current_fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
     if (fps_override) current_fps = COERCE(current_fps + delta, 4, 70);
     
-    fps_setup(fps);
+    fps_setup(current_fps);
     
     fps_override = 1;
 }
