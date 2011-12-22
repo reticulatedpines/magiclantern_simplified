@@ -377,6 +377,7 @@ struct menu_entry fps_menu[] = {
         .help = "Changes frame rate. Turn off sound for stable operation!"
     },
     {
+        .name = "Tv override", 
         .priv = &shutter_override_mode,
         .min = 0,
         .max = 13,
