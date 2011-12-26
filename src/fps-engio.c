@@ -227,7 +227,7 @@ static void fps_task()
     while(1)
     {
         if (fps_override && lv && !gui_menu_shown())
-			fps_setup(current_fps);
+            fps_setup(current_fps);
         msleep(1000);
     }
 }
@@ -239,7 +239,7 @@ void fps_mvr_log(FILE* mvr_logfile)
 {
     int f = fps_get_current_x1000();
     if (fps_override)
-		my_fprintf(mvr_logfile, "FPS+Tv override: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
+        my_fprintf(mvr_logfile, "FPS+Tv override: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
 }
 
 // FPS has a side effect: to force shutter speed at 1/fps. Let the bottom bar show this.

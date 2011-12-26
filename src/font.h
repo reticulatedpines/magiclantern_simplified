@@ -27,12 +27,12 @@
 
 struct font
 {
-	unsigned	height;
-	unsigned	width;
+        unsigned        height;
+        unsigned        width;
 #ifdef CONFIG_STATIC_FONTS
-	unsigned	bitmap[];
+        unsigned        bitmap[];
 #else
-	unsigned*	bitmap;
+        unsigned*       bitmap;
 #endif
 };
 

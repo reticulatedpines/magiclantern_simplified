@@ -10,7 +10,7 @@
 
 
 void draw_pixel(coord x, coord y, color cl) {
-	bmp_putpixel(x, y, cl);
+   bmp_putpixel(x, y, cl);
 }
 
 color draw_get_pixel(coord x, coord y) {
@@ -108,8 +108,8 @@ void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
 
 void draw_angled_line(int x, int y, int r, int ang, color cl)
 {
-	int s, c;
-	cordic_ex(ang * MUL / 573, &s, &c, 16);
-	draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
+   int s, c;
+   cordic_ex(ang * MUL / 573, &s, &c, 16);
+   draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
 }
 

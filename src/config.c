@@ -30,89 +30,89 @@
 static inline int
 is_space( char c )
 {
-	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
 static struct config *
 config_parse_line(
-	const char *		line
+    const char *        line
 )
 {
-	int name_len = 0;
-	int value_len = 0;
-	static struct config _cfg;
-	struct config * cfg = &_cfg;
+    int name_len = 0;
+    int value_len = 0;
+    static struct config _cfg;
+    struct config * cfg = &_cfg;
 
-	// Trim any leading whitespace
-	int i = 0;
-	while( line[i] && is_space( line[i] ) )
-		i++;
+    // Trim any leading whitespace
+    int i = 0;
+    while( line[i] && is_space( line[i] ) )
+        i++;
 
-	// Copy the name to the name buffer
-	while( line[i]
-	&& !is_space( line[i] )
-	&& line[i] != '='
-	&& name_len < MAX_NAME_LEN
-	)
-		cfg->name[ name_len++ ] = line[i++];
+    // Copy the name to the name buffer
+    while( line[i]
+    && !is_space( line[i] )
+    && line[i] != '='
+    && name_len < MAX_NAME_LEN
+    )
+        cfg->name[ name_len++ ] = line[i++];
 
-	if( name_len == MAX_NAME_LEN )
-		goto parse_error;
+    if( name_len == MAX_NAME_LEN )
+        goto parse_error;
 
-	// And nul terminate it
-	cfg->name[ name_len ] = '\0';
+    // And nul terminate it
+    cfg->name[ name_len ] = '\0';
 
-	// Skip any white space and = signs
-	while( line[i] && is_space( line[i] ) )
-		i++;
-	if( line[i++] != '=' )
-		goto parse_error;
-	while( line[i] && is_space( line[i] ) )
-		i++;
+    // Skip any white space and = signs
+    while( line[i] && is_space( line[i] ) )
+        i++;
+    if( line[i++] != '=' )
+        goto parse_error;
+    while( line[i] && is_space( line[i] ) )
+        i++;
 
-	// Copy the value to the value buffer
-	while( line[i] && value_len < MAX_VALUE_LEN )
-		cfg->value[ value_len++ ] = line[ i++ ];
+    // Copy the value to the value buffer
+    while( line[i] && value_len < MAX_VALUE_LEN )
+        cfg->value[ value_len++ ] = line[ i++ ];
 
-	// Back up to trim any white space
-	while( value_len > 0 && is_space( cfg->value[ value_len-1 ] ) )
-		value_len--;
+    // Back up to trim any white space
+    while( value_len > 0 && is_space( cfg->value[ value_len-1 ] ) )
+        value_len--;
 
-	// And nul terminate it
-	cfg->value[ value_len ] = '\0';
+    // And nul terminate it
+    cfg->value[ value_len ] = '\0';
 
-	DebugMsg( DM_MAGIC, 3,
-		"%s: '%s' => '%s'",
-		__func__,
-		cfg->name,
-		cfg->value
-	);
+    DebugMsg( DM_MAGIC, 3,
+        "%s: '%s' => '%s'",
+        __func__,
+        cfg->name,
+        cfg->value
+    );
 
-	return cfg;
+    return cfg;
 
 parse_error:
-	DebugMsg( DM_MAGIC, 3,
-		"%s: PARSE ERROR: len=%d,%d string='%s'",
-		__func__,
-		name_len,
-		value_len,
-		line
-	);
-	
-	bmp_printf(FONT_LARGE, 10, 150, "CONFIG PARSE ERROR");
-	bmp_printf(FONT_MED, 10, 200,
-		"%s: PARSE ERROR:\nlen=%d,%d\nstring='%s'",
-		__func__,
-		name_len,
-		value_len,
-		line
-	);
+    DebugMsg( DM_MAGIC, 3,
+        "%s: PARSE ERROR: len=%d,%d string='%s'",
+        __func__,
+        name_len,
+        value_len,
+        line
+    );
+    
+    bmp_printf(FONT_LARGE, 10, 150, "CONFIG PARSE ERROR");
+    bmp_printf(FONT_MED, 10, 200,
+        "%s: PARSE ERROR:\nlen=%d,%d\nstring='%s'",
+        __func__,
+        name_len,
+        value_len,
+        line
+    );
 
-	msleep(2000);
-	//~ FreeMemory( cfg );
-	dumpf();
+    msleep(2000);
+    //~ FreeMemory( cfg );
+    dumpf();
 //~ malloc_error:
-	return 0;
+    return 0;
 }
 
 char* config_file_buf = 0;
@@ -120,178 +120,178 @@ int config_file_size = 0;
 int config_file_pos = 0;
 static int get_char_from_config_file(char* out)
 {
-	if (config_file_pos >= config_file_size) return 0;
-	*out = config_file_buf[config_file_pos++];
-	return 1;
+    if (config_file_pos >= config_file_size) return 0;
+    *out = config_file_buf[config_file_pos++];
+    return 1;
 }
 
 int
 read_line(
-	char *			buf,
-	size_t			size
+    char *          buf,
+    size_t          size
 )
 {
-	size_t			len = 0;
+    size_t          len = 0;
 
-	while( len < size )
-	{
-		int rc = get_char_from_config_file(buf+len);
-		if( rc <= 0 )
-			return -1;
+    while( len < size )
+    {
+        int rc = get_char_from_config_file(buf+len);
+        if( rc <= 0 )
+            return -1;
 
-		if( buf[len] == '\r' )
-			continue;
-		if( buf[len] == '\n' )
-		{
-			buf[len] = '\0';
-			return len;
-		}
+        if( buf[len] == '\r' )
+            continue;
+        if( buf[len] == '\n' )
+        {
+            buf[len] = '\0';
+            return len;
+        }
 
-		len++;
-	}
+        len++;
+    }
 
-	return -1;
+    return -1;
 }
 
 
-extern struct config_var	_config_vars_start[];
-extern struct config_var	_config_vars_end[];
+extern struct config_var    _config_vars_start[];
+extern struct config_var    _config_vars_end[];
 
 static void
 config_auto_parse(
-	struct config *		cfg
+    struct config *     cfg
 )
 {
-	struct config_var *		var = _config_vars_start;
+    struct config_var *     var = _config_vars_start;
 
-	for( ; var < _config_vars_end ; var++ )
-	{
-		if( !streq( var->name, cfg->name ) )
-			continue;
+    for( ; var < _config_vars_end ; var++ )
+    {
+        if( !streq( var->name, cfg->name ) )
+            continue;
 
-		DebugMsg( DM_MAGIC, 3,
-			"%s: '%s' => '%s'",
-			__func__,
-			cfg->name,
-			cfg->value
-		);
+        DebugMsg( DM_MAGIC, 3,
+            "%s: '%s' => '%s'",
+            __func__,
+            cfg->name,
+            cfg->value
+        );
 
-		if( var->type == 0 )
-		{
-			*(unsigned*) var->value = atoi( cfg->value );
-		} else {
-			*(char **) var->value = cfg->value;
-		}
+        if( var->type == 0 )
+        {
+            *(unsigned*) var->value = atoi( cfg->value );
+        } else {
+            *(char **) var->value = cfg->value;
+        }
 
-		return;
-	}
+        return;
+    }
 
-	DebugMsg( DM_MAGIC, 3,
-		"%s: '%s' unused?",
-		__func__,
-		cfg->name
-	);
+    DebugMsg( DM_MAGIC, 3,
+        "%s: '%s' unused?",
+        __func__,
+        cfg->name
+    );
 }
 
 
 int
 config_save_file(
-	const char *		filename
+    const char *        filename
 )
 {
-	struct config_var * var = _config_vars_start;
-	int count = 0;
+    struct config_var * var = _config_vars_start;
+    int count = 0;
 
-	DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
-	
-	#define MAX_SIZE 10240
-	char* msg = alloc_dma_memory(MAX_SIZE);
-	char* msgc = CACHEABLE(msg);
-	
-	snprintf( msgc, MAX_SIZE,
-		"# Magic Lantern %s (%s)\n"
-		"# Build on %s by %s\n",
-		build_version,
-		build_id,
-		build_date,
-		build_user
-	);
+    DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
+    
+    #define MAX_SIZE 10240
+    char* msg = alloc_dma_memory(MAX_SIZE);
+    char* msgc = CACHEABLE(msg);
+    
+    snprintf( msgc, MAX_SIZE,
+        "# Magic Lantern %s (%s)\n"
+        "# Build on %s by %s\n",
+        build_version,
+        build_id,
+        build_date,
+        build_user
+    );
 
-	struct tm now;
-	LoadCalendarFromRTC( &now );
+    struct tm now;
+    LoadCalendarFromRTC( &now );
 
-	snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
-		"# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
-		now.tm_year + 1900,
-		now.tm_mon + 1,
-		now.tm_mday,
-		now.tm_hour,
-		now.tm_min,
-		now.tm_sec
-	);
+    snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+        "# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
+        now.tm_year + 1900,
+        now.tm_mon + 1,
+        now.tm_mday,
+        now.tm_hour,
+        now.tm_min,
+        now.tm_sec
+    );
 
-	for( ; var < _config_vars_end ; var++ )
-	{
-		if( var->type == 0 )
-			snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
-				"%s = %d\r\n",
-				var->name,
-				*(unsigned*) var->value
-			);
-		else
-			snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
-				"%s = %s\r\n",
-				var->name,
-				*(const char**) var->value
-			);
+    for( ; var < _config_vars_end ; var++ )
+    {
+        if( var->type == 0 )
+            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+                "%s = %d\r\n",
+                var->name,
+                *(unsigned*) var->value
+            );
+        else
+            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+                "%s = %s\r\n",
+                var->name,
+                *(const char**) var->value
+            );
 
-		count++;
-	}
-	
-	FIO_RemoveFile(filename);
-	FILE * file = FIO_CreateFile( filename );
-	if( file == INVALID_PTR )
-		return -1;
-	
-	FIO_WriteFile(file, msg, strlen(msgc));
+        count++;
+    }
+    
+    FIO_RemoveFile(filename);
+    FILE * file = FIO_CreateFile( filename );
+    if( file == INVALID_PTR )
+        return -1;
+    
+    FIO_WriteFile(file, msg, strlen(msgc));
 
-	FIO_CloseFile( file );
-	return count;
+    FIO_CloseFile( file );
+    return count;
 }
 
 
 static struct config *
 config_parse() {
-	char line_buf[ 1000 ];
-	struct config *	cfg = 0;
-	int count = 0;
+    char line_buf[ 1000 ];
+    struct config * cfg = 0;
+    int count = 0;
 
-	while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
-	{
-		//~ bmp_printf(FONT_SMALL, 0, 0, "cfg line: %s      ", line_buf);
-		
-		// Ignore any line that begins with # or is empty
-		if( line_buf[0] == '#'
-		||  line_buf[0] == '\0' )
-			continue;
-		
-		DebugMsg(DM_MAGIC, 3, "cfg line: %s", line_buf);
-		struct config * new_config = config_parse_line( line_buf );
-		if( !new_config )
-			goto error;
+    while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
+    {
+        //~ bmp_printf(FONT_SMALL, 0, 0, "cfg line: %s      ", line_buf);
+        
+        // Ignore any line that begins with # or is empty
+        if( line_buf[0] == '#'
+        ||  line_buf[0] == '\0' )
+            continue;
+        
+        DebugMsg(DM_MAGIC, 3, "cfg line: %s", line_buf);
+        struct config * new_config = config_parse_line( line_buf );
+        if( !new_config )
+            goto error;
 
-		cfg = new_config;
-		count++;
+        cfg = new_config;
+        count++;
 
-		config_auto_parse( cfg );
-	}
+        config_auto_parse( cfg );
+    }
 
-	DebugMsg( DM_MAGIC, 3, "%s: Read %d config values", __func__, count );
-	return cfg;
+    DebugMsg( DM_MAGIC, 3, "%s: Read %d config values", __func__, count );
+    return cfg;
 
 error:
-	DebugMsg( DM_MAGIC, 3, "%s: ERROR", __func__ );
-	return NULL;
+    DebugMsg( DM_MAGIC, 3, "%s: ERROR", __func__ );
+    return NULL;
 }
 
 int config_autosave = 1;
@@ -299,66 +299,66 @@ int config_autosave = 1;
 
 static int config_flag_file_setting_load(char* file)
 {
-	unsigned size;
-	return ( FIO_GetFileSize( file, &size ) == 0 );
+    unsigned size;
+    return ( FIO_GetFileSize( file, &size ) == 0 );
 }
 
 static void config_flag_file_setting_save(char* file, int setting)
 {
-	FIO_RemoveFile(file);
-	if (setting)
-	{
-		FILE* f = FIO_CreateFile(file);
-		FIO_CloseFile(f);
-	}
+    FIO_RemoveFile(file);
+    if (setting)
+    {
+        FILE* f = FIO_CreateFile(file);
+        FIO_CloseFile(f);
+    }
 }
 
 void
 config_autosave_toggle(void* priv)
 {
-	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
-	msleep(50);
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+    config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
+    msleep(50);
+    config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 }
 
 int
 config_parse_file(
-	const char *		filename
+    const char *        filename
 )
 {
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+    config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
 
-	config_file_buf = (void*)read_entire_file(filename, &config_file_size);
-	if (!config_file_buf)
-	{
-		// if config file is not present, force Config Autosave: On
-		if (!config_autosave) config_autosave_toggle(0);
-		return 0;
-	}
-	config_file_pos = 0;
-	config_parse();
-	free_dma_memory(config_file_buf);
-	config_file_buf = 0;
-	return 1;
+    config_file_buf = (void*)read_entire_file(filename, &config_file_size);
+    if (!config_file_buf)
+    {
+        // if config file is not present, force Config Autosave: On
+        if (!config_autosave) config_autosave_toggle(0);
+        return 0;
+    }
+    config_file_pos = 0;
+    config_parse();
+    free_dma_memory(config_file_buf);
+    config_file_buf = 0;
+    return 1;
 }
 
 
 
 int
 atoi(
-	const char *		s
+    const char *        s
 )
 {
-	int value = 0;
+    int value = 0;
 
-	// Only handles base ten for now
-	while( 1 )
-	{
-		char c = *s++;
-		if( !c || c < '0' || c > '9' )
-			break;
-		value = value * 10 + c - '0';
-	}
+    // Only handles base ten for now
+    while( 1 )
+    {
+        char c = *s++;
+        if( !c || c < '0' || c > '9' )
+            break;
+        value = value * 10 + c - '0';
+    }
 
-	return value;
+    return value;
 }

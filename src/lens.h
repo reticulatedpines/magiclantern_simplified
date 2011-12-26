@@ -34,43 +34,43 @@ int get_htp();
 
 struct lens_info
 {
-volatile	void *			token;
-volatile	char 			name[ 32 ];
-volatile	unsigned		focal_len; // in mm
-volatile	unsigned		focus_dist; // in cm
-volatile	unsigned		aperture;
-volatile	int				ae;        // exposure compensation, in 1/8 EV steps, signed
-volatile	unsigned		shutter;
-volatile	unsigned		iso;
-volatile	unsigned		iso_auto;
-volatile	unsigned		hyperfocal; // in mm
-volatile	unsigned		dof_near; // in mm
-volatile	unsigned		dof_far; // in mm
-volatile	unsigned		job_state; // see PROP_LAST_JOB_STATE
+volatile        void *                  token;
+volatile        char                    name[ 32 ];
+volatile        unsigned                focal_len; // in mm
+volatile        unsigned                focus_dist; // in cm
+volatile        unsigned                aperture;
+volatile        int                             ae;        // exposure compensation, in 1/8 EV steps, signed
+volatile        unsigned                shutter;
+volatile        unsigned                iso;
+volatile        unsigned                iso_auto;
+volatile        unsigned                hyperfocal; // in mm
+volatile        unsigned                dof_near; // in mm
+volatile        unsigned                dof_far; // in mm
+volatile        unsigned                job_state; // see PROP_LAST_JOB_STATE
 
-volatile	unsigned		wb_mode;  // see property.h for possible values
-volatile	unsigned		kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
-volatile	int8_t		wbs_gm;
-volatile	int8_t		wbs_ba;
+volatile        unsigned                wb_mode;  // see property.h for possible values
+volatile        unsigned                kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
+volatile        int8_t          wbs_gm;
+volatile        int8_t          wbs_ba;
 
-volatile	unsigned		picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
-/*	int32_t 		contrast;   // -4..4
-	uint32_t		sharpness;  // 0..7
-	uint32_t		saturation; // -4..4
-	uint32_t		color_tone; // -4..4 */
+volatile        unsigned                picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
+/*      int32_t                 contrast;   // -4..4
+        uint32_t                sharpness;  // 0..7
+        uint32_t                saturation; // -4..4
+        uint32_t                color_tone; // -4..4 */
 
-	// Store the raw values before the lookup tables
-volatile	uint8_t			raw_aperture;
-volatile	uint8_t			raw_shutter;
-volatile	uint8_t			raw_iso;
-volatile	uint8_t			raw_iso_auto;
-volatile	uint8_t			raw_picstyle;
+        // Store the raw values before the lookup tables
+volatile        uint8_t                 raw_aperture;
+volatile        uint8_t                 raw_shutter;
+volatile        uint8_t                 raw_iso;
+volatile        uint8_t                 raw_iso_auto;
+volatile        uint8_t                 raw_picstyle;
 
-volatile	uint8_t		raw_aperture_min;
-volatile	uint8_t		raw_aperture_max;
+volatile        uint8_t         raw_aperture_min;
+volatile        uint8_t         raw_aperture_max;
 
-volatile	float 			lens_rotation;
-volatile	float			lens_step;
+volatile        float                   lens_rotation;
+volatile        float                   lens_step;
 };
 
 extern struct lens_info lens_info;
@@ -78,22 +78,22 @@ extern struct lens_info lens_info;
 
 struct prop_lv_lens
 {
-	uint32_t		lens_rotation; // float in little-endian actually
-	uint32_t		lens_step; // float in little-endian actually
-	uint32_t		off_0x08;
-	uint32_t		off_0x0c;
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	uint32_t		off_0x20;
-	uint32_t		off_0x24;
-	uint32_t		off_0x28;
-	uint16_t		focal_len;	// off_0x2c;
-	uint16_t		focus_dist;	// off_0x2e;
-	uint32_t		off_0x30;
-	uint32_t		off_0x34;
-	uint16_t		off_0x38;
+        uint32_t                lens_rotation; // float in little-endian actually
+        uint32_t                lens_step; // float in little-endian actually
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                off_0x1c;
+        uint32_t                off_0x20;
+        uint32_t                off_0x24;
+        uint32_t                off_0x28;
+        uint16_t                focal_len;      // off_0x2c;
+        uint16_t                focus_dist;     // off_0x2e;
+        uint32_t                off_0x30;
+        uint32_t                off_0x34;
+        uint16_t                off_0x38;
 } __attribute__((packed));
 
 SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
@@ -101,23 +101,23 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 
 struct prop_focus
 {
-	uint8_t			active;		// off_0x00, must be 1
-	uint8_t			step_hi;	// off_0x01
-	uint8_t			step_lo;	// off_0x02
-	uint8_t			mode;		// off_0x03 unknown, usually 7?
-	uint8_t			unk;
+        uint8_t                 active;         // off_0x00, must be 1
+        uint8_t                 step_hi;        // off_0x01
+        uint8_t                 step_lo;        // off_0x02
+        uint8_t                 mode;           // off_0x03 unknown, usually 7?
+        uint8_t                 unk;
 } __attribute__((packed));
 
 SIZE_CHECK_STRUCT( prop_focus, 5 );
 
 struct prop_picstyle_settings
 {
-	int32_t 	contrast;   // -4..4
-	uint32_t	sharpness;  // 0..7
-	int32_t		saturation; // -4..4
-	int32_t		color_tone; // -4..4
-	uint32_t	off_0x10;   // deadbeaf?!
-	uint32_t	off_0x14;   // deadbeaf?!
+        int32_t         contrast;   // -4..4
+        uint32_t        sharpness;  // 0..7
+        int32_t         saturation; // -4..4
+        int32_t         color_tone; // -4..4
+        uint32_t        off_0x10;   // deadbeaf?!
+        uint32_t        off_0x14;   // deadbeaf?!
 } __attribute__((aligned,packed));  
 
 SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
@@ -140,18 +140,18 @@ extern bool bv_set_rawiso(unsigned iso);
 
 extern int
 lens_take_picture(
-	int		wait, 
-	int allow_af
+        int             wait, 
+        int allow_af
 );
 
 
 /** Will block if it is not safe to send the focus command */
 extern int
 lens_focus(
-	int num_steps, 
-	int stepsize, 
-	int wait,
-	int extra_delay
+        int num_steps, 
+        int stepsize, 
+        int wait,
+        int extra_delay
 );
 
 /** Wait for the last command to complete */
@@ -169,7 +169,7 @@ lens_focus_stop( void );
 /** Format a distance in mm into something useful */
 extern const char *
 lens_format_dist(
-	unsigned		mm
+        unsigned                mm
 );
 
 #define KELVIN_MIN 1500

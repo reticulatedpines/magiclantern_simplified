@@ -44,22 +44,22 @@
 #include <stdarg.h>
 
 /** Check a pointer for error code */
-#define IS_ERROR(ptr)	(1 & (uintptr_t) ptr)
+#define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
 
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
 DryosPanic(
-	uint32_t		arg0,
-	uint32_t		arg1
+        uint32_t                arg0,
+        uint32_t                arg1
 );
 
 
 /** Call registered functions by name. */
 extern void
 call(
-	const char *		name,
-	...
+        const char *            name,
+        ...
 );
 
 
@@ -68,7 +68,7 @@ call(
 /** Put the current task to sleep for msec miliseconds */
 extern void
 msleep(
-	int			msec
+        int                     msec
 );
 
 
@@ -79,11 +79,11 @@ msleep(
  */
 extern struct task *
 task_create(
-	const char *		name,
-	uint32_t		priority,
-	uint32_t		unknown0,
-	void *			entry,
-	void *			arg
+        const char *            name,
+        uint32_t                priority,
+        uint32_t                unknown0,
+        void *                  entry,
+        void *                  arg
 );
 
 
@@ -92,28 +92,28 @@ struct semaphore;
 
 extern struct semaphore *
 create_named_semaphore(
-	const char *		name,
-	int			initial_value
+        const char *            name,
+        int                     initial_value
 );
 
 extern int
 take_semaphore(
-	struct semaphore *	semaphore,
-	int			timeout_interval
+        struct semaphore *      semaphore,
+        int                     timeout_interval
 );
 
 extern int
 give_semaphore(
-	struct semaphore *	semaphore
+        struct semaphore *      semaphore
 );
 
 
 extern int
 oneshot_timer(
-	uint32_t		msec,
-	void			(*handler_if_expired)(void*),
-	void			(*handler)(void*),
-	void *			arg
+        uint32_t                msec,
+        void                    (*handler_if_expired)(void*),
+        void                    (*handler)(void*),
+        void *                  arg
 );
 
 
@@ -163,108 +163,108 @@ struct fio_dirent;
 
 /** Directory entry returned by FIO_FindFirstEx() */
 struct fio_file {
-	//! 0x10 == directory, 0x22 
-	uint32_t		mode;		// off_0x00;
-	uint32_t		off_0x04;
-	uint32_t		timestamp;	// off_0x08;
-	uint32_t		off_0x0c;
-	char			name[ 0x80 ];
-	uint32_t		a;
-	uint32_t		b;
-	uint32_t		c;
-	uint32_t		d;
+        //! 0x10 == directory, 0x22 
+        uint32_t                mode;           // off_0x00;
+        uint32_t                off_0x04;
+        uint32_t                timestamp;      // off_0x08;
+        uint32_t                off_0x0c;
+        char                    name[ 0x80 ];
+        uint32_t                a;
+        uint32_t                b;
+        uint32_t                c;
+        uint32_t                d;
 };
 
 extern struct fio_dirent *
 FIO_FindFirstEx(
-	const char *		dirname,
-	struct fio_file *	file
+        const char *            dirname,
+        struct fio_file *       file
 );
 
 
 /** Returns 0 on success */
 extern int
 FIO_FindNextEx(
-	struct fio_dirent *	dirent,
-	struct fio_file *	file
+        struct fio_dirent *     dirent,
+        struct fio_file *       file
 );
 
 
 typedef struct _file * FILE;
 extern FILE *
 FIO_Open(
-	const char *		name,
-	unsigned		flags
+        const char *            name,
+        unsigned                flags
 );
 
 extern FILE *
 FIO_OpenFile(
-	const char *		name
+        const char *            name
 );
 
 extern void
 FIO_CloseFile(
-	FILE *			file
+        FILE *                  file
 );
 
 extern ssize_t
 FIO_ReadFile(
-	FILE *			file,
-	void *			buf,
-	size_t			len_in_bytes
+        FILE *                  file,
+        void *                  buf,
+        size_t                  len_in_bytes
 );
 
 extern ssize_t
 FR_SyncReadFile(
-	const char *		filename,
-	size_t			offset,
-	size_t			len,
-	void *			address,
-	size_t			mem_offset
+        const char *            filename,
+        size_t                  offset,
+        size_t                  len,
+        void *                  address,
+        size_t                  mem_offset
 );
 
 /** Returns for 0 success */
 extern int
 FIO_GetFileSize(
-	const char *		filename,
-	unsigned *		size
+        const char *            filename,
+        unsigned *              size
 );
 
 
-#define INVALID_PTR		((void *)0xFFFFFFFF)
+#define INVALID_PTR             ((void *)0xFFFFFFFF)
 
 extern FILE *
 FIO_CreateFile(
-	const char *		name
+        const char *            name
 );
 
 
 extern int
 FIO_WriteFile(
-	FILE *			file,
-	const void *		buf,
-	size_t			len_in_bytes
+        FILE *                  file,
+        const void *            buf,
+        size_t                  len_in_bytes
 );
 
 
 extern void
 FIO_CloseSync(
-	void *			file
+        void *                  file
 );
 
 
 extern void
 write_debug_file(
-	const char *		name,
-	const void *		buf,
-	size_t			len
+        const char *            name,
+        const void *            buf,
+        size_t                  len
 );
 
 
 extern void
 bzero32(
-	void *			buf,
-	size_t			len
+        void *                  buf,
+        size_t                  len
 );
 
 
@@ -278,31 +278,31 @@ extern void __attribute__((noreturn)) cstart(void);
 
 struct lvram_info
 {
-	uint32_t		off_0x00;
-	uint32_t		off_0x04;
-	uint32_t		off_0x08;
-	uint32_t		off_0x0c;
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		width;		// off_0x18;
-	uint32_t		height;		// off_0x1c;
-	uint32_t		off_0x20;
-	uint32_t		off_0x24;
-	uint32_t		off_0x28;
-	uint32_t		off_0x2c;
-	uint32_t		off_0x30;
-	uint32_t		off_0x34;
-	uint32_t		off_0x38;
-	uint32_t		off_0x3c;
-	uint32_t		off_0x40;
-	uint32_t		off_0x44;
-	uint32_t		off_0x48;
-	uint32_t		off_0x4c;
-	uint32_t		off_0x50;
-	uint32_t		off_0x54;
-	uint32_t		off_0x58;
-	uint32_t		off_0x5c;
-	uint32_t		off_0x60;
+        uint32_t                off_0x00;
+        uint32_t                off_0x04;
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                width;          // off_0x18;
+        uint32_t                height;         // off_0x1c;
+        uint32_t                off_0x20;
+        uint32_t                off_0x24;
+        uint32_t                off_0x28;
+        uint32_t                off_0x2c;
+        uint32_t                off_0x30;
+        uint32_t                off_0x34;
+        uint32_t                off_0x38;
+        uint32_t                off_0x3c;
+        uint32_t                off_0x40;
+        uint32_t                off_0x44;
+        uint32_t                off_0x48;
+        uint32_t                off_0x4c;
+        uint32_t                off_0x50;
+        uint32_t                off_0x54;
+        uint32_t                off_0x58;
+        uint32_t                off_0x5c;
+        uint32_t                off_0x60;
 };
 SIZE_CHECK_STRUCT( lvram_info, 0x64 );
 extern struct lvram_info lvram_info;
@@ -310,52 +310,52 @@ extern struct lvram_info lvram_info;
 /* Copies lvram info from 0x2f33c */
 extern void
 copy_lvram_info(
-	struct lvram_info *	dest
+        struct lvram_info *     dest
 );
 
 struct image_play_struct
 {
-	uint32_t		off_0x00;
-	uint16_t		off_0x04; // sharpness?
-	uint16_t		off_0x06;
-	uint32_t		off_0x08;
-	uint32_t		off_0x0c;
-	uint32_t		copy_vram_mode;			// off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		image_player_effective; 	// off_0x1c;
-	uint32_t		vram_num;			// off_0x20;
-	uint32_t		work_image_pataion;		// off_0x24 ?;
-	uint32_t		visible_image_vram_offset_x;	// off_0x28;
-	uint32_t		visible_image_vram_offset_y;	// off_0x2c;
-	uint32_t		work_image_id;			// off_0x30;
-	uint32_t		off_0x34;
-	uint32_t		image_aspect;			// off_0x38;
-	uint32_t		off_0x3c;
-	uint32_t		off_0x40;
-	uint32_t		off_0x44;
-	uint32_t		sharpness_rate;			// off_0x48;
-	uint32_t		off_0x4c;
-	uint32_t		off_0x50;	// passed to gui_change_something
-	uint32_t		off_0x54;
-	struct semaphore *	sem;				// off_0x58;
-	uint32_t		off_0x5c;
-	uint32_t		image_vram;			// off_0x60;
-	uint32_t		off_0x64;
-	uint32_t		rectangle_copy;			// off_0x68;
-	uint32_t		image_play_driver_handler;	// off_0x6c;
-	uint32_t		off_0x70;
-	uint32_t		image_vram_complete_callback;	// off_0x74;
-	uint32_t		off_0x78;
-	uint32_t		work_image_width;		// off_0x7c;
-	uint32_t		work_image_height;		// off_0x80;
-	uint32_t		off_0x84;
-	uint32_t		off_0x88;
-	uint32_t		off_0x8c;
-	uint32_t		off_0x90;
-	uint32_t		off_0x94;
-	uint32_t		off_0x98;
-	uint32_t		off_0x9c;
+        uint32_t                off_0x00;
+        uint16_t                off_0x04; // sharpness?
+        uint16_t                off_0x06;
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                copy_vram_mode;                 // off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                image_player_effective;         // off_0x1c;
+        uint32_t                vram_num;                       // off_0x20;
+        uint32_t                work_image_pataion;             // off_0x24 ?;
+        uint32_t                visible_image_vram_offset_x;    // off_0x28;
+        uint32_t                visible_image_vram_offset_y;    // off_0x2c;
+        uint32_t                work_image_id;                  // off_0x30;
+        uint32_t                off_0x34;
+        uint32_t                image_aspect;                   // off_0x38;
+        uint32_t                off_0x3c;
+        uint32_t                off_0x40;
+        uint32_t                off_0x44;
+        uint32_t                sharpness_rate;                 // off_0x48;
+        uint32_t                off_0x4c;
+        uint32_t                off_0x50;       // passed to gui_change_something
+        uint32_t                off_0x54;
+        struct semaphore *      sem;                            // off_0x58;
+        uint32_t                off_0x5c;
+        uint32_t                image_vram;                     // off_0x60;
+        uint32_t                off_0x64;
+        uint32_t                rectangle_copy;                 // off_0x68;
+        uint32_t                image_play_driver_handler;      // off_0x6c;
+        uint32_t                off_0x70;
+        uint32_t                image_vram_complete_callback;   // off_0x74;
+        uint32_t                off_0x78;
+        uint32_t                work_image_width;               // off_0x7c;
+        uint32_t                work_image_height;              // off_0x80;
+        uint32_t                off_0x84;
+        uint32_t                off_0x88;
+        uint32_t                off_0x8c;
+        uint32_t                off_0x90;
+        uint32_t                off_0x94;
+        uint32_t                off_0x98;
+        uint32_t                off_0x9c;
 };
 
 extern struct image_play_struct image_play_struct;
@@ -366,26 +366,26 @@ extern struct image_play_struct image_play_struct;
  */
 struct liveview_mgr
 {
-	const char *		type;		// "LiveViewMgr"
-	struct task *		task;		// off 0x04
-	uint32_t		off_0x08;
-	struct state_object *	lv_state;	// off 0x0c
+        const char *            type;           // "LiveViewMgr"
+        struct task *           task;           // off 0x04
+        uint32_t                off_0x08;
+        struct state_object *   lv_state;       // off 0x0c
 };
 
 extern struct liveview_mgr * liveview_mgr;
 
 struct lv_struct
 {
-	uint32_t		off_0x00;
-	uint32_t		off_0x04;
-	uint32_t		off_0x08;
-	uint32_t		off_0x0c;
-	uint32_t		off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	struct state_object *	lv_state;	// off 0x20
-	struct state_object *	lv_rec_state;	// off 0x24
+        uint32_t                off_0x00;
+        uint32_t                off_0x04;
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                off_0x1c;
+        struct state_object *   lv_state;       // off 0x20
+        struct state_object *   lv_rec_state;   // off 0x24
 };
 
 /** Main menu tab functions */
@@ -418,26 +418,26 @@ extern int streq( const char *, const char * );
 
 extern int
 vsnprintf(
-	char *			buf,
-	size_t			max_len,
-	const char *		fmt,
-	va_list			ap
+        char *                  buf,
+        size_t                  max_len,
+        const char *            fmt,
+        va_list                 ap
 );
 
 
 extern int __attribute__((format(printf,3,4)))
 snprintf(
-	char *			buf,
-	size_t			max_len,
-	const char *		fmt,
-	...
+        char *                  buf,
+        size_t                  max_len,
+        const char *            fmt,
+        ...
 );
 
 extern int __attribute__((format(printf,2,3)))
 fprintf(
-	FILE *			file,
-	const char *		fmt,
-	...
+        FILE *                  file,
+        const char *            fmt,
+        ...
 );
 
 
@@ -457,15 +457,15 @@ struct tm {
 
 extern void
 LoadCalendarFromRTC(
-	struct tm *		tm
+        struct tm *             tm
 );
 
 extern size_t
 strftime(
-	char *			buf,
-	size_t			maxsize,
-	const char *		fmt,
-	const struct tm *	timeptr
+        char *                  buf,
+        size_t                  maxsize,
+        const char *            fmt,
+        const struct tm *       timeptr
 );
 
 
@@ -486,9 +486,9 @@ extern void * err_battery_ptr;
 /** Memory allocation */
 struct dryos_meminfo
 {
-	void * next; // off_0x00;
-	void * prev; // off_0x04;
-	uint32_t size; //!< Allocated size or if bit 1 is set already free
+        void * next; // off_0x00;
+        void * prev; // off_0x04;
+        uint32_t size; //!< Allocated size or if bit 1 is set already free
 };
 SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 
@@ -503,12 +503,12 @@ extern void * realloc( void * buf, size_t newlen );
 /** Allocate DMA memory for writing to the CF card */
 extern void *
 alloc_dma_memory(
-	size_t			len
+        size_t                  len
 );
 
 extern void
 free_dma_memory(
-	const void *		len
+        const void *            len
 );
 
 
@@ -524,10 +524,10 @@ extern int GetCFnData(int group, int number);
 extern void SetCFnData(int group, int number, int value);
 
 #if CONFIG_DEBUGMSG
-	#define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
+        #define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #else
-	#define DebugMsg(a,b,fmt,...) { }
-	#define console_printf(fmt,...) { }
+        #define DebugMsg(a,b,fmt,...) { }
+        #define console_printf(fmt,...) { }
 #endif
 
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
@@ -544,8 +544,8 @@ extern void SetCFnData(int group, int number, int value);
 #define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig), fmt, ## __VA_ARGS__);
 
 #define MEMX(x) ( \
-	((((int)(x)) & 0xF0F00000) == 0xC0F00000) ? shamem_read(x) : \
-	*(int*)(x) \
+        ((((int)(x)) & 0xF0F00000) == 0xC0F00000) ? shamem_read(x) : \
+        *(int*)(x) \
 )
 
 #endif

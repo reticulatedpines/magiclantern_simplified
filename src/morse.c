@@ -119,42 +119,42 @@ int morse_get_key() {
 #define DAH(x) ((x<<1) | 1)
 unsigned int morse_coded[MORSE_SIZE] = 
 {
-  MORSE(2, DIT(DAH(0))),		//A
-  MORSE(4, DAH(DIT(DIT(DIT(0))))),	//B
-  MORSE(4, DAH(DIT(DAH(DIT(0))))),	//C
-  MORSE(3, DAH(DIT(DIT(0)))),		//D
-  MORSE(1, DIT(0)),			//E
-  MORSE(4, DIT(DIT(DAH(DIT(0))))),	//F
-  MORSE(3, DAH(DAH(DIT(0)))),		//G
-  MORSE(4, DIT(DIT(DIT(DIT(0))))),	//H
-  MORSE(2, DIT(DIT(0))),		//I
-  MORSE(4, DIT(DAH(DAH(DAH(0))))),	//J
-  MORSE(3, DAH(DIT(DAH(0)))),		//K
-  MORSE(4, DIT(DAH(DIT(DIT(0))))),	//L
-  MORSE(2, DAH(DAH(0))),		//M
-  MORSE(2, DAH(DIT(0))),		//N
-  MORSE(3, DAH(DAH(DAH(0)))),		//O
-  MORSE(4, DIT(DAH(DAH(DIT(0))))),	//P
-  MORSE(4, DAH(DAH(DIT(DAH(0))))),	//Q
-  MORSE(3, DIT(DAH(DIT(0)))),		//R
-  MORSE(3, DIT(DIT(DIT(0)))),		//S
-  MORSE(1, DAH(0)),			//T
-  MORSE(3, DIT(DIT(DAH(0)))),		//U
-  MORSE(4, DIT(DIT(DIT(DAH(0))))),	//V
-  MORSE(3, DIT(DAH(DAH(0)))),		//W
-  MORSE(4, DAH(DIT(DIT(DAH(0))))),	//X
-  MORSE(4, DAH(DIT(DAH(DAH(0))))),	//Y
-  MORSE(4, DAH(DAH(DIT(DIT(0))))),	//Z
-  MORSE(5, DIT(DAH(DAH(DAH(DAH(0)))))),	//1
-  MORSE(5, DIT(DIT(DAH(DAH(DAH(0)))))),	//2
-  MORSE(5, DIT(DIT(DIT(DAH(DAH(0)))))),	//3
-  MORSE(5, DIT(DIT(DIT(DIT(DAH(0)))))),	//4
-  MORSE(5, DIT(DIT(DIT(DIT(DIT(0)))))),	//5
-  MORSE(5, DAH(DIT(DIT(DIT(DIT(0)))))),	//6
-  MORSE(5, DAH(DAH(DIT(DIT(DIT(0)))))),	//7
-  MORSE(5, DAH(DAH(DAH(DIT(DIT(0)))))),	//8
-  MORSE(5, DAH(DAH(DAH(DAH(DIT(0)))))),	//9
-  MORSE(5, DAH(DAH(DAH(DAH(DAH(0)))))),	//0
+  MORSE(2, DIT(DAH(0))),    //A
+  MORSE(4, DAH(DIT(DIT(DIT(0))))),  //B
+  MORSE(4, DAH(DIT(DAH(DIT(0))))),  //C
+  MORSE(3, DAH(DIT(DIT(0)))),   //D
+  MORSE(1, DIT(0)),     //E
+  MORSE(4, DIT(DIT(DAH(DIT(0))))),  //F
+  MORSE(3, DAH(DAH(DIT(0)))),   //G
+  MORSE(4, DIT(DIT(DIT(DIT(0))))),  //H
+  MORSE(2, DIT(DIT(0))),    //I
+  MORSE(4, DIT(DAH(DAH(DAH(0))))),  //J
+  MORSE(3, DAH(DIT(DAH(0)))),   //K
+  MORSE(4, DIT(DAH(DIT(DIT(0))))),  //L
+  MORSE(2, DAH(DAH(0))),    //M
+  MORSE(2, DAH(DIT(0))),    //N
+  MORSE(3, DAH(DAH(DAH(0)))),   //O
+  MORSE(4, DIT(DAH(DAH(DIT(0))))),  //P
+  MORSE(4, DAH(DAH(DIT(DAH(0))))),  //Q
+  MORSE(3, DIT(DAH(DIT(0)))),   //R
+  MORSE(3, DIT(DIT(DIT(0)))),   //S
+  MORSE(1, DAH(0)),     //T
+  MORSE(3, DIT(DIT(DAH(0)))),   //U
+  MORSE(4, DIT(DIT(DIT(DAH(0))))),  //V
+  MORSE(3, DIT(DAH(DAH(0)))),   //W
+  MORSE(4, DAH(DIT(DIT(DAH(0))))),  //X
+  MORSE(4, DAH(DIT(DAH(DAH(0))))),  //Y
+  MORSE(4, DAH(DAH(DIT(DIT(0))))),  //Z
+  MORSE(5, DIT(DAH(DAH(DAH(DAH(0)))))), //1
+  MORSE(5, DIT(DIT(DAH(DAH(DAH(0)))))), //2
+  MORSE(5, DIT(DIT(DIT(DAH(DAH(0)))))), //3
+  MORSE(5, DIT(DIT(DIT(DIT(DAH(0)))))), //4
+  MORSE(5, DIT(DIT(DIT(DIT(DIT(0)))))), //5
+  MORSE(5, DAH(DIT(DIT(DIT(DIT(0)))))), //6
+  MORSE(5, DAH(DAH(DIT(DIT(DIT(0)))))), //7
+  MORSE(5, DAH(DAH(DAH(DIT(DIT(0)))))), //8
+  MORSE(5, DAH(DAH(DAH(DAH(DIT(0)))))), //9
+  MORSE(5, DAH(DAH(DAH(DAH(DAH(0)))))), //0
   MORSE(6, DIT(DAH(DIT(DAH(DIT(DAH(0))))))), // .
   MORSE(6, DAH(DAH(DIT(DIT(DAH(DAH(0))))))), // ,
   MORSE(6, DIT(DIT(DAH(DAH(DIT(DIT(0))))))), // ?
@@ -227,27 +227,27 @@ const char morse_table[] =
 ;
 
 static void morse_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
+  void *      priv,
+  int     x,
+  int     y,
+  int     selected
 )
 {
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Morse code input   : %s",
-		morse_enabled ? "ON" : "OFF"
-	);
+  bmp_printf(
+    selected ? MENU_FONT_SEL : MENU_FONT,
+    x, y,
+    "Morse code input   : %s",
+    morse_enabled ? "ON" : "OFF"
+  );
 }
 
 struct menu_entry morse_menus[] = {
-	{
-		.name = "Morse code input",
+  {
+    .name = "Morse code input",
         .priv = &morse_enabled,
-		.select = menu_binary_toggle,
-		.display = morse_print,
-	},
+    .select = menu_binary_toggle,
+    .display = morse_print,
+  },
 };
 
 void morse_redraw(int current_char)

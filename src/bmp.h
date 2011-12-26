@@ -50,16 +50,16 @@ uint8_t* bmp_vram_real();
 #define BMP_END (bmp_vram() + BMP_HEIGHT * BMPPITCH)
 
 /** Font specifiers include the font, the fg color and bg color */
-#define FONT_MASK		0x000F0000
-//~ #define FONT_HUGE		0x00080000
-#define FONT_LARGE		0x00030000
-#define FONT_MED		0x00020000
-#define FONT_SMALL		0x00010000
+#define FONT_MASK               0x000F0000
+//~ #define FONT_HUGE           0x00080000
+#define FONT_LARGE              0x00030000
+#define FONT_MED                0x00020000
+#define FONT_SMALL              0x00010000
 
-#define FONT(font,fg,bg)	( 0 \
-	| ((font) & FONT_MASK) \
-	| ((bg) & 0xFF) << 8 \
-	| ((fg) & 0xFF) << 0 \
+#define FONT(font,fg,bg)        ( 0 \
+        | ((font) & FONT_MASK) \
+        | ((bg) & 0xFF) << 8 \
+        | ((fg) & 0xFF) << 0 \
 )
 
 #define FONT_BG(font) (((font) & 0xFF00) >> 8)
@@ -67,79 +67,79 @@ uint8_t* bmp_vram_real();
 
 static inline struct font *
 fontspec_font(
-	unsigned		fontspec
+        unsigned                fontspec
 )
 {
-	switch( fontspec & FONT_MASK )
-	{
-	default:
-	case FONT_SMALL:	return &font_small;
-	case FONT_MED:		return &font_med;
-	case FONT_LARGE:	return &font_large;
-	//~ case FONT_HUGE:		return &font_huge;
-	}
+        switch( fontspec & FONT_MASK )
+        {
+        default:
+        case FONT_SMALL:        return &font_small;
+        case FONT_MED:          return &font_med;
+        case FONT_LARGE:        return &font_large;
+        //~ case FONT_HUGE:             return &font_huge;
+        }
 }
 
 
 static inline unsigned
 fontspec_fg(
-	unsigned		fontspec
+        unsigned                fontspec
 )
 {
-	return (fontspec >> 0) & 0xFF;
+        return (fontspec >> 0) & 0xFF;
 }
 
 static inline unsigned
 fontspec_bg(
-	unsigned		fontspec
+        unsigned                fontspec
 )
 {
-	return (fontspec >> 8) & 0xFF;
+        return (fontspec >> 8) & 0xFF;
 }
 
 
 
 static inline unsigned
 fontspec_height(
-	unsigned		fontspec
+        unsigned                fontspec
 )
 {
-	return fontspec_font(fontspec)->height;
+        return fontspec_font(fontspec)->height;
 }
 
 
 extern void
 bmp_printf(
-	unsigned		fontspec,
-	unsigned		x,
-	unsigned		y,
-	const char *		fmt,
-	...
+        unsigned                fontspec,
+        unsigned                x,
+        unsigned                y,
+        const char *            fmt,
+        ...
 ) __attribute__((format(printf,4,5)));
 
 extern void
 con_printf(
-	unsigned		fontspec,
-	const char *		fmt,
-	...
+        unsigned                fontspec,
+        const char *            fmt,
+        ...
 ) __attribute__((format(printf,2,3)));
 
 extern void
 bmp_hexdump(
-	unsigned		fontspec,
-	unsigned		x,
-	unsigned		y,
-	const void *		buf,
-	int			len
+        unsigned                fontspec,
+        unsigned                x,
+        unsigned                y,
+        const void *            buf,
+        int                     len
 );
 
 
 extern void
 bmp_puts(
-	unsigned		fontspec,
-	unsigned *		x,
-	unsigned *		y,
-	const char *		s
+        unsigned                fontspec,
+        unsigned *              x,
+        unsigned *              y,
+        const char *            s
 );
 
 /** Fill the screen with a bitmap palette */
@@ -152,23 +152,23 @@ bmp_draw_palette( void );
  */
 extern void
 bmp_fill(
-	uint8_t			color,
-	uint32_t		x,
-	uint32_t		y,
-	uint32_t		w,
-	uint32_t		h
+        uint8_t                 color,
+        uint32_t                x,
+        uint32_t                y,
+        uint32_t                w,
+        uint32_t                h
 );
 
 
 /** Some selected colors */
-#define COLOR_EMPTY		0x00 // total transparent
-#define COLOR_BG		0x14 // transparent gray
-#define COLOR_BG_DARK		0x03 // transparent black
-#define COLOR_WHITE		0x01 // Normal white
-#define COLOR_BLUE		0x0B // normal blue
+#define COLOR_EMPTY             0x00 // total transparent
+#define COLOR_BG                0x14 // transparent gray
+#define COLOR_BG_DARK           0x03 // transparent black
+#define COLOR_WHITE             0x01 // Normal white
+#define COLOR_BLUE              0x0B // normal blue
 #define COLOR_LIGHTBLUE 9
-#define COLOR_RED		0x08 // normal red
-#define COLOR_YELLOW		0x0F // normal yellow
+#define COLOR_RED               0x08 // normal red
+#define COLOR_YELLOW            0x0F // normal yellow
 #define COLOR_BLACK 2
 #define COLOR_CYAN 5
 #define COLOR_GREEN1 6
@@ -177,61 +177,61 @@ bmp_fill(
 
 static inline uint32_t
 color_word(
-	uint8_t			color
+        uint8_t                 color
 )
 {
-	return 0
-		| ( color << 24 )
-		| ( color << 16 )
-		| ( color <<  8 )
-		| ( color <<  0 )
-		;
+        return 0
+                | ( color << 24 )
+                | ( color << 16 )
+                | ( color <<  8 )
+                | ( color <<  0 )
+                ;
 }
 
 
 /** BMP file format.
  * Offsets and meaning from:
- *	http://www.fastgraph.com/help/bmp_header_format.html
+ *      http://www.fastgraph.com/help/bmp_header_format.html
  */
 struct bmp_file_t
 {
-	uint16_t		signature;	// off 0
-	uint32_t		size;		// off 2, in bytes
-	uint16_t		res_0;		// off 6, must be 0
-	uint16_t		res_1;		// off 8. must be 0
-	uint8_t *		image;		// off 10, offset in bytes
-	uint32_t		hdr_size;	// off 14, must be 40
-	uint32_t		width;		// off 18, in pixels
-	uint32_t		height;		// off 22, in pixels
-	uint16_t		planes;		// off 26, must be 1
-	uint16_t		bits_per_pixel;	// off 28, 1, 4, 8 or 24
-	uint32_t		compression;	// off 30, 0=none, 1=RLE8, 2=RLE4
-	uint32_t		image_size;	// off 34, in bytes + padding
-	uint32_t		hpix_per_meter;	// off 38, unreliable
-	uint32_t		vpix_per_meter;	// off 42, unreliable
-	uint32_t		num_colors;	// off 46
-	uint32_t		num_imp_colors;	// off 50
+        uint16_t                signature;      // off 0
+        uint32_t                size;           // off 2, in bytes
+        uint16_t                res_0;          // off 6, must be 0
+        uint16_t                res_1;          // off 8. must be 0
+        uint8_t *               image;          // off 10, offset in bytes
+        uint32_t                hdr_size;       // off 14, must be 40
+        uint32_t                width;          // off 18, in pixels
+        uint32_t                height;         // off 22, in pixels
+        uint16_t                planes;         // off 26, must be 1
+        uint16_t                bits_per_pixel; // off 28, 1, 4, 8 or 24
+        uint32_t                compression;    // off 30, 0=none, 1=RLE8, 2=RLE4
+        uint32_t                image_size;     // off 34, in bytes + padding
+        uint32_t                hpix_per_meter; // off 38, unreliable
+        uint32_t                vpix_per_meter; // off 42, unreliable
+        uint32_t                num_colors;     // off 46
+        uint32_t                num_imp_colors; // off 50
 } PACKED;
 
 SIZE_CHECK_STRUCT( bmp_file_t, 54 );
 
 extern struct bmp_file_t *
 bmp_load(
-	const char *		name,
+        const char *            name,
         uint32_t                compression // what compression to load the file into. 0: none, 1: RLE8
 );
 
 // this has the position of the 3:2 image (onto which we draw cropmarks)
 struct bmp_ov_loc_size
 {
-	int x0; //live view x offset within OSD
-	int y0; //live view y offset within OSD
-	int x_ex; //live view x extend (x0 + x_ex = xmax)
-	int y_ex; //live view y extend
-	int x_max; // x0 + x_ex
-	int y_max; // y0 + y_ex
-	int off_169; // width of one 16:9 bar
-	int off_1610; // width of one 16:10 bar
+        int x0; //live view x offset within OSD
+        int y0; //live view y offset within OSD
+        int x_ex; //live view x extend (x0 + x_ex = xmax)
+        int y_ex; //live view y extend
+        int x_max; // x0 + x_ex
+        int y_max; // y0 + y_ex
+        int off_169; // width of one 16:9 bar
+        int off_1610; // width of one 16:10 bar
 };
 
 void clrscr();

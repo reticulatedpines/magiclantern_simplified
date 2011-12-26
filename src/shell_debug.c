@@ -405,14 +405,14 @@ void debug_task()
     if (r==0) {
       r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
       if (task_attr.name!=0)
-	name=task_attr.name;
+  name=task_attr.name;
       else
-	name="?";
+  name="?";
      DebugMsg( DM_MAGIC, 3, "c=%02d. entry=0x%08x, sp=0x%08x, size=%4d, used=%4d", 
-		c, task_attr.entry, task_attr.stack, task_attr.size, task_attr.used);
+    c, task_attr.entry, task_attr.stack, task_attr.size, task_attr.used);
       DebugMsg( DM_MAGIC, 3, "name= %s, args= 0x%08x", name, task_attr.args); 
       DebugMsg( DM_MAGIC, 3, "  _18=0x%08x, flags=0x%08x, wid=%d, pri=%d, state=%d", 
-		task_attr.off_18, task_attr.flags, task_attr.wait_id, task_attr.pri, task_attr.state);
+    task_attr.off_18, task_attr.flags, task_attr.wait_id, task_attr.pri, task_attr.state);
       DebugMsg( DM_MAGIC, 3, "  fpu=%d, ID=0x%08x", task_attr.fpu, task_attr.id);
     }
   }

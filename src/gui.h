@@ -81,11 +81,11 @@
  */
 
 typedef int (*gui_event_handler)(
-	void *			priv,
-	gui_event_t		event,
-	int			arg2,
-	int			arg3,
-	unsigned		arg4
+        void *                  priv,
+        gui_event_t             event,
+        int                     arg2,
+        int                     arg3,
+        unsigned                arg4
 );
 
 
@@ -95,46 +95,46 @@ typedef int (*gui_event_handler)(
  */
 struct gui_task
 {
-	gui_event_handler	handler;	// off_0x00;
-	void *			priv;		// off_0x04;
-	struct gui_task *	next;		// off_0x08;
-	const char *		signature;	// off_0x0c
+        gui_event_handler       handler;        // off_0x00;
+        void *                  priv;           // off_0x04;
+        struct gui_task *       next;           // off_0x08;
+        const char *            signature;      // off_0x0c
 };
 
 SIZE_CHECK_STRUCT( gui_task, 0x10 );
 
 struct gui_task_list
 {
-	void *			lock;		// off_0x00;
-	uint32_t		off_0x04;
-	struct gui_task *	current;	// off_0x08;
-	uint32_t		off_0x0c;
-	const char *		signature;	// off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
+        void *                  lock;           // off_0x00;
+        uint32_t                off_0x04;
+        struct gui_task *       current;        // off_0x08;
+        uint32_t                off_0x0c;
+        const char *            signature;      // off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
 };
 
-extern struct gui_task_list 	gui_task_list;
+extern struct gui_task_list     gui_task_list;
 
 extern struct gui_task *
 gui_task_create(
-	gui_event_handler	handler,
-	void *			priv
+        gui_event_handler       handler,
+        void *                  priv
 );
 
 extern void
 gui_task_destroy(
-	struct gui_task *	task
+        struct gui_task *       task
 );
 
 
 /** Internal structure used by the gui code */
 struct event
 {
-	int		type;
-	int		param;
-	void *			obj;
-	int		arg; // unknown meaning
+        int             type;
+        int             param;
+        void *                  obj;
+        int             arg; // unknown meaning
 };
 
 
@@ -152,10 +152,10 @@ extern void gui_change_mode( uint32_t param );
 
 extern void
 ctrlman_dispatch_event(
-	struct gui_task *	task,
-	gui_event_t		event,
-	int			unknown1,
-	int			unknown2
+        struct gui_task *       task,
+        gui_event_t             event,
+        int                     unknown1,
+        int                     unknown2
 );
 
 /** 2 == ? */
@@ -164,15 +164,15 @@ gui_set_request_mode( int mode );
 
 extern void
 gui_notify_event(
-	unsigned		arg0,
-	unsigned		event
+        unsigned                arg0,
+        unsigned                event
 );
 
 extern void
 gui_control(
-	unsigned		event,
-	unsigned		arg1, // normally 1?
-	unsigned		arg2  // normally 0?
+        unsigned                event,
+        unsigned                arg1, // normally 1?
+        unsigned                arg2  // normally 0?
 );
 
 extern struct gui_struct gui_struct;

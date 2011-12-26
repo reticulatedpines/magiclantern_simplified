@@ -57,12 +57,12 @@ void menu_help_go_to_page(int page)
 
 void
 menu_help_section_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
 )
 {
-	
+    
 }
 

@@ -15,17 +15,17 @@
 
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
-	int size = stateobj->max_inputs * stateobj->max_states * sizeof(struct state_transition);
-	struct state_transition * new_matrix = (struct state_transition *)AllocateMemory(size);
-	memcpy(new_matrix, stateobj->state_matrix, size);
-	stateobj->state_matrix = new_matrix;
+    int size = stateobj->max_inputs * stateobj->max_states * sizeof(struct state_transition);
+    struct state_transition * new_matrix = (struct state_transition *)AllocateMemory(size);
+    memcpy(new_matrix, stateobj->state_matrix, size);
+    stateobj->state_matrix = new_matrix;
 }
 
 static void stateobj_install_hook(struct state_object * stateobj, int input, int state, void* newfunc)
 {
-	if ((uint32_t)(stateobj->state_matrix) & 0xFF000000) // that's in ROM, make a copy to allow patching
-		stateobj_matrix_copy_for_patching(stateobj);
-	STATE_FUNC(stateobj,input,state) = newfunc;
+    if ((uint32_t)(stateobj->state_matrix) & 0xFF000000) // that's in ROM, make a copy to allow patching
+        stateobj_matrix_copy_for_patching(stateobj);
+    STATE_FUNC(stateobj,input,state) = newfunc;
 }
 
 int (*StateTransition)(void*,int,int,int,int) = 0;

@@ -1,8 +1,8 @@
 #include "font.h"
 struct font font_large = {
-	.width		= 20,
-	.height		= 32,
-	.bitmap		= {
+    .width      = 20,
+    .height     = 32,
+    .bitmap     = {
 [ 'A' + ( 0 << 7) ] = 0x00000000, // 
 [ 'A' + ( 1 << 7) ] = 0x00000000, // 
 [ 'A' + ( 2 << 7) ] = 0x00000000, // 
@@ -3039,5 +3039,5 @@ struct font font_large = {
 [ '~' + (30 << 7) ] = 0x00000000, // 
 [ '~' + (31 << 7) ] = 0x00000000, // 
 
-	},
+    },
 };

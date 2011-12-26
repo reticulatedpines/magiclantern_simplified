@@ -71,7 +71,7 @@ struct menu_entry help_menus[] = {
 static void
 help_menu_init( void* unused )
 {
-	menu_add("Help", help_menus, COUNT(help_menus));
+    menu_add("Help", help_menus, COUNT(help_menus));
 }
 
 INIT_FUNC( "help_menu", help_menu_init );

@@ -32,10 +32,10 @@
 
 /** Compile time failure if a structure is not sized correctly */
 #define SIZE_CHECK_STRUCT( struct_name, size ) \
-	static uint8_t __attribute__((unused)) \
-	__size_check_##struct_name[ \
-		sizeof( struct struct_name ) == size ? 0 : -1 \
-	]
+        static uint8_t __attribute__((unused)) \
+        __size_check_##struct_name[ \
+                sizeof( struct struct_name ) == size ? 0 : -1 \
+        ]
 
 /** Packed structures */
 #define PACKED __attribute__((packed))
@@ -48,6 +48,6 @@
 
 
 /** Compute the number of entries in a static array */
-#define COUNT(x)	((int)(sizeof(x)/sizeof((x)[0])))
+#define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
 #endif

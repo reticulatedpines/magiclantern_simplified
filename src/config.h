@@ -31,15 +31,15 @@
 #ifndef _config_h_
 #define _config_h_
 
-#define MAX_NAME_LEN		64
-#define MAX_VALUE_LEN		60
+#define MAX_NAME_LEN            64
+#define MAX_VALUE_LEN           60
 
 
 struct config
 {
-//	struct config *		next;
-	char			name[ MAX_NAME_LEN ];
-	char			value[ MAX_VALUE_LEN ];
+//      struct config *         next;
+        char                    name[ MAX_NAME_LEN ];
+        char                    value[ MAX_VALUE_LEN ];
 };
 
 //extern struct config * global_config;
@@ -47,36 +47,36 @@ struct config
 
 extern char *
 config_value(
-	struct config *		config,
-	const char *		name
+        struct config *         config,
+        const char *            name
 );
 
 extern int
 config_int(
-	struct config *		config,
-	const char *		name,
-	int			def
+        struct config *         config,
+        const char *            name,
+        int                     def
 );
 
 
 extern int
 config_parse_file(
-	const char *		filename
+        const char *            filename
 );
 
 
 extern int
 config_save_file(
-	const char *		filename
+        const char *            filename
 );
 
 
 /** Create an auto-parsed config variable */
 struct config_var
 {
-	const char *		name;
-	int			type;	//!< 0 == int, 1 == char *
-	void *			value;	//!< int* if len == 0
+        const char *            name;
+        int                     type;   //!< 0 == int, 1 == char *
+        void *                  value;  //!< int* if len == 0
 };
 
 
@@ -86,16 +86,16 @@ struct config_var \
 __attribute__((section(".config_vars"))) \
 __config_##VAR = \
 { \
-	.name		= NAME, \
-	.type		= TYPE_ENUM, \
-	.value		= &VAR, \
+        .name           = NAME, \
+        .type           = TYPE_ENUM, \
+        .value          = &VAR, \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
-	_CONFIG_VAR( NAME, 0, unsigned, VAR, VALUE )
+        _CONFIG_VAR( NAME, 0, unsigned, VAR, VALUE )
 
 #define CONFIG_STR( NAME, VAR, VALUE ) \
-	_CONFIG_VAR( NAME, 1, char *, VAR, VALUE )
+        _CONFIG_VAR( NAME, 1, char *, VAR, VALUE )
 
 //~ void config_flag_file_setting_save(char* file, int setting);
 //~ int config_flag_file_setting_load(char* file);

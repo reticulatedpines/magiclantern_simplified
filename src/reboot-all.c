@@ -48,55 +48,55 @@ asm(
 ".text\n"
 ".globl _start\n"
 "_start:\n"
-"	b 1f\n"
-".ascii \"gaonisoy\"\n"		// 0x124, 128
+"   b 1f\n"
+".ascii \"gaonisoy\"\n"     // 0x124, 128
 "1:\n"
 "MRS     R0, CPSR\n"
-"BIC     R0, R0, #0x3F\n"	// Clear I,F,T
-"ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
+"BIC     R0, R0, #0x3F\n"   // Clear I,F,T
+"ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
 "MSR     CPSR, R0\n"
-"	ldr sp, =0x1900\n"	// 0x130
-"	mov fp, #0\n"
-"	b cstart\n"
+"   ldr sp, =0x1900\n"  // 0x130
+"   mov fp, #0\n"
+"   b cstart\n"
 );
 
 static void busy_wait(int n)
 {
-	int i,j;
-	static volatile int k = 0;
-	for (i = 0; i < n; i++)
-		for (j = 0; j < 100000; j++)
-			k++;
+    int i,j;
+    static volatile int k = 0;
+    for (i = 0; i < n; i++)
+        for (j = 0; j < 100000; j++)
+            k++;
 }
 
 static void blink(int n)
 {
-	while (1)
-	{
-		*(int*)0xC0220134 |= 2;  // SD card LED on
-		*(int*)0xC02200BC |= 2;  // CF card LED on
-		busy_wait(n);
-		*(int*)0xC0220134 &= ~2;  // SD card LED off
-		*(int*)0xC02200BC &= ~2;  // CF card LED off
-		busy_wait(n);
-	}
+    while (1)
+    {
+        *(int*)0xC0220134 |= 2;  // SD card LED on
+        *(int*)0xC02200BC |= 2;  // CF card LED on
+        busy_wait(n);
+        *(int*)0xC0220134 &= ~2;  // SD card LED off
+        *(int*)0xC02200BC &= ~2;  // CF card LED off
+        busy_wait(n);
+    }
 }
 
 static void fail()
 {
-	blink(50);
+    blink(50);
 }
 
 static int compute_signature(int* start, int num)
 {
-	int c = 0;
-	int* p;
-	for (p = start; p < start + num; p++)
-	{
-		c += *p;
-	}
-	//~ return SIG_60D_110;
-	return c;
+    int c = 0;
+    int* p;
+    for (p = start; p < start + num; p++)
+    {
+        c += *p;
+    }
+    //~ return SIG_60D_110;
+    return c;
 }
 
 /** Include the relocatable shim code */
@@ -117,79 +117,79 @@ void* ROMSTART = (void *)0xFF010000;
 
 static int guess_firmware_version()
 {
-	int s = compute_signature((int*)0xFF010000, SIG_LEN);
-	switch(s)
-	{
-		case SIG_550D_109:
-			blob_start = &blob_start_550;
-			blob_end = &blob_end_550;
-			RESTARTSTART = (void*)RESTARTSTART_550;
-			return 1;
-		case SIG_60D_110:
-			blob_start = &blob_start_60;
-			blob_end = &blob_end_60;
-			RESTARTSTART = (void*)RESTARTSTART_60;
-			return 1;
-		case SIG_600D_101:
-			blob_start = &blob_start_600;
-			blob_end = &blob_end_600;
-			RESTARTSTART = (void*)RESTARTSTART_600;
-			return 1;
-		case SIG_50D_108:
-			blob_start = &blob_start_50;
-			blob_end = &blob_end_50;
-			RESTARTSTART = (void*)RESTARTSTART_50;
-			ROMSTART = (void *)0xFF810000;
-			return 1;
-		case SIG_500D_111:
-			blob_start = &blob_start_500;
-			blob_end = &blob_end_500;
-			RESTARTSTART = (void*)RESTARTSTART_500;
-			return 1;
-		default:
-			fail();
-	}
-	return 0;
+    int s = compute_signature((int*)0xFF010000, SIG_LEN);
+    switch(s)
+    {
+        case SIG_550D_109:
+            blob_start = &blob_start_550;
+            blob_end = &blob_end_550;
+            RESTARTSTART = (void*)RESTARTSTART_550;
+            return 1;
+        case SIG_60D_110:
+            blob_start = &blob_start_60;
+            blob_end = &blob_end_60;
+            RESTARTSTART = (void*)RESTARTSTART_60;
+            return 1;
+        case SIG_600D_101:
+            blob_start = &blob_start_600;
+            blob_end = &blob_end_600;
+            RESTARTSTART = (void*)RESTARTSTART_600;
+            return 1;
+        case SIG_50D_108:
+            blob_start = &blob_start_50;
+            blob_end = &blob_end_50;
+            RESTARTSTART = (void*)RESTARTSTART_50;
+            ROMSTART = (void *)0xFF810000;
+            return 1;
+        case SIG_500D_111:
+            blob_start = &blob_start_500;
+            blob_end = &blob_end_500;
+            RESTARTSTART = (void*)RESTARTSTART_500;
+            return 1;
+        default:
+            fail();
+    }
+    return 0;
 }
 
 asm(
-	".text\n"
-	".align 12\n" // 2^12 == 4096 bytes
+    ".text\n"
+    ".align 12\n" // 2^12 == 4096 bytes
 
-	".globl blob_start_550\n"
-	"blob_start_550:\n"
-	".incbin \"../550D.109/magiclantern.bin\"\n" // 
-	".align 12\n"
-	"blob_end_550:\n"
-	".globl blob_end_550\n"
+    ".globl blob_start_550\n"
+    "blob_start_550:\n"
+    ".incbin \"../550D.109/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_550:\n"
+    ".globl blob_end_550\n"
 
-	".globl blob_start_60\n"
-	"blob_start_60:\n"
-	".incbin \"../60D.110/magiclantern.bin\"\n" // 
-	".align 12\n"
-	"blob_end_60:"
-	".globl blob_end_60\n"
+    ".globl blob_start_60\n"
+    "blob_start_60:\n"
+    ".incbin \"../60D.110/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_60:"
+    ".globl blob_end_60\n"
 
-	".globl blob_start_600\n"
-	"blob_start_600:\n"
-	".incbin \"../600D.101/magiclantern.bin\"\n" // 
-	".align 12\n"
-	"blob_end_600:"
-	".globl blob_end_600\n"
+    ".globl blob_start_600\n"
+    "blob_start_600:\n"
+    ".incbin \"../600D.101/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_600:"
+    ".globl blob_end_600\n"
 
-	".globl blob_start_50\n"
-	"blob_start_50:\n"
-	".incbin \"../50D.108/magiclantern.bin\"\n" // 
-	".align 12\n"
-	"blob_end_50:"
-	".globl blob_end_50\n"
+    ".globl blob_start_50\n"
+    "blob_start_50:\n"
+    ".incbin \"../50D.108/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_50:"
+    ".globl blob_end_50\n"
 
-	".globl blob_start_500\n"
-	"blob_start_500:\n"
-	".incbin \"../500D.111/magiclantern.bin\"\n" // 
-	".align 12\n"
-	"blob_end_500:"
-	".globl blob_end_500\n"
+    ".globl blob_start_500\n"
+    "blob_start_500:\n"
+    ".incbin \"../500D.111/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_500:"
+    ".globl blob_end_500\n"
 );
 
 
@@ -204,56 +204,56 @@ static int
 __attribute__((noinline))
 find_offset( void )
 {
-	uintptr_t pc;
-	asm __volatile__ (
-		"mov %0, %%pc"
-		: "=&r"(pc)
-	);
+    uintptr_t pc;
+    asm __volatile__ (
+        "mov %0, %%pc"
+        : "=&r"(pc)
+    );
 
-	return pc - 8 - (uintptr_t) find_offset;
+    return pc - 8 - (uintptr_t) find_offset;
 }
 
 void
 __attribute__((noreturn))
 cstart( void )
 {
-	//~ fail();
-	// Compute a checksum from ROM, compare it with known values,
-	// identify camera and firmware version, 
-	// and set RESTARTSTART, blob_start and blob_end.
-	// If the firmware is not correct, it should not boot (and blink a LED).
-	int x = guess_firmware_version();
+    //~ fail();
+    // Compute a checksum from ROM, compare it with known values,
+    // identify camera and firmware version, 
+    // and set RESTARTSTART, blob_start and blob_end.
+    // If the firmware is not correct, it should not boot (and blink a LED).
+    int x = guess_firmware_version();
 
-	if (x != 1)
-		while(1); // should be unreachable
-	
-	// Copy the copy-and-restart blob somewhere
-	// there is a bug in that we are 0x120 bytes off from
-	// where we should be, so we must offset the blob start.
-	ssize_t offset = find_offset();
+    if (x != 1)
+        while(1); // should be unreachable
+    
+    // Copy the copy-and-restart blob somewhere
+    // there is a bug in that we are 0x120 bytes off from
+    // where we should be, so we must offset the blob start.
+    ssize_t offset = find_offset();
 
-	blob_memcpy(
-		(void*) RESTARTSTART,
-		blob_start + offset,
-		blob_end + offset
-	);
-	clean_d_cache();
-	flush_caches();
+    blob_memcpy(
+        (void*) RESTARTSTART,
+        blob_start + offset,
+        blob_end + offset
+    );
+    clean_d_cache();
+    flush_caches();
 
-	// Jump into the newly relocated code
-	void __attribute__((noreturn))(*copy_and_restart)(int)
-		= (void*) RESTARTSTART;
+    // Jump into the newly relocated code
+    void __attribute__((noreturn))(*copy_and_restart)(int)
+        = (void*) RESTARTSTART;
 
-	void __attribute__((noreturn))(*firmware_start)(void)
-		= (void*) ROMSTART;
+    void __attribute__((noreturn))(*firmware_start)(void)
+        = (void*) ROMSTART;
 
-	if( 1 )
-		copy_and_restart(offset);
-	else
-		firmware_start();
+    if( 1 )
+        copy_and_restart(offset);
+    else
+        firmware_start();
 
-	// Unreachable
-	while(1)
-		;
+    // Unreachable
+    while(1)
+        ;
 }
 

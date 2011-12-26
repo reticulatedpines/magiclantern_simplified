@@ -172,7 +172,7 @@ int is_hard_exposure_override_active()
 
 int is_hard_shutter_override_active()
 {
-	return shutter_override_mode && is_hard_exposure_override_active();
+    return shutter_override_mode && is_hard_exposure_override_active();
 }
 
 int get_shutter_override_degrees_x10()

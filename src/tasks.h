@@ -27,38 +27,38 @@
 
 struct context
 {
-	uint32_t		cpsr;		// off_0x00;
-	uint32_t		r[13];		// off_0x04;
-	uint32_t		lr;		// off_0x38;
-	uint32_t		pc;		// off_0x3C;
+        uint32_t                cpsr;           // off_0x00;
+        uint32_t                r[13];          // off_0x04;
+        uint32_t                lr;             // off_0x38;
+        uint32_t                pc;             // off_0x3C;
 }; // 0x40 bytes
 
 struct task
 {
-	uint32_t		off_0x00;	// always 0?
-	uint32_t		off_0x04;	// stack maybe?
-	uint32_t		off_0x08;	// flags?
-	void *			entry;		// off 0x0c
-	uint32_t		arg;		// off_0x10;
-	uint32_t		off_0x14;
-	uint32_t		off_0x18;
-	uint32_t		off_0x1c;
-	uint32_t		off_0x20;
-	char *			name;		// off_0x24;
-	uint32_t		off_0x28;
-	uint32_t		off_0x2c;
-	uint32_t		off_0x30;
-	uint32_t		off_0x34;
-	uint32_t		off_0x38;
-	uint32_t		off_0x3c;
-	uint32_t		off_0x40;
-	uint32_t		off_0x44;
-	uint8_t			off_0x48;
-	uint8_t			off_0x49;
-	uint8_t			off_0x4a;
-	uint8_t			exited;		// off_0x4b;
-	struct context *	context;	// off 0x4C
-	uint32_t		pad_1[12];
+        uint32_t                off_0x00;       // always 0?
+        uint32_t                off_0x04;       // stack maybe?
+        uint32_t                off_0x08;       // flags?
+        void *                  entry;          // off 0x0c
+        uint32_t                arg;            // off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                off_0x1c;
+        uint32_t                off_0x20;
+        char *                  name;           // off_0x24;
+        uint32_t                off_0x28;
+        uint32_t                off_0x2c;
+        uint32_t                off_0x30;
+        uint32_t                off_0x34;
+        uint32_t                off_0x38;
+        uint32_t                off_0x3c;
+        uint32_t                off_0x40;
+        uint32_t                off_0x44;
+        uint8_t                 off_0x48;
+        uint8_t                 off_0x49;
+        uint8_t                 off_0x4a;
+        uint8_t                 exited;         // off_0x4b;
+        struct context *        context;        // off 0x4C
+        uint32_t                pad_1[12];
 };
 
 
@@ -87,59 +87,59 @@ create_init_task( void );
  */
 extern void
 task_trampoline(
-	struct task *		task
+        struct task *           task
 );
 
 
 /** Hook to override task dispatch */
 void (*task_dispatch_hook)(
-	struct context **	context
+        struct context **       context
 );
 
 
 /** Override a DryOS task */
 struct task_mapping
 {
-	thunk		orig;
-	thunk		replacement;
+        thunk           orig;
+        thunk           replacement;
 };
 
 #define TASK_OVERRIDE( orig_func, replace_func ) \
 extern void orig_func( void ); \
 __attribute__((section(".task_overrides"))) \
 struct task_mapping task_mapping_##replace_func = { \
-	.orig		= orig_func, \
-	.replacement	= replace_func, \
+        .orig           = orig_func, \
+        .replacement    = replace_func, \
 }
 
 
 /** Auto-create tasks */
 struct task_create
 {
-	const char *		name;
-	void			(*entry)( void * );
-	int			priority;
-	uint32_t		flags;
-	void *			arg;
+        const char *            name;
+        void                    (*entry)( void * );
+        int                     priority;
+        uint32_t                flags;
+        void *                  arg;
 };
 
 #define TASK_CREATE( NAME, ENTRY, ARG, PRIORITY, FLAGS ) \
 struct task_create \
 __attribute__((section(".tasks"))) \
 task_create_##ENTRY = { \
-	.name		= NAME, \
-	.entry		= ENTRY, \
-	.arg		= ARG, \
-	.priority	= PRIORITY, \
-	.flags		= FLAGS, \
+        .name           = NAME, \
+        .entry          = ENTRY, \
+        .arg            = ARG, \
+        .priority       = PRIORITY, \
+        .flags          = FLAGS, \
 }
 
 #define INIT_FUNC( NAME, ENTRY ) \
 struct task_create \
 __attribute__((section(".init_funcs"))) \
 task_create_##ENTRY = { \
-	.name		= NAME, \
-	.entry		= ENTRY, \
+        .name           = NAME, \
+        .entry          = ENTRY, \
 }
 
 

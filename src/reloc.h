@@ -10,11 +10,11 @@
 
 extern uintptr_t
 reloc(
-	uint32_t *		buf,
-	uintptr_t		load_addr,
-	uintptr_t		func_offset,
-	size_t			func_end,
-	uintptr_t		new_pc
+        uint32_t *              buf,
+        uintptr_t               load_addr,
+        uintptr_t               func_offset,
+        size_t                  func_end,
+        uintptr_t               new_pc
 );
 
 

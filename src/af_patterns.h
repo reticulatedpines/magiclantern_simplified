@@ -68,23 +68,23 @@
 
 #define AF_PATTERN_ALL             AF_POINT_C | AF_POINT_T | AF_POINT_B | AF_POINT_TL | AF_POINT_TR | AF_POINT_BL | AF_POINT_BR | AF_POINT_L | AF_POINT_R
 
-#define AF_PATTERN_END_OF_LIST		-1
+#define AF_PATTERN_END_OF_LIST      -1
 
 typedef struct {
-	int pattern;
-	int next_center;
-	int next_top;
-	int next_bottom;
-	int next_left;
-	int next_right;
+    int pattern;
+    int next_center;
+    int next_top;
+    int next_bottom;
+    int next_left;
+    int next_right;
 } type_PATTERN_MAP_ITEM;
 
 typedef enum {
-	DIRECTION_CENTER,
-	DIRECTION_UP,
-	DIRECTION_DOWN,
-	DIRECTION_LEFT,
-	DIRECTION_RIGHT
+    DIRECTION_CENTER,
+    DIRECTION_UP,
+    DIRECTION_DOWN,
+    DIRECTION_LEFT,
+    DIRECTION_RIGHT
 } type_DIRECTION;
 
 extern void afp_enter ();

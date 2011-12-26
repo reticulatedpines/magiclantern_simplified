@@ -79,21 +79,21 @@ void aj_green_screen()
     int high_delta_factor = 1024 / high_delta; // replace division with multiplication
     int low_delta_factor = 1024 / low_delta;
 
-	for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
-	{
-		uint32_t * const v_row = (uint32_t*)( lv        + BM2LV_R(y)    );  // 2 pixels
-		uint16_t * const b_row = (uint16_t*)( bm        + BM_R(y)       );  // 2 pixels
-		uint16_t * const m_row = (uint16_t*)( bm_mirror + BM_R(y)       );  // 2 pixels
-		
-		uint8_t* lvp; // that's a moving pointer through lv vram
-		uint16_t* bp;  // through bmp vram
-		uint16_t* mp;  // through mirror
-		
-		for (int x = os.x0; x < os.x_max; x += 2)
-		{
-			lvp = (uint8_t *) (v_row + BM2LV_X(x)/2); lvp++;
-			bp = b_row + x/2;
-			mp = m_row + x/2;
+   for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+   {
+      uint32_t * const v_row = (uint32_t*)( lv        + BM2LV_R(y)    );  // 2 pixels
+      uint16_t * const b_row = (uint16_t*)( bm        + BM_R(y)       );  // 2 pixels
+      uint16_t * const m_row = (uint16_t*)( bm_mirror + BM_R(y)       );  // 2 pixels
+      
+      uint8_t* lvp; // that's a moving pointer through lv vram
+      uint16_t* bp;  // through bmp vram
+      uint16_t* mp;  // through mirror
+      
+      for (int x = os.x0; x < os.x_max; x += 2)
+      {
+         lvp = (uint8_t *) (v_row + BM2LV_X(x)/2); lvp++;
+         bp = b_row + x/2;
+         mp = m_row + x/2;
 
          /********************************************
          *  Get 4 bytes of vram (ie two vram Pixels) *
@@ -172,21 +172,21 @@ void aj_green_screen()
             if (col) col = ((col * 41) >> 8) + 38;
             unsigned int c = col | (col << 8);
             
-			#define BP (*bp)
-			#define MP (*mp)
-			#define BN (*(bp + BMPPITCH/2))
-			#define MN (*(mp + BMPPITCH/2))
-			
-			if (BP != 0 && BP != MP) { continue; }
-			if (BN != 0 && BN != MN) { continue; }
+         #define BP (*bp)
+         #define MP (*mp)
+         #define BN (*(bp + BMPPITCH/2))
+         #define MN (*(mp + BMPPITCH/2))
+         
+         if (BP != 0 && BP != MP) { continue; }
+         if (BN != 0 && BN != MN) { continue; }
 
-			MP = BP = c;
-			MN = BN = c;
+         MP = BP = c;
+         MN = BN = c;
 
-			#undef BP
-			#undef MP
-			#undef BN
-			#undef MN
+         #undef BP
+         #undef MP
+         #undef BN
+         #undef MN
         }
 
    } // end of (y loop)
@@ -256,8 +256,8 @@ unsigned int aj_CLZ( unsigned int input_num)
 //===============================================
 //=======   ^^ RETURN POINT OF ASM ^^  ==========
 //===============================================
-//===============================================	
-	
+//===============================================  
+   
       :             // Output operands   eg.  [output1]"+r"(g_r13_temp_store)
       :             // Input operands    eg.  [input]"m"(parm1)
       : "r0"        // eg "memory","cc"    =   Clobber list       

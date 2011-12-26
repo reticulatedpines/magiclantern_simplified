@@ -36,8 +36,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MENU_FONT	FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
-#define MENU_FONT_SEL	get_menu_font_sel()
+#define MENU_FONT       FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
+#define MENU_FONT_SEL   get_menu_font_sel()
 
 int get_menu_font_sel();
 bool gui_menu_shown();
@@ -46,38 +46,38 @@ int get_menu_advanced_mode();
 
 struct menu_entry
 {
-	struct menu_entry *	next;
-	struct menu_entry *	prev;
-	uint8_t			selected;
-	void *			priv;
-	int8_t min;
-	int8_t max;
-	int8_t unit;
-	const char** choices;
-	void			(*select)(
-		void *			priv,
-		int				delta
-	);
-	void			(*select_reverse)(
-		void *			priv,
-		int				delta
-	);
-	void			(*select_auto)(
-		void *			priv,
-		int				delta
-	);
-	void			(*display)(
-		void *			priv,
-		int			x,
-		int			y,
-		int			selected
-	);
-	int8_t essential;
-	int8_t icon_type;
-	int8_t show_liveview;
-	const char * help;
-	const char * name; // for now it's used only for context help; will be used for display too.
-	struct menu_entry * children;
+        struct menu_entry *     next;
+        struct menu_entry *     prev;
+        uint8_t                 selected;
+        void *                  priv;
+        int8_t min;
+        int8_t max;
+        int8_t unit;
+        const char** choices;
+        void                    (*select)(
+                void *                  priv,
+                int                             delta
+        );
+        void                    (*select_reverse)(
+                void *                  priv,
+                int                             delta
+        );
+        void                    (*select_auto)(
+                void *                  priv,
+                int                             delta
+        );
+        void                    (*display)(
+                void *                  priv,
+                int                     x,
+                int                     y,
+                int                     selected
+        );
+        int8_t essential;
+        int8_t icon_type;
+        int8_t show_liveview;
+        const char * help;
+        const char * name; // for now it's used only for context help; will be used for display too.
+        struct menu_entry * children;
 };
 
 #define IT_AUTO 0
@@ -108,33 +108,33 @@ struct menu_entry
 #define FOR_SUBMENU 64
 
 #define IS_ESSENTIAL(menu) ( \
-	(menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
-	(menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
-	(menu->essential & FOR_LIVEVIEW && lv) || \
-	(menu->essential & FOR_PHOTO_NON_LIVEVIEW && !lv && !PLAY_MODE) || \
-	(menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
-	(menu->essential & FOR_EXT_MONITOR && EXT_MONITOR_CONNECTED) || \
-	(menu->essential & FOR_SUBMENU && submenu_mode) || \
+        (menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
+        (menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
+        (menu->essential & FOR_LIVEVIEW && lv) || \
+        (menu->essential & FOR_PHOTO_NON_LIVEVIEW && !lv && !PLAY_MODE) || \
+        (menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
+        (menu->essential & FOR_EXT_MONITOR && EXT_MONITOR_CONNECTED) || \
+        (menu->essential & FOR_SUBMENU && submenu_mode) || \
 0)
 
 struct menu
 {
-	struct menu *		next;
-	struct menu *		prev;
-	const char *		name;
-	struct menu_entry *	children;
-	int			selected;
-	int icon;
+        struct menu *           next;
+        struct menu *           prev;
+        const char *            name;
+        struct menu_entry *     children;
+        int                     selected;
+        int icon;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
 
 extern void
 menu_print(
-	void *			priv,
-	int			x,
-	int			y,
-	int			selected
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
 );
 
 extern void menu_binary_toggle( void * priv, int unused );
@@ -150,15 +150,15 @@ extern void menu_quinternary_toggle(void* priv, int delta);
 
 extern void
 menu_select(
-	struct menu_entry *	entry
+        struct menu_entry *     entry
 );
 
 
 extern void
 menu_add(
-	const char *		name,
-	struct menu_entry *	new_entry,
-	int			count
+        const char *            name,
+        struct menu_entry *     new_entry,
+        int                     count
 );
 
 extern void
