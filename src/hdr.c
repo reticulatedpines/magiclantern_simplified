@@ -95,9 +95,9 @@ void hdr_step()
 int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
-    int old_state = self->current_state;
+    //~ int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
-    int new_state = self->current_state;
+    //~ int new_state = self->current_state;
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "%s (%d)--%d-->(%d) %d ", self->name, old_state, input, new_state, MVR_FRAME_NUMBER);
 
@@ -116,10 +116,10 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     return ans;
 }
 
-static int stateobj_start_spy(struct state_object * stateobj)
+static void stateobj_start_spy(struct state_object * stateobj)
 {
-    StateTransition = stateobj->StateTransition_maybe;
-    stateobj->StateTransition_maybe = stateobj_spy;
+    StateTransition = (void*)stateobj->StateTransition_maybe;
+    stateobj->StateTransition_maybe = (void*)stateobj_spy;
 }
 
 static void
