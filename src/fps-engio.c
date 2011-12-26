@@ -64,7 +64,7 @@ static int fps_override = 0;
 
 static unsigned long frame_rate[] = {
     0xC0F06014, 0xFFFF, /* timer register */
-    0xC0F06000, 0x01, /* coherent update */
+    0xC0F06000, 0b1, /* coherent update */
     0xFFFFFFFF /* end of commands */ };
 
 static int fps_get_timer(int fps)
@@ -243,5 +243,5 @@ void fps_mvr_log(FILE* mvr_logfile)
 }
 
 // FPS has a side effect: to force shutter speed at 1/fps. Let the bottom bar show this.
-int is_hard_exposure_override_active() { return fps_override; }
+int is_hard_shutter_override_active() { return fps_override; }
 int get_shutter_override_degrees_x10() { return fps_override ? 3600 : 0; }

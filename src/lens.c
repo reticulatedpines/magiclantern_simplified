@@ -380,7 +380,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 					y_origin, 
 					"o");
 	}
-	else if (is_movie_mode() && is_hard_exposure_override_active())
+	else if (is_movie_mode() && is_hard_shutter_override_active())
 	{
 		int d = get_shutter_override_degrees_x10();
 		int q = d/10;
@@ -426,8 +426,21 @@ void draw_ml_bottombar(int double_buffering, int clear)
       is_native_iso(lens_info.iso) ? COLOR_YELLOW :
       is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
       bg);
+      
+      extern int hdr_ev;
 
-		if (info->iso)
+		if (hdr_ev)
+		{
+			int iso_low, iso_high;
+			hdr_get_iso_range(&iso_low, &iso_high);
+			iso_low = 100 << (iso_low-72)/8;
+			iso_high = 100 << (iso_high-72)/8;
+			bmp_printf( FONT(FONT_MED, COLOR_WHITE, bg),
+					  x_origin + 245  , 
+					  y_origin + 5, 
+					  "%4d/%d", iso_low, iso_high) ;
+		}
+		else if (info->iso)
 			bmp_printf( text_font, 
 					  x_origin + 250  , 
 					  y_origin, 
@@ -1139,6 +1152,18 @@ PROP_HANDLER( PROP_ISO_AUTO )
 	lens_info.raw_iso_auto = raw;
 	lens_info.iso_auto = RAW2VALUE(iso, raw);
 	update_stuff();
+	return prop_cleanup( token, property );
+}
+
+PROP_HANDLER( PROP_BV )
+{
+	const uint32_t raw_iso = ((uint8_t*)buf)[1];
+	if (raw_iso)
+	{
+		lens_info.raw_iso_auto = raw_iso;
+		lens_info.iso_auto = RAW2VALUE(iso, raw_iso);
+		update_stuff();
+	}
 	return prop_cleanup( token, property );
 }
 
