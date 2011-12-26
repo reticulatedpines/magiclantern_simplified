@@ -301,7 +301,7 @@ bmp_hexdump(
 	unsigned		x,
 	unsigned		y,
 	const void *		buf,
-	size_t			len
+	int			len
 )
 {
 	if( len == 0 )
@@ -319,20 +319,20 @@ bmp_hexdump(
 			y,
 			"%08x: %08x %08x %08x %08x %08x %08x %08x %08x ",
 			(unsigned) d,
-			len >  0 ? (unsigned) d[ 0/4] : 0,
-			len >  4 ? (unsigned) d[ 4/4] : 0,
-			len >  8 ? (unsigned) d[ 8/4] : 0,
-			len > 12 ? (unsigned) d[12/4] : 0,
-			len > 16 ? (unsigned) d[16/4] : 0,
-			len > 20 ? (unsigned) d[20/4] : 0,
-			len > 24 ? (unsigned) d[24/4] : 0,
-			len > 28 ? (unsigned) d[28/4] : 0
+			len >  0 ? MEMX(d+0) : 0,
+			len >  4 ? MEMX(d+1) : 0,
+			len >  8 ? MEMX(d+2) : 0,
+			len > 12 ? MEMX(d+3) : 0,
+			len > 16 ? MEMX(d+4) : 0,
+			len > 20 ? MEMX(d+5) : 0,
+			len > 24 ? MEMX(d+6) : 0,
+			len > 28 ? MEMX(d+7) : 0
 		);
 
 		y += fontspec_height( fontspec );
 		d += 8;
 		len -= 32;
-	} while(len);
+	} while(len > 0);
 }
 #endif
 

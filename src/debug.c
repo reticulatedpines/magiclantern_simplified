@@ -97,7 +97,7 @@ draw_prop_reset( void * priv )
 int mem_spy = 0;
 
 #if CONFIG_DEBUGMSG
-int mem_spy_start = 0; // start from here
+int mem_spy_start = 0xC0F00000; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
 int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses
 const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc00011cf, 0xc02000a8, 0xc02000ac, 0xc0201004, 0xc0201010, 0xc0201100, 0xc0201104, 0xc0201200, 0xc0203000, 0xc020301c, 0xc0203028, 0xc0203030, 0xc0203034, 0xc020303c, 0xc0203044, 0xc0203048, 0xc0210200, 0xc0210208, 0xc022001c, 0xc0220028, 0xc0220034, 0xc0220070, 0xc02200a4, 0xc02200d0, 0xc02200d4, 0xc02200d8, 0xc02200e8, 0xc02200ec, 0xc0220100, 0xc0220104, 0xc022010c, 0xc0220118, 0xc0220130, 0xc0220134, 0xc0220138, 0xc0222000, 0xc0222004, 0xc0222008, 0xc022200c, 0xc0223000, 0xc0223010, 0xc0223060, 0xc0223064, 0xc0223068, 0xc0224100, 0xc0224104, 0xc022d000, 0xc022d02c, 0xc022d074, 0xc022d1ec, 0xc022d1f0, 0xc022d1f4, 0xc022d1f8, 0xc022d1fc, 0xc022dd14, 0xc022f000, 0xc022f004, 0xc022f200, 0xc022f210, 0xc022f214, 0xc022f340, 0xc022f344, 0xc022f430, 0xc022f434, 0xc0238060, 0xc0238064, 0xc0238080, 0xc0238084, 0xc0238098, 0xc0242010, 0xc0300000, 0xc0300100, 0xc0300104, 0xc0300108, 0xc0300204, 0xc0400004, 0xc0400008, 0xc0400018, 0xc040002c, 0xc0400080, 0xc0400084, 0xc040008c, 0xc04000b4, 0xc04000c0, 0xc04000c4, 0xc04000cc, 0xc0410000, 0xc0410008, 0xc0500080, 0xc0500088, 0xc0500090, 0xc0500094, 0xc05000a0, 0xc05000a8, 0xc05000b0, 0xc05000b4, 0xc05000c0, 0xc05000c4, 0xc05000c8, 0xc05000cc, 0xc05000d0, 0xc05000d4, 0xc05000d8, 0xc0520000, 0xc0520004, 0xc0520008, 0xc052000c, 0xc0520014, 0xc0520018, 0xc0720000, 0xc0720004, 0xc0720008, 0xc072000c, 0xc0720014, 0xc0720024, 0xc07200ec, 0xc07200f0, 0xc0720100, 0xc0720104, 0xc0720108, 0xc072010c, 0xc0720110, 0xc0720114, 0xc0720118, 0xc072011c, 0xc07201c8, 0xc0720200, 0xc0720204, 0xc0720208, 0xc072020c, 0xc0720210, 0xc0800008, 0xc0800014, 0xc0800018, 0xc0820000, 0xc0820304, 0xc0820308, 0xc082030c, 0xc0820310, 0xc0820318, 0xc0920000, 0xc0920004, 0xc0920008, 0xc092000c, 0xc0920010, 0xc0920100, 0xc0920118, 0xc092011c, 0xc0920120, 0xc0920124, 0xc0920204, 0xc0920208, 0xc092020c, 0xc0920210, 0xc0920220, 0xc0920224, 0xc0920238, 0xc0920320, 0xc0920344, 0xc0920348, 0xc0920354, 0xc0920358, 0xc0a00000, 0xc0a00008, 0xc0a0000c, 0xc0a00014, 0xc0a00018, 0xc0a0001c, 0xc0a00020, 0xc0a00024, 0xc0a00044, 0xc0a10008 };
@@ -109,7 +109,7 @@ int mem_spy_count_hi = 50; // (limits)
 int mem_spy_freq_lo = 0; 
 int mem_spy_freq_hi = 0;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0;
-int mem_spy_value_hi = 50;  // or look for a specific range of values (0 = disable)
+int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
 
 #endif
 
@@ -336,6 +336,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
 	msleep(2000);
+	NotifyBox(3000, "%x ", shamem_read(0xC0F06014));
 	//~ lv_path_struct.Z = 0x50000;
 	//~ beep();
 	//~ int ans = FIO_RenameFile("B:/README", "B:/FOO.BAR");
@@ -824,7 +825,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 	for (i = 0; i < mem_spy_len; i++)
 	{
 		uint32_t addr = dbg_memspy_get_addr(i);
-		dbg_memmirror[i] = *(int*)(addr);
+		dbg_memmirror[i] = MEMX(addr);
 		dbg_memchanges[i] = 0;
 		crc += dbg_memmirror[i];
 		//~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
@@ -852,7 +853,7 @@ static void dbg_memspy_update()
 		uint32_t fnt = FONT_SMALL;
 		uint32_t addr = dbg_memspy_get_addr(i);
 		int oldval = dbg_memmirror[i];
-		int newval = *(int*)(addr);
+		int newval = MEMX(addr);
 		if (oldval != newval)
 		{
 			//~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
@@ -1069,6 +1070,72 @@ void show_electronic_level()
 
 #endif
 
+int bv[10];
+int bvl = 0;
+PROP_HANDLER(PROP_BV)
+{
+	bvl = len;
+	memcpy(bv, buf, 10*4);
+	return prop_cleanup(token, property);
+}
+
+//~ CONFIG_INT("hexdump", hexdump_addr, 0x4FF8);
+
+int hexdump_addr = 0x4FF8;
+int hexdump_digit_pos = 0; // 0...7
+
+static void
+hexdump_print(
+	void *			priv,
+	int			x,
+	int			y,
+	int			selected
+)
+{
+	int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+	bmp_printf(
+		fnt,
+		x, y,
+		"HexDump : %8x", 
+		hexdump_addr
+	);
+
+	fnt = FONT(fnt, COLOR_WHITE, COLOR_RED);
+
+	bmp_printf(
+		fnt,
+		x + font_large.width * (17 - hexdump_digit_pos), y,
+		"%x", 
+		(hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF
+	);
+}
+
+void hexdump_digit_toggle(void* priv, int dir)
+{
+	int digit = (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF;
+	digit = mod(digit + dir*(hexdump_digit_pos?1:4), 16);
+	hexdump_addr &= ~(0xF << (hexdump_digit_pos * 4));
+	hexdump_addr |= (digit << (hexdump_digit_pos * 4));
+}
+
+void hexdump_digit_pos_toggle(void* priv, int dir)
+{
+	hexdump_digit_pos = mod(hexdump_digit_pos + 1, 8);
+}
+
+int hexdump_prev = 0;
+void hexdump_deref(void* priv, int dir)
+{
+	hexdump_prev = hexdump_addr;
+	hexdump_addr = MEM(hexdump_addr);
+}
+
+void hexdump_back(void* priv, int dir)
+{
+	hexdump_addr = hexdump_prev;
+}
+
+int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -1090,8 +1157,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*30);
-		//~ bmp_hexdump(FONT_SMALL, 0, 200, &lv_path_struct, 32*5);
+		bmp_hexdump(FONT_SMALL, 0, 200, MEM(MEM(0x4ff8+8)+0x34), 32*20);
+		//~ bmp_hexdump(FONT_SMALL, 0, 100, hexdump_addr, 32*30);
 		
 		//~ if (recording == 2)
 			//~ void* x = get_lvae_info();
@@ -1099,7 +1166,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 		//~ extern int disp_pressed;
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		//~ bmp_printf(FONT_LARGE, 50, 50, "%x ", lv_path_struct.Z);
+		//~ bmp_printf(FONT_LARGE, 50, 50, "%x %x %x %x ", bvl, bv[0], bv[1], bv[2]);
 		//~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
 		//~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
@@ -1485,6 +1552,16 @@ static void CR2toAVI(void* priv, int delta)
 }
 
 struct menu_entry debug_menus[] = {
+	{
+		.name = "HexDump",
+		.priv = &hexdump_addr,
+		.select = hexdump_digit_toggle,
+		.select_auto = hexdump_digit_pos_toggle,
+		.select_reverse = hexdump_deref,
+		.display = hexdump_print,
+		.help = "Change digit [SET], change digit pos [Q], ptr deref [PLAY]"
+	},
+
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 	{
 		.name		= "Rename CR2 to AVI",
