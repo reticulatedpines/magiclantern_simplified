@@ -92,7 +92,7 @@ void hdr_step()
     //~ *(uint8_t*)(lv_struct + 0x54) = iso;
 }
 
-int (*StateTransition)(void*,int,int,int,int) = 0;
+static int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
     //~ int old_state = self->current_state;
