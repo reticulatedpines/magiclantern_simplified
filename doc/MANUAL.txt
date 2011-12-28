@@ -1181,17 +1181,26 @@ Miscellanous settings.
  
 .. _night vision:
 
-**LV Disp.Gain (NightVision): up to +6EV**
+**LV Disp.Gain (NightVision): -3EV...+6EV**
 
-  This feature lets you frame the image in extremely dark places, or with strong ND or infrared filters.
+  Background: in Canon cameras, ISO has two components: native (100, 200, 400, 800, 1600 or 3200) and digital.
+  For example, ISO 160 is done by driving the sensor at ISO 200 and darkening the image by 1/3 EV.
 
-  It works by increasing the digital gain applied to LiveView image. The gain is not applied to pictures, but it is applied to videos.
+  This feature lets you adjust the digital ISO component in LiveView (display gain).
+  Display gain affects LiveView preview (in photo mode) and recorded video (in movie mode). It does not affect still images.
 
-  You can also use this feature to record at ISO higher than 6400, up to ISO 409600:
+  In photo mode, this feature lets you frame the image in extremely dark places, or with strong ND or infrared filters.
+
+  In movie mode, this feature lets you record at these equivalent ISO values:
   
-  * To use night vision in movie mode, first you need to enable Auto ISO.
-  * Since the scene is very dark, camera should select ISO 6400.
-  * To get the equivalent of ISO 25600 (for example), you need to increase display gain by +2EV.
+  * 50, 25 and 12.5 ISO (that is, ISO 100 with -1, -2 or -3 EV digital gain)
+  * 12800, 25600, 51200, 102400, 204800, 409600 (ISO 6400 with +1...+6 EV gain)
+
+  If you have a low-contrast scene with one or two stops of extra highlight headroom, you will get less noise in movie mode
+  if you increase ISO by one or two stops (but no more than 1600) and cancel the brightness change with a negative display gain.
+  To check for overexposure, hold the shutter pressed halfway or use the banding detection tool (see `false color`).
+
+  Note: in movie mode, with manual exposure active, ML will also enable auto ISO and will lock the ISO value. This trick is needed to enable display gain.
 
 **DOF Preview: Normal/Sticky**
 

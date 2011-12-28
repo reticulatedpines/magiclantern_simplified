@@ -1259,9 +1259,9 @@ int is_native_iso(int iso)
         case 800:
         case 1600:
         case 3200:
-        case 6400:
-        case 12800:
-        case 25600:
+        //~ case 6400: // those are digital gains applied to 3200 ISO
+        //~ case 12800:
+        //~ case 25600:
             return 1;
     }
     return 0;
@@ -1284,7 +1284,8 @@ int is_lowgain_iso(int iso)
 
 int is_round_iso(int iso)
 {
-    return is_native_iso(iso) || is_lowgain_iso(iso) || iso == 0;
+    return is_native_iso(iso) || is_lowgain_iso(iso) || iso == 0
+        || iso == 6400 || iso == 12800 || iso == 25600;
 }
 
 CONFIG_INT("iso.round.only", iso_round_only, 1);

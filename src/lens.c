@@ -204,6 +204,13 @@ int shutter_ms_to_raw(int shutter_ms)
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
+static void split_iso(int raw, int* analog_iso, int* digital_gain)
+{
+    int rounded = ((raw+3)/8) * 8;
+    *analog_iso = COERCE(rounded, 72, 112); // analog ISO range: 100-3200
+    *digital_gain = raw - *analog_iso;
+}
+
 void draw_ml_bottombar(int double_buffering, int clear)
 {
     //~ beep();
@@ -441,10 +448,59 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       "%4d/%d", iso_low, iso_high) ;
         }
         else if (info->iso)
-            bmp_printf( text_font, 
-                      x_origin + 250  , 
-                      y_origin, 
-                      "%d   ", info->iso) ;
+        {
+            int analog, digital;
+            split_iso(info->raw_iso, &analog, &digital);
+            if (LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
+                // display gain gets recorded, consider it as ISO digital gain
+                digital = digital + (gain_to_ev(LVAE_DISP_GAIN) - 10) * 8;
+
+            text_font = FONT(
+            FONT_LARGE, 
+            digital == 0 ? COLOR_YELLOW :
+            digital < 0 ? COLOR_GREEN2 : COLOR_RED,
+            bg);
+
+            if (is_native_iso(info->iso) && digital == 0)
+            {
+                bmp_printf( text_font, 
+                          x_origin + 250  , 
+                          y_origin, 
+                          "%d   ", info->iso) ;
+            }
+            else
+            {
+                int fnt = FONT(FONT_MED, digital > 0 ? COLOR_RED : COLOR_GREEN1, bg);
+                int num = ABS(digital);
+                int den = 8;
+                int analog_hr = 100 << ((analog-72)/8); // human readable iso
+                while (num % 2 == 0 && den % 2 == 0) { num /= 2; den /= 2; }
+                while (num >= 10) { num /= 2; den /= 2; }
+                while (num % 2 == 0 && den % 2 == 0) { num /= 2; den /= 2; }
+                if (num == 3 && den == 8) { num = 1; den = 3; }
+                if (num == 5 && den == 8) { num = 2; den = 3; }
+                bmp_printf( text_font,
+                          x_origin + 250, 
+                          y_origin,
+                          "%d",
+                          analog_hr
+                          ) ;
+
+                int xev = x_origin + 246 + font_med.width * 5 + (analog_hr >= 1000 ? font_large.width : 0);
+                bmp_printf( fnt, xev,  y_origin + 5, digital > 0 ? "+" : "-");
+                if (den > 1)
+                {
+                    bmp_printf( fnt, xev + font_med.width,  y_origin - 3,
+                            "%d", num);
+                    bmp_printf( fnt, xev + font_med.width,  y_origin + 14,
+                            "%d", den);
+                }
+                else
+                    bmp_printf( text_font, xev + font_med.width - 2,  y_origin,
+                            "%d", num);
+                bmp_printf( FONT(FONT_SMALL, FONT_FG(fnt), bg), xev + font_med.width * 2,  y_origin + 3, "EV");
+            }
+        }
         else if (info->iso_auto)
             bmp_printf( text_font, 
                       x_origin + 250  , 
@@ -465,8 +521,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
       bg);
 
         if( info->wb_mode == WB_KELVIN )
-            bmp_printf( text_font, x_origin + 350, y_origin,
-                "%5dK ",
+            bmp_printf( text_font, x_origin + 350 + (info->kelvin >= 10000 ? 0 : font_large.width), y_origin,
+                info->kelvin >= 10000 ? "%5dK " : "%4dK ",
                 info->kelvin
             );
         else
@@ -571,8 +627,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
     // mark the BV mode somehow
     if(CONTROL_BV)
     {
-        bmp_draw_rect(COLOR_RED, x_origin + 70, y_origin - 4, 280, 35);
-        bmp_draw_rect(COLOR_RED, x_origin + 71, y_origin - 3, 280-2, 35-2);
+        bmp_draw_rect(COLOR_RED, x_origin + 70, y_origin - 4, 284, 35);
+        bmp_draw_rect(COLOR_RED, x_origin + 71, y_origin - 3, 284-2, 35-2);
     }
 
 

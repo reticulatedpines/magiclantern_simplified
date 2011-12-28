@@ -1492,7 +1492,7 @@ struct menu_entry expo_tweak_menus[] = {
         .select = display_gain_toggle, 
         .select_auto = display_gain_reset,
         .display = display_gain_print, 
-        .help = "Boosts LV digital display gain (Photo, Movie w.AutoISO)",
+        .help = "LV digital display gain. (+) night vision; (-) low noise.",
         .show_liveview = 1,
     },
     {
