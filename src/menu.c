@@ -289,6 +289,11 @@ submenu_print(
                     STR_APPEND(msg, ": %d%%", MEM(entry->priv));
                     break;
                 }
+                case UNIT_ISO:
+                {
+                    STR_APPEND(msg, ": %d%%", values_iso[raw2index_iso(MEM(entry->priv))]);
+                    break;
+                }
                 default:
                 {
                     STR_APPEND(msg, ": %d", MEM(entry->priv));

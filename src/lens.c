@@ -588,11 +588,10 @@ end:
     }
 
     // this is not really part of the bottom bar, but it's close to it :)
-    extern int display_gain;
-    if (display_gain)
+    if (LVAE_DISP_GAIN)
     {
         text_font = FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK ); 
-        int gain_ev = gain_to_ev(display_gain) - 10;
+        int gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
         bmp_printf( text_font, 
                   x_origin + 590, 
                   y_origin - font_large.height, 

@@ -410,13 +410,11 @@ extern unsigned lcd_sensor_shortcuts;
 // backlight adjust
 //**********************************************************************
 
-int display_gain = 0;
-
 void show_display_gain()
 {
     int gain_ev = 0;
-    if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
-    NotifyBox(2000, "Display Gain : %s%d EV", display_gain ? "+" : "", gain_ev);
+    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
+    NotifyBox(2000, "Display Gain : %s%d EV", LVAE_DISP_GAIN ? "+" : "", gain_ev);
     redraw();
 }
 
@@ -437,7 +435,7 @@ void adjust_backlight_level(int delta)
             return;
         }
 
-        if (backlight_level == 7 && delta < 0 && display_gain)
+        if (backlight_level == 7 && delta < 0 && LVAE_DISP_GAIN)
         {
             beep();
             display_gain_toggle(0, -1);
@@ -940,6 +938,8 @@ tweak_task( void* unused)
         dofp_update();
 
         clear_lv_affframe_if_dirty();
+
+        update_disp_gain_autoiso();
         
         extern unsigned disp_profiles_0;
         if (FLASH_BTN_MOVIE_MODE)
@@ -1128,6 +1128,36 @@ static void night_vision_print(
 }
 */
 
+void update_disp_gain_autoiso()
+{
+    static int auto_iso_w_fixed_iso = 0;
+
+    if (is_movie_mode() && !CONTROL_BV && ae_mode_movie) // movie mode with manual ISO
+    {
+        if (LVAE_DISP_GAIN && liveview_display_idle() && (!get_halfshutter_pressed() || recording)) // needs auto iso to apply display gain
+        {
+            int iso = lens_info.iso;
+            int riso = lens_info.raw_iso;
+            if (riso && !LVAE_MOV_M_CTRL)
+            {
+                auto_iso_w_fixed_iso = riso;
+                lens_set_rawiso(0); // force iso auto => to enable display gain
+                lensinfo_set_iso(riso);
+                LVAE_MOV_M_CTRL = 1;
+                LVAE_ISO_MIN = riso;  // but force one single value for ISO
+            }
+        }
+        else
+        {
+            if (auto_iso_w_fixed_iso && LVAE_MOV_M_CTRL) // no more display gain, go back to manual iso
+            {
+                lens_set_rawiso(lens_info.raw_iso ? lens_info.raw_iso : auto_iso_w_fixed_iso);
+                LVAE_MOV_M_CTRL = 0;
+                LVAE_ISO_MIN = 72;
+            }
+        }
+    }
+}
 void set_display_gain(int display_gain)
 {
     if (CONTROL_BV) CONTROL_BV_ZERO = display_gain;
@@ -1139,24 +1169,25 @@ void set_display_gain(int display_gain)
 // -: reverse
 void display_gain_toggle(void* priv, int dir)
 {
-    int d = display_gain;
+    int d = LVAE_DISP_GAIN;
+    int dg = d;
     if (!d) d = 1024;
      
     if (dir > 0)
     {
-        display_gain = d * 2;
-        if (display_gain > 65536) display_gain = 128;
+        dg = d * 2;
+        if (dg > 65536) dg = 128;
     }
     else if (dir < 0)
     {
-        if (d <= 128) display_gain = 65536;
-        else display_gain = d / 2; 
+        if (d <= 128) dg = 65536;
+        else dg = d / 2; 
     }
-    else display_gain = 0;
+    else dg = 0;
 
-    if (display_gain == 1024) display_gain = 0;
+    if (dg == 1024) dg = 0;
 
-    set_display_gain(display_gain);
+    set_display_gain(dg);
 }
 
 static void display_gain_reset(void* priv, int delta)
@@ -1178,7 +1209,7 @@ static void display_gain_print(
 )
 {
     int gain_ev = 0;
-    if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
+    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -1186,11 +1217,12 @@ static void display_gain_print(
         gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
         ABS(gain_ev)
     );
-    if (display_gain)
+    if (LVAE_DISP_GAIN)
     {
         if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
         else menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
     }
+    else menu_draw_icon(x, y, MNI_OFF, 0);
 }
 
 /*
@@ -1456,7 +1488,7 @@ void take_screenshot();
 struct menu_entry expo_tweak_menus[] = {
     {
         .name = "LV Disp.Gain (NightVision)", 
-        .priv = &display_gain,
+        .priv = &LVAE_DISP_GAIN,
         .select = display_gain_toggle, 
         .select_auto = display_gain_reset,
         .display = display_gain_print, 

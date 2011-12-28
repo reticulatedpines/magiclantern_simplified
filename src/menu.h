@@ -50,8 +50,8 @@ struct menu_entry
         struct menu_entry *     prev;
         uint8_t                 selected;
         void *                  priv;
-        int8_t min;
-        int8_t max;
+        int min;
+        int max;
         int8_t unit;
         const char** choices;
         void                    (*select)(
@@ -97,6 +97,7 @@ struct menu_entry
 #define UNIT_x10 2
 #define UNIT_PERCENT 3
 #define UNIT_PERCENT_x10 4
+#define UNIT_ISO 5
 
 // these can be combined with OR
 #define FOR_MOVIE 1

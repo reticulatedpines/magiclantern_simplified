@@ -4262,7 +4262,7 @@ void shoot_init()
     extern struct menu_entry expo_tweak_menus[];
     extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_tweak_menus, 2 );
-    menu_add( "Expo", expo_override_menus, 1 );
+    menu_add( "Expo", expo_override_menus, 2 );
 }
 
 INIT_FUNC("shoot", shoot_init);

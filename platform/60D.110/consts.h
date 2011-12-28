@@ -272,5 +272,10 @@
 #define CONTROL_BV_AV   (*(uint16_t*)0x264FE)
 #define CONTROL_BV_ISO  (*(uint16_t*)0x26500)
 #define CONTROL_BV_ZERO (*(uint16_t*)0x26502)
+#define LVAE_ISO_SPEED  (*(uint8_t*)(0x264e0))      // offset 0x0; at 3 it changes iso very slowly
+#define LVAE_ISO_MIN    (*(uint8_t*)(0x264e0+0x28)) // string: ISOMin:%d
+#define LVAE_ISO_HIS    (*(uint8_t*)(0x264e0+0x2a)) // no idea what this is
+#define LVAE_MOV_M_CTRL (*(uint8_t*)(0x264e0+0x70)) // lvae_setmoviemanualcontrol
+#define LVAE_DISP_GAIN  (*(uint16_t*)(0x264e0+0x24)) // lvae_setdispgain
 
 #define MIN_MSLEEP 10
