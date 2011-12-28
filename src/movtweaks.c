@@ -340,7 +340,7 @@ movtweak_task( void* unused )
     int k;
     for (k = 0; ; k++)
     {
-        msleep(50);
+        msleep(20);
         
         static int recording_prev = 0;
         if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
@@ -367,6 +367,9 @@ movtweak_task( void* unused )
         {
             force_liveview();
         }
+
+        if (is_movie_mode())
+            lvae_iso_update();
         
         if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
         {
@@ -718,8 +721,7 @@ void bv_enable_do()
         CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : bv_iso;
     }
     
-    extern int display_gain;
-    CONTROL_BV_ZERO = display_gain;
+    CONTROL_BV_ZERO = LVAE_DISP_GAIN;
     bv_update_lensinfo();
 }
 
@@ -748,6 +750,51 @@ static void bv_toggle() // off, on, auto
     else { bv_enable(); }
 }
 
+CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
+CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
+CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
+void lvae_iso_updafte()
+{
+   //~ LVAE_ISO_MIN = lvae_iso_min;
+   LVAE_ISO_SPEED = lvae_iso_speed;
+}
+
+void lvae_iso_update()
+{
+    if (lens_info.raw_iso == 0 && !LVAE_DISP_GAIN) // iso auto
+    {
+        if (!LVAE_MOV_M_CTRL) // iso auto is alive and kicking
+        {
+            LVAE_ISO_MIN = lvae_iso_min;
+            LVAE_ISO_SPEED = lvae_iso_speed;
+            if (val2raw_iso(lens_info.iso_auto) >= lvae_iso_max)
+            {
+                LVAE_MOV_M_CTRL = 1;
+                LVAE_ISO_MIN = lvae_iso_max;
+                //~ beep();
+            }
+        }
+        else // iso auto is sleeping
+        {
+            int ae_value = AE_VALUE;
+            if (!ae_value)
+            {
+                int bv = get_prop(PROP_BV);
+                int a = (uint8_t)((bv >>  0) & 0xFF);
+                int b = (uint8_t)((bv >> 24) & 0xFF);
+                ae_value = a-b;
+            }
+            if (ae_value > 0)
+            {
+                LVAE_MOV_M_CTRL = 0;
+                LVAE_ISO_MIN = lvae_iso_min;
+                //~ beep();
+                msleep(200);
+            }
+        }
+    }
+    
+}
 
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
@@ -898,6 +945,36 @@ struct menu_entry expo_override_menus[] = {
         .help = "Low-level manual exposure controls (bypasses Canon limits)",
         .essential = FOR_LIVEVIEW,
         .show_liveview = 1,
+    },
+    {
+        .name = "Movie AutoISO...",
+        .icon_type = IT_BOOL,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Min ISO",
+                .priv = &lvae_iso_min,
+                .min = 72,
+                .max = 120,
+                .unit = UNIT_ISO,
+                .help = "Minimum value for Auto ISO in movie mode."
+            },
+            {
+                .name = "Max ISO",
+                .priv = &lvae_iso_max,
+                .min = 72,
+                .max = 120,
+                .unit = UNIT_ISO,
+                .help = "Maximum value for Auto ISO in movie mode."
+            },
+            {
+                .name = "Adjust speed",
+                .priv = &lvae_iso_speed,
+                .min = 3,
+                .max = 30,
+                .help = "Change speed for Auto ISO. Low values = smooth transitions."
+            },
+            MENU_EOL
+        },
     },
 };
 
