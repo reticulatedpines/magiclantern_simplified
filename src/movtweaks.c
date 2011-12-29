@@ -755,11 +755,7 @@ static void bv_toggle() // off, on, auto
 CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
 CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
 CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
-void lvae_iso_updafte()
-{
-   //~ LVAE_ISO_MIN = lvae_iso_min;
-   LVAE_ISO_SPEED = lvae_iso_speed;
-}
+CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
 
 void update_lvae_for_autoiso_n_displaygain()
 {
@@ -877,11 +873,18 @@ void update_lvae_for_autoiso_n_displaygain()
 
     // this is always applied
     LVAE_ISO_SPEED = lvae_iso_speed;
+
+    if (lvae_disp_gain != LVAE_DISP_GAIN)
+    {
+        LVAE_DISP_GAIN = lvae_disp_gain;
+        if (CONTROL_BV) CONTROL_BV_ZERO = lvae_disp_gain;
+    }
 }
 void set_display_gain(int display_gain)
 {
+    LVAE_DISP_GAIN = lvae_disp_gain = display_gain;
     if (CONTROL_BV) CONTROL_BV_ZERO = display_gain;
-    call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
+    //~ call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
 }
 
 // 1024 = 0 EV
@@ -910,10 +913,10 @@ void display_gain_toggle(void* priv, int dir)
     set_display_gain(dg);
 }
 
-static void display_gain_reset(void* priv, int delta)
-{
-    display_gain_toggle(0,0);
-}
+//~ static void display_gain_reset(void* priv, int delta)
+//~ {
+    //~ display_gain_toggle(0,0);
+//~ }
 
 int gain_to_ev(int gain)
 {
@@ -1100,7 +1103,7 @@ struct menu_entry expo_override_menus[] = {
         .name = "LV Disp.Gain (NightVision)", 
         .priv = &LVAE_DISP_GAIN,
         .select = display_gain_toggle, 
-        .select_auto = display_gain_reset,
+        //~ .select_auto = display_gain_reset,
         .display = display_gain_print, 
         .help = "LV digital display gain. (+) night vision; (-) low noise.",
         .show_liveview = 1,
