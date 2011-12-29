@@ -1138,13 +1138,13 @@ void update_disp_gain_autoiso()
         {
             int iso = lens_info.iso;
             int riso = lens_info.raw_iso;
-            if (riso && !LVAE_MOV_M_CTRL)
+            if (riso && !LVAE_MOV_M_CTRL && !auto_iso_w_fixed_iso)
             {
+                LVAE_MOV_M_CTRL = 1;
+                LVAE_ISO_MIN = riso;  // but force one single value for ISO
                 auto_iso_w_fixed_iso = riso;
                 lens_set_rawiso(0); // force iso auto => to enable display gain
                 lensinfo_set_iso(riso);
-                LVAE_MOV_M_CTRL = 1;
-                LVAE_ISO_MIN = riso;  // but force one single value for ISO
             }
         }
         else
@@ -1152,7 +1152,7 @@ void update_disp_gain_autoiso()
             if (auto_iso_w_fixed_iso && LVAE_MOV_M_CTRL) // no more display gain, go back to manual iso
             {
                 lens_set_rawiso(lens_info.raw_iso ? lens_info.raw_iso : auto_iso_w_fixed_iso);
-                LVAE_MOV_M_CTRL = 0;
+                auto_iso_w_fixed_iso = LVAE_MOV_M_CTRL = 0;
                 LVAE_ISO_MIN = 72;
             }
         }

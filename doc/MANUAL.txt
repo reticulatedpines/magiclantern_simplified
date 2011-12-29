@@ -899,21 +899,21 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 **ISO: 100-25600**
 
-  Fine-tuning for ISO: 100/160 multiples or 1/8 EV steps. See also `ISO selection`_.
+  Fine-tuning for ISO: 100/160 multiples or 1/8 EV steps. See also `ISO selection`_ and `display gain`.
 
-  Not all values are accepted by all cameras or in all modes. See your camera manual for details.
+  Notes:
 
-  In manual exposure modes (photo and video), press ``Q`` for one-time auto ISO. 
-   
-  * When LiveView is active, ML performs a binary search, trying to achieve a good balance between overexposure and underexposure.
-  * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
+  * Color coding:
+  
+    - orange = pure analog ISO (100, 200 ... 3200)
+    - green = ISO with negative digital gain (160, 320 ... 2500)
+    - red = ISO with positive digital gain (avoid these values)
 
-  To compute exact ISO values from 100 to 6400, assumming 1/8 EV steps, use this formula:
-  
-  .. raw:: latex
-  
-      $$100 \cdot 2^{k/8},\;\; k=[0:48]$$
-  
+  * ML displays the analog and digital components of ISO (for example, ISO 640 = ISO 800 - 1/3 EV).
+  * In movie mode, LiveView `display gain`_ is effectively a digital ISO gain.
+  * Not all values are accepted by all cameras or in all modes. See your camera manual for details (hint: Highlight Tone Priority).
+  * In manual exposure modes (photo and video), press ``Q`` for one-time auto ISO.
+
 .. _White balance:
 .. _WhiteBalance:
 .. _Kelvin white balance:
@@ -922,13 +922,13 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
   Kelvin white balance.
   
-  On 60D, extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range, i.e. 2500...10000.
+  On 60D, extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range (2500...10000).
 
-  In LiveView, press ``Q`` to auto-tune Kelvin WB for the current scene. ML will use the center (200x200 pixels rectangle) as reference gray.
+  Push-button white balance: in LiveView, press ``Q`` to auto-tune Kelvin value for the current scene. ML will use the center (200x200 pixels rectangle) as reference gray.
 
 **WBShift G/M: Green 0..9 / Magenta 0..9**
 
-  Green-Magenta white balance shift. Useful for fluorescent lighting. Can be auto-tuned with ``Q`` button.
+  Green-Magenta white balance shift. Useful for fluorescent lighting. Use the ``Q`` button for auto-tuning.
 
 **WBShift B/A: Blue 0..9 / Amber 0..9**
 
@@ -1180,6 +1180,7 @@ Tweaks
 Miscellanous settings.
  
 .. _night vision:
+.. _display gain:
 
 **LV Disp.Gain (NightVision): -3EV...+6EV**
 

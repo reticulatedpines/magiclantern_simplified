@@ -761,16 +761,21 @@ void lvae_iso_updafte()
 
 void lvae_iso_update()
 {
-    if (lens_info.raw_iso == 0 && !LVAE_DISP_GAIN) // iso auto
+    // only works when AutoISO is active and display gain is off
+    // note: display gain also uses LVAE_MOV_M_CTRL,
+    // so they may conflict if they are both active at the same time
+
+    static int auto_iso_paused = 0;
+    if (lens_info.raw_iso == 0 && auto_iso_paused == LVAE_MOV_M_CTRL) 
     {
-        if (!LVAE_MOV_M_CTRL) // iso auto is alive and kicking
+        if (!auto_iso_paused) // iso auto is alive and kicking
         {
             LVAE_ISO_MIN = lvae_iso_min;
             LVAE_ISO_SPEED = lvae_iso_speed;
-            if (val2raw_iso(lens_info.iso_auto) >= lvae_iso_max)
+            if (val2raw_iso(lens_info.iso_auto) >= lvae_iso_max) // scene too dark, need to clamp auto ISO
             {
-                LVAE_MOV_M_CTRL = 1;
-                LVAE_ISO_MIN = lvae_iso_max;
+                auto_iso_paused = LVAE_MOV_M_CTRL = 1;
+                LVAE_ISO_MIN = lvae_iso_max; // lock ISO here
                 //~ beep();
             }
         }
@@ -784,9 +789,9 @@ void lvae_iso_update()
                 int b = (uint8_t)((bv >> 24) & 0xFF);
                 ae_value = a-b;
             }
-            if (ae_value > 0)
+            if (ae_value > 0 || lvae_iso_max != LVAE_ISO_MIN) // scene is bright again, wakeup auto ISO 
             {
-                LVAE_MOV_M_CTRL = 0;
+                auto_iso_paused = LVAE_MOV_M_CTRL = 0;
                 LVAE_ISO_MIN = lvae_iso_min;
                 //~ beep();
                 msleep(200);
@@ -949,6 +954,7 @@ struct menu_entry expo_override_menus[] = {
     {
         .name = "Movie AutoISO...",
         .icon_type = IT_BOOL,
+        .help = "Fine-tune Auto ISO function in movie mode.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Min ISO",

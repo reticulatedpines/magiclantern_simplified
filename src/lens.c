@@ -451,15 +451,18 @@ void draw_ml_bottombar(int double_buffering, int clear)
         {
             int analog, digital;
             split_iso(info->raw_iso, &analog, &digital);
+            int digi0 = digital;
             if (LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
                 // display gain gets recorded, consider it as ISO digital gain
                 digital = digital + (gain_to_ev(LVAE_DISP_GAIN) - 10) * 8;
 
             text_font = FONT(
-            FONT_LARGE, 
-            digital == 0 ? COLOR_YELLOW :
-            digital < 0 ? COLOR_GREEN2 : COLOR_RED,
-            bg);
+                FONT_LARGE,
+                    digital > 0 || digi0 > 0 ? COLOR_RED :
+                    digital < 0 ? COLOR_GREEN2 :
+                    COLOR_YELLOW,
+                bg
+            );
 
             if (is_native_iso(info->iso) && digital == 0)
             {
@@ -470,7 +473,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
             }
             else
             {
-                int fnt = FONT(FONT_MED, digital > 0 ? COLOR_RED : COLOR_GREEN1, bg);
+                int fnt = FONT(FONT_MED, FONT_FG(text_font), bg);
                 int num = ABS(digital);
                 int den = 8;
                 int analog_hr = 100 << ((analog-72)/8); // human readable iso
