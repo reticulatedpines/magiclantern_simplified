@@ -43,6 +43,7 @@ static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
 static int submenu_mode = 0;
+struct menu * implicit_submenu = 0;
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
 static CONFIG_INT("menu.advanced", advanced_mode, 0);
@@ -915,9 +916,17 @@ menu_entry_select(
     }
     else if (mode == 2)
     {
+        /*
+         
         if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
         else if( entry->select_auto ) entry->select_auto( entry->priv, 1);
         else menu_show_only_selected();
+
+        */
+
+        if ( entry->select_auto ) entry->select_auto( entry->priv, 1);
+        else { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
+
         //~ else if (entry->select) entry->select( entry->priv, 1);
         //~ else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
@@ -1167,7 +1176,10 @@ static struct menu * get_current_submenu()
     if (entry->children)
         return menu_find_by_name(entry->name, 0);
 
-    return 0;
+    memcpy(implicit_submenu->children, entry, sizeof(struct menu_entry));
+    implicit_submenu->children->next = implicit_submenu->children->prev = 0;
+    implicit_submenu->name = entry->name;
+    return implicit_submenu;
 }
 
 static int
@@ -1594,11 +1606,20 @@ open_canon_menu()
     //~ }
 }
 
+static struct menu_entry implicit_submenu_entry[] = {
+    {
+        .essential = FOR_SUBMENU,
+    },
+};
+
 static void
 menu_task( void* unused )
 {
     //~ int x, y;
     DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
+
+    menu_add( "Implicit", implicit_submenu_entry, 1);
+    implicit_submenu = menu_find_by_name("Implicit", 0);
 
     // Add the draw_prop menu
     #if 0

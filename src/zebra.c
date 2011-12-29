@@ -2456,7 +2456,6 @@ struct menu_entry zebra_menus[] = {
         .priv = &transparent_overlay, 
         .display = transparent_overlay_display, 
         .select = menu_binary_toggle,
-        .select_auto = transparent_overlay_offset_clear,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         .essential = FOR_PLAYBACK,
     },
