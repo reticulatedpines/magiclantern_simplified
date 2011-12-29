@@ -535,14 +535,15 @@ static int playicon_square(int x, int y, int color)
 
 void submenu_icon(int x, int y)
 {
-    int color = COLOR_WHITE;
+    //~ int color = COLOR_WHITE;
     x -= 40;
-    for (int r = 0; r < 2; r++)
-    {
-        draw_circle(x + 30, y + 28, r, color);
-        draw_circle(x + 23, y + 28, r, color);
-        draw_circle(x + 16, y + 28, r, color);
-    }
+    bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
+    //~ for (int r = 0; r < 2; r++)
+    //~ {
+        //~ draw_circle(x + 30, y + 28, r, color);
+        //~ draw_circle(x + 23, y + 28, r, color);
+        //~ draw_circle(x + 16, y + 28, r, color);
+    //~ }
 }
 
 void size_icon(int x, int y, int current, int nmax)
