@@ -544,7 +544,10 @@ extern void SetCFnData(int group, int number, int value);
 #define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig), fmt, ## __VA_ARGS__);
 
 #define MEMX(x) ( \
-        ((((int)(x)) & 0xF0F00000) == 0xC0F00000) ? shamem_read(x) : \
+        ((((int)(x)) & 0xF0000000) == 0xC0000000) ? shamem_read(x) : \
+        ((((int)(x)) & 0xF0000000) == 0xE0000000) ? (int)0xDEADBEAF : \
+        ((((int)(x)) & 0xF0000000) == 0x70000000) ? (int)0xDEADBEAF : \
+        ((((int)(x)) & 0xF0000000) == 0x80000000) ? (int)0xDEADBEAF : \
         *(int*)(x) \
 )
 

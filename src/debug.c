@@ -12,6 +12,8 @@
 #include "lens.h"
 //#include "lua.h"
 
+//~ #define CONFIG_HEXDUMP
+
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
@@ -30,47 +32,6 @@ void display_off();
 void display_off_force();
 
 void fake_halfshutter_step();
-
-
-//~ CONFIG_INT("halfshutter.fake", fake_halfshutter, 0);
-
-//////////////////////////////////////////////////////////
-// debug manager enable/disable
-//////////////////////////////////////////////////////////
-
-CONFIG_INT("dm.enable", dm_enable, 0);
-
-static void dm_update()
-{
-    if (dm_enable) dmstart();
-    else dmstop();
-}
-
-static void
-dm_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Debug logging  : %s",
-        dm_enable ? "ON, Q=dump" : "OFF,Q=dump"
-    );
-}
-
-static void dm_toggle(void* priv)
-{
-    dm_enable = !dm_enable;
-    dm_update();
-}
-//////////////////////////////////////////////////////////
-
-//~ extern void bootdisk_disable();
-
 
 void take_screenshot( void * priv )
 {
@@ -333,10 +294,33 @@ void ChangeHDMIOutputSizeToFULLHD()
     prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 }
 
+int video_mode[5];
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+    bmp_printf(FONT_LARGE, 10, 10, "%x %x %x %x %x ", buf[0], buf[1], buf[2], buf[3], buf[4]);
+	memcpy(video_mode, buf, 20);
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
+{
+    bmp_printf(FONT_LARGE, 10, 100, "%x ", buf[0]);
+	return prop_cleanup(token, property);
+}
+
+
 void run_test()
 {
     msleep(2000);
-    NotifyBox(3000, "%x ", shamem_read(0xC0F06014));
+
+    //~ LVAE_ISO_MIN = 96;
+    *(uint8_t*)(0x264e0+0x2a) = 96;
+    //~ *(uint8_t*)(0x264e0+0x30) = 104;
+    //~ *(uint8_t*)(0x264e0+0x31) = 104;
+    //~ call("aewb_enableae", 0);
+    beep();
+
+    //~ NotifyBox(3000, "%x ", MEM(0x2655C));
     //~ lv_path_struct.Z = 0x50000;
     //~ beep();
     //~ int ans = FIO_RenameFile("B:/README", "B:/FOO.BAR");
@@ -1079,10 +1063,12 @@ PROP_HANDLER(PROP_BV)
     return prop_cleanup(token, property);
 }
 
-//~ CONFIG_INT("hexdump", hexdump_addr, 0x4FF8);
+#ifdef CONFIG_HEXDUMP
 
-int hexdump_addr = 0x4FF8;
-int hexdump_digit_pos = 0; // 0...7
+CONFIG_INT("hexdump", hexdump_addr, 0xC0F08000);
+
+int hexdump_enabled = 0;
+int hexdump_digit_pos = 0; // 0...7, 8=all
 
 static void
 hexdump_print(
@@ -1102,38 +1088,146 @@ hexdump_print(
 
     fnt = FONT(fnt, COLOR_WHITE, COLOR_RED);
 
+    if (hexdump_digit_pos < 8)
+        bmp_printf(
+            fnt,
+            x + font_large.width * (17 - hexdump_digit_pos), y,
+            "%x", 
+            (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF
+        );
+}
+
+static void
+hexdump_print_value_hex(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
     bmp_printf(
-        fnt,
-        x + font_large.width * (17 - hexdump_digit_pos), y,
-        "%x", 
-        (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Val hex32 : %x", 
+        MEMX(hexdump_addr)
     );
+}
+
+
+static void
+hexdump_print_value_int32(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Val int32 : %d", 
+        MEMX(hexdump_addr)
+    );
+}
+
+static void
+hexdump_print_value_int16(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    int value = MEMX(hexdump_addr);
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Val int16 : %d %d", 
+        value & 0xFFFF, (value>>16) & 0xFFFF
+    );
+}
+
+static void
+hexdump_print_value_int8(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    int value = MEMX(hexdump_addr);
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Val int8  : %d %d %d %d", 
+        (int8_t)( value      & 0xFF),
+        (int8_t)((value>>8 ) & 0xFF),
+        (int8_t)((value>>16) & 0xFF),
+        (int8_t)((value>>24) & 0xFF)
+    );
+}
+
+static void
+hexdump_print_value_str(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    if (hexdump_addr & 0xF0000000) return;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Val string: %s",
+        (char*)hexdump_addr
+    );
+}
+
+static void
+hexdump_toggle_value_int32(void * priv, int delta)
+{
+    MEM(hexdump_addr) += delta;
+}
+
+static void
+hexdump_toggle_value_int16(void * priv, int delta)
+{
+    (*(int16_t*)(hexdump_addr+2)) += delta;
 }
 
 void hexdump_digit_toggle(void* priv, int dir)
 {
-    int digit = (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF;
-    digit = mod(digit + dir*(hexdump_digit_pos?1:4), 16);
-    hexdump_addr &= ~(0xF << (hexdump_digit_pos * 4));
-    hexdump_addr |= (digit << (hexdump_digit_pos * 4));
+    if (hexdump_digit_pos < 8)
+    {
+        int digit = (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF;
+        digit = mod(digit + dir*(hexdump_digit_pos?1:4), 16);
+        hexdump_addr &= ~(0xF << (hexdump_digit_pos * 4));
+        hexdump_addr |= (digit << (hexdump_digit_pos * 4));
+    }
+    else
+    {
+        hexdump_addr += dir * 4;
+    }
 }
 
 void hexdump_digit_pos_toggle(void* priv, int dir)
 {
-    hexdump_digit_pos = mod(hexdump_digit_pos + 1, 8);
+    hexdump_digit_pos = mod(hexdump_digit_pos + 1, 9);
 }
 
 int hexdump_prev = 0;
 void hexdump_deref(void* priv, int dir)
 {
     hexdump_prev = hexdump_addr;
-    hexdump_addr = MEM(hexdump_addr);
+    hexdump_addr = MEMX(hexdump_addr);
 }
 
 void hexdump_back(void* priv, int dir)
 {
     hexdump_addr = hexdump_prev;
 }
+#endif
 
 int x = 0;
 static void
@@ -1157,8 +1251,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         
         //~ struct tm now;
         //~ LoadCalendarFromRTC(&now);
-        bmp_hexdump(FONT_SMALL, 0, 200, MEM(MEM(0x4ff8+8)+0x34), 32*20);
-        //~ bmp_hexdump(FONT_SMALL, 0, 100, hexdump_addr, 32*30);
+
+
+#ifdef CONFIG_HEXDUMP
+        if (hexdump_enabled)
+            bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
+#endif
         
         //~ if (recording == 2)
             //~ void* x = get_lvae_info();
@@ -1552,16 +1650,59 @@ static void CR2toAVI(void* priv, int delta)
 }
 
 struct menu_entry debug_menus[] = {
+#ifdef CONFIG_HEXDUMP
     {
-        .name = "HexDump",
-        .priv = &hexdump_addr,
-        .select = hexdump_digit_toggle,
-        .select_auto = hexdump_digit_pos_toggle,
-        .select_reverse = hexdump_deref,
-        .display = hexdump_print,
-        .help = "Change digit [SET], change digit pos [Q], ptr deref [PLAY]"
+        .name = "Memory Browser",
+        .priv = &hexdump_enabled,
+        .max = 1,
+        .help = "Display memory contents in real-time (hexdump).",
+        .children =  (struct menu_entry[]) {
+            {
+                .priv = &hexdump_addr,
+                .select = hexdump_digit_toggle,
+                .select_auto = hexdump_digit_pos_toggle,
+                .display = hexdump_print,
+                .help = "Address to be analyzed"
+            },
+            {
+                .name = "Edit digit",
+                .priv = &hexdump_digit_pos,
+                .max = 8,
+                .help = "Choose which digit to edit (0-7) or the entire nuber (8)."
+            },
+            {
+                .name = "Pointer dereference",
+                .select = hexdump_deref,
+                .select_reverse = hexdump_back,
+                .help = "Changes address to *(int*)addr [SET] or goes back [PLAY]."
+            },
+            {
+                .display = hexdump_print_value_hex,
+                .select = hexdump_toggle_value_int32,
+                .help = "Value as hex."
+            },
+            {
+                .display = hexdump_print_value_int32,
+                .select = hexdump_toggle_value_int32,
+                .help = "Value as int32."
+            },
+            {
+                .display = hexdump_print_value_int16,
+                .select = hexdump_toggle_value_int16,
+                .help = "Value as 2 x int16. Toggle: changes second value."
+            },
+            {
+                .display = hexdump_print_value_int8,
+                .help = "Value as 4 x int8."
+            },
+            {
+                .display = hexdump_print_value_str,
+                .help = "Value as string."
+            },
+            MENU_EOL
+        },
     },
-
+#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
         .name        = "Rename CR2 to AVI",
@@ -1594,14 +1735,6 @@ struct menu_entry debug_menus[] = {
         .select        = dlg_test,
         .help = "Dialog templates (up/dn) and color palettes (left/right)"
     },*/
-    {
-        .name = "Debug logging",
-        .priv = &dm_enable,
-        .select = dm_toggle, 
-        .select_auto        = (void*) dumpf,
-        .display    = dm_display,
-        .help = "While ON, debug messages are saved. [Q] => LOGnnn.LOG."
-    },
     {
         .name        = "Dump ROM and RAM",
         .select        = dump_rom,
@@ -1875,8 +2008,6 @@ debug_init_stuff( void )
 
     //~ dm_set_store_level( 255, 0);
     //~ dm_set_print_level( 255, 0);
-
-    dm_update();
     
     /*
     DEBUG();
