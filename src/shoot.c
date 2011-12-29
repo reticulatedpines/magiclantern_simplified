@@ -4260,13 +4260,10 @@ void shoot_init()
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
     menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
-    // to be reworked in a clean way
     extern struct menu_entry expo_tweak_menus[];
     extern struct menu_entry expo_override_menus[];
-    menu_add( "Expo", &expo_tweak_menus[1], 1 );
-    menu_add( "Expo", &expo_override_menus[0], 1 );
-    menu_add( "Expo", &expo_tweak_menus[0], 1 );
-    menu_add( "Expo", &expo_override_menus[1], 1 );
+    menu_add( "Expo", expo_tweak_menus, 1 );
+    menu_add( "Expo", expo_override_menus, 3 );
 }
 
 INIT_FUNC("shoot", shoot_init);

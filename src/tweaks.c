@@ -938,8 +938,6 @@ tweak_task( void* unused)
         dofp_update();
 
         clear_lv_affframe_if_dirty();
-
-        update_disp_gain_autoiso();
         
         extern unsigned disp_profiles_0;
         if (FLASH_BTN_MOVIE_MODE)
@@ -1128,102 +1126,6 @@ static void night_vision_print(
 }
 */
 
-void update_disp_gain_autoiso()
-{
-    static int auto_iso_w_fixed_iso = 0;
-
-    if (is_movie_mode() && !CONTROL_BV && ae_mode_movie) // movie mode with manual ISO
-    {
-        if (LVAE_DISP_GAIN && liveview_display_idle() && (!get_halfshutter_pressed() || recording)) // needs auto iso to apply display gain
-        {
-            int iso = lens_info.iso;
-            int riso = lens_info.raw_iso;
-            if (riso && !LVAE_MOV_M_CTRL && !auto_iso_w_fixed_iso)
-            {
-                LVAE_MOV_M_CTRL = 1;
-                LVAE_ISO_MIN = riso;  // but force one single value for ISO
-                auto_iso_w_fixed_iso = riso;
-                lens_set_rawiso(0); // force iso auto => to enable display gain
-                lensinfo_set_iso(riso);
-            }
-        }
-        else
-        {
-            if (auto_iso_w_fixed_iso && LVAE_MOV_M_CTRL) // no more display gain, go back to manual iso
-            {
-                lens_set_rawiso(lens_info.raw_iso ? lens_info.raw_iso : auto_iso_w_fixed_iso);
-                auto_iso_w_fixed_iso = LVAE_MOV_M_CTRL = 0;
-                LVAE_ISO_MIN = 72;
-            }
-        }
-    }
-}
-void set_display_gain(int display_gain)
-{
-    if (CONTROL_BV) CONTROL_BV_ZERO = display_gain;
-    call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
-}
-
-// 1024 = 0 EV
-// +: off, +1EV, +2EV, ... , +6EV, -3EV, -2EV, -1EV, off
-// -: reverse
-void display_gain_toggle(void* priv, int dir)
-{
-    int d = LVAE_DISP_GAIN;
-    int dg = d;
-    if (!d) d = 1024;
-     
-    if (dir > 0)
-    {
-        dg = d * 2;
-        if (dg > 65536) dg = 128;
-    }
-    else if (dir < 0)
-    {
-        if (d <= 128) dg = 65536;
-        else dg = d / 2; 
-    }
-    else dg = 0;
-
-    if (dg == 1024) dg = 0;
-
-    set_display_gain(dg);
-}
-
-static void display_gain_reset(void* priv, int delta)
-{
-    display_gain_toggle(0,0);
-}
-
-int gain_to_ev(int gain)
-{
-    if (gain == 0) return 0;
-    return (int) roundf(log2f(gain));
-}
-
-static void display_gain_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    int gain_ev = 0;
-    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV Disp.Gain: %s%d EV",
-        gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
-        ABS(gain_ev)
-    );
-    if (LVAE_DISP_GAIN)
-    {
-        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
-        else menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
-    }
-    else menu_draw_icon(x, y, MNI_OFF, 0);
-}
 
 /*
 PROP_INT(PROP_ELECTRIC_SHUTTER, eshutter);
@@ -1486,15 +1388,6 @@ void screenshot_start();
 void take_screenshot();
 
 struct menu_entry expo_tweak_menus[] = {
-    {
-        .name = "LV Disp.Gain (NightVision)", 
-        .priv = &LVAE_DISP_GAIN,
-        .select = display_gain_toggle, 
-        .select_auto = display_gain_reset,
-        .display = display_gain_print, 
-        .help = "LV digital display gain. (+) night vision; (-) low noise.",
-        .show_liveview = 1,
-    },
     {
         .name = "Exposure Simulation",
         .priv = &expsim_setting,
