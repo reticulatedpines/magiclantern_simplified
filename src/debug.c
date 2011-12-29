@@ -294,54 +294,8 @@ void ChangeHDMIOutputSizeToFULLHD()
     prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 }
 
-int video_mode[5];
-PROP_HANDLER(PROP_VIDEO_MODE)
-{
-    bmp_printf(FONT_LARGE, 10, 10, "%x %x %x %x %x ", buf[0], buf[1], buf[2], buf[3], buf[4]);
-	memcpy(video_mode, buf, 20);
-	return prop_cleanup(token, property);
-}
-
-PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
-{
-    bmp_printf(FONT_LARGE, 10, 100, "%x ", buf[0]);
-	return prop_cleanup(token, property);
-}
-
-
 void run_test()
 {
-    msleep(2000);
-
-    //~ LVAE_ISO_MIN = 96;
-    *(uint8_t*)(0x264e0+0x2a) = 96;
-    //~ *(uint8_t*)(0x264e0+0x30) = 104;
-    //~ *(uint8_t*)(0x264e0+0x31) = 104;
-    //~ call("aewb_enableae", 0);
-    beep();
-
-    //~ NotifyBox(3000, "%x ", MEM(0x2655C));
-    //~ lv_path_struct.Z = 0x50000;
-    //~ beep();
-    //~ int ans = FIO_RenameFile("B:/README", "B:/FOO.BAR");
-    //~ NotifyBox(1000, "%x ", ans);
-    //~ GUI_SetMovieSize_a(2);
-    //~ struct gui_task * current = gui_task_list.current;
-    //~ struct dialog * dialog = current->priv;
-    //~ dialog->handler = spy_handler;
-    //~ reloc_liveviewapp_install();
-    //~ beep();
-
-    //~ ReverseDraftVram();
-    //~ NotifyBox(2000, "%x", MEM(MEM(0x267C)+4)+0x10);
-    //~ MEM(0x288D8) = 1;
-    //~ beep();
-    //~ RedrawDisplay();
-    //~ bmp_idle_copy(1);
-    //~ prop_dump();
-    //~ lens_take_picture(64, 0);
-    //~ bulb_take_pic(250);
-    //~ trans_test();
 }
 
 void xx_test(void* priv, int delta)
@@ -1054,14 +1008,6 @@ void show_electronic_level()
 
 #endif
 
-int bv[10];
-int bvl = 0;
-PROP_HANDLER(PROP_BV)
-{
-    bvl = len;
-    memcpy(bv, buf, 10*4);
-    return prop_cleanup(token, property);
-}
 
 #ifdef CONFIG_HEXDUMP
 
@@ -1437,8 +1383,14 @@ void flashlight_lcd_task(void *priv)
 static void flashlight_frontled(void* priv, int delta)
 {
     gui_stop_menu();
-    if (is_movie_mode()) task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
-    else task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
+    #ifdef CONFIG_60D
+    if (1) 
+    #else
+    if (is_movie_mode()) 
+    #endif
+        task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
+    else
+        task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
 }
 
 static void flashlight_lcd(void* priv, int delta)
@@ -1525,7 +1477,7 @@ static void kill_canon_gui_print(
 #endif
 
 
-#if 1
+#if 0
 CONFIG_INT("prop.i", prop_i, 0);
 CONFIG_INT("prop.j", prop_j, 0);
 CONFIG_INT("prop.k", prop_k, 0);

@@ -258,8 +258,8 @@
 #define PROP_VIDEO_MODE 0x80000039 
 // buf[0]: 8 if crop else 0
 // buf[1]: 0 if full hd, 1 if 720p, 2 if 680p
-// buf[2]: 0x19 if 25fps, 18 if 24fps, 32 if 50fps, maybe other values if I change region
-// buf[3]: always c
+// buf[2]: fps
+// buf[3]: fps/2?
 #endif
 
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
@@ -370,8 +370,8 @@
 #define PROP_BV 0x80050010
 #define PROP_LV_BV 0x80050008
 #define PROP_STROBO_CHARGE_INFO_MAYBE 0x8005000C
-#define PROP_FRAMERATE_SOMETHING 0x8005001C
 
+#define PROP_ONESHOT_RAW 0x80000037
 
 /** Properties */
 extern void

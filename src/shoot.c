@@ -39,10 +39,11 @@ void movie_end();
 void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
 void intervalometer_stop();
-void bulb_ramping_showinfo();
 void get_out_of_play_mode();
 void wait_till_next_second();
 void zoom_sharpen_step();
+
+static void bulb_ramping_showinfo();
 
 bool display_idle()
 {
@@ -55,9 +56,9 @@ volatile int bulb_shutter_value = 0;
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 CONFIG_INT("hdr.frames", hdr_steps, 3);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
-CONFIG_INT("hdr.delay", hdr_delay, 1);
-CONFIG_INT("hdr.seq", hdr_sequence, 1);
-CONFIG_INT("hdr.iso", hdr_iso, 0);
+static CONFIG_INT("hdr.delay", hdr_delay, 1);
+static CONFIG_INT("hdr.seq", hdr_sequence, 1);
+static CONFIG_INT("hdr.iso", hdr_iso, 0);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
@@ -113,8 +114,8 @@ PROP_HANDLER(PROP_GUI_STATE)
     return prop_cleanup(token, property);
 }
 
-int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
-int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
+static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
+//~ static int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -373,7 +374,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 int afframe_needs_erasing = 0;
 
-int afframe[26];
+static int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     
     if (afframe_needs_erasing)
@@ -392,7 +393,7 @@ void get_afframe_pos(int W, int H, int* x, int* y)
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
-int face_zoom_request = 0;
+static int face_zoom_request = 0;
 
 #if 0
 int hdr_intercept = 1;
@@ -423,7 +424,7 @@ void halfshutter_action(int v)
 }*/
 #endif
 
-int hs = 0;
+//~ static int hs = 0;
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     int v = *(int*)buf;
     if (zoom_enable_face)
@@ -539,18 +540,6 @@ sweep_lv()
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }*/
 
-void vsync(volatile int* addr)
-{
-    int i;
-    int v0 = *addr;
-    for (i = 0; i < 100; i++)
-    {
-        if (*addr != v0) return;
-        msleep(MIN_MSLEEP);
-    }
-    bmp_printf(FONT_MED, 30, 100, "vsync failed");
-}
-
 static char* silent_pic_get_name()
 {
     static char imgname[100];
@@ -590,7 +579,7 @@ static char* silent_pic_get_name()
     return imgname;
 }
 
-int ms100_clock = 0;
+static int ms100_clock = 0;
 static void
 ms100_clock_task( void* unused )
 {
@@ -603,8 +592,8 @@ ms100_clock_task( void* unused )
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
 int expfuse_running = 0;
-int expfuse_num_images = 0;
-struct semaphore * set_maindial_sem = 0;
+static int expfuse_num_images = 0;
+static struct semaphore * set_maindial_sem = 0;
 
 int compute_signature(int* start, int num)
 {
@@ -618,7 +607,7 @@ int compute_signature(int* start, int num)
     return c;
 }
 
-void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
+static void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
 {
     int16_t* accs = acc;
     uint16_t* accu = acc;
@@ -632,7 +621,7 @@ void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
     }
 }
 
-void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den)
+static void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den)
 {
     int8_t* dsts = dst;
     uint8_t* dstu = dst;
@@ -652,13 +641,13 @@ void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den
 // sprintf("0x%02x, ",f(x) * 100)
 static uint8_t gauss_lut[] = {0x2d, 0x2e, 0x2e, 0x2f, 0x30, 0x30, 0x31, 0x31, 0x32, 0x32, 0x33, 0x34, 0x34, 0x35, 0x35, 0x36, 0x37, 0x37, 0x38, 0x38, 0x39, 0x39, 0x3a, 0x3b, 0x3b, 0x3c, 0x3c, 0x3d, 0x3e, 0x3e, 0x3f, 0x3f, 0x40, 0x41, 0x41, 0x42, 0x42, 0x43, 0x44, 0x44, 0x45, 0x45, 0x46, 0x46, 0x47, 0x48, 0x48, 0x49, 0x49, 0x4a, 0x4a, 0x4b, 0x4c, 0x4c, 0x4d, 0x4d, 0x4e, 0x4e, 0x4f, 0x4f, 0x50, 0x50, 0x51, 0x51, 0x52, 0x52, 0x53, 0x53, 0x54, 0x54, 0x55, 0x55, 0x56, 0x56, 0x57, 0x57, 0x58, 0x58, 0x58, 0x59, 0x59, 0x5a, 0x5a, 0x5a, 0x5b, 0x5b, 0x5c, 0x5c, 0x5c, 0x5d, 0x5d, 0x5d, 0x5e, 0x5e, 0x5e, 0x5f, 0x5f, 0x5f, 0x5f, 0x60, 0x60, 0x60, 0x60, 0x61, 0x61, 0x61, 0x61, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x61, 0x61, 0x61, 0x61, 0x60, 0x60, 0x60, 0x60, 0x5f, 0x5f, 0x5f, 0x5f, 0x5e, 0x5e, 0x5e, 0x5d, 0x5d, 0x5d, 0x5c, 0x5c, 0x5c, 0x5b, 0x5b, 0x5a, 0x5a, 0x5a, 0x59, 0x59, 0x58, 0x58, 0x58, 0x57, 0x57, 0x56, 0x56, 0x55, 0x55, 0x54, 0x54, 0x53, 0x53, 0x52, 0x52, 0x51, 0x51, 0x50, 0x50, 0x4f, 0x4f, 0x4e, 0x4e, 0x4d, 0x4d, 0x4c, 0x4c, 0x4b, 0x4a, 0x4a, 0x49, 0x49, 0x48, 0x48, 0x47, 0x46, 0x46, 0x45, 0x45, 0x44, 0x44, 0x43, 0x42, 0x42, 0x41, 0x41, 0x40, 0x3f, 0x3f, 0x3e, 0x3e, 0x3d, 0x3c, 0x3c, 0x3b, 0x3b, 0x3a, 0x39, 0x39, 0x38, 0x38, 0x37, 0x37, 0x36, 0x35, 0x35, 0x34, 0x34, 0x33, 0x32, 0x32, 0x31, 0x31, 0x30, 0x30, 0x2f, 0x2e, 0x2e, 0x2d};
 
-void weighted_mean_yuv_init_acc32bit_ws16bit(void* acc, void* weightsum, int numpix)
+static void weighted_mean_yuv_init_acc32bit_ws16bit(void* acc, void* weightsum, int numpix)
 {
     bzero32(acc, numpix*8);
     bzero32(weightsum, numpix*4);
 }
 
-void weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(void* acc, void* src, void* weightsum, int numpix)
+static void weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(void* acc, void* src, void* weightsum, int numpix)
 {
     int32_t* accs = acc;
     uint32_t* accu = acc;
@@ -675,7 +664,7 @@ void weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(void* acc, void* src, void* 
     }
 }
 
-void weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(void* dst, void* src, void* weightsum, int numpix)
+static void weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(void* dst, void* src, void* weightsum, int numpix)
 {
     int8_t* dsts = dst;
     uint8_t* dstu = dst;
@@ -773,7 +762,7 @@ void expfuse_preview_update(int dir)
 }
 
 // that's extremely inefficient
-int find_422(int * index, char* fn)
+static int find_422(int * index, char* fn)
 {
     struct fio_file file;
     struct fio_dirent * dirent = 0;
@@ -943,7 +932,7 @@ silent_pic_ensure_movie_mode()
     return 0;
 }
 
-void stop_recording_and_delete_movie()
+static void stop_recording_and_delete_movie()
 {
     if (recording)
     {
@@ -1109,6 +1098,19 @@ silent_pic_take_sweep(int interactive)
     bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 
 }
+
+static void vsync(volatile int* addr)
+{
+    int i;
+    int v0 = *addr;
+    for (i = 0; i < 100; i++)
+    {
+        if (*addr != v0) return;
+        msleep(MIN_MSLEEP);
+    }
+    bmp_printf(FONT_MED, 30, 100, "vsync failed");
+}
+
 
 static void
 silent_pic_take_slitscan(int interactive)
@@ -1358,7 +1360,7 @@ static void iso_auto_quick()
     lens_set_rawiso(new_iso);
 }
 
-int iso_auto_flag = 0;
+static int iso_auto_flag = 0;
 static void iso_auto()
 {
     if (lv) iso_auto_flag = 1; // it takes some time, so it's better to do it in another task
@@ -1382,7 +1384,7 @@ void get_under_and_over_exposure_autothr(int* under, int* over)
     }
 }
 
-int crit_iso(int iso_index)
+static int crit_iso(int iso_index)
 {
     if (!lv) return 0;
 
@@ -1467,7 +1469,7 @@ static void shutter_auto_quick()
     lens_set_rawshutter(newshutter);                       // set new shutter value
 }
 
-int shutter_auto_flag = 0;
+static int shutter_auto_flag = 0;
 static void shutter_auto()
 {
     if (lv) shutter_auto_flag = 1; // it takes some time, so it's better to do it in another task
@@ -1478,7 +1480,7 @@ static void shutter_auto()
     }
 }
 
-int crit_shutter(int shutter_index)
+static int crit_shutter(int shutter_index)
 {
     if (!lv) return 0;
 
@@ -1593,8 +1595,8 @@ kelvin_display( void * priv, int x, int y, int selected )
     bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
 
-int kelvin_auto_flag = 0;
-int wbs_gm_auto_flag = 0;
+static int kelvin_auto_flag = 0;
+static int wbs_gm_auto_flag = 0;
 static void kelvin_auto()
 {
     if (lv) kelvin_auto_flag = 1;
@@ -1613,7 +1615,7 @@ static void wbs_gm_auto()
     }
 }
 
-int crit_kelvin(int k)
+static int crit_kelvin(int k)
 {
     if (!lv) return 0;
 
@@ -1634,7 +1636,7 @@ int crit_kelvin(int k)
     return B - R;
 }
 
-int crit_wbs_gm(int k)
+static int crit_wbs_gm(int k)
 {
     if (!lv) return 0;
 
@@ -1818,7 +1820,7 @@ color_tone_display( void * priv, int x, int y, int selected )
 
 
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
-int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
+static int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
 
 const char* get_picstyle_name(int raw_picstyle)
 {
@@ -1927,7 +1929,7 @@ picstyle_rec_toggle( void * priv, int delta )
     picstyle_rec = mod(picstyle_rec + delta, NUM_PICSTYLES + 1);
 }
 
-void redraw_after_task(int msec)
+static void redraw_after_task(int msec)
 {
     msleep(msec);
     redraw();
@@ -1938,7 +1940,7 @@ void redraw_after(int msec)
     task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
 }
 
-void rec_picstyle_change(int rec)
+static void rec_picstyle_change(int rec)
 {
     static int prev = -1;
 
@@ -2017,7 +2019,7 @@ flash_ae_display( void * priv, int x, int y, int selected )
 }
 
 // 0 = off, 1 = alo, 2 = htp
-int get_ladj()
+static int get_ladj()
 {
     int alo = get_alo();
     if (get_htp()) return 4;
@@ -2167,7 +2169,7 @@ static void zoom_toggle(void* priv, int delta)
     }
 }
 
-void zoom_lv_step()
+static void zoom_lv_step()
 {
     if (!lv) return;
     if (recording) return;
@@ -2228,13 +2230,9 @@ zoom_sharpen_display( void * priv, int x, int y, int selected )
     );
 }
 
-static struct semaphore * zoom_sem;
-
-// [guess] should be thread safe, since it's called from more property handlers
 void zoom_sharpen_step()
 {
     if (!zoom_sharpen) return;
-    take_semaphore(zoom_sem, 0);
 
     static int co = 100;
     static int sa = 100;
@@ -2262,7 +2260,6 @@ void zoom_sharpen_step()
             co = sa = sh = 100;
         }
     }
-    give_semaphore(zoom_sem);
 }
 
 static void 
@@ -2936,7 +2933,7 @@ static void compute_exposure_for_next_shot()
     NotifyBoxHide();
 }
 
-void bulb_ramping_showinfo()
+static void bulb_ramping_showinfo()
 {
     int s = bulb_shutter_value;
     bmp_printf(FONT_MED, 50, 350, 
@@ -3665,17 +3662,17 @@ void hdr_shot(int skip0, int wait)
     }
 }
 
-int remote_shot_flag = 0;
+static int remote_shot_flag = 0;
 void schedule_remote_shot() { remote_shot_flag = 1; }
 
-int mlu_lock_flag = 0;
+static int mlu_lock_flag = 0;
 void schedule_mlu_lock() { mlu_lock_flag = 1; }
 
-int movie_start_flag = 0;
+static int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
 int is_movie_start_scheduled() { return movie_start_flag; }
 
-int movie_end_flag = 0;
+static int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
 void get_out_of_play_mode(int extra_wait)
@@ -4255,7 +4252,6 @@ TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x4000 );
 void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
-    zoom_sem = create_named_semaphore("zoom_sem", 1);
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
     menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );

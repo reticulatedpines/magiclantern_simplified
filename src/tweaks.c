@@ -1419,11 +1419,9 @@ static struct menu_entry display_menus[] = {
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
         .name = "Display: Normal/Reverse/Mirror",
-        .priv       = "Display: Normal/Reverse/Mirror",
         .select     = NormalDisplay,
         .select_reverse = ReverseDisplay,
         .select_auto = MirrorDisplay,
-        .display    = menu_print,
         .help = "Display image: Normal [SET] / Reverse [PLAY] / Mirror [Q]"
     },
 #endif
@@ -1432,7 +1430,6 @@ static struct menu_entry display_menus[] = {
         .priv       = "Screenshot (10 s)",
         .select     = screenshot_start,
         .select_auto = take_screenshot,
-        .display    = menu_print,
         .help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
     },
 #ifdef CONFIG_KILL_FLICKER
