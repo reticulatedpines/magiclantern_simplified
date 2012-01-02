@@ -164,6 +164,12 @@ bmp_puts(
             continue;
         }
 
+        if( c == '\b' )
+        {
+            (*x) -= font->width;
+            continue;
+        }
+
         _draw_char( fontspec, row, c );
         row += font->width;
         (*x) += font->width;
@@ -1092,6 +1098,21 @@ void bmp_dim()
             b[BM(j,i+1)/4] &= 0xFF00FF00;
             b[BM(j,i  )/4] |= 0x02000200;
             b[BM(j,i+1)/4] |= 0x00020002;
+        }
+    }
+}
+
+void bmp_make_semitransparent()
+{
+    uint8_t* b = (uint8_t *)bmp_vram();
+    if (!b) return;
+    int i,j;
+    for (i = 0; i < vram_bm.height; i ++)
+    {
+        for (j = 0; j < vram_bm.width; j ++)
+        {
+            if (b[BM(j,i)] == COLOR_BLACK || b[BM(j,i)] == 40)
+                b[BM(j,i)] = COLOR_BG;
         }
     }
 }
