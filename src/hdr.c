@@ -164,7 +164,7 @@ struct menu_entry hdr_menu[] = {
         .min = 0,
         .max = 5*8,
         .select = hdr_ev_toggle,
-        .select_auto = reset_hdr,
+        //~ .select_auto = reset_hdr,
         .display = hdr_print,
         .help = "Alternates ISO between frames. Flickers while recording.",
     }

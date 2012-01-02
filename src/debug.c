@@ -119,7 +119,7 @@ config_autosave_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Config AutoSave: %s", 
+        "Config AutoSave  : %s", 
         config_autosave ? "ON" : "OFF"
     );
 }
@@ -1612,7 +1612,7 @@ struct menu_entry debug_menus[] = {
             {
                 .priv = &hexdump_addr,
                 .select = hexdump_digit_toggle,
-                .select_auto = hexdump_digit_pos_toggle,
+                //~ .select_auto = hexdump_digit_pos_toggle,
                 .display = hexdump_print,
                 .help = "Address to be analyzed"
             },
@@ -1664,9 +1664,9 @@ struct menu_entry debug_menus[] = {
 #endif
     {
         .name        = "Flashlight",
-        .select        = flashlight_frontled,
-        .select_auto = flashlight_lcd,
-        .help = "Turn on the front LED [SET] or make display bright [Q]."
+        .select        = flashlight_lcd,
+        .select_reverse = flashlight_frontled,
+        .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },
 #if CONFIG_DEBUGMSG
     {
@@ -2421,8 +2421,10 @@ void HijackFormatDialogBox_main()
 void config_menu_init()
 {
     extern struct menu_entry livev_cfg_menus[];
+    //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Config", livev_cfg_menus,  1);
+    //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }
 

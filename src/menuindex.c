@@ -45,6 +45,10 @@ struct menu_entry help_menus[] = {
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
+        .name = "Zoom In    : Preview LiveView",
+        .essential = FOR_MOVIE | FOR_PHOTO,
+    },
+    {
         .name = "Key shortcuts",
         .priv = "Key shortcuts",
         .select = menu_help_go_to_label,

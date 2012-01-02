@@ -71,8 +71,8 @@ static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
 
 static int fps_override = 0;
-int shutter_override_mode = 0;
-static void reset_tv(void* priv, int delta) { shutter_override_mode = 0; }
+CONFIG_INT("shutter.override", shutter_override_enabled, 0);
+CONFIG_INT("shutter.override.mode", shutter_override_mode, 0);
 
 static void shutter_set();
 
@@ -135,7 +135,7 @@ static void cartridge_AfStopPath(void *this)
 static void update_hard_expo_override()
 {
     extern int hdr_ev;
-    if (shutter_override_mode || hdr_ev)
+    if (shutter_override_enabled || hdr_ev)
     {
         // cartridge call table is sometimes overriden by Canon firmware
         // so this function polls the status periodically (and updates it if needed)
@@ -172,15 +172,15 @@ int is_hard_exposure_override_active()
 
 int is_hard_shutter_override_active()
 {
-    return shutter_override_mode && is_hard_exposure_override_active();
+    return shutter_override_enabled && is_hard_exposure_override_active();
 }
 
 int get_shutter_override_degrees_x10()
 {
     // 0, 360, 270, 180, 90, 60, 30, 15...
-    if (shutter_override_mode == 0) return 0;
-    if (shutter_override_mode <= 4) return (5-shutter_override_mode) * 900;
-    return 600 >> (shutter_override_mode - 5);
+    if (!shutter_override_enabled) return 0;
+    if (shutter_override_mode < 4) return (4-shutter_override_mode) * 900;
+    return 600 >> (shutter_override_mode - 4);
 }
 
 static int get_shutter_override_degrees()
@@ -244,8 +244,8 @@ fps_print(
     //~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
 }
 
-static void
-shutter_print(
+void
+shutter_override_print(
     void *          priv,
     int         x,
     int         y,
@@ -254,24 +254,21 @@ shutter_print(
 {
     int current_shutter = get_shutter_override_reciprocal_x1000();
     int d = get_shutter_override_degrees_x10();
-    
-    if (shutter_override_mode)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Tv Override   : %d.%ddeg 1/%d",
-            d/10, d%10,
-            current_shutter/1000
-        );
-    else
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Tv Override   : OFF"
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    }
+
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Shutter(MOV): %d.%ddeg 1/%d",
+        d/10, d%10,
+        (current_shutter+500)/1000
+    );
+
+    menu_draw_icon(x, y, MNI_PERCENT, shutter_override_mode * 100 / 12);
+}
+
+void shutter_override_toggle(void* priv, int delta)
+{
+    shutter_override_mode = mod(shutter_override_mode + delta, 13);
 }
 
 static void fps_change_mode(int mode, int fps)
@@ -376,20 +373,10 @@ struct menu_entry fps_menu[] = {
         .name = "FPS override", 
         .priv = &fps_override,
         .select = set_fps,
-        .select_auto = reset_fps,
+        .select_Q = reset_fps,
         .display = fps_print,
-        .show_liveview = 1,
+        //~ .show_liveview = 1,
         .help = "Changes frame rate. Turn off sound for stable operation!"
-    },
-    {
-        .name = "Tv override", 
-        .priv = &shutter_override_mode,
-        .min = 0,
-        .max = 13,
-        .display = shutter_print,
-        .select_auto = reset_tv,
-        .help = "Overrides shutter speed, in degrees. 1/fps ... 1/50000.",
-        .show_liveview = 1,
     },
 };
 
@@ -420,7 +407,7 @@ void fps_mvr_log(FILE* mvr_logfile)
 {
     int f = fps_get_current_x1000();
     my_fprintf(mvr_logfile, "FPS override   : %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
-    if (shutter_override_mode)
+    if (shutter_override_enabled)
     {
         int d = get_shutter_override_degrees_x10();
         my_fprintf(mvr_logfile, "Tv override    : %d.%d deg\n", d/10, d%10);

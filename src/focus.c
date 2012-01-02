@@ -1209,15 +1209,28 @@ static struct menu_entry focus_menu[] = {
         .priv = &lens_focus_waitflag,
         .display    = focus_delay_display,
         .select     = focus_delay_toggle,
-        .select_auto = menu_binary_toggle, 
-        .help = "Delay between two successive focus commands. [Q]: Wait.",
+        .help = "Delay between two successive focus commands.",
         .essential = FOR_LIVEVIEW,
+        .children =  (struct menu_entry[]) {
+            {
+                .display    = focus_delay_display,
+                .select     = focus_delay_toggle,
+                .help = "Delay between two successive focus commands.",
+            },
+            {         //"Focus StepDelay"
+                .name = "Wait flag      ",
+                .priv = &lens_focus_waitflag,
+                .max = 1,
+                .help = "Wait for 'focus done' signal before sending next command.",
+            },
+            MENU_EOL
+        },
     },
     {
         .name = "Focus End Point",
         .display    = focus_show_a,
         .select     = focus_reset_a,
-        .select_auto = focus_alter_a,
+        .select_Q   = focus_alter_a,
         .select_reverse = focus_alter_a,
         .help = "Press SET to fix here the end point of rack focus."
     },
@@ -1226,7 +1239,7 @@ static struct menu_entry focus_menu[] = {
         .priv       = "Rack focus",
         .display    = rack_focus_print,
         .select     = rack_focus_start_delayed,
-        .select_auto        = rack_focus_start_now,
+        .select_Q   = rack_focus_start_now,
         .select_reverse = rack_focus_start_auto_record,
         .help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
     },

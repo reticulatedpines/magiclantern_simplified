@@ -1011,25 +1011,6 @@ set_on_halfshutter_display(
     );
 }*/
 
-extern int iso_round_only;
-static void
-iso_round_only_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "ISO selection       : %s", 
-        iso_round_only ? "100x, 160x" : "All values"
-    );
-    menu_draw_icon(x, y, iso_round_only ? MNI_ON : MNI_AUTO, 0);
-}
-
-
 CONFIG_INT("swap.menu", swap_menu, 0);
 static void
 swap_menu_display(
@@ -1098,6 +1079,17 @@ display_dont_mirror_display(
         display_dont_mirror ? "Don't allow": "Allow"
     );
 }
+
+void display_orientation_toggle(void* priv, int dir)
+{
+    int o = DISPLAY_ORIENTATION;
+    if (o < 0 || o > 2) return;
+    o = mod(o + dir, 3);
+    if (o == 0) NormalDisplay();
+    else if (o == 1) ReverseDisplay();
+    else MirrorDisplay();
+} 
+
 
 /*
 int night_vision = 0;
@@ -1188,7 +1180,7 @@ struct menu_entry tweak_menus[] = {
         .name = "DOF Preview", 
         .priv = &dofpreview_sticky, 
         .select = menu_binary_toggle, 
-        .select_auto = dofp_lock,
+        //~ .select_auto = dofp_lock,
         .display = dofp_display,
         .help = "Sticky = click DOF to toggle. Or, press [Q] to lock now.",
     },
@@ -1239,13 +1231,6 @@ struct menu_entry tweak_menus[] = {
         .help = "Half-shutter press in dialog boxes => OK (SET) or Cancel."
     },
     #endif
-    {
-        .name = "ISO selection",
-        .priv = &iso_round_only,
-        .display    = iso_round_only_display,
-        .select     = menu_binary_toggle,
-        .help = "You can enable only ISOs which are multiple of 100 and 160."
-    },
     /*{
         .name = "PicSty->DISP preset",
         .priv = &picstyle_disppreset_enabled,
@@ -1385,7 +1370,6 @@ static void upside_down_step()
 }
 
 void screenshot_start();
-void take_screenshot();
 
 struct menu_entry expo_tweak_menus[] = {
     {
@@ -1394,18 +1378,37 @@ struct menu_entry expo_tweak_menus[] = {
         .select = expsim_toggle,
         .display = expsim_display,
         .help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
-        .show_liveview = 1,
+        //~ .show_liveview = 1,
     },
 };
 
 static struct menu_entry display_menus[] = {
     {
+        .name = "Screenshot (10 s)",
+        .select     = screenshot_start,
+        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
+        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
+        #else
+        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
+        #endif
+    },
+    {
         .name = "UpsideDown mode",
         .priv = &menu_upside_down,
         .display = menu_upside_down_print,
         .select = menu_binary_toggle,
-        .help = "Displays all graphics upside-down and flips arrow keys.",
+        .help = "Displays overlay graphics upside-down and flips arrow keys.",
     },
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+    {
+        .name = "Orientation    ",
+        .priv = &DISPLAY_ORIENTATION,
+        .select     = display_orientation_toggle,
+        .max = 2,
+        .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
+        .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
+    },
+#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
         .name = "Auto Mirroring",
@@ -1416,22 +1419,6 @@ static struct menu_entry display_menus[] = {
         .icon_type = IT_DISABLE_SOME_FEATURE,
     },
 #endif
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name = "Display: Normal/Reverse/Mirror",
-        .select     = NormalDisplay,
-        .select_reverse = ReverseDisplay,
-        .select_auto = MirrorDisplay,
-        .help = "Display image: Normal [SET] / Reverse [PLAY] / Mirror [Q]"
-    },
-#endif
-    {
-        .name = "Screenshot (10 s)",
-        .priv       = "Screenshot (10 s)",
-        .select     = screenshot_start,
-        .select_auto = take_screenshot,
-        .help = "Take a screenshot after 10 seconds [SET] or right now [Q].",
-    },
 #ifdef CONFIG_KILL_FLICKER
     {
         .name       = "Kill Canon GUI",

@@ -2017,7 +2017,7 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "DISP profiles  : %d", 
+        "DISP profiles    : %d", 
         disp_profiles_0 + 1
     );
 }
@@ -3323,12 +3323,15 @@ static int idle_countdown_display_dim = 50;
 static int idle_countdown_display_off = 50;
 static int idle_countdown_globaldraw = 50;
 static int idle_countdown_clrscr = 50;
-static int idle_countdown_killflicker = 5;
 static int idle_countdown_display_dim_prev = 50;
 static int idle_countdown_display_off_prev = 50;
 static int idle_countdown_globaldraw_prev = 50;
 static int idle_countdown_clrscr_prev = 50;
+
+#ifdef CONFIG_KILL_FLICKER
+static int idle_countdown_killflicker = 5;
 static int idle_countdown_killflicker_prev = 5;
+#endif
 
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
@@ -3357,7 +3360,9 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
     if (reason == -10 || reason == -11) // focus event (todo: should define constants for those)
         return;
     
+#ifdef CONFIG_KILL_FLICKER
     idle_countdown_killflicker = 10;
+#endif
 }
 
 // called at 10 Hz

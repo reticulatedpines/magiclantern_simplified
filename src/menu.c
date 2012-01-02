@@ -38,12 +38,13 @@ static int menu_hidden;
 static int menu_timeout;
 static bool menu_shown = false;
 static int show_only_selected; // for ISO, kelvin...
-static int edit_mode = 0;
 static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
 static int submenu_mode = 0;
 struct menu * implicit_submenu = 0;
+
+//~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
 static CONFIG_INT("menu.advanced", advanced_mode, 0);
@@ -60,7 +61,6 @@ int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 int get_menu_font_sel() 
 {
     if (recording) return FONT(FONT_LARGE,COLOR_WHITE,12); // dark red
-    else if (edit_mode) return FONT(FONT_LARGE,COLOR_WHITE,0x12);
     else return FONT(FONT_LARGE,COLOR_WHITE,13);
 }
 
@@ -279,7 +279,10 @@ submenu_print(
                 {
                     int v = MEM(entry->priv);
                     int den = entry->unit == UNIT_1_8_EV ? 8 : 10;
-                    STR_APPEND(msg, ":%s%d.%d%s", v < 0 ? "-" : " ", ABS(v)/den, (ABS(v)%den)*10/den,
+                    STR_APPEND(msg, ": %s%d", v < 0 ? "-" : "", ABS(v)/den);
+                    int r = (ABS(v)%den)*10/den;
+                    if (r) STR_APPEND(msg, ".%d", r);
+                    STR_APPEND(msg, "%s",
                         entry->unit == UNIT_1_8_EV ? " EV" :
                         entry->unit == UNIT_PERCENT_x10 ? "%%" : ""
                     );
@@ -292,7 +295,8 @@ submenu_print(
                 }
                 case UNIT_ISO:
                 {
-                    STR_APPEND(msg, ": %d%%", values_iso[raw2index_iso(MEM(entry->priv))]);
+                    if (!MEM(entry->priv)) { STR_APPEND(msg, ": Auto"); }
+                    else { STR_APPEND(msg, ": %d", raw2iso(MEM(entry->priv))); }
                     break;
                 }
                 default:
@@ -905,8 +909,8 @@ menu_entry_select(
     if( !entry )
         return;
 
-    if (entry->show_liveview)
-        menu_show_only_selected();
+    //~ if (entry->show_liveview)
+        //~ menu_show_only_selected();
 
     if(mode == 1)
     {
@@ -924,8 +928,8 @@ menu_entry_select(
 
         */
 
-        if ( entry->select_auto ) entry->select_auto( entry->priv, 1);
-        else { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
+        if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
+        else { submenu_mode = !submenu_mode; show_only_selected = 0; }
 
         //~ else if (entry->select) entry->select( entry->priv, 1);
         //~ else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
@@ -1114,6 +1118,9 @@ menu_redraw()
                     draw_ml_bottombar(0, 1);
                 }
 
+                if (recording)
+                    bmp_make_semitransparent();
+
                 if (double_buffering)
                 {
                     // copy image to main buffer
@@ -1255,7 +1262,6 @@ menu_handler(
         else advanced_mode = !advanced_mode;
         show_only_selected = 0;
         menu_help_active = 0;
-        edit_mode = 0;
         break;
 
     case EVENTID_METERING_START: // If they press the shutter halfway
@@ -1267,8 +1273,8 @@ menu_handler(
         return 1;
     
     case PRESS_ZOOM_IN_BUTTON:
-        edit_mode = !edit_mode;
-        //~ menu_damage = 1;
+        show_only_selected = !show_only_selected;
+        menu_damage = 1;
         menu_help_active = 0;
         break;
 
@@ -1278,7 +1284,6 @@ menu_handler(
     case PRESS_UP_BUTTON:
 #endif
     case ELECTRONIC_SUB_DIAL_LEFT:
-        edit_mode = 0;
         if (menu_help_active) { menu_help_prev_page(); break; }
         menu_entry_move( menu, -1 ); show_only_selected = 0;
         break;
@@ -1289,7 +1294,6 @@ menu_handler(
     case PRESS_DOWN_BUTTON:
 #endif
     case ELECTRONIC_SUB_DIAL_RIGHT:
-        edit_mode = 0;
         if (menu_help_active) { menu_help_next_page(); break; }
         menu_entry_move( menu, 1 ); show_only_selected = 0;
         break;
@@ -1299,11 +1303,11 @@ menu_handler(
 #else
     case PRESS_RIGHT_BUTTON:
 #endif
-        if (!submenu_mode) edit_mode = 0;
         show_only_selected = 0;
     case DIAL_RIGHT:
+        menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
-        if (edit_mode || submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
+        if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
         else { menu_move( menu, 1 ); show_only_selected = 0; }
         break;
 
@@ -1312,12 +1316,11 @@ menu_handler(
 #else
     case PRESS_LEFT_BUTTON:
 #endif
-        if (!submenu_mode) edit_mode = 0;
         show_only_selected = 0;
     case DIAL_LEFT:
-        //~ menu_damage = 1;
+        menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
-        if (edit_mode || submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
+        if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
         else { menu_move( menu, -1 ); show_only_selected = 0; }
         break;
 
@@ -1325,19 +1328,11 @@ menu_handler(
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         else
         {
-            edit_mode = 1;
-            #ifdef CONFIG_60D
-            if (lv) edit_mode = 0; // in LiveView, UNPRESS SET event is not sent => can't detect when SET is being held
-            #endif
-            #ifdef CONFIG_550D
-            if (is_movie_mode()) edit_mode = 0; // in movie mode, UNPRESS SET event is not sent => can't detect when SET is being held
-            #endif
             menu_entry_select( menu, 0 ); // normal select
         }
         //~ menu_damage = 1;
         break;
     case UNPRESS_SET_BUTTON:
-        edit_mode = 0;
         break;
 
     case PRESS_INFO_BUTTON:
@@ -1612,14 +1607,24 @@ static struct menu_entry implicit_submenu_entry[] = {
     },
 };
 
+/*
+struct menu_entry menu_cfg_menu[] = {
+    {
+        .name = "Transparent Menu ",
+        .priv = &semitransparent,
+        .max = 1,
+        .help = "Semi-transparent menu in LiveView"
+    },
+};*/
+
 static void
 menu_task( void* unused )
 {
     //~ int x, y;
     DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
+    implicit_submenu = menu_find_by_name("Implicit", ICON_ML_SUBMENU);
     menu_add( "Implicit", implicit_submenu_entry, 1);
-    implicit_submenu = menu_find_by_name("Implicit", 0);
 
     // Add the draw_prop menu
     #if 0
@@ -1704,7 +1709,6 @@ menu_task( void* unused )
         DebugMsg( DM_MAGIC, 3, "Creating menu task" );
         //~ menu_damage = 1;
         menu_hidden = 0;
-        edit_mode = 0;
         menu_help_active = 0;
         gui_menu_task = gui_task_create( menu_handler, 0 );
 

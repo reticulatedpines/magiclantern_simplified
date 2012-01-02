@@ -62,7 +62,7 @@ struct menu_entry
                 void *                  priv,
                 int                             delta
         );
-        void                    (*select_auto)(
+        void                    (*select_Q)(
                 void *                  priv,
                 int                             delta
         );
@@ -74,7 +74,7 @@ struct menu_entry
         );
         int8_t essential;
         int8_t icon_type;
-        int8_t show_liveview;
+        //~ int8_t show_liveview;
         const char * help;
         const char * name; // for now it's used only for context help; will be used for display too.
         struct menu_entry * children;

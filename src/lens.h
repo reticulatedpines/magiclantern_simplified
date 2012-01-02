@@ -43,6 +43,9 @@ volatile        int                             ae;        // exposure compensat
 volatile        unsigned                shutter;
 volatile        unsigned                iso;
 volatile        unsigned                iso_auto;
+volatile        unsigned                iso_analog_raw;
+volatile        int                     iso_digital_ev;
+volatile        unsigned                iso_equiv_raw;
 volatile        unsigned                hyperfocal; // in mm
 volatile        unsigned                dof_near; // in mm
 volatile        unsigned                dof_far; // in mm

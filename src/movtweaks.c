@@ -876,41 +876,44 @@ void update_lvae_for_autoiso_n_displaygain()
 
     if (lvae_disp_gain != LVAE_DISP_GAIN)
     {
-        LVAE_DISP_GAIN = lvae_disp_gain;
-        if (CONTROL_BV) CONTROL_BV_ZERO = lvae_disp_gain;
+        set_display_gain(lvae_disp_gain);
     }
 }
 void set_display_gain(int display_gain)
 {
+    display_gain = COERCE(display_gain, 0, 65535);
+    if (display_gain == 1024) display_gain = 0;
     LVAE_DISP_GAIN = lvae_disp_gain = display_gain;
     if (CONTROL_BV) CONTROL_BV_ZERO = display_gain;
-    //~ call("lvae_setdispgain", COERCE(display_gain, 0, 65535));
 }
 
 // 1024 = 0 EV
-// +: off, +1EV, +2EV, ... , +6EV, -3EV, -2EV, -1EV, off
-// -: reverse
+// +: +1 +2 ... +6
+// -: -0.3 -0.6 -1 -1.3 -1.6 ... -3
 void display_gain_toggle(void* priv, int dir)
 {
     int d = LVAE_DISP_GAIN;
-    int dg = d;
-    if (!d) d = 1024;
-     
-    if (dir > 0)
-    {
-        dg = d * 2;
-        if (dg > 65536) dg = 128;
-    }
-    else if (dir < 0)
-    {
-        if (d <= 128) dg = 65536;
-        else dg = d / 2; 
-    }
-    else dg = 0;
+    if (d == 0) d = 1024;
+    int dg = gain_to_ev_x8(d);
 
-    if (dg == 1024) dg = 0;
-
-    set_display_gain(dg);
+    while (1)
+    {
+        dg += dir;
+        if (dg < 80)
+        {
+            if (dg % 8 == 0 || dg % 8 == 3 || dg % 8 == 5) break;
+            if (dg == 79) break;
+            if (dg == 78) break;
+        }
+        else
+        {
+            if (dg % 8 == 0) break;
+        }
+    }
+    if (dg < 56) dg = 128;
+    if (dg > 128) dg = 56;
+    
+    set_display_gain((int)powf(2.0, dg/8.0));
 }
 
 //~ static void display_gain_reset(void* priv, int delta)
@@ -924,7 +927,13 @@ int gain_to_ev(int gain)
     return (int) roundf(log2f(gain));
 }
 
-static void display_gain_print(
+int gain_to_ev_x8(int gain)
+{
+    if (gain == 0) return 0;
+    return (int) roundf(log2f(gain) * 8.0);
+}
+
+void display_gain_print(
     void *          priv,
     int         x,
     int         y,
@@ -932,13 +941,13 @@ static void display_gain_print(
 )
 {
     int gain_ev = 0;
-    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
+    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev_x8(LVAE_DISP_GAIN) - 80;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV Disp.Gain: %s%d EV",
+        "Display Gain  : %s%d.%d EV",
         gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
-        ABS(gain_ev)
+        ABS(gain_ev)/8, (ABS(gain_ev)%8)*10/8
     );
     if (LVAE_DISP_GAIN)
     {
@@ -1097,47 +1106,7 @@ struct menu_entry expo_override_menus[] = {
         .display    = bv_display,
         .help = "Low-level manual exposure controls (bypasses Canon limits)",
         .essential = FOR_LIVEVIEW,
-        .show_liveview = 1,
-    },
-    {
-        .name = "LV Disp.Gain (NightVision)", 
-        .priv = &LVAE_DISP_GAIN,
-        .select = display_gain_toggle, 
-        //~ .select_auto = display_gain_reset,
-        .display = display_gain_print, 
-        .help = "LV digital display gain. (+) night vision; (-) low noise.",
-        .show_liveview = 1,
-    },
-    {
-        .name = "Movie AutoISO...",
-        .icon_type = IT_BOOL,
-        .help = "Fine-tune Auto ISO function in movie mode.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Min ISO",
-                .priv = &lvae_iso_min,
-                .min = 72,
-                .max = 120,
-                .unit = UNIT_ISO,
-                .help = "Minimum value for Auto ISO in movie mode."
-            },
-            {
-                .name = "Max ISO",
-                .priv = &lvae_iso_max,
-                .min = 72,
-                .max = 120,
-                .unit = UNIT_ISO,
-                .help = "Maximum value for Auto ISO in movie mode."
-            },
-            {
-                .name = "Adjust speed",
-                .priv = &lvae_iso_speed,
-                .min = 3,
-                .max = 30,
-                .help = "Change speed for Auto ISO. Low values = smooth transitions."
-            },
-            MENU_EOL
-        },
+        //~ .show_liveview = 1,
     },
 };
 

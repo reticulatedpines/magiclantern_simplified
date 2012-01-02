@@ -1228,11 +1228,11 @@ iso_display( void * priv, int x, int y, int selected )
     bmp_printf(
         fnt,
         x, y,
-        "ISO         : %s", 
+        "ISO         : %s        ", 
         lens_info.iso ? "" : "Auto"
     );
 
-    bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
+    //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 
     fnt = FONT(
         fnt, 
@@ -1248,6 +1248,19 @@ iso_display( void * priv, int x, int y, int selected )
             "%d", lens_info.iso
         );
     }
+
+    if (LVAE_DISP_GAIN)
+    {
+        int gain_ev = gain_to_ev_x8(LVAE_DISP_GAIN) - 80;
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x + 22 * font_large.width, y,
+            "DispGn%s%d.%dEV",
+            gain_ev > 0 ? "+" : "-",
+            ABS(gain_ev)/8, (ABS(gain_ev)%8)*10/8
+        );
+    }
+
     menu_draw_icon(x, y, lens_info.iso ? MNI_PERCENT : MNI_AUTO, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
 }
 
@@ -1290,9 +1303,6 @@ int is_round_iso(int iso)
         || iso == 6400 || iso == 12800 || iso == 25600;
 }
 
-CONFIG_INT("iso.round.only", iso_round_only, 1);
-
-
 void
 iso_toggle( void * priv, int sign )
 {
@@ -1302,12 +1312,34 @@ iso_toggle( void * priv, int sign )
     {
         i = mod(i + sign, COUNT(codes_iso));
         
-        while (iso_round_only && !is_round_iso(values_iso[i]))
+        while (!is_round_iso(values_iso[i]))
             i = mod(i + sign, COUNT(codes_iso));
         
         if (lens_set_rawiso(codes_iso[i])) break;
     }
 }
+
+void
+analog_iso_toggle( void * priv, int sign )
+{
+    int r = lens_info.raw_iso;
+    int a, d;
+    split_iso(r, &a, &d);
+    a = COERCE(a + sign * 8, 72, 112);
+    lens_set_rawiso(a + d);
+}
+
+void
+digital_iso_toggle( void * priv, int sign )
+{
+    int r = lens_info.raw_iso;
+    int a, d;
+    split_iso(r, &a, &d);
+    d = COERCE(d + sign, -3, (a == 112 ? 16 : 4));
+    while (d > 8 && d < 16) d += sign;
+    lens_set_rawiso(a + d);
+}
+
 
 /*PROP_INT(PROP_ISO_AUTO, iso_auto_code);
 static int measure_auto_iso()
@@ -1412,10 +1444,20 @@ static void iso_auto_run()
     redraw();
 }
 
+extern void shutter_override_print( void * priv, int x, int y, int selected );
+
+extern int shutter_override_enabled;
 
 static void 
 shutter_display( void * priv, int x, int y, int selected )
 {
+    // if shutter override mode is enabled, print that one
+    if (shutter_override_enabled)
+    {
+        shutter_override_print(priv, x, y, selected);
+        return;
+    }
+    
     char msg[100];
     if (is_movie_mode())
     {
@@ -1442,13 +1484,19 @@ shutter_display( void * priv, int x, int y, int selected )
         draw_circle(xc + 2, y + 7, 3, COLOR_WHITE);
         draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
     }
-    bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
+    //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
     menu_draw_icon(x, y, lens_info.raw_shutter ? MNI_PERCENT : MNI_WARNING, lens_info.raw_shutter ? (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]) : 0);
 }
 
 static void
 shutter_toggle(void* priv, int sign)
 {
+    if (shutter_override_enabled)
+    {
+        shutter_override_toggle(priv, sign);
+        return;
+    }
+
     int i = raw2index_shutter(lens_info.raw_shutter);
     int k;
     for (k = 0; k < 10; k++)
@@ -1469,7 +1517,7 @@ static void shutter_auto_quick()
     lens_set_rawshutter(newshutter);                       // set new shutter value
 }
 
-static int shutter_auto_flag = 0;
+/*static int shutter_auto_flag = 0;
 static void shutter_auto()
 {
     if (lv) shutter_auto_flag = 1; // it takes some time, so it's better to do it in another task
@@ -1505,7 +1553,7 @@ static void shutter_auto_run()
     else i = bin_search(1, raw2index_shutter(lens_info.raw_shutter)+1, crit_shutter);
     lens_set_rawshutter(codes_shutter[i]);
     redraw();
-}
+}*/
 
 static void 
 aperture_display( void * priv, int x, int y, int selected )
@@ -1568,7 +1616,7 @@ kelvin_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "WhiteBalance: %dK%s",
+            "WhiteBalance: %dK%s   ",
             lens_info.kelvin,
             lens_info.kelvin == wb_kelvin_ph ? "" : "*"
         );
@@ -1580,19 +1628,45 @@ kelvin_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            (lens_info.wb_mode == 0 ? "Auto" : 
-            (lens_info.wb_mode == 1 ? "Sunny" :
-            (lens_info.wb_mode == 2 ? "Cloudy" : 
+            (lens_info.wb_mode == 0 ? "Auto    " : 
+            (lens_info.wb_mode == 1 ? "Sunny   " :
+            (lens_info.wb_mode == 2 ? "Cloudy  " : 
             (lens_info.wb_mode == 3 ? "Tungsten" : 
-            (lens_info.wb_mode == 4 ? "CFL" : 
-            (lens_info.wb_mode == 5 ? "Flash" : 
-            (lens_info.wb_mode == 6 ? "Custom" : 
-            (lens_info.wb_mode == 8 ? "Shade" :
+            (lens_info.wb_mode == 4 ? "CFL     " : 
+            (lens_info.wb_mode == 5 ? "Flash   " : 
+            (lens_info.wb_mode == 6 ? "Custom  " : 
+            (lens_info.wb_mode == 8 ? "Shade   " :
              "unknown"))))))))
         );
         menu_draw_icon(x, y, MNI_AUTO, 0);
     }
-    bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
+    //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
+}
+
+static void 
+kelvin_wbs_display( void * priv, int x, int y, int selected )
+{
+    kelvin_display(priv, x, y, selected);
+    x += font_large.width * 22;
+    if (lens_info.wbs_gm)
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "%s%d",
+            lens_info.wbs_gm > 0 ? "G" : "M", ABS(lens_info.wbs_gm)
+        );
+        x += font_large.width * 2;
+    }
+    if (lens_info.wbs_ba)
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "%s%d",
+            lens_info.wbs_ba > 0 ? "A" : "B", ABS(lens_info.wbs_ba)
+        );
+    }
 }
 
 static int kelvin_auto_flag = 0;
@@ -1600,20 +1674,22 @@ static int wbs_gm_auto_flag = 0;
 static void kelvin_auto()
 {
     if (lv) kelvin_auto_flag = 1;
-    else
-    {
-        NotifyBox(2000, "Auto WB only works in LiveView");
-    }
 }
 
 static void wbs_gm_auto()
 {
     if (lv) wbs_gm_auto_flag = 1;
-    else
+}
+
+static void kelvin_n_gm_auto()
+{
+    if (lv)
     {
-        NotifyBox(2000, "Auto WBS only works in LiveView");
+        kelvin_auto_flag = 1;
+        wbs_gm_auto_flag = 1;
     }
 }
+
 
 static int crit_kelvin(int k)
 {
@@ -1689,7 +1765,7 @@ wbs_gm_display( void * priv, int x, int y, int selected )
             ABS(gm)
         );
         menu_draw_icon(x, y, MNI_PERCENT, (-lens_info.wbs_gm + 9) * 100 / 18);
-    bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
+    //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
 }
 
 static void
@@ -3233,15 +3309,155 @@ static struct menu_entry vid_menus[] = {
     },
 };
 
+extern int lvae_iso_max;
+extern int lvae_iso_min;
+extern int lvae_iso_speed;
+
+extern void display_gain_print( void * priv, int x, int y, int selected);
+extern void display_gain_toggle(void* priv, int dir);
+
 static struct menu_entry expo_menus[] = {
+    {
+        .name = "WhiteBalance",
+        .display    = kelvin_wbs_display,
+        .select     = kelvin_toggle,
+        .help = "Adjust Kelvin white balance and GM/BA WBShift.",
+        .essential = FOR_PHOTO | FOR_MOVIE,
+        //~ .show_liveview = 1,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "WhiteBalance",
+                .display    = kelvin_display,
+                .select     = kelvin_toggle,
+                .help = "Adjust Kelvin white balance.",
+            },
+            {
+                .name = "WBShift G/M",
+                .display = wbs_gm_display, 
+                .select = wbs_gm_toggle,
+                //~ .select_auto = wbs_gm_auto,
+                .help = "Green-Magenta white balance shift, for fluorescent lights.",
+                //~ .show_liveview = 1,
+                .essential = FOR_MOVIE,
+            },
+            {
+                .name = "WBShift B/A",
+                .display = wbs_ba_display, 
+                .select = wbs_ba_toggle, 
+                .help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
+                //~ .show_liveview = 1,
+            },
+            {
+                .name = "Auto adjust Kelvin",
+                .select = kelvin_auto,
+                .help = "LiveView: adjust Kelvin value once for the current scene."
+            },
+            {
+                .name = "Auto adjust Green-Magenta",
+                .select = wbs_gm_auto,
+                .help = "LiveView: adjust Green-Magenta once for the current scene."
+            },
+            {
+                .name = "Auto adjust Kelvin + G/M",
+                .select = kelvin_n_gm_auto,
+                .help = "LiveView: adjust Kelvin and G-M once (Push-button WB)."
+            },
+            MENU_EOL
+        },
+    },
     {
         .name = "ISO",
         .display    = iso_display,
         .select     = iso_toggle,
-        .select_auto = iso_auto,
-        .help = "Adjust ISO in 1/8EV steps. Press [Q] for auto tuning.",
+        .help = "Adjust and fine-tune ISO.",
         .essential = FOR_PHOTO | FOR_MOVIE,
-        .show_liveview = 1,
+        //~ .show_liveview = 1,
+
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Equiv. ISO",
+                .help = "ISO equivalent (analog + digital components).",
+                .priv = &lens_info.iso_equiv_raw,
+                .unit = UNIT_ISO,
+                .select     = iso_toggle,
+                //~ .show_liveview = 1,
+            },
+            {
+                .name = "Analog ISO",
+                .help = "Analog ISO component (ISO at which the sensor is driven).",
+                .priv = &lens_info.iso_analog_raw,
+                .unit = UNIT_ISO,
+                .select     = analog_iso_toggle,
+                //~ .show_liveview = 1,
+            },
+            {
+                .name = "Digital Gain",
+                .help = "Digital ISO component. Negative values = less noise.",
+                .priv = &lens_info.iso_digital_ev,
+                .unit = UNIT_1_8_EV,
+                .select     = digital_iso_toggle,
+                //~ .show_liveview = 1,
+            },
+            {
+                .name = "Display Gain", 
+                .priv = &LVAE_DISP_GAIN,
+                .select = display_gain_toggle, 
+                .display = display_gain_print, 
+                .help = "Digital gain applied to LiveView image and recorded video.",
+                //~ .show_liveview = 1,
+            },
+            {
+                .name = "Min MovAutoISO",
+                .priv = &lvae_iso_min,
+                .min = 72,
+                .max = 120,
+                .unit = UNIT_ISO,
+                .help = "Minimum value for Auto ISO in movie mode."
+            },
+            {
+                .name = "Max MovAutoISO",
+                .priv = &lvae_iso_max,
+                .min = 72,
+                .max = 120,
+                .unit = UNIT_ISO,
+                .help = "Maximum value for Auto ISO in movie mode."
+            },
+            {
+                .name = "AutoISO speed",
+                .priv = &lvae_iso_speed,
+                .min = 3,
+                .max = 30,
+                .help = "Speed for movie Auto ISO. Low values = smooth transitions."
+            },
+            {
+                .name = "Auto adjust ISO",
+                .select = iso_auto,
+                .help = "Adjust ISO value once for the current scene."
+            },
+            MENU_EOL
+        },
+    },
+    {
+        .name = "Shutter",
+        .display    = shutter_display,
+        .select     = shutter_toggle,
+        .help = "Fine-tune shutter value.",
+        .essential = FOR_PHOTO | FOR_MOVIE,
+        //~ .show_liveview = 1,
+        .children =  (struct menu_entry[]) {
+            {
+                .display    = shutter_display,
+                .select     = shutter_toggle,
+            },
+            {
+                .name = "Mode\b\b",
+                .priv = &shutter_override_enabled,
+                .max = 1,
+                .choices = (const char *[]) {"Fixed", "Linked to FPS"},
+                .help = "Fixed: 1/48 etc. Linked to FPS: 360=1/fps, 180=0.5/fps...",
+            },
+            MENU_EOL
+        },
     },
     {
         .name = "Aperture",
@@ -3249,41 +3465,7 @@ static struct menu_entry expo_menus[] = {
         .select     = aperture_toggle,
         .help = "Adjust aperture in 1/8 EV steps.",
         .essential = FOR_PHOTO | FOR_MOVIE,
-        .show_liveview = 1,
-    },
-    {
-        .name = "Shutter",
-        .display    = shutter_display,
-        .select     = shutter_toggle,
-        .select_auto = shutter_auto,
-        .help = "Shutter in 1/8EV steps. ML shows it with 2 nonzero digits.",
-        .essential = FOR_PHOTO | FOR_MOVIE,
-        .show_liveview = 1,
-    },
-    {
-        .name = "WhiteBalance",
-        .display    = kelvin_display,
-        .select     = kelvin_toggle,
-        .select_auto = kelvin_auto,
-        .help = "Adjust Kelvin white balance.",
-        .essential = FOR_PHOTO | FOR_MOVIE,
-        .show_liveview = 1,
-    },
-    {
-        .name = "WBShift G/M",
-        .display = wbs_gm_display, 
-        .select = wbs_gm_toggle,
-        .select_auto = wbs_gm_auto,
-        .help = "Green-Magenta white balance shift, for fluorescent lights.",
-        .show_liveview = 1,
-        .essential = FOR_MOVIE,
-    },
-    {
-        .name = "WBShift B/A",
-        .display = wbs_ba_display, 
-        .select = wbs_ba_toggle, 
-        .help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
-        .show_liveview = 1,
+        //~ .show_liveview = 1,
     },
 /*
 #ifdef CONFIG_500D
@@ -3308,7 +3490,7 @@ static struct menu_entry expo_menus[] = {
         .display    = picstyle_display,
         .select     = picstyle_toggle,
         .help = "Change current picture style.",
-        .show_liveview = 1,
+        //~ .show_liveview = 1,
         .essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {
@@ -3316,35 +3498,35 @@ static struct menu_entry expo_menus[] = {
                 .display    = picstyle_display_submenu,
                 .select     = picstyle_toggle,
                 .help = "Change current picture style.",
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
                 .display    = sharpness_display,
                 .select     = sharpness_toggle,
                 .help = "Adjust sharpness in current picture style.",
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
                 .display    = contrast_display,
                 .select     = contrast_toggle,
                 .help = "Adjust contrast in current picture style.",
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
                 .display    = saturation_display,
                 .select     = saturation_toggle,
                 .help = "Adjust saturation in current picture style.",
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
                 .display    = color_tone_display,
                 .select     = color_tone_toggle,
                 .help = "Adjust color tone in current picture style.",
-                .show_liveview = 1,
+                //~ .show_liveview = 1,
             },
             MENU_EOL
         },
@@ -3866,11 +4048,11 @@ shoot_task( void* unused )
             iso_auto_run();
             iso_auto_flag = 0;
         }
-        if (shutter_auto_flag)
+        /*if (shutter_auto_flag)
         {
             shutter_auto_run();
             shutter_auto_flag = 0;
-        }
+        }*/
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -4259,7 +4441,7 @@ void shoot_init()
     extern struct menu_entry expo_tweak_menus[];
     extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
-    menu_add( "Expo", expo_override_menus, 3 );
+    menu_add( "Expo", expo_override_menus, 1 );
 }
 
 INIT_FUNC("shoot", shoot_init);

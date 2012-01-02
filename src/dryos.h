@@ -534,7 +534,7 @@ extern void SetCFnData(int group, int number, int value);
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define COERCE(x,lo,hi) MAX(MIN(x,hi),lo)
+#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 #define ABS(a) ((a) > 0 ? (a) : -(a))
 #define SGN(a) ((a) > 0 ? 1 : (a) < 0 ? -1 : 0)
 #define SGNX(a) ((a) > 0 ? 1 : -1)

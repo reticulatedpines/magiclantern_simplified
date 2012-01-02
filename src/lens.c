@@ -103,7 +103,7 @@ calc_dof(
         info->dof_far = ((H * (fd/10)) / ( H - fd )) * 10; // in mm
 }
 
-
+/*
 const char *
 lens_format_dist(
     unsigned        mm
@@ -138,15 +138,9 @@ lens_format_dist(
         );
 
     return dist;
-}
+}*/
 
-/********************************************************************
-*                                                                   *
-*  aj_lens_format_dist() -    Private version of ML lens.c routine  *                                      
-*                                                                   *
-********************************************************************/
-
-char *aj_lens_format_dist( unsigned mm)
+const char * lens_format_dist( unsigned mm)
 {
    static char dist[ 32 ];
 
@@ -201,15 +195,19 @@ int shutter_ms_to_raw(int shutter_ms)
     if (shutter_ms == 0) return 160;
     return (int) roundf(152 - log2f(shutter_ms * 4) * 8);
 }
+int raw2iso(int raw_iso)
+{
+    int iso = (int) roundf(100.0 * powf(2.0, (raw_iso - 72.0)/8.0));
+    if (iso >= 100 && iso <= 6400)
+        iso = values_iso[raw2index_iso(raw_iso)];
+    else if (iso >= 15)
+        iso = ((iso+2)/5) * 5;
+    else
+        iso = iso&~1;
+    return iso;
+}
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
-
-static void split_iso(int raw, int* analog_iso, int* digital_gain)
-{
-    int rounded = ((raw+3)/8) * 8;
-    *analog_iso = COERCE(rounded, 72, 112); // analog ISO range: 100-3200
-    *digital_gain = raw - *analog_iso;
-}
 
 void draw_ml_bottombar(int double_buffering, int clear)
 {
@@ -449,60 +447,37 @@ void draw_ml_bottombar(int double_buffering, int clear)
         }
         else if (info->iso)
         {
-            int analog, digital;
-            split_iso(info->raw_iso, &analog, &digital);
-            int digi0 = digital;
+            int digital_w_dispgain = info->iso_digital_ev;
+            int digital_wo_dispgain = digital_w_dispgain;
+            
             if (LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
                 // display gain gets recorded, consider it as ISO digital gain
-                digital = digital + (gain_to_ev(LVAE_DISP_GAIN) - 10) * 8;
+                digital_w_dispgain = digital_w_dispgain + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
 
             text_font = FONT(
                 FONT_LARGE,
-                    digital > 0 || digi0 > 0 ? COLOR_RED :
-                    digital < 0 ? COLOR_GREEN2 :
+                    digital_w_dispgain > 0 || digital_wo_dispgain > 0 ? COLOR_RED :
+                    digital_w_dispgain < 0 ? COLOR_GREEN2 :
                     COLOR_YELLOW,
                 bg
             );
-
-            if (is_native_iso(info->iso) && digital == 0)
-            {
-                bmp_printf( text_font, 
-                          x_origin + 250  , 
-                          y_origin, 
-                          "%d   ", info->iso) ;
-            }
-            else
-            {
-                int fnt = FONT(FONT_MED, FONT_FG(text_font), bg);
-                int num = ABS(digital);
-                int den = 8;
-                int analog_hr = 100 << ((analog-72)/8); // human readable iso
-                while (num % 2 == 0 && den % 2 == 0) { num /= 2; den /= 2; }
-                while (num >= 10) { num /= 2; den /= 2; }
-                while (num % 2 == 0 && den % 2 == 0) { num /= 2; den /= 2; }
-                if (num == 3 && den == 8) { num = 1; den = 3; }
-                if (num == 5 && den == 8) { num = 2; den = 3; }
-                bmp_printf( text_font,
-                          x_origin + 250, 
-                          y_origin,
-                          "%d",
-                          analog_hr
-                          ) ;
-
-                int xev = x_origin + 246 + font_med.width * 5 + (analog_hr >= 1000 ? font_large.width : 0);
-                bmp_printf( fnt, xev,  y_origin + 5, digital > 0 ? "+" : "-");
-                if (den > 1)
-                {
-                    bmp_printf( fnt, xev + font_med.width,  y_origin - 3,
-                            "%d", num);
-                    bmp_printf( fnt, xev + font_med.width,  y_origin + 14,
-                            "%d", den);
-                }
-                else
-                    bmp_printf( text_font, xev + font_med.width - 2,  y_origin,
-                            "%d", num);
-                bmp_printf( FONT(FONT_SMALL, FONT_FG(fnt), bg), xev + font_med.width * 2,  y_origin + 3, "EV");
-            }
+            char msg[10];
+            int iso = raw2iso(info->iso_equiv_raw);
+            snprintf(msg, sizeof(msg), "%d   ", iso >= 10000 ? iso/100 : iso);
+            bmp_printf( text_font, 
+                      x_origin + 250  , 
+                      y_origin, 
+                      msg);
+            if (digital_w_dispgain != digital_wo_dispgain || CONTROL_BV)
+                bmp_printf( FONT(FONT_MED, FONT_FG(text_font), bg), 
+                          x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
+                          bottom - font_med.height + 1, 
+                          CONTROL_BV ? "ov" : "eq");
+            if (iso >= 10000)
+                bmp_printf( FONT(FONT_MED, FONT_FG(text_font), bg), 
+                          x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
+                          y_origin - 3, 
+                          "00");
         }
         else if (info->iso_auto)
             bmp_printf( text_font, 
@@ -568,7 +543,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
           bmp_printf( text_font, 
                   x_origin + 495  , 
                   y_origin, 
-                  aj_lens_format_dist( lens_info.focus_dist * 10 )
+                  lens_format_dist( lens_info.focus_dist * 10 )
                 );
 
 
@@ -647,6 +622,7 @@ end:
     }
 
     // this is not really part of the bottom bar, but it's close to it :)
+    /*
     if (LVAE_DISP_GAIN)
     {
         text_font = FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK ); 
@@ -657,7 +633,7 @@ end:
                   "%s%dEV", 
                   gain_ev > 0 ? "+" : "-",
                   ABS(gain_ev));
-    }
+    }*/
 }
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
@@ -1351,11 +1327,33 @@ lens_set_kelvin_value_only(int k)
     msleep(10);
 }
 
+void split_iso(int raw_iso, int* analog_iso, int* digital_gain)
+{
+    if (!raw_iso) { *analog_iso = 0; *digital_gain = 0; return; }
+    int rounded = ((raw_iso+3)/8) * 8;
+    *analog_iso = COERCE(rounded, 72, 112); // analog ISO range: 100-3200
+    *digital_gain = raw_iso - *analog_iso;
+}
+
+void iso_components_update()
+{
+    split_iso(lens_info.raw_iso, &lens_info.iso_analog_raw, &lens_info.iso_digital_ev);
+
+    lens_info.iso_equiv_raw = lens_info.raw_iso;
+
+    if (lens_info.iso_equiv_raw && LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
+    {
+        // display gain gets recorded, consider it as ISO digital gain
+        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
+    }
+}
+
 void update_stuff()
 {
     calc_dof( &lens_info );
     lens_display_set_dirty();
     if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
+    iso_components_update();
 }
 
 PROP_HANDLER( PROP_LV_LENS )

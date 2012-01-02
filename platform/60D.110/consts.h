@@ -239,7 +239,7 @@
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10
 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "UNLOCK outside menu: show LiveV tools       SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
+//~ #define MENU_NAV_HELP_STRING (PLAY_MODE ? "UNLOCK outside menu: show LiveV tools       SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
 
 #define DIALOG_MnCardFormatBegin   (0x3031c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x35290+4) // similar
@@ -277,5 +277,7 @@
 #define LVAE_ISO_HIS    (*(uint8_t*)(0x264e0+0x2a)) // no idea what this is
 #define LVAE_MOV_M_CTRL (*(uint8_t*)(0x264e0+0x70)) // lvae_setmoviemanualcontrol
 #define LVAE_DISP_GAIN  (*(uint16_t*)(0x264e0+0x24)) // lvae_setdispgain
+
+#define DISPLAY_ORIENTATION MEM(0x2458+0x9C) // read-only; string: UpdateReverseTFT
 
 #define MIN_MSLEEP 10
