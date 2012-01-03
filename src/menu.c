@@ -299,6 +299,11 @@ submenu_print(
                     else { STR_APPEND(msg, ": %d", raw2iso(MEM(entry->priv))); }
                     break;
                 }
+                case UNIT_HEX:
+                {
+                    STR_APPEND(msg, ": 0x%x", MEM(entry->priv));
+                    break;
+                }
                 default:
                 {
                     STR_APPEND(msg, ": %d", MEM(entry->priv));

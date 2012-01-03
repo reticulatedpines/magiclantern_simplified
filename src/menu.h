@@ -98,6 +98,7 @@ struct menu_entry
 #define UNIT_PERCENT 3
 #define UNIT_PERCENT_x10 4
 #define UNIT_ISO 5
+#define UNIT_HEX 6
 
 // these can be combined with OR
 #define FOR_MOVIE 1
