@@ -3844,7 +3844,7 @@ void hdr_shot(int skip0, int wait)
     }
 }
 
-static int remote_shot_flag = 0;
+int remote_shot_flag = 0;
 void schedule_remote_shot() { remote_shot_flag = 1; }
 
 static int mlu_lock_flag = 0;

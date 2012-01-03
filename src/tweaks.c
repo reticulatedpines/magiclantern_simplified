@@ -1080,6 +1080,7 @@ display_dont_mirror_display(
     );
 }
 
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
 void display_orientation_toggle(void* priv, int dir)
 {
     int o = DISPLAY_ORIENTATION;
@@ -1089,7 +1090,7 @@ void display_orientation_toggle(void* priv, int dir)
     else if (o == 1) ReverseDisplay();
     else MirrorDisplay();
 } 
-
+#endif
 
 /*
 int night_vision = 0;
