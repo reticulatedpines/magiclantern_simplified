@@ -182,9 +182,12 @@ static void flip_zoom()
 
 static int current_fps = 0;
 
+int shutter_override_enabled = 0;
+
 static void reset_fps(void* priv, int delta)
 {
     fps_override = 0;
+    shutter_override_enabled = 0;
     current_fps = video_mode_fps;
     
     if (!recording) flip_zoom(); // this will force reconfiguring fps with Canon settings
@@ -200,6 +203,7 @@ static void set_fps(void* priv, int delta)
     fps_setup(current_fps);
     
     fps_override = 1;
+    shutter_override_enabled = 1;
 }
 
 
@@ -208,9 +212,8 @@ static struct menu_entry fps_menu[] = {
         .name = "FPS override", 
         .priv = &fps_override,
         .select = set_fps,
-        .select_auto = reset_fps,
+        .select_Q = reset_fps,
         .display = fps_print,
-        .show_liveview = 1,
         .help = "Changes FPS and forces shutter at 1/fps. Turn off sound!"
     },
 };
@@ -245,3 +248,26 @@ void fps_mvr_log(FILE* mvr_logfile)
 // FPS has a side effect: to force shutter speed at 1/fps. Let the bottom bar show this.
 int is_hard_shutter_override_active() { return fps_override; }
 int get_shutter_override_degrees_x10() { return fps_override ? 3600 : 0; }
+
+
+void
+shutter_override_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Shutter(MOV): 360deg 1/%d",
+        current_fps
+    );
+
+    menu_draw_icon(x, y, MNI_ON, 0);
+}
+
+void shutter_override_toggle(void* priv, int delta) { }
+
+
