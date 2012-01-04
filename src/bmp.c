@@ -757,7 +757,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 }
 
 
-void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear)
+void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror)
 {
     if (!bmp) return;
     //~ if (!bmp_enabled) return;
@@ -792,25 +792,15 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
                 x = (xs-x0)*bmp->width/xmax;
 #endif
 
-                if (clear)
+                uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+                if (mirror)
                 {
                     uint8_t p = b_row[ xs ];
-                    uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-                    if (pix && p == pix)
-                        b_row[xs] = 0;
+                    uint8_t m = m_row[ xs ];
+                    if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+                    if ((p == 0x14 || p == 0x3) && pix == 0) continue;
                 }
-                else
-                {
-                    uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-                    if (mirror)
-                    {
-                        uint8_t p = b_row[ xs ];
-                        uint8_t m = m_row[ xs ];
-                        if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-                        if ((p == 0x14 || p == 0x3) && pix == 0) continue;
-                    }
-                    b_row[ xs ] = pix;
-                }
+                b_row[ xs ] = pix;
             }
         }
     } else if (bmp->compression == 1) {
@@ -847,22 +837,14 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
                     bmp_x_pos_end = bmp_x_pos_start + bmp_col[0];
                     bmp_color = bmp_col[1];
                 }
-                if (clear)
+                if (mirror)
                 {
                     uint8_t p = b_row[ xs ];
-                    if (bmp_color && p == bmp_color) b_row[xs] = 0;
+                    uint8_t m = m_row[ xs ];
+                    if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
+                    if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue;
                 }
-                else
-                {
-                    if (mirror)
-                    {
-                        uint8_t p = b_row[ xs ];
-                        uint8_t m = m_row[ xs ];
-                        if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-                        if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue;
-                    }
-                    b_row[ xs ] = bmp_color;
-                }
+                b_row[ xs ] = bmp_color;
             }
         }
 

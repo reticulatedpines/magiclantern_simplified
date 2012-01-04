@@ -1563,7 +1563,7 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     int yc = y + font_large.height * 2 + 10;
     reload_cropmark(crop_index);
     bmp_fill(0, xc, yc, w, h);
-    bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0, 0);
+    bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0);
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
 }
 
@@ -2759,7 +2759,7 @@ cropmark_draw()
     {
         clrscr_mirror();
         //~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
-        bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror, 0);
+        bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         zoom_overlay_dirty = 1;
     }
     crop_dirty = 0;

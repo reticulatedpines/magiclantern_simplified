@@ -237,7 +237,7 @@ struct bmp_ov_loc_size
 void clrscr();
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear);
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);
-void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror, int clear);
+void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror);
 uint8_t bmp_getpixel(int x, int y);
 
 #define TOPBAR_BGCOLOR (bmp_getpixel(os.x0,os.y0))
