@@ -795,6 +795,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
                 uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
                 if (mirror)
                 {
+                    if (pix) m_row[ xs ] = pix | 0x80;
                     uint8_t p = b_row[ xs ];
                     uint8_t m = m_row[ xs ];
                     if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
@@ -810,7 +811,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
         {
             y = (ys-y0)*bmp->height/ymax;
             uint8_t * const b_row = bvram + COERCE(ys, 0, BMP_HEIGHT) * bmppitch;
-            uint8_t * const m_row = (uint8_t*)( mirror + COERCE(y + y0, 0, BMP_HEIGHT) * bmppitch );
+            uint8_t * const m_row = (uint8_t*)( mirror + COERCE(ys + y0, 0, BMP_HEIGHT) * bmppitch );
             while (y != bmp_y_pos) {
                 // search for the next line
                 if (bmp_line[0]!=0) { bmp_line += 2; } else
@@ -839,6 +840,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
                 }
                 if (mirror)
                 {
+                    if (bmp_color) m_row[ xs ] = bmp_color | 0x80;
                     uint8_t p = b_row[ xs ];
                     uint8_t m = m_row[ xs ];
                     if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;

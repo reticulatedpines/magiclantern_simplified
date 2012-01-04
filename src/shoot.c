@@ -382,6 +382,8 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
         clear_lv_affframe();
         afframe_needs_erasing = 0;
     }
+
+    crop_set_dirty(10);
     
     memcpy(afframe, buf, 0x68);
     return prop_cleanup( token, property );

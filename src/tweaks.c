@@ -509,6 +509,8 @@ void clear_lv_affframe()
     struct vram_info *  lv = get_yuv422_vram();
     if( !lv->vram ) return;
     int xaf,yaf;
+
+    uint8_t* M = get_bvram_mirror();
     
     get_afframe_pos(720, 480, &xaf, &yaf);
     xaf = N2BM_X(xaf);
@@ -525,14 +527,16 @@ void clear_lv_affframe()
         {
             int p = bmp_getpixel(j,i);
             if (p == COLOR_BLACK || p == COLOR_WHITE)
-                bmp_putpixel(j,i,0);
+            {
+                int m = M[BM(j,i)];
+                bmp_putpixel(j,i, m & 0x80 ? m & ~0x80 : 0);
+            }
             asm("nop");
             asm("nop");
             asm("nop");
             asm("nop"); // just in case
         }
     }
-    crop_set_dirty(5);
     afframe_countdown = 0;
 }
 
@@ -653,24 +657,6 @@ display_off_by_halfshutter_print(
 }
 
 #endif
-
-CONFIG_INT("crop.playback", cropmarks_play, 0);
-
-static void
-cropmarks_play_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Cropmarks   (PLAY): %s", 
-        cropmarks_play ? "ON" : "OFF"
-    );
-}
 
 CONFIG_INT("play.set.wheel", play_set_wheel_action, 2);
 
@@ -1449,14 +1435,6 @@ struct menu_entry play_menus[] = {
         .help = "What to do when you hold SET and turn MainDial (Wheel)",
         .essential = FOR_PLAYBACK,
         .icon_type = IT_DICE,
-    },
-    {
-        .name = "Cropmarks (PLAY)",
-        .priv = &cropmarks_play, 
-        .select = menu_binary_toggle, 
-        .display = cropmarks_play_display,
-        .help = "Show cropmarks in PLAY mode",
-        .essential = FOR_PLAYBACK,
     },
     {
         .name = "After taking a photo",

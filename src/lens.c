@@ -180,7 +180,11 @@ int should_draw_bottom_bar()
     if (!get_global_draw()) return 0;
     //~ if (EXT_MONITOR_CONNECTED) return 1;
     if (canon_gui_front_buffer_disabled()) return 1;
-    if (is_canon_bottom_bar_dirty()) return 0;
+    if (is_canon_bottom_bar_dirty())
+    {
+        crop_set_dirty(5);
+        return 0;
+    }
     if (lv_disp_mode == 0) return 1;
     return 0;
 }

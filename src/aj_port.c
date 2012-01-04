@@ -179,6 +179,7 @@ void aj_green_screen()
          
          if (BP != 0 && BP != MP) { continue; }
          if (BN != 0 && BN != MN) { continue; }
+         if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
 
          MP = BP = c;
          MN = BN = c;
