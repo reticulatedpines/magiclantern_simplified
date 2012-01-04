@@ -1980,7 +1980,9 @@ static void spotmeter_step()
     static int fg = 0;
     if (scaled > 60) fg = COLOR_BLACK;
     if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
-    int bg = falsecolor_draw ? COLOR_BG : 0;
+    int bg = fg == COLOR_BLACK ? COLOR_WHITE : COLOR_BLACK;
+    int fnt = FONT(SHADOW_FONT(FONT_MED), fg, bg);
+    int fnts = FONT(SHADOW_FONT(FONT_SMALL), fg, bg);
 
     bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
     bmp_draw_rect(COLOR_BLACK, xcb - dxb + 1, ycb - dxb + 1, 2*dxb+1-2, 2*dxb+1-2);
@@ -1991,7 +1993,7 @@ static void spotmeter_step()
     if (spotmeter_formula <= 1)
     {
         bmp_printf(
-            FONT(FONT_MED, fg, bg),
+            fnt,
             xcb, ycb, 
             "%3d%s",
             spotmeter_formula == 0 ? scaled : sum >> 8,
@@ -2005,14 +2007,14 @@ static void spotmeter_step()
         int ire = (spotmeter_formula == 2) ? ire_aj : ire_piers;
         
         bmp_printf(
-            FONT(FONT_MED, fg, bg),
+            fnt,
             xcb, ycb, 
             "%s%3d", // why does %4d display garbage?!
             ire < 0 ? "-" : " ",
             ire < 0 ? -ire : ire
         );
         bmp_printf(
-            FONT(FONT_SMALL, fg, 0),
+            fnts,
             xcb + font_med.width*4, ycb,
             "IRE\n%s",
             spotmeter_formula == 2 ? "-1..101" : "0..108"

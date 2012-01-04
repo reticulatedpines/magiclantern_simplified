@@ -868,21 +868,21 @@ static void display_shortcut_key_hints_lv()
             const int xf = x0;
             const int yf = y0;
             const int xs = 150;
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
             //~ if (is_follow_focus_active() == 1) // arrows
             //~ {
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
             //~ }
         //~ }
     }
     else
     {
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
 
         if (!should_draw_zoom_overlay())
             crop_set_dirty(20);
@@ -890,7 +890,7 @@ static void display_shortcut_key_hints_lv()
     }
 
     static int prev_mz = 0;
-    if (mz) bmp_printf(FONT_MED, 360 + 100, 240 - 150, "Magic Zoom");
+    if (mz) bmp_printf(SHADOW_FONT(FONT_MED), 360 + 100, 240 - 150, "Magic Zoom");
     else if (prev_mz) redraw();
     prev_mz = mz;
 
@@ -1237,7 +1237,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 {
                     if (!ae_warned && !gui_menu_shown())
                     {
-                        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 50, 50, 
+                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
                             "!!! Auto exposure !!!\n"
                             "Set 'Movie Exposure -> Manual'");
                         msleep(2000);

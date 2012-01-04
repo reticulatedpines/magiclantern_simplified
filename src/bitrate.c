@@ -215,7 +215,7 @@ void free_space_show()
     int fsgf = (fsgr * 10) >> 15;
 
     bmp_printf(
-        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+        FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK),
         time_indic_x + 160 - 6 * font_med.width,
         time_indic_y,
         "%d.%dGB",

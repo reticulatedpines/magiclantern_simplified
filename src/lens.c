@@ -224,7 +224,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
     
     struct lens_info *    info = &lens_info;
 
-    int bg = TOPBAR_BGCOLOR;
+    //~ int bg = TOPBAR_BGCOLOR;
+    int bg = COLOR_BLACK;
     if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
     //~ unsigned font    = FONT(FONT_MED, COLOR_WHITE, bg);
     //~ unsigned font_err    = FONT( FONT_MED, COLOR_RED, bg);
@@ -249,7 +250,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
-    unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
+    unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
 
     int ytop = bottom - 35;
     
@@ -263,7 +264,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
     if (clear)
     {
-        bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
+        bmp_fill(TOPBAR_BGCOLOR, x_origin-50, bottom-35, 720, 35);
     }
 
         // MODE
@@ -293,8 +294,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
       
       if (info->aperture && info->name[0])
       {
-          text_font = FONT(FONT_LARGE,COLOR_WHITE,bg);
-          unsigned med_font = FONT(FONT_MED,COLOR_WHITE,bg);
+          text_font = FONT(SHADOW_FONT(FONT_LARGE),COLOR_WHITE,bg);
+          unsigned med_font = FONT(SHADOW_FONT(FONT_MED),COLOR_WHITE,bg);
 
           static char focal[32];
           snprintf(focal, sizeof(focal), "%d",
@@ -373,7 +374,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
               fgs = FONT(FONT_LARGE,COLOR_YELLOW,bg); // OK, but be careful
       }
 
-    text_font = FONT(FONT_LARGE,fgs,bg);
+    text_font = SHADOW_FONT(FONT(FONT_LARGE,fgs,bg));
     if (is_movie_mode() && shutter_display_degrees)
     {
         snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
@@ -382,7 +383,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     y_origin, 
                     shutter);
 
-        text_font = FONT(FONT_MED,fgs,bg);
+        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
 
         bmp_printf( text_font, 
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
@@ -401,7 +402,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     y_origin, 
                     shutter);
 
-        text_font = FONT(FONT_MED,COLOR_ORANGE,bg);
+        text_font = FONT(SHADOW_FONT(FONT_MED),COLOR_ORANGE,bg);
 
         bmp_printf( text_font, 
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
@@ -415,7 +416,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 y_origin, 
                 shutter);
 
-        text_font = FONT(FONT_MED,fgs,bg);
+        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
 
         bmp_printf( text_font, 
                 x_origin + 143 + 1  , 
@@ -431,7 +432,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       //  http://www.youtube.com/watch?v=TNNqUm_nSXk&NR=1
 
       text_font = FONT(
-      FONT_LARGE, 
+      SHADOW_FONT(FONT_LARGE), 
       is_native_iso(lens_info.iso) ? COLOR_YELLOW :
       is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
       bg);
@@ -459,7 +460,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 digital_w_dispgain = digital_w_dispgain + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
 
             text_font = FONT(
-                FONT_LARGE,
+                SHADOW_FONT(FONT_LARGE),
                     digital_w_dispgain > 0 || digital_wo_dispgain > 0 ? COLOR_RED :
                     digital_w_dispgain < 0 ? COLOR_GREEN2 :
                     COLOR_YELLOW,
@@ -473,12 +474,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       y_origin, 
                       msg);
             if (digital_w_dispgain != digital_wo_dispgain || CONTROL_BV)
-                bmp_printf( FONT(FONT_MED, FONT_FG(text_font), bg), 
+                bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
                           bottom - font_med.height + 1, 
                           CONTROL_BV ? "ov" : "eq");
             if (iso >= 10000)
-                bmp_printf( FONT(FONT_MED, FONT_FG(text_font), bg), 
+                bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
                           y_origin - 3, 
                           "00");
@@ -498,7 +499,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       
         // kelvins
       text_font = FONT(
-      FONT_LARGE, 
+      SHADOW_FONT(FONT_LARGE), 
       0x13, // orange
       bg);
 
@@ -541,7 +542,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       *  Focus distance  *
       *******************/
 
-      text_font = FONT(FONT_LARGE, COLOR_WHITE, bg );   // WHITE
+      text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_WHITE, bg );   // WHITE
 
       if(lens_info.focus_dist)
           bmp_printf( text_font, 
@@ -551,7 +552,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 );
 
 
-      text_font = FONT(FONT_LARGE, COLOR_CYAN, bg ); 
+      text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
 
       bmp_printf( text_font, 
                   x_origin + 600 + font_large.width * 2 - 4, 
@@ -589,6 +590,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   COLOR_GREEN1;
         
         bat = bat * 22 / 100;
+        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin-4, 9, 4);
+        bmp_draw_rect(COLOR_BLACK, xr-3, y_origin-1, 17, 31);
+        //~ bmp_draw_rect(COLOR_BLACK, xr, y_origin+2, 11, 29);
+        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 25 - bat, 9, bat+2);
         bmp_fill(col, xr+4, y_origin-3, 8, 3);
         bmp_draw_rect(col, xr-2, y_origin, 15, 29);
         bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
@@ -659,9 +664,9 @@ void draw_ml_topbar()
 {
     if (!get_global_draw()) return;
     
-    int bg = TOPBAR_BGCOLOR;
-    if (gui_menu_shown()) bg = COLOR_BLACK;
-    unsigned font    = FONT(FONT_MED, COLOR_WHITE, bg);
+    //~ int bg = TOPBAR_BGCOLOR;
+    //~ if (gui_menu_shown()) bg = COLOR_BLACK;
+    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
     //~ unsigned font_err    = FONT( f, COLOR_RED, bg);
     //~ unsigned Font    = FONT(FONT_LARGE, COLOR_WHITE, bg);
     //~ unsigned height    = fontspec_height( font );
@@ -744,7 +749,7 @@ void draw_ml_topbar()
         bmp_printf( font, x, y,"T=%d", efic_temp);
     #endif
 
-    display_clock();
+    //~ display_clock();
     free_space_show();
 
     x += 160;
