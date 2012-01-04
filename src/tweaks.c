@@ -526,9 +526,10 @@ void clear_lv_affframe()
         for (int j = x0; j < x0+w; j++)
         {
             int p = bmp_getpixel(j,i);
+            int m = M[BM(j,i)];
+            if (m == 0x80) M[BM(j,i)] = 0;
             if (p == COLOR_BLACK || p == COLOR_WHITE)
             {
-                int m = M[BM(j,i)];
                 bmp_putpixel(j,i, m & 0x80 ? m & ~0x80 : 0);
             }
             asm("nop");

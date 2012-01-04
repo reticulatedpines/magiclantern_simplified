@@ -377,7 +377,7 @@ int afframe_needs_erasing = 0;
 static int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     
-    if (afframe_needs_erasing)
+    //~ if (afframe_needs_erasing)
     {
         clear_lv_affframe();
         afframe_needs_erasing = 0;

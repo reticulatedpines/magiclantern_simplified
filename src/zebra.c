@@ -1963,13 +1963,27 @@ static void spotmeter_step()
     // previous value otherwise
     
     // if false color is active, draw white on semi-transparent gray
+
+    // protect the surroundings from zebras
+    uint32_t* M = get_bvram_mirror();
+    uint32_t* B = bmp_vram();
+
+    for( y = (ycb&~1) - 9 ; y <= (ycb&~1) + 40 ; y++ )
+    {
+        for( x = xcb - 50 ; x <= xcb + 50 ; x+=4 )
+        {
+            M[BM(x,y)/4] = 0x80808080;
+            B[BM(x,y)/4] = 0;
+        }
+    }
     
     static int fg = 0;
     if (scaled > 60) fg = COLOR_BLACK;
     if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
     int bg = falsecolor_draw ? COLOR_BG : 0;
 
-    bmp_draw_rect(fg, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
+    bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
+    bmp_draw_rect(COLOR_BLACK, xcb - dxb + 1, ycb - dxb + 1, 2*dxb+1-2, 2*dxb+1-2);
     ycb += dxb + 20;
     ycb -= font_med.height/2;
     xcb -= 2 * font_med.width;
