@@ -1068,14 +1068,16 @@ draw_zebra_and_focus( int Z, int F )
                     uint16_t mirror = m_row[x/2];
                     uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
                     uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
-                    if ((pixel == 0 || pixel == mirror) && (pixel2 == 0 || pixel2 == mirror2)) // safe to draw
+                    if (mirror  & 0x8080) continue;
+                    if (mirror2 & 0x8080) continue;
+                    if (pixel  != 0 && pixel  != mirror ) continue;
+                    if (pixel2 != 0 && pixel2 != mirror2) continue;
+
+                    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
+                    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
+                    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
                     {
-                        b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
-                        m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
-                        if (dirty_pixels_num < MAX_DIRTY_PIXELS)
-                        {
-                            dirty_pixels[dirty_pixels_num++] = BM(x,y);
-                        }
+                        dirty_pixels[dirty_pixels_num++] = BM(x,y);
                     }
                 }
             }
