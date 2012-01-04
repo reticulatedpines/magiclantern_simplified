@@ -1968,9 +1968,9 @@ static void spotmeter_step()
     uint32_t* M = get_bvram_mirror();
     uint32_t* B = bmp_vram();
 
-    for( y = (ycb&~1) - 9 ; y <= (ycb&~1) + 40 ; y++ )
+    for( y = (ycb&~1) - 13 ; y <= (ycb&~1) + 40 ; y++ )
     {
-        for( x = xcb - 50 ; x <= xcb + 50 ; x+=4 )
+        for( x = xcb - 26 ; x <= xcb + 26 ; x+=4 )
         {
             M[BM(x,y)/4] = 0x80808080;
             B[BM(x,y)/4] = 0;
