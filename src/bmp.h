@@ -56,8 +56,11 @@ uint8_t* bmp_vram_real();
 #define FONT_MED                0x00020000
 #define FONT_SMALL              0x00010000
 
+#define SHADOW_MASK             0x00100000
+#define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)
+
 #define FONT(font,fg,bg)        ( 0 \
-        | ((font) & FONT_MASK) \
+        | ((font) & (FONT_MASK | SHADOW_MASK)) \
         | ((bg) & 0xFF) << 8 \
         | ((fg) & 0xFF) << 0 \
 )

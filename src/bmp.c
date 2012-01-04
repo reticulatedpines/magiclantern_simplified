@@ -101,32 +101,62 @@ _draw_char(
     uint32_t* end = (uint32_t *)(BMP_END - font->width);
 
     //uint32_t flags = cli();
-    for( i=0 ; i<font->height ; i++ )
+    if ((fontspec & SHADOW_MASK) == 0)
     {
-        // Start this scanline
-        uint32_t * row = front_row;
-        if (row >= end) return;
-
-        // move to the next scanline
-        front_row += pitch;
-
-        uint32_t pixels = font->bitmap[ c + (i << 7) ];
-        uint8_t pixel;
-
-        for( j=0 ; j<font->width/4 ; j++ )
+        for( i=0 ; i<font->height ; i++ )
         {
-            uint32_t bmp_pixels = 0;
-            for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
+            // Start this scanline
+            uint32_t * row = front_row;
+            if (row >= end) return;
+
+            // move to the next scanline
+            front_row += pitch;
+
+            uint32_t pixels = font->bitmap[ c + (i << 7) ];
+            uint8_t pixel;
+
+            for( j=0 ; j<font->width/4 ; j++ )
             {
-                bmp_pixels >>= 8;
-                bmp_pixels |= (pixels & 0x80000000) ? fg_color : bg_color;
+                uint32_t bmp_pixels = 0;
+                for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
+                {
+                    bmp_pixels >>= 8;
+                    bmp_pixels |= (pixels & 0x80000000) ? fg_color : bg_color;
+                }
+
+                *(row++) = bmp_pixels;
+
+                // handle characters wider than 32 bits
+                if( j == 28/4 )
+                    pixels = font->bitmap[ c + ((i+128) << 7) ];
             }
-
-            *(row++) = bmp_pixels;
-
-            // handle characters wider than 32 bits
-            if( j == 28/4 )
-                pixels = font->bitmap[ c + ((i+128) << 7) ];
+        }
+    }
+    else // shadowed fonts
+    {
+        #define FBPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
+        #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
+        
+        for( i=1 ; i<font->height-1 ; i++ )
+        {
+            for( j=0 ; j<font->width ; j++ )
+            {
+                
+                if (FBPIX(i-1,j-1) || FBPIX(i-1,j  ) || FBPIX(i-1,j+1) ||
+                    FBPIX(i  ,j-1) || FBPIX(i  ,j  ) || FBPIX(i  ,j+1) ||
+                    FBPIX(i+1,j-1) || FBPIX(i+1,j  ) || FBPIX(i+1,j+1)
+                    )
+                /*
+                if (                  FBPIX(i-2,j-1) || FBPIX(i-2,j  ) || FBPIX(i-2,j+1) ||
+                    FBPIX(i-1,j-2) || FBPIX(i-1,j-1) || FBPIX(i-1,j  ) || FBPIX(i-1,j+1) || FBPIX(i-1,j+2) || 
+                    FBPIX(i  ,j-2) || FBPIX(i  ,j-1) || FBPIX(i  ,j  ) || FBPIX(i  ,j+1) || FBPIX(i  ,j+2) || 
+                    FBPIX(i+1,j-2) || FBPIX(i+1,j-1) || FBPIX(i+1,j  ) || FBPIX(i+1,j+1) || FBPIX(i+1,j+2) || 
+                                      FBPIX(i+2,j-1) || FBPIX(i+2,j  ) || FBPIX(i+2,j+1)
+                    )*/
+                {
+                    BMPIX(i,j) = (FBPIX(i,j)) ? fg_color>>24 : bg_color>>24;
+                }
+            }
         }
     }
 
