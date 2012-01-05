@@ -1206,7 +1206,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         
         //~ if (recording == 2)
             //~ void* x = get_lvae_info();
-            //~ bmp_hexdump(FONT_SMALL, 0, 20, 0x529c, 32*20);
+            //~ bmp_hexdump(FONT_SMALL, 0, 20, 0x4FDA8, 32*20);
         //~ extern int disp_pressed;
         //~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
         
@@ -1231,7 +1231,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     display_shooting_info_lv();
                     display_shortcut_key_hints_lv();
                 )
-                #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
                 static int ae_warned = 0;
                 if (is_movie_mode() && !ae_mode_movie) 
                 {
