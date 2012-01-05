@@ -235,7 +235,7 @@ void install_task()
     Msleep(500);
 
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
-    canon_gui_disable();
+    canon_gui_disable_gmt();
     ui_lock(UILOCK_EVERYTHING);
 
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
@@ -388,6 +388,14 @@ initial_install(void)
 
     int y = 0;
     bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
+
+    FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
+        FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
+        FIO_CloseFile(f);
+    }
 
     if (!autoexec_ok)
     {
@@ -649,4 +657,3 @@ int hdmi_code = 0;
 int lv = 0;
 int lv_paused = 0;
 void bvram_mirror_init(){};
-
