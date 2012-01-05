@@ -216,10 +216,16 @@
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
 
 // manual exposure overrides
-#define CONTROL_BV      (*(uint16_t*)0x473E) // EP_SetControlBv
-#define CONTROL_BV_TV   (*(uint16_t*)0x4740) // EP_SetControlParam
-#define CONTROL_BV_AV   (*(uint16_t*)0x4742)
-#define CONTROL_BV_ISO  (*(uint16_t*)0x4744)
-#define CONTROL_BV_ZERO (*(uint16_t*)0x4746)
+#define LVAE_STRUCT 0x4724
+#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x1a)) // EP_SetControlBv
+#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x1c)) // EP_SetControlParam
+#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x1e))
+#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x20))
+#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x22))
+#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
+#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x28)) // string: ISOMin:%d
+#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // no idea what this is
+#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x24)) // lvae_setdispgain
+#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x6c)) // lvae_setmoviemanualcontrol
 
 #define MIN_MSLEEP 11
