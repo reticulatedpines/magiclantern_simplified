@@ -273,6 +273,7 @@ NSTUB(0xFF4838A8, StartShootOlcMeteringApp)
 NSTUB(0xff372258, LiveViewApp_handler)
 NSTUB(0xff37281c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xff373e00, LiveViewApp_handler_end) // start of next function
+NSTUB(0xFF381840, ShootOlcApp_handler)
 
 NSTUB(0xff0a5bdc, GUI_SetLvDZoomKey)
 
@@ -280,3 +281,5 @@ NSTUB(0x52940, lv_path_struct) // first arg of SelectPathDriveMode
 
 NSTUB(0xff1c5a54, engio_write)
 NSTUB(0xff1c5580, shamem_read)
+
+NSTUB(0xff20c3d8, GUI_SetMovieParam)

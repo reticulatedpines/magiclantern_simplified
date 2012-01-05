@@ -14,6 +14,14 @@
 
 void * test_dialog = 0;
 
+void* get_current_dialog_handler()
+{
+    struct gui_task * current = gui_task_list.current;
+    struct dialog * dialog = current->priv;
+    return dialog->handler;
+}
+
+
 /*static int template = 1;
 static int curr_palette = 0;
 

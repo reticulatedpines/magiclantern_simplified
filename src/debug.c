@@ -1210,14 +1210,17 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         //~ extern int disp_pressed;
         //~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
         
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%x %x %x %x ", bvl, bv[0], bv[1], bv[2]);
+        //~ bmp_printf(FONT_LARGE, 50, 50, "%x ", get_current_dialog_handler());
         //~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
         //~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
         if (get_global_draw())
         {
             #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && CURRENT_DIALOG_MAYBE == 0 && !ISO_ADJUSTMENT_ACTIVE && !EXT_MONITOR_CONNECTED) BMP_LOCK
+            extern thunk ShootOlcApp_handler;
+            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !EXT_MONITOR_CONNECTED
+                && get_current_dialog_handler() == &ShootOlcApp_handler)
+            BMP_LOCK
             (
                 display_clock();
                 display_shooting_info();
