@@ -45,7 +45,7 @@ void menu_help_show_page(int page)
     if (doc)
     {
 #ifdef CONFIG_50D
-        bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0, 0);
+        bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
 #else
         bmp_draw_scaled_ex(doc, os.x0, os.y0, os.x_ex, os.y_ex, 0);
 #endif

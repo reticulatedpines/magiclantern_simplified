@@ -330,7 +330,7 @@ con_printf(
 }
 #endif
 
-#if 1
+#if 0
 void
 bmp_hexdump(
     unsigned        fontspec,
