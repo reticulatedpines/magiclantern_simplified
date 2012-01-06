@@ -473,13 +473,13 @@ menu_add(
 #endif
 }
 
-static void batsu(int x, int y)
+static void batsu(int x, int y, int c)
 {
     int i;
     for (i = 1; i < 4; i++)
     {
-        draw_line(x + 8 + i, y + 9, x + 21 + i, y + 22, 12); // dark red
-        draw_line(x + 21 + i, y + 9, x + 8 + i, y + 22, 12);
+        draw_line(x + 8 + i, y + 9, x + 21 + i, y + 22, c);
+        draw_line(x + 21 + i, y + 9, x + 8 + i, y + 22, c);
     }
 }
 
@@ -666,7 +666,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-        batsu(x, y);
+        batsu(x, y, COLOR_ORANGE);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -692,9 +692,9 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     warning_msg = 0;
     switch(type)
     {
-        case MNI_OFF: batsu(x, y); return;
+        case MNI_OFF: batsu(x, y, COLOR_ORANGE); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
-        case MNI_DISABLE: crossout(x, y, COLOR_RED); return;
+        case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
         case MNI_NEUTRAL: maru(x, y, 60); return;
         case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
         case MNI_AUTO: maru(x, y, 9); return;
@@ -1862,11 +1862,13 @@ int handle_ml_menu_erase(struct event * event)
         }
     }
 
+#ifndef CONFIG_5D2
     if (event->param == BGMT_MENU && PLAY_MODE)
     {
         give_semaphore( gui_sem );
         return 0;
     }
+#endif
 
     return 1;
 }
