@@ -29,6 +29,48 @@
 
 struct semaphore * gui_sem;
 
+int joy_center_press_count = 0;
+void joypress_task()
+{
+	extern int joy_center_pressed;
+	static int count = 0;
+	while(1)
+	{
+		msleep(20);
+		if (joy_center_pressed) joy_center_press_count++;
+		else
+		{
+			if (gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 10) // short press, ML menu active
+			{
+				if (is_submenu_mode_active())
+				{
+					fake_simple_button(BGMT_PICSTYLE); // close submenu
+				}
+				else
+				{
+					fake_simple_button(BGMT_PRESS_SET); // open submenu
+					fake_simple_button(BGMT_UNPRESS_UDLR);
+				}
+			}
+			joy_center_press_count = 0;
+		}
+
+		if (joy_center_press_count > 10) // long press
+		{
+			joy_center_press_count = 0;
+			fake_simple_button(BGMT_UNPRESS_UDLR);
+
+			if (gui_menu_shown())
+				fake_simple_button(BGMT_PICSTYLE); // Q
+			else
+				give_semaphore( gui_sem );
+			msleep(500);
+		}
+
+	}
+}
+TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -39,15 +81,15 @@ static int handle_buttons(struct event * event)
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
-	// camera-specific:
-	if (lv && event->param == 0x1E && gui_state == GUISTATE_IDLE)
+	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
 	{
-		toggle_disp_mode();
-		return 0;
+		joy_center_press_count = 1;
+		return 0; // handled above
 	}
 
 	return 1;
 }
+
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;

@@ -44,6 +44,8 @@ int menu_help_active = 0;
 static int submenu_mode = 0;
 struct menu * implicit_submenu = 0;
 
+int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
+
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
@@ -1203,7 +1205,7 @@ menu_handler(
     unsigned        arg4
 )
 {
-#if CONFIG_DEBUGMSG
+#if 0
     if( event > 1 && event < 0x10000000)
     {
         bmp_printf( FONT_SMALL, 400, 40,

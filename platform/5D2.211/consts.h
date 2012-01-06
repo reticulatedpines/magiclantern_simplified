@@ -82,7 +82,8 @@
 
 //~ #define BGMT_FUNC 0x12
 #define BGMT_PICSTYLE 0x13
-#define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
+//~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
+#define BGMT_JOY_CENTER 0x1e
 
 #define BGMT_PRESS_LEFT 0x1a
 #define BGMT_PRESS_UP 0x16
@@ -156,6 +157,18 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ad4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
+
+// trial and error
+// choose a gui mode which lets you:
+// * use the wheel and all other keys for menu navigation
+// * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
+// * see LiveView image under menu
+// * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
+// * does not interfere with recording
+//~ #define GUIMODE_ML_MENU guimode_ml_menu
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 38 : 2)
+// outside LiveView, Canon menu is a good choice
+
 
 // position for displaying shutter count and other info
 #define MENU_DISP_INFO_POS_X 0

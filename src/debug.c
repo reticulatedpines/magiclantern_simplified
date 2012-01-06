@@ -296,6 +296,20 @@ void ChangeHDMIOutputSizeToFULLHD()
 
 void run_test()
 {
+    msleep(2000);
+    SetGUIRequestMode(22);
+    /*
+    for (int i = 30; i > 10; i--)
+    {
+        SetGUIRequestMode(0);
+        msleep(1000);
+        fake_simple_button(BGMT_PLAY);
+        msleep(1000);
+        fake_simple_button(BGMT_PLAY);
+        msleep(1000);
+        NotifyBox(2000, "%d ", i);
+        SetGUIRequestMode(i);
+    }*/
 }
 
 void xx_test(void* priv, int delta)
@@ -1386,7 +1400,7 @@ void flashlight_lcd_task(void *priv)
 static void flashlight_frontled(void* priv, int delta)
 {
     gui_stop_menu();
-    #ifdef CONFIG_60D
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
     if (1) 
     #else
     if (is_movie_mode()) 
@@ -2472,6 +2486,7 @@ int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 int get_set_pressed() { return set_pressed; }
+int joy_center_pressed = 0;
 
 int handle_buttons_being_held(struct event * event)
 {
@@ -2493,6 +2508,12 @@ int handle_buttons_being_held(struct event * event)
         return !flash_movie_pressed;
     }
     if (recording && MVR_FRAME_NUMBER < 50) flash_movie_pressed = 0; // workaround for issue 688
+
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
+    if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
+    #endif
+    
     return 1;
 }
 
