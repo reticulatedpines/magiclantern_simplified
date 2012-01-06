@@ -585,7 +585,12 @@ static void movie_expo_lock_print(
 }
 #endif
 
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+CONFIG_INT("rec.notify", rec_notify, 3);
+#else
 CONFIG_INT("rec.notify", rec_notify, 0);
+#endif
+
 static void rec_notify_print(
     void *          priv,
     int         x,
@@ -600,7 +605,11 @@ static void rec_notify_print(
         rec_notify == 0 ? "OFF" :
         rec_notify == 1 ? "Red Crossout" :
         rec_notify == 2 ? "REC/STBY" :
+        #if !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
         rec_notify == 3 ? "Beeps (start/stop)" :
+        #else
+        rec_notify == 3 ? "Blue LED" :
+        #endif
         "err"
     );
 }
@@ -644,6 +653,11 @@ void rec_notify_continuous(int called_from_menu)
         else
             bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
     }
+    else if (rec_notify == 3)
+    {
+        if (recording) info_led_on(); else info_led_off();
+        msleep(200);
+    }
     
     if (prev != recording) redraw();
     prev = recording;
@@ -654,7 +668,7 @@ void rec_notify_trigger(int rec)
     if (rec_notify == 3)
     {
         extern int ml_started;
-        if (rec != 2 && ml_started) beep();
+        if (rec != 2 && ml_started) { beep(); info_led_on(); }
         if (!rec) { msleep(100); beep(); }
     }
 #endif
@@ -1064,7 +1078,7 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #if defined(CONFIG_550D) || defined(CONFIG_60D) // others can't "beep"
+        #ifndef CONFIG_600D
         .select = menu_quaternary_toggle, 
         #else
         .select = menu_ternary_toggle, 
