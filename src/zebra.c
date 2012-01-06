@@ -2462,6 +2462,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         .essential = FOR_PLAYBACK,
     },
+    #ifndef CONFIG_5D2
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -2470,6 +2471,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Preview rectilinear image from Samyang 8mm fisheye.",
         .essential = FOR_PLAYBACK,
     },
+    #endif
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
@@ -2673,7 +2675,7 @@ struct menu_entry livev_dbg_menus[] = {
     }*/
 };
 
-#ifdef CONFIG_60D
+#if defined(CONFIG_60D) || defined(CONFIG_5D2)
 static void batt_display(
     void *          priv,
     int         x,
@@ -2725,7 +2727,7 @@ struct menu_entry powersave_menus[] = {
         .select         = menu_binary_toggle,
         .help = "If enabled, camera will save power during recording."
     },
-    #ifdef CONFIG_60D
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
     {
         .name = "Battery remaining",
         .display = batt_display,
@@ -2755,7 +2757,7 @@ struct menu_entry livev_cfg_menus[] = {
                 "Metering button."
                 #endif
                 #ifdef CONFIG_5D2
-                "Joystick press."
+                "PicStyle button."
                 #endif
     },
 };
@@ -3413,7 +3415,7 @@ static int idle_countdown_killflicker_prev = 5;
 
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
-#if CONFIG_DEBUGMSG
+#if 0
     NotifyBox(2000, "wakeup: %d   ", reason);
 #endif
 
@@ -3899,7 +3901,7 @@ livev_hipriority_task( void* unused )
         
         zebra_sleep_when_tired();
 
-        #if CONFIG_DEBUGMSG
+        #if 0
         draw_cropmark_area(); // just for debugging
         #endif
 
@@ -3933,7 +3935,7 @@ livev_hipriority_task( void* unused )
             {
                 BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
             }
-            msleep(MIN_MSLEEP);
+            if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
 
         
@@ -3956,7 +3958,7 @@ livev_hipriority_task( void* unused )
             //~ crop_set_dirty(20);
         
         //~ if (lens_display_dirty)
-        if ((k % 20 == 0 || lens_display_dirty) && !gui_menu_shown())
+        if ((k % 20 == 0 || (lens_display_dirty && k % 5 == 0)) && !gui_menu_shown())
         {
             //~ #ifdef CONFIG_KILL_FLICKER
             //~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )

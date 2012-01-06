@@ -30,6 +30,10 @@
 #include "menu.h"
 #include "math.h"
 
+#ifdef CONFIG_5D2
+#define CONFIG_FULLFRAME
+#endif
+
 void update_stuff();
 
 void bv_update_lensinfo();
@@ -41,6 +45,9 @@ CONFIG_INT("movie.log", movie_log, 0);
 #ifndef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 16
 CONFIG_INT("crop.info", crop_info, 0);
+#else
+#define SENSORCROPFACTOR 10
+#define crop_info 0
 #endif
 
 static struct semaphore * lens_sem;
@@ -170,8 +177,8 @@ update_lens_display()
     draw_ml_topbar();
     
     extern int menu_upside_down; // don't use double buffer in this mode
-    int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty() && !should_draw_zoom_overlay();
-    draw_ml_bottombar(double_buffering, double_buffering); 
+    int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty();
+    draw_ml_bottombar(double_buffering, 1); 
 }
 
 int should_draw_bottom_bar()
@@ -217,10 +224,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
 {
     //~ beep();
     if (!should_draw_bottom_bar()) return;
-
-    #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
-    double_buffering = 0;
-    #endif
     
     struct lens_info *    info = &lens_info;
 
@@ -584,7 +587,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
         int col = battery_level_bars == 0 ? COLOR_RED :
                   battery_level_bars == 1 ? COLOR_YELLOW : 
-                #if defined(CONFIG_60D)
+                #if defined(CONFIG_60D) || defined(CONFIG_5D2)
                   bat <= 70 ? COLOR_WHITE : 
                 #endif
                   COLOR_GREEN1;
@@ -1363,6 +1366,7 @@ void update_stuff()
     lens_display_set_dirty();
     if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
     iso_components_update();
+    iso_auto_display_fix();
 }
 
 PROP_HANDLER( PROP_LV_LENS )

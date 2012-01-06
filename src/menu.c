@@ -1310,7 +1310,7 @@ menu_handler(
 #else
     case PRESS_RIGHT_BUTTON:
 #endif
-        show_only_selected = 0;
+        if (!submenu_mode) show_only_selected = 0;
     case DIAL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
@@ -1323,7 +1323,7 @@ menu_handler(
 #else
     case PRESS_LEFT_BUTTON:
 #endif
-        show_only_selected = 0;
+        if (!submenu_mode) show_only_selected = 0;
     case DIAL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }

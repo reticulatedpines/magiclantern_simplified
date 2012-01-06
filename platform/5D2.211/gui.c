@@ -62,7 +62,7 @@ void joypress_task()
 
 			if (gui_menu_shown())
 				fake_simple_button(BGMT_PICSTYLE); // Q
-			else
+			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU)
 				give_semaphore( gui_sem );
 			msleep(500);
 		}
@@ -70,6 +70,8 @@ void joypress_task()
 	}
 }
 TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
+
+int lv_stopped_by_user = 0;
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -87,9 +89,35 @@ static int handle_buttons(struct event * event)
 		return 0; // handled above
 	}
 
+	extern int disp_profiles_0;
+	if (event->param == BGMT_PICSTYLE && disp_profiles_0 && !gui_menu_shown() && liveview_display_idle())
+	{
+		toggle_disp_mode();
+		return 0;
+	}
+
+	if (event->param == BGMT_LV && !IS_FAKE(event))
+		lv_stopped_by_user = 1;
+
+	if (event->param == BGMT_PRESS_SET && recording)
+	{
+		extern int movie_was_stopped_by_set;
+		movie_was_stopped_by_set = 1;
+	}
+
 	return 1;
 }
 
+PROP_HANDLER(PROP_LV_ACTION)
+{
+	if (buf[0] == 0) // liveview on
+	{
+		lv_stopped_by_user = 0;
+	}
+	return prop_cleanup(token, property);
+}
+
+int get_lv_stopped_by_user() { return lv_stopped_by_user; }
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;

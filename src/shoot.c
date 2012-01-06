@@ -2714,7 +2714,7 @@ seconds_clock_task( void* unused )
         if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown())
             card_led_blink(1, 50, 0);
         
-        #ifdef CONFIG_60D
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         RefreshBatteryLevel_1Hz();
         #endif
     }

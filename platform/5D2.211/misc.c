@@ -65,6 +65,10 @@ int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 
 int battery_level = 0;
+CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
+int battery_seconds_same_level_tmp = 0;
+int battery_level_transitions = 0;
+
 PROP_HANDLER(PROP_BATTERY_REPORT)
 {
 	battery_level = buf[1] & 0xff;
@@ -72,18 +76,40 @@ PROP_HANDLER(PROP_BATTERY_REPORT)
 }
 int GetBatteryLevel()
 {
-	struct tm now;
-	LoadCalendarFromRTC( &now );
-	int m = now.tm_min;
-	static int prev_m = 0;
-	if (m != prev_m) // don't be too aggressive... refresh battery level only once per minute
-	{
-		prev_m = m;
-		int x = 31;
-		prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
-	}
-
 	return battery_level;
+}
+int GetBatteryTimeRemaining()
+{
+	return battery_seconds_same_level_ok * battery_level;
+}
+int GetBatteryDrainRate() // percents per hour
+{
+	return 3600 / battery_seconds_same_level_ok;
+}
+
+// called every second
+void RefreshBatteryLevel_1Hz()
+{
+	int x = 31;
+	prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
+	
+	msleep(50);
+	
+	// check how many seconds battery indicator was at the same percentage
+	// this is a rough indication of how fast the battery is draining
+	static int old_battery_level = -1;
+	if (battery_level == old_battery_level)
+	{
+		battery_seconds_same_level_tmp++;
+	}
+	else
+	{
+		battery_level_transitions++;
+		if (battery_level_transitions >= 2)
+			battery_seconds_same_level_ok = battery_seconds_same_level_tmp;
+		battery_seconds_same_level_tmp = 0;
+	}
+	old_battery_level = battery_level;
 }
 
 // dummy stub

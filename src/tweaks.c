@@ -129,7 +129,7 @@ int get_expsim_auto_value()
         return 0; // temporarily disable ExpSim to make sure display gain will work
     
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    if (is_movie_mode()) return expsim_setting;
+    return expsim_setting;
     #else
     if (is_movie_mode()) return 2;
     #endif
@@ -164,9 +164,9 @@ expsim_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Exp.Sim     : %s",
-        expsim == 2 ? "Movie" :
+        expsim == 2 ? "ON (Movie)" :
         expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
-        get_expsim_auto_value() ? "ON" : "OFF"
+        get_expsim_auto_value() ? "ON (Photo)" : "OFF"
     );
     if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
@@ -194,13 +194,15 @@ static void expsim_update()
 
 static void expsim_toggle(void* priv, int delta)
 {
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     if (is_movie_mode()) return;
+    #endif
     menu_ternary_toggle(priv, delta); msleep(100);
 }
 
 // LV metering
 //**********************************************************************
-
+#if 0
 CONFIG_INT("lv.metering", lv_metering, 0);
 
 static void
@@ -314,6 +316,7 @@ lv_metering_adjust()
     //~ bee
     //~ beep();
 }
+#endif
 
 // auto burst pic quality
 //**********************************************************************
@@ -877,11 +880,13 @@ tweak_task( void* unused)
             fake_halfshutter_step(); // this one should msleep as needed
         else
             msleep(50);
-        
+
+        #if 0
         if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
         {
             lv_metering_adjust();
         }
+        #endif
         
         // timelapse playback
         if (timelapse_playback)
@@ -1235,6 +1240,7 @@ struct menu_entry tweak_menus[] = {
         .help = "Swaps MENU and ERASE buttons."
     },
     #endif
+    #if 0
     {
         .name = "LV Auto ISO (M mode)",
         .priv = &lv_metering,
@@ -1242,6 +1248,7 @@ struct menu_entry tweak_menus[] = {
         .display = lv_metering_print,
         .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
+    #endif
     #ifdef CONFIG_600D
     {
         .name = "DigitalZoom Shortcut",

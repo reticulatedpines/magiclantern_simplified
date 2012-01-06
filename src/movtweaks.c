@@ -222,7 +222,13 @@ mode_remap_print(
 // start with LV
 //**********************************************************************
 
-CONFIG_INT( "enable-liveview",  enable_liveview, 1 );
+CONFIG_INT( "enable-liveview",  enable_liveview,
+    #ifdef CONFIG_5D2
+    0
+    #else
+    1
+    #endif
+);
 static void
 enable_liveview_print(
     void *          priv,
@@ -326,6 +332,8 @@ void shutter_btn_rec_do(int rec)
 }
 #endif
 
+int movie_was_stopped_by_set = 0;
+
 static void
 movtweak_task( void* unused )
 {
@@ -346,16 +354,22 @@ movtweak_task( void* unused )
         msleep(50);
         
         static int recording_prev = 0;
+        #ifdef CONFIG_5D2
+        if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
+        #else
         if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
+        #endif
         {
             if (movie_restart)
             {
-                msleep(1000);
+                msleep(500);
                 movie_start();
             }
         }
         recording_prev = recording;
-        
+
+        if (!recording) movie_was_stopped_by_set = 0;
+
         do_movie_mode_remap();
         
         if (is_movie_mode())
@@ -757,20 +771,24 @@ CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
 CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
 CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
 
+void iso_auto_display_fix()
+{
+    // force displayed ISO within limits [ placebo :P ]
+    lens_info.iso_auto = COERCE(lens_info.iso_auto, raw2iso(lvae_iso_min), raw2iso(lvae_iso_max));
+}
+
 void update_lvae_for_autoiso_n_displaygain()
 {
     // when one of those is true, ISO is locked to some fixed value
     // that is, LVAE_MOV_M_CTRL is 1 and LVAE_ISO_MIN is different from "normal"
     //~ static int auto_iso_paused = 0;
     //~ static int auto_iso_w_fixed_iso = 0;
-
     // Those two can't be true at the same time
 
     // either: (a) auto ISO with value greater than max ISO => ISO locked
     
     // or: (b) display gain enabled with manual ISO => ISO locked to manual value,
     //         but exposure mode is set to auto ISO to make sure display gain takes effect
-
     static int fixed_iso_needed_by_max_auto_iso = 0;
     static int fixed_iso_needed_by_display_gain = 0;
 
@@ -793,7 +811,7 @@ void update_lvae_for_autoiso_n_displaygain()
             {
                 fixed_iso_needed_by_max_auto_iso = lvae_iso_max;
                 //~ beep();
-                //~ bmp_printf(FONT_LARGE, 100, 100, "1");
+                //~ bmp_printf(FONT_LARGE, 10, 100, "1");
             }
             
             a_prev = a;
@@ -805,19 +823,25 @@ void update_lvae_for_autoiso_n_displaygain()
             {
                 int bv = get_prop(PROP_BV);
                 int a = (uint8_t)((bv >>  0) & 0xFF);
-                int b = (uint8_t)((bv >> 24) & 0xFF);
-                ae_value = a-b;
+                int b = (uint8_t)((bv >>  8) & 0xFF);
+                int c = (uint8_t)((bv >> 16) & 0xFF);
+                int d = (uint8_t)((bv >> 24) & 0xFF);
+                #ifdef CONFIG_5D2
+                ae_value = (int)lvae_iso_max - b;
+                #else
+                ae_value = a-d;
+                #endif
+                //~ bmp_printf(FONT_LARGE, 100, 100, "%d %d %d %d %d ", ae_value, a, b, c, d);
             }
             if (ae_value > 0 || lvae_iso_max != LVAE_ISO_MIN) // scene is bright again, wakeup auto ISO 
             {
                 fixed_iso_needed_by_max_auto_iso = 0;
                 //~ beep();
-                //~ bmp_printf(FONT_LARGE, 100, 100, "0");
+                //~ bmp_printf(FONT_LARGE, 10, 100, "0");
             }
         }
     }
     else fixed_iso_needed_by_max_auto_iso = 0;
-
 
     // Display gain in manual movie mode
     // Action of this block: sets or clears fixed_iso_needed_by_display_gain
@@ -836,7 +860,6 @@ void update_lvae_for_autoiso_n_displaygain()
     }
     else fixed_iso_needed_by_display_gain = 0;
 
-
     // Now apply or revert LVAE ISO settings as requested
 
     static int fixed_iso_was_needed_by_display_gain = 0;
@@ -854,6 +877,7 @@ void update_lvae_for_autoiso_n_displaygain()
         // this setting takes quite a bit of CPU to apply => only refresh it on transition (0->1)
         if (!fixed_iso_was_needed_by_display_gain)
         {
+            //~ bmp_printf(FONT_LARGE, 50, 200, "force iso auto");
             fixed_iso_was_needed_by_display_gain = fixed_iso_needed_by_display_gain;
             lens_set_rawiso(0);      // force iso auto => to enable display gain; but force it to a fixed value
             lensinfo_set_iso(fixed_iso_needed_by_display_gain);
@@ -866,6 +890,7 @@ void update_lvae_for_autoiso_n_displaygain()
 
         if (fixed_iso_was_needed_by_display_gain) // refresh on 1->0
         {
+            //~ bmp_printf(FONT_LARGE, 50, 200, "restore iso => %d ", fixed_iso_was_needed_by_display_gain);
             lens_set_rawiso(fixed_iso_was_needed_by_display_gain);
             fixed_iso_was_needed_by_display_gain = 0;
         }
@@ -1014,7 +1039,7 @@ static struct menu_entry mov_menus[] = {
         .select_reverse = movie_af_noisefilter_bump,
         .select_auto = movie_af_aggressiveness_bump,
     },*/
-    #ifndef CONFIG_50D
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     {
         .name = "MovieModeRemap",
         .priv = &movie_mode_remap,

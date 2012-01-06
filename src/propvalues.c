@@ -10,14 +10,12 @@
 
 volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
-volatile PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
-volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
 volatile PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
@@ -34,6 +32,24 @@ volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
+
+#ifndef CONFIG_5D2
+volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
+#else
+int ae_mode_movie = 1;
+#endif
+
+volatile int shooting_mode;
+PROP_HANDLER(PROP_SHOOTING_MODE)
+{
+    shooting_mode = buf[0];
+
+    #ifdef CONFIG_5D2
+    ae_mode_movie = shooting_mode == SHOOTMODE_M;
+    #endif
+    
+    return prop_cleanup(token, property);
+}
 
 volatile int dofpreview;
 PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2

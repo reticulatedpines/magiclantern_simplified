@@ -177,6 +177,7 @@ void focus_stack_ensure_preconditions()
         msleep(200);
     }
 
+#ifndef CONFIG_5D2
     if (is_movie_mode())
     {
         while (is_movie_mode())
@@ -185,6 +186,7 @@ void focus_stack_ensure_preconditions()
             msleep(2000);
         }
     }
+#endif
 
     while (is_manual_focus())
     {
@@ -737,7 +739,9 @@ int can_lv_trap_focus_be_active()
     if (!lv) return 0;
     if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
     if (dofpreview) return 0;
+    #ifndef CONFIG_5D2
     if (is_movie_mode()) return 0;
+    #endif
     if (gui_state != GUISTATE_IDLE) return 0;
     if (get_silent_pic()) return 0;
     if (!is_manual_focus()) return 0;
