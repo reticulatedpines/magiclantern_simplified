@@ -41,7 +41,7 @@ void NotifyBox_task(void* priv)
         // wait until some other task asks for a notification
         take_semaphore(notify_box_show_sem, 0);
         
-        redraw();
+        //~ redraw();
         
         // show notification for a while, then redraw to erase it
         notify_box_stop_request = 0;
@@ -53,6 +53,7 @@ void NotifyBox_task(void* priv)
             crop_set_dirty(10); // should match the value from redraw_do
             if (notify_box_stop_request) break;
         }
+
         redraw();
     }
 }

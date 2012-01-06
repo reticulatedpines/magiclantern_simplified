@@ -200,6 +200,8 @@ static void dump_rom(void* priv)
 
 void beep()
 {
+    if (recording) return; // breaks audio
+    
     // just to make sure it's thread safe
     static struct semaphore * beep_sem = 0;
     if (beep_sem == 0) beep_sem = create_named_semaphore("beep_sem",1);

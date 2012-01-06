@@ -62,8 +62,8 @@ void joypress_task()
 
 			if (gui_menu_shown())
 				fake_simple_button(BGMT_PICSTYLE); // Q
-			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU)
-				give_semaphore( gui_sem );
+			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
+				give_semaphore( gui_sem ); // open ML menu
 			msleep(500);
 		}
 
