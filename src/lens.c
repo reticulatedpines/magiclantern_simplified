@@ -817,7 +817,7 @@ lens_focus(
     for (int i = 0; i < num_steps; i++)
     {
         lv_focus_done = 0;
-        card_led_on();
+        info_led_on();
         if (lv && !mirror_down && tft_status == 0 && lens_info.job_state == 0)
             prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
         if (wait)
@@ -829,7 +829,7 @@ lens_focus(
         {
             msleep(extra_delay);
         }
-        card_led_off();
+        info_led_off();
     }
 
     if (get_zoom_overlay_trigger_mode()==2) zoom_overlay_set_countdown(300);

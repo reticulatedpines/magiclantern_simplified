@@ -66,8 +66,8 @@ dofp_update()
     
     if (dofpreview_sticky == 1)
     {
-        if (d) {bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF"); card_led_on(); }
-        else if (old_value) { redraw(); card_led_off(); }
+        if (d) {bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF"); info_led_on(); }
+        else if (old_value) { redraw(); info_led_off(); }
         
         if (d != old_value) // transition
         {
@@ -582,7 +582,7 @@ static void display_on_and_go_to_main_shooting_screen()
     
     int old = info_button_function;
     int x = 1;
-    //~ card_led_blink(5,100,100);
+    //~ info_led_blink(5,100,100);
     prop_request_change(PROP_INFO_BUTTON_FUNCTION, &x, 4); // temporarily make the INFO button display only the main shooting screen
     fake_simple_button(BGMT_DISP);
     msleep(300);
@@ -854,14 +854,14 @@ fake_halfshutter_step()
             {
                 if (old_value && !hs)
                 {
-                    card_led_on();
+                    info_led_on();
                     SW1(1,50);
                     state = 1;
                 }
             }
             else
             {
-                if (hs == 0) { state = 0; card_led_off(); }
+                if (hs == 0) { state = 0; info_led_off(); }
             }
         }
         old_value = hs;

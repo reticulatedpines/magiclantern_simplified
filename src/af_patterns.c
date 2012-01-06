@@ -58,12 +58,12 @@ PROP_HANDLER(PROP_AFPOINT)
 void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
 BMP_LOCK( // reuse this for locking
-    card_led_on();
+    info_led_on();
     assign_af_button_to_halfshutter(); // this has semaphores
     SW1(1,150);
     SW1(0,50);
     restore_af_button_assignment();
-    card_led_off();
+    info_led_off();
 )
 }
 

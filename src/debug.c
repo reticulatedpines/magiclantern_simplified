@@ -80,9 +80,9 @@ mem_spy_select( void * priv )
     mem_spy = !mem_spy;
 }
 
-void card_led_on() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(); }
-void card_led_off() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(); }
-void card_led_blink(int times, int delay_on, int delay_off)
+void _card_led_on() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(); }
+void _card_led_off() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(); }
+/*void _card_led_blink(int times, int delay_on, int delay_off)
 {
     int i;
     for (i = 0; i < times; i++)
@@ -92,7 +92,36 @@ void card_led_blink(int times, int delay_on, int delay_off)
         card_led_off();
         msleep(delay_off);
     }
+}*/
+
+void info_led_on()
+{
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+    call("EdLedOn");
+    #else
+    _card_led_on();
+    #endif
 }
+void info_led_off()
+{
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+    call("EdLedOff");
+    #else
+    _card_led_off();
+    #endif
+}
+void info_led_blink(int times, int delay_on, int delay_off)
+{
+    int i;
+    for (i = 0; i < times; i++)
+    {
+        info_led_on();
+        msleep(delay_on);
+        info_led_off();
+        msleep(delay_off);
+    }
+}
+
 
 int config_ok = 0;
 
@@ -297,7 +326,9 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
     msleep(2000);
-    SetGUIRequestMode(22);
+    fake_simple_button(BGMT_LV);
+    
+    //~ SetGUIRequestMode(22);
     /*
     for (int i = 30; i > 10; i--)
     {
@@ -523,7 +554,7 @@ static void stress_test_task(void* unused)
     for (int i = 0; i <= 10; i++)
     {
         NotifyBox(1000, "LED blinking: %d", i*10);
-        card_led_blink(10, i*3, (10-i)*3);
+        info_led_blink(10, i*3, (10-i)*3);
     }
     
     msleep(2000);
@@ -1220,11 +1251,11 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         
         //~ if (recording == 2)
             //~ void* x = get_lvae_info();
-            //~ bmp_hexdump(FONT_SMALL, 0, 20, 0x4FDA8, 32*20);
+            //~ bmp_hexdump(FONT_SMALL, 0, 20, 0x175cc, 32*20);
         //~ extern int disp_pressed;
         //~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
         
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%x ", get_current_dialog_handler());
+        //~ bmp_printf(FONT_LARGE, 50, 300, "%x ", MEM(0x13048));
         //~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
         //~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
@@ -1281,7 +1312,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         
         if (screenshot_sec)
         {
-            card_led_blink(1, 20, 1000-20-200);
+            info_led_blink(1, 20, 1000-20-200);
             screenshot_sec--;
             if (!screenshot_sec)
                 take_screenshot(0);
@@ -2061,10 +2092,7 @@ void ml_shutdown()
         config_saved = 1;
         save_config(0, 0);
     }
-    card_led_on();
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-    call("EdLedOn");
-    #endif
+    info_led_on();
     msleep(50); 
 }
 

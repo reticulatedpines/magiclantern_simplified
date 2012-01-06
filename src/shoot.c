@@ -2712,7 +2712,7 @@ seconds_clock_task( void* unused )
             bulb_ramping_showinfo();
 
         if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown())
-            card_led_blink(1, 50, 0);
+            info_led_blink(1, 50, 0);
         
         #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         RefreshBatteryLevel_1Hz();
@@ -4228,7 +4228,7 @@ shoot_task( void* unused )
 
         if (tfx) // MF
         {
-            if (HALFSHUTTER_PRESSED) card_led_on(); else card_led_off();
+            if (HALFSHUTTER_PRESSED) info_led_on(); else info_led_off();
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
                 remote_shot(0);

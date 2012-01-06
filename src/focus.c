@@ -1109,8 +1109,8 @@ void trap_focus_toggle_from_af_dlg()
     SW1(1,10);
     SW1(0,0);
     if (beep_enabled) beep();
-    if (trap_focus) card_led_blink(3, 50, 50);
-    else card_led_blink(1, 50, 50);
+    if (trap_focus) info_led_blink(3, 50, 50);
+    else info_led_blink(1, 50, 50);
 }
 
 CONFIG_INT("focus.patterns", af_patterns, 0);

@@ -3644,7 +3644,7 @@ clearscreen_loop:
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
         if (k % 50 == 0 && (tft_status || !display_is_on()) && lens_info.job_state == 0)
-            card_led_blink(1, 50, 50);
+            info_led_blink(1, 50, 50);
 
         if (!lv) continue;
 
