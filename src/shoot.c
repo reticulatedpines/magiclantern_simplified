@@ -2394,7 +2394,7 @@ int is_bulb_mode()
 void ensure_bulb_mode()
 {
     lens_wait_readytotakepic(64);
-    #ifdef CONFIG_60D
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
     int a = lens_info.raw_aperture;
     set_shooting_mode(SHOOTMODE_BULB);
     lens_set_rawaperture(a);
