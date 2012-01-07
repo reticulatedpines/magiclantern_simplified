@@ -1972,7 +1972,14 @@ static void spotmeter_step()
     {
         for( x = xcb - 26 ; x <= xcb + 26 ; x+=4 )
         {
-            M[BM(x,y)/4] = 0x80808080;
+            uint8_t* m = &(M[BM(x,y)/4]);
+            if (!(*m & 0x80)) *m = 0x80;
+            m++;
+            if (!(*m & 0x80)) *m = 0x80;
+            m++;
+            if (!(*m & 0x80)) *m = 0x80;
+            m++;
+            if (!(*m & 0x80)) *m = 0x80;
             B[BM(x,y)/4] = 0;
         }
     }
@@ -2782,7 +2789,7 @@ void cropmark_draw_from_cache()
             uint8_t m = M[BM(j,i)];
             if (!(m & 0x80)) continue;
             if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-            B[BM(j,i)] = M[BM(j,i)] & ~0x80;
+            B[BM(j,i)] = m & ~0x80;
         }
     }
 }
