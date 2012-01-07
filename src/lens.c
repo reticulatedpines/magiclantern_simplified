@@ -267,7 +267,18 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
     if (clear)
     {
-        bmp_fill(TOPBAR_BGCOLOR, x_origin-50, bottom-35, 720, 35);
+        uint8_t* B = bmp_vram();
+        uint8_t* M = get_bvram_mirror();
+        for (int y = bottom-35; y < bottom; y++)
+        {
+            for (int x = 0; x < vram_bm.width; x++)
+            {
+                uint8_t p = B[BM(x,y)];
+                uint8_t m = M[BM(x,y)];
+                if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
+                else B[BM(x,y)] = 0;
+            }
+        }
     }
 
         // MODE
@@ -554,6 +565,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   lens_format_dist( lens_info.focus_dist * 10 )
                 );
 
+#ifdef CONFIG_5D2
+    //~ extern int lightsensor_value;
+    //~ extern int lightsensor_triggered;
+    //~ text_font = FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bg );
+    //~ maru(x_origin + 600, y_origin+3, lightsensor_triggered ? COLOR_RED : 50);
+    display_lcd_remote_icon(x_origin + 630, y_origin+10);
+    //~ bmp_printf(text_font, x_origin + 630, y_origin + 10, "%d", lightsensor_value);
+#else
 
       text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
 
@@ -574,7 +593,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   "%d",
                     mod(ABS(AE_VALUE) * 10 / 8, 10)
                   );
-
+#endif
 
         // battery indicator
         int xr = x_origin + 600 - font_large.width - 4;
@@ -607,12 +626,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
     //~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
     
     // these have a black bar at the bottom => no problems
-    #if !defined(CONFIG_500D) && !defined(CONFIG_50D)
-    int y169 = os.y_max - os.off_169;
+    //~ #if !defined(CONFIG_500D) && !defined(CONFIG_50D)
+    //~ int y169 = os.y_max - os.off_169;
 
-    if (!gui_menu_shown() && (screen_layout == SCREENLAYOUT_16_9 || screen_layout == SCREENLAYOUT_16_10 || hdmi_code == 2 || ext_monitor_rca))
-        shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
-    #endif
+    //~ if (!gui_menu_shown() && (screen_layout == SCREENLAYOUT_16_9 || screen_layout == SCREENLAYOUT_16_10 || hdmi_code == 2 || ext_monitor_rca))
+        //~ shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
+    //~ #endif
 
     // mark the BV mode somehow
     if(CONTROL_BV)
@@ -647,7 +666,7 @@ end:
                   ABS(gain_ev));
     }*/
 }
-
+/*
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 {
     // shave the bottom bar a bit :)
@@ -661,7 +680,7 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
                 bmp_putpixel(j,i,new_color);
         //~ bmp_putpixel(x0+5,i,COLOR_RED);
     }
-}
+}*/
 
 void draw_ml_topbar()
 {
@@ -678,6 +697,10 @@ void draw_ml_topbar()
     unsigned y = 0;
 
     int screen_layout = get_screen_layout();
+
+    if (screen_layout >= 3 && !should_draw_bottom_bar())
+        return; // top bar drawn at bottom, may interfere with canon info
+
 
     if (gui_menu_shown())
     {
@@ -854,15 +877,24 @@ void lens_wait_readytotakepic(int wait)
 int mirror_locked = 0;
 void mlu_lock_mirror_if_needed() // called by lens_take_picture
 {
+    //~ NotifyBox(1000, "MLU locking");
     if (get_mlu() && !lv)
     {
         if (!mirror_locked)
         {
             mirror_locked = 1;
+            #ifdef CONFIG_5D2
+            SW1(1,100);
+            SW2(1,100);
+            SW2(0,100);
+            SW1(0,100);
+            #else
             call("Release");
-            msleep(1000);
+            #endif
+            msleep(100);
         }
     }
+    //~ NotifyBox(1000, "MLU locked");
 }
 
 volatile int af_button_assignment = -1;
@@ -914,7 +946,14 @@ lens_take_picture(
     
     mlu_lock_mirror_if_needed();
 
-    call( "Release", 0 );
+    #ifdef CONFIG_5D2
+    SW1(1,100);
+    SW2(1,100);
+    SW2(0,100);
+    SW1(0,100);
+    #else
+    call("Release");
+    #endif
     
     if( !wait )
     {
@@ -1194,16 +1233,27 @@ PROP_HANDLER( PROP_ISO )
 
 PROP_HANDLER( PROP_ISO_AUTO )
 {
-    const uint32_t raw = *(uint32_t *) buf;
+    uint32_t raw = *(uint32_t *) buf;
+
+    #ifdef CONFIG_5D2
+    raw = *(uint8_t*)(MEM(0x1D78) + 0x5C);
+    #endif
+
     lens_info.raw_iso_auto = raw;
     lens_info.iso_auto = RAW2VALUE(iso, raw);
+
     update_stuff();
     return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_BV )
 {
-    const uint32_t raw_iso = ((uint8_t*)buf)[1];
+    uint32_t raw_iso = ((uint8_t*)buf)[1];
+
+    #ifdef CONFIG_5D2
+    raw_iso = *(uint8_t*)(MEM(0x1D78) + 0x5C);
+    #endif
+
     if (raw_iso)
     {
         lens_info.raw_iso_auto = raw_iso;
@@ -1366,7 +1416,6 @@ void update_stuff()
     lens_display_set_dirty();
     if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
     iso_components_update();
-    iso_auto_display_fix();
 }
 
 PROP_HANDLER( PROP_LV_LENS )

@@ -11,39 +11,39 @@ void display_shooting_info() // called from debug task
 {
 	if (lv) return;
 	
-	int bg = bmp_getpixel(314, 260);
-	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+	int bg = COLOR_BLACK;
+	uint32_t fnt = SHADOW_FONT(FONT_MED);
+
+	bmp_printf(fnt, 215, 385, "%d%% ", GetBatteryLevel());
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-		bmp_printf(fnt, 360, 279, "%5dK", lens_info.kelvin);
+		bmp_printf(fnt, 490, 275, "%5dK", lens_info.kelvin);
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
-		bg = bmp_getpixel(15, 430);
+		bg = bmp_getpixel(15, 460);
 		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 320 + 2 * font_med.width, 450, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-		else    bmp_printf(fnt, 320 + 2 * font_med.width, 450, "  ");
+		if (ba) bmp_printf(fnt, 350 + 2 * font_med.width, 460, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+		else    bmp_printf(fnt, 350 + 2 * font_med.width, 460, "  ");
 
 		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 320, 450, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-		else    bmp_printf(fnt, 320, 450, "  ");
+		if (gm) bmp_printf(fnt, 350, 460, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+		else    bmp_printf(fnt, 350, 460, "  ");
 	}
 
-	iso_refresh_display();
+	//~ iso_refresh_display();
 
-	bg = bmp_getpixel(15, 430);
-	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+	//~ bg = bmp_getpixel(15, 430);
+	//~ fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
 	extern int hdr_steps, hdr_stepsize, hdr_enabled;
 	if (hdr_enabled)
-		bmp_printf(fnt, 190, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
+		bmp_printf(fnt, 180, 460, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
 	else
-		bmp_printf(fnt, 190, 450, "         ");
-
-	bmp_printf(fnt, 290, 415, "%d%% ", GetBatteryLevel());
+		bmp_printf(fnt, 180, 460, "         ");
 
 	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 
 		//~ strobo_firing == 0 ? " ON" : 
@@ -53,16 +53,10 @@ void display_shooting_info() // called from debug task
 
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
 
-	//~ display_lcd_remote_info();
+	display_lcd_remote_icon(555, 460);
 	display_trap_focus_info();
 }
 
-
-// some dummy stubs
-int lcd_release_running = 0;
-void lcd_release_step() {};
-int get_lcd_sensor_shortcuts() { return 0; }
-void display_lcd_remote_icon(int x0, int y0) {}
 
 int battery_level = 0;
 CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);

@@ -659,7 +659,7 @@ void rec_notify_continuous(int called_from_menu)
         k++;
         if (k % 10 == 0) // edled may take a while to process, don't try it often
         {
-            if (recording) info_led_on(); else info_led_off();
+            if (recording) info_led_on();
         }
     }
     
@@ -789,12 +789,6 @@ CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
 CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
 CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
 
-void iso_auto_display_fix()
-{
-    // force displayed ISO within limits [ placebo :P ]
-    lens_info.iso_auto = COERCE(lens_info.iso_auto, raw2iso(lvae_iso_min), raw2iso(lvae_iso_max));
-}
-
 void update_lvae_for_autoiso_n_displaygain()
 {
     // when one of those is true, ISO is locked to some fixed value
@@ -819,7 +813,13 @@ void update_lvae_for_autoiso_n_displaygain()
     {
         if (!fixed_iso_needed_by_max_auto_iso) // iso auto is alive and kicking
         {
+            #ifdef CONFIG_5D2
+            int a = (int)(*(uint8_t*)(MEM(0x1D78) + 0x5C)); // FRAME_ISO from hdr.c
+            lens_info.raw_iso_auto = a;
+            lens_info.iso_auto = raw2iso(a);
+            #else
             int a = val2raw_iso(lens_info.iso_auto);
+            #endif
             static int a_prev = 0;
 
             // if iso is raising, we catch it a bit earlier

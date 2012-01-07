@@ -1963,7 +1963,7 @@ static void spotmeter_step()
     uint32_t* M = get_bvram_mirror();
     uint32_t* B = bmp_vram();
 
-    for( y = (ycb&~1) - 13 ; y <= (ycb&~1) + 40 ; y++ )
+    for( y = (ycb&~1) - 13 ; y <= (ycb&~1) + 36 ; y++ )
     {
         for( x = xcb - 26 ; x <= xcb + 26 ; x+=4 )
         {

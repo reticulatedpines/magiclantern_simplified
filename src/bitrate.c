@@ -257,7 +257,7 @@ void free_space_show_photomode()
     int x = time_indic_x + 2 * font_med.width;
     int y = 452;
     bmp_printf(
-        FONT(FONT_LARGE, COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
+        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
         x, y,
         "%d.%dGB",
         fsg,

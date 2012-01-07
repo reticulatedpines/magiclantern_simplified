@@ -112,7 +112,7 @@
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x79B8) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
 // from a screenshot
-#define COLOR_FG_NONLV 80
+#define COLOR_FG_NONLV 1
 
 #define MVR_516_STRUCT (*(void**)0x1ef0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
@@ -173,21 +173,16 @@
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 38 : 2)
 // outside LiveView, Canon menu is a good choice
 
-
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
-
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 200
-#define DISPLAY_CLOCK_POS_Y 410
+#define DISPLAY_CLOCK_POS_X 435
+#define DISPLAY_CLOCK_POS_Y 452
 
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 410
-#define DISPLAY_TRAP_FOCUS_POS_Y 330
+#define DISPLAY_TRAP_FOCUS_POS_X 500
+#define DISPLAY_TRAP_FOCUS_POS_Y 320
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
