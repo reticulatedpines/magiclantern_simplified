@@ -101,7 +101,7 @@ _draw_char(
     uint32_t* end = (uint32_t *)(BMP_END - font->width);
 
     //uint32_t flags = cli();
-    if (0)//(fontspec & SHADOW_MASK) == 0)
+    if ((fontspec & SHADOW_MASK) == 0)
     {
         for( i=0 ; i<font->height ; i++ )
         {

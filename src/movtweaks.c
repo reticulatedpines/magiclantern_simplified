@@ -673,7 +673,7 @@ void rec_notify_trigger(int rec)
     {
         extern int ml_started;
         if (rec != 2 && ml_started) { beep(); info_led_on(); }
-        if (!rec) { msleep(100); beep(); }
+        if (!rec) { msleep(100); beep(); info_led_off(); }
     }
 #endif
 

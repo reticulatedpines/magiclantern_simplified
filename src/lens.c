@@ -1228,6 +1228,7 @@ PROP_HANDLER( PROP_ISO )
     }
     #endif
     bv_auto_update();
+    lens_display_set_dirty();
     return prop_cleanup( token, property );
 }
 
@@ -1274,6 +1275,7 @@ PROP_HANDLER( PROP_SHUTTER_ALSO )
     }
     #endif
     bv_auto_update();
+    lens_display_set_dirty();
     return prop_cleanup( token, property );
 }
 
@@ -1288,6 +1290,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     }
     #endif
     bv_auto_update();
+    lens_display_set_dirty();
     return prop_cleanup( token, property );
 }
 
@@ -1413,7 +1416,7 @@ void iso_components_update()
 void update_stuff()
 {
     calc_dof( &lens_info );
-    lens_display_set_dirty();
+    //~ lens_display_set_dirty();
     if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
     iso_components_update();
 }
@@ -1435,6 +1438,7 @@ PROP_HANDLER( PROP_LV_LENS )
     {
         if (get_zoom_overlay_trigger_mode()==2) zoom_overlay_set_countdown(300);
         idle_wakeup_reset_counters(-11);
+        lens_display_set_dirty();
     }
     old_focus_dist = lens_info.focus_dist;
 
