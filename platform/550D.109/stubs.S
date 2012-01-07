@@ -263,7 +263,13 @@ NSTUB(0xFF092558, SetGUIRequestMode)
 NSTUB(0xFF300BA0, LiveViewApp_handler)
 NSTUB(0xFF3010F4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF30204C, LiveViewApp_handler_end) // start of next function
-
+NSTUB(0xFF31971C, ShootOlcApp_handler)
 NSTUB(0xff4b39ac, lv_path_struct)
+NSTUB(0xFF2FDEF8, HideUnaviFeedBack_maybe)
+
 
 NSTUB(0xff1c15cc, engio_write)
+NSTUB(0xFF1C1260, EngDrvOut)
+NSTUB(0, shamem_read)
+NSTUB(0xFF243820, SetImagePass_x5)
+

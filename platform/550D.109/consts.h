@@ -140,6 +140,7 @@
 #define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x14C08) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
 #define SHOOTING_MODE (*(int*)0x30BC)
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x20160) != 0x17) // dec CancelUnaviFeedBackTimer
 
 #define COLOR_FG_NONLV 80
 
