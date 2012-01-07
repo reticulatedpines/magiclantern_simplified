@@ -60,11 +60,11 @@ void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
-int get_menu_font_sel() 
-{
-    if (recording) return FONT(FONT_LARGE,COLOR_WHITE,12); // dark red
-    else return FONT(FONT_LARGE,COLOR_WHITE,13);
-}
+//~ int get_menu_font_sel() 
+//~ {
+    //~ if (recording) return FONT(FONT_LARGE,COLOR_WHITE,12); // dark red
+    //~ else return FONT(FONT_LARGE,COLOR_WHITE,13);
+//~ }
 
 void select_menu_by_name(char* name, char* entry_name);
 static void select_menu_by_icon(int icon);
@@ -519,7 +519,7 @@ static void percent(int x, int y, int value)
     y -= 2;
     value = value * 28 / 100;
     for (i = 0; i < 28; i++)
-        draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/2,  i <= value ? 9 : 60);
+        draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/3 - 5,  i <= value ? 9 : 60);
 }
 
 static void playicon(int x, int y)
@@ -549,13 +549,32 @@ void submenu_icon(int x, int y)
 {
     //~ int color = COLOR_WHITE;
     x -= 40;
-    bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
+    draw_line(x+20, y+28, x+30, y+28, COLOR_WHITE);
+    for (int i = -2; i <= 2; i++)
+    draw_line(x+26, y+28+i, x+30, y+28, COLOR_WHITE);
+    //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
     //~ for (int r = 0; r < 2; r++)
     //~ {
         //~ draw_circle(x + 30, y + 28, r, color);
         //~ draw_circle(x + 23, y + 28, r, color);
         //~ draw_circle(x + 16, y + 28, r, color);
     //~ }
+}
+
+void selection_bar(int x0, int y0)
+{
+    int w = x0 + 720 - 40 - 10;
+    if (submenu_mode) w -= 110;
+    
+    uint8_t* B = bmp_vram();
+    for (int y = y0; y < y0 + 32; y++)
+    {
+        for (int x = x0-5; x < w; x++)
+        {
+            if (B[BM(x,y)] == COLOR_BLACK)
+                B[BM(x,y)] = 11; // dark blue
+        }
+    }
 }
 
 void size_icon(int x, int y, int current, int nmax)
@@ -580,10 +599,10 @@ void dice_icon(int x, int y, int current, int nmax)
             dot(x + 8, y - 8, C(2));
             break;
         case 4:
-            dot(x - 8, y - 8, C(0));
-            dot(x + 8, y - 8, C(1));
-            dot(x - 8, y + 8, C(2));
-            dot(x + 8, y + 8, C(3));
+            dot(x - 6, y - 6, C(0));
+            dot(x + 6, y - 6, C(1));
+            dot(x - 6, y + 6, C(2));
+            dot(x + 6, y + 6, C(3));
             break;
         case 5:
             dot(x,     y,     C(0));
@@ -666,7 +685,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-        batsu(x, y, COLOR_ORANGE);
+        maru(x, y, 40);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -692,7 +711,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     warning_msg = 0;
     switch(type)
     {
-        case MNI_OFF: batsu(x, y, COLOR_ORANGE); return;
+        case MNI_OFF: maru(x, y, 40); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
         case MNI_NEUTRAL: maru(x, y, 60); return;
@@ -785,7 +804,10 @@ menu_display(
                 );
             }
 
-            y += font_large.height - 1;
+            if (menu->selected)
+                selection_bar(x, y);
+
+            y += font_large.height;
             
             if ((unsigned)y > vram_bm.height - font_large.height 
                 #if CONFIG_DEBUGMSG

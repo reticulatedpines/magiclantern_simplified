@@ -37,7 +37,7 @@
 #include <stdbool.h>
 
 #define MENU_FONT       FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
-#define MENU_FONT_SEL   get_menu_font_sel()
+#define MENU_FONT_SEL   MENU_FONT
 
 int get_menu_font_sel();
 bool gui_menu_shown();
