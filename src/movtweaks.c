@@ -655,8 +655,12 @@ void rec_notify_continuous(int called_from_menu)
     }
     else if (rec_notify == 3)
     {
-        if (recording) info_led_on(); else info_led_off();
-        msleep(200);
+        static int k = 0;
+        k++;
+        if (k % 10 == 0) // edled may take a while to process, don't try it often
+        {
+            if (recording) info_led_on(); else info_led_off();
+        }
     }
     
     if (prev != recording) redraw();
