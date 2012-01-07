@@ -2883,7 +2883,7 @@ void bmp_on()
     //~ if (!is_safe_to_mess_with_the_display(500)) return;
     if (_bmp_cleared) 
     {// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
-    #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
         canon_gui_enable_front_buffer(1);
     #else
         BMP_LOCK(
@@ -2910,7 +2910,7 @@ void bmp_off()
     //~ if (!is_safe_to_mess_with_the_display(500)) return;
     if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
     {
-    #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
         _bmp_cleared = true;
         canon_gui_disable_front_buffer();
         clrscr();
@@ -3980,7 +3980,7 @@ livev_hipriority_task( void* unused )
             //~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
             //~ #endif
 
-            #if defined(CONFIG_550D)
+            #if defined(CONFIG_550D) || defined(CONFIG_5D2)
             BMP_LOCK( black_bars(); )
             #endif
 
@@ -4013,7 +4013,7 @@ static void black_bars()
     int i,j;
     uint8_t * const bvram = bmp_vram();
     uint8_t * const bvram_mirror = get_bvram_mirror();
-    for (i = os.y0; i < os.y_max; i++)
+    for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {
@@ -4034,7 +4034,7 @@ static void default_movie_cropmarks()
     int i,j;
     uint8_t * const bvram = bmp_vram();
     uint8_t * const bvram_mirror = get_bvram_mirror();
-    for (i = os.y0; i < os.y_max; i++)
+    for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {

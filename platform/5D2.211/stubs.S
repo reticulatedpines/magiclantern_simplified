@@ -66,8 +66,8 @@ NSTUB(0xFF9D7F64, GuiEdLedOff)                    // might be good (dumps=1, sco
 NSTUB(0xFF9D7F40, GuiEdLedOn)                     // might be good (dumps=1, score=5.6)
 NSTUB(0xFF8377D0, LVCAF_LensDriveStart)           // might be good (dumps=1, score=2.3)
 NSTUB(0xFF8696D8, LoadCalendarFromRTC)            // might be good (dumps=1, score=9.3)
-NSTUB(0xff863740, MuteOff_0)                      // no match
-NSTUB(0xFF8636FC, MuteOn_0)                       // might be good (dumps=1, score=2.6)
+NSTUB(0xff86438c, MuteOff_0)                      // MuteOffBmp in 5D2
+NSTUB(0xff864358, MuteOn_0)                       // MuteOnBmp in 5D2
 NSTUB(0xFFA856B8, RedrawDisplay)                  // might be good (dumps=1, score=68)
 NSTUB(0xFF9B3F7C, ReleaseRecursiveLock)           // might be good (dumps=1, score=12)
 NSTUB(0xFF92EBDC, RemoteRelease)                  // might be good (dumps=1, score=3.2)
