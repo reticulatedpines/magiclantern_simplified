@@ -136,25 +136,29 @@ _draw_char(
     {
         #define FBPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
         #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
-        
-        for( i=1 ; i<font->height-1 ; i++ )
+
+        // first draw the shadow
+        for( i = 0 ; i<font->height ; i++ )
         {
             for( j=0 ; j<font->width ; j++ )
             {
-                
-                if (FBPIX(i-1,j-1) || FBPIX(i-1,j  ) || FBPIX(i-1,j+1) ||
-                    FBPIX(i  ,j-1) || FBPIX(i  ,j  ) || FBPIX(i  ,j+1) ||
-                    FBPIX(i+1,j-1) || FBPIX(i+1,j  ) || FBPIX(i+1,j+1)
-                    )
-                /*
-                if (                  FBPIX(i-2,j-1) || FBPIX(i-2,j  ) || FBPIX(i-2,j+1) ||
-                    FBPIX(i-1,j-2) || FBPIX(i-1,j-1) || FBPIX(i-1,j  ) || FBPIX(i-1,j+1) || FBPIX(i-1,j+2) || 
-                    FBPIX(i  ,j-2) || FBPIX(i  ,j-1) || FBPIX(i  ,j  ) || FBPIX(i  ,j+1) || FBPIX(i  ,j+2) || 
-                    FBPIX(i+1,j-2) || FBPIX(i+1,j-1) || FBPIX(i+1,j  ) || FBPIX(i+1,j+1) || FBPIX(i+1,j+2) || 
-                                      FBPIX(i+2,j-1) || FBPIX(i+2,j  ) || FBPIX(i+2,j+1)
-                    )*/
+                if FBPIX(i,j)
                 {
-                    BMPIX(i,j) = (FBPIX(i,j)) ? fg_color>>24 : bg_color>>24;
+                    BMPIX(i-1,j-1) = BMPIX(i-1,j  ) = BMPIX(i-1,j+1) =
+                    BMPIX(i  ,j-1) =                  BMPIX(i  ,j+1) =
+                    BMPIX(i+1,j-1) = BMPIX(i+1,j  ) = BMPIX(i+1,j+1) = bg_color>>24;
+                }
+            }
+        }
+
+        // then the actual character
+        for( i = 0 ; i<font->height ; i++ )
+        {
+            for( j=0 ; j<font->width ; j++ )
+            {
+                if FBPIX(i,j)
+                {
+                    BMPIX(i,j) = fg_color>>24;
                 }
             }
         }
