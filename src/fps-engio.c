@@ -230,7 +230,10 @@ static void fps_task()
     while(1)
     {
         if (fps_override && lv && !gui_menu_shown())
-            fps_setup(current_fps);
+        {
+            msleep(500);
+            if (lv) fps_setup(current_fps);
+        }
         msleep(1000);
     }
 }
