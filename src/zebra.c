@@ -56,6 +56,7 @@ static int zebra_color_word_row(int c, int y);
 static void spotmeter_step();
 
 
+static void default_movie_cropmarks();
 static void black_bars_16x9();
 static void black_bars();
 static void defish_draw_play();
@@ -214,7 +215,7 @@ void crop_set_dirty(int value)
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
     extern int ml_started;
-    if (ml_started) redraw();
+    if (ml_started) redraw_after(200);
     return prop_cleanup(token, property);
 }
 
@@ -2799,6 +2800,8 @@ cropmark_draw()
     get_yuv422_vram(); // just to refresh VRAM params
     clear_lv_affframe_if_dirty();
 
+    default_movie_cropmarks();
+
     if (transparent_overlay && !transparent_overlay_hidden)
     {
         show_overlay();
@@ -2842,6 +2845,21 @@ cropmark_redraw()
 {
     if (!zebra_should_run() && !PLAY_MODE) return;
     BMP_LOCK( cropmark_draw(); )
+}
+
+static void
+cropmark_cache_check()
+{
+    if (!cropmark_cache_valid) return;
+    
+    // check if cropmark cache is still valid
+    int sig = os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
+    static int prev_sig = 0;
+    if (prev_sig != sig)
+    {
+        cropmark_clear_cache();
+    }
+    prev_sig = sig;
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
@@ -3303,6 +3321,7 @@ static void zebra_sleep_when_tired()
         if (!gui_menu_shown()) crop_set_dirty(5);
         vram_params_set_dirty();
 
+        default_movie_cropmarks();
         //~ if (lv && !gui_menu_shown()) redraw();
     }
 }
@@ -3743,6 +3762,8 @@ clearscreen_loop:
 
             // if cropmarks are cached, we can redraw them faster
 
+            cropmark_cache_check();
+            
             if (transparent_overlay) cropmark_cache_valid = 0;
             
             if (cropmark_cache_valid && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
@@ -3952,7 +3973,8 @@ livev_hipriority_task( void* unused )
             //~ crop_set_dirty(20);
         
         //~ if (lens_display_dirty)
-        if ((k % 20 == 0 || (lens_display_dirty && k % 5 == 0)) && !gui_menu_shown())
+        if ((k % 50 == 0 || (lens_display_dirty && k % 10 == 0)) && !gui_menu_shown())
+        //~ if (k % 5 == 0 && !gui_menu_shown())
         {
             //~ #ifdef CONFIG_KILL_FLICKER
             //~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
@@ -3990,18 +4012,40 @@ static void black_bars()
     if (!is_movie_mode()) return;
     int i,j;
     uint8_t * const bvram = bmp_vram();
+    uint8_t * const bvram_mirror = get_bvram_mirror();
     for (i = os.y0; i < os.y_max; i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {
             int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
             for (j = os.x0; j < os.x_max; j++)
+            {
                 if (bvram[BM(j,i)] == COLOR_BG)
                     bvram[BM(j,i)] = newcolor;
+            }
         }
     }
 }
 
+static void default_movie_cropmarks()
+{
+    if (!get_global_draw()) return;
+    if (!is_movie_mode()) return;
+    int i,j;
+    uint8_t * const bvram = bmp_vram();
+    uint8_t * const bvram_mirror = get_bvram_mirror();
+    for (i = os.y0; i < os.y_max; i++)
+    {
+        if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
+        {
+            int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
+            for (j = os.x0; j < os.x_max; j++)
+            {
+                bvram_mirror[BM(j,i)] = newcolor | 0x80;
+            }
+        }
+    }
+}
 
 static void black_bars_16x9()
 {
