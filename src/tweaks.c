@@ -163,10 +163,10 @@ expsim_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Exp.Sim     : %s",
-        expsim == 2 ? "ON (Movie)" :
-        expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ON)" : "Auto (OFF)") : 
-        get_expsim_auto_value() ? "ON (Photo)" : "OFF"
+        "LV ViewType : %s",
+        expsim == 2 ? "Movie" :
+        expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ExpSim)" : "Auto (Disp)") : 
+        get_expsim_auto_value() ? "Exposure Simulation" : "Disp. (Frame&Focus)"
     );
     if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
@@ -950,6 +950,7 @@ tweak_task( void* unused)
                 BMP_LOCK( draw_ml_bottombar(0,0); )
             }
             if (disp_profiles_0 && !longpress) toggle_disp_mode();
+            msleep(200);
             redraw();
         }
         
@@ -1368,11 +1369,12 @@ void screenshot_start();
 
 struct menu_entry expo_tweak_menus[] = {
     {
-        .name = "Exposure Simulation",
+        .name = "LV ViewType",
         .priv = &expsim_setting,
         .select = expsim_toggle,
         .display = expsim_display,
-        .help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
+        //~ .help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
+        .help = "ExpSim: show proper exposure. Disp: only for framing/focus.",
         //~ .show_liveview = 1,
     },
 };
