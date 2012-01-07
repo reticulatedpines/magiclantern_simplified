@@ -40,6 +40,9 @@ struct font
 extern struct font font_small;
 extern struct font font_med;
 extern struct font font_large;
-extern struct font font_huge;
+
+extern struct font font_small_shadow;
+extern struct font font_med_shadow;
+extern struct font font_large_shadow;
 
 #endif

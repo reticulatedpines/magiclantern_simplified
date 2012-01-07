@@ -101,7 +101,7 @@ _draw_char(
     uint32_t* end = (uint32_t *)(BMP_END - font->width);
 
     //uint32_t flags = cli();
-    if ((fontspec & SHADOW_MASK) == 0)
+    if (0)//(fontspec & SHADOW_MASK) == 0)
     {
         for( i=0 ; i<font->height ; i++ )
         {
@@ -127,41 +127,79 @@ _draw_char(
                 *(row++) = bmp_pixels;
 
                 // handle characters wider than 32 bits
-                if( j == 28/4 )
-                    pixels = font->bitmap[ c + ((i+128) << 7) ];
+                //~ if( j == 28/4 )
+                    //~ pixels = font->bitmap[ c + ((i+128) << 7) ];
             }
         }
     }
     else // shadowed fonts
     {
-        #define FBPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
-        #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
+        struct font * shadow =
+            font == &font_large ? &font_large_shadow :
+            font == &font_med ? &font_med_shadow :
+            font == &font_small ? &font_med_shadow : 0;
 
-        // first draw the shadow
-        for( i = 0 ; i<font->height ; i++ )
+        fg_color >>= 24;
+        bg_color >>= 24;
+
+        for( i=0 ; i<font->height ; i++ )
         {
-            for( j=0 ; j<font->width ; j++ )
+            // Start this scanline
+            uint32_t * row = front_row;
+            row = (intptr_t) row & ~3; // weird artifacts otherwise
+            if (row >= end) return;
+
+            // move to the next scanline
+            front_row += pitch;
+
+            uint32_t pixels = font->bitmap[ c + (i << 7) ];
+            uint32_t pixels_shadow = shadow->bitmap[ c + (i << 7) ];
+            uint8_t pixel;
+
+            for( j=0 ; j<font->width/4 ; j++ )
             {
-                if FBPIX(i,j)
+                uint32_t bmp_pixels = *(row);
+                
+                for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1, pixels_shadow <<=1 )
                 {
-                    BMPIX(i-1,j-1) = BMPIX(i-1,j  ) = BMPIX(i-1,j+1) =
-                    BMPIX(i  ,j-1) =                  BMPIX(i  ,j+1) =
-                    BMPIX(i+1,j-1) = BMPIX(i+1,j  ) = BMPIX(i+1,j+1) = bg_color>>24;
+                    //~ bmp_pixels >>= 8;
+                    //~ bmp_pixels |= (*(row) & 0xFF000000);
+                    if (pixels & 0x80000000)
+                    {
+                        bmp_pixels &= ~(0xFF << (pixel*8));
+                        bmp_pixels |= (fg_color << (pixel*8));
+                    }
+                    if (pixels_shadow & 0x80000000)
+                    {
+                        bmp_pixels &= ~(0xFF << (pixel*8));
+                        bmp_pixels |= (bg_color << (pixel*8));
+                    }
                 }
+
+                *(row++) = bmp_pixels;
             }
         }
 
-        // then the actual character
+
+/*        
+        #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
+        #define SPIX(i,j) (shadow->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
+        #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
+
         for( i = 0 ; i<font->height ; i++ )
         {
             for( j=0 ; j<font->width ; j++ )
             {
-                if FBPIX(i,j)
+                if FPIX(i,j)
                 {
                     BMPIX(i,j) = fg_color>>24;
                 }
+                if SPIX(i,j)
+                {
+                    BMPIX(i,j) = bg_color>>24;
+                }
             }
-        }
+        }*/
     }
 
     //sei( flags );

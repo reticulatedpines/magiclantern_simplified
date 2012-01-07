@@ -18,6 +18,67 @@ struct font font_small = {
     .bitmap     = 0,
 };
 
+struct font font_large_shadow = {
+    .width      = 20,
+    .height     = 32,
+    .bitmap     = 0,
+};
+
+struct font font_med_shadow = {
+    .width      = 12,
+    .height     = 20,
+    .bitmap     = 0,
+};
+
+struct font font_small_shadow = {
+    .width      = 8,
+    .height     = 12,
+    .bitmap     = 0,
+};
+
+static void shadow_char_compute(struct font * src, struct font * dst, char c)
+{
+    #define PIX(i,j) (src->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
+    #define PIX_SET(i,j) dst->bitmap[ c + ((i) << 7) ] |= (1 << (31-(j)))
+    #define PIX_CLR(i,j) dst->bitmap[ c + ((i) << 7) ] &= ~(1 << (31-(j)))
+
+    int i,j;
+
+    // first draw the shadow
+    for( i = 0 ; i<src->height ; i++ )
+    {
+        for( j=0 ; j<src->width ; j++ )
+        {
+            if PIX(i,j)
+            {
+                PIX_SET(i-1,j-1); PIX_SET(i-1,j  ); PIX_SET(i-1,j+1);
+                PIX_SET(i  ,j-1);                   PIX_SET(i  ,j+1);
+                PIX_SET(i+1,j-1); PIX_SET(i+1,j  ); PIX_SET(i+1,j+1);
+            }
+        }
+    }
+    // then erase the body
+    for( i = 0 ; i<src->height ; i++ )
+    {
+        for( j=0 ; j<src->width ; j++ )
+        {
+            if PIX(i,j)
+            {
+                PIX_CLR(i,j);
+            }
+        }
+    }
+}
+static void shadow_fonts_compute()
+{
+    for (char c = ' '; c < '~'; c++)
+    {
+        shadow_char_compute(&font_large, &font_large_shadow, c);
+        shadow_char_compute(&font_med, &font_med_shadow, c);
+        shadow_char_compute(&font_small, &font_small_shadow, c);
+    }
+}
+
 int fonts_done = 0;
 
 static void load_fonts(void* unused)
@@ -31,6 +92,13 @@ static void load_fonts(void* unused)
     //~ font_large.bitmap = read_entire_file(CARD_DRIVE "LARGE.FNT", &size);
     font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
     font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
+
+    font_small_shadow.bitmap = AllocateMemory(size);
+    memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
+    font_med_shadow.bitmap = font_small_shadow.bitmap + 6136/4; // size of SMALL.FNT
+    font_large_shadow.bitmap = font_med_shadow.bitmap + 10232/4; // size of MEDIUM.FNT
+
+    shadow_fonts_compute();
 
     if (font_small.bitmap == 0) // fonts not loaded
     {
