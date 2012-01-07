@@ -328,7 +328,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
     msleep(2000);
-    fake_simple_button(BGMT_LV);
+    //~ fake_simple_button(BGMT_LV);
     
     //~ SetGUIRequestMode(22);
     /*
@@ -952,9 +952,13 @@ void display_clock()
     LoadCalendarFromRTC( &now );
     if (!lv)
     {
-        uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
+        uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
         bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
     }
+
+    static int prev_min = 0;
+    if (prev_min != now.tm_min) redraw();
+    prev_min = now.tm_min;
 }
 
 
@@ -1257,13 +1261,13 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         //~ extern int disp_pressed;
         //~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
         
-        //~ bmp_printf(FONT_LARGE, 50, 300, "%x ", MEM(0x13048));
+        //~ bmp_printf(FONT_LARGE, 50, 300, "%x ", get_current_dialog_handler());
         //~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
         //~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
         if (get_global_draw())
         {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+            #if !defined(CONFIG_50D)
             extern thunk ShootOlcApp_handler;
             if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !EXT_MONITOR_CONNECTED
                 && get_current_dialog_handler() == &ShootOlcApp_handler)
@@ -1501,6 +1505,24 @@ static void efictemp_display(
     menu_draw_icon(x, y, MNI_ON, 0);
 }
 
+#ifdef CONFIG_5D2
+static void ambient_display(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    extern int lightsensor_raw_value;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Ambient light: %d",
+        lightsensor_raw_value
+    );
+    menu_draw_icon(x, y, MNI_ON, 0);
+}
+#endif
 
 #ifdef CONFIG_KILL_FLICKER
 CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
@@ -1775,6 +1797,14 @@ struct menu_entry debug_menus[] = {
         .help = "EFIC temperature, in raw units (don't rely on it).",
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
+    #ifdef CONFIG_5D2
+    {
+        .name = "Ambient light",
+        .display = ambient_display,
+        .help = "Ambient light from the sensor under LCD, in raw units.",
+        .essential = FOR_MOVIE | FOR_PHOTO,
+    },
+    #endif
     #if CONFIG_DEBUGMSG
     {
         .name = "PROP display",

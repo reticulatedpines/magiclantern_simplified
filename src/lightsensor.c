@@ -1,7 +1,7 @@
 /** \file
- * LCD RemoteShot & related. Only for cameras with this sensor.
+ * LCD RemoteShot for 5D (with ambient light se)
  * 
- * (C) 2010 Alex Dumitrache, broscutamaker@gmail.com
+ * (C) 2012 Alex Dumitrache, broscutamaker@gmail.com
  */
 /*
  * Magic Lantern is Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
@@ -33,7 +33,7 @@
 #include "gui.h"
 
 
-CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
+int lcd_sensor_shortcuts = 0;
 int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
 
 CONFIG_INT( "lcd.release", lcd_release_running, 0);
@@ -58,14 +58,17 @@ extern int remote_shot_flag; // from shoot.c
 int wave_count = 0;
 int wave_count_countdown = 0;
 int lcd_ff_dir = 1;
-PROP_HANDLER(PROP_DISPSENSOR_CTRL)
+void sensor_status_trigger(int on)
 {
+    if (lcd_release_running && on) info_led_on();
+
     static int prev = 0;
-    int on = !buf[0];
     int off = !on;
     if (on == prev) // false alarm
         goto end;
     prev = on;
+
+    if (lcd_release_running && off) info_led_off();
     
     if (remote_shot_flag) goto end;
 
@@ -110,17 +113,11 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     idle_wakeup_reset_counters(-20);
 
     end:
-    return prop_cleanup(token, property);
+    return;
 }
 
 void lcd_release_step() // to be called from shoot_task
 {
-    if ((lcd_sensor_shortcuts || get_follow_focus_mode()==1) && (lv || PLAY_MODE) && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
-    {
-        fake_simple_button(MLEV_LCD_SENSOR_START); // look at this***
-        msleep(500);
-    }
-
     if (wave_count_countdown)
     {
         wave_count_countdown--;
@@ -180,22 +177,48 @@ void display_lcd_remote_icon(int x0, int y0)
     //~ prev_lr = lcd_release_running;
 }
 
+int lightsensor_raw_value = 0;
+int lightsensor_raw_avg = 0;
+int lightsensor_value = 0;
 
-// sensor shortcuts
-//**********************************************************************
+//~ int is_lightsensor_triggered() { return lightsensor_triggered; }
 
-void
-lcd_sensor_shortcuts_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+void LightMeasureCBR(int priv, int light)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LCD Sensor Shortcuts: %s", 
-        lcd_sensor_shortcuts ? "ON" : "OFF"
-    );
+    lightsensor_raw_value = light;
+    //~ bmp_printf(FONT_LARGE, 0, 0, "%d ", light);
 }
+
+void light_sensor_task(void* unused)
+{
+    while(1)
+    {
+        msleep(50);
+        LightMeasure_n_Callback_r0(LightMeasureCBR, 0);
+
+        int raw_x100 = lightsensor_raw_value * 100;
+
+        static int raw_avg_x100;
+        if (raw_avg_x100 == 0) raw_avg_x100 = raw_x100;
+        raw_avg_x100 = (raw_avg_x100 * 63 + raw_x100) / 64;
+
+        static int avg_prev0 = 1000;
+        static int avg_prev1 = 1000;
+        static int avg_prev2 = 1000;
+        static int avg_prev3 = 1000;
+
+        lightsensor_raw_avg = avg_prev3 / 100;
+        lightsensor_value = 100 * (lightsensor_raw_value - lightsensor_raw_avg) / lightsensor_raw_avg;
+
+        avg_prev3 = avg_prev2;
+        avg_prev2 = avg_prev1;
+        avg_prev1 = avg_prev0;
+        avg_prev0 = raw_avg_x100;
+
+        if (lightsensor_value < -40) display_sensor = 1;
+        else if (lightsensor_value > -20) display_sensor = 0;
+        sensor_status_trigger(display_sensor);
+    }
+}
+
+TASK_CREATE( "light_sensor_task", light_sensor_task, 0, 0x1c, 0x1000 );

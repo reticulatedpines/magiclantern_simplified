@@ -65,7 +65,7 @@ int is_follow_focus_active()
 
 int get_follow_focus_mode()
 {
-    #if defined(CONFIG_550D) || defined(CONFIG_500D)
+    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
     return follow_focus_mode;
     #else
     return 0; // no LCD sensor, use arrows only
@@ -1163,7 +1163,7 @@ static struct menu_entry focus_menu[] = {
         .essential = FOR_LIVEVIEW,
 
         .children =  (struct menu_entry[]) {
-            #if defined(CONFIG_550D) || defined(CONFIG_500D)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
             {
                 .name = "Focus using",
                 .priv = &follow_focus_mode, 

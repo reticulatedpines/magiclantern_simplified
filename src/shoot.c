@@ -2537,8 +2537,8 @@ mlu_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Mirror Lockup   : %s",
-        #if defined(CONFIG_550D) || defined(CONFIG_500D)
-        mlu_auto ? "Timer+Remote"
+        #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+        mlu_auto ? "Timer+LCDremote"
         #else
         mlu_auto ? "Self-timer only"
         #endif
@@ -3140,13 +3140,17 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-    #if defined(CONFIG_550D) || defined(CONFIG_500D)
+    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
     {
-        .name = "LCD Remote Shot",
+        .name = "LCDsensor Remote",
         .priv       = &lcd_release_running,
         .select     = menu_quaternary_toggle, 
         .display    = lcd_release_display,
-        .help = "Avoid shake using the LCD face sensor as a simple remote.",
+         #if defined(CONFIG_5D2)
+        .help = "Use the ambient light sensor as a simple remote (no shake).",
+         #else
+        .help = "Use the LCD face sensor as a simple remote (avoids shake).",
+         #endif
         .essential = FOR_PHOTO,
     },
     #endif
@@ -3934,7 +3938,9 @@ void display_shooting_info_lv()
     int audio_meters_at_top = audio_meters_are_drawn() 
         && (screen_layout == SCREENLAYOUT_3_2);
 
+#ifndef CONFIG_5D2
     display_lcd_remote_icon(450, audio_meters_at_top ? 25 : 3);
+#endif
     display_trap_focus_info();
     display_expsim_status();
 }
