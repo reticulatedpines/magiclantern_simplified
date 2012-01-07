@@ -235,11 +235,6 @@ PROP_HANDLER(PROP_GUI_STATE) {
     return prop_cleanup( token, property );
 }*/
 
-PROP_HANDLER( PROP_LV_AFFRAME ) {
-    afframe_set_dirty();
-    return prop_cleanup( token, property );
-}
-
 static int idle_globaldraw_disable = 0;
 
 int get_global_draw() // menu setting, or off if 
@@ -2026,14 +2021,6 @@ static void spotmeter_step()
             "IRE\n%s",
             spotmeter_formula == 2 ? "-1..101" : "0..108"
         );
-    }
-    
-    if (spotmeter_position)
-    {
-        // spotmeter may need to be erased when moving the AF frame
-        extern int afframe_needs_erasing;
-        if (canon_gui_front_buffer_disabled() || recording)
-            afframe_needs_erasing = 1;
     }
 }
 
