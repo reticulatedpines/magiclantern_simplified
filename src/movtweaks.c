@@ -864,7 +864,7 @@ void update_lvae_for_autoiso_n_displaygain()
     // Display gain in manual movie mode
     // Action of this block: sets or clears fixed_iso_needed_by_display_gain
 
-    if (is_movie_mode() && !CONTROL_BV && ae_mode_movie) // movie mode with manual ISO
+    if (is_movie_mode() && !CONTROL_BV && ae_mode_movie && expsim==2) // movie mode with manual ISO
     {
         if (LVAE_DISP_GAIN && liveview_display_idle() && (!get_halfshutter_pressed() || recording)) // needs auto iso to apply display gain
         {
@@ -881,6 +881,10 @@ void update_lvae_for_autoiso_n_displaygain()
     // Now apply or revert LVAE ISO settings as requested
 
     static int fixed_iso_was_needed_by_display_gain = 0;
+
+    #ifdef CONFIG_5D2
+    fixed_iso_needed_by_display_gain = MIN(fixed_iso_needed_by_display_gain, 117); // otherwise display gain doesn't work
+    #endif
 
     if (fixed_iso_needed_by_max_auto_iso)
     {
