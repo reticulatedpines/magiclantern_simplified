@@ -2751,7 +2751,7 @@ struct menu_entry powersave_menus[] = {
         .priv           = &idle_rec,
         .display        = idle_rec_print,
         .select         = menu_binary_toggle,
-        .help = "If enabled, camera will save power during recording."
+        .help = "If enabled, powersave (see above) works when recording too."
     },
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
     {
@@ -2965,6 +2965,11 @@ void bmp_off()
         )
     #endif
     }
+}
+
+void bmp_mute_flag_reset()
+{
+    _bmp_cleared = 0;
 }
 
 /*

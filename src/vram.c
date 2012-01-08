@@ -59,7 +59,11 @@ int hd_ratio_den = 2;
 int increment = 4;
 
 int vram_params_dirty = 1;
-void vram_params_set_dirty() { vram_params_dirty = 1; }
+void vram_params_set_dirty()
+{
+    vram_params_dirty = 1;
+    bmp_mute_flag_reset();
+}
 
 int* vram_params[] = { 
     &increment,
