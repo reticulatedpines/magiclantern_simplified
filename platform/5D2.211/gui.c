@@ -30,6 +30,7 @@
 struct semaphore * gui_sem;
 
 int joy_center_press_count = 0;
+int joy_center_action_disabled = 0;
 void joypress_task()
 {
 	extern int joy_center_pressed;
@@ -40,7 +41,7 @@ void joypress_task()
 		if (joy_center_pressed) joy_center_press_count++;
 		else
 		{
-			if (gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 10) // short press, ML menu active
+			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
 			{
 				if (is_submenu_mode_active())
 				{
@@ -55,7 +56,7 @@ void joypress_task()
 			joy_center_press_count = 0;
 		}
 
-		if (joy_center_press_count > 10) // long press
+		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
 		{
 			joy_center_press_count = 0;
 			fake_simple_button(BGMT_UNPRESS_UDLR);
@@ -104,6 +105,15 @@ static int handle_buttons(struct event * event)
 		extern int movie_was_stopped_by_set;
 		movie_was_stopped_by_set = 1;
 	}
+
+	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
+		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
+		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
+		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
+		joy_center_action_disabled = 1;
+
+	if (event->param == BGMT_UNPRESS_UDLR)
+		joy_center_action_disabled = 0;
 
 	return 1;
 }

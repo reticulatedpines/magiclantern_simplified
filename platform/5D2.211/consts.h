@@ -85,10 +85,15 @@
 //~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
 #define BGMT_JOY_CENTER 0x1e
 
-#define BGMT_PRESS_LEFT 0x1a
 #define BGMT_PRESS_UP 0x16
+#define BGMT_PRESS_UP_RIGHT 0x17
+#define BGMT_PRESS_UP_LEFT 0x18
 #define BGMT_PRESS_RIGHT 0x19
+#define BGMT_PRESS_LEFT 0x1a
+#define BGMT_PRESS_DOWN_RIGHT 0x1B
+#define BGMT_PRESS_DOWN_LEFT 0x1C
 #define BGMT_PRESS_DOWN 0x1d
+
 #define BGMT_UNPRESS_UDLR 0x15
 #define BGMT_PRESS_HALFSHUTTER 0x1f
 #define BGMT_UNPRESS_HALFSHUTTER 0x20
@@ -149,7 +154,7 @@
 #define DLG_FLASH_AE 0x22
 #define DLG_PICQ 6
 
-#define _MOVIE_MODE_NON_LIVEVIEW (!lv && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE)
+#define _MOVIE_MODE_NON_LIVEVIEW (!lv && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0)
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (_MOVIE_MODE_NON_LIVEVIEW && lens_info.name[0])
 
