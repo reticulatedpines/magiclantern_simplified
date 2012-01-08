@@ -3651,10 +3651,10 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
         
-        //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
+        NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 10000 || (bulb_ramping_enabled && msc > BULB_MIN_EXPOSURE))
+        if (msc >= 10000 || (bulb_ramping_enabled && intervalometer_running && msc > BULB_MIN_EXPOSURE))
         {
             bulb_take_pic(msc);
         }
