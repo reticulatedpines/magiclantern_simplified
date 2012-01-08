@@ -129,7 +129,7 @@ int get_expsim_auto_value()
         return 0; // temporarily disable ExpSim to make sure display gain will work
     
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    return expsim_setting;
+    return expsim;
     #else
     if (is_movie_mode()) return 2;
     #endif
@@ -175,6 +175,10 @@ expsim_display( void * priv, int x, int y, int selected )
 
 static void expsim_update()
 {
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    return;
+    #endif
+    
     if (!lv) return;
     if (shooting_mode == SHOOTMODE_MOVIE) return;
     int expsim_auto_value = get_expsim_auto_value();
@@ -194,10 +198,14 @@ static void expsim_update()
 
 static void expsim_toggle(void* priv, int delta)
 {
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    expsim_setting = expsim; // no fancy auto expsim
+    menu_ternary_toggle(&expsim_setting, delta);
+    set_expsim(expsim_setting);
+    #else
     if (is_movie_mode()) return;
-    #endif
     menu_ternary_toggle(priv, delta); msleep(100);
+    #endif
 }
 
 // LV metering

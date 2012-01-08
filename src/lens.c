@@ -869,7 +869,12 @@ void lens_wait_readytotakepic(int wait)
     int i;
     for (i = 0; i < wait * 10; i++)
     {
+        #ifdef CONFIG_5D2
+        if (!lv && lens_info.job_state <= 0xA && burst_count > 0) break;
+        if (lv && lens_info.job_state == 0 && burst_count > 0) break;
+        #else
         if (lens_info.job_state <= 0xA && burst_count > 0) break;
+        #endif
         msleep(20);
     }
 }
@@ -947,10 +952,14 @@ lens_take_picture(
     mlu_lock_mirror_if_needed();
 
     #ifdef CONFIG_5D2
-    SW1(1,100);
-    SW2(1,100);
-    SW2(0,100);
-    SW1(0,100);
+    if (get_mlu() && !lv)
+    {
+        SW1(1,100);
+        SW2(1,100);
+        SW2(0,100);
+        SW1(0,100);
+    }
+    else call("Release");
     #else
     call("Release");
     #endif
@@ -1237,7 +1246,7 @@ PROP_HANDLER( PROP_ISO_AUTO )
     uint32_t raw = *(uint32_t *) buf;
 
     #ifdef CONFIG_5D2
-    raw = *(uint8_t*)(MEM(0x1D78) + 0x5C);
+    if (expsim==2) raw = *(uint8_t*)(MEM(0x1D78) + 0x5C);
     #endif
 
     lens_info.raw_iso_auto = raw;
@@ -1252,7 +1261,7 @@ PROP_HANDLER( PROP_BV )
     uint32_t raw_iso = ((uint8_t*)buf)[1];
 
     #ifdef CONFIG_5D2
-    raw_iso = *(uint8_t*)(MEM(0x1D78) + 0x5C);
+    if (expsim==2) raw_iso = *(uint8_t*)(MEM(0x1D78) + 0x5C);
     #endif
 
     if (raw_iso)
@@ -1459,6 +1468,7 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
     update_stuff();
+    lens_display_set_dirty();
     //~ bv_auto_update();
     return prop_cleanup( token, property );
 }

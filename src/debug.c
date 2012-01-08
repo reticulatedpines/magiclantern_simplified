@@ -1249,6 +1249,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         //~ struct tm now;
         //~ LoadCalendarFromRTC(&now);
 
+        //~ bmp_printf(FONT_LARGE, 100, 100, "%d %d ", lens_info.job_state, burst_count);
 
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
