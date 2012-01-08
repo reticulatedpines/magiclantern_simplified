@@ -883,7 +883,7 @@ static void display_shortcut_key_hints_lv()
     if (!zebra_should_run()) return;
     if (is_movie_mode() && FLASH_BTN_MOVIE_MODE) mode = 1;
     else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) mode = 2;
-    else if (is_follow_focus_active()==1 && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
+    else if (is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
     if (mode == 0 && old_mode == 0) return;
 
     int mz = (mode == 2 && get_zoom_overlay_trigger_mode() <= 2 && lv_dispsize == 1);
