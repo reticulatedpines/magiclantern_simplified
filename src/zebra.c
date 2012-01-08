@@ -129,6 +129,26 @@ int get_zoom_overlay_trigger_mode()
     return zoom_overlay_trigger_mode;
 }
 
+int get_zoom_overlay_trigger_by_focus_ring()
+{
+    int z = get_zoom_overlay_trigger_mode();
+    #ifdef CONFIG_5D2
+    return z == 2 || z == 3;
+    #else
+    return z == 2;
+    #endif
+}
+
+int get_zoom_overlay_trigger_by_halfshutter()
+{
+    #ifdef CONFIG_5D2
+    int z = get_zoom_overlay_trigger_mode();
+    return z == 1 || z == 3;
+    #else
+    return 0;
+    #endif
+}
+
 int zoom_overlay_triggered_by_zoom_btn = 0;
 int zoom_overlay_triggered_by_focus_ring_countdown = 0;
 int is_zoom_overlay_triggered_by_zoom_btn() 
@@ -1726,9 +1746,15 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
+#ifdef CONFIG_5D2
+        zoom_overlay_trigger_mode == 1 ? "HalfS," :
+        zoom_overlay_trigger_mode == 2 ? "Focus," :
+        zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
+#else
         zoom_overlay_trigger_mode == 1 ? "Zrec," :
         zoom_overlay_trigger_mode == 2 ? "F+Zr," :
         zoom_overlay_trigger_mode == 3 ? "(+)," : "ALW,",
+#endif
 
         zoom_overlay_trigger_mode == 0 ? "" :
             zoom_overlay_size == 0 ? "Small," :
@@ -2370,8 +2396,13 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
+                #ifdef CONFIG_5D2
+                .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
+                .help = "Trigger MZ by focus ring or half-shutter.",
+                #else
                 .choices = (const char *[]) {"OFF", "Zoom.REC", "Focus+ZREC", "ZoomIn (+)", "Always On"},
                 .help = "Zoom when recording / trigger from focus ring / Zoom button",
+                #endif
             },
             {
                 .name = "Size", 
@@ -2966,7 +2997,13 @@ int handle_zoom_overlay(struct event * event)
 {
     if (gui_menu_shown()) return 1;
     if (!lv) return 1;
-    
+
+#ifdef CONFIG_5D2
+    if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
+        zoom_overlay_toggle();
+    if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
+        zoom_overlay_toggle();
+#else
     // zoom in when recording => enable Magic Zoom 
     if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
     {
@@ -2996,7 +3033,8 @@ int handle_zoom_overlay(struct event * event)
             return 0;
         }
     }
-    
+#endif
+
     // move AF frame when recording
     if (recording && liveview_display_idle() && is_manual_focus())
     {
