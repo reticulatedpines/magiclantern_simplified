@@ -448,6 +448,12 @@ PROP_HANDLER(PROP_LV_ACTION)
     return prop_cleanup(token, property);
 }
 
+PROP_HANDLER(PROP_GUI_STATE)
+{
+    vram_params_set_dirty();
+    return prop_cleanup(token, property);
+}
+
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
     vram_params_set_dirty();

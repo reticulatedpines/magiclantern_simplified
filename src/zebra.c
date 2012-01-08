@@ -2824,7 +2824,7 @@ cropmark_draw()
     if (cropmarks) 
     {
         clrscr_mirror();
-        //~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x ", os.x0, os.y0, os.x_ex, os.y_ex);
+        //~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x %d", os.x0, os.y0, os.x_ex, os.y_ex, PLAY_MODE);
 
         if (cropmark_cache_valid)
         {
@@ -2833,8 +2833,6 @@ cropmark_draw()
         }
         else
         {
-            msleep(500);
-            get_yuv422_vram();
             bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
             cropmark_cache_valid = 1;
             //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -2849,8 +2847,8 @@ cropmark_cache_check()
 {
     if (!cropmark_cache_valid) return;
 
-    get_yuv422_vram(); // update VRAM params
-    
+    get_yuv422_vram(); // update VRAM params if needed
+
     // check if cropmark cache is still valid
     int sig = os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
     static int prev_sig = 0;
