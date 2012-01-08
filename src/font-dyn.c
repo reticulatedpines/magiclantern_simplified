@@ -85,20 +85,18 @@ static void load_fonts(void* unused)
 {
     // if something goes wrong, you will see chinese fonts :)
     int size;
-    
-    //cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
-    font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "FONTS.DAT", &size);
-    //~ font_med.bitmap = read_entire_file(CARD_DRIVE "MEDIUM.FNT", &size);
-    //~ font_large.bitmap = read_entire_file(CARD_DRIVE "LARGE.FNT", &size);
-    font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
-    font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
 
-    font_small_shadow.bitmap = AllocateMemory(size);
-    memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
-    font_med_shadow.bitmap = font_small_shadow.bitmap + 6136/4; // size of SMALL.FNT
-    font_large_shadow.bitmap = font_med_shadow.bitmap + 10232/4; // size of MEDIUM.FNT
+    for (int i = 0; i < 3; i++)
+    {
+        //cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
+        font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "FONTS.DAT", &size);
+        font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
+        font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
+        if (font_small.bitmap) break; // OK!
 
-    shadow_fonts_compute();
+        NotifyBox(2000, "FONTS.DAT: retry #%d...", i+1);
+        msleep(2000);
+    }
 
     if (font_small.bitmap == 0) // fonts not loaded
     {
@@ -108,8 +106,16 @@ static void load_fonts(void* unused)
         bfnt_puts("Please copy all ML files!", 0, 0, COLOR_WHITE, COLOR_BLACK);
         beep();
         msleep(2000);
+        fonts_done = 1;
+        return;
     }
 
+    font_small_shadow.bitmap = AllocateMemory(size);
+    memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
+    font_med_shadow.bitmap = font_small_shadow.bitmap + 6136/4; // size of SMALL.FNT
+    font_large_shadow.bitmap = font_med_shadow.bitmap + 10232/4; // size of MEDIUM.FNT
+
+    shadow_fonts_compute();
     fonts_done = 1;
 }
 
