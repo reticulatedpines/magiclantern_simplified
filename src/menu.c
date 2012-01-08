@@ -42,7 +42,6 @@ static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
 static int submenu_mode = 0;
-struct menu * implicit_submenu = 0;
 
 int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 
@@ -72,6 +71,7 @@ static void menu_help_go_to_selected_entry(struct menu * menu);
 //~ static void menu_init( void );
 static void menu_show_version(void);
 static struct menu * get_current_submenu();
+static struct menu * get_selected_menu();
 
 extern int gui_state;
 void menu_show_only_selected()
@@ -532,6 +532,19 @@ static void playicon(int x, int y)
     }
 }
 
+static void leftright_sign(int x, int y)
+{
+    int i;
+    for (i = 5; i < 32-5; i++)
+    {
+        draw_line(x + 3, y + i, x + 18 + 3, y + 16, COLOR_WHITE);
+        draw_line(x + 3, y + i, x + 18 + 3, y + 16, COLOR_WHITE);
+
+        draw_line(x - 3, y + i, x - 18 - 3, y + 16, COLOR_WHITE);
+        draw_line(x - 3, y + i, x - 18 - 3, y + 16, COLOR_WHITE);
+    }
+}
+
 static int playicon_square(int x, int y, int color)
 {
     bmp_draw_rect(color,x+1,y+4,38,32);
@@ -564,7 +577,7 @@ void submenu_icon(int x, int y)
 void selection_bar(int x0, int y0)
 {
     int w = x0 + 720 - 40 - 10;
-    if (submenu_mode) w -= 110;
+    if (submenu_mode==1) w -= 110;
     
     uint8_t* B = bmp_vram();
     for (int y = y0; y < y0 + 32; y++)
@@ -572,7 +585,7 @@ void selection_bar(int x0, int y0)
         for (int x = x0-5; x < w; x++)
         {
             if (B[BM(x,y)] == COLOR_BLACK)
-                B[BM(x,y)] = 11; // dark blue
+                B[BM(x,y)] = submenu_mode ? COLOR_LIGHTBLUE : COLOR_BLUE;
         }
     }
 }
@@ -685,7 +698,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-        maru(x, y, 40);
+        maru(x, y, 45);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -711,7 +724,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     warning_msg = 0;
     switch(type)
     {
-        case MNI_OFF: maru(x, y, 40); return;
+        case MNI_OFF: maru(x, y, 45); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
         case MNI_NEUTRAL: maru(x, y, 60); return;
@@ -805,7 +818,12 @@ menu_display(
             }
 
             if (menu->selected)
+            {
                 selection_bar(x, y);
+
+                if (submenu_mode || show_only_selected)
+                    leftright_sign(x0+690, y0+400);
+            }
 
             y += font_large.height;
             
@@ -893,6 +911,20 @@ menus_display(
 }
 
 static void
+implicit_submenu_display()
+{
+    struct menu * menu = get_selected_menu();
+    int sos = show_only_selected;
+    show_only_selected = 1;
+    menu_display(
+        menu->children,
+        x0 + 40,
+        y0 + 45
+    );
+    show_only_selected = sos;
+}
+
+static void
 submenu_display(struct menu * submenu)
 {
     if (!submenu) return;
@@ -959,6 +991,7 @@ menu_entry_select(
 
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
         else { submenu_mode = !submenu_mode; show_only_selected = 0; }
+        //~ if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
 
         //~ else if (entry->select) entry->select( entry->priv, 1);
         //~ else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
@@ -1138,7 +1171,8 @@ menu_redraw()
                 {
                     if (!show_only_selected) bmp_dim();
                     struct menu * submenu = get_current_submenu();
-                    submenu_display(submenu);
+                    if (submenu) submenu_display(submenu);
+                    else implicit_submenu_display();
                 }
 
                 if (show_only_selected) 
@@ -1201,6 +1235,8 @@ static struct menu * get_selected_menu()
 
 static struct menu * get_current_submenu()
 {
+    if (submenu_mode == 2) return 0;
+    
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
         if( menu->selected )
@@ -1212,10 +1248,9 @@ static struct menu * get_current_submenu()
     if (entry->children)
         return menu_find_by_name(entry->name, 0);
 
-    memcpy(implicit_submenu->children, entry, sizeof(struct menu_entry));
-    implicit_submenu->children->next = implicit_submenu->children->prev = 0;
-    implicit_submenu->name = entry->name;
-    return implicit_submenu;
+    // no submenu
+    submenu_mode = 2;
+    return 0;
 }
 
 static int
@@ -1255,6 +1290,7 @@ menu_handler(
     {
         help_menu = menu;
         menu = get_current_submenu();
+        if (!menu) menu = help_menu; // no submenu, operate on same item
     }
     
     switch( event )
@@ -1630,11 +1666,6 @@ open_canon_menu()
     //~ }
 }
 
-static struct menu_entry implicit_submenu_entry[] = {
-    {
-        .essential = FOR_SUBMENU,
-    },
-};
 
 /*
 struct menu_entry menu_cfg_menu[] = {
@@ -1651,9 +1682,6 @@ menu_task( void* unused )
 {
     //~ int x, y;
     DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
-
-    implicit_submenu = menu_find_by_name("Implicit", ICON_ML_SUBMENU);
-    menu_add( "Implicit", implicit_submenu_entry, 1);
 
     // Add the draw_prop menu
     #if 0
