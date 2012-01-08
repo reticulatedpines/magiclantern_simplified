@@ -2788,6 +2788,7 @@ void cropmark_clear_cache()
     {
         clrscr_mirror();
         bvram_mirror_clear();
+        cropmark_cache_valid = 0;
     }
 }
 
@@ -2832,6 +2833,8 @@ cropmark_draw()
         }
         else
         {
+            msleep(500);
+            get_yuv422_vram();
             bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
             cropmark_cache_valid = 1;
             //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -2840,27 +2843,34 @@ cropmark_draw()
     }
     crop_dirty = 0;
 }
-static void
-cropmark_redraw()
-{
-    if (!zebra_should_run() && !PLAY_MODE) return;
-    BMP_LOCK( cropmark_draw(); )
-}
 
 static void
 cropmark_cache_check()
 {
     if (!cropmark_cache_valid) return;
+
+    get_yuv422_vram(); // update VRAM params
     
     // check if cropmark cache is still valid
     int sig = os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
     static int prev_sig = 0;
     if (prev_sig != sig)
     {
+        //~ NotifyBox(2000, "cropmark refresh");
         cropmark_clear_cache();
     }
+    //~ bmp_printf(FONT_LARGE, 0, 0, "crop sig: %x ", sig);
     prev_sig = sig;
 }
+
+static void
+cropmark_redraw()
+{
+    if (!zebra_should_run() && !PLAY_MODE) return;
+    cropmark_cache_check();
+    BMP_LOCK( cropmark_draw(); )
+}
+
 
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture

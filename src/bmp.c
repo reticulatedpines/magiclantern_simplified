@@ -855,7 +855,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
         {
             y = (ys-y0)*bmp->height/ymax;
             uint8_t * const b_row = bvram + ys * bmppitch;
-            uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * bmppitch );
+            uint8_t * const m_row = (uint8_t*)( mirror + ys * bmppitch );
             for (xs = x0; xs < (x0 + xmax); xs++)
             {
 #ifdef USE_LUT
@@ -883,7 +883,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
         {
             y = (ys-y0)*bmp->height/ymax;
             uint8_t * const b_row = bvram + COERCE(ys, 0, BMP_HEIGHT) * bmppitch;
-            uint8_t * const m_row = (uint8_t*)( mirror + COERCE(ys + y0, 0, BMP_HEIGHT) * bmppitch );
+            uint8_t * const m_row = (uint8_t*)( mirror + COERCE(ys, 0, BMP_HEIGHT) * bmppitch );
             while (y != bmp_y_pos) {
                 // search for the next line
                 if (bmp_line[0]!=0) { bmp_line += 2; } else
