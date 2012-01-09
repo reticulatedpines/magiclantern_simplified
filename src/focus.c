@@ -20,7 +20,6 @@ int override_zoom_buttons; // while focus menu is active and rack focus items ar
 
 int should_override_zoom_buttons()
 {
-    return 0;
     return (override_zoom_buttons && !is_manual_focus() && lv && get_menu_advanced_mode());
 }
 
@@ -349,7 +348,7 @@ focus_show_a(
     menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
 }
 
-static void
+/*static void
 focus_show_b( 
     void *          priv,
     int         x,
@@ -366,7 +365,7 @@ focus_show_b(
         ABS(focus_task_delta)
     );
     menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
-}
+}*/
 
 static void
 rack_focus_print( 
@@ -375,10 +374,9 @@ rack_focus_print(
     int         y,
     int         selected
 ) {
-    if (selected) override_zoom_buttons = 1;
     extern int lcd_release_running;
     bmp_printf(
-        !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
+        MENU_FONT,
         x, y,
         "Rack focus %s",
         lcd_release_running && lcd_release_running < 3 && recording ? "(also w. LCD sensor)" : ""
@@ -388,10 +386,10 @@ rack_focus_print(
 
 
 static void
-    focus_reset_a( void * priv, int delta )
+focus_reset_a( void * priv, int delta )
 {
     focus_task_delta = 0;
-    //~ menu_show_only_selected();
+    menu_show_only_selected();
 }
 
 static void
@@ -451,9 +449,8 @@ focus_rack_speed_display(
     int         selected
 )
 {
-    if (selected) override_zoom_buttons = 1;
     bmp_printf(
-        !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
+        MENU_FONT,
         x, y,
         "Focus StepSize : %d",
         lens_focus_stepsize
@@ -469,9 +466,8 @@ focus_delay_display(
     int         selected
 )
 {
-    if (selected) override_zoom_buttons = 1;
     bmp_printf(
-        !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
+        MENU_FONT,
         x, y,
         "Focus StepDelay: %s%dms",
         lens_focus_waitflag ? "Wait + " : "",
@@ -504,10 +500,8 @@ focus_stack_print(
     int         selected
 )
 {
-    if (selected) override_zoom_buttons = 1;
-    int fnt = !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL;
     bmp_printf(
-        fnt,
+        MENU_FONT,
         x, y,
         "Stack focus    : %s,stepsize=%d",
         focus_stack_enabled ? "SNAP" : "PLAY",
@@ -1251,13 +1245,13 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
     },
-    {
+    /*{
         .name = "Focus Start Point:",
         //~ .display    = focus_show_a,
         .display    = focus_show_b,
         .select     = focus_alter_a,
-        .help = "Press SET to fix here the end point of rack focus."
-    },
+        .help = "Press ZoomIn, then use Left/Right/Rcrollwheel to set it."
+    },*/
     {
         .name = "Focus End Point",
         .display    = focus_show_a,
@@ -1367,38 +1361,38 @@ int handle_rack_focus(struct event * event)
     
     if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
     {
-        if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE || event->param == BGMT_UNPRESS_HALFSHUTTER || event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE)
-        {
-            menu_show_only_selected();
-            lens_focus_stop();
-            return 0;
-        }
-        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-        {
-            menu_show_only_selected();
-            lens_focus_start( get_follow_focus_dir_h() );
-            return 0;
-        }
-        if (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE) // zoom out press, shared with halfshutter
-        {
-            menu_show_only_selected();
-            lens_focus_start( -get_follow_focus_dir_h() );
-            return 0;
-        }
         if (menu_active_but_hidden())
         {
-            if (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_UP)
+            switch(event->param)
             {
-                menu_show_only_selected();
-                lens_focus_enqueue_step( -get_follow_focus_dir_h() );
-                return 0;
+                case BGMT_PRESS_LEFT:
+                    lens_focus_start(-1 * get_follow_focus_dir_h());
+                    return 0;
+                case BGMT_PRESS_RIGHT:
+                    lens_focus_start(1 * get_follow_focus_dir_h());
+                    return 0;
+                case BGMT_WHEEL_LEFT:
+                    menu_show_only_selected();
+                    lens_focus_enqueue_step( -get_follow_focus_dir_h() );
+                    return 0;
+                case BGMT_WHEEL_RIGHT:
+                    menu_show_only_selected();
+                    lens_focus_enqueue_step( get_follow_focus_dir_h() );
+                    return 0;
             }
-            if (event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_DOWN)
-            {
-                menu_show_only_selected();
-                lens_focus_enqueue_step( get_follow_focus_dir_h() );
-                return 0;
-            }
+        }
+        switch(event->param)
+        {
+            #ifdef BGMT_UNPRESS_UDLR
+            case BGMT_UNPRESS_UDLR:
+            #else
+            case BGMT_UNPRESS_LEFT:
+            case BGMT_UNPRESS_RIGHT:
+            case BGMT_UNPRESS_UP:
+            case BGMT_UNPRESS_DOWN:
+            #endif
+                lens_focus_stop();
+                return 1;
         }
     }
     return 1;
