@@ -320,7 +320,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         if (info->aperture < 100)
         {
               bmp_printf( text_font, 
-                          x_origin + 74 + font_med.width + font_large.width - 4, 
+                          x_origin + 74 + font_med.width + font_large.width - 7, 
                           y_origin, 
                           ".");
               bmp_printf( text_font, 
@@ -328,7 +328,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                           y_origin, 
                           "%d", info->aperture / 10);
               bmp_printf( text_font, 
-                          x_origin + 74 + font_med.width + font_large.width * 2 - 8, 
+                          x_origin + 74 + font_med.width + font_large.width * 2 - 14, 
                           y_origin, 
                           "%d", info->aperture % 10);
         }
@@ -340,12 +340,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
           bmp_printf( med_font, 
                       x_origin + font_large.width * strlen(focal) - 3, 
-                      bottom - font_med.height + 1, 
+                      bottom - font_med.height, 
                       crop_info ? "eq" : "mm");
 
           bmp_printf( med_font, 
                       x_origin + 74 + 2  , 
-                      y_origin - 3, 
+                      y_origin - 2, 
                       "f") ;
       }
   
@@ -434,7 +434,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
         bmp_printf( text_font, 
                 x_origin + 143 + 1  , 
-                y_origin - 3, 
+                y_origin - 2, 
                 shutter_x10 > 3 ? "  " : "1/");
     }
 
@@ -490,12 +490,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
             if (digital_w_dispgain != digital_wo_dispgain || CONTROL_BV)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                          bottom - font_med.height + 1, 
+                          bottom - font_med.height, 
                           CONTROL_BV ? "ov" : "eq");
             if (iso >= 10000)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                          y_origin - 3, 
+                          y_origin - 2, 
                           "00");
         }
         else if (info->iso_auto)
@@ -518,12 +518,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
       bg);
 
         if( info->wb_mode == WB_KELVIN )
-            bmp_printf( text_font, x_origin + 350 + (info->kelvin >= 10000 ? 0 : font_large.width), y_origin,
+            bmp_printf( text_font, x_origin + 360 + (info->kelvin >= 10000 ? 0 : font_large.width), y_origin,
                 info->kelvin >= 10000 ? "%5dK " : "%4dK ",
                 info->kelvin
             );
         else
-            bmp_printf( text_font, x_origin + 350, y_origin,
+            bmp_printf( text_font, x_origin + 360, y_origin,
                 "%s ",
                 (lens_info.wb_mode == 0 ? "AutoWB" : 
                 (lens_info.wb_mode == 1 ? " Sunny" :
@@ -541,14 +541,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
         if (gm) 
             bmp_printf(
                 FONT(ba ? FONT_MED : FONT_LARGE, COLOR_WHITE, gm > 0 ? COLOR_GREEN2 : 14 /* magenta */),
-                x_origin + 350 + font_large.width * 6, y_origin + (ba ? -3 : 0), 
+                x_origin + 360 + font_large.width * 6, y_origin + (ba ? -3 : 0), 
                 "%d", ABS(gm)
             );
 
         if (ba) 
             bmp_printf(
                 FONT(gm ? FONT_MED : FONT_LARGE, COLOR_WHITE, ba > 0 ? 12 : COLOR_BLUE), 
-                x_origin + 350 + font_large.width * 6, y_origin + (gm ? 14 : 0), 
+                x_origin + 360 + font_large.width * 6, y_origin + (gm ? 14 : 0), 
                 "%d", ABS(ba));
 
 
@@ -560,7 +560,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
       if(lens_info.focus_dist)
           bmp_printf( text_font, 
-                  x_origin + 495  , 
+                  x_origin + 505  , 
                   y_origin, 
                   lens_format_dist( lens_info.focus_dist * 10 )
                 );
@@ -570,25 +570,25 @@ void draw_ml_bottombar(int double_buffering, int clear)
     //~ extern int lightsensor_triggered;
     //~ text_font = FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bg );
     //~ maru(x_origin + 600, y_origin+3, lightsensor_triggered ? COLOR_RED : 50);
-    display_lcd_remote_icon(x_origin + 630, y_origin+10);
+    display_lcd_remote_icon(x_origin + 640, y_origin+10);
     //~ bmp_printf(text_font, x_origin + 630, y_origin + 10, "%d", lightsensor_value);
 #else
 
       text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
 
       bmp_printf( text_font, 
-                  x_origin + 600 + font_large.width * 2 - 4, 
+                  x_origin + 610 + font_large.width * 2 - 8, 
                   y_origin, 
                   ".");
       bmp_printf( text_font, 
-                  x_origin + 600 - font_large.width, 
+                  x_origin + 610 - font_large.width, 
                   y_origin, 
                   " %s%d", 
                     AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
                     ABS(AE_VALUE) / 8
                   );
       bmp_printf( text_font, 
-                  x_origin + 600 + font_large.width * 3 - 8, 
+                  x_origin + 610 + font_large.width * 3 - 16, 
                   y_origin, 
                   "%d",
                     mod(ABS(AE_VALUE) * 10 / 8, 10)
@@ -615,7 +615,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         bmp_draw_rect(COLOR_BLACK, xr+1, y_origin-4, 9, 4);
         bmp_draw_rect(COLOR_BLACK, xr-3, y_origin-1, 17, 31);
         //~ bmp_draw_rect(COLOR_BLACK, xr, y_origin+2, 11, 29);
-        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 25 - bat, 9, bat+2);
+        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 24 - bat, 9, bat+2);
         bmp_fill(col, xr+4, y_origin-3, 8, 3);
         bmp_draw_rect(col, xr-2, y_origin, 15, 29);
         bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
