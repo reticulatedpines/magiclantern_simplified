@@ -211,6 +211,10 @@ int raw2iso(int raw_iso)
     int iso = (int) roundf(100.0 * powf(2.0, (raw_iso - 72.0)/8.0));
     if (iso >= 100 && iso <= 6400)
         iso = values_iso[raw2index_iso(raw_iso)];
+    else if (iso > 100000)
+        iso = ((iso+500)/1000) * 1000;
+    else if (iso > 10000)
+        iso = ((iso+50)/100) * 100;
     else if (iso >= 15)
         iso = ((iso+2)/5) * 5;
     else
