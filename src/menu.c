@@ -580,7 +580,7 @@ void selection_bar(int x0, int y0)
     if (submenu_mode==1) w -= 110;
     
     uint8_t* B = bmp_vram();
-    for (int y = y0; y < y0 + 32; y++)
+    for (int y = y0; y < y0 + 31; y++)
     {
         for (int x = x0-5; x < w; x++)
         {
@@ -698,7 +698,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-        maru(x, y, 45);
+        maru(x, y, 40);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -724,7 +724,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     warning_msg = 0;
     switch(type)
     {
-        case MNI_OFF: maru(x, y, 45); return;
+        case MNI_OFF: maru(x, y, 40); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
         case MNI_NEUTRAL: maru(x, y, 60); return;
@@ -825,7 +825,7 @@ menu_display(
                     leftright_sign(x0+690, y0+400);
             }
 
-            y += font_large.height;
+            y += font_large.height-1;
             
             if ((unsigned)y > vram_bm.height - font_large.height 
                 #if CONFIG_DEBUGMSG
