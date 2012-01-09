@@ -1904,6 +1904,7 @@ color_tone_display( void * priv, int x, int y, int selected )
 }
 
 
+static CONFIG_INT("picstyle.rec.sub", picstyle_rec_sub, 1);
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
 static int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
 
@@ -2007,13 +2008,37 @@ picstyle_rec_display( void * priv, int x, int y, int selected )
     }
 }
 
+static void 
+picstyle_rec_sub_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "REC PicStyle: %s\n"
+        "              (%d,%d,%d,%d)",
+        get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec_sub)),
+        lens_get_from_other_picstyle_sharpness(picstyle_rec_sub),
+        lens_get_from_other_picstyle_contrast(picstyle_rec_sub),
+        ABS(lens_get_from_other_picstyle_saturation(picstyle_rec_sub)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec_sub) : 0,
+        ABS(lens_get_from_other_picstyle_color_tone(picstyle_rec_sub)) < 10 ? lens_get_from_other_picstyle_color_tone(picstyle_rec_sub) : 0
+    );
+}
+
 static void
 picstyle_rec_toggle( void * priv, int delta )
 {
     if (recording) return;
-    picstyle_rec = mod(picstyle_rec + delta, NUM_PICSTYLES + 1);
+    if (picstyle_rec) picstyle_rec = 0;
+    else picstyle_rec = picstyle_rec_sub;
 }
 
+static void
+picstyle_rec_sub_toggle( void * priv, int delta )
+{
+    if (recording) return;
+    picstyle_rec_sub = mod(picstyle_rec_sub + delta - 1, NUM_PICSTYLES) + 1;
+    if (picstyle_rec) picstyle_rec = picstyle_rec_sub;
+}
 static void redraw_after_task(int msec)
 {
     msleep(msec);
@@ -3551,6 +3576,16 @@ static struct menu_entry expo_menus[] = {
         .select     = picstyle_rec_toggle,
         .help = "You can use a different picture style when recording.",
         .essential = FOR_MOVIE,
+        .children =  (struct menu_entry[]) {
+            {
+                //~ .name = "PictureStyle",
+                .display    = picstyle_rec_sub_display,
+                .select     = picstyle_rec_sub_toggle,
+                .help = "Select the picture style for recording.",
+                //~ .show_liveview = 1,
+            },
+            MENU_EOL
+        },
     },
     {
         .name = "Flash AEcomp",
