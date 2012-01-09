@@ -45,9 +45,9 @@ static void shadow_char_compute(struct font * src, struct font * dst, char c)
     int i,j;
 
     // first draw the shadow
-    for( i = 0 ; i<src->height ; i++ )
+    for( i = 1 ; i<src->height-1 ; i++ )
     {
-        for( j=0 ; j<src->width ; j++ )
+        for( j=1 ; j<src->width-1 ; j++ )
         {
             if PIX(i,j)
             {
@@ -81,12 +81,12 @@ static void shadow_fonts_compute()
 
 int fonts_done = 0;
 
-static void load_fonts(void* unused)
+void load_fonts(void* unused)
 {
     // if something goes wrong, you will see chinese fonts :)
     int size;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 10; i++)
     {
         //cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
         font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "FONTS.DAT", &size);
@@ -94,8 +94,8 @@ static void load_fonts(void* unused)
         font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
         if (font_small.bitmap) break; // OK!
 
-        NotifyBox(2000, "FONTS.DAT: retry #%d...", i+1);
-        msleep(2000);
+        bfnt_puts( "FONTS.DAT retry...");
+        msleep(500);
     }
 
     if (font_small.bitmap == 0) // fonts not loaded
@@ -109,6 +109,7 @@ static void load_fonts(void* unused)
         fonts_done = 1;
         return;
     }
+    //~ bfnt_puts("FONTS OK", 0, 0, COLOR_WHITE, COLOR_BLACK);
 
     font_small_shadow.bitmap = AllocateMemory(size);
     memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
@@ -125,4 +126,4 @@ static void init_fonts()
     while (!fonts_done) msleep(100);
 }
 
-INIT_FUNC(__FILE__, init_fonts);
+INIT_FUNC(__FILE__, load_fonts);
