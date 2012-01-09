@@ -917,7 +917,7 @@ tweak_task( void* unused)
                     {
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
-                        #ifdef CONFIG_500D
+                        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
                         #endif
                     }
