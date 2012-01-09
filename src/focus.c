@@ -20,6 +20,7 @@ int override_zoom_buttons; // while focus menu is active and rack focus items ar
 
 int should_override_zoom_buttons()
 {
+    return 0;
     return (override_zoom_buttons && !is_manual_focus() && lv && get_menu_advanced_mode());
 }
 
@@ -339,8 +340,28 @@ focus_show_a(
     bmp_printf(
         !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
         x, y,
-        "Focus End Point:%s%dsteps from here",
+        "Focus End Point:%s%d%s",
         focus_task_delta > 0 ? "+" : 
+        focus_task_delta < 0 ? "-" : " ",
+        ABS(focus_task_delta),
+        focus_task_delta ? "steps from here" : ", not configured."
+    );
+    menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
+}
+
+static void
+focus_show_b( 
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+) {
+    if (selected) override_zoom_buttons = 1;
+    bmp_printf(
+        !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
+        x, y,
+        "Focus Start Pt.: Here. Go%s%dsteps.",
+        focus_task_delta > 0 ? "+" :      //|
         focus_task_delta < 0 ? "-" : " ",
         ABS(focus_task_delta)
     );
@@ -370,7 +391,7 @@ static void
     focus_reset_a( void * priv, int delta )
 {
     focus_task_delta = 0;
-    menu_show_only_selected();
+    //~ menu_show_only_selected();
 }
 
 static void
@@ -1231,11 +1252,16 @@ static struct menu_entry focus_menu[] = {
         },
     },
     {
+        .name = "Focus Start Point:",
+        //~ .display    = focus_show_a,
+        .display    = focus_show_b,
+        .select     = focus_alter_a,
+        .help = "Press SET to fix here the end point of rack focus."
+    },
+    {
         .name = "Focus End Point",
         .display    = focus_show_a,
         .select     = focus_reset_a,
-        .select_Q   = focus_alter_a,
-        .select_reverse = focus_alter_a,
         .help = "Press SET to fix here the end point of rack focus."
     },
     {
