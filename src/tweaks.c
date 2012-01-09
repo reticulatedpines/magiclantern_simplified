@@ -176,6 +176,7 @@ expsim_display( void * priv, int x, int y, int selected )
 static void expsim_update()
 {
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    if (lv_movie_select != LVMS_ENABLE_MOVIE) expsim_setting = MIN(expsim_setting, 1);
     return;
     #endif
     
@@ -201,6 +202,8 @@ static void expsim_toggle(void* priv, int delta)
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     expsim_setting = expsim; // no fancy auto expsim
     menu_ternary_toggle(&expsim_setting, delta);
+    if (lv_movie_select != LVMS_ENABLE_MOVIE && expsim_setting == 2)
+        menu_ternary_toggle(&expsim_setting, delta);
     set_expsim(expsim_setting);
     #else
     if (is_movie_mode()) return;
