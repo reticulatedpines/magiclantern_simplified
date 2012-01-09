@@ -250,7 +250,7 @@ void force_liveview()
 {
     ResumeLiveView();
     while (get_halfshutter_pressed()) msleep(100);
-    get_out_of_play_mode(500);
+    get_out_of_play_mode(200);
     if (!lv) fake_simple_button(BGMT_LV);
     msleep(500);
 }
@@ -337,7 +337,7 @@ int movie_was_stopped_by_set = 0;
 static void
 movtweak_task( void* unused )
 {
-    msleep(500);
+    //~ msleep(500);
     if (!lv && enable_liveview && is_movie_mode()
         && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
