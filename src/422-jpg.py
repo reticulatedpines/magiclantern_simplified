@@ -115,6 +115,10 @@ def convert_422_bmp(input, output):
         w, h = 928, 616
     elif len(data) == 1576*1048*2:      #3.3MP from HD buffer in 1080p mode (same size recording and idle)
         w, h = 1576, 1048
+    elif len(data) == 1120*746*2:
+        w, h = 1120, 746                # zoom mode (5x, 10x) on 5D2
+    elif len(data) == 1872*1079*2:
+        w, h = 1872, 1079               # REC on 5D2
     elif len(data) % 1024*680*2 == 0:
         return convert_422_hires(input,output)
     else:
