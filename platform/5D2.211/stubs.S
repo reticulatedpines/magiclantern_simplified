@@ -133,7 +133,7 @@ NSTUB(0xFF990188, mvrSetDefQScale)                // might be good (dumps=1, sco
 NSTUB(0xFF9905F4, mvrSetPrintMovieLog)            // might be good (dumps=1, score=2.5)
 NSTUB(    0x86B0, mvr_config)                     // might be good (dumps=1, score=4.7)
 NSTUB(0xFF86C720, oneshot_timer)                  // might be good (dumps=1, score=6.9)
-NSTUB(0xFF85F1C4, prop_cleanup)                   // might be good (dumps=1, score=21)
+NSTUB(0xFF85F1C4, _prop_cleanup)                   // might be good (dumps=1, score=21)
 NSTUB(0xFF85F068, prop_deliver)                   // might be good (dumps=1, score=21)
 NSTUB(0xFF85F344, prop_get_value)                 // might be good (dumps=1, score=35)
 NSTUB(0xFF85F0F0, prop_register_slave)            // might be good (dumps=1, score=20)

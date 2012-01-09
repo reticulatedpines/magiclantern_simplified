@@ -271,6 +271,9 @@ int ml_started = 0; // 1 after ML is fully loaded
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {   
+    menu_init();
+    debug_init();
+    call_init_funcs( 0 );
     #ifndef CONFIG_1100D
     config_parse_file( CARD_DRIVE "magic.cfg" );
     #endif
@@ -380,7 +383,7 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
-    msleep( 2000 );
+    msleep( 500 );
     if (magic_off_request)
     {
         magic_off = 1;  // magic off request might be sent later (until ml is fully started), but will be ignored
@@ -397,23 +400,7 @@ my_init_task(int a, int b, int c, int d)
         return ans;
     }
 
-    //~ asm("nop");
-    //~ asm("nop");
-    //~ NotifyBox(5000, "Magic Lantern");
-
-    //~ task_create("logo_task", 0x1e, 0x1000, logo_task, 0 );
-
-
-    msleep( 500 );
-
-    menu_init();
-    debug_init();
-    call_init_funcs( 0 );
-
-    // It's better to start a new task which does the init
-    // Guess: stack overflow in this task?
     task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
-    //~ bmp_printf(FONT_LARGE, 0, 0, "%x", ans);
     return ans;
 #endif // !CONFIG_EARLY_PORT
 }

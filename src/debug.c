@@ -1952,7 +1952,7 @@ debug_property_handler(
     dbg_draw_props(dbg_propn);
 
 ack:
-    return prop_cleanup( debug_token, property );
+    return _prop_cleanup( debug_token, property );
 }
 
 #endif

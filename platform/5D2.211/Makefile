@@ -31,7 +31,7 @@ ML_OBJS-y = \
 	stdio.o \
 	audio.o \
 	bitrate.o \
-	property.o \
+	prop-debug.o \
 	propvalues.o \
 	gui.o \
 	gui-common.o \
