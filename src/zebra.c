@@ -1936,6 +1936,7 @@ int get_spot_focus(int dxb)
 
 static void spotmeter_step()
 {
+    if (gui_menu_shown()) return;
     //~ if (!lv) return;
     if (!PLAY_MODE)
     {
