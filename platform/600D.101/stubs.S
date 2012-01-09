@@ -111,7 +111,7 @@ NSTUB( 0xff20f3e4, strcpy )
 NSTUB( 0xFF069AE0, LoadCalendarFromRTC )
 NSTUB( 0xff07e3f4, task_trampoline )
 
-NSTUB( 0xFF05BE6C, prop_cleanup )
+NSTUB( 0xFF05BE6C, _prop_cleanup )
 
 NSTUB( 0xFF06A144, _audio_ic_write ) 
 NSTUB( 0xFF069FF8, _audio_ic_read )
@@ -247,6 +247,7 @@ NSTUB(0xFF54FC0C, SetCFnData)
 NSTUB(0xff37d5c4, LiveViewApp_handler)
 NSTUB(0xff37dc4c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xff37f29c, LiveViewApp_handler_end) // start of next function
+NSTUB(0xff38c928, ShootOlcApp_handler)
 
 NSTUB(0x73590, lv_path_struct) // first arg of SelectPathDriveMode
 

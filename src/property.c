@@ -1,65 +1,95 @@
 /** \file
  * Property handler installation
  *
- * These handlers are registered to allow Magic Lantern to interact with
- * the Canon "properties" that are used to exchange globals.
+ * Rather than registering a handler for each property (which seems to overload DryOS),
+ * it's probably better to have a single global property handler.
+ *
+ * Old implementation: property-old.c
  */
 
 #include "dryos.h"
 #include "property.h"
+#include "bmp.h"
+
+static void * global_token;
+
+static void global_token_handler( void * token)
+{
+    global_token = token;
+}
 
 
-// This must be two instructions long!
-static void
-prop_token_handler_generic(
-    void * token
+static void *
+global_property_handler(
+    unsigned        property,
+    void *          UNUSED( priv ),
+    void *          buf,
+    unsigned        len
 )
 {
-    asm( "str r0, [pc, #-12]" );
-}
+    //~ bfnt_puts("Global prop", 0, 0, COLOR_BLACK, COLOR_WHITE);
 
-void prop_handler_init(struct prop_handler * handler)
-{
-    memcpy(
-        handler->token_handler,
-        prop_token_handler_generic,
-        8
-    );
-
-    prop_register_slave(
-        &handler->property,
-        1,
-        handler->handler,
-        &handler->token,
-        (void(*)(void*))&handler->token_handler
-    );
-}
-
-static void
-prop_init( void* unused )
-{
     extern struct prop_handler _prop_handlers_start[];
     extern struct prop_handler _prop_handlers_end[];
     struct prop_handler * handler = _prop_handlers_start;
 
     for( ; handler < _prop_handlers_end ; handler++ )
     {
-        // Copy the generic token handler into the structure
-        memcpy(
-            handler->token_handler,
-            prop_token_handler_generic,
-            8
-        );
-
-        prop_register_slave(
-            &handler->property,
-            1,
-            handler->handler,
-            &handler->token,
-            (void(*)(void*))&handler->token_handler
-        );
+        if (handler->property == property)
+        {
+            //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x...", property, handler->handler);
+            handler->handler(property, priv, buf, len);
+            //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x :)", property, handler->handler);
+        }
     }
+    return (void*)_prop_cleanup(global_token, property);
 }
+
+static unsigned property_list[256];
+
+void
+prop_init( void* unused )
+{
+    int actual_num_properties = 0;
+
+    extern struct prop_handler _prop_handlers_start[];
+    extern struct prop_handler _prop_handlers_end[];
+    struct prop_handler * handler = _prop_handlers_start;
+
+    for( ; handler < _prop_handlers_end ; handler++ )
+    {
+        int duplicate = 0;
+        for (int i = 0; i < actual_num_properties; i++)
+        {
+            if (_prop_handlers_start[i].property == handler->property)
+            {
+                duplicate = 1;
+                break;
+            }
+        }
+
+        if (!duplicate)
+        {
+            property_list[actual_num_properties] = handler->property;
+            actual_num_properties++;
+        }
+        if (actual_num_properties >= COUNT(property_list))
+        {
+            bfnt_puts("Too many prop handlers", 0, 0, COLOR_BLACK, COLOR_WHITE);
+            break;
+        }
+    }
+
+    prop_register_slave(
+        property_list,
+        actual_num_properties,
+        global_property_handler,
+        &global_token,
+        global_token_handler
+    );
+}
+
+extern void * prop_cleanup(void * token, unsigned property) { return 0; } // dummy
 
 // for reading simple integer properties
 int get_prop(int prop)

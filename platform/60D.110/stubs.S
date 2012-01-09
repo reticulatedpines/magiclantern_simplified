@@ -121,7 +121,7 @@ NSTUB( 0xff05b058, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xff05a9f0, prop_request_change )
 NSTUB( 0xff05afd0, prop_deliver ) 
 NSTUB( 0xff05b210, prop_get_value )
-NSTUB( 0xff05b178, prop_cleanup )
+NSTUB( 0xff05b178, _prop_cleanup )
 
 NSTUB( 0xff1cccd0, dispcheck )
 NSTUB( 0xff061a68, SetBitmapVramAddress ) // where to find bmp_vram_info
@@ -274,6 +274,9 @@ NSTUB(0xff372258, LiveViewApp_handler)
 NSTUB(0xff37281c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xff373e00, LiveViewApp_handler_end) // start of next function
 NSTUB(0xFF381840, ShootOlcApp_handler)
+NSTUB(0xff4514f4, PlayMovieGuideApp_handler)
+NSTUB(0xff363a34, PlayMain_handler)
+NSTUB(0xff3829ec, OlcAFFrameApp_handler)
 
 NSTUB(0xff0a5bdc, GUI_SetLvDZoomKey)
 

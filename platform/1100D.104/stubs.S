@@ -89,7 +89,7 @@ NSTUB( 0xFF06CC7C, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF05BACC, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xFF05B464, prop_request_change )
 NSTUB( 0xFF05BA44, prop_deliver ) 
-NSTUB( 0xFF05BBEC, prop_cleanup )
+NSTUB( 0xFF05BBEC, _prop_cleanup )
 NSTUB( 0xFF05BC84, prop_get_value )
 
 NSTUB( 0xFF1DC114, dispcheck )

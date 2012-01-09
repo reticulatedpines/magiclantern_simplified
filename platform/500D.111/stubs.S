@@ -143,7 +143,7 @@ NSTUB( 0xFF17C2CC, mvrSetPrintMovieLog )
 NSTUB( 0xFF17BFF0, mvrSetVGAOptSize )					
 NSTUB( 0xFF068268, oneshot_timer )	
 NSTUB( 0xFF1BC46C, prop_change__DispType )					
-NSTUB( 0xFF05993C, prop_cleanup )
+NSTUB( 0xFF05993C, _prop_cleanup )
 NSTUB( 0xFF0597E0, prop_deliver )
 NSTUB( 0xFF059AA4, prop_get_value )
 NSTUB( 0xFF059868, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
@@ -176,5 +176,7 @@ NSTUB( 0x37384	 , vram_info ) // located in vram_get_number
 NSTUB( 0xFF1A442C, vsnprintf )	/** Look in DebugMsg, near the bottom.  It calls vsnprintf() -- with a buffer size of 0x4C. */
 
 NSTUB(0xff2ae79c, LiveViewApp_handler)
+NSTUB(0xff2c5d1c, ShootOlcApp_handler)
 
 NSTUB(0xff190cf4, engio_write)
+NSTUB(0xff190cf4, shamem_read)

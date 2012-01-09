@@ -129,7 +129,7 @@ NSTUB( 0xff8751b8, strcpy )
 NSTUB( 0xff863348, LoadCalendarFromRTC )
 NSTUB( 0xff86f98c, task_trampoline )
 
-NSTUB( 0xff85985c, prop_cleanup )
+NSTUB( 0xff85985c, _prop_cleanup )
 
 NSTUB( 0xff854138, _audio_ic_write )
 NSTUB( 0xff854a84, _audio_ic_read )
@@ -246,5 +246,7 @@ NSTUB(0xFFB38BB4, GetCFnData)
 NSTUB(0xFFB38CBC, SetCFnData)
 
 NSTUB(0xffa86e88, LiveViewApp_handler)
+NSTUB(0xffaa7c98, ShootOlcApp_handler)
 
 NSTUB(0xFF97D900, engio_write)
+NSTUB(0xff97d7f4, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr

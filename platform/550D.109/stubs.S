@@ -108,7 +108,7 @@ NSTUB( 0xFF1EC1CC, strcpy )
 NSTUB( 0xFF06366C, LoadCalendarFromRTC )
 NSTUB( 0xFF0771BC, task_trampoline )
 
-NSTUB( 0xFF0575C0, prop_cleanup )
+NSTUB( 0xFF0575C0, _prop_cleanup )
 
 NSTUB( 0xFF063BF4, _audio_ic_write )
 NSTUB( 0xFF063AA8, _audio_ic_read )
