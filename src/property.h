@@ -373,6 +373,8 @@
 
 #define PROP_ONESHOT_RAW 0x80000037
 
+#define PROP_DCIM_DIR_SUFFIX 5 // :)
+
 /** Properties */
 extern void
 prop_register_slave(

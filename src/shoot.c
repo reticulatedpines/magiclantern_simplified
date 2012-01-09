@@ -51,6 +51,19 @@ bool display_idle()
     else return gui_state == GUISTATE_IDLE && !gui_menu_shown();
 }
 
+static char dcim_dir_suffix[6];
+static char dcim_dir[100];
+PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
+{
+    snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), buf);
+    return prop_cleanup(token, property);
+}
+const char* get_dcim_dir()
+{
+    snprintf(dcim_dir, sizeof(dcim_dir), CARD_DRIVE "DCIM/%03d%s", folder_number, dcim_dir_suffix);
+    return dcim_dir;
+}
+
 volatile int bulb_shutter_value = 0;
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
@@ -555,7 +568,7 @@ static char* silent_pic_get_name()
         //~ int timelapse_number;
         for ( ; silent_number < 100000000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), CARD_DRIVE "DCIM/%03dCANON/%08d.422", folder_number, silent_number);
+            snprintf(imgname, sizeof(imgname), "%s/%08d.422", get_dcim_dir(), silent_number);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
@@ -565,7 +578,7 @@ static char* silent_pic_get_name()
     {
         for ( ; silent_number < 1000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), CARD_DRIVE "DCIM/%03dCANON/%04d-%03d.422", folder_number, file_number, silent_number);
+            snprintf(imgname, sizeof(imgname), "%s/%04d-%03d.422", get_dcim_dir(), file_number, silent_number);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
@@ -764,7 +777,7 @@ static int find_422(int * index, char* fn)
     struct fio_dirent * dirent = 0;
     int N = 0;
     
-    dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
+    dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
         bmp_printf( FONT_LARGE, 40, 40, "dir err" );
@@ -788,7 +801,7 @@ static int find_422(int * index, char* fn)
     
     *index = mod(*index, N);
 
-    dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
+    dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
         bmp_printf( FONT_LARGE, 40, 40, "dir err" );
@@ -804,7 +817,7 @@ static int find_422(int * index, char* fn)
         {
             if (k == *index)
             {
-                snprintf(fn, 100, CARD_DRIVE "DCIM/100CANON/%s", file.name);
+                snprintf(fn, 100, "%s/%s", get_dcim_dir(), file.name);
                 found = 1;
             }
             k++;
@@ -934,9 +947,9 @@ static void stop_recording_and_delete_movie()
     {
         movie_end();
         char name[100];
-        snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.THM", folder_number, file_number);
+        snprintf(name, sizeof(name), "%s/MVI_%04d.THM", get_dcim_dir(), file_number);
         FIO_RemoveFile(name);
-        snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/MVI_%04d.MOV", folder_number, file_number);
+        snprintf(name, sizeof(name), "%s/MVI_%04d.MOV", get_dcim_dir(), file_number);
         FIO_RemoveFile(name);
     }
 }
@@ -3555,7 +3568,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
     DEBUG();
     FILE * f = INVALID_PTR;
     char name[100];
-    snprintf(name, sizeof(name), CARD_DRIVE "DCIM/%03dCANON/%s_%04d.sh", folder_number, focus_stack ? "FST" : "HDR", f0);
+    snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
     DEBUG("name=%s", name);
     FIO_RemoveFile(name);
     f = FIO_CreateFile(name);
