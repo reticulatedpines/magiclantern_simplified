@@ -1671,7 +1671,7 @@ void EyeFi_RenameCR2toAVI(char* dir)
 
 static void CR2toAVI(void* priv, int delta)
 {
-    EyeFi_RenameCR2toAVI("B:/DCIM/100CANON");
+    EyeFi_RenameCR2toAVI(get_dcim_dir());
 }
 
 struct menu_entry debug_menus[] = {
