@@ -3768,8 +3768,13 @@ void movie_start()
         return;
     }
     
-    #ifdef CONFIG_500D // record button is used in ML menu => won't start recording
-    menu_stop(); msleep(200);
+    #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // record button is used in ML menu => won't start recording
+    //~ menu_stop(); msleep(1000);
+    while (gui_menu_shown())
+    {
+        menu_stop();
+        msleep(1000);
+    }
     #endif
     
     while (get_halfshutter_pressed()) msleep(100);
@@ -3880,13 +3885,13 @@ void remote_shot(int wait)
     // save zoom value (x1, x5 or x10)
     int zoom = lv_dispsize;
     
-    if (is_focus_stack_enabled())
-    {
-        focus_stack_run(0);
-    }
-    else if (is_movie_mode())
+    if (is_movie_mode())
     {
         movie_start();
+    }
+    else if (is_focus_stack_enabled())
+    {
+        focus_stack_run(0);
     }
     else
     {
