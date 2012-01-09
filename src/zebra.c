@@ -4633,34 +4633,3 @@ void play_422(char* filename)
 
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
 }
-
-/*char* get_next_422()
-{
-    static struct fio_file file;
-    static int first = 1;
-    static struct fio_dirent * dirent = 0;
-    if (first)
-    {
-        dirent = FIO_FindFirstEx( CARD_DRIVE "DCIM/100CANON/", &file );
-        if( IS_ERROR(dirent) )
-        {
-            bmp_printf( FONT_LARGE, 40, 40, "dir err" );
-            return 0;
-        }
-        first = 0;
-    }
-    while(FIO_FindNextEx( dirent, &file ) == 0)
-    {
-        //~ msleep(1000);
-        int n = strlen(file.name);
-        if ((n > 4) && (streq(file.name + n - 4, ".422")))
-        {
-            bmp_printf(FONT_LARGE, 0, 0, "%s ", file.name);
-            return file.name;
-        }
-    }
-    FIO_CleanupAfterFindNext_maybe(dirent);
-    first = 1;
-    dirent = 0;
-    return 0;
-}*/
