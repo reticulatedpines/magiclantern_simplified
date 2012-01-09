@@ -383,9 +383,10 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
-    msleep( 500 );
+    msleep( 1000 );
     if (magic_off_request)
     {
+        msleep( 1000 );
         magic_off = 1;  // magic off request might be sent later (until ml is fully started), but will be ignored
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
         extern char additional_version[];
