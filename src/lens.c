@@ -455,14 +455,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
       is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
       bg);
       
-      extern int hdr_ev;
+      extern int hdrv_enabled;
 
-        if (hdr_ev)
+        if (hdrv_enabled)
         {
             int iso_low, iso_high;
             hdr_get_iso_range(&iso_low, &iso_high);
-            iso_low = 100 << (iso_low-72)/8;
-            iso_high = 100 << (iso_high-72)/8;
+            iso_low = raw2iso(iso_low);
+            iso_high = raw2iso(iso_high);
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, bg),
                       x_origin + 245  , 
                       y_origin + 5, 

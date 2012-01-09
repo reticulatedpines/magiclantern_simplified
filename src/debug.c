@@ -329,7 +329,7 @@ void run_test()
 {
     msleep(2000);
     //~ fake_simple_button(BGMT_LV);
-    
+    iso_test();
     //~ SetGUIRequestMode(22);
     /*
     for (int i = 30; i > 10; i--)
