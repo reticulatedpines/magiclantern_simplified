@@ -3153,6 +3153,8 @@ static void draw_zoom_overlay(int dirty)
 
     uint16_t*       lvr = (uint16_t*) lv->vram;
     uint16_t*       hdr = (uint16_t*) hd->vram;
+
+    //~ lvr = get_lcd_422_buf();
     
     if (!lvr) return;
 
@@ -3975,6 +3977,8 @@ livev_hipriority_task( void* unused )
         draw_cropmark_area(); // just for debugging
         #endif
 
+        //~ lv_vsync();
+
         if (should_draw_zoom_overlay())
         {
             msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
@@ -4313,7 +4317,7 @@ int handle_livev_playback(struct event * event, int button)
 }
 
 
-static void zebra_init_menus()
+static void zebra_init()
 {
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
     //~ menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
@@ -4322,7 +4326,7 @@ static void zebra_init_menus()
     menu_add( "Power", powersave_menus, COUNT(powersave_menus) );
 }
 
-INIT_FUNC(__FILE__, zebra_init_menus);
+INIT_FUNC(__FILE__, zebra_init);
 
 
 
