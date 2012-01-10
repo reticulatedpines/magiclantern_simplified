@@ -63,10 +63,10 @@ extern struct lv_path_struct lv_path_struct;
 #define TG_FREQ_NTSC_FPS 52747200
 #define TG_FREQ_NTSC_SHUTTER 49440000
 
-#define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
-#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC_FPS/(fps_x1000))
-#define TIMER_TO_FPS_x1000_PAL(t) (TG_FREQ_PAL/(t))
-#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC_FPS/(t))
+#define FPS_x1000_TO_TIMER_PAL(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_PAL/(fps_x1000)):0)
+#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_NTSC_FPS/(fps_x1000)):0)
+#define TIMER_TO_FPS_x1000_PAL(t) (((t)!=0)?(TG_FREQ_PAL/(t)):0)
+#define TIMER_TO_FPS_x1000_NTSC(t) (((t)!=0)?(TG_FREQ_NTSC_FPS/(t)):0)
 
 #define SHUTTER_x1000_TO_TIMER_NTSC(s_x1000) (TG_FREQ_NTSC_SHUTTER/(s_x1000))
 #define TIMER_TO_SHUTTER_x1000_NTSC(t) (TG_FREQ_NTSC_SHUTTER/(t))
@@ -89,6 +89,37 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 
 static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 
+static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned int type)
+{
+    unsigned short ret[2];   
+    
+    if(fps_mode > 6 || type > 1)
+    {
+        return 0;
+    }
+    
+    switch(zoomed)
+    {
+        case 0:
+            ret[0] = (0 * 7) + fps_mode;
+            ret[1] = (3 * 7) + fps_mode;
+            break;
+            
+        /* zoomed recording modes */
+        default:
+            ret[0] = (18 * 7) + fps_mode;
+            ret[1] = (21 * 7) + fps_mode;
+            break;
+    }
+    
+    return ret[type];
+}
+
+static unsigned int is_zoomed()
+{
+    return video_mode[0] == 0x0C;
+}
+
 static int fps_get_current_x1000()
 {
     int mode = 
@@ -97,7 +128,8 @@ static int fps_get_current_x1000()
         video_mode_fps == 30 ? 2 : 
         video_mode_fps == 25 ? 3 : 
         video_mode_fps == 24 ? 4 : 0;
-    int fps_timer = ((uint16_t*)SENSOR_TIMING_TABLE)[mode_offset_map[mode]];
+    unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0);
+    int fps_timer = ((uint16_t*)SENSOR_TIMING_TABLE)[pos];
     int ntsc = (mode % 2 == 0);
     int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
     return fps_x1000;
@@ -310,7 +342,8 @@ static void fps_change_mode(int mode, int fps)
     int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000*1000/1001) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
 
     // make sure we set a valid value (don't drive it too fast)
-    int fps_timer_absolute_minimum = sensor_timing_table_original[21 + mode_offset_map[mode]];
+    unsigned int max_pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 1);
+    int fps_timer_absolute_minimum = sensor_timing_table_original[max_pos];
     fps_timer = MAX(fps_timer_absolute_minimum * 120/100, fps_timer);
 
     // NTSC is 29.97, not 30
@@ -318,19 +351,27 @@ static void fps_change_mode(int mode, int fps)
     if (ntsc)
     {
         int timer_120hz = FPS_x1000_TO_TIMER_NTSC(120000*1000/1001);
-        int fps_timer_rounded = ((fps_timer + timer_120hz/2) / timer_120hz) * timer_120hz;
-        if (ABS(TIMER_TO_FPS_x1000_NTSC(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+        if(timer_120hz > 0)
+        {
+            int fps_timer_rounded = ((fps_timer + timer_120hz/2) / timer_120hz) * timer_120hz;
+            if (ABS(TIMER_TO_FPS_x1000_NTSC(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+        }
     }
     else
     {
         int timer_100hz = FPS_x1000_TO_TIMER_PAL(100000);
-        int fps_timer_rounded = ((fps_timer + timer_100hz/2) / timer_100hz) * timer_100hz;
-        if (ABS(TIMER_TO_FPS_x1000_PAL(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+        if(timer_100hz > 0)
+        {
+            int fps_timer_rounded = ((fps_timer + timer_100hz/2) / timer_100hz) * timer_100hz;
+            if (ABS(TIMER_TO_FPS_x1000_PAL(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+        }
     }
     
+    unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0);
+    
     // fps = 0 means "don't override, use default"
-    int fps_timer_default = sensor_timing_table_original[mode_offset_map[mode]];
-    sensor_timing_table_patched[mode_offset_map[mode]] = fps ? fps_timer : fps_timer_default;
+    int fps_timer_default = sensor_timing_table_original[pos];
+    sensor_timing_table_patched[pos] = fps ? fps_timer : fps_timer_default;
 
     // use the patched sensor table
     SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_patched;
@@ -349,7 +390,7 @@ static void fps_change_all_modes(int fps)
         for (int i = 0; i < 2; i++)
             fps_change_mode(i, fps);
         for (int i = 2; i < 5; i++)
-            fps_change_mode(i, MIN(fps, 35));
+            fps_change_mode(i, MIN(fps, 70));
     }
 
     if (!lv) return;
@@ -357,10 +398,10 @@ static void fps_change_all_modes(int fps)
     // flip video mode back and forth to apply settings instantly
     int f0 = video_mode[2];
     video_mode[2] = 
-        f0 == 24 ? 30 : 
-        f0 == 25 ? 50 : 
-        f0 == 30 ? 24 : 
-        f0 == 50 ? 25 :
+        f0 == 24 ? 25 : 
+        f0 == 25 ? 24 : 
+        f0 == 30 ? 50 : 
+        f0 == 50 ? 30 :
       /*f0 == 60*/ 30;
     prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
     msleep(50);
@@ -383,7 +424,7 @@ static void set_fps(void* priv, int delta)
 
     // first click won't change value
     int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-    if (fps_override) fps = COERCE(fps + delta, 4, 60);
+    if (fps_override) fps = COERCE(fps + delta, 4, 70);
     fps_override = 1;
     
     fps_change_all_modes(fps);
