@@ -42,23 +42,47 @@ static int is_current_mode_ntsc()
     return 0;
 }
 
+static int fps_get_current_x1000();
+
 #ifdef CONFIG_500D
     #define TG_FREQ_PAL  24660000
-    #define TG_FREQ_NTSC 23136840
+    #define TG_FREQ_NTSC_FPS 23136840
 #else
-    #ifdef CONFIG_50D
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
         #define TG_FREQ_PAL  40000000
-        #define TG_FREQ_NTSC 41370000
+        #define TG_FREQ_NTSC_FPS 41328630
+        #define TG_FREQ_NTSC_SHUTTER 39300000
     #else
         #define TG_FREQ_PAL  50000000
-        #define TG_FREQ_NTSC 52747200
+        #define TG_FREQ_NTSC_FPS 52747200
     #endif
 #endif
 
+#define LV_STRUCT_PTR 0x1D78
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
+
 #define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
-#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC/(fps_x1000))
+#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC_FPS/(fps_x1000))
 #define TIMER_TO_FPS_x1000_PAL(t) (TG_FREQ_PAL/(t))
-#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC/(t))
+#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC_FPS/(t))
+#define TIMER_TO_SHUTTER_x1000_NTSC(t) (TG_FREQ_NTSC_SHUTTER/(t))
+
+int get_current_shutter_reciprocal_x1000()
+{
+    int timer = FRAME_SHUTTER_TIMER;
+
+    int mode = 
+        video_mode_fps == 60 ? 0 : 
+        video_mode_fps == 50 ? 1 : 
+        video_mode_fps == 30 ? 2 : 
+        video_mode_fps == 25 ? 3 : 
+        video_mode_fps == 24 ? 4 : 0;
+    int ntsc = (mode % 2 == 0);
+
+    int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+    return MAX(shutter_x1000, fps_get_current_x1000());
+}
+
 
 static int fps_override = 0;
 

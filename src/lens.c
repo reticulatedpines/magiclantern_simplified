@@ -360,6 +360,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
       int shutter_x10 = raw2shutter_ms(info->raw_shutter) / 100;
       int shutter_reciprocal = info->raw_shutter ? (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0)) : 0;
+
+      // in movie mode we can get the exact value from Canon timers
+      if (is_movie_mode()) shutter_reciprocal = (get_current_shutter_reciprocal_x1000()+500)/1000;
+      
       if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
@@ -600,7 +604,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 #endif
 
         // battery indicator
-        int xr = x_origin + 600 - font_large.width - 4;
+        int xr = x_origin + 612 - font_large.width - 4;
 
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         int bat = GetBatteryLevel();
@@ -1425,7 +1429,7 @@ void iso_components_update()
 void update_stuff()
 {
     calc_dof( &lens_info );
-    //~ lens_display_set_dirty();
+    //~ if (gui_menu_shown()) lens_display_set_dirty();
     if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
     iso_components_update();
 }
@@ -1666,7 +1670,13 @@ extern int bv_iso;
 extern int bv_tv;
 extern int bv_av;
 
-bool bv_set_rawshutter(unsigned shutter) { CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo(); return shutter != 0; }
+bool bv_set_rawshutter(unsigned shutter)
+{
+    CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo();
+    //~ NotifyBox(2000, "%d > %d?", raw2shutter_ms(shutter), 1000/video_mode_fps); msleep(400);
+    if (is_movie_mode() && raw2shutter_ms(shutter+1) > 1000/video_mode_fps) return 0;
+    return shutter != 0;
+}
 bool bv_set_rawiso(unsigned iso) 
 { 
     if (iso >= 72 && iso <= 128) // 100-12800

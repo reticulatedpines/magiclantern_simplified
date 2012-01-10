@@ -60,12 +60,16 @@ struct lv_path_struct
 extern struct lv_path_struct lv_path_struct;
 
 #define TG_FREQ_PAL  50000000
-#define TG_FREQ_NTSC 52747200
+#define TG_FREQ_NTSC_FPS 52747200
+#define TG_FREQ_NTSC_SHUTTER 49440000
 
 #define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
-#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC/(fps_x1000))
+#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC_FPS/(fps_x1000))
 #define TIMER_TO_FPS_x1000_PAL(t) (TG_FREQ_PAL/(t))
-#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC/(t))
+#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC_FPS/(t))
+
+#define SHUTTER_x1000_TO_TIMER_NTSC(s_x1000) (TG_FREQ_NTSC_SHUTTER/(s_x1000))
+#define TIMER_TO_SHUTTER_x1000_NTSC(t) (TG_FREQ_NTSC_SHUTTER/(t))
 
 static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
@@ -109,7 +113,7 @@ static int shutter_get_timer(int degrees_x10)
         video_mode_fps == 24 ? 4 : 0;
     int ntsc = (mode % 2 == 0);
     int fps_x1000 = fps_get_current_x1000();
-    int timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000) 
+    int timer = ntsc ? SHUTTER_x1000_TO_TIMER_NTSC(fps_x1000) 
                      : FPS_x1000_TO_TIMER_PAL (fps_x1000);
     return MAX(1, timer * degrees_x10 / 3600);
 }
@@ -134,8 +138,8 @@ static void cartridge_AfStopPath(void *this)
 // Q: what happes if this is called when Canon firmware flips the resolution?
 static void update_hard_expo_override()
 {
-    extern int hdr_ev;
-    if (shutter_override_enabled || hdr_ev)
+    extern int hdrv_enabled;
+    if (shutter_override_enabled || hdrv_enabled)
     {
         // cartridge call table is sometimes overriden by Canon firmware
         // so this function polls the status periodically (and updates it if needed)
@@ -190,18 +194,36 @@ static int get_shutter_override_degrees()
 
 static int get_shutter_override_reciprocal_x1000()
 {
+    int timer = shutter_get_timer(get_shutter_override_degrees_x10());
+
     int mode = 
         video_mode_fps == 60 ? 0 : 
         video_mode_fps == 50 ? 1 : 
         video_mode_fps == 30 ? 2 : 
         video_mode_fps == 25 ? 3 : 
         video_mode_fps == 24 ? 4 : 0;
-    int timer = shutter_get_timer(get_shutter_override_degrees_x10());
     int ntsc = (mode % 2 == 0);
-    int shutter_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+
+    int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+
     return shutter_x1000;
 }
 
+int get_current_shutter_reciprocal_x1000()
+{
+    int timer = FRAME_SHUTTER_TIMER;
+
+    int mode = 
+        video_mode_fps == 60 ? 0 : 
+        video_mode_fps == 50 ? 1 : 
+        video_mode_fps == 30 ? 2 : 
+        video_mode_fps == 25 ? 3 : 
+        video_mode_fps == 24 ? 4 : 0;
+    int ntsc = (mode % 2 == 0);
+
+    int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+    return MAX(shutter_x1000, fps_get_current_x1000());
+}
 // called every frame
 static void shutter_set()
 {

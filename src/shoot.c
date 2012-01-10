@@ -1470,10 +1470,11 @@ shutter_display( void * priv, int x, int y, int selected )
     char msg[100];
     if (is_movie_mode())
     {
+        int s = get_current_shutter_reciprocal_x1000();
         snprintf(msg, sizeof(msg),
-            "Shutter     : 1/%d, %d ",
-            lens_info.shutter, 
-            360 * video_mode_fps / lens_info.shutter);
+            "Shutter     : 1/%d.%03d, %d ",
+            s/1000, s%1000, 
+            360 * video_mode_fps*1000 / s);
     }
     else
     {
