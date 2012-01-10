@@ -75,6 +75,7 @@ static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
 
 static int fps_override = 0;
+CONFIG_INT("fps.override", fps_override_value, 10);
 CONFIG_INT("shutter.override", shutter_override_enabled, 0);
 CONFIG_INT("shutter.override.mode", shutter_override_mode, 0);
 
@@ -435,24 +436,21 @@ static void fps_change_all_modes(int fps)
     msleep(50);
 }
 
-static void reset_fps(void* priv, int delta)
+static void fps_change_value(void* priv, int delta)
 {
     if (recording) return;
 
-    fps_override = 0;
-    fps_change_all_modes(0);
+    fps_override_value = COERCE(fps_override_value + delta, 4, 70);
+    if (fps_override) fps_change_all_modes(fps_override_value);
 }
 
-static void set_fps(void* priv, int delta)
+static void fps_enable_disable(void* priv, int delta)
 {
     if (recording) return;
 
-    // first click won't change value
-    int fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-    if (fps_override) fps = COERCE(fps + delta, 4, 70);
-    fps_override = 1;
-    
-    fps_change_all_modes(fps);
+    fps_override = !fps_override;
+    if (fps_override) fps_change_all_modes(fps_override_value);
+    else fps_change_all_modes(0);
 }
 
 
@@ -460,11 +458,20 @@ struct menu_entry fps_menu[] = {
     {
         .name = "FPS override", 
         .priv = &fps_override,
-        .select = set_fps,
-        .select_Q = reset_fps,
+        .select = fps_enable_disable,
         .display = fps_print,
-        //~ .show_liveview = 1,
-        .help = "Changes frame rate. Turn off sound for stable operation!"
+        .help = "Changes frame rate. Turn off sound for stable operation!",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "New FPS value",
+                .priv       = &fps_override_value,
+                .min = 0,
+                .max = 60,
+                .select = fps_change_value,
+                .help = "FPS value for recording. Video will play back at Canon FPS.",
+            },
+            MENU_EOL
+        },
     },
 };
 

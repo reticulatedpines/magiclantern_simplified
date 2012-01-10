@@ -85,6 +85,7 @@ int get_current_shutter_reciprocal_x1000()
 
 
 static int fps_override = 0;
+CONFIG_INT("fps.override", fps_override_value, 10);
 
 static unsigned long frame_rate[] = {
     0xC0F06014, 0xFFFF, /* timer register */
@@ -204,43 +205,53 @@ static void flip_zoom()
     prop_request_change(PROP_LV_DISPSIZE, &zoom0, 4);
 }
 
-static int current_fps = 0;
-
 int shutter_override_enabled = 0;
 
-static void reset_fps(void* priv, int delta)
+static void fps_reset()
 {
     fps_override = 0;
     shutter_override_enabled = 0;
-    current_fps = video_mode_fps;
+    fps_override_value = video_mode_fps;
     
     if (!recording) flip_zoom(); // this will force reconfiguring fps with Canon settings
     else fps_setup(video_mode_fps);
 }
 
-static void set_fps(void* priv, int delta)
+
+static void fps_change_value(void* priv, int delta)
 {
-    // first click won't change value
-    current_fps = (fps_get_current_x1000() + 500) / 1000; // rounded value
-    if (fps_override) current_fps = COERCE(current_fps + delta, 4, 70);
-    
-    fps_setup(current_fps);
-    
-    fps_override = 1;
-    shutter_override_enabled = 1;
+    fps_override_value = COERCE(fps_override_value + delta, 4, 70);
+    if (fps_override) fps_setup(fps_override_value);
 }
 
+static void fps_enable_disable(void* priv, int delta)
+{
+    fps_override = !fps_override;
+    if (fps_override) fps_setup(fps_override_value);
+    else fps_reset();
+}
 
-static struct menu_entry fps_menu[] = {
+struct menu_entry fps_menu[] = {
     {
         .name = "FPS override", 
         .priv = &fps_override,
-        .select = set_fps,
-        .select_Q = reset_fps,
+        .select = fps_enable_disable,
         .display = fps_print,
-        .help = "Changes FPS and forces shutter at 1/fps. Turn off sound!"
+        .help = "Changes FPS and forces shutter at 1/fps. Turn off sound!",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "New FPS value",
+                .priv       = &fps_override_value,
+                .min = 0,
+                .max = 60,
+                .select = fps_change_value,
+                .help = "FPS value for recording. Video will play back at Canon FPS.",
+            },
+            MENU_EOL
+        },
     },
 };
+
 
 static void fps_init()
 {
@@ -256,8 +267,9 @@ static void fps_task()
         if (fps_override && lv && !gui_menu_shown())
         {
             msleep(500);
-            if (lv) fps_setup(current_fps);
+            if (lv) fps_setup(fps_override_value);
         }
+        shutter_override_enabled = fps_override;
         msleep(1000);
     }
 }
@@ -289,7 +301,7 @@ shutter_override_print(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Shutter(MOV): 360deg 1/%d",
-        current_fps
+        fps_override_value
     );
 
     menu_draw_icon(x, y, MNI_ON, 0);
