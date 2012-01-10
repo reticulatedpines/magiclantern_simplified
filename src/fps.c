@@ -89,7 +89,7 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 
 static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 
-static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned int type)
+static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned int type, int dispsize)
 {
     unsigned short ret[2];   
     
@@ -97,12 +97,29 @@ static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned in
     {
         return 0;
     }
+
+    int table_offset = 0;
     
+    switch(dispsize)
+    {
+        case 10:
+            table_offset = 2;
+            break;
+           
+        case 5:
+            table_offset = 1;
+            break;
+       
+        default:
+            table_offset = 0;
+            break;
+    }
+
     switch(zoomed)
     {
         case 0:
-            ret[0] = (0 * 7) + fps_mode;
-            ret[1] = (3 * 7) + fps_mode;
+            ret[0] = (0 * 7 + table_offset) + fps_mode;
+            ret[1] = (3 * 7 + table_offset) + fps_mode;
             break;
             
         /* zoomed recording modes */
@@ -117,7 +134,7 @@ static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned in
 
 static unsigned int is_zoomed()
 {
-    return video_mode[0] == 0x0C;
+    return video_mode[0] & 0x08;
 }
 
 static int fps_get_current_x1000()
@@ -128,7 +145,7 @@ static int fps_get_current_x1000()
         video_mode_fps == 30 ? 2 : 
         video_mode_fps == 25 ? 3 : 
         video_mode_fps == 24 ? 4 : 0;
-    unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0);
+    unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0, lv_dispsize);
     int fps_timer = ((uint16_t*)SENSOR_TIMING_TABLE)[pos];
     int ntsc = (mode % 2 == 0);
     int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
@@ -325,7 +342,7 @@ void shutter_override_toggle(void* priv, int delta)
     shutter_override_mode = mod(shutter_override_mode + delta, 13);
 }
 
-static void fps_change_mode(int mode, int fps)
+static void fps_change_mode(int mode, int fps, int dispsize)
 {
     int ntsc = (mode % 2 == 0);
     /** 
@@ -342,9 +359,9 @@ static void fps_change_mode(int mode, int fps)
     int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000*1000/1001) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
 
     // make sure we set a valid value (don't drive it too fast)
-    unsigned int max_pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 1);
+    unsigned int max_pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 1, dispsize);
     int fps_timer_absolute_minimum = sensor_timing_table_original[max_pos];
-    fps_timer = MAX(fps_timer_absolute_minimum * 120/100, fps_timer);
+    fps_timer = MAX(fps_timer_absolute_minimum * 105/100, fps_timer);
 
     // NTSC is 29.97, not 30
     // also try to round it in order to avoid flicker
@@ -367,7 +384,7 @@ static void fps_change_mode(int mode, int fps)
         }
     }
     
-    unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0);
+    unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0, dispsize);
     
     // fps = 0 means "don't override, use default"
     int fps_timer_default = sensor_timing_table_original[pos];
@@ -388,9 +405,17 @@ static void fps_change_all_modes(int fps)
     {
         // patch all video modes
         for (int i = 0; i < 2; i++)
-            fps_change_mode(i, fps);
+        {
+            fps_change_mode(i, fps, 1);
+            fps_change_mode(i, fps, 5);
+            //~ fps_change_mode(i, fps, 10); // doesn't work
+        }
         for (int i = 2; i < 5; i++)
-            fps_change_mode(i, MIN(fps, 70));
+        {
+            fps_change_mode(i, fps, 1);
+            fps_change_mode(i, fps, 5);
+            //~ fps_change_mode(i, fps, 10); // doesn't work
+        }
     }
 
     if (!lv) return;
