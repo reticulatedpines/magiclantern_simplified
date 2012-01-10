@@ -168,7 +168,7 @@ expsim_display( void * priv, int x, int y, int selected )
         expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ExpSim)" : "Auto (Disp)") : 
         get_expsim_auto_value() ? "Exposure Simulation" : "Disp. (Frame&Focus)"
     );
-    if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
+    if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
     else menu_draw_icon(x, y, expsim == 2 ? MNI_AUTO : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), (intptr_t) "Could not set ExpSim");
 }

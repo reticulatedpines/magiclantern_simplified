@@ -3935,7 +3935,7 @@ void schedule_transparent_overlay()
 }
 
 volatile int lens_display_dirty = 0;
-void lens_display_set_dirty() { lens_display_dirty = 1; }
+void lens_display_set_dirty() { lens_display_dirty = 1; menu_set_dirty(); }
 
 void draw_cropmark_area()
 {
