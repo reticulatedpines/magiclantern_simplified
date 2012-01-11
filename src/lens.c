@@ -1277,7 +1277,7 @@ PROP_HANDLER( PROP_BV )
     return prop_cleanup( token, property );
 }
 
-PROP_HANDLER( PROP_SHUTTER_ALSO )
+PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     #ifndef CONFIG_500D
@@ -1631,8 +1631,8 @@ bool prop_set_rawshutter(unsigned shutter, int coerce)
     lens_wait_readytotakepic(64);
     if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    msleep(lv ? 50 : 20);
-    return (unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter;
+    msleep(20);
+    return (unsigned int) get_prop(PROP_SHUTTER) == shutter;
 }
 
 bool prop_set_rawiso(unsigned iso)
