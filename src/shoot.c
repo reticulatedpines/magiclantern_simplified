@@ -1586,11 +1586,13 @@ aperture_toggle( void* priv, int sign)
     
     int a = lens_info.raw_aperture;
 
-    for (int k = 0; k < 20; k++)
+    for (int k = 0; k < 50; k++)
     {
         a += sign;
         if (a > amax) a = amin;
         if (a < amin) a = amax;
+
+        if (a < lens_info.raw_aperture_min || a > lens_info.raw_aperture_max) continue;
 
         if (lens_set_rawaperture(a)) break;
     }
