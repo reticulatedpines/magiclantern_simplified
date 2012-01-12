@@ -941,6 +941,8 @@ tweak_task( void* unused)
         dofp_update();
 
         clear_lv_affframe_if_dirty();
+
+        //~ kenrockwell_zoom_update();
         
         extern unsigned disp_profiles_0;
         if (FLASH_BTN_MOVIE_MODE)
@@ -969,7 +971,11 @@ tweak_task( void* unused)
         if (display_off_by_halfshutter_enabled)
             display_off_by_halfshutter();
         #endif
-        
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        star_zoom_update();
+        #endif
+
         upside_down_step();
         
         if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
@@ -979,7 +985,20 @@ tweak_task( void* unused)
 
 TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );
 
-extern int quick_review_allow_zoom;
+CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
+
+PROP_HANDLER(PROP_GUI_STATE)
+{
+    int gui_state = buf[0];
+    extern int hdr_enabled;
+
+    if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom==1
+        && !is_intervalometer_running() && !hdr_enabled)
+    {
+        fake_simple_button(BGMT_PLAY);
+    }
+    return prop_cleanup(token, property);
+}
 
 static void
 qrplay_display(
@@ -993,9 +1012,67 @@ qrplay_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "After taking a pic: %s", 
-        quick_review_allow_zoom ? "Hold->Play" : "QuickReview"
+        quick_review_allow_zoom == 0 ? "QuickReview" :
+        quick_review_allow_zoom == 1 ? "Rvw:Hold->Play" : "ZoomIn->Play"
     );
 }
+
+/*
+
+static void play_zoom_task(int unused)
+{
+    info_led_on();
+    fake_simple_button(BGMT_PLAY);
+    //~ SetGUIRequestMode(1);
+	msleep(100);
+
+	extern thunk PlayMain_handler;
+	while (get_current_dialog_handler() != &PlayMain_handler)
+    {
+		msleep(300);
+        //~ fake_simple_button(BGMT_PLAY);
+        //~ SetGUIRequestMode(1);
+    }
+
+    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+    msleep(400);
+    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+    info_led_off();
+}
+
+void kenrockwell_zoom_update()
+{
+    extern thunk OlcAFFrameApp_handler;
+	extern thunk PlayMain_handler;
+
+	static void* prev_handler = 0;
+	void* current_handler = get_current_dialog_handler();
+    if (current_handler == &OlcAFFrameApp_handler && prev_handler != &OlcAFFrameApp_handler)
+    //~ ) NotifyBox(2000, "%x ", prev_handler);
+    //~ if (prev_handler == &PlayMain_handler && current_handler == &OlcAFFrameApp_handler)
+    {
+		task_create("play_zoom", 0x1d, 0, play_zoom_task, 0);
+	}
+	prev_handler = current_handler;
+    return 1;
+}
+
+void handle_kenrockwell_zoom(struct event * event)
+{
+    if (quick_review_allow_zoom != 2) return 1;
+    //~ if (lv) return 1;
+    
+	if (gui_state == GUISTATE_QR)
+	{
+		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE
+			|| event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+		{
+			task_create("play_zoom", 0x1d, 0, play_zoom_task, 0);
+			return 0;
+		}
+	}
+}*/
+
 /*
 extern int set_on_halfshutter;
 
@@ -1172,6 +1249,36 @@ void digital_zoom_shortcut_display(
         digital_zoom_shortcut ? "1x, 3x" : "3x...10x"
     );
 }
+
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+
+CONFIG_INT("star.zoom", star_zoom, 1);
+//~ CONFIG_INT("star.zoom.dis", star_zoom_dis, 0);
+
+void star_zoom_update()
+{
+    static int star_zoom_dis = 0;
+    if (star_zoom)
+    {
+        if (PLAY_MODE)
+        {
+            if (get_af_star_swap())
+            {
+                star_zoom_dis = 1;
+                set_af_star_swap(0);
+            }
+        }
+        else
+        {
+            if (star_zoom_dis)
+            {
+                set_af_star_swap(1);
+                star_zoom_dis = 0;
+            }
+        }
+    }
+}
+#endif
 
 struct menu_entry tweak_menus[] = {
 /*  {
@@ -1462,9 +1569,10 @@ struct menu_entry play_menus[] = {
         .priv = &quick_review_allow_zoom, 
         .select = menu_binary_toggle, 
         .display = qrplay_display,
+        //~ .help = "Go to play mode to enable zooming and maybe other keys.",
         .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
         .essential = FOR_PLAYBACK,
-        .icon_type = IT_REPLACE_SOME_FEATURE,
+        .icon_type = IT_BOOL,
     },
     {
         .name = "Zoom in PLAY mode",
@@ -1475,6 +1583,16 @@ struct menu_entry play_menus[] = {
         .essential = FOR_PLAYBACK,
         .icon_type = IT_DICE,
     },
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    {
+        .name = "Always ZoomOut w.*",
+        .priv = &star_zoom, 
+        .max = 1,
+        .help = "If you swap AF-ON/* (CFn IV-2), ML will revert'em in PLAY.",
+        .essential = FOR_PLAYBACK,
+        .icon_type = IT_BOOL,
+    },
+    #endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
         .name = "LV button (PLAY)",
