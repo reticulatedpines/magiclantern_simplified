@@ -519,7 +519,12 @@ static void percent(int x, int y, int value)
     y -= 2;
     value = value * 28 / 100;
     for (i = 0; i < 28; i++)
-        draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/3 - 5,  i <= value ? 9 : 60);
+        draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/3 - 5,
+            #if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_1100D) // low-res screen, doesn't look good
+            i%2 ? COLOR_BLACK :
+            #endif
+            i <= value ? 9 : 60
+        );
 }
 
 static void playicon(int x, int y)
@@ -1338,7 +1343,8 @@ menu_handler(
         return 1;
     
     case PRESS_ZOOM_IN_BUTTON:
-        show_only_selected = !show_only_selected;
+        if (lv) show_only_selected = !show_only_selected;
+        else submenu_mode = (!submenu_mode)*2;
         menu_damage = 1;
         menu_help_active = 0;
         break;
