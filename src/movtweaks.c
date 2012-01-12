@@ -728,6 +728,7 @@ static void bv_display(
         bv_auto ? "Auto" :
         CONTROL_BV ? "ON" : "OFF"
     );
+    if ((CONTROL_BV || bv_auto) && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
     menu_draw_icon(x, y, bv_auto ? MNI_AUTO : MNI_BOOL(CONTROL_BV), 0);
 }
 
@@ -755,7 +756,7 @@ void bv_enable_do()
         CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : bv_iso;
     }
     
-    CONTROL_BV_ZERO = LVAE_DISP_GAIN;
+    CONTROL_BV_ZERO = 0;
     bv_update_lensinfo();
 }
 
@@ -931,7 +932,6 @@ void set_display_gain(int display_gain)
     display_gain = COERCE(display_gain, 0, 65535);
     if (display_gain == 1024) display_gain = 0;
     LVAE_DISP_GAIN = lvae_disp_gain = display_gain;
-    if (CONTROL_BV) CONTROL_BV_ZERO = display_gain;
 }
 
 // 1024 = 0 EV
@@ -998,7 +998,8 @@ void display_gain_print(
     );
     if (LVAE_DISP_GAIN)
     {
-        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView.");
+        else if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure Override is active.");
         else menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
     }
     else menu_draw_icon(x, y, MNI_OFF, 0);
