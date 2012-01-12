@@ -25,7 +25,7 @@ volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
-volatile PROP_INT(PROP_BACKLIGHT_LEVEL, backlight_level);
+volatile PROP_INT(PROP_LCD_BRIGHTNESS, backlight_level);
 volatile PROP_INT(PROP_BEEP, beep_enabled);
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);

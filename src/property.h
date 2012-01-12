@@ -239,6 +239,7 @@
 //strobo_setting[1] & 8 = 8 if e-ttl meter = average else 0
 
 #define PROP_LCD_BRIGHTNESS 0x2040000     // 1 .. 7
+#define PROP_LCD_BRIGHTNESS_MODE 0x204000D // 0=auto, 1=manual (5D)
 
 /** Gui properties? 0xffc509b0 @ 0xDA */
 
@@ -294,8 +295,6 @@
 #define PROP_USER_FILE_PREFIX  0x02050004
 #define PROP_SELECTED_FILE_PREFIX  0x02050008
 #define PROP_CARD_COVER 0x8003002F
-
-#define PROP_BACKLIGHT_LEVEL    0x02040000
 
 #define PROP_TERMINATE_SHUT_REQ 0x80010001
 

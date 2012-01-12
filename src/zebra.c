@@ -3697,14 +3697,29 @@ static void idle_bmp_on()
 }
 
 static int old_backlight_level = 0;
+#ifdef CONFIG_5D2
+static int old_backlight_mode = 0;
+#endif
 static void idle_display_dim()
 {
     old_backlight_level = backlight_level;
     set_backlight_level(1);
+
+    #ifdef CONFIG_5D2
+    old_backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
+    int x = 1;
+    prop_request_change(PROP_LCD_BRIGHTNESS_MODE, &x, 4);
+    #endif
 }
 static void idle_display_undim()
 {
-    if (old_backlight_level) set_backlight_level(old_backlight_level);
+    if (old_backlight_level)
+    {
+        set_backlight_level(old_backlight_level);
+        #ifdef CONFIG_5D2
+        prop_request_change(PROP_LCD_BRIGHTNESS_MODE, &old_backlight_mode, 4);
+        #endif
+    }
     old_backlight_level = 0;
 }
 

@@ -459,14 +459,14 @@ void adjust_backlight_level(int delta)
     }
     
     int level = COERCE(backlight_level + delta, 1, 7);
-    prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
+    prop_request_change(PROP_LCD_BRIGHTNESS, &level, 4);
     NotifyBoxHide();
     NotifyBox(2000, "LCD Backlight: %d", level);
 }
 void set_backlight_level(int level)
 {
     level = COERCE(level, 1, 7);
-    prop_request_change(PROP_BACKLIGHT_LEVEL, &level, 4);
+    prop_request_change(PROP_LCD_BRIGHTNESS, &level, 4);
 }
 
 CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
