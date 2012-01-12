@@ -116,7 +116,7 @@ static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 static CONFIG_INT( "zoom.overlay", zoom_overlay_enabled, 0);
 static CONFIG_INT( "zoom.overlay.trig", zoom_overlay_trigger_mode, MZ_TAKEOVER_ZOOM_IN_BTN);
 static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
-static CONFIG_INT( "zoom.overlay.x2", zoom_overlay_x2, 1);
+static CONFIG_INT( "zoom.overlay.x", zoom_overlay_x, 1);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
@@ -1769,7 +1769,10 @@ zoom_overlay_display(
             zoom_overlay_pos == 4 ? "SW," : "err",
 
         zoom_overlay_trigger_mode == 0 ? "" :
-            zoom_overlay_x2 == 0 ? "1:1" : "2:1",
+            zoom_overlay_x == 0 ? "1:1" :
+            zoom_overlay_x == 1 ? "2:1" :
+            zoom_overlay_x == 2 ? "3:1" :
+            zoom_overlay_x == 3 ? "4:1" : "err",
 
         zoom_overlay_trigger_mode == 0 ? "" :
             zoom_overlay_split == 0 ? "" :
@@ -2423,9 +2426,9 @@ struct menu_entry zebra_menus[] = {
             },
             {
                 .name = "Magnification", 
-                .priv = &zoom_overlay_x2,
-                .max = 1,
-                .choices = (const char *[]) {"1:1", "2:1"},
+                .priv = &zoom_overlay_x,
+                .max = 2,
+                .choices = (const char *[]) {"1:1", "2:1", "3:1", "4:1"},
                 .icon_type = IT_SIZE,
                 .help = "Magnification: 2:1 doubles the pixels.",
             },
@@ -3076,6 +3079,11 @@ void zoom_overlay_set_countdown(int x)
     zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
 
+
+static const unsigned char TechnicolLUT[256] = {
+    0,0,0,0,0,0,0,0,0,1,1,1,1,1,2,2,2,3,3,3,4,4,5,5,5,6,6,7,8,8,9,9,10,10,11,12,12,13,14,15,15,16,17,18,18,19,20,21,22,23,24,25,26,26,27,28,29,30,32,33,34,35,36,37,38,39,40,41,43,44,45,46,47,49,50,51,52,54,55,56,58,59,60,62,63,64,66,67,68,70,71,73,74,75,77,78,80,81,83,84,86,87,89,90,92,93,95,96,98,99,101,102,104,105,107,109,110,112,113,115,116,118,119,121,123,124,126,127,129,130,132,134,135,137,138,140,141,143,145,146,148,149,151,152,154,155,157,158,160,161,163,164,166,167,169,170,172,173,175,176,178,179,181,182,183,185,186,188,189,190,192,193,194,196,197,198,200,201,202,204,205,206,207,209,210,211,212,213,214,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,235,236,237,238,239,239,240,241,242,242,243,244,244,245,246,246,247,247,248,248,249,249,250,250,251,251,252,252,252,253,253,253,253,254,254,254,254,255,255,255,255,255,255,255,255,255,255 
+};
+
 static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
     dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
@@ -3091,9 +3099,55 @@ static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
     }
 }
 
-static const unsigned char TechnicolLUT[256] = {
-    0,0,0,0,0,0,0,0,0,1,1,1,1,1,2,2,2,3,3,3,4,4,5,5,5,6,6,7,8,8,9,9,10,10,11,12,12,13,14,15,15,16,17,18,18,19,20,21,22,23,24,25,26,26,27,28,29,30,32,33,34,35,36,37,38,39,40,41,43,44,45,46,47,49,50,51,52,54,55,56,58,59,60,62,63,64,66,67,68,70,71,73,74,75,77,78,80,81,83,84,86,87,89,90,92,93,95,96,98,99,101,102,104,105,107,109,110,112,113,115,116,118,119,121,123,124,126,127,129,130,132,134,135,137,138,140,141,143,145,146,148,149,151,152,154,155,157,158,160,161,163,164,166,167,169,170,172,173,175,176,178,179,181,182,183,185,186,188,189,190,192,193,194,196,197,198,200,201,202,204,205,206,207,209,210,211,212,213,214,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,235,236,237,238,239,239,240,241,242,242,243,244,244,245,246,246,247,247,248,248,249,249,250,250,251,251,252,252,252,253,253,253,253,254,254,254,254,255,255,255,255,255,255,255,255,255,255 
-};
+static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
+{
+    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    uint32_t* last_s = src + (num_pix>>1);
+    for (; src < last_s; src++, dst += 3)
+    {
+        uint32_t chroma = (*src)  & 0x00FF00FF;
+        uint32_t luma1 = (*src >>  8) & 0xFF;
+        uint32_t luma2 = (*src >> 24) & 0xFF;
+        *(dst)   = chroma | (luma1 << 8) | (luma1 << 24);
+        *(dst+1) = chroma | (luma1 << 8) | (luma2 << 24);
+        *(dst+2) = chroma | (luma2 << 8) | (luma2 << 24);
+    }
+}
+
+static void yuvcpy_x3_lut(uint32_t* dst, uint32_t* src, int num_pix)
+{
+    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    uint32_t* last_s = src + (num_pix>>1);
+    for (; src < last_s; src++, dst += 3)
+    {
+        uint32_t chroma = (*src)  & 0x00FF00FF;
+        uint32_t luma1 = (*src >>  8) & 0xFF;
+        uint32_t luma2 = (*src >> 24) & 0xFF;
+        luma1 = TechnicolLUT[luma1];
+        luma2 = TechnicolLUT[luma2];
+        *(dst)   = chroma | (luma1 << 8) | (luma1 << 24);
+        *(dst+1) = chroma | (luma1 << 8) | (luma2 << 24);
+        *(dst+2) = chroma | (luma2 << 8) | (luma2 << 24);
+    }
+}
+
+
+/*static void yuvcpy_x4(uint32_t* dst, uint32_t* src, int num_pix)
+{
+    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    uint32_t* last_s = src + (num_pix>>1);
+    for (; src < last_s; src++, dst += 4)
+    {
+        uint32_t chroma = (*src)  & 0x00FF00FF;
+        uint32_t luma1 = (*src >>  8) & 0xFF;
+        uint32_t luma2 = (*src >> 24) & 0xFF;
+        *(dst) = *(dst+1) = chroma | (luma1 << 8) | (luma1 << 24);
+        *(dst+2) = *(dst+3) = chroma | (luma2 << 8) | (luma2 << 24);
+    }
+}*/
 
 static void yuvcpy_lut(uint32_t* dst, uint32_t* src, int num_pix)
 {
@@ -3124,6 +3178,30 @@ static void yuvcpy_x2_lut(uint32_t* dst, uint32_t* src, int num_pix)
         *(dst) = chroma | (luma1 << 8) | (luma1 << 24);
         *(dst+1) = chroma | (luma2 << 8) | (luma2 << 24);
     }
+}
+
+static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
+{
+    if (X==1)
+    {
+        if (lut) yuvcpy_lut(dst, src, num_pix);
+        else memcpy(dst, src, num_pix*2);
+    }
+    else if (X==2)
+    {
+        if (lut) yuvcpy_x2_lut(dst, src, num_pix/2);
+        else yuvcpy_x2(dst, src, num_pix/2);
+    }
+    else if (X==3)
+    {
+        if (lut) yuvcpy_x3_lut(dst, src, num_pix/3);
+        else yuvcpy_x3(dst, src, num_pix/3);
+    }
+    //~ else if (X==4)
+    //~ {
+        //~ if (lut) yuvcpy_x4(dst, src, num_pix/4);
+        //~ else yuvcpy_x4(dst, src, num_pix/2);
+    //~ }
 }
 
 
@@ -3196,7 +3274,8 @@ static void draw_zoom_overlay(int dirty)
             break;
     }
     
-    int x2 = zoom_overlay_x2;
+    //~ int x2 = zoom_overlay_x2;
+    int X = zoom_overlay_x + 1;
 
     int zb_x0_lv, zb_y0_lv; // center of zoom box
 
@@ -3239,11 +3318,9 @@ static void draw_zoom_overlay(int dirty)
     {
         int w = W * lv->width / hd->width;
         int h = H * lv->width / hd->width;
-        if (x2)
-        {
-            w >>= 1;
-            h >>= 1;
-        }
+
+        w /= X;
+        h /= X;
         if (video_mode_resolution == 0 || !is_movie_mode())
         {
             memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
@@ -3271,33 +3348,15 @@ static void draw_zoom_overlay(int dirty)
     poff = rawoff;
     if (zoom_overlay_split == 1 /* non zerocross */) rev = 0;
 
-    if (x2)
+    uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
+    uint16_t* s = hdr + (aff_y0_hd - (H/2/X)) * hd->width + (aff_x0_hd - (W/2/X));
+    for (y = 2; y < H-2; y++)
     {
-        uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
-        uint16_t* s = hdr + (aff_y0_hd - (H>>2)) * hd->width + (aff_x0_hd - (W>>2));
-        for (y = 2; y < H-2; y++)
-        {
-            int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
-            if (rev) off = -off;
-            if (zoom_overlay_lut) yuvcpy_x2_lut((uint32_t*)d, (uint32_t*)(s + off), W>>1);
-            else yuvcpy_x2((uint32_t*)d, (uint32_t*)(s + off), W>>1);
-            d += lv->width;
-            if (y & 1) s += hd->width;
-        }
-    }
-    else
-    {
-        uint16_t* d = lvr + x0c + (y0c + 2) * lv->width;
-        uint16_t* s = hdr + (aff_y0_hd - (H>>1)) * hd->width + (aff_x0_hd - (W>>1));
-        for (y = 2; y < H-2; y++)
-        {
-            int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
-            if (rev) off = -off;
-            if (zoom_overlay_lut) yuvcpy_lut((uint32_t *)d, (uint32_t *)(s + off), W);
-            else memcpy(d, s + off, W<<1);
-            d += lv->width;
-            s += hd->width;
-        }
+        int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
+        if (rev) off = -off;
+        yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X, zoom_overlay_lut);
+        d += lv->width;
+        if (y%X==0) s += hd->width;
     }
 
     if (video_mode_resolution == 0 || !is_movie_mode())
@@ -3772,7 +3831,7 @@ clearscreen_loop:
             int i;
             for (i = 0; i < (int)clearscreen_delay/20; i++)
             {
-                if (i % 10 == 0 && zebra_should_run()) BMP_LOCK( update_lens_display(); )
+                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(); )
                 msleep(20);
                 if (!(get_halfshutter_pressed() || dofpreview))
                     goto clearscreen_loop;
@@ -4032,7 +4091,7 @@ livev_hipriority_task( void* unused )
             //~ crop_set_dirty(20);
         
         //~ if (lens_display_dirty)
-        if ((k % 50 == 0 || (lens_display_dirty && k % 10 == 0)) && !gui_menu_shown())
+        if ((k % 20 == 0 || (lens_display_dirty && k % 10 == 0)) && !gui_menu_shown())
         //~ if (k % 5 == 0 && !gui_menu_shown())
         {
             //~ #ifdef CONFIG_KILL_FLICKER
