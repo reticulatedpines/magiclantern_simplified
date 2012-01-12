@@ -78,7 +78,7 @@ CONFIG_INT( "focus.trap", trap_focus, 0);
 //~ static CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
-//~ static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
+static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = hi-res, 2 = slit-scan, 3 = long-exp
 static CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
@@ -295,7 +295,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
 
 
 int get_trap_focus() { return trap_focus; }
-/*
+
 void set_flash_firing(int mode)
 {
     lens_wait_readytotakepic(64);
@@ -314,7 +314,7 @@ flash_and_no_flash_display( void * priv, int x, int y, int selected )
     );
 }
 
-static void
+/*static void
 flash_and_no_flash_toggle( void * priv )
 {
     flash_and_no_flash = !flash_and_no_flash;
@@ -3238,11 +3238,13 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-/*  {
-        .select     = flash_and_no_flash_toggle,
+    {
+        //~ .select     = flash_and_no_flash_toggle,
         .display    = flash_and_no_flash_display,
+        .priv = &flash_and_no_flash,
+        .max = 1,
         .help = "Take odd pictures with flash, even pictures without flash."
-    },*/
+    },
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -4245,11 +4247,11 @@ shoot_task( void* unused )
         }
 
         // toggle flash on/off for next picture
-        /*if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+        if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
         {
             strobo_firing = file_number % 2;
             set_flash_firing(strobo_firing);
-        }*/
+        }
 
         //~ static int sw1_countdown = 0;
         
