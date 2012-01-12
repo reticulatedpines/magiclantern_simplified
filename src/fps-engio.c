@@ -211,7 +211,7 @@ static void fps_reset()
 {
     fps_override = 0;
     shutter_override_enabled = 0;
-    fps_override_value = video_mode_fps;
+    //~ fps_override_value = video_mode_fps;
     
     if (!recording) flip_zoom(); // this will force reconfiguring fps with Canon settings
     else fps_setup(video_mode_fps);
