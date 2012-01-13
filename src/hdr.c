@@ -43,13 +43,22 @@
 
 #ifdef CONFIG_60D
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
-#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+#define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 #endif
 
 
 CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);
 static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
+
+int is_hdr_valid_iso(int iso)
+{
+    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    return is_native_iso(iso);
+    #else
+    return is_round_iso(iso) && iso != 0;
+    #endif
+}
 
 static void hdr_iso_toggle(void* priv, int delta)
 {
@@ -58,7 +67,7 @@ static void hdr_iso_toggle(void* priv, int delta)
     {
         *v = mod(*v - 72 + delta, 120 - 72 + 1) + 72;
     }
-    while (!is_round_iso(raw2iso(*v)));
+    while (!is_hdr_valid_iso(raw2iso(*v)));
 }
 
 void hdr_get_iso_range(int* iso_low, int* iso_high)
