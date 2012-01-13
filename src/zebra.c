@@ -1037,18 +1037,34 @@ draw_zebra_and_focus( int Z, int F )
                  *  uyvy uyvy uyvy
                  */
                 #define P (vram_hd.pitch/4)
-                #define p_cc ((int32_t)((*(hdp  )) >>  8) & 0xFF)
-                #define p_rc ((int32_t)((*(hdp  )) >> 24) & 0xFF)
-                #define p_lc ((int32_t)((*(hdp-1)) >> 24) & 0xFF)
-                #define p_cu ((int32_t)((*(hdp-P)) >>  8) & 0xFF)
-                #define p_cd ((int32_t)((*(hdp+P)) >>  8) & 0xFF)
+                #define p_cc     ((int32_t)((*(hdp  ))   >>  8) & 0xFF)
+                #define p_rc     ((int32_t)((*(hdp  ))   >> 24) & 0xFF)
+                #define p_lc     ((int32_t)((*(hdp-1))   >> 24) & 0xFF)
+                #define p_llc    ((int32_t)((*(hdp-1))   >>  8) & 0xFF)
+                #define p_rrc    ((int32_t)((*(hdp+1))   >>  8) & 0xFF)
+                #define p_rrrc   ((int32_t)((*(hdp+1))   >> 24) & 0xFF)
+                #define p_rrrrc  ((int32_t)((*(hdp+2))   >>  8) & 0xFF)
+                #define p_rrrrrc ((int32_t)((*(hdp+2))   >> 24) & 0xFF)
+
+                #define p_cu    ((int32_t)((*(hdp-P))   >>  8) & 0xFF)
+                #define p_cd    ((int32_t)((*(hdp+P))   >>  8) & 0xFF)
+                #define p_cuu   ((int32_t)((*(hdp-2*P)) >>  8) & 0xFF)
+                //~ #define p_cdd ((int32_t)((*(hdp+2*P)) >>  8) & 0xFF)
+                //~ #define p_cddd ((int32_t)((*(hdp+3*P)) >>  8) & 0xFF)
                 
                 #define e_laplacian_x  ABS(p_cc * 2 - p_lc - p_rc)
                 #define e_laplacian_xy ABS(p_cc * 4 - p_lc - p_rc - p_cu - p_cd)
                 #define e_dx           ABS(p_rc - p_cc)
                 #define e_dy           ABS(p_cd - p_cc)
 
-                int e = focus_peaking_method == 0 ? MAX(e_dx, e_dy) : e_laplacian_xy ;
+                // FFT component at Nyquist frequency 
+                #define e_nyquist_x ABS(p_llc + p_cc + p_rrc + p_rrrrc - p_lc - p_rc - p_rrrc - p_rrrrrc)
+                #define e_nyquist_y ABS(p_cuu + p_cc - p_cu - p_cd)
+
+                int e = focus_peaking_method == 0 ? MAX(e_dx, e_dy) :
+                        focus_peaking_method == 1 ? e_laplacian_xy :
+                                                    //~ MAX(e_zigzag_x, e_zigzag_y);
+                                                    e_nyquist_x;
                 #undef a
                 #undef b
                 #undef c
@@ -1525,7 +1541,8 @@ focus_peaking_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Focus Peak  : %s,%d.%d,%s",
-            focus_peaking_method == 0 ? "D1xy" : "D2xy",
+            focus_peaking_method == 0 ? "D1xy" :
+            focus_peaking_method == 1 ? "D2xy" : "Nyq.H",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
             focus_peaking_color == 1 ? "G" :
@@ -2364,9 +2381,9 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Method",
                 .priv = &focus_peaking_method, 
-                .max = 1,
-                .choices = (const char *[]) {"1st deriv.", "2nd deriv."},
-                .help = "Edge detection method.",
+                .max = 2,
+                .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
+                .help = "Contrast detection method.",
             },
             {
                 .name = "Threshold", 
