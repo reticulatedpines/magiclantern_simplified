@@ -520,9 +520,6 @@ static void percent(int x, int y, int value)
     value = value * 28 / 100;
     for (i = 0; i < 28; i++)
         draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/3 - 5,
-            #if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_1100D) // low-res screen, doesn't look good
-            i%2 ? COLOR_BLACK :
-            #endif
             i <= value ? 9 : 60
         );
 }
