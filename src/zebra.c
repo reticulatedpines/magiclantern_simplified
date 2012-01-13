@@ -992,9 +992,11 @@ draw_zebra_and_focus( int Z, int F )
             uint16_t * const hd_row = (uint16_t *)(hdvram + BM2HD_R(y) / 4); // 2 pixels
             
             uint32_t* hdp; // that's a moving pointer
+            uint8_t* p8; // that's a moving pointer
             for (int x = os.x0 + 8; x < os.x_max - 8; x += 2)
             {
                 hdp = (uint32_t *)(hd_row + BM2HD_X(x));
+                p8 = (uint8_t *)(hd_row + BM2HD_X(x)) + 1;
                 //~ hdp = hdvram + BM2HD(x,y)/4;
                 #define PX_AB (*hdp)        // current pixel group
                 #define PX_CD (*(hdp + 1))  // next pixel group
@@ -1036,8 +1038,8 @@ draw_zebra_and_focus( int Z, int F )
                  *  uyvy uYvy uyvy
                  *  uyvy uyvy uyvy
                  */
-                #define P (vram_hd.pitch/4)
-                #define p_cc     ((int32_t)((*(hdp  ))   >>  8) & 0xFF)
+                #define P (vram_hd.pitch)
+                /*#define p_cc     ((int32_t)((*(hdp  ))   >>  8) & 0xFF)
                 #define p_rc     ((int32_t)((*(hdp  ))   >> 24) & 0xFF)
                 #define p_lc     ((int32_t)((*(hdp-1))   >> 24) & 0xFF)
                 #define p_llc    ((int32_t)((*(hdp-1))   >>  8) & 0xFF)
@@ -1048,23 +1050,40 @@ draw_zebra_and_focus( int Z, int F )
 
                 #define p_cu    ((int32_t)((*(hdp-P))   >>  8) & 0xFF)
                 #define p_cd    ((int32_t)((*(hdp+P))   >>  8) & 0xFF)
-                #define p_cuu   ((int32_t)((*(hdp-2*P)) >>  8) & 0xFF)
+                #define p_cuu   ((int32_t)((*(hdp-2*P)) >>  8) & 0xFF)*/
                 //~ #define p_cdd ((int32_t)((*(hdp+2*P)) >>  8) & 0xFF)
                 //~ #define p_cddd ((int32_t)((*(hdp+3*P)) >>  8) & 0xFF)
+
+                #define p_cc ((int)(*p8))
+                #define p_rc ((int)(*(p8+2)))
+                #define p_lc ((int)(*(p8-2)))
+                #define p_llc ((int)(*(p8-4)))
+                #define p_rrc ((int)(*(p8+4)))
+                #define p_rrrc ((int)(*(p8+6)))
+                #define p_rrrrc ((int)(*(p8+8)))
+                #define p_rrrrrc ((int)(*(p8+10)))
+                #define p_cu ((int)(*(p8-P)))
+                #define p_cd ((int)(*(p8+P)))
+
+                #define p_ru ((int)(*(p8+2-P)))
+                #define p_lu ((int)(*(p8-2-P)))
+                #define p_rd ((int)(*(p8+2+P)))
+                #define p_ld ((int)(*(p8-2+P)))
                 
-                #define e_laplacian_x  ABS(p_cc * 2 - p_lc - p_rc)
-                #define e_laplacian_xy ABS(p_cc * 4 - p_lc - p_rc - p_cu - p_cd)
-                #define e_dx           ABS(p_rc - p_cc)
-                #define e_dy           ABS(p_cd - p_cc)
+                #define e_laplacian_x   ABS(p_cc * 2 - p_lc - p_rc)
+                #define e_laplacian_xy  ABS(p_cc * 4 - p_lc - p_rc - p_cu - p_cd)
+                #define e_laplacian_xy9 ABS(p_cc * 8 - p_lc - p_rc - p_cu - p_cd - p_ru - p_lu - p_rd - p_ld)
+                #define e_dx            ABS(p_rc - p_cc)
+                #define e_dy            ABS(p_cd - p_cc)
 
                 // FFT component at Nyquist frequency 
-                #define e_nyquist_x ABS(p_llc + p_cc + p_rrc + p_rrrrc - p_lc - p_rc - p_rrrc - p_rrrrrc)
+                #define e_nyquist_x ABS(p_llc + p_cc + p_rrc + p_rrrrc - p_lc - p_rc - p_rrrc - p_rrrrrc)/2
                 #define e_nyquist_y ABS(p_cuu + p_cc - p_cu - p_cd)
 
-                int e = focus_peaking_method == 0 ? MAX(e_dx, e_dy) :
-                        focus_peaking_method == 1 ? e_laplacian_xy :
+                int e = focus_peaking_method == 0 ? MAX(e_dx, e_dy) : e_laplacian_xy;
+                        //~ focus_peaking_method == 1 ? e_laplacian_xy :
                                                     //~ MAX(e_zigzag_x, e_zigzag_y);
-                                                    e_nyquist_x;
+                                                    //~ e_nyquist_x;
                 #undef a
                 #undef b
                 #undef c
@@ -1075,7 +1094,11 @@ draw_zebra_and_focus( int Z, int F )
                 /*if (focus_peaking_debug)
                 {
                     int c = (COERCE(e, 0, thr*2) * 41 / thr / 2) + 38;
-                    bvram[BM(x,y)] = c | (c << 8);
+                    uint16_t* bm16 = (uint16_t*) bvram;
+                    uint16_t* m16 = (uint16_t*) bvram_mirror;
+                    bm16[BM(x,y)/2] = bm16[BM(x,y+1)/2] =
+                     m16[BM(x,y)/2] =  m16[BM(x,y+1)/2] = c | (c<<8);
+                    continue;
                 }*/
                 
                 n_total++;
@@ -2381,7 +2404,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Method",
                 .priv = &focus_peaking_method, 
-                .max = 2,
+                .max = 1,
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method.",
             },
@@ -2400,6 +2423,12 @@ struct menu_entry zebra_menus[] = {
                 .help = "Focus peaking color (fixed or color coding).",
                 .icon_type = IT_NAMED_COLOR,
             },
+            /*{
+                .priv = &focus_peaking_debug,
+                .max = 1,
+                .name = "Debug mode",
+                .help = "Displays raw contrast image (grayscale).",
+            },*/
             MENU_EOL
         },
     },
