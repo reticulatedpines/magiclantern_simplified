@@ -131,6 +131,7 @@ bitrate_print(
     else if (bitrate_mode == 1)
     {
         if (bitrate_factor > 10) fnt = FONT(fnt, bitrate_factor > 14 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
+        if (bitrate_factor < 7) fnt = FONT(fnt, bitrate_factor < 4 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
         bmp_printf( fnt, x, y, "Bit Rate (CBR): %s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
         menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
     }
