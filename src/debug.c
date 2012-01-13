@@ -177,10 +177,8 @@ static void dump_rom(void* priv)
 }
 #endif
 
-void beep()
+void unsafe_beep()
 {
-    if (recording) return; // breaks audio
-    
     // just to make sure it's thread safe
     static struct semaphore * beep_sem = 0;
     if (beep_sem == 0) beep_sem = create_named_semaphore("beep_sem",1);
@@ -190,6 +188,12 @@ void beep()
     msleep(100);
     call("StopPlayWaveData");
     give_semaphore(beep_sem);
+}
+
+void beep()
+{
+    if (recording) return; // breaks audio
+    beep();
 }
 
 void Beep()
@@ -313,6 +317,8 @@ void run_test()
 
     //~ fake_simple_button(BGMT_LV);
     //~ iso_test();
+    NotifyBox(1000, "%x ", MEMX(0xC0F06014));
+    
     //~ SetGUIRequestMode(22);
     /*
     for (int i = 30; i > 10; i--)
