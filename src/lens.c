@@ -199,12 +199,12 @@ int should_draw_bottom_bar()
 int raw2shutter_ms(int raw_shutter)
 {
     if (!raw_shutter) return 0;
-    return (int) roundf(powf(2.0, (152.0 - raw_shutter)/8.0) / 4.0);
+    return (int) roundf(powf(2.0, (raw_shutter - 136.0)/8.0) * 1000);
 }
 int shutter_ms_to_raw(int shutter_ms)
 {
     if (shutter_ms == 0) return 160;
-    return (int) roundf(152 - log2f(shutter_ms * 4) * 8);
+    return (int) roundf(136 - log2f(shutter_ms) * 8);
 }
 int raw2iso(int raw_iso)
 {
