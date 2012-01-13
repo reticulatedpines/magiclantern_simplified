@@ -187,6 +187,7 @@ NSTUB( 0xff0a61dc, GUI_Control_Post )
 NSTUB( 0x1CF8, gui_main_struct )      //  in gui_main_task. LDR     R0, [R4,#0x30]  ; queue_handle
 NSTUB( 0xff1d6ad8, msg_queue_receive )
 NSTUB( 0xFF1D6CC4, msg_queue_post ) // TryPostMessageQueue
+NSTUB( 0xff072830, msg_queue_create ) // CreateMessageQueue
 NSTUB( 0xFF0A86C4, gui_local_post )     // found only by Alex tool!
 NSTUB( 0xFF0A7F84, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF0A8C88, gui_other_post )     // just after gui_local_post. found only by Alex tool

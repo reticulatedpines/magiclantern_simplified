@@ -13,3 +13,6 @@ void set_mlu(int value) { SetCFnData(2, 6, value); }
 
 int cfn_get_af_button_assignment() { return GetCFnData(3, 1); }
 void cfn_set_af_button(int value) { SetCFnData(3, 1, value); }
+
+int get_af_star_swap() { return GetCFnData(3, 2); }
+void set_af_star_swap(int value) { SetCFnData(3, 2, value); }
