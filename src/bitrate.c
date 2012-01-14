@@ -240,12 +240,12 @@ void fps_show()
     
     bmp_printf(
         SHADOW_FONT(FONT_MED),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y + font_med.height,
+        time_indic_x + 160 - (video_mode_resolution == 0 ? 7 : 6) * font_med.width,
+        time_indic_y + font_med.height - 3,
         "%d%s%s", 
         video_mode_fps, 
         video_mode_crop ? "+" : "p",
-        video_mode_resolution == 0 ? "FHD" : // not enough space to write 1080
+        video_mode_resolution == 0 ? "1080" :
         video_mode_resolution == 1 ? "720" : "VGA"
     );
 }
