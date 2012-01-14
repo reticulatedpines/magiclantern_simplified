@@ -163,5 +163,7 @@ NSTUB(0xffac3964, PlayMain_handler)
 NSTUB(0xffac7ac8, OlcAFFrameApp_handler)
 
 NSTUB(0xFF9A5618, engio_write)
+NSTUB(0xff9a550c, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+
 NSTUB(0xff9b1be0, LightMeasure_n_Callback_r0)
 NSTUB(0xffacf26c, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c

@@ -270,6 +270,6 @@ NSTUB(0xFF2FDEF8, HideUnaviFeedBack_maybe)
 
 NSTUB(0xff1c15cc, engio_write)
 NSTUB(0xFF1C1260, EngDrvOut)
-NSTUB(0, shamem_read)
+NSTUB(0xFF1C1150, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 NSTUB(0xFF243820, SetImagePass_x5)
 

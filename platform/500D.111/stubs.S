@@ -179,4 +179,4 @@ NSTUB(0xff2ae79c, LiveViewApp_handler)
 NSTUB(0xff2c5d1c, ShootOlcApp_handler)
 
 NSTUB(0xff190cf4, engio_write)
-NSTUB(0xff190cf4, shamem_read)
+NSTUB(0xff190be8, shamem_read)
