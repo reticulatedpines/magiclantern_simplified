@@ -461,12 +461,8 @@ hdmi_force_display(
     );
 }
 
-#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_UNDER_3_2);
-#else
-CONFIG_INT("screen.layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2);
-#endif
-CONFIG_INT("screen.layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
+CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
+CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 unsigned* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
 int get_screen_layout() { return (int) *get_screen_layout_ptr(); }
 
@@ -482,11 +478,12 @@ screen_layout_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "ML info bars   : %s", 
-        screen_layout == SCREENLAYOUT_3_2 ?        "Inside 3:2,  t/b" :
-        screen_layout == SCREENLAYOUT_16_10 ?      "Inside 16:10,t/b" :
-        screen_layout == SCREENLAYOUT_16_9 ?       "Inside 16:9, t/b" :
-        screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Under 3:2, bottom " :
+        "Screen layout  : %s", 
+        screen_layout == SCREENLAYOUT_3_2 ?        "3:2, top/bottom"    :
+        screen_layout == SCREENLAYOUT_4_3 ?        "4:3 Movie, t/b" :
+        screen_layout == SCREENLAYOUT_16_10 ?      "16:10 HDMI,t/b"    :
+        screen_layout == SCREENLAYOUT_16_9 ?       "16:9  HDMI,t/b"    :
+        screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Under 3:2, bottom" :
         screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9,bottom" :
          "err"
     );

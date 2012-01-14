@@ -74,12 +74,14 @@ static bool bmp_is_on() { return !_bmp_cleared; }
 void bmp_on();
 void bmp_off();
 
-#define hist_height         64
+#define hist_height         54
 #define hist_width          128
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
 #define WAVEFORM_FACTOR (1 << waveform_size) // 1, 2 or 4
-#define WAVEFORM_OFFSET (waveform_size <= 1 ? 60 : 0)
+#define WAVEFORM_OFFSET (waveform_size <= 1 ? 80 : 0)
+
+#define WAVEFORM_FULLSCREEN (waveform_draw && waveform_size == 2)
 
 #define BVRAM_MIRROR_SIZE (BMPPITCH*540)
 
@@ -180,14 +182,20 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 static CONFIG_INT( "hist.draw", hist_draw,  0 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  2 );
-static CONFIG_INT( "hist.log",  hist_log,   0 );
+static CONFIG_INT( "hist.log",  hist_log,   1 );
 //~ static CONFIG_INT( "hist.x",        hist_x,     720 - hist_width - 4 );
 //~ static CONFIG_INT( "hist.y",        hist_y,     100 );
-static CONFIG_INT( "waveform.draw", waveform_draw,  0 );
+static CONFIG_INT( "waveform.draw", waveform_draw,
+#ifdef CONFIG_5D2
+1
+#else
+0
+#endif
+ );
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
 //~ static CONFIG_INT( "waveform.x",    waveform_x, 720 - WAVEFORM_WIDTH );
 //~ static CONFIG_INT( "waveform.y",    waveform_y, 480 - 50 - WAVEFORM_WIDTH );
-static CONFIG_INT( "waveform.bg",   waveform_bg,    0x26 ); // solid black
+static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_BLACK ); // solid black
 
 static CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
 static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
@@ -266,6 +274,9 @@ int get_global_draw() // menu setting, or off if
     if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
     
     return global_draw &&
+        #ifndef CONFIG_KILL_FLICKER
+        (lv_disp_mode == 0 || !lv) &&
+        #endif
         !idle_globaldraw_disable && 
         !sensor_cleaning && 
         bmp_is_on() &&
@@ -548,6 +559,7 @@ hist_draw_image(
             }
         }
     }
+    bmp_draw_rect(50, x_origin-1, y_origin-1, hist_width+1, hist_height+1);
 }
 
 void hist_highlight(int level)
@@ -565,7 +577,8 @@ void hist_highlight(int level)
 static void
 waveform_draw_image(
     unsigned        x_origin,
-    unsigned        y_origin
+    unsigned        y_origin,
+    unsigned        height
 )
 {
     if (!PLAY_MODE)
@@ -579,37 +592,43 @@ waveform_draw_image(
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
     unsigned pitch = BMPPITCH;
-    uint8_t * row = bvram + x_origin + y_origin * pitch;
     if( hist_max == 0 )
         hist_max = 1;
 
     int i, y;
 
     // vertical line up to the hist size
-    for( y=WAVEFORM_HEIGHT*WAVEFORM_FACTOR-1 ; y>0 ; y-- )
+    for (int k = 0; k < WAVEFORM_FACTOR; k++)
+    for( y=WAVEFORM_HEIGHT-1 ; y>=0 ; y-- )
     {
+        uint8_t * row = bvram + x_origin + (y_origin + y * height / WAVEFORM_HEIGHT + k) * pitch;
+        int y_next = (y-1) * height / WAVEFORM_HEIGHT;
         uint32_t pixel = 0;
-
-        for( i=0 ; i<WAVEFORM_WIDTH*WAVEFORM_FACTOR ; i++ )
+        int w = WAVEFORM_WIDTH*WAVEFORM_FACTOR;
+        for( i=0 ; i<w ; i++ )
         {
-
-            uint32_t count = waveform[ i / WAVEFORM_FACTOR ][ y / WAVEFORM_FACTOR ];
+            uint32_t count = waveform[ i / WAVEFORM_FACTOR ][ WAVEFORM_HEIGHT - y - 1];
+            if (height < WAVEFORM_HEIGHT)
+            { // smooth it a bit to reduce aliasing; not perfect, but works.. sort of
+                count += waveform[ i / WAVEFORM_FACTOR ][ WAVEFORM_HEIGHT - y - 1];
+                //~ count /= 2;
+            }
             // Scale to a grayscale
             count = (count * 42) / 128;
-            if( count > 42 )
+            if( count > 42 - 5 )
                 count = 0x0F;
             else
             if( count >  0 )
-                count += 0x26;
+                count += 38 + 5;
             else
             // Draw a series of colored scales
-            if( y == (WAVEFORM_HEIGHT*WAVEFORM_FACTOR*1)/4 )
+            if( y == (WAVEFORM_HEIGHT*1)/4 )
                 count = COLOR_BLUE;
             else
-            if( y == (WAVEFORM_HEIGHT*WAVEFORM_FACTOR*2)/4 )
+            if( y == (WAVEFORM_HEIGHT*2)/4 )
                 count = 0xE; // pink
             else
-            if( y == (WAVEFORM_HEIGHT*WAVEFORM_FACTOR*3)/4 )
+            if( y == (WAVEFORM_HEIGHT*3)/4 )
                 count = COLOR_BLUE;
             else
                 count = waveform_bg; // transparent
@@ -621,16 +640,15 @@ waveform_draw_image(
 
             // Draw the pixel, rounding down to the nearest
             // quad word write (and then nop to avoid err70).
-            *(uint32_t*)( row + (i & ~3)  ) = pixel;
+            *(uint32_t*)( row + (i & ~3) ) = pixel;
             asm( "nop" );
             asm( "nop" );
             asm( "nop" );
             asm( "nop" );
             pixel = 0;
         }
-
-        row += pitch;
     }
+    bmp_draw_rect(50, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
 }
 
 
@@ -1727,6 +1745,14 @@ global_draw_display( void * priv, int x, int y, int selected )
     );
     if (disp_profiles_0)
         bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), x + 540, y, "DISP %d", get_disp_mode());
+    if (lv && lv_disp_mode)
+        menu_draw_icon(x, y, MNI_WARNING, "Press "
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
+            "DISP"
+            #else
+            "INFO"
+            #endif
+            " (outside ML menu) to turn Canon displays off.");
 }
 
 static void
@@ -2655,6 +2681,7 @@ struct menu_entry zebra_menus[] = {
             },
             MENU_EOL
         },
+        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
     #ifdef CONFIG_60D
     {
@@ -3461,7 +3488,8 @@ int zebra_should_run()
 {
     return liveview_display_idle() && get_global_draw() &&
         lv_dispsize == 1 &&
-        !(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
+        !(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) &&
+        !WAVEFORM_FULLSCREEN;
 }
 
 static void zebra_sleep_when_tired()
@@ -3513,6 +3541,14 @@ BMP_LOCK(
 )
 }
 
+int should_draw_bottom_graphs()
+{
+    if (!lv) return 0;
+    int screen_layout = get_screen_layout();
+    if (screen_layout == SCREENLAYOUT_4_3 && lv_disp_mode == 0) return 1;
+    return 0;
+}
+
 static void draw_histogram_and_waveform()
 {
     if (menu_active_and_not_hidden()) return;
@@ -3523,17 +3559,35 @@ static void draw_histogram_and_waveform()
         hist_build();
     }
     
-    if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
+    //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
-    
-    if( hist_draw)
-        BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
+    if (!liveview_display_idle() && !PLAY_MODE) return;
+    if (lv && lv_dispsize > 1) return;
 
-    if (menu_active_and_not_hidden()) return;
+    int screen_layout = get_screen_layout();
+    
+    if( hist_draw && !WAVEFORM_FULLSCREEN)
+    {
+        if (should_draw_bottom_graphs())
+            BMP_LOCK( hist_draw_image( os.x0 + 50, 480 - hist_height - 1, -1); )
+        else
+            BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
+    }
+
+    //~ if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
+    if (!liveview_display_idle() && !PLAY_MODE) return;
+    if (lv && lv_dispsize > 1) return;
         
     if( waveform_draw)
-        BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET ); )
+    {
+        if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
+            BMP_LOCK( waveform_draw_image( os.x0 + 250, 480 - 54, 54); )
+        else
+            BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
+    }
+
+
 }
 /*
 //this function is a mess... but seems to work
@@ -4268,7 +4322,11 @@ livev_lopriority_task( void* unused )
 
         loprio_sleep();
         if (!zebra_should_run())
+        {
+            if (WAVEFORM_FULLSCREEN && liveview_display_idle() && get_global_draw() && lv_dispsize == 1)
+                draw_histogram_and_waveform();
             continue;
+        }
 
         loprio_sleep();
 

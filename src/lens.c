@@ -178,7 +178,7 @@ update_lens_display()
     
     extern int menu_upside_down; // don't use double buffer in this mode
     int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty();
-    draw_ml_bottombar(double_buffering, 1); 
+    draw_ml_bottombar(double_buffering, 1);
 }
 
 int should_draw_bottom_bar()
@@ -241,7 +241,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
     
     unsigned bottom = 480;
     int screen_layout = get_screen_layout();
-    if (screen_layout == SCREENLAYOUT_3_2) bottom = os.y_max;
+    if (screen_layout == SCREENLAYOUT_3_2_or_4_3) bottom = os.y_max;
     else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
     else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
         else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, vram_bm.height);
@@ -572,6 +572,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   y_origin, 
                   lens_format_dist( lens_info.focus_dist * 10 )
                 );
+        else
+          bmp_printf( text_font, 
+                  x_origin + 505  , 
+                  y_origin, 
+                  is_manual_focus() ? "MF" : "AF"
+                );
 
 #ifdef CONFIG_5D2
     //~ extern int lightsensor_value;
@@ -718,7 +724,7 @@ void draw_ml_topbar()
     else
     {
         x = MAX(os.x0 + os.x_ex/2 - 360, 0);
-        if (screen_layout == SCREENLAYOUT_3_2) y = os.y0; // just above the 16:9 frame
+        if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y = os.y0; // just above the 16:9 frame
         else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, vram_bm.height - 54);

@@ -734,6 +734,9 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 
 int get_focus_graph() 
 { 
+    if (should_draw_bottom_graphs())
+        return zebra_should_run();
+
     if (movie_af && is_movie_mode())
         return !is_manual_focus() && zebra_should_run();
 
@@ -884,7 +887,7 @@ static void movie_af_step(int mag)
 
 #define NMAGS 64
 static int mags[NMAGS] = {0};
-#define FH COERCE(mags[i] * 45 / maxmagf, 0, 50)
+#define FH COERCE(mags[i] * 45 / maxmagf, 0, 54)
 int maxmagf = 1;
 int trap_focus_autoscaling = 1;
 int minmag = 0;
@@ -917,8 +920,17 @@ static void update_focus_mag(int mag)
     focus_min_value = COERCE(minmag * 45 / maxmagf, 0, 50) * 2;
     lv_focus_confirmation = (focus_value > 80 && focus_min_value < 60);
 }
-static void plot_focus_mag()
+void plot_focus_mag()
 {
+
+    int x0 = 8;
+    int y0 = 100;
+    if (should_draw_bottom_graphs())
+    {
+        x0 = 500;
+        y0 = 480-54;
+    }
+    
     if (gui_state != GUISTATE_IDLE) return;
     if (!lv) return;
     if (!get_global_draw()) return;
@@ -927,10 +939,11 @@ static void plot_focus_mag()
         int i;
         for (i = 0; i < NMAGS-1; i++)
         {
-            bmp_draw_rect(COLOR_BLACK, 8 + i, 100, 0, 50);
-            bmp_draw_rect(trap_focus_autoscaling ? COLOR_YELLOW : COLOR_RED, 8 + i, 150 - FH, 0, FH);
+            bmp_draw_rect(COLOR_BLACK, x0 + 2*i, y0, 1, 54);
+            bmp_draw_rect(trap_focus_autoscaling ? 70 : COLOR_RED, x0 + 2*i, y0 + 54 - FH, 1, FH);
         }
         //~ ff_check_autolock();
+        bmp_draw_rect(50, x0-1, y0-1, NMAGS*2, 54);
     )
 }
 #undef FH

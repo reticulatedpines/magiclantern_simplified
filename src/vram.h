@@ -349,9 +349,22 @@ extern struct vram_info vram_bm;
 #define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + N2LV_X(x) * 2)
 #define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + N2HD_X(x) * 2)
 
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+#define CONFIG_4_3_SCREEN
+#else
+#define CONFIG_3_2_SCREEN
+#endif
 
-
+#ifdef CONFIG_4_3_SCREEN
+#define SCREENLAYOUT_3_2 100
+#define SCREENLAYOUT_4_3 0
+#else
 #define SCREENLAYOUT_3_2 0
+#define SCREENLAYOUT_4_3 100
+#endif
+
+#define SCREENLAYOUT_3_2_or_4_3 0
+
 #define SCREENLAYOUT_16_10 1
 #define SCREENLAYOUT_16_9 2
 #define SCREENLAYOUT_UNDER_3_2 3 // 500D/50D
