@@ -1450,15 +1450,15 @@ static void reload_cropmark(int i)
     {
         FreeMemory(cropmarks);
         cropmarks = 0;
-        cropmark_clear_cache();
     }
+
+    cropmark_clear_cache();
     
     i = COERCE(i, 0, num_cropmarks-1);
     char bmpname[100];
     snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
     if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
-    cropmark_cache_valid = 0;
 }
 
 static void
@@ -2892,11 +2892,11 @@ void cropmark_draw_from_cache()
 
 void cropmark_clear_cache()
 {
-    if (cropmark_cache_valid)
+    //~ if (cropmark_cache_valid)
     {
         clrscr_mirror();
         bvram_mirror_clear();
-        cropmark_cache_valid = 0;
+        default_movie_cropmarks();
     }
 }
 
@@ -2908,8 +2908,6 @@ cropmark_draw()
 
     get_yuv422_vram(); // just to refresh VRAM params
     clear_lv_affframe_if_dirty();
-
-    default_movie_cropmarks();
 
     if (transparent_overlay && !transparent_overlay_hidden)
     {
@@ -2953,7 +2951,7 @@ cropmark_draw()
 static void
 cropmark_cache_check()
 {
-    if (!cropmark_cache_valid) return;
+    //~ if (!cropmark_cache_valid) return;
 
     get_yuv422_vram(); // update VRAM params if needed
 
@@ -3508,7 +3506,7 @@ static void zebra_sleep_when_tired()
         if (!gui_menu_shown()) crop_set_dirty(5);
         vram_params_set_dirty();
 
-        default_movie_cropmarks();
+        cropmark_cache_check();
         //~ if (lv && !gui_menu_shown()) redraw();
     }
 }
@@ -3995,7 +3993,7 @@ clearscreen_loop:
 
             cropmark_cache_check();
             
-            if (transparent_overlay) cropmark_cache_valid = 0;
+            if (transparent_overlay) cropmark_clear_cache();
             
             if (cropmark_cache_valid && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
                 crop_dirty = MIN(crop_dirty, 2);
