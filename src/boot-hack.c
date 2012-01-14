@@ -274,6 +274,17 @@ void my_big_init_task()
     menu_init();
     debug_init();
     call_init_funcs( 0 );
+
+/* battery test
+ *  while(1)
+    {
+        RefreshBatteryLevel_1Hz();
+        wait_till_next_second();
+        batt_display(0, 0, 0, 0);
+    }
+    return;
+*/
+
     #ifndef CONFIG_1100D
     config_parse_file( CARD_DRIVE "magic.cfg" );
     #endif
