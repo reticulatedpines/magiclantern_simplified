@@ -2956,7 +2956,7 @@ cropmark_cache_check()
     get_yuv422_vram(); // update VRAM params if needed
 
     // check if cropmark cache is still valid
-    int sig = os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
+    int sig = os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + (expsim==2 ? 757 : 0);
     static int prev_sig = 0;
     if (prev_sig != sig)
     {
@@ -4262,6 +4262,9 @@ static void default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!is_movie_mode()) return;
+    #ifndef CONFIG_50D
+    if (expsim != 2) return;
+    #endif
     int i,j;
     uint8_t * const bvram = bmp_vram();
     uint8_t * const bvram_mirror = get_bvram_mirror();
