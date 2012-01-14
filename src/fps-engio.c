@@ -22,7 +22,7 @@
  * void run_test()
  * {
  *     void (*engio_write)(unsigned int) = 0xFF1E1D20;
- *     frame_rate[1] = 0xFFFF; // timer value as usual
+ *     frame_rate[1] = 0xFFFF; // timer value as usual [Alex: timer value minus 1 on certain cameras]
  *     engio_write(frame_rate);
  * }
  * 
@@ -36,8 +36,15 @@
 #include "lens.h"
 #include "config.h"
 
+#if defined(CONFIG_50D) || defined(CONFIG_500D)
+PROP_INT(PROP_VIDEO_SYSTEM, pal);
+#endif
+
 static int is_current_mode_ntsc()
 {
+    #if defined(CONFIG_50D)
+    return !pal;
+    #endif
     if (video_mode_fps == 30 || video_mode_fps == 60 || video_mode_fps == 24) return 1;
     return 0;
 }
@@ -46,20 +53,46 @@ static int fps_get_current_x1000();
 
 #ifdef CONFIG_500D
     #define TG_FREQ_PAL  24660000
-    #define TG_FREQ_NTSC_FPS 23136840
+    #define TG_FREQ_NTSC_FPS 23160000
+    #define FPS_TIMER_OFFSET 0
 #else
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    #define FPS_TIMER_OFFSET (-1)
+    #ifdef CONFIG_5D2
         #define TG_FREQ_PAL  40000000
-        #define TG_FREQ_NTSC_FPS 41328630
+        #define TG_FREQ_NTSC_FPS 41958000
         #define TG_FREQ_NTSC_SHUTTER 39300000
     #else
-        #define TG_FREQ_PAL  50000000
-        #define TG_FREQ_NTSC_FPS 52747200
+        #ifdef CONFIG_50D
+            #define TG_FREQ_PAL  41400000
+            #define TG_FREQ_NTSC_FPS 41400000
+        #else
+            #define TG_FREQ_PAL  50000000            // these values are OK on 550D
+            #define TG_FREQ_NTSC_FPS 52747200
+            #define TG_FREQ_NTSC_SHUTTER 50000000
+        #endif
     #endif
 #endif
 
+#ifdef CONFIG_550D
+#define LV_STRUCT_PTR 0x1d14
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x64)
+#endif
+
+/*
+#ifdef CONFIG_500D
+#define LV_STRUCT_PTR 0x1d78
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
+#endif
+
+#ifdef CONFIG_50D
+#define LV_STRUCT_PTR 0x1D74
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
+#endif*/
+
+#ifdef CONFIG_5D2
 #define LV_STRUCT_PTR 0x1D78
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
+#endif
 
 #define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
 #define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC_FPS/(fps_x1000))
@@ -69,6 +102,11 @@ static int fps_get_current_x1000();
 
 int get_current_shutter_reciprocal_x1000()
 {
+#if defined(CONFIG_500D) || defined(CONFIG_50D)
+    if (!lens_info.raw_shutter) return 0;
+    return (int) roundf(powf(2.0, (136 - lens_info.raw_shutter) / 8.0) * 1000);
+#else
+
     int timer = FRAME_SHUTTER_TIMER;
 
     int mode = 
@@ -81,6 +119,7 @@ int get_current_shutter_reciprocal_x1000()
 
     int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
     return MAX(shutter_x1000, fps_get_current_x1000());
+#endif
 }
 
 
@@ -99,11 +138,19 @@ static int fps_get_timer(int fps)
     int fps_x1000 = fps * 1000;
 
     // convert fps into timer ticks (for sensor drive speed)
-    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000*1000/1001) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
+    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000
+        #if !defined(CONFIG_500D) && !defined(CONFIG_500D) // these cameras use 30.000 fps, not 29.97
+        *1000/1001
+        #endif
+    ) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
 
     // NTSC is 29.97, not 30
     // also try to round it in order to avoid flicker
+    #if defined(CONFIG_500D) || defined(CONFIG_500D) // these cameras use 30.000 fps, not 29.97 => look in system settings to check if PAL or NTSC
+    if (!pal)
+    #else
     if (ntsc)
+    #endif
     {
         int timer_120hz = FPS_x1000_TO_TIMER_NTSC(120000*1000/1001);
         int fps_timer_rounded = ((fps_timer + timer_120hz/2) / timer_120hz) * timer_120hz;
@@ -124,7 +171,7 @@ static void fps_setup(int fps)
     if (fps) frame_rate[1] = fps_get_timer(fps);
 
     unsigned safe_limit = fps_get_timer(70);
-#ifdef CONFIG_550D
+#if defined(CONFIG_550D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
     safe_limit = fps_get_timer(video_mode_fps); // no overcranking possible
     if (video_mode_crop)
     {
@@ -135,25 +182,20 @@ static void fps_setup(int fps)
 #ifdef CONFIG_500D
     safe_limit = fps_get_timer(lv_dispsize > 1 ? 24 : video_mode_resolution == 0 ? 21 : 32);
 #endif
-#ifdef CONFIG_5D2
-    safe_limit = fps_get_timer(video_mode_resolution == 0 ? 32 : 37);
-#endif
-#ifdef CONFIG_50D
-    safe_limit = fps_get_timer(31);
-#endif
 
     // no more than 30fps in photo mode
     if (!is_movie_mode()) safe_limit = MAX(safe_limit, fps_get_timer(30));
     
     frame_rate[1] = MAX(frame_rate[1], safe_limit);
 
+    frame_rate[1] += FPS_TIMER_OFFSET; // we may need to write computed timer value minus 1
     engio_write(frame_rate);
 }
 
 static int fps_get_current_x1000()
 {
     if (!fps_override) return video_mode_fps * 1000;
-    int fps_timer = frame_rate[1];
+    int fps_timer = frame_rate[1] - FPS_TIMER_OFFSET;
     int ntsc = is_current_mode_ntsc();
     int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
     return fps_x1000;
@@ -220,7 +262,11 @@ static void fps_reset()
 
 static void fps_change_value(void* priv, int delta)
 {
+    #ifdef CONFIG_500D
+    fps_override_value = COERCE(fps_override_value + delta, 2, 70);
+    #else
     fps_override_value = COERCE(fps_override_value + delta, 4, 70);
+    #endif
     if (fps_override) fps_setup(fps_override_value);
 }
 
@@ -266,11 +312,18 @@ static void fps_task()
     {
         if (fps_override && lv && !gui_menu_shown())
         {
+            #ifdef CONFIG_500D
+            msleep(30);
+            #else
             msleep(500);
+            #endif
             if (lv) fps_setup(fps_override_value);
         }
+        else
+        {
+            msleep(500);
+        }
         shutter_override_enabled = fps_override;
-        msleep(1000);
     }
 }
 
