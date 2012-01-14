@@ -1723,6 +1723,9 @@ int bv_auto_should_enable()
     else return 0;
     #endif
 
+    if (LVAE_DISP_GAIN) // compatibility problem, disable it
+        return 0;
+
     // extra ISO values in movie mode
     if (is_movie_mode() && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
         return 1;
