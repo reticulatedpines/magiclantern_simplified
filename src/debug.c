@@ -193,7 +193,7 @@ void unsafe_beep()
 void beep()
 {
     if (recording) return; // breaks audio
-    beep();
+    unsafe_beep();
 }
 
 void Beep()
