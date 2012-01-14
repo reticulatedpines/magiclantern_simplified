@@ -2129,7 +2129,7 @@ static int get_ladj()
     return 0;
 }
 
-#ifdef CONFIG_500D
+#if defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
 static void
 alo_toggle( void * priv )
 {
@@ -2194,7 +2194,7 @@ ladj_toggle(void* priv, int sign )
     }
 }
 
-#ifdef CONFIG_500D
+#if defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
 static void 
 ladj_display( void * priv, int x, int y, int selected )
 {
@@ -2203,7 +2203,7 @@ ladj_display( void * priv, int x, int y, int selected )
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "HTP/ALO     : %s/%s",
+               "HTP / ALO   : %s/%s",
                (htp ? "ON" : "OFF"),
                (alo == ALO_STD ? "Standard" :
                 alo == ALO_LOW ? "Low" :
@@ -2221,7 +2221,7 @@ ladj_display( void * priv, int x, int y, int selected )
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "Light Adjust: %s",
+               "HTP / ALO   : %s",
                (htp ? "HTP" :
                 (alo == ALO_STD ? "ALO std" :
                  (alo == ALO_LOW ? "ALO low" : 
@@ -3225,6 +3225,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
+    #ifndef CONFIG_5D2
     {
         //~ .select     = flash_and_no_flash_toggle,
         .display    = flash_and_no_flash_display,
@@ -3232,6 +3233,7 @@ static struct menu_entry shoot_menus[] = {
         .max = 1,
         .help = "Take odd pictures with flash, even pictures without flash."
     },
+    #endif
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -3497,24 +3499,7 @@ static struct menu_entry expo_menus[] = {
         .essential = FOR_PHOTO | FOR_MOVIE,
         //~ .show_liveview = 1,
     },
-/*
-#ifdef CONFIG_500D
-    {
-        .name        = "Light Adjust",
-        .select      = htp_toggle,
-        .select_auto = alo_toggle,
-        .display     = ladj_display,
-        .help = "Enable/disable HTP and ALO from the same place."
-    },
-#else
-    {
-        .name = "Light Adjust",
-        .display    = ladj_display,
-        .select     = ladj_toggle,
-        .help = "Enable/disable HTP and ALO from the same place."
-    },
-#endif
-*/
+
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -3579,6 +3564,24 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
+/*    {
+        .name        = "HTP / ALO",
+        .select      = htp_toggle,
+        .select_reverse = alo_toggle,
+        .display     = ladj_display,
+        .help = "Enable/disable HTP [SET] and ALO [PLAY]."
+    }, */
+#else
+    {
+        .name = "HTP / ALO",
+        .display    = ladj_display,
+        .select     = ladj_toggle,
+        .help = "Enable/disable HTP and ALO from the same place."
+    },
+#endif
+
     {
         .name = "Flash AEcomp",
         .display    = flash_ae_display,
@@ -3960,6 +3963,9 @@ void iso_refresh_display()
 
 static void display_expsim_status()
 {
+    #ifdef CONFIG_5D2
+    return;
+    #endif
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
     int y = 400;
@@ -4233,12 +4239,14 @@ shoot_task( void* unused )
             //~ hdr_intercept = 1;
         }
 
+        #ifndef CONFIG_5D2
         // toggle flash on/off for next picture
         if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
         {
             strobo_firing = file_number % 2;
             set_flash_firing(strobo_firing);
         }
+        #endif
 
         //~ static int sw1_countdown = 0;
         
