@@ -3593,7 +3593,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
     
-    if (lv && !lv_paused && reason == GMT_OLC_INFO_CHANGED) return;
+    if (lv && reason == GMT_OLC_INFO_CHANGED) return;
 
     // when sensor is covered, timeout changes to 3 seconds
     int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
