@@ -239,7 +239,7 @@ void fps_show()
     if (screen_layout > SCREENLAYOUT_3_2) return;
     
     bmp_printf(
-        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+        SHADOW_FONT(FONT_MED),
         time_indic_x + 160 - 6 * font_med.width,
         time_indic_y + font_med.height,
         "%d%s%s", 
