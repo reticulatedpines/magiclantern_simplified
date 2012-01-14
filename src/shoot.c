@@ -1496,7 +1496,7 @@ shutter_toggle(void* priv, int sign)
 
     int i = raw2index_shutter(lens_info.raw_shutter);
     int k;
-    for (k = 0; k < 10; k++)
+    for (k = 0; k < 20; k++)
     {
         i = mod(i + sign, COUNT(codes_shutter));
         if (lens_set_rawshutter(codes_shutter[i])) break;
