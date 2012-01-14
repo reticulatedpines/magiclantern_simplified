@@ -394,7 +394,11 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
-    msleep( 1000 );
+    #ifdef CONFIG_5D2
+    msleep(1000);
+    #else
+    msleep( 1500 );
+    #endif
     if (magic_off_request)
     {
         msleep( 1000 );
