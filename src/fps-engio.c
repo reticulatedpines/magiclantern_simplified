@@ -102,9 +102,9 @@ static int fps_get_current_x1000();
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D)
+#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
     if (!lens_info.raw_shutter) return 0;
-    return (int) roundf(powf(2.0, (136 - lens_info.raw_shutter) / 8.0) * 1000);
+    return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
 #else
 
     int timer = FRAME_SHUTTER_TIMER;
