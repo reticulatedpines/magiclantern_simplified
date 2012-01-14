@@ -236,7 +236,7 @@ void fps_show()
     if (!is_movie_mode() || recording) return;
     //~ if (hdmi_code == 5) return; // workaround
     int screen_layout = get_screen_layout();
-    if (screen_layout > SCREENLAYOUT_3_2) return;
+    if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
     
     bmp_printf(
         SHADOW_FONT(FONT_MED),
