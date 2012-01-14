@@ -574,7 +574,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 );
         else
           bmp_printf( text_font, 
-                  x_origin + 505  , 
+                  x_origin + 515  , 
                   y_origin, 
                   is_manual_focus() ? "MF" : "AF"
                 );
