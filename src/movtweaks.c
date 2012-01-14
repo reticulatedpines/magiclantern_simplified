@@ -864,7 +864,7 @@ void update_lvae_for_autoiso_n_displaygain()
 
     if (is_movie_mode() && !CONTROL_BV && ae_mode_movie && expsim==2) // movie mode with manual ISO
     {
-        if (LVAE_DISP_GAIN && liveview_display_idle() && (!get_halfshutter_pressed() || recording)) // needs auto iso to apply display gain
+        if (LVAE_DISP_GAIN && liveview_display_idle() && !ISO_ADJUSTMENT_ACTIVE && (!get_halfshutter_pressed() || recording)) // needs auto iso to apply display gain
         {
             int riso = lens_info.raw_iso;
             if (riso) fixed_iso_needed_by_display_gain = riso;
