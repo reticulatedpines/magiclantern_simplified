@@ -248,6 +248,7 @@ NSTUB(0xff37d5c4, LiveViewApp_handler)
 NSTUB(0xff37dc4c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xff37f29c, LiveViewApp_handler_end) // start of next function
 NSTUB(0xff38c928, ShootOlcApp_handler)
+NSTUB(0xff476bf4, ErrCardForLVApp_handler) // LiveViewErrorApp, as in 60D
 
 NSTUB(0x73590, lv_path_struct) // first arg of SelectPathDriveMode
 

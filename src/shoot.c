@@ -424,11 +424,14 @@ void halfshutter_action(int v)
 //~ static int hs = 0;
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     int v = *(int*)buf;
+
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     if (zoom_enable_face)
     {
         if (v == 0 && lv && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
             face_zoom_request = 1;
     }
+    #endif
 /*  if (v && gui_menu_shown() && !is_menu_active("Focus"))
     {
         menu_stop();
@@ -3321,6 +3324,7 @@ static struct menu_entry vid_menus[] = {
                 .help = "Disable x10 zoom in LiveView.",
                 .icon_type = IT_DISABLE_SOME_FEATURE,
             },
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
             {
                 .name = "Zoom :-)",
                 .priv = &zoom_enable_face, 
@@ -3328,6 +3332,7 @@ static struct menu_entry vid_menus[] = {
                 .icon_type = IT_BOOL,
                 .help = "Enable zoom when Face Detection is active."
             },
+            #endif
             {
                 .name = "Sharp+Contrast",
                 .priv = &zoom_sharpen,
@@ -4020,17 +4025,12 @@ void display_trap_focus_info()
     show_prev = show;
 }
 
-// may be unreliable
 int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 {
-    int i;
-    for (i = 0; i <= wait/20; i++)
+    extern thunk ErrCardForLVApp_handler;
+    for (int i = 0; i <= wait/20; i++)
     {
-        int msgcolor = 3; // may give wrong results if cropmark uses this color; may be camera-dependent
-        if (bmp_getpixel(300,150) == msgcolor &&
-            bmp_getpixel(60,250) == msgcolor &&
-            bmp_getpixel(400,300) == msgcolor
-            ) return 1;
+        if (get_current_dialog_handler() == &ErrCardForLVApp_handler) return 1;
         msleep(20);
     }
     return 0;

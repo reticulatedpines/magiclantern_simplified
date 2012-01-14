@@ -177,6 +177,7 @@ NSTUB( 0xFF1A442C, vsnprintf )	/** Look in DebugMsg, near the bottom.  It calls 
 
 NSTUB(0xff2ae79c, LiveViewApp_handler)
 NSTUB(0xff2c5d1c, ShootOlcApp_handler)
+NSTUB(0xff371068, ErrCardForLVApp_handler)
 
 NSTUB(0xff190cf4, engio_write)
 NSTUB(0xff190be8, shamem_read)

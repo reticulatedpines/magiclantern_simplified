@@ -278,6 +278,7 @@ NSTUB(0xFF381840, ShootOlcApp_handler)
 NSTUB(0xff4514f4, PlayMovieGuideApp_handler)
 NSTUB(0xff363a34, PlayMain_handler)
 NSTUB(0xff3829ec, OlcAFFrameApp_handler)
+NSTUB(0xff4687bc, ErrCardForLVApp_handler) // LiveViewErrorApp in 60D
 
 NSTUB(0xff0a5bdc, GUI_SetLvDZoomKey)
 
