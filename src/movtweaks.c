@@ -1042,7 +1042,7 @@ static struct menu_entry mov_menus[] = {
         .display    = vbr_print,
         .select     = vbr_toggle,
     },*/
-    #ifndef CONFIG_50D
+    #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
