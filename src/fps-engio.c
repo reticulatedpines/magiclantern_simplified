@@ -139,14 +139,14 @@ static int fps_get_timer(int fps)
 
     // convert fps into timer ticks (for sensor drive speed)
     int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000
-        #if !defined(CONFIG_500D) && !defined(CONFIG_500D) // these cameras use 30.000 fps, not 29.97
+        #if !defined(CONFIG_500D) && !defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97
         *1000/1001
         #endif
     ) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
 
     // NTSC is 29.97, not 30
     // also try to round it in order to avoid flicker
-    #if defined(CONFIG_500D) || defined(CONFIG_500D) // these cameras use 30.000 fps, not 29.97 => look in system settings to check if PAL or NTSC
+    #if defined(CONFIG_500D) || defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97 => look in system settings to check if PAL or NTSC
     if (!pal)
     #else
     if (ntsc)
