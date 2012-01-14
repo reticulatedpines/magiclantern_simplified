@@ -564,7 +564,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       *  Focus distance  *
       *******************/
 
-      text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_WHITE, bg );   // WHITE
+      text_font = FONT(SHADOW_FONT(FONT_LARGE), is_manual_focus() ? COLOR_CYAN : COLOR_WHITE, bg );   // WHITE
 
       if(lens_info.focus_dist)
           bmp_printf( text_font, 
