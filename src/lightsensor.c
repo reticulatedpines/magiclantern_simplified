@@ -110,7 +110,7 @@ void sensor_status_trigger(int on)
     }
     else wave_count = 0;
 
-    idle_wakeup_reset_counters(-20);
+    //~ idle_wakeup_reset_counters(-20);
 
     end:
     return;
