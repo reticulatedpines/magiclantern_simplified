@@ -179,7 +179,7 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 //~ int get_crop_black_border() { return crop_black_border; }
 
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
-static CONFIG_INT( "hist.draw", hist_draw,  0 );
+static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  2 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
