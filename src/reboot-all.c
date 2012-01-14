@@ -32,6 +32,7 @@
 #define RESTARTSTART_600 0x82000
 #define RESTARTSTART_50  0x4b000
 #define RESTARTSTART_500 0x4d000
+#define RESTARTSTART_5D2 0x4E000
 
 #define SIG_LEN 0x10000
 
@@ -40,9 +41,8 @@
 #define SIG_600D_101 0x290106d8 // from FF010000
 #define SIG_500D_110 0x4c0e5a7e // from FF010000
 #define SIG_50D_108  0xb2311152 // from FF010000
-#define SIG_50D_107  0x20e3a085 // from FF810000
-#define SIG_5D2_204  0x41d8373d // from FF810000
 #define SIG_500D_111 0x44f49aef // from FF010000
+#define SIG_5D2_211  0xaf79902b // from FF010000
 
 asm(
 ".text\n"
@@ -110,6 +110,8 @@ extern uint8_t blob_start_50;
 extern uint8_t blob_end_50;
 extern uint8_t blob_start_500;
 extern uint8_t blob_end_500;
+extern uint8_t blob_start_5d2;
+extern uint8_t blob_end_5d2;
 void* blob_start = 0;
 void* blob_end = 0;
 void* RESTARTSTART = 0;
@@ -145,6 +147,12 @@ static int guess_firmware_version()
             blob_start = &blob_start_500;
             blob_end = &blob_end_500;
             RESTARTSTART = (void*)RESTARTSTART_500;
+            return 1;
+        case SIG_5D2_211:
+            blob_start = &blob_start_5d2;
+            blob_end = &blob_end_5d2;
+            RESTARTSTART = (void*)RESTARTSTART_5D2;
+            ROMSTART = (void *)0xFF810000;
             return 1;
         default:
             fail();
@@ -190,6 +198,13 @@ asm(
     ".align 12\n"
     "blob_end_500:"
     ".globl blob_end_500\n"
+
+    ".globl blob_start_5d2\n"
+    "blob_start_5d2:\n"
+    ".incbin \"../5D2.211/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_5d2:"
+    ".globl blob_end_5d2\n"
 );
 
 

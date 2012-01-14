@@ -8,7 +8,7 @@
 TOP_DIR=$(PWD)
 include Makefile.top
 
-all: 60D 550D 600D 50D 500D
+all: 60D 550D 600D 50D 500D 5D2
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
 
@@ -30,6 +30,9 @@ all: 60D 550D 600D 50D 500D
 500D:
 	$(MAKE) -C $(PLATFORM_PATH)/500D.111
 
+5D2:
+	$(MAKE) -C $(PLATFORM_PATH)/5D2.211
+
 install: all
 	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
 	cp $(SRC_DIR)/FONTS.DAT /media/EOS_DIGITAL
@@ -42,11 +45,13 @@ fir:
 	cd installer/600D.101/; $(MAKE) clean
 	cd installer/50D.108/; $(MAKE) clean
 	cd installer/500D.111/; $(MAKE) clean
+	cd installer/5D2.211/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
 	$(MAKE) -C installer/60D.110/
 	$(MAKE) -C installer/600D.101/
 	$(MAKE) -C installer/50D.108/
 	$(MAKE) -C installer/500D.111/
+	$(MAKE) -C installer/5D2.211/
 
 install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
@@ -54,6 +59,7 @@ install_fir: fir
 	cp installer/600D.101/ml-600d-101.fir /media/EOS_DIGITAL/
 	cp installer/50D.108/ml-50d-108.fir /media/EOS_DIGITAL/
 	cp installer/500D.111/ml-500d-111.fir /media/EOS_DIGITAL/
+	cp installer/5D2.211/ml-5D2-211.fir /media/EOS_DIGITAL/
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -68,6 +74,7 @@ clean:
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/50D.108/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/5D2.211/; $(MAKE) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
 zip: all
