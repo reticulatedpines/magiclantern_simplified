@@ -37,6 +37,7 @@ extern int help_pages;
 
 void menu_help_show_page(int page)
 {
+BMP_LOCK(
     menu_help_active = 1;
     char path[100];
     snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmp", page);
@@ -53,11 +54,12 @@ void menu_help_show_page(int page)
     {
         bmp_printf(FONT_MED, 0, 0, "Could not load help page %s\nPlease unzip 'doc' directory on your SD card.", path);
     }
+)
 }
 
 void menu_help_redraw()
 {
-    menu_help_show_page(current_page);
+    task_create("help_draw", 0x1c, 0, menu_help_show_page, (intptr_t) current_page);
 }
 
 void menu_help_next_page()
