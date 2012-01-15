@@ -12,11 +12,8 @@ struct menu_entry help_menus[] = {
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
-        #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
-        .name = "Press DISP : Bring up Help menu",
-        #else
-        .name = "Press INFO : Bring up Help menu",
-        #endif
+        .name = "Press " INFO_BTN_NAME
+                          " : Bring up Help menu",
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     {

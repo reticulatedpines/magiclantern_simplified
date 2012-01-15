@@ -90,13 +90,6 @@ static int handle_buttons(struct event * event)
 		return 0; // handled above
 	}
 
-	extern int disp_profiles_0;
-	if (event->param == BGMT_PICSTYLE && disp_profiles_0 && !gui_menu_shown() && liveview_display_idle())
-	{
-		toggle_disp_mode();
-		return 0;
-	}
-
 	if (event->param == BGMT_LV && !IS_FAKE(event))
 		lv_stopped_by_user = 1;
 

@@ -202,21 +202,17 @@ void install_task()
     
     Msleep(200);
     
-    #ifdef CONFIG_600D
-    #define BGMT_DISP BGMT_INFO
-    #endif
-
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status: %d          ", tft_status);
     
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_DISP); Msleep(500); }
+    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
+    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
+    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
+    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
     if (tft_status || gui_state != GUISTATE_IDLE) { SW1(1,100); SW1(0,100); Msleep(500); }
 #ifdef CONFIG_50D
-    if (tft_status) { fake_simple_button(BGMT_DISP); Msleep(500); }
-    if (tft_status) { fake_simple_button(BGMT_DISP); Msleep(500); }
-    if (tft_status) { fake_simple_button(BGMT_DISP); Msleep(500); }
+    if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
+    if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
+    if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
     if (tft_status)
 #else
     if (tft_status || gui_state != GUISTATE_IDLE)

@@ -323,3 +323,5 @@
 #define DISPLAY_ORIENTATION MEM(0x23dc+0x7C) // read-only; string: UpdateReverseTFT
 
 #define MIN_MSLEEP 20
+
+#define INFO_BTN_NAME "INFO"

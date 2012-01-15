@@ -2133,7 +2133,7 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "DISP profiles    : %d", 
+        "Display presets  : %d", 
         disp_profiles_0 + 1
     );
 }
@@ -2846,22 +2846,7 @@ struct menu_entry livev_cfg_menus[] = {
         .priv       = &disp_profiles_0,
         .select     = menu_quaternary_toggle,
         .display    = disp_profiles_0_display,
-        .help = "No.of LiveV display presets. Switch with "
-                #ifdef CONFIG_550D
-                "ISO+Disp or Flash."
-                #endif
-                #ifdef CONFIG_500D
-                "ISO+Disp."
-                #endif
-                #ifdef CONFIG_600D
-                "ISO+Info or Disp."
-                #endif
-                #ifdef CONFIG_60D
-                "Metering button."
-                #endif
-                #ifdef CONFIG_5D2
-                "PicStyle button."
-                #endif
+        .help = "Number of LiveView display presets. Switch them with " INFO_BTN_NAME ".",
     },
 };
 
@@ -4458,6 +4443,20 @@ static void do_disp_mode_change()
     update_disp_mode_params_from_bits();
     //~ draw_ml_topbar();
     crop_set_dirty(10);
+}
+
+int handle_disp_preset_key(struct event * event)
+{
+    if (!disp_profiles_0) return 1;
+    if (!lv) return 1;
+    if (IS_FAKE(event)) return 1;
+    if (gui_menu_shown()) return 1;
+    if (event->param == BGMT_INFO)
+    {
+        toggle_disp_mode();
+        return 0;
+    }
+    return 1;
 }
 
 int livev_playback = 0;

@@ -121,7 +121,7 @@
 
 #define BGMT_TRASH 0xC
 #define BGMT_MENU 6
-#define BGMT_DISP 7
+#define BGMT_INFO 7
 #define BGMT_Q 8
 
 #define BGMT_PRESS_HALFSHUTTER 0x48
@@ -186,3 +186,5 @@
 
 
 #define MIN_MSLEEP 10
+
+#define INFO_BTN_NAME "DISP"

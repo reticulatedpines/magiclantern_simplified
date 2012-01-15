@@ -69,7 +69,7 @@
 #define BGMT_UNPRESS_SET 0x15
 #define BGMT_TRASH 9
 #define BGMT_MENU 5
-#define BGMT_DISP 6
+#define BGMT_INFO 6
 //~ #define BGMT_Q 0xE
 //~ #define BGMT_Q_ALT 0xE
 #define BGMT_PLAY 8
@@ -236,3 +236,5 @@
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x54)) // lvae_setmoviemanualcontrol
 
 #define MIN_MSLEEP 11
+
+#define INFO_BTN_NAME "INFO"

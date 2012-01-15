@@ -98,12 +98,6 @@ static int handle_buttons(struct event * event)
 
 	if (handle_lv_play(event) == 0) return 0;
 
-	if (event->param == BGMT_INFO && ISO_ADJUSTMENT_ACTIVE && gui_state == GUISTATE_IDLE)
-	{
-		toggle_disp_mode();
-		return 0;
-	}
-
 	return 1;
 }
 

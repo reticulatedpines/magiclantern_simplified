@@ -75,7 +75,7 @@
 
 #define BGMT_TRASH 0xC
 #define BGMT_MENU 6
-#define BGMT_DISP 7
+#define BGMT_INFO 7
 #define BGMT_Q 0x19
 #define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 0xb
@@ -282,3 +282,5 @@
 #define DISPLAY_ORIENTATION MEM(0x2458+0x9C) // read-only; string: UpdateReverseTFT
 
 #define MIN_MSLEEP 10
+
+#define INFO_BTN_NAME "INFO"

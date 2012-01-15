@@ -18,10 +18,6 @@
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
-#if defined(CONFIG_600D) || defined(CONFIG_1100D)
-#define BGMT_DISP BGMT_INFO // correct name is BGMT_INFO though... 550D/500D were mis-labeled.
-#endif
-
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 
@@ -306,7 +302,7 @@ void ChangeHDMIOutputSizeToFULLHD()
 {
     hdmi_code_array[0] = 5;
     prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
-}
+} 
 
 
 void run_test()
@@ -317,7 +313,6 @@ void run_test()
 
     //~ fake_simple_button(BGMT_LV);
     //~ iso_test();
-    NotifyBox(1000, "%x ", MEMX(0xC0F06014));
     
     //~ SetGUIRequestMode(22);
     /*
@@ -400,9 +395,9 @@ static void stress_test_task(void* unused)
             case 1: fake_simple_button(BGMT_WHEEL_RIGHT); break;
             case 2: fake_simple_button(BGMT_WHEEL_UP); break;
             case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
-            case 4: fake_simple_button(BGMT_DISP); break;
+            case 4: fake_simple_button(BGMT_INFO); break;
             case 5: fake_simple_button(BGMT_MENU); break;
-            case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
+            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
         }
         dir = mod(dir + rand()%3 - 1, 7);
         msleep(10);
@@ -1433,7 +1428,7 @@ void flashlight_lcd_task(void *priv)
     while (get_halfshutter_pressed()) msleep(100);
     idle_globaldraw_dis();
     msleep(100);
-    if (tft_status) { fake_simple_button(BGMT_DISP); msleep(500); }
+    if (tft_status) { fake_simple_button(BGMT_INFO); msleep(500); }
 
     canon_gui_disable_front_buffer();
     int b = backlight_level;

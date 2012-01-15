@@ -595,7 +595,7 @@ static void display_on_and_go_to_main_shooting_screen()
     int x = 1;
     //~ info_led_blink(5,100,100);
     prop_request_change(PROP_INFO_BUTTON_FUNCTION, &x, 4); // temporarily make the INFO button display only the main shooting screen
-    fake_simple_button(BGMT_DISP);
+    fake_simple_button(BGMT_INFO);
     msleep(300);
     prop_request_change(PROP_INFO_BUTTON_FUNCTION, &old, 4); // restore user setting back
 }
@@ -636,7 +636,7 @@ static void display_off_by_halfshutter()
                     if (!get_halfshutter_pressed()) return;
                     if (tft_status) return;
                 }
-                fake_simple_button(BGMT_DISP); // turn display off
+                fake_simple_button(BGMT_INFO); // turn display off
                 while (get_halfshutter_pressed()) msleep(100);
                 display_turned_off_by_halfshutter = 1; // next INFO press will go to main shooting screen
                 return;
@@ -944,25 +944,15 @@ tweak_task( void* unused)
 
         //~ kenrockwell_zoom_update();
         
-        extern unsigned disp_profiles_0;
         if (FLASH_BTN_MOVIE_MODE)
         {
             int k = 0;
-            int longpress = 0;
-            if (disp_profiles_0) bmp_printf(FONT_MED, 245, 100, "DISP preset toggle");
             while (FLASH_BTN_MOVIE_MODE)
             {
                 msleep(100);
                 k++;
-                
-                if (k > 3)
-                {
-                    longpress = 1; // long press doesn't toggle
-                    if (disp_profiles_0) bmp_printf(FONT(FONT_MED, 1, 0), 245, 100, "                  ");
-                }
                 BMP_LOCK( draw_ml_bottombar(0,0); )
             }
-            if (disp_profiles_0 && !longpress) toggle_disp_mode();
             msleep(200);
             redraw();
         }
@@ -977,6 +967,14 @@ tweak_task( void* unused)
         #endif
 
         upside_down_step();
+
+        // if disp presets is enabled, make sure there are no Canon graphics
+        extern int disp_profiles_0;
+        if (disp_profiles_0 && lv_disp_mode && liveview_display_idle() && !gui_menu_shown())
+        {
+            fake_simple_button(BGMT_INFO);
+            msleep(200);
+        }
         
         if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
             idle_wakeup_reset_counters();

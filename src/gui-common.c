@@ -136,6 +136,8 @@ int handle_common_events_by_feature(struct event * event)
          return handle_keep_ml_after_format_toggle();
     
     if (handle_bulb_ramping_keys(event) == 0) return 0;
+
+    if (handle_disp_preset_key(event) == 0) return 0;
     //~ if (handle_pause_zebras(event) == 0) return 0;
     //~ if (handle_kenrockwell_zoom(event) == 0) return 0;
     return 1;
