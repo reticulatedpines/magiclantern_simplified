@@ -1198,11 +1198,7 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               #ifdef CONFIG_5D2
-               "Monitoring-A/V: %s",
-               #else
-               "Monitoring-USB: %s",
-               #endif
+               "Headphone Mon.: %s",
                audio_monitoring ? "ON" : "OFF"
                );
         if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
@@ -1356,15 +1352,11 @@ static struct menu_entry audio_menus[] = {
         },
 #endif
         {
-                .name = "Monitoring-USB",
+                .name = "Headphone Monitoring",
                 .priv = &audio_monitoring,
                 .select         = audio_monitoring_toggle,
                 .display        = audio_monitoring_display,
-                #ifdef CONFIG_5D2
-                .help = "Audio mon. via A-V jack. Disable if you use a SD display.",
-                #else
-                .help = "Audio monitoring via USB. Disable if you use a SD display.",
-                #endif
+                .help = "Monitoring via A-V jack. Disable if you use a SD display.",
                 .essential = FOR_MOVIE,
         },
 #endif // 600D
