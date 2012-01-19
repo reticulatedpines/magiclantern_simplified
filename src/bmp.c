@@ -372,9 +372,8 @@ con_printf(
 }
 #endif
 
-#if 0
+#if 1
 
-//~ int shamem_read() { return 0; }
 void
 bmp_hexdump(
     unsigned        fontspec,

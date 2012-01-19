@@ -8,10 +8,18 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "state-object.h"
+#include "property.h"
 
+#ifdef CONFIG_60D
 #define voi_state (*(struct state_object **)0x269D8)
 #define evf_state (*(struct state_object **)0x4ff8)
 #define movrec_state (*(struct state_object **)0x5A40)
+#endif
+
+#ifdef CONFIG_600D
+#define evf_state (*(struct state_object **)0x51CC)
+#endif
+
 
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
@@ -34,7 +42,13 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
-    bmp_printf(FONT_LARGE, 50, 50, "%s (%d)--%d-->(%d) ", self->name, old_state, input, new_state);
+
+    if (HALFSHUTTER_PRESSED)
+    {
+        //~ if (input == 3)
+            //~ crop_shift();
+    }
+    //~ bmp_printf(FONT_LARGE, 50, 50, "%s (%d)--%d-->(%d) ", self->name, old_state, input, new_state);
     return ans;
 }
 
@@ -53,12 +67,12 @@ static void loop_test()
 static void state_task(void* unused)
 {
     msleep(3000);
-    stateobj_start_spy(movrec_state);
-    while(1)
+    stateobj_start_spy(evf_state);
+    /*while(1)
     {
         msleep(100);
         loop_test();
-    }
+    }*/
 }
 
 TASK_CREATE("state_task", state_task, 0, 0x1d, 0x1000 );
