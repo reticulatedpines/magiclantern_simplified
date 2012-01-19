@@ -4264,6 +4264,7 @@ shoot_task( void* unused )
             {
                 fake_simple_button(BGMT_LV);
                 while (lv) msleep(100);
+                SW1(1,10);
                 msleep(500);
                 while (HALFSHUTTER_PRESSED) msleep(100);
                 fake_simple_button(BGMT_LV);
