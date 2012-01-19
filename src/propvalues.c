@@ -12,7 +12,6 @@ volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
-volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
@@ -149,3 +148,10 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     #endif
     return prop_cleanup(token, property);
 }
+
+
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed 100-1600.
+#else
+volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
+#endif
