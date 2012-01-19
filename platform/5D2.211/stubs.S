@@ -165,6 +165,9 @@ NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
 
 NSTUB(0xFF9A5618, engio_write)
 NSTUB(0xff9a550c, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+NSTUB(0xff9a54a8, EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
 NSTUB(0xff9b1be0, LightMeasure_n_Callback_r0)
 NSTUB(0xffacf26c, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+
+NSTUB(0xff987200, set_fps_maybe)
