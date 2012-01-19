@@ -363,6 +363,7 @@ static void fps_change_mode(int mode, int fps, int dispsize)
     unsigned int max_pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 1, dispsize);
     int fps_timer_absolute_minimum = sensor_timing_table_original[max_pos];
     fps_timer = MAX(fps_timer_absolute_minimum * 105/100, fps_timer);
+    fps_timer = MIN(16383, fps_timer);
 
     // NTSC is 29.97, not 30
     // also try to round it in order to avoid flicker
@@ -440,7 +441,7 @@ static void fps_change_value(void* priv, int delta)
 {
     if (recording) return;
 
-    fps_override_value = COERCE(fps_override_value + delta, 4, 70);
+    fps_override_value = COERCE(fps_override_value + delta, 1, 70);
     if (fps_override) fps_change_all_modes(fps_override_value);
 }
 

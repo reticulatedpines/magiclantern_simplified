@@ -187,6 +187,7 @@ static void fps_setup(int fps)
     if (!is_movie_mode()) safe_limit = MAX(safe_limit, fps_get_timer(30));
     
     frame_rate[1] = MAX(frame_rate[1], safe_limit);
+    frame_rate[1] = MIN(frame_rate[1], 16383);
 
     frame_rate[1] += FPS_TIMER_OFFSET; // we may need to write computed timer value minus 1
     engio_write(frame_rate);
