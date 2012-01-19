@@ -79,6 +79,7 @@ CONFIG_INT( "focus.trap", trap_focus, 0);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
+static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = hi-res, 2 = slit-scan, 3 = long-exp
 static CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
@@ -3237,6 +3238,14 @@ static struct menu_entry shoot_menus[] = {
         .help = "Take odd pictures with flash, even pictures without flash."
     },
     #endif
+    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+    {
+        .name = "3rd p. flash LV ",
+        .priv = &lv_3rd_party_flash,
+        .max = 1,
+        .help = "A trick to allow 3rd party flashes to fire in LiveView."
+    },
+    #endif
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -4245,6 +4254,20 @@ shoot_task( void* unused )
         {
             strobo_firing = file_number % 2;
             set_flash_firing(strobo_firing);
+        }
+        #endif
+
+        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+        if (lv_3rd_party_flash)
+        {
+            if (lv && HALFSHUTTER_PRESSED)
+            {
+                fake_simple_button(BGMT_LV);
+                while (lv) msleep(100);
+                msleep(500);
+                while (HALFSHUTTER_PRESSED) msleep(100);
+                fake_simple_button(BGMT_LV);
+            }
         }
         #endif
 
