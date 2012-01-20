@@ -88,10 +88,10 @@ void bmp_off();
 CONFIG_INT("lv.disp.profiles", disp_profiles_0, 0);
 
 static CONFIG_INT("disp.mode", disp_mode, 0);
-static CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285041);
-static CONFIG_INT("disp.mode.bbb", disp_mode_b, 0x295001);
-static CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88090);
-static CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x2c5051);
+static CONFIG_INT("disp.mode.a", disp_mode_a, 1);
+static CONFIG_INT("disp.mode.b", disp_mode_b, 1);
+static CONFIG_INT("disp.mode.c", disp_mode_c, 1);
+static CONFIG_INT("disp.mode.x", disp_mode_x, 1);
 
        CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
@@ -836,7 +836,6 @@ void bvram_mirror_clear()
 }
 void bvram_mirror_init()
 {
-    
     if (!bvram_mirror)
     {
         bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
@@ -3902,7 +3901,7 @@ clearscreen_loop:
         
         if (clearscreen == 3)
         {
-            if (liveview_display_idle())
+            if (liveview_display_idle() && !gui_menu_shown())
             {
                 bmp_off();
             }
@@ -4116,6 +4115,7 @@ livev_hipriority_task( void* unused )
 {
     msleep(1000);
     find_cropmarks();
+    update_disp_mode_bits_from_params();
 
     int k = 0;
     for (;;k++)
@@ -4348,40 +4348,28 @@ livev_lopriority_task( void* unused )
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
-/*static CONFIG_INT("picstyle.disppreset", picstyle_disppreset_enabled, 0);
-static unsigned int picstyle_disppreset = 0;
-PROP_HANDLER(PROP_PICTURE_STYLE)
-{
-    update_disp_mode_bits_from_params();
-    return prop_cleanup(token, property);
-}*/
-
-static int unused = 0;
-static unsigned int * disp_mode_params[] = {&crop_enabled, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen_enabled, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_enabled, &transparent_overlay, &electronic_level, &defish_preview};
-static int disp_mode_bits[] =              {4,          2,           2,          2,              2,                2,               2,                       2,             1,                   1,            3,                     2,                    1,                 1};
-
 void update_disp_mode_bits_from_params()
 {
-    //~ picstyle_disppreset = lens_info.picstyle;
-    
-    int i;
-    int off = 0;
-    uint32_t bits = 0;
-    for (i = 0; i < COUNT(disp_mode_params); i++)
-    {
-        int b = disp_mode_bits[i];
-        bits = bits | (((*(disp_mode_params[i])) & ((1 << b) - 1)) << off);
-        off += b;
-    }
-    
+    uint32_t bits =
+        (global_draw          ? 1<<0 : 0) |
+        (zebra_draw           ? 1<<1 : 0) |
+        (hist_draw            ? 1<<2 : 0) |
+        (crop_enabled         ? 1<<3 : 0) |
+        (waveform_draw        ? 1<<4 : 0) |
+        (falsecolor_draw      ? 1<<5 : 0) |
+        (spotmeter_draw       ? 1<<6 : 0) |
+        (clearscreen_enabled  ? 1<<7 : 0) |
+        (focus_peaking        ? 1<<8 : 0) |
+        (zoom_overlay_enabled ? 1<<9 : 0) |
+        (transparent_overlay  ? 1<<10: 0) |
+        (electronic_level     ? 1<<11: 0) |
+        (defish_preview       ? 1<<12: 0) |
+        0;
+        
     if (disp_mode == 1) disp_mode_a = bits;
     else if (disp_mode == 2) disp_mode_b = bits;
     else if (disp_mode == 3) disp_mode_c = bits;
     else disp_mode_x = bits;
-    
-    unused++;
-    //~ bmp_printf(FONT_MED, 0, 50, "mode: %d", disp_mode);
-    //~ bmp_printf(FONT_MED, 0, 50, "a=%8x b=%8x c=%8x x=%8x", disp_mode_a, disp_mode_b, disp_mode_c, disp_mode_x);
 }
 
 int update_disp_mode_params_from_bits()
@@ -4393,28 +4381,21 @@ int update_disp_mode_params_from_bits()
     static uint32_t old_bits = 0xffffffff;
     if (bits == old_bits) return 0;
     old_bits = bits;
+
+    global_draw          = bits & (1<<0) ? 1 : 0;
+    zebra_draw           = bits & (1<<1) ? 1 : 0;
+    hist_draw            = bits & (1<<2) ? 1 : 0;
+    crop_enabled         = bits & (1<<3) ? 1 : 0;
+    waveform_draw        = bits & (1<<4) ? 1 : 0;
+    falsecolor_draw      = bits & (1<<5) ? 1 : 0;
+    spotmeter_draw       = bits & (1<<6) ? 1 : 0;
+    clearscreen_enabled  = bits & (1<<7) ? 1 : 0;
+    focus_peaking        = bits & (1<<8) ? 1 : 0;
+    zoom_overlay_enabled = bits & (1<<9) ? 1 : 0;
+    transparent_overlay  = bits & (1<<10)? 1 : 0;
+    electronic_level     = bits & (1<<11)? 1 : 0;
+    defish_preview       = bits & (1<<12)? 1 : 0;
     
-    int i;
-    int off = 0;
-    for (i = 0; i < COUNT(disp_mode_bits); i++)
-    {
-        int b = disp_mode_bits[i];
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%d) %x -> %x", i, disp_mode_params[i], (bits >> off) & ((1 << b) - 1));
-        //~ bmp_printf(FONT_MED, 50, 100, "%x %x %x %x", &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw);
-        //~ msleep(5000);
-        *(disp_mode_params[i]) = (bits >> off) & ((1 << b) - 1);
-        off += b;
-    }
-    
-    /*if (picstyle_disppreset_enabled && picstyle_disppreset)
-    {
-        int p = get_prop_picstyle_from_index(picstyle_disppreset);
-        //~ bmp_printf(FONT_LARGE, 50, 50, "picsty %x ", p);
-        //~ msleep(1000);
-        if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
-    }*/
-    
-    //~ bmp_on();
     return 1;
 }
 
