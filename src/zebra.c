@@ -69,8 +69,9 @@ void lens_display_set_dirty();
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
-static bool _bmp_cleared = false;
-static bool bmp_is_on() { return !_bmp_cleared; }
+static bool _bmp_muted = false;
+static bool _bmp_unmuted = false;
+static bool bmp_is_on() { return !_bmp_muted; }
 void bmp_on();
 void bmp_off();
 
@@ -2979,26 +2980,27 @@ void bmp_on()
 {
     //~ return;
     //~ if (!is_safe_to_mess_with_the_display(500)) return;
-    if (_bmp_cleared) 
-    {// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_cleared = 0;}))
+    if (!_bmp_unmuted) 
+    {// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_muted = 0;}))
     #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
         canon_gui_enable_front_buffer(1);
+        _bmp_muted = false; _bmp_unmuted = true;
     #else
         BMP_LOCK(
             cli_save();
             if (tft_status == 0 && lv && !lv_paused)
             {
                 MuteOff_0();
+                _bmp_muted = false; _bmp_unmuted = true;
             }
             sei_restore();
         )
     #endif
-        _bmp_cleared = false;
     }
 }
 void bmp_on_force()
 {
-    _bmp_cleared = true;
+    _bmp_muted = true; _bmp_unmuted = false;
     bmp_on();
 }
 void bmp_off()
@@ -3006,10 +3008,10 @@ void bmp_off()
     //~ return;
     //~ clrscr();
     //~ if (!is_safe_to_mess_with_the_display(500)) return;
-    if (!_bmp_cleared) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
+    if (!_bmp_muted) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
     {
     #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
-        _bmp_cleared = true;
+        _bmp_muted = true; _bmp_unmuted = false;
         canon_gui_disable_front_buffer();
         clrscr();
     #else
@@ -3017,7 +3019,7 @@ void bmp_off()
             cli_save();
             if (tft_status == 0 && lv && !lv_paused)
             {
-                _bmp_cleared = true;
+                _bmp_muted = true; _bmp_unmuted = false;
                 MuteOn_0();
             }
             sei_restore();
@@ -3028,7 +3030,8 @@ void bmp_off()
 
 void bmp_mute_flag_reset()
 {
-    _bmp_cleared = 0;
+    _bmp_muted = 0;
+    _bmp_unmuted = 0;
 }
 
 /*
