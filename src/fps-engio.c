@@ -264,9 +264,9 @@ static void fps_reset()
 static void fps_change_value(void* priv, int delta)
 {
     #ifdef CONFIG_500D
-    fps_override_value = COERCE(fps_override_value + delta, 2, 70);
+    fps_override_value = COERCE(fps_override_value + delta, 1, 70);
     #else
-    fps_override_value = COERCE(fps_override_value + delta, 4, 70);
+    fps_override_value = COERCE(fps_override_value + delta, 1, 70);
     #endif
     if (fps_override) fps_setup(fps_override_value);
 }
