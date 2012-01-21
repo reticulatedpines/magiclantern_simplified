@@ -3044,12 +3044,12 @@ static void bulb_ramping_showinfo()
         //~ "Reference level (%2dth prc) :%3d%%    \n"
         //~ "Measured  level (%2dth prc) :%3d%%    \n"
         //~ "Level/EV ratio             :%3d%%/EV \n"
-        "ISO     :%5d    \n"
+        "ISO     :%5d (range: %d...%d) \n"
         "Shutter :%3d.%03d s",
         //~ bramp_percentile, bramp_reference_level, 0,
         //~ bramp_percentile, bramp_measured_level, 0,
         //~ bramp_level_ev_ratio, 0,
-        lens_info.iso,
+        lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF),
         s / 1000, s % 1000);
     
     if (display_idle())
