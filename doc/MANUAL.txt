@@ -321,6 +321,12 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   To learn how to read these graphs, see `Understanding Histograms <http://www.luminous-landscape.com/tutorials/understanding-series/understanding-histograms.shtml>`_ and `Final Cut Waveform Monitor <http://www.youtube.com/watch?v=JXMvFk146R0>`_.
 
+**Vectorscope**
+
+  This tool shows the color distribution with an U-V plot. Useful for color grading.
+
+  To learn how to read it, see `Introducing Color Scopes: The Vectorscope <http://www.kdenlive.org/users/granjow/introducing-color-scopes-vectorscope>`_.
+
 .. _zebras:
 
 **Zebras**
