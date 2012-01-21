@@ -626,10 +626,14 @@ vectorscope_update_buffer()
         {
             uint8_t brightness = vectorscope[x + y*vectorscope_width];
 
-            /* paint transparent when no pixels in this color range */
+            /* paint (semi)transparent when no pixels in this color range */
             if(brightness < 1)
             {
-                bmp_buf[x] = 0;
+                int xc = x - vectorscope_height/2;
+                int yc = y - vectorscope_height/2;
+                int r = vectorscope_height/2 - 1;
+                int inside_circle = xc*xc + yc*yc < r*r;
+                bmp_buf[x] = inside_circle && (x+y)%2 ? COLOR_WHITE : 0;
             }
             else
             {
