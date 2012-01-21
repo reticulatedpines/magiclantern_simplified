@@ -332,103 +332,6 @@ static uint32_t hist_total_px;
 
 static uint8_t *vectorscope = NULL;
 
-
-/* use the unused DMA engine #3 tested on 600D v1.0.1 */
-#define VECTORSCOPE_DMA_MEMCPY
-
-static void
-vectorscope_memcpy(void *dst_ptr, void *src_ptr, uint32_t length, uint32_t flags)
-{
-    uint32_t dst = (uint32_t)dst_ptr;
-    uint32_t src = (uint32_t)src_ptr;
-    
-#ifdef VECTORSCOPE_DMA_MEMCPY
-    /* odd start address? */
-    if(dst & 0x03)
-    {
-        uint32_t delta = 4 - (dst & 0x03);
-        
-        if(delta > length)
-        {
-            delta = length;
-        }
-        
-        memcpy(dst, src, delta);
-        dst += delta;
-        src += delta;
-        length -= delta;
-    }
-    
-    /* still some misalignment? */
-    if((dst & 0x03) || (src & 0x03))
-    {
-        memcpy(dst, src, length);
-        return;
-    }
-    
-    /* dma-memcpy 32 bit words */
-    *((volatile uint32_t*) 0xC0A40018) = src;
-    *((volatile uint32_t*) 0xC0A4001C) = dst;
-    *((volatile uint32_t*) 0xC0A40020) = length & 0xFFFFFFFC;
-    *((volatile uint32_t*) 0xC0A40008) = 0x00000001 | flags;
-    
-    dst += length & 0xFFFFFFFC;
-    src += length & 0xFFFFFFFC;
-    length &= 0x03;
-    
-    /* still some missing? */
-    if(length != 0)
-    {
-        memcpy(dst, src, length);
-    }
-    
-    while(*((volatile uint32_t*) 0xC0A40020) != 0); 
-#else
-    memcpy(dst, src, length);
-#endif    
-}
-
-static void
-vectorscope_memset(void *dst_ptr, uint8_t value, uint32_t length)
-{
-    uint32_t dst = (uint32_t)dst_ptr;
-    
-#ifdef VECTORSCOPE_DMA_MEMCPY
-    /* keep this variable static to make sure its not on stack */
-    static uint32_t data_buf = 0;    
-
-    /* first align ptr to 32 bit */
-    while(((dst & 3) != 0) && (length != 0))
-    {
-        *((uint8_t*)dst) = value;
-        dst++;
-        length--;
-    }
-
-    /* prepare a word full with 'value' bytes */
-    data_buf = value;
-    data_buf |= data_buf << 8;
-    data_buf |= data_buf << 16;
-    
-    /* dma memcpy without modifying source address */
-    vectorscope_memcpy(dst, &data_buf, length & 0xFFFFFFFC, 0x20);
-
-    dst += length & 0xFFFFFFFC;
-    length &= 0x03;
-    
-    /* still some missing? */
-    while(length != 0)
-    {
-        *((uint8_t*)dst) = value;
-        dst++;
-        length--;
-    }
-    
-#else
-    memset(dst_ptr, value, length);
-#endif
-}
-
 /* helper to draw <count> pixels at given position. no wrap checks when <count> is greater 1 */
 static void 
 vectorscope_putpixel(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint8_t count)
@@ -437,7 +340,7 @@ vectorscope_putpixel(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint
 
     while(count--)
     {
-        bmp_buf[pos++] = color;
+        bmp_buf[pos++] = 255 - color;
     }
 }
 
@@ -467,39 +370,8 @@ vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t fr
 void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
 {    
     int r = vectorscope_height/2 - 1;
-    int x = 0;
-    int y = 0;
-    int p = 0;
     int xc = x_origin + vectorscope_width/2;
     int yc = y_origin + vectorscope_height/2;
-
-    y = r;
-    vectorscope_putpixel(bmp_buf, xc+x,yc-y, 1, 1);
-
-    p = 3 - (2 * r);
-
-    for ( x=0; x<=y; x++)
-    {
-        if (p < 0)
-        {
-            y = y;
-            p = (p+(4*x)+6);
-        }
-        else
-        {
-            y = y-1;
-            p = p+((4*(x-y)+10));
-        }
-
-        vectorscope_putpixel(bmp_buf, xc+x,yc-y, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc-x,yc-y, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc+x,yc+y, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc-x,yc+y, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc+y,yc-x, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc-y,yc-x, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc+y,yc+x, 1, 1);
-        vectorscope_putpixel(bmp_buf, xc-y,yc+x, 1, 1);
-    }
 
     /* red block at U=-14.7% V=61.5% => U=-304/2048th V=1259/2048th */
     vectorscope_putblock(bmp_buf, xc, yc, 8, -302, 1259);
@@ -520,7 +392,7 @@ vectorscope_clear()
 {
     if(vectorscope != NULL)
     {
-        vectorscope_memset(vectorscope, 0, 2 * vectorscope_width * vectorscope_height * sizeof(uint8_t));
+        bzero32(vectorscope, vectorscope_width * vectorscope_height * sizeof(uint8_t));
     }
 }
 
@@ -529,16 +401,7 @@ vectorscope_init()
 {
     if(vectorscope == NULL)
     {
-#ifdef VECTORSCOPE_DMA_MEMCPY
-        *((volatile uint32_t*)0xC0A40000) = 0x80000000;
-        *((volatile uint32_t*)0xC0A40000) = 0x00000001;
-        *((volatile uint32_t*)0xC0A40004) = 0x00000000;
-        *((volatile uint32_t*)0xC0A40008) = 0x00000000;
-        *((volatile uint32_t*)0xC0A4000C) = 0x00000000;
-        *((volatile uint32_t*)0xC0A40010) = 0x00000000;
-        *((volatile uint32_t*)0xC0A40014) = 0x00000007;
-#endif    
-        vectorscope = AllocateMemory(2 * VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
+        vectorscope = AllocateMemory(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
         vectorscope_clear();
     }
 }
@@ -588,64 +451,49 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
         return;
     }
 
-    for(uint32_t y = 0; y < vectorscope_height; y++)
-    {
-        uint8_t *bmp_buf = &vectorscope[vectorscope_width * vectorscope_height + y * vectorscope_width];
-        uint8_t *row = bvram + x_origin + (y_origin + y) * BMPPITCH;
-
-        vectorscope_memcpy(row, bmp_buf, vectorscope_width, 0);
-    }
-
-/* no longer needed, since vectorscope is no longer fully transparent
- * 
-    // protect the vectorscope from zebras
-    uint8_t* M = get_bvram_mirror();
-    for(uint32_t y = 0; y < vectorscope_height; y++)
-    {
-        for(uint32_t x = 0; x < vectorscope_width; x++)
-        {
-            uint8_t* m = &(M[BM(x+x_origin, y+y_origin)]);
-            if (!(*m & 0x80)) *m = 0x80;
-        }
-    }
-*/
-}
-
-/* convert the first part of vectorscope buffer with frequency into a bmp that can get (dma-)memcpy'd later */
-static void
-vectorscope_update_buffer()
-{   
-    if(vectorscope == NULL)
-    {
-        return;
-    }
+    vectorscope_paint(vectorscope, 0, 0);
 
     for(uint32_t y = 0; y < vectorscope_height; y++)
     {
-        uint8_t *bmp_buf = &vectorscope[vectorscope_width * vectorscope_height + y * vectorscope_width];
+        uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin+y)]);
 
         for(uint32_t x = 0; x < vectorscope_width; x++)
         {
             uint8_t brightness = vectorscope[x + y*vectorscope_width];
 
-            /* paint (semi)transparent when no pixels in this color range */
-            if(brightness < 1)
+            int xc = x - vectorscope_height/2;
+            int yc = y - vectorscope_height/2;
+            int r = vectorscope_height/2 - 1;
+            int inside_circle = xc*xc + yc*yc < (r-1)*(r-1);
+            int on_circle = !inside_circle && xc*xc + yc*yc <= (r+1)*(r+1);
+            int on_axis = (x==vectorscope_width/2) || (y==vectorscope_height/2);
+
+            if (on_circle || (on_axis && brightness==0))
             {
-                int xc = x - vectorscope_height/2;
-                int yc = y - vectorscope_height/2;
-                int r = vectorscope_height/2 - 1;
-                int inside_circle = xc*xc + yc*yc < r*r;
-                bmp_buf[x] = inside_circle && (x+y)%2 ? COLOR_WHITE : 0;
+                bmp_buf[x] = 60; // gray
             }
-            else
+            else if (inside_circle)
             {
-                /* 0x26 is the palette color for black plus max 0x2A until white */
-                bmp_buf[x] = 0x26 + (brightness >> 2);
+                /* paint (semi)transparent when no pixels in this color range */
+                if (brightness == 0)
+                {
+                    bmp_buf[x] = (x+y)%2 ? COLOR_WHITE : 0;
+                }
+                else if (brightness > 0x26 + 0x2A * 4)
+                {
+                    /* some fake fixed color, for overlays */
+                    bmp_buf[x] = 255 - brightness;
+                }
+                else
+                {
+                    /* 0x26 is the palette color for black plus max 0x2A until white */
+                    bmp_buf[x] = 0x26 + (brightness >> 2);
+                }
             }
         }
     }
-    vectorscope_paint(&vectorscope[vectorscope_width * vectorscope_height], 0, 0);
 }
+
 
 /** Generate the histogram data from the YUV frame buffer.
  *
@@ -739,8 +587,6 @@ hist_build()
             }
         }
     }
-    
-    vectorscope_update_buffer();
 }
 
 int hist_get_percentile_level(int percentile)
