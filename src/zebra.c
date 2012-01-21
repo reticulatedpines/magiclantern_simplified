@@ -477,7 +477,11 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
                 /* paint (semi)transparent when no pixels in this color range */
                 if (brightness == 0)
                 {
+                    #ifdef CONFIG_4_3_SCREEN
+                    bmp_buf[x] = COLOR_WHITE; // semitransparent looks bad
+                    #else
                     bmp_buf[x] = (x+y)%2 ? COLOR_WHITE : 0;
+                    #endif
                 }
                 else if (brightness > 0x26 + 0x2A * 4)
                 {
