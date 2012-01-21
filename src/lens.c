@@ -1160,6 +1160,7 @@ bswap16(
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
+    mvr_rec_start_shoot(buf[0]);
     mvr_create_logfile( *(unsigned*) buf );
     return prop_cleanup( token, property );
 }

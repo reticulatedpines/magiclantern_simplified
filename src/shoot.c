@@ -1920,17 +1920,17 @@ const char* get_picstyle_shortname(int raw_picstyle)
 static void 
 picstyle_display( void * priv, int x, int y, int selected )
 {
-    int p = get_prop_picstyle_from_index(picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle);
+    int i = picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "PictureStyle: %s%s(%d,%d,%d,%d)",
-        get_picstyle_name(p),
+        get_picstyle_name(get_prop_picstyle_from_index(i)),
         picstyle_before_rec ? "*" : " ",
-        lens_get_sharpness(),
-        lens_get_contrast(),
-        ABS(lens_get_saturation()) < 10 ? lens_get_saturation() : 0,
-        ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
+        lens_get_from_other_picstyle_sharpness(i),
+        lens_get_from_other_picstyle_contrast(i),
+        ABS(lens_get_from_other_picstyle_saturation(i)) < 10 ? lens_get_from_other_picstyle_saturation(i) : 0,
+        ABS(lens_get_from_other_picstyle_color_tone(i)) < 10 ? lens_get_from_other_picstyle_color_tone(i) : 0
     );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
@@ -2069,13 +2069,12 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
     rec_notify_trigger(rec);
     return prop_cleanup(token, property);
 }
+void mvr_rec_start_shoot(){}
 #else
-PROP_HANDLER(PROP_MVR_REC_START)
+void mvr_rec_start_shoot(int rec)
 {
-    int rec = buf[0];
     rec_notify_trigger(rec);
     rec_picstyle_change(rec);
-    return prop_cleanup(token, property);
 }
 #endif
 
