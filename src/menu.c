@@ -1158,10 +1158,23 @@ menu_redraw()
                     bmp_draw_to_idle(1);
                 }
 
-                bmp_fill( show_only_selected ? 0 : COLOR_BLACK, 0, 0, 960, 540 ); 
+                static int prev_so = 0;
+                if (show_only_selected)
+                {
+                    if (!prev_so) bmp_fill( 0, 0, 0, 960, 540 );
+                    else bmp_idle_copy(0);
+                }
+                else
+                {
+                    bmp_fill(COLOR_BLACK, 0, 0, 960, 540 );
+                }
+                prev_so = show_only_selected;
 
-                if (show_only_selected) 
+                if (show_only_selected)
+                {
                     rec_notify_continuous(1);
+                    draw_histogram_and_waveform();
+                }
 
                 if (!show_only_selected || !submenu_mode)
                 {

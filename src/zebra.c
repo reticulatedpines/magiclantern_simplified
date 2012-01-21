@@ -49,7 +49,7 @@ static void do_disp_mode_change();
 static void show_overlay();
 static void transparent_overlay_from_play();
 static void transparent_overlay_offset_clear(void* priv, int delta);
-static void draw_histogram_and_waveform();
+//~ static void draw_histogram_and_waveform();
 static void schedule_transparent_overlay();
 static void defish_draw();
 static int zebra_color_word_row(int c, int y);
@@ -3814,7 +3814,7 @@ bool liveview_display_idle()
         lv && 
         tft_status == 0 &&
         !menu_active_and_not_hidden() && 
-        (gui_menu_shown() || // force LiveView when menu is active, but hidden
+        ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler) &&
             CURRENT_DIALOG_MAYBE <= 3 && 
@@ -3895,7 +3895,7 @@ int should_draw_bottom_graphs()
     return 0;
 }
 
-static void draw_histogram_and_waveform()
+void draw_histogram_and_waveform()
 {
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
@@ -4684,7 +4684,8 @@ livev_lopriority_task( void* unused )
 
         loprio_sleep();
 
-        draw_histogram_and_waveform();
+        if (!gui_menu_shown())
+            draw_histogram_and_waveform();
         
         if (crop_redraw_flag)
         {
