@@ -131,7 +131,7 @@ LCD sensor shortcuts
 
 This feature is only available on 550D and 500D.
 
-LCD sensor can be used as a simple remote (see `LCD Remote Shot`_ ), as a simple wireless `follow focus`_,
+LCD sensor can be used as a simple remote (see `LCDsensor Remote`_ ), as a simple wireless `follow focus`_,
 or as shift key (see also `SensorShortcuts`_ option).
 
 * LCD sensor + ``UP / DOWN``: adjust LCD backlight level.
@@ -793,10 +793,10 @@ Functions for stills shooting (some of them work for movies, too).
 
 .. _remote triggers:
 .. _LCD face sensor:
-.. _LCD Remote Shot:
+.. _LCDsensor Remote:
 .. _LCD Remote:
 
-**LCD Remote Shot: OFF/Near/Away/Wave**
+**LCDsensor Remote: OFF/Near/Away/Wave**
 
   Start/stop remote shutter release mode with the LCD sensor. 
   
@@ -881,7 +881,7 @@ Functions for stills shooting (some of them work for movies, too).
   ``Timer+Remote`` will auto-enable MLU under one of the following conditions (and disable it otherwise):
     
     - self-timer mode is on (either 2 second or 10 second, but not continuous)
-    - `LCD Remote Shot`_ is in ``Away`` mode.
+    - `LCDsensor Remote`_ is in ``Away`` mode.
     
 Expo
 ~~~~
@@ -1059,7 +1059,7 @@ Focus
   Very simple follow focus (like a rack focus controlled manually).
   
   * ``Arrows``: you will be able to focus with the arrow keys.
-  * ``LCD Sensor``: on 550D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you also need to disable `LCD Remote Shot`_ and enable `SensorShortcuts`_.
+  * ``LCD Sensor``: on 550D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you also need to disable `LCDsensor Remote`_ and enable `SensorShortcuts`_.
 
   Recommended focus step settings: 
   
@@ -1092,7 +1092,7 @@ Focus
   After pressing SET, ML will display ``Focus End Point: 0 steps from here.``.
   This means the end point is now assigned to current focus position.
   
-  At this point, you will see the LiveView image and set the start point using the main dial (wheel) or ``ZoomIn/AF`` buttons.
+  At this point, you will see the LiveView image and set the start point using left and right keys (just like with `follow focus`_) or the main dial (scrollwheel).
   The start point will be always the current focus point (which you are changing); the end point will remain fixed.
   
 **Rack Focus**
@@ -1111,13 +1111,13 @@ Focus
 
   3. Open the ``Focus`` menu, go to ``Focus End Point`` and press ``Set`` to zero it out.
   
-  4. Pick the start point by focusing on it with the Zoom In/Out buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus. Fine-tune the position with Q, PLAY and scrollwheel.
+  4. Pick the start point by focusing on it with the left/right buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus. Fine-tune the position with scrollwheel.
     
   5. Go to ``Rack Focus`` and press ``SET``, ``Q`` or ``PLAY`` to start rack focus.
   
   6. To return to the beginning point, run rack focus again.
   
-  Tip: when `LCD Remote Shot`_ is set on ``Near`` or ``Away``, you can trigger rack focus from the LCD sensor, avoiding shake.
+  Tip: when `LCDsensor Remote`_ is set on ``Near`` or ``Away``, you can trigger rack focus from the LCD sensor, avoiding shake.
 
   Recommended focus step settings: 
   
