@@ -455,7 +455,11 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
 
     for(uint32_t y = 0; y < vectorscope_height; y++)
     {
+        #ifdef CONFIG_4_3_SCREEN
+        uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin+y * (EXT_MONITOR_CONNECTED ? 1 : 8/9))]);
+        #else
         uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin+y)]);
+        #endif
 
         for(uint32_t x = 0; x < vectorscope_width; x++)
         {
