@@ -3760,6 +3760,8 @@ void draw_histogram_and_waveform()
             BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
     }
 
+    if (should_draw_zoom_overlay()) return;
+
     //~ if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !PLAY_MODE) return;
