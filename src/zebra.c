@@ -198,6 +198,17 @@ static CONFIG_INT( "waveform.size", waveform_size,  0 );
 //~ static CONFIG_INT( "waveform.y",    waveform_y, 480 - 50 - WAVEFORM_WIDTH );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_BLACK ); // solid black
 
+
+static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 1);
+
+/* runtime-configurable size */
+uint32_t vectorscope_width = 256;
+uint32_t vectorscope_height = 256;
+/* 128 is also a good choice, but 256 is max. U and V are using that resolution */
+#define VECTORSCOPE_WIDTH_MAX 256
+#define VECTORSCOPE_HEIGHT_MAX 256
+
+
 static CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
 static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
 static CONFIG_INT( "clear.preview.mode", clearscreen_mode, 0); // 2 is always
@@ -314,6 +325,304 @@ static uint32_t hist_max;
 /** total number of pixels analyzed by histogram */
 static uint32_t hist_total_px;
 
+static uint8_t *vectorscope = NULL;
+
+
+/* use the unused DMA engine #3 tested on 600D v1.0.1 */
+#define VECTORSCOPE_DMA_MEMCPY
+
+static void
+vectorscope_memcpy(void *dst_ptr, void *src_ptr, uint32_t length, uint32_t flags)
+{
+    uint32_t dst = (uint32_t)dst_ptr;
+    uint32_t src = (uint32_t)src_ptr;
+    
+#ifdef VECTORSCOPE_DMA_MEMCPY
+    /* odd start address? */
+    if(dst & 0x03)
+    {
+        uint32_t delta = 4 - (dst & 0x03);
+        
+        if(delta > length)
+        {
+            delta = length;
+        }
+        
+        memcpy(dst, src, delta);
+        dst += delta;
+        src += delta;
+        length -= delta;
+    }
+    
+    /* still some misalignment? */
+    if((dst & 0x03) || (src & 0x03))
+    {
+        memcpy(dst, src, length);
+        return;
+    }
+    
+    /* dma-memcpy 32 bit words */
+    *((volatile uint32_t*) 0xC0A40018) = src;
+    *((volatile uint32_t*) 0xC0A4001C) = dst;
+    *((volatile uint32_t*) 0xC0A40020) = length & 0xFFFFFFFC;
+    *((volatile uint32_t*) 0xC0A40008) = 0x00000001 | flags;
+    
+    dst += length & 0xFFFFFFFC;
+    src += length & 0xFFFFFFFC;
+    length &= 0x03;
+    
+    /* still some missing? */
+    if(length != 0)
+    {
+        memcpy(dst, src, length);
+    }
+    
+    while(*((volatile uint32_t*) 0xC0A40020) != 0); 
+#else
+    memcpy(dst, src, length);
+#endif    
+}
+
+static void
+vectorscope_memset(void *dst_ptr, uint8_t value, uint32_t length)
+{
+    uint32_t dst = (uint32_t)dst_ptr;
+    
+#ifdef VECTORSCOPE_DMA_MEMCPY
+    /* keep this variable static to make sure its not on stack */
+    static uint32_t data_buf = 0;    
+
+    /* first align ptr to 32 bit */
+    while(((dst & 3) != 0) && (length != 0))
+    {
+        *((uint8_t*)dst) = value;
+        dst++;
+        length--;
+    }
+
+    /* prepare a word full with 'value' bytes */
+    data_buf = value;
+    data_buf |= data_buf << 8;
+    data_buf |= data_buf << 16;
+    
+    /* dma memcpy without modifying source address */
+    vectorscope_memcpy(dst, &data_buf, length & 0xFFFFFFFC, 0x20);
+
+    dst += length & 0xFFFFFFFC;
+    length &= 0x03;
+    
+    /* still some missing? */
+    while(length != 0)
+    {
+        *((uint8_t*)dst) = value;
+        dst++;
+        length--;
+    }
+    
+#else
+    memset(dst_ptr, value, length);
+#endif
+}
+
+/* helper to draw <count> pixels at given position. no wrap checks when <count> is greater 1 */
+static void 
+vectorscope_putpixel(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint8_t count)
+{
+    int pos = x_pos + y_pos * vectorscope_width;
+
+    while(count--)
+    {
+        bmp_buf[pos++] = color;
+    }
+}
+
+/* another helper that draws a color dot at given position.
+   <xc> and <yc> specify the center of our scope graphic.
+   <frac_x> and <frac_y> are in 1/2048th units and specify the relative dot position.
+ */
+static void 
+vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t frac_x, int32_t frac_y)
+{
+    int x_pos = xc + ((int32_t)vectorscope_width * frac_x) / 4096;
+    int y_pos = yc + (-(int32_t)vectorscope_height * frac_y) / 4096;
+
+    vectorscope_putpixel(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
+    vectorscope_putpixel(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
+
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 3, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 2, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 1, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 4, y_pos + 0, color, 9);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 1, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 2, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 3, color, 7);
+}
+
+/* draws the overlay: circle with color dots. */
+void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
+{    
+    int r = vectorscope_height/2 - 1;
+    int x = 0;
+    int y = 0;
+    int p = 0;
+    int xc = x_origin + vectorscope_width/2;
+    int yc = y_origin + vectorscope_height/2;
+
+    y = r;
+    vectorscope_putpixel(bmp_buf, xc+x,yc-y, 1, 1);
+
+    p = 3 - (2 * r);
+
+    for ( x=0; x<=y; x++)
+    {
+        if (p < 0)
+        {
+            y = y;
+            p = (p+(4*x)+6);
+        }
+        else
+        {
+            y = y-1;
+            p = p+((4*(x-y)+10));
+        }
+
+        vectorscope_putpixel(bmp_buf, xc+x,yc-y, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc-x,yc-y, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc+x,yc+y, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc-x,yc+y, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc+y,yc-x, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc-y,yc-x, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc+y,yc+x, 1, 1);
+        vectorscope_putpixel(bmp_buf, xc-y,yc+x, 1, 1);
+    }
+
+    /* red block at U=-14.7% V=61.5% => U=-304/2048th V=1259/2048th */
+    vectorscope_putblock(bmp_buf, xc, yc, 8, -302, 1259);
+    /* green block */
+    vectorscope_putblock(bmp_buf, xc, yc, 7, -593, -1055);
+    /* blue block */
+    vectorscope_putblock(bmp_buf, xc, yc, 9, 895, -204);
+    /* cyan block */
+    vectorscope_putblock(bmp_buf, xc, yc, 5, 301, -1259);
+    /* magenta block */
+    vectorscope_putblock(bmp_buf, xc, yc, 14, 592, 1055);
+    /* yellow block */
+    vectorscope_putblock(bmp_buf, xc, yc, 15, -893, 204);
+}
+
+void
+vectorscope_clear()
+{
+    if(vectorscope != NULL)
+    {
+        vectorscope_memset(vectorscope, 0, 2 * vectorscope_width * vectorscope_height * sizeof(uint8_t));
+    }
+}
+
+void
+vectorscope_init()
+{
+    if(vectorscope == NULL)
+    {
+#ifdef VECTORSCOPE_DMA_MEMCPY
+        *((volatile uint32_t*)0xC0A40000) = 0x80000000;
+        *((volatile uint32_t*)0xC0A40000) = 0x00000001;
+        *((volatile uint32_t*)0xC0A40004) = 0x00000000;
+        *((volatile uint32_t*)0xC0A40008) = 0x00000000;
+        *((volatile uint32_t*)0xC0A4000C) = 0x00000000;
+        *((volatile uint32_t*)0xC0A40010) = 0x00000000;
+        *((volatile uint32_t*)0xC0A40014) = 0x00000007;
+#endif    
+        vectorscope = AllocateMemory(2 * VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
+        vectorscope_clear();
+    }
+}
+
+static inline void
+vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
+{
+    if(vectorscope == NULL)
+    {
+        return;
+    }
+    
+    int32_t V = -v;
+    int32_t U = u;
+
+    
+    /* convert YUV to vectorscope position */
+    V *= vectorscope_height;
+    V >>= 8;
+    V += vectorscope_height >> 1;
+
+    U *= vectorscope_width;
+    U >>= 8;
+    U += vectorscope_width >> 1;
+
+    uint16_t pos = U + V * vectorscope_width;
+
+    /* increase luminance at this position. when reaching 4*0x2A, we are at maximum. */
+    if(vectorscope[pos] < (0x2A << 2))
+    {
+        vectorscope[pos]++;
+    }
+}
+
+/* memcpy the second part of vectorscope buffer. uses only few resources */
+static void
+vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
+{    
+    if(vectorscope == NULL)
+    {
+        return;
+    }
+
+    uint8_t * const bvram = bmp_vram();
+    if (!bvram)
+    {
+        return;
+    }
+
+    for(uint32_t y = 0; y < vectorscope_height; y++)
+    {
+        uint8_t *bmp_buf = &vectorscope[vectorscope_width * vectorscope_height + y * vectorscope_width];
+        uint8_t *row = bvram + x_origin + (y_origin + y) * BMPPITCH;
+
+        vectorscope_memcpy(row, bmp_buf, vectorscope_width, 0);
+    }
+}
+
+/* convert the first part of vectorscope buffer with frequency into a bmp that can get (dma-)memcpy'd later */
+static void
+vectorscope_update_buffer()
+{   
+    if(vectorscope == NULL)
+    {
+        return;
+    }
+
+    for(uint32_t y = 0; y < vectorscope_height; y++)
+    {
+        uint8_t *bmp_buf = &vectorscope[vectorscope_width * vectorscope_height + y * vectorscope_width];
+
+        for(uint32_t x = 0; x < vectorscope_width; x++)
+        {
+            uint8_t brightness = vectorscope[x + y*vectorscope_width];
+
+            /* paint transparent when no pixels in this color range */
+            if(brightness < 1)
+            {
+                bmp_buf[x] = 0;
+            }
+            else
+            {
+                /* 0x26 is the palette color for black plus max 0x2A until white */
+                bmp_buf[x] = 0x26 + (brightness >> 2);
+            }
+        }
+    }
+    vectorscope_paint(&vectorscope[vectorscope_width * vectorscope_height], 0, 0);
+}
 
 /** Generate the histogram data from the YUV frame buffer.
  *
@@ -331,9 +640,9 @@ hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
 
-    uint32_t *  v_row = (uint32_t*) lv->vram;
+    uint32_t *v_row = (uint32_t*) lv->vram;
     int x,y;
-
+    
     histo_init();
     if (!hist) return;
     if (!hist_r) return;
@@ -357,6 +666,12 @@ hist_build()
             for( x=0 ; x<WAVEFORM_HEIGHT ; x++ )
                 waveform[y][x] = 0;
     }
+    
+    if (vectorscope_draw)
+    {
+        vectorscope_init();
+        vectorscope_clear();
+    }
 
     for( y = os.y0 ; y < os.y_max; y += 2, v_row += (lv->pitch/2) )
     {
@@ -366,14 +681,14 @@ hist_build()
             uint32_t pixel = v_row[x/2];
             uint32_t p1 = (pixel >> 16) & 0xFF00;
             uint32_t p2 = (pixel >>  0) & 0xFF00;
-            int Y = ((p1+p2) / 2) >> 8;
+            uint8_t Y = ((p1+p2) / 2) >> 8;
+            int8_t U = (pixel >>  0) & 0xFF;
+            int8_t V = (pixel >> 16) & 0xFF;
 
             hist_total_px++;
             
             if (hist_colorspace == 1) // rgb
             {
-                int8_t U = (pixel >>  0) & 0xFF;
-                int8_t V = (pixel >> 16) & 0xFF;
                 int R = Y + 1437 * V / 1024;
                 int G = Y -  352 * U / 1024 - 731 * V / 1024;
                 int B = Y + 1812 * U / 1024;
@@ -391,11 +706,18 @@ hist_build()
             unsigned count = ++ (hist[ hist_level ]);
             if( hist_level && count > hist_max )
                 hist_max = count;
-            
+
             // Update the waveform plot
             if (waveform_draw) waveform[ COERCE(((x-os.x0) * WAVEFORM_WIDTH) / os.x_max, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
+
+            if (vectorscope_draw)
+            {
+                vectorscope_addpixel(Y, U, V);
+            }
         }
     }
+    
+    vectorscope_update_buffer();
 }
 
 int hist_get_percentile_level(int percentile)
@@ -3539,7 +3861,7 @@ static void draw_histogram_and_waveform()
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     
-    if (hist_draw || waveform_draw)
+    if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
     }
@@ -3571,8 +3893,12 @@ static void draw_histogram_and_waveform()
         else
             BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
     }
-
-
+    
+    if(vectorscope_draw)
+    {
+        /* make sure memory address of bvram will be 4 byte aligned */
+        BMP_LOCK( vectorscope_draw_image(os.x0 + 32, 64); )
+    }
 }
 /*
 //this function is a mess... but seems to work
