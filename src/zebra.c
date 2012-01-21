@@ -596,6 +596,8 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
         vectorscope_memcpy(row, bmp_buf, vectorscope_width, 0);
     }
 
+/* no longer needed, since vectorscope is no longer fully transparent
+ * 
     // protect the vectorscope from zebras
     uint8_t* M = get_bvram_mirror();
     for(uint32_t y = 0; y < vectorscope_height; y++)
@@ -606,7 +608,7 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
             if (!(*m & 0x80)) *m = 0x80;
         }
     }
-
+*/
 }
 
 /* convert the first part of vectorscope buffer with frequency into a bmp that can get (dma-)memcpy'd later */
