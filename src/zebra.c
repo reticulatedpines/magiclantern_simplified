@@ -2888,7 +2888,7 @@ struct menu_entry zebra_menus[] = {
         .display = vectorscope_display,
         .priv       = &vectorscope_draw,
         .max = 1,
-        .help = "U-V plot. Shows color distribution.",
+        .help = "Shows color distribution as U-V plot. For grading & WB.",
     },
     #ifdef CONFIG_60D
     {
