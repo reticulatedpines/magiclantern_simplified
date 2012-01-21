@@ -506,8 +506,7 @@ void clear_lv_affframe_if_dirty()
         afframe_countdown--;
         if (!afframe_countdown)
         {
-            move_lv_afframe(0, 0); // this will clear it
-            msleep(100);
+            BMP_LOCK( clear_lv_afframe(); )
         }
     }
     //~ #endif
