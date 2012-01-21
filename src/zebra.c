@@ -231,6 +231,11 @@ static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_a
 static CONFIG_INT("idle.rec", idle_rec, 0);
 
 
+static uint8_t* bvram_mirror = 0;
+uint8_t* get_bvram_mirror() { return bvram_mirror; }
+//~ #define bvram_mirror bmp_vram_idle()
+
+
 int cropmark_cache_valid = 0;
 int crop_redraw_flag = 0; // redraw cropmarks now
 int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
@@ -590,6 +595,18 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
 
         vectorscope_memcpy(row, bmp_buf, vectorscope_width, 0);
     }
+
+    // protect the vectorscope from zebras
+    uint8_t* M = get_bvram_mirror();
+    for(uint32_t y = 0; y < vectorscope_height; y++)
+    {
+        for(uint32_t x = 0; x < vectorscope_width; x++)
+        {
+            uint8_t* m = &(M[BM(x+x_origin, y+y_origin)]);
+            if (!(*m & 0x80)) *m = 0x80;
+        }
+    }
+
 }
 
 /* convert the first part of vectorscope buffer with frequency into a bmp that can get (dma-)memcpy'd later */
@@ -1111,10 +1128,6 @@ static void dump_vram()
     //dump_seg(0x1000, 0x100000, CARD_DRIVE "ram.bin");
     //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
 }
-
-static uint8_t* bvram_mirror = 0;
-uint8_t* get_bvram_mirror() { return bvram_mirror; }
-//~ #define bvram_mirror bmp_vram_idle()
 
 int fps_ticks = 0;
 
