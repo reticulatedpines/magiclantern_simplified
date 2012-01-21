@@ -503,34 +503,31 @@ void clear_lv_affframe_if_dirty()
     //~ #ifndef CONFIG_50D
     if (af_frame_autohide && afframe_countdown && liveview_display_idle())
     {
-        BMP_LOCK (
-            if (afframe_countdown)
-            {
-                afframe_countdown--;
-                if (!afframe_countdown) 
-                    clear_lv_affframe();
-            }
-        )
+        afframe_countdown--;
+        if (!afframe_countdown)
+        {
+            move_lv_afframe(0, 0); // this will clear it
+            msleep(100);
+        }
     }
     //~ #endif
 }
 
-void clear_lv_affframe()
+// to be called only from prop_handler PROP_LV_AFFRAME
+// no BMP_LOCK here, please
+void clear_lv_afframe()
 {
     if (!lv) return;
     if (gui_menu_shown()) return;
     if (lv_dispsize != 1) return;
-    struct vram_info *  lv = get_yuv422_vram();
-    if( !lv->vram ) return;
     int xaf,yaf;
 
     uint8_t* M = get_bvram_mirror();
-    
+    if (!M) return;
+
     get_afframe_pos(720, 480, &xaf, &yaf);
     xaf = N2BM_X(xaf);
     yaf = N2BM_Y(yaf);
-    //~ bmp_printf(FONT_LARGE, 200, 200, "af %d %d ", xaf, yaf);
-    //~ bmp_fill(0, COERCE(xaf,100, BMP_WIDTH-100) - 90, COERCE(yaf,100, BMP_HEIGHT-100) - 75, 180, 150 );
     int x0 = COERCE(xaf,100, BMP_WIDTH-100) - 100;
     int y0 = COERCE(yaf, 75+os.off_169, BMP_HEIGHT-75-os.off_169) - 75;
     int w = 200;

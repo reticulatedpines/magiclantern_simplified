@@ -375,8 +375,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 static int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-    
-    clear_lv_affframe();
+    clear_lv_afframe(); 
 
     crop_set_dirty(10);
     afframe_set_dirty();
@@ -493,22 +492,9 @@ void center_lv_afframe_do()
 void move_lv_afframe(int dx, int dy)
 {
     if (!liveview_display_idle()) return;
-    BMP_LOCK(
-        clear_lv_affframe();
-        afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
-        afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
-
-        if (dx == 0 && dy == 0) // force displaying the AF frame, even if it doesn't move
-        {
-            afframe[2] += 10;
-            afframe[3] += 10;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
-            msleep(100);
-            afframe[2] -= 10;
-            afframe[3] -= 10;
-        }
-        prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
-    );
+    afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
+    afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
+    prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 }
 
 /*

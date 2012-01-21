@@ -2230,6 +2230,8 @@ static void spotmeter_step()
         get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
         xcb += os.x0;
         ycb += os.y0;
+        xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
+        ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
     }
     int xcl = BM2LV_X(xcb);
     int ycl = BM2LV_X(ycb);
