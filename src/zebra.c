@@ -1932,14 +1932,8 @@ global_draw_display( void * priv, int x, int y, int selected )
     );
     if (disp_profiles_0)
         bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), x + 540, y, "DISP %d", get_disp_mode());
-    if (lv && lv_disp_mode)
-        menu_draw_icon(x, y, MNI_WARNING, "Press "
-            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
-            "DISP"
-            #else
-            "INFO"
-            #endif
-            " (outside ML menu) to turn Canon displays off.");
+    if (lv && lv_disp_mode && global_draw)
+        menu_draw_icon(x, y, MNI_WARNING, "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
 }
 
 static void
