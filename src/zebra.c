@@ -199,7 +199,7 @@ static CONFIG_INT( "waveform.size", waveform_size,  0 );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_BLACK ); // solid black
 
 
-static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 1);
+static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 
 /* runtime-configurable size */
 uint32_t vectorscope_width = 256;
@@ -2102,6 +2102,19 @@ waveform_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
 }
 
+static void
+vectorscope_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Vectorscope : %s",
+        *(unsigned*) priv ? "ON " : "OFF"
+    );
+    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
+}
+
+
 
 static void
 clearscreen_display(
@@ -2899,7 +2912,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         .essential = FOR_PLAYBACK,
     },
-    #ifndef CONFIG_5D2
+    #if !defined(CONFIG_5D2) && !defined(CONFIG_60D)
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -3017,6 +3030,13 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
         .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+    },
+    {
+        .name = "Vectorscope",
+        .display = vectorscope_display,
+        .priv       = &vectorscope_draw,
+        .max = 1,
+        .help = "U-V plot. Shows color distribution.",
     },
     #ifdef CONFIG_60D
     {
@@ -4706,6 +4726,7 @@ void update_disp_mode_bits_from_params()
         (transparent_overlay  ? 1<<10: 0) |
         (electronic_level     ? 1<<11: 0) |
         (defish_preview       ? 1<<12: 0) |
+        (vectorscope_draw     ? 1<<13: 0) |
         0;
         
     if (disp_mode == 1) disp_mode_a = bits;
@@ -4737,6 +4758,7 @@ int update_disp_mode_params_from_bits()
     transparent_overlay  = bits & (1<<10)? 1 : 0;
     electronic_level     = bits & (1<<11)? 1 : 0;
     defish_preview       = bits & (1<<12)? 1 : 0;
+    vectorscope_draw     = bits & (1<<13)? 1 : 0;
     
     return 1;
 }
