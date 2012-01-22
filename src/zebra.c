@@ -4642,11 +4642,14 @@ static void do_disp_mode_change()
     
     display_on();
     bmp_on();
-    redraw();
-    NotifyBox(1000, "Display preset: %d", disp_mode);
+    clrscr();
+    idle_globaldraw_dis();
+    //~ redraw();
+    bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, "Display preset: %d", disp_mode);
+    msleep(350);
+    idle_globaldraw_en();
     update_disp_mode_params_from_bits();
-    //~ draw_ml_topbar();
-    crop_set_dirty(10);
+    redraw();
 }
 
 int handle_disp_preset_key(struct event * event)
