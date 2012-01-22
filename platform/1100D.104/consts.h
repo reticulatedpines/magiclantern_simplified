@@ -10,6 +10,8 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
 
+#define ARMLIB_OVERFLOWING_BUFFER 0x16514 // in AJ_armlib_setup_related3
+
 // Found by Alex using Heavendew dump
 #define YUV422_LV_BUFFER_1 0x41ae8e50
 #define YUV422_LV_BUFFER_2 0x412c8e50

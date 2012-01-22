@@ -274,3 +274,4 @@ NSTUB(0xFF1C1260, EngDrvOut)
 NSTUB(0xFF1C1150, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 NSTUB(0xFF243820, SetImagePass_x5)
 
+NSTUB(0xff016b8c, get_current_task) // called from AJ_armlib_setup_related3

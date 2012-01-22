@@ -8,6 +8,8 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110A8
 #define HIJACK_TASK_ADDR 0x1a20
 
+#define ARMLIB_OVERFLOWING_BUFFER 0x2716c // in AJ_armlib_setup_related3
+
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER_1 0x40D07800 
 #define YUV422_LV_BUFFER_2 0x4c233800

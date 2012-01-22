@@ -255,3 +255,5 @@ NSTUB(0x73590, lv_path_struct) // first arg of SelectPathDriveMode
 NSTUB(0xFF1E1D20, engio_write)
 NSTUB(0xFF1E184C, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 NSTUB(0xff1e195c, EngDrvOut)
+
+NSTUB(0xff017618, get_current_task) // called from AJ_armlib_setup_related3

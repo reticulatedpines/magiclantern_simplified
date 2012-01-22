@@ -181,3 +181,5 @@ NSTUB(0xff371068, ErrCardForLVApp_handler)
 
 NSTUB(0xff190cf4, engio_write)
 NSTUB(0xff190be8, shamem_read)
+
+NSTUB(0xFF016930, get_current_task)

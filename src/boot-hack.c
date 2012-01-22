@@ -354,20 +354,26 @@ void hold_your_horses(int showlogo)
 int
 my_init_task(int a, int b, int c, int d)
 {
-    #ifdef CONFIG_550D
-    int x = MEM(0xa7170); // Workaround: Canon code will overwrite this address
-    #endif
-    #ifdef CONFIG_600D
-    int x = MEM(0x96800);
-    #endif
+    // An overflow in Canon code may write a zero right in the middle of ML code
+    unsigned int *backup_address = 0;
+    unsigned int backup_data = 0;
+    unsigned int task_id = get_current_task();
+
+    if(task_id > 0x68 && task_id < 0xFFFFFFFF)
+    {
+        unsigned int *some_table = ARMLIB_OVERFLOWING_BUFFER;
+        backup_address = &some_table[task_id-1];
+        backup_data = *backup_address;
+    }
+    
     // Call their init task
     int ans = init_task(a,b,c,d);
-    #ifdef CONFIG_550D
-    MEM(0xa7170) = x;  // this only fixes the symptoms, not the actual problem!
-    #endif
-    #ifdef CONFIG_600D
-    MEM(0x96800) = x;
-    #endif
+
+    // Restore the overwritten value, if any
+    if(backup_address != 0)
+    {
+        *backup_address = backup_data;
+    }
     
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
@@ -427,7 +433,7 @@ my_init_task(int a, int b, int c, int d)
         additional_version[7] = '\0';
         return ans;
     }
-
+    
     task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
     return ans;
 #endif // !CONFIG_EARLY_PORT

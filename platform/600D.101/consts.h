@@ -8,6 +8,8 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0110dc
 #define HIJACK_TASK_ADDR 0x1a2c
 
+#define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
+
 // BGMT Button codes as received by gui_main_task
 
 #define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing

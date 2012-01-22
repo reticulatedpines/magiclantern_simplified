@@ -220,3 +220,5 @@ NSTUB(0xff377c4c, LiveViewApp_handler_end) // start of next function
 NSTUB(0xff3714ac, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
+
+NSTUB(0xff0175fc, get_current_task)

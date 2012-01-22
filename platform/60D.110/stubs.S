@@ -289,3 +289,5 @@ NSTUB(0xff1c5580, shamem_read)
 NSTUB(0xff1c5690, EngDrvOut)
 
 NSTUB(0xff20c3d8, GUI_SetMovieParam)
+
+NSTUB(0xff0171dc, get_current_task)

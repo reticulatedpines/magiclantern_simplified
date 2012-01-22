@@ -171,3 +171,5 @@ NSTUB(0xff9b1be0, LightMeasure_n_Callback_r0)
 NSTUB(0xffacf26c, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
 NSTUB(0xff987200, set_fps_maybe)
+
+NSTUB(0xff8168c0, get_current_task)
