@@ -354,8 +354,20 @@ void hold_your_horses(int showlogo)
 int
 my_init_task(int a, int b, int c, int d)
 {
+    #ifdef CONFIG_550D
+    int x = MEM(0xa7170); // Workaround: Canon code will overwrite this address
+    #endif
+    #ifdef CONFIG_600D
+    int x = MEM(0x96800);
+    #endif
     // Call their init task
     int ans = init_task(a,b,c,d);
+    #ifdef CONFIG_550D
+    MEM(0xa7170) = x;  // this only fixes the symptoms, not the actual problem!
+    #endif
+    #ifdef CONFIG_600D
+    MEM(0x96800) = x;
+    #endif
     
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
