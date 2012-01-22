@@ -1274,7 +1274,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         //~ extern int disp_pressed;
         //~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
         
-        //~ bmp_printf(FONT_LARGE, 50, 300, "%x %x ", get_current_dialog_handler(), CURRENT_DIALOG_MAYBE);
+        //~ bmp_printf(FONT_LARGE, 50, 300, "%x ", MEM(0xa7170));
         //~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
         //~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
@@ -1737,13 +1737,6 @@ struct menu_entry debug_menus[] = {
         },
     },
 #endif
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name        = "Rename CR2 to AVI",
-        .select        = CR2toAVI,
-        .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
-    },
-#endif
     {
         .name        = "Flashlight",
         .select        = flashlight_lcd,
@@ -1787,6 +1780,13 @@ struct menu_entry debug_menus[] = {
         .help = "SET: quick test; PLAY: burn-in test (around 2 hours)",
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+    {
+        .name        = "Rename CR2 to AVI",
+        .select        = CR2toAVI,
+        .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+    },
+#endif
     #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
     {
         .name = "Free Memory",
