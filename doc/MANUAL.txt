@@ -255,7 +255,7 @@ from Magic Lantern. You can only use audio meters during recording.
 
 .. _audio monitoring:
 
-**Monitoring-USB: ON/OFF**
+**Headphone Monitoring: ON/OFF**
   
   [[Video:Monitor_Realtime_T2i_550D_Audio_While_You_Record|200px|right]]
   
@@ -277,7 +277,7 @@ from Magic Lantern. You can only use audio meters during recording.
 
 **Output volume (dB)**
 
-  Digital output gain for audio monitoring. It does not have effect on the internal camera speaker.
+  Digital output gain for audio monitoring. It does not have an effect on the internal camera speaker.
 
   For best results, you should a pair of low impedance headphones, for example `Audio Technica ATH-M50 (38 ohms) <http://amzn.to/ml-athm50>`_.
   With high-impedance headphones, you may have to use a headphone amplifier like `FiiO E5 <http://amzn.to/fiio-e5>`_.
@@ -622,13 +622,15 @@ Functions specific to movie mode.
   * ``Block during REC``: blocks the shutter and related (AF, ``*``) buttons while recording. In 50D, taking pictures while recording would result in ERR99; with this option, you can avoid taking pictures while recording by mistake. Side effect: this will disable image stabilization during recording.
   * ``Hold during REC (IS)``: ML will keep the shutter button pressed half-way during recording, which will enable image stabilization (IS). Side effect: you need to press the shutter button half way to turn IS off before the camera will let you stop recording.
 
+.. _FPS override:
+
 **FPS override**
 
-  **This setting is potentially dangerous.**
+  This setting alters FPS for all video modes. For stable operation, disable sound recording from Canon menu.
 
-  It alters FPS for all video modes. For stable operation, disable sound recording from Canon menu.
+  Recommended usage: set FPS to a very low value (for example, 3fps) to record a timelapse.
 
-  On 550D and older cameras, this it will also force shutter speed to 1/fps.
+  On 550D and older cameras, this option will set shutter speed to 1/fps, as a side effect.
   
   Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
   
@@ -709,7 +711,7 @@ Functions for stills shooting (some of them work for movies, too).
   Tips:
   
   * To avoid flicker, shoot in **manual** mode or use `Bulb Ramping`_, use **manual white balance**, **avoid short exposure** times and **use a manual lens** (if you use an EF lens, lock the aperture and **unscrew** it).
-  * To save the shutter count when doing timelapses, enable `Silent Picture`_ or use the intervalometer in Movie mode.
+  * To make a timelapse without increasing shutter count, do not use the intervalometer; instead, set `FPS override`_ to a very low value (for example, 3fps) and start recording.
   * When using the intervalometer in LiveView with "noisy" mode, your shutter will wear twice as fast than outside LiveView.
   * If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
 
