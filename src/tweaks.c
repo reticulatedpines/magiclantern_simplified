@@ -964,6 +964,8 @@ tweak_task( void* unused)
 
         upside_down_step();
 
+        preview_saturation_step();
+
         // if disp presets is enabled, make sure there are no Canon graphics
         extern int disp_profiles_0;
         if (disp_profiles_0 && lv_disp_mode && liveview_display_idle() && !gui_menu_shown())
@@ -1491,6 +1493,21 @@ struct menu_entry expo_tweak_menus[] = {
     },
 };
 
+CONFIG_INT("preview.saturation", preview_saturation, 1);
+
+void preview_saturation_step()
+{
+    if (!lv) return;
+    
+    int saturation_register = 0xC0F140c4;
+    int current_saturation = shamem_read(saturation_register) & 0xFF;
+
+    static int saturation_values[] = {0,0x80,0xC0,0xFF};
+    int desired_saturation = saturation_values[preview_saturation];
+    if (current_saturation != desired_saturation)
+        EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
+}
+
 static struct menu_entry display_menus[] = {
     {
         .name = "Screenshot (10 s)",
@@ -1500,6 +1517,13 @@ static struct menu_entry display_menus[] = {
         #else
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
+    },
+    {
+        .name = "Saturation (LV)",
+        .priv     = &preview_saturation,
+        .max = 3,
+        .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high"},
+        .help = "For preview only. Does not affect recording or histograms.",
     },
     {
         .name = "UpsideDown mode",
