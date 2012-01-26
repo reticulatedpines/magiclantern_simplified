@@ -209,9 +209,9 @@ uint32_t vectorscope_height = 256;
 #define VECTORSCOPE_HEIGHT_MAX 256
 
 
-static CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
+       CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
 static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
-static CONFIG_INT( "clear.preview.mode", clearscreen_mode, 0); // 2 is always
+       CONFIG_INT( "clear.preview.mode", clearscreen_mode, 0); // 2 is always
 
 // keep old program logic
 #define clearscreen (clearscreen_enabled ? clearscreen_mode+1 : 0)
@@ -1970,7 +1970,7 @@ vectorscope_display( void * priv, int x, int y, int selected )
 
 
 
-static void
+void
 clearscreen_display(
     void *          priv,
     int         x,
@@ -1982,7 +1982,7 @@ clearscreen_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "ClearScreen : %s",
+        "Clear Overlays : %s",
         //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
         mode == 1 ? "HalfShutter/DOF" : 
@@ -2768,7 +2768,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         .essential = FOR_PLAYBACK,
     },
-    #if !defined(CONFIG_5D2) && !defined(CONFIG_60D)
+    #if !defined(CONFIG_5D2)
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -2904,26 +2904,6 @@ struct menu_entry zebra_menus[] = {
         .essential = FOR_LIVEVIEW,
     },
     #endif
-    {
-        .name = "ClearScreen",
-        .priv           = &clearscreen_enabled,
-        .display        = clearscreen_display,
-        .select         = menu_binary_toggle,
-        .help = "Clear bitmap overlays from LiveView display.",
-        .essential = FOR_LIVEVIEW,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Mode",
-                .priv = &clearscreen_mode, 
-                .min = 0,
-                .max = 2,
-                .choices = (const char *[]) {"HalfShutter", "WhenIdle", "Always"},
-                .icon_type = IT_DICE,
-                .help = "Clear screen when you hold shutter halfway or when idle.",
-            },
-            MENU_EOL
-        },
-    },
     /*{
         .priv           = &focus_graph,
         .display        = focus_graph_display,
@@ -4579,7 +4559,7 @@ void update_disp_mode_bits_from_params()
         (waveform_draw        ? 1<<4 : 0) |
         (falsecolor_draw      ? 1<<5 : 0) |
         (spotmeter_draw       ? 1<<6 : 0) |
-        (clearscreen_enabled  ? 1<<7 : 0) |
+        //~ (clearscreen_enabled  ? 1<<7 : 0) |
         (focus_peaking        ? 1<<8 : 0) |
         (zoom_overlay_enabled ? 1<<9 : 0) |
         (transparent_overlay  ? 1<<10: 0) |
@@ -4611,7 +4591,7 @@ int update_disp_mode_params_from_bits()
     waveform_draw        = bits & (1<<4) ? 1 : 0;
     falsecolor_draw      = bits & (1<<5) ? 1 : 0;
     spotmeter_draw       = bits & (1<<6) ? 1 : 0;
-    clearscreen_enabled  = bits & (1<<7) ? 1 : 0;
+    //~ clearscreen_enabled  = bits & (1<<7) ? 1 : 0;
     focus_peaking        = bits & (1<<8) ? 1 : 0;
     zoom_overlay_enabled = bits & (1<<9) ? 1 : 0;
     transparent_overlay  = bits & (1<<10)? 1 : 0;

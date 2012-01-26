@@ -1496,8 +1496,9 @@ menu_init( void )
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D)
     menu_find_by_name( "Audio", ICON_MIC);
 #endif
-    menu_find_by_name( "LiveV", ICON_LV);
     menu_find_by_name( "Expo", ICON_AE);
+    menu_find_by_name( "LiveV", ICON_LV);
+    menu_find_by_name( "Display", ICON_MONITOR );
 #if defined(CONFIG_500D)
     menu_find_by_name( "Movie", ICON_FILM );
 #endif
@@ -1507,7 +1508,6 @@ menu_init( void )
     menu_find_by_name( "Focus", ICON_SHARPNESS );
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
-    menu_find_by_name( "Display", ICON_MONITOR );
     menu_find_by_name( "Tweaks", ICON_SMILE );
     menu_find_by_name( "Play", ICON_ML_PLAY );
     menu_find_by_name( "Config", ICON_CF );

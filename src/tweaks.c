@@ -482,7 +482,7 @@ af_frame_autohide_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "AF frame display    : %s", 
+        "AFFrame display: %s", 
         af_frame_autohide ? "AutoHide" : "Show"
     );
 }
@@ -1307,14 +1307,6 @@ struct menu_entry tweak_menus[] = {
         .display = eshutter_display,
         .help = "For enabling third-party flashes in LiveView."
     },*/
-    {
-        .name = "AF frame display",
-        .priv = &af_frame_autohide, 
-        .select = menu_binary_toggle,
-        .display = af_frame_autohide_display,
-        .help = "You can hide the AF frame (the little white rectangle).",
-        .icon_type = IT_DISABLE_SOME_FEATURE,
-    },
     #if defined(CONFIG_550D) || defined(CONFIG_500D)
     {
         .name = "LCD Sensor Shortcuts",
@@ -1570,15 +1562,30 @@ void grayscale_menus_step()
     prev = bmp_color_scheme;
 }
 
+extern int clearscreen_enabled;
+extern int clearscreen_mode;
+extern void clearscreen_display( void * priv, int x, int y, int selected);
+
 static struct menu_entry display_menus[] = {
     {
-        .name = "Screenshot (10 s)",
-        .select     = screenshot_start,
-        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
-        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
-        #else
-        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
-        #endif
+        .name = "Clear Overlays",
+        .priv           = &clearscreen_enabled,
+        .display        = clearscreen_display,
+        .select         = menu_binary_toggle,
+        .help = "Clear bitmap overlays from LiveView display.",
+        //~ .essential = FOR_LIVEVIEW,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Mode",
+                .priv = &clearscreen_mode, 
+                .min = 0,
+                .max = 2,
+                .choices = (const char *[]) {"HalfShutter", "WhenIdle", "Always"},
+                .icon_type = IT_DICE,
+                .help = "Clear screen when you hold shutter halfway or when idle.",
+            },
+            MENU_EOL
+        },
     },
     {
         .name = "Saturation (LV)",
@@ -1640,6 +1647,14 @@ static struct menu_entry display_menus[] = {
         .help = "Outside LV, turn off display with long half-shutter press."
     },
     #endif
+    {
+        .name = "AF frame display",
+        .priv = &af_frame_autohide, 
+        .select = menu_binary_toggle,
+        .display = af_frame_autohide_display,
+        .help = "You can hide the AF frame (the little white rectangle).",
+        .icon_type = IT_DISABLE_SOME_FEATURE,
+    },
 };
 
 struct menu_entry play_menus[] = {
@@ -1698,6 +1713,15 @@ struct menu_entry play_menus[] = {
         .display = quick_delete_print,
         .help = "Delete files quickly with SET+Erase (be careful!!!)",
         .essential = FOR_PLAYBACK,
+    },
+    {
+        .name = "Screenshot (10 s)",
+        .select     = screenshot_start,
+        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
+        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
+        #else
+        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
+        #endif
     },
 };
 
