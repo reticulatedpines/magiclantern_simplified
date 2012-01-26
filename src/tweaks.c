@@ -1503,11 +1503,42 @@ void preview_saturation_step()
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[preview_saturation];
 
+    extern int focus_peaking_grayscale;
+    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+        desired_saturation = 0;
+
     if (current_saturation != desired_saturation)
     {
         EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
     }
 }
+
+void preview_saturation_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Saturation (LV): %s",
+        preview_saturation == 0 ? "0 (Grayscale)" :
+        preview_saturation == 1 ? "Normal" :
+        preview_saturation == 2 ? "High" :
+                                  "Very high"
+    );
+
+    extern int focus_peaking_grayscale;
+    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
+
+    if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
+    else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);
+    else menu_draw_icon(x, y, MNI_ON, 0);
+}
+
 
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
@@ -1591,7 +1622,7 @@ static struct menu_entry display_menus[] = {
         .name = "Saturation (LV)",
         .priv     = &preview_saturation,
         .max = 3,
-        .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high"},
+        .display = preview_saturation_display,
         .help = "For preview only. Does not affect recording or histograms.",
     },
     {

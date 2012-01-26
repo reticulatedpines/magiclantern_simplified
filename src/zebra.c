@@ -175,6 +175,7 @@ static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 0);
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
+CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 //~ int get_crop_black_border() { return crop_black_border; }
@@ -1776,7 +1777,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Focus Peak  : %s,%d.%d,%s",
+            "Focus Peak  : %s,%d.%d,%s%s",
             focus_peaking_method == 0 ? "D1xy" :
             focus_peaking_method == 1 ? "D2xy" : "Nyq.H",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
@@ -1787,7 +1788,8 @@ focus_peaking_display( void * priv, int x, int y, int selected )
             focus_peaking_color == 4 ? "M" :
             focus_peaking_color == 5 ? "Y" :
             focus_peaking_color == 6 ? "global" :
-            focus_peaking_color == 7 ? "local" : "err"
+            focus_peaking_color == 7 ? "local" : "err",
+            focus_peaking_grayscale ? ",Gray" : ""
         );
     else
         bmp_printf(
@@ -2652,6 +2654,12 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global Focus", "Local Focus"},
                 .help = "Focus peaking color (fixed or color coding).",
                 .icon_type = IT_NAMED_COLOR,
+            },
+            {
+                .name = "Grayscale img.", 
+                .priv = &focus_peaking_grayscale,
+                .max = 1,
+                .help = "Display LiveView image in grayscale.",
             },
             /*{
                 .priv = &focus_peaking_debug,
@@ -4304,6 +4312,11 @@ void draw_cropmark_area()
     bmp_draw_rect(COLOR_RED, HD2BM_X(0), HD2BM_Y(0), HD2BM_DX(vram_hd.width), HD2BM_DY(vram_hd.height));
     draw_line(HD2BM_X(0), HD2BM_Y(0), HD2BM_X(vram_hd.width), HD2BM_Y(vram_hd.height), COLOR_RED);
     draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
+}
+
+int is_focus_peaking_enabled()
+{
+    return focus_peaking && get_global_draw() && !should_draw_zoom_overlay();
 }
 
 

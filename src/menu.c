@@ -685,6 +685,8 @@ void color_icon(int x, int y, const char* color)
         maru(x, y, 14);
     else if (streq(color, "Yellow"))
         maru(x, y, COLOR_YELLOW);
+    else if (streq(color, "Orange"))
+        maru(x, y, COLOR_ORANGE);
     else if (streq(color, "White"))
         maru(x, y, COLOR_WHITE);
     else if (streq(color, "Black"))
