@@ -965,6 +965,7 @@ tweak_task( void* unused)
         upside_down_step();
 
         preview_saturation_step();
+        grayscale_menus_step();
 
         // if disp presets is enabled, make sure there are no Canon graphics
         extern int disp_profiles_0;
@@ -1494,9 +1495,14 @@ struct menu_entry expo_tweak_menus[] = {
 };
 
 CONFIG_INT("preview.saturation", preview_saturation, 1);
+CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
+
+int safe_to_do_engio_for_display = 1;
 
 void preview_saturation_step()
 {
+    if (!safe_to_do_engio_for_display) return;
+    if (tft_status) return;
     if (!lv) return;
     
     int saturation_register = 0xC0F140c4;
@@ -1504,8 +1510,64 @@ void preview_saturation_step()
 
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[preview_saturation];
+
     if (current_saturation != desired_saturation)
+    {
         EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
+    }
+}
+
+
+void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
+{
+    for (int i = 0; i < 256; i++)
+    {
+        if (i==0 || i==3 || i==0x14) continue; // don't alter transparent entries
+
+        int* LCD_Palette = 0x3bfa4;
+        int orig_palette_entry = LCD_Palette[3*i + 2];
+        //~ bmp_printf(FONT_LARGE,0,0,"%x ", orig_palette_entry);
+        //~ msleep(300);
+        //~ continue;
+        int8_t opacity = (orig_palette_entry >> 24) & 0xFF;
+        uint8_t orig_y = (orig_palette_entry >> 16) & 0xFF;
+        int8_t  orig_u = (orig_palette_entry >>  8) & 0xFF;
+        int8_t  orig_v = (orig_palette_entry >>  0) & 0xFF;
+
+        int y = orig_y / dim_factor;
+        int u = grayscale ? 0 : COERCE((int)orig_u / dim_factor + u_shift * y / 256, -128, 127);
+        int v = grayscale ? 0 : COERCE((int)orig_v / dim_factor + v_shift * y / 256, -128, 127);
+
+        int new_palette_entry =
+            ((opacity & 0xFF) << 24) |
+            ((y       & 0xFF) << 16) |
+            ((u       & 0xFF) <<  8) |
+            ((v       & 0xFF));
+        
+        EngDrvOut(0xC0F14400 + i*4, new_palette_entry);
+        EngDrvOut(0xC0F14800 + i*4, new_palette_entry);
+    }
+}
+
+void grayscale_menus_step()
+{
+    if (!safe_to_do_engio_for_display) return;
+    if (tft_status) return;
+
+    static int prev = 0;
+    if (bmp_color_scheme || prev)
+    {
+        if (tft_status == 0)
+        {
+            if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
+            else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);
+            else if (bmp_color_scheme == 2) alter_bitmap_palette(1,1,0,0);
+            else if (bmp_color_scheme == 3) alter_bitmap_palette(3,1,0,0);
+            else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
+        }
+    }
+
+    prev = bmp_color_scheme;
 }
 
 static struct menu_entry display_menus[] = {
@@ -1524,6 +1586,14 @@ static struct menu_entry display_menus[] = {
         .max = 3,
         .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high"},
         .help = "For preview only. Does not affect recording or histograms.",
+    },
+    {
+        .name = "Color Scheme   ",
+        .priv     = &bmp_color_scheme,
+        .max = 4,
+        .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
+        .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
+        .icon_type = IT_NAMED_COLOR,
     },
     {
         .name = "UpsideDown mode",

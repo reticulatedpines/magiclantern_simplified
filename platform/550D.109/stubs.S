@@ -275,3 +275,5 @@ NSTUB(0xFF1C1150, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_ge
 NSTUB(0xFF243820, SetImagePass_x5)
 
 NSTUB(0xff016b8c, get_current_task) // called from AJ_armlib_setup_related3
+
+NSTUB(0x2CDB0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800

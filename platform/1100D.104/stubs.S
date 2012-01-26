@@ -221,4 +221,11 @@ NSTUB(0xff3714ac, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
 
+NSTUB(0xff1d4c94, engio_write)
+NSTUB(0xff1d48d0, EngDrvOut)
+NSTUB(0xff1d47c0, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+
+
 NSTUB(0xff0175fc, get_current_task)
+
+NSTUB(0x1C06C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800

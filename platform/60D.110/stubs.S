@@ -291,3 +291,7 @@ NSTUB(0xff1c5690, EngDrvOut)
 NSTUB(0xff20c3d8, GUI_SetMovieParam)
 
 NSTUB(0xff0171dc, get_current_task)
+
+NSTUB(0xff1c5708, EngDrvIn)
+
+NSTUB(0x3bfa4, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800

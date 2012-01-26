@@ -304,29 +304,9 @@ void ChangeHDMIOutputSizeToFULLHD()
     prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 } 
 
-
 void run_test()
 {
     msleep(2000);
-    //~ beep();
-    //~ oneshot_timer(100, beep, beep, 0);
-
-    //~ fake_simple_button(BGMT_LV);
-    //~ iso_test();
-    
-    //~ SetGUIRequestMode(22);
-    /*
-    for (int i = 30; i > 10; i--)
-    {
-        SetGUIRequestMode(0);
-        msleep(1000);
-        fake_simple_button(BGMT_PLAY);
-        msleep(1000);
-        fake_simple_button(BGMT_PLAY);
-        msleep(1000);
-        NotifyBox(2000, "%d ", i);
-        SetGUIRequestMode(i);
-    }*/
 }
 
 void xx_test(void* priv, int delta)
@@ -1074,7 +1054,7 @@ void show_electronic_level()
 
 #ifdef CONFIG_HEXDUMP
 
-CONFIG_INT("hexdump", hexdump_addr, 0xC0F08000);
+CONFIG_INT("hexdump", hexdump_addr, 0x3bfa4);
 
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
@@ -2128,6 +2108,8 @@ movie_start( void )
 
 void ml_shutdown()
 {
+    extern int safe_to_do_engio_for_display;
+    safe_to_do_engio_for_display = 0;
     static int config_saved = 0;
     if (config_autosave && !config_saved)
     {

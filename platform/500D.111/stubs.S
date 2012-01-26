@@ -181,5 +181,8 @@ NSTUB(0xff371068, ErrCardForLVApp_handler)
 
 NSTUB(0xff190cf4, engio_write)
 NSTUB(0xff190be8, shamem_read)
+NSTUB(0xff190b84, EngDrvOut)
 
 NSTUB(0xFF016930, get_current_task)
+
+NSTUB(0x27e40, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
