@@ -62,14 +62,17 @@ extern struct lv_path_struct lv_path_struct;
 #define TG_FREQ_PAL  50000000
 #define TG_FREQ_NTSC_FPS 52747200
 #define TG_FREQ_NTSC_SHUTTER 49440000
+#define TG_FREQ_ZOOM 39230730 // not 100% sure
 
-#define FPS_x1000_TO_TIMER_PAL(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_PAL/(fps_x1000)):0)
-#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_NTSC_FPS/(fps_x1000)):0)
-#define TIMER_TO_FPS_x1000_PAL(t) (((t)!=0)?(TG_FREQ_PAL/(t)):0)
-#define TIMER_TO_FPS_x1000_NTSC(t) (((t)!=0)?(TG_FREQ_NTSC_FPS/(t)):0)
 
-#define SHUTTER_x1000_TO_TIMER_NTSC(s_x1000) (TG_FREQ_NTSC_SHUTTER/(s_x1000))
-#define TIMER_TO_SHUTTER_x1000_NTSC(t) (TG_FREQ_NTSC_SHUTTER/(t))
+#define TG_FREQ_FPS (zoom ? TG_FREQ_ZOOM : ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL)
+#define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)
+
+#define FPS_x1000_TO_TIMER(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_FPS/(fps_x1000)):0)
+#define TIMER_TO_FPS_x1000(t) (((t)!=0)?(TG_FREQ_FPS/(t)):0)
+
+#define SHUTTER_x1000_TO_TIMER(s_x1000) (TG_FREQ_SHUTTER/(s_x1000))
+#define TIMER_TO_SHUTTER_x1000(t) (TG_FREQ_SHUTTER/(t))
 
 static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
@@ -105,10 +108,12 @@ static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned in
     {
         case 10:
             table_offset = 2;
+            fps_mode = 1;
             break;
            
         case 5:
             table_offset = 1;
+            fps_mode = 1;
             break;
        
         default:
@@ -119,8 +124,8 @@ static int get_table_pos(unsigned int fps_mode, unsigned int zoomed, unsigned in
     switch(zoomed)
     {
         case 0:
-            ret[0] = (0 * 7 + table_offset) + fps_mode;
-            ret[1] = (3 * 7 + table_offset) + fps_mode;
+            ret[0] = ((0 + table_offset) * 7) + fps_mode;
+            ret[1] = ((3 + table_offset) * 7) + fps_mode;
             break;
             
         /* zoomed recording modes */
@@ -138,33 +143,41 @@ static unsigned int is_zoomed()
     return video_mode[0] & 0x08;
 }
 
-static int fps_get_current_x1000()
+static int get_fps_video_mode()
 {
-    int mode = 
+    int mode =
+        lv_dispsize > 1 || expsim!=2 ? 2 :
         video_mode_fps == 60 ? 0 : 
         video_mode_fps == 50 ? 1 : 
         video_mode_fps == 30 ? 2 : 
         video_mode_fps == 25 ? 3 : 
         video_mode_fps == 24 ? 4 : 0;
+    return mode;
+}
+
+static int fps_get_current_x1000()
+{
+    int mode = get_fps_video_mode();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
+    int ntsc = (mode % 2 == 0);
+
     unsigned int pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 0, lv_dispsize);
     int fps_timer = ((uint16_t*)SENSOR_TIMING_TABLE)[pos];
-    int ntsc = (mode % 2 == 0);
-    int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
+
+    int fps_x1000 = TIMER_TO_FPS_x1000(fps_timer);
+    //~ NotifyBox(5000,"fps=%d pos=%d", fps_x1000, pos);
     return fps_x1000;
 }
 
 static int shutter_get_timer(int degrees_x10)
 {
-    int mode = 
-        video_mode_fps == 60 ? 0 : 
-        video_mode_fps == 50 ? 1 : 
-        video_mode_fps == 30 ? 2 : 
-        video_mode_fps == 25 ? 3 : 
-        video_mode_fps == 24 ? 4 : 0;
+    int mode = get_fps_video_mode();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
     int ntsc = (mode % 2 == 0);
+
     int fps_x1000 = fps_get_current_x1000();
-    int timer = ntsc ? SHUTTER_x1000_TO_TIMER_NTSC(fps_x1000) 
-                     : FPS_x1000_TO_TIMER_PAL (fps_x1000);
+
+    int timer = SHUTTER_x1000_TO_TIMER(fps_x1000);
     return MAX(1, timer * degrees_x10 / 3600);
 }
 
@@ -246,15 +259,11 @@ static int get_shutter_override_reciprocal_x1000()
 {
     int timer = shutter_get_timer(get_shutter_override_degrees_x10());
 
-    int mode = 
-        video_mode_fps == 60 ? 0 : 
-        video_mode_fps == 50 ? 1 : 
-        video_mode_fps == 30 ? 2 : 
-        video_mode_fps == 25 ? 3 : 
-        video_mode_fps == 24 ? 4 : 0;
+    int mode = get_fps_video_mode();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
     int ntsc = (mode % 2 == 0);
 
-    int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+    int shutter_x1000 = TIMER_TO_SHUTTER_x1000(timer);
 
     return shutter_x1000;
 }
@@ -263,15 +272,17 @@ int get_current_shutter_reciprocal_x1000()
 {
     int timer = FRAME_SHUTTER_TIMER;
 
-    int mode = 
-        video_mode_fps == 60 ? 0 : 
-        video_mode_fps == 50 ? 1 : 
-        video_mode_fps == 30 ? 2 : 
-        video_mode_fps == 25 ? 3 : 
-        video_mode_fps == 24 ? 4 : 0;
+    int mode = get_fps_video_mode();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
     int ntsc = (mode % 2 == 0);
 
-    int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+    if (is_zoomed()) // workaround; shutter timer value is not known
+    {
+        if (!lens_info.raw_shutter) return 0;
+        return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
+    }
+
+    int shutter_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     return MAX(shutter_x1000, fps_get_current_x1000());
 }
 // called every frame
@@ -354,10 +365,12 @@ static void fps_change_mode(int mode, int fps, int dispsize)
      * 24fps = mode 4 - NTSC?
      **/
 
+    int zoom = lv_dispsize > 1 ? 1 : 0;
     int fps_x1000 = fps * 1000;
 
     // convert fps into timer ticks (for sensor drive speed)
-    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000*1000/1001) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
+    if (ntsc) fps_x1000 = fps_x1000*1000/1001;
+    int fps_timer = FPS_x1000_TO_TIMER(fps_x1000);
 
     // make sure we set a valid value (don't drive it too fast)
     unsigned int max_pos = get_table_pos(mode_offset_map[mode], is_zoomed(), 1, dispsize);
@@ -369,20 +382,20 @@ static void fps_change_mode(int mode, int fps, int dispsize)
     // also try to round it in order to avoid flicker
     if (ntsc)
     {
-        int timer_120hz = FPS_x1000_TO_TIMER_NTSC(120000*1000/1001);
+        int timer_120hz = FPS_x1000_TO_TIMER(120000*1000/1001);
         if(timer_120hz > 0)
         {
             int fps_timer_rounded = ((fps_timer + timer_120hz/2) / timer_120hz) * timer_120hz;
-            if (ABS(TIMER_TO_FPS_x1000_NTSC(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+            if (ABS(TIMER_TO_FPS_x1000(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
         }
     }
     else
     {
-        int timer_100hz = FPS_x1000_TO_TIMER_PAL(100000);
+        int timer_100hz = FPS_x1000_TO_TIMER(100000);
         if(timer_100hz > 0)
         {
             int fps_timer_rounded = ((fps_timer + timer_100hz/2) / timer_100hz) * timer_100hz;
-            if (ABS(TIMER_TO_FPS_x1000_PAL(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+            if (ABS(TIMER_TO_FPS_x1000(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
         }
     }
     
@@ -410,13 +423,13 @@ static void fps_change_all_modes(int fps)
         {
             fps_change_mode(i, fps, 1);
             fps_change_mode(i, fps, 5);
-            //~ fps_change_mode(i, fps, 10); // doesn't work
+            fps_change_mode(i, fps, 10);
         }
         for (int i = 2; i < 5; i++)
         {
             fps_change_mode(i, fps, 1);
             fps_change_mode(i, fps, 5);
-            //~ fps_change_mode(i, fps, 10); // doesn't work
+            fps_change_mode(i, fps, 10);
         }
     }
 
