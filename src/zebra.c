@@ -518,8 +518,8 @@ void
 hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
+    uint32_t* buf = lv->vram;
 
-    uint32_t *v_row = (uint32_t*) lv->vram;
     int x,y;
     
     histo_init();
@@ -552,12 +552,12 @@ hist_build()
         vectorscope_clear();
     }
 
-    for( y = os.y0 ; y < os.y_max; y += 2, v_row += (lv->pitch/2) )
+    for( y = os.y0 ; y < os.y_max; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
             // Average each of the two pixels
-            uint32_t pixel = v_row[x/2];
+            uint32_t pixel = buf[BM2LV(x,y)/4];
             uint32_t p1 = (pixel >> 16) & 0xFF00;
             uint32_t p2 = (pixel >>  0) & 0xFF00;
             uint8_t Y = ((p1+p2) / 2) >> 8;
@@ -587,7 +587,7 @@ hist_build()
                 hist_max = count;
 
             // Update the waveform plot
-            if (waveform_draw) waveform[ COERCE(((x-os.x0) * WAVEFORM_WIDTH) / os.x_max, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
+            if (waveform_draw) waveform[ COERCE(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
 
             if (vectorscope_draw)
             {
