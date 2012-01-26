@@ -580,6 +580,8 @@ void selection_bar(int x0, int y0)
 {
     int w = x0 + 720 - 40 - 10;
     if (submenu_mode==1) w -= 110;
+
+    extern int bmp_color_scheme;
     
     uint8_t* B = bmp_vram();
     for (int y = y0; y < y0 + 31; y++)
@@ -587,7 +589,7 @@ void selection_bar(int x0, int y0)
         for (int x = x0-5; x < w; x++)
         {
             if (B[BM(x,y)] == COLOR_BLACK)
-                B[BM(x,y)] = submenu_mode ? COLOR_LIGHTBLUE : COLOR_BLUE;
+                B[BM(x,y)] = submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
         }
     }
 }
