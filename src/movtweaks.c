@@ -665,7 +665,7 @@ void rec_notify_continuous(int called_from_menu)
 }
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+#if !defined(CONFIG_600D)
     if (rec_notify == 3)
     {
         extern int ml_started;
