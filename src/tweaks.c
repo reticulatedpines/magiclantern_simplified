@@ -482,7 +482,7 @@ af_frame_autohide_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "AFFrame display: %s", 
+        "Focus box (LV) : %s", 
         af_frame_autohide ? "AutoHide" : "Show"
     );
 }
@@ -1679,11 +1679,11 @@ static struct menu_entry display_menus[] = {
     },
     #endif
     {
-        .name = "AF frame display",
+        .name = "Focus box",
         .priv = &af_frame_autohide, 
         .select = menu_binary_toggle,
         .display = af_frame_autohide_display,
-        .help = "You can hide the AF frame (the little white rectangle).",
+        .help = "You can hide the focus box (the little white rectangle).",
         .icon_type = IT_DISABLE_SOME_FEATURE,
     },
 };
