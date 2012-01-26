@@ -1547,7 +1547,7 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
     {
         if (i==0 || i==3 || i==0x14) continue; // don't alter transparent entries
 
-        int* LCD_Palette = 0x3bfa4;
+        extern int LCD_Palette[];
         int orig_palette_entry = LCD_Palette[3*i + 2];
         //~ bmp_printf(FONT_LARGE,0,0,"%x ", orig_palette_entry);
         //~ msleep(300);
