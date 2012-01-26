@@ -1495,7 +1495,7 @@ void preview_saturation_step()
 {
     if (!safe_to_do_engio_for_display) return;
     if (tft_status) return;
-    if (!lv) return;
+    //~ if (!lv) return;
     
     int saturation_register = 0xC0F140c4;
     int current_saturation = shamem_read(saturation_register) & 0xFF;
@@ -1523,7 +1523,7 @@ void preview_saturation_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Saturation (LV): %s",
+        "Saturation     : %s",
         preview_saturation == 0 ? "0 (Grayscale)" :
         preview_saturation == 1 ? "Normal" :
         preview_saturation == 2 ? "High" :
@@ -1619,11 +1619,11 @@ static struct menu_entry display_menus[] = {
         },
     },
     {
-        .name = "Saturation (LV)",
+        .name = "Saturation",
         .priv     = &preview_saturation,
         .max = 3,
         .display = preview_saturation_display,
-        .help = "For preview only. Does not affect recording or histograms.",
+        .help = "For preview only (LV+PLAY). Does not affect recording.",
     },
     {
         .name = "Color Scheme   ",

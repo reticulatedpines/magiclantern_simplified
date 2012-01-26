@@ -4316,7 +4316,7 @@ void draw_cropmark_area()
 
 int is_focus_peaking_enabled()
 {
-    return focus_peaking && get_global_draw() && !should_draw_zoom_overlay();
+    return focus_peaking && lv && get_global_draw() && !should_draw_zoom_overlay();
 }
 
 
