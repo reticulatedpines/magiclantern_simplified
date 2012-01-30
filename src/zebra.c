@@ -2742,7 +2742,7 @@ struct menu_entry zebra_menus[] = {
                 .icon_type = IT_SIZE,
                 .help = "Magnification: 2:1 doubles the pixels.",
             },
-            #ifndef CONFIG_50D
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
             {
                 .name = "Focus confirm", 
                 .priv = &zoom_overlay_split,
@@ -3499,7 +3499,7 @@ static void draw_zoom_overlay(int dirty)
     //~ if (get_halfshutter_pressed() && clearscreen != 2) return;
     if (recording == 1) return;
     
-    #ifdef CONFIG_50D
+    #if defined(CONFIG_50D) || defined(CONFIG_500D)
     zoom_overlay_split = 0; // 50D doesn't report focus
     #endif
     
