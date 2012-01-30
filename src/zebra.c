@@ -124,6 +124,8 @@ static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
 
+CONFIG_INT( "quickreview.liveview", quickreview_liveview, 0); // allow LiveView tools in QR mode
+
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_trigger_mode() 
 { 
@@ -164,6 +166,7 @@ int zoom_overlay_dirty = 0;
 
 bool should_draw_zoom_overlay()
 {
+    if (!lv) return 0;
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
@@ -1140,8 +1143,8 @@ static int zebra_color_word_row_thick(int c, int y)
 
 int focus_peaking_debug = 0;
 
-// thresholded edge detection
-static void
+// returns how the focus peaking threshold changed
+static int
 draw_zebra_and_focus( int Z, int F )
 {
     if (lv_dispsize != 1) return;
@@ -1175,6 +1178,11 @@ draw_zebra_and_focus( int Z, int F )
     //~ int BMPPITCH = bmp_pitch();
     //~ int y;
 
+    static int thr = 50;
+    static int thr_increment = 1;
+    static int prev_thr = 50;
+    static int thr_delta = 0;
+
     if (F && focus_peaking)
     {
         // clear previously written pixels
@@ -1200,9 +1208,7 @@ draw_zebra_and_focus( int Z, int F )
         
         struct vram_info * hd_vram = get_yuv422_hd_vram();
         uint32_t * const hdvram = UNCACHEABLE(hd_vram->vram);
-        
-        static int thr = 50;
-        
+                
         int n_over = 0;
         int n_total = 0;
 
@@ -1358,11 +1364,24 @@ draw_zebra_and_focus( int Z, int F )
             }
         }
         //~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
-        if (1000 * n_over / n_total > (int)focus_peaking_pthr) thr++;
-        else thr--;
         
+        if (1000 * n_over / n_total > (int)focus_peaking_pthr)
+        {
+            if (thr_delta > 0) thr_increment++; else thr_increment = 1;
+            thr += thr_increment;
+        }
+        else
+        {
+            if (thr_delta < 0) thr_increment++; else thr_increment = 1;
+            thr -= thr_increment;
+        }
+
         int thr_min = (lens_info.iso > 1600 ? 15 : 10);
         thr = COERCE(thr, thr_min, 255);
+
+
+        thr_delta = thr - prev_thr;
+        prev_thr = thr;
     }
     
     int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (zebra_rec || !recording); // when to draw zebras
@@ -1446,6 +1465,22 @@ draw_zebra_and_focus( int Z, int F )
             }
         }
     }
+
+    return thr_delta;
+}
+
+void guess_focus_peaking_threshold()
+{
+    if (!focus_peaking) return;
+    int prev_thr_delta = 1234;
+    for (int i = 0; i < 50; i++)
+    {
+        int thr_delta = draw_zebra_and_focus(0,1);
+        //~ bmp_printf(FONT_LARGE, 0, 0, "%x ", thr_delta); msleep(1000);
+        if (!thr_delta) break;
+        if (prev_thr_delta != 1234 && SGN(thr_delta) != SGN(prev_thr_delta)) break;
+        prev_thr_delta = thr_delta;
+    }
 }
 
 
@@ -1488,10 +1523,10 @@ static void
 draw_false_downsampled( void )
 {
     //~ if (vram_width > 720) return;
-    if (!PLAY_MODE)
-    {
-        if (!expsim) return;
-    }
+    //~ if (!PLAY_MODE)
+    //~ {
+        //~ if (!expsim) return;
+    //~ }
     
     // exception: green screen palette is not fixed
     if (falsecolor_palette == 5)
@@ -3668,6 +3703,8 @@ static void draw_zoom_overlay(int dirty)
 
 bool liveview_display_idle()
 {
+    if (quickreview_liveview && QR_MODE) return 1;
+    
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
@@ -3750,7 +3787,8 @@ BMP_LOCK(
     }
     else
     {
-        draw_zebra_and_focus(1,0);
+        guess_focus_peaking_threshold();
+        draw_zebra_and_focus(1,1);
     }
     
     draw_histogram_and_waveform();
@@ -4386,7 +4424,7 @@ livev_hipriority_task( void* unused )
             msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
             guess_fastrefresh_direction();
             if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
-            BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
+            BMP_LOCK( draw_zoom_overlay(zoom_overlay_dirty); )
             zoom_overlay_dirty = 0;
             //~ crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
             // but redraw them after MZ is turned off
@@ -4400,16 +4438,17 @@ livev_hipriority_task( void* unused )
             if (falsecolor_draw)
             {
                 if (k % 2 == 0)
-                    BMP_LOCK( if (lv) draw_false_downsampled(); )
+                    BMP_LOCK( draw_false_downsampled(); )
             }
             else if (defish_preview)
             {
                 if (k % 2 == 0)
-                    BMP_LOCK( if (lv) defish_draw(); )
+                    BMP_LOCK( defish_draw(); )
             }
             else
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
+                if (QR_MODE) guess_focus_peaking_threshold();
+                BMP_LOCK( draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
@@ -4417,8 +4456,12 @@ livev_hipriority_task( void* unused )
         int s = get_seconds_clock();
         static int prev_s = 0;
         if (spotmeter_draw && s != prev_s)
-            BMP_LOCK( if (lv) spotmeter_step(); )
+            BMP_LOCK( spotmeter_step(); )
         prev_s = s;
+
+
+        // in QR mode, only draw stuff once, and only the tools before this line
+        while (QR_MODE) msleep(100);
 
         #ifdef CONFIG_60D
         if (electronic_level && k % 8 == 5)
@@ -4704,6 +4747,9 @@ static void livev_playback_toggle()
     }
     else
     {
+        #ifdef CONFIG_4_3_SCREEN
+        clrscr(); // old cameras don't refresh the entire screen
+        #endif
         redraw();
     }
 }

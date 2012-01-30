@@ -1688,6 +1688,8 @@ static struct menu_entry display_menus[] = {
     },
 };
 
+extern int quickreview_liveview;
+
 struct menu_entry play_menus[] = {
     {
         .name = "SET+MainDial (PLAY)",
@@ -1701,10 +1703,18 @@ struct menu_entry play_menus[] = {
     {
         .name = "After taking a photo",
         .priv = &quick_review_allow_zoom, 
-        .select = menu_binary_toggle, 
+        .max = 1,
         .display = qrplay_display,
         //~ .help = "Go to play mode to enable zooming and maybe other keys.",
         .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
+        .essential = FOR_PLAYBACK,
+        .icon_type = IT_BOOL,
+    },
+    {
+        .name = "LiveV tools in QR ",
+        .priv = &quickreview_liveview, 
+        .max = 1,
+        .help = "Allow LiveView tools to run in QuickReview mode too.",
         .essential = FOR_PLAYBACK,
         .icon_type = IT_BOOL,
     },

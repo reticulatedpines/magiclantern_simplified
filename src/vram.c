@@ -224,6 +224,15 @@ void update_vram_params()
     lv2hd.tx = -BM2HD_DX(os.x0 + bar_x);
     lv2hd.ty = -BM2HD_DY(os.y0 + bar_y);
 
+    if (!lv) // HD buffer not active, use LV instead
+    {
+        lv2hd.sx = lv2hd.sy = 1024;
+        lv2hd.tx = lv2hd.ty = 0;
+        vram_hd.pitch = vram_lv.pitch;
+        vram_hd.width = vram_lv.width;
+        vram_hd.height = vram_lv.height;
+    }
+
     //~ update_vram_params_calc();
 }
 
@@ -388,7 +397,7 @@ struct vram_info * get_yuv422_vram()
     }
 
     extern int lv_paused;
-    if (gui_state == GUISTATE_PLAYMENU || lv_paused)
+    if (gui_state == GUISTATE_PLAYMENU || lv_paused || QR_MODE)
         vram_lv.vram = get_lcd_422_buf();
     else
         vram_lv.vram = get_fastrefresh_422_buf();
@@ -402,6 +411,9 @@ struct vram_info * get_yuv422_hd_vram()
         BMP_LOCK( update_vram_params(); )
         vram_params_dirty = 0;
     }
+
+    if (!lv) // play/quickreview, HD buffer not active => use LV instead
+        return get_yuv422_vram();
 
     vram_hd.vram = get_422_hd_idle_buf();
     return &vram_hd;
