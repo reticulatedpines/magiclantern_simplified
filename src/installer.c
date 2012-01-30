@@ -209,7 +209,7 @@ void install_task()
     if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
     if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
     if (tft_status || gui_state != GUISTATE_IDLE) { SW1(1,100); SW1(0,100); Msleep(500); }
-#ifdef CONFIG_50D
+#if defined(CONFIG_50D) || defined(CONFIG_5D2)
     if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
     if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
     if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
