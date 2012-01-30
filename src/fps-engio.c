@@ -63,9 +63,8 @@ static int fps_get_current_x1000();
         #define TG_FREQ_NTSC_SHUTTER 39300000
     #else
         #ifdef CONFIG_50D
-            #define TG_FREQ_PAL  41400000
-            #define TG_FREQ_NTSC_FPS 41400000
-            #define FPS_TIMER_OFFSET 0 // not sure
+            #define TG_FREQ_PAL  41380585
+            #define TG_FREQ_NTSC_FPS 41380585
         #else
             #define TG_FREQ_PAL  50000000            // these values are OK on 550D
             #define TG_FREQ_NTSC_FPS 52747200
