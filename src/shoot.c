@@ -115,8 +115,20 @@ static int audio_release_running = 0;
 int motion_detect = 0;
 //int motion_detect_level = 8;
 
-static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
+static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180, 195, 210, 225, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
 //~ static int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
+
+static const char* format_time_minutes_seconds(int seconds)
+{
+    static char msg[30];
+    if (seconds < 60)
+        snprintf(msg, sizeof(msg), "%ds", seconds);
+    else if (seconds % 60 == 0)
+        snprintf(msg, sizeof(msg), "%dm", seconds / 60);
+    else
+        snprintf(msg, sizeof(msg), "%dm%ds", seconds / 60, seconds % 60);
+    return msg;
+}
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -173,12 +185,11 @@ interval_timer_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "%s: %d%s",
+            "%s: %s",
             (!is_movie_mode() || silent_pic_enabled) ? 
                 "Take a pic every" : 
                 "REC a clip every",
-            d < 60 ? d : d/60, 
-            d < 60 ? "s" : "m"
+            format_time_minutes_seconds(d)
         );
     }
     
@@ -196,9 +207,8 @@ interval_movie_stop_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Stop REC after  : %d%s",
-            d < 60 ? d : d/60, 
-            d < 60 ? "s" : "m"
+            "Stop REC after  : %s",
+            format_time_minutes_seconds(d)
         );
         if (!is_movie_mode() || silent_pic_enabled)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Movie mode inactive.");
@@ -225,9 +235,8 @@ intervalometer_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Intervalometer  : ON, %d%s%s",
-            d < 60 ? d : d/60, 
-            d < 60 ? "s" : "m",
+            "Intervalometer  : ON, %s%s",
+            format_time_minutes_seconds(d),
             bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_enabled) ? "" : ", Movie"
         );
         if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 10, selected);
@@ -2459,7 +2468,7 @@ bulb_take_pic(int duration)
     int d = duration/1000;
     for (int i = 0; i < d; i++)
     {
-        bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+        bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %s", format_time_minutes_seconds(d));
         wait_till_next_second();
         if (lens_info.job_state == 0) break;
     }
@@ -2493,20 +2502,12 @@ bulb_display( void * priv, int x, int y, int selected )
 {
     int d = bulb_shutter_value/1000;
     if (!bulb_duration_index) d = 0;
-    if (!bulb_timer)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Bulb Timer      : OFF"
-        );
-    else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Bulb Timer      : %d%s",
-            d < 60 ? d : d/60, 
-            d < 60 ? "s" : "min"
-        );
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Bulb Timer      : %s",
+        bulb_timer ? format_time_minutes_seconds(d) : "OFF"
+    );
     menu_draw_icon(x, y, !bulb_timer ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
     if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
 }
@@ -2519,9 +2520,8 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Bulb Exposure : %d%s",
-        d < 60 ? d : d/60, 
-        d < 60 ? "s" : "min"
+        "Bulb Exposure : %s",
+        format_time_minutes_seconds(d)
     );
     menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
@@ -4200,7 +4200,7 @@ shoot_task( void* unused )
             {
                 int d = bulb_shutter_value/1000;
                 NotifyBoxHide();
-                NotifyBox(10000, "[HalfShutter] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+                NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_minutes_seconds(d));
                 while (get_halfshutter_pressed())
                 {
                     msleep(100);
@@ -4208,13 +4208,13 @@ shoot_task( void* unused )
                 int m0 = shooting_mode;
                 wait_till_next_second();
                 NotifyBoxHide();
-                NotifyBox(2000, "[2s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+                NotifyBox(2000, "[2s] Bulb timer: %s", format_time_minutes_seconds(d));
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
                 NotifyBoxHide();
-                NotifyBox(2000, "[1s] Bulb timer: %d%s", d < 60 ? d : d/60, d < 60 ? "s" : "min");
+                NotifyBox(2000, "[1s] Bulb timer: %s", format_time_minutes_seconds(d));
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
