@@ -46,6 +46,21 @@ CONFIG_DEBUGMSG = 0
 CF_CARD=/media/EOS_DIGITAL/
 UMOUNT=umount
 
+UNAME:=$(shell uname)
+
+ifeq ($(UNAME), Darwin)
+	# Variable declaration for Mac OS X
+	UMOUNT=hdiutil unmount
+	CF_CARD="/Volumes/EOS_DIGITAL"
+	STAT=stat -f
+else
+	# Default settings for remaining operating systems
+	CF_CARD=/media/EOS_DIGITAL/
+	UMOUNT=umount
+	STAT=stat -c
+endif
+
+
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
 PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
@@ -336,7 +351,7 @@ autoexec: reboot.o
 		-Ttext 0x800000 \
 		$^ \
 	); \
-	stat -c "autoexec.bin: %s bytes" autoexec.bin; \
+	$(STAT) "autoexec.bin: %s bytes" autoexec.bin; \
 	readelf -l magiclantern | grep -C 2 MemSiz
 
 %-stubs.S: %.map
