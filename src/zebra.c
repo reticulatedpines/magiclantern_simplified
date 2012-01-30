@@ -2078,8 +2078,11 @@ spotmeter_menu_display(
         spotmeter_draw == 0    ? "OFF" : 
         spotmeter_formula == 0 ? "Percent" :
         spotmeter_formula == 1 ? "0..255" :
-        spotmeter_formula == 2 ? "IRE -1..101" 
-                               : "IRE 0..108",
+        spotmeter_formula == 2 ? "IRE -1..101" :
+        spotmeter_formula == 3 ? "IRE 0..108" :
+        spotmeter_formula == 4 ? "RGB" :
+        spotmeter_formula == 5 ? "HSL" :
+        /*spotmeter_formula == 6*/"HSV",
         spotmeter_draw && spotmeter_position ? ", AFF" : ""
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
@@ -2243,17 +2246,25 @@ static void spotmeter_step()
     int ycl = BM2LV_X(ycb);
     int dxl = BM2LV_DX(dxb);
     
+    unsigned sy = 0;
+    int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
     // Sum the values around the center
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
         for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
-            sum += (vr[ x + y * width]) & 0xFF00;
+        {
+            uint16_t p = vr[ x + y * width ];
+            sy += (p >> 8) & 0xFF;
+            if (x % 2) sv += (int8_t)(p & 0x00FF); else su += (int8_t)(p & 0x00FF);
+        }
     }
 
-    sum /= (2 * dxl + 1) * (2 * dxl + 1);
+    sy /= (2 * dxl + 1) * (2 * dxl + 1);
+    su /= (dxl + 1) * (2 * dxl + 1);
+    sv /= (dxl + 1) * (2 * dxl + 1);
 
     // Scale to 100%
-    const unsigned      scaled = (100 * sum) / 0xFF00;
+    const unsigned      scaled = (100 * sy) / 0xFF00;
     
     // spotmeter color: 
     // black on transparent, if brightness > 60%
@@ -2266,9 +2277,10 @@ static void spotmeter_step()
     uint32_t* M = get_bvram_mirror();
     uint32_t* B = bmp_vram();
 
+    int dx = spotmeter_formula <= 3 ? 26 : 52;
     for( y = (ycb&~1) - 13 ; y <= (ycb&~1) + 36 ; y++ )
     {
-        for( x = xcb - 26 ; x <= xcb + 26 ; x+=4 )
+        for( x = xcb - dx ; x <= xcb + dx ; x+=4 )
         {
             uint8_t* m = &(M[BM(x,y)/4]);
             if (!(*m & 0x80)) *m = 0x80;
@@ -2301,14 +2313,14 @@ static void spotmeter_step()
             fnt,
             xcb, ycb, 
             "%3d%s",
-            spotmeter_formula == 0 ? scaled : sum >> 8,
+            spotmeter_formula == 0 ? scaled : sy >> 8,
             spotmeter_formula == 0 ? "%" : ""
         );
     }
-    else
+    else if (spotmeter_formula <= 3)
     {
-        int ire_aj = (((int)sum >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
-        int ire_piers = ((int)sum >> 8) * 108/255;           // formula from Piers: (0...255) -> (0...108)
+        int ire_aj = (((int)sy >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
+        int ire_piers = ((int)sy >> 8) * 108/255;           // formula from Piers: (0...255) -> (0...108)
         int ire = (spotmeter_formula == 2) ? ire_aj : ire_piers;
         
         bmp_printf(
@@ -2324,6 +2336,20 @@ static void spotmeter_step()
             "IRE\n%s",
             spotmeter_formula == 2 ? "-1..101" : "0..108"
         );
+    }
+    else
+    {
+        int R = COERCE(sy + 1437 * sv / 1024, 0, 255);
+        int G = COERCE(sy -  352 * su / 1024 - 731 * sv / 1024, 0, 255);
+        int B = COERCE(sy + 1812 * su / 1024, 0, 255);
+        xcb -= font_med.width * 3/2;
+        bmp_printf(
+            fnt,
+            xcb, ycb, 
+            "#%02x%02x%02x",
+            R,G,B
+        );
+
     }
 }
 
@@ -2805,8 +2831,8 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Unit",
                 .priv = &spotmeter_formula, 
-                .max = 3,
-                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108"},
+                .max = 4,
+                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level.",
             },
@@ -4382,9 +4408,11 @@ livev_hipriority_task( void* unused )
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
 
-        
-        if (spotmeter_draw && k % 8 == 3)
+        int s = get_seconds_clock();
+        static int prev_s = 0;
+        if (spotmeter_draw && s != prev_s)
             BMP_LOCK( if (lv) spotmeter_step(); )
+        prev_s = s;
 
         #ifdef CONFIG_60D
         if (electronic_level && k % 8 == 5)

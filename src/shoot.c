@@ -2711,6 +2711,8 @@ static int bramp_measured_level = 0;
 static int bramp_hist_dirty = 0;
 
 static int seconds_clock = 0;
+int get_seconds_clock() { return seconds_clock; } 
+
 static void
 seconds_clock_task( void* unused )
 {
