@@ -124,7 +124,7 @@ static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
 
-CONFIG_INT( "quickreview.liveview", quickreview_liveview, 0); // allow LiveView tools in QR mode
+CONFIG_INT( "quickreview.liveview", quickreview_liveview, 1); // allow LiveView tools in QR mode
 
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_trigger_mode() 
