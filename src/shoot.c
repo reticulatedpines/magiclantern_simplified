@@ -390,6 +390,7 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     afframe_set_dirty();
     
     memcpy(afframe, buf, 0x68);
+
     return prop_cleanup( token, property );
 }
 
@@ -4077,6 +4078,12 @@ static void
 shoot_task( void* unused )
 {
     //~ int i = 0;
+    if (!lv)
+    {   // center AF frame at startup in photo mode
+        afframe[2] = (afframe[0] - afframe[4])/2;
+        afframe[3] = (afframe[1] - afframe[5])/2;
+        prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+    }
 
     bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
 
