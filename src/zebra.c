@@ -1334,8 +1334,7 @@ draw_zebra_and_focus( int Z, int F )
                     n_over++;
                     if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
                     {
-                        thr = MIN(thr+2, 255);
-                        return;
+                        break;
                     }
 
                     int color = get_focus_color(thr, e);
@@ -1382,6 +1381,9 @@ draw_zebra_and_focus( int Z, int F )
 
         thr_delta = thr - prev_thr;
         prev_thr = thr;
+
+        if (n_over > MAX_DIRTY_PIXELS)
+            return thr_delta;
     }
     
     int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (zebra_rec || !recording); // when to draw zebras
