@@ -704,7 +704,7 @@ hist_draw_image(
     int highlight_level
 )
 {
-    if (!PLAY_MODE)
+    if (!PLAY_OR_QR_MODE)
     {
         if (!expsim) return;
     }
@@ -791,7 +791,7 @@ waveform_draw_image(
     unsigned        height
 )
 {
-    if (!PLAY_MODE)
+    if (!PLAY_OR_QR_MODE)
     {
         if (!expsim) return;
     }
@@ -1147,7 +1147,7 @@ int focus_peaking_debug = 0;
 static int
 draw_zebra_and_focus( int Z, int F )
 {
-    if (lv_dispsize != 1) return;
+    //~ if (lv_dispsize != 1) return;
     //~ if (vram_width > 720) return;
 
 /*  int Zd = should_draw_zoom_overlay();
@@ -1162,7 +1162,94 @@ draw_zebra_and_focus( int Z, int F )
         //~ { draw_zebra_and_focus_unified(); return; }
     
     if (!get_global_draw()) return;
+
+    uint8_t * const bvram = bmp_vram_real();
+    if (!bvram) return;
+    if (!bvram_mirror) return;
     
+    int zd = Z && zebra_draw && (expsim || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
+    if (zd)
+    {
+        int zlh = zebra_level_hi * 255 / 100;
+        int zll = zebra_level_lo * 255 / 100;
+
+        uint8_t * const lvram = get_yuv422_vram()->vram;
+        
+        // draw zebra in 16:9 frame
+        // y is in BM coords
+        for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+        {
+            uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
+            uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
+            uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
+            uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
+            
+            uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
+            uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(y)       );  // 4 pixels
+            uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(y)       );  // 4 pixels
+            
+            uint32_t* lvp; // that's a moving pointer through lv vram
+            uint32_t* bp;  // through bmp vram
+            uint32_t* mp;  // through mirror
+
+            for (int x = os.x0; x < os.x_max; x += 4)
+            {
+                lvp = v_row + BM2LV_X(x)/2;
+                bp = b_row + x/4;
+                mp = m_row + x/4;
+                #define BP (*bp)
+                #define MP (*mp)
+                #define BN (*(bp + BMPPITCH/4))
+                #define MN (*(mp + BMPPITCH/4))
+                if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
+                if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
+                if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
+                
+                if (zebra_colorspace == 1) // rgb
+                {
+                    uint32_t pixel = *lvp;
+                    uint32_t p1 = (pixel >> 24) & 0xFF;
+                    uint32_t p2 = (pixel >>  8) & 0xFF;
+                    int Y = (p1+p2) / 2;
+                    int8_t U = (pixel >>  0) & 0xFF;
+                    int8_t V = (pixel >> 16) & 0xFF;
+                    int R = Y + 1437 * V / 1024;
+                    int G = Y -  352 * U / 1024 - 731 * V / 1024;
+                    int B = Y + 1812 * U / 1024;
+                    R = MIN(R, 255);
+                    G = MIN(G, 255);
+                    B = MIN(B, 255);
+                    //~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
+
+                    BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
+                    BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
+                }
+                else
+                {
+                    int p0 = (*lvp) >> 8 & 0xFF;
+                    if (p0 > zlh)
+                    {
+                        BP = MP = color_over;
+                        BN = MN = color_over_2;
+                    }
+                    else if (p0 < zll)
+                    {
+                        BP = MP = color_under;
+                        BN = MN = color_under_2;
+                    }
+                    else if (BP)
+                        BN = MN = BP = MP = 0;
+                }
+                    
+                #undef MP
+                #undef BP
+                #undef BN
+                #undef MN
+            }
+        }
+    }
+
+
     // HD to LV coordinate transform:
     // non-record: 1056 px: 1.46 ratio (yuck!)
     // record: 1720: 2.38 ratio (yuck!)
@@ -1171,10 +1258,6 @@ draw_zebra_and_focus( int Z, int F )
     // Scan the HD vram and do ratio conversion only for the 1% pixels displayed
 
     //~ bvram_mirror_init();
-
-    uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
     //~ int BMPPITCH = bmp_pitch();
     //~ int y;
 
@@ -1384,88 +1467,6 @@ draw_zebra_and_focus( int Z, int F )
 
         if (n_over > MAX_DIRTY_PIXELS)
             return thr_delta;
-    }
-    
-    int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (zebra_rec || !recording); // when to draw zebras
-    if (zd)
-    {
-        int zlh = zebra_level_hi * 255 / 100;
-        int zll = zebra_level_lo * 255 / 100;
-
-        uint8_t * const lvram = get_yuv422_vram()->vram;
-        
-        // draw zebra in 16:9 frame
-        // y is in BM coords
-        for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
-        {
-            uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
-            uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
-            uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
-            uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
-            
-            uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
-            uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(y)       );  // 4 pixels
-            uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(y)       );  // 4 pixels
-            
-            uint32_t* lvp; // that's a moving pointer through lv vram
-            uint32_t* bp;  // through bmp vram
-            uint32_t* mp;  // through mirror
-
-            for (int x = os.x0; x < os.x_max; x += 4)
-            {
-                lvp = v_row + BM2LV_X(x)/2;
-                bp = b_row + x/4;
-                mp = m_row + x/4;
-                #define BP (*bp)
-                #define MP (*mp)
-                #define BN (*(bp + BMPPITCH/4))
-                #define MN (*(mp + BMPPITCH/4))
-                if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-                if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
-                if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
-                
-                if (zebra_colorspace == 1) // rgb
-                {
-                    uint32_t pixel = *lvp;
-                    uint32_t p1 = (pixel >> 24) & 0xFF;
-                    uint32_t p2 = (pixel >>  8) & 0xFF;
-                    int Y = (p1+p2) / 2;
-                    int8_t U = (pixel >>  0) & 0xFF;
-                    int8_t V = (pixel >> 16) & 0xFF;
-                    int R = Y + 1437 * V / 1024;
-                    int G = Y -  352 * U / 1024 - 731 * V / 1024;
-                    int B = Y + 1812 * U / 1024;
-                    R = MIN(R, 255);
-                    G = MIN(G, 255);
-                    B = MIN(B, 255);
-                    //~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
-
-                    BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
-                    BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
-                }
-                else
-                {
-                    int p0 = (*lvp) >> 8 & 0xFF;
-                    if (p0 > zlh)
-                    {
-                        BP = MP = color_over;
-                        BN = MN = color_over_2;
-                    }
-                    else if (p0 < zll)
-                    {
-                        BP = MP = color_under;
-                        BN = MN = color_under_2;
-                    }
-                    else if (BP)
-                        BN = MN = BP = MP = 0;
-                }
-                    
-                #undef MP
-                #undef BP
-                #undef BN
-                #undef MN
-            }
-        }
     }
 
     return thr_delta;
@@ -2256,8 +2257,9 @@ int get_spot_focus(int dxb)
 static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
+    if (!get_global_draw()) return;
     //~ if (!lv) return;
-    if (!PLAY_MODE)
+    if (!PLAY_OR_QR_MODE)
     {
         if (!expsim) return;
     }
@@ -2307,7 +2309,7 @@ static void spotmeter_step()
     sv /= (dxl + 1) * (2 * dxl + 1);
 
     // Scale to 100%
-    const unsigned      scaled = (100 * sy) / 0xFF00;
+    const unsigned      scaled = (101 * sy) / 256;
     
     // spotmeter color: 
     // black on transparent, if brightness > 60%
@@ -2471,7 +2473,7 @@ static void transparent_overlay_offset_clear(void* priv, int delta)
 
 int handle_transparent_overlay(struct event * event)
 {
-    if (transparent_overlay && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
+    if (transparent_overlay && event->param == BGMT_LV && PLAY_OR_QR_MODE)
     {
         schedule_transparent_overlay();
         return 0;
@@ -2864,20 +2866,20 @@ struct menu_entry zebra_menus[] = {
         .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
             {
+                .name = "Unit",
+                .priv = &spotmeter_formula, 
+                .max = 4,
+                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},
+                .icon_type = IT_DICE,
+                .help = "Measurement unit for brightness level(s).",
+            },
+            {
                 .name = "Position",
                 .priv = &spotmeter_position, 
                 .max = 1,
                 .choices = (const char *[]) {"Center", "AF Frame"},
                 .icon_type = IT_DICE,
                 .help = "Spotmeter position: center or attached to AF frame.",
-            },
-            {
-                .name = "Unit",
-                .priv = &spotmeter_formula, 
-                .max = 4,
-                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},
-                .icon_type = IT_DICE,
-                .help = "Measurement unit for brightness level.",
             },
             MENU_EOL
         }
@@ -3172,7 +3174,7 @@ cropmark_draw()
 
     if (
             (!crop_enabled) ||
-            (cropmark_movieonly && !is_movie_mode() && !PLAY_MODE)
+            (cropmark_movieonly && !is_movie_mode() && !PLAY_OR_QR_MODE)
        )
     {
         cropmark_clear_cache();
@@ -3223,7 +3225,7 @@ cropmark_cache_check()
 static void
 cropmark_redraw()
 {
-    if (!zebra_should_run() && !PLAY_MODE) return;
+    if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
     cropmark_cache_check();
     BMP_LOCK( cropmark_draw(); )
 }
@@ -3705,8 +3707,6 @@ static void draw_zoom_overlay(int dirty)
 
 bool liveview_display_idle()
 {
-    if (quickreview_liveview && QR_MODE) return 1;
-    
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
@@ -3793,7 +3793,8 @@ BMP_LOCK(
         draw_zebra_and_focus(1,1);
     }
     
-    draw_histogram_and_waveform();
+    draw_histogram_and_waveform(1);
+
 )
 }
 
@@ -3805,7 +3806,7 @@ int should_draw_bottom_graphs()
     return 0;
 }
 
-void draw_histogram_and_waveform()
+void draw_histogram_and_waveform(allow_play)
 {
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
@@ -3817,7 +3818,7 @@ void draw_histogram_and_waveform()
     
     //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
-    if (!liveview_display_idle() && !PLAY_MODE) return;
+    if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
     if (lv && lv_dispsize > 1) return;
 
     int screen_layout = get_screen_layout();
@@ -3834,7 +3835,7 @@ void draw_histogram_and_waveform()
 
     //~ if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
-    if (!liveview_display_idle() && !PLAY_MODE) return;
+    if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
     if (lv && lv_dispsize > 1) return;
         
     if( waveform_draw)
@@ -4388,7 +4389,12 @@ void draw_cropmark_area()
 
 int is_focus_peaking_enabled()
 {
-    return focus_peaking && lv && get_global_draw() && !should_draw_zoom_overlay();
+    return
+        focus_peaking &&
+        (lv || (QR_MODE && quickreview_liveview))
+        && get_global_draw()
+        && !should_draw_zoom_overlay()
+    ;
 }
 
 
@@ -4449,7 +4455,6 @@ livev_hipriority_task( void* unused )
             }
             else
             {
-                if (QR_MODE) guess_focus_peaking_threshold();
                 BMP_LOCK( draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
@@ -4460,10 +4465,6 @@ livev_hipriority_task( void* unused )
         if (spotmeter_draw && s != prev_s)
             BMP_LOCK( spotmeter_step(); )
         prev_s = s;
-
-
-        // in QR mode, only draw stuff once, and only the tools before this line
-        while (QR_MODE) msleep(100);
 
         #ifdef CONFIG_60D
         if (electronic_level && k % 8 == 5)
@@ -4592,24 +4593,31 @@ livev_lopriority_task( void* unused )
         }
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_MODE)
+        if (cropmarks_play && PLAY_OR_QR_MODE)
         {
             cropmark_redraw();
             msleep(300);
+        }
+
+        if (quickreview_liveview && QR_MODE && get_global_draw())
+        {
+            msleep(500);
+            draw_livev_for_playback();
+            while (QR_MODE) msleep(100);
         }
 
         loprio_sleep();
         if (!zebra_should_run())
         {
             if (WAVEFORM_FULLSCREEN && liveview_display_idle() && get_global_draw() && lv_dispsize == 1)
-                draw_histogram_and_waveform();
+                draw_histogram_and_waveform(0);
             continue;
         }
 
         loprio_sleep();
 
         if (!gui_menu_shown())
-            draw_histogram_and_waveform();
+            draw_histogram_and_waveform(0);
         
         if (crop_redraw_flag)
         {

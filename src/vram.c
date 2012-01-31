@@ -127,7 +127,7 @@ void update_vram_params()
 #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
     if (!EXT_MONITOR_CONNECTED)
     {
-        if (PLAY_MODE)
+        if (PLAY_MODE || QR_MODE)
         {
             os.y0 = 52; // black bar is at the top in play mode, 48 with additional info
             os.y_ex = 428; // 480 - os.y0; // screen height is 480px in total
