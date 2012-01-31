@@ -19,17 +19,27 @@ static CONFIG_INT("dm.global.level", dm_global_level, 0xff);
 static CONFIG_INT("dm.class", dm_class, 137);
 static CONFIG_INT("dm.class.level", dm_class_level, 0);
 
+FILE* logfile = 0;
 static void log_msg(int k)
 {
     int a = MEM(MEM(0x2D14)+0x10);
     //~ int b = a + 85 * MEM(8 + a + 3*60);
     static int y = 0;
-    bmp_printf(FONT_SMALL, 0, y,
-        "%d:%s\n                                                                                          ",
+
+    //~ if (logfile)
+    /*
+    my_fprintf(logfile,
+    //~ bmp_printf(FONT_SMALL, 0, y,
+        "%d:%s\n",
+        //~ "%d:%s\n                                                                                          ",
         k, a + 0x88 + k * 84
-    );
+    );*/
     y += font_small.height;
     if (y > 450) y = 0;
+
+    MEM(a + 0x88 + k * 84 + 30) = 0;
+    NotifyBox(5000, "%d:\n%s", k, a + 0x88 + k * 84);
+
 }
 
 static int (*StateTransition)(void*,int,int,int,int) = 0;
@@ -56,8 +66,18 @@ static void stateobj_start_spy(struct state_object * stateobj)
 
 static void dm_update()
 {
-    if (dm_enable) dmstart();
-    else dmstop();
+    if (dm_enable)
+    {
+        dmstart();
+        FIO_RemoveFile(CARD_DRIVE "dm.log");
+        logfile = FIO_CreateFile(CARD_DRIVE "dm.log");
+    }
+    else
+    {
+        dmstop();
+        FIO_CloseFile(logfile);
+        logfile = 0;
+    }
 
     dm_set_store_level(0xFF, dm_global_level);
     dm_set_print_level(0xFF, dm_global_level);
@@ -110,6 +130,7 @@ static void dmspy_task(void* unused)
 {
     menu_add("Debug", debug_menus, COUNT(debug_menus));
     dm_update();
+    DEBUG("hello world");
     stateobj_start_spy(dm_state);
 }
 
