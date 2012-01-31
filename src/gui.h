@@ -201,6 +201,7 @@ gui_hide_menu( int redisplay_time );
 
 void fake_simple_button(int bgmt_code);
 
+#define QR_MODE (gui_state == GUISTATE_QR)
 
 void canon_gui_disable_front_buffer();
 void canon_gui_enable_front_buffer(int also_redraw);
