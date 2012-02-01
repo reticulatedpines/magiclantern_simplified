@@ -1755,15 +1755,6 @@ struct menu_entry play_menus[] = {
         .help = "Delete files quickly with SET+Erase (be careful!!!)",
         .essential = FOR_PLAYBACK,
     },
-    {
-        .name = "Screenshot (10 s)",
-        .select     = screenshot_start,
-        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
-        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
-        #else
-        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
-        #endif
-    },
 };
 
 static void tweak_init()

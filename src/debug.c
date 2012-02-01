@@ -1767,6 +1767,15 @@ struct menu_entry debug_menus[] = {
         .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
     },
 #endif
+    {
+        .name = "Screenshot (10 s)",
+        .select     = screenshot_start,
+        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
+        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
+        #else
+        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
+        #endif
+    },
     #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
     {
         .name = "Free Memory",
