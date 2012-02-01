@@ -27,6 +27,10 @@ int kelvin_wb_dirty = 1;
 
 void save_kelvin_wb()
 {
+    #ifdef CONFIG_5D2
+    return;
+    #endif
+    
     if (!lens_info.kelvin) return;
     workaround_wb_kelvin = lens_info.kelvin;
     workaround_wbs_gm = lens_info.wbs_gm + 100;
@@ -36,6 +40,9 @@ void save_kelvin_wb()
 
 void restore_kelvin_wb()
 {
+    #ifdef CONFIG_5D2
+    return;
+    #endif
     //~ if (!white_balance_workaround) return;
     msleep(500); // to make sure mode switch is complete
     // sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
@@ -47,6 +54,9 @@ void restore_kelvin_wb()
 
 void kelvin_wb_workaround_step()
 {
+    #ifdef CONFIG_5D2
+    return;
+    #endif
     if (!kelvin_wb_dirty)
     {
         save_kelvin_wb();
