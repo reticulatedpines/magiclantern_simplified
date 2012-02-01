@@ -258,6 +258,7 @@ enable_liveview_print(
 
 void force_liveview()
 {
+    msleep(200);
     ResumeLiveView();
     while (get_halfshutter_pressed()) msleep(100);
     get_out_of_play_mode(200);
@@ -392,6 +393,7 @@ movtweak_task( void* unused )
         if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
             (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
+            msleep(500);
             force_liveview();
         }
 
