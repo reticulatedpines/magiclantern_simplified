@@ -90,7 +90,7 @@ static int handle_buttons(struct event * event)
 		return 0; // handled above
 	}
 
-	if (event->param == BGMT_LV && !IS_FAKE(event))
+	if (event->param == BGMT_LV)// && !IS_FAKE(event))
 		lv_stopped_by_user = 1;
 
 	if (event->param == BGMT_PRESS_SET && recording)
@@ -119,19 +119,6 @@ PROP_HANDLER(PROP_LV_ACTION)
 	}
 	return prop_cleanup(token, property);
 }
-
-PROP_HANDLER(PROP_GUI_STATE)
-{
-	if (!lv) lv_stopped_by_user = 1; // liveview closed because we went to play mode or something similar
-	return prop_cleanup(token, property);
-}
-
-PROP_HANDLER(PROP_LAST_JOB_STATE)
-{
-	if (!lv) lv_stopped_by_user = 1; // liveview closed because we took a picture
-	return prop_cleanup(token, property);
-}
-
 
 int get_lv_stopped_by_user() { return !lv && lv_stopped_by_user; }
 
