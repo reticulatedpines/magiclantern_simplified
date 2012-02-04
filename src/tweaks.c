@@ -1577,7 +1577,7 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 void grayscale_menus_step()
 {
     if (!safe_to_do_engio_for_display) return;
-    if (DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON) return;
 
     static int prev = 0;
     if (bmp_color_scheme || prev)
