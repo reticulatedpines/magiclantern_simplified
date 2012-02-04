@@ -48,7 +48,7 @@ int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
-static CONFIG_INT("menu.advanced", advanced_mode, 0);
+static CONFIG_INT("menu.advanced", advanced_mode, 1);
 
 int get_menu_advanced_mode() { return advanced_mode; }
 
