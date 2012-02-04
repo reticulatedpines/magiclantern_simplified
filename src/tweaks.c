@@ -96,7 +96,7 @@ dofp_update()
 //**********************************************************************
 CONFIG_INT( "expsim", expsim_setting, 2);
 
-static void set_expsim( int x )
+void set_expsim( int x )
 {
     if (expsim != x)
     {

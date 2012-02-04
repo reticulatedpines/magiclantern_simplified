@@ -3695,6 +3695,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
         int rc = rs - ev_x8;
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
+        int expsim0 = expsim;
         
         //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
@@ -3707,7 +3708,10 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
         {
             int b = bulb_ramping_enabled;
             bulb_ramping_enabled = 0; // to force a pic in manual mode
-            
+
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+            set_expsim(1); // can't set shutter slower than 1/30 in movie mode
+            #endif
             hdr_set_rawshutter(rc);
             take_a_pic(allow_af);
             
@@ -3718,6 +3722,9 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
         //~ set_shooting_mode(m0r);
         hdr_set_rawshutter(s0r);
         hdr_set_rawiso(iso0);
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        set_expsim(expsim0);
+        #endif
     }
     lens_wait_readytotakepic(64);
 }
@@ -4186,6 +4193,7 @@ shoot_task( void* unused )
         {
             drive_mode_bk = drive_mode;
             lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+            info_led_on();
         }
         
         // restore drive mode if it was changed
@@ -4194,6 +4202,7 @@ shoot_task( void* unused )
             msleep(50);
             lens_set_drivemode(drive_mode_bk);
             drive_mode_bk = -1;
+            info_led_off();
         }
     
         if (bulb_timer && is_bulb_mode() && !gui_menu_shown())

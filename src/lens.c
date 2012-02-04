@@ -880,12 +880,15 @@ lens_focus(
 
 void lens_wait_readytotakepic(int wait)
 {
+    info_led_on();
     int i;
     for (i = 0; i < wait * 10; i++)
     {
-        if (lens_info.job_state <= 0xA && burst_count > 0) break;
+        if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
+        if (lens_info.job_state == 0 && burst_count > 0 && is_movie_mode()) break;
         msleep(20);
     }
+    info_led_off();
 }
 
 int mirror_locked = 0;
