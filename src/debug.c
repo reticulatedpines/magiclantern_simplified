@@ -1408,13 +1408,13 @@ void flashlight_lcd_task(void *priv)
     while (get_halfshutter_pressed()) msleep(100);
     idle_globaldraw_dis();
     msleep(100);
-    if (tft_status) { fake_simple_button(BGMT_INFO); msleep(500); }
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_INFO); msleep(500); }
 
     canon_gui_disable_front_buffer();
     int b = backlight_level;
     set_backlight_level(7);
     
-    while (!get_halfshutter_pressed() && tft_status == 0)
+    while (!get_halfshutter_pressed() && DISPLAY_IS_ON)
     {
         bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
         msleep(50);
@@ -2730,6 +2730,6 @@ void display_off_force()
     _display_is_off = 0;
     display_off();
 }
-int display_is_on() { return !_display_is_off; }
+int display_is_on() { return DISPLAY_IS_ON; }
 
 

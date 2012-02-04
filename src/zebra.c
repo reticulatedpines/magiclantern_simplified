@@ -305,7 +305,7 @@ int get_global_draw() // menu setting, or off if
         !idle_globaldraw_disable && 
         !sensor_cleaning && 
         bmp_is_on() &&
-        tft_status == 0 && 
+        DISPLAY_IS_ON && 
         recording != 1 && 
         #ifdef CONFIG_KILL_FLICKER
         !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
@@ -3244,7 +3244,7 @@ cropmark_redraw()
 int is_safe_to_mess_with_the_display(int timeout_ms)
 {
     int k = 0;
-    while (lens_info.job_state >= 10 || tft_status || recording == 1)
+    while (lens_info.job_state >= 10 || !DISPLAY_IS_ON || recording == 1)
     {
         k++;
         if (k * 100 > timeout_ms) return 0;
@@ -3265,7 +3265,7 @@ void bmp_on()
     #else
         BMP_LOCK(
             cli_save();
-            if (tft_status == 0)
+            if (DISPLAY_IS_ON)
             {
                 MuteOff_0();
                 _bmp_muted = false; _bmp_unmuted = true;
@@ -3294,7 +3294,7 @@ void bmp_off()
     #else
         BMP_LOCK(
             cli_save();
-            if (tft_status == 0)
+            if (DISPLAY_IS_ON)
             {
                 _bmp_muted = true; _bmp_unmuted = false;
                 MuteOn_0();
@@ -3728,7 +3728,7 @@ bool liveview_display_idle()
 
     return
         LV_NON_PAUSED && 
-        tft_status == 0 &&
+        DISPLAY_IS_ON &&
         !menu_active_and_not_hidden() && 
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
@@ -3995,7 +3995,6 @@ void PauseLiveView()
         //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
             lv_zoom_before_pause = lv_dispsize;
-            tft_status = 1; // assume display is off
             prop_request_change(PROP_LV_ACTION, &x, 4);
             msleep(100);
             clrscr();
@@ -4156,7 +4155,7 @@ clearscreen_loop:
         
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
-        if (k % 50 == 0 && (tft_status || !display_is_on()) && lens_info.job_state == 0)
+        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0)
             info_led_blink(1, 20, 20);
 
         if (!lv) continue;

@@ -28,7 +28,6 @@ extern int ext_monitor_rca;
 extern int file_number;
 extern int folder_number;
 extern int file_number_also;
-extern int tft_status;
 extern int drive_mode;
 extern int strobo_firing;
 extern int lvaf_mode;

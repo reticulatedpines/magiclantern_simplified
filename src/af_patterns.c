@@ -129,7 +129,7 @@ int afp_transformer (int pattern, type_DIRECTION direction) {
 int handle_af_patterns(struct event * event)
 {
     extern int af_patterns;
-    if (af_patterns && !lv && gui_state == GUISTATE_IDLE && tft_status)
+    if (af_patterns && !lv && gui_state == GUISTATE_IDLE && !DISPLAY_IS_ON)
     {
         switch (event->param)
         {

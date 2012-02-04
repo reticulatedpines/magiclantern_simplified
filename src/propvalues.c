@@ -32,14 +32,6 @@ volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 
-volatile int tft_status = 1; // assume display off at startup
-PROP_HANDLER(PROP_TFT_STATUS)
-{
-    tft_status = buf[0];
-    return prop_cleanup(token, property);
-}
-
-
 #ifndef CONFIG_5D2
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 #else

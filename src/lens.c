@@ -855,7 +855,7 @@ lens_focus(
     {
         lv_focus_done = 0;
         info_led_on();
-        if (lv && !mirror_down && tft_status == 0 && lens_info.job_state == 0)
+        if (lv && !mirror_down && DISPLAY_IS_ON && lens_info.job_state == 0)
             prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
         if (wait)
         {

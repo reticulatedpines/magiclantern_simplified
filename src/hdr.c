@@ -12,7 +12,7 @@
 #include "config.h"
 
 #ifdef CONFIG_550D
-#define DISPLAY_STATE (*(struct state_object **)0x245c)
+#define DISPLAY_STATE DISPLAY_STATEOBJ
 #define MOVREC_STATE (*(struct state_object **)0x5B34)
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)

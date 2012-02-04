@@ -287,3 +287,6 @@
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "DISP"
+
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x245c)
+#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)

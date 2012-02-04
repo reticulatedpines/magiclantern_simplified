@@ -435,7 +435,7 @@ void show_display_gain()
 void adjust_backlight_level(int delta)
 {
     if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
-    if (tft_status) call("TurnOnDisplay");
+    if (!DISPLAY_IS_ON) call("TurnOnDisplay");
     
     // if we run out of backlight, adjust display gain instead
     
@@ -582,7 +582,7 @@ PROP_INT(PROP_INFO_BUTTON_FUNCTION, info_button_function);
 static void display_on_and_go_to_main_shooting_screen()
 {
     if (lv) return;
-    if (tft_status == 0) return; // display already on
+    if (DISPLAY_IS_ON) return; // display already on
     if (gui_state != GUISTATE_IDLE) return;
     
     display_turned_off_by_halfshutter = 0;
@@ -620,7 +620,7 @@ static void display_off_by_halfshutter()
         
     if (!lv && gui_state == GUISTATE_IDLE) // main shooting screen, photo mode
     {
-        if (tft_status == 0) // display is on
+        if (DISPLAY_IS_ON) // display is on
         {
             if (get_halfshutter_pressed())
             {
@@ -630,7 +630,7 @@ static void display_off_by_halfshutter()
                 {
                     msleep(100);
                     if (!get_halfshutter_pressed()) return;
-                    if (tft_status) return;
+                    if (!DISPLAY_IS_ON) return;
                 }
                 fake_simple_button(BGMT_INFO); // turn display off
                 while (get_halfshutter_pressed()) msleep(100);
@@ -1494,7 +1494,7 @@ int safe_to_do_engio_for_display = 1;
 void preview_saturation_step()
 {
     if (!safe_to_do_engio_for_display) return;
-    if (tft_status) return;
+    if (!DISPLAY_IS_ON) return;
     //~ if (!lv) return;
     
     int saturation_register = 0xC0F140c4;
@@ -1568,7 +1568,7 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
             ((u       & 0xFF) <<  8) |
             ((v       & 0xFF));
 
-        if (tft_status) return;
+        if (!DISPLAY_IS_ON) return;
         EngDrvOut(0xC0F14400 + i*4, new_palette_entry);
         EngDrvOut(0xC0F14800 + i*4, new_palette_entry);
     }
@@ -1577,12 +1577,12 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 void grayscale_menus_step()
 {
     if (!safe_to_do_engio_for_display) return;
-    if (tft_status) return;
+    if (DISPLAY_IS_ON) return;
 
     static int prev = 0;
     if (bmp_color_scheme || prev)
     {
-        if (tft_status == 0)
+        if (DISPLAY_IS_ON)
         {
             if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
             else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);

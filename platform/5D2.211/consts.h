@@ -250,3 +250,5 @@
 #define MIN_MSLEEP 11
 
 #define INFO_BTN_NAME "INFO"
+
+#define DISPLAY_IS_ON MEM(0x2804) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
