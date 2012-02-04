@@ -2884,6 +2884,8 @@ static void bramp_plot_luma_ev_point(int luma, int color)
 
 void bramp_calibration_set_dirty() { bramp_init_done = 0; }
 
+#define BRAMP_SHUTTER_0 56 // 1 second exposure => just for entering compensation
+static int bramp_temporary_exposure_compensation_ev_x100 = 0;
 
 int bulb_ramp_calibration_running = 0;
 void bulb_ramping_init()
@@ -2994,35 +2996,61 @@ calib_start:
     bramp_init_done = 1; // OK :)
 
     set_shooting_mode(SHOOTMODE_M);
-    lens_set_rawshutter(96);
+    lens_set_rawshutter(BRAMP_SHUTTER_0);
     if (lv) fake_simple_button(BGMT_LV);
     msleep(1000);
+    bramp_temporary_exposure_compensation_ev_x100 = 0;
 }
 
-static int bramp_temporary_exposure_compensation_ev_x100 = 0;
-
-// monitor shutter speed and consider your changes as exposure compensation for bulb ramping
+// monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
 static void bramp_temporary_exposure_compensation_update()
 {
+    if (!bramp_init_done) return;
+    if (!bulb_ramping_enabled) return;
     int shutter = (int)lens_info.raw_shutter;
+    int aperture = (int)lens_info.raw_aperture;
+
     static int prev_shutter = 0;
+    static int prev_aperture = 0;
+
+    int ec_rounded_abs = (ABS(bramp_temporary_exposure_compensation_ev_x100) + 5) / 10;
+
     if (prev_shutter > 0xC && shutter > 0xC)
     {
-        int ec_delta = -(shutter - prev_shutter) * 100/8;
+        int ec_delta_shutter = -(shutter - prev_shutter) * 100/8;
+        int ec_delta_aperture = (aperture - prev_aperture) * 100/8;
+        int ec_delta = ec_delta_shutter + ec_delta_aperture;
         if (ec_delta)
         {
             bramp_temporary_exposure_compensation_ev_x100 += ec_delta;
+            ec_rounded_abs = (ABS(bramp_temporary_exposure_compensation_ev_x100) + 5) / 10;
             bmp_printf(FONT_LARGE, 0, 0, 
                 "Exp.Comp for next shot: %s%d.%d EV",
                 bramp_temporary_exposure_compensation_ev_x100 > 0 ? "+" : "-",
-                ABS(bramp_temporary_exposure_compensation_ev_x100/100), ABS(bramp_temporary_exposure_compensation_ev_x100/10) % 10
+                ec_rounded_abs / 10, ec_rounded_abs % 10
             );
-
-            // experimental: revert shutter speed back
-            lens_set_rawshutter(prev_shutter); shutter = prev_shutter;
         }
     }
+
+    // extend compensation range beyond normal shutter speed limits
+    if (ec_rounded_abs == 0 && shutter != BRAMP_SHUTTER_0) // cancel drift
+    {
+        lens_set_rawshutter(BRAMP_SHUTTER_0);
+        shutter = lens_info.raw_shutter;
+    }
+    else if (prev_shutter > 144) // 1/2000
+    {
+        lens_set_rawshutter(prev_shutter - 32);
+        shutter = lens_info.raw_shutter;
+    }
+    else if (prev_shutter < 24) // 16 seconds
+    {
+        lens_set_rawshutter(prev_shutter + 32);
+        shutter = lens_info.raw_shutter;
+    }
+
     prev_shutter = shutter;
+    prev_aperture = aperture;
 }
 
 static void compute_exposure_for_next_shot()
@@ -3066,13 +3094,14 @@ static void bulb_ramping_showinfo()
         //~ "Reference level (%2dth prc) :%3d%%    \n"
         //~ "Measured  level (%2dth prc) :%3d%%    \n"
         //~ "Level/EV ratio             :%3d%%/EV \n"
-        "ISO     :%5d (range: %d...%d) \n"
-        "Shutter :%3d.%03d s",
+        " Shutter :%3d.%03d s  \n"
+        " ISO     :%5d (range: %d...%d)",
         //~ bramp_percentile, bramp_reference_level, 0,
         //~ bramp_percentile, bramp_measured_level, 0,
         //~ bramp_level_ev_ratio, 0,
-        lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF),
-        s / 1000, s % 1000);
+        s / 1000, s % 1000,
+        lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF)
+        );
     
     if (display_idle())
     {
@@ -4434,7 +4463,7 @@ shoot_task( void* unused )
                     wait_till_next_second();
                     continue;
                 }
-                bmp_printf(FONT_LARGE, 50, 50, 
+                bmp_printf(FONT_MED, 50, 310, 
                                 " Intervalometer:%4d \n"
                                 " Pictures taken:%4d ", 
                                 SECONDS_REMAINING,
