@@ -120,7 +120,20 @@ PROP_HANDLER(PROP_LV_ACTION)
 	return prop_cleanup(token, property);
 }
 
-int get_lv_stopped_by_user() { return lv_stopped_by_user; }
+PROP_HANDLER(PROP_GUI_STATE)
+{
+	if (!lv) lv_stopped_by_user = 1; // liveview closed because we went to play mode or something similar
+	return prop_cleanup(token, property);
+}
+
+PROP_HANDLER(PROP_LAST_JOB_STATE)
+{
+	if (!lv) lv_stopped_by_user = 1; // liveview closed because we took a picture
+	return prop_cleanup(token, property);
+}
+
+
+int get_lv_stopped_by_user() { return !lv && lv_stopped_by_user; }
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
