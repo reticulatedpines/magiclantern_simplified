@@ -394,7 +394,8 @@ movtweak_task( void* unused )
             (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
             msleep(500);
-            force_liveview();
+            if (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED) // double-check
+                force_liveview();
         }
 
         update_lvae_for_autoiso_n_displaygain();

@@ -41,8 +41,6 @@
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 
-int lv_paused = 0;
-
 static void waveform_init();
 static void histo_init();
 static void do_disp_mode_change();
@@ -2532,6 +2530,15 @@ idle_display_dim_print(
         "Dim display        : %s",
         idle_time_format(*(int*)priv)
     );
+
+    #ifdef CONFIG_5D2
+    int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
+    if (backlight_mode == 0) // can't restore brightness properly in auto mode
+    {
+        menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "LCD brightness is auto in Canon menu. It won't work.");
+        return;
+    }
+    #endif
 }
 
 static void
@@ -3988,6 +3995,7 @@ void PauseLiveView()
         //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
             lv_zoom_before_pause = lv_dispsize;
+            tft_status = 1; // assume display is off
             prop_request_change(PROP_LV_ACTION, &x, 4);
             msleep(100);
             clrscr();
@@ -4060,30 +4068,28 @@ static void idle_bmp_on()
 }
 
 static int old_backlight_level = 0;
-#ifdef CONFIG_5D2
-static int old_backlight_mode = 0;
-#endif
 static void idle_display_dim()
 {
+    #ifdef CONFIG_5D2
+    int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
+    if (backlight_mode == 0) // can't restore brightness properly in auto mode
+    {
+        NotifyBox(2000, "LCD brightness is automatic.\n"
+                        "ML will not dim the display.");
+        return;
+    }
+    #endif
+
     old_backlight_level = backlight_level;
     set_backlight_level(1);
-
-    #ifdef CONFIG_5D2
-    old_backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
-    int x = 1;
-    prop_request_change(PROP_LCD_BRIGHTNESS_MODE, &x, 4);
-    #endif
 }
 static void idle_display_undim()
 {
     if (old_backlight_level)
     {
         set_backlight_level(old_backlight_level);
-        #ifdef CONFIG_5D2
-        prop_request_change(PROP_LCD_BRIGHTNESS_MODE, &old_backlight_mode, 4);
-        #endif
+        old_backlight_level = 0;
     }
-    old_backlight_level = 0;
 }
 
 void idle_globaldraw_dis()
@@ -5030,7 +5036,7 @@ PROP_HANDLER(PROP_LV_ACTION)
     idle_display_undim(); // restore LCD brightness, especially for shutdown
     //~ idle_wakeup_reset_counters(-4);
     idle_globaldraw_disable = 0;
-    lv_paused = 0;
+    if (buf[0] == 0) lv_paused = 0;
     bv_auto_update();
     zoom_sharpen_step();
     return prop_cleanup( token, property );
