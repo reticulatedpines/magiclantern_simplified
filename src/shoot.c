@@ -2992,7 +2992,10 @@ calib_start:
     
     bulb_shutter_value = 1000;
     bramp_init_done = 1; // OK :)
+
     set_shooting_mode(SHOOTMODE_M);
+    lens_set_rawshutter(96);
+    if (lv) fake_simple_button(BGMT_LV);
     msleep(1000);
 }
 
@@ -3003,23 +3006,20 @@ static void bramp_temporary_exposure_compensation_update()
 {
     int shutter = (int)lens_info.raw_shutter;
     static int prev_shutter = 0;
-    if (prev_shutter && shutter)
+    if (prev_shutter > 0xC && shutter > 0xC)
     {
         int ec_delta = -(shutter - prev_shutter) * 100/8;
         if (ec_delta)
         {
-            info_led_blink(5,20,20);
             bramp_temporary_exposure_compensation_ev_x100 += ec_delta;
-            NotifyBox(2000,
+            bmp_printf(FONT_LARGE, 0, 0, 
                 "Exp.Comp for next shot: %s%d.%d EV",
                 bramp_temporary_exposure_compensation_ev_x100 > 0 ? "+" : "-",
                 ABS(bramp_temporary_exposure_compensation_ev_x100/100), ABS(bramp_temporary_exposure_compensation_ev_x100/10) % 10
             );
 
             // experimental: revert shutter speed back
-            msleep(100);
             lens_set_rawshutter(prev_shutter); shutter = prev_shutter;
-            msleep(100);
         }
     }
     prev_shutter = shutter;
@@ -3668,6 +3668,7 @@ static void take_a_pic(int allow_af)
     }
     else
     {
+        //~ beep();
         if (is_bulb_mode()) bulb_take_pic(bulb_shutter_value);
         else lens_take_picture(64, allow_af);
     }
@@ -4433,7 +4434,7 @@ shoot_task( void* unused )
                     wait_till_next_second();
                     continue;
                 }
-                bmp_printf(FONT_LARGE, 50, 400, 
+                bmp_printf(FONT_LARGE, 50, 50, 
                                 " Intervalometer:%4d \n"
                                 " Pictures taken:%4d ", 
                                 SECONDS_REMAINING,
