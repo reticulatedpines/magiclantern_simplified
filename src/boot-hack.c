@@ -274,7 +274,7 @@ void my_big_init_task()
     menu_init();
     debug_init();
     call_init_funcs( 0 );
-
+    msleep(200); // leave some time for property handlers to run
 /* battery test
  *  while(1)
     {

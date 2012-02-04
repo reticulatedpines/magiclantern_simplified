@@ -1543,7 +1543,8 @@ void preview_saturation_display(
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {
-    for (int i = 0; i < 256; i++)
+    // 255 is reserved for ClearScreen, don't alter it
+    for (int i = 0; i < 255; i++)
     {
         if (i==0 || i==3 || i==0x14) continue; // don't alter transparent entries
 
@@ -1566,7 +1567,8 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
             ((y       & 0xFF) << 16) |
             ((u       & 0xFF) <<  8) |
             ((v       & 0xFF));
-        
+
+        if (tft_status) return;
         EngDrvOut(0xC0F14400 + i*4, new_palette_entry);
         EngDrvOut(0xC0F14800 + i*4, new_palette_entry);
     }
