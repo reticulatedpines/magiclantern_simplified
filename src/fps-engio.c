@@ -126,6 +126,43 @@ int get_current_shutter_reciprocal_x1000()
 static int fps_override = 0;
 CONFIG_INT("fps.override", fps_override_value, 10);
 
+//--------------------------------------------------------
+// sound recording has to be disabled
+// otherwise recording is not stable
+//--------------------------------------------------------
+static int old_sound_recording_mode = -1;
+
+static void restore_sound_recording()
+{
+    if (old_sound_recording_mode != -1)
+    {
+        prop_request_change(PROP_MOVIE_SOUND_RECORD, &old_sound_recording_mode, 4);
+        old_sound_recording_mode = -1;
+    }
+}
+static void disable_sound_recording()
+{
+    if (sound_recording_mode != 1)
+    {
+        old_sound_recording_mode = sound_recording_mode;
+        sound_recording_mode = 1;
+        prop_request_change(PROP_MOVIE_SOUND_RECORD, &sound_recording_mode, 4);
+    }
+}
+
+static void update_sound_recording()
+{
+    if (fps_override && lv) disable_sound_recording();
+    else restore_sound_recording();
+}
+
+PROP_HANDLER(PROP_LV_ACTION)
+{
+    restore_sound_recording();
+    return prop_cleanup(token, property);
+}
+//--------------------------------------------------------
+
 static unsigned long frame_rate[] = {
     0xC0F06014, 0xFFFF, /* timer register */
     0xC0F06000, 0b1, /* coherent update */
@@ -191,6 +228,8 @@ static void fps_setup(int fps)
 
     frame_rate[1] += FPS_TIMER_OFFSET; // we may need to write computed timer value minus 1
     engio_write(frame_rate);
+
+    update_sound_recording();
 }
 
 static int fps_get_current_x1000()
@@ -225,11 +264,7 @@ fps_print(
         fps_override ? msg : "OFF"
     );
     
-    extern int sound_recording_mode;
-    if (fps_override && sound_recording_mode != 1)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Turn off sound recording from Canon menu!");
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
-    //~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
 }
 
 static void flip_zoom()
@@ -258,6 +293,8 @@ static void fps_reset()
     
     if (!recording) flip_zoom(); // this will force reconfiguring fps with Canon settings
     else fps_setup(video_mode_fps);
+
+    restore_sound_recording();
 }
 
 
@@ -284,7 +321,7 @@ struct menu_entry fps_menu[] = {
         .priv = &fps_override,
         .select = fps_enable_disable,
         .display = fps_print,
-        .help = "Changes FPS and forces shutter at 1/fps. Turn off sound!",
+        .help = "Changes FPS. Also sets shutter at 1/fps and disables sound.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "New FPS value",

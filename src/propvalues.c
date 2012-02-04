@@ -30,6 +30,7 @@ volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
+PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 
 volatile int tft_status = 1; // assume display off at startup
 PROP_HANDLER(PROP_TFT_STATUS)

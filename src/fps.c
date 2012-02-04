@@ -82,6 +82,44 @@ CONFIG_INT("fps.override", fps_override_value, 10);
 CONFIG_INT("shutter.override", shutter_override_enabled, 0);
 CONFIG_INT("shutter.override.mode", shutter_override_mode, 0);
 
+
+//--------------------------------------------------------
+// sound recording has to be disabled
+// otherwise recording is not stable
+//--------------------------------------------------------
+static int old_sound_recording_mode = -1;
+
+static void restore_sound_recording()
+{
+    if (old_sound_recording_mode != -1)
+    {
+        prop_request_change(PROP_MOVIE_SOUND_RECORD, &old_sound_recording_mode, 4);
+        old_sound_recording_mode = -1;
+    }
+}
+static void disable_sound_recording()
+{
+    if (sound_recording_mode != 1)
+    {
+        old_sound_recording_mode = sound_recording_mode;
+        sound_recording_mode = 1;
+        prop_request_change(PROP_MOVIE_SOUND_RECORD, &sound_recording_mode, 4);
+    }
+}
+
+static void update_sound_recording()
+{
+    if (fps_override && lv) disable_sound_recording();
+    else restore_sound_recording();
+}
+
+PROP_HANDLER(PROP_LV_ACTION)
+{
+    restore_sound_recording();
+    return prop_cleanup(token, property);
+}
+//--------------------------------------------------------
+
 static void shutter_set();
 
 static int video_mode[5];
@@ -320,9 +358,6 @@ fps_print(
         fps_override ? msg : "OFF"
     );
     
-    extern int sound_recording_mode;
-    if (fps_override && sound_recording_mode != 1)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off sound recording from Canon menu!");
     menu_draw_icon(x, y, MNI_BOOL((uint16_t *) SENSOR_TIMING_TABLE != sensor_timing_table_original), 0);
     //~ bmp_hexdump(FONT_SMALL, 0, 400, SENSOR_TIMING_TABLE, 32);
 }
@@ -456,6 +491,8 @@ static void fps_change_value(void* priv, int delta)
 
     fps_override_value = COERCE(fps_override_value + delta, 1, 70);
     if (fps_override) fps_change_all_modes(fps_override_value);
+
+    update_sound_recording();
 }
 
 static void fps_enable_disable(void* priv, int delta)
@@ -465,6 +502,8 @@ static void fps_enable_disable(void* priv, int delta)
     fps_override = !fps_override;
     if (fps_override) fps_change_all_modes(fps_override_value);
     else fps_change_all_modes(0);
+
+    update_sound_recording();
 }
 
 
@@ -474,7 +513,7 @@ struct menu_entry fps_menu[] = {
         .priv = &fps_override,
         .select = fps_enable_disable,
         .display = fps_print,
-        .help = "Changes frame rate. Turn off sound for stable operation!",
+        .help = "Changes frame rate. Also disables sound recording.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "New FPS value",

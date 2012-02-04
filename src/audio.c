@@ -33,7 +33,6 @@
 #include "disable-this-module.h"
 #endif
 
-PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
 #ifdef CONFIG_500D

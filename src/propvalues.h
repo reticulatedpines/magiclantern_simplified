@@ -42,6 +42,7 @@ extern int lv_movie_select;
 extern int sensor_cleaning;
 extern int burst_count;
 extern int battery_level_bars;
+extern int sound_recording_mode; // 1 = disable?
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
 
