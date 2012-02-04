@@ -2996,6 +2996,35 @@ calib_start:
     msleep(1000);
 }
 
+static int bramp_temporary_exposure_compensation_ev_x100 = 0;
+
+// monitor shutter speed and consider your changes as exposure compensation for bulb ramping
+static void bramp_temporary_exposure_compensation_update()
+{
+    int shutter = (int)lens_info.raw_shutter;
+    static int prev_shutter = 0;
+    if (prev_shutter && shutter)
+    {
+        int ec_delta = -(shutter - prev_shutter) * 100/8;
+        if (ec_delta)
+        {
+            info_led_blink(5,20,20);
+            bramp_temporary_exposure_compensation_ev_x100 += ec_delta;
+            NotifyBox(2000,
+                "Exp.Comp for next shot: %s%d.%d EV",
+                bramp_temporary_exposure_compensation_ev_x100 > 0 ? "+" : "-",
+                ABS(bramp_temporary_exposure_compensation_ev_x100/100), ABS(bramp_temporary_exposure_compensation_ev_x100/10) % 10
+            );
+
+            // experimental: revert shutter speed back
+            msleep(100);
+            lens_set_rawshutter(prev_shutter); shutter = prev_shutter;
+            msleep(100);
+        }
+    }
+    prev_shutter = shutter;
+}
+
 static void compute_exposure_for_next_shot()
 {
     if (!bramp_init_done) return;
@@ -3013,6 +3042,11 @@ static void compute_exposure_for_next_shot()
     int correction_ev_x100 = bramp_luma_to_ev_x100(bramp_reference_level*255/100) - bramp_luma_to_ev_x100(bramp_measured_level*255/100);
     NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", correction_ev_x100 < 0 ? "-" : "+", ABS(correction_ev_x100)/100, ABS(correction_ev_x100)%100);
     correction_ev_x100 = correction_ev_x100 * 80 / 100; // do only 80% of the correction
+
+    // apply temporary exposure compensation (for next shot only)
+    correction_ev_x100 += bramp_temporary_exposure_compensation_ev_x100;
+    bramp_temporary_exposure_compensation_ev_x100 = 0;
+
     bulb_shutter_value = bulb_shutter_value * roundf(1000.0*powf(2, correction_ev_x100 / 100.0))/1000;
 
     msleep(500);
@@ -4399,11 +4433,16 @@ shoot_task( void* unused )
                     wait_till_next_second();
                     continue;
                 }
-                bmp_printf(FONT_LARGE, 50, 50, 
+                bmp_printf(FONT_LARGE, 50, 400, 
                                 " Intervalometer:%4d \n"
                                 " Pictures taken:%4d ", 
                                 SECONDS_REMAINING,
                                 intervalometer_pictures_taken);
+
+                if (bulb_ramping_enabled)
+                {
+                    bramp_temporary_exposure_compensation_update();
+                }
 
                 if (!images_compared && SECONDS_ELAPSED >= 2 && SECONDS_REMAINING >= 2 && image_review_time - SECONDS_ELAPSED >= 1 && bramp_init_done)
                 {
@@ -4427,7 +4466,7 @@ shoot_task( void* unused )
             }
 
             if (PLAY_MODE) get_out_of_play_mode(0);
-            ResumeLiveView();
+            if (LV_PAUSED) ResumeLiveView();
 
             if (!intervalometer_running) continue;
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
