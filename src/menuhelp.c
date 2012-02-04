@@ -35,11 +35,8 @@ extern int menu_help_active;
 int current_page = 1;
 extern int help_pages;
 
-int menu_help_redrawing = 0;
 void menu_help_show_page(int page)
 {
-    menu_help_redrawing = 1;
-BMP_LOCK(
     menu_help_active = 1;
     char path[100];
     snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmp", page);
@@ -56,14 +53,24 @@ BMP_LOCK(
     {
         bmp_printf(FONT_MED, 0, 0, "Could not load help page %s\nPlease unzip 'doc' directory on your SD card.", path);
     }
-)
-    menu_help_redrawing = 0;
 }
+
+struct semaphore * help_redraw_sem = 0;
+void help_redraw_task(void* unused)
+{
+    help_redraw_sem = create_named_semaphore("help_redraw_sem", 0);
+    while(1)
+    {
+        take_semaphore(help_redraw_sem, 0);
+        BMP_LOCK( menu_help_show_page(current_page); );
+    }
+}
+
+TASK_CREATE("help_redraw", help_redraw_task, 0, 0x1c, 0x1000);
 
 void menu_help_redraw()
 {
-    if (!menu_help_redrawing)
-        task_create("help_draw", 0x1c, 0, menu_help_show_page, (intptr_t) current_page);
+    give_semaphore(help_redraw_sem);
 }
 
 void menu_help_next_page()
