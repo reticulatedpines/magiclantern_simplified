@@ -3,6 +3,9 @@
 
 extern int lv; // former lv_drawn(); TRUE when LiveView is active.
 extern int lv_paused; // only valid if lv is true
+#define LV_PAUSED (lv && lv_paused)
+#define LV_NON_PAUSED (lv && !lv_paused)
+
 extern int lv_dispsize; // 1 / 5 / A
 extern int expsim;
 extern int shooting_mode;

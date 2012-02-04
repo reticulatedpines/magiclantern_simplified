@@ -310,7 +310,7 @@ int get_global_draw() // menu setting, or off if
         #ifdef CONFIG_KILL_FLICKER
         !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
         #endif
-        !lv_paused && 
+        !LV_PAUSED && 
         lens_info.job_state <= 10 &&
         !(recording && !lv);
 }
@@ -3265,7 +3265,7 @@ void bmp_on()
     #else
         BMP_LOCK(
             cli_save();
-            if (tft_status == 0 && lv && !lv_paused)
+            if (tft_status == 0)
             {
                 MuteOff_0();
                 _bmp_muted = false; _bmp_unmuted = true;
@@ -3294,7 +3294,7 @@ void bmp_off()
     #else
         BMP_LOCK(
             cli_save();
-            if (tft_status == 0 && lv && !lv_paused)
+            if (tft_status == 0)
             {
                 _bmp_muted = true; _bmp_unmuted = false;
                 MuteOn_0();
@@ -3727,7 +3727,7 @@ bool liveview_display_idle()
     }
 
     return
-        lv && 
+        LV_NON_PAUSED && 
         tft_status == 0 &&
         !menu_active_and_not_hidden() && 
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
@@ -3945,7 +3945,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 static void update_idle_countdown(int* countdown)
 {
     //~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
-    if ((liveview_display_idle() && !get_halfshutter_pressed()) || lv_paused)
+    if ((liveview_display_idle() && !get_halfshutter_pressed()) || LV_PAUSED)
     {
         if (*countdown)
             (*countdown)--;
