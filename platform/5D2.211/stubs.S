@@ -175,3 +175,7 @@ NSTUB(0xff987200, set_fps_maybe)
 NSTUB(0xff8168c0, get_current_task)
 
 NSTUB(0x27660, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+
+NSTUB(0xFF9D8194, GuiSetAutoBrightness) // guess: refreshes brightness in auto mode?
+
+NSTUB(0xff9ce7d0, Gui_SetSoundRecord)

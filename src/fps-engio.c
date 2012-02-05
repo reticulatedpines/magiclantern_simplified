@@ -132,26 +132,37 @@ CONFIG_INT("fps.override", fps_override_value, 10);
 //--------------------------------------------------------
 static int old_sound_recording_mode = -1;
 
+static void set_sound_recording(int x)
+{
+    #ifdef CONFIG_5D2
+    Gui_SetSoundRecord(COERCE(x,1,3));
+    #else
+    prop_request_change(PROP_MOVIE_SOUND_RECORD, &x, 4);
+    #endif
+}
+
 static void restore_sound_recording()
 {
+    if (recording) return;
     if (old_sound_recording_mode != -1)
     {
-        prop_request_change(PROP_MOVIE_SOUND_RECORD, &old_sound_recording_mode, 4);
+        set_sound_recording(old_sound_recording_mode);
         old_sound_recording_mode = -1;
     }
 }
 static void disable_sound_recording()
 {
+    if (recording) return;
     if (sound_recording_mode != 1)
     {
         old_sound_recording_mode = sound_recording_mode;
-        sound_recording_mode = 1;
-        prop_request_change(PROP_MOVIE_SOUND_RECORD, &sound_recording_mode, 4);
+        set_sound_recording(1);
     }
 }
 
 static void update_sound_recording()
 {
+    if (recording) return;
     if (fps_override && lv) disable_sound_recording();
     else restore_sound_recording();
 }
