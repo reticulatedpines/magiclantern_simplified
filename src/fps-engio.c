@@ -69,9 +69,19 @@ static int fps_get_current_x1000();
             #define TG_FREQ_PAL  50000000            // these values are OK on 550D
             #define TG_FREQ_NTSC_FPS 52747200
             #define TG_FREQ_NTSC_SHUTTER 49440000
+            #define TG_FREQ_CROP_PAL 64000000
+            #define TG_FREQ_CROP_NTSC 69230700
         #endif
     #endif
 #endif
+
+#ifdef TG_FREQ_CROP_PAL
+#define TG_FREQ_FPS (video_mode_crop ? (ntsc ? TG_FREQ_CROP_NTSC : TG_FREQ_CROP_PAL) : (ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL))
+#else
+#define TG_FREQ_FPS (ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL)
+#endif
+
+#define TG_FREQ_SHUTTER (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)
 
 #ifdef CONFIG_550D
 #define LV_STRUCT_PTR 0x1d14
@@ -94,11 +104,11 @@ static int fps_get_current_x1000();
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 #endif
 
-#define FPS_x1000_TO_TIMER_PAL(fps_x1000) (TG_FREQ_PAL/(fps_x1000))
-#define FPS_x1000_TO_TIMER_NTSC(fps_x1000) (TG_FREQ_NTSC_FPS/(fps_x1000))
-#define TIMER_TO_FPS_x1000_PAL(t) (TG_FREQ_PAL/(t))
-#define TIMER_TO_FPS_x1000_NTSC(t) (TG_FREQ_NTSC_FPS/(t))
-#define TIMER_TO_SHUTTER_x1000_NTSC(t) (TG_FREQ_NTSC_SHUTTER/(t))
+#define FPS_x1000_TO_TIMER(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_FPS/(fps_x1000)):0)
+#define TIMER_TO_FPS_x1000(t) (((t)!=0)?(TG_FREQ_FPS/(t)):0)
+
+#define SHUTTER_x1000_TO_TIMER(s_x1000) (TG_FREQ_SHUTTER/(s_x1000))
+#define TIMER_TO_SHUTTER_x1000(t) (TG_FREQ_SHUTTER/(t))
 
 int get_current_shutter_reciprocal_x1000()
 {
@@ -117,7 +127,7 @@ int get_current_shutter_reciprocal_x1000()
         video_mode_fps == 24 ? 4 : 0;
     int ntsc = (mode % 2 == 0);
 
-    int shutter_x1000 = ntsc ? TIMER_TO_SHUTTER_x1000_NTSC(timer) : TIMER_TO_FPS_x1000_PAL(timer);
+    int shutter_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     return MAX(shutter_x1000, fps_get_current_x1000());
 #endif
 }
@@ -185,30 +195,30 @@ static int fps_get_timer(int fps)
 
     int fps_x1000 = fps * 1000;
 
+    #if !defined(CONFIG_500D) && !defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97
+    if (ntsc) fps_x1000 = fps_x1000 * 1000/1001;
+    #endif
+
     // convert fps into timer ticks (for sensor drive speed)
-    int fps_timer = ntsc ? FPS_x1000_TO_TIMER_NTSC(fps_x1000
-        #if !defined(CONFIG_500D) && !defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97
-        *1000/1001
-        #endif
-    ) : FPS_x1000_TO_TIMER_PAL(fps_x1000);
+    int fps_timer = FPS_x1000_TO_TIMER(fps_x1000);
+
+    #if defined(CONFIG_500D) || defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97 => look in system settings to check if PAL or NTSC
+    ntsc = !pal;
+    #endif
 
     // NTSC is 29.97, not 30
     // also try to round it in order to avoid flicker
-    #if defined(CONFIG_500D) || defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97 => look in system settings to check if PAL or NTSC
-    if (!pal)
-    #else
     if (ntsc)
-    #endif
     {
-        int timer_120hz = FPS_x1000_TO_TIMER_NTSC(120000*1000/1001);
+        int timer_120hz = FPS_x1000_TO_TIMER(120000*1000/1001);
         int fps_timer_rounded = ((fps_timer + timer_120hz/2) / timer_120hz) * timer_120hz;
-        if (ABS(TIMER_TO_FPS_x1000_NTSC(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+        if (ABS(TIMER_TO_FPS_x1000(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
     }
     else
     {
-        int timer_100hz = FPS_x1000_TO_TIMER_PAL(100000);
+        int timer_100hz = FPS_x1000_TO_TIMER(100000);
         int fps_timer_rounded = ((fps_timer + timer_100hz/2) / timer_100hz) * timer_100hz;
-        if (ABS(TIMER_TO_FPS_x1000_PAL(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
+        if (ABS(TIMER_TO_FPS_x1000(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
     }
 
     return fps_timer & 0xFFFF;
@@ -221,11 +231,6 @@ static void fps_setup(int fps)
     unsigned safe_limit = fps_get_timer(70);
 #if defined(CONFIG_550D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
     safe_limit = fps_get_timer(video_mode_fps); // no overcranking possible
-    if (video_mode_crop)
-    {
-        frame_rate[1] = safe_limit;
-        return; // freeze
-    }
 #endif
 #ifdef CONFIG_500D
     safe_limit = fps_get_timer(lv_dispsize > 1 ? 24 : video_mode_resolution == 0 ? 21 : 32);
@@ -248,7 +253,7 @@ static int fps_get_current_x1000()
     if (!fps_override) return video_mode_fps * 1000;
     int fps_timer = frame_rate[1] - FPS_TIMER_OFFSET;
     int ntsc = is_current_mode_ntsc();
-    int fps_x1000 = ntsc ? TIMER_TO_FPS_x1000_NTSC(fps_timer) : TIMER_TO_FPS_x1000_PAL(fps_timer);
+    int fps_x1000 = TIMER_TO_FPS_x1000(fps_timer);
     return fps_x1000;
 }
 
