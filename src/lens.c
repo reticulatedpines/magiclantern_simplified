@@ -241,12 +241,16 @@ void draw_ml_bottombar(int double_buffering, int clear)
     
     unsigned bottom = 480;
     int screen_layout = get_screen_layout();
+    
     if (screen_layout == SCREENLAYOUT_3_2_or_4_3) bottom = os.y_max;
     else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
     else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
         else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, vram_bm.height);
         else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, vram_bm.height);
-    
+
+    if (gui_menu_shown())
+        bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
+
     //~ bottom -= 10;
 
     //~ if (screen_layout == SCREENLAYOUT_16_9)
@@ -719,7 +723,8 @@ void draw_ml_topbar()
     if (gui_menu_shown())
     {
         x = MAX(os.x0 + os.x_ex/2 - 360, 0);
-        y = MAX(os.y0 + os.y_ex/2 - 240, os.y0);
+        //~ y = MAX(os.y0 + os.y_ex/2 - 240, os.y0);
+        y = (hdmi_code == 5 ? 50 : 10); // force it at the top of menu
     }
     else
     {
