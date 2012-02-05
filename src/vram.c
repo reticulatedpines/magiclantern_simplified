@@ -107,6 +107,8 @@ void update_vram_params()
     #endif
     msleep(50); // just to make sure all prop handlers finished after mode change
 
+    if (!ext_monitor_hdmi) hdmi_code = 0; // 5D doesn't revert it, maybe other cameras too
+
     // force a redraw when you connect the external monitor
     static int prev_hdmi_code = 0;
     static int prev_ext_monitor_rca = 0;
