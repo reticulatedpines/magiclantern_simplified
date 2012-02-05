@@ -3152,6 +3152,23 @@ void cropmark_draw_from_cache()
     }
 }
 
+void copy_zebras_from_mirror()
+{
+    uint32_t* B = bmp_vram();
+    uint32_t* M = get_bvram_mirror();
+    
+    for (int i = os.y0; i < os.y_max; i++)
+    {
+        for (int j = os.x0; j < os.x_max; j+=4)
+        {
+            uint32_t p = B[BM(j,i)/4];
+            uint32_t m = M[BM(j,i)/4];
+            if (p != 0) continue;
+            B[BM(j,i)/4] = m & ~0x80808080;
+        }
+    }
+}
+
 void cropmark_clear_cache()
 {
     //~ if (cropmark_cache_valid)

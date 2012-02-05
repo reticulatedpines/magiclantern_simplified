@@ -1165,20 +1165,17 @@ menu_redraw()
                 static int prev_so = 0;
                 if (show_only_selected)
                 {
-                    if (!prev_so) bmp_fill( 0, 0, 0, 960, 540 );
-                    else bmp_idle_copy(0);
+                    bmp_fill( 0, 0, 0, 960, 540 );
+                    if (zebra_should_run())
+                        if (prev_so) copy_zebras_from_mirror();
+                        else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
+                    //~ draw_histogram_and_waveform(); // too slow
                 }
                 else
                 {
                     bmp_fill(COLOR_BLACK, 0, 0, 960, 540 );
                 }
                 prev_so = show_only_selected;
-
-                if (show_only_selected)
-                {
-                    rec_notify_continuous(1);
-                    draw_histogram_and_waveform();
-                }
 
                 if (!show_only_selected || !submenu_mode)
                 {
