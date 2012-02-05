@@ -91,6 +91,7 @@ static int old_sound_recording_mode = -1;
 
 static void restore_sound_recording()
 {
+    if (recording) return;
     if (old_sound_recording_mode != -1)
     {
         prop_request_change(PROP_MOVIE_SOUND_RECORD, &old_sound_recording_mode, 4);
@@ -99,6 +100,7 @@ static void restore_sound_recording()
 }
 static void disable_sound_recording()
 {
+    if (recording) return;
     if (sound_recording_mode != 1)
     {
         old_sound_recording_mode = sound_recording_mode;
@@ -109,6 +111,7 @@ static void disable_sound_recording()
 
 static void update_sound_recording()
 {
+    if (recording) return;
     if (fps_override && lv) disable_sound_recording();
     else restore_sound_recording();
 }
@@ -491,8 +494,6 @@ static void fps_change_value(void* priv, int delta)
 
     fps_override_value = COERCE(fps_override_value + delta, 1, 70);
     if (fps_override) fps_change_all_modes(fps_override_value);
-
-    update_sound_recording();
 }
 
 static void fps_enable_disable(void* priv, int delta)
@@ -502,8 +503,6 @@ static void fps_enable_disable(void* priv, int delta)
     fps_override = !fps_override;
     if (fps_override) fps_change_all_modes(fps_override_value);
     else fps_change_all_modes(0);
-
-    update_sound_recording();
 }
 
 
@@ -543,7 +542,11 @@ static void fps_task()
 {
     while(1)
     {
-        if (lv) update_hard_expo_override();
+        if (lv)
+        {
+            update_hard_expo_override();
+            update_sound_recording();
+        }
         msleep(200);
     }
 }
