@@ -2532,11 +2532,14 @@ idle_display_dim_print(
     );
 
     #ifdef CONFIG_5D2
-    int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
-    if (backlight_mode == 0) // can't restore brightness properly in auto mode
+    if (*(int*)priv)
     {
-        menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "LCD brightness is auto in Canon menu. It won't work.");
-        return;
+        int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
+        if (backlight_mode == 0) // can't restore brightness properly in auto mode
+        {
+            menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "LCD brightness is auto in Canon menu. It won't work.");
+            return;
+        }
     }
     #endif
 }
