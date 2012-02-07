@@ -81,7 +81,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
             lcd_ff_dir = -lcd_ff_dir;
         }
     }
-
+    else
     if (lcd_release_running && gui_state == GUISTATE_IDLE && !is_intervalometer_running())
     {
         if (gui_menu_shown()) goto end;
