@@ -64,12 +64,13 @@ extern struct lv_path_struct lv_path_struct;
 #define TG_FREQ_NTSC_SHUTTER 49440000
 #define TG_FREQ_ZOOM 39230730 // not 100% sure
 #define TG_FREQ_CROP_PAL 64000000
-#define TG_FREQ_CROP_NTSC 69230700
-#define TG_FREQ_CROP_NTSC_SHUTTER 64860000 // assumming 1/60.000
 
+#define TG_FREQ_CROP_NTSC (crop == 0xc ? 50349600 : 69230700)
+#define TG_FREQ_CROP_NTSC_SHUTTER (crop == 0xc ? 47160000 : 64860000)
+#define TG_FREQ_CROP_PAL_SHUTTER (crop == 0xc ? 50000000 : 64000000)
 
 #define TG_FREQ_FPS (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC : TG_FREQ_CROP_PAL) : (ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL)))
-#define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC_SHUTTER : TG_FREQ_CROP_PAL) : (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)))
+#define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC_SHUTTER : TG_FREQ_CROP_PAL_SHUTTER) : (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)))
 
 #define FPS_x1000_TO_TIMER(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_FPS/(fps_x1000)):0)
 #define TIMER_TO_FPS_x1000(t) (((t)!=0)?(TG_FREQ_FPS/(t)):0)
@@ -324,6 +325,8 @@ int get_current_shutter_reciprocal_x1000()
     int zoom = lv_dispsize > 1 ? 1 : 0;
     int ntsc = (mode % 2 == 0);
     int crop = video_mode_crop;
+
+    //~ NotifyBox(1000, "%x ", timer);
 
     int shutter_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     return MAX(shutter_x1000, fps_get_current_x1000());
