@@ -364,15 +364,19 @@ static void fps_task()
 {
     while(1)
     {
-        if (fps_override && lv && !gui_menu_shown())
+        #ifdef CONFIG_500D
+        if (fps_override && lv) // on 500D, it needs to be refreshed continuously (don't know why)
         {
-            #ifdef CONFIG_500D
             msleep(30);
-            #else
-            msleep(500);
-            #endif
             if (lv) fps_setup(fps_override_value);
         }
+        #else
+        if (fps_override && lv && !gui_menu_shown()) // on other cameras, it's OK to refresh every now and then (just to make sure it's active after you change video mode)
+        {
+            msleep(500);
+            if (lv) fps_setup(fps_override_value);
+        }
+        #endif
         else
         {
             msleep(500);
