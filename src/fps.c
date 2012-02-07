@@ -498,7 +498,7 @@ static void fps_change_value(void* priv, int delta)
 {
     if (recording) return;
 
-    fps_override_value = COERCE(fps_override_value + delta, 1, 70);
+    fps_override_value = COERCE(fps_override_value + delta, 3, 70);
     if (fps_override) fps_change_all_modes(fps_override_value);
 }
 
