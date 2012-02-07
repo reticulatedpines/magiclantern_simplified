@@ -38,8 +38,9 @@ volatile        void *                  token;
 volatile        char                    name[ 32 ];
 volatile        unsigned                focal_len; // in mm
 volatile        unsigned                focus_dist; // in cm
+volatile        unsigned                IS; // PROP_LV_LENS_STABILIZE
 volatile        unsigned                aperture;
-volatile        int                             ae;        // exposure compensation, in 1/8 EV steps, signed
+volatile        int                     ae;        // exposure compensation, in 1/8 EV steps, signed
 volatile        unsigned                shutter;
 volatile        unsigned                iso;
 volatile        unsigned                iso_auto;

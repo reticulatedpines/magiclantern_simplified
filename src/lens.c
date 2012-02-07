@@ -323,7 +323,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
           snprintf(focal, sizeof(focal), "%d",
                    crop_info ? (info->focal_len * SENSORCROPFACTOR + 5) / 10 : info->focal_len);
 
-          bmp_printf( text_font, x_origin, y_origin, focal );
+          //~ int IS_font = FONT(text_font, lens_info.IS ? COLOR_YELLOW : COLOR_WHITE, bg );
+          int IS_font_med = FONT(med_font, lens_info.IS ? COLOR_YELLOW : COLOR_WHITE, bg );
+          bmp_printf( text_font, x_origin - 5, y_origin, focal );
 
         if (info->aperture < 100)
         {
@@ -347,9 +349,15 @@ void draw_ml_bottombar(int double_buffering, int clear)
                           "%d    ", info->aperture / 10) ;
 
           bmp_printf( med_font, 
-                      x_origin + font_large.width * strlen(focal) - 3, 
+                      x_origin + font_large.width * strlen(focal) - 3 - 5, 
                       bottom - font_med.height, 
                       crop_info ? "eq" : "mm");
+
+          if (lens_info.IS)
+          bmp_printf( IS_font_med, 
+                      x_origin + font_large.width * strlen(focal) - 3 - 5 + 1, 
+                      y_origin - 3, 
+                      "IS");
 
           bmp_printf( med_font, 
                       x_origin + 74 + 2  , 
@@ -392,6 +400,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       else if (info->aperture) // rule of thumb: shutter speed should be roughly equal to focal length
       {
            int focal_35mm = (info->focal_len * SENSORCROPFACTOR + 5) / 10;
+           if (lens_info.IS) focal_35mm /= 4; // assume 2-stop effectiveness for IS
            if (shutter_reciprocal > focal_35mm * 15/10) 
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg); // very good
            else if (shutter_reciprocal < focal_35mm / 2) 
@@ -1187,6 +1196,17 @@ PROP_HANDLER(PROP_LENS)
     uint8_t* info = (uint8_t *) buf;
     lens_info.raw_aperture_min = info[1];
     lens_info.raw_aperture_max = info[2];
+
+    if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
+        lensinfo_set_aperture(0); // value no longer valid?
+    
+    bv_update_lensinfo();
+    return prop_cleanup( token, property );
+}
+
+PROP_HANDLER(PROP_LV_LENS_STABILIZE)
+{
+    lens_info.IS = buf[0] & 0xFFFF0000; // not sure, but lower word seems to be AF/MF status
     bv_update_lensinfo();
     return prop_cleanup( token, property );
 }
@@ -1233,9 +1253,15 @@ void lensinfo_set_shutter(int raw)
 void lensinfo_set_aperture(int raw)
 {
     if (lens_info.raw_aperture_min && lens_info.raw_aperture_max)
+    {
         raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    lens_info.raw_aperture = raw;
-    lens_info.aperture = RAW2VALUE(aperture, raw);
+        lens_info.raw_aperture = raw;
+        lens_info.aperture = RAW2VALUE(aperture, raw);
+    }
+    else
+    {
+        lens_info.aperture = lens_info.raw_aperture = 0;
+    }
     //~ BMP_LOCK( lens_info.aperture = (int)roundf(10.0 * sqrtf(powf(2.0, (raw-8.0)/8.0))); )
     update_stuff();
 }
@@ -1321,6 +1347,21 @@ PROP_HANDLER( PROP_APERTURE2 )
     lens_display_set_dirty();
     return prop_cleanup( token, property );
 }
+
+#ifndef CONFIG_5D2
+PROP_HANDLER( PROP_APERTURE ) // for Tv mode
+{
+    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    lens_display_set_dirty();
+    return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
+{
+    if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
+    lens_display_set_dirty();
+    return prop_cleanup( token, property );
+}
+#endif
 
 PROP_HANDLER( PROP_AE )
 {
