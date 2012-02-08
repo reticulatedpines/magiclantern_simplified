@@ -367,7 +367,7 @@ static void fps_task()
         #ifdef CONFIG_500D
         if (fps_override && lv) // on 500D, it needs to be refreshed continuously (don't know why)
         {
-            msleep(30);
+            msleep(20);
             if (lv) fps_setup(fps_override_value);
         }
         #else
@@ -385,7 +385,7 @@ static void fps_task()
     }
 }
 
-TASK_CREATE("fps_task", fps_task, 0, 0x1d, 0x1000 );
+TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );
 
 
 void fps_mvr_log(FILE* mvr_logfile)
