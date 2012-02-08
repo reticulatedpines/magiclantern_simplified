@@ -418,8 +418,6 @@ static void fps_change_mode(int mode, int fps, int crop, int dispsize)
     // make sure we set a valid value (don't drive it too fast)
     unsigned int max_pos = get_table_pos(mode_offset_map[mode], crop, 1, dispsize);
     int fps_timer_absolute_minimum = sensor_timing_table_original[max_pos];
-    fps_timer = MAX(fps_timer_absolute_minimum * 105/100, fps_timer);
-    fps_timer = MIN(16383, fps_timer);
 
     // NTSC is 29.97, not 30
     // also try to round it in order to avoid flicker
@@ -441,6 +439,9 @@ static void fps_change_mode(int mode, int fps, int crop, int dispsize)
             if (ABS(TIMER_TO_FPS_x1000(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
         }
     }
+
+    fps_timer = MAX(fps_timer_absolute_minimum * 105/100, fps_timer);
+    fps_timer = MIN(16383, fps_timer);
     
     unsigned int pos = get_table_pos(mode_offset_map[mode], crop, 0, dispsize);
     
