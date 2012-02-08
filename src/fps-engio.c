@@ -88,6 +88,8 @@ static int fps_get_current_x1000();
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x64)
 #endif
 
+#define MIN_FPS_MENU (TG_FREQ_PAL / 16384 / 1000)
+
 /*
 #ifdef CONFIG_500D
 #define LV_STRUCT_PTR 0x1d78
@@ -317,9 +319,9 @@ static void fps_reset()
 static void fps_change_value(void* priv, int delta)
 {
     #ifdef CONFIG_500D
-    fps_override_value = COERCE(fps_override_value + delta, 1, 70);
+    fps_override_value = COERCE(fps_override_value + delta, MIN_FPS_MENU, 70);
     #else
-    fps_override_value = COERCE(fps_override_value + delta, 1, 70);
+    fps_override_value = COERCE(fps_override_value + delta, MIN_FPS_MENU, 70);
     #endif
     if (fps_override) fps_setup(fps_override_value);
 }
