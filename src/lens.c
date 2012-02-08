@@ -914,7 +914,7 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
         if (!mirror_locked)
         {
             mirror_locked = 1;
-            #ifdef CONFIG_5D2
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             SW1(1,100);
             SW2(1,100);
             SW2(0,100);
@@ -977,7 +977,7 @@ lens_take_picture(
     
     mlu_lock_mirror_if_needed();
 
-    #ifdef CONFIG_5D2
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu() && !lv)
     {
         SW1(1,100);
@@ -1207,7 +1207,6 @@ PROP_HANDLER(PROP_LENS)
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
 {
     lens_info.IS = buf[0] & 0xFFFF0000; // not sure, but lower word seems to be AF/MF status
-    bv_update_lensinfo();
     return prop_cleanup( token, property );
 }
 
@@ -1348,7 +1347,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     return prop_cleanup( token, property );
 }
 
-#ifndef CONFIG_5D2
+#if !defined(CONFIG_5D2) && !defined(CONFIG_50D)
 PROP_HANDLER( PROP_APERTURE ) // for Tv mode
 {
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
