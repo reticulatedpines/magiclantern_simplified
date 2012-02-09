@@ -324,7 +324,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
                    crop_info ? (info->focal_len * SENSORCROPFACTOR + 5) / 10 : info->focal_len);
 
           //~ int IS_font = FONT(text_font, lens_info.IS ? COLOR_YELLOW : COLOR_WHITE, bg );
-          int IS_font_med = FONT(med_font, lens_info.IS ? COLOR_YELLOW : COLOR_WHITE, bg );
+          int IS_font_med = FONT(med_font,
+                    lens_info.IS == 0 ? COLOR_WHITE :     // IS off
+                    lens_info.IS == 4 ? COLOR_CYAN :      // IS active, but not engaged
+                    lens_info.IS == 0xC ? COLOR_YELLOW :  // IS starting?
+                    lens_info.IS == 0xE ? COLOR_ORANGE :  // IS active and kicking
+                    COLOR_RED,                            // unknown
+                    bg
+                );
           bmp_printf( text_font, x_origin - 5, y_origin, focal );
 
         if (info->aperture < 100)
@@ -1206,7 +1213,8 @@ PROP_HANDLER(PROP_LENS)
 
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
 {
-    lens_info.IS = buf[0] & 0xFFFF0000; // not sure, but lower word seems to be AF/MF status
+    //~ NotifyBox(2000, "%x ", buf[0]);
+    lens_info.IS = (buf[0] & 0x000F0000) >> 16; // not sure, but lower word seems to be AF/MF status
     return prop_cleanup( token, property );
 }
 
