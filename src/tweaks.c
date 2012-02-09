@@ -966,6 +966,7 @@ tweak_task( void* unused)
 
         preview_saturation_step();
         grayscale_menus_step();
+        lcd_adjust_position_step();
 
         // if disp presets is enabled, make sure there are no Canon graphics
         extern int disp_profiles_0;
@@ -1488,6 +1489,7 @@ struct menu_entry expo_tweak_menus[] = {
 
 CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
+CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
 int safe_to_do_engio_for_display = 1;
 
@@ -1595,6 +1597,31 @@ void grayscale_menus_step()
     prev = bmp_color_scheme;
 }
 
+void lcd_adjust_position_step()
+{
+    if (!safe_to_do_engio_for_display) return;
+    if (!DISPLAY_IS_ON) return;
+
+    static int factory_position = -1;
+    static int check_position = -1;
+    
+    int position_register = 0xC0F14164;
+    int current_position = shamem_read(position_register);
+    if (factory_position == -1) check_position = factory_position = current_position;
+    int desired_position = factory_position - lcd_adjust_position * 10 * 2;
+
+    if (current_position != desired_position)
+    {
+        if (current_position == check_position)
+        {
+            EngDrvOut(position_register, desired_position);
+            check_position = desired_position;
+        }
+        else
+            check_position = factory_position = current_position; // Canon code changed it?
+    }
+}
+
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
 extern void clearscreen_display( void * priv, int x, int y, int selected);
@@ -1634,6 +1661,14 @@ static struct menu_entry display_menus[] = {
         .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
         .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
         .icon_type = IT_NAMED_COLOR,
+    },
+    {
+        .name = "Image position ",
+        .priv = &lcd_adjust_position,
+        .max = 2,
+        .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
+        .icon_type = IT_BOOL,
+        .help = "May make the image easier to see from difficult angles.",
     },
     {
         .name = "UpsideDown mode",
