@@ -1129,15 +1129,19 @@ bfnt_test()
 }
 #endif
 
-void bmp_flip(uint8_t* dst, uint8_t* src)
+void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
 {
     if (!dst) return;
     int i,j;
     for (i = 0; i < vram_bm.height; i++)
     {
+        int i_mod = vram_bm.height - i + voffset;
+        while (i_mod < 0) i_mod += vram_bm.height;
+        while (i_mod >= vram_bm.height) i_mod -= (int)vram_bm.height;
+        
         for (j = 0; j < vram_bm.width; j++)
         {
-            dst[BM(j,i)] = src[BM(vram_bm.width-j, vram_bm.height-i)];
+            dst[BM(j,i)] = src[BM(vram_bm.width-j, i_mod)];
         }
     }
 }

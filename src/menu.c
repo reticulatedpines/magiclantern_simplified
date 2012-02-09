@@ -1214,7 +1214,7 @@ menu_redraw()
                             bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
                         else
                         {
-                            if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
+                            if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
                             else bmp_idle_copy(1);
                         }
                     }
