@@ -2356,14 +2356,14 @@ static void spotmeter_step()
             fnt,
             xcb, ycb, 
             "%3d%s",
-            spotmeter_formula == 0 ? scaled : sy >> 8,
+            spotmeter_formula == 0 ? scaled : sy,
             spotmeter_formula == 0 ? "%" : ""
         );
     }
     else if (spotmeter_formula <= 3)
     {
-        int ire_aj = (((int)sy >> 8) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
-        int ire_piers = ((int)sy >> 8) * 108/255;           // formula from Piers: (0...255) -> (0...108)
+        int ire_aj = (((int)sy) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
+        int ire_piers = ((int)sy) * 108/255;           // formula from Piers: (0...255) -> (0...108)
         int ire = (spotmeter_formula == 2) ? ire_aj : ire_piers;
         
         bmp_printf(
