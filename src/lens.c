@@ -325,8 +325,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
           //~ int IS_font = FONT(text_font, lens_info.IS ? COLOR_YELLOW : COLOR_WHITE, bg );
           int IS_font_med = FONT(med_font,
-                    lens_info.IS == 0 ? COLOR_WHITE :     // IS off
-                    lens_info.IS == 4 ? COLOR_CYAN :      // IS active, but not engaged
+                    lens_info.IS == 0 ? COLOR_WHITE    :  // IS off
+                    lens_info.IS == 4 ? COLOR_CYAN     :  // IS active, but not engaged
+                    lens_info.IS == 8 ? COLOR_BLACK    :  // IS disabled on sigma lenses?
                     lens_info.IS == 0xC ? COLOR_YELLOW :  // IS starting?
                     lens_info.IS == 0xE ? COLOR_ORANGE :  // IS active and kicking
                     COLOR_RED,                            // unknown
