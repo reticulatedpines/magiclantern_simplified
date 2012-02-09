@@ -503,8 +503,7 @@ screen_layout_display(
     menu_draw_icon(x, y, MNI_DICE, screen_layout + (5<<16));
 }
 
-void screen_layout_toggle() { menu_quinternary_toggle(get_screen_layout_ptr(), 1); }
-void screen_layout_toggle_reverse() { menu_quinternary_toggle_reverse(get_screen_layout_ptr(), -1); }
+void screen_layout_toggle(void* priv, int delta) { menu_quinternary_toggle(get_screen_layout_ptr(), delta); }
 
 
 #ifdef CONFIG_50D
@@ -676,6 +675,7 @@ void rec_notify_continuous(int called_from_menu)
     if (prev != recording) redraw();
     prev = recording;
 }
+
 void rec_notify_trigger(int rec)
 {
 #if !defined(CONFIG_600D)
@@ -691,6 +691,7 @@ void rec_notify_trigger(int rec)
     extern int flash_movie_pressed; // another workaround for issue 688
     flash_movie_pressed = 0;
 #endif
+
 }
 
 /**
