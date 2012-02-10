@@ -41,7 +41,7 @@ How do I record for more than 12 minutes?
 
 * Lower the `bitrate`_ (CBR 0.4 will let you record continuously for 30 minutes).
 * Use `Movie restart`_, but you will lose a few seconds when a new file is created.
-* To record continuously for more than 30 minutes, you need to use a [[HDMI recorder]]. Select ``ClearScreen: Always`` to hide all graphical overlays and enable ``Half-press shutter: Every second`` to prevent the camera from shutting down.
+* To record continuously for more than 30 minutes, you need to use a [[HDMI recorder]]. Select ``Clear Overlays: Always`` to hide all graphical overlays and enable ``Half-press shutter: Every second`` to prevent the camera from shutting down.
 
 Technically, there's no 12 minute limit. There's a 30 minute limit and a 4 GB limit, whichever comes first. With default bitrate settings, the 4 GB limit is reached after around 12 minutes (more or less).
 
@@ -67,6 +67,32 @@ No. Even with zebras and focus peaking active, the power draw only increases by 
 Magic Lantern can reduce power consumption by dimming or turning off the LCD screen, or by pausing LiveView without moving the mirror. See `Power saving`_ for details.
 
 Tip: `batteries are not expensive <http://amzn.to/ml-lp-e8>`_; however, third-party models may last less than original Canon batteries. See `this topic <http://vimeo.com/groups/magiclantern/forumthread:238190>`_.
+
+Does ML do any persistent changes to my camera?
+
+Yes. Besides the bootflag (which is required to auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
+
+* ISO, shutter, aperture, white balance;
+* Exposure compensation, drive mode;
+* Picture style and associated parameters;
+* Flash settings (enabled/disabled, exposure compensation, red eye reduction);
+* AF points, AF mode in LiveView, focus box position;
+* Exposure simulation setting (in Expo menu; disabled temporarily when using 5x/10x zoom modes);
+* Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
+* Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
+* Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
+* Sound recording is disabled temporarily when you use `FPS override`_;
+* On 600D, video mode may be changed via ML shortcut key;
+* On 60D, INFO button function may be changed if you enable ``DispOFF in photo mode``;
+* On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
+
+With few exceptions, these settings can also be changed from Canon menus or controls.
+
+A few settings are changed temporarily during certain operations (for example, autofocus for bracketed shots), but these settings are saved by Canon firmware in NVRAM. If you take the battery out in the middle of the operation (for example, in the middle of taking a picture), ML won't be able to restore these settings back to your initial values, and you'll have to change them back from Canon menus.
+
+To the best of our knowledge, all these settings are restored to default values when you run "Clear camera settings" and "Clear custom functions" from Canon menu.
+
+All persistent changes can be seen in ML source code by examining the calls to ``prop_request_change``. Some of the changes are not persistent (for example, LiveView zooming), and they were not included in the above list.
 
 Why the audio is so quiet / noisy after disabling AGC?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,6 +195,7 @@ Magic Lantern menu
 * Use ``Q`` to open a submenu with more settings.
 * Press ``INFO`` or ``DISP`` button to get help.
 * Press ``MENU`` to display the advanced menu.
+* In LiveView, press ``Zoom In`` to display LiveView behind ML menu.
 
 For cameras without ``Q``:
 
@@ -414,7 +441,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 .. _Display:
 .. _Clean LiveView display:
 
-**ClearScreen**
+**Clear Overlays**
  
   Clear bitmap overlays from LiveView display.
  
@@ -1075,6 +1102,13 @@ Focus
   * Focus StepDelay: small values, without ``Wait`` flag.
   * If the motion is not smooth, try larger delays (100ms)
 
+  Quick rack focus **while recording**:
+
+  * Press ``MENU`` to save current focus point (this means "I want to return here");
+  * Use follow focus to change focus point (focus somewhere else);
+  * Press ``PLAY`` to go to saved focus point;
+  * Press ``PLAY`` again to go back.
+
 .. _focus speed:
 
 **Focus StepSize: Small/Medium/Large**
@@ -1247,12 +1281,12 @@ Miscellanous settings.
   
   Set focus to manual or back-button and make half-shutter "sticky".
 
-**AF frame display: Show / AutoHide**
+**Focus box: Show / AutoHide**
 
-  Control the appearance of AF frame:
+  Control the appearance of focus box:
   
-  * Show: show the AF frame (just like the standard firmware)
-  * AutoHide: the AF frame is only displayed when you move it, and then it disappears after 1 second or so.
+  * Show: show the focus box in LiveView (just like the standard firmware)
+  * AutoHide: the focus box is only displayed when you move it, and then it disappears after 1 second or so.
 
 .. _SensorShortcuts:
 
@@ -1500,6 +1534,8 @@ Functions for troubleshooting, development, and possibly unstable features.
 
 Powersave
 ~~~~~~~~~
+
+.. _Dim display:
 
 **Dim display: OFF / after X seconds**
 
