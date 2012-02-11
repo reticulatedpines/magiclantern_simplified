@@ -69,8 +69,9 @@ Magic Lantern can reduce power consumption by dimming or turning off the LCD scr
 Tip: `batteries are not expensive <http://amzn.to/ml-lp-e8>`_; however, third-party models may last less than original Canon batteries. See `this topic <http://vimeo.com/groups/magiclantern/forumthread:238190>`_.
 
 Does ML do any persistent changes to my camera?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. Besides the bootflag (which is required to auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
+Yes. Besides the bootflag (which is required for auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
 
 * ISO, shutter, aperture, white balance;
 * Exposure compensation, drive mode;
@@ -348,6 +349,8 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   To learn how to read these graphs, see `Understanding Histograms <http://www.luminous-landscape.com/tutorials/understanding-series/understanding-histograms.shtml>`_ and `Final Cut Waveform Monitor <http://www.youtube.com/watch?v=JXMvFk146R0>`_.
 
+  Tip: if you shoot RAW, use the `UniWB <http://www.guillermoluijk.com/tutorial/uniwb/index_en.htm>`_ method to get a good approximation of RAW RGB histogram. To setup UniWB, do a custom white balance on a completely overexposed image (100% white), set the picture style to Neutral 0,-4,-4,0 and disable Peripheral Illumination Correction.
+
 **Vectorscope**
 
   This tool shows the color distribution with an U-V plot. Useful for color grading.
@@ -365,7 +368,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Color spaces:
     
   * ``Luma``: zebras are computed from Y channel only.
-  * ``RGB``: check overexposure for each RGB channel. Clipped channels are displayed in the opposite color (i.e. clipped red shown as cyan, underexposed as white and so on).
+  * ``RGB``: check overexposure for each RGB channel. Clipped channels are displayed in the opposite color (i.e. clipped red shown as cyan, underexposed as white and so on). For RAW RGB zebras, use the UniWB method (see `Histogram`_ for details).
   
   You may adjust thresholds for underexposure and overexposure.
   
