@@ -54,6 +54,9 @@ volatile        unsigned                job_state; // see PROP_LAST_JOB_STATE
 
 volatile        unsigned                wb_mode;  // see property.h for possible values
 volatile        unsigned                kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
+volatile        unsigned                WBGain_R; // only used when wb_mode = WB_CUSTOM
+volatile        unsigned                WBGain_G; // only used when wb_mode = WB_CUSTOM
+volatile        unsigned                WBGain_B; // only used when wb_mode = WB_CUSTOM
 volatile        int8_t          wbs_gm;
 volatile        int8_t          wbs_ba;
 

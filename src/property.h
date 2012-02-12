@@ -199,6 +199,7 @@
 #define PROP_WBS_GM 0x80000010 // signed 8-bit, len=4
 #define PROP_WBS_BA 0x80000011 // idem
 
+#define PROP_CUSTOM_WB 0x2020000 // len=52, contains multipliers at 0x20 [B?], 0x24 [G], 0x26 [R?] as int16, 1024=1
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
 

@@ -1621,6 +1621,26 @@ kelvin_display( void * priv, int x, int y, int selected )
         );
         menu_draw_icon(x, y, MNI_PERCENT, (lens_info.kelvin - KELVIN_MIN) * 100 / (KELVIN_MAX - KELVIN_MIN));
     }
+    else if (lens_info.wb_mode == WB_CUSTOM)
+    {
+        int mul_R = 1000 * 1024 / lens_info.WBGain_R;
+        int mul_G = 1000 * 1024 / lens_info.WBGain_G;
+        int mul_B = 1000 * 1024 / lens_info.WBGain_B;
+
+        mul_R = (mul_R + 5) / 10;
+        mul_G = (mul_G + 5) / 10;
+        mul_B = (mul_B + 5) / 10;
+
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "WhiteBalance: %d.%02d %d.%02d %d.%02d",
+            mul_R/100, mul_R%100,
+            mul_G/100, mul_G%100,
+            mul_B/100, mul_B%100
+        );
+        menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "RGB");
+    }
     else
     {
         bmp_printf(
@@ -1646,7 +1666,7 @@ static void
 kelvin_wbs_display( void * priv, int x, int y, int selected )
 {
     kelvin_display(priv, x, y, selected);
-    x += font_large.width * 22;
+    x += font_large.width * (lens_info.wb_mode == WB_CUSTOM ? 30 : 22);
     if (lens_info.wbs_gm)
     {
         bmp_printf(
@@ -1687,6 +1707,37 @@ static void kelvin_n_gm_auto()
         kelvin_auto_flag = 1;
         wbs_gm_auto_flag = 1;
     }
+}
+
+static void
+wb_custom_gain_display( void * priv, int x, int y, int selected )
+{
+    int p = (intptr_t) priv;
+    int raw_value =
+        p==1 ? lens_info.WBGain_R :
+        p==2 ? lens_info.WBGain_G :
+               lens_info.WBGain_B ;
+
+    int multiplier = 1000 * 1024 / raw_value;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "%s multiplier: %d.%03d",
+        p==1 ? "R" : p==2 ? "G" : "B",
+        multiplier/1000, multiplier%1000
+    );
+    if (lens_info.wb_mode != WB_CUSTOM)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Custom white balance is not active.");
+}
+
+static void
+wb_custom_gain_toggle( void * priv, int delta )
+{
+    int p = (intptr_t) priv;
+    int deltaR = p == 1 ? -delta * 16 * MAX(1, lens_info.WBGain_R/1024) : 0;
+    int deltaG = p == 2 ? -delta * 16 * MAX(1, lens_info.WBGain_G/1024) : 0;
+    int deltaB = p == 3 ? -delta * 16 * MAX(1, lens_info.WBGain_B/1024) : 0;
+    lens_set_custom_wb_gains(lens_info.WBGain_R + deltaR, lens_info.WBGain_G + deltaG, lens_info.WBGain_B + deltaB);
 }
 
 
@@ -3445,6 +3496,25 @@ static struct menu_entry expo_menus[] = {
                 //~ .show_liveview = 1,
             },
             {
+                .priv = 1,
+                .display = wb_custom_gain_display,
+                .select = wb_custom_gain_toggle,
+                .help = "RED channel multiplier, for custom white balance.",
+            },
+            {
+                .priv = 2,
+                .display = wb_custom_gain_display,
+                .select = wb_custom_gain_toggle,
+                .help = "GREEN channel multiplier, for custom white balance.",
+            },
+            {
+                .priv = 3,
+                .display = wb_custom_gain_display,
+                .select = wb_custom_gain_toggle,
+                .help = "BLUE channel multiplier, for custom white balance.",
+            },
+            
+            /*{
                 .name = "Auto adjust Kelvin",
                 .select = kelvin_auto,
                 .help = "LiveView: adjust Kelvin value once for the current scene."
@@ -3453,7 +3523,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "Auto adjust Green-Magenta",
                 .select = wbs_gm_auto,
                 .help = "LiveView: adjust Green-Magenta once for the current scene."
-            },
+            },*/
             {
                 .name = "Auto adjust Kelvin + G/M",
                 .select = kelvin_n_gm_auto,

@@ -1409,6 +1409,43 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
     return prop_cleanup( token, property );
 }
 
+uint16_t custom_wb_gains[26];
+PROP_HANDLER(PROP_CUSTOM_WB)
+{
+    memcpy(custom_wb_gains, buf, sizeof(custom_wb_gains));
+    const uint16_t * gains = (uint16_t *) buf;
+    lens_info.WBGain_R = gains[16];
+    lens_info.WBGain_G = gains[18];
+    lens_info.WBGain_B = gains[19];
+    return prop_cleanup( token, property );
+}
+
+void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
+{
+    // normalize: green gain should be always 1
+    //~ gain_G = COERCE(gain_G, 4, 32000);
+    //~ gain_R = COERCE(gain_R * 1024 / gain_G, 128, 32000);
+    //~ gain_B = COERCE(gain_B * 1024 / gain_G, 128, 32000);
+    //~ gain_G = 1024;
+
+    gain_G = COERCE(gain_G, 128, 8192);
+    gain_R = COERCE(gain_R, 128, 8192);
+    gain_B = COERCE(gain_B, 128, 8192);
+
+    // round off a bit to get nice values in menu
+    gain_R = ((gain_R + 8) / 16) * 16;
+    gain_B = ((gain_B + 8) / 16) * 16;
+    
+    custom_wb_gains[16] = gain_R;
+    custom_wb_gains[18] = gain_G;
+    custom_wb_gains[19] = gain_B;
+    prop_request_change(PROP_CUSTOM_WB, custom_wb_gains, sizeof(custom_wb_gains));
+
+    int mode = WB_CUSTOM;
+    prop_request_change(PROP_WB_MODE_LV, &mode, 4);
+    prop_request_change(PROP_WB_MODE_PH, &mode, 4);
+}
+
 #define LENS_GET(param) \
 int lens_get_##param() \
 { \
