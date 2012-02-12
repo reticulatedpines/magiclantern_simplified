@@ -786,7 +786,7 @@ menu_display(
             }
             
             // this should be after menu->display, in order to allow it to override the icon
-            if (menu->priv && !show_only_selected)
+            if (menu->priv && (menu->selected || !show_only_selected))
             {
                 entry_draw_icon(menu, x, y);
             }
@@ -1367,7 +1367,8 @@ menu_handler(
 #endif
     case ELECTRONIC_SUB_DIAL_LEFT:
         if (menu_help_active) { menu_help_prev_page(); break; }
-        menu_entry_move( menu, -1 ); show_only_selected = 0;
+        menu_entry_move( menu, -1 );
+        if (!submenu_mode) show_only_selected = 0;
         break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
@@ -1377,7 +1378,8 @@ menu_handler(
 #endif
     case ELECTRONIC_SUB_DIAL_RIGHT:
         if (menu_help_active) { menu_help_next_page(); break; }
-        menu_entry_move( menu, 1 ); show_only_selected = 0;
+        menu_entry_move( menu, 1 );
+        if (!submenu_mode) show_only_selected = 0;
         break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
