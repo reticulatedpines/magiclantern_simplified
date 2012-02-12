@@ -2137,6 +2137,7 @@ void ml_shutdown()
         save_config(0, 0);
     }
     info_led_on();
+    _card_led_on();
     msleep(50); 
 }
 
