@@ -396,7 +396,7 @@ bmp_hexdump(
             fontspec,
             x,
             y,
-            "%08x: %08x %08x %08x %08x %08x %08x %08x %08x ",
+            "%08x: %08x %08x %08x %08x %08x %08x %08x %08x : %04x",
             (unsigned) d,
             len >  0 ? MEMX(d+0) : 0,
             len >  4 ? MEMX(d+1) : 0,
@@ -405,7 +405,8 @@ bmp_hexdump(
             len > 16 ? MEMX(d+4) : 0,
             len > 20 ? MEMX(d+5) : 0,
             len > 24 ? MEMX(d+6) : 0,
-            len > 28 ? MEMX(d+7) : 0
+            len > 28 ? MEMX(d+7) : 0,
+            (void*)d - (void*)buf
         );
 
         y += fontspec_height( fontspec );
