@@ -12,8 +12,6 @@
 #include "config.h"
 
 #ifdef CONFIG_550D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define MOVREC_STATE (*(struct state_object **)0x5B34)
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 #endif
@@ -95,7 +93,7 @@ void hdr_step()
     }
     else
     {
-        if (!HALFSHUTTER_PRESSED) odd_frame = (frame / video_mode_fps) % 2;
+        if (!HALFSHUTTER_PRESSED) odd_frame = (frame / video_mode_fps / 2) % 2;
     }
 
     int iso_low, iso_high;
@@ -104,36 +102,6 @@ void hdr_step()
     int iso = odd_frame ? iso_low : iso_high; // ISO 100-1600
     FRAME_ISO = iso | (iso << 8);
     //~ *(uint8_t*)(lv_struct + 0x54) = iso;
-}
-
-static int (*StateTransition)(void*,int,int,int,int) = 0;
-static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    //~ int old_state = self->current_state;
-    int ans = StateTransition(self, x, input, z, t);
-    //~ int new_state = self->current_state;
-
-    //~ bmp_printf(FONT_LARGE, 50, 50, "%s (%d)--%d-->(%d) %d ", self->name, old_state, input, new_state, MVR_FRAME_NUMBER);
-
-    #ifdef MOVREC_STATE
-    if (self == MOVREC_STATE && recording) // mvrEncodeDone
-    {
-        hdr_step();
-    }
-    #endif
-    
-    #ifdef DISPLAY_STATE
-    if (self == DISPLAY_STATE && input == 18 && !recording) // SetImageVramParameter_pFlipCBR
-        hdr_step();
-    #endif
-
-    return ans;
-}
-
-static void stateobj_start_spy(struct state_object * stateobj)
-{
-    StateTransition = (void*)stateobj->StateTransition_maybe;
-    stateobj->StateTransition_maybe = (void*)stateobj_spy;
 }
 
 static void
@@ -220,13 +188,6 @@ void iso_test()
 
 static void hdr_init()
 {
-    #ifdef DISPLAY_STATE
-        stateobj_start_spy(DISPLAY_STATE);
-    #endif
-    #ifdef MOVREC_STATE
-        stateobj_start_spy(MOVREC_STATE);
-    #endif
-    
     menu_add( "Movie", hdr_menu, COUNT(hdr_menu) );
 }
 

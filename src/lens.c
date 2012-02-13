@@ -215,6 +215,8 @@ int raw2iso(int raw_iso)
         iso = ((iso+500)/1000) * 1000;
     else if (iso > 10000)
         iso = ((iso+50)/100) * 100;
+    else if (iso >= 60)
+        iso = ((iso+5)/10) * 10;
     else if (iso >= 15)
         iso = ((iso+2)/5) * 5;
     else
@@ -1526,6 +1528,15 @@ void iso_components_update()
     {
         // display gain gets recorded, consider it as ISO digital gain
         lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
+    }
+
+    extern int highlight_recover;
+    extern int default_shad_gain;
+    if (highlight_recover)
+    {
+        int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain));
+        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + G;
+        lens_info.iso_digital_ev = G;
     }
 }
 

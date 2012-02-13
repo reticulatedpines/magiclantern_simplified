@@ -58,6 +58,8 @@ ML_OBJS-y = \
 	aj_port.o \
 	fps.o \
 	hdr.o \
+	lv-img-engio.o \
+	state-object.o \
 
 #include generic rules and definitions
 

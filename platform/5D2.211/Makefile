@@ -58,6 +58,8 @@ ML_OBJS-y = \
 	fps-engio.o \
 	hdr.o \
 	lightsensor.o \
+	lv-img-engio.o \
+	state-object.o \
 
 
 #include generic rules and definitions

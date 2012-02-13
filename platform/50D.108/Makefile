@@ -57,6 +57,8 @@ ML_OBJS-y = \
 	aj_port.o \
 	fps-engio.o \
 	hdr.o \
+	lv-img-engio.o \
+	state-object.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
