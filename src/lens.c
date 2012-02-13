@@ -518,7 +518,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       x_origin + 250  , 
                       y_origin, 
                       msg);
-            if (digital_w_dispgain != digital_wo_dispgain || CONTROL_BV)
+            extern int highlight_recover;
+            if (digital_w_dispgain != digital_wo_dispgain || CONTROL_BV || highlight_recover)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
                           bottom - font_med.height, 
