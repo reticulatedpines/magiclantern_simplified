@@ -349,6 +349,8 @@ static void
 movtweak_task( void* unused )
 {
     //~ msleep(500);
+    while (sensor_cleaning) msleep(100);
+
     if (!lv && enable_liveview && is_movie_mode()
         && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
