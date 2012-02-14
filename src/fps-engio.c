@@ -120,14 +120,7 @@ int get_current_shutter_reciprocal_x1000()
 #else
 
     int timer = FRAME_SHUTTER_TIMER;
-
-    int mode = 
-        video_mode_fps == 60 ? 0 : 
-        video_mode_fps == 50 ? 1 : 
-        video_mode_fps == 30 ? 2 : 
-        video_mode_fps == 25 ? 3 : 
-        video_mode_fps == 24 ? 4 : 0;
-    int ntsc = (mode % 2 == 0);
+    int ntsc = is_current_mode_ntsc();
 
     int shutter_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     return MAX(shutter_x1000, fps_get_current_x1000());
