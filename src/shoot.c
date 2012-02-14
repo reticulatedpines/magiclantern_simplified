@@ -4374,15 +4374,18 @@ shoot_task( void* unused )
             was_idle_not_pressed = is_idle_not_pressed;
         }
         
-        if (lens_info.job_state >= 10 && !recording) // just took a picture, maybe we should take another one
+        if (lens_info.job_state >= 10 && !recording ) // just took a picture, maybe we should take another one
         {
-            //~ hdr_intercept = 0;
-            lens_wait_readytotakepic(64);
-            //~ if (beep_enabled) beep();
-            if (is_focus_stack_enabled()) focus_stack_run(1); // skip first exposure, we already took it
-            else if (hdr_enabled) hdr_shot(1,1); // skip the middle exposure, which was just taken
-            //~ if (beep_enabled) beep();
-            //~ hdr_intercept = 1;
+            if (is_focus_stack_enabled())
+            {
+                lens_wait_readytotakepic(64);
+                focus_stack_run(1); // skip first exposure, we already took it
+            }
+            else if (hdr_enabled)
+            {
+                lens_wait_readytotakepic(64);
+                hdr_shot(1,1); // skip the middle exposure, which was just taken
+            }
         }
 
         #ifndef CONFIG_5D2
