@@ -3798,6 +3798,7 @@ static void zebra_sleep_when_tired()
 void draw_livev_for_playback()
 {
     get_yuv422_vram(); // just to refresh VRAM params
+    if (!PLAY_MODE && !QR_MODE) return;
     clrscr();
     
 BMP_LOCK(
