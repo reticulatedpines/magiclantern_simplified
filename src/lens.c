@@ -1525,19 +1525,19 @@ void iso_components_update()
 
     lens_info.iso_equiv_raw = lens_info.raw_iso;
 
+    extern int highlight_recover;
+    extern int default_shad_gain;
+    if (highlight_recover && lens_info.raw_iso)
+    {
+        int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain));
+        lens_info.iso_equiv_raw = (((lens_info.raw_iso+3)/8)*8) + G;
+        lens_info.iso_digital_ev = G;
+    }
+    
     if (lens_info.iso_equiv_raw && LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
     {
         // display gain gets recorded, consider it as ISO digital gain
         lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
-    }
-
-    extern int highlight_recover;
-    extern int default_shad_gain;
-    if (highlight_recover)
-    {
-        int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain));
-        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + G;
-        lens_info.iso_digital_ev = G;
     }
 }
 
