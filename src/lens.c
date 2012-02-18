@@ -531,7 +531,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
                           bottom - font_med.height, 
-                          CONTROL_BV ? "ov" : "eq");
+                          CONTROL_BV && !highlight_recover ? "ov" : "eq");
             if (iso >= 10000)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
