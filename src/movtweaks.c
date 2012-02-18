@@ -259,9 +259,16 @@ enable_liveview_print(
 void force_liveview()
 {
     msleep(50);
+    if (lv) return;
+    info_led_on();
+    while (sensor_cleaning) msleep(100);
+    while (get_halfshutter_pressed()) msleep(100);
+    extern int ml_started;
+    if (!ml_started) return;
     ResumeLiveView();
     while (get_halfshutter_pressed()) msleep(100);
     get_out_of_play_mode(200);
+    info_led_off();
     if (!lv) fake_simple_button(BGMT_LV);
     msleep(500);
 }
@@ -349,7 +356,6 @@ static void
 movtweak_task( void* unused )
 {
     //~ msleep(500);
-    while (sensor_cleaning) msleep(100);
 
     if (!lv && enable_liveview && is_movie_mode()
         && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
