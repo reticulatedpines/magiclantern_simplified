@@ -1579,11 +1579,23 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
+    static int prev_g = 0;
+    static int prev_d = 0;
+    static int prev_b = 0;
+
+    // optimization: only update palette after a display mode change
+    int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b);
+    
+    prev_d = DISPLAY_IS_ON;
+    prev_g = gui_state;
+
     if (!safe_to_do_engio_for_display) return;
     if (!DISPLAY_IS_ON) return;
+    if (!transition) return;
 
-    static int prev = 0;
-    if (bmp_color_scheme || prev)
+    msleep(100);
+
+    if (bmp_color_scheme || prev_b)
     {
         if (DISPLAY_IS_ON)
         {
@@ -1595,7 +1607,7 @@ void grayscale_menus_step()
         }
     }
 
-    prev = bmp_color_scheme;
+    prev_b = bmp_color_scheme;
 }
 
 void lcd_adjust_position_step()
