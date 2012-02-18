@@ -1868,11 +1868,11 @@ int bv_auto_should_enable()
 void bv_auto_update_do()
 {
     if (!bv_auto) return;
-    take_semaphore(lens_sem, 0);
+    //~ take_semaphore(lens_sem, 0);
     if (bv_auto_should_enable()) bv_enable();
     else bv_disable();
     lens_display_set_dirty();
-    give_semaphore(lens_sem);
+    //~ give_semaphore(lens_sem);
 }
 void bv_auto_update()
 {
