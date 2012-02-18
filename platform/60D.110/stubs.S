@@ -284,9 +284,9 @@ NSTUB(0xff0a5bdc, GUI_SetLvDZoomKey)
 
 NSTUB(0x52940, lv_path_struct) // first arg of SelectPathDriveMode
 
-NSTUB(0xff1c5a54, engio_write)
+NSTUB(0xff1c5a54, _engio_write)
 NSTUB(0xff1c5580, shamem_read)
-NSTUB(0xff1c5690, EngDrvOut)
+NSTUB(0xff1c5690, _EngDrvOut)
 
 NSTUB(0xff20c3d8, GUI_SetMovieParam)
 

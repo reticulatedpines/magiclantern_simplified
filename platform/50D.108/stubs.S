@@ -249,9 +249,9 @@ NSTUB(0xffa86e88, LiveViewApp_handler)
 NSTUB(0xffaa7c98, ShootOlcApp_handler)
 NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
 
-NSTUB(0xFF97D900, engio_write)
+NSTUB(0xFF97D900, _engio_write)
 NSTUB(0xff97d7f4, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-NSTUB(0xff97d790, EngDrvOut)
+NSTUB(0xff97d790, _EngDrvOut)
 
 NSTUB(0xff8166b0, get_current_task)
 

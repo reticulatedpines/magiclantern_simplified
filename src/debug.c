@@ -2740,10 +2740,19 @@ void display_off_force()
 int display_is_on() { return DISPLAY_IS_ON; }
 
 
+// engio functions may fail and lock the camera
+// at least make sure the LED is ON, so you know to take the battery out
 
 void EngDrvOut(int reg, int value)
 {
     _card_led_on();
     _EngDrvOut(reg, value);
+    _card_led_off();
+}
+
+void engio_write(int* command_sequence)
+{
+    _card_led_on();
+    _engio_write(command_sequence);
     _card_led_off();
 }

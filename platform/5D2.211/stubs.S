@@ -163,7 +163,7 @@ NSTUB(0xffac3964, PlayMain_handler)
 NSTUB(0xffac7ac8, OlcAFFrameApp_handler)
 NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
 
-NSTUB(0xFF9A5618, engio_write)
+NSTUB(0xFF9A5618, _engio_write)
 NSTUB(0xff9a550c, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 NSTUB(0xff9a54a8, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
