@@ -26,7 +26,16 @@
 #endif
 
 #ifdef CONFIG_5D2
+#define MOVREC_STATE (*(struct state_object **)0x7C90)
 #define LV_STATE (*(struct state_object **)0x4528)
+#endif
+
+#ifdef CONFIG_500D
+#define MOVREC_STATE (*(struct state_object **)0x7AF4)
+#endif
+
+#ifdef CONFIG_50D
+#define MOVREC_STATE (*(struct state_object **)0x6CDC)
 #endif
 
 /*

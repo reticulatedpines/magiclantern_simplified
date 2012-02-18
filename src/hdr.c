@@ -17,19 +17,16 @@
 #endif
 
 #ifdef CONFIG_500D
-#define MOVREC_STATE (*(struct state_object **)0x7AF4)
 #define LV_STRUCT_PTR 0x1d78
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x56)
 #endif
 
 #ifdef CONFIG_50D
-#define MOVREC_STATE (*(struct state_object **)0x6CDC)
 #define LV_STRUCT_PTR 0x1D74
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
 #endif
 
 #ifdef CONFIG_5D2
-#define MOVREC_STATE (*(struct state_object **)0x7C90)
 #define LV_STRUCT_PTR 0x1D78
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)
 #endif
