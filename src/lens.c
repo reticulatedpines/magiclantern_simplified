@@ -1209,7 +1209,10 @@ PROP_HANDLER(PROP_LENS)
     lens_info.raw_aperture_max = info[2];
 
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
-        lensinfo_set_aperture(0); // value no longer valid?
+    {
+        int raw = COERCE(lens_info.raw_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        lensinfo_set_aperture(raw); // valid limits changed
+    }
     
     bv_update_lensinfo();
     return prop_cleanup( token, property );
@@ -1263,9 +1266,10 @@ void lensinfo_set_shutter(int raw)
 
 void lensinfo_set_aperture(int raw)
 {
-    if (lens_info.raw_aperture_min && lens_info.raw_aperture_max)
+    if (raw)
     {
-        raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        if (lens_info.raw_aperture_min && lens_info.raw_aperture_max)
+            raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         lens_info.raw_aperture = raw;
         lens_info.aperture = RAW2VALUE(aperture, raw);
     }
@@ -1348,6 +1352,7 @@ PROP_HANDLER( PROP_SHUTTER )
 
 PROP_HANDLER( PROP_APERTURE2 )
 {
+    //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
     #ifndef CONFIG_500D
     else if (buf[0] && !gui_menu_shown())
@@ -1368,6 +1373,7 @@ PROP_HANDLER( PROP_APERTURE ) // for Tv mode
     lens_display_set_dirty();
     return prop_cleanup( token, property );
 }
+
 PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
@@ -1746,8 +1752,9 @@ bool prop_set_rawshutter(unsigned shutter, int coerce)
     lens_wait_readytotakepic(64);
     if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    msleep(20);
-    return (unsigned int) get_prop(PROP_SHUTTER) == shutter;
+    msleep(50);
+    return ((unsigned int) get_prop(PROP_SHUTTER) == shutter) &&
+           ((unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter) ;
 }
 
 bool prop_set_rawiso(unsigned iso)
@@ -1755,7 +1762,7 @@ bool prop_set_rawiso(unsigned iso)
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
     prop_request_change( PROP_ISO, &iso, 4 );
-    msleep(20);
+    msleep(50);
     return (unsigned int) get_prop(PROP_ISO) == iso;
 }
 
