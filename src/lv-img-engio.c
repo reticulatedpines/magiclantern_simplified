@@ -20,6 +20,21 @@
 
 #define SHAD_GAIN 0xc0f08030 // controls clipping point (digital ISO)
 
+CONFIG_INT("highlight.recover", highlight_recover, 0);
+
+static CONFIG_INT("digic.effects", image_effects, 0);
+static CONFIG_INT("digic.desaturate", desaturate, 0);
+static CONFIG_INT("digic.negative", negative, 0);
+static CONFIG_INT("digic.fringing", fringing, 0);
+
+static CONFIG_INT("digic.poke", digic_poke, 0);
+static CONFIG_INT("digic.reg.bas", digic_register_base, 0xC0F0);
+static CONFIG_INT("digic.reg.mid", digic_register_mid, 0x80);
+static CONFIG_INT("digic.reg.off", digic_register_off, 0x08);
+static CONFIG_INT("digic.alter.mode", digic_alter_mode, 1);
+int digic_register = 0;
+int digic_value = 0;
+
 int default_shad_gain = 0;
 void autodetect_default_shad_gain()
 {
@@ -31,8 +46,6 @@ void autodetect_default_shad_gain()
     default_shad_gain = MEMX(SHAD_GAIN) * powf(2, -dg / 8.0);
     //~ NotifyBox(2000, "shad_gain: %d ", default_shad_gain);
 }
-
-CONFIG_INT("highlight.recover", highlight_recover, 0);
 
 int get_new_shad_gain()
 {
@@ -68,6 +81,44 @@ static int lens_info_update()
     lens_info.iso = raw2iso(lens_info.iso_equiv_raw);
 }*/
 
+void image_effects_step()
+{
+    if (image_effects && DISPLAY_IS_ON && lv)
+    {
+        if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
+        if (negative) EngDrvOut(0xc0f0f000, 0xb1);
+        if (fringing) EngDrvOut(0xc0f0f4ac, 0x1);
+    }
+
+    if (digic_poke && DISPLAY_IS_ON && lv)
+    {
+        digic_register = ((digic_register_base << 16) & 0xFFFF0000) |
+                         ((digic_register_mid  <<  8) & 0x0000FF00) |
+                         ((digic_register_off  <<  0) & 0x000000FF) ;
+
+        if (HALFSHUTTER_PRESSED)
+        {
+            if (digic_alter_mode == 0) // rand
+                digic_value = rand();
+            else if (digic_alter_mode == 1) // increment 
+                digic_value += is_manual_focus() ? 1 : -1;
+            else if (digic_alter_mode == 2) // increment << 8
+                digic_value += (is_manual_focus() ? 1 : -1) << 8;
+            else if (digic_alter_mode == 3) // increment << 16
+                digic_value += (is_manual_focus() ? 1 : -1) << 16;
+            else if (digic_alter_mode == 4) // increment << 24
+                digic_value += (is_manual_focus() ? 1 : -1) << 24;
+            //~ digic_value--;
+            NotifyBox(2000, "%x: %x  ", digic_register, digic_value);
+            EngDrvOut(digic_register, digic_value);
+        }
+        else
+        {
+            digic_value = MEMX(digic_register);
+        }
+    }
+}
+
 void highlight_recover_step()
 {
     if (lens_info.iso == 0) return; // no auto ISO, please
@@ -78,11 +129,6 @@ void highlight_recover_step()
         EngDrvOut(SHAD_GAIN, get_new_shad_gain());
         //~ lens_info_update();
     }
-
-    //~ static int prev_highlight_recover = 0;
-    //~ if (prev_highlight_recover && !highlight_recover)
-        //~ lens_info_update();
-    //~ prev_highlight_recover = highlight_recover;
 }
 
 static void
@@ -131,6 +177,33 @@ clipping_print(
     }
 }
 
+void hex_toggle(void* priv, int delta)
+{
+    MEM(priv) += 4 * delta;
+}
+
+void digic_value_toggle(void* priv, int delta)
+{
+    digic_value += delta;
+}
+
+static void
+digic_value_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Value[%08x]: %x", digic_register, digic_value
+    );
+}
+
+void menu_open_submenu();
+
 static struct menu_entry lv_img_menu[] = {
     {
         .name = "Highlight++",
@@ -139,12 +212,96 @@ static struct menu_entry lv_img_menu[] = {
         .max = 5,
         .display = clipping_print,
         .help = "Highlight recovery by changing sensor clipping point in LV.",
+    },
+    {
+        .name = "Image Effects",
+        .priv = &image_effects,
+        .max = 1,
+        //~ .select = menu_open_submenu,
+        .help = "Experimental image filters found by digging into DIGIC.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Desaturate",
+                .priv       = &desaturate,
+                .min = 0,
+                .max = 1,
+                .help = "Grayscale recording. Use WB or pic styles for fine tuning.",
+            },
+            {
+                .name = "Negative",
+                .priv       = &negative,
+                .min = 0,
+                .max = 1,
+                .help = "Negative image. Inverts all colors :)",
+            },
+            {
+                .name = "Purple Fringe",
+                .priv       = &fringing,
+                .min = 0,
+                .max = 1,
+                .help = "Something that looks like purple fringing :)",
+            },
+            MENU_EOL
+        },
+    },
+};
+
+static struct menu_entry dbg_menu[] = {
+    {
+        .name = "DIGIC poke",
+        .priv       = &digic_poke,
+        .min = 0,
+        .max = 1,
+        .help = "Changes a DIGIC register to find out what it does. DANGER!",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Register family",
+                .priv = &digic_register_base,
+                .unit = UNIT_HEX,
+                .min = 0xC000,
+                .max = 0xCFFF,
+                .help = "DIGIC register address, mask=FFFF0000.",
+            },
+            {
+                .name = "Register base  ",
+                .priv = &digic_register_mid,
+                .unit = UNIT_HEX,
+                .min = 0x00,
+                .max = 0xFF,
+                .help = "DIGIC register address, mask=0000FF00.",
+            },
+            {
+                .name = "Register offset",
+                .priv = &digic_register_off,
+                .unit = UNIT_HEX,
+                .min = 0x00,
+                .max = 0xFF,
+                .select = hex_toggle,
+                .help = "DIGIC register address, mask=000000FC.",
+            },
+            {
+                .name = "Value          ",
+                .priv = &digic_value,
+                .display = digic_value_print,
+                .select = digic_value_toggle,
+                .help = "Current value of selected DIGIC register.",
+            },
+            {
+                .name = "Altering mode  ",
+                .priv = &digic_alter_mode,
+                .max = 4,
+                .choices = (const char *[]) {"rand()", "x++", "x += (1<<8)", "x += (1<<16)", "x += (1<<24)"},
+                .help = "How to change current value [HalfShutter]. MF(+) / AF(-).",
+            },
+            MENU_EOL
+        },
     }
 };
 
 static void lv_img_init()
 {
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
+    //~ menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
 }
 
 INIT_FUNC("lv_img", lv_img_init);
