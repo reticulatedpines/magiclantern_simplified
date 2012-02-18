@@ -23,6 +23,7 @@
 
 #ifdef CONFIG_600D
 #define EVF_STATE (*(struct state_object **)0x51CC)
+#define MOVREC_STATE (*(struct state_object **)0x5EF8)
 #endif
 
 #ifdef CONFIG_5D2
