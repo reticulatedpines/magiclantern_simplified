@@ -221,6 +221,9 @@ static int fps_get_timer(int fps)
 
 static void fps_setup(int fps)
 {
+    if (!lv) return;
+    if (!DISPLAY_IS_ON) return;
+    
     if (fps) frame_rate[1] = fps_get_timer(fps);
 
     unsigned safe_limit = fps_get_timer(70);
