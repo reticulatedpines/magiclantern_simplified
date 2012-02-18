@@ -165,7 +165,7 @@ NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
 
 NSTUB(0xFF9A5618, engio_write)
 NSTUB(0xff9a550c, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-NSTUB(0xff9a54a8, EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
+NSTUB(0xff9a54a8, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
 NSTUB(0xff9b1be0, LightMeasure_n_Callback_r0)
 NSTUB(0xffacf26c, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
@@ -179,3 +179,5 @@ NSTUB(0x27660, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc
 NSTUB(0xFF9D8194, GuiSetAutoBrightness) // guess: refreshes brightness in auto mode?
 
 NSTUB(0xff9ce7d0, Gui_SetSoundRecord)
+
+NSTUB(0xff866158, AJ_Wait_Vsync)

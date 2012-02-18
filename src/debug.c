@@ -307,17 +307,10 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
     msleep(2000);
-    while(lv && DISPLAY_IS_ON)
-    {
-        // this changes digital ISO gain (for example, ISO 160 is ISO 200 analog with -3/8 EV of digital gain)
-        // at full-stop ISOs, the value is 4467 on 60D
-        // at ISO 125's, it's 5793, around 4467 * 2^3/8
-        // at ISO 160's, it's 3444, around 4467 * 2^-3/8
-        
-        EngDrvOut(0xc0f08030, 1000);
-
-        msleep(10); // needs proper vsync, but works for a quick proof of concept
-    }
+    //~ int x[] = {0,1};
+    //~ prop_request_change(PROP_HOUTPUT_TYPE, &x, 8);
+    //~ int* p = get_prop_str(PROP_HOUTPUT_TYPE);
+    //~ NotifyBox(2000, "%x ", p[1]);
 }
 
 void xx_test(void* priv, int delta)
@@ -329,7 +322,7 @@ void xx_test(void* priv, int delta)
     //~ *(uint8_t*)0x14c08 = 0x3;
     //~ gui_stop_menu();
     //~ set_display_gain(512);
-    task_create("run_test", 0x1c, 0, run_test, 0); // don't delete this!
+    task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
     //~ guiNotifyDialogRefresh();
 }
 
@@ -2128,6 +2121,8 @@ movie_start( void )
 
 void ml_shutdown()
 {
+    extern int ml_started;
+    ml_started = 0;
     extern int safe_to_do_engio_for_display;
     safe_to_do_engio_for_display = 0;
     static int config_saved = 0;
@@ -2138,7 +2133,7 @@ void ml_shutdown()
     }
     info_led_on();
     _card_led_on();
-    msleep(50); 
+    msleep(50);
 }
 
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
@@ -2745,3 +2740,10 @@ void display_off_force()
 int display_is_on() { return DISPLAY_IS_ON; }
 
 
+
+void EngDrvOut(int reg, int value)
+{
+    _card_led_on();
+    _EngDrvOut(reg, value);
+    _card_led_off();
+}
