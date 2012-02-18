@@ -744,7 +744,8 @@ static void bv_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Exp.Override: %s", 
-        bv_auto ? "Auto" :
+        bv_auto && CONTROL_BV ? "Auto (ON)" :
+        bv_auto && !CONTROL_BV ? "Auto (OFF)" :
         CONTROL_BV ? "ON" : "OFF"
     );
     if ((CONTROL_BV || bv_auto) && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");

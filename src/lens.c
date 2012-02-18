@@ -291,6 +291,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
         }
     }
 
+    // mark the BV mode somehow
+    if(CONTROL_BV)
+    {
+        bmp_fill(18, x_origin + 70, y_origin-1, 284, 32);
+        //~ bmp_draw_rect(COLOR_RED, x_origin + 70, y_origin - 4, 284, 35);
+        //~ bmp_draw_rect(COLOR_RED, x_origin + 71, y_origin - 3, 284-2, 35-2);
+    }
+
         // MODE
         
             bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
@@ -671,12 +679,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
         //~ shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
     //~ #endif
 
-    // mark the BV mode somehow
-    if(CONTROL_BV)
-    {
-        bmp_draw_rect(COLOR_RED, x_origin + 70, y_origin - 4, 284, 35);
-        bmp_draw_rect(COLOR_RED, x_origin + 71, y_origin - 3, 284-2, 35-2);
-    }
 
 
 end:
