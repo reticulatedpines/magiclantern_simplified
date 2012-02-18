@@ -3621,7 +3621,11 @@ static struct menu_entry expo_menus[] = {
                 .priv = &shutter_override_enabled,
                 .max = 1,
                 .choices = (const char *[]) {"Fixed", "Linked to FPS"},
+                #if defined(CONFIG_60D) || defined(CONFIG_600D)
                 .help = "Fixed: 1/48 etc. Linked to FPS: 360=1/fps, 180=0.5/fps...",
+                #else
+                .help = "Read-only. If you use FPS override, shutter becomes 1/fps.",
+                #endif
             },
             MENU_EOL
         },
