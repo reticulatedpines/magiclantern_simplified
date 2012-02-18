@@ -353,6 +353,29 @@ static void stress_test_task(void* unused)
 
     extern struct semaphore * gui_sem;
 
+    msleep(2000);
+
+    #ifndef CONFIG_50D
+    ensure_movie_mode();
+    msleep(1000);
+    for (int i = 0; i <= 5; i++)
+    {
+        NotifyBox(1000, "Pics while recording: %d", i);
+        movie_start();
+        msleep(1000);
+        lens_take_picture(64, 0);
+        msleep(1000);
+        lens_take_picture(64, 0);
+        msleep(1000);
+        lens_take_picture(64, 0);
+        while (lens_info.job_state) msleep(100);
+        while (!lv) msleep(100);
+        msleep(1000);
+        movie_end();
+        msleep(2000);
+    }
+    #endif
+
     NotifyBox(1000, "Cropmarks preview...");
     select_menu_by_name("LiveV", "Cropmarks");
     give_semaphore( gui_sem );
@@ -396,29 +419,6 @@ static void stress_test_task(void* unused)
         give_semaphore(gui_sem);
         msleep(50);
     }
-
-    msleep(2000);
-
-    #ifndef CONFIG_50D
-    ensure_movie_mode();
-    msleep(1000);
-    for (int i = 0; i <= 5; i++)
-    {
-        NotifyBox(1000, "Pics while recording: %d", i);
-        movie_start();
-        msleep(1000);
-        lens_take_picture(64, 0);
-        msleep(1000);
-        lens_take_picture(64, 0);
-        msleep(1000);
-        lens_take_picture(64, 0);
-        while (lens_info.job_state) msleep(100);
-        while (!lv) msleep(100);
-        msleep(1000);
-        movie_end();
-        msleep(2000);
-    }
-    #endif
 
     msleep(2000);
     beep();
