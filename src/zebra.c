@@ -3205,6 +3205,8 @@ cropmark_draw()
        )
     {
         cropmark_clear_cache();
+        cropmark_draw_from_cache();
+        //~ info_led_blink(5,50,50);
         return;
     }
     
@@ -3242,7 +3244,6 @@ cropmark_cache_check()
     static int prev_sig = 0;
     if (prev_sig != sig)
     {
-        //~ NotifyBox(2000, "cropmark refresh");
         cropmark_clear_cache();
     }
     //~ bmp_printf(FONT_LARGE, 0, 0, "crop sig: %x ", sig);
