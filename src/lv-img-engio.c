@@ -94,7 +94,7 @@ void image_effects_step()
     {
         digic_register = ((digic_register_base << 16) & 0xFFFF0000) |
                          ((digic_register_mid  <<  8) & 0x0000FF00) |
-                         ((digic_register_off  <<  0) & 0x000000FF) ;
+                         ((digic_register_off  <<  0) & 0x000000FC) ;
 
         if (HALFSHUTTER_PRESSED)
         {
@@ -185,6 +185,12 @@ void hex_toggle(void* priv, int delta)
 void digic_value_toggle(void* priv, int delta)
 {
     digic_value += delta;
+}
+
+void digic_random_register(void* priv, int delta)
+{
+    digic_register_mid = rand() & 0xFF;
+    digic_register_off = rand() & 0xFC;
 }
 
 static void
@@ -284,7 +290,7 @@ static struct menu_entry dbg_menu[] = {
                 .priv = &digic_value,
                 .display = digic_value_print,
                 .select = digic_value_toggle,
-                .help = "Current value of selected DIGIC register.",
+                .help = "Current value of selected register. Change w. HalfShutter.",
             },
             {
                 .name = "Altering mode  ",
@@ -292,6 +298,11 @@ static struct menu_entry dbg_menu[] = {
                 .max = 4,
                 .choices = (const char *[]) {"rand()", "x++", "x += (1<<8)", "x += (1<<16)", "x += (1<<24)"},
                 .help = "How to change current value [HalfShutter]. MF(+) / AF(-).",
+            },
+            {
+                .name = "Random register",
+                .select = digic_random_register,
+                .help = "Click to select some random register.",
             },
             MENU_EOL
         },
@@ -301,7 +312,7 @@ static struct menu_entry dbg_menu[] = {
 static void lv_img_init()
 {
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
-    //~ menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
+    menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
 }
 
 INIT_FUNC("lv_img", lv_img_init);
