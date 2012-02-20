@@ -33,10 +33,12 @@
 
 #ifdef CONFIG_500D
 #define MOVREC_STATE (*(struct state_object **)0x7AF4)
+#define LV_STATE (*(struct state_object **)0x4804)
 #endif
 
 #ifdef CONFIG_50D
 #define MOVREC_STATE (*(struct state_object **)0x6CDC)
+#define LV_STATE (*(struct state_object **)0x4580)
 #endif
 
 /*

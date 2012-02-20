@@ -10,14 +10,6 @@
 #include "menu.h"
 #include "config.h"
 
-#ifdef CONFIG_60D
-#define evf_state (*(struct state_object **)0x4ff8)
-#endif
-
-#ifdef CONFIG_600D
-#define evf_state (*(struct state_object **)0x51CC)
-#endif
-
 #define SHAD_GAIN 0xc0f08030 // controls clipping point (digital ISO)
 
 CONFIG_INT("highlight.recover", highlight_recover, 0);
@@ -81,6 +73,59 @@ static int lens_info_update()
     lens_info.iso = raw2iso(lens_info.iso_equiv_raw);
 }*/
 
+int get_digic_register_addr()
+{
+    return ((digic_register_base << 16) & 0xFFFF0000) |
+           ((digic_register_mid  <<  8) & 0x0000FF00) |
+           ((digic_register_off  <<  0) & 0x000000FC) ;
+}
+void update_digic_register_addr(int dr, int delta, int skip_zero)
+{
+    while (1)
+    {
+        dr += delta;
+        digic_register_base = (dr & 0xFFFF0000) >> 16;
+        digic_register_mid  = (dr & 0x0000FF00) >> 8;
+        digic_register_off  = (dr & 0x000000FC) >> 0;
+        digic_register = get_digic_register_addr();
+
+        if (!skip_zero) break;
+
+        if (MEMX(digic_register) != 0) break; // stop on first non-zero register
+    }
+
+    digic_value = MEMX(digic_register);
+    NotifyBox(2000, "%x: %x  ", digic_register, digic_value);
+}
+
+int handle_digic_poke(struct event * event)
+{
+    if (digic_poke && lv && !gui_menu_shown())
+    {
+        if (event->param == BGMT_PRESS_LEFT)
+        {
+            update_digic_register_addr(digic_register, -4, 0);
+            return 0;
+        }
+        if (event->param == BGMT_PRESS_RIGHT)
+        {
+            update_digic_register_addr(digic_register, 4, 0);
+            return 0;
+        }
+        if (event->param == BGMT_PRESS_DOWN)
+        {
+            update_digic_register_addr(digic_register, -4, 1);
+            return 0;
+        }
+        if (event->param == BGMT_PRESS_UP)
+        {
+            update_digic_register_addr(digic_register, 4, 1);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void image_effects_step()
 {
     if (image_effects && DISPLAY_IS_ON && lv)
@@ -92,9 +137,7 @@ void image_effects_step()
 
     if (digic_poke && DISPLAY_IS_ON && lv)
     {
-        digic_register = ((digic_register_base << 16) & 0xFFFF0000) |
-                         ((digic_register_mid  <<  8) & 0x0000FF00) |
-                         ((digic_register_off  <<  0) & 0x000000FC) ;
+        digic_register = get_digic_register_addr();
 
         if (HALFSHUTTER_PRESSED)
         {
