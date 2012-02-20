@@ -79,6 +79,20 @@ int get_digic_register_addr()
            ((digic_register_mid  <<  8) & 0x0000FF00) |
            ((digic_register_off  <<  0) & 0x000000FC) ;
 }
+
+void digic_show()
+{
+    NotifyBox(2000, "%x: %8x          \n"
+                    "= %d             \n"
+                    "= %d %d          \n"
+                    "= %d %d %d %d      ",
+                    digic_register, digic_value,
+                    digic_value,
+                    digic_value >> 16, (int16_t)digic_value,
+                    (int8_t)(digic_value >> 24), (int8_t)(digic_value >> 16), (int8_t)(digic_value >> 8), (int8_t)(digic_value >> 0)
+            );
+}
+
 void update_digic_register_addr(int dr, int delta, int skip_zero)
 {
     while (1)
@@ -95,7 +109,7 @@ void update_digic_register_addr(int dr, int delta, int skip_zero)
     }
 
     digic_value = MEMX(digic_register);
-    NotifyBox(2000, "%x: %x  ", digic_register, digic_value);
+    digic_show();
 }
 
 int handle_digic_poke(struct event * event)
@@ -152,7 +166,7 @@ void image_effects_step()
             else if (digic_alter_mode == 4) // increment << 24
                 digic_value += (is_manual_focus() ? 1 : -1) << 24;
             //~ digic_value--;
-            NotifyBox(2000, "%x: %x  ", digic_register, digic_value);
+            digic_show();
             EngDrvOut(digic_register, digic_value);
         }
         else
