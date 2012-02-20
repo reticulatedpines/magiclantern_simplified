@@ -3950,6 +3950,8 @@ static void press_rec_button()
 
 void movie_start()
 {
+    while (get_halfshutter_pressed()) msleep(100);
+
     ensure_movie_mode();
     
     if (recording)
