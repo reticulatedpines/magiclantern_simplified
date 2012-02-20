@@ -4402,7 +4402,7 @@ shoot_task( void* unused )
         #endif
 
         #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
-        if (lv_3rd_party_flash)
+        if (lv_3rd_party_flash && !is_movie_mode())
         {
             if (lv && HALFSHUTTER_PRESSED)
             {
