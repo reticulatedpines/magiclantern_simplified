@@ -275,6 +275,7 @@ static struct menu_entry lv_img_menu[] = {
         .max = 5,
         .display = clipping_print,
         .help = "Highlight recovery by changing sensor clipping point in LV.",
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Image Effects",

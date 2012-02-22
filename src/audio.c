@@ -1272,6 +1272,7 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_mgain_display,
                 .help = "Gain applied to both inputs in analog domain (preferred).",
                 .essential = FOR_MOVIE,
+                .edit_mode = EM_MANY_VALUES,
         },
 #ifndef CONFIG_500D
         {
@@ -1281,6 +1282,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
+                .edit_mode = EM_MANY_VALUES,
         },
         {
                 .name = "L-DigitalGain", // hack
@@ -1289,6 +1291,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
+                .edit_mode = EM_MANY_VALUES,
         },
 #endif
         {
@@ -1325,6 +1328,7 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_input_display,
                 .help = "Audio input: internal / external / both / balanced / auto.",
                 .essential = FOR_MOVIE,
+                .edit_mode = EM_MANY_VALUES,
         },
 #endif
         /*{
@@ -1348,6 +1352,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse         = audio_3bit_toggle_reverse,
                 .display        = audio_lovl_display,
                 .help = "Output volume for audio monitoring (headphones only).",
+                .edit_mode = EM_MANY_VALUES,
         },
 #endif
         {

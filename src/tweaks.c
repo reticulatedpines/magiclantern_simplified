@@ -1299,7 +1299,8 @@ struct menu_entry tweak_menus[] = {
         .priv = &fake_halfshutter,
         .select     = menu_quinternary_toggle,
         .display    = fake_halfshutter_print,
-        .help = "Emulates half-shutter press, or make half-shutter sticky."
+        .help = "Emulates half-shutter press, or make half-shutter sticky.",
+        .edit_mode = EM_MANY_VALUES_LV,
     },
     /*{
         .name = "Electric Shutter",
@@ -1666,6 +1667,7 @@ static struct menu_entry display_menus[] = {
         .max = 3,
         .display = preview_saturation_display,
         .help = "For preview only (LV+PLAY). Does not affect recording.",
+        .edit_mode = EM_MANY_VALUES_LV,
     },
     {
         .name = "Color Scheme   ",
@@ -1674,6 +1676,7 @@ static struct menu_entry display_menus[] = {
         .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
         .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
         .icon_type = IT_NAMED_COLOR,
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Image position ",
@@ -1749,6 +1752,7 @@ struct menu_entry play_menus[] = {
         .help = "What to do when you hold SET and turn MainDial (Wheel)",
         .essential = FOR_PLAYBACK,
         .icon_type = IT_DICE,
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "After taking a photo",

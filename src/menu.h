@@ -74,11 +74,16 @@ struct menu_entry
         );
         int8_t essential;
         int8_t icon_type;
-        //~ int8_t show_liveview;
+        int8_t edit_mode;
         const char * help;
         const char * name; // for now it's used only for context help; will be used for display too.
         struct menu_entry * children;
 };
+
+#define EM_FEW_VALUES 0
+#define EM_MANY_VALUES 1
+#define EM_MANY_VALUES_LV 2
+
 
 #define IT_AUTO 0
 #define IT_BOOL 1

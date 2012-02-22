@@ -957,7 +957,7 @@ submenu_display(struct menu * submenu)
 static void
 menu_entry_select(
     struct menu *   menu,
-    int mode // 0 = normal, 1 = reverse, 2 = auto setting
+    int mode // 0 = increment, 1 = decrement, 2 = Q, 3 = SET
 )
 {
     if( !menu )
@@ -979,30 +979,38 @@ menu_entry_select(
     //~ if (entry->show_liveview)
         //~ menu_show_only_selected();
 
-    if(mode == 1)
+    if(mode == 1) // decrement
     {
         if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
         else if (entry->select) entry->select( entry->priv, -1);
         else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
     }
-    else if (mode == 2)
+    else if (mode == 2) // Q
     {
-        /*
-         
-        if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
-        else if( entry->select_auto ) entry->select_auto( entry->priv, 1);
-        else menu_show_only_selected();
-
-        */
-
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
         else { submenu_mode = !submenu_mode; show_only_selected = 0; }
-        //~ if (entry->children || submenu_mode) { submenu_mode = !submenu_mode; show_only_selected = 0; edit_mode = 0; }
-
-        //~ else if (entry->select) entry->select( entry->priv, 1);
-        //~ else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
-    else 
+    else if (mode == 3) // SET
+    {
+        if (submenu_mode == 2) submenu_mode = 0;
+        else if (show_only_selected) show_only_selected = 0;
+        else if (entry->edit_mode == EM_FEW_VALUES) // SET increments
+        {
+            if( entry->select ) entry->select( entry->priv, 1);
+            else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        }
+        else if (entry->edit_mode == EM_MANY_VALUES)
+        {
+            submenu_mode = (!submenu_mode)*2;
+            show_only_selected = 0;
+        }
+        else if (entry->edit_mode == EM_MANY_VALUES_LV)
+        {
+            if (lv) show_only_selected = !show_only_selected;
+            else submenu_mode = (!submenu_mode)*2;
+        }
+    }
+    else // increment
     {
         if( entry->select ) entry->select( entry->priv, 1);
         else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
@@ -1412,7 +1420,7 @@ menu_handler(
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         else
         {
-            menu_entry_select( menu, 0 ); // normal select
+            menu_entry_select( menu, 3 ); // "SET" select
         }
         //~ menu_damage = 1;
         break;

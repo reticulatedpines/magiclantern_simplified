@@ -3087,21 +3087,24 @@ struct menu_entry powersave_menus[] = {
         .priv           = &idle_display_dim_after,
         .display        = idle_display_dim_print,
         .select         = idle_timeout_toggle,
-        .help = "Dim LCD display in LiveView when idle, to save power."
+        .help = "Dim LCD display in LiveView when idle, to save power.",
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Turn off LCD",
         .priv           = &idle_display_turn_off_after,
         .display        = idle_display_turn_off_print,
         .select         = idle_timeout_toggle,
-        .help = "Turn off display and pause LiveView when idle and not REC."
+        .help = "Turn off display and pause LiveView when idle and not REC.",
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Turn off GlobalDraw",
         .priv           = &idle_display_global_draw_off_after,
         .display        = idle_display_global_draw_off_print,
         .select         = idle_timeout_toggle,
-        .help = "Turn off GlobalDraw when idle, to save some CPU cycles."
+        .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Save power when REC",

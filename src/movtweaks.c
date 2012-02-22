@@ -1114,6 +1114,7 @@ static struct menu_entry mov_menus[] = {
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
         .essential = FOR_MOVIE,
+        .edit_mode = EM_MANY_VALUES_LV,
     },
     #ifndef CONFIG_50D
     {
@@ -1184,11 +1185,12 @@ struct menu_entry expo_override_menus[] = {
 
 static struct menu_entry display_menus[] = {
     {
-        .name = "ML info bars",
+        .name = "Screen Layout",
         .display = screen_layout_display, 
         .select = screen_layout_toggle,
         .help = "Position of top/bottom bars, useful for external displays.",
         .essential = FOR_EXT_MONITOR,
+        .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Force HDMI-VGA",

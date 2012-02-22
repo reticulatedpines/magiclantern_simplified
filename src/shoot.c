@@ -3286,6 +3286,7 @@ static struct menu_entry shoot_menus[] = {
         .help = "Use the LCD face sensor as a simple remote (avoids shake).",
          #endif
         .essential = FOR_PHOTO,
+        .edit_mode = EM_MANY_VALUES,
     },
     #endif
     #if !defined(CONFIG_600D) && !defined(CONFIG_50D)
@@ -3471,6 +3472,7 @@ static struct menu_entry expo_menus[] = {
         .select     = kelvin_toggle,
         .help = "Adjust Kelvin white balance and GM/BA WBShift.",
         .essential = FOR_PHOTO | FOR_MOVIE,
+        .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
         .children =  (struct menu_entry[]) {
             {
@@ -3478,6 +3480,7 @@ static struct menu_entry expo_menus[] = {
                 .display    = kelvin_display,
                 .select     = kelvin_toggle,
                 .help = "Adjust Kelvin white balance.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "WBShift G/M",
@@ -3487,6 +3490,7 @@ static struct menu_entry expo_menus[] = {
                 .help = "Green-Magenta white balance shift, for fluorescent lights.",
                 //~ .show_liveview = 1,
                 .essential = FOR_MOVIE,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "WBShift B/A",
@@ -3494,24 +3498,28 @@ static struct menu_entry expo_menus[] = {
                 .select = wbs_ba_toggle, 
                 .help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .priv = 1,
                 .display = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
                 .help = "RED channel multiplier, for custom white balance.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .priv = 2,
                 .display = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
                 .help = "GREEN channel multiplier, for custom white balance.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .priv = 3,
                 .display = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
                 .help = "BLUE channel multiplier, for custom white balance.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             
             /*{
@@ -3538,6 +3546,7 @@ static struct menu_entry expo_menus[] = {
         .select     = iso_toggle,
         .help = "Adjust and fine-tune ISO.",
         .essential = FOR_PHOTO | FOR_MOVIE,
+        .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
 
         .children =  (struct menu_entry[]) {
@@ -3548,6 +3557,7 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_ISO,
                 .select     = iso_toggle,
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Analog ISO",
@@ -3556,6 +3566,7 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_ISO,
                 .select     = analog_iso_toggle,
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Digital Gain",
@@ -3564,6 +3575,7 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_1_8_EV,
                 .select     = digital_iso_toggle,
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Display Gain", 
@@ -3572,6 +3584,7 @@ static struct menu_entry expo_menus[] = {
                 .display = display_gain_print, 
                 .help = "Digital gain applied to LiveView image and recorded video.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Min MovAutoISO",
@@ -3579,7 +3592,8 @@ static struct menu_entry expo_menus[] = {
                 .min = 72,
                 .max = 120,
                 .unit = UNIT_ISO,
-                .help = "Minimum value for Auto ISO in movie mode."
+                .help = "Minimum value for Auto ISO in movie mode.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Max MovAutoISO",
@@ -3587,14 +3601,16 @@ static struct menu_entry expo_menus[] = {
                 .min = 72,
                 .max = 120,
                 .unit = UNIT_ISO,
-                .help = "Maximum value for Auto ISO in movie mode."
+                .help = "Maximum value for Auto ISO in movie mode.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "AutoISO speed",
                 .priv = &lvae_iso_speed,
                 .min = 3,
                 .max = 30,
-                .help = "Speed for movie Auto ISO. Low values = smooth transitions."
+                .help = "Speed for movie Auto ISO. Low values = smooth transitions.",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Auto adjust ISO",
@@ -3610,6 +3626,7 @@ static struct menu_entry expo_menus[] = {
         .select     = shutter_toggle,
         .help = "Fine-tune shutter value.",
         .essential = FOR_PHOTO | FOR_MOVIE,
+        .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
         .children =  (struct menu_entry[]) {
             {
@@ -3636,6 +3653,7 @@ static struct menu_entry expo_menus[] = {
         .select     = aperture_toggle,
         .help = "Adjust aperture in 1/8 EV steps.",
         .essential = FOR_PHOTO | FOR_MOVIE,
+        .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
 
@@ -3644,6 +3662,7 @@ static struct menu_entry expo_menus[] = {
         .display    = picstyle_display,
         .select     = picstyle_toggle,
         .help = "Change current picture style.",
+        .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
         .essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {
@@ -3653,6 +3672,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = picstyle_toggle,
                 .help = "Change current picture style.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
@@ -3660,6 +3680,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = sharpness_toggle,
                 .help = "Adjust sharpness in current picture style.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
@@ -3667,6 +3688,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = contrast_toggle,
                 .help = "Adjust contrast in current picture style.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
@@ -3674,6 +3696,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = saturation_toggle,
                 .help = "Adjust saturation in current picture style.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 //~ .name = "Contrast/Saturation/Sharpness",
@@ -3681,6 +3704,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = color_tone_toggle,
                 .help = "Adjust color tone in current picture style.",
                 //~ .show_liveview = 1,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             MENU_EOL
         },
@@ -3717,7 +3741,8 @@ static struct menu_entry expo_menus[] = {
         .name = "HTP / ALO",
         .display    = ladj_display,
         .select     = ladj_toggle,
-        .help = "Enable/disable HTP and ALO from the same place."
+        .help = "Enable/disable HTP and ALO from the same place.",
+        .edit_mode = EM_MANY_VALUES_LV,
     },
 #endif
 
@@ -3727,6 +3752,7 @@ static struct menu_entry expo_menus[] = {
         .select     = flash_ae_toggle,
         .help = "Flash exposure compensation, from -5EV to +3EV.",
         .essential = FOR_PHOTO,
+        .edit_mode = EM_MANY_VALUES,
     },
 };
 
