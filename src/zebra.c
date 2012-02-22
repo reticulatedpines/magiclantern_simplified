@@ -2095,7 +2095,7 @@ zoom_overlay_display(
 
     if (ext_monitor_rca)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
-    else if (is_movie_mode() && video_mode_resolution)
+    else if (is_movie_mode() && video_mode_fps > 30)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
@@ -3680,7 +3680,7 @@ static void draw_zoom_overlay(int dirty)
 
         w /= X;
         h /= X;
-        if (video_mode_resolution == 0 || !is_movie_mode())
+        if (video_mode_fps <= 30 || !is_movie_mode())
         {
             memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
             memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, 0xFF, w<<1);
@@ -3718,7 +3718,7 @@ static void draw_zoom_overlay(int dirty)
         if (y%X==0) s += hd->width;
     }
 
-    if (video_mode_resolution == 0 || !is_movie_mode())
+    if (video_mode_fps <= 30 || !is_movie_mode())
     {
         memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
         memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
