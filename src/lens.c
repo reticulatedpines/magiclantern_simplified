@@ -1830,6 +1830,7 @@ int bv_auto_should_enable()
 {
     if (!bv_auto) return 0;
     if (!lv) return 0;
+    if (get_htp()) return 0;
 
     extern int bulb_ramp_calibration_running; 
     if (bulb_ramp_calibration_running) 
