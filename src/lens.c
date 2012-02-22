@@ -1940,28 +1940,43 @@ void lens_set_wbs_ba(int value)
 // Functions to change camera settings during bracketing
 // They will check the operation and retry if necessary
 // Used for HDR bracketing
-bool hdr_set_rawiso(int iso)
+bool hdr_set_something(int (*set_something)(int), int arg)
 {
+    // first try to set it a few times...
     for (int i = 0; i < 10; i++)
-        if (prop_set_rawiso(iso))
+        if (set_something(arg))
             return 1;
+
+    // didn't work, let's wait for job state...
+    lens_wait_readytotakepic(64);
+
+    for (int i = 0; i < 10; i++)
+        if (set_something(arg))
+            return 1;
+
+    // now this is really extreme... okay, one final try
+    while (lens_info.job_state) msleep(100);
+
+    for (int i = 0; i < 10; i++)
+        if (set_something(arg))
+            return 1;
+
+    // I give up    
     return 0;
 }
 
+bool hdr_set_rawiso(int iso)
+{
+    return hdr_set_something(prop_set_rawiso, iso);
+}
+
+
 bool hdr_set_rawshutter(int shutter)
 {
-    for (int i = 0; i < 10; i++)
-    {
-        if (prop_set_rawshutter(shutter, 0))
-            return 1;
-    }
-    return 0;
+    return hdr_set_something(prop_set_rawshutter, shutter);
 }
 
 bool hdr_set_ae(int ae)
 {
-    for (int i = 0; i < 10; i++)
-        if (lens_set_ae(ae))
-            return 1;
-    return 0;
+    return hdr_set_something(lens_set_ae, ae);
 }
