@@ -2948,7 +2948,11 @@ void bulb_ramping_init()
     NotifyBox(100000, "Calibration...");
     
     bulb_ramp_calibration_running = 1;
+    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+    set_shooting_mode(SHOOTMODE_M); // expsim will be disabled from tweaks.c
+    #else
     set_shooting_mode(SHOOTMODE_P);
+    #endif
     msleep(1000);
     lens_set_rawiso(0);
     if (!lv) force_liveview();
