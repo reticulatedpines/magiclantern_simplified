@@ -33,3 +33,10 @@ docs/html
 docs/latex
 pymite-nat.c
 pymite-img.c
+toolchain/build
+toolchain/sources
+toolchain/stamps
+platform/*/autoexec
+platform/*/magiclantern
+platform/*/magiclantern.lds
+platform/all/autoexec-all
