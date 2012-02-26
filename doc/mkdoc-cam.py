@@ -122,7 +122,7 @@ fixwikilinks("userguide.rst")
 labelhack("userguide.rst")
 add_menu_items_to_contents("userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
-os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
+os.system("rst2latex userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
 os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' UserGuide-cam.tex")
 
 os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
