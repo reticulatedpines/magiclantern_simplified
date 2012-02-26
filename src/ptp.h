@@ -1,6 +1,7 @@
 #ifndef _ptp_h_
 #define _ptp_h_
 
+#include "dryos.h"
 /** \file
  * PTP protocol and interface.
  *
@@ -29,9 +30,14 @@
 #define PTP_AF_START            0x9160
 #define PTP_FAPI_MESSAGE_TX     0x91fe
 
-
+  // results
 #define PTP_RC_OK               0x2001
 #define PTP_RC_ERROR            0x2002
+
+#define PTP_RC_GeneralError     0x2002
+#define PTP_RC_ParameterNotSupported 0x2006
+
+#define BUF_SIZE 128
 
 /** @} */
 
@@ -171,3 +177,6 @@ __ptp_handler_##ID = { \
         ) \
 
 #endif
+
+int send_ptp_data(struct ptp_context *data, const char *buf, int size);
+int recv_ptp_data(struct ptp_context *data, char *buf, int size);

@@ -1,5 +1,5 @@
-#ifndef __PTP_H
-#define __PTP_H
+#ifndef __PTP_CHDK_H
+#define __PTP_CHDK_H
 
 // N.B.: not checking to see if CAM_CHDK_PTP is set as ptp.h is currently
 // only included by ptp.c (which already checks this before including ptp.h)
@@ -8,10 +8,6 @@
 #define PTP_CHDK_VERSION_MINOR 1  // increase with extensions of functionality
 
 #define PTP_OC_CHDK 0x9999
-
-#define PTP_RC_OK 0x2001
-#define PTP_RC_GeneralError 0x2002
-#define PTP_RC_ParameterNotSupported 0x2006
 
 // N.B.: unused parameters should be set to 0
 enum {
@@ -65,56 +61,4 @@ enum {
 #define PTP_CHDK_SL_LUA    0
 #define PTP_CHDK_SL_UBASIC 1
 
-#endif // __PTP_H
-
-#define BUF_SIZE 128
-
-
-static int recv_ptp_data(struct ptp_context *data, char *buf, int size)
-  // repeated calls per transaction are ok
-{
-  while ( size >= BUF_SIZE )
-  {
-    data->recv_data(data->handle,buf,BUF_SIZE,0,0);
-    // XXX check for success??
-
-    size -= BUF_SIZE;
-    buf += BUF_SIZE;
-  }
-  if ( size != 0 )
-  {
-    data->recv_data(data->handle,buf,size,0,0);
-    // XXX check for success??
-  }
-
-  return 1;
-}
-
-
-static int send_ptp_data(struct ptp_context *data, const char *buf, int size)
-  // repeated calls per transaction are *not* ok
-{
-  int tmpsize;
-  
-  tmpsize = size;
-  while ( size >= BUF_SIZE )
-  {
-    if ( data->send_data(data->handle,(void *)buf,BUF_SIZE,tmpsize,0,0,0) )
-    {
-      return 0;
-    }
-
-    tmpsize = 0;
-    size -= BUF_SIZE;
-    buf += BUF_SIZE;
-  }
-  if ( size != 0 )
-  {
-    if ( data->send_data(data->handle,(void *)buf,size,tmpsize,0,0,0) )
-    {
-      return 0;
-    }
-  }
-
-  return 1;
-}
+#endif // __PTP_CHDK_H

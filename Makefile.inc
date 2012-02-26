@@ -34,7 +34,9 @@ CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
-CONFIG_PTP = n
+CONFIG_PTP = y
+CONFIG_PTP_CHDK = n
+CONFIG_PTP_ML = y
 CONFIG_CONSOLE		= n
 CONFIG_DEBUGMSG = 0
 
@@ -229,6 +231,12 @@ magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 
 ML_OBJS-$(CONFIG_PTP) += \
 	ptp.o \
+
+ML_OBJS-$(CONFIG_PTP_CHDK) += \
+	ptp-chdk.o \
+
+ML_OBJS-$(CONFIG_PTP_ML) += \
+	ptp-ml.o \
 
 NO=\
 	hotplug.o \
