@@ -44,6 +44,8 @@ bool gui_menu_shown();
 void menu_show_only_selected();
 int get_menu_advanced_mode();
 
+extern int submenu_mode;
+
 struct menu_entry
 {
         struct menu_entry *     next;
@@ -78,6 +80,7 @@ struct menu_entry
         const char * help;
         const char * name; // for now it's used only for context help; will be used for display too.
         struct menu_entry * children;
+        uint32_t id; // unique ID
 };
 
 #define EM_FEW_VALUES 0
@@ -132,6 +135,7 @@ struct menu
         struct menu_entry *     children;
         int                     selected;
         int icon;
+        uint32_t id; // unique ID
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
@@ -148,6 +152,8 @@ extern void menu_binary_toggle( void * priv, int unused );
 extern void menu_ternary_toggle(void* priv, int delta);
 extern void menu_quaternary_toggle(void* priv, int delta);
 extern void menu_quinternary_toggle(void* priv, int delta);
+extern struct menu * menu_get_root(void);
+extern struct menu_entry * menu_find_by_id(uint32_t id);
 
 // temporary definitions for compatibility
 #define menu_ternary_toggle_reverse menu_ternary_toggle

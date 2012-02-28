@@ -41,7 +41,8 @@ static int show_only_selected; // for ISO, kelvin...
 static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
-static int submenu_mode = 0;
+int submenu_mode = 0;
+static int menu_id_increment = 1;
 
 int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 
@@ -118,6 +119,9 @@ draw_version( void )
 struct gui_task * gui_menu_task;
 static struct menu * menus;
 
+struct menu * menu_get_root() {
+  return menus;
+}
 
 void
 menu_binary_toggle(
@@ -323,6 +327,53 @@ submenu_print(
     entry_draw_icon(entry, x, y);
 }
 
+static struct menu_entry*
+menu_find_by_id_entry(
+    struct menu_entry* root,
+    uint32_t id
+)
+{
+    struct menu_entry *       menu = root;
+
+    for( ; menu ; menu = menu->next )
+    {
+        if( menu->id == id )
+        {
+            return menu;
+        }
+        if( menu->children )
+        {
+          struct menu_entry * ch = menu_find_by_id_entry(menu->children, id);
+          if (ch!=NULL) return ch;
+        }
+    }
+    return NULL;
+}
+
+struct menu_entry *
+menu_find_by_id(
+    uint32_t id
+)
+{
+    struct menu *       menu = menus;
+
+    for( ; menu ; menu = menu->next )
+    {
+        if( menu->id == id )
+        {
+            return menu->children;
+        }
+        if( menu->children )
+        {
+          struct menu_entry * ch = menu_find_by_id_entry(menu->children, id);
+          if (ch!=NULL) return ch;
+        }
+    }
+
+    return NULL;
+}
+
+
 
 static struct menu *
 menu_find_by_name(
@@ -355,6 +406,7 @@ menu_find_by_name(
         return NULL;
     }
 
+    new_menu->id        = menu_id_increment++;
     new_menu->name      = name;
     new_menu->icon      = icon;
     new_menu->prev      = menu;
@@ -404,6 +456,7 @@ menu_add(
     {
         // First one -- insert it as the selected item
         head = menu->children   = new_entry;
+        if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
@@ -418,6 +471,7 @@ menu_add(
 
     for (int i = 0; i < count; i++)
     {
+        if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->selected = 0;
         if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry->next     = head->next;
