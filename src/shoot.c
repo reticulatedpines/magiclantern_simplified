@@ -4705,3 +4705,51 @@ void shoot_init()
 }
 
 INIT_FUNC("shoot", shoot_init);
+
+static int get_exact_iso_equiv()
+{
+    extern int shad_gain_override;
+    extern int default_shad_gain;
+
+    //~ NotifyBox(1000, "Gains: %d / %d; ISO: %d ", shad_gain_override, default_shad_gain, raw2iso(lens_info.iso_analog_raw)); msleep(1000);
+    float gain_ev = log2f((float)shad_gain_override / (float)default_shad_gain);
+    int iso = (int)roundf(raw2iso(lens_info.iso_analog_raw) * powf(2.0, gain_ev));
+    return iso;
+}
+
+static int is_image_overexposed()
+{
+    int Y,U,V;
+    get_spot_yuv(20, &Y, &U, &V);
+
+    int R = Y + 1437 * V / 1024;
+    int G = Y -  352 * U / 1024 - 731 * V / 1024;
+    int B = Y + 1812 * U / 1024;
+
+    return (R >= 255 && G >= 255 && B >= 255);
+}
+
+static int crit_native_iso(int gain)
+{
+    extern int shad_gain_override;
+    shad_gain_override = gain;
+
+    NotifyBox(1000, "Trying %d...", get_exact_iso_equiv());
+    msleep(500);
+    if (is_image_overexposed()) return -1;
+    return 1;
+}
+
+void detect_native_iso()
+{
+    extern int shad_gain_override;
+    shad_gain_override = 0;
+    NotifyBox(1000, "Detecting native ISO..."); msleep(1000);
+    autodetect_default_shad_gain();
+    while (!is_image_overexposed())
+    {
+        NotifyBox(1000, "Point camera to something bright..."); msleep(500);
+    }
+    int gain = bin_search(100, 10000, crit_native_iso);
+    NotifyBox(5000, "Native ISO: %d.  ", get_exact_iso_equiv());
+}
