@@ -304,13 +304,11 @@ void ChangeHDMIOutputSizeToFULLHD()
     prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
 } 
 
+
 void run_test()
 {
     msleep(2000);
-    //~ int x[] = {0,1};
-    //~ prop_request_change(PROP_HOUTPUT_TYPE, &x, 8);
-    //~ int* p = get_prop_str(PROP_HOUTPUT_TYPE);
-    //~ NotifyBox(2000, "%x ", p[1]);
+    detect_native_iso();
 }
 
 void xx_test(void* priv, int delta)
@@ -692,6 +690,181 @@ static void stress_test_task(void* unused)
     //~ NotifyBox(10000, "Burn-in test (will take hours!)");
     //~ set_shooting_mode(SHOOTMODE_M);
     //~ xx_test2(0);
+}
+
+static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
+{
+    extern struct semaphore * gui_sem;
+    select_menu_by_name(menu_name, item_name);
+    if (!gui_menu_shown()) give_semaphore( gui_sem );
+    msleep(400);
+    fake_simple_button(BGMT_PRESS_SET);
+    msleep(200);
+    give_semaphore( gui_sem );
+    return;
+}
+static void stress_test_random_action()
+{
+    if (lv)
+    {
+        switch (rand() % 39)
+        {
+            case 0:
+                fake_simple_button(BGMT_LV);
+                return;
+            case 1:
+                stress_test_toggle_menu_item("LiveV", "Global Draw");
+                return;
+            case 2:
+                stress_test_toggle_menu_item("LiveV", "Zebras");
+                return;
+            case 3:
+                stress_test_toggle_menu_item("LiveV", "Cropmarks");
+                return;
+            case 4:
+                stress_test_toggle_menu_item("LiveV", "Focus Peak");
+                return;
+            case 5:
+                stress_test_toggle_menu_item("LiveV", "Magic Zoom");
+                return;
+            case 6:
+                stress_test_toggle_menu_item("LiveV", "Spotmeter");
+                return;
+            case 7:
+                stress_test_toggle_menu_item("LiveV", "Ghost Image");
+                return;
+            case 8:
+                stress_test_toggle_menu_item("LiveV", "False Color");
+                return;
+            case 9:
+                stress_test_toggle_menu_item("LiveV", "Histogram");
+                return;
+            case 10:
+                stress_test_toggle_menu_item("LiveV", "Waveform");
+                return;
+            case 11:
+                stress_test_toggle_menu_item("Audio", "AGC");
+                return;
+            case 12:
+                stress_test_toggle_menu_item("Audio", "Audio Meters");
+                return;
+            case 13:
+                stress_test_toggle_menu_item("Audio", "Headphone Monitoring");
+                return;
+            case 14:
+                stress_test_toggle_menu_item("Expo", "REC PicStyle");
+                return;
+            case 15:
+                stress_test_toggle_menu_item("Expo", "LV ViewType");
+                return;
+            case 16:
+                stress_test_toggle_menu_item("Expo", "Exp.Override");
+                return;
+            case 17:
+                stress_test_toggle_menu_item("Display", "Clear Overlays");
+                return;
+            case 18:
+                stress_test_toggle_menu_item("Display", "Image Position");
+                return;
+            case 19:
+                stress_test_toggle_menu_item("Display", "UpsideDown mode");
+                return;
+            case 20:
+                stress_test_toggle_menu_item("Display", "Screen Layout");
+                return;
+            case 21:
+                stress_test_toggle_menu_item("Movie", "Movie Logging");
+                return;
+            case 22:
+                stress_test_toggle_menu_item("Movie", "Shutter Lock");
+                return;
+            case 23:
+                stress_test_toggle_menu_item("Movie", "FPS override");
+                return;
+            case 24:
+                stress_test_toggle_menu_item("Movie", "HDR video");
+                return;
+            case 25:
+                stress_test_toggle_menu_item("Movie", "Highlight++");
+                return;
+            case 26:
+                stress_test_toggle_menu_item("Movie", "Image Effects");
+                return;
+            case 27:
+                stress_test_toggle_menu_item("Shoot", "HDR Bracketing");
+                return;
+            case 28:
+                stress_test_toggle_menu_item("Shoot", "Intervalometer");
+                return;
+            case 29:
+                stress_test_toggle_menu_item("Shoot", "Bulb Timer");
+                return;
+            case 30:
+                stress_test_toggle_menu_item("Shoot", "LCDsensor Remote");
+                return;
+            case 31:
+                stress_test_toggle_menu_item("Shoot", "Audio RemoteShot");
+                return;
+            case 32:
+                stress_test_toggle_menu_item("Shoot", "Motion Detect");
+                return;
+            case 33:
+                stress_test_toggle_menu_item("Focus", "Follow Focus");
+                return;
+            case 34:
+                stress_test_toggle_menu_item("Tweaks", "LiveView Zoom");
+                return;
+            case 35:
+                fake_simple_button(BGMT_PLAY);
+                return;
+            case 36:
+                fake_simple_button(BGMT_MENU);
+                return;
+            case 37:
+                fake_simple_button(BGMT_INFO);
+                return;
+            case 38:
+                stress_test_toggle_menu_item("LiveV", "Vectorscope");
+                return;
+        }
+    }
+    else
+    {
+        switch (rand() % 5)
+        {
+            case 0:
+                lens_take_picture(64, rand() % 2);
+                return;
+            case 1:
+                stress_test_toggle_menu_item("Play", "After taking a pic");
+                return;
+            case 2:
+                stress_test_toggle_menu_item("Play", "LiveV tools in QR");
+                return;
+            case 3:
+                stress_test_toggle_menu_item("Play", "Zoom in PLAY mode");
+                return;
+            case 4:
+                force_liveview();
+                return;
+        }
+    }
+}
+
+static void stress_test_random_task(void* unused)
+{
+    config_autosave = 0; // this will make many changes in menu, don't save them
+    while(1)
+    {
+        stress_test_random_action();
+        msleep(rand() % 1000);
+    }
+}
+
+void stress_test_random()
+{
+    gui_stop_menu();
+    task_create("stress_test", 0x1c, 0, stress_test_random_task, 0);
 }
 
 void stress_test()
@@ -1667,6 +1840,8 @@ static void CR2toAVI(void* priv, int delta)
     EyeFi_RenameCR2toAVI(get_dcim_dir());
 }
 
+void menu_open_submenu();
+
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
     {
@@ -1758,11 +1933,23 @@ struct menu_entry debug_menus[] = {
         .help = "The camera may turn into a 1DX or it may explode."
     },
     {
-        .name        = "Stability tests",
-        .select        = stress_test,
-        .select_reverse = stress_test_long,
-        .help = "SET: quick test; PLAY: burn-in test (around 2 hours)",
+        .name        = "Stability tests...",
+        .select        = menu_open_submenu,
+        .help = "Tests to make sure Magic Lantern is stable and won't crash.",
         .essential = FOR_MOVIE | FOR_PHOTO,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Quick test (around 15 min)",
+                .select = stress_test,
+                .help = "A quick test which covers basic functionality. "
+            },
+            {
+                .name = "Random tests (infinite loop)",
+                .select = stress_test_random,
+                .help = "A thorough test which randomly enables functions from menu. "
+            },
+            MENU_EOL,
+        }
     },
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {

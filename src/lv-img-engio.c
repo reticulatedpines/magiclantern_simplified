@@ -14,6 +14,8 @@
 
 CONFIG_INT("highlight.recover", highlight_recover, 0);
 
+int shad_gain_override = 0;
+
 static CONFIG_INT("digic.effects", image_effects, 0);
 static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
@@ -179,6 +181,12 @@ void image_effects_step()
 void highlight_recover_step()
 {
     if (lens_info.iso == 0) return; // no auto ISO, please
+
+    if (shad_gain_override && DISPLAY_IS_ON && lv)
+    {
+        EngDrvOut(SHAD_GAIN, shad_gain_override);
+        return;
+    }
     
     if (highlight_recover && DISPLAY_IS_ON && lv)
     {
