@@ -13,10 +13,10 @@ all: 60D 550D 600D 50D 500D 5D2
 	$(MAKE) -C $(PLATFORM_PATH)/all x
 
 60D:
-	$(MAKE) -C $(PLATFORM_PATH)/60D.110 
+	$(MAKE) -C $(PLATFORM_PATH)/60D.110
 
 550D:
-	$(MAKE) -C $(PLATFORM_PATH)/550D.109 
+	$(MAKE) -C $(PLATFORM_PATH)/550D.109
 
 600D:
 	$(MAKE) -C $(PLATFORM_PATH)/600D.101
@@ -68,7 +68,12 @@ clean:
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
+		$(LUA_PATH)/liblua.a \
 		*.pdf)
+	$(RM) -f \
+		$(LUA_PATH)/*.o \
+		$(LUA_PATH)/.*.d \
+		$(LUA_PATH)/liblua.a
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean

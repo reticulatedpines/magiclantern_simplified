@@ -33,7 +33,7 @@ VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_LUA		= n
+CONFIG_LUA		= y
 CONFIG_PTP = y
 CONFIG_PTP_CHDK = n
 CONFIG_PTP_ML = y
@@ -71,19 +71,18 @@ PYMITE_CFLAGS		= \
 	-I$(PYMITE_PATH)/src/platform/dryos \
 
 # Lua includes and libraries
-LUA_PATH		= ./lua
+LUA_PATH		= $(TOP_DIR)/lua
 LUA_LIB			= $(LUA_PATH)/liblua.a
 LUA_CFLAGS		= -I$(LUA_PATH)
-
-ifeq ($(CONFIG_LUA),y)
-include $(LUA_PATH)/Makefile
-endif
-
 
 #
 # Install a normal firmware file to the CF card.
 #
 all: autoexec.bin
+
+ifeq ($(CONFIG_LUA),y)
+include $(LUA_PATH)/Makefile.lua
+endif
 
 install: autoexec.bin
 	cp $^ $(CF_CARD)
@@ -255,7 +254,7 @@ ML_OBJS-$(CONFIG_PYMITE) += \
 	$(PYMITE_LIB) \
 
 ML_OBJS-$(CONFIG_LUA) += \
-	lua-glue.o \
+	lua-handler.o \
 	$(LUA_LIB) \
 
 ML_OBJS-$(CONFIG_RELOC) += \

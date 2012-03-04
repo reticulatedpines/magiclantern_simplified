@@ -27,7 +27,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <string.h>
+//#include <string.h>
 
 
 /** Compile time failure if a structure is not sized correctly */
@@ -44,7 +44,7 @@
 #define TEXT __attribute__((section(".text")))
 
 /** Flag an argument as unused */
-#define UNUSED(x) __attribute__((unused)) x
+#define UNUSED_ATTR(x) __attribute__((unused)) x
 
 
 /** Compute the number of entries in a static array */

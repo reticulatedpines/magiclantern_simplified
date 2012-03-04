@@ -47,3 +47,22 @@ int send_ptp_data(struct ptp_context *data, const char *buf, int size)
 
   return 1;
 }
+
+static void
+ptp_init( void *unused )
+{
+    extern struct ptp_handler _ptp_handlers_start[];
+    extern struct ptp_handler _ptp_handlers_end[];
+    struct ptp_handler * handler = _ptp_handlers_start;
+
+    for( ; handler < _ptp_handlers_end ; handler++ )
+    {
+        ptp_register_handler(
+            handler->id,
+            handler->handler,
+            handler->priv
+        );
+    }
+}
+
+INIT_FUNC( __FILE__, ptp_init );

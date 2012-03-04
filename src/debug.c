@@ -2091,7 +2091,7 @@ static void dbg_draw_props(int changed)
 static void *
 debug_property_handler(
     unsigned        property,
-    void *            UNUSED( priv ),
+    void *            UNUSED_ATTR( priv ),
     void *            buf,
     unsigned        len
 )

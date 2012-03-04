@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "dryos.h"
 
 // uses less memory than the one in libc.a
 void* memset(void* dest, int val, size_t n)

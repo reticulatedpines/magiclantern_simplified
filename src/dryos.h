@@ -46,6 +46,10 @@
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
 
+extern size_t strlen(const char* str);
+extern void * memset ( void * ptr, int value, size_t num );
+extern float roundf(float x);
+extern float powf(float x, float y);
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))

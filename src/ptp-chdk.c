@@ -455,25 +455,3 @@ static struct menu_entry ptp_menus[] = {
     },
 };*/
 
-
-static void
-ptp_init( void *unused )
-{
-    extern struct ptp_handler _ptp_handlers_start[];
-    extern struct ptp_handler _ptp_handlers_end[];
-    struct ptp_handler * handler = _ptp_handlers_start;
-
-    for( ; handler < _ptp_handlers_end ; handler++ )
-    {
-        ptp_register_handler(
-            handler->id,
-            handler->handler,
-            handler->priv
-        );
-    }
-
-    //~ menu_add( "Debug", ptp_menus, COUNT(ptp_menus) );
-}
-
-
-INIT_FUNC( __FILE__, ptp_init );

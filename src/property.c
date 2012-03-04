@@ -22,7 +22,7 @@ static void global_token_handler( void * token)
 static void *
 global_property_handler(
     unsigned        property,
-    void *          UNUSED( priv ),
+    void *          UNUSED_ATTR( priv ),
     void *          buf,
     unsigned        len
 )

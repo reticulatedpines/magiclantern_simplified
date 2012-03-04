@@ -6,7 +6,7 @@ CP=cp
 export BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
 
 BINARIES_PATH=binaries
-LUA_PATH=
+LUA_PATH=$(TOP_DIR)/lua
 PWD=$(shell pwd)
 SRC_DIR=$(TOP_DIR)/src
 PLATFORM_PATH=$(TOP_DIR)/platform
