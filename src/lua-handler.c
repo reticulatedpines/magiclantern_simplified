@@ -170,6 +170,121 @@ FUNC_DEF( configs ) {
 	return 1;
 }
 
+/************************************************
+ * ret = getprop(id):
+ * gets the value of property 'id'. If the property
+ * has a size of 4 it will be an int else it will
+ * be a string. nil is returned in case of an error
+ ************************************************/
+FUNC_DEF( getprop ) {
+	int id = luaL_checknumber( L, 1 );
+	void* data = 0;
+	size_t len = 0;
+	int err = prop_get_value(id, (void**)&data, &len);
+	if (err) {
+		lua_pushnil(L);
+	} else {
+		if (len==4) {
+			lua_pushnumber( L, ((int*)data)[0] );
+		} else {
+			lua_pushlstring( L, (char*)data, len);
+		}
+	}
+	return 1;
+}
+
+/************************************************
+ * ret = getintprop(id):
+ * gets the value of property 'id'. This function
+ * will always return an int, or nil in case of
+ * an error.
+ ************************************************/
+FUNC_DEF( getintprop ) {
+	int id = luaL_checknumber( L, 1 );
+	void* data = 0;
+	size_t len = 0;
+	int err = prop_get_value(id, (void**)&data, &len);
+	if (err) {
+		lua_pushnil(L);
+	} else {
+		lua_pushnumber( L, ((int*)data)[0] );
+	}
+	return 1;
+}
+
+/************************************************
+ * ret = getstrprop(id):
+ * gets the value of property 'id'. This function
+ * will always return a string, or nil in case of
+ * an error.
+ ************************************************/
+FUNC_DEF( getstrprop ) {
+	int id = luaL_checknumber( L, 1 );
+	void* data = 0;
+	size_t len = 0;
+	int err = prop_get_value(id, (void**)&data, &len);
+	if (err) {
+		lua_pushnil(L);
+	} else {
+		lua_pushlstring( L, (char*)data, len);
+	}
+	return 1;
+}
+
+/************************************************
+ * setprop(id,value):
+ * Sets the value of property 'id' to 'value'.
+ ************************************************/
+FUNC_DEF( setprop ) {
+	int id = luaL_checknumber( L, 1 );
+	int ltype = lua_type(L, 2);
+	switch (ltype) {
+		case LUA_TBOOLEAN:
+		case LUA_TNUMBER:
+		case LUA_TNIL:
+			{
+				int data;
+				switch (ltype) {
+					case LUA_TBOOLEAN: data = lua_toboolean(L, 2); break;
+					case LUA_TNUMBER: data = luaL_checknumber(L, 2); break;
+					case LUA_TNIL: data = 0; break;
+				}
+				prop_request_change( id, &data, 4);
+				break;
+			}
+		case LUA_TSTRING:
+			{
+				size_t l;
+				const char* data = luaL_checklstring( L, 2, &l );
+				prop_request_change( id, data, l);
+				break;
+			}
+	}
+	return 0;
+}
+
+/************************************************
+ * shoot(wait, allow_af):
+ * Takes a picture.
+ ************************************************/
+FUNC_DEF( shoot ) {
+	int wait = luaL_checknumber(L, 1);
+	int allow_af = lua_toboolean(L, 2);
+	lens_take_picture(wait, allow_af);
+	return 0;
+}
+
+/************************************************
+ * eoscall(name):
+ * Runs EOS subroutine called 'name'.
+ ************************************************/
+FUNC_DEF( eoscall ) {
+	size_t l;
+	const char* name = luaL_checklstring(L, 1, &l);
+	call(name);
+	return 0;
+}
+
 // functions that will be always loaded,
 // and resides in the global namespace
 static const luaL_Reg base_functions[] = {
@@ -180,7 +295,13 @@ static const luaL_Reg base_functions[] = {
 	FUNC( getconfig ),
 	FUNC( setconfig ),
 	FUNC( configs ),
-	{ NULL, NULL }
+	FUNC( getprop ),
+	FUNC( getintprop ),
+	FUNC( getstrprop ),
+	FUNC( setprop ),
+	FUNC( shoot ),
+	FUNC( eoscall ),
+	{ NULL, NULL },
 };
 
 // memory allocation handler
@@ -311,7 +432,7 @@ static void* script_load(const char* filename) {
 	if (!buf)
 		goto malloc_fail;
 
-	if (read_file(filename, buf, size)!=size)
+	if ((unsigned)read_file(filename, buf, size)!=size)
 		goto read_fail;
 
 	retval = AllocateMemory(size+1);
@@ -405,8 +526,7 @@ static struct menu_entry lua_menus[] = {
 		.priv       = NULL,
 		.display    = lua_script_display,
 		.select     = lua_script_run,
-		.help       = "Starts the LUA script in the background",
-		.children = (struct menu_entry[]) {
+		.children	= (struct menu_entry[]) {
 			{
 				.name = "Script",
 				.priv = &script_index,
@@ -420,11 +540,11 @@ static struct menu_entry lua_menus[] = {
 				.priv = &lua_memsleep,
 				.min  = 1,
 				.max  = 50,
-				.help = "Set the wait time in the script. Larger values mean stability, lower means performance"
+				.help = "Set the wait time in the script. Larger values mean stability, lower means performance",
 			},
 			{
 				.name = "Run LUA Script",
-				.priv = &is_script_running,
+				.priv = (unsigned*)&is_script_running,
 				.min  = 0,
 				.max  = 1,
 				.select = lua_script_run,
@@ -433,15 +553,16 @@ static struct menu_entry lua_menus[] = {
 			},
 			{
 				.name = "Abort LUA Script",
-				.priv = &need_script_terminate,
+				.priv = (unsigned*)&need_script_terminate,
 				.min  = 0,
 				.max  = 1,
 				.icon_type = IT_ACTION,
-				.help = "Abort the running script"
+				.help = "Abort the running script",
 			},
-			MENU_EOL
-		}
-	}
+			MENU_EOL,
+		},
+		.help       = "Starts the LUA script in the background",
+	},
 };
 
 
@@ -450,8 +571,6 @@ lua_task( void* unused )
 {
 	msleep(1000);
 	find_scripts();
-	int k =0;
-	int script_index;
 	for (;;) {
 		msleep(100);
 		if (is_script_running) {

@@ -66,100 +66,107 @@ int __errno;
 #define SET_ERRNO(x) /* NOP */
 #define _STRTO_ENDPTR           1
 
-static unsigned long
-strto_l(
-    register const char *   str,
-    char **         endptr,
-    int         base,
-    int         sflag
-)
+unsigned long long strto_ll(
+	const char* str,
+	char ** endptr,
+	int base,
+	int sflag)
 {
-    unsigned long number, cutoff;
+	unsigned long long number;
 #if _STRTO_ENDPTR
-    const char *fail_char;
+	const char *fail_char;
 #define SET_FAIL(X) fail_char = (X)
 #else
 #define SET_FAIL(X) ((void)(X)) /* Keep side effects. */
 #endif
-    unsigned char negative, digit, cutoff_digit;
+	unsigned int n1;
+	unsigned char negative, digit;
 
-    SET_FAIL(str);
+	SET_FAIL(str);
 
-    while (ISSPACE(*str)) { /* Skip leading whitespace. */
-        ++str;
-    }
+	while (ISSPACE(*str)) {		/* Skip leading whitespace. */
+		++str;
+	}
 
-    /* Handle optional sign. */
-    negative = 0;
-    switch (*str) {
-        case '-': negative = 1; /* Fall through to increment str. */
-        case '+': ++str;
-    }
+	/* Handle optional sign. */
+	negative = 0;
+	switch (*str) {
+		case '-': negative = 1;	/* Fall through to increment str. */
+		case '+': ++str;
+	}
 
-    if (!(base & ~0x10)) {      /* Either dynamic (base = 0) or base 16. */
-        base += 10;             /* Default is 10 (26). */
-        if (*str == '0') {
-            SET_FAIL(++str);
-            base -= 2;          /* Now base is 8 or 16 (24). */
-            if ((0x20|(*str)) == 'x') { /* WARNING: assumes ascii. */
-                ++str;
-                base += base;   /* Base is 16 (16 or 48). */
-            }
-        }
+	if (!(base & ~0x10)) {		/* Either dynamic (base = 0) or base 16. */
+		base += 10;				/* Default is 10 (26). */
+		if (*str == '0') {
+			SET_FAIL(++str);
+			base -= 2;			/* Now base is 8 or 16 (24). */
+			if ((0x20|(*str)) == 'x') { /* WARNING: assumes ascii. */
+				++str;
+				base += base;	/* Base is 16 (16 or 48). */
+			}
+		}
 
-        if (base > 16) {        /* Adjust in case base wasn't dynamic. */
-            base = 16;
-        }
-    }
+		if (base > 16) {		/* Adjust in case base wasn't dynamic. */
+			base = 16;
+		}
+	}
 
-    number = 0;
+	number = 0;
 
-    if (((unsigned)(base - 2)) < 35) { /* Legal base. */
-        cutoff_digit = ULONG_MAX % base;
-        cutoff = ULONG_MAX / base;
-        do {
-            digit = ((unsigned char)(*str - '0') <= 9)
-                ? /* 0..9 */ (*str - '0')
-                : /* else */ (((unsigned char)(0x20 | *str) >= 'a') /* WARNING: assumes ascii. */
-                   ? /* >= A/a */ ((unsigned char)(0x20 | *str) - ('a' - 10))
-                   : /* else   */ 40 /* bad value */);
+	if (((unsigned)(base - 2)) < 35) { /* Legal base. */
+		do {
+			digit = ((unsigned char)(*str - '0') <= 9)
+				? /* 0..9 */ (*str - '0')
+				: /* else */ (((unsigned char)(0x20 | *str) >= 'a') /* WARNING: assumes ascii. */
+				   ? /* >= A/a */ ((unsigned char)(0x20 | *str) - ('a' - 10))
+				   : /* else   */ 40 /* bad value */);
 
-            if (digit >= base) {
-                break;
-            }
+			if (digit >= base) {
+				break;
+			}
 
-            SET_FAIL(++str);
+			SET_FAIL(++str);
 
-            if ((number > cutoff)
-                || ((number == cutoff) && (digit > cutoff_digit))) {
-                number = ULONG_MAX;
-                negative &= sflag;
-                //SET_ERRNO(ERANGE);
-            } else {
-                number = number * base + digit;
-            }
-        } while (1);
-    }
+#if 1
+			/* Optional, but speeds things up in the usual case. */
+			if (number <= (ULLONG_MAX >> 6)) {
+				number = number * base + digit;
+			} else
+#endif
+			{
+				n1 = ((unsigned char) number) * base + digit;
+				number = (number >> CHAR_BIT) * base;
+
+				if (number + (n1 >> CHAR_BIT) <= (ULLONG_MAX >> CHAR_BIT)) {
+					number = (number << CHAR_BIT) + n1;
+				} else {		/* Overflow. */
+					number = ULLONG_MAX;
+					negative &= sflag;
+					SET_ERRNO(ERANGE);
+				}
+			}
+
+		} while (1);
+	}
 
 #if _STRTO_ENDPTR
-    if (endptr) {
-        *endptr = (char *) fail_char;
-    }
+	if (endptr) {
+		*endptr = (char *) fail_char;
+	}
 #endif
 
-    {
-        unsigned long tmp = (negative
-                             ? ((unsigned long)(-(1+LONG_MIN)))+1
-                             : LONG_MAX);
-        if (sflag && (number > tmp)) {
-            number = tmp;
-            SET_ERRNO(ERANGE);
-        }
-    }
+	{
+		unsigned long long tmp = ((negative)
+								  ? ((unsigned long long)(-(1+LLONG_MIN)))+1
+								  : LLONG_MAX);
+		if (sflag && (number > tmp)) {
+			number = tmp;
+			SET_ERRNO(ERANGE);
+		}
+	}
 
-    return negative ? (unsigned long)(-((long)number)) : number;
+	return negative ? (unsigned long long)(-((long long)number)) : number;
 }
-
 
 long
 strtol(
@@ -168,7 +175,7 @@ strtol(
     int         base
 )
 {
-    return strto_l( str, endptr, base, 1 );
+    return (long)strto_ll( str, endptr, base, 1 );
 }
 
 
@@ -199,7 +206,7 @@ strtoul(
     int         base
 )
 {
-    return strto_l( str, endptr, base, 0 );
+    return (long)strto_ll( str, endptr, base, 0 );
 }
 
 

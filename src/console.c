@@ -5,6 +5,7 @@
 #include "menu.h"
 #include "gui.h"
 #include "property.h"
+#include "config.h"
 
 int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
@@ -19,19 +20,19 @@ char* console_buffer = 0;
 
 char* console_puts_buffer = 0; // "normal" copy of the circular buffer
 
-int console_buffer_index = 0; 
+int console_buffer_index = 0;
 
-int console_visible = 0;
+CONFIG_INT("debug.console.visible",console_visible,0);
 
 FILE* console_log_file = 0;
-void console_show() 
-{ 
-    console_visible = 1;
+void console_show()
+{
+	console_visible = 1;
     FIO_RemoveFile(CARD_DRIVE "console.log");
     console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
 }
-void console_hide() 
-{ 
+void console_hide()
+{
     console_visible = 0;
     msleep(500);
     clrscr();
@@ -40,7 +41,7 @@ void console_hide()
 }
 
 static void
-console_toggle( void * priv )
+console_toggle( void * priv, int delta )
 {
     if (console_visible) console_hide();
     else console_show();
@@ -67,9 +68,11 @@ console_print( void * priv, int x, int y, int selected )
 
 static struct menu_entry script_menu[] = {
     {
-        .priv = &console_visible,
+        .priv		= &console_visible,
         .display    = console_print,
         .select     = console_toggle,
+		.min		= 0,
+		.max		= 1,
     },
 };
 
@@ -86,28 +89,28 @@ void console_init()
     console_puts_buffer = AllocateMemory(BUFSIZE+32);
 
     console_clear();
-    
+
     menu_add( "Tweaks", script_menu, COUNT(script_menu) );
 }
 
 void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
-    
+
     if (console_log_file)
         my_fprintf( console_log_file, "%s", str );
-    
-    if (!console_buffer) return 0;
-    char* c = str;
+
+    if (!console_buffer) return;
+    const char* c = str;
     while (*c)
     {
         if (*c == '\n')
-            while (mod(console_buffer_index, CONSOLE_W) != 0) 
+            while (mod(console_buffer_index, CONSOLE_W) != 0)
                 NEW_CHAR(' ');
         else if (*c == '\t')
         {
             NEW_CHAR(' ');
-            while (mod(mod(console_buffer_index, CONSOLE_W), 4) != 0) 
+            while (mod(mod(console_buffer_index, CONSOLE_W), 4) != 0)
                 NEW_CHAR(' ');
         }
         else if (*c == 8)
@@ -144,12 +147,12 @@ int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 
 void console_draw()
 {
-    if (!console_buffer) return 0;
-    if (!console_puts_buffer) return 0;
+    if (!console_buffer) return;
+    if (!console_puts_buffer) return;
     unsigned x0 = 720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
     unsigned y0 = 480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
-    unsigned w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W;
-    unsigned h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H;
+    //unsigned w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W;
+    //unsigned h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H;
     int i;
 
     int found_cursor = 0;
@@ -158,7 +161,7 @@ void console_draw()
         // last character should be on last line => this ensures proper scrolling
         int cbpos = mod((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W + i, BUFSIZE);
         if (console_buffer[cbpos] == 0) // end of data
-        { 
+        {
             if (!found_cursor)
             {
                 console_puts_buffer[i] = '_';
@@ -174,7 +177,7 @@ void console_draw()
 
 
 static void
-console_task( void )
+console_task( void* unused )
 {
     console_init();
     while(1)
