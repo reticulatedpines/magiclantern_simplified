@@ -912,20 +912,25 @@ LUALIB_API const char *luaL_gsub (lua_State *L, const char *s, const char *p,
 
 static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   (void)ud; (void)osize;  /* not used */
+  if (ptr == 0 && nsize == 0) return NULL;
   if (nsize == 0) {
     FreeMemory(ptr);
     return NULL;
   }
   else
   {
-    if( nsize <= osize ) {
+    if( nsize <= osize && ptr ) {
       return ptr;
     }
     void* res = AllocateMemory( nsize );
     if( !res )
       return NULL;
-    memcpy( res, ptr, osize );
-    FreeMemory( ptr );
+    if ( ptr ) {
+      msleep(10);
+      memcpy( res, ptr, osize );
+      msleep(10);
+      FreeMemory( ptr );
+    }
     return res;
   }
 }

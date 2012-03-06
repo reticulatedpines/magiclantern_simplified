@@ -531,7 +531,7 @@ extern void SetCFnData(int group, int number, int value);
         #define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #else
         #define DebugMsg(a,b,fmt,...) { }
-        #define console_printf(fmt,...) { }
+//        #define console_printf(fmt,...) { }
 #endif
 
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)

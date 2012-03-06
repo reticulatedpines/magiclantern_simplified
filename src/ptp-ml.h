@@ -11,21 +11,21 @@
 
 // parameter count; data direction; return parameter values
 enum {
-  PTP_ML_USB_Version    = 0x0000,     // 0 param; no data; P1: major, P2: minor ML version
-  PTP_ML_Version        = 0x0001,     // 1 param; out data - ML version strings; no result
-                                      //   P1: 0:build_version 1:build_id, 2:build_date 3:build_user
-  PTP_ML_GetMemory      = 0x0002,     // 2 param; out data - memory contents; no result
-                                      //   P1: position; P2: size
-  PTP_ML_SetMemory      = 0x0003,     // 2 param; in data - memoty contents; no result
-                                      //   P1: position; P2: size
-  PTP_ML_GetMenus       = 0x0004,     // 0 param; out data - menu structure; no result
-  PTP_ML_GetMenuStructs = 0x0005,     // 1 param; out data - menu structure; no result
-                                      //   P1: submenu id
-  PTP_ML_GetMenuStruct  = 0x0006,     // 1 param; out data - menu structure; no result
-                                      //   P1: submenu id
-  PTP_ML_SetMenu        = 0x0007,     // 3 param; no data; P1: new value
-                                      //   P1: submenu id; P2: change type; P3: new value
-                                      //   change type: 0: select, 1: selrev, 2: Q, 3: use P3; any other: get data only
+	PTP_ML_USB_Version    = 0x0000,     // 0 param; no data; P1: major, P2: minor ML version
+	PTP_ML_Version        = 0x0001,     // 1 param; out data - ML version strings; no result
+										//   P1: 0:build_version 1:build_id, 2:build_date 3:build_user
+	PTP_ML_GetMemory      = 0x0002,     // 2 param; out data - memory contents; no result
+										//   P1: position; P2: size
+	PTP_ML_SetMemory      = 0x0003,     // 2 param; in data - memoty contents; no result
+										//   P1: position; P2: size
+	PTP_ML_GetMenus       = 0x0004,     // 0 param; out data - menu structure; no result
+	PTP_ML_GetMenuStructs = 0x0005,     // 1 param; out data - menu structure; no result
+										//   P1: submenu id
+	PTP_ML_GetMenuStruct  = 0x0006,     // 1 param; out data - menu structure; no result
+										//   P1: submenu id
+	PTP_ML_SetMenu        = 0x0007,     // 3 param; no data; P1: new value
+										//   P1: submenu id; P2: change type; P3: new value
+										//   change type: 0: select, 1: selrev, 2: Q, 3: use P3; any other: get data only
 } ptp_ml_command;
 
 // flags for submenus

@@ -157,12 +157,15 @@ static lua_Number lua_strx2number (const char *s, char **endptr) {
 
 int luaO_str2d (const char *s, size_t len, lua_Number *result) {
   char *endptr;
-  if (strpbrk(s, "nN"))  /* reject 'inf' and 'nan' */
+  if (strpbrk(s, "nN"))  /* reject 'inf' and 'nan' */ {
     return 0;
-  else if (strpbrk(s, "xX"))  /* hexa? */
+  }
+  else if (strpbrk(s, "xX"))  /* hexa? */ {
     *result = lua_strx2number(s, &endptr);
-  else
+  }
+  else {
     *result = lua_str2number(s, &endptr);
+  }
   if (endptr == s) return 0;  /* nothing recognized */
   while (lisspace(cast_uchar(*endptr))) endptr++;
   return (endptr == s + len);  /* OK if no trailing characters */

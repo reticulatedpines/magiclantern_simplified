@@ -64,7 +64,7 @@ int __errno;
 
 //#define SET_ERRNO(x) __errno = (x)
 #define SET_ERRNO(x) /* NOP */
-
+#define _STRTO_ENDPTR           1
 
 static unsigned long
 strto_l(

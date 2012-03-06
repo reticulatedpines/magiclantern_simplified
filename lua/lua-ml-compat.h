@@ -3,12 +3,15 @@
 
 #include <stdarg.h>
 #include "dryos.h"
+#include "bmp.h"
 
-#define stderr NULL
+#define stderr ((FILE*)1)
+#define stdout ((FILE*)2)
 #define stdin NULL
-#define stdout NULL
 #define EOF -1
 #define BUFSIZ 256
+
+#define TDEBUG(s) bmp_printf(FONT_LARGE, 100,100, s); msleep(100);
 
 extern void* AllocateMemory(size_t);
 extern void FreeMemory(void*);
@@ -41,17 +44,18 @@ size_t strspn(const char *s1, const char *s2);
 extern int tolower(int c);
 extern int toupper(int c);
 
-#define islower(x) (((x)>='a') && ((x)<='z'))
-#define isupper(x) (((x)>='A') && ((x)<='Z'))
-#define isalpha(x) (islower(x) || isupper(x))
-#define isdigit(x) (((x)>='0') && ((x)<='9'))
-#define isxdigit(x) (isdigit(x) || (((x)>='A') && ((x)<='F')) || (((x)>='a') && ((x)<='f')))
-#define isalnum(x) (isalpha(x) || isdigit(x))
-#define ispunct(x) (strchr("!\"#%&'();<=>?[\\]*+,-./:^_{|}~",x)!=0)
-#define isgraph(x) (ispunct(x) || isalnum(x))
-#define isspace(x) (strchr(" \r\n\t",x)!=0)
-#define iscntrl(x) (strchr("\x07\x08\r\n\x0C\x0B\x09",x)!=0)
+extern int islower(int x);
+extern int isupper(int x);
+extern int isalpha(int x);
+extern int isdigit(int x);
+extern int isxdigit(int x);
+extern int isalnum(int x);
+extern int ispunct(int x);
+extern int isgraph(int x);
+extern int isspace(int x);
+extern int iscntrl(int x);
 
+#define memcpy my_memcpy
 #define strcoll strcmp
 
 #endif // __lua_ml_compat_h

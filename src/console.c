@@ -6,7 +6,7 @@
 #include "gui.h"
 #include "property.h"
 
-void console_printf(const char* fmt, ...); // how to replace the normal printf?
+int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
 #define CONSOLE_W 55
@@ -29,8 +29,6 @@ void console_show()
     console_visible = 1;
     FIO_RemoveFile(CARD_DRIVE "console.log");
     console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
-    //~ bmp_printf(FONT_LARGE, 0, 0, "CONSOLE ON ");
-    console_printf("\nMagic Lantern console\n");
 }
 void console_hide() 
 { 
@@ -39,7 +37,6 @@ void console_hide()
     clrscr();
     FIO_CloseFile(console_log_file);
     console_log_file = 0;
-    //~ bmp_printf(FONT_LARGE, 0, 0, "CONSOLE OFF");
 }
 
 static void
@@ -63,17 +60,12 @@ console_print( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Debug Console: %s",
+        "Debug Console : %s",
         *(unsigned*) priv ? "ON " : "OFF"
     );
 }
 
 static struct menu_entry script_menu[] = {
-    /*{
-        .priv       = "Console test",
-        .display    = menu_print,
-        .select     = console_test,
-    },*/
     {
         .priv = &console_visible,
         .display    = console_print,
@@ -95,7 +87,7 @@ void console_init()
 
     console_clear();
     
-    menu_add( "Debug", script_menu, COUNT(script_menu) );
+    menu_add( "Tweaks", script_menu, COUNT(script_menu) );
 }
 
 void console_puts(const char* str) // don't DebugMsg from here!
@@ -130,7 +122,7 @@ void console_puts(const char* str) // don't DebugMsg from here!
     console_buffer[mod(console_buffer_index, BUFSIZE)] = 0;
 }
 
-void console_printf(const char* fmt, ...) // don't DebugMsg from here!
+int console_printf(const char* fmt, ...) // don't DebugMsg from here!
 {
     char buf[256];
     va_list         ap;
@@ -138,7 +130,17 @@ void console_printf(const char* fmt, ...) // don't DebugMsg from here!
     int len = vsnprintf( buf, 256, fmt, ap );
     va_end( ap );
     console_puts(buf);
+	return len;
 }
+
+int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
+{
+    char buf[256];
+    int len = vsnprintf( buf, 256, fmt, ap );
+    console_puts(buf);
+	return len;
+}
+
 
 void console_draw()
 {
