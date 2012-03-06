@@ -60,7 +60,7 @@ console_print( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Debug Console : %s",
+        "Debug Console     : %s",
         *(unsigned*) priv ? "ON " : "OFF"
     );
 }

@@ -13,4 +13,5 @@ PLATFORM_PATH=$(TOP_DIR)/platform
 BUILDER_DIR=$(TOP_DIR)/../dumper
 DOC_DIR=$(TOP_DIR)/doc
 CROP_DIR=$(TOP_DIR)/cropmks
+SCRIPT_DIR=$(TOP_DIR)/scripts
 BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec

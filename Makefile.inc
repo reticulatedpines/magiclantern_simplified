@@ -89,6 +89,8 @@ install: autoexec.bin
 
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
 	cp $(TOP_DIR)/cropmks/*.bmp $(CF_CARD)/cropmks/
+	mkdir $(CF_CARD)/scripts || echo "no problem"
+	cp $(TOP_DIR)/scripts/*.lua $(CF_CARD)/scripts/
 	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/
 
 	$(UMOUNT) $(CF_CARD)
@@ -106,6 +108,8 @@ prepare_zip:
 	cp $(DOC_DIR)/UserGuide.pdf .
 	mkdir cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp cropmks/
+	mkdir scripts || echo "ok"
+	cp $(SCRIPT_DIR)/*.lua scripts/
 	mkdir doc || echo "ok"
 	cp $(DOC_DIR)/cam/* doc/
 	make x
@@ -125,6 +129,7 @@ magiclantern-$(VERSION).zip: \
 	INSTALL.pdf \
 	UserGuide.pdf \
 	cropmks/* \
+	scripts/* \
 	doc/* \
 	*.fir \
 	FONTS.DAT \
@@ -565,5 +570,6 @@ clean:
 		422-jpg.py \
 		README \
 		cropmks/* \
+		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o)
