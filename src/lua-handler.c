@@ -20,6 +20,8 @@
  * 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
+#if !defined(CONFIG_550D)
+
 #include "lua-handler.h"
 #include "lauxlib.h"
 #include "config.h"
@@ -285,6 +287,27 @@ FUNC_DEF( eoscall ) {
 	return 0;
 }
 
+/************************************************
+ * dump(start,length,name):
+ * Dumps memory from 'start' to 'start'+'length'
+ * to filename 'name'
+ ************************************************/
+FUNC_DEF( dump ) {
+	size_t l;
+	int start = luaL_checknumber(L, 1);
+	int length = luaL_checknumber(L, 2);
+	const char* fname = luaL_checklstring(L,3,&l);
+	char fullfname[50];
+	snprintf(fullfname, sizeof(fullfname), "%s%s",CARD_DRIVE, fname);
+    FILE * f = FIO_CreateFile(fullfname);
+	if (f != (void*) -1) {
+		FIO_WriteFile(f, (void*)start, length);
+		FIO_CloseFile(f);
+	}
+	msleep(10);
+	return 0;
+}
+
 // functions that will be always loaded,
 // and resides in the global namespace
 static const luaL_Reg base_functions[] = {
@@ -301,6 +324,7 @@ static const luaL_Reg base_functions[] = {
 	FUNC( setprop ),
 	FUNC( shoot ),
 	FUNC( eoscall ),
+	FUNC( dump ),
 	{ NULL, NULL },
 };
 
@@ -627,3 +651,5 @@ lua_init( void *unused )
 
 INIT_FUNC( __FILE__, lua_init );
 TASK_CREATE( "lua_task", lua_task, 0, 0x1f, 0x1000 );
+
+#endif // !CONFIG_550D

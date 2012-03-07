@@ -1,0 +1,109 @@
+#generic makefile
+
+ARM_PATH=~/arm-toolchain462
+ARM_BINPATH=$(ARM_PATH)/bin
+GCC_VERSION=4.6.2
+CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
+OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
+AR=$(ARM_BINPATH)/arm-elf-ar
+RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
+LD=$(CC)
+HOST_CC=gcc
+HOST_CFLAGS=-g -O3 -W -Wall
+ML_SRC_DIR=$(PLUGIN_BASE_DIR)/../src
+
+PLUGIN_MAIN_OBJS = $(PLUGIN_BASE_DIR)/plugin.lds $(PLUGIN_BASE_DIR)/entry.o $(PLUGIN_BASE_DIR)/loader.o $(PLUGIN_OBJS)
+
+FLAGS=\
+	-Wp,-MMD,$(dir $@).$(notdir $@).d \
+	-Wp,-MT,$@ \
+	-nostdlib \
+	-fomit-frame-pointer \
+	-fno-strict-aliasing \
+	-DCONFIG_MAGICLANTERN=1 \
+	-DCONFIG_$(MODEL)=1 \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+	-DVERSION=\"$(VERSION)\" \
+	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
+
+CFLAGS=\
+	$(FLAGS) \
+	-Os \
+	-Wall \
+	-W \
+	-mstructure-size-boundary=32 \
+	-Wno-unused-parameter \
+	-Wno-implicit-function-declaration \
+	-Wno-unused-function \
+	-Wno-format \
+	-std=gnu99 \
+	-D__ARM__ \
+	-I$(PLUGIN_DIR) \
+	-I$(PLUGIN_BASE_DIR) \
+	-I$(ML_SRC_DIR) \
+	-mlong-calls \
+	-fpic \
+	-nostartfiles \
+	-ffreestanding
+
+all: $(PLUGIN_NAME).bin
+
+#$(PLUGIN_BASE_DIR)/entry.o: FORCE
+#	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $(PLUGIN_BASE_DIR)/entry.S)
+
+%.s: %.c
+	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
+%.o: %.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: %.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.i: %.c
+	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
+%: %.c
+	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
+%.o: %.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+comma:=,
+%.bin: %
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
+
+$(PLUGIN_BASE_DIR)/plugin.lds: $(PLUGIN_BASE_DIR)/plugin.lds.S
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
+
+$(PLUGIN_NAME): $(PLUGIN_MAIN_OBJS)
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-N \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-T \
+		$^ \
+		-lm \
+		-lgcc \
+    -Xlinker -Map=location.map \
+	)
+
+build = \
+	@if [ X"$V" = X"1" ]; then \
+		echo '$2'; \
+	else \
+		printf "[ %-8s ]   %s\n"  $1 $@; \
+	fi; \
+	$2
+
+
+clean:
+	$(call build,CLEAN,$(RM) -f \
+		$(PLUGIN_BASE_DIR)/*.o   \
+		$(PLUGIN_BASE_DIR)/.*.d \
+		$(PLUGIN_BASE_DIR)/.*.a \
+		$(PLUGIN_DIR)/*.o   \
+		$(PLUGIN_DIR)/.*.d \
+		$(PLUGIN_DIR)/.*.a \
+		$(PLUGIN_NAME).bin \
+		$(PLUGIN_NAME) \
+		$(PLUGIN_BASE_DIR)/plugin.lds)
+
+FORCE:

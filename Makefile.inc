@@ -37,6 +37,7 @@ CONFIG_LUA		= y
 CONFIG_PTP = y
 CONFIG_PTP_CHDK = n
 CONFIG_PTP_ML = y
+CONFIG_PLUGINS = y
 CONFIG_CONSOLE		= y
 CONFIG_DEBUGMSG = 0
 
@@ -88,9 +89,11 @@ install: autoexec.bin
 	cp $^ $(CF_CARD)
 
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp $(TOP_DIR)/cropmks/*.bmp $(CF_CARD)/cropmks/
+	cp $(CROP_DIR)/*.bmp $(CF_CARD)/cropmks/
 	mkdir $(CF_CARD)/scripts || echo "no problem"
-	cp $(TOP_DIR)/scripts/*.lua $(CF_CARD)/scripts/
+	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/scripts/
+	mkdir $(CF_CARD)/plugins || echo "no problem"
+	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/plugins/
 	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/
 
 	$(UMOUNT) $(CF_CARD)
@@ -110,6 +113,8 @@ prepare_zip:
 	cp $(CROP_DIR)/*.bmp cropmks/
 	mkdir scripts || echo "ok"
 	cp $(SCRIPT_DIR)/*.lua scripts/
+	mkdir plugins || echo "ok"
+	cp $(PLUGINS_DIR)/*/*.bin plugins/
 	mkdir doc || echo "ok"
 	cp $(DOC_DIR)/cam/* doc/
 	make x
@@ -262,6 +267,9 @@ ML_OBJS-$(CONFIG_LUA) += \
 	lua-handler.o \
 	$(LUA_LIB) \
 
+ML_OBJS-$(CONFIG_PLUGINS) += \
+	plugin.o \
+
 ML_OBJS-$(CONFIG_RELOC) += \
 	liveview.o \
 	reloc.o \
@@ -298,6 +306,7 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 		$^ \
 		-lm \
 		-lgcc \
+    -Xlinker -Map=location.map \
 	)
 
 

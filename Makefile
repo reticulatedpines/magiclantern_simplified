@@ -8,7 +8,7 @@
 TOP_DIR=$(PWD)
 include Makefile.top
 
-all: 60D 550D 600D 50D 500D 5D2
+all: 60D 550D 600D 50D 500D 5D2 plugins
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
 
@@ -32,6 +32,9 @@ all: 60D 550D 600D 50D 500D 5D2
 
 5D2:
 	$(MAKE) -C $(PLATFORM_PATH)/5D2.211
+
+plugins:
+	$(MAKE) -C $(PLUGINS_DIR)
 
 install: all
 	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
@@ -80,6 +83,7 @@ clean:
 	cd $(PLATFORM_PATH)/50D.108/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5D2.211/; $(MAKE) clean
+	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
 zip: all

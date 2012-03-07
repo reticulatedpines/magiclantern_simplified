@@ -28,7 +28,9 @@ tags
 *.wav
 *.i
 *.log
+location.map
 platform/*.OLD
+plugins/plugin.lds
 docs/html
 docs/latex
 pymite-nat.c
@@ -56,3 +58,6 @@ doc/install-body.tex
 doc/install.wiki
 doc/menuindex.txt
 installer/*/*.lds
+
+syntax: regexp
+^plugins/(.*)/\1$

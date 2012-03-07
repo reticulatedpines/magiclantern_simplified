@@ -10,6 +10,7 @@
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
+#include "plugin.h"
 //#include "lua.h"
 
 //~ #define CONFIG_HEXDUMP
@@ -313,14 +314,24 @@ void run_test()
 
 void xx_test(void* priv, int delta)
 {
-    //~ #ifdef CONFIG_550D
     gui_stop_menu();
+	struct ext_plugin * plug = load_plugin(CARD_DRIVE "plugins/testplug.bin");
+	if (plug) {
+		void (*smth)(void) = get_function(plug, 1);
+		if (smth) {
+			smth();
+		}
+		unload_plugin(plug);
+	} else {
+		bmp_printf(FONT_LARGE,100,100,"ERROR :(");msleep(1000);
+	}
+    //~ #ifdef CONFIG_550D
     //~ SetGUIRequestMode(29); // Jackie Chan :)
     //~ #endif
     //~ *(uint8_t*)0x14c08 = 0x3;
     //~ gui_stop_menu();
     //~ set_display_gain(512);
-    task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
+    //task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
     //~ guiNotifyDialogRefresh();
 }
 
