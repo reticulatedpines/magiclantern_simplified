@@ -1,5 +1,7 @@
-ML_LIBLUA= \
-	lua-ml-compat.o \
+PLUGIN_DIR=$(shell pwd)
+PLUGIN_BASE_DIR=$(PLUGIN_DIR)/..
+PLUGIN_NAME=lua
+PLUGIN_OBJS=lua-ml-compat.o \
 	setjmp.o \
 	lapi.o \
 	lauxlib.o \
@@ -34,9 +36,7 @@ ML_LIBLUA= \
   # lmathlib.o \
   # loslib.o \
 
-$(LUA_PATH)/liblua.a: $(foreach o,$(ML_LIBLUA),$(LUA_PATH)/$o)
-	@-$(RM) $@
-	$(call build,AR,$(AR) rcu $@ $^)
-	$(call build,RANLIB,$(RANLIB) $@)
+include $(PLUGIN_BASE_DIR)/Makefile.top
 
--include $(LUA_PATH)/.*.d
+-include $(PLUGIN_DIR)/.*.d
+

@@ -1,7 +1,13 @@
 #include "lua-ml-compat.h"
+#include "lua.h"
+#include "lauxlib.h"
 
+#define O_RDONLY             00
+#define O_SYNC           010000
 
-int do_fwrite(void* ptr, size_t size, size_t count, FILE* stream) {
+int __errno;
+
+int do_fwrite(const void* ptr, size_t size, size_t count, FILE* stream) {
 	if (stream==stderr || stream==stdout) {
 		console_puts(ptr);
 	} else if (stream) {
@@ -23,7 +29,7 @@ int do_fprintf(FILE* stream, const char * fmt, ...) {
 		va_end( ap );
 	} else if (stream) {
 		// should do format
-		res = do_fwrite((void*)fmt, strlen(fmt)+1, 1, stream);
+		res = do_fwrite((const void*)fmt, strlen(fmt)+1, 1, stream);
 	}
 	return res;
 };
@@ -49,7 +55,7 @@ int do_fread(void* ptr, size_t size, size_t count, FILE* stream) {
 }
 
 FILE* do_fopen(const char* filename, const char* mode) {
-	if (strchr(mode,"r")) {
+	if (strchr(mode,'r')) {
 		return FIO_Open(filename,O_RDONLY | O_SYNC);
 	} else {
 		return FIO_Open(filename,0);
@@ -127,7 +133,7 @@ char* strpbrk(const char* s1, const char* s2)
 void do_abort() {
 }
 
-char* do_getenv(char* name) {
+char* do_getenv(const char* name) {
 	return NULL;
 }
 
@@ -203,3 +209,70 @@ int ispunct(int x) { return strchr("!\"#%&'();<=>?[\\]*+,-./:^_{|}~",x)!=0; }
 int isgraph(int x) { return ispunct(x) || isalnum(x); }
 int isspace(int x) { return strchr(" \r\n\t",x)!=0; }
 int iscntrl(int x) { return strchr("\x07\x08\r\n\x0C\x0B\x09",x)!=0; }
+
+
+// exported functions for plugin
+
+EXTERN_FUNC( 1, const char *, PLluaL_checklstring, lua_State *L, int numArg, size_t *l ) {
+	return luaL_checklstring(L,numArg,l);
+}
+EXTERN_FUNC( 2, int , PLluaL_checknumber, lua_State *L, int numArg ) {
+	return luaL_checknumber(L, numArg);
+}
+EXTERN_FUNC( 3, int , PLlua_toboolean, lua_State *L, int idx ) {
+	return lua_toboolean(L, idx);
+}
+EXTERN_FUNC( 4, int , PLlua_type, lua_State *L, int idx ) {
+	return lua_type(L, idx);
+}
+EXTERN_FUNC( 5, void , PLlua_pushnil, lua_State *L ) {
+	lua_pushnil(L);
+}
+EXTERN_FUNC( 6, void , PLlua_pushnumber, lua_State *L, lua_Number n ) {
+	lua_pushnumber(L, n);
+}
+EXTERN_FUNC( 7, const char *, PLlua_pushlstring, lua_State *L, const char *s, size_t l ) {
+	return lua_pushlstring(L, s, l);
+}
+EXTERN_FUNC( 8, const char *, PLlua_pushstring, lua_State *L, const char *s ) {
+	return lua_pushstring(L, s);
+}
+EXTERN_FUNC( 9, void  , PLlua_pushboolean, lua_State *L, int b ) {
+	lua_pushboolean(L, b);
+}
+EXTERN_FUNC( 10, void , PLlua_createtable, lua_State *L, int narr, int nrec ) {
+	lua_createtable(L, narr, nrec);
+}
+EXTERN_FUNC( 11, void , PLlua_setfield, lua_State *L, int idx, const char *k ) {
+	lua_setfield(L, idx, k);
+}
+EXTERN_FUNC( 12, int  , PLlua_error, lua_State *L ) {
+	return lua_error(L);
+}
+EXTERN_FUNC( 13, lua_State *, PLlua_newstate, lua_Alloc f, void *ud ) {
+	return lua_newstate(f, ud);
+}
+EXTERN_FUNC( 14, void , PLluaL_openlibs, lua_State *L ) {
+	luaL_openlibs(L);
+}
+EXTERN_FUNC( 15, int , PLluaopen_base, lua_State *L ) {
+	return luaopen_base(L);
+}
+EXTERN_FUNC( 16, void , PLluaL_setfuncs, lua_State *L, const luaL_Reg *l, int nup ) {
+	luaL_setfuncs(L, l, nup);
+}
+EXTERN_FUNC( 17, int , PLlua_sethook, lua_State *L, lua_Hook func, int mask, int count ) {
+	return lua_sethook(L, func, mask, count);
+}
+EXTERN_FUNC( 18, int , PLluaL_loadstring, lua_State *L, const char *s ) {
+	return luaL_loadstring(L, s);
+}
+EXTERN_FUNC( 19, const char *, PLlua_tolstring, lua_State *L, int idx, size_t *len ) {
+	return lua_tolstring(L, idx, len);
+}
+EXTERN_FUNC( 20, int  , PLlua_pcallk, lua_State *L, int nargs, int nresults, int errfunc, int ctx, lua_CFunction k ) {
+	return lua_pcallk(L, nargs, nresults, errfunc, ctx, k);
+}
+EXTERN_FUNC( 21, void , PLlua_close, lua_State *L ) {
+	lua_close(L);
+}

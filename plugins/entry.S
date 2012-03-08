@@ -36,6 +36,10 @@
 _start:
   B	__init
   .word _functions_end
+  .word _data_rel_local_start 
+  .word _data_rel_local_end
+  .word _data_rel_start
+  .word _data_rel_end
   .word _ipltgot_start
   .word _ipltgot_end
   .word _got_start

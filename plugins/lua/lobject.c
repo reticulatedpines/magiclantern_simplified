@@ -5,7 +5,7 @@
 */
 
 //#include <stdarg.h>
-#include <dryos.h>
+//#include <dryos.h>
 //#include <stdlib.h>
 //#include <string.h>
 

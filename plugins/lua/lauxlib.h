@@ -10,7 +10,7 @@
 
 
 //#include <stddef.h>
-#include <dryos.h>
+//#include <dryos.h>
 
 #include "lua.h"
 

@@ -28,16 +28,14 @@ FILE* console_log_file = 0;
 void console_show()
 {
 	console_visible = 1;
-    FIO_RemoveFile(CARD_DRIVE "console.log");
-    console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
 }
 void console_hide()
 {
     console_visible = 0;
     msleep(500);
     clrscr();
-    FIO_CloseFile(console_log_file);
-    console_log_file = 0;
+//    FIO_CloseFile(console_log_file);
+//    console_log_file = 0;
 }
 
 static void
@@ -91,6 +89,13 @@ void console_init()
     console_clear();
 
     menu_add( "Tweaks", script_menu, COUNT(script_menu) );
+
+	msleep(500);
+
+	if (!console_log_file) {
+	    FIO_RemoveFile(CARD_DRIVE "console.log");
+	    console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
+	}
 }
 
 void console_puts(const char* str) // don't DebugMsg from here!

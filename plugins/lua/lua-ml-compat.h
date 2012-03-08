@@ -1,9 +1,8 @@
 #ifndef __lua_ml_compat_h
 #define __lua_ml_compat_h
 
-#include <stdarg.h>
-#include "dryos.h"
-#include "bmp.h"
+#define PLUGIN_CLIENT
+#include "plugin.h"
 
 #define stderr ((FILE*)1)
 #define stdout ((FILE*)2)
@@ -13,11 +12,7 @@
 
 #define TDEBUG(s) bmp_printf(FONT_LARGE, 100,100, s); msleep(100);
 
-extern void* AllocateMemory(size_t);
-extern void FreeMemory(void*);
-extern void my_memcpy(void*,void*,size_t);
-
-extern int do_fwrite(void* ptr, size_t size, size_t count, FILE* stream);
+extern int do_fwrite(const void* ptr, size_t size, size_t count, FILE* stream);
 extern int do_fread(void* ptr, size_t size, size_t count, FILE* stream);
 extern int do_fflush(FILE* stream);
 extern int do_fprintf(FILE* stream, const char * str, ...);
@@ -34,7 +29,7 @@ extern char* strpbrk(const char* str1, const char* str2);
 extern char* strchr(const char* str, int c);
 
 extern void do_abort();
-extern char* do_getenv(char* name);
+extern char* do_getenv(const char* name);
 
 extern int sprintf(char * str, const char * fmt, ...);
 extern int memcmp(const void* s1, const void* s2,size_t n);

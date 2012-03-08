@@ -71,19 +71,11 @@ PYMITE_CFLAGS		= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos \
 
-# Lua includes and libraries
-LUA_PATH		= $(TOP_DIR)/lua
-LUA_LIB			= $(LUA_PATH)/liblua.a
-LUA_CFLAGS		= -I$(LUA_PATH)
 
 #
 # Install a normal firmware file to the CF card.
 #
 all: autoexec.bin
-
-ifeq ($(CONFIG_LUA),y)
-include $(LUA_PATH)/Makefile.lua
-endif
 
 install: autoexec.bin
 	cp $^ $(CF_CARD)
@@ -166,7 +158,7 @@ CFLAGS += $(PYMITE_CFLAGS)
 endif
 
 ifeq ($(CONFIG_LUA),y)
-CFLAGS += $(LUA_CFLAGS)
+CFLAGS += -I$(TOP_DIR)/plugins/lua
 endif
 
 NOT_USED_FLAGS=\
@@ -265,7 +257,6 @@ ML_OBJS-$(CONFIG_PYMITE) += \
 
 ML_OBJS-$(CONFIG_LUA) += \
 	lua-handler.o \
-	$(LUA_LIB) \
 
 ML_OBJS-$(CONFIG_PLUGINS) += \
 	plugin.o \

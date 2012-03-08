@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
 */
 
 #include <ctype.h>
-#include <dryos.h>
+//#include <dryos.h>
 
 #define luac_c
 #define LUA_CORE

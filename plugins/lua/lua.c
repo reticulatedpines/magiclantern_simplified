@@ -48,7 +48,7 @@
 #define lua_stdin_is_tty()      isatty(0)
 #elif defined(LUA_WIN)
 #include <io.h>
-#include <dryos.h>
+//#include <dryos.h>
 #define lua_stdin_is_tty()      _isatty(_fileno(stdin))
 #else
 #define lua_stdin_is_tty()      1  /* assume stdin is a tty */
@@ -63,7 +63,7 @@
 */
 #if defined(LUA_USE_READLINE)
 
-#include <dryos.h>
+//#include <dryos.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #define lua_readline(L,b,p)     ((void)L, ((b)=readline(p)) != NULL)

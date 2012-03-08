@@ -24,6 +24,13 @@ SECTIONS
 		*(.data)
 	  _data_end = .;
 
+    _data_rel_local_start = .;
+    *(.data.rel.ro.local)
+    _data_rel_local_end = .;
+
+    _data_rel_start = .;
+    *(.data.rel.ro)
+    _data_rel_end = .;
 	}
 
   .igot.plt : {

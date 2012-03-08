@@ -33,7 +33,7 @@ all: 60D 550D 600D 50D 500D 5D2 plugins
 5D2:
 	$(MAKE) -C $(PLATFORM_PATH)/5D2.211
 
-plugins:
+plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
 install: all
@@ -93,3 +93,5 @@ zip: all
 
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
+
+FORCE:
