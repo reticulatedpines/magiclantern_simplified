@@ -33,6 +33,14 @@ void* get_function_str(struct ext_plugin * plug, const char* str) {
 extern struct os_command _plugin_commands_start[];
 extern struct os_command _plugin_commands_end[];
 
+#if defined CONFIG_60D
+#define Allocator malloc
+#define DeAllocator free
+#else
+#define Allocator AllocateMemory
+#define DeAllocator FreeMemory
+#endif
+
 struct ext_plugin * load_plugin(const char* filename) {
 	unsigned size;
 	unsigned char* buf;
@@ -55,7 +63,7 @@ struct ext_plugin * load_plugin(const char* filename) {
 	if ((unsigned)read_file(filename, buf, size)!=size)
 		goto read_fail;
 
-	retval = AllocateMemory(size);
+	retval = Allocator(size);
 	if (!retval)
 		goto copy_fail;
 	msleep(1);
@@ -88,7 +96,7 @@ struct ext_plugin * load_plugin(const char* filename) {
 	console_printf("Loaded %d commands from OS\n", numval);
 
 	if (numval<=0) {
-		FreeMemory(retval);
+		DeAllocator(retval);
 		return 0;
 	} else {
 		return plug;
@@ -103,5 +111,5 @@ getfilesize_fail:
 }
 
 void unload_plugin(struct ext_plugin * plug) {
-	if (plug) FreeMemory(plug);
+	if (plug) DeAllocator(plug);
 }
