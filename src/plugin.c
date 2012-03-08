@@ -1,16 +1,8 @@
-#include "dryos.h"
+#define PLUGIN_C_FILE // so plugin.h will include all exported function definitions
+#include "arm-mcr.h"
 #include "plugin.h"
-
-// includes for exporting functions
-#include "bmp.h"
-extern int console_printf(const char* fmt, ...);
-extern void console_puts(const char* str);
-extern int console_vprintf(const char* fmt, va_list ap);
-extern void	my_memcpy( void* dst, const void* src, size_t size );
-extern int strcmp( const char* s1, const char* s2 );
-extern int abs( int number );
-extern int strtol( const char * str, char ** endptr, int base );
-#include "plugin_export.h"
+#include "all_headers.h"
+#include "menu.h"
 
 void* get_function(struct ext_plugin * plug, unsigned int id) {
 	struct extern_function * f = &plug->functions;
@@ -33,6 +25,16 @@ void* get_function_str(struct ext_plugin * plug, const char* str) {
 extern struct os_command _plugin_commands_start[];
 extern struct os_command _plugin_commands_end[];
 
+struct loaded_plugin {
+	struct	ext_plugin* plug;
+	char*				name;
+	int					need_init;
+	int					has_init;
+};
+
+static struct loaded_plugin* plugins;
+static size_t plugins_count = 0;
+
 #if defined CONFIG_60D
 #define Allocator malloc
 #define DeAllocator free
@@ -47,9 +49,9 @@ struct ext_plugin * load_plugin(const char* filename) {
 	unsigned char* retval;
 	int i;
 	struct ext_plugin * plug;
-	int* got_start;
-	int* got_end;
-	int* got;
+	unsigned int* got_start;
+	unsigned int* got_end;
+	unsigned int* got;
 	int (*__init)(struct os_command*,int num_cmds, int base_addr);
 	int numval;
 
@@ -73,16 +75,18 @@ struct ext_plugin * load_plugin(const char* filename) {
 	plug = (struct ext_plugin*)retval;
 
 	// poor man's linker: fix GOT and other reloc tables
-	for (i=0; i<3; i++) {
+	for (i=0; i<5; i++) {
 		switch (i) {
-			case 0: got_start = ((char*)plug)+plug->data_rel_local_start; got_end = ((char*)plug)+plug->data_rel_local_end; break;
-			case 1: got_start = ((char*)plug)+plug->data_rel_start; got_end = ((char*)plug)+plug->data_rel_end; break;
-			case 2: got_start = ((char*)plug)+plug->got_start; got_end = ((char*)plug)+plug->got_end; break;
+			case 0: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_local_end); break;
+			case 1: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_end); break;
+			case 2: got_start = (unsigned int*)(((char*)plug)+plug->got_start); got_end = (unsigned int*)(((char*)plug)+plug->got_end); break;
+			case 3: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_ro_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_ro_local_end); break;
+			case 4: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_ro_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_ro_end); break;
 		}
 		got = got_start;
 		while (got < got_end) {
 			if (*got < size) { // if it's larger it's probably an absolute address
-				*got += (int)plug;
+				*got += (unsigned int)plug;
 			}
 			got++;
 		}
@@ -93,7 +97,7 @@ struct ext_plugin * load_plugin(const char* filename) {
 	__init = (void*)plug;
 	numval = __init(_plugin_commands_start,_plugin_commands_end - _plugin_commands_start,(int)plug);
 
-	console_printf("Loaded %d commands from OS\n", numval);
+	console_printf("Available commands in OS: %d. Loaded: %d\n", _plugin_commands_end - _plugin_commands_start, numval);
 
 	if (numval<=0) {
 		DeAllocator(retval);
@@ -113,3 +117,136 @@ getfilesize_fail:
 void unload_plugin(struct ext_plugin * plug) {
 	if (plug) DeAllocator(plug);
 }
+
+const char* get_card_drive() {
+	return CARD_DRIVE;
+}
+
+static struct menu_entry plugin_menus[] = {
+	{
+		.name = "Configure plugins",
+	},
+};
+
+int is_valid_plugin_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".BIN") || streq(filename + n - 4, ".bin")) && (filename[0] != '.') && (filename[0] != '_'))
+        return 1;
+    return 0;
+}
+
+static void select_plugins_submenu(void* priv, int delta)
+{
+	struct loaded_plugin * plug = (struct loaded_plugin*)priv;
+	if (!plug->plug) {
+		char filename[50];
+		snprintf(filename, sizeof(filename), "%sPLUGINS/%s", CARD_DRIVE, plug->name);
+		plug->plug = load_plugin(filename);
+	}
+	if (plug->plug) {
+		if (!plug->has_init) {
+			plug->need_init = 1;
+		}
+	} else {
+		console_printf("Plugin load failed!");
+	}
+}
+
+static void display_plugins_submenu(void* priv, int x, int y, int selected)
+{
+	struct loaded_plugin * plug = (struct loaded_plugin*)priv;
+	bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, "%s", plug->name);
+	menu_draw_icon(x, y, plug->need_init ? MNI_WARNING : plug->has_init ? MNI_ON : MNI_OFF, (intptr_t)"");
+}
+
+static void find_plugins() {
+	struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "PLUGINS/", &file );
+    if( IS_ERROR(dirent) )
+    {
+        NotifyBox(2000, "PLUGINS dir missing" );
+        msleep(100);
+        NotifyBox(2000, "Please copy all ML files!" );
+        return;
+    }
+    int k = 0;
+    do {
+        if (is_valid_plugin_filename(file.name))
+        {
+            k++;
+        }
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+	if (k>0) {
+		struct menu_entry * entries = AllocateMemory(sizeof(struct menu_entry)*(k+1));
+		plugins = AllocateMemory(sizeof(struct loaded_plugin)*k);
+		memset(entries, 0, sizeof(struct menu_entry)*(k+1));
+		memset(plugins, 0, sizeof(struct loaded_plugin)*k);
+		dirent = FIO_FindFirstEx( CARD_DRIVE "PLUGINS/", &file );
+		k = 0;
+	    do {
+			if (is_valid_plugin_filename(file.name))
+			{
+				entries[k].name = AllocateMemory(strlen(file.name)+1);
+				snprintf((char*)entries[k].name, strlen(file.name)+1, "%s", file.name);
+				entries[k].display = display_plugins_submenu;
+				entries[k].select = select_plugins_submenu;
+				entries[k].priv = &plugins[k];
+				plugins[k].name = (char*)entries[k].name;
+				k++;
+			}
+	    } while( FIO_FindNextEx( dirent, &file ) == 0);
+		entries[k].priv = MENU_EOL_PRIV;
+		plugin_menus[0].children = entries;
+		plugins_count = k;
+	}
+}
+
+static void plugins_task(void* unused) {
+	msleep(1000);
+	for (;;) {
+		msleep(250);
+		if (plugins_count) {
+			size_t k;
+			for (k=0; k< plugins_count; k++) {
+				if (plugins[k].plug && plugins[k].need_init) {
+					struct plugin_descriptor *(*__init)(void) = get_function(plugins[k].plug, MODULE_FUNC_INIT);
+					if (__init) {
+						struct plugin_descriptor* pld = __init();
+						if (pld) {
+							struct task_create * task = pld->tasks;
+							bmp_printf(FONT_LARGE, 100,100,"INITTASK ENTRY %08x %08x!\n",task,task->name);msleep(1000);
+							console_printf("INITTASK ENTRY %08x %08x!\n",task,task->name);msleep(1000);
+							while (task && task->name) {
+								if (!task->priority) {
+									bmp_printf(FONT_LARGE, 100,100,"START ENTRY %08x!",task->entry);msleep(1000);
+									console_printf("START ENTRY %08x!",task->entry);msleep(1000);
+									thunk entry = (thunk)task->entry;
+									entry();
+								} else {
+									bmp_printf(FONT_LARGE, 100,100,"TASK  ENTRY %08x!\n",task->entry);msleep(1000);
+									console_printf("TASK ENTRY %08x!\n",task->entry);msleep(1000);
+									task_create(task->name, task->priority, task->flags, task->entry, task->arg);
+								}
+								task++;
+							}
+							plugins[k].has_init = true;
+						}
+					}
+					plugins[k].need_init = 0;
+				}
+			}
+		}
+	}
+}
+
+static void plugins_init(void* unused) {
+	msleep(1000);
+	find_plugins();
+	msleep(500);
+	menu_add("Tweaks", plugin_menus, COUNT(plugin_menus));
+}
+
+INIT_FUNC( __FILE__, plugins_init);
+TASK_CREATE( "plugins_task", plugins_task, 0, 0x1f, 0x1000 );

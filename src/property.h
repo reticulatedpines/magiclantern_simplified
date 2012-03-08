@@ -402,27 +402,8 @@ prop_cleanup(
         unsigned        property
 );
 
-
-extern void
-prop_deliver(
-        uint32_t        prop,
-        void *          buf,
-        size_t          len,
-        uint32_t        mzb
-);
-
-
-/** Change a property.
- *
- */
-extern void
-prop_request_change(
-        unsigned        property,
-        void *          addr,
-        size_t          len
-);
-
-
+// prop
+OS_FUNCTION( 0x0600001,	void,	prop_request_change, unsigned property, const void* addr, size_t len );
 /** Get the current value of a property.
  *
  * int* data = 0;
@@ -431,14 +412,16 @@ prop_request_change(
  * 
  * Returns 0 on success.
  */
-extern int
-prop_get_value(
-        unsigned        property,
-        void **         addr,
-        size_t *        len
+OS_FUNCTION( 0x0600002,	int,	prop_get_value, unsigned property, void** addr, size_t* len );
+
+
+extern void
+prop_deliver(
+        uint32_t        prop,
+        void *          buf,
+        size_t          len,
+        uint32_t        mzb
 );
-
-
 
 struct prop_handler
 {

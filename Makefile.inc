@@ -33,7 +33,6 @@ VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_LUA		= y
 CONFIG_PTP = y
 CONFIG_PTP_CHDK = n
 CONFIG_PTP_ML = y
@@ -157,10 +156,6 @@ ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
 endif
 
-ifeq ($(CONFIG_LUA),y)
-CFLAGS += -I$(TOP_DIR)/plugins/lua
-endif
-
 NOT_USED_FLAGS=\
 	-march=armv5te \
 	-mthumb-interwork \
@@ -254,9 +249,6 @@ ML_OBJS-$(CONFIG_PYMITE) += \
 	pymite-nat.o \
 	pymite-img.o \
 	$(PYMITE_LIB) \
-
-ML_OBJS-$(CONFIG_LUA) += \
-	lua-handler.o \
 
 ML_OBJS-$(CONFIG_PLUGINS) += \
 	plugin.o \

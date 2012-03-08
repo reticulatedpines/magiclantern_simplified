@@ -191,7 +191,7 @@ static void LoadHeader(LoadState* S)
  lu_byte h[LUAC_HEADERSIZE];
  lu_byte s[LUAC_HEADERSIZE];
  luaU_header(h);
- memcpy(s,h,sizeof(char));			/* first char already read */
+ my_memcpy(s,h,sizeof(char));			/* first char already read */
  LoadBlock(S,s+sizeof(char),LUAC_HEADERSIZE-sizeof(char));
  if (memcmp(h,s,N0)==0) return;
  if (memcmp(h,s,N1)!=0) error(S,"not a");
@@ -230,7 +230,7 @@ Proto* luaU_undump (lua_State* L, ZIO* Z, Mbuffer* buff, const char* name)
 void luaU_header (lu_byte* h)
 {
  int x=1;
- memcpy(h,LUA_SIGNATURE,sizeof(LUA_SIGNATURE)-sizeof(char));
+ my_memcpy(h,LUA_SIGNATURE,sizeof(LUA_SIGNATURE)-sizeof(char));
  h+=sizeof(LUA_SIGNATURE)-sizeof(char);
  *h++=cast_byte(LUAU_VERSION);
  *h++=cast_byte(FORMAT);
@@ -240,5 +240,5 @@ void luaU_header (lu_byte* h)
  *h++=cast_byte(sizeof(Instruction));
  *h++=cast_byte(sizeof(lua_Number));
  *h++=cast_byte(((lua_Number)0.5)==0);		/* is lua_Number integral? */
- memcpy(h,LUAC_TAIL,sizeof(LUAC_TAIL)-sizeof(char));
+ my_memcpy(h,LUAC_TAIL,sizeof(LUAC_TAIL)-sizeof(char));
 }

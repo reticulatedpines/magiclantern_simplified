@@ -166,20 +166,14 @@ menu_select(
         struct menu_entry *     entry
 );
 
+OS_FUNCTION( 0x0700001,	void,	menu_add, const char * name, struct menu_entry * new_entry, int count );
+OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg);
 
-extern void
-menu_add(
-        const char *            name,
-        struct menu_entry *     new_entry,
-        int                     count
-);
 
 extern void
 menu_init( void );
 
 extern void menu_stop(void);
-
-void menu_draw_icon(int x, int y, int type, intptr_t arg);
 
 #define MNI_NONE -1
 #define MNI_OFF 0
@@ -199,7 +193,8 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg);
 #define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (expsim || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? "GlobalDraw is OFF" : "ExpSim is OFF" )
 #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option works only in LiveView" 
 
-#define MENU_EOL { .priv = (void *) -1 }
+#define MENU_EOL_PRIV (void*)-1
+#define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
 

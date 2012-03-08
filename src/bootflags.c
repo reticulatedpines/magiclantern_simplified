@@ -82,13 +82,13 @@ bootflag_display(
 // gcc mempcy has odd alignment issues?
 void
 my_memcpy(
-    uint8_t *       dest,
-    const uint8_t *     src,
+    void *       dest,
+    const void *     src,
     size_t          len
 )
 {
     while( len-- > 0 )
-        *dest++ = *src++;
+        *(uint8_t*)dest++ = *(const uint8_t*)src++;
 }
 
 extern struct cf_device * const cf_device[];

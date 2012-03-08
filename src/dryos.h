@@ -42,11 +42,11 @@
 #include "consts.h"
 #include "mvr.h"
 #include <stdarg.h>
+#include "plugin.h"
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
 
-extern size_t strlen(const char* str);
 extern void * memset ( void * ptr, int value, size_t num );
 extern float roundf(float x);
 extern float powf(float x, float y);
@@ -57,25 +57,6 @@ DryosPanic(
         uint32_t                arg0,
         uint32_t                arg1
 );
-
-
-/** Call registered functions by name. */
-extern void
-call(
-        const char *            name,
-        ...
-);
-
-
-
-
-/** Put the current task to sleep for msec miliseconds */
-extern void
-msleep(
-        int                     msec
-);
-
-
 
 /** Create a new user level task.
  *
@@ -160,7 +141,6 @@ extern void sound_dev_task(void);
 
 extern int open( const char * name, int flags, ... );
 extern int close( int fd );
-extern ssize_t read( int fd, void * buf, size_t len );
 
 /** We don't know anything about this one. */
 struct fio_dirent;
@@ -179,43 +159,10 @@ struct fio_file {
         uint32_t                d;
 };
 
-extern struct fio_dirent *
-FIO_FindFirstEx(
-        const char *            dirname,
-        struct fio_file *       file
-);
-
-
-/** Returns 0 on success */
-extern int
-FIO_FindNextEx(
-        struct fio_dirent *     dirent,
-        struct fio_file *       file
-);
-
-
 typedef struct _file * FILE;
-extern FILE *
-FIO_Open(
-        const char *            name,
-        unsigned                flags
-);
-
 extern FILE *
 FIO_OpenFile(
         const char *            name
-);
-
-extern void
-FIO_CloseFile(
-        FILE *                  file
-);
-
-extern ssize_t
-FIO_ReadFile(
-        FILE *                  file,
-        void *                  buf,
-        size_t                  len_in_bytes
 );
 
 extern ssize_t
@@ -227,29 +174,8 @@ FR_SyncReadFile(
         size_t                  mem_offset
 );
 
-/** Returns for 0 success */
-extern int
-FIO_GetFileSize(
-        const char *            filename,
-        unsigned *              size
-);
-
 
 #define INVALID_PTR             ((void *)0xFFFFFFFF)
-
-extern FILE *
-FIO_CreateFile(
-        const char *            name
-);
-
-
-extern int
-FIO_WriteFile(
-        FILE *                  file,
-        const void *            buf,
-        size_t                  len_in_bytes
-);
-
 
 extern void
 FIO_CloseSync(
@@ -411,32 +337,6 @@ extern void StartMnMainMyMenuApp( void );
 extern void StartFactoryMenuApp( void );
 extern void StartMnStudioSetupMenuApp( void );
 
-
-/** stdio / stdlib / string */
-extern char * strcpy( char *, const char * );
-extern char * strncpy( char *, const char *, size_t );
-extern void * memcpy( void *, const void *, size_t );
-extern ssize_t read( int fd, void *, size_t );
-extern int atoi( const char * );
-extern int streq( const char *, const char * );
-
-extern int
-vsnprintf(
-        char *                  buf,
-        size_t                  max_len,
-        const char *            fmt,
-        va_list                 ap
-);
-
-
-extern int __attribute__((format(printf,3,4)))
-snprintf(
-        char *                  buf,
-        size_t                  max_len,
-        const char *            fmt,
-        ...
-);
-
 extern int __attribute__((format(printf,2,3)))
 fprintf(
         FILE *                  file,
@@ -498,23 +398,8 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 
 extern void * malloc( size_t len );
 extern void free( void * buf );
-extern void * AllocateMemory( size_t len );
-extern void FreeMemory( void * buf );
 
 extern void * realloc( void * buf, size_t newlen );
-
-
-/** Allocate DMA memory for writing to the CF card */
-extern void *
-alloc_dma_memory(
-        size_t                  len
-);
-
-extern void
-free_dma_memory(
-        const void *            len
-);
-
 
 /** Set if the firmware was loaded via AUTOEXEC.BIN */
 extern int autoboot_loaded;
@@ -555,4 +440,64 @@ extern void SetCFnData(int group, int number, int value);
         *(int*)(x) \
 )
 
+// export functions to plugins
+// main DryOs commands
+OS_FUNCTION( 0x0000001,	void,	msleep, int amount );
+OS_FUNCTION( 0x0000002,	void,	call, const char* name, ... );
+
+// file IO
+OS_FUNCTION( 0x0100001,	FILE*,	FIO_Open, const char* filename, unsigned mode );
+OS_FUNCTION( 0x0100002,	int,	FIO_ReadFile, FILE* stream, void* ptr, size_t count );
+OS_FUNCTION( 0x0100003,	int,	FIO_WriteFile, FILE* stream, const void* ptr, size_t count );
+OS_FUNCTION( 0x0100004,	void,	FIO_CloseFile, FILE* stream );
+OS_FUNCTION( 0x0100005,	FILE*,	FIO_CreateFile, const char* name );
+/** Returns for 0 success */
+OS_FUNCTION( 0x0100006, int,	FIO_GetFileSize, const char * filename, unsigned * size);
+OS_FUNCTION( 0x0100007, struct fio_dirent *,	FIO_FindFirstEx, const char * dirname, struct fio_file * file);
+OS_FUNCTION( 0x0100008, int,	FIO_FindNextEx, struct fio_dirent * dirent, struct fio_file * file);
+OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent * dirent);
+
+// stdio
+OS_FUNCTION( 0x0200001,	size_t,	strlen, const char* str );
+OS_FUNCTION( 0x0200002,	int,	vsnprintf, char* str, size_t n, const char* fmt, va_list ap );
+OS_FUNCTION( 0x0200003,	int,	snprintf, char* str, size_t n, const char* fmt, ... );
+OS_FUNCTION( 0x0200004,	int,	strcmp, const char* s1, const char* s2 );
+OS_FUNCTION( 0x0200005,	long,	strtol, const char * str, char ** endptr, int base );
+OS_FUNCTION( 0x0200006,	char*,	strcpy, char* dst, const char * src );
+//OS_FUNCTION( 0x0200007,	char*,	strncpy, char *, const char *, size_t );
+OS_FUNCTION( 0x0200008,	void*,	memcpy, void *, const void *, size_t );
+//OS_FUNCTION( 0x0200009,	ssize_t,	read, int fd, void *, size_t );
+OS_FUNCTION( 0x020000A,	int,	atoi, const char * );
+OS_FUNCTION( 0x020000B,	int,	streq, const char *, const char * );
+OS_FUNCTION( 0x020000C,	void*,	AllocateMemory, size_t size );
+OS_FUNCTION( 0x020000D,	void,	FreeMemory, void* ptr );
+OS_FUNCTION( 0x020000E,	void,	my_memcpy, void* dst, const void* src, size_t size );
+/** Allocate DMA memory for writing to the CF card */
+OS_FUNCTION( 0x020000F, void *,	alloc_dma_memory, size_t len);
+OS_FUNCTION( 0x0200010, void,	free_dma_memory, const void * ptr);
+OS_FUNCTION( 0x0200011, char*,	strstr, const char* str1, const char* str2);
+OS_FUNCTION( 0x0200012, char*,	strpbrk, const char* str1, const char* str2);
+OS_FUNCTION( 0x0200013, char*,	strchr, const char* str, int c);
+OS_FUNCTION( 0x0200014, int,	sprintf, char * str, const char * fmt, ...);
+OS_FUNCTION( 0x0200015, int,	memcmp, const void* s1, const void* s2,size_t n);
+OS_FUNCTION( 0x0200016, void *,	memchr, const void *s, int c, size_t n);
+OS_FUNCTION( 0x0200017, size_t,	strspn, const char *s1, const char *s2);
+OS_FUNCTION( 0x0200018, int,	tolower, int c);
+OS_FUNCTION( 0x0200019, int,	toupper, int c);
+OS_FUNCTION( 0x020001A, int,	islower, int x);
+OS_FUNCTION( 0x020001B, int,	isupper, int x);
+OS_FUNCTION( 0x020001C, int,	isalpha, int x);
+OS_FUNCTION( 0x020001D, int,	isdigit, int x);
+OS_FUNCTION( 0x020001E, int,	isxdigit, int x);
+OS_FUNCTION( 0x020001F, int,	isalnum, int x);
+OS_FUNCTION( 0x0200020, int,	ispunct, int x);
+OS_FUNCTION( 0x0200021, int,	isgraph, int x);
+OS_FUNCTION( 0x0200022, int,	isspace, int x);
+OS_FUNCTION( 0x0200023, int,	iscntrl, int x);
+
+// others
+OS_FUNCTION( 0x0300001,	int,	abs, int number );
+
+// get OS constants
+OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 #endif

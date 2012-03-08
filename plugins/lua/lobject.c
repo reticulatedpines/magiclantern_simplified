@@ -252,13 +252,13 @@ const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
 #define PRE	"[string \""
 #define POS	"\"]"
 
-#define addstr(a,b,l)	( memcpy(a,b,(l) * sizeof(char)), a += (l) )
+#define addstr(a,b,l)	( my_memcpy(a,b,(l) * sizeof(char)), a += (l) )
 
 void luaO_chunkid (char *out, const char *source, size_t bufflen) {
   size_t l = strlen(source);
   if (*source == '=') {  /* 'literal' source */
     if (l <= bufflen)  /* small enough? */
-      memcpy(out, source + 1, l * sizeof(char));
+      my_memcpy(out, source + 1, l * sizeof(char));
     else {  /* truncate it */
       addstr(out, source + 1, bufflen - 1);
       *out = '\0';
@@ -266,11 +266,11 @@ void luaO_chunkid (char *out, const char *source, size_t bufflen) {
   }
   else if (*source == '@') {  /* file name */
     if (l <= bufflen)  /* small enough? */
-      memcpy(out, source + 1, l * sizeof(char));
+      my_memcpy(out, source + 1, l * sizeof(char));
     else {  /* add '...' before rest of name */
       addstr(out, RETS, LL(RETS));
       bufflen -= LL(RETS);
-      memcpy(out, source + 1 + l - bufflen, bufflen * sizeof(char));
+      my_memcpy(out, source + 1 + l - bufflen, bufflen * sizeof(char));
     }
   }
   else {  /* string; format as [string "source"] */
@@ -286,7 +286,7 @@ void luaO_chunkid (char *out, const char *source, size_t bufflen) {
       addstr(out, source, l);
       addstr(out, RETS, LL(RETS));
     }
-    memcpy(out, POS, (LL(POS) + 1) * sizeof(char));
+    my_memcpy(out, POS, (LL(POS) + 1) * sizeof(char));
   }
 }
 

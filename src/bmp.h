@@ -110,15 +110,8 @@ fontspec_height(
         return fontspec_font(fontspec)->height;
 }
 
-
-extern void
-bmp_printf(
-        unsigned                fontspec,
-        unsigned                x,
-        unsigned                y,
-        const char *            fmt,
-        ...
-) __attribute__((format(printf,4,5)));
+OS_FUNCTION( 0x0500001,	void,	bmp_printf, unsigned fontspec, unsigned x, unsigned y, const char* fmt, ... );
+OS_FUNCTION( 0x0500002, size_t,	read_file, const char * filename, void * buf, size_t size);
 
 extern void
 con_printf(

@@ -14,6 +14,8 @@ ML_SRC_DIR=$(PLUGIN_BASE_DIR)/../src
 
 PLUGIN_MAIN_OBJS = $(PLUGIN_BASE_DIR)/plugin.lds $(PLUGIN_BASE_DIR)/entry.o $(PLUGIN_BASE_DIR)/loader.o $(PLUGIN_OBJS)
 
+CONFIG_DEBUGMSG=0
+
 FLAGS=\
 	-Wp,-MMD,$(dir $@).$(notdir $@).d \
 	-Wp,-MT,$@ \
@@ -67,6 +69,9 @@ all: $(PLUGIN_NAME).bin
 comma:=,
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
+
+$(PLUGIN_BASE_DIR)/loader.c: $(PLUGIN_BASE_DIR)/../platform/all/autoexec.bin
+	$(call build,RB,$(PLUGIN_BASE_DIR)/loader_gen.rb)
 
 $(PLUGIN_BASE_DIR)/plugin.lds: $(PLUGIN_BASE_DIR)/plugin.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)

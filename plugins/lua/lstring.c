@@ -66,7 +66,7 @@ static TString *newlstr (lua_State *L, const char *str, size_t l,
   ts->tsv.len = l;
   ts->tsv.hash = h;
   ts->tsv.reserved = 0;
-  memcpy(ts+1, str, l*sizeof(char));
+  my_memcpy(ts+1, str, l*sizeof(char));
   ((char *)(ts+1))[l] = '\0';  /* ending 0 */
   tb->nuse++;
   return ts;

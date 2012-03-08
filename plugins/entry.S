@@ -33,13 +33,25 @@
 .globl _got_end
 .globl _pltgot_start
 .globl _pltgot_end
+.globl _data_rel_local_start
+.globl _data_rel_local_end
+.globl _data_rel_start
+.globl _data_rel_end
+.globl _data_rel_ro_local_start
+.globl _data_rel_ro_local_end
+.globl _data_rel_ro_start
+.globl _data_rel_ro_end
 _start:
   B	__init
   .word _functions_end
-  .word _data_rel_local_start 
+  .word _data_rel_local_start
   .word _data_rel_local_end
   .word _data_rel_start
   .word _data_rel_end
+  .word _data_rel_ro_local_start
+  .word _data_rel_ro_local_end
+  .word _data_rel_ro_start
+  .word _data_rel_ro_end
   .word _ipltgot_start
   .word _ipltgot_end
   .word _got_start

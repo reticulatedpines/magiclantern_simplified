@@ -442,7 +442,7 @@ LUALIB_API char *luaL_prepbuffsize (luaL_Buffer *B, size_t sz) {
     /* create larger buffer */
     newbuff = (char *)lua_newuserdata(L, newsize * sizeof(char));
     /* move content to new buffer */
-    memcpy(newbuff, B->b, B->n * sizeof(char));
+    my_memcpy(newbuff, B->b, B->n * sizeof(char));
     if (buffonstack(B))
       lua_remove(L, -2);  /* remove old buffer */
     B->b = newbuff;
@@ -454,7 +454,7 @@ LUALIB_API char *luaL_prepbuffsize (luaL_Buffer *B, size_t sz) {
 
 LUALIB_API void luaL_addlstring (luaL_Buffer *B, const char *s, size_t l) {
   char *b = luaL_prepbuffsize(B, l);
-  memcpy(b, s, l * sizeof(char));
+  my_memcpy(b, s, l * sizeof(char));
   luaL_addsize(B, l);
 }
 
@@ -927,7 +927,7 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
       return NULL;
     if ( ptr ) {
       msleep(10);
-      memcpy( res, ptr, osize );
+      my_memcpy( res, ptr, osize );
       msleep(10);
       FreeMemory( ptr );
     }

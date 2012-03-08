@@ -145,12 +145,7 @@ extern bool bv_set_rawshutter(unsigned shutter);
 extern bool bv_set_rawaperture(unsigned aperture);
 extern bool bv_set_rawiso(unsigned iso);
 
-extern int
-lens_take_picture(
-        int             wait, 
-        int allow_af
-);
-
+OS_FUNCTION( 0x0900001, int,	lens_take_picture, int wait, int allow_af );
 
 /** Will block if it is not safe to send the focus command */
 extern int

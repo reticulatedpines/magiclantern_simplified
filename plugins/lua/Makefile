@@ -32,6 +32,7 @@ PLUGIN_OBJS=lua-ml-compat.o \
 	lundump.o \
 	lvm.o \
 	lzio.o \
+	lua-handler.o \
   #	liolib.o \
   # lmathlib.o \
   # loslib.o \

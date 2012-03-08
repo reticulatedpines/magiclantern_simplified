@@ -59,7 +59,7 @@ console_print( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Debug Console     : %s",
+        "Debug Console : %s",
         *(unsigned*) priv ? "ON " : "OFF"
     );
 }
@@ -81,6 +81,7 @@ void console_clear()
     for (i = 0; i < BUFSIZE; i++)
         console_buffer[i] = ' ';
 }
+
 void console_init()
 {
     console_buffer = AllocateMemory(BUFSIZE+32);
@@ -88,7 +89,7 @@ void console_init()
 
     console_clear();
 
-    menu_add( "Tweaks", script_menu, COUNT(script_menu) );
+    menu_add( "Debug", script_menu, COUNT(script_menu) );
 
 	msleep(500);
 
@@ -196,8 +197,3 @@ console_task( void* unused )
 }
 
 TASK_CREATE( "console_task", console_task, 0, 0x1f, 0x1000 );
-
-
-//~ INIT_FUNC(__FILE__, console_init);
-
-

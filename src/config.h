@@ -106,4 +106,7 @@ __config_##VAR = \
 
 int read_line( char *buf, size_t size );
 
+OS_FUNCTION( 0x0A00001, struct config_var*,	get_config_vars_start );
+OS_FUNCTION( 0x0A00002, struct config_var*,	get_config_vars_end );
+
 #endif
