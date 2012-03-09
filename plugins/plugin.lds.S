@@ -9,7 +9,9 @@ SECTIONS
     *(.functions)
     _functions_end = .;
 
-		_text_start = .;
+		. = ALIGN(1024);
+
+    _text_start = .;
 		*(.text)
 		_text_end = .;
 		. = ALIGN(64);
@@ -23,24 +25,33 @@ SECTIONS
 		. = ALIGN(64);
 		*(.data)
 	  _data_end = .;
+  }
 
+  .data.rel.ro.local : {
     _data_rel_ro_local_start = .;
     *(.data.rel.ro.local)
     _data_rel_ro_local_end = .;
+  }
 
+  .data.rel.ro : {
     _data_rel_ro_start = .;
     *(.data.rel.ro)
     _data_rel_ro_end = .;
+  }
 
+  .data.rel.local : {
     _data_rel_local_start = .;
     *(.data.rel.local)
     _data_rel_local_end = .;
+  }
 
+  .data.rel : {
     _data_rel_start = .;
     *(.data.rel)
     _data_rel_end = .;
-
   }
+
+
 
   .igot.plt : {
     _ipltgot_start = .;

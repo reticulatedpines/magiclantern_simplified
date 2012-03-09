@@ -95,7 +95,7 @@ extern void unload_plugin(struct ext_plugin * plug);
 #endif
 
 struct plugin_descriptor {
-	struct task_create* tasks;	
+	struct task_create* tasks;
 };
 
 #endif

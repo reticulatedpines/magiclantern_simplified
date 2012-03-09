@@ -25,8 +25,6 @@
 #include "config.h"
 #include "lauxlib.h"
 
-static struct ext_plugin * luaplug = 0;
-
 static lua_State* L;
 static volatile int need_script_terminate = 0;
 static volatile int is_script_running = 0;
@@ -296,7 +294,7 @@ FUNC_DEF( dump ) {
 	int length = luaL_checknumber(L, 2);
 	const char* fname = luaL_checklstring(L,3,&l);
 	char fullfname[50];
-	snprintf(fullfname, sizeof(fullfname), "%s%s",get_card_drive, fname);
+	snprintf(fullfname, sizeof(fullfname), "%s%s",get_card_drive(), fname);
     FILE * f = FIO_CreateFile(fullfname);
 	if (f != (void*) -1) {
 		FIO_WriteFile(f, (void*)start, length);
@@ -419,7 +417,7 @@ static void find_scripts()
 {
     struct fio_file file;
 	char scriptdir[50];
-	snprintf(scriptdir, sizeof(scriptdir), "%s%s",get_card_drive, "SCRIPTS/");
+	snprintf(scriptdir, sizeof(scriptdir), "%s%s",get_card_drive(), "SCRIPTS/");
     struct fio_dirent * dirent = FIO_FindFirstEx( scriptdir, &file );
     if( IS_ERROR(dirent) )
     {
@@ -519,7 +517,7 @@ lua_script_display(void* priv, int x, int y, int selected) {
 		x, y, "Run lua script     : %s",
 		num_scripts>0 ? script_names[index] : "NO SCRIPTS");
 
-    menu_draw_icon(x, y, MNI_BOOL_GDR(is_script_running));
+    menu_draw_icon(x, y, MNI_BOOL(is_script_running), 0);
 }
 
 static void
@@ -535,6 +533,7 @@ lua_script_display_submenu( void * priv, int x, int y, int selected )
          index+1, num_scripts,
 		 num_scripts > 0 ? script_names[index] : "NO SCRIPTS"
     );
+    menu_draw_icon(x, y, MNI_ACTION, 0);
 }
 
 static void
@@ -587,6 +586,7 @@ static struct menu_entry lua_menus[] = {
 			MENU_EOL,
 		},
 		.help       = "Starts the LUA script in the background",
+		.icon_type  = IT_ACTION,
 	},
 };
 
@@ -598,7 +598,7 @@ static void lua_task( void* unused )
 	for (;;) {
 		msleep(100);
 		if (is_script_running) {
-			if (luaplug && script_source_str) {
+			if (script_source_str) {
 				int ret;
 				// lua_alloc uses msleep while reallocing.
 				// Setting lua_memsleep to different values
@@ -643,8 +643,7 @@ static void lua_task( void* unused )
 }
 
 void lua_init(void* unused) {
-	bmp_printf(FONT_LARGE,100,300,"XXXXXX %08x, %d",lua_menus, COUNT(lua_menus));
-	menu_add("Debug", lua_menus, COUNT(lua_menus) );
+	menu_add("Tweaks", lua_menus, COUNT(lua_menus) );
 }
 
 static struct plugin_descriptor lua_plug_desc = {
@@ -666,6 +665,8 @@ static struct plugin_descriptor lua_plug_desc = {
 
 EXTERN_FUNC( MODULE_FUNC_INIT, struct plugin_descriptor*, lua_plugin_init )
 {
+	// these will be improperly modified by the linker
+	lua_plug_desc.tasks[1].flags = 0x1000;
 	return &lua_plug_desc;
 }
 

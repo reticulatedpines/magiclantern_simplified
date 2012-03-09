@@ -11,6 +11,7 @@ LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 ML_SRC_DIR=$(PLUGIN_BASE_DIR)/../src
+SYMTBLGEN=$(PLUGIN_BASE_DIR)/symtblgen.rb
 
 PLUGIN_MAIN_OBJS = $(PLUGIN_BASE_DIR)/plugin.lds $(PLUGIN_BASE_DIR)/entry.o $(PLUGIN_BASE_DIR)/loader.o $(PLUGIN_OBJS)
 
@@ -34,6 +35,7 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
+	-r \
 	-mstructure-size-boundary=32 \
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
@@ -67,6 +69,10 @@ all: $(PLUGIN_NAME).bin
 %.o: %.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 comma:=,
+#%.bin.reloc: %
+#	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
+#%.bin: % %.bin.reloc
+#	$(call build,SYMTBLG,$(SYMTBLGEN) $^ $@)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
 
@@ -108,6 +114,7 @@ clean:
 		$(PLUGIN_DIR)/.*.d \
 		$(PLUGIN_DIR)/.*.a \
 		$(PLUGIN_NAME).bin \
+		$(PLUGIN_NAME).bin.reloc \
 		$(PLUGIN_NAME) \
 		$(PLUGIN_BASE_DIR)/plugin.lds)
 

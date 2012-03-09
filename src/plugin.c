@@ -43,6 +43,19 @@ static size_t plugins_count = 0;
 #define DeAllocator FreeMemory
 #endif
 
+int find_symbol(struct ext_plugin * plugin, unsigned int plsize, unsigned int symbol) {
+	unsigned int* symbols = (unsigned int*)((char*)plugin+plsize);
+	symbols--;
+	unsigned int symbol_tbl_size = *symbols;
+	// we could also do a binary search
+	while (symbol_tbl_size) {
+		symbols--;
+		symbol_tbl_size--;
+		if (*symbols==symbol) return 1;
+	}
+	return 0;
+}
+
 struct ext_plugin * load_plugin(const char* filename) {
 	unsigned size;
 	unsigned char* buf;
@@ -54,6 +67,7 @@ struct ext_plugin * load_plugin(const char* filename) {
 	unsigned int* got;
 	int (*__init)(struct os_command*,int num_cmds, int base_addr);
 	int numval;
+	unsigned int text_start;
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
         goto getfilesize_fail;
@@ -74,19 +88,28 @@ struct ext_plugin * load_plugin(const char* filename) {
 
 	plug = (struct ext_plugin*)retval;
 
+	text_start = plug->function_list_end;
+	if (text_start % 1024) {
+		text_start+=1024 - text_start%1024;
+	}
+
 	// poor man's linker: fix GOT and other reloc tables
 	for (i=0; i<5; i++) {
 		switch (i) {
-			case 0: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_local_end); break;
-			case 1: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_end); break;
-			case 2: got_start = (unsigned int*)(((char*)plug)+plug->got_start); got_end = (unsigned int*)(((char*)plug)+plug->got_end); break;
+			case 0: got_start = (unsigned int*)(((char*)plug)+plug->got_start); got_end = (unsigned int*)(((char*)plug)+plug->got_end); break;
+			case 1: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_local_end); break;
+			case 2: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_end); break;
 			case 3: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_ro_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_ro_local_end); break;
 			case 4: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_ro_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_ro_end); break;
 		}
 		got = got_start;
 		while (got < got_end) {
-			if (*got < size) { // if it's larger it's probably an absolute address
-				*got += (unsigned int)plug;
+			if (*got <= size) { // if it's larger it's probably an absolute address
+				if (*got >= text_start) { // if it is smaller it's probably a constant
+					if (i==0 || /*find_symbol(plug,size,*got)*/ 1) { // only relocate the others in the GOT, or if it's in the symbol table
+						*got += (unsigned int)plug;
+					}
+				}
 			}
 			got++;
 		}
@@ -118,8 +141,10 @@ void unload_plugin(struct ext_plugin * plug) {
 	if (plug) DeAllocator(plug);
 }
 
+const char* CDRV = CARD_DRIVE;
+
 const char* get_card_drive() {
-	return CARD_DRIVE;
+	return CDRV;
 }
 
 static struct menu_entry plugin_menus[] = {
@@ -216,17 +241,13 @@ static void plugins_task(void* unused) {
 						struct plugin_descriptor* pld = __init();
 						if (pld) {
 							struct task_create * task = pld->tasks;
-							bmp_printf(FONT_LARGE, 100,100,"INITTASK ENTRY %08x %08x!\n",task,task->name);msleep(1000);
-							console_printf("INITTASK ENTRY %08x %08x!\n",task,task->name);msleep(1000);
 							while (task && task->name) {
 								if (!task->priority) {
-									bmp_printf(FONT_LARGE, 100,100,"START ENTRY %08x!",task->entry);msleep(1000);
-									console_printf("START ENTRY %08x!",task->entry);msleep(1000);
+									console_printf("Starting init task: %08x, %s\n",(char*)task->entry-(char*)plugins[k].plug, task->name);
 									thunk entry = (thunk)task->entry;
 									entry();
 								} else {
-									bmp_printf(FONT_LARGE, 100,100,"TASK  ENTRY %08x!\n",task->entry);msleep(1000);
-									console_printf("TASK ENTRY %08x!\n",task->entry);msleep(1000);
+									console_printf("Starting task: %08x, PRIO: %d, FLAGS: %d, %s\n",(char*)task->entry-(char*)plugins[k].plug, task->priority, task->flags, task->name);
 									task_create(task->name, task->priority, task->flags, task->entry, task->arg);
 								}
 								task++;
