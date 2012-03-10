@@ -2620,6 +2620,8 @@ void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.CFG");
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "CROPMKS/", 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "SCRIPTS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "PLUGINS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "DOC/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
 }
@@ -2627,6 +2629,8 @@ void CopyMLFilesToRAM_BeforeFormat()
 void CopyMLFilesBack_AfterFormat()
 {
     FIO_CreateDirectory(CARD_DRIVE "CROPMKS");
+    FIO_CreateDirectory(CARD_DRIVE "SCRIPTS");
+    FIO_CreateDirectory(CARD_DRIVE "PLUGINS");
     FIO_CreateDirectory(CARD_DRIVE "DOC");
     int i;
     for (i = 0; i < tmp_file_index; i++)
