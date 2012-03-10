@@ -43,24 +43,11 @@ static size_t plugins_count = 0;
 #define DeAllocator FreeMemory
 #endif
 
-int find_symbol(struct ext_plugin * plugin, unsigned int plsize, unsigned int symbol) {
-	unsigned int* symbols = (unsigned int*)((char*)plugin+plsize);
-	symbols--;
-	unsigned int symbol_tbl_size = *symbols;
-	// we could also do a binary search
-	while (symbol_tbl_size) {
-		symbols--;
-		symbol_tbl_size--;
-		if (*symbols==symbol) return 1;
-	}
-	return 0;
-}
-
 struct ext_plugin * load_plugin(const char* filename) {
 	unsigned size;
 	unsigned char* buf;
 	unsigned char* retval;
-	int i;
+	unsigned int i;
 	struct ext_plugin * plug;
 	unsigned int* got_start;
 	unsigned int* got_end;
@@ -93,27 +80,43 @@ struct ext_plugin * load_plugin(const char* filename) {
 		text_start+=1024 - text_start%1024;
 	}
 
-	// poor man's linker: fix GOT and other reloc tables
-	for (i=0; i<5; i++) {
-		switch (i) {
-			case 0: got_start = (unsigned int*)(((char*)plug)+plug->got_start); got_end = (unsigned int*)(((char*)plug)+plug->got_end); break;
-			case 1: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_local_end); break;
-			case 2: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_end); break;
-			case 3: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_ro_local_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_ro_local_end); break;
-			case 4: got_start = (unsigned int*)(((char*)plug)+plug->data_rel_ro_start); got_end = (unsigned int*)(((char*)plug)+plug->data_rel_ro_end); break;
+	// poor man's linker step 1: fix GOT table
+	got_start = (unsigned int*)(((char*)plug)+plug->got_start);
+	got_end = (unsigned int*)(((char*)plug)+plug->got_end);
+	got = got_start;
+	while (got < got_end) {
+		if (*got <= size) { // if it's larger it's probably an absolute address
+			if (*got >= text_start) { // if it is smaller it's probably a constant, or NULL
+				*got += (unsigned int)plug;
+			}
 		}
-		got = got_start;
-		while (got < got_end) {
-			if (*got <= size) { // if it's larger it's probably an absolute address
-				if (*got >= text_start) { // if it is smaller it's probably a constant
-					if (i==0 || /*find_symbol(plug,size,*got)*/ 1) { // only relocate the others in the GOT, or if it's in the symbol table
-						*got += (unsigned int)plug;
+		got++;
+	}
+	// poor man's linker step 2: relocate symbols
+	// relocation information is put at the end of the bin file, by symtblgen.rb
+	got = (unsigned int*)((char*)plug+size);
+	got--;
+	// the last entry is the size of the relocation table
+	i = *got;
+	while (i) {
+		i--;
+		got--;
+		// do not relocate locations outside of the valid area:
+		if (*got <= size) { // if it's larger it's probably an absolute address
+			if (*got >= text_start) { // if it is smaller it's probably a constant, or NULL
+				got_start = (unsigned int*)(((char*)plug)+(*got));
+				// also do not relocate symbols outside of the valid area:
+				if (*got_start <= size) { // if it's larger it's probably an absolute address
+					if (*got_start >= text_start) { // if it is smaller it's probably a constant, or NULL
+						// all relocations produced by gcc are REL_ARM_ABS32 type
+						// (or use a GOT table, but  that was already covered)
+						*got_start += (unsigned int)plug;
 					}
 				}
 			}
-			got++;
 		}
 	}
+
 	msleep(100); // crashes without this. minimum wait amount not tested yet
 
 	// now it's fixed try to run it's init

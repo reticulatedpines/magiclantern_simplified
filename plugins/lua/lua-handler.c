@@ -665,8 +665,6 @@ static struct plugin_descriptor lua_plug_desc = {
 
 EXTERN_FUNC( MODULE_FUNC_INIT, struct plugin_descriptor*, lua_plugin_init )
 {
-	// these will be improperly modified by the linker
-	lua_plug_desc.tasks[1].flags = 0x1000;
 	return &lua_plug_desc;
 }
 

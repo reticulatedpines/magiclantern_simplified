@@ -69,12 +69,12 @@ all: $(PLUGIN_NAME).bin
 %.o: %.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 comma:=,
-#%.bin.reloc: %
-#	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
-#%.bin: % %.bin.reloc
-#	$(call build,SYMTBLG,$(SYMTBLGEN) $^ $@)
-%.bin: %
+%.bin.reloc: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
+%.bin: % %.bin.reloc
+	$(call build,SYMTBLG,$(SYMTBLGEN) $^ $@)
+#%.bin: %
+#	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
 
 $(PLUGIN_BASE_DIR)/loader.c: $(PLUGIN_BASE_DIR)/../platform/all/autoexec.bin
 	$(call build,RB,$(PLUGIN_BASE_DIR)/loader_gen.rb)
@@ -94,6 +94,8 @@ $(PLUGIN_NAME): $(PLUGIN_MAIN_OBJS)
 		-lm \
 		-lgcc \
     -Xlinker -Map=location.map \
+		-Xlinker --emit-relocs \
+		-Xlinker -S \
 	)
 
 build = \
