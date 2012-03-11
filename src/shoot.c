@@ -3910,8 +3910,8 @@ static int hdr_check_cancel(int init)
     if (shooting_mode != m || MENU_MODE || PLAY_MODE) 
     { 
         beep(); 
-        while (lens_info.job_state) msleep(100); 
-        NotifyBox(2000, "Bracketing stopped.");
+        lens_wait_readytotakepic(64);
+        NotifyBox(5000, "Bracketing stopped.");
         return 1; 
     }
     return 0;
@@ -4053,7 +4053,7 @@ void hdr_shot(int skip0, int wait)
     {
         //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
         int drive_mode_bak = 0;
-        while (lens_info.job_state > 0xA) msleep(20);
+        lens_wait_readytotakepic(64);
         if (drive_mode != DRIVE_SINGLE) 
         {
             drive_mode_bak = drive_mode;
@@ -4062,7 +4062,7 @@ void hdr_shot(int skip0, int wait)
 
         hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
 
-        while (lens_info.job_state >= 10) msleep(100);
+        lens_wait_readytotakepic(64);
         if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
     }
     else // regular pic (not HDR)
@@ -4251,6 +4251,14 @@ void wait_till_next_second()
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
 
+// for firing HDR shots - avoids random misfire due to low polling frequency
+int picture_was_taken_flag = 0;
+PROP_HANDLER(PROP_LAST_JOB_STATE)
+{
+    if (buf[0] > 10) picture_was_taken_flag = 1;
+    return prop_cleanup(token, property);
+}
+
 static void
 shoot_task( void* unused )
 {
@@ -4410,7 +4418,7 @@ shoot_task( void* unused )
             was_idle_not_pressed = is_idle_not_pressed;
         }
         
-        if (lens_info.job_state >= 10 && !recording ) // just took a picture, maybe we should take another one
+        if (picture_was_taken_flag && !recording ) // just took a picture, maybe we should take another one
         {
             if (is_focus_stack_enabled())
             {
@@ -4422,6 +4430,9 @@ shoot_task( void* unused )
                 lens_wait_readytotakepic(64);
                 hdr_shot(1,1); // skip the middle exposure, which was just taken
             }
+
+            lens_wait_readytotakepic(64); 
+            picture_was_taken_flag = 0;
         }
 
         #ifndef CONFIG_5D2
