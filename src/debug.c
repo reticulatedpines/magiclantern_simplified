@@ -309,13 +309,22 @@ void ChangeHDMIOutputSizeToFULLHD()
 void run_test()
 {
     msleep(2000);
-    detect_native_iso();
+    beep();
+    for (unsigned r = 0xC0F00000; r < 0xC0FFffff; r += 4)
+    {
+		bmp_printf(FONT_LARGE, 100, 100, "%x: %x ", r, MEMX(r));
+		if ((MEMX(r) & 0x58FF) == 0x5800)
+		{
+			NotifyBox(2000, "%x: %x ", r, MEMX(r)); msleep(2000);
+		}
+	}
+	NotifyBox(2000, "RDY");
 }
 
 void xx_test(void* priv, int delta)
 {
     gui_stop_menu();
-	struct ext_plugin * plug = load_plugin(CARD_DRIVE "plugins/testplug.bin");
+	/*struct ext_plugin * plug = load_plugin(CARD_DRIVE "plugins/testplug.bin");
 	if (plug) {
 		void (*smth)(void) = get_function(plug, 1);
 		if (smth) {
@@ -324,14 +333,14 @@ void xx_test(void* priv, int delta)
 		unload_plugin(plug);
 	} else {
 		bmp_printf(FONT_LARGE,100,100,"ERROR :(");msleep(1000);
-	}
+	}*/
     //~ #ifdef CONFIG_550D
     //~ SetGUIRequestMode(29); // Jackie Chan :)
     //~ #endif
     //~ *(uint8_t*)0x14c08 = 0x3;
     //~ gui_stop_menu();
     //~ set_display_gain(512);
-    //task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
+    task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
     //~ guiNotifyDialogRefresh();
 }
 
