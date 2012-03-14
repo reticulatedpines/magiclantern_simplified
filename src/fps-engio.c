@@ -122,8 +122,19 @@ int get_current_shutter_reciprocal_x1000()
     int timer = FRAME_SHUTTER_TIMER;
     int ntsc = is_current_mode_ntsc();
 
-    int shutter_x1000 = TIMER_TO_SHUTTER_x1000(timer);
-    return MAX(shutter_x1000, fps_get_current_x1000());
+    int shutter_r_x1000 = TIMER_TO_SHUTTER_x1000(timer);
+    
+    // shutter speed can't be slower than 1/fps
+    shutter_r_x1000 = MAX(shutter_r_x1000, fps_get_current_x1000());
+    
+    // FPS override will alter shutter speed
+    // FPS difference will be added as a constant term to shutter speed
+    int shutter_us = 1000000000 / shutter_r_x1000;
+    int fps_timer_delta_us = 1000000000 / fps_get_current_x1000() - 1000000 / video_mode_fps;
+    int ans = 1000000000 / (shutter_us + fps_timer_delta_us);
+    //~ NotifyBox(2000, "su=%d cf=%d \nvf=%d td=%d \nans=%d", shutter_us, fps_get_current_x1000(), video_mode_fps, fps_timer_delta_us, ans);
+    
+    return ans;
 #endif
 }
 
@@ -394,8 +405,8 @@ void fps_mvr_log(FILE* mvr_logfile)
 }
 
 // FPS has a side effect: to force shutter speed at 1/fps. Let the bottom bar show this.
-int is_hard_shutter_override_active() { return fps_override; }
-int get_shutter_override_degrees_x10() { return fps_override ? 3600 : 0; }
+//~ int is_hard_shutter_override_active() { return fps_override; }
+//~ int get_shutter_override_degrees_x10() { return fps_override ? 3600 : 0; }
 
 
 void

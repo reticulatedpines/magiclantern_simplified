@@ -443,7 +443,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     y_origin, 
                     "o");
     }
-    else if (is_movie_mode() && is_hard_shutter_override_active())
+ /*   else if (is_movie_mode() && is_hard_shutter_override_active())
     {
         int d = get_shutter_override_degrees_x10();
         int q = d/10;
@@ -461,7 +461,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
                     y_origin, 
                     "o");
-    }
+    }*/
     else
     {
         bmp_printf( text_font, 
