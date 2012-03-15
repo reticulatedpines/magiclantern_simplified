@@ -306,19 +306,20 @@ void ChangeHDMIOutputSizeToFULLHD()
 } 
 
 
+static int compute_signature(int* start, int num)
+{
+	int c = 0;
+	int* p;
+	for (p = start; p < start + num; p++)
+	{
+		c += *p;
+	}
+	return c;
+}
+
 void run_test()
 {
-    msleep(2000);
-    beep();
-    for (unsigned r = 0xC0F00000; r < 0xC0FFffff; r += 4)
-    {
-		bmp_printf(FONT_LARGE, 100, 100, "%x: %x ", r, MEMX(r));
-		if ((MEMX(r) & 0x58FF) == 0x5800)
-		{
-			NotifyBox(2000, "%x: %x ", r, MEMX(r)); msleep(2000);
-		}
-	}
-	NotifyBox(2000, "RDY");
+	NotifyBox(5000, "%x %x ", compute_signature(0xFF810000, 0x10000), compute_signature(0xFF010000, 0x10000));
 }
 
 void xx_test(void* priv, int delta)

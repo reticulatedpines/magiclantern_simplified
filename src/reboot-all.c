@@ -43,6 +43,7 @@
 #define SIG_50D_108  0xb2311152 // from FF010000
 #define SIG_500D_111 0x44f49aef // from FF010000
 #define SIG_5D2_211  0xaf79902b // from FF010000
+#define SIG_5D2_212  0xae78b938 // from FF010000
 
 asm(
 ".text\n"

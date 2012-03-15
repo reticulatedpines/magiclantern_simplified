@@ -107,7 +107,7 @@ NSTUB(0xFF891718, gui_change_mode)
 NSTUB(0xFF8922C0, gui_change_shoot_type_post)
 NSTUB(0xFF82434C, gui_init_end)
 NSTUB(0xFF89284C, gui_init_event)
-NSTUB(0xFF891BBC, gui_local_post) ?
+NSTUB(0xFF891BBC, gui_local_post)
 NSTUB(    0x1C4C, gui_main_struct)
 NSTUB(0xFF82399C, gui_main_task)
 NSTUB(0xFF8901A4, gui_massive_event_loop)

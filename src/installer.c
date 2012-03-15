@@ -191,6 +191,8 @@ void fake_simple_button(int bgmt_code)
     GUI_Control(bgmt_code, 0, 0, 0);
 }
 
+PROP_INT(PROP_TFT_STATUS, tft_status);
+
 void install_task()
 {
     
@@ -651,5 +653,8 @@ int ext_monitor_hdmi = 0;
 int ext_monitor_rca = 0;
 int hdmi_code = 0;
 int lv = 0;
-int lv_paused = 0;
 void bvram_mirror_init(){};
+void bmp_mute_flag_reset(){};
+struct font font_small_shadow;
+struct font font_med_shadow;
+struct font font_large_shadow;
