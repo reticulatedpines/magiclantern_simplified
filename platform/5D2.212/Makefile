@@ -4,9 +4,9 @@ TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=211
+FW_VERSION=212
 MODEL=5D2
-UPDATE_NAME=5D2_211.fir
+UPDATE_NAME=5D2_212.fir
 ML_VERSION=unified1 
 
 #used in CFLAGS
