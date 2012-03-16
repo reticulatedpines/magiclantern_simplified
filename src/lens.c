@@ -565,6 +565,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         else
             bmp_printf( text_font, x_origin + 360, y_origin,
                 "%s ",
+                (uniwb_is_active()      ? "UniWB " :
                 (lens_info.wb_mode == 0 ? "AutoWB" : 
                 (lens_info.wb_mode == 1 ? " Sunny" :
                 (lens_info.wb_mode == 2 ? "Cloudy" : 
@@ -573,7 +574,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 (lens_info.wb_mode == 5 ? " Flash" : 
                 (lens_info.wb_mode == 6 ? "Custom" : 
                 (lens_info.wb_mode == 8 ? " Shade" :
-                 "unk"))))))))
+                 "unk")))))))))
             );
         
         int gm = lens_info.wbs_gm;
