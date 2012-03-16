@@ -7,11 +7,11 @@
 #endif
 
 #ifdef CONFIG_600D
-#include "../platform/600D.101/consts.h"
+#include "../platform/600D.102/consts.h"
 #endif
 
 #ifdef CONFIG_50D
-#include "../platform/50D.108/consts.h"
+#include "../platform/50D.109/consts.h"
 #endif
 
 #ifdef CONFIG_500D
@@ -23,6 +23,6 @@
 #endif
 
 #ifdef CONFIG_5D2
-#include "../platform/5D2.211/consts.h"
+#include "../platform/5D2.212/consts.h"
 #endif
 

@@ -44,10 +44,6 @@ CONFIG_DEBUGMSG = 0
 #UMOUNT=hdiutil unmount
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
-#Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DIGITAL/
-UMOUNT=umount
-
 UNAME:=$(shell uname)
 
 ifeq ($(UNAME), Darwin)
