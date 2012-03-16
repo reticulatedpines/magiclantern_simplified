@@ -41,6 +41,11 @@
 #define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 #endif
 
+#ifdef CONFIG_1100D
+#define VIDEO_PARAMETERS_SRC_3 0x70C0C
+#define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+#endif
+
 
 CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);

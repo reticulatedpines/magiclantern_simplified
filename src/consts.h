@@ -19,7 +19,7 @@
 #endif
 
 #ifdef CONFIG_1100D
-#include "../platform/1100D.104/consts.h"
+#include "../platform/1100D.105/consts.h"
 #endif
 
 #ifdef CONFIG_5D2

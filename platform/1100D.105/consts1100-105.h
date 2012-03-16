@@ -1,4 +1,4 @@
-// constants for 1100D 1.0.4
+// constants for 1100D 1.0.5
 #include "consts-600d.101.h"
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
@@ -9,6 +9,8 @@
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0110C0
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
+
+// not updated for 1.0.5 after this line !!!
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x16514 // in AJ_armlib_setup_related3
 
@@ -190,6 +192,3 @@
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "DISP"
-
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x2428)
-#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
