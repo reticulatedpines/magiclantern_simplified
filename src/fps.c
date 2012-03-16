@@ -82,10 +82,14 @@ static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
 
 static int fps_override = 0;
-CONFIG_INT("fps.override", fps_override_value, 10);
-CONFIG_INT("shutter.override", shutter_override_enabled, 0);
-CONFIG_INT("shutter.override.mode", shutter_override_mode, 0);
+static CONFIG_INT("fps.override", fps_override_value, 10);
+static CONFIG_INT("shutter.override", shutter_override_enabled, 0);
+static CONFIG_INT("shutter.override.mode", shutter_override_mode, 0);
 
+int is_shutter_override_enabled_movie()
+{
+    return shutter_override_enabled && is_movie_mode();
+}
 
 //--------------------------------------------------------
 // sound recording has to be disabled
@@ -250,7 +254,7 @@ static void cartridge_AfStopPath(void *this)
 static void update_hard_expo_override()
 {
     extern int hdrv_enabled;
-    if (shutter_override_enabled || hdrv_enabled)
+    if (is_shutter_override_enabled_movie() || hdrv_enabled)
     {
         // cartridge call table is sometimes overriden by Canon firmware
         // so this function polls the status periodically (and updates it if needed)
@@ -287,13 +291,13 @@ int is_hard_exposure_override_active()
 
 int is_hard_shutter_override_active()
 {
-    return shutter_override_enabled && is_hard_exposure_override_active();
+    return is_shutter_override_enabled_movie() && is_hard_exposure_override_active();
 }
 
 int get_shutter_override_degrees_x10()
 {
     // 0, 360, 270, 180, 90, 60, 30, 15...
-    if (!shutter_override_enabled) return 0;
+    if (!is_shutter_override_enabled_movie()) return 0;
     if (shutter_override_mode < 4) return (4-shutter_override_mode) * 900;
     return 600 >> (shutter_override_mode - 4);
 }
@@ -568,7 +572,7 @@ void fps_mvr_log(FILE* mvr_logfile)
 {
     int f = fps_get_current_x1000();
     my_fprintf(mvr_logfile, "FPS override   : %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
-    if (shutter_override_enabled)
+    if (is_shutter_override_enabled_movie())
     {
         int d = get_shutter_override_degrees_x10();
         my_fprintf(mvr_logfile, "Tv override    : %d.%d deg\n", d/10, d%10);

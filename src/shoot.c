@@ -1442,11 +1442,13 @@ static void iso_auto_run()
 
 extern void shutter_override_print( void * priv, int x, int y, int selected );
 
-extern int shutter_override_enabled;
+static int shutter_override_enabled;
 
 static void 
 shutter_display( void * priv, int x, int y, int selected )
 {
+    shutter_override_enabled = is_shutter_override_enabled_movie();
+    
     // if shutter override mode is enabled, print that one
     if (shutter_override_enabled)
     {
