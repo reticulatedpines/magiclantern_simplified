@@ -1837,7 +1837,11 @@ int bv_auto_should_enable()
         return 0; // temporarily disable BV mode to make sure display gain will work
     
     // cameras without manual exposure control
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
+    #if defined(CONFIG_50D)
+    if (is_movie_mode() && shooting_mode == SHOOTMODE_M) return 1;
+    else return 0;
+    #endif
+    #if defined(CONFIG_500D) || defined(CONFIG_1100D)
     if (is_movie_mode()) return 1;
     else return 0;
     #endif
