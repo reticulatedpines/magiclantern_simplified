@@ -848,7 +848,7 @@ menu_display(
             if (menu->children && !show_only_selected)
                 submenu_icon(x, y);
             
-            if (menu->selected && menu->help && !show_only_selected)
+            if (menu->selected && menu->help)
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
@@ -883,6 +883,61 @@ menu_display(
 
                 if (submenu_mode || show_only_selected)
                     leftright_sign(x0+690, y0+400);
+            }
+
+            if (menu->selected)
+            {
+                char msg[100] = "";
+
+                // this should follow exactly the same logic as in menu_entry_select
+                // todo: remove duplicate code
+                if (submenu_mode == 2)
+                {
+                    STR_APPEND(msg, "SET: toggle edit mode   ");
+                }
+                else if (show_only_selected)
+                {
+                    STR_APPEND(msg, "SET: toggle LiveView    ");
+                }
+                else if (menu->edit_mode == EM_FEW_VALUES) // SET increments
+                {
+                    STR_APPEND(msg, "SET: change value       ");
+                }
+                else if (menu->edit_mode == EM_MANY_VALUES)
+                {
+                    STR_APPEND(msg, "SET: toggle edit mode   ");
+                }
+                else if (menu->edit_mode == EM_MANY_VALUES_LV)
+                {
+                    if (lv)
+                    {
+                        STR_APPEND(msg, "SET: toggle LiveView    ");
+                    }
+                    else if (submenu_mode != 1)
+                    {
+                        STR_APPEND(msg, "SET: toggle edit mode   ");
+                    }
+                    else // increment
+                    {
+                        STR_APPEND(msg, "SET: change value       ");
+                    }
+                }
+
+
+                if (submenu_mode || show_only_selected)
+                {
+                    STR_APPEND(msg, "L/R/wheel: change value");
+                }
+                else if (menu->children && !submenu_mode && !show_only_selected)
+                {
+                    STR_APPEND(msg, "%s: Submenu    ", Q_BTN_NAME);
+                }
+                
+                bmp_printf(
+                    FONT(FONT_MED, 60, COLOR_BLACK), 
+                    x0 + 10, y0 + 425, 
+                    msg
+                );
             }
 
             y += font_large.height-1;
@@ -1061,7 +1116,12 @@ menu_entry_select(
         else if (entry->edit_mode == EM_MANY_VALUES_LV)
         {
             if (lv) show_only_selected = !show_only_selected;
-            else submenu_mode = (!submenu_mode)*2;
+            else if (submenu_mode != 1) submenu_mode = (!submenu_mode)*2;
+            else // increment
+            {
+                if( entry->select ) entry->select( entry->priv, 1);
+                else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+            }
         }
     }
     else // increment
@@ -1229,8 +1289,10 @@ menu_redraw()
                 {
                     bmp_fill( 0, 0, 0, 960, 540 );
                     if (zebra_should_run())
+                    {
                         if (prev_so) copy_zebras_from_mirror();
                         else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
+                    }
                     //~ draw_histogram_and_waveform(); // too slow
                 }
                 else

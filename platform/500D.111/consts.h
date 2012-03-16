@@ -242,5 +242,6 @@
 #define MIN_MSLEEP 11
 
 #define INFO_BTN_NAME "DISP"
+#define Q_BTN_NAME "LV button"
 
 #define DISPLAY_IS_ON MEM(0x2600) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
