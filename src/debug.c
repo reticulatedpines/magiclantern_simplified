@@ -731,7 +731,7 @@ static void stress_test_random_action()
         switch (rand() % 39)
         {
             case 0:
-                fake_simple_button(BGMT_LV);
+                //~ fake_simple_button(BGMT_LV);
                 return;
             case 1:
                 stress_test_toggle_menu_item("LiveV", "Global Draw");
@@ -836,13 +836,13 @@ static void stress_test_random_action()
                 stress_test_toggle_menu_item("Tweaks", "LiveView Zoom");
                 return;
             case 35:
-                fake_simple_button(BGMT_PLAY);
+                //~ fake_simple_button(BGMT_PLAY);
                 return;
             case 36:
-                fake_simple_button(BGMT_MENU);
+                //~ fake_simple_button(BGMT_MENU);
                 return;
             case 37:
-                fake_simple_button(BGMT_INFO);
+                //~ fake_simple_button(BGMT_INFO);
                 return;
             case 38:
                 stress_test_toggle_menu_item("LiveV", "Vectorscope");
@@ -882,6 +882,38 @@ static void stress_test_random_task(void* unused)
     }
 }
 
+static void stress_test_random_action_simple()
+{
+    {
+        switch (rand() % 4)
+        {
+            case 0:
+                stress_test_toggle_menu_item("LiveV", "Global Draw");
+                return;
+            case 1:
+                fake_simple_button(BGMT_PLAY);
+                return;
+            case 2:
+                fake_simple_button(BGMT_MENU);
+                return;
+            case 3:
+                fake_simple_button(BGMT_INFO);
+                return;
+        }
+    }
+}
+
+static void stress_test_random_small_task(void* unused)
+{
+    config_autosave = 0; // this will make many changes in menu, don't save them
+    while(1)
+    {
+        stress_test_random_action_simple();
+        //~ stress_test_toggle_menu_item("LiveV", "Zebras");
+        msleep(rand() % 30);
+    }
+}
+
 void stress_test_random()
 {
     gui_stop_menu();
@@ -892,6 +924,12 @@ void stress_test()
 {
     gui_stop_menu();
     task_create("stress_test", 0x1c, 0, stress_test_task, 0);
+}
+
+void stress_test_random_small()
+{
+    gui_stop_menu();
+    task_create("stress_test", 0x1c, 0, stress_test_random_small_task, 0);
 }
 
 void ui_lock(int x)
@@ -1429,6 +1467,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
     dump_seg(&(FONT_SMALL.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
     
+    //~ stress_test_random_small(); return;
     int k;
     for (k = 0; ; k++)
     {
@@ -1968,6 +2007,11 @@ struct menu_entry debug_menus[] = {
                 .name = "Random tests (infinite loop)",
                 .select = stress_test_random,
                 .help = "A thorough test which randomly enables functions from menu. "
+            },
+            {
+                .name = "Quick random test",
+                .select = stress_test_random_small,
+                .help = "For developers only."
             },
             MENU_EOL,
         }
@@ -2739,14 +2783,14 @@ void spy_event(struct event * event)
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
             event->arg);
-        console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\n", 
+       /* console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\n", 
             kev,
             event->type, 
             event->param, 
             event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
-            event->arg);
+            event->arg);*/
     }
 }
 
