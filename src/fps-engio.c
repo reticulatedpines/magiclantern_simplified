@@ -51,44 +51,52 @@ static int is_current_mode_ntsc()
 
 static int fps_get_current_x1000();
 
-#ifdef CONFIG_500D
-    #define TG_FREQ_PAL  24660000
-    #define TG_FREQ_NTSC_FPS 23160000
-    #define FPS_TIMER_OFFSET 0
-#else
+#ifdef CONFIG_5D2
+    #define TG_FREQ_BASE 24000000
     #define FPS_TIMER_OFFSET (-1)
-    #ifdef CONFIG_5D2
-        #define TG_FREQ_PAL  40000000
-        #define TG_FREQ_NTSC_FPS 41958000
-        #define TG_FREQ_NTSC_SHUTTER 39300000
+    #define TG_FREQ_NTSC_SHUTTER 39300000
+#else
+    #ifdef CONFIG_500D
+        #define TG_FREQ_BASE 31960800 // not 100% sure
+        #define FPS_TIMER_OFFSET 0
     #else
-        #ifdef CONFIG_50D
-            #define TG_FREQ_PAL  41380585
-            #define TG_FREQ_NTSC_FPS 41380585
-        #else
-            #define TG_FREQ_PAL  50000000            // these values are OK on 550D
-            #define TG_FREQ_NTSC_FPS 52747200
-            #define TG_FREQ_NTSC_SHUTTER 49440000
-            #define TG_FREQ_CROP_PAL 64000000
-            #define TG_FREQ_CROP_NTSC 69230700
-        #endif
+        // 550D, 600D, 60D, 50D 
+        #define TG_FREQ_BASE 28800000
+        #define FPS_TIMER_OFFSET (-1)
+        #define TG_FREQ_NTSC_SHUTTER 49440000
     #endif
 #endif
 
-#ifdef TG_FREQ_CROP_PAL
-#define TG_FREQ_FPS (video_mode_crop ? (ntsc ? TG_FREQ_CROP_NTSC : TG_FREQ_CROP_PAL) : (ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL))
-#else
-#define TG_FREQ_FPS (ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL)
-#endif
+static unsigned get_current_tg_freq()
+{
+    int timer = (MEMX(0xC0F06008) & 0xFFFF) + 1;
+    unsigned f = (TG_FREQ_BASE / timer) * 1000 + mod(TG_FREQ_BASE, timer) * 1000 / timer;
+    //~ NotifyBox(2000, "%d ", f);
+    return f;
+}
 
-#define TG_FREQ_SHUTTER (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)
+#define TG_FREQ_FPS get_current_tg_freq()
+#define TG_FREQ_SHUTTER (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_FPS)
 
 #ifdef CONFIG_550D
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x64)
 #endif
 
-#define MIN_FPS_MENU (TG_FREQ_PAL / 16384 / 1000)
+
+#ifdef CONFIG_600D
+#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
+#endif
+
+#ifdef CONFIG_60D
+#define VIDEO_PARAMETERS_SRC_3 0x4FDA8
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
+#endif
+
+
+//~ #define MIN_FPS_MENU (TG_FREQ_PAL / 16384 / 1000)
+#define MIN_FPS_MENU 1
 
 /*
 #ifdef CONFIG_500D
@@ -429,4 +437,16 @@ shutter_override_print(
 
 void shutter_override_toggle(void* priv, int delta) { }
 
+void fps_set_main_timer(int t)
+{
+    t = t & 0xFFFF;
+    //~ NotifyBox(1000, "%d ", t);
+    t--;
+    int t2 = t | (t << 16);
+    EngDrvOut(0xC0F06008, t2);
+    EngDrvOut(0xC0F0600c, t2);
+    EngDrvOut(0xC0F06010, t);
+    EngDrvOut(0xC0F06001, 1);
+}
 
+int is_shutter_override_enabled_movie() { return 0; }
