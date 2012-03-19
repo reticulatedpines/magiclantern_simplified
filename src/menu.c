@@ -881,12 +881,6 @@ menu_display(
             {
                 selection_bar(x, y);
 
-                if (submenu_mode || show_only_selected)
-                    leftright_sign(x0+690, y0+400);
-            }
-
-            if (menu->selected)
-            {
                 char msg[100] = "";
 
                 // this should follow exactly the same logic as in menu_entry_select
@@ -926,11 +920,19 @@ menu_display(
 
                 if (submenu_mode || show_only_selected)
                 {
-                    STR_APPEND(msg, "L/R/wheel: change value");
+                    if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
+                    {
+                        STR_APPEND(msg, "L/R/Wheel: change value");
+                    }
+                    else
+                    {
+                        STR_APPEND(msg, "Left/Right: change value");
+                    }
+                    leftright_sign(x0+690, y0+400);
                 }
                 else if (menu->children && !submenu_mode && !show_only_selected)
                 {
-                    STR_APPEND(msg, "%s: Submenu    ", Q_BTN_NAME);
+                    STR_APPEND(msg, "%s: submenu    ", Q_BTN_NAME);
                 }
                 
                 bmp_printf(
