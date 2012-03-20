@@ -137,7 +137,7 @@ _draw_char(
         struct font * shadow =
             font == &font_large ? &font_large_shadow :
             font == &font_med ? &font_med_shadow :
-            font == &font_small ? &font_med_shadow : 0;
+            font == &font_small ? &font_small_shadow : 0;
 
         fg_color >>= 24;
         bg_color >>= 24;
