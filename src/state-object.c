@@ -71,6 +71,14 @@ static void vsync_func() // called once per frame.. in theory :)
 int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
+    #ifdef MOVREC_STATE
+    if (self == MOVREC_STATE && recording) // mvrEncodeDone
+    {
+        if (self->current_state == 4 && input == 3) // mvrExpStarted
+            vsync_func();
+    }
+    #endif
+
     int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
@@ -78,7 +86,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #ifdef MOVREC_STATE
     if (self == MOVREC_STATE && recording) // mvrEncodeDone
     {
-        vsync_func();
+        //~ bmp_printf(FONT_LARGE, 50, 50, "%d--(%d)-->%d %d ", old_state, input, new_state, MVR_FRAME_NUMBER);
         return ans;
     }
     #endif
