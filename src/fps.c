@@ -209,7 +209,7 @@ static int get_fps_video_mode()
     return mode;
 }
 
-static int fps_get_current_x1000()
+int fps_get_current_x1000()
 {
     int mode = get_fps_video_mode();
     int zoom = lv_dispsize > 1 ? 1 : 0;

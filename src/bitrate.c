@@ -238,7 +238,7 @@ void fps_show()
     int screen_layout = get_screen_layout();
     if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
     
-    bmp_printf(
+/*    bmp_printf(
         SHADOW_FONT(FONT_MED),
         time_indic_x + 160 - (video_mode_resolution == 0 ? 7 : 6) * font_med.width,
         time_indic_y + font_med.height - 3,
@@ -247,6 +247,15 @@ void fps_show()
         video_mode_crop ? "+" : "p",
         video_mode_resolution == 0 ? "1080" :
         video_mode_resolution == 1 ? "720" : "VGA"
+    );*/
+
+    int f = fps_get_current_x1000();
+    bmp_printf(
+        SHADOW_FONT(FONT_MED),
+        time_indic_x + 160 - 6 * font_med.width,
+        time_indic_y + font_med.height - 3,
+        "%2d.%03d", 
+        f / 1000, f % 1000
     );
 }
 

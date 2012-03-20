@@ -49,7 +49,7 @@ static int is_current_mode_ntsc()
     return 0;
 }
 
-static int fps_get_current_x1000();
+int fps_get_current_x1000();
 
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
@@ -70,8 +70,8 @@ static int fps_get_current_x1000();
 static unsigned get_current_tg_freq()
 {
     int timer = (MEMX(0xC0F06008) & 0xFFFF) + 1;
+    if (timer == 1) return 0;
     unsigned f = (TG_FREQ_BASE / timer) * 1000 + mod(TG_FREQ_BASE, timer) * 1000 / timer;
-    //~ NotifyBox(2000, "%d ", f);
     return f;
 }
 
@@ -267,11 +267,9 @@ static void fps_setup(int fps)
     update_sound_recording();
 }
 
-static int fps_get_current_x1000()
+int fps_get_current_x1000()
 {
-    if (!fps_override) return video_mode_fps * 1000;
-    int fps_timer = frame_rate[1] - FPS_TIMER_OFFSET;
-    int ntsc = is_current_mode_ntsc();
+    int fps_timer = MEMX(0xC0F06014) - FPS_TIMER_OFFSET;
     int fps_x1000 = TIMER_TO_FPS_x1000(fps_timer);
     return fps_x1000;
 }
@@ -390,7 +388,7 @@ static void fps_task()
             if (lv) fps_setup(fps_override_value);
         }
         #else
-        if (fps_override && lv && !gui_menu_shown()) // on other cameras, it's OK to refresh every now and then (just to make sure it's active after you change video mode)
+        if (fps_override && lv) // on other cameras, it's OK to refresh every now and then (just to make sure it's active after you change video mode)
         {
             msleep(500);
             if (lv) fps_setup(fps_override_value);
