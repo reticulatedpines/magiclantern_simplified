@@ -1152,6 +1152,7 @@ static struct menu_entry mov_menus[] = {
         .display = zebra_nrec_display,
         .help = "You can disable zebra during recording."
     },*/
+    #ifndef CONFIG_50D
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
@@ -1159,6 +1160,7 @@ static struct menu_entry mov_menus[] = {
         .select     = menu_ternary_toggle,
         .help = "Force LiveView in movie mode, even with an unchipped lens."
     },
+    #endif
 #if defined(CONFIG_50D) //|| defined(CONFIG_500D)
     {
         .name       = "Exposure Lock",
