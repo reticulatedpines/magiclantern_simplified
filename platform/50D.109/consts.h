@@ -62,13 +62,20 @@
 #define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task
 
 // button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x1a
 #define BGMT_PRESS_UP 0x16
+#define BGMT_PRESS_UP_RIGHT 0x17
+#define BGMT_PRESS_UP_LEFT 0x18
 #define BGMT_PRESS_RIGHT 0x19
+#define BGMT_PRESS_LEFT 0x1a
+#define BGMT_PRESS_DOWN_RIGHT 0x1B
+#define BGMT_PRESS_DOWN_LEFT 0x1C
 #define BGMT_PRESS_DOWN 0x1d
-#define BGMT_PRESS_SET 0x4
+
 #define BGMT_UNPRESS_UDLR 0x15
-#define BGMT_UNPRESS_SET 0x15
+
+#define BGMT_PRESS_SET 4
+#define BGMT_UNPRESS_SET 0x3d
+
 #define BGMT_TRASH 9
 #define BGMT_MENU 5
 #define BGMT_INFO 6
