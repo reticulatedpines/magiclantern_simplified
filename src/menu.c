@@ -1051,7 +1051,7 @@ submenu_display(struct menu * submenu)
     int h = (count + 4) * font_large.height;
 
     int bx = 50;
-    int by = (480 - h)/2 - 20;
+    int by = (480 - h)/2 - 30;
     if (!show_only_selected)
     {
         bmp_fill(40, x0 + bx, y0 + by, 720-2*bx+4, 50);
@@ -1719,6 +1719,20 @@ open_canon_menu()
     //~ }
 }
 
+void piggyback_canon_menu()
+{
+    #ifdef GUIMODE_ML_MENU
+    if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
+    if (GUIMODE_ML_MENU == 2) msleep(100);
+    #else
+    if (!lv && !MENU_MODE && !is_movie_mode())
+    {
+        if (!PLAY_MODE) open_canon_menu();
+    }
+    #endif
+    msleep(100);
+}
+
 void menu_close_post_delete_dialog_box()
 {
     canon_gui_enable_front_buffer(0);
@@ -1797,9 +1811,26 @@ void menu_inject_redraw_event()
     }
 }
 
+/*
+void show_welcome_screen()
+{
+    if (menu_first_by_icon == ICON_i) // true on first startup
+    {
+        piggyback_canon_menu();
+        canon_gui_disable();
+        clrscr();
+        bmp_printf(FONT_LARGE, 50, 100, 
+            "  Welcome to Magic Lantern!  \n"
+            "                             \n"
+            "Press DELETE to open ML menu.");
+        canon_gui_enable();
+        SetGUIRequestMode(0);
+    }
+}*/
+
 static void
 menu_task( void* unused )
-{
+{    
     select_menu_by_icon(menu_first_by_icon);
     while(1)
     {
@@ -1837,16 +1868,7 @@ menu_task( void* unused )
         menu_shown = true; 
         
         // ML menu needs to piggyback on Canon menu, in order to receive wheel events
-        #ifdef GUIMODE_ML_MENU
-        if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
-        if (GUIMODE_ML_MENU == 2) msleep(100);
-        #else
-        if (!lv && !MENU_MODE && !is_movie_mode())
-        {
-            if (!PLAY_MODE) open_canon_menu();
-        }
-        #endif
-        msleep(100);
+        piggyback_canon_menu();
 
         x0 = hdmi_code == 5 ? 120 : 0;
         y0 = hdmi_code == 5 ? 40 : 0;
