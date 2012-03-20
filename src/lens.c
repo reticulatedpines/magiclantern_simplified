@@ -157,7 +157,7 @@ const char * lens_format_dist( unsigned mm)
    }
    else if( mm > 10000 ) // 10 m
    {
-      snprintf( dist, sizeof(dist), "%2d.%1dm", mm / 1000,  (mm % 1000) / 1000);
+      snprintf( dist, sizeof(dist), "%2dm", mm / 1000);
    }
    else    if( mm >  1000 ) // 1 m 
    {
