@@ -34,7 +34,6 @@
 static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
 static int menu_damage;
-static int menu_hidden;
 static int menu_timeout;
 static bool menu_shown = false;
 static int show_only_selected; // for ISO, kelvin...
@@ -80,8 +79,8 @@ void menu_show_only_selected()
     show_only_selected = 1;
     menu_damage = 1;
 }
-int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected || menu_hidden ); }
-int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected || menu_hidden ); }
+int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected ); }
+int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected ); }
 
 int draw_event = 0;
 CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
@@ -116,7 +115,7 @@ draw_version( void )
 }
 
 
-struct gui_task * gui_menu_task;
+struct dialog * menu_dialog = 0;
 static struct menu * menus;
 
 struct menu * menu_get_root() {
@@ -1361,11 +1360,6 @@ menu_redraw()
         }
 }
 
-void menu_send_event(int event)
-{
-    ctrlman_dispatch_event(gui_menu_task, event, 0, 0);
-}
-
 static struct menu * get_selected_menu()
 {
     struct menu * menu = menus;
@@ -1395,14 +1389,28 @@ static struct menu * get_current_submenu()
     return 0;
 }
 
+// only for checking correct usage of dialog box API
+int menu_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
+{
+    switch (event) {
+
+    case TERMINATE_WINSYS:
+        menu_dialog = NULL;
+        menu_close_post_delete_dialog_box();
+        return 1;
+
+    case DELETE_DIALOG_REQUEST:
+        menu_close_gmt();
+        return dialog != arg4;  // ?!
+
+    default:
+        break;
+    }
+    return 1;
+}
+
 static int
-menu_handler(
-    void *          priv,
-    gui_event_t     event,
-    int         arg2,
-    int         arg3,
-    unsigned        arg4
-)
+menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
 {
 #if 0
     if( event > 1 && event < 0x10000000)
@@ -1437,31 +1445,21 @@ menu_handler(
     
     switch( event )
     {
-    case INITIALIZE_CONTROLLER:
-        //~ NotifyBox(2000, "INITIALIZE_CONTROLLER");
-        return 0;
+    //~ bmp_printf(FONT_MED, 0, 0, "dlg=%x template=%x btn=%x %x %x %x\ncode=%x", dialog, template, event, arg3, arg4, arg5, arg6, code);
 
     case GOT_TOP_OF_CONTROL:
         //~ NotifyBox(2000, "GOT_TOP_OF_CONTROL");
         menu_redraw();
-        return 0;
-
-    case LOST_TOP_OF_CONTROL:
-        //~ NotifyBox(2000, "LOST_TOP_OF_CONTROL");
-        gui_stop_menu();
-        return 0;
+        return 1;
 
     case TERMINATE_WINSYS:
-        // Must propagate to all gui elements
-        //~ NotifyBox(2000, "TERMINATE_WINSYS");
-        gui_stop_menu();
+        menu_dialog = NULL;
+        menu_close_post_delete_dialog_box();
         return 1;
 
     case DELETE_DIALOG_REQUEST:
-        // Must not propagate
-        //~ NotifyBox(2000, "DELETE_DIALOG_REQUEST");
-        gui_stop_menu();
-        return 0;
+        menu_close_gmt();
+        return dialog != arg4;  // ?!
 
 
     case PRESS_MENU_BUTTON:
@@ -1472,7 +1470,7 @@ menu_handler(
         break;
 
     case EVENTID_METERING_START: // If they press the shutter halfway
-        gui_stop_menu();
+        gui_stop_menu(1);
         return 1;
     
     case EVENTID_94:
@@ -1601,8 +1599,8 @@ menu_handler(
     // Reset the timeout
     menu_timeout = menu_timeout_time;
 
-    // If we are hidden or no longer exit, do not redraw
-    if( menu_hidden || !gui_menu_task )
+    // If we no longer exist, do not redraw
+    if( !menu_dialog )
         return 0;
 
     menu_redraw();
@@ -1618,7 +1616,7 @@ void
 menu_init( void )
 {
     menus = NULL;
-    gui_menu_task = NULL;
+    menu_dialog = NULL;
     menu_sem = create_named_semaphore( "menus", 1 );
     gui_sem = create_named_semaphore( "gui", 0 );
 
@@ -1687,18 +1685,18 @@ static void guimode_ml_menu_dec(void* priv) { guimode_ml_menu--; }
 
 // this function should be called only from gui event handlers
 void
-gui_stop_menu( void )
+gui_stop_menu( int do_delete_dialog_box )
 {
-    menu_hidden = 0;
-    //~ menu_damage = 0;
+    fake_simple_button(MLEV_MENU_CLOSE);
+    return;
 
-    if( !gui_menu_task )
+    if( !menu_dialog )
         return;
 
-    gui_task_destroy( gui_menu_task );
-    gui_menu_task = NULL;
+    if (do_delete_dialog_box) DeleteDialogBox( menu_dialog );
+    menu_dialog = NULL;
 
-    canon_gui_enable_gmt();
+    //~ canon_gui_enable_gmt();
 
     #ifdef GUIMODE_ML_MENU
     if (!PLAY_MODE) SetGUIRequestMode(0);
@@ -1728,17 +1726,6 @@ gui_stop_menu( void )
 }
 
 
-void
-gui_hide_menu(
-    int         redisplay_time
-)
-{
-    if (!menu_hidden)
-        bmp_fill( 0, 0, 0, 720, 480 );
-    menu_hidden = redisplay_time;
-    //~ menu_damage = 1;
-}
-
 bool
 gui_menu_shown( void )
 {
@@ -1751,49 +1738,6 @@ void toggle_draw_event( void * priv )
 {
     draw_event = !draw_event;
 }
-/*
-static void
-about_print_0(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    if (!selected) return;
-    show_logo();
-}
-
-static void
-about_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    y -= font_large.height;
-    if (!selected) return;
-    
-}*/
-
-
-/*static struct menu_entry draw_prop_menus[] = {
-    {
-        .priv       = "Toggle draw-event",
-        .display    = menu_print,
-        .select     = toggle_draw_event,
-    },
-};*/
-
-/*static struct menu_entry dbg_menu[] = {
-    {
-        .priv = &guimode_ml_menu,
-        .display = guimode_ml_menu_print,
-        .select = guimode_ml_menu_inc,
-        .select_reverse = guimode_ml_menu_dec,
-    },
-};*/
 
 
 void
@@ -1811,30 +1755,76 @@ open_canon_menu()
     //~ }
 }
 
+void menu_close_post_delete_dialog_box()
+{
+    canon_gui_enable_front_buffer(0);
+ 
+    #ifdef GUIMODE_ML_MENU
+    if (!PLAY_MODE) SetGUIRequestMode(0);
+    #endif
 
-/*
-struct menu_entry menu_cfg_menu[] = {
+    lens_focus_stop();
+    show_only_selected = 0;
+
+    #ifndef GUIMODE_ML_MENU
+    if (MENU_MODE && !get_halfshutter_pressed())
     {
-        .name = "Transparent Menu ",
-        .priv = &semitransparent,
-        .max = 1,
-        .help = "Semi-transparent menu in LiveView"
-    },
-};*/
+        fake_simple_button(BGMT_MENU);
+    }
+    #endif
+    
+    extern int config_autosave;
+    if (config_autosave && config_dirty && !recording)
+    {
+        save_config(0);
+        config_dirty = 0;
+    }
+
+    menu_shown = false;
+
+    if (!PLAY_MODE) { redraw(); }
+    else draw_livev_for_playback();
+}
+
+void menu_open_gmt() {
+
+        show_only_selected = 0;
+        submenu_mode = 0;
+        menu_help_active = 0;
+
+        bmp_on(); // just to be sure the BMP overlay is enabled (maybe it was disabled by ClearScreen function)
+
+        //~ info_led_blink(2, 50, 50);
+        if (menu_dialog != NULL) {
+                DeleteDialogBox(menu_dialog);
+                menu_dialog = NULL;
+        }
+
+        canon_gui_disable_front_buffer(0);
+        menu_dialog = (void*)CreateDialogBox(0, 0, menu_handler, 1, 0);
+        dialog_redraw(menu_dialog);
+        clrscr();
+        //~ bmp_printf(FONT_LARGE, 100, 100, "menu");
+        menu_redraw();
+}
+
+void menu_close_gmt() {
+        //~ info_led_blink(3, 50, 50);
+    if (menu_dialog != NULL) {
+            DeleteDialogBox(menu_dialog);
+            menu_dialog = NULL;
+    }
+    menu_close_post_delete_dialog_box();
+}
+
+void menu_open() { fake_simple_button(MLEV_MENU_OPEN); }
+void menu_close() { fake_simple_button(MLEV_MENU_CLOSE); }
+
+
 
 static void
 menu_task( void* unused )
 {
-    //~ int x, y;
-    DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
-
-    // Add the draw_prop menu
-    #if 0
-    menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
-    #endif
-    //~ menu_add( " (i)", about_menu, COUNT(about_menu));
-    
-    msleep(500);
     select_menu_by_icon(menu_first_by_icon);
     while(1)
     {
@@ -1842,53 +1832,45 @@ menu_task( void* unused )
         if( rc != 0 )
         {
             // We woke up after 1 second
-            if( !gui_menu_task )
+            if( !menu_dialog )
                 continue;
 
             // Count down the menu timeout
             if( --menu_timeout == 0 )
             {
-                gui_stop_menu();
+                menu_close();
                 continue;
             }
 
-            // Count down the menu_hidden timer
-            if( menu_hidden )
-            {
-                if( --menu_hidden != 0 )
-                    continue;
-                // Force an update on timer expiration
-                ctrlman_dispatch_event(
-                    gui_menu_task,
-                    GOT_TOP_OF_CONTROL,
-                    0,
-                    0
-                );
-            } else if ((!menu_help_active && !show_only_selected) || menu_damage) {
+            if ((!menu_help_active && !show_only_selected) || menu_damage) {
                 // Inject a synthetic redraw event
-                ctrlman_dispatch_event(
-                    gui_menu_task,
-                    1,
-                    0,
-                    0
-                );
+                if (menu_dialog)
+                {
+                    ctrlman_dispatch_event(
+                        menu_dialog->gui_task,
+                        1,
+                        0,
+                        0
+                    );
+                }
             }
 
             continue;
         }
 
-        if( gui_menu_task )
+        if( menu_dialog )
         {
-            gui_stop_menu();
+            menu_close();
             continue;
         }
         
         if (recording && !lv) continue;
         
-        menu_shown = true;
-        show_only_selected = 0;
-        submenu_mode = 0;
-
+        // Set this flag a bit earlier in order to pause LiveView tasks.
+        // Otherwise, high priority tasks such as focus peaking might delay the menu a bit.
+        menu_shown = true; 
+        
+        // ML menu needs to piggyback on Canon menu, in order to receive wheel events
         #ifdef GUIMODE_ML_MENU
         if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
         if (GUIMODE_ML_MENU == 2) msleep(100);
@@ -1900,23 +1882,42 @@ menu_task( void* unused )
         #endif
         msleep(100);
 
-        bmp_on();
-
-        // prevent Canon GUI from drawing over our menu
-        if (!canon_gui_disabled()) canon_gui_disable();
-
         x0 = hdmi_code == 5 ? 120 : 0;
         y0 = hdmi_code == 5 ? 40 : 0;
 
-        DebugMsg( DM_MAGIC, 3, "Creating menu task" );
-        //~ menu_damage = 1;
-        menu_hidden = 0;
-        menu_help_active = 0;
-        gui_menu_task = gui_task_create( menu_handler, 0 );
+        menu_open();
+    }
+}
 
-        //~ zebra_pause();
-        //~ display_on(); // ensure the menu is visible even if display was off
-        //~ bmp_on();
+static void
+menu_task_minimal( void* unused )
+{
+    select_menu_by_icon(menu_first_by_icon);
+
+    while(1)
+    {
+        int rc = take_semaphore( gui_sem, 500 );
+        if( rc != 0 )
+        {
+            // We woke up after 1 second
+            continue;
+        }
+        
+        //~ canon_gui_toggle();
+        //~ menu_shown = !canon_gui_disabled();
+        //~ extern void* test_dialog;
+        //~ menu_dialog = test_dialog;
+
+        if( !menu_dialog )
+        {
+            //~ menu_shown = true;
+            menu_open();
+        }
+        else
+        {
+            menu_close();
+            //~ menu_shown = false;
+        }
     }
 }
 
@@ -1924,7 +1925,7 @@ TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );
 
 int is_menu_active(char* name)
 {
-    if (!gui_menu_task) return 0;
+    if (!menu_dialog) return 0;
     if (menu_help_active) return 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )

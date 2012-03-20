@@ -888,8 +888,10 @@ static void stress_test_random_action_simple()
         switch (rand() % 4)
         {
             case 0:
+            {
                 stress_test_toggle_menu_item("LiveV", "Global Draw");
                 return;
+            }
             case 1:
                 fake_simple_button(BGMT_PLAY);
                 return;
@@ -903,7 +905,7 @@ static void stress_test_random_action_simple()
     }
 }
 
-static void stress_test_random_small_task(void* unused)
+static void stress_test_menu_dlg_api_task(void* unused)
 {
     config_autosave = 0; // this will make many changes in menu, don't save them
     while(1)
@@ -926,10 +928,10 @@ void stress_test()
     task_create("stress_test", 0x1c, 0, stress_test_task, 0);
 }
 
-void stress_test_random_small()
+void stress_test_menu_dlg_api()
 {
     gui_stop_menu();
-    task_create("stress_test", 0x1c, 0, stress_test_random_small_task, 0);
+    task_create("stress_test", 0x1c, 0, stress_test_menu_dlg_api_task, 0);
 }
 
 void ui_lock(int x)
@@ -1466,8 +1468,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     /*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
     dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
     dump_seg(&(FONT_SMALL.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
-    
-    //~ stress_test_random_small(); return;
+    //~ msleep(1000);
+    //~ stress_test_menu_dlg_api(); return;
     int k;
     for (k = 0; ; k++)
     {
@@ -2009,9 +2011,9 @@ struct menu_entry debug_menus[] = {
                 .help = "A thorough test which randomly enables functions from menu. "
             },
             {
-                .name = "Quick random test",
-                .select = stress_test_random_small,
-                .help = "For developers only."
+                .name = "Dialog API test (infinite)",
+                .select = stress_test_menu_dlg_api,
+                .help = "Tests proper usage of Canon dialog API in ML menu backend."
             },
             MENU_EOL,
         }
@@ -2969,6 +2971,12 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         case MLEV_BV_AUTO_UPDATE:
             bv_auto_update_do();
+            break;
+        case MLEV_MENU_OPEN:
+            menu_open_gmt();
+            break;
+        case MLEV_MENU_CLOSE:
+            menu_close_gmt();
             break;
     }
     if (event->param < 0) return 0;
