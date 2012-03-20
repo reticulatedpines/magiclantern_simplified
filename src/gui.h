@@ -47,6 +47,7 @@
 #define MLEV_BV_AUTO_UPDATE -12
 #define MLEV_MENU_OPEN -13
 #define MLEV_MENU_CLOSE -14
+#define MLEV_MENU_REDRAW -15
 
 
 /** \file

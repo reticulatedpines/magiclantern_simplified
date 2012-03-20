@@ -1470,7 +1470,7 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
         break;
 
     case EVENTID_METERING_START: // If they press the shutter halfway
-        gui_stop_menu(1);
+        menu_close_gmt();
         return 1;
     
     case EVENTID_94:
@@ -1683,46 +1683,10 @@ static void guimode_ml_menu_inc(void* priv) { guimode_ml_menu++; }
 static void guimode_ml_menu_dec(void* priv) { guimode_ml_menu--; }
 */
 
-// this function should be called only from gui event handlers
 void
-gui_stop_menu( int do_delete_dialog_box )
+gui_stop_menu( )
 {
     fake_simple_button(MLEV_MENU_CLOSE);
-    return;
-
-    if( !menu_dialog )
-        return;
-
-    if (do_delete_dialog_box) DeleteDialogBox( menu_dialog );
-    menu_dialog = NULL;
-
-    //~ canon_gui_enable_gmt();
-
-    #ifdef GUIMODE_ML_MENU
-    if (!PLAY_MODE) SetGUIRequestMode(0);
-    #endif
-
-    lens_focus_stop();
-    show_only_selected = 0;
-
-    #ifndef GUIMODE_ML_MENU
-    if (MENU_MODE && !get_halfshutter_pressed())
-    {
-        fake_simple_button(BGMT_MENU);
-    }
-    #endif
-    
-    extern int config_autosave;
-    if (config_autosave && config_dirty && !recording)
-    {
-        save_config(0);
-        config_dirty = 0;
-    }
-
-    menu_shown = false;
-
-    if (!PLAY_MODE) {}//redraw_after(300);
-    else draw_livev_for_playback();
 }
 
 
@@ -1820,7 +1784,18 @@ void menu_close_gmt() {
 void menu_open() { fake_simple_button(MLEV_MENU_OPEN); }
 void menu_close() { fake_simple_button(MLEV_MENU_CLOSE); }
 
-
+void menu_inject_redraw_event()
+{
+    if (menu_dialog)
+    {
+        ctrlman_dispatch_event(
+            menu_dialog->gui_task,
+            1,
+            0,
+            0
+        );
+    }
+}
 
 static void
 menu_task( void* unused )
@@ -1843,16 +1818,7 @@ menu_task( void* unused )
             }
 
             if ((!menu_help_active && !show_only_selected) || menu_damage) {
-                // Inject a synthetic redraw event
-                if (menu_dialog)
-                {
-                    ctrlman_dispatch_event(
-                        menu_dialog->gui_task,
-                        1,
-                        0,
-                        0
-                    );
-                }
+                fake_simple_button(MLEV_MENU_REDRAW);
             }
 
             continue;

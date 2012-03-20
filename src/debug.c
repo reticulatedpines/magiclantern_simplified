@@ -2978,6 +2978,9 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_MENU_CLOSE:
             menu_close_gmt();
             break;
+        case MLEV_MENU_REDRAW:
+            menu_inject_redraw_event();
+            break;
     }
     if (event->param < 0) return 0;
     return 1;
