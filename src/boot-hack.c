@@ -345,6 +345,18 @@ void hold_your_horses(int showlogo)
     }
 }
 
+int old_assert_handler = 0;
+void my_assert_handler(char* msg, char* file, char* line)
+{
+    _card_led_on();
+    bmp_printf(FONT_LARGE, 50, 50, "ASSERT: %s\nat %s:%d\nOld handler: %x", msg, file, line, old_assert_handler);
+   
+    // uncomment this to ignore the assertion
+    while(1)
+    {
+    }
+}
+
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -368,6 +380,10 @@ my_init_task(int a, int b, int c, int d)
     
     // Call their init task
     int ans = init_task(a,b,c,d);
+    
+    // decompile TH_assert to find out the location
+    //~ old_assert_handler = MEM(0x19c8);
+    //~ MEM(0x19c8) = my_assert_handler;
 
     // Restore the overwritten value, if any
     if(backup_address != 0)
@@ -433,7 +449,7 @@ my_init_task(int a, int b, int c, int d)
         additional_version[7] = '\0';
         return ans;
     }
-    
+        
     task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
     return ans;
 #endif // !CONFIG_EARLY_PORT
