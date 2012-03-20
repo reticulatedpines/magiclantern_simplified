@@ -579,9 +579,12 @@ static char* silent_pic_get_name()
     }
     else
     {
-        for ( ; silent_number < 1000; silent_number++)
+        for ( ; silent_number < 10000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), "%s/%04d-%03d.422", get_dcim_dir(), file_number, silent_number);
+            if (silent_number > 999)
+                snprintf(imgname, sizeof(imgname), "%s/%04d%04d.422", get_dcim_dir(), file_number, silent_number);
+            else
+                snprintf(imgname, sizeof(imgname), "%s/%04d-%03d.422", get_dcim_dir(), file_number, silent_number);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
