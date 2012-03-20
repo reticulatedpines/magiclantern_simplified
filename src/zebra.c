@@ -299,9 +299,7 @@ int get_global_draw() // menu setting, or off if
     if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
     
     return global_draw &&
-        #ifndef CONFIG_KILL_FLICKER
         (lv_disp_mode == 0 || !lv) &&
-        #endif
         !idle_globaldraw_disable && 
         !sensor_cleaning && 
         bmp_is_on() &&
@@ -4196,7 +4194,7 @@ clearscreen_loop:
         {
             if (global_draw && !gui_menu_shown())
             {
-                if (liveview_display_idle())
+                if (liveview_display_idle() && lv_disp_mode == 0)
                 {
                     if (!canon_gui_front_buffer_disabled())
                         idle_kill_flicker();
@@ -4274,7 +4272,7 @@ clearscreen_loop:
         #ifdef CONFIG_KILL_FLICKER
         if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
         {
-            if (global_draw && !gui_menu_shown())
+            if (global_draw && !gui_menu_shown() && lv_disp_mode == 0)
                 idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
         }
         #endif
