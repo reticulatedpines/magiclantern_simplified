@@ -106,6 +106,7 @@ static void restore_sound_recording()
     {
         prop_request_change(PROP_MOVIE_SOUND_RECORD, &old_sound_recording_mode, 4);
         old_sound_recording_mode = -1;
+        if (lv) redraw();
     }
 }
 static void disable_sound_recording()
@@ -116,6 +117,7 @@ static void disable_sound_recording()
         old_sound_recording_mode = sound_recording_mode;
         sound_recording_mode = 1;
         prop_request_change(PROP_MOVIE_SOUND_RECORD, &sound_recording_mode, 4);
+        if (lv) redraw();
     }
 }
 

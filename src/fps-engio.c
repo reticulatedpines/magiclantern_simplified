@@ -172,6 +172,7 @@ static void restore_sound_recording()
     {
         set_sound_recording(old_sound_recording_mode);
         old_sound_recording_mode = -1;
+        if (lv) redraw();
     }
 }
 static void disable_sound_recording()
@@ -181,6 +182,7 @@ static void disable_sound_recording()
     {
         old_sound_recording_mode = sound_recording_mode;
         set_sound_recording(1);
+        if (lv) redraw();
     }
 }
 
