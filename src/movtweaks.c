@@ -798,11 +798,20 @@ void bv_disable_do()
     lensinfo_set_aperture(get_prop(PROP_APERTURE2));
 }
 
-static void bv_toggle() // off, on, auto
+static void bv_toggle(void* priv, int delta)
 {
-    if (bv_auto) { bv_auto = 0; bv_disable(); }
-    else if (CONTROL_BV) { bv_auto = 1; bv_auto_update(); }
-    else { bv_enable(); }
+    if (delta > 0) // off, on, auto
+    {
+        if (bv_auto) { bv_auto = 0; bv_disable(); }
+        else if (CONTROL_BV) { bv_auto = 1; bv_auto_update(); }
+        else { bv_enable(); }
+    }
+    else // auto, on, off
+    {
+        if (bv_auto) { bv_auto = 0; bv_enable(); }  
+        else if (CONTROL_BV) { bv_disable(); }
+        else { bv_auto = 1; bv_auto_update(); }
+    }
 }
 
 CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
