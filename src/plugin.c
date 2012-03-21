@@ -193,9 +193,10 @@ static void find_plugins() {
     struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "PLUGINS/", &file );
     if( IS_ERROR(dirent) )
     {
-        NotifyBox(2000, "PLUGINS dir missing" );
-        msleep(100);
-        NotifyBox(2000, "Please copy all ML files!" );
+        // no need to worry - if they are not present, don't use them
+        //~ NotifyBox(2000, "PLUGINS dir missing" );
+        //~ msleep(100);
+        //~ NotifyBox(2000, "Please copy all ML files!" );
         return;
     }
     int k = 0;
@@ -232,6 +233,7 @@ static void find_plugins() {
 }
 
 static void plugins_task(void* unused) {
+	if (!plugins_count) return; // no plugins loaded, nothing to do
 	msleep(1000);
 	for (;;) {
 		msleep(250);
@@ -266,10 +268,9 @@ static void plugins_task(void* unused) {
 }
 
 static void plugins_init(void* unused) {
-	msleep(1000);
 	find_plugins();
-	msleep(500);
-	menu_add("Tweaks", plugin_menus, COUNT(plugin_menus));
+	if (plugins_count)
+		menu_add("Tweaks", plugin_menus, COUNT(plugin_menus));
 }
 
 INIT_FUNC( __FILE__, plugins_init);
