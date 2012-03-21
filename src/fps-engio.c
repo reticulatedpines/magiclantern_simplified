@@ -164,13 +164,15 @@ int get_current_shutter_reciprocal_x1000()
     //
     // This function returns 1/EA and does all calculations on integer numbers, so actual computations differ slightly.
     
-    int fps_divider_num = MEMX(0xC0F06008) & 0xFFFF;
-    int fps_divider_den = (MEMX(0xC0F06008) >> 16) & 0xFFFF; // this contains original timer value - we won't change it
+    int Ta = (MEMX(0xC0F06008) & 0xFFFF) + 1;
+    int Ta0 = ((MEMX(0xC0F06008) >> 16) & 0xFFFF) + 1; // this contains original timer value - we won't change it
+    int Tb = (MEMX(0xC0F06014) & 0xFFFF) + 1;
+
     int shutter_us = 1000000000 / shutter_r_x1000;
-    int fps_timer_delta_us = 1000000000 / (fps_get_current_x1000() * fps_divider_num / fps_divider_den) - 1000000 / video_mode_fps;
+    int fps_timer_delta_us = 1000000000 / ((TG_FREQ_BASE / Ta0) * 1000 / Tb) - 1000000 / video_mode_fps;
     int ans_raw = 1000000000 / (shutter_us + fps_timer_delta_us);
-    int ans = ans_raw * (fps_divider_den/10) / (fps_divider_num/10);
-    //~ NotifyBox(2000, "su=%d cfc=%d \nvf=%d td=%d \nd_num=%d d_den=%d\nar=%d ans=%d", shutter_us, fps_get_current_x1000() * fps_divider_num / fps_divider_den, video_mode_fps, fps_timer_delta_us, fps_divider_num, fps_divider_den, ans_raw, ans);
+    int ans = ans_raw * (Ta0/10) / (Ta/10);
+    //~ NotifyBox(2000, "su=%d cfc=%d \nvf=%d td=%d \nd_num=%d d_den=%d\nar=%d ans=%d", shutter_us, ((TG_FREQ_BASE / Ta0) * 1000 / Tb), video_mode_fps, fps_timer_delta_us, Ta, Ta0, ans_raw, ans);
     
     return ans;
 #endif
