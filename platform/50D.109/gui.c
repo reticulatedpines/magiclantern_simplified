@@ -45,7 +45,7 @@ void joypress_task()
 			{
 				if (is_submenu_mode_active())
 				{
-					fake_simple_button(BGMT_PICSTYLE); // close submenu
+					fake_simple_button(BGMT_FUNC); // close submenu
 				}
 				else
 				{
@@ -62,7 +62,7 @@ void joypress_task()
 			fake_simple_button(BGMT_UNPRESS_UDLR);
 
 			if (gui_menu_shown())
-				fake_simple_button(BGMT_PICSTYLE); // Q
+				fake_simple_button(BGMT_FUNC); // Q
 			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
 				give_semaphore( gui_sem ); // open ML menu
 			msleep(500);
