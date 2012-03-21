@@ -3860,7 +3860,7 @@ static void take_a_pic(int allow_af)
 {
     if (silent_pic_enabled)
     {
-        msleep(300);
+        msleep(500);
         silent_pic_take(0); 
     }
     else
