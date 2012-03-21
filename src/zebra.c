@@ -4149,7 +4149,7 @@ static void idle_stop_killing_flicker()
 {
     if (canon_gui_front_buffer_disabled())
     {
-        canon_gui_enable_front_buffer(1);
+        canon_gui_enable_front_buffer(0);
     }
 }
 
@@ -4194,7 +4194,8 @@ clearscreen_loop:
         {
             if (global_draw && !gui_menu_shown())
             {
-                if (liveview_display_idle() && lv_disp_mode == 0)
+                int idle = liveview_display_idle() && lv_disp_mode == 0;
+                if (idle)
                 {
                     if (!canon_gui_front_buffer_disabled())
                         idle_kill_flicker();
@@ -4204,6 +4205,9 @@ clearscreen_loop:
                     if (canon_gui_front_buffer_disabled())
                         idle_stop_killing_flicker();
                 }
+                static int prev_idle = 0;
+                if (!idle && prev_idle != idle) redraw();
+                prev_idle = idle;
             }
         }
         #endif
@@ -4229,10 +4233,6 @@ clearscreen_loop:
         // clear overlays on shutter halfpress
         if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
         {
-            #ifdef CONFIG_KILL_FLICKER
-            idle_stop_killing_flicker();
-            #endif
-
             BMP_LOCK( clrscr_mirror(); )
             int i;
             for (i = 0; i < (int)clearscreen_delay/20; i++)
