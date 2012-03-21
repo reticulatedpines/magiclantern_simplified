@@ -24,7 +24,7 @@ int console_buffer_index = 0;
 
 CONFIG_INT("debug.console.visible",console_visible,0);
 
-FILE* console_log_file = 0;
+//~ FILE* console_log_file = 0;
 void console_show()
 {
 	console_visible = 1;
@@ -93,18 +93,18 @@ void console_init()
 
 	msleep(500);
 
-	if (!console_log_file) {
-	    FIO_RemoveFile(CARD_DRIVE "console.log");
-	    console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
-	}
+	//~ if (!console_log_file) {
+	    //~ FIO_RemoveFile(CARD_DRIVE "console.log");
+	    //~ console_log_file = FIO_CreateFile(CARD_DRIVE "console.log");
+	//~ }
 }
 
 void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
 
-    if (console_log_file)
-        my_fprintf( console_log_file, "%s", str );
+    //~ if (console_log_file)
+        //~ my_fprintf( console_log_file, "%s", str );
 
     if (!console_buffer) return;
     const char* c = str;
