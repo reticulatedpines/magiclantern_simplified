@@ -823,7 +823,7 @@ void draw_ml_topbar()
     x += 160;
     bmp_printf( font, x, y,
         is_movie_mode() ? "MVI-%04d" : "[%d]",
-        is_movie_mode() ? file_number_also : avail_shot
+        is_movie_mode() ? file_number : avail_shot
     );
 }
 

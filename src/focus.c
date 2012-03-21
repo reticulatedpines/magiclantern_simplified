@@ -248,7 +248,7 @@ focus_stack(
 
     if (i >= count-1)
     {
-        hdr_create_script(count, skip_first, 1, file_number_also - count + 1);
+        hdr_create_script(count, skip_first, 1, file_number - count + 1);
         NotifyBox(2000, "Focus stack done!" );
     }
     else

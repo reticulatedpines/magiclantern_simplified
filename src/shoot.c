@@ -4027,7 +4027,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         }
     }
 
-    hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, file_number_also - steps + 1);
+    hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, file_number - steps + 1);
 
 end:
     restore_af_button_assignment();

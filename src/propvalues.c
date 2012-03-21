@@ -17,7 +17,7 @@ volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
-volatile PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
+//volatile PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
 volatile PROP_INT(PROP_DRIVE, drive_mode);
 volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
