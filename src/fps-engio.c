@@ -444,31 +444,6 @@ void fps_mvr_log(FILE* mvr_logfile)
         my_fprintf(mvr_logfile, "FPS+Tv override: %d (%d.%03d)\n", (f+500)/1000, f/1000, f%1000);
 }
 
-// FPS has a side effect: to force shutter speed at 1/fps. Let the bottom bar show this.
-//~ int is_hard_shutter_override_active() { return fps_override; }
-//~ int get_shutter_override_degrees_x10() { return fps_override ? 3600 : 0; }
-
-
-void
-shutter_override_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Shutter(MOV): 360deg 1/%d",
-        fps_override_value
-    );
-
-    menu_draw_icon(x, y, MNI_ON, 0);
-}
-
-void shutter_override_toggle(void* priv, int delta) { }
-
 void fps_set_main_timer(int t)
 {
     t = t & 0xFFFF;
@@ -480,5 +455,3 @@ void fps_set_main_timer(int t)
     EngDrvOut(0xC0F06010, t);
     EngDrvOut(0xC0F06001, 1);
 }
-
-int is_shutter_override_enabled_movie() { return 0; }
