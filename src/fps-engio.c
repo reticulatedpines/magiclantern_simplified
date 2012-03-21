@@ -54,11 +54,12 @@ int fps_get_current_x1000();
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
     #define FPS_TIMER_OFFSET (-1)
+    #define TG_FREQ_PAL_SHUTTER  40000000
     #define TG_FREQ_NTSC_SHUTTER 39300000
 #else
     #ifdef CONFIG_500D
-        #define TG_FREQ_BASE 31960800 // not 100% sure
-        #define FPS_TIMER_OFFSET 0
+        #define TG_FREQ_BASE 32000000 // not 100% sure
+        #define FPS_TIMER_OFFSET (-1)
     #else
         // 550D, 600D, 60D, 50D 
         #define TG_FREQ_BASE 28800000
@@ -76,7 +77,7 @@ static unsigned get_current_tg_freq()
 }
 
 #define TG_FREQ_FPS get_current_tg_freq()
-#define TG_FREQ_SHUTTER (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_FPS)
+#define TG_FREQ_SHUTTER (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL_SHUTTER)
 
 #ifdef CONFIG_550D
 #define LV_STRUCT_PTR 0x1d14
@@ -135,12 +136,41 @@ int get_current_shutter_reciprocal_x1000()
     // shutter speed can't be slower than 1/fps
     shutter_r_x1000 = MAX(shutter_r_x1000, fps_get_current_x1000());
     
-    // FPS override will alter shutter speed
-    // FPS difference will be added as a constant term to shutter speed
+    // FPS override will alter shutter speed (exposure time)
+    // FPS "difference" from C0F06014 will be added as a constant term to exposure time
+    // FPS factor from C0F06008 will multiply the exposure time (as scalar gain)
+    
+    // TG = base timer (28.8 MHz on most cams)
+    // Ta = current value from C0F06008
+    // Tb = current value from C0F06014
+    // Ta0, Tb0 = original values
+    //
+    // FC = current fps = TG / Ta / Tb
+    // F0 = factory fps = TG / Ta0 / Tb0
+    //
+    // E0 = exposure time (shutter speed) as indicated by Canon user interface
+    // EA = actual exposure time, after FPS modifications (usually higher)
+    //
+    // If we only change Tb => Fb = TG / Ta0 / Tb
+    //
+    // delta_fps = 1/Fb - 1/F0 => this quantity is added to exposure time
+    //
+    // If we only change Ta => exposure time is multiplied by Ta/Ta0.
+    //
+    // If we change both, Tb "effect" is applied first, then Ta.
+    // 
+    // So...
+    // EA = (E0 + (1/Fb - 1/F0)) * Ta / Ta0
+    //
+    // This function returns 1/EA and does all calculations on integer numbers, so actual computations differ slightly.
+    
+    int fps_divider_num = MEMX(0xC0F06008) & 0xFFFF;
+    int fps_divider_den = (MEMX(0xC0F06008) >> 16) & 0xFFFF; // this contains original timer value - we won't change it
     int shutter_us = 1000000000 / shutter_r_x1000;
-    int fps_timer_delta_us = 1000000000 / fps_get_current_x1000() - 1000000 / video_mode_fps;
-    int ans = 1000000000 / (shutter_us + fps_timer_delta_us);
-    //~ NotifyBox(2000, "su=%d cf=%d \nvf=%d td=%d \nans=%d", shutter_us, fps_get_current_x1000(), video_mode_fps, fps_timer_delta_us, ans);
+    int fps_timer_delta_us = 1000000000 / (fps_get_current_x1000() * fps_divider_num / fps_divider_den) - 1000000 / video_mode_fps;
+    int ans_raw = 1000000000 / (shutter_us + fps_timer_delta_us);
+    int ans = ans_raw * (fps_divider_den/10) / (fps_divider_num/10);
+    //~ NotifyBox(2000, "su=%d cfc=%d \nvf=%d td=%d \nd_num=%d d_den=%d\nar=%d ans=%d", shutter_us, fps_get_current_x1000() * fps_divider_num / fps_divider_den, video_mode_fps, fps_timer_delta_us, fps_divider_num, fps_divider_den, ans_raw, ans);
     
     return ans;
 #endif
