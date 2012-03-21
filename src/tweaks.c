@@ -166,7 +166,11 @@ expsim_display( void * priv, int x, int y, int selected )
         "LV ViewType : %s",
         expsim == 2 ? "Movie" :
         expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ExpSim)" : "Auto (Disp)") : 
+        #ifdef CONFIG_5D2
+        get_expsim_auto_value() ? "Photo - ExpSim" : "Photo - Disp."
+        #else
         get_expsim_auto_value() ? "Exposure Simulation" : "Disp. (Frame&Focus)"
+        #endif
     );
     if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
