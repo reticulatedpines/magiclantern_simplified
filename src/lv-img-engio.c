@@ -170,6 +170,9 @@ void image_effects_step()
             //~ digic_value--;
             digic_show();
             EngDrvOut(digic_register, digic_value);
+            //~ if (digic_register & 0xFFFFF000 == 0xC0F06000) // FPS-related
+                EngDrvOut(0xC0F06000, 1); // apply the change
+            //~ fps_set_main_timer(digic_value);
         }
         else
         {

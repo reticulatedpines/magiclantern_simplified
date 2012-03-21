@@ -1467,7 +1467,7 @@ shutter_display( void * priv, int x, int y, int selected )
         snprintf(msg, sizeof(msg),
             "Shutter     : 1/%d.%03d, %d ",
             s/1000, s%1000, 
-            360 * video_mode_fps*1000 / s);
+            360 * fps_get_current_x1000() / s);
     }
     else
     {

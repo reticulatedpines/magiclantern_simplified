@@ -392,7 +392,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
       int shutter_reciprocal = info->raw_shutter ? (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0)) : 0;
 
       // in movie mode we can get the exact value from Canon timers
-      if (is_movie_mode()) shutter_reciprocal = (get_current_shutter_reciprocal_x1000()+500)/1000;
+      if (is_movie_mode()) 
+      {
+           int sr_x1000 = get_current_shutter_reciprocal_x1000();
+           shutter_reciprocal = (sr_x1000+500)/1000;
+           shutter_x10 = ((100000 / sr_x1000) + 5) / 10;
+      }
       
       if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
@@ -1755,7 +1760,7 @@ bool prop_set_rawshutter(unsigned shutter, int coerce)
     lens_wait_readytotakepic(64);
     if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    msleep(50);
+    msleep(100);
     return ((unsigned int) get_prop(PROP_SHUTTER) == shutter) &&
            ((unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter) ;
 }
