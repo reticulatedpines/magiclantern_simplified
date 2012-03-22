@@ -150,9 +150,12 @@ const char* get_card_drive() {
 	return CDRV;
 }
 
+void menu_open_submenu();
+
 static struct menu_entry plugin_menus[] = {
 	{
 		.name = "Configure plugins",
+		.select = menu_open_submenu,
 	},
 };
 
