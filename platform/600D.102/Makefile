@@ -56,7 +56,8 @@ ML_OBJS-y = \
 	liveview.o \
 	reloc.o \
 	aj_port.o \
-	fps.o \
+	fps-engio.o \
+	cartridge.o \
 	hdr.o \
 	lv-img-engio.o \
 	state-object.o \

@@ -62,16 +62,35 @@ int fps_get_current_x1000();
 
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
-    #define TG_FREQ_PAL_SHUTTER  40000000
-    #define TG_FREQ_NTSC_SHUTTER 39300000
+    #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
     #define FPS_TIMER_A_MIN 0x22A // trial and error (with digic poke)
 #else
     #ifdef CONFIG_500D
-        #define TG_FREQ_BASE 32000000 // not 100% sure
+        #define TG_FREQ_BASE 32000000    // not 100% sure
+        #define TG_FREQ_SHUTTER 23188405 // not sure
+        #define FPS_TIMER_A_MIN 0x400    // not correct, but lets the user push it very far
     #else
         // 550D, 600D, 60D, 50D 
         #define TG_FREQ_BASE 28800000
-        #define TG_FREQ_NTSC_SHUTTER 49440000
+        #ifdef CONFIG_50D
+            #define TG_FREQ_SHUTTER 41379310 // not sure
+            #define FPS_TIMER_A_MIN 0x200    // not correct, but lets the user push it very far
+        #else
+            #define FPS_TIMER_A_MIN 0x200
+            #define TG_FREQ_PAL  50000000
+            #define TG_FREQ_NTSC_FPS 52747200
+            #define TG_FREQ_NTSC_SHUTTER 49440000
+            #define TG_FREQ_ZOOM 39230730 // not 100% sure
+            #define TG_FREQ_CROP_PAL 64000000
+
+            #define TG_FREQ_CROP_NTSC (crop == 0xc ? 50349600 : 69230700)
+            #define TG_FREQ_CROP_NTSC_SHUTTER (crop == 0xc ? 47160000 : 64860000)
+            #define TG_FREQ_CROP_PAL_SHUTTER (crop == 0xc ? 50000000 : 64000000)
+
+            #define TG_FREQ_FPS (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC : TG_FREQ_CROP_PAL) : (ntsc ? TG_FREQ_NTSC_FPS : TG_FREQ_PAL)))
+            #define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC_SHUTTER : TG_FREQ_CROP_PAL_SHUTTER) : (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)))
+
+        #endif
     #endif
 #endif
 
@@ -84,7 +103,6 @@ static unsigned get_current_tg_freq()
 }
 
 #define TG_FREQ_FPS get_current_tg_freq()
-#define TG_FREQ_SHUTTER (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL_SHUTTER)
 
 #ifdef CONFIG_550D
 #define LV_STRUCT_PTR 0x1d14
@@ -102,11 +120,6 @@ static unsigned get_current_tg_freq()
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
 #endif
 
-
-//~ #define MIN_FPS_MENU (TG_FREQ_PAL / 16384 / 1000)
-#define MIN_FPS_MENU 1
-
-/*
 #ifdef CONFIG_500D
 #define LV_STRUCT_PTR 0x1d78
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
@@ -115,7 +128,7 @@ static unsigned get_current_tg_freq()
 #ifdef CONFIG_50D
 #define LV_STRUCT_PTR 0x1D74
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-#endif*/
+#endif
 
 #ifdef CONFIG_5D2
 #define LV_STRUCT_PTR 0x1D78
@@ -147,7 +160,9 @@ int get_current_shutter_reciprocal_x1000()
 #else
 
     int timer = FRAME_SHUTTER_TIMER;
+    int zoom = lv_dispsize > 1 ? 1 : 0;
     int ntsc = is_current_mode_ntsc();
+    int crop = video_mode_crop;
 
     int shutter_r_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     

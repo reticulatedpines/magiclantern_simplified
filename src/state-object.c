@@ -60,7 +60,7 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
-    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) // for those cameras, we call it from cartridge_AfStopPath
+    #if !defined(CONFIG_60D) && !defined(CONFIG_600D)  && !defined(CONFIG_1100D) // for those cameras, we call it from cartridge_AfStopPath
     hdr_step();
     #endif
     
