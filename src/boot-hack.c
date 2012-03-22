@@ -42,7 +42,11 @@ int my_init_task(int a, int b, int c, int d);
 void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
+#ifdef CONFIG_550D
+#define RELOCSIZE 0x1100
+#else
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
+#endif
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
