@@ -10,6 +10,8 @@
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x1e948 // in AJ_armlib_setup_related3
 
+#define DRYOS_ASSERT_HANDLER 0x1A14 // dec TH_assert or assert_0
+
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER_1 0x41B00000
 #define YUV422_LV_BUFFER_2 0x5C000000

@@ -11,6 +11,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "plugin.h"
+#include "version.h"
 //#include "lua.h"
 
 //~ #define CONFIG_HEXDUMP
@@ -1456,6 +1457,48 @@ void hexdump_back(void* priv, int dir)
 }
 #endif
 
+static int crash_log_requested = 0;
+void request_crash_log()
+{
+    crash_log_requested = 1;
+}
+
+void save_crash_log()
+{
+    static char log_filename[100];
+    
+    int log_number = 0;
+    for (log_number = 0; log_number < 100; log_number++)
+    {
+        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "CRASH%02d.LOG", log_number);
+        unsigned size;
+        if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
+        if (size == 0) break;
+    }
+
+    FIO_RemoveFile(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
+    my_fprintf(f, "%s\n\n", get_assert_msg());
+    my_fprintf(f, 
+        "Magic Lantern version : %s\n"
+        "Mercurial changeset   : %s\n"
+        "Built on %s by %s.",
+        build_version,
+        build_id,
+        build_date,
+        build_user);
+
+    FIO_CloseFile(f);
+    
+    msleep(1000);
+    
+    NotifyBox(5000, "Crash detected - log file saved.\n"
+                    "Pls send CRASH%02d.LOG to ML devs.\n"
+                    "\n"
+                    "%s", log_number, get_assert_msg());
+
+}
+
 int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
@@ -1578,6 +1621,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
+        
+        if (crash_log_requested)
+        {
+            save_crash_log();
+            crash_log_requested = 0;
+        }
         
         msleep(200);
     }

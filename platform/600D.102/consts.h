@@ -10,6 +10,8 @@
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
 
+#define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
+
 // BGMT Button codes as received by gui_main_task
 
 #define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing

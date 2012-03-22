@@ -345,16 +345,21 @@ void hold_your_horses(int showlogo)
     }
 }
 
-int old_assert_handler = 0;
-void my_assert_handler(char* msg, char* file, char* line)
+/**
+ * Custom assert handler - intercept ERR70 and try to save a crash log.
+ * Crash log should contain Canon error message.
+ */
+static char assert_msg[100] = "";
+int (*old_assert_handler)(char*,char*,int,int) = 0;
+const char* get_assert_msg() { return assert_msg; }
+
+int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
-    _card_led_on();
-    bmp_printf(FONT_LARGE, 50, 50, "ASSERT: %s\nat %s:%d\nOld handler: %x", msg, file, line, old_assert_handler);
-   
-    // uncomment this to ignore the assertion
-    while(1)
-    {
-    }
+    snprintf(assert_msg, sizeof(assert_msg), 
+        "ASSERT: %s\n"
+        "at %s:%d", msg, file, line);
+    request_crash_log();
+    return old_assert_handler(msg, file, line, arg4);
 }
 
 /** Initial task setup.
@@ -382,8 +387,8 @@ my_init_task(int a, int b, int c, int d)
     int ans = init_task(a,b,c,d);
     
     // decompile TH_assert to find out the location
-    //~ old_assert_handler = MEM(0x19c8);
-    //~ MEM(0x19c8) = my_assert_handler;
+    old_assert_handler = MEM(DRYOS_ASSERT_HANDLER);
+    MEM(DRYOS_ASSERT_HANDLER) = my_assert_handler;
 
     // Restore the overwritten value, if any
     if(backup_address != 0)
