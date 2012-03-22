@@ -1457,6 +1457,10 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
         menu_close_post_delete_dialog_box();
         return 1;
 
+    case LOST_TOP_OF_CONTROL:
+        menu_close_gmt();
+        return 0;
+
     case DELETE_DIALOG_REQUEST:
         menu_close_gmt();
         return dialog != arg4;  // ?!
