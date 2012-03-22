@@ -58,7 +58,8 @@ int fps_get_current_x1000();
 
 #define FPS_TIMER_A_MAX 0x2000
 #define FPS_TIMER_B_MAX (0x4000-1)
-#define FPS_TIMER_B_MIN fps_timer_b_orig // well, actually it may go a tiny bit lower
+//~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
+#define FPS_TIMER_B_MIN fps_timer_b_orig // it might go lower than that, but it causes trouble high shutter speeds
 
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
@@ -76,7 +77,7 @@ int fps_get_current_x1000();
             #define TG_FREQ_SHUTTER 41379310 // not sure
             #define FPS_TIMER_A_MIN 0x200    // not correct, but lets the user push it very far
         #else
-            #define FPS_TIMER_A_MIN 0x200
+            #define FPS_TIMER_A_MIN 0x21A
             #define TG_FREQ_PAL  50000000
             #define TG_FREQ_NTSC_FPS 52747200
             #define TG_FREQ_NTSC_SHUTTER 49440000
@@ -201,7 +202,7 @@ int get_current_shutter_reciprocal_x1000()
 #endif
 }
 
-static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 15000, 17000, 20000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 35000, 40000, 48000, 50000, 60000, 65000};
+static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 12500, 15000, 17000, 20000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 35000, 40000, 48000, 50000, 60000, 65000};
 
 static int fps_override = 0;
 CONFIG_INT("fps.override.idx", fps_override_index, 10);
@@ -266,6 +267,8 @@ PROP_HANDLER(PROP_LV_ACTION)
 static int fps_get_timer(int fps_x1000)
 {
     int ntsc = is_current_mode_ntsc();
+    
+    if (fps_preset == 1) ntsc = 0; // use PAL-like rounding [hack]
 
     #if !defined(CONFIG_500D) && !defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97
     if (ntsc) fps_x1000 = fps_x1000 * 1000/1001;
@@ -407,7 +410,7 @@ desired_fps_print(
 {
     int desired_fps = fps_values_x1000[fps_override_index] / 10;
 
-    if (desired_fps % 1000)
+    if (desired_fps % 100)
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
@@ -460,7 +463,8 @@ static void fps_reset()
 
 static void fps_change_value(void* priv, int delta)
 {
-    fps_override_index = COERCE(fps_override_index + delta, 0, COUNT(fps_values_x1000));
+    fps_override_index = mod(fps_override_index + delta, COUNT(fps_values_x1000));
+    desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
     fps_preset = 0;
     if (fps_override) fps_setup(fps_values_x1000[fps_override_index]);
@@ -567,6 +571,8 @@ void fps_timer_print(
     int A = (priv == &desired_fps_timer_a_offset);
     int t = A ? fps_timer_a : fps_timer_b;
     int t0 = A ? fps_timer_a_orig : fps_timer_b_orig; 
+    int t_min = A ? FPS_TIMER_A_MIN : FPS_TIMER_B_MIN;
+    int t_max = A ? FPS_TIMER_A_MAX : FPS_TIMER_B_MAX;
     int delta = t - t0;
     char dec[4] = "";
     if (delta >= 100) 
@@ -581,8 +587,26 @@ void fps_timer_print(
         delta >= 100 ? t / t0 : delta, 
         dec
     );
+    if (!fps_override) menu_draw_icon(x, y, MNI_OFF, 0);
+    menu_draw_icon(x, y, MNI_PERCENT, sqrt(t - t_min) * 100  / sqrt(t_max - t_min));
+}
+
+void tg_freq_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Main clock   : %d.%02d MHz",
+        TG_FREQ_BASE / 1000000, (TG_FREQ_BASE % 1000000) / 10000
+    );
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
+
 
 void fps_timer_a_big_change(void* priv, int delta)
 {
@@ -592,7 +616,7 @@ void fps_timer_a_big_change(void* priv, int delta)
     int k = ((fps_timer_a - t0) * 20 + (tmax - t0) / 2) / (tmax - t0);
     if (fps_timer_a < t0) k = -1;
     
-    k -= delta;
+    k += delta;
     
     fps_change_timer_a(t0 + k * (tmax - t0) / 20);
     fps_preset = 0;
@@ -606,7 +630,7 @@ void fps_timer_fine_tune_a(void* priv, int delta)
 
 void fps_timer_fine_tune_b(void* priv, int delta)
 {
-    desired_fps_timer_b_offset += delta * 2;
+    desired_fps_timer_b_offset += delta;
     fps_preset = 0;
 }
 
@@ -634,9 +658,9 @@ void fps_preset_change(void* priv, int delta)
             fps_change_timer_a(TG_FREQ_BASE / 5 / fps_timer_b_orig);
             lens_set_rawshutter(152);
             return;
-        case 4: // 3p high jello
-            fps_override_index = find_fps_index(3000);
-            fps_change_timer_a(TG_FREQ_BASE / 3 / fps_timer_b_orig);
+        case 4: // 2p high jello
+            fps_override_index = find_fps_index(2000);
+            fps_change_timer_a(TG_FREQ_BASE / 2 / fps_timer_b_orig);
             lens_set_rawshutter(152);
             return;
         case 5:
@@ -655,8 +679,8 @@ void fps_preset_change(void* priv, int delta)
             lens_set_rawshutter(96);
             return;
         case 8:
-            fps_change_timer_a(TG_FREQ_BASE * 10 / 2 / FPS_TIMER_B_MAX);
-            fps_override_index = find_fps_index(200);
+            fps_change_timer_a(TG_FREQ_BASE * 20 / 5 / FPS_TIMER_B_MAX);
+            fps_override_index = find_fps_index(250);
             lens_set_rawshutter(96);
             return;
     }
@@ -673,7 +697,7 @@ struct menu_entry fps_menu[] = {
             {
                 .name = "Preset\b",
                 .priv       = &fps_preset,
-                .choices = (const char *[]) {"Custom", "24.000fps", "10p jello", "5p jello", "3p jello", "2p 360deg", "1p 360deg", "0.5p 360deg", "0.2p 360deg"},
+                .choices = (const char *[]) {"Custom", "24.000fps", "10p jello", "5p jello", "2p jello", "2p 360deg", "1p 360deg", "0.5p 360deg", "0.25p 360deg"},
                 .icon_type = IT_BOOL,
                 .select = fps_preset_change,
                 .help = "FPS presets - a few useful combinations.",
@@ -709,6 +733,11 @@ struct menu_entry fps_menu[] = {
                 .priv = &desired_fps_timer_b_offset,
                 .select = fps_timer_fine_tune_b,
                 .help = "High values = lower FPS, shutter speed converges to 1/fps.",
+            },
+            {
+                .name = "TG frequency",
+                .display = tg_freq_print,
+                .help = "Timing generator freq. (read-only). FPS = F/timerA/timerB.",
             },
             {
                 .name = "Actual FPS",
