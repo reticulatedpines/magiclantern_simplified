@@ -54,7 +54,6 @@ ML_OBJS-y = \
 	bootflags.o \
 	dialog_test.o \
 	vram.o \
-	morse.o \
 	liveview.o \
 	reloc.o \
 	aj_port.o \

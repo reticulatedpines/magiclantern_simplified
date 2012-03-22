@@ -14,6 +14,8 @@
 #include "version.h"
 //#include "lua.h"
 
+//~ #define CONFIG_STRESS_TEST
+
 //~ #define CONFIG_HEXDUMP
 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
@@ -345,6 +347,8 @@ void xx_test(void* priv, int delta)
     task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
     //~ guiNotifyDialogRefresh();
 }
+
+#ifdef CONFIG_STRESS_TEST
 
 static void stress_test_long(void* priv, int delta)
 {
@@ -934,6 +938,8 @@ void stress_test_menu_dlg_api()
     gui_stop_menu();
     task_create("stress_test", 0x1c, 0, stress_test_menu_dlg_api_task, 0);
 }
+
+#endif // CONFIG_STRESS_TEST
 
 void ui_lock(int x)
 {
@@ -1568,7 +1574,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     {
                         bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
                             "!!! Auto exposure !!!\n"
-                            "Set 'Movie Exposure -> Manual'");
+                            "Set 'Movie Exposure -> Manual' from Canon menu");
                         msleep(2000);
                         redraw();
                         ae_warned = 1;
@@ -2043,6 +2049,7 @@ struct menu_entry debug_menus[] = {
         .select        = xx_test,
         .help = "The camera may turn into a 1DX or it may explode."
     },
+#ifdef CONFIG_STRESS_TEST
     {
         .name        = "Stability tests...",
         .select        = menu_open_submenu,
@@ -2067,6 +2074,7 @@ struct menu_entry debug_menus[] = {
             MENU_EOL,
         }
     },
+#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
         .name        = "Rename CR2 to AVI",

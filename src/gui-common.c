@@ -95,7 +95,7 @@ int handle_common_events_by_feature(struct event * event)
     
     if (handle_buttons_being_held(event) == 0) return 0;
     if (handle_trap_focus(event) == 0) return 0;
-    if (handle_morse_keys(event) == 0) return 0;
+    //~ if (handle_morse_keys(event) == 0) return 0;
     
     #if !defined(CONFIG_1100D) // those cameras use a different button for ML menu
     if (handle_ml_menu_erase(event) == 0) return 0;

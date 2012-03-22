@@ -514,7 +514,7 @@ void fps_try_to_get_exact_freq(int freq)
 }
 
 
-void fps_range_print(
+/*void fps_range_print(
     void *          priv,
     int         x,
     int         y,
@@ -531,7 +531,7 @@ void fps_range_print(
         fps_high / 100, fps_high % 100
     );
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
-}
+}*/
 
 void shutter_range_print(
     void *          priv,
@@ -686,11 +686,11 @@ struct menu_entry fps_menu[] = {
                 .select = fps_change_value,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
-            {
+            /*{
                 .display = fps_range_print,
                 .select = fps_timer_a_big_change,
                 .help = "FPS range. Changing this will change FPS timer A.",
-            },
+            },*/
             {
                 .display = shutter_range_print,
                 .select = fps_timer_a_big_change,

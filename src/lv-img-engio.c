@@ -10,6 +10,8 @@
 #include "menu.h"
 #include "config.h"
 
+//~ #define CONFIG_DIGIC_POKE
+
 #define SHAD_GAIN 0xc0f08030 // controls clipping point (digital ISO)
 
 CONFIG_INT("highlight.recover", highlight_recover, 0);
@@ -19,15 +21,7 @@ int shad_gain_override = 0;
 static CONFIG_INT("digic.effects", image_effects, 0);
 static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
-static CONFIG_INT("digic.fringing", fringing, 0);
-
-static CONFIG_INT("digic.poke", digic_poke, 0);
-static CONFIG_INT("digic.reg.bas", digic_register_base, 0xC0F0);
-static CONFIG_INT("digic.reg.mid", digic_register_mid, 0x80);
-static CONFIG_INT("digic.reg.off", digic_register_off, 0x08);
-static CONFIG_INT("digic.alter.mode", digic_alter_mode, 1);
-int digic_register = 0;
-int digic_value = 0;
+//~ static CONFIG_INT("digic.fringing", fringing, 0);
 
 int default_shad_gain = 0;
 void autodetect_default_shad_gain()
@@ -54,26 +48,15 @@ int get_new_shad_gain()
     }
 }
 
-/*
-static int lens_info_update()
-{
-    int d;
-    
-    switch (highlight_recover)
-    {
-        case 0: lensinfo_set_iso(get_prop(PROP_ISO)); return; // refresh ISO info 
-        case 1: d = -3; break;
-        case 2: d = -5; break;
-        case 3: d = -8; break;
-        case 4: d = -12; break;
-        case 5: d = -16; break;
-    }
-    if (d == lens_info.iso_digital_ev) return; // nothing to change
+#ifdef CONFIG_DIGIC_POKE
 
-    lens_info.iso_digital_ev = d;
-    lens_info.iso_equiv_raw = ((get_prop(PROP_ISO) + 3) / 8) * 8 + lens_info.iso_digital_ev;
-    lens_info.iso = raw2iso(lens_info.iso_equiv_raw);
-}*/
+static CONFIG_INT("digic.poke", digic_poke, 0);
+static CONFIG_INT("digic.reg.bas", digic_register_base, 0xC0F0);
+static CONFIG_INT("digic.reg.mid", digic_register_mid, 0x80);
+static CONFIG_INT("digic.reg.off", digic_register_off, 0x08);
+static CONFIG_INT("digic.alter.mode", digic_alter_mode, 1);
+int digic_register = 0;
+int digic_value = 0;
 
 int get_digic_register_addr()
 {
@@ -142,15 +125,8 @@ int handle_digic_poke(struct event * event)
     return 1;
 }
 
-void image_effects_step()
+void digic_poke_step()
 {
-    if (image_effects && DISPLAY_IS_ON && lv)
-    {
-        if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
-        if (negative) EngDrvOut(0xc0f0f000, 0xb1);
-        if (fringing) EngDrvOut(0xc0f0f4ac, 0x1);
-    }
-
     if (digic_poke && DISPLAY_IS_ON && lv)
     {
         digic_register = get_digic_register_addr();
@@ -179,6 +155,56 @@ void image_effects_step()
             digic_value = MEMX(digic_register);
         }
     }
+}
+
+void hex_toggle(void* priv, int delta)
+{
+    MEM(priv) += 4 * delta;
+}
+
+void digic_value_toggle(void* priv, int delta)
+{
+    digic_value += delta;
+}
+
+void digic_random_register(void* priv, int delta)
+{
+    digic_register_mid = rand() & 0xFF;
+    digic_register_off = rand() & 0xFC;
+}
+
+static void
+digic_value_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Value[%08x]: %x", digic_register, digic_value
+    );
+}
+#else
+
+int handle_digic_poke(struct event * event){}; // dummy
+
+#endif // CONFIG_DIGIC_POKE
+
+void image_effects_step()
+{
+    if (image_effects && DISPLAY_IS_ON && lv)
+    {
+        if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
+        if (negative) EngDrvOut(0xc0f0f000, 0xb1);
+        //~ if (fringing) EngDrvOut(0xc0f0f4ac, 0x1);
+    }
+
+    #ifdef CONFIG_DIGIC_POKE
+    digic_poke_step();
+    #endif
 }
 
 void highlight_recover_step()
@@ -246,37 +272,6 @@ clipping_print(
     }
 }
 
-void hex_toggle(void* priv, int delta)
-{
-    MEM(priv) += 4 * delta;
-}
-
-void digic_value_toggle(void* priv, int delta)
-{
-    digic_value += delta;
-}
-
-void digic_random_register(void* priv, int delta)
-{
-    digic_register_mid = rand() & 0xFF;
-    digic_register_off = rand() & 0xFC;
-}
-
-static void
-digic_value_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Value[%08x]: %x", digic_register, digic_value
-    );
-}
-
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
@@ -310,17 +305,19 @@ static struct menu_entry lv_img_menu[] = {
                 .max = 1,
                 .help = "Negative image. Inverts all colors :)",
             },
-            {
+            /*{
                 .name = "Purple Fringe",
                 .priv       = &fringing,
                 .min = 0,
                 .max = 1,
                 .help = "Something that looks like purple fringing :)",
-            },
+            },*/
             MENU_EOL
         },
     },
 };
+
+#ifdef CONFIG_DIGIC_POKE
 
 static struct menu_entry dbg_menu[] = {
     {
@@ -378,11 +375,14 @@ static struct menu_entry dbg_menu[] = {
         },
     }
 };
+#endif
 
 static void lv_img_init()
 {
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
+    #ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
+    #endif
 }
 
 INIT_FUNC("lv_img", lv_img_init);

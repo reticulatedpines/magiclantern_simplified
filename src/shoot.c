@@ -387,7 +387,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
             //~ silent_pic_longexp_method == 2 ? "SUM" : "err"
         );
     }*/
-    else if (silent_pic_mode == 2)
+    /*else if (silent_pic_mode == 2)
     {
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
@@ -395,7 +395,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
             "Slit-scan Pic   : 1ln/%dclk",
             silent_pic_slitscan_skipframes
         );
-    }
+    }*/
 }
 
 static int afframe[26];
@@ -568,7 +568,6 @@ static char* silent_pic_get_name()
     
     if (intervalometer_running)
     {
-        //~ int timelapse_number;
         for ( ; silent_number < 100000000; silent_number++)
         {
             snprintf(imgname, sizeof(imgname), "%s/%08d.422", get_dcim_dir(), silent_number);
@@ -1123,7 +1122,7 @@ static void vsync(volatile int* addr)
     bmp_printf(FONT_MED, 30, 100, "vsync failed");
 }
 
-
+/*
 static void
 silent_pic_take_slitscan(int interactive)
 {
@@ -1202,7 +1201,7 @@ silent_pic_take_slitscan(int interactive)
     ResumeLiveView();
     
     #endif
-}
+}*/
 
 static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
@@ -1221,8 +1220,8 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
         silent_pic_take_simple(interactive);
     else if (silent_pic_mode == 1) // hi-res
         silent_pic_take_sweep(interactive);
-    else if (silent_pic_mode == 2) // slit-scan
-        silent_pic_take_slitscan(interactive);
+    //~ else if (silent_pic_mode == 2) // slit-scan
+        //~ silent_pic_take_slitscan(interactive);
     //~ else if (silent_pic_mode == 3) // long exposure
         //~ silent_pic_take_longexp();
 
@@ -3400,10 +3399,10 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                .max = 2,
+                .max = 1,
                 .choices = (const char *[]) {"Simple", "Hi-Res", "SlitScan"},
                 .icon_type = IT_DICE,
-                .help = "Silent picture mode: simple, high-resolution or slit-scan."
+                .help = "Silent picture mode: simple or high-resolution."
             },
             {
                 .name = "Flags", 
@@ -3420,14 +3419,14 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
-            {
+            /*{
                 .name = "Slit Skip", 
                 .priv = &silent_pic_slitscan_skipframes,
                 .min = 1,
                 .max = 4,
                 .icon_type = IT_PERCENT,
                 .help = "For slit-scan: how many frames to skip between two lines."
-            },
+            },*/
             MENU_EOL
         },
     },
