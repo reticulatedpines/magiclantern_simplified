@@ -1626,7 +1626,7 @@ void lcd_adjust_position_step()
     int position_register = 0xC0F14164;
     int current_position = shamem_read(position_register);
     if (factory_position == -1) check_position = factory_position = current_position;
-    int desired_position = factory_position - lcd_adjust_position * 10 * 2;
+    int desired_position = factory_position - lcd_adjust_position * 9 * 2;
 
     if (current_position != desired_position)
     {
