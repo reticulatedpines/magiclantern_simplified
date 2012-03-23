@@ -443,6 +443,8 @@ static void stress_test_task(void* unused)
         give_semaphore(gui_sem);
         msleep(50);
     }
+    msleep(1000);
+    menu_stop();
 
     msleep(2000);
     beep();
