@@ -14,7 +14,7 @@
 #include "version.h"
 //#include "lua.h"
 
-//~ #define CONFIG_STRESS_TEST
+#define CONFIG_STRESS_TEST
 
 //~ #define CONFIG_HEXDUMP
 

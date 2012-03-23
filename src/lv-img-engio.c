@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "config.h"
 
-//~ #define CONFIG_DIGIC_POKE
+#define CONFIG_DIGIC_POKE
 
 #define SHAD_GAIN 0xc0f08030 // controls clipping point (digital ISO)
 
