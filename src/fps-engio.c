@@ -86,20 +86,20 @@ int fps_get_current_x1000();
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-    #define FPS_TIMER_A_MIN 0x228 // trial and error (with digic poke)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x228) // trial and error (with digic poke)
 #else
     #ifdef CONFIG_500D
         #define TG_FREQ_BASE 32000000    // not 100% sure
         #define TG_FREQ_SHUTTER 23188405 // not sure
-        #define FPS_TIMER_A_MIN 0x400    // not correct, but lets the user push it very far
+        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x400)    // not correct, but lets the user push it very far
     #else
         // 550D, 600D, 60D, 50D 
         #define TG_FREQ_BASE 28800000
         #ifdef CONFIG_50D
             #define TG_FREQ_SHUTTER 41379310 // not sure
-            #define FPS_TIMER_A_MIN 0x200    // not correct, but lets the user push it very far
+            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x200)    // not correct, but lets the user push it very far
         #else
-            #define FPS_TIMER_A_MIN 0x21A
+            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x21A)
             #define TG_FREQ_PAL  50000000
             #define TG_FREQ_NTSC_FPS 52747200
             #define TG_FREQ_NTSC_SHUTTER 49440000
@@ -561,11 +561,12 @@ static void fps_timer_print(
     int A = (priv == &desired_fps_timer_a_offset);
     int t = A ? fps_timer_a : fps_timer_b;
     int t0 = A ? fps_timer_a_orig : fps_timer_b_orig; 
+    if (t0 == 0) t0 = 1;
     int t_min = A ? FPS_TIMER_A_MIN : FPS_TIMER_B_MIN;
     int t_max = A ? FPS_TIMER_A_MAX : FPS_TIMER_B_MAX;
     int finetune_delta = ((int)(A ? desired_fps_timer_a_offset : desired_fps_timer_b_offset)) - 1000;
     int delta = t - t0;
-    char dec[4] = "";
+    char dec[10] = "";
     if (!finetune_delta && delta >= 100) 
         snprintf(dec, sizeof(dec), ".%02d", ((t * 100 / t0) % 100));
     bmp_printf(
@@ -578,8 +579,12 @@ static void fps_timer_print(
         finetune_delta ? finetune_delta : delta >= 100 ? t / t0 : delta, 
         dec
     );
-    if (!fps_override) menu_draw_icon(x, y, MNI_OFF, 0);
-    menu_draw_icon(x, y, MNI_PERCENT, sqrt(t - t_min) * 100  / sqrt(t_max - t_min));
+    if (!fps_override)
+        menu_draw_icon(x, y, MNI_OFF, 0);
+    else if (t_max <= t_min)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Internal error - please report an issue.");
+    else
+        menu_draw_icon(x, y, MNI_PERCENT, sqrt(t - t_min) * 100  / sqrt(t_max - t_min));
 }
 
 static void tg_freq_print(
@@ -769,7 +774,7 @@ static struct menu_entry fps_menu[] = {
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
-                .choices = (const char *[]) {"Low FPS, 360d", "Exact FPS", "Lo jello, 180d", "Jello effect"},
+                .choices = (const char *[]) {"Low FPS, 360d", "Exact FPS", "Lo jello, 180d", "High jello"},
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
@@ -787,7 +792,7 @@ static struct menu_entry fps_menu[] = {
                 .help = "Shutter speed range, if timer A is fixed. Adjusts timer A.",
             },
             {
-                .name = "FPS timer A",
+                //~ .name = "FPS timer A",
                 .display = fps_timer_print,
                 .priv = &desired_fps_timer_a_offset,
                 .select = fps_timer_fine_tune_a,
