@@ -435,15 +435,15 @@ desired_fps_print(
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Desired FPS  : %d.%02d",
-            desired_fps/100, desired_fps%100
+            "Desired FPS  : %d.%02d (from %d)",
+            desired_fps/100, desired_fps%100, video_mode_fps
         );
     else
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Desired FPS  : %d",
-            desired_fps/100
+            "Desired FPS  : %d (from %d)",
+            desired_fps/100, video_mode_fps
         );
     
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
