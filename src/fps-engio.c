@@ -51,7 +51,7 @@ static int fps_timer_b;        // C0F06014
 static int fps_timer_b_orig; 
 
 
-static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 12500, 15000, 17000, 20000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 35000, 40000, 48000, 50000, 60000, 65000};
+static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 12500, 15000, 17000, 20000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 35000, 40000, 48000, 50000, 60000, 65000};
 
 static int fps_override = 0;
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
@@ -86,7 +86,7 @@ int fps_get_current_x1000();
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-    #define FPS_TIMER_A_MIN 0x22A // trial and error (with digic poke)
+    #define FPS_TIMER_A_MIN 0x228 // trial and error (with digic poke)
 #else
     #ifdef CONFIG_500D
         #define TG_FREQ_BASE 32000000    // not 100% sure
@@ -344,9 +344,19 @@ static void fps_setup_timerB(int fps_x1000)
     // now we can compute timer B
     int timerB_off = ((int)desired_fps_timer_b_offset) - 1000;
     int timerB = 0;
-    timerB = fps_get_timer(fps_x1000) + timerB_off;
-        
-    timerB = COERCE(timerB, FPS_TIMER_B_MIN, FPS_TIMER_B_MAX) - 1;
+    timerB = fps_get_timer(fps_x1000);
+    
+    // check hard limits
+    timerB = COERCE(timerB, FPS_TIMER_B_MIN, FPS_TIMER_B_MAX);
+    
+    // apply user fine-tuning offset
+    timerB += timerB_off;
+
+    // check hard limits again
+    timerB = COERCE(timerB, FPS_TIMER_B_MIN, FPS_TIMER_B_MAX);
+    
+    // output the value to register
+    timerB -= 1;
     written_value_b = timerB;
     EngDrvOut(FPS_REGISTER_B, timerB);
 
@@ -609,6 +619,12 @@ static void fps_timer_fine_tune_a(void* priv, int delta)
     fps_needs_updating = 1;
 }
 
+static void fps_timer_fine_tune_a_big(void* priv, int delta)
+{
+    desired_fps_timer_a_offset += delta * 20;
+    fps_needs_updating = 1;
+}
+
 static void fps_timer_fine_tune_b(void* priv, int delta)
 {
     desired_fps_timer_b_offset += delta;
@@ -701,10 +717,16 @@ static void fps_setup_timerA(int fps_x1000)
     {
         timerA = TG_FREQ_BASE / fps_x1000 * 1000 / FPS_TIMER_B_MIN;
     }
+
+    // check hard limits
+    timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
     
     // apply user fine tuning
     int timerA_off = ((int)desired_fps_timer_a_offset) - 1000;
     timerA += timerA_off;
+
+    // check hard limits again
+    timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
 
     // save setting to DIGIC register
     int val_a = ((timerA-1) & 0x0000FFFE) | (FPS_REGISTER_A_VALUE & 0xFFFF0001);
@@ -747,21 +769,22 @@ static struct menu_entry fps_menu[] = {
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
-                .choices = (const char *[]) {"Low light", "Exact FPS", "180deg shutter", "Jello effect"},
+                .choices = (const char *[]) {"Low FPS, 360d", "Exact FPS", "Lo jello, 180d", "Jello effect"},
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
                 .help = "Optimization criteria - how to setup the two timers.",
             },
-            {
+            /*{
                 .display = fps_range_print,
                 //~ .select = fps_timer_a_big_change,
                 .help = "FPS range. Changing this will change FPS timer A.",
-            },
+            },*/
             {
                 .display = shutter_range_print,
                 //~ .select = fps_timer_a_big_change,
-                .help = "Shutter speed range if timerA is fixed. Will change timerA.",
+                .select = fps_timer_fine_tune_a_big,
+                .help = "Shutter speed range, if timer A is fixed. Adjusts timer A.",
             },
             {
                 .name = "FPS timer A",
