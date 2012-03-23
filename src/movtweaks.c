@@ -731,7 +731,7 @@ void rec_notify_trigger(int rec)
  * 
  */
 
-CONFIG_INT("bv.auto", bv_auto, 1);
+CONFIG_INT("bv.auto", bv_auto, 0);
 
 static void bv_display(
     void *          priv,
