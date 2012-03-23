@@ -1048,7 +1048,7 @@ submenu_display(struct menu * submenu)
     int count = 0;
     struct menu_entry * child = submenu->children;
     while (child) { count++; child = child->next; }
-    int h = (count + 4) * font_large.height;
+    int h = MIN((count + 4) * font_large.height, 400);
 
     int bx = 45;
     int by = (480 - h)/2 - 30;
