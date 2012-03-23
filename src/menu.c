@@ -632,7 +632,7 @@ void submenu_icon(int x, int y)
 void selection_bar(int x0, int y0)
 {
     int w = x0 + 720 - 40 - 10;
-    if (submenu_mode==1) w -= 110;
+    if (submenu_mode==1) w -= 90;
 
     extern int bmp_color_scheme;
     
@@ -1050,7 +1050,7 @@ submenu_display(struct menu * submenu)
     while (child) { count++; child = child->next; }
     int h = (count + 4) * font_large.height;
 
-    int bx = 50;
+    int bx = 45;
     int by = (480 - h)/2 - 30;
     if (!show_only_selected)
     {
