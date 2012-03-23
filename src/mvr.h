@@ -7,11 +7,11 @@
 #endif
 
 #ifdef CONFIG_600D
-#include "../platform/600D.102/mvr.h"
+#include "../platform/600D.101/mvr.h"
 #endif
 
 #ifdef CONFIG_50D
-#include "../platform/50D.109/mvr.h"
+#include "../platform/50D.108/mvr.h"
 #endif
 
 #ifdef CONFIG_500D
@@ -19,9 +19,9 @@
 #endif
 
 #ifdef CONFIG_1100D
-#include "../platform/1100D.105/mvr.h"
+#include "../platform/1100D.104/mvr.h"
 #endif
 
 #ifdef CONFIG_5D2
-#include "../platform/5D2.212/mvr.h"
+#include "../platform/5D2.211/mvr.h"
 #endif
