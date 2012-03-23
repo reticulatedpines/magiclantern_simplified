@@ -3505,6 +3505,10 @@ extern int lvae_iso_speed;
 extern void display_gain_print( void * priv, int x, int y, int selected);
 extern void display_gain_toggle(void* priv, int dir);
 
+extern int highlight_recover;
+extern void clipping_print( void * priv, int x, int y, int selected);
+void detect_native_iso_gmt();
+
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -3624,6 +3628,15 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
+                .name = "Clipping Point",
+                .priv       = &highlight_recover,
+                .min = 0,
+                .max = 5,
+                .display = clipping_print,
+                .help = "Movie only: overrides digital ISO gain (highlight recovery).",
+                .edit_mode = EM_MANY_VALUES,
+            },
+            {
                 .name = "Display Gain", 
                 .priv = &LVAE_DISP_GAIN,
                 .select = display_gain_toggle, 
@@ -3662,6 +3675,11 @@ static struct menu_entry expo_menus[] = {
                 .name = "Auto adjust ISO",
                 .select = iso_auto,
                 .help = "Adjust ISO value once for the current scene."
+            },
+            {
+                .name = "Maximize dynamic range",
+                .select = detect_native_iso_gmt,
+                .help = "Detects optimal clipping point (overrides digital ISO gain)."
             },
             MENU_EOL
         },
@@ -4779,12 +4797,19 @@ void detect_native_iso()
 {
     extern int shad_gain_override;
     shad_gain_override = 0;
-    NotifyBox(1000, "Detecting native ISO..."); msleep(1000);
+    highlight_recover = 6; // custom
+    NotifyBox(1000, "Detecting optimal ISO..."); msleep(1000);
     autodetect_default_shad_gain();
     while (!is_image_overexposed())
     {
         NotifyBox(1000, "Point camera to something bright..."); msleep(500);
     }
     int gain = bin_search(100, 10000, crit_native_iso);
-    NotifyBox(5000, "Native ISO: %d.  ", get_exact_iso_equiv());
+    NotifyBox(5000, "Optimal ISO: %d.  ", get_exact_iso_equiv());
+}
+
+void detect_native_iso_gmt()
+{
+    gui_stop_menu();
+    task_create("native_iso", 0x1a, 0, detect_native_iso, 0);
 }

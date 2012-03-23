@@ -45,6 +45,7 @@ int get_new_shad_gain()
         case 3: return default_shad_gain / 2;          // -1   EV
         case 4: return default_shad_gain * 362 / 1024; // -1.5 EV
         case 5: return default_shad_gain / 4;          // -2   EV
+        case 6: return shad_gain_override ? shad_gain_override : default_shad_gain;             // custom
     }
 }
 
@@ -226,7 +227,7 @@ void highlight_recover_step()
     }
 }
 
-static void
+void
 clipping_print(
     void *          priv,
     int         x,
@@ -242,7 +243,7 @@ clipping_print(
         bmp_printf(
             MENU_FONT,
             x, y,
-            "Highlight++   : %s%d.%d EV",
+            "Clipping Point: %s%d.%d EV",
             G > 0 ? "-" : "",
             ABS(G)/10, ABS(G)%10
         );
@@ -255,7 +256,7 @@ clipping_print(
         bmp_printf(
             MENU_FONT,
             x, y,
-            "Highlight++   : OFF (%s%d.%d EV)",
+            "Clipping Point: Don't change",
             G > 0 ? "-" : "",
             ABS(G)/10, ABS(G)%10
         );
@@ -275,7 +276,7 @@ clipping_print(
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
-    {
+    /*{
         .name = "Highlight++",
         .priv       = &highlight_recover,
         .min = 0,
@@ -283,7 +284,7 @@ static struct menu_entry lv_img_menu[] = {
         .display = clipping_print,
         .help = "Highlight recovery by changing sensor clipping point in LV.",
         .edit_mode = EM_MANY_VALUES,
-    },
+    },*/
     {
         .name = "Image Effects",
         .priv = &image_effects,

@@ -215,8 +215,6 @@ int raw2iso(int raw_iso)
         iso = ((iso+500)/1000) * 1000;
     else if (iso > 10000)
         iso = ((iso+50)/100) * 100;
-    else if (iso >= 60)
-        iso = ((iso+5)/10) * 10;
     else if (iso >= 15)
         iso = ((iso+2)/5) * 5;
     else
