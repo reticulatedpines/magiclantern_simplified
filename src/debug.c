@@ -31,9 +31,7 @@ void MirrorDisplay();
 void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
-void display_on_force();
 void display_off();
-void display_off_force();
 
 void fake_halfshutter_step();
 
@@ -322,7 +320,14 @@ static int compute_signature(int* start, int num)
 
 void run_test()
 {
-	NotifyBox(5000, "%x %x ", compute_signature(0xFF810000, 0x10000), compute_signature(0xFF010000, 0x10000));
+    msleep(2000);
+    info_led_blink(1,50,50);
+	PauseLiveView();
+    msleep(2000);
+    info_led_blink(1,50,50);
+    ResumeLiveView();
+
+    info_led_blink(5,50,50);
 }
 
 void xx_test(void* priv, int delta)
@@ -672,8 +677,8 @@ static void stress_test_task(void* unused)
     for (int i = 0; i <= 100; i++)
     {
         NotifyBox(1000, "Display on/off: %d", i);
-        display_off_force(); msleep(rand()%200);
-        display_on_force(); msleep(rand()%200);
+        display_off(); msleep(rand()%200);
+        display_on(); msleep(rand()%200);
     }
 
     stress_test_picture(2, 2000);
@@ -1531,8 +1536,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         //~ struct tm now;
         //~ LoadCalendarFromRTC(&now);
 
-        //~ bmp_printf(FONT_LARGE, 100, 100, "%d %d ", lens_info.job_state, burst_count);
-
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
@@ -1672,7 +1675,7 @@ PROP_INT(PROP_STROBO_REDEYE, red_eye);
 void flashlight_frontled_task(void* priv)
 {
     msleep(100);
-    display_off_force();
+    display_off();
     int r = red_eye;
     int x = 1;
     int l = lv;
@@ -1689,7 +1692,7 @@ void flashlight_frontled_task(void* priv)
     msleep(100);
     SW1(1,0);
     msleep(100);
-    while (get_halfshutter_pressed()) { msleep(100); display_off_force(); }
+    while (get_halfshutter_pressed()) { msleep(100); display_off(); }
     lens_set_drivemode(d);
     prop_request_change(PROP_STROBO_REDEYE, &r, 4);
     restore_af_button_assignment();
@@ -2969,8 +2972,6 @@ void fake_simple_button(int bgmt_code)
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
-int _display_is_off = 0;
-
 // those functions seem not to be thread safe
 // calling them from gui_main_task seems to sync them with other Canon calls properly
 int handle_tricky_canon_calls(struct event * event)
@@ -2981,12 +2982,10 @@ int handle_tricky_canon_calls(struct event * event)
             HijackFormatDialogBox();
             break;
         case MLEV_TURN_ON_DISPLAY:
-            if (_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOnDisplay");
-            _display_is_off = 0;
+            if (!DISPLAY_IS_ON) call("TurnOnDisplay");
             break;
         case MLEV_TURN_OFF_DISPLAY:
-            if (!_display_is_off && is_safe_to_mess_with_the_display(0)) call("TurnOffDisplay");
-            _display_is_off = 1;
+            if (DISPLAY_IS_ON) call("TurnOffDisplay");
             break;
         case MLEV_ChangeHDMIOutputSizeToVGA:
             ChangeHDMIOutputSizeToVGA();
@@ -3049,19 +3048,9 @@ void display_on()
 {
     fake_simple_button(MLEV_TURN_ON_DISPLAY);
 }
-void display_on_force()
-{
-    _display_is_off = 1;
-    display_on();
-}
 void display_off()
 {
     fake_simple_button(MLEV_TURN_OFF_DISPLAY);
-}
-void display_off_force()
-{
-    _display_is_off = 0;
-    display_off();
 }
 int display_is_on() { return DISPLAY_IS_ON; }
 

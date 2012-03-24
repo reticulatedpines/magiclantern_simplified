@@ -1005,7 +1005,7 @@ silent_pic_take_simple(int interactive)
         if (!intervalometer_w_powersave)
             ResumeLiveView();
         else
-            display_off_force();
+            display_off();
     }
 
     
@@ -4652,7 +4652,7 @@ shoot_task( void* unused )
                     // stop LiveView and turn off display to save power
                     PauseLiveView();
                     msleep(200);
-                    display_off_force();
+                    display_off();
                     display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
                 }
             }

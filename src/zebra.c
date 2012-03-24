@@ -3968,7 +3968,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 static void update_idle_countdown(int* countdown)
 {
     //~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
-    if ((liveview_display_idle() && !get_halfshutter_pressed()) || LV_PAUSED)
+    if ((liveview_display_idle() && !get_halfshutter_pressed()) || !DISPLAY_IS_ON)
     {
         if (*countdown)
             (*countdown)--;
@@ -3994,6 +3994,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
     if (*prev_countdown && !c)
     {
+        info_led_blink(1, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
         action_on();
         //~ msleep(500);
@@ -4001,6 +4002,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     }
     else if (!*prev_countdown && c)
     {
+        info_led_blink(1, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
         action_off();
         //~ msleep(500);
@@ -4012,7 +4014,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
 int lv_zoom_before_pause = 0;
 void PauseLiveView()
 {
-    if (lv && !lv_paused)
+    if (LV_NON_PAUSED)
     {
         int x = 1;
         //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
@@ -4024,12 +4026,13 @@ void PauseLiveView()
             lv_paused = 1;
             lv = 1;
         )
+        display_off();
     }
 }
 
 void ResumeLiveView()
 {
-    if (lv && lv_paused)
+    if (LV_PAUSED)
     {
         lv = 0;
         int x = 0;
@@ -4037,9 +4040,10 @@ void ResumeLiveView()
         BMP_LOCK(
             prop_request_change(PROP_LV_ACTION, &x, 4);
             while (!lv) msleep(100);
+            while (!DISPLAY_IS_ON) msleep(100);
         )
         prop_request_change(PROP_LV_DISPSIZE, &lv_zoom_before_pause, 4);
-        msleep(300);
+        msleep(100);
     }
     lv_paused = 0;
 }
@@ -4068,7 +4072,7 @@ static void idle_display_off()
         }
     }
     if (!(motion_detect || recording)) PauseLiveView();
-    display_off_force();
+    else display_off();
     msleep(100);
     idle_countdown_display_off = 0;
 }
@@ -4076,7 +4080,7 @@ static void idle_display_on()
 {
     //~ card_led_blink(5, 50, 50);
     ResumeLiveView();
-    display_on_force();
+    display_on();
     redraw();
 }
 
@@ -4178,7 +4182,7 @@ clearscreen_loop:
         
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
-        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0)
+        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording)
             info_led_blink(1, 20, 20);
 
         if (!lv) continue;
@@ -5058,7 +5062,7 @@ PROP_HANDLER(PROP_LV_ACTION)
     idle_display_undim(); // restore LCD brightness, especially for shutdown
     //~ idle_wakeup_reset_counters(-4);
     idle_globaldraw_disable = 0;
-    if (buf[0] == 0) lv_paused = 0;
+    //~ if (buf[0] == 0) lv_paused = 0;
     bv_auto_update();
     zoom_sharpen_step();
     return prop_cleanup( token, property );
