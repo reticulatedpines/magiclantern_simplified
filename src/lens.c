@@ -1372,7 +1372,6 @@ PROP_HANDLER( PROP_APERTURE2 )
     return prop_cleanup( token, property );
 }
 
-#if !defined(CONFIG_5D2) && !defined(CONFIG_50D)
 PROP_HANDLER( PROP_APERTURE ) // for Tv mode
 {
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
@@ -1386,7 +1385,6 @@ PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
     lens_display_set_dirty();
     return prop_cleanup( token, property );
 }
-#endif
 
 PROP_HANDLER( PROP_AE )
 {
