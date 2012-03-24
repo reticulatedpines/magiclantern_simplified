@@ -634,6 +634,17 @@ static void rec_notify_print(
 void rec_notify_continuous(int called_from_menu)
 {
     if (!is_movie_mode()) return;
+
+    if (rec_notify == 3) // this is non-graphical notification, should also run when display is off
+    {
+        static int k = 0;
+        k++;
+        if (k % 10 == 0) // edled may take a while to process, don't try it often
+        {
+            if (recording) info_led_on();
+        }
+    }
+
     if (!zebra_should_run()) return;
     if (gui_menu_shown() && !called_from_menu) return;
     
@@ -669,15 +680,6 @@ void rec_notify_continuous(int called_from_menu)
             bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "REC");
         else
             bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
-    }
-    else if (rec_notify == 3)
-    {
-        static int k = 0;
-        k++;
-        if (k % 10 == 0) // edled may take a while to process, don't try it often
-        {
-            if (recording) info_led_on();
-        }
     }
     
     if (prev != recording) redraw();
