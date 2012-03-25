@@ -212,18 +212,11 @@ void highlight_recover_step()
 {
     if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
     if (lens_info.iso == 0) return; // no auto ISO, please
-
-    if (shad_gain_override && DISPLAY_IS_ON && lv)
-    {
-        EngDrvOut(SHAD_GAIN, shad_gain_override);
-        return;
-    }
     
     if (highlight_recover && DISPLAY_IS_ON && lv)
     {
         autodetect_default_shad_gain();
         EngDrvOut(SHAD_GAIN, get_new_shad_gain());
-        //~ lens_info_update();
     }
 }
 
