@@ -4795,6 +4795,16 @@ static int crit_native_iso(int gain)
 
 void detect_native_iso()
 {
+    if (!is_movie_mode())
+    {
+        NotifyBox(2000, "This works only in movie mode.");
+        return;
+    }
+    if (lens_info.iso == 0)
+    {
+        NotifyBox(2000, "No auto ISO, please!");
+        return;
+    }
     extern int shad_gain_override;
     shad_gain_override = 0;
     highlight_recover = 6; // custom
