@@ -93,6 +93,7 @@ int handle_common_events_by_feature(struct event * event)
         idle_wakeup_reset_counters(event->param);
         return 0;  // just wake up from powersave, don't do anything else
     }
+    idle_wakeup_reset_counters(event->param);
     
     if (handle_digic_poke(event) == 0) return 0;
     spy_event(event); // for debugging only
