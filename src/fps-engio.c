@@ -86,7 +86,7 @@ int fps_get_current_x1000();
 #ifdef CONFIG_5D2
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x228) // trial and error (with digic poke)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
 #else
     #ifdef CONFIG_500D
         #define TG_FREQ_BASE 32000000    // not 100% sure
@@ -880,6 +880,7 @@ static void fps_task()
         
         if (fps_needs_updating || fps_was_changed_by_canon())
         {
+            msleep(200);
             int f = fps_values_x1000[fps_override_index];
             fps_setup_timerA(f);
             fps_setup_timerB(f);
