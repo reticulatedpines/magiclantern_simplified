@@ -3941,7 +3941,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
     //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
     
     if (lv && reason == GMT_OLC_INFO_CHANGED) return;
-
+    
     // when sensor is covered, timeout changes to 3 seconds
     int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
 
@@ -3994,7 +3994,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
     if (*prev_countdown && !c)
     {
-        info_led_blink(1, 50);
+        info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
         action_on();
         //~ msleep(500);
@@ -4002,7 +4002,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     }
     else if (!*prev_countdown && c)
     {
-        info_led_blink(1, 50);
+        info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
         action_off();
         //~ msleep(500);
@@ -4014,6 +4014,8 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
 int lv_zoom_before_pause = 0;
 void PauseLiveView()
 {
+    if (PLAY_MODE) return;
+    if (MENU_MODE) return;
     if (LV_NON_PAUSED)
     {
         int x = 1;
@@ -4032,6 +4034,8 @@ void PauseLiveView()
 
 void ResumeLiveView()
 {
+    if (PLAY_MODE) return;
+    if (MENU_MODE) return;
     if (LV_PAUSED)
     {
         lv = 0;
@@ -4752,6 +4756,7 @@ static void do_disp_mode_change()
         return; 
     }
     
+    ResumeLiveView();
     display_on();
     bmp_on();
     clrscr();
@@ -5062,7 +5067,7 @@ PROP_HANDLER(PROP_LV_ACTION)
     idle_display_undim(); // restore LCD brightness, especially for shutdown
     //~ idle_wakeup_reset_counters(-4);
     idle_globaldraw_disable = 0;
-    //~ if (buf[0] == 0) lv_paused = 0;
+    if (buf[0] == 0) lv_paused = 0;
     bv_auto_update();
     zoom_sharpen_step();
     return prop_cleanup( token, property );

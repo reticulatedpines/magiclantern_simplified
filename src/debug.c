@@ -323,11 +323,11 @@ void run_test()
     msleep(2000);
     info_led_blink(1,50,50);
 	PauseLiveView();
-    msleep(2000);
-    info_led_blink(1,50,50);
-    ResumeLiveView();
+    //~ msleep(2000);
+    //~ info_led_blink(1,50,50);
+    //~ ResumeLiveView();
 
-    info_led_blink(5,50,50);
+    //~ info_led_blink(5,50,50);
 }
 
 void xx_test(void* priv, int delta)
@@ -436,7 +436,7 @@ static void stress_test_task(void* unused)
             //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
         }
         dir = mod(dir + rand()%3 - 1, 7);
-        msleep(10);
+        msleep(MIN_MSLEEP);
     }
     give_semaphore(gui_sem);
 
@@ -1529,7 +1529,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     int k;
     for (k = 0; ; k++)
     {
-        msleep(10);
+        msleep(MIN_MSLEEP);
         
         //ui_lock(UILOCK_NONE); msleep(1000);        for debugging purposes (A1ex)
         

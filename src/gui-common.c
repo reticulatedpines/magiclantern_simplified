@@ -86,12 +86,19 @@ int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras
     // there may be exceptions
+
+    if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
+    { 
+        ResumeLiveView();
+        idle_wakeup_reset_counters(event->param);
+        return 0;  // just wake up from powersave, don't do anything else
+    }
+    
     if (handle_digic_poke(event) == 0) return 0;
     spy_event(event); // for debugging only
     if (handle_upside_down(event) == 0) return 0;
     if (handle_shutter_events(event) == 0) return 0;
     if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
-    idle_wakeup_reset_counters(event->param);
     
     if (handle_buttons_being_held(event) == 0) return 0;
     if (handle_trap_focus(event) == 0) return 0;
