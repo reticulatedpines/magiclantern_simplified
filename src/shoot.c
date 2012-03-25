@@ -66,20 +66,17 @@ const char* get_dcim_dir()
 
 volatile int bulb_shutter_value = 0;
 
+static CONFIG_INT("uniwb.mode", uniwb_mode, 0);
 static CONFIG_INT("uniwb.old.wb_mode", uniwb_old_wb_mode, 0);
 static CONFIG_INT("uniwb.old.gain_R", uniwb_old_gain_R, 0);
 static CONFIG_INT("uniwb.old.gain_G", uniwb_old_gain_G, 0);
 static CONFIG_INT("uniwb.old.gain_B", uniwb_old_gain_B, 0);
 
-static int uniwb_status = 0;
 int uniwb_is_active() 
 {
-    return lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
-}
-
-static void uniwb_status_update() 
-{
-    uniwb_status = uniwb_is_active();
+    return 
+        lens_info.wb_mode == WB_CUSTOM &&
+        lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
 }
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
@@ -1588,6 +1585,8 @@ aperture_toggle( void* priv, int sign)
 void
 kelvin_toggle( void* priv, int sign )
 {
+    if (uniwb_is_active()) return;
+
     int k;
     switch (lens_info.wb_mode)
     {
@@ -1646,7 +1645,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            (uniwb_status           ? "UniWB   " : 
+            (uniwb_is_active()     ? "UniWB   " : 
             (lens_info.wb_mode == 0 ? "Auto    " : 
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
@@ -1728,14 +1727,14 @@ wb_custom_gain_display( void * priv, int x, int y, int selected )
     );
     if (lens_info.wb_mode != WB_CUSTOM)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Custom white balance is not active.");
-    else if (uniwb_status) 
+    else if (uniwb_is_active()) 
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "UniWB is active.");
 }
 
 static void
 wb_custom_gain_toggle( void * priv, int delta )
 {
-    if (uniwb_status) return;
+    if (uniwb_is_active()) return;
     int p = (intptr_t) priv;
     int deltaR = p == 1 ? -delta * 16 * MAX(1, lens_info.WBGain_R/1024) : 0;
     int deltaG = p == 2 ? -delta * 16 * MAX(1, lens_info.WBGain_G/1024) : 0;
@@ -1743,38 +1742,69 @@ wb_custom_gain_toggle( void * priv, int delta )
     lens_set_custom_wb_gains(lens_info.WBGain_R + deltaR, lens_info.WBGain_G + deltaG, lens_info.WBGain_B + deltaB);
 }
 
-static void
-uniwb_toggle( void * priv, int delta )
+static void uniwb_save_normal_wb_params()
 {
-    uniwb_status_update();
-    if (uniwb_status)
+    if (uniwb_is_active()) return;
+    //~ info_led_blink(1,50,50);
+    uniwb_old_wb_mode = lens_info.wb_mode;
+    uniwb_old_gain_R = lens_info.WBGain_R;
+    uniwb_old_gain_G = lens_info.WBGain_G;
+    uniwb_old_gain_B = lens_info.WBGain_B;
+}
+
+static void uniwb_enable()
+{
+    uniwb_save_normal_wb_params();
+    lens_set_custom_wb_gains(1024, 1024, 1024);
+}
+
+static void uniwb_disable()
+{
+    //~ info_led_blink(2,200,200);
+    if (!uniwb_old_gain_R) return;
+    lens_set_custom_wb_gains(uniwb_old_gain_R, uniwb_old_gain_G, uniwb_old_gain_B);
+    prop_request_change(PROP_WB_MODE_LV, &uniwb_old_wb_mode, 4);
+    prop_request_change(PROP_WB_MODE_PH, &uniwb_old_wb_mode, 4);
+    msleep(100);
+    if (!uniwb_is_active()) // successfully disabled
     {
-        lens_set_custom_wb_gains(uniwb_old_gain_R, uniwb_old_gain_G, uniwb_old_gain_B);
-        prop_request_change(PROP_WB_MODE_LV, &uniwb_old_wb_mode, 4);
-        prop_request_change(PROP_WB_MODE_PH, &uniwb_old_wb_mode, 4);
+        uniwb_old_gain_R = uniwb_old_gain_G = uniwb_old_gain_B = uniwb_old_wb_mode = 0;
+    }
+}
+
+void uniwb_step()
+{
+    if (!lv) return;
+    
+    int uniwb_desired_state = 0;
+    switch (uniwb_mode)
+    {
+        case 0: // always off
+            uniwb_desired_state = 0;
+            break;
+        case 1: // always on
+            uniwb_desired_state = 1;
+            break;
+        case 2: // halfshutter
+            uniwb_desired_state = get_halfshutter_pressed();
+            break;
+        case 3: // halfshutter not pressed
+            uniwb_desired_state = !get_halfshutter_pressed();
+            break;
+    }
+
+    if (!liveview_display_idle() && !gui_menu_shown())
+    {
+        uniwb_save_normal_wb_params(); // maybe user is changing WB settings from Canon menu - save them as non-uniWB params
+    }
+    else if (uniwb_desired_state == 0) 
+    {
+        if (uniwb_old_gain_R) uniwb_disable();
     }
     else
     {
-        uniwb_old_wb_mode = lens_info.wb_mode;
-        uniwb_old_gain_R = lens_info.WBGain_R;
-        uniwb_old_gain_G = lens_info.WBGain_G;
-        uniwb_old_gain_B = lens_info.WBGain_B;
-        lens_set_custom_wb_gains(1024, 1024, 1024);
+        if (!uniwb_is_active()) uniwb_enable();
     }
-    uniwb_status_update();
-}
-
-static void
-uniwb_display( void * priv, int x, int y, int selected )
-{
-    uniwb_status_update();
-
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "UniWB       : %s",
-        uniwb_status ? " ON" : "OFF"
-    );
 }
 
 static int crit_kelvin(int k)
@@ -3566,9 +3596,10 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .priv = &uniwb_status,
-                .display = uniwb_display,
-                .select = uniwb_toggle,
+                .name = "UniWB\b\b",
+                .priv = &uniwb_mode,
+                .max = 3,
+                .choices = (const char *[]) {"OFF", "Always ON", "on HalfShutter", "not HalfShutter"},
                 .help = "Cancels white balance => good RAW histogram approximation.",
             },
             
@@ -4396,6 +4427,8 @@ shoot_task( void* unused )
         }
         
         zoom_lv_step();
+        
+        uniwb_step();
         /*if (sweep_lv_on)
         {
             sweep_lv();
