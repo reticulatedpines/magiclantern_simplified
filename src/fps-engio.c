@@ -753,7 +753,7 @@ static struct menu_entry fps_menu[] = {
         .priv = &fps_override,
         .select = fps_enable_disable,
         .display = fps_print,
-        .help = "Changes FPS. Also sets shutter at 1/fps and disables sound.",
+        .help = "Changes FPS. Also disables sound and alters shutter speeds.",
         .children =  (struct menu_entry[]) {
 /*            {
                 .name = "Preset\b",
@@ -774,7 +774,7 @@ static struct menu_entry fps_menu[] = {
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
-                .choices = (const char *[]) {"Low FPS, 360d", "Exact FPS", "Lo jello, 180d", "High jello"},
+                .choices = (const char *[]) {"Low FPS, 360d", "Exact FPS", "LowJello, 180d", "High Jello"},
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
@@ -789,7 +789,7 @@ static struct menu_entry fps_menu[] = {
                 .display = shutter_range_print,
                 //~ .select = fps_timer_a_big_change,
                 .select = fps_timer_fine_tune_a_big,
-                .help = "Shutter speed range, if timer A is fixed. Adjusts timer A.",
+                .help = "Shutter speed range with current settings. Adjusts timer A.",
             },
             {
                 //~ .name = "FPS timer A",
