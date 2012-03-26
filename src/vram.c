@@ -361,8 +361,8 @@ void* get_422_hd_idle_buf()
     int failsafe = YUV422_HD_BUFFER_1;
 
     #ifdef CONFIG_50D // odd horizontal misalignment
-    hd -= 24;
-    failsafe -= 24;
+    hd -= 28;
+    failsafe -= 28;
     #endif
 
     return (void *) (IS_HD_BUFFER(hd) ? hd : failsafe);
