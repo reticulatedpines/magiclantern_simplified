@@ -4508,21 +4508,30 @@ livev_hipriority_task( void* unused )
             //~ crop_set_dirty(20);
         
         //~ if (lens_display_dirty)
-        if ((k % 100 == 0 || (lens_display_dirty && k % 20 == 0)) && !gui_menu_shown())
-        //~ if (k % 5 == 0 && !gui_menu_shown())
+        
+        int m = 100;
+        if (lens_display_dirty) m = 20;
+        if (should_draw_zoom_overlay()) m = 100;
+        
+        int kmm = k % m;
+        if (!gui_menu_shown()) // don't update everything in one step, to reduce magic zoom flicker
         {
-            //~ #ifdef CONFIG_KILL_FLICKER
-            //~ if (lv && is_movie_mode() && !crop_draw) BMP_LOCK( bars_16x9_50D(); )
-            //~ #endif
-
             #if defined(CONFIG_550D) || defined(CONFIG_5D2)
-            BMP_LOCK( black_bars(); )
+            if (kmm == 0)
+                BMP_LOCK( black_bars(); )
             #endif
 
-            BMP_LOCK( update_lens_display(); );
-            lens_display_dirty = 0;
+            if (kmm == 5)
+                BMP_LOCK( update_lens_display(1,0); );
 
-            movie_indicators_show();
+            if (kmm == 15)
+            {
+                BMP_LOCK( update_lens_display(0,1); );
+                lens_display_dirty = 0;
+            }
+
+            if (kmm == 10)
+                movie_indicators_show();
         }
 
 #if CONFIG_DEBUGMSG

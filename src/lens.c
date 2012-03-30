@@ -172,13 +172,13 @@ const char * lens_format_dist( unsigned mm)
 } /* end of aj_lens_format_dist() */
 
 void
-update_lens_display()
+update_lens_display(int top, int bottom)
 {
     extern int menu_upside_down; // don't use double buffer in this mode
     int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty();
 
-    draw_ml_topbar(double_buffering, 1);
-    draw_ml_bottombar(double_buffering, 1);
+    if (top) draw_ml_topbar(double_buffering, 1);
+    if (bottom) draw_ml_bottombar(double_buffering, 1);
 }
 
 int should_draw_bottom_bar()
