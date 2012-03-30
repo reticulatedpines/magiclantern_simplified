@@ -1131,15 +1131,17 @@ mvr_create_logfile(
 
     my_fprintf( mvr_logfile, "Lens name      : %s\n", lens_info.name );
 
+    int sr_x1000 = get_current_shutter_reciprocal_x1000();
+
     my_fprintf(
         mvr_logfile,
         "ISO            : %d\n"
-        "Shutter        : 1/%ds\n"
+        "Shutter        : 1/%d.%03ds\n"
         "Aperture       : f/%d.%d\n"
         "Focal length   : %d mm\n"
         "Focus distance : %d mm\n",
         lens_info.iso,
-        lens_info.shutter,
+        sr_x1000/1000, sr_x1000%1000,
         lens_info.aperture / 10, lens_info.aperture % 10,
         lens_info.focal_len,
         lens_info.focus_dist
