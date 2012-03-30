@@ -4003,7 +4003,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
 }
 
 int lv_zoom_before_pause = 0;
-void PauseLiveView()
+void PauseLiveView() // this should not include "display off" command
 {
     if (PLAY_MODE) return;
     if (MENU_MODE) return;
@@ -4019,7 +4019,6 @@ void PauseLiveView()
             lv_paused = 1;
             lv = 1;
         )
-        display_off();
     }
 }
 
@@ -4067,7 +4066,7 @@ static void idle_display_off()
         }
     }
     if (!(motion_detect || recording)) PauseLiveView();
-    else display_off();
+    display_off();
     msleep(100);
     idle_countdown_display_off = 0;
 }
