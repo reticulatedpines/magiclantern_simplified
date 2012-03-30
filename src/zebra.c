@@ -4508,7 +4508,7 @@ livev_hipriority_task( void* unused )
             //~ crop_set_dirty(20);
         
         //~ if (lens_display_dirty)
-        if ((k % 50 == 0 || (lens_display_dirty && k % 15 == 0)) && !gui_menu_shown())
+        if ((k % 100 == 0 || (lens_display_dirty && k % 20 == 0)) && !gui_menu_shown())
         //~ if (k % 5 == 0 && !gui_menu_shown())
         {
             //~ #ifdef CONFIG_KILL_FLICKER

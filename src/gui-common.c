@@ -38,13 +38,9 @@ int handle_other_events(struct event * event)
         
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
-        if (bottom_bar_dirty)
+        
+        if (bottom_bar_dirty == 1)
         {
-            //~ canon_gui_disable_front_buffer();
-        }
-        else
-        {
-            //~ canon_gui_enable_front_buffer(0);
             lens_display_set_dirty();
         }
     }
