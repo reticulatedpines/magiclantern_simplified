@@ -222,7 +222,7 @@ void aj_green_screen()
 
    bmp_printf( FONT(FONT_MED,COLOR_WHITE, COLOR_BLACK), 
                os.x0 + os.x_ex/2 - font_med.width*7, os.y_max - os.off_169 - 27, 
-               "Accurracy=%02d%%",((255-(highest_luma-lowest_luma))*99 )/255
+               "Accuracy=%03d%%",((255-(highest_luma-lowest_luma))*99 )/255
              );
 
    bmp_printf( FONT(FONT_MED,COLOR_CYAN, COLOR_BLACK), 
