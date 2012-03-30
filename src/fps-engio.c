@@ -91,15 +91,15 @@ int fps_get_current_x1000();
     #ifdef CONFIG_500D
         #define TG_FREQ_BASE 32000000    // not 100% sure
         #define TG_FREQ_SHUTTER 23188405 // not sure
-        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x400)    // not correct, but lets the user push it very far
+        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
     #else
         // 550D, 600D, 60D, 50D 
         #define TG_FREQ_BASE 28800000
         #ifdef CONFIG_50D
             #define TG_FREQ_SHUTTER 41379310 // not sure
-            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x200)    // not correct, but lets the user push it very far
+            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 630 : 688 )
         #else
-            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, 0x21A)
+            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 734 : video_mode_crop ? 400 : 0x21A)
             #define TG_FREQ_PAL  50000000
             #define TG_FREQ_NTSC_FPS 52747200
             #define TG_FREQ_NTSC_SHUTTER 49440000
@@ -152,6 +152,11 @@ static int get_current_tg_freq()
 #ifdef CONFIG_60D
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
+#endif
+
+#ifdef CONFIG_1100D
+#define VIDEO_PARAMETERS_SRC_3 0x70C0C
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC)) // not sure
 #endif
 
 #ifdef CONFIG_500D
@@ -465,15 +470,20 @@ static void flip_zoom()
     prop_request_change(PROP_LV_DISPSIZE, &zoom0, 4);
 }
 
-static void fps_reset()
+static void fps_register_reset()
 {
-    fps_override = 0;
     if (fps_reg_a_orig && fps_reg_b_orig)
     {
         EngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
         EngDrvOut(FPS_REGISTER_B, fps_reg_b_orig);
         EngDrvOut(0xC0F06000, 1);
     }
+}
+
+static void fps_reset()
+{
+    fps_override = 0;
+    fps_register_reset();
     fps_needs_updating = 0;
 
     restore_sound_recording();
@@ -881,7 +891,14 @@ static void fps_task()
         if (fps_needs_updating || fps_was_changed_by_canon())
         {
             msleep(200);
+
             int f = fps_values_x1000[fps_override_index];
+            
+            // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
+            if (f < 5000)
+                while (recording && MVR_FRAME_NUMBER < video_mode_fps) 
+                    msleep(MIN_MSLEEP);
+            
             fps_setup_timerA(f);
             fps_setup_timerB(f);
         }
@@ -896,3 +913,22 @@ void fps_mvr_log(FILE* mvr_logfile)
     int f = fps_get_current_x1000();
     my_fprintf(mvr_logfile, "FPS            : %d.%03d\n", f/1000, f%1000);
 }
+
+// on certain events (PLAY, RECORD) we need to disable FPS override temporarily
+int handle_fps_events(struct event * event)
+{
+    if (event->param == BGMT_PLAY || 
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+        event->param == BGMT_PRESS_SET
+    #else
+        event->param == BGMT_LV
+    #endif
+    )
+    {
+        fps_register_reset();
+    }
+    
+    return 1;
+}
+
+
