@@ -321,7 +321,9 @@ int get_global_draw_setting() // whatever is set in menu
 /** Store the waveform data for each of the WAVEFORM_WIDTH bins with
  * 128 levels
  */
-static uint32_t** waveform = 0;
+static uint8_t* waveform = 0;
+#define WAVEFORM_UNSAFE(x,y) (waveform[(x) + (y) * WAVEFORM_WIDTH])
+#define WAVEFORM(x,y) (waveform[COERCE((x), 0, WAVEFORM_WIDTH-1) + COERCE((y), 0, WAVEFORM_HEIGHT-1) * WAVEFORM_WIDTH])
 
 /** Store the histogram data for each of the "hist_width" bins */
 static uint32_t* hist = 0;
@@ -547,9 +549,6 @@ hist_build()
     if (waveform_draw)
     {
         waveform_init();
-        for( y=0 ; y<WAVEFORM_WIDTH ; y++ )
-            for( x=0 ; x<WAVEFORM_HEIGHT ; x++ )
-                waveform[y][x] = 0;
     }
     
     if (vectorscope_draw)
@@ -585,7 +584,7 @@ hist_build()
                 hist_b[B_level]++;
             }
 
-            uint32_t hist_level = COERCE(( Y * hist_width ) / 0xFF, 0, hist_width-1);
+            uint32_t hist_level = COERCE(( Y * hist_width ) / 256, 0, hist_width-1);
 
             // Ignore the 0 bin.  It generates too much noise
             unsigned count = ++ (hist[ hist_level ]);
@@ -593,7 +592,11 @@ hist_build()
                 hist_max = count;
 
             // Update the waveform plot
-            if (waveform_draw) waveform[ COERCE(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, 0, WAVEFORM_WIDTH-1)][ COERCE((Y * WAVEFORM_HEIGHT) / 0xFF, 0, WAVEFORM_HEIGHT-1) ]++;
+            if (waveform_draw) 
+            {
+                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) / 256);
+                if ((*w) < 250) (*w)++;
+            }
 
             if (vectorscope_draw)
             {
@@ -791,7 +794,7 @@ waveform_draw_image(
     {
         if (!expsim) return;
     }
-    waveform_init();
+
     // Ensure that x_origin is quad-word aligned
     x_origin &= ~3;
 
@@ -813,10 +816,10 @@ waveform_draw_image(
         int w = WAVEFORM_WIDTH*WAVEFORM_FACTOR;
         for( i=0 ; i<w ; i++ )
         {
-            uint32_t count = waveform[ i / WAVEFORM_FACTOR ][ WAVEFORM_HEIGHT - y - 1];
+            uint32_t count = WAVEFORM_UNSAFE( i / WAVEFORM_FACTOR, WAVEFORM_HEIGHT - y - 1);
             if (height < WAVEFORM_HEIGHT)
             { // smooth it a bit to reduce aliasing; not perfect, but works.. sort of
-                count += waveform[ i / WAVEFORM_FACTOR ][ WAVEFORM_HEIGHT - y - 1];
+                count += WAVEFORM_UNSAFE( i / WAVEFORM_FACTOR, WAVEFORM_HEIGHT - y - 1);
                 //~ count /= 2;
             }
             // Scale to a grayscale
@@ -847,10 +850,10 @@ waveform_draw_image(
             // Draw the pixel, rounding down to the nearest
             // quad word write (and then nop to avoid err70).
             *(uint32_t*)( row + (i & ~3) ) = pixel;
-            asm( "nop" );
-            asm( "nop" );
-            asm( "nop" );
-            asm( "nop" );
+            //~ asm( "nop" );
+            //~ asm( "nop" );
+            //~ asm( "nop" );
+            //~ asm( "nop" );
             pixel = 0;
         }
     }
@@ -997,23 +1000,11 @@ static void dump_vram()
 
 int fps_ticks = 0;
 
-/*void fail(char* msg)
-{
-    bmp_printf(FONT_LARGE, 30, 100, msg);
-    while(1) msleep(1);
-}*/
 static void waveform_init()
 {
     if (!waveform)
-    {
-        waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
-        //~ if (!waveform) fail("Waveform malloc failed");
-        int i;
-        for (i = 0; i < WAVEFORM_WIDTH; i++) {
-            waveform[i] = AllocateMemory(WAVEFORM_HEIGHT * sizeof(uint32_t));
-            //~ if (!waveform[i]) fail("Waveform malloc failed");
-        }
-    }
+        waveform = AllocateMemory(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+    bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
 }
 
 static void histo_init()
