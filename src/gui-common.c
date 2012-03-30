@@ -22,12 +22,7 @@ int handle_other_events(struct event * event)
             // install a modified handler which does not activate bottom bar display timer
             reloc_liveviewapp_install(); 
             
-            #ifdef CONFIG_550D
-            // force bottom bar state to "hidden" (when you press shutter halfway, ISO... etc)
-            LV_BOTTOM_BAR_STATE = 0;
-            #else
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
-            #endif
         }
         else
         {
@@ -40,8 +35,6 @@ int handle_other_events(struct event * event)
             HideUnaviFeedBack_maybe();
             bottom_bar_dirty = 0;
         }
-
-        #ifndef CONFIG_550D
         
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
@@ -54,7 +47,6 @@ int handle_other_events(struct event * event)
             //~ canon_gui_enable_front_buffer(0);
             lens_display_set_dirty();
         }
-        #endif
     }
 #endif
     return 1;
@@ -147,6 +139,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_bulb_ramping_keys(event) == 0) return 0;
 
     if (handle_disp_preset_key(event) == 0) return 0;
+    if (handle_fps_events(event) == 0) return 0;
     //~ if (handle_pause_zebras(event) == 0) return 0;
     //~ if (handle_kenrockwell_zoom(event) == 0) return 0;
     return 1;
