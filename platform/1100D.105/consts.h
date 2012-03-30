@@ -69,9 +69,9 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-// for gui_main_task (1100d 104)
+// for gui_main_task (1100d 105)
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF536110
+#define GMT_FUNCTABLE 0xff536108
 
 #define DIALOG_MnCardFormatBegin (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 
