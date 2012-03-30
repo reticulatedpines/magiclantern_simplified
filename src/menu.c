@@ -1318,7 +1318,7 @@ menu_redraw()
 
                 if (show_only_selected) 
                 {
-                    draw_ml_topbar();
+                    draw_ml_topbar(0, 1);
                     draw_ml_bottombar(0, 1);
                 }
 
@@ -1589,13 +1589,13 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
         break;
 
     default:
-        DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
+        /*DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
             __func__,
             event,
             arg2,
             arg3,
             arg4
-        );
+        );*/
         return 1;
     }
 

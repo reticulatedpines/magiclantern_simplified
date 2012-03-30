@@ -174,10 +174,10 @@ const char * lens_format_dist( unsigned mm)
 void
 update_lens_display()
 {
-    draw_ml_topbar();
-    
     extern int menu_upside_down; // don't use double buffer in this mode
     int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty();
+
+    draw_ml_topbar(double_buffering, 1);
     draw_ml_bottombar(double_buffering, 1);
 }
 
@@ -224,6 +224,37 @@ int raw2iso(int raw_iso)
 
 void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
+static void double_buffering_start(int ytop, int height)
+{
+    // use double buffering to avoid flicker
+    memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
+    bmp_draw_to_idle(1);
+}
+
+static void double_buffering_end(int ytop, int height)
+{
+    // done drawing, copy image to main BMP buffer
+    bmp_draw_to_idle(0);
+    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+    bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+}
+
+static void ml_bar_clear(int ytop, int height)
+{
+    uint8_t* B = bmp_vram();
+    uint8_t* M = get_bvram_mirror();
+    for (int y = ytop; y < ytop + height; y++)
+    {
+        for (int x = 0; x < vram_bm.width; x++)
+        {
+            uint8_t p = B[BM(x,y)];
+            uint8_t m = M[BM(x,y)];
+            if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
+            else B[BM(x,y)] = 0;
+        }
+    }
+}
+
 void draw_ml_bottombar(int double_buffering, int clear)
 {
     //~ beep();
@@ -267,27 +298,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
     
     // start drawing to mirror buffer to avoid flicker
     if (double_buffering)
-    {
-        //~ bmp_mirror_copy(0);
-        memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), 35 * BMPPITCH);
-        bmp_draw_to_idle(1);
-    }
+        double_buffering_start(ytop, 35);
 
     if (clear)
-    {
-        uint8_t* B = bmp_vram();
-        uint8_t* M = get_bvram_mirror();
-        for (int y = bottom-35; y < bottom; y++)
-        {
-            for (int x = 0; x < vram_bm.width; x++)
-            {
-                uint8_t p = B[BM(x,y)];
-                uint8_t m = M[BM(x,y)];
-                if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
-                else B[BM(x,y)] = 0;
-            }
-        }
-    }
+        ml_bar_clear(ytop, 35);
 
     // mark the BV mode somehow
     if(CONTROL_BV)
@@ -689,11 +703,7 @@ end:
 
     if (double_buffering)
     {
-        // done drawing, copy image to main BMP buffer
-        bmp_draw_to_idle(0);
-        //~ bmp_mirror_copy(1);
-        memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
-        bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+        double_buffering_end(ytop, 35);
     }
 
     // this is not really part of the bottom bar, but it's close to it :)
@@ -726,7 +736,7 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
     }
 }*/
 
-void draw_ml_topbar()
+void draw_ml_topbar(int double_buffering, int clear)
 {
     if (!get_global_draw()) return;
     
@@ -769,6 +779,12 @@ void draw_ml_topbar()
     if (time_indic_y > vram_bm.height - 30) time_indic_y = vram_bm.height - 30;
 
     if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
+    
+    if (double_buffering)
+        double_buffering_start(y, 35);
+
+    if (clear)
+        ml_bar_clear(y, 35);
 
     struct tm now;
     LoadCalendarFromRTC( &now );
@@ -820,14 +836,17 @@ void draw_ml_topbar()
         bmp_printf( font, x, y,"T=%d", efic_temp);
     #endif
 
-    //~ display_clock();
-    free_space_show();
-
     x += 160;
     bmp_printf( font, x, y,
         is_movie_mode() ? "MVI-%04d" : "[%d]",
         is_movie_mode() ? file_number : avail_shot
     );
+
+    free_space_show(); 
+    fps_show();
+
+    if (double_buffering)
+        double_buffering_end(y, 35);
 }
 
 volatile int lv_focus_done = 1;
