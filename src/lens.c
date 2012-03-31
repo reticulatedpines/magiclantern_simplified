@@ -249,6 +249,7 @@ static void ml_bar_clear(int ytop, int height)
         {
             uint8_t p = B[BM(x,y)];
             uint8_t m = M[BM(x,y)];
+            if (recording && p == COLOR_RED) continue; // don't erase the recording dot
             if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
             else B[BM(x,y)] = 0;
         }
