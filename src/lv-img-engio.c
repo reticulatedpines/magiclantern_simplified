@@ -33,7 +33,7 @@ void autodetect_default_shad_gain()
     int current_shad_gain = MEMX(SHAD_GAIN);
     if (current_shad_gain == shad_gain_last_written) return; // in the register there's the value we wrote => not good for computing what Canon uses as default setting
 
-    current_shad_gain = default_shad_gain;
+    default_shad_gain = current_shad_gain;
 
     // skip ISO calculations - not reliable
 
