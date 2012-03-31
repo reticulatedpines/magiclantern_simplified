@@ -823,30 +823,6 @@ menu_display(
     {
         if (advanced_mode || IS_ESSENTIAL(menu))
         {
-            icon_drawn = 0;
-            
-            if (!show_only_selected || menu->selected)
-            {
-                if (menu->display)
-                    menu->display(
-                        menu->priv,
-                        x,
-                        y,
-                        menu->selected
-                    );
-                else
-                    submenu_print(menu, x, y);
-            }
-            
-            // this should be after menu->display, in order to allow it to override the icon
-            if (menu->priv && (menu->selected || !show_only_selected))
-            {
-                entry_draw_icon(menu, x, y);
-            }
-            
-            if (menu->children && !show_only_selected)
-                submenu_icon(x, y);
-            
             if (menu->selected && menu->help)
             {
                 bmp_printf(
@@ -878,8 +854,6 @@ menu_display(
 
             if (menu->selected)
             {
-                selection_bar(x, y);
-
                 char msg[100] = "";
 
                 // this should follow exactly the same logic as in menu_entry_select
@@ -917,6 +891,7 @@ menu_display(
                 }
 
 
+                STR_APPEND(msg, "        ", Q_BTN_NAME);
                 if (submenu_mode || show_only_selected)
                 {
                     if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
@@ -940,6 +915,32 @@ menu_display(
                     msg
                 );
             }
+
+            icon_drawn = 0;
+            if (!show_only_selected || menu->selected)
+            {
+                if (menu->display)
+                    menu->display(
+                        menu->priv,
+                        x,
+                        y,
+                        menu->selected
+                    );
+                else
+                    submenu_print(menu, x, y);
+            }
+            
+            // this should be after menu->display, in order to allow it to override the icon
+            if (menu->priv && (menu->selected || !show_only_selected))
+            {
+                entry_draw_icon(menu, x, y);
+            }
+            
+            if (menu->children && !show_only_selected)
+                submenu_icon(x, y);
+            
+            if (menu->selected)
+                selection_bar(x, y);
 
             y += font_large.height-1;
             
