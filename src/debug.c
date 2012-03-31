@@ -3060,14 +3060,14 @@ int display_is_on() { return DISPLAY_IS_ON; }
 
 void EngDrvOut(int reg, int value)
 {
-    _card_led_on();
+    //~ _card_led_on();
     _EngDrvOut(reg, value);
-    _card_led_off();
+    //~ _card_led_off();
 }
 
 void engio_write(int* command_sequence)
 {
-    _card_led_on();
+    //~ _card_led_on();
     _engio_write(command_sequence);
-    _card_led_off();
+    //~ _card_led_off();
 }
