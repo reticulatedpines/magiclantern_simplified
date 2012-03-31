@@ -389,6 +389,10 @@ void* get_422_hd_idle_buf()
 #endif
 }
 
+#ifdef CONFIG_500D
+first_video_clip = 1;
+#endif
+
 
 struct vram_info * get_yuv422_vram()
 {
@@ -397,6 +401,17 @@ struct vram_info * get_yuv422_vram()
         BMP_LOCK( update_vram_params(); )
         vram_params_dirty = 0;
     }
+
+    #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
+    
+    if (lv && !is_movie_mode()) first_video_clip = 0; // starting in photo mode is OK
+    
+    if (first_video_clip)
+    {
+        vram_lv.vram = get_lcd_422_buf();
+        return &vram_lv;
+    }
+    #endif
 
     extern int lv_paused;
     if (gui_state == GUISTATE_PLAYMENU || lv_paused || QR_MODE)
@@ -451,6 +466,13 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
 PROP_HANDLER(PROP_MVR_REC_START)
 {
     vram_params_set_dirty();
+    
+    #ifdef CONFIG_500D
+    static int prev;
+    if (prev && !buf[0]) first_video_clip = 0;
+    prev = buf[0];
+    #endif
+    
     return prop_cleanup(token, property);
 }
 
