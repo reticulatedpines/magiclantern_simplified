@@ -48,7 +48,7 @@ static void audio_menus_init();
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
 // Or on the scren
-#define CONFIG_AUDIO_REG_BMP
+#undef CONFIG_AUDIO_REG_BMP
 
 struct gain_struct
 {
@@ -918,7 +918,9 @@ audio_configure( int force )
         
         audio_ic_set_mgain( mgain );
     
-        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x31 : 0));
+        #ifndef CONFIG_550D // no sound with external mic?!
+        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
+        #endif
     
 #ifdef CONFIG_500D
 // nothing here yet.
@@ -1332,6 +1334,7 @@ static struct menu_entry audio_menus[] = {
      .select            = windcut_toggle,
      .display   = windcut_display,
      },*/
+    #ifndef CONFIG_550D
          {
                  .priv              = &enable_filters,
                  .select            = audio_binary_toggle,
@@ -1340,6 +1343,7 @@ static struct menu_entry audio_menus[] = {
                  .help = "High pass filter for wind noise reduction. AK4646.pdf p.34.",
                  .essential = FOR_MOVIE,
          },
+    #endif
 #ifdef CONFIG_AUDIO_REG_LOG
         {
                 .priv           = "Close register log",

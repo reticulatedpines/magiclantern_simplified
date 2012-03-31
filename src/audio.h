@@ -185,20 +185,31 @@ audio_ic_sweep_message_queue( void );
 #define AUDIO_IC_IVL    0x2900
 #define AUDIO_IC_IVR    0x2C00
 #define AUDIO_IC_OVL    0x2A00
-#define AUDIO_IC_OVR    0x3500
+#define AUDIO_IC_OVR    0x4500
 #define AUDIO_IC_ALCVOL 0x2D00
 #define AUDIO_IC_MODE3  0x2E00
 #define AUDIO_IC_MODE4  0x2F00
 #define AUDIO_IC_PM3    0x3000
 #define AUDIO_IC_FIL1   0x3100
+#define AUDIO_IC_FIL3_0 0x3200
+#define AUDIO_IC_FIL3_1 0x3300
+#define AUDIO_IC_FIL3_2 0x3400
+#define AUDIO_IC_FIL3_3 0x3500
+#define AUDIO_IC_EQ0_0  0x3600
+#define AUDIO_IC_EQ0_1  0x3700
+#define AUDIO_IC_EQ0_2  0x3800
+#define AUDIO_IC_EQ0_3  0x3900
+#define AUDIO_IC_EQ0_4  0x3A00
+#define AUDIO_IC_EQ0_5  0x3B00
 #define AUDIO_IC_HPF0   0x3C00
 #define AUDIO_IC_HPF1   0x3D00
 #define AUDIO_IC_HPF2   0x3E00
 #define AUDIO_IC_HPF3   0x3F00
-#define AUDIO_IC_LPF0   0x6C00
-#define AUDIO_IC_LPF1   0x6D00
-#define AUDIO_IC_LPF2   0x6E00
-#define AUDIO_IC_LPF3   0x6F00
+#define AUDIO_IC_LPF0   0x4C00
+#define AUDIO_IC_LPF1   0x4D00
+#define AUDIO_IC_LPF2   0x4E00
+#define AUDIO_IC_LPF3   0x4F00
+#define AUDIO_IC_FIL2   0x5000
         #endif
 
 /** Table of calibrations for audio levels to db */
