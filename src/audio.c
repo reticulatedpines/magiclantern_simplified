@@ -73,7 +73,7 @@ CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 int loopback = 1;
 //CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-CONFIG_INT( "audio.disable-filters",    disable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
+CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 int do_draw_meters = 0;
@@ -305,7 +305,7 @@ static void draw_meters(void)
         {
                 x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
                 y0 = MAX(os.y0 + os.y_ex/2 - 240, 0);
-                y0 += 350;
+                y0 += 380;
                 x0 += 10;
         }
         else
@@ -895,9 +895,7 @@ audio_configure( int force )
         
         audio_ic_set_mgain( mgain );
     
-        if (disable_filters) {
-                audio_ic_write( AUDIO_IC_FIL1 | 0x00 ); //no need to set them all to 0Hz, just turn em off, in one easy register
-        }
+        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 1 : 0));
     
 #ifdef CONFIG_500D
 // nothing here yet.
@@ -1156,16 +1154,16 @@ audio_input_toggle_reverse( void * priv, int delta )
  );
  }*/
 
-/*audio_filters_display( void * priv, int x, int y, int selected )
- {
- bmp_printf(
- selected ? MENU_FONT_SEL : MENU_FONT,
- x, y,
- //23456789012
- "DigitalFilters: %s",
- disable_filters ? "OFF" : "ON "
- );
- }*/
+audio_filters_display( void * priv, int x, int y, int selected )
+{
+     bmp_printf(
+         selected ? MENU_FONT_SEL : MENU_FONT,
+         x, y,
+         "Wind Filter   : %s",
+         enable_filters ? "ON" : "OFF"
+     );
+    if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
+}
 
 /*
  PROP_INT(PROP_WINDCUT_MODE, windcut_mode);
@@ -1294,31 +1292,6 @@ static struct menu_entry audio_menus[] = {
                 .edit_mode = EM_MANY_VALUES,
         },
 #endif
-        {
-                .name = "AGC",
-                .priv           = &alc_enable,
-                .select         = audio_binary_toggle,
-                .display        = audio_alc_display,
-                .help = "Automatic Gain Control - turn it off :)",
-                .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
-        },
-        /*{
-     .priv              = &windcut_mode,
-     .select            = windcut_toggle,
-     .display   = windcut_display,
-     },*/
-        /*{
-     .priv              = &disable_filters,
-     .select            = audio_binary_toggle,
-     .display   = audio_filters_display,
-     },*/
-#ifdef CONFIG_AUDIO_REG_LOG
-        {
-                .priv           = "Close register log",
-                .select         = audio_reg_close,
-                .display        = menu_print,
-        },
-#endif
 #ifndef CONFIG_500D
         {
                 .name = "Input source",
@@ -1329,6 +1302,26 @@ static struct menu_entry audio_menus[] = {
                 .help = "Audio input: internal / external / both / balanced / auto.",
                 .essential = FOR_MOVIE,
                 .edit_mode = EM_MANY_VALUES,
+        },
+#endif
+        /*{
+     .priv              = &windcut_mode,
+     .select            = windcut_toggle,
+     .display   = windcut_display,
+     },*/
+         {
+                 .priv              = &enable_filters,
+                 .select            = audio_binary_toggle,
+                 .display           = audio_filters_display,
+                 //~ .icon_type = IT_DISABLE_SOME_FEATURE,
+                 .help = "High pass filter for wind noise reduction. AK4646.pdf p.34.",
+                 .essential = FOR_MOVIE,
+         },
+#ifdef CONFIG_AUDIO_REG_LOG
+        {
+                .priv           = "Close register log",
+                .select         = audio_reg_close,
+                .display        = menu_print,
         },
 #endif
         /*{
@@ -1344,6 +1337,14 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_micpower_display,
                 .help = "Needed for int. and some other mics, but lowers impedance.",
                 .essential = FOR_MOVIE,
+        },
+        {
+                .name = "AGC",
+                .priv           = &alc_enable,
+                .select         = audio_binary_toggle,
+                .display        = audio_alc_display,
+                .help = "Automatic Gain Control - turn it off :)",
+                //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
         },
         {
                 .name = "Output volume (dB)",
