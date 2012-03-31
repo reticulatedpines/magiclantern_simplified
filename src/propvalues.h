@@ -52,4 +52,8 @@ extern struct bmp_ov_loc_size os;
 
 bool is_movie_mode();
 
+// measured by Андрей Басов
+// http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
+#define EFIC_CELSIUS (23 + (efic_temp - 150) * 3/2)
+
 #endif
