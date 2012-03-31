@@ -4050,11 +4050,11 @@ static void idle_display_off()
 
     if (motion_detect || recording)
     {
-        NotifyBox(3000, "DISPLAY OFF");
+        NotifyBox(3000, "DISPLAY OFF...");
     }
     else
     {
-        NotifyBox(3000, "DISPLAY AND SENSOR OFF");
+        NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
     }
 
     if (!(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
