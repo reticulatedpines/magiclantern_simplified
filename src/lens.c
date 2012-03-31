@@ -71,7 +71,11 @@ calc_dof(
     struct lens_info * const info
 )
 {
+    #ifdef CONFIG_FULLFRAME
+    const uint32_t        coc = 29; // 1/1000 mm
+    #else
     const uint32_t        coc = 19; // 1/1000 mm
+    #endif
     const uint32_t        fd = info->focus_dist * 10; // into mm
     const uint32_t        fl = info->focal_len; // already in mm
 
@@ -104,7 +108,7 @@ calc_dof(
     // fd is in mm, H is in mm, but the product of H * fd can
     // exceed 2^32, so we scale it back down before processing
     info->dof_near = ((H * (fd/10)) / ( H + fd )) * 10; // in mm
-    if( fd > H )
+    if( fd >= H )
         info->dof_far = 1000 * 1000; // infinity
     else
         info->dof_far = ((H * (fd/10)) / ( H - fd )) * 10; // in mm
