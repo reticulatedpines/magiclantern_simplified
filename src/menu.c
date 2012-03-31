@@ -1775,7 +1775,7 @@ void menu_open_gmt() {
         menu_help_active = 0;
 
         bmp_on(); // just to be sure the BMP overlay is enabled (maybe it was disabled by ClearScreen function)
-        call("TurnOnDisplay");
+        //~ call("TurnOnDisplay");
 
         //~ info_led_blink(2, 50, 50);
         if (menu_dialog != NULL) {
