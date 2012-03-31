@@ -47,6 +47,8 @@ static void audio_menus_init();
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
+// Or on the scren
+#define CONFIG_AUDIO_REG_BMP
 
 struct gain_struct
 {
@@ -664,7 +666,7 @@ audio_ic_set_input_volume(
 #endif
 
 
-#ifdef CONFIG_AUDIO_REG_LOG
+#if defined(CONFIG_AUDIO_REG_LOG) || defined(CONFIG_AUDIO_REG_BMP)
 
 // Do not write the value; just read them and record to a logfile
 static uint16_t audio_regs[] = {
@@ -737,7 +739,7 @@ audio_reg_dump( int force )
         
                 if( reg != last_regs[i] || force )
                 {
-                        fprintf(
+                        my_fprintf(
                     reg_file,
                     "%s %02x\n",
                     audio_reg_names[i],
@@ -750,7 +752,7 @@ audio_reg_dump( int force )
         }
     
         if( output )
-                fprintf( reg_file, "%s\n", "" );
+                my_fprintf( reg_file, "%s\n", "" );
 }
 
 
@@ -760,6 +762,24 @@ audio_reg_close( void )
         if( reg_file )
                 FIO_CloseFile( reg_file );
         reg_file = NULL;
+}
+
+
+static void
+audio_reg_dump_screen()
+{
+        int i, x, y;
+        for( i=0 ; i<COUNT(audio_regs) ; i++ )
+        {
+                const uint16_t reg = audio_ic_read( audio_regs[i] );
+                x = 10 + (i / 30) * 200;
+                y = 50 + (i % 30) * 12;
+                bmp_printf(FONT_SMALL, x, y,
+                    "%s %02x\n",
+                    audio_reg_names[i],
+                    reg
+                    );
+        }
 }
 
 #endif
@@ -811,7 +831,11 @@ audio_configure( int force )
         audio_reg_dump( force );
         return;
 #endif
-        
+#ifdef CONFIG_AUDIO_REG_BMP
+        audio_reg_dump_screen();
+        return;
+#endif
+
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 #ifdef CONFIG_500D //500d only has internal mono audio :(
         int input_source = 0;
@@ -819,7 +843,6 @@ audio_configure( int force )
         int input_source = get_input_source();
 #endif
         
-    
         //those char*'s cause a memory corruption, don't know why
         //char * left_labels[] =  {"L INT", "L INT", "L EXT", "L INT"}; //these are used by draw_meters()
         //char * right_labels[] = {"R INT", "R EXT", "R EXT", "R BAL"}; //but defined and set here, because a change to the pm3 array should be changed in them too.
@@ -895,7 +918,7 @@ audio_configure( int force )
         
         audio_ic_set_mgain( mgain );
     
-        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 1 : 0));
+        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x31 : 0));
     
 #ifdef CONFIG_500D
 // nothing here yet.
