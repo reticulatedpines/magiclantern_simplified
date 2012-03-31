@@ -254,10 +254,12 @@ clipping_print(
             G > 0 ? "-" : "+",
             ABS(G)/10, ABS(G)%10
         );
-        if (highlight_recover == 8) // custom, auto-detected
-            menu_draw_icon(x, y, MNI_AUTO, 0);
+        if (!is_movie_mode())
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in movie mode.");
         if (lens_info.iso == 0)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with Auto ISO.");
+        if (highlight_recover == 8) // custom, auto-detected
+            menu_draw_icon(x, y, MNI_AUTO, 0);
     }
     else
     {
@@ -265,7 +267,7 @@ clipping_print(
         bmp_printf(
             MENU_FONT,
             x, y,
-            "Clipping Point: Don't change"
+            "Clipping Point: 0.0 EV"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }

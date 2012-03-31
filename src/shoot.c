@@ -1260,7 +1260,7 @@ iso_display( void * priv, int x, int y, int selected )
     extern int default_shad_gain;
     int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain)) * 10/8;
 
-    if (G)
+    if (G && is_movie_mode() && lens_info.iso)
     {
             bmp_printf(
             MENU_FONT,
@@ -3678,7 +3678,7 @@ static struct menu_entry expo_menus[] = {
                 .max = 7,
                 .display = clipping_print,
                 .help = "Movie only: finetune digital ISO gain (highlight recovery).",
-                .edit_mode = EM_MANY_VALUES,
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Display Gain", 
