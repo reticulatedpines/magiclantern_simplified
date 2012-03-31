@@ -111,7 +111,7 @@ calc_dof(
     if( fd >= H )
         info->dof_far = 1000 * 1000; // infinity
     else
-        info->dof_far = ((H * (fd/10)) / ( H - fd )) * 10; // in mm
+        info->dof_far = ((((H/10) * (fd/10))) / ( H - fd )) * 100; // in mm
 }
 
 /*
