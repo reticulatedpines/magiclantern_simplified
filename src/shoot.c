@@ -3675,9 +3675,9 @@ static struct menu_entry expo_menus[] = {
                 .name = "Clipping Point",
                 .priv       = &highlight_recover,
                 .min = 0,
-                .max = 5,
+                .max = 7,
                 .display = clipping_print,
-                .help = "Movie only: alters digital ISO gain (highlight recovery).",
+                .help = "Movie only: finetune digital ISO gain (highlight recovery).",
                 .edit_mode = EM_MANY_VALUES,
             },
             {
@@ -3723,7 +3723,7 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Maximize dynamic range",
                 .select = detect_native_iso_gmt,
-                .help = "Detects optimal clipping point (overrides digital ISO gain)."
+                .help = "Detects optimal clipping point (auto-tune digital ISO gain)."
             },
             MENU_EOL
         },
@@ -4853,7 +4853,7 @@ void detect_native_iso()
     }
     extern int shad_gain_override;
     shad_gain_override = 0;
-    highlight_recover = 6; // custom
+    highlight_recover = 8; // custom
     NotifyBox(1000, "Detecting optimal ISO..."); msleep(1000);
     autodetect_default_shad_gain();
     while (!is_image_overexposed())

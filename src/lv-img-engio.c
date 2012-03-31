@@ -50,12 +50,14 @@ int get_new_shad_gain()
     switch (highlight_recover)
     {
         case 0: return default_shad_gain;
-        case 1: return default_shad_gain * 790 / 1024; // -3/8 EV
-        case 2: return default_shad_gain * 664 / 1024; // -5/8 EV
-        case 3: return default_shad_gain / 2;          // -1   EV
-        case 4: return default_shad_gain * 362 / 1024; // -1.5 EV
-        case 5: return default_shad_gain / 4;          // -2   EV
-        case 6: return shad_gain_override ? shad_gain_override : default_shad_gain;             // custom
+        case 1: return default_shad_gain * 939 / 1024; // -1/8 EV
+        case 2: return default_shad_gain * 861 / 1024; // -2/8 EV
+        case 3: return default_shad_gain * 790 / 1024; // -3/8 EV
+        case 4: return default_shad_gain * 724 / 1024; // -4/8 EV
+        case 5: return default_shad_gain / 2;          // -1   EV
+        case 6: return default_shad_gain * 362 / 1024; // -1.5 EV
+        case 7: return default_shad_gain / 4;          // -2   EV
+        case 8: return shad_gain_override ? shad_gain_override : default_shad_gain;             // custom
     }
 }
 
@@ -252,27 +254,18 @@ clipping_print(
             G > 0 ? "-" : "+",
             ABS(G)/10, ABS(G)%10
         );
+        if (highlight_recover == 8) // custom, auto-detected
+            menu_draw_icon(x, y, MNI_AUTO, 0);
         if (lens_info.iso == 0)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with Auto ISO.");
     }
-    else if (default_shad_gain)
+    else
     {
         int G = (gain_to_ev_x8(MEMX(SHAD_GAIN)) - gain_to_ev_x8(default_shad_gain)) * 10/8;
         bmp_printf(
             MENU_FONT,
             x, y,
-            "Clipping Point: Don't change",
-            G > 0 ? "-" : "",
-            ABS(G)/10, ABS(G)%10
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    }
-    else
-    {
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Highlight++   : OFF"
+            "Clipping Point: Don't change"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }
