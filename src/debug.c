@@ -3060,6 +3060,7 @@ int display_is_on() { return DISPLAY_IS_ON; }
 
 void EngDrvOut(int reg, int value)
 {
+    if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
     //~ _card_led_on();
     _EngDrvOut(reg, value);
     //~ _card_led_off();
@@ -3067,6 +3068,7 @@ void EngDrvOut(int reg, int value)
 
 void engio_write(int* command_sequence)
 {
+    if (!DISPLAY_IS_ON) return;
     //~ _card_led_on();
     _engio_write(command_sequence);
     //~ _card_led_off();
