@@ -3846,7 +3846,14 @@ static struct menu_entry expo_menus[] = {
     },
 };
 
-// only being called in live view for some reason.
+// for firing HDR shots - avoids random misfire due to low polling frequency
+int picture_was_taken_flag = 0;
+PROP_HANDLER(PROP_LAST_JOB_STATE)
+{
+    if (buf[0] > 10) picture_was_taken_flag = 1;
+    return prop_cleanup(token, property);
+}
+
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
     if (steps <= 1) return;
@@ -4155,6 +4162,9 @@ void hdr_shot(int skip0, int wait)
     {
         hdr_shutter_release(0, 1);
     }
+
+    lens_wait_readytotakepic(64);
+    picture_was_taken_flag = 0;
 }
 
 int remote_shot_flag = 0;
@@ -4213,6 +4223,8 @@ void remote_shot(int wait)
     msleep(500);
     // restore zoom
     if (lv && !recording && zoom > 1) prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+
+    picture_was_taken_flag = 0;
 }
 
 void iso_refresh_display()
@@ -4336,14 +4348,6 @@ void wait_till_next_second()
 
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
-
-// for firing HDR shots - avoids random misfire due to low polling frequency
-int picture_was_taken_flag = 0;
-PROP_HANDLER(PROP_LAST_JOB_STATE)
-{
-    if (buf[0] > 10) picture_was_taken_flag = 1;
-    return prop_cleanup(token, property);
-}
 
 static void
 shoot_task( void* unused )
