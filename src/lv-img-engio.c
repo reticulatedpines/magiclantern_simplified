@@ -28,7 +28,6 @@ static int shad_gain_last_written = 0;
 
 void autodetect_default_shad_gain()
 {
-    if (recording) return; // I see no reason for this to change in the middle of recording
     if (!lv) return;
     
     int current_shad_gain = MEMX(SHAD_GAIN);
