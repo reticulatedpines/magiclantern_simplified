@@ -23,16 +23,26 @@ static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
-int default_shad_gain = 0;
+int default_shad_gain = 4096;
+static int shad_gain_last_written = 0;
+
 void autodetect_default_shad_gain()
 {
-    if (default_shad_gain) return;
+    if (recording) return; // I see no reason for this to change in the middle of recording
     if (!lv) return;
     
-    int dg = lens_info.iso_digital_ev;
-    while (dg > 4) dg -= 8; // we are only interested in range -3..+3 EV (maybe -4..+4 is OK too)
-    default_shad_gain = MEMX(SHAD_GAIN) * powf(2, -dg / 8.0);
-    //~ NotifyBox(2000, "shad_gain: %d ", default_shad_gain);
+    int current_shad_gain = MEMX(SHAD_GAIN);
+    if (current_shad_gain == shad_gain_last_written) return; // in the register there's the value we wrote => not good for computing what Canon uses as default setting
+
+    current_shad_gain = default_shad_gain;
+
+    // skip ISO calculations - not reliable
+
+    //~ int raw_iso = FRAME_ISO & 0xFF;
+    //~ int ag = COERCE((raw_iso+4) / 8, 72/8, 112/8) * 8;
+    //~ int dg = raw_iso - ag;
+    //~ default_shad_gain = current_shad_gain * powf(2, -dg / 8.0);
+    //~ bmp_printf(FONT_LARGE, 50, 50, "shad_gain: %d ", default_shad_gain);
 }
 
 int get_new_shad_gain()
@@ -216,7 +226,9 @@ void highlight_recover_step()
     if (highlight_recover && DISPLAY_IS_ON && lv)
     {
         autodetect_default_shad_gain();
-        EngDrvOut(SHAD_GAIN, get_new_shad_gain());
+        int new_gain = get_new_shad_gain();
+        EngDrvOut(SHAD_GAIN, new_gain);
+        shad_gain_last_written = new_gain;
     }
 }
 
@@ -237,7 +249,7 @@ clipping_print(
             MENU_FONT,
             x, y,
             "Clipping Point: %s%d.%d EV",
-            G > 0 ? "-" : "",
+            G > 0 ? "-" : "+",
             ABS(G)/10, ABS(G)%10
         );
         if (lens_info.iso == 0)

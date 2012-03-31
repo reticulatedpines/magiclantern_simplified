@@ -255,3 +255,6 @@
 #define Q_BTN_NAME "Pict.Style"
 
 #define DISPLAY_IS_ON MEM(0x2804) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+
+#define LV_STRUCT_PTR 0x1D78
+#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)

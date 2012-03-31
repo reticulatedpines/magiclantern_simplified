@@ -11,41 +11,6 @@
 #include "propvalues.h"
 #include "config.h"
 
-#ifdef CONFIG_550D
-#define LV_STRUCT_PTR 0x1d14
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
-#endif
-
-#ifdef CONFIG_500D
-#define LV_STRUCT_PTR 0x1d78
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-#endif
-
-#ifdef CONFIG_50D
-#define LV_STRUCT_PTR 0x1D74
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-#endif
-
-#ifdef CONFIG_5D2
-#define LV_STRUCT_PTR 0x1D78
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)
-#endif
-
-#ifdef CONFIG_600D
-#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
-#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
-#endif
-
-#ifdef CONFIG_60D
-#define VIDEO_PARAMETERS_SRC_3 0x4FDA8
-#define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
-#endif
-
-#ifdef CONFIG_1100D
-#define VIDEO_PARAMETERS_SRC_3 0x70C0C
-#define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
-#endif
-
 
 CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);

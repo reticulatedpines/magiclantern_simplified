@@ -247,3 +247,6 @@
 #define Q_BTN_NAME "LV button"
 
 #define DISPLAY_IS_ON MEM(0x2600) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+
+#define LV_STRUCT_PTR 0x1d78
+#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x56)

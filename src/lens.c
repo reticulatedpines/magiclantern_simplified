@@ -1561,8 +1561,9 @@ void iso_components_update()
     if (highlight_recover && lens_info.raw_iso)
     {
         int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain));
-        lens_info.iso_equiv_raw = (((lens_info.raw_iso+3)/8)*8) + G;
-        lens_info.iso_digital_ev = G;
+        //~ lens_info.iso_equiv_raw = (((lens_info.raw_iso+3)/8)*8) + G;
+        //~ lens_info.iso_digital_ev = G;
+        lens_info.iso_equiv_raw = lens_info.raw_iso + G;
     }
     
     if (lens_info.iso_equiv_raw && LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())

@@ -252,3 +252,6 @@
 #define Q_BTN_NAME "FUNC"
 
 #define DISPLAY_IS_ON MEM(0x2860) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+
+#define LV_STRUCT_PTR 0x1D74
+#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)

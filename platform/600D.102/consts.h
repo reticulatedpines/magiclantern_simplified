@@ -333,3 +333,6 @@
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x2480)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+
+#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
+#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))

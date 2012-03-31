@@ -1257,13 +1257,26 @@ iso_display( void * priv, int x, int y, int selected )
         );
     }
 
-    if (LVAE_DISP_GAIN)
+    extern int default_shad_gain;
+    int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain)) * 10/8;
+
+    if (G)
+    {
+            bmp_printf(
+            MENU_FONT,
+            x + 20 * font_large.width, y,
+            "Clip at %s%d.%dEV",
+            G > 0 ? "-" : "+",
+            ABS(G)/10, ABS(G)%10
+        );
+    }
+    else if (LVAE_DISP_GAIN)
     {
         int gain_ev = gain_to_ev_x8(LVAE_DISP_GAIN) - 80;
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
-            x + 22 * font_large.width, y,
-            "DispGn%s%d.%dEV",
+            x + 20 * font_large.width, y,
+            "DispGain%s%d.%dEV",
             gain_ev > 0 ? "+" : "-",
             ABS(gain_ev)/8, (ABS(gain_ev)%8)*10/8
         );
@@ -3664,7 +3677,7 @@ static struct menu_entry expo_menus[] = {
                 .min = 0,
                 .max = 5,
                 .display = clipping_print,
-                .help = "Movie only: overrides digital ISO gain (highlight recovery).",
+                .help = "Movie only: alters digital ISO gain (highlight recovery).",
                 .edit_mode = EM_MANY_VALUES,
             },
             {
