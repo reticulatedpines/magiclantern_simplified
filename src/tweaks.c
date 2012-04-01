@@ -1772,7 +1772,7 @@ struct menu_entry play_menus[] = {
         .name = "LiveV tools in QR ",
         .priv = &quickreview_liveview, 
         .max = 1,
-        .help = "Allow LiveView tools to run in QuickReview mode too.",
+        .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
         .essential = FOR_PLAYBACK,
         .icon_type = IT_BOOL,
     },

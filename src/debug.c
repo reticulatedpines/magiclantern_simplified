@@ -2113,7 +2113,7 @@ struct menu_entry debug_menus[] = {
     {
         .name = "CMOS temperature",
         .display = efictemp_display,
-        .help = "Sensor temperature, in Celsius degrees.",
+        .help = "Sensor temperature, in degrees Celsius.",
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     #ifdef CONFIG_5D2
