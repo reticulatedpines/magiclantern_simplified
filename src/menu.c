@@ -836,21 +836,6 @@ menu_display(
                     menu->help
                 );
             }
-            
-            // if there's a warning message set, display it
-            if (menu->selected && warning_msg)
-            {
-                bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    x0 + 10, y0 + 450, 
-                        "                                                           "
-                );
-                bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    x0 + 10, y0 + 450, 
-                        warning_msg
-                );
-            }
 
             if (menu->selected)
             {
@@ -935,6 +920,22 @@ menu_display(
             {
                 entry_draw_icon(menu, x, y);
             }
+            
+            // if there's a warning message set, display it
+            if (menu->selected && warning_msg)
+            {
+                bmp_printf(
+                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+                    x0 + 10, y0 + 450, 
+                        "                                                           "
+                );
+                bmp_printf(
+                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+                    x0 + 10, y0 + 450, 
+                        warning_msg
+                );
+            }
+
             
             if (menu->children && !show_only_selected)
                 submenu_icon(x, y);
