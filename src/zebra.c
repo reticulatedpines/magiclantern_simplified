@@ -4465,7 +4465,7 @@ livev_hipriority_task( void* unused )
         }
         else
         {
-            if (!zoom_overlay_dirty) crop_set_dirty(5);
+            if (!zoom_overlay_dirty) { crop_set_dirty(5); msleep(700); } // redraw cropmarks after MZ is turned off
             
             msleep(MIN_MSLEEP);
             zoom_overlay_dirty = 1;
