@@ -4400,7 +4400,7 @@ void schedule_transparent_overlay()
 }
 
 volatile int lens_display_dirty = 0;
-void lens_display_set_dirty() { lens_display_dirty = 1; menu_set_dirty(); }
+void lens_display_set_dirty() { lens_display_dirty = 4; menu_set_dirty(); }
 
 void draw_cropmark_area()
 {
@@ -4510,7 +4510,7 @@ livev_hipriority_task( void* unused )
         //~ if (lens_display_dirty)
         
         int m = 100;
-        if (lens_display_dirty) m = 20;
+        if (lens_display_dirty) m = 10;
         if (should_draw_zoom_overlay()) m = 100;
         
         int kmm = k % m;
@@ -4521,16 +4521,19 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK( black_bars(); )
             #endif
 
-            if (kmm == 5)
-                BMP_LOCK( update_lens_display(1,0); );
-
-            if (kmm == 15)
+            if (kmm == 2)
             {
-                BMP_LOCK( update_lens_display(0,1); );
-                lens_display_dirty = 0;
+                BMP_LOCK( update_lens_display(1,0); );
+                if (lens_display_dirty) lens_display_dirty--;
             }
 
-            if (kmm == 10)
+            if (kmm == 8)
+            {
+                BMP_LOCK( update_lens_display(0,1); );
+                if (lens_display_dirty) lens_display_dirty--;
+            }
+
+            if (kmm == 5)
                 movie_indicators_show();
         }
 
