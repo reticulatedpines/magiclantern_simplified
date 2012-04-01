@@ -75,7 +75,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #ifdef MOVREC_STATE
     if (self == MOVREC_STATE && recording) // mvrEncodeDone
     {
-        #if !defined(CONFIG_60D) && !defined(CONFIG_600D)  && !defined(CONFIG_1100D)
+        #ifdef CONFIG_5D2
         if (self->current_state == 4 && input == 3) // mvrExpStarted
         #endif
             vsync_func();
