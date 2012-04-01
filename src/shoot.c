@@ -75,6 +75,7 @@ static CONFIG_INT("uniwb.old.gain_B", uniwb_old_gain_B, 0);
 int uniwb_is_active() 
 {
     return 
+        uniwb_mode &&
         lens_info.wb_mode == WB_CUSTOM &&
         lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
 }
