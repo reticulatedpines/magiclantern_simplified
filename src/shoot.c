@@ -961,7 +961,7 @@ silent_pic_stop_dummy_movie()
     #endif
 }
 
-static void
+void
 silent_pic_take_simple(int interactive)
 {
     int movie_started = silent_pic_ensure_movie_mode();
@@ -3550,6 +3550,8 @@ extern void display_gain_toggle(void* priv, int dir);
 
 extern int highlight_recover;
 extern void clipping_print( void * priv, int x, int y, int selected);
+extern void shadow_print( void * priv, int x, int y, int selected);
+extern void shadow_toggle(void* priv, int delta);
 void detect_native_iso_gmt();
 
 static struct menu_entry expo_menus[] = {
@@ -3672,12 +3674,19 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Clipping Point",
+                .name = "White Point",
                 .priv       = &highlight_recover,
                 .min = 0,
                 .max = 7,
                 .display = clipping_print,
-                .help = "Movie only: finetune digital ISO gain (highlight recovery).",
+                .help = "MOVIE: adjust white clipping point => finetune digital ISO.",
+                .edit_mode = EM_MANY_VALUES_LV,
+            },
+            {
+                .name = "Black Point",
+                .display = shadow_print,
+                .select = shadow_toggle,
+                .help = "MOVIE: adjust black clipping point => shadow recovery.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {

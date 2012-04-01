@@ -10,11 +10,13 @@
 #include "menu.h"
 #include "config.h"
 
-#undef CONFIG_DIGIC_POKE
+#define CONFIG_DIGIC_POKE
 
-#define SHAD_GAIN 0xc0f08030 // controls clipping point (digital ISO)
+#define SHAD_GAIN      0xc0f08030 // controls clipping point (digital ISO)
+#define SHAD_PRESETUP  0xc0f08034 // controls black point?
 
 CONFIG_INT("highlight.recover", highlight_recover, 0);
+CONFIG_INT("shadow.recover", shadow_recover, 0);
 
 int shad_gain_override = 0;
 
@@ -219,6 +221,18 @@ void image_effects_step()
     #endif
 }
 
+void shadow_recover_step()
+{
+    if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
+    
+    if (shadow_recover && DISPLAY_IS_ON && lv)
+    {
+        int presetup = MEMX(SHAD_PRESETUP);
+        presetup = (presetup & 0xFF00) | (shadow_recover & 0x00FF);
+        EngDrvOut(SHAD_PRESETUP, presetup);
+    }
+}
+
 void highlight_recover_step()
 {
     if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
@@ -249,7 +263,7 @@ clipping_print(
         bmp_printf(
             MENU_FONT,
             x, y,
-            "Clipping Point: %s%d.%d EV",
+            "White Point   : %s%d.%d EV",
             G > 0 ? "-" : "+",
             ABS(G)/10, ABS(G)%10
         );
@@ -266,11 +280,44 @@ clipping_print(
         bmp_printf(
             MENU_FONT,
             x, y,
-            "Clipping Point: 0.0 EV"
+            "White Point   : 0.0 EV"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     }
 }
+
+void
+shadow_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    autodetect_default_shad_gain();
+    
+    int default_black_point = MEMX(SHAD_PRESETUP) & 0xFF00; // last two digits seem zero on all cameras
+
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Black Point   : %d%s%d",
+        default_black_point,
+        shadow_recover >= 0 ? "+" : "",
+        shadow_recover
+    );
+    if (!is_movie_mode())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in movie mode.");
+    menu_draw_icon(x, y, MNI_BOOL(shadow_recover), 0);
+}
+
+extern void shadow_toggle(void* priv, int delta)
+{
+    int a = ABS(shadow_recover);
+    if (a > 10) delta = delta * a / 10;
+    shadow_recover = COERCE((int)shadow_recover + delta, 0, 255);
+}
+
 
 void menu_open_submenu();
 

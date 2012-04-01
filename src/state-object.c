@@ -65,6 +65,7 @@ static void vsync_func() // called once per frame.. in theory :)
     #endif
     
     highlight_recover_step();
+    shadow_recover_step();
     image_effects_step();
 }
 
