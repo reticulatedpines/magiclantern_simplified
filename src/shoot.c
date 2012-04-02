@@ -969,43 +969,30 @@ silent_pic_take_simple(int interactive)
     
     char* imgname = silent_pic_get_name();
 
-    if (interactive)
-    {
-        NotifyBoxHide();
-        NotifyBox(10000, "Psst! Taking a picture");
-    }
-
-    if (!silent_pic_burst) // single mode
-    {
-        while (get_halfshutter_pressed()) msleep(100);
-        //~ if (!recording) { open_canon_menu(); msleep(300); clrscr(); }
-    }
-
     struct vram_info * vram = get_yuv422_hd_vram();
     int p = vram->pitch;
     int h = vram->height;
-    if (!silent_pic_burst) { PauseLiveView(); }
-
+    
+    lv_request_pause_updating(1);
+    msleep(50);
+    
     dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
 
-    if (interactive && !silent_pic_burst)
+    //~ if (interactive && !silent_pic_burst)
+    //~ {
+        //~ NotifyBoxHide();
+        //~ msleep(500); clrscr();
+        //~ play_422(imgname);
+        //~ msleep(1000);
+    //~ }
+
+    if (interactive && !silent_pic_burst) // single mode
     {
-        NotifyBoxHide();
-        msleep(500); clrscr();
-        play_422(imgname);
-        msleep(1000);
-    }
-    
-    extern int idle_display_turn_off_after;
-    int intervalometer_w_powersave = intervalometer_running && idle_display_turn_off_after;
-    if (!silent_pic_burst)
-    {
-        if (!intervalometer_w_powersave)
-            ResumeLiveView();
-        else
-            display_off();
+        while (get_halfshutter_pressed()) msleep(100);
     }
 
+    lv_request_pause_updating(0);
+    msleep(100);
     
     if (movie_started) silent_pic_stop_dummy_movie();
 }

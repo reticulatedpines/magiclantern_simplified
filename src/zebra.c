@@ -5134,7 +5134,7 @@ void play_422(char* filename)
     else if (size == 1576*632*2) { w = 1576; h = 632; } // 500d 720p recording lv buffer dimensions.
     else if (size == 1576*1048*2){ w = 1576; h = 1048;} // 500d HD buffer dimensions in 1080p/720p mode and LV mode.
     else if (size == 1120*746*2) { w = 1120; h = 746; } // zoom mode (5x, 10x) on 5D2
-    else if (size == 1872*1079*2) { w = 1872; h = 1079; } // REC on 5D2
+    else if (size == 1872*1080*2) { w = 1872; h = 1080; } // REC on 5D2
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");

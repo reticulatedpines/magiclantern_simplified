@@ -12,6 +12,15 @@
 
 #define CONFIG_DIGIC_POKE
 
+#define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
+
+static int lv_should_pause_updating = 0;
+void lv_request_pause_updating(int value)
+{
+    lv_should_pause_updating = value;
+}
+
+
 #define SHAD_GAIN      0xc0f08030 // controls clipping point (digital ISO)
 #define SHAD_PRESETUP  0xc0f08034 // controls black point?
 
@@ -219,6 +228,11 @@ void image_effects_step()
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
     #endif
+    
+    if (lv_should_pause_updating && DISPLAY_IS_ON && lv)
+    {
+        EngDrvOut(LV_PAUSE_REGISTER, 0x1234);
+    }    
 }
 
 void shadow_recover_step()
@@ -263,7 +277,7 @@ clipping_print(
         bmp_printf(
             MENU_FONT,
             x, y,
-            "White Point   : %s%d.%d EV",
+            "White Level   : %s%d.%d EV",
             G > 0 ? "-" : "+",
             ABS(G)/10, ABS(G)%10
         );
@@ -301,7 +315,7 @@ shadow_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Black Point   : %d%s%d",
+        "Black Level   : %d%s%d",
         default_black_point,
         shadow_recover >= 0 ? "+" : "",
         shadow_recover
