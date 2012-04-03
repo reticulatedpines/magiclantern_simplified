@@ -190,7 +190,7 @@ CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
-static CONFIG_INT( "hist.warn", hist_warn,  2 );
+static CONFIG_INT( "hist.warn", hist_warn,  3 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
 //~ static CONFIG_INT( "hist.x",        hist_x,     720 - hist_width - 4 );
 //~ static CONFIG_INT( "hist.y",        hist_y,     100 );
@@ -758,13 +758,13 @@ hist_draw_image(
             int yw = y_origin + 10 - 16 + (hist_log ? hist_height - 20 : 0);
             if (hist_colorspace == 1) // RGB
             {
-                if (hist_r[i] > thr) dot(x_origin + hist_width/2 - 20 - 16, yw, COLOR_RED   , 7);
-                if (hist_g[i] > thr) dot(x_origin + hist_width/2      - 16, yw, COLOR_GREEN1, 7);
-                if (hist_b[i] > thr) dot(x_origin + hist_width/2 + 20 - 16, yw, COLOR_LIGHTBLUE  , 7);
+                if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) dot(x_origin + hist_width/2 - 20 - 16, yw, COLOR_RED   , 7);
+                if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) dot(x_origin + hist_width/2      - 16, yw, COLOR_GREEN1, 7);
+                if (hist_b[i] + hist_b[i-1] + hist_b[i-2] > thr) dot(x_origin + hist_width/2 + 20 - 16, yw, COLOR_LIGHTBLUE  , 7);
             }
             else
             {
-                if (hist[i] > thr) dot(x_origin + hist_width/2 - 16, yw, COLOR_RED, 7);
+                if (hist[i] + hist[i-1] + hist[i-2] > thr) dot(x_origin + hist_width/2 - 16, yw, COLOR_RED, 7);
             }
         }
     }
@@ -825,7 +825,7 @@ waveform_draw_image(
             // Scale to a grayscale
             count = (count * 42) / 128;
             if( count > 42 - 5 )
-                count = 0x0F;
+                count = COLOR_RED;
             else
             if( count >  0 )
                 count += 38 + 5;
