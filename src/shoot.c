@@ -586,7 +586,7 @@ static char* silent_pic_get_name()
             if (size == 0) break;
         }
     }
-    bmp_printf(FONT_MED, 100, 130, "%s    ", imgname);
+    bmp_printf(FONT_MED, 100, 80, "%s    ", imgname);
     return imgname;
 }
 
@@ -1015,7 +1015,7 @@ silent_pic_take_lv_dbg()
     dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
 
-int silent_pic_running = 0;
+int silent_pic_matrix_running = 0;
 static void
 silent_pic_take_sweep(int interactive)
 {
@@ -1195,26 +1195,27 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 {
     if (!silent_pic_enabled) return;
 
-    silent_pic_running = 1;
-
     if (!lv) force_liveview();
 
     //~ if (beep_enabled) Beep();
     
-    idle_globaldraw_dis();
+    //~ idle_globaldraw_dis();
     
     if (silent_pic_mode == 0) // normal
         silent_pic_take_simple(interactive);
     else if (silent_pic_mode == 1) // hi-res
+    {
+        silent_pic_matrix_running = 1;
         silent_pic_take_sweep(interactive);
+    }
     //~ else if (silent_pic_mode == 2) // slit-scan
         //~ silent_pic_take_slitscan(interactive);
     //~ else if (silent_pic_mode == 3) // long exposure
         //~ silent_pic_take_longexp();
 
-    idle_globaldraw_en();
+    //~ idle_globaldraw_en();
 
-    silent_pic_running = 0;
+    silent_pic_matrix_running = 0;
 
 }
 
