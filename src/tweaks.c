@@ -419,7 +419,6 @@ void adjust_backlight_level(int delta)
     
     int level = COERCE(backlight_level + delta, 1, 7);
     prop_request_change(PROP_LCD_BRIGHTNESS, &level, 4);
-    NotifyBoxHide();
     NotifyBox(2000, "LCD Backlight: %d", level);
 }
 void set_backlight_level(int level)
@@ -814,6 +813,8 @@ tweak_task( void* unused)
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
+        
+        arrow_key_step();
 
         #if 0
         if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
@@ -864,21 +865,6 @@ tweak_task( void* unused)
         dofp_update();
 
         clear_lv_affframe_if_dirty();
-
-        //~ kenrockwell_zoom_update();
-        
-        if (FLASH_BTN_MOVIE_MODE)
-        {
-            int k = 0;
-            while (FLASH_BTN_MOVIE_MODE)
-            {
-                msleep(100);
-                k++;
-                BMP_LOCK( draw_ml_bottombar(0,0); )
-            }
-            msleep(200);
-            redraw();
-        }
         
         #ifdef CONFIG_60D
         if (display_off_by_halfshutter_enabled)
@@ -1148,7 +1134,278 @@ void star_zoom_update()
 }
 #endif
 
+
+CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
+CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
+CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
+CONFIG_INT("arrows.tv_av", arrow_keys_shutter_aperture, 0);
+CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
+
+int is_arrow_mode_ok(int mode)
+{
+    switch (mode)
+    {
+        case 0: return 1;
+        case 1: return arrow_keys_audio;
+        case 2: return arrow_keys_iso_kelvin;
+        case 3: return arrow_keys_shutter_aperture;
+        case 4: return arrow_keys_bright_sat;
+    }
+}
+
+void arrow_key_mode_toggle()
+{
+    if (arrow_keys_mode >= 10) // temporarily disabled
+    {
+        arrow_keys_mode = arrow_keys_mode - 10;
+        if (is_arrow_mode_ok(arrow_keys_mode)) return;
+    }
+    
+    do
+    {
+        arrow_keys_mode = mod(arrow_keys_mode + 1, 5);
+    }
+    while (!is_arrow_mode_ok(arrow_keys_mode));
+}
+
+int handle_arrow_keys(struct event * event)
+{
+    if (!lv) return 1;
+    if (!is_movie_mode()) return 1;
+    if (gui_menu_shown()) return 1;
+   
+    // if no shortcut is enabled, do nothing
+    if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
+        return 1;
+    
+    if (event->param == BGMT_PRESS_HALFSHUTTER)
+    {
+        if (arrow_keys_mode%10) arrow_keys_mode = 10 + (arrow_keys_mode%10); // temporarily disable
+        return 1;
+    }
+    
+    #ifdef CONFIG_550D
+    static int flash_movie_pressed;
+    if (BGMT_FLASH_MOVIE)
+    {
+        flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
+        if (flash_movie_pressed) arrow_key_mode_toggle();
+        return !flash_movie_pressed;
+    }
+    #endif
+
+    #ifdef CONFIG_600D
+    if (event->param == BGMT_PRESS_DISP)
+    {
+        arrow_key_mode_toggle();
+        return 1;
+    }
+    #endif
+
+    #ifdef CONFIG_60D
+    static int metering_btn_pressed;
+    if (BGMT_METERING_LV)
+    {
+        metering_btn_pressed = BGMT_PRESS_METERING_LV;
+        if (metering_btn_pressed) arrow_key_mode_toggle();
+        return !metering_btn_pressed;
+    }
+    #endif
+    
+    #ifdef CONFIG_50D
+    if (event->param == BGMT_FUNC)
+    {
+        arrow_key_mode_toggle();
+        return 0;
+    }
+    #endif
+
+    #ifdef CONFIG_5D2
+    if (event->param == BGMT_PICSTYLE)
+    {
+        arrow_key_mode_toggle();
+        return 0;
+    }
+    #endif
+
+    if (arrow_keys_mode && is_movie_mode() && liveview_display_idle() && !gui_menu_shown())
+    {
+        // maybe current mode is no longer enabled in menu
+        if (!is_arrow_mode_ok(arrow_keys_mode))
+            return 1;
+        
+        if (event->param == BGMT_PRESS_UP)
+        {
+            switch (arrow_keys_mode)
+            {
+                case 1: out_volume_up(); break;
+                case 2: kelvin_toggle(0, 1); break;
+                case 3: aperture_toggle(-1, 1); break;
+                case 4: adjust_saturation_level(1); break;
+            }
+            lens_display_set_dirty();
+            return 0;
+        }
+        if (event->param == BGMT_PRESS_DOWN)
+        {
+            switch (arrow_keys_mode)
+            {
+                case 1: out_volume_down(); break;
+                case 2: kelvin_toggle(0, -1); break;
+                case 3: aperture_toggle(-1, -1); break;
+                case 4: adjust_saturation_level(-1); break;
+            }
+            lens_display_set_dirty();
+            return 0;
+        }
+        if (event->param == BGMT_PRESS_LEFT)
+        {
+            switch (arrow_keys_mode)
+            {
+                case 1: volume_down(); break;
+                case 2: iso_toggle(0, -1); break;
+                case 3: shutter_toggle(-1, -1); break;
+                case 4: adjust_backlight_level(-1); break;
+            }
+            lens_display_set_dirty();
+            return 0;
+        }
+        if (event->param == BGMT_PRESS_RIGHT)
+        {
+            switch (arrow_keys_mode)
+            {
+                case 1: volume_up(); break;
+                case 2: iso_toggle(0, 1); break;
+                case 3: shutter_toggle(-1, 1); break;
+                case 4: adjust_backlight_level(1); break;
+            }
+            lens_display_set_dirty();
+            return 0;
+        }
+    }
+    return 1;
+}
+
+// only for toggling shortcuts in 500D
+void arrow_key_step()
+{
+    if (!lv) return;
+    if (!is_movie_mode()) return;
+    if (gui_menu_shown()) return;
+
+    #if defined(CONFIG_500D)
+    int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+    static int prev_lcd = 0;
+    if (lcd && !prev_lcd)
+    {
+        arrow_key_mode_toggle();
+    }    
+    prev_lcd = lcd;
+    #endif
+}
+
+void display_shortcut_key_hints_lv()
+{
+    static int old_mode = 0;
+    int mode = 0;
+    if (!zebra_should_run()) return;
+
+    int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+    if (is_movie_mode() && arrow_keys_mode && arrow_keys_mode < 10 && is_arrow_mode_ok(arrow_keys_mode)) mode = arrow_keys_mode;
+    else if (!mode && is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && !lcd) mode = 10;
+    if (mode == 0 && old_mode == 0) return;
+    
+    int x0 = os.x0 + os.x_ex/2;
+    int y0 = os.y0 + os.y_ex/2;
+
+    if (mode != old_mode)
+    {
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
+
+        if (!should_draw_zoom_overlay())
+            crop_set_dirty(20);
+    }
+
+    if (mode == 1)
+    {
+        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Vol");
+        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
+    }
+    else if (mode == 2)
+    {
+        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
+        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
+    }
+    else if (mode == 3)
+    {
+        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Tv ");
+        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
+    }
+    else if (mode == 4)
+    {
+        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Bri");
+        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
+        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
+    }
+    else if (mode == 10)
+    {
+            const int xf = x0;
+            const int yf = y0;
+            const int xs = 150;
+            bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+    }
+
+    old_mode = mode;
+}
+
 struct menu_entry tweak_menus[] = {
+    {
+        .name       = "Arrow key shortcuts ",
+        .select = menu_open_submenu,
+        .help = "Functions for arrows in movie mode. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
+        .children =  (struct menu_entry[]) {
+            #if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+            {
+                .name = "Audio Gain",
+                .priv       = &arrow_keys_audio,
+                .max = 1,
+                .help = "LEFT/RIGHT: input gain. UP/DOWN: output gain.",
+            },
+            #endif
+            {
+                .name = "ISO/Kelvin",
+                .priv       = &arrow_keys_iso_kelvin,
+                .max = 1,
+                .help = "LEFT/RIGHT: ISO. UP/DOWN: Kelvin white balance.",
+            },
+            {
+                .name = "Shutter/Apert.",
+                .priv       = &arrow_keys_shutter_aperture,
+                .max = 1,
+                .help = "LEFT/RIGHT: Shutter, 1/8-step. UP/DOWN: Aperture, 1/8-step.",
+            },
+            {
+                .name = "LCD Bright/Sat",
+                .priv       = &arrow_keys_bright_sat,
+                .max = 1,
+                .help = "LEFT/RIGHT: LCD brightness. UP/DOWN: LCD saturation.",
+            },
+            MENU_EOL
+        },
+    },
 /*  {
         .name = "Night Vision Mode",
         .priv = &night_vision, 
@@ -1168,45 +1425,24 @@ struct menu_entry tweak_menus[] = {
         .max = 1,
         .help = "Emulates half-shutter press, or make half-shutter sticky.",
     },
-    /*{
-        .name = "Electric Shutter",
-        .priv = &eshutter,
-        .select = eshutter_toggle,
-        .display = eshutter_display,
-        .help = "For enabling third-party flashes in LiveView."
-    },*/
     #if defined(CONFIG_550D) || defined(CONFIG_500D)
     {
         .name = "LCD Sensor Shortcuts",
         .priv       = &lcd_sensor_shortcuts,
         .select     = menu_binary_toggle,
         .display    = lcd_sensor_shortcuts_print,
+        .help = "Use the LCD face sensor as an extra key in ML.",
     },
-    #endif
+    #endif*/
     #if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) // 60D doesn't need this
     {
         .name = "Auto BurstPicQuality",
         .priv = &auto_burst_pic_quality, 
         .select = menu_binary_toggle, 
         .display = auto_burst_pic_display,
+        .help = "Temporarily reduce picture quality in burst mode.",
     },
     #endif
-    #if 0
-    {
-        .name = "HalfShutter in DLGs",
-        .priv = &set_on_halfshutter, 
-        .select = menu_binary_toggle, 
-        .display = set_on_halfshutter_display,
-        .help = "Half-shutter press in dialog boxes => OK (SET) or Cancel."
-    },
-    #endif
-    /*{
-        .name = "PicSty->DISP preset",
-        .priv = &picstyle_disppreset_enabled,
-        .display    = picstyle_disppreset_display,
-        .select     = menu_binary_toggle,
-        .help = "PicStyle can be included in DISP preset for easy toggle."
-    },*/
     #ifdef CONFIG_60D
     {
         .name = "Swap MENU <--> ERASE",
@@ -1409,7 +1645,17 @@ void preview_saturation_display(
     else menu_draw_icon(x, y, MNI_ON, 0);
 }
 
-
+void adjust_saturation_level(int delta)
+{
+    preview_saturation = COERCE((int)preview_saturation + delta, 0, 3);
+    NotifyBox(2000, 
+        "LCD Saturation : %s",
+        preview_saturation == 0 ? "0 (Grayscale)" :
+        preview_saturation == 1 ? "Normal" :
+        preview_saturation == 2 ? "High" :
+                                  "Very high"
+    );
+}
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {

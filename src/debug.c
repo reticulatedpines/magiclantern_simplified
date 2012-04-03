@@ -1113,74 +1113,6 @@ static void dbg_memspy_update()
 }
 #endif
 
-static void display_shortcut_key_hints_lv()
-{
-    static int old_mode = 0;
-    int mode = 0;
-    if (!zebra_should_run()) return;
-    if (is_movie_mode() && FLASH_BTN_MOVIE_MODE) mode = 1;
-    else if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) mode = 2;
-    else if (is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && (!display_sensor || !get_lcd_sensor_shortcuts())) mode = 3;
-    if (mode == 0 && old_mode == 0) return;
-
-    int mz = (mode == 2 && get_zoom_overlay_trigger_mode() <= 2 && lv_dispsize == 1);
-    
-    int x0 = os.x0 + os.x_ex/2;
-    int y0 = os.y0 + os.y_ex/2;
-    
-    if (mode == 1)
-    {
-        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
-        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
-    }
-    else if (mode == 2)
-    {
-        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Vol");
-        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "LCD+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-LCD");
-    }
-    else if (mode == 3)
-    {
-        //~ if (is_follow_focus_active() == 1)
-        //~ {
-            //~ int xf = is_follow_focus_active() == 1 ? x0 : 650;
-            //~ int yf = is_follow_focus_active() == 1 ? y0 : 50;
-            //~ int xs = is_follow_focus_active() == 1 ? 100 : 30;
-            const int xf = x0;
-            const int yf = y0;
-            const int xs = 150;
-            bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
-            bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-            //~ if (is_follow_focus_active() == 1) // arrows
-            //~ {
-            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
-            //~ }
-        //~ }
-    }
-    else
-    {
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
-
-        if (!should_draw_zoom_overlay())
-            crop_set_dirty(20);
-
-    }
-
-    static int prev_mz = 0;
-    if (mz) bmp_printf(SHADOW_FONT(FONT_MED), 360 + 100, 240 - 150, "Magic Zoom");
-    else if (prev_mz) redraw();
-    prev_mz = mz;
-
-    old_mode = mode;
-}
-
 void display_clock()
 {
     int bg = bmp_getpixel(15, 430);
@@ -2151,8 +2083,6 @@ static struct menu_entry cfg_menus[] = {
 };
 
 
-
-
 static void * debug_token;
 
 static void
@@ -2851,9 +2781,6 @@ void spy_event(struct event * event)
     }
 }
 
-int flash_movie_pressed = 0;
-int get_flash_movie_pressed() { return flash_movie_pressed; }
-
 int halfshutter_pressed = 0;
 #ifdef CONFIG_500D
 bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
@@ -2883,80 +2810,11 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
 
-    if (BGMT_FLASH_MOVIE)
-    {
-        flash_movie_pressed = BGMT_PRESS_FLASH_MOVIE;
-        return !flash_movie_pressed;
-    }
-    if (recording && MVR_FRAME_NUMBER < 50) flash_movie_pressed = 0; // workaround for issue 688
-
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
     if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif
     
-    return 1;
-}
-
-int handle_flash_button_shortcuts(struct event * event)
-{
-    if (is_movie_mode() && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
-    {
-        if (event->param == BGMT_PRESS_UP)
-        {
-            kelvin_toggle(0, 1);
-            return 0;
-        }
-        if (event->param == BGMT_PRESS_DOWN)
-        {
-            kelvin_toggle(0, -1);
-            return 0;
-        }
-        if (event->param == BGMT_PRESS_LEFT)
-        {
-            iso_toggle(0, -1);
-            return 0;
-        }
-        if (event->param == BGMT_PRESS_RIGHT)
-        {
-            iso_toggle(0, 1);
-            return 0;
-        }
-    }
-    return 1;
-}
-
-int handle_lcd_sensor_shortcuts(struct event * event)
-{
-    if (get_lcd_sensor_shortcuts() && !gui_menu_shown() && display_sensor && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
-    { // those are shortcut keys
-        if (!gui_menu_shown())
-        {
-            if (event->param == BGMT_PRESS_UP)
-            {
-                adjust_backlight_level(1);
-                return 0;
-            }
-            else if (event->param == BGMT_PRESS_DOWN)
-            {
-                adjust_backlight_level(-1);
-                return 0;
-            }
-        }
-        if (lv)
-        {
-            if (event->param == BGMT_PRESS_LEFT)
-            {
-                volume_down();
-                return 0;
-            }
-            else if (event->param == BGMT_PRESS_RIGHT)
-            {
-                volume_up();
-                return 0;
-            }
-        }
-    }
     return 1;
 }
 

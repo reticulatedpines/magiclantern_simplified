@@ -789,7 +789,6 @@ PROP_HANDLER( PROP_MIC_INSERTED )
 {
         if (mic_inserted != -1)
         {
-                NotifyBoxHide();
                 NotifyBox(2000,
                   "Microphone %s", 
                   buf[0] ? 
@@ -1250,7 +1249,6 @@ static void audio_monitoring_force_display(int x)
 
 void audio_monitoring_display_headphones_connected_or_not()
 {
-        NotifyBoxHide();
         NotifyBox(2000,
               "Headphones %s", 
               AUDIO_MONITORING_HEADPHONES_CONNECTED ? 
@@ -1613,7 +1611,6 @@ TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 static void volume_display()
 {
         int mgain_db = mgain_index2gain(mgain);
-        NotifyBoxHide();
         NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
 }
 
@@ -1646,6 +1643,25 @@ void volume_down()
                 audio_mgain_toggle_reverse(&mgain, 0);
         volume_display();
 }
+
+static void out_volume_display()
+{
+        int mgain_db = mgain_index2gain(mgain);
+        NotifyBox(2000, "Out Volume: %d dB", 2 * lovl);
+}
+void out_volume_up()
+{
+    int* p = (int*) &lovl;
+    *p = COERCE(*p + 1, 0, 3);
+    out_volume_display();
+}
+void out_volume_down()
+{
+    int* p = (int*) &lovl;
+    *p = COERCE(*p - 1, 0, 3);
+    out_volume_display();
+}
+
 
 static void audio_menus_init()
 {

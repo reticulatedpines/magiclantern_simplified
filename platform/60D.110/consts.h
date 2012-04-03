@@ -289,6 +289,7 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
+#define ARROW_MODE_TOGGLE_KEY "METERING btn"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x2508)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)

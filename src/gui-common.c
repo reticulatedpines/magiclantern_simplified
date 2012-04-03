@@ -108,10 +108,10 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_af_patterns(event) == 0) return 0;
     if (handle_set_wheel_play(event) == 0) return 0;
     
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-    if (handle_flash_button_shortcuts(event) == 0) return 0;
-    if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
-    #endif
+    //~ #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    if (handle_arrow_keys(event) == 0) return 0;
+    //~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
+    //~ #endif
     
     if (handle_follow_focus(event) == 0) return 0;
     if (handle_zoom_overlay(event) == 0) return 0;

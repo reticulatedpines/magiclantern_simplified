@@ -250,6 +250,7 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "FUNC"
+#define ARROW_MODE_TOGGLE_KEY "FUNC"
 
 #define DISPLAY_IS_ON MEM(0x2860) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
 

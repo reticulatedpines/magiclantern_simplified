@@ -17,6 +17,7 @@ struct semaphore * notify_box_main_sem = 0;
 
 int notify_box_timeout = 0;
 int notify_box_stop_request = 0;
+int notify_box_dirty = 0;
 char notify_box_msg[100];
 
 /*int handle_notifybox_bgmt(struct event * event)
@@ -41,19 +42,22 @@ void NotifyBox_task(void* priv)
         // wait until some other task asks for a notification
         take_semaphore(notify_box_show_sem, 0);
         
-        //~ redraw();
+        if (!notify_box_timeout) 
+            continue;
         
         // show notification for a while, then redraw to erase it
         notify_box_stop_request = 0;
+        notify_box_dirty = 0;
         int i;
-        for (i = 0; i < notify_box_timeout/50; i++)
+        for ( ; notify_box_timeout > 0 ; notify_box_timeout -= 50)
         {
+            if (notify_box_dirty) bmp_fill(0, 50, 50, 650, 32); // clear old message
+            notify_box_dirty = 0;
             bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, notify_box_msg);
             msleep(50);
-            crop_set_dirty(10); // should match the value from redraw_do
             if (notify_box_stop_request) break;
         }
-
+        notify_box_timeout = 0;
         redraw();
     }
 }
@@ -69,6 +73,8 @@ void NotifyBox(int timeout, char* fmt, ...)
 {
     // make sure this is thread safe
     take_semaphore(notify_box_main_sem, 0);
+    
+    if (notify_box_timeout) notify_box_dirty = 1; // ask for a redraw, message changed
     
     notify_box_timeout = MAX(timeout, 100);
     va_list ap;

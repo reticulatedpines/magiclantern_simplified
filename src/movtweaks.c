@@ -697,11 +697,6 @@ void rec_notify_trigger(int rec)
     }
 #endif
 
-#ifdef CONFIG_600D
-    extern int flash_movie_pressed; // another workaround for issue 688
-    flash_movie_pressed = 0;
-#endif
-
 #ifndef CONFIG_50D
     if (rec == 1 && sound_recording_mode == 1)
         NotifyBox(1000, "Sound is disabled.");

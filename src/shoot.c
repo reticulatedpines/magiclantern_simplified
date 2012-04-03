@@ -1402,14 +1402,17 @@ shutter_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, lens_info.raw_shutter ? MNI_PERCENT : MNI_WARNING, lens_info.raw_shutter ? (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]) : (intptr_t) "Shutter speed is automatic - cannot adjust manually.");
 }
 
-static void
+void
 shutter_toggle(void* priv, int sign)
 {
     int i = raw2index_shutter(lens_info.raw_shutter);
     int k;
     for (k = 0; k < 20; k++)
     {
-        i = mod(i + sign, COUNT(codes_shutter));
+        int new_i = mod(i + sign, COUNT(codes_shutter));
+        if (priv == -1 && (new_i == 0 || i + sign != new_i)) // wrapped around
+            break;
+        i = new_i;
         if (lens_set_rawshutter(codes_shutter[i])) break;
     }
 }
@@ -1427,7 +1430,7 @@ aperture_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, lens_info.aperture ? (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]) : (uintptr_t) (lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture."));
 }
 
-static void
+void
 aperture_toggle( void* priv, int sign)
 {
     int amin = codes_aperture[1];
@@ -1438,8 +1441,16 @@ aperture_toggle( void* priv, int sign)
     for (int k = 0; k < 50; k++)
     {
         a += sign;
-        if (a > amax) a = amin;
-        if (a < amin) a = amax;
+        if (priv == -1) // don't wrap around
+        {
+            if (a > amax) a = amax;
+            if (a < amin) a = amin;
+        }
+        else // allow wrap around
+        {
+            if (a > amax) a = amin;
+            if (a < amin) a = amax;
+        }
 
         if (a < lens_info.raw_aperture_min || a > lens_info.raw_aperture_max) continue;
 
@@ -2809,7 +2820,7 @@ int handle_bulb_ramping_keys(struct event * event)
             {
                 int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
                 bramp_change_percentile(dir);
-                NotifyBoxHide();
+                //~ NotifyBoxHide();
                 return 0;
             }
         }
@@ -3071,7 +3082,7 @@ static void compute_exposure_for_next_shot()
 {
     if (!bramp_init_done) return;
     
-    NotifyBoxHide();
+    //~ NotifyBoxHide();
     NotifyBox(2000, "Exposure for next shot...");
     //~ msleep(500);
     
@@ -4330,7 +4341,7 @@ shoot_task( void* unused )
             if (was_idle_not_pressed && is_idle_and_pressed)
             {
                 int d = bulb_shutter_value/1000;
-                NotifyBoxHide();
+                //~ NotifyBoxHide();
                 NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_minutes_seconds(d));
                 while (get_halfshutter_pressed())
                 {
@@ -4338,13 +4349,13 @@ shoot_task( void* unused )
                 }
                 int m0 = shooting_mode;
                 wait_till_next_second();
-                NotifyBoxHide();
+                //~ NotifyBoxHide();
                 NotifyBox(2000, "[2s] Bulb timer: %s", format_time_minutes_seconds(d));
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
-                NotifyBoxHide();
+                //~ NotifyBoxHide();
                 NotifyBox(2000, "[1s] Bulb timer: %s", format_time_minutes_seconds(d));
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
