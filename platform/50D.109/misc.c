@@ -65,3 +65,5 @@ void display_shooting_info() // called from debug task
 int audio_meters_are_drawn() { return 0; }
 void volume_up(){};
 void volume_down(){};
+void out_volume_up(){};
+void out_volume_down(){};
