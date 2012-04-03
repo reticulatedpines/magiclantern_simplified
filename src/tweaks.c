@@ -1246,6 +1246,7 @@ int handle_arrow_keys(struct event * event)
                 case 2: kelvin_toggle(0, 1); break;
                 case 3: aperture_toggle(-1, 1); break;
                 case 4: adjust_saturation_level(1); break;
+                default: return 1;
             }
             lens_display_set_dirty();
             return 0;
@@ -1258,6 +1259,7 @@ int handle_arrow_keys(struct event * event)
                 case 2: kelvin_toggle(0, -1); break;
                 case 3: aperture_toggle(-1, -1); break;
                 case 4: adjust_saturation_level(-1); break;
+                default: return 1;
             }
             lens_display_set_dirty();
             return 0;
@@ -1270,6 +1272,7 @@ int handle_arrow_keys(struct event * event)
                 case 2: iso_toggle(0, -1); break;
                 case 3: shutter_toggle(-1, -1); break;
                 case 4: adjust_backlight_level(-1); break;
+                default: return 1;
             }
             lens_display_set_dirty();
             return 0;
@@ -1282,6 +1285,7 @@ int handle_arrow_keys(struct event * event)
                 case 2: iso_toggle(0, 1); break;
                 case 3: shutter_toggle(-1, 1); break;
                 case 4: adjust_backlight_level(1); break;
+                default: return 1;
             }
             lens_display_set_dirty();
             return 0;
