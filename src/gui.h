@@ -215,4 +215,6 @@ void canon_gui_disable();
 void canon_gui_enable();
 int canon_gui_disabled();
 
+extern void menu_open_submenu();
+
 #endif

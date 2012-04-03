@@ -1136,7 +1136,11 @@ void star_zoom_update()
 
 
 CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
+#if !defined(CONFIG_50D) && !defined(CONFIG_600D)
 CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
+#else
+int arrow_keys_audio = 0;
+#endif
 CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 CONFIG_INT("arrows.tv_av", arrow_keys_shutter_aperture, 0);
 CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
