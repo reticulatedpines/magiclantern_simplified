@@ -221,6 +221,8 @@ int raw2iso(int raw_iso)
         iso = ((iso+500)/1000) * 1000;
     else if (iso > 10000)
         iso = ((iso+50)/100) * 100;
+    else if (iso >= 70 && iso < 80)
+        iso = ((iso+5)/10) * 10;
     else if (iso >= 15)
         iso = ((iso+2)/5) * 5;
     else
@@ -532,6 +534,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
             text_font = FONT(
                 SHADOW_FONT(FONT_LARGE),
+                info->raw_iso >= 120 ? COLOR_RED :
+                info->iso_equiv_raw < info->raw_iso ? COLOR_GREEN1 :
+                info->iso_equiv_raw > info->raw_iso ? COLOR_RED :
                 COLOR_YELLOW,
                 bg
             );
@@ -543,7 +548,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       y_origin, 
                       msg);
             extern int digic_iso_gain;
-            if (CONTROL_BV || digic_iso_gain != 1024)
+            if (CONTROL_BV || lens_info.iso_equiv_raw != lens_info.raw_iso)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
                           bottom - font_med.height, 

@@ -9,8 +9,9 @@
 #include "lens.h"
 #include "menu.h"
 #include "config.h"
+#include "math.h"
 
-#define CONFIG_DIGIC_POKE
+#undef CONFIG_DIGIC_POKE
 
 #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -21,54 +22,91 @@ void lv_request_pause_updating(int value)
 }
 
 
-#define SHAD_GAIN      0xc0f08030 // controls clipping point (digital ISO)
-#define SHAD_PRESETUP  0xc0f08034 // controls black point?
+#define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
+#define SHAD_PRESETUP  0xc0f08034       // controls black point? as in "dcraw -k"
+#define SHADOW_LIFT_REGISTER 0xc0f0e094 // raises shadows, but after they are crushed by Canon curves; default at 0x80?
+#define ISO_PUSH_REGISTER 0xc0f0e0f8    // like display gain, 0x100 = 1 stop, 0x700 = max of 7 stops
 
-CONFIG_INT("highlight.recover", highlight_recover, 0);
-CONFIG_INT("shadow.recover", shadow_recover, 0);
+CONFIG_INT("digic.iso.gain", digic_iso_gain, 790); // units: like with the old display gain
+// that is: 1024 = 0 EV = disabled
+// 2048 = 1 EV etc
 
-int shad_gain_override = 0;
+// 1024 = 0 EV
+void set_display_gain_equiv(int gain)
+{
+    if (gain == 0) gain = 1024;
+    digic_iso_gain = gain;
+}
+
+int gain_to_ev_scaled(int gain, int scale)
+{
+    if (gain == 0) return 0;
+    return (int) roundf(log2f(gain) * ((float)scale));
+}
+
+void
+digic_iso_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int G = gain_to_ev_scaled(digic_iso_gain, 8) - 80;
+    G = G * 10/8;
+    int GA = abs(G);
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "DIGIC ISO Gain: %s%d.%d EV",
+        G > 0 ? "+" : G < 0 ? "-" : "",
+        GA/10, GA%10
+    );
+    if (G < 0 && !is_movie_mode()) 
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Negative gain works only in Movie mode.");
+    if (G > 0 && !is_movie_mode()) 
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only used for previewing LV image. Doesn't alter pictures.");
+    if (G && !lv)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in LiveView.");
+    menu_draw_icon(x, y, MNI_BOOL(G), 0);
+}
+
+static int digic_iso_presets[] = {256, 362, 512, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
+
+void digic_iso_toggle(void* priv, int delta)
+{
+    int i;
+    for (i = 0; i < COUNT(digic_iso_presets); i++)
+        if (digic_iso_presets[i] >= digic_iso_gain) break;
+    
+    i = mod(i + delta, COUNT(digic_iso_presets));
+    
+    digic_iso_gain = digic_iso_presets[i];
+}
 
 static CONFIG_INT("digic.effects", image_effects, 0);
 static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
-int default_shad_gain = 4096;
+int default_white_level = 4096;
 static int shad_gain_last_written = 0;
 
-void autodetect_default_shad_gain()
+void autodetect_default_white_level()
 {
     if (!lv) return;
     
     int current_shad_gain = MEMX(SHAD_GAIN);
     if (current_shad_gain == shad_gain_last_written) return; // in the register there's the value we wrote => not good for computing what Canon uses as default setting
 
-    default_shad_gain = current_shad_gain;
-
-    // skip ISO calculations - not reliable
-
-    //~ int raw_iso = FRAME_ISO & 0xFF;
-    //~ int ag = COERCE((raw_iso+4) / 8, 72/8, 112/8) * 8;
-    //~ int dg = raw_iso - ag;
-    //~ default_shad_gain = current_shad_gain * powf(2, -dg / 8.0);
-    //~ bmp_printf(FONT_LARGE, 50, 50, "shad_gain: %d ", default_shad_gain);
+    default_white_level = current_shad_gain;
 }
 
-int get_new_shad_gain()
+int get_new_white_level()
 {
-    switch (highlight_recover)
-    {
-        case 0: return default_shad_gain;
-        case 1: return default_shad_gain * 939 / 1024; // -1/8 EV
-        case 2: return default_shad_gain * 861 / 1024; // -2/8 EV
-        case 3: return default_shad_gain * 790 / 1024; // -3/8 EV
-        case 4: return default_shad_gain * 724 / 1024; // -4/8 EV
-        case 5: return default_shad_gain / 2;          // -1   EV
-        case 6: return default_shad_gain * 362 / 1024; // -1.5 EV
-        case 7: return default_shad_gain / 4;          // -2   EV
-        case 8: return shad_gain_override ? shad_gain_override : default_shad_gain;             // custom
-    }
+    if (digic_iso_gain < 1024) 
+        return default_white_level * digic_iso_gain / 1024;
+    return 0;
 }
 
 #ifdef CONFIG_DIGIC_POKE
@@ -235,116 +273,32 @@ void image_effects_step()
     }    
 }
 
-void shadow_recover_step()
+void digic_iso_step()
 {
-    if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
-    
-    if (shadow_recover && DISPLAY_IS_ON && lv)
-    {
-        int presetup = MEMX(SHAD_PRESETUP);
-        presetup = (presetup & 0xFF00) | (shadow_recover & 0x00FF);
-        EngDrvOut(SHAD_PRESETUP, presetup);
-    }
-}
-
-void highlight_recover_step()
-{
-    if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
+    if (!DISPLAY_IS_ON) return;
+    if (!lv) return;
     if (lens_info.iso == 0) return; // no auto ISO, please
     
-    if (highlight_recover && DISPLAY_IS_ON && lv)
+    if (digic_iso_gain < 1024)
     {
-        autodetect_default_shad_gain();
-        int new_gain = get_new_shad_gain();
+        if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
+        autodetect_default_white_level();
+        int new_gain = get_new_white_level();
         EngDrvOut(SHAD_GAIN, new_gain);
         shad_gain_last_written = new_gain;
     }
-}
-
-void
-clipping_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    autodetect_default_shad_gain();
     
-    if (highlight_recover)
+    else if (digic_iso_gain > 1024)
     {
-        int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain)) * 10/8;
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "White Level   : %s%d.%d EV",
-            G > 0 ? "-" : "+",
-            ABS(G)/10, ABS(G)%10
-        );
-        if (!is_movie_mode())
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in movie mode.");
-        if (lens_info.iso == 0)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with Auto ISO.");
-        if (highlight_recover == 8) // custom, auto-detected
-            menu_draw_icon(x, y, MNI_AUTO, 0);
-    }
-    else
-    {
-        int G = (gain_to_ev_x8(MEMX(SHAD_GAIN)) - gain_to_ev_x8(default_shad_gain)) * 10/8;
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "White Point   : 0.0 EV"
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
+        // no side effects in photo mode, it is applied after metering
+        int ev_x255 = gain_to_ev_scaled(digic_iso_gain, 255) - 2550 + 255;
+        EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
     }
 }
-
-void
-shadow_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    autodetect_default_shad_gain();
-    
-    int default_black_point = MEMX(SHAD_PRESETUP) & 0xFF00; // last two digits seem zero on all cameras
-
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Black Level   : %d%s%d",
-        default_black_point,
-        shadow_recover >= 0 ? "+" : "",
-        shadow_recover
-    );
-    if (!is_movie_mode())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in movie mode.");
-    menu_draw_icon(x, y, MNI_BOOL(shadow_recover), 0);
-}
-
-extern void shadow_toggle(void* priv, int delta)
-{
-    int a = ABS(shadow_recover);
-    if (a > 10) delta = delta * a / 10;
-    shadow_recover = COERCE((int)shadow_recover + delta, 0, 255);
-}
-
 
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
-    /*{
-        .name = "Highlight++",
-        .priv       = &highlight_recover,
-        .min = 0,
-        .max = 5,
-        .display = clipping_print,
-        .help = "Highlight recovery by changing sensor clipping point in LV.",
-        .edit_mode = EM_MANY_VALUES,
-    },*/
     {
         .name = "Image Effects",
         .priv = &image_effects,

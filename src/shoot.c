@@ -1230,19 +1230,30 @@ iso_display( void * priv, int x, int y, int selected )
         lens_info.iso ? "" : "Auto"
     );
 
-    fnt = FONT(
-        fnt, 
-        is_native_iso(lens_info.iso) ? COLOR_YELLOW :
-        is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : FONT_FG(fnt),
-        FONT_BG(fnt));
-
     if (lens_info.iso)
     {
-        bmp_printf(
-            fnt,
-            x + 14 * font_large.width, y,
-            "%d", lens_info.iso
-        );
+        if (lens_info.raw_iso == lens_info.iso_equiv_raw)
+        {
+            bmp_printf(
+                fnt,
+                x + 14 * font_large.width, y,
+                "%d", raw2iso(lens_info.iso_equiv_raw)
+            );
+        }
+        else
+        {
+            int dg = lens_info.iso_equiv_raw - lens_info.raw_iso;
+            dg = dg * 10/8;
+            bmp_printf(
+                fnt,
+                x + 14 * font_large.width, y,
+                "%d (%d,%s%d.%dEV)", 
+                raw2iso(lens_info.iso_equiv_raw),
+                raw2iso(lens_info.raw_iso),
+                dg > 0 ? "+" : "-", 
+                ABS(dg)/10, ABS(dg)%10
+            );
+        }
     }
 
     menu_draw_icon(x, y, lens_info.iso ? MNI_PERCENT : MNI_AUTO, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
@@ -1288,22 +1299,6 @@ int is_round_iso(int iso)
 }
 
 void
-iso_toggle( void * priv, int sign )
-{
-    int i = raw2index_iso(lens_info.raw_iso);
-    int k;
-    for (k = 0; k < 10; k++)
-    {
-        i = mod(i + sign, COUNT(codes_iso));
-        
-        while (!is_round_iso(values_iso[i]))
-            i = mod(i + sign, COUNT(codes_iso));
-        
-        if (lens_set_rawiso(codes_iso[i])) break;
-    }
-}
-
-void
 analog_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
@@ -1323,6 +1318,55 @@ digital_iso_toggle( void * priv, int sign )
     while (d > 8 && d < 16) d += sign;
     lens_set_rawiso(a + d);
 }
+
+void
+fullstop_iso_toggle( void * priv, int sign )
+{
+    int min_iso = get_htp() ? 80 : 72; // iso 100
+    int max_iso = 120; // iso 6400
+    int r = lens_info.raw_iso;
+    if (!r) r = sign > 0 ? min_iso-8 : max_iso+8;
+    int rounded = ((r+3)/8) * 8;
+    rounded = COERCE(rounded + sign * 8, min_iso, max_iso);
+    lens_set_rawiso(rounded);
+}
+
+
+void
+iso_toggle( void * priv, int sign )
+{
+    if (is_movie_mode())
+    {
+        if ((lens_info.raw_iso == 72 && sign < 0) ||
+            (lens_info.raw_iso == 80 && sign < 0 && get_htp()) ||
+            (lens_info.raw_iso == 120 && sign > 0))
+        {
+            lens_set_rawiso(0); // ISO auto
+            return;
+        }
+
+        if (iso_selection == 1) // constant DIGIC gain, full-stop analog
+        {
+            fullstop_iso_toggle(priv, sign);
+            return;
+        }
+    }
+
+    set_display_gain_equiv(0); // disable DIGIC iso
+    
+    int i = raw2index_iso(lens_info.raw_iso);
+    int k;
+    for (k = 0; k < 10; k++)
+    {
+        i = mod(i + sign, COUNT(codes_iso));
+        
+        while (!is_round_iso(values_iso[i]))
+            i = mod(i + sign, COUNT(codes_iso));
+        
+        if (lens_set_rawiso(codes_iso[i])) break;
+    }
+}
+
 
 static void 
 shutter_display( void * priv, int x, int y, int selected )
@@ -2067,6 +2111,7 @@ static int get_ladj()
     return 0;
 }
 
+/*
 #if defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
 static void
 alo_toggle( void * priv )
@@ -2169,6 +2214,32 @@ ladj_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, alo != ALO_OFF ? MNI_ON : htp ? MNI_AUTO : MNI_OFF, 0);
 }
 #endif
+*/
+
+static void
+htp_toggle( void * priv )
+{
+    int htp = get_htp();
+    if (htp)
+        set_htp(0);
+    else
+        set_htp(1);
+}
+
+static void 
+htp_display( void * priv, int x, int y, int selected )
+{
+    int htp = get_htp();
+    int alo = get_alo();
+    bmp_printf(
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "HTP           : %s",
+               htp ? "ON" : "OFF"
+               );
+    menu_draw_icon(x, y, MNI_BOOL(htp), 0);
+}
+
 
 static void 
 zoom_display( void * priv, int x, int y, int selected )
@@ -3484,10 +3555,16 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "ISO Selection",
                 .priv = &iso_selection,
-                .max = 3,
+                .max = 1,
                 .help = "What ISOs should be available from main menu and shortcuts.",
-                .choices = (const char *[]) {"100/160x", "70/80x (ML)", "70x (ML)", "80x (ML)"},
+                .choices = (const char *[]) {"100/160x", "100x + DIGIC"},
                 .icon_type = IT_DICE,
+            },
+            {
+                .name = "HTP",
+                .select = htp_toggle,
+                .display = htp_display,
+                .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
             },
             {
                 .name = "Min MovAutoISO",
@@ -3607,14 +3684,14 @@ static struct menu_entry expo_menus[] = {
         },
     },
 
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
-/*    {
+/*#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
+    {
         .name        = "HTP / ALO",
         .select      = htp_toggle,
         .select_reverse = alo_toggle,
         .display     = ladj_display,
         .help = "Enable/disable HTP [SET] and ALO [PLAY]."
-    }, */
+    }, 
 #else
     {
         .name = "HTP / ALO",
@@ -3624,7 +3701,7 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
     },
 #endif
-
+*/
     {
         .name = "Flash AEcomp",
         .display    = flash_ae_display,
