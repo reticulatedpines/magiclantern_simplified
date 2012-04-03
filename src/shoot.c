@@ -80,6 +80,8 @@ int uniwb_is_active()
         lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
 }
 
+CONFIG_INT("iso_selection", iso_selection, 1);
+
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 CONFIG_INT("hdr.frames", hdr_steps, 3);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
@@ -1228,8 +1230,6 @@ iso_display( void * priv, int x, int y, int selected )
         lens_info.iso ? "" : "Auto"
     );
 
-    //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
-
     fnt = FONT(
         fnt, 
         is_native_iso(lens_info.iso) ? COLOR_YELLOW :
@@ -1242,31 +1242,6 @@ iso_display( void * priv, int x, int y, int selected )
             fnt,
             x + 14 * font_large.width, y,
             "%d", lens_info.iso
-        );
-    }
-
-    extern int default_shad_gain;
-    int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain)) * 10/8;
-
-    if (G && is_movie_mode() && lens_info.iso)
-    {
-            bmp_printf(
-            MENU_FONT,
-            x + 20 * font_large.width, y,
-            "Clip at %s%d.%dEV",
-            G > 0 ? "-" : "+",
-            ABS(G)/10, ABS(G)%10
-        );
-    }
-    else if (LVAE_DISP_GAIN)
-    {
-        int gain_ev = gain_to_ev_x8(LVAE_DISP_GAIN) - 80;
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x + 20 * font_large.width, y,
-            "DispGain%s%d.%dEV",
-            gain_ev > 0 ? "+" : "-",
-            ABS(gain_ev)/8, (ABS(gain_ev)%8)*10/8
         );
     }
 
@@ -1349,111 +1324,6 @@ digital_iso_toggle( void * priv, int sign )
     lens_set_rawiso(a + d);
 }
 
-
-/*PROP_INT(PROP_ISO_AUTO, iso_auto_code);
-static int measure_auto_iso()
-{
-    // temporary changes during measurement:
-    // * max auto iso => 12800
-    // * iso: 800 => 2 or 3 stops down, 3 or 4 stops up
-    // * AE shift to keep the same exposure
-    uint16_t ma = max_auto_iso;
-    uint16_t ma0 = (ma & 0xFF00) | 0x80;
-    
-    int is0 = lens_info.raw_iso;
-    int ae0 = lens_info.ae;
-    int dif = 0x60 - is0;
-    lens_set_rawiso(is0 + dif); // = 0x60 = ISO 800
-    lens_set_ae(ae0 - dif);
-    
-    prop_request_change(PROP_MAX_AUTO_ISO, &ma0, 2);
-    
-    int iso_auto_mode = 0;
-    prop_request_change(PROP_ISO, &iso_auto_mode, 4);   // force iso auto
-    msleep(500);
-    while (iso_auto_code == 0) // force metering event
-    {
-        SW1(1,100);
-        SW1(0,100);
-    }
-    
-    int ans = iso_auto_code;
-    
-    // restore stuff back
-    prop_request_change(PROP_MAX_AUTO_ISO, &ma, 2);
-    lens_set_rawiso(is0);
-    lens_set_ae(ae0);
-    
-    return ans;
-}*/
-
-static int measure_auto_iso()
-{
-    SW1(1,10); // trigger metering event
-    SW1(0,100);
-    return COERCE(lens_info.raw_iso - AE_VALUE, 72, 128);
-}
-
-static void iso_auto_quick()
-{
-    //~ if (MENU_MODE) return;
-    int new_iso = measure_auto_iso();
-    lens_set_rawiso(new_iso);
-}
-
-static int iso_auto_flag = 0;
-static void iso_auto()
-{
-    if (lv) iso_auto_flag = 1; // it takes some time, so it's better to do it in another task
-    else 
-    {
-        iso_auto_quick();
-        iso_auto_quick(); // sometimes it gets better result the second time
-    }
-}
-void get_under_and_over_exposure_autothr(int* under, int* over)
-{
-    int thr_lo = 0;
-    int thr_hi = 255;
-    *under = 0;
-    *over = 0;
-    while (*under < 50 && *over < 50 && thr_lo < thr_hi)
-    {
-        thr_lo += 10;
-        thr_hi -= 10;
-        get_under_and_over_exposure(thr_lo, thr_hi, under, over);
-    }
-}
-
-static int crit_iso(int iso_index)
-{
-    if (!lv) return 0;
-
-    if (iso_index >= 0)
-    {
-        lens_set_rawiso(codes_iso[iso_index]);
-        msleep(750);
-    }
-
-    int under, over;
-    get_under_and_over_exposure_autothr(&under, &over);
-    //~ BMP_LOCK( draw_ml_bottombar(0,0); )
-    return under - over;
-}
-
-static void iso_auto_run()
-{
-    menu_stop();
-    if (lens_info.raw_iso == 0) { lens_set_rawiso(96); msleep(500); }
-    int c0 = crit_iso(-1); // test current iso
-    int i;
-    if (c0 > 0) i = bin_search(raw2index_iso(lens_info.raw_iso), COUNT(codes_iso), crit_iso);
-    else i = bin_search(get_htp() ? 9 : 1, raw2index_iso(lens_info.raw_iso)+1, crit_iso);
-    lens_set_rawiso(codes_iso[i]);
-    redraw();
-}
-
-
 static void 
 shutter_display( void * priv, int x, int y, int selected )
 {
@@ -1499,55 +1369,6 @@ shutter_toggle(void* priv, int sign)
         if (lens_set_rawshutter(codes_shutter[i])) break;
     }
 }
-
-static void shutter_auto_quick()
-{
-    if (MENU_MODE) return;
-    if (lens_info.raw_iso == 0) return;                  // does not work on Auto ISO
-    int ciso = lens_info.raw_iso;
-    int steps = measure_auto_iso() - ciso;              // read delta exposure and compute new shutter value
-    int newshutter = COERCE(lens_info.raw_shutter - steps, 96, 152);
-    lens_set_rawiso(ciso);                                 // restore iso
-    lens_set_rawshutter(newshutter);                       // set new shutter value
-}
-
-/*static int shutter_auto_flag = 0;
-static void shutter_auto()
-{
-    if (lv) shutter_auto_flag = 1; // it takes some time, so it's better to do it in another task
-    else 
-    {
-        shutter_auto_quick();
-        shutter_auto_quick();
-    }
-}
-
-static int crit_shutter(int shutter_index)
-{
-    if (!lv) return 0;
-
-    if (shutter_index >= 0)
-    {
-        lens_set_rawshutter(codes_shutter[shutter_index]);
-        msleep(750);
-    }
-
-    int under, over;
-    get_under_and_over_exposure_autothr(&under, &over);
-    //~ BMP_LOCK( draw_ml_bottombar(0,0); )
-    return over - under;
-}
-
-static void shutter_auto_run()
-{
-    menu_stop();
-    int c0 = crit_shutter(-1); // test current shutter
-    int i;
-    if (c0 > 0) i = bin_search(raw2index_shutter(lens_info.raw_shutter), COUNT(codes_shutter), crit_shutter);
-    else i = bin_search(1, raw2index_shutter(lens_info.raw_shutter)+1, crit_shutter);
-    lens_set_rawshutter(codes_shutter[i]);
-    redraw();
-}*/
 
 static void 
 aperture_display( void * priv, int x, int y, int selected )
@@ -2934,7 +2755,7 @@ static int crit_dispgain_50(int gain)
 {
     if (!lv) return 0;
 
-    set_display_gain(gain);
+    set_display_gain_equiv(gain);
     msleep(500);
     
     int Y,U,V;
@@ -3032,7 +2853,7 @@ calib_start:
     SW1(0,50);
     lens_set_ae(0);
     int gain0 = bin_search(128, 2500, crit_dispgain_50);
-    set_display_gain(gain0);
+    set_display_gain_equiv(gain0);
     msleep(500);
     int Y,U,V;
     get_spot_yuv(200, &Y, &U, &V);
@@ -3052,7 +2873,7 @@ calib_start:
     
     for (int i = -5; i <= 5; i++)
     {
-        set_display_gain(gain0 * (1 << (i+10)) / 1024);
+        set_display_gain_equiv(gain0 * (1 << (i+10)) / 1024);
         //~ lens_set_ae(i*4);
         msleep(500);
         get_spot_yuv(200, &Y, &U, &V);
@@ -3065,18 +2886,18 @@ calib_start:
         if (i > -5 && Y < bramp_luma_ev[i+5-1]) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
         bramp_luma_ev[i+5] = Y;
         bramp_plot_luma_ev();
-        //~ set_display_gain(1<<i);
+        //~ set_display_gain_equiv(1<<i);
     }
     
     // final check
-    set_display_gain(gain0);
+    set_display_gain_equiv(gain0);
     msleep(2000);
     get_spot_yuv(200, &Y, &U, &V);
     if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
 
     // calibration accepted :)
     bulb_ramp_calibration_running = 0;
-    set_display_gain(0);
+    set_display_gain_equiv(0);
     lens_set_ae(0);
 #ifdef CONFIG_500D
     fake_simple_button(BGMT_Q);
@@ -3533,14 +3354,9 @@ extern int lvae_iso_max;
 extern int lvae_iso_min;
 extern int lvae_iso_speed;
 
-extern void display_gain_print( void * priv, int x, int y, int selected);
-extern void display_gain_toggle(void* priv, int dir);
-
-extern int highlight_recover;
-extern void clipping_print( void * priv, int x, int y, int selected);
-extern void shadow_print( void * priv, int x, int y, int selected);
-extern void shadow_toggle(void* priv, int delta);
-void detect_native_iso_gmt();
+extern void digic_iso_print( void * priv, int x, int y, int selected);
+extern void digic_iso_toggle(void* priv, int delta);
+//~ extern void menu_open_submenu();
 
 static struct menu_entry expo_menus[] = {
     {
@@ -3640,7 +3456,6 @@ static struct menu_entry expo_menus[] = {
                 .priv = &lens_info.iso_equiv_raw,
                 .unit = UNIT_ISO,
                 .select     = iso_toggle,
-                //~ .show_liveview = 1,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
@@ -3649,42 +3464,30 @@ static struct menu_entry expo_menus[] = {
                 .priv = &lens_info.iso_analog_raw,
                 .unit = UNIT_ISO,
                 .select     = analog_iso_toggle,
-                //~ .show_liveview = 1,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Digital Gain",
-                .help = "Digital ISO component. Negative values = less noise.",
+                .help = "Canon's digital ISO component. Strongly recommended: 0.",
                 .priv = &lens_info.iso_digital_ev,
                 .unit = UNIT_1_8_EV,
                 .select     = digital_iso_toggle,
-                //~ .show_liveview = 1,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "White Point",
-                .priv       = &highlight_recover,
-                .min = 0,
-                .max = 7,
-                .display = clipping_print,
-                .help = "MOVIE: adjust white clipping point => finetune digital ISO.",
+                .name = "DIGIC ISO Gain",
+                .display = digic_iso_print,
+                .select = digic_iso_toggle,
+                .help = "Digital ISO gain via DIGIC pokes. Recommended -0.2..-0.5EV.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Black Point",
-                .display = shadow_print,
-                .select = shadow_toggle,
-                .help = "MOVIE: adjust black clipping point => shadow recovery.",
-                .edit_mode = EM_MANY_VALUES_LV,
-            },
-            {
-                .name = "Display Gain", 
-                .priv = &LVAE_DISP_GAIN,
-                .select = display_gain_toggle, 
-                .display = display_gain_print, 
-                .help = "Digital gain applied to LiveView image and recorded video.",
-                //~ .show_liveview = 1,
-                .edit_mode = EM_MANY_VALUES_LV,
+                .name = "ISO Selection",
+                .priv = &iso_selection,
+                .max = 3,
+                .help = "What ISOs should be available from main menu and shortcuts.",
+                .choices = (const char *[]) {"100/160x", "70/80x (ML)", "70x (ML)", "80x (ML)"},
+                .icon_type = IT_DICE,
             },
             {
                 .name = "Min MovAutoISO",
@@ -3712,16 +3515,6 @@ static struct menu_entry expo_menus[] = {
                 .help = "Speed for movie Auto ISO. Low values = smooth transitions.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-            {
-                .name = "Auto adjust ISO",
-                .select = iso_auto,
-                .help = "Adjust ISO value once for the current scene."
-            },
-            {
-                .name = "Maximize dynamic range",
-                .select = detect_native_iso_gmt,
-                .help = "Detects optimal clipping point (auto-tune digital ISO gain)."
-            },
             MENU_EOL
         },
     },
@@ -3743,7 +3536,6 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
-
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -4224,17 +4016,6 @@ void remote_shot(int wait)
     picture_was_taken_flag = 0;
 }
 
-void iso_refresh_display()
-{
-    int bg = bmp_getpixel(MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y);
-    uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-    int iso = lens_info.iso;
-    if (iso)
-        bmp_printf(fnt, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y, "ISO %5d", iso);
-    else
-        bmp_printf(fnt, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y, "ISO AUTO");
-}
-
 static void display_expsim_status()
 {
     #ifdef CONFIG_5D2
@@ -4371,16 +4152,6 @@ shoot_task( void* unused )
     {
         msleep(MIN_MSLEEP);
 
-        if (iso_auto_flag)
-        {
-            iso_auto_run();
-            iso_auto_flag = 0;
-        }
-        /*if (shutter_auto_flag)
-        {
-            shutter_auto_run();
-            shutter_auto_flag = 0;
-        }*/
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -4805,68 +4576,3 @@ void shoot_init()
 }
 
 INIT_FUNC("shoot", shoot_init);
-
-static int get_exact_iso_equiv()
-{
-    extern int shad_gain_override;
-    extern int default_shad_gain;
-
-    //~ NotifyBox(1000, "Gains: %d / %d; ISO: %d ", shad_gain_override, default_shad_gain, raw2iso(lens_info.iso_analog_raw)); msleep(1000);
-    float gain_ev = log2f((float)shad_gain_override / (float)default_shad_gain);
-    int iso = (int)roundf(raw2iso(lens_info.iso_analog_raw) * powf(2.0, gain_ev));
-    return iso;
-}
-
-static int is_image_overexposed()
-{
-    int Y,U,V;
-    get_spot_yuv(20, &Y, &U, &V);
-
-    int R = Y + 1437 * V / 1024;
-    int G = Y -  352 * U / 1024 - 731 * V / 1024;
-    int B = Y + 1812 * U / 1024;
-
-    return (R >= 255 && G >= 255 && B >= 255);
-}
-
-static int crit_native_iso(int gain)
-{
-    extern int shad_gain_override;
-    shad_gain_override = gain;
-
-    NotifyBox(1000, "Trying %d...", get_exact_iso_equiv());
-    msleep(500);
-    if (is_image_overexposed()) return -1;
-    return 1;
-}
-
-void detect_native_iso()
-{
-    if (!is_movie_mode())
-    {
-        NotifyBox(2000, "This works only in movie mode.");
-        return;
-    }
-    if (lens_info.iso == 0)
-    {
-        NotifyBox(2000, "No auto ISO, please!");
-        return;
-    }
-    extern int shad_gain_override;
-    shad_gain_override = 0;
-    highlight_recover = 8; // custom
-    NotifyBox(1000, "Detecting optimal ISO..."); msleep(1000);
-    autodetect_default_shad_gain();
-    while (!is_image_overexposed())
-    {
-        NotifyBox(1000, "Point camera to something bright..."); msleep(500);
-    }
-    int gain = bin_search(100, 10000, crit_native_iso);
-    NotifyBox(5000, "Optimal ISO: %d.  ", get_exact_iso_equiv());
-}
-
-void detect_native_iso_gmt()
-{
-    gui_stop_menu();
-    task_create("native_iso", 0x1a, 0, detect_native_iso, 0);
-}

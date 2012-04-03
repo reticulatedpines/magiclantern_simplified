@@ -838,14 +838,13 @@ void update_lvae_for_autoiso_n_displaygain()
     // or: (b) display gain enabled with manual ISO => ISO locked to manual value,
     //         but exposure mode is set to auto ISO to make sure display gain takes effect
     static int fixed_iso_needed_by_max_auto_iso = 0;
-    static int fixed_iso_needed_by_display_gain = 0;
 
     //~ static int k;
-    //~ bmp_printf(FONT_LARGE, 50, 50, "%d: %d %d ", k++, fixed_iso_needed_by_max_auto_iso, fixed_iso_needed_by_display_gain);
+    //~ bmp_printf(FONT_LARGE, 50, 50, "%d: %d ", k++, fixed_iso_needed_by_max_auto_iso);
 
     // Max Auto ISO limit
     // Action of this block: sets or clears fixed_iso_needed_by_max_auto_iso
-    if (is_movie_mode() && expsim==2 && lens_info.raw_iso == 0 && !fixed_iso_needed_by_display_gain) // plain auto ISO
+    if (is_movie_mode() && expsim==2 && lens_info.raw_iso == 0) // plain auto ISO
     {
         if (!fixed_iso_needed_by_max_auto_iso) // iso auto is alive and kicking
         {
@@ -890,118 +889,27 @@ void update_lvae_for_autoiso_n_displaygain()
             if (ae_value > 0 || lvae_iso_max != LVAE_ISO_MIN) // scene is bright again, wakeup auto ISO 
             {
                 fixed_iso_needed_by_max_auto_iso = 0;
-                //~ beep();
-                //~ bmp_printf(FONT_LARGE, 10, 100, "0");
             }
         }
     }
     else fixed_iso_needed_by_max_auto_iso = 0;
 
-    // Display gain in manual movie mode
-    // Action of this block: sets or clears fixed_iso_needed_by_display_gain
-
-    if (is_movie_mode() && !CONTROL_BV && ae_mode_movie && expsim==2) // movie mode with manual ISO
-    {
-        if (LVAE_DISP_GAIN && liveview_display_idle() && !ISO_ADJUSTMENT_ACTIVE && (!get_halfshutter_pressed() || recording)) // needs auto iso to apply display gain
-        {
-            int riso = lens_info.raw_iso;
-            if (riso) fixed_iso_needed_by_display_gain = riso;
-        }
-        else
-        {
-            fixed_iso_needed_by_display_gain = 0;
-        }
-    }
-    else fixed_iso_needed_by_display_gain = 0;
-
     // Now apply or revert LVAE ISO settings as requested
-
-    static int fixed_iso_was_needed_by_display_gain = 0;
-
-    #ifdef CONFIG_5D2
-    fixed_iso_needed_by_display_gain = MIN(fixed_iso_needed_by_display_gain, 117); // otherwise display gain doesn't work
-    #endif
 
     if (fixed_iso_needed_by_max_auto_iso)
     {
         LVAE_MOV_M_CTRL = 1;
         LVAE_ISO_MIN = fixed_iso_needed_by_max_auto_iso;
     }
-    else if (fixed_iso_needed_by_display_gain)
-    {
-        LVAE_MOV_M_CTRL = 1;
-        LVAE_ISO_MIN = fixed_iso_needed_by_display_gain;
-
-        // this setting takes quite a bit of CPU to apply => only refresh it on transition (0->1)
-        if (!fixed_iso_was_needed_by_display_gain)
-        {
-            //~ bmp_printf(FONT_LARGE, 50, 200, "force iso auto");
-            fixed_iso_was_needed_by_display_gain = fixed_iso_needed_by_display_gain;
-            lens_set_rawiso(0);      // force iso auto => to enable display gain; but force it to a fixed value
-            lensinfo_set_iso(fixed_iso_needed_by_display_gain);
-        }
-    }
     else // restore things back
     {
         LVAE_MOV_M_CTRL = 0;
         LVAE_ISO_MIN = lvae_iso_min;
-
-        if (fixed_iso_was_needed_by_display_gain) // refresh on 1->0
-        {
-            //~ bmp_printf(FONT_LARGE, 50, 200, "restore iso => %d ", fixed_iso_was_needed_by_display_gain);
-            lens_set_rawiso(fixed_iso_was_needed_by_display_gain);
-            fixed_iso_was_needed_by_display_gain = 0;
-        }
     }
 
     // this is always applied
     LVAE_ISO_SPEED = lvae_iso_speed;
-
-    if (lvae_disp_gain != LVAE_DISP_GAIN)
-    {
-        set_display_gain(lvae_disp_gain);
-    }
 }
-void set_display_gain(int display_gain)
-{
-    display_gain = COERCE(display_gain, 0, 65535);
-    if (display_gain == 1024) display_gain = 0;
-    LVAE_DISP_GAIN = lvae_disp_gain = display_gain;
-}
-
-// 1024 = 0 EV
-// +: +1 +2 ... +6
-// -: -0.3 -0.6 -1 -1.3 -1.6 ... -3
-void display_gain_toggle(void* priv, int dir)
-{
-    int d = LVAE_DISP_GAIN;
-    if (d == 0) d = 1024;
-    int dg = gain_to_ev_x8(d);
-
-    while (1)
-    {
-        dg += dir;
-        if (dg < 80)
-        {
-            if (dg % 8 == 0 || dg % 8 == 3 || dg % 8 == 5) break;
-            if (dg == 79) break;
-            if (dg == 78) break;
-        }
-        else
-        {
-            if (dg % 8 == 0) break;
-        }
-    }
-    if (dg < 56) dg = 128;
-    if (dg > 128) dg = 56;
-    
-    set_display_gain((int)powf(2.0, dg/8.0));
-}
-
-//~ static void display_gain_reset(void* priv, int delta)
-//~ {
-    //~ display_gain_toggle(0,0);
-//~ }
 
 int gain_to_ev(int gain)
 {
@@ -1014,32 +922,6 @@ int gain_to_ev_x8(int gain)
     if (gain == 0) return 0;
     return (int) roundf(log2f(gain) * 8.0);
 }
-
-void display_gain_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    int gain_ev = 0;
-    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev_x8(LVAE_DISP_GAIN) - 80;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Display Gain  : %s%d.%d EV",
-        gain_ev > 0 ? "+" : gain_ev < 0 ? "-" : "",
-        ABS(gain_ev)/8, (ABS(gain_ev)%8)*10/8
-    );
-    if (LVAE_DISP_GAIN)
-    {
-        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView.");
-        else if (CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure Override is active.");
-        else menu_draw_icon(x, y, MNI_PERCENT, gain_ev * 100 / 6);
-    }
-    else menu_draw_icon(x, y, MNI_OFF, 0);
-}
-
 
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D

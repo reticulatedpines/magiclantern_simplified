@@ -14,23 +14,11 @@
 #include "lens.h"
 #include "math.h"
 
-void display_gain_toggle(void* priv, int dir);
 void clear_lv_affframe();
 
 static void upside_down_step();
 
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
-
-static void
-dofp_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "DOF Preview (photos): %s",
-        dofpreview_sticky  ? "Sticky" : "Normal"
-    );
-}
 
 int dofp_value = 0;
 static void
@@ -124,10 +112,6 @@ expsim_toggle( void * priv )
 }*/
 int get_expsim_auto_value()
 {
-    extern int bulb_ramp_calibration_running; 
-    if (bulb_ramp_calibration_running) 
-        return 0; // temporarily disable ExpSim to make sure display gain will work
-    
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     return expsim;
     #else
@@ -428,39 +412,10 @@ extern unsigned lcd_sensor_shortcuts;
 // backlight adjust
 //**********************************************************************
 
-void show_display_gain()
-{
-    int gain_ev = 0;
-    if (LVAE_DISP_GAIN) gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
-    NotifyBox(2000, "Display Gain : %s%d EV", LVAE_DISP_GAIN ? "+" : "", gain_ev);
-    redraw();
-}
-
 void adjust_backlight_level(int delta)
 {
     if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
     if (!DISPLAY_IS_ON) call("TurnOnDisplay");
-    
-    // if we run out of backlight, adjust display gain instead
-    
-    if (lv)
-    {
-        if (backlight_level == 7 && delta > 0)
-        {
-            beep();
-            display_gain_toggle(0, 1);
-            show_display_gain();
-            return;
-        }
-
-        if (backlight_level == 7 && delta < 0 && LVAE_DISP_GAIN)
-        {
-            beep();
-            display_gain_toggle(0, -1);
-            show_display_gain();
-            return;
-        }
-    }
     
     int level = COERCE(backlight_level + delta, 1, 7);
     prop_request_change(PROP_LCD_BRIGHTNESS, &level, 4);
@@ -800,28 +755,7 @@ int handle_lv_play(struct event * event)
 #endif
 
 
-// don't save it in config file, it's easy to forget it activated
-int fake_halfshutter = 0;
-
-static void
-fake_halfshutter_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Shutter Half-Press  : %s",
-        fake_halfshutter == 1 ? "Sticky" : 
-        fake_halfshutter == 2 ? "Every second" : 
-        fake_halfshutter == 3 ? "Every 200ms" : 
-        fake_halfshutter == 4 ? "Every 20ms" : 
-        "OFF"
-    );
-}
+CONFIG_INT("halfshutter.sticky", halfshutter_sticky, 0);
 
 void hs_show()
 {
@@ -836,18 +770,7 @@ void
 fake_halfshutter_step()
 {
     if (gui_menu_shown()) return;
-    if (fake_halfshutter >= 2)
-    {
-        if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !get_halfshutter_pressed())
-        hs_show();
-        SW1(1,5);
-        SW1(0,0);
-        hs_hide();
-        if (fake_halfshutter == 2) msleep(1000);
-        else if (fake_halfshutter == 3) msleep(200);
-        else msleep(20);
-    }
-    else if (fake_halfshutter == 1) // sticky
+    if (halfshutter_sticky)
     {
         static int state = 0;
         // 0: allow 0->1, disallow 1->0 (first press)
@@ -887,10 +810,10 @@ tweak_task( void* unused)
     int k;
     for (k = 0; ; k++)
     {
-        if (fake_halfshutter)
-            fake_halfshutter_step(); // this one should msleep as needed
-        else
-            msleep(50);
+        msleep(50);
+
+        if (halfshutter_sticky)
+            fake_halfshutter_step();
 
         #if 0
         if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
@@ -1175,65 +1098,8 @@ void display_orientation_toggle(void* priv, int dir)
 } 
 #endif
 
-/*
-int night_vision = 0;
-void night_vision_toggle(void* priv)
-{
-    night_vision = !night_vision;
-    call("lvae_setdispgain", night_vision ? 65535 : 0);
-    menu_show_only_selected();
-}
-
-static void night_vision_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Night Vision Mode   : %s", 
-        night_vision ? "ON" : "OFF"
-    );
-    if (night_vision && (!lv || is_movie_mode()))
-        menu_draw_icon(x, y, MNI_WARNING, 0);
-}
-*/
 
 
-/*
-PROP_INT(PROP_ELECTRIC_SHUTTER, eshutter);
-
-static void eshutter_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    int gain_ev = 0;
-    if (display_gain) gain_ev = gain_to_ev(display_gain) - 10;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Electric Shutter    : %d",
-        eshutter
-    );
-}
-static void set_eshutter(int e)
-{
-    e = COERCE(e, 0, 2);
-    call("lv_eshutter", e);
-    eshutter = e;
-    GUI_SetElectricShutter(e);
-    //~ prop_request_change(PROP_ELECTRIC_SHUTTER, &e, 4);
-}
-static void eshutter_toggle(void* priv)
-{
-    set_eshutter(mod(eshutter + 1, 3));
-}*/
 
 CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
 
@@ -1291,20 +1157,16 @@ struct menu_entry tweak_menus[] = {
         .help = "Maximize LV display gain for framing in darkness (photo)"
     },*/
     {
-        .name = "DOF Preview", 
+        .name = "Sticky DOF Preview  ", 
         .priv = &dofpreview_sticky, 
-        .select = menu_binary_toggle, 
-        //~ .select_auto = dofp_lock,
-        .display = dofp_display,
+        .max = 1,
         .help = "Sticky = click DOF to toggle. Or, press [Q] to lock now.",
     },
     {
-        .name       = "Shutter Half-press",
-        .priv = &fake_halfshutter,
-        .select     = menu_quinternary_toggle,
-        .display    = fake_halfshutter_print,
+        .name       = "Sticky HalfShutter  ",
+        .priv = &halfshutter_sticky,
+        .max = 1,
         .help = "Emulates half-shutter press, or make half-shutter sticky.",
-        .edit_mode = EM_MANY_VALUES_LV,
     },
     /*{
         .name = "Electric Shutter",

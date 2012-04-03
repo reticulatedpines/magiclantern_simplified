@@ -15,6 +15,7 @@
 //#include "lua.h"
 
 #define CONFIG_STRESS_TEST
+#undef CONFIG_HEXDUMP
 
 //~ #define CONFIG_HEXDUMP
 
@@ -320,14 +321,6 @@ static int compute_signature(int* start, int num)
 
 void run_test()
 {
-    msleep(2000);
-    info_led_blink(1,50,50);
-	PauseLiveView();
-    //~ msleep(2000);
-    //~ info_led_blink(1,50,50);
-    //~ ResumeLiveView();
-
-    //~ info_led_blink(5,50,50);
 }
 
 void xx_test(void* priv, int delta)
@@ -542,16 +535,16 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "LiveView gain test: %d", k*20);
         for (int i = 0; i <= 16; i++)
         {
-            set_display_gain(1<<i);
+            set_display_gain_equiv(1<<i);
             msleep(100);
         }
         for (int i = 16; i >= 0; i--)
         {
-            set_display_gain(1<<i);
+            set_display_gain_equiv(1<<i);
             msleep(100);
         }
     }
-    set_display_gain(0);
+    set_display_gain_equiv(0);
 
     msleep(1000);
     
@@ -3073,3 +3066,5 @@ void engio_write(int* command_sequence)
     _engio_write(command_sequence);
     //~ _card_led_off();
 }
+
+void iso_refresh_display() {} // dummy, to be cleaned up

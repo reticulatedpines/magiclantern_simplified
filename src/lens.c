@@ -111,7 +111,9 @@ calc_dof(
     if( fd >= H )
         info->dof_far = 1000 * 1000; // infinity
     else
+    {
         info->dof_far = ((((H/10) * (fd/10))) / ( H - fd )) * 100; // in mm
+    }
 }
 
 /*
@@ -527,18 +529,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
         }
         else if (info->iso)
         {
-            int digital_w_dispgain = info->iso_digital_ev;
-            int digital_wo_dispgain = digital_w_dispgain;
-            
-            if (LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
-                // display gain gets recorded, consider it as ISO digital gain
-                digital_w_dispgain = digital_w_dispgain + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
 
             text_font = FONT(
                 SHADOW_FONT(FONT_LARGE),
-                    digital_w_dispgain > 0 || digital_wo_dispgain > 0 ? COLOR_RED :
-                    digital_w_dispgain < 0 ? COLOR_GREEN2 :
-                    COLOR_YELLOW,
+                COLOR_YELLOW,
                 bg
             );
             char msg[10];
@@ -548,12 +542,12 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       x_origin + 250  , 
                       y_origin, 
                       msg);
-            extern int highlight_recover;
-            if (digital_w_dispgain != digital_wo_dispgain || CONTROL_BV || highlight_recover)
+            extern int digic_iso_gain;
+            if (CONTROL_BV || digic_iso_gain != 1024)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
                           bottom - font_med.height, 
-                          CONTROL_BV && !highlight_recover ? "ov" : "eq");
+                          CONTROL_BV && digic_iso_gain == 1024 ? "ov" : "eq");
             if (iso >= 10000)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
@@ -1561,20 +1555,10 @@ void iso_components_update()
 
     lens_info.iso_equiv_raw = lens_info.raw_iso;
 
-    extern int highlight_recover;
-    extern int default_shad_gain;
-    if (highlight_recover && lens_info.raw_iso)
+    extern int digic_iso_gain;
+    if (lens_info.iso_equiv_raw && digic_iso_gain != 1024 && is_movie_mode())
     {
-        int G = (gain_to_ev_x8(get_new_shad_gain()) - gain_to_ev_x8(default_shad_gain));
-        //~ lens_info.iso_equiv_raw = (((lens_info.raw_iso+3)/8)*8) + G;
-        //~ lens_info.iso_digital_ev = G;
-        lens_info.iso_equiv_raw = lens_info.raw_iso + G;
-    }
-    
-    if (lens_info.iso_equiv_raw && LVAE_DISP_GAIN && !CONTROL_BV && is_movie_mode())
-    {
-        // display gain gets recorded, consider it as ISO digital gain
-        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(LVAE_DISP_GAIN) - 80);
+        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(digic_iso_gain) - 80);
     }
 }
 
