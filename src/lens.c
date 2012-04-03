@@ -257,7 +257,7 @@ static void ml_bar_clear(int ytop, int height)
         {
             uint8_t p = B[BM(x,y)];
             uint8_t m = M[BM(x,y)];
-            if (recording && p == COLOR_RED) continue; // don't erase the recording dot
+            if (recording && p == COLOR_RED && ytop < 100) continue; // don't erase the recording dot
             if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
             else B[BM(x,y)] = 0;
         }
@@ -310,7 +310,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
         double_buffering_start(ytop, 35);
 
     if (clear)
+    {
         ml_bar_clear(ytop, 35);
+    }
 
     // mark the BV mode somehow
     if(CONTROL_BV)
