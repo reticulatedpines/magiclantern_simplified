@@ -549,12 +549,18 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       x_origin + 250  , 
                       y_origin, 
                       msg);
-            extern int digic_iso_gain;
-            if (CONTROL_BV || lens_info.iso_equiv_raw != lens_info.raw_iso)
-                bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
-                          x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                          bottom - font_med.height, 
-                          CONTROL_BV && digic_iso_gain == 1024 ? "ov" : "eq");
+            
+            static char msg2[5];
+            msg2[0] = '\0';
+            if (CONTROL_BV && lens_info.iso_equiv_raw == lens_info.raw_iso) { STR_APPEND(msg2, "ov"); }
+            else if (lens_info.iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
+            if (get_htp()) { STR_APPEND(msg2, msg2[0] ? "+" : "D+"); }
+            
+            bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
+                      x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
+                      bottom - font_med.height, 
+                      msg2
+                      );
             if (iso >= 10000)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
                           x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
