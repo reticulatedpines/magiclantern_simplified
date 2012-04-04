@@ -319,31 +319,143 @@ static int compute_signature(int* start, int num)
 	return c;
 }
 
+void find_response_curve(char* fname)
+{
+    FIO_RemoveFile(fname);
+    FILE* f = FIO_CreateFile(fname);
+
+    ensure_movie_mode();
+    clrscr();
+    int zoom = 5;
+    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    
+    msleep(1000);
+    
+    for (int i = 0; i < 64*2; i+=8)
+        bmp_draw_rect(COLOR_BLACK, i*5+40, 0, 8*5, 380);
+    
+    draw_line(40, 190, 720-40, 190, COLOR_BLACK);
+    
+    bv_enable(); // for enabling fine 1/8 EV increments
+    int ma = (lens_info.raw_aperture_min + 7) & ~7;
+    for (int i = 0; i < 64*2; i++)
+    {
+        int a = (i/2) & ~7;                                // change aperture in full-stop increments
+        lens_set_rawaperture(ma + a);
+        lens_set_rawshutter(96 + i - a);                   // shutter can be changed in finer increments
+        msleep(400);
+        int Y,U,V;
+        get_spot_yuv(180, &Y, &U, &V);
+        dot(i*5 + 40 - 16, 380 - Y*380/255 - 16, COLOR_BLUE, 3); // dot has an offset of 16px
+        my_fprintf(f, "%d %d %d %d\n", i, Y, U, V);
+    }
+    FIO_CloseFile(f);
+    beep();
+    lens_set_rawaperture(ma);
+    lens_set_rawshutter(96);
+}
+
+void find_response_curve_ex(char* fname, int iso, int dgain, int htp)
+{
+    bmp_printf(FONT_MED, 0, 100, "ISO %d\nDGain %d\n%s", iso, dgain, htp ? "HTP" : "");
+    lens_set_iso(iso);
+    set_display_gain_equiv(dgain);
+    set_htp(htp);
+
+    find_response_curve(fname);
+
+    set_display_gain_equiv(0);
+    set_htp(0);
+}
+
+static void iso_response_curve_current()
+{
+    static char name[100];
+    extern int digic_iso_gain;
+    
+    snprintf(name, sizeof(name), CARD_DRIVE "i%d%s%s.txt", 
+        raw2iso(lens_info.iso_equiv_raw), 
+        digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "", 
+        get_htp() ? "h" : "");
+    
+    find_response_curve(name);
+}
+
+void iso_response_curve_160()
+{
+    // ISO 100x/160x/80x series
+
+    find_response_curve_ex(CARD_DRIVE "iso80e.txt",     100,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso160e.txt",    200,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso320e.txt",    400,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso640e.txt",    800,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso1250e.txt",   1600,  790   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso2500e.txt",   3200,  790   , 0);
+
+    find_response_curve_ex(CARD_DRIVE "iso160.txt",    160,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso320.txt",    320,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso640.txt",    640,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso1250.txt",   1250,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso2500.txt",   2500,    0   , 0);
+
+    find_response_curve_ex(CARD_DRIVE "iso100.txt",    100,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso200.txt",    200,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso400.txt",    400,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso800.txt",    800,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso1600.txt",   1600,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso3200.txt",   3200,    0   , 0);
+}
+
+void iso_response_curve_logain()
+{
+    find_response_curve_ex(CARD_DRIVE "iso70e.txt",      100,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso140e.txt",     200,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso280e.txt",     400,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso560e.txt",     800,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso1100e.txt",    1600,  724   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso2200e.txt",    3200,  724   , 0);
+
+    find_response_curve_ex(CARD_DRIVE "iso65e.txt",     100,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso130e.txt",    200,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso260e.txt",    400,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso520e.txt",    800,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso1000e.txt",   1600,  664   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso2000e.txt",   3200,  664   , 0);
+
+    find_response_curve_ex(CARD_DRIVE "iso50e.txt",     100,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso100e.txt",    200,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso200e.txt",    400,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso400e.txt",    800,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso800e.txt",    1600,  512   , 0);
+    find_response_curve_ex(CARD_DRIVE "iso1600e.txt",   3200,  512   , 0);
+}
+
+void iso_response_curve_htp()
+{
+    find_response_curve_ex(CARD_DRIVE "iso200h.txt",      200,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso400h.txt",      400,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso800h.txt",      800,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso1600h.txt",    1600,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso3200h.txt",    3200,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso6400h.txt",    6400,   0   , 1);
+
+    find_response_curve_ex(CARD_DRIVE "iso100eh.txt",      200,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso200eh.txt",      400,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso400eh.txt",      800,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso800eh.txt",     1600,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "is1600eh.txt",     3200,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "is3200eh.txt",     6400,   512   , 1);
+}
+
 void run_test()
 {
 }
 
-void xx_test(void* priv, int delta)
+void run_in_separate_task(void (*priv)(void), int delta)
 {
     gui_stop_menu();
-	/*struct ext_plugin * plug = load_plugin(CARD_DRIVE "plugins/testplug.bin");
-	if (plug) {
-		void (*smth)(void) = get_function(plug, 1);
-		if (smth) {
-			smth();
-		}
-		unload_plugin(plug);
-	} else {
-		bmp_printf(FONT_LARGE,100,100,"ERROR :(");msleep(1000);
-	}*/
-    //~ #ifdef CONFIG_550D
-    //~ SetGUIRequestMode(29); // Jackie Chan :)
-    //~ #endif
-    //~ *(uint8_t*)0x14c08 = 0x3;
-    //~ gui_stop_menu();
-    //~ set_display_gain(512);
-    task_create("run_test", 0x1a, 0, run_test, 0); // don't delete this!
-    //~ guiNotifyDialogRefresh();
+    if (!priv) return;
+    task_create("run_test", 0x1a, 0, priv, 0);
 }
 
 #ifdef CONFIG_STRESS_TEST
@@ -1949,6 +2061,38 @@ struct menu_entry debug_menus[] = {
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },
+    {
+        .name        = "ISO tests...",
+        .select        = menu_open_submenu,
+        .help = "Computes camera response curve for certain ISO values.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Response curve 4 current ISO",
+                .priv = iso_response_curve_current,
+                .select = run_in_separate_task,
+                .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
+            },
+            {
+                .name = "Test ISO 100x/160x/80x series",
+                .priv = iso_response_curve_160,
+                .select = run_in_separate_task,
+                .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
+            },
+            {
+                .name = "Test 85x/70x/60x series",
+                .priv = iso_response_curve_logain,
+                .select = run_in_separate_task,
+                .help = "ISOs with -0.2/-0.5/-0.6 EV of DIGIC gain. Takes 20 mins.",
+            },
+            {
+                .name = "Test HTP series",
+                .priv = iso_response_curve_htp,
+                .select = run_in_separate_task,
+                .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
+            },
+            MENU_EOL
+        },
+    },
 #if CONFIG_DEBUGMSG
     {
         .name = "Draw palette",
@@ -1976,7 +2120,8 @@ struct menu_entry debug_menus[] = {
 #endif
     {
         .name        = "Don't click me!",
-        .select        = xx_test,
+        .priv =         run_test,
+        .select        = run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
 #ifdef CONFIG_STRESS_TEST

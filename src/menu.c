@@ -181,7 +181,7 @@ static void entry_draw_icon(
 {
     if (entry->icon_type == IT_AUTO)
     {
-        if (!entry->priv)
+        if (!entry->priv || entry->select == run_in_separate_task)
         {
             entry->icon_type = IT_ACTION;
         }
@@ -261,7 +261,7 @@ submenu_print(
     
     char msg[100] = "";
     STR_APPEND(msg, "%s", entry->name);
-    if (entry->priv)
+    if (entry->priv && entry->select != run_in_separate_task)
     {
         int l = strlen(entry->name);
         for (int i = 0; i < 14 - l; i++)

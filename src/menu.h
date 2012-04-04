@@ -166,6 +166,9 @@ menu_select(
         struct menu_entry *     entry
 );
 
+extern void run_in_separate_task(void (*priv)(void), int delta);
+
+
 OS_FUNCTION( 0x0700001,	void,	menu_add, const char * name, struct menu_entry * new_entry, int count );
 OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg);
 
