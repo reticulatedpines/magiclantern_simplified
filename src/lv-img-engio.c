@@ -71,7 +71,7 @@ digic_iso_print(
     menu_draw_icon(x, y, MNI_BOOL(G), 0);
 }
 
-static int digic_iso_presets[] = {256, 362, 512, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
+static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
 
 void digic_iso_toggle(void* priv, int delta)
 {
