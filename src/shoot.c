@@ -3155,7 +3155,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &hdr_enabled,
         .display    = hdr_display,
         .select     = menu_binary_toggle,
-        .help = "Exposure bracketing, useful for HDR images.",
+        .help = "Exposure bracketing for HDR images. Press shutter once.",
         .essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
