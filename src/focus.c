@@ -177,16 +177,18 @@ void focus_stack_ensure_preconditions()
         msleep(200);
     }
 
-#ifndef CONFIG_5D2
     if (is_movie_mode())
     {
-        while (is_movie_mode())
-        {
-            NotifyBox(2000, "Please switch to photo mode");
-            msleep(2000);
-        }
+        #ifdef CONFIG_5D2
+            set_expsim(1);
+        #else
+            while (is_movie_mode())
+            {
+                NotifyBox(2000, "Please switch to photo mode");
+                msleep(2000);
+            }
+        #endif
     }
-#endif
 
     while (is_manual_focus())
     {
@@ -287,15 +289,21 @@ void focus_stack_run(int skip_first)
     focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture, skip_first );
 }
 
-void focus_stack_trigger_from_menu(void* priv, int delta)
+void focus_stack_trigger_from_menu_work()
 {
     if (focus_task_delta == 0) { beep(); return; }
-    gui_stop_menu(); clrscr();
+    gui_stop_menu();
     NotifyBox(2000, "Focus stack..."); msleep(2000);
     focus_stack_enabled = 1;
     schedule_remote_shot();
     msleep(1000);
     focus_stack_enabled = 0;
+}
+
+void focus_stack_trigger_from_menu(void* priv, int delta)
+{
+    gui_stop_menu();
+    run_in_separate_task(focus_stack_trigger_from_menu_work, 0);
 }
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }

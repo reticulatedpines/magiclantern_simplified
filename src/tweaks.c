@@ -165,7 +165,8 @@ expsim_display( void * priv, int x, int y, int selected )
 static void expsim_update()
 {
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    if (lv_movie_select != LVMS_ENABLE_MOVIE) expsim_setting = MIN(expsim_setting, 1);
+    //~ if (lv_movie_select != LVMS_ENABLE_MOVIE) expsim_setting = MIN(expsim_setting, 1);
+    expsim_setting = expsim;
     return;
     #endif
     
