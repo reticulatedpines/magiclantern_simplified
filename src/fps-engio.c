@@ -62,6 +62,7 @@ static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add t
 
 static CONFIG_INT("fps.preset", fps_criteria, 0);
 
+static CONFIG_INT("fps.sound.disable", fps_sound_disable, 1);
 
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
@@ -287,7 +288,7 @@ static void disable_sound_recording()
 static void update_sound_recording()
 {
     if (recording) return;
-    if (fps_override && lv) disable_sound_recording();
+    if (fps_sound_disable && fps_override && lv) disable_sound_recording();
     else restore_sound_recording();
 }
 
@@ -757,6 +758,13 @@ static void fps_criteria_change(void* priv, int delta)
     fps_needs_updating = 1;
 }
 
+static void fps_sound_toggle(void* priv, int delta)
+{
+    fps_sound_disable = !fps_sound_disable;
+    fps_needs_updating = 1;
+}
+
+
 static struct menu_entry fps_menu[] = {
     {
         .name = "FPS override", 
@@ -824,6 +832,14 @@ static struct menu_entry fps_menu[] = {
                 .name = "Actual FPS",
                 .display = fps_current_print,
                 .help = "Exact FPS (computed). For fine tuning, change timer values.",
+            },
+            {
+                .name = "Sound Record\b",
+                .priv = &fps_sound_disable,
+                .select = fps_sound_toggle,
+                .choices = (const char *[]) {"Leave it on", "Auto-Disable"},
+                .icon_type = IT_DISABLE_SOME_FEATURE,
+                .help = "Sound usually goes out of sync and may stop recording.",
             },
             MENU_EOL
         },
