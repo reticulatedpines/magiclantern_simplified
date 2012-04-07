@@ -88,6 +88,7 @@ void set_expsim( int x )
 {
     if (expsim != x)
     {
+        int movie_toggle = (x == 2 || expsim == 2);
         prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
     }
 }
@@ -158,7 +159,7 @@ expsim_display( void * priv, int x, int y, int selected )
     );
     if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
-    else menu_draw_icon(x, y, expsim == 2 ? MNI_AUTO : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : MNI_BOOL(expsim), (intptr_t) "Could not set ExpSim");
+    else menu_draw_icon(x, y, expsim == 2 ? MNI_ON : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : expsim ? MNI_ON : MNI_NEUTRAL, (intptr_t) "Could not set ExpSim");
 }
 
 static void expsim_update()
