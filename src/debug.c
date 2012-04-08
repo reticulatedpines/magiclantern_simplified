@@ -166,7 +166,7 @@ static void dump_rom_task(void* priv)
     
     msleep(200);
 
-    dump_big_seg(0, CARD_DRIVE "RAM0.BIN");
+    dump_big_seg(4, CARD_DRIVE "RAM4.BIN");
 }
 
 static void dump_rom(void* priv)
@@ -370,6 +370,8 @@ void find_response_curve_ex(char* fname, int iso, int dgain, int htp)
 
 static void iso_response_curve_current()
 {
+    msleep(2000);
+
     static char name[100];
     extern int digic_iso_gain;
     
@@ -383,6 +385,8 @@ static void iso_response_curve_current()
 
 void iso_response_curve_160()
 {
+    msleep(2000);
+
     // ISO 100x/160x/80x series
 
     find_response_curve_ex(CARD_DRIVE "iso80e.txt",     100,   790   , 0);
@@ -408,6 +412,7 @@ void iso_response_curve_160()
 
 void iso_response_curve_logain()
 {
+    msleep(2000);
     find_response_curve_ex(CARD_DRIVE "iso70e.txt",      100,   724   , 0);
     find_response_curve_ex(CARD_DRIVE "iso140e.txt",     200,   724   , 0);
     find_response_curve_ex(CARD_DRIVE "iso280e.txt",     400,   724   , 0);
@@ -432,6 +437,7 @@ void iso_response_curve_logain()
 
 void iso_response_curve_htp()
 {
+    msleep(2000);
     find_response_curve_ex(CARD_DRIVE "iso200h.txt",      200,   0   , 1);
     find_response_curve_ex(CARD_DRIVE "iso400h.txt",      400,   0   , 1);
     find_response_curve_ex(CARD_DRIVE "iso800h.txt",      800,   0   , 1);
@@ -447,8 +453,82 @@ void iso_response_curve_htp()
     find_response_curve_ex(CARD_DRIVE "is3200eh.txt",     6400,   512   , 1);
 }
 
+void iso_movie_change_setting(int iso, int dgain, int shutter)
+{
+    lens_set_rawiso(iso);
+    lens_set_rawshutter(shutter);
+    set_display_gain_equiv(dgain);
+    msleep(2000);
+    silent_pic_take_test();
+}
+
+void iso_movie_test()
+{
+    msleep(2000);
+    ensure_movie_mode();
+    
+    int r = lens_info.iso_equiv_raw ? lens_info.iso_equiv_raw : lens_info.raw_iso_auto;
+    int raw_iso0 = (r + 3) & ~3; // consider full-stop iso
+    int tv0 = lens_info.raw_shutter;
+    int av0 = lens_info.raw_aperture;
+    bv_enable(); // this enables shutter speed adjust in finer increments
+    
+    extern int bv_auto;
+    int bva0 = bv_auto;
+    bv_auto = 0; // make sure it won't interfere
+    
+    set_htp(0);
+    movie_start();
+
+    iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO
+    iso_movie_change_setting(raw_iso0-3, 0, tv0-3); // "native" iso, overexpose by 3/8 EV
+
+    iso_movie_change_setting(raw_iso0, 790, tv0-3); // ML 160x equiv iso, overexpose by 3/8 EV
+    iso_movie_change_setting(raw_iso0, 724, tv0-4); // ML 140x equiv iso, overexpose by 4/8 EV
+    iso_movie_change_setting(raw_iso0, 664, tv0-5); // ML 130x equiv iso, overexpose by 5/8 EV
+
+    iso_movie_change_setting(raw_iso0-3, 790, tv0-6); // 100x ISO, -3/8 Canon gain, -3/8 ML gain, overexpose by 6/8 EV
+    iso_movie_change_setting(raw_iso0-3, 724, tv0-7); // 100x ISO, -3/8 Canon gain, -4/8 ML gain, overexpose by 7/8 EV
+    iso_movie_change_setting(raw_iso0-3, 664, tv0-7); // 100x ISO, -3/8 Canon gain, -5/8 ML gain, overexpose by 8/8 EV
+
+    movie_end();
+    set_htp(1);  // this can't be set while recording
+    movie_start();
+
+    iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO with HTP
+    iso_movie_change_setting(raw_iso0-3, 0, tv0-3); // "native" ISO with HTP, overexpose by 3/8 EV
+    iso_movie_change_setting(raw_iso0, 790, tv0-3); // ML 160x equiv iso with HTP, overexpose by 3/8 EV
+    iso_movie_change_setting(raw_iso0, 724, tv0-4); // ML 140x equiv iso with HTP, overexpose by 4/8 EV
+    iso_movie_change_setting(raw_iso0, 664, tv0-5); // ML 130x equiv iso with HTP, overexpose by 5/8 EV
+    iso_movie_change_setting(raw_iso0, 512, tv0-8); // ML 100x equiv iso with HTP, overexpose by 8/8 EV
+
+    iso_movie_change_setting(raw_iso0+8,   0, tv0);     // fullstop ISO + 1EV, with HTP
+    iso_movie_change_setting(raw_iso0-3+8, 0, tv0-3); // "native" ISO + 1EV, with HTP, overexpose by 3/8 EV
+    iso_movie_change_setting(raw_iso0+8, 790, tv0-3); // ML 160x equiv iso +1EV, with HTP, overexpose by 3/8 EV
+    iso_movie_change_setting(raw_iso0+8, 724, tv0-4); // ML 140x equiv iso +1EV, with HTP, overexpose by 4/8 EV
+    iso_movie_change_setting(raw_iso0+8, 664, tv0-5); // ML 130x equiv iso +1EV, with HTP, overexpose by 5/8 EV
+    iso_movie_change_setting(raw_iso0+8, 512, tv0-8); // ML 100x equiv iso +1EV, with HTP, overexpose by 8/8 EV
+    
+    movie_end();
+
+    // restore settings back
+    iso_movie_change_setting(raw_iso0, 0, tv0);
+    bv_auto = bva0;
+}
+
 void run_test()
 {
+    msleep(2000);
+    for (int i = 0; i < 8192; i+=32)
+    {
+        EngDrvOut(0xc0f08034, i + 0x1000);
+        msleep(30);
+        int Y,U,V;
+        get_spot_yuv(180, &Y, &U, &V);
+        float Yf = (float) Y;
+        int y = (int)(powf(Yf / 255.0, 5.0) * 480.0);
+        dot(i/12, 400-y - 16, COLOR_RED, 3);
+    }
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -2089,6 +2169,12 @@ struct menu_entry debug_menus[] = {
                 .priv = iso_response_curve_htp,
                 .select = run_in_separate_task,
                 .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
+            },
+            {
+                .name = "Movie test",
+                .priv = iso_movie_test,
+                .select = run_in_separate_task,
+                .help = "Records two test movies, changing settings every 2 seconds.",
             },
             MENU_EOL
         },
