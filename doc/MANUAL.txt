@@ -653,38 +653,61 @@ Functions specific to movie mode.
   * ``Hold during REC (IS)``: ML will keep the shutter button pressed half-way during recording, which will enable image stabilization (IS). Side effect: you need to press the shutter button half way to turn IS off before the camera will let you stop recording.
 
 .. _FPS override:
+.. _slit-scan pictures:
 
 **FPS override**
 
-  This setting alters FPS for all video modes. For stable operation, disable sound recording from Canon menu.
+  This setting alters FPS for all video modes. Only undercranking works well.
 
-  Recommended usage: set FPS to a very low value (for example, 3fps) to record a timelapse.
+  FPS is changed by altering two timer values (let's call them Timer A and Timer B). Increasing any of these values results in lower FPS.
 
-  On 550D and older cameras, this option will set shutter speed to 1/fps, as a side effect.
+  Options:
   
-  Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
+  * Desired FPS: choose a value from 0.2 fps to 65 fps. If the desired value is not possible, ML will choose the closest safe option (look at 'Actual FPS' below).
   
-  * PAL modes: 25p/50p. Rounded frame rates: 33.333fps, 12.5fps, 11.111fps and so on.
-  * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
+  * Optimize for: 
+    
+    * Low FPS, 360d: use this option for recording timelapse with shutter speed set to 1/fps (360 degrees); at high FPS values, you may be able to use other shutter speed values.
+    * Exact FPS: try to achieve an exact FPS value, such as 24.000 or 30.000 or 12.500. If more solutions are found, ML will choose the one with lowest jello effect.
+    * LowJello, 180d: minimize the jello effect (caused by rolling shutter), while allowing you to expose at 180 degrees (0.5/fps) if possible.
+    * High Jello: maximize the jello effect and enable fast shutter speeds. You can use this mode for recording slit-scan frames (distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_, which use the extreme jello effect in creative ways).
 
-  This function will not change the frame rate from the video header; the video will playback at the setting from Canon menu.
-
-
-**Tv override**
-
-  Forces the shutter (Tv) to a value linked to the frame rate. You will enter the shutter angle in degrees: 360 degrees means a shutter speed equal to 1/fps.
+  * Shutter range: displays the available shutter speed range with current settings. When you use FPS override, Canon menu will still display 1/30 ... 1/4000, but the actual shutter speed will be different; read it from ML displays. You can alter shutter speed range by changing the ratio between the two timer values (decreasing timer B will result in faster shutter speeds available).
+ 
+  * Timer A: displays the value of timer A and lets you fine-tune it. ML will re-adjust timer B to match your FPS choice.
   
-  Shutter speed may go as low as 1/50000 seconds.
+  * Timer B: displays the value of timer B and lets you fine-tune it. ML will not re-adjust timer A, so this option will let you fine-tune the exact FPS value.
+ 
+  * TG Frequency: displays the crystal oscillator frequency of the FPS circuit driver (read-only, depends on your camera).
   
-  This feature is only available on 60D and 600D.
+  * Actual FPS: this displays the current FPS, computed as TG_FREQ / timerA / timerB (read-only).
+  
+  * Sound Record: by default, ML will disable sound recording when FPS override is enabled; otherwise, audio will go out of sync and recording will stop. Only enable sound if you know what you are doing.
+
+  Notes and tips:  
+
+  * This function will **not** change the frame rate from the video header; the video will playback at the setting from Canon menu.
+
+  * Recommended usage: set FPS to a very low value (for example, 3fps) to record a timelapse.
+
+  * To get 180-degree shutter speed at very low FPS, simply discard half of the frames in post.
+
+  * If 0.2 FPS is not enough, use `Frame Merger <http://bit.ly/frame-merger>`_ (a VirtualDub plugin).
+
+  * Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
+      
+      * PAL modes: 25p/50p. Rounded frame rates: 33.333fps, 12.5fps, 11.111fps and so on.
+      * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
+
+  * For fine-tuning and calibrating custom frame rates, use `EOSTimerGen <http://bit.ly/EOSTimerGen>`_.
 
 **HDR video**
   
   [[Video:Magic_Lantern_HDR_video|200px|right]]
 
-  This feature allows you to shoot a high dynamic range video by alternating ISO every other frame.
+  This feature allows you to shoot a high dynamic range video by alternating ISO every other frame. Select the two ISO values from the submenu.
   
-  Select the desired EV spacing from menu. The actual values will be centered on current ISO. ML will only use full-stop ISO for best dynamic range.
+  On 500D, you may have to hold the shutter button halfway while shooting HDR video.
   
   `Discussion thread, postprocessing workflow, FAQ... <http://vimeo.com/groups/magiclantern/forumthread:250295>`_
 
@@ -878,12 +901,10 @@ Functions for stills shooting (some of them work for movies, too).
 
 .. _silent pictures:
 .. _Silent Picture:
-.. _slit-scan pictures:
 
 **Silent Picture / Silent Pic HiRes / Slit-scan Pic**
 
   [[Video:550D/T2i Magic Lantern Silent Shooting Mode Tutorial|200px|right]]
-  [[Image:SlitScan-Microscope.jpg|200px|right|link=http://i.imgur.com/GRiQE.jpg]]
 
   This can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView buffer when you press the shutter halfway.
   
@@ -893,7 +914,6 @@ Functions for stills shooting (some of them work for movies, too).
   
   * ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie.
   * ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing shutter count.
-  * ``Slit-scan Pic``: this takes distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_. This mode is basically an extreme jello effect which can be used in creative ways.
   
   Silent picture setting is applied to `intervalometer`_ and `remote triggers`_. It will also go to LiveView when you press the shutter half-way. Therefore, you should only enable this setting when you actually use it.
   
@@ -902,7 +922,11 @@ Functions for stills shooting (some of them work for movies, too).
     * If intervalometer is ``OFF``, silent pics are named after last picture/movie taken without this function (e.g. ``1234-001.422``). You are limited to 1000 silent pictures for each "noisy" picture.
     * If intervalometer is ``ON``, silent pics have names like ``12345678.422``. Tip: use ``File Numbering -> Manual Reset`` from Canon menu to increase folder number (to sort them easier).
   
-  To convert a 422 image to JPEG on the PC, use `422-jpg.exe <https://bitbucket.org/hudson/magic-lantern/downloads/422-jpg-v2.exe>`_ (Windows and Wine) or `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (all platforms, you need to install Python, PIL and numpy). Double-click it, then select a single 422 file, or click Cancel and select a folder with 422 files. You can also use this program in command-line.
+  To convert a 422 image to JPEG on the PC, use one of the following programs:
+  
+  * `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (command-line tool, runs on all platforms, you need to install Python, PIL and numpy).
+  * `422toimage <http://groups.google.com/group/ml-devel/browse_thread/thread/ae65535fc3e860fc>`_ (Windows only, `https://bitbucket.org/mindogas/422toimage/ source code available`_).
+  * `YUV422 Convertor <http://www.diazonline.be/yuv422/>` (Windows only, closed source).
   
   Known bugs:
   
@@ -1558,11 +1582,11 @@ Powersave
 
 **Save power when REC: ON/OFF**
 
-  If enabled, camera will save power during recording.
+  If enabled, camera will save power during recording (see above).
 
 **Battery remaining**
 
-  60D only: displays battery percentage, estimated time remaining and battery discharging rate.
+  60D and 5D Mark II only: displays battery percentage, estimated time remaining and battery discharging rate.
   
   For accurate readings, wait until the percentage indicator decreases by at least 2% since powering on.
 
