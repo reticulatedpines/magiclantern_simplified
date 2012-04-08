@@ -1015,6 +1015,18 @@ silent_pic_take_lv_dbg()
     dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
 
+void
+silent_pic_take_test()
+{
+    char* imgname = silent_pic_get_name();
+
+    struct vram_info * vram = get_yuv422_hd_vram();
+    int p = vram->pitch;
+    int h = vram->height;
+    
+    dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
+}
+
 int silent_pic_matrix_running = 0;
 static void
 silent_pic_take_sweep(int interactive)
@@ -2834,11 +2846,17 @@ int handle_bulb_ramping_keys(struct event * event)
     return 1;
 }
 
+// still useful for bulb ramping
+static void set_display_gain(int gain)
+{
+    call("lvae_setdispgain", gain);
+}
+
 static int crit_dispgain_50(int gain)
 {
     if (!lv) return 0;
 
-    set_display_gain_equiv(gain);
+    set_display_gain(gain);
     msleep(500);
     
     int Y,U,V;
@@ -2936,7 +2954,7 @@ calib_start:
     SW1(0,50);
     lens_set_ae(0);
     int gain0 = bin_search(128, 2500, crit_dispgain_50);
-    set_display_gain_equiv(gain0);
+    set_display_gain(gain0);
     msleep(500);
     int Y,U,V;
     get_spot_yuv(200, &Y, &U, &V);
@@ -2956,7 +2974,7 @@ calib_start:
     
     for (int i = -5; i <= 5; i++)
     {
-        set_display_gain_equiv(gain0 * (1 << (i+10)) / 1024);
+        set_display_gain(gain0 * (1 << (i+10)) / 1024);
         //~ lens_set_ae(i*4);
         msleep(500);
         get_spot_yuv(200, &Y, &U, &V);
@@ -2969,18 +2987,18 @@ calib_start:
         if (i > -5 && Y < bramp_luma_ev[i+5-1]) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
         bramp_luma_ev[i+5] = Y;
         bramp_plot_luma_ev();
-        //~ set_display_gain_equiv(1<<i);
+        //~ set_display_gain(1<<i);
     }
     
     // final check
-    set_display_gain_equiv(gain0);
+    set_display_gain(gain0);
     msleep(2000);
     get_spot_yuv(200, &Y, &U, &V);
     if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
 
     // calibration accepted :)
     bulb_ramp_calibration_running = 0;
-    set_display_gain_equiv(0);
+    set_display_gain(0);
     lens_set_ae(0);
 #ifdef CONFIG_500D
     fake_simple_button(BGMT_Q);
@@ -3441,6 +3459,8 @@ extern void digic_iso_print( void * priv, int x, int y, int selected);
 extern void digic_iso_toggle(void* priv, int delta);
 //~ extern void menu_open_submenu();
 
+extern int digic_shadow_lift;
+
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -3572,6 +3592,13 @@ static struct menu_entry expo_menus[] = {
                 .choices = (const char *[]) {"100/160x", "100x + DIGIC"},
                 .icon_type = IT_DICE,
             },
+            /*{
+                .name = "Lift Shadows",
+                .priv = &digic_shadow_lift,
+                .min = 0,
+                .max = 50,
+                .help = "Raises shadow level.",
+            },*/
             {
                 .name = "HTP",
                 .select = htp_toggle,
@@ -4081,13 +4108,13 @@ void remote_shot(int wait)
     // save zoom value (x1, x5 or x10)
     int zoom = lv_dispsize;
     
-    if (is_movie_mode())
-    {
-        movie_start();
-    }
-    else if (is_focus_stack_enabled())
+    if (is_focus_stack_enabled())
     {
         focus_stack_run(0);
+    }
+    else if (is_movie_mode())
+    {
+        movie_start();
     }
     else
     {
