@@ -873,9 +873,9 @@ tweak_task( void* unused)
             display_off_by_halfshutter();
         #endif
 
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        star_zoom_update();
-        #endif
+        //~ #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        //~ star_zoom_update();
+        //~ #endif
 
         upside_down_step();
 
@@ -1106,6 +1106,7 @@ void digital_zoom_shortcut_display(
     );
 }
 
+/*
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 
 CONFIG_INT("star.zoom", star_zoom, 1);
@@ -1135,7 +1136,7 @@ void star_zoom_update()
     }
 }
 #endif
-
+*/
 
 CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
 #if !defined(CONFIG_50D) && !defined(CONFIG_600D)
@@ -1903,7 +1904,7 @@ struct menu_entry play_menus[] = {
         .essential = FOR_PLAYBACK,
         .icon_type = IT_DICE,
     },
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+/*    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     {
         .name = "Always ZoomOut w.*",
         .priv = &star_zoom, 
@@ -1912,7 +1913,7 @@ struct menu_entry play_menus[] = {
         .essential = FOR_PLAYBACK,
         .icon_type = IT_BOOL,
     },
-    #endif
+    #endif */
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
         .name = "LV button (PLAY)",
