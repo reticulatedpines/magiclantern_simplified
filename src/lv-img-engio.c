@@ -11,7 +11,7 @@
 #include "config.h"
 #include "math.h"
 
-#undef CONFIG_DIGIC_POKE
+#define CONFIG_DIGIC_POKE
 
 #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -24,10 +24,19 @@ void lv_request_pause_updating(int value)
 
 #define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
 #define SHAD_PRESETUP  0xc0f08034       // controls black point? as in "dcraw -k"
-#define SHADOW_LIFT_REGISTER 0xc0f0e094 // raises shadows, but after they are crushed by Canon curves; default at 0x80?
 #define ISO_PUSH_REGISTER 0xc0f0e0f8    // like display gain, 0x100 = 1 stop, 0x700 = max of 7 stops
 
+#define SHADOW_LIFT_REGISTER_1 0xc0f0e094 // raises shadows, but after they are crushed by Canon curves; default at 0x80?
+#define SHADOW_LIFT_REGISTER_2 0xc0f0e0f0 // raises shadows, seems to bring back some shadow detail
+#define SHADOW_LIFT_REGISTER_3 0xc0f0f1c4 // raises shadows; has discontinuity :(
+#define SHADOW_LIFT_REGISTER_4 0xc0f0f43c // ugly...
+#define SHADOW_LIFT_REGISTER_5 0xc0f0e054 // side effect: weird artifacts in highlight
+#define SHADOW_LIFT_REGISTER_6 0xc0f0e084 // side effect: weird artifacts in highlight
+#define SHADOW_LIFT_REGISTER_7 0xc0f0f178
+#define SHADOW_LIFT_REGISTER_8 0xc0f0ecf8 // more like ISO control (clips whites)
+
 CONFIG_INT("digic.iso.gain", digic_iso_gain, 790); // units: like with the old display gain
+//~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
 // 2048 = 1 EV etc
 
@@ -277,7 +286,7 @@ void digic_iso_step()
 {
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
-    if (lens_info.iso == 0) return; // no auto ISO, please
+    if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
     
     if (digic_iso_gain < 1024)
     {
@@ -287,13 +296,19 @@ void digic_iso_step()
         EngDrvOut(SHAD_GAIN, new_gain);
         shad_gain_last_written = new_gain;
     }
-    
     else if (digic_iso_gain > 1024)
     {
         // no side effects in photo mode, it is applied after metering
         int ev_x255 = gain_to_ev_scaled(digic_iso_gain, 255) - 2550 + 255;
         EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
     }
+    
+    //~ if (digic_shadow_lift)
+    //~ {
+        //~ EngDrvOut(SHADOW_LIFT_REGISTER_2, 0x200 + digic_shadow_lift * 16);
+        //~ EngDrvOut(SHADOW_LIFT_REGISTER_5, digic_shadow_lift<<8);
+        //~ EngDrvOut(SHADOW_LIFT_REGISTER_6, digic_shadow_lift<<8);
+    //~ }
 }
 
 void menu_open_submenu();
