@@ -45,6 +45,7 @@ sub("userguide.wiki", "= Magic Lantern 0.2.1 =", """[[Image:Logo.png|140px]]
 
 <big>'''Magic Lantern pre0.2.2 -- User's Guide'''</big>
 
+__NOWYSIWYG__
 
 '''[[Unified/UserGuide|English]] | [[Unified/UserGuide/CZ|Česky]] | [[Unified/UserGuide/DE|Deutsch]] | [[Unified/UserGuide/NL|Dutch]] | [[Unified/UserGuide/ES|Español]] | [[Unified/UserGuide/FR|Français]] | [[Unified/UserGuide/IT|Italiano]] | [[Unified/UserGuide/RO|Română]] | [[Unified/UserGuide/RU|Russian]] | [[Unified/UserGuide/CHS|简体中文]] | [[Unified/UserGuide/JA|日本語]]'''
 
@@ -202,15 +203,15 @@ sub("userguide.wiki", "</blockquote>", "</dd></dl>")
 
 #~ raise SystemExit
 
-go("http://magiclantern.wikia.com/index.php?title=Special:Signup")
+go("http://magiclantern.wikia.com/wiki/Special:UserLogin")
 
 username = "alexdu"
 password = getpass()
 if not password:
     raise SystemExit
 
-fv("3", "wpName", username)
-fv("3", "wpPassword", password)
+fv("1", "username", username)
+fv("1", "password", password)
 #~ showforms()
 submit()
 code(200)
@@ -218,10 +219,10 @@ code(200)
 b = get_browser()
 
 go("http://magiclantern.wikia.com/index.php?title=Unified/UserGuide&action=edit")
-#~ showforms()
+#showforms()
 
 # get current user guide from wiki
-userguide_from_wiki = b.get_form(1).get_value("wpTextbox1")
+userguide_from_wiki = b.get_form(2).get_value("wpTextbox1")
 f = open("userguide_from_wiki.wiki", "w")
 print >> f, userguide_from_wiki
 f.close()
@@ -230,9 +231,9 @@ f.close()
 #~ os.system("wdiff -n userguide_from_wiki.wiki userguide.wiki | colordiff")
 os.system("colordiff -b userguide_from_wiki.wiki userguide.wiki")
 
-ans = raw_input("submit? [y/n]")
-if ans == 'y':
-    userguide_local = open("userguide.wiki").read()
-    fv("1", "wpTextbox1", userguide_local)
-    fv("1", "wpSummary", "Automatic edit from wikidoc.py")
-    submit()
+# ans = raw_input("submit? [y/n]")
+# if ans == 'y':
+#     userguide_local = open("userguide.wiki").read()
+#     fv("2", "wpTextbox1", userguide_local)
+#     fv("2", "wpSummary", "Automatic edit from wikidoc.py")
+#     submit()
