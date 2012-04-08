@@ -14,8 +14,9 @@
 #include "version.h"
 //#include "lua.h"
 
-#define CONFIG_STRESS_TEST
+#undef CONFIG_STRESS_TEST
 #undef CONFIG_HEXDUMP
+#undef CONFIG_ISO_TESTS
 
 //~ #define CONFIG_HEXDUMP
 
@@ -319,6 +320,8 @@ static int compute_signature(int* start, int num)
 	return c;
 }
 
+#ifdef CONFIG_ISO_TESTS
+
 void find_response_curve(char* fname)
 {
     FIO_RemoveFile(fname);
@@ -515,6 +518,7 @@ void iso_movie_test()
     iso_movie_change_setting(raw_iso0, 0, tv0);
     bv_auto = bva0;
 }
+#endif // CONFIG_ISO_TESTS
 
 void run_test()
 {
@@ -2141,6 +2145,7 @@ struct menu_entry debug_menus[] = {
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },
+#ifdef CONFIG_ISO_TESTS
     {
         .name        = "ISO tests...",
         .select        = menu_open_submenu,
@@ -2179,6 +2184,7 @@ struct menu_entry debug_menus[] = {
             MENU_EOL
         },
     },
+#endif
 #if CONFIG_DEBUGMSG
     {
         .name = "Draw palette",
