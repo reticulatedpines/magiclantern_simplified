@@ -80,7 +80,7 @@ int uniwb_is_active()
         lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
 }
 
-CONFIG_INT("iso_selection", iso_selection, 1);
+CONFIG_INT("iso_selection", iso_selection, 0);
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 CONFIG_INT("hdr.frames", hdr_steps, 3);

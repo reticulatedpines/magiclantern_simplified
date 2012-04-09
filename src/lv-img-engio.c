@@ -35,7 +35,7 @@ void lv_request_pause_updating(int value)
 #define SHADOW_LIFT_REGISTER_7 0xc0f0f178
 #define SHADOW_LIFT_REGISTER_8 0xc0f0ecf8 // more like ISO control (clips whites)
 
-CONFIG_INT("digic.iso.gain", digic_iso_gain, 790); // units: like with the old display gain
+CONFIG_INT("digic.iso.gain", digic_iso_gain, 1024); // units: like with the old display gain
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
 // 2048 = 1 EV etc
@@ -287,6 +287,8 @@ void digic_iso_step()
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
     if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
+    
+    if (digic_iso_gain == 0) digic_iso_gain = 1024;
     
     if (digic_iso_gain < 1024)
     {
