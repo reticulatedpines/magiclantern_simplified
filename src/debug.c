@@ -16,7 +16,7 @@
 
 #undef CONFIG_STRESS_TEST
 #undef CONFIG_HEXDUMP
-#undef CONFIG_ISO_TESTS
+#define CONFIG_ISO_TESTS
 
 //~ #define CONFIG_HEXDUMP
 
@@ -447,6 +447,13 @@ void iso_response_curve_htp()
     find_response_curve_ex(CARD_DRIVE "iso1600h.txt",    1600,   0   , 1);
     find_response_curve_ex(CARD_DRIVE "iso3200h.txt",    3200,   0   , 1);
     find_response_curve_ex(CARD_DRIVE "iso6400h.txt",    6400,   0   , 1);
+
+    find_response_curve_ex(CARD_DRIVE "iso140eh.txt",      200,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso280eh.txt",      400,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "iso560eh.txt",      800,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "is1100eh.txt",     1600,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "is2200eh.txt",     3200,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "is4500eh.txt",     6400,   724   , 1);
 
     find_response_curve_ex(CARD_DRIVE "iso100eh.txt",      200,   512   , 1);
     find_response_curve_ex(CARD_DRIVE "iso200eh.txt",      400,   512   , 1);
@@ -2086,6 +2093,46 @@ static void CR2toAVI(void* priv, int delta)
 void menu_open_submenu();
 
 struct menu_entry debug_menus[] = {
+#ifdef CONFIG_ISO_TESTS
+    {
+        .name        = "ISO tests...",
+        .select        = menu_open_submenu,
+        .help = "Computes camera response curve for certain ISO values.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Response curve 4 current ISO",
+                .priv = iso_response_curve_current,
+                .select = run_in_separate_task,
+                .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
+            },
+            {
+                .name = "Test ISO 100x/160x/80x series",
+                .priv = iso_response_curve_160,
+                .select = run_in_separate_task,
+                .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
+            },
+            {
+                .name = "Test 70x/65x/50x series",
+                .priv = iso_response_curve_logain,
+                .select = run_in_separate_task,
+                .help = "ISOs with -0.5/-0.7/-0.8 EV of DIGIC gain. Takes 20 mins.",
+            },
+            {
+                .name = "Test HTP series",
+                .priv = iso_response_curve_htp,
+                .select = run_in_separate_task,
+                .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
+            },
+            {
+                .name = "Movie test",
+                .priv = iso_movie_test,
+                .select = run_in_separate_task,
+                .help = "Records two test movies, changing settings every 2 seconds.",
+            },
+            MENU_EOL
+        },
+    },
+#endif
 #ifdef CONFIG_HEXDUMP
     {
         .name = "Memory Browser",
@@ -2145,46 +2192,6 @@ struct menu_entry debug_menus[] = {
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },
-#ifdef CONFIG_ISO_TESTS
-    {
-        .name        = "ISO tests...",
-        .select        = menu_open_submenu,
-        .help = "Computes camera response curve for certain ISO values.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Response curve 4 current ISO",
-                .priv = iso_response_curve_current,
-                .select = run_in_separate_task,
-                .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
-            },
-            {
-                .name = "Test ISO 100x/160x/80x series",
-                .priv = iso_response_curve_160,
-                .select = run_in_separate_task,
-                .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
-            },
-            {
-                .name = "Test 85x/70x/60x series",
-                .priv = iso_response_curve_logain,
-                .select = run_in_separate_task,
-                .help = "ISOs with -0.2/-0.5/-0.6 EV of DIGIC gain. Takes 20 mins.",
-            },
-            {
-                .name = "Test HTP series",
-                .priv = iso_response_curve_htp,
-                .select = run_in_separate_task,
-                .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
-            },
-            {
-                .name = "Movie test",
-                .priv = iso_movie_test,
-                .select = run_in_separate_task,
-                .help = "Records two test movies, changing settings every 2 seconds.",
-            },
-            MENU_EOL
-        },
-    },
-#endif
 #if CONFIG_DEBUGMSG
     {
         .name = "Draw palette",
