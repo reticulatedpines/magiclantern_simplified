@@ -338,8 +338,13 @@ void find_response_curve(char* fname)
         bmp_draw_rect(COLOR_BLACK, i*5+40, 0, 8*5, 380);
     
     draw_line(40, 190, 720-40, 190, COLOR_BLACK);
-    
+
+    extern int bv_auto;
+    int bva0 = bv_auto;
+    bv_auto = 0; // make sure it won't interfere
+
     bv_enable(); // for enabling fine 1/8 EV increments
+
     int ma = (lens_info.raw_aperture_min + 7) & ~7;
     for (int i = 0; i < 64*2; i++)
     {
@@ -354,6 +359,7 @@ void find_response_curve(char* fname)
     }
     FIO_CloseFile(f);
     beep();
+    //~ call("dispcheck");
     lens_set_rawaperture(ma);
     lens_set_rawshutter(96);
 }
@@ -361,9 +367,10 @@ void find_response_curve(char* fname)
 void find_response_curve_ex(char* fname, int iso, int dgain, int htp)
 {
     bmp_printf(FONT_MED, 0, 100, "ISO %d\nDGain %d\n%s", iso, dgain, htp ? "HTP" : "");
+    set_htp(htp);
+    msleep(100);
     lens_set_iso(iso);
     set_display_gain_equiv(dgain);
-    set_htp(htp);
 
     find_response_curve(fname);
 
@@ -487,7 +494,7 @@ void iso_movie_test()
     int bva0 = bv_auto;
     bv_auto = 0; // make sure it won't interfere
     
-    set_htp(0);
+    set_htp(0); msleep(100);
     movie_start();
 
     iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO
@@ -500,9 +507,13 @@ void iso_movie_test()
     iso_movie_change_setting(raw_iso0-3, 790, tv0-6); // 100x ISO, -3/8 Canon gain, -3/8 ML gain, overexpose by 6/8 EV
     iso_movie_change_setting(raw_iso0-3, 724, tv0-7); // 100x ISO, -3/8 Canon gain, -4/8 ML gain, overexpose by 7/8 EV
     iso_movie_change_setting(raw_iso0-3, 664, tv0-7); // 100x ISO, -3/8 Canon gain, -5/8 ML gain, overexpose by 8/8 EV
-
+    
+    msleep(1000);
     movie_end();
+    msleep(2000);
+    
     set_htp(1);  // this can't be set while recording
+    
     movie_start();
 
     iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO with HTP
