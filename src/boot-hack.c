@@ -440,7 +440,7 @@ my_init_task(int a, int b, int c, int d)
     #ifdef CONFIG_50D
     msleep(3000);
     #else
-    msleep( 1500 );
+    msleep( 2000 );
     #endif
     if (magic_off_request)
     {
