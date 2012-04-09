@@ -413,6 +413,7 @@ int focus_rack_auto_record = 0;
 static void
 focus_toggle( void * priv )
 {
+    if (focus_rack_delta) return; // another rack focus operation in progress
     menu_show_only_selected();
     focus_task_delta = -focus_task_delta;
     focus_rack_delta = focus_task_delta;
@@ -1128,6 +1129,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
         #ifdef CONFIG_50D
         if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On 50D, trap focus doesn't work in LiveView.");
         #endif
+        if (lv && is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus does not work in movie mode.");
     }
 }
 
@@ -1194,7 +1196,7 @@ static struct menu_entry focus_menu[] = {
         .display    = follow_focus_print,
         .select     = menu_binary_toggle,
 
-        .help = "Simple follow focus with arrow keys.",
+        .help = "Focus with arrow keys. MENU while REC = save focus point.",
         .essential = FOR_LIVEVIEW,
 
         .children =  (struct menu_entry[]) {
@@ -1376,8 +1378,26 @@ INIT_FUNC( __FILE__, focus_init );
 
 int handle_rack_focus(struct event * event)
 {
-    if (!should_override_zoom_buttons()) return 1;
     if (!lv) return 1;
+    if (is_manual_focus()) return 1;
+
+    if (recording && !gui_menu_shown())
+    {
+        if (event->param == BGMT_PLAY)
+        {
+            rack_focus_start_now(0,0);
+            return 0;
+        }
+        if (event->param == BGMT_MENU)
+        {
+            focus_reset_a(0,0);
+            NotifyBox(2000, "Focus point saved here.     \n"
+                            "To return to it, press PLAY.");
+            return 0;
+        }
+    }
+
+    if (!should_override_zoom_buttons()) return 1;
     
     if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
     {
