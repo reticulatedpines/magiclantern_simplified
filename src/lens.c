@@ -1800,7 +1800,7 @@ void bv_update_lensinfo()
 {
     if (CONTROL_BV) // sync lens info and camera properties with overriden values
     {
-        lensinfo_set_iso(CONTROL_BV_ISO);
+        lensinfo_set_iso(CONTROL_BV_ISO + (get_htp() ? 8 : 0));
         lensinfo_set_shutter(CONTROL_BV_TV);
         lensinfo_set_aperture(CONTROL_BV_AV);
     }
@@ -1831,6 +1831,7 @@ bool bv_set_rawiso(unsigned iso)
 { 
     if (iso >= 72 && iso <= 128) // 100-12800
     {
+        if (get_htp()) iso -= 8; // quirk: with exposure override and HTP, image is brighter by 1 stop than with Canon settings
         CONTROL_BV_ISO = bv_iso = iso; bv_update_lensinfo();  
         return 1;
     }

@@ -774,7 +774,7 @@ void bv_enable_do()
     {
         CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : bv_tv;
         CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
-        CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso : bv_iso;
+        CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
     }
     
     CONTROL_BV_ZERO = 0;
