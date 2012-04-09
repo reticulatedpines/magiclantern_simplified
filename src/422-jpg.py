@@ -79,7 +79,7 @@ def convert_422_hires(input, output):
             im = im.crop((cx,cy,w-cx,h-cy))
             IM.paste(im, (j*im.size[0], i*im.size[1]))
         print
-    IM.save(output, quality=95)
+    IM.save(output, quality=100)
     
     
 def convert_422_bmp(input, output):
@@ -117,8 +117,8 @@ def convert_422_bmp(input, output):
         w, h = 1576, 1048
     elif len(data) == 1120*746*2:
         w, h = 1120, 746                # zoom mode (5x, 10x) on 5D2
-    elif len(data) == 1872*1079*2:
-        w, h = 1872, 1079               # REC on 5D2
+    elif len(data) == 1872*1080*2:
+        w, h = 1872, 1080               # REC on 5D2
     elif len(data) % 1024*680*2 == 0:
         return convert_422_hires(input,output)
     else:
