@@ -1342,31 +1342,31 @@ void display_shortcut_key_hints_lv()
 
     if (mode == 1)
     {
-        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Vol");
-        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Vol");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
     }
     else if (mode == 2)
     {
-        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
-        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
     }
     else if (mode == 3)
     {
-        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Tv ");
-        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Tv ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
     }
     else if (mode == 4)
     {
-        bmp_printf(FONT_MED, x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Bri");
-        bmp_printf(FONT_MED, x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
-        bmp_printf(FONT_MED, x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Bri");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
     }
     else if (mode == 10)
     {
