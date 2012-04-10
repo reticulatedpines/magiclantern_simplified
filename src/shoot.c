@@ -349,7 +349,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Silent/Slit Pic : OFF"
+            "Silent Picture  : OFF"
         );
     }
     else if (silent_pic_mode == 0)
