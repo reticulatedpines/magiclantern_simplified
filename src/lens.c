@@ -843,9 +843,13 @@ void draw_ml_topbar(int double_buffering, int clear)
 
     x += 70;
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
-        bmp_printf( font, x, y,"T=%dC BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
+        bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
     #else
+        #ifdef CONFIG_550D
         bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
+        #else
+        bmp_printf( font, x, y,"T=%d", efic_temp);
+        #endif
     #endif
 
     x += 160;
