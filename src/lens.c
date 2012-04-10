@@ -1945,7 +1945,7 @@ bool lens_set_rawshutter( int shutter )
 bool lens_set_ae( int ae )
 {
     prop_request_change( PROP_AE, &ae, 4 );
-    msleep(10);
+    msleep(50);
     return get_prop(PROP_AE) == ae;
 }
 
