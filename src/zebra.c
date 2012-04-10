@@ -2550,22 +2550,6 @@ idle_display_turn_off_print(
 }
 
 static void
-idle_rec_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Save power when REC: %s",
-        idle_rec ? "ON" : "OFF"
-    );
-}
-
-static void
 idle_display_global_draw_off_print(
     void *          priv,
     int         x,
@@ -3072,6 +3056,13 @@ static void batt_display(
 
 struct menu_entry powersave_menus[] = {
     {
+        .name = "Enable power saving",
+        .priv           = &idle_rec,
+        .max = 2,
+        .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
+        .help = "If enabled, powersave (see above) works when recording too."
+    },
+    {
         .name = "Dim display",
         .priv           = &idle_display_dim_after,
         .display        = idle_display_dim_print,
@@ -3094,13 +3085,6 @@ struct menu_entry powersave_menus[] = {
         .select         = idle_timeout_toggle,
         .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
         .edit_mode = EM_MANY_VALUES,
-    },
-    {
-        .name = "Save power when REC",
-        .priv           = &idle_rec,
-        .display        = idle_rec_print,
-        .select         = menu_binary_toggle,
-        .help = "If enabled, powersave (see above) works when recording too."
     },
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
     {
@@ -4253,7 +4237,10 @@ clearscreen_loop:
             //~ idle_action_do(&idle_countdown_display_clear, bmp_off, bmp_on);
         //~ }
 
-        if (recording && !idle_rec) // don't go to powersave when recording
+        if (recording && idle_rec == 0) // don't go to powersave when recording
+            idle_wakeup_reset_counters(-2345);
+
+        if (!recording && idle_rec == 1) // don't go to powersave when not recording
             idle_wakeup_reset_counters(-2345);
         
         if (logical_connect)
