@@ -2283,7 +2283,6 @@ struct menu_entry debug_menus[] = {
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
     },
-    #if !defined(CONFIG_50D) && !defined(CONFIG_500D)// && !defined(CONFIG_5D2)
     {
         .name = "Free Memory",
         .display = meminfo_display,
@@ -2294,7 +2293,6 @@ struct menu_entry debug_menus[] = {
         #endif
         .essential = 0,
     },
-    #endif
     {
         .name = "Shutter Count",
         .display = shuttercount_display,

@@ -218,7 +218,7 @@ NSTUB(0xFF90EC2c, RemoteRelease)
 NSTUB(0xFF90ED58, ptpPropButtonSW1)
 NSTUB(0xff90ede8, ptpPropButtonSW2)
 
-// NSTUB(0xFF8764B0, GetMemoryInformation) // called from AllocateMemory
+NSTUB(0xFF8680C8, GetMemoryInformation)
 
 NSTUB(0xffa4717c, CreateDialogBox)
 NSTUB(0xffa46c14, DeleteDialogBox)
