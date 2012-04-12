@@ -796,7 +796,7 @@ void draw_ml_topbar(int double_buffering, int clear)
         double_buffering_start(y, 35);
 
     if (clear)
-        ml_bar_clear(y, 35);
+        ml_bar_clear(y, font_med.height+1);
 
     struct tm now;
     LoadCalendarFromRTC( &now );
