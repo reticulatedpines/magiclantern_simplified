@@ -541,16 +541,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    for (int i = 0; i < 8192; i+=32)
-    {
-        EngDrvOut(0xc0f08034, i + 0x1000);
-        msleep(30);
-        int Y,U,V;
-        get_spot_yuv(180, &Y, &U, &V);
-        float Yf = (float) Y;
-        int y = (int)(powf(Yf / 255.0, 5.0) * 480.0);
-        dot(i/12, 400-y - 16, COLOR_RED, 3);
-    }
+    AllocateMemory(1024*1024);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1947,11 +1938,12 @@ static void ambient_display(
 )
 {
     extern int lightsensor_raw_value;
+    int ev = gain_to_ev_scaled(lightsensor_raw_value, 10);
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Ambient light: %d",
-        lightsensor_raw_value
+        "Ambient light: %d.%d EV",
+        ev/10, ev%10
     );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
