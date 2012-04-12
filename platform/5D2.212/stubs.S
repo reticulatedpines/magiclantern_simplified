@@ -180,3 +180,5 @@ NSTUB(0xFF9D8194, GuiSetAutoBrightness) // guess: refreshes brightness in auto m
 NSTUB(0xff9ce7d0, Gui_SetSoundRecord)
 
 NSTUB(0xff866158, AJ_Wait_Vsync)
+
+NSTUB(0xFF86EF10, GetMemoryInformation)
