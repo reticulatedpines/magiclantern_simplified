@@ -15,7 +15,7 @@
 //#include "lua.h"
 
 #undef CONFIG_STRESS_TEST
-#undef CONFIG_HEXDUMP
+#define CONFIG_HEXDUMP
 #define CONFIG_ISO_TESTS
 
 //~ #define CONFIG_HEXDUMP
@@ -541,7 +541,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    AllocateMemory(1024*1024);
+    malloc(100*1024);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1872,7 +1872,6 @@ static void flashlight_lcd(void* priv, int delta)
     task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
 }
 
-
 static void meminfo_display(
     void *            priv,
     int            x,
@@ -1882,6 +1881,16 @@ static void meminfo_display(
 {
     int a,b;
     GetMemoryInformation(&a,&b);
+#ifdef MALLOC_FREE_MEMORY
+    int m = MALLOC_FREE_MEMORY;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Free Memory  : %dK + %dK",
+        m/1024, b/1024
+    );
+    menu_draw_icon(x, y, MNI_BOOL(b > 1024*1024 && m > 256 * 1024), 0);
+#else
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -1889,6 +1898,7 @@ static void meminfo_display(
         b/1024, a/1024
     );
     menu_draw_icon(x, y, MNI_BOOL(b > 1024*1024), 0);
+#endif
 }
 
 static void shuttercount_display(
@@ -2277,7 +2287,11 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Free Memory",
         .display = meminfo_display,
-        .help = "Memory information (from AllocateMemory)",
+        #ifdef MALLOC_FREE_MEMORY
+        .help = "Free memory available for malloc and AllocateMemory.",
+        #else
+        .help = "Free memory available for AllocateMemory.",
+        #endif
         .essential = 0,
     },
     #endif

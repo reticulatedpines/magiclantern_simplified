@@ -259,3 +259,7 @@
 
 #define LV_STRUCT_PTR 0x1D78
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)
+
+// see "Malloc Information"
+#define MALLOC_STRUCT 0x22528
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
