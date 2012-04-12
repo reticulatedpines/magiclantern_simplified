@@ -11,7 +11,7 @@
 #include "config.h"
 #include "math.h"
 
-#undef CONFIG_DIGIC_POKE
+#define CONFIG_DIGIC_POKE
 
 #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -36,6 +36,7 @@ void lv_request_pause_updating(int value)
 #define SHADOW_LIFT_REGISTER_8 0xc0f0ecf8 // more like ISO control (clips whites)
 
 CONFIG_INT("digic.iso.gain", digic_iso_gain, 1024); // units: like with the old display gain
+CONFIG_INT("digic.black", digic_black_level, 100);
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
 // 2048 = 1 EV etc
@@ -78,6 +79,29 @@ digic_iso_print(
     if (G && !lv)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in LiveView.");
     menu_draw_icon(x, y, MNI_BOOL(G), 0);
+}
+
+void
+digic_black_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int G = gain_to_ev_scaled(digic_iso_gain, 8) - 80;
+    G = G * 10/8;
+    int GA = abs(G);
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Black Level   : %s%d",
+        digic_black_level > 100 ? "+" : "",
+        digic_black_level-100
+    );
+    if (digic_black_level != 100 && !is_movie_mode()) 
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in Movie mode.");
+    menu_draw_icon(x, y, MNI_BOOL(digic_black_level-100), 0);
 }
 
 static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
@@ -311,6 +335,16 @@ void digic_iso_step()
         //~ EngDrvOut(SHADOW_LIFT_REGISTER_5, digic_shadow_lift<<8);
         //~ EngDrvOut(SHADOW_LIFT_REGISTER_6, digic_shadow_lift<<8);
     //~ }
+
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+    if (digic_black_level != 100)
+    {
+        if (!is_movie_mode()) return; // makes no sense in photo mode, you can shoot raw
+        int presetup = MEMX(SHAD_PRESETUP);
+        presetup = (presetup & 0xFF00) + ((int)digic_black_level-100);
+        EngDrvOut(SHAD_PRESETUP, presetup);
+    }
+    #endif
 }
 
 void menu_open_submenu();

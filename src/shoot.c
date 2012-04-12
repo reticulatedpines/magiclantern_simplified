@@ -3457,6 +3457,9 @@ extern int lvae_iso_speed;
 
 extern void digic_iso_print( void * priv, int x, int y, int selected);
 extern void digic_iso_toggle(void* priv, int delta);
+
+extern int digic_black_level;
+extern void digic_black_print( void * priv, int x, int y, int selected);
 //~ extern void menu_open_submenu();
 
 extern int digic_shadow_lift;
@@ -3585,6 +3588,12 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
+                .name = "HTP",
+                .select = htp_toggle,
+                .display = htp_display,
+                .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
+            },
+            {
                 .name = "ISO Selection",
                 .priv = &iso_selection,
                 .max = 1,
@@ -3592,6 +3601,16 @@ static struct menu_entry expo_menus[] = {
                 .choices = (const char *[]) {"100/160x", "100x + DIGIC"},
                 .icon_type = IT_DICE,
             },
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+            {
+                .name = "Black Level", 
+                .priv = &digic_black_level,
+                .min = 0,
+                .max = 200,
+                .display = digic_black_print,
+                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
+            #endif
             /*{
                 .name = "Lift Shadows",
                 .priv = &digic_shadow_lift,
@@ -3599,12 +3618,6 @@ static struct menu_entry expo_menus[] = {
                 .max = 50,
                 .help = "Raises shadow level.",
             },*/
-            {
-                .name = "HTP",
-                .select = htp_toggle,
-                .display = htp_display,
-                .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
-            },
             {
                 .name = "Min MovAutoISO",
                 .priv = &lvae_iso_min,
