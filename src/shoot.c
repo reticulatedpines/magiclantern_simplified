@@ -470,7 +470,8 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-    zoom_sharpen_step();
+    int r = zoom_x5_x10_step();
+    if (r == 0) zoom_sharpen_step();
     return prop_cleanup( token, property );
 }
 
@@ -2302,7 +2303,7 @@ static void zoom_toggle(void* priv, int delta)
     }
 }
 
-static void zoom_lv_step()
+static void zoom_lv_face_step()
 {
     if (!lv) return;
     if (recording) return;
@@ -2338,18 +2339,23 @@ static void zoom_lv_step()
             //~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
         }
     }
+}
+
+int zoom_x5_x10_step()
+{
     if (zoom_disable_x5 && lv_dispsize == 5)
     {
         int zoom = 10;
         prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-        msleep(100);
+        return 1;
     }
     if (zoom_disable_x10 && lv_dispsize == 10)
     {
         int zoom = 1;
         prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-        msleep(100);
+        return 1;
     }
+    return 0;
 }
 
 static void 
@@ -4340,7 +4346,7 @@ shoot_task( void* unused )
             }
         }
         
-        zoom_lv_step();
+        zoom_lv_face_step();
         
         uniwb_step();
         /*if (sweep_lv_on)
