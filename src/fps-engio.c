@@ -885,20 +885,24 @@ static void fps_task()
         
         if (!fps_override) 
         {
-            if (fps_needs_updating)
+            msleep(100);
+
+            if (!fps_override && fps_needs_updating)
                 fps_reset();
 
-            msleep(200);
+            msleep(100);
 
-            fps_read_default_timer_values();
+            if (!written_value_a && !written_value_b)
+                fps_read_default_timer_values();
                             
             continue;
         }
         
         if (fps_was_changed_by_canon())
         {
-            msleep(50);
-            fps_read_default_timer_values();
+            msleep(100);
+            if (fps_was_changed_by_canon()) // double-check
+                fps_read_default_timer_values();
         }
         
         if (fps_needs_updating || fps_was_changed_by_canon())
@@ -914,6 +918,7 @@ static void fps_task()
             
             fps_setup_timerA(f);
             fps_setup_timerB(f);
+            msleep(100);
         }
     }
 }
