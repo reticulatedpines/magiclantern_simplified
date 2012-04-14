@@ -149,10 +149,10 @@ expsim_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LV ViewType : %s",
-        expsim == 2 ? "Movie" :
+        expsim == 2 ? "Movie display" :
         expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ExpSim)" : "Auto (Disp)") : 
         #ifdef CONFIG_5D2
-        get_expsim_auto_value() ? "Photo - ExpSim" : "Photo - Disp."
+        get_expsim_auto_value() ? "Photo - ExpSim" : "Photo display"
         #else
         get_expsim_auto_value() ? "Exposure Simulation" : "Disp. (Frame&Focus)"
         #endif

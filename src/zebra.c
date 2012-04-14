@@ -3261,13 +3261,13 @@ void bmp_on()
         _bmp_muted = false; _bmp_unmuted = true;
     #else
         BMP_LOCK(
-            cli_save();
+            int f = cli_save();
             if (DISPLAY_IS_ON)
             {
                 MuteOff_0();
                 _bmp_muted = false; _bmp_unmuted = true;
             }
-            sei_restore();
+            sei_restore(f);
         )
     #endif
     }
@@ -3290,13 +3290,13 @@ void bmp_off()
         clrscr();
     #else
         BMP_LOCK(
-            cli_save();
+            int f = cli_save();
             if (DISPLAY_IS_ON)
             {
                 _bmp_muted = true; _bmp_unmuted = false;
                 MuteOn_0();
             }
-            sei_restore();
+            sei_restore(f);
         )
     #endif
     }
@@ -3783,7 +3783,9 @@ void draw_livev_for_playback()
     clrscr();
     
 BMP_LOCK(
-    cropmark_redraw();
+
+    // don't draw cropmarks in QR mode (buggy on 4:3 screens)
+    if (!QR_MODE) cropmark_redraw();
 
     if (spotmeter_draw)
         spotmeter_step();

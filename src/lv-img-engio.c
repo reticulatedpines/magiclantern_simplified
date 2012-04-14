@@ -341,7 +341,7 @@ void digic_iso_step()
     {
         if (!is_movie_mode()) return; // makes no sense in photo mode, you can shoot raw
         int presetup = MEMX(SHAD_PRESETUP);
-        presetup = (presetup & 0xFF00) + ((int)digic_black_level-100);
+        presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level-100);
         EngDrvOut(SHAD_PRESETUP, presetup);
     }
     #endif

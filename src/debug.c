@@ -15,7 +15,7 @@
 //#include "lua.h"
 
 #undef CONFIG_STRESS_TEST
-#define CONFIG_HEXDUMP
+#undef CONFIG_HEXDUMP
 #define CONFIG_ISO_TESTS
 
 //~ #define CONFIG_HEXDUMP
@@ -59,8 +59,8 @@ draw_prop_reset( void * priv )
     dbg_propn = 0;
 }
 
-void _card_led_on() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(); }
-void _card_led_off() { cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(); }
+void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(f); }
+void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(f); }
 /*void _card_led_blink(int times, int delay_on, int delay_off)
 {
     int i;
@@ -1436,7 +1436,7 @@ void show_electronic_level()
 
 #ifdef CONFIG_HEXDUMP
 
-CONFIG_INT("hexdump", hexdump_addr, 0x3bfa4);
+CONFIG_INT("hexdumpv", hexdump_addr, 0x4724+168);
 
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
