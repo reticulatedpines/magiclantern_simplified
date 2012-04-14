@@ -110,6 +110,7 @@ static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
+static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
@@ -468,10 +469,13 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
     return prop_cleanup( token, property );
 }
 
+static int zoom_was_triggered_by_halfshutter = 0;
+
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     int r = zoom_x5_x10_step();
     if (r == 0) zoom_sharpen_step();
+    if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
     return prop_cleanup( token, property );
 }
 
@@ -2272,13 +2276,14 @@ zoom_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LiveView Zoom       : %s%s%s %s",
+        "LiveView Zoom       : %s%s%s %s%s",
         zoom_disable_x5 ? "" : "x5", 
         zoom_disable_x10 ? "" : "x10", 
         zoom_enable_face ? ":-)" : "",
-        zoom_sharpen ? "SC++" : ""
+        zoom_sharpen ? "SC++" : "",
+        zoom_halfshutter ? "HS" : ""
     );
-    menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10 || zoom_sharpen));
+    menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10 || zoom_sharpen || zoom_halfshutter));
 }
 
 static void zoom_toggle(void* priv, int delta)
@@ -2339,6 +2344,25 @@ static void zoom_lv_face_step()
             //~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
         }
     }
+    
+    if (zoom_halfshutter)
+    {
+        int hs = get_halfshutter_pressed();
+        if (hs && lv_dispsize == 1)
+        {
+            zoom_was_triggered_by_halfshutter = 1;
+            int zoom = zoom_disable_x5 ? 10 : 5;
+            prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+            msleep(100);
+        }
+        if (!hs && lv_dispsize > 1 && zoom_was_triggered_by_halfshutter)
+        {
+            zoom_was_triggered_by_halfshutter = 0;
+            int zoom = 1;
+            prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+            msleep(100);
+        }
+    }
 }
 
 int zoom_x5_x10_step()
@@ -2377,7 +2401,7 @@ void zoom_sharpen_step()
     static int sa = 100;
     static int sh = 100;
     
-    if (zoom_sharpen && lv && lv_dispsize > 1 && !HALFSHUTTER_PRESSED && !gui_menu_shown()) // bump contrast/sharpness
+    if (zoom_sharpen && lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown()) // bump contrast/sharpness
     {
         if (co == 100)
         {
@@ -3413,9 +3437,9 @@ static struct menu_entry shoot_menus[] = {
 static struct menu_entry vid_menus[] = {
     {
         .name = "LiveView Zoom",
-        .priv = &zoom_enable_face,
-        .select = zoom_toggle,
-        .select_reverse = menu_binary_toggle, 
+        //~ .priv = &zoom_enable_face,
+        .select = menu_open_submenu,
+        //~ .select_reverse = menu_binary_toggle, 
         .display = zoom_display,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
@@ -3451,6 +3475,12 @@ static struct menu_entry vid_menus[] = {
                 .choices = (const char *[]) {"Don't change", "Increase"},
                 .icon_type = IT_REPLACE_SOME_FEATURE,
                 .help = "Increase sharpness and contrast when you zoom in LiveView."
+            },
+            {
+                .name = "Zoom on HalfShutter",
+                .priv = &zoom_halfshutter,
+                .max = 1,
+                .help = "Enable zoom when you hold the shutter halfway pressed."
             },
             MENU_EOL
         },
