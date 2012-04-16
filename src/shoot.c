@@ -48,8 +48,10 @@ static void bulb_ramping_showinfo();
 
 bool display_idle()
 {
+    extern thunk ShootOlcApp_handler;
     if (lv) return liveview_display_idle();
-    else return gui_state == GUISTATE_IDLE && !gui_menu_shown();
+    else return gui_state == GUISTATE_IDLE && !gui_menu_shown() &&
+        ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || get_current_dialog_handler() == &ShootOlcApp_handler);
 }
 
 static char dcim_dir_suffix[6];
@@ -1685,7 +1687,7 @@ static void uniwb_disable()
 
 void uniwb_step()
 {
-    if (!lv) return;
+    //~ if (!lv) return;
     
     int uniwb_desired_state = 0;
     switch (uniwb_mode)
@@ -1704,7 +1706,7 @@ void uniwb_step()
             break;
     }
 
-    if (!liveview_display_idle() && !gui_menu_shown())
+    if (!display_idle() && !gui_menu_shown())
     {
         uniwb_save_normal_wb_params(); // maybe user is changing WB settings from Canon menu - save them as non-uniWB params
     }
