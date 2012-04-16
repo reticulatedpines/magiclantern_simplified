@@ -5065,6 +5065,7 @@ PROP_HANDLER(PROP_LV_ACTION)
     if (buf[0] == 0) lv_paused = 0;
     bv_auto_update();
     zoom_sharpen_step();
+    zoom_auto_exposure_step();
     return prop_cleanup( token, property );
 }
 

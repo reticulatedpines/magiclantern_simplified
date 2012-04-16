@@ -82,7 +82,6 @@ dofp_update()
 
 // ExpSim
 //**********************************************************************
-//~ CONFIG_INT( "expsim", expsim_setting, 2);
 
 void video_refresh()
 {
@@ -96,6 +95,7 @@ void set_expsim( int x )
     if (expsim != x)
     {
         prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+        
         #ifdef CONFIG_5D2
         // Canon bug: FPS is not updated when toggling photo->movie while LiveView is active
         // No side effects in Canon firmware, since this is normally done in Canon menu (when LV is not running)
@@ -115,36 +115,6 @@ expsim_toggle( void * priv, int delta)
     int e = mod(expsim + delta, max_expsim+1);
     set_expsim(e);
 }
-/*int get_expsim_auto_value()
-{
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    return expsim;
-    #else
-    if (is_movie_mode()) return 2;
-    #endif
-
-    // underexposure bug with manual lenses in M mode
-    #if defined(CONFIG_60D)
-    if (expsim_setting == 2 &&
-        shooting_mode == SHOOTMODE_M && 
-        !lens_info.name[0] && 
-        lens_info.raw_iso != 0 && 
-        lens_info.raw_shutter < 93 // the image will be too dark to preview via BV mode, better turn off ExpSim
-    )
-        return 0;
-    #endif
-
-    // silent pic in matrix mode requires expsim on
-    extern int silent_pic_matrix_running;
-    if (silent_pic_matrix_running) return 1;
-    
-    if (expsim_setting == 2)
-    {
-        if ((lv_dispsize > 1 || should_draw_zoom_overlay()) && !get_halfshutter_pressed()) return 0;
-        else return 1;
-    }
-    else return expsim_setting;
-}*/
 
 static void
 expsim_display( void * priv, int x, int y, int selected )
@@ -159,47 +129,7 @@ expsim_display( void * priv, int x, int y, int selected )
     );
     if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
-    //~ else menu_draw_icon(x, y, expsim == 2 ? MNI_ON : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : expsim ? MNI_ON : MNI_NEUTRAL, (intptr_t) "Could not set ExpSim");
 }
-
-/*static void expsim_update()
-{
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    //~ if (lv_movie_select != LVMS_ENABLE_MOVIE) expsim_setting = MIN(expsim_setting, 1);
-    expsim_setting = expsim;
-    return;
-    #endif
-    
-    if (!lv) return;
-    if (shooting_mode == SHOOTMODE_MOVIE) return;
-    int expsim_auto_value = get_expsim_auto_value();
-    if (expsim_auto_value != expsim)
-    {
-        if (MENU_MODE && !gui_menu_shown()) // ExpSim changed from Canon menu
-        { 
-            expsim_setting = expsim;
-            NotifyBox(2000, "ML: Auto ExpSim disabled.");
-        }
-        else
-        {
-            set_expsim(expsim_auto_value); // shooting mode, ML decides to toggle ExpSim
-        }
-    }
-}
-
-static void expsim_toggle(void* priv, int delta)
-{
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    expsim_setting = expsim; // no fancy auto expsim
-    menu_ternary_toggle(&expsim_setting, delta);
-    if (lv_movie_select != LVMS_ENABLE_MOVIE && expsim_setting == 2)
-        menu_ternary_toggle(&expsim_setting, delta);
-    set_expsim(expsim_setting);
-    #else
-    if (is_movie_mode()) return;
-    menu_ternary_toggle(priv, delta); msleep(100);
-    #endif
-}*/
 
 // LV metering
 //**********************************************************************

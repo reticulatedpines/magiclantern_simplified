@@ -2399,6 +2399,7 @@ zoom_sharpen_display( void * priv, int x, int y, int selected )
     );
 }
 
+// called from some prop_handlers (shoot.c and zebra.c)
 void zoom_sharpen_step()
 {
     if (!zoom_sharpen) return;
@@ -2431,6 +2432,17 @@ void zoom_sharpen_step()
     }
 }
 
+void restore_expsim(int es)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        set_expsim(es);
+        msleep(100);
+        if (expsim == es) break;
+    }
+    //~ info_led_blink(5, 50, 50);
+}
+// to be called from the same places as zoom_sharpen_step
 void zoom_auto_exposure_step()
 {
     if (!zoom_auto_exposure) return;
@@ -2475,7 +2487,9 @@ void zoom_auto_exposure_step()
     {
         if (es >= 0)
         {
-            set_expsim(es);
+            // not sure why, but when taking a picture, expsim can't be restored;
+            // workaround: create a task that retries a few times
+            task_create("restore_expsim", 0x1a, 0, restore_expsim, es);
             es = -1;
         }
         if (aem >= 0)
@@ -3989,7 +4003,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
             bulb_ramping_enabled = 0; // to force a pic in manual mode
 
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            set_expsim(1); // can't set shutter slower than 1/30 in movie mode
+            if (expsim == 2) set_expsim(1); // can't set shutter slower than 1/30 in movie mode
             #endif
             hdr_set_rawshutter(rc);
             take_a_pic(allow_af);
@@ -4002,7 +4016,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
         hdr_set_rawshutter(s0r);
         hdr_set_rawiso(iso0);
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        set_expsim(expsim0);
+        if (expsim0 == 2) set_expsim(expsim0);
         #endif
     }
     lens_wait_readytotakepic(64);
