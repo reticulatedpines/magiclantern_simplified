@@ -1978,13 +1978,13 @@ picstyle_display( void * priv, int x, int y, int selected )
 static void 
 picstyle_display_submenu( void * priv, int x, int y, int selected )
 {
-    int p = get_prop_picstyle_from_index(picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle);
+    int p = get_prop_picstyle_from_index(lens_info.picstyle);
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "PictureStyle: %s%s",
         get_picstyle_name(p),
-        picstyle_before_rec ? "*" : " "
+        picstyle_before_rec ? " (REC)" : ""
     );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
