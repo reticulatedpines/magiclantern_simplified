@@ -42,6 +42,7 @@ void intervalometer_stop();
 void get_out_of_play_mode();
 void wait_till_next_second();
 void zoom_sharpen_step();
+void zoom_auto_exposure_step();
 
 static void bulb_ramping_showinfo();
 
@@ -111,6 +112,7 @@ static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
 static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
+static CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
@@ -464,6 +466,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
         menu_stop();
     }*/
     zoom_sharpen_step();
+    zoom_auto_exposure_step();
     //~ if (hdr_enabled) halfshutter_action(v);
     
     return prop_cleanup( token, property );
@@ -474,7 +477,11 @@ static int zoom_was_triggered_by_halfshutter = 0;
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     int r = zoom_x5_x10_step();
-    if (r == 0) zoom_sharpen_step();
+    if (r == 0)
+    {
+        zoom_sharpen_step();
+        zoom_auto_exposure_step();
+    }
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
     return prop_cleanup( token, property );
 }
@@ -2424,6 +2431,61 @@ void zoom_sharpen_step()
     }
 }
 
+void zoom_auto_exposure_step()
+{
+    if (!zoom_auto_exposure) return;
+
+    static int es = -1;
+    static int aem = -1;
+    
+    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
+    {
+        // photo mode: disable ExpSim
+        // movie mode 5D2: disable ExpSim
+        // movie mode small cams: change PROP_AE_MODE_MOVIE
+        if (is_movie_mode())
+        {
+            #ifdef CONFIG_5D2
+            if (es == -1)
+            {
+                es = expsim;
+                set_expsim(0);
+            }
+            #else
+                #ifndef CONFIG_50D
+                if (aem == -1)
+                {
+                    aem = ae_mode_movie;
+                    int x = 0;
+                    prop_request_change(PROP_AE_MODE_MOVIE, &x, 4);
+                }
+                #endif
+            #endif
+        }
+        else // photo mode
+        {
+            if (es == -1)
+            {
+                es = expsim;
+                set_expsim(0);
+            }
+        }
+    }
+    else // restore things back
+    {
+        if (es >= 0)
+        {
+            set_expsim(es);
+            es = -1;
+        }
+        if (aem >= 0)
+        {
+            prop_request_change(PROP_AE_MODE_MOVIE, &aem, 4);
+            aem = -1;
+        }
+    }
+}
+
 static void 
 hdr_display( void * priv, int x, int y, int selected )
 {
@@ -3466,6 +3528,12 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Enable zoom when Face Detection is active."
             },
             #endif
+            {
+                .name = "Auto exposure on Zoom  ",
+                .priv = &zoom_auto_exposure,
+                .max = 1,
+                .help = "Lets you adjust aperture freely while checking focus."
+            },
             {
                 .name = "Increase Sharp+Contrast",
                 .priv = &zoom_sharpen,

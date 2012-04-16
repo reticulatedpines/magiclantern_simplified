@@ -903,7 +903,7 @@ void update_lvae_for_autoiso_n_displaygain()
     }
 
     // this is always applied
-    LVAE_ISO_SPEED = lvae_iso_speed;
+    LVAE_ISO_SPEED = lv_dispsize > 1 ? 50 : lvae_iso_speed;
 }
 
 int gain_to_ev(int gain)

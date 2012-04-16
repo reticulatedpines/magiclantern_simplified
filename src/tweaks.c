@@ -82,36 +82,40 @@ dofp_update()
 
 // ExpSim
 //**********************************************************************
-CONFIG_INT( "expsim", expsim_setting, 2);
+//~ CONFIG_INT( "expsim", expsim_setting, 2);
+
+void video_refresh()
+{
+    prop_request_change(PROP_LV_DISPSIZE, &lv_dispsize, 4);
+    lens_display_set_dirty();
+}
+
 
 void set_expsim( int x )
 {
     if (expsim != x)
     {
-        int movie_toggle = (x == 2 || expsim == 2);
         prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+        #ifdef CONFIG_5D2
+        // Canon bug: FPS is not updated when toggling photo->movie while LiveView is active
+        // No side effects in Canon firmware, since this is normally done in Canon menu (when LV is not running)
+        if (x == 2) video_refresh();
+        #endif
     }
 }
-/*
+
 static void
-expsim_toggle( void * priv )
+expsim_toggle( void * priv, int delta)
 {
-    // off, on, auto
-    if (!expsim_auto && !expsim) // off->on
-    {
-        set_expsim(1);
-    }
-    else if (!expsim_auto && expsim) // on->auto
-    {
-        expsim_auto = 1;
-    }
-    else // auto->off
-    {
-        expsim_auto = 0;
-        set_expsim(0);
-    }
-}*/
-int get_expsim_auto_value()
+    #if !defined(CONFIG_5D2) && !defined(CONFIG_50D)
+    int max_expsim = is_movie_mode() ? 2 : 1;
+    #else
+    int max_expsim = 2;
+    #endif
+    int e = mod(expsim + delta, max_expsim+1);
+    set_expsim(e);
+}
+/*int get_expsim_auto_value()
 {
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     return expsim;
@@ -140,7 +144,7 @@ int get_expsim_auto_value()
         else return 1;
     }
     else return expsim_setting;
-}
+}*/
 
 static void
 expsim_display( void * priv, int x, int y, int selected )
@@ -148,21 +152,17 @@ expsim_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV ViewType : %s",
-        expsim == 2 ? "Movie display" :
-        expsim_setting == 2 ? (get_expsim_auto_value() ? "Auto (ExpSim)" : "Auto (Disp)") : 
-        #ifdef CONFIG_5D2
-        get_expsim_auto_value() ? "Photo - ExpSim" : "Photo display"
-        #else
-        get_expsim_auto_value() ? "Exposure Simulation" : "Disp. (Frame&Focus)"
-        #endif
+        "LV Display  : %s",
+        expsim == 0 ? "Photo, no ExpSim" :
+        expsim == 1 ? "Photo, ExpSim" :
+        /*expsim == 2 ?*/ "Movie" 
     );
     if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
-    else menu_draw_icon(x, y, expsim == 2 ? MNI_ON : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : expsim ? MNI_ON : MNI_NEUTRAL, (intptr_t) "Could not set ExpSim");
+    //~ else menu_draw_icon(x, y, expsim == 2 ? MNI_ON : expsim != get_expsim_auto_value() ? MNI_WARNING : expsim_setting == 2 ? MNI_AUTO : expsim ? MNI_ON : MNI_NEUTRAL, (intptr_t) "Could not set ExpSim");
 }
 
-static void expsim_update()
+/*static void expsim_update()
 {
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     //~ if (lv_movie_select != LVMS_ENABLE_MOVIE) expsim_setting = MIN(expsim_setting, 1);
@@ -199,7 +199,7 @@ static void expsim_toggle(void* priv, int delta)
     if (is_movie_mode()) return;
     menu_ternary_toggle(priv, delta); msleep(100);
     #endif
-}
+}*/
 
 // LV metering
 //**********************************************************************
@@ -862,7 +862,7 @@ tweak_task( void* unused)
             }
         }
         
-        expsim_update();
+        //~ expsim_update();
         
         dofp_update();
 
@@ -1594,12 +1594,14 @@ void screenshot_start();
 
 struct menu_entry expo_tweak_menus[] = {
     {
-        .name = "LV ViewType",
-        .priv = &expsim_setting,
+        .name = "LV Display",
+        .priv = &expsim,
         .select = expsim_toggle,
         .display = expsim_display,
+        .max = 2,
+        .icon_type = IT_DICE,
         //~ .help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
-        .help = "ExpSim: show proper exposure. Disp: only for framing/focus.",
+        .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
         //~ .show_liveview = 1,
     },
 };

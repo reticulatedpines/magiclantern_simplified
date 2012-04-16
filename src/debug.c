@@ -541,7 +541,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    malloc(100*1024);
+    video_refresh();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
