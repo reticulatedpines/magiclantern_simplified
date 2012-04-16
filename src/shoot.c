@@ -73,12 +73,18 @@ static CONFIG_INT("uniwb.old.gain_R", uniwb_old_gain_R, 0);
 static CONFIG_INT("uniwb.old.gain_G", uniwb_old_gain_G, 0);
 static CONFIG_INT("uniwb.old.gain_B", uniwb_old_gain_B, 0);
 
+int uniwb_is_active_check_lensinfo_only() 
+{
+    return 
+        lens_info.wb_mode == WB_CUSTOM &&
+        lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
+}
+
 int uniwb_is_active() 
 {
     return 
         uniwb_mode &&
-        lens_info.wb_mode == WB_CUSTOM &&
-        lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
+        uniwb_is_active_check_lensinfo_only();
 }
 
 CONFIG_INT("iso_selection", iso_selection, 0);
@@ -1547,7 +1553,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            (uniwb_is_active()     ? "UniWB   " : 
+            (uniwb_is_active_check_lensinfo_only()     ? "UniWB   " : 
             (lens_info.wb_mode == 0 ? "Auto    " : 
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
@@ -1646,12 +1652,15 @@ wb_custom_gain_toggle( void * priv, int delta )
 
 static void uniwb_save_normal_wb_params()
 {
-    if (uniwb_is_active()) return;
+    if (uniwb_is_active_check_lensinfo_only()) return;
     //~ info_led_blink(1,50,50);
     uniwb_old_wb_mode = lens_info.wb_mode;
-    uniwb_old_gain_R = lens_info.WBGain_R;
-    uniwb_old_gain_G = lens_info.WBGain_G;
-    uniwb_old_gain_B = lens_info.WBGain_B;
+    if (lens_info.WBGain_R != 1024 || lens_info.WBGain_G != 1024 || lens_info.WBGain_B != 1024)
+    {
+        uniwb_old_gain_R = lens_info.WBGain_R;
+        uniwb_old_gain_G = lens_info.WBGain_G;
+        uniwb_old_gain_B = lens_info.WBGain_B;
+    }
 }
 
 static void uniwb_enable()
@@ -1668,7 +1677,7 @@ static void uniwb_disable()
     prop_request_change(PROP_WB_MODE_LV, &uniwb_old_wb_mode, 4);
     prop_request_change(PROP_WB_MODE_PH, &uniwb_old_wb_mode, 4);
     msleep(100);
-    if (!uniwb_is_active()) // successfully disabled
+    if (!uniwb_is_active_check_lensinfo_only()) // successfully disabled
     {
         uniwb_old_gain_R = uniwb_old_gain_G = uniwb_old_gain_B = uniwb_old_wb_mode = 0;
     }
