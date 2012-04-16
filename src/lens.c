@@ -251,6 +251,7 @@ static void ml_bar_clear(int ytop, int height)
 {
     uint8_t* B = bmp_vram();
     uint8_t* M = get_bvram_mirror();
+    int menu = gui_menu_shown();
     for (int y = ytop; y < ytop + height; y++)
     {
         for (int x = 0; x < vram_bm.width; x++)
@@ -258,7 +259,8 @@ static void ml_bar_clear(int ytop, int height)
             uint8_t p = B[BM(x,y)];
             uint8_t m = M[BM(x,y)];
             if (recording && p == COLOR_RED && ytop < 100) continue; // don't erase the recording dot
-            if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
+            if (menu) B[BM(x,y)] = COLOR_BLACK;
+            else if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
             else B[BM(x,y)] = 0;
         }
     }
@@ -772,7 +774,7 @@ void draw_ml_topbar(int double_buffering, int clear)
     {
         x = MAX(os.x0 + os.x_ex/2 - 360, 0);
         //~ y = MAX(os.y0 + os.y_ex/2 - 240, os.y0);
-        y = (hdmi_code == 5 ? 50 : 10); // force it at the top of menu
+        y = (hdmi_code == 5 ? 40 : 0); // force it at the top of menu
     }
     else
     {

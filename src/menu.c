@@ -660,7 +660,7 @@ void submenu_icon(int x, int y)
 void submenu_only_icon(int x, int y, int value)
 {
     bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
-    int color = value ? COLOR_GREEN1 : 50;
+    int color = value ? COLOR_GREEN1 : 45;
     for (int r = 0; r < 3; r++)
     {
         draw_circle(x + 8, y + 10, r, color);
@@ -671,7 +671,7 @@ void submenu_only_icon(int x, int y, int value)
         draw_circle(x + 9, y + 22, r, color);
     }
     
-    color = value ? COLOR_WHITE : 50;
+    color = value ? COLOR_WHITE : 45;
     bmp_draw_rect(color, x + 15, y + 10, 10, 1);
     bmp_draw_rect(color, x + 15, y + 16, 10, 1);
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
@@ -886,7 +886,7 @@ menu_display(
                 );
             }
 
-            if (menu->selected)
+            if (menu->selected && !is_menu_active("Help"))
             {
                 char msg[100] = "";
 
@@ -1354,10 +1354,10 @@ menu_redraw()
                 prev_so = show_only_selected;
 
                 if (!show_only_selected || !submenu_mode)
-                {
                     menus_display( menus, x0, y0 ); 
+
+                if (!show_only_selected && !submenu_mode)
                     if (is_menu_active("Help")) menu_show_version();
-                }
 
                 if (submenu_mode)
                 {
