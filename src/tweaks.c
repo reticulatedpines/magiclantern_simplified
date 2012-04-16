@@ -1314,7 +1314,7 @@ void display_shortcut_key_hints_lv()
 
 static struct menu_entry key_menus[] = {
     {
-        .name       = "Arrow key shortcuts...",
+        .name       = "Arrow Key Shortcuts...",
         .select = menu_open_submenu,
         .help = "Functions for arrows in movie mode. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {

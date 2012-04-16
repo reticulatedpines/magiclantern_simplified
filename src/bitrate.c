@@ -153,7 +153,7 @@ cbr_display(
 {
     bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "CBR factor    : %d.%dx", bitrate_factor/10, bitrate_factor%10);
     if (bitrate_mode == 1) menu_draw_icon(x, y, MNI_PERCENT, bitrate_factor * 100 / 30);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "CBR mode inactive.");
+    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "CBR mode inactive => CBR setting not used.");
 }
 
 static void
@@ -166,7 +166,7 @@ qscale_display(
 {
     bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "QScale factor : %d", qscale);
     if (bitrate_mode == 2) menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "VBR mode inactive.");
+    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "VBR mode inactive => QScale setting not used.");
 }
 
 

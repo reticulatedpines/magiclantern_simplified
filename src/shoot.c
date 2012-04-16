@@ -1558,7 +1558,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
             (lens_info.wb_mode == 3 ? "Tungsten" : 
-            (lens_info.wb_mode == 4 ? "CFL     " : 
+            (lens_info.wb_mode == 4 ? "Fluor.  " : 
             (lens_info.wb_mode == 5 ? "Flash   " : 
             (lens_info.wb_mode == 6 ? "Custom  " : 
             (lens_info.wb_mode == 8 ? "Shade   " :
@@ -1634,7 +1634,7 @@ wb_custom_gain_display( void * priv, int x, int y, int selected )
         multiplier/1000, multiplier%1000
     );
     if (lens_info.wb_mode != WB_CUSTOM)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Custom white balance is not active.");
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Custom white balance is not active => not used.");
     else if (uniwb_is_active()) 
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "UniWB is active.");
 }

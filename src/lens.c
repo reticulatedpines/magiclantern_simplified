@@ -594,7 +594,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         else
             bmp_printf( text_font, x_origin + 360, y_origin,
                 "%s ",
-                (uniwb_is_active()      ? "UniWB " :
+                (uniwb_is_active()      ? " UniWB" :
                 (lens_info.wb_mode == 0 ? "AutoWB" : 
                 (lens_info.wb_mode == 1 ? " Sunny" :
                 (lens_info.wb_mode == 2 ? "Cloudy" : 
