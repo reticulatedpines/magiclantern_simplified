@@ -1527,7 +1527,7 @@ kelvin_display( void * priv, int x, int y, int selected )
         );
         menu_draw_icon(x, y, MNI_PERCENT, (lens_info.kelvin - KELVIN_MIN) * 100 / (KELVIN_MAX - KELVIN_MIN));
     }
-    else if (lens_info.wb_mode == WB_CUSTOM)
+    else if (lens_info.wb_mode == WB_CUSTOM && !uniwb_is_active())
     {
         int mul_R = 1000 * 1024 / lens_info.WBGain_R;
         int mul_G = 1000 * 1024 / lens_info.WBGain_G;
@@ -1553,7 +1553,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            (uniwb_is_active_check_lensinfo_only()     ? "UniWB   " : 
+            (uniwb_is_active()      ? "UniWB   " : 
             (lens_info.wb_mode == 0 ? "Auto    " : 
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
