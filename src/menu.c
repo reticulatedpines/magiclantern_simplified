@@ -712,9 +712,9 @@ void dice_icon(int x, int y, int current, int nmax)
             dot(x + 6, y - 6, C(1)+2);
             break;
         case 3:
-            dot(x - 8, y + 8, C(0));
-            dot(x,     y,     C(1));
-            dot(x + 8, y - 8, C(2));
+            dot(x    , y - 7, C(0));
+            dot(x - 7, y + 3, C(1));
+            dot(x + 7, y + 3, C(2));
             break;
         case 4:
             dot(x - 6, y - 6, C(0));
