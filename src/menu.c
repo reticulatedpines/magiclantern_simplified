@@ -181,7 +181,11 @@ static void entry_draw_icon(
 {
     if (entry->icon_type == IT_AUTO)
     {
-        if (!entry->priv || entry->select == run_in_separate_task)
+        if (entry->select == menu_open_submenu)
+        {
+            entry->icon_type = IT_SUBMENU;
+        }
+        else if (!entry->priv || entry->select == run_in_separate_task)
         {
             entry->icon_type = IT_ACTION;
         }
@@ -241,12 +245,36 @@ static void entry_draw_icon(
         
         case IT_DISABLE_SOME_FEATURE:
             menu_draw_icon(x, y, MEM(entry->priv) ? MNI_DISABLE : MNI_NEUTRAL, 0);
+            break;
 
         case IT_DISABLE_SOME_FEATURE_NEG:
             menu_draw_icon(x, y, MEM(entry->priv) ? MNI_NEUTRAL : MNI_DISABLE, 0);
+            break;
 
         case IT_REPLACE_SOME_FEATURE:
             menu_draw_icon(x, y, MEM(entry->priv) ? MNI_ON : MNI_NEUTRAL, 0);
+            break;
+        
+        case IT_SUBMENU:
+        {
+            int value = 0;
+            if (entry->priv) value = MEM(entry->priv); // if priv field is present, use it as boolean value
+            else 
+            {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
+                struct menu_entry * e = entry->children;
+                for( ; e ; e = e->next )
+                {
+                    if( e->priv && MEM(e->priv))
+                    {
+                        value = 1;
+                        break;
+                    }
+                }
+
+            }
+            menu_draw_icon(x, y, MNI_SUBMENU, value);
+            break;
+        }
     }
 }
 
@@ -629,6 +657,26 @@ void submenu_icon(int x, int y)
     //~ }
 }
 
+void submenu_only_icon(int x, int y, int value)
+{
+    bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
+    int color = value ? COLOR_GREEN1 : 50;
+    for (int r = 0; r < 3; r++)
+    {
+        draw_circle(x + 8, y + 10, r, color);
+        draw_circle(x + 8, y + 16, r, color);
+        draw_circle(x + 8, y + 22, r, color);
+        draw_circle(x + 9, y + 10, r, color);
+        draw_circle(x + 9, y + 16, r, color);
+        draw_circle(x + 9, y + 22, r, color);
+    }
+    
+    color = value ? COLOR_WHITE : 50;
+    bmp_draw_rect(color, x + 15, y + 10, 10, 1);
+    bmp_draw_rect(color, x + 15, y + 16, 10, 1);
+    bmp_draw_rect(color, x + 15, y + 22, 10, 1);
+}
+
 void selection_bar(int x0, int y0)
 {
     int w = x0 + 720 - 40 - 10;
@@ -794,6 +842,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
+        case MNI_SUBMENU: submenu_only_icon(x, y, arg); return;
     }
     #endif
 }
@@ -916,7 +965,7 @@ menu_display(
             }
             
             // this should be after menu->display, in order to allow it to override the icon
-            if (menu->priv && (menu->selected || !show_only_selected))
+            if (menu->selected || !show_only_selected)
             {
                 entry_draw_icon(menu, x, y);
             }
@@ -1643,10 +1692,10 @@ menu_init( void )
     menu_find_by_name( "Display", ICON_MONITOR );
     menu_find_by_name( "Tweaks", ICON_SMILE );
     menu_find_by_name( "Play", ICON_ML_PLAY );
-    menu_find_by_name( "Config", ICON_CF );
     menu_find_by_name( "Power", ICON_P_SQUARE );
     menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
     //~ menu_find_by_name( "Config" );
+    menu_find_by_name( "Config", ICON_CF );
     menu_find_by_name( "Help", ICON_i );
     //~ menu_find_by_name( "Boot" );
 

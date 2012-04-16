@@ -2269,22 +2269,21 @@ htp_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL(htp), 0);
 }
 
-
+/*
 static void 
 zoom_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LiveView Zoom       : %s%s%s %s%s",
+        "LV Zoom Settings    : %s%s%s %s%s",
         zoom_disable_x5 ? "" : "x5", 
         zoom_disable_x10 ? "" : "x10", 
         zoom_enable_face ? ":-)" : "",
         zoom_sharpen ? "SC++" : "",
         zoom_halfshutter ? "HS" : ""
     );
-    menu_draw_icon(x, y, MNI_BOOL_LV(zoom_enable_face || zoom_disable_x5 || zoom_disable_x10 || zoom_sharpen || zoom_halfshutter));
-}
+}*/
 
 static void zoom_toggle(void* priv, int delta)
 {
@@ -3434,13 +3433,12 @@ static struct menu_entry shoot_menus[] = {
     }*/
 };
 
-static struct menu_entry vid_menus[] = {
+struct menu_entry tweak_menus_shoot[] = {
     {
-        .name = "LiveView Zoom",
-        //~ .priv = &zoom_enable_face,
+        .name = "LV Zoom Settings...",
         .select = menu_open_submenu,
-        //~ .select_reverse = menu_binary_toggle, 
-        .display = zoom_display,
+        //~ .display = zoom_display,
+        .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
             {
@@ -3469,15 +3467,13 @@ static struct menu_entry vid_menus[] = {
             },
             #endif
             {
-                .name = "Sharp+Contrast",
+                .name = "Increase Sharp+Contrast",
                 .priv = &zoom_sharpen,
                 .max = 1,
-                .choices = (const char *[]) {"Don't change", "Increase"},
-                .icon_type = IT_REPLACE_SOME_FEATURE,
                 .help = "Increase sharpness and contrast when you zoom in LiveView."
             },
             {
-                .name = "Zoom on HalfShutter",
+                .name = "Zoom on HalfShutter    ",
                 .priv = &zoom_halfshutter,
                 .max = 1,
                 .help = "Enable zoom when you hold the shutter halfway pressed."
@@ -4732,7 +4728,7 @@ void shoot_init()
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
-    menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
+    //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
     extern struct menu_entry expo_tweak_menus[];
     extern struct menu_entry expo_override_menus[];

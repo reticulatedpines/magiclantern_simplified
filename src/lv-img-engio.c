@@ -117,7 +117,7 @@ void digic_iso_toggle(void* priv, int delta)
     digic_iso_gain = digic_iso_presets[i];
 }
 
-static CONFIG_INT("digic.effects", image_effects, 0);
+//~ static CONFIG_INT("digic.effects", image_effects, 0);
 static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
@@ -289,21 +289,21 @@ int handle_digic_poke(struct event * event){}; // dummy
 
 void image_effects_step()
 {
-    if (image_effects && DISPLAY_IS_ON && lv)
-    {
-        if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
-        if (negative) EngDrvOut(0xc0f0f000, 0xb1);
-        //~ if (fringing) EngDrvOut(0xc0f0f4ac, 0x1);
-    }
+    if (!DISPLAY_IS_ON) return;
+    if (!lv) return;
 
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
     #endif
-    
-    if (lv_should_pause_updating && DISPLAY_IS_ON && lv)
+
+    if (lv_should_pause_updating)
     {
         EngDrvOut(LV_PAUSE_REGISTER, 0x1234);
     }    
+
+    if (!is_movie_mode()) return;
+    if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
+    if (negative) EngDrvOut(0xc0f0f000, 0xb1);
 }
 
 void digic_iso_step()
@@ -351,10 +351,9 @@ void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
     {
-        .name = "Image Effects",
-        .priv = &image_effects,
+        .name = "Image Effects...",
         .max = 1,
-        //~ .select = menu_open_submenu,
+        .select = menu_open_submenu,
         .help = "Experimental image filters found by digging into DIGIC.",
         .children =  (struct menu_entry[]) {
             {

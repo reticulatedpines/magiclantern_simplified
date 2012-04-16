@@ -2018,7 +2018,7 @@ clearscreen_display(
         "Clear Overlays : %s",
         //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
-        mode == 1 ? "HalfShutter/DOF" : 
+        mode == 1 ? "HalfShutter/DofP" : 
         mode == 2 ? "WhenIdle" : "Always"
     );
 }

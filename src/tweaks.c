@@ -1382,9 +1382,9 @@ void display_shortcut_key_hints_lv()
     old_mode = mode;
 }
 
-struct menu_entry tweak_menus[] = {
+static struct menu_entry key_menus[] = {
     {
-        .name       = "Arrow key shortcuts ",
+        .name       = "Arrow key shortcuts...",
         .select = menu_open_submenu,
         .help = "Functions for arrows in movie mode. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
@@ -1417,24 +1417,17 @@ struct menu_entry tweak_menus[] = {
             MENU_EOL
         },
     },
-/*  {
-        .name = "Night Vision Mode",
-        .priv = &night_vision, 
-        .select = night_vision_toggle, 
-        .display = night_vision_print,
-        .help = "Maximize LV display gain for framing in darkness (photo)"
-    },*/
     {
         .name = "Sticky DOF Preview  ", 
         .priv = &dofpreview_sticky, 
         .max = 1,
-        .help = "Sticky = click DOF to toggle. Or, press [Q] to lock now.",
+        .help = "Makes the DOF preview button sticky (press to toggle).",
     },
     {
         .name       = "Sticky HalfShutter  ",
         .priv = &halfshutter_sticky,
         .max = 1,
-        .help = "Emulates half-shutter press, or make half-shutter sticky.",
+        .help = "Makes the half-shutter button sticky (press to toggle).",
     },
     #if defined(CONFIG_550D) || defined(CONFIG_500D)
     {
@@ -1445,15 +1438,6 @@ struct menu_entry tweak_menus[] = {
         .help = "Use the LCD face sensor as an extra key in ML.",
     },
     #endif*/
-    #if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) // 60D doesn't need this
-    {
-        .name = "Auto BurstPicQuality",
-        .priv = &auto_burst_pic_quality, 
-        .select = menu_binary_toggle, 
-        .display = auto_burst_pic_display,
-        .help = "Temporarily reduce picture quality in burst mode.",
-    },
-    #endif
     #ifdef CONFIG_60D
     {
         .name = "Swap MENU <--> ERASE",
@@ -1463,15 +1447,6 @@ struct menu_entry tweak_menus[] = {
         .help = "Swaps MENU and ERASE buttons."
     },
     #endif
-    #if 0
-    {
-        .name = "LV Auto ISO (M mode)",
-        .priv = &lv_metering,
-        .select = menu_quinternary_toggle, 
-        .display = lv_metering_print,
-        .help = "Experimental LV metering (Auto ISO). Too slow for real use."
-    },
-    #endif
     #ifdef CONFIG_600D
     {
         .name = "DigitalZoom Shortcut",
@@ -1479,6 +1454,33 @@ struct menu_entry tweak_menus[] = {
         .display = digital_zoom_shortcut_display, 
         .select = menu_binary_toggle,
         .help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
+    },
+    #endif
+};
+static struct menu_entry tweak_menus[] = {
+/*  {
+        .name = "Night Vision Mode",
+        .priv = &night_vision, 
+        .select = night_vision_toggle, 
+        .display = night_vision_print,
+        .help = "Maximize LV display gain for framing in darkness (photo)"
+    },*/
+    #if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) // 60D doesn't need this
+    {
+        .name = "Auto BurstPicQuality",
+        .priv = &auto_burst_pic_quality, 
+        .select = menu_binary_toggle, 
+        .display = auto_burst_pic_display,
+        .help = "Temporarily reduce picture quality in burst mode.",
+    },
+    #endif
+    #if 0
+    {
+        .name = "LV Auto ISO (M mode)",
+        .priv = &lv_metering,
+        .select = menu_quinternary_toggle, 
+        .display = lv_metering_print,
+        .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
     #endif
 };
@@ -1936,6 +1938,9 @@ struct menu_entry play_menus[] = {
 
 static void tweak_init()
 {
+    extern struct menu_entry tweak_menus_shoot[];
+    menu_add( "Tweaks", tweak_menus_shoot, 1 );
+    menu_add( "Tweaks", key_menus, COUNT(key_menus) );
     menu_add( "Tweaks", tweak_menus, COUNT(tweak_menus) );
     menu_add( "Play", play_menus, COUNT(play_menus) );
     menu_add( "Display", display_menus, COUNT(display_menus) );
