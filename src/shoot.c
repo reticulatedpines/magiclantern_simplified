@@ -2677,6 +2677,7 @@ static void
     }
     else if (!mlu_auto && get_mlu()) // on->auto
     {
+        set_mlu(0);
         mlu_auto = 1;
     }
     else // auto->off
@@ -4367,6 +4368,36 @@ void wait_till_next_second()
     }
 }
 
+static void mlu_step()
+{
+    if (!mlu_auto) return;
+    
+    int mlu_current_value = get_mlu() ? 1 : 0;
+    static int mlu_prev_value = -1;
+    if (MENU_MODE && !gui_menu_shown()) // Canon menu => let's see if user changes MLU setting
+    {
+        if (mlu_prev_value != -1 && mlu_prev_value != mlu_current_value)
+        {
+            mlu_auto = 0;
+            NotifyBox(2000, "ML: Auto MLU disabled");
+        }
+        mlu_prev_value = mlu_current_value;
+    }
+    else // not in Canon menu
+    {
+        mlu_prev_value = -1;
+    }
+
+    if (!lv && !MENU_MODE) // normal shooting mode, non-liveview
+    {
+        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!hdr_enabled)) ? 1 : 0;
+        if (mlu_auto_value != mlu_current_value)
+        {
+            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+        }
+    }
+}
+
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
 
@@ -4431,31 +4462,8 @@ shoot_task( void* unused )
             movie_end_flag = 0;
         }
         
-        if (!lv) // MLU
-        {
-            //~ if (mlu_mode == 0 && get_mlu()) set_mlu(0);
-            //~ if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
-            if (mlu_auto)
-            {
-                int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!hdr_enabled)) ? 1 : 0;
-                int mlu_current_value = get_mlu() ? 1 : 0;
-                if (mlu_auto_value != mlu_current_value && !is_movie_mode() && !lv)
-                {
-                    if (MENU_MODE && !gui_menu_shown()) // MLU changed from Canon menu
-                    { 
-                        mlu_auto = 0;
-                        NotifyBox(2000, "ML: Auto MLU disabled");
-                    }
-                    else
-                    {
-                        set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
-                    }
-                }
-            }
-        }
-        
+        mlu_step();
         zoom_lv_face_step();
-        
         uniwb_step();
         /*if (sweep_lv_on)
         {
