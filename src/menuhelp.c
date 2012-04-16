@@ -55,22 +55,9 @@ void menu_help_show_page(int page)
     }
 }
 
-struct semaphore * help_redraw_sem = 0;
-void help_redraw_task(void* unused)
-{
-    help_redraw_sem = create_named_semaphore("help_redraw_sem", 0);
-    while(1)
-    {
-        take_semaphore(help_redraw_sem, 0);
-        BMP_LOCK( menu_help_show_page(current_page); );
-    }
-}
-
-TASK_CREATE("help_redraw", help_redraw_task, 0, 0x1c, 0x1000);
-
 void menu_help_redraw()
 {
-    give_semaphore(help_redraw_sem);
+    BMP_LOCK( menu_help_show_page(current_page); );
 }
 
 void menu_help_next_page()

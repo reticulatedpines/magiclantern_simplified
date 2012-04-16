@@ -1311,7 +1311,7 @@ menu_entry_move(
 CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 
 static void 
-menu_redraw()
+menu_redraw_do()
 {
         menu_damage = 0;
         
@@ -1409,6 +1409,27 @@ menu_redraw()
             lens_display_set_dirty();
             update_disp_mode_bits_from_params();
         }
+}
+
+struct msg_queue * menu_redraw_queue = 0;
+
+static void
+menu_redraw_task()
+{
+    menu_redraw_queue = msg_queue_create("menu_redraw_mq", 1);
+    while(1)
+    {
+        int msg;
+        msg_queue_receive(menu_redraw_queue, &msg, 0);
+        menu_redraw_do();
+    }
+}
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x1000 );
+
+static void
+menu_redraw()
+{
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, 1);
 }
 
 static struct menu * get_selected_menu()
