@@ -1703,7 +1703,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 )
                 #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
                 static int ae_warned = 0;
-                if (is_movie_mode() && !ae_mode_movie) 
+                if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
                 {
                     if (!ae_warned && !gui_menu_shown())
                     {
