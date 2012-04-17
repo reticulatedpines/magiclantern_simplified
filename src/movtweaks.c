@@ -270,7 +270,7 @@ void force_liveview()
     get_out_of_play_mode(200);
     info_led_off();
     if (!lv) fake_simple_button(BGMT_LV);
-    msleep(500);
+    msleep(1500);
 }
 
 CONFIG_INT("shutter.lock", shutter_lock, 0);
