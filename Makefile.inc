@@ -146,7 +146,6 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
-  -mlong-calls
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
