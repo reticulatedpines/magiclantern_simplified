@@ -187,3 +187,5 @@ NSTUB(0xff190b84, _EngDrvOut)
 NSTUB(0xFF016930, get_current_task)
 
 NSTUB(0x27e40, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+
+NSTUB(0xFF0693C0, msg_queue_create)

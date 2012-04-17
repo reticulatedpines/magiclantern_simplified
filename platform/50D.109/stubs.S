@@ -241,3 +241,5 @@ NSTUB(0xff97d794, _EngDrvOut)
 NSTUB(0xff8166b4, get_current_task)
 
 NSTUB(0x242C0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+
+NSTUB(0xFF86AD34, msg_queue_create) // CreateMessageQueue

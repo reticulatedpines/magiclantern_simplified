@@ -33,6 +33,7 @@
 
 static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
+static struct semaphore * menu_redraw_sem;
 static int menu_damage;
 static int menu_timeout;
 static bool menu_shown = false;
@@ -1421,7 +1422,10 @@ menu_redraw_task()
     {
         int msg;
         msg_queue_receive(menu_redraw_queue, &msg, 0);
+        
+        take_semaphore(menu_redraw_sem, 0);
         menu_redraw_do();
+        give_semaphore(menu_redraw_sem);
     }
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x1000 );
@@ -1494,6 +1498,9 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
     }
 #endif
 
+    // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
+    take_semaphore(menu_redraw_sem, 0);
+
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
     
@@ -1514,6 +1521,8 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
         menu = get_current_submenu();
         if (!menu) menu = help_menu; // no submenu, operate on same item
     }
+
+    give_semaphore(menu_redraw_sem);
     
     switch( event )
     {
@@ -1695,6 +1704,7 @@ menu_init( void )
     menu_dialog = NULL;
     menu_sem = create_named_semaphore( "menus", 1 );
     gui_sem = create_named_semaphore( "gui", 0 );
+    menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D)
     menu_find_by_name( "Audio", ICON_MIC);
