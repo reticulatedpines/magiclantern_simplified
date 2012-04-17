@@ -2628,19 +2628,19 @@ movie_start( void )
 
 void ml_shutdown()
 {
-    extern int ml_started;
-    ml_started = 0;
+    //~ extern int ml_started;
+    //~ ml_started = 0;
     extern int safe_to_do_engio_for_display;
     safe_to_do_engio_for_display = 0;
     static int config_saved = 0;
-    if (config_autosave && !config_saved)
+    if (config_ok && config_autosave && !config_saved)
     {
         config_saved = 1;
         save_config(0, 0);
+        msleep(100);
     }
     info_led_on();
     _card_led_on();
-    msleep(50);
 }
 
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
