@@ -1152,15 +1152,17 @@ void bmp_dim()
     uint32_t* b = (uint32_t *)bmp_vram();
     if (!b) return;
     int i,j;
-    for (i = 0; i < vram_bm.height; i += 2)
+    for (i = 1; i < vram_bm.height; i += 2)
     {
-        for (j = 0; j < vram_bm.width; j += 4)
+        memset(&b[BM(0,i)/4], COLOR_BLACK, vram_bm.width);
+        
+        /*for (j = 0; j < vram_bm.width; j += 4)
         {
             b[BM(j,i  )/4] &= 0x00FF00FF;
             b[BM(j,i+1)/4] &= 0xFF00FF00;
             b[BM(j,i  )/4] |= 0x02000200;
             b[BM(j,i+1)/4] |= 0x00020002;
-        }
+        }*/
     }
 }
 
