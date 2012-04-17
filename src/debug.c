@@ -16,7 +16,7 @@
 
 #undef CONFIG_STRESS_TEST
 #undef CONFIG_HEXDUMP
-#define CONFIG_ISO_TESTS
+#undef CONFIG_ISO_TESTS
 
 //~ #define CONFIG_HEXDUMP
 
@@ -541,7 +541,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    video_refresh();
+    malloc(1*1024);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1436,7 +1436,7 @@ void show_electronic_level()
 
 #ifdef CONFIG_HEXDUMP
 
-CONFIG_INT("hexdumpv", hexdump_addr, 0x4724+168);
+CONFIG_INT("hexdump", hexdump_addr, 0x27c28);
 
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
@@ -1881,7 +1881,6 @@ static void meminfo_display(
 {
     int a,b;
     GetMemoryInformation(&a,&b);
-#ifdef MALLOC_FREE_MEMORY
     int m = MALLOC_FREE_MEMORY;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1889,16 +1888,7 @@ static void meminfo_display(
         "Free Memory  : %dK + %dK",
         m/1024, b/1024
     );
-    menu_draw_icon(x, y, MNI_BOOL(b > 1024*1024 && m > 256 * 1024), 0);
-#else
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Free Memory  : %dK/%dK",
-        b/1024, a/1024
-    );
-    menu_draw_icon(x, y, MNI_BOOL(b > 1024*1024), 0);
-#endif
+    menu_draw_icon(x, y, b > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
 }
 
 static void shuttercount_display(
@@ -2286,11 +2276,7 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Free Memory",
         .display = meminfo_display,
-        #ifdef MALLOC_FREE_MEMORY
         .help = "Free memory available for malloc and AllocateMemory.",
-        #else
-        .help = "Free memory available for AllocateMemory.",
-        #endif
         .essential = 0,
     },
     {

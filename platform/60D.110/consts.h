@@ -296,3 +296,7 @@
 
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
 #define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+
+// see "Malloc Information"
+#define MALLOC_STRUCT 0x36f28
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
