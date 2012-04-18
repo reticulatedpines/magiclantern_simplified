@@ -42,11 +42,7 @@ int my_init_task(int a, int b, int c, int d);
 void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
-#ifdef CONFIG_550D
-#define RELOCSIZE 0x1100
-#else
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
-#endif
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
@@ -102,7 +98,9 @@ copy_and_restart( int offset )
      * create_init_task
      */
     // Reserve memory after the BSS for our application
+    #ifndef CONFIG_550D // 550D loads ML in the AllocateMemory pool
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
+    #endif
 
     // Fix the calls to bzero32() and create_init_task()
     FIXUP_BRANCH( HIJACK_FIXBR_BZERO32, bzero32 );
@@ -366,6 +364,83 @@ int my_assert_handler(char* msg, char* file, int line, int arg4)
     return old_assert_handler(msg, file, line, arg4);
 }
 
+#ifdef CONFIG_550D
+int init_task_patched_for_550D(int a, int b, int c, int d)
+{
+    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // ff018d1c: init_task:
+    // ff018d90: b CreateTaskMain
+    //
+    // ff011c94 CreateTaskMain:
+    // ff011cb4: mov r1, #13631488  ; 0xd00000  <-- end address
+    // ff011cb8: mov r0, #3997696   ; 0x3d0000  <-- start address
+    // ff011cbc: bl  allocatememory_init_pool
+
+    // So... we need to patch CreateTaskMain, which is called by init_task.
+    //
+    // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
+
+    #define init_task_start 0xff018d1c
+    #define init_task_end   0xff018ef4
+    #define init_task_len   (init_task_end - init_task_start)
+
+    #define CreateTaskMain_start 0xff011c94
+    #define CreateTaskMain_end   0xff011f50
+    #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
+    
+    static char init_task_reloc_buf[init_task_len+64];
+    static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
+    
+    int (*new_init_task)(int,int,int,int) = reloc(
+        0,      // we have physical memory
+        0,      // with no virtual offset
+        init_task_start,
+        init_task_end,
+        init_task_reloc_buf
+    );
+
+    int (*new_CreateTaskMain)(void) = reloc(
+        0,      // we have physical memory
+        0,      // with no virtual offset
+        CreateTaskMain_start,
+        CreateTaskMain_end,
+        CreateTaskMain_reloc_buf
+    );
+    
+    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)init_task_start;
+    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)CreateTaskMain_start;
+
+    // Done relocating, now we can patch things.
+
+    uint32_t* addr_AllocMem_start   = CreateTaskMain_reloc_buf + 0xff011cb8 + CreateTaskMain_offset;
+    uint32_t* addr_AllocMem_end     = CreateTaskMain_reloc_buf + 0xff011cb4 + CreateTaskMain_offset;
+    uint32_t* addr_BL_AllocMem_init = CreateTaskMain_reloc_buf + 0xff011cbc + CreateTaskMain_offset;
+
+    // change end limit to 0xc800000 => reserve 500K for ML
+    // thanks to ARMada by g3gg0 for the black magic :)
+    *addr_AllocMem_end = 0xE3A01732;
+
+    // relocating CreateTaskMain does some nasty things, so, right after patching,
+    // we jump back to ROM version; at least, what's before patching seems to be relocated properly
+    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff011cbc);
+    
+    uint32_t* addr_B_CreateTaskMain = init_task_reloc_buf + 0xff018d90 + init_task_offset;
+    *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
+    
+    
+    /* FIO_RemoveFile("B:/dump.hex");
+    FILE* f = FIO_CreateFile("B:/dump.hex");
+    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
+    FIO_CloseFile(f);
+    
+    NotifyBox(10000, "%x ", new_CreateTaskMain); */
+    
+    // Well... let's cross the fingers and call the relocated stuff
+    return new_init_task(a,b,c,d);
+
+}
+#endif
+
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -388,7 +463,11 @@ my_init_task(int a, int b, int c, int d)
     }
     
     // Call their init task
+    #ifdef CONFIG_550D
+    int ans = init_task_patched_for_550D(a,b,c,d);
+    #else
     int ans = init_task(a,b,c,d);
+    #endif
     
     // decompile TH_assert to find out the location
     old_assert_handler = MEM(DRYOS_ASSERT_HANDLER);

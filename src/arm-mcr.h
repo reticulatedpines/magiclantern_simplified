@@ -192,6 +192,11 @@ sei( uint32_t old_cpsr )
     | ((( ((uint32_t)dest) - ((uint32_t)pc) - 8 ) >> 2) & 0x00FFFFFF) \
     )
 
+#define B_INSTR(pc,dest) \
+    ( 0xEA000000 \
+    | ((( ((uint32_t)dest) - ((uint32_t)pc) - 8 ) >> 2) & 0x00FFFFFF) \
+    )
+
 /** Simple boot loader memcpy.
  *
  * \note This is not general purpose; len must be > 0 and must be % 4
