@@ -352,6 +352,9 @@ void shutter_btn_rec_do(int rec)
 
 int movie_was_stopped_by_set = 0;
 
+// at startup don't try to sync with Canon values; use saved values instead
+int bv_startup = 1;
+
 static void
 movtweak_task( void* unused )
 {
@@ -366,6 +369,7 @@ movtweak_task( void* unused )
     extern int ml_started;
     while (!ml_started) msleep(100);
     bv_auto_update();
+    bv_startup = 0;
 
     int k;
     for (k = 0; ; k++)
@@ -745,12 +749,13 @@ static void bv_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Exp.Override: %s", 
-        bv_auto && CONTROL_BV ? "Auto (ON)" :
-        bv_auto && !CONTROL_BV ? "Auto (OFF)" :
-        CONTROL_BV ? "ON" : "OFF"
+        bv_auto == 2 && CONTROL_BV ? "Auto (ON)" :
+        bv_auto == 2 && !CONTROL_BV ? "Auto (OFF)" :
+        bv_auto == 1 ? "ON" : "OFF"
     );
-    if ((CONTROL_BV || bv_auto) && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
-    menu_draw_icon(x, y, bv_auto ? MNI_AUTO : MNI_BOOL(CONTROL_BV), 0);
+    if (bv_auto && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+    if (bv_auto == 1 && !CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Temporarily disabled.");
+    menu_draw_icon(x, y, MNI_BOOL_AUTO(bv_auto), 0);
 }
 
 CONFIG_INT("bv.iso", bv_iso, 88);
@@ -764,7 +769,7 @@ void bv_enable_do()
     //~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
     call("lvae_setcontrolbv", 1);
 
-    if (ae_mode_movie == 0) // auto movie mode
+    if (ae_mode_movie == 0 || bv_startup) // auto movie mode
     {
         CONTROL_BV_TV = bv_tv;
         CONTROL_BV_AV = bv_av;
@@ -772,9 +777,9 @@ void bv_enable_do()
     }
     else // manual movie mode or photo mode, try to sync with Canon values
     {
-        CONTROL_BV_TV = lens_info.raw_shutter ? lens_info.raw_shutter : bv_tv;
-        CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
-        CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
+        bv_tv = CONTROL_BV_TV = lens_info.raw_shutter && ABS(lens_info.raw_shutter - bv_tv) > 4 ? lens_info.raw_shutter : bv_tv;
+        bv_av = CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
+        bv_iso = CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
     }
     
     CONTROL_BV_ZERO = 0;
@@ -801,18 +806,14 @@ void bv_disable_do()
 
 static void bv_toggle(void* priv, int delta)
 {
-    if (delta > 0) // off, on, auto
-    {
-        if (bv_auto) { bv_auto = 0; bv_disable(); }
-        else if (CONTROL_BV) { bv_auto = 1; bv_auto_update(); }
-        else { bv_enable(); }
-    }
-    else // auto, on, off
-    {
-        if (bv_auto) { bv_auto = 0; bv_enable(); }  
-        else if (CONTROL_BV) { bv_disable(); }
-        else { bv_auto = 1; bv_auto_update(); }
-    }
+    menu_ternary_toggle(&bv_auto, delta);
+    if (bv_auto) bv_auto_update();
+    else bv_disable();
+}
+
+PROP_HANDLER(PROP_LIVE_VIEW_VIEWTYPE)
+{
+    bv_auto_update();
 }
 
 CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);

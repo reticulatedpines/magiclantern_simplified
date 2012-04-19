@@ -120,7 +120,7 @@ static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
 static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
-static CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
+       CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);

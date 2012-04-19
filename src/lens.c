@@ -1865,40 +1865,51 @@ int bv_auto_should_enable()
     if (!lv) return 0;
     if (get_htp()) return 0;
 
+    extern int zoom_auto_exposure;
+    if (zoom_auto_exposure && lv_dispsize > 1)
+        return 0; // otherwise it would interfere with auto exposure
+    
     extern int bulb_ramp_calibration_running; 
     if (bulb_ramp_calibration_running) 
         return 0; // temporarily disable BV mode to make sure display gain will work
-    
-    // cameras without manual exposure control
-    #if defined(CONFIG_50D)
-    if (is_movie_mode() && shooting_mode == SHOOTMODE_M) return 1;
-    else return 0;
-    #endif
-    #if defined(CONFIG_500D) || defined(CONFIG_1100D)
-    if (is_movie_mode()) return 1;
-    else return 0;
-    #endif
 
     if (LVAE_DISP_GAIN) // compatibility problem, disable it
         return 0;
 
-    // extra ISO values in movie mode
-    if (is_movie_mode() && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
-        return 1;
-    
-    // temporarily cancel it in photo mode
-    //~ if (!is_movie_mode() && get_halfshutter_pressed())
-        //~ return 0;
-    
-    // underexposure bug with manual lenses in M mode
-    #if defined(CONFIG_60D)
-    if (shooting_mode == SHOOTMODE_M && 
-        !lens_info.name[0] && 
-        lens_info.raw_iso != 0 && 
-        lens_info.raw_shutter >= 93 // otherwise the image will be dark, better turn off ExpSim
-    )
-        return 1;
-    #endif
+    if (bv_auto == 2) // only enabled when needed
+    {
+        // cameras without manual exposure control
+        #if defined(CONFIG_50D)
+        if (is_movie_mode() && shooting_mode == SHOOTMODE_M) return 1;
+        else return 0;
+        #endif
+        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
+        if (is_movie_mode()) return 1;
+        else return 0;
+        #endif
+
+        // extra ISO values in movie mode
+        if (is_movie_mode())// && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
+            return 1;
+        
+        // temporarily cancel it in photo mode
+        //~ if (!is_movie_mode() && get_halfshutter_pressed())
+            //~ return 0;
+        
+        // underexposure bug with manual lenses in M mode
+        #if defined(CONFIG_60D)
+        if (shooting_mode == SHOOTMODE_M && 
+            !lens_info.name[0] && 
+            lens_info.raw_iso != 0 && 
+            lens_info.raw_shutter >= 93 // otherwise the image will be dark, better turn off ExpSim
+        )
+            return 1;
+        #endif
+    }
+    else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
+    {
+        return 1; // tricky situations were handled before these if's
+    }
 
     return 0;
 }
