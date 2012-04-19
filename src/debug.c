@@ -1126,24 +1126,6 @@ static void stress_test_menu_dlg_api_task(void* unused)
     }
 }
 
-void stress_test_random()
-{
-    gui_stop_menu();
-    task_create("stress_test", 0x1c, 0, stress_test_random_task, 0);
-}
-
-void stress_test()
-{
-    gui_stop_menu();
-    task_create("stress_test", 0x1c, 0, stress_test_task, 0);
-}
-
-void stress_test_menu_dlg_api()
-{
-    gui_stop_menu();
-    task_create("stress_test", 0x1c, 0, stress_test_menu_dlg_api_task, 0);
-}
-
 #endif // CONFIG_STRESS_TEST
 
 void ui_lock(int x)
@@ -2101,46 +2083,6 @@ static void CR2toAVI(void* priv, int delta)
 void menu_open_submenu();
 
 struct menu_entry debug_menus[] = {
-#ifdef CONFIG_ISO_TESTS
-    {
-        .name        = "ISO tests...",
-        .select        = menu_open_submenu,
-        .help = "Computes camera response curve for certain ISO values.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Response curve 4 current ISO",
-                .priv = iso_response_curve_current,
-                .select = run_in_separate_task,
-                .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
-            },
-            {
-                .name = "Test ISO 100x/160x/80x series",
-                .priv = iso_response_curve_160,
-                .select = run_in_separate_task,
-                .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
-            },
-            {
-                .name = "Test 70x/65x/50x series",
-                .priv = iso_response_curve_logain,
-                .select = run_in_separate_task,
-                .help = "ISOs with -0.5/-0.7/-0.8 EV of DIGIC gain. Takes 20 mins.",
-            },
-            {
-                .name = "Test HTP series",
-                .priv = iso_response_curve_htp,
-                .select = run_in_separate_task,
-                .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
-            },
-            {
-                .name = "Movie test",
-                .priv = iso_movie_test,
-                .select = run_in_separate_task,
-                .help = "Records two test movies, changing settings every 2 seconds.",
-            },
-            MENU_EOL
-        },
-    },
-#endif
 #ifdef CONFIG_HEXDUMP
     {
         .name = "Memory Browser",
@@ -2231,6 +2173,46 @@ struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
+#ifdef CONFIG_ISO_TESTS
+    {
+        .name        = "ISO tests...",
+        .select        = menu_open_submenu,
+        .help = "Computes camera response curve for certain ISO values.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Response curve 4 current ISO",
+                .priv = iso_response_curve_current,
+                .select = run_in_separate_task,
+                .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
+            },
+            {
+                .name = "Test ISO 100x/160x/80x series",
+                .priv = iso_response_curve_160,
+                .select = run_in_separate_task,
+                .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
+            },
+            {
+                .name = "Test 70x/65x/50x series",
+                .priv = iso_response_curve_logain,
+                .select = run_in_separate_task,
+                .help = "ISOs with -0.5/-0.7/-0.8 EV of DIGIC gain. Takes 20 mins.",
+            },
+            {
+                .name = "Test HTP series",
+                .priv = iso_response_curve_htp,
+                .select = run_in_separate_task,
+                .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
+            },
+            {
+                .name = "Movie test",
+                .priv = iso_movie_test,
+                .select = run_in_separate_task,
+                .help = "Records two test movies, changing settings every 2 seconds.",
+            },
+            MENU_EOL
+        },
+    },
+#endif
 #ifdef CONFIG_STRESS_TEST
     {
         .name        = "Stability tests...",
@@ -2240,17 +2222,20 @@ struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Quick test (around 15 min)",
-                .select = stress_test,
+                .select = run_in_separate_task,
+                .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
             {
                 .name = "Random tests (infinite loop)",
-                .select = stress_test_random,
+                .select = run_in_separate_task,
+                .priv = stress_test_random_task,
                 .help = "A thorough test which randomly enables functions from menu. "
             },
             {
                 .name = "Dialog API test (infinite)",
-                .select = stress_test_menu_dlg_api,
+                .select = run_in_separate_task,
+                .priv = stress_test_menu_dlg_api_task,
                 .help = "Tests proper usage of Canon dialog API in ML menu backend."
             },
             MENU_EOL,

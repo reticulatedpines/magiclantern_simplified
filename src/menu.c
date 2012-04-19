@@ -646,10 +646,10 @@ void submenu_icon(int x, int y)
 {
     //~ int color = COLOR_WHITE;
     x -= 40;
+    bmp_draw_rect(50, x+2, y+5, 32-3, 32-10+1);
     draw_line(x+20, y+28, x+30, y+28, COLOR_WHITE);
     for (int i = -2; i <= 2; i++)
     draw_line(x+26, y+28+i, x+30, y+28, COLOR_WHITE);
-    //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
     //~ for (int r = 0; r < 2; r++)
     //~ {
         //~ draw_circle(x + 30, y + 28, r, color);
@@ -660,7 +660,7 @@ void submenu_icon(int x, int y)
 
 void submenu_only_icon(int x, int y, int value)
 {
-    bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
+    //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
     int color = value ? COLOR_GREEN1 : 45;
     for (int r = 0; r < 3; r++)
     {

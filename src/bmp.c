@@ -1147,22 +1147,31 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
     }
 }
 
+static void bmp_dim_line(void* dest, size_t n, int even)
+{
+    size_t i;
+    int* dst = (int*) dest;
+    int* end = (int*)(dest + n);
+    if (even)
+    {
+        for( ; dst < end; dst++)
+            *dst = (*dst & 0x00FF00FF) | 0x02000200;
+    }
+    else
+    {
+        for( ; dst < end; dst++)
+            *dst = (*dst & 0xFF00FF00) | 0x00020002;
+    }
+}
+
 void bmp_dim()
 {
     uint32_t* b = (uint32_t *)bmp_vram();
     if (!b) return;
     int i,j;
-    for (i = 1; i < vram_bm.height; i += 2)
+    for (i = 1; i < vram_bm.height; i ++)
     {
-        memset(&b[BM(0,i)/4], COLOR_BLACK, vram_bm.width);
-        
-        /*for (j = 0; j < vram_bm.width; j += 4)
-        {
-            b[BM(j,i  )/4] &= 0x00FF00FF;
-            b[BM(j,i+1)/4] &= 0xFF00FF00;
-            b[BM(j,i  )/4] |= 0x02000200;
-            b[BM(j,i+1)/4] |= 0x00020002;
-        }*/
+        bmp_dim_line(&b[BM(0,i)/4], vram_bm.width, i%2);
     }
 }
 
