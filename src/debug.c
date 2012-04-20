@@ -2617,8 +2617,8 @@ movie_start( void )
 
 void ml_shutdown()
 {
-    //~ extern int ml_started;
-    //~ ml_started = 0;
+    extern int ml_started;
+    ml_started = 0;
     extern int safe_to_do_engio_for_display;
     safe_to_do_engio_for_display = 0;
     static int config_saved = 0;

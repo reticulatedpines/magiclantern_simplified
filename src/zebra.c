@@ -561,30 +561,29 @@ hist_build()
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            // Average each of the two pixels
             uint32_t pixel = buf[BM2LV(x,y)/4];
-            uint32_t p1 = (pixel >> 16) & 0xFF00;
-            uint32_t p2 = (pixel >>  0) & 0xFF00;
-            uint8_t Y = ((p1+p2) / 2) >> 8;
-            int8_t U = (pixel >>  0) & 0xFF;
-            int8_t V = (pixel >> 16) & 0xFF;
-
-            hist_total_px++;
-            
+            int Y;
             if (hist_colorspace == 1) // rgb
             {
-                int R = Y + 1437 * V / 1024;
-                int G = Y -  352 * U / 1024 - 731 * V / 1024;
-                int B = Y + 1812 * U / 1024;
-                uint32_t R_level = COERCE(( R * hist_width ) / 256, 0, hist_width-1);
-                uint32_t G_level = COERCE(( G * hist_width ) / 256, 0, hist_width-1);
-                uint32_t B_level = COERCE(( B * hist_width ) / 256, 0, hist_width-1);
+                int R, G, B;
+                uyvy2yrgb(pixel, &Y, &R, &G, &B);
+                // YRGB range: 0-255
+                uint32_t R_level = R * hist_width / 256;
+                uint32_t G_level = G * hist_width / 256;
+                uint32_t B_level = B * hist_width / 256;
                 hist_r[R_level]++;
                 hist_g[G_level]++;
                 hist_b[B_level]++;
             }
+            else // luma
+            {
+                uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
+                uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
+                Y = (p1+p2) / 2; 
+            }
 
-            uint32_t hist_level = COERCE(( Y * hist_width ) / 256, 0, hist_width-1);
+            hist_total_px++;
+            uint32_t hist_level = Y * hist_width / 256;
 
             // Ignore the 0 bin.  It generates too much noise
             unsigned count = ++ (hist[ hist_level ]);
@@ -600,6 +599,8 @@ hist_build()
 
             if (vectorscope_draw)
             {
+                int8_t U = (pixel >>  0) & 0xFF;
+                int8_t V = (pixel >> 16) & 0xFF;
                 vectorscope_addpixel(Y, U, V);
             }
         }
@@ -634,18 +635,20 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
     *under = 0;
     *over = 0;
     void* vram = lv->vram;
-    uint32_t *  v_row = (uint32_t*) vram;
     int x,y;
-    for( y = os.y0 ; y < os.y_max; y += 2, v_row += (lv->pitch/2) )
+    for( y = os.y0 ; y < os.y_max; y += 2 )
     {
+        uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
         for( x = os.x0 ; x < os.y_max ; x += 4 )
         {
             uint32_t pixel = v_row[x/2];
-            uint32_t p1 = (pixel >> 16) & 0xFFFF;
-            uint32_t p2 = (pixel >>  0) & 0xFFFF;
-            uint32_t p = ((p1+p2) / 2) >> 8;
-            if (p < thr_lo) (*under)++;
-            if (p > thr_hi) (*over)++;
+            
+            int Y, R, G, B;
+            uyvy2yrgb(pixel, &Y, &R, &G, &B);
+            
+            int M = MAX(MAX(R,G),B);
+            if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
+            if (M > thr_hi) (*over)++;
         }
     }
 }
@@ -1130,6 +1133,21 @@ static int zebra_color_word_row_thick(int c, int y)
 
 int focus_peaking_debug = 0;
 
+void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
+{
+    uint32_t y1 = (uyvy >> 24) & 0xFF;
+    uint32_t y2 = (uyvy >>  8) & 0xFF;
+    *Y = (y1+y2) / 2;
+    int8_t U = (uyvy >>  0) & 0xFF;
+    int8_t V = (uyvy >> 16) & 0xFF;
+    *R = *Y + 1437 * V / 1024;
+    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
+    *B = *Y + 1812 * U / 1024;
+    *R = MIN(*R, 255);
+    *G = MIN(*G, 255);
+    *B = MIN(*B, 255);
+}
+
 // returns how the focus peaking threshold changed
 static int
 draw_zebra_and_focus( int Z, int F )
@@ -1194,19 +1212,8 @@ draw_zebra_and_focus( int Z, int F )
                 
                 if (zebra_colorspace == 1) // rgb
                 {
-                    uint32_t pixel = *lvp;
-                    uint32_t p1 = (pixel >> 24) & 0xFF;
-                    uint32_t p2 = (pixel >>  8) & 0xFF;
-                    int Y = (p1+p2) / 2;
-                    int8_t U = (pixel >>  0) & 0xFF;
-                    int8_t V = (pixel >> 16) & 0xFF;
-                    int R = Y + 1437 * V / 1024;
-                    int G = Y -  352 * U / 1024 - 731 * V / 1024;
-                    int B = Y + 1812 * U / 1024;
-                    R = MIN(R, 255);
-                    G = MIN(G, 255);
-                    B = MIN(B, 255);
-                    //~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
+                    int Y, R, G, B;
+                    uyvy2yrgb(*lvp, &Y, &R, &G, &B);
 
                     BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
                     BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);

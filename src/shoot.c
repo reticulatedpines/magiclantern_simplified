@@ -92,8 +92,8 @@ int uniwb_is_active()
 CONFIG_INT("iso_selection", iso_selection, 0);
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
-CONFIG_INT("hdr.frames", hdr_steps, 3);
-CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 8);
+CONFIG_INT("hdr.frames", hdr_steps, 1);
+CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
@@ -2527,8 +2527,8 @@ hdr_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "HDR Bracketing  : %dx%d%sEV,%s%s%s",
-            hdr_steps, 
+            "HDR Bracketing  : %Xx%d%sEV,%s%s%s",
+            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "", 
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
@@ -2548,13 +2548,6 @@ hdr_stepsize_toggle( void * priv, int delta )
     if (h > 40) h = 0;
     if (h < 0) h = 40;
     hdr_stepsize = h;
-}
-
-static void
-hdr_reset( void * priv )
-{
-    hdr_steps = 1;
-    hdr_stepsize = 8;
 }
 
 int is_bulb_mode()
@@ -2876,7 +2869,7 @@ seconds_clock_task( void* unused )
         if (bulb_ramping_enabled && intervalometer_running && !gui_menu_shown())
             bulb_ramping_showinfo();
 
-        if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown())
+        if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
             info_led_blink(1, 50, 0);
         
         #if defined(CONFIG_60D) || defined(CONFIG_5D2)
@@ -3296,9 +3289,10 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Frames",
                 .priv       = &hdr_steps,
-                .min = 2,
+                .min = 1,
                 .max = 9,
-                .help = "Number of bracketed frames.",
+                .choices = (const char *[]) {"err", "Autodetect", "2", "3", "4", "5", "6", "7", "8", "9"},
+                .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
                 .name = "EV increment",
@@ -3970,9 +3964,11 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
     }
     else // manual mode or bulb
     {
-        int iso0 = lens_info.raw_iso;
+        int iso00 = lens_info.raw_iso;
+        int iso0 = iso0;
+        if (!iso0) iso0 = lens_info.raw_iso_auto;
 
-        if (hdr_iso) // dynamic range optimization
+        if (hdr_iso && iso0) // dynamic range optimization
         {
             if (ev_x8 < 0)
             {
@@ -4026,7 +4022,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
         // restore settings back
         //~ set_shooting_mode(m0r);
         hdr_set_rawshutter(s0r);
-        hdr_set_rawiso(iso0);
+        hdr_set_rawiso(iso00);
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (expsim0 == 2) set_expsim(expsim0);
         #endif
@@ -4042,9 +4038,13 @@ static int hdr_check_cancel(int init)
         m = shooting_mode;
         return 0;
     }
+    
+    extern int ml_started;
+    if (!ml_started)
+        return 0;
 
     // cancel bracketing
-    if (shooting_mode != m || MENU_MODE || PLAY_MODE) 
+    if (shooting_mode != m || MENU_MODE) 
     { 
         beep(); 
         lens_wait_readytotakepic(64);
@@ -4054,9 +4054,129 @@ static int hdr_check_cancel(int init)
     return 0;
 }
 
+void hdr_check_for_under_or_over_exposure(int* under, int* over)
+{
+    msleep(300);
+    #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
+    for (int i = 0; i < 20; i++)
+    {
+        msleep(100);
+        if (QR_OR_PLAY)
+            break;
+        if (display_idle())
+            break;
+    }
+    
+    if (!QR_OR_PLAY) // image review disabled?
+    {
+        fake_simple_button(BGMT_PLAY);
+        while (!PLAY_MODE) msleep(100);
+        msleep(1000);
+    }
+
+    int under_numpix, over_numpix;
+    get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
+    *under = under_numpix > 10;
+    *over = over_numpix > 10;
+    bmp_printf(FONT_LARGE, 50, 50, "Under: %d    Over: %d ", under_numpix, over_numpix); msleep(500);
+}
+
+static void hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int allow_af, int* under, int* over)
+{
+    hdr_shutter_release(ev_x8, allow_af);
+    hdr_check_for_under_or_over_exposure(under, over);
+}
+
+static void hdr_auto_take_pics(int step_size, int skip0)
+{
+    int i;
+    
+    // make sure it won't autofocus
+    // change it only once per HDR sequence to avoid slowdown
+    assign_af_button_to_star_button();
+    // be careful: don't return without restoring the setting back!
+    
+    hdr_check_cancel(1);
+    
+    int UNDER = 1;
+    int OVER = 1;
+    int under, over;
+    
+    // first exposure is always at 0 EV (and might be skipped)
+    if (!skip0) hdr_shutter_release_then_check_for_under_or_over_exposure(0, 1, &under, &over);
+    else hdr_check_for_under_or_over_exposure(&under, &over);
+    if (!under) UNDER = 0; if (!over) OVER = 0;
+    if (hdr_check_cancel(0)) goto end;
+    
+    int steps = 1;
+    switch (hdr_sequence)
+    {
+        case 1: // 0 - + -- ++ 
+        {
+            for( i = 1; i <= 20; i ++  )
+            {
+                if (OVER)
+                {
+                    hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
+                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    steps++;
+                    if (hdr_check_cancel(0)) goto end;
+                }
+                
+                if (UNDER)
+                {
+                    hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
+                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    steps++;
+                    if (hdr_check_cancel(0)) goto end;
+                }
+            }
+            break;
+        }
+        case 0: // 0 - -- => will only check highlights
+        {
+            for( i = 1; i < 20; i ++  )
+            {
+                if (OVER)
+                {
+                    hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
+                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    steps++;
+                    if (hdr_check_cancel(0)) goto end;
+                }
+            }
+            break;
+        }
+        case 2: // 0 + ++
+        {
+            for( i = 1; i < 20; i ++  )
+            {
+                if (UNDER)
+                {
+                    hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
+                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    steps++;
+                    if (hdr_check_cancel(0)) goto end;
+                }
+            }
+            break;
+        }
+    }
+
+    hdr_create_script(steps, skip0, 0, file_number - steps + 1);
+
+end:
+    restore_af_button_assignment();
+}
+
 // skip0: don't take the middle exposure
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
+    if (steps < 2)  // auto number of steps, based on highlight/shadow levels
+    {
+        hdr_auto_take_pics(step_size, skip0);
+        return;
+    }
     //~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
     //~ NotifyBox(2000, "HDR script created"); msleep(2000);
     int i;
@@ -4100,7 +4220,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         }
     }
 
-    hdr_create_script(steps * (hdr_iso ? 2 : 1), skip0, 0, file_number - steps + 1);
+    hdr_create_script(steps, skip0, 0, file_number - steps + 1);
 
 end:
     restore_af_button_assignment();

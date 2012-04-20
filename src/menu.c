@@ -295,7 +295,7 @@ submenu_print(
         int l = strlen(entry->name);
         for (int i = 0; i < 14 - l; i++)
             STR_APPEND(msg, " ");
-        if (entry->choices)
+        if (entry->choices && MEM(entry->priv) <= entry->max)
         {
             STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv)]);
         }
