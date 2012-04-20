@@ -577,6 +577,24 @@ static void stress_test_picture(int n, int delay)
 static void stress_test_task(void* unused)
 {
     NotifyBox(10000, "Stability Test..."); msleep(2000);
+    
+    msleep(2000);
+
+    for (int i = 0; i <= 1000; i++)
+    {
+        set_expsim(i%3);
+        NotifyBox(1000, "ExpSim toggle: %d", i/10);
+        msleep(rand()%100);
+    }
+
+    msleep(2000);
+
+    for (int i = 0; i <= 1000; i++)
+    {
+        bv_toggle(0, 1);
+        NotifyBox(1000, "Exp.Override toggle: %d", i/10);
+        msleep(rand()%100);
+    }
 
     extern struct semaphore * gui_sem;
 

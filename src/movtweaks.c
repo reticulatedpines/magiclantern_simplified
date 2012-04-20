@@ -804,7 +804,7 @@ void bv_disable_do()
     lensinfo_set_aperture(get_prop(PROP_APERTURE2));
 }
 
-static void bv_toggle(void* priv, int delta)
+void bv_toggle(void* priv, int delta)
 {
     menu_ternary_toggle(&bv_auto, delta);
     if (bv_auto) bv_auto_update();
