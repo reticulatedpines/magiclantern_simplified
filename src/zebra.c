@@ -557,7 +557,7 @@ hist_build()
         vectorscope_clear();
     }
 
-    for( y = os.y0 ; y < os.y_max; y += 2 )
+    for( y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
