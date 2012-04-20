@@ -279,8 +279,10 @@
 #define MOVIE_MODE_REMAP_X_STR "A-DEP"
 #define MOVIE_MODE_REMAP_Y_STR "CA"
 
-#define FLASH_MAX_EV (3*8)
-#define FLASH_MIN_EV (-5*8)
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -5
+#define FASTEST_SHUTTER_SPEED_RAW 152
+#define MAX_AE_EV 5
 
 #define MENU_NAV_HELP_STRING (PLAY_MODE ? "DISP outside menu: show LiveV tools         SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
 

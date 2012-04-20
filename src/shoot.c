@@ -3943,8 +3943,11 @@ static void take_a_pic(int allow_af)
 // The function chooses the best method for applying this correction (as exposure compensation, altering shutter value, or bulb timer)
 // And then it takes a picture
 // .. and restores settings back
-static void hdr_shutter_release(int ev_x8, int allow_af)
+
+// Return value: 1 if OK, 0 if it couldn't set some parameter (but it will still take the shot)
+static int hdr_shutter_release(int ev_x8, int allow_af)
 {
+    int ans = 1;
     //~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
     lens_wait_readytotakepic(64);
 
@@ -3958,7 +3961,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
     else if (!manual) // auto modes
     {
         int ae0 = lens_get_ae();
-        hdr_set_ae(ae0 + ev_x8);
+        ans = hdr_set_ae(ae0 + ev_x8);
         take_a_pic(allow_af);
         hdr_set_ae(ae0);
     }
@@ -3973,15 +3976,22 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
             if (ev_x8 < 0)
             {
                 int iso_delta = MIN(iso0 - 72, -ev_x8 / (hdr_iso == 2 ? 2 : 1)); // lower ISO, down to ISO 100
-                iso_delta = iso_delta/8*8; // round to full stops
+
+                // if we are going to hit shutter speed limit, use more iso shifting, to get the correct bracket
+                int rs = get_exposure_time_raw();
+                int rc = rs - (ev_x8 + iso_delta);
+                if (rc >= FASTEST_SHUTTER_SPEED_RAW)
+                    iso_delta = MIN(iso0 - 72, iso_delta + rc - FASTEST_SHUTTER_SPEED_RAW + 1);
+
+                iso_delta = (iso_delta+7)/8*8; // round to full stops; also, prefer lower ISOs
                 ev_x8 += iso_delta;
                 hdr_set_rawiso(iso0 - iso_delta);
             }
             else if (ev_x8 > 0)
             {
                 int max_auto_iso = auto_iso_range & 0xFF;
-                int iso_delta = MIN(max_auto_iso - iso0, ev_x8 / (hdr_iso == 2 ? 2 : 1)); // raise ISO, up to ISO 6400
-                iso_delta = iso_delta/8*8; // round to full stops
+                int iso_delta = MIN(max_auto_iso - iso0, ev_x8 / (hdr_iso == 2 ? 2 : 1)); // raise ISO, up to max auto iso
+                iso_delta = (iso_delta)/8*8; // round to full stops; also, prefer lower ISOs
                 if (iso_delta < 0) iso_delta = 0;
                 ev_x8 -= iso_delta;
                 hdr_set_rawiso(iso0 + iso_delta);
@@ -4013,7 +4023,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (expsim == 2) set_expsim(1); // can't set shutter slower than 1/30 in movie mode
             #endif
-            hdr_set_rawshutter(rc);
+            ans = hdr_set_rawshutter(rc);
             take_a_pic(allow_af);
             
             bulb_ramping_enabled = b;
@@ -4028,6 +4038,7 @@ static void hdr_shutter_release(int ev_x8, int allow_af)
         #endif
     }
     lens_wait_readytotakepic(64);
+    return ans;
 }
 
 static int hdr_check_cancel(int init)
@@ -4081,10 +4092,11 @@ void hdr_check_for_under_or_over_exposure(int* under, int* over)
     bmp_printf(FONT_LARGE, 50, 50, "Under: %d    Over: %d ", under_numpix, over_numpix); msleep(500);
 }
 
-static void hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int allow_af, int* under, int* over)
+static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int allow_af, int* under, int* over)
 {
-    hdr_shutter_release(ev_x8, allow_af);
+    int ans = hdr_shutter_release(ev_x8, allow_af);
     hdr_check_for_under_or_over_exposure(under, over);
+    return ans;
 }
 
 static void hdr_auto_take_pics(int step_size, int skip0)
@@ -4117,16 +4129,18 @@ static void hdr_auto_take_pics(int step_size, int skip0)
             {
                 if (OVER)
                 {
-                    hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!ok) OVER = 0; // Canon limit reached, don't continue this sequence
                     steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
                 
                 if (UNDER)
                 {
-                    hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!ok) UNDER = 0; // Canon limit reached, don't continue this sequence
                     steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
@@ -4139,8 +4153,9 @@ static void hdr_auto_take_pics(int step_size, int skip0)
             {
                 if (OVER)
                 {
-                    hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!ok) OVER = 0;
                     steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
@@ -4153,8 +4168,9 @@ static void hdr_auto_take_pics(int step_size, int skip0)
             {
                 if (UNDER)
                 {
-                    hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!ok) UNDER = 0;
                     steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }

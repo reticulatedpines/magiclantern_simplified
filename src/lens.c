@@ -1775,16 +1775,16 @@ void SW2(int v, int wait)
 bool prop_set_rawaperture(unsigned aperture)
 {
     lens_wait_readytotakepic(64);
-    aperture = COERCE(aperture, 8, 200);
+    aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     prop_request_change( PROP_APERTURE, &aperture, 4 );
     msleep(100);
     return (unsigned int) get_prop(PROP_APERTURE2) == aperture;
 }
 
-bool prop_set_rawshutter(unsigned shutter, int coerce)
+bool prop_set_rawshutter(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
-    if (coerce) shutter = COERCE(shutter, 16, 160); // 30s ... 1/8000
+    shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
     msleep(100);
     return ((unsigned int) get_prop(PROP_SHUTTER) == shutter) &&
@@ -1817,7 +1817,7 @@ void bv_update_props()
     if (CONTROL_BV) // sync lens info and camera properties with overriden values
     {
         prop_set_rawiso(CONTROL_BV_ISO);
-        prop_set_rawshutter(CONTROL_BV_TV, 1);
+        prop_set_rawshutter(CONTROL_BV_TV);
         prop_set_rawaperture(CONTROL_BV_AV);
     }
 }
@@ -1952,7 +1952,7 @@ bool lens_set_rawiso( int iso )
 
 bool lens_set_rawshutter( int shutter )
 {
-    bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter,1); // first try to set via property
+    bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     bv_auto_update(); // auto flip between "BV" or "normal"
     if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawshutter(shutter);
     return !bv_auto_needed_by_shutter;
@@ -1991,21 +1991,21 @@ void lens_set_wbs_ba(int value)
 bool hdr_set_something(int (*set_something)(int), int arg)
 {
     // first try to set it a few times...
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
         if (set_something(arg))
             return 1;
 
     // didn't work, let's wait for job state...
     lens_wait_readytotakepic(64);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
         if (set_something(arg))
             return 1;
 
     // now this is really extreme... okay, one final try
     while (lens_info.job_state) msleep(100);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
         if (set_something(arg))
             return 1;
 
@@ -2021,10 +2021,12 @@ bool hdr_set_rawiso(int iso)
 
 bool hdr_set_rawshutter(int shutter)
 {
-    return hdr_set_something(prop_set_rawshutter, shutter);
+    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW;
+    return hdr_set_something(prop_set_rawshutter, shutter) && ok;
 }
 
 bool hdr_set_ae(int ae)
 {
-    return hdr_set_something(lens_set_ae, ae);
+    int ok = ABS(ae) < MAX_AE_EV * 8;
+    return hdr_set_something(lens_set_ae, ae) && ok;
 }

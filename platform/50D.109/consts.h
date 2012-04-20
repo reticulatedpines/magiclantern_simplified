@@ -202,6 +202,8 @@
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
+#define FASTEST_SHUTTER_SPEED_RAW 160
+#define MAX_AE_EV 2
 
 //~ #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
 #define MENU_NAV_HELP_STRING (PLAY_MODE ? "FUNC outside menu: show LiveV tools      SET/PLAY/FUNC/INFO" : "SET/PLAY/FUNC=edit values    MENU=Easy/Advanced   INFO=Help")

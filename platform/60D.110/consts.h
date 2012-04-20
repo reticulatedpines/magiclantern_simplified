@@ -242,6 +242,8 @@
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10
+#define FASTEST_SHUTTER_SPEED_RAW 160
+#define MAX_AE_EV 5
 
 //~ #define MENU_NAV_HELP_STRING (PLAY_MODE ? "UNLOCK outside menu: show LiveV tools       SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
 

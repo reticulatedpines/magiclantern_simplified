@@ -197,6 +197,8 @@
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
+#define FASTEST_SHUTTER_SPEED_RAW 152
+#define MAX_AE_EV 2
 
 //~ #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q (LiveView) / DISP" 
 #define MENU_NAV_HELP_STRING (PLAY_MODE ? "LiveV outside menu: show LV tools          SET/PLAY/LV/DISP" : "SET/PLAY/LV=change values    MENU=Easy/Advanced   DISP=Help")
