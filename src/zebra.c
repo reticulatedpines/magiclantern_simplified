@@ -4640,7 +4640,8 @@ livev_lopriority_task( void* unused )
             msleep(300);
         }
 
-        if (quickreview_liveview && QR_MODE && get_global_draw())
+        extern int hdr_enabled;
+        if (quickreview_liveview && QR_MODE && get_global_draw() && !hdr_enabled)
         {
             msleep(500);
             draw_livev_for_playback();
