@@ -646,7 +646,7 @@ void submenu_icon(int x, int y)
 {
     //~ int color = COLOR_WHITE;
     x -= 40;
-    bmp_draw_rect(50, x+2, y+5, 32-3, 32-10+1);
+    bmp_draw_rect(45, x+2, y+5, 32-3, 32-10+1);
     draw_line(x+20, y+28, x+30, y+28, COLOR_WHITE);
     for (int i = -2; i <= 2; i++)
     draw_line(x+26, y+28+i, x+30, y+28, COLOR_WHITE);

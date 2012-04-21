@@ -774,7 +774,7 @@ hist_draw_image(
             }
         }
     }
-    bmp_draw_rect(50, x_origin-1, y_origin-1, hist_width+1, hist_height+1);
+    bmp_draw_rect(60, x_origin-1, y_origin-1, hist_width+1, hist_height+1);
 }
 
 void hist_highlight(int level)
@@ -863,7 +863,7 @@ waveform_draw_image(
             pixel = 0;
         }
     }
-    bmp_draw_rect(50, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
+    bmp_draw_rect(60, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
 }
 
 

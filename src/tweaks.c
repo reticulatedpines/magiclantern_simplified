@@ -1347,6 +1347,15 @@ static struct menu_entry key_menus[] = {
             MENU_EOL
         },
     },
+    #if defined(CONFIG_550D) || defined(CONFIG_500D)
+    {
+        .name = "LCD Sensor Shortcuts",
+        .priv       = &lcd_sensor_shortcuts,
+        .select     = menu_binary_toggle,
+        .display    = lcd_sensor_shortcuts_print,
+        .help = "Use the LCD face sensor as an extra key in ML.",
+    },
+    #endif*/
     {
         .name = "Sticky DOF Preview  ", 
         .priv = &dofpreview_sticky, 
@@ -1359,15 +1368,6 @@ static struct menu_entry key_menus[] = {
         .max = 1,
         .help = "Makes the half-shutter button sticky (press to toggle).",
     },
-    #if defined(CONFIG_550D) || defined(CONFIG_500D)
-    {
-        .name = "LCD Sensor Shortcuts",
-        .priv       = &lcd_sensor_shortcuts,
-        .select     = menu_binary_toggle,
-        .display    = lcd_sensor_shortcuts_print,
-        .help = "Use the LCD face sensor as an extra key in ML.",
-    },
-    #endif*/
     #ifdef CONFIG_60D
     {
         .name = "Swap MENU <--> ERASE",
