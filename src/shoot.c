@@ -4086,10 +4086,21 @@ void hdr_check_for_under_or_over_exposure(int* under, int* over)
     }
 
     int under_numpix, over_numpix;
-    get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
+    int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
     *under = under_numpix > 10;
     *over = over_numpix > 10;
-    bmp_printf(FONT_LARGE, 50, 50, "Under: %d    Over: %d ", under_numpix, over_numpix); msleep(500);
+    int po = over_numpix * 10000 / total_numpix;
+    int pu = under_numpix * 10000 / total_numpix;
+    if (*under) pu = MAX(pu, 1);
+    if (*over) po = MAX(po, 1);
+    bmp_printf(
+        FONT_LARGE, 50, 50, 
+        "Under: %2d.%02d%%\n"
+        "Over : %2d.%02d%%", 
+        pu/100, pu%100, 0, 
+        po/100, po%100, 0
+    ); 
+    msleep(500);
 }
 
 static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int allow_af, int* under, int* over)

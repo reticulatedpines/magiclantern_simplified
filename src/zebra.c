@@ -625,7 +625,7 @@ int hist_get_percentile_level(int percentile)
     return -1; // invalid argument?
 }
 
-void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, int* over)
+int get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, int* over)
 {
     *under = -1;
     *over = -1;
@@ -634,12 +634,13 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
 
     *under = 0;
     *over = 0;
+    int total = 0;
     void* vram = lv->vram;
     int x,y;
-    for( y = os.y0 ; y < os.y_max; y += 2 )
+    for( y = os.y0 ; y < os.y_max; y ++ )
     {
         uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
-        for( x = os.x0 ; x < os.y_max ; x += 4 )
+        for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
             uint32_t pixel = v_row[x/2];
             
@@ -649,8 +650,10 @@ void get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, i
             int M = MAX(MAX(R,G),B);
             if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
             if (M > thr_hi) (*over)++;
+            total++;
         }
     }
+    return total;
 }
 
 static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
