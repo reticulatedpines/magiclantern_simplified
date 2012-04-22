@@ -2445,13 +2445,15 @@ void zoom_sharpen_step()
 
 void restore_expsim(int es)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 50; i++)
     {
+        lens_wait_readytotakepic(64);
         set_expsim(es);
         msleep(100);
-        if (expsim == es) break;
+        if (expsim == es) return;
     }
-    //~ info_led_blink(5, 50, 50);
+    NotifyBox(5000, "Could not restore ExpSim :(");
+    info_led_blink(5, 50, 50);
 }
 // to be called from the same places as zoom_sharpen_step
 void zoom_auto_exposure_step()
