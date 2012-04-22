@@ -50,7 +50,7 @@ CONFIG_INT("crop.info", crop_info, 0);
 #define crop_info 0
 #endif
 
-static struct semaphore * lens_sem;
+//~ static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
 //~ static struct semaphore * job_sem;
 
@@ -987,35 +987,35 @@ volatile int af_button_assignment = -1;
 void assign_af_button_to_halfshutter()
 {
     if (is_manual_focus()) return;
-    take_semaphore(lens_sem, 0);
+    //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
     if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
     if (af_button_assignment != AF_BTN_HALFSHUTTER) cfn_set_af_button(AF_BTN_HALFSHUTTER);
     else af_button_assignment = -1;
-    give_semaphore(lens_sem);
+    //~ give_semaphore(lens_sem);
 }
 
 // to prevent AF
 void assign_af_button_to_star_button()
 {
     if (is_manual_focus()) return;
-    take_semaphore(lens_sem, 0);
+    //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
     if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
     if (af_button_assignment != AF_BTN_STAR) cfn_set_af_button(AF_BTN_STAR);
     else af_button_assignment = -1;
-    give_semaphore(lens_sem);
+    //~ give_semaphore(lens_sem);
 }
 
 void restore_af_button_assignment()
 {
     if (is_manual_focus()) return;
     if (af_button_assignment == -1) return;
-    take_semaphore(lens_sem, 0);
+    //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
     cfn_set_af_button(af_button_assignment);
     af_button_assignment = -1;
-    give_semaphore(lens_sem);
+    //~ give_semaphore(lens_sem);
 }
 
 
@@ -1026,7 +1026,7 @@ lens_take_picture(
 )
 {
     if (!allow_af) assign_af_button_to_star_button();
-    take_semaphore(lens_sem, 0);
+    //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
     mlu_lock_mirror_if_needed();
@@ -1046,7 +1046,7 @@ lens_take_picture(
     
     if( !wait )
     {
-        give_semaphore(lens_sem);
+        //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();
         return 0;
     }
@@ -1054,7 +1054,7 @@ lens_take_picture(
     {
         msleep(200);
         lens_wait_readytotakepic(wait);
-        give_semaphore(lens_sem);
+        //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();
         return lens_info.job_state;
     }
@@ -1680,7 +1680,7 @@ static struct menu_entry tweak_menus[] = {
 static void
 lens_init( void* unused )
 {
-    lens_sem = create_named_semaphore( "lens_info", 1 );
+    //~ lens_sem = create_named_semaphore( "lens_info", 1 );
     focus_done_sem = create_named_semaphore( "focus_sem", 1 );
     //~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
     menu_add("Movie", lens_menus, COUNT(lens_menus));
