@@ -185,7 +185,6 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
-//~ int get_crop_black_border() { return crop_black_border; }
 
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
@@ -244,8 +243,7 @@ uint8_t* get_bvram_mirror() { return bvram_mirror; }
 //~ #define bvram_mirror bmp_vram_idle()
 
 
-int cropmark_cache_valid = 0;
-int crop_redraw_flag = 0; // redraw cropmarks now
+int cropmark_cache_dirty = 1;
 int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
 int clearscreen_countdown = 20;
 
@@ -1031,7 +1029,7 @@ static void histo_init()
 void bvram_mirror_clear()
 {
     BMP_LOCK( bzero32(bvram_mirror, BVRAM_MIRROR_SIZE); )
-    cropmark_cache_valid = 0;
+    cropmark_cache_dirty = 1;
 }
 void bvram_mirror_init()
 {
@@ -1169,11 +1167,11 @@ draw_zebra_and_focus( int Z, int F )
     //~ if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (is_movie_mode() && video_mode_resolution != 0)))
         //~ { draw_zebra_and_focus_unified(); return; }
     
-    if (!get_global_draw()) return;
+    if (!get_global_draw()) return 0;
 
     uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
+    if (!bvram) return 0;
+    if (!bvram_mirror) return 0;
     
     int zd = Z && zebra_draw && (expsim || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
     if (zd)
@@ -2445,7 +2443,8 @@ static void transparent_overlay_offset(int dx, int dy)
     transparent_overlay_offx = COERCE((int)transparent_overlay_offx + dx, -650, 650);
     transparent_overlay_offy = COERCE((int)transparent_overlay_offy + dy, -400, 400);
     transparent_overlay_hidden = 0;
-    BMP_LOCK( show_overlay(); )
+    redraw();
+    //~ BMP_LOCK( show_overlay(); )
 }
 
 static void transparent_overlay_center_or_toggle()
@@ -2458,8 +2457,9 @@ static void transparent_overlay_center_or_toggle()
     else // if centered, hide it or show it back
     {
         transparent_overlay_hidden = !transparent_overlay_hidden;
-        if (!transparent_overlay_hidden) BMP_LOCK( show_overlay(); )
-        else redraw();
+        redraw();
+        //~ if (!transparent_overlay_hidden) BMP_LOCK( show_overlay(); )
+        //~ else redraw();
     }
 }
 
@@ -2498,7 +2498,11 @@ int handle_transparent_overlay(struct event * event)
             transparent_overlay_offset(40, 0);
             return 0;
         }
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        if (event->param == BGMT_JOY_CENTER)
+        #else
         if (event->param == BGMT_PRESS_SET)
+        #endif
         {
             transparent_overlay_center_or_toggle();
             return 0;
@@ -3160,7 +3164,7 @@ void copy_zebras_from_mirror()
 
 void cropmark_clear_cache()
 {
-    if (cropmark_cache_valid) BMP_LOCK(
+    BMP_LOCK(
         clrscr_mirror();
         bvram_mirror_clear();
         default_movie_cropmarks();
@@ -3170,7 +3174,6 @@ void cropmark_clear_cache()
 static void 
 cropmark_draw()
 {
-    //~ ChangeColorPaletteLV(2);
     if (!get_global_draw()) return;
 
     get_yuv422_vram(); // just to refresh VRAM params
@@ -3180,66 +3183,78 @@ cropmark_draw()
     {
         show_overlay();
         zoom_overlay_dirty = 1;
-        cropmark_cache_valid = 0;
+        cropmark_cache_dirty = 1;
     }
     crop_dirty = 0;
+
+    reload_cropmark(crop_index); // reloads only when changed
+
+    // this is very fast
+    if (cropmark_cache_is_valid())
+    {
+        clrscr_mirror();
+        cropmark_draw_from_cache();
+        //~ bmp_printf(FONT_MED, 50, 50, "crop cached");
+        //~ info_led_blink(5, 10, 10);
+        goto end;
+    }
 
     if (
             (!crop_enabled) ||
             (cropmark_movieonly && !is_movie_mode() && !PLAY_OR_QR_MODE)
        )
     {
+        // Cropmarks disabled (or not shown in this mode)
+        // Generate and draw default cropmarks
         cropmark_clear_cache();
         cropmark_draw_from_cache();
         //~ info_led_blink(5,50,50);
-        return;
+        goto end;
     }
     
-    reload_cropmark(crop_index); // reloads only when changed
     if (cropmarks) 
     {
-        clrscr_mirror();
-        //~ bmp_printf(FONT_MED, 0, 0, "%x %x %x %x %d", os.x0, os.y0, os.x_ex, os.y_ex, PLAY_MODE);
-
-        if (cropmark_cache_valid)
-        {
-            cropmark_draw_from_cache();
-            //~ bmp_printf(FONT_MED, 50, 50, "crop cached");
-        }
-        else
-        {
-            bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
-            cropmark_cache_valid = 1;
-            //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
-        }
-        zoom_overlay_dirty = 1;
+        // Cropmarks enabled, but cache is not valid
+        bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
+        //~ info_led_blink(5,50,50);
+        //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
+        goto end;
     }
+
+end:
+    cropmark_cache_dirty = 0;
+    zoom_overlay_dirty = 1;
     crop_dirty = 0;
 }
 
-static void
-cropmark_cache_check()
+int cropmark_cache_is_valid()
 {
-    //~ if (!cropmark_cache_valid) return;
-
+    int ans = 1;
+    if (cropmark_cache_dirty) return 0;
+    
     get_yuv422_vram(); // update VRAM params if needed
 
     // check if cropmark cache is still valid
-    int sig = os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + (expsim==2 ? 757 : 0);
+    int sig = 
+        crop_index * 13579 + crop_enabled * 14567 +
+        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
+
     static int prev_sig = 0;
     if (prev_sig != sig)
     {
-        cropmark_clear_cache();
+        cropmark_cache_dirty = 1;
+        ans = 0;
     }
-    //~ bmp_printf(FONT_LARGE, 0, 0, "crop sig: %x ", sig);
     prev_sig = sig;
+    return ans;
 }
 
 static void
 cropmark_redraw()
 {
     if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
-    cropmark_cache_check();
+    if (!cropmark_cache_is_valid())
+        cropmark_clear_cache();
     BMP_LOCK( cropmark_draw(); )
 }
 
@@ -3777,10 +3792,11 @@ static void zebra_sleep_when_tired()
 #endif
         while (!zebra_should_run()) msleep(100);
         //~ ChangeColorPaletteLV(2);
-        if (!gui_menu_shown()) crop_set_dirty(5);
+        //~ if (!gui_menu_shown()) crop_set_dirty(5);
         vram_params_set_dirty();
 
-        cropmark_cache_check();
+        msleep(500);
+        //~ cropmark_cache_check();
         //~ if (lv && !gui_menu_shown()) redraw();
     }
 }
@@ -4278,24 +4294,23 @@ clearscreen_loop:
         #endif
 
         // since this task runs at 10Hz, I prefer cropmark redrawing here
-        if (crop_dirty)
+
+        if (crop_dirty && lv && zebra_should_run())
         {
             crop_dirty--;
-
-            // if cropmarks are cached, we can redraw them faster
-
-            cropmark_cache_check();
             
-            if (transparent_overlay) cropmark_clear_cache();
-            
-            if (cropmark_cache_valid && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
-                crop_dirty = MIN(crop_dirty, 2);
+            //~ bmp_printf(FONT_MED, 50, 100, "crop: cache=%d dirty=%d ", cropmark_cache_is_valid(), crop_dirty);
 
+            // if cropmarks are disabled, we will still draw default cropmarks (fast)
             if (!(crop_enabled && cropmark_movieonly && !is_movie_mode())) 
-                crop_dirty = 0;
+                crop_dirty = MIN(crop_dirty, 4);
+            
+            // if cropmarks are cached, we can redraw them fast
+            if (cropmark_cache_is_valid() && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
+                crop_dirty = MIN(crop_dirty, 4);
                 
             if (crop_dirty == 0)
-                crop_redraw_flag = 1;
+                cropmark_redraw();
         }
     }
 }
@@ -4356,8 +4371,9 @@ BMP_LOCK (
     // ask other stuff to redraw
     afframe_set_dirty();
 
-    if (cropmark_cache_valid) cropmark_redraw();
-    else crop_set_dirty(10);
+    //~ if (cropmark_cache_is_valid()) cropmark_redraw();
+    //~ else 
+    crop_set_dirty(cropmark_cache_is_valid() ? 2 : 10);
     
     menu_set_dirty();
     zoom_overlay_dirty = 1;
@@ -4661,28 +4677,6 @@ livev_lopriority_task( void* unused )
         if (!gui_menu_shown())
             draw_histogram_and_waveform(0);
         
-        if (crop_redraw_flag)
-        {
-            cropmark_redraw();
-            crop_redraw_flag = 0;
-        }
-        
-        /*if (menu_upside_down && get_halfshutter_pressed())
-        {
-            idle_globaldraw_dis();
-            BMP_LOCK(
-                clrscr_mirror();
-                bmp_idle_copy(0);
-            )
-            kill_flicker();
-            msleep(100);
-            bmp_flip(bmp_vram_real(), bmp_vram_idle());
-
-            while (get_halfshutter_pressed()) msleep(100);
-            idle_globaldraw_en();
-            stop_killing_flicker();
-        }*/
-
     }
 }
 
