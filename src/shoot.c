@@ -4939,7 +4939,7 @@ shoot_task( void* unused )
     }
 }
 
-TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x4000 );
+TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x8000 );
 
 void shoot_init()
 {

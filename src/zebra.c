@@ -4688,8 +4688,8 @@ livev_lopriority_task( void* unused )
 
 #define HIPRIORITY_TASK_PRIO 0x18
 
-TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x1000 );
-TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x4000 );
+TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
 
 void update_disp_mode_bits_from_params()
 {

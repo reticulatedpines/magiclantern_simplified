@@ -1428,7 +1428,7 @@ menu_redraw_task()
         give_semaphore(menu_redraw_sem);
     }
 }
-TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x1000 );
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
 
 static void
 menu_redraw()
