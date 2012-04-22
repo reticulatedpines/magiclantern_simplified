@@ -92,8 +92,9 @@ hdr_print(
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "HDR video     : %d/%d ISO",
-            iso_low, iso_high
+            "HDR video     : ISO %d/%d,%d.%dEV",
+            iso_low, iso_high, 
+            ev_x10/10, ev_x10%10
         );
     }
     else
@@ -166,8 +167,9 @@ void hdr_mvr_log(FILE* mvr_logfile)
     {
         int iso_low, iso_high;
         hdr_get_iso_range(&iso_low, &iso_high);
+        int ev_x10 = (iso_high - iso_low) * 10/8;
         iso_low = raw2iso(iso_low);
         iso_high = raw2iso(iso_high);
-        my_fprintf(mvr_logfile, "HDR video      : ISO %d/%d\n", iso_low, iso_high);
+        my_fprintf(mvr_logfile, "HDR video      : ISO %d/%d (%d.%d EV)\n", iso_low, iso_high, ev_x10/10, ev_x10%10);
     }
 }
