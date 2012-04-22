@@ -4176,7 +4176,7 @@ clearscreen_loop:
         
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
-        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording)
+        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording && !get_halfshutter_pressed())
             info_led_blink(1, 20, 20);
 
         if (!lv) continue;

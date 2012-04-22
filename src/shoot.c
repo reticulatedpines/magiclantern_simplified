@@ -100,7 +100,6 @@ static CONFIG_INT("hdr.iso", hdr_iso, 0);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
-//~ static CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
@@ -4548,7 +4547,7 @@ static void mlu_step()
         mlu_prev_value = -1;
     }
 
-    if (!lv && !MENU_MODE) // normal shooting mode, non-liveview
+    if (!lv && display_idle() && !get_halfshutter_pressed()) // normal shooting mode, non-liveview
     {
         int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!hdr_enabled)) ? 1 : 0;
         if (mlu_auto_value != mlu_current_value)
@@ -4564,7 +4563,6 @@ static int intervalometer_next_shot_time = 0;
 static void
 shoot_task( void* unused )
 {
-    //~ int i = 0;
     if (!lv)
     {   // center AF frame at startup in photo mode
         afframe[2] = (afframe[0] - afframe[4])/2;
@@ -4573,14 +4571,6 @@ shoot_task( void* unused )
     }
 
     bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
-
-    // :-)
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    if (now.tm_mday == 1 && now.tm_mon == 3)
-    {
-        toggle_mirror_display();
-    }
     
     while(1)
     {
@@ -4598,7 +4588,7 @@ shoot_task( void* unused )
         }
         
         //~ if (gui_menu_shown()) continue; // be patient :)
-
+        
         lcd_release_step();
         
         if (remote_shot_flag)
@@ -4625,11 +4615,7 @@ shoot_task( void* unused )
         mlu_step();
         zoom_lv_face_step();
         uniwb_step();
-        /*if (sweep_lv_on)
-        {
-            sweep_lv();
-            sweep_lv_on = 0;
-        }*/
+
         if (center_lv_aff)
         {
             center_lv_afframe_do();
@@ -4689,20 +4675,23 @@ shoot_task( void* unused )
             was_idle_not_pressed = is_idle_not_pressed;
         }
         
-        if (picture_was_taken_flag && !recording ) // just took a picture, maybe we should take another one
+        if (picture_was_taken_flag) // just took a picture, maybe we should take another one
         {
-            if (is_focus_stack_enabled())
+            if (!recording)
             {
-                lens_wait_readytotakepic(64);
-                focus_stack_run(1); // skip first exposure, we already took it
+                if (is_focus_stack_enabled())
+                {
+                    lens_wait_readytotakepic(64);
+                    focus_stack_run(1); // skip first exposure, we already took it
+                    lens_wait_readytotakepic(64); 
+                }
+                else if (hdr_enabled)
+                {
+                    lens_wait_readytotakepic(64);
+                    hdr_shot(1,1); // skip the middle exposure, which was just taken
+                    lens_wait_readytotakepic(64); 
+                }
             }
-            else if (hdr_enabled)
-            {
-                lens_wait_readytotakepic(64);
-                hdr_shot(1,1); // skip the middle exposure, which was just taken
-            }
-
-            lens_wait_readytotakepic(64); 
             picture_was_taken_flag = 0;
         }
 
@@ -4729,8 +4718,6 @@ shoot_task( void* unused )
             }
         }
         #endif
-
-        //~ static int sw1_countdown = 0;
         
         // trap focus (outside LV) and all the preconditions
         int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running;
@@ -4742,24 +4729,6 @@ shoot_task( void* unused )
         static int K = 0;
 
         if(!mdx) K = 0;
-        // emulate half-shutter press (for trap focus or motion detection)
-        /* this can cause the camera not to shutdown properly... 
-        if (!lv && ((tfx && trap_focus == 2) || mdx ))
-        {
-            if (trap_focus == 2 && (cfn[2] & 0xF00) != 0) bmp_printf(FONT_MED, 0, 0, "Set CFn9 to 0 (AF on half-shutter press)");
-            if (!sw1_countdown) // press half-shutter periodically
-            {
-                if (sw1_pressed) { SW1(0,10); sw1_pressed = 0; }
-                { SW1(1,10); sw1_pressed = 1; }
-                sw1_countdown = motion_detect ? 2 : 10;
-            }
-            else
-            {
-                sw1_countdown--;
-            }
-        }
-        else // cleanup sw1
-            if (sw1_pressed) { SW1(0,10); sw1_pressed = 0; } */
 
         if (tfx) // MF
         {
@@ -4767,7 +4736,6 @@ shoot_task( void* unused )
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
                 remote_shot(0);
-                //~ msleep(trap_focus_delay);
             }
         }
         
