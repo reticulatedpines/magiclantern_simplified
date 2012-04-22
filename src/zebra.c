@@ -105,7 +105,7 @@ static CONFIG_INT( "zebra.level.lo",    zebra_level_lo, 5 );
        CONFIG_INT( "zebra.rec", zebra_rec,  1 );
 static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
 static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
-       CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
+       CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
 static CONFIG_INT("crop.playback", cropmarks_play, 0);
 static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
@@ -3160,12 +3160,11 @@ void copy_zebras_from_mirror()
 
 void cropmark_clear_cache()
 {
-    //~ if (cropmark_cache_valid)
-    {
+    if (cropmark_cache_valid) BMP_LOCK(
         clrscr_mirror();
         bvram_mirror_clear();
         default_movie_cropmarks();
-    }
+    )
 }
 
 static void 
@@ -4292,7 +4291,8 @@ clearscreen_loop:
             if (cropmark_cache_valid && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
                 crop_dirty = MIN(crop_dirty, 2);
 
-            if (!crop_enabled) crop_dirty = 0;
+            if (!(crop_enabled && cropmark_movieonly && !is_movie_mode())) 
+                crop_dirty = 0;
                 
             if (crop_dirty == 0)
                 crop_redraw_flag = 1;
