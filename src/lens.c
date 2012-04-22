@@ -522,7 +522,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       
       extern int hdrv_enabled;
 
-        if (hdrv_enabled)
+        if (hdrv_enabled && is_movie_mode())
         {
             int iso_low, iso_high;
             hdr_get_iso_range(&iso_low, &iso_high);
