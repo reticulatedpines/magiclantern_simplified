@@ -1324,7 +1324,7 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_input_display,
                 .help = "Audio input: internal / external / both / balanced / auto.",
                 .essential = FOR_MOVIE,
-                .edit_mode = EM_MANY_VALUES,
+                //~ .edit_mode = EM_MANY_VALUES,
         },
 #endif
         /*{
@@ -1378,7 +1378,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse         = audio_3bit_toggle_reverse,
                 .display        = audio_lovl_display,
                 .help = "Output volume for audio monitoring (headphones only).",
-                .edit_mode = EM_MANY_VALUES,
+                //~ .edit_mode = EM_MANY_VALUES,
         },
 #endif
         {

@@ -3391,7 +3391,7 @@ static struct menu_entry shoot_menus[] = {
         .help = "Use the LCD face sensor as a simple remote (avoids shake).",
          #endif
         .essential = FOR_PHOTO,
-        .edit_mode = EM_MANY_VALUES,
+        //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
     #if !defined(CONFIG_600D) && !defined(CONFIG_50D)

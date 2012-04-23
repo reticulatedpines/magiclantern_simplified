@@ -1085,7 +1085,7 @@ static struct menu_entry display_menus[] = {
         .select = screen_layout_toggle,
         .help = "Position of top/bottom bars, useful for external displays.",
         .essential = FOR_EXT_MONITOR,
-        .edit_mode = EM_MANY_VALUES,
+        //~ .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Force HDMI-VGA",

@@ -1733,7 +1733,7 @@ static struct menu_entry display_menus[] = {
         .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
         .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
         .icon_type = IT_NAMED_COLOR,
-        .edit_mode = EM_MANY_VALUES,
+        //~ .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "Image position ",
@@ -1809,7 +1809,7 @@ struct menu_entry play_menus[] = {
         .help = "What to do when you hold SET and turn MainDial (Wheel)",
         .essential = FOR_PLAYBACK,
         .icon_type = IT_DICE,
-        .edit_mode = EM_MANY_VALUES,
+        //~ .edit_mode = EM_MANY_VALUES,
     },
     {
         .name = "After taking a photo",
