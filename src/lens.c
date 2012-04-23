@@ -969,14 +969,14 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
         {
             mirror_locked = 1;
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            SW1(1,100);
-            SW2(1,100);
-            SW2(0,100);
-            SW1(0,100);
+            SW1(1,50);
+            SW2(1,500);
+            SW2(0,50);
+            SW1(0,50);
             #else
             call("Release");
             #endif
-            msleep(100);
+            msleep(1000);
         }
     }
     //~ NotifyBox(1000, "MLU locked");
@@ -1034,10 +1034,10 @@ lens_take_picture(
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu() && !lv)
     {
-        SW1(1,100);
-        SW2(1,100);
-        SW2(0,100);
-        SW1(0,100);
+        SW1(1,50);
+        SW2(1,500);
+        SW2(0,50);
+        SW1(0,50);
     }
     else call("Release");
     #else
