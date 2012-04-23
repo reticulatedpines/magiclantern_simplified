@@ -60,6 +60,7 @@ int wave_count_countdown = 0;
 int lcd_ff_dir = 1;
 void sensor_status_trigger(int on)
 {
+    lens_display_set_dirty();
     if (lcd_release_running && on) info_led_on();
 
     static int prev = 0;
@@ -178,8 +179,7 @@ void display_lcd_remote_icon(int x0, int y0)
 }
 
 int lightsensor_raw_value = 0;
-int lightsensor_raw_avg = 0;
-int lightsensor_value = 0;
+//~ int lightsensor_value = 0;
 
 //~ int is_lightsensor_triggered() { return lightsensor_triggered; }
 
@@ -191,33 +191,37 @@ void LightMeasureCBR(int priv, int light)
 
 void light_sensor_task(void* unused)
 {
+    int k = 0;
     while(1)
     {
         msleep(50);
         LightMeasure_n_Callback_r0(LightMeasureCBR, 0);
 
-        int raw_x100 = lightsensor_raw_value * 100;
+        int ev_x100 = gain_to_ev_scaled(lightsensor_raw_value, 100);
 
-        static int raw_avg_x100;
-        if (raw_avg_x100 == 0) raw_avg_x100 = raw_x100;
-        raw_avg_x100 = (raw_avg_x100 * 63 + raw_x100) / 64;
+        static int ev_avg_x100 = 0;
+        if (ev_avg_x100 == 0) ev_avg_x100 = ev_x100;
+        ev_avg_x100 = (ev_avg_x100 * 63 + ev_x100) / 64;
 
         static int avg_prev0 = 1000;
         static int avg_prev1 = 1000;
         static int avg_prev2 = 1000;
         static int avg_prev3 = 1000;
 
-        lightsensor_raw_avg = avg_prev3 / 100;
-        lightsensor_value = 100 * (lightsensor_raw_value - lightsensor_raw_avg) / lightsensor_raw_avg;
+        int lightsensor_delta_from_average = ev_x100 - avg_prev3;
 
         avg_prev3 = avg_prev2;
         avg_prev2 = avg_prev1;
         avg_prev1 = avg_prev0;
-        avg_prev0 = raw_avg_x100;
+        avg_prev0 = ev_avg_x100;
 
-        if (lightsensor_value < -40) display_sensor = 1;
-        else if (lightsensor_value > -20) display_sensor = 0;
-        sensor_status_trigger(display_sensor);
+        // trigger at -2 EV under average
+        // maintain until -1 EV
+        if (lightsensor_delta_from_average < -200) display_sensor = 1;
+        else if (lightsensor_delta_from_average > -100) display_sensor = 0;
+        
+        if (k < 50) k++; // ignore the first cycles: wait for the signal to become stable
+        else sensor_status_trigger(display_sensor);
     }
 }
 
