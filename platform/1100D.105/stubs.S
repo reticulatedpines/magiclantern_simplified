@@ -167,3 +167,5 @@ NSTUB(0xff383ac8, ShootOlcApp_handler)
 NSTUB(0xff35abc4, ErrCardForLVApp_handler) // not 100% sure
 
 NSTUB(0xFF1E874C, msg_queue_create)
+
+NSTUB(0xFF039518, PD_RemoteRelease)

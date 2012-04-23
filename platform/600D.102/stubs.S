@@ -259,3 +259,5 @@ NSTUB(0xff1e195c, _EngDrvOut)
 NSTUB(0xff017618, get_current_task) // called from AJ_armlib_setup_related3
 
 NSTUB(0x1C36C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+
+NSTUB(0xFF0396E4, PD_RemoteRelease)

@@ -295,3 +295,5 @@ NSTUB(0xff0171dc, get_current_task)
 NSTUB(0xff1c5708, EngDrvIn)
 
 NSTUB(0x3bfa4, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+
+NSTUB(0xFF03B5F0, PD_RemoteRelease)

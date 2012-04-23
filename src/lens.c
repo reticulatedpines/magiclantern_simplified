@@ -1039,7 +1039,12 @@ lens_take_picture(
         SW2(0,50);
         SW1(0,50);
     }
-    else call("Release");
+    else
+        #ifdef CONFIG_5D2
+        PD_RemoteRelease();
+        #else
+        call("Release");
+        #endif
     #else
     call("Release");
     #endif

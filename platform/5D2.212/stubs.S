@@ -184,3 +184,5 @@ NSTUB(0xff866158, AJ_Wait_Vsync)
 NSTUB(0xFF86EF10, GetMemoryInformation)
 
 NSTUB(0xFF872308, msg_queue_create)
+
+NSTUB(0xff83c1e4, PD_RemoteRelease)

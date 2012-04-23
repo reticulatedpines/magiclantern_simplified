@@ -279,3 +279,5 @@ NSTUB(0xff016b8c, get_current_task) // called from AJ_armlib_setup_related3
 NSTUB(0x2CDB0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(0xff1d2a60, msg_queue_create) // CreateMessageQueue
+
+NSTUB(0xff03b3d8, PD_RemoteRelease)
