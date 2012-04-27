@@ -95,7 +95,7 @@ PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
 {
     digital_zoom_ratio = buf[0];
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
@@ -442,25 +442,25 @@ struct vram_info * get_yuv422_hd_vram()
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_MVR_REC_START)
@@ -473,31 +473,31 @@ PROP_HANDLER(PROP_MVR_REC_START)
     prev = buf[0];
     #endif
     
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
+    return;
 }
 
 static void

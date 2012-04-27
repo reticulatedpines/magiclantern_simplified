@@ -4181,7 +4181,7 @@ clearscreen_task( void* unused )
     {
 clearscreen_loop:
         //~ msleep(100);
-        if (lens_info.job_state == 0) // unsafe otherwise?
+        if (lens_info.job_state == 0 && !DISPLAY_IS_ON) // unsafe when taking pics, not needed with display on
         {
             call("DisablePowerSave");
             call("EnablePowerSave");
