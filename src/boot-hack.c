@@ -136,7 +136,9 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
     // Install our task creation hooks
+    #ifndef CONFIG_5D3
     task_dispatch_hook = my_task_dispatch_hook;
+    #endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -450,6 +452,7 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
 int
 my_init_task(int a, int b, int c, int d)
 {
+#ifdef ARMLIB_OVERFLOWING_BUFFER
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
     unsigned int backup_data = 0;
@@ -461,23 +464,28 @@ my_init_task(int a, int b, int c, int d)
         backup_address = &some_table[task_id-1];
         backup_data = *backup_address;
     }
-    
+#endif
+
     // Call their init task
     #ifdef CONFIG_550D
     int ans = init_task_patched_for_550D(a,b,c,d);
     #else
     int ans = init_task(a,b,c,d);
     #endif
-    
-    // decompile TH_assert to find out the location
-    old_assert_handler = MEM(DRYOS_ASSERT_HANDLER);
-    MEM(DRYOS_ASSERT_HANDLER) = my_assert_handler;
 
+#ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
     if(backup_address != 0)
     {
         *backup_address = backup_data;
     }
+#endif
+
+#ifdef DRYOS_ASSERT_HANDLER
+    // decompile TH_assert to find out the location
+    old_assert_handler = MEM(DRYOS_ASSERT_HANDLER);
+    MEM(DRYOS_ASSERT_HANDLER) = my_assert_handler;
+#endif
     
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
@@ -514,6 +522,14 @@ my_init_task(int a, int b, int c, int d)
     additional_version[12] = build_version[8];
     additional_version[13] = '\0';
 
+#ifdef CONFIG_5D3
+    msleep(5000);
+    bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+    bfnt_puts("Hello, World!", 50, 100, COLOR_BLACK, COLOR_WHITE);
+    call("dispcheck");
+    return ans;
+#endif
+
 #ifndef CONFIG_EARLY_PORT
 
     #ifdef CONFIG_50D
@@ -542,3 +558,27 @@ my_init_task(int a, int b, int c, int d)
     return ans;
 #endif // !CONFIG_EARLY_PORT
 }
+
+#ifdef CONFIG_5D3
+// dummy stubs
+void redraw(){};
+int ext_monitor_hdmi = 0;
+int ext_monitor_rca = 0;
+int hdmi_code = 0;
+int gui_state = 0;
+int recording = 0;
+int video_mode_resolution = 0;
+int lv = 0; 
+int lv_paused = 0;
+void debug_init_stuff(){};
+void request_crash_log(){};
+void bvram_mirror_init(){};
+void bmp_mute_flag_reset(){};
+
+void *
+prop_cleanup(
+        void *          token,
+        unsigned        property
+) {};
+
+#endif
