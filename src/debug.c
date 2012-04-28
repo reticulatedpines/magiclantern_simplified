@@ -3097,6 +3097,9 @@ void fake_simple_button(int bgmt_code)
 // calling them from gui_main_task seems to sync them with other Canon calls properly
 int handle_tricky_canon_calls(struct event * event)
 {
+    // fake ML events are always negative numbers
+    if (event->param >= 0) return 1;
+    
     switch (event->param)
     {
         case MLEV_HIJACK_FORMAT_DIALOG_BOX:
@@ -3125,23 +3128,6 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_STOP_KILLING_FLICKER:
             canon_gui_enable_gmt();
             break;
-        case MLEV_HIDE_CANON_BOTTOM_BAR:
-            #ifdef CONFIG_500D
-            if (lv && LV_BOTTOM_BAR_DISPLAYED)
-            {
-                prop_change__DispType(3);
-                SetOutputTypeByPressInfoToStorage(GetDisplayType(), 0);
-                set_lv_stuff_to_win_system__maybe(2, 2);
-            }
-            #else
-                #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-                if (lv && LV_BOTTOM_BAR_DISPLAYED)
-                {
-                    HideBottomInfoDisp_maybe();
-                }
-                #endif
-            break;
-            #endif
         case MLEV_BV_ENABLE:
             bv_enable_do();
             break;
@@ -3161,8 +3147,7 @@ int handle_tricky_canon_calls(struct event * event)
             menu_inject_redraw_event();
             break;
     }
-    if (event->param < 0) return 0;
-    return 1;
+    return 0;
 }
 
 void display_on()
