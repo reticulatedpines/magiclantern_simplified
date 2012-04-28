@@ -51,6 +51,7 @@ void menu_help_show_page(int page)
     }
     else
     {
+        clrscr();
         bmp_printf(FONT_MED, 0, 0, "Could not load help page %s\nPlease unzip 'doc' directory on your SD card.", path);
     }
 }

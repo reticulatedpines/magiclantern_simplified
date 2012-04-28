@@ -834,10 +834,14 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
     #undef P
 }
 
+int _bmp_draw_should_stop = 0;
+void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror)
 {
     if (!bmp) return;
+    
+    _bmp_draw_should_stop = 0;
     //~ if (!bmp_enabled) return;
 
     uint8_t * const bvram = bmp_vram();
@@ -859,6 +863,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 
         for( ys = y0 ; ys < (y0 + ymax); ys++ )
         {
+            if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/ymax;
             uint8_t * const b_row = bvram + ys * bmppitch;
             uint8_t * const m_row = (uint8_t*)( mirror + ys * bmppitch );
@@ -887,6 +892,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
         int bmp_y_pos = bmp->height-1; // store the line number
         for( ys = y0 + ymax - 1 ; ys >= y0; ys-- )
         {
+            if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/ymax;
             uint8_t * const b_row = bvram + COERCE(ys, 0, BMP_HEIGHT) * bmppitch;
             uint8_t * const m_row = (uint8_t*)( mirror + COERCE(ys, 0, BMP_HEIGHT) * bmppitch );

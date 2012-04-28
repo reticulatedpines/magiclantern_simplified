@@ -1381,6 +1381,9 @@ menu_redraw_do()
                 }
                 prev_so = show_only_selected;
 
+                // this part needs to know which items are selected - don't run it in the middle of selection changing
+                take_semaphore(menu_redraw_sem, 0);
+                
                 if (!show_only_selected || !submenu_mode)
                     menus_display( menus, x0, y0 ); 
 
@@ -1394,6 +1397,8 @@ menu_redraw_do()
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();
                 }
+                
+                give_semaphore(menu_redraw_sem);
 
                 if (show_only_selected) 
                 {
@@ -1449,10 +1454,7 @@ menu_redraw_task()
     {
         int msg;
         msg_queue_receive(menu_redraw_queue, &msg, 0);
-        
-        take_semaphore(menu_redraw_sem, 0);
         menu_redraw_do();
-        give_semaphore(menu_redraw_sem);
     }
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
@@ -1460,6 +1462,7 @@ TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
 static void
 menu_redraw()
 {
+    if (menu_help_active) bmp_draw_request_stop();
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, 1);
 }
 
