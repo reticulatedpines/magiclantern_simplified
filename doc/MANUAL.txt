@@ -926,7 +926,7 @@ Functions for stills shooting (some of them work for movies, too).
   
   * `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (command-line tool, runs on all platforms, you need to install Python, PIL and numpy).
   * `422toimage <http://groups.google.com/group/ml-devel/browse_thread/thread/ae65535fc3e860fc>`_ (Windows only, `https://bitbucket.org/mindogas/422toimage/ source code available`_).
-  * `YUV422 Convertor <http://www.diazonline.be/yuv422/>` (Windows only, closed source).
+  * `YUV422 Convertor <http://www.diazonline.be/yuv422/>`_ (Windows only, closed source).
   
   Known bugs:
   
