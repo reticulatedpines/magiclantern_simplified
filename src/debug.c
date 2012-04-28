@@ -329,8 +329,7 @@ void find_response_curve(char* fname)
 
     ensure_movie_mode();
     clrscr();
-    int zoom = 5;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    set_lv_zoom(5);
     
     msleep(1000);
     
@@ -579,8 +578,19 @@ static void stress_test_task(void* unused)
     NotifyBox(10000, "Stability Test..."); msleep(2000);
     
     msleep(2000);
+    if (!lv) force_liveview();
 
-    for (int i = 0; i <= 1000; i++)
+    for (int i = 0; i <= 100; i++)
+    {
+        int r = rand()%3;
+        set_lv_zoom(r == 0 ? 1 : r == 1 ? 5 : 10);
+        NotifyBox(1000, "LV zoom test: %d", i);
+        msleep(rand()%200);
+    }
+    set_lv_zoom(1);
+    msleep(2000);
+
+    for (int i = 0; i <= 100; i++)
     {
         set_expsim(i%3);
         NotifyBox(1000, "ExpSim toggle: %d", i/10);
@@ -589,7 +599,7 @@ static void stress_test_task(void* unused)
 
     msleep(2000);
 
-    for (int i = 0; i <= 1000; i++)
+    for (int i = 0; i <= 100; i++)
     {
         bv_toggle(0, 1);
         NotifyBox(1000, "Exp.Override toggle: %d", i/10);
@@ -630,7 +640,7 @@ static void stress_test_task(void* unused)
     for (int i = 0; i <= 100; i++)
     {
         fake_simple_button(BGMT_WHEEL_RIGHT);
-        msleep(rand()%100);
+        msleep(rand()%500);
     }
     give_semaphore( gui_sem );
     msleep(2000);

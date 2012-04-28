@@ -493,6 +493,13 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     return prop_cleanup( token, property );
 }
 
+void set_lv_zoom(int zoom)
+{
+    zoom = COERCE(zoom, 1, 10);
+    if (zoom > 1 && zoom < 10) zoom = 5;
+    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+}
+
 int handle_shutter_events(struct event * event)
 {
     return 1;
@@ -550,8 +557,7 @@ sweep_lv()
     if (!lv) return;
     menu_stop();
     msleep(2000);
-    int zoom = 5;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    set_lv_zoom(5);
     msleep(2000);
     
     int i,j;
@@ -567,8 +573,7 @@ sweep_lv()
         }
     }
 
-    zoom = 1;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    set_lv_zoom(1);
 }*/
 
 static char* silent_pic_get_name()
@@ -1075,8 +1080,7 @@ silent_pic_take_sweep(int interactive)
     int afx0 = afframe[2];
     int afy0 = afframe[3];
 
-    int zoom = 5;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    set_lv_zoom(5);
     msleep(1000);
 
     struct vram_info * vram = get_yuv422_hd_vram();
@@ -1117,8 +1121,7 @@ silent_pic_take_sweep(int interactive)
     FIO_CloseFile(f);
     
     // restore
-    zoom = 1;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    set_lv_zoom(1);
     msleep(1000);
     afframe[2] = afx0;
     afframe[3] = afy0;
@@ -2333,7 +2336,6 @@ static void zoom_lv_face_step()
         if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
         {
             int afmode = 1;
-            int zoom = 5;
             int afx = afframe[2];
             int afy = afframe[3];
             prop_request_change(PROP_LVAF_MODE, &afmode, 4);
@@ -2342,7 +2344,7 @@ static void zoom_lv_face_step()
             afframe[3] = afy;
             prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
             msleep(1);
-            prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+            set_lv_zoom(5);
             msleep(1);
         }
         else if (lvaf_mode == 1) // back from temporary live focus mode
@@ -2368,14 +2370,13 @@ static void zoom_lv_face_step()
         {
             zoom_was_triggered_by_halfshutter = 1;
             int zoom = zoom_disable_x5 ? 10 : 5;
-            prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+            set_lv_zoom(zoom);
             msleep(100);
         }
         if (!hs && lv_dispsize > 1 && zoom_was_triggered_by_halfshutter)
         {
             zoom_was_triggered_by_halfshutter = 0;
-            int zoom = 1;
-            prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+            set_lv_zoom(1);
             msleep(100);
         }
     }
@@ -2385,14 +2386,12 @@ int zoom_x5_x10_step()
 {
     if (zoom_disable_x5 && lv_dispsize == 5)
     {
-        int zoom = 10;
-        prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+        set_lv_zoom(10);
         return 1;
     }
     if (zoom_disable_x10 && lv_dispsize == 10)
     {
-        int zoom = 1;
-        prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+        set_lv_zoom(1);
         return 1;
     }
     return 0;
@@ -2448,7 +2447,7 @@ void restore_expsim(int es)
     {
         lens_wait_readytotakepic(64);
         set_expsim(es);
-        msleep(100);
+        msleep(300);
         if (expsim == es) return;
     }
     NotifyBox(5000, "Could not restore ExpSim :(");
@@ -3057,8 +3056,7 @@ void bulb_ramping_init()
     lens_set_rawiso(0);
     if (!lv) force_liveview();
     msleep(2000);
-    int zoom = 10;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    set_lv_zoom(10);
 
 calib_start:
     SW1(1,50); // reset power management timers
@@ -3077,8 +3075,8 @@ calib_start:
             "not static"
         ); 
 
-        zoom = zoom == 10 ? 5 : zoom == 5 ? 1 : 10;
-        prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+        int zoom = lv_dispsize == 10 ? 5 : lv_dispsize == 5 ? 1 : 10;
+        set_lv_zoom(zoom);
         
         goto calib_start;
     }
@@ -4414,7 +4412,7 @@ void remote_shot(int wait)
     while (gui_state != GUISTATE_IDLE) msleep(100);
     msleep(500);
     // restore zoom
-    if (lv && !recording && zoom > 1) prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    if (lv && !recording && zoom > 1) set_lv_zoom(zoom);
 
     picture_was_taken_flag = 0;
 }

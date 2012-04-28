@@ -4051,7 +4051,7 @@ void ResumeLiveView()
             while (!lv) msleep(100);
             while (!DISPLAY_IS_ON) msleep(100);
         )
-        prop_request_change(PROP_LV_DISPSIZE, &lv_zoom_before_pause, 4);
+        set_lv_zoom(lv_zoom_before_pause);
         msleep(100);
     }
     lv_paused = 0;

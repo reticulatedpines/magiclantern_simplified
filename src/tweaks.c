@@ -85,7 +85,7 @@ dofp_update()
 
 void video_refresh()
 {
-    prop_request_change(PROP_LV_DISPSIZE, &lv_dispsize, 4);
+    set_lv_zoom(lv_dispsize);
     lens_display_set_dirty();
 }
 

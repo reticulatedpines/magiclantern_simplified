@@ -455,7 +455,7 @@ desired_fps_print(
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
-static void flip_zoom()
+/*static void flip_zoom()
 {
     if (!lv) return;
     if (is_movie_mode())
@@ -467,9 +467,9 @@ static void flip_zoom()
     // flip zoom mode back and forth to apply settings instantly
     int zoom0 = lv_dispsize;
     int zoom1 = zoom0 == 10 ? 5 : zoom0 == 5 ? 1 : 10;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom1, 4);
-    prop_request_change(PROP_LV_DISPSIZE, &zoom0, 4);
-}
+    set_lv_zoom(zoom1);
+    set_lv_zoom(zoom0);
+}*/
 
 static void fps_register_reset()
 {
