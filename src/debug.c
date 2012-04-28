@@ -2925,8 +2925,8 @@ void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_Init();
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "FONTS.DAT");
-    TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.CFG");
+    TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "CROPMKS/", 1);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "SCRIPTS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "PLUGINS/", 0);
@@ -2952,9 +2952,12 @@ void CopyMLFilesBack_AfterFormat()
         int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4); 
         if (sig != tmp_files[i].sig)
         {
-            NotifyBox(2000, "Could not restore %s :(", tmp_files[i].name);
+            snprintf(msg, sizeof(msg), "Could not restore %s :(", tmp_files[i].name);
+            HijackCurrentDialogBox(STR_LOC, msg);
+            msleep(2000);
             FIO_RemoveFile(tmp_files[i].name);
-            if (i > 1) return; // if it copies AUTOEXEC.BIN and fonts, ignore the error, it's safe to run
+            if (i <= 1) return; 
+            //else: if it copies AUTOEXEC.BIN and fonts, ignore the error, it's safe to run
         }
     }
     
