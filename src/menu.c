@@ -826,7 +826,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 {
     #if !CONFIG_DEBUGMSG
     if (icon_drawn) return;
-    icon_drawn = 1;
+    icon_drawn = type;
     x -= 40;
     if (type >= 0) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
     warning_msg = 0;
@@ -873,6 +873,7 @@ menu_display(
     {
         if (advanced_mode || IS_ESSENTIAL(menu))
         {
+            // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
             if (menu->selected && menu->help)
             {
                 bmp_printf(
@@ -887,13 +888,48 @@ menu_display(
                 );
             }
 
-            if (menu->selected && !is_menu_active("Help"))
+            // display icon (only the first icon is drawn)
+            icon_drawn = 0;
+            if (!show_only_selected || menu->selected)
+            {
+                if (menu->display)
+                    menu->display(
+                        menu->priv,
+                        x,
+                        y,
+                        menu->selected
+                    );
+                else
+                    submenu_print(menu, x, y);
+            }
+            
+            // this should be after menu->display, in order to allow it to override the icon
+            if (menu->selected || !show_only_selected)
+            {
+                entry_draw_icon(menu, x, y);
+            }
+
+            // display key help
+            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select))
             {
                 char msg[100] = "";
 
                 // this should follow exactly the same logic as in menu_entry_select
                 // todo: remove duplicate code
-                if (submenu_mode == 2)
+                
+                
+                // exception for action and submenu items
+                if (icon_drawn == MNI_ACTION) 
+                {
+                    STR_APPEND(msg, "SET: run action         ");
+                }
+                else if (menu->select == menu_open_submenu)
+                {
+                    STR_APPEND(msg, "SET: open submenu       ");
+                }
+                // exception end
+                
+                else if (submenu_mode == 2)
                 {
                     STR_APPEND(msg, "SET: toggle edit mode   ");
                 }
@@ -931,17 +967,25 @@ menu_display(
                 {
                     if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
                     {
-                        STR_APPEND(msg, "L/R/Wheel: change value");
+                        STR_APPEND(msg, "L/R/Wheel : ");
                     }
                     else
                     {
-                        STR_APPEND(msg, "Left/Right: change value");
+                        STR_APPEND(msg, "Left/Right: ");
+                    }
+                    if (icon_drawn == MNI_ACTION)
+                    {
+                        STR_APPEND(msg, "run action  ");
+                    }
+                    else
+                    {
+                        STR_APPEND(msg, "change value");
                     }
                     leftright_sign(x0+690, y0+400);
                 }
                 else if (menu->children && !submenu_mode && !show_only_selected)
                 {
-                    STR_APPEND(msg, "%s: submenu    ", Q_BTN_NAME);
+                    STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
                 }
                 
                 bmp_printf(
@@ -949,26 +993,6 @@ menu_display(
                     x0 + 10, y0 + 425, 
                     msg
                 );
-            }
-
-            icon_drawn = 0;
-            if (!show_only_selected || menu->selected)
-            {
-                if (menu->display)
-                    menu->display(
-                        menu->priv,
-                        x,
-                        y,
-                        menu->selected
-                    );
-                else
-                    submenu_print(menu, x, y);
-            }
-            
-            // this should be after menu->display, in order to allow it to override the icon
-            if (menu->selected || !show_only_selected)
-            {
-                entry_draw_icon(menu, x, y);
             }
             
             // if there's a warning message set, display it
@@ -986,15 +1010,18 @@ menu_display(
                 );
             }
 
-            
+            // display submenu marker if this item has a submenu
             if (menu->children && !show_only_selected)
                 submenu_icon(x, y);
             
+            // display selection bar
             if (menu->selected)
                 selection_bar(x, y);
 
+            // move down for next item
             y += font_large.height-1;
             
+            // stop before attempting to display things outside the screen
             if ((unsigned)y > vram_bm.height - font_large.height 
                 #if CONFIG_DEBUGMSG
                 && !is_menu_active("VRAM")

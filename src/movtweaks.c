@@ -480,9 +480,8 @@ hdmi_force_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Force HDMI-VGA : %s [code=%d]", 
-        hdmi_force_vga ? "ON" : "OFF",
-        hdmi_code
+        "Force HDMI-VGA : %s", 
+        hdmi_force_vga ? "ON" : "OFF"
     );
 }
 

@@ -180,7 +180,7 @@ menu_init( void );
 extern void menu_stop(void);
 
 #define MNI_NONE -1
-#define MNI_OFF 0
+#define MNI_OFF -2
 #define MNI_ON 1
 #define MNI_AUTO 2
 #define MNI_WARNING 3

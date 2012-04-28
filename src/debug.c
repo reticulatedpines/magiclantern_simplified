@@ -2198,7 +2198,7 @@ struct menu_entry debug_menus[] = {
         .help = "Computes camera response curve for certain ISO values.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Response curve 4 current ISO",
+                .name = "Response curve @ current ISO",
                 .priv = iso_response_curve_current,
                 .select = run_in_separate_task,
                 .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",

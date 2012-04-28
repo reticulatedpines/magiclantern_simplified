@@ -1083,7 +1083,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled.");
         if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
-        else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Audio monitoring is disabled");
+        else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
 
 static void
@@ -1395,7 +1395,7 @@ static struct menu_entry audio_menus[] = {
                 .priv           = &cfg_draw_meters,
                 .select         = menu_binary_toggle,
                 .display        = audio_meter_display,
-                .help = "Bar peak decay, from -40 dB to 0 dB, yellow at -12dB.",
+                .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
                 .essential = FOR_MOVIE,
         },
 };

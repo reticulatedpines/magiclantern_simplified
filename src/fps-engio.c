@@ -834,6 +834,7 @@ static struct menu_entry fps_menu[] = {
                 .name = "Sound Record\b",
                 .priv = &fps_sound_disable,
                 .select = fps_sound_toggle,
+                .max = 1,
                 .choices = (const char *[]) {"Leave it on", "Auto-Disable"},
                 .icon_type = IT_DISABLE_SOME_FEATURE,
                 .help = "Sound usually goes out of sync and may stop recording.",
