@@ -100,9 +100,11 @@ void load_fonts(void* unused)
 
     if (font_small.bitmap == 0) // fonts not loaded
     {
+        clrscr();
         bfnt_puts("FONTS.DAT not found", 0, 0, COLOR_WHITE, COLOR_BLACK);
         beep();
         msleep(2000);
+        clrscr();
         bfnt_puts("Please copy all ML files!", 0, 0, COLOR_WHITE, COLOR_BLACK);
         beep();
         msleep(2000);
