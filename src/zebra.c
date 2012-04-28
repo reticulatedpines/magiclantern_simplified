@@ -4419,7 +4419,12 @@ void schedule_transparent_overlay()
 }
 
 volatile int lens_display_dirty = 0;
-void lens_display_set_dirty() { lens_display_dirty = 4; menu_set_dirty(); }
+void lens_display_set_dirty() 
+{ 
+    lens_display_dirty = 4; 
+    if (menu_active_but_hidden()) // in this case, menu will display bottom bar, force a redraw
+        menu_set_dirty(); 
+}
 
 void draw_cropmark_area()
 {
