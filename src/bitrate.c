@@ -498,7 +498,7 @@ bitrate_task( void* unused )
             if (movie_elapsed_time_01s % 10 == 0)
                 bitrate_set();
         }
-    }
+    TASK_LOOP_END //}
 }
 
 void movie_indicators_show()

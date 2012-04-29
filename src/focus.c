@@ -657,7 +657,7 @@ focus_task( void* unused )
                 if (queued_focus_steps == 0) focus_task_dir = 0;
             }
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
@@ -1107,7 +1107,7 @@ focus_misc_task(void* unused)
             while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
             #endif
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );

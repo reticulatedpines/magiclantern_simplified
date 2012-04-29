@@ -1457,7 +1457,7 @@ menu_redraw_task()
         if (err) continue;
 
         menu_redraw_do();
-    }
+    TASK_LOOP_END //}
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
 
@@ -1993,7 +1993,7 @@ menu_task( void* unused )
         y0 = hdmi_code == 5 ? 40 : 0;
 
         menu_open();
-    }
+    TASK_LOOP_END //}
 }
 
 static void
@@ -2025,7 +2025,7 @@ menu_task_minimal( void* unused )
             menu_close();
             //~ menu_shown = false;
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );

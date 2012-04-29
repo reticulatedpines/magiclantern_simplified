@@ -427,7 +427,7 @@ movtweak_task( void* unused )
                 msleep(5000);
             }
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
@@ -751,8 +751,18 @@ static void bv_display(
         bv_auto == 2 && !CONTROL_BV ? "Auto (OFF)" :
         bv_auto == 1 ? "ON" : "OFF"
     );
+
+    extern int bulb_ramp_calibration_running; 
+    extern int zoom_auto_exposure;
+
     if (bv_auto && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
-    if (bv_auto == 1 && !CONTROL_BV) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Temporarily disabled.");
+    if (bv_auto == 1 && !CONTROL_BV) 
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) (
+            (zoom_auto_exposure && lv_dispsize > 1) ? "Temporarily disabled (auto exposure on zoom)." :
+            (bulb_ramp_calibration_running) ? "Temporarily disabled (bulb ramping calibration)." :
+            LVAE_DISP_GAIN ? "Temporarily disabled (display gain active)." :
+            "Temporarily disabled."
+        ));
     menu_draw_icon(x, y, MNI_BOOL_AUTO(bv_auto), 0);
 }
 

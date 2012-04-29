@@ -1171,7 +1171,7 @@ static void stress_test_random_task(void* unused)
         //~ stress_test_random_action();
         stress_test_toggle_menu_item("Play", "Zoom in PLAY mode");
         msleep(rand() % 1000);
-    }
+    TASK_LOOP_END //}
 }
 
 static void stress_test_random_action_simple()
@@ -1205,7 +1205,7 @@ static void stress_test_menu_dlg_api_task(void* unused)
         stress_test_random_action_simple();
         //~ stress_test_toggle_menu_item("LiveV", "Zebras");
         msleep(rand() % 30);
-    }
+    TASK_LOOP_END //}
 }
 
 #endif // CONFIG_STRESS_TEST
@@ -1823,8 +1823,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         }
         
         msleep(200);
-    }
-    TASK_RETURN;
+    TASK_LOOP_END //}
 }
 
 void screenshot_start(void* priv)
@@ -2833,8 +2832,7 @@ void iso_adj_task(void* unused)
             iso_adj(iso_adj_old, iso_adj_sign);
             lens_display_set_dirty();
         }
-    }
-    TASK_RETURN;
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE("iso_adj_task", iso_adj_task, 0, 0x1a, 0);

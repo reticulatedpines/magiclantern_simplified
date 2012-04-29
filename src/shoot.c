@@ -621,7 +621,7 @@ ms100_clock_task( void* unused )
     TASK_LOOP_MSLEEP(100)
     //{
         ms100_clock += 100;
-    }
+    TASK_LOOP_END //}
 }
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
@@ -2865,8 +2865,7 @@ int get_seconds_clock() { return seconds_clock; }
 static void
 seconds_clock_task( void* unused )
 {
-    TASK_LOOP
-    //{
+    TASK_LOOP //{
         wait_till_next_second();
         seconds_clock++;
 
@@ -2879,7 +2878,7 @@ seconds_clock_task( void* unused )
         #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         RefreshBatteryLevel_1Hz();
         #endif
-    }
+    TASK_LOOP_END //}
 }
 TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
 
@@ -4575,8 +4574,7 @@ shoot_task( void* unused )
 
     bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
     
-    TASK_LOOP
-    //{
+    TASK_LOOP //{
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -4937,7 +4935,7 @@ shoot_task( void* unused )
                 avg_prev0 = audio_levels[0].avg;
             }
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x8000 );

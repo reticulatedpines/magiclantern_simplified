@@ -921,7 +921,7 @@ static void fps_task()
             fps_setup_timerB(f);
             msleep(100);
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );

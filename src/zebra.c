@@ -4254,7 +4254,7 @@ clearscreen_loop:
             if (crop_dirty == 0)
                 cropmark_redraw();
         }
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1a, 0x2000 );
@@ -4528,7 +4528,7 @@ livev_hipriority_task( void* unused )
             card_benchmark_start = 0;
         }
 #endif
-    }
+    TASK_LOOP_END //}
 }
 
 static void loprio_sleep()
@@ -4642,7 +4642,7 @@ livev_lopriority_task( void* unused )
         if (!gui_menu_shown())
             draw_histogram_and_waveform(0);
         
-    }
+    TASK_LOOP_END //}
 }
 
 #define HIPRIORITY_TASK_PRIO 0x18

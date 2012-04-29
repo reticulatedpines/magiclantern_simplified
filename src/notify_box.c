@@ -60,7 +60,7 @@ void NotifyBox_task(void* priv)
         }
         notify_box_timeout = 0;
         redraw();
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE( "notifybox_task", NotifyBox_task, 0, 0x1b, 0x1000 );

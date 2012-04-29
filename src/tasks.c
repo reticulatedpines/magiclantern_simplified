@@ -56,8 +56,11 @@ extern int get_obj_attr(void*, unsigned char*, int, int);
 int what_tasks_to_show=2;
 void tasks_print(void* priv, int x0, int y0, int selected)
 {
-    menu_draw_icon(x0, y0, -1, 0);
-    bmp_fill(38, 0, 0, 720, 430);
+    if (selected) 
+    {
+        menu_draw_icon(x0, y0, -1, 0);
+        bmp_fill(38, 0, 0, 720, 430);
+    }
 
   int i, c;
   unsigned int r;
@@ -96,7 +99,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
      
      int mem_percent = task_attr.used * 100 / task_attr.size;
      
-     bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
+     bmp_printf((FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
         c, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
       y += font_small.height - 1;
       if (y > 410)
@@ -116,15 +119,25 @@ void tasks_shutdown()
     shutdown_done = 1;
     
     task_shutdown_request = 1;
-    info_led_on();
-    _card_led_on();
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 50; i++)
     {
+        if ((i/5) % 2 == 0 || i <= 10)
+        {
+            info_led_on();
+            _card_led_on();
+        }
+        else
+        {
+            info_led_off();
+            _card_led_off();
+        }
+
         msleep(100);
         if (total_tasks <= 0) return;
-        if (i >= 5)
+        if (i >= 10)
         {
             what_tasks_to_show = 2;
+            canon_gui_disable_front_buffer();
             tasks_print(0,0,0,0);
         }
     }

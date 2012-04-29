@@ -432,7 +432,7 @@ meter_task( void* unused )
                         }
                         hp = h;
                 }
-        }
+        TASK_LOOP_END //}
 }
 
 
@@ -450,7 +450,7 @@ compute_audio_level_task( void* unused )
         //{
                 compute_audio_levels( 0 );
                 compute_audio_levels( 1 );
-        }
+        TASK_LOOP_END //}
 }
 
 TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x18, 0x1000 );

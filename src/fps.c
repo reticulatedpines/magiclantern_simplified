@@ -566,7 +566,7 @@ static void fps_task()
             update_sound_recording();
         }
         msleep(200);
-    }
+    TASK_LOOP //}
 }
 
 TASK_CREATE("fps_task", fps_task, 0, 0x1d, 0x1000 );

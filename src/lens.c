@@ -1868,7 +1868,6 @@ int bv_auto_should_enable()
 {
     if (!bv_auto) return 0;
     if (!lv) return 0;
-    if (get_htp()) return 0;
 
     extern int zoom_auto_exposure;
     if (zoom_auto_exposure && lv_dispsize > 1)

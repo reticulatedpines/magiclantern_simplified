@@ -120,7 +120,7 @@ static void cartridge_task()
             update_hard_expo_override();
         }
         msleep(200);
-    }
+    TASK_LOOP_END //}
 }
 
 TASK_CREATE("cartridge_task", cartridge_task, 0, 0x1d, 0x1000 );

@@ -150,5 +150,5 @@ extern int task_shutdown_request;
 #define TASK_LOOP for (int k = 0; ; k++) { msleep(MIN_MSLEEP); TASK_CHECK_RETURN;
 #define TASK_LOOP_MSLEEP(ms) for (int k = 0; ; k++) { msleep(ms); TASK_CHECK_RETURN;
 #define TASK_LOOP_NO_MSLEEP for (int k = 0; ; k++) { TASK_CHECK_RETURN; // use with care ;)
-
+#define TASK_LOOP_END }   // just to not confuse the editor too much
 #endif
