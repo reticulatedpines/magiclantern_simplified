@@ -1007,10 +1007,10 @@ static void stress_test_task(void* unused)
 static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
 {
     extern struct semaphore * gui_sem;
-    //~ select_menu_by_name(menu_name, item_name);
+    select_menu_by_name(menu_name, item_name);
     if (!gui_menu_shown()) give_semaphore( gui_sem );
     msleep(400);
-    //~ fake_simple_button(BGMT_PRESS_SET);
+    fake_simple_button(BGMT_PRESS_SET);
     msleep(200);
     give_semaphore( gui_sem );
     return;
@@ -1067,10 +1067,10 @@ static void stress_test_random_action()
                 stress_test_toggle_menu_item("Expo", "REC PicStyle");
                 return;
             case 15:
-                //~ stress_test_toggle_menu_item("Expo", "LV ViewType");
+                stress_test_toggle_menu_item("Expo", "LV ViewType");
                 return;
             case 16:
-                //~ stress_test_toggle_menu_item("Expo", "Exp.Override");
+                stress_test_toggle_menu_item("Expo", "Exp.Override");
                 return;
             case 17:
                 stress_test_toggle_menu_item("Display", "Clear Overlays");
@@ -1091,10 +1091,10 @@ static void stress_test_random_action()
                 stress_test_toggle_menu_item("Movie", "Shutter Lock");
                 return;
             case 23:
-                //~ stress_test_toggle_menu_item("Movie", "FPS override");
+                stress_test_toggle_menu_item("Movie", "FPS override");
                 return;
             case 24:
-                //~ stress_test_toggle_menu_item("Movie", "HDR video");
+                stress_test_toggle_menu_item("Movie", "HDR video");
                 return;
             case 25:
                 //~ stress_test_toggle_menu_item("Movie", "Highlight++");
@@ -1103,16 +1103,16 @@ static void stress_test_random_action()
                 //~ stress_test_toggle_menu_item("Movie", "Image Effects");
                 return;
             case 27:
-                //~ stress_test_toggle_menu_item("Shoot", "HDR Bracketing");
+                stress_test_toggle_menu_item("Shoot", "HDR Bracketing");
                 return;
             case 28:
-                //~ stress_test_toggle_menu_item("Shoot", "Intervalometer");
+                stress_test_toggle_menu_item("Shoot", "Intervalometer");
                 return;
             case 29:
-                //~ stress_test_toggle_menu_item("Shoot", "Bulb Timer");
+                stress_test_toggle_menu_item("Shoot", "Bulb Timer");
                 return;
             case 30:
-                //~ stress_test_toggle_menu_item("Shoot", "LCDsensor Remote");
+                stress_test_toggle_menu_item("Shoot", "LCDsensor Remote");
                 return;
             case 31:
                 //~ stress_test_toggle_menu_item("Shoot", "Audio RemoteShot");

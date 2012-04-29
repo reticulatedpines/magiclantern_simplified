@@ -993,12 +993,18 @@ void star_zoom_update()
 */
 
 CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
-#if !defined(CONFIG_50D) && !defined(CONFIG_600D)
-CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
+#ifdef CONFIG_5D2
+    CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
+    CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
 #else
-int arrow_keys_audio = 0;
+    #if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+        CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
+    #else
+        CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
+        int arrow_keys_audio = 0;
+    #endif
+    CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 #endif
-CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 CONFIG_INT("arrows.tv_av", arrow_keys_shutter_aperture, 0);
 CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
 
@@ -1456,6 +1462,7 @@ struct menu_entry expo_tweak_menus[] = {
         .icon_type = IT_DICE,
         //~ .help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
         .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
+        .essential = FOR_LIVEVIEW,
         //~ .show_liveview = 1,
     },
 };
