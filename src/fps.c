@@ -558,8 +558,8 @@ INIT_FUNC("fps", fps_init);
 
 static void fps_task()
 {
-    while(1)
-    {
+    TASK_LOOP
+    //{
         if (lv)
         {
             update_hard_expo_override();

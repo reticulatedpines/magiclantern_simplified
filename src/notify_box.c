@@ -37,10 +37,11 @@ char notify_box_msg[100];
 
 void NotifyBox_task(void* priv)
 {
-    while (1)
-    {
+    TASK_LOOP
+    //{
         // wait until some other task asks for a notification
-        take_semaphore(notify_box_show_sem, 0);
+        int err = take_semaphore(notify_box_show_sem, 500);
+        if (err) continue;
         
         if (!notify_box_timeout) 
             continue;

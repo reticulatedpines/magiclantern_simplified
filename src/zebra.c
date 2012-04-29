@@ -3779,28 +3779,6 @@ int zebra_should_run()
         !WAVEFORM_FULLSCREEN;
 }
 
-static void zebra_sleep_when_tired()
-{
-    if (!zebra_should_run())
-    {
-        while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
-        if (zebra_should_run()) return;
-        //~ if (!gui_menu_shown()) ChangeColorPaletteLV(4);
-        if (lv && !gui_menu_shown()) redraw();
-#ifdef CONFIG_60D
-        disable_electronic_level();
-#endif
-        while (!zebra_should_run()) msleep(100);
-        //~ ChangeColorPaletteLV(2);
-        //~ if (!gui_menu_shown()) crop_set_dirty(5);
-        vram_params_set_dirty();
-
-        msleep(500);
-        //~ cropmark_cache_check();
-        //~ if (lv && !gui_menu_shown()) redraw();
-    }
-}
-
 void draw_livev_for_playback()
 {
     get_yuv422_vram(); // just to refresh VRAM params
@@ -3888,41 +3866,6 @@ void draw_histogram_and_waveform(allow_play)
         BMP_LOCK( vectorscope_draw_image(os.x0 + 32, 64); )
     }
 }
-/*
-//this function is a mess... but seems to work
-static void
-zebra_task( void )
-{
-    DebugMsg( DM_MAGIC, 3, "Starting zebra_task");
-    
-    msleep(1000);
-    
-    find_cropmarks();
-    int k;
-
-    while(1)
-    {
-        k++;
-        msleep(MIN_MSLEEP); // safety msleep :)
-        if (recording) msleep(100);
-        
-        if (lv && disp_mode_change_request)
-        {
-            disp_mode_change_request = 0;
-            do_disp_mode_change();
-        }
-        
-        zebra_sleep_when_tired();
-        
-        if (get_global_draw())
-        {
-            draw_livev_stuff(k);
-        }
-    }
-}
-
-
-TASK_CREATE( "zebra_task", zebra_task, 0, 0x1f, 0x1000 ); */
 
 static int idle_countdown_display_dim = 50;
 static int idle_countdown_display_off = 50;
@@ -4176,9 +4119,8 @@ clearscreen_task( void* unused )
     //~ idle_stop_killing_flicker();
     //~ #endif
 
-    int k = 0;
-    for (;;k++)
-    {
+    TASK_LOOP
+    //{
 clearscreen_loop:
         //~ msleep(100);
         if (lens_info.job_state == 0 && !DISPLAY_IS_ON) // unsafe when taking pics, not needed with display on
@@ -4315,7 +4257,7 @@ clearscreen_loop:
     }
 }
 
-TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1a, 0x1000 );
+TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1a, 0x2000 );
 
 //~ CONFIG_INT("disable.redraw", disable_redraw, 0);
 CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
@@ -4458,19 +4400,37 @@ livev_hipriority_task( void* unused )
     find_cropmarks();
     update_disp_mode_bits_from_params();
 
-    int k = 0;
-    for (;;k++)
-    {
+    TASK_LOOP_NO_MSLEEP
+    //{
         //~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
         fps_ticks++;
 
         while (is_mvr_buffer_almost_full())
+        {
             msleep(100);
+            TASK_CHECK_RETURN;
+        }
         
         get_422_hd_idle_buf(); // just to keep it up-to-date
         
-        zebra_sleep_when_tired();
-
+        if (!zebra_should_run())
+        {
+            while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
+            if (!zebra_should_run())
+            {
+                if (lv && !gui_menu_shown()) redraw();
+                #ifdef CONFIG_60D
+                disable_electronic_level();
+                #endif
+                while (!zebra_should_run()) 
+                {
+                    msleep(100);
+                    TASK_CHECK_RETURN;
+                }
+                vram_params_set_dirty();
+                msleep(500);
+            }
+        }
         #if 0
         draw_cropmark_area(); // just for debugging
         #endif
@@ -4482,7 +4442,7 @@ livev_hipriority_task( void* unused )
             msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
             guess_fastrefresh_direction();
             if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
-            BMP_LOCK( draw_zoom_overlay(zoom_overlay_dirty); )
+            BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
             zoom_overlay_dirty = 0;
             //~ crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
             // but redraw them after MZ is turned off
@@ -4496,16 +4456,16 @@ livev_hipriority_task( void* unused )
             if (falsecolor_draw)
             {
                 if (k % 2 == 0)
-                    BMP_LOCK( draw_false_downsampled(); )
+                    BMP_LOCK( if (lv) draw_false_downsampled(); )
             }
             else if (defish_preview)
             {
                 if (k % 2 == 0)
-                    BMP_LOCK( defish_draw(); )
+                    BMP_LOCK( if (lv) defish_draw(); )
             }
             else
             {
-                BMP_LOCK( draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
@@ -4513,12 +4473,12 @@ livev_hipriority_task( void* unused )
         int s = get_seconds_clock();
         static int prev_s = 0;
         if (spotmeter_draw && s != prev_s)
-            BMP_LOCK( spotmeter_step(); )
+            BMP_LOCK( if (lv) spotmeter_step(); )
         prev_s = s;
 
         #ifdef CONFIG_60D
         if (electronic_level && k % 8 == 5)
-            BMP_LOCK( show_electronic_level(); )
+            BMP_LOCK( if (lv) show_electronic_level(); )
         #endif
 
         if (k % 8 == 7) rec_notify_continuous(0);
@@ -4542,23 +4502,23 @@ livev_hipriority_task( void* unused )
         {
             #if defined(CONFIG_550D) || defined(CONFIG_5D2)
             if (kmm == 0)
-                BMP_LOCK( black_bars(); )
+                BMP_LOCK( if (lv) black_bars(); )
             #endif
 
             if (kmm == 2)
             {
-                BMP_LOCK( update_lens_display(1,0); );
+                BMP_LOCK( if (lv) update_lens_display(1,0); );
                 if (lens_display_dirty) lens_display_dirty--;
             }
 
             if (kmm == 8)
             {
-                BMP_LOCK( update_lens_display(0,1); );
+                BMP_LOCK( if (lv) update_lens_display(0,1); );
                 if (lens_display_dirty) lens_display_dirty--;
             }
 
             if (kmm == 5)
-                movie_indicators_show();
+                if (lv) movie_indicators_show();
         }
 
 #if CONFIG_DEBUGMSG
@@ -4645,9 +4605,9 @@ static void black_bars_16x9()
 static void
 livev_lopriority_task( void* unused )
 {
-    msleep(2000);
-    while(1)
-    {
+    msleep(500);
+    TASK_LOOP
+    //{
         if (transparent_overlay_flag)
         {
             transparent_overlay_from_play();

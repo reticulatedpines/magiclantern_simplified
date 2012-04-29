@@ -738,9 +738,8 @@ tweak_task( void* unused)
 {
     do_movie_mode_remap();
     
-    int k;
-    for (k = 0; ; k++)
-    {
+    TASK_LOOP
+    //{
         msleep(50);
 
         if (halfshutter_sticky)
@@ -859,81 +858,6 @@ qrplay_display(
         quick_review_allow_zoom == 1 ? "Rvw:Hold->Play" : "ZoomIn->Play"
     );
 }
-
-/*
-
-static void play_zoom_task(int unused)
-{
-    info_led_on();
-    fake_simple_button(BGMT_PLAY);
-    //~ SetGUIRequestMode(1);
-	msleep(100);
-
-	extern thunk PlayMain_handler;
-	while (get_current_dialog_handler() != &PlayMain_handler)
-    {
-		msleep(300);
-        //~ fake_simple_button(BGMT_PLAY);
-        //~ SetGUIRequestMode(1);
-    }
-
-    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-    msleep(400);
-    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-    info_led_off();
-}
-
-void kenrockwell_zoom_update()
-{
-    extern thunk OlcAFFrameApp_handler;
-	extern thunk PlayMain_handler;
-
-	static void* prev_handler = 0;
-	void* current_handler = get_current_dialog_handler();
-    if (current_handler == &OlcAFFrameApp_handler && prev_handler != &OlcAFFrameApp_handler)
-    //~ ) NotifyBox(2000, "%x ", prev_handler);
-    //~ if (prev_handler == &PlayMain_handler && current_handler == &OlcAFFrameApp_handler)
-    {
-		task_create("play_zoom", 0x1d, 0, play_zoom_task, 0);
-	}
-	prev_handler = current_handler;
-    return 1;
-}
-
-void handle_kenrockwell_zoom(struct event * event)
-{
-    if (quick_review_allow_zoom != 2) return 1;
-    //~ if (lv) return 1;
-    
-	if (gui_state == GUISTATE_QR)
-	{
-		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE
-			|| event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
-		{
-			task_create("play_zoom", 0x1d, 0, play_zoom_task, 0);
-			return 0;
-		}
-	}
-}*/
-
-/*
-extern int set_on_halfshutter;
-
-static void
-set_on_halfshutter_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "HalfShutter in DLGs : %s", 
-        set_on_halfshutter ? "SET" : "Cancel"
-    );
-}*/
 
 CONFIG_INT("swap.menu", swap_menu, 0);
 static void

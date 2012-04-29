@@ -483,8 +483,8 @@ bitrate_task( void* unused )
 {
     cbr_init();
 
-    while(1)
-    {
+    TASK_LOOP
+    //{
         wait_till_next_second();
         if (recording) 
         {

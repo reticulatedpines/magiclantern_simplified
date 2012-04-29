@@ -132,6 +132,7 @@ static void dmspy_task(void* unused)
     dm_update();
     DEBUG("hello world");
     stateobj_start_spy(dm_state);
+    TASK_RETURN;
 }
 
 TASK_CREATE("dmspy_task", dmspy_task, 0, 0x1d, 0x1000 );

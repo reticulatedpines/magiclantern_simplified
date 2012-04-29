@@ -618,9 +618,8 @@ static int ms100_clock = 0;
 static void
 ms100_clock_task( void* unused )
 {
-    while(1)
-    {
-        msleep(100);
+    TASK_LOOP_MSLEEP(100)
+    //{
         ms100_clock += 100;
     }
 }
@@ -756,6 +755,7 @@ void playback_compare_images_task(int dir)
     current_buf = get_yuv422_vram()->vram;
     memcpy(current_buf, aux_buf, buf_size);
     give_semaphore(set_maindial_sem);
+    TASK_RETURN;
 }
 
 void playback_compare_images(int dir)
@@ -789,6 +789,7 @@ void expfuse_preview_update_task(int dir)
     //~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
     give_semaphore(set_maindial_sem);
+    TASK_RETURN;
 }
 
 void expfuse_preview_update(int dir)
@@ -873,6 +874,7 @@ void play_next_422_task(int dir)
     }
 
     give_semaphore(set_maindial_sem);
+    TASK_RETURN;
 }
 
 
@@ -2065,6 +2067,7 @@ static void redraw_after_task(int msec)
 {
     msleep(msec);
     redraw();
+    TASK_RETURN;
 }
 
 void redraw_after(int msec)
@@ -2441,17 +2444,18 @@ void zoom_sharpen_step()
     }
 }
 
-void restore_expsim(int es)
+void restore_expsim_task(int es)
 {
     for (int i = 0; i < 50; i++)
     {
         lens_wait_readytotakepic(64);
         set_expsim(es);
         msleep(300);
-        if (expsim == es) return;
+        if (expsim == es) TASK_RETURN;
     }
     NotifyBox(5000, "Could not restore ExpSim :(");
     info_led_blink(5, 50, 50);
+    TASK_RETURN;
 }
 // to be called from the same places as zoom_sharpen_step
 void zoom_auto_exposure_step()
@@ -2500,7 +2504,7 @@ void zoom_auto_exposure_step()
         {
             // not sure why, but when taking a picture, expsim can't be restored;
             // workaround: create a task that retries a few times
-            task_create("restore_expsim", 0x1a, 0, restore_expsim, es);
+            task_create("restore_expsim", 0x1a, 0, restore_expsim_task, es);
             es = -1;
         }
         if (aem >= 0)
@@ -2861,8 +2865,8 @@ int get_seconds_clock() { return seconds_clock; }
 static void
 seconds_clock_task( void* unused )
 {
-    while(1)
-    {
+    TASK_LOOP
+    //{
         wait_till_next_second();
         seconds_clock++;
 
@@ -4517,6 +4521,7 @@ void wait_till_next_second()
     {
         LoadCalendarFromRTC( &now );
         msleep(20);
+        TASK_CHECK_RETURN_SUBROUTINE;
 /*      if (lens_info.job_state == 0) // unsafe otherwise?
         {
             call("DisablePowerSave"); // trick from AJ_MREQ_ISR
@@ -4570,10 +4575,8 @@ shoot_task( void* unused )
 
     bulb_shutter_value = timer_values[bulb_duration_index] * 1000;
     
-    while(1)
-    {
-        msleep(MIN_MSLEEP);
-
+    TASK_LOOP
+    //{
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();

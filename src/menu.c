@@ -1450,10 +1450,12 @@ static void
 menu_redraw_task()
 {
     menu_redraw_queue = msg_queue_create("menu_redraw_mq", 1);
-    while(1)
-    {
+    TASK_LOOP
+    //{
         int msg;
-        msg_queue_receive(menu_redraw_queue, &msg, 0);
+        int err = msg_queue_receive(menu_redraw_queue, &msg, 500);
+        if (err) continue;
+
         menu_redraw_do();
     }
 }
@@ -1949,8 +1951,8 @@ static void
 menu_task( void* unused )
 {    
     select_menu_by_icon(menu_first_by_icon);
-    while(1)
-    {
+    TASK_LOOP
+    //{
         int rc = take_semaphore( gui_sem, 500 );
         if( rc != 0 )
         {
@@ -1999,8 +2001,8 @@ menu_task_minimal( void* unused )
 {
     select_menu_by_icon(menu_first_by_icon);
 
-    while(1)
-    {
+    TASK_LOOP
+    //{
         int rc = take_semaphore( gui_sem, 500 );
         if( rc != 0 )
         {

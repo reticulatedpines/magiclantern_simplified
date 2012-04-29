@@ -875,8 +875,8 @@ static void fps_read_default_timer_values()
 // do all FPS changes from this task only - to avoid trouble ;)
 static void fps_task()
 {
-    while(1)
-    {
+    TASK_LOOP
+    //~ {
         msleep(50);
 
         if (!lv) continue;

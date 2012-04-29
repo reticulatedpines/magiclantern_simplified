@@ -168,6 +168,7 @@ static void dump_rom_task(void* priv)
     msleep(200);
 
     dump_big_seg(4, CARD_DRIVE "RAM4.BIN");
+    TASK_RETURN;
 }
 
 static void dump_rom(void* priv)
@@ -192,13 +193,20 @@ void unsafe_beep()
 
 void beep()
 {
-    if (recording) return; // breaks audio
-    unsafe_beep();
+    if (!recording) // breaks audio
+        unsafe_beep();
+}
+
+void beep_task()
+{
+    if (!recording) // breaks audio
+        unsafe_beep();
+    TASK_RETURN;
 }
 
 void Beep()
 {
-    task_create("beep", 0x1c, 0, beep, 0);
+    task_create("beep", 0x1c, 0, beep_task, 0);
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
@@ -224,6 +232,7 @@ void fake_buttons()
     int delay = 1000;
     for (i = 0; i < 10000; i++)
     {
+        TASK_CHECK_RETURN;
         switch(rand() % 5) {
             case 0: 
                 fake_simple_button(BGMT_PLAY); msleep(rand() % delay);
@@ -245,6 +254,7 @@ void fake_buttons()
                 //~ break;
         }
     }
+    TASK_RETURN;
 }
 
 void change_colors_like_crazy()
@@ -254,6 +264,7 @@ void change_colors_like_crazy()
     int delay = 200;
     for (i = 0; i < 10000; i++)
     {
+        TASK_CHECK_RETURN;
         bmp_off();
         msleep(rand() % delay);
         bmp_on();
@@ -272,19 +283,9 @@ void change_colors_like_crazy()
         //~ sei_restore();
         //~ msleep(rand() % delay);
     }
+    TASK_RETURN;
 }
 
-/*void dlg_test_task()
-{
-    gui_stop_menu();
-    msleep(1000);
-    test_dialog_create();
-}
-
-void dlg_test(void* priv)
-{
-    task_create("dlg_test", 0x1c, 0, dlg_test_task, 0);
-}*/
 
 volatile int aff[26];
 
@@ -390,6 +391,8 @@ static void iso_response_curve_current()
         get_htp() ? "h" : "");
     
     find_response_curve(name);
+    
+    TASK_RETURN;
 }
 
 void iso_response_curve_160()
@@ -417,6 +420,8 @@ void iso_response_curve_160()
     find_response_curve_ex(CARD_DRIVE "iso800.txt",    800,     0   , 0);
     find_response_curve_ex(CARD_DRIVE "iso1600.txt",   1600,    0   , 0);
     find_response_curve_ex(CARD_DRIVE "iso3200.txt",   3200,    0   , 0);
+    
+    TASK_RETURN;
 }
 
 void iso_response_curve_logain()
@@ -442,6 +447,8 @@ void iso_response_curve_logain()
     find_response_curve_ex(CARD_DRIVE "iso400e.txt",    800,   512   , 0);
     find_response_curve_ex(CARD_DRIVE "iso800e.txt",    1600,  512   , 0);
     find_response_curve_ex(CARD_DRIVE "iso1600e.txt",   3200,  512   , 0);
+    
+    TASK_RETURN;
 }
 
 void iso_response_curve_htp()
@@ -467,6 +474,8 @@ void iso_response_curve_htp()
     find_response_curve_ex(CARD_DRIVE "iso800eh.txt",     1600,   512   , 1);
     find_response_curve_ex(CARD_DRIVE "is1600eh.txt",     3200,   512   , 1);
     find_response_curve_ex(CARD_DRIVE "is3200eh.txt",     6400,   512   , 1);
+    
+    TASK_RETURN;
 }
 
 void iso_movie_change_setting(int iso, int dgain, int shutter)
@@ -534,6 +543,8 @@ void iso_movie_test()
     // restore settings back
     iso_movie_change_setting(raw_iso0, 0, tv0);
     bv_auto = bva0;
+    
+    TASK_RETURN;
 }
 #endif // CONFIG_ISO_TESTS
 
@@ -541,6 +552,7 @@ void run_test()
 {
     msleep(2000);
     malloc(1*1024);
+    TASK_RETURN;
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -578,35 +590,88 @@ static void stress_test_task(void* unused)
     NotifyBox(10000, "Stability Test..."); msleep(2000);
     
     msleep(2000);
-    if (!lv) force_liveview();
-
-    for (int i = 0; i <= 100; i++)
-    {
-        int r = rand()%3;
-        set_lv_zoom(r == 0 ? 1 : r == 1 ? 5 : 10);
-        NotifyBox(1000, "LV zoom test: %d", i);
-        msleep(rand()%200);
-    }
-    set_lv_zoom(1);
-    msleep(2000);
-
-    for (int i = 0; i <= 100; i++)
-    {
-        set_expsim(i%3);
-        NotifyBox(1000, "ExpSim toggle: %d", i/10);
-        msleep(rand()%100);
-    }
-
-    msleep(2000);
-
-    for (int i = 0; i <= 100; i++)
-    {
-        bv_toggle(0, 1);
-        NotifyBox(1000, "Exp.Override toggle: %d", i/10);
-        msleep(rand()%100);
-    }
 
     extern struct semaphore * gui_sem;
+
+    msleep(2000);
+
+    for (int i = 0; i <= 1000; i++)
+    {
+        NotifyBox(1000, "ML menu toggle: %d", i);
+        
+        if (i == 250)
+        {
+            msleep(2000);
+            menu_stop();
+            msleep(500);
+            if (!lv) force_liveview();
+        }
+        
+        if (i == 500)
+        {
+            msleep(2000);
+            menu_stop();
+            msleep(500);
+            ensure_movie_mode();
+            movie_start();
+        }
+        
+        if (i == 750)
+        {
+            msleep(2000);
+            menu_stop();
+            msleep(500);
+            movie_end();
+            msleep(2000);
+            fake_simple_button(BGMT_PLAY);
+            msleep(1000);
+        }
+
+        give_semaphore(gui_sem);
+        msleep(rand()%100);
+        info_led_blink(1,50,50);
+
+    }
+    msleep(2000);
+    menu_stop();
+    msleep(1000);
+    if (!lv) force_liveview();
+    msleep(2000);
+
+    NotifyBox(1000, "Cropmarks preview...");
+    select_menu_by_name("LiveV", "Cropmarks");
+    give_semaphore( gui_sem );
+    msleep(500);
+    menu_open_submenu();
+    msleep(100);
+    for (int i = 0; i <= 100; i++)
+    {
+        fake_simple_button(BGMT_WHEEL_RIGHT);
+        msleep(rand()%500);
+    }
+    menu_stop();
+    msleep(2000);
+
+    NotifyBox(1000, "ML menu scroll...");
+    give_semaphore(gui_sem);
+    msleep(1000);
+    for (int i = 0; i <= 1000; i++)
+    {
+        static int dir = 0;
+        switch(dir)
+        {
+            case 0: fake_simple_button(BGMT_WHEEL_LEFT); break;
+            case 1: fake_simple_button(BGMT_WHEEL_RIGHT); break;
+            case 2: fake_simple_button(BGMT_WHEEL_UP); break;
+            case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
+            case 4: fake_simple_button(BGMT_INFO); break;
+            case 5: fake_simple_button(BGMT_MENU); break;
+            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
+        }
+        dir = mod(dir + rand()%3 - 1, 7);
+        msleep(MIN_MSLEEP);
+    }
+    menu_stop();
 
     msleep(2000);
 
@@ -630,52 +695,6 @@ static void stress_test_task(void* unused)
         msleep(2000);
     }
     #endif
-
-    NotifyBox(1000, "Cropmarks preview...");
-    select_menu_by_name("LiveV", "Cropmarks");
-    give_semaphore( gui_sem );
-    msleep(500);
-    menu_open_submenu();
-    msleep(100);
-    for (int i = 0; i <= 100; i++)
-    {
-        fake_simple_button(BGMT_WHEEL_RIGHT);
-        msleep(rand()%500);
-    }
-    give_semaphore( gui_sem );
-    msleep(2000);
-
-    NotifyBox(1000, "ML menu scroll...");
-    give_semaphore(gui_sem);
-    msleep(1000);
-    for (int i = 0; i <= 1000; i++)
-    {
-        static int dir = 0;
-        switch(dir)
-        {
-            case 0: fake_simple_button(BGMT_WHEEL_LEFT); break;
-            case 1: fake_simple_button(BGMT_WHEEL_RIGHT); break;
-            case 2: fake_simple_button(BGMT_WHEEL_UP); break;
-            case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
-            case 4: fake_simple_button(BGMT_INFO); break;
-            case 5: fake_simple_button(BGMT_MENU); break;
-            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
-        }
-        dir = mod(dir + rand()%3 - 1, 7);
-        msleep(MIN_MSLEEP);
-    }
-    give_semaphore(gui_sem);
-
-    msleep(2000);
-    if (!lv) force_liveview();
-    for (int i = 0; i <= 100; i++)
-    {
-        NotifyBox(1000, "ML menu toggle: %d", i);
-        give_semaphore(gui_sem);
-        msleep(50);
-    }
-    msleep(1000);
-    menu_stop();
 
     msleep(2000);
     beep();
@@ -721,6 +740,38 @@ static void stress_test_task(void* unused)
     }
     timelapse_playback = 0;
     get_out_of_play_mode();
+
+    msleep(2000);
+
+    if (!lv) force_liveview();
+
+    for (int i = 0; i <= 100; i++)
+    {
+        int r = rand()%3;
+        set_lv_zoom(r == 0 ? 1 : r == 1 ? 5 : 10);
+        NotifyBox(1000, "LV zoom test: %d", i);
+        msleep(rand()%200);
+    }
+    set_lv_zoom(1);
+    msleep(2000);
+
+    for (int i = 0; i <= 100; i++)
+    {
+        set_expsim(i%3);
+        NotifyBox(1000, "ExpSim toggle: %d", i/10);
+        msleep(rand()%100);
+    }
+
+    msleep(2000);
+
+    for (int i = 0; i <= 100; i++)
+    {
+        bv_toggle(0, 1);
+        NotifyBox(1000, "Exp.Override toggle: %d", i/10);
+        msleep(rand()%100);
+    }
+
+    msleep(2000);
 
     for (int i = 0; i < 100; i++)
     {
@@ -949,15 +1000,17 @@ static void stress_test_task(void* unused)
     //~ NotifyBox(10000, "Burn-in test (will take hours!)");
     //~ set_shooting_mode(SHOOTMODE_M);
     //~ xx_test2(0);
+    
+    TASK_RETURN;
 }
 
 static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
 {
     extern struct semaphore * gui_sem;
-    select_menu_by_name(menu_name, item_name);
+    //~ select_menu_by_name(menu_name, item_name);
     if (!gui_menu_shown()) give_semaphore( gui_sem );
     msleep(400);
-    fake_simple_button(BGMT_PRESS_SET);
+    //~ fake_simple_button(BGMT_PRESS_SET);
     msleep(200);
     give_semaphore( gui_sem );
     return;
@@ -1014,10 +1067,10 @@ static void stress_test_random_action()
                 stress_test_toggle_menu_item("Expo", "REC PicStyle");
                 return;
             case 15:
-                stress_test_toggle_menu_item("Expo", "LV ViewType");
+                //~ stress_test_toggle_menu_item("Expo", "LV ViewType");
                 return;
             case 16:
-                stress_test_toggle_menu_item("Expo", "Exp.Override");
+                //~ stress_test_toggle_menu_item("Expo", "Exp.Override");
                 return;
             case 17:
                 stress_test_toggle_menu_item("Display", "Clear Overlays");
@@ -1038,40 +1091,40 @@ static void stress_test_random_action()
                 stress_test_toggle_menu_item("Movie", "Shutter Lock");
                 return;
             case 23:
-                stress_test_toggle_menu_item("Movie", "FPS override");
+                //~ stress_test_toggle_menu_item("Movie", "FPS override");
                 return;
             case 24:
-                stress_test_toggle_menu_item("Movie", "HDR video");
+                //~ stress_test_toggle_menu_item("Movie", "HDR video");
                 return;
             case 25:
-                stress_test_toggle_menu_item("Movie", "Highlight++");
+                //~ stress_test_toggle_menu_item("Movie", "Highlight++");
                 return;
             case 26:
-                stress_test_toggle_menu_item("Movie", "Image Effects");
+                //~ stress_test_toggle_menu_item("Movie", "Image Effects");
                 return;
             case 27:
-                stress_test_toggle_menu_item("Shoot", "HDR Bracketing");
+                //~ stress_test_toggle_menu_item("Shoot", "HDR Bracketing");
                 return;
             case 28:
-                stress_test_toggle_menu_item("Shoot", "Intervalometer");
+                //~ stress_test_toggle_menu_item("Shoot", "Intervalometer");
                 return;
             case 29:
-                stress_test_toggle_menu_item("Shoot", "Bulb Timer");
+                //~ stress_test_toggle_menu_item("Shoot", "Bulb Timer");
                 return;
             case 30:
-                stress_test_toggle_menu_item("Shoot", "LCDsensor Remote");
+                //~ stress_test_toggle_menu_item("Shoot", "LCDsensor Remote");
                 return;
             case 31:
-                stress_test_toggle_menu_item("Shoot", "Audio RemoteShot");
+                //~ stress_test_toggle_menu_item("Shoot", "Audio RemoteShot");
                 return;
             case 32:
-                stress_test_toggle_menu_item("Shoot", "Motion Detect");
+                //~ stress_test_toggle_menu_item("Shoot", "Motion Detect");
                 return;
             case 33:
                 stress_test_toggle_menu_item("Focus", "Follow Focus");
                 return;
             case 34:
-                stress_test_toggle_menu_item("Tweaks", "LiveView Zoom");
+                //~ stress_test_toggle_menu_item("Tweaks", "LiveView Zoom");
                 return;
             case 35:
                 //~ fake_simple_button(BGMT_PLAY);
@@ -1113,9 +1166,10 @@ static void stress_test_random_action()
 static void stress_test_random_task(void* unused)
 {
     config_autosave = 0; // this will make many changes in menu, don't save them
-    while(1)
-    {
-        stress_test_random_action();
+    TASK_LOOP
+    //{
+        //~ stress_test_random_action();
+        stress_test_toggle_menu_item("Play", "Zoom in PLAY mode");
         msleep(rand() % 1000);
     }
 }
@@ -1146,8 +1200,8 @@ static void stress_test_random_action_simple()
 static void stress_test_menu_dlg_api_task(void* unused)
 {
     config_autosave = 0; // this will make many changes in menu, don't save them
-    while(1)
-    {
+    TASK_LOOP
+    //{
         stress_test_random_action_simple();
         //~ stress_test_toggle_menu_item("LiveV", "Zebras");
         msleep(rand() % 30);
@@ -1660,36 +1714,30 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     while (!ml_started) msleep(100);
     
     config_menu_init();
+    
+    //~ ensure_movie_mode();
+    //~ movie_start();
+    //~ msleep(2000);
+    //~ extern struct semaphore * gui_sem;
+    
+    
+    //~ give_semaphore(gui_sem);
+    //~ msleep(600);
+    //~ give_semaphore(gui_sem);
+    //~ return;
+    
+    
+    //~ msleep(2000);
+    //~ stress_test_random_task(0);
+    //~ TASK_RETURN;
         
-    /*dump_seg(&(font_large.bitmap), ('~' + (31 << 7)) * 4, CARD_DRIVE "large.fnt");
-    dump_seg(&(font_med.bitmap), ('~' + (19 << 7)) * 4, CARD_DRIVE "medium.fnt");
-    dump_seg(&(FONT_SMALL.bitmap), ('~' + (11 << 7)) * 4, CARD_DRIVE "small.fnt");*/
-    //~ msleep(1000);
-    //~ stress_test_menu_dlg_api(); return;
-    int k;
-    for (k = 0; ; k++)
-    {
-        msleep(MIN_MSLEEP);
-        
-        //ui_lock(UILOCK_NONE); msleep(1000);        for debugging purposes (A1ex)
-        
-        //~ struct tm now;
-        //~ LoadCalendarFromRTC(&now);
+    TASK_LOOP
+    //{
 
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
-        
-        //~ if (recording == 2)
-            //~ void* x = get_lvae_info();
-            //~ bmp_hexdump(FONT_SMALL, 0, 20, 0x4FDA8, 32*20);
-        //~ extern int disp_pressed;
-        //~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
-        
-        //~ bmp_printf(FONT_LARGE, 50, 300, "%x ", MEM(0xa7170));
-        //~ maru(50, 50, liveview_display_idle() ? COLOR_RED : COLOR_GREEN1);
-        //~ maru(100, 50, LV_BOTTOM_BAR_DISPLAYED ? COLOR_RED : COLOR_GREEN1);
 
         if (get_global_draw())
         {
@@ -1726,8 +1774,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     }
                 }
                 #endif
-
-                /*static int rca_warned = 0;
+                
+                static int rca_warned = 0;
                 if (ext_monitor_rca) 
                 {
                     beep();
@@ -1738,7 +1786,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                         NotifyBox(2000, "RGB tools and magic zoom\nwill not work well.'"); msleep(2000);
                         rca_warned = 1;
                     }
-                }*/
+                }
             }
         }
         
@@ -1754,11 +1802,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         {
             HijackFormatDialogBox_main();
         }
-        //~ if (BTN_METERING_PRESSED_IN_LV)
-        //~ {
-            //~ while (BTN_METERING_PRESSED_IN_LV) msleep(100);
-            //~ toggle_disp_mode();
-        //~ }
         
         #if CONFIG_DEBUGMSG
         if (draw_prop)
@@ -1781,6 +1824,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         
         msleep(200);
     }
+    TASK_RETURN;
 }
 
 void screenshot_start(void* priv)
@@ -1839,6 +1883,7 @@ void flashlight_frontled_task(void* priv)
     set_shooting_mode(m);
     display_on();
     if (l) force_liveview();
+    TASK_RETURN;
 }
 
 void flashlight_lcd_task(void *priv)
@@ -1861,6 +1906,7 @@ void flashlight_lcd_task(void *priv)
     set_backlight_level(b);
     canon_gui_enable_front_buffer(1);
     idle_globaldraw_en();
+    TASK_RETURN;
 }
 
 static void flashlight_frontled(void* priv, int delta)
@@ -2108,7 +2154,36 @@ static void CR2toAVI(void* priv, int delta)
     EyeFi_RenameCR2toAVI(get_dcim_dir());
 }
 
-void menu_open_submenu();
+static void frozen_task()
+{
+    msleep(2000);
+    while(1);
+}
+
+static void freeze_gui_task()
+{
+    while(1) msleep(1000);
+}
+
+static void divzero_task()
+{
+    for (int i = -10; i < 10; i++)
+    {
+        NotifyBox(1000, "1000/%d = %d = %d", i, 1000/i, (int)(1000.0 / (float)i));
+        msleep(500);
+    }
+    TASK_RETURN;
+}
+
+static void alloc_1M_task()
+{
+    AllocateMemory(1024 * 1024);
+    TASK_RETURN;
+}
+
+extern void menu_open_submenu();
+extern void tasks_print(void* priv, int x0, int y0, int selected);
+extern int what_tasks_to_show;
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
@@ -2169,6 +2244,15 @@ struct menu_entry debug_menus[] = {
         .select        = flashlight_lcd,
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
+    },
+    {
+        .name = "Screenshot (10 s)",
+        .select     = screenshot_start,
+        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
+        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
+        #else
+        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
+        #endif
     },
 #if CONFIG_DEBUGMSG
     {
@@ -2269,6 +2353,38 @@ struct menu_entry debug_menus[] = {
             MENU_EOL,
         }
     },
+    {
+        .name        = "Fault emulation...",
+        .select        = menu_open_submenu,
+        .help = "Causes intentionally wrong behavior to see DryOS reaction.",
+        .essential = FOR_MOVIE | FOR_PHOTO,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Create a stuck task",
+                .select = run_in_separate_task,
+                .priv = frozen_task,
+                .help = "Creates a task which will become stuck in an infinite loop."
+            },
+            {
+                .name = "Freeze GUI task",
+                .select = freeze_gui_task,
+                .help = "Freezes main GUI task. Camera will stop reacting to buttons."
+            },
+            {
+                .name = "Division by zero",
+                .select = run_in_separate_task,
+                .priv = divzero_task,
+                .help = "Performs some math operations which will divide by zero."
+            },
+            {
+                .name = "Allocate 1MB of RAM",
+                .select = run_in_separate_task,
+                .priv = alloc_1M_task,
+                .help = "Allocates 1MB RAM from system memory, without freeing it."
+            },
+            MENU_EOL,
+        }
+    },
 #endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
@@ -2278,13 +2394,19 @@ struct menu_entry debug_menus[] = {
     },
 #endif
     {
-        .name = "Screenshot (10 s)",
-        .select     = screenshot_start,
-        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
-        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
-        #else
-        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
-        #endif
+        .name = "Show tasks...",
+        .select = menu_open_submenu,
+        .help = "Displays the tasks started by Canon and Magic Lantern.",
+        .children =  (struct menu_entry[]) {
+            {
+                .display = tasks_print,
+                .priv = &what_tasks_to_show,
+                .min = 1,
+                .max = 2,
+                .help = "Task info: ID, name, priority, wait_id, mem, state.",
+            },
+            MENU_EOL
+        }
     },
     {
         .name = "Free Memory",
@@ -2625,12 +2747,8 @@ movie_start( void )
 
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
 
-void ml_shutdown()
+void config_save_at_shutdown()
 {
-    extern int ml_started;
-    ml_started = 0;
-    extern int safe_to_do_engio_for_display;
-    safe_to_do_engio_for_display = 0;
     static int config_saved = 0;
     if (config_ok && config_autosave && !config_saved)
     {
@@ -2638,21 +2756,6 @@ void ml_shutdown()
         save_config(0, 0);
         msleep(100);
     }
-    info_led_on();
-    _card_led_on();
-}
-
-PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
-{
-    //bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
-    if (buf[0] == 0)  ml_shutdown();
-    return prop_cleanup(token, property);
-}
-
-PROP_HANDLER(PROP_CARD_COVER)
-{
-    if (buf[0] == 1) ml_shutdown();
-    return prop_cleanup(token, property);
 }
 
 
@@ -2721,8 +2824,8 @@ int iso_adj_sign = 0;
 
 void iso_adj_task(void* unused)
 {
-    while(1)
-    {
+    TASK_LOOP
+    //{
         msleep(20);
         if (iso_adj_flag)
         {
@@ -2731,6 +2834,7 @@ void iso_adj_task(void* unused)
             lens_display_set_dirty();
         }
     }
+    TASK_RETURN;
 }
 
 TASK_CREATE("iso_adj_task", iso_adj_task, 0, 0x1a, 0);

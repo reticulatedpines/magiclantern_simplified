@@ -60,6 +60,7 @@ ML_OBJS-y = \
 	lightsensor.o \
 	lv-img-engio.o \
 	state-object.o \
+	tasks.o \
 
 
 #include generic rules and definitions

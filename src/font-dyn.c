@@ -122,10 +122,10 @@ void load_fonts(void* unused)
     fonts_done = 1;
 }
 
-static void init_fonts()
-{
-    task_create("load_fonts", 0x1c, 0, load_fonts, 0);
-    while (!fonts_done) msleep(100);
-}
+//~ static void init_fonts()
+//~ {
+    //~ task_create("load_fonts", 0x1c, 0, load_fonts, 0);
+    //~ while (!fonts_done) msleep(100);
+//~ }
 
 INIT_FUNC(__FILE__, load_fonts);

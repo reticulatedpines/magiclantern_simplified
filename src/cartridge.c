@@ -113,8 +113,8 @@ INIT_FUNC("cartridge", cartridge_init);
 
 static void cartridge_task()
 {
-    while(1)
-    {
+    TASK_LOOP
+    //{
         if (lv)
         {
             update_hard_expo_override();

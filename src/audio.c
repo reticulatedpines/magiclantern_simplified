@@ -410,9 +410,8 @@ meter_task( void* unused )
 {
         audio_menus_init();
         
-        while(1)
-        {
-                msleep( 50 );
+        TASK_LOOP_MSLEEP(50)
+        //{
         
                 if (is_menu_help_active()) continue;
                 
@@ -437,7 +436,7 @@ meter_task( void* unused )
 }
 
 
-TASK_CREATE( "meter_task", meter_task, 0, 0x18, 0x1000 );
+TASK_CREATE( "audio_meter_task", meter_task, 0, 0x18, 0x1000 );
 
 
 /** Monitor the audio levels very quickly */
@@ -447,9 +446,8 @@ compute_audio_level_task( void* unused )
         audio_levels[0].peak = audio_levels[1].peak = 0;
         audio_levels[0].avg = audio_levels[1].avg = 0;
     
-        while(1)
-        {
-                msleep( 10 );
+        TASK_LOOP_MSLEEP(MIN_MSLEEP)
+        //{
                 compute_audio_levels( 0 );
                 compute_audio_levels( 1 );
         }

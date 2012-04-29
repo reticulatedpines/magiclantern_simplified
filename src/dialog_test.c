@@ -263,6 +263,7 @@ void NotifyBox_task(void* priv)
     }
 
     fake_simple_button(MLEV_NOTIFY_BOX_CLOSE);
+    TASK_RETURN;
 }
 
 void NotifyBoxHide()

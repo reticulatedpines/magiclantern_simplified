@@ -191,10 +191,8 @@ void LightMeasureCBR(int priv, int light)
 
 void light_sensor_task(void* unused)
 {
-    int k = 0;
-    while(1)
-    {
-        msleep(50);
+    TASK_LOOP_MSLEEP(50)
+    //{
         LightMeasure_n_Callback_r0(LightMeasureCBR, 0);
 
         int ev_x100 = gain_to_ev_scaled(lightsensor_raw_value, 100);

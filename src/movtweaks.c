@@ -371,9 +371,8 @@ movtweak_task( void* unused )
     bv_auto_update();
     bv_startup = 0;
 
-    int k;
-    for (k = 0; ; k++)
-    {
+    TASK_LOOP
+    //{
         msleep(50);
         
         static int recording_prev = 0;

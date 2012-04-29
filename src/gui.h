@@ -29,14 +29,12 @@
 #include "../platform/5D2.212/gui.h"
 #endif
 
-
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
 #define MLEV_HIJACK_FORMAT_DIALOG_BOX -1
 #define MLEV_TURN_ON_DISPLAY -2
 #define MLEV_TURN_OFF_DISPLAY -3
-#define MLEV_HIDE_CANON_BOTTOM_BAR -4
 #define MLEV_ChangeHDMIOutputSizeToVGA -5
 #define MLEV_LCD_SENSOR_START -6
 #define MLEV_REDRAW -7
@@ -48,7 +46,7 @@
 #define MLEV_MENU_OPEN -13
 #define MLEV_MENU_CLOSE -14
 #define MLEV_MENU_REDRAW -15
-
+ 
 
 /** \file
  * DryOS GUI structures and functions.
@@ -142,7 +140,7 @@ struct event
 
 
 extern void gui_init_end( void );
-extern void msg_queue_receive( void *, struct event **, uint32_t );
+extern int msg_queue_receive( void *, struct event **, uint32_t );
 extern void gui_massive_event_loop( uint32_t, void *, uint32_t );
 extern void gui_local_post( uint32_t, void *, uint32_t );
 extern void gui_other_post( uint32_t, void *, uint32_t );

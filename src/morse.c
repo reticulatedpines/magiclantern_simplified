@@ -266,7 +266,7 @@ void morse_task(void* unused)
   int curchar=0, lastchar='_';
   unsigned spacetimes=0;  // counts number of intersymbol times (before we call it a space)
   
-  while(1) {
+  TASK_LOOP //{
     if (!morse_enabled) { msleep(1000); continue; }
     if (!flicker_being_killed()) kill_flicker();
 

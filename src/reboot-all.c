@@ -27,7 +27,7 @@
 #include "arm-mcr.h"
 
 #undef RESTARTSTART
-#define RESTARTSTART_550 0x8B000
+#define RESTARTSTART_550 0xC80100
 #define RESTARTSTART_60  0x5f000
 #define RESTARTSTART_600 0x82000
 #define RESTARTSTART_50  0x4b000
@@ -38,11 +38,11 @@
 
 #define SIG_60D_110  0xac958a1e // from FF010000
 #define SIG_550D_109 0x851320e6 // from FF010000
-#define SIG_600D_102 0x27fc03de // from FF010000
+#define SIG_600D_101 0x290106d8 // from FF010000
 #define SIG_500D_110 0x4c0e5a7e // from FF010000
-#define SIG_50D_109  0x4673ef59 // from FF010000
+#define SIG_50D_108  0xb2311152 // from FF010000
 #define SIG_500D_111 0x44f49aef // from FF010000
-#define SIG_5D2_212  0xae78b938 // from FF010000
+#define SIG_5D2_211  0xaf79902b // from FF010000
 
 asm(
 ".text\n"
@@ -132,12 +132,12 @@ static int guess_firmware_version()
             blob_end = &blob_end_60;
             RESTARTSTART = (void*)RESTARTSTART_60;
             return 1;
-        case SIG_600D_102:
+        case SIG_600D_101:
             blob_start = &blob_start_600;
             blob_end = &blob_end_600;
             RESTARTSTART = (void*)RESTARTSTART_600;
             return 1;
-        case SIG_50D_109:
+        case SIG_50D_108:
             blob_start = &blob_start_50;
             blob_end = &blob_end_50;
             RESTARTSTART = (void*)RESTARTSTART_50;
@@ -148,7 +148,7 @@ static int guess_firmware_version()
             blob_end = &blob_end_500;
             RESTARTSTART = (void*)RESTARTSTART_500;
             return 1;
-        case SIG_5D2_212:
+        case SIG_5D2_211:
             blob_start = &blob_start_5d2;
             blob_end = &blob_end_5d2;
             RESTARTSTART = (void*)RESTARTSTART_5D2;
@@ -180,14 +180,14 @@ asm(
 
     ".globl blob_start_600\n"
     "blob_start_600:\n"
-    ".incbin \"../600D.102/magiclantern.bin\"\n" // 
+    ".incbin \"../600D.101/magiclantern.bin\"\n" // 
     ".align 12\n"
     "blob_end_600:"
     ".globl blob_end_600\n"
 
     ".globl blob_start_50\n"
     "blob_start_50:\n"
-    ".incbin \"../50D.109/magiclantern.bin\"\n" // 
+    ".incbin \"../50D.108/magiclantern.bin\"\n" // 
     ".align 12\n"
     "blob_end_50:"
     ".globl blob_end_50\n"
@@ -201,7 +201,7 @@ asm(
 
     ".globl blob_start_5d2\n"
     "blob_start_5d2:\n"
-    ".incbin \"../5D2.212/magiclantern.bin\"\n" // 
+    ".incbin \"../5D2.211/magiclantern.bin\"\n" // 
     ".align 12\n"
     "blob_end_5d2:"
     ".globl blob_end_5d2\n"

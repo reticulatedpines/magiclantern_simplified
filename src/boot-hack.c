@@ -327,11 +327,7 @@ void my_big_init_task()
     //~ );
     msleep(1000);
     ml_started = 1;
-#ifndef CONFIG_1100D
-    //~ ui_lock(UILOCK_NONE);
-#endif
-    //~ NotifyBoxHide();
-    //~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
+    TASK_RETURN;
 }
 
 /*void logo_task(void* unused)

@@ -597,10 +597,11 @@ rack_focus(
 static void
 focus_task( void* unused )
 {
-    while(1)
-    {
+    TASK_LOOP
+    //{
         msleep(50);
-        take_semaphore( focus_task_sem, 0 );
+        int err = take_semaphore( focus_task_sem, 500 );
+        if (err) continue;
 
         if( focus_rack_delta )
         {
@@ -1075,8 +1076,8 @@ void movie_af_noisefilter_bump(void* priv)
 static void
 focus_misc_task(void* unused)
 {
-    while(1)
-    {
+    TASK_LOOP
+    //{
         msleep(100);
         
         if (hsp_countdown) hsp_countdown--;
