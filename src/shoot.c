@@ -45,6 +45,7 @@ void zoom_sharpen_step();
 void zoom_auto_exposure_step();
 
 static void bulb_ramping_showinfo();
+int bulb_ramp_calibration_running = 0;
 
 bool display_idle()
 {
@@ -2465,7 +2466,7 @@ void zoom_auto_exposure_step()
     static int es = -1;
     static int aem = -1;
     
-    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
+    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running)
     {
         // photo mode: disable ExpSim
         // movie mode 5D2: disable ExpSim
@@ -2959,21 +2960,56 @@ int handle_bulb_ramping_keys(struct event * event)
     return 1;
 }
 
-// still useful for bulb ramping
-static void set_display_gain(int gain)
+static void flip_zoom()
 {
+    if (!lv) return;
+    if (is_movie_mode())
+    {
+        if (recording) return;
+        if (video_mode_crop) return;
+    }
+    
+    // flip zoom mode back and forth to apply settings instantly
+    int zoom0 = lv_dispsize;
+    int zoom1 = zoom0 == 10 ? 5 : zoom0 == 5 ? 1 : 10;
+    set_lv_zoom(zoom1);
+    set_lv_zoom(zoom0);
+}
+
+
+static int bramp_measure_luma(int delay)
+{
+    msleep(delay);
+    // we are in zoom mode, histogram not normally updated => we can reuse the buffer
+    //~ struct vram_info * vram = get_yuv422_vram();
+    //~ hist_build(vram->vram, vram->width, vram->pitch);
+    //~ bramp_hist_dirty = 0;
+    //~ return hist_get_percentile_level(50) * 255/100; // median => much more robust in cluttered scenes, but more sensitive to noise
+    int Y,U,V;
+    get_spot_yuv(200, &Y, &U, &V);
+    return Y;
+}
+
+// still useful for bulb ramping
+int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
+static int bramp_set_display_gain_and_measure_luma(int gain)
+{
+    //~ set_display_gain_equiv(gain);
     call("lvae_setdispgain", gain);
+    if (lv_dispsize == 1) set_lv_zoom(5);
+    if (bramp_zoom_toggle_needed)
+    {
+        flip_zoom();
+        msleep(1000);
+    }
+    msleep(500);
+    return bramp_measure_luma(0);
 }
 
 static int crit_dispgain_50(int gain)
 {
     if (!lv) return 0;
-
-    set_display_gain(gain);
-    msleep(500);
-    
-    int Y,U,V;
-    get_spot_yuv(200, &Y, &U, &V);
+    int Y = bramp_set_display_gain_and_measure_luma(gain);
     NotifyBox(1000, "Gain=%d => Luma=%d ", gain, Y);
     return 128 - Y;
 }
@@ -3040,7 +3076,6 @@ void bramp_calibration_set_dirty() { bramp_init_done = 0; }
 #define BRAMP_SHUTTER_0 56 // 1 second exposure => just for entering compensation
 static int bramp_temporary_exposure_compensation_ev_x100 = 0;
 
-int bulb_ramp_calibration_running = 0;
 void bulb_ramping_init()
 {
     if (bramp_init_done) return;
@@ -3048,52 +3083,103 @@ void bulb_ramping_init()
     bulb_duration_index = 0; // disable bulb timer to avoid interference
 
     NotifyBox(100000, "Calibration...");
-    
     bulb_ramp_calibration_running = 1;
-    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
-    set_shooting_mode(SHOOTMODE_M); // expsim will be disabled from tweaks.c
-    #else
-    set_shooting_mode(SHOOTMODE_P);
-    #endif
-    msleep(1000);
-    lens_set_rawiso(0);
+
+    set_shooting_mode(SHOOTMODE_M);
     if (!lv) force_liveview();
-    msleep(2000);
-    set_lv_zoom(10);
+    int e0 = expsim;
+    int iso0 = lens_info.raw_iso;
+    int s0 = lens_info.raw_shutter;
+    set_expsim(1);
 
 calib_start:
     SW1(1,50); // reset power management timers
     SW1(0,50);
-    lens_set_ae(0);
+    set_lv_zoom(lv_dispsize == 10 ? 5 : 10);
+    
+    lens_set_rawiso(COERCE(iso0, 80, 120));
+
+    NotifyBox(2000, "Testing display gain...");
+    int Y;
+    int Yn = bramp_set_display_gain_and_measure_luma(100);
+    int Yp = bramp_set_display_gain_and_measure_luma(32767);
+    bramp_zoom_toggle_needed = (ABS(Yn - Yp) < 10);
+    if (bramp_zoom_toggle_needed)
+    {
+        Yn = bramp_set_display_gain_and_measure_luma(100);
+        Yp = bramp_set_display_gain_and_measure_luma(32767);
+    }
+    bramp_set_display_gain_and_measure_luma(0);
+    int ok = (ABS(Yn - Yp) > 10);
+    if (!ok)
+    {
+        set_expsim(e0);
+        NotifyBox(5000, "Cannot calibrate.        "
+                        "Please report to ML devs."); msleep(5000);
+        intervalometer_stop();
+        return;
+    }
+    
+    // first try to brighten the image
+    while (bramp_measure_luma(500) < 128)
+    {
+        if (lens_info.raw_iso+8 <= 120) // 6400
+        {
+            NotifyBox(2000, "Too dark, increasing ISO...");
+            lens_set_rawiso(lens_info.raw_iso + 8);
+            continue;
+        }
+        else if (lens_info.raw_shutter-8 >= 20)
+        {
+            NotifyBox(2000, "Too dark, increasing exp.time...");
+            lens_set_rawshutter(lens_info.raw_shutter - 8);
+            continue;
+        }
+        else break;
+    }
+    
+    // then try to darken 
+    while (bramp_measure_luma(500) > 128)
+    {
+        if (lens_info.raw_iso-8 >= 80) // 200
+        {
+            NotifyBox(2000, "Too bright, decreasing ISO...");
+            lens_set_rawiso(lens_info.raw_iso - 8);
+            continue;
+        }
+        else if (lens_info.raw_shutter <= 152) // 1/4000
+        {
+            NotifyBox(2000, "Too bright, decreasing exp.time...");
+            lens_set_rawshutter(lens_info.raw_shutter + 8);
+            continue;
+        }
+        else break;
+    }
+    
+    // at this point, the image should be roughly OK exposed
+    // we can now play only with display gain
+    
+    
     int gain0 = bin_search(128, 2500, crit_dispgain_50);
-    set_display_gain(gain0);
-    msleep(500);
-    int Y,U,V;
-    get_spot_yuv(200, &Y, &U, &V);
-    if (ABS(Y-128) > 1) 
+    Y = bramp_set_display_gain_and_measure_luma(gain0);
+    if (ABS(Y-128) > 2) 
     {
         NotifyBox(1000, "Scene %s, retrying...", 
             gain0 > 2450 ? "too dark" :
             gain0 < 150 ? "too bright" : 
             "not static"
         ); 
-
-        int zoom = lv_dispsize == 10 ? 5 : lv_dispsize == 5 ? 1 : 10;
-        set_lv_zoom(zoom);
         
         goto calib_start;
     }
     
     for (int i = -5; i <= 5; i++)
     {
-        set_display_gain(gain0 * (1 << (i+10)) / 1024);
-        //~ lens_set_ae(i*4);
-        msleep(500);
-        get_spot_yuv(200, &Y, &U, &V);
+        Y = bramp_set_display_gain_and_measure_luma(gain0 * (1 << (i+10)) / 1024);
         NotifyBox(500, "%d EV => luma=%d  ", i, Y);
         if (i == 0) // here, luma should be 128
         {
-            if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+            if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
             else Y = 128;
         }
         if (i > -5 && Y < bramp_luma_ev[i+5-1]) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
@@ -3103,21 +3189,21 @@ calib_start:
     }
     
     // final check
-    set_display_gain(gain0);
-    msleep(2000);
-    get_spot_yuv(200, &Y, &U, &V);
-    if (ABS(Y-128) > 1) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+    Y = bramp_set_display_gain_and_measure_luma(gain0);
+    if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
 
     // calibration accepted :)
     bulb_ramp_calibration_running = 0;
-    set_display_gain(0);
-    lens_set_ae(0);
+    bramp_set_display_gain_and_measure_luma(0);
+    set_expsim(e0);
+    lens_set_rawiso(iso0);
+    lens_set_rawshutter(s0);
 #ifdef CONFIG_500D
     fake_simple_button(BGMT_Q);
 #else
     fake_simple_button(BGMT_LV);
 #endif
-    msleep(500);
+    msleep(1000);
     fake_simple_button(BGMT_PLAY);
     msleep(1000);
     
@@ -3970,7 +4056,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     else // manual mode or bulb
     {
         int iso00 = lens_info.raw_iso;
-        int iso0 = iso0;
+        int iso0 = iso00;
         if (!iso0) iso0 = lens_info.raw_iso_auto;
 
         if (hdr_iso && iso0) // dynamic range optimization
@@ -4025,6 +4111,8 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (expsim == 2) set_expsim(1); // can't set shutter slower than 1/30 in movie mode
             #endif
+            ans = hdr_set_rawshutter(rc);
+            msleep(100);
             ans = hdr_set_rawshutter(rc);
             take_a_pic(allow_af);
             

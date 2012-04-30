@@ -1801,7 +1801,7 @@ bool prop_set_rawiso(unsigned iso)
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
     prop_request_change( PROP_ISO, &iso, 4 );
-    msleep(50);
+    msleep(100);
     return (unsigned int) get_prop(PROP_ISO) == iso;
 }
 
