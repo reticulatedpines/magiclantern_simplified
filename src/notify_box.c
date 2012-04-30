@@ -57,6 +57,7 @@ void NotifyBox_task(void* priv)
             bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, notify_box_msg);
             msleep(50);
             if (notify_box_stop_request) break;
+            TASK_CHECK_RETURN;
         }
         notify_box_timeout = 0;
         redraw();
