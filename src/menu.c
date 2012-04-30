@@ -1455,8 +1455,8 @@ menu_redraw_task()
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, &msg, 500);
         if (err) continue;
-
-        menu_redraw_do();
+        if (gui_menu_shown()) menu_redraw_do();
+        else redraw();
     TASK_LOOP_END //}
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
