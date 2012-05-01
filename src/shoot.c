@@ -103,7 +103,7 @@ static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
 
-static CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
+static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
@@ -3151,10 +3151,22 @@ static void bramp_plot_luma_ev_point(int luma, int color)
     draw_circle(x, y, 6, COLOR_WHITE);
 }
 
-void bramp_calibration_set_dirty() { bramp_init_done = 0; }
-
 #define BRAMP_SHUTTER_0 56 // 1 second exposure => just for entering compensation
 static int bramp_temporary_exposure_compensation_ev_x100 = 0;
+
+// bulb ramping calibration cache
+static CONFIG_INT("bramp.calib.sig", bramp_calib_sig, 0);
+static CONFIG_INT("bramp.calib.m5", bramp_calib_cache_m5, 0);
+static CONFIG_INT("bramp.calib.m4", bramp_calib_cache_m4, 0);
+static CONFIG_INT("bramp.calib.m3", bramp_calib_cache_m3, 0);
+static CONFIG_INT("bramp.calib.m2", bramp_calib_cache_m2, 0);
+static CONFIG_INT("bramp.calib.m1", bramp_calib_cache_m1, 0);
+static CONFIG_INT("bramp.calib.0", bramp_calib_cache_0, 0);
+static CONFIG_INT("bramp.calib.1", bramp_calib_cache_1, 0);
+static CONFIG_INT("bramp.calib.2", bramp_calib_cache_2, 0);
+static CONFIG_INT("bramp.calib.3", bramp_calib_cache_3, 0);
+static CONFIG_INT("bramp.calib.4", bramp_calib_cache_4, 0);
+static CONFIG_INT("bramp.calib.5", bramp_calib_cache_5, 0);
 
 void bulb_ramping_init()
 {
@@ -3163,6 +3175,7 @@ void bulb_ramping_init()
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
     bramp_manual_ev_correction_for_auto_ramping_x100 = 0;
+    bramp_temporary_exposure_compensation_ev_x100 = 0;
     bramp_prev_measured_ev = -12345.0;
     
     if (!bramp_auto_exposure) 
@@ -3171,128 +3184,166 @@ void bulb_ramping_init()
         return;
     }
 
-    NotifyBox(100000, "Calibration...");
-    bulb_ramp_calibration_running = 1;
+    // if calibration is cached, load it from config file
+    int calib_sig = lens_info.picstyle * 123 + lens_get_contrast() + (get_htp() ? 17 : 23);
+    if (calib_sig == bramp_calib_sig)
+    {
+        bramp_luma_ev[0] = bramp_calib_cache_m5;
+        bramp_luma_ev[1] = bramp_calib_cache_m4;
+        bramp_luma_ev[2] = bramp_calib_cache_m3;
+        bramp_luma_ev[3] = bramp_calib_cache_m2;
+        bramp_luma_ev[4] = bramp_calib_cache_m1;
+        bramp_luma_ev[5] = bramp_calib_cache_0;
+        bramp_luma_ev[6] = bramp_calib_cache_1;
+        bramp_luma_ev[7] = bramp_calib_cache_2;
+        bramp_luma_ev[8] = bramp_calib_cache_3;
+        bramp_luma_ev[9] = bramp_calib_cache_4;
+        bramp_luma_ev[10] = bramp_calib_cache_5;
+    }
+    else // compute calibration from scratch
+    {
 
-    set_shooting_mode(SHOOTMODE_M);
-    if (!lv) force_liveview();
-    int e0 = expsim;
-    int iso0 = lens_info.raw_iso;
-    int s0 = lens_info.raw_shutter;
-    set_expsim(1);
+        NotifyBox(100000, "Calibration...");
+        bulb_ramp_calibration_running = 1;
 
-calib_start:
-    SW1(1,50); // reset power management timers
-    SW1(0,50);
-    set_lv_zoom(lv_dispsize == 10 ? 5 : 10);
-    
-    lens_set_rawiso(COERCE(iso0, 80, 120));
+        set_shooting_mode(SHOOTMODE_M);
+        if (!lv) force_liveview();
+        int e0 = expsim;
+        int iso0 = lens_info.raw_iso;
+        int s0 = lens_info.raw_shutter;
+        set_expsim(1);
 
-    NotifyBox(2000, "Testing display gain...");
-    int Y;
-    int Yn = bramp_set_display_gain_and_measure_luma(100);
-    int Yp = bramp_set_display_gain_and_measure_luma(32767);
-    bramp_zoom_toggle_needed = (ABS(Yn - Yp) < 10);
-    if (bramp_zoom_toggle_needed)
-    {
-        Yn = bramp_set_display_gain_and_measure_luma(100);
-        Yp = bramp_set_display_gain_and_measure_luma(32767);
-    }
-    bramp_set_display_gain_and_measure_luma(0);
-    int ok = (ABS(Yn - Yp) > 10);
-    if (!ok)
-    {
-        set_expsim(e0);
-        NotifyBox(5000, "Cannot calibrate.        \n"
-                        "Please report to ML devs."); msleep(5000);
-        intervalometer_stop();
-        return;
-    }
-    
-    // first try to brighten the image
-    while (bramp_measure_luma(500) < 128)
-    {
-        if (lens_info.raw_iso+8 <= 120) // 6400
-        {
-            NotifyBox(2000, "Too dark, increasing ISO...");
-            lens_set_rawiso(lens_info.raw_iso + 8);
-            continue;
-        }
-        else if (lens_info.raw_shutter-8 >= 20)
-        {
-            NotifyBox(2000, "Too dark, increasing exp.time...");
-            lens_set_rawshutter(lens_info.raw_shutter - 8);
-            continue;
-        }
-        else break;
-    }
-    
-    // then try to darken 
-    while (bramp_measure_luma(500) > 128)
-    {
-        if (lens_info.raw_iso-8 >= 80) // 200
-        {
-            NotifyBox(2000, "Too bright, decreasing ISO...");
-            lens_set_rawiso(lens_info.raw_iso - 8);
-            continue;
-        }
-        else if (lens_info.raw_shutter <= 152) // 1/4000
-        {
-            NotifyBox(2000, "Too bright, decreasing exp.time...");
-            lens_set_rawshutter(lens_info.raw_shutter + 8);
-            continue;
-        }
-        else break;
-    }
-    
-    // at this point, the image should be roughly OK exposed
-    // we can now play only with display gain
-    
-    
-    int gain0 = bin_search(128, 2500, crit_dispgain_50);
-    Y = bramp_set_display_gain_and_measure_luma(gain0);
-    if (ABS(Y-128) > 2) 
-    {
-        NotifyBox(1000, "Scene %s, retrying...", 
-            gain0 > 2450 ? "too dark" :
-            gain0 < 150 ? "too bright" : 
-            "not static"
-        ); 
+    calib_start:
+        SW1(1,50); // reset power management timers
+        SW1(0,50);
+        set_lv_zoom(lv_dispsize == 10 ? 5 : 10);
         
-        goto calib_start;
-    }
-    
-    for (int i = -5; i <= 5; i++)
-    {
-        Y = bramp_set_display_gain_and_measure_luma(gain0 * (1 << (i+10)) / 1024);
-        NotifyBox(500, "%d EV => luma=%d  ", i, Y);
-        if (i == 0) // here, luma should be 128
-        {
-            if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
-            else Y = 128;
-        }
-        if (i > -5 && Y < bramp_luma_ev[i+5-1]) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
-        bramp_luma_ev[i+5] = Y;
-        bramp_plot_luma_ev();
-        //~ set_display_gain(1<<i);
-    }
-    
-    // final check
-    Y = bramp_set_display_gain_and_measure_luma(gain0);
-    if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+        lens_set_rawiso(COERCE(iso0, 80, 120));
 
-    // calibration accepted :)
-    bulb_ramp_calibration_running = 0;
-    bramp_set_display_gain_and_measure_luma(0);
-    set_expsim(e0);
-    lens_set_rawiso(iso0);
-    lens_set_rawshutter(s0);
-#ifdef CONFIG_500D
-    fake_simple_button(BGMT_Q);
-#else
-    fake_simple_button(BGMT_LV);
-#endif
-    msleep(1000);
+        NotifyBox(2000, "Testing display gain...");
+        int Y;
+        int Yn = bramp_set_display_gain_and_measure_luma(100);
+        int Yp = bramp_set_display_gain_and_measure_luma(32767);
+        bramp_zoom_toggle_needed = (ABS(Yn - Yp) < 10);
+        if (bramp_zoom_toggle_needed)
+        {
+            Yn = bramp_set_display_gain_and_measure_luma(100);
+            Yp = bramp_set_display_gain_and_measure_luma(32767);
+        }
+        bramp_set_display_gain_and_measure_luma(0);
+        int ok = (ABS(Yn - Yp) > 10);
+        if (!ok)
+        {
+            set_expsim(e0);
+            NotifyBox(5000, "Cannot calibrate.        \n"
+                            "Please report to ML devs."); msleep(5000);
+            intervalometer_stop();
+            return;
+        }
+        
+        // first try to brighten the image
+        while (bramp_measure_luma(500) < 128)
+        {
+            if (lens_info.raw_iso+8 <= 120) // 6400
+            {
+                NotifyBox(2000, "Too dark, increasing ISO...");
+                lens_set_rawiso(lens_info.raw_iso + 8);
+                continue;
+            }
+            else if (lens_info.raw_shutter-8 >= 20)
+            {
+                NotifyBox(2000, "Too dark, increasing exp.time...");
+                lens_set_rawshutter(lens_info.raw_shutter - 8);
+                continue;
+            }
+            else break;
+        }
+        
+        // then try to darken 
+        while (bramp_measure_luma(500) > 128)
+        {
+            if (lens_info.raw_iso-8 >= 80) // 200
+            {
+                NotifyBox(2000, "Too bright, decreasing ISO...");
+                lens_set_rawiso(lens_info.raw_iso - 8);
+                continue;
+            }
+            else if (lens_info.raw_shutter <= 152) // 1/4000
+            {
+                NotifyBox(2000, "Too bright, decreasing exp.time...");
+                lens_set_rawshutter(lens_info.raw_shutter + 8);
+                continue;
+            }
+            else break;
+        }
+        
+        // at this point, the image should be roughly OK exposed
+        // we can now play only with display gain
+        
+        
+        int gain0 = bin_search(128, 2500, crit_dispgain_50);
+        Y = bramp_set_display_gain_and_measure_luma(gain0);
+        if (ABS(Y-128) > 2) 
+        {
+            NotifyBox(1000, "Scene %s, retrying...", 
+                gain0 > 2450 ? "too dark" :
+                gain0 < 150 ? "too bright" : 
+                "not static"
+            ); 
+            
+            goto calib_start;
+        }
+        
+        for (int i = -5; i <= 5; i++)
+        {
+            Y = bramp_set_display_gain_and_measure_luma(gain0 * (1 << (i+10)) / 1024);
+            NotifyBox(500, "%d EV => luma=%d  ", i, Y);
+            if (i == 0) // here, luma should be 128
+            {
+                if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+                else Y = 128;
+            }
+            if (i > -5 && Y < bramp_luma_ev[i+5-1]) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+            bramp_luma_ev[i+5] = Y;
+            bramp_plot_luma_ev();
+            //~ set_display_gain(1<<i);
+        }
+        
+        // final check
+        Y = bramp_set_display_gain_and_measure_luma(gain0);
+        if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+
+        // calibration accepted :)
+
+        bulb_ramp_calibration_running = 0;
+        bramp_set_display_gain_and_measure_luma(0);
+        set_expsim(e0);
+        lens_set_rawiso(iso0);
+        lens_set_rawshutter(s0);
+
+        #ifdef CONFIG_500D
+            fake_simple_button(BGMT_Q);
+        #else
+            fake_simple_button(BGMT_LV);
+        #endif
+        msleep(1000);
+
+        // save calibration results in config file
+        bramp_calib_sig = calib_sig;
+        bramp_calib_cache_m5 = bramp_luma_ev[0];
+        bramp_calib_cache_m4 = bramp_luma_ev[1];
+        bramp_calib_cache_m3 = bramp_luma_ev[2];
+        bramp_calib_cache_m2 = bramp_luma_ev[3];
+        bramp_calib_cache_m1 = bramp_luma_ev[4];
+        bramp_calib_cache_0  = bramp_luma_ev[5];
+        bramp_calib_cache_1  = bramp_luma_ev[6];
+        bramp_calib_cache_2  = bramp_luma_ev[7];
+        bramp_calib_cache_3  = bramp_luma_ev[8];
+        bramp_calib_cache_4  = bramp_luma_ev[9];
+        bramp_calib_cache_5  = bramp_luma_ev[10];
+
+    }
+
     fake_simple_button(BGMT_PLAY);
     msleep(1000);
     
@@ -3329,7 +3380,6 @@ calib_start:
     lens_set_rawshutter(BRAMP_SHUTTER_0);
     if (lv) fake_simple_button(BGMT_LV);
     msleep(1000);
-    bramp_temporary_exposure_compensation_ev_x100 = 0;
 }
 
 // monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
