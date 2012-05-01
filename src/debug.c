@@ -551,7 +551,22 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    malloc(1*1024);
+    
+    while(1)
+    {
+        float x = 1;
+        for (int i = 0; i < 10000; i++)
+        {
+            x++;
+            x = log2(x);
+        }
+        bmp_printf(FONT_MED, 100, 100, "%d ", (int) roundf(x*10));
+        msleep(10);
+    }
+    
+    //~ bulb_take_pic(125);
+    //~ lens_set_rawshutter(80); // 1/8
+    //~ lens_take_picture(0,0);
     TASK_RETURN;
 }
 

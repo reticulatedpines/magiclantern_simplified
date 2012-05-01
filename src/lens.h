@@ -202,6 +202,14 @@ static const int codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,  17,
 //~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
 //~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
 
+// Conversions
+int raw2shutter_ms(int raw_shutter);
+int shutter_ms_to_raw(int shutter_ms);
+int shutterf_to_raw(float shutterf);
+float raw2shutterf(int raw_shutter);
+int raw2iso(int raw_iso);
+
+
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
 void draw_ml_topbar();

@@ -618,7 +618,7 @@ int hist_get_percentile_level(int percentile)
     {
         n += hist[i];
         if (n >= thr)
-            return i * 100 / hist_width;
+            return i * 255 / hist_width;
     }
     return -1; // invalid argument?
 }
@@ -2127,7 +2127,7 @@ spotmeter_menu_display(
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
 
-void get_spot_yuv(int dxb, int* Y, int* U, int* V)
+void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
 {
     struct vram_info *  vram = get_yuv422_vram();
 
@@ -2139,13 +2139,13 @@ void get_spot_yuv(int dxb, int* Y, int* U, int* V)
     //~ const unsigned      height = vram->height;
     int                 x, y;
 
-    int xcb = os.x0 + os.x_ex/2;
-    int ycb = os.y0 + os.y_ex/2;
+    int xcb = os.x0 + os.x_ex/2 + dx;
+    int ycb = os.y0 + os.y_ex/2 + dy;
     int xcl = BM2LV_X(xcb);
     int ycl = BM2LV_X(ycb);
-    int dxl = BM2LV_DX(dxb);
+    int dxl = BM2LV_DX(size_dxb);
 
-    bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb, 2*dxb);
+    bmp_draw_rect(COLOR_WHITE, xcb - size_dxb, ycb - size_dxb, 2*size_dxb, 2*size_dxb);
     
     unsigned sy = 0;
     int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
@@ -2167,6 +2167,11 @@ void get_spot_yuv(int dxb, int* Y, int* U, int* V)
     *Y = sy;
     *U = su;
     *V = sv;
+}
+
+void get_spot_yuv(int dxb, int* Y, int* U, int* V)
+{
+    get_spot_yuv_ex(dxb, 0, 0, Y, U, V);
 }
 
 int get_spot_motion(int dxb, int draw)

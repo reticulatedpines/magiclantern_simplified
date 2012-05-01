@@ -210,8 +210,19 @@ int raw2shutter_ms(int raw_shutter)
 int shutter_ms_to_raw(int shutter_ms)
 {
     if (shutter_ms == 0) return 160;
-    return (int) roundf(136 - log2f(shutter_ms) * 8);
+    return (int) roundf(136.0 - log2f(shutter_ms) * 8.0);
 }
+int shutterf_to_raw(float shutterf)
+{
+    if (shutterf == 0) return 160;
+    return (int) roundf(136.0 - log2f(shutterf*1000.0) * 8.0);
+}
+float raw2shutterf(int raw_shutter)
+{
+    if (!raw_shutter) return 0.0;
+    return powf(2.0, (136.0 - raw_shutter)/8.0) / 1000.0;
+}
+
 int raw2iso(int raw_iso)
 {
     int iso = (int) roundf(100.0 * powf(2.0, (raw_iso - 72.0)/8.0));
@@ -948,13 +959,13 @@ lens_focus(
 
 void lens_wait_readytotakepic(int wait)
 {
-    info_led_on();
     int i;
     for (i = 0; i < wait * 10; i++)
     {
         if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
         if (lens_info.job_state == 0 && burst_count > 0 && is_movie_mode()) break;
         msleep(20);
+        if (lens_info.job_state <= 0xA) info_led_on();
     }
     info_led_off();
 }
@@ -1035,13 +1046,18 @@ lens_take_picture(
     if (get_mlu() && !lv)
     {
         SW1(1,50);
-        SW2(1,500);
+        SW2(1,250);
         SW2(0,50);
         SW1(0,50);
     }
     else
         #ifdef CONFIG_5D2
-        PD_RemoteRelease();
+        //~ PD_RemoteRelease();
+        SW1(1,50);
+        SW2(1,250);
+        SW2(0,50);
+        SW1(0,50);
+        //~ call("Release");
         #else
         call("Release");
         #endif
@@ -1796,6 +1812,16 @@ bool prop_set_rawshutter(unsigned shutter)
            ((unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter) ;
 }
 
+bool prop_set_rawshutter_approx(unsigned shutter)
+{
+    lens_wait_readytotakepic(64);
+    shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
+    prop_request_change( PROP_SHUTTER, &shutter, 4 );
+    msleep(100);
+    return ABS((unsigned int) get_prop(PROP_SHUTTER) - shutter) <= 3 &&
+           ABS((unsigned int) get_prop(PROP_SHUTTER_ALSO) - shutter) <= 3 ;
+}
+
 bool prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
@@ -2026,7 +2052,7 @@ bool hdr_set_rawiso(int iso)
 bool hdr_set_rawshutter(int shutter)
 {
     int ok = shutter < FASTEST_SHUTTER_SPEED_RAW;
-    return hdr_set_something(prop_set_rawshutter, shutter) && ok;
+    return hdr_set_something(prop_set_rawshutter_approx, shutter) && ok;
 }
 
 bool hdr_set_ae(int ae)
