@@ -739,7 +739,7 @@ tweak_task( void* unused)
     do_movie_mode_remap();
     
     TASK_LOOP
-    //{
+    {
         msleep(50);
 
         if (halfshutter_sticky)
@@ -822,7 +822,7 @@ tweak_task( void* unused)
         
         if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
             idle_wakeup_reset_counters();
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );

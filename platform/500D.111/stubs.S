@@ -189,3 +189,8 @@ NSTUB(0xFF016930, get_current_task)
 NSTUB(0x27e40, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(0xFF0693C0, msg_queue_create)
+
+// for task information
+NSTUB(0x31dc, task_max)
+NSTUB(0xff018338, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0xff018180, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos

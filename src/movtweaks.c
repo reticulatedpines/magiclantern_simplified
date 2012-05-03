@@ -372,7 +372,7 @@ movtweak_task( void* unused )
     bv_startup = 0;
 
     TASK_LOOP
-    //{
+    {
         msleep(50);
         
         static int recording_prev = 0;
@@ -427,7 +427,7 @@ movtweak_task( void* unused )
                 msleep(5000);
             }
         }
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );

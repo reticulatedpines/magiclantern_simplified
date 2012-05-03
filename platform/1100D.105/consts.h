@@ -203,3 +203,5 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x16fc8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+#define ARROW_MODE_TOGGLE_KEY ""

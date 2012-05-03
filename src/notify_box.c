@@ -38,7 +38,7 @@ char notify_box_msg[100];
 void NotifyBox_task(void* priv)
 {
     TASK_LOOP
-    //{
+    {
         // wait until some other task asks for a notification
         int err = take_semaphore(notify_box_show_sem, 500);
         if (err) continue;
@@ -57,11 +57,10 @@ void NotifyBox_task(void* priv)
             bmp_printf(FONT_LARGE, os.x0 + 50, os.y0 + 50, notify_box_msg);
             msleep(50);
             if (notify_box_stop_request) break;
-            TASK_CHECK_RETURN;
         }
         notify_box_timeout = 0;
         redraw();
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE( "notifybox_task", NotifyBox_task, 0, 0x1b, 0x1000 );

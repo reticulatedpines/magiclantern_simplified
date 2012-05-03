@@ -186,3 +186,8 @@ NSTUB(0xFF86EF10, GetMemoryInformation)
 NSTUB(0xFF872308, msg_queue_create)
 
 NSTUB(0xff83c1e4, PD_RemoteRelease)
+
+// for task information
+NSTUB(0x3050, task_max)
+NSTUB(0xff8182c8, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0xff818110, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos

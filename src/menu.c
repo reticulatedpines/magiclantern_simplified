@@ -1451,13 +1451,13 @@ menu_redraw_task()
 {
     menu_redraw_queue = msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
-    //{
+    {
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, &msg, 500);
         if (err) continue;
         if (gui_menu_shown()) menu_redraw_do();
         else redraw();
-    TASK_LOOP_END //}
+    }
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
 
@@ -1952,7 +1952,7 @@ menu_task( void* unused )
 {    
     select_menu_by_icon(menu_first_by_icon);
     TASK_LOOP
-    //{
+    {
         int rc = take_semaphore( gui_sem, 500 );
         if( rc != 0 )
         {
@@ -1993,7 +1993,7 @@ menu_task( void* unused )
         y0 = hdmi_code == 5 ? 40 : 0;
 
         menu_open();
-    TASK_LOOP_END //}
+    }
 }
 
 static void
@@ -2002,7 +2002,7 @@ menu_task_minimal( void* unused )
     select_menu_by_icon(menu_first_by_icon);
 
     TASK_LOOP
-    //{
+    {
         int rc = take_semaphore( gui_sem, 500 );
         if( rc != 0 )
         {
@@ -2025,7 +2025,7 @@ menu_task_minimal( void* unused )
             menu_close();
             //~ menu_shown = false;
         }
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );

@@ -598,7 +598,7 @@ static void
 focus_task( void* unused )
 {
     TASK_LOOP
-    //{
+    {
         msleep(50);
         int err = take_semaphore( focus_task_sem, 500 );
         if (err) continue;
@@ -657,7 +657,7 @@ focus_task( void* unused )
                 if (queued_focus_steps == 0) focus_task_dir = 0;
             }
         }
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
@@ -1077,7 +1077,7 @@ static void
 focus_misc_task(void* unused)
 {
     TASK_LOOP
-    //{
+    {
         msleep(100);
         
         if (hsp_countdown) hsp_countdown--;
@@ -1107,7 +1107,7 @@ focus_misc_task(void* unused)
             while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
             #endif
         }
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );

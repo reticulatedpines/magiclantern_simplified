@@ -35,7 +35,7 @@ void joypress_task()
 {
 	extern int joy_center_pressed;
 	static int count = 0;
-	while(1)
+	TASK_LOOP
 	{
 		msleep(20);
 		if (joy_center_pressed) joy_center_press_count++;

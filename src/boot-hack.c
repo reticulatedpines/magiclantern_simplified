@@ -327,7 +327,6 @@ void my_big_init_task()
     //~ );
     msleep(1000);
     ml_started = 1;
-    TASK_RETURN;
 }
 
 /*void logo_task(void* unused)

@@ -126,6 +126,7 @@ NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
 NSTUB(0xFF018D34, malloc)                         // might be good (dumps=1, score=11)
 NSTUB(0xFF530890, memcpy)                         // might be good (dumps=1, score=1.5e+02)
 NSTUB(0xFF1E885C, msg_queue_receive)              // might be good (dumps=1, score=24)
+NSTUB(0xff1e8a48, msg_queue_post)
 NSTUB(0xFF06FA40, msleep)                         // might be good (dumps=1, score=1.1e+02)
 NSTUB(0xFF1B9544, mvrFixQScale)                   // might be good (dumps=1, score=4.8)
 NSTUB(0xFF1B9020, mvrSetDefQScale)                // might be good (dumps=1, score=4.7)
@@ -169,3 +170,9 @@ NSTUB(0xff35abc4, ErrCardForLVApp_handler) // not 100% sure
 NSTUB(0xFF1E874C, msg_queue_create)
 
 NSTUB(0xFF039518, PD_RemoteRelease)
+
+// for task information
+NSTUB(0x2e00, task_max)
+NSTUB(0xFF34E544, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0xff07f448, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+

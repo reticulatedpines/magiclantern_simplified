@@ -484,7 +484,7 @@ bitrate_task( void* unused )
     cbr_init();
 
     TASK_LOOP
-    //{
+    {
         wait_till_next_second();
         if (recording) 
         {
@@ -498,7 +498,7 @@ bitrate_task( void* unused )
             if (movie_elapsed_time_01s % 10 == 0)
                 bitrate_set();
         }
-    TASK_LOOP_END //}
+    }
 }
 
 void movie_indicators_show()

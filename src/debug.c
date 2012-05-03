@@ -168,7 +168,6 @@ static void dump_rom_task(void* priv)
     msleep(200);
 
     dump_big_seg(4, CARD_DRIVE "RAM4.BIN");
-    TASK_RETURN;
 }
 
 static void dump_rom(void* priv)
@@ -201,7 +200,6 @@ void beep_task()
 {
     if (!recording) // breaks audio
         unsafe_beep();
-    TASK_RETURN;
 }
 
 void Beep()
@@ -232,7 +230,6 @@ void fake_buttons()
     int delay = 1000;
     for (i = 0; i < 10000; i++)
     {
-        TASK_CHECK_RETURN;
         switch(rand() % 5) {
             case 0: 
                 fake_simple_button(BGMT_PLAY); msleep(rand() % delay);
@@ -254,7 +251,6 @@ void fake_buttons()
                 //~ break;
         }
     }
-    TASK_RETURN;
 }
 
 void change_colors_like_crazy()
@@ -264,7 +260,6 @@ void change_colors_like_crazy()
     int delay = 200;
     for (i = 0; i < 10000; i++)
     {
-        TASK_CHECK_RETURN;
         bmp_off();
         msleep(rand() % delay);
         bmp_on();
@@ -283,7 +278,6 @@ void change_colors_like_crazy()
         //~ sei_restore();
         //~ msleep(rand() % delay);
     }
-    TASK_RETURN;
 }
 
 
@@ -391,8 +385,6 @@ static void iso_response_curve_current()
         get_htp() ? "h" : "");
     
     find_response_curve(name);
-    
-    TASK_RETURN;
 }
 
 void iso_response_curve_160()
@@ -420,8 +412,6 @@ void iso_response_curve_160()
     find_response_curve_ex(CARD_DRIVE "iso800.txt",    800,     0   , 0);
     find_response_curve_ex(CARD_DRIVE "iso1600.txt",   1600,    0   , 0);
     find_response_curve_ex(CARD_DRIVE "iso3200.txt",   3200,    0   , 0);
-    
-    TASK_RETURN;
 }
 
 void iso_response_curve_logain()
@@ -447,8 +437,6 @@ void iso_response_curve_logain()
     find_response_curve_ex(CARD_DRIVE "iso400e.txt",    800,   512   , 0);
     find_response_curve_ex(CARD_DRIVE "iso800e.txt",    1600,  512   , 0);
     find_response_curve_ex(CARD_DRIVE "iso1600e.txt",   3200,  512   , 0);
-    
-    TASK_RETURN;
 }
 
 void iso_response_curve_htp()
@@ -474,8 +462,6 @@ void iso_response_curve_htp()
     find_response_curve_ex(CARD_DRIVE "iso800eh.txt",     1600,   512   , 1);
     find_response_curve_ex(CARD_DRIVE "is1600eh.txt",     3200,   512   , 1);
     find_response_curve_ex(CARD_DRIVE "is3200eh.txt",     6400,   512   , 1);
-    
-    TASK_RETURN;
 }
 
 void iso_movie_change_setting(int iso, int dgain, int shutter)
@@ -543,8 +529,6 @@ void iso_movie_test()
     // restore settings back
     iso_movie_change_setting(raw_iso0, 0, tv0);
     bv_auto = bva0;
-    
-    TASK_RETURN;
 }
 #endif // CONFIG_ISO_TESTS
 
@@ -567,7 +551,6 @@ void run_test()
     //~ bulb_take_pic(125);
     //~ lens_set_rawshutter(80); // 1/8
     //~ lens_take_picture(0,0);
-    TASK_RETURN;
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1016,7 +999,6 @@ static void stress_test_task(void* unused)
     //~ set_shooting_mode(SHOOTMODE_M);
     //~ xx_test2(0);
     
-    TASK_RETURN;
 }
 
 static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
@@ -1182,11 +1164,11 @@ static void stress_test_random_task(void* unused)
 {
     config_autosave = 0; // this will make many changes in menu, don't save them
     TASK_LOOP
-    //{
-        //~ stress_test_random_action();
-        stress_test_toggle_menu_item("Play", "Zoom in PLAY mode");
+    {
+        stress_test_random_action();
+        //~ stress_test_toggle_menu_item("Play", "Zoom in PLAY mode");
         msleep(rand() % 1000);
-    TASK_LOOP_END //}
+    }
 }
 
 static void stress_test_random_action_simple()
@@ -1216,11 +1198,11 @@ static void stress_test_menu_dlg_api_task(void* unused)
 {
     config_autosave = 0; // this will make many changes in menu, don't save them
     TASK_LOOP
-    //{
+    {
         stress_test_random_action_simple();
         //~ stress_test_toggle_menu_item("LiveV", "Zebras");
         msleep(rand() % 30);
-    TASK_LOOP_END //}
+    }
 }
 
 #endif // CONFIG_STRESS_TEST
@@ -1747,7 +1729,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     //~ TASK_RETURN;
         
     TASK_LOOP
-    //{
+    {
 
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
@@ -1838,7 +1820,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         }
         
         msleep(200);
-    TASK_LOOP_END //}
+    }
 }
 
 void screenshot_start(void* priv)
@@ -1897,7 +1879,6 @@ void flashlight_frontled_task(void* priv)
     set_shooting_mode(m);
     display_on();
     if (l) force_liveview();
-    TASK_RETURN;
 }
 
 void flashlight_lcd_task(void *priv)
@@ -1920,7 +1901,6 @@ void flashlight_lcd_task(void *priv)
     set_backlight_level(b);
     canon_gui_enable_front_buffer(1);
     idle_globaldraw_en();
-    TASK_RETURN;
 }
 
 static void flashlight_frontled(void* priv, int delta)
@@ -2186,13 +2166,11 @@ static void divzero_task()
         NotifyBox(1000, "1000/%d = %d = %d", i, 1000/i, (int)(1000.0 / (float)i));
         msleep(500);
     }
-    TASK_RETURN;
 }
 
 static void alloc_1M_task()
 {
     AllocateMemory(1024 * 1024);
-    TASK_RETURN;
 }
 
 extern void menu_open_submenu();
@@ -2839,7 +2817,7 @@ int iso_adj_sign = 0;
 void iso_adj_task(void* unused)
 {
     TASK_LOOP
-    //{
+    {
         msleep(20);
         if (iso_adj_flag)
         {
@@ -2847,7 +2825,7 @@ void iso_adj_task(void* unused)
             iso_adj(iso_adj_old, iso_adj_sign);
             lens_display_set_dirty();
         }
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE("iso_adj_task", iso_adj_task, 0, 0x1a, 0);

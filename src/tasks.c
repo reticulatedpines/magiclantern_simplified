@@ -9,30 +9,6 @@
 #include "property.h"
 #include "bmp.h"
 
-static int total_tasks = 0;
-int task_shutdown_request = 0;
-
-void task_notify_end()
-{
-    total_tasks--;
-    //~ NotifyBox(2000, "ML task ended (remain: %d) ", total_tasks);
-}
-
-struct task * task_create(
-        const char *            name,
-        uint32_t                priority,
-        uint32_t                stack_size,
-        void *                  entry,
-        void *                  arg
-)
-{
-    total_tasks++;
-    //~ bmp_printf(FONT_LARGE, 50, 50, "New task: %s\n(total %d) ", name, total_tasks); msleep(2000);
-    
-    struct task * new_task = _task_create(name, priority, stack_size, entry, arg);
-    return new_task;
-}
-
 struct task_attr_str {
   unsigned int entry;
   unsigned int args;
@@ -74,7 +50,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
   int x = 5;
   int y = 10;
   
-  bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks (%d)", total_tasks);
+  bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
   y += font_med.height;
 
   int k = 0;
@@ -111,44 +87,13 @@ void tasks_print(void* priv, int x0, int y0, int selected)
   }
 }
 
-void tasks_shutdown()
-{
-    if (total_tasks <= 0) return;
-    static int shutdown_done = 0;
-    if (shutdown_done) return;
-    shutdown_done = 1;
-    
-    task_shutdown_request = 1;
-    for (int i = 0; i < 50; i++)
-    {
-        if ((i/5) % 2 == 0 || i <= 10)
-        {
-            info_led_on();
-            _card_led_on();
-        }
-        else
-        {
-            info_led_off();
-            _card_led_off();
-        }
-
-        msleep(100);
-        if (total_tasks <= 0) return;
-        if (i >= 10)
-        {
-            what_tasks_to_show = 2;
-            canon_gui_disable_front_buffer();
-            tasks_print(0,0,0,0);
-        }
-    }
-}
-
 void ml_shutdown()
 {
     extern int safe_to_do_engio_for_display;
     safe_to_do_engio_for_display = 0;
     
-    tasks_shutdown();
+    info_led_on();
+    _card_led_on();
     config_save_at_shutdown();
     info_led_on();
     _card_led_on();

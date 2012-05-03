@@ -63,6 +63,7 @@ ML_OBJS-y = \
 	hdr.o \
 	lv-img-engio.o \
 	state-object.o \
+	tasks.o \
 
 #include generic rules and definitions
 

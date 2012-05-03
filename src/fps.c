@@ -559,14 +559,14 @@ INIT_FUNC("fps", fps_init);
 static void fps_task()
 {
     TASK_LOOP
-    //{
+    {
         if (lv)
         {
             update_hard_expo_override();
             update_sound_recording();
         }
         msleep(200);
-    TASK_LOOP //}
+    }
 }
 
 TASK_CREATE("fps_task", fps_task, 0, 0x1d, 0x1000 );

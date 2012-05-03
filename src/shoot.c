@@ -743,10 +743,11 @@ static int ms100_clock = 0;
 static void
 ms100_clock_task( void* unused )
 {
-    TASK_LOOP_MSLEEP(100)
-    //{
+    TASK_LOOP
+    {
+        msleep(100);
         ms100_clock += 100;
-    TASK_LOOP_END //}
+    }
 }
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
@@ -880,7 +881,6 @@ void playback_compare_images_task(int dir)
     current_buf = get_yuv422_vram()->vram;
     memcpy(current_buf, aux_buf, buf_size);
     give_semaphore(set_maindial_sem);
-    TASK_RETURN;
 }
 
 void playback_compare_images(int dir)
@@ -914,7 +914,6 @@ void expfuse_preview_update_task(int dir)
     //~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
     give_semaphore(set_maindial_sem);
-    TASK_RETURN;
 }
 
 void expfuse_preview_update(int dir)
@@ -999,7 +998,6 @@ void play_next_422_task(int dir)
     }
 
     give_semaphore(set_maindial_sem);
-    TASK_RETURN;
 }
 
 
@@ -2192,7 +2190,6 @@ static void redraw_after_task(int msec)
 {
     msleep(msec);
     redraw();
-    TASK_RETURN;
 }
 
 void redraw_after(int msec)
@@ -2576,11 +2573,10 @@ void restore_expsim_task(int es)
         lens_wait_readytotakepic(64);
         set_expsim(es);
         msleep(300);
-        if (expsim == es) TASK_RETURN;
+        if (expsim == es) return;
     }
     NotifyBox(5000, "Could not restore ExpSim :(");
     info_led_blink(5, 50, 50);
-    TASK_RETURN;
 }
 // to be called from the same places as zoom_sharpen_step
 void zoom_auto_exposure_step()
@@ -2993,7 +2989,8 @@ int get_seconds_clock() { return seconds_clock; }
 static void
 seconds_clock_task( void* unused )
 {
-    TASK_LOOP //{
+    TASK_LOOP 
+    {
         wait_till_next_second();
         seconds_clock++;
 
@@ -3006,7 +3003,7 @@ seconds_clock_task( void* unused )
         #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         RefreshBatteryLevel_1Hz();
         #endif
-    TASK_LOOP_END //}
+    }
 }
 TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
 
@@ -4981,7 +4978,6 @@ void wait_till_next_second()
     {
         LoadCalendarFromRTC( &now );
         msleep(20);
-        TASK_CHECK_RETURN_SUBROUTINE;
 /*      if (lens_info.job_state == 0) // unsafe otherwise?
         {
             call("DisablePowerSave"); // trick from AJ_MREQ_ISR
@@ -5032,7 +5028,10 @@ shoot_task( void* unused )
 
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
     
-    TASK_LOOP //{
+    TASK_LOOP
+    {
+        msleep(MIN_MSLEEP);
+        
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -5271,7 +5270,6 @@ shoot_task( void* unused )
             msleep(100);
             while (SECONDS_REMAINING > 0)
             {
-                TASK_CHECK_RETURN;
                 msleep(100);
 
                 if (!intervalometer_running) continue;
@@ -5400,7 +5398,7 @@ shoot_task( void* unused )
                 avg_prev0 = audio_levels[0].avg;
             }
         }
-    TASK_LOOP_END //}
+    }
 }
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x8000 );

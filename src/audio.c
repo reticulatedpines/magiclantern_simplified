@@ -410,9 +410,9 @@ meter_task( void* unused )
 {
         audio_menus_init();
         
-        TASK_LOOP_MSLEEP(50)
-        //{
-        
+        TASK_LOOP
+        {
+                msleep(50);
                 if (is_menu_help_active()) continue;
                 
                 if (audio_meters_are_drawn())
@@ -432,7 +432,7 @@ meter_task( void* unused )
                         }
                         hp = h;
                 }
-        TASK_LOOP_END //}
+        }
 }
 
 
@@ -446,11 +446,12 @@ compute_audio_level_task( void* unused )
         audio_levels[0].peak = audio_levels[1].peak = 0;
         audio_levels[0].avg = audio_levels[1].avg = 0;
     
-        TASK_LOOP_MSLEEP(MIN_MSLEEP)
-        //{
+        TASK_LOOP
+        {
+                msleep(MIN_MSLEEP);
                 compute_audio_levels( 0 );
                 compute_audio_levels( 1 );
-        TASK_LOOP_END //}
+        }
 }
 
 TASK_CREATE( "audio_level_task", compute_audio_level_task, 0, 0x18, 0x1000 );

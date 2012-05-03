@@ -142,14 +142,5 @@ task_create_##ENTRY = { \
         .entry          = ENTRY, \
 }
 
-extern int task_shutdown_request;
-
-#define TASK_RETURN { task_notify_end(); return; }
-#define TASK_CHECK_RETURN if (task_shutdown_request) { TASK_RETURN; return; }
-#define TASK_CHECK_RETURN_SUBROUTINE if (task_shutdown_request) { return; }
-#define TASK_CHECK_BREAK if (task_shutdown_request) { break; }
-#define TASK_LOOP for (int k = 0; ; k++) { msleep(MIN_MSLEEP); TASK_CHECK_RETURN;
-#define TASK_LOOP_MSLEEP(ms) for (int k = 0; ; k++) { msleep(ms); TASK_CHECK_RETURN;
-#define TASK_LOOP_NO_MSLEEP for (int k = 0; ; k++) { TASK_CHECK_RETURN; // use with care ;)
-#define TASK_LOOP_END }   // just to not confuse the editor too much
+#define TASK_LOOP for (int k = 0; ; k++)
 #endif
