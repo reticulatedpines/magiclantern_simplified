@@ -260,9 +260,11 @@ NSTUB(0xff017618, get_current_task) // called from AJ_armlib_setup_related3
 
 NSTUB(0x1C36C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
+NSTUB(0xFF1F5944, msg_queue_create) // CreateMessageQueue
+
 NSTUB(0xFF0396E4, PD_RemoteRelease)
 
 // for task information
 NSTUB(0x3328, task_max)
-NSTUB(0xff8182c8, is_taskid_valid) // AJ_task_trampoline_related_p10
-NSTUB(0xff818110, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(0xFF3557F0, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0xFF080ECC, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
