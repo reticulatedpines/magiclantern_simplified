@@ -35,7 +35,6 @@ static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
 static struct semaphore * menu_redraw_sem;
 static int menu_damage;
-static int menu_timeout;
 static bool menu_shown = false;
 static int show_only_selected; // for ISO, kelvin...
 static int config_dirty = 0;
@@ -84,7 +83,6 @@ int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected )
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected ); }
 
 int draw_event = 0;
-CONFIG_INT( "debug.menu-timeout", menu_timeout_time, 1000 ); // doesn't work and breaks rack focus
 
 static void
 draw_version( void )
@@ -116,7 +114,7 @@ draw_version( void )
 }
 
 
-struct dialog * menu_dialog = 0;
+//~ struct dialog * menu_dialog = 0;
 static struct menu * menus;
 
 struct menu * menu_get_root() {
@@ -1468,6 +1466,11 @@ menu_redraw()
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, 1);
 }
 
+void menu_inject_redraw_event()
+{
+    menu_redraw();
+}
+
 static struct menu * get_selected_menu()
 {
     struct menu * menu = menus;
@@ -1497,39 +1500,11 @@ static struct menu * get_current_submenu()
     return 0;
 }
 
-// only for checking correct usage of dialog box API
-int menu_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
+int
+handle_ml_menu_keys(struct event * event) 
 {
-    switch (event) {
-
-    case TERMINATE_WINSYS:
-        menu_dialog = NULL;
-        menu_close_post_delete_dialog_box();
-        return 1;
-
-    case DELETE_DIALOG_REQUEST:
-        menu_close_gmt();
-        return dialog != arg4;  // ?!
-
-    default:
-        break;
-    }
-    return 1;
-}
-
-static int
-menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
-{
-#if 0
-    if( event > 1 && event < 0x10000000)
-    {
-        bmp_printf( FONT_SMALL, 400, 40,
-            "evt %8x(%8x,%8x,%8x)",
-            event, arg2, arg3, arg4
-        );
-    }
-#endif
-
+    if (!menu_shown) return 1;
+    
     // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
     take_semaphore(menu_redraw_sem, 0);
 
@@ -1556,100 +1531,61 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
 
     give_semaphore(menu_redraw_sem);
     
-    switch( event )
+    switch( event->param )
     {
-    //~ bmp_printf(FONT_MED, 0, 0, "dlg=%x template=%x btn=%x %x %x %x\ncode=%x", dialog, template, event, arg3, arg4, arg5, arg6, code);
 
-    case GOT_TOP_OF_CONTROL:
-        //~ NotifyBox(2000, "GOT_TOP_OF_CONTROL");
-        menu_redraw();
-        return 1;
-
-    case TERMINATE_WINSYS:
-        menu_dialog = NULL;
-        menu_close_post_delete_dialog_box();
-        return 1;
-
-    case LOST_TOP_OF_CONTROL:
-        menu_close_gmt();
-        return 0;
-
-    case DELETE_DIALOG_REQUEST:
-        menu_close_gmt();
-        return dialog != arg4;  // ?!
-
-
-    case PRESS_MENU_BUTTON:
+    case BGMT_MENU:
         if (submenu_mode) submenu_mode = 0;
         else advanced_mode = !advanced_mode;
         show_only_selected = 0;
         menu_help_active = 0;
         break;
 
-    case EVENTID_METERING_START: // If they press the shutter halfway
+    case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
         menu_close_gmt();
         return 1;
-    
-    case EVENTID_94:
-        // Generated when buttons are pressed?  Forward it on
-        return 1;
-    
-    case PRESS_ZOOM_IN_BUTTON:
+        
+    case BGMT_PRESS_ZOOMIN_MAYBE:
         if (lv) show_only_selected = !show_only_selected;
         else submenu_mode = (!submenu_mode)*2;
         menu_damage = 1;
         menu_help_active = 0;
         break;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    case PRESS_JOY_UP:
-#else
-    case PRESS_UP_BUTTON:
-#endif
-    case ELECTRONIC_SUB_DIAL_LEFT:
+    case BGMT_PRESS_UP:
+    case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
         menu_entry_move( menu, -1 );
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    case PRESS_JOY_DOWN:
-#else
-    case PRESS_DOWN_BUTTON:
-#endif
-    case ELECTRONIC_SUB_DIAL_RIGHT:
+    case BGMT_PRESS_DOWN:
+    case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         menu_entry_move( menu, 1 );
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    case PRESS_JOY_RIGHT:
-#else
-    case PRESS_RIGHT_BUTTON:
-#endif
-        //~ if (!submenu_mode) show_only_selected = 0;
-    case DIAL_RIGHT:
+    case BGMT_PRESS_RIGHT:
+    case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
         else { menu_move( menu, 1 ); show_only_selected = 0; }
         break;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    case PRESS_JOY_LEFT:
-#else
-    case PRESS_LEFT_BUTTON:
-#endif
-        //~ if (!submenu_mode) show_only_selected = 0;
-    case DIAL_LEFT:
+    case BGMT_PRESS_LEFT:
+    case BGMT_WHEEL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
         else { menu_move( menu, -1 ); show_only_selected = 0; }
         break;
 
-    case PRESS_SET_BUTTON:
+//~ #ifdef BGMT_JOY_CENTER
+    //~ case BGMT_JOY_CENTER:
+//~ #endif
+    case BGMT_PRESS_SET:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         else
         {
@@ -1657,33 +1593,31 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
         }
         //~ menu_damage = 1;
         break;
-    case UNPRESS_SET_BUTTON:
-        break;
 
-    case PRESS_INFO_BUTTON:
+    case BGMT_INFO:
         menu_help_active = !menu_help_active;
         show_only_selected = 0;
         if (menu_help_active) menu_help_go_to_selected_entry(help_menu);
         //~ menu_damage = 1;
         break;
 
-    case PRESS_PLAY_BUTTON:
+    case BGMT_PLAY:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 1 ); // reverse select
         //~ menu_damage = 1;
         break;
 
-    case PRESS_DIRECT_PRINT_BUTTON:
-#ifdef PRESS_DIRECT_PRINT_BUTTON_ALT
-    case PRESS_DIRECT_PRINT_BUTTON_ALT:
+#ifdef BGMT_Q
+    case BGMT_Q:
 #endif
-#ifdef CONFIG_50D
-    case PRESS_FUNC_BUTTON:
-    case JOY_CENTER:
+#ifdef BGMT_Q_ALT
+    case BGMT_Q_ALT:
 #endif
+//~ #ifdef BGMT_JOY_CENTER
+    //~ case BGMT_JOY_CENTER:
+//~ #endif
 #ifdef CONFIG_5D2
-    case PRESS_PICTURE_STYLE_BUTTON:
-    case JOY_CENTER:
+    case BGMT_PICSTYLE:
 #endif
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // auto setting select
@@ -1691,15 +1625,12 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
         break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    case PRESS_JOY_LEFTUP:
-    case PRESS_JOY_LEFTDOWN:
-    case PRESS_JOY_RIGHTUP:
-    case PRESS_JOY_RIGHTDOWN:
+    case BGMT_PRESS_UP_RIGHT:
+    case BGMT_PRESS_UP_LEFT:
+    case BGMT_PRESS_DOWN_RIGHT:
+    case BGMT_PRESS_DOWN_LEFT:
         break; // ignore
 #endif
-
-    case EVENT_1:          // Synthetic redraw event
-        break;
 
     default:
         /*DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
@@ -1714,12 +1645,6 @@ menu_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, i
 
     // If we end up here, something has been changed.
     // Reset the timeout
-    menu_timeout = menu_timeout_time;
-
-    // If we no longer exist, do not redraw
-    if( !menu_dialog )
-        return 0;
-
     menu_redraw();
 
     return 0;
@@ -1733,7 +1658,6 @@ void
 menu_init( void )
 {
     menus = NULL;
-    menu_dialog = NULL;
     menu_sem = create_named_semaphore( "menus", 1 );
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
@@ -1851,23 +1775,27 @@ void piggyback_canon_menu()
     msleep(100);
 }
 
-void menu_close_post_delete_dialog_box()
-{
-    canon_gui_enable_front_buffer(0);
- 
+void menu_open_gmt() {
+        menu_shown = 1;
+        show_only_selected = 0;
+        submenu_mode = 0;
+        menu_help_active = 0;
+
+        canon_gui_disable_front_buffer(0);
+        menu_redraw();
+}
+
+void menu_close_gmt() {
+    menu_shown = false;
+
     #ifdef GUIMODE_ML_MENU
-    if (!PLAY_MODE) SetGUIRequestMode(0);
+    if (!PLAY_MODE && CURRENT_DIALOG_MAYBE) 
+        SetGUIRequestMode(0);
     #endif
 
+    canon_gui_enable_front_buffer(0);
     lens_focus_stop();
     show_only_selected = 0;
-
-    #ifndef GUIMODE_ML_MENU
-    if (MENU_MODE && !get_halfshutter_pressed())
-    {
-        fake_simple_button(BGMT_MENU);
-    }
-    #endif
     
     extern int config_autosave;
     if (config_autosave && config_dirty && !recording)
@@ -1876,59 +1804,12 @@ void menu_close_post_delete_dialog_box()
         config_dirty = 0;
     }
 
-    menu_shown = false;
-
     if (!PLAY_MODE) { redraw(); }
     else draw_livev_for_playback();
 }
 
-void menu_open_gmt() {
-
-        show_only_selected = 0;
-        submenu_mode = 0;
-        menu_help_active = 0;
-
-        bmp_on(); // just to be sure the BMP overlay is enabled (maybe it was disabled by ClearScreen function)
-        //~ call("TurnOnDisplay");
-
-        //~ info_led_blink(2, 50, 50);
-        if (menu_dialog != NULL) {
-                DeleteDialogBox(menu_dialog);
-                menu_dialog = NULL;
-        }
-
-        canon_gui_disable_front_buffer(0);
-        menu_dialog = (void*)CreateDialogBox(0, 0, menu_handler, 1, 0);
-        dialog_redraw(menu_dialog);
-        clrscr();
-        //~ bmp_printf(FONT_LARGE, 100, 100, "menu");
-        menu_redraw();
-}
-
-void menu_close_gmt() {
-        //~ info_led_blink(3, 50, 50);
-    if (menu_dialog != NULL) {
-            DeleteDialogBox(menu_dialog);
-            menu_dialog = NULL;
-    }
-    menu_close_post_delete_dialog_box();
-}
-
 void menu_open() { fake_simple_button(MLEV_MENU_OPEN); }
 void menu_close() { fake_simple_button(MLEV_MENU_CLOSE); }
-
-void menu_inject_redraw_event()
-{
-    if (menu_dialog)
-    {
-        ctrlman_dispatch_event(
-            menu_dialog->gui_task,
-            1,
-            0,
-            0
-        );
-    }
-}
 
 /*
 void show_welcome_screen()
@@ -1957,15 +1838,8 @@ menu_task( void* unused )
         if( rc != 0 )
         {
             // We woke up after 1 second
-            if( !menu_dialog )
+            if( !menu_shown )
                 continue;
-
-            // Count down the menu timeout
-            if( --menu_timeout == 0 )
-            {
-                menu_close();
-                continue;
-            }
 
             if ((!menu_help_active && !show_only_selected) || menu_damage) {
                 fake_simple_button(MLEV_MENU_REDRAW);
@@ -1974,7 +1848,7 @@ menu_task( void* unused )
             continue;
         }
 
-        if( menu_dialog )
+        if( menu_shown )
         {
             menu_close();
             continue;
@@ -2013,9 +1887,8 @@ menu_task_minimal( void* unused )
         //~ canon_gui_toggle();
         //~ menu_shown = !canon_gui_disabled();
         //~ extern void* test_dialog;
-        //~ menu_dialog = test_dialog;
 
-        if( !menu_dialog )
+        if( !menu_shown )
         {
             //~ menu_shown = true;
             menu_open();
@@ -2032,7 +1905,7 @@ TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );
 
 int is_menu_active(char* name)
 {
-    if (!menu_dialog) return 0;
+    if (!menu_shown) return 0;
     if (menu_help_active) return 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
@@ -2197,7 +2070,11 @@ void menu_close_submenu()
 int handle_quick_access_menu_items(struct event * event)
 {
     // quick access to some menu items
+    #ifdef BGMT_Q_ALT
     if (event->param == BGMT_Q_ALT && !gui_menu_shown())
+    #else
+    if (event->param == BGMT_Q && !gui_menu_shown())
+    #endif
     {
         if (ISO_ADJUSTMENT_ACTIVE)
         {

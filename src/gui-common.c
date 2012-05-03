@@ -83,6 +83,8 @@ int handle_common_events_by_feature(struct event * event)
     }
     idle_wakeup_reset_counters(event->param);
     
+    if (handle_ml_menu_keys(event) == 0) return 0;
+   
     if (handle_digic_poke(event) == 0) return 0;
     spy_event(event); // for debugging only
     if (handle_upside_down(event) == 0) return 0;
@@ -122,7 +124,11 @@ int handle_common_events_by_feature(struct event * event)
     #endif
     
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-    if (MENU_MODE && (event->param == BGMT_Q || event->param == BGMT_Q_ALT))
+    if (MENU_MODE && (event->param == BGMT_Q
+        #ifdef BGMT_Q_ALT
+        || event->param == BGMT_Q_ALT
+        #endif
+    ))
     #endif
     #ifdef CONFIG_50D
     if (MENU_MODE && event->param == BGMT_FUNC)
