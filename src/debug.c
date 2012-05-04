@@ -238,7 +238,7 @@ void fake_buttons()
                 fake_simple_button(BGMT_MENU); msleep(rand() % delay);
                 break;
             case 2:
-#ifndef CONFIG_50D
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
                 fake_simple_button(BGMT_Q); msleep(rand() % delay);
 #endif
                 break;
@@ -535,18 +535,13 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    
-    while(1)
-    {
-        float x = 1;
-        for (int i = 0; i < 10000; i++)
-        {
-            x++;
-            x = log2(x);
-        }
-        bmp_printf(FONT_MED, 100, 100, "%d ", (int) roundf(x*10));
-        msleep(10);
-    }
+
+    info_led_blink(1,50,50);
+    call("CUStart");
+    msleep(2000);
+    call("CUPrintSummary");
+    call("CUPrintDetail");
+    info_led_blink(1,50,50);
     
     //~ bulb_take_pic(125);
     //~ lens_set_rawshutter(80); // 1/8

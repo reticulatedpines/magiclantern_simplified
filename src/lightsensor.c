@@ -193,6 +193,10 @@ void light_sensor_task(void* unused)
 {
     TASK_LOOP
     {
+        // only poll the light sensor when needed (seems to be a bit CPU-intensive)
+        int sensor_needed = lcd_release_running || (is_follow_focus_active() && get_follow_focus_mode()==1) || is_menu_active("Debug");
+        if (!sensor_needed) { msleep(500); continue; }
+        
         msleep(50);
         LightMeasure_n_Callback_r0(LightMeasureCBR, 0);
 

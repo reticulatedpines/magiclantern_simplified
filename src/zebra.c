@@ -3813,7 +3813,6 @@ BMP_LOCK(
     }
     
     draw_histogram_and_waveform(1);
-
 )
 }
 
@@ -4128,11 +4127,11 @@ clearscreen_task( void* unused )
     {
 clearscreen_loop:
         //~ msleep(100);
-        if (lens_info.job_state == 0 && !DISPLAY_IS_ON) // unsafe when taking pics, not needed with display on
-        {
-            call("DisablePowerSave");
-            call("EnablePowerSave");
-        }
+        //~ if (lens_info.job_state == 0 && !DISPLAY_IS_ON) // unsafe when taking pics, not needed with display on
+        //~ {
+            //~ call("DisablePowerSave");
+            //~ call("EnablePowerSave");
+        //~ }
         msleep(100);
         //~ card_led_blink(1,10,90);
         
@@ -4758,7 +4757,7 @@ static void livev_playback_toggle()
     livev_playback = !livev_playback;
     if (livev_playback)
     {
-        draw_livev_for_playback();
+        run_in_separate_task(draw_livev_for_playback, 0);
     }
     else
     {

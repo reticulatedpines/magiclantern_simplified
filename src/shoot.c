@@ -4977,7 +4977,7 @@ void wait_till_next_second()
     while (now.tm_sec == s)
     {
         LoadCalendarFromRTC( &now );
-        msleep(20);
+        msleep(100);
 /*      if (lens_info.job_state == 0) // unsafe otherwise?
         {
             call("DisablePowerSave"); // trick from AJ_MREQ_ISR

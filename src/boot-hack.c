@@ -275,6 +275,7 @@ int ml_started = 0; // 1 after ML is fully loaded
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {   
+    call("DisablePowerSave");
     menu_init();
     debug_init();
     call_init_funcs( 0 );
@@ -311,15 +312,50 @@ void my_big_init_task()
             //~ task->priority,
             //~ task->flags
         //~ );
-
-        task_create(
-            task->name,
-            task->priority,
-            task->flags,
-            task->entry,
-            task->arg
-        );
-        ml_tasks++;
+        
+        // for debugging: uncomment this to start only some specific tasks
+        // tip: use something like grep -nr TASK_CREATE ./ to find all task names
+        #if 0
+        if (
+                streq(task->name, "audio_meter_task") ||
+                streq(task->name, "audio_level_task") ||
+                streq(task->name, "bitrate_task") ||
+                streq(task->name, "cartridge_task") ||
+                streq(task->name, "cls_task") ||
+                streq(task->name, "console_task") ||
+                streq(task->name, "debug_loop_task") ||
+                streq(task->name, "dmspy_task") ||
+                streq(task->name, "focus_task") ||
+                streq(task->name, "focus_misc_task") ||
+                streq(task->name, "fps_task") ||
+                streq(task->name, "iso_adj_task") ||
+                streq(task->name, "joypress_task") ||
+                streq(task->name, "light_sensor_task") ||
+                streq(task->name, "livev_hiprio_task") ||
+                streq(task->name, "livev_loprio_task") ||
+                streq(task->name, "menu_task") ||
+                streq(task->name, "menu_redraw_task") ||
+                streq(task->name, "menu_task") ||
+                streq(task->name, "morse_task") ||
+                streq(task->name, "movtweak_task") ||
+                streq(task->name, "ms100_clock_task") ||
+                streq(task->name, "notifybox_task") ||
+                streq(task->name, "plugins_task") ||
+                streq(task->name, "seconds_clock_task") ||
+                streq(task->name, "shoot_task") ||
+                streq(task->name, "tweak_task") ||
+            0 )
+        #endif
+        {
+            task_create(
+                task->name,
+                task->priority,
+                task->flags,
+                task->entry,
+                task->arg
+            );
+            ml_tasks++;
+        }
     }
     //~ bmp_printf( FONT_MED, 0, 85,
         //~ "Magic Lantern is up and running... %d tasks started.",
