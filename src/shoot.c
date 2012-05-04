@@ -74,6 +74,7 @@ static float bulb_shutter_valuef = 1.0;
 
 static float bramp_prev_measured_ev = -12345.0; // undefined
 
+/*
 static CONFIG_INT("uniwb.mode", uniwb_mode, 0);
 static CONFIG_INT("uniwb.old.wb_mode", uniwb_old_wb_mode, 0);
 static CONFIG_INT("uniwb.old.gain_R", uniwb_old_gain_R, 0);
@@ -92,7 +93,7 @@ int uniwb_is_active()
     return 
         uniwb_mode &&
         uniwb_is_active_check_lensinfo_only();
-}
+}*/
 
 CONFIG_INT("iso_selection", iso_selection, 0);
 
@@ -1622,7 +1623,7 @@ aperture_toggle( void* priv, int sign)
 void
 kelvin_toggle( void* priv, int sign )
 {
-    if (uniwb_is_active()) return;
+    //~ if (uniwb_is_active()) return;
 
     int k;
     switch (lens_info.wb_mode)
@@ -1656,7 +1657,7 @@ kelvin_display( void * priv, int x, int y, int selected )
         );
         menu_draw_icon(x, y, MNI_PERCENT, (lens_info.kelvin - KELVIN_MIN) * 100 / (KELVIN_MAX - KELVIN_MIN));
     }
-    else if (lens_info.wb_mode == WB_CUSTOM && !uniwb_is_active())
+/*    else if (lens_info.wb_mode == WB_CUSTOM && !uniwb_is_active())
     {
         int mul_R = 1000 * 1024 / lens_info.WBGain_R;
         int mul_G = 1000 * 1024 / lens_info.WBGain_G;
@@ -1675,14 +1676,14 @@ kelvin_display( void * priv, int x, int y, int selected )
             mul_B/100, mul_B%100
         );
         menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "RGB");
-    }
+    } */
     else
     {
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            (uniwb_is_active()      ? "UniWB   " : 
+            //~ (uniwb_is_active()      ? "UniWB   " : 
             (lens_info.wb_mode == 0 ? "Auto    " : 
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
@@ -1691,7 +1692,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             (lens_info.wb_mode == 5 ? "Flash   " : 
             (lens_info.wb_mode == 6 ? "Custom  " : 
             (lens_info.wb_mode == 8 ? "Shade   " :
-             "unknown")))))))))
+             "unknown"))))))))
         );
         menu_draw_icon(x, y, MNI_AUTO, 0);
     }
@@ -1764,14 +1765,14 @@ wb_custom_gain_display( void * priv, int x, int y, int selected )
     );
     if (lens_info.wb_mode != WB_CUSTOM)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Custom white balance is not active => not used.");
-    else if (uniwb_is_active()) 
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "UniWB is active.");
+    //~ else if (uniwb_is_active()) 
+        //~ menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "UniWB is active.");
 }
 
 static void
 wb_custom_gain_toggle( void * priv, int delta )
 {
-    if (uniwb_is_active()) return;
+    //~ if (uniwb_is_active()) return;
     int p = (intptr_t) priv;
     int deltaR = p == 1 ? -delta * 16 * MAX(1, lens_info.WBGain_R/1024) : 0;
     int deltaG = p == 2 ? -delta * 16 * MAX(1, lens_info.WBGain_G/1024) : 0;
@@ -1779,6 +1780,7 @@ wb_custom_gain_toggle( void * priv, int delta )
     lens_set_custom_wb_gains(lens_info.WBGain_R + deltaR, lens_info.WBGain_G + deltaG, lens_info.WBGain_B + deltaB);
 }
 
+/*
 static void uniwb_save_normal_wb_params()
 {
     if (uniwb_is_active_check_lensinfo_only()) return;
@@ -1846,6 +1848,7 @@ void uniwb_step()
         if (!uniwb_is_active()) uniwb_enable();
     }
 }
+*/
 
 static int crit_kelvin(int k)
 {
@@ -4089,14 +4092,14 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-            {
+            /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,
                 .max = 3,
                 .choices = (const char *[]) {"OFF", "Always ON", "on HalfShutter", "not HalfShutter"},
                 .help = "Cancels white balance => good RAW histogram approximation.",
             },
-            
+            */
             /*{
                 .name = "Auto adjust Kelvin",
                 .select = kelvin_auto,
@@ -5070,7 +5073,7 @@ shoot_task( void* unused )
         
         mlu_step();
         zoom_lv_face_step();
-        uniwb_step();
+        //~ uniwb_step();
 
         if (center_lv_aff)
         {
