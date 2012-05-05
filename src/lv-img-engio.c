@@ -299,7 +299,15 @@ void image_effects_step()
     if (lv_should_pause_updating)
     {
         EngDrvOut(LV_PAUSE_REGISTER, 0x1234);
-    }    
+    }
+    
+    // bulb ramping calibration works best on grayscale image
+    extern int bulb_ramp_calibration_running;
+    if (bulb_ramp_calibration_running)
+    {
+        EngDrvOut(0xc0f0f070, 0x01000100);
+        return;
+    }
 
     if (!is_movie_mode()) return;
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);

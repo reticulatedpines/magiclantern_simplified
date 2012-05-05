@@ -3026,6 +3026,7 @@ static int measure_brightness_level(int initial_wait)
 
 static void bramp_change_percentile(int dir)
 {
+    NotifyBoxHide();
     bramp_percentile = COERCE(bramp_percentile + dir * 5, 5, 95);
     
     int i;
@@ -3045,7 +3046,10 @@ static void bramp_change_percentile(int dir)
     highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLUE, COLOR_WHITE);
     hist_highlight(level_8bit);
     bmp_printf(FONT_LARGE, 50, 420, 
-        "%d%% brightness at %dth percentile\n",
+        "Meter for %s",
+        bramp_percentile < 40 ? "shadows" : bramp_percentile < 70 ? "midtones" : "highlights");
+    bmp_printf(FONT_MED, 50, 420+font_large.height, 
+        "(%2d%% brightness at %dth percentile)",
         bramp_reference_level*100/255, 0,
         bramp_percentile);
 }
@@ -3341,18 +3345,20 @@ void bulb_ramping_init()
             NotifyBox(500, "%d EV => luma=%d  ", i, Y);
             if (i == 0) // here, luma should be 128
             {
-                if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+                if (ABS(Y-128) > 2) {msleep(500); NotifyBox(1000, "Middle check failed, retrying..."); msleep(1000); goto calib_start;}
                 else Y = 128;
             }
-            if (i > -5 && Y < bramp_luma_ev[i+5-1]) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
-            bramp_luma_ev[i+5] = Y;
+            int prev_Y = bramp_luma_ev[i+5-1];
+            if (i > -5 && Y < prev_Y-3) {msleep(500); NotifyBox(1000, "Decreasing curve, retrying..."); msleep(1000); goto calib_start;}
+            bramp_luma_ev[i+5] = MAX(Y, prev_Y);
             bramp_plot_luma_ev();
             //~ set_display_gain(1<<i);
         }
         
         // final check
         Y = bramp_set_display_gain_and_measure_luma(gain0);
-        if (ABS(Y-128) > 2) {NotifyBox(1000, "Scene not static, retrying..."); goto calib_start;}
+        msleep(500);
+        if (ABS(Y-128) > 2) { msleep(500); NotifyBox(1000, "Final check failed (%d), retrying...", Y); msleep(1000); goto calib_start;}
 
         // calibration accepted :)
 
@@ -3394,13 +3400,14 @@ void bulb_ramping_init()
     bramp_measured_level = 0;
     
     bramp_init_state = 1;
-    NotifyBox(100000, "Choose a well-exposed photo  \n"
-                      "and tonal range to meter for.\n"
-                      "Keys: arrows, main dial, SET.");
     
     msleep(200);
     bramp_hist_dirty = 1;
     bramp_change_percentile(0); // show current selection;
+
+    NotifyBox(100000, "Choose a well-exposed photo  \n"
+                      "and tonal range to meter for.\n"
+                      "Keys: arrows, main dial, SET.");
     
     void* play_buf = get_yuv422_vram()->vram;
     while (PLAY_MODE && bramp_init_state == 1)
