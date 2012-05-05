@@ -323,7 +323,7 @@ void my_big_init_task()
                 streq(task->name, "cartridge_task") ||
                 streq(task->name, "cls_task") ||
                 streq(task->name, "console_task") ||
-                streq(task->name, "debug_loop_task") ||
+                streq(task->name, "debug_task") ||
                 streq(task->name, "dmspy_task") ||
                 streq(task->name, "focus_task") ||
                 streq(task->name, "focus_misc_task") ||
@@ -335,7 +335,6 @@ void my_big_init_task()
                 streq(task->name, "livev_loprio_task") ||
                 streq(task->name, "menu_task") ||
                 streq(task->name, "menu_redraw_task") ||
-                streq(task->name, "menu_task") ||
                 streq(task->name, "morse_task") ||
                 streq(task->name, "movtweak_task") ||
                 streq(task->name, "ms100_clock_task") ||
@@ -350,7 +349,7 @@ void my_big_init_task()
             task_create(
                 task->name,
                 task->priority,
-                task->flags,
+                task->stack_size,
                 task->entry,
                 task->arg
             );
@@ -363,6 +362,8 @@ void my_big_init_task()
     //~ );
     msleep(1000);
     ml_started = 1;
+
+    //~ stress_test_menu_dlg_api_task(0);
 }
 
 /*void logo_task(void* unused)

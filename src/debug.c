@@ -552,7 +552,7 @@ void run_in_separate_task(void (*priv)(void), int delta)
 {
     gui_stop_menu();
     if (!priv) return;
-    task_create("run_test", 0x1a, 0, priv, 0);
+    task_create("run_test", 0x1a, 0x1000, priv, 0);
 }
 
 #ifdef CONFIG_STRESS_TEST
@@ -1002,9 +1002,10 @@ static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
     select_menu_by_name(menu_name, item_name);
     if (!gui_menu_shown()) give_semaphore( gui_sem );
     msleep(400);
-    fake_simple_button(BGMT_PRESS_SET);
+    //~ fake_simple_button(BGMT_PRESS_SET);
     msleep(200);
     give_semaphore( gui_sem );
+    msleep(500);
     return;
 }
 static void stress_test_random_action()
@@ -1189,7 +1190,7 @@ static void stress_test_random_action_simple()
     }
 }
 
-static void stress_test_menu_dlg_api_task(void* unused)
+ void stress_test_menu_dlg_api_task(void* unused)
 {
     config_autosave = 0; // this will make many changes in menu, don't save them
     TASK_LOOP
@@ -1197,6 +1198,17 @@ static void stress_test_menu_dlg_api_task(void* unused)
         stress_test_random_action_simple();
         //~ stress_test_toggle_menu_item("LiveV", "Zebras");
         msleep(rand() % 30);
+    }
+}
+
+static void excessive_redraws_task()
+{
+    info_led_blink(5,50,1000);
+    while(1)
+    {
+        if (gui_menu_shown()) menu_redraw();
+        else redraw();
+        msleep(10);
     }
 }
 
@@ -1706,7 +1718,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     while (!ml_started) msleep(100);
     
     config_menu_init();
-    
     //~ ensure_movie_mode();
     //~ movie_start();
     //~ msleep(2000);
@@ -2332,10 +2343,16 @@ struct menu_entry debug_menus[] = {
                 .help = "A thorough test which randomly enables functions from menu. "
             },
             {
-                .name = "Dialog API test (infinite)",
+                .name = "Menu backend test (infinite)",
                 .select = run_in_separate_task,
                 .priv = stress_test_menu_dlg_api_task,
-                .help = "Tests proper usage of Canon dialog API in ML menu backend."
+                .help = "Tests proper usage of Canon API calls in ML menu backend."
+            },
+            {
+                .name = "Redraw test (infinite)",
+                .select = run_in_separate_task, 
+                .priv = excessive_redraws_task,
+                .help = "Causes excessive redraws for testing the graphics backend",
             },
             MENU_EOL,
         }
@@ -2694,7 +2711,7 @@ debug_init_stuff( void )
 
 
 //~ TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
-TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "debug_task", debug_loop_task, 0, 0x1e, 0x2000 );
 
 //~ CONFIG_INT( "debug.timed-start",    timed_start, 0 );
 /*
@@ -3190,6 +3207,8 @@ int handle_tricky_canon_calls(struct event * event)
     // fake ML events are always negative numbers
     if (event->param >= 0) return 1;
     
+    //~ NotifyBox(1000, "tricky call: %d ", event->param); msleep(1000);
+    
     switch (event->param)
     {
         case MLEV_HIJACK_FORMAT_DIALOG_BOX:
@@ -3227,15 +3246,15 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_BV_AUTO_UPDATE:
             bv_auto_update_do();
             break;
-        case MLEV_MENU_OPEN:
-            menu_open_gmt();
-            break;
-        case MLEV_MENU_CLOSE:
-            menu_close_gmt();
-            break;
-        case MLEV_MENU_REDRAW:
-            menu_inject_redraw_event();
-            break;
+        //~ case MLEV_MENU_OPEN:
+            //~ menu_open_gmt();
+            //~ break;
+        //~ case MLEV_MENU_CLOSE:
+            //~ menu_close_gmt();
+            //~ break;
+        //~ case MLEV_MENU_REDRAW:
+            //~ menu_inject_redraw_event();
+            //~ break;
     }
     return 0;
 }

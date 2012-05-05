@@ -63,7 +63,7 @@ DryosPanic(
  * The arguments are not really known yet.
  */
 extern struct task *
-_task_create(
+task_create(
         const char *            name,
         uint32_t                priority,
         uint32_t                stack_size,

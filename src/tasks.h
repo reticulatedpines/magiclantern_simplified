@@ -119,11 +119,11 @@ struct task_create
         const char *            name;
         void                    (*entry)( void * );
         int                     priority;
-        uint32_t                flags;
+        uint32_t                stack_size;
         void *                  arg;
 };
 
-#define TASK_CREATE( NAME, ENTRY, ARG, PRIORITY, FLAGS ) \
+#define TASK_CREATE( NAME, ENTRY, ARG, PRIORITY, STACK_SIZE ) \
 struct task_create \
 __attribute__((section(".tasks"))) \
 task_create_##ENTRY = { \
@@ -131,7 +131,7 @@ task_create_##ENTRY = { \
         .entry          = ENTRY, \
         .arg            = ARG, \
         .priority       = PRIORITY, \
-        .flags          = FLAGS, \
+        .stack_size     = STACK_SIZE, \
 }
 
 #define INIT_FUNC( NAME, ENTRY ) \
