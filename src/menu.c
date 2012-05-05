@@ -1346,7 +1346,7 @@ menu_redraw_do()
         if (menu_help_active)
         {
             BMP_LOCK( menu_help_redraw(); )
-            //~ menu_damage = 0;
+            menu_damage = 0;
         }
         else
         {
@@ -1459,7 +1459,7 @@ menu_redraw_task()
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
 
-static void
+void
 menu_redraw()
 {
     if (menu_help_active) bmp_draw_request_stop();
@@ -1505,6 +1505,9 @@ handle_ml_menu_keys(struct event * event)
 {
     if (!menu_shown) return 1;
     
+    // rack focus may override some menu keys
+    if (handle_rack_focus_menu_overrides(event)==0) return 0;
+    
     // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
     take_semaphore(menu_redraw_sem, 0);
 
@@ -1542,7 +1545,8 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
-        menu_close_gmt();
+        //~ menu_close();
+        give_semaphore(gui_sem);
         return 1;
         
     case BGMT_PRESS_ZOOMIN_MAYBE:
@@ -1728,7 +1732,8 @@ static void guimode_ml_menu_dec(void* priv) { guimode_ml_menu--; }
 void
 gui_stop_menu( )
 {
-    fake_simple_button(MLEV_MENU_CLOSE);
+    if (gui_menu_shown())
+        give_semaphore(gui_sem);
 }
 
 
@@ -1763,35 +1768,61 @@ open_canon_menu()
 
 void piggyback_canon_menu()
 {
-    #ifdef GUIMODE_ML_MENU
-    if (!PLAY_MODE) SetGUIRequestMode(GUIMODE_ML_MENU);
-    if (GUIMODE_ML_MENU == 2) msleep(100);
+    //~ return;
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        if (lv) fake_simple_button(BGMT_PICSTYLE);
+        else { fake_simple_button(BGMT_MENU); msleep(100); }
     #else
-    if (!lv && !MENU_MODE && !is_movie_mode())
-    {
-        if (!PLAY_MODE) open_canon_menu();
-    }
+    
+        #ifdef GUIMODE_ML_MENU
+        //~ if (GUIMODE_ML_MENU == 2) msleep(100);
+        #else
+        if (!lv && !MENU_MODE && !is_movie_mode())
+        {
+            if (!PLAY_MODE) open_canon_menu();
+        }
+        #endif
     #endif
     msleep(100);
 }
 
-void menu_open_gmt() {
-        menu_shown = 1;
-        show_only_selected = 0;
-        submenu_mode = 0;
-        menu_help_active = 0;
-
-        canon_gui_disable_front_buffer(0);
-        menu_redraw();
+void close_canon_menu()
+{
+    //~ return;
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        //~ if (!recording) SetGUIRequestMode(0);
+        if (lv && CURRENT_DIALOG_MAYBE) fake_simple_button(BGMT_PICSTYLE);
+        else if (MENU_MODE) fake_simple_button(BGMT_MENU);
+    #else
+    
+        #ifdef GUIMODE_ML_MENU
+        //~ if (GUIMODE_ML_MENU == 2) msleep(100);
+        #else
+        if (!lv && !MENU_MODE && !is_movie_mode())
+        {
+            if (!PLAY_MODE) open_canon_menu();
+        }
+        #endif
+    #endif
+    //~ msleep(100);
 }
 
-void menu_close_gmt() {
-    menu_shown = false;
+static void menu_open() 
+{ 
+    if (menu_shown) return;
+    piggyback_canon_menu();
 
-    #ifdef GUIMODE_ML_MENU
-    if (!PLAY_MODE && CURRENT_DIALOG_MAYBE) 
-        SetGUIRequestMode(0);
-    #endif
+    menu_shown = 1;
+    show_only_selected = 0;
+    submenu_mode = 0;
+    menu_help_active = 0;
+    canon_gui_disable_front_buffer(0);
+    menu_redraw();
+}
+static void menu_close() 
+{ 
+    if (!menu_shown) return;
+    menu_shown = false;
 
     canon_gui_enable_front_buffer(0);
     lens_focus_stop();
@@ -1803,13 +1834,11 @@ void menu_close_gmt() {
         save_config(0);
         config_dirty = 0;
     }
-
     if (!PLAY_MODE) { redraw(); }
     else draw_livev_for_playback();
-}
 
-void menu_open() { fake_simple_button(MLEV_MENU_OPEN); }
-void menu_close() { fake_simple_button(MLEV_MENU_CLOSE); }
+    close_canon_menu();
+}
 
 /*
 void show_welcome_screen()
@@ -1842,7 +1871,7 @@ menu_task( void* unused )
                 continue;
 
             if ((!menu_help_active && !show_only_selected) || menu_damage) {
-                fake_simple_button(MLEV_MENU_REDRAW);
+                menu_redraw();
             }
 
             continue;
@@ -1858,14 +1887,15 @@ menu_task( void* unused )
         
         // Set this flag a bit earlier in order to pause LiveView tasks.
         // Otherwise, high priority tasks such as focus peaking might delay the menu a bit.
-        menu_shown = true; 
+        //~ menu_shown = true; 
         
         // ML menu needs to piggyback on Canon menu, in order to receive wheel events
-        piggyback_canon_menu();
+        //~ piggyback_canon_menu();
 
         x0 = hdmi_code == 5 ? 120 : 0;
         y0 = hdmi_code == 5 ? 40 : 0;
 
+        //~ fake_simple_button(BGMT_PICSTYLE);
         menu_open();
     }
 }
@@ -2036,6 +2066,7 @@ int handle_ml_menu_erase(struct event * event)
             give_semaphore( gui_sem );
             return 0;
         }
+        //~ else bmp_printf(FONT_LARGE, 100, 100, "%d ", gui_state);
     }
 
 #ifndef CONFIG_5D2
