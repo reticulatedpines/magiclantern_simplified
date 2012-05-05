@@ -144,8 +144,8 @@ int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable t
 
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.auto", bramp_auto_exposure, 1);
-static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 70);
-static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 70);
+static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
+static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.manual.expo", bramp_manual_speed_evx1000_per_shot, 1000);
 static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_per_shot, 1000);
 
@@ -3569,7 +3569,7 @@ static void compute_exposure_for_next_shot()
          * Computing exposure correction:
          * 
          * u = B/A * e
-         *    => u(k) = b e(k) - a1 u(k-1)
+         *    => u(k) = b e(k) - a u(k-1)
          * 
          * Exception: if ABS(e) > 2 EV, apply almost-full correction (B = 0.9) to bring it quickly back on track, 
          * without caring about flicker.
@@ -5236,7 +5236,7 @@ shoot_task( void* unused )
                 if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-                    remote_shot(1);
+                    lens_take_picture(64,1);
                     //~ msleep(trap_focus_delay);
                     K = 0;
                 }

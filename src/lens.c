@@ -1053,7 +1053,7 @@ lens_take_picture(
     else
         #ifdef CONFIG_5D2
         //~ PD_RemoteRelease();
-        SW1(1,50);
+        SW1(1,100);
         SW2(1,250);
         SW2(0,50);
         SW1(0,50);
