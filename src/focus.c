@@ -899,9 +899,11 @@ static int mags[NMAGS] = {0};
 int maxmagf = 1;
 int trap_focus_autoscaling = 1;
 int minmag = 0;
+int focus_graph_dirty = 0;
 
 static void update_focus_mag(int mag)
 {
+    focus_graph_dirty = 1;
     int maxmag = 1;
     int minmag = 100000000;
     int i;
@@ -1027,7 +1029,6 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 #endif
     {
         update_focus_mag(focus_mag);
-        if (get_focus_graph()) plot_focus_mag();
 #ifdef CONFIG_MOVIE_AF
         if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
             movie_af_step(focus_mag);
@@ -1087,10 +1088,17 @@ focus_misc_task(void* unused)
         {
             int fm = get_spot_focus(100);
             update_focus_mag(fm);
-            if (get_focus_graph()) plot_focus_mag();
+            //~ if (get_focus_graph()) plot_focus_mag();
             movie_af_step(fm);
         }
 #endif
+
+        if (focus_graph_dirty && get_focus_graph()) 
+        {
+            plot_focus_mag();
+            focus_graph_dirty = 0;
+        }
+        
 #ifdef CONFIG_60D
         if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE && is_manual_focus())
 #else
@@ -1397,10 +1405,16 @@ int handle_rack_focus(struct event * event)
             return 0;
         }
     }
+    return 1;
+}
 
+int handle_rack_focus_menu_overrides(struct event * event)
+{
+    if (!lv) return 1;
+    if (is_manual_focus()) return 1;
     if (!should_override_zoom_buttons()) return 1;
     
-    if (gui_menu_shown() && is_menu_active("Focus")) // some buttons hard to detect from main menu loop
+    if (gui_menu_shown() && is_menu_active("Focus"))
     {
         if (menu_active_but_hidden())
         {
@@ -1438,7 +1452,6 @@ int handle_rack_focus(struct event * event)
     }
     return 1;
 }
-
 int handle_follow_focus(struct event * event)
 {
     if (is_follow_focus_active())
