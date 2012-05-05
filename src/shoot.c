@@ -72,8 +72,6 @@ static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
 #define BULB_SHUTTER_VALUE_S (int)roundf(bulb_shutter_valuef)
 
-static float bramp_prev_measured_ev = -12345.0; // undefined
-
 /*
 static CONFIG_INT("uniwb.mode", uniwb_mode, 0);
 static CONFIG_INT("uniwb.old.wb_mode", uniwb_old_wb_mode, 0);
@@ -394,12 +392,12 @@ static void bramp_manual_evx1000_toggle(void* priv, int delta)
     bramp_manual_speed_evx1000_per_shot = ev_values[i] + 1000;
 }
 
-// 0-90
+// 10-90
 static void bramp_smooth_toggle(void* priv, int delta)
 {
-    int value = *(int*)priv / 10;
-    value = mod(value + delta, 10);
-    *(int*)priv = value * 10;
+    int value = *(int*)priv / 10 - 10;
+    value = mod(value + delta, 9);
+    *(int*)priv = value * 10 + 10;
 }
 
 
@@ -2982,9 +2980,9 @@ static int bramp_reference_level = 0;
 static int bramp_measured_level = 0;
 //~ int bramp_level_ev_ratio = 0;
 static int bramp_hist_dirty = 0;
-static int bramp_light_changing_rate_evx1000 = 0;
-static int bramp_manual_ev_correction_for_auto_ramping_x1000 = 0;
+static int bramp_ev_reference_x1000 = 0;
 static int bramp_prev_shot_was_bad = 1;
+static float bramp_u1 = 0; // for the feedback controller: command at previous step
 
 static int seconds_clock = 0;
 int get_seconds_clock() { return seconds_clock; } 
@@ -3045,11 +3043,10 @@ static void bramp_change_percentile(int dir)
     clrscr();
     highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLUE, COLOR_WHITE);
     hist_highlight(level_8bit);
-    bmp_printf(FONT_LARGE, 50, 420, 
-        "Meter for %s",
-        bramp_percentile < 40 ? "shadows" : bramp_percentile < 70 ? "midtones" : "highlights");
-    bmp_printf(FONT_MED, 50, 420+font_large.height, 
-        "(%2d%% brightness at %dth percentile)",
+    bmp_printf(FONT_LARGE, 50, 400, 
+        "Meter for %s\n"
+        "(%2d%% luma at %dth percentile)",
+        bramp_percentile < 40 ? "shadows" : bramp_percentile < 70 ? "midtones" : "highlights",
         bramp_reference_level*100/255, 0,
         bramp_percentile);
 }
@@ -3218,10 +3215,10 @@ void bulb_ramping_init()
 
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
-    bramp_manual_ev_correction_for_auto_ramping_x1000 = 0;
+    bramp_ev_reference_x1000 = 0;
     //~ bramp_temporary_exposure_compensation_ev_x100 = 0;
-    bramp_prev_measured_ev = -12345.0;
     bramp_prev_shot_was_bad = 1; // force full correction at first step
+    bramp_u1 = 0.0;
     
     if (!bramp_auto_exposure) 
     {
@@ -3531,17 +3528,64 @@ static void compute_exposure_for_next_shot()
         bramp_measured_level = measure_brightness_level(0);
         int mev = bramp_luma_to_ev_x100(bramp_measured_level);
         //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, mev > 0 ? "" : "-", ABS(mev)/100, ABS(mev)%100); msleep(1000);
-        
-        //~ int err = bramp_measured_level - bramp_reference_level;
-        //~ if (ABS(err) <= 1) err = 0;
-        //~ int correction_ev_x100 = - 100 * err / bramp_level_ev_ratio / 2;
-        int correction_ev_x100_raw = bramp_luma_to_ev_x100(bramp_reference_level) - bramp_luma_to_ev_x100(bramp_measured_level);
-        int correction_ev_x100 = COERCE(correction_ev_x100_raw + bramp_manual_ev_correction_for_auto_ramping_x1000/10, -mev-500, -mev+500);
-        //~ correction_ev_x100 = correction_ev_x100 * 80 / 100; // do only 80% of the correction
 
+        /**
+         * Use a discrete feedback controller, designed such as the closed loop system 
+         * has two real poles placed at f, where f is the smoothing factor (0.1 ... 0.9).
+         *
+         *  r = expo reference (0, unless manual ramping is active)
+         *  e = expo difference          
+         *  u = expo correction
+         *  T = log2(exposure time)                  +----------< brightness change from real world (sunrise, sunset)
+         *                                           |   +------< measurement noise (let's say around 0.03 EV stdev)
+         *              _______        ______        |   |
+         * r     _  e  |       |   u  |  1   |   T   V   V
+         * -----( )----| Bramp |------|(z-1) |------(+)-(+)----+----> picture
+         *     - ^     |_______|      |______|                 |
+         *       |_____________________________________________| y = brightness level (EV); luma=bramp_reference_level => 0 EV.
+         * 
+         * P = 1/(z-1) - integrator. 
+         * Rationale: the exposure correction at each step is accumulated.
+         * 
+         * Closed loop system:
+         * S = B*P / (1 + B*P)
+         *
+         * We want to fix the closed loop response (S), so we try to find out the controller B by inverting the process P
+         * => B = S / ( 1 - S) / P
+         *
+         * We will place both closed-loop poles at smoothing factor value f in range [0.1 ... 0.9] and keep the static gain at 1.
+         * S = z / (z-f) / (z-f) / (1 / (1-f) / (1-f))
+         *
+         * Result:
+         *
+         *      b*z          b
+         * B = -----  = -----------
+         *     z + a     1 + a*z^-1
+         *
+         * with:
+         *    b = f^2 - 2f + 1
+         *    a = f^2
+         * 
+         * Computing exposure correction:
+         * 
+         * u = B/A * e
+         *    => u(k) = b e(k) - a1 u(k-1)
+         * 
+         * Exception: if ABS(e) > 2 EV, apply almost-full correction (B = 0.9) to bring it quickly back on track, 
+         * without caring about flicker.
+         * 
+         */
+
+        // unit: 0.01 EV
+        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level);
+        int r_x100 = bramp_ev_reference_x1000/10;
+        int e_x100 = COERCE(r_x100 - y_x100, -mev-500, -mev+500);
+        // positive e => picture should be brightened
+
+        // a difference of more than 2 EV will be fully corrected right away
         int expo_diff_too_big = 
-            (correction_ev_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
-            (correction_ev_x100 < -200 && bulb_shutter_valuef > shutter_min);
+            (e_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
+            (e_x100 < -200 && bulb_shutter_valuef > shutter_min);
         int should_apply_full_correction_immediately = expo_diff_too_big || bramp_prev_shot_was_bad;
         bramp_prev_shot_was_bad = expo_diff_too_big;
 
@@ -3550,83 +3594,48 @@ static void compute_exposure_for_next_shot()
             // big change in brightness - request a new picture without waiting, and apply full correction
             // most probably, user changed ND filters or moved the camera
             
-            NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", correction_ev_x100 < 0 ? "-" : "+", ABS(correction_ev_x100)/100, ABS(correction_ev_x100)%100);
+            NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100);
             msleep(500);
             intervalometer_next_shot_time = seconds_clock;
 
-            bulb_shutter_valuef *= powf(2, (float)correction_ev_x100 / 100.0);
+            bulb_shutter_valuef *= powf(2, (float)e_x100 / 111.0); // apply 90% of correction, to keep things stable
             
             // use high iso to adjust faster, then go back at low iso
             for (int i = 0; i < 5; i++)
                 bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]-2);
                 
             bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
-            
-            // don't use the next shot for estimating light changing rate
-            bramp_prev_measured_ev = -12345.0; // undefined
             return;
         }
-        else // small change in brightness - apply only partial correction
-             // also estimate the speed at which overall light is changing (just for display)
-        {
-            bramp_manual_ev_correction_for_auto_ramping_x1000 += manual_evx1000;
+        else // small change in brightness - apply only a small amount of correction to keep things smooth
+        {    // see comments above for the feedback loop design
+            bramp_ev_reference_x1000 += manual_evx1000;
 
-            //~ int current_ev_x100 = lens_info.raw_iso*100/8 + BULB_SHUTTER_VALUE_MS
-            float current_ev;
-            float log_s;
-            if (BULB_SHUTTER_VALUE_MS > BULB_MIN_EXPOSURE)
-                // exposure times rounded at 10ms (DryOS msleep)
-                log_s = log2f((float)(BULB_SHUTTER_VALUE_MS/10*10) / 1000.0);
-            else
-            {
-                // exposure times rounded at 1/8 EV
-                // 1 second (56.2735) => log2(1.0) => 0
-                float rsf = (float)shutterf_to_raw(bulb_shutter_valuef);
-                log_s = -(rsf - 56.2735f)/8.0f;
-            }
-            
-            current_ev = log_s + (float)lens_info.raw_iso/8.0 + (float)correction_ev_x100_raw/100.0;
-            
-            //~ bmp_printf(FONT_MED, 50,  200, "logs=%d ev=%d  ", (int)roundf(log_s*100.0), (int)roundf(current_ev*100.0));
-            int corr_x100 = correction_ev_x100;
+            float f = (float)bramp_auto_smooth / 100.0;
+            float e = (float)e_x100 / 100.0;
 
             if (bramp_auto_exposure == 1) // sunset - only increase exposure
-                correction_ev_x100 = MAX(correction_ev_x100, 0);
+                e = MAX(e, 0);
 
             if (bramp_auto_exposure == 2) // sunrise - only decrease exposure
-                correction_ev_x100 = MIN(correction_ev_x100, 0);
-
-            if (bramp_prev_measured_ev != -12345.0)
-            {
-                int rate_estimation = (int) roundf((current_ev - bramp_prev_measured_ev) * 100.0);
-                if (mev < -450 || mev > 450) rate_estimation = 0; // image too bright or too dark, unable to measure, assume stationary
-                
-                bramp_light_changing_rate_evx1000 = (bramp_light_changing_rate_evx1000 * 9 + rate_estimation*10) / 10;
-                NotifyBox(2000,                  "%s: %s%d.%02d EV \n"
-                                "Delta light level  : %s%d.%02d EV ",
-                    corr_x100 == correction_ev_x100 ? "Exposure difference" : "Expo.diff (ignored)",
-                    corr_x100 < 0 ? "-" : "+", ABS(corr_x100)/100, ABS(corr_x100)%100,
-                    rate_estimation <= 0 ? "+" : "-", ABS(rate_estimation)/100, ABS(rate_estimation)%100
-                    ); msleep(500);
-            }
-            else
-            {
-                NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", correction_ev_x100 < 0 ? "-" : "+", ABS(correction_ev_x100)/100, ABS(correction_ev_x100)%100);
-            }
-            bramp_prev_measured_ev = current_ev;
+                e = MIN(e, 0);
             
-            // apply only a fraction of instant correction, as specified by smoothing factor
-            bulb_shutter_valuef *= powf(2, (float)correction_ev_x100 * (100-bramp_auto_smooth)/100 / 100);
-        }
+            float b = f*f - 2*f + 1;
+            float a = f*f;
+            float u = b*e - a*bramp_u1;
+            bramp_u1 = u;
+            bulb_shutter_valuef *= powf(2, u);
 
-        // apply temporary exposure compensation (for next shot only)
-        //~ correction_ev_x100 += bramp_temporary_exposure_compensation_ev_x100;
-        //~ bramp_temporary_exposure_compensation_ev_x100 = 0;
-        //~ bulb_shutter_valuef = bulb_shutter_valuef * roundf(1000.0*powf(2, correction_ev_x100 / 100.0))/1000;
-        //~ msleep(2000);
-        //~ NotifyBoxHide();
+            // display some info
+            int corr_x100 = (int) roundf(u * 100.0);
+            NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
+                            "Exposure correction: %s%d.%02d EV ",
+                e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100,
+                corr_x100 < 0 ? "-" : "+", ABS(corr_x100)/100, ABS(corr_x100)%100
+                ); 
+            msleep(500);
+        }
     }
-    else bramp_light_changing_rate_evx1000 = 0;
 
     // apply manual exposure ramping, if any
     if (manual_evx1000)
@@ -3635,6 +3644,9 @@ static void compute_exposure_for_next_shot()
     // adjust ISO if needed, and check shutter speed limits
     bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]-2);
     bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
+    
+    // set Canon shutter speed close to bulb one (just for display)
+    lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
         
     if (mf_steps && !is_manual_focus())
     {
@@ -3656,20 +3668,20 @@ static void compute_exposure_for_next_shot()
 static void bulb_ramping_showinfo()
 {
     int s = BULB_SHUTTER_VALUE_MS;
-    int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
-    int rate_x1000 = bramp_light_changing_rate_evx1000 + manual_evx1000;
+    //~ int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
+    //~ int rate_x1000 = bramp_light_changing_rate_evx1000 + manual_evx1000;
 
     bmp_printf(FONT_MED, 50, 350, 
         //~ "Reference level (%2dth prc) :%3d%%    \n"
         //~ "Measured  level (%2dth prc) :%3d%%    \n"
         //~ "Level/EV ratio             :%3d%%/EV \n"
-        " EV rate :%s%d.%03d/shot\n"
+        //~ " EV rate :%s%d.%03d/shot\n"
         " Shutter :%3d.%03d s  \n"
         " ISO     :%5d (range: %d...%d)",
         //~ bramp_percentile, bramp_reference_level, 0,
         //~ bramp_percentile, bramp_measured_level, 0,
         //~ bramp_level_ev_ratio, 0,
-        rate_x1000 > 0 ? "+" : rate_x1000 < 0 ? "-" : " ",  ABS(rate_x1000)/1000, ABS(rate_x1000)%1000,
+        //~ rate_x1000 > 0 ? "+" : rate_x1000 < 0 ? "-" : " ",  ABS(rate_x1000)/1000, ABS(rate_x1000)%1000,
         s / 1000, s % 1000,
         lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF)
         );
