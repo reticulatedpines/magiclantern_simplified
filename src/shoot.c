@@ -3661,7 +3661,7 @@ static void compute_exposure_for_next_shot()
             if (!lv) force_liveview();
         }
         set_lv_zoom(5);
-        msleep(500);
+        msleep(1000);
         NotifyBox(1000, "Focusing...");
         lens_focus_enqueue_step(-mf_steps);
         msleep(1000);
