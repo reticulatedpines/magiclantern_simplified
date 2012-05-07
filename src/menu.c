@@ -1777,6 +1777,7 @@ open_canon_menu()
 void piggyback_canon_menu()
 {
     if (recording) return;
+    if (sensor_cleaning) return;
     SetGUIRequestMode(GUIMODE_ML_MENU);
     msleep(100);
     menu_redraw();
@@ -1792,6 +1793,7 @@ void piggyback_canon_menu()
 void close_canon_menu()
 {
     if (recording) return;
+    if (sensor_cleaning) return;
     SetGUIRequestMode(0);
     msleep(200);
 }
@@ -1858,7 +1860,6 @@ menu_task( void* unused )
                     save_config(0);
                     config_dirty = 0;
                 }
-
                 continue;
             }
 
@@ -1866,6 +1867,9 @@ menu_task( void* unused )
                 menu_redraw();
             }
 
+            if (sensor_cleaning && menu_shown)
+                menu_close();
+            
             continue;
         }
 
