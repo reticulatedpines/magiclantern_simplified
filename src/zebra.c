@@ -1036,6 +1036,7 @@ void bvram_mirror_init()
     if (!bvram_mirror)
     {
         bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
+        ASSERT(bvram_mirror);
         if (!bvram_mirror) 
         {   
             //~ bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");

@@ -142,5 +142,12 @@ task_create_##ENTRY = { \
         .entry          = ENTRY, \
 }
 
-#define TASK_LOOP for (int k = 0; ; k++)
+#ifdef _TASKS_C
+int ml_shutdown_requested = 0;
+#else
+extern int ml_shutdown_requested;
+#endif
+
+#define TASK_LOOP for (int k = 0; !ml_shutdown_requested ; k++)
+
 #endif

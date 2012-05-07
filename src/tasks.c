@@ -5,6 +5,7 @@
 // * Indy for task information: http://groups.google.com/group/ml-devel/browse_thread/thread/26cb46acd262b953
 // * AJ for the idea of shutting down ML tasks manually, rather than letting DryOS do this job
 
+#define _TASKS_C
 #include "dryos.h"
 #include "property.h"
 #include "bmp.h"
@@ -89,8 +90,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
 void ml_shutdown()
 {
-    extern int safe_to_do_engio_for_display;
-    safe_to_do_engio_for_display = 0;
+    ml_shutdown_requested = 1;
     
     info_led_on();
     _card_led_on();

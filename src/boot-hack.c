@@ -385,7 +385,7 @@ void hold_your_horses(int showlogo)
  * Custom assert handler - intercept ERR70 and try to save a crash log.
  * Crash log should contain Canon error message.
  */
-static char assert_msg[100] = "";
+static char assert_msg[1000] = "";
 int (*old_assert_handler)(char*,char*,int,int) = 0;
 const char* get_assert_msg() { return assert_msg; }
 
@@ -397,6 +397,15 @@ int my_assert_handler(char* msg, char* file, int line, int arg4)
     request_crash_log();
     return old_assert_handler(msg, file, line, arg4);
 }
+
+void ml_assert_handler(char* msg, char* file, int line, char* func)
+{
+    snprintf(assert_msg, sizeof(assert_msg), 
+        "ML ASSERT:\n%s\n"
+        "at %s:%d (%s)", msg, file, line, func);
+    request_crash_log();
+}
+
 
 #ifdef CONFIG_550D
 int init_task_patched_for_550D(int a, int b, int c, int d)

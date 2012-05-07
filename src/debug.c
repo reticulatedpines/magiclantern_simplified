@@ -107,7 +107,7 @@ int config_ok = 0;
 void
     save_config( void * priv, int delta )
 {
-    config_save_file( CARD_DRIVE "magic.cfg" );
+    BMP_LOCK( config_save_file( CARD_DRIVE "magic.cfg" ); )
 }
 static void
 delete_config( void * priv, int delta )
@@ -535,6 +535,11 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    while(1)
+    {
+        SetGUIRequestMode(CURRENT_DIALOG_MAYBE || recording ? 0 : 38);
+        msleep(50);
+    }
 
     info_led_blink(1,50,50);
     call("CUStart");
@@ -1002,10 +1007,10 @@ static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
     select_menu_by_name(menu_name, item_name);
     if (!gui_menu_shown()) give_semaphore( gui_sem );
     msleep(400);
-    //~ fake_simple_button(BGMT_PRESS_SET);
+    fake_simple_button(BGMT_PRESS_SET);
     msleep(200);
     give_semaphore( gui_sem );
-    msleep(500);
+    msleep(200);
     return;
 }
 static void stress_test_random_action()
@@ -1190,14 +1195,15 @@ static void stress_test_random_action_simple()
     }
 }
 
- void stress_test_menu_dlg_api_task(void* unused)
+void stress_test_menu_dlg_api_task(void* unused)
 {
-    config_autosave = 0; // this will make many changes in menu, don't save them
+    msleep(2000);
+    info_led_blink(5,50,50);
+    extern struct semaphore * gui_sem;
     TASK_LOOP
     {
-        stress_test_random_action_simple();
-        //~ stress_test_toggle_menu_item("LiveV", "Zebras");
-        msleep(rand() % 30);
+        give_semaphore(gui_sem);
+        msleep(20);
     }
 }
 
@@ -3197,6 +3203,7 @@ int handle_buttons_being_held(struct event * event)
 
 void fake_simple_button(int bgmt_code)
 {
+    if (ml_shutdown_requested) return;
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 

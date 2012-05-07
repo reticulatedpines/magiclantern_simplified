@@ -41,6 +41,8 @@ void bmp_idle_copy(int direction)
 {
     uint8_t* real = bmp_vram_real();
     uint8_t* idle = bmp_vram_idle();
+    ASSERT(real)
+    ASSERT(idle)
     if (direction)
         memcpy(real, idle, BMP_HEIGHT * BMPPITCH);
     else
@@ -61,13 +63,17 @@ uint8_t* bmp_vram_real()
 
 uint8_t* bmp_vram_idle()
 {
-    return (uint8_t *)((uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000);
+    uint8_t* bmp_buf = (uint8_t *)((uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000);
+    ASSERT(bmp_buf)
+    return bmp_buf;
 }
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
-    return bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
+    uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
+    ASSERT(bmp_buf);
+    return bmp_buf;
 }
 
 
@@ -80,9 +86,13 @@ _draw_char(
     char        c
 )
 {
-    //~ if (!bmp_enabled) return;
+    uint8_t* v = bmp_vram();
+    if (bmp_vram_row < v) return;
+
     unsigned i,j;
     const struct font * const font = fontspec_font( fontspec );
+
+    if (bmp_vram_row >= v + (BMP_HEIGHT - font->height) * BMPPITCH) return;
 
     uint32_t    fg_color    = fontspec_fg( fontspec ) << 24;
     uint32_t    bg_color    = fontspec_bg( fontspec ) << 24;
@@ -218,6 +228,10 @@ bmp_puts(
     const char *        s
 )
 {
+    ASSERT(x)
+    ASSERT(y)
+    ASSERT(s)
+    
     const uint32_t        pitch = BMPPITCH;
     uint8_t * vram = bmp_vram();
     if( !vram || ((uintptr_t)vram & 1) == 1 )
@@ -262,6 +276,10 @@ bmp_puts_w(
     const char *        s
 )
 {
+    ASSERT(x)
+    ASSERT(y)
+    ASSERT(s)
+
     const uint32_t        pitch = BMPPITCH;
     uint8_t * vram = bmp_vram();
     if( !vram || ((uintptr_t)vram & 1) == 1 )
@@ -432,6 +450,7 @@ bmp_fill(
     uint32_t        h
 )
 {
+    //~ return;
     //~ if (!bmp_enabled) return;
     x = COERCE(x, 0, BMP_WIDTH);
     y = COERCE(y, 0, BMP_HEIGHT);
@@ -455,7 +474,8 @@ bmp_fill(
         return;
 
     uint8_t * const vram = bmp_vram();
-    uint32_t * row = UNCACHEABLE((void*)( vram + y * pitch + start ));
+    uint32_t * row = (void*)( vram + y * pitch + start );
+    ASSERT(row)
 
     if( !vram || ( 1 & (uintptr_t) vram ) )
     {
@@ -800,12 +820,18 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
 // this is slow, but is good for a small number of pixels :)
 uint8_t bmp_getpixel(int x, int y)
 {
+    ASSERT(x >= 0 && x <= BMP_WIDTH)
+    ASSERT(y >= 0 && y <= BMP_HEIGHT)
+
     uint8_t * const bvram = bmp_vram();
     return bvram[x + y * BMPPITCH];
 }
 
 uint8_t bmp_getpixel_real(int x, int y)
 {
+    ASSERT(x >= 0 && x <= BMP_WIDTH)
+    ASSERT(y >= 0 && y <= BMP_HEIGHT)
+
     uint8_t * const bvram = bmp_vram_real();
     return bvram[x + y * BMPPITCH];
 }
@@ -823,6 +849,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
     //~ if (!bmp_enabled) return;
     uint8_t * const bvram = bmp_vram();
+    ASSERT(bvram)
     if (!bvram) return;
     
     int x, y;
@@ -1142,6 +1169,8 @@ bfnt_test()
 
 void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
 {
+    ASSERT(src)
+    ASSERT(dst)
     if (!dst) return;
     int i,j;
     for (i = 0; i < vram_bm.height; i++)
@@ -1159,6 +1188,9 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
 
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
+    ASSERT(dest);
+    ASSERT(dest < bmp_vram() + BMPPITCH * BMP_HEIGHT - BMP_HEIGHT);
+
     size_t i;
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
@@ -1177,6 +1209,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
 void bmp_dim()
 {
     uint32_t* b = (uint32_t *)bmp_vram();
+    ASSERT(b);
     if (!b) return;
     int i,j;
     for (i = 1; i < vram_bm.height; i ++)
@@ -1188,6 +1221,7 @@ void bmp_dim()
 void bmp_make_semitransparent()
 {
     uint8_t* b = (uint8_t *)bmp_vram();
+    ASSERT(b);
     if (!b) return;
     int i,j;
     for (i = 0; i < vram_bm.height; i ++)
@@ -1205,6 +1239,7 @@ void * bmp_lock = 0;
 void bmp_init(void* unused)
 {
     bmp_lock = CreateRecursiveLock(0);
+    ASSERT(bmp_lock)
     bvram_mirror_init();
     update_vram_params();
 }

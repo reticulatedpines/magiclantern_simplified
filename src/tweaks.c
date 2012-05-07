@@ -1471,11 +1471,9 @@ CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
-int safe_to_do_engio_for_display = 1;
-
 void preview_saturation_step()
 {
-    if (!safe_to_do_engio_for_display) return;
+    if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     //~ if (!lv) return;
     
@@ -1578,7 +1576,7 @@ void grayscale_menus_step()
     prev_d = DISPLAY_IS_ON;
     prev_g = gui_state;
 
-    if (!safe_to_do_engio_for_display) return;
+    if (!ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     if (!transition) return;
 
@@ -1601,7 +1599,7 @@ void grayscale_menus_step()
 
 void lcd_adjust_position_step()
 {
-    if (!safe_to_do_engio_for_display) return;
+    if (!ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
 
     static int factory_position = -1;

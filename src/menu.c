@@ -1341,6 +1341,11 @@ menu_redraw_do()
 {
         menu_damage = 0;
         
+        if (!DISPLAY_IS_ON)
+        {
+            return;
+        }
+        
         int double_buffering = 1;
         
         if (menu_help_active)
@@ -1380,7 +1385,7 @@ menu_redraw_do()
                 prev_so = show_only_selected;
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
-                take_semaphore(menu_redraw_sem, 0);
+                //~ take_semaphore(menu_redraw_sem, 0);
                 
                 if (!show_only_selected || !submenu_mode)
                     menus_display( menus, x0, y0 ); 
@@ -1396,7 +1401,7 @@ menu_redraw_do()
                     else implicit_submenu_display();
                 }
                 
-                give_semaphore(menu_redraw_sem);
+                //~ give_semaphore(menu_redraw_sem);
 
                 if (show_only_selected) 
                 {
@@ -1450,6 +1455,7 @@ menu_redraw_task()
     menu_redraw_queue = msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
+        msleep(50);
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, &msg, 500);
         if (err) continue;
@@ -1462,6 +1468,8 @@ TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
 void
 menu_redraw()
 {
+    if (!DISPLAY_IS_ON) return;
+    if (ml_shutdown_requested) return;
     if (menu_help_active) bmp_draw_request_stop();
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, 1);
 }
@@ -1509,20 +1517,20 @@ handle_ml_menu_keys(struct event * event)
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
     // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
-    take_semaphore(menu_redraw_sem, 0);
+    //~ take_semaphore(menu_redraw_sem, 0);
 
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
     
     // Make sure we are not displaying an empty menu
-    if (!menu_has_visible_items(menu->children))
+/*    if (!menu_has_visible_items(menu->children))
     {
         menu_move(menu, -1); menu = get_selected_menu();
         menu_move(menu, 1); menu = get_selected_menu();
     }
     
     menu_entry_move(menu, -1);
-    menu_entry_move(menu, 1);
+    menu_entry_move(menu, 1);*/
     
     struct menu * help_menu = menu;
     if (submenu_mode)
@@ -1532,7 +1540,7 @@ handle_ml_menu_keys(struct event * event)
         if (!menu) menu = help_menu; // no submenu, operate on same item
     }
 
-    give_semaphore(menu_redraw_sem);
+    //~ give_semaphore(menu_redraw_sem);
     
     switch( event->param )
     {
@@ -1768,7 +1776,8 @@ open_canon_menu()
 
 void piggyback_canon_menu()
 {
-    //~ return;
+    return;
+    if (recording) return;
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (lv) fake_simple_button(BGMT_PICSTYLE);
         else { fake_simple_button(BGMT_MENU); msleep(100); }
@@ -1788,7 +1797,8 @@ void piggyback_canon_menu()
 
 void close_canon_menu()
 {
-    //~ return;
+    return;
+    if (recording) return;
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         //~ if (!recording) SetGUIRequestMode(0);
         if (lv && CURRENT_DIALOG_MAYBE) fake_simple_button(BGMT_PICSTYLE);
@@ -1804,7 +1814,7 @@ void close_canon_menu()
         }
         #endif
     #endif
-    //~ msleep(100);
+    msleep(300);
 }
 
 static void menu_open() 
@@ -1828,12 +1838,6 @@ static void menu_close()
     lens_focus_stop();
     show_only_selected = 0;
     
-    extern int config_autosave;
-    if (config_autosave && config_dirty && !recording)
-    {
-        save_config(0);
-        config_dirty = 0;
-    }
     if (!PLAY_MODE) { redraw(); }
     else draw_livev_for_playback();
 
@@ -1868,7 +1872,16 @@ menu_task( void* unused )
         {
             // We woke up after 1 second
             if( !menu_shown )
+            {
+                extern int config_autosave;
+                if (config_autosave && config_dirty && !recording)
+                {
+                    save_config(0);
+                    config_dirty = 0;
+                }
+
                 continue;
+            }
 
             if ((!menu_help_active && !show_only_selected) || menu_damage) {
                 menu_redraw();

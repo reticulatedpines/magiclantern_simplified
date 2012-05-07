@@ -1015,7 +1015,7 @@ static struct menu_entry mov_menus[] = {
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
         .essential = FOR_MOVIE,
-        .edit_mode = EM_MANY_VALUES_LV,
+        //~ .edit_mode = EM_MANY_VALUES_LV,
     },
     #ifndef CONFIG_50D
     {
