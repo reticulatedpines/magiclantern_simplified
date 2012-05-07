@@ -268,3 +268,5 @@ NSTUB(0xFF0396E4, PD_RemoteRelease)
 NSTUB(0x3328, task_max)
 NSTUB(0xFF3557F0, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFF080ECC, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+
+NSTUB(0xff0a5e44, SetGUIRequestMode)

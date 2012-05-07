@@ -255,6 +255,10 @@
 #define MENU_DISP_ISO_POS_X 590
 #define MENU_DISP_ISO_POS_Y 26
 
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
+
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 400
 #define DISPLAY_CLOCK_POS_Y 410

@@ -1385,7 +1385,7 @@ menu_redraw_do()
                 prev_so = show_only_selected;
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
-                //~ take_semaphore(menu_redraw_sem, 0);
+                take_semaphore(menu_redraw_sem, 0);
                 
                 if (!show_only_selected || !submenu_mode)
                     menus_display( menus, x0, y0 ); 
@@ -1401,7 +1401,7 @@ menu_redraw_do()
                     else implicit_submenu_display();
                 }
                 
-                //~ give_semaphore(menu_redraw_sem);
+                give_semaphore(menu_redraw_sem);
 
                 if (show_only_selected) 
                 {
@@ -1517,20 +1517,20 @@ handle_ml_menu_keys(struct event * event)
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
     // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
-    //~ take_semaphore(menu_redraw_sem, 0);
+    take_semaphore(menu_redraw_sem, 0);
 
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
     
     // Make sure we are not displaying an empty menu
-/*    if (!menu_has_visible_items(menu->children))
+    if (!menu_has_visible_items(menu->children))
     {
         menu_move(menu, -1); menu = get_selected_menu();
         menu_move(menu, 1); menu = get_selected_menu();
     }
     
     menu_entry_move(menu, -1);
-    menu_entry_move(menu, 1);*/
+    menu_entry_move(menu, 1);
     
     struct menu * help_menu = menu;
     if (submenu_mode)
@@ -1540,7 +1540,7 @@ handle_ml_menu_keys(struct event * event)
         if (!menu) menu = help_menu; // no submenu, operate on same item
     }
 
-    //~ give_semaphore(menu_redraw_sem);
+    give_semaphore(menu_redraw_sem);
     
     switch( event->param )
     {
@@ -1776,53 +1776,25 @@ open_canon_menu()
 
 void piggyback_canon_menu()
 {
-    return;
     if (recording) return;
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        if (lv) fake_simple_button(BGMT_PICSTYLE);
-        else { fake_simple_button(BGMT_MENU); msleep(100); }
-    #else
-    
-        #ifdef GUIMODE_ML_MENU
-        //~ if (GUIMODE_ML_MENU == 2) msleep(100);
-        #else
-        if (!lv && !MENU_MODE && !is_movie_mode())
-        {
-            if (!PLAY_MODE) open_canon_menu();
-        }
-        #endif
-    #endif
+    SetGUIRequestMode(GUIMODE_ML_MENU);
     msleep(100);
+    menu_redraw();
 }
 
 void close_canon_menu()
 {
-    return;
     if (recording) return;
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        //~ if (!recording) SetGUIRequestMode(0);
-        if (lv && CURRENT_DIALOG_MAYBE) fake_simple_button(BGMT_PICSTYLE);
-        else if (MENU_MODE) fake_simple_button(BGMT_MENU);
-    #else
-    
-        #ifdef GUIMODE_ML_MENU
-        //~ if (GUIMODE_ML_MENU == 2) msleep(100);
-        #else
-        if (!lv && !MENU_MODE && !is_movie_mode())
-        {
-            if (!PLAY_MODE) open_canon_menu();
-        }
-        #endif
-    #endif
-    msleep(300);
+    SetGUIRequestMode(0);
+    msleep(200);
 }
 
 static void menu_open() 
 { 
     if (menu_shown) return;
+    menu_shown = 1;
     piggyback_canon_menu();
 
-    menu_shown = 1;
     show_only_selected = 0;
     submenu_mode = 0;
     menu_help_active = 0;

@@ -179,6 +179,8 @@
 #define MENU_DISP_INFO_POS_X 0
 #define MENU_DISP_INFO_POS_Y 395
 
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 36 : 2)
+
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 200
 #define DISPLAY_CLOCK_POS_Y 410

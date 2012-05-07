@@ -248,3 +248,5 @@ NSTUB(0xFF86AD34, msg_queue_create) // CreateMessageQueue
 NSTUB(0x30f8, task_max)
 NSTUB(0xFF8180BC, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFF817F04, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+
+NSTUB(0xFF8875E4, SetGUIRequestMode)
