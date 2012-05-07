@@ -1053,7 +1053,7 @@ lens_take_picture(
     else
     {
         #ifdef CONFIG_5D2
-        //~ int status = 0;
+        int status = 0;
         PtpDps_remote_release_SW1_SW2_worker(&status);
         //~ SW1(1,50);
         //~ SW2(1,250);

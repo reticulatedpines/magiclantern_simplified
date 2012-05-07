@@ -92,7 +92,7 @@ _draw_char(
     unsigned i,j;
     const struct font * const font = fontspec_font( fontspec );
 
-    if (bmp_vram_row >= v + (BMP_HEIGHT - font->height) * BMPPITCH) return;
+    if (bmp_vram_row >= v + BMP_HEIGHT * BMPPITCH) return;
 
     uint32_t    fg_color    = fontspec_fg( fontspec ) << 24;
     uint32_t    bg_color    = fontspec_bg( fontspec ) << 24;

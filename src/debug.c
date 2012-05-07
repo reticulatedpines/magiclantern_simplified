@@ -535,11 +535,12 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    while(1)
-    {
-        SetGUIRequestMode(CURRENT_DIALOG_MAYBE || recording ? 0 : 38);
-        msleep(50);
-    }
+    stress_test_picture(3);
+    //~ while(1)
+    //~ {
+        //~ SetGUIRequestMode(CURRENT_DIALOG_MAYBE || recording ? 0 : 38);
+        //~ msleep(50);
+    //~ }
 
     info_led_blink(1,50,50);
     call("CUStart");
@@ -569,7 +570,7 @@ static void stress_test_long(void* priv, int delta)
     task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 }
 
-static void stress_test_picture(int n, int delay)
+ void stress_test_picture(int n, int delay)
 {
     if (shutter_count > 50000) { beep(); return; }
     msleep(delay);
@@ -2283,6 +2284,13 @@ struct menu_entry debug_menus[] = {
         .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
     },
 #endif
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+    {
+        .name        = "Rename CR2 to AVI",
+        .select        = CR2toAVI,
+        .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+    },
+#endif
     {
         .name        = "Don't click me!",
         .priv =         run_test,
@@ -2394,13 +2402,6 @@ struct menu_entry debug_menus[] = {
             },
             MENU_EOL,
         }
-    },
-#endif
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name        = "Rename CR2 to AVI",
-        .select        = CR2toAVI,
-        .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
     },
 #endif
     {
