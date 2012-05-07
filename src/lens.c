@@ -1631,6 +1631,7 @@ PROP_HANDLER( PROP_LV_LENS )
         if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
         idle_wakeup_reset_counters(-11);
         lens_display_set_dirty();
+        zoom_focus_ring_trigger();
     }
     old_focus_dist = lens_info.focus_dist;
 

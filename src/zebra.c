@@ -4431,6 +4431,7 @@ livev_hipriority_task( void* unused )
                     msleep(100);
                 }
                 vram_params_set_dirty();
+                zoom_overlay_triggered_by_focus_ring_countdown = 0;
                 msleep(500);
             }
         }

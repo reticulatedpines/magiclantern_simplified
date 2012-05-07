@@ -535,12 +535,6 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    stress_test_picture(3);
-    //~ while(1)
-    //~ {
-        //~ SetGUIRequestMode(CURRENT_DIALOG_MAYBE || recording ? 0 : 38);
-        //~ msleep(50);
-    //~ }
 
     info_led_blink(1,50,50);
     call("CUStart");

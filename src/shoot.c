@@ -129,6 +129,7 @@ static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
 static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
+static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
@@ -2508,6 +2509,27 @@ static void zoom_lv_face_step()
     }
 }
 
+static int zoom_focus_ring_disable_time = 0;
+void zoom_focus_ring_trigger()
+{
+    if (!zoom_focus_ring) return;
+    if (recording) return;
+    if (lv_dispsize > 1) return;
+    zoom_focus_ring_disable_time = ms100_clock + 3000;
+    int zoom = zoom_disable_x5 ? 10 : 5;
+    set_lv_zoom(zoom);
+}
+static void zoom_focus_ring_step()
+{
+    if (!zoom_focus_ring) return;
+    if (recording) return;
+    if (zoom_focus_ring_disable_time && ms100_clock > zoom_focus_ring_disable_time)
+    {
+        if (lv_dispsize > 1) set_lv_zoom(1);
+        zoom_focus_ring_disable_time = 0;
+    }
+}
+
 int zoom_x5_x10_step()
 {
     if (zoom_disable_x5 && lv_dispsize == 5)
@@ -4041,6 +4063,12 @@ struct menu_entry tweak_menus_shoot[] = {
                 .max = 1,
                 .help = "Enable zoom when you hold the shutter halfway pressed."
             },
+            {
+                .name = "Zoom on Manual Focus   ",
+                .priv = &zoom_focus_ring,
+                .max = 1,
+                .help = "Zoom when you turn the focus ring (only some Canon lenses)."
+            },
             MENU_EOL
         },
     },
@@ -5096,6 +5124,7 @@ shoot_task( void* unused )
         
         mlu_step();
         zoom_lv_face_step();
+        zoom_focus_ring_step();
         //~ uniwb_step();
 
         if (center_lv_aff)
