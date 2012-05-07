@@ -14,7 +14,7 @@
 #include "ptp.h"
 
 void trap_focus_toggle_from_af_dlg();
-static void lens_focus_enqueue_step(int dir);
+void lens_focus_enqueue_step(int dir);
 
 int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
@@ -536,13 +536,13 @@ lens_focus_start(
     if( dir == 0 )
         focus_task_dir = focus_dir ? 1 : -1;
     else
-        focus_task_dir = dir;
+        focus_task_dir = SGN(dir);
 
     give_semaphore( focus_task_sem );
 }
 
 int queued_focus_steps = 0;
-static void lens_focus_enqueue_step(int dir)
+void lens_focus_enqueue_step(int dir)
 {
     queued_focus_steps += ABS(dir);
     lens_focus_start(dir);
@@ -602,6 +602,8 @@ focus_task( void* unused )
         msleep(50);
         int err = take_semaphore( focus_task_sem, 500 );
         if (err) continue;
+        
+        while (lens_info.job_state) msleep(100);
 
         if( focus_rack_delta )
         {

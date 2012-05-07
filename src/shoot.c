@@ -3641,15 +3641,19 @@ static void compute_exposure_for_next_shot()
     if (manual_evx1000)
         bulb_shutter_valuef *= powf(2, (float)manual_evx1000 / 1000.0);
     
-    // adjust ISO if needed, and check shutter speed limits
-    bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]-2);
-    bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
-    
-    // set Canon shutter speed close to bulb one (just for display)
-    lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
+    if (BULB_EXPOSURE_CONTROL_ACTIVE)
+    {
+        // adjust ISO if needed, and check shutter speed limits
+        bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]-2);
+        bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
+        
+        // set Canon shutter speed close to bulb one (just for display)
+        lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
+    }
         
     if (mf_steps && !is_manual_focus())
     {
+        while (lens_info.job_state) msleep(100);
         get_out_of_play_mode(500);
         if (!lv) 
         {
@@ -3657,10 +3661,10 @@ static void compute_exposure_for_next_shot()
             if (!lv) force_liveview();
         }
         set_lv_zoom(5);
-        msleep(1000);
+        msleep(500);
         NotifyBox(1000, "Focusing...");
-        LensFocus(-mf_steps);
-        msleep(1500);
+        lens_focus_enqueue_step(-mf_steps);
+        msleep(1000);
         set_lv_zoom(1);
     }
 }
@@ -4833,7 +4837,7 @@ void hdr_shot(int skip0, int wait)
     }
     else // regular pic (not HDR)
     {
-        hdr_shutter_release(0, 1);
+        hdr_shutter_release(0, !intervalometer_running); // disable AF on intervalometer, allow it otherwise
     }
 
     lens_wait_readytotakepic(64);
@@ -5363,7 +5367,7 @@ shoot_task( void* unused )
 
             if (dt == 0)
             {
-                take_a_pic(1);
+                take_a_pic(0);
             }
             else if (!is_movie_mode() || silent_pic_enabled)
             {
