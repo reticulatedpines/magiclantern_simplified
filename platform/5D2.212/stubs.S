@@ -186,6 +186,7 @@ NSTUB(0xFF86EF10, GetMemoryInformation)
 NSTUB(0xFF872308, msg_queue_create)
 
 NSTUB(0xff83c1e4, PD_RemoteRelease)
+NSTUB( 0xFF92EEB8, PtpDps_remote_release_SW1_SW2_worker ) // called from: ptpRemoteRelease Occupy
 
 // for task information
 NSTUB(0x3050, task_max)

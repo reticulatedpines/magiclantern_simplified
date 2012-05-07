@@ -1051,16 +1051,19 @@ lens_take_picture(
         SW1(0,50);
     }
     else
+    {
         #ifdef CONFIG_5D2
-        //~ PD_RemoteRelease();
-        SW1(1,100);
-        SW2(1,250);
-        SW2(0,50);
-        SW1(0,50);
+        //~ int status = 0;
+        PtpDps_remote_release_SW1_SW2_worker(&status);
+        //~ SW1(1,50);
+        //~ SW2(1,250);
+        //~ SW2(0,50);
+        //~ SW1(0,50);
         //~ call("Release");
         #else
         call("Release");
         #endif
+    }
     #else
     call("Release");
     #endif
