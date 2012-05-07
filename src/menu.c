@@ -1780,6 +1780,13 @@ void piggyback_canon_menu()
     SetGUIRequestMode(GUIMODE_ML_MENU);
     msleep(100);
     menu_redraw();
+    if (MENU_MODE)
+    {
+        msleep(100);
+        menu_redraw();
+        msleep(100);
+        menu_redraw();
+    }
 }
 
 void close_canon_menu()
