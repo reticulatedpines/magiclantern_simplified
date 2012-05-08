@@ -1341,10 +1341,8 @@ menu_redraw_do()
 {
         menu_damage = 0;
         
-        if (!DISPLAY_IS_ON)
-        {
-            return;
-        }
+        if (!DISPLAY_IS_ON) return;
+        if (sensor_cleaning) return;
         
         int double_buffering = 1;
         

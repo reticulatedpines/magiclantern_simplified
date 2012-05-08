@@ -16,7 +16,7 @@
 
 #define CONFIG_STRESS_TEST
 #undef CONFIG_HEXDUMP
-#define CONFIG_ISO_TESTS
+#undef CONFIG_ISO_TESTS
 
 //~ #define CONFIG_HEXDUMP
 

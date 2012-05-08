@@ -78,7 +78,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
      
      bmp_printf((FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
         c, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
-      y += font_small.height - 1;
+      y += font_small.height;
       if (y > 410)
       {
           x += 360;

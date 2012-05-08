@@ -2515,7 +2515,7 @@ void zoom_focus_ring_trigger()
     if (!zoom_focus_ring) return;
     if (recording) return;
     if (lv_dispsize > 1) return;
-    zoom_focus_ring_disable_time = ms100_clock + 3000;
+    zoom_focus_ring_disable_time = ms100_clock + 4000;
     int zoom = zoom_disable_x5 ? 10 : 5;
     set_lv_zoom(zoom);
 }
