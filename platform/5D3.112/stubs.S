@@ -142,9 +142,9 @@ NSTUB(0xff9ecd10 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFF2F2884, vram_get_pos_and_size)
 //NSTUB(   0x57090, vram_info) // not sure, but not used
 NSTUB(0xff9f4edc - RAM_OFFSET, vsnprintf)
-NSTUB(0xFF4AFD94, LiveViewApp_handler)
-NSTUB(0xFF36724C, PlayMain_handler)
-NSTUB(0xFF4B88F4, OlcAFFrameApp_handler)
+NSTUB(0xff658a48, LiveViewApp_handler)
+NSTUB(0xff4dfb20, PlayMain_handler)
+//NSTUB(0xFF4B88F4, OlcAFFrameApp_handler)
 NSTUB(0xFF49C0B0, ErrCardForLVApp_handler) // not sure
 
 NSTUB(0xff28cbfc, _engio_write)

@@ -15,15 +15,13 @@
 // not needed for now
 //~ #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
-#define YUV422_LV_BUFFER_1 0x40D07800 
-#define YUV422_LV_BUFFER_2 0x4c233800
-#define YUV422_LV_BUFFER_3 0x4f11d800
+#define YUV422_LV_BUFFER_1 0x55207800 
+#define YUV422_LV_BUFFER_2 0x55a27800
+#define YUV422_LV_BUFFER_3 0x55617800
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-//~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x246a4+something))
-
-#define YUV422_LV_BUFFER_DMA_ADDR YUV422_LV_BUFFER_1
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x246a4+0x11c))
 #define YUV422_HD_BUFFER_DMA_ADDR 0x44000080
 
 

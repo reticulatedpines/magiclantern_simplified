@@ -67,7 +67,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
       else name="?";
      
      // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
-     int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || streq(name, "idle"));
+     int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || streq(name, "idle") ||  streq(name, "systemtask"));
      if (what_tasks_to_show==1 && !is_canon_task) continue;
      if (what_tasks_to_show!=1 && is_canon_task) continue;
      
@@ -76,9 +76,13 @@ void tasks_print(void* priv, int x0, int y0, int selected)
      
      int mem_percent = task_attr.used * 100 / task_attr.size;
      
-     bmp_printf((FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
+     bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
         c, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
+      #ifdef CONFIG_5D3
+      y += font_small.height - (what_tasks_to_show==1 ? 2 : 0); // too many tasks - they don't fit on the screen :)
+      #else
       y += font_small.height;
+      #endif
       if (y > 410)
       {
           x += 360;

@@ -311,7 +311,7 @@ void my_big_init_task()
         
         // for debugging: uncomment this to start only some specific tasks
         // tip: use something like grep -nr TASK_CREATE ./ to find all task names
-        #ifdef CONFIG_5D3
+        #if 0
         if (
                 //~ streq(task->name, "audio_meter_task") ||
                 //~ streq(task->name, "audio_level_task") ||
