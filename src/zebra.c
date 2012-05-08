@@ -1678,10 +1678,10 @@ static void find_cropmarks()
     num_cropmarks = k;
     sort_cropmarks();
 }
-static void reload_cropmark(int i)
+static void reload_cropmark()
 {
 BMP_LOCK(
-
+    int i = crop_index;
     static int old_i = -1;
     if (i == old_i) goto end; 
     old_i = i;
@@ -1888,8 +1888,9 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     int w = h * 720 / 480;
     int xc = x + 315;
     int yc = y + font_large.height * 3 + 10;
-    run_in_separate_task(reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
-    ASSERT(cropmarks);
+    task_create("crop_reload", 0x1a, 0x1000, reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
+    //~ reload_cropmark(crop_index);
+    //~ ASSERT(cropmarks);
     bmp_fill(0, xc, yc, w, h);
     BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
@@ -3204,7 +3205,7 @@ cropmark_draw()
     }
     crop_dirty = 0;
 
-    reload_cropmark(crop_index); // reloads only when changed
+    reload_cropmark(); // reloads only when changed
 
     // this is very fast
     if (cropmark_cache_is_valid())
@@ -4784,7 +4785,7 @@ static void livev_playback_toggle()
     livev_playback = !livev_playback;
     if (livev_playback)
     {
-        run_in_separate_task(draw_livev_for_playback, 0);
+        task_create("lv_playback", 0x1a, 0x1000, draw_livev_for_playback, 0);
     }
     else
     {
