@@ -16,20 +16,22 @@
 //~ #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
 #define YUV422_LV_BUFFER_1 0x55207800 
-#define YUV422_LV_BUFFER_2 0x55a27800
-#define YUV422_LV_BUFFER_3 0x55617800
+#define YUV422_LV_BUFFER_2 0x55617800
+#define YUV422_LV_BUFFER_3 0x55a27800
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x246a4+0x11c))
-#define YUV422_HD_BUFFER_DMA_ADDR 0x44000080
+
+#define EVF_STATEOBJ *(struct state_object**)0x2600C)
+#define YUV422_HD_BUFFER_DMA_ADDR 0x54000000
 
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-#define YUV422_HD_BUFFER_1 0x44000080
+#define YUV422_HD_BUFFER_1 0x54000000
 #define YUV422_HD_BUFFER_2 0x4C000080
 #define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000000 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
@@ -83,7 +85,7 @@
 //~ #define BGMT_FUNC 0x12
 #define BGMT_PICSTYLE 0x13
 //~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
-#define BGMT_JOY_CENTER 0x1e
+#define BGMT_JOY_CENTER 0x3e
 
 #define BGMT_PRESS_UP 0x36
 #define BGMT_PRESS_UP_RIGHT 0x17
@@ -94,7 +96,7 @@
 #define BGMT_PRESS_DOWN_LEFT 0x1C
 #define BGMT_PRESS_DOWN 0x3d
 
-#define BGMT_UNPRESS_UDLR 0x15
+#define BGMT_UNPRESS_UDLR 0x35
 #define BGMT_PRESS_HALFSHUTTER 0x4e
 #define BGMT_UNPRESS_HALFSHUTTER 0x4f
 #define BGMT_PRESS_FULLSHUTTER 0x50

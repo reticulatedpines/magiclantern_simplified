@@ -209,6 +209,10 @@ void update_vram_params()
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
 #endif
+#ifdef CONFIG_5D3
+    vram_hd.width  = 1904;
+    vram_hd.height = 1270;
+#endif
 
     vram_lv.pitch = vram_lv.width * 2; 
     vram_hd.pitch = vram_hd.width * 2;
