@@ -17,7 +17,7 @@ struct menu_entry help_menus[] = {
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D)
+        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
         .name = "Press Q    : Bring up submenu...",
         #endif
         #ifdef CONFIG_500D

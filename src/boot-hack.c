@@ -136,9 +136,7 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
     // Install our task creation hooks
-    #ifndef CONFIG_5D3
     task_dispatch_hook = my_task_dispatch_hook;
-    #endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -290,9 +288,7 @@ void my_big_init_task()
     return;
 */
 
-    #ifndef CONFIG_1100D
     config_parse_file( CARD_DRIVE "magic.cfg" );
-    #endif
     debug_init_stuff();
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job
@@ -315,34 +311,34 @@ void my_big_init_task()
         
         // for debugging: uncomment this to start only some specific tasks
         // tip: use something like grep -nr TASK_CREATE ./ to find all task names
-        #if 0
+        #ifdef CONFIG_5D3
         if (
-                streq(task->name, "audio_meter_task") ||
-                streq(task->name, "audio_level_task") ||
-                streq(task->name, "bitrate_task") ||
-                streq(task->name, "cartridge_task") ||
-                streq(task->name, "cls_task") ||
-                streq(task->name, "console_task") ||
+                //~ streq(task->name, "audio_meter_task") ||
+                //~ streq(task->name, "audio_level_task") ||
+                //~ streq(task->name, "bitrate_task") ||
+                //~ streq(task->name, "cartridge_task") ||
+                //~ streq(task->name, "cls_task") ||
+                //~ streq(task->name, "console_task") ||
                 streq(task->name, "debug_task") ||
-                streq(task->name, "dmspy_task") ||
-                streq(task->name, "focus_task") ||
-                streq(task->name, "focus_misc_task") ||
-                streq(task->name, "fps_task") ||
-                streq(task->name, "iso_adj_task") ||
-                streq(task->name, "joypress_task") ||
-                streq(task->name, "light_sensor_task") ||
-                streq(task->name, "livev_hiprio_task") ||
-                streq(task->name, "livev_loprio_task") ||
+                //~ streq(task->name, "dmspy_task") ||
+                //~ streq(task->name, "focus_task") ||
+                //~ streq(task->name, "focus_misc_task") ||
+                //~ streq(task->name, "fps_task") ||
+                //~ streq(task->name, "iso_adj_task") ||
+                //~ streq(task->name, "joypress_task") ||
+                //~ streq(task->name, "light_sensor_task") ||
+                //~ streq(task->name, "livev_hiprio_task") ||
+                //~ streq(task->name, "livev_loprio_task") ||
                 streq(task->name, "menu_task") ||
                 streq(task->name, "menu_redraw_task") ||
-                streq(task->name, "morse_task") ||
-                streq(task->name, "movtweak_task") ||
-                streq(task->name, "ms100_clock_task") ||
-                streq(task->name, "notifybox_task") ||
-                streq(task->name, "plugins_task") ||
-                streq(task->name, "seconds_clock_task") ||
-                streq(task->name, "shoot_task") ||
-                streq(task->name, "tweak_task") ||
+                //~ streq(task->name, "morse_task") ||
+                //~ streq(task->name, "movtweak_task") ||
+                //~ streq(task->name, "ms100_clock_task") ||
+                //~ streq(task->name, "notifybox_task") ||
+                //~ streq(task->name, "plugins_task") ||
+                //~ streq(task->name, "seconds_clock_task") ||
+                //~ streq(task->name, "shoot_task") ||
+                //~ streq(task->name, "tweak_task") ||
             0 )
         #endif
         {
@@ -563,14 +559,6 @@ my_init_task(int a, int b, int c, int d)
     additional_version[12] = build_version[8];
     additional_version[13] = '\0';
 
-#ifdef CONFIG_5D3
-    msleep(5000);
-    bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-    bfnt_puts("Hello, World!", 50, 100, COLOR_BLACK, COLOR_WHITE);
-    call("dispcheck");
-    return ans;
-#endif
-
 #ifndef CONFIG_EARLY_PORT
 
     #ifdef CONFIG_50D
@@ -602,24 +590,24 @@ my_init_task(int a, int b, int c, int d)
 
 #ifdef CONFIG_5D3
 // dummy stubs
-void redraw(){};
-int ext_monitor_hdmi = 0;
-int ext_monitor_rca = 0;
-int hdmi_code = 0;
-int gui_state = 0;
-int recording = 0;
-int video_mode_resolution = 0;
-int lv = 0; 
-int lv_paused = 0;
-void debug_init_stuff(){};
-void request_crash_log(){};
-void bvram_mirror_init(){};
-void bmp_mute_flag_reset(){};
-
-void *
-prop_cleanup(
-        void *          token,
-        unsigned        property
-) {};
-
+void	prop_request_change(unsigned property, const void* addr, size_t len){}
+int lcd_release_running = 0;
+void lcd_release_step() {};
+int get_lcd_sensor_shortcuts() { return 0; }
+void display_lcd_remote_icon(int x0, int y0) {}
+int audio_meters_are_drawn() { return 0; }
+void volume_up(){};
+void volume_down(){};
+void out_volume_up(){};
+void out_volume_down(){};
+int new_LiveViewApp_handler = 0xff123456;
+void bootflag_write_bootblock(){};
+int get_current_shutter_reciprocal_x1000(){ return 1000; }
+int handle_fps_events() { return 1; }
+int fps_get_current_x1000() { return 25000; }
+void fps_mvr_log() {}
+void hdr_mvr_log() {}
+void hdr_get_iso_range() {}
+int hdrv_enabled = 0;
+int audio_levels = 0;
 #endif

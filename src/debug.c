@@ -59,8 +59,13 @@ draw_prop_reset( void * priv )
     dbg_propn = 0;
 }
 
-void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(f); }
-void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(f); }
+#ifdef CONFIG_5D3
+void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
+void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x838C00; sei_restore(f); }
+#else
+ void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(f); }
+ void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(f); }
+#endif
 /*void _card_led_blink(int times, int delay_on, int delay_off)
 {
     int i;
@@ -1226,7 +1231,7 @@ void ui_lock(int x)
 
 void toggle_mirror_display()
 {
-    #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     //~ zebra_pause();
     if (lv) msleep(200); // redrawing screen while zebra is active seems to cause trouble
     static int i = 0;
@@ -1763,7 +1768,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     display_shooting_info_lv();
                     display_shortcut_key_hints_lv();
                 )
-                #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
                 static int ae_warned = 0;
                 if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
                 {

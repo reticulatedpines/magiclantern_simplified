@@ -1,4 +1,4 @@
-#define CARD_DRIVE "A:/"
+#define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 
 // thanks Indy
@@ -58,41 +58,49 @@
 #define BGMT_WHEEL_RIGHT 3
 
 #define BGMT_PRESS_SET 4
-#define BGMT_UNPRESS_SET 0x3d
+#define BGMT_UNPRESS_SET 5
 
-#define BGMT_MENU 5
-#define BGMT_INFO 6
-#define BGMT_PLAY 8
-#define BGMT_TRASH 9
+#define BGMT_MENU 6
+#define BGMT_INFO 7
+#define BGMT_PLAY 0xB // ?!
+#define BGMT_TRASH 0xD
+
+#define BGMT_PRESS_DP 0x2f
+#define BGMT_UNPRESS_DP 0x35
+#define BGMT_RATE 0x21
+#define BGMT_PRESS_ZOOMIN 0x12
+#define BGMT_UNPRESS_ZOOMIN 0x13
+#define BGMT_REC 0x1E
+
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xA
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
 
-#define BGMT_LV 0xE
-#define BGMT_Q 0xE
-#define BGMT_Q_ALT 0xE
+#define BGMT_LV 0x1E
+#define BGMT_Q 0x1d
+#define BGMT_Q_ALT 0x67
 
 //~ #define BGMT_FUNC 0x12
 #define BGMT_PICSTYLE 0x13
 //~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
 #define BGMT_JOY_CENTER 0x1e
 
-#define BGMT_PRESS_UP 0x16
+#define BGMT_PRESS_UP 0x36
 #define BGMT_PRESS_UP_RIGHT 0x17
 #define BGMT_PRESS_UP_LEFT 0x18
-#define BGMT_PRESS_RIGHT 0x19
-#define BGMT_PRESS_LEFT 0x1a
+#define BGMT_PRESS_RIGHT 0x39
+#define BGMT_PRESS_LEFT 0x3a
 #define BGMT_PRESS_DOWN_RIGHT 0x1B
 #define BGMT_PRESS_DOWN_LEFT 0x1C
-#define BGMT_PRESS_DOWN 0x1d
+#define BGMT_PRESS_DOWN 0x3d
 
 #define BGMT_UNPRESS_UDLR 0x15
-#define BGMT_PRESS_HALFSHUTTER 0x1f
-#define BGMT_UNPRESS_HALFSHUTTER 0x20
-#define BGMT_PRESS_FULLSHUTTER 0x21
-#define BGMT_UNPRESS_FULLSHUTTER 0x22
+#define BGMT_PRESS_HALFSHUTTER 0x4e
+#define BGMT_UNPRESS_HALFSHUTTER 0x4f
+#define BGMT_PRESS_FULLSHUTTER 0x50
+#define BGMT_UNPRESS_FULLSHUTTER 0x51
 
 #define BGMT_FLASH_MOVIE 0
 #define BGMT_PRESS_FLASH_MOVIE 0
@@ -103,6 +111,9 @@
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
 #define GMT_OLC_INFO_CHANGED 103 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+
+ #define SENSOR_RES_X 4752
+ #define SENSOR_RES_Y 3168
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x29754) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x29754) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -117,8 +128,8 @@
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-MEM(832 + arg0) + MEM(500 + arg0), MEM(668 + arg0)))
-#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(708 + arg0) + 100*MEM(696 + arg0), 0xa)
+#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-MEM(832 + MVR_516_STRUCT) + MEM(500 + MVR_516_STRUCT), MEM(668 + MVR_516_STRUCT)))
+#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(708 + MVR_516_STRUCT) + 100*MEM(696 + MVR_516_STRUCT), 0xa)
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
@@ -138,7 +149,7 @@
 #define DLG_MENU 2
 
 // not sure
-//~ #define DLG_FOCUS_MODE 9
+#define DLG_FOCUS_MODE 0x123456
 //~ #define DLG_DRIVE_MODE 8
 //~ #define DLG_PICTURE_STYLE 4
 //~ #define DLG_Q_UNAVI 0x18

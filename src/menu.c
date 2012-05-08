@@ -1542,7 +1542,6 @@ handle_ml_menu_keys(struct event * event)
     
     switch( event->param )
     {
-
     case BGMT_MENU:
         if (submenu_mode) submenu_mode = 0;
         else advanced_mode = !advanced_mode;
@@ -1634,7 +1633,7 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_damage = 1;
         break;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
+#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     case BGMT_PRESS_UP_RIGHT:
     case BGMT_PRESS_UP_LEFT:
     case BGMT_PRESS_DOWN_RIGHT:
@@ -2091,7 +2090,7 @@ void menu_close_submenu()
     submenu_mode = 0;
 }
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
 int handle_quick_access_menu_items(struct event * event)
 {
     // quick access to some menu items

@@ -536,7 +536,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 static int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-    ASSERT(len == 0x68);
+    //~ ASSERT(len == 0x68);
 
     clear_lv_afframe(); 
 

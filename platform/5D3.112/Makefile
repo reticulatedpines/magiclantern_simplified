@@ -20,21 +20,43 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	$(SRC_DIR)/entry.o \
 	boot-hack.o \
-	$(PLATFORM_DIR)/stubs.o \
+	stubs.o \
 	version.o \
 	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
-	vram.o \
-	stdio.o \
+	font-dyn.o \
 	config.o \
+	menu.o \
+	debug.o \
+	stdio.o \
+	bitrate.o \
+	tweaks.o \
+	lens.o \
+	property.o \
+	propvalues.o \
+	gui.o \
+	gui-common.o \
+	misc.o \
+	lensfocus.o \
+	cfn.o \
+	zebra.o \
+	shoot.o \
+	chdk-gui_draw.o \
+	movtweaks.o \
+	my_memset.o \
+	menuhelp.o \
+	menuindex.o \
+	af_patterns.o \
+	focus.o \
+	notify_box.o \
+	dialog_test.o \
+	vram.o \
+	aj_port.o \
+	lv-img-engio.o \
+	tasks.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
-
-CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

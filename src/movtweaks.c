@@ -831,6 +831,7 @@ CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
 
 void update_lvae_for_autoiso_n_displaygain()
 {
+#ifndef CONFIG_5D3
     // when one of those is true, ISO is locked to some fixed value
     // that is, LVAE_MOV_M_CTRL is 1 and LVAE_ISO_MIN is different from "normal"
     //~ static int auto_iso_paused = 0;
@@ -913,6 +914,7 @@ void update_lvae_for_autoiso_n_displaygain()
 
     // this is always applied
     LVAE_ISO_SPEED = lv_dispsize > 1 ? 50 : lvae_iso_speed;
+#endif
 }
 
 int gain_to_ev(int gain)
