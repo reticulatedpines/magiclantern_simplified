@@ -458,9 +458,9 @@ static struct prop_handler _prop_handler_##id##_block = { \
 }
 
 #define PROP_HANDLER(id) \
-static void * _prop_handler_##id(); \
+static void _prop_handler_##id(); \
 REGISTER_PROP_HANDLER( id, _prop_handler_##id ); \
-void * _prop_handler_##id( \
+void _prop_handler_##id( \
         unsigned                property, \
         void *                  token, \
         uint32_t *              buf, \

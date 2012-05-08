@@ -177,6 +177,7 @@ typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
 static int bin_search(int lo, int hi, CritFunc crit)
 {
+    ASSERT(crit);
     if (lo >= hi-1) return lo;
     int m = (lo+hi)/2;
     int c = crit(m);
@@ -535,6 +536,8 @@ silent_pic_display( void * priv, int x, int y, int selected )
 
 static int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
+    ASSERT(len == 0x68);
+
     clear_lv_afframe(); 
 
     crop_set_dirty(10);
@@ -582,7 +585,6 @@ void halfshutter_action(int v)
 }*/
 #endif
 
-//~ static int hs = 0;
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     int v = *(int*)buf;
 
@@ -593,21 +595,17 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
             face_zoom_request = 1;
     }
     #endif
-/*  if (v && gui_menu_shown() && !is_menu_active("Focus"))
-    {
-        menu_stop();
-    }*/
+
     zoom_sharpen_step();
     zoom_auto_exposure_step();
-    //~ if (hdr_enabled) halfshutter_action(v);
-    
-    return prop_cleanup( token, property );
 }
 
 static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
+    ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
+    
     int r = zoom_x5_x10_step();
     if (r == 0)
     {
@@ -615,7 +613,6 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
         zoom_auto_exposure_step();
     }
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
-    return prop_cleanup( token, property );
 }
 
 void set_lv_zoom(int zoom)
@@ -769,6 +766,8 @@ int compute_signature(int* start, int num)
 
 static void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
 {
+    ASSERT(acc);
+    ASSERT(src);
     int16_t* accs = acc;
     uint16_t* accu = acc;
     int8_t* srcs = src;
@@ -783,6 +782,8 @@ static void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
 
 static void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den)
 {
+    ASSERT(dst);
+    ASSERT(src);
     int8_t* dsts = dst;
     uint8_t* dstu = dst;
     int16_t* srcs = src;
@@ -857,6 +858,7 @@ void next_image_in_play_mode(int dir)
 
 void playback_compare_images_task(int dir)
 {
+    ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
     
     if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
@@ -890,6 +892,7 @@ void playback_compare_images(int dir)
 
 void expfuse_preview_update_task(int dir)
 {
+    ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
     void* buf_acc = (void*)YUV422_HD_BUFFER_1;
     void* buf_ws = (void*)YUV422_HD_BUFFER_2;
@@ -980,6 +983,7 @@ static int find_422(int * index, char* fn)
 
 void play_next_422_task(int dir)
 {
+    ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
     
     static int index = -1;
@@ -2236,7 +2240,6 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
     rec_picstyle_change(rec);
     shutter_btn_rec_do(rec);
     rec_notify_trigger(rec);
-    return prop_cleanup(token, property);
 }
 void mvr_rec_start_shoot(){}
 #else
@@ -2983,7 +2986,7 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
             bulb_shutter_valuef;
         
         lens_set_rawiso(new_raw_iso); // try to set new iso
-        msleep(50);
+        msleep(100);
         if (lens_info.raw_iso == new_raw_iso) // new iso accepted
         {
             bulb_shutter_valuef = new_bulb_shutter;
@@ -3046,6 +3049,7 @@ static int measure_brightness_level(int initial_wait)
 
 static void bramp_change_percentile(int dir)
 {
+    ASSERT(PLAY_MODE);
     NotifyBoxHide();
     bramp_percentile = COERCE(bramp_percentile + dir * 5, 5, 95);
     
@@ -3075,7 +3079,7 @@ static void bramp_change_percentile(int dir)
 
 int handle_bulb_ramping_keys(struct event * event)
 {
-    if (intervalometer_running && bramp_init_state)
+    if (intervalometer_running && bramp_init_state && PLAY_MODE)
     {
         switch (event->param)
         {
@@ -3122,6 +3126,12 @@ static void flip_zoom()
 
 static int bramp_measure_luma(int delay)
 {
+    ASSERT(lv);
+    ASSERT(lv_dispsize > 1);
+    ASSERT(expsim);
+    ASSERT(shooting_mode == SHOOTMODE_M);
+    ASSERT(LVAE_DISP_GAIN);
+    
     msleep(delay);
     // we are in zoom mode, histogram not normally updated => we can reuse the buffer
     //~ struct vram_info * vram = get_yuv422_vram();
@@ -3137,6 +3147,7 @@ static int bramp_measure_luma(int delay)
 int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
 static int bramp_set_display_gain_and_measure_luma(int gain)
 {
+    ASSERT(gain >= 0 && gain < 32768);
     //~ set_display_gain_equiv(gain);
     call("lvae_setdispgain", gain);
     if (lv_dispsize == 1) set_lv_zoom(5);
@@ -4392,7 +4403,6 @@ int picture_was_taken_flag = 0;
 PROP_HANDLER(PROP_LAST_JOB_STATE)
 {
     if (buf[0] > 10) picture_was_taken_flag = 1;
-    return prop_cleanup(token, property);
 }
 
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
@@ -5032,11 +5042,6 @@ void wait_till_next_second()
     {
         LoadCalendarFromRTC( &now );
         msleep(100);
-/*      if (lens_info.job_state == 0) // unsafe otherwise?
-        {
-            call("DisablePowerSave"); // trick from AJ_MREQ_ISR
-            call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
-        }*/
     }
 }
 

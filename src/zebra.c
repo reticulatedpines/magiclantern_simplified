@@ -33,6 +33,8 @@
 #include "gui.h"
 #include "lens.h"
 
+#define LV_LUMA_IS_ACCURATE (expsim || CONTROL_BV) // true if LV image reflects accurate luma of the final picture / video
+
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
@@ -267,9 +269,9 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
     extern int ml_started;
     if (ml_started) redraw_after(200);
-    return prop_cleanup(token, property);
 }
 
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
 volatile int lcd_position = 0;
 volatile int display_dont_mirror_dirty;
 PROP_HANDLER(PROP_LCD_POSITION)
@@ -277,8 +279,8 @@ PROP_HANDLER(PROP_LCD_POSITION)
     if (lcd_position != (int)buf[0]) display_dont_mirror_dirty = 1;
     lcd_position = buf[0];
     redraw_after(100);
-    return prop_cleanup( token, property );
 }
+#endif
 
 /*int gui_state;
 PROP_HANDLER(PROP_GUI_STATE) {
@@ -709,7 +711,7 @@ hist_draw_image(
 {
     if (!PLAY_OR_QR_MODE)
     {
-        if (!expsim) return;
+        if (!LV_LUMA_IS_ACCURATE) return;
     }
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
@@ -796,7 +798,7 @@ waveform_draw_image(
 {
     if (!PLAY_OR_QR_MODE)
     {
-        if (!expsim) return;
+        if (!LV_LUMA_IS_ACCURATE) return;
     }
 
     // Ensure that x_origin is quad-word aligned
@@ -1028,6 +1030,7 @@ static void histo_init()
 
 void bvram_mirror_clear()
 {
+    ASSERT(bvram_mirror);
     BMP_LOCK( bzero32(bvram_mirror, BVRAM_MIRROR_SIZE); )
     cropmark_cache_dirty = 1;
 }
@@ -1174,7 +1177,7 @@ draw_zebra_and_focus( int Z, int F )
     if (!bvram) return 0;
     if (!bvram_mirror) return 0;
     
-    int zd = Z && zebra_draw && (expsim || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
+    int zd = Z && zebra_draw && (LV_LUMA_IS_ACCURATE || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
     if (zd)
     {
         int zlh = zebra_level_hi * 255 / 100;
@@ -1677,8 +1680,10 @@ static void find_cropmarks()
 }
 static void reload_cropmark(int i)
 {
+BMP_LOCK(
+
     static int old_i = -1;
-    if (i == old_i) return; 
+    if (i == old_i) goto end; 
     old_i = i;
     //~ bmp_printf(FONT_LARGE, 0, 100, "reload crop: %d", i);
 
@@ -1695,13 +1700,15 @@ static void reload_cropmark(int i)
     snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
     if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
+end:
+)
 }
 
 static void
 crop_toggle( void* priv, int sign )
 {
     crop_index = mod(crop_index + sign, num_cropmarks);
-    reload_cropmark(crop_index);
+    //~ reload_cropmark(crop_index);
     crop_set_dirty(10);
 }
 
@@ -1881,9 +1888,10 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     int w = h * 720 / 480;
     int xc = x + 315;
     int yc = y + font_large.height * 3 + 10;
-    reload_cropmark(crop_index);
+    run_in_separate_task(reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
+    ASSERT(cropmarks);
     bmp_fill(0, xc, yc, w, h);
-    bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0);
+    BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
 }
 
@@ -2262,7 +2270,7 @@ static void spotmeter_step()
     //~ if (!lv) return;
     if (!PLAY_OR_QR_MODE)
     {
-        if (!expsim) return;
+        if (!LV_LUMA_IS_ACCURATE) return;
     }
     struct vram_info *  vram = get_yuv422_vram();
 
@@ -3137,6 +3145,8 @@ void cropmark_draw_from_cache()
 {
     uint8_t* B = bmp_vram();
     uint8_t* M = get_bvram_mirror();
+    ASSERT(B);
+    ASSERT(M);
     
     for (int i = os.y0; i < os.y_max; i++)
     {
@@ -3155,7 +3165,8 @@ void copy_zebras_from_mirror()
 {
     uint32_t* B = bmp_vram();
     uint32_t* M = get_bvram_mirror();
-    
+    ASSERT(B);
+    ASSERT(M);
     for (int i = os.y0; i < os.y_max; i++)
     {
         for (int j = os.x0; j < os.x_max; j+=4)
@@ -3972,6 +3983,7 @@ void PauseLiveView() // this should not include "display off" command
     if (MENU_MODE) return;
     if (LV_NON_PAUSED)
     {
+        ASSERT(DISPLAY_IS_ON);
         int x = 1;
         //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
@@ -3982,6 +3994,7 @@ void PauseLiveView() // this should not include "display off" command
             lv_paused = 1;
             lv = 1;
         )
+        ASSERT(LV_PAUSED);
     }
 }
 
@@ -4001,6 +4014,8 @@ void ResumeLiveView()
         )
         set_lv_zoom(lv_zoom_before_pause);
         msleep(100);
+        ASSERT(LV_NON_PAUSED);
+        ASSERT(DISPLAY_IS_ON);
     }
     lv_paused = 0;
 }
@@ -4032,6 +4047,8 @@ static void idle_display_off()
     display_off();
     msleep(100);
     idle_countdown_display_off = 0;
+    ASSERT(!(recording && LV_PAUSED));
+    ASSERT(!DISPLAY_IS_ON);
 }
 static void idle_display_on()
 {
@@ -4039,6 +4056,7 @@ static void idle_display_on()
     ResumeLiveView();
     display_on();
     redraw();
+    ASSERT(DISPLAY_IS_ON);
 }
 
 static void idle_bmp_off()
@@ -4053,6 +4071,7 @@ static void idle_bmp_on()
 static int old_backlight_level = 0;
 static void idle_display_dim()
 {
+    ASSERT(lv);
     #ifdef CONFIG_5D2
     int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
     if (backlight_mode == 0) // can't restore brightness properly in auto mode
@@ -4077,6 +4096,7 @@ static void idle_display_undim()
 
 void idle_globaldraw_dis()
 {
+    ASSERT(lv);
     idle_globaldraw_disable = 1;
 }
 void idle_globaldraw_en()
@@ -4277,7 +4297,7 @@ void redraw_do()
     
 BMP_LOCK (
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
     if (display_dont_mirror && display_dont_mirror_dirty)
     {
         if (lcd_position == 1) NormalDisplay();
@@ -4537,7 +4557,7 @@ livev_hipriority_task( void* unused )
 
 static void loprio_sleep()
 {
-    msleep(20);
+    msleep(100);
     while (is_mvr_buffer_almost_full()) msleep(100);
 }
 
@@ -4548,6 +4568,8 @@ static void black_bars()
     int i,j;
     uint8_t * const bvram = bmp_vram();
     uint8_t * const bvram_mirror = get_bvram_mirror();
+    ASSERT(bvram);
+    ASSERT(bvram_mirror);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
@@ -4572,6 +4594,8 @@ static void default_movie_cropmarks()
     int i,j;
     uint8_t * const bvram = bmp_vram();
     uint8_t * const bvram_mirror = get_bvram_mirror();
+    ASSERT(bvram);
+    ASSERT(bvram_mirror);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
@@ -4589,6 +4613,7 @@ static void black_bars_16x9()
 {
 #ifdef CONFIG_KILL_FLICKER
     if (!get_global_draw()) return;
+    if (!is_movie_mode()) return;
     if (video_mode_resolution > 1)
     {
         int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
@@ -4900,6 +4925,8 @@ static void show_overlay()
 
 void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
 {
+    ASSERT(src);
+    ASSERT(dst);
     if (!dst) return;
     int i,j;
     for (i = 0; i < vram_bm.height; i++)
@@ -5040,7 +5067,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     bv_auto_update();
     zoom_sharpen_step();
     zoom_auto_exposure_step();
-    return prop_cleanup( token, property );
 }
 
 static void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
