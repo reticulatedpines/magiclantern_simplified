@@ -1628,6 +1628,10 @@ handle_ml_menu_keys(struct event * event)
 #ifdef CONFIG_5D2
     case BGMT_PICSTYLE:
 #endif
+#ifdef CONFIG_50D
+    case BGMT_FUNC:
+    case BGMT_LV:
+#endif
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // auto setting select
         //~ menu_damage = 1;
