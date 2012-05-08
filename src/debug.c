@@ -2180,6 +2180,25 @@ static void alloc_1M_task()
     AllocateMemory(1024 * 1024);
 }
 
+static void save_cpu_usage_log_task()
+{
+    NotifyBox(1000, "Measuring CPU usage...");
+    msleep(1000);
+    info_led_blink(1,50,50);
+    call("CUStart");
+    for (int i = 0; i < 5; i++)
+    {
+        info_led_blink(1,50,50);
+        msleep(1000);
+    }
+    NotifyBox(10000, "Saving CPU usage log...");
+    call("CUPrintSummary");
+    //~ call("CUPrintDetail"); // takes a lot of time 
+    info_led_blink(1,50,50);
+    NotifyBox(5000, "CPU usage log saved.\n"
+                    "Restart your camera.");
+}
+
 extern void menu_open_submenu();
 extern void tasks_print(void* priv, int x0, int y0, int selected);
 extern int what_tasks_to_show;
@@ -2412,6 +2431,12 @@ struct menu_entry debug_menus[] = {
             },
             MENU_EOL
         }
+    },
+    {
+        .name = "Save CPU usage log",
+        .select = run_in_separate_task,
+        .priv = save_cpu_usage_log_task,
+        .help = "Saves a log with the CPU usage for all tasks (Canon+ML).",
     },
     {
         .name = "Free Memory",
