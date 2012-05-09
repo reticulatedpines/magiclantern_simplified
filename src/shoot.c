@@ -534,16 +534,16 @@ silent_pic_display( void * priv, int x, int y, int selected )
     }*/
 }
 
-static int afframe[26];
+static int afframe[AFFRAME_PROP_LEN];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-    //~ ASSERT(len == 0x68);
+    ASSERT(len == AFFRAME_PROP_LEN);
 
     clear_lv_afframe(); 
 
     crop_set_dirty(10);
     afframe_set_dirty();
     
-    memcpy(afframe, buf, 0x68);
+    memcpy(afframe, buf, AFFRAME_PROP_LEN);
 
     return prop_cleanup( token, property );
 }
@@ -668,7 +668,7 @@ void move_lv_afframe(int dx, int dy)
     if (!liveview_display_idle()) return;
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
-    prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+    prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
 }
 
 /*
@@ -690,7 +690,7 @@ sweep_lv()
             bmp_printf(FONT_LARGE, 50, 50, "AFF %d, %d ", i, j);
             afframe[2] = 250 + 918 * j;
             afframe[3] = 434 + 490 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
             msleep(100);
         }
     }
@@ -1239,7 +1239,7 @@ silent_pic_take_sweep(int interactive)
             bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
             afframe[2] = x0 + 1024 * j;
             afframe[3] = y0 + 680 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
             //~ msleep(500);
             msleep(silent_pic_sweepdelay);
             FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
@@ -1254,7 +1254,7 @@ silent_pic_take_sweep(int interactive)
     msleep(1000);
     afframe[2] = afx0;
     afframe[3] = afy0;
-    prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+    prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 
@@ -2472,7 +2472,7 @@ static void zoom_lv_face_step()
             msleep(100);
             afframe[2] = afx;
             afframe[3] = afy;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
             msleep(1);
             set_lv_zoom(5);
             msleep(1);
@@ -5082,7 +5082,7 @@ shoot_task( void* unused )
     {   // center AF frame at startup in photo mode
         afframe[2] = (afframe[0] - afframe[4])/2;
         afframe[3] = (afframe[1] - afframe[5])/2;
-        prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
+        prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
     }
 
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
