@@ -353,6 +353,19 @@ int fps_was_changed_by_canon()
         written_value_b != FPS_REGISTER_B_VALUE;
 }
 
+// workaround for weird bug: issues 979 / 1228
+void fps_refresh_500D()
+{
+    if (!fps_override) return;
+    if (!written_value_a) return;
+    if (!written_value_b) return;
+    if (fps_was_changed_by_canon()) return;
+
+    EngDrvOut(FPS_REGISTER_A, written_value_a);
+    EngDrvOut(FPS_REGISTER_B, written_value_b);
+    EngDrvOut(0xC0F06000, 1);
+}
+
 static void fps_setup_timerB(int fps_x1000)
 {
     if (!lv) return;

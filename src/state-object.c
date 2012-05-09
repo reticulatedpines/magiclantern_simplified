@@ -71,6 +71,9 @@ static void vsync_func() // called once per frame.. in theory :)
     
     digic_iso_step();
     image_effects_step();
+    #ifdef CONFIG_500D
+    fps_refresh_500D();
+    #endif
 }
 
 int (*StateTransition)(void*,int,int,int,int) = 0;
