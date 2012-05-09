@@ -30,7 +30,7 @@
 #include "menu.h"
 #include "math.h"
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_5D3)
 #define CONFIG_FULLFRAME
 #endif
 
@@ -353,6 +353,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 shooting_mode == SHOOTMODE_MACRO ? "MC" :
                 shooting_mode == SHOOTMODE_SPORTS ? "SP" :
                 shooting_mode == SHOOTMODE_NIGHT ? "NI" :
+                shooting_mode == SHOOTMODE_BULB ? "B " :
+                shooting_mode == SHOOTMODE_C ? "C " :
+                shooting_mode == SHOOTMODE_C2 ? "C2" :
+                shooting_mode == SHOOTMODE_C3 ? "C3" :
                 "?"
             );
 
@@ -1485,10 +1489,10 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
     return prop_cleanup( token, property );
 }
 
-uint16_t custom_wb_gains[26];
+uint16_t custom_wb_gains[CUSTOM_WB_PROP_LEN];
 PROP_HANDLER(PROP_CUSTOM_WB)
 {
-    memcpy(custom_wb_gains, buf, sizeof(custom_wb_gains));
+    memcpy(custom_wb_gains, buf, CUSTOM_WB_PROP_LEN);
     const uint16_t * gains = (uint16_t *) buf;
     lens_info.WBGain_R = gains[16];
     lens_info.WBGain_G = gains[18];
@@ -1515,7 +1519,7 @@ void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
     custom_wb_gains[16] = gain_R;
     custom_wb_gains[18] = gain_G;
     custom_wb_gains[19] = gain_B;
-    prop_request_change(PROP_CUSTOM_WB, custom_wb_gains, sizeof(custom_wb_gains));
+    prop_request_change(PROP_CUSTOM_WB, custom_wb_gains, CUSTOM_WB_PROP_LEN);
 
     int mode = WB_CUSTOM;
     prop_request_change(PROP_WB_MODE_LV, &mode, 4);

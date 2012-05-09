@@ -16,6 +16,7 @@
 
 // Critical. Look for a call to prop_request_change(0x80050007, something, len).
 #define AFFRAME_PROP_LEN 108
+#define CUSTOM_WB_PROP_LEN 44
 
 // Found by Alex using Heavendew dump
 #define YUV422_LV_BUFFER_1 0x41ae8e50

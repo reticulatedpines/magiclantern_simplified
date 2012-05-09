@@ -15,6 +15,7 @@
 
 // Critical. Look for a call to prop_request_change(0x80050007, something, len).
 #define AFFRAME_PROP_LEN 100
+#define CUSTOM_WB_PROP_LEN 52
 
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER_1 0x41B07800

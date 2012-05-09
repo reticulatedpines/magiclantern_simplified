@@ -10,6 +10,7 @@
 
 // Critical. Look for a call to prop_request_change(0x80050007, something, len).
 #define AFFRAME_PROP_LEN 100
+#define CUSTOM_WB_PROP_LEN 52
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x244c0 // in AJ_armlib_setup_related3
 
