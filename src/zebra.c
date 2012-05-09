@@ -4097,7 +4097,7 @@ static void idle_display_undim()
 
 void idle_globaldraw_dis()
 {
-    ASSERT(lv);
+    //~ ASSERT(lv);
     idle_globaldraw_disable = 1;
 }
 void idle_globaldraw_en()
