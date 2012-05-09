@@ -1576,7 +1576,7 @@ void grayscale_menus_step()
     prev_d = DISPLAY_IS_ON;
     prev_g = gui_state;
 
-    if (!ml_shutdown_requested) return;
+    if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     if (!transition) return;
 
@@ -1599,7 +1599,7 @@ void grayscale_menus_step()
 
 void lcd_adjust_position_step()
 {
-    if (!ml_shutdown_requested) return;
+    if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
 
     static int factory_position = -1;
