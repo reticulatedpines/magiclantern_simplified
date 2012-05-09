@@ -119,6 +119,9 @@ def convert_422_bmp(input, output):
         w, h = 1120, 746                # zoom mode (5x, 10x) on 5D2
     elif len(data) == 1872*1080*2:
         w, h = 1872, 1080               # REC on 5D2
+    elif len(data) == 1904*1270*2:      # standby on 5D3
+        w, h = 1904, 1270               # REC on 5D2
+    
     elif len(data) % 1024*680*2 == 0:
         return convert_422_hires(input,output)
     else:

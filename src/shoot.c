@@ -3944,7 +3944,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-    #ifndef CONFIG_5D2
+    #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     {
         //~ .select     = flash_and_no_flash_toggle,
         .display    = flash_and_no_flash_display,
@@ -5211,7 +5211,7 @@ shoot_task( void* unused )
             picture_was_taken_flag = 0;
         }
 
-        #ifndef CONFIG_5D2
+        #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
         // toggle flash on/off for next picture
         if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
         {

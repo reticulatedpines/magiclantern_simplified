@@ -541,13 +541,7 @@ void run_test()
 {
     msleep(2000);
 
-    info_led_blink(1,50,50);
-    call("CUStart");
-    msleep(2000);
-    call("CUPrintSummary");
-    call("CUPrintDetail");
-    info_led_blink(1,50,50);
-    
+    prop_dump();
     //~ bulb_take_pic(125);
     //~ lens_set_rawshutter(80); // 1/8
     //~ lens_take_picture(0,0);
@@ -1510,7 +1504,7 @@ void show_electronic_level()
 
 #ifdef CONFIG_HEXDUMP
 
-CONFIG_INT("hexdump", hexdump_addr, 0x27c28);
+CONFIG_INT("hexdump", hexdump_addr, 0x5024);
 
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
@@ -1750,7 +1744,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 
         if (get_global_draw())
         {
-            #if !defined(CONFIG_50D)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
             extern thunk ShootOlcApp_handler;
             if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !EXT_MONITOR_CONNECTED
                 && get_current_dialog_handler() == &ShootOlcApp_handler)
@@ -1807,10 +1801,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 take_screenshot(0);
         }
 
+#ifndef CONFIG_5D3
         if (MENU_MODE) 
         {
             HijackFormatDialogBox_main();
         }
+#endif
         
         #if CONFIG_DEBUGMSG
         if (draw_prop)
@@ -2036,7 +2032,7 @@ static void kill_canon_gui_print(
 #endif
 
 
-#ifdef CONFIG_DEBUGMSG
+#if CONFIG_DEBUGMSG
 CONFIG_INT("prop.i", prop_i, 0);
 CONFIG_INT("prop.j", prop_j, 0);
 CONFIG_INT("prop.k", prop_k, 0);

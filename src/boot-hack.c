@@ -590,7 +590,7 @@ my_init_task(int a, int b, int c, int d)
 
 #ifdef CONFIG_5D3
 // dummy stubs
-void	prop_request_change(unsigned property, const void* addr, size_t len){}
+//void	prop_request_change(unsigned property, const void* addr, size_t len){}
 int lcd_release_running = 0;
 void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
@@ -602,12 +602,15 @@ void out_volume_up(){};
 void out_volume_down(){};
 int new_LiveViewApp_handler = 0xff123456;
 void bootflag_write_bootblock(){};
-int get_current_shutter_reciprocal_x1000(){ return 1000; }
-int handle_fps_events() { return 1; }
-int fps_get_current_x1000() { return 25000; }
-void fps_mvr_log() {}
 void hdr_mvr_log() {}
 void hdr_get_iso_range() {}
 int hdrv_enabled = 0;
 int audio_levels = 0;
+int handle_af_patterns(struct event * event) { return 1; }
 #endif
+
+/*void prop_request_change(unsigned property, const void* addr, size_t len)
+{
+    console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    _prop_request_change(property, addr, len);
+}*/

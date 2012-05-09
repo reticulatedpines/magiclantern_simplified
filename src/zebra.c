@@ -934,7 +934,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         int i;
         for (i = 0; i < n; i++)
         {
-            uint32_t start = UNCACHEABLE(i * bufsize);
+            uint32_t start = 0x40000000;
             bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
@@ -949,7 +949,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
     if (bufsize > 1024*1024) console_printf("read test skipped: buffer=%d\n", bufsize);
     else
     {
-        void* buf = AllocateMemory(bufsize);
+        void* buf = alloc_dma_memory(bufsize);
         if (buf)
         {
             FILE* f = FIO_Open(CARD_DRIVE "bench.tmp", O_RDONLY | O_SYNC);
@@ -961,7 +961,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
-            FreeMemory(buf);
+            free_dma_memory(buf);
             int t1 = tic();
             int speed = 2560 / (t1 - t0);
             console_printf("Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
@@ -991,7 +991,7 @@ void card_benchmark()
 int card_benchmark_start = 0;
 void card_benchmark_schedule()
 {
-    menu_stop();
+    gui_stop_menu();
     card_benchmark_start = 1;
 }
 #endif
@@ -4820,7 +4820,7 @@ int handle_livev_playback(struct event * event, int button)
 static void zebra_init()
 {
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
-    //~ menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
+    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Power", powersave_menus, COUNT(powersave_menus) );
@@ -5130,6 +5130,7 @@ void play_422(char* filename)
     else if (size == 1576*1048*2){ w = 1576; h = 1048;} // 500d HD buffer dimensions in 1080p/720p mode and LV mode.
     else if (size == 1120*746*2) { w = 1120; h = 746; } // zoom mode (5x, 10x) on 5D2
     else if (size == 1872*1080*2) { w = 1872; h = 1080; } // REC on 5D2
+    else if (size == 1904*1270*2) { w = 1904; h = 1270; } // standby on 5D3
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");

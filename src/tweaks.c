@@ -254,6 +254,7 @@ lv_metering_adjust()
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
+#if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
 static void set_pic_quality(int q)
 {
     if (q == -1) return;
@@ -308,7 +309,6 @@ static void adjust_burst_pic_quality()
     else if (burst_count >= 5) restore_pic_quality();
 }
 
-#if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)
 PROP_HANDLER(PROP_BURST_COUNT)
 {
     int burst_count = buf[0];
@@ -320,7 +320,6 @@ PROP_HANDLER(PROP_BURST_COUNT)
 
     return prop_cleanup(token, property);
 }
-#endif
 
 static void
 auto_burst_pic_display(
@@ -337,6 +336,7 @@ auto_burst_pic_display(
         auto_burst_pic_quality ? "ON" : "OFF"
     );
 }
+#endif
 
 void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
 extern unsigned lcd_sensor_shortcuts;
@@ -1325,7 +1325,7 @@ static struct menu_entry tweak_menus[] = {
         .display = night_vision_print,
         .help = "Maximize LV display gain for framing in darkness (photo)"
     },*/
-    #if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) // 60D doesn't need this
+    #if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)  && !defined(CONFIG_5D3) // high-end cameras doesn't need this
     {
         .name = "Auto BurstPicQuality",
         .priv = &auto_burst_pic_quality, 

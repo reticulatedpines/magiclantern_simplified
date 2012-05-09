@@ -31,7 +31,7 @@
 #define PROP_TFT_STATUS         0x80030015
 #define PROP_LENS_NAME          0x80030021
 #define PROP_LENS_SOMETHING     0x80030022
-#define PROP_LENS                       0x80030011 // info about lens? flags?
+#define PROP_LENS               0x80030011 // info about lens? flags?
 #define PROP_HDMI_CHANGE        0x8003002c // 1 if HDMI display connected
 #define PROP_HDMI_CHANGE_CODE   0x8003002e // edidc?
 #define PROP_USBRCA_MONITOR 0x80030018
@@ -280,7 +280,7 @@
 #define PROP_REMOTE_RELEASE            0x8003000A
 #define PROP_REMOTE_SET_BUTTON         0x80020018
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
+#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
 #define PROP_CLUSTER_SIZE      0x02010006
 #define PROP_FREE_SPACE        0x02010009
 //#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
@@ -357,7 +357,7 @@
 #define PROP_MULTIPLE_EXPOSURE_CTRL 0x80070001
 #define PROP_MIRROR_DOWN_IN_MOVIE_MODE 0x80030034
 
-#define PROP_CARD2_CLUSTER_SIZE 0x2010007
+//~ #define PROP_CARD2_CLUSTER_SIZE 0x2010007
 #define PROP_SHUTTER_COUNTER 0x80030029
 
 #define PROP_AFPOINT 0x8000000A // len=7

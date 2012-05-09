@@ -45,13 +45,13 @@ ML_OBJS-y = \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
-	af_patterns.o \
 	focus.o \
 	notify_box.o \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
 	lv-img-engio.o \
+	fps-engio.o \
 	tasks.o \
 
 #include generic rules and definitions

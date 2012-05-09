@@ -1,4 +1,4 @@
-#define CARD_DRIVE "B:/"
+#define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 
 // thanks Indy
@@ -15,6 +15,10 @@
 // not needed for now
 //~ #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
+// Critical. Look for a call to prop_request_change(0x80050007, something, len).
+#define AFFRAME_PROP_LEN 124
+#define CUSTOM_WB_PROP_LEN 44
+
 #define YUV422_LV_BUFFER_1 0x55207800 
 #define YUV422_LV_BUFFER_2 0x55617800
 #define YUV422_LV_BUFFER_3 0x55a27800
@@ -29,9 +33,9 @@
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x54000000
-#define YUV422_HD_BUFFER_2 0x4C000080
-#define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000000 ) // quick check if x looks like a valid HD buffer
+#define YUV422_HD_BUFFER_2 0x4ee00000
+//~ #define YUV422_HD_BUFFER_3 0x50000080
+#define IS_HD_BUFFER(x)  ((0x400FFFFF & (x)) == 0x40000000 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
@@ -135,7 +139,7 @@
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
 #define MVR_BYTES_WRITTEN 0 // idk; 5D2: (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
-#define MOV_RES_AND_FPS_COMBINATIONS 7
+#define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 5
 #define MOV_OPT_STEP 5

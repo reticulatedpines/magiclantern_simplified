@@ -84,10 +84,14 @@ int fps_get_current_x1000();
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
 #define FPS_TIMER_B_MIN fps_timer_b_orig // it might go lower than that, but it causes trouble high shutter speeds
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
-    #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
+    #ifdef CONFIG_5D2
+        #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
+        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
+    #else
+        #define FPS_TIMER_A_MIN fps_timer_a_orig
+    #endif
 #else
     #ifdef CONFIG_500D
         #define TG_FREQ_BASE 32000000    // not 100% sure
@@ -102,12 +106,12 @@ int fps_get_current_x1000();
         #else
             #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 734 : video_mode_crop ? 400 : 0x21A)
             #define TG_FREQ_PAL  50000000
-            #define TG_FREQ_NTSC_FPS 52747200
+            //~ #define TG_FREQ_NTSC_FPS 52747200
             #define TG_FREQ_NTSC_SHUTTER 49440000
             #define TG_FREQ_ZOOM 39230730 // not 100% sure
-            #define TG_FREQ_CROP_PAL 64000000
+            //~ #define TG_FREQ_CROP_PAL 64000000
 
-            #define TG_FREQ_CROP_NTSC (crop == 0xc ? 50349600 : 69230700)
+            //~ #define TG_FREQ_CROP_NTSC (crop == 0xc ? 50349600 : 69230700)
             #define TG_FREQ_CROP_NTSC_SHUTTER (crop == 0xc ? 47160000 : 64860000)
             #define TG_FREQ_CROP_PAL_SHUTTER (crop == 0xc ? 50000000 : 64000000)
 
@@ -201,7 +205,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
 #else
@@ -266,6 +270,10 @@ static void set_sound_recording(int x)
 
 static void restore_sound_recording()
 {
+    #ifdef CONFIG_5D3
+    return; // just in case
+    #endif
+
     if (recording) return;
     if (old_sound_recording_mode != -1)
     {
@@ -276,6 +284,10 @@ static void restore_sound_recording()
 }
 static void disable_sound_recording()
 {
+    #ifdef CONFIG_5D3
+    return; // just in case
+    #endif
+    
     if (recording) return;
     if (sound_recording_mode != 1)
     {

@@ -121,7 +121,7 @@ NSTUB(0xff123c88, _prop_cleanup)
 NSTUB(0xff123bbc, prop_deliver)
 NSTUB(0xff123de4, prop_get_value)
 NSTUB(0xff12340c, prop_register_slave)
-NSTUB(0xff123600, _prop_request_change) // potentially dangerous
+NSTUB(0xff123600, prop_request_change)
 NSTUB(0xff19e014, prop_request_icu_auto_poweroff)
 NSTUB(0xff3f4ee0, ptp_register_handler)
 NSTUB(0xff13b5f0, register_func)

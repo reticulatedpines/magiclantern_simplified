@@ -62,9 +62,9 @@ volatile int lv_paused = 0; // not a property, but related
 
 bool is_movie_mode()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
-            #ifdef CONFIG_5D2
+            #ifndef CONFIG_50D
             && expsim == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
@@ -146,7 +146,7 @@ volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 int lv_disp_mode;
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];
