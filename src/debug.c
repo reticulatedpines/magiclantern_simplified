@@ -541,7 +541,7 @@ void run_test()
 {
     msleep(2000);
 
-    prop_dump();
+    //~ prop_dump();
     //~ bulb_take_pic(125);
     //~ lens_set_rawshutter(80); // 1/8
     //~ lens_take_picture(0,0);

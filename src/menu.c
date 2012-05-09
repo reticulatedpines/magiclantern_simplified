@@ -1506,10 +1506,42 @@ static struct menu * get_current_submenu()
     return 0;
 }
 
+static int keyrepeat = 0;
+static int keyrep_countdown = 4;
+int handle_ml_menu_keyrepeat(struct event * event)
+{
+    if (menu_shown)
+    {
+        switch(event->param)
+        {
+            case BGMT_PRESS_LEFT:
+            case BGMT_PRESS_RIGHT:
+            case BGMT_PRESS_UP:
+            case BGMT_PRESS_DOWN:
+                keyrepeat = event->param;
+                break;
+
+            #ifdef BGMT_UNPRESS_UDLR
+            case BGMT_UNPRESS_UDLR:
+            #else
+            case BGMT_UNPRESS_LEFT:
+            case BGMT_UNPRESS_RIGHT:
+            case BGMT_UNPRESS_UP:
+            case BGMT_UNPRESS_DOWN:
+            #endif
+                keyrepeat = 0;
+                keyrep_countdown = 4;
+                break;
+        }
+    }
+    return 1;
+}
+
 int
 handle_ml_menu_keys(struct event * event) 
 {
     if (!menu_shown) return 1;
+    handle_ml_menu_keyrepeat(event);
     
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
@@ -1591,9 +1623,9 @@ handle_ml_menu_keys(struct event * event)
         else { menu_move( menu, -1 ); show_only_selected = 0; }
         break;
 
-//~ #ifdef BGMT_JOY_CENTER
-    //~ case BGMT_JOY_CENTER:
-//~ #endif
+#ifdef CONFIG_5D3
+    case BGMT_JOY_CENTER:
+#endif
     case BGMT_PRESS_SET:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         else
@@ -1808,6 +1840,7 @@ static void menu_open()
     show_only_selected = 0;
     submenu_mode = 0;
     menu_help_active = 0;
+    keyrepeat = 0;
     canon_gui_disable_front_buffer(0);
     menu_redraw();
 }
@@ -1849,7 +1882,8 @@ menu_task( void* unused )
     select_menu_by_icon(menu_first_by_icon);
     TASK_LOOP
     {
-        int rc = take_semaphore( gui_sem, 500 );
+        int dt = (menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : 500;
+        int rc = take_semaphore( gui_sem, dt );
         if( rc != 0 )
         {
             // We woke up after 1 second
@@ -1861,6 +1895,13 @@ menu_task( void* unused )
                     save_config(0);
                     config_dirty = 0;
                 }
+                continue;
+            }
+
+            if (keyrepeat)
+            {
+                keyrep_countdown--;
+                if (keyrep_countdown <= 0) fake_simple_button(keyrepeat);
                 continue;
             }
 

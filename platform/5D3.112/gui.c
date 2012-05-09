@@ -29,50 +29,6 @@
 
 struct semaphore * gui_sem;
 
-int joy_center_press_count = 0;
-int joy_center_action_disabled = 0;
-void joypress_task()
-{
-	extern int joy_center_pressed;
-	static int count = 0;
-	TASK_LOOP
-	{
-		msleep(20);
-		if (joy_center_pressed) joy_center_press_count++;
-		else
-		{
-			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
-			{
-				if (is_submenu_mode_active())
-				{
-					fake_simple_button(BGMT_PICSTYLE); // close submenu
-				}
-				else
-				{
-					fake_simple_button(BGMT_PRESS_SET); // do normal SET
-					fake_simple_button(BGMT_UNPRESS_UDLR);
-				}
-			}
-			joy_center_press_count = 0;
-		}
-
-		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
-		{
-			joy_center_press_count = 0;
-			fake_simple_button(BGMT_UNPRESS_UDLR);
-
-			if (gui_menu_shown())
-				fake_simple_button(BGMT_PICSTYLE); // Q
-			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
-				give_semaphore( gui_sem ); // open ML menu
-			msleep(500);
-		}
-
-	}
-}
-TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
-
-
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -84,21 +40,6 @@ static int handle_buttons(struct event * event)
 	if (!ml_started) return 1;
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
-
-	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
-	{
-		joy_center_press_count = 1;
-		return 0; // handled above
-	}
-
-	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
-		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
-		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
-		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
-		joy_center_action_disabled = 1;
-
-	if (event->param == BGMT_UNPRESS_UDLR)
-		joy_center_action_disabled = 0;
 
 	return 1;
 }
