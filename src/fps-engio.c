@@ -51,7 +51,7 @@ static int fps_timer_b;        // C0F06014
 static int fps_timer_b_orig; 
 
 
-static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 12500, 15000, 17000, 20000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 35000, 40000, 48000, 50000, 60000, 65000};
+static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 12500, 15000, 17000, 20000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000, 32000, 33000, 34000, 35000, 40000, 48000, 50000, 60000, 65000};
 
 static CONFIG_INT("fps.override", fps_override, 0);
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
@@ -59,8 +59,9 @@ static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 // 1000 = zero, more is positive, less is negative
 static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add this to default Canon value
 static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add this to computed value (for fine tuning)
-
+//~ static CONFIG_INT("fps.timer.b.method", fps_timer_b_method, 0); // 0 = engio, 1 = 60d/600d/5d3
 static CONFIG_INT("fps.preset", fps_criteria, 0);
+static int fps_timer_b_method = 0;
 
 static CONFIG_INT("fps.sound.disable", fps_sound_disable, 1);
 
@@ -119,6 +120,31 @@ int fps_get_current_x1000();
 
         #endif
     #endif
+#endif
+
+#if defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+// these can change timer B with another method, more suitable for high FPS
+#define NEW_FPS_METHOD 1
+#endif
+
+#ifdef CONFIG_600D
+#define SENSOR_TIMING_TABLE MEM(0xCB20)
+#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
+#define FPS_TIMER_B_MIN 1400
+#endif
+#ifdef CONFIG_60D
+#define SENSOR_TIMING_TABLE MEM(0x2a668)
+#define VIDEO_PARAMETERS_SRC_3 0x4FDA8
+#define FPS_TIMER_B_MIN 1400
+#endif
+#ifdef CONFIG_1100D
+#define SENSOR_TIMING_TABLE MEM(0xce98)
+#define VIDEO_PARAMETERS_SRC_3 0x70C0C
+#endif
+
+#ifdef NEW_FPS_METHOD
+static uint16_t * sensor_timing_table_original = 0;
+static uint16_t sensor_timing_table_patched[175*2];
 #endif
 
 static int calc_tg_freq(int timerA)
@@ -196,6 +222,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 {
     int shutter_us = 1000000000 / shutter_r_x1000;
     int fps_timer_delta_us = 1000000000 / ((TG_FREQ_BASE / Ta0) * 1000 / Tb) - 1000000 / video_mode_fps;
+    if (fps_timer_b_method) fps_timer_delta_us = 0;
     int ans_raw = 1000000000 / (shutter_us + fps_timer_delta_us);
     int ans = ans_raw * (Ta0/10) / (Ta/10);
     //~ NotifyBox(2000, "su=%d cfc=%d \nvf=%d td=%d \nd_num=%d d_den=%d\nar=%d ans=%d", shutter_us, ((TG_FREQ_BASE / Ta0) * 1000 / Tb), video_mode_fps, fps_timer_delta_us, Ta, Ta0, ans_raw, ans);
@@ -348,9 +375,12 @@ int written_value_b = 0;
 int fps_needs_updating = 0;
 int fps_was_changed_by_canon() 
 { 
-    return 
+    int ans = 
         written_value_a != FPS_REGISTER_A_VALUE || 
         written_value_b != FPS_REGISTER_B_VALUE;
+        
+    //~ if (ans) NotifyBox(2000, "wa=%8x wb=%8x\nra=%8x rb=%8x", written_value_a, written_value_b, FPS_REGISTER_A_VALUE, FPS_REGISTER_B_VALUE);
+    return ans;
 }
 
 // workaround for weird bug: issues 979 / 1228
@@ -372,6 +402,8 @@ static void fps_setup_timerB(int fps_x1000)
     if (!DISPLAY_IS_ON) return;
     if (!fps_x1000) return;
 
+    fps_needs_updating = 0;
+
     // now we can compute timer B
     int timerB_off = ((int)desired_fps_timer_b_offset) - 1000;
     int timerB = 0;
@@ -386,15 +418,32 @@ static void fps_setup_timerB(int fps_x1000)
     // check hard limits again
     timerB = COERCE(timerB, FPS_TIMER_B_MIN, FPS_TIMER_B_MAX);
     
-    // output the value to register
-    timerB -= 1;
-    written_value_b = timerB;
-    EngDrvOut(FPS_REGISTER_B, timerB);
+    #ifdef NEW_FPS_METHOD
+    if (fps_timer_b_method == 0) // digic method
+    {
+        fps_unpatch_table();
+    #endif
+        
+        // output the value to register
+        timerB -= 1;
+        written_value_b = timerB;
+        EngDrvOut(FPS_REGISTER_B, timerB);
 
-    // apply changes
-    EngDrvOut(0xC0F06000, 1);
-    
-    fps_needs_updating = 0;
+        // apply changes
+        EngDrvOut(0xC0F06000, 1);
+    #ifdef NEW_FPS_METHOD
+    }
+    else
+    {
+        fps_patch_timerB(timerB);
+        written_value_b = timerB-1;
+        msleep(1000);
+        // timer A was changed by refreshing the screen
+        EngDrvOut(FPS_REGISTER_A, written_value_a);
+        // apply changes
+        EngDrvOut(0xC0F06000, 1);
+    }
+    #endif
 
     // take care of sound settings to prevent recording from stopping
     update_sound_recording();
@@ -480,7 +529,9 @@ desired_fps_print(
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
-/*static void flip_zoom()
+#ifdef NEW_FPS_METHOD
+
+static void flip_zoom()
 {
     if (!lv) return;
     if (is_movie_mode())
@@ -494,7 +545,16 @@ desired_fps_print(
     int zoom1 = zoom0 == 10 ? 5 : zoom0 == 5 ? 1 : 10;
     set_lv_zoom(zoom1);
     set_lv_zoom(zoom0);
-}*/
+}
+
+void fps_unpatch_table()
+{
+    if (SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_original)
+        return;
+    SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
+    flip_zoom();
+}
+#endif
 
 static void fps_register_reset()
 {
@@ -504,13 +564,16 @@ static void fps_register_reset()
         EngDrvOut(FPS_REGISTER_B, fps_reg_b_orig);
         EngDrvOut(0xC0F06000, 1);
     }
+    #ifdef NEW_FPS_METHOD
+    fps_unpatch_table();
+    #endif
 }
 
 static void fps_reset()
 {
     fps_override = 0;
-    fps_register_reset();
     fps_needs_updating = 0;
+    fps_register_reset();
 
     restore_sound_recording();
 }
@@ -600,7 +663,7 @@ static void fps_timer_print(
     int finetune_delta = ((int)(A ? desired_fps_timer_a_offset : desired_fps_timer_b_offset)) - 1000;
     int delta = t - t0;
     char dec[10] = "";
-    if (!finetune_delta && delta >= 100) 
+    if (!finetune_delta && ABS(delta) >= 100) 
         snprintf(dec, sizeof(dec), ".%02d", ((t * 100 / t0) % 100));
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -608,8 +671,8 @@ static void fps_timer_print(
         "FPS timer %s  : %d (%s%d%s)",
         A ? "A" : "B",
         t, 
-        finetune_delta > 0 ? "FT+" : finetune_delta < 0 ? "FT" : delta >= 100 ? "x" : delta >= 0 ? "+" : "", 
-        finetune_delta ? finetune_delta : delta >= 100 ? t / t0 : delta, 
+        finetune_delta > 0 ? "FT+" : finetune_delta < 0 ? "FT" : ABS(delta) >= 100 ? "x" : delta >= 0 ? "+" : "", 
+        finetune_delta ? finetune_delta : ABS(delta) >= 100 ? t / t0 : delta, 
         dec
     );
     if (!fps_override)
@@ -669,6 +732,12 @@ static void fps_timer_fine_tune_b(void* priv, int delta)
     fps_needs_updating = 1;
 }
 
+/*static void fps_bool_toggle(void* priv, int delta)
+{
+    *(int*)priv = !*(int*)priv;
+    fps_needs_updating = 1;
+}*/
+
 
 // dumb heuristic :)
 // returns value of timer A
@@ -713,7 +782,7 @@ int fps_try_to_get_180_360_shutter(int fps_x1000)
     return Ta_corrected;
 }
 
-static void fps_setup_timerA(int fps_x1000)
+void fps_setup_timerA(int fps_x1000)
 {
     // for NTSC, we probably need FPS * 1000/1001
     int ntsc = is_current_mode_ntsc();
@@ -731,15 +800,27 @@ static void fps_setup_timerA(int fps_x1000)
             // or we change it as little as possible (just to bring requested FPS in range),
             // we get best low light capability and lowest amount of jello effect.
             timerA = fps_timer_a_orig;
+            #ifdef NEW_FPS_METHOD
+            fps_timer_b_method = fps_x1000/1000 < video_mode_fps ? 0 : 1;
+            #endif
             break;
         case 1:
             timerA = fps_try_to_get_exact_freq(fps_x1000);
+            #ifdef NEW_FPS_METHOD
+            fps_timer_b_method = 1;
+            #endif
             break;
         case 2:
+            #ifdef NEW_FPS_METHOD
+            timerA = fps_timer_a_orig;
+            fps_timer_b_method = 1;
+            #else
             timerA = fps_try_to_get_180_360_shutter(fps_x1000);
+            #endif
             break;
         case 3:
             timerA = TG_FREQ_BASE / fps_x1000 * 1000 / fps_timer_b_orig;
+            fps_timer_b_method = 1;
             break;
     }
 
@@ -814,7 +895,7 @@ static struct menu_entry fps_menu[] = {
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
-                .choices = (const char *[]) {"Low FPS, 360d", "Exact FPS", "LowJello, 180d", "High Jello"},
+                .choices = (const char *[]) {"Low light", "Exact FPS", "LowJello, 180d", "High Jello"},
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
@@ -845,6 +926,14 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_timer_fine_tune_b,
                 .help = "High values = lower FPS, shutter speed converges to 1/fps.",
             },
+            /*{
+                .name = "Timer B mode\b",
+                .priv = &fps_timer_b_method,
+                .max = 1,
+                .select = fps_bool_toggle,
+                .choices = (const char *[]) {"DIGIC reg", "Patched table"},
+                .help = "Method for changing timer B. ",
+            },*/
             {
                 .name = "TG frequency",
                 .display = tg_freq_print,
@@ -904,6 +993,8 @@ static void fps_task()
     {
         msleep(50);
 
+        //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
+
         if (!lv) continue;
         if (!DISPLAY_IS_ON) continue;
         
@@ -944,7 +1035,8 @@ static void fps_task()
             
             fps_setup_timerA(f);
             fps_setup_timerB(f);
-            msleep(100);
+            
+            msleep(500);
         }
     }
 }
@@ -975,4 +1067,98 @@ int handle_fps_events(struct event * event)
     return 1;
 }
 
+#ifdef NEW_FPS_METHOD
 
+static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+
+static int get_fps_video_mode()
+{
+    int mode =
+        lv_dispsize > 1 || expsim!=2 ? 2 :
+        video_mode_fps == 60 ? 0 : 
+        video_mode_fps == 50 ? 1 : 
+        video_mode_fps == 30 ? 2 : 
+        video_mode_fps == 25 ? 3 : 
+        video_mode_fps == 24 ? 4 : 0;
+    return mode;
+}
+
+static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
+{
+    unsigned short ret[2];   
+    
+    if(fps_mode > 6 || type > 1)
+    {
+        return 0;
+    }
+
+    int table_offset = 0;
+    
+    switch(dispsize)
+    {
+        case 10:
+            table_offset = 2;
+            fps_mode = 1;
+            break;
+           
+        case 5:
+            table_offset = 1;
+            fps_mode = 1;
+            break;
+       
+        default:
+            table_offset = 0;
+            break;
+    }
+
+    switch(crop_mode)
+    {
+        case 0:
+            ret[0] = ((0 + table_offset) * 7) + fps_mode;
+            ret[1] = ((3 + table_offset) * 7) + fps_mode;
+            break;
+            
+        /* crop recording modes */
+
+        case 0xC: // 600D 3x zoom
+            ret[0] = (18 * 7) + fps_mode;
+            ret[1] = (21 * 7) + fps_mode;
+            break;
+            
+        default:  // 640 crop
+            ret[0] = (10 * 7) + fps_mode;
+            ret[1] = (13 * 7) + fps_mode;
+            break;
+    }
+    
+    return ret[type];
+}
+
+void fps_patch_timerB(int timer_value)
+{
+    int mode = get_fps_video_mode();
+    unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
+
+    if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
+        return;
+    
+    memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
+
+    sensor_timing_table_patched[pos] = timer_value;
+
+    // use the patched sensor table
+    SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_patched;
+    
+    flip_zoom();
+}
+
+static void sensor_timing_table_init()
+{
+    // make a copy of the original sensor timing table (so we can patch it)
+    sensor_timing_table_original = (void*)SENSOR_TIMING_TABLE;
+    memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
+}
+
+INIT_FUNC("sensor-timing", sensor_timing_table_init);
+
+#endif

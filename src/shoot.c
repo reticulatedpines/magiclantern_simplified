@@ -4060,7 +4060,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Auto exposure on Zoom  ",
                 .priv = &zoom_auto_exposure,
                 .max = 1,
-                .help = "Lets you adjust aperture freely while checking focus."
+                .help = "Auto adjusts exposure, so you can focus manually wide open."
             },
             {
                 .name = "Increase Sharp+Contrast",
