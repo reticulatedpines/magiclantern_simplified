@@ -356,7 +356,7 @@ void my_big_init_task()
         //~ "Magic Lantern is up and running... %d tasks started.",
         //~ ml_tasks
     //~ );
-    msleep(1000);
+    msleep(500);
     ml_started = 1;
 
     //~ stress_test_menu_dlg_api_task(0);
@@ -480,6 +480,9 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
 }
 #endif
 
+// flag set to 1 when gui_main_task started to process messages from queue
+int gui_init_done = 0;
+
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -561,14 +564,14 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
-    #ifdef CONFIG_50D
-    msleep(3000);
-    #else
-    msleep( 2000 );
-    #endif
+    // wait for firmware to initialize
+    while (!bmp_vram_real()) msleep(100);
+    msleep(200);
+    
     if (magic_off_request)
     {
-        msleep( 1000 );
+        while (!DISPLAY_IS_ON) msleep(100);
+        msleep(100);
         magic_off = 1;  // magic off request might be sent later (until ml is fully started), but will be ignored
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
         extern char additional_version[];
@@ -582,7 +585,6 @@ my_init_task(int a, int b, int c, int d)
         additional_version[7] = '\0';
         return ans;
     }
-        
     task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
     return ans;
 #endif // !CONFIG_EARLY_PORT
