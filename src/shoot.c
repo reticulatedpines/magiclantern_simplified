@@ -3147,7 +3147,7 @@ static int bramp_measure_luma(int delay)
 int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
 static int bramp_set_display_gain_and_measure_luma(int gain)
 {
-    ASSERT(gain >= 0 && gain < 32768);
+    gain = COERCE(gain, 0, 65535);
     //~ set_display_gain_equiv(gain);
     call("lvae_setdispgain", gain);
     if (lv_dispsize == 1) set_lv_zoom(5);
@@ -3298,12 +3298,12 @@ void bulb_ramping_init()
         NotifyBox(2000, "Testing display gain...");
         int Y;
         int Yn = bramp_set_display_gain_and_measure_luma(100);
-        int Yp = bramp_set_display_gain_and_measure_luma(32767);
+        int Yp = bramp_set_display_gain_and_measure_luma(65535);
         bramp_zoom_toggle_needed = (ABS(Yn - Yp) < 10);
         if (bramp_zoom_toggle_needed)
         {
             Yn = bramp_set_display_gain_and_measure_luma(100);
-            Yp = bramp_set_display_gain_and_measure_luma(32767);
+            Yp = bramp_set_display_gain_and_measure_luma(65535);
         }
         bramp_set_display_gain_and_measure_luma(0);
         int ok = (ABS(Yn - Yp) > 10);
@@ -3356,7 +3356,7 @@ void bulb_ramping_init()
         // we can now play only with display gain
         
         
-        int gain0 = bin_search(128, 2500, crit_dispgain_50);
+        int gain0 = bin_search(128, 2000, crit_dispgain_50);
         Y = bramp_set_display_gain_and_measure_luma(gain0);
         if (ABS(Y-128) > 2) 
         {
