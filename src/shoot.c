@@ -5165,6 +5165,7 @@ shoot_task( void* unused )
 
             if (was_idle_not_pressed && is_idle_and_pressed)
             {
+                info_led_on();
                 int d = BULB_SHUTTER_VALUE_S;
                 //~ NotifyBoxHide();
                 NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_minutes_seconds(d));
@@ -5176,16 +5177,19 @@ shoot_task( void* unused )
                 wait_till_next_second();
                 //~ NotifyBoxHide();
                 NotifyBox(2000, "[2s] Bulb timer: %s", format_time_minutes_seconds(d));
+                info_led_on();
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
                 //~ NotifyBoxHide();
                 NotifyBox(2000, "[1s] Bulb timer: %s", format_time_minutes_seconds(d));
+                info_led_on();
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
+                info_led_off();
                 bulb_take_pic(d * 1000);
             }
             was_idle_not_pressed = is_idle_not_pressed;
