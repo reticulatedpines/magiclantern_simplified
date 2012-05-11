@@ -105,7 +105,7 @@ int fps_get_current_x1000();
             #define TG_FREQ_SHUTTER 41379310 // not sure
             #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 630 : 688 )
         #else
-            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 734 : video_mode_crop ? 400 : 0x21A)
+            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig, lv_dispsize > 1 ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
             #define TG_FREQ_PAL  50000000
             //~ #define TG_FREQ_NTSC_FPS 52747200
             #define TG_FREQ_NTSC_SHUTTER 49440000
@@ -130,16 +130,26 @@ int fps_get_current_x1000();
 #ifdef CONFIG_600D
 #define SENSOR_TIMING_TABLE MEM(0xCB20)
 #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
-#define FPS_TIMER_B_MIN 1400
+#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
+static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
 #ifdef CONFIG_60D
 #define SENSOR_TIMING_TABLE MEM(0x2a668)
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
-#define FPS_TIMER_B_MIN 1400
+#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
+static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
 #ifdef CONFIG_1100D
 #define SENSOR_TIMING_TABLE MEM(0xce98)
 #define VIDEO_PARAMETERS_SRC_3 0x70C0C
+static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+#endif
+
+#ifdef CONFIG_5D3
+#define SENSOR_TIMING_TABLE MEM(0x325ac)
+//~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
+#define FPS_TIMER_B_MIN 100
+static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
 #endif
 
 #ifdef NEW_FPS_METHOD
@@ -437,9 +447,12 @@ static void fps_setup_timerB(int fps_x1000)
     {
         fps_patch_timerB(timerB);
         written_value_b = timerB-1;
-        msleep(1000);
+        if (!recording) msleep(1000);
         // timer A was changed by refreshing the screen
+        // timer B may not be refreshed when recording
         EngDrvOut(FPS_REGISTER_A, written_value_a);
+        EngDrvOut(FPS_REGISTER_B, written_value_b);
+
         // apply changes
         EngDrvOut(0xC0F06000, 1);
     }
@@ -531,16 +544,39 @@ desired_fps_print(
 
 #ifdef NEW_FPS_METHOD
 
+static int video_mode[5];
+PROP_HANDLER(PROP_VIDEO_MODE)
+{
+    memcpy(video_mode, buf, 20);
+    return prop_cleanup(token, property);
+}
+
 static void flip_zoom()
 {
+    // flip zoom or video mode back and forth to apply settings instantly
     if (!lv) return;
+    if (recording) return;
     if (is_movie_mode())
     {
-        if (recording) return;
-        if (video_mode_crop) return;
+        // in movie mode, flipping the FPS seems nicer
+        {
+            int f0 = video_mode[2];
+            video_mode[2] = 
+                f0 == 24 ? 25 : 
+                f0 == 25 ? 24 : 
+                f0 == 30 ? 25 : 
+                f0 == 50 ? 60 :
+              /*f0 == 60*/ 50;
+            prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+            msleep(50);
+            video_mode[2] = f0;
+            prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+            msleep(50);
+
+            return;
+        }
     }
     
-    // flip zoom mode back and forth to apply settings instantly
     int zoom0 = lv_dispsize;
     int zoom1 = zoom0 == 10 ? 5 : zoom0 == 5 ? 1 : 10;
     set_lv_zoom(zoom1);
@@ -553,20 +589,21 @@ void fps_unpatch_table()
         return;
     SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
     flip_zoom();
+    msleep(1000);
 }
 #endif
 
+// don't msleep from here, it may be called from GMT
 static void fps_register_reset()
 {
     if (fps_reg_a_orig && fps_reg_b_orig)
     {
+        written_value_a = 0;
+        written_value_b = 0;
         EngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
         EngDrvOut(FPS_REGISTER_B, fps_reg_b_orig);
         EngDrvOut(0xC0F06000, 1);
     }
-    #ifdef NEW_FPS_METHOD
-    fps_unpatch_table();
-    #endif
 }
 
 static void fps_reset()
@@ -574,6 +611,10 @@ static void fps_reset()
     fps_override = 0;
     fps_needs_updating = 0;
     fps_register_reset();
+
+    #ifdef NEW_FPS_METHOD
+    fps_unpatch_table();
+    #endif
 
     restore_sound_recording();
 }
@@ -675,6 +716,8 @@ static void fps_timer_print(
         finetune_delta ? finetune_delta : ABS(delta) >= 100 ? t / t0 : delta, 
         dec
     );
+    ASSERT(fps_override || delta==0);
+
     if (!fps_override)
         menu_draw_icon(x, y, MNI_OFF, 0);
     else if (t_max <= t_min)
@@ -895,7 +938,15 @@ static struct menu_entry fps_menu[] = {
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
-                .choices = (const char *[]) {"Low light", "Exact FPS", "LowJello, 180d", "High Jello"},
+                .choices = (const char *[]) {
+                    "Low light", 
+                    "Exact FPS", 
+                    #ifdef NEW_FPS_METHOD
+                    "High FPS", 
+                    #else
+                    "LowJello, 180d", 
+                    #endif
+                    "High Jello"},
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
@@ -980,10 +1031,19 @@ static void fps_read_current_timer_values()
 
 static void fps_read_default_timer_values()
 {
+    if (recording == 1) return;
+    //~ info_led_blink(1,10,10);
     fps_reg_a_orig = FPS_REGISTER_A_VALUE;
+    #ifdef NEW_FPS_METHOD
+    int mode = get_fps_video_mode();
+    unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
+    fps_reg_b_orig = sensor_timing_table_original[pos] - 1; // nobody will change it from here :)
+    #else
     fps_reg_b_orig = FPS_REGISTER_B_VALUE;
+    #endif
     fps_timer_a_orig = ((fps_reg_a_orig >> 16) & 0xFFFF) + 1;
     fps_timer_b_orig = (fps_reg_b_orig & 0xFFFF) + 1;
+    //~ bmp_printf(FONT_MED, 100, 100, "%d %d ", fps_timer_a_orig, fps_reg_b_orig);
 }
 
 // do all FPS changes from this task only - to avoid trouble ;)
@@ -993,6 +1053,7 @@ static void fps_task()
     {
         msleep(50);
 
+        //~ bmp_hexdump(FONT_SMALL, 10, 200, SENSOR_TIMING_TABLE, 32*10);
         //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
 
         if (!lv) continue;
@@ -1015,12 +1076,17 @@ static void fps_task()
             continue;
         }
         
-        if (fps_was_changed_by_canon())
+        #ifdef NEW_FPS_METHOD
+        fps_read_default_timer_values(); // with new method, default values can be always read safely
+        #else
+        if (fps_was_changed_by_canon()) // with old method, default timer B value is lost, 
+                                        // so we use a trick to check if video mode was changed
         {
             msleep(100);
             if (fps_was_changed_by_canon()) // double-check
                 fps_read_default_timer_values();
         }
+        #endif
         
         if (fps_needs_updating || fps_was_changed_by_canon())
         {
@@ -1053,25 +1119,37 @@ void fps_mvr_log(FILE* mvr_logfile)
 // on certain events (PLAY, RECORD) we need to disable FPS override temporarily
 int handle_fps_events(struct event * event)
 {
-    if (event->param == BGMT_PLAY || 
+    if (event->param == BGMT_PLAY)
+    {
+        fps_register_reset();
+    }
+    
+    // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
+    // and to make the user interface responsive without having to wait for 30 frames
+    int f = fps_values_x1000[fps_override_index];
+    if (f < 5000 &&
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
         event->param == BGMT_PRESS_SET
     #else
         event->param == BGMT_LV
     #endif
+    
+    #ifdef NEW_FPS_METHOD
+    // we won't be able to change/restore FPS on the fly with table patching method :(
+    && SENSOR_TIMING_TABLE != (intptr_t) sensor_timing_table_patched
+    #endif
     )
     {
         fps_register_reset();
     }
-    
+
+
     return 1;
 }
 
 #ifdef NEW_FPS_METHOD
 
-static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
-
-static int get_fps_video_mode()
+int get_fps_video_mode()
 {
     int mode =
         lv_dispsize > 1 || expsim!=2 ? 2 :
@@ -1083,7 +1161,7 @@ static int get_fps_video_mode()
     return mode;
 }
 
-static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
+int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
 {
     unsigned short ret[2];   
     
@@ -1142,14 +1220,14 @@ void fps_patch_timerB(int timer_value)
     if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
         return;
     
-    memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
-
-    sensor_timing_table_patched[pos] = timer_value;
+    //~ memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
+    for (int i = 0; i < COUNT(sensor_timing_table_patched); i++)
+        sensor_timing_table_patched[i] = (i == pos) ? timer_value : sensor_timing_table_original[i];
 
     // use the patched sensor table
     SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_patched;
     
-    flip_zoom();
+    if (!recording) flip_zoom();
 }
 
 static void sensor_timing_table_init()
