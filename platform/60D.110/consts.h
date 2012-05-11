@@ -294,7 +294,7 @@
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "[Q]"
+#define Q_BTN_NAME (recording ? "INFO" : "[Q]")
 #define ARROW_MODE_TOGGLE_KEY "METERING btn"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x2508)

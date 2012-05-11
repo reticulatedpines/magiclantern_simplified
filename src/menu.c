@@ -1572,7 +1572,13 @@ handle_ml_menu_keys(struct event * event)
 
     give_semaphore(menu_redraw_sem);
     
-    switch( event->param )
+    int button_code = event->param;
+#if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
+    if (button_code == BGMT_INFO) button_code = BGMT_Q;
+#endif
+
+    
+    switch( button_code )
     {
     case BGMT_MENU:
         if (submenu_mode) submenu_mode = 0;
