@@ -539,8 +539,7 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(2000);
-
+    msleep(1000);
     //~ prop_dump();
     //~ bulb_take_pic(125);
     //~ lens_set_rawshutter(80); // 1/8
@@ -1669,9 +1668,9 @@ void hexdump_back(void* priv, int dir)
 #endif
 
 static int crash_log_requested = 0;
-void request_crash_log()
+void request_crash_log(int type)
 {
-    crash_log_requested = 1;
+    crash_log_requested = type;
 }
 
 void save_crash_log()
@@ -1681,7 +1680,7 @@ void save_crash_log()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "CRASH%02d.LOG", log_number);
+        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "CRASH%02d.LOG" : CARD_DRIVE "ASSERT%02d.LOG", log_number);
         unsigned size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
@@ -1703,10 +1702,13 @@ void save_crash_log()
     
     msleep(1000);
     
-    NotifyBox(5000, "Crash detected - log file saved.\n"
-                    "Pls send CRASH%02d.LOG to ML devs.\n"
-                    "\n"
-                    "%s", log_number, get_assert_msg());
+    if (crash_log_requested == 1)
+        NotifyBox(5000, "Crash detected - log file saved.\n"
+                        "Pls send CRASH%02d.LOG to ML devs.\n"
+                        "\n"
+                        "%s", log_number, get_assert_msg());
+    else
+        info_led_blink(10,20,20);
 
 }
 
@@ -1741,6 +1743,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
+        
+        //~ bmp_printf(FONT_MED, 100, 100, "%d ", MEMX(0xC0F06014));
 
         if (get_global_draw())
         {

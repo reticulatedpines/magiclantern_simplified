@@ -1,8 +1,9 @@
 /** \file
- * Code to run on the 5D once it has been relocated.
+ * Code to run on the camera once it has been relocated.
  *
- * This has been updated to work with the 2.0.3 firmware.
- * IT DOES NOT WORK WITH 1.1.0 NOR 1.0.7 ANY MORE!
+ * !!!!!! FOR NEW PORTS, READ PROPERTY.C FIRST !!!!!!
+ * OTHERWISE YOU CAN CAUSE PERMANENT CAMERA DAMAGE
+ * 
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
@@ -390,7 +391,7 @@ int my_assert_handler(char* msg, char* file, int line, int arg4)
     snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
         "at %s:%d", msg, file, line);
-    request_crash_log();
+    request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
 }
 
@@ -399,7 +400,7 @@ void ml_assert_handler(char* msg, char* file, int line, char* func)
     snprintf(assert_msg, sizeof(assert_msg), 
         "ML ASSERT:\n%s\n"
         "at %s:%d (%s)", msg, file, line, func);
-    request_crash_log();
+    request_crash_log(2);
 }
 
 
@@ -592,7 +593,6 @@ my_init_task(int a, int b, int c, int d)
 
 #ifdef CONFIG_5D3
 // dummy stubs
-//void	prop_request_change(unsigned property, const void* addr, size_t len){}
 int lcd_release_running = 0;
 void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
@@ -610,9 +610,3 @@ int hdrv_enabled = 0;
 int audio_levels = 0;
 int handle_af_patterns(struct event * event) { return 1; }
 #endif
-
-/*void prop_request_change(unsigned property, const void* addr, size_t len)
-{
-    console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
-    _prop_request_change(property, addr, len);
-}*/
