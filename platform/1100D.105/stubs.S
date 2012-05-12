@@ -143,7 +143,7 @@ NSTUB(0xFF06E260, oneshot_timer)                  // might be good (dumps=1, sco
 NSTUB(0xFF05BA3C, prop_deliver)                   // might be good (dumps=1, score=44)
 NSTUB(0xFF05BC7C, prop_get_value)                 // might be good (dumps=1, score=62)
 NSTUB(0xFF05BAC4, prop_register_slave)            // might be good (dumps=1, score=39)
-NSTUB(0xFF05B45C, prop_request_change)            // might be good (dumps=1, score=1.7e+02)
+NSTUB(0xFF05B45C, _prop_request_change)            // might be good (dumps=1, score=1.7e+02)
 NSTUB(0xFF223844, prop_request_icu_auto_poweroff) // might be good (dumps=1, score=68)
 NSTUB(0xFF2A35D4, ptp_register_handler)           // might be good (dumps=1, score=38)
 NSTUB(0xFF1EDA10, register_func)                  // Good. Found matches: ff1eda10/1.2e+02, ff1eda20/6.2

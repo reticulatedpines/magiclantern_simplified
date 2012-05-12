@@ -1,6 +1,15 @@
+/**
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ * !!! VERY IMPORTANT !!!                                                                                                   !!!
+ * !!! For new ports, DISABLE prop_request_change first (see below) !!!                                                     !!!
+ * !!! BEFORE enabling it, check and double-check that meaning and valid range of values for each prop_request_change call  !!!
+ * !!! are identical to the ones from fully working ports.                                                                  !!!
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ */
+
 /** \file
  * Property handler installation
- *
+ * 
  * Rather than registering a handler for each property (which seems to overload DryOS),
  * it's probably better to have a single global property handler.
  *
@@ -111,4 +120,61 @@ char* get_prop_str(int prop)
     return 0;
 }
 
+// prop_get_value may take a long time to run, so let's try to use a small cache
+int get_prop_len_uncached(int prop)
+{
+    int* data = 0;
+    size_t len = 0;
+    int err = prop_get_value(prop, (void **) &data, &len);
+    if (!err) return (int)len;
+    return 0;
+}
+
+// plc = property length cache
+// circular buffer
+static int plc_prop[32] = {0};
+static int plc_len[32] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+static int plc_i = 0;
+
+int get_prop_len(int prop)
+{
+    for (int i = 0; i < 32; i++)
+    {
+        if (plc_prop[i] == prop && plc_len[i] >= 0)
+            return plc_len[i];
+    }
+    return get_prop_len_uncached(prop);
+}
+
+/**
+ * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's) 
+ * Double-check the len parameter => less chances that our call will cause permanent damage.
+ */
+
+/**
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ * !!! VERY IMPORTANT !!!                                                                                                   !!!
+ * !!! For new ports, DISABLE this function first!!!                                                                        !!!
+ * !!! BEFORE enabling it, check and double-check that meaning and valid range of values for each prop_request_change call  !!!
+ * !!! are identical to the ones from fully working ports.                                                                  !!!
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ */
+
+void prop_request_change(unsigned property, const void* addr, size_t len)
+{
+    if (get_prop_len((int)property) != (int)len)
+    {
+        #define PROP_LEN_INCORRECT 0
+        ASSERT(PROP_LEN_INCORRECT);
+        info_led_blink(10,50,50);
+        return;
+    }
+    //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    _prop_request_change(property, addr, len);
+}
+
+
+/**
+ * For new ports, disable this function on first boots (although it should be pretty much harmless).
+ */
 INIT_FUNC( __FILE__, prop_init );
