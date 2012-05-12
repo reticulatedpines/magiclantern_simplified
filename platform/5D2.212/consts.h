@@ -85,8 +85,8 @@
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
 
 #define BGMT_LV 0xE
-#define BGMT_Q 0xE
-#define BGMT_Q_ALT 0xE
+//~ #define BGMT_Q 0xE
+//#define BGMT_Q_ALT 0xE
 
 //~ #define BGMT_FUNC 0x12
 #define BGMT_PICSTYLE 0x13
@@ -218,7 +218,7 @@
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 200
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf7c5E9C0
@@ -234,7 +234,7 @@
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x12EF8) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 
-#define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
+#define BULB_EXPOSURE_CORRECTION 120
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x15C64+0x30)
 // DebugMsg(4, 2, msg='Whole Screen Backup end')
