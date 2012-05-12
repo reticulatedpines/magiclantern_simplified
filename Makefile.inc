@@ -33,9 +33,9 @@ VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_PTP = y
+CONFIG_PTP = n
 CONFIG_PTP_CHDK = n
-CONFIG_PTP_ML = y
+CONFIG_PTP_ML = n
 CONFIG_PLUGINS = n
 CONFIG_CONSOLE		= n
 CONFIG_DEBUGMSG = 0
@@ -141,6 +141,7 @@ CFLAGS=\
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
 	-Wno-unused-function \
+	-Wno-missing-field-initializers \
 	-Wno-format \
 	-std=gnu99 \
 	-D__ARM__ \
