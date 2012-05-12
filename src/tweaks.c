@@ -15,6 +15,17 @@
 #include "math.h"
 
 void clear_lv_affframe();
+void lcd_adjust_position_step();
+void arrow_key_step();
+void preview_saturation_step();
+void adjust_saturation_level(int);
+void grayscale_menus_step();
+void clear_lv_afframe();
+
+void NormalDisplay();
+void MirrorDisplay();
+void ReverseDisplay();
+
 
 static void upside_down_step();
 
@@ -411,7 +422,7 @@ void clear_lv_afframe()
     if (lv_dispsize != 1) return;
     int xaf,yaf;
 
-    uint8_t* M = get_bvram_mirror();
+    uint8_t* M = (uint8_t*)get_bvram_mirror();
     if (!M) return;
 
     get_afframe_pos(720, 480, &xaf, &yaf);
@@ -1018,6 +1029,7 @@ int is_arrow_mode_ok(int mode)
         case 3: return arrow_keys_shutter_aperture;
         case 4: return arrow_keys_bright_sat;
     }
+    return 0;
 }
 
 void arrow_key_mode_toggle()
@@ -1285,7 +1297,7 @@ static struct menu_entry key_menus[] = {
         .display    = lcd_sensor_shortcuts_print,
         .help = "Use the LCD face sensor as an extra key in ML.",
     },
-    #endif*/
+    #endif
     {
         .name = "Sticky DOF Preview  ", 
         .priv = &dofpreview_sticky, 
@@ -1363,9 +1375,6 @@ static void menu_upside_down_print(
     );
 }
 
-void NormalDisplay();
-void MirrorDisplay();
-void ReverseDisplay();
 
 // reverse arrow keys
 int handle_upside_down(struct event * event)
@@ -1772,7 +1781,7 @@ struct menu_entry play_menus[] = {
         .name = "Always ZoomOut w.*",
         .priv = &star_zoom, 
         .max = 1,
-        .help = "If you swap AF-ON/* (CFn IV-2), ML will revert'em in PLAY.",
+        .help = "If you swap AF-ON (CFn IV-2), ML will revert'em in PLAY.",
         .essential = FOR_PLAYBACK,
         .icon_type = IT_BOOL,
     },

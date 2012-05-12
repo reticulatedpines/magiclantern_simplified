@@ -95,7 +95,7 @@ digic_black_print(
 {
     int G = gain_to_ev_scaled(digic_iso_gain, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    //int GA = abs(G);
     bmp_printf(
         MENU_FONT,
         x, y,
@@ -108,7 +108,7 @@ digic_black_print(
     menu_draw_icon(x, y, MNI_BOOL(digic_black_level-100), 0);
 }
 
-static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
+static unsigned int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
 
 void digic_iso_toggle(void* priv, int delta)
 {
@@ -369,6 +369,7 @@ void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
     {
+	.id = 0,
         .name = "Image Effects...",
         .max = 1,
         .select = menu_open_submenu,
@@ -396,14 +397,15 @@ static struct menu_entry lv_img_menu[] = {
                 .help = "Something that looks like purple fringing :)",
             },*/
             MENU_EOL
-        },
-    },
+        }
+    }
 };
 
 #ifdef CONFIG_DIGIC_POKE
 
 static struct menu_entry dbg_menu[] = {
     {
+	.id = 0,
         .name = "DIGIC poke",
         .priv       = &digic_poke,
         .min = 0,
@@ -455,7 +457,7 @@ static struct menu_entry dbg_menu[] = {
                 .help = "Click to select some random register.",
             },
             MENU_EOL
-        },
+        }
     }
 };
 #endif

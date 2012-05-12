@@ -59,7 +59,7 @@ static char dcim_dir_suffix[6];
 static char dcim_dir[100];
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
 {
-    snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), buf);
+    snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
     return prop_cleanup(token, property);
 }
 const char* get_dcim_dir()
@@ -2409,7 +2409,7 @@ static void
 htp_display( void * priv, int x, int y, int selected )
 {
     int htp = get_htp();
-    int alo = get_alo();
+    //int alo = get_alo();
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
@@ -2660,7 +2660,7 @@ void zoom_auto_exposure_step()
         {
             // not sure why, but when taking a picture, expsim can't be restored;
             // workaround: create a task that retries a few times
-            task_create("restore_expsim", 0x1a, 0, restore_expsim_task, es);
+            task_create("restore_expsim", 0x1a, 0, restore_expsim_task, (void*)es);
             es = -1;
         }
         if (aem >= 0)
@@ -4145,21 +4145,21 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .priv = 1,
+                .priv = (void *)(1),
                 .display = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
                 .help = "RED channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .priv = 2,
+                .priv = (void *)(2),
                 .display = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
                 .help = "GREEN channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .priv = 3,
+                .priv = (void *)(3),
                 .display = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
                 .help = "BLUE channel multiplier, for custom white balance.",
@@ -4234,7 +4234,7 @@ static struct menu_entry expo_menus[] = {
             },
             {
                 .name = "HTP",
-                .select = htp_toggle,
+                .select = (void (*)(void *,int))htp_toggle,
                 .display = htp_display,
                 .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
             },

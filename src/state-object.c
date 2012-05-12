@@ -93,9 +93,9 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #endif
     
 
-    int old_state = self->current_state;
+    //    int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
-    int new_state = self->current_state;
+    //    int new_state = self->current_state;
 
     #ifdef MOVREC_STATE
     if (self == MOVREC_STATE && recording) // mvrEncodeDone
@@ -137,8 +137,9 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
 static int stateobj_start_spy(struct state_object * stateobj)
 {
-    StateTransition = stateobj->StateTransition_maybe;
-    stateobj->StateTransition_maybe = stateobj_spy;
+  StateTransition = (void *)stateobj->StateTransition_maybe;
+  stateobj->StateTransition_maybe = (void *)stateobj_spy;
+  return 0; //not used currently
 }
 
 static void state_init(void* unused)

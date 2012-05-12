@@ -34,6 +34,8 @@ void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
+char* get_dcim_dir();
+
 
 void fake_halfshutter_step();
 
@@ -339,7 +341,7 @@ void find_response_curve(char* fname)
     draw_line(40, 190, 720-40, 190, COLOR_BLACK);
 
     extern int bv_auto;
-    int bva0 = bv_auto;
+    //int bva0 = bv_auto;
     bv_auto = 0; // make sure it won't interfere
 
     bv_enable(); // for enabling fine 1/8 EV increments
@@ -486,7 +488,7 @@ void iso_movie_test()
     int r = lens_info.iso_equiv_raw ? lens_info.iso_equiv_raw : lens_info.raw_iso_auto;
     int raw_iso0 = (r + 3) & ~3; // consider full-stop iso
     int tv0 = lens_info.raw_shutter;
-    int av0 = lens_info.raw_aperture;
+    //int av0 = lens_info.raw_aperture;
     bv_enable(); // this enables shutter speed adjust in finer increments
     
     extern int bv_auto;
@@ -2324,31 +2326,31 @@ struct menu_entry debug_menus[] = {
             {
                 .name = "Response curve @ current ISO",
                 .priv = iso_response_curve_current,
-                .select = run_in_separate_task,
+                .select = (void (*)(void*,int))run_in_separate_task,
                 .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
             },
             {
                 .name = "Test ISO 100x/160x/80x series",
                 .priv = iso_response_curve_160,
-                .select = run_in_separate_task,
+                .select = (void (*)(void*,int))run_in_separate_task,
                 .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
             },
             {
                 .name = "Test 70x/65x/50x series",
                 .priv = iso_response_curve_logain,
-                .select = run_in_separate_task,
+                .select = (void (*)(void*,int))run_in_separate_task,
                 .help = "ISOs with -0.5/-0.7/-0.8 EV of DIGIC gain. Takes 20 mins.",
             },
             {
                 .name = "Test HTP series",
                 .priv = iso_response_curve_htp,
-                .select = run_in_separate_task,
+                .select = (void (*)(void*,int))run_in_separate_task,
                 .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
             },
             {
                 .name = "Movie test",
                 .priv = iso_movie_test,
-                .select = run_in_separate_task,
+                .select = (void (*)(void*,int))run_in_separate_task,
                 .help = "Records two test movies, changing settings every 2 seconds.",
             },
             MENU_EOL

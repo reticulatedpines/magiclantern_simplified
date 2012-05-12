@@ -1177,7 +1177,7 @@ audio_input_toggle_reverse( void * priv, int delta )
  );
  }*/
 
-audio_filters_display( void * priv, int x, int y, int selected )
+void audio_filters_display( void * priv, int x, int y, int selected )
 {
      bmp_printf(
          selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1645,7 +1645,7 @@ void volume_down()
 
 static void out_volume_display()
 {
-        int mgain_db = mgain_index2gain(mgain);
+        //int mgain_db = mgain_index2gain(mgain);
         NotifyBox(2000, "Out Volume: %d dB", 2 * lovl);
 }
 void out_volume_up()

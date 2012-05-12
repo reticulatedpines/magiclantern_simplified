@@ -49,7 +49,7 @@ void NotifyBox_task(void* priv)
         // show notification for a while, then redraw to erase it
         notify_box_stop_request = 0;
         notify_box_dirty = 0;
-        int i;
+        //int i;
         for ( ; notify_box_timeout > 0 ; notify_box_timeout -= 50)
         {
             if (notify_box_dirty) bmp_fill(0, os.x0 + 50, os.y0 + 50, 650, 32); // clear old message

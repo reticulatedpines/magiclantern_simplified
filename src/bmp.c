@@ -160,7 +160,7 @@ _draw_char(
         {
             // Start this scanline
             uint32_t * row = front_row;
-            row = (intptr_t) row & ~3; // weird artifacts otherwise
+            row = (intptr_t)row & ~3; // weird artifacts otherwise
             if (row >= end) return;
 
             // move to the next scanline
@@ -1191,7 +1191,6 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     ASSERT(dest);
     ASSERT(dest < bmp_vram() + BMPPITCH * BMP_HEIGHT - BMP_HEIGHT);
 
-    size_t i;
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
     if (even)
@@ -1211,7 +1210,8 @@ void bmp_dim()
     uint32_t* b = (uint32_t *)bmp_vram();
     ASSERT(b);
     if (!b) return;
-    int i,j;
+    int i;
+    //int j;
     for (i = 1; i < vram_bm.height; i ++)
     {
         bmp_dim_line(&b[BM(0,i)/4], vram_bm.width, i%2);

@@ -787,7 +787,7 @@ void bv_enable_do()
     {
         bv_tv = CONTROL_BV_TV = lens_info.raw_shutter && ABS(lens_info.raw_shutter - bv_tv) > 4 ? lens_info.raw_shutter : bv_tv;
         bv_av = CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
-        bv_iso = CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
+        bv_iso = CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (unsigned)(get_htp() ? 8 : 0) : bv_iso;
     }
     
     CONTROL_BV_ZERO = 0;
@@ -822,6 +822,7 @@ void bv_toggle(void* priv, int delta)
 PROP_HANDLER(PROP_LIVE_VIEW_VIEWTYPE)
 {
     bv_auto_update();
+    return NULL;
 }
 
 CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
@@ -881,12 +882,12 @@ void update_lvae_for_autoiso_n_displaygain()
             {
                 int bv = get_prop(PROP_BV);
                 int a = (uint8_t)((bv >>  0) & 0xFF);
-                int b = (uint8_t)((bv >>  8) & 0xFF);
-                int c = (uint8_t)((bv >> 16) & 0xFF);
-                int d = (uint8_t)((bv >> 24) & 0xFF);
+                //int c = (uint8_t)((bv >> 16) & 0xFF);
                 #ifdef CONFIG_5D2
+                int b = (uint8_t)((bv >>  8) & 0xFF);
                 ae_value = (int)lvae_iso_max - b;
                 #else
+                int d = (uint8_t)((bv >> 24) & 0xFF);
                 ae_value = a-d;
                 #endif
                 //~ bmp_printf(FONT_LARGE, 100, 100, "%d %d %d %d %d ", ae_value, a, b, c, d);

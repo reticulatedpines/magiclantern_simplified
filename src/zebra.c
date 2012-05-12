@@ -66,6 +66,13 @@ extern void zoom_sharpen_step();
 extern void bv_auto_update();
 
 void lens_display_set_dirty();
+void cropmark_clear_cache();
+void draw_histogram_and_waveform(int);
+void update_disp_mode_bits_from_params();
+void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
+
+
+
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -377,7 +384,7 @@ vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t fr
 /* draws the overlay: circle with color dots. */
 void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
 {    
-    int r = vectorscope_height/2 - 1;
+    //int r = vectorscope_height/2 - 1;
     int xc = x_origin + vectorscope_width/2;
     int yc = y_origin + vectorscope_height/2;
 
@@ -526,7 +533,7 @@ void
 hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
-    uint32_t* buf = lv->vram;
+    uint32_t* buf = (uint32_t*)lv->vram;
 
     int x,y;
     
@@ -630,7 +637,7 @@ int get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, in
     *under = -1;
     *over = -1;
     struct vram_info * lv = get_yuv422_vram();
-    if (!lv) return;
+    if (!lv) return -1;
 
     *under = 0;
     *over = 0;
@@ -817,7 +824,7 @@ waveform_draw_image(
     for( y=WAVEFORM_HEIGHT-1 ; y>=0 ; y-- )
     {
         uint8_t * row = bvram + x_origin + (y_origin + y * height / WAVEFORM_HEIGHT + k) * pitch;
-        int y_next = (y-1) * height / WAVEFORM_HEIGHT;
+        //int y_next = (y-1) * height / WAVEFORM_HEIGHT;
         uint32_t pixel = 0;
         int w = WAVEFORM_WIDTH*WAVEFORM_FACTOR;
         for( i=0 ; i<w ; i++ )
@@ -1270,7 +1277,7 @@ draw_zebra_and_focus( int Z, int F )
         // clear previously written pixels
         #define MAX_DIRTY_PIXELS 5000
         if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
-        if (!dirty_pixels) return;
+        if (!dirty_pixels) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)
         {
@@ -1299,7 +1306,7 @@ draw_zebra_and_focus( int Z, int F )
         {
             uint16_t * const hd_row = (uint16_t *)(hdvram + BM2HD_R(y) / 4); // 2 pixels
             
-            uint32_t* hdp; // that's a moving pointer
+            uint32_t* hdp ; // that's a moving pointer
             uint8_t* p8; // that's a moving pointer
             for (int x = os.x0 + 8; x < os.x_max - 8; x += 2)
             {
@@ -1992,7 +1999,7 @@ global_draw_display( void * priv, int x, int y, int selected )
     if (disp_profiles_0)
         bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), x + 540, y, "DISP %d", get_disp_mode());
     if (lv && lv_disp_mode && global_draw)
-        menu_draw_icon(x, y, MNI_WARNING, "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
 }
 
 static void
@@ -2283,7 +2290,7 @@ static void spotmeter_step()
     //~ const unsigned      pitch = vram->pitch;
     //~ const unsigned      height = vram->height;
     const unsigned      dxb = spotmeter_size;
-    unsigned        sum = 0;
+    //unsigned        sum = 0;
     int                 x, y;
 
     int xcb = os.x0 + os.x_ex/2;
@@ -2329,15 +2336,15 @@ static void spotmeter_step()
     // if false color is active, draw white on semi-transparent gray
 
     // protect the surroundings from zebras
-    uint32_t* M = get_bvram_mirror();
-    uint32_t* B = bmp_vram();
+    uint32_t* M = (uint32_t*)get_bvram_mirror();
+    uint32_t* B = (uint32_t*)bmp_vram();
 
     int dx = spotmeter_formula <= 3 ? 26 : 52;
     for( y = (ycb&~1) - 13 ; y <= (ycb&~1) + 36 ; y++ )
     {
         for( x = xcb - dx ; x <= xcb + dx ; x+=4 )
         {
-            uint8_t* m = &(M[BM(x,y)/4]);
+            uint8_t* m = (uint8_t*)(&(M[BM(x,y)/4])); //32bit to 8bit 
             if (!(*m & 0x80)) *m = 0x80;
             m++;
             if (!(*m & 0x80)) *m = 0x80;
@@ -3164,8 +3171,8 @@ void cropmark_draw_from_cache()
 
 void copy_zebras_from_mirror()
 {
-    uint32_t* B = bmp_vram();
-    uint32_t* M = get_bvram_mirror();
+    uint32_t* B = (uint32_t*)bmp_vram();
+    uint32_t* M = (uint32_t*)get_bvram_mirror();
     ASSERT(B);
     ASSERT(M);
     for (int i = os.y0; i < os.y_max; i++)
@@ -3837,7 +3844,7 @@ int should_draw_bottom_graphs()
     return 0;
 }
 
-void draw_histogram_and_waveform(allow_play)
+void draw_histogram_and_waveform(int allow_play)
 {
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
@@ -3852,7 +3859,7 @@ void draw_histogram_and_waveform(allow_play)
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
     if (lv && lv_dispsize > 1) return;
 
-    int screen_layout = get_screen_layout();
+//    int screen_layout = get_screen_layout();
     
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
@@ -4568,9 +4575,7 @@ static void black_bars()
     if (!is_movie_mode()) return;
     int i,j;
     uint8_t * const bvram = bmp_vram();
-    uint8_t * const bvram_mirror = get_bvram_mirror();
     ASSERT(bvram);
-    ASSERT(bvram_mirror);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
@@ -4593,9 +4598,7 @@ static void default_movie_cropmarks()
     if (expsim != 2) return;
     #endif
     int i,j;
-    uint8_t * const bvram = bmp_vram();
     uint8_t * const bvram_mirror = get_bvram_mirror();
-    ASSERT(bvram);
     ASSERT(bvram_mirror);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {

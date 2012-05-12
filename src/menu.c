@@ -43,6 +43,9 @@ int menu_help_active = 0;
 int submenu_mode = 0;
 static int menu_id_increment = 1;
 
+void menu_close_post_delete_dialog_box();
+void menu_close_gmt();
+
 int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
@@ -1450,12 +1453,12 @@ struct msg_queue * menu_redraw_queue = 0;
 static void
 menu_redraw_task()
 {
-    menu_redraw_queue = msg_queue_create("menu_redraw_mq", 1);
+    menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
         msleep(50);
         int msg;
-        int err = msg_queue_receive(menu_redraw_queue, &msg, 500);
+        int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) continue;
         if (gui_menu_shown()) menu_redraw_do();
         else redraw();

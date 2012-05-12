@@ -497,11 +497,11 @@ my_init_task(int a, int b, int c, int d)
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
     unsigned int backup_data = 0;
-    unsigned int task_id = get_current_task();
+    unsigned int task_id = (unsigned int)get_current_task();
 
     if(task_id > 0x68 && task_id < 0xFFFFFFFF)
     {
-        unsigned int *some_table = ARMLIB_OVERFLOWING_BUFFER;
+        unsigned int *some_table = (unsigned int *)ARMLIB_OVERFLOWING_BUFFER;
         backup_address = &some_table[task_id-1];
         backup_data = *backup_address;
     }

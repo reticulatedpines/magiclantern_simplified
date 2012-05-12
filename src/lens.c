@@ -38,6 +38,8 @@ void update_stuff();
 
 void bv_update_lensinfo();
 void bv_auto_update();
+void lensinfo_set_aperture(int raw);
+
 
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
@@ -261,7 +263,7 @@ static void double_buffering_end(int ytop, int height)
 static void ml_bar_clear(int ytop, int height)
 {
     uint8_t* B = bmp_vram();
-    uint8_t* M = get_bvram_mirror();
+    uint8_t* M = (uint8_t *)get_bvram_mirror();
     int menu = gui_menu_shown();
     for (int y = ytop; y < ytop + height; y++)
     {
@@ -1588,7 +1590,7 @@ lens_set_kelvin_value_only(int k)
     msleep(10);
 }
 
-void split_iso(int raw_iso, int* analog_iso, int* digital_gain)
+void split_iso(int raw_iso, unsigned int* analog_iso, int* digital_gain)
 {
     if (!raw_iso) { *analog_iso = 0; *digital_gain = 0; return; }
     int rounded = ((raw_iso+3)/8) * 8;
