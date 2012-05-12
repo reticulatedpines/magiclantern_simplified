@@ -5422,7 +5422,7 @@ shoot_task( void* unused )
             {
                 take_a_pic(0);
             }
-            else if (!is_movie_mode() || silent_pic_enabled)
+            else if (!is_movie_mode() || silent_pic_enabled || bulb_ramping_enabled)
             {
                 hdr_shot(0, 1);
             }
