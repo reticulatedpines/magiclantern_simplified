@@ -911,7 +911,7 @@ menu_display(
             }
 
             // display key help
-            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select))
+            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height < y0 + 425)
             {
                 char msg[100] = "";
 
