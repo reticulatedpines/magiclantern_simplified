@@ -162,13 +162,20 @@ int get_prop_len(int prop)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
-    if (get_prop_len((int)property) != (int)len)
+    int correct_len = get_prop_len((int)property);
+    
+    if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
+    
+    if (correct_len != (int)len)
     {
         #define PROP_LEN_INCORRECT 0
+        bmp_printf(FONT_LARGE, 100, 100, "%x:%x:%x", property, correct_len, len);
         ASSERT(PROP_LEN_INCORRECT);
         info_led_blink(10,50,50);
         return;
     }
+
+ok:
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
     _prop_request_change(property, addr, len);
 }
