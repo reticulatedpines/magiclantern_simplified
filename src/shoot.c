@@ -2724,6 +2724,7 @@ void ensure_bulb_mode()
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
     int a = lens_info.raw_aperture;
     set_shooting_mode(SHOOTMODE_BULB);
+    if (expsim == 2) set_expsim(1);
     lens_set_rawaperture(a);
     #else
     if (shooting_mode != SHOOTMODE_M)
@@ -3695,6 +3696,7 @@ static void compute_exposure_for_next_shot()
     if (mf_steps && !is_manual_focus())
     {
         while (lens_info.job_state) msleep(100);
+        msleep(300);
         get_out_of_play_mode(500);
         if (!lv) 
         {
@@ -3707,6 +3709,7 @@ static void compute_exposure_for_next_shot()
         lens_focus_enqueue_step(-mf_steps);
         msleep(1000);
         set_lv_zoom(1);
+        msleep(500);
     }
 }
 
@@ -4544,7 +4547,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             bulb_ramping_enabled = 0; // to force a pic in manual mode
 
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            if (expsim == 2) set_expsim(1); // can't set shutter slower than 1/30 in movie mode
+            if (expsim == 2) { set_expsim(1); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans = hdr_set_rawshutter(rc);
             msleep(100);
