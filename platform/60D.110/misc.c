@@ -90,8 +90,15 @@ int GetBatteryDrainRate() // percents per hour
 // called every second
 void RefreshBatteryLevel_1Hz()
 {
-	int x = 31;
-	prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
+	static k = 0;
+	k++;
+	
+	if (k % 10 == 0 &&
+		lens_info.job_state == 0) // who knows what race conditions are here... I smell one :)
+	{
+		int x = 31;
+		prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
+	}
 	
 	msleep(50);
 	
