@@ -2513,11 +2513,19 @@ static void zoom_lv_face_step()
 }
 
 static int zoom_focus_ring_disable_time = 0;
-void zoom_focus_ring_trigger()
+static int zoom_focus_ring_flag = 0;
+void zoom_focus_ring_trigger() // called from prop handler
 {
     if (!zoom_focus_ring) return;
     if (recording) return;
     if (lv_dispsize > 1) return;
+    zoom_focus_ring_flag = 1;
+}
+void zoom_focus_ring_engage() // called from shoot_task
+{
+    if (!zoom_focus_ring) return;
+    if (recording) return;
+    if (!DISPLAY_IS_ON) return;
     zoom_focus_ring_disable_time = ms100_clock + 4000;
     int zoom = zoom_disable_x5 ? 10 : 5;
     set_lv_zoom(zoom);
@@ -3131,7 +3139,7 @@ static int bramp_measure_luma(int delay)
     ASSERT(lv_dispsize > 1);
     ASSERT(expsim);
     ASSERT(shooting_mode == SHOOTMODE_M);
-    ASSERT(LVAE_DISP_GAIN);
+    //~ ASSERT(LVAE_DISP_GAIN); // display gain can also be zero, no problem
     
     msleep(delay);
     // we are in zoom mode, histogram not normally updated => we can reuse the buffer
@@ -3246,6 +3254,7 @@ static CONFIG_INT("bramp.calib.5", bramp_calib_cache_5, 0);
 void bulb_ramping_init()
 {
     if (bramp_init_done) return;
+    if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
 
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
@@ -3459,6 +3468,7 @@ void bulb_ramping_init()
     lens_set_rawshutter(BRAMP_SHUTTER_0);
     if (lv) fake_simple_button(BGMT_LV);
     msleep(1000);
+    set_shooting_mode(SHOOTMODE_M);
 }
 
 // monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
@@ -5126,6 +5136,11 @@ shoot_task( void* unused )
         {
             movie_end();
             movie_end_flag = 0;
+        }
+        if (zoom_focus_ring_flag)
+        {
+            zoom_focus_ring_engage();
+            zoom_focus_ring_flag = 0;
         }
         
         mlu_step();
