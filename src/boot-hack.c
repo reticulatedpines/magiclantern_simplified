@@ -431,7 +431,7 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
     static char init_task_reloc_buf[init_task_len+64];
     static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
     
-    int (*new_init_task)(int,int,int,int) = reloc(
+    int (*new_init_task)(int,int,int,int) = (void*)reloc(
         0,      // we have physical memory
         0,      // with no virtual offset
         init_task_start,
@@ -439,7 +439,7 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
         init_task_reloc_buf
     );
 
-    int (*new_CreateTaskMain)(void) = reloc(
+    int (*new_CreateTaskMain)(void) = (void*)reloc(
         0,      // we have physical memory
         0,      // with no virtual offset
         CreateTaskMain_start,
@@ -452,9 +452,9 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
 
     // Done relocating, now we can patch things.
 
-    uint32_t* addr_AllocMem_start   = CreateTaskMain_reloc_buf + 0xff011cb8 + CreateTaskMain_offset;
-    uint32_t* addr_AllocMem_end     = CreateTaskMain_reloc_buf + 0xff011cb4 + CreateTaskMain_offset;
-    uint32_t* addr_BL_AllocMem_init = CreateTaskMain_reloc_buf + 0xff011cbc + CreateTaskMain_offset;
+    //~ uint32_t* addr_AllocMem_start   = (void*)(CreateTaskMain_reloc_buf + 0xff011cb8 + CreateTaskMain_offset);
+    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff011cb4 + CreateTaskMain_offset);
+    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff011cbc + CreateTaskMain_offset);
 
     // change end limit to 0xc800000 => reserve 500K for ML
     // thanks to ARMada by g3gg0 for the black magic :)
@@ -464,7 +464,7 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
     *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff011cbc);
     
-    uint32_t* addr_B_CreateTaskMain = init_task_reloc_buf + 0xff018d90 + init_task_offset;
+    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + 0xff018d90 + init_task_offset;
     *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
     
     
@@ -524,8 +524,8 @@ my_init_task(int a, int b, int c, int d)
 
 #ifdef DRYOS_ASSERT_HANDLER
     // decompile TH_assert to find out the location
-    old_assert_handler = MEM(DRYOS_ASSERT_HANDLER);
-    MEM(DRYOS_ASSERT_HANDLER) = my_assert_handler;
+    old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
+    *(void**)(DRYOS_ASSERT_HANDLER) = (void*)my_assert_handler;
 #endif
     
 #ifndef CONFIG_EARLY_PORT

@@ -96,14 +96,12 @@ PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
 {
     digital_zoom_ratio = buf[0];
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_LOGICAL_CONNECT)
 {
     logical_connect = buf[0];
     vram_params_set_dirty();
-    return prop_cleanup(token, property);
 }
 
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
@@ -227,6 +225,7 @@ void update_vram_params()
         #ifdef CONFIG_500D
         int bar_x = 0;
         int bar_y = 0;
+        off_43+=0; // bypass warning
         #else
         int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
         int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
@@ -403,7 +402,7 @@ void* get_422_hd_idle_buf()
 }
 
 #ifdef CONFIG_500D
-first_video_clip = 1;
+int first_video_clip = 1;
 #endif
 
 
@@ -455,25 +454,21 @@ struct vram_info * get_yuv422_hd_vram()
 PROP_HANDLER(PROP_HDMI_CHANGE)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_USBRCA_MONITOR)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_MVR_REC_START)
@@ -485,32 +480,26 @@ PROP_HANDLER(PROP_MVR_REC_START)
     if (prev && !buf[0]) first_video_clip = 0;
     prev = buf[0];
     #endif
-    
-    return;
 }
 
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
     vram_params_set_dirty();
-    return;
 }
 
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
     vram_params_set_dirty();
-    return;
 }
 
 static void

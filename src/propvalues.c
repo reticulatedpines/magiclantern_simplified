@@ -46,15 +46,12 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
     #ifdef CONFIG_5D2
     ae_mode_movie = shooting_mode == SHOOTMODE_M;
     #endif
-    
-    return prop_cleanup(token, property);
 }
 
 volatile int dofpreview;
 PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 {
     dofpreview = buf[0] & 0xFFFF;
-    return prop_cleanup(token, property);
 }
 
 volatile int lv;
@@ -79,7 +76,6 @@ PROP_HANDLER(PROP_SHUTTER_COUNTER)
 {
     shutter_count = buf[0];
     shutter_count_plus_lv_actuations = buf[1];
-    return prop_cleanup(token, property);
 }
 
 volatile int display_sensor = 0;
@@ -87,7 +83,6 @@ volatile int display_sensor = 0;
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
     display_sensor = !buf[0];
-    return prop_cleanup(token, property);
 }
 
 volatile int video_mode_crop = 0;
@@ -99,7 +94,6 @@ PROP_HANDLER(PROP_VIDEO_MODE)
     video_mode_crop = buf[0];
     video_mode_fps = buf[2];
     video_mode_resolution = buf[1];
-    return prop_cleanup( token, property );
 }
 #endif
 
@@ -108,14 +102,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 {
     video_mode_resolution = buf[0];
     video_mode_fps = buf[1];
-    return prop_cleanup( token, property );
 }
 #endif
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
     lv = !buf[0];
-    return prop_cleanup( token, property );
 }
 
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
@@ -129,14 +121,12 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
     shooting_type = buf[0];
     recording = (shooting_type == 4 ? 2 : 0);
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_MOVIE_SIZE_50D)
 {
     video_mode_resolution = buf[0];
     video_mode_fps = 30;
-    return prop_cleanup( token, property );
 }
 #else
 volatile PROP_INT(PROP_MVR_REC_START, recording);
@@ -151,7 +141,6 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     #else
     lv_disp_mode = (uint8_t)buf[0];
     #endif
-    return prop_cleanup(token, property);
 }
 
 

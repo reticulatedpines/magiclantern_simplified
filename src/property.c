@@ -98,8 +98,6 @@ prop_init( void* unused )
     );
 }
 
-extern void * prop_cleanup(void * token, unsigned property) { return 0; } // dummy
-
 // for reading simple integer properties
 int get_prop(int prop)
 {

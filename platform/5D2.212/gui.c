@@ -34,7 +34,6 @@ int joy_center_action_disabled = 0;
 void joypress_task()
 {
 	extern int joy_center_pressed;
-	static int count = 0;
 	TASK_LOOP
 	{
 		msleep(20);
@@ -49,7 +48,7 @@ void joypress_task()
 				}
 				else
 				{
-					fake_simple_button(BGMT_PRESS_SET); // open submenu
+					fake_simple_button(BGMT_PRESS_SET); // do normal SET
 					fake_simple_button(BGMT_UNPRESS_UDLR);
 				}
 			}
@@ -77,6 +76,8 @@ int lv_stopped_by_user = 0;
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
+	ASSERT(event->type == 0)
+	
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
@@ -117,7 +118,6 @@ PROP_HANDLER(PROP_LV_ACTION)
 	{
 		lv_stopped_by_user = 0;
 	}
-	return prop_cleanup(token, property);
 }
 
 int get_lv_stopped_by_user() { return !lv && lv_stopped_by_user; }
@@ -150,6 +150,8 @@ struct gui_timer_struct
 
 extern struct gui_timer_struct gui_timer_struct;
 
+int max_gui_queue_len = 0;
+
 // Replaces the gui_main_task
 static void
 my_gui_main_task( void )
@@ -165,7 +167,11 @@ my_gui_main_task( void )
 			&event,
 			0
 		);
-
+		
+		if (ml_shutdown_requested) _card_led_on();
+		ASSERT(gui_main_struct.counter != 0xffffffff)
+		ASSERT(gui_main_struct.counter < 500)
+		
 		if( !event )
 			goto event_loop_bottom;
 
@@ -279,7 +285,7 @@ my_gui_main_task( void )
 		}
 
 event_loop_bottom:
-		gui_main_struct.counter--;
+		if (gui_main_struct.counter) gui_main_struct.counter--;
 		continue;
 
 queue_clear:

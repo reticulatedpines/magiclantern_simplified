@@ -160,7 +160,7 @@ _draw_char(
         {
             // Start this scanline
             uint32_t * row = front_row;
-            row = (intptr_t)row & ~3; // weird artifacts otherwise
+            row = (uint32_t*)((unsigned)row & ~3); // weird artifacts otherwise
             if (row >= end) return;
 
             // move to the next scanline
@@ -1189,7 +1189,7 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
-    ASSERT(dest < bmp_vram() + BMPPITCH * BMP_HEIGHT - BMP_HEIGHT);
+    ASSERT(dest < (void*)bmp_vram() + BMPPITCH * BMP_HEIGHT - BMP_HEIGHT);
 
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);

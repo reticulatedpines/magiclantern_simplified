@@ -38,7 +38,7 @@ ML_OBJS-y = \
 	movtweaks.o \
 	bitrate.o \
 	lens.o \
-	lensfocus.o \
+	picstyle.o \
 	cfn.o \
 	zebra.o \
 	shoot.o \

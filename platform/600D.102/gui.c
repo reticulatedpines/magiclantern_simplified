@@ -36,7 +36,6 @@ int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
 	memcpy(video_mode, buf, 20);
-	return prop_cleanup(token, property);
 }
 
 int disp_pressed = 0;

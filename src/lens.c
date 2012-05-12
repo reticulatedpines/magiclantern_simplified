@@ -895,7 +895,6 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
     }
-    return prop_cleanup( token, property );
 }
 
 void
@@ -1265,7 +1264,6 @@ PROP_HANDLER( PROP_MVR_REC_START )
 {
     mvr_rec_start_shoot(buf[0]);
     mvr_create_logfile( *(unsigned*) buf );
-    return prop_cleanup( token, property );
 }
 
 
@@ -1274,7 +1272,6 @@ PROP_HANDLER( PROP_LENS_NAME )
     if( len > sizeof(lens_info.name) )
         len = sizeof(lens_info.name);
     memcpy( (char*)lens_info.name, buf, len );
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_LENS)
@@ -1290,14 +1287,12 @@ PROP_HANDLER(PROP_LENS)
     }
     
     bv_update_lensinfo();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
 {
     //~ NotifyBox(2000, "%x ", buf[0]);
     lens_info.IS = (buf[0] & 0x000F0000) >> 16; // not sure, but lower word seems to be AF/MF status
-    return prop_cleanup( token, property );
 }
 
 // it may be slow; if you need faster speed, replace this with a binary search or something better
@@ -1373,7 +1368,6 @@ PROP_HANDLER( PROP_ISO )
     #endif
     bv_auto_update();
     lens_display_set_dirty();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_ISO_AUTO )
@@ -1388,7 +1382,6 @@ PROP_HANDLER( PROP_ISO_AUTO )
     lens_info.iso_auto = RAW2VALUE(iso, raw);
 
     update_stuff();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_BV )
@@ -1405,7 +1398,6 @@ PROP_HANDLER( PROP_BV )
         lens_info.iso_auto = RAW2VALUE(iso, raw_iso);
         update_stuff();
     }
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_SHUTTER )
@@ -1422,7 +1414,6 @@ PROP_HANDLER( PROP_SHUTTER )
     #endif
     bv_auto_update();
     lens_display_set_dirty();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_APERTURE2 )
@@ -1438,21 +1429,18 @@ PROP_HANDLER( PROP_APERTURE2 )
     #endif
     bv_auto_update();
     lens_display_set_dirty();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_APERTURE ) // for Tv mode
 {
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
     lens_display_set_dirty();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     lens_display_set_dirty();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_AE )
@@ -1460,35 +1448,30 @@ PROP_HANDLER( PROP_AE )
     const uint32_t value = *(uint32_t *) buf;
     lens_info.ae = (int8_t)value;
     update_stuff();
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_WB_MODE_LV )
 {
     const uint32_t value = *(uint32_t *) buf;
     lens_info.wb_mode = value;
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_WBS_GM)
 {
     const int8_t value = *(int8_t *) buf;
     lens_info.wbs_gm = value;
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_WBS_BA)
 {
     const int8_t value = *(int8_t *) buf;
     lens_info.wbs_ba = value;
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_WB_KELVIN_LV )
 {
     const uint32_t value = *(uint32_t *) buf;
     lens_info.kelvin = value;
-    return prop_cleanup( token, property );
 }
 
 uint16_t custom_wb_gains[CUSTOM_WB_PROP_LEN];
@@ -1499,7 +1482,6 @@ PROP_HANDLER(PROP_CUSTOM_WB)
     lens_info.WBGain_R = gains[16];
     lens_info.WBGain_G = gains[18];
     lens_info.WBGain_B = gains[19];
-    return prop_cleanup( token, property );
 }
 
 void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
@@ -1642,8 +1624,6 @@ PROP_HANDLER( PROP_LV_LENS )
     old_focus_dist = lens_info.focus_dist;
 
     update_stuff();
-    
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_LAST_JOB_STATE )
@@ -1652,7 +1632,6 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
     lens_info.job_state = state;
     DEBUG("job state: %d", state);
     mirror_locked = 0;
-    return prop_cleanup( token, property );
 }
 
 PROP_HANDLER(PROP_HALF_SHUTTER)
@@ -1660,7 +1639,6 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
     update_stuff();
     lens_display_set_dirty();
     //~ bv_auto_update();
-    return prop_cleanup( token, property );
 }
 
 static void 
@@ -1734,7 +1712,6 @@ PROP_HANDLER(PROP_PICTURE_STYLE)
     const uint32_t raw = *(uint32_t *) buf;
     lens_info.raw_picstyle = raw;
     lens_info.picstyle = get_prop_picstyle_index(raw);
-    return prop_cleanup( token, property );
 }
 
 extern struct prop_picstyle_settings picstyle_settings[];
@@ -1803,7 +1780,7 @@ void SW2(int v, int wait)
 
 /** exposure primitives (the "clean" way, via properties) */
 
-bool prop_set_rawaperture(unsigned aperture)
+int prop_set_rawaperture(unsigned aperture)
 {
     lens_wait_readytotakepic(64);
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
@@ -1812,7 +1789,7 @@ bool prop_set_rawaperture(unsigned aperture)
     return (unsigned int) get_prop(PROP_APERTURE2) == aperture;
 }
 
-bool prop_set_rawshutter(unsigned shutter)
+int prop_set_rawshutter(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
@@ -1822,7 +1799,7 @@ bool prop_set_rawshutter(unsigned shutter)
            ((unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter) ;
 }
 
-bool prop_set_rawshutter_approx(unsigned shutter)
+int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
@@ -1832,7 +1809,7 @@ bool prop_set_rawshutter_approx(unsigned shutter)
            ABS((unsigned int) get_prop(PROP_SHUTTER_ALSO) - shutter) <= 3 ;
 }
 
-bool prop_set_rawiso(unsigned iso)
+int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
@@ -1867,14 +1844,14 @@ extern int bv_iso;
 extern int bv_tv;
 extern int bv_av;
 
-bool bv_set_rawshutter(unsigned shutter)
+int bv_set_rawshutter(unsigned shutter)
 {
     CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo();
     //~ NotifyBox(2000, "%d > %d?", raw2shutter_ms(shutter), 1000/video_mode_fps); msleep(400);
     if (is_movie_mode() && raw2shutter_ms(shutter+1) > 1000/video_mode_fps) return 0;
     return shutter != 0;
 }
-bool bv_set_rawiso(unsigned iso) 
+int bv_set_rawiso(unsigned iso) 
 { 
     if (iso >= 72 && iso <= 128) // 100-12800
     {
@@ -1887,7 +1864,7 @@ bool bv_set_rawiso(unsigned iso)
         return 0;
     }
 }
-bool bv_set_rawaperture(unsigned aperture) 
+int bv_set_rawaperture(unsigned aperture) 
 { 
     if (aperture >= lens_info.raw_aperture_min && aperture <= lens_info.raw_aperture_max) 
     { 
@@ -1974,7 +1951,7 @@ void bv_auto_update()
 }
 
 /** Camera control functions */
-bool lens_set_rawaperture( int aperture)
+int lens_set_rawaperture( int aperture)
 {
     bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
     bv_auto_update(); // auto flip between "BV" or "normal"
@@ -1982,7 +1959,7 @@ bool lens_set_rawaperture( int aperture)
     return !bv_auto_needed_by_aperture;
 }
 
-bool lens_set_rawiso( int iso )
+int lens_set_rawiso( int iso )
 {
     bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
     bv_auto_update(); // auto flip between "BV" or "normal"
@@ -1990,7 +1967,7 @@ bool lens_set_rawiso( int iso )
     return !bv_auto_needed_by_iso;
 }
 
-bool lens_set_rawshutter( int shutter )
+int lens_set_rawshutter( int shutter )
 {
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     bv_auto_update(); // auto flip between "BV" or "normal"
@@ -1999,7 +1976,7 @@ bool lens_set_rawshutter( int shutter )
 }
 
 
-bool lens_set_ae( int ae )
+int lens_set_ae( int ae )
 {
     prop_request_change( PROP_AE, &ae, 4 );
     msleep(50);
@@ -2028,7 +2005,7 @@ void lens_set_wbs_ba(int value)
 // Functions to change camera settings during bracketing
 // They will check the operation and retry if necessary
 // Used for HDR bracketing
-bool hdr_set_something(int (*set_something)(int), int arg)
+int hdr_set_something(int (*set_something)(int), int arg)
 {
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)
@@ -2053,19 +2030,19 @@ bool hdr_set_something(int (*set_something)(int), int arg)
     return 0;
 }
 
-bool hdr_set_rawiso(int iso)
+int hdr_set_rawiso(int iso)
 {
-    return hdr_set_something(prop_set_rawiso, iso);
+    return hdr_set_something((int(*)(int))prop_set_rawiso, iso);
 }
 
 
-bool hdr_set_rawshutter(int shutter)
+int hdr_set_rawshutter(int shutter)
 {
     int ok = shutter < FASTEST_SHUTTER_SPEED_RAW;
-    return hdr_set_something(prop_set_rawshutter_approx, shutter) && ok;
+    return hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter) && ok;
 }
 
-bool hdr_set_ae(int ae)
+int hdr_set_ae(int ae)
 {
     int ok = ABS(ae) < MAX_AE_EV * 8;
     return hdr_set_something(lens_set_ae, ae) && ok;

@@ -46,45 +46,36 @@ struct prop_picstyle_settings picstyle_settings[10];
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_STANDARD ) {
 	memcpy(&picstyle_settings[1], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_PORTRAIT ) {
 	memcpy(&picstyle_settings[2], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_LANDSCAPE ) {
 	memcpy(&picstyle_settings[3], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_NEUTRAL ) {
 	memcpy(&picstyle_settings[4], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_FAITHFUL ) {
 	memcpy(&picstyle_settings[5], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_MONOCHROME ) {
 	memcpy(&picstyle_settings[6], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF1 ) {
 	memcpy(&picstyle_settings[7], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF2 ) {
 	memcpy(&picstyle_settings[8], buf, 24);
-	return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF3 ) {
 	memcpy(&picstyle_settings[9], buf, 24);
-	return prop_cleanup( token, property );
 }

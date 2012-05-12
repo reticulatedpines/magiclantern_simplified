@@ -799,7 +799,6 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     
     audio_configure( 1 );
     //~ menu_set_dirty();
-    return prop_cleanup( token, property );
 }
 
 int get_input_source()
@@ -1438,14 +1437,12 @@ PROP_HANDLER( PROP_LV_ACTION )
 {
         const unsigned mode = buf[0];
         enable_meters( mode );
-        return prop_cleanup( token, property );
 }
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
         const unsigned mode = buf[0];
         enable_recording( mode );
-        return prop_cleanup( token, property );
 }
 
 void sounddev_task();

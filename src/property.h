@@ -429,7 +429,7 @@ struct prop_handler
 {
         unsigned        property;
 
-        void *          (*handler)(
+        void          (*handler)(
                 unsigned                property,
                 void *                  priv,
                 void *                  addr,
@@ -472,7 +472,6 @@ void _prop_handler_##id( \
 volatile uint32_t name; \
 PROP_HANDLER(id) { \
         name = buf[0]; \
-        return prop_cleanup( token, property ); \
 }
 
 /**for reading simple integer properties */

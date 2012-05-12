@@ -35,7 +35,7 @@ static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
 static struct semaphore * menu_redraw_sem;
 static int menu_damage;
-static bool menu_shown = false;
+static int menu_shown = false;
 static int show_only_selected; // for ISO, kelvin...
 static int config_dirty = 0;
 static char* warning_msg = 0;
@@ -187,7 +187,7 @@ static void entry_draw_icon(
         {
             entry->icon_type = IT_SUBMENU;
         }
-        else if (!entry->priv || entry->select == run_in_separate_task)
+        else if (!entry->priv || entry->select == (void(*)(void*,int))run_in_separate_task)
         {
             entry->icon_type = IT_ACTION;
         }
@@ -291,7 +291,7 @@ submenu_print(
     
     char msg[100] = "";
     STR_APPEND(msg, "%s", entry->name);
-    if (entry->priv && entry->select != run_in_separate_task)
+    if (entry->priv && entry->select != (void(*)(void*,int))run_in_separate_task)
     {
         int l = strlen(entry->name);
         for (int i = 0; i < 14 - l; i++)
@@ -1787,7 +1787,7 @@ gui_stop_menu( )
 }
 
 
-bool
+int
 gui_menu_shown( void )
 {
     return menu_shown;

@@ -740,7 +740,6 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 {
         focus_done_raw = buf[0];
         focus_done = 1;
-        return prop_cleanup(token, property);
 }
 
 
@@ -785,8 +784,6 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
     hsp = buf[0];
     hsp_countdown = 3;
     if (get_zoom_overlay_trigger_mode() <= 2) zoom_overlay_set_countdown(0);
-    
-    return prop_cleanup(token, property);
 }
 
 
@@ -1036,7 +1033,6 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
             movie_af_step(focus_mag);
 #endif
     }
-    return prop_cleanup(token, property);
 }
 
 #ifdef CONFIG_MOVIE_AF

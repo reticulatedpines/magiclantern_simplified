@@ -62,8 +62,8 @@ draw_prop_reset( void * priv )
 }
 
 #ifdef CONFIG_5D3
-void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
-void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x838C00; sei_restore(f); }
+void _card_led_on() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
+void _card_led_off() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x838C00; sei_restore(f); }
 #else
  void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(f); }
  void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(f); }
@@ -295,7 +295,6 @@ int hdmi_code_array[8];
 PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
 {
     memcpy(hdmi_code_array, buf, 32);
-    return prop_cleanup(token, property);
 }
 
 void ChangeHDMIOutputSizeToVGA()
@@ -1449,7 +1448,6 @@ struct rolling_pitching level_data;
 PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 {
     memcpy(&level_data, buf, 6);
-    return prop_cleanup(token, property);
 }
 
 void draw_electronic_level(int angle, int prev_angle, int force_redraw)
@@ -1753,7 +1751,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
             extern thunk ShootOlcApp_handler;
             if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !EXT_MONITOR_CONNECTED
-                && get_current_dialog_handler() == &ShootOlcApp_handler)
+                && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
             BMP_LOCK
             (
                 display_clock();
@@ -1837,7 +1835,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     }
 }
 
-void screenshot_start(void* priv)
+void screenshot_start(void* priv, int delta)
 {
     screenshot_sec = 10;
 }
@@ -2314,7 +2312,7 @@ struct menu_entry debug_menus[] = {
     {
         .name        = "Don't click me!",
         .priv =         run_test,
-        .select        = run_in_separate_task,
+        .select        = (void(*)(void*,int))run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
 #ifdef CONFIG_ISO_TESTS
@@ -2366,25 +2364,25 @@ struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Quick test (around 15 min)",
-                .select = run_in_separate_task,
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
             {
                 .name = "Random tests (infinite loop)",
-                .select = run_in_separate_task,
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_random_task,
                 .help = "A thorough test which randomly enables functions from menu. "
             },
             {
                 .name = "Menu backend test (infinite)",
-                .select = run_in_separate_task,
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_menu_dlg_api_task,
                 .help = "Tests proper usage of Canon API calls in ML menu backend."
             },
             {
                 .name = "Redraw test (infinite)",
-                .select = run_in_separate_task, 
+                .select = (void(*)(void*,int))run_in_separate_task, 
                 .priv = excessive_redraws_task,
                 .help = "Causes excessive redraws for testing the graphics backend",
             },
@@ -2399,7 +2397,7 @@ struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Create a stuck task",
-                .select = run_in_separate_task,
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = frozen_task,
                 .help = "Creates a task which will become stuck in an infinite loop."
             },
@@ -2410,13 +2408,13 @@ struct menu_entry debug_menus[] = {
             },
             {
                 .name = "Division by zero",
-                .select = run_in_separate_task,
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = divzero_task,
                 .help = "Performs some math operations which will divide by zero."
             },
             {
                 .name = "Allocate 1MB of RAM",
-                .select = run_in_separate_task,
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = alloc_1M_task,
                 .help = "Allocates 1MB RAM from system memory, without freeing it."
             },
@@ -2441,7 +2439,7 @@ struct menu_entry debug_menus[] = {
     },
     {
         .name = "Save CPU usage log",
-        .select = run_in_separate_task,
+        .select = (void(*)(void*,int))run_in_separate_task,
         .priv = save_cpu_usage_log_task,
         .help = "Saves a log with the CPU usage for all tasks (Canon+ML).",
     },
@@ -2815,7 +2813,6 @@ PROP_HANDLER(PROP_APERTURE)
 
     old = buf[0];
 
-    return prop_cleanup(token, property);
 }*/
 
 /*
@@ -2836,7 +2833,6 @@ PROP_HANDLER(PROP_SHUTTER)
         }
         old = buf[0];
     }
-    return prop_cleanup(token, property);
 }*/
 
 #ifdef CONFIG_550D
@@ -2900,7 +2896,6 @@ PROP_HANDLER(PROP_ISO)
         }
     }
     prev_iso = buf[0];
-    return prop_cleanup(token, property);
 }
 
 #endif

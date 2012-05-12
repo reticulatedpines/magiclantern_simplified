@@ -35,6 +35,7 @@
 #include "menu.h"
 #include "lens.h"
 #include "config.h"
+#include "math.h"
 
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
@@ -79,6 +80,8 @@ static int is_current_mode_ntsc()
 }
 
 int fps_get_current_x1000();
+static void fps_unpatch_table();
+static void fps_patch_timerB(int timer_value);
 
 #define FPS_TIMER_A_MAX 0x2000
 #define FPS_TIMER_B_MAX (0x4000-1)
@@ -130,12 +133,14 @@ int fps_get_current_x1000();
 #ifdef CONFIG_600D
 #define SENSOR_TIMING_TABLE MEM(0xCB20)
 #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
+#undef FPS_TIMER_B_MIN
 #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
 static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
 #ifdef CONFIG_60D
 #define SENSOR_TIMING_TABLE MEM(0x2a668)
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
+#undef FPS_TIMER_B_MIN
 #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
 static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
@@ -148,6 +153,7 @@ static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #ifdef CONFIG_5D3
 #define SENSOR_TIMING_TABLE MEM(0x325ac)
 //~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
+#undef FPS_TIMER_B_MIN
 #define FPS_TIMER_B_MIN 100
 static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
 #endif
@@ -248,9 +254,10 @@ int get_current_shutter_reciprocal_x1000()
 #else
 
     int timer = FRAME_SHUTTER_TIMER;
-    int zoom = lv_dispsize > 1 ? 1 : 0;
     int ntsc = is_current_mode_ntsc();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
     int crop = video_mode_crop;
+    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
 
     int shutter_r_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     
@@ -344,7 +351,6 @@ static void update_sound_recording()
 PROP_HANDLER(PROP_LV_ACTION)
 {
     restore_sound_recording();
-    return prop_cleanup(token, property);
 }
 //--------------------------------------------------------
 
@@ -548,7 +554,6 @@ static int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
     memcpy(video_mode, buf, 20);
-    return prop_cleanup(token, property);
 }
 
 static void flip_zoom()
@@ -583,7 +588,7 @@ static void flip_zoom()
     set_lv_zoom(zoom0);
 }
 
-void fps_unpatch_table()
+static void fps_unpatch_table()
 {
     if (SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_original)
         return;
@@ -829,6 +834,7 @@ void fps_setup_timerA(int fps_x1000)
 {
     // for NTSC, we probably need FPS * 1000/1001
     int ntsc = is_current_mode_ntsc();
+    ntsc += 0; // bypass warning
     if (fps_criteria == 1) ntsc = 0; // use PAL-like rounding [hack]
     #if !defined(CONFIG_500D) && !defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97
     if (ntsc) fps_x1000 = fps_x1000 * 1000/1001;
@@ -1213,10 +1219,10 @@ int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int ty
     return ret[type];
 }
 
-void fps_patch_timerB(int timer_value)
+static void fps_patch_timerB(int timer_value)
 {
     int mode = get_fps_video_mode();
-    unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
+    int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
 
     if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
         return;

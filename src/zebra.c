@@ -76,9 +76,9 @@ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
-static bool _bmp_muted = false;
-static bool _bmp_unmuted = false;
-static bool bmp_is_on() { return !_bmp_muted; }
+static int _bmp_muted = false;
+static int _bmp_unmuted = false;
+static int bmp_is_on() { return !_bmp_muted; }
 void bmp_on();
 void bmp_off();
 
@@ -171,7 +171,7 @@ int is_zoom_overlay_triggered_by_zoom_btn()
 
 int zoom_overlay_dirty = 0;
 
-bool should_draw_zoom_overlay()
+int should_draw_zoom_overlay()
 {
     if (!lv) return 0;
     if (!zoom_overlay_enabled) return 0;
@@ -632,7 +632,7 @@ int hist_get_percentile_level(int percentile)
     return -1; // invalid argument?
 }
 
-int get_under_and_over_exposure(uint32_t thr_lo, uint32_t thr_hi, int* under, int* over)
+int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
     *under = -1;
     *over = -1;
@@ -1306,11 +1306,11 @@ draw_zebra_and_focus( int Z, int F )
         {
             uint16_t * const hd_row = (uint16_t *)(hdvram + BM2HD_R(y) / 4); // 2 pixels
             
-            uint32_t* hdp ; // that's a moving pointer
+            //~ uint32_t* hdp ; // that's a moving pointer
             uint8_t* p8; // that's a moving pointer
             for (int x = os.x0 + 8; x < os.x_max - 8; x += 2)
             {
-                hdp = (uint32_t *)(hd_row + BM2HD_X(x));
+                //~ hdp = (uint32_t *)(hd_row + BM2HD_X(x));
                 p8 = (uint8_t *)(hd_row + BM2HD_X(x)) + 1;
                 //~ hdp = hdvram + BM2HD(x,y)/4;
                 #define PX_AB (*hdp)        // current pixel group
@@ -3762,7 +3762,7 @@ static void draw_zoom_overlay(int dirty)
 //~ void zebra_pause() { zebra_paused = 1; }
 //~ void zebra_resume() { zebra_paused = 0; }
 
-bool liveview_display_idle()
+int liveview_display_idle()
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;

@@ -16,7 +16,7 @@ struct task_attr_str {
   unsigned int stack;
   unsigned int size;
   unsigned int used; // 0x10
-  unsigned int name;
+  void* name;
   unsigned int off_18;
   unsigned int flags;
   unsigned char wait_id;
@@ -27,7 +27,7 @@ struct task_attr_str {
 }; // size = 0x28
 
 
-extern int is_taskid_valid(int, int, unsigned int);
+extern int is_taskid_valid(int, int, void*);
 extern int get_obj_attr(void*, unsigned char*, int, int);
 
 int what_tasks_to_show=2;
@@ -39,10 +39,10 @@ void tasks_print(void* priv, int x0, int y0, int selected)
         bmp_fill(38, 0, 0, 720, 430);
     }
 
-  int i, c;
+  int c;
   unsigned int r;
   struct task_attr_str task_attr;
-  char *name, *args;
+  char *name;
   extern unsigned int task_max;
 
    // wait_id: 0=sleep, 1=sem, 2=flg/event, 3=sendmq, 4=recvmq, 5=mutex
@@ -54,12 +54,12 @@ void tasks_print(void* priv, int x0, int y0, int selected)
   bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
   y += font_med.height;
 
-  int k = 0;
+  //~ int k = 0;
 
   c = 1;
   bmp_printf(FONT_SMALL, x, y, "task_max=%d", task_max);
   y += font_small.height;
-  for (c=1; c<task_max; c++) {
+  for (c=1; c<(int)task_max; c++) {
     r = is_taskid_valid(1, c, &task_attr); // ok
     if (r==0) {
       r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
@@ -107,11 +107,9 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
     //bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
     if (buf[0] == 0)  ml_shutdown();
-    return prop_cleanup(token, property);
 }
 
 PROP_HANDLER(PROP_CARD_COVER)
 {
     if (buf[0] == 1) ml_shutdown();
-    return prop_cleanup(token, property);
 }

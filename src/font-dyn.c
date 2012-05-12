@@ -42,7 +42,7 @@ static void shadow_char_compute(struct font * src, struct font * dst, char c)
     #define PIX_SET(i,j) dst->bitmap[ c + ((i) << 7) ] |= (1 << (31-(j)))
     #define PIX_CLR(i,j) dst->bitmap[ c + ((i) << 7) ] &= ~(1 << (31-(j)))
 
-    int i,j;
+    unsigned i,j;
 
     // first draw the shadow
     for( i = 1 ; i<src->height-1 ; i++ )

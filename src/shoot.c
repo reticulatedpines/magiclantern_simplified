@@ -43,16 +43,17 @@ void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
 void zoom_auto_exposure_step();
+void ensure_play_or_qr_mode_after_shot();
 
 static void bulb_ramping_showinfo();
 int bulb_ramp_calibration_running = 0;
 
-bool display_idle()
+int display_idle()
 {
     extern thunk ShootOlcApp_handler;
     if (lv) return liveview_display_idle();
     else return gui_state == GUISTATE_IDLE && !gui_menu_shown() &&
-        ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || get_current_dialog_handler() == &ShootOlcApp_handler);
+        ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
 static char dcim_dir_suffix[6];
@@ -60,7 +61,6 @@ static char dcim_dir[100];
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
 {
     snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
-    return prop_cleanup(token, property);
 }
 const char* get_dcim_dir()
 {
@@ -544,8 +544,6 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     afframe_set_dirty();
     
     memcpy(afframe, buf, AFFRAME_PROP_LEN);
-
-    return prop_cleanup( token, property );
 }
 
 void get_afframe_pos(int W, int H, int* x, int* y)
@@ -586,9 +584,8 @@ void halfshutter_action(int v)
 #endif
 
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
-    int v = *(int*)buf;
-
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    int v = *(int*)buf;
     if (zoom_enable_face)
     {
         if (v == 0 && lv && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
@@ -1574,7 +1571,7 @@ shutter_toggle(void* priv, int sign)
     for (k = 0; k < 20; k++)
     {
         int new_i = mod(i + sign, COUNT(codes_shutter));
-        if (priv == -1 && (new_i == 0 || i + sign != new_i)) // wrapped around
+        if (priv == (void*)-1 && (new_i == 0 || i + sign != new_i)) // wrapped around
             break;
         i = new_i;
         if (lens_set_rawshutter(codes_shutter[i])) break;
@@ -1591,7 +1588,7 @@ aperture_display( void * priv, int x, int y, int selected )
         lens_info.aperture / 10,
         lens_info.aperture % 10
     );
-    menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, lens_info.aperture ? (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]) : (uintptr_t) (lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture."));
+    menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, lens_info.aperture ? (uintptr_t)((lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1])) : (uintptr_t) (lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture."));
 }
 
 void
@@ -1605,7 +1602,7 @@ aperture_toggle( void* priv, int sign)
     for (int k = 0; k < 50; k++)
     {
         a += sign;
-        if (priv == -1) // don't wrap around
+        if (priv == (void*)-1) // don't wrap around
         {
             if (a > amax) a = amax;
             if (a < amin) a = amin;
@@ -3271,7 +3268,7 @@ void bulb_ramping_init()
 
     // if calibration is cached, load it from config file
     int calib_sig = lens_info.picstyle * 123 + lens_get_contrast() + (get_htp() ? 17 : 23);
-    if (calib_sig == bramp_calib_sig)
+    if (calib_sig == (int)bramp_calib_sig)
     {
         bramp_luma_ev[0] = bramp_calib_cache_m5;
         bramp_luma_ev[1] = bramp_calib_cache_m4;
@@ -4530,7 +4527,9 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         int rc = rs - ev_x8;
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         int expsim0 = expsim;
+        #endif
         
         //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
@@ -4977,11 +4976,11 @@ static void display_expsim_status()
 
 void display_shooting_info_lv()
 {
+#ifndef CONFIG_5D2
     int screen_layout = get_screen_layout();
     int audio_meters_at_top = audio_meters_are_drawn() 
         && (screen_layout == SCREENLAYOUT_3_2);
 
-#ifndef CONFIG_5D2
     display_lcd_remote_icon(450, audio_meters_at_top ? 25 : 3);
 #endif
     display_trap_focus_info();
@@ -5017,7 +5016,7 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
     extern thunk ErrCardForLVApp_handler;
     for (int i = 0; i <= wait/20; i++)
     {
-        if (get_current_dialog_handler() == &ErrCardForLVApp_handler) return 1;
+        if ((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler) return 1;
         msleep(20);
     }
     return 0;
@@ -5346,7 +5345,7 @@ shoot_task( void* unused )
         {
             int seconds_clock_0 = seconds_clock;
             int display_turned_off = 0;
-            int images_compared = 0;
+            //~ int images_compared = 0;
             msleep(100);
             while (SECONDS_REMAINING > 0)
             {

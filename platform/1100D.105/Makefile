@@ -37,7 +37,7 @@ ML_OBJS-y = \
 	gui.o \
 	gui-common.o \
 	misc.o \
-	lensfocus.o \
+	picstyle.o \
 	cfn.o \
 	zebra.o \
 	shoot.o \

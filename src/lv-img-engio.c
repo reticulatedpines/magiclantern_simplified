@@ -287,7 +287,7 @@ digic_value_print(
 }
 #else
 
-int handle_digic_poke(struct event * event){}; // dummy
+int handle_digic_poke(struct event * event){ return 1; }; // dummy
 
 #endif // CONFIG_DIGIC_POKE
 

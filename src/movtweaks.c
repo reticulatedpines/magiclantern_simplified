@@ -1,3 +1,4 @@
+
 /** \file
  * Tweaks specific to movie mode
  */
@@ -74,7 +75,6 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
     kelvin_wb_dirty = 1;
     if (!ml_changing_shooting_mode) intervalometer_stop();
     bv_auto_update();
-    return prop_cleanup(token, property);
 }
 
 void set_shooting_mode(int m)
@@ -129,7 +129,6 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
         if (!recording) schedule_movie_start();
         else schedule_movie_end();
     }
-    return prop_cleanup(token, property);
 }
 
 
@@ -822,7 +821,6 @@ void bv_toggle(void* priv, int delta)
 PROP_HANDLER(PROP_LIVE_VIEW_VIEWTYPE)
 {
     bv_auto_update();
-    return NULL;
 }
 
 CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
@@ -881,12 +879,12 @@ void update_lvae_for_autoiso_n_displaygain()
             if (!ae_value)
             {
                 int bv = get_prop(PROP_BV);
-                int a = (uint8_t)((bv >>  0) & 0xFF);
                 //int c = (uint8_t)((bv >> 16) & 0xFF);
                 #ifdef CONFIG_5D2
                 int b = (uint8_t)((bv >>  8) & 0xFF);
                 ae_value = (int)lvae_iso_max - b;
                 #else
+                int a = (uint8_t)((bv >>  0) & 0xFF);
                 int d = (uint8_t)((bv >> 24) & 0xFF);
                 ae_value = a-d;
                 #endif

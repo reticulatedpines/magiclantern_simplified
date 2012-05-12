@@ -48,7 +48,6 @@ static void
 PROP_HANDLER(PROP_LAST_JOB_STATE)
 {
     if (dofp_value) dofp_set(0);
-    return prop_cleanup(token, property);
 }
 
 static void 
@@ -328,8 +327,6 @@ PROP_HANDLER(PROP_BURST_COUNT)
     {
         adjust_burst_pic_quality();
     }
-
-    return prop_cleanup(token, property);
 }
 
 static void
@@ -850,7 +847,6 @@ PROP_HANDLER(PROP_GUI_STATE)
     {
         fake_simple_button(BGMT_PLAY);
     }
-    return prop_cleanup(token, property);
 }
 
 static void
@@ -1577,7 +1573,7 @@ void grayscale_menus_step()
 {
     static int prev_g = 0;
     static int prev_d = 0;
-    static int prev_b = 0;
+    static unsigned prev_b = 0;
 
     // optimization: only update palette after a display mode change
     int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b);

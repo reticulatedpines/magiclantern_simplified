@@ -40,7 +40,7 @@
 #define MENU_FONT_SEL   MENU_FONT
 
 int get_menu_font_sel();
-bool gui_menu_shown();
+int gui_menu_shown();
 void menu_show_only_selected();
 int get_menu_advanced_mode();
 

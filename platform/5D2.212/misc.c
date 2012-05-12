@@ -66,7 +66,6 @@ int battery_level_transitions = 0;
 PROP_HANDLER(PROP_BATTERY_REPORT)
 {
 	battery_level = buf[1] & 0xff;
-	return prop_cleanup(token, property);
 }
 int GetBatteryLevel()
 {
@@ -84,7 +83,7 @@ int GetBatteryDrainRate() // percents per hour
 // called every second
 void RefreshBatteryLevel_1Hz()
 {
-	static k = 0;
+	static int k = 0;
 	k++;
 	
 	if (k % 10 == 0 &&

@@ -656,7 +656,7 @@ static struct plugin_descriptor lua_plug_desc = {
 			.name = "TASK",
 			.entry = lua_task,
 			.arg = 0,
-			.flags = 0x1000,
+			.stack_size = 0x1000,
 			.priority = 0x1f,
 		},
 		{ .name = NULL, }

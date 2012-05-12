@@ -38,7 +38,7 @@ ML_OBJS-y = \
 	misc.o \
 	tweaks.o \
 	lens.o \
-	lensfocus.o \
+	picstyle.o \
 	cfn.o \
 	zebra.o \
 	shoot.o \

@@ -64,10 +64,10 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     int on = !buf[0];
     int off = !on;
     if (on == prev) // false alarm
-        goto end;
+        return;
     prev = on;
     
-    if (remote_shot_flag) goto end;
+    if (remote_shot_flag) return;
 
     if (lv && lens_info.job_state == 0 && lcd_release_running == 0 && is_follow_focus_active() && get_follow_focus_mode()==1) // FF on LCD sensor
     {
@@ -84,15 +84,15 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     else
     if (lcd_release_running && gui_state == GUISTATE_IDLE && !is_intervalometer_running())
     {
-        if (gui_menu_shown()) goto end;
-        if (lcd_release_running == 1 && off) goto end;
+        if (gui_menu_shown()) return;
+        if (lcd_release_running == 1 && off) return;
         if (lcd_release_running == 2 && on )
         {
             if (get_mlu()) schedule_mlu_lock();
-            goto end;
+            return;
         }
         if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
-        if (lcd_release_running == 3 && wave_count < 5) goto end;
+        if (lcd_release_running == 3 && wave_count < 5) return;
 
         if (lcd_release_running == 3 && recording) schedule_movie_end(); // wave mode is allowed to stop movies
         else if (recording && is_rack_focus_enabled())
@@ -108,9 +108,6 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     else wave_count = 0;
 
     idle_wakeup_reset_counters(-20);
-
-    end:
-    return prop_cleanup(token, property);
 }
 
 void lcd_release_step() // to be called from shoot_task

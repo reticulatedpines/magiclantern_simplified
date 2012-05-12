@@ -34,7 +34,6 @@ int joy_center_action_disabled = 0;
 void joypress_task()
 {
 	extern int joy_center_pressed;
-	static int count = 0;
 	while(1)
 	{
 		msleep(20);

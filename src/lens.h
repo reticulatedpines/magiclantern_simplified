@@ -34,50 +34,50 @@ int get_htp();
 
 struct lens_info
 {
-volatile        void *                  token;
-volatile        char                    name[ 32 ];
-volatile        unsigned                focal_len; // in mm
-volatile        unsigned                focus_dist; // in cm
-volatile        unsigned                IS; // PROP_LV_LENS_STABILIZE
-volatile        unsigned                aperture;
-volatile        int                     ae;        // exposure compensation, in 1/8 EV steps, signed
-volatile        unsigned                shutter;
-volatile        unsigned                iso;
-volatile        unsigned                iso_auto;
-volatile        unsigned                iso_analog_raw;
-volatile        int                     iso_digital_ev;
-volatile        unsigned                iso_equiv_raw;
-volatile        unsigned                hyperfocal; // in mm
-volatile        unsigned                dof_near; // in mm
-volatile        unsigned                dof_far; // in mm
-volatile        unsigned                job_state; // see PROP_LAST_JOB_STATE
+        void *                  token;
+        char                    name[ 32 ];
+        unsigned                focal_len; // in mm
+        unsigned                focus_dist; // in cm
+        unsigned                IS; // PROP_LV_LENS_STABILIZE
+        unsigned                aperture;
+        int                     ae;        // exposure compensation, in 1/8 EV steps, signed
+        unsigned                shutter;
+        unsigned                iso;
+        unsigned                iso_auto;
+        unsigned                iso_analog_raw;
+        int                     iso_digital_ev;
+        unsigned                iso_equiv_raw;
+        unsigned                hyperfocal; // in mm
+        unsigned                dof_near; // in mm
+        unsigned                dof_far; // in mm
+        unsigned                job_state; // see PROP_LAST_JOB_STATE
 
-volatile        unsigned                wb_mode;  // see property.h for possible values
-volatile        unsigned                kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
-volatile        unsigned                WBGain_R; // only used when wb_mode = WB_CUSTOM
-volatile        unsigned                WBGain_G; // only used when wb_mode = WB_CUSTOM
-volatile        unsigned                WBGain_B; // only used when wb_mode = WB_CUSTOM
-volatile        int8_t          wbs_gm;
-volatile        int8_t          wbs_ba;
+        unsigned                wb_mode;  // see property.h for possible values
+        unsigned                kelvin;   // wb temperature; only used when wb_mode = WB_KELVIN
+        unsigned                WBGain_R; // only used when wb_mode = WB_CUSTOM
+        unsigned                WBGain_G; // only used when wb_mode = WB_CUSTOM
+        unsigned                WBGain_B; // only used when wb_mode = WB_CUSTOM
+        int8_t          wbs_gm;
+        int8_t          wbs_ba;
 
-volatile        unsigned                picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
+        unsigned                picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
 /*      int32_t                 contrast;   // -4..4
         uint32_t                sharpness;  // 0..7
         uint32_t                saturation; // -4..4
         uint32_t                color_tone; // -4..4 */
 
         // Store the raw values before the lookup tables
-volatile        uint8_t                 raw_aperture;
-volatile        uint8_t                 raw_shutter;
-volatile        uint8_t                 raw_iso;
-volatile        uint8_t                 raw_iso_auto;
-volatile        uint8_t                 raw_picstyle;
+        uint8_t                 raw_aperture;
+        uint8_t                 raw_shutter;
+        uint8_t                 raw_iso;
+        uint8_t                 raw_iso_auto;
+        uint8_t                 raw_picstyle;
 
-volatile        uint8_t         raw_aperture_min;
-volatile        uint8_t         raw_aperture_max;
+        uint8_t         raw_aperture_min;
+        uint8_t         raw_aperture_max;
 
-volatile        float                   lens_rotation;
-volatile        float                   lens_step;
+        float                   lens_rotation;
+        float                   lens_step;
 };
 
 extern struct lens_info lens_info;
@@ -132,18 +132,18 @@ SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 void lens_wait_readytotakepic(int wait);
 
 // return true on success
-extern bool lens_set_rawaperture( int aperture);
-extern bool lens_set_rawiso( int iso );
-extern bool lens_set_rawshutter( int shutter );
-extern bool lens_set_ae( int ae );
+extern int lens_set_rawaperture( int aperture);
+extern int lens_set_rawiso( int iso );
+extern int lens_set_rawshutter( int shutter );
+extern int lens_set_ae( int ae );
 extern void lens_set_drivemode( int dm );
 extern void lens_set_wbs_gm(int value);
 extern void lens_set_wbs_ba(int value);
 
 extern void bv_update();
-extern bool bv_set_rawshutter(unsigned shutter);
-extern bool bv_set_rawaperture(unsigned aperture);
-extern bool bv_set_rawiso(unsigned iso);
+extern int bv_set_rawshutter(unsigned shutter);
+extern int bv_set_rawaperture(unsigned aperture);
+extern int bv_set_rawiso(unsigned iso);
 
 OS_FUNCTION( 0x0900001, int,	lens_take_picture, int wait, int allow_af );
 
@@ -214,5 +214,8 @@ int raw2iso(int raw_iso);
 
 void draw_ml_topbar();
 void draw_ml_bottombar(int double_buffering, int clear);
+
+void SW1(int v, int wait);
+void SW2(int v, int wait);
 
 #endif
