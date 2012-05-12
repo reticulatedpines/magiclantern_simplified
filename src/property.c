@@ -143,7 +143,11 @@ int get_prop_len(int prop)
         if (plc_prop[i] == prop && plc_len[i] >= 0)
             return plc_len[i];
     }
-    return get_prop_len_uncached(prop);
+    int len = get_prop_len_uncached(prop);
+    plc_prop[plc_i] = prop;
+    plc_len[plc_i] = len;
+    plc_i = (plc_i + 1) % 32;
+    return len;
 }
 
 /**
@@ -162,20 +166,26 @@ int get_prop_len(int prop)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
+/* problem: get_prop_len may return 0 :(
+
+
     int correct_len = get_prop_len((int)property);
     
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
     
     if (correct_len != (int)len)
     {
-        #define PROP_LEN_INCORRECT 0
-        bmp_printf(FONT_LARGE, 100, 100, "%x:%x:%x", property, correct_len, len);
-        ASSERT(PROP_LEN_INCORRECT);
+        char msg[100];
+        snprintf(msg, sizeof(msg), "PROP_LEN(%x) correct:%x called:%x", property, correct_len, len);
+        bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 100, 100, msg);
+        ml_assert_handler(msg, __FILE__, __LINE__, __func__);
+        //~ ASSERT(PROP_LEN_INCORRECT);
         info_led_blink(10,50,50);
         return;
     }
 
 ok:
+*/
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
     _prop_request_change(property, addr, len);
 }
