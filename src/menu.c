@@ -1577,7 +1577,7 @@ handle_ml_menu_keys(struct event * event)
     
     int button_code = event->param;
 #if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
-    if (button_code == BGMT_INFO) button_code = BGMT_Q;
+    if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
 #endif
 
     
