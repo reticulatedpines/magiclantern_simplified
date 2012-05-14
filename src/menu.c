@@ -1511,6 +1511,7 @@ static struct menu * get_current_submenu()
 
 static int keyrepeat = 0;
 static int keyrep_countdown = 4;
+static int keyrep_ack = 1;
 int handle_ml_menu_keyrepeat(struct event * event)
 {
     if (menu_shown)
@@ -1579,7 +1580,6 @@ handle_ml_menu_keys(struct event * event)
 #if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
     if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
 #endif
-
     
     switch( button_code )
     {
@@ -1700,6 +1700,8 @@ handle_ml_menu_keys(struct event * event)
     // If we end up here, something has been changed.
     // Reset the timeout
     menu_redraw();
+
+    if (button_code == keyrepeat) keyrep_ack = 1;
 
     return 0;
 }
@@ -1843,13 +1845,15 @@ void close_canon_menu()
 static void menu_open() 
 { 
     if (menu_shown) return;
-    menu_shown = 1;
-    piggyback_canon_menu();
-
+    
     show_only_selected = 0;
     submenu_mode = 0;
     menu_help_active = 0;
     keyrepeat = 0;
+    menu_shown = 1;
+
+    piggyback_canon_menu();
+
     canon_gui_disable_front_buffer(0);
     menu_redraw();
 }
@@ -1891,7 +1895,7 @@ menu_task( void* unused )
     select_menu_by_icon(menu_first_by_icon);
     TASK_LOOP
     {
-        int dt = (menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : 500;
+        int dt = (menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 30, 100) : 500;
         int rc = take_semaphore( gui_sem, dt );
         if( rc != 0 )
         {
@@ -1910,7 +1914,7 @@ menu_task( void* unused )
             if (keyrepeat)
             {
                 keyrep_countdown--;
-                if (keyrep_countdown <= 0) fake_simple_button(keyrepeat);
+                if (keyrep_countdown <= 0 && keyrep_ack) { keyrep_ack = 0; fake_simple_button(keyrepeat); }
                 continue;
             }
 
