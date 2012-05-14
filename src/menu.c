@@ -1820,6 +1820,9 @@ open_canon_menu()
 
 void piggyback_canon_menu()
 {
+    #ifdef CONFIG_500D
+    if (is_movie_mode()) return; // doesn'tworkstation
+    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     SetGUIRequestMode(GUIMODE_ML_MENU);
@@ -1836,6 +1839,9 @@ void piggyback_canon_menu()
 
 void close_canon_menu()
 {
+    #ifdef CONFIG_500D
+    if (is_movie_mode()) return; // doesn'tworkstation
+    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     SetGUIRequestMode(0);
