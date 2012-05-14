@@ -1431,7 +1431,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     #ifndef CONFIG_500D
     else if (buf[0] && !gui_menu_shown())
     {
-        bv_set_rawaperture(buf[0]);
+        bv_set_rawaperture(COERCE(buf[0], lens_info.raw_aperture_min, lens_info.raw_aperture_max));
         bv_auto_needed_by_aperture = 0;
     }
     #endif
