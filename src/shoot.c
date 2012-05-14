@@ -2494,7 +2494,7 @@ static void zoom_lv_face_step()
         }
     }
     
-    if (zoom_halfshutter)
+    if ((zoom_halfshutter == 1 && is_manual_focus()) || (zoom_halfshutter == 2))
     {
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1)
@@ -2517,14 +2517,16 @@ static int zoom_focus_ring_disable_time = 0;
 static int zoom_focus_ring_flag = 0;
 void zoom_focus_ring_trigger() // called from prop handler
 {
-    if (!zoom_focus_ring) return;
+    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    if (!zfr) return;
     if (recording) return;
     if (lv_dispsize > 1) return;
     zoom_focus_ring_flag = 1;
 }
 void zoom_focus_ring_engage() // called from shoot_task
 {
-    if (!zoom_focus_ring) return;
+    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    if (!zfr) return;
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
     zoom_focus_ring_disable_time = ms100_clock + 4000;
@@ -2533,7 +2535,8 @@ void zoom_focus_ring_engage() // called from shoot_task
 }
 static void zoom_focus_ring_step()
 {
-    if (!zoom_focus_ring) return;
+    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    if (!zfr) return;
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
     if (zoom_focus_ring_disable_time && ms100_clock > zoom_focus_ring_disable_time)
@@ -4072,27 +4075,29 @@ struct menu_entry tweak_menus_shoot[] = {
             },
             #endif
             {
-                .name = "Auto exposure on Zoom  ",
+                .name = "Auto exposure on Zoom ",
                 .priv = &zoom_auto_exposure,
                 .max = 1,
                 .help = "Auto adjusts exposure, so you can focus manually wide open."
             },
             {
-                .name = "Increase Sharp+Contrast",
+                .name = "Increase SharpContrast",
                 .priv = &zoom_sharpen,
                 .max = 1,
                 .help = "Increase sharpness and contrast when you zoom in LiveView."
             },
             {
-                .name = "Zoom on HalfShutter    ",
+                .name = "Zoom on HalfShutter   ",
                 .priv = &zoom_halfshutter,
-                .max = 1,
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Enable zoom when you hold the shutter halfway pressed."
             },
             {
-                .name = "Zoom on Manual Focus   ",
+                .name = "Zoom with Focus Ring  ",
                 .priv = &zoom_focus_ring,
-                .max = 1,
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
             MENU_EOL
