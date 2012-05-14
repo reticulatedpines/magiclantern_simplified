@@ -1568,7 +1568,7 @@ shutter_toggle(void* priv, int sign)
 {
     int i = raw2index_shutter(lens_info.raw_shutter);
     int k;
-    for (k = 0; k < 20; k++)
+    for (k = 0; k < 10; k++)
     {
         int new_i = i;
         do {
@@ -1603,21 +1603,22 @@ aperture_toggle( void* priv, int sign)
     
     int a = lens_info.raw_aperture;
 
-    for (int k = 0; k < 50; k++)
+    for (int k = 0; k < 4; k++)
     {
-        a += sign;
-        if (priv == (void*)-1) // don't wrap around
-        {
-            if (a > amax) a = amax;
-            if (a < amin) a = amin;
+        do {
+            a += sign;
+            if (priv == (void*)-1) // don't wrap around
+            {
+                if (a > amax) { a = amax; break; }
+                if (a < amin) { a = amin; break; }
+            }
+            else // allow wrap around
+            {
+                if (a > amax) a = amin;
+                if (a < amin) a = amax;
+            }
         }
-        else // allow wrap around
-        {
-            if (a > amax) a = amin;
-            if (a < amin) a = amax;
-        }
-
-        if (a < lens_info.raw_aperture_min || a > lens_info.raw_aperture_max) continue;
+        while (a < lens_info.raw_aperture_min || a > lens_info.raw_aperture_max);
 
         if (lens_set_rawaperture(a)) break;
     }

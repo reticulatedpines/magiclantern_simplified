@@ -1797,6 +1797,12 @@ void SW2(int v, int wait)
 
 int prop_set_rawaperture(unsigned aperture)
 {
+    // Canon likes only numbers in 1/3 or 1/2-stop increments
+    int r = aperture % 8;
+    if (r != 0 && r != 4 && r != 3 && r != 5 
+        && aperture != lens_info.raw_aperture_min && aperture != lens_info.raw_aperture_max)
+        return 0;
+
     lens_wait_readytotakepic(64);
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     //~ aperture_ack = -1;
@@ -1808,6 +1814,11 @@ int prop_set_rawaperture(unsigned aperture)
 
 int prop_set_rawshutter(unsigned shutter)
 {
+    // Canon likes only numbers in 1/3 or 1/2-stop increments
+    int r = shutter % 8;
+    if (r != 0 && r != 4 && r != 3 && r != 5)
+        return 0;
+    
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     shutter_ack = -1;
