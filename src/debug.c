@@ -1785,10 +1785,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 static int rca_warned = 0;
                 if (ext_monitor_rca) 
                 {
-                    beep();
                     if (!rca_warned && !gui_menu_shown())
                     {
                         msleep(2000);
+                        beep();
                         NotifyBox(2000, "SD monitors are NOT supported!"); msleep(2000);
                         NotifyBox(2000, "RGB tools and magic zoom\nwill not work well.'"); msleep(2000);
                         rca_warned = 1;
