@@ -1806,19 +1806,9 @@ int prop_set_rawshutter(unsigned shutter)
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     shutter_ack = -1;
-    //~ shutter_also_ack = -1;
     int s0 = shutter;
-    int sp1 = shutter+1;
-    int sm1 = shutter-1;
-    int sm2 = shutter-2;
-    int sp2 = shutter+2;
     
-    //~ prop_request_change( PROP_SHUTTER, &sp2, 4 );
-    //~ prop_request_change( PROP_SHUTTER, &sm2, 4 );
-    //~ prop_request_change( PROP_SHUTTER, &sp1, 4 );
-    //~ prop_request_change( PROP_SHUTTER, &sm1, 4 );
-    prop_request_change( PROP_SHUTTER, &s0, 4 );
-    //~ prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
+    prop_request_change( PROP_SHUTTER, &shutter, 4 );
     for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
     for (int i = 0; i < 5; i++) { if (shutter_also_ack == s0) return 1; msleep(20); }
     return 0;
@@ -1829,12 +1819,9 @@ int prop_set_rawshutter_approx(unsigned shutter)
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     shutter_ack = -1;
-    shutter_also_ack = -1;
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    for (int i = 0; i < 10; i++) { if (shutter_ack != -1 && shutter_also_ack != -1) break; msleep(20); }
-
-    return ABS(shutter_ack - shutter) <= 3 &&
-           ABS(shutter_also_ack - shutter) <= 3 ;
+    for (int i = 0; i < 10; i++) { if (shutter_ack != -1) break; msleep(20); }
+    return ABS(shutter_ack - shutter) <= 3;
 }
 
 int prop_set_rawiso(unsigned iso)
