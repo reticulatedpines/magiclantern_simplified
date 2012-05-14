@@ -4636,8 +4636,8 @@ void hdr_check_for_under_or_over_exposure(int* under, int* over)
     if (*over) po = MAX(po, 1);
     bmp_printf(
         FONT_LARGE, 50, 50, 
-        "Under: %2d.%02d%%\n"
-        "Over : %2d.%02d%%", 
+        "Under:%3d.%02d%%\n"
+        "Over :%3d.%02d%%", 
         pu/100, pu%100, 0, 
         po/100, po%100, 0
     ); 
