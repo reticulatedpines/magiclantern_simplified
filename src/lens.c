@@ -1625,7 +1625,8 @@ PROP_HANDLER( PROP_LV_LENS )
     lens_info.lens_step = *((float*)&lsswap);
     
     static unsigned old_focus_dist = 0;
-    if (lv && old_focus_dist && lens_info.focus_dist != old_focus_dist)
+    static unsigned old_focal_len = 0;
+    if (lv && (old_focus_dist && lens_info.focus_dist != old_focus_dist) && (old_focal_len && lens_info.focal_len == old_focal_len))
     {
         if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
         idle_wakeup_reset_counters(-11);
@@ -1633,6 +1634,7 @@ PROP_HANDLER( PROP_LV_LENS )
         zoom_focus_ring_trigger();
     }
     old_focus_dist = lens_info.focus_dist;
+    old_focal_len = lens_info.focal_len;
 
     update_stuff();
 }
