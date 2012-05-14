@@ -1070,7 +1070,8 @@ int handle_arrow_keys(struct event * event)
     #endif
 
     #ifdef CONFIG_600D
-    if (event->param == BGMT_PRESS_DISP)
+    extern int disp_zoom_pressed;
+    if (event->param == BGMT_UNPRESS_DISP && !disp_zoom_pressed)
     {
         arrow_key_mode_toggle();
         return 1;
