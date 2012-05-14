@@ -1356,6 +1356,7 @@ int bv_auto_needed_by_iso = 0;
 int bv_auto_needed_by_shutter = 0;
 int bv_auto_needed_by_aperture = 0;
 
+static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
@@ -1369,6 +1370,7 @@ PROP_HANDLER( PROP_ISO )
     #endif
     bv_auto_update();
     lens_display_set_dirty();
+    iso_ack = buf[0];
 }
 
 PROP_HANDLER( PROP_ISO_AUTO )
@@ -1401,12 +1403,13 @@ PROP_HANDLER( PROP_BV )
     }
 }
 
+static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     #ifndef CONFIG_500D
     else if (buf[0] && !gui_menu_shown()
-        && ABS(buf[0] - lens_info.raw_shutter) > 4 // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
+        && ABS(buf[0] - lens_info.raw_shutter) > 3 // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
         )
     {
         bv_set_rawshutter(buf[0]);
@@ -1415,8 +1418,10 @@ PROP_HANDLER( PROP_SHUTTER )
     #endif
     bv_auto_update();
     lens_display_set_dirty();
+    shutter_ack = buf[0];
 }
 
+static int aperture_ack = -1;
 PROP_HANDLER( PROP_APERTURE2 )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
@@ -1430,6 +1435,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     #endif
     bv_auto_update();
     lens_display_set_dirty();
+    aperture_ack = buf[0];
 }
 
 PROP_HANDLER( PROP_APERTURE ) // for Tv mode
@@ -1438,17 +1444,21 @@ PROP_HANDLER( PROP_APERTURE ) // for Tv mode
     lens_display_set_dirty();
 }
 
+static int shutter_also_ack = -1;
 PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     lens_display_set_dirty();
+    shutter_also_ack = buf[0];
 }
 
+static int ae_ack = 12345;
 PROP_HANDLER( PROP_AE )
 {
     const uint32_t value = *(uint32_t *) buf;
     lens_info.ae = (int8_t)value;
     update_stuff();
+    ae_ack = (int)buf[0];
 }
 
 PROP_HANDLER( PROP_WB_MODE_LV )
@@ -1785,38 +1795,56 @@ int prop_set_rawaperture(unsigned aperture)
 {
     lens_wait_readytotakepic(64);
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+    aperture_ack = -1;
     prop_request_change( PROP_APERTURE, &aperture, 4 );
-    msleep(100);
-    return (unsigned int) get_prop(PROP_APERTURE2) == aperture;
+    for (int i = 0; i < 10; i++) { if (aperture_ack != -1) break; msleep(20); }
+    return aperture_ack == aperture;
 }
 
 int prop_set_rawshutter(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
-    prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    msleep(100);
-    return ((unsigned int) get_prop(PROP_SHUTTER) == shutter) &&
-           ((unsigned int) get_prop(PROP_SHUTTER_ALSO) == shutter) ;
+    shutter_ack = -1;
+    //~ shutter_also_ack = -1;
+    int s0 = shutter;
+    int sp1 = shutter+1;
+    int sm1 = shutter-1;
+    int sm2 = shutter-2;
+    int sp2 = shutter+2;
+    
+    //~ prop_request_change( PROP_SHUTTER, &sp2, 4 );
+    //~ prop_request_change( PROP_SHUTTER, &sm2, 4 );
+    //~ prop_request_change( PROP_SHUTTER, &sp1, 4 );
+    //~ prop_request_change( PROP_SHUTTER, &sm1, 4 );
+    prop_request_change( PROP_SHUTTER, &s0, 4 );
+    //~ prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
+    for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
+    for (int i = 0; i < 5; i++) { if (shutter_also_ack == s0) return 1; msleep(20); }
+    return 0;
 }
 
 int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
+    shutter_ack = -1;
+    shutter_also_ack = -1;
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    msleep(100);
-    return ABS((unsigned int) get_prop(PROP_SHUTTER) - shutter) <= 3 &&
-           ABS((unsigned int) get_prop(PROP_SHUTTER_ALSO) - shutter) <= 3 ;
+    for (int i = 0; i < 10; i++) { if (shutter_ack != -1 && shutter_also_ack != -1) break; msleep(20); }
+
+    return ABS(shutter_ack - shutter) <= 3 &&
+           ABS(shutter_also_ack - shutter) <= 3 ;
 }
 
 int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
+    iso_ack = -1;
     prop_request_change( PROP_ISO, &iso, 4 );
-    msleep(100);
-    return (unsigned int) get_prop(PROP_ISO) == iso;
+    for (int i = 0; i < 10; i++) { if (iso_ack != -1) break; msleep(20); }
+    return iso_ack == iso;
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
@@ -1982,9 +2010,10 @@ int lens_set_rawshutter( int shutter )
 
 int lens_set_ae( int ae )
 {
+    ae_ack = 12345;
     prop_request_change( PROP_AE, &ae, 4 );
-    msleep(50);
-    return get_prop(PROP_AE) == ae;
+    for (int i = 0; i < 10; i++) { if (ae_ack != 12345) break; msleep(20); }
+    return ae_ack == ae;
 }
 
 void lens_set_drivemode( int dm )

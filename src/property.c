@@ -99,7 +99,8 @@ prop_init( void* unused )
 }
 
 // for reading simple integer properties
-int get_prop(int prop)
+// not reliable in realtime scenarios (race condition?)
+int _get_prop(int prop)
 {
     int* data = 0;
     size_t len = 0;
@@ -109,7 +110,8 @@ int get_prop(int prop)
 }
 
 // for strings
-char* get_prop_str(int prop)
+// not reliable in realtime scenarios (race condition?)
+char* _get_prop_str(int prop)
 {
     char* data = 0;
     size_t len = 0;
@@ -117,9 +119,11 @@ char* get_prop_str(int prop)
     if (!err) return data;
     return 0;
 }
+/* not reliable
+
 
 // prop_get_value may take a long time to run, so let's try to use a small cache
-int get_prop_len_uncached(int prop)
+int _get_prop_len_uncached(int prop)
 {
     int* data = 0;
     size_t len = 0;
@@ -134,7 +138,7 @@ static int plc_prop[32] = {0};
 static int plc_len[32] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 static int plc_i = 0;
 
-int get_prop_len(int prop)
+int _get_prop_len(int prop)
 {
     for (int i = 0; i < 32; i++)
     {
@@ -146,7 +150,7 @@ int get_prop_len(int prop)
     plc_len[plc_i] = len;
     plc_i = (plc_i + 1) % 32;
     return len;
-}
+}*/
 
 /**
  * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's) 

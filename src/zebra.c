@@ -2541,6 +2541,8 @@ static char* idle_time_format(int t)
     return msg;
 }
 
+static PROP_INT(PROP_LCD_BRIGHTNESS_MODE, lcd_brightness_mode);
+
 static void
 idle_display_dim_print(
     void *          priv,
@@ -2559,7 +2561,7 @@ idle_display_dim_print(
     #ifdef CONFIG_5D2
     if (*(int*)priv)
     {
-        int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
+        int backlight_mode = lcd_brightness_mode;
         if (backlight_mode == 0) // can't restore brightness properly in auto mode
         {
             menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "LCD brightness is auto in Canon menu. It won't work.");
@@ -3991,7 +3993,7 @@ void PauseLiveView() // this should not include "display off" command
     if (MENU_MODE) return;
     if (LV_NON_PAUSED)
     {
-        ASSERT(DISPLAY_IS_ON);
+        //~ ASSERT(DISPLAY_IS_ON);
         int x = 1;
         //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
@@ -4023,7 +4025,7 @@ void ResumeLiveView()
         set_lv_zoom(lv_zoom_before_pause);
         msleep(100);
         ASSERT(LV_NON_PAUSED);
-        ASSERT(DISPLAY_IS_ON);
+        //~ ASSERT(DISPLAY_IS_ON);
     }
     lv_paused = 0;
 }
@@ -4081,7 +4083,7 @@ static void idle_display_dim()
 {
     ASSERT(lv);
     #ifdef CONFIG_5D2
-    int backlight_mode = get_prop(PROP_LCD_BRIGHTNESS_MODE);
+    int backlight_mode = lcd_brightness_mode;
     if (backlight_mode == 0) // can't restore brightness properly in auto mode
     {
         NotifyBox(2000, "LCD brightness is automatic.\n"

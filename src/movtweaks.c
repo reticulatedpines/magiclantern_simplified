@@ -797,6 +797,11 @@ void bv_enable() { fake_simple_button(MLEV_BV_ENABLE); }
 void bv_disable() { fake_simple_button(MLEV_BV_DISABLE); }
 
 
+static PROP_INT(PROP_ISO, prop_iso);
+static PROP_INT(PROP_SHUTTER_ALSO, prop_shutter_also);
+static PROP_INT(PROP_APERTURE2, prop_aperture2);
+
+
 void bv_disable_do()
 {
     //~ bmp_printf(FONT_LARGE, 50, 50, "DIS    ");
@@ -806,9 +811,9 @@ void bv_disable_do()
     if (!lv) return;
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
-    lensinfo_set_iso(get_prop(PROP_ISO));
-    lensinfo_set_shutter(get_prop(PROP_SHUTTER_ALSO));
-    lensinfo_set_aperture(get_prop(PROP_APERTURE2));
+    lensinfo_set_iso(prop_iso);
+    lensinfo_set_shutter(prop_shutter_also);
+    lensinfo_set_aperture(prop_aperture2);
 }
 
 void bv_toggle(void* priv, int delta)
@@ -827,6 +832,8 @@ CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
 CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
 CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
 CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
+
+static PROP_INT(PROP_BV, prop_bv);
 
 void update_lvae_for_autoiso_n_displaygain()
 {
@@ -878,7 +885,7 @@ void update_lvae_for_autoiso_n_displaygain()
             int ae_value = AE_VALUE;
             if (!ae_value)
             {
-                int bv = get_prop(PROP_BV);
+                int bv = prop_bv;
                 //int c = (uint8_t)((bv >> 16) & 0xFF);
                 #ifdef CONFIG_5D2
                 int b = (uint8_t)((bv >>  8) & 0xFF);
