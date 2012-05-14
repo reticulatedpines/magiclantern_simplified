@@ -416,6 +416,7 @@ static void fps_setup_timerB(int fps_x1000)
 {
     if (!lv) return;
     if (!DISPLAY_IS_ON) return;
+    if (lens_info.job_state) return;
     if (!fps_x1000) return;
 
     fps_needs_updating = 0;
@@ -601,6 +602,10 @@ static void fps_unpatch_table()
 // don't msleep from here, it may be called from GMT
 static void fps_register_reset()
 {
+    if (!lv) return;
+    if (!DISPLAY_IS_ON) return;
+    if (lens_info.job_state) return;
+
     if (fps_reg_a_orig && fps_reg_b_orig)
     {
         written_value_a = 0;
@@ -832,6 +837,11 @@ int fps_try_to_get_180_360_shutter(int fps_x1000)
 
 void fps_setup_timerA(int fps_x1000)
 {
+    if (!lv) return;
+    if (!DISPLAY_IS_ON) return;
+    if (!fps_x1000) return;
+    if (lens_info.job_state) return;
+
     // for NTSC, we probably need FPS * 1000/1001
     int ntsc = is_current_mode_ntsc();
     ntsc += 0; // bypass warning
@@ -1065,6 +1075,7 @@ static void fps_task()
 
         if (!lv) continue;
         if (!DISPLAY_IS_ON) continue;
+        if (lens_info.job_state) continue;
         
         fps_read_current_timer_values();
         
