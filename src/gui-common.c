@@ -98,11 +98,7 @@ int handle_common_events_by_feature(struct event * event)
     #if !defined(CONFIG_1100D) // those cameras use a different button for ML menu
     if (handle_ml_menu_erase(event) == 0) return 0;
     #endif
-    
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-    if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
-    #endif
-    
+        
     if (handle_rack_focus(event) == 0) return 0;
     if (handle_intervalometer(event) == 0) return 0;
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
@@ -115,6 +111,10 @@ int handle_common_events_by_feature(struct event * event)
     //~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
     //~ #endif
     
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+    #endif
+
     if (handle_follow_focus(event) == 0) return 0;
     if (handle_zoom_overlay(event) == 0) return 0;
     if (handle_movie_mode_shortcut(event) == 0) return 0;
