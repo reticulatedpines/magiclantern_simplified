@@ -1243,7 +1243,7 @@ void display_shortcut_key_hints_lv()
 {
     static int old_mode = 0;
     int mode = 0;
-    if (!zebra_should_run()) return;
+    if (!liveview_display_idle() || !get_global_draw()) return;
 
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
     if (arrow_keys_shortcuts_active()) mode = arrow_keys_mode;
