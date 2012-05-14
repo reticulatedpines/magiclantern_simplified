@@ -1409,7 +1409,9 @@ PROP_HANDLER( PROP_SHUTTER )
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     #ifndef CONFIG_500D
     else if (buf[0] && !gui_menu_shown()
-        && ABS(buf[0] - lens_info.raw_shutter) > 3 // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+            && ABS(buf[0] - lens_info.raw_shutter) > 3 // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
+        #endif
         )
     {
         bv_set_rawshutter(buf[0]);
