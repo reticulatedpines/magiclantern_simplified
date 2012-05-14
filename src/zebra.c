@@ -2275,6 +2275,7 @@ static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
     if (!get_global_draw()) return;
+    if (arrow_keys_shortcuts_active()) return;
     //~ if (!lv) return;
     if (!PLAY_OR_QR_MODE)
     {

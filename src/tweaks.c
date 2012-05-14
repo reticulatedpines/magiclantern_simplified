@@ -1004,7 +1004,7 @@ CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
     CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
     CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
 #else
-    #if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
         CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
@@ -1043,11 +1043,39 @@ void arrow_key_mode_toggle()
     while (!is_arrow_mode_ok(arrow_keys_mode));
 }
 
+void shutter_180() { lens_set_rawshutter(shutter_ms_to_raw(1000 / video_mode_fps / 2)); }
+
+int handle_push_wb(struct event * event)
+{
+    if (!lv) return 1;
+    if (gui_menu_shown()) return 1;
+
+    #ifdef CONFIG_5D2
+    extern thunk LiveViewWbApp_handler;
+    if (event->param == BGMT_PRESS_SET && (intptr_t)get_current_dialog_handler() == (intptr_t)&LiveViewWbApp_handler)
+    {
+        kelvin_n_gm_auto();
+        return 0;
+    }
+    #endif
+
+    #ifdef CONFIG_5D3
+    if (event->param == BGMT_RATE)
+    {
+        kelvin_n_gm_auto();
+        return 0;
+    }
+    #endif
+    return 1;
+}
+
 int handle_arrow_keys(struct event * event)
 {
     if (!lv) return 1;
-    if (!is_movie_mode()) return 1;
     if (gui_menu_shown()) return 1;
+    if (handle_push_wb(event)==0) return 0;
+    if (!is_movie_mode()) return 1;
+    
    
     // if no shortcut is enabled, do nothing
     if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
@@ -1109,6 +1137,29 @@ int handle_arrow_keys(struct event * event)
         // maybe current mode is no longer enabled in menu
         if (!is_arrow_mode_ok(arrow_keys_mode))
             return 1;
+
+        if (event->param == BGMT_PRESS_SET
+        #ifdef BGMT_JOY_CENTER
+        || event->param == BGMT_JOY_CENTER
+        #endif
+        )
+        {
+            switch (arrow_keys_mode)
+            {
+                #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+                case 1: input_toggle(); break;
+                #endif
+                case 2: 
+                    kelvin_n_gm_auto();
+                    if (arrow_keys_mode%10) arrow_keys_mode = 10 + (arrow_keys_mode%10); // temporarily disable
+                    break;
+                case 3: shutter_180(); break;
+                case 4: brightness_saturation_reset(); break;
+                default: return 1;
+            }
+            lens_display_set_dirty();
+            return 0;
+        }
         
         if (event->param == BGMT_PRESS_UP)
         {
@@ -1184,6 +1235,10 @@ void arrow_key_step()
     #endif
 }
 
+int arrow_keys_shortcuts_active() 
+{ 
+    return (is_movie_mode() && arrow_keys_mode && arrow_keys_mode < 10 && is_arrow_mode_ok(arrow_keys_mode));
+}
 void display_shortcut_key_hints_lv()
 {
     static int old_mode = 0;
@@ -1191,7 +1246,7 @@ void display_shortcut_key_hints_lv()
     if (!zebra_should_run()) return;
 
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
-    if (is_movie_mode() && arrow_keys_mode && arrow_keys_mode < 10 && is_arrow_mode_ok(arrow_keys_mode)) mode = arrow_keys_mode;
+    if (arrow_keys_shortcuts_active()) mode = arrow_keys_mode;
     else if (!mode && is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && !lcd) mode = 10;
     if (mode == 0 && old_mode == 0) return;
     
@@ -1204,6 +1259,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*3, y0       - font_med.height/2,"      ");
 
         if (!should_draw_zoom_overlay())
             crop_set_dirty(20);
@@ -1215,6 +1271,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
     }
     else if (mode == 2)
     {
@@ -1222,6 +1279,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
     }
     else if (mode == 3)
     {
@@ -1229,6 +1287,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
     {
@@ -1236,6 +1295,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
     }
     else if (mode == 10)
     {
@@ -1257,19 +1317,19 @@ static struct menu_entry key_menus[] = {
         .select = menu_open_submenu,
         .help = "Functions for arrows in movie mode. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_600D)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
             {
                 .name = "Audio Gain",
                 .priv       = &arrow_keys_audio,
                 .max = 1,
-                .help = "LEFT/RIGHT: input gain. UP/DOWN: output gain.",
+                .help = "LEFT/RIGHT: input gain. UP/DOWN: output gain. SET: Input.",
             },
             #endif
             {
                 .name = "ISO/Kelvin",
                 .priv       = &arrow_keys_iso_kelvin,
                 .max = 1,
-                .help = "LEFT/RIGHT: ISO. UP/DOWN: Kelvin white balance.",
+                .help = "LEFT/RIGHT: ISO. UP/DN: Kelvin white balance. SET: PushWB.",
             },
             {
                 .name = "Shutter/Apert.",
@@ -1535,6 +1595,12 @@ void adjust_saturation_level(int delta)
         preview_saturation == 2 ? "High" :
                                   "Very high"
     );
+}
+
+void brightness_saturation_reset()
+{
+    preview_saturation = 1;
+    set_backlight_level(5);
 }
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)

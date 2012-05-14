@@ -161,6 +161,7 @@ NSTUB(0xFFAAEEB8, LiveViewApp_handler)
 NSTUB(0xffac3964, PlayMain_handler)
 NSTUB(0xffac7ac8, OlcAFFrameApp_handler)
 NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
+NSTUB(0xFFADBEE8, LiveViewWbApp_handler)
 
 NSTUB(0xFF9A5618, _engio_write)
 NSTUB(0xff9a550c, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr

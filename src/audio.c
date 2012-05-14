@@ -1132,6 +1132,16 @@ audio_alc_display( void * priv, int x, int y, int selected )
         if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
 }
 
+static const char* get_audio_input_string()
+{
+    return 
+       (input_choice == 0 ? "internal mic" : 
+        (input_choice == 1 ? "L:int R:ext" :
+         (input_choice == 2 ? "external stereo" : 
+          (input_choice == 3 ? "L:int R:balanced" : 
+           (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
+            "error")))));
+}
 
 static void
 audio_input_display( void * priv, int x, int y, int selected )
@@ -1139,14 +1149,8 @@ audio_input_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               //23456789012
-               "Input Source  : %s",
-               (input_choice == 0 ? "internal mic" : 
-                (input_choice == 1 ? "L:int R:ext" :
-                 (input_choice == 2 ? "external stereo" : 
-                  (input_choice == 3 ? "L:int R:balanced" : 
-                   (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
-                    "error")))))
+               "Input Source  : %s", 
+               get_audio_input_string()
                );
         if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
         menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
@@ -1658,6 +1662,11 @@ void out_volume_down()
     out_volume_display();
 }
 
+void input_toggle()
+{
+    audio_input_toggle(&input_choice, 1);
+    NotifyBox(2000, "Input: %s", get_audio_input_string());
+}
 
 static void audio_menus_init()
 {

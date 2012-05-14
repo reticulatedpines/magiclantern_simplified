@@ -1741,7 +1741,7 @@ static void wbs_gm_auto()
     if (lv) wbs_gm_auto_flag = 1;
 }
 
-static void kelvin_n_gm_auto()
+void kelvin_n_gm_auto()
 {
     if (lv)
     {
