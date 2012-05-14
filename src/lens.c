@@ -1365,6 +1365,7 @@ PROP_HANDLER( PROP_ISO )
         bv_set_rawiso(buf[0]);
         bv_auto_needed_by_iso = 0;
     }
+    else if (!buf[0]) lens_info.raw_iso = 0;
     #endif
     bv_auto_update();
     lens_display_set_dirty();
@@ -1906,7 +1907,10 @@ int bv_auto_should_enable()
         #endif
 
         // extra ISO values in movie mode
-        if (is_movie_mode())// && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
+        if (is_movie_mode() && lens_info.raw_iso==0) 
+            return 0;
+        
+        if (is_movie_mode() && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
             return 1;
         
         // temporarily cancel it in photo mode
