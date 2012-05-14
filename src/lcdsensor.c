@@ -32,8 +32,11 @@
 #include "lens.h"
 #include "gui.h"
 
-
-CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
+#ifdef CONFIG_500D
+CONFIG_INT("lcdsensor.shortcuts", lcd_sensor_shortcuts, 1);
+#else
+CONFIG_INT("lcdsensor.shortcuts", lcd_sensor_shortcuts, 0);
+#endif
 int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
 
 CONFIG_INT( "lcd.release", lcd_release_running, 0);

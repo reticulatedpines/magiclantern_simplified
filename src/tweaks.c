@@ -1173,7 +1173,7 @@ void arrow_key_step()
     if (!is_movie_mode()) return;
     if (gui_menu_shown()) return;
 
-    #if defined(CONFIG_500D)
+    #if defined(CONFIG_500D) || defined(CONFIG_550D)
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
     static int prev_lcd = 0;
     if (lcd && !prev_lcd)
