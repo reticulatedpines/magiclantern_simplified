@@ -1570,7 +1570,11 @@ shutter_toggle(void* priv, int sign)
     int k;
     for (k = 0; k < 20; k++)
     {
-        int new_i = mod(i + sign, COUNT(codes_shutter));
+        int new_i = i;
+        do {
+            new_i = mod(new_i + sign, COUNT(codes_shutter));
+        } while (codes_shutter[new_i] > FASTEST_SHUTTER_SPEED_RAW);
+        
         if (priv == (void*)-1 && (new_i == 0 || i + sign != new_i)) // wrapped around
             break;
         i = new_i;
