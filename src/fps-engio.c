@@ -234,10 +234,15 @@ static int get_current_tg_freq()
     desired_fps_timer_a_offset = new_timer_a - fps_timer_a_orig + 1000;
 }*/
 
-static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, int Tb)
+static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, int Tb, int Tb0)
 {
+    if (Ta == Ta0 && Tb == Tb0) 
+        return shutter_r_x1000; // otherwise there may be small rounding errors
+    
     int shutter_us = 1000000000 / shutter_r_x1000;
-    int fps_timer_delta_us = 1000000000 / ((TG_FREQ_BASE / Ta0) * 1000 / Tb) - 1000000 / video_mode_fps;
+    int default_fps = calc_fps_x1000(Ta0, Tb0);
+    int actual_fps = calc_fps_x1000(Ta, Tb);
+    int fps_timer_delta_us = 1000000000 / actual_fps - 1000000000 / default_fps;
     if (fps_timer_b_method) fps_timer_delta_us = 0;
     int ans_raw = 1000000000 / (shutter_us + fps_timer_delta_us);
     int ans = ans_raw * (Ta0/10) / (Ta/10);
@@ -254,6 +259,7 @@ int get_current_shutter_reciprocal_x1000()
 #else
 
     int timer = FRAME_SHUTTER_TIMER;
+    //~ NotifyBox(1000, "%d ", timer);
     int ntsc = is_current_mode_ntsc();
     int zoom = lv_dispsize > 1 ? 1 : 0;
     int crop = video_mode_crop;
@@ -291,8 +297,8 @@ int get_current_shutter_reciprocal_x1000()
     // EA = (E0 + (1/Fb - 1/F0)) * Ta / Ta0
     //
     // This function returns 1/EA and does all calculations on integer numbers, so actual computations differ slightly.
-    
-    return get_shutter_reciprocal_x1000(shutter_r_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b);
+
+    return get_shutter_reciprocal_x1000(shutter_r_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
 #endif
 }
 
@@ -686,8 +692,8 @@ void shutter_range_print(
     
     int shutter_r_0_lo_x1000 = video_mode_fps * 1000;
     int shutter_r_0_hi_x1000 = 4000*1000;
-    int tv_low = get_shutter_reciprocal_x1000(shutter_r_0_lo_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b);
-    int tv_high = get_shutter_reciprocal_x1000(shutter_r_0_hi_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b);
+    int tv_low = get_shutter_reciprocal_x1000(shutter_r_0_lo_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
+    int tv_high = get_shutter_reciprocal_x1000(shutter_r_0_hi_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
