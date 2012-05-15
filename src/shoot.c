@@ -1569,12 +1569,10 @@ shutter_toggle(void* priv, int sign)
     int i = raw2index_shutter(lens_info.raw_shutter);
     int i0 = i;
     int k;
-    for (k = 0; k < 10; k++)
+    for (k = 0; k < 15; k++)
     {
         int new_i = i;
-        do {
-            new_i = mod(new_i + sign, COUNT(codes_shutter));
-        } while (codes_shutter[new_i] > FASTEST_SHUTTER_SPEED_RAW);
+        new_i = mod(new_i + sign, COUNT(codes_shutter));
 
         //~ bmp_printf(FONT_MED, 100, 300, "%d -> %d ", codes_shutter[i0], codes_shutter[new_i]);
         

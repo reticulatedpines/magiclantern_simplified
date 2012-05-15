@@ -1813,7 +1813,7 @@ int prop_set_rawaperture(unsigned aperture)
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     //~ aperture_ack = -1;
     prop_request_change( PROP_APERTURE, &aperture, 4 );
-    for (int i = 0; i < 5; i++) { if (aperture_ack == aperture) return 1; msleep(20); }
+    for (int i = 0; i < 10; i++) { if (aperture_ack == aperture) return 1; msleep(20); }
     //~ NotifyBox(1000, "%d=%d ", aperture_ack, aperture);
     return 0;
 }
@@ -1827,9 +1827,13 @@ int prop_set_rawshutter(unsigned shutter)
         if (r != 0 && r != 4 && r != 3 && r != 5)
             return 0;
     }
+    
+    if (shutter < 16) return 0;
+    if (shutter > FASTEST_SHUTTER_SPEED_RAW) return 0;
+    
     //~ bmp_printf(FONT_MED, 100, 100, "%d...", shutter);
     lens_wait_readytotakepic(64);
-    shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
+    //~ shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     shutter_ack = -1;
     int s0 = shutter;
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
