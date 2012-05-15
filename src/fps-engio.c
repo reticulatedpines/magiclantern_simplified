@@ -125,7 +125,7 @@ static void fps_patch_timerB(int timer_value);
     #endif
 #endif
 
-#if defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+#if defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D)// || defined(CONFIG_5D3)
 // these can change timer B with another method, more suitable for high FPS
 #define NEW_FPS_METHOD 1
 #endif
@@ -150,6 +150,7 @@ static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
 
+/*
 #ifdef CONFIG_5D3
 #define SENSOR_TIMING_TABLE MEM(0x325ac)
 //~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
@@ -157,6 +158,7 @@ static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #define FPS_TIMER_B_MIN 100
 static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
 #endif
+*/
 
 #ifdef NEW_FPS_METHOD
 static uint16_t * sensor_timing_table_original = 0;
