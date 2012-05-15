@@ -1099,7 +1099,7 @@ static void fps_task()
                             
             continue;
         }
-        
+
         #ifdef NEW_FPS_METHOD
         fps_read_default_timer_values(); // with new method, default values can be always read safely
         #else
@@ -1143,6 +1143,8 @@ void fps_mvr_log(FILE* mvr_logfile)
 // on certain events (PLAY, RECORD) we need to disable FPS override temporarily
 int handle_fps_events(struct event * event)
 {
+    if (!fps_override) return 1;
+    
     if (event->param == BGMT_PLAY)
     {
         fps_register_reset();
