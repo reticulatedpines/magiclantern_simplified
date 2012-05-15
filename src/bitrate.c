@@ -12,6 +12,11 @@
 #include "lens.h"
 
 //----------------begin qscale-----------------
+#ifdef CONFIG_5D3
+static CONFIG_INT("h264.bitrate", bitrate, 3);
+#endif
+
+
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
@@ -90,6 +95,11 @@ void bitrate_set()
     if (!is_movie_mode()) return; 
     if (gui_menu_shown()) return;
     if (recording) return; 
+
+#ifdef CONFIG_5D3
+    MEM(0x27880) = bitrate * 10000000;
+    return;
+#endif
     
     if (bitrate_mode == 0)
     {
@@ -415,6 +425,15 @@ void show_mvr_buffer_status()
 
 
 static struct menu_entry mov_menus[] = {
+#ifdef CONFIG_5D3
+    {
+        .name = "Bit Rate     ",
+        .priv = &bitrate,
+        .min = 1,
+        .max = 20,
+        .help = "H.264 bitrate. One unit = 10 mb/s."
+    },
+#else
     {
         .name = "Bit Rate",
         .priv = &bitrate_mode,
@@ -461,6 +480,7 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
+#endif
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
