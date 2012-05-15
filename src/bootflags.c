@@ -106,6 +106,36 @@ struct partition_table
     uint32_t sectors_in_partition;
 }__attribute__((aligned,packed));
 
+
+/*
+ * recompute a exFAT VBR checksum in sector 12
+ */
+
+static uint32_t VBRChecksum( unsigned char octets[], int NumberOfBytes) {
+   uint32_t Checksum = 0;
+   int Index;
+   for (Index = 0; Index < NumberOfBytes; Index++) {
+     if (Index != 106 && Index != 107 && Index != 112)  // skip 'volume flags' and 'percent in use'
+	 Checksum = ((Checksum <<31) | (Checksum>> 1)) + (uint32_t) octets[Index];
+   }
+   return Checksum;
+}
+
+static void exfat_sum(uint32_t* buffer) // size: 12 sectors (0-11)
+{
+    int i=0;
+    uint32_t sum;
+
+    sum = VBRChecksum((unsigned char*)buffer, (512*11));
+
+    //~ NotifyBox(2000, "before: %x %x\nafter: %x ", buffer[(512*11)/4], buffer[(512*11)/4 + 1], sum); msleep(2000);
+    
+    // fill sector 11 with the checksum, repeated
+    for(i=0; i<512; i+=4)
+        buffer[(512*11+i)/4] = sum;
+}
+
+
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
 #if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)
@@ -152,6 +182,23 @@ bootflag_write_bootblock( void )
             msleep(2000);
             return 0;
         }
+    }
+    else if (p.type == 7) // ExFAT
+    {
+        uint8_t* buffer = alloc_dma_memory(512*24);
+        int rc = dev->read_block( dev, (uintptr_t) buffer, p.sectors_before_partition, (void *) 24 );
+
+        int off1 = 130;
+        int off2 = 122;
+        my_memcpy( buffer + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        my_memcpy( buffer + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        my_memcpy( buffer + 512*12 + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        my_memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        exfat_sum((uint32_t*)(buffer));
+        exfat_sum((uint32_t*)(buffer+512*12));
+
+        dev->write_block( dev, (uintptr_t) buffer, p.sectors_before_partition, (void *) 24 );
+        free_dma_memory( buffer );
     }
     else
     {
@@ -200,9 +247,24 @@ bootflag_write_bootblock( void )
         my_memcpy( block + 0x40, (uint8_t*) "BOOTDISK", 0xB );
         dev->write_block( dev, 0, 1, block );
     }
+    else if( strncmp((const char*) block + 0x3, "EXFAT", 5) == 0 ) //check if this card is EXFAT
+    {
+        uint8_t* buffer = alloc_dma_memory(512*24);
+        dev->read_block( dev, 0, 24, buffer );
+        int off1 = 130;
+        int off2 = 122;
+        my_memcpy( buffer + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        my_memcpy( buffer + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        my_memcpy( buffer + 512*12 + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        my_memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        exfat_sum((uint32_t*)(buffer));
+        exfat_sum((uint32_t*)(buffer+512*12));
+        int rc = dev->write_block( dev, 0, 24, buffer );
+        free_dma_memory( buffer );
+    }
     else // if it's not FAT16 neither FAT32, don't do anything.
     {
-        NotifyBox(2000, "Error: No FAT16/FAT32 Partition Detected");
+        NotifyBox(2000, "Unknown partition :("); msleep(2000);
         return 0;
     }
     
