@@ -733,6 +733,8 @@ void rec_notify_trigger(int rec)
  * 
  */
 
+struct semaphore * bv_sem = 0;
+
 CONFIG_INT("bv.auto", bv_auto, 0);
 
 static void bv_display(
@@ -769,10 +771,12 @@ CONFIG_INT("bv.iso", bv_iso, 88);
 CONFIG_INT("bv.tv", bv_tv, 111);
 CONFIG_INT("bv.av", bv_av, 48);
 
-void bv_enable_do()
+void bv_enable()
 {
     //~ bmp_printf(FONT_LARGE, 50, 50, "EN     ");
-    if (CONTROL_BV) return;
+    take_semaphore(bv_sem, 0);
+
+    if (CONTROL_BV) goto end;
     //~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
     call("lvae_setcontrolbv", 1);
 
@@ -791,29 +795,35 @@ void bv_enable_do()
     
     CONTROL_BV_ZERO = 0;
     bv_update_lensinfo();
+
+end:
+    give_semaphore(bv_sem);
 }
 
-void bv_enable() { fake_simple_button(MLEV_BV_ENABLE); }
-void bv_disable() { fake_simple_button(MLEV_BV_DISABLE); }
+//~ static PROP_INT(PROP_ISO, prop_iso);
+//~ static PROP_INT(PROP_SHUTTER, prop_shutter);
+//~ static PROP_INT(PROP_APERTURE, prop_aperture);
+//~ static PROP_INT(PROP_SHUTTER_ALSO, prop_shutter_also);
+//~ static PROP_INT(PROP_APERTURE2, prop_aperture2);
 
 
-static PROP_INT(PROP_ISO, prop_iso);
-static PROP_INT(PROP_SHUTTER_ALSO, prop_shutter_also);
-static PROP_INT(PROP_APERTURE2, prop_aperture2);
-
-
-void bv_disable_do()
+void bv_disable()
 {
     //~ bmp_printf(FONT_LARGE, 50, 50, "DIS    ");
-    if (!CONTROL_BV) return;
+    take_semaphore(bv_sem, 0);
+
+    if (!CONTROL_BV) goto end;
     call("lvae_setcontrolbv", 0);
     CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
-    if (!lv) return;
+    if (!lv) goto end;
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
-    lensinfo_set_iso(prop_iso);
-    lensinfo_set_shutter(prop_shutter_also);
-    lensinfo_set_aperture(prop_aperture2);
+    //~ lensinfo_set_iso(prop_iso);
+    //~ lensinfo_set_shutter(prop_shutter ? prop_shutter : prop_shutter_also);
+    //~ lensinfo_set_aperture(prop_aperture ? prop_aperture : prop_aperture2);
+
+end:
+    give_semaphore(bv_sem);
 }
 
 void bv_toggle(void* priv, int delta)
@@ -1116,6 +1126,7 @@ void movtweak_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Display", display_menus, COUNT(display_menus) );
+    bv_sem = create_named_semaphore( "bv", 1 );
 }
 
 INIT_FUNC(__FILE__, movtweak_init);

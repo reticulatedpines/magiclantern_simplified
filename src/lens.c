@@ -36,6 +36,7 @@
 
 void update_stuff();
 
+//~ extern struct semaphore * bv_sem;
 void bv_update_lensinfo();
 void bv_auto_update();
 void lensinfo_set_aperture(int raw);
@@ -1286,7 +1287,7 @@ PROP_HANDLER(PROP_LENS)
         lensinfo_set_aperture(raw); // valid limits changed
     }
     
-    bv_update_lensinfo();
+    //~ bv_update_lensinfo();
 }
 
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
@@ -1329,6 +1330,7 @@ void lensinfo_set_iso(int raw)
 
 void lensinfo_set_shutter(int raw)
 {
+    //~ bmp_printf(FONT_MED, 600, 100, "liss %d %d ", raw, caller);
     lens_info.raw_shutter = raw;
     lens_info.shutter = RAW2VALUE(shutter, raw);
     update_stuff();
@@ -1352,9 +1354,9 @@ void lensinfo_set_aperture(int raw)
 }
 
 extern int bv_auto;
-int bv_auto_needed_by_iso = 0;
-int bv_auto_needed_by_shutter = 0;
-int bv_auto_needed_by_aperture = 0;
+static CONFIG_INT("bv.needed.by.iso", bv_auto_needed_by_iso, 0);
+static CONFIG_INT("bv.needed.by.tv", bv_auto_needed_by_shutter, 0);
+static CONFIG_INT("bv.needed.by.av", bv_auto_needed_by_aperture, 0);
 
 static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
@@ -1449,7 +1451,11 @@ PROP_HANDLER( PROP_APERTURE ) // for Tv mode
 static int shutter_also_ack = -1;
 PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
 {
-    if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
+    //~ if (!CONTROL_BV)
+    //~ {
+        //~ if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
+            //~ lensinfo_set_shutter(buf[0], 2);
+    //~ }
     lens_display_set_dirty();
     shutter_also_ack = buf[0];
 }
@@ -1814,20 +1820,23 @@ int prop_set_rawaperture(unsigned aperture)
 
 int prop_set_rawshutter(unsigned shutter)
 {
-    // Canon likes only numbers in 1/3 or 1/2-stop increments
-    int r = shutter % 8;
-    if (r != 0 && r != 4 && r != 3 && r != 5)
-        return 0;
-    
+    // Canon likes numbers in 1/3 or 1/2-stop increments
+    if (is_movie_mode())
+    {
+        int r = shutter % 8;
+        if (r != 0 && r != 4 && r != 3 && r != 5)
+            return 0;
+    }
+    //~ bmp_printf(FONT_MED, 100, 100, "%d...", shutter);
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     shutter_ack = -1;
     int s0 = shutter;
-    
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
     for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
-    for (int i = 0; i < 5; i++) { if (shutter_also_ack == s0) return 1; msleep(20); }
-    return 0;
+    //~ for (int i = 0; i < 5; i++) { if (shutter_also_ack == s0) return 1; msleep(20); }
+    //~ bmp_printf(FONT_MED, 100, 100, "%d %s ", shutter, shutter_ack == s0 ? ":)" : ":(");
+    return shutter_ack == s0;
 }
 
 int prop_set_rawshutter_approx(unsigned shutter)
@@ -1836,7 +1845,7 @@ int prop_set_rawshutter_approx(unsigned shutter)
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     shutter_ack = -1;
     prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    for (int i = 0; i < 10; i++) { if (shutter_ack != -1) break; msleep(20); }
+    for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
     return ABS(shutter_ack - shutter) <= 3;
 }
 
@@ -1878,11 +1887,13 @@ extern int bv_av;
 
 int bv_set_rawshutter(unsigned shutter)
 {
+    //~ bmp_printf(FONT_MED, 600, 300, "bvsr %d ", shutter);
     CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo();
     //~ NotifyBox(2000, "%d > %d?", raw2shutter_ms(shutter), 1000/video_mode_fps); msleep(400);
     if (is_movie_mode() && raw2shutter_ms(shutter+1) > 1000/video_mode_fps) return 0;
     return shutter != 0;
 }
+
 int bv_set_rawiso(unsigned iso) 
 { 
     if (iso >= 72 && iso <= 128) // 100-12800
@@ -1966,23 +1977,18 @@ int bv_auto_should_enable()
     return 0;
 }
 
-void bv_auto_update_do()
+void bv_auto_update()
 {
+    //~ take_semaphore(bv_sem, 0);
+    
     if (!bv_auto) return;
     //~ take_semaphore(lens_sem, 0);
     if (bv_auto_should_enable()) bv_enable();
     else bv_disable();
     lens_display_set_dirty();
     //~ give_semaphore(lens_sem);
-}
-void bv_auto_update()
-{
-    if (!bv_auto) return;
     
-    extern int ml_started;
-    if (!ml_started) return;
-    
-    fake_simple_button(MLEV_BV_AUTO_UPDATE);
+    //~ give_semaphore(bv_sem);
 }
 
 /** Camera control functions */
@@ -2004,7 +2010,9 @@ int lens_set_rawiso( int iso )
 
 int lens_set_rawshutter( int shutter )
 {
+    //~ bmp_printf(FONT_MED, 500, 300, "lsr %d ...", shutter);
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
+    //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
     bv_auto_update(); // auto flip between "BV" or "normal"
     if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawshutter(shutter);
     return !bv_auto_needed_by_shutter;
@@ -2083,3 +2091,26 @@ int hdr_set_ae(int ae)
     int ok = ABS(ae) < MAX_AE_EV * 8;
     return hdr_set_something(lens_set_ae, ae) && ok;
 }
+
+/*
+void gui_bump_rawshutter(int delta)
+{
+}
+
+void gui_bump_rawiso(int delta)
+{
+}
+
+void gui_bump_rawaperture(int delta)
+{
+}
+
+void lens_task()
+{
+    while(1)
+    {
+    }
+}
+
+TASK_CREATE( "lens_task", lens_task, 0, 0x1a, 0x1000 );
+*/

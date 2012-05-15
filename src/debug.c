@@ -538,9 +538,16 @@ void iso_movie_test()
 }
 #endif // CONFIG_ISO_TESTS
 
+PROP_INT(PROP_SHUTTER_ALSO, sa);
+
 void run_test()
 {
     msleep(1000);
+    int s = lens_info.raw_shutter + 3;
+    prop_request_change( PROP_SHUTTER, &s, 4 );
+    msleep(200);
+    prop_request_change(PROP_SHUTTER, &sa, 4);
+
     //~ prop_dump();
     //~ bulb_take_pic(125);
     //~ lens_set_rawshutter(80); // 1/8
@@ -1744,7 +1751,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
         
-        //~ bmp_printf(FONT_MED, 100, 100, "%d ", MEMX(0xC0F06014));
+        //~ bmp_printf(FONT_MED, 100, 200, "%d ", lens_info.raw_shutter);
 
         if (get_global_draw())
         {
@@ -3266,7 +3273,7 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_STOP_KILLING_FLICKER:
             canon_gui_enable_gmt();
             break;
-        case MLEV_BV_ENABLE:
+/*        case MLEV_BV_ENABLE:
             bv_enable_do();
             break;
         case MLEV_BV_DISABLE:
@@ -3274,7 +3281,7 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         case MLEV_BV_AUTO_UPDATE:
             bv_auto_update_do();
-            break;
+            break;*/
         //~ case MLEV_MENU_OPEN:
             //~ menu_open_gmt();
             //~ break;
