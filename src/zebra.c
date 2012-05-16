@@ -3910,6 +3910,8 @@ static int idle_countdown_killflicker_prev = 5;
 
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
+    if (ml_shutdown_requested) return;
+    
 #if 0
     NotifyBox(2000, "wakeup: %d   ", reason);
 #endif
@@ -3965,6 +3967,8 @@ static void update_idle_countdown(int* countdown)
 
 static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void), void(*action_off)(void))
 {
+    if (ml_shutdown_requested) return;
+    
     update_idle_countdown(countdown);
     int c = *countdown; // *countdown may be changed by "wakeup" => race condition
     //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
@@ -3990,6 +3994,8 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
 int lv_zoom_before_pause = 0;
 void PauseLiveView() // this should not include "display off" command
 {
+    if (ml_shutdown_requested) return;
+    if (sensor_cleaning) return;
     if (PLAY_MODE) return;
     if (MENU_MODE) return;
     if (LV_NON_PAUSED)
@@ -4009,10 +4015,14 @@ void PauseLiveView() // this should not include "display off" command
     }
 }
 
-void ResumeLiveView()
+// returns 1 if it did wakeup
+int ResumeLiveView()
 {
-    if (PLAY_MODE) return;
-    if (MENU_MODE) return;
+    if (ml_shutdown_requested) return 0;
+    if (sensor_cleaning) return 0;
+    if (PLAY_MODE) return 0;
+    if (MENU_MODE) return 0;
+    int ans = 0;
     if (LV_PAUSED)
     {
         lv = 0;
@@ -4026,9 +4036,11 @@ void ResumeLiveView()
         set_lv_zoom(lv_zoom_before_pause);
         msleep(100);
         ASSERT(LV_NON_PAUSED);
+        ans = 1;
         //~ ASSERT(DISPLAY_IS_ON);
     }
     lv_paused = 0;
+    return ans;
 }
 
 static void idle_display_off()

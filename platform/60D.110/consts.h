@@ -111,6 +111,11 @@
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x10000098 in 60d, backtrace it in gui_local_post
 #define GMT_LOCAL_UNAVI_FEED_BACK 0x35 // event type = 2, sent when Q menu disappears; look for StartUnaviFeedBackTimer
 
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 82
+#define GMT_GUICMD_OPEN_SLOT_COVER 78
+#define GMT_GUICMD_LOCK_OFF 76
+
 #define BGMT_FLASH_MOVIE 0 
 #define BGMT_PRESS_FLASH_MOVIE 0 
 #define BGMT_UNPRESS_FLASH_MOVIE 0 

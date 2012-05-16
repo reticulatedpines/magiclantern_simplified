@@ -120,6 +120,11 @@
 
 #define GMT_OLC_INFO_CHANGED 63 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 47
+#define GMT_GUICMD_OPEN_SLOT_COVER 44
+#define GMT_GUICMD_LOCK_OFF 42
+
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
 

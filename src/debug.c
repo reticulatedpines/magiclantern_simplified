@@ -538,15 +538,10 @@ void iso_movie_test()
 }
 #endif // CONFIG_ISO_TESTS
 
-PROP_INT(PROP_SHUTTER_ALSO, sa);
-
 void run_test()
 {
     msleep(1000);
-    int s = lens_info.raw_shutter + 3;
-    prop_request_change( PROP_SHUTTER, &s, 4 );
-    msleep(200);
-    prop_request_change(PROP_SHUTTER, &sa, 4);
+    PauseLiveView();
 
     //~ prop_dump();
     //~ bulb_take_pic(125);

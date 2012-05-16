@@ -75,11 +75,20 @@ int handle_common_events_by_feature(struct event * event)
     // common to most cameras
     // there may be exceptions
 
+    // these are required for correct shutdown from powersave mode
+    if (event->param == GMT_GUICMD_START_AS_CHECK || 
+        event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
+        event->param == GMT_GUICMD_LOCK_OFF)
+    {
+        ml_shutdown();
+        return 1;
+    }
+    
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
-        ResumeLiveView();
+        int ans = ResumeLiveView();
         idle_wakeup_reset_counters(event->param);
-        return 0;  // just wake up from powersave, don't do anything else
+        return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
     idle_wakeup_reset_counters(event->param);
     

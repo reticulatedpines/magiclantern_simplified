@@ -10,9 +10,9 @@
 
 // Critical. Look for a call to prop_request_change(0x80050007, something, len).
 #define AFFRAME_PROP_LEN 108
-#define CUSTOM_WB_PROP_LEN 44
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
+#define CUSTOM_WB_PROP_LEN 44
 
 #define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
 
@@ -70,6 +70,11 @@
 #define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
 #define GMT_LOCAL_UNAVI_FEED_BACK 0x36 // event type = 2, sent when Q menu disappears; look for StartUnaviFeedBackTimer
+
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 89
+#define GMT_GUICMD_OPEN_SLOT_COVER 85
+#define GMT_GUICMD_LOCK_OFF 83
 
 // these were found in ROM, but not tested yet
 
@@ -351,3 +356,5 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x172c8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+#define FASTEST_SHUTTER_SPEED_RAW 152

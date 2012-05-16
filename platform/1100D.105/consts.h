@@ -155,6 +155,11 @@
 #define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
 
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 89
+#define GMT_GUICMD_OPEN_SLOT_COVER 85
+#define GMT_GUICMD_LOCK_OFF 83
+
 #define BULB_MIN_EXPOSURE 1000
 
 // http://magiclantern.wikia.com/wiki/Fonts

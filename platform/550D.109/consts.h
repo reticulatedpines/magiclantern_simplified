@@ -136,6 +136,12 @@
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x1000007d in 550d
 //~ #define GMT_OLC_BLINK_TIMER 0x2f // event type = 2, look for OlcBlinkTimer and send_message_to_gui_main_task
 
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 78
+#define GMT_GUICMD_OPEN_SLOT_COVER 75
+#define GMT_GUICMD_LOCK_OFF 73
+
+
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
 

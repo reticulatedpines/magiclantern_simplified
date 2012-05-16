@@ -116,6 +116,11 @@
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 43
+#define GMT_GUICMD_OPEN_SLOT_COVER 40
+#define GMT_GUICMD_LOCK_OFF 38
+
 #define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
  #define SENSOR_RES_X 4752
