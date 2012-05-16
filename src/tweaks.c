@@ -1074,8 +1074,6 @@ int handle_arrow_keys(struct event * event)
     if (!lv) return 1;
     if (gui_menu_shown()) return 1;
     if (handle_push_wb(event)==0) return 0;
-    if (!is_movie_mode()) return 1;
-    
    
     // if no shortcut is enabled, do nothing
     if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
@@ -1132,7 +1130,7 @@ int handle_arrow_keys(struct event * event)
     }
     #endif
 
-    if (arrow_keys_mode && is_movie_mode() && liveview_display_idle() && !gui_menu_shown())
+    if (arrow_keys_mode && liveview_display_idle() && !gui_menu_shown())
     {
         // maybe current mode is no longer enabled in menu
         if (!is_arrow_mode_ok(arrow_keys_mode))
@@ -1221,7 +1219,6 @@ int handle_arrow_keys(struct event * event)
 void arrow_key_step()
 {
     if (!lv) return;
-    if (!is_movie_mode()) return;
     if (gui_menu_shown()) return;
 
     #if defined(CONFIG_500D) || defined(CONFIG_550D)
@@ -1237,7 +1234,7 @@ void arrow_key_step()
 
 int arrow_keys_shortcuts_active() 
 { 
-    return (is_movie_mode() && arrow_keys_mode && arrow_keys_mode < 10 && is_arrow_mode_ok(arrow_keys_mode));
+    return (arrow_keys_mode && arrow_keys_mode < 10 && is_arrow_mode_ok(arrow_keys_mode));
 }
 void display_shortcut_key_hints_lv()
 {
@@ -1315,7 +1312,7 @@ static struct menu_entry key_menus[] = {
     {
         .name       = "Arrow Key Shortcuts...",
         .select = menu_open_submenu,
-        .help = "Functions for arrows in movie mode. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
+        .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
             #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
             {
@@ -1335,13 +1332,13 @@ static struct menu_entry key_menus[] = {
                 .name = "Shutter/Apert.",
                 .priv       = &arrow_keys_shutter_aperture,
                 .max = 1,
-                .help = "LEFT/RIGHT: Shutter, 1/8-step. UP/DOWN: Aperture, 1/8-step.",
+                .help = "LEFT/RIGHT: Shutter. UP/DN: Aperture.  SET: 180d shutter.",
             },
             {
                 .name = "LCD Bright/Sat",
                 .priv       = &arrow_keys_bright_sat,
                 .max = 1,
-                .help = "LEFT/RIGHT: LCD brightness. UP/DOWN: LCD saturation.",
+                .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
             },
             MENU_EOL
         },
