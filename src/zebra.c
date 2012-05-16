@@ -3093,6 +3093,13 @@ static void batt_display(
 }
 #endif
 
+#if defined(CONFIG_550D) || defined(CONFIG_500D)
+CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
+#else
+int lcd_sensor_wakeup = 0;
+CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
+#endif
+
 struct menu_entry powersave_menus[] = {
     {
         .name = "Enable power saving",
@@ -3101,6 +3108,14 @@ struct menu_entry powersave_menus[] = {
         .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
         .help = "If enabled, powersave (see above) works when recording too."
     },
+    #if defined(CONFIG_550D) || defined(CONFIG_500D)
+    {
+        .name = "Use LCD sensor     ",
+        .priv           = &lcd_sensor_wakeup,
+        .max = 1,
+        .help = "With the LCD sensor you may wakeup or force powersave mode."
+    },
+    #endif
     {
         .name = "Dim display",
         .priv           = &idle_display_dim_after,
@@ -3921,7 +3936,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
     if (lv && reason == GMT_OLC_INFO_CHANGED) return;
     
     // when sensor is covered, timeout changes to 3 seconds
-    int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+    int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
 
     // those are for powersaving
     idle_countdown_display_off = sensor_status ? 25 : idle_display_turn_off_after * 10;
@@ -3956,7 +3971,7 @@ static void update_idle_countdown(int* countdown)
         idle_wakeup_reset_counters(-100); // will reset all idle countdowns
     }
     
-    int sensor_status = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+    int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
     static int prev_sensor_status = 0;
 
     if (sensor_status != prev_sensor_status)
@@ -4058,7 +4073,7 @@ static void idle_display_off()
         NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
     }
 
-    if (!(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
+    if (!(lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED))
     {
         for (int i = 0; i < 30; i++)
         {
@@ -4079,7 +4094,7 @@ static void idle_display_on()
     ResumeLiveView();
     display_on();
     redraw();
-    ASSERT(DISPLAY_IS_ON);
+    //~ ASSERT(DISPLAY_IS_ON); // it will take a short time until display will turn on
 }
 
 static void idle_bmp_off()
