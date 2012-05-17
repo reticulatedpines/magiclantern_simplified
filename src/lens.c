@@ -1452,11 +1452,11 @@ PROP_HANDLER( PROP_APERTURE ) // for Tv mode
 static int shutter_also_ack = -1;
 PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
 {
-    //~ if (!CONTROL_BV)
-    //~ {
-        //~ if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
-            //~ lensinfo_set_shutter(buf[0], 2);
-    //~ }
+    if (!CONTROL_BV)
+    {
+        if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
+            lensinfo_set_shutter(buf[0]);
+    }
     lens_display_set_dirty();
     shutter_also_ack = buf[0];
 }
