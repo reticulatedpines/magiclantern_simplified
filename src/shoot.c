@@ -1125,10 +1125,12 @@ silent_pic_take_simple(int interactive)
     int p = vram->pitch;
     int h = vram->height;
     
-    lv_request_pause_updating(1);
+    lv_request_pause_updating(300);
     msleep(50);
     
     dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
+
+    lv_wait_for_pause_updating_to_finish();
 
     //~ if (interactive && !silent_pic_burst)
     //~ {
@@ -1143,7 +1145,6 @@ silent_pic_take_simple(int interactive)
         while (get_halfshutter_pressed()) msleep(100);
     }
 
-    lv_request_pause_updating(0);
     msleep(100);
     
     if (movie_started) silent_pic_stop_dummy_movie();

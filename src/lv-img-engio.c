@@ -13,13 +13,7 @@
 
 #undef CONFIG_DIGIC_POKE
 
-#define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
-
-static int lv_should_pause_updating = 0;
-void lv_request_pause_updating(int value)
-{
-    lv_should_pause_updating = value;
-}
+//~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
 
 #define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
@@ -72,10 +66,6 @@ digic_iso_print(
         G > 0 ? "+" : G < 0 ? "-" : "",
         GA/10, GA%10
     );
-    #ifdef CONFIG_550D
-    if (G && is_movie_mode() && video_mode_fps > 30)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work in high FPS modes.");
-    #endif
     if (G < 0 && !is_movie_mode()) 
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Negative gain works only in Movie mode.");
     if (G > 0 && !is_movie_mode()) 
@@ -295,18 +285,10 @@ void image_effects_step()
 {
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
-    #ifdef CONFIG_550D
-    if (is_movie_mode() && video_mode_fps > 30) return; // bad sync
-    #endif
 
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
     #endif
-
-    if (lv_should_pause_updating)
-    {
-        EngDrvOut(LV_PAUSE_REGISTER, 0x1234);
-    }
     
     // bulb ramping calibration works best on grayscale image
     extern int bulb_ramp_calibration_running;
@@ -326,9 +308,6 @@ void digic_iso_step()
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
     if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
-    #ifdef CONFIG_550D
-    if (is_movie_mode() && video_mode_fps > 30) return; // bad sync
-    #endif
     
     if (digic_iso_gain == 0) digic_iso_gain = 1024;
     

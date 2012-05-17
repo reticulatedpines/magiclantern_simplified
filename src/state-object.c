@@ -13,6 +13,8 @@
 #ifdef CONFIG_550D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define MOVREC_STATE (*(struct state_object **)0x5B34)
+#define LV_STATE (*(struct state_object **)0x4B74)
+#define LVCAE_STATE (*(struct state_object **)0x51E4)
 #endif
 
 #ifdef CONFIG_60D
@@ -63,6 +65,17 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
+static volatile int lv_should_pause_updating = 0;
+void lv_request_pause_updating(int value)
+{
+    lv_should_pause_updating = value;
+}
+
+void lv_wait_for_pause_updating_to_finish()
+{
+    while (lv_should_pause_updating) msleep(10);
+}
+
 static void vsync_func() // called once per frame.. in theory :)
 {
     #if !defined(CONFIG_60D) && !defined(CONFIG_600D)  && !defined(CONFIG_1100D) // for those cameras, we call it from cartridge_AfStopPath
@@ -74,63 +87,36 @@ static void vsync_func() // called once per frame.. in theory :)
     #ifdef CONFIG_500D
     fps_refresh_500D();
     #endif
+
+    if (lv_should_pause_updating)
+    {
+        msleep(lv_should_pause_updating);
+        lv_should_pause_updating = 0;
+    }
 }
 
 int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
-    
-    #ifdef MOVREC_STATE
-    if (self == MOVREC_STATE && recording) // mvrEncodeDone
-    {
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        if (self->current_state == 4 && input == 3) // mvrExpStarted
-        #endif
-        #ifndef CONFIG_550D
-            vsync_func();
-        #endif
-    }
-    #endif
-    
-
-    //    int old_state = self->current_state;
+    int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
-    //    int new_state = self->current_state;
 
-    #ifdef MOVREC_STATE
-    if (self == MOVREC_STATE && recording) // mvrEncodeDone
-    {
-        #ifdef CONFIG_550D
-            vsync_func();
-        #endif
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%d--(%d)-->%d %d ", old_state, input, new_state, MVR_FRAME_NUMBER);
-        return ans;
-    }
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+    if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
     #endif
 
-    #ifdef LV_STATE
-    if (self == LV_STATE && input == 2 && !recording)
-    {
-        vsync_func();
-        return ans;
-    }
+    #ifdef CONFIG_550D
+    if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
+    #endif
+
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+    if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #endif
     
-    #ifdef DISPLAY_STATE
-    if (self == DISPLAY_STATE && input == 18 && !recording) // SetImageVramParameter_pFlipCBR
-    {
-        vsync_func();
-        return ans;
-    }
+    #ifdef CONFIG_5D3
     #endif
 
-    #ifdef EVF_STATE
-    if (self == EVF_STATE && input == 3 && !recording)
-    {
         vsync_func();
-        return ans;
-    }
-    #endif
 
     return ans;
 }
@@ -144,15 +130,15 @@ static int stateobj_start_spy(struct state_object * stateobj)
 
 static void state_init(void* unused)
 {
-    #ifdef DISPLAY_STATE
-        stateobj_start_spy(DISPLAY_STATE);
-    #endif
+    //~ #ifdef DISPLAY_STATE
+        //~ stateobj_start_spy(DISPLAY_STATE);
+    //~ #endif
     #ifdef LV_STATE
         stateobj_start_spy(LV_STATE);
     #endif
-    #ifdef MOVREC_STATE
-        stateobj_start_spy(MOVREC_STATE);
-    #endif
+    //~ #ifdef MOVREC_STATE
+        //~ stateobj_start_spy(MOVREC_STATE);
+    //~ #endif
     #ifdef EVF_STATE
         stateobj_start_spy(EVF_STATE);
     #endif
