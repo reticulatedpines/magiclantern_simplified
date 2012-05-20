@@ -2065,6 +2065,43 @@ static CONFIG_INT("picstyle.rec.sub", picstyle_rec_sub, 1);
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
 static int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
 
+static char user_picstyle_name_1[50] = "";
+static char user_picstyle_name_2[50] = "";
+static char user_picstyle_name_3[50] = "";
+static char user_picstyle_shortname_1[10] = "";
+static char user_picstyle_shortname_2[10] = "";
+static char user_picstyle_shortname_3[10] = "";
+
+static void copy_picstyle_name(char* fullname, char* shortname, char* name)
+{
+    snprintf(fullname, 50, "%s", name);
+    int L = strlen(name);
+    shortname[0] = name[0];
+    shortname[1] = name[1];
+    shortname[2] = name[2];
+    shortname[3] = isdigit(name[L-2]) ? name[L-2] : name[3];
+    shortname[4] = isdigit(name[L-1]) ? name[L-1] : name[4];
+    shortname[5] = '\0';
+}
+
+PROP_HANDLER(PROP_PC_FLAVOR1_PARAM)
+{
+    copy_picstyle_name(user_picstyle_name_1, user_picstyle_shortname_1, (char*) buf + 4);
+}
+PROP_HANDLER(PROP_PC_FLAVOR2_PARAM)
+{
+    copy_picstyle_name(user_picstyle_name_2, user_picstyle_shortname_2, (char*) buf + 4);
+}
+PROP_HANDLER(PROP_PC_FLAVOR3_PARAM)
+{
+    copy_picstyle_name(user_picstyle_name_3, user_picstyle_shortname_3, (char*) buf + 4);
+}
+
+static PROP_INT(PROP_PICSTYLE_OF_USERDEF1, picstyle_of_user1);
+static PROP_INT(PROP_PICSTYLE_OF_USERDEF2, picstyle_of_user2);
+static PROP_INT(PROP_PICSTYLE_OF_USERDEF3, picstyle_of_user3);
+
+
 const char* get_picstyle_name(int raw_picstyle)
 {
     return
@@ -2075,9 +2112,10 @@ const char* get_picstyle_name(int raw_picstyle)
         raw_picstyle == 0x85 ? "Faithful" :
         raw_picstyle == 0x86 ? "Monochrom" :
         raw_picstyle == 0x87 ? "Auto" :
-        raw_picstyle == 0x21 ? "UserDef1" :
-        raw_picstyle == 0x22 ? "UserDef2" :
-        raw_picstyle == 0x23 ? "UserDef3" : "Unknown";
+        raw_picstyle == 0x21 ? (picstyle_of_user1 < 0x80 ? user_picstyle_name_1 : "UserDef1") :
+        raw_picstyle == 0x22 ? (picstyle_of_user2 < 0x80 ? user_picstyle_name_2 : "UserDef2") :
+        raw_picstyle == 0x23 ? (picstyle_of_user3 < 0x80 ? user_picstyle_name_3 : "UserDef3") : 
+                                "Unknown";
 }
 
 const char* get_picstyle_shortname(int raw_picstyle)
@@ -2090,9 +2128,10 @@ const char* get_picstyle_shortname(int raw_picstyle)
         raw_picstyle == 0x85 ? "Fait." :
         raw_picstyle == 0x86 ? "Mono." :
         raw_picstyle == 0x87 ? "Auto" :
-        raw_picstyle == 0x21 ? "User1" :
-        raw_picstyle == 0x22 ? "User2" :
-        raw_picstyle == 0x23 ? "User3" : "Unk.";
+        raw_picstyle == 0x21 ? (picstyle_of_user1 < 0x80 ? user_picstyle_shortname_1 : "User1") :
+        raw_picstyle == 0x22 ? (picstyle_of_user2 < 0x80 ? user_picstyle_shortname_2 : "User2") :
+        raw_picstyle == 0x23 ? (picstyle_of_user3 < 0x80 ? user_picstyle_shortname_3 : "User3") : 
+                            "Unk.";
 }
 static void 
 picstyle_display( void * priv, int x, int y, int selected )
