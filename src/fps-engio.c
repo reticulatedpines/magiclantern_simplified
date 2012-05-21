@@ -5,7 +5,7 @@
  **/
  
 /**
- * 
+ * fps_timer_b_method
  * Notes by g3gg0:
  * 
  * okay i found how to directly change the sensor frame rate without patching and copying memory areas.
@@ -62,8 +62,6 @@ static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add t
 static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add this to computed value (for fine tuning)
 //~ static CONFIG_INT("fps.timer.b.method", fps_timer_b_method, 0); // 0 = engio, 1 = 60d/600d/5d3
 static CONFIG_INT("fps.preset", fps_criteria, 0);
-static int fps_timer_b_method = 0;
-
 static CONFIG_INT("fps.sound.disable", fps_sound_disable, 1);
 
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
@@ -161,6 +159,7 @@ static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
 */
 
 #ifdef NEW_FPS_METHOD
+static int fps_timer_b_method = 0;
 static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
 #endif
@@ -245,7 +244,9 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     int default_fps = calc_fps_x1000(Ta0, Tb0);
     int actual_fps = calc_fps_x1000(Ta, Tb);
     int fps_timer_delta_us = 1000000000 / actual_fps - 1000000000 / default_fps;
-    if (fps_timer_b_method) fps_timer_delta_us = 0;
+    #ifdef NEW_FPS_METHOD
+    if (fps_timer_b_method == 1) fps_timer_delta_us = 0;
+    #endif
     int ans_raw = 1000000000 / (shutter_us + fps_timer_delta_us);
     int ans = ans_raw * (Ta0/10) / (Ta/10);
     //~ NotifyBox(2000, "su=%d cfc=%d \nvf=%d td=%d \nd_num=%d d_den=%d\nar=%d ans=%d", shutter_us, ((TG_FREQ_BASE / Ta0) * 1000 / Tb), video_mode_fps, fps_timer_delta_us, Ta, Ta0, ans_raw, ans);
@@ -887,7 +888,9 @@ void fps_setup_timerA(int fps_x1000)
             break;
         case 3:
             timerA = TG_FREQ_BASE / fps_x1000 * 1000 / fps_timer_b_orig;
+            #ifdef NEW_FPS_METHOD
             fps_timer_b_method = 1;
+            #endif
             break;
     }
 
@@ -1116,7 +1119,7 @@ static void fps_task()
         
         if (fps_needs_updating || fps_was_changed_by_canon())
         {
-            msleep(200);
+            //~ msleep(200);
 
             int f = fps_values_x1000[fps_override_index];
             

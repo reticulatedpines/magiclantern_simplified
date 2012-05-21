@@ -72,7 +72,13 @@ void update_disp_mode_bits_from_params();
 void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 
 
-
+int is_zoom_mode_so_no_zebras() 
+{ 
+    if (!lv) return 0;
+    if (lv_dispsize == 1) return 0;
+    
+    return 1;
+}
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -3817,7 +3823,7 @@ int liveview_display_idle()
 int zebra_should_run()
 {
     return liveview_display_idle() && get_global_draw() &&
-        lv_dispsize == 1 &&
+        !is_zoom_mode_so_no_zebras() &&
         !(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) &&
         !WAVEFORM_FULLSCREEN;
 }
@@ -3875,7 +3881,7 @@ void draw_histogram_and_waveform(int allow_play)
     //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
-    if (lv && lv_dispsize > 1) return;
+    if (is_zoom_mode_so_no_zebras()) return;
 
 //    int screen_layout = get_screen_layout();
     
@@ -3892,7 +3898,7 @@ void draw_histogram_and_waveform(int allow_play)
     //~ if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
-    if (lv && lv_dispsize > 1) return;
+    if (is_zoom_mode_so_no_zebras()) return;
         
     if( waveform_draw)
     {
@@ -4695,7 +4701,7 @@ livev_lopriority_task( void* unused )
         loprio_sleep();
         if (!zebra_should_run())
         {
-            if (WAVEFORM_FULLSCREEN && liveview_display_idle() && get_global_draw() && lv_dispsize == 1)
+            if (WAVEFORM_FULLSCREEN && liveview_display_idle() && get_global_draw() && !is_zoom_mode_so_no_zebras())
                 draw_histogram_and_waveform(0);
             continue;
         }

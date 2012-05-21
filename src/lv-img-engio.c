@@ -384,7 +384,6 @@ static struct menu_entry lv_img_menu[] = {
 
 static struct menu_entry dbg_menu[] = {
     {
-	.id = 0,
         .name = "DIGIC poke",
         .priv       = &digic_poke,
         .min = 0,
