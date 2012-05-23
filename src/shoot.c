@@ -4866,6 +4866,7 @@ static void press_rec_button()
 void movie_start()
 {
     while (get_halfshutter_pressed()) msleep(100);
+    if (lens_info.job_state >= 10) return; 
 
     ensure_movie_mode();
     
@@ -4888,7 +4889,11 @@ void movie_start()
     
     press_rec_button();
     
-    while (recording != 2) msleep(100);
+    for (int i = 0; i < 30; i++)
+    {
+        msleep(100);
+        if (recording == 2) break; // recording started
+    }
     msleep(500);
 }
 

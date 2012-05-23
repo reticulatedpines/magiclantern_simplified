@@ -110,9 +110,12 @@ movie_rec_key_print(
 
 int handle_movie_rec_key(struct event * event)
 {
-    if (movie_rec_key == 2 && is_movie_mode() && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+    if (!movie_rec_key) return 1;
+    
+    if ((movie_rec_key == 1 && event->param == BGMT_PRESS_HALFSHUTTER) ||
+        (movie_rec_key == 2 && event->param == BGMT_PRESS_SET))
     {
-        if (event->param == BGMT_PRESS_SET)
+        if (is_movie_mode() && liveview_display_idle() && !gui_menu_shown())
         {
             if (!recording) schedule_movie_start();
             else schedule_movie_end();
@@ -121,16 +124,6 @@ int handle_movie_rec_key(struct event * event)
     }
     return 1;
 }
-
-PROP_HANDLER(PROP_HALF_SHUTTER)
-{
-    if (movie_rec_key == 1 && buf[0] && is_movie_mode() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
-    {
-        if (!recording) schedule_movie_start();
-        else schedule_movie_end();
-    }
-}
-
 
 static void
 movie_restart_print(
