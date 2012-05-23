@@ -352,10 +352,36 @@ extern unsigned lcd_sensor_shortcuts;
 // backlight adjust
 //**********************************************************************
 
+void show_display_gain_level()
+{
+    extern int digic_iso_gain_photo;
+    int G = gain_to_ev_scaled(digic_iso_gain_photo, 1) - 10;
+    NotifyBox(2000, "Display Gain : %d EV", G);
+}
 void adjust_backlight_level(int delta)
 {
     if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
     if (!DISPLAY_IS_ON) call("TurnOnDisplay");
+    
+    extern int digic_iso_gain_photo;
+    int G = gain_to_ev_scaled(digic_iso_gain_photo, 1) - 10;
+    
+    if (!is_movie_mode())
+    {
+        if (delta < 0 && G > 0) // decrease display gain first
+        {
+            digic_iso_toggle(0, -1);
+            show_display_gain_level();
+            return;
+        }
+        if (delta > 0 && backlight_level == 7) // backlight at maximum, increase display gain
+        {
+            if (G < 7) digic_iso_toggle(0, 1);
+            show_display_gain_level();
+            return;
+        }
+    }
+
     
     int level = COERCE(backlight_level + delta, 1, 7);
     prop_request_change(PROP_LCD_BRIGHTNESS, &level, 4);
@@ -1254,6 +1280,7 @@ void display_shortcut_key_hints_lv()
     static int old_mode = 0;
     int mode = 0;
     if (!liveview_display_idle()) return;
+    if (NotifyBoxActive()) return;
 
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
     if (arrow_keys_shortcuts_active()) mode = arrow_keys_mode;
@@ -1611,6 +1638,10 @@ void brightness_saturation_reset()
 {
     preview_saturation = 1;
     set_backlight_level(5);
+    set_display_gain_equiv(0);
+    NotifyBox(2000, "LCD Saturation: Normal\n"
+                    "LCD Backlight : 5     \n"
+                    "Display Gain  : 0 EV  "); 
 }
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
