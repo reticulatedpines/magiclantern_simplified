@@ -1380,7 +1380,7 @@ menu_redraw_do()
                         if (prev_so) copy_zebras_from_mirror();
                         else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
                     }
-                    if (hist_countdown == 0)
+                    if (hist_countdown == 0 && !should_draw_zoom_overlay())
                         draw_histogram_and_waveform(); // too slow
                     else
                         hist_countdown--;
@@ -1917,7 +1917,7 @@ menu_task( void* unused )
     TASK_LOOP
     {
         int menu_or_shortcut_menu_shown = (menu_shown || arrow_keys_shortcuts_active());
-        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : 500;
+        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : should_draw_zoom_overlay() && show_only_selected ? 2000 : 500;
         int rc = take_semaphore( gui_sem, dt );
         if( rc != 0 )
         {
