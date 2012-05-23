@@ -39,9 +39,16 @@ void menu_help_show_page(int page)
 {
     menu_help_active = 1;
     char path[100];
-    snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmp", page);
     struct bmp_file_t * doc = (void*) -1;
+
+    snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmh", page);
     doc = bmp_load(path, 1);
+    if (!doc)
+    {
+        snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmp", page);
+        doc = bmp_load(path, 1);
+    }
+
     if (doc)
     {
         int x0 = hdmi_code == 5 ? 120 : 0;
