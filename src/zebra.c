@@ -3967,7 +3967,7 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 static void update_idle_countdown(int* countdown)
 {
     //~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
-    if ((liveview_display_idle() && !get_halfshutter_pressed()) || !DISPLAY_IS_ON)
+    if ((liveview_display_idle() && !get_halfshutter_pressed() && !gui_menu_shown()) || !DISPLAY_IS_ON)
     {
         if (*countdown)
             (*countdown)--;
