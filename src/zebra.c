@@ -2809,9 +2809,9 @@ struct menu_entry zebra_menus[] = {
                 .name = "Position", 
                 .priv = &zoom_overlay_pos,
                 .max = 4,
-                .choices = (const char *[]) {"AF Frame", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
+                .choices = (const char *[]) {"Focus box", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
                 .icon_type = IT_DICE,
-                .help = "Position of zoom box (fixed or linked to AF frame).",
+                .help = "Position of zoom box (fixed or linked to focus box).",
             },
             {
                 .name = "Magnification", 
@@ -2911,9 +2911,9 @@ struct menu_entry zebra_menus[] = {
                 .name = "Position",
                 .priv = &spotmeter_position, 
                 .max = 1,
-                .choices = (const char *[]) {"Center", "AF Frame"},
+                .choices = (const char *[]) {"Center", "Focus box"},
                 .icon_type = IT_DICE,
-                .help = "Spotmeter position: center or attached to AF frame.",
+                .help = "Spotmeter position: center or linked to focus box.",
             },
             MENU_EOL
         }

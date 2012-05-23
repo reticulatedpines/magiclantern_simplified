@@ -886,7 +886,7 @@ qrplay_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "After taking a pic: %s", 
+        "Image Review Mode : %s", 
         quick_review_allow_zoom == 0 ? "QuickReview" :
         quick_review_allow_zoom == 1 ? "Rvw:Hold->Play" : "ZoomIn->Play"
     );
@@ -1863,7 +1863,7 @@ struct menu_entry play_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     {
-        .name = "After taking a photo",
+        .name = "Image Review Mode",
         .priv = &quick_review_allow_zoom, 
         .max = 1,
         .display = qrplay_display,
