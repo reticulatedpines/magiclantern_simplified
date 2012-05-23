@@ -11,11 +11,13 @@
 #include "propvalues.h"
 #include "config.h"
 
-CONFIG_INT("vsync.off", vsync_off, 0);
+CONFIG_INT("vsync.state", vsync_state, 0);
+CONFIG_INT("vsync.input", vsync_input, 0);
 
 #ifdef CONFIG_550D
 #define DISPLAY_STATE (*(struct state_object **)0x245c)
 #define MOVREC_STATE (*(struct state_object **)0x5B34)
+#define LV_STATE (*(struct state_object **)0x4B74)
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 #endif
@@ -56,7 +58,6 @@ void lv_vsync()
 {
     int msg;
     msg_queue_receive(vsync_msg_queue, &msg, 0);
-    msleep(vsync_off*10);
     //~ NotifyBox(1000, "vsync recv %d", msg);
     //~ if (video_mode_resolution == 0 || !is_movie_mode()) msleep(10);
 }
@@ -65,10 +66,12 @@ void lv_vsync()
 static int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
+    int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
 
     //~ bmp_printf(FONT_LARGE, 100, 100, "%d %d ", input, self->current_state);
-    if (self == EVF_STATE && input == 5)
+    //~ if (self == EVF_STATE && input == 5)
+    if (self == DISPLAY_STATE && (vsync_input == 0 || input == vsync_input) && (vsync_state == 0 || old_state == vsync_state))
         vsync_signal();
 
     return ans;
@@ -83,11 +86,16 @@ static void stateobj_start_spy(struct state_object * stateobj)
 
 static struct menu_entry vsync_menu[] = {
     {
-        .name = "VSync offset",
-        .priv       = &vsync_off,
+        .name = "VSync state",
+        .priv       = &vsync_state,
         .min = 0,
         .max = 100,
-        .help = "Adjust VSync offset (for Magic Zoom).",
+    },
+    {
+        .name = "VSync input",
+        .priv       = &vsync_input,
+        .min = 0,
+        .max = 100,
     }
 };
 
@@ -96,7 +104,7 @@ static void vsync_init()
 {
     menu_add( "Debug", vsync_menu, COUNT(vsync_menu) );
     vsync_msg_queue = msg_queue_create("vsync_mq", 1);
-    stateobj_start_spy(EVF_STATE);
+    stateobj_start_spy(DISPLAY_STATE);
 }
 
 INIT_FUNC("vsync", vsync_init);
