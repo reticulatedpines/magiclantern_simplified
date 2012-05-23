@@ -29,7 +29,8 @@
 #define SHADOW_LIFT_REGISTER_7 0xc0f0f178
 #define SHADOW_LIFT_REGISTER_8 0xc0f0ecf8 // more like ISO control (clips whites)
 
-CONFIG_INT("digic.iso.gain", digic_iso_gain, 1024); // units: like with the old display gain
+CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 1024); // units: like with the old display gain
+CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 1024);
 CONFIG_INT("digic.black", digic_black_level, 100);
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
@@ -39,7 +40,8 @@ CONFIG_INT("digic.black", digic_black_level, 100);
 void set_display_gain_equiv(int gain)
 {
     if (gain == 0) gain = 1024;
-    digic_iso_gain = gain;
+    if (is_movie_mode()) digic_iso_gain_movie = gain;
+    else digic_iso_gain_photo = gain;
 }
 
 int gain_to_ev_scaled(int gain, int scale)
@@ -56,20 +58,35 @@ digic_iso_print(
     int         selected
 )
 {
-    int G = gain_to_ev_scaled(digic_iso_gain, 8) - 80;
-    G = G * 10/8;
-    int GA = abs(G);
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "DIGIC ISO Gain: %s%d.%d EV",
-        G > 0 ? "+" : G < 0 ? "-" : "",
-        GA/10, GA%10
-    );
-    if (G < 0 && !is_movie_mode()) 
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Negative gain works only in Movie mode.");
-    if (G > 0 && !is_movie_mode()) 
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only used for previewing LV image. Doesn't alter pictures.");
+    int G = 0;
+    if (is_movie_mode())
+    {
+        G = gain_to_ev_scaled(digic_iso_gain_movie, 8) - 80;
+        G = G * 10/8;
+        int GA = abs(G);
+        
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "ML digital ISO   : %s%d.%d EV",
+            G > 0 ? "+" : G < 0 ? "-" : "",
+            GA/10, GA%10
+        );
+    }
+    else
+    {
+        G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
+        G = G * 10/8;
+        int GA = abs(G);
+
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "Display Gain     : %s%d.%d EV",
+            G > 0 ? "+" : G < 0 ? "-" : "",
+            GA/10, GA%10
+        );
+    }
     if (G && !lv)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in LiveView.");
     menu_draw_icon(x, y, MNI_BOOL(G), 0);
@@ -83,9 +100,6 @@ digic_black_print(
     int         selected
 )
 {
-    int G = gain_to_ev_scaled(digic_iso_gain, 8) - 80;
-    G = G * 10/8;
-    //int GA = abs(G);
     bmp_printf(
         MENU_FONT,
         x, y,
@@ -98,17 +112,22 @@ digic_black_print(
     menu_draw_icon(x, y, MNI_BOOL(digic_black_level-100), 0);
 }
 
-static unsigned int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
+static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
 
-void digic_iso_toggle(void* priv, int delta)
+void digic_iso_toggle(int* priv, int delta)
 {
+    if (is_movie_mode()) priv = (int*)&digic_iso_gain_movie;
+    else priv = (int*)&digic_iso_gain_photo;
+    
     int i;
     for (i = 0; i < COUNT(digic_iso_presets); i++)
-        if (digic_iso_presets[i] >= digic_iso_gain) break;
+        if (digic_iso_presets[i] >= *priv) break;
     
-    i = mod(i + delta, COUNT(digic_iso_presets));
+    do {
+        i = mod(i + delta, COUNT(digic_iso_presets));
+    } while (!is_movie_mode() && digic_iso_presets[i] < 1024);
     
-    digic_iso_gain = digic_iso_presets[i];
+    *priv = digic_iso_presets[i];
 }
 
 //~ static CONFIG_INT("digic.effects", image_effects, 0);
@@ -131,8 +150,8 @@ void autodetect_default_white_level()
 
 int get_new_white_level()
 {
-    if (digic_iso_gain < 1024) 
-        return default_white_level * digic_iso_gain / 1024;
+    if (digic_iso_gain_movie < 1024) 
+        return default_white_level * digic_iso_gain_movie / 1024;
     return 0;
 }
 
@@ -309,39 +328,39 @@ void digic_iso_step()
     if (!lv) return;
     if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
     
-    if (digic_iso_gain == 0) digic_iso_gain = 1024;
-    
-    if (digic_iso_gain < 1024)
+    if (is_movie_mode())
     {
-        if (!is_movie_mode()) return; // has side effects in photo mode - interferes with auto exposure
-        autodetect_default_white_level();
-        int new_gain = get_new_white_level();
-        EngDrvOut(SHAD_GAIN, new_gain);
-        shad_gain_last_written = new_gain;
+        if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
+
+        if (digic_iso_gain_movie < 1024)
+        {
+            autodetect_default_white_level();
+            int new_gain = get_new_white_level();
+            EngDrvOut(SHAD_GAIN, new_gain);
+            shad_gain_last_written = new_gain;
+        }
+        else if (digic_iso_gain_movie > 1024)
+        {
+            int ev_x255 = gain_to_ev_scaled(digic_iso_gain_movie, 255) - 2550 + 255;
+            EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+        }
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+        if (digic_black_level != 100)
+        {
+            int presetup = MEMX(SHAD_PRESETUP);
+            presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level-100);
+            EngDrvOut(SHAD_PRESETUP, presetup);
+        }
+        #endif
+
     }
-    else if (digic_iso_gain > 1024)
+    else // photo mode - display gain, for preview only
     {
-        // no side effects in photo mode, it is applied after metering
-        int ev_x255 = gain_to_ev_scaled(digic_iso_gain, 255) - 2550 + 255;
+        if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
+        int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
         EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
     }
-    
-    //~ if (digic_shadow_lift)
-    //~ {
-        //~ EngDrvOut(SHADOW_LIFT_REGISTER_2, 0x200 + digic_shadow_lift * 16);
-        //~ EngDrvOut(SHADOW_LIFT_REGISTER_5, digic_shadow_lift<<8);
-        //~ EngDrvOut(SHADOW_LIFT_REGISTER_6, digic_shadow_lift<<8);
-    //~ }
-
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
-    if (digic_black_level != 100)
-    {
-        if (!is_movie_mode()) return; // makes no sense in photo mode, you can shoot raw
-        int presetup = MEMX(SHAD_PRESETUP);
-        presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level-100);
-        EngDrvOut(SHAD_PRESETUP, presetup);
-    }
-    #endif
 }
 
 void menu_open_submenu();

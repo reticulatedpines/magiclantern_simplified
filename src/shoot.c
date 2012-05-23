@@ -2454,7 +2454,7 @@ htp_display( void * priv, int x, int y, int selected )
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "HTP           : %s",
+               "Highlight Tone P.: %s",
                htp ? "ON" : "OFF"
                );
     menu_draw_icon(x, y, MNI_BOOL(htp), 0);
@@ -4257,7 +4257,7 @@ static struct menu_entry expo_menus[] = {
 
         .children =  (struct menu_entry[]) {
             {
-                .name = "Equiv. ISO",
+                .name = "Equivalent ISO   ",
                 .help = "ISO equivalent (analog + digital components).",
                 .priv = &lens_info.iso_equiv_raw,
                 .unit = UNIT_ISO,
@@ -4265,7 +4265,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Analog ISO",
+                .name = "Canon analog ISO ",
                 .help = "Analog ISO component (ISO at which the sensor is driven).",
                 .priv = &lens_info.iso_analog_raw,
                 .unit = UNIT_ISO,
@@ -4273,7 +4273,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Digital Gain",
+                .name = "Canon digital ISO",
                 .help = "Canon's digital ISO component. Strongly recommended: 0.",
                 .priv = &lens_info.iso_digital_ev,
                 .unit = UNIT_1_8_EV,
@@ -4281,29 +4281,29 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "DIGIC ISO Gain",
+                .name = "ML digital ISO",
                 .display = digic_iso_print,
                 .select = digic_iso_toggle,
-                .help = "Digital ISO gain via DIGIC pokes. Recommended -0.2..-0.5EV.",
+                .help = "Movie: use negative gain. Photo: use it for night vision.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "HTP",
+                .name = "Highlight Tone Priority",
                 .select = (void (*)(void *,int))htp_toggle,
                 .display = htp_display,
                 .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
             },
             {
-                .name = "ISO Selection",
+                .name = "ISO Selection    ",
                 .priv = &iso_selection,
                 .max = 1,
                 .help = "What ISOs should be available from main menu and shortcuts.",
-                .choices = (const char *[]) {"100/160x", "100x + DIGIC"},
+                .choices = (const char *[]) {"C 100/160x", "ML ISOs"},
                 .icon_type = IT_DICE,
             },
             #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
             {
-                .name = "Black Level", 
+                .name = "Black Level      ", 
                 .priv = &digic_black_level,
                 .min = 0,
                 .max = 200,
@@ -4319,7 +4319,7 @@ static struct menu_entry expo_menus[] = {
                 .help = "Raises shadow level.",
             },*/
             {
-                .name = "Min MovAutoISO",
+                .name = "Min Movie AutoISO",
                 .priv = &lvae_iso_min,
                 .min = 72,
                 .max = 120,
@@ -4328,7 +4328,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Max MovAutoISO",
+                .name = "Max Movie AutoISO",
                 .priv = &lvae_iso_max,
                 .min = 72,
                 .max = 120,
@@ -4337,7 +4337,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "AutoISO speed",
+                .name = "AutoISO speed    ",
                 .priv = &lvae_iso_speed,
                 .min = 3,
                 .max = 30,
