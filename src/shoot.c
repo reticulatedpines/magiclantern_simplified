@@ -743,6 +743,8 @@ ms100_clock_task( void* unused )
 }
 TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
 
+int get_ms_clock_value() { return ms100_clock; }
+
 int expfuse_running = 0;
 static int expfuse_num_images = 0;
 static struct semaphore * set_maindial_sem = 0;

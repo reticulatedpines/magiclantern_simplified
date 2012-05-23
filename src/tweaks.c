@@ -1093,6 +1093,19 @@ int handle_arrow_keys(struct event * event)
         if (flash_movie_pressed) arrow_key_mode_toggle();
         return !flash_movie_pressed;
     }
+    
+    static int t_press = 0;
+    if (BGMT_PRESS_AV)
+    {
+        t_press = get_ms_clock_value();
+    }
+    if (BGMT_UNPRESS_AV)
+    {
+        int t_unpress = get_ms_clock_value();
+        
+        if (t_unpress - t_press < 400)
+            arrow_key_mode_toggle();
+    }
     #endif
 
     #ifdef CONFIG_600D
