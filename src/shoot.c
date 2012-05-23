@@ -4463,6 +4463,7 @@ static struct menu_entry expo_menus[] = {
     },
 #endif
 */
+#ifndef CONFIG_5D2 // no built-in flash; external flashes have their own EV compensation
     {
         .name = "Flash AEcomp",
         .display    = flash_ae_display,
@@ -4471,6 +4472,7 @@ static struct menu_entry expo_menus[] = {
         .essential = FOR_PHOTO,
         .edit_mode = EM_MANY_VALUES,
     },
+#endif
 };
 
 // for firing HDR shots - avoids random misfire due to low polling frequency
