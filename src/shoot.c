@@ -1568,6 +1568,7 @@ shutter_display( void * priv, int x, int y, int selected )
 void
 shutter_toggle(void* priv, int sign)
 {
+    if (!lens_info.raw_shutter) return;
     int i = raw2index_shutter(lens_info.raw_shutter);
     int i0 = i;
     int k;
@@ -1601,6 +1602,7 @@ aperture_display( void * priv, int x, int y, int selected )
 void
 aperture_toggle( void* priv, int sign)
 {
+    if (!lens_info.raw_aperture) return;
     int amin = codes_aperture[1];
     int amax = codes_aperture[COUNT(codes_aperture)-1];
     
