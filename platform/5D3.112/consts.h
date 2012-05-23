@@ -12,8 +12,7 @@
 // no idea if it's overflowing, need to check experimentally 
 //~ #define ARMLIB_OVERFLOWING_BUFFER 0x21c94 // in AJ_armlib_setup_related3
 
-// not needed for now
-//~ #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
+#define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
 // Critical. Look for a call to prop_request_change(0x80050007, something, len).
 #define AFFRAME_PROP_LEN 124
@@ -77,7 +76,7 @@
 #define BGMT_REC 0x1E
 
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
+#define BGMT_PRESS_ZOOMIN_MAYBE 0x52
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
