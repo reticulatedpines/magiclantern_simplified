@@ -4540,7 +4540,7 @@ livev_hipriority_task( void* unused )
             }
             else
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % 4 == 1, k % 2 == 0); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (zebra_colorspace ? 4 : 2) == 1, k % 2 == 0); )
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
