@@ -2283,7 +2283,6 @@ static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
     if (!get_global_draw()) return;
-    if (arrow_keys_shortcuts_active()) return;
     //~ if (!lv) return;
     if (!PLAY_OR_QR_MODE)
     {
@@ -2349,7 +2348,8 @@ static void spotmeter_step()
     uint32_t* B = (uint32_t*)bmp_vram();
 
     int dx = spotmeter_formula <= 3 ? 26 : 52;
-    for( y = (ycb&~1) - 13 ; y <= (ycb&~1) + 36 ; y++ )
+    int y0 = arrow_keys_shortcuts_active() ? 36 - font_med.height : -13;
+    for( y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
     {
         for( x = xcb - dx ; x <= xcb + dx ; x+=4 )
         {
@@ -2372,8 +2372,11 @@ static void spotmeter_step()
     int fnt = FONT(SHADOW_FONT(FONT_MED), fg, bg);
     int fnts = FONT(SHADOW_FONT(FONT_SMALL), fg, bg);
 
-    bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
-    bmp_draw_rect(COLOR_BLACK, xcb - dxb + 1, ycb - dxb + 1, 2*dxb+1-2, 2*dxb+1-2);
+    if (!arrow_keys_shortcuts_active())
+    {
+        bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
+        bmp_draw_rect(COLOR_BLACK, xcb - dxb + 1, ycb - dxb + 1, 2*dxb+1-2, 2*dxb+1-2);
+    }
     ycb += dxb + 20;
     ycb -= font_med.height/2;
     xcb -= 2 * font_med.width;

@@ -1067,6 +1067,7 @@ void arrow_key_mode_toggle()
         arrow_keys_mode = mod(arrow_keys_mode + 1, 5);
     }
     while (!is_arrow_mode_ok(arrow_keys_mode));
+    NotifyBoxHide();
 }
 
 void shutter_180() { lens_set_rawshutter(shutter_ms_to_raw(1000 / video_mode_fps / 2)); }
@@ -1107,7 +1108,11 @@ int handle_arrow_keys(struct event * event)
     
     if (event->param == BGMT_PRESS_HALFSHUTTER)
     {
-        if (arrow_keys_mode%10) arrow_keys_mode = 10 + (arrow_keys_mode%10); // temporarily disable
+        if (arrow_keys_mode%10) 
+        {
+            arrow_keys_mode = 10 + (arrow_keys_mode%10); // temporarily disable
+            NotifyBoxHide();
+        }
         return 1;
     }
     
