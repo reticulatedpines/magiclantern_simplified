@@ -366,6 +366,11 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
+    
+#ifdef CONFIG_550D
+    if (is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
+        return YUV422_HD_BUFFER_1;
+#endif
 
 // single-buffered HD buffer
 #ifndef CONFIG_60D
