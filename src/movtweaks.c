@@ -112,8 +112,12 @@ int handle_movie_rec_key(struct event * event)
 {
     if (!movie_rec_key) return 1;
     
-    if ((movie_rec_key == 1 && event->param == BGMT_PRESS_HALFSHUTTER) ||
-        (movie_rec_key == 2 && event->param == BGMT_PRESS_SET))
+    if (
+        (movie_rec_key == 1 && event->param == BGMT_PRESS_HALFSHUTTER) 
+        #if !defined(CONFIG_5D2) && !defined(CONFIG_50D) // these cameras already record with SET
+        || (movie_rec_key == 2 && event->param == BGMT_PRESS_SET)
+        #endif
+        )
     {
         if (is_movie_mode() && liveview_display_idle() && !gui_menu_shown())
         {
