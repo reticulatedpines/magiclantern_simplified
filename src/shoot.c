@@ -5021,12 +5021,9 @@ void remote_shot(int wait)
 
 static void display_expsim_status()
 {
-    #ifdef CONFIG_5D2
-    return;
-    #endif
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
-    int y = 400;
+    int y = os.y_max - os.off_169 - font_med.height - 5;
     if (!expsim)
     {
         bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, " ExpSim " );
