@@ -70,7 +70,7 @@ void cropmark_clear_cache();
 void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
-
+int toggle_disp_mode();
 
 int is_zoom_mode_so_no_zebras() 
 { 
@@ -2005,7 +2005,7 @@ global_draw_display( void * priv, int x, int y, int selected )
         global_draw ? "ON " : "OFF"
     );
     if (disp_profiles_0)
-        bmp_printf(FONT(FONT_LARGE, 55, COLOR_BLACK), x + 540, y, "DISP %d", get_disp_mode());
+        bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 460, y, "%s DISP %d", selected ? "[Q]" : "   ", get_disp_mode());
     if (lv && lv_disp_mode && global_draw)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
 }
@@ -2679,6 +2679,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Global Draw",
         .priv       = &global_draw,
         .select     = menu_binary_toggle,
+        .select_Q   = toggle_disp_mode,
         .display    = global_draw_display,
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         .essential = FOR_LIVEVIEW,
@@ -3164,7 +3165,7 @@ struct menu_entry livev_cfg_menus[] = {
         .priv       = &disp_profiles_0,
         .select     = menu_quaternary_toggle,
         .display    = disp_profiles_0_display,
-        .help = "Number of LiveView display presets. Switch them with " INFO_BTN_NAME ".",
+        .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
     },
 };
 
@@ -4726,6 +4727,7 @@ TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
 
 void update_disp_mode_bits_from_params()
 {
+BMP_LOCK(
     uint32_t bits =
         (global_draw          ? 1<<0 : 0) |
         (zebra_draw           ? 1<<1 : 0) |
@@ -4747,17 +4749,15 @@ void update_disp_mode_bits_from_params()
     else if (disp_mode == 2) disp_mode_b = bits;
     else if (disp_mode == 3) disp_mode_c = bits;
     else disp_mode_x = bits;
+)
 }
 
-int update_disp_mode_params_from_bits()
+void update_disp_mode_params_from_bits()
 {
+BMP_LOCK(
     uint32_t bits = disp_mode == 1 ? disp_mode_a : 
                     disp_mode == 2 ? disp_mode_b :
                     disp_mode == 3 ? disp_mode_c : disp_mode_x;
-    
-    static uint32_t old_bits = 0xffffffff;
-    if (bits == old_bits) return 0;
-    old_bits = bits;
 
     global_draw          = bits & (1<<0) ? 1 : 0;
     zebra_draw           = bits & (1<<1) ? 1 : 0;
@@ -4773,14 +4773,15 @@ int update_disp_mode_params_from_bits()
     electronic_level     = bits & (1<<11)? 1 : 0;
     defish_preview       = bits & (1<<12)? 1 : 0;
     vectorscope_draw     = bits & (1<<13)? 1 : 0;
-    
-    return 1;
+end:
+)
 }
 
 int get_disp_mode() { return disp_mode; }
 
 int toggle_disp_mode()
 {
+    update_disp_mode_bits_from_params();
     idle_wakeup_reset_counters(-3);
     disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
     BMP_LOCK( do_disp_mode_change(); )

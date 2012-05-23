@@ -1445,7 +1445,6 @@ menu_redraw_do()
             //~ update_stuff();
             
             lens_display_set_dirty();
-            update_disp_mode_bits_from_params();
         }
 }
 
@@ -1876,6 +1875,8 @@ static void menu_close()
 { 
     if (!menu_shown) return;
     menu_shown = false;
+
+    update_disp_mode_bits_from_params();
 
     canon_gui_enable_front_buffer(0);
     lens_focus_stop();

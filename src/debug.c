@@ -114,7 +114,10 @@ int config_ok = 0;
 void
     save_config( void * priv, int delta )
 {
-    BMP_LOCK( config_save_file( CARD_DRIVE "magic.cfg" ); )
+    BMP_LOCK( 
+        update_disp_mode_bits_from_params();
+        config_save_file( CARD_DRIVE "magic.cfg" ); 
+    )
 }
 static void
 delete_config( void * priv, int delta )
