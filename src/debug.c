@@ -2394,6 +2394,7 @@ struct menu_entry debug_menus[] = {
             MENU_EOL,
         }
     },
+#if 0
     {
         .name        = "Fault emulation...",
         .select        = menu_open_submenu,
@@ -2426,6 +2427,7 @@ struct menu_entry debug_menus[] = {
             MENU_EOL,
         }
     },
+#endif
 #endif
     {
         .name = "Show tasks...",
