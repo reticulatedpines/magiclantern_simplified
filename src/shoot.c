@@ -603,17 +603,15 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
     
-    int r = zoom_x5_x10_step();
-    if (r == 0)
-    {
-        zoom_sharpen_step();
-        zoom_auto_exposure_step();
-    }
+    zoom_sharpen_step();
+    zoom_auto_exposure_step();
+    
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
 }
 
 void set_lv_zoom(int zoom)
 {
+    if (recording) return;
     zoom = COERCE(zoom, 1, 10);
     if (zoom > 1 && zoom < 10) zoom = 5;
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
@@ -2462,41 +2460,30 @@ htp_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL(htp), 0);
 }
 
-/*
+
 static void 
-zoom_display( void * priv, int x, int y, int selected )
+zoom_auto_exposure_print( void * priv, int x, int y, int selected )
 {
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV Zoom Settings    : %s%s%s %s%s",
-        zoom_disable_x5 ? "" : "x5", 
-        zoom_disable_x10 ? "" : "x10", 
-        zoom_enable_face ? ":-)" : "",
-        zoom_sharpen ? "SC++" : "",
-        zoom_halfshutter ? "HS" : ""
+        "Auto exposure on Zoom : %s",
+        zoom_auto_exposure ? "ON" : "OFF"
     );
-}*/
+    #ifndef CONFIG_5D2
+    if (zoom_auto_exposure && is_movie_mode())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in photo mode.");
+    #endif
+}
 
-static void zoom_toggle(void* priv, int delta)
+static void zoom_x5_x10_toggle(void* priv, int delta)
 {
-    // x5 x10
-    // x5
-    // x10
-    if (!zoom_disable_x5 && !zoom_disable_x10) // both enabled
+    *(int*)priv = ! *(int*)priv;
+    
+    if (zoom_disable_x5 && zoom_disable_x10) // can't disable both at the same time
     {
-        zoom_disable_x5 = 0;
-        zoom_disable_x10 = 1;
-    }
-    else if (!zoom_disable_x10)
-    {
-        zoom_disable_x5 = 0;
-        zoom_disable_x10 = 0;
-    }
-    else
-    {
-        zoom_disable_x5 = 1;
-        zoom_disable_x10 = 0;
+        if (priv == &zoom_disable_x5) zoom_disable_x10 = 0;
+        else zoom_disable_x5 = 0;
     }
 }
 
@@ -2587,7 +2574,7 @@ static void zoom_focus_ring_step()
         zoom_focus_ring_disable_time = 0;
     }
 }
-
+/*
 int zoom_x5_x10_step()
 {
     if (zoom_disable_x5 && lv_dispsize == 5)
@@ -2601,6 +2588,20 @@ int zoom_x5_x10_step()
         return 1;
     }
     return 0;
+}*/
+
+int handle_zoom_x5_x10(struct event * event)
+{
+    if (!lv) return 1;
+    if (recording) return 1;
+    if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
+    
+    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && liveview_display_idle() && !gui_menu_shown())
+    {
+        set_lv_zoom(lv_dispsize > 1 ? 1 : zoom_disable_x5 ? 10 : 5);
+        return 0;
+    }
+    return 1;
 }
 
 static void 
@@ -2680,7 +2681,7 @@ void zoom_auto_exposure_step()
                 es = expsim;
                 set_expsim(0);
             }
-            #else
+            /* #else // unstable
                 #ifndef CONFIG_50D
                 if (aem == -1)
                 {
@@ -2688,7 +2689,7 @@ void zoom_auto_exposure_step()
                     int x = 0;
                     prop_request_change(PROP_AE_MODE_MOVIE, &x, 4);
                 }
-                #endif
+                #endif */
             #endif
         }
         else // photo mode
@@ -2709,11 +2710,11 @@ void zoom_auto_exposure_step()
             task_create("restore_expsim", 0x1a, 0, restore_expsim_task, (void*)es);
             es = -1;
         }
-        if (aem >= 0)
+        /* if (aem >= 0)
         {
             prop_request_change(PROP_AE_MODE_MOVIE, &aem, 4);
             aem = -1;
-        }
+        }*/
     }
 }
 
@@ -4096,6 +4097,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .priv = &zoom_disable_x5, 
                 .max = 1,
                 .choices = (const char *[]) {"ON", "Disable"},
+                .select = zoom_x5_x10_toggle,
                 .help = "Disable x5 zoom in LiveView.",
                 .icon_type = IT_DISABLE_SOME_FEATURE,
             },
@@ -4103,6 +4105,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Zoom x10",
                 .priv = &zoom_disable_x10, 
                 .max = 1,
+                .select = zoom_x5_x10_toggle,
                 .choices = (const char *[]) {"ON", "Disable"},
                 .help = "Disable x10 zoom in LiveView.",
                 .icon_type = IT_DISABLE_SOME_FEATURE,
@@ -4120,6 +4123,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Auto exposure on Zoom ",
                 .priv = &zoom_auto_exposure,
                 .max = 1,
+                .display = zoom_auto_exposure_print,
                 .help = "Auto adjusts exposure, so you can focus manually wide open."
             },
             {
