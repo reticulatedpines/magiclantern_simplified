@@ -43,6 +43,8 @@ int menu_help_active = 0;
 int submenu_mode = 0;
 static int menu_id_increment = 1;
 
+static int hist_countdown = 3; // histogram is slow, so draw it less often
+
 void menu_close_post_delete_dialog_box();
 void menu_close_gmt();
 
@@ -1378,7 +1380,10 @@ menu_redraw_do()
                         if (prev_so) copy_zebras_from_mirror();
                         else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
                     }
-                    //~ draw_histogram_and_waveform(); // too slow
+                    if (hist_countdown == 0)
+                        draw_histogram_and_waveform(); // too slow
+                    else
+                        hist_countdown--;
                 }
                 else
                 {
@@ -1707,8 +1712,8 @@ handle_ml_menu_keys(struct event * event)
     // If we end up here, something has been changed.
     // Reset the timeout
     menu_redraw();
-
     keyrepeat_ack(button_code);
+    hist_countdown = 3;
     return 0;
 }
 

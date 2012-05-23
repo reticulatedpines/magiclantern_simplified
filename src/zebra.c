@@ -675,7 +675,7 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
             (y > sizeG ? 0 : 2) |
             (y > sizeB ? 0 : 4))
     {
-        case 0b000: return COLOR_BLACK;
+        case 0b000: return 38; // almost black
         case 0b001: return COLOR_RED;
         case 0b010: return 7; // green
         case 0b100: return 9; // strident blue
@@ -4716,7 +4716,6 @@ livev_lopriority_task( void* unused )
 
         if (!gui_menu_shown())
             draw_histogram_and_waveform(0);
-        
     }
 }
 
