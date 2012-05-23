@@ -350,7 +350,7 @@ static void draw_meters(void)
         if (gui_menu_shown() && alc_enable)
         {
                 int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
-                bmp_printf(FONT_MED, 10, 420, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
+                bmp_printf(FONT_MED, 550, 425, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
         }
 }
 
