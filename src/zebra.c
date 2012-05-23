@@ -218,7 +218,7 @@ static CONFIG_INT( "waveform.draw", waveform_draw,
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
 //~ static CONFIG_INT( "waveform.x",    waveform_x, 720 - WAVEFORM_WIDTH );
 //~ static CONFIG_INT( "waveform.y",    waveform_y, 480 - 50 - WAVEFORM_WIDTH );
-static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_BLACK ); // solid black
+static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
 
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
@@ -675,7 +675,7 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
             (y > sizeG ? 0 : 2) |
             (y > sizeB ? 0 : 4))
     {
-        case 0b000: return 38; // almost black
+        case 0b000: return COLOR_ALMOST_BLACK; // almost black
         case 0b001: return COLOR_RED;
         case 0b010: return 7; // green
         case 0b100: return 9; // strident blue

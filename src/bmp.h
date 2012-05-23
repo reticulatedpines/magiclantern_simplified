@@ -170,6 +170,7 @@ bmp_fill(
 #define COLOR_RED               0x08 // normal red
 #define COLOR_YELLOW            0x0F // normal yellow
 #define COLOR_BLACK 2
+#define COLOR_ALMOST_BLACK 38
 #define COLOR_CYAN 5
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
