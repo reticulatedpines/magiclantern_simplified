@@ -1346,7 +1346,8 @@ menu_redraw_do()
         
         if (!DISPLAY_IS_ON) return;
         if (sensor_cleaning) return;
-        
+        if (gui_state == GUISTATE_MENUDISP) return;
+
         int double_buffering = 1;
         
         if (menu_help_active)
@@ -1825,6 +1826,7 @@ void piggyback_canon_menu()
     #endif
     if (recording) return;
     if (sensor_cleaning) return;
+    if (gui_state == GUISTATE_MENUDISP) return;
     SetGUIRequestMode(GUIMODE_ML_MENU);
     msleep(100);
     menu_redraw();
@@ -1844,6 +1846,7 @@ void close_canon_menu()
     #endif
     if (recording) return;
     if (sensor_cleaning) return;
+    if (gui_state == GUISTATE_MENUDISP) return;
     SetGUIRequestMode(0);
     msleep(200);
 }
@@ -1929,6 +1932,9 @@ menu_task( void* unused )
             }
 
             if (sensor_cleaning && menu_shown)
+                menu_close();
+
+            if (gui_state == GUISTATE_MENUDISP && menu_shown)
                 menu_close();
             
             continue;
