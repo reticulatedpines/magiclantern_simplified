@@ -920,7 +920,7 @@ menu_display(
                 
                 
                 // exception for action and submenu items
-                if (icon_drawn == MNI_ACTION) 
+                if (icon_drawn == MNI_ACTION && !submenu_mode)
                 {
                     STR_APPEND(msg, "SET: run action         ");
                 }
@@ -1183,7 +1183,7 @@ menu_entry_select(
     else if (mode == 3) // SET
     {
         if (submenu_mode == 2) submenu_mode = 0;
-        else if (show_only_selected) show_only_selected = 0;
+        else if (show_only_selected && entry->icon_type != IT_ACTION) show_only_selected = 0;
         else if (entry->edit_mode == EM_FEW_VALUES) // SET increments
         {
             if( entry->select ) entry->select( entry->priv, 1);

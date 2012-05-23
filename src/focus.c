@@ -26,6 +26,8 @@ int should_override_zoom_buttons()
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
 CONFIG_INT( "focus.delay", lens_focus_delay, 1 );
 CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
+CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
+
 
 // all focus commands from this module are done with the configured step size and delay
 int LensFocus(int num_steps)
@@ -144,7 +146,8 @@ display_lens_hyperfocal(
         lens_format_dist( lens_info.hyperfocal )
     );
 
-    y += height;
+    x += 300;
+    y -= height;
     bmp_printf( font, x, y,
         "DOF Near:   %s",
         lens_format_dist( lens_info.dof_near )
@@ -407,8 +410,8 @@ focus_alter_a( void * priv, int delta )
     lens_focus_enqueue_step(delta);
 }
 
-int focus_rack_delay = 0;
 int focus_rack_auto_record = 0;
+int focus_rack_enable_delay = 1;
 
 static void
 focus_toggle( void * priv )
@@ -420,27 +423,28 @@ focus_toggle( void * priv )
     give_semaphore( focus_task_sem );
 }
 
+// called from shortcut keys (MENU/PLAY) and from LCD remote shot
 void
-    rack_focus_start_now( void * priv, int delta )
+rack_focus_start_now( void * priv, int delta )
 {
-    focus_rack_delay = 0;
     focus_rack_auto_record = 0;
+    focus_rack_enable_delay = 0;
     focus_toggle(priv);
 }
 
 static void
-    rack_focus_start_delayed( void * priv, int delta )
+rack_focus_start_delayed( void * priv, int delta )
 {
-    focus_rack_delay = 1;
     focus_rack_auto_record = 0;
+    focus_rack_enable_delay = 1;
     focus_toggle(priv);
 }
 
 static void
-    rack_focus_start_auto_record( void * priv, int delta )
+rack_focus_start_auto_record( void * priv, int delta )
 {
-    focus_rack_delay = 1;
     focus_rack_auto_record = 1;
+    focus_rack_enable_delay = 1;
     focus_toggle(priv);
 }
 
@@ -593,6 +597,18 @@ rack_focus(
     }
 }
 
+static void rack_focus_wait()
+{
+    if (focus_rack_delay && focus_rack_enable_delay)
+    {
+        wait_till_next_second();
+        for (int i = 0; i < focus_rack_delay; i++)
+        {
+            NotifyBox(2000, "Rack Focus: %d...", focus_rack_delay - i);
+            wait_till_next_second();
+        }
+    }
+}
 
 static void
 focus_task( void* unused )
@@ -621,8 +637,8 @@ focus_task( void* unused )
                     movie_start();
                 }
             }
-            if (focus_rack_delay) msleep(2000);
-
+            
+            rack_focus_wait();
             //~ gui_hide_menu( 10 );
             rack_focus(
                 lens_focus_stepsize,
@@ -633,7 +649,7 @@ focus_task( void* unused )
 
             if (movie_started_by_ml)
             {
-                msleep(2000);
+                rack_focus_wait();
                 NotifyBox(2000, "Rack Focus: REC Stop");
                 movie_end();
             }
@@ -1288,13 +1304,21 @@ static struct menu_entry focus_menu[] = {
         .help = "Press SET to fix here the end point of rack focus."
     },
     {
+        .name = "Rack Delay     ",
+        .priv    = &focus_rack_delay,
+        .max = 20,
+        .icon_type = IT_PERCENT,
+        .help = "Number of seconds before starting rack focus."
+    },
+    {
         .name = "Rack Focus",
         .priv       = "Rack focus",
         .display    = rack_focus_print,
         .select     = rack_focus_start_delayed,
-        .select_Q   = rack_focus_start_now,
+        //~ .select_Q   = rack_focus_start_now,
         .select_reverse = rack_focus_start_auto_record,
-        .help = "Rack focus: after 2s [SET], right now [Q], auto-REC [PLAY]."
+        .help = "Press SET for rack focus, or PLAY to also start recording.",
+        .icon_type = IT_ACTION,
     },
     /*{
         .name = "Focus dir",
