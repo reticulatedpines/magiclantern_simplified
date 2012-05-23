@@ -1522,6 +1522,7 @@ iso_toggle( void * priv, int sign )
     {
         i = mod(i + sign, COUNT(codes_iso));
         
+
         while (!is_round_iso(values_iso[i]))
             i = mod(i + sign, COUNT(codes_iso));
         
@@ -1644,7 +1645,11 @@ kelvin_toggle( void* priv, int sign )
         default: k = lens_info.kelvin;
     }
     k = (k/KELVIN_STEP) * KELVIN_STEP;
-    k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * KELVIN_STEP, KELVIN_MAX - KELVIN_MIN + KELVIN_STEP);
+    if (priv == (void*)-1) // no wrap around
+        k = COERCE(k + sign * KELVIN_STEP, KELVIN_MIN, KELVIN_MAX);
+    else // allow wrap around
+        k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * KELVIN_STEP, KELVIN_MAX - KELVIN_MIN + KELVIN_STEP);
+    
     lens_set_kelvin(k);
 }
 
