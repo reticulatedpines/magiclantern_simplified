@@ -40,9 +40,10 @@
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
 
-#define PACK_B(new_value, default_value) ((new_value) & 0x0000FFFF) | (((default_value) & 0x0000FFFF) << 16)
+#define PACK(lo, hi) ((lo) & 0x0000FFFF) | (((hi) & 0x0000FFFF) << 16)
 
 #define FPS_REGISTER_A_VALUE shamem_read(FPS_REGISTER_A)
+#define FPS_REGISTER_A_DEFAULT_VALUE shamem_read(FPS_REGISTER_A+4)
 #define FPS_REGISTER_B_VALUE shamem_read(FPS_REGISTER_B)
 
 static int fps_reg_a_orig = 0;
@@ -414,19 +415,6 @@ int fps_was_changed_by_canon()
     return ans;
 }
 
-// workaround for weird bug: issues 979 / 1228
-void fps_refresh_500D()
-{
-    if (!fps_override) return;
-    if (!written_value_a) return;
-    if (!written_value_b) return;
-    if (fps_was_changed_by_canon()) return;
-
-    EngDrvOut(FPS_REGISTER_A, written_value_a);
-    EngDrvOut(FPS_REGISTER_B, written_value_b);
-    EngDrvOut(0xC0F06000, 1);
-}
-
 static void fps_setup_timerB(int fps_x1000)
 {
     if (!lv) return;
@@ -458,14 +446,14 @@ static void fps_setup_timerB(int fps_x1000)
         
         // output the value to register
         timerB -= 1;
-        written_value_b = PACK_B(timerB, fps_reg_b_orig);
+        written_value_b = PACK(timerB, fps_reg_b_orig);
         EngDrvOut(FPS_REGISTER_B, written_value_b);
     #ifdef NEW_FPS_METHOD
     }
     else
     {
         fps_patch_timerB(timerB);
-        written_value_b = PACK_B(timerB-1, fps_reg_b_orig);
+        written_value_b = timerB-1;
         if (!recording) msleep(1000);
         // timer A was changed by refreshing the screen
         // timer B may not be refreshed when recording
@@ -819,6 +807,7 @@ static int fps_try_to_get_exact_freq(int fps_x1000)
             min_err = e;
             best_t = t;
         }
+        if (min_err == 0) break;
     }
     return best_t;
 }
@@ -916,9 +905,12 @@ void fps_setup_timerA(int fps_x1000)
 
     // check hard limits again
     timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
+    
+    // keep the same parity as original timer A
+    timerA = (timerA & 0xFFFE) | (fps_timer_a_orig & 1);
 
     // save setting to DIGIC register
-    int val_a = ((timerA-1) & 0x0000FFFE) | (FPS_REGISTER_A_VALUE & 0xFFFF0001);
+    int val_a = PACK(timerA-1, fps_timer_a_orig-1);
     written_value_a = val_a;
     EngDrvOut(FPS_REGISTER_A, val_a);
 }
@@ -1056,8 +1048,7 @@ static void fps_read_default_timer_values()
 {
     if (recording == 1) return;
     //~ info_led_blink(1,10,10);
-    fps_reg_a_orig = FPS_REGISTER_A_VALUE;
-    fps_reg_a_orig = (fps_reg_a_orig & 0xFFFF0000) | (fps_reg_a_orig >> 16); // lower word may be changed by ML, upper word is what we need
+    fps_reg_a_orig = FPS_REGISTER_A_DEFAULT_VALUE;
     #ifdef NEW_FPS_METHOD
     int mode = get_fps_video_mode();
     unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
@@ -1079,7 +1070,11 @@ static void fps_task()
 {
     TASK_LOOP
     {
+        #ifdef CONFIG_500D
         msleep(100);
+        #else
+        msleep(fps_override ? 20 : 100);
+        #endif
 
         //~ bmp_hexdump(FONT_SMALL, 10, 200, SENSOR_TIMING_TABLE, 32*10);
         //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
@@ -1091,6 +1086,8 @@ static void fps_task()
         fps_read_current_timer_values();
         fps_read_default_timer_values();
         
+        //~ NotifyBox(2000, "d: %d,%d. c: %d,%d ", fps_timer_a_orig, fps_timer_b_orig, fps_timer_a, fps_timer_b);
+        
         if (!fps_override) 
         {
             msleep(100);
@@ -1101,36 +1098,23 @@ static void fps_task()
             continue;
         }
 
+        int f = fps_values_x1000[fps_override_index];
         
-        if (fps_needs_updating || fps_was_changed_by_canon())
-        {
-            msleep(50);
-            int f = fps_values_x1000[fps_override_index];
-            
-            // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
-            if (f < 5000)
-                while (recording && MVR_FRAME_NUMBER < video_mode_fps) 
-                    msleep(MIN_MSLEEP);
+        // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
+        if (f < 5000)
+            while (recording && MVR_FRAME_NUMBER < video_mode_fps) 
+                msleep(MIN_MSLEEP);
 
-            fps_read_current_timer_values();
-            fps_read_default_timer_values(); // default values can be always read safely
+        fps_read_current_timer_values();
+        fps_read_default_timer_values(); // default values can be always read safely
 
-            int ta = fps_timer_a_orig;
-            int tb = fps_timer_b_orig;
-
-            fps_setup_timerA(f);
-            fps_setup_timerB(f);
-
-            msleep(50);
-            
-            fps_read_default_timer_values();
-            fps_read_current_timer_values();
-            if (fps_timer_a_orig != ta) continue;
-            if (fps_timer_b_orig != tb) continue; // video mode changed quickly? go back and try again
-
-            // apply changes
-            EngDrvOut(0xC0F06000, 1);
-        }
+        //~ info_led_on();
+        fps_setup_timerA(f);
+        fps_setup_timerB(f);
+        //~ info_led_off();
+        
+        // apply changes
+        EngDrvOut(0xC0F06000, 1);
     }
 }
 
