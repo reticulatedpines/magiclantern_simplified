@@ -5302,6 +5302,11 @@ shoot_task( void* unused )
             strobo_firing = file_number % 2;
             set_flash_firing(strobo_firing);
         }
+        
+        static int prev_flash_and_no_flash;
+        if (!flash_and_no_flash && prev_flash_and_no_flash && strobo_firing==1)
+            set_flash_firing(0);
+        prev_flash_and_no_flash = flash_and_no_flash;
         #endif
 
         #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
