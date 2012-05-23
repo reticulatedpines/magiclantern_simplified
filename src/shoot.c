@@ -5375,7 +5375,8 @@ shoot_task( void* unused )
                 if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
                 if (K > 50 && d >= (int)motion_detect_level)
                 {
-                    remote_shot(1);
+                    //~ remote_shot(1);
+                    lens_take_picture(64,1);
                     //~ msleep(trap_focus_delay);
                     K = 0;
                 }
