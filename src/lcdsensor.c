@@ -116,7 +116,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 void lcd_release_step() // to be called from shoot_task
 {
     extern int lcd_sensor_wakeup;
-    if ((lcd_sensor_shortcuts || lcd_sensor_wakeup || get_follow_focus_mode()==1) && (lv || PLAY_MODE) && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
+    if ((lcd_release_running || lcd_sensor_shortcuts || lcd_sensor_wakeup || get_follow_focus_mode()==1) && (lv || PLAY_MODE) && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
     {
         fake_simple_button(MLEV_LCD_SENSOR_START); // look at this***
         msleep(500);
