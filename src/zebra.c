@@ -827,56 +827,58 @@ waveform_draw_image(
 
     // vertical line up to the hist size
     for (int k = 0; k < WAVEFORM_FACTOR; k++)
-    for( y=WAVEFORM_HEIGHT-1 ; y>=0 ; y-- )
     {
-        uint8_t * row = bvram + x_origin + (y_origin + y * height / WAVEFORM_HEIGHT + k) * pitch;
-        //int y_next = (y-1) * height / WAVEFORM_HEIGHT;
-        uint32_t pixel = 0;
-        int w = WAVEFORM_WIDTH*WAVEFORM_FACTOR;
-        for( i=0 ; i<w ; i++ )
+        for( y=WAVEFORM_HEIGHT-1 ; y>=0 ; y-- )
         {
-            uint32_t count = WAVEFORM_UNSAFE( i / WAVEFORM_FACTOR, WAVEFORM_HEIGHT - y - 1);
-            if (height < WAVEFORM_HEIGHT)
-            { // smooth it a bit to reduce aliasing; not perfect, but works.. sort of
-                count += WAVEFORM_UNSAFE( i / WAVEFORM_FACTOR, WAVEFORM_HEIGHT - y - 1);
-                //~ count /= 2;
+            uint8_t * row = bvram + x_origin + (y_origin + y * height / WAVEFORM_HEIGHT + k) * pitch;
+            //int y_next = (y-1) * height / WAVEFORM_HEIGHT;
+            uint32_t pixel = 0;
+            int w = WAVEFORM_WIDTH*WAVEFORM_FACTOR;
+            for( i=0 ; i<w; i++ )
+            {
+                uint32_t count = WAVEFORM_UNSAFE( i / WAVEFORM_FACTOR, WAVEFORM_HEIGHT - y - 1);
+                if (height < WAVEFORM_HEIGHT)
+                { // smooth it a bit to reduce aliasing; not perfect, but works.. sort of
+                    count += WAVEFORM_UNSAFE( i / WAVEFORM_FACTOR, WAVEFORM_HEIGHT - y - 1);
+                    //~ count /= 2;
+                }
+                // Scale to a grayscale
+                count = (count * 42) / 128;
+                if( count > 42 - 5 )
+                    count = COLOR_RED;
+                else
+                if( count >  0 )
+                    count += 38 + 5;
+                else
+                // Draw a series of colored scales
+                if( y == (WAVEFORM_HEIGHT*1)/4 )
+                    count = COLOR_BLUE;
+                else
+                if( y == (WAVEFORM_HEIGHT*2)/4 )
+                    count = 0xE; // pink
+                else
+                if( y == (WAVEFORM_HEIGHT*3)/4 )
+                    count = COLOR_BLUE;
+                else
+                    count = waveform_bg; // transparent
+
+                pixel |= (count << ((i & 3)<<3));
+
+                if( (i & 3) != 3 )
+                    continue;
+
+                // Draw the pixel, rounding down to the nearest
+                // quad word write (and then nop to avoid err70).
+                *(uint32_t*)( row + (i & ~3) ) = pixel;
+                //~ asm( "nop" );
+                //~ asm( "nop" );
+                //~ asm( "nop" );
+                //~ asm( "nop" );
+                pixel = 0;
             }
-            // Scale to a grayscale
-            count = (count * 42) / 128;
-            if( count > 42 - 5 )
-                count = COLOR_RED;
-            else
-            if( count >  0 )
-                count += 38 + 5;
-            else
-            // Draw a series of colored scales
-            if( y == (WAVEFORM_HEIGHT*1)/4 )
-                count = COLOR_BLUE;
-            else
-            if( y == (WAVEFORM_HEIGHT*2)/4 )
-                count = 0xE; // pink
-            else
-            if( y == (WAVEFORM_HEIGHT*3)/4 )
-                count = COLOR_BLUE;
-            else
-                count = waveform_bg; // transparent
-
-            pixel |= (count << ((i & 3)<<3));
-
-            if( (i & 3) != 3 )
-                continue;
-
-            // Draw the pixel, rounding down to the nearest
-            // quad word write (and then nop to avoid err70).
-            *(uint32_t*)( row + (i & ~3) ) = pixel;
-            //~ asm( "nop" );
-            //~ asm( "nop" );
-            //~ asm( "nop" );
-            //~ asm( "nop" );
-            pixel = 0;
         }
+        bmp_draw_rect(60, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
     }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
 }
 
 
@@ -4701,8 +4703,11 @@ livev_lopriority_task( void* unused )
         loprio_sleep();
         if (!zebra_should_run())
         {
-            if (WAVEFORM_FULLSCREEN && liveview_display_idle() && get_global_draw() && !is_zoom_mode_so_no_zebras())
-                draw_histogram_and_waveform(0);
+            if (WAVEFORM_FULLSCREEN && liveview_display_idle() && get_global_draw() && !is_zoom_mode_so_no_zebras() && !gui_menu_shown())
+            {
+                if (get_halfshutter_pressed()) clrscr();
+                else draw_histogram_and_waveform(0);
+            }
             continue;
         }
 
