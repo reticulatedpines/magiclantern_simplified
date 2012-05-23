@@ -1515,7 +1515,7 @@ static int keyrep_countdown = 4;
 static int keyrep_ack = 1;
 int handle_ml_menu_keyrepeat(struct event * event)
 {
-    if (menu_shown)
+    //~ if (menu_shown || arrow_keys_shortcuts_active())
     {
         switch(event->param)
         {
@@ -1542,11 +1542,18 @@ int handle_ml_menu_keyrepeat(struct event * event)
     return 1;
 }
 
+void keyrepeat_ack(int button_code)
+{
+    if (button_code == keyrepeat) keyrep_ack = 1;
+}
+
 int
 handle_ml_menu_keys(struct event * event) 
 {
+    if (menu_shown || arrow_keys_shortcuts_active())
+        handle_ml_menu_keyrepeat(event);
+
     if (!menu_shown) return 1;
-    handle_ml_menu_keyrepeat(event);
     
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
@@ -1702,8 +1709,7 @@ handle_ml_menu_keys(struct event * event)
     // Reset the timeout
     menu_redraw();
 
-    if (button_code == keyrepeat) keyrep_ack = 1;
-
+    keyrepeat_ack(button_code);
     return 0;
 }
 
@@ -1904,10 +1910,18 @@ menu_task( void* unused )
     select_menu_by_icon(menu_first_by_icon);
     TASK_LOOP
     {
-        int dt = (menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 30, 100) : 500;
+        int menu_or_shortcut_menu_shown = (menu_shown || arrow_keys_shortcuts_active());
+        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : 500;
         int rc = take_semaphore( gui_sem, dt );
         if( rc != 0 )
         {
+            if (keyrepeat && menu_or_shortcut_menu_shown)
+            {
+                keyrep_countdown--;
+                if (keyrep_countdown <= 0 && keyrep_ack) { keyrep_ack = 0; fake_simple_button(keyrepeat); }
+                continue;
+            }
+
             // We woke up after 1 second
             if( !menu_shown )
             {
@@ -1917,13 +1931,6 @@ menu_task( void* unused )
                     save_config(0);
                     config_dirty = 0;
                 }
-                continue;
-            }
-
-            if (keyrepeat)
-            {
-                keyrep_countdown--;
-                if (keyrep_countdown <= 0 && keyrep_ack) { keyrep_ack = 0; fake_simple_button(keyrepeat); }
                 continue;
             }
 
