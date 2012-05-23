@@ -3866,6 +3866,7 @@ BMP_LOCK(
 int should_draw_bottom_graphs()
 {
     if (!lv) return 0;
+    if (gui_menu_shown()) return 0;
     int screen_layout = get_screen_layout();
     if (screen_layout == SCREENLAYOUT_4_3 && lv_disp_mode == 0) return 1;
     return 0;
