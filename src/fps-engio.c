@@ -311,6 +311,10 @@ int get_current_shutter_reciprocal_x1000()
 // otherwise recording is not stable
 //--------------------------------------------------------
 static int old_sound_recording_mode = -1;
+int was_sound_recording_disabled_by_fps_override()
+{
+    return old_sound_recording_mode != -1;
+}
 
 static void set_sound_recording(int x)
 {

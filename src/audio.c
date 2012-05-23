@@ -1002,7 +1002,16 @@ static void
     audio_configure( 1 );
 }
 
-
+static void check_sound_recording_warning(int x, int y)
+{
+    if (!SOUND_RECORDING_ENABLED) 
+    {
+        if (was_sound_recording_disabled_by_fps_override())
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
+        else
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+    }
+}
 
 
 static void
@@ -1021,7 +1030,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
                "Analog Gain   : %d dB",
                mgain_index2gain(gain_index)
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
         menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
 
@@ -1063,7 +1072,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                priv == &dgain_l ? "L" : "R",
                val
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
         if (!alc_enable) menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
         else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
 }
@@ -1079,7 +1088,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                "Output volume : %d dB",
                2 * *(unsigned*) priv
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
         if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
         else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
@@ -1094,7 +1103,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
                "Audio Meters  : %s",
                v ? "ON" : "OFF"
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
         menu_draw_icon(x, y, MNI_BOOL_GDR(v));
 }
 
@@ -1129,7 +1138,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
                "AGC           : %s",
                alc_enable ? "ON " : "OFF"
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
 }
 
 static const char* get_audio_input_string()
@@ -1152,7 +1161,7 @@ audio_input_display( void * priv, int x, int y, int selected )
                "Input Source  : %s", 
                get_audio_input_string()
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
         menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
 }
 static void
@@ -1188,7 +1197,7 @@ void audio_filters_display( void * priv, int x, int y, int selected )
          "Wind Filter   : %s",
          enable_filters ? "ON" : "OFF"
      );
-    if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+    check_sound_recording_warning(x, y);
 }
 
 /*
@@ -1224,7 +1233,7 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
                "Headphone Mon.: %s",
                audio_monitoring ? "ON" : "OFF"
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
 }
 
 static void
@@ -1237,7 +1246,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
                "Mic Power     : %s",
                mic_pow ? "ON (Low Z)" : "OFF (High Z)"
                );
-        if (!SOUND_RECORDING_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+        check_sound_recording_warning(x, y);
         if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic.");
 }
 
