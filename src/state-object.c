@@ -84,9 +84,6 @@ static void vsync_func() // called once per frame.. in theory :)
     
     digic_iso_step();
     image_effects_step();
-    #ifdef CONFIG_500D
-    fps_refresh_500D();
-    #endif
 
     if (lv_should_pause_updating)
     {
