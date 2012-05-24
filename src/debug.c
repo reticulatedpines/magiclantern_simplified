@@ -27,6 +27,16 @@
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 
+static struct semaphore * beep_sem = 0;
+static struct semaphore * config_save_sem = 0;
+
+void debug_init_func()
+{
+    beep_sem = create_named_semaphore("beep_sem",1);
+    config_save_sem = create_named_semaphore("config_save_sem",1);
+}
+INIT_FUNC("debug", debug_init_func);
+
 void Beep();
 void NormalDisplay();
 void MirrorDisplay();
@@ -111,13 +121,14 @@ void info_led_blink(int times, int delay_on, int delay_off)
 
 int config_ok = 0;
 
+// this can be called from more tasks (gui, prop handler, menu), so it needs to be thread safe
 void
-    save_config( void * priv, int delta )
+save_config( void * priv, int delta )
 {
-    BMP_LOCK( 
-        update_disp_mode_bits_from_params();
-        config_save_file( CARD_DRIVE "magic.cfg" ); 
-    )
+    take_semaphore(config_save_sem, 0);
+    update_disp_mode_bits_from_params();
+    config_save_file( CARD_DRIVE "magic.cfg" ); 
+    give_semaphore(config_save_sem);
 }
 static void
 delete_config( void * priv, int delta )
@@ -187,12 +198,9 @@ static void dump_rom(void* priv)
 }
 #endif
 
+
 void unsafe_beep()
 {
-    // just to make sure it's thread safe
-    static struct semaphore * beep_sem = 0;
-    if (beep_sem == 0) beep_sem = create_named_semaphore("beep_sem",1);
-    
     take_semaphore(beep_sem, 0);
     call("StartPlayWaveData");
     msleep(100);
