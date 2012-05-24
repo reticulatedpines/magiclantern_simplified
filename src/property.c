@@ -27,6 +27,7 @@ static void global_token_handler( void * token)
     global_token = token;
 }
 
+int current_prop_handler = 0;
 
 static void *
 global_property_handler(
@@ -47,7 +48,9 @@ global_property_handler(
         if (handler->property == property)
         {
             //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x...", property, handler->handler);
+            current_prop_handler = property;
             handler->handler(property, priv, buf, len);
+            current_prop_handler = 0;
             //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x :)", property, handler->handler);
         }
     }
