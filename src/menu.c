@@ -1837,6 +1837,7 @@ void piggyback_canon_menu()
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
+    NotifyBoxHide();
     SetGUIRequestMode(GUIMODE_ML_MENU);
     msleep(100);
     menu_redraw();
