@@ -4540,7 +4540,11 @@ livev_hipriority_task( void* unused )
             }
             else
             {
+                #ifdef CONFIG_5D3
+                BMP_LOCK( if (lv) draw_zebra_and_focus(1,1) ) // DIGIC 5 has more CPU power
+                #else
                 BMP_LOCK( if (lv) draw_zebra_and_focus(k % (zebra_colorspace ? 4 : 2) == 1, k % 2 == 0); )
+                #endif
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }

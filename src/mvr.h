@@ -25,3 +25,7 @@
 #ifdef CONFIG_5D2
 #include "../platform/5D2.212/mvr.h"
 #endif
+
+#ifdef CONFIG_5D3
+#include "../platform/5D3.112/mvr.h"
+#endif
