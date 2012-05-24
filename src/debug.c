@@ -543,8 +543,15 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(1000);
+    beep();
     PauseLiveView();
+    beep();
+
+    msleep(3000);
+
+    beep();
+    ResumeLiveView();
+    beep();
 
     //~ prop_dump();
     //~ bulb_take_pic(125);
@@ -1717,6 +1724,24 @@ void save_crash_log()
 
 }
 
+// don't do anything else here, to avoid lockups
+void crash_log_task()
+{
+    TASK_LOOP
+    {
+        if (crash_log_requested)
+        {
+            beep();
+            save_crash_log();
+            crash_log_requested = 0;
+        }
+        msleep(200);
+    }
+}
+
+TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x1000);
+
+
 int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
@@ -1829,12 +1854,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
-        
-        if (crash_log_requested)
-        {
-            save_crash_log();
-            crash_log_requested = 0;
-        }
         
         msleep(200);
     }
@@ -2750,7 +2769,6 @@ debug_init_stuff( void )
 
 //~ TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
 TASK_CREATE( "debug_task", debug_loop_task, 0, 0x1e, 0x2000 );
-
 //~ CONFIG_INT( "debug.timed-start",    timed_start, 0 );
 /*
 static void
