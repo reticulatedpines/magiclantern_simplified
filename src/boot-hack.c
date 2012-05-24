@@ -399,7 +399,7 @@ void ml_assert_handler(char* msg, char* file, int line, char* func)
 {
     snprintf(assert_msg, sizeof(assert_msg), 
         "ML ASSERT:\n%s\n"
-        "at %s:%d (%s)", msg, file, line, func);
+        "at %s:%d (%s), task %s", msg, file, line, func, get_task_name_from_id(get_current_task));
     request_crash_log(2);
 }
 

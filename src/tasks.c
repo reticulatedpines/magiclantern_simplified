@@ -38,7 +38,7 @@ char* get_task_name_from_id(int id)
     struct task_attr_str task_attr;
     int r = is_taskid_valid(1, c, &task_attr); // ok
     if (r==0) {
-      r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
+      //~ r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
       if (task_attr.name!=0) name=task_attr.name;
       else name="?";
     }
@@ -133,24 +133,27 @@ static int task_helding_bmp_lock = 0;
 
 int CheckBmpAcquireRecursiveLock(void* lock)
 {
-    int wait = 500;
+    int wait = 2000;
     int r;
     while (r = AcquireRecursiveLock(lock, wait))
     {
-        info_led_blink(5,50,50);
         char msg[50];
-        snprintf(msg, sizeof(msg), "RLock: %d %s", task_helding_bmp_lock, get_task_name_from_id(task_helding_bmp_lock));
-        bfnt_puts(msg, 50, 50, COLOR_WHITE, COLOR_BLACK);
+        snprintf(msg, sizeof(msg), "%s: RLock held by %s  ", get_task_name_from_id(get_current_task()), get_task_name_from_id(task_helding_bmp_lock));//, get_task_name_from_id(task_helding_bmp_lock));
+        int x = 100;
+        bmp_puts(FONT_MED, &x, &x, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
-        wait = 0; // at next iteration wait forever, no more logs needed
+        wait = 0;
     }
     task_helding_bmp_lock = ((int)get_current_task()) & 0xFF;
-    return 0;
+    return r;
 }
 
 int CheckBmpReleaseRecursiveLock(void* lock)
 {
     int r = ReleaseRecursiveLock(lock);
-    task_helding_bmp_lock = 0;
+    //~ task_helding_bmp_lock = -1;
+    //~ char msg[50] = "                  ";
+    //~ int x = 100;
+    //~ bmp_puts(FONT_LARGE, &x, &x, msg);
     return r;
 }

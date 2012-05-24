@@ -1739,7 +1739,7 @@ void crash_log_task()
     {
         if (crash_log_requested)
         {
-            beep();
+            //~ beep();
             save_crash_log();
             crash_log_requested = 0;
         }
