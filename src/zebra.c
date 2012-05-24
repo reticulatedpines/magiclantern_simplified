@@ -33,8 +33,6 @@
 #include "gui.h"
 #include "lens.h"
 
-#define LV_LUMA_IS_ACCURATE (expsim || CONTROL_BV) // true if LV image reflects accurate luma of the final picture / video
-
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
@@ -79,6 +77,17 @@ int is_zoom_mode_so_no_zebras()
     
     return 1;
 }
+
+// true if LV image reflects accurate luma of the final picture / video
+int lv_luma_is_accurate()
+{
+    if (is_movie_mode()) return 1;
+    
+    extern int digic_iso_gain_photo;
+    return expsim && digic_iso_gain_photo == 1024;
+}
+
+
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
@@ -724,7 +733,7 @@ hist_draw_image(
 {
     if (!PLAY_OR_QR_MODE)
     {
-        if (!LV_LUMA_IS_ACCURATE) return;
+        if (!lv_luma_is_accurate()) return;
     }
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
@@ -812,7 +821,7 @@ waveform_draw_image(
 {
     if (!PLAY_OR_QR_MODE)
     {
-        if (!LV_LUMA_IS_ACCURATE) return;
+        if (!lv_luma_is_accurate()) return;
     }
 
     // Ensure that x_origin is quad-word aligned
@@ -1193,7 +1202,7 @@ draw_zebra_and_focus( int Z, int F )
     if (!bvram) return 0;
     if (!bvram_mirror) return 0;
     
-    int zd = Z && zebra_draw && (LV_LUMA_IS_ACCURATE || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
+    int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
     if (zd)
     {
         int zlh = zebra_level_hi * 255 / 100;
@@ -2287,7 +2296,7 @@ static void spotmeter_step()
     //~ if (!lv) return;
     if (!PLAY_OR_QR_MODE)
     {
-        if (!LV_LUMA_IS_ACCURATE) return;
+        if (!lv_luma_is_accurate()) return;
     }
     struct vram_info *  vram = get_yuv422_vram();
 

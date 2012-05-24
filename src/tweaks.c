@@ -376,7 +376,9 @@ void adjust_backlight_level(int delta)
         }
         if (delta > 0 && backlight_level == 7) // backlight at maximum, increase display gain
         {
+            int oldG = 0;
             if (G < 7) digic_iso_toggle(0, 1);
+            if (oldG == 0) redraw(); // cleanup exposure tools, they are no longer valid
             show_display_gain_level();
             return;
         }
