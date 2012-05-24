@@ -792,6 +792,7 @@ hist_draw_image(
 
 void hist_highlight(int level)
 {
+    get_yuv422_vram();
     hist_draw_image( os.x_max - hist_width, os.y0 + 100, level );
 }
 
@@ -3183,6 +3184,7 @@ void cropmark_draw_from_cache()
 {
     uint8_t* B = bmp_vram();
     uint8_t* M = get_bvram_mirror();
+    get_yuv422_vram();
     ASSERT(B);
     ASSERT(M);
     
@@ -3205,6 +3207,7 @@ void copy_zebras_from_mirror()
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     ASSERT(B);
     ASSERT(M);
+    get_yuv422_vram();
     for (int i = os.y0; i < os.y_max; i++)
     {
         for (int j = os.x0; j < os.x_max; j+=4)
@@ -3880,6 +3883,8 @@ void draw_histogram_and_waveform(int allow_play)
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     
+    get_yuv422_vram();
+
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
@@ -4167,6 +4172,7 @@ static void idle_kill_flicker()
 {
     if (!canon_gui_front_buffer_disabled())
     {
+        get_yuv422_vram();
         canon_gui_disable_front_buffer();
         clrscr();
         if (is_movie_mode())
@@ -4446,6 +4452,7 @@ void lens_display_set_dirty()
 
 void draw_cropmark_area()
 {
+    get_yuv422_vram();
     bmp_draw_rect(COLOR_BLUE, os.x0, os.y0, os.x_ex, os.y_ex);
     draw_line(os.x0, os.y0, os.x_max, os.y_max, COLOR_BLUE);
     draw_line(os.x0, os.y_max, os.x_max, os.y0, COLOR_BLUE);
@@ -4622,6 +4629,7 @@ static void black_bars()
     if (!is_movie_mode()) return;
     int i,j;
     uint8_t * const bvram = bmp_vram();
+    get_yuv422_vram();
     ASSERT(bvram);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
@@ -4646,6 +4654,7 @@ static void default_movie_cropmarks()
     #endif
     int i,j;
     uint8_t * const bvram_mirror = get_bvram_mirror();
+    get_yuv422_vram();
     ASSERT(bvram_mirror);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
     {
@@ -4665,6 +4674,7 @@ static void black_bars_16x9()
 #ifdef CONFIG_KILL_FLICKER
     if (!get_global_draw()) return;
     if (!is_movie_mode()) return;
+    get_yuv422_vram();
     if (video_mode_resolution > 1)
     {
         int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
@@ -4935,6 +4945,7 @@ static void show_overlay()
     //~ struct vram_info * vram = get_yuv422_vram();
     //~ uint8_t * const lvram = vram->vram;
     //~ int lvpitch = YUV422_LV_PITCH;
+    get_yuv422_vram();
     uint8_t * const bvram = bmp_vram_real();
     if (!bvram) return;
     #define BMPPITCH 960

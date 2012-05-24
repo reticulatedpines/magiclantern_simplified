@@ -415,8 +415,11 @@ struct vram_info * get_yuv422_vram()
 {
     if (vram_params_dirty)
     {
-        BMP_LOCK( update_vram_params(); )
-        vram_params_dirty = 0;
+        BMP_LOCK( 
+            if (vram_params_dirty) 
+                update_vram_params(); 
+            vram_params_dirty = 0;
+        )
     }
 
     #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip

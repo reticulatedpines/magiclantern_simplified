@@ -444,6 +444,8 @@ void clear_lv_afframe()
     if (gui_menu_shown()) return;
     if (lv_dispsize != 1) return;
     int xaf,yaf;
+    
+    get_yuv422_vram();
 
     uint8_t* M = (uint8_t*)get_bvram_mirror();
     if (!M) return;
@@ -1296,6 +1298,8 @@ void display_shortcut_key_hints_lv()
     else if (!mode && is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && !lcd) mode = 10;
     if (mode == 0 && old_mode == 0) return;
     
+    get_yuv422_vram();
+    
     int x0 = os.x0 + os.x_ex/2;
     int y0 = os.y0 + os.y_ex/2;
 
@@ -1551,6 +1555,7 @@ static void upside_down_step()
     {
         if (!gui_menu_shown())
         {
+            get_yuv422_vram();
             bmp_draw_to_idle(1);
             canon_gui_disable_front_buffer();
             int voffset = (lv || PLAY_MODE || QR_MODE) ? (os.y0 + os.y_ex/2 - vram_bm.height/2) * 2 : 0;

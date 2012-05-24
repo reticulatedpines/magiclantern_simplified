@@ -5030,6 +5030,7 @@ void remote_shot(int wait)
 
 static void display_expsim_status()
 {
+    get_yuv422_vram();
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
     int y = os.y_max - os.off_169 - font_med.height - 5;

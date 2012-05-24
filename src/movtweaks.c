@@ -645,7 +645,9 @@ void rec_notify_continuous(int called_from_menu)
 
     if (!zebra_should_run()) return;
     if (gui_menu_shown() && !called_from_menu) return;
-    
+
+    get_yuv422_vram();
+
     static int prev = 0;
     
     if (rec_notify == 1)
