@@ -101,7 +101,6 @@ int handle_common_events_by_feature(struct event * event)
     if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
     
     if (handle_buttons_being_held(event) == 0) return 0;
-    if (handle_trap_focus(event) == 0) return 0;
     //~ if (handle_morse_keys(event) == 0) return 0;
     
     #if !defined(CONFIG_1100D) // those cameras use a different button for ML menu
@@ -121,6 +120,8 @@ int handle_common_events_by_feature(struct event * event)
     //~ #endif
     
     if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+
+    if (handle_trap_focus(event) == 0) return 0;
 
     if (handle_follow_focus(event) == 0) return 0;
     if (handle_zoom_overlay(event) == 0) return 0;
