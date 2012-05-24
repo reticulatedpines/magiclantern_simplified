@@ -39,6 +39,7 @@
 #define SIG_60D_110  0xac958a1e // from FF010000
 #define SIG_550D_109 0x851320e6 // from FF010000
 #define SIG_600D_102 0x27fc03de // from FF010000
+#define SIG_600D_101 0x290106d8 // from FF010000 // firmwares are identical
 #define SIG_500D_110 0x4c0e5a7e // from FF010000
 #define SIG_50D_109  0x4673ef59 // from FF010000
 #define SIG_500D_111 0x44f49aef // from FF010000
@@ -132,7 +133,8 @@ static int guess_firmware_version()
             blob_end = &blob_end_60;
             RESTARTSTART = (void*)RESTARTSTART_60;
             return 1;
-        case SIG_600D_102:
+        case SIG_600D_101:
+        case SIG_600D_102: // firmwares are identical
             blob_start = &blob_start_600;
             blob_end = &blob_end_600;
             RESTARTSTART = (void*)RESTARTSTART_600;
