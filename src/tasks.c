@@ -136,11 +136,12 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line)
     char* task_name = get_task_name_from_id(get_current_task());
     
     // just a warning, sometimes we can't get without it (e.g. at redraw), but it's best to avoid
+    /*
     if (streq(task_name, "GuiMainTask"))
     {
         int x = 100;
         bmp_puts(FONT_MED, &x, &x, "BMP_LOCK GMT");
-    }
+    }*/
     
     // this is really bad - don't ever try to block property handling task!
     if (streq(task_name, "PropMgr"))
@@ -150,6 +151,8 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line)
         snprintf(msg, sizeof(msg), "BMP_LOCK PROP %x!!!", current_prop_handler);
         int x = 100;
         bmp_puts(FONT_MED, &x, &x, msg);
+        beep();
+        info_led_blink(20,50,50);
         ASSERT(0);
     }
 
