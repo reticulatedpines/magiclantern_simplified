@@ -4753,7 +4753,7 @@ TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
 
 void update_disp_mode_bits_from_params()
 {
-BMP_LOCK(
+//~ BMP_LOCK(
     uint32_t bits =
         (global_draw          ? 1<<0 : 0) |
         (zebra_draw           ? 1<<1 : 0) |
@@ -4775,12 +4775,12 @@ BMP_LOCK(
     else if (disp_mode == 2) disp_mode_b = bits;
     else if (disp_mode == 3) disp_mode_c = bits;
     else disp_mode_x = bits;
-)
+//~ )
 }
 
 void update_disp_mode_params_from_bits()
 {
-BMP_LOCK(
+//~ BMP_LOCK(
     uint32_t bits = disp_mode == 1 ? disp_mode_a : 
                     disp_mode == 2 ? disp_mode_b :
                     disp_mode == 3 ? disp_mode_c : disp_mode_x;
@@ -4799,8 +4799,8 @@ BMP_LOCK(
     electronic_level     = bits & (1<<11)? 1 : 0;
     defish_preview       = bits & (1<<12)? 1 : 0;
     vectorscope_draw     = bits & (1<<13)? 1 : 0;
-end:
-)
+//~ end:
+//~ )
 }
 
 int get_disp_mode() { return disp_mode; }
@@ -4829,7 +4829,7 @@ static void do_disp_mode_change()
     idle_globaldraw_dis();
     //~ redraw();
     bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, "Display preset: %d", disp_mode);
-    msleep(350);
+    msleep(250);
     idle_globaldraw_en();
     update_disp_mode_params_from_bits();
     redraw();
