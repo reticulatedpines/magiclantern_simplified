@@ -97,7 +97,7 @@ void bitrate_set()
     if (recording) return; 
 
 #ifdef CONFIG_5D3
-    MEM(0x27880) = bitrate * 10000000;
+    //~ MEM(0x27880) = bitrate * 10000000;
     return;
 #endif
     
@@ -423,15 +423,28 @@ void show_mvr_buffer_status()
     if (recording && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 
-
+static void load_h264_ini()
+{
+    gui_stop_menu();
+    call("IVAParamMode", CARD_DRIVE "H264.ini");
+    NotifyBox(2000, "%s", 0x4da10);
+}
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_5D3
-    {
+/*    {
         .name = "Bit Rate     ",
         .priv = &bitrate,
         .min = 1,
         .max = 20,
         .help = "H.264 bitrate. One unit = 10 mb/s."
+    },*/
+    {
+        .name = "Load H264.ini     ",
+        //~ .priv = &bitrate,
+        //~ .min = 1,
+        //~ .max = 20,
+        .select = load_h264_ini,
+        .help = "Bitrate settings"
     },
 #else
     {

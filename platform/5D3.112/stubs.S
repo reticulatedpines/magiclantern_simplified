@@ -157,7 +157,7 @@ NSTUB(0xff4b68bc, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
 	//NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
-	//NSTUB(0xff8168c0, get_current_task)
+NSTUB(0xff9e1414 - RAM_OFFSET, get_current_task)
 
 NSTUB(0x4157c, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
