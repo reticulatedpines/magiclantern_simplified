@@ -80,8 +80,30 @@ def convert_422_hires(input, output):
             IM.paste(im, (j*im.size[0], i*im.size[1]))
         print
     IM.save(output, quality=100)
-    
-    
+
+resolutions = [ # from vram.c
+    (1120, 746),  # 5D2, 5x
+    (1872, 1080), # 5D2, REC
+    (1024, 680),  # 5D2/50D standby
+    (1560, 884),  # 50D REC
+    (944, 632),   # 500D 5x
+    (928, 616),   # 500D photo
+    (1576, 1048), # 500D 1080p
+    (1576, 632),  # 500D 720p
+    (720, 480),   # 500D 480p, normal LV buffer
+    (1056, 704),  # 550D/60D photo/stby
+    (1720, 974),  # 550D/60D 1080p
+    (1280, 580),  # 550D/60D 720p
+    (640, 480),   # obvious :P
+    (1024, 680),  # 550D/60D 480p stby
+    (1056, 756),  # 600D USB
+    (1728, 972),  # 600D REC 3x
+    (1680, 945),  # 600D REC 1x
+    (1280, 560),  # 600D 720p
+    (1152, 768),  # 5D3 5x
+    (1904, 1270), # 5D3 1x
+]
+
 def convert_422_bmp(input, output):
     print "Converting %s to %s..." % (input, output)
     
@@ -90,39 +112,15 @@ def convert_422_bmp(input, output):
     u = data[0::4]
     v = data[2::4]
 
-    if len(data) == 1056*704*2: # 1MP 3:2 LV image
-        w, h = 1056, 704
-    elif len(data) == 1720*974*2: # 2MP 16:9
-        w, h = 1720, 974
-    elif len(data) == 580*580*2:
-        w, h = 580, 580
-    elif len(data) == 1280*580*2:
-        w, h = 1280, 580
-    elif len(data) == 640*480*2:
-        w, h = 640, 480
-    elif len(data) == 1024*680*2:
-        w, h = 1024, 680
-    elif len(data) == 512*340*2:
-        w, h = 512, 340
-    elif len(data) == 720*480*2:
-        w, h = 720, 480
-    elif len(data) == 1680*945*2:
-        w, h = 1680, 945
-    elif len(data) == 1280*720*2:
-        w, h = 1280, 720
-    #silent pic resolutions for 500d:
-    elif len(data) == 928*616*2:        #1.1MP from HD buffer in LV
-        w, h = 928, 616
-    elif len(data) == 1576*1048*2:      #3.3MP from HD buffer in 1080p mode (same size recording and idle)
-        w, h = 1576, 1048
-    elif len(data) == 1120*746*2:
-        w, h = 1120, 746                # zoom mode (5x, 10x) on 5D2
-    elif len(data) == 1872*1080*2:
-        w, h = 1872, 1080               # REC on 5D2
-    elif len(data) == 1904*1270*2:      # standby on 5D3
-        w, h = 1904, 1270               # REC on 5D2
-    
-    elif len(data) % 1024*680*2 == 0:
+    found = 0
+    for w,h in resolutions:
+        if len(data) == w*h*2:
+            found = 1
+            break
+
+    if found:
+        pass 
+    elif len(data) % (1024*680*2) == 0:
         return convert_422_hires(input,output)
     else:
         raise Exception, "unknown image size: %d" % len(data)
