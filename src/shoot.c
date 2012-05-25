@@ -5334,7 +5334,7 @@ shoot_task( void* unused )
         #endif
         
         // trap focus (outside LV) and all the preconditions
-        int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running;
+        int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
 
         // same for motion detect
         int mdx = motion_detect && liveview_display_idle() && !recording;
