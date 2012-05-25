@@ -46,6 +46,16 @@
 #define FPS_REGISTER_A_DEFAULT_VALUE shamem_read(FPS_REGISTER_A+4)
 #define FPS_REGISTER_B_VALUE shamem_read(FPS_REGISTER_B)
 
+void SafeEngDrvOut(int reg, int val)
+{
+    if (!lv) return;
+    if (!DISPLAY_IS_ON) return;
+    if (lens_info.job_state) return;
+    if (ml_shutdown_requested) return;
+    EngDrvOut(reg, val);
+}
+
+
 static int fps_reg_a_orig = 0;
 static int fps_reg_b_orig = 0;
 
@@ -447,7 +457,7 @@ static void fps_setup_timerB(int fps_x1000)
         // output the value to register
         timerB -= 1;
         written_value_b = PACK(timerB, fps_reg_b_orig);
-        EngDrvOut(FPS_REGISTER_B, written_value_b);
+        SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
     #ifdef NEW_FPS_METHOD
     }
     else
@@ -457,10 +467,13 @@ static void fps_setup_timerB(int fps_x1000)
         if (!recording) msleep(1000);
         // timer A was changed by refreshing the screen
         // timer B may not be refreshed when recording
-        EngDrvOut(FPS_REGISTER_A, written_value_a);
-        EngDrvOut(FPS_REGISTER_B, written_value_b);
+        SafeEngDrvOut(FPS_REGISTER_A, written_value_a);
+        SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
     }
     #endif
+
+    // apply changes
+    SafeEngDrvOut(0xC0F06000, 1);
 
     // take care of sound settings to prevent recording from stopping
     update_sound_recording();
@@ -607,9 +620,9 @@ static void fps_register_reset()
     {
         written_value_a = 0;
         written_value_b = 0;
-        EngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
-        EngDrvOut(FPS_REGISTER_B, fps_reg_b_orig);
-        EngDrvOut(0xC0F06000, 1);
+        SafeEngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
+        SafeEngDrvOut(FPS_REGISTER_B, fps_reg_b_orig);
+        SafeEngDrvOut(0xC0F06000, 1);
     }
 }
 
@@ -912,7 +925,8 @@ void fps_setup_timerA(int fps_x1000)
     // save setting to DIGIC register
     int val_a = PACK(timerA-1, fps_timer_a_orig-1);
     written_value_a = val_a;
-    EngDrvOut(FPS_REGISTER_A, val_a);
+
+    SafeEngDrvOut(FPS_REGISTER_A, val_a);
 }
 
 static void fps_criteria_change(void* priv, int delta)
@@ -1111,10 +1125,7 @@ static void fps_task()
         //~ info_led_on();
         fps_setup_timerA(f);
         fps_setup_timerB(f);
-        //~ info_led_off();
-        
-        // apply changes
-        EngDrvOut(0xC0F06000, 1);
+        //~ info_led_off();        
     }
 }
 
