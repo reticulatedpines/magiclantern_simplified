@@ -104,9 +104,9 @@ resolutions = [ # from vram.c
     (1904, 1270), # 5D3 1x
 ]
 
-# auto-generate code for zebra.c
-for w,h in resolutions:
-    print "    else if (size == %d * %d * 2) { w = %d; h = %d; } " %  (w,h,w,h)
+# auto-generate code for zebra.c (play_422)
+#~ for w,h in resolutions:
+    #~ print "    else if (size == %4d * %4d * 2) { w = %4d; h = %4d; } " %  (w,h,w,h)
 
 
 def convert_422_bmp(input, output):
