@@ -131,7 +131,7 @@ PROP_HANDLER(PROP_CARD_COVER)
 
 static int task_helding_bmp_lock = 0;
 
-int CheckBmpAcquireRecursiveLock(void* lock)
+int CheckBmpAcquireRecursiveLock(void* lock, int line)
 {
     char* task_name = get_task_name_from_id(get_current_task());
     
@@ -158,7 +158,7 @@ int CheckBmpAcquireRecursiveLock(void* lock)
     while (r = AcquireRecursiveLock(lock, wait))
     {
         char msg[50];
-        snprintf(msg, sizeof(msg), "%s: RLock held by %s  ", get_task_name_from_id(get_current_task()), get_task_name_from_id(task_helding_bmp_lock));//, get_task_name_from_id(task_helding_bmp_lock));
+        snprintf(msg, sizeof(msg), "%s: RLock held by %s:%d  ", get_task_name_from_id(get_current_task()), get_task_name_from_id(task_helding_bmp_lock), line);//, get_task_name_from_id(task_helding_bmp_lock));
         int x = 100;
         bmp_puts(FONT_MED, &x, &x, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
