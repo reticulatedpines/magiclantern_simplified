@@ -5186,7 +5186,7 @@ void play_422(char* filename)
 
     int w,h;
     // auto-generated code from 422-jpg.py
-    else if (size == 1120 *  746 * 2) { w = 1120; h =  746; } 
+         if (size == 1120 *  746 * 2) { w = 1120; h =  746; } 
     else if (size == 1872 * 1080 * 2) { w = 1872; h = 1080; } 
     else if (size == 1024 *  680 * 2) { w = 1024; h =  680; } 
     else if (size == 1560 *  884 * 2) { w = 1560; h =  884; } 
