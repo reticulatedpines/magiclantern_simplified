@@ -86,7 +86,7 @@ resolutions = [ # from vram.c
     (1872, 1080), # 5D2, REC
     (1024, 680),  # 5D2/50D standby
     (1560, 884),  # 50D REC
-    (944, 632),   # 500D 5x
+    (944, 632),   # 50D/500D 5x
     (928, 616),   # 500D photo
     (1576, 1048), # 500D 1080p
     (1576, 632),  # 500D 720p
@@ -103,6 +103,11 @@ resolutions = [ # from vram.c
     (1152, 768),  # 5D3 5x
     (1904, 1270), # 5D3 1x
 ]
+
+# auto-generate code for zebra.c
+for w,h in resolutions:
+    print "    else if (size == %d * %d * 2) { w = %d; h = %d; } " %  (w,h,w,h)
+
 
 def convert_422_bmp(input, output):
     print "Converting %s to %s..." % (input, output)

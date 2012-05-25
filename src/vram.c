@@ -187,8 +187,8 @@ void update_vram_params()
     vram_hd.height = lv_dispsize > 1 ?  746 : recording ? 1080 : 680;
 #endif
 #ifdef CONFIG_50D
-    vram_hd.width = recording ? 1560 : 1024;
-    vram_hd.height = recording ? 884 : 680;
+    vram_hd.width  = lv_dispsize > 1 ? 944 : recording ? 1560 : 1024;
+    vram_hd.height = lv_dispsize > 1 ? 632 : recording ?  884 : 680;
 #endif
 #ifdef CONFIG_500D
     vram_hd.width  = lv_dispsize > 1 ?  944 : !is_movie_mode() ?  928 : recording ? (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 1576 : video_mode_resolution == 2 ? 720 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 928 : video_mode_resolution == 2 ? 928 : 0);

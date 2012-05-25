@@ -5185,24 +5185,27 @@ void play_422(char* filename)
     bmp_printf(FONT_LARGE, 500, 0, "%d", size);
 
     int w,h;
-    if      (size == 1056*704*2) { w = 1056; h = 704; } // photo mode
-    else if (size == 1720*974*2) { w = 1720; h = 974; } // fullhd 550d, 60d
-    else if (size == 1680*974*2) { w = 1680; h = 974; } // fullhd 600d
-    else if (size == 1728*972*2) { w = 1728; h = 972; } // fullhd 3x 600d
-    else if (size == 580*580*2)  { w = 580 ; h = 580; }
-    else if (size == 1280*580*2) { w = 1280; h = 580; } // 720p 550d, 60d
-    else if (size == 1280*560*2) { w = 1280; h = 560; } // 720p 600d
-    else if (size == 640*480*2)  { w = 640 ; h = 480; }
-    else if (size == 1024*680*2) { w = 1024; h = 680; } // zoom mode (5x, 10x)
-    else if (size == 512*340*2)  { w = 512;  h = 340; }
-    else if (size == 720*480*2)  { w = 720;  h = 480; } // LiveView buffer
-    else if (size == 928*616*2)  { w = 928;  h = 616; } // 500d LV HD buffer dimensions.
-    else if (size == 720*424*2)  { w = 720;  h = 424; } // 500d LV buffer in movie mode.
-    else if (size == 1576*632*2) { w = 1576; h = 632; } // 500d 720p recording lv buffer dimensions.
-    else if (size == 1576*1048*2){ w = 1576; h = 1048;} // 500d HD buffer dimensions in 1080p/720p mode and LV mode.
-    else if (size == 1120*746*2) { w = 1120; h = 746; } // zoom mode (5x, 10x) on 5D2
-    else if (size == 1872*1080*2) { w = 1872; h = 1080; } // REC on 5D2
-    else if (size == 1904*1270*2) { w = 1904; h = 1270; } // standby on 5D3
+    // auto-generated code from 422-jpg.py
+         if (size == 1120 * 746 * 2) { w = 1120; h = 746; } 
+    else if (size == 1872 * 1080 * 2) { w = 1872; h = 1080; } 
+    else if (size == 1024 * 680 * 2) { w = 1024; h = 680; } 
+    else if (size == 1560 * 884 * 2) { w = 1560; h = 884; } 
+    else if (size == 944 * 632 * 2) { w = 944; h = 632; } 
+    else if (size == 928 * 616 * 2) { w = 928; h = 616; } 
+    else if (size == 1576 * 1048 * 2) { w = 1576; h = 1048; } 
+    else if (size == 1576 * 632 * 2) { w = 1576; h = 632; } 
+    else if (size == 720 * 480 * 2) { w = 720; h = 480; } 
+    else if (size == 1056 * 704 * 2) { w = 1056; h = 704; } 
+    else if (size == 1720 * 974 * 2) { w = 1720; h = 974; } 
+    else if (size == 1280 * 580 * 2) { w = 1280; h = 580; } 
+    else if (size == 640 * 480 * 2) { w = 640; h = 480; } 
+    else if (size == 1024 * 680 * 2) { w = 1024; h = 680; } 
+    else if (size == 1056 * 756 * 2) { w = 1056; h = 756; } 
+    else if (size == 1728 * 972 * 2) { w = 1728; h = 972; } 
+    else if (size == 1680 * 945 * 2) { w = 1680; h = 945; } 
+    else if (size == 1280 * 560 * 2) { w = 1280; h = 560; } 
+    else if (size == 1152 * 768 * 2) { w = 1152; h = 768; } 
+    else if (size == 1904 * 1270 * 2) { w = 1904; h = 1270; } 
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
