@@ -164,8 +164,8 @@ void update_vram_params()
     vram_lv.width  = 720;
     vram_lv.height = 240;
 #else
-    vram_lv.width  = hdmi_code == 5 ? 1920 : ext_monitor_rca ? 540 : 720;
-    vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
+    vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : ext_monitor_rca ? 540 : 720;
+    vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : ext_monitor_rca ? (pal ? 572 : 480) : 480;
 #endif
 
 
@@ -518,7 +518,7 @@ vram_print(
     int         selected
 )
 {
-    unsigned        menu_font = selected ? MENU_FONT_SEL : MENU_FONT;
+    unsigned        menu_font = selected ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK) : MENU_FONT;
     unsigned        font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
 
     y = y * 2/3 + 20;
