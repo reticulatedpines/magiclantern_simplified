@@ -8,9 +8,10 @@
 TOP_DIR=$(PWD)
 include Makefile.top
 
-all: 60D 550D 600D 50D 500D 5D2 plugins
+all: 60D 550D 600D 50D 500D 5D2
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
+	$(MAKE) -C $(PLUGINS_DIR)
 
 60D:
 	$(MAKE) -C $(PLATFORM_PATH)/60D.110
