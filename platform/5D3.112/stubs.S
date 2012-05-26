@@ -147,6 +147,7 @@ NSTUB(0xff658a48, LiveViewApp_handler)
 NSTUB(0xff4dfb20, PlayMain_handler)
 //NSTUB(0xFF4B88F4, OlcAFFrameApp_handler)
 NSTUB(0xFF49C0B0, ErrCardForLVApp_handler) // not sure
+NSTUB(0xFF49CBF4, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 
 NSTUB(0xff28cbfc, _engio_write)
 NSTUB(0xff28c988, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr

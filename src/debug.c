@@ -553,6 +553,7 @@ void run_test()
 {
     beep();
     PauseLiveView();
+    display_on();
     beep();
 
     msleep(3000);
@@ -1735,6 +1736,7 @@ void save_crash_log()
 // don't do anything else here, to avoid lockups
 void crash_log_task()
 {
+    int dmlog_saved = 0;
     TASK_LOOP
     {
         if (crash_log_requested)
@@ -1742,7 +1744,23 @@ void crash_log_task()
             //~ beep();
             save_crash_log();
             crash_log_requested = 0;
+            msleep(2000);
         }
+        
+        //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
+        extern thunk ErrForCamera_handler;
+        if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+        {
+            if (!dmlog_saved) 
+            { 
+                beep();
+                NotifyBox(10000, "Saving debug log...");
+                call("dumpf"); 
+            }
+            dmlog_saved = 1;
+        }
+        else dmlog_saved = 0;
+        
         msleep(200);
     }
 }
