@@ -1179,7 +1179,7 @@ silent_pic_take_test()
 }
 
 int silent_pic_matrix_running = 0;
-static void
+ void
 silent_pic_take_sweep(int interactive)
 {
     if (recording) return;
@@ -3067,6 +3067,7 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
     return 0; // nothing changed
 }
 
+static FILE* bramp_log_file = 0;
 static int bramp_init_state = 0;
 static int bramp_init_done = 0;
 static int bramp_reference_level = 0;
@@ -3216,6 +3217,7 @@ int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
 static int bramp_set_display_gain_and_measure_luma(int gain)
 {
     gain = COERCE(gain, 0, 65535);
+    //~ bmp_printf(FONT_MED, 100, 100, "%d ", gain);
     //~ set_display_gain_equiv(gain);
     call("lvae_setdispgain", gain);
     if (lv_dispsize == 1) set_lv_zoom(5);
@@ -3310,10 +3312,30 @@ static CONFIG_INT("bramp.calib.3", bramp_calib_cache_3, 0);
 static CONFIG_INT("bramp.calib.4", bramp_calib_cache_4, 0);
 static CONFIG_INT("bramp.calib.5", bramp_calib_cache_5, 0);
 
+void bramp_cleanup()
+{
+    if (bramp_log_file)
+    {
+        FIO_CloseFile(bramp_log_file);
+        bramp_log_file = 0;
+    }
+}
+
 void bulb_ramping_init()
 {
     if (bramp_init_done) return;
     if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
+
+    static char fn[50];
+    for (int i = 0; i < 100; i++)
+    {
+        snprintf(fn, sizeof(fn), CARD_DRIVE "BRAMP%02d.LOG", i);
+        unsigned size;
+        if( FIO_GetFileSize( fn, &size ) != 0 ) break;
+        if (size == 0) break;
+    }
+    FIO_RemoveFile(fn);
+    bramp_log_file = FIO_CreateFile(fn);
 
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
@@ -3343,6 +3365,9 @@ void bulb_ramping_init()
         bramp_luma_ev[8] = bramp_calib_cache_3;
         bramp_luma_ev[9] = bramp_calib_cache_4;
         bramp_luma_ev[10] = bramp_calib_cache_5;
+
+        my_fprintf(bramp_log_file, "Luma curve: cached: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", bramp_calib_cache_m5, bramp_calib_cache_m4, bramp_calib_cache_m3, bramp_calib_cache_m2, bramp_calib_cache_m1, bramp_calib_cache_0, bramp_calib_cache_1, bramp_calib_cache_2, bramp_calib_cache_3, bramp_calib_cache_4, bramp_calib_cache_5);
+
     }
     else // compute calibration from scratch
     {
@@ -3404,7 +3429,7 @@ void bulb_ramping_init()
         }
         
         // then try to darken 
-        while (bramp_measure_luma(500) > 128)
+        while (bramp_measure_luma(500) > 150)
         {
             if (lens_info.raw_iso-8 >= 80) // 200
             {
@@ -3447,8 +3472,12 @@ void bulb_ramping_init()
                 if (ABS(Y-128) > 2) {msleep(500); NotifyBox(1000, "Middle check failed, retrying..."); msleep(1000); goto calib_start;}
                 else Y = 128;
             }
-            int prev_Y = bramp_luma_ev[i+5-1];
-            if (i > -5 && Y < prev_Y-3) {msleep(500); NotifyBox(1000, "Decreasing curve, retrying..."); msleep(1000); goto calib_start;}
+            int prev_Y = i > -5 ? bramp_luma_ev[i+5-1] : 0;
+            if (Y < prev_Y-3) 
+            {
+                msleep(500); NotifyBox(1000, "Decreasing curve (%d->%d), retrying...", prev_Y, Y); msleep(1000); 
+                goto calib_start;
+            }
             bramp_luma_ev[i+5] = MAX(Y, prev_Y);
             bramp_plot_luma_ev();
             //~ set_display_gain(1<<i);
@@ -3487,6 +3516,7 @@ void bulb_ramping_init()
         bramp_calib_cache_3  = bramp_luma_ev[8];
         bramp_calib_cache_4  = bramp_luma_ev[9];
         bramp_calib_cache_5  = bramp_luma_ev[10];
+        my_fprintf(bramp_log_file, "Luma curve: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", bramp_calib_cache_m5, bramp_calib_cache_m4, bramp_calib_cache_m3, bramp_calib_cache_m2, bramp_calib_cache_m1, bramp_calib_cache_0, bramp_calib_cache_1, bramp_calib_cache_2, bramp_calib_cache_3, bramp_calib_cache_4, bramp_calib_cache_5);
 
     }
 
@@ -3528,6 +3558,9 @@ void bulb_ramping_init()
     if (lv) fake_simple_button(BGMT_LV);
     msleep(1000);
     set_shooting_mode(SHOOTMODE_M);
+
+    my_fprintf(bramp_log_file, "Reference level: %d at %d-th percentile\n", bramp_reference_level, bramp_percentile);
+
 }
 
 // monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
@@ -3692,6 +3725,8 @@ static void compute_exposure_for_next_shot()
         int should_apply_full_correction_immediately = expo_diff_too_big || bramp_prev_shot_was_bad;
         bramp_prev_shot_was_bad = expo_diff_too_big;
 
+        my_fprintf(bramp_log_file, "y=%4d r=%4d e=%4d => ", y_x100, r_x100, e_x100);
+
         if (should_apply_full_correction_immediately)
         {
             // big change in brightness - request a new picture without waiting, and apply full correction
@@ -3708,6 +3743,8 @@ static void compute_exposure_for_next_shot()
                 bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]-2);
                 
             bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
+
+            my_fprintf(bramp_log_file, "harsh: shutter=%6dms iso=%4d\n", BULB_SHUTTER_VALUE_MS, lens_info.iso);
             return;
         }
         else // small change in brightness - apply only a small amount of correction to keep things smooth
@@ -3736,6 +3773,9 @@ static void compute_exposure_for_next_shot()
                 e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100,
                 corr_x100 < 0 ? "-" : "+", ABS(corr_x100)/100, ABS(corr_x100)%100
                 ); 
+
+            my_fprintf(bramp_log_file, "soft: e=%4d u=%4d ", (int)roundf(e*100), corr_x100);
+
             msleep(500);
         }
     }
@@ -3752,6 +3792,8 @@ static void compute_exposure_for_next_shot()
         
         // set Canon shutter speed close to bulb one (just for display)
         lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
+
+        my_fprintf(bramp_log_file, "shutter=%6dms iso=%4d\n", BULB_SHUTTER_VALUE_MS, lens_info.iso);
     }
         
     if (mf_steps && !is_manual_focus())
@@ -5521,6 +5563,7 @@ shoot_task( void* unused )
         else // intervalometer not running
         {
             bramp_init_done = 0;
+            bramp_cleanup();
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + 3;
             
