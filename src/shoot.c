@@ -2819,12 +2819,14 @@ bulb_take_pic(int duration)
     mlu_lock_mirror_if_needed();
     //~ SW1(1,50);
     //~ SW2(1,0);
-    
+
+    //~ SW1(1,100);
+    //~ SW1(0,100);
+    SW1(1,100);
     wait_till_next_second();
     
     //~ int x = 0;
     //~ prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
-    SW1(1,0);
     SW2(1,0);
     
     //~ msleep(duration);
@@ -3039,8 +3041,8 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
     if (ideal_shutter_speed_raw > raw_shutter_0 + 4)
         delta = 8; // shutter too slow (more than 270 degrees -- ideal value) => boost ISO
 
-    if (ideal_shutter_speed_raw < raw_shutter_0 - 8)
-        delta = -8; // shutter too fast (less than 90 degrees) => lower ISO
+    if (ideal_shutter_speed_raw < raw_shutter_0 - 4)
+        delta = -8; // shutter too fast (less than 128 degrees) => lower ISO
     
     if (delta) // should we change something?
     {
@@ -3644,6 +3646,16 @@ int measure_brightness_difference()
 
 static void compute_exposure_for_next_shot()
 {
+    
+    static int prev_file_number = 0;
+    if (prev_file_number == file_number)
+    {
+        my_fprintf(bramp_log_file, "Picture not taken\n");
+        NotifyBox(2000, "Picture not taken :("); msleep(2000);
+        return;
+    }
+    prev_file_number = file_number;
+    
     int mf_steps = (int)bramp_manual_speed_focus_steps_per_shot - 1000;
     int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
 
@@ -3738,17 +3750,23 @@ static void compute_exposure_for_next_shot()
             
             NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100);
             msleep(500);
-            intervalometer_next_shot_time = seconds_clock;
 
-            bulb_shutter_valuef *= powf(2, COERCE((float)e_x100 / 111.0, -3.0, 3.0)); // apply 90% of correction, but not more than 3 EV, to keep things stable
+            float cor = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
+            bulb_shutter_valuef *= powf(2, cor); // apply 90% of correction, but not more than 3 EV, to keep things stable
             
             // use high iso to adjust faster, then go back at low iso
             for (int i = 0; i < 5; i++)
-                bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]-2);
+                bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]);
                 
             bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
 
-            my_fprintf(bramp_log_file, "harsh: shutter=%6dms iso=%4d\n", BULB_SHUTTER_VALUE_MS, lens_info.iso);
+            // set Canon shutter speed close to bulb one (just for display)
+            lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
+
+            my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0), BULB_SHUTTER_VALUE_MS, lens_info.iso);
+
+            // force next shot to be taken quicker
+            intervalometer_next_shot_time = seconds_clock;
             return;
         }
         else // small change in brightness - apply only a small amount of correction to keep things smooth
@@ -3776,7 +3794,7 @@ static void compute_exposure_for_next_shot()
                             "Exposure correction: %s%d.%02d EV ",
                 e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100,
                 corr_x100 < 0 ? "-" : "+", ABS(corr_x100)/100, ABS(corr_x100)%100
-                ); 
+                );  
 
             my_fprintf(bramp_log_file, "soft: e=%4d u=%4d ", (int)roundf(e*100), corr_x100);
 
@@ -3791,7 +3809,7 @@ static void compute_exposure_for_next_shot()
     if (BULB_EXPOSURE_CONTROL_ACTIVE)
     {
         // adjust ISO if needed, and check shutter speed limits
-        bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]-2);
+        bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
         bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
         
         // set Canon shutter speed close to bulb one (just for display)
@@ -4722,6 +4740,7 @@ void ensure_play_or_qr_mode_after_shot()
     
     if (!QR_OR_PLAY) // image review disabled?
     {
+        lens_wait_readytotakepic(64);
         fake_simple_button(BGMT_PLAY);
         for (int i = 0; i < 50; i++)
         {
@@ -5518,7 +5537,7 @@ shoot_task( void* unused )
                 }
             }
 
-            if (PLAY_MODE) get_out_of_play_mode(0);
+            if (PLAY_MODE) get_out_of_play_mode(500);
             if (LV_PAUSED) ResumeLiveView();
 
             if (!intervalometer_running) continue;
@@ -5543,8 +5562,10 @@ shoot_task( void* unused )
             int dt = timer_values[interval_timer_index];
             // compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
             intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
-
-            if (dt == 0)
+            
+            //~ info_led_blink(2,50,50);
+            
+            if (dt == 0) // crazy mode - needs to be fast
             {
                 take_a_pic(0);
             }
