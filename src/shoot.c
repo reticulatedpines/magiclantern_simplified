@@ -3647,7 +3647,7 @@ int measure_brightness_difference()
 static void compute_exposure_for_next_shot()
 {
     
-    static int prev_file_number = 0;
+    static int prev_file_number = 12345;
     if (prev_file_number == file_number)
     {
         my_fprintf(bramp_log_file, "Picture not taken\n");
