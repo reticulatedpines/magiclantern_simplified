@@ -3216,7 +3216,7 @@ static int bramp_measure_luma(int delay)
 int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
 static int bramp_set_display_gain_and_measure_luma(int gain)
 {
-    gain = COERCE(gain, 0, 65535);
+    gain = COERCE(gain, 0, 65534);
     //~ bmp_printf(FONT_MED, 100, 100, "%d ", gain);
     //~ set_display_gain_equiv(gain);
     call("lvae_setdispgain", gain);
