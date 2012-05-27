@@ -11,6 +11,8 @@
 #include "config.h"
 #include "math.h"
 
+#define EngDrvOut(reg, value) *(int*)(reg) = value
+
 #undef CONFIG_DIGIC_POKE
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
