@@ -3736,7 +3736,7 @@ static void compute_exposure_for_next_shot()
             msleep(500);
             intervalometer_next_shot_time = seconds_clock;
 
-            bulb_shutter_valuef *= powf(2, (float)e_x100 / 111.0); // apply 90% of correction, to keep things stable
+            bulb_shutter_valuef *= powf(2, COERCE((float)e_x100 / 111.0, -3.0, 3.0)); // apply 90% of correction, but not more than 3 EV, to keep things stable
             
             // use high iso to adjust faster, then go back at low iso
             for (int i = 0; i < 5; i++)
