@@ -358,8 +358,11 @@ void digic_iso_step()
     else // photo mode - display gain, for preview only
     {
         if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
-        int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
-        EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+        if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
+        {
+            int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
+            EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+        }
     }
 }
 
