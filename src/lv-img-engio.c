@@ -327,7 +327,10 @@ void digic_iso_step()
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
     if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
-    
+
+    extern int bulb_ramp_calibration_running;
+    if (bulb_ramp_calibration_running) return;
+
     if (is_movie_mode())
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
