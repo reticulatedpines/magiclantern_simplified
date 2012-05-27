@@ -1068,7 +1068,7 @@ menus_display(
             continue;
 
         int fg = menu->selected ? COLOR_WHITE : 70;
-        int bg = menu->selected ? 13 : 40;
+        int bg = menu->selected ? COLOR_BLUE : 40;
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
