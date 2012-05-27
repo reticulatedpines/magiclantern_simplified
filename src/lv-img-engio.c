@@ -306,6 +306,7 @@ void image_effects_step()
 {
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
+    if (lv_paused) return;
 
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
@@ -328,6 +329,7 @@ void digic_iso_step()
 {
     if (!DISPLAY_IS_ON) return;
     if (!lv) return;
+    if (lv_paused) return;
     if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
 
     extern int bulb_ramp_calibration_running;
