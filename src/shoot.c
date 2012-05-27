@@ -3667,6 +3667,8 @@ static void compute_exposure_for_next_shot()
         int mev = bramp_luma_to_ev_x100(bramp_measured_level);
         //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, mev > 0 ? "" : "-", ABS(mev)/100, ABS(mev)%100); msleep(1000);
 
+        my_fprintf(bramp_log_file, "%04d luma=%3d ", file_number, bramp_measured_level);
+
         /**
          * Use a discrete feedback controller, designed such as the closed loop system 
          * has two real poles placed at f, where f is the smoothing factor (0.1 ... 0.9).
