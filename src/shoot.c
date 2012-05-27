@@ -3407,7 +3407,7 @@ void bulb_ramping_init()
             NotifyBox(5000, "Cannot calibrate.        \n"
                             "Please report to ML devs."); msleep(5000);
             intervalometer_stop();
-            return;
+            goto end;
         }
         
         // first try to brighten the image
@@ -3523,7 +3523,7 @@ void bulb_ramping_init()
     fake_simple_button(BGMT_PLAY);
     msleep(1000);
     
-    if (!PLAY_MODE) { NotifyBox(1000, "BRamp: could not go to PLAY mode"); msleep(2000); intervalometer_stop(); return; }
+    if (!PLAY_MODE) { NotifyBox(1000, "BRamp: could not go to PLAY mode"); msleep(2000); intervalometer_stop(); goto end; }
     
     //~ bramp_level_ev_ratio = 0;
     bramp_measured_level = 0;
@@ -3549,7 +3549,7 @@ void bulb_ramping_init()
         }
         msleep(100);
     }
-    if (!PLAY_MODE) { intervalometer_stop(); return; }
+    if (!PLAY_MODE) { intervalometer_stop(); goto end; }
     
     bramp_init_done = 1; // OK :)
 
@@ -3561,6 +3561,8 @@ void bulb_ramping_init()
 
     my_fprintf(bramp_log_file, "Reference level: %d at %d-th percentile\n", bramp_reference_level, bramp_percentile);
 
+end:
+    bulb_ramp_calibration_running = 0;
 }
 
 // monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
