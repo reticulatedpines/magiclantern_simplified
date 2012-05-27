@@ -102,6 +102,9 @@ resolutions = [ # from vram.c
     (1280, 560),  # 600D 720p
     (1152, 768),  # 5D3 5x
     (1904, 1270), # 5D3 1x
+    (1920, 1080), # HDMI FullHD
+    (1920, 540),  # HDMI 720p
+    (960, 540),   # HDMI 640 crop
 ]
 
 # auto-generate code for zebra.c (play_422)
@@ -152,10 +155,10 @@ Command-line usage:
         input = tkFileDialog.askdirectory(parent=root,title='Please select a directory with 422 files')
 
 if os.path.isfile(input):
-    convert_422_bmp(input, change_ext(input, ".jpg"))
+    convert_422_bmp(input, change_ext(input, ".tif"))
 elif os.path.isdir(input):
     for f in sorted(os.listdir(input)):
         if f.endswith(".422"):
             f = os.path.join(input, f)
-            convert_422_bmp(f, change_ext(f, ".jpg"));
+            convert_422_bmp(f, change_ext(f, ".tif"));
 print "Done."
