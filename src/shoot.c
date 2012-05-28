@@ -295,6 +295,26 @@ intervalometer_display( void * priv, int x, int y, int selected )
     }
 }
 
+static void bramp_auto_smooth_print( void * priv, int x, int y, int selected )
+{
+    float f = (float)bramp_auto_smooth / 100.0;
+    float b = f*f - 2*f + 1;
+    float a = f*f;
+    float max_ev = b/(1+a); // at 1EV exposure difference
+    int max_ev_x100 = (int)roundf(max_ev*100.0);
+
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Smooth Factor: 0.%d",
+        bramp_auto_smooth/10
+    );
+    bmp_printf(FONT_MED, x + font_large.width * 19, y + (font_large.height - font_med.height)/2, 
+        "MAX %d.%02d EV/shot", 
+        max_ev_x100 / 100, max_ev_x100 % 100
+    );
+}
+
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
     int evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
@@ -3984,6 +4004,7 @@ static struct menu_entry shoot_menus[] = {
                 .max = 90,
                 .unit = UNIT_PERCENT,
                 .select = bramp_smooth_toggle,
+                .display = bramp_auto_smooth_print,
                 .help = "For auto ramping. Higher = less flicker, slower ramping."
             },
             {
