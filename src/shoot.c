@@ -103,7 +103,9 @@ static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
+static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
+static CONFIG_INT( "interval.stop_after", interval_stop_after, 0 );
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
@@ -161,7 +163,7 @@ int motion_detect = 0;
 
 static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180, 195, 210, 225, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
 //~ static int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
-
+/*
 static const char* format_time_minutes_seconds(int seconds)
 {
     static char msg[30];
@@ -171,6 +173,31 @@ static const char* format_time_minutes_seconds(int seconds)
         snprintf(msg, sizeof(msg), "%dm", seconds / 60);
     else
         snprintf(msg, sizeof(msg), "%dm%ds", seconds / 60, seconds % 60);
+    return msg;
+}*/
+
+static const char* format_time_hours_minutes_seconds(int seconds)
+{
+    static char msg[50];
+    
+    msg[0] = '\0';
+    if (seconds >= 3600) 
+    { 
+        STR_APPEND(msg, "%dh", seconds / 3600); 
+        seconds = seconds % 3600;
+    }
+
+    if (seconds >= 60) 
+    { 
+        STR_APPEND(msg, "%dm", seconds / 60); 
+        seconds = seconds % 60;
+    }
+
+    if (seconds || !msg[0])
+    {
+        STR_APPEND(msg, "%ds", seconds);
+    }
+    
     return msg;
 }
 
@@ -202,14 +229,15 @@ int get_exposure_time_raw()
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
     int d = timer_values[*(int*)priv];
-    int total_time_s = d * avail_shot;
+    int total_shots = interval_stop_after ? MIN(interval_stop_after*100, avail_shot) : avail_shot;
+    int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 
         x, y,
         "%dh%02dm, %dshots, %dfps => %02dm%02ds", 
         total_time_m / 60, 
         total_time_m % 60, 
-        avail_shot, video_mode_fps, 
+        total_shots, video_mode_fps, 
         (avail_shot / video_mode_fps) / 60, 
         (avail_shot / video_mode_fps) % 60
     );
@@ -234,11 +262,39 @@ interval_timer_display( void * priv, int x, int y, int selected )
             (!is_movie_mode() || silent_pic_enabled) ? 
                 "Take a pic every" : 
                 "REC a clip every",
-            format_time_minutes_seconds(d)
+            format_time_hours_minutes_seconds(d)
         );
     }
     
     menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
+}
+
+static void
+interval_start_after_display( void * priv, int x, int y, int selected )
+{
+    int d = timer_values[*(int*)priv];
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Start after     : %s",
+        format_time_hours_minutes_seconds(d)
+    );
+
+    menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
+}
+
+static void
+interval_stop_after_display( void * priv, int x, int y, int selected )
+{
+    int d = (*(int*)priv) * 100;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        d ? "Stop after      : %d shots" 
+          : "Stop after      : %s",
+        d ? d : (intptr_t) "Disabled"
+    );
+    if (!d) menu_draw_icon(x, y, MNI_OFF, 0);
 }
 
 static void
@@ -253,7 +309,7 @@ interval_movie_stop_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Stop REC after  : %s",
-            format_time_minutes_seconds(d)
+            format_time_hours_minutes_seconds(d)
         );
         if (!is_movie_mode() || silent_pic_enabled)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Movie mode inactive.");
@@ -281,7 +337,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Intervalometer  : ON, %s%s",
-            format_time_minutes_seconds(d),
+            format_time_hours_minutes_seconds(d),
             bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_enabled) ? "" : ", Movie"
         );
         if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 10, selected);
@@ -2894,7 +2950,7 @@ bulb_take_pic(int duration)
     int d = duration/1000;
     for (int i = 0; i < d; i++)
     {
-        bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %s", format_time_minutes_seconds(d));
+        bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %s", format_time_hours_minutes_seconds(d));
         wait_till_next_second();
         if (lens_info.job_state == 0) break;
     }
@@ -2932,7 +2988,7 @@ bulb_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Bulb Timer      : %s",
-        bulb_timer ? format_time_minutes_seconds(d) : "OFF"
+        bulb_timer ? format_time_hours_minutes_seconds(d) : "OFF"
     );
     menu_draw_icon(x, y, !bulb_timer ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
     if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
@@ -2947,7 +3003,7 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Bulb Exposure : %s",
-        format_time_minutes_seconds(d)
+        format_time_hours_minutes_seconds(d)
     );
     menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
@@ -4010,13 +4066,21 @@ static struct menu_entry shoot_menus[] = {
                 .select     = interval_timer_toggle,
                 .help = "Duration between two shots.",
             },
-            /* {
+            {
+                .name = "Start after",
+                .priv       = &interval_start_timer_index,
+                .display    = interval_start_after_display,
+                .select     = interval_timer_toggle,
+                .help = "Start the intervalometer after X seconds / minutes / hours.",
+            },
+            {
                 .name = "Stop after",
                 .priv       = &interval_stop_after,
-                .display    = intervalometer_stop_after_display,
-                .select     = intervalometer_stop_after_toggle,
+                .max = 50, // 5000 shots
+                .display    = interval_stop_after_display,
+                //~ .select     = intervalometer_stop_after_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
-            }, */
+            },
             {
                 //~ .name = "Stop REC after",
                 .priv       = &interval_movie_duration_index,
@@ -5395,7 +5459,7 @@ shoot_task( void* unused )
                 info_led_on();
                 int d = BULB_SHUTTER_VALUE_S;
                 //~ NotifyBoxHide();
-                NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_minutes_seconds(d));
+                NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 while (get_halfshutter_pressed())
                 {
                     msleep(100);
@@ -5403,14 +5467,14 @@ shoot_task( void* unused )
                 int m0 = shooting_mode;
                 wait_till_next_second();
                 //~ NotifyBoxHide();
-                NotifyBox(2000, "[2s] Bulb timer: %s", format_time_minutes_seconds(d));
+                NotifyBox(2000, "[2s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
                 //~ NotifyBoxHide();
-                NotifyBox(2000, "[1s] Bulb timer: %s", format_time_minutes_seconds(d));
+                NotifyBox(2000, "[1s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
                 if (get_halfshutter_pressed()) continue;
@@ -5569,7 +5633,7 @@ shoot_task( void* unused )
             {
                 msleep(100);
 
-                if (!intervalometer_running) continue;
+                if (!intervalometer_running) break; // from inner loop only
                 
                 if (gui_menu_shown() || get_halfshutter_pressed())
                 {
@@ -5582,6 +5646,9 @@ shoot_task( void* unused )
                                 " Pictures taken:%4d ", 
                                 SECONDS_REMAINING,
                                 intervalometer_pictures_taken);
+
+                if (interval_stop_after && intervalometer_pictures_taken > interval_stop_after*100)
+                    intervalometer_stop();
 
                 //~ if (bulb_ramping_enabled)
                 //~ {
@@ -5613,7 +5680,7 @@ shoot_task( void* unused )
             if (PLAY_MODE) get_out_of_play_mode(500);
             if (LV_PAUSED) ResumeLiveView();
 
-            if (!intervalometer_running) continue;
+            if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
             if (bulb_ramping_enabled)
@@ -5663,7 +5730,7 @@ shoot_task( void* unused )
             bramp_init_done = 0;
             bramp_cleanup();
             intervalometer_pictures_taken = 0;
-            intervalometer_next_shot_time = seconds_clock + 3;
+            intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
             
             if (audio_release_running) 
             {
