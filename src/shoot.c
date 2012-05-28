@@ -238,8 +238,8 @@ static void timelapse_calc_display(void* priv, int x, int y, int selected)
         total_time_m / 60, 
         total_time_m % 60, 
         total_shots, video_mode_fps, 
-        (avail_shot / video_mode_fps) / 60, 
-        (avail_shot / video_mode_fps) % 60
+        (total_shots / video_mode_fps) / 60, 
+        (total_shots / video_mode_fps) % 60
     );
 }
 
@@ -5645,13 +5645,16 @@ shoot_task( void* unused )
                     wait_till_next_second();
                     continue;
                 }
-                bmp_printf(FONT_MED, 50, 310, 
+                static char msg[50];
+                snprintf(msg, sizeof(msg),
                                 " Intervalometer:%4d \n"
                                 " Pictures taken:%4d ", 
                                 SECONDS_REMAINING,
                                 intervalometer_pictures_taken);
+                if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after*100); }
+                bmp_printf(FONT_MED, 50, 310, msg);
 
-                if (interval_stop_after && intervalometer_pictures_taken > interval_stop_after*100)
+                if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
                     intervalometer_stop();
 
                 //~ if (bulb_ramping_enabled)
