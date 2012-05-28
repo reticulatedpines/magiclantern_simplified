@@ -1572,6 +1572,7 @@ static void upside_down_step()
 void screenshot_start();
 
 struct menu_entry expo_tweak_menus[] = {
+    #ifndef CONFIG_600D // doesn'tworkstation
     {
         .name = "LV Display",
         .priv = &expsim,
@@ -1584,6 +1585,7 @@ struct menu_entry expo_tweak_menus[] = {
         .essential = FOR_LIVEVIEW,
         //~ .show_liveview = 1,
     },
+    #endif
 };
 
 CONFIG_INT("preview.saturation", preview_saturation, 1);
