@@ -915,13 +915,13 @@ audio_configure( int force )
         
         audio_ic_set_mgain( mgain );
     
-        #ifndef CONFIG_550D // no sound with external mic?!
-        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
-        #endif
-    
 #ifdef CONFIG_500D
 // nothing here yet.
 #else
+
+        #ifndef CONFIG_550D // no sound with external mic?!
+        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
+        #endif
         
         // Enable loop mode and output digital volume2
         uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
@@ -1343,7 +1343,7 @@ static struct menu_entry audio_menus[] = {
      .select            = windcut_toggle,
      .display   = windcut_display,
      },*/
-    #ifndef CONFIG_550D
+    #if !defined(CONFIG_550D) && !defined(CONFIG_500D)
          {
                  .priv              = &enable_filters,
                  .select            = audio_binary_toggle,
