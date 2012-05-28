@@ -5684,6 +5684,9 @@ shoot_task( void* unused )
                 }
             }
 
+            if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
+                intervalometer_stop();
+
             if (PLAY_MODE) get_out_of_play_mode(500);
             if (LV_PAUSED) ResumeLiveView();
 
