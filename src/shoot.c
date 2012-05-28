@@ -147,7 +147,7 @@ int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable t
 
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.auto", bramp_auto_exposure, 1);
-static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 200); // max 0.2 EV/shot
+static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
 //~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.manual.expo", bramp_manual_speed_evx1000_per_shot, 1000);
@@ -399,6 +399,7 @@ static void bramp_auto_ramp_speed_print( void * priv, int x, int y, int selected
         "f=0.%02d", 
         f
     );
+    menu_draw_icon(x, y, MNI_PERCENT, log_length(max_ev_x1000) * 100 / log_length(1000));
 }
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
