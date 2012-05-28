@@ -145,7 +145,8 @@ int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable t
 
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.auto", bramp_auto_exposure, 1);
-static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
+static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 200); // max 0.2 EV/shot
+//~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.manual.expo", bramp_manual_speed_evx1000_per_shot, 1000);
 static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_per_shot, 1000);
@@ -295,7 +296,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
     }
 }
 
-static void bramp_auto_smooth_print( void * priv, int x, int y, int selected )
+/*static void bramp_auto_smooth_print( void * priv, int x, int y, int selected )
 {
     float f = (float)bramp_auto_smooth / 100.0;
     float b = f*f - 2*f + 1;
@@ -313,8 +314,33 @@ static void bramp_auto_smooth_print( void * priv, int x, int y, int selected )
         "MAX %d.%02d EV/shot", 
         max_ev_x100 / 100, max_ev_x100 % 100
     );
-}
+}*/
 
+static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
+{
+    float ev = COERCE((float)speed_x1000 / 1000.0, 0.001, 0.98);
+    float f = (sqrtf(2*ev - ev*ev) - 1) / (ev-1);
+    int fi = (int)roundf(f * 100);
+    return COERCE(fi, 1, 99);
+}
+static void bramp_auto_ramp_speed_print( void * priv, int x, int y, int selected )
+{
+    int max_ev_x1000 = bramp_auto_ramp_speed;
+    int f = get_smooth_factor_from_max_ev_speed(max_ev_x1000);
+
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "MAX RampSpeed: %d.%03d EV/shot",
+        ABS(max_ev_x1000) / 1000,
+        ABS(max_ev_x1000) % 1000
+    );
+    if (selected)
+    bmp_printf(FONT_MED, x + font_large.width * 24, y - font_med.height, 
+        "f=0.%02d", 
+        f
+    );
+}
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
     int evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
@@ -402,7 +428,7 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL(bulb_ramping_enabled), 0);
 }
 
-static int ev_values[] = {-1000, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000};
+static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 750, 1000};
 
 static void bramp_manual_evx1000_toggle(void* priv, int delta)
 {
@@ -414,14 +440,29 @@ static void bramp_manual_evx1000_toggle(void* priv, int delta)
     bramp_manual_speed_evx1000_per_shot = ev_values[i] + 1000;
 }
 
+static void bramp_auto_ramp_speed_toggle(void* priv, int delta)
+{
+    int value = (int)bramp_auto_ramp_speed;
+    int i = 0;
+    for (i = 0; i < COUNT(ev_values); i++)
+        if (ev_values[i] >= value) break;
+    
+    do {
+        i = mod(i + delta, COUNT(ev_values));
+    } while (ev_values[i] <= 0);
+        
+    bramp_auto_ramp_speed = ev_values[i];
+}
+
 // 10-90
+/*
 static void bramp_smooth_toggle(void* priv, int delta)
 {
     int value = *(int*)priv / 10 - 10;
     value = mod(value + delta, 9);
     *(int*)priv = value * 10 + 10;
 }
-
+*/
 
 // in lcdsensor.c
 void lcd_release_display( void * priv, int x, int y, int selected );
@@ -3793,7 +3834,9 @@ static void compute_exposure_for_next_shot()
         {    // see comments above for the feedback loop design
             bramp_ev_reference_x1000 += manual_evx1000;
 
-            float f = (float)bramp_auto_smooth / 100.0;
+            //~ float f = (float)bramp_auto_smooth / 100.0;
+            int fi = get_smooth_factor_from_max_ev_speed(bramp_auto_ramp_speed);
+            float f = (float)fi / 100.0;
             float e = (float)e_x100 / 100.0;
 
             if (bramp_auto_exposure == 1) // sunset - only increase exposure
@@ -3816,7 +3859,7 @@ static void compute_exposure_for_next_shot()
                 corr_x100 < 0 ? "-" : "+", ABS(corr_x100)/100, ABS(corr_x100)%100
                 );  
 
-            my_fprintf(bramp_log_file, "soft: e=%4d u=%4d ", (int)roundf(e*100), corr_x100);
+            my_fprintf(bramp_log_file, "soft: f=%2d e=%4d u=%4d ", fi, (int)roundf(e*100), corr_x100);
 
             msleep(500);
         }
@@ -3998,7 +4041,7 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"OFF", "Sunset", "Sunrise", "Auto"},
                 .help = "Auto exposure ramping (Tv+ISO) for day<->night timelapse.",
             },
-            {
+            /*{
                 .name = "Smooth Factor\b",
                 .priv = &bramp_auto_smooth,
                 .max = 90,
@@ -4006,6 +4049,15 @@ static struct menu_entry shoot_menus[] = {
                 .select = bramp_smooth_toggle,
                 .display = bramp_auto_smooth_print,
                 .help = "For auto ramping. Higher = less flicker, slower ramping."
+            },*/
+            {
+                .name = "MAX RampSpeed",
+                .priv       = &bramp_auto_ramp_speed,
+                .max = 1000,
+                .min = 1,
+                .select = bramp_auto_ramp_speed_toggle,
+                .display = bramp_auto_ramp_speed_print,
+                .help = "For auto ramp. Lower: less flicker. Too low: 2EV exp jumps.",
             },
             {
                 .name = "Manual Expo. Ramp",
