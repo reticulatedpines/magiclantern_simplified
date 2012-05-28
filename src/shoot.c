@@ -258,11 +258,14 @@ interval_timer_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "%s: %s",
+            "%s: %s%s",
             (!is_movie_mode() || silent_pic_enabled) ? 
                 "Take a pic every" : 
                 "REC a clip every",
-            format_time_hours_minutes_seconds(d)
+            format_time_hours_minutes_seconds(d),
+            (!is_movie_mode() || silent_pic_enabled) ? // possible jitter warning
+                (raw2shutter_ms(lens_info.raw_shutter) > (d-1) * 1000 + 500 ? " Jitter!" : "" ) 
+            : "" // movie mode, no warning
         );
     }
     
