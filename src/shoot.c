@@ -5635,7 +5635,7 @@ shoot_task( void* unused )
             msleep(100);
             while (SECONDS_REMAINING > 0)
             {
-                msleep(100);
+                msleep(300);
 
                 if (!intervalometer_running) break; // from inner loop only
                 
