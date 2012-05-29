@@ -873,7 +873,7 @@ PROP_HANDLER(PROP_GUI_STATE)
     extern int hdr_enabled;
 
     if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom==1
-        && !is_intervalometer_running() && !hdr_enabled)
+        && !is_intervalometer_running() && !hdr_enabled && !recording)
     {
         fake_simple_button(BGMT_PLAY);
     }
