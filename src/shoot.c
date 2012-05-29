@@ -2700,7 +2700,7 @@ static void zoom_focus_ring_step()
     if (!zfr) return;
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
-    if (zoom_focus_ring_disable_time && ms100_clock > zoom_focus_ring_disable_time)
+    if (zoom_focus_ring_disable_time && ms100_clock > zoom_focus_ring_disable_time && !get_halfshutter_pressed())
     {
         if (lv_dispsize > 1) set_lv_zoom(1);
         zoom_focus_ring_disable_time = 0;
