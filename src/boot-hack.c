@@ -390,7 +390,12 @@ int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
     snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
-        "at %s:%d", msg, file, line);
+        "at %s:%d, task %s\n"
+        "lv:%d mode:%d\n", 
+        msg, 
+        file, line, get_task_name_from_id(get_current_task()), 
+        lv, shooting_mode
+    );
     request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
 }
@@ -399,7 +404,12 @@ void ml_assert_handler(char* msg, char* file, int line, char* func)
 {
     snprintf(assert_msg, sizeof(assert_msg), 
         "ML ASSERT:\n%s\n"
-        "at %s:%d (%s), task %s", msg, file, line, func, get_task_name_from_id(get_current_task()));
+        "at %s:%d (%s), task %s\n"
+        "lv:%d mode:%d\n", 
+        msg, 
+        file, line, func, get_task_name_from_id(get_current_task()), 
+        lv, shooting_mode
+    );
     request_crash_log(2);
 }
 

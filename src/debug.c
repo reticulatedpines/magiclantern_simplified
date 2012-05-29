@@ -551,16 +551,7 @@ void iso_movie_test()
 
 void run_test()
 {
-    beep();
-    PauseLiveView();
-    display_on();
-    beep();
-
-    msleep(3000);
-
-    beep();
-    ResumeLiveView();
-    beep();
+    AllocateMemory(512*1024);
 
     //~ prop_dump();
     //~ bulb_take_pic(125);
@@ -602,6 +593,29 @@ static void stress_test_task(void* unused)
 {
     NotifyBox(10000, "Stability Test..."); msleep(2000);
     
+    msleep(2000);
+
+    #ifndef CONFIG_50D
+    ensure_movie_mode();
+    msleep(1000);
+    for (int i = 0; i <= 5; i++)
+    {
+        NotifyBox(1000, "Pics while recording: %d", i);
+        movie_start();
+        msleep(1000);
+        lens_take_picture(64, 0);
+        msleep(1000);
+        lens_take_picture(64, 0);
+        msleep(1000);
+        lens_take_picture(64, 0);
+        while (lens_info.job_state) msleep(100);
+        while (!lv) msleep(100);
+        msleep(1000);
+        movie_end();
+        msleep(2000);
+    }
+    #endif
+
     msleep(2000);
 
     extern struct semaphore * gui_sem;
@@ -688,28 +702,6 @@ static void stress_test_task(void* unused)
 
     msleep(2000);
 
-    #ifndef CONFIG_50D
-    ensure_movie_mode();
-    msleep(1000);
-    for (int i = 0; i <= 5; i++)
-    {
-        NotifyBox(1000, "Pics while recording: %d", i);
-        movie_start();
-        msleep(1000);
-        lens_take_picture(64, 0);
-        msleep(1000);
-        lens_take_picture(64, 0);
-        msleep(1000);
-        lens_take_picture(64, 0);
-        while (lens_info.job_state) msleep(100);
-        while (!lv) msleep(100);
-        msleep(1000);
-        movie_end();
-        msleep(2000);
-    }
-    #endif
-
-    msleep(2000);
     beep();
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 100; i++)
@@ -1713,11 +1705,19 @@ void save_crash_log()
     my_fprintf(f, 
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
-        "Built on %s by %s.",
+        "Built on %s by %s.\n",
         build_version,
         build_id,
         build_date,
         build_user);
+
+    int a,b;
+    GetMemoryInformation(&a,&b);
+    int m = MALLOC_FREE_MEMORY;
+    my_fprintf(f, 
+        "Free Memory  : %dK + %dK\n",
+        m/1024, b/1024
+    );
 
     FIO_CloseFile(f);
     
@@ -1799,8 +1799,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
-        
-        //~ bmp_printf(FONT_MED, 100, 200, "%d ", lens_info.raw_shutter);
 
         if (get_global_draw())
         {
