@@ -54,25 +54,18 @@ void bmp_idle_clear()
     bzero32(bmp_vram_idle(), BMP_HEIGHT * BMPPITCH);
 }
 
-/** Returns a pointer to the real BMP vram */
-uint8_t* bmp_vram_real()
-{
-    //~ NotifyBox(1000, "%x", bmp_vram_info[1].vram2);
-    return bmp_vram_info[1].vram2;
-}
-
-uint8_t* bmp_vram_idle()
-{
-    uint8_t* bmp_buf = (uint8_t *)((uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000);
-    ASSERT(bmp_buf)
-    return bmp_buf;
-}
-
-/** Returns a pointer to currently selected BMP vram (real or mirror) */
+/** Returns a pointer to currently selected BMP vram (real or mirror) 
+ *  and update BMP VRAM size if needed (for HDMI) */
 uint8_t * bmp_vram(void)
 {
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
     ASSERT(bmp_buf);
+    
+    vram_bm.width = BMP_VRAM_IS_FULL_HDMI(bmp_buf) ? 960 : 720;
+    vram_bm.height = BMP_VRAM_IS_FULL_HDMI(bmp_buf) ? 540 : 480;
+    
+    //~ ASSERT(bmp_buf + BMP_HEIGHT + BMPPITCH <= BMP_VRAM_END(bmp_buf));
+    //~ NotifyBox(1000, "%x %x ", BMP_END, bmp_buf + 510 * BMPPITCH - 120);
     return bmp_buf;
 }
 
@@ -108,7 +101,7 @@ _draw_char(
     uint32_t *    front_row    = (uint32_t *) bmp_vram_row;
     
     // boundary checking, don't write past this address
-    uint32_t* end = (uint32_t *)(BMP_END - font->width);
+    uint32_t* end = (uint32_t *)(v + BMP_HEIGHT*BMPPITCH - font->width);
 
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)

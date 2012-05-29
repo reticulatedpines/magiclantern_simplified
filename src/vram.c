@@ -123,11 +123,12 @@ void update_vram_params()
     prev_ext_monitor_rca = ext_monitor_rca;
 
     // BMP (used for overlays)
-    vram_bm.width  = hdmi_code == 5 ? 960 : 720;
-    vram_bm.height = hdmi_code == 5 ? 540 : 480;
+    // width and height are updated on the fly, in bmp_vram, to avoid race conditions
+    //~ vram_bm.width  = BMP_WIDTH;
+    //~ vram_bm.height = BMP_HEIGHT;
     vram_bm.pitch = 960;
     
-    // LV crop area
+    // LV crop area (black bars)
     os.x0   = hdmi_code == 5 ?  75 : hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0;
     os.y0   = hdmi_code == 5 ?   0 : hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0;
     os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;

@@ -38,16 +38,40 @@ extern int bmp_enabled;
 /** Returns a pointer to the real BMP vram (or to idle BMP vram) */
 uint8_t * bmp_vram(void);
 
-/** Returns a pointer to idle BMP vram */
-uint8_t* bmp_vram_idle();
+/** Returns a pointer to the real BMP vram */
+inline uint8_t* bmp_vram_real()
+{
+    return bmp_vram_info[1].vram2;
+}
 
-/** Returns a pointer to real BMP vram */
-uint8_t* bmp_vram_real();
+/** Returns a pointer to idle BMP vram */
+inline uint8_t* bmp_vram_idle()
+{
+    return (uint8_t *)((uintptr_t)(bmp_vram_info[1].vram2) ^ 0x80000);
+}
+
+/**
+ * The total BMP area starts at 0x***80008 or 0x***00008 and has 960x540 pixels.
+ * 
+ * Normally, only the center part (720x480) is used. So, Canon BMP functions 
+ * will return a pointer with an offset equal to 30*960 + 120 => VRAM address will end in 0x7100.
+ * 
+ * End of BMP VRAM is at 0x***80008 + 0x7E900 (960x540). It's not safe to write past this address.
+ * 
+ * The problem is that HDMI properties are not reliable for telling HDMI size 
+ * (race condition while changing display modes).
+ * 
+ * So, a good workaround is to look at the BMP address and figure out 
+ * whether it's cropped (720x480) or not (960x540).
+ * 
+ */
+#define BMP_VRAM_END(bmp_buf) ((uint8_t*)(((uintptr_t)(bmp_buf) & 0xFFF80000) + 0x7E908))
+#define BMP_VRAM_IS_FULL_HDMI(bmp_buf) (((uintptr_t)(bmp_buf) & 0x0007FFF0) == 0)
 
 #define BMPPITCH 960
-#define BMP_HEIGHT (hdmi_code == 5 ? 540 : 480)
-#define BMP_WIDTH (hdmi_code == 5 ? 960 : 720)
-#define BMP_END (bmp_vram() + BMP_HEIGHT * BMPPITCH)
+#define BMP_WIDTH vram_bm.width
+#define BMP_HEIGHT vram_bm.height
+
 
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK               0x000F0000
