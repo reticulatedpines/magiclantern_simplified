@@ -312,7 +312,7 @@ static void restore_pic_quality()
     picq_saved = -1;
 }
 
-static void adjust_burst_pic_quality()
+static void adjust_burst_pic_quality(int burst_count)
 {
     if (lens_info.job_state == 0) { restore_pic_quality(); return; }
     if (burst_count < 4) decrease_pic_quality();
@@ -325,7 +325,7 @@ PROP_HANDLER(PROP_BURST_COUNT)
 
     if (auto_burst_pic_quality && avail_shot > burst_count)
     {
-        adjust_burst_pic_quality();
+        adjust_burst_pic_quality(burst_count);
     }
 }
 
@@ -1572,7 +1572,6 @@ static void upside_down_step()
 void screenshot_start();
 
 struct menu_entry expo_tweak_menus[] = {
-    #ifndef CONFIG_600D // doesn'tworkstation
     {
         .name = "LV Display",
         .priv = &expsim,
@@ -1585,7 +1584,6 @@ struct menu_entry expo_tweak_menus[] = {
         .essential = FOR_LIVEVIEW,
         //~ .show_liveview = 1,
     },
-    #endif
 };
 
 CONFIG_INT("preview.saturation", preview_saturation, 1);

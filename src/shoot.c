@@ -5794,7 +5794,10 @@ void shoot_init()
     extern struct menu_entry expo_tweak_menus[];
     extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
+
+#ifndef CONFIG_600D // expsim doesn't work
     menu_add( "Expo", expo_tweak_menus, 1 );
+#endif
 }
 
 INIT_FUNC("shoot", shoot_init);
