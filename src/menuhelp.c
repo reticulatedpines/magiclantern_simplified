@@ -51,9 +51,7 @@ void menu_help_show_page(int page)
 
     if (doc)
     {
-        int x0 = hdmi_code == 5 ? 120 : 0;
-        int y0 = hdmi_code == 5 ? 40 : 0;
-        bmp_draw_scaled_ex(doc, x0, y0, 720, 480, 0);
+        bmp_draw_scaled_ex(doc, X0, Y0, 720, 480, 0);
         FreeMemory(doc);
     }
     else

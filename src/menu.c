@@ -57,9 +57,6 @@ static CONFIG_INT("menu.advanced", advanced_mode, 1);
 
 int get_menu_advanced_mode() { return advanced_mode; }
 
-static int x0 = 0;
-static int y0 = 0;
-
 void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
@@ -289,9 +286,8 @@ submenu_print(
     int         y
 )
 {
-    
-    
-    char msg[100] = "";
+    static char msg[200];
+    msg[0] = '\0';
     STR_APPEND(msg, "%s", entry->name);
     if (entry->priv && entry->select != (void(*)(void*,int))run_in_separate_task)
     {
@@ -881,12 +877,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    x0 + 10, y0 + 450, 
+                    X0 + 10, Y0 + 450, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-                    x0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, y0 + 450, 
+                    X0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, Y0 + 450, 
                     menu->help
                 );
             }
@@ -913,7 +909,7 @@ menu_display(
             }
 
             // display key help
-            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height < y0 + 425)
+            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height < Y0 + 425)
             {
                 char msg[100] = "";
 
@@ -984,7 +980,7 @@ menu_display(
                     {
                         STR_APPEND(msg, "change value");
                     }
-                    leftright_sign(x0+690, y0+400);
+                    leftright_sign(X0+690, Y0+400);
                 }
                 else if (menu->children && !submenu_mode && !show_only_selected)
                 {
@@ -993,7 +989,7 @@ menu_display(
                 
                 bmp_printf(
                     FONT(FONT_MED, 60, COLOR_BLACK), 
-                    x0 + 10, y0 + 425, 
+                    X0 + 10, Y0 + 425, 
                     msg
                 );
             }
@@ -1003,12 +999,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    x0 + 10, y0 + 450, 
+                    X0 + 10, Y0 + 450, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    x0 + 10, y0 + 450, 
+                    X0 + 10, Y0 + 450, 
                         warning_msg
                 );
             }
@@ -1054,7 +1050,7 @@ menus_display(
     //~ if (!show_only_selected)
         //~ bmp_printf(
             //~ FONT(FONT_MED, 55, COLOR_BLACK), // gray
-            //~ x0 + 10, y0 + 430, 
+            //~ X0 + 10, Y0 + 430, 
                 //~ MENU_NAV_HELP_STRING
         //~ );
 
@@ -1116,8 +1112,8 @@ implicit_submenu_display()
     show_only_selected = 1;
     menu_display(
         menu->children,
-        x0 + 40,
-        y0 + 45
+        X0 + 40,
+        Y0 + 45
     );
     show_only_selected = sos;
 }
@@ -1136,14 +1132,14 @@ submenu_display(struct menu * submenu)
     int by = (480 - h)/2 - 30;
     if (!show_only_selected)
     {
-        bmp_fill(40, x0 + bx, y0 + by, 720-2*bx+4, 50);
-        bmp_fill(COLOR_BLACK, x0 + bx, y0 + by + 50, 720-2*bx+4, h-50);
-        bmp_draw_rect(70, x0 + bx, y0 + by, 720-2*bx, 50);
-        bmp_draw_rect(COLOR_WHITE, x0 + bx, y0 + by, 720-2*bx, h);
-        bfnt_puts(submenu->name, x0 + bx + 15, y0 + by + 5, COLOR_WHITE, 40);
+        bmp_fill(40, X0 + bx, Y0 + by, 720-2*bx+4, 50);
+        bmp_fill(COLOR_BLACK, X0 + bx, Y0 + by + 50, 720-2*bx+4, h-50);
+        bmp_draw_rect(70, X0 + bx, Y0 + by, 720-2*bx, 50);
+        bmp_draw_rect(COLOR_WHITE, X0 + bx, Y0 + by, 720-2*bx, h);
+        bfnt_puts(submenu->name, X0 + bx + 15, Y0 + by + 5, COLOR_WHITE, 40);
     }
 
-    menu_display(submenu->children, x0 + bx + 50, y0 + by + 50 + 20);
+    menu_display(submenu->children, X0 + bx + 50, Y0 + by + 50 + 20);
 }
 
 static void
@@ -1395,7 +1391,7 @@ menu_redraw_do()
                 take_semaphore(menu_redraw_sem, 0);
                 
                 if (!show_only_selected || !submenu_mode)
-                    menus_display( menus, x0, y0 ); 
+                    menus_display( menus, X0, Y0 ); 
 
                 if (!show_only_selected && !submenu_mode)
                     if (is_menu_active("Help")) menu_show_version();
@@ -1428,9 +1424,9 @@ menu_redraw_do()
                     if (hdmi_code == 2) // copy at a smaller scale to fit the screen
                     {
                         if (screen_layout == SCREENLAYOUT_16_10)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(), X0 + 360, Y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
                         else if (screen_layout == SCREENLAYOUT_16_9)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(), X0 + 360, Y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
                         else
                         {
                             if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
@@ -1438,7 +1434,7 @@ menu_redraw_do()
                         }
                     }
                     else if (ext_monitor_rca)
-                        bmp_zoom(bmp_vram(), bmp_vram_idle(), x0 + 360, y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
+                        bmp_zoom(bmp_vram(), bmp_vram_idle(), X0 + 360, Y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
                     else
                     {
                         if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
@@ -1969,9 +1965,6 @@ menu_task( void* unused )
         // ML menu needs to piggyback on Canon menu, in order to receive wheel events
         //~ piggyback_canon_menu();
 
-        x0 = hdmi_code == 5 ? 120 : 0;
-        y0 = hdmi_code == 5 ? 40 : 0;
-
         //~ fake_simple_button(BGMT_PICSTYLE);
         menu_open();
     }
@@ -2099,7 +2092,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    bmp_printf(FONT_MED, x0 + 10, y0 + 410,
+    bmp_printf(FONT_MED, X0 + 10, Y0 + 410,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",

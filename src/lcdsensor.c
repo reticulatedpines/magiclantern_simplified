@@ -175,7 +175,7 @@ void display_lcd_remote_icon(int x0, int y0)
     else if (lcd_release_running == 0 && is_follow_focus_active() && get_follow_focus_mode()==1 && lv)
     {
         bmp_printf(FONT_MED, x0-10, y0, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "-" : "+");
-        bmp_printf(FONT_LARGE, 650, 50, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "-" : "+");
+        bmp_printf(FONT_LARGE, X0+650, Y0+50, "FF%s", get_follow_focus_dir_h() * lcd_ff_dir > 0 ? "-" : "+");
     }
     
     //~ if (gui_menu_shown()) return;

@@ -848,7 +848,7 @@ static char* silent_pic_get_name()
             if (size == 0) break;
         }
     }
-    bmp_printf(FONT_MED, 100, 80, "%s    ", imgname);
+    bmp_printf(FONT_MED, X0+100, Y0+80, "%s    ", imgname);
     return imgname;
 }
 
@@ -1031,7 +1031,7 @@ void expfuse_preview_update_task(int dir)
     weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(buf_acc, buf_lv, buf_ws, numpix);
     weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(buf_lv, buf_acc, buf_ws, numpix);
     expfuse_num_images++;
-    bmp_printf(FONT_MED, 0, 0, "%d images  ", expfuse_num_images);
+    bmp_printf(FONT_MED, X0, Y0, "%d images  ", expfuse_num_images);
     //~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
     give_semaphore(set_maindial_sem);
@@ -1052,7 +1052,7 @@ static int find_422(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        bmp_printf( FONT_LARGE, X0+40, Y0+40, "dir err" );
         return 0;
     }
 
@@ -1076,7 +1076,7 @@ static int find_422(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        bmp_printf( FONT_LARGE, X0+40, Y0+40, "dir err" );
         return 0;
     }
 
@@ -1116,7 +1116,7 @@ void play_next_422_task(int dir)
     }
     else
     {
-        bmp_printf(FONT_LARGE, 0, 0, "No 422 files found");
+        bmp_printf(FONT_LARGE, X0, Y0, "No 422 files found");
     }
 
     give_semaphore(set_maindial_sem);
@@ -1316,7 +1316,7 @@ silent_pic_take_sweep(int interactive)
         }
     }
 
-    bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
+    bmp_printf(FONT_MED, X0+100, Y0+100, "Psst! Preparing for high-res pic   ");
     while (get_halfshutter_pressed()) msleep(100);
     menu_stop();
 
@@ -1339,7 +1339,7 @@ silent_pic_take_sweep(int interactive)
     FILE* f = FIO_CreateFile(imgname);
     if (f == INVALID_PTR)
     {
-        bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
+        bmp_printf(FONT_SMALL, X0+120, Y0+40, "FCreate: Err %s", imgname);
         return;
     }
     int i,j;
@@ -1355,7 +1355,7 @@ silent_pic_take_sweep(int interactive)
             // range obtained by moving the zoom window: 250 ... 3922, 434 ... 2394 => upper left corner
             // full-res: 5202x3465
             // buffer size: 1024x680
-            bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
+            bmp_printf(FONT_MED, X0+100, Y0+100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
             afframe[2] = x0 + 1024 * j;
             afframe[3] = y0 + 680 * i;
             prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
@@ -1375,7 +1375,7 @@ silent_pic_take_sweep(int interactive)
     afframe[3] = afy0;
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
 
-    bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
+    bmp_printf(FONT_MED, X0+100, Y0+100, "Psst! Just took a high-res pic   ");
 
 }
 
@@ -1388,7 +1388,7 @@ static void vsync(volatile int* addr)
         if (*addr != v0) return;
         msleep(MIN_MSLEEP);
     }
-    bmp_printf(FONT_MED, 30, 100, "vsync failed");
+    bmp_printf(FONT_MED, X0+30, Y0+100, "vsync failed");
 }
 
 /*
@@ -2877,6 +2877,18 @@ hdr_display( void * priv, int x, int y, int selected )
     }
 }
 
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+void hdr_display_status(int fnt)
+{
+    if (hdr_enabled)
+        bmp_printf(fnt, X0+HDR_STATUS_POS_X , Y0+HDR_STATUS_POS_Y, 
+            "HDR %Xx%d%sEV",
+            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+            hdr_stepsize / 8,
+            ((hdr_stepsize/4) % 2) ? ".5" : "");
+}
+#endif
+
 // 0,4,8,12,16, 24, 32, 40
 static void
 hdr_stepsize_toggle( void * priv, int delta )
@@ -2954,7 +2966,7 @@ bulb_take_pic(int duration)
     int d = duration/1000;
     for (int i = 0; i < d; i++)
     {
-        bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %s", format_time_hours_minutes_seconds(d));
+        bmp_printf(FONT_LARGE, X0+30, Y0+30, "Bulb timer: %s", format_time_hours_minutes_seconds(d));
         wait_till_next_second();
         if (lens_info.job_state == 0) break;
     }
@@ -3261,7 +3273,7 @@ static void bramp_change_percentile(int dir)
     clrscr();
     highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLUE, COLOR_WHITE);
     hist_highlight(level_8bit);
-    bmp_printf(FONT_LARGE, 50, 400, 
+    bmp_printf(FONT_LARGE, X0+50, Y0+400, 
         "Meter for %s\n"
         "(%2d%% luma at %dth percentile)",
         bramp_percentile < 40 ? "shadows" : bramp_percentile < 70 ? "midtones" : "highlights",
@@ -3370,19 +3382,19 @@ static void bramp_plot_luma_ev()
     {
         int luma1 = bramp_luma_ev[i+5];
         int luma2 = bramp_luma_ev[i+6];
-        int x1 = 350 + i * 20;
-        int x2 = 350 + (i+1) * 20;
-        int y1 = 240 - (luma1-128)/2;
-        int y2 = 240 - (luma2-128)/2;
+        int x1 = X0 + 350 + i * 20;
+        int x2 = X0 + 350 + (i+1) * 20;
+        int y1 = Y0 + 240 - (luma1-128)/2;
+        int y2 = Y0 + 240 - (luma2-128)/2;
         draw_line(x1, y1, x2, y2, COLOR_RED);
         draw_line(x1, y1+1, x2, y2+1, COLOR_RED);
         draw_line(x1, y1+2, x2, y2+2, COLOR_WHITE);
         draw_line(x1, y1-1, x2, y2-1, COLOR_WHITE);
     }
-    int x1 = 350 - 5 * 20;
-    int x2 = 350 + 5 * 20;
-    int y1 = 240 - 128/2;
-    int y2 = 240 + 128/2;
+    int x1 = X0 + 350 - 5 * 20;
+    int x2 = X0 + 350 + 5 * 20;
+    int y1 = Y0 + 240 - 128/2;
+    int y2 = Y0 + 240 + 128/2;
     bmp_draw_rect(COLOR_WHITE, x1, y1, x2-x1, y2-y1);
 }
 
@@ -3967,7 +3979,7 @@ static void bulb_ramping_showinfo()
     //~ int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
     //~ int rate_x1000 = bramp_light_changing_rate_evx1000 + manual_evx1000;
 
-    bmp_printf(FONT_MED, 50, 350, 
+    bmp_printf(FONT_MED, X0+50, Y0+350, 
         //~ "Reference level (%2dth prc) :%3d%%    \n"
         //~ "Measured  level (%2dth prc) :%3d%%    \n"
         //~ "Level/EV ratio             :%3d%%/EV \n"
@@ -4701,7 +4713,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
     f = FIO_CreateFile(name);
     if ( f == INVALID_PTR )
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+        bmp_printf( FONT_LARGE, X0+30, Y0+30, "FCreate: Err %s", name );
         return;
     }
     DEBUG();
@@ -4905,7 +4917,7 @@ void hdr_check_for_under_or_over_exposure(int* under, int* over)
     if (*under) pu = MAX(pu, 1);
     if (*over) po = MAX(po, 1);
     bmp_printf(
-        FONT_LARGE, 50, 50, 
+        FONT_LARGE, X0+50, Y0+50, 
         "Under:%3d.%02d%%\n"
         "Over :%3d.%02d%%", 
         pu/100, pu%100, 0, 
@@ -5277,15 +5289,15 @@ void display_trap_focus_info()
         int active = show && get_halfshutter_pressed();
         bg = active ? COLOR_BG : 0;
         fg = active ? COLOR_RED : COLOR_BG;
-        x = 8; y = 160;
+        x = X0+8; y = Y0+160;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
     }
     else
     {
         show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
-        bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
+        bg = bmp_getpixel(X0+DISPLAY_TRAP_FOCUS_POS_X, Y0+DISPLAY_TRAP_FOCUS_POS_Y);
         fg = trap_focus == 2 || HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
-        x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
+        x = X0+DISPLAY_TRAP_FOCUS_POS_X; y = Y0+DISPLAY_TRAP_FOCUS_POS_Y;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
     }
     show_prev = show;
@@ -5575,7 +5587,7 @@ shoot_task( void* unused )
                 //TODO: maybe get the spot yuv of the target box
                 get_spot_yuv(100, &y, &u, &v);
                 aev = y / 2;
-                if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+                if (K > 50) bmp_printf(FONT_MED, X0, Y0+50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
                     lens_take_picture(64,1);
@@ -5587,7 +5599,7 @@ shoot_task( void* unused )
             else if (motion_detect_trigger == 1)
             {
                 int d = get_spot_motion(100, get_global_draw());
-                if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
+                if (K > 50) bmp_printf(FONT_MED, X0, Y0+50, "Motion level: %d   ", d);
                 if (K > 50 && d >= (int)motion_detect_level)
                 {
                     //~ remote_shot(1);
@@ -5652,7 +5664,7 @@ shoot_task( void* unused )
                                 SECONDS_REMAINING,
                                 intervalometer_pictures_taken);
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after*100); }
-                bmp_printf(FONT_MED, 50, 310, msg);
+                bmp_printf(FONT_MED, X0+50, Y0+310, msg);
 
                 if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
                     intervalometer_stop();
@@ -5758,7 +5770,7 @@ shoot_task( void* unused )
     
                 if (countdown == 0)
                 {
-                    bmp_printf(FONT_MED, 20, lv ? 40 : 3, "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
+                    bmp_printf(FONT_MED, X0+20, Y0 + (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
                     if (current_pulse_level > (int)audio_release_level) 
                     {
                         remote_shot(1);

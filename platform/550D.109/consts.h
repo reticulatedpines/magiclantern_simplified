@@ -235,8 +235,13 @@
 #define DISPLAY_CLOCK_POS_X 200
 #define DISPLAY_CLOCK_POS_Y 410
 
+// for intermediate ISO
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
+
+// for HDR status
+#define HDR_STATUS_POS_X 380
+#define HDR_STATUS_POS_Y 450
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 410

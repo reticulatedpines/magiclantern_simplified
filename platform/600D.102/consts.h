@@ -264,6 +264,9 @@
 #define MENU_DISP_ISO_POS_X 590
 #define MENU_DISP_ISO_POS_Y 26
 
+#define HDR_STATUS_POS_X 190
+#define HDR_STATUS_POS_Y 450
+
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)

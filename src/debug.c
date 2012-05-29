@@ -171,7 +171,7 @@ static void dump_rom_task(void* priv)
     FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
     if (f != (void*) -1)
     {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
+        bmp_printf(FONT_LARGE, X0, Y0+60, "Writing ROM");
         FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
         FIO_CloseFile(f);
     }
@@ -181,7 +181,7 @@ static void dump_rom_task(void* priv)
     f = FIO_CreateFile(CARD_DRIVE "BOOT0.BIN");
     if (f != (void*) -1)
     {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
+        bmp_printf(FONT_LARGE, X0, Y0+60, "Writing BOOT");
         FIO_WriteFile(f, (void*) 0xFFFF0000, 0x10000);
         FIO_CloseFile(f);
     }
@@ -346,9 +346,9 @@ void find_response_curve(char* fname)
     msleep(1000);
     
     for (int i = 0; i < 64*2; i+=8)
-        bmp_draw_rect(COLOR_BLACK, i*5+40, 0, 8*5, 380);
+        bmp_draw_rect(COLOR_BLACK, X0 + i*5+40, Y0, 8*5, 380);
     
-    draw_line(40, 190, 720-40, 190, COLOR_BLACK);
+    draw_line(X0 + 40, Y0 + 190, X0 + 720-40, Y0 + 190, COLOR_BLACK);
 
     extern int bv_auto;
     //int bva0 = bv_auto;
@@ -365,7 +365,7 @@ void find_response_curve(char* fname)
         msleep(400);
         int Y,U,V;
         get_spot_yuv(180, &Y, &U, &V);
-        dot(i*5 + 40 - 16, 380 - Y*380/255 - 16, COLOR_BLUE, 3); // dot has an offset of 16px
+        dot(X0 + i*5 + 40 - 16, Y0 + 380 - Y*380/255 - 16, COLOR_BLUE, 3); // dot has an offset of 16px
         my_fprintf(f, "%d %d %d %d\n", i, Y, U, V);
     }
     FIO_CloseFile(f);
@@ -377,7 +377,7 @@ void find_response_curve(char* fname)
 
 void find_response_curve_ex(char* fname, int iso, int dgain, int htp)
 {
-    bmp_printf(FONT_MED, 0, 100, "ISO %d\nDGain %d\n%s", iso, dgain, htp ? "HTP" : "");
+    bmp_printf(FONT_MED, X0, Y0+100, "ISO %d\nDGain %d\n%s", iso, dgain, htp ? "HTP" : "");
     set_htp(htp);
     msleep(100);
     lens_set_iso(iso);
@@ -1319,7 +1319,7 @@ static int _toc()
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-    bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
+    bmp_printf(FONT_MED, X0+10,Y0+10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
     //~ msleep(2000);
     //mem_spy_len is number of int32's
     if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
@@ -1335,10 +1335,10 @@ static void dbg_memspy_init() // initial state of the analyzed memory
         dbg_memmirror[i] = MEMX(addr);
         dbg_memchanges[i] = 0;
         crc += dbg_memmirror[i];
-        //~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
+        //~ bmp_printf(FONT_MED, X0+10,Y0+10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
         //~ msleep(1000);
     }
-    bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
+    bmp_printf(FONT_MED, X0+10,Y0+10, "memspy OK: %x", crc);
     _tic();
 }
 static void dbg_memspy_update()
@@ -1351,7 +1351,7 @@ static void dbg_memspy_update()
     if (!dbg_memchanges) return;
 
     int elapsed_time = _toc();
-    bmp_printf(FONT_MED, 50, 400, "%d ", elapsed_time);
+    bmp_printf(FONT_MED, X0+50, Y0+400, "%d ", elapsed_time);
 
     int i;
     int k=0;
@@ -1363,7 +1363,7 @@ static void dbg_memspy_update()
         int newval = MEMX(addr);
         if (oldval != newval)
         {
-            //~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
+            //~ bmp_printf(FONT_MED, X0+10,Y0+460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
             dbg_memmirror[i] = newval;
             if (dbg_memchanges[i] < 1000000) dbg_memchanges[i]++;
             fnt = FONT(FONT_SMALL, 5, COLOR_BG);
@@ -1383,16 +1383,16 @@ static void dbg_memspy_update()
         if (mem_spy_freq_lo && freq < mem_spy_freq_lo) continue;
         if (mem_spy_freq_hi && freq > mem_spy_freq_hi) continue;
 
-        int x = 10 + 8 * 22 * (k % 4);
-        int y = 10 + 12 * (k / 4);
+        int x = X0 + 10 + 8 * 22 * (k % 4);
+        int y = Y0 + 10 + 12 * (k / 4);
         bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
         k = (k + 1) % 120;
     }
 
     for (i = 0; i < 10; i++)
     {
-        int x = 10 + 8 * 22 * (k % 4);
-        int y = 10 + 12 * (k / 4);
+        int x = X0 + 10 + 8 * 22 * (k % 4);
+        int y = Y0 + 10 + 12 * (k / 4);
         bmp_printf(FONT_SMALL, x, y, "                    ");
         k = (k + 1) % 120;
     }
@@ -1401,14 +1401,14 @@ static void dbg_memspy_update()
 
 void display_clock()
 {
-    int bg = bmp_getpixel(15, 430);
+    int bg = bmp_getpixel(X0+15, Y0+430);
 
     struct tm now;
     LoadCalendarFromRTC( &now );
     if (!lv)
     {
         uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
+        bmp_printf(fnt, X0+DISPLAY_CLOCK_POS_X, Y0+DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
     }
 
     static int prev_min = 0;
@@ -1425,19 +1425,19 @@ void
 memfilt(void* m, void* M, int value)
 {
     int k = 0;
-    bmp_printf(FONT_SMALL, 0, 0, "%8x", value);
+    bmp_printf(FONT_SMALL, X0, Y0, "%8x", value);
     for (void* i = m; i < M; i ++)
     {
         if ((*(uint8_t*)i) == value)
         {
-            int x = 10 + 4 * 22 * (k % 8);
-            int y = 10 + 12 * (k / 8);
+            int x = X0 + 10 + 4 * 22 * (k % 8);
+            int y = Y0 + 10 + 12 * (k / 8);
             bmp_printf(FONT_SMALL, x, y, "%8x", i);
             k = (k + 1) % 240;
         }
     }
-    int x = 10 + 4 * 22 * (k % 8);
-    int y = 10 + 12 * (k / 8);
+    int x = X0 + 10 + 4 * 22 * (k % 8);
+    int y = Y0 + 10 + 12 * (k / 8);
     bmp_printf(FONT_SMALL, x, y, "        ");
 }
 #endif
@@ -1508,7 +1508,7 @@ void show_electronic_level()
     prev_angle10 = angle10;
     
     if (angle10 > 1800) angle10 -= 3600;
-    bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
+    bmp_printf(FONT_MED, X0, Y0+35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
 }
 
 #endif
@@ -1765,7 +1765,7 @@ void crash_log_task()
     }
 }
 
-TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x1000);
+TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
 
 
 int x = 0;
@@ -1802,9 +1802,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 
         if (get_global_draw())
         {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
             extern thunk ShootOlcApp_handler;
-            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !EXT_MONITOR_CONNECTED
+            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
                 && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
             BMP_LOCK
             (
@@ -1826,7 +1826,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 {
                     if (!ae_warned && !gui_menu_shown())
                     {
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                        bmp_printf(SHADOW_FONT(FONT_MED), X0+50, Y0+50, 
                             "!!! Auto exposure !!!\n"
                             "Set 'Movie Exposure -> Manual' from Canon menu");
                         msleep(2000);
@@ -2138,7 +2138,7 @@ void prop_dump()
                     | (j << 16)
                     | (k <<  0);
         
-                bmp_printf(FONT_LARGE, 0, 0, "PROP %x...", prop);
+                bmp_printf(FONT_LARGE, X0, Y0, "PROP %x...", prop);
                 int* data = 0;
                 size_t len = 0;
                 int err = prop_get_value(prop, (void **) &data, &len);
@@ -2192,7 +2192,7 @@ void EyeFi_RenameCR2toAVI(char* dir)
         strcpy(newname, oldname);
         newname[strlen(newname) - 4] = 0;
         STR_APPEND(newname, ".AVI");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        bmp_printf(FONT_LARGE, X0, Y0, "%s...", newname);
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
@@ -2593,8 +2593,8 @@ static void dbg_draw_props(int changed)
     int i; 
     for (i = 0; i < dbg_propn; i++)
     {
-        unsigned x = 80;
-        unsigned y = 15 + i * font_small.height;
+        unsigned x = X0 + 80;
+        unsigned y = Y0 + 15 + i * font_small.height;
         unsigned property = dbg_props[i];
         unsigned len = dbg_props_len[i];
         unsigned fnt = FONT_SMALL;
@@ -3216,7 +3216,7 @@ void spy_event(struct event * event)
     {
         static int kev = 0;
         kev++;
-        bmp_printf(FONT_SMALL, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+        bmp_printf(FONT_SMALL, X0, Y0+400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
             kev,
             event->type, 
             event->param, 

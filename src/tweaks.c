@@ -64,7 +64,7 @@ dofp_update()
     
     if (dofpreview_sticky == 1)
     {
-        if (d) {bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF"); info_led_on(); }
+        if (d) {bmp_printf(FONT_LARGE, X0+720-font_large.width*3, Y0+50, "DOF"); info_led_on(); }
         else if (old_value) { redraw(); info_led_off(); }
         
         if (d != old_value) // transition
@@ -728,11 +728,11 @@ CONFIG_INT("halfshutter.sticky", halfshutter_sticky, 0);
 
 void hs_show()
 {
-    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
+    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), X0+720-font_large.width*3, Y0+50, "HS");
 }
 void hs_hide()
 {
-    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
+    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), X0+720-font_large.width*3, Y0+50, "  ");
 }
 
 void 

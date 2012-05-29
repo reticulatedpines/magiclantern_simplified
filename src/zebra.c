@@ -899,7 +899,7 @@ unsigned int aj_create_log_file( char * name)
    g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
-      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
+      bmp_printf( FONT_SMALL, X0+120, Y0+40, "FCreate: Err %s", name );
       return( 0 );  // FAILURE
    }
    return( 1 );  // SUCCESS
@@ -932,7 +932,7 @@ void dump_big_seg(int k, char* filename)
     {
         DEBUG();
         uint32_t start = (k << 28 | i << 24);
-        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
+        bmp_printf(FONT_LARGE, X0+50, Y0+50, "DUMP %x %8x ", i, start);
         FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
     }
     
@@ -960,7 +960,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         for (i = 0; i < n; i++)
         {
             uint32_t start = 0x40000000;
-            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+            bmp_printf(FONT_LARGE, X0, Y0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
         FIO_CloseFile(f);
@@ -982,7 +982,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
             int i;
             for (i = 0; i < n; i++)
             {
-                bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+                bmp_printf(FONT_LARGE, X0, Y0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
@@ -1681,9 +1681,8 @@ static void find_cropmarks()
     struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "CROPMKS/", &file );
     if( IS_ERROR(dirent) )
     {
-        NotifyBox(2000, "CROPMKS dir missing" );
-        msleep(100);
-        NotifyBox(2000, "Please copy all ML files!" );
+        NotifyBox(2000, "CROPMKS dir missing\n"
+                        "Please copy all ML files!" );
         return;
     }
     int k = 0;
@@ -1705,28 +1704,27 @@ static void find_cropmarks()
 }
 static void reload_cropmark()
 {
-BMP_LOCK(
     int i = crop_index;
     static int old_i = -1;
-    if (i == old_i) goto end; 
+    if (i == old_i) return; 
     old_i = i;
-    //~ bmp_printf(FONT_LARGE, 0, 100, "reload crop: %d", i);
+    //~ bmp_printf(FONT_LARGE, X0, Y0+100, "reload crop: %d", i);
 
     if (cropmarks)
     {
-        FreeMemory(cropmarks);
+        void* old_crop = cropmarks;
         cropmarks = 0;
+        FreeMemory(old_crop);
     }
 
     cropmark_clear_cache();
     
+    if (!num_cropmarks) return;
     i = COERCE(i, 0, num_cropmarks-1);
     char bmpname[100];
     snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
-    if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
-end:
-)
+    if (!cropmarks) bmp_printf(FONT_LARGE, X0, Y0+50, "LOAD ERROR %d:%s   ", i, bmpname);
 }
 
 static void
@@ -1889,7 +1887,7 @@ crop_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Cropmarks   : %s",
-         crop_enabled  ? cropmark_names[index] : "OFF"
+         crop_enabled ? (num_cropmarks ? cropmark_names[index] : "N/A") : "OFF"
     );
     if (crop_enabled && cropmark_movieonly && !is_movie_mode())
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
@@ -1901,19 +1899,20 @@ crop_display_submenu( void * priv, int x, int y, int selected )
 {
     //~ extern int retry_count;
     int index = crop_index;
-    index = COERCE(index, 0, num_cropmarks);
+    index = COERCE(index, 0, num_cropmarks-1);
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Bitmap (%d/%d)  : %s",
          index+1, num_cropmarks,
-         cropmark_names[index]
+         num_cropmarks ? cropmark_names[index] : "N/A"
     );
     int h = 150;
     int w = h * 720 / 480;
     int xc = x + 315;
     int yc = y + font_large.height * 3 + 10;
-    task_create("crop_reload", 0x1a, 0x1000, reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
+    reload_cropmark();
+    //~ task_create("crop_reload", 0x1a, 0x1000, reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
     //~ reload_cropmark(crop_index);
     //~ ASSERT(cropmarks);
     bmp_fill(0, xc, yc, w, h);
@@ -3909,7 +3908,7 @@ void draw_histogram_and_waveform(int allow_play)
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
         if (should_draw_bottom_graphs())
-            BMP_LOCK( hist_draw_image( os.x0 + 50, 480 - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 50, Y0 + 480 - hist_height - 1, -1); )
         else
             BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
     }
@@ -3924,7 +3923,7 @@ void draw_histogram_and_waveform(int allow_play)
     if( waveform_draw)
     {
         if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
-            BMP_LOCK( waveform_draw_image( os.x0 + 250, 480 - 54, 54); )
+            BMP_LOCK( waveform_draw_image( os.x0 + 250, Y0 + 480 - 54, 54); )
         else
             BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
     }
@@ -4526,7 +4525,7 @@ livev_hipriority_task( void* unused )
         draw_cropmark_area(); // just for debugging
         struct vram_info * lv = get_yuv422_vram();
         struct vram_info * hd = get_yuv422_hd_vram();
-        bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", ext_monitor_rca, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
+        bmp_printf(FONT_MED, X0+100, Y0+100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", ext_monitor_rca, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
 
         //~ lv_vsync();
@@ -4831,7 +4830,7 @@ static void do_disp_mode_change()
     clrscr();
     idle_globaldraw_dis();
     //~ redraw();
-    bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, "Display preset: %d", disp_mode);
+    bmp_printf(SHADOW_FONT(FONT_LARGE), X0+50, Y0+50, "Display preset: %d", disp_mode);
     msleep(250);
     idle_globaldraw_en();
     update_disp_mode_params_from_bits();
@@ -4912,7 +4911,7 @@ static void make_overlay()
     //~ bvram_mirror_init();
     clrscr();
 
-    bmp_printf(FONT_MED, 0, 0, "Saving overlay...");
+    bmp_printf(FONT_MED, X0, Y0, "Saving overlay...");
 
     struct vram_info * vram = get_yuv422_vram();
     uint8_t * const lvram = vram->vram;
@@ -4946,7 +4945,7 @@ static void make_overlay()
     FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
-    bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
+    bmp_printf(FONT_MED, X0, Y0, "Overlay saved.  ");
 
     msleep(1000);
 }
@@ -5043,7 +5042,7 @@ static void defish_lut_load()
     }
     if (defish_lut == NULL)
     {
-        bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
+        bmp_printf(FONT_MED, X0+50, Y0+50, "%s not loaded", defish_lut_file);
         return;
     }
 }
@@ -5184,8 +5183,8 @@ void play_422(char* filename)
     uint32_t * buf = (uint32_t*)YUV422_HD_BUFFER_2;
     struct vram_info * vram = get_yuv422_vram();
 
-    bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
-    bmp_printf(FONT_LARGE, 500, 0, "%d", size);
+    bmp_printf(FONT_LARGE, X0, Y0, "%s ", filename+17);
+    bmp_printf(FONT_LARGE, X0+500, Y0, "%d", size);
 
     int w,h;
     // auto-generated code from 422-jpg.py
@@ -5211,13 +5210,13 @@ void play_422(char* filename)
     else if (size == 1904 * 1270 * 2) { w = 1904; h = 1270; } 
     else
     {
-        bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
+        bmp_printf(FONT_LARGE, X0, Y0+50, "Cannot preview this picture.");
         bzero32(vram->vram, vram->width * vram->height * 2);
         return;
     }
     
-    bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
-    if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, os.y_max - font_large.height, "Do not press Delete!");
+    bmp_printf(FONT_LARGE, X0+500, Y0, " %dx%d ", w, h);
+    if (PLAY_MODE) bmp_printf(FONT_LARGE, X0, Y0 + 480 - font_large.height, "Do not press Delete!");
 
     size_t rc = read_file( filename, buf, size );
     if( rc != size ) return;

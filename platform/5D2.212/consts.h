@@ -198,6 +198,10 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+// for HDR status
+#define HDR_STATUS_POS_X 180
+#define HDR_STATUS_POS_Y 460
+
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 500
 #define DISPLAY_TRAP_FOCUS_POS_Y 320

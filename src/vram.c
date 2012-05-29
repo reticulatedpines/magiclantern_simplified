@@ -29,8 +29,8 @@ struct vram_info vram_bm = {
 
 
 struct trans2d bm2lv = { 
-    .tx = 0,
-    .ty = 0,
+    .tx = 120,
+    .ty = 30,
     .sx = 1024,
     .sy = 1024,
 };
@@ -45,8 +45,8 @@ struct trans2d lv2hd = {
 // area from BMP where the LV image (3:2) is effectively drawn, without black bars
 // in this area we'll draw cropmarks, zebras and so on
 struct bmp_ov_loc_size os = {
-    .x0 = 0,
-    .y0 = 0,
+    .x0 = 120,
+    .y0 = 30,
     .x_ex = 480,
     .y_ex = 720,
 };
@@ -124,13 +124,13 @@ void update_vram_params()
 
     // BMP (used for overlays)
     // width and height are updated on the fly, in bmp_vram, to avoid race conditions
-    //~ vram_bm.width  = BMP_WIDTH;
-    //~ vram_bm.height = BMP_HEIGHT;
+    vram_bm.width  = hdmi_code == 5 ? 960 : 720;
+    vram_bm.height = hdmi_code == 5 ? 540 : 480;
     vram_bm.pitch = 960;
     
     // LV crop area (black bars)
-    os.x0   = hdmi_code == 5 ?  75 : hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0;
-    os.y0   = hdmi_code == 5 ?   0 : hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0;
+    os.x0   = hdmi_code == 5 ?  75 : 120 + (hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0);
+    os.y0   = hdmi_code == 5 ?   0 :  30 + (hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0);
     os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
     os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
@@ -138,7 +138,7 @@ void update_vram_params()
     {
         if (PLAY_MODE || QR_MODE)
         {
-            os.y0 = 52; // black bar is at the top in play mode, 48 with additional info
+            os.y0   = 30 + 52; // black bar is at the top in play mode, 48 with additional info
             os.y_ex = 428; // 480 - os.y0; // screen height is 480px in total
         }
         else
@@ -150,7 +150,7 @@ void update_vram_params()
     if (PLAY_MODE && hdmi_code == 2)
     {
         os.y_ex = 480 - 52;
-        os.y0 = 52;
+        os.y0 = 30 + 52;
     }
 #endif
     

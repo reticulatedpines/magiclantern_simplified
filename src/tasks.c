@@ -51,7 +51,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     if (selected) 
     {
         menu_draw_icon(x0, y0, -1, 0);
-        bmp_fill(38, 0, 0, 720, 430);
+        bmp_fill(38, X0, Y0, 720, 430);
     }
 
   int c;
@@ -63,8 +63,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
    // wait_id: 0=sleep, 1=sem, 2=flg/event, 3=sendmq, 4=recvmq, 5=mutex
    // state: 0=ready, 1=wait, 2=susp, other=wait+s
 
-  int x = 5;
-  int y = 10;
+  int x = X0+5;
+  int y = Y0+10;
   
   bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
   y += font_med.height;
@@ -98,10 +98,10 @@ void tasks_print(void* priv, int x0, int y0, int selected)
       #else
       y += font_small.height;
       #endif
-      if (y > 410)
+      if (y > Y0+410)
       {
           x += 360;
-          y = 10;
+          y = Y0+10;
       }
     }
   }

@@ -576,7 +576,7 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_EARLY_PORT
 
     // wait for firmware to initialize
-    while (!bmp_vram_real()) msleep(100);
+    while (!bmp_vram_raw()) msleep(100);
     msleep(200);
     
     if (magic_off_request)

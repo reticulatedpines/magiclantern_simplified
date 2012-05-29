@@ -54,18 +54,10 @@ void bmp_idle_clear()
     bzero32(bmp_vram_idle(), BMP_HEIGHT * BMPPITCH);
 }
 
-/** Returns a pointer to currently selected BMP vram (real or mirror) 
- *  and update BMP VRAM size if needed (for HDMI) */
+/** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
-    ASSERT(bmp_buf);
-    
-    vram_bm.width = BMP_VRAM_IS_FULL_HDMI(bmp_buf) ? 960 : 720;
-    vram_bm.height = BMP_VRAM_IS_FULL_HDMI(bmp_buf) ? 540 : 480;
-    
-    //~ ASSERT(bmp_buf + BMP_HEIGHT + BMPPITCH <= BMP_VRAM_END(bmp_buf));
-    //~ NotifyBox(1000, "%x %x ", BMP_END, bmp_buf + 510 * BMPPITCH - 120);
     return bmp_buf;
 }
 
