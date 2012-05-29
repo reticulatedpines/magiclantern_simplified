@@ -1105,7 +1105,11 @@ int handle_arrow_keys(struct event * event)
     if (!lv) return 1;
     if (gui_menu_shown()) return 1;
     if (handle_push_wb(event)==0) return 0;
-   
+
+    #ifdef CONFIG_4_3_SCREEN
+    if (lv_dispsize > 1) return 1; // flickers in zoom mode => completely disable them
+    #endif
+
     // if no shortcut is enabled, do nothing
     if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
         return 1;
@@ -1293,6 +1297,9 @@ void display_shortcut_key_hints_lv()
     static int old_mode = 0;
     int mode = 0;
     if (!liveview_display_idle()) return;
+    #ifdef CONFIG_4_3_SCREEN
+    if (lv_dispsize > 1) return; // flickers in zoom mode
+    #endif
     if (NotifyBoxActive()) return;
 
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
