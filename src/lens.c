@@ -30,6 +30,8 @@
 #include "menu.h"
 #include "math.h"
 
+//~ FILE* logfile = 0;
+
 #if defined(CONFIG_5D2) || defined(CONFIG_5D3)
 #define CONFIG_FULLFRAME
 #endif
@@ -249,6 +251,8 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 static void double_buffering_start(int ytop, int height)
 {
     // use double buffering to avoid flicker
+    bmp_vram(); // make sure parameters are up to date
+    ytop = MIN(ytop, vram_bm.height - height);
     memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
     bmp_draw_to_idle(1);
 }
@@ -257,16 +261,21 @@ static void double_buffering_end(int ytop, int height)
 {
     // done drawing, copy image to main BMP buffer
     bmp_draw_to_idle(0);
-    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
-    bzero32(bmp_vram_idle() + BM(0,ytop), 35 * BMPPITCH);
+    bmp_vram(); // make sure parameters are up to date
+    ytop = MIN(ytop, BMP_HEIGHT - height);
+    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
+    bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
 }
 
 static void ml_bar_clear(int ytop, int height)
 {
     uint8_t* B = bmp_vram();
     uint8_t* M = (uint8_t *)get_bvram_mirror();
+    if (!B) return;
+    if (!M) return;
     int menu = gui_menu_shown();
-    for (int y = ytop; y < ytop + height; y++)
+    int ymax = MIN(ytop + height, vram_bm.height);
+    for (int y = ytop; y < ymax; y++)
     {
         for (int x = 0; x < vram_bm.width; x++)
         {
@@ -320,7 +329,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
     unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
 
     int ytop = bottom - 35;
-    
+
     // start drawing to mirror buffer to avoid flicker
     if (double_buffering)
         double_buffering_start(ytop, 35);
@@ -339,7 +348,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
     }
 
         // MODE
-        
             bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
                 "%s",
                 is_movie_mode() ? "Mv" : 
@@ -367,7 +375,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       * FOCAL & APERTURE *
       *******************/
       
-      if (info->aperture && info->name[0])
+      if (info->name[0]) // for chipped lenses only
       {
           text_font = FONT(SHADOW_FONT(FONT_LARGE),COLOR_WHITE,bg);
           unsigned med_font = FONT(SHADOW_FONT(FONT_MED),COLOR_WHITE,bg);
@@ -388,26 +396,29 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 );
           bmp_printf( text_font, x_origin - 5, y_origin, focal );
 
-        if (info->aperture < 100)
-        {
-              bmp_printf( text_font, 
-                          x_origin + 74 + font_med.width + font_large.width - 7, 
-                          y_origin, 
-                          ".");
-              bmp_printf( text_font, 
-                          x_origin + 74 + font_med.width  , 
-                          y_origin, 
-                          "%d", info->aperture / 10);
-              bmp_printf( text_font, 
-                          x_origin + 74 + font_med.width + font_large.width * 2 - 14, 
-                          y_origin, 
-                          "%d", info->aperture % 10);
-        }
-        else
-              bmp_printf( text_font, 
-                          x_origin + 74 + font_med.width  , 
-                          y_origin, 
-                          "%d    ", info->aperture / 10) ;
+          if (info->aperture)
+          {
+                if (info->aperture < 100)
+                {
+                      bmp_printf( text_font, 
+                                  x_origin + 74 + font_med.width + font_large.width - 7, 
+                                  y_origin, 
+                                  ".");
+                      bmp_printf( text_font, 
+                                  x_origin + 74 + font_med.width  , 
+                                  y_origin, 
+                                  "%d", info->aperture / 10);
+                      bmp_printf( text_font, 
+                                  x_origin + 74 + font_med.width + font_large.width * 2 - 14, 
+                                  y_origin, 
+                                  "%d", info->aperture % 10);
+                }
+                else
+                      bmp_printf( text_font, 
+                                  x_origin + 74 + font_med.width  , 
+                                  y_origin, 
+                                  "%d    ", info->aperture / 10) ;
+          }
 
           bmp_printf( med_font, 
                       x_origin + font_large.width * strlen(focal) - 3 - 5, 
@@ -1721,6 +1732,9 @@ lens_init( void* unused )
 
     lens_info.lens_rotation = 0.1;
     lens_info.lens_step = 1.0;
+    
+    //~ FIO_RemoveFile("B:/lens.log");
+    //~ logfile = FIO_CreateFile("B:/lens.log");
 }
 
 INIT_FUNC( "lens", lens_init );
