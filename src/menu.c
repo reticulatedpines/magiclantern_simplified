@@ -2141,14 +2141,6 @@ int handle_ml_menu_erase(struct event * event)
         //~ else bmp_printf(FONT_LARGE, 100, 100, "%d ", gui_state);
     }
 
-#ifndef CONFIG_5D2
-    if (event->param == BGMT_MENU && PLAY_MODE)
-    {
-        give_semaphore( gui_sem );
-        return 0;
-    }
-#endif
-
     return 1;
 }
 
