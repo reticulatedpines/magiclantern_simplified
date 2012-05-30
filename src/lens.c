@@ -980,8 +980,9 @@ void lens_wait_readytotakepic(int wait)
     int i;
     for (i = 0; i < wait * 10; i++)
     {
-        if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
-        if (lens_info.job_state == 0 && burst_count > 0 && is_movie_mode()) break;
+        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
+        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
+        if (lens_info.job_state <= 0xA && burst_count > 0) break;
         msleep(20);
         if (lens_info.job_state <= 0xA) info_led_on();
     }
