@@ -75,7 +75,6 @@ void bmp_idle_clear()
 uint8_t * bmp_vram(void)
 {
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
-    //~ NotifyBox(1000, "%x ", bmp_buf);
     return bmp_buf;
 }
 

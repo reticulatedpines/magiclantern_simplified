@@ -67,26 +67,35 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  * 
  */
 
-inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
-{
-#ifdef CONFIG_5D3
-    return (uint8_t*)((((uintptr_t)(bmp_buf + 0x4000) & 0xFFFC0000) | 0x8) - 0x4000); // LCD: 00dc3100 / HDMI: 00d3c008
-#else
-    return (uint8_t*)(((uintptr_t)bmp_buf & 0xFFF80000) | 0x8); // digic 4: LCD: ***87100 / HDMI: ***80008
-#endif
-}
-
-#define BMPPITCH 960
-#define BMP_VRAM_SIZE (960*540)
-#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
-
 /** These are the hard limits - never ever write outside them! */
 #define BMP_W_PLUS 840
 #define BMP_W_MINUS -120
 #define BMP_H_PLUS 510
 #define BMP_H_MINUS -30
 
+#define BMPPITCH 960
+#define BMP_VRAM_SIZE (960*540)
+
 #define BMP_HDMI_OFFSET ((-BMP_H_MINUS)*BMPPITCH + (-BMP_W_MINUS))
+
+inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
+{
+    // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
+    // 500D: LCD: 003638100 / HDMI: 003631008
+    // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
+    
+    if (((uintptr_t)bmp_buf & 0xFFF) == 0x100) // 720x480 crop - alter it to point to full 960x540 buffer
+        return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET);
+
+    if (((uintptr_t)bmp_buf & 0xFFF) == 0x008) // HDMI 960x540 => return it as is
+        return bmp_buf;
+    
+    // something else - new camera? return it unchanged (failsafe)
+    ASSERT(0);
+    return bmp_buf;
+}
+
+#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
 /** Returns a pointer to the real BMP vram */
 inline uint8_t* bmp_vram_real()
