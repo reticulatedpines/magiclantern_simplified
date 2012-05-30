@@ -5017,7 +5017,7 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
         {
             int is = (i - y0) * deny / 128 + y0;
             int js = (j - x0) * denx / 128 + x0;
-            dst[BM(j,i)] = (is >= BMP_H_MINUS && js >= BMP_W_MINUS && is < BMP_H_PLUS && js < BMP_W_PLUS) 
+            dst[BM(j,i)] = (is >= 0 && js >= 0 && is < 480 && js < 720) // this is only used for menu
                 ? src[BM(js,is)] : 0;
         }
     }

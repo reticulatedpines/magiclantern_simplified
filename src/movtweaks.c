@@ -414,12 +414,13 @@ movtweak_task( void* unused )
                 msleep(1000);
                 //~ NotifyBox(2000, "HDMI resolution: 720x480");
                 //~ beep();
-                //~ BMP_LOCK(
                     ui_lock(UILOCK_EVERYTHING);
-                    ChangeHDMIOutputSizeToVGA();
+                    BMP_LOCK(
+                        ChangeHDMIOutputSizeToVGA();
+                        msleep(300);
+                    )
                     msleep(2000);
                     ui_lock(UILOCK_NONE);
-                //~ )
                 msleep(5000);
             }
         }
