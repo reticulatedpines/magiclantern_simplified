@@ -93,7 +93,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
      
      bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
         c, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
-      #ifdef CONFIG_5D3
+      #if defined(CONFIG_5D3) || defined(CONFIG_60D)
       y += font_small.height - (what_tasks_to_show==1 ? 2 : 0); // too many tasks - they don't fit on the screen :)
       #else
       y += font_small.height;
