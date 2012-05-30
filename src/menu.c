@@ -1872,7 +1872,7 @@ static void menu_open()
     piggyback_canon_menu();
 
     canon_gui_disable_front_buffer(0);
-    clrscr();
+    if (lv && EXT_MONITOR_CONNECTED) clrscr();
     menu_redraw();
 }
 static void menu_close() 
