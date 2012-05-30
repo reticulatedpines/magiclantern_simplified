@@ -846,7 +846,7 @@ static PROP_INT(PROP_BV, prop_bv);
 
 void update_lvae_for_autoiso_n_displaygain()
 {
-#ifndef CONFIG_5D3
+#if !defined(CONFIG_5D3) && !defined(CONFIG_500D)
     // when one of those is true, ISO is locked to some fixed value
     // that is, LVAE_MOV_M_CTRL is 1 and LVAE_ISO_MIN is different from "normal"
     //~ static int auto_iso_paused = 0;

@@ -4546,6 +4546,7 @@ static struct menu_entry expo_menus[] = {
                 .max = 50,
                 .help = "Raises shadow level.",
             },*/
+            #ifndef CONFIG_500D
             {
                 .name = "Min Movie AutoISO",
                 .priv = &lvae_iso_min,
@@ -4572,6 +4573,7 @@ static struct menu_entry expo_menus[] = {
                 .help = "Speed for movie Auto ISO. Low values = smooth transitions.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+            #endif
             MENU_EOL
         },
     },
