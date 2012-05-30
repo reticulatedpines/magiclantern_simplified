@@ -42,23 +42,6 @@ uint8_t * bmp_vram(void);
  *  Not to be used directly - it may be somewhere in the middle of VRAM! */
 inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; } 
 
-/** Returns a pointer to the real BMP vram */
-inline uint8_t* bmp_vram_real()
-{
-    return (uint8_t*)(((uintptr_t)bmp_vram_raw() & 0xFFF80000) | 8);
-    //~ return bmp_vram_info[1].vram2;
-}
-
-/** Returns a pointer to idle BMP vram */
-inline uint8_t* bmp_vram_idle()
-{
-    return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
-}
-
-// 720x480 crop area - for menu and most graphics
-#define X0 120
-#define Y0 30
-
 /**
  * The total BMP area starts at 0x***80008 or 0x***00008 and has 960x540 pixels.
  * 
@@ -70,16 +53,55 @@ inline uint8_t* bmp_vram_idle()
  * The problem is that HDMI properties are not reliable for telling HDMI size 
  * (race condition while changing display modes).
  * 
- * Workaround: ML will always use the full BMP VRAM => zero chances to write past the end of the VRAM
- * due to race conditions between it and Canon firmware while changing display modes.
+ * Workaround: ML will always use a pointer to the CROPPED (720x480) BMP VRAM.
+ * 
+ * Advantages:
+ * 
+ * - Zero chances to write past the end of the VRAM due to race condition when changing display modes
+ * - Everything you draw on the screen will be visible and centered well on HDMI
+ * - Keeps most of the existing code (designed for LCD) unchanged
+ * 
+ * Disadvantage:
+ * - On HDMI, you may have to draw BEHIND the VRAM pointer (you can go at most 30 lines and 120 columns back).
+ *   Could be a bit ugly to code.
  * 
  */
-#define BMP_VRAM_END(bmp_buf) ((uint8_t*)(((uintptr_t)(bmp_buf) & 0xFFF80000) + 0x7E908))
-//~ #define BMP_VRAM_IS_FULL_HDMI(bmp_buf) (((uintptr_t)(bmp_buf) & 0x0007FFF0) == 0)
+
+inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
+{
+#ifdef CONFIG_5D3
+    return (uint8_t*)((((uintptr_t)(bmp_buf + 0x4000) & 0xFFFC0000) | 0x8) - 0x4000); // LCD: 00dc3100 / HDMI: 00d3c008
+#else
+    return (uint8_t*)(((uintptr_t)bmp_buf & 0xFFF80000) | 0x8); // digic 4: LCD: ***87100 / HDMI: ***80008
+#endif
+}
 
 #define BMPPITCH 960
-#define BMP_WIDTH 960
-#define BMP_HEIGHT 540
+#define BMP_VRAM_SIZE (960*540)
+#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
+
+/** These are the hard limits - never ever write outside them! */
+#define BMP_W_PLUS 840
+#define BMP_W_MINUS -120
+#define BMP_H_PLUS 510
+#define BMP_H_MINUS -30
+
+#define BMP_HDMI_OFFSET ((-BMP_H_MINUS)*BMPPITCH + (-BMP_W_MINUS))
+
+/** Returns a pointer to the real BMP vram */
+inline uint8_t* bmp_vram_real()
+{
+    return (uint8_t *)((uintptr_t)BMP_VRAM_START(bmp_vram_raw()) + BMP_HDMI_OFFSET);
+}
+
+/** Returns a pointer to idle BMP vram */
+inline uint8_t* bmp_vram_idle()
+{
+    return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
+}
+
+#define BMP_TOTAL_WIDTH (BMP_W_PLUS - BMP_W_MINUS)
+#define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
 
 
 /** Font specifiers include the font, the fg color and bg color */
@@ -182,10 +204,10 @@ bmp_draw_palette( void );
 extern void
 bmp_fill(
         uint8_t                 color,
-        uint32_t                x,
-        uint32_t                y,
-        uint32_t                w,
-        uint32_t                h
+        int                x,
+        int                y,
+        int                w,
+        int                h
 );
 
 
@@ -296,7 +318,7 @@ extern void *ReleaseRecursiveLock(void *lock);
 //~ #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
 #define GMT_LOCK(x) { error }
 
-#define BMP_LOCK(x) { CheckBmpAcquireRecursiveLock(bmp_lock, __LINE__); x; CheckBmpReleaseRecursiveLock(bmp_lock);}
+#define BMP_LOCK(x) { CheckBmpAcquireRecursiveLock(bmp_lock, __LINE__, __func__); x; CheckBmpReleaseRecursiveLock(bmp_lock);}
 
 //~ #define BMP_LOCK(x) { x; }
 //~ #define BMP_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 150, "BMP_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(bmp_lock, 500); bmp_printf(FONT_SMALL, 50, 150, "                          "); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 releasing...                    "); ReleaseRecursiveLock(bmp_lock); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}

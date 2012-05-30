@@ -258,7 +258,7 @@ extern struct trans2d bm2lv;
 extern struct trans2d lv2hd;
 extern struct vram_info vram_hd;
 extern struct vram_info vram_lv;
-extern struct vram_info vram_bm;
+//~ extern struct vram_info vram_bm; 
 
 
  // offsets on one axis, in pixels
@@ -301,29 +301,29 @@ extern struct vram_info vram_bm;
 
 // offsets in image matrix, in bytes
 #define BM2LV(x,y) (BM2LV_Y(y) * vram_lv.pitch + BM2LV_X(x) * 2)
-#define LV2BM(x,y) (LV2BM_Y(y) * vram_bm.pitch + LV2BM_X(x) * 1)
+#define LV2BM(x,y) (LV2BM_Y(y) * BMPPITCH      + LV2BM_X(x) * 1)
 
 #define LV2HD(x,y) (LV2HD_Y(y) * vram_hd.pitch + LV2HD_X(x) * 2)
 #define HD2LV(x,y) (HD2LV_Y(y) * vram_lv.pitch + HD2LV_X(x) * 2)
 
 #define BM2HD(x,y) (BM2HD_Y(y) * vram_hd.pitch + BM2HD_X(x) * 2)
-#define HD2BM(x,y) (HD2BM_Y(y) * vram_bm.pitch + HD2BM_X(x) * 1)
+#define HD2BM(x,y) (HD2BM_Y(y) * BMPPITCH      + HD2BM_X(x) * 1)
 
 // offset for a single row, in bytes
 
 #define BM2LV_R(y) (BM2LV_Y(y) * vram_lv.pitch)
-#define LV2BM_R(y) (LV2BM_Y(y) * vram_bm.pitch)
+#define LV2BM_R(y) (LV2BM_Y(y) * BMPPITCH     )
 
 #define LV2HD_R(y) (LV2HD_Y(y) * vram_hd.pitch)
 #define HD2LV_R(y) (HD2LV_Y(y) * vram_lv.pitch)
 
 #define BM2HD_R(y) (BM2HD_Y(y) * vram_hd.pitch)
-#define HD2BM_R(y) (HD2BM_Y(y) * vram_bm.pitch)
+#define HD2BM_R(y) (HD2BM_Y(y) * BMPPITCH     )
 
-#define BM(x,y) ((x) * 1 + (y) * vram_bm.pitch)
+#define BM(x,y) ((x) * 1 + (y) * BMPPITCH     )
 #define LV(x,y) ((x) * 2 + (y) * vram_lv.pitch)
 #define HD(x,y) ((x) * 2 + (y) * vram_hd.pitch)
-#define BM_R(y) ((y) * vram_bm.pitch)
+#define BM_R(y) ((y) * BMPPITCH     )
 #define LV_R(y) ((y) * vram_lv.pitch)
 #define HD_R(y) ((y) * vram_hd.pitch)
 
@@ -345,7 +345,7 @@ extern struct vram_info vram_bm;
 #define BM2N(x,y) (BM2N_Y(y) * 720 + LV2N_X(x))
 #define LV2N(x,y) (LV2N_Y(y) * 720 + LV2N_X(x))
 #define HD2N(x,y) (HD2N_Y(y) * 720 + HD2N_X(x))
-#define N2BM(x,y) (N2BM_Y(y) * vram_bm.pitch + N2LV_X(x) * 1)
+#define N2BM(x,y) (N2BM_Y(y) * BMPPITCH      + N2LV_X(x) * 1)
 #define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + N2LV_X(x) * 2)
 #define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + N2HD_X(x) * 2)
 

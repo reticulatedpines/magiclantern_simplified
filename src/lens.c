@@ -252,7 +252,7 @@ static void double_buffering_start(int ytop, int height)
 {
     // use double buffering to avoid flicker
     bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, vram_bm.height - height);
+    ytop = MIN(ytop, BMP_H_PLUS - height);
     memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
     bmp_draw_to_idle(1);
 }
@@ -262,7 +262,7 @@ static void double_buffering_end(int ytop, int height)
     // done drawing, copy image to main BMP buffer
     bmp_draw_to_idle(0);
     bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_HEIGHT - height);
+    ytop = MIN(ytop, BMP_H_PLUS - height);
     memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
     bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
 }
@@ -274,10 +274,10 @@ static void ml_bar_clear(int ytop, int height)
     if (!B) return;
     if (!M) return;
     int menu = gui_menu_shown();
-    int ymax = MIN(ytop + height, vram_bm.height);
+    int ymax = MIN(ytop + height, BMP_H_PLUS);
     for (int y = ytop; y < ymax; y++)
     {
-        for (int x = 0; x < vram_bm.width; x++)
+        for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++)
         {
             uint8_t p = B[BM(x,y)];
             uint8_t m = M[BM(x,y)];
@@ -310,8 +310,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
     if (screen_layout == SCREENLAYOUT_3_2_or_4_3) bottom = os.y_max;
     else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
     else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
-        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, vram_bm.height);
-        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, vram_bm.height);
+        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, 480);
+        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
 
     if (gui_menu_shown())
         bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
@@ -812,15 +812,15 @@ void draw_ml_topbar(int double_buffering, int clear)
         if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y = os.y0; // just above the 16:9 frame
         else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
-        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, vram_bm.height - 54);
-        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, vram_bm.height - 54);
+        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, 480 - 54);
+        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, 480 - 54);
     }
     
     extern int time_indic_x, time_indic_y; // for bitrate indicators
     time_indic_x = os.x_max - 160;
     time_indic_y = y;
     
-    if (time_indic_y > vram_bm.height - 30) time_indic_y = vram_bm.height - 30;
+    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
 
     if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
     

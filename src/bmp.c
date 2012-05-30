@@ -37,27 +37,45 @@ void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
 // 0 = copy BMP to idle
 // 1 = copy idle to BMP
-void bmp_idle_copy(int direction)
+void bmp_idle_copy(int direction, int fullsize)
 {
     uint8_t* real = bmp_vram_real();
     uint8_t* idle = bmp_vram_idle();
     ASSERT(real)
     ASSERT(idle)
-    if (direction)
-        memcpy(real, idle, BMP_HEIGHT * BMPPITCH);
+    
+    if (fullsize)
+    {
+        if (direction)
+            memcpy(BMP_VRAM_START(real), BMP_VRAM_START(idle), BMP_VRAM_SIZE);
+        else
+            memcpy(BMP_VRAM_START(idle), BMP_VRAM_START(real), BMP_VRAM_SIZE);
+    }
     else
-        memcpy(idle, real, BMP_HEIGHT * BMPPITCH);
+    {
+        if (direction)
+        {
+            for (int i = 0; i < 480; i ++)
+                memcpy(real+i*BMPPITCH, idle+i*BMPPITCH, 720);
+        }
+        else
+        {
+            for (int i = 0; i < 480; i ++)
+                memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 720);
+        }
+    }
 }
 
 void bmp_idle_clear()
 {
-    bzero32(bmp_vram_idle(), BMP_HEIGHT * BMPPITCH);
+    bzero32(BMP_VRAM_START(bmp_vram_idle()), BMP_VRAM_SIZE);
 }
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
+    //~ NotifyBox(1000, "%x ", bmp_buf);
     return bmp_buf;
 }
 
@@ -77,7 +95,7 @@ _draw_char(
     unsigned i,j;
     const struct font * const font = fontspec_font( fontspec );
 
-    if (bmp_vram_row >= v + BMP_HEIGHT * BMPPITCH) return;
+    if (bmp_vram_row >= BMP_VRAM_END(v)) return;
 
     uint32_t    fg_color    = fontspec_fg( fontspec ) << 24;
     uint32_t    bg_color    = fontspec_bg( fontspec ) << 24;
@@ -93,7 +111,7 @@ _draw_char(
     uint32_t *    front_row    = (uint32_t *) bmp_vram_row;
     
     // boundary checking, don't write past this address
-    uint32_t* end = (uint32_t *)(v + BMP_HEIGHT*BMPPITCH - font->width);
+    uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
 
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)
@@ -429,20 +447,19 @@ bmp_hexdump(
 void
 bmp_fill(
     uint8_t            color,
-    uint32_t        x,
-    uint32_t        y,
-    uint32_t        w,
-    uint32_t        h
+    int        x,
+    int        y,
+    int        w,
+    int        h
 )
 {
-    //~ return;
     //~ if (!bmp_enabled) return;
-    x = COERCE(x, 0, BMP_WIDTH);
-    y = COERCE(y, 0, BMP_HEIGHT);
-    w = COERCE(w, 0, BMP_WIDTH-x);
-    h = COERCE(h, 0, BMP_HEIGHT-y);
+    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
+    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
+    w = COERCE(w, 0, BMP_W_PLUS-x-1);
+    h = COERCE(h, 0, BMP_H_PLUS-y-1);
 
-    const uint32_t start = x;
+    const int start = x;
     //~ const uint32_t width = BMP_WIDTH;
     const uint32_t pitch = BMPPITCH;
     //~ const uint32_t height = BMP_HEIGHT;
@@ -453,7 +470,7 @@ bmp_fill(
         | (color <<  8)
         | (color <<  0);
 
-    uint16_t y_end = y + h;
+    int y_end = y + h;
 
     if( w == 0 || h == 0 )
         return;
@@ -713,7 +730,7 @@ getfilesize_fail:
 
 void clrscr()
 {
-    BMP_LOCK( bmp_fill( 0x0, 0, 0, BMP_WIDTH, BMP_HEIGHT ); )
+    BMP_LOCK( bmp_fill( 0x0, BMP_W_MINUS, BMP_H_MINUS, BMP_TOTAL_WIDTH, BMP_TOTAL_HEIGHT ); )
 }
 
 #if 0
@@ -727,19 +744,14 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
     
-    x0 = COERCE(x0, 0, BMP_WIDTH  - (int)bmp->width);
-    y0 = COERCE(y0, 0, BMP_HEIGHT - (int)bmp->height);
-    if (x0 < 0) return;
-    if (x0 + bmp->width >= BMP_WIDTH) return;
-    if (y0 < 0) return;
-    if (y0 + bmp->height >= BMP_WIDTH) return;
+    x0 = COERCE(x0, BMP_W_MINUS, BMP_W_PLUS - (int)bmp->width);
+    y0 = COERCE(y0, BMP_H_MINUS, BMP_H_PLUS - (int)bmp->height);
     
-    int bmppitch = BMPPITCH;
     uint32_t x,y;
     for( y=0 ; y < bmp->height; y++ )
     {
-        uint8_t * const b_row = (uint8_t*)( bvram + (y + y0) * bmppitch );
-        uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * bmppitch );
+        uint8_t * const b_row = (uint8_t*)( bvram + (y + y0) * BMPPITCH );
+        uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * BMPPITCH );
         for( x=0 ; x < bmp->width ; x++ )
         {
             if (clear)
@@ -772,7 +784,6 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
 
-    int bmppitch = BMPPITCH;
     int x,y; // those sweep the original bmp
     int xs,ys; // those sweep the BMP VRAM (and are scaled)
     
@@ -788,7 +799,7 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
     for( ys = y0 ; ys < (y0 + ymax); ys++ )
     {
         y = (ys-y0)*bmp->height/ymax;
-        uint8_t * const b_row = bvram + ys * bmppitch;
+        uint8_t * const b_row = bvram + ys * BMPPITCH;
         for (xs = x0; xs < (x0 + xmax); xs++)
         {
 #ifdef USE_LUT
@@ -805,8 +816,8 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
 // this is slow, but is good for a small number of pixels :)
 uint8_t bmp_getpixel(int x, int y)
 {
-    ASSERT(x >= 0 && x <= BMP_WIDTH)
-    ASSERT(y >= 0 && y <= BMP_HEIGHT)
+    ASSERT(x >= BMP_W_MINUS && x < BMP_W_PLUS)
+    ASSERT(y >= BMP_H_MINUS && y < BMP_H_PLUS)
 
     uint8_t * const bvram = bmp_vram();
     return bvram[x + y * BMPPITCH];
@@ -814,8 +825,8 @@ uint8_t bmp_getpixel(int x, int y)
 
 uint8_t bmp_getpixel_real(int x, int y)
 {
-    ASSERT(x >= 0 && x <= BMP_WIDTH)
-    ASSERT(y >= 0 && y <= BMP_HEIGHT)
+    ASSERT(x >= BMP_W_MINUS && x < BMP_W_PLUS)
+    ASSERT(y >= BMP_H_MINUS && y < BMP_H_PLUS)
 
     uint8_t * const bvram = bmp_vram_real();
     return bvram[x + y * BMPPITCH];
@@ -825,9 +836,8 @@ void bmp_putpixel(int x, int y, uint8_t color)
 {
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
-    //~ int bmppitch = BMPPITCH;
-    x = COERCE(x, 0, BMP_WIDTH-1);
-    y = COERCE(y, 0, BMP_HEIGHT-1);
+    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
+    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     bvram[x + y * BMPPITCH] = color;
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
@@ -838,7 +848,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
     if (!bvram) return;
     
     int x, y;
-    #define P(X,Y) bvram[COERCE(X, 0, BMP_WIDTH-1) + COERCE(Y, 0, BMP_HEIGHT-1) * BMPPITCH]
+    #define P(X,Y) bvram[COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1) + COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1) * BMPPITCH]
     for (x = x0; x <= x0 + w; x++)
         P(x, y0) = P(x, y0+h) = color;
     for (y = y0; y <= y0 + h; y++)
@@ -849,17 +859,22 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 int _bmp_draw_should_stop = 0;
 void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
-void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror)
+void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, uint8_t* const mirror)
 {
     if (!bmp) return;
     
     _bmp_draw_should_stop = 0;
     //~ if (!bmp_enabled) return;
+    
+    x0 = COERCE(x0, BMP_W_MINUS, BMP_W_PLUS-1);
+    y0 = COERCE(y0, BMP_H_MINUS, BMP_H_PLUS-1);
+
+    w = COERCE(w, 0, BMP_W_PLUS-x0-1);
+    h = COERCE(h, 0, BMP_H_PLUS-y0-1);
 
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
 
-    int bmppitch = BMPPITCH;
     int x,y; // those sweep the original bmp
     int xs,ys; // those sweep the BMP VRAM (and are scaled)
     
@@ -867,24 +882,24 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 #ifdef USE_LUT 
         // we better don't use AllocateMemory for LUT (Err 70)
         static int16_t lut[960];
-        for (xs = x0; xs < (x0 + xmax); xs++)
+        for (xs = x0; xs < (x0 + w); xs++)
         {
-            lut[xs] = (xs-x0) * bmp->width/xmax;
+            lut[xs-BMP_W_MINUS] = (xs-x0) * bmp->width/w;
         }
 #endif
 
-        for( ys = y0 ; ys < (y0 + ymax); ys++ )
+        for( ys = y0 ; ys < (y0 + h); ys++ )
         {
             if (_bmp_draw_should_stop) return;
-            y = (ys-y0)*bmp->height/ymax;
-            uint8_t * const b_row = bvram + ys * bmppitch;
-            uint8_t * const m_row = (uint8_t*)( mirror + ys * bmppitch );
-            for (xs = x0; xs < (x0 + xmax); xs++)
+            y = (ys-y0)*bmp->height/h;
+            uint8_t * const b_row = bvram + ys * BMPPITCH;
+            uint8_t * const m_row = (uint8_t*)( mirror + ys * BMPPITCH );
+            for (xs = x0; xs < (x0 + w); xs++)
             {
 #ifdef USE_LUT
-                x = lut[xs];
+                x = lut[xs-BMP_W_MINUS];
 #else
-                x = (xs-x0)*bmp->width/xmax;
+                x = (xs-x0)*bmp->width/w;
 #endif
 
                 uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
@@ -902,12 +917,13 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
     } else if (bmp->compression == 1) {
         uint8_t * bmp_line = bmp->image; // store the start of the line
         int bmp_y_pos = bmp->height-1; // store the line number
-        for( ys = y0 + ymax - 1 ; ys >= y0; ys-- )
+        for( ys = y0 + h - 1 ; ys >= y0; ys-- )
         {
             if (_bmp_draw_should_stop) return;
-            y = (ys-y0)*bmp->height/ymax;
-            uint8_t * const b_row = bvram + COERCE(ys, 0, BMP_HEIGHT) * bmppitch;
-            uint8_t * const m_row = (uint8_t*)( mirror + COERCE(ys, 0, BMP_HEIGHT) * bmppitch );
+            y = (ys-y0)*bmp->height/h;
+            int ysc = COERCE(ys, BMP_H_MINUS, BMP_H_PLUS);
+            uint8_t * const b_row =              bvram + ysc * BMPPITCH;
+            uint8_t * const m_row = (uint8_t*)( mirror + ysc * BMPPITCH );
             while (y != bmp_y_pos) {
                 // search for the next line
                 if (bmp_line[0]!=0) { bmp_line += 2; } else
@@ -920,9 +936,9 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
             int bmp_x_pos_start = 0; // store the start of the line
             int bmp_x_pos_end = bmp_col[0]; // store the end of the line
             uint8_t bmp_color = bmp_col[1]; // store the actual color to use
-            for (xs = x0; xs < (x0 + xmax); xs++)
+            for (xs = x0; xs < (x0 + w); xs++)
             {
-                x = COERCE((xs-x0)*bmp->width/xmax, 0, BMP_WIDTH-1);
+                x = COERCE((int)((xs-x0)*bmp->width/w), BMP_W_MINUS, BMP_W_PLUS-1);
                 while (x>=bmp_x_pos_end) {
                     // skip to this position
                     if (bmp_col>(uint8_t*)(bmp+bmp->image_size)) break;
@@ -1158,15 +1174,15 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
     ASSERT(dst)
     if (!dst) return;
     int i,j;
-    for (i = 0; i < vram_bm.height; i++)
+    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i++) // -30 ... 510
     {
-        int i_mod = vram_bm.height - i + voffset;
-        while (i_mod < 0) i_mod += vram_bm.height;
-        while (i_mod >= vram_bm.height) i_mod -= (int)vram_bm.height;
+        int i_mod = BMP_H_PLUS + BMP_H_MINUS - i + voffset; // 510 ... -30
+        while (i_mod < BMP_H_MINUS) i_mod += BMP_TOTAL_HEIGHT;
+        while (i_mod >= BMP_H_PLUS) i_mod -= BMP_TOTAL_HEIGHT;
         
-        for (j = 0; j < vram_bm.width; j++)
+        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j++) // -120 ... 840
         {
-            dst[BM(j,i)] = src[BM(vram_bm.width-j, i_mod)];
+            dst[BM(j,i)] = src[BM(BMP_W_PLUS + BMP_W_MINUS - j, i_mod)]; // 840 ... -120
         }
     }
 }
@@ -1174,7 +1190,8 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
-    ASSERT(dest < (void*)bmp_vram() + BMPPITCH * BMP_HEIGHT - BMP_HEIGHT);
+    ASSERT(dest >= BMP_VRAM_START(dest));
+    ASSERT(dest < BMP_VRAM_END(dest));
 
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
@@ -1197,9 +1214,9 @@ void bmp_dim()
     if (!b) return;
     int i;
     //int j;
-    for (i = 1; i < vram_bm.height; i ++)
+    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
     {
-        bmp_dim_line(&b[BM(0,i)/4], vram_bm.width, i%2);
+        bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, i%2);
     }
 }
 
@@ -1209,9 +1226,9 @@ void bmp_make_semitransparent()
     ASSERT(b);
     if (!b) return;
     int i,j;
-    for (i = 0; i < vram_bm.height; i ++)
+    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
     {
-        for (j = 0; j < vram_bm.width; j ++)
+        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j ++)
         {
             if (b[BM(j,i)] == COLOR_BLACK || b[BM(j,i)] == 40)
                 b[BM(j,i)] = COLOR_BG;

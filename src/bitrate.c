@@ -22,8 +22,8 @@ CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
-int time_indic_x = X0 + 720 - 160;
-int time_indic_y = Y0;
+int time_indic_x =  720 - 160;
+int time_indic_y = 0;
 int time_indic_width = 160;
 int time_indic_height = 20;
 int time_indic_warning = 120;
@@ -271,7 +271,7 @@ void free_space_show_photomode()
     int fsgr = free_space_32k - (fsg << 15);
     int fsgf = (fsgr * 10) >> 15;
     int x = time_indic_x + 2 * font_med.width;
-    int y = Y0 + 452;
+    int y =  452;
     bmp_printf(
         FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
         x, y,

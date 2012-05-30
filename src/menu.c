@@ -877,12 +877,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    X0 + 10, Y0 + 450, 
+                     10,  450, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-                    X0 + 10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/, Y0 + 450, 
+                     10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/,  450, 
                     menu->help
                 );
             }
@@ -909,7 +909,7 @@ menu_display(
             }
 
             // display key help
-            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height < Y0 + 425)
+            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height <  425)
             {
                 char msg[100] = "";
 
@@ -980,7 +980,7 @@ menu_display(
                     {
                         STR_APPEND(msg, "change value");
                     }
-                    leftright_sign(X0+690, Y0+400);
+                    leftright_sign(690, 400);
                 }
                 else if (menu->children && !submenu_mode && !show_only_selected)
                 {
@@ -989,7 +989,7 @@ menu_display(
                 
                 bmp_printf(
                     FONT(FONT_MED, 60, COLOR_BLACK), 
-                    X0 + 10, Y0 + 425, 
+                     10,  425, 
                     msg
                 );
             }
@@ -999,12 +999,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    X0 + 10, Y0 + 450, 
+                     10,  450, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                    X0 + 10, Y0 + 450, 
+                     10,  450, 
                         warning_msg
                 );
             }
@@ -1021,10 +1021,10 @@ menu_display(
             y += font_large.height-1;
             
             // stop before attempting to display things outside the screen
-            if ((unsigned)y > vram_bm.height - font_large.height 
-                #if CONFIG_DEBUGMSG
+            if ((unsigned)y > 480 - font_large.height 
+                //~ #if CONFIG_DEBUGMSG
                 && !is_menu_active("VRAM")
-                #endif
+                //~ #endif
             ) 
                 return;
         }
@@ -1050,7 +1050,7 @@ menus_display(
     //~ if (!show_only_selected)
         //~ bmp_printf(
             //~ FONT(FONT_MED, 55, COLOR_BLACK), // gray
-            //~ X0 + 10, Y0 + 430, 
+            //~  10,  430, 
                 //~ MENU_NAV_HELP_STRING
         //~ );
 
@@ -1070,6 +1070,7 @@ menus_display(
             fg,
             bg
         );
+        
         if (!show_only_selected)
         {
             int w = fontspec_font( fontspec )->width * 6;
@@ -1112,8 +1113,8 @@ implicit_submenu_display()
     show_only_selected = 1;
     menu_display(
         menu->children,
-        X0 + 40,
-        Y0 + 45
+         40,
+         45
     );
     show_only_selected = sos;
 }
@@ -1132,14 +1133,14 @@ submenu_display(struct menu * submenu)
     int by = (480 - h)/2 - 30;
     if (!show_only_selected)
     {
-        bmp_fill(40, X0 + bx, Y0 + by, 720-2*bx+4, 50);
-        bmp_fill(COLOR_BLACK, X0 + bx, Y0 + by + 50, 720-2*bx+4, h-50);
-        bmp_draw_rect(70, X0 + bx, Y0 + by, 720-2*bx, 50);
-        bmp_draw_rect(COLOR_WHITE, X0 + bx, Y0 + by, 720-2*bx, h);
-        bfnt_puts(submenu->name, X0 + bx + 15, Y0 + by + 5, COLOR_WHITE, 40);
+        bmp_fill(40,  bx,  by, 720-2*bx+4, 50);
+        bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
+        bmp_draw_rect(70,  bx,  by, 720-2*bx, 50);
+        bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
+        bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
 
-    menu_display(submenu->children, X0 + bx + 50, Y0 + by + 50 + 20);
+    menu_display(submenu->children,  bx + 50,  by + 50 + 20);
 }
 
 static void
@@ -1370,7 +1371,7 @@ menu_redraw_do()
                 static int prev_so = 0;
                 if (show_only_selected)
                 {
-                    bmp_fill( 0, 0, 0, 960, 540 );
+                    bmp_fill( 0, 0, 0, 720, 480 );
                     if (zebra_should_run())
                     {
                         if (prev_so) copy_zebras_from_mirror();
@@ -1383,7 +1384,7 @@ menu_redraw_do()
                 }
                 else
                 {
-                    bmp_fill(COLOR_BLACK, 0, 0, 960, 540 );
+                    bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
                 }
                 prev_so = show_only_selected;
 
@@ -1391,7 +1392,7 @@ menu_redraw_do()
                 take_semaphore(menu_redraw_sem, 0);
                 
                 if (!show_only_selected || !submenu_mode)
-                    menus_display( menus, X0, Y0 ); 
+                    menus_display( menus, 0, 0 ); 
 
                 if (!show_only_selected && !submenu_mode)
                     if (is_menu_active("Help")) menu_show_version();
@@ -1424,21 +1425,21 @@ menu_redraw_do()
                     if (hdmi_code == 2) // copy at a smaller scale to fit the screen
                     {
                         if (screen_layout == SCREENLAYOUT_16_10)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(), X0 + 360, Y0 + 150, /* 128 div */ 143, /* 128 div */ 169);
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
                         else if (screen_layout == SCREENLAYOUT_16_9)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(), X0 + 360, Y0 + 150, /* 128 div */ 143, /* 128 div */ 185);
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 185);
                         else
                         {
                             if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
-                            else bmp_idle_copy(1);
+                            else bmp_idle_copy(1,0);
                         }
                     }
                     else if (ext_monitor_rca)
-                        bmp_zoom(bmp_vram(), bmp_vram_idle(), X0 + 360, Y0 + 200, /* 128 div */ 135, /* 128 div */ 135);
+                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
                     else
                     {
                         if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle());
-                        else bmp_idle_copy(1);
+                        else bmp_idle_copy(1,0);
                     }
                     //~ bmp_idle_clear();
                 }
@@ -1871,6 +1872,7 @@ static void menu_open()
     piggyback_canon_menu();
 
     canon_gui_disable_front_buffer(0);
+    clrscr();
     menu_redraw();
 }
 static void menu_close() 
@@ -2092,7 +2094,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    bmp_printf(FONT_MED, X0 + 10, Y0 + 410,
+    bmp_printf(FONT_MED,  10,  410,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",

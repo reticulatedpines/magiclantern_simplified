@@ -305,20 +305,20 @@ static void draw_meters(void)
         
         if (gui_menu_shown())
         {
-                x0 = MAX(os.x0 + os.x_ex/2 - 360, X0);
-                y0 = MAX(os.y0 + os.y_ex/2 - 240, Y0);
+                x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
+                y0 = MAX(os.y0 + os.y_ex/2 - 240, 0);
                 y0 += 380;
                 x0 += 10;
         }
         else
         {
                 small = hs;
-                x0 = MAX(os.x0 + os.x_ex/2 - 360, X0);
+                x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
                 if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y0 = os.y0; // just above the 16:9 frame
                 else if (screen_layout == SCREENLAYOUT_16_9) { small = 1; y0 = os.y0 + os.off_169; } // meters just below 16:9 border
                 else if (screen_layout == SCREENLAYOUT_16_10) {small = 1; y0 = os.y0 + os.off_1610; } // meters just below 16:10 border
-                else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y0 = MIN(os.y_max, vram_bm.height - 54);
-                else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y0 = MIN(os.y_max - os.off_169, vram_bm.height - 54);
+                else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y0 = MIN(os.y_max, 480 - 54);
+                else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y0 = MIN(os.y_max - os.off_169, 480 - 54);
                 if (hdmi_code) small = 1;
                 if (screen_layout >= SCREENLAYOUT_UNDER_3_2) small = 1;
         }

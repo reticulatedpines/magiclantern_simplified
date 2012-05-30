@@ -261,7 +261,16 @@ static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 static CONFIG_INT("idle.rec", idle_rec, 0);
 
+/**
+ * Normal BMP VRAM has its origin in 720x480 center crop
+ * But on HDMI you are allowed to go back 120x30 pixels (BMP_W_MINUS x BMP_H_MINUS).
+ * 
+ * For mirror VRAM we'll keep the same addressing mode:
+ * allocate full size (960x540) and use the pointer to 720x480 center crop.
+ */
 
+
+static uint8_t* bvram_mirror_start = 0;
 static uint8_t* bvram_mirror = 0;
 uint8_t* get_bvram_mirror() { return bvram_mirror; }
 //~ #define bvram_mirror bmp_vram_idle()
@@ -899,7 +908,7 @@ unsigned int aj_create_log_file( char * name)
    g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
-      bmp_printf( FONT_SMALL, X0+120, Y0+40, "FCreate: Err %s", name );
+      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
       return( 0 );  // FAILURE
    }
    return( 1 );  // SUCCESS
@@ -932,7 +941,7 @@ void dump_big_seg(int k, char* filename)
     {
         DEBUG();
         uint32_t start = (k << 28 | i << 24);
-        bmp_printf(FONT_LARGE, X0+50, Y0+50, "DUMP %x %8x ", i, start);
+        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
         FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
     }
     
@@ -960,7 +969,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         for (i = 0; i < n; i++)
         {
             uint32_t start = 0x40000000;
-            bmp_printf(FONT_LARGE, X0, Y0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
         FIO_CloseFile(f);
@@ -982,7 +991,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
             int i;
             for (i = 0; i < n; i++)
             {
-                bmp_printf(FONT_LARGE, X0, Y0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+                bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
@@ -1055,21 +1064,23 @@ static void histo_init()
 
 void bvram_mirror_clear()
 {
-    ASSERT(bvram_mirror);
-    BMP_LOCK( bzero32(bvram_mirror, BVRAM_MIRROR_SIZE); )
+    ASSERT(bvram_mirror_start);
+    BMP_LOCK( bzero32(bvram_mirror_start, BMP_VRAM_SIZE); )
     cropmark_cache_dirty = 1;
 }
 void bvram_mirror_init()
 {
-    if (!bvram_mirror)
+    if (!bvram_mirror_start)
     {
-        bvram_mirror = AllocateMemory(BVRAM_MIRROR_SIZE);
-        ASSERT(bvram_mirror);
-        if (!bvram_mirror) 
+        bvram_mirror_start = AllocateMemory(BMP_VRAM_SIZE + 64); // just in case
+        ASSERT(bvram_mirror_start);
+        if (!bvram_mirror_start) 
         {   
             //~ bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
             return;
         }
+        // to keep the same addressing mode as with normal BMP VRAM - origin in 720x480 center crop
+        bvram_mirror = bvram_mirror_start + BMP_HDMI_OFFSET;
         bvram_mirror_clear();
     }
 }
@@ -1299,7 +1310,7 @@ draw_zebra_and_focus( int Z, int F )
         int i;
         for (i = 0; i < dirty_pixels_num; i++)
         {
-            dirty_pixels[i] = COERCE(dirty_pixels[i], 0, 950*540);
+            //~ dirty_pixels[i] = COERCE(dirty_pixels[i], -BMP_HDMI_OFFSET, BMP_VRAM_SIZE-BMP_HDMI_OFFSET);
             #define B1 *(uint16_t*)(bvram + dirty_pixels[i])
             #define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
             #define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
@@ -1464,7 +1475,7 @@ draw_zebra_and_focus( int Z, int F )
                     m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
                     if (dirty_pixels_num < MAX_DIRTY_PIXELS)
                     {
-                        dirty_pixels[dirty_pixels_num++] = BM(x,y);
+                        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
                     }
                 }
             }
@@ -1522,17 +1533,13 @@ clrscr_mirror( void )
     if (!bvram) return;
     if (!bvram_mirror) return;
 
-    int y;
-    for( y = 0; y < 480; y++ )
+    int x, y;
+    for( y = os.y0; y < os.y_max; y++ )
     {
-        uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);
-        uint32_t * const m_row = (uint32_t*)( bvram_mirror + y * BMPPITCH );
-        
-        uint32_t* bp;  // through bmp vram
-        uint32_t* mp;  // through mirror
-
-        for (bp = b_row, mp = m_row ; bp < b_row + BMPPITCH / 4; bp++, mp++)
+        for( x = os.x0; x < os.x_max; x += 4 )
         {
+            uint32_t* bp = (uint32_t*)bvram        + BM(x,y)/4;
+            uint32_t* mp = (uint32_t*)bvram_mirror + BM(x,y)/4;
             #define BP (*bp)
             #define MP (*mp)
             if (BP != 0)
@@ -1708,7 +1715,7 @@ static void reload_cropmark()
     static int old_i = -1;
     if (i == old_i) return; 
     old_i = i;
-    //~ bmp_printf(FONT_LARGE, X0, Y0+100, "reload crop: %d", i);
+    //~ bmp_printf(FONT_LARGE, 0, 100, "reload crop: %d", i);
 
     if (cropmarks)
     {
@@ -1724,7 +1731,7 @@ static void reload_cropmark()
     char bmpname[100];
     snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
-    if (!cropmarks) bmp_printf(FONT_LARGE, X0, Y0+50, "LOAD ERROR %d:%s   ", i, bmpname);
+    if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 }
 
 static void
@@ -1911,7 +1918,7 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     int w = h * 720 / 480;
     int xc = x + 315;
     int yc = y + font_large.height * 3 + 10;
-    reload_cropmark();
+    BMP_LOCK( reload_cropmark(); )
     //~ task_create("crop_reload", 0x1a, 0x1000, reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
     //~ reload_cropmark(crop_index);
     //~ ASSERT(cropmarks);
@@ -3253,7 +3260,7 @@ cropmark_draw()
     }
     crop_dirty = 0;
 
-    reload_cropmark(); // reloads only when changed
+    BMP_LOCK( reload_cropmark()); // reloads only when changed
 
     // this is very fast
     if (cropmark_cache_is_valid())
@@ -3908,7 +3915,7 @@ void draw_histogram_and_waveform(int allow_play)
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
         if (should_draw_bottom_graphs())
-            BMP_LOCK( hist_draw_image( os.x0 + 50, Y0 + 480 - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
         else
             BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
     }
@@ -3923,7 +3930,7 @@ void draw_histogram_and_waveform(int allow_play)
     if( waveform_draw)
     {
         if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
-            BMP_LOCK( waveform_draw_image( os.x0 + 250, Y0 + 480 - 54, 54); )
+            BMP_LOCK( waveform_draw_image( os.x0 + 250,  480 - 54, 54); )
         else
             BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
     }
@@ -4525,7 +4532,7 @@ livev_hipriority_task( void* unused )
         draw_cropmark_area(); // just for debugging
         struct vram_info * lv = get_yuv422_vram();
         struct vram_info * hd = get_yuv422_hd_vram();
-        bmp_printf(FONT_MED, X0+100, Y0+100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", ext_monitor_rca, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
+        bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", ext_monitor_rca, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
 
         //~ lv_vsync();
@@ -4642,7 +4649,7 @@ static void black_bars()
     uint8_t * const bvram = bmp_vram();
     get_yuv422_vram();
     ASSERT(bvram);
-    for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
+    for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {
@@ -4667,7 +4674,7 @@ static void default_movie_cropmarks()
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
     ASSERT(bvram_mirror);
-    for (i = os.y0; i < MIN(os.y_max+1, BMP_HEIGHT); i++)
+    for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {
@@ -4830,7 +4837,7 @@ static void do_disp_mode_change()
     clrscr();
     idle_globaldraw_dis();
     //~ redraw();
-    bmp_printf(SHADOW_FONT(FONT_LARGE), X0+50, Y0+50, "Display preset: %d", disp_mode);
+    bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, "Display preset: %d", disp_mode);
     msleep(250);
     idle_globaldraw_en();
     update_disp_mode_params_from_bits();
@@ -4911,7 +4918,7 @@ static void make_overlay()
     //~ bvram_mirror_init();
     clrscr();
 
-    bmp_printf(FONT_MED, X0, Y0, "Saving overlay...");
+    bmp_printf(FONT_MED, 0, 0, "Saving overlay...");
 
     struct vram_info * vram = get_yuv422_vram();
     uint8_t * const lvram = vram->vram;
@@ -4945,7 +4952,7 @@ static void make_overlay()
     FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
-    bmp_printf(FONT_MED, X0, Y0, "Overlay saved.  ");
+    bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
 
     msleep(1000);
 }
@@ -5004,13 +5011,13 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
     ASSERT(dst);
     if (!dst) return;
     int i,j;
-    for (i = 0; i < vram_bm.height; i++)
+    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i++)
     {
-        for (j = 0; j < vram_bm.width; j++)
+        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j++)
         {
             int is = (i - y0) * deny / 128 + y0;
             int js = (j - x0) * denx / 128 + x0;
-            dst[BM(j,i)] = (is >= 0 && js >= 0 && is < vram_bm.height && js < vram_bm.width) 
+            dst[BM(j,i)] = (is >= BMP_H_MINUS && js >= BMP_W_MINUS && is < BMP_H_PLUS && js < BMP_W_PLUS) 
                 ? src[BM(js,is)] : 0;
         }
     }
@@ -5042,7 +5049,7 @@ static void defish_lut_load()
     }
     if (defish_lut == NULL)
     {
-        bmp_printf(FONT_MED, X0+50, Y0+50, "%s not loaded", defish_lut_file);
+        bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
         return;
     }
 }
@@ -5183,8 +5190,8 @@ void play_422(char* filename)
     uint32_t * buf = (uint32_t*)YUV422_HD_BUFFER_2;
     struct vram_info * vram = get_yuv422_vram();
 
-    bmp_printf(FONT_LARGE, X0, Y0, "%s ", filename+17);
-    bmp_printf(FONT_LARGE, X0+500, Y0, "%d", size);
+    bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
+    bmp_printf(FONT_LARGE, 500, 0, "%d", size);
 
     int w,h;
     // auto-generated code from 422-jpg.py
@@ -5210,13 +5217,13 @@ void play_422(char* filename)
     else if (size == 1904 * 1270 * 2) { w = 1904; h = 1270; } 
     else
     {
-        bmp_printf(FONT_LARGE, X0, Y0+50, "Cannot preview this picture.");
+        bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
         bzero32(vram->vram, vram->width * vram->height * 2);
         return;
     }
     
-    bmp_printf(FONT_LARGE, X0+500, Y0, " %dx%d ", w, h);
-    if (PLAY_MODE) bmp_printf(FONT_LARGE, X0, Y0 + 480 - font_large.height, "Do not press Delete!");
+    bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
+    if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
     size_t rc = read_file( filename, buf, size );
     if( rc != size ) return;

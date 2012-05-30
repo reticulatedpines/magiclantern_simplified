@@ -155,8 +155,8 @@ void console_draw()
 {
     if (!console_buffer) return;
     if (!console_puts_buffer) return;
-    unsigned x0 = X0 + 720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
-    unsigned y0 = Y0 + 480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
+    unsigned x0 =  720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
+    unsigned y0 =  480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
     //unsigned w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W;
     //unsigned h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H;
     int i;

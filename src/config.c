@@ -99,8 +99,8 @@ parse_error:
         line
     );
     
-    bmp_printf(FONT_LARGE, X0+10, Y0+150, "CONFIG PARSE ERROR");
-    bmp_printf(FONT_MED, X0+10, Y0+200,
+    bmp_printf(FONT_LARGE, 10, 150, "CONFIG PARSE ERROR");
+    bmp_printf(FONT_MED, 10, 200,
         "%s: PARSE ERROR:\nlen=%d,%d\nstring='%s'",
         __func__,
         name_len,

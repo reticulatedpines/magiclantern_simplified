@@ -51,7 +51,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     if (selected) 
     {
         menu_draw_icon(x0, y0, -1, 0);
-        bmp_fill(38, X0, Y0, 720, 430);
+        bmp_fill(38, 0, 0, 720, 430);
     }
 
   int c;
@@ -63,8 +63,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
    // wait_id: 0=sleep, 1=sem, 2=flg/event, 3=sendmq, 4=recvmq, 5=mutex
    // state: 0=ready, 1=wait, 2=susp, other=wait+s
 
-  int x = X0+5;
-  int y = Y0+10;
+  int x = 5;
+  int y = 10;
   
   bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
   y += font_med.height;
@@ -98,10 +98,10 @@ void tasks_print(void* priv, int x0, int y0, int selected)
       #else
       y += font_small.height;
       #endif
-      if (y > Y0+410)
+      if (y > 410)
       {
           x += 360;
-          y = Y0+10;
+          y = 10;
       }
     }
   }
@@ -131,8 +131,9 @@ PROP_HANDLER(PROP_CARD_COVER)
 
 static int task_holding_bmp_lock = 0;
 static int line_holding_bmp_lock = 0;
+static char func_holding_bmp_lock[50] = "";
 
-int CheckBmpAcquireRecursiveLock(void* lock, int line)
+int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 {
     char* task_name = get_task_name_from_id(get_current_task());
     
@@ -161,8 +162,8 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line)
     int r;
     while (r = AcquireRecursiveLock(lock, wait))
     {
-        char msg[50];
-        snprintf(msg, sizeof(msg), "%s:%d: RLock held by %s:%d  ", get_task_name_from_id(get_current_task()), line, get_task_name_from_id(task_holding_bmp_lock), line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
+        char msg[100];
+        snprintf(msg, sizeof(msg), "%s:%s:%d:\nRLock held by %s:%s:%d  ", get_task_name_from_id(get_current_task()), func, line, get_task_name_from_id(task_holding_bmp_lock), func_holding_bmp_lock, line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
         int x = 100;
         bmp_puts(FONT_MED, &x, &x, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
@@ -170,6 +171,7 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line)
     }
     task_holding_bmp_lock = ((int)get_current_task()) & 0xFF;
     line_holding_bmp_lock = line;
+    snprintf(func_holding_bmp_lock, sizeof(func_holding_bmp_lock), func);
     return r;
 }
 

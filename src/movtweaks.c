@@ -652,8 +652,7 @@ void rec_notify_continuous(int called_from_menu)
     
     if (rec_notify == 1)
     {
-        if (!recording)
-        {
+        if (!recording) BMP_LOCK (
             int xc = os.x0 + os.x_ex/2;
             int yc = os.y0 + os.y_ex/2;
             int rx = os.y_ex * 7/15;
@@ -672,7 +671,7 @@ void rec_notify_continuous(int called_from_menu)
             //~ bmp_draw_rect(COLOR_RED, os.x0 + 51, os.y0 + 76, os.x_ex - 102, os.y_ex - 152);
             //~ draw_line(os.x0 + 50, os.y0 + 75, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 75, COLOR_RED);
             //~ draw_line(os.x0 + 50, os.y0 + 76, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 74, COLOR_RED);
-        }
+        )
     }
     else if (rec_notify == 2)
     {

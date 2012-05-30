@@ -948,12 +948,12 @@ static void update_focus_mag(int mag)
 void plot_focus_mag()
 {
 
-    int x0 = X0+8;
-    int y0 = Y0+100;
+    int x0 = 8;
+    int y0 = 100;
     if (should_draw_bottom_graphs())
     {
-        x0 = X0+500;
-        y0 = Y0+480-54;
+        x0 = 500;
+        y0 = 480-54;
     }
     
     if (gui_state != GUISTATE_IDLE) return;

@@ -64,7 +64,7 @@ dofp_update()
     
     if (dofpreview_sticky == 1)
     {
-        if (d) {bmp_printf(FONT_LARGE, X0+720-font_large.width*3, Y0+50, "DOF"); info_led_on(); }
+        if (d) {bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF"); info_led_on(); }
         else if (old_value) { redraw(); info_led_off(); }
         
         if (d != old_value) // transition
@@ -455,8 +455,8 @@ void clear_lv_afframe()
     get_afframe_pos(720, 480, &xaf, &yaf);
     xaf = N2BM_X(xaf);
     yaf = N2BM_Y(yaf);
-    int x0 = COERCE(xaf,100, BMP_WIDTH-100) - 100;
-    int y0 = COERCE(yaf, 75+os.off_169, BMP_HEIGHT-75-os.off_169) - 75;
+    int x0 = COERCE(xaf,BMP_W_MINUS+100, BMP_W_PLUS-100) - 100;
+    int y0 = COERCE(yaf,BMP_H_MINUS+75+os.off_169, BMP_H_PLUS-75-os.off_169) - 75;
     int w = 200;
     int h = 150;
     for (int i = y0; i < y0 + h; i++)
@@ -728,11 +728,11 @@ CONFIG_INT("halfshutter.sticky", halfshutter_sticky, 0);
 
 void hs_show()
 {
-    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), X0+720-font_large.width*3, Y0+50, "HS");
+    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
 }
 void hs_hide()
 {
-    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), X0+720-font_large.width*3, Y0+50, "  ");
+    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
 }
 
 void 
@@ -1567,7 +1567,7 @@ static void upside_down_step()
             get_yuv422_vram();
             bmp_draw_to_idle(1);
             canon_gui_disable_front_buffer();
-            int voffset = (lv || PLAY_MODE || QR_MODE) ? (os.y0 + os.y_ex/2 - vram_bm.height/2) * 2 : 0;
+            int voffset = (lv || PLAY_MODE || QR_MODE) ? (os.y0 + os.y_ex/2 - (BMP_H_PLUS+BMP_H_MINUS)/2) * 2 : 0;
             BMP_LOCK(
                 bmp_flip(bmp_vram_real(), bmp_vram_idle(), voffset);
             )

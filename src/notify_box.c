@@ -53,9 +53,9 @@ void NotifyBox_task(void* priv)
         //int i;
         for ( ; notify_box_timeout > 0 ; notify_box_timeout -= 50)
         {
-            if (notify_box_dirty) bmp_fill(0, X0 + 50, Y0 + 50, 650, 32); // clear old message
+            if (notify_box_dirty) bmp_fill(0,  50,  50, 650, 32); // clear old message
             notify_box_dirty = 0;
-            bmp_printf(FONT_LARGE, X0 + 50, Y0 + 50, notify_box_msg);
+            bmp_printf(FONT_LARGE,  50,  50, notify_box_msg);
             msleep(50);
             if (notify_box_stop_request) break;
         }

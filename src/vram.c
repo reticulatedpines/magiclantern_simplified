@@ -9,6 +9,46 @@
 #include "bmp.h"
 #include "menu.h"
 
+//~ #define CONFIG_DEBUGMSG 1
+
+/**
+
+BMP total: 960x540
+BMP crop : 720x480
+
+LCD: BMP and LV are usually 720x480, 1:1
+HDMI: BMP may have half-resolution compared to LV, in one or both directions
+___________________________________________________________________________________________________________________________
+|HDMI: LV0,0     BMy-30|                                                                           |                      |
+|                      |                                                                           |                      |
+|BMx-120          BM0,0|                                                                    BMx720 |               BMx840 |
+|----------------------+---------------------------------------------------------------------------+----------------------|
+|                      |LCD: LV0,0                                                                 |                      |
+|    os.x0,y0 _ _ _ _ _|_\ _____________________________________________________________________   |  _ _ _ _             |
+|                      | /|___________________________16:9 gray/black bar_______________________|  |     A                |
+|                      |  |                                                                     |  |     |                |
+|                      |  |                                                                     |  |     |                |
+|   here we usually    |  |                                                                     |  |     |                |
+|   have pillarboxes   |  |                                                                     |  |     |                |
+|   included in LV     |  |       HD (recording) buffer                                         |  |     |                |
+|                      |  |       may or may nt include the 16:9 bars (camera-specific)         |  |     |                |
+|                      |  |       but never includes pillarboxes                                |  |     |                |
+|                      |  |                                                                     |  |     os.y_ex          |
+|                      |  |                                                                     |  |     | (in BM space)  |
+|                      |  |                                                                     |  |     |                |
+|                      |  |                                                                     |  |     |                |
+|                      |  |                                                                     |  |     |                |
+|                      |  |_____________________________________________________________________|  |     |                |
+|                      |  |_____________________________________________________________________|  |  _ _V_ _             |
+|                      |  :                                                                     :  |                      |
+|               BMy480 |  :<----------------------- os.x_ex (BM space) ------------------------>:  |                      |
+|----------------------+---------------------------------------------------------------------------+----------------------|
+|                      |                                                                           |                      |
+|                      |                                                                           |                      |
+|_______________BMy510_|___________________________________________________________________________|______________________|
+
+*/
+
 struct vram_info vram_lv = {
     .pitch = 720 * 2,
     .width = 720,
@@ -21,16 +61,16 @@ struct vram_info vram_hd = {
     .height = 704,
 };
 
-struct vram_info vram_bm = {
+/*struct vram_info vram_bm = {
     .pitch = 960,
     .width = 720,
     .height = 480,
-};
+};*/
 
 
 struct trans2d bm2lv = { 
-    .tx = 120,
-    .ty = 30,
+    .tx = 0,
+    .ty = 0,
     .sx = 1024,
     .sy = 1024,
 };
@@ -45,8 +85,8 @@ struct trans2d lv2hd = {
 // area from BMP where the LV image (3:2) is effectively drawn, without black bars
 // in this area we'll draw cropmarks, zebras and so on
 struct bmp_ov_loc_size os = {
-    .x0 = 120,
-    .y0 = 30,
+    .x0 = 0,
+    .y0 = 0,
     .x_ex = 480,
     .y_ex = 720,
 };
@@ -67,7 +107,7 @@ void vram_params_set_dirty()
 
 int* vram_params[] = { 
     &increment,
-    &vram_bm.width, &vram_bm.height, 
+    //~ &vram_bm.width, &vram_bm.height, 
     &os.x0, &os.y0, &os.x_ex, &os.y_ex, 
     &vram_lv.width, &vram_lv.height, 
     &bm2lv.tx, &bm2lv.ty, &bm2lv.sx, &bm2lv.sy,
@@ -77,7 +117,7 @@ int* vram_params[] = {
 };
 char vram_param_names[][12] = {
     "increment ",
-    "bmp.width ", "bmp.height",
+    //~ "bmp.width ", "bmp.height",
     "os.x_left ", "os.y_top  ",
     "os.x_ex   ", "os.y_ex   ",
     "lv.width  ", "lv.height ",
@@ -121,16 +161,10 @@ void update_vram_params()
     if (prev_hdmi_code != hdmi_code || prev_ext_monitor_rca != ext_monitor_rca) redraw();
     prev_hdmi_code = hdmi_code;
     prev_ext_monitor_rca = ext_monitor_rca;
-
-    // BMP (used for overlays)
-    // width and height are updated on the fly, in bmp_vram, to avoid race conditions
-    vram_bm.width  = hdmi_code == 5 ? 960 : 720;
-    vram_bm.height = hdmi_code == 5 ? 540 : 480;
-    vram_bm.pitch = 960;
     
     // LV crop area (black bars)
-    os.x0   = hdmi_code == 5 ?  75 : 120 + (hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0);
-    os.y0   = hdmi_code == 5 ?   0 :  30 + (hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0);
+    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0);
+    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0);
     os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
     os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
@@ -138,7 +172,7 @@ void update_vram_params()
     {
         if (PLAY_MODE || QR_MODE)
         {
-            os.y0   = 30 + 52; // black bar is at the top in play mode, 48 with additional info
+            os.y0   = 52; // black bar is at the top in play mode, 48 with additional info
             os.y_ex = 428; // 480 - os.y0; // screen height is 480px in total
         }
         else
@@ -150,7 +184,7 @@ void update_vram_params()
     if (PLAY_MODE && hdmi_code == 2)
     {
         os.y_ex = 480 - 52;
-        os.y0 = 30 + 52;
+        os.y0 = 52;
     }
 #endif
     
@@ -171,10 +205,12 @@ void update_vram_params()
 
 
     // bmp to lv transformation
-    bm2lv.tx = ext_monitor_rca ? 4 : 0;
-    bm2lv.ty = 0;
+    // LCD: (0,0) -> (0,0)
+    // HDMI: (-120,-30) -> (0,0) and scaling factor is 2
+    bm2lv.tx = hdmi_code == 5 ?  240 : ext_monitor_rca ? 4 : 0;
+    bm2lv.ty = hdmi_code == 5 ?   60 : 0;
     bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
-    bm2lv.sy = 1024 * vram_lv.height / vram_bm.height; // no black bars at top or bottom
+    bm2lv.sy = 1024 * vram_lv.height / (hdmi_code==5 ? 540 : 480); // no black bars at top or bottom
     
     lv_ratio_num = hdmi_code == 5 ? 16 : 3;
     lv_ratio_den = hdmi_code == 5 ?  9 : 2;
@@ -236,8 +272,11 @@ void update_vram_params()
     lv2hd.sx = 1024 * vram_hd.width / BM2LV_DX(os.x_ex - bar_x * 2);
     lv2hd.sy = 1024 * vram_hd.height / BM2LV_DY(os.y_ex - bar_y * 2);
     
-    lv2hd.tx = -BM2HD_DX(os.x0 + bar_x);
-    lv2hd.ty = -BM2HD_DY(os.y0 + bar_y);
+    // HD buffer does not contain pillarboxes, LV does
+    // and HD may or may not contain bars 
+    // the offset needs to be specified in HD units
+    lv2hd.tx = -LV2HD_DX(BM2LV_X(os.x0 + bar_x));
+    lv2hd.ty = -LV2HD_DY(BM2LV_Y(os.y0 + bar_y));
 
     if (!lv) // HD buffer not active, use LV instead
     {
@@ -573,8 +612,8 @@ static struct menu_entry vram_menus[] = {
     VRAM_MENU_ENTRY(16)
     VRAM_MENU_ENTRY(17)
     VRAM_MENU_ENTRY(18)
-    VRAM_MENU_ENTRY(19)
-    VRAM_MENU_ENTRY(20)
+    //~ VRAM_MENU_ENTRY(19)
+    //~ VRAM_MENU_ENTRY(20)
 };
 
 void vram_init()
