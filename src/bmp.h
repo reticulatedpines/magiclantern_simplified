@@ -78,6 +78,8 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 
 #define BMP_HDMI_OFFSET ((-BMP_H_MINUS)*BMPPITCH + (-BMP_W_MINUS))
 
+// BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
+
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
 {
     // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
@@ -89,7 +91,7 @@ inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
 
     if (((uintptr_t)bmp_buf & 0xFFF) == 0x008) // HDMI 960x540 => return it as is
         return bmp_buf;
-    
+        
     // something else - new camera? return it unchanged (failsafe)
     ASSERT(0);
     return bmp_buf;

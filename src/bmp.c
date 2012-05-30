@@ -1189,8 +1189,6 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
-    ASSERT(dest >= BMP_VRAM_START(dest));
-    ASSERT(dest < BMP_VRAM_END(dest));
 
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
