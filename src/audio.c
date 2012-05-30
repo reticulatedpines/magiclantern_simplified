@@ -412,7 +412,8 @@ meter_task( void* unused )
         
         TASK_LOOP
         {
-                msleep(50);
+                msleep(DISPLAY_IS_ON ? 50 : 500);
+                
                 if (is_menu_help_active()) continue;
                 
                 if (audio_meters_are_drawn())

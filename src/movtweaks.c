@@ -369,7 +369,7 @@ movtweak_task( void* unused )
 
     TASK_LOOP
     {
-        msleep(50);
+        msleep(DISPLAY_IS_ON ? 50 : 1000);
         
         static int recording_prev = 0;
         #ifdef CONFIG_5D2

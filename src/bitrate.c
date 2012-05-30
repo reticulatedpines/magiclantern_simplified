@@ -518,7 +518,9 @@ bitrate_task( void* unused )
 
     TASK_LOOP
     {
-        wait_till_next_second();
+        if (recording) wait_till_next_second(); // uses a bit of CPU, but it's precise
+        else msleep(1000); // relax
+        
         if (recording) 
         {
             movie_elapsed_time_01s += 10;

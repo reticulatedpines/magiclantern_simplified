@@ -5343,7 +5343,7 @@ void wait_till_next_second()
     while (now.tm_sec == s)
     {
         LoadCalendarFromRTC( &now );
-        msleep(100);
+        msleep(DISPLAY_IS_ON ? 100 : 500);
     }
 }
 
@@ -5556,6 +5556,8 @@ shoot_task( void* unused )
 
         // same for motion detect
         int mdx = motion_detect && liveview_display_idle() && !recording;
+        
+        if (!tfx && !DISPLAY_IS_ON) msleep(200); // no need to react very fast, can powersave a bit
         
         //Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
         static int K = 0;

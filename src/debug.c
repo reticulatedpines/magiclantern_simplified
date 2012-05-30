@@ -2239,7 +2239,7 @@ static void save_cpu_usage_log_task()
     msleep(1000);
     info_led_blink(1,50,50);
     call("CUStart");
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 20; i++)
     {
         info_led_blink(1,50,50);
         msleep(1000);
