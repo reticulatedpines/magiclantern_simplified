@@ -13,7 +13,7 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-#undef CONFIG_DIGIC_POKE
+#define CONFIG_DIGIC_POKE
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -199,11 +199,30 @@ void update_digic_register_addr(int dr, int delta, int skip_zero)
 
         if (!skip_zero) break;
 
-        if (MEMX(digic_register) != 0) break; // stop on first non-zero register
+        int value = MEMX(digic_register);
+        if (value != 0) 
+            break; // stop on first non-zero register
     }
 
     digic_value = MEMX(digic_register);
+    if (digic_value & 0xFFF == 0x800) beep();
     digic_show();
+}
+
+void digic_find_lv_buffer(int dr, int delta)
+{
+    for (int i = 0; i < 0x1000; i+=4)
+    {
+        dr += delta;
+        digic_register_base = (dr & 0xFFFF0000) >> 16;
+        digic_register_mid  = (dr & 0x0000FF00) >> 8;
+        digic_register_off  = (dr & 0x000000FC) >> 0;
+        digic_register = get_digic_register_addr();
+
+        if (MEMX(digic_register) & 0xFFF == 0x800) break;
+    }
+
+    digic_value = MEMX(digic_register);
 }
 
 int handle_digic_poke(struct event * event)
@@ -252,12 +271,20 @@ void digic_poke_step()
                 digic_value += (is_manual_focus() ? 1 : -1) << 16;
             else if (digic_alter_mode == 4) // increment << 24
                 digic_value += (is_manual_focus() ? 1 : -1) << 24;
+            
             //~ digic_value--;
             digic_show();
             EngDrvOut(digic_register, digic_value);
-            //~ if (digic_register & 0xFFFFF000 == 0xC0F06000) // FPS-related
+            if (digic_register & 0xFFFFF000 == 0xC0F06000) // FPS-related
                 EngDrvOut(0xC0F06000, 1); // apply the change
             //~ fps_set_main_timer(digic_value);
+
+            //~ EngDrvOut(0xc0f04a08, 0x6000080);
+            
+            //~ int lvw = MEMX(0xc0f04308);
+            //~ int hdw = MEMX(0xc0f04208);
+            //~ EngDrvOut(0xc0f04308, hdw);
+            //~ EngDrvOut(0xc0f04208, lvw);
         }
         else
         {
@@ -296,6 +323,26 @@ digic_value_print(
         "Value[%08x]: %x", digic_register, digic_value
     );
 }
+
+
+void digic_dump()
+{
+    msleep(1000);
+    FIO_RemoveFile(CARD_DRIVE "digic.log");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "digic.log");
+    
+    for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
+    {
+        int value = shamem_read(reg);
+        if (value && value != -1)
+        {
+            bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
+            my_fprintf(f, "%8x: %8x\n", reg, value);
+        }
+    }
+    FIO_CloseFile(f);
+}
+
 #else
 
 int handle_digic_poke(struct event * event){ return 1; }; // dummy
@@ -465,6 +512,12 @@ static struct menu_entry dbg_menu[] = {
             },
             MENU_EOL
         }
+    }, 
+    {
+        .name = "Dump DIGIC registers",
+        .priv = digic_dump,
+        .select = run_in_separate_task,
+        .help = "Saves the contents of DIGIC shadow copy to DIGIC.LOG."
     }
 };
 #endif
