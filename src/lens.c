@@ -1355,8 +1355,6 @@ void lensinfo_set_aperture(int raw)
     {
         if (lens_info.raw_aperture_min && lens_info.raw_aperture_max)
             raw = COERCE(raw, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        if (!lens_info.name[0]) // for unchipped lenses, always display zero
-            raw = 0;
         lens_info.raw_aperture = raw;
         lens_info.aperture = RAW2VALUE(aperture, raw);
     }

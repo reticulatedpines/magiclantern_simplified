@@ -1712,12 +1712,15 @@ shutter_toggle(void* priv, int sign)
 static void 
 aperture_display( void * priv, int x, int y, int selected )
 {
+    int a = lens_info.aperture;
+    if (!lens_info.name[0]) // for unchipped lenses, always display zero
+        a = 0;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Aperture    : f/%d.%d",
-        lens_info.aperture / 10,
-        lens_info.aperture % 10
+        a / 10,
+        a % 10
     );
     menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, lens_info.aperture ? (uintptr_t)((lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1])) : (uintptr_t) (lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture."));
 }

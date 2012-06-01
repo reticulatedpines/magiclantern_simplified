@@ -113,8 +113,8 @@ display_lens_hyperfocal(
         "Lens: %s, %dmm f/%d.%d",
         lens_info.name[0] ? lens_info.name : "(n/a)",
         lens_info.focal_len, 
-        lens_info.aperture / 10, 
-        lens_info.aperture % 10
+        lens_info.name[0] ? lens_info.aperture / 10 : 0, 
+        lens_info.name[0] ? lens_info.aperture % 10 : 0
     );
 
     if (!lv || !lens_info.focus_dist)
