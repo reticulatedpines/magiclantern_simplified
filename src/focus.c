@@ -106,17 +106,28 @@ display_lens_hyperfocal(
     unsigned        font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
     unsigned        height = fontspec_height( font );
 
-    menu_draw_icon(x, y + height * 2, MNI_BOOL(lens_info.name[0] && lens_info.focus_dist && lens_info.raw_aperture), 0);
+    menu_draw_icon(x, y + height * 2 + 3, MNI_BOOL(lens_info.name[0] && lens_info.focus_dist && lens_info.raw_aperture), 0);
 
+    y += 10;
     y += height;
+
+    if (!lens_info.name[0])
+    {
+        y += height;
+        bmp_printf( font, x, y,
+            "Lens: manual (without chip)."
+        );
+        return;
+    }
+
     bmp_printf( font, x, y,
         "Lens: %s, %dmm f/%d.%d",
-        lens_info.name[0] ? lens_info.name : "(n/a)",
+        lens_info.name,
         lens_info.focal_len, 
-        lens_info.name[0] ? lens_info.aperture / 10 : 0, 
-        lens_info.name[0] ? lens_info.aperture % 10 : 0
+        lens_info.aperture / 10,
+        lens_info.aperture % 10
     );
-
+    
     if (!lv || !lens_info.focus_dist)
     {
         y += height;
@@ -731,8 +742,8 @@ follow_focus_print(
     }
     if (follow_focus)
     {
-        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus only works in LiveView.");
         if (is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus requires autofocus enabled.");
+        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus only works in LiveView.");
     }
     menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus));
 }
