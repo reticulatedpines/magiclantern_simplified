@@ -778,7 +778,7 @@ tweak_task( void* unused)
     
     TASK_LOOP
     {
-        msleep(DISPLAY_IS_ON ? 50 : 1000);
+        msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
 
         if (halfshutter_sticky)
             fake_halfshutter_step();

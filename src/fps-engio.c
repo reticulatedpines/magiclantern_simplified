@@ -49,7 +49,7 @@
 void SafeEngDrvOut(int reg, int val)
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
     EngDrvOut(reg, val);
@@ -428,7 +428,7 @@ int fps_was_changed_by_canon()
 static void fps_setup_timerB(int fps_x1000)
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (!fps_x1000) return;
 
@@ -613,7 +613,7 @@ static void fps_unpatch_table()
 static void fps_register_reset()
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
 
     if (fps_reg_a_orig && fps_reg_b_orig)
@@ -849,7 +849,7 @@ int fps_try_to_get_180_360_shutter(int fps_x1000)
 void fps_setup_timerA(int fps_x1000)
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (!fps_x1000) return;
     if (lens_info.job_state) return;
 
@@ -1094,7 +1094,7 @@ static void fps_task()
         //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
 
         if (!lv) continue;
-        if (!DISPLAY_IS_ON) continue;
+        if (!DISPLAY_IS_ON && !recording) continue;
         if (lens_info.job_state) continue;
         
         fps_read_current_timer_values();
