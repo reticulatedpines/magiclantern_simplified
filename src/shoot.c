@@ -1725,6 +1725,7 @@ aperture_display( void * priv, int x, int y, int selected )
 void
 aperture_toggle( void* priv, int sign)
 {
+    if (!lens_info.name[0]) return; // only chipped lenses can change aperture
     if (!lens_info.raw_aperture) return;
     int amin = codes_aperture[1];
     int amax = codes_aperture[COUNT(codes_aperture)-1];
@@ -1745,6 +1746,7 @@ aperture_toggle( void* priv, int sign)
                 if (a > amax) a = amin;
                 if (a < amin) a = amax;
             }
+            if (lens_info.raw_aperture_min >= lens_info.raw_aperture_max) break;
         }
         while (a < lens_info.raw_aperture_min || a > lens_info.raw_aperture_max);
 
