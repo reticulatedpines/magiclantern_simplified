@@ -7,6 +7,7 @@ CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
 AR=$(ARM_BINPATH)/arm-elf-ar
 RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
+ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
@@ -50,12 +51,12 @@ ifeq ($(UNAME), Darwin)
 	# Variable declaration for Mac OS X
 	UMOUNT=hdiutil unmount
 	CF_CARD="/Volumes/EOS_DIGITAL"
-	STAT=stat -f
+	STAT_CMD=stat -f "%N: %z bytes"
 else
 	# Default settings for remaining operating systems
-	CF_CARD=/media/EOS_DIGITAL/
 	UMOUNT=umount
-	STAT=stat -c
+	CF_CARD=/media/EOS_DIGITAL/
+	STAT_CMD=stat -c "%n: %s bytes"
 endif
 
 
@@ -266,8 +267,6 @@ STDIO_OBJ = \
 	lib_a-strlen.o \
 	lib_a-strncmp.o \
 
-ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
-
 $(STDIO_OBJ): $(ARM_LIBC_A)
 	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
 
@@ -352,7 +351,7 @@ autoexec: reboot.o
 		-Ttext 0x800000 \
 		$^ \
 	); \
-	$(STAT) "autoexec.bin: %s bytes" autoexec.bin; \
+	$(STAT_CMD) autoexec.bin; \
 	readelf -l magiclantern | grep -C 2 MemSiz
 
 %-stubs.S: %.map
