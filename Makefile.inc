@@ -7,6 +7,7 @@ CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
 AR=$(ARM_BINPATH)/arm-elf-ar
 RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
+READELF=$(ARM_BINPATH)/arm-elf-readelf
 ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
 LD=$(CC)
 HOST_CC=gcc
@@ -352,7 +353,7 @@ autoexec: reboot.o
 		$^ \
 	); \
 	$(STAT_CMD) autoexec.bin; \
-	readelf -l magiclantern | grep -C 2 MemSiz
+	$(READELF) -l magiclantern | grep -C 2 MemSiz
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
