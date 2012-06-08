@@ -15,8 +15,9 @@
 //#include "lua.h"
 
 #define CONFIG_STRESS_TEST
-#undef CONFIG_HEXDUMP
+#define CONFIG_HEXDUMP
 #undef CONFIG_ISO_TESTS
+//~ #define CONFIG_DEBUGMSG 1
 
 //~ #define CONFIG_HEXDUMP
 
@@ -551,12 +552,7 @@ void iso_movie_test()
 
 void run_test()
 {
-    AllocateMemory(512*1024);
-
-    //~ prop_dump();
-    //~ bulb_take_pic(125);
-    //~ lens_set_rawshutter(80); // 1/8
-    //~ lens_take_picture(0,0);
+    msleep(2000);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -2599,7 +2595,8 @@ static void dbg_draw_props(int changed)
         unsigned len = dbg_props_len[i];
         unsigned fnt = FONT_SMALL;
         if (i == changed) fnt = FONT(FONT_SMALL, 5, COLOR_BG);
-        bmp_printf(fnt, x, y,
+        char msg[100];
+        snprintf(msg, sizeof(msg),
             "%08x %04x: %8lx %8lx %8lx %8lx %8lx %8lx",
             property,
             len,
@@ -2610,6 +2607,7 @@ static void dbg_draw_props(int changed)
             len > 0x10 ? dbg_props_e[i] : 0,
             len > 0x14 ? dbg_props_f[i] : 0
         );
+        bmp_puts(fnt, &x, &y, msg);
     }
 }
 
