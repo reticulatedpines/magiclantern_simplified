@@ -496,7 +496,7 @@ bmp_fill(
         #endif
         {
             row[ x ] = word;
-            #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
+/*            #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
             asm( "nop" );
             asm( "nop" );
             asm( "nop" );
@@ -505,7 +505,7 @@ bmp_fill(
             asm( "nop" );
             asm( "nop" );
             asm( "nop" );
-            asm( "nop" );
+            asm( "nop" ); */
         }
     }
 }
