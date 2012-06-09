@@ -1423,10 +1423,10 @@ PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     #ifndef CONFIG_500D
-    else if (buf[0] && !gui_menu_shown()
+    else if (buf[0]  // sync expo override to Canon values
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             && ABS(buf[0] - lens_info.raw_shutter) > 3 // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
-        #endif
+        #endif                                         // especially when pressing half-shutter
         )
     {
         bv_set_rawshutter(buf[0]);
@@ -2030,6 +2030,10 @@ int lens_set_rawiso( int iso )
 
 int lens_set_rawshutter( int shutter )
 {
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    lens_info.raw_shutter = 0; // force a refresh from prop handler(PROP_SHUTTER)
+    #endif
+
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d ...", shutter);
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
