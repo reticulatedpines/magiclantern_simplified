@@ -67,8 +67,63 @@ void lens_display_set_dirty();
 void cropmark_clear_cache();
 void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
-void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
+//~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
+
+
+
+// precompute some parts of YUV to RGB computations
+static int yuv2rgb_RV[256];
+static int yuv2rgb_GU[256];
+static int yuv2rgb_GV[256];
+static int yuv2rgb_BU[256];
+
+static void precompute_yuv2rgb()
+{
+    /*
+    *R = *Y + 1437 * V / 1024;
+    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
+    *B = *Y + 1812 * U / 1024;
+    */
+
+    for (int u = 0; u < 256; u++)
+    {
+        int8_t U = u;
+        yuv2rgb_GU[u] = -352 * U / 1024;
+        yuv2rgb_BU[u] = 1812 * U / 1024;
+    }
+
+    for (int v = 0; v < 256; v++)
+    {
+        int8_t V = v;
+        yuv2rgb_RV[v] = 1437 * V / 1024;
+        yuv2rgb_GV[v] = -731 * V / 1024;
+    }
+}
+
+/*inline void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
+{
+    uint32_t y1 = (uyvy >> 24) & 0xFF;
+    uint32_t y2 = (uyvy >>  8) & 0xFF;
+    *Y = (y1+y2) / 2;
+    uint8_t u = (uyvy >>  0) & 0xFF;
+    uint8_t v = (uyvy >> 16) & 0xFF;
+    *R = MIN(*Y + yuv2rgb_RV[v], 255);
+    *G = MIN(*Y + yuv2rgb_GU[u] + yuv2rgb_GV[v], 255);
+    *B = MIN(*Y + yuv2rgb_BU[u], 255);
+} */
+
+#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
+#define UYVY_GET_U(uyvy) (((uyvy)       ) & 0xFF)
+#define UYVY_GET_V(uyvy) (((uyvy) >>  16) & 0xFF)
+#define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
+{ \
+    Y = UYVY_GET_AVG_Y(uyvy); \
+    R = MIN(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 255); \
+    G = MIN(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 255); \
+    B = MIN(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 255); \
+} \
+
 
 int is_zoom_mode_so_no_zebras() 
 { 
@@ -87,6 +142,7 @@ int lv_luma_is_accurate()
     return expsim && digic_iso_gain_photo == 1024;
 }
 
+int show_lv_fps = 0; // for debugging
 
 
 //~ static struct bmp_file_t * cropmarks_array[3] = {0};
@@ -597,7 +653,8 @@ hist_build()
             if (hist_colorspace == 1) // rgb
             {
                 int R, G, B;
-                uyvy2yrgb(pixel, &Y, &R, &G, &B);
+                //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
                 // YRGB range: 0-255
                 uint32_t R_level = R * hist_width / 256;
                 uint32_t G_level = G * hist_width / 256;
@@ -676,7 +733,8 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
             uint32_t pixel = v_row[x/2];
             
             int Y, R, G, B;
-            uyvy2yrgb(pixel, &Y, &R, &G, &B);
+            //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+            COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
             
             int M = MAX(MAX(R,G),B);
             if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
@@ -1119,7 +1177,7 @@ static void little_cleanup(void* BP, void* MP)
 }
 
 
-static int zebra_color_word_row(int c, int y)
+static inline int zebra_color_word_row(int c, int y)
 {
     if (!c) return 0;
     
@@ -1174,21 +1232,6 @@ static int zebra_color_word_row_thick(int c, int y)
 
 int focus_peaking_debug = 0;
 
-void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
-{
-    uint32_t y1 = (uyvy >> 24) & 0xFF;
-    uint32_t y2 = (uyvy >>  8) & 0xFF;
-    *Y = (y1+y2) / 2;
-    int8_t U = (uyvy >>  0) & 0xFF;
-    int8_t V = (uyvy >> 16) & 0xFF;
-    *R = *Y + 1437 * V / 1024;
-    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
-    *B = *Y + 1812 * U / 1024;
-    *R = MIN(*R, 255);
-    *G = MIN(*G, 255);
-    *B = MIN(*B, 255);
-}
-
 // returns how the focus peaking threshold changed
 static int
 draw_zebra_and_focus( int Z, int F )
@@ -1218,18 +1261,40 @@ draw_zebra_and_focus( int Z, int F )
     {
         int zlh = zebra_level_hi * 255 / 100;
         int zll = zebra_level_lo * 255 / 100;
-
-        uint8_t * const lvram = get_yuv422_vram()->vram;
         
+        uint8_t * lvram = get_yuv422_vram()->vram;
+        lvram = YUV422_LV_BUFFER_DMA_ADDR; // this one is not updating right now, but it's a bit behind
+
         // draw zebra in 16:9 frame
         // y is in BM coords
         for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
         {
-            uint32_t color_over = zebra_color_word_row(COLOR_RED, y);
-            uint32_t color_under = zebra_color_word_row(COLOR_BLUE, y);
-            uint32_t color_over_2 = zebra_color_word_row(COLOR_RED, y+1);
+
+            uint32_t color_over    = zebra_color_word_row(COLOR_RED,  y);
+            uint32_t color_under   = zebra_color_word_row(COLOR_BLUE, y);
+            uint32_t color_over_2  = zebra_color_word_row(COLOR_RED,  y+1);
             uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
-            
+
+            uint32_t color_rgb_under   = zebra_rgb_color(1, 0, 0, 0, y);
+            uint32_t color_rgb_under_2 = zebra_rgb_color(1, 0, 0, 0, y+1);
+
+            uint32_t color_rgb_clipR   = zebra_rgb_color(0, 1, 0, 0, y);
+            uint32_t color_rgb_clipR_2 = zebra_rgb_color(0, 1, 0, 0, y+1);
+            uint32_t color_rgb_clipG   = zebra_rgb_color(0, 0, 1, 0, y);
+            uint32_t color_rgb_clipG_2 = zebra_rgb_color(0, 0, 1, 0, y+1);
+            uint32_t color_rgb_clipB   = zebra_rgb_color(0, 0, 0, 1, y);
+            uint32_t color_rgb_clipB_2 = zebra_rgb_color(0, 0, 0, 1, y+1);
+
+            uint32_t color_rgb_clipRG   = zebra_rgb_color(0, 1, 1, 0, y);
+            uint32_t color_rgb_clipRG_2 = zebra_rgb_color(0, 1, 1, 0, y+1);
+            uint32_t color_rgb_clipGB   = zebra_rgb_color(0, 0, 1, 1, y);
+            uint32_t color_rgb_clipGB_2 = zebra_rgb_color(0, 0, 1, 1, y+1);
+            uint32_t color_rgb_clipRB   = zebra_rgb_color(0, 1, 0, 1, y);
+            uint32_t color_rgb_clipRB_2 = zebra_rgb_color(0, 1, 0, 1, y+1);
+
+            uint32_t color_rgb_clipRGB   = zebra_rgb_color(0, 1, 1, 1, y);
+            uint32_t color_rgb_clipRGB_2 = zebra_rgb_color(0, 1, 1, 1, y+1);
+
             uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
             uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(y)       );  // 4 pixels
             uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(y)       );  // 4 pixels
@@ -1254,12 +1319,81 @@ draw_zebra_and_focus( int Z, int F )
                 if (zebra_colorspace == 1) // rgb
                 {
                     int Y, R, G, B;
-                    uyvy2yrgb(*lvp, &Y, &R, &G, &B);
+                    //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);
+                    COMPUTE_UYVY2YRGB(*lvp, Y, R, G, B);
 
-                    BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
-                    BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
+
+                    if (Y < zll) // underexposed
+                    {
+                        BP = MP = color_rgb_under;
+                        BN = MN = color_rgb_under_2;
+                    }
+                    else
+                    {
+
+                        //~ BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
+                        //~ BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
+                        
+                        if (R > zlh) // R clipped
+                        {
+                            if (G > zlh) // RG clipped
+                            {
+                                if (B > zlh) // RGB clipped (all of them)
+                                {
+                                    BP = MP = color_rgb_clipRGB;
+                                    BN = MN = color_rgb_clipRGB_2;
+                                }
+                                else // only R and G clipped
+                                {
+                                    BP = MP = color_rgb_clipRG;
+                                    BN = MN = color_rgb_clipRG_2;
+                                }
+                            }
+                            else // R clipped, G not clipped
+                            {
+                                if (B > zlh) // only R and B clipped
+                                {
+                                    BP = MP = color_rgb_clipRB;
+                                    BN = MN = color_rgb_clipRB_2;
+                                }
+                                else // only R clipped
+                                {
+                                    BP = MP = color_rgb_clipR;
+                                    BN = MN = color_rgb_clipR_2;
+                                }
+                            }
+                        }
+                        else // R not clipped
+                        {
+                            if (G > zlh) // R not clipped, G clipped
+                            {
+                                if (B > zlh) // only G and B clipped
+                                {
+                                    BP = MP = color_rgb_clipGB;
+                                    BN = MN = color_rgb_clipGB_2;
+                                }
+                                else // only G clipped
+                                {
+                                    BP = MP = color_rgb_clipG;
+                                    BN = MN = color_rgb_clipG_2;
+                                }
+                            }
+                            else // R not clipped, G not clipped
+                            {
+                                if (B > zlh) // only B clipped
+                                {
+                                    BP = MP = color_rgb_clipB;
+                                    BN = MN = color_rgb_clipB_2;
+                                }
+                                else // nothing clipped
+                                {
+                                    BN = MN = BP = MP = 0;
+                                }
+                            }
+                        }
+                    }
                 }
-                else
+                else // luma
                 {
                     int p0 = (*lvp) >> 8 & 0xFF;
                     if (p0 > zlh)
@@ -1272,7 +1406,7 @@ draw_zebra_and_focus( int Z, int F )
                         BP = MP = color_under;
                         BN = MN = color_under_2;
                     }
-                    else if (BP)
+                    else
                         BN = MN = BP = MP = 0;
                 }
                     
@@ -3062,6 +3196,12 @@ struct menu_entry zebra_menus[] = {
 };
 
 struct menu_entry livev_dbg_menus[] = {
+    {
+        .name = "Show LiveV FPS",
+        .priv = &show_lv_fps, 
+        .max = 1,
+        .help = "Show the frame rate of LiveV loop (zebras, peaking)"
+    },
 #if CONFIG_DEBUGMSG
     {
         .priv = "Card Benchmark",
@@ -3653,7 +3793,7 @@ static void draw_zoom_overlay(int dirty)
     zoom_overlay_split = 0; // 50D doesn't report focus
     #endif
     
-    struct vram_info *  lv = get_yuv422_vram();
+    struct vram_info *  lv = get_yuv422_vram(); lv->vram = get_fastrefresh_422_buf();
     struct vram_info *  hd = get_yuv422_hd_vram();
     
     //~ lv->width = 1920;
@@ -4276,11 +4416,11 @@ clearscreen_loop:
             }
         }
         
-        /*if (k % 10 == 0)
+        if (k % 100 == 0)
         {
-            bmp_printf(FONT_MED, 50, 50, "%d fps ", fps_ticks);
+            if (show_lv_fps) bmp_printf(FONT_MED, 50, 50, "%d.%d fps ", fps_ticks/10, fps_ticks%10);
             fps_ticks = 0;
-        }*/
+        }
 
         // clear overlays on shutter halfpress
         if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
@@ -4536,11 +4676,11 @@ livev_hipriority_task( void* unused )
         #endif
 
         //~ lv_vsync();
+        guess_fastrefresh_direction();
 
         if (should_draw_zoom_overlay())
         {
             msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
-            guess_fastrefresh_direction();
             if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
             BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
             zoom_overlay_dirty = 0;
@@ -4566,11 +4706,11 @@ livev_hipriority_task( void* unused )
             else
             {
                 #ifdef CONFIG_5D3
-                BMP_LOCK( if (lv) draw_zebra_and_focus(focus_peaking==0 || k%2==1,1) ) // DIGIC 5 has more CPU power
+                BMP_LOCK( if (lv) draw_zebra_and_focus(focus_peaking==0 || k % 2 == 1, 1) ) // DIGIC 5 has more CPU power
                 #else
                 // luma zebras are fast
                 // also, if peaking is off, zebra can be faster
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % ((zebra_colorspace ? 4 : 2) >> (focus_peaking ? 0 : 1)) == 0, k % 2 == 1); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 1) == 0, k % 2 == 1); )
                 #endif
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
@@ -4901,8 +5041,10 @@ int handle_livev_playback(struct event * event, int button)
 
 static void zebra_init()
 {
+    precompute_yuv2rgb();
+    
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
-    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Power", powersave_menus, COUNT(powersave_menus) );
