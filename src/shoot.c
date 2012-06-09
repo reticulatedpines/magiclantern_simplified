@@ -2210,13 +2210,25 @@ static char user_picstyle_shortname_3[10] = "";
 static void copy_picstyle_name(char* fullname, char* shortname, char* name)
 {
     snprintf(fullname, 50, "%s", name);
+    // CineStyle => CineS
+    // Flaat_10p => Fl10p
+    // Flaat_2   => Flaa2
+    // Flaat03   => Fla03
+    
     int L = strlen(name);
     shortname[0] = name[0];
     shortname[1] = name[1];
     shortname[2] = name[2];
-    shortname[3] = isdigit(name[L-2]) ? name[L-2] : name[3];
-    shortname[4] = isdigit(name[L-1]) ? name[L-1] : name[4];
+    shortname[3] = name[3];
+    shortname[4] = name[4];
     shortname[5] = '\0';
+    
+    if (isdigit(name[L-3]))
+        shortname[2] = name[L-3];
+    if (isdigit(name[L-3]) || isdigit(name[L-2]))
+        shortname[3] = name[L-2];
+    if (isdigit(name[L-3]) || isdigit(name[L-2]) || isdigit(name[L-1]))
+        shortname[4] = name[L-1];
 }
 
 PROP_HANDLER(PROP_PC_FLAVOR1_PARAM)
