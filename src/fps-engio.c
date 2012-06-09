@@ -257,7 +257,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     int default_fps = calc_fps_x1000(Ta0, Tb0);
     //~ int actual_fps = calc_fps_x1000(Ta, Tb);
     int resulting_fps_if_we_only_change_timer_b = calc_fps_x1000(Ta0, Tb);
-    int fps_timer_delta_us = 1000000000 / resulting_fps_if_we_only_change_timer_b - 1000000000 / default_fps;
+    int fps_timer_delta_us = MAX(1000000000 / resulting_fps_if_we_only_change_timer_b - 1000000000 / default_fps, 0);
     #ifdef NEW_FPS_METHOD
     if (fps_timer_b_method == 1) fps_timer_delta_us = 0;
     #endif
@@ -786,7 +786,7 @@ static void fps_timer_fine_tune_a(void* priv, int delta)
 
 static void fps_timer_fine_tune_a_big(void* priv, int delta)
 {
-    desired_fps_timer_a_offset += delta * 20;
+    desired_fps_timer_a_offset += delta * 100;
     fps_needs_updating = 1;
 }
 
