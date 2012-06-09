@@ -255,14 +255,15 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     
     int shutter_us = 1000000000 / shutter_r_x1000;
     int default_fps = calc_fps_x1000(Ta0, Tb0);
-    int actual_fps = calc_fps_x1000(Ta, Tb);
-    int fps_timer_delta_us = 1000000000 / actual_fps - 1000000000 / default_fps;
+    //~ int actual_fps = calc_fps_x1000(Ta, Tb);
+    int resulting_fps_if_we_only_change_timer_b = calc_fps_x1000(Ta0, Tb);
+    int fps_timer_delta_us = 1000000000 / resulting_fps_if_we_only_change_timer_b - 1000000000 / default_fps;
     #ifdef NEW_FPS_METHOD
     if (fps_timer_b_method == 1) fps_timer_delta_us = 0;
     #endif
     int ans_raw = 1000000000 / (shutter_us + fps_timer_delta_us);
     int ans = ans_raw * (Ta0/10) / (Ta/10);
-    //~ NotifyBox(2000, "su=%d cfc=%d \nvf=%d td=%d \nd_num=%d d_den=%d\nar=%d ans=%d", shutter_us, ((TG_FREQ_BASE / Ta0) * 1000 / Tb), video_mode_fps, fps_timer_delta_us, Ta, Ta0, ans_raw, ans);
+    //~ NotifyBox(2000, "shutter_us=%d\ndef_fps=%d res_fps=%d\ntimer_delta_us=%d\nans_raw=%d ans=%d", shutter_us, default_fps, resulting_fps_if_we_only_change_timer_b, fps_timer_delta_us, ans_raw, ans);
     
     return ans;
 }
