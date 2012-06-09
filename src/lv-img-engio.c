@@ -135,6 +135,8 @@ void digic_iso_toggle(int* priv, int delta)
 //~ static CONFIG_INT("digic.effects", image_effects, 0);
 static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
+static CONFIG_INT("digic.swap-uv", swap_uv, 0);
+static CONFIG_INT("digic.cartoon", cartoon, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
 int default_white_level = 4096;
@@ -274,9 +276,10 @@ void digic_poke_step()
             
             //~ digic_value--;
             digic_show();
-            EngDrvOut(digic_register, digic_value);
-            if (digic_register & 0xFFFFF000 == 0xC0F06000) // FPS-related
-                EngDrvOut(0xC0F06000, 1); // apply the change
+            _EngDrvOut(digic_register, digic_value);
+            if (digic_register & 0xFFFFF000 == 0xC0F06000 ||
+                digic_register & 0xFFFFF000 == 0xC0F07000 ) // FPS-related
+                _EngDrvOut(0xC0F06000, 1); // apply the change
             //~ fps_set_main_timer(digic_value);
 
             //~ EngDrvOut(0xc0f04a08, 0x6000080);
@@ -343,6 +346,25 @@ void digic_dump()
     FIO_CloseFile(f);
 }
 
+void digic_dump_h264()
+{
+    msleep(1000);
+    FIO_RemoveFile(CARD_DRIVE "h264.log");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "h264.log");
+    
+    for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
+    {
+        int value = MEM(reg);
+        if (value && value != -1)
+        {
+            bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
+            my_fprintf(f, "%8x: %8x\n", reg, value);
+        }
+    }
+    FIO_CloseFile(f);
+}
+
+
 #else
 
 int handle_digic_poke(struct event * event){ return 1; }; // dummy
@@ -368,8 +390,14 @@ void image_effects_step()
     }
 
     if (!is_movie_mode()) return;
+
+    static int prev_swap_uv = 0;
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
-    if (negative) EngDrvOut(0xc0f0f000, 0xb1);
+    if (negative)   EngDrvOut(0xc0f0f000, 0xb1);
+    if (swap_uv)    EngDrvOut(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOut(0xc0f0de2c, 0);
+    if (cartoon)    EngDrvOut(0xc0f0f29c, 0xffff);
+    //~ if (cartoon)    EngDrvOut(0xc0f0f438, 29100 + cartoon);
+    prev_swap_uv = swap_uv;
 }
 
 void digic_iso_step()
@@ -443,6 +471,20 @@ static struct menu_entry lv_img_menu[] = {
                 .min = 0,
                 .max = 1,
                 .help = "Negative image. Inverts all colors :)",
+            },
+            {
+                .name = "Swap U-V",
+                .priv       = &swap_uv,
+                .min = 0,
+                .max = 1,
+                .help = "Swaps U and V channels (red <--> blue).",
+            },
+            {
+                .name = "Cartoon look",
+                .priv       = &cartoon,
+                .min = 0,
+                .max = 1,
+                .help = "Cartoonish look. Set sharpness to some positive value.",
             },
             /*{
                 .name = "Purple Fringe",
