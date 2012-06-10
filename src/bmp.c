@@ -1173,15 +1173,22 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
     ASSERT(dst)
     if (!dst) return;
     int i,j;
-    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i++) // -30 ... 510
+    
+    int H_LO = hdmi_code == 5 ? BMP_H_MINUS : 0;
+    int H_HI = hdmi_code == 5 ? BMP_H_PLUS : 480;
+
+    int W_LO = hdmi_code == 5 ? BMP_W_MINUS : 0;
+    int W_HI = hdmi_code == 5 ? BMP_W_PLUS : 720;
+    
+    for (i = H_LO; i < H_HI; i++) // -30 ... 510
     {
-        int i_mod = BMP_H_PLUS + BMP_H_MINUS - i + voffset; // 510 ... -30
-        while (i_mod < BMP_H_MINUS) i_mod += BMP_TOTAL_HEIGHT;
-        while (i_mod >= BMP_H_PLUS) i_mod -= BMP_TOTAL_HEIGHT;
+        int i_mod = H_HI + H_LO - i + voffset; // 510 ... -30
+        while (i_mod < H_LO) i_mod += (H_HI - H_LO);
+        while (i_mod >= H_HI) i_mod -= (H_HI - H_LO);
         
-        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j++) // -120 ... 840
+        for (j = W_LO; j < W_HI; j++) // -120 ... 840
         {
-            dst[BM(j,i)] = src[BM(BMP_W_PLUS + BMP_W_MINUS - j, i_mod)]; // 840 ... -120
+            dst[BM(j,i)] = src[BM(W_HI + W_LO - j, i_mod)]; // 840 ... -120
         }
     }
 }
