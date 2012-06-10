@@ -1182,13 +1182,43 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
     
     for (i = H_LO; i < H_HI; i++) // -30 ... 510
     {
-        int i_mod = H_HI + H_LO - i + voffset; // 510 ... -30
+        int i_mod = H_HI + H_LO - i + voffset - 1; // 510 ... -30
         while (i_mod < H_LO) i_mod += (H_HI - H_LO);
         while (i_mod >= H_HI) i_mod -= (H_HI - H_LO);
         
         for (j = W_LO; j < W_HI; j++) // -120 ... 840
         {
             dst[BM(j,i)] = src[BM(W_HI + W_LO - j, i_mod)]; // 840 ... -120
+        }
+    }
+}
+
+void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
+{
+    ASSERT(src)
+    ASSERT(dst)
+    ASSERT(mirror)
+    if (!dst) return;
+    int i,j;
+    
+    int H_LO = hdmi_code == 5 ? BMP_H_MINUS : 0;
+    int H_HI = hdmi_code == 5 ? BMP_H_PLUS : 480;
+
+    int W_LO = hdmi_code == 5 ? BMP_W_MINUS : 0;
+    int W_HI = hdmi_code == 5 ? BMP_W_PLUS : 720;
+    
+    for (i = H_LO; i < H_HI; i++) // -30 ... 510
+    {
+        int i_mod = H_HI + H_LO - i + voffset - 1; // 510 ... -30
+        while (i_mod < H_LO) i_mod += (H_HI - H_LO);
+        while (i_mod >= H_HI) i_mod -= (H_HI - H_LO);
+        
+        for (j = W_LO; j < W_HI; j++) // -120 ... 840
+        {
+            uint8_t m = mirror[BM(j,i)];
+            uint8_t b = dst[BM(j,i)];
+            if (m && (m == b) && !(m & 0x80)) { /* zebras here, do nothing */ }
+            else dst[BM(j,i)] = src[BM(W_HI + W_LO - j, i_mod)]; // 840 ... -120
         }
     }
 }
