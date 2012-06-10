@@ -4871,13 +4871,18 @@ livev_lopriority_task( void* unused )
             msleep(300);
         }
 
+        static int qr_zebras_drawn = 0; // zebras in QR should only be drawn once
         extern int hdr_enabled;
         if (quickreview_liveview && QR_MODE && get_global_draw() && !hdr_enabled)
         {
-            msleep(500);
-            draw_livev_for_playback();
-            while (QR_MODE) msleep(100);
+            if (!qr_zebras_drawn)
+            {
+                msleep(500);
+                draw_livev_for_playback();
+                qr_zebras_drawn = 1;
+            }
         }
+        else qr_zebras_drawn = 0;
 
         loprio_sleep();
         if (!zebra_should_run())
