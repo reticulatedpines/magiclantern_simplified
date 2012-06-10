@@ -4181,7 +4181,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &bulb_timer,
         .display = bulb_display, 
         .select = menu_binary_toggle, 
-        .help = "Bulb timer for very long exposures, useful for astrophotos",
+        .help = "For very long exposures. Hold shutter half-pressed for 1s.",
         .essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
@@ -5488,10 +5488,20 @@ shoot_task( void* unused )
             static int was_idle_not_pressed = 0;
             int is_idle_not_pressed = !get_halfshutter_pressed() && display_idle();
             int is_idle_and_pressed = get_halfshutter_pressed() && display_idle();
+            int trigger_condition = was_idle_not_pressed && is_idle_and_pressed;
+            was_idle_not_pressed = is_idle_not_pressed;
 
-            if (was_idle_not_pressed && is_idle_and_pressed)
+            if (trigger_condition)
             {
                 info_led_on();
+                // need to keep halfshutter pressed for one second
+                for (int i = 0; i < 10; i++)
+                {
+                    msleep(100);
+                    if (!get_halfshutter_pressed() || lens_info.job_state >= 10) break;
+                }
+                if (!get_halfshutter_pressed() || lens_info.job_state >= 10) { info_led_off(); continue; }
+                
                 int d = BULB_SHUTTER_VALUE_S;
                 //~ NotifyBoxHide();
                 NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_hours_minutes_seconds(d));
@@ -5508,6 +5518,7 @@ shoot_task( void* unused )
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
+                if (lens_info.job_state >= 10) continue;
                 //~ NotifyBoxHide();
                 NotifyBox(2000, "[1s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
@@ -5515,10 +5526,10 @@ shoot_task( void* unused )
                 if (get_halfshutter_pressed()) continue;
                 if (!display_idle()) continue;
                 if (m0 != shooting_mode) continue;
+                if (lens_info.job_state >= 10) continue;
                 info_led_off();
                 bulb_take_pic(d * 1000);
             }
-            was_idle_not_pressed = is_idle_not_pressed;
         }
         
         if (picture_was_taken_flag) // just took a picture, maybe we should take another one
