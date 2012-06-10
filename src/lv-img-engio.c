@@ -13,7 +13,7 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-#define CONFIG_DIGIC_POKE
+//~ #define CONFIG_DIGIC_POKE
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -277,9 +277,7 @@ void digic_poke_step()
             //~ digic_value--;
             digic_show();
             _EngDrvOut(digic_register, digic_value);
-            if (digic_register & 0xFFFFF000 == 0xC0F06000 ||
-                digic_register & 0xFFFFF000 == 0xC0F07000 ) // FPS-related
-                _EngDrvOut(0xC0F06000, 1); // apply the change
+            _EngDrvOut(0xC0F06000, 1); // apply the change
             //~ fps_set_main_timer(digic_value);
 
             //~ EngDrvOut(0xc0f04a08, 0x6000080);

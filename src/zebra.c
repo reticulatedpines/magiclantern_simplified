@@ -5049,7 +5049,7 @@ static void zebra_init()
     precompute_yuv2rgb();
     
     menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
-    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Power", powersave_menus, COUNT(powersave_menus) );
