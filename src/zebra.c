@@ -355,7 +355,7 @@ void crop_set_dirty(int value)
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
     extern int ml_started;
-    if (ml_started) redraw_after(200);
+    if (ml_started) redraw();
 }
 
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
