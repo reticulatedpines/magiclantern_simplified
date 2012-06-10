@@ -134,15 +134,20 @@ volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 #endif
 
 int lv_disp_mode;
+
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];
     #endif
-}
 
+    #ifdef CONFIG_5D2 // PROP_HOUTPUT_TYPE not reported correctly?
+    lv_disp_mode = (MEM(0x34894 + 0x48) != 3); // AJ_LDR_0x34894_guess_HDMI_disp_type_related_0x48
+    #endif
+
+}
 
 #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
 int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed 100-1600.
