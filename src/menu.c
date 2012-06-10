@@ -1458,7 +1458,7 @@ menu_redraw_task()
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
-        msleep(50);
+        msleep(30);
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) continue;
@@ -1560,30 +1560,17 @@ handle_ml_menu_keys(struct event * event)
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
     // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
-    take_semaphore(menu_redraw_sem, 0);
 
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
-    
-    // Make sure we are not displaying an empty menu
-    if (!menu_has_visible_items(menu->children))
-    {
-        menu_move(menu, -1); menu = get_selected_menu();
-        menu_move(menu, 1); menu = get_selected_menu();
-    }
-    
-    menu_entry_move(menu, -1);
-    menu_entry_move(menu, 1);
-    
-    struct menu * help_menu = menu;
+
+    struct menu * main_menu = menu;
     if (submenu_mode)
     {
-        help_menu = menu;
+        main_menu = menu;
         menu = get_current_submenu();
-        if (!menu) menu = help_menu; // no submenu, operate on same item
+        if (!menu) menu = main_menu; // no submenu, operate on same item
     }
-
-    give_semaphore(menu_redraw_sem);
     
     int button_code = event->param;
 #if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
@@ -1597,6 +1584,21 @@ handle_ml_menu_keys(struct event * event)
         else advanced_mode = !advanced_mode;
         show_only_selected = 0;
         menu_help_active = 0;
+
+        // Make sure we will not display an empty menu
+        
+        take_semaphore(menu_redraw_sem, 0);
+        
+        if (!menu_has_visible_items(main_menu->children))
+        {
+            menu_move(main_menu, -1); main_menu = get_selected_menu();
+            menu_move(main_menu, 1); main_menu = get_selected_menu();
+        }
+        menu_entry_move(main_menu, -1);
+        menu_entry_move(main_menu, 1);
+
+        give_semaphore(menu_redraw_sem);
+
         break;
 
     case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
@@ -1656,7 +1658,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_INFO:
         menu_help_active = !menu_help_active;
         show_only_selected = 0;
-        if (menu_help_active) menu_help_go_to_selected_entry(help_menu);
+        if (menu_help_active) menu_help_go_to_selected_entry(main_menu);
         //~ menu_damage = 1;
         break;
 
