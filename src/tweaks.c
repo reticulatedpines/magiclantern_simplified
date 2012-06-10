@@ -445,6 +445,7 @@ void clear_lv_afframe()
     if (!lv) return;
     if (gui_menu_shown()) return;
     if (lv_dispsize != 1) return;
+    if (lv_disp_mode) return;
     int xaf,yaf;
     
     //~ get_yuv422_vram();
