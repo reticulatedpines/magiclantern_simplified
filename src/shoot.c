@@ -2983,8 +2983,20 @@ bulb_take_pic(int duration)
     int d = duration/1000;
     for (int i = 0; i < d; i++)
     {
-        bmp_printf(FONT_LARGE, 30, 30, "Bulb timer: %s", format_time_hours_minutes_seconds(d));
+        // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
+        if (DISPLAY_IS_ON) fake_simple_button(BGMT_INFO);
+        
+        // turn off the LED - no light pollution, please :)
+        // but blink it quickly every 10 seconds to have some feedback
+        if (i % 10 == 1) { _card_led_on(); msleep(10); _card_led_off(); }
+
+        // blink twice every minute
+        if (i % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); }
+        
+        // count one second (sync'ed to RTC)
         wait_till_next_second();
+        
+        // exposure was canceled earlier by user
         if (lens_info.job_state == 0) break;
     }
     msleep(duration % 1000);
@@ -5362,7 +5374,7 @@ void wait_till_next_second()
     while (now.tm_sec == s)
     {
         LoadCalendarFromRTC( &now );
-        msleep(DISPLAY_IS_ON ? 100 : 500);
+        msleep(DISPLAY_IS_ON ? 100 : 300);
     }
 }
 
@@ -5501,6 +5513,9 @@ shoot_task( void* unused )
                     if (!get_halfshutter_pressed() || lens_info.job_state >= 10) break;
                 }
                 if (!get_halfshutter_pressed() || lens_info.job_state >= 10) { info_led_off(); continue; }
+                
+                info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
+                info_led_on();
                 
                 int d = BULB_SHUTTER_VALUE_S;
                 //~ NotifyBoxHide();
