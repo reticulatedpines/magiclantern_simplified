@@ -1067,7 +1067,8 @@ static struct menu_entry mov_menus[] = {
         .priv = &enable_liveview,
         .display    = enable_liveview_print,
         .select     = menu_ternary_toggle,
-        .help = "Force LiveView in movie mode, even with an unchipped lens."
+        .help = "Always use LiveView (with manual lens or after lens swap).",
+        .essential  = FOR_MOVIE,
     },
     #endif
 #if defined(CONFIG_50D) //|| defined(CONFIG_500D)

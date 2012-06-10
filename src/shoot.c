@@ -4631,7 +4631,7 @@ static struct menu_entry expo_menus[] = {
         .help = "Change current picture style.",
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
-        .essential = FOR_PHOTO | FOR_MOVIE,
+        //~ .essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {
                 //~ .name = "PictureStyle",
@@ -4682,7 +4682,7 @@ static struct menu_entry expo_menus[] = {
         .display    = picstyle_rec_display,
         .select     = picstyle_rec_toggle,
         .help = "You can use a different picture style when recording.",
-        .essential = FOR_MOVIE,
+        //~ .essential = FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {
                 //~ .name = "PictureStyle",

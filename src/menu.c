@@ -57,6 +57,22 @@ static CONFIG_INT("menu.advanced", advanced_mode, 1);
 
 int get_menu_advanced_mode() { return advanced_mode; }
 
+void menu_easy_advanced_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Press MENU : %s/%s mode",
+        advanced_mode ? "Easy" : "EASY",
+        advanced_mode ? "ADVANCED" : "Advanced"
+    );
+}
+
 void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }

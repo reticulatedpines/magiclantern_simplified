@@ -17,7 +17,7 @@
 #define CONFIG_STRESS_TEST
 #define CONFIG_HEXDUMP
 #undef CONFIG_ISO_TESTS
-//~ #define CONFIG_DEBUGMSG 1
+#define CONFIG_DEBUGMSG 1
 
 //~ #define CONFIG_HEXDUMP
 
@@ -1261,14 +1261,14 @@ int mem_spy = 0;
 
 #if CONFIG_DEBUGMSG
 
-int mem_spy_start = 0xC0F00000; // start from here
+int mem_spy_start = 0; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
 int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses
 const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc00011cf, 0xc02000a8, 0xc02000ac, 0xc0201004, 0xc0201010, 0xc0201100, 0xc0201104, 0xc0201200, 0xc0203000, 0xc020301c, 0xc0203028, 0xc0203030, 0xc0203034, 0xc020303c, 0xc0203044, 0xc0203048, 0xc0210200, 0xc0210208, 0xc022001c, 0xc0220028, 0xc0220034, 0xc0220070, 0xc02200a4, 0xc02200d0, 0xc02200d4, 0xc02200d8, 0xc02200e8, 0xc02200ec, 0xc0220100, 0xc0220104, 0xc022010c, 0xc0220118, 0xc0220130, 0xc0220134, 0xc0220138, 0xc0222000, 0xc0222004, 0xc0222008, 0xc022200c, 0xc0223000, 0xc0223010, 0xc0223060, 0xc0223064, 0xc0223068, 0xc0224100, 0xc0224104, 0xc022d000, 0xc022d02c, 0xc022d074, 0xc022d1ec, 0xc022d1f0, 0xc022d1f4, 0xc022d1f8, 0xc022d1fc, 0xc022dd14, 0xc022f000, 0xc022f004, 0xc022f200, 0xc022f210, 0xc022f214, 0xc022f340, 0xc022f344, 0xc022f430, 0xc022f434, 0xc0238060, 0xc0238064, 0xc0238080, 0xc0238084, 0xc0238098, 0xc0242010, 0xc0300000, 0xc0300100, 0xc0300104, 0xc0300108, 0xc0300204, 0xc0400004, 0xc0400008, 0xc0400018, 0xc040002c, 0xc0400080, 0xc0400084, 0xc040008c, 0xc04000b4, 0xc04000c0, 0xc04000c4, 0xc04000cc, 0xc0410000, 0xc0410008, 0xc0500080, 0xc0500088, 0xc0500090, 0xc0500094, 0xc05000a0, 0xc05000a8, 0xc05000b0, 0xc05000b4, 0xc05000c0, 0xc05000c4, 0xc05000c8, 0xc05000cc, 0xc05000d0, 0xc05000d4, 0xc05000d8, 0xc0520000, 0xc0520004, 0xc0520008, 0xc052000c, 0xc0520014, 0xc0520018, 0xc0720000, 0xc0720004, 0xc0720008, 0xc072000c, 0xc0720014, 0xc0720024, 0xc07200ec, 0xc07200f0, 0xc0720100, 0xc0720104, 0xc0720108, 0xc072010c, 0xc0720110, 0xc0720114, 0xc0720118, 0xc072011c, 0xc07201c8, 0xc0720200, 0xc0720204, 0xc0720208, 0xc072020c, 0xc0720210, 0xc0800008, 0xc0800014, 0xc0800018, 0xc0820000, 0xc0820304, 0xc0820308, 0xc082030c, 0xc0820310, 0xc0820318, 0xc0920000, 0xc0920004, 0xc0920008, 0xc092000c, 0xc0920010, 0xc0920100, 0xc0920118, 0xc092011c, 0xc0920120, 0xc0920124, 0xc0920204, 0xc0920208, 0xc092020c, 0xc0920210, 0xc0920220, 0xc0920224, 0xc0920238, 0xc0920320, 0xc0920344, 0xc0920348, 0xc0920354, 0xc0920358, 0xc0a00000, 0xc0a00008, 0xc0a0000c, 0xc0a00014, 0xc0a00018, 0xc0a0001c, 0xc0a00020, 0xc0a00024, 0xc0a00044, 0xc0a10008 };
 int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
-int mem_spy_count_lo = 5; // how many times is a value allowed to change
+int mem_spy_count_lo = 1; // how many times is a value allowed to change
 int mem_spy_count_hi = 50; // (limits)
 int mem_spy_freq_lo = 0; 
 int mem_spy_freq_hi = 0;  // or check frequecy between 2 limits (0 = disable)
@@ -2250,6 +2250,7 @@ static void save_cpu_usage_log_task()
 
 extern void menu_open_submenu();
 extern void tasks_print(void* priv, int x0, int y0, int selected);
+extern void batt_display(void* priv, int x0, int y0, int selected);
 extern int what_tasks_to_show;
 
 struct menu_entry debug_menus[] = {
@@ -2516,6 +2517,14 @@ struct menu_entry debug_menus[] = {
         .name = "Ambient light",
         .display = ambient_display,
         .help = "Ambient light from the sensor under LCD, in raw units.",
+        .essential = FOR_MOVIE | FOR_PHOTO,
+    },
+    #endif
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    {
+        .name = "Battery remaining",
+        .display = batt_display,
+        .help = "Battery remaining. Wait for 2%% discharge before reading.",
         .essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif

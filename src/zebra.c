@@ -3239,7 +3239,7 @@ struct menu_entry livev_dbg_menus[] = {
 };
 
 #if defined(CONFIG_60D) || defined(CONFIG_5D2)
-static void batt_display(
+void batt_display(
     void *          priv,
     int         x,
     int         y,
