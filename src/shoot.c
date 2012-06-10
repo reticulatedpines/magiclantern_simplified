@@ -4229,10 +4229,11 @@ static struct menu_entry shoot_menus[] = {
         .essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Trigger level",
+                .name = "Trigger level (dB)",
                 .priv = &audio_release_level, 
-                .min = 5,
-                .max = 50,
+                .min = 1,
+                .max = 20,
+                .help = "Picture taken when sound level becomes X dB above average.",
             },
             MENU_EOL
         },
@@ -4243,7 +4244,7 @@ static struct menu_entry shoot_menus[] = {
         .priv       = &motion_detect,
         .select     = menu_binary_toggle,
         .display    = motion_detect_display,
-        .help = "Motion detection: EXPosure change / frame DIFference.",
+        .help = "Take a picture when subject is moving or exposure changes.",
         .essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
@@ -4252,12 +4253,14 @@ static struct menu_entry shoot_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"Expo. change", "Frame diff."},
                 .icon_type = IT_DICE,
+                .help = "How to compute the difference between two frames.",
             },
             {
                 .name = "Trigger level",
                 .priv = &motion_detect_level, 
                 .min = 1,   
                 .max = 30,
+                .help = "Picture is taken when frame difference is above threshold.",
             },
             MENU_EOL
         },
@@ -5813,7 +5816,7 @@ shoot_task( void* unused )
                 static int avg_prev1 = 1000;
                 static int avg_prev2 = 1000;
                 static int avg_prev3 = 1000;
-                int current_pulse_level = audio_levels[0].peak_fast / avg_prev3;
+                int current_pulse_level = audio_level_to_db(audio_levels[0].peak_fast) - audio_level_to_db(avg_prev3);
     
                 if (countdown == 0)
                 {

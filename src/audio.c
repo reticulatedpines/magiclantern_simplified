@@ -112,7 +112,7 @@ void masked_audio_ic_write(
  *
  * Range is -40 to 0 dB
  */
-static int
+int
 audio_level_to_db(
                   int                   raw_level
                   )
