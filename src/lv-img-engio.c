@@ -296,9 +296,10 @@ void digic_poke_step()
     }
 }
 
-void hex_toggle(void* priv, int delta)
+void hex_toggle_8bit(void* priv, int delta)
 {
     MEM(priv) += 4 * delta;
+    MEM(priv) &= 0xFF;
 }
 
 void digic_value_toggle(void* priv, int delta)
@@ -530,7 +531,7 @@ static struct menu_entry dbg_menu[] = {
                 .unit = UNIT_HEX,
                 .min = 0x00,
                 .max = 0xFF,
-                .select = hex_toggle,
+                .select = hex_toggle_8bit,
                 .help = "DIGIC register address, mask=000000FC.",
             },
             {
