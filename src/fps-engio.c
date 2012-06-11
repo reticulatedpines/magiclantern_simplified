@@ -70,6 +70,11 @@ static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 
 static CONFIG_INT("fps.override", fps_override, 0);
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 
+// in simple menu, FPS override is only displayed in movie mode
+// so... it should only take effect in movie mode, no?
+// but in advanced mode, it can be used in photo mode too (for night vision)
+#define FPS_OVERRIDE (fps_override && (is_movie_mode() || get_menu_advanced_mode()))
+
 // 1000 = zero, more is positive, less is negative
 static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add this to default Canon value
 static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add this to computed value (for fine tuning)
@@ -629,7 +634,7 @@ static void fps_register_reset()
 
 static void fps_reset()
 {
-    fps_override = 0;
+    //~ fps_override = 0;
     fps_needs_updating = 0;
     fps_register_reset();
 
@@ -1081,6 +1086,15 @@ static void fps_read_default_timer_values()
     //~ bmp_printf(FONT_MED, 100, 100, "%d %d ", fps_timer_a_orig, fps_reg_b_orig);
 }
 
+// maybe FPS settings were changed by someone else? if yes, force a refresh
+static void fps_check_refresh()
+{
+    int fps_ov = FPS_OVERRIDE;
+    static int old_fps_ov = 0;
+    if (old_fps_ov != fps_ov) fps_needs_updating = 1;
+    old_fps_ov = fps_ov;
+}
+
 // do all FPS changes from this task only - to avoid trouble ;)
 static void fps_task()
 {
@@ -1089,8 +1103,10 @@ static void fps_task()
         #ifdef CONFIG_500D
         msleep(100);
         #else
-        msleep(fps_override ? 20 : 100);
+        msleep(FPS_OVERRIDE ? 20 : 100);
         #endif
+        
+        fps_check_refresh();
 
         //~ bmp_hexdump(FONT_SMALL, 10, 200, SENSOR_TIMING_TABLE, 32*10);
         //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
@@ -1104,11 +1120,11 @@ static void fps_task()
         
         //~ NotifyBox(2000, "d: %d,%d. c: %d,%d ", fps_timer_a_orig, fps_timer_b_orig, fps_timer_a, fps_timer_b);
         
-        if (!fps_override) 
+        if (!FPS_OVERRIDE) 
         {
             msleep(100);
 
-            if (!fps_override && fps_needs_updating)
+            if (!FPS_OVERRIDE && fps_needs_updating)
                 fps_reset();
                             
             continue;
@@ -1143,7 +1159,7 @@ void fps_mvr_log(FILE* mvr_logfile)
 // on certain events (PLAY, RECORD) we need to disable FPS override temporarily
 int handle_fps_events(struct event * event)
 {
-    if (!fps_override) return 1;
+    if (!FPS_OVERRIDE) return 1;
     
     if (event->param == BGMT_PLAY)
     {
