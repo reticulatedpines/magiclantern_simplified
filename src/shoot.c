@@ -5803,7 +5803,8 @@ shoot_task( void* unused )
             bramp_cleanup();
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
-            
+
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) // no audio module on these cameras
             if (audio_release_running) 
             {
                 static int countdown = 0;
@@ -5840,6 +5841,7 @@ shoot_task( void* unused )
                 avg_prev1 = avg_prev0;
                 avg_prev0 = audio_levels[0].avg;
             }
+#endif
         }
     }
 }
