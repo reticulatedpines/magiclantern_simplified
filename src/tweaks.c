@@ -1103,9 +1103,9 @@ int handle_push_wb(struct event * event)
 
 int handle_arrow_keys(struct event * event)
 {
-    if (!lv) return 1;
-    if (gui_menu_shown()) return 1;
     if (handle_push_wb(event)==0) return 0;
+    if (gui_menu_shown()) return 1;
+    if (!liveview_display_idle()) return 1;
 
     #ifdef CONFIG_4_3_SCREEN
     if (lv_dispsize > 1) return 1; // flickers in zoom mode => completely disable them
