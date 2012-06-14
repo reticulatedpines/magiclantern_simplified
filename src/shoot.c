@@ -1693,7 +1693,7 @@ shutter_toggle(void* priv, int sign)
 {
     if (!lens_info.raw_shutter) return;
     int i = raw2index_shutter(lens_info.raw_shutter);
-    int i0 = i;
+//    int i0 = i;
     int k;
     for (k = 0; k < 15; k++)
     {
@@ -2819,7 +2819,7 @@ void zoom_auto_exposure_step()
     if (!zoom_auto_exposure) return;
 
     static int es = -1;
-    static int aem = -1;
+//    static int aem = -1;
     
     if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running)
     {
