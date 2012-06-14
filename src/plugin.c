@@ -255,8 +255,8 @@ static void plugins_task(void* unused) {
 									thunk entry = (thunk)task->entry;
 									entry();
 								} else {
-									console_printf("Starting task: %08x, PRIO: %d, FLAGS: %d, %s\n",(char*)task->entry-(char*)plugins[k].plug, task->priority, task->flags, task->name);
-									task_create(task->name, task->priority, task->flags, task->entry, task->arg);
+									console_printf("Starting task: %08x, PRIO: %d, STACK: %d, %s\n",(char*)task->entry-(char*)plugins[k].plug, task->priority, task->stack_size, task->name);
+									task_create(task->name, task->priority, task->stack_size, task->entry, task->arg);
 								}
 								task++;
 							}
