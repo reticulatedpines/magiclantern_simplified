@@ -160,7 +160,7 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 
     int wait = 2000;
     int r;
-    while ((r = AcquireRecursiveLock(lock, wait)))
+    while (r = AcquireRecursiveLock(lock, wait))
     {
         char msg[100];
         snprintf(msg, sizeof(msg), "%s:%s:%d:\nRLock held by %s:%s:%d  ", get_task_name_from_id(get_current_task()), func, line, get_task_name_from_id(task_holding_bmp_lock), func_holding_bmp_lock, line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
