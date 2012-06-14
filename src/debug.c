@@ -25,6 +25,7 @@
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
+extern int transparent_overlay_hidden;
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 
@@ -556,6 +557,9 @@ void run_test()
     #ifdef CONFIG_600D
     audio_reg_dump_600D();
     #endif
+//    FIO_RemoveFile(CARD_DRIVE "overlay.dat");
+//    transparent_overlay_hidden = !transparent_overlay_hidden;
+//	beep();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -2174,6 +2178,7 @@ void menu_kill_flicker()
     canon_gui_disable_front_buffer();
 }
 
+/* moved to tweaks
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 
 void EyeFi_RenameCR2toAVI(char* dir)
@@ -2203,12 +2208,44 @@ void EyeFi_RenameCR2toAVI(char* dir)
     redraw();
 }
 
+void EyeFi_RenameAVItoCR2(char* dir)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        if (file.name[0] == '.') continue;
+        if (!streq(file.name + 8, ".AVI")) continue;
+
+        static char oldname[50];
+        static char newname[50];
+        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+        strcpy(newname, oldname);
+        newname[strlen(newname) - 4] = 0;
+        STR_APPEND(newname, ".CR2");
+        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        FIO_RenameFile(oldname, newname);
+
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    beep();
+    redraw();
+}
+
 #endif
 
 static void CR2toAVI(void* priv, int delta)
 {
     EyeFi_RenameCR2toAVI(get_dcim_dir());
 }
+
+static void AVItoCR2(void* priv, int delta)
+{
+    EyeFi_RenameAVItoCR2(get_dcim_dir());
+}*/
 
 static void frozen_task()
 {
@@ -2353,13 +2390,27 @@ struct menu_entry debug_menus[] = {
         .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
     },
 #endif
+/* moved to tweaks
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
-        .name        = "Rename CR2 to AVI",
-        .select        = CR2toAVI,
-        .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+        .name        = "EyeFi Trick",
+        .select        = menu_open_submenu,
+        .help = "Rename CR2 files to AVI (trick for EyeFi cards).",
+        .children =  (struct menu_entry[]) {
+            {
+            	.name        = "Rename CR2 to AVI",
+            	.select        = CR2toAVI,
+            	.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+         	},
+            {
+            	.name        = "Rename AVI to CR2",
+            	.select        = AVItoCR2,
+            	.help = "Rename back AVI files to CR2 (trick for EyeFi cards)."
+         	},
+            MENU_EOL
+        },
     },
-#endif
+#endif*/
     {
         .name        = "Don't click me!",
         .priv =         run_test,
