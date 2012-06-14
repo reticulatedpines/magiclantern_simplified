@@ -3,10 +3,13 @@
 # See http://chdk.setepontos.com/index.php/topic,4214.0.html
 #     http://en.wikipedia.org/wiki/File_Allocation_Table#Boot_Sector
 
-# change this
+# change this on linux
 dev=/dev/sdb1
 
+# Fix for osx, auto detects the card if formatted incamera before using this script
 if [[ $OSTYPE == darwin* ]]; then
+  dev=/dev/$(diskutil list | grep EOS_DIGITAL | awk '{print $6}' )
+  echo $dev
   diskutil unmount $dev
 fi
 
@@ -15,6 +18,7 @@ DEV32=`dd if=$dev bs=1 skip=82 count=8`
 DEV16=`dd if=$dev bs=1 skip=54 count=8`
 if [ "$DEV16" != 'FAT16   ' -a "$DEV32" != 'FAT32   ' ]; then
   echo "Error: "$dev" is not a FAT16 or FAT32 device"
+  echo "Format your card in camera before using this script on Osx"
   echo debug $dev $DEV16 $DEV32
   exit
 fi
