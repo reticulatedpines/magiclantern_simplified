@@ -18,7 +18,7 @@ static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
 
 int is_hdr_valid_iso(int iso)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    #if defined(CONFIG_60D)
     return is_native_iso(iso);
     #else
     return is_round_iso(iso) && iso != 0;
