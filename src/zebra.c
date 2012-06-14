@@ -247,6 +247,7 @@ int should_draw_zoom_overlay()
     if (!lv) return 0;
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
+    if (ext_monitor_rca) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     return false;
@@ -650,7 +651,7 @@ hist_build()
         {
             uint32_t pixel = buf[BM2LV(x,y)/4];
             int Y;
-            if (hist_colorspace == 1) // rgb
+            if (hist_colorspace == 1 && !ext_monitor_rca) // rgb
             {
                 int R, G, B;
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
@@ -836,7 +837,7 @@ hist_draw_image(
                 int hilight = ABS(i-highlight_level) <= 1;
                 *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
             }
-            else if (hist_colorspace == 1) // RGB
+            else if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
                 *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
@@ -851,7 +852,7 @@ hist_draw_image(
                 hist_warn == 3 ? 1000   : // 0.01%
                                  100);    // 1%
             int yw = y_origin + 10 - 16 + (hist_log ? hist_height - 20 : 0);
-            if (hist_colorspace == 1) // RGB
+            if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
             {
                 if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) dot(x_origin + hist_width/2 - 20 - 16, yw, COLOR_RED   , 7);
                 if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) dot(x_origin + hist_width/2      - 16, yw, COLOR_GREEN1, 7);
@@ -1316,7 +1317,7 @@ draw_zebra_and_focus( int Z, int F )
                 if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
                 if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
                 
-                if (zebra_colorspace == 1) // rgb
+                if (zebra_colorspace == 1 && !ext_monitor_rca) // rgb
                 {
                     int Y, R, G, B;
                     //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);

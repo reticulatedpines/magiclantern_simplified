@@ -2034,6 +2034,8 @@ static int crit_wbs_gm(int k)
 
 static void kelvin_auto_run()
 {
+    if (ext_monitor_rca) { NotifyBox(2000, "Not working on SD monitors."); return; }
+    
     menu_stop();
     int c0 = crit_kelvin(-1); // test current kelvin
     int i;
@@ -2045,6 +2047,8 @@ static void kelvin_auto_run()
 
 static void wbs_gm_auto_run()
 {
+    if (ext_monitor_rca) { NotifyBox(2000, "Not working on SD monitors."); return; }
+
     menu_stop();
     int c0 = crit_wbs_gm(100); // test current value
     int i;

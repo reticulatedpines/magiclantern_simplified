@@ -1839,8 +1839,11 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     {
                         msleep(2000);
                         beep();
-                        NotifyBox(2000, "SD monitors are NOT supported!"); msleep(2000);
-                        NotifyBox(2000, "RGB tools and magic zoom\nwill not work well.'"); msleep(2000);
+                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                            "SD monitors are NOT fully supported!\n"
+                            "RGB tools and magic zoom will not work.");
+                        msleep(2000);
+                        redraw();
                         rca_warned = 1;
                     }
                 }
