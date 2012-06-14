@@ -9,7 +9,7 @@ File.open(ARGV[2],"wb+") do |out|
   File.open(ARGV[1],"rb") do |inp|
     out.write inp.read
   end
-  symtbl=`readelf -r #{ARGV[0]}`
+  symtbl=`arm-elf-readelf -r #{ARGV[0]}`
   symbols = {}
   symtbl.each_line do |line|
     # readelf input is expected as Offset, Info, Type, ..."

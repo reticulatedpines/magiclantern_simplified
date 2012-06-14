@@ -8,6 +8,19 @@
 TOP_DIR=$(PWD)
 include Makefile.top
 
+UNAME:=$(shell uname)
+
+ifeq ($(UNAME), Darwin)
+	# Variable declaration for Mac OS X
+	UMOUNT=hdiutil unmount
+	CF_CARD=/Volumes/EOS_DIGITAL
+else
+	# Default settings for remaining operating systems
+	CF_CARD=/media/EOS_DIGITAL
+	UMOUNT=umount
+endif
+
+
 all: 60D 550D 600D 50D 500D 5D2
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
@@ -38,10 +51,10 @@ plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
 install: all
-	cp platform/all/autoexec.bin /media/EOS_DIGITAL/
-	cp $(SRC_DIR)/FONTS.DAT /media/EOS_DIGITAL
-	cp vram/rectilin.lut /media/EOS_DIGITAL
-	umount /media/EOS_DIGITAL
+	cp platform/all/autoexec.bin $(CF_CARD)
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)
+	cp vram/rectilin.lut $(CF_CARD)
+	$(UMOUNT)
 
 fir:
 	cd installer/550D.109/; $(MAKE) clean
@@ -58,12 +71,12 @@ fir:
 	$(MAKE) -C installer/5D2.212/
 
 install_fir: fir
-	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
-	cp installer/60D.110/ml-60d-110.fir /media/EOS_DIGITAL/
-	cp installer/600D.102/ml-600d-102.fir /media/EOS_DIGITAL/
-	cp installer/50D.109/ml-50d-102.fir /media/EOS_DIGITAL/
-	cp installer/500D.111/ml-500d-111.fir /media/EOS_DIGITAL/
-	cp installer/5D2.212/ml-5D2-212.fir /media/EOS_DIGITAL/
+	cp installer/550D.109/ml-550d-109.fir $(CF_CARD)
+	cp installer/60D.110/ml-60d-110.fir $(CF_CARD)
+	cp installer/600D.102/ml-600d-102.fir $(CF_CARD)
+	cp installer/50D.109/ml-50d-102.fir $(CF_CARD)
+	cp installer/500D.111/ml-500d-111.fir $(CF_CARD)
+	cp installer/5D2.212/ml-5D2-212.fir $(CF_CARD)
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -93,6 +106,6 @@ zip: all
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 dropbox: all
-	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
+	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/MagicLantern/bleeding-edge/
 
 FORCE:

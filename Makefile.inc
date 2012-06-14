@@ -42,10 +42,6 @@ CONFIG_PLUGINS = n
 CONFIG_CONSOLE		= n
 CONFIG_DEBUGMSG = 0
 
-#MacOS
-#UMOUNT=hdiutil unmount
-#CF_CARD="/Volumes/EOS_DIGITAL"
-
 UNAME:=$(shell uname)
 
 ifeq ($(UNAME), Darwin)
@@ -107,11 +103,11 @@ prepare_zip:
 	mkdir doc || echo "ok"
 	cp $(DOC_DIR)/cam/* doc/
 	make x
-	cp ../../installer/550D.109/*.fir .
-	cp ../../installer/60D.110/*.fir .
-	cp ../../installer/600D.101/*.fir .
-	cp ../../installer/50D.108/*.fir .
-	cp ../../installer/500D.111/*.fir .
+#	cp ../../installer/550D.109/*.fir .
+#	cp ../../installer/60D.110/*.fir .
+#	cp ../../installer/600D.101/*.fir .
+#	cp ../../installer/50D.108/*.fir .
+#	cp ../../installer/500D.111/*.fir .
 	cp ../../vram/rectilin.lut .
 	cp $(SRC_DIR)/FONTS.DAT .
 	cp $(SRC_DIR)/logo.bmp .
@@ -125,10 +121,10 @@ magiclantern-$(VERSION).zip: \
 	cropmks/* \
 	scripts/* \
 	doc/* \
-	*.fir \
 	FONTS.DAT \
 	rectilin.lut \
 	logo.bmp \
+#	*.fir \
 
 	-rm $@
 	chmod -x autoexec.bin
@@ -149,6 +145,10 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
+	
+ifeq ($(UNAME), Darwin)
+CFLAGS += -mlong-calls 
+endif
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
