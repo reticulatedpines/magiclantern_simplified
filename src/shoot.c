@@ -4944,7 +4944,7 @@ void ensure_play_or_qr_mode_after_shot()
 
 void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
-    ensure_play_or_qr_mode_after_shot();
+    if (!silent_pic_enabled) ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
     int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
