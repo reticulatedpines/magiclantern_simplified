@@ -1686,3 +1686,32 @@ static void audio_menus_init()
         menu_add( "Display", audio_menus, 1 );
 #endif
 }
+
+#ifdef CONFIG_600D
+void audio_reg_dump_600D()
+{
+    static char log_filename[100];
+    
+    int log_number = 0;
+    for (log_number = 0; log_number < 100; log_number++)
+    {
+        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "audio%02d.LOG", log_number);
+        unsigned size;
+        if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
+        if (size == 0) break;
+    }
+
+    FIO_RemoveFile(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
+
+    int output = 0;
+    for( int addr = 0 ; addr < 0x100 ; addr++ )
+    {
+        const uint16_t reg = audio_ic_read(addr << 8);
+        my_fprintf(f, "%02x %02x\n", addr, reg);
+    }
+    
+    FIO_CloseFile(f);
+}
+
+#endif

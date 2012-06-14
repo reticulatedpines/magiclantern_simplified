@@ -553,6 +553,9 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    #ifdef CONFIG_600D
+    audio_reg_dump_600D();
+    #endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
