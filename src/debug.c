@@ -436,51 +436,51 @@ void iso_response_curve_160()
 void iso_response_curve_logain()
 {
     msleep(2000);
-    find_response_curve_ex(CARD_DRIVE "iso70e.txt",      100,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso140e.txt",     200,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso280e.txt",     400,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso560e.txt",     800,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1100e.txt",    1600,  724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2200e.txt",    3200,  724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso70e.txt",      100,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso140e.txt",     200,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso280e.txt",     400,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso560e.txt",     800,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1100e.txt",    1600,  724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso2200e.txt",    3200,  724   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso65e.txt",     100,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso130e.txt",    200,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso260e.txt",    400,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso520e.txt",    800,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1000e.txt",   1600,  664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2000e.txt",   3200,  664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso65e.txt",     100,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso130e.txt",    200,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso260e.txt",    400,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso520e.txt",    800,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1000e.txt",   1600,  664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso2000e.txt",   3200,  664   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso50e.txt",     100,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso100e.txt",    200,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso200e.txt",    400,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso400e.txt",    800,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso800e.txt",    1600,  512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1600e.txt",   3200,  512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso50e.txt",     100,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso100e.txt",    200,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso200e.txt",    400,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso400e.txt",    800,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso800e.txt",    1600,  512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1600e.txt",   3200,  512   , 0);
 }
 
 void iso_response_curve_htp()
 {
     msleep(2000);
-    find_response_curve_ex(CARD_DRIVE "iso200h.txt",      200,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso400h.txt",      400,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso800h.txt",      800,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso1600h.txt",    1600,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso3200h.txt",    3200,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso6400h.txt",    6400,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso200h.txt",      200,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso400h.txt",      400,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso800h.txt",      800,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1600h.txt",    1600,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso3200h.txt",    3200,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso6400h.txt",    6400,   0   , 1);
 
-    find_response_curve_ex(CARD_DRIVE "iso140eh.txt",      200,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso280eh.txt",      400,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso560eh.txt",      800,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "is1100eh.txt",     1600,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "is2200eh.txt",     3200,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "is4500eh.txt",     6400,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso140eh.txt",      200,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso280eh.txt",      400,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso560eh.txt",      800,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/is1100eh.txt",     1600,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/is2200eh.txt",     3200,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "MLis4500eh.txt",     6400,   724   , 1);
 
-    find_response_curve_ex(CARD_DRIVE "iso100eh.txt",      200,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso200eh.txt",      400,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso400eh.txt",      800,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso800eh.txt",     1600,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "is1600eh.txt",     3200,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "is3200eh.txt",     6400,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso100eh.txt",      200,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso200eh.txt",      400,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso400eh.txt",      800,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/iso800eh.txt",     1600,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/is1600eh.txt",     3200,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/is3200eh.txt",     6400,   512   , 1);
 }
 
 void iso_movie_change_setting(int iso, int dgain, int shutter)
@@ -2804,7 +2804,7 @@ struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
     if (logo == (void*) -1) 
-        logo = bmp_load(CARD_DRIVE "logo.bmp",0);
+        logo = bmp_load(CARD_DRIVE "ML/logo.bmp",0);
 }
 void show_logo()
 {

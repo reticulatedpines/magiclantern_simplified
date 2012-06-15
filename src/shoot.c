@@ -1279,7 +1279,7 @@ silent_pic_take_lv_dbg()
     char imgname[100];
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
-        snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number);
+        snprintf(imgname, sizeof(imgname), CARD_DRIVE "ML/VRAM%d.422", silent_number);
         unsigned size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
@@ -3497,7 +3497,7 @@ void bulb_ramping_init()
     static char fn[50];
     for (int i = 0; i < 100; i++)
     {
-        snprintf(fn, sizeof(fn), CARD_DRIVE "BRAMP%02d.LOG", i);
+        snprintf(fn, sizeof(fn), CARD_DRIVE "ML/BRAMP%02d.LOG", i);
         unsigned size;
         if( FIO_GetFileSize( fn, &size ) != 0 ) break;
         if (size == 0) break;

@@ -1093,8 +1093,8 @@ static void dump_vram()
 {
     dump_big_seg(4, CARD_DRIVE "ML/4.bin");
     dump_big_seg(4, CARD_DRIVE "ML/4-1.bin");
-    //dump_seg(0x1000, 0x100000, CARD_DRIVE "ram.bin");
-    //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
+    //dump_seg(0x1000, 0x100000, CARD_DRIVE "ML/ram.bin");
+    //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "ML/VRAM.BIN");
 }
 
 int fps_ticks = 0;

@@ -172,7 +172,7 @@ static void select_plugins_submenu(void* priv, int delta)
 	struct loaded_plugin * plug = (struct loaded_plugin*)priv;
 	if (!plug->plug) {
 		char filename[50];
-		snprintf(filename, sizeof(filename), "%sPLUGINS/%s", CARD_DRIVE, plug->name);
+		snprintf(filename, sizeof(filename), "%sML/PLUGINS/%s", CARD_DRIVE, plug->name);
 		plug->plug = load_plugin(filename);
 	}
 	if (plug->plug) {
