@@ -97,7 +97,7 @@ prepare_zip:
 	cp $(DOC_DIR)/UserGuide.pdf ML/.
 	mkdir ML/cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp ML/cropmks/
-	mkdir scripts || echo "ok"
+	mkdir ML/scripts || echo "ok"
 	cp $(SCRIPT_DIR)/*.lua ML/scripts/
 	mkdir ML/plugins || echo "ok"
 	cp $(PLUGINS_DIR)/*/*.bin ML/plugins/
@@ -121,6 +121,7 @@ magiclantern-$(VERSION).zip: \
 	ML/UserGuide.pdf \
 	ML/cropmks/* \
 	ML/scripts/* \
+	ML/plugins/* \
 	ML/doc/* \
 	ML/FONTS.DAT \
 	ML/rectilin.lut \
