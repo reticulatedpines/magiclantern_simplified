@@ -88,8 +88,18 @@ dofp_update()
         old_value = d;
     }
 }
-//EyeFi Trick
+//EyeFi Trick (EyeFi confirmed working only on 600D-60D)
 //**********************************************************************/
+int check_eyefi()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}
 
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 
@@ -1562,8 +1572,7 @@ static struct menu_entry tweak_menus[] = {
             MENU_EOL
         },
     },
-    #endif
-    
+    #endif    
 };
 
 
