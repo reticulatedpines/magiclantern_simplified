@@ -38,8 +38,8 @@ CONFIG_TIMECODE		= n
 CONFIG_PTP 			= n
 CONFIG_PTP_CHDK 	= n
 CONFIG_PTP_ML 		= n
-CONFIG_PLUGINS 		= n
-CONFIG_CONSOLE		= n
+CONFIG_PLUGINS 		= y
+CONFIG_CONSOLE		= y
 CONFIG_DEBUGMSG 	= 0
 
 UNAME:=$(shell uname)
@@ -75,8 +75,8 @@ install: autoexec.bin
 
 	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
-	mkdir $(CF_CARD)/scripts || echo "no problem"
-	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/scripts/
+	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
+	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
 	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
 	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
 	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
@@ -98,7 +98,7 @@ prepare_zip:
 	mkdir ML/cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp ML/cropmks/
 	mkdir scripts || echo "ok"
-	cp $(SCRIPT_DIR)/*.lua scripts/
+	cp $(SCRIPT_DIR)/*.lua ML/scripts/
 	mkdir ML/plugins || echo "ok"
 	cp $(PLUGINS_DIR)/*/*.bin ML/plugins/
 	mkdir ML/doc || echo "ok"
@@ -120,7 +120,7 @@ magiclantern-$(VERSION).zip: \
 	ML/INSTALL.pdf \
 	ML/UserGuide.pdf \
 	ML/cropmks/* \
-	scripts/* \
+	ML/scripts/* \
 	ML/doc/* \
 	ML/FONTS.DAT \
 	ML/rectilin.lut \
@@ -542,8 +542,8 @@ docq:
 	cd $(DOC_DIR) && python mkdoc-cam.py quick
 
 installdoc:
-	mkdir $(CF_CARD)/doc || echo "no problem"
-	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/doc/
+	mkdir $(CF_CARD)/ML/doc || echo "no problem"
+	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/ML/doc/
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -558,7 +558,7 @@ clean:
 		make_bootable.sh \
 		422-jpg.py \
 		README \
-		ML/cropmks/* \
+		cropmks/* \
 		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o)

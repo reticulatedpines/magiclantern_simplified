@@ -421,7 +421,7 @@ static void find_scripts()
     struct fio_dirent * dirent = FIO_FindFirstEx( scriptdir, &file );
     if( IS_ERROR(dirent) )
     {
-        NotifyBox(2000, "SCRIPTS dir missing" );
+        NotifyBox(2000, "ML/SCRIPTS dir missing" );
         msleep(100);
         NotifyBox(2000, "Please copy all ML files!" );
         return;
