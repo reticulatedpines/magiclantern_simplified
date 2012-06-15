@@ -52,8 +52,8 @@ plugins: FORCE
 
 install: all
 	cp platform/all/autoexec.bin $(CF_CARD)
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)
-	cp vram/rectilin.lut $(CF_CARD)
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML
+	cp vram/rectilin.lut $(CF_CARD)/ML
 	$(UMOUNT)
 
 fir:

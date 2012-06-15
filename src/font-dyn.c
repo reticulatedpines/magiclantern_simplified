@@ -89,19 +89,19 @@ void load_fonts(void* unused)
     for (int i = 0; i < 10; i++)
     {
         //cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
-        font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "FONTS.DAT", &size);
+        font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "ML/FONTS.DAT", &size);
         font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
         font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
         if (font_small.bitmap) break; // OK!
 
-        bfnt_puts( "FONTS.DAT retry...");
+        bfnt_puts( "ML/FONTS.DAT retry...");
         msleep(500);
     }
 
     if (font_small.bitmap == 0) // fonts not loaded
     {
         clrscr();
-        bfnt_puts("FONTS.DAT not found", 0, 0, COLOR_WHITE, COLOR_BLACK);
+        bfnt_puts("ML/FONTS.DAT not found", 0, 0, COLOR_WHITE, COLOR_BLACK);
         beep();
         msleep(2000);
         clrscr();

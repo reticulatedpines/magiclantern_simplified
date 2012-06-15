@@ -129,13 +129,13 @@ save_config( void * priv, int delta )
 {
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
-    config_save_file( CARD_DRIVE "magic.cfg" ); 
+    config_save_file( CARD_DRIVE "ML/magic.cfg" ); 
     give_semaphore(config_save_sem);
 }
 static void
 delete_config( void * priv, int delta )
 {
-    FIO_RemoveFile( CARD_DRIVE "magic.cfg" );
+    FIO_RemoveFile( CARD_DRIVE "ML/magic.cfg" );
     if (config_autosave) config_autosave_toggle(0, 0);
 }
 
@@ -190,7 +190,7 @@ static void dump_rom_task(void* priv)
     
     msleep(200);
 
-    dump_big_seg(4, CARD_DRIVE "RAM4.BIN");
+    dump_big_seg(4, CARD_DRIVE "ML/RAM4.BIN");
 }
 
 static void dump_rom(void* priv)
@@ -398,7 +398,7 @@ static void iso_response_curve_current()
     static char name[100];
     extern int digic_iso_gain;
     
-    snprintf(name, sizeof(name), CARD_DRIVE "i%d%s%s.txt", 
+    snprintf(name, sizeof(name), CARD_DRIVE "ML/i%d%s%s.txt", 
         raw2iso(lens_info.iso_equiv_raw), 
         digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "", 
         get_htp() ? "h" : "");
@@ -412,25 +412,25 @@ void iso_response_curve_160()
 
     // ISO 100x/160x/80x series
 
-    find_response_curve_ex(CARD_DRIVE "iso80e.txt",     100,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso160e.txt",    200,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso320e.txt",    400,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso640e.txt",    800,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1250e.txt",   1600,  790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2500e.txt",   3200,  790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso80e.txt",     100,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso160e.txt",    200,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso320e.txt",    400,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso640e.txt",    800,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1250e.txt",   1600,  790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso2500e.txt",   3200,  790   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso160.txt",    160,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso320.txt",    320,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso640.txt",    640,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1250.txt",   1250,    0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2500.txt",   2500,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso160.txt",    160,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso320.txt",    320,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso640.txt",    640,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1250.txt",   1250,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso2500.txt",   2500,    0   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso100.txt",    100,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso200.txt",    200,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso400.txt",    400,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso800.txt",    800,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1600.txt",   1600,    0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso3200.txt",   3200,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso100.txt",    100,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso200.txt",    200,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso400.txt",    400,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso800.txt",    800,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso1600.txt",   1600,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/iso3200.txt",   3200,    0   , 0);
 }
 
 void iso_response_curve_logain()
@@ -554,12 +554,17 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    #ifdef CONFIG_600D
-    audio_reg_dump_600D();
-    #endif
-//    FIO_RemoveFile(CARD_DRIVE "overlay.dat");
-//    transparent_overlay_hidden = !transparent_overlay_hidden;
-//	beep();
+//    #ifdef CONFIG_600D
+//    audio_reg_dump_600D();
+//    #endif
+    beep();
+    FILE* f = FIO_Open(CARD_DRIVE "ML/overlay.dat", O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return;
+    FIO_RemoveFile(CARD_DRIVE "ML/overlay.dat");
+    FIO_CloseFile(f);
+    transparent_overlay_hidden = !transparent_overlay_hidden;
+	beep();
+	redraw();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1696,7 +1701,7 @@ void save_crash_log()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "CRASH%02d.LOG" : CARD_DRIVE "ASSERT%02d.LOG", log_number);
+        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "ML/CRASH%02d.LOG" : CARD_DRIVE "ML/ASSERT%02d.LOG", log_number);
         unsigned size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
@@ -2124,11 +2129,11 @@ static void prop_display(
 
 void prop_dump()
 {
-    FIO_RemoveFile(CARD_DRIVE "PROP.LOG");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "PROP.LOG");
+    FIO_RemoveFile(CARD_DRIVE "ML/PROP.LOG");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/PROP.LOG");
 
-    FIO_RemoveFile(CARD_DRIVE "PROP-STR.LOG");
-    FILE* g = FIO_CreateFile(CARD_DRIVE "PROP-STR.LOG");
+    FIO_RemoveFile(CARD_DRIVE "ML/PROP-STR.LOG");
+    FILE* g = FIO_CreateFile(CARD_DRIVE "ML/PROP-STR.LOG");
     
     unsigned i, j, k;
     
@@ -2608,7 +2613,7 @@ static struct menu_entry cfg_menus[] = {
     {
         .name = "Save config now",
         .select        = save_config,
-        .help = "Save ML settings to MAGIC.CFG"
+        .help = "Save ML settings to ML/MAGIC.CFG"
     },
     {
         .name = "Delete config file",
@@ -3172,22 +3177,23 @@ void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_Init();
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
-    TmpMem_AddFile(CARD_DRIVE "FONTS.DAT");
-    TmpMem_AddFile(CARD_DRIVE "MAGIC.CFG");
-    TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "CROPMKS/", 1);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "PLUGINS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "DOC/", 0);
+    TmpMem_AddFile(CARD_DRIVE "ML/FONTS.DAT");
+    TmpMem_AddFile(CARD_DRIVE "ML/MAGIC.CFG");
+    TmpMem_AddFile(CARD_DRIVE "ML/RECTILIN.LUT");
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/PLUGINS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
 }
 
 void CopyMLFilesBack_AfterFormat()
 {
-    FIO_CreateDirectory(CARD_DRIVE "CROPMKS");
-    FIO_CreateDirectory(CARD_DRIVE "SCRIPTS");
-    FIO_CreateDirectory(CARD_DRIVE "PLUGINS");
-    FIO_CreateDirectory(CARD_DRIVE "DOC");
+    FIO_CreateDirectory(CARD_DRIVE "ML");
+    FIO_CreateDirectory(CARD_DRIVE "ML/CROPMKS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/SCRIPTS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/PLUGINS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/DOC");
     int i;
     for (i = 0; i < tmp_file_index; i++)
     {

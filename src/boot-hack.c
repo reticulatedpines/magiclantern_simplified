@@ -289,7 +289,7 @@ void my_big_init_task()
     return;
 */
 
-    config_parse_file( CARD_DRIVE "magic.cfg" );
+    config_parse_file( CARD_DRIVE "ML/magic.cfg" );
     debug_init_stuff();
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job

@@ -73,13 +73,13 @@ all: autoexec.bin
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
-	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp $(CROP_DIR)/*.bmp $(CF_CARD)/cropmks/
+	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
+	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/scripts/
-	mkdir $(CF_CARD)/plugins || echo "no problem"
-	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/plugins/
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/
+	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
+	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -90,40 +90,41 @@ ptpinstall: autoexec.bin
 	diff autoexec.bin autoexec.test
 
 prepare_zip:
+	mkdir ML || echo "ok"
 	cp $(SRC_DIR)/zip.txt .
-	cp $(TOP_DIR)/README .
-	cp $(DOC_DIR)/INSTALL.pdf .
-	cp $(DOC_DIR)/UserGuide.pdf .
-	mkdir cropmks || echo "ok"
-	cp $(CROP_DIR)/*.bmp cropmks/
+	cp $(TOP_DIR)/README ML/.
+	cp $(DOC_DIR)/INSTALL.pdf ML/.
+	cp $(DOC_DIR)/UserGuide.pdf ML/.
+	mkdir ML/cropmks || echo "ok"
+	cp $(CROP_DIR)/*.bmp ML/cropmks/
 	mkdir scripts || echo "ok"
 	cp $(SCRIPT_DIR)/*.lua scripts/
-	mkdir plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin plugins/
-	mkdir doc || echo "ok"
-	cp $(DOC_DIR)/cam/* doc/
+	mkdir ML/plugins || echo "ok"
+	cp $(PLUGINS_DIR)/*/*.bin ML/plugins/
+	mkdir ML/doc || echo "ok"
+	cp $(DOC_DIR)/cam/* ML/doc/
 	make x
 #	cp ../../installer/550D.109/*.fir .
 #	cp ../../installer/60D.110/*.fir .
 #	cp ../../installer/600D.101/*.fir .
 #	cp ../../installer/50D.108/*.fir .
 #	cp ../../installer/500D.111/*.fir .
-	cp ../../vram/rectilin.lut .
-	cp $(SRC_DIR)/FONTS.DAT .
-	cp $(SRC_DIR)/logo.bmp .
+	cp ../../vram/rectilin.lut ML/.
+	cp $(SRC_DIR)/FONTS.DAT ML/.
+	cp $(SRC_DIR)/logo.bmp ML/.
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
-	README \
-	INSTALL.pdf \
-	UserGuide.pdf \
-	cropmks/* \
+	ML/README \
+	ML/INSTALL.pdf \
+	ML/UserGuide.pdf \
+	ML/cropmks/* \
 	scripts/* \
-	doc/* \
-	FONTS.DAT \
-	rectilin.lut \
-	logo.bmp \
+	ML/doc/* \
+	ML/FONTS.DAT \
+	ML/rectilin.lut \
+	ML/logo.bmp \
 #	*.fir \
 
 	-rm $@
@@ -557,7 +558,7 @@ clean:
 		make_bootable.sh \
 		422-jpg.py \
 		README \
-		cropmks/* \
+		ML/cropmks/* \
 		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o)

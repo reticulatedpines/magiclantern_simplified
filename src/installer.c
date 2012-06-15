@@ -511,7 +511,7 @@ int check_autoexec()
 // check if fonts.dat is present on the card
 int check_fonts()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "FONTS.DAT", 0);
+    FILE * f = FIO_Open(CARD_DRIVE "ML/FONTS.DAT", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -579,7 +579,7 @@ void check_install()
                     " BOOTDISK flag is ENABLED.          \n"
                     " AUTOEXEC.BIN found.                \n"
                     "                                    \n"
-                    " !!! FONTS.DAT NOT FOUND !!!        \n"
+                    " !!! ML/FONTS.DAT NOT FOUND !!!     \n"
                     "                                    \n"
                     " Please copy ALL ML files on your   \n"
                     " SD card. They only take a few MB.  \n"

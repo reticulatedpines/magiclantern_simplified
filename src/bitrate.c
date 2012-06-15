@@ -426,7 +426,7 @@ void show_mvr_buffer_status()
 static void load_h264_ini()
 {
     gui_stop_menu();
-    call("IVAParamMode", CARD_DRIVE "H264.ini");
+    call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
     NotifyBox(2000, "%s", 0x4da10);
 }
 static struct menu_entry mov_menus[] = {
