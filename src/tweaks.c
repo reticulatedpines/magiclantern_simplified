@@ -896,7 +896,7 @@ tweak_task( void* unused)
             if (get_zoom_out_pressed())
             {
                 msleep(300);
-                while (get_zoom_out_pressed()) {    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
+                while (get_zoom_out_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
             }
         }
         
