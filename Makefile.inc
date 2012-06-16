@@ -73,6 +73,7 @@ all: autoexec.bin
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
+	mkdir $(CF_CARD)/ML || echo "no problem"
 	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"

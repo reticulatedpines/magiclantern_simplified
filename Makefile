@@ -51,10 +51,11 @@ plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
 install: all
+	mkdir -p $(CF_CARD)/ML/
 	cp platform/all/autoexec.bin $(CF_CARD)
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML
-	cp vram/rectilin.lut $(CF_CARD)/ML
-	$(UMOUNT)
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
+	cp vram/rectilin.lut $(CF_CARD)/ML/
+	$(UMOUNT) $(CF_CARD)
 
 fir:
 	cd installer/550D.109/; $(MAKE) clean
