@@ -4879,6 +4879,9 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             
             bulb_ramping_enabled = b;
         }
+        
+        if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
+        if (drive_mode == DRIVE_SELFTIMER_REMOTE) msleep(10500);
 
         // restore settings back
         //~ set_shooting_mode(m0r);
