@@ -105,6 +105,7 @@ CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
+static CONFIG_INT("hdr.scripts", hdr_scripts, 2);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
@@ -4056,7 +4057,6 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Bracketing sequence order / type.",
                 .icon_type = IT_DICE,
                 .choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++"},
-                .children = 0,
             },
             {
                 .name = "2-second delay",
@@ -4064,7 +4064,6 @@ static struct menu_entry shoot_menus[] = {
                 .max = 1,
                 .help = "Delay before starting the exposure.",
                 .choices = (const char *[]) {"OFF", "Auto"},
-                .children = 0,
             },
             {
                 .name = "ISO shifting",
@@ -4072,7 +4071,13 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
                 .choices = (const char *[]) {"OFF", "Full, M only", "Half, M only"},
-                .children = 0,
+            },
+            {
+                .name = "Post scripts",
+                .priv       = &hdr_scripts,
+                .max = 2,
+                .help = "ML can write enfuse scripts (also used for focus stacking).",
+                .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse"},
             },
             MENU_EOL
         },
@@ -4719,56 +4724,54 @@ PROP_HANDLER(PROP_LAST_JOB_STATE)
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
     if (steps <= 1) return;
-    DEBUG();
-    FILE * f = INVALID_PTR;
-    char name[100];
-    snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-    DEBUG("name=%s", name);
-    FIO_RemoveFile(name);
-    f = FIO_CreateFile(name);
-    if ( f == INVALID_PTR )
+    
+    if (hdr_scripts == 1)
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
-        return;
+        FILE * f = INVALID_PTR;
+        char name[100];
+        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
+        FIO_RemoveFile(name);
+        f = FIO_CreateFile(name);
+        if ( f == INVALID_PTR )
+        {
+            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            return;
+        }
+        my_fprintf(f, "#!/usr/bin/env bash\n");
+        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
+        }
+        my_fprintf(f, "\n");
+        FIO_CloseFile(f);
     }
-    DEBUG();
-    my_fprintf(f, "#!/usr/bin/env bash\n");
-    my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
-    my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
-    int i;
-    for( i = 0; i < steps; i++ )
-    {
-        my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
-    }
-    my_fprintf(f, "\n");
-    DEBUG();
-    FIO_CloseFile(f);
-    DEBUG();
    
-    memset(name, 0, sizeof(name));
-    snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FAL" : "HAL", f0);
-    DEBUG("name=%s", name);
-    FIO_RemoveFile(name);
-    f = FIO_CreateFile(name);
-    if ( f == INVALID_PTR )
+    if (hdr_scripts == 2)
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
-        return;
+        FILE * f = INVALID_PTR;
+        char name[100];
+        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
+        FIO_RemoveFile(name);
+        f = FIO_CreateFile(name);
+        if ( f == INVALID_PTR )
+        {
+            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            return;
+        }
+        my_fprintf(f, "#!/usr/bin/env bash\n");
+        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+        }
+        my_fprintf(f, "\n");
+        my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
+        my_fprintf(f, "rm %s_AIS_%04d*\n", focus_stack ? "FST" : "HDR", f0);
+        FIO_CloseFile(f);
     }
-    DEBUG();
-    my_fprintf(f, "#!/usr/bin/env bash\n");
-    my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
-    my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
-    for( i = 0; i < steps; i++ )
-    {
-        my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
-    }
-    my_fprintf(f, "\n");
-    my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
-    my_fprintf(f, "rm %s_AIS_%04d*\n", focus_stack ? "FST" : "HDR", f0);
-    DEBUG();
-    FIO_CloseFile(f);
-    DEBUG();
 }
 
 // normal pic, silent pic, bulb pic...
