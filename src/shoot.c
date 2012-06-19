@@ -5586,10 +5586,13 @@ shoot_task( void* unused )
                 // smarter trigger for Canon bracketing in high-speed mode
                 else if (hdr_enabled && aeb_setting && drive_mode == DRIVE_HISPEED_CONTINUOUS)
                 {
+                    lens_wait_readytotakepic(64);
                     SW1(1,0);
                     SW2(1,1000);
                     SW2(0,0);
                     SW1(0,0);
+                    lens_wait_readytotakepic(64);
+                    info_led_blink(1,50,50);
                 }
                 #endif
             }
