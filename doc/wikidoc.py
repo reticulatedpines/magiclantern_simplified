@@ -11,6 +11,7 @@ from twill import get_browser
 f = open("FEATURES.txt").readlines();
 m = open("MANUAL.txt").readlines();
 c = open("CONFIG.txt").readlines();
+q = open("FAQ.txt").readlines();
 
 def sub(file, fr, to):
     txt = open(file).read()
@@ -20,11 +21,8 @@ def sub(file, fr, to):
     f.close()
 
 o = open("userguide.rst", "w")
-print >> o, """Magic Lantern 0.2.1
+print >> o, """Magic Lantern v2.3
 =========================
-
-dummy
-=====
 
 """
 for l in f:
@@ -35,9 +33,27 @@ for l in c:
     o.write(l)
 o.close()
 
-#~ os.system("pandoc -f rst -t mediawiki -o userguide.wiki userguide.rst")
+o = open("faq.rst", "w")
+print >> o, """{{page>faq-header&nofooter}}
+"""
+
+for l in q[2:]:
+    o.write(l)
+o.close()
+
 os.system("rst2html.py userguide.rst > userguide.html")
-os.system("pandoc -f html -t mediawiki -o userguide.wiki userguide.html")
+os.system("html2wiki --no-escape-entities --dialect DokuWiki userguide.html > userguide.wiki")
+
+os.system("rst2html.py faq.rst > faq.html")
+os.system("html2wiki --no-escape-entities --dialect DokuWiki faq.html > faq.wiki")
+
+sub("userguide.wiki", r"{{([^>: ]*)\|(.*)}}", r"{{ \1?200|\2}}")
+sub("userguide.wiki", r'"', r"''")
+
+sub("faq.wiki", r"{{([^>: ]*)\|(.*)}}", r"{{ \1?200|\2}}")
+sub("faq.wiki", r'"', r"''")
+
+raise SystemExit
 sub("userguide.wiki", "= dummy =", "")
 sub("userguide.wiki", "= Magic Lantern 0.2.1 =", """[[Image:Logo.png|140px]]
 
@@ -50,30 +66,6 @@ __NOWYSIWYG__
 '''[[Unified/UserGuide|English]] | [[Unified/UserGuide/CZ|Česky]] | [[Unified/UserGuide/DE|Deutsch]] | [[Unified/UserGuide/NL|Dutch]] | [[Unified/UserGuide/ES|Español]] | [[Unified/UserGuide/FR|Français]] | [[Unified/UserGuide/IT|Italiano]] | [[Unified/UserGuide/RO|Română]] | [[Unified/UserGuide/RU|Русский]] | [[Unified/UserGuide/CHS|简体中文]] | [[Unified/UserGuide/JA|日本語]]'''
 
 """)
-
-sub("userguide.wiki", "=== Audio ===", """<tabber>
- Audio=[[Image:AudioMenu-550D.png|360px|link=#Audio]]
-|-|
- LiveV=[[Image:LiveVMenu-550D.png|360px|link=#LiveV]]
-|-|
- Movie=[[Image:MovieMenu-550D.png|360px|link=#Movie]]
-|-|
- Shoot=[[Image:ShootMenu-550D.png|360px|link=#Shoot]]
-|-|
- Expo=[[Image:ExpoMenu-550D.png|360px|link=#Expo]]
-|-|
- Focus=[[Image:FocusMenu-550D.png|360px|link=#Focus]]
-|-|
- Tweaks=[[Image:TweakMenu-550D.png|360px|link=#Tweaks]]
-|-|
- Debug=[[Image:DebugMenu-550D.png|360px|link=#Debug]]
-|-|
- Config=[[Image:ConfigMenu-550D.png|360px|link=#Config]]
-|-|
- (i)=[[Image:Page-001.png|360px|link=#Features]]
-</tabber>
-
-=== Audio ===""")
 
 def find_labels(line):
     return re.findall(' id="([^"]*)"', line)
@@ -134,7 +126,7 @@ def fix_labels_in_wiki():
         print >> f, l
     f.close()
 
-fix_labels_in_wiki()
+#~ fix_labels_in_wiki()
 
 
 def fix_eqns_in_wiki():
@@ -174,7 +166,7 @@ def fix_eqns_in_wiki():
         print >> f, l
     f.close()
 
-fix_eqns_in_wiki()
+#~ fix_eqns_in_wiki()
 
 def fix_newlines_in_blockquote():
     w = open("userguide.wiki").read()
@@ -196,12 +188,12 @@ def fix_newlines_in_blockquote():
     print >> f, string.join(WL, "")
     f.close()
 
-fix_newlines_in_blockquote()
+#~ fix_newlines_in_blockquote()
 
 sub("userguide.wiki", "<blockquote>", "<dl><dd>")
 sub("userguide.wiki", "</blockquote>", "</dd></dl>")
 
-#~ raise SystemExit
+raise SystemExit
 
 go("http://magiclantern.wikia.com/wiki/Special:UserLogin")
 

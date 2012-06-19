@@ -243,6 +243,7 @@ def convert_page(k):
         print "done?"
         raise SystemExit
     bmp = "cam/page-%03d.bmp" % k
+    bmh = "cam/page-%03d.bmh" % k
     
     print "remapping %s..." % png
     im = flipud(imread(png))
@@ -253,7 +254,7 @@ def convert_page(k):
     os.system("ruby ../src/convertrle.rb %s" % bmp)
     os.system("rm %s" % bmp)
     os.system("rm %s" % png)
-    os.system("mv %s.rle %s" % (bmp, bmp))
+    os.system("mv %s.rle %s" % (bmp, bmh))
 
 for i in range(1,1000):
     convert_page(i)
