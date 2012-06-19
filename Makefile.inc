@@ -148,10 +148,7 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
-	
-ifeq ($(UNAME), Darwin)
-CFLAGS += -mlong-calls 
-endif
+	-mlong-calls 
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
