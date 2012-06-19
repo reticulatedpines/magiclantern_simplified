@@ -4870,10 +4870,8 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             bulb_ramping_enabled = 0; // to force a pic in manual mode
 
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            if (expsim == 2) { set_expsim(1); } // can't set shutter slower than 1/30 in movie mode
+            if (expsim == 2) { set_expsim(1); msleep(100); } // can't set shutter slower than 1/30 in movie mode
             #endif
-            ans = hdr_set_rawshutter(rc);
-            msleep(100);
             ans = hdr_set_rawshutter(rc);
             take_a_pic(allow_af);
             
