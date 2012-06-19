@@ -1,0 +1,210 @@
+#!/bin/bash
+help() {
+	echo ""
+	echo "Usage: prepare.Lion.sh [option]"
+	echo ""
+	echo "If there is no option set it will try to find and convert"
+	echo "all that there is on ML card"
+	echo ""
+	echo "Options:"
+	echo "h or help   :shows this help"
+	echo "d or dev    :install all the dependencies for the arm"
+	echo "             toolchain and starts the summon-arm script"
+	echo "remove or r :uninstall all the dependencies previously installed"
+	echo "             it will ask for confirmation"
+	exit 0
+	}
+	
+setvar() {
+	echo "checking options"
+	if [ "$1" == dev ] || [ "$1" == d ] || [ "$1" == remove ] || [ "$1" == r ];then
+		BREW_ML="
+		binutils
+		gmp
+		mpfr
+		libmpc
+		mercurial
+		wget
+		imagemagick
+		ufraw
+		mplayer
+		poppler"
+		
+		PIP_ML="
+		numpy
+		PIL
+		matplotlib 
+		docutils"
+	else
+		BREW_ML="
+		mercurial
+		imagemagick
+		mplayer"
+
+		PIP_ML="
+		numpy
+		PIL"
+	fi
+	}
+	
+checkML() {
+	echo "TODO:checking if ther is a ML EOS_DIGITAL card mounted"
+	}
+check422() {
+	echo "TODO:checking for 422 files on card"
+	}
+checkHDR() {
+	echo "TODO:checking for HDR files on card"
+	}
+checkHDRmov() {
+	echo "TODO:checking for HDR video files on card"
+	}
+	
+checkBrewPIP() {
+	echo "*******************************************"
+	echo "*     Checking for Homebrew and PIP...    *"
+	echo "*******************************************"
+	if [ $(which brew) ]; then
+		echo "Homebrew already installed"
+	else
+		echo "Installing Homebrew..."
+		#/usr/bin/ruby -e "$(/usr/bin/curl -fsSL https://raw.github.com/mxcl/homebrew/master/Library/Contributions/install_homebrew.rb)"
+		echo "Done"
+	    brew doctor
+	fi
+	echo "Updating Homebrew..."
+	#brew update
+	echo "Done"
+
+	if [ $(which pip) ]; then
+		echo "pip already installed"
+	else
+		echo "Installing pip..."
+		#sudo easy_install pip
+		echo "Done"
+	fi
+	echo "Updating pip..."
+	#sudo pip install -U pip
+	echo "Done"
+	}
+	
+installBase() {
+	echo "*******************************************"
+	echo "*          Installing Base tools:         *"
+	echo "*******************************************"
+	for f in $BREW_ML; do
+		if [ ! $(brew list | grep "$f") ]; then
+		echo "$f Installation (brew)"
+		#brew install "$f"
+		else
+		echo "$f already installed (brew)"
+		fi
+	done	
+	for f in $PIP_ML; do
+		if [ ! $(pip freeze | grep "$f") ]; then
+		echo "$f Installation (pip)"
+		#sudo pip install "$f"
+		else
+		echo "$f already installed (pip)"
+		fi
+	done
+	if [ ! $(which enfuse) ]; then
+		curl O http://downloads.sourceforge.net/project/enblend/enblend-enfuse/enblend-enfuse-4.0/enblend-enfuse-4.0-mac.tar.gz
+		echo "enfuse installation (tar)"
+		tar xvfz enblend-enfuse-4.0-mac.tar.gz
+		cp enblend-enfuse-4.0-mac/enfuse /usr/bin/
+		cp enblend-enfuse-4.0-mac/enblend /usr/bin/
+		rm -dR enblend-enfuse-4.0-mac
+	else
+		echo "enfuse already installed"
+	fi
+	}
+	
+installDev() {
+	echo "*******************************************"
+	echo "*      Installing Dev dipendencies:       *"
+	echo "*******************************************"
+	if [ ! $(which libusb-config) ]; then
+		echo "Downloading libusb.pkg"
+		wget http://www.ellert.se/PKGS/libusb-2011-10-29/10.7/libusb.pkg.tar.gz
+		tar xvfz libusb.pkg.tar.gz
+		echo "libusb.pkg  Installation"
+		sudo installer -pkg libusb.pkg -target /
+	else
+		echo "libusb already installed"
+	fi
+	if [ ! $(which pandoc) ] ; then
+		echo "pandoc Installation (pkg)"
+		wget http://pandoc.googlecode.com/files/pandoc-1.9.4.1.dmg
+		hdiutil attach pandoc-1.9.4.1.dmg
+		sudo installer -pkg /Volumes/pandoc\ 1.9.4.1/pandoc-1.9.4.1.pkg -target /
+	else
+		echo "pandoc already installed"
+	fi
+	if [ ! $(which tex) ]; then
+		echo
+		echo "To be able to compile docs"
+		echo "YOU NEED TO INSTALL MacTeX"
+		echo "http://www.tug.org/mactex/"
+		echo "Searching Installer..."
+		echo
+		mactex=$(mdfind MacTeX-2011.mpkg | grep MacTeX-2011.mpkg)
+		if [ ! $mactex ]; then
+			echo "Downloading MacTeX"
+			wget http://mirror.ctan.org/systems/mac/mactex/MacTeX.mpkg.zip
+			unzip MacTeX.mpkg.zip
+			open MacTeX-2011.mpkg
+		else
+			open $mactex
+		fi
+	else
+		echo "tex already installed (dmg)"
+	fi
+	}
+	
+installOther() {
+	echo "TODO:empty for now"
+	}
+	
+remove() {
+	 echo "Are you sure to remove all thing installed? Y or N"
+	 read install
+	 if [ "$install" == Y ] || [ "$install" == y ]; then
+		for f in $BREW_ML; do
+			echo "brew uninstall $f"
+#			brew uninstall "$f"
+		done
+		for f in $PIP_ML; do
+			echo "pip uninstall $f"
+#			pip uninstall "$f"
+		done
+	fi
+	exit 0
+}
+
+
+if [ "$1" == h ] || [ "$1" == help ]; then
+	help
+fi
+if [ "$1" == remove ] || [ "$1" == r ]; then
+	remove
+fi
+checkML
+setvar
+if [ "$1" == i ] || [ "$1" == install ];then
+	checkBrewPIP
+	installBase
+fi
+if [ "$1" == dev ] || [ "$1" == d ]; then
+	checkBrewPIP
+	installBase
+	installDev
+fi
+check422
+checkHDR
+checkHDRmov
+
+
+#installOther
+echo FINISHED
+exit
