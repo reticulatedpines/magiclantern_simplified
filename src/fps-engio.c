@@ -52,7 +52,7 @@ void SafeEngDrvOut(int reg, int val)
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
-    EngDrvOut(reg, val);
+    _EngDrvOut(reg, val);
 }
 
 
