@@ -59,5 +59,6 @@ doc/install.wiki
 doc/menuindex.txt
 installer/*/*.lds
 
+loader.c
 syntax: regexp
 ^plugins/(.*)/\1$
