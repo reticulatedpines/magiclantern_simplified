@@ -25,7 +25,6 @@
 #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #endif                      // but it will display ML graphics
 
-extern int transparent_overlay_hidden;
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 
@@ -551,20 +550,24 @@ void iso_movie_test()
 }
 #endif // CONFIG_ISO_TESTS
 
+extern int transparent_overlay_hidden;
 void run_test()
 {
-    msleep(2000);
+    msleep(200);
 //    #ifdef CONFIG_600D
 //    audio_reg_dump_600D();
 //    #endif
     beep();
-    FILE* f = FIO_Open(CARD_DRIVE "ML/overlay.dat", O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return;
-    FIO_RemoveFile(CARD_DRIVE "ML/overlay.dat");
-    FIO_CloseFile(f);
-    transparent_overlay_hidden = !transparent_overlay_hidden;
-	beep();
-	redraw();
+    FILE * f = FIO_Open(CARD_DRIVE "ML/overlay.dat", 0);
+    if (f != (void*) -1)
+    {
+		beep();
+        FIO_CloseFile(f);
+		FIO_RemoveFile(CARD_DRIVE "ML/overlay.dat");
+	    transparent_overlay_hidden = !transparent_overlay_hidden;
+		redraw();
+    }
+    return;
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
