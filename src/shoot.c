@@ -5576,6 +5576,16 @@ shoot_task( void* unused )
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
+                #ifdef CONFIG_60D
+                // smarter trigger for Canon bracketing in high-speed mode
+                else if (hdr_enabled && aeb_setting && drive_mode == DRIVE_HISPEED_CONTINUOUS)
+                {
+                    SW1(1,0);
+                    SW2(1,1000);
+                    SW2(0,0);
+                    SW1(0,0);
+                }
+                #endif
             }
             picture_was_taken_flag = 0;
         }
