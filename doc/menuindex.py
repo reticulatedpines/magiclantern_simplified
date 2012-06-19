@@ -1,6 +1,10 @@
 import os,sys,string
 
-f = open("menuindex.txt").readlines()
+try: 
+    f = open("menuindex.txt").readlines()
+except:
+    print "Could not open menuindex.txt"
+    f = []
 
 os.system("mkdir cam")
 o = open("cam/menuidx.dat", "w")
@@ -19,7 +23,9 @@ sections = 0
 #~ idxp = {}
 for l in f[1:]:
     l = l.strip("\n").split(" ")
-    page, type, name = l[0], l[1], string.join(l[2:], " ")
+    try: page, type, name = l[0], l[1], string.join(l[2:], " ")
+    except:
+        print l
     page = int(page)
     name = name.replace(r"$\leftrightarrow $", "<-->")
     name = name.replace(r"$\rightarrow $", "->")
