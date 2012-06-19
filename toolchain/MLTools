@@ -17,6 +17,15 @@ help() {
 	
 setvar() {
 	echo "checking options"
+	EOS_CARD=/Volumes/EOS_DIGITAL/
+	ML_FLDR=ML/
+	BIN=autoexec.bin
+	file_source=/Volumes/EOS_DIGITAL/DCIM/100CANON
+	MLsource=~/magic-lantern
+	work_folder=$MLsource/toolchain/MLTool
+	if [ ! -d $work_folder ];then
+		mkdir -p $work_folder
+	fi
 	if [ "$1" == dev ] || [ "$1" == d ] || [ "$1" == remove ] || [ "$1" == r ];then
 		BREW_ML="
 		binutils
@@ -45,19 +54,6 @@ setvar() {
 		numpy
 		PIL"
 	fi
-	}
-	
-checkML() {
-	echo "TODO:checking if ther is a ML EOS_DIGITAL card mounted"
-	}
-check422() {
-	echo "TODO:checking for 422 files on card"
-	}
-checkHDR() {
-	echo "TODO:checking for HDR files on card"
-	}
-checkHDRmov() {
-	echo "TODO:checking for HDR video files on card"
 	}
 	
 checkBrewPIP() {
@@ -162,6 +158,52 @@ installDev() {
 	fi
 	}
 	
+checkML() {
+	if [ -d $EOS_CARD$ML_FLDR ] && [ -f $EOS_CARD$BIN ]; then
+		echo "Magic Lantern FOUND on: $EOS_CARD"
+		ML="1"
+	else
+		echo "Magic Lantern NOT FOUND on: $EOS_CARD"
+		ML="0"
+	fi
+	}
+	
+check422() {
+	if [ $(find $file_source -name *.422) ]; then
+		echo "422 files found"
+		python $MLsource/src/422-JPG.py $file_source
+	else
+		echo "422 files not found"
+	fi
+	}
+	
+	
+checkFST() {
+	FST_script=$(find $file_source -name FST*.SH)
+	if [ $FST_script ]; then
+		echo "FST files found"
+		cd $file_source
+		bash $FST_script
+	else
+		echo "FST files not found"
+	fi
+	}
+	
+checkHDR() {
+	HDR_script=$(find $file_source -name HDR*.SH)
+	if [ $HDR_script ]; then
+		echo "HDR files found"
+		cd $file_source
+		bash $HDR_script
+	else
+		echo "HDR files not found"
+	fi
+	}
+	
+checkHDRmov() {
+	echo Test_MOVtoHDR
+	}		
+	
 installOther() {
 	echo "TODO:empty for now"
 	}
@@ -182,29 +224,48 @@ remove() {
 	exit 0
 }
 
-
+#setting up script
 if [ "$1" == h ] || [ "$1" == help ]; then
 	help
 fi
-if [ "$1" == remove ] || [ "$1" == r ]; then
+if [ "$1" == r ] || [ "$1" == remove ]; then
 	remove
 fi
-checkML
 setvar
 if [ "$1" == i ] || [ "$1" == install ];then
 	checkBrewPIP
 	installBase
 fi
-if [ "$1" == dev ] || [ "$1" == d ]; then
+if [ "$1" == d ] || [ "$1" == dev ]; then
 	checkBrewPIP
 	installBase
 	installDev
 fi
+# What to do once started?
+#check for file or folde destination options 
+if [ ! $1 ]; then
+checkML
+	if [ $ML == 0 ];then
+	# Ask for a folder if there is no Ml card mounted and no options set
+		echo
+		echo "Select a folder with ML generated files"
+		read file_source
+	fi
+else
+	if [ -d $1 ] || [ -f $1 ];then
+	# is the option is a folder or a file use it as source for the script
+		file_source=$1
+		echo "SOURCE: $file_source"
+	fi
+fi
+# check and convert if found 422 file, focus stack, (to do:HDR pic or HDRvideo, RAW conversion) 
 check422
 checkHDR
-checkHDRmov
-
+checkFST
+checkHDRmov	
+if [ "$sHDRmov" == 1 ];then
+	MOVtoHDR
+fi
 
 #installOther
 echo FINISHED
-exit
