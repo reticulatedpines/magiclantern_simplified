@@ -1829,7 +1829,7 @@ int prop_set_rawaperture(unsigned aperture)
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     //~ aperture_ack = -1;
     prop_request_change( PROP_APERTURE, &aperture, 4 );
-    for (int i = 0; i < 10; i++) { if (aperture_ack == aperture) return 1; msleep(20); }
+    for (int i = 0; i < 10; i++) { if (aperture_ack == (int)aperture) return 1; msleep(20); }
     //~ NotifyBox(1000, "%d=%d ", aperture_ack, aperture);
     return 0;
 }
@@ -1876,7 +1876,7 @@ int prop_set_rawiso(unsigned iso)
     iso_ack = -1;
     prop_request_change( PROP_ISO, &iso, 4 );
     for (int i = 0; i < 10; i++) { if (iso_ack != -1) break; msleep(20); }
-    return iso_ack == iso;
+    return iso_ack == (int)iso;
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */

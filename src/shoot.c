@@ -233,7 +233,7 @@ int get_exposure_time_raw()
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
     int d = timer_values[*(int*)priv];
-    int total_shots = interval_stop_after ? MIN(interval_stop_after*100, avail_shot) : avail_shot;
+    int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after*100, (int)avail_shot) : (int)avail_shot;
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 
@@ -1668,7 +1668,6 @@ shutter_toggle(void* priv, int sign)
 {
     if (!lens_info.raw_shutter) return;
     int i = raw2index_shutter(lens_info.raw_shutter);
-    int i0 = i;
     int k;
     for (k = 0; k < 15; k++)
     {
@@ -2794,7 +2793,7 @@ void zoom_auto_exposure_step()
     if (!zoom_auto_exposure) return;
 
     static int es = -1;
-    static int aem = -1;
+    // static int aem = -1;
     
     if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running)
     {
@@ -2872,7 +2871,7 @@ hdr_display( void * priv, int x, int y, int selected )
         );
         
         if (aeb_setting)
-            menu_draw_icon(x, y, MNI_WARNING, "Turn off Canon bracketing (AEB)!");
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off Canon bracketing (AEB)!");
     }
 }
 
@@ -4745,6 +4744,31 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
     DEBUG();
     FIO_CloseFile(f);
     DEBUG();
+   
+    memset(name, 0, sizeof(name));
+    snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FAL" : "HAL", f0);
+    DEBUG("name=%s", name);
+    FIO_RemoveFile(name);
+    f = FIO_CreateFile(name);
+    if ( f == INVALID_PTR )
+    {
+        bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+        return;
+    }
+    DEBUG();
+    my_fprintf(f, "#!/usr/bin/env bash\n");
+    my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+    my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
+    for( i = 0; i < steps; i++ )
+    {
+        my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+    }
+    my_fprintf(f, "\n");
+    my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
+    my_fprintf(f, "rm %s_AIS_%04d*\n", focus_stack ? "FST" : "HDR", f0);
+    DEBUG();
+    FIO_CloseFile(f);
+    DEBUG();
 }
 
 // normal pic, silent pic, bulb pic...
@@ -5699,7 +5723,7 @@ shoot_task( void* unused )
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after*100); }
                 bmp_printf(FONT_MED, 50, 310, msg);
 
-                if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
+                if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
                     intervalometer_stop();
 
                 //~ if (bulb_ramping_enabled)
@@ -5729,7 +5753,7 @@ shoot_task( void* unused )
                 }
             }
 
-            if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
+            if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
                 intervalometer_stop();
 
             if (PLAY_MODE) get_out_of_play_mode(500);

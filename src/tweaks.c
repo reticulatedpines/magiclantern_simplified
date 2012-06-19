@@ -26,6 +26,7 @@ void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
+void brightness_saturation_reset();
 
 static void upside_down_step();
 

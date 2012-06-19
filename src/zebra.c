@@ -69,6 +69,7 @@ void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 //~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
+void toggle_disp_mode_menu(void *priv, int delta);
 
 
 
@@ -1264,7 +1265,7 @@ draw_zebra_and_focus( int Z, int F )
         int zll = zebra_level_lo * 255 / 100;
         
         uint8_t * lvram = get_yuv422_vram()->vram;
-        lvram = YUV422_LV_BUFFER_DMA_ADDR; // this one is not updating right now, but it's a bit behind
+        lvram = (void*)YUV422_LV_BUFFER_DMA_ADDR; // this one is not updating right now, but it's a bit behind
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -2499,7 +2500,7 @@ static void spotmeter_step()
     uint32_t* B = (uint32_t*)bmp_vram();
 
     int dx = spotmeter_formula <= 3 ? 26 : 52;
-    int y0 = arrow_keys_shortcuts_active() ? 36 - font_med.height : -13;
+    int y0 = arrow_keys_shortcuts_active() ? (int)(36 - font_med.height) : (int)(-13);
     for( y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
     {
         for( x = xcb - dx ; x <= xcb + dx ; x+=4 )
@@ -2833,7 +2834,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Global Draw",
         .priv       = &global_draw,
         .select     = menu_binary_toggle,
-        .select_Q   = toggle_disp_mode,
+        .select_Q   = toggle_disp_mode_menu,
         .display    = global_draw_display,
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         .essential = FOR_LIVEVIEW,
@@ -3794,7 +3795,8 @@ static void draw_zoom_overlay(int dirty)
     zoom_overlay_split = 0; // 50D doesn't report focus
     #endif
     
-    struct vram_info *  lv = get_yuv422_vram(); lv->vram = get_fastrefresh_422_buf();
+    struct vram_info *  lv = get_yuv422_vram();
+    lv->vram = (void*)get_fastrefresh_422_buf();
     struct vram_info *  hd = get_yuv422_hd_vram();
     
     //~ lv->width = 1920;
@@ -4961,6 +4963,10 @@ void update_disp_mode_params_from_bits()
 }
 
 int get_disp_mode() { return disp_mode; }
+
+void toggle_disp_mode_menu(void *priv, int delta) {
+	toggle_disp_mode();
+}
 
 int toggle_disp_mode()
 {

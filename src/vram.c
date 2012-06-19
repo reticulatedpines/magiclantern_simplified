@@ -409,7 +409,7 @@ void* get_422_hd_idle_buf()
     
 #ifdef CONFIG_550D
     if (is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return YUV422_HD_BUFFER_1;
+        return (void*)YUV422_HD_BUFFER_1;
 #endif
 
 // single-buffered HD buffer

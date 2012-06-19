@@ -400,7 +400,7 @@ int my_assert_handler(char* msg, char* file, int line, int arg4)
     return old_assert_handler(msg, file, line, arg4);
 }
 
-void ml_assert_handler(char* msg, char* file, int line, char* func)
+void ml_assert_handler(char* msg, char* file, int line, const char* func)
 {
     snprintf(assert_msg, sizeof(assert_msg), 
         "ML ASSERT:\n%s\n"

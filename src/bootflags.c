@@ -186,7 +186,7 @@ bootflag_write_bootblock( void )
     else if (p.type == 7) // ExFAT
     {
         uint8_t* buffer = alloc_dma_memory(512*24);
-        int rc = dev->read_block( dev, (uintptr_t) buffer, p.sectors_before_partition, (void *) 24 );
+        // int rc = dev->read_block( dev, (uintptr_t) buffer, p.sectors_before_partition, (void *) 24 );
 
         int off1 = 130;
         int off2 = 122;
