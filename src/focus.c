@@ -306,6 +306,7 @@ void focus_stack_run(int skip_first)
 void focus_stack_trigger_from_menu_work()
 {
     if (focus_task_delta == 0) { beep(); return; }
+    msleep(1000);
     gui_stop_menu();
     NotifyBox(2000, "Focus stack..."); msleep(2000);
     focus_stack_enabled = 1;
@@ -316,7 +317,6 @@ void focus_stack_trigger_from_menu_work()
 
 void focus_stack_trigger_from_menu(void* priv, int delta)
 {
-    gui_stop_menu();
     run_in_separate_task(focus_stack_trigger_from_menu_work, 0);
 }
 
