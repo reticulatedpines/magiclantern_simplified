@@ -96,6 +96,10 @@ int uniwb_is_active()
 CONFIG_INT("iso_selection", iso_selection, 0);
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
+
+PROP_INT(PROP_AEB, aeb_setting);
+#define HDR_ENABLED (hdr_enabled && !aeb_setting) // when Canon bracketing is active, ML bracketing should not run
+
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
@@ -675,35 +679,6 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 
 static int face_zoom_request = 0;
 
-#if 0
-int hdr_intercept = 1;
-
-/*
-void halfshutter_action(int v)
-{
-    if (!hdr_intercept) return;
-    static int prev_v;
-    if (v == prev_v) return;
-    prev_v = v;
-
-
-    // avoid camera shake for HDR shots => force self timer
-    static int drive_mode_bk = -1;
-    if (v == 1 && ((hdr_enabled && hdr_delay) || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
-    {
-        drive_mode_bk = drive_mode;
-        lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-    }
-
-    // restore drive mode if it was changed
-    if (v == 0 && drive_mode_bk >= 0)
-    {
-        lens_set_drivemode(drive_mode_bk);
-        drive_mode_bk = -1;
-    }
-}*/
-#endif
-
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     int v = *(int*)buf;
@@ -742,7 +717,7 @@ int handle_shutter_events(struct event * event)
 {
     return 1;
 #if 0 // not reliable
-    if (hdr_enabled)
+    if (HDR_ENABLED)
     {
         switch(event->param)
         {
@@ -2895,13 +2870,16 @@ hdr_display( void * priv, int x, int y, int selected )
             hdr_delay ? ",2s" : "",
             hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
         );
+        
+        if (aeb_setting)
+            menu_draw_icon(x, y, MNI_WARNING, "Turn off Canon bracketing (AEB)!");
     }
 }
 
 #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
 void hdr_display_status(int fnt)
 {
-    if (hdr_enabled)
+    if (HDR_ENABLED)
         bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
@@ -4799,7 +4777,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
-    int dont_change_exposure = ev_x8 == 0 && !hdr_enabled && !bulb_ramping_enabled;
+    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !bulb_ramping_enabled;
 
     if (dont_change_exposure)
     {
@@ -5200,7 +5178,7 @@ short_movie()
 void hdr_shot(int skip0, int wait)
 {
     NotifyBoxHide();
-    if (hdr_enabled)
+    if (HDR_ENABLED)
     {
         //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
         int drive_mode_bak = 0;
@@ -5408,7 +5386,7 @@ static void mlu_step()
 
     if (!lv && display_idle() && !get_halfshutter_pressed()) // normal shooting mode, non-liveview
     {
-        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!hdr_enabled)) ? 1 : 0;
+        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
         if (mlu_auto_value != mlu_current_value)
         {
             set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
@@ -5486,7 +5464,7 @@ shoot_task( void* unused )
 
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
-        if (((hdr_enabled && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
             drive_mode_bk = drive_mode;
             lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
@@ -5565,7 +5543,7 @@ shoot_task( void* unused )
                     focus_stack_run(1); // skip first exposure, we already took it
                     lens_wait_readytotakepic(64); 
                 }
-                else if (hdr_enabled)
+                else if (HDR_ENABLED)
                 {
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
@@ -5680,7 +5658,7 @@ shoot_task( void* unused )
             if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
                 continue;
             if (is_focus_stack_enabled()) focus_stack_run(0); // shoot all frames
-            else if (!hdr_enabled) silent_pic_take(1);
+            else if (!HDR_ENABLED) silent_pic_take(1);
             else 
             {
                 NotifyBox(5000, "HDR silent picture...");
