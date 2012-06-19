@@ -104,7 +104,12 @@ clean:
 zip: all
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
-	cd $(PLATFORM_PATH)/all; $(MAKE) zip
+
+docs:
+	cd $(PLATFORM_PATH)/all; $(MAKE) docs
+
+docq:
+	cd $(PLATFORM_PATH)/all; $(MAKE) docq
 
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/MagicLantern/bleeding-edge/

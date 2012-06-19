@@ -86,11 +86,19 @@ inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
     // 500D: LCD: 003638100 / HDMI: 003631008
     // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
     
+    // 5D2 SD: 7108 / 74c8
+    
     if (((uintptr_t)bmp_buf & 0xFFF) == 0x100) // 720x480 crop - alter it to point to full 960x540 buffer
         return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET);
 
     if (((uintptr_t)bmp_buf & 0xFFF) == 0x008) // HDMI 960x540 => return it as is
         return bmp_buf;
+
+    if (((uintptr_t)bmp_buf & 0xFFF) == 0x108) // SD mode 1
+        return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 8);
+
+    if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c8) // SD mode 1
+        return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c8);
         
     // something else - new camera? return it unchanged (failsafe)
     ASSERT(0);

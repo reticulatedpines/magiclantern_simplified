@@ -142,11 +142,11 @@ os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
 
 #~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
-os.system("lualatex UserGuide-cam.tex")
-#~ os.system("lualatex UserGuide-cam.tex")
+os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
+#~ os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
 #os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
-#os.system("pdflatex UserGuide-cam.tex")
-#os.system("pdflatex UserGuide-cam.tex")
+#os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
+#os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 
 if len(sys.argv) > 1:
     raise SystemExit # from this point it's very slow
@@ -243,6 +243,7 @@ def convert_page(k):
         print "done?"
         raise SystemExit
     bmp = "cam/page-%03d.bmp" % k
+    bmh = "cam/page-%03d.bmh" % k
     
     print "remapping %s..." % png
     im = flipud(imread(png))
@@ -253,7 +254,7 @@ def convert_page(k):
     os.system("ruby ../src/convertrle.rb %s" % bmp)
     os.system("rm %s" % bmp)
     os.system("rm %s" % png)
-    os.system("mv %s.rle %s" % (bmp, bmp))
+    os.system("mv %s.rle %s" % (bmp, bmh))
 
 for i in range(1,1000):
     convert_page(i)
