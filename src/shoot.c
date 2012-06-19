@@ -2872,7 +2872,13 @@ hdr_display( void * priv, int x, int y, int selected )
         );
         
         if (aeb_setting)
+        {
+            #ifdef CONFIG_60D
+            if (drive_mode == DRIVE_HISPEED_CONTINUOUS)
+                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Canon AEB settings will be used. Press shutter once.");
+            #endif
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off Canon bracketing (AEB)!");
+        }
     }
 }
 
