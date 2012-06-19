@@ -1479,7 +1479,7 @@ PROP_HANDLER( PROP_AE )
     const uint32_t value = *(uint32_t *) buf;
     lens_info.ae = (int8_t)value;
     update_stuff();
-    ae_ack = (int)buf[0];
+    ae_ack = (int8_t)buf[0];
 }
 
 PROP_HANDLER( PROP_WB_MODE_LV )
@@ -2113,7 +2113,7 @@ int hdr_set_rawshutter(int shutter)
 int hdr_set_ae(int ae)
 {
     int ok = ABS(ae) < MAX_AE_EV * 8;
-    return hdr_set_something(lens_set_ae, ae) && ok;
+    return hdr_set_something((int(*)(int))lens_set_ae, ae) && ok;
 }
 
 /*
