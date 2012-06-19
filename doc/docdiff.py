@@ -25,5 +25,5 @@ da = getdate(a).strftime("%B %d, %Y")
 db = getdate(b).strftime("%B %d, %Y")
 os.system(r"sed -i -e 's/\\maketitle/\\date{\\DIFdel{%s} \\DIFadd{%s}}\\maketitle/g' UserGuide-diff.tex" % (da,db))
 
-os.system("pdflatex UserGuide-diff.tex")
-os.system("pdflatex UserGuide-diff.tex")
+os.system("pdflatex -interaction=batchmode UserGuide-diff.tex")
+os.system("pdflatex -interaction=batchmode UserGuide-diff.tex")

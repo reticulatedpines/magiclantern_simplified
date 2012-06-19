@@ -29,8 +29,8 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # Release builds:
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
-BUILDVER=$(shell whoami)
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
+BUILDVER=$(shell whoami).$(shell hg id --debug -i -r .)
+VERSION:=$(shell LC_TIME=EN date +'%Y%m%d-%H%M%S').$(MODEL)$(FW_VERSION).$(BUILDVER)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -74,6 +74,11 @@ PYMITE_CFLAGS		= \
 #
 all: autoexec.bin
 
+menuindexentries.h:
+	cd $(DOC_DIR); python menuindex.py
+
+menuindex.o: menuindexentries.h
+
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
@@ -94,45 +99,57 @@ ptpinstall: autoexec.bin
 	diff autoexec.bin autoexec.test
 
 prepare_zip:
-	cp $(SRC_DIR)/zip.txt .
-	cp $(TOP_DIR)/README .
-	cp $(DOC_DIR)/INSTALL.pdf .
-	cp $(DOC_DIR)/UserGuide.pdf .
-	mkdir cropmks || echo "ok"
-	cp $(CROP_DIR)/*.bmp cropmks/
-	mkdir scripts || echo "ok"
-	cp $(SCRIPT_DIR)/*.lua scripts/
-	mkdir plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin plugins/
-	mkdir doc || echo "ok"
-	cp $(DOC_DIR)/cam/* doc/
+	rm -r zip || echo "ok"
+	mkdir zip
+	cp $(SRC_DIR)/zip.txt zip
+	cp $(TOP_DIR)/README zip
+	cp $(DOC_DIR)/INSTALL.pdf zip
+	cp $(DOC_DIR)/UserGuide.pdf zip
+	mkdir zip/cropmks || echo "ok"
+	cp $(CROP_DIR)/*.bmp zip/cropmks/
+	mkdir zip/scripts || echo "ok"
+	cp $(SCRIPT_DIR)/*.lua zip/scripts/
+	mkdir zip/plugins || echo "ok"
+	cp $(PLUGINS_DIR)/*/*.bin zip/plugins/
+	mkdir zip/doc || echo "ok"
+	cp $(DOC_DIR)/cam/* zip/doc/
 	make x
-	cp ../../installer/550D.109/*.fir .
-	cp ../../installer/60D.110/*.fir .
-	cp ../../installer/600D.101/*.fir .
-	cp ../../installer/50D.108/*.fir .
-	cp ../../installer/500D.111/*.fir .
-	cp ../../vram/rectilin.lut .
-	cp $(SRC_DIR)/FONTS.DAT .
-	cp $(SRC_DIR)/logo.bmp .
+	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
+	cp ../../installer/60D.110/*.fir zip || echo "no FIR"
+	cp ../../installer/600D.101/*.fir zip || echo "no FIR"
+	cp ../../installer/50D.108/*.fir zip || echo "no FIR" 
+	cp ../../installer/500D.111/*.fir zip || echo "no FIR"
+	cp ../../vram/rectilin.lut zip
+	cp $(SRC_DIR)/FONTS.DAT zip
+	cp $(SRC_DIR)/logo.bmp zip
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
-	zip.txt \
-	README \
-	INSTALL.pdf \
-	UserGuide.pdf \
-	cropmks/* \
-	scripts/* \
-	doc/* \
-	*.fir \
-	FONTS.DAT \
-	rectilin.lut \
-	logo.bmp \
+	zip/zip.txt \
+	zip/README \
+	zip/INSTALL.pdf \
+	zip/UserGuide.pdf \
+	zip/FONTS.DAT \
+	zip/rectilin.lut \
+	zip/logo.bmp \
 
 	-rm $@
-	chmod -x autoexec.bin
-	zip -z $@ < $^ autoexec.bin
+	cp autoexec.bin zip
+	chmod -x zip/autoexec.bin
+	cd zip; zip -z ../$@ < \
+		zip.txt \
+		README \
+		INSTALL.pdf \
+		UserGuide.pdf \
+		cropmks/* \
+		scripts/* \
+		plugins/* \
+		doc/* \
+		*.fir \
+		FONTS.DAT \
+		rectilin.lut \
+		logo.bmp \
+		autoexec.bin
 
 CFLAGS=\
 	$(FLAGS) \
@@ -149,6 +166,7 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
+	-mlong-calls \
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
@@ -560,4 +578,6 @@ clean:
 		cropmks/* \
 		scripts/* \
 		doc/* \
-		$(SRC_DIR)/*.o)
+		$(SRC_DIR)/*.o \
+		)
+	$(call build,CLEAN,$(RM) -rf zip)

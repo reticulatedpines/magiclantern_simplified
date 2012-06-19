@@ -2,6 +2,7 @@ import os,sys,string
 
 f = open("menuindex.txt").readlines()
 
+os.system("mkdir cam")
 o = open("cam/menuidx.dat", "w")
 menu = open("../src/menuindexentries.h", "w")
 
@@ -31,13 +32,13 @@ for l in f[1:]:
         item = item.strip()
         #~ idx[item] = page
         #~ idxp[page] = item
-        print page, item
+        #print page, item
         print >> o, "%03d %s" % (page, item)
 
     if type == "section": # main sections in menu
         sections += 1
         item = name
-        print page, item
+        #print page, item
         print >> o, "%03d %s" % (page, item)
         print >> menu, """    {
         .name = "%s",
