@@ -3959,8 +3959,9 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
+#if defined(CONFIG_50D) || defined(CONFIG_550D) || defined(CONFIG_5D2)
     extern thunk test_minimal_handler;
-
+#endif
 /*
     if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
     { // ML is clearing the screen with a fake dialog, let's see what's underneath
