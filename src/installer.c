@@ -233,7 +233,7 @@ void install_task()
     Msleep(500);
 
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
-    canon_gui_disable_gmt();
+    canon_gui_disable_front_buffer();
     ui_lock(UILOCK_EVERYTHING);
 
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
@@ -658,3 +658,8 @@ void bmp_mute_flag_reset(){};
 struct font font_small_shadow;
 struct font font_med_shadow;
 struct font font_large_shadow;
+
+void ml_assert_handler(char* msg, char* file, int line, const char* func) {}
+void CheckBmpAcquireRecursiveLock(){};
+void CheckBmpReleaseRecursiveLock(){};
+
