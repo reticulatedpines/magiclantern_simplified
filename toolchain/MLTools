@@ -115,6 +115,7 @@ checkBrewPIP() {
 }
 	
 installBase() {
+	checkBrewPIP
 	echo "*******************************************"
 	echo "*          Installing Base tools:         *"
 	echo "*******************************************"
@@ -151,6 +152,7 @@ installBase() {
 }
 	
 installDev() {
+	installBase
 	echo "*******************************************"
 	echo "*      Installing Dev dipendencies:       *"
 	echo "*******************************************"
@@ -201,11 +203,14 @@ checkML() {
 			MLcard="1"
 		else
 			echo "NOT FOUND"
-			echo "Installing ML on card"
-			echo "Type Y to continue N to abort, just enter to skip"
-			read inst
+			#echo "Installing ML on card"
+			#echo "Type Y to continue N to abort, just enter to skip"
+			#read inst
+			inst=N
 			if [ "$inst" == Y ] || [ "$inst" == y ];then
+				installDev
 				cd "$MLsource"
+				sudo bash "$MLsource"/toolchain/summon-arm
 				make clean
 				make install
 				bash "$MLsource"/src/make_bootable.sh
@@ -231,7 +236,7 @@ check422() {
 }
 	
 checkFST() {
-	FST_script=$(find $file_source -name FST*.SH)
+	FST_script=$(find $file_source -name FST_*.SH)
 	if [ $FST_script ]; then
 		echo "FST files found"
 		for i in $FST_script 
@@ -253,7 +258,7 @@ checkFST() {
 				rm raw_list
 				
 				enfuse "$@" --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask --output=$file_source/FST/FST_${list_file:5:4}.JPG	$raw_list
-				mv ${FST_script%FST_*}/FST_${list_file:5:4}.SH ${FST_script%FST_*}/FST-${list_file:5:4}.SH
+				mv ${FST_script:8}/FST_${list_file:5:4}.SH ${FST_script%FST_*}/FST-${list_file:5:4}.SH
 #				rm $file_source/HDR/*.JPG
 			else
 				cd $file_source 
@@ -347,7 +352,6 @@ if [ "$1" == r ] || [ "$1" == remove ]; then
 fi
 setvar
 if [ ! -d "$MLsource" ] || [ "$1" == i ] || [ "$1" == install ];then
-	checkBrewPIP
 	installBase
 fi
 if [ "$1" == d ] || [ "$1" == dev ]; then
