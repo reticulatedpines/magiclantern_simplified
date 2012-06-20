@@ -17,7 +17,7 @@
 void clear_lv_affframe();
 void lcd_adjust_position_step();
 void arrow_key_step();
-void preview_saturation_step();
+void preview_contrast_n_saturation_step();
 void adjust_saturation_level(int);
 void grayscale_menus_step();
 void clear_lv_afframe();
@@ -848,7 +848,7 @@ tweak_task( void* unused)
 
         upside_down_step();
 
-        preview_saturation_step();
+        preview_contrast_n_saturation_step();
         grayscale_menus_step();
         lcd_adjust_position_step();
 
@@ -1598,15 +1598,16 @@ struct menu_entry expo_tweak_menus[] = {
     },
 };
 
+CONFIG_INT("preview.contrast", preview_contrast, 3);
 CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
-void preview_saturation_step()
+void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
-    //~ if (!lv) return;
+    if (!lv) return;
     
     int saturation_register = 0xC0F140c4;
     int current_saturation = shamem_read(saturation_register) & 0xFF;
@@ -1621,6 +1622,22 @@ void preview_saturation_step()
     if (current_saturation != desired_saturation)
     {
         EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
+    }
+
+
+    int contrast_register = 0xC0F141B8;
+    int current_contrast = shamem_read(contrast_register) & 0xFF;
+
+    static int contrast_values[] = {0x790000, 0x400040, 0x200060, 0x80, 0xE000A0, 0xC000C0};
+    int desired_contrast = contrast_values[preview_contrast];
+
+    extern int focus_peaking_grayscale;
+    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+        desired_contrast = 0;
+
+    if (current_contrast != desired_contrast)
+    {
+        EngDrvOut(contrast_register, desired_contrast);
     }
 }
 
@@ -1647,6 +1664,29 @@ void preview_saturation_display(
 
     if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
     else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);
+    else menu_draw_icon(x, y, MNI_ON, 0);
+}
+
+void preview_contrast_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Contrast       : %s",
+        preview_contrast == 0 ? "Zero" :
+        preview_contrast == 1 ? "Very low" :
+        preview_contrast == 2 ? "Low" :
+        preview_contrast == 3 ? "Normal" :
+        preview_contrast == 4 ? "High" :
+                                "Very high"
+    );
+
+    if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
     else menu_draw_icon(x, y, MNI_ON, 0);
 }
 
@@ -1789,11 +1829,20 @@ static struct menu_entry display_menus[] = {
         },
     },
     {
+        .name = "Contrast       ",
+        .priv     = &preview_contrast,
+        .max = 5,
+        .display = preview_contrast_display,
+        .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
+        .help = "For LiveView preview only. Does not affect recording.",
+        .edit_mode = EM_MANY_VALUES_LV,
+    },
+    {
         .name = "Saturation",
         .priv     = &preview_saturation,
         .max = 3,
         .display = preview_saturation_display,
-        .help = "For preview only (LV+PLAY). Does not affect recording.",
+        .help = "For LiveView preview only. Does not affect recording.",
         .edit_mode = EM_MANY_VALUES_LV,
     },
     {
