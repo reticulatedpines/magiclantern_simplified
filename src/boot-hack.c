@@ -217,13 +217,13 @@ my_task_dispatch_hook(
 void
 my_dump_task( void )
 {
-    dmstart();
+    call("dmstart");
 
     msleep( 10000 );
-    dispcheck();
+    call("dispcheck");
 
-    dumpf();
-    dmstop();
+    call("dumpf");
+    call("dmstop");
 }
 
 

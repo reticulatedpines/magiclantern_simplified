@@ -3961,11 +3961,13 @@ int liveview_display_idle()
     extern uintptr_t new_LiveViewApp_handler;
     extern thunk test_minimal_handler;
 
+/*
     if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
     { // ML is clearing the screen with a fake dialog, let's see what's underneath
         current = current->next;
         dialog = current->priv;
     }
+    */
 
     return
         LV_NON_PAUSED && 
