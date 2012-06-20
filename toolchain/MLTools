@@ -1,9 +1,17 @@
 #!/bin/bash
+
+# UNDER DEVELOPMENT, pre-alpha version
+# MLTools is a script to preapre your mac for use all
+# Magic Lantern features
+# more info on Magic lantern: http://www.magiclantern.fm
+# on MLTools: http://www.magiclantern.fm/forum/index.php?topic=1019.0
+
 # CHANGE THIS IF YOU WANT
-	#destinatin folder:
-	FINAL_FLDR="$file_source"
 	# folder with magic lanter sources
 	MLsource=~/magic-lantern
+#	(not used for now)
+#	destinatin folder:
+#	FINAL_FLDR="$file_source"
 #	work_folder=$MLsource/toolchain/MLTool
 #	if [ ! -d $work_folder ];then
 #		mkdir -p $work_folder
@@ -221,15 +229,16 @@ checkFST() {
 		echo "FST files not found"
 	fi
 	}
-	
-checkTLV() {
-	TLV_script=$(find "$file_source" -name TLV*.SH)
-	if [ "$TLV_script" ]; then
-		echo "TLV files found"
-	else
-		echo "TLV files not found"
-	fi
-	}
+
+#TIMELAPSE SCRIPT NOT YET CREATED BY ML	
+#checkTLV() {
+#	TLV_script=$(find "$file_source" -name TLV*.SH)
+#	if [ "$TLV_script" ]; then
+#		echo "TLV files found"
+#	else
+#		echo "TLV files not found"
+#	fi
+#	}
 	
 checkHDR() {
 	HDR_script=$(find "$file_source" -name HDR_*.SH)
@@ -271,10 +280,6 @@ checkHDR() {
 checkHDRmov() {
 	echo Test_MOVtoHDR
 	}		
-	
-installOther() {
-	echo "TODO:empty for now"
-	}
 	
 remove() {
 	 echo "Are you sure to remove all thing installed? Y or N"
@@ -333,11 +338,11 @@ fi
 check422 
 checkHDR 
 checkFST 
-checkTLV 
-#checkHDRmov 
-#installOther
+#checkTLV 
+checkHDRmov 
 
 exit
+
 ##code from Ro-Man on Vimeo (not yet used)##################################
 #fps=25
 #raw_mov=ls "$EOS_CARD"
