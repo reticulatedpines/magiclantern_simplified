@@ -501,7 +501,8 @@ quickzoom_display(
     );
 }
 
-#ifdef CONFIG_60D
+//~ #ifdef CONFIG_60D
+#if 0
 
 CONFIG_INT("display.off.halfshutter", display_off_by_halfshutter_enabled, 0);
 
@@ -837,7 +838,8 @@ tweak_task( void* unused)
 
         clear_lv_affframe_if_dirty();
         
-        #ifdef CONFIG_60D
+        //~ #ifdef CONFIG_60D
+        #if 0
         if (display_off_by_halfshutter_enabled)
             display_off_by_halfshutter();
         #endif
@@ -1898,7 +1900,7 @@ static struct menu_entry display_menus[] = {
         .help = "Workarounds for disabling Canon graphics elements."
     },
 #endif
-    #ifdef CONFIG_60D
+/*    #ifdef CONFIG_60D
     {
         .name = "DispOFF in PhotoMode",
         .priv = &display_off_by_halfshutter_enabled,
@@ -1906,7 +1908,7 @@ static struct menu_entry display_menus[] = {
         .select = menu_binary_toggle,
         .help = "Outside LV, turn off display with long half-shutter press."
     },
-    #endif
+    #endif */
     {
         .name = "Focus box",
         .priv = &af_frame_autohide, 
