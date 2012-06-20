@@ -21,8 +21,15 @@ help() {
 	echo ""
 	echo "Usage: MLTools [option]"
 	echo ""
+	echo "At first start this script will check if there are the file"
+	echo "needed to perform all conversion, if not here it will install"
+	echo "what needed."
+	echo ""
 	echo "If there is no option set it will try to find and convert"
 	echo "all that there is on ML card"
+	echo "If there is no ML card it will try to install ML on the "
+	echo "eventually avaiable EOS__DIGITAL card mounted and make bootable"
+	echo "or it will ask for a folder to search something to convert"
 	echo ""
 	echo "Options:"
 	echo "[folder]     :used for searching something to convert"
@@ -34,7 +41,7 @@ help() {
 	echo "remove or r  :uninstall all the dependencies previously installed"
 	echo "              it will ask for confirmation"
 	exit 0
-	}
+}
 	
 setvar() {
 	echo "*******************************************"
@@ -77,7 +84,7 @@ setvar() {
 		numpy
 		PIL"
 	fi
-	}
+}
 	
 checkBrewPIP() {
 	echo "*******************************************"
@@ -87,25 +94,25 @@ checkBrewPIP() {
 		echo "Homebrew already installed"
 	else
 		echo "Installing Homebrew..."
-		#/usr/bin/ruby -e "$(/usr/bin/curl -fsSL https://raw.github.com/mxcl/homebrew/master/Library/Contributions/install_homebrew.rb)"
+		/usr/bin/ruby -e "$(/usr/bin/curl -fsSL https://raw.github.com/mxcl/homebrew/master/Library/Contributions/install_homebrew.rb)"
 		echo "Done"
 	    brew doctor
 	fi
 	echo "Updating Homebrew..."
-	#brew update
+	brew update
 	echo "Done"
 
 	if [ $(which pip) ]; then
 		echo "pip already installed"
 	else
 		echo "Installing pip..."
-		#sudo easy_install pip
+		sudo easy_install pip
 		echo "Done"
 	fi
 	echo "Updating pip..."
-	#sudo pip install -U pip
+	sudo pip install -U pip
 	echo "Done"
-	}
+}
 	
 installBase() {
 	echo "*******************************************"
@@ -114,7 +121,7 @@ installBase() {
 	for f in $BREW_ML; do
 		if [ ! $(brew list | grep "$f") ]; then
 		echo "$f Installation (brew)"
-		#brew install "$f"
+		brew install "$f"
 		else
 		echo "$f already installed (brew)"
 		fi
@@ -122,7 +129,7 @@ installBase() {
 	for f in $PIP_ML; do
 		if [ ! $(pip freeze | grep "$f") ]; then
 		echo "$f Installation (pip)"
-		#sudo pip install "$f"
+		sudo pip install "$f"
 		else
 		echo "$f already installed (pip)"
 		fi
@@ -137,11 +144,11 @@ installBase() {
 	else
 		echo "enfuse already installed"
 	fi
-	if [ -d "$MLsource" ];then
+	if [ ! -d "$MLsource" ];then
 		cd ~/
 		hg clone -r unified https://bitbucket.org/hudson/magic-lantern/  
 	fi
-	}
+}
 	
 installDev() {
 	echo "*******************************************"
@@ -183,17 +190,34 @@ installDev() {
 	else
 		echo "tex already installed (dmg)"
 	fi
-	}
+}
 ###############################################################################
 	
 checkML() {
 	echo -ne "Magic Lantern on $EOS_CARD:"
-	if [ -f $EOS_CARD$BIN ]; then
-		echo "FOUND"
-		MLcard="1"
+	if [ -d $EOS_CARD ]; then
+		if [ -f $EOS_CARD$BIN ]; then
+			echo "FOUND"
+			MLcard="1"
+		else
+			echo "NOT FOUND"
+			echo "Installing ML on card"
+			echo "Type Y to continue N to abort, just enter to skip"
+			read inst
+			if [ "$inst" == Y ] || [ "$inst" == y ];then
+				cd "$MLsource"
+				make clean
+				make install
+				bash "$MLsource"/src/make_bootable.sh
+				exit 0
+			fi
+		fi
 	else
-		echo "NOT FOUND"
-		MLcard="0"
+		echo "NO CARD FOUND! FORMAT IT"
+		echo "ON CAMERA BEFORE USING ML"
+	echo ""
+	echo "Select a folder with ML generated files"
+	read file_source
 	fi
 	}
 	
@@ -204,31 +228,43 @@ check422() {
 	else
 		echo "422 files not found"
 	fi
-	}
+}
 	
 checkFST() {
 	FST_script=$(find $file_source -name FST*.SH)
 	if [ $FST_script ]; then
 		echo "FST files found"
-		#check if its raw
-		z=$(tail -n +4 $FST_script)
-		list_file=${z:108}
-		if [ -f $file_source/IMG_${list_file:5:4}.CR2 ];then
-		for i in "$list_file"
-			do
-				echo "Converting ${i%.*}.CR2 to ${i%.*}.jpg..."
-  				#convert cr2:"$file_source""${i%.*}".CR2 "$file_source""${i%.*}".jpg
-			echo "${i%.*}.CR2" >> raw_list
+		for i in $FST_script 
+		do
+			#check if its raw
+			z=$(tail -n +4 $i)
+			list_file=${z:108}
+			if [ -f $file_source/IMG_${list_file:5:4}.CR2 ];then
+				mkdir "$file_source"/FST
+				for i in $list_file
+					do
+						echo "Converting ${i%.*}.CR2 to ${i%.*}.jpg..."
+	  					convert cr2:"$file_source"/"${i%.*}".CR2 "$file_source"/"${i%.*}".JPG
+					echo "$file_source"/FST/"${i%.*}.JPG" >> raw_list
+					mv "$file_source"/"${i%.*}".JPG "$file_source"/FST/"${i%.*}".JPG
+				done
+				raw_list="$(cat raw_list)"
+				raw_list=$(echo -ne $raw_list)
+				rm raw_list
+				
+				enfuse "$@" --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask --output=$file_source/FST/FST_${list_file:5:4}.JPG	$raw_list
+				mv ${FST_script%FST_*}/FST_${list_file:5:4}.SH ${FST_script%FST_*}/FST-${list_file:5:4}.SH
+#				rm $file_source/HDR/*.JPG
+			else
+				cd $file_source 
+				bash $i
+				mv ${FST_script%FST_*}/FST_${i:5:4}.SH ${FST_script%FST*}/FST-${list_file:5:4}.SH
+			fi
 		done
-		#raw_list="$(cat raw_list)"
-		#echo $"raw_list"
-		#enfuse "$@" --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask --output=FST_9895.JPG "$raw_list" 
-		fi
-		cd $file_source
 	else
 		echo "FST files not found"
 	fi
-	}
+}
 
 #TIMELAPSE SCRIPT NOT YET CREATED BY ML	
 #checkTLV() {
@@ -238,7 +274,7 @@ checkFST() {
 #	else
 #		echo "TLV files not found"
 #	fi
-#	}
+#}
 	
 checkHDR() {
 	HDR_script=$(find "$file_source" -name HDR_*.SH)
@@ -275,11 +311,11 @@ checkHDR() {
 	else
 		echo "HDR files not found"
 	fi
-	}
+}
 	
 checkHDRmov() {
 	echo Test_MOVtoHDR
-	}		
+}		
 	
 remove() {
 	 echo "Are you sure to remove all thing installed? Y or N"
@@ -297,6 +333,9 @@ remove() {
 	exit 0
 }
 
+import() {
+	echo "Not yey ready"
+}
 ########################################################################
 
 #setting up script
@@ -319,27 +358,19 @@ fi
 #check for file or folder destination options 
 if [ ! "$1" ]; then
 checkML
-	if [ "$MLcard" == 0 ];then
-	# Ask for a folder if there is no Ml card mounted and no options set
-		echo
-		echo "Select a folder with ML generated files"
-		read file_source
-	fi
-else
 	if [ -d "$1" ] || [ -f "$1" ];then
 	# if the option is a folder or a file use it as source for the script
 		file_source=$1
 	fi
-	echo "SOURCE: $file_source"
 fi
 
 # check and convert if found 422 file, focus stack, (to do:HDR pic or HDRvideo, RAW conversion) 
-
 check422 
 checkHDR 
 checkFST 
 #checkTLV 
-checkHDRmov 
+#checkHDRmov 
+#import
 
 exit
 
