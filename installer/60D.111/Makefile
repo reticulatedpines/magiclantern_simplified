@@ -4,11 +4,11 @@ TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=110
+FW_VERSION=111
 MODEL=60D
-UPDATE_NAME=60d00110.fir
+UPDATE_NAME=60d00111.fir
 
-ML_FIR=ml-60D-110.fir
+ML_FIR=ml-60D-111.fir
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -21,54 +21,24 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 ML_OBJS-y = \
 	magiclantern.lds \
 	$(SRC_DIR)/entry.o \
-	boot-hack.o \
-	stubs.o \
+	installer.o \
+	$(PLATFORM_DIR)/stubs.o \
 	version.o \
 	bmp.o \
-	font-dyn.o \
-	config.o \
-	menu.o \
-	debug.o \
-	stdio.o \
-	audio.o \
-	bitrate.o \
-	tweaks.o \
-	lens.o \
+	font-large.o \
+	font-med.o \
+	font-small.o \
 	property.o \
 	propvalues.o \
-	gui.o \
-	gui-common.o \
-	misc.o \
-	picstyle.o \
-	cfn.o \
-	zebra.o \
-	shoot.o \
-	chdk-gui_draw.o \
-	movtweaks.o \
-	my_memset.o \
-	menuhelp.o \
-	menuindex.o \
-	af_patterns.o \
-	focus.o \
-	notify_box.o \
-	bootflags.o \
 	dialog_test.o \
+	bootflags.o \
 	vram.o \
-	morse.o \
-	liveview.o \
-	reloc.o \
-	aj_port.o \
-	fps-engio.o \
-	cartridge.o \
-	hdr.o \
-	lv-img-engio.o \
-	state-object.o \
-	tasks.o \
 
 #include generic rules and definitions
 
 include  $(TOP_DIR)/Makefile.inc
 
+CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -79,5 +49,21 @@ RESTARTSTART		= 0x0005f000
 #not used but...
 FIRMWARE_ID		= 0x80000286
 
-all: autoexec.bin
+updater: reboot-ins.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext 0x800000 \
+		$^ \
+	); \
 
+all: magiclantern.bin updater.bin
+	python ../../../dumper/build_fir.py -r ../../../dumper/60D00111.FIR updater.bin ml-60d-111.fir
+
+clean:
+	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
+
+install:
+	cp ml-60d-111.fir /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 

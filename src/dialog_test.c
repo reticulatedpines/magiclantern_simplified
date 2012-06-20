@@ -102,7 +102,7 @@ void test_dialog_create() {
         dialog_redraw(test_dialog);
 }*/
 
-int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
+/*int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, void* arg4, int arg5, int arg6, int code) 
 {
     //~ bmp_printf(FONT_MED, 0, 0, "dlg=%x template=%x btn=%x %x %x %x\ncode=%x", dialog, template, event, arg3, arg4, arg5, arg6, code);
     switch (event) {
@@ -118,7 +118,7 @@ int test_minimal_handler(void * dialog, int tmpl, gui_event_t event, int arg3, v
         break;
     }
     return 1;
-}
+}*/
 
 void canon_gui_disable_front_buffer()
 {
@@ -141,14 +141,14 @@ void canon_gui_enable_front_buffer(int also_redraw)
 int canon_gui_front_buffer_disabled() { return WINSYS_BMP_DIRTY_BIT_NEG; }
 
 
-void canon_gui_disable() { fake_simple_button(MLEV_KILL_FLICKER); }
-void canon_gui_enable() { fake_simple_button(MLEV_STOP_KILLING_FLICKER); }
+//~ void canon_gui_disable() { fake_simple_button(MLEV_KILL_FLICKER); }
+//~ void canon_gui_enable() { fake_simple_button(MLEV_STOP_KILLING_FLICKER); }
 
-int canon_gui_disabled() { return test_dialog != 0; }
+//~ int canon_gui_disabled() { return test_dialog != 0; }
 
 // to be called from gui_main_task only:
 
-void canon_gui_disable_gmt() {
+/*void canon_gui_disable_gmt() {
         if (test_dialog != NULL) {
                 DeleteDialogBox(test_dialog);
                 test_dialog = NULL;
@@ -167,7 +167,7 @@ void canon_gui_enable_gmt() {
     }
     canon_gui_enable_front_buffer(0);
     redraw();
-}
+}*/
 
 #if 0
 volatile void* notify_box_dlg = 0;

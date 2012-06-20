@@ -27,7 +27,7 @@ all: 60D 550D 600D 50D 500D 5D2
 	$(MAKE) -C $(PLUGINS_DIR)
 
 60D:
-	$(MAKE) -C $(PLATFORM_PATH)/60D.110
+	$(MAKE) -C $(PLATFORM_PATH)/60D.111
 
 550D:
 	$(MAKE) -C $(PLATFORM_PATH)/550D.109
@@ -59,13 +59,13 @@ install: all
 
 fir:
 	cd installer/550D.109/; $(MAKE) clean
-	cd installer/60D.110/; $(MAKE) clean
+	cd installer/60D.111/; $(MAKE) clean
 	cd installer/600D.102/; $(MAKE) clean
 	cd installer/50D.109/; $(MAKE) clean
 	cd installer/500D.111/; $(MAKE) clean
 	cd installer/5D2.212/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
-	$(MAKE) -C installer/60D.110/
+	$(MAKE) -C installer/60D.111/
 	$(MAKE) -C installer/600D.102/
 	$(MAKE) -C installer/50D.109/
 	$(MAKE) -C installer/500D.111/
@@ -73,7 +73,7 @@ fir:
 
 install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir $(CF_CARD)
-	cp installer/60D.110/ml-60d-110.fir $(CF_CARD)
+	cp installer/60D.111/ml-60d-111.fir $(CF_CARD)
 	cp installer/600D.102/ml-600d-102.fir $(CF_CARD)
 	cp installer/50D.109/ml-50d-102.fir $(CF_CARD)
 	cp installer/500D.111/ml-500d-111.fir $(CF_CARD)
@@ -93,7 +93,7 @@ clean:
 		$(LUA_PATH)/.*.d \
 		$(LUA_PATH)/liblua.a
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/60D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/600D.102/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean

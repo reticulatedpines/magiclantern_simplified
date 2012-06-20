@@ -61,7 +61,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF53D82C // dec gui_main_task
+#define GMT_FUNCTABLE 0xFF53D848 // dec gui_main_task
 #define GMT_IDLEHANDLER_TASK (*(int*)0x251c8) // dec create_idleHandler_task
 
 #define MAIN_CTRL_FUNCTBL 0x370d0

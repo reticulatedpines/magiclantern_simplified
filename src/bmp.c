@@ -534,7 +534,7 @@ bmp_draw_palette( void )
 
     static int written;
     if( !written )
-        dispcheck();
+        call("dispcheck");
     written = 1;
     msleep(2000);
 }

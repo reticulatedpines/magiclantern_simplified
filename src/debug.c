@@ -789,14 +789,14 @@ static void stress_test_task(void* unused)
 
     msleep(2000);
 
-    for (int i = 0; i < 100; i++)
+/*    for (int i = 0; i < 100; i++)
     {
         NotifyBox(1000, "Disabling Canon GUI (%d)...", i);
         canon_gui_disable();
         msleep(rand()%300);
         canon_gui_enable();
         msleep(rand()%300);
-    }
+    } */
     
     msleep(2000);
 
@@ -3383,12 +3383,12 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_REDRAW:
             redraw_do();
             break;
-        case MLEV_KILL_FLICKER:
+/*        case MLEV_KILL_FLICKER:
             canon_gui_disable_gmt();
             break;
         case MLEV_STOP_KILLING_FLICKER:
             canon_gui_enable_gmt();
-            break;
+            break; */
 /*        case MLEV_BV_ENABLE:
             bv_enable_do();
             break;
