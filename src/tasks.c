@@ -32,7 +32,7 @@ extern int get_obj_attr(void*, unsigned char*, int, int);
 
 char* get_task_name_from_id(int id)
 {
-    char* name;
+    char* name = "?";
     int c = id & 0xFF;
 
     struct task_attr_str task_attr;
@@ -135,7 +135,7 @@ static char func_holding_bmp_lock[50] = "";
 
 int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 {
-    char* task_name = get_task_name_from_id(get_current_task());
+    char* task_name = get_task_name_from_id((int)get_current_task());
     
     // just a warning, sometimes we can't get without it (e.g. at redraw), but it's best to avoid
     /*
@@ -152,7 +152,7 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
         char msg[50];
         snprintf(msg, sizeof(msg), "BMP_LOCK PROP %x!!!", current_prop_handler);
         int x = 100;
-        bmp_puts(FONT_MED, &x, &x, msg);
+        bmp_puts(FONT_MED, (unsigned int *)&x, (unsigned int *)&x, msg);
         beep();
         info_led_blink(20,50,50);
         ASSERT(0);
@@ -160,12 +160,12 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 
     int wait = 2000;
     int r;
-    while (r = AcquireRecursiveLock(lock, wait))
+    while ((r = (int)AcquireRecursiveLock(lock, wait)))
     {
         char msg[100];
-        snprintf(msg, sizeof(msg), "%s:%s:%d:\nRLock held by %s:%s:%d  ", get_task_name_from_id(get_current_task()), func, line, get_task_name_from_id(task_holding_bmp_lock), func_holding_bmp_lock, line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
+        snprintf(msg, sizeof(msg), "%s:%s:%d:\nRLock held by %s:%s:%d  ", get_task_name_from_id((int)get_current_task()), func, line, get_task_name_from_id(task_holding_bmp_lock), func_holding_bmp_lock, line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
         int x = 100;
-        bmp_puts(FONT_MED, &x, &x, msg);
+        bmp_puts(FONT_MED, (unsigned int *)&x, (unsigned int *)&x, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
         wait = 0;
     }
@@ -177,7 +177,7 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 
 int CheckBmpReleaseRecursiveLock(void* lock)
 {
-    int r = ReleaseRecursiveLock(lock);
+    int r = (int)ReleaseRecursiveLock(lock);
     //~ task_holding_bmp_lock = -1;
     //~ char msg[50] = "                  ";
     //~ int x = 100;

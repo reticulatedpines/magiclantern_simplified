@@ -613,7 +613,7 @@ static void rack_focus_wait()
     if (focus_rack_delay && focus_rack_enable_delay)
     {
         wait_till_next_second();
-        for (int i = 0; i < focus_rack_delay; i++)
+        for (unsigned int i = 0; i < focus_rack_delay; i++)
         {
             NotifyBox(2000, "Rack Focus: %d...", focus_rack_delay - i);
             wait_till_next_second();

@@ -96,11 +96,16 @@ int uniwb_is_active()
 CONFIG_INT("iso_selection", iso_selection, 0);
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
+
+PROP_INT(PROP_AEB, aeb_setting);
+#define HDR_ENABLED (hdr_enabled && !aeb_setting) // when Canon bracketing is active, ML bracketing should not run
+
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
+static CONFIG_INT("hdr.scripts", hdr_scripts, 2);
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
@@ -229,7 +234,7 @@ int get_exposure_time_raw()
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
     int d = timer_values[*(int*)priv];
-    int total_shots = interval_stop_after ? MIN(interval_stop_after*100, avail_shot) : avail_shot;
+    int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after*100, (int)avail_shot) : (int)avail_shot;
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 
@@ -675,35 +680,6 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 
 static int face_zoom_request = 0;
 
-#if 0
-int hdr_intercept = 1;
-
-/*
-void halfshutter_action(int v)
-{
-    if (!hdr_intercept) return;
-    static int prev_v;
-    if (v == prev_v) return;
-    prev_v = v;
-
-
-    // avoid camera shake for HDR shots => force self timer
-    static int drive_mode_bk = -1;
-    if (v == 1 && ((hdr_enabled && hdr_delay) || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
-    {
-        drive_mode_bk = drive_mode;
-        lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-    }
-
-    // restore drive mode if it was changed
-    if (v == 0 && drive_mode_bk >= 0)
-    {
-        lens_set_drivemode(drive_mode_bk);
-        drive_mode_bk = -1;
-    }
-}*/
-#endif
-
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     int v = *(int*)buf;
@@ -742,7 +718,7 @@ int handle_shutter_events(struct event * event)
 {
     return 1;
 #if 0 // not reliable
-    if (hdr_enabled)
+    if (HDR_ENABLED)
     {
         switch(event->param)
         {
@@ -1693,7 +1669,6 @@ shutter_toggle(void* priv, int sign)
 {
     if (!lens_info.raw_shutter) return;
     int i = raw2index_shutter(lens_info.raw_shutter);
-    int i0 = i;
     int k;
     for (k = 0; k < 15; k++)
     {
@@ -2819,7 +2794,7 @@ void zoom_auto_exposure_step()
     if (!zoom_auto_exposure) return;
 
     static int es = -1;
-    static int aem = -1;
+    // static int aem = -1;
     
     if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running)
     {
@@ -2895,13 +2870,22 @@ hdr_display( void * priv, int x, int y, int selected )
             hdr_delay ? ",2s" : "",
             hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
         );
+        
+        if (aeb_setting)
+        {
+            #ifdef CONFIG_60D
+            if (drive_mode == DRIVE_HISPEED_CONTINUOUS)
+                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Canon AEB settings will be used. Press shutter once.");
+            #endif
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off Canon bracketing (AEB)!");
+        }
     }
 }
 
 #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
 void hdr_display_status(int fnt)
 {
-    if (hdr_enabled)
+    if (HDR_ENABLED)
         bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
@@ -4079,7 +4063,6 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Bracketing sequence order / type.",
                 .icon_type = IT_DICE,
                 .choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++"},
-                .children = 0,
             },
             {
                 .name = "2-second delay",
@@ -4087,7 +4070,6 @@ static struct menu_entry shoot_menus[] = {
                 .max = 1,
                 .help = "Delay before starting the exposure.",
                 .choices = (const char *[]) {"OFF", "Auto"},
-                .children = 0,
             },
             {
                 .name = "ISO shifting",
@@ -4095,7 +4077,13 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
                 .choices = (const char *[]) {"OFF", "Full, M only", "Half, M only"},
-                .children = 0,
+            },
+            {
+                .name = "Post scripts",
+                .priv       = &hdr_scripts,
+                .max = 2,
+                .help = "ML can write enfuse scripts (also used for focus stacking).",
+                .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse"},
             },
             MENU_EOL
         },
@@ -4742,31 +4730,54 @@ PROP_HANDLER(PROP_LAST_JOB_STATE)
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
     if (steps <= 1) return;
-    DEBUG();
-    FILE * f = INVALID_PTR;
-    char name[100];
-    snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-    DEBUG("name=%s", name);
-    FIO_RemoveFile(name);
-    f = FIO_CreateFile(name);
-    if ( f == INVALID_PTR )
+    
+    if (hdr_scripts == 1)
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
-        return;
+        FILE * f = INVALID_PTR;
+        char name[100];
+        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
+        FIO_RemoveFile(name);
+        f = FIO_CreateFile(name);
+        if ( f == INVALID_PTR )
+        {
+            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            return;
+        }
+        my_fprintf(f, "#!/usr/bin/env bash\n");
+        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
+        }
+        my_fprintf(f, "\n");
+        FIO_CloseFile(f);
     }
-    DEBUG();
-    my_fprintf(f, "#!/usr/bin/env bash\n");
-    my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
-    my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
-    int i;
-    for( i = 0; i < steps; i++ )
+   
+    if (hdr_scripts == 2)
     {
-        my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
+        FILE * f = INVALID_PTR;
+        char name[100];
+        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
+        FIO_RemoveFile(name);
+        f = FIO_CreateFile(name);
+        if ( f == INVALID_PTR )
+        {
+            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            return;
+        }
+        my_fprintf(f, "#!/usr/bin/env bash\n");
+        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+        }
+        my_fprintf(f, "\n");
+        my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
+        my_fprintf(f, "rm %s_AIS_%04d*\n", focus_stack ? "FST" : "HDR", f0);
+        FIO_CloseFile(f);
     }
-    my_fprintf(f, "\n");
-    DEBUG();
-    FIO_CloseFile(f);
-    DEBUG();
 }
 
 // normal pic, silent pic, bulb pic...
@@ -4799,7 +4810,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
-    int dont_change_exposure = ev_x8 == 0 && !hdr_enabled && !bulb_ramping_enabled;
+    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !bulb_ramping_enabled;
 
     if (dont_change_exposure)
     {
@@ -5200,7 +5211,7 @@ short_movie()
 void hdr_shot(int skip0, int wait)
 {
     NotifyBoxHide();
-    if (hdr_enabled)
+    if (HDR_ENABLED)
     {
         //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
         int drive_mode_bak = 0;
@@ -5408,7 +5419,7 @@ static void mlu_step()
 
     if (!lv && display_idle() && !get_halfshutter_pressed()) // normal shooting mode, non-liveview
     {
-        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!hdr_enabled)) ? 1 : 0;
+        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
         if (mlu_auto_value != mlu_current_value)
         {
             set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
@@ -5486,7 +5497,7 @@ shoot_task( void* unused )
 
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
-        if (((hdr_enabled && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
             drive_mode_bk = drive_mode;
             lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
@@ -5565,12 +5576,25 @@ shoot_task( void* unused )
                     focus_stack_run(1); // skip first exposure, we already took it
                     lens_wait_readytotakepic(64); 
                 }
-                else if (hdr_enabled)
+                else if (HDR_ENABLED)
                 {
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
+                #ifdef CONFIG_60D
+                // smarter trigger for Canon bracketing in high-speed mode
+                else if (hdr_enabled && aeb_setting && drive_mode == DRIVE_HISPEED_CONTINUOUS)
+                {
+                    lens_wait_readytotakepic(64);
+                    SW1(1,0);
+                    SW2(1,1000);
+                    SW2(0,0);
+                    SW1(0,0);
+                    lens_wait_readytotakepic(64);
+                    info_led_blink(1,50,50);
+                }
+                #endif
             }
             picture_was_taken_flag = 0;
         }
@@ -5680,7 +5704,7 @@ shoot_task( void* unused )
             if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
                 continue;
             if (is_focus_stack_enabled()) focus_stack_run(0); // shoot all frames
-            else if (!hdr_enabled) silent_pic_take(1);
+            else if (!HDR_ENABLED) silent_pic_take(1);
             else 
             {
                 NotifyBox(5000, "HDR silent picture...");
@@ -5721,7 +5745,7 @@ shoot_task( void* unused )
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after*100); }
                 bmp_printf(FONT_MED, 50, 310, msg);
 
-                if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
+                if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
                     intervalometer_stop();
 
                 //~ if (bulb_ramping_enabled)
@@ -5751,7 +5775,7 @@ shoot_task( void* unused )
                 }
             }
 
-            if (interval_stop_after && intervalometer_pictures_taken >= interval_stop_after*100)
+            if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
                 intervalometer_stop();
 
             if (PLAY_MODE) get_out_of_play_mode(500);

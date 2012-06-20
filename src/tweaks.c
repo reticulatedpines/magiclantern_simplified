@@ -224,7 +224,7 @@ static void AVItoCR2(void* priv, int delta)
     EyeFi_RenameAVItoCR2(get_dcim_dir());
 }
 
-static void 422toMP4(void* priv, int delta)
+static void f422toMP4(void* priv, int delta)
 {
     EyeFi_Rename422toMP4(get_dcim_dir());
 }
@@ -1222,6 +1222,8 @@ void arrow_key_mode_toggle()
 
 void shutter_180() { lens_set_rawshutter(shutter_ms_to_raw(1000 / video_mode_fps / 2)); }
 
+void brightness_saturation_reset(void);
+
 int handle_push_wb(struct event * event)
 {
     if (!lv) return 1;
@@ -1636,12 +1638,12 @@ static struct menu_entry tweak_menus[] = {
          	},
             {
             	.name        = "Rename 422 to MP4",
-            	.select        = CR2toAVI,
+            	.select        = f422toMP4,
             	.help = "Rename 422 files to MP4 (trick for EyeFi cards)."
          	},
             {
             	.name        = "Rename MP4 to 422",
-            	.select        = AVItoCR2,
+            	.select        = MP4to422,
             	.help = "Rename back MP4 files to 422 (trick for EyeFi cards)."
          	},
             MENU_EOL

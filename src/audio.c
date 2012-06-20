@@ -1687,6 +1687,7 @@ static void audio_menus_init()
 #endif
 }
 
+/* Dump audio for 600D
 #ifdef CONFIG_600D
 void audio_reg_dump_600D()
 {
@@ -1713,5 +1714,5 @@ void audio_reg_dump_600D()
     
     FIO_CloseFile(f);
 }
-
 #endif
+*/

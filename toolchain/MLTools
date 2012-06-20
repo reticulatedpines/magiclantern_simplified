@@ -1,31 +1,46 @@
 #!/bin/bash
+# CHANGE THIS IF YOU WANT
+	#destinatin folder:
+	FINAL_FLDR="$file_source"
+	# folder with magic lanter sources
+	MLsource=~/magic-lantern
+#	work_folder=$MLsource/toolchain/MLTool
+#	if [ ! -d $work_folder ];then
+#		mkdir -p $work_folder
+#	fi
+	
 help() {
 	echo ""
-	echo "Usage: prepare.Lion.sh [option]"
+	echo "Usage: MLTools [option]"
 	echo ""
 	echo "If there is no option set it will try to find and convert"
 	echo "all that there is on ML card"
 	echo ""
 	echo "Options:"
-	echo "h or help   :shows this help"
-	echo "d or dev    :install all the dependencies for the arm"
-	echo "             toolchain and starts the summon-arm script"
-	echo "remove or r :uninstall all the dependencies previously installed"
-	echo "             it will ask for confirmation"
+	echo "[folder]     :used for searching something to convert"
+	echo "[file]       :used for converting that file"
+	echo "h or help    :shows this help"
+	echo "i or install :installs base sistem andd clone Unified repo"
+	echo "d or dev     :install all the dependencies for the arm"
+	echo "              toolchain and starts the summon-arm script"
+	echo "remove or r  :uninstall all the dependencies previously installed"
+	echo "              it will ask for confirmation"
 	exit 0
 	}
 	
 setvar() {
-	echo "checking options"
+	echo "*******************************************"
+	echo "*            Checking Options:            *"
+	echo "*******************************************"
+	# ML installed card address
 	EOS_CARD=/Volumes/EOS_DIGITAL/
+	# Ml folder on card
 	ML_FLDR=ML/
+	# ML bin name
 	BIN=autoexec.bin
-	file_source=/Volumes/EOS_DIGITAL/DCIM/100CANON
-	MLsource=~/magic-lantern
-	work_folder=$MLsource/toolchain/MLTool
-	if [ ! -d $work_folder ];then
-		mkdir -p $work_folder
-	fi
+	# folder to check for file to conver on camera
+	file_source="$EOS_CARD"DCIM/100CANON
+
 	if [ "$1" == dev ] || [ "$1" == d ] || [ "$1" == remove ] || [ "$1" == r ];then
 		BREW_ML="
 		binutils
@@ -114,6 +129,10 @@ installBase() {
 	else
 		echo "enfuse already installed"
 	fi
+	if [ -d "$MLsource" ];then
+		cd ~/
+		hg clone -r unified https://bitbucket.org/hudson/magic-lantern/  
+	fi
 	}
 	
 installDev() {
@@ -157,14 +176,16 @@ installDev() {
 		echo "tex already installed (dmg)"
 	fi
 	}
+###############################################################################
 	
 checkML() {
-	if [ -d $EOS_CARD$ML_FLDR ] && [ -f $EOS_CARD$BIN ]; then
-		echo "Magic Lantern FOUND on: $EOS_CARD"
-		ML="1"
+	echo -ne "Magic Lantern on $EOS_CARD:"
+	if [ -f $EOS_CARD$BIN ]; then
+		echo "FOUND"
+		MLcard="1"
 	else
-		echo "Magic Lantern NOT FOUND on: $EOS_CARD"
-		ML="0"
+		echo "NOT FOUND"
+		MLcard="0"
 	fi
 	}
 	
@@ -177,24 +198,71 @@ check422() {
 	fi
 	}
 	
-	
 checkFST() {
 	FST_script=$(find $file_source -name FST*.SH)
 	if [ $FST_script ]; then
 		echo "FST files found"
+		#check if its raw
+		z=$(tail -n +4 $FST_script)
+		list_file=${z:108}
+		if [ -f $file_source/IMG_${list_file:5:4}.CR2 ];then
+		for i in "$list_file"
+			do
+				echo "Converting ${i%.*}.CR2 to ${i%.*}.jpg..."
+  				#convert cr2:"$file_source""${i%.*}".CR2 "$file_source""${i%.*}".jpg
+			echo "${i%.*}.CR2" >> raw_list
+		done
+		#raw_list="$(cat raw_list)"
+		#echo $"raw_list"
+		#enfuse "$@" --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask --output=FST_9895.JPG "$raw_list" 
+		fi
 		cd $file_source
-		bash $FST_script
 	else
 		echo "FST files not found"
 	fi
 	}
 	
+checkTLV() {
+	TLV_script=$(find "$file_source" -name TLV*.SH)
+	if [ "$TLV_script" ]; then
+		echo "TLV files found"
+	else
+		echo "TLV files not found"
+	fi
+	}
+	
 checkHDR() {
-	HDR_script=$(find $file_source -name HDR*.SH)
-	if [ $HDR_script ]; then
+	HDR_script=$(find "$file_source" -name HDR_*.SH)
+	echo $HDR_script
+	if [ "$HDR_script" ]; then
 		echo "HDR files found"
-		cd $file_source
-		bash $HDR_script
+		for i in $HDR_script 
+		do
+			#check if its raw
+			z=$(tail -n +4 $i)
+			list_file=${z:35}
+			if [ -f $file_source/IMG_${list_file:5:4}.CR2 ];then
+				mkdir -p RAW/
+				for i in $list_file
+					do
+						echo "Converting ${i%.*}.CR2 to ${i%.*}.jpg..."
+	  					convert cr2:"$file_source"/"${i%.*}".CR2 "$file_source"/"${i%.*}".JPG
+					echo "$file_source"/HDR/"${i%.*}.JPG" >> raw_list
+					mv "$file_source"/"${i%.*}".JPG "$file_source"/HDR/"${i%.*}".JPG
+				done
+				raw_list="$(cat raw_list)"
+				raw_list=$(echo -ne $raw_list)
+				rm raw_list
+				
+				enfuse "$@" --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask --output=$file_source/HDR/HDR_${list_file:5:4}.JPG	$raw_list
+				mv ${HDR_script%HDR_*}/HDR_${list_file:5:4}.SH ${HDR_script%HDR_*}/HDR-${list_file:5:4}.SH
+#				rm $file_source/HDR/*.JPG
+			else
+				cd $file_source 
+				bash $i
+				mv ${HDR_script%HDR_*}/HDR_${i:5:4}.SH ${HDR_script%HDR_*}/HDR-${list_file:5:4}.SH
+			fi
+		done
 	else
 		echo "HDR files not found"
 	fi
@@ -224,6 +292,8 @@ remove() {
 	exit 0
 }
 
+########################################################################
+
 #setting up script
 if [ "$1" == h ] || [ "$1" == help ]; then
 	help
@@ -232,40 +302,84 @@ if [ "$1" == r ] || [ "$1" == remove ]; then
 	remove
 fi
 setvar
-if [ "$1" == i ] || [ "$1" == install ];then
+if [ ! -d "$MLsource" ] || [ "$1" == i ] || [ "$1" == install ];then
 	checkBrewPIP
 	installBase
 fi
 if [ "$1" == d ] || [ "$1" == dev ]; then
-	checkBrewPIP
-	installBase
 	installDev
 fi
+
 # What to do once started?
-#check for file or folde destination options 
-if [ ! $1 ]; then
+#check for file or folder destination options 
+if [ ! "$1" ]; then
 checkML
-	if [ $ML == 0 ];then
+	if [ "$MLcard" == 0 ];then
 	# Ask for a folder if there is no Ml card mounted and no options set
 		echo
 		echo "Select a folder with ML generated files"
 		read file_source
 	fi
 else
-	if [ -d $1 ] || [ -f $1 ];then
-	# is the option is a folder or a file use it as source for the script
+	if [ -d "$1" ] || [ -f "$1" ];then
+	# if the option is a folder or a file use it as source for the script
 		file_source=$1
-		echo "SOURCE: $file_source"
 	fi
-fi
-# check and convert if found 422 file, focus stack, (to do:HDR pic or HDRvideo, RAW conversion) 
-check422
-checkHDR
-checkFST
-checkHDRmov	
-if [ "$sHDRmov" == 1 ];then
-	MOVtoHDR
+	echo "SOURCE: $file_source"
 fi
 
+# check and convert if found 422 file, focus stack, (to do:HDR pic or HDRvideo, RAW conversion) 
+
+check422 
+checkHDR 
+checkFST 
+checkTLV 
+#checkHDRmov 
 #installOther
-echo FINISHED
+
+exit
+##code from Ro-Man on Vimeo (not yet used)##################################
+#fps=25
+#raw_mov=ls "$EOS_CARD"
+
+splitFrames() {
+# fist split movie into stream, png with lowest compression (z=1) seems to be fine and (almost) no quality loss to uncompresssed is observed
+mplayer -vo png:z=1 "$raw_mov"
+}
+imagemagick_dri() {
+# taken from wiki.panotools.org/Contrast_Blending by Mark Fink (northernlight.net)
+LIGHTBLUR=$2.blurtemp.$$
+convert -type GrayScale -blur 40x20 $2 $LIGHTBLUR
+composite $1 $2 $LIGHTBLUR -compose atop $3
+rm $LIGHTBLUR
+}
+processFrames() {
+noframes=`ls *.png | wc -l`
+echo "$noframes frames extracted..."
+n=0
+for i in `seq 1 2 $noframes`; do
+in1=`printf "%08d.png" "$i"`
+in2=`printf "%08d.png" "$((i+1))"`
+out=`printf "out%08d.jpg" "$n"`
+echo "creating HDR frame $out from $in1 and $in2 ..."
+enfuse --compression=95 -o $out $in1 $in2
+#imagemagick_dri $in1 $in2 $out
+let n++
+done
+}
+encodeVideo() {
+# 2 stage encoding with mpreg4 codec, settings from mencoder wiki
+# optimal_bitrate = (40..60) * 25 * width * height / 256
+opts="vbitrate=12150000:mbd=2:keyint=132:v4mv:vqmin=3:vlelim=-4:vcelim=7:lumi_mask=0.07:dark_mask=0.10:naq:vqcomp=0.7:vqblur=0.2:mpeg_quant"
+mencoder mf://./out*.jpg -mf w=1920:h=1080:fps="$fps":type=jpg -oac copy -ovc lavc -lavcopts vcodec=mpeg4:vpass=1:$opts -o /dev/null
+mencoder mf://./out*.jpg -mf w=1920:h=1080:fps="$fps":type=jpg -oac copy -ovc lavc -lavcopts vcodec=mpeg4:vpass=2:$opts -o output.avi
+}
+cleanup() {
+rm *.png
+rm out*.jpg
+}
+#splitFrames
+#processFrames
+#encodeVideo
+#cleanup
+
