@@ -1630,7 +1630,7 @@ void preview_contrast_n_saturation_step()
     int contrast_register = 0xC0F141B8;
     int current_contrast = shamem_read(contrast_register) & 0xFF;
 
-    static int contrast_values[] = {0x790000, 0x400040, 0x200060, 0x80, 0xE000A0, 0xC000C0};
+    static int contrast_values[] = {0x790000, 0x400040, 0x100070, 0x80, 0xE000A0, 0xC000C0};
     int desired_contrast = contrast_values[preview_contrast];
 
     extern int focus_peaking_grayscale;
