@@ -6,7 +6,7 @@
 #endif
 
 #ifdef CONFIG_60D
-#include "../platform/60D.110/gui.h"
+#include "../platform/60D.111/gui.h"
 #endif
 
 #ifdef CONFIG_600D

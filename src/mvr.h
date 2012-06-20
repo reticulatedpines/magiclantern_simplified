@@ -3,7 +3,7 @@
 #endif
 
 #ifdef CONFIG_60D
-#include "../platform/60D.110/mvr.h"
+#include "../platform/60D.111/mvr.h"
 #endif
 
 #ifdef CONFIG_600D

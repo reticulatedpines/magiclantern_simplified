@@ -36,7 +36,7 @@
 
 #define SIG_LEN 0x10000
 
-#define SIG_60D_110  0xac958a1e // from FF010000
+#define SIG_60D_111  0xaf91b602 // from FF010000
 #define SIG_550D_109 0x851320e6 // from FF010000
 #define SIG_600D_102 0x27fc03de // from FF010000
 #define SIG_600D_101 0x290106d8 // from FF010000 // firmwares are identical
@@ -96,7 +96,6 @@ static int compute_signature(int* start, int num)
     {
         c += *p;
     }
-    //~ return SIG_60D_110;
     return c;
 }
 
@@ -128,7 +127,7 @@ static int guess_firmware_version()
             blob_end = &blob_end_550;
             RESTARTSTART = (void*)RESTARTSTART_550;
             return 1;
-        case SIG_60D_110:
+        case SIG_60D_111:
             blob_start = &blob_start_60;
             blob_end = &blob_end_60;
             RESTARTSTART = (void*)RESTARTSTART_60;
@@ -175,7 +174,7 @@ asm(
 
     ".globl blob_start_60\n"
     "blob_start_60:\n"
-    ".incbin \"../60D.110/magiclantern.bin\"\n" // 
+    ".incbin \"../60D.111/magiclantern.bin\"\n" // 
     ".align 12\n"
     "blob_end_60:"
     ".globl blob_end_60\n"
