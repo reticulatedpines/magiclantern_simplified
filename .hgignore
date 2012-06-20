@@ -64,5 +64,11 @@ platform/all/zip
 plugins/loader.c
 
 loader.c
+doc/cam
+INSTALL.tex-e
+UserGuide.tex-e
+UserGuide-cam.tex-e
+platform/all/ML
+zip.txt
 syntax: regexp
 ^plugins/(.*)/\1$
