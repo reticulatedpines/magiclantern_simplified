@@ -129,7 +129,8 @@ void my_big_init_task()
         msleep(1000);
         LEDBLUE = LEDOFF;
         msleep(1000);
-        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        //bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        bfnt_puts("Hello, World!", 150, 10, COLOR_WHITE);
     }
     
     call("DisablePowerSave");

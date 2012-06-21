@@ -54,9 +54,9 @@
 #define BULB_MIN_EXPOSURE 100
 
 // http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xf7363764
-#define BFNT_BITMAP_OFFSET 0xf7366868
-#define BFNT_BITMAP_DATA   0xf736996c
+#define BFNT_CHAR_CODES    0xffa85b50
+#define BFNT_BITMAP_OFFSET 0xffa87520
+#define BFNT_BITMAP_DATA   0xffa88ef0
 
  #define DLG_SIGNATURE 0x414944
 

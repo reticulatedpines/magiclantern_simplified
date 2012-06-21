@@ -76,7 +76,7 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #define BMP_H_MINUS 0
 
 #define BMPPITCH 360
-#define BMP_VRAM_SIZE (320*240)
+#define BMP_VRAM_SIZE (360*240)
 #define BMP_HDMI_OFFSET 0
 
 /** Returns a pointer to the real BMP vram */
