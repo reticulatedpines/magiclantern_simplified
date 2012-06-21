@@ -34,6 +34,9 @@ all: 60D 550D 600D 50D 500D 5D2
 5D2:
 	$(MAKE) -C $(PLATFORM_PATH)/5D2.212
 
+5DC:
+	$(MAKE) -C $(PLATFORM_PATH)/5dC.111
+
 plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
@@ -84,6 +87,7 @@ clean:
 	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/5dC.111/; $(MAKE) clean
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
