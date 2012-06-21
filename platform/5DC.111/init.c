@@ -30,19 +30,14 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
+// this is just restart.. without copying
+// (kept for compatibility with existing reboot.c)
 void copy_and_restart() {
     
     // don't know whether it's needed or not... but probably it's a good idea
     zero_bss();
     
-	int i;
-    
-	long *from = (long*) 0x800000;
-	long *to   = (long*) 0x980000;
-    
-	for (i = 0; i < 0x80000/4; i++) {
-		to[i] = from[i];
-	}
+    // no more need for copy, it was done in reboot.c
     
     // jump to modified Canon startup code from entry.S
     // (which will call Create5dplusInit - where we create our tasks)
