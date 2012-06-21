@@ -1859,7 +1859,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 take_screenshot(0);
         }
 
-#ifndef CONFIG_5D3
+#if !defined(CONFIG_5D3) && !defined(CONFIG_5DC)
         if (MENU_MODE) 
         {
             HijackFormatDialogBox_main();
@@ -2962,6 +2962,7 @@ PROP_HANDLER(PROP_ISO)
 
 int keep_ml_after_format = 1;
 
+#ifndef CONFIG_5DC
 void HijackFormatDialogBox()
 {
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -3210,6 +3211,7 @@ void HijackFormatDialogBox_main()
         ui_lock(UILOCK_NONE);
     }
 }
+#endif
 
 void config_menu_init()
 {

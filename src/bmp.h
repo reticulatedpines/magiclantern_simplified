@@ -68,6 +68,28 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  */
 
 /** These are the hard limits - never ever write outside them! */
+#ifdef CONFIG_5DC
+
+#define BMP_W_PLUS 720
+#define BMP_W_MINUS 0
+#define BMP_H_PLUS 480
+#define BMP_H_MINUS 0
+
+#define BMPPITCH 320
+#define BMP_VRAM_SIZE (320*240)
+#define BMP_HDMI_OFFSET 0
+
+/** Returns a pointer to the real BMP vram */
+inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
+
+/** Returns a pointer to idle BMP vram */
+inline uint8_t* bmp_vram_idle() { return (uint8_t*) MEM(0x29328); } // no idea, return the real one instead
+
+inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
+#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
+
+#else // dryos
+
 #define BMP_W_PLUS 840
 #define BMP_W_MINUS -120
 #define BMP_H_PLUS 510
@@ -118,6 +140,8 @@ inline uint8_t* bmp_vram_idle()
 {
     return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
 }
+#endif
+
 
 #define BMP_TOTAL_WIDTH (BMP_W_PLUS - BMP_W_MINUS)
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)

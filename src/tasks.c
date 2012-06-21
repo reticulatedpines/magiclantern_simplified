@@ -32,6 +32,10 @@ extern int get_obj_attr(void*, unsigned char*, int, int);
 
 char* get_task_name_from_id(int id)
 {
+#ifdef CONFIG_5DC
+return "?";
+#endif
+    
     char* name = "?";
     int c = id & 0xFF;
 
@@ -48,6 +52,7 @@ char* get_task_name_from_id(int id)
 int what_tasks_to_show=2;
 void tasks_print(void* priv, int x0, int y0, int selected)
 {
+#ifndef CONFIG_5DC
     if (selected) 
     {
         menu_draw_icon(x0, y0, -1, 0);
@@ -105,6 +110,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
       }
     }
   }
+#endif
 }
 
 void ml_shutdown()

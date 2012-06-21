@@ -112,6 +112,7 @@ _draw_char(
     // boundary checking, don't write past this address
     uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
 
+#ifndef CONFIG_5DC
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)
     {
@@ -195,30 +196,27 @@ _draw_char(
                 *(row++) = bmp_pixels;
             }
         }
-
-
-/*        
-        #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
-        #define SPIX(i,j) (shadow->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
-        #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
-
-        for( i = 0 ; i<font->height ; i++ )
-        {
-            for( j=0 ; j<font->width ; j++ )
-            {
-                if FPIX(i,j)
-                {
-                    BMPIX(i,j) = fg_color>>24;
-                }
-                if SPIX(i,j)
-                {
-                    BMPIX(i,j) = bg_color>>24;
-                }
-            }
-        }*/
     }
 
-    //sei( flags );
+#else // 5DC    
+    #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
+    //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
+    #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; *p = j%2 ? ((*p & 0x0F) | (color << 4)) : ((*p & 0xF0) | (color & 0x0F))    
+    for( i = 0 ; i<font->height ; i++ )
+    {
+        for( j=0 ; j<font->width ; j++ )
+        {
+            if FPIX(i,j)
+            {
+                BMPIX(i,j,fg_color>>24);
+            }
+            else
+            {
+                BMPIX(i,j,bg_color>>24);
+            }
+        }
+    }
+#endif
 }
 
 
@@ -263,7 +261,11 @@ bmp_puts(
         }
 
         _draw_char( fontspec, row, c );
+        #ifdef CONFIG_5DC
+        row += font->width / 2;
+        #else
         row += font->width;
+        #endif
         (*x) += font->width;
     }
 
@@ -837,7 +839,13 @@ void bmp_putpixel(int x, int y, uint8_t color)
     if (!bvram) return;
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
+    
+    #ifdef CONFIG_5DC
+    char* = &bvram[x/2 + y/2 * BMPPITCH]; 
+    *p = x%2 ? ((*p & 0x0F) | (color << 4)) : ((*p & 0xF0) | (color & 0x0F))    
+    #else
     bvram[x + y * BMPPITCH] = color;
+    #endif
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {

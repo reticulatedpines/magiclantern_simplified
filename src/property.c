@@ -171,6 +171,9 @@ int _get_prop_len(int prop)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
+    #ifdef CONFIG_5DC
+    return;
+    #endif
 /* problem: get_prop_len may return 0 :(
 
 
@@ -199,4 +202,6 @@ ok:
 /**
  * For new ports, disable this function on first boots (although it should be pretty much harmless).
  */
+#ifndef CONFIG_5DC
 INIT_FUNC( __FILE__, prop_init );
+#endif

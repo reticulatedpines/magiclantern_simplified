@@ -660,6 +660,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
     }*/
 }
 
+#ifdef AFFRAME_PROP_LEN
 static int afframe[AFFRAME_PROP_LEN];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len == AFFRAME_PROP_LEN);
@@ -671,6 +672,9 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     
     memcpy(afframe, buf, AFFRAME_PROP_LEN);
 }
+#else
+static int afframe[100]; // dummy
+#endif
 
 void get_afframe_pos(int W, int H, int* x, int* y)
 {
@@ -757,10 +761,12 @@ void center_lv_afframe_do()
 
 void move_lv_afframe(int dx, int dy)
 {
+#ifdef AFFRAME_PROP_LEN
     if (!liveview_display_idle()) return;
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+#endif
 }
 
 /*
@@ -1279,6 +1285,7 @@ int silent_pic_matrix_running = 0;
  void
 silent_pic_take_sweep(int interactive)
 {
+#ifdef AFFRAME_PROP_LEN
     if (recording) return;
     if (!lv) return;
     if (SILENTPIC_NL > 4 || SILENTPIC_NC > 4)
@@ -1352,7 +1359,7 @@ silent_pic_take_sweep(int interactive)
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
-
+#endif
 }
 
 static void vsync(volatile int* addr)
@@ -2617,6 +2624,7 @@ static void zoom_x5_x10_toggle(void* priv, int delta)
 
 static void zoom_lv_face_step()
 {
+#ifdef AFFRAME_PROP_LEN
     if (!lv) return;
     if (recording) return;
     if (face_zoom_request && lv_dispsize == 1 && !recording)
@@ -2668,6 +2676,7 @@ static void zoom_lv_face_step()
             msleep(100);
         }
     }
+#endif
 }
 
 static int zoom_focus_ring_disable_time = 0;
@@ -5430,12 +5439,14 @@ static void mlu_step()
 static void
 shoot_task( void* unused )
 {
+    #ifdef AFFRAME_PROP_LEN
     if (!lv)
     {   // center AF frame at startup in photo mode
         afframe[2] = (afframe[0] - afframe[4])/2;
         afframe[3] = (afframe[1] - afframe[5])/2;
         prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
     }
+    #endif
 
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
     
@@ -5833,7 +5844,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) // no audio module on these cameras
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_5DC) // no audio module on these cameras
             if (audio_release_running) 
             {
                 static int countdown = 0;

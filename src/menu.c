@@ -1846,6 +1846,7 @@ open_canon_menu()
 
 void piggyback_canon_menu()
 {
+#ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
     if (is_movie_mode()) return; // doesn'tworkstation
     #endif
@@ -1863,10 +1864,12 @@ void piggyback_canon_menu()
         msleep(100);
         menu_redraw();
     }
+#endif
 }
 
 void close_canon_menu()
 {
+#ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
     if (is_movie_mode()) return; // doesn'tworkstation
     #endif
@@ -1875,6 +1878,7 @@ void close_canon_menu()
     if (gui_state == GUISTATE_MENUDISP) return;
     SetGUIRequestMode(0);
     msleep(200);
+#endif
 }
 
 static void menu_open() 
