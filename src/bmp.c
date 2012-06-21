@@ -841,8 +841,8 @@ void bmp_putpixel(int x, int y, uint8_t color)
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     
     #ifdef CONFIG_5DC
-    char* = &bvram[x/2 + y/2 * BMPPITCH]; 
-    *p = x%2 ? ((*p & 0x0F) | (color << 4)) : ((*p & 0xF0) | (color & 0x0F))    
+    char* p = &bvram[x/2 + y/2 * BMPPITCH]; 
+    *p = x%2 ? ((*p & 0x0F) | (color << 4)) : ((*p & 0xF0) | (color & 0x0F));
     #else
     bvram[x + y * BMPPITCH] = color;
     #endif
