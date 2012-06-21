@@ -237,7 +237,11 @@ bmp_puts(
     if( !vram || ((uintptr_t)vram & 1) == 1 )
         return;
     const unsigned initial_x = *x;
+#ifdef CONFIG_5DC
+    uint8_t * first_row = vram + (*y/2) * pitch + (*x/2);
+#else
     uint8_t * first_row = vram + (*y) * pitch + (*x);
+#endif
     uint8_t * row = first_row;
 
     char c;
@@ -454,6 +458,13 @@ bmp_fill(
     int        h
 )
 {
+#ifdef CONFIG_5DC
+    x = x/2;
+    y = y/2;
+    w = w/2;
+    h = h/2;
+#endif
+    
     //~ if (!bmp_enabled) return;
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
@@ -849,6 +860,13 @@ void bmp_putpixel(int x, int y, uint8_t color)
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
+#ifdef CONFIG_5DC
+    w = w/2;
+    h = h/2;
+    x0 = x0/2;
+    y0 = y0/2;
+#endif
+    
     //~ if (!bmp_enabled) return;
     uint8_t * const bvram = bmp_vram();
     ASSERT(bvram)
@@ -1048,7 +1066,11 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 if (j*8 + k < cw)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
+                        #ifdef CONFIG_5DC
+                        bmp_putpixel(px+j*8+k+xo, (py+i+yo) * 2, fg);
+                        #else
                         bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
+                        #endif
                 }
             }
         }

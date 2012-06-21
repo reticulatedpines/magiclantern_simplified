@@ -15,7 +15,7 @@
 #include "bmp.h"
 #include "dryos.h"
 
-extern void menu_redraw();
+struct semaphore * gui_sem;
 
 //~ Our version of GuiMainTask. We delete canon's task and replace it with ours
 //~ to hijack the task.
@@ -37,8 +37,8 @@ void my_gui_task( void )
         
         if (event->type == 0)
         {
-            if (handle_buttons(event) == 0)
-                goto event_loop_bottom;
+            if (handle_ml_menu_erase(event) == 0) goto event_loop_bottom;
+            if (handle_ml_menu_keys(event) == 0) goto event_loop_bottom;
         }
         
         switch ( event->type )
@@ -133,23 +133,6 @@ void my_gui_task( void )
         goto event_loop_bottom;
     }
 }
-
-struct semaphore * gui_sem;
-
-int handle_buttons(struct event * event)
-{
-    switch( EVENT )
-    {
-        case BGMT_JUMP:
-            LEDBLUE = LEDON;
-            //- dump_with_buffer(0x0, 0x11000000);
-            //~ LEDBLUE = LEDOFF;
-            return 0;
-    }
-    return 1;
-}
-
-
 
 void hijack_gui_main_task()
 {

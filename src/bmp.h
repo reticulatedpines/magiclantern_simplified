@@ -255,6 +255,44 @@ bmp_fill(
 
 
 /** Some selected colors */
+
+/* 5dc uses 4-bit colors :(
+ -----------------------------
+ 0x11 // lighter gray
+ 0x22 // dark gray almost black
+ 0x33 // light gray
+ 0x44 // light grey background of menu
+ 0x55 // light green / lime green
+ 0x66 // red
+ 0x77 // brown red / maroon
+ 0x88 // light blue
+ 0x99 // light gray
+ 0xAA // darker gray
+ 0xBB // brown red / maroon
+ 0xCC // light blue
+ 0xDD // light orange / pale yellow
+ 0xEE // orange
+ 0xFF // white
+ -------------------------------
+ */
+#ifdef CONFIG_5DC
+    #define COLOR_EMPTY             0x00 // total transparent
+    #define COLOR_BG                0x33 // transparent gray
+    #define COLOR_BG_DARK           0xAA // transparent black
+    #define COLOR_WHITE             0xFF // Normal white
+    #define COLOR_BLUE              0xCC // normal blue
+    #define COLOR_LIGHTBLUE         0x88
+    #define COLOR_RED               0x66 // normal red
+    #define COLOR_YELLOW            0xDD // normal yellow
+    #define COLOR_BLACK             0x22
+    #define COLOR_ALMOST_BLACK      0x22
+    #define COLOR_CYAN              0xCC
+    #define COLOR_GREEN1            0x55
+    #define COLOR_GREEN2            0x55
+    #define COLOR_ORANGE            0xEE
+#else
+
+
 #define COLOR_EMPTY             0x00 // total transparent
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 #define COLOR_BG                0x03 // transparent black
@@ -273,6 +311,8 @@ bmp_fill(
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
 #define COLOR_ORANGE 19
+
+#endif
 
 static inline uint32_t
 color_word(

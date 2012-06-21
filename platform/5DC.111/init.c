@@ -123,16 +123,6 @@ int magic_off_request = 0;
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {  
-    while(1)
-    {
-        LEDBLUE = LEDON;
-        msleep(1000);
-        LEDBLUE = LEDOFF;
-        msleep(1000);
-        //bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bfnt_puts("Hello, World!", 150, 10, COLOR_WHITE);
-    }
-    
     call("DisablePowerSave");
     menu_init();
     debug_init();
