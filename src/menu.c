@@ -1070,17 +1070,26 @@ menus_display(
                 //~ MENU_NAV_HELP_STRING
         //~ );
 
+#ifdef CONFIG_5DC
+    bmp_fill(0, orig_x, y, 720, 42);
+    bmp_fill(COLOR_WHITE, orig_x, y+42, 720, 1);
+#else
     bmp_fill(40, orig_x, y, 720, 42);
     bmp_fill(70, orig_x, y+42, 720, 1);
+#endif
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children))
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
-
+#ifdef CONFIG_5DC
+        int fg = menu->selected ? COLOR_WHITE : COLOR_WHITE;
+        int bg = menu->selected ? COLOR_BLUE : 0;
+#else
         int fg = menu->selected ? COLOR_WHITE : 70;
         int bg = menu->selected ? COLOR_BLUE : 40;
+#endif
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
@@ -1147,13 +1156,30 @@ submenu_display(struct menu * submenu)
 
     int bx = 45;
     int by = (480 - h)/2 - 30;
+    
     if (!show_only_selected)
     {
+        #ifdef CONFIG_5DC
+        bmp_fill(0,  bx,  by/2, 720-2*bx+4, 50);
+        #else
         bmp_fill(40,  bx,  by, 720-2*bx+4, 50);
-        bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
+        #endif
+        
+        bmp_fill(COLOR_BLACK,  bx,  (by + 50)/2, 720-2*bx+4, h-50);
+        
+        #ifdef CONFIG_5DC
+        bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, 50);
+        #else
         bmp_draw_rect(70,  bx,  by, 720-2*bx, 50);
+        #endif
+        
         bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
+        
+        #ifdef CONFIG_5DC
+        bfnt_puts(submenu->name,  bx + 15,  (by + 5)/2, COLOR_WHITE, 40);
+        #else
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
+        #endif
     }
 
     menu_display(submenu->children,  bx + 50,  by + 50 + 20);

@@ -1275,12 +1275,12 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     if (even)
     {
         for( ; dst < end; dst++)
-            *dst = (*dst & 0x00FF00FF) | 0x22002200;
+            *dst = (*dst & 0x00FF00FF) | 0x02000200;
     }
     else
     {
         for( ; dst < end; dst++)
-            *dst = (*dst & 0xFF00FF00) | 0x00220022;
+            *dst = (*dst & 0xFF00FF00) | 0x00020002;
     }
 }
 
@@ -1291,11 +1291,7 @@ void bmp_dim()
     if (!b) return;
     int i;
     //int j;
-#ifdef CONFIG_5DC
-    for (i = (BMP_H_MINUS)/2; i < (BMP_H_PLUS)/2; i ++)
-#else
     for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
-#endif
     {
         bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, i%2);
     }
