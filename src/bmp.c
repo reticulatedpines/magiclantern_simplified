@@ -1327,7 +1327,7 @@ void bmp_dim()
 #ifdef CONFIG_5DC
     for (i = BMP_H_MINUS; i < BMP_H_PLUS; i+=2)
     {
-        bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, (i/2)%2);
+        bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);
     }
 #else
     for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)

@@ -286,12 +286,12 @@ bmp_fill(
     #define COLOR_BG_DARK           0xAA // transparent black
     #define COLOR_WHITE             0xFF // Normal white
     #define COLOR_BLUE              0xCC // normal blue
-    #define COLOR_LIGHTBLUE         0x88
+    #define COLOR_LIGHTBLUE         0x99
     #define COLOR_RED               0x66 // normal red
     #define COLOR_YELLOW            0xDD // normal yellow
     #define COLOR_BLACK             0x22
     #define COLOR_ALMOST_BLACK      0x22
-    #define COLOR_CYAN              0xCC
+    #define COLOR_CYAN              0x99
     #define COLOR_GREEN1            0x55
     #define COLOR_GREEN2            0x55
     #define COLOR_ORANGE            0xEE

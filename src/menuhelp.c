@@ -51,7 +51,7 @@ void menu_help_show_page(int page)
 
     if (doc)
     {
-        bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
+        bmp_draw_scaled_ex(doc, 0, 0, 360, 240, 0);
         FreeMemory(doc);
     }
     else
