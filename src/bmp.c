@@ -32,7 +32,7 @@
 
 //~ int bmp_enabled = 1;
 
-#define SET_4BIT_PIXEL(p, x, color) *(p) = (x) % 2 ? ((*(p) & 0x0F) | ((color) << 4)) : ((*(p) & 0xF0) | ((color) & 0x0F))    
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = (x) % 2 ? ((*(char*)(p) & 0x0F) | ((color) << 4)) : ((*(char*)(p) & 0xF0) | ((color) & 0x0F))    
 
 static int bmp_idle_flag = 0;
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
