@@ -95,6 +95,10 @@ void info_led_on()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     call("EdLedOn");
+    #endif
+    
+    #if defined(CONFIG_5DC)
+    LEDBLUE = LEDON;
     #else
     _card_led_on();
     #endif
@@ -103,6 +107,10 @@ void info_led_off()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     call("EdLedOff");
+    #endif
+    
+    #if defined(CONFIG_5DC)
+    LEDBLUE = LEDOFF;
     #else
     _card_led_off();
     #endif
@@ -552,8 +560,7 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(2000);
-    save_config(0, 0);
+    msleep(3000);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

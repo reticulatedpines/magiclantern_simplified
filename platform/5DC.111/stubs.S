@@ -643,7 +643,7 @@ NSTUB(0xffae5f8c, FIO_FindFirstEx)
 NSTUB(0xffae6070, FIO_CleanupAfterFindNext_maybe) // not sure
 NSTUB(0x29448, bmp_vram_info)
 NSTUB(0xFF8190D0, GUI_Control)
-NSTUB(0xffab3e24, prop_get_value) // not sure
+NSTUB(0xFFAB3E24, prop_get_value)
 NSTUB( 0xFFAB3CD4, _prop_cleanup ) // not sure
 NSTUB(0xffab3b88, prop_register_slave)
 

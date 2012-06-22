@@ -154,7 +154,7 @@ void my_big_init_task()
                 //~ streq(task->name, "audio_level_task") ||
                 //~ streq(task->name, "bitrate_task") ||
                 //~ streq(task->name, "cartridge_task") ||
-                //~ streq(task->name, "cls_task") ||
+                streq(task->name, "cls_task") ||
                 //~ streq(task->name, "console_task") ||
                 streq(task->name, "debug_task") ||
                 //~ streq(task->name, "dmspy_task") ||
@@ -170,11 +170,11 @@ void my_big_init_task()
                 streq(task->name, "menu_redraw_task") ||
                 //~ streq(task->name, "morse_task") ||
                 //~ streq(task->name, "movtweak_task") ||
-                //~ streq(task->name, "ms100_clock_task") ||
+                streq(task->name, "ms100_clock_task") ||
                 //~ streq(task->name, "notifybox_task") ||
                 //~ streq(task->name, "plugins_task") ||
-                //~ streq(task->name, "seconds_clock_task") ||
-                //~ streq(task->name, "shoot_task") ||
+                streq(task->name, "seconds_clock_task") ||
+                streq(task->name, "shoot_task") ||
                 //~ streq(task->name, "tweak_task") ||
             0 )
         #endif

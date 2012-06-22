@@ -37,6 +37,10 @@ global_property_handler(
     unsigned        len
 )
 {
+#ifdef CONFIG_5DC
+    if (property == 0x80010001) return (void*)_prop_cleanup(global_token, property);
+#endif
+    
     //~ bfnt_puts("Global prop", 0, 0, COLOR_BLACK, COLOR_WHITE);
 
     extern struct prop_handler _prop_handlers_start[];
@@ -171,9 +175,6 @@ int _get_prop_len(int prop)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
-    #ifdef CONFIG_5DC
-    return;
-    #endif
 /* problem: get_prop_len may return 0 :(
 
 
@@ -202,6 +203,4 @@ ok:
 /**
  * For new ports, disable this function on first boots (although it should be pretty much harmless).
  */
-#ifndef CONFIG_5DC
 INIT_FUNC( __FILE__, prop_init );
-#endif

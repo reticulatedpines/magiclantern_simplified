@@ -1083,6 +1083,10 @@ lens_take_picture(
         call("Release");
         #endif
     }
+    #endif
+    
+    #if defined(CONFIG_5DC)
+    call("rssRelease");
     #else
     call("Release");
     #endif

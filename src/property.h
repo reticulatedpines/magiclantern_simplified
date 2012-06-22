@@ -139,8 +139,17 @@
 #define PROP_LVAF_MODE      0x8004001d // 0 = shutter killer, 1 = live mode, 2 = face detect
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C     // 1 == cleaning sensor?
+
+#ifndef CONFIG_5DC
 #define PROP_DL_ACTION          0x80020013 // 0 == end?
+#endif
+
+#ifdef CONFIG_5DC
+#define PROP_EFIC_TEMP          0x80030013
+#else
 #define PROP_EFIC_TEMP          0x80030014
+#endif
+
 #define PROP_EFIC_TEMP_MAYBE            0x010100ed
 //#define PROP_BATTERY_RAW_LEVEL_MAYBE          0x80030014
 
@@ -205,7 +214,12 @@
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
 
+#ifdef CONFIG_5DC
+#define PROP_PICTURE_STYLE 0x80000020
+#else
 #define PROP_PICTURE_STYLE 0x80000028   // 0x81 = std, 82 = portrait, 83 = landscape, 84 = neutral, 85 = faithful, 86 = monochrome, 21 = user 1, 22 = user 2, 23 = user 3
+#endif
+
 #define PROP_PICSTYLE_SETTINGS_STANDARD   0x02060001 // 02060001 for std, 02060002 for portrait... 02060007 for user 1 ... 02060009 for user 3
 #define PROP_PICSTYLE_SETTINGS_PORTRAIT   0x02060002
 #define PROP_PICSTYLE_SETTINGS_LANDSCAPE  0x02060003
