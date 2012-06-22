@@ -560,7 +560,8 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(3000);
+    msleep(2000);
+    menu_benchmark();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

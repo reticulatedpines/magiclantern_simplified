@@ -1525,6 +1525,34 @@ menu_redraw_do()
         }
 }
 
+int _t = 0;
+static int _get_timestamp(struct tm * t)
+{
+    return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
+}
+static void _tic()
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    _t = _get_timestamp(&now);
+}
+static int _toc()
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    return _get_timestamp(&now) - _t;
+}
+
+
+void menu_benchmark()
+{
+    _tic();
+    for (int i = 0; i < 200; i++) menu_redraw_do();
+    int t = _toc();
+    clrscr();
+    NotifyBox(20000, "total: %d ", t);
+}
+
 struct msg_queue * menu_redraw_queue = 0;
 
 static void
