@@ -334,8 +334,7 @@ bmp_puts_w(
 }
 
 
-static char bmp_printf_buf[1024];
-
+// thread safe
 void
 bmp_printf(
     unsigned        fontspec,
@@ -345,8 +344,31 @@ bmp_printf(
     ...
 )
 {
+    va_list            ap;
+
+    char bmp_printf_buf[128];
+
+    va_start( ap, fmt );
+    vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
+    va_end( ap );
+
+    bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+}
+
+// for very large strings only
+void
+big_bmp_printf(
+    unsigned        fontspec,
+    unsigned        x,
+    unsigned        y,
+    const char *        fmt,
+    ...
+)
+{
 BMP_LOCK(
     va_list            ap;
+
+    static char bmp_printf_buf[1024];
 
     va_start( ap, fmt );
     vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
