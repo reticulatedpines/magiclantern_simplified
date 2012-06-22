@@ -82,8 +82,13 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 /** Returns a pointer to the real BMP vram */
 inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
 
+extern int bmp_vram_idle_ptr;
+
 /** Returns a pointer to idle BMP vram */
-inline uint8_t* bmp_vram_idle() { return (uint8_t*) MEM(0x29328); } // no idea, return the real one instead
+inline uint8_t* bmp_vram_idle()
+{
+    return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
+}
 
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)

@@ -53,6 +53,18 @@ void bmp_idle_copy(int direction, int fullsize)
     }
     else
     {
+#ifdef CONFIG_5DC
+        if (direction)
+        {
+            for (int i = 0; i < 240; i ++)
+                memcpy(real+i*BMPPITCH, idle+i*BMPPITCH, 360);
+        }
+        else
+        {
+            for (int i = 0; i < 240; i ++)
+                memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 360);
+        }
+#else
         if (direction)
         {
             for (int i = 0; i < 480; i ++)
@@ -63,6 +75,7 @@ void bmp_idle_copy(int direction, int fullsize)
             for (int i = 0; i < 480; i ++)
                 memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 720);
         }
+#endif
     }
 }
 
@@ -238,7 +251,7 @@ bmp_puts(
         return;
     const unsigned initial_x = *x;
 #ifdef CONFIG_5DC
-    uint8_t * first_row = vram + (*y/2) * pitch + (*x/2);
+    uint8_t * first_row = vram + ((*y)/2) * pitch + ((*x)/2);
 #else
     uint8_t * first_row = vram + (*y) * pitch + (*x);
 #endif
@@ -852,7 +865,7 @@ void bmp_putpixel(int x, int y, uint8_t color)
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     
     #ifdef CONFIG_5DC
-    char* p = &bvram[x/2 + y/2 * BMPPITCH]; 
+    char* p = &bvram[(x)/2 + (y)/2 * BMPPITCH]; 
     *p = x%2 ? ((*p & 0x0F) | (color << 4)) : ((*p & 0xF0) | (color & 0x0F));
     #else
     bvram[x + y * BMPPITCH] = color;
@@ -1262,12 +1275,12 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     if (even)
     {
         for( ; dst < end; dst++)
-            *dst = (*dst & 0x00FF00FF) | 0x02000200;
+            *dst = (*dst & 0x00FF00FF) | 0x22002200;
     }
     else
     {
         for( ; dst < end; dst++)
-            *dst = (*dst & 0xFF00FF00) | 0x00020002;
+            *dst = (*dst & 0xFF00FF00) | 0x00220022;
     }
 }
 
@@ -1278,7 +1291,11 @@ void bmp_dim()
     if (!b) return;
     int i;
     //int j;
+#ifdef CONFIG_5DC
+    for (i = (BMP_H_MINUS)/2; i < (BMP_H_PLUS)/2; i ++)
+#else
     for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
+#endif
     {
         bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, i%2);
     }

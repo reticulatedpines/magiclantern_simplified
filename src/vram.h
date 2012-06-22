@@ -158,7 +158,7 @@ extern struct vram_info vram_lv;
 #define HD2BM_R(y) (HD2BM_Y(y) * BMPPITCH     )
 
 #ifdef CONFIG_5DC
-#define BM(x,y) ((x/2) * 1 + (y/2) * BMPPITCH     )
+#define BM(x,y) (((x)/2) * 1 + ((y)/2) * BMPPITCH     )
 #else
 #define BM(x,y) ((x) * 1 + (y) * BMPPITCH     )
 #endif

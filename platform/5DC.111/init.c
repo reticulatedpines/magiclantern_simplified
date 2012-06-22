@@ -78,14 +78,16 @@ void dump_with_buffer(int addr, int len)
     }
 }
 
-//~ 0x589242    <-- bmp vram buffer
-//~ 0x59E3C2    <-- end of bmp vram
+//~ 0x589240    <-- bmp vram buffer
+//~ 0x59E3C0    <-- end of bmp vram
+
+int bmp_vram_idle_ptr;
 
 void my_init_task()
 {
     msleep(1000);
     hijack_gui_main_task();
-    //~ create_menu_tasks();
+    bmp_vram_idle_ptr = malloc(720*480);
     my_big_init_task();
 }
 
@@ -127,6 +129,7 @@ void my_big_init_task()
     menu_init();
     debug_init();
     call_init_funcs( 0 );
+    
     msleep(200); // leave some time for property handlers to run
 
     config_parse_file( CARD_DRIVE "magic.cfg" );
