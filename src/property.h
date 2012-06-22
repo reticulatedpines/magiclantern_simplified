@@ -301,31 +301,28 @@
 #define PROP_REMOTE_RELEASE            0x8003000A
 #define PROP_REMOTE_SET_BUTTON         0x80020018
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
-#define PROP_CLUSTER_SIZE      0x02010006
-#define PROP_FREE_SPACE        0x02010009
-//#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
-#define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
-#define PROP_CARD_RECORD       0x8003000b // set when writing on the card
-#endif
-
-/** these should be correct. */
 #ifdef CONFIG_5DC
-#define PROP_FOLDER_NUMBER     0x2010000
-#define PROP_FILE_NUMBER       0x2010002
-#define PROP_CARD_RECORD       0x8003000B
-#define PROP_CLUSTER_SIZE      0x2010004
-#define PROP_FREE_SPACE        0x2010006
-
+    #define PROP_FOLDER_NUMBER     0x2010000
+    #define PROP_FILE_NUMBER       0x2010002
+    #define PROP_CARD_RECORD       0x8003000B
+    #define PROP_CLUSTER_SIZE      0x2010004
+    #define PROP_FREE_SPACE        0x2010006
 #else
-
-#define PROP_CLUSTER_SIZE      0x02010007
-#define PROP_FREE_SPACE        0x0201000a // in clusters
-//#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER       0x02010004 // seems to mirror the previous one, but it's increased earlier
-#define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
-#define PROP_CARD_RECORD       0x8003000c // set when writing on the card
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+        #define PROP_CLUSTER_SIZE      0x02010006
+        #define PROP_FREE_SPACE        0x02010009
+        //#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+        #define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
+        #define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
+        #define PROP_CARD_RECORD       0x8003000b // set when writing on the card
+    #else
+        #define PROP_CLUSTER_SIZE      0x02010007
+        #define PROP_FREE_SPACE        0x0201000a // in clusters
+        //#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+        #define PROP_FILE_NUMBER       0x02010004 // seems to mirror the previous one, but it's increased earlier
+        #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
+        #define PROP_CARD_RECORD       0x8003000c // set when writing on the card
+    #endif
 #endif
 
 
