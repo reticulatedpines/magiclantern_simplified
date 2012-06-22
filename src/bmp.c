@@ -337,45 +337,45 @@ bmp_puts_w(
 // thread safe
 void
 bmp_printf(
-    unsigned        fontspec,
-    unsigned        x,
-    unsigned        y,
-    const char *        fmt,
-    ...
-)
+           unsigned        fontspec,
+           unsigned        x,
+           unsigned        y,
+           const char *        fmt,
+           ...
+           )
 {
     va_list            ap;
-
+    
     char bmp_printf_buf[128];
-
+    
     va_start( ap, fmt );
     vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
     va_end( ap );
-
+    
     bmp_puts( fontspec, &x, &y, bmp_printf_buf );
 }
 
 // for very large strings only
 void
 big_bmp_printf(
-    unsigned        fontspec,
-    unsigned        x,
-    unsigned        y,
-    const char *        fmt,
-    ...
-)
+               unsigned        fontspec,
+               unsigned        x,
+               unsigned        y,
+               const char *        fmt,
+               ...
+               )
 {
-BMP_LOCK(
-    va_list            ap;
-
-    static char bmp_printf_buf[1024];
-
-    va_start( ap, fmt );
-    vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
-    va_end( ap );
-
-    bmp_puts( fontspec, &x, &y, bmp_printf_buf );
-)
+    BMP_LOCK(
+             va_list            ap;
+             
+             static char bmp_printf_buf[1024];
+             
+             va_start( ap, fmt );
+             vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
+             va_end( ap );
+             
+             bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+             )
 }
 
 #if 0
@@ -1102,7 +1102,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
                         #ifdef CONFIG_5DC
-                        bmp_putpixel(px+j*8+k+xo, (py+i+yo) * 2, fg);
+                        bmp_putpixel(px+j*8+k+xo, py + (i+yo)*2, fg);
                         #else
                         bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
                         #endif
@@ -1291,18 +1291,29 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
+#ifdef CONFIG_5DC
+    n = n/2;
+#endif
 
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
     if (even)
     {
         for( ; dst < end; dst++)
+#ifdef CONFIG_5DC
+            *dst = (*dst & 0x0F0F0F0F) | 0x20202020;
+#else
             *dst = (*dst & 0x00FF00FF) | 0x02000200;
+#endif
     }
     else
     {
         for( ; dst < end; dst++)
+#ifdef CONFIG_5DC
+            *dst = (*dst & 0xF0F0F0F0) | 0x02020202;
+#else
             *dst = (*dst & 0xFF00FF00) | 0x00020002;
+#endif
     }
 }
 
@@ -1313,10 +1324,17 @@ void bmp_dim()
     if (!b) return;
     int i;
     //int j;
+#ifdef CONFIG_5DC
+    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i+=2)
+    {
+        bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, (i/2)%2);
+    }
+#else
     for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
     {
         bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, i%2);
     }
+#endif
 }
 
 void bmp_make_semitransparent()

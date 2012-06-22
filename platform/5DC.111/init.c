@@ -87,7 +87,7 @@ void my_init_task()
 {
     msleep(1000);
     hijack_gui_main_task();
-    bmp_vram_idle_ptr = malloc(720*480);
+    bmp_vram_idle_ptr = malloc(360*240);
     my_big_init_task();
 }
 

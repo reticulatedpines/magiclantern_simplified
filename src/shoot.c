@@ -4628,6 +4628,7 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
+#ifndef CONFIG_5DC
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -4698,6 +4699,7 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+#endif
 
 /*#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
     {

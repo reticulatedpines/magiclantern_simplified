@@ -1730,7 +1730,9 @@ lens_init( void* unused )
     //~ lens_sem = create_named_semaphore( "lens_info", 1 );
     focus_done_sem = create_named_semaphore( "focus_sem", 1 );
     //~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
+#ifndef CONFIG_5DC
     menu_add("Movie", lens_menus, COUNT(lens_menus));
+#endif
 #ifndef CONFIG_FULLFRAME
     menu_add("Tweaks", tweak_menus, COUNT(tweak_menus));
 #endif

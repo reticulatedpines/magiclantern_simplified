@@ -173,7 +173,7 @@ NSTUB(0xFF815108, canon_gui_main_task)
 
 DEF(aK213, 0xFF811078)
 
-NSTUB(0xFFB20698, DebugMsg)
+NSTUB(0xFFB20698, DryosDebugMsg)
 
 NSTUB(0xFFB091D0, TurnOnDisplay)
 NSTUB(0xFFB09530, TurnOffDisplay)

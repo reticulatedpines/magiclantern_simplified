@@ -39,6 +39,7 @@ void my_gui_task( void )
         {
             if (handle_ml_menu_erase(event) == 0) goto event_loop_bottom;
             if (handle_ml_menu_keys(event) == 0) goto event_loop_bottom;
+            if (handle_buttons_being_held(event) == 0) goto event_loop_bottom;
         }
         
         switch ( event->type )

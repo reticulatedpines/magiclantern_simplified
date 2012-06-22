@@ -416,7 +416,28 @@ extern void *ReleaseRecursiveLock(void *lock);
 
 
 
-
+/** 5dc bitmap icons (ones that work and what they are) */
+/*  
+ 0x9EBDEF   =   squigly line like a tilde
+ 0x8DBCEF   =   dash
+ 0xBA96EE   =   play icon
+ 0xBB96EE   =   camera icon
+ 0xBE96EE   =   computer monitor icon
+ 0xB596EE   =   35mm film square
+ 0xB496EE   =   info 'i'
+ 0xB396EE   =   sharpness icon
+ 0xB296EE   =   brightness icon [focus]
+ 0xB196EE   =   contrast icon
+ 0xB096EE   =   picstyle icon
+ 0xAF96EE   =   play icon
+ 0xAD96EE   =   direct print icon
+ 0xA996EE   =   letter L
+ 0xA896EE   =   letter M
+ 0xA796EE   =   letter S
+ 0xA696EE   =   step icon
+ 0xA596EE   =   "transfer" arrows (arrows pointing left/right) icon
+ 0xA496EE   =   RAW icon
+ */
 
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
@@ -445,18 +466,13 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_KEY_SQUARE 0x899aee
 #define ICON_L_SQUARE 0x8a9aee
 #define ICON_N_SQUARE 0x8b9aee
-#define ICON_P_SQUARE 0x8c9aee
 #define ICON_RECTANGLE_VERT 0x8d9aee
-#define ICON_CF 0x8e9aee
 #define ICON_4NEIGHBOURS 0x909aee
-#define ICON_AE 0x919aee
 #define ICON_ISO 0x929aee
 #define ICON_8ARROWS 0x939aee
-#define ICON_SMILE 0x949aee
 #define ICON_GRID1 0x959aee
 #define ICON_GRID2 0x969aee
 #define ICON_STAR 0x979aee
-#define ICON_LV 0x989aee
 #define ICON_RECTANGLE_ROUNDED 0x999aee
 #define ICON_VOICE 0x9a9aee
 #define ICON_VIDEOCAM 0x9b9aee
@@ -465,3 +481,18 @@ extern void *ReleaseRecursiveLock(void *lock);
 
 #define ICON_ML_PLAY -1
 #define ICON_ML_SUBMENU -100
+
+/** 5dc has to use some different icons than dryos cameras */
+#ifdef CONFIG_5DC
+#define ICON_CF 0xAC96EE
+#define ICON_AE 0xB096EE
+#define ICON_P_SQUARE 0xA596EE
+#define ICON_SMILE 0xB596EE
+#define ICON_LV 0xA996EE
+#else
+#define ICON_CF 0x8e9aee
+#define ICON_AE 0x919aee
+#define ICON_P_SQUARE 0x8c9aee
+#define ICON_SMILE 0x949aee
+#define ICON_LV 0x989aee
+#endif

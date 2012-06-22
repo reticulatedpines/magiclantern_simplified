@@ -553,6 +553,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    save_config(0, 0);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1787,10 +1788,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     //~ msleep(2000);
     //~ stress_test_random_task(0);
     //~ TASK_RETURN;
-        
+    
     TASK_LOOP
     {
-
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);

@@ -65,8 +65,13 @@ struct vram_info
         int             height;
 };
 
+#ifdef CONFIG_5DC
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x10000000))
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x10000000))
+#else
 #define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x40000000))
 #define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x40000000))
+#endif
 
 void redraw();
 
