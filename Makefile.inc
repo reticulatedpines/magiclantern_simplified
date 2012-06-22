@@ -1,9 +1,9 @@
 #generic makefile
 
 # for yagarto, use ARM_ABI=none-eabi
-ARM_ABI=elf
+ARM_ABI=none-eabi
 
-ARM_PATH=~/arm-toolchain462
+ARM_PATH=~/yagarto-4.6.2
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
