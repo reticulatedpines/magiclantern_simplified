@@ -308,7 +308,18 @@
 #define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
 #define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
 #define PROP_CARD_RECORD       0x8003000b // set when writing on the card
+#endif
+
+/** these should be correct. */
+#ifdef CONFIG_5DC
+#define PROP_FOLDER_NUMBER     0x2010000
+#define PROP_FILE_NUMBER       0x2010002
+#define PROP_CARD_RECORD       0x8003000B
+#define PROP_CLUSTER_SIZE      0x2010004
+#define PROP_FREE_SPACE        0x2010006
+
 #else
+
 #define PROP_CLUSTER_SIZE      0x02010007
 #define PROP_FREE_SPACE        0x0201000a // in clusters
 //#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
@@ -316,6 +327,8 @@
 #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
 #define PROP_CARD_RECORD       0x8003000c // set when writing on the card
 #endif
+
+
 
 #define PROP_USER_FILE_PREFIX  0x02050004
 #define PROP_SELECTED_FILE_PREFIX  0x02050008

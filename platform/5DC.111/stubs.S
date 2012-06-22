@@ -59,6 +59,8 @@ NSTUB(0xFFB2A5B0, free_dma_memory)
 NSTUB(0xFFB2F750, GetMemoryInformation)
 //---------------------
 
+NSTUB(0xFF9CAB40, FA_RemoteRelease)
+NSTUB(0xFF86EB28, GUILock_TurnOnDisplay)
 
 NSTUB(0xFF8191A0, NotifyGUIEvent)
 

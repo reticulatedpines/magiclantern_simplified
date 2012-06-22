@@ -5728,7 +5728,7 @@ shoot_task( void* unused )
         
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
-
+        
         if (intervalometer_running)
         {
             int seconds_clock_0 = seconds_clock;

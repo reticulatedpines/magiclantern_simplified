@@ -2690,10 +2690,10 @@ ack:
 
 #endif
 
-#ifndef CONFIG_500D
-#define num_properties 8192
-#else
+#if defined(CONFIG_500D) || defined(CONFIG_5DC)
 #define num_properties 2048
+#else
+#define num_properties 8192
 #endif
 unsigned* property_list = 0;
 
