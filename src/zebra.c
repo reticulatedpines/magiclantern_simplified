@@ -2999,7 +2999,7 @@ struct menu_entry zebra_menus[] = {
         .display    = crop_display,
         .select     = menu_binary_toggle,
         .help = "Cropmarks or custom grids for framing.",
-        .essential = FOR_MOVIE,
+        .essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bitmap",
@@ -3158,6 +3158,7 @@ struct menu_entry zebra_menus[] = {
         .priv       = &vectorscope_draw,
         .max = 1,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
+        .essential = FOR_LIVEVIEW,
     },
     #ifdef CONFIG_60D
     {
