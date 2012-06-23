@@ -222,31 +222,27 @@ void update_vram_params()
 #ifdef CONFIG_5D2
     vram_hd.width  = lv_dispsize > 1 ? 1120 : recording ? 1872 : 1024;
     vram_hd.height = lv_dispsize > 1 ?  746 : recording ? 1080 : 680;
-#endif
-#ifdef CONFIG_50D
+#elif defined(CONFIG_50D)
     vram_hd.width  = lv_dispsize > 1 ? 944 : recording ? 1560 : 1024;
     vram_hd.height = lv_dispsize > 1 ? 632 : recording ?  884 : 680;
-#endif
-#ifdef CONFIG_500D
+#elif defined(CONFIG_500D)
     vram_hd.width  = lv_dispsize > 1 ?  944 : !is_movie_mode() ?  928 : recording ? (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 1576 : video_mode_resolution == 2 ? 720 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 928 : video_mode_resolution == 2 ? 928 : 0);
     vram_hd.height = lv_dispsize > 1 ?  632 : !is_movie_mode() ?  616 : recording ? (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ?  632 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ? 616 : video_mode_resolution == 2 ? 616 : 0);
-#endif
-#if defined(CONFIG_550D) || defined(CONFIG_60D)
+#elif defined(CONFIG_550D) || defined(CONFIG_60D)
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : recording ? (video_mode_resolution == 0 ? 1720 : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1056 : video_mode_resolution == 1 ? 1024 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : recording ? (video_mode_resolution == 0 ?  974 : video_mode_resolution == 1 ?  580 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ?  704 : video_mode_resolution == 1 ?  680 : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
-#endif
-#ifdef CONFIG_600D
+#elif defined(CONFIG_600D)
     // When USB is connected, resolution drops to 1056x756, however it goes back to 1680x945 when a recording is started
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (video_mode_crop ? 1728 : ((recording==0 && logical_connect) ? 1056 : 1680)) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (video_mode_crop ?  972 :  ((recording==0 && logical_connect) ? 756 : 945)) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? 480 : 0);
-#endif
-#ifdef CONFIG_1100D // not tested, just copied from 600D
+#elif defined(CONFIG_1100D) // not tested, just copied from 600D
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
-#endif
-#ifdef CONFIG_5D3
+#elif defined(CONFIG_5D3)
     vram_hd.width  = lv_dispsize > 1 ? 1152 : 1904;
     vram_hd.height = lv_dispsize > 1 ?  768 : 1270;
+#else
+    error
 #endif
 
     vram_lv.pitch = vram_lv.width * 2; 
@@ -258,15 +254,13 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
+    #elif defined(CONFIG_500D) || defined(CONFIG_5D3)
+    int bar_x = 0;
+    int bar_y = 0;
+    off_43+=0; // bypass warning
     #else
-        #if defined(CONFIG_500D) || defined(CONFIG_5D3)
-        int bar_x = 0;
-        int bar_y = 0;
-        off_43+=0; // bypass warning
-        #else
-        int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
-        int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
-        #endif
+    int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
+    int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
     #endif
         
     lv2hd.sx = 1024 * vram_hd.width / BM2LV_DX(os.x_ex - bar_x * 2);

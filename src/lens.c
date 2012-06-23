@@ -876,12 +876,10 @@ void draw_ml_topbar(int double_buffering, int clear)
     x += 70;
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
-    #else
-        #ifdef CONFIG_550D
+    #elif defined(CONFIG_550D)
         bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
-        #else
+    #else
         bmp_printf( font, x, y,"T=%d", efic_temp);
-        #endif
     #endif
 
     x += 160;
@@ -1074,18 +1072,11 @@ lens_take_picture(
         #ifdef CONFIG_5D2
         int status = 0;
         PtpDps_remote_release_SW1_SW2_worker(&status);
-        //~ SW1(1,50);
-        //~ SW2(1,250);
-        //~ SW2(0,50);
-        //~ SW1(0,50);
-        //~ call("Release");
         #else
         call("Release");
         #endif
     }
-    #endif
-    
-    #if defined(CONFIG_5DC)
+    #elif defined(CONFIG_5DC)
     call("rssRelease");
     #else
     call("Release");
