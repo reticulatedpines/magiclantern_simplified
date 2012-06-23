@@ -1929,7 +1929,7 @@ struct menu_entry play_menus[] = {
         .max = 3,
         .display = play_set_wheel_display,
         .help = "What to do when you hold SET and turn MainDial (Wheel)",
-        .essential = FOR_PLAYBACK,
+        .essential = FOR_PHOTO,
         .icon_type = IT_DICE,
         //~ .edit_mode = EM_MANY_VALUES,
     },
@@ -1940,7 +1940,7 @@ struct menu_entry play_menus[] = {
         .display = qrplay_display,
         //~ .help = "Go to play mode to enable zooming and maybe other keys.",
         .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
-        .essential = FOR_PLAYBACK,
+        .essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
     {
@@ -1948,7 +1948,7 @@ struct menu_entry play_menus[] = {
         .priv = &quickreview_liveview, 
         .max = 1,
         .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
-        .essential = FOR_PLAYBACK,
+        .essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
     {
@@ -1957,7 +1957,7 @@ struct menu_entry play_menus[] = {
         .max = 2,
         .display = quickzoom_display,
         .help = "Faster zoom in Play mode, for pixel peeping :)",
-        .essential = FOR_PLAYBACK,
+        .essential = FOR_PHOTO,
         .icon_type = IT_DICE,
     },
 /*    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -1977,7 +1977,7 @@ struct menu_entry play_menus[] = {
         .select = menu_binary_toggle, 
         .display = play_lv_display,
         .help = "You may use the LiveView button to protect images quickly.",
-        .essential = FOR_PLAYBACK,
+        .essential = FOR_PHOTO,
     },
 #endif
     {
@@ -1986,7 +1986,7 @@ struct menu_entry play_menus[] = {
         .select = menu_binary_toggle, 
         .display = quick_delete_print,
         .help = "Delete files quickly with SET+Erase (be careful!!!)",
-        .essential = FOR_PLAYBACK,
+        .essential = FOR_PHOTO,
     },
 };
 
