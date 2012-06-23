@@ -4481,6 +4481,15 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+            {
+                .name = "Black Level", 
+                .priv = &digic_black_level,
+                .min = 0,
+                .max = 200,
+                .display = digic_black_print,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
             /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,
@@ -4562,16 +4571,6 @@ static struct menu_entry expo_menus[] = {
                 .choices = (const char *[]) {"C 100/160x", "ML ISOs"},
                 .icon_type = IT_DICE,
             },
-            #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
-            {
-                .name = "Black Level      ", 
-                .priv = &digic_black_level,
-                .min = 0,
-                .max = 200,
-                .display = digic_black_print,
-                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
-            },
-            #endif
             /*{
                 .name = "Lift Shadows",
                 .priv = &digic_shadow_lift,

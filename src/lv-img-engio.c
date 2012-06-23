@@ -105,7 +105,7 @@ digic_black_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Black Level   : %s%d",
+        "Black Level : %s%d",
         digic_black_level > 100 ? "+" : "",
         digic_black_level-100
     );
