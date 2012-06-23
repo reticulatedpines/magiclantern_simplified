@@ -472,6 +472,19 @@ menu_find_by_name(
     return new_menu;
 }
 
+static int
+menu_has_visible_items(struct menu_entry *  menu)
+{
+    while( menu )
+    {
+        if (advanced_mode || IS_ESSENTIAL(menu))
+        {
+            return 1;
+        }
+        menu = menu->next;
+    }
+    return 0;
+}
 
 void
 menu_add(
@@ -895,19 +908,6 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     #endif
 }
 
-static int
-menu_has_visible_items(struct menu_entry *  menu)
-{
-    while( menu )
-    {
-        if (advanced_mode || IS_ESSENTIAL(menu))
-        {
-            return 1;
-        }
-        menu = menu->next;
-    }
-    return 0;
-}
 
 static void
 menu_display(
@@ -1402,6 +1402,37 @@ menu_entry_move(
         // warning: would block if the menu is empty
 }
 
+
+// Make sure we will not display an empty menu
+// If the menu or the selection is empty, move back and forth to restore a valid selection
+static void menu_make_sure_selection_is_valid()
+{
+    if (advanced_mode) return; // all menus displayed
+    
+    struct menu * menu = get_selected_menu();
+ 
+    // current menu has any valid items in current mode?
+    if (!menu_has_visible_items(menu->children))
+    {
+        menu_move(menu, -1); menu = get_selected_menu();
+        menu_move(menu, 1); menu = get_selected_menu();
+    }
+
+    // currently selected menu entry is visible?
+    struct menu_entry * entry = menu->children;
+    for( ; entry ; entry = entry->next )
+    {
+        if( entry->selected )
+            break;
+    }
+    if (entry->selected && !IS_ESSENTIAL(entry))
+    {
+        menu_entry_move(menu, -1);
+        menu_entry_move(menu, 1);
+    }
+}
+
+
 /*static void menu_select_current(int reverse)
 {
     struct menu * menu = menus;
@@ -1464,8 +1495,9 @@ menu_redraw_do()
                 prev_so = show_only_selected;
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
-                take_semaphore(menu_redraw_sem, 0);
-                
+                //~ take_semaphore(menu_redraw_sem, 0);
+                menu_make_sure_selection_is_valid();
+            
                 if (!show_only_selected || !submenu_mode)
                     menus_display( menus, 0, 0 ); 
 
@@ -1480,7 +1512,7 @@ menu_redraw_do()
                     else implicit_submenu_display();
                 }
                 
-                give_semaphore(menu_redraw_sem);
+                //~ give_semaphore(menu_redraw_sem);
 
                 if (show_only_selected) 
                 {
@@ -1666,17 +1698,6 @@ handle_ml_menu_keys(struct event * event)
 
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
-
-    // Make sure we will not display an empty menu
-    take_semaphore(menu_redraw_sem, 0);
-    if (!menu_has_visible_items(menu->children))
-    {
-        menu_move(menu, -1); menu = get_selected_menu();
-        menu_move(menu, 1); menu = get_selected_menu();
-    }
-    menu_entry_move(menu, -1);
-    menu_entry_move(menu, 1);
-    give_semaphore(menu_redraw_sem);
 
     struct menu * main_menu = menu;
     if (submenu_mode)
