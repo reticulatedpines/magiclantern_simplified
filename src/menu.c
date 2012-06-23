@@ -2059,6 +2059,9 @@ menu_task( void* unused )
 
             if (gui_state == GUISTATE_MENUDISP && menu_shown)
                 menu_close();
+
+            if (!DISPLAY_IS_ON && menu_shown)
+                menu_close();
             
             continue;
         }
