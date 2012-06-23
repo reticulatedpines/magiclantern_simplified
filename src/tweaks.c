@@ -1830,6 +1830,7 @@ static struct menu_entry display_menus[] = {
             },
             MENU_EOL
         },
+        .essential = FOR_LIVEVIEW,
     },
     {
         .name = "Contrast       ",
@@ -1839,6 +1840,7 @@ static struct menu_entry display_menus[] = {
         .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
         .help = "For LiveView preview only. Does not affect recording.",
         .edit_mode = EM_MANY_VALUES_LV,
+        .essential = FOR_LIVEVIEW,
     },
     {
         .name = "Saturation",
@@ -1847,6 +1849,7 @@ static struct menu_entry display_menus[] = {
         .display = preview_saturation_display,
         .help = "For LiveView preview only. Does not affect recording.",
         .edit_mode = EM_MANY_VALUES_LV,
+        .essential = FOR_LIVEVIEW,
     },
     {
         .name = "Color Scheme   ",
@@ -1890,6 +1893,7 @@ static struct menu_entry display_menus[] = {
         .select = menu_binary_toggle,
         .help = "Prevents display mirroring, which may reverse ML texts.",
         .icon_type = IT_DISABLE_SOME_FEATURE,
+        .essential = FOR_LIVEVIEW,
     },
 #endif
 #ifdef CONFIG_KILL_FLICKER
@@ -1917,6 +1921,7 @@ static struct menu_entry display_menus[] = {
         .display = af_frame_autohide_display,
         .help = "You can hide the focus box (the little white rectangle).",
         .icon_type = IT_DISABLE_SOME_FEATURE,
+        .essential = FOR_LIVEVIEW,
     },
 };
 
