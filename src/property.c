@@ -37,6 +37,10 @@ global_property_handler(
     unsigned        len
 )
 {
+#ifdef CONFIG_5DC
+    if (property == 0x80010001) return (void*)_prop_cleanup(global_token, property);
+#endif
+    
     //~ bfnt_puts("Global prop", 0, 0, COLOR_BLACK, COLOR_WHITE);
 
     extern struct prop_handler _prop_handlers_start[];

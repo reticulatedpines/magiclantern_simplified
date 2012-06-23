@@ -676,7 +676,11 @@ void submenu_icon(int x, int y)
 void submenu_only_icon(int x, int y, int value)
 {
     //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
+#ifdef CONFIG_5DC
+    int color = value ? COLOR_GREEN1 : 0xAA;
+#else
     int color = value ? COLOR_GREEN1 : 45;
+#endif
     for (int r = 0; r < 3; r++)
     {
         draw_circle(x + 8, y + 10, r, color);
@@ -687,7 +691,11 @@ void submenu_only_icon(int x, int y, int value)
         draw_circle(x + 9, y + 22, r, color);
     }
     
+#ifdef CONFIG_5DC
+    color = value ? COLOR_WHITE : 0xAA;
+#else
     color = value ? COLOR_WHITE : 45;
+#endif
     bmp_draw_rect(color, x + 15, y + 10, 10, 1);
     bmp_draw_rect(color, x + 15, y + 16, 10, 1);
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
@@ -718,7 +726,11 @@ void size_icon(int x, int y, int current, int nmax)
 
 void dice_icon(int x, int y, int current, int nmax)
 {
+#ifdef CONFIG_5DC
+    #define C(i) (current == (i) ? COLOR_GREEN1 : 0xAA), (current == (i) ? 6 : 4)
+#else
     #define C(i) (current == (i) ? COLOR_GREEN1 : 50), (current == (i) ? 6 : 4)
+#endif
     //~ x -= 40;
     //~ x += 16; y += 16;
     switch (nmax)
@@ -811,7 +823,11 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "Black"))
         maru(x, y, COLOR_WHITE);
     else if (streq(color, "Luma"))
+#ifdef CONFIG_5DC
+        maru(x, y, 0x33);
+#else
         maru(x, y, 60);
+#endif
     else if (streq(color, "RGB"))
     {
         dot(x,     y - 7, COLOR_RED, 5);
@@ -821,7 +837,11 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
+#ifdef CONFIG_5DC
+        maru(x, y, 0xAA);
+#else
         maru(x, y, 40);
+#endif
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -847,12 +867,24 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     warning_msg = 0;
     switch(type)
     {
+#ifdef CONFIG_5DC
+        case MNI_OFF: maru(x, y, 0xAA); return;
+#else
         case MNI_OFF: maru(x, y, 40); return;
+#endif
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
+#ifdef CONFIG_5DC
+        case MNI_NEUTRAL: maru(x, y, 0x33); return;
+#else
         case MNI_NEUTRAL: maru(x, y, 60); return;
+#endif
         case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
+#ifdef CONFIG_5DC
+        case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
+#else
         case MNI_AUTO: maru(x, y, 9); return;
+#endif
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
         case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
@@ -1070,17 +1102,26 @@ menus_display(
                 //~ MENU_NAV_HELP_STRING
         //~ );
 
+#ifdef CONFIG_5DC
+    bmp_fill(0, orig_x, y, 720, 42);
+    bmp_fill(COLOR_WHITE, orig_x, y+42, 720, 1);
+#else
     bmp_fill(40, orig_x, y, 720, 42);
     bmp_fill(70, orig_x, y+42, 720, 1);
+#endif
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children))
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
-
+#ifdef CONFIG_5DC
+        int fg = menu->selected ? COLOR_BLUE : COLOR_WHITE;
+        int bg = menu->selected ? COLOR_BLUE : 0;
+#else
         int fg = menu->selected ? COLOR_WHITE : 70;
         int bg = menu->selected ? COLOR_BLUE : 40;
+#endif
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
@@ -1094,7 +1135,9 @@ menus_display(
             int icon_w = 0;
             if (menu->icon)
             {
+            #ifndef CONFIG_5DC
                 bmp_fill(bg, x+1, y, 200, 40);
+            #endif
                 if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
                 else icon_w = bfnt_draw_char(menu->icon, x, y, fg, bg);
             }
@@ -1104,7 +1147,11 @@ menus_display(
                 //~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
                 x += w;
             }
+        #ifndef CONFIG_5DC
             x += 47;
+        #else
+            x += 57;
+        #endif
             //~ if (menu->selected)
             //~ {
                 //~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
@@ -1147,11 +1194,23 @@ submenu_display(struct menu * submenu)
 
     int bx = 45;
     int by = (480 - h)/2 - 30;
+    
     if (!show_only_selected)
     {
+        #ifdef CONFIG_5DC
+        bmp_fill(0,  bx,  by, 720-2*bx+4, 50);
+        #else
         bmp_fill(40,  bx,  by, 720-2*bx+4, 50);
+        #endif
+        
         bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
+        
+        #ifdef CONFIG_5DC
+        bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, 50);
+        #else
         bmp_draw_rect(70,  bx,  by, 720-2*bx, 50);
+        #endif
+        
         bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
@@ -1466,6 +1525,34 @@ menu_redraw_do()
         }
 }
 
+int _t = 0;
+static int _get_timestamp(struct tm * t)
+{
+    return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
+}
+static void _tic()
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    _t = _get_timestamp(&now);
+}
+static int _toc()
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    return _get_timestamp(&now) - _t;
+}
+
+
+void menu_benchmark()
+{
+    _tic();
+    for (int i = 0; i < 200; i++) menu_redraw_do();
+    int t = _toc();
+    clrscr();
+    NotifyBox(20000, "total: %d ", t);
+}
+
 struct msg_queue * menu_redraw_queue = 0;
 
 static void
@@ -1700,6 +1787,9 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_FUNC:
     case BGMT_LV:
 #endif
+#ifdef CONFIG_5DC
+    case BGMT_JUMP:
+#endif
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // auto setting select
         //~ menu_damage = 1;
@@ -1752,7 +1842,9 @@ menu_init( void )
 #if defined(CONFIG_500D)
     menu_find_by_name( "Movie", ICON_FILM );
 #endif
+#ifndef CONFIG_5DC
     menu_find_by_name( "Movie", ICON_VIDEOCAM );
+#endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
     //~ menu_find_by_name( "Brack" );
     menu_find_by_name( "Focus", ICON_SHARPNESS );
@@ -1846,6 +1938,7 @@ open_canon_menu()
 
 void piggyback_canon_menu()
 {
+#ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
     if (is_movie_mode()) return; // doesn'tworkstation
     #endif
@@ -1863,10 +1956,12 @@ void piggyback_canon_menu()
         msleep(100);
         menu_redraw();
     }
+#endif
 }
 
 void close_canon_menu()
 {
+#ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
     if (is_movie_mode()) return; // doesn'tworkstation
     #endif
@@ -1875,6 +1970,7 @@ void close_canon_menu()
     if (gui_state == GUISTATE_MENUDISP) return;
     SetGUIRequestMode(0);
     msleep(200);
+#endif
 }
 
 static void menu_open() 

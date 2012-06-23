@@ -65,8 +65,13 @@ struct vram_info
         int             height;
 };
 
+#ifdef CONFIG_5DC
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x10000000))
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x10000000))
+#else
 #define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x40000000))
 #define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x40000000))
+#endif
 
 void redraw();
 
@@ -157,7 +162,11 @@ extern struct vram_info vram_lv;
 #define BM2HD_R(y) (BM2HD_Y(y) * vram_hd.pitch)
 #define HD2BM_R(y) (HD2BM_Y(y) * BMPPITCH     )
 
+#ifdef CONFIG_5DC
+#define BM(x,y) (((x)/2) * 1 + ((y)/2) * BMPPITCH     )
+#else
 #define BM(x,y) ((x) * 1 + (y) * BMPPITCH     )
+#endif
 #define LV(x,y) ((x) * 2 + (y) * vram_lv.pitch)
 #define HD(x,y) ((x) * 2 + (y) * vram_hd.pitch)
 #define BM_R(y) ((y) * BMPPITCH     )

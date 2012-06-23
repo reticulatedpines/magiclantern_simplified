@@ -1083,6 +1083,10 @@ lens_take_picture(
         call("Release");
         #endif
     }
+    #endif
+    
+    #if defined(CONFIG_5DC)
+    call("rssRelease");
     #else
     call("Release");
     #endif
@@ -1506,6 +1510,7 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
     lens_info.kelvin = value;
 }
 
+#ifndef CONFIG_5DC
 uint16_t custom_wb_gains[CUSTOM_WB_PROP_LEN];
 PROP_HANDLER(PROP_CUSTOM_WB)
 {
@@ -1515,9 +1520,11 @@ PROP_HANDLER(PROP_CUSTOM_WB)
     lens_info.WBGain_G = gains[18];
     lens_info.WBGain_B = gains[19];
 }
+#endif
 
 void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
 {
+#ifndef CONFIG_5DC
     // normalize: green gain should be always 1
     //~ gain_G = COERCE(gain_G, 4, 32000);
     //~ gain_R = COERCE(gain_R * 1024 / gain_G, 128, 32000);
@@ -1540,6 +1547,7 @@ void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
     int mode = WB_CUSTOM;
     prop_request_change(PROP_WB_MODE_LV, &mode, 4);
     prop_request_change(PROP_WB_MODE_PH, &mode, 4);
+#endif
 }
 
 #define LENS_GET(param) \
@@ -1726,7 +1734,9 @@ lens_init( void* unused )
     //~ lens_sem = create_named_semaphore( "lens_info", 1 );
     focus_done_sem = create_named_semaphore( "focus_sem", 1 );
     //~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
+#ifndef CONFIG_5DC
     menu_add("Movie", lens_menus, COUNT(lens_menus));
+#endif
 #ifndef CONFIG_FULLFRAME
     menu_add("Tweaks", tweak_menus, COUNT(tweak_menus));
 #endif

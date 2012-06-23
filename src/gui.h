@@ -33,6 +33,10 @@
 #include "../platform/5D3.112/gui.h"
 #endif
 
+#ifdef CONFIG_5DC
+#include "../platform/5DC.111/gui.h"
+#endif
+
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 

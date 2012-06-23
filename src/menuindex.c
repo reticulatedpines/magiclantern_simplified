@@ -31,6 +31,9 @@ struct menu_entry help_menus[] = {
         #ifdef CONFIG_5D2
         .name = "Pict.Style : Bring up submenu...",
         #endif
+        #ifdef CONFIG_5DC
+        .name = "Press JUMP : Bring up submenu...",
+        #endif
         .essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {

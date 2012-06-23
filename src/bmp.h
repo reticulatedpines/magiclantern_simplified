@@ -68,6 +68,33 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  */
 
 /** These are the hard limits - never ever write outside them! */
+#ifdef CONFIG_5DC
+
+#define BMP_W_PLUS 720
+#define BMP_W_MINUS 0
+#define BMP_H_PLUS 480
+#define BMP_H_MINUS 0
+
+#define BMPPITCH 360
+#define BMP_VRAM_SIZE (360*240)
+#define BMP_HDMI_OFFSET 0
+
+/** Returns a pointer to the real BMP vram */
+inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
+
+extern int bmp_vram_idle_ptr;
+
+/** Returns a pointer to idle BMP vram */
+inline uint8_t* bmp_vram_idle()
+{
+    return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
+}
+
+inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
+#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
+
+#else // dryos
+
 #define BMP_W_PLUS 840
 #define BMP_W_MINUS -120
 #define BMP_H_PLUS 510
@@ -118,6 +145,8 @@ inline uint8_t* bmp_vram_idle()
 {
     return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
 }
+#endif
+
 
 #define BMP_TOTAL_WIDTH (BMP_W_PLUS - BMP_W_MINUS)
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
@@ -231,6 +260,44 @@ bmp_fill(
 
 
 /** Some selected colors */
+
+/* 5dc uses 4-bit colors :(
+ -----------------------------
+ 0x11 // lighter gray
+ 0x22 // dark gray almost black
+ 0x33 // light gray
+ 0x44 // light grey background of menu
+ 0x55 // light green / lime green
+ 0x66 // red
+ 0x77 // brown red / maroon
+ 0x88 // light blue
+ 0x99 // light gray
+ 0xAA // darker gray
+ 0xBB // brown red / maroon
+ 0xCC // light blue
+ 0xDD // light orange / pale yellow
+ 0xEE // orange
+ 0xFF // white
+ -------------------------------
+ */
+#ifdef CONFIG_5DC
+    #define COLOR_EMPTY             0x00 // total transparent
+    #define COLOR_BG                0x33 // transparent gray
+    #define COLOR_BG_DARK           0xAA // transparent black
+    #define COLOR_WHITE             0xFF // Normal white
+    #define COLOR_BLUE              0xCC // normal blue
+    #define COLOR_LIGHTBLUE         0x99
+    #define COLOR_RED               0x66 // normal red
+    #define COLOR_YELLOW            0xDD // normal yellow
+    #define COLOR_BLACK             0x22
+    #define COLOR_ALMOST_BLACK      0x22
+    #define COLOR_CYAN              0x99
+    #define COLOR_GREEN1            0x55
+    #define COLOR_GREEN2            0x55
+    #define COLOR_ORANGE            0xEE
+#else
+
+
 #define COLOR_EMPTY             0x00 // total transparent
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 #define COLOR_BG                0x03 // transparent black
@@ -249,6 +316,8 @@ bmp_fill(
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
 #define COLOR_ORANGE 19
+
+#endif
 
 static inline uint32_t
 color_word(
@@ -347,7 +416,28 @@ extern void *ReleaseRecursiveLock(void *lock);
 
 
 
-
+/** 5dc bitmap icons (ones that work and what they are) */
+/*  
+ 0x9EBDEF   =   squigly line like a tilde
+ 0x8DBCEF   =   dash
+ 0xBA96EE   =   play icon
+ 0xBB96EE   =   camera icon
+ 0xBE96EE   =   computer monitor icon
+ 0xB596EE   =   35mm film square
+ 0xB496EE   =   info 'i'
+ 0xB396EE   =   sharpness icon
+ 0xB296EE   =   brightness icon [focus]
+ 0xB196EE   =   contrast icon
+ 0xB096EE   =   picstyle icon
+ 0xAF96EE   =   play icon
+ 0xAD96EE   =   direct print icon
+ 0xA996EE   =   letter L
+ 0xA896EE   =   letter M
+ 0xA796EE   =   letter S
+ 0xA696EE   =   step icon
+ 0xA596EE   =   "transfer" arrows (arrows pointing left/right) icon
+ 0xA496EE   =   RAW icon
+ */
 
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
@@ -376,18 +466,13 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_KEY_SQUARE 0x899aee
 #define ICON_L_SQUARE 0x8a9aee
 #define ICON_N_SQUARE 0x8b9aee
-#define ICON_P_SQUARE 0x8c9aee
 #define ICON_RECTANGLE_VERT 0x8d9aee
-#define ICON_CF 0x8e9aee
 #define ICON_4NEIGHBOURS 0x909aee
-#define ICON_AE 0x919aee
 #define ICON_ISO 0x929aee
 #define ICON_8ARROWS 0x939aee
-#define ICON_SMILE 0x949aee
 #define ICON_GRID1 0x959aee
 #define ICON_GRID2 0x969aee
 #define ICON_STAR 0x979aee
-#define ICON_LV 0x989aee
 #define ICON_RECTANGLE_ROUNDED 0x999aee
 #define ICON_VOICE 0x9a9aee
 #define ICON_VIDEOCAM 0x9b9aee
@@ -396,3 +481,18 @@ extern void *ReleaseRecursiveLock(void *lock);
 
 #define ICON_ML_PLAY -1
 #define ICON_ML_SUBMENU -100
+
+/** 5dc has to use some different icons than dryos cameras */
+#ifdef CONFIG_5DC
+#define ICON_CF 0xAC96EE
+#define ICON_AE 0xB096EE
+#define ICON_P_SQUARE 0xA596EE
+#define ICON_SMILE 0xB596EE
+#define ICON_LV 0xA996EE
+#else
+#define ICON_CF 0x8e9aee
+#define ICON_AE 0x919aee
+#define ICON_P_SQUARE 0x8c9aee
+#define ICON_SMILE 0x949aee
+#define ICON_LV 0x989aee
+#endif

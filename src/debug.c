@@ -95,6 +95,10 @@ void info_led_on()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     call("EdLedOn");
+    #endif
+    
+    #if defined(CONFIG_5DC)
+    LEDBLUE = LEDON;
     #else
     _card_led_on();
     #endif
@@ -103,6 +107,10 @@ void info_led_off()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     call("EdLedOff");
+    #endif
+    
+    #if defined(CONFIG_5DC)
+    LEDBLUE = LEDOFF;
     #else
     _card_led_off();
     #endif
@@ -568,6 +576,7 @@ void run_test()
 		redraw();
     }
     return;
+//	menu_benchmark();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1802,10 +1811,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     //~ msleep(2000);
     //~ stress_test_random_task(0);
     //~ TASK_RETURN;
-        
+    
     TASK_LOOP
     {
-
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
@@ -1874,7 +1882,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 take_screenshot(0);
         }
 
-#ifndef CONFIG_5D3
+#if !defined(CONFIG_5D3) && !defined(CONFIG_5DC)
         if (MENU_MODE) 
         {
             HijackFormatDialogBox_main();
@@ -2745,10 +2753,10 @@ ack:
 
 #endif
 
-#ifndef CONFIG_500D
-#define num_properties 8192
-#else
+#if defined(CONFIG_500D) || defined(CONFIG_5DC)
 #define num_properties 2048
+#else
+#define num_properties 8192
 #endif
 unsigned* property_list = 0;
 
@@ -3024,6 +3032,7 @@ PROP_HANDLER(PROP_ISO)
 
 int keep_ml_after_format = 1;
 
+#ifndef CONFIG_5DC
 void HijackFormatDialogBox()
 {
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -3273,6 +3282,7 @@ void HijackFormatDialogBox_main()
         ui_lock(UILOCK_NONE);
     }
 }
+#endif
 
 void config_menu_init()
 {

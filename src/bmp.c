@@ -32,6 +32,8 @@
 
 //~ int bmp_enabled = 1;
 
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = (x) % 2 ? ((*(char*)(p) & 0x0F) | ((color) << 4)) : ((*(char*)(p) & 0xF0) | ((color) & 0x0F))    
+
 static int bmp_idle_flag = 0;
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
@@ -53,6 +55,18 @@ void bmp_idle_copy(int direction, int fullsize)
     }
     else
     {
+#ifdef CONFIG_5DC
+        if (direction)
+        {
+            for (int i = 0; i < 240; i ++)
+                memcpy(real+i*BMPPITCH, idle+i*BMPPITCH, 360);
+        }
+        else
+        {
+            for (int i = 0; i < 240; i ++)
+                memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 360);
+        }
+#else
         if (direction)
         {
             for (int i = 0; i < 480; i ++)
@@ -63,6 +77,7 @@ void bmp_idle_copy(int direction, int fullsize)
             for (int i = 0; i < 480; i ++)
                 memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 720);
         }
+#endif
     }
 }
 
@@ -112,6 +127,7 @@ _draw_char(
     // boundary checking, don't write past this address
     uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
 
+#ifndef CONFIG_5DC
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)
     {
@@ -195,30 +211,27 @@ _draw_char(
                 *(row++) = bmp_pixels;
             }
         }
-
-
-/*        
-        #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
-        #define SPIX(i,j) (shadow->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
-        #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
-
-        for( i = 0 ; i<font->height ; i++ )
-        {
-            for( j=0 ; j<font->width ; j++ )
-            {
-                if FPIX(i,j)
-                {
-                    BMPIX(i,j) = fg_color>>24;
-                }
-                if SPIX(i,j)
-                {
-                    BMPIX(i,j) = bg_color>>24;
-                }
-            }
-        }*/
     }
 
-    //sei( flags );
+#else // 5DC    
+    #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
+    //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
+    #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
+    for( i = 0 ; i<font->height ; i++ )
+    {
+        for( j=0 ; j<font->width ; j++ )
+        {
+            if FPIX(i,j)
+            {
+                BMPIX(i,j,fg_color>>24);
+            }
+            else
+            {
+                BMPIX(i,j,bg_color>>24);
+            }
+        }
+    }
+#endif
 }
 
 
@@ -239,7 +252,11 @@ bmp_puts(
     if( !vram || ((uintptr_t)vram & 1) == 1 )
         return;
     const unsigned initial_x = *x;
+#ifdef CONFIG_5DC
+    uint8_t * first_row = vram + ((*y)/2) * pitch + ((*x)/2);
+#else
     uint8_t * first_row = vram + (*y) * pitch + (*x);
+#endif
     uint8_t * row = first_row;
 
     char c;
@@ -263,7 +280,11 @@ bmp_puts(
         }
 
         _draw_char( fontspec, row, c );
+        #ifdef CONFIG_5DC
+        row += font->width / 2;
+        #else
         row += font->width;
+        #endif
         (*x) += font->width;
     }
 
@@ -315,26 +336,48 @@ bmp_puts_w(
 }
 
 
-static char bmp_printf_buf[1024];
-
+// thread safe
 void
 bmp_printf(
-    unsigned        fontspec,
-    unsigned        x,
-    unsigned        y,
-    const char *        fmt,
-    ...
-)
+           unsigned        fontspec,
+           unsigned        x,
+           unsigned        y,
+           const char *        fmt,
+           ...
+           )
 {
-BMP_LOCK(
     va_list            ap;
-
+    
+    char bmp_printf_buf[128];
+    
     va_start( ap, fmt );
     vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
     va_end( ap );
-
+    
     bmp_puts( fontspec, &x, &y, bmp_printf_buf );
-)
+}
+
+// for very large strings only
+void
+big_bmp_printf(
+               unsigned        fontspec,
+               unsigned        x,
+               unsigned        y,
+               const char *        fmt,
+               ...
+               )
+{
+    BMP_LOCK(
+             va_list            ap;
+             
+             static char bmp_printf_buf[1024];
+             
+             va_start( ap, fmt );
+             vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
+             va_end( ap );
+             
+             bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+             )
 }
 
 #if 0
@@ -452,6 +495,13 @@ bmp_fill(
     int        h
 )
 {
+#ifdef CONFIG_5DC
+    x = x/2;
+    y = y/2;
+    w = w/2;
+    h = h/2;
+#endif
+    
     //~ if (!bmp_enabled) return;
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
@@ -837,10 +887,23 @@ void bmp_putpixel(int x, int y, uint8_t color)
     if (!bvram) return;
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
+    
+    #ifdef CONFIG_5DC
+    char* p = &bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    SET_4BIT_PIXEL(p, x, color);
+    #else
     bvram[x + y * BMPPITCH] = color;
+    #endif
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
+#ifdef CONFIG_5DC
+    w = w/2;
+    h = h/2;
+    x0 = x0/2;
+    y0 = y0/2;
+#endif
+    
     //~ if (!bmp_enabled) return;
     uint8_t * const bvram = bmp_vram();
     ASSERT(bvram)
@@ -857,6 +920,16 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 
 int _bmp_draw_should_stop = 0;
 void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
+
+#ifdef CONFIG_5DC
+/** converting dryos palette to vxworks one */
+char bmp_lut[80] = { 0xF, 0x3, 0x2, 0x2, 0x7, 0xC, 0x5, 0x5, 0x6, 0xC, 0xD, 0xC, 0xB, 0xC, 0xB, 0xE,
+    0xB, 0xB, 0x2, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB,
+    0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0x0, 0x0, 0x0, 0x0, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
+    0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4,
+    0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x9, 0x9, 0x9, 0x9, 0x9,
+    0x9, 0x7, 0x7, 0x7, 0x7 };
+#endif
 
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, uint8_t* const mirror)
 {
@@ -891,7 +964,11 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
         {
             if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/h;
+            #ifdef CONFIG_5DC
+            uint8_t * const b_row = bvram + ys/2 * BMPPITCH;
+            #else
             uint8_t * const b_row = bvram + ys * BMPPITCH;
+            #endif
             uint8_t * const m_row = (uint8_t*)( mirror + ys * BMPPITCH );
             for (xs = x0; xs < (x0 + w); xs++)
             {
@@ -910,7 +987,12 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                     if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
                     if ((p == 0x14 || p == 0x3) && pix == 0) continue;
                 }
+                #ifdef CONFIG_5DC
+                char* p = &b_row[ xs/2 ]; 
+                SET_4BIT_PIXEL(p, xs, bmp_lut[pix]);
+                #else
                 b_row[ xs ] = pix;
+                #endif
             }
         }
     } else if (bmp->compression == 1) {
@@ -921,7 +1003,11 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
             if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/h;
             int ysc = COERCE(ys, BMP_H_MINUS, BMP_H_PLUS);
+            #ifdef CONFIG_5DC
+            uint8_t * const b_row =              bvram + ysc/2 * BMPPITCH;
+            #else
             uint8_t * const b_row =              bvram + ysc * BMPPITCH;
+            #endif
             uint8_t * const m_row = (uint8_t*)( mirror + ysc * BMPPITCH );
             while (y != bmp_y_pos) {
                 // search for the next line
@@ -957,7 +1043,12 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                     if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
                     if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue;
                 }
+                #ifdef CONFIG_5DC
+                char* p = &b_row[ xs/2 ]; 
+                SET_4BIT_PIXEL(p, xs, bmp_lut[bmp_color]);
+                #else
                 b_row[ xs ] = bmp_color;
+                #endif
             }
         }
 
@@ -1040,7 +1131,11 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 if (j*8 + k < cw)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
+                        #ifdef CONFIG_5DC
+                        bmp_putpixel(px+j*8+k+xo, py + (i+yo)*2, fg);
+                        #else
                         bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
+                        #endif
                 }
             }
         }
@@ -1226,18 +1321,29 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
+#ifdef CONFIG_5DC
+    n = n/2;
+#endif
 
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
     if (even)
     {
         for( ; dst < end; dst++)
+#ifdef CONFIG_5DC
+            *dst = (*dst & 0x0F0F0F0F) | 0x20202020;
+#else
             *dst = (*dst & 0x00FF00FF) | 0x02000200;
+#endif
     }
     else
     {
         for( ; dst < end; dst++)
+#ifdef CONFIG_5DC
+            *dst = (*dst & 0xF0F0F0F0) | 0x02020202;
+#else
             *dst = (*dst & 0xFF00FF00) | 0x00020002;
+#endif
     }
 }
 
@@ -1248,10 +1354,17 @@ void bmp_dim()
     if (!b) return;
     int i;
     //int j;
+#ifdef CONFIG_5DC
+    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i+=2)
+    {
+        bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);
+    }
+#else
     for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
     {
         bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, i%2);
     }
+#endif
 }
 
 void bmp_make_semitransparent()

@@ -1,14 +1,17 @@
 #generic makefile
 
+# for yagarto, use ARM_ABI=none-eabi
+ARM_ABI=elf
+
 ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
-AR=$(ARM_BINPATH)/arm-elf-ar
-RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
-READELF=$(ARM_BINPATH)/arm-elf-readelf
-ARM_LIBC_A = $(ARM_PATH)/arm-elf/lib/libc.a
+CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
+OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
+AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
+RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
+READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
+ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall

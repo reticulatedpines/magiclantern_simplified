@@ -207,7 +207,7 @@ config_save_file(
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
     char* msgc = CACHEABLE(msg);
-    
+  
     snprintf( msgc, MAX_SIZE,
         "# Magic Lantern %s (%s)\n"
         "# Build on %s by %s\n",

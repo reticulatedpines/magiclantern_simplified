@@ -122,20 +122,24 @@ void test_dialog_create() {
 
 void canon_gui_disable_front_buffer()
 {
+#ifndef CONFIG_5DC
     if (WINSYS_BMP_DIRTY_BIT_NEG == 0)
     {
         WINSYS_BMP_DIRTY_BIT_NEG = 1;
         //~ redraw();
     }
+#endif
 }
 
 void canon_gui_enable_front_buffer(int also_redraw)
 {
+#ifndef CONFIG_5DC
     if (WINSYS_BMP_DIRTY_BIT_NEG)
     {
         WINSYS_BMP_DIRTY_BIT_NEG = 0;
         if (also_redraw) redraw();
     }
+#endif
 }
 
 int canon_gui_front_buffer_disabled() { return WINSYS_BMP_DIRTY_BIT_NEG; }

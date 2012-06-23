@@ -139,8 +139,17 @@
 #define PROP_LVAF_MODE      0x8004001d // 0 = shutter killer, 1 = live mode, 2 = face detect
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C     // 1 == cleaning sensor?
+
+#ifndef CONFIG_5DC
 #define PROP_DL_ACTION          0x80020013 // 0 == end?
+#endif
+
+#ifdef CONFIG_5DC
+#define PROP_EFIC_TEMP          0x80030013
+#else
 #define PROP_EFIC_TEMP          0x80030014
+#endif
+
 #define PROP_EFIC_TEMP_MAYBE            0x010100ed
 //#define PROP_BATTERY_RAW_LEVEL_MAYBE          0x80030014
 
@@ -205,7 +214,12 @@
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
 
+#ifdef CONFIG_5DC
+#define PROP_PICTURE_STYLE 0x80000020
+#else
 #define PROP_PICTURE_STYLE 0x80000028   // 0x81 = std, 82 = portrait, 83 = landscape, 84 = neutral, 85 = faithful, 86 = monochrome, 21 = user 1, 22 = user 2, 23 = user 3
+#endif
+
 #define PROP_PICSTYLE_SETTINGS_STANDARD   0x02060001 // 02060001 for std, 02060002 for portrait... 02060007 for user 1 ... 02060009 for user 3
 #define PROP_PICSTYLE_SETTINGS_PORTRAIT   0x02060002
 #define PROP_PICSTYLE_SETTINGS_LANDSCAPE  0x02060003
@@ -287,21 +301,31 @@
 #define PROP_REMOTE_RELEASE            0x8003000A
 #define PROP_REMOTE_SET_BUTTON         0x80020018
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
-#define PROP_CLUSTER_SIZE      0x02010006
-#define PROP_FREE_SPACE        0x02010009
-//#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
-#define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
-#define PROP_CARD_RECORD       0x8003000b // set when writing on the card
+#ifdef CONFIG_5DC
+    #define PROP_FOLDER_NUMBER     0x2010000
+    #define PROP_FILE_NUMBER       0x2010002
+    #define PROP_CARD_RECORD       0x8003000B
+    #define PROP_CLUSTER_SIZE      0x2010004
+    #define PROP_FREE_SPACE        0x2010006
 #else
-#define PROP_CLUSTER_SIZE      0x02010007
-#define PROP_FREE_SPACE        0x0201000a // in clusters
-//#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-#define PROP_FILE_NUMBER       0x02010004 // seems to mirror the previous one, but it's increased earlier
-#define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
-#define PROP_CARD_RECORD       0x8003000c // set when writing on the card
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+        #define PROP_CLUSTER_SIZE      0x02010006
+        #define PROP_FREE_SPACE        0x02010009
+        //#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+        #define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
+        #define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
+        #define PROP_CARD_RECORD       0x8003000b // set when writing on the card
+    #else
+        #define PROP_CLUSTER_SIZE      0x02010007
+        #define PROP_FREE_SPACE        0x0201000a // in clusters
+        //#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
+        #define PROP_FILE_NUMBER       0x02010004 // seems to mirror the previous one, but it's increased earlier
+        #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
+        #define PROP_CARD_RECORD       0x8003000c // set when writing on the card
+    #endif
 #endif
+
+
 
 #define PROP_USER_FILE_PREFIX  0x02050004
 #define PROP_SELECTED_FILE_PREFIX  0x02050008

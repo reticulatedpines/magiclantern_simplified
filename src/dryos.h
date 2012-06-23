@@ -505,4 +505,6 @@ OS_FUNCTION( 0x0300001,	int,	abs, int number );
 
 // get OS constants
 OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
+
+extern int _dummy_variable;
 #endif
