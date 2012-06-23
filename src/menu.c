@@ -1667,6 +1667,17 @@ handle_ml_menu_keys(struct event * event)
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
 
+    // Make sure we will not display an empty menu
+    take_semaphore(menu_redraw_sem, 0);
+    if (!menu_has_visible_items(menu->children))
+    {
+        menu_move(menu, -1); menu = get_selected_menu();
+        menu_move(menu, 1); menu = get_selected_menu();
+    }
+    menu_entry_move(menu, -1);
+    menu_entry_move(menu, 1);
+    give_semaphore(menu_redraw_sem);
+
     struct menu * main_menu = menu;
     if (submenu_mode)
     {
@@ -1687,20 +1698,6 @@ handle_ml_menu_keys(struct event * event)
         else advanced_mode = !advanced_mode;
         show_only_selected = 0;
         menu_help_active = 0;
-
-        // Make sure we will not display an empty menu
-        
-        take_semaphore(menu_redraw_sem, 0);
-        
-        if (!menu_has_visible_items(main_menu->children))
-        {
-            menu_move(main_menu, -1); main_menu = get_selected_menu();
-            menu_move(main_menu, 1); main_menu = get_selected_menu();
-        }
-        menu_entry_move(main_menu, -1);
-        menu_entry_move(main_menu, 1);
-
-        give_semaphore(menu_redraw_sem);
 
         break;
 
