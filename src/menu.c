@@ -1047,12 +1047,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  450, 
+                     10,  show_only_selected ? 425 : 450, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  450, 
+                     10,  show_only_selected ? 425 : 450, 
                         warning_msg
                 );
             }
