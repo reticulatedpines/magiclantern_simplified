@@ -152,6 +152,17 @@ inline uint8_t* bmp_vram_idle()
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
 
 
+inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
+{
+    #ifdef CONFIG_5DC
+    char* p = &bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    SET_4BIT_PIXEL(p, x, color);
+    #else
+    bvram[x + y * BMPPITCH] = color;
+    #endif
+}
+
+
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK               0x000F0000
 //~ #define FONT_HUGE           0x00080000
