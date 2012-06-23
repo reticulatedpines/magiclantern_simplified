@@ -43,6 +43,12 @@ int menu_help_active = 0;
 int submenu_mode = 0;
 static int menu_id_increment = 1;
 
+static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
+static int redraw_in_progress = 0;
+#define MENU_REDRAW_FULL 1
+#define MENU_REDRAW_QUICK 2
+
+
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
 void menu_close_post_delete_dialog_box();
@@ -1490,7 +1496,8 @@ menu_redraw_do()
                 }
                 else
                 {
-                    bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
+                    if (!quick_redraw || !submenu_mode)
+                        bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
                 }
                 prev_so = show_only_selected;
 
@@ -1498,15 +1505,23 @@ menu_redraw_do()
                 //~ take_semaphore(menu_redraw_sem, 0);
                 menu_make_sure_selection_is_valid();
             
-                if (!show_only_selected || !submenu_mode)
-                    menus_display( menus, 0, 0 ); 
+                if (quick_redraw)
+                {
+                    if (!show_only_selected && !submenu_mode)
+                        menus_display( menus, 0, 0 ); 
+                }
+                else
+                {
+                    if (!show_only_selected || !submenu_mode)
+                        menus_display( menus, 0, 0 ); 
+                }
 
                 if (!show_only_selected && !submenu_mode)
                     if (is_menu_active("Help")) menu_show_version();
 
                 if (submenu_mode)
                 {
-                    if (!show_only_selected) bmp_dim();
+                    if (!show_only_selected && !quick_redraw) bmp_dim();
                     struct menu * submenu = get_current_submenu();
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();
@@ -1593,11 +1608,18 @@ menu_redraw_task()
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
-        msleep(30);
+        //~ msleep(30);
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) continue;
-        if (gui_menu_shown()) menu_redraw_do();
+        if (gui_menu_shown())
+        {
+            redraw_in_progress = 1;
+            quick_redraw = (msg == MENU_REDRAW_QUICK);
+            menu_redraw_do();
+            msleep(20);
+            redraw_in_progress = 0;
+        }
         else redraw();
     }
 }
@@ -1609,7 +1631,16 @@ menu_redraw()
     if (!DISPLAY_IS_ON) return;
     if (ml_shutdown_requested) return;
     if (menu_help_active) bmp_draw_request_stop();
-    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, 1);
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, redraw_in_progress ? MENU_REDRAW_QUICK : MENU_REDRAW_FULL);
+}
+
+void
+menu_redraw_full()
+{
+    if (!DISPLAY_IS_ON) return;
+    if (ml_shutdown_requested) return;
+    if (menu_help_active) bmp_draw_request_stop();
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
 }
 
 void menu_inject_redraw_event()
@@ -1711,6 +1742,8 @@ handle_ml_menu_keys(struct event * event)
 #if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
     if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
 #endif
+
+    int menu_selection_changed = 0; // if true, do not allow quick redraws
     
     switch( button_code )
     {
@@ -1738,6 +1771,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
         menu_entry_move( menu, -1 );
+        menu_selection_changed = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
@@ -1745,6 +1779,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         menu_entry_move( menu, 1 );
+        menu_selection_changed = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
@@ -1753,7 +1788,7 @@ handle_ml_menu_keys(struct event * event)
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
-        else { menu_move( menu, 1 ); show_only_selected = 0; }
+        else { menu_move( menu, 1 ); show_only_selected = 0; menu_selection_changed = 1; }
         break;
 
     case BGMT_PRESS_LEFT:
@@ -1761,7 +1796,7 @@ handle_ml_menu_keys(struct event * event)
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
-        else { menu_move( menu, -1 ); show_only_selected = 0; }
+        else { menu_move( menu, -1 ); show_only_selected = 0; menu_selection_changed = 1; }
         break;
 
 #ifdef CONFIG_5D3
@@ -1834,7 +1869,9 @@ handle_ml_menu_keys(struct event * event)
 
     // If we end up here, something has been changed.
     // Reset the timeout
-    menu_redraw();
+    
+    if (menu_selection_changed && submenu_mode==2) menu_redraw_full();
+    else menu_redraw();
     keyrepeat_ack(button_code);
     hist_countdown = 3;
     return 0;
