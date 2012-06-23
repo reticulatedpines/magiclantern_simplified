@@ -1963,7 +1963,7 @@ struct menu_entry play_menus[] = {
         .display = quickzoom_display,
         .help = "Faster zoom in Play mode, for pixel peeping :)",
         .essential = FOR_PHOTO,
-        .icon_type = IT_DICE,
+        .icon_type = IT_BOOL,
     },
 /*    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     {

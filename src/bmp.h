@@ -306,6 +306,15 @@ bmp_fill(
     #define COLOR_GREEN1            0x55
     #define COLOR_GREEN2            0x55
     #define COLOR_ORANGE            0xEE
+
+
+    #define COLOR_DARK_RED COLOR_RED
+    #define COLOR_GRAY40 0xAA
+    #define COLOR_GRAY45 0xAA
+    #define COLOR_GRAY50 0xAA
+    #define COLOR_GRAY60 0x33
+    #define COLOR_GRAY70 0xFF
+
 #else
 
 
@@ -327,6 +336,12 @@ bmp_fill(
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
 #define COLOR_ORANGE 19
+#define COLOR_DARK_RED 0xC
+#define COLOR_GRAY40 40
+#define COLOR_GRAY45 45
+#define COLOR_GRAY50 50
+#define COLOR_GRAY60 60
+#define COLOR_GRAY70 70
 
 #endif
 

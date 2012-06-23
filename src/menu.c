@@ -695,11 +695,7 @@ void submenu_icon(int x, int y)
 void submenu_only_icon(int x, int y, int value)
 {
     //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
-#ifdef CONFIG_5DC
-    int color = value ? COLOR_GREEN1 : 0xAA;
-#else
-    int color = value ? COLOR_GREEN1 : 45;
-#endif
+    int color = value ? COLOR_GREEN1 : COLOR_GRAY45;
     for (int r = 0; r < 3; r++)
     {
         draw_circle(x + 8, y + 10, r, color);
@@ -710,11 +706,7 @@ void submenu_only_icon(int x, int y, int value)
         draw_circle(x + 9, y + 22, r, color);
     }
     
-#ifdef CONFIG_5DC
-    color = value ? COLOR_WHITE : 0xAA;
-#else
-    color = value ? COLOR_WHITE : 45;
-#endif
+    color = value ? COLOR_WHITE : COLOR_GRAY45;
     bmp_draw_rect(color, x + 15, y + 10, 10, 1);
     bmp_draw_rect(color, x + 15, y + 16, 10, 1);
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
@@ -745,11 +737,7 @@ void size_icon(int x, int y, int current, int nmax)
 
 void dice_icon(int x, int y, int current, int nmax)
 {
-#ifdef CONFIG_5DC
-    #define C(i) (current == (i) ? COLOR_GREEN1 : 0xAA), (current == (i) ? 6 : 4)
-#else
-    #define C(i) (current == (i) ? COLOR_GREEN1 : 50), (current == (i) ? 6 : 4)
-#endif
+    #define C(i) (current == (i) ? COLOR_GREEN1 : COLOR_GRAY50), (current == (i) ? 6 : 4)
     //~ x -= 40;
     //~ x += 16; y += 16;
     switch (nmax)
@@ -842,11 +830,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "Black"))
         maru(x, y, COLOR_WHITE);
     else if (streq(color, "Luma"))
-#ifdef CONFIG_5DC
-        maru(x, y, 0x33);
-#else
-        maru(x, y, 60);
-#endif
+        maru(x, y, COLOR_GRAY60);
     else if (streq(color, "RGB"))
     {
         dot(x,     y - 7, COLOR_RED, 5);
@@ -856,11 +840,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-#ifdef CONFIG_5DC
-        maru(x, y, 0xAA);
-#else
-        maru(x, y, 40);
-#endif
+        maru(x, y, COLOR_GRAY40);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -882,28 +862,16 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     if (icon_drawn) return;
     icon_drawn = type;
     x -= 40;
-    if (type >= 0) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
+    bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
     warning_msg = 0;
     switch(type)
     {
-#ifdef CONFIG_5DC
-        case MNI_OFF: maru(x, y, 0xAA); return;
-#else
-        case MNI_OFF: maru(x, y, 40); return;
-#endif
+        case MNI_OFF: maru(x, y, COLOR_GRAY40); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
-#ifdef CONFIG_5DC
-        case MNI_NEUTRAL: maru(x, y, 0x33); return;
-#else
-        case MNI_NEUTRAL: maru(x, y, 60); return;
-#endif
+        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY60); return;
         case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
-#ifdef CONFIG_5DC
-        case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
-#else
-        case MNI_AUTO: maru(x, y, 9); return;
-#endif
+        case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
         case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
@@ -1042,7 +1010,7 @@ menu_display(
                 }
                 
                 bmp_printf(
-                    FONT(FONT_MED, 60, COLOR_BLACK), 
+                    FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
                      10,  425, 
                     msg
                 );
@@ -1052,12 +1020,12 @@ menu_display(
             if (menu->selected && warning_msg)
             {
                 bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
                      10,  show_only_selected ? 425 : 450, 
                         "                                                           "
                 );
                 bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
                      10,  show_only_selected ? 425 : 450, 
                         warning_msg
                 );
@@ -1112,8 +1080,8 @@ menus_display(
     bmp_fill(0, orig_x, y, 720, 42);
     bmp_fill(COLOR_WHITE, orig_x, y+42, 720, 1);
 #else
-    bmp_fill(40, orig_x, y, 720, 42);
-    bmp_fill(70, orig_x, y+42, 720, 1);
+    bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
+    bmp_fill(COLOR_GRAY70, orig_x, y+42, 720, 1);
 #endif
     for( ; menu ; menu = menu->next )
     {
@@ -1203,20 +1171,9 @@ submenu_display(struct menu * submenu)
     
     if (!show_only_selected)
     {
-        #ifdef CONFIG_5DC
-        bmp_fill(0,  bx,  by, 720-2*bx+4, 50);
-        #else
-        bmp_fill(40,  bx,  by, 720-2*bx+4, 50);
-        #endif
-        
+        bmp_fill(COLOR_GRAY40,  bx,  by, 720-2*bx+4, 50);
         bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
-        
-        #ifdef CONFIG_5DC
-        bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, 50);
-        #else
-        bmp_draw_rect(70,  bx,  by, 720-2*bx, 50);
-        #endif
-        
+        bmp_draw_rect(COLOR_GRAY70,  bx,  by, 720-2*bx, 50);
         bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
