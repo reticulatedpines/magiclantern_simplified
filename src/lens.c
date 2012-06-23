@@ -222,6 +222,49 @@ int shutterf_to_raw(float shutterf)
     if (shutterf == 0) return 160;
     return (int) roundf(136.0 - log2f(shutterf*1000.0) * 8.0);
 }
+
+// this one attempts to round in the same way as with previous call
+// !! NOT thread safe !!
+// !! ONLY call it once per iteration !!
+// for example:      [0.4 0.5 0.6 0.4 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.3 0.5] =>
+// flick-free round: [  0   0   0   0   1   1   1   1   1   1   0   0   0   0] => 2 transitions
+// normal rounding:  [  0   1   1   0   1   1   1   1   0   0   0   0   0   1] => 5 transitions 
+int round_noflicker(float value)
+{
+    static float rounding_correction = 0;
+
+    float roundedf = roundf(value + rounding_correction);
+    
+    // if previous rounded value was smaller than float value (like 0.4 => 0),
+    // then the rounding threshold should be moved at 0.8 => round(x - 0.3)
+    // otherwise, rounding threshold should be moved at 0.2 => round(x + 0.3)
+    
+    rounding_correction = (roundedf < value ? -0.3 : 0.3);
+    
+    return (int) roundedf;
+}
+
+/*
+void round_noflicker_test()
+{
+    float values[] = {0.4, 0.5, 0.6, 0.4, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.3, 0.5, 1, 2, 3, 3.5, 3.49, 3.51, 3.49, 3.51};
+    char msg[100] = "";
+    for (int i = 0; i < COUNT(values); i++)
+    {
+        int r = round_noflicker(values[i]);
+        STR_APPEND(msg, "%d", r);
+    }
+    NotifyBox(5000, msg);
+}*/
+
+// NOT thread safe, see above!
+// useful for bulb ramping
+int shutterf_to_raw_noflicker(float shutterf)
+{
+    if (shutterf == 0) return 160;
+    return round_noflicker(136.0 - log2f(shutterf*1000.0) * 8.0);
+}
+
 float raw2shutterf(int raw_shutter)
 {
     if (!raw_shutter) return 0.0;
@@ -1578,14 +1621,14 @@ lens_set_kelvin(int k)
     {
         int lim = k > 10000 ? 10000 : 2500;
         prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
-        msleep(10);
+        msleep(20);
     }
 
     prop_request_change(PROP_WB_MODE_LV, &mode, 4);
     prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
     prop_request_change(PROP_WB_MODE_PH, &mode, 4);
     prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
-    msleep(10);
+    msleep(20);
 }
 
 void

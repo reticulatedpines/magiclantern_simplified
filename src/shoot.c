@@ -4868,7 +4868,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         int ms = get_exposure_time_ms();
         int msc = ms * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000;
         
-        int rs = get_exposure_time_raw();
+        int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw_noflicker(bulb_shutter_valuef) : get_exposure_time_raw();
         int rc = rs - ev_x8;
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
