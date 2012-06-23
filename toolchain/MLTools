@@ -1,8 +1,24 @@
 #!/bin/bash
 
+SETTINGS=~/.MacOSX/environment.plist
+PLIST=/usr/libexec/PlistBuddy
+
+# if the file doesn't exist, try to create folder
+if [ ! -f $SETTINGS ]
+then
+  mkdir -p ~/.MLTools
+fi
+
+# then just add entries (file will be created if it doesn't exist)
+#$PLIST -c "Add :MLsource string '~/magic-lantern'" $SETTINGS
+#$PLIST -c "Add :arm_fldr string '~/arm-toolchain'" $SETTINGS
+#$PLIST -c "Add :EOS_CARD string '/Volumes/EOS_DIGITAL/'" $SETTINGS
+#$PLIST -c "Add :files_fldr string '"$EOS_CARD"DCIM/100CANON'" $SETTINGS
+#$PLIST -c "Add :ML_FLDR string '/ML'" $SETTINGS
+#$PLIST -c "Add :BIN string 'autoexec.bin'" $SETTINGS
+
 # UNDER DEVELOPMENT, pre-alpha version
-# MLTools is a script to preapre your mac for use all
-# Magic Lantern features
+# MLTools is a script to prepare your mac for use all Magic Lantern features
 # more info on Magic lantern: http://www.magiclantern.fm
 # on MLTools: http://www.magiclantern.fm/forum/index.php?topic=1019.0
 setvar() {
@@ -13,9 +29,9 @@ setvar() {
 	MLsource=~/magic-lantern 				# folder with magic lanter sources
 	arm_fldr=~/arm-toolchain462 			# summon-arm toolchain location
 	EOS_CARD=/Volumes/EOS_DIGITAL/ 			# ML installed card address
+	files_fldr="$EOS_CARD"DCIM/100CANON	# folder to check for file to conver on camera
 	ML_FLDR=ML/ 							# Ml folder on card
 	BIN=autoexec.bin 						# ML bin name
-	files_fldr="$EOS_CARD"DCIM/100CANON	# folder to check for file to conver on camera
 # List of things to install
 	BREW_MLdev="
 		binutils
@@ -262,9 +278,9 @@ checkFILE() {
 	if [ "${file_is: -4}" == ".422" ]; then
 		echo "CONVERTING 422"
 		python $MLsource/src/422-JPG.py "$file_dir/$file_is"
-	elif [ "${file_is: -4}" == ".CR2" ]; then
-		echo "$CONVERT_RAW_MSG $file_is"
-		/usr/local/bin/convert cr2:$file_dir/$file_is $file_dir/${file_is: -4}.JPG
+#	elif [ "${file_is: -4}" == ".CR2" ]; then
+#		echo "$CONVERT_RAW_MSG $file_is"
+#		/usr/local/bin/convert cr2:$file_dir/$file_is $file_dir/${file_is: -4}.JPG
 	elif [ "${file_is: -3}" == ".SH" ]; then
 		echo SCRIPT_Found
 		if [ "${file_is:0:4}" == "HDR_" ]; then
@@ -289,7 +305,7 @@ checkFLDR() {
 }
 		
 import() {
-	echo "Not yey ready"
+	echo "Not yet ready"
 }
 ########################################################################
 
