@@ -3238,6 +3238,7 @@ static int bramp_hist_dirty = 0;
 static int bramp_ev_reference_x1000 = 0;
 static int bramp_prev_shot_was_bad = 1;
 static float bramp_u1 = 0; // for the feedback controller: command at previous step
+static int bramp_last_exposure_rounding_error_evx1000;
 
 static int seconds_clock = 0;
 int get_seconds_clock() { return seconds_clock; } 
@@ -3501,6 +3502,7 @@ void bulb_ramping_init()
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
     bramp_ev_reference_x1000 = 0;
+    bramp_last_exposure_rounding_error_evx1000 = 0;
     //~ bramp_temporary_exposure_compensation_ev_x100 = 0;
     bramp_prev_shot_was_bad = 1; // force full correction at first step
     bramp_u1 = 0.0;
@@ -3838,7 +3840,7 @@ static void compute_exposure_for_next_shot()
         int mev = bramp_luma_to_ev_x100(bramp_measured_level);
         //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, mev > 0 ? "" : "-", ABS(mev)/100, ABS(mev)%100); msleep(1000);
 
-        my_fprintf(bramp_log_file, "%04d luma=%3d ", file_number, bramp_measured_level);
+        my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
 
         /**
          * Use a discrete feedback controller, designed such as the closed loop system 
@@ -3888,7 +3890,7 @@ static void compute_exposure_for_next_shot()
          */
 
         // unit: 0.01 EV
-        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level);
+        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level) - bramp_last_exposure_rounding_error_evx1000/10;
         int r_x100 = bramp_ev_reference_x1000/10;
         int e_x100 = COERCE(r_x100 - y_x100, -mev-500, -mev+500);
         // positive e => picture should be brightened
@@ -4882,6 +4884,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE))
         {
             bulb_take_pic(msc);
+            bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
         }
         else
         {
@@ -4895,6 +4898,10 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             take_a_pic(allow_af);
             
             bulb_ramping_enabled = b;
+            
+            // since actual shutter speed differs from float value quite a bit, 
+            // we will need this to correct metering readings
+            bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0);
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
