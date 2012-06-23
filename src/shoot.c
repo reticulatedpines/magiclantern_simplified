@@ -4902,6 +4902,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             // since actual shutter speed differs from float value quite a bit, 
             // we will need this to correct metering readings
             bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0);
+            ASSERT(ABS(bramp_last_exposure_rounding_error_evx1000) < 500);
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);

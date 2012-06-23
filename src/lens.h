@@ -208,7 +208,8 @@ int shutter_ms_to_raw(int shutter_ms);
 int shutterf_to_raw(float shutterf);
 float raw2shutterf(int raw_shutter);
 int raw2iso(int raw_iso);
-
+int shutterf_to_raw_noflicker(float shutterf);
+int round_noflicker(float value);
 
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
