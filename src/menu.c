@@ -1547,10 +1547,10 @@ static int _toc()
 void menu_benchmark()
 {
     _tic();
-    for (int i = 0; i < 200; i++) menu_redraw_do();
+    for (int i = 0; i < 500; i++) menu_redraw_do();
     int t = _toc();
     clrscr();
-    NotifyBox(20000, "total: %d ", t);
+    NotifyBox(20000, "Elapsed time: %d seconds", t);
 }
 
 struct msg_queue * menu_redraw_queue = 0;
