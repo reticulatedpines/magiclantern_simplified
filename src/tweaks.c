@@ -90,6 +90,8 @@ dofp_update()
 }
 //EyeFi Trick (EyeFi confirmed working only on 600D-60D)
 //**********************************************************************/
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
 /* NOT USED FOR NOW
 int check_eyefi()
 {
@@ -101,8 +103,6 @@ int check_eyefi()
     }
     return 0;
 }*/
-
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
 
 void EyeFi_RenameCR2toAVI(char* dir)
 {
@@ -158,7 +158,7 @@ void EyeFi_RenameAVItoCR2(char* dir)
     redraw();
 }
 
-void EyeFi_Rename422toMP4(char* dir)
+/*void EyeFi_Rename422toMP4(char* dir)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -210,9 +210,8 @@ void EyeFi_RenameMP4to422(char* dir)
     FIO_CleanupAfterFindNext_maybe(dirent);
     beep();
     redraw();
-}
+}*/
 
-#endif
 
 static void CR2toAVI(void* priv, int delta)
 {
@@ -224,7 +223,7 @@ static void AVItoCR2(void* priv, int delta)
     EyeFi_RenameAVItoCR2(get_dcim_dir());
 }
 
-static void f422toMP4(void* priv, int delta)
+/*static void f422toMP4(void* priv, int delta)
 {
     EyeFi_Rename422toMP4(get_dcim_dir());
 }
@@ -232,7 +231,8 @@ static void f422toMP4(void* priv, int delta)
 static void MP4to422(void* priv, int delta)
 {
     EyeFi_RenameMP4to422(get_dcim_dir());
-}
+}*/
+#endif
 
 
 // ExpSim
@@ -1638,7 +1638,7 @@ static struct menu_entry tweak_menus[] = {
             	.select        = AVItoCR2,
             	.help = "Rename back AVI files to CR2 (trick for EyeFi cards)."
          	},
-            {
+            /*{
             	.name        = "Rename 422 to MP4",
             	.select        = f422toMP4,
             	.help = "Rename 422 files to MP4 (trick for EyeFi cards)."
@@ -1647,7 +1647,7 @@ static struct menu_entry tweak_menus[] = {
             	.name        = "Rename MP4 to 422",
             	.select        = MP4to422,
             	.help = "Rename back MP4 files to 422 (trick for EyeFi cards)."
-         	},
+         	},*/
             MENU_EOL
         },
     },
