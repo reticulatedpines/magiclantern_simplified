@@ -2058,7 +2058,7 @@ menu_task( void* unused )
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && config_dirty && !recording)
+                if (config_autosave && config_dirty && !recording && !ml_shutdown_requested)
                 {
                     save_config(0);
                     config_dirty = 0;
