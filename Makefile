@@ -116,7 +116,6 @@ docq:
 	cd $(PLATFORM_PATH)/all; $(MAKE) docq
 
 dropbox: all
-	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/MagicLantern/bleeding-edge/
-	cp $(PLATFORM_PATH)/600D.102/autoexec.bin ~/Dropbox/Public/MagicLantern/bleeding-edge/600D_only/
+	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
 
 FORCE:
