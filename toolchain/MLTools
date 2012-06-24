@@ -1,13 +1,13 @@
 #!/bin/bash
 
-SETTINGS=~/.MacOSX/environment.plist
-PLIST=/usr/libexec/PlistBuddy
+#SETTINGS=~/.MacOSX/environment.plist
+#PLIST=/usr/libexec/PlistBuddy
 
 # if the file doesn't exist, try to create folder
-if [ ! -f $SETTINGS ]
-then
-  mkdir -p ~/.MLTools
-fi
+#if [ ! -f $SETTINGS ]
+#then
+#  mkdir -p ~/.MLTools
+#fi
 
 # then just add entries (file will be created if it doesn't exist)
 #$PLIST -c "Add :MLsource string '~/magic-lantern'" $SETTINGS
@@ -276,8 +276,8 @@ checkRAW() {
 	
 checkFILE() {
 	if [ "${file_is: -4}" == ".422" ]; then
-		echo "CONVERTING 422"
-		python $MLsource/src/422-JPG.py "$file_dir/$file_is"
+		echo "CONVERTING $files_fldr/$file_is"
+		python $MLsource/src/422-JPG.py "$files_fldr/$file_is"
 #	elif [ "${file_is: -4}" == ".CR2" ]; then
 #		echo "$CONVERT_RAW_MSG $file_is"
 #		/usr/local/bin/convert cr2:$file_dir/$file_is $file_dir/${file_is: -4}.JPG
