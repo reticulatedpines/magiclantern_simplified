@@ -30,7 +30,7 @@ setvar() {
 	MLsource=~/magic-lantern 				# folder with magic lanter sources
 	arm_fldr=~/arm-toolchain462 			# summon-arm toolchain location
 	EOS_CARD=/Volumes/EOS_DIGITAL/ 			# ML installed card address
-	files_fldr="$EOS_CARD"DCIM/100CANON	# folder to check for file to conver on camera
+	files_fldr="$EOS_CARD"DCIM/100CANON	    # folder to check for file to conver on camera
 	ML_FLDR=ML/ 							# Ml folder on card
 	BIN=autoexec.bin 						# ML bin name
 # List of things to install
@@ -231,36 +231,6 @@ remove() {
 }
 ###############################################################################
 	
-checkML() {
-	echo -ne "Magic Lantern on $EOS_CARD:"
-	if [ -d $EOS_CARD ]; then
-		if [ -f $EOS_CARD$BIN ]; then
-			echo "FOUND"
-		elif [ -d "$arm_fldr" ];then
-			echo "NOT FOUND"
-			echo "Installing ML on card"
-			echo "Type Y to continue N to abort, just enter to skip"
-			read inst
-			inst=N
-			if [ "$inst" == Y ] || [ "$inst" == y ];then
-				installDev
-				cd "$MLsource"
-				make clean
-				make install
-				bash "$MLsource"/src/make_bootable.sh
-				exit 0
-			fi
-		fi
-	else
-	echo ""
-	echo "NO CARD FOUND! FORMAT IT FROM"
-	echo " CAMERA BEFORE USING WITH ML"
-	echo ""
-	echo "Select a folder with ML generated files"
-	read files_fldr
-	fi
-}
-
 checkRAW() {
 	list_file=${z:$cut}
 	echo "DBG: List_file: $list_file"
@@ -286,13 +256,13 @@ checkFILE() {
 		if [ "${file_is:0:4}" == "HDR_" ]; then
 			a=$(cat "$files_fldr/$file_is" | grep align_image_stack)
 			if [ "${a:0:17}" == "align_image_stack" ]; then
-				echo HDR
+				echo HDR_Base
 				z=$a
 				cut=37
 				checkRAW
 			else
-				echo HDR
-				z=$(a=$(cat "$files_fldr/$file_is" | grep enfuse)
+				echo HDR_Aligned
+				z=$(a)
 				cut=35
 				checkRAW
 			fi
@@ -306,13 +276,43 @@ checkFILE() {
 }
 
 checkFLDR() {
+	echo "SEARCHING: $files_fldr"
 	for f in $(ls "$files_fldr") ; do
 		file_is="$f"
-		echo "$f"
 		checkFILE
 	done
 }
 		
+checkML() {
+	echo -ne "Magic Lantern on $EOS_CARD:"
+	if [ -d $EOS_CARD ]; then
+		if [ -f $EOS_CARD$BIN ]; then
+			echo "FOUND"
+		elif [ -d "$arm_fldr" ];then
+			echo "NOT FOUND"
+			echo "Installing ML on card"
+			echo "Type Y to continue N to abort, just enter to skip"
+			read inst
+			inst=N
+			if [ "$inst" == Y ] || [ "$inst" == y ];then
+				installDev
+				cd "$MLsource"
+				make clean
+				make install
+				bash "$MLsource"/src/make_bootable.sh
+				exit 0
+			fi
+		fi
+	else
+	echo ""
+	echo "NO CARD FOUND! FORMAT IT FROM"
+	echo " CAMERA BEFORE USING WITH ML"
+	echo ""
+	echo "Select a folder with ML generated files…"
+	read files_fldr
+	fi
+}
+
 import() {
 	echo "Not yet ready"
 }
@@ -342,7 +342,6 @@ elif [ -f "$1" ];then
 elif [ -d "$1" ]; then
 	files_fldr="$1"
 fi
-	echo "SEARCHING: $files_fldr"
 	checkFLDR
 
 #import
