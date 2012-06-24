@@ -1426,6 +1426,7 @@ menu_redraw_do()
         else
         {
             if (!lv) show_only_selected = 0;
+            if (show_only_selected) quick_redraw = false;
             //~ if (MENU_MODE || lv) clrscr();
 
             //~ menu_damage = 0;
