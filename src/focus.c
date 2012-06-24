@@ -1153,7 +1153,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Trap Focus     : %s",
-        t == 1 ? "Hold" : t == 2 ? "Cont." : "OFF"
+        t == 1 ? "Hold AF button" : t == 2 ? "Continuous" : "OFF"
     );
     if (t)
     {
@@ -1164,6 +1164,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
         if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On 50D, trap focus doesn't work in LiveView.");
         #endif
         if (lv && is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus does not work in movie mode.");
+        if (t == 2 && cfn_get_af_button_assignment()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Assign AF button to half-shutter from CFn!");
     }
 }
 
@@ -1211,10 +1212,11 @@ static struct menu_entry focus_menu[] = {
     {
         .name = "Trap Focus",
         .priv       = &trap_focus,
-        .select     = menu_binary_toggle,
+        .max = 2,
         .display    = trap_focus_display,
         .help = "Takes a picture when the subject comes in focus. MF only.",
         .essential = FOR_PHOTO,
+        .icon_type = IT_BOOL,
     },
     {
         .name = "Focus Patterns",

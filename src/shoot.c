@@ -5362,7 +5362,7 @@ void display_trap_focus_info()
     {
         show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
         bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
-        fg = trap_focus == 2 || HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
+        fg = HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
         x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
     }
@@ -5646,6 +5646,20 @@ shoot_task( void* unused )
         }
         #endif
         
+        if (trap_focus == 2 && display_idle() && !gui_menu_shown() && !HALFSHUTTER_PRESSED && cfn_get_af_button_assignment()==0) 
+        {
+            info_led_off();
+            msleep(1000);
+            if (!display_idle()) continue;
+            if (gui_menu_shown()) continue;
+            if (HALFSHUTTER_PRESSED) continue;
+            msleep(1000);
+            if (!display_idle()) continue;
+            if (gui_menu_shown()) continue;
+            if (HALFSHUTTER_PRESSED) continue;
+            SW1(1,200);
+        }
+        
         // trap focus (outside LV) and all the preconditions
         int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
 
@@ -5665,6 +5679,11 @@ shoot_task( void* unused )
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
                 lens_take_picture(64,0);
+                if (trap_focus==2) // engage half-shutter for next shot
+                {
+                    if (image_review_time) msleep(2000);
+                    SW1(1,0);
+                }
                 //~ call("Release");
                 //~ remote_shot(0);
             }
