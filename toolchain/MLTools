@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# UNDER DEVELOPMENT, pre-alpha version
+# MLTools is a script to prepare your mac for use all Magic Lantern features
+# more info on Magic lantern: http://www.magiclantern.fm
+# on MLTools: http://www.magiclantern.fm/forum/index.php?topic=1019.0
+
 #SETTINGS=~/.MacOSX/environment.plist
 #PLIST=/usr/libexec/PlistBuddy
 
@@ -17,10 +22,6 @@
 #$PLIST -c "Add :ML_FLDR string '/ML'" $SETTINGS
 #$PLIST -c "Add :BIN string 'autoexec.bin'" $SETTINGS
 
-# UNDER DEVELOPMENT, pre-alpha version
-# MLTools is a script to prepare your mac for use all Magic Lantern features
-# more info on Magic lantern: http://www.magiclantern.fm
-# on MLTools: http://www.magiclantern.fm/forum/index.php?topic=1019.0
 setvar() {
 	echo "*******************************************"
 	echo "*         Checking Start Options:         *"
@@ -261,7 +262,6 @@ checkML() {
 }
 
 checkRAW() {
-	z=$(tail -n +4 $files_fldr/$file_is)
 	list_file=${z:$cut}
 	echo "DBG: List_file: $list_file"
 	if [ -f "$files_fldr"/IMG_${list_file:5:4}.CR2 ] && [ ! -f "$files_fldr"/IMG_${list_file:5:4}.JPG ];then
@@ -284,9 +284,18 @@ checkFILE() {
 	elif [ "${file_is: -3}" == ".SH" ]; then
 		echo SCRIPT_Found
 		if [ "${file_is:0:4}" == "HDR_" ]; then
-			echo HDR
-			cut=35
-			checkRAW
+			a=$(cat "$files_fldr/$file_is" | grep align_image_stack)
+			if [ "${a:0:17}" == "align_image_stack" ]; then
+				echo HDR
+				z=$a
+				cut=37
+				checkRAW
+			else
+				echo HDR
+				z=$(a=$(cat "$files_fldr/$file_is" | grep enfuse)
+				cut=35
+				checkRAW
+			fi
 		elif [ "${file_is:0:4}" == "FST_" ]; then
 			echo FST
 			cut=104
