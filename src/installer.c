@@ -579,18 +579,18 @@ void check_install()
                     " BOOTDISK flag is ENABLED.          \n"
                     " AUTOEXEC.BIN found.                \n"
                     "                                    \n"
-                    " !!! ML/FONTS.DAT NOT FOUND !!!     \n"
+                    "   !!! ML/SETTINGS/FONTS.DAT !!!    \n" 
+                    "         !!! NOT FOUND !!!          \n"
                     "                                    \n"
                     " Please copy ALL ML files on your   \n"
                     " SD card. They only take a few MB.  \n"
                     "                                    \n"
                     " You may now turn off your camera.  \n"
-                    "                                    \n"
                     " To disable the BOOTDISK flag,      \n"
                     " change the shooting mode from the  \n"
                     " mode dial (P/Tv/Av/M).             \n"
                     "                                    \n"
-                );
+               );
             }
         }
         else

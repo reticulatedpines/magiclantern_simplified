@@ -33,7 +33,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 BUILDVER=$(shell whoami).$(shell hg id --debug -i -r .)
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%m%d-%H%M%S').$(MODEL)$(FW_VERSION).$(BUILDVER)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
