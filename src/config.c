@@ -295,7 +295,7 @@ error:
 }
 
 int config_autosave = 1;
-#define CONFIG_AUTOSAVE_FLAG_FILE CARD_DRIVE "ML/AUTOSAVE.NEG"
+#define CONFIG_AUTOSAVE_FLAG_FILE CARD_DRIVE "ML/SETTINGS/AUTOSAVE.NEG"
 
 static int config_flag_file_setting_load(char* file)
 {

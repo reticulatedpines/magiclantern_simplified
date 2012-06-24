@@ -77,13 +77,14 @@ install: autoexec.bin
 	cp $^ $(CF_CARD)
 
 	mkdir $(CF_CARD)/ML || echo "no problem"
+	mkdir $(CF_CARD)/ML/settings || echo "no problem"
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/settings/
 	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
 	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
 	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -99,6 +100,9 @@ prepare_zip:
 	cp $(TOP_DIR)/README ML/.
 	cp $(DOC_DIR)/INSTALL.pdf ML/.
 	cp $(DOC_DIR)/UserGuide.pdf ML/.
+	mkdir ML/settingss || echo "ok"
+	cp $(SRC_DIR)/FONTS.DAT ML/settings.
+	cp ../../vram/rectilin.lut ML/settings.
 	mkdir ML/cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp ML/cropmks/
 	mkdir ML/scripts || echo "ok"
@@ -107,15 +111,13 @@ prepare_zip:
 	cp $(PLUGINS_DIR)/*/*.bin ML/plugins/
 	mkdir ML/doc || echo "ok"
 	cp $(DOC_DIR)/cam/* ML/doc/
+	cp $(SRC_DIR)/logo.bmp ML/docs.
 	make x
 #	cp ../../installer/550D.109/*.fir .
 #	cp ../../installer/60D.110/*.fir .
 #	cp ../../installer/600D.101/*.fir .
 #	cp ../../installer/50D.108/*.fir .
 #	cp ../../installer/500D.111/*.fir .
-	cp ../../vram/rectilin.lut ML/.
-	cp $(SRC_DIR)/FONTS.DAT ML/.
-	cp $(SRC_DIR)/logo.bmp ML/.
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
@@ -123,13 +125,11 @@ magiclantern-$(VERSION).zip: \
 	ML/README \
 	ML/INSTALL.pdf \
 	ML/UserGuide.pdf \
+	ML/settings/* \
 	ML/cropmks/* \
 	ML/scripts/* \
 	ML/plugins/* \
 	ML/doc/* \
-	ML/FONTS.DAT \
-	ML/rectilin.lut \
-	ML/logo.bmp \
 #	*.fir \
 
 	-rm $@

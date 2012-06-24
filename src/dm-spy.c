@@ -69,8 +69,8 @@ static void dm_update()
     if (dm_enable)
     {
         dmstart();
-        FIO_RemoveFile(CARD_DRIVE "ML/dm.log");
-        logfile = FIO_CreateFile(CARD_DRIVE "ML/dm.log");
+        FIO_RemoveFile(CARD_DRIVE "ML/LOGS/dm.log");
+        logfile = FIO_CreateFile(CARD_DRIVE "ML/LOGS/dm.log");
     }
     else
     {

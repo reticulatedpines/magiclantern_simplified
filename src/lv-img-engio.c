@@ -330,8 +330,8 @@ digic_value_print(
 void digic_dump()
 {
     msleep(1000);
-    FIO_RemoveFile(CARD_DRIVE "ML/digic.log");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/digic.log");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/digic.log");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/digic.log");
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {
@@ -348,8 +348,8 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FIO_RemoveFile(CARD_DRIVE "ML/h264.log");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/h264.log");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/h264.log");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {

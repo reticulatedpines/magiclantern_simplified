@@ -387,7 +387,7 @@ initial_install(void)
     int y = 0;
     bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
 
-    FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
+    FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
@@ -511,7 +511,7 @@ int check_autoexec()
 // check if fonts.dat is present on the card
 int check_fonts()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "ML/FONTS.DAT", 0);
+    FILE * f = FIO_Open(CARD_DRIVE "ML/SETTINGS/FONTS.DAT", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);

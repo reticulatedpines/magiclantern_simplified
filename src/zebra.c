@@ -5195,8 +5195,8 @@ static void transparent_overlay_from_play()
     //~ transparent_overlay = 1;
 }
 
-//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/recti.lut");
-#define defish_lut_file CARD_DRIVE "ML/rectilin.lut"
+//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
+#define defish_lut_file CARD_DRIVE "ML/SETTINGS/rectilin.lut"
 
 static uint8_t* defish_lut = INVALID_PTR;
 
