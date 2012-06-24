@@ -862,7 +862,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     if (icon_drawn) return;
     icon_drawn = type;
     x -= 40;
-    bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
+    if (type != MNI_NONE) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
     warning_msg = 0;
     switch(type)
     {
@@ -1530,7 +1530,7 @@ menu_redraw_do()
         }
 }
 
-int _t = 0;
+static int _t = 0;
 static int _get_timestamp(struct tm * t)
 {
     return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
