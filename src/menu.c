@@ -1828,6 +1828,11 @@ handle_ml_menu_keys(struct event * event)
     // If we end up here, something has been changed.
     // Reset the timeout
     
+    // if submenu mode was changed, force a full redraw
+    static int prev_submenu_mode = 0;
+    if (submenu_mode != prev_submenu_mode) menu_selection_changed = 1;
+    prev_submenu_mode = submenu_mode;
+    
     if (menu_selection_changed && submenu_mode==2) menu_redraw_full();
     else menu_redraw();
     keyrepeat_ack(button_code);
