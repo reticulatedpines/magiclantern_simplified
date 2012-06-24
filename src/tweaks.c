@@ -781,7 +781,7 @@ tweak_task( void* unused)
     
     TASK_LOOP
     {
-        msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
+        msleep(DISPLAY_IS_ON || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
@@ -816,11 +816,13 @@ tweak_task( void* unused)
                     {
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
+                        play_zoom_center_on_selected_af_point();
                         #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
                         #endif
                     }
                     msleep(30);
+                    if (quickzoom == 2) play_zoom_center_on_selected_af_point();
                 }
                 while (get_zoom_in_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
             }

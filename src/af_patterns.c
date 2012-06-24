@@ -58,7 +58,7 @@ void afp_show_in_viewfinder() // this function may be called from multiple tasks
 BMP_LOCK( // reuse this for locking
     info_led_on();
     assign_af_button_to_halfshutter(); // this has semaphores
-    SW1(1,150);
+    SW1(1,200);
     SW1(0,50);
     restore_af_button_assignment();
     info_led_off();
@@ -160,4 +160,76 @@ int handle_af_patterns(struct event * event)
         }
     }
     return 1;
+}
+
+void play_zoom_center_on_selected_af_point()
+{
+#ifdef IMGPLAY_ZOOM_POS_X
+    if (af_point == AF_POINT_C) return; // nothing to do, zoom is centered by default
+    int x = 0;
+    int y = 0;
+    int n = 0;
+        
+    if (af_point & AF_POINT_C) 
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER; 
+        n++; 
+    }
+    if (af_point & AF_POINT_T)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER - IMGPLAY_ZOOM_POS_DELTA_Y; 
+        n++; 
+    }
+    if (af_point & AF_POINT_B)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER + IMGPLAY_ZOOM_POS_DELTA_Y; 
+        n++; 
+    }
+    if (af_point & AF_POINT_L)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER - IMGPLAY_ZOOM_POS_DELTA_X; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER; 
+        n++; 
+    }
+    if (af_point & AF_POINT_R)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER + IMGPLAY_ZOOM_POS_DELTA_X; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER; 
+        n++; 
+    }
+
+    if (af_point & AF_POINT_TL)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER - IMGPLAY_ZOOM_POS_DELTA_X / 2; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER - IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
+        n++; 
+    }
+    if (af_point & AF_POINT_TR)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER + IMGPLAY_ZOOM_POS_DELTA_X / 2; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER - IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
+        n++; 
+    }
+    if (af_point & AF_POINT_BL)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER - IMGPLAY_ZOOM_POS_DELTA_X / 2; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER + IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
+        n++; 
+    }
+    if (af_point & AF_POINT_BR)
+    { 
+        x += IMGPLAY_ZOOM_POS_X_CENTER + IMGPLAY_ZOOM_POS_DELTA_X / 2; 
+        y += IMGPLAY_ZOOM_POS_Y_CENTER + IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
+        n++; 
+    }
+    if (n == 0) return;
+    x /= n;
+    y /= n;
+
+    IMGPLAY_ZOOM_POS_X = x;
+    IMGPLAY_ZOOM_POS_Y = y;
+#endif
 }
