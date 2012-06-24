@@ -5645,8 +5645,11 @@ shoot_task( void* unused )
             }
         }
         #endif
-        
-        if (trap_focus == 2 && display_idle() && !gui_menu_shown() && !HALFSHUTTER_PRESSED && cfn_get_af_button_assignment()==0) 
+                
+        // trap focus (outside LV) and all the preconditions
+        int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
+
+        if (trap_focus == 2 && tfx && !HALFSHUTTER_PRESSED && cfn_get_af_button_assignment()==0) 
         {
             info_led_off();
             msleep(1000);
@@ -5659,9 +5662,6 @@ shoot_task( void* unused )
             if (HALFSHUTTER_PRESSED) continue;
             SW1(1,200);
         }
-        
-        // trap focus (outside LV) and all the preconditions
-        int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
 
         // same for motion detect
         int mdx = motion_detect && liveview_display_idle() && !recording;
