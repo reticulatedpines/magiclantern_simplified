@@ -558,25 +558,10 @@ void iso_movie_test()
 }
 #endif // CONFIG_ISO_TESTS
 
-extern int transparent_overlay_hidden;
 void run_test()
 {
-    msleep(200);
-//    #ifdef CONFIG_600D
-//    audio_reg_dump_600D();
-//    #endif
-    beep();
-    FILE * f = FIO_Open(CARD_DRIVE "ML/overlay.dat", 0);
-    if (f != (void*) -1)
-    {
-		beep();
-        FIO_CloseFile(f);
-		FIO_RemoveFile(CARD_DRIVE "ML/overlay.dat");
-	    transparent_overlay_hidden = !transparent_overlay_hidden;
-		redraw();
-    }
-    return;
-//	menu_benchmark();
+    msleep(2000);
+	menu_benchmark();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
