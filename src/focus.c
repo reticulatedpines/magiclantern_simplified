@@ -291,7 +291,7 @@ focus_stack_task( void* unused )
 //~ TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1c, 0x1000 );
 
 static struct semaphore * focus_task_sem;
-static int focus_task_dir;
+static int focus_task_dir_n_speedx;
 static int focus_task_delta;
 static int focus_rack_delta;
 
@@ -324,13 +324,13 @@ int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
 
 void follow_focus_reverse_dir()
 {
-    focus_task_dir = -focus_task_dir;
+    focus_task_dir_n_speedx = -focus_task_dir_n_speedx;
 }
 
 void plot_focus_status()
 {
     if (gui_menu_shown()) return;
-    bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s        ", focus_task_dir > 0 ? "FAR " : focus_task_dir < 0 ? "NEAR" : "    ");
+    bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s        ", focus_task_dir_n_speedx > 0 ? "FAR " : focus_task_dir_n_speedx < 0 ? "NEAR" : "    ");
 }
 
 static void
@@ -549,9 +549,9 @@ lens_focus_start(
 )
 {
     if( dir == 0 )
-        focus_task_dir = focus_dir ? 1 : -1;
+        focus_task_dir_n_speedx = focus_dir ? 1 : -1;
     else
-        focus_task_dir = SGN(dir);
+        focus_task_dir_n_speedx = dir; // this includes the focus speed multiplier (1 = FF+, 2 = FF++)
 
     give_semaphore( focus_task_sem );
 }
@@ -560,14 +560,14 @@ int queued_focus_steps = 0;
 void lens_focus_enqueue_step(int dir)
 {
     queued_focus_steps += ABS(dir);
-    lens_focus_start(dir);
+    lens_focus_start(SGN(dir));
 }
 
 
 void
 lens_focus_stop( void )
 {
-    focus_task_dir = 0;
+    focus_task_dir_n_speedx = 0;
 }
 
 static void
@@ -668,13 +668,13 @@ focus_task( void* unused )
             continue;
         }
 
-        while( focus_task_dir )
+        while( focus_task_dir_n_speedx )
         {
-            int f = focus_task_dir; // avoids race condition, as focus_task_dir may be changed from other tasks
+            int f = focus_task_dir_n_speedx; // avoids race condition, as focus_task_dir_n_speedx may be changed from other tasks
             if (LensFocus2(1, f * lens_focus_stepsize) == 0) 
             {
                 queued_focus_steps = 0;
-                focus_task_dir = 0;
+                focus_task_dir_n_speedx = 0;
                 break;
             }
             focus_task_delta += f;
@@ -683,7 +683,7 @@ focus_task( void* unused )
             if (queued_focus_steps)
             {
                 queued_focus_steps--;
-                if (queued_focus_steps == 0) focus_task_dir = 0;
+                if (queued_focus_steps == 0) focus_task_dir_n_speedx = 0;
             }
         }
     }
