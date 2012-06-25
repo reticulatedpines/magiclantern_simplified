@@ -1087,9 +1087,9 @@ static void fps_task()
     TASK_LOOP
     {
         #ifdef CONFIG_500D
-        msleep(100);
-        #else
         msleep(FPS_OVERRIDE ? 20 : 100);
+        #else
+        msleep(100);
         #endif
         
         fps_check_refresh();
