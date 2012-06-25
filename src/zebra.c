@@ -1132,7 +1132,7 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        bvram_mirror_start = AllocateMemory(BMP_VRAM_SIZE + 64); // just in case
+        bvram_mirror_start = alloc_dma_memory(BMP_VRAM_SIZE);
         ASSERT(bvram_mirror_start);
         if (!bvram_mirror_start) 
         {   
@@ -5109,7 +5109,7 @@ static void make_overlay()
     }
     FIO_RemoveFile(CARD_DRIVE "overlay.dat");
     FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
-    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
+    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), 720*480*2);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
 
@@ -5131,7 +5131,7 @@ static void show_overlay()
 
     FILE* f = FIO_Open(CARD_DRIVE "overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
-    FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE );
+    FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), 720*480*2 );
     FIO_CloseFile(f);
 
     for (int y = os.y0; y < os.y_max; y++)
