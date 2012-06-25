@@ -1132,7 +1132,7 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        bvram_mirror_start = alloc_dma_memory(BMP_VRAM_SIZE);
+        bvram_mirror_start = shoot_malloc(BMP_VRAM_SIZE);
         ASSERT(bvram_mirror_start);
         if (!bvram_mirror_start) 
         {   
