@@ -48,6 +48,11 @@
 #define MOVREC_STATE (*(struct state_object **)0x27850)
 #endif
 
+#ifdef CONFIG_1100D
+#define EVF_STATE (*(struct state_object **)0x4C34)
+#define MOVREC_STATE (*(struct state_object **)0x5720)
+#endif
+
 /*
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
