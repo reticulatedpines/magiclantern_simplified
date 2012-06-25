@@ -806,6 +806,7 @@ tweak_task( void* unused)
         }
         
         // faster zoom in play mode
+        #ifndef CONFIG_5D3 // already has this? I remember Marvin told me so
         if (quickzoom && PLAY_MODE)
         {
             if (get_zoom_in_pressed()) 
@@ -814,8 +815,8 @@ tweak_task( void* unused)
                 {
                     if (quickzoom == 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                     {
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-1;
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-1;
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-2;
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-2;
                         play_zoom_center_on_selected_af_point();
                         #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
@@ -825,14 +826,20 @@ tweak_task( void* unused)
                     if (quickzoom == 2) play_zoom_center_on_selected_af_point();
                 }
                 while (get_zoom_in_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+                if (quickzoom == 2)
+                {
+                    play_zoom_center_on_selected_af_point();
+                    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                }
             }
-            
             if (get_zoom_out_pressed())
             {
                 msleep(300);
                 while (get_zoom_out_pressed()) {    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
             }
         }
+        #endif
         
         //~ expsim_update();
         
@@ -1958,6 +1965,7 @@ struct menu_entry play_menus[] = {
         .essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
+#ifndef CONFIG_5D3
     {
         .name = "Zoom in PLAY mode",
         .priv = &quickzoom, 
@@ -1967,6 +1975,7 @@ struct menu_entry play_menus[] = {
         .essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
+#endif
 /*    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     {
         .name = "Always ZoomOut w.*",
