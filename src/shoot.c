@@ -1261,7 +1261,7 @@ silent_pic_take_lv_dbg()
     char imgname[100];
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
-        snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number);
+        snprintf(imgname, sizeof(imgname), CARD_DRIVE "ML/LOGS/VRAM%d.422", silent_number);
         unsigned size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
@@ -3490,7 +3490,7 @@ void bulb_ramping_init()
     static char fn[50];
     for (int i = 0; i < 100; i++)
     {
-        snprintf(fn, sizeof(fn), CARD_DRIVE "BRAMP%02d.LOG", i);
+        snprintf(fn, sizeof(fn), CARD_DRIVE "ML/LOGS/BRAMP%02d.LOG", i);
         unsigned size;
         if( FIO_GetFileSize( fn, &size ) != 0 ) break;
         if (size == 0) break;
@@ -5728,7 +5728,7 @@ shoot_task( void* unused )
         
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
-        
+
         if (intervalometer_running)
         {
             int seconds_clock_0 = seconds_clock;
@@ -5895,13 +5895,13 @@ void shoot_init()
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
-    extern struct menu_entry expo_tweak_menus[];
-    extern struct menu_entry expo_override_menus[];
 #ifndef CONFIG_5DC
+	extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
 #endif
 
 #ifndef CONFIG_600D // expsim doesn't work
+    extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
 #endif
 }

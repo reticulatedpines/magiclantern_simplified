@@ -387,7 +387,7 @@ initial_install(void)
     int y = 0;
     bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
 
-    FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
+    FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
@@ -511,7 +511,7 @@ int check_autoexec()
 // check if fonts.dat is present on the card
 int check_fonts()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "FONTS.DAT", 0);
+    FILE * f = FIO_Open(CARD_DRIVE "ML/SETTINGS/FONTS.DAT", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -579,18 +579,18 @@ void check_install()
                     " BOOTDISK flag is ENABLED.          \n"
                     " AUTOEXEC.BIN found.                \n"
                     "                                    \n"
-                    " !!! FONTS.DAT NOT FOUND !!!        \n"
+                    "   !!! ML/SETTINGS/FONTS.DAT !!!    \n" 
+                    "         !!! NOT FOUND !!!          \n"
                     "                                    \n"
                     " Please copy ALL ML files on your   \n"
                     " SD card. They only take a few MB.  \n"
                     "                                    \n"
                     " You may now turn off your camera.  \n"
-                    "                                    \n"
                     " To disable the BOOTDISK flag,      \n"
                     " change the shooting mode from the  \n"
                     " mode dial (P/Tv/Av/M).             \n"
                     "                                    \n"
-                );
+               );
             }
         }
         else

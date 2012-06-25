@@ -1,4 +1,4 @@
-#Makefile for 60D firmware 109
+#Makefile for 600D firmware 102
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
