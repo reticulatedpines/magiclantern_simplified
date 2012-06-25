@@ -3435,6 +3435,7 @@ cropmark_draw()
     if (cropmarks) 
     {
         // Cropmarks enabled, but cache is not valid
+        clrscr_mirror(); // clean any remaining zebras / peaking
         bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
         //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -4720,7 +4721,7 @@ livev_hipriority_task( void* unused )
                 #else
                 // luma zebras are fast
                 // also, if peaking is off, zebra can be faster
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 1) == 0, k % 2 == 1); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
                 #endif
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
@@ -5249,6 +5250,7 @@ static void defish_draw()
                 uint32_t* bp = (uint32_t *)&(bvram[BM(X,Y)]);
                 uint32_t* mp = (uint32_t *)&(bvram_mirror[BM(X,Y)]);
                 if (*bp != 0 && *bp != *mp) continue;
+                if ((*mp & 0x80808080)) continue;
                 int c = (lv_pixel * 41 >> 8) + 38;
                 c = c | (c << 8);
                 c = c | (c << 16);
