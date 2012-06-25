@@ -194,3 +194,11 @@ NSTUB( 0xFF92EEB8, PtpDps_remote_release_SW1_SW2_worker ) // called from: ptpRem
 NSTUB(0x3050, task_max)
 NSTUB(0xff8182c8, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xff818110, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+
+NSTUB(0xFF9B96A8, AJ_UserLevel_task)
+
+NSTUB(0xff8733fc, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xff873440, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xff873550, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff870af8, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)
