@@ -22,6 +22,9 @@
 #$PLIST -c "Add :ML_FLDR string '/ML'" $SETTINGS
 #$PLIST -c "Add :BIN string 'autoexec.bin'" $SETTINGS
 
+#########################################################################################
+# OSX FUNCTIONS
+#########################################################################################
 setvar() {
 	echo "*******************************************"
 	echo "*         Checking Start Options:         *"
@@ -30,7 +33,7 @@ setvar() {
 	MLsource=~/magic-lantern 				# folder with magic lanter sources
 	arm_fldr=~/arm-toolchain462 			# summon-arm toolchain location
 	EOS_CARD=/Volumes/EOS_DIGITAL/ 			# ML installed card address
-	files_fldr="$EOS_CARD"DCIM/100CANON	    # folder to check for file to conver on camera
+	files_fldr="$EOS_CARD"DCIM/			    # folder to check for file to conver on camera
 	ML_FLDR=ML/ 							# Ml folder on card
 	BIN=autoexec.bin 						# ML bin name
 # List of things to install
@@ -44,19 +47,34 @@ setvar() {
 		imagemagick
 		ufraw
 		mplayer
-		poppler"
+		poppler
+		gfortran
+		pkg-config"
 		
-		PIP_ML="
+	PIP_MLdev="
 		numpy
 		PIL
 		matplotlib 
-		docutils"
+		docutils
+		scipy
+		ipython==0.10
+		sympy
+		pydot
+		yappi
+		Cheetah
+		profilestats
+		ahocorasick
+		pyprof2calltree
+		pyparsing
+		"
 	BREW_MLbase="
 		mercurial
 		imagemagick
+		wget
+		ufraw
 		mplayer"
 
-		PIP_ML="
+	PIP_MLbase="
 		numpy
 		PIL"
 		
@@ -130,7 +148,6 @@ checkMLs() {
 
 installBase() {
 	checkBrewPIP
-	BREW_ML="$BREW_MLbase"
 	echo "*******************************************"
 	echo "*          Installing Base tools:         *"
 	echo "*******************************************"
@@ -150,31 +167,78 @@ installBase() {
 		echo "$f already installed (pip)"
 		fi
 	done
-	if [ ! $(which enfuse) ]; then
-		curl O http://downloads.sourceforge.net/project/enblend/enblend-enfuse/enblend-enfuse-4.0/enblend-enfuse-4.0-mac.tar.gz
-		echo "enfuse installation (tar)"
-		tar xvfz enblend-enfuse-4.0-mac.tar.gz
-		cp enblend-enfuse-4.0-mac/enfuse /usr/bin/
-		cp enblend-enfuse-4.0-mac/enblend /usr/bin/
-		rm -dR enblend-enfuse-4.0-mac
+	if [ ! $(which enfuse) ] || [ ! -f /usr/bin/enfuse ]; then
+		echo "Downloading hugin"
+		wget http://panorama.dyndns.org/download.php?id=476
+		echo "hugin installation (dmg)"
+		hdiutil attach hugin-mac-2011.5.0.5833_db2f378e1c08.dmg
+		cp /Volumes/hugin-mac-2011.5.0.5833_db2f378e1c08/hugin-mac-2011.5.0.5833/Hugin.app /Applications
+		cp /Volumes/hugin-mac-2011.5.0.5833_db2f378e1c08/hugin-mac-2011.5.0.5833/HuginTools /Applications
+		printf "%b\n" 'export PATH="/Applications/HuginTools:$PATH"'  
+		hdiutil detach hugin-mac-2011.5.0.5833_db2f378e1c08
+		rm -f hugin-mac-2011.5.0.5833_db2f378e1c08.dmg
 	else
-		echo "enfuse already installed"
-	fi
+		echo "hugin already installed"
+fi
 	checkMLs
 }
 	
 installDev() {
 	installBase
-	BREW_ML="$BREW_MLdev"
 	echo "*******************************************"
 	echo "*      Installing Dev dipendencies:       *"
 	echo "*******************************************"
+	if [ ! -d ~/.matplotlib ]; then
+			mkdir -p ~/.matplotlib
+			printf "%b\n"  "backend : WXAgg # Use wxpython as the plotting backend." >> ~/.matplotlib/matplotlibrc
+	fi
+	if [ ! $(pip freeze | grep wxPython=) ]; then
+		Dw=http://downloads.sourceforge.net/wxpython/
+		FL=wxPython2.8-osx-unicode-2.8.12.1-universal-py2.7.dmg
+		wget $Dw$FL
+		echo "wxPython Installation"
+		hdiutil attach $FL
+		sudo installer -pkg /Volumes/${FL%.*}/${FL%.*}.pkg -target /
+		hdiutil detach /Volumes/${FL%.*}
+		rm -f $FL
+	else
+		echo "wxPython already installed"
+	fi	
+	if [ ! $(pip freeze | grep scipy) ]; then
+		Dw=http://www.graphviz.org/pub/graphviz/stable/macos/lion/
+		FL=graphviz-2.28.0.pkg
+		wget $Dw$FL
+		echo "graphviz Installation"
+		sudo installer -pkg $FL -target /
+		rm -f $FL
+		sudo pip install pygraphviz
+	else
+		echo "graphviz already installed"
+	fi	
+	if [ ! $(pip freeze | grep easygui) ]; then
+		echo "Downloading easygui"
+		Dw=http://sourceforge.net/projects/easygui/files/0.96/
+		FL=easygui-0.96.tar.gz
+		wget $Dw$FL
+		tar xvfz $FL
+		rm -f $FL
+		echo "easygui  Installation"
+		sudo python setup.py install
+		rm -f easygui.py
+		rm -f setup.py
+	else
+		echo "easygui already installed"
+	fi
 	if [ ! $(which libusb-config) ]; then
 		echo "Downloading libusb.pkg"
-		wget http://www.ellert.se/PKGS/libusb-2011-10-29/10.7/libusb.pkg.tar.gz
-		tar xvfz libusb.pkg.tar.gz
+		Dw=http://www.ellert.se/PKGS/libusb-2011-10-29/10.7/
+		FL=libusb.pkg.tar.gz
+		wget $Dw$FL
+		tar xvfz $FL
+		rm -f $FL
 		echo "libusb.pkg  Installation"
 		sudo installer -pkg libusb.pkg -target /
+		rm -f libusb.pkg
 	else
 		echo "libusb already installed"
 	fi
@@ -183,6 +247,8 @@ installDev() {
 		wget http://pandoc.googlecode.com/files/pandoc-1.9.4.1.dmg
 		hdiutil attach pandoc-1.9.4.1.dmg
 		sudo installer -pkg /Volumes/pandoc\ 1.9.4.1/pandoc-1.9.4.1.pkg -target /
+		hdiutil detach /Volumes/pandoc\ 1.9.4.1
+		rm -f pandoc-1.9.4.1.dmg
 	else
 		echo "pandoc already installed"
 	fi
@@ -198,6 +264,7 @@ installDev() {
 			echo "Downloading MacTeX"
 			wget http://mirror.ctan.org/systems/mac/mactex/MacTeX.mpkg.zip
 			unzip MacTeX.mpkg.zip
+			rm -f MacTeX.mpkg.zip
 			open MacTeX-2011.mpkg
 		else
 			open $mactex
@@ -208,9 +275,15 @@ installDev() {
 }
 
 installArm() {
-	if [ ! -d "$arm_fldr" ]; then
-		bash "$MLsource"/toolchain/summon-arm 
-	fi
+	installDev
+	cp -r "$MLsource"/toolchain/patches .
+	sudo bash "$MLsource"/toolchain/summon-arm
+	printf "%b\n" '\nexport PATH="$HOME/arm-toolchain462/bin:$HOME/arm-toolchain462/tools:$PATH\n' >> .bash_profile
+	sudo rm -dR build
+	sudo rm -dR patches
+	sudo rm -dR sources
+	sudo rm -dR stamps
+	
 }
 
 remove() {
@@ -229,57 +302,59 @@ remove() {
 	fi
 	exit 0
 }
-###############################################################################
-	
+
+########-FILES-CONVERSION-###############################################
 checkRAW() {
 	list_file=${z:$cut}
-	echo "DBG: List_file: $list_file"
-	if [ -f "$files_fldr"/IMG_${list_file:5:4}.CR2 ] && [ ! -f "$files_fldr"/IMG_${list_file:5:4}.JPG ];then
-		for img in $list_file; do
+	echo $list_file
+	for img in $list_file; do
+		if [ -f $files_fldr$d/${img%.*}.CR2 ] && [ ! -f $files_fldr$d/${img%.*}.JPG ]; then
 			echo "Converting ${img%.*}.CR2 to ${img%.*}.JPG..."
-  			/usr/local/bin/convert cr2:"$files_fldr"/"${img%.*}".CR2 "$files_fldr"/"${img%.*}".JPG
-		done
-	fi
-	cd "$files_fldr"
+  			/usr/local/bin/convert cr2:"$files_fldr$d"/"${img%.*}".CR2 "$files_fldr$d"/"${img%.*}".JPG
+		fi
+	done
+	cd "$files_fldr$d"
 	bash "$file_is"
 }
 	
 checkFILE() {
 	if [ "${file_is: -4}" == ".422" ]; then
-		echo "CONVERTING $files_fldr/$file_is"
-		python $MLsource/src/422-JPG.py "$files_fldr/$file_is"
-#	elif [ "${file_is: -4}" == ".CR2" ]; then
-#		echo "$CONVERT_RAW_MSG $file_is"
-#		/usr/local/bin/convert cr2:$file_dir/$file_is $file_dir/${file_is: -4}.JPG
+		echo "CONVERTING $files_fldr$d/$file_is"
+		python $MLsource/src/422-JPG.py "$files_fldr$d/$file_is"
 	elif [ "${file_is: -3}" == ".SH" ]; then
 		echo SCRIPT_Found
 		if [ "${file_is:0:4}" == "HDR_" ]; then
-			a=$(cat "$files_fldr/$file_is" | grep align_image_stack)
+			a=$(cat "$files_fldr$d/$file_is" | grep align_image_stack)
+			e=$(cat "$files_fldr$d/$file_is" | grep enfuse)
 			if [ "${a:0:17}" == "align_image_stack" ]; then
-				echo HDR_Base
+				echo HDR_Aligned
 				z=$a
 				cut=37
 				checkRAW
 			else
-				echo HDR_Aligned
-				z=$(a)
+				echo HDR_Base
+				z=$e
 				cut=35
 				checkRAW
 			fi
 		elif [ "${file_is:0:4}" == "FST_" ]; then
 			echo FST
+			z=$e
 			cut=104
 			checkRAW
+		else
+			echo "nothing to convert"
 		fi
-		echo "nothing to convert"
 	fi
 }
 
 checkFLDR() {
-	echo "SEARCHING: $files_fldr"
-	for f in $(ls "$files_fldr") ; do
-		file_is="$f"
-		checkFILE
+	for d in $(ls $files_fldr); do
+		echo "SEARCHING: $files_fldr$d"
+		for f in $(ls $files_fldr$d) ; do
+			file_is="$f"
+			checkFILE
+		done
 	done
 }
 		
@@ -316,34 +391,85 @@ checkML() {
 import() {
 	echo "Not yet ready"
 }
+
+########################################################################
+# START SCRIPT PROCESSES
 ########################################################################
 
-setvar
-#options check
-if [ ! "$1" ]; then
-	checkML
-#elif [ "$1" == r ] || [ "$1" == remove ]; then
-#	remove
-#elif [ "$1" == h ] || [ "$1" == help ]; then
-#	help
-elif [ ! -d "$MLsource" ] || [ "$1" == i ] || [ "$1" == install ]; then
-	installBase
-elif [ "$1" == d ] || [ "$1" == dev ]; then
-	installDev
-elif [ "$1" == sa ] || [ "$1" == summonarm ]; then
-	installArm
-elif [ -f "$1" ];then
-# if the option is a a file use it as source for the script
-	file_is=$(basename "$1")
-	file_dir=$(dirname "$1")
-	echo "FILE SOURCE: $file_dir/$file_is"
-	checkFILE
-	exit 0
-elif [ -d "$1" ]; then
-	files_fldr="$1"
-fi
+OSXprocess() {
+	setvar
+	#options check
+	if [ ! "$1" ]; then
+		checkML
+	elif [ "$1" == r ] || [ "$1" == remove ]; then
+		remove
+	elif [ "$1" == h ] || [ "$1" == help ]; then
+		help
+	elif [ ! -d "$MLsource" ] || [ "$1" == i ] || [ "$1" == install ]; then
+		BREW_ML="$BREW_MLbase"
+		PIP_ML="$PIP_MLbase"
+		installBase
+		exit 0
+	elif [ "$1" == d ] || [ "$1" == dev ]; then
+		BREW_ML="$BREW_MLdev"
+		PIP_ML="$PIP_MLdev"
+		installDev
+		exit 0
+	elif [ "$1" == sa ] || [ "$1" == summonarm ]; then
+		installArm
+		exit 0
+	elif [ -f "$1" ];then
+	# if the option is a a file use it as source for the script
+		file_is=$(basename "$1")
+		file_dir=$(dirname "$1")
+		echo "file: $file_is"
+		d=$(dirname "$1")
+		d=/$(basename "$d")
+		files_fldr=$(dirname "$file_dir")
+		if [ "${file_is: -4}" == ".CR2" ]; then
+			echo "$CONVERT_RAW_MSG $file_is"
+			/usr/local/bin/convert cr2:$files_fldr$d/$file_is $files_fldr$d/${file_is:0:8}.JPG
+		echo "Done"
+		exit 0
+		fi
+			echo "FILE SOURCE: $file_dir/$file_is"
+			checkFILE
+		exit 0
+	elif [ -d "$1" ]; then
+		files_fldr="$1"
+	fi
+	echo "SEARCHING: $files_fldr"
 	checkFLDR
+}
 
-#import
+LINUXprocess() {
+	echo "installing dev dependencies"
+	sudo apt-get install flex bison libgmp3-dev libmpfr-dev libncurses5-dev libmpc-dev autoconf texinfo build-essential git-core mercurial zlibc zlib1g-dev
+	echo "installing docs dependencies"
+	sudo apt-get install python-matplotlib python-matplotlib-data python-matplotlib-doc python-matplotlib-dbg texlive-luatex python-docutils texlive-latex-base texlive-latex-recommended texlive-fonts-extra dvi2ps texlive-math-extra pandoc texlive-latex-extra ruby-full poppler-utils imagemagick
+}
+
+cd ~/
+#(from summon-arm code)#######################################################
+# OS and Tooldetection section - Detects which tools and flags to use
+##############################################################################
+case "$(uname)" in
+	Linux)
+		echo "Found Linux OS."
+		LINUXprocess
+	;;
+	Darwin)
+		echo "Found Darwin OS."
+		OSXprocess "$1"
+	;;
+	CYGWIN*)
+		echo "Found CygWin that means Windows most likely."
+		echo "nothing to do."
+	;;
+	*)
+	echo "Found unknown OS. Aborting!"
+	exit 1
+	;;
+esac
 echo FINISHED
 exit 0
