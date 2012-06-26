@@ -1036,18 +1036,25 @@ Trap Focus
 
 [[http://www.flickr.com/photos/ml_kap/5404489873|{{ TrapFocus-Hummingbird.jpg?200}}]]
 
-Takes a picture when the subject comes into focus. You need to set the to Manual focus (MF) and hold the shutter pressed halfway.
-  
+For MF users: takes a picture when the subject comes into focus.
+
+Modes: 
+
+* Hold AF button: you need to hold the autofocus button (half-shutter, ``*`` or ``AF-ON``, depending on your settings).
+* Continuous: you don't need to hold any button; ML will "hold" the half-shutter pressed for you. This will also block most buttons; press the shutter halfway to unlock them for two seconds.
+
+Notes:
+
 * Outside LiveView, it only works with lenses with chip.
 * In LiveView it only works for photos, and it will take a picture 
   when the focus indicator has (almost) maximum value on the focus graph. 
     
 Notes for LiveView trap focus:
     
-- You may have to turn the lens back and forth a few times in order to let ML
+* You may have to turn the lens back and forth a few times in order to let ML
   compute the correct focus scaling factor for the current scene. 
-- If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
-- Press ``SET`` to temporarily disable automatic scaling of focus magnitude.
+* If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
+* Press ``SET`` to temporarily disable automatic scaling of focus magnitude.
 
 .. _AF patterns:
 
@@ -1318,7 +1325,7 @@ Increase the speed of zoom function in ``PLAY`` mode.
   
 * ``Normal``: just like in standard firmware.
 * ``Fast``: zoom on steroids.
-* ``Fast+100%``: first ``ZoomIn`` press will zoom to 100%.
+* ``Fast+100%``: first ``ZoomIn`` press will zoom to 100%, centered on currently selected autofocus point.
 
 .. _SET+MainDial:
 
