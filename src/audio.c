@@ -1498,8 +1498,8 @@ my_sounddev_task()
     
 #ifdef CONFIG_AUDIO_REG_LOG
         // Create the logging file
-        FIO_RemoveFile(CARD_DRIVE "audioreg.txt");
-        reg_file = FIO_CreateFile(CARD_DRIVE "audioreg.txt" );
+        FIO_RemoveFile(CARD_DRIVE "ML/audioreg.txt");
+        reg_file = FIO_CreateFile(CARD_DRIVE "ML/audioreg.txt" );
 #endif
     
         msleep(500);
@@ -1688,6 +1688,7 @@ static void audio_menus_init()
 #endif
 }
 
+/* Dump audio for 600D
 #ifdef CONFIG_600D
 void audio_reg_dump_600D()
 {
@@ -1696,7 +1697,7 @@ void audio_reg_dump_600D()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "audio%02d.LOG", log_number);
+        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "ML/audio%02d.LOG", log_number);
         unsigned size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
@@ -1714,5 +1715,5 @@ void audio_reg_dump_600D()
     
     FIO_CloseFile(f);
 }
-
 #endif
+*/

@@ -1,9 +1,9 @@
 #generic makefile
 
 # for yagarto, use ARM_ABI=none-eabi
-ARM_ABI=none-eabi
+ARM_ABI=elf
 
-ARM_PATH=~/yagarto-4.6.2
+ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
@@ -38,16 +38,12 @@ VERSION:=$(shell LC_TIME=EN date +'%Y%m%d-%H%M%S').$(MODEL)$(FW_VERSION).$(BUILD
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_PTP = n
-CONFIG_PTP_CHDK = n
-CONFIG_PTP_ML = n
-CONFIG_PLUGINS = n
+CONFIG_PTP 			= n
+CONFIG_PTP_CHDK 	= n
+CONFIG_PTP_ML 		= n
+CONFIG_PLUGINS 		= n
 CONFIG_CONSOLE		= n
-CONFIG_DEBUGMSG = 0
-
-#MacOS
-#UMOUNT=hdiutil unmount
-#CF_CARD="/Volumes/EOS_DIGITAL"
+CONFIG_DEBUGMSG 	= 0
 
 UNAME:=$(shell uname)
 
@@ -85,13 +81,15 @@ menuindex.o: menuindexentries.h
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
-	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp $(CROP_DIR)/*.bmp $(CF_CARD)/cropmks/
-	mkdir $(CF_CARD)/scripts || echo "no problem"
-	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/scripts/
-	mkdir $(CF_CARD)/plugins || echo "no problem"
-	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/plugins/
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/
+	mkdir $(CF_CARD)/ML || echo "no problem"
+	mkdir $(CF_CARD)/ML/settings || echo "no problem"
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/settings/
+	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
+	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
+	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
+	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
+	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
+	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -104,54 +102,51 @@ ptpinstall: autoexec.bin
 prepare_zip:
 	rm -r zip || echo "ok"
 	mkdir zip
+	mkdir zip/ML || echo "ok"
 	cp $(SRC_DIR)/zip.txt zip
-	cp $(TOP_DIR)/README zip
-	cp $(DOC_DIR)/INSTALL.pdf zip
-	cp $(DOC_DIR)/UserGuide.pdf zip
-	mkdir zip/cropmks || echo "ok"
-	cp $(CROP_DIR)/*.bmp zip/cropmks/
-	mkdir zip/scripts || echo "ok"
-	cp $(SCRIPT_DIR)/*.lua zip/scripts/
-	mkdir zip/plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin zip/plugins/
-	mkdir zip/doc || echo "ok"
-	cp $(DOC_DIR)/cam/* zip/doc/
+	cp $(TOP_DIR)/README zip/ML/
+	cp $(DOC_DIR)/INSTALL.pdf zip/ML/.
+	cp $(DOC_DIR)/UserGuide.pdf zip/ML/.
+	mkdir zip/ML/settingss || echo "ok"
+	cp $(SRC_DIR)/FONTS.DAT zip/ML/settings.
+	cp ../../vram/rectilin.lut zip/ML/settings.
+	mkdir zip/ML/cropmks || echo "ok"
+	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
+	mkdir zip/ML/scripts || echo "ok"
+	cp $(SCRIPT_DIR)/*.lua zip/ML/scripts/
+	mkdir zip/ML/plugins || echo "ok"
+	cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
+	mkdir zip/ML/doc || echo "ok"
+	cp $(DOC_DIR)/cam/* zip/ML/doc/
+	cp $(SRC_DIR)/logo.bmp zip/ML/docs.
+	mkdir zip/ML/logs || echo "ok"
 	make x
 	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
 	cp ../../installer/60D.110/*.fir zip || echo "no FIR"
 	cp ../../installer/600D.101/*.fir zip || echo "no FIR"
 	cp ../../installer/50D.108/*.fir zip || echo "no FIR" 
 	cp ../../installer/500D.111/*.fir zip || echo "no FIR"
-	cp ../../vram/rectilin.lut zip
-	cp $(SRC_DIR)/FONTS.DAT zip
-	cp $(SRC_DIR)/logo.bmp zip
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip/zip.txt \
-	zip/README \
-	zip/INSTALL.pdf \
-	zip/UserGuide.pdf \
-	zip/FONTS.DAT \
-	zip/rectilin.lut \
-	zip/logo.bmp \
+	zip/ML/README \
+	zip/ML/INSTALL.pdf \
+	zip/ML/UserGuide.pdf \
 
 	-rm $@
 	cp autoexec.bin zip
 	chmod -x zip/autoexec.bin
 	cd zip; zip -z ../$@ < \
 		zip.txt \
-		README \
-		INSTALL.pdf \
-		UserGuide.pdf \
-		cropmks/* \
-		scripts/* \
-		plugins/* \
-		doc/* \
+		ML/README \
+		ML/INSTALL.pdf \
+		ML/UserGuide.pdf \
+		ML/cropmks/* \
+		ML/scripts/* \
+		ML/plugins/* \
+		ML/doc/* \
 		*.fir \
-		FONTS.DAT \
-		rectilin.lut \
-		logo.bmp \
 		autoexec.bin
 
 CFLAGS=\
@@ -562,8 +557,8 @@ docq:
 	cd $(DOC_DIR) && python mkdoc-cam.py quick
 
 installdoc:
-	mkdir $(CF_CARD)/doc || echo "no problem"
-	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/doc/
+	mkdir $(CF_CARD)/ML/doc || echo "no problem"
+	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/ML/doc/
 
 clean:
 	$(call build,CLEAN,$(RM) -f \

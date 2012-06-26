@@ -172,7 +172,7 @@ static void select_plugins_submenu(void* priv, int delta)
 	struct loaded_plugin * plug = (struct loaded_plugin*)priv;
 	if (!plug->plug) {
 		char filename[50];
-		snprintf(filename, sizeof(filename), "%sPLUGINS/%s", CARD_DRIVE, plug->name);
+		snprintf(filename, sizeof(filename), "%sML/PLUGINS/%s", CARD_DRIVE, plug->name);
 		plug->plug = load_plugin(filename);
 	}
 	if (plug->plug) {
@@ -193,7 +193,7 @@ static void display_plugins_submenu(void* priv, int x, int y, int selected)
 
 static void find_plugins() {
 	struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "PLUGINS/", &file );
+    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/PLUGINS/", &file );
     if( IS_ERROR(dirent) )
     {
         // no need to worry - if they are not present, don't use them
@@ -215,7 +215,7 @@ static void find_plugins() {
 		plugins = AllocateMemory(sizeof(struct loaded_plugin)*k);
 		memset(entries, 0, sizeof(struct menu_entry)*(k+1));
 		memset(plugins, 0, sizeof(struct loaded_plugin)*k);
-		dirent = FIO_FindFirstEx( CARD_DRIVE "PLUGINS/", &file );
+		dirent = FIO_FindFirstEx( CARD_DRIVE "ML/PLUGINS/", &file );
 		k = 0;
 	    do {
 			if (is_valid_plugin_filename(file.name))

@@ -13,7 +13,7 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-#define CONFIG_DIGIC_POKE
+//~ #define CONFIG_DIGIC_POKE
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -361,8 +361,8 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FIO_RemoveFile(CARD_DRIVE "h264.log");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "h264.log");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/h264.log");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {

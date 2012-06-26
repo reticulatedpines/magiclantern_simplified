@@ -26,7 +26,6 @@ void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
-void brightness_saturation_reset();
 
 static void upside_down_step();
 
@@ -89,10 +88,155 @@ dofp_update()
         old_value = d;
     }
 }
+//EyeFi Trick (EyeFi confirmed working only on 600D-60D)
+//**********************************************************************/
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+/* NOT USED FOR NOW
+int check_eyefi()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}*/
+
+void EyeFi_RenameCR2toAVI(char* dir)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        if (file.name[0] == '.') continue;
+        if (!streq(file.name + 8, ".CR2")) continue;
+
+        static char oldname[50];
+        static char newname[50];
+        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+        strcpy(newname, oldname);
+        newname[strlen(newname) - 4] = 0;
+        STR_APPEND(newname, ".AVI");
+        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        FIO_RenameFile(oldname, newname);
+
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    beep();
+    redraw();
+}
+
+void EyeFi_RenameAVItoCR2(char* dir)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        if (file.name[0] == '.') continue;
+        if (!streq(file.name + 8, ".AVI")) continue;
+
+        static char oldname[50];
+        static char newname[50];
+        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+        strcpy(newname, oldname);
+        newname[strlen(newname) - 4] = 0;
+        STR_APPEND(newname, ".CR2");
+        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        FIO_RenameFile(oldname, newname);
+
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    beep();
+    redraw();
+}
+
+/*void EyeFi_Rename422toMP4(char* dir)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        if (file.name[0] == '.') continue;
+        if (!streq(file.name + 8, ".422")) continue;
+
+        static char oldname[50];
+        static char newname[50];
+        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+        strcpy(newname, oldname);
+        newname[strlen(newname) - 4] = 0;
+        STR_APPEND(newname, ".MP4");
+        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        FIO_RenameFile(oldname, newname);
+
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    beep();
+    redraw();
+}
+
+void EyeFi_RenameMP4to422(char* dir)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        if (file.name[0] == '.') continue;
+        if (!streq(file.name + 8, ".MP4")) continue;
+
+        static char oldname[50];
+        static char newname[50];
+        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+        strcpy(newname, oldname);
+        newname[strlen(newname) - 4] = 0;
+        STR_APPEND(newname, ".422");
+        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        FIO_RenameFile(oldname, newname);
+
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    beep();
+    redraw();
+}*/
+
+
+static void CR2toAVI(void* priv, int delta)
+{
+    EyeFi_RenameCR2toAVI(get_dcim_dir());
+}
+
+static void AVItoCR2(void* priv, int delta)
+{
+    EyeFi_RenameAVItoCR2(get_dcim_dir());
+}
+
+/*static void f422toMP4(void* priv, int delta)
+{
+    EyeFi_Rename422toMP4(get_dcim_dir());
+}
+
+static void MP4to422(void* priv, int delta)
+{
+    EyeFi_RenameMP4to422(get_dcim_dir());
+}*/
+#endif
 
 
 // ExpSim
-//**********************************************************************
+//**********************************************************************/
 
 void video_refresh()
 {
@@ -143,7 +287,7 @@ expsim_display( void * priv, int x, int y, int selected )
 }
 
 // LV metering
-//**********************************************************************
+//**********************************************************************/
 #if 0
 CONFIG_INT("lv.metering", lv_metering, 0);
 
@@ -261,11 +405,11 @@ lv_metering_adjust()
 #endif
 
 // auto burst pic quality
-//**********************************************************************
+//**********************************************************************/
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
-#if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+#if defined(CONFIG_500D) && defined(CONFIG_550D)
 static void set_pic_quality(int q)
 {
     if (q == -1) return;
@@ -351,7 +495,7 @@ void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
 extern unsigned lcd_sensor_shortcuts;
 
 // backlight adjust
-//**********************************************************************
+//**********************************************************************/
 
 void show_display_gain_level()
 {
@@ -836,7 +980,7 @@ tweak_task( void* unused)
             if (get_zoom_out_pressed())
             {
                 msleep(300);
-                while (get_zoom_out_pressed()) {    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
+                while (get_zoom_out_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
             }
         }
         #endif
@@ -1088,6 +1232,8 @@ void arrow_key_mode_toggle()
 }
 
 void shutter_180() { lens_set_rawshutter(shutter_ms_to_raw(1000 / video_mode_fps / 2)); }
+
+void brightness_saturation_reset(void);
 
 int handle_push_wb(struct event * event)
 {
@@ -1466,7 +1612,7 @@ static struct menu_entry tweak_menus[] = {
         .display = night_vision_print,
         .help = "Maximize LV display gain for framing in darkness (photo)"
     },*/
-    #if !defined(CONFIG_60D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2)  && !defined(CONFIG_5D3) // high-end cameras doesn't need this
+    #if defined(CONFIG_500D) && defined(CONFIG_550D) // high-end cameras doesn't need this (on 600D don't works)
     {
         .name = "Auto BurstPicQuality",
         .priv = &auto_burst_pic_quality, 
@@ -1484,6 +1630,37 @@ static struct menu_entry tweak_menus[] = {
         .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
     #endif
+    
+    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    {
+        .name        = "EyeFi Trick",
+        .select        = menu_open_submenu,
+        .help = "Rename CR2 files to AVI (trick for EyeFi cards).",
+        .children =  (struct menu_entry[]) {
+            {
+            	.name        = "Rename CR2 to AVI",
+            	.select        = CR2toAVI,
+            	.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+         	},
+            {
+            	.name        = "Rename AVI to CR2",
+            	.select        = AVItoCR2,
+            	.help = "Rename back AVI files to CR2 (trick for EyeFi cards)."
+         	},
+            /*{
+            	.name        = "Rename 422 to MP4",
+            	.select        = f422toMP4,
+            	.help = "Rename 422 files to MP4 (trick for EyeFi cards)."
+         	},
+            {
+            	.name        = "Rename MP4 to 422",
+            	.select        = MP4to422,
+            	.help = "Rename back MP4 files to 422 (trick for EyeFi cards)."
+         	},*/
+            MENU_EOL
+        },
+    },
+    #endif    
 };
 
 

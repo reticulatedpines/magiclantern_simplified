@@ -417,11 +417,11 @@ static void find_scripts()
 {
     struct fio_file file;
 	char scriptdir[50];
-	snprintf(scriptdir, sizeof(scriptdir), "%s%s",get_card_drive(), "SCRIPTS/");
+	snprintf(scriptdir, sizeof(scriptdir), "%s%s",get_card_drive(), "ML/SCRIPTS/");
     struct fio_dirent * dirent = FIO_FindFirstEx( scriptdir, &file );
     if( IS_ERROR(dirent) )
     {
-        NotifyBox(2000, "SCRIPTS dir missing" );
+        NotifyBox(2000, "ML/SCRIPTS dir missing" );
         msleep(100);
         NotifyBox(2000, "Please copy all ML files!" );
         return;
@@ -492,7 +492,7 @@ static void reload_script(int i)
 	}
 	i = COERCE(i, 0, num_scripts-1);
 	if (i==-1 || num_scripts== -1) return;
-	snprintf(scriptname, sizeof(scriptname), "%sSCRIPTS/%s", get_card_drive(), script_names[i]);
+	snprintf(scriptname, sizeof(scriptname), "%sML/SCRIPTS/%s", get_card_drive(), script_names[i]);
 	script_source_str = script_load(scriptname);
 	if (!script_source_str) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, scriptname);
 }

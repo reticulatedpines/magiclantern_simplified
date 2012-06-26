@@ -132,13 +132,13 @@ save_config( void * priv, int delta )
 {
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
-    config_save_file( CARD_DRIVE "magic.cfg" ); 
+    config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" ); 
     give_semaphore(config_save_sem);
 }
 static void
 delete_config( void * priv, int delta )
 {
-    FIO_RemoveFile( CARD_DRIVE "magic.cfg" );
+    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
     if (config_autosave) config_autosave_toggle(0, 0);
 }
 
@@ -173,7 +173,7 @@ static int vmax(int* x, int n)
 static void dump_rom_task(void* priv)
 {
     msleep(200);
-    FILE * f = FIO_CreateFile(CARD_DRIVE "ROM0.BIN");
+    FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
@@ -183,7 +183,7 @@ static void dump_rom_task(void* priv)
 
     msleep(200);
 
-    f = FIO_CreateFile(CARD_DRIVE "BOOT0.BIN");
+    f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/BOOT0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
@@ -193,7 +193,7 @@ static void dump_rom_task(void* priv)
     
     msleep(200);
 
-    dump_big_seg(4, CARD_DRIVE "RAM4.BIN");
+    dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
 }
 
 static void dump_rom(void* priv)
@@ -401,7 +401,7 @@ static void iso_response_curve_current()
     static char name[100];
     extern int digic_iso_gain;
     
-    snprintf(name, sizeof(name), CARD_DRIVE "i%d%s%s.txt", 
+    snprintf(name, sizeof(name), CARD_DRIVE "ML/LOGS/i%d%s%s.txt", 
         raw2iso(lens_info.iso_equiv_raw), 
         digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "", 
         get_htp() ? "h" : "");
@@ -415,75 +415,75 @@ void iso_response_curve_160()
 
     // ISO 100x/160x/80x series
 
-    find_response_curve_ex(CARD_DRIVE "iso80e.txt",     100,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso160e.txt",    200,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso320e.txt",    400,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso640e.txt",    800,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1250e.txt",   1600,  790   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2500e.txt",   3200,  790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso80e.txt",     100,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso160e.txt",    200,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso320e.txt",    400,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso640e.txt",    800,   790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1250e.txt",   1600,  790   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2500e.txt",   3200,  790   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso160.txt",    160,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso320.txt",    320,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso640.txt",    640,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1250.txt",   1250,    0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2500.txt",   2500,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso160.txt",    160,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso320.txt",    320,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso640.txt",    640,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1250.txt",   1250,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2500.txt",   2500,    0   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso100.txt",    100,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso200.txt",    200,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso400.txt",    400,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso800.txt",    800,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1600.txt",   1600,    0   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso3200.txt",   3200,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso100.txt",    100,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200.txt",    200,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400.txt",    400,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800.txt",    800,     0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1600.txt",   1600,    0   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso3200.txt",   3200,    0   , 0);
 }
 
 void iso_response_curve_logain()
 {
     msleep(2000);
-    find_response_curve_ex(CARD_DRIVE "iso70e.txt",      100,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso140e.txt",     200,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso280e.txt",     400,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso560e.txt",     800,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1100e.txt",    1600,  724   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2200e.txt",    3200,  724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso70e.txt",      100,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso140e.txt",     200,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso280e.txt",     400,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso560e.txt",     800,   724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1100e.txt",    1600,  724   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2200e.txt",    3200,  724   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso65e.txt",     100,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso130e.txt",    200,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso260e.txt",    400,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso520e.txt",    800,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1000e.txt",   1600,  664   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso2000e.txt",   3200,  664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso65e.txt",     100,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso130e.txt",    200,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso260e.txt",    400,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso520e.txt",    800,   664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1000e.txt",   1600,  664   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2000e.txt",   3200,  664   , 0);
 
-    find_response_curve_ex(CARD_DRIVE "iso50e.txt",     100,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso100e.txt",    200,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso200e.txt",    400,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso400e.txt",    800,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso800e.txt",    1600,  512   , 0);
-    find_response_curve_ex(CARD_DRIVE "iso1600e.txt",   3200,  512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso50e.txt",     100,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso100e.txt",    200,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200e.txt",    400,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400e.txt",    800,   512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800e.txt",    1600,  512   , 0);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1600e.txt",   3200,  512   , 0);
 }
 
 void iso_response_curve_htp()
 {
     msleep(2000);
-    find_response_curve_ex(CARD_DRIVE "iso200h.txt",      200,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso400h.txt",      400,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso800h.txt",      800,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso1600h.txt",    1600,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso3200h.txt",    3200,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso6400h.txt",    6400,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200h.txt",      200,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400h.txt",      400,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800h.txt",      800,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1600h.txt",    1600,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso3200h.txt",    3200,   0   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso6400h.txt",    6400,   0   , 1);
 
-    find_response_curve_ex(CARD_DRIVE "iso140eh.txt",      200,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso280eh.txt",      400,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso560eh.txt",      800,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "is1100eh.txt",     1600,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "is2200eh.txt",     3200,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "is4500eh.txt",     6400,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso140eh.txt",      200,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso280eh.txt",      400,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso560eh.txt",      800,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/is1100eh.txt",     1600,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/is2200eh.txt",     3200,   724   , 1);
+    find_response_curve_ex(CARD_DRIVE "MLis4500eh.txt",     6400,   724   , 1);
 
-    find_response_curve_ex(CARD_DRIVE "iso100eh.txt",      200,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso200eh.txt",      400,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso400eh.txt",      800,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "iso800eh.txt",     1600,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "is1600eh.txt",     3200,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "is3200eh.txt",     6400,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso100eh.txt",      200,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200eh.txt",      400,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400eh.txt",      800,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800eh.txt",     1600,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/is1600eh.txt",     3200,   512   , 1);
+    find_response_curve_ex(CARD_DRIVE "ML/LOGS/is3200eh.txt",     6400,   512   , 1);
 }
 
 void iso_movie_change_setting(int iso, int dgain, int shutter)
@@ -1696,7 +1696,7 @@ void save_crash_log()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "CRASH%02d.LOG" : CARD_DRIVE "ASSERT%02d.LOG", log_number);
+        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "ML/LOGS/CRASH%02d.LOG" : CARD_DRIVE "ML/LOGS/ASSERT%02d.LOG", log_number);
         unsigned size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
@@ -2124,11 +2124,11 @@ static void prop_display(
 
 void prop_dump()
 {
-    FIO_RemoveFile(CARD_DRIVE "PROP.LOG");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "PROP.LOG");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/PROP.LOG");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/PROP.LOG");
 
-    FIO_RemoveFile(CARD_DRIVE "PROP-STR.LOG");
-    FILE* g = FIO_CreateFile(CARD_DRIVE "PROP-STR.LOG");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
+    FILE* g = FIO_CreateFile(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
     
     unsigned i, j, k;
     
@@ -2178,6 +2178,7 @@ void menu_kill_flicker()
     canon_gui_disable_front_buffer();
 }
 
+/* moved to tweaks
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
 
 void EyeFi_RenameCR2toAVI(char* dir)
@@ -2207,12 +2208,44 @@ void EyeFi_RenameCR2toAVI(char* dir)
     redraw();
 }
 
+void EyeFi_RenameAVItoCR2(char* dir)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        if (file.name[0] == '.') continue;
+        if (!streq(file.name + 8, ".AVI")) continue;
+
+        static char oldname[50];
+        static char newname[50];
+        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
+        strcpy(newname, oldname);
+        newname[strlen(newname) - 4] = 0;
+        STR_APPEND(newname, ".CR2");
+        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
+        FIO_RenameFile(oldname, newname);
+
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    beep();
+    redraw();
+}
+
 #endif
 
 static void CR2toAVI(void* priv, int delta)
 {
     EyeFi_RenameCR2toAVI(get_dcim_dir());
 }
+
+static void AVItoCR2(void* priv, int delta)
+{
+    EyeFi_RenameAVItoCR2(get_dcim_dir());
+}*/
 
 static void frozen_task()
 {
@@ -2357,13 +2390,27 @@ struct menu_entry debug_menus[] = {
         .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
     },
 #endif
+/* moved to tweaks
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
-        .name        = "Rename CR2 to AVI",
-        .select        = CR2toAVI,
-        .help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+        .name        = "EyeFi Trick",
+        .select        = menu_open_submenu,
+        .help = "Rename CR2 files to AVI (trick for EyeFi cards).",
+        .children =  (struct menu_entry[]) {
+            {
+            	.name        = "Rename CR2 to AVI",
+            	.select        = CR2toAVI,
+            	.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
+         	},
+            {
+            	.name        = "Rename AVI to CR2",
+            	.select        = AVItoCR2,
+            	.help = "Rename back AVI files to CR2 (trick for EyeFi cards)."
+         	},
+            MENU_EOL
+        },
     },
-#endif
+#endif*/
     {
         .name        = "Don't click me!",
         .priv =         run_test,
@@ -2561,7 +2608,7 @@ static struct menu_entry cfg_menus[] = {
     {
         .name = "Save config now",
         .select        = save_config,
-        .help = "Save ML settings to MAGIC.CFG"
+        .help = "Save ML settings to ML/MAGIC.CFG"
     },
     {
         .name = "Delete config file",
@@ -2752,7 +2799,7 @@ struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
     if (logo == (void*) -1) 
-        logo = bmp_load(CARD_DRIVE "logo.bmp",0);
+        logo = bmp_load(CARD_DRIVE "ML/DOC/logo.bmp",0);
 }
 void show_logo()
 {
@@ -3126,22 +3173,27 @@ void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_Init();
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
-    TmpMem_AddFile(CARD_DRIVE "FONTS.DAT");
-    TmpMem_AddFile(CARD_DRIVE "MAGIC.CFG");
-    TmpMem_AddFile(CARD_DRIVE "RECTILIN.LUT");
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "CROPMKS/", 1);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "PLUGINS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "DOC/", 0);
+/*    TmpMem_AddFile(CARD_DRIVE "ML/FONTS.DAT");
+    TmpMem_AddFile(CARD_DRIVE "ML/MAGIC.CFG");
+    TmpMem_AddFile(CARD_DRIVE "ML/RECTILIN.LUT");*/
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/PLUGINS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
 }
 
 void CopyMLFilesBack_AfterFormat()
 {
-    FIO_CreateDirectory(CARD_DRIVE "CROPMKS");
-    FIO_CreateDirectory(CARD_DRIVE "SCRIPTS");
-    FIO_CreateDirectory(CARD_DRIVE "PLUGINS");
-    FIO_CreateDirectory(CARD_DRIVE "DOC");
+    FIO_CreateDirectory(CARD_DRIVE "ML");
+    FIO_CreateDirectory(CARD_DRIVE "ML/SETTINGS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/CROPMKS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/SCRIPTS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/PLUGINS");
+    FIO_CreateDirectory(CARD_DRIVE "ML/DOC");
+    FIO_CreateDirectory(CARD_DRIVE "ML/LOGS");
     int i;
     for (i = 0; i < tmp_file_index; i++)
     {

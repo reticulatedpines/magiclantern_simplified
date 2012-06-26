@@ -41,11 +41,11 @@ void menu_help_show_page(int page)
     char path[100];
     struct bmp_file_t * doc = (void*) -1;
 
-    snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmh", page);
+    snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
     doc = bmp_load(path, 1);
     if (!doc)
     {
-        snprintf(path, sizeof(path), CARD_DRIVE "doc/page-%03d.bmp", page);
+        snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmp", page);
         doc = bmp_load(path, 1);
     }
 
@@ -91,7 +91,7 @@ void menu_help_go_to_label(void* label)
     // hack: use config file routines to parse menu index file
     extern int config_file_size, config_file_pos;
     extern char* config_file_buf;
-    config_file_buf = (void*)read_entire_file(CARD_DRIVE "doc/menuidx.dat", &config_file_size);
+    config_file_buf = (void*)read_entire_file(CARD_DRIVE "ML/doc/menuidx.dat", &config_file_size);
     config_file_pos = 0;
 
     char line_buf[ 100 ];

@@ -1019,11 +1019,11 @@ int tic()
 #if CONFIG_DEBUGMSG
 void card_benchmark_wr(int bufsize, int K, int N)
 {
-    FIO_RemoveFile(CARD_DRIVE "bench.tmp");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/bench.tmp");
     msleep(1000);
     int n = 0x10000000 / bufsize;
     {
-        FILE* f = FIO_CreateFile(CARD_DRIVE "bench.tmp");
+        FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/bench.tmp");
         int t0 = tic();
         int i;
         for (i = 0; i < n; i++)
@@ -1046,7 +1046,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         void* buf = alloc_dma_memory(bufsize);
         if (buf)
         {
-            FILE* f = FIO_Open(CARD_DRIVE "bench.tmp", O_RDONLY | O_SYNC);
+            FILE* f = FIO_Open(CARD_DRIVE "ML/LOGS/bench.tmp", O_RDONLY | O_SYNC);
             int t0 = tic();
             int i;
             for (i = 0; i < n; i++)
@@ -1066,7 +1066,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         }
     }
 
-    FIO_RemoveFile(CARD_DRIVE "bench.tmp");
+    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/bench.tmp");
     msleep(1000);
     SW1(1,100);
     SW1(0,100);
@@ -1092,10 +1092,10 @@ void card_benchmark_schedule()
 
 static void dump_vram()
 {
-    dump_big_seg(4, CARD_DRIVE "4.bin");
-    dump_big_seg(4, CARD_DRIVE "4-1.bin");
-    //dump_seg(0x1000, 0x100000, CARD_DRIVE "ram.bin");
-    //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "VRAM.BIN");
+    dump_big_seg(4, CARD_DRIVE "ML/LOGS/4.bin");
+    dump_big_seg(4, CARD_DRIVE "ML/LOGS/4-1.bin");
+    //dump_seg(0x1000, 0x100000, CARD_DRIVE "ML/LOGS/ram.bin");
+    //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "ML/LOGS/VRAM.BIN");
 }
 
 int fps_ticks = 0;
@@ -1827,10 +1827,10 @@ int is_valid_cropmark_filename(char* filename)
 static void find_cropmarks()
 {
     struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "CROPMKS/", &file );
+    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/CROPMKS/", &file );
     if( IS_ERROR(dirent) )
     {
-        NotifyBox(2000, "CROPMKS dir missing\n"
+        NotifyBox(2000, "ML/CROPMKS dir missing\n"
                         "Please copy all ML files!" );
         return;
     }
@@ -1871,7 +1871,7 @@ static void reload_cropmark()
     if (!num_cropmarks) return;
     i = COERCE(i, 0, num_cropmarks-1);
     char bmpname[100];
-    snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "CROPMKS/%s", cropmark_names[i]);
+    snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "ML/CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
     if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 }
@@ -5114,9 +5114,9 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FIO_RemoveFile(CARD_DRIVE "overlay.dat");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
-    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), 960*480);
+    FIO_RemoveFile(CARD_DRIVE "ML/SETTINGS/overlay.dat");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/SETTINGS/overlay.dat");
+    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
 
@@ -5136,7 +5136,7 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_Open(CARD_DRIVE "overlay.dat", O_RDONLY | O_SYNC);
+    FILE* f = FIO_Open(CARD_DRIVE "ML/SETTINGS/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);
@@ -5201,8 +5201,8 @@ static void transparent_overlay_from_play()
     //~ transparent_overlay = 1;
 }
 
-//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "recti.lut");
-#define defish_lut_file CARD_DRIVE "rectilin.lut"
+//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
+#define defish_lut_file CARD_DRIVE "ML/SETTINGS/rectilin.lut"
 
 static uint8_t* defish_lut = INVALID_PTR;
 
