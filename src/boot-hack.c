@@ -539,7 +539,7 @@ int init_task_patched_for_600D(int a, int b, int c, int d)
 
     // Done relocating, now we can patch things.
 
-    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e8 + CreateTaskMain_offset);
+    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e4 + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff0123ec + CreateTaskMain_offset);
 
     // change end limit to 0xc800000 => reserve 500K for ML
@@ -585,11 +585,11 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
     // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
 
     #define init_task_start 0xff0197d8
-    #define init_task_end   0xff0199ac
+    #define init_task_end   0xff0199b0
     #define init_task_len   (init_task_end - init_task_start)
 
     #define CreateTaskMain_start 0xFF0123C4
-    #define CreateTaskMain_end   0xFF0126B0
+    #define CreateTaskMain_end   0xFF0126B4
     #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
     
     static char init_task_reloc_buf[init_task_len+64];
@@ -616,7 +616,7 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
 
     // Done relocating, now we can patch things.
 
-    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e8 + CreateTaskMain_offset);
+    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e4 + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff0123ec + CreateTaskMain_offset);
 
     // change end limit to 0xc800000 => reserve 500K for ML
