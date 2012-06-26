@@ -1261,7 +1261,7 @@ silent_pic_take_lv_dbg()
     char imgname[100];
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
-        snprintf(imgname, sizeof(imgname), CARD_DRIVE "ML/LOGS/VRAM%d.422", silent_number);
+        snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
         unsigned size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
