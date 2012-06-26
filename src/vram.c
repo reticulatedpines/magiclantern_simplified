@@ -241,6 +241,9 @@ void update_vram_params()
 #elif defined(CONFIG_5D3)
     vram_hd.width  = lv_dispsize > 1 ? 1152 : 1904;
     vram_hd.height = lv_dispsize > 1 ?  768 : 1270;
+#elif defined(CONFIG_5DC)
+    vram_hd.width  = 1024;
+    vram_hd.height = 768; // dummy values
 #else
     error
 #endif

@@ -5091,7 +5091,6 @@ static void make_overlay()
     //~ int lvpitch = YUV422_LV_PITCH;
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
-    #define BMPPITCH 960
 
     // difficulty: in play mode, image buffer may have different size/position than in LiveView
     // => normalized xn and yn will fix this
@@ -5132,7 +5131,6 @@ static void show_overlay()
     get_yuv422_vram();
     uint8_t * const bvram = bmp_vram_real();
     if (!bvram) return;
-    #define BMPPITCH 960
     
     clrscr();
 

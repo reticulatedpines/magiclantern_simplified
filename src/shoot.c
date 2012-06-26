@@ -4483,6 +4483,7 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+        #ifndef CONFIG_5DC
             {
                 .name = "Black Level", 
                 .priv = &digic_black_level,
@@ -4492,6 +4493,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
             },
+        #endif
             /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,

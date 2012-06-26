@@ -93,6 +93,8 @@ inline uint8_t* bmp_vram_idle()
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = (x) % 2 ? ((*(char*)(p) & 0x0F) | ((color) << 4)) : ((*(char*)(p) & 0xF0) | ((color) & 0x0F))    
+
 #else // dryos
 
 #define BMP_W_PLUS 840
@@ -155,7 +157,7 @@ inline uint8_t* bmp_vram_idle()
 inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
 {
     #ifdef CONFIG_5DC
-    char* p = &bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
     SET_4BIT_PIXEL(p, x, color);
     #else
     bvram[x + y * BMPPITCH] = color;
