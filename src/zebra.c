@@ -2668,7 +2668,7 @@ int handle_transparent_overlay(struct event * event)
         return 0;
     }
 
-    if (transparent_overlay && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+    if (transparent_overlay && liveview_display_idle() && !gui_menu_shown())
     {
         if (event->param == BGMT_PRESS_UP)
         {

@@ -4600,7 +4600,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "AutoISO speed    ",
+                .name = "A-ISO smoothness ",
                 .priv = &lvae_iso_speed,
                 .min = 3,
                 .max = 30,
