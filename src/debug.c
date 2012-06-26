@@ -3176,6 +3176,7 @@ void CopyMLFilesToRAM_BeforeFormat()
 /*    TmpMem_AddFile(CARD_DRIVE "ML/FONTS.DAT");
     TmpMem_AddFile(CARD_DRIVE "ML/MAGIC.CFG");
     TmpMem_AddFile(CARD_DRIVE "ML/RECTILIN.LUT");*/
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);

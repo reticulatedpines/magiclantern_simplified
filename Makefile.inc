@@ -83,7 +83,7 @@ install: autoexec.bin
 
 	mkdir $(CF_CARD)/ML || echo "no problem"
 	mkdir $(CF_CARD)/ML/settings || echo "no problem"
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/settings/
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
 	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
@@ -108,7 +108,7 @@ prepare_zip:
 	cp $(DOC_DIR)/INSTALL.pdf zip/ML/.
 	cp $(DOC_DIR)/UserGuide.pdf zip/ML/.
 	mkdir zip/ML/settingss || echo "ok"
-	cp $(SRC_DIR)/FONTS.DAT zip/ML/settings.
+	cp $(SRC_DIR)/FONTS.DAT zip/ML/
 	cp ../../vram/rectilin.lut zip/ML/settings.
 	mkdir zip/ML/cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
