@@ -41,7 +41,7 @@ CFLAGS += -DCONFIG_STATIC_FONTS=1
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF810000
+ROMBASEADDR		= 0xFF0C0000
 RESTARTSTART		= 0x00069500
 
 updater: reboot-ins.o
