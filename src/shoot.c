@@ -1261,7 +1261,7 @@ silent_pic_take_lv_dbg()
     char imgname[100];
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
-        snprintf(imgname, sizeof(imgname), CARD_DRIVE "ML/LOGS/VRAM%d.422", silent_number);
+        snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
         unsigned size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
@@ -3238,6 +3238,7 @@ static int bramp_hist_dirty = 0;
 static int bramp_ev_reference_x1000 = 0;
 static int bramp_prev_shot_was_bad = 1;
 static float bramp_u1 = 0; // for the feedback controller: command at previous step
+static int bramp_last_exposure_rounding_error_evx1000;
 
 static int seconds_clock = 0;
 int get_seconds_clock() { return seconds_clock; } 
@@ -3501,6 +3502,7 @@ void bulb_ramping_init()
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
     bramp_ev_reference_x1000 = 0;
+    bramp_last_exposure_rounding_error_evx1000 = 0;
     //~ bramp_temporary_exposure_compensation_ev_x100 = 0;
     bramp_prev_shot_was_bad = 1; // force full correction at first step
     bramp_u1 = 0.0;
@@ -3838,7 +3840,7 @@ static void compute_exposure_for_next_shot()
         int mev = bramp_luma_to_ev_x100(bramp_measured_level);
         //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, mev > 0 ? "" : "-", ABS(mev)/100, ABS(mev)%100); msleep(1000);
 
-        my_fprintf(bramp_log_file, "%04d luma=%3d ", file_number, bramp_measured_level);
+        my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
 
         /**
          * Use a discrete feedback controller, designed such as the closed loop system 
@@ -3888,7 +3890,7 @@ static void compute_exposure_for_next_shot()
          */
 
         // unit: 0.01 EV
-        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level);
+        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level) - bramp_last_exposure_rounding_error_evx1000/10;
         int r_x100 = bramp_ev_reference_x1000/10;
         int e_x100 = COERCE(r_x100 - y_x100, -mev-500, -mev+500);
         // positive e => picture should be brightened
@@ -4481,6 +4483,17 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+        #ifndef CONFIG_5DC
+            {
+                .name = "Black Level", 
+                .priv = &digic_black_level,
+                .min = 0,
+                .max = 200,
+                .display = digic_black_print,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
+        #endif
             /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,
@@ -4562,16 +4575,6 @@ static struct menu_entry expo_menus[] = {
                 .choices = (const char *[]) {"C 100/160x", "ML ISOs"},
                 .icon_type = IT_DICE,
             },
-            #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
-            {
-                .name = "Black Level      ", 
-                .priv = &digic_black_level,
-                .min = 0,
-                .max = 200,
-                .display = digic_black_print,
-                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
-            },
-            #endif
             /*{
                 .name = "Lift Shadows",
                 .priv = &digic_shadow_lift,
@@ -4599,7 +4602,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "AutoISO speed    ",
+                .name = "A-ISO smoothness ",
                 .priv = &lvae_iso_speed,
                 .min = 3,
                 .max = 30,
@@ -4869,7 +4872,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         int ms = get_exposure_time_ms();
         int msc = ms * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000;
         
-        int rs = get_exposure_time_raw();
+        int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw_noflicker(bulb_shutter_valuef) : get_exposure_time_raw();
         int rc = rs - ev_x8;
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
@@ -4883,6 +4886,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE))
         {
             bulb_take_pic(msc);
+            bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
         }
         else
         {
@@ -4896,6 +4900,15 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             take_a_pic(allow_af);
             
             bulb_ramping_enabled = b;
+            
+            if (BULB_EXPOSURE_CONTROL_ACTIVE)
+            {
+                // since actual shutter speed differs from float value quite a bit, 
+                // we will need this to correct metering readings
+                bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0);
+                ASSERT(ABS(bramp_last_exposure_rounding_error_evx1000) < 500);
+            }
+            else bramp_last_exposure_rounding_error_evx1000 = 0;
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
@@ -5355,7 +5368,7 @@ void display_trap_focus_info()
     {
         show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
         bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
-        fg = trap_focus == 2 || HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
+        fg = HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
         x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
     }
@@ -5638,9 +5651,23 @@ shoot_task( void* unused )
             }
         }
         #endif
-        
+                
         // trap focus (outside LV) and all the preconditions
         int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
+
+        if (trap_focus == 2 && tfx && !HALFSHUTTER_PRESSED && cfn_get_af_button_assignment()==0) 
+        {
+            info_led_off();
+            msleep(1000);
+            if (!display_idle()) continue;
+            if (gui_menu_shown()) continue;
+            if (HALFSHUTTER_PRESSED) continue;
+            msleep(1000);
+            if (!display_idle()) continue;
+            if (gui_menu_shown()) continue;
+            if (HALFSHUTTER_PRESSED) continue;
+            SW1(1,200);
+        }
 
         // same for motion detect
         int mdx = motion_detect && liveview_display_idle() && !recording;
@@ -5658,6 +5685,11 @@ shoot_task( void* unused )
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
                 lens_take_picture(64,0);
+                if (trap_focus==2) // engage half-shutter for next shot
+                {
+                    if (image_review_time) msleep(2000);
+                    SW1(1,0);
+                }
                 //~ call("Release");
                 //~ remote_shot(0);
             }

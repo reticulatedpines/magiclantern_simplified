@@ -144,10 +144,10 @@ How do I see shutter counter / CMOS temperature?
 
 Look in `Debug`_ menu.
 
-Can I use LiveView to preview images in complete darkness?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Can I use LiveView in complete darkness?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. Increase display gain (under ISO submenu, or on arrow key shortcuts), use a low FPS (with FPS override), or both.
+**Yes.** Increase display gain (under ISO submenu, or on arrow key shortcuts), use a low FPS (with `FPS override`_), or both.
 
 Also check out the dark color schemes optimized for night shooting, or try disabling exposure simulation.
 

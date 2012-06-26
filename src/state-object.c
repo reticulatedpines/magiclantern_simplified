@@ -12,18 +12,23 @@
 
 #ifdef CONFIG_550D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
 #define MOVREC_STATE (*(struct state_object **)0x5B34)
 #define LV_STATE (*(struct state_object **)0x4B74)
 #define LVCAE_STATE (*(struct state_object **)0x51E4)
 #endif
 
 #ifdef CONFIG_60D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define VOI_STATE (*(struct state_object **)0x269D8)
 #define EVF_STATE (*(struct state_object **)0x4ff8)
 #define MOVREC_STATE (*(struct state_object **)0x5A40)
 #endif
 
 #ifdef CONFIG_600D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x51CC)
 #define MOVREC_STATE (*(struct state_object **)0x5EF8)
 #endif
@@ -46,6 +51,11 @@
 #ifdef CONFIG_5D3
 #define EVF_STATE (*(struct state_object **)0x2600c)
 #define MOVREC_STATE (*(struct state_object **)0x27850)
+#endif
+
+#ifdef CONFIG_1100D
+#define EVF_STATE (*(struct state_object **)0x4C34)
+#define MOVREC_STATE (*(struct state_object **)0x5720)
 #endif
 
 /*
@@ -95,6 +105,11 @@ static void vsync_func() // called once per frame.. in theory :)
 int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
+    #ifdef DISPLAY_STATE
+    if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
+        hdr_kill_flicker();
+    #endif
+
     int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
 
@@ -127,9 +142,9 @@ static int stateobj_start_spy(struct state_object * stateobj)
 
 static void state_init(void* unused)
 {
-    //~ #ifdef DISPLAY_STATE
-        //~ stateobj_start_spy(DISPLAY_STATE);
-    //~ #endif
+    #ifdef DISPLAY_STATE
+        stateobj_start_spy(DISPLAY_STATE);
+    #endif
     #ifdef LV_STATE
         stateobj_start_spy(LV_STATE);
     #endif

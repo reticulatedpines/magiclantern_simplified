@@ -71,6 +71,41 @@ void hdr_step()
     //~ *(uint8_t*)(lv_struct + 0x54) = iso;
 }
 
+void hdr_kill_flicker()
+{
+#ifndef CONFIG_1100D
+    if (!lv) return;
+    if (!is_movie_mode()) return;
+    if (!hdrv_enabled) return;
+
+    static int odd_frame = 0;
+    static int frame;
+    frame++;
+        
+    if (recording)
+    {
+        #ifdef MOVREC_STATE // sync by Canon frame number
+        frame = MVR_FRAME_NUMBER;
+        #endif
+    }
+
+    odd_frame = (frame / video_mode_fps / 2) % 2;
+ 
+    if (recording) // kill flicker by displaying odd (or even) frames only
+    {
+        static int prev_buf = 0;
+        if (frame % 2 == odd_frame)
+        {
+            if (prev_buf) YUV422_LV_BUFFER_DMA_ADDR = prev_buf;
+        }
+        else
+        {
+            prev_buf = YUV422_LV_BUFFER_DMA_ADDR;
+        }
+    }
+#endif
+}
+
 static void
 hdr_print(
     void *          priv,

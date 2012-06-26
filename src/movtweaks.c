@@ -1006,7 +1006,7 @@ static struct menu_entry mov_menus[] = {
         .priv = &movie_mode_remap,
         .display    = mode_remap_print,
         .select     = menu_ternary_toggle,
-        .help = "Remap movie mode to A-DEP, CA or C.",
+        .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
         .essential = FOR_MOVIE,
     },
     #endif

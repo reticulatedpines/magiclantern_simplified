@@ -21,18 +21,16 @@ struct menu_entry help_menus[] = {
     {
         #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
         .name = "Press Q    : Bring up submenu...",
-        #endif
-        #ifdef CONFIG_500D
+        #elif defined(CONFIG_500D)
         .name = "LiveView(Q): Bring up submenu...",
-        #endif
-        #ifdef CONFIG_50D
+        #elif defined(CONFIG_50D)
         .name = "Press FUNC : Bring up submenu...",
-        #endif
-        #ifdef CONFIG_5D2
+        #elif defined(CONFIG_5D2)
         .name = "Pict.Style : Bring up submenu...",
-        #endif
-        #ifdef CONFIG_5DC
+        #elif defined(CONFIG_5DC)
         .name = "Press JUMP : Bring up submenu...",
+        #else
+        error
         #endif
         .essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {

@@ -43,6 +43,12 @@ int menu_help_active = 0;
 int submenu_mode = 0;
 static int menu_id_increment = 1;
 
+static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
+static int redraw_in_progress = 0;
+#define MENU_REDRAW_FULL 1
+#define MENU_REDRAW_QUICK 2
+
+
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
 void menu_close_post_delete_dialog_box();
@@ -472,6 +478,19 @@ menu_find_by_name(
     return new_menu;
 }
 
+static int
+menu_has_visible_items(struct menu_entry *  menu)
+{
+    while( menu )
+    {
+        if (advanced_mode || IS_ESSENTIAL(menu))
+        {
+            return 1;
+        }
+        menu = menu->next;
+    }
+    return 0;
+}
 
 void
 menu_add(
@@ -676,11 +695,7 @@ void submenu_icon(int x, int y)
 void submenu_only_icon(int x, int y, int value)
 {
     //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
-#ifdef CONFIG_5DC
-    int color = value ? COLOR_GREEN1 : 0xAA;
-#else
-    int color = value ? COLOR_GREEN1 : 45;
-#endif
+    int color = value ? COLOR_GREEN1 : COLOR_GRAY45;
     for (int r = 0; r < 3; r++)
     {
         draw_circle(x + 8, y + 10, r, color);
@@ -691,11 +706,7 @@ void submenu_only_icon(int x, int y, int value)
         draw_circle(x + 9, y + 22, r, color);
     }
     
-#ifdef CONFIG_5DC
-    color = value ? COLOR_WHITE : 0xAA;
-#else
-    color = value ? COLOR_WHITE : 45;
-#endif
+    color = value ? COLOR_WHITE : COLOR_GRAY45;
     bmp_draw_rect(color, x + 15, y + 10, 10, 1);
     bmp_draw_rect(color, x + 15, y + 16, 10, 1);
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
@@ -726,11 +737,7 @@ void size_icon(int x, int y, int current, int nmax)
 
 void dice_icon(int x, int y, int current, int nmax)
 {
-#ifdef CONFIG_5DC
-    #define C(i) (current == (i) ? COLOR_GREEN1 : 0xAA), (current == (i) ? 6 : 4)
-#else
-    #define C(i) (current == (i) ? COLOR_GREEN1 : 50), (current == (i) ? 6 : 4)
-#endif
+    #define C(i) (current == (i) ? COLOR_GREEN1 : COLOR_GRAY50), (current == (i) ? 6 : 4)
     //~ x -= 40;
     //~ x += 16; y += 16;
     switch (nmax)
@@ -823,11 +830,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "Black"))
         maru(x, y, COLOR_WHITE);
     else if (streq(color, "Luma"))
-#ifdef CONFIG_5DC
-        maru(x, y, 0x33);
-#else
-        maru(x, y, 60);
-#endif
+        maru(x, y, COLOR_GRAY60);
     else if (streq(color, "RGB"))
     {
         dot(x,     y - 7, COLOR_RED, 5);
@@ -837,11 +840,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-#ifdef CONFIG_5DC
-        maru(x, y, 0xAA);
-#else
-        maru(x, y, 40);
-#endif
+        maru(x, y, COLOR_GRAY40);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -863,28 +862,16 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     if (icon_drawn) return;
     icon_drawn = type;
     x -= 40;
-    if (type >= 0) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background
+    if (type != MNI_NONE) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
     warning_msg = 0;
     switch(type)
     {
-#ifdef CONFIG_5DC
-        case MNI_OFF: maru(x, y, 0xAA); return;
-#else
-        case MNI_OFF: maru(x, y, 40); return;
-#endif
+        case MNI_OFF: maru(x, y, COLOR_GRAY40); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
-#ifdef CONFIG_5DC
-        case MNI_NEUTRAL: maru(x, y, 0x33); return;
-#else
-        case MNI_NEUTRAL: maru(x, y, 60); return;
-#endif
+        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY60); return;
         case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
-#ifdef CONFIG_5DC
-        case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
-#else
-        case MNI_AUTO: maru(x, y, 9); return;
-#endif
+        case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
         case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
@@ -895,19 +882,6 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     #endif
 }
 
-static int
-menu_has_visible_items(struct menu_entry *  menu)
-{
-    while( menu )
-    {
-        if (advanced_mode || IS_ESSENTIAL(menu))
-        {
-            return 1;
-        }
-        menu = menu->next;
-    }
-    return 0;
-}
 
 static void
 menu_display(
@@ -1036,7 +1010,7 @@ menu_display(
                 }
                 
                 bmp_printf(
-                    FONT(FONT_MED, 60, COLOR_BLACK), 
+                    FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
                      10,  425, 
                     msg
                 );
@@ -1046,13 +1020,13 @@ menu_display(
             if (menu->selected && warning_msg)
             {
                 bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  450, 
+                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                     10,  show_only_selected ? 425 : 450, 
                         "                                                           "
                 );
                 bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  450, 
+                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                     10,  show_only_selected ? 425 : 450, 
                         warning_msg
                 );
             }
@@ -1106,8 +1080,8 @@ menus_display(
     bmp_fill(0, orig_x, y, 720, 42);
     bmp_fill(COLOR_WHITE, orig_x, y+42, 720, 1);
 #else
-    bmp_fill(40, orig_x, y, 720, 42);
-    bmp_fill(70, orig_x, y+42, 720, 1);
+    bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
+    bmp_fill(COLOR_GRAY70, orig_x, y+42, 720, 1);
 #endif
     for( ; menu ; menu = menu->next )
     {
@@ -1197,20 +1171,9 @@ submenu_display(struct menu * submenu)
     
     if (!show_only_selected)
     {
-        #ifdef CONFIG_5DC
-        bmp_fill(0,  bx,  by, 720-2*bx+4, 50);
-        #else
-        bmp_fill(40,  bx,  by, 720-2*bx+4, 50);
-        #endif
-        
+        bmp_fill(COLOR_GRAY40,  bx,  by, 720-2*bx+4, 50);
         bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
-        
-        #ifdef CONFIG_5DC
-        bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, 50);
-        #else
-        bmp_draw_rect(70,  bx,  by, 720-2*bx, 50);
-        #endif
-        
+        bmp_draw_rect(COLOR_GRAY70,  bx,  by, 720-2*bx, 50);
         bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
@@ -1402,6 +1365,37 @@ menu_entry_move(
         // warning: would block if the menu is empty
 }
 
+
+// Make sure we will not display an empty menu
+// If the menu or the selection is empty, move back and forth to restore a valid selection
+static void menu_make_sure_selection_is_valid()
+{
+    if (advanced_mode) return; // all menus displayed
+    
+    struct menu * menu = get_selected_menu();
+ 
+    // current menu has any valid items in current mode?
+    if (!menu_has_visible_items(menu->children))
+    {
+        menu_move(menu, -1); menu = get_selected_menu();
+        menu_move(menu, 1); menu = get_selected_menu();
+    }
+
+    // currently selected menu entry is visible?
+    struct menu_entry * entry = menu->children;
+    for( ; entry ; entry = entry->next )
+    {
+        if( entry->selected )
+            break;
+    }
+    if (entry->selected && !IS_ESSENTIAL(entry))
+    {
+        menu_entry_move(menu, -1);
+        menu_entry_move(menu, 1);
+    }
+}
+
+
 /*static void menu_select_current(int reverse)
 {
     struct menu * menu = menus;
@@ -1432,6 +1426,7 @@ menu_redraw_do()
         else
         {
             if (!lv) show_only_selected = 0;
+            if (show_only_selected) quick_redraw = false;
             //~ if (MENU_MODE || lv) clrscr();
 
             //~ menu_damage = 0;
@@ -1459,28 +1454,38 @@ menu_redraw_do()
                 }
                 else
                 {
-                    bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
+                    if (!quick_redraw || !submenu_mode)
+                        bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
                 }
                 prev_so = show_only_selected;
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
-                take_semaphore(menu_redraw_sem, 0);
-                
-                if (!show_only_selected || !submenu_mode)
-                    menus_display( menus, 0, 0 ); 
+                //~ take_semaphore(menu_redraw_sem, 0);
+                menu_make_sure_selection_is_valid();
+            
+                if (quick_redraw)
+                {
+                    if (!show_only_selected && !submenu_mode)
+                        menus_display( menus, 0, 0 ); 
+                }
+                else
+                {
+                    if (!show_only_selected || !submenu_mode)
+                        menus_display( menus, 0, 0 ); 
+                }
 
                 if (!show_only_selected && !submenu_mode)
                     if (is_menu_active("Help")) menu_show_version();
 
                 if (submenu_mode)
                 {
-                    if (!show_only_selected) bmp_dim();
+                    if (!show_only_selected && !quick_redraw) bmp_dim();
                     struct menu * submenu = get_current_submenu();
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();
                 }
                 
-                give_semaphore(menu_redraw_sem);
+                //~ give_semaphore(menu_redraw_sem);
 
                 if (show_only_selected) 
                 {
@@ -1525,7 +1530,7 @@ menu_redraw_do()
         }
 }
 
-int _t = 0;
+static int _t = 0;
 static int _get_timestamp(struct tm * t)
 {
     return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
@@ -1547,10 +1552,10 @@ static int _toc()
 void menu_benchmark()
 {
     _tic();
-    for (int i = 0; i < 200; i++) menu_redraw_do();
+    for (int i = 0; i < 500; i++) menu_redraw_do();
     int t = _toc();
     clrscr();
-    NotifyBox(20000, "total: %d ", t);
+    NotifyBox(20000, "Elapsed time: %d seconds", t);
 }
 
 struct msg_queue * menu_redraw_queue = 0;
@@ -1561,11 +1566,18 @@ menu_redraw_task()
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
-        msleep(30);
+        //~ msleep(30);
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) continue;
-        if (gui_menu_shown()) menu_redraw_do();
+        if (gui_menu_shown())
+        {
+            redraw_in_progress = 1;
+            quick_redraw = (msg == MENU_REDRAW_QUICK);
+            menu_redraw_do();
+            msleep(20);
+            redraw_in_progress = 0;
+        }
         else redraw();
     }
 }
@@ -1577,7 +1589,16 @@ menu_redraw()
     if (!DISPLAY_IS_ON) return;
     if (ml_shutdown_requested) return;
     if (menu_help_active) bmp_draw_request_stop();
-    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, 1);
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, redraw_in_progress ? MENU_REDRAW_QUICK : MENU_REDRAW_FULL);
+}
+
+void
+menu_redraw_full()
+{
+    if (!DISPLAY_IS_ON) return;
+    if (ml_shutdown_requested) return;
+    if (menu_help_active) bmp_draw_request_stop();
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
 }
 
 void menu_inject_redraw_event()
@@ -1679,6 +1700,8 @@ handle_ml_menu_keys(struct event * event)
 #if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
     if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
 #endif
+
+    int menu_selection_changed = 0; // if true, do not allow quick redraws
     
     switch( button_code )
     {
@@ -1687,20 +1710,6 @@ handle_ml_menu_keys(struct event * event)
         else advanced_mode = !advanced_mode;
         show_only_selected = 0;
         menu_help_active = 0;
-
-        // Make sure we will not display an empty menu
-        
-        take_semaphore(menu_redraw_sem, 0);
-        
-        if (!menu_has_visible_items(main_menu->children))
-        {
-            menu_move(main_menu, -1); main_menu = get_selected_menu();
-            menu_move(main_menu, 1); main_menu = get_selected_menu();
-        }
-        menu_entry_move(main_menu, -1);
-        menu_entry_move(main_menu, 1);
-
-        give_semaphore(menu_redraw_sem);
 
         break;
 
@@ -1720,6 +1729,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
         menu_entry_move( menu, -1 );
+        menu_selection_changed = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
@@ -1727,6 +1737,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         menu_entry_move( menu, 1 );
+        menu_selection_changed = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
@@ -1735,7 +1746,7 @@ handle_ml_menu_keys(struct event * event)
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
-        else { menu_move( menu, 1 ); show_only_selected = 0; }
+        else { menu_move( menu, 1 ); show_only_selected = 0; menu_selection_changed = 1; }
         break;
 
     case BGMT_PRESS_LEFT:
@@ -1743,7 +1754,7 @@ handle_ml_menu_keys(struct event * event)
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
-        else { menu_move( menu, -1 ); show_only_selected = 0; }
+        else { menu_move( menu, -1 ); show_only_selected = 0; menu_selection_changed = 1; }
         break;
 
 #ifdef CONFIG_5D3
@@ -1816,7 +1827,14 @@ handle_ml_menu_keys(struct event * event)
 
     // If we end up here, something has been changed.
     // Reset the timeout
-    menu_redraw();
+    
+    // if submenu mode was changed, force a full redraw
+    static int prev_submenu_mode = 0;
+    if (submenu_mode != prev_submenu_mode) menu_selection_changed = 1;
+    prev_submenu_mode = submenu_mode;
+    
+    if (menu_selection_changed && submenu_mode==2) menu_redraw_full();
+    else menu_redraw();
     keyrepeat_ack(button_code);
     hist_countdown = 3;
     return 0;
@@ -1971,11 +1989,22 @@ void close_canon_menu()
     SetGUIRequestMode(0);
     msleep(200);
 #endif
+#ifdef CONFIG_5DC
+    //~ forces the canon menu under the ML one to close, thus turning the 5dc screen off.
+    fake_simple_button(BGMT_MENU);
+    msleep(50);
+#endif
 }
 
 static void menu_open() 
 { 
     if (menu_shown) return;
+    
+#ifdef CONFIG_5DC
+    //~ forces the 5dc screen to turn on for ML menu.
+    fake_simple_button(BGMT_MENU);
+    msleep(50);
+#endif
     
     show_only_selected = 0;
     submenu_mode = 0;
@@ -2045,7 +2074,7 @@ menu_task( void* unused )
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && config_dirty && !recording)
+                if (config_autosave && config_dirty && !recording && !ml_shutdown_requested)
                 {
                     save_config(0);
                     config_dirty = 0;
@@ -2061,6 +2090,9 @@ menu_task( void* unused )
                 menu_close();
 
             if (gui_state == GUISTATE_MENUDISP && menu_shown)
+                menu_close();
+
+            if (!DISPLAY_IS_ON && menu_shown)
                 menu_close();
             
             continue;

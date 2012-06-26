@@ -32,8 +32,6 @@
 
 //~ int bmp_enabled = 1;
 
-#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = (x) % 2 ? ((*(char*)(p) & 0x0F) | ((color) << 4)) : ((*(char*)(p) & 0xF0) | ((color) & 0x0F))    
-
 static int bmp_idle_flag = 0;
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
@@ -888,13 +886,9 @@ void bmp_putpixel(int x, int y, uint8_t color)
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     
-    #ifdef CONFIG_5DC
-    char* p = &bvram[(x)/2 + (y)/2 * BMPPITCH]; 
-    SET_4BIT_PIXEL(p, x, color);
-    #else
-    bvram[x + y * BMPPITCH] = color;
-    #endif
+    bmp_putpixel_fast(bvram, x, y, color);
 }
+
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
 #ifdef CONFIG_5DC
@@ -1101,6 +1095,8 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
         return 0;
     }
+
+    uint8_t * const bvram = bmp_vram();
     
     uint16_t* chardata = (uint16_t*) bfnt_find_char(c);
     if (!chardata) return 0;
@@ -1132,9 +1128,9 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
                         #ifdef CONFIG_5DC
-                        bmp_putpixel(px+j*8+k+xo, py + (i+yo)*2, fg);
+                        bmp_putpixel_fast(bvram, px+j*8+k+xo, py + (i+yo)*2, fg);
                         #else
-                        bmp_putpixel(px+j*8+k+xo, py+i+yo, fg);
+                        bmp_putpixel_fast(bvram, px+j*8+k+xo, py+i+yo, fg);
                         #endif
                 }
             }

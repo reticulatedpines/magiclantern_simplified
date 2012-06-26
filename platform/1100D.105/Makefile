@@ -63,6 +63,7 @@ ML_OBJS-y = \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
+	exmem.o \
 
 #include generic rules and definitions
 
@@ -73,7 +74,7 @@ include  $(TOP_DIR)/Makefile.inc
 #
 ROMBASEADDR		= 0xFF010000
 #RESTARTSTART		= 0x0008B000
-RESTARTSTART		= 0x0007f000
+RESTARTSTART		= 0xC80100
 
 #not used but...
 FIRMWARE_ID_1100D	= 0x80000288

@@ -104,75 +104,62 @@ static void fps_patch_timerB(int timer_value);
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
 #define FPS_TIMER_B_MIN fps_timer_b_orig // it might go lower than that, but it causes trouble high shutter speeds
 
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3)
+#if defined(CONFIG_5D2)
     #define TG_FREQ_BASE 24000000
-    #ifdef CONFIG_5D2
-        #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 20, lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
-    #else
-        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 20, lv_dispsize > 1 ? 500 : 400)
-    #endif
-#else
-    #ifdef CONFIG_500D
-        #define TG_FREQ_BASE 32000000    // not 100% sure
-        #define TG_FREQ_SHUTTER 23188405 // not sure
-        #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
-    #else
-        // 550D, 600D, 60D, 50D 
-        #define TG_FREQ_BASE 28800000
-        #ifdef CONFIG_50D
-            #define TG_FREQ_SHUTTER 41379310 // not sure
-            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 630 : 688 )
-        #else
-            #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
-            #define TG_FREQ_PAL  50000000
-            //~ #define TG_FREQ_NTSC_FPS 52747200
-            #define TG_FREQ_NTSC_SHUTTER 49440000
-            #define TG_FREQ_ZOOM 39230730 // not 100% sure
-            //~ #define TG_FREQ_CROP_PAL 64000000
-
-            //~ #define TG_FREQ_CROP_NTSC (crop == 0xc ? 50349600 : 69230700)
-            #define TG_FREQ_CROP_NTSC_SHUTTER (crop == 0xc ? 47160000 : 64860000)
-            #define TG_FREQ_CROP_PAL_SHUTTER (crop == 0xc ? 50000000 : 64000000)
-
-            #define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC_SHUTTER : TG_FREQ_CROP_PAL_SHUTTER) : (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)))
-
-        #endif
-    #endif
+    #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 20, lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
+#elif defined(CONFIG_5D3)
+    #define TG_FREQ_BASE 24000000
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 20, lv_dispsize > 1 ? 500 : 400)
+#elif defined(CONFIG_500D)
+    #define TG_FREQ_BASE 32000000    // not 100% sure
+    #define TG_FREQ_SHUTTER 23188405 // not sure
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
+#elif defined(CONFIG_50D)
+    #define TG_FREQ_BASE 28800000
+    #define TG_FREQ_SHUTTER 41379310 // not sure
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 630 : 688 )
+#else // 550D, 600D, 60D
+    #define TG_FREQ_BASE 28800000
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
+    #define TG_FREQ_PAL  50000000
+    #define TG_FREQ_NTSC_SHUTTER 49440000
+    #define TG_FREQ_ZOOM 39230730 // not 100% sure
+    #define TG_FREQ_CROP_NTSC_SHUTTER (crop == 0xc ? 47160000 : 64860000)
+    #define TG_FREQ_CROP_PAL_SHUTTER (crop == 0xc ? 50000000 : 64000000)
+    #define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC_SHUTTER : TG_FREQ_CROP_PAL_SHUTTER) : (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)))
 #endif
 
-#if defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D)// || defined(CONFIG_5D3)
 // these can change timer B with another method, more suitable for high FPS
-#define NEW_FPS_METHOD 1
-#endif
-
 #ifdef CONFIG_600D
-#define SENSOR_TIMING_TABLE MEM(0xCB20)
-#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
-#undef FPS_TIMER_B_MIN
-#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
-static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
-#endif
-#ifdef CONFIG_60D
-#define SENSOR_TIMING_TABLE MEM(0x2a668)
-#define VIDEO_PARAMETERS_SRC_3 0x4FDA8
-#undef FPS_TIMER_B_MIN
-#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
-static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
-#endif
-#ifdef CONFIG_1100D
-#define SENSOR_TIMING_TABLE MEM(0xce98)
-#define VIDEO_PARAMETERS_SRC_3 0x70C0C
-static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+    #define NEW_FPS_METHOD 1
+    #define SENSOR_TIMING_TABLE MEM(0xCB20)
+    #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
+    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+#elif defined(CONFIG_60D)
+    #define NEW_FPS_METHOD 1
+    #define SENSOR_TIMING_TABLE MEM(0x2a668)
+    #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
+    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
+#elif defined(CONFIG_1100D)
+    #define NEW_FPS_METHOD 1
+    #define SENSOR_TIMING_TABLE MEM(0xce98)
+    #define VIDEO_PARAMETERS_SRC_3 0x70C0C
+    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
 
 /*
-#ifdef CONFIG_5D3
-#define SENSOR_TIMING_TABLE MEM(0x325ac)
-//~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
-#undef FPS_TIMER_B_MIN
-#define FPS_TIMER_B_MIN 100
-static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
+#elif defined(CONFIG_5D3)
+    #define NEW_FPS_METHOD 1
+    #define SENSOR_TIMING_TABLE MEM(0x325ac)
+    //~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN 100
+    static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
 #endif
 */
 
@@ -208,7 +195,6 @@ static int get_current_tg_freq()
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x64)
 #endif
-
 
 #ifdef CONFIG_600D
 #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
@@ -1101,9 +1087,9 @@ static void fps_task()
     TASK_LOOP
     {
         #ifdef CONFIG_500D
-        msleep(100);
-        #else
         msleep(FPS_OVERRIDE ? 20 : 100);
+        #else
+        msleep(100);
         #endif
         
         fps_check_refresh();

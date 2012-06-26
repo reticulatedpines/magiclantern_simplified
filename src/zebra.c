@@ -1132,12 +1132,18 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        bvram_mirror_start = AllocateMemory(BMP_VRAM_SIZE + 64); // just in case
-        ASSERT(bvram_mirror_start);
+        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+        bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
+        #else
+        bvram_mirror_start = (void*)alloc_dma_memory(BMP_VRAM_SIZE);
+        #endif
         if (!bvram_mirror_start) 
         {   
-            //~ bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
-            return;
+            while(1)
+            {
+                bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
+                msleep(100);
+            }
         }
         // to keep the same addressing mode as with normal BMP VRAM - origin in 720x480 center crop
         bvram_mirror = bvram_mirror_start + BMP_HDMI_OFFSET;
@@ -2662,7 +2668,7 @@ int handle_transparent_overlay(struct event * event)
         return 0;
     }
 
-    if (transparent_overlay && lv && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+    if (transparent_overlay && liveview_display_idle() && !gui_menu_shown())
     {
         if (event->param == BGMT_PRESS_UP)
         {
@@ -2999,7 +3005,7 @@ struct menu_entry zebra_menus[] = {
         .display    = crop_display,
         .select     = menu_binary_toggle,
         .help = "Cropmarks or custom grids for framing.",
-        .essential = FOR_MOVIE,
+        .essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bitmap",
@@ -3158,6 +3164,7 @@ struct menu_entry zebra_menus[] = {
         .priv       = &vectorscope_draw,
         .max = 1,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
+        .essential = FOR_LIVEVIEW,
     },
     #ifdef CONFIG_60D
     {
@@ -3430,6 +3437,7 @@ cropmark_draw()
     if (cropmarks) 
     {
         // Cropmarks enabled, but cache is not valid
+        clrscr_mirror(); // clean any remaining zebras / peaking
         bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
         //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -3959,9 +3967,8 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
-#if defined(CONFIG_50D) || defined(CONFIG_550D) || defined(CONFIG_5D2)
-    extern thunk test_minimal_handler;
-#endif
+    //~ extern thunk test_minimal_handler;
+
 /*
     if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
     { // ML is clearing the screen with a fake dialog, let's see what's underneath
@@ -4716,7 +4723,7 @@ livev_hipriority_task( void* unused )
                 #else
                 // luma zebras are fast
                 // also, if peaking is off, zebra can be faster
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 1) == 0, k % 2 == 1); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
                 #endif
             }
             if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
@@ -5084,7 +5091,6 @@ static void make_overlay()
     //~ int lvpitch = YUV422_LV_PITCH;
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
-    #define BMPPITCH 960
 
     // difficulty: in play mode, image buffer may have different size/position than in LiveView
     // => normalized xn and yn will fix this
@@ -5125,13 +5131,12 @@ static void show_overlay()
     get_yuv422_vram();
     uint8_t * const bvram = bmp_vram_real();
     if (!bvram) return;
-    #define BMPPITCH 960
     
     clrscr();
 
     FILE* f = FIO_Open(CARD_DRIVE "ML/SETTINGS/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
-    FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE );
+    FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);
 
     for (int y = os.y0; y < os.y_max; y++)
@@ -5195,7 +5200,7 @@ static void transparent_overlay_from_play()
 }
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#define defish_lut_file CARD_DRIVE "ML/SETTINGS/rectilin.lut"
+#define defish_lut_file CARD_DRIVE "ML/rectilin.lut"
 
 static uint8_t* defish_lut = INVALID_PTR;
 
@@ -5245,6 +5250,7 @@ static void defish_draw()
                 uint32_t* bp = (uint32_t *)&(bvram[BM(X,Y)]);
                 uint32_t* mp = (uint32_t *)&(bvram_mirror[BM(X,Y)]);
                 if (*bp != 0 && *bp != *mp) continue;
+                if ((*mp & 0x80808080)) continue;
                 int c = (lv_pixel * 41 >> 8) + 38;
                 c = c | (c << 8);
                 c = c | (c << 16);

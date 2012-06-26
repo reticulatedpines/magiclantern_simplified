@@ -222,6 +222,49 @@ int shutterf_to_raw(float shutterf)
     if (shutterf == 0) return 160;
     return (int) roundf(136.0 - log2f(shutterf*1000.0) * 8.0);
 }
+
+// this one attempts to round in the same way as with previous call
+// !! NOT thread safe !!
+// !! ONLY call it once per iteration !!
+// for example:      [0.4 0.5 0.6 0.4 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.3 0.5] =>
+// flick-free round: [  0   0   0   0   1   1   1   1   1   1   0   0   0   0] => 2 transitions
+// normal rounding:  [  0   1   1   0   1   1   1   1   0   0   0   0   0   1] => 5 transitions 
+int round_noflicker(float value)
+{
+    static float rounding_correction = 0;
+
+    float roundedf = roundf(value + rounding_correction);
+    
+    // if previous rounded value was smaller than float value (like 0.4 => 0),
+    // then the rounding threshold should be moved at 0.8 => round(x - 0.3)
+    // otherwise, rounding threshold should be moved at 0.2 => round(x + 0.3)
+    
+    rounding_correction = (roundedf < value ? -0.3 : 0.3);
+    
+    return (int) roundedf;
+}
+
+/*
+void round_noflicker_test()
+{
+    float values[] = {0.4, 0.5, 0.6, 0.4, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.3, 0.5, 1, 2, 3, 3.5, 3.49, 3.51, 3.49, 3.51};
+    char msg[100] = "";
+    for (int i = 0; i < COUNT(values); i++)
+    {
+        int r = round_noflicker(values[i]);
+        STR_APPEND(msg, "%d", r);
+    }
+    NotifyBox(5000, msg);
+}*/
+
+// NOT thread safe, see above!
+// useful for bulb ramping
+int shutterf_to_raw_noflicker(float shutterf)
+{
+    if (shutterf == 0) return 160;
+    return round_noflicker(136.0 - log2f(shutterf*1000.0) * 8.0);
+}
+
 float raw2shutterf(int raw_shutter)
 {
     if (!raw_shutter) return 0.0;
@@ -876,12 +919,10 @@ void draw_ml_topbar(int double_buffering, int clear)
     x += 70;
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
         bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
-    #else
-        #ifdef CONFIG_550D
+    #elif defined(CONFIG_550D)
         bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
-        #else
+    #else
         bmp_printf( font, x, y,"T=%d", efic_temp);
-        #endif
     #endif
 
     x += 160;
@@ -975,6 +1016,8 @@ lens_focus(
     return 1;
 }
 
+static PROP_INT(PROP_ICU_UILOCK, uilock);
+
 void lens_wait_readytotakepic(int wait)
 {
     int i;
@@ -982,9 +1025,9 @@ void lens_wait_readytotakepic(int wait)
     {
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
-        if (lens_info.job_state <= 0xA && burst_count > 0) break;
+        if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
         msleep(20);
-        if (lens_info.job_state <= 0xA) info_led_on();
+        if ((lens_info.job_state <= 0xA) || (uilock & 0xFF)) info_led_on();
     }
     info_led_off();
 }
@@ -1074,18 +1117,11 @@ lens_take_picture(
         #ifdef CONFIG_5D2
         int status = 0;
         PtpDps_remote_release_SW1_SW2_worker(&status);
-        //~ SW1(1,50);
-        //~ SW2(1,250);
-        //~ SW2(0,50);
-        //~ SW1(0,50);
-        //~ call("Release");
         #else
         call("Release");
         #endif
     }
-    #endif
-    
-    #if defined(CONFIG_5DC)
+    #elif defined(CONFIG_5DC)
     call("rssRelease");
     #else
     call("Release");
@@ -1585,14 +1621,14 @@ lens_set_kelvin(int k)
     {
         int lim = k > 10000 ? 10000 : 2500;
         prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
-        msleep(10);
+        msleep(20);
     }
 
     prop_request_change(PROP_WB_MODE_LV, &mode, 4);
     prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
     prop_request_change(PROP_WB_MODE_PH, &mode, 4);
     prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
-    msleep(10);
+    msleep(20);
 }
 
 void

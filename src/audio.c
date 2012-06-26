@@ -1382,6 +1382,7 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_alc_display,
                 .help = "Automatic Gain Control - turn it off :)",
                 //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
+                .essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
         },
         {
                 .name = "Output volume (dB)",

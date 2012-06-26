@@ -48,7 +48,7 @@ all: 60D 550D 600D 50D 500D 5D2
 	$(MAKE) -C $(PLATFORM_PATH)/5D2.212
 
 5DC:
-	$(MAKE) -C $(PLATFORM_PATH)/5dC.111
+	$(MAKE) -C $(PLATFORM_PATH)/5DC.111
 
 plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
@@ -58,8 +58,8 @@ install: all
 	mkdir -p $(CF_CARD)/ML/settings/
 	mkdir -p $(CF_CARD)/ML/cropmks/
 	cp platform/all/autoexec.bin $(CF_CARD)
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/settings/
-	cp vram/rectilin.lut $(CF_CARD)/ML/settings/
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
+	cp vram/rectilin.lut $(CF_CARD)/ML/
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	$(UMOUNT) $(CF_CARD)
 
@@ -104,7 +104,7 @@ clean:
 	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/5dC.111/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/5DC.111/; $(MAKE) clean
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 

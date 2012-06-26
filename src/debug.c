@@ -95,9 +95,7 @@ void info_led_on()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     call("EdLedOn");
-    #endif
-    
-    #if defined(CONFIG_5DC)
+    #elif defined(CONFIG_5DC)
     LEDBLUE = LEDON;
     #else
     _card_led_on();
@@ -107,9 +105,7 @@ void info_led_off()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     call("EdLedOff");
-    #endif
-    
-    #if defined(CONFIG_5DC)
+    #elif defined(CONFIG_5DC)
     LEDBLUE = LEDOFF;
     #else
     _card_led_off();
@@ -560,6 +556,8 @@ void iso_movie_test()
 
 void run_test()
 {
+    msleep(2000);
+    while(gui_menu_shown()) msleep(100);
     msleep(2000);
     menu_benchmark();
 }
@@ -3178,6 +3176,7 @@ void CopyMLFilesToRAM_BeforeFormat()
 /*    TmpMem_AddFile(CARD_DRIVE "ML/FONTS.DAT");
     TmpMem_AddFile(CARD_DRIVE "ML/MAGIC.CFG");
     TmpMem_AddFile(CARD_DRIVE "ML/RECTILIN.LUT");*/
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);

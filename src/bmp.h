@@ -93,6 +93,8 @@ inline uint8_t* bmp_vram_idle()
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = (x) % 2 ? ((*(char*)(p) & 0x0F) | ((color) << 4)) : ((*(char*)(p) & 0xF0) | ((color) & 0x0F))    
+
 #else // dryos
 
 #define BMP_W_PLUS 840
@@ -150,6 +152,17 @@ inline uint8_t* bmp_vram_idle()
 
 #define BMP_TOTAL_WIDTH (BMP_W_PLUS - BMP_W_MINUS)
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
+
+
+inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
+{
+    #ifdef CONFIG_5DC
+    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    SET_4BIT_PIXEL(p, x, color);
+    #else
+    bvram[x + y * BMPPITCH] = color;
+    #endif
+}
 
 
 /** Font specifiers include the font, the fg color and bg color */
@@ -295,6 +308,15 @@ bmp_fill(
     #define COLOR_GREEN1            0x55
     #define COLOR_GREEN2            0x55
     #define COLOR_ORANGE            0xEE
+
+
+    #define COLOR_DARK_RED COLOR_RED
+    #define COLOR_GRAY40 0xAA
+    #define COLOR_GRAY45 0xAA
+    #define COLOR_GRAY50 0xAA
+    #define COLOR_GRAY60 0x33
+    #define COLOR_GRAY70 0xFF
+
 #else
 
 
@@ -316,6 +338,12 @@ bmp_fill(
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
 #define COLOR_ORANGE 19
+#define COLOR_DARK_RED 0xC
+#define COLOR_GRAY40 40
+#define COLOR_GRAY45 45
+#define COLOR_GRAY50 50
+#define COLOR_GRAY60 60
+#define COLOR_GRAY70 70
 
 #endif
 

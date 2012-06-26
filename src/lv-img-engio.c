@@ -105,7 +105,7 @@ digic_black_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Black Level   : %s%d",
+        "Black Level : %s%d",
         digic_black_level > 100 ? "+" : "",
         digic_black_level-100
     );
@@ -330,8 +330,21 @@ digic_value_print(
 void digic_dump()
 {
     msleep(1000);
-    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/digic.log");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/digic.log");
+
+
+    static char log_filename[100];
+    
+    int log_number = 0;
+    for (log_number = 0; log_number < 100; log_number++)
+    {
+        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "digic%02d.LOG", log_number);
+        unsigned size;
+        if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
+        if (size == 0) break;
+    }
+
+    FIO_RemoveFile(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {

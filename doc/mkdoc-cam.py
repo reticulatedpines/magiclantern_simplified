@@ -22,8 +22,8 @@ print >> o, """Magic Lantern 0.2.1
 """
 for l in m:
     o.write(l)
-for l in c:
-    o.write(l)
+#~ for l in c:
+    #~ o.write(l)
 for l in e:
     o.write(l)
 o.close()

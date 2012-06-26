@@ -30,6 +30,8 @@
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2900)
 #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)(0x44FC + 0xC0))
 
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x44000080
@@ -242,6 +244,14 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x12EF8) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x38968) // Zoom CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x3896c)
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x2be
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0x1d4
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x2be - 0x190)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0x1d4 - 0x150)
+
+
 
 #define BULB_EXPOSURE_CORRECTION 120
 
