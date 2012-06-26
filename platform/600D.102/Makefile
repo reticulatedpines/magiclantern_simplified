@@ -73,7 +73,7 @@ include  $(TOP_DIR)/Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF010000
-RESTARTSTART		= 0x00082000
+RESTARTSTART		= 0xC80100
 
 #not used but...
 FIRMWARE_ID_600D 	= 0x80000286
