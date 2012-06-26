@@ -73,6 +73,7 @@ void hdr_step()
 
 void hdr_kill_flicker()
 {
+#ifndef CONFIG_1100D
     if (!lv) return;
     if (!is_movie_mode()) return;
     if (!hdrv_enabled) return;
@@ -102,6 +103,7 @@ void hdr_kill_flicker()
             prev_buf = YUV422_LV_BUFFER_DMA_ADDR;
         }
     }
+#endif
 }
 
 static void
