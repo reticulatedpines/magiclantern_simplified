@@ -39,7 +39,7 @@ void NotifyBox(int timeout, char* fmt, ...)
     va_start( ap, fmt );
     vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
     va_end( ap );
-    bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
+    big_bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
 }
 
 /** These are called when new tasks are created */
@@ -166,7 +166,7 @@ int fonts_ok; // true if fonts.dat was found
 int old_shooting_mode; // to detect when mode dial changes
 int bootflag_written = 0;
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
-#define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
+#define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { big_bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
 
 #define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
 #define UILOCK_EVERYTHING 0x4100017f
@@ -385,26 +385,26 @@ initial_install(void)
     bmp_fill(0, 0, 0, 720, 480);
 
     int y = 0;
-    bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
+    big_bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
 
     FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
+        big_bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
         FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
         FIO_CloseFile(f);
     }
 
     if (!autoexec_ok)
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "AUTOEXEC.BIN not found!");
+        big_bmp_printf(FONT_LARGE, 0, y+=30, "AUTOEXEC.BIN not found!");
         msleep(5000);
         return;
     }
 
     if (!fonts_ok)
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "FONTS.DAT not found!");
+        big_bmp_printf(FONT_LARGE, 0, y+=30, "FONTS.DAT not found!");
         msleep(5000);
         return;
     }
@@ -413,30 +413,30 @@ initial_install(void)
     {
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
         {
-            bmp_printf(FONT_LARGE, 0, y+=30, "Setting boot flag");
+            big_bmp_printf(FONT_LARGE, 0, y+=30, "Setting boot flag");
             call( "EnableBootDisk" );
         }
         else
         {
-            bmp_printf(FONT_LARGE, 0, y+=30, "Did not enable boot flag.");
+            big_bmp_printf(FONT_LARGE, 0, y+=30, "Did not enable boot flag.");
             msleep(5000);
             return;
         }
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Making card bootable...");
+    big_bmp_printf(FONT_LARGE, 0, y+=30, "Making card bootable...");
     bootflag_written = bootflag_write_bootblock();
     if (!bootflag_written)
     {
-        bmp_printf(FONT_LARGE, 0, y, "You need to run EOSCard/MacBoot.");
+        big_bmp_printf(FONT_LARGE, 0, y, "You need to run EOSCard/MacBoot.");
         msleep(5000);
         
     }
     
-    //~ bmp_printf(FONT_LARGE, 0, y+=30, "Writing boot log");
+    //~ big_bmp_printf(FONT_LARGE, 0, y+=30, "Writing boot log");
     //~ dumpf();
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
+    big_bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
     Msleep(1000);
 }
 
@@ -456,7 +456,7 @@ void bootflag_toggle( void * priv )
     {
         for (i = 0; i < 10; i++)
         {
-            bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
+            big_bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
             card_led_blink(1, 50, 50);
         }
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
@@ -466,7 +466,7 @@ void bootflag_toggle( void * priv )
     {
         for (i = 0; i < 10; i++)
         {
-            bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
+            big_bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
             card_led_blink(1, 50, 50);
         }
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
@@ -486,7 +486,7 @@ void firmware_fix( void * priv )
     {
         for (i = 0; i < 10; i++)
         {
-            bmp_printf(FONT_LARGE, 50, 100, "EnableMainFirm");
+            big_bmp_printf(FONT_LARGE, 50, 100, "EnableMainFirm");
             card_led_blink(1, 50, 50);
         }
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
@@ -527,7 +527,7 @@ void check_install()
     
     if (boot_flags->firmware)
     {
-        bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
+        big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
             " MAIN_FIRMWARE flag is DISABLED!    \n"
             "                                    \n"
             " This was probably caused by a      \n"
@@ -551,7 +551,7 @@ void check_install()
         {
             if (fonts_ok)
             {
-                bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
+                big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
                     " ********************************** \n"
                     " *            SUCCESS!            * \n"
                     " ********************************** \n"
@@ -574,7 +574,7 @@ void check_install()
             }
             else
             {
-                bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, 0), 0, 0, 
+                big_bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, 0), 0, 0, 
                     "                                    \n"
                     " BOOTDISK flag is ENABLED.          \n"
                     " AUTOEXEC.BIN found.                \n"
@@ -595,7 +595,7 @@ void check_install()
         }
         else
         {
-            bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
+            big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
                 "                                    \n"
                 " BOOTDISK flag is ENABLED.          \n"
                 "                                    \n"
@@ -616,7 +616,7 @@ void check_install()
     }
     else
     {
-            bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 0, 0, 
+            big_bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 0, 0, 
                 "                                    \n"
                 " BOOTDISK flag is DISABLED.         \n"
                 "                                    \n"
@@ -634,7 +634,7 @@ void check_install()
                 "                                    \n"
             );
     }
-    bmp_printf( FONT_SMALL,
+    big_bmp_printf( FONT_SMALL,
         620,
         430,
         "Firmware  %d\n"
