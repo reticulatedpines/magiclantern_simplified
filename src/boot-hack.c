@@ -99,7 +99,7 @@ copy_and_restart( int offset )
      * create_init_task
      */
     // Reserve memory after the BSS for our application
-    #ifndef CONFIG_550D // 550D loads ML in the AllocateMemory pool
+    #if !defined(CONFIG_550D) && !defined(CONFIG_600D) // 550D/600D load ML in the AllocateMemory pool
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     #endif
 
@@ -508,11 +508,11 @@ int init_task_patched_for_600D(int a, int b, int c, int d)
     // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
 
     #define init_task_start 0xff0197fc
-    #define init_task_end   0xFF019874
+    #define init_task_end   0xFF0199D4
     #define init_task_len   (init_task_end - init_task_start)
 
-    #define CreateTaskMain_start 0xFF019874
-    #define CreateTaskMain_end   0xFF01254C
+    #define CreateTaskMain_start 0xFF0123C4
+    #define CreateTaskMain_end   0xFF0126B8
     #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
     
     static char init_task_reloc_buf[init_task_len+64];
