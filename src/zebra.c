@@ -1137,11 +1137,13 @@ void bvram_mirror_init()
         #else
         bvram_mirror_start = alloc_dma_memory(BMP_VRAM_SIZE);
         #endif
-        ASSERT(bvram_mirror_start);
         if (!bvram_mirror_start) 
         {   
-            //~ bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
-            return;
+            while(1)
+            {
+                bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
+                msleep(100);
+            }
         }
         // to keep the same addressing mode as with normal BMP VRAM - origin in 720x480 center crop
         bvram_mirror = bvram_mirror_start + BMP_HDMI_OFFSET;
@@ -5114,7 +5116,7 @@ static void make_overlay()
     }
     FIO_RemoveFile(CARD_DRIVE "overlay.dat");
     FILE* f = FIO_CreateFile(CARD_DRIVE "overlay.dat");
-    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), 720*480*2);
+    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), 960*480);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
 
@@ -5136,7 +5138,7 @@ static void show_overlay()
 
     FILE* f = FIO_Open(CARD_DRIVE "overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
-    FIO_ReadFile(f, UNCACHEABLE(bvram_mirror), 720*480*2 );
+    FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);
 
     for (int y = os.y0; y < os.y_max; y++)
