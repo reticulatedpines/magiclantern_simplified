@@ -1133,9 +1133,9 @@ void bvram_mirror_init()
     if (!bvram_mirror_start)
     {
         #if defined(CONFIG_60D) || defined(CONFIG_600D)
-        bvram_mirror_start = shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
+        bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
         #else
-        bvram_mirror_start = alloc_dma_memory(BMP_VRAM_SIZE);
+        bvram_mirror_start = (void*)alloc_dma_memory(BMP_VRAM_SIZE);
         #endif
         if (!bvram_mirror_start) 
         {   
@@ -3967,7 +3967,7 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
-    extern thunk test_minimal_handler;
+    //~ extern thunk test_minimal_handler;
 
 /*
     if (dialog->handler == (dialog_handler_t) &test_minimal_handler)

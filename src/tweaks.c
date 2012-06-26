@@ -215,12 +215,12 @@ void EyeFi_RenameMP4to422(char* dir)
 
 static void CR2toAVI(void* priv, int delta)
 {
-    EyeFi_RenameCR2toAVI(get_dcim_dir());
+    EyeFi_RenameCR2toAVI((char*)get_dcim_dir());
 }
 
 static void AVItoCR2(void* priv, int delta)
 {
-    EyeFi_RenameAVItoCR2(get_dcim_dir());
+    EyeFi_RenameAVItoCR2((char*)get_dcim_dir());
 }
 
 /*static void f422toMP4(void* priv, int delta)

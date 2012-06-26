@@ -259,7 +259,7 @@ bootflag_write_bootblock( void )
         my_memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
         exfat_sum((uint32_t*)(buffer));
         exfat_sum((uint32_t*)(buffer+512*12));
-        int rc = dev->write_block( dev, 0, 24, buffer );
+        dev->write_block( dev, 0, 24, buffer );
         free_dma_memory( buffer );
     }
     else // if it's not FAT16 neither FAT32, don't do anything.
