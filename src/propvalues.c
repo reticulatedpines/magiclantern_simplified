@@ -107,7 +107,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
+#ifdef CONFIG_5DC
+    //~ make sure ML never thinks LV is open, because 5dc doesn't have LV.
+    lv = 0;
+#else
     lv = !buf[0];
+#endif
 }
 
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
