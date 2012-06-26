@@ -32,8 +32,8 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # Release builds:
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
-BUILDVER=$(shell whoami).$(shell hg id --debug -i -r .)
-VERSION:=$(shell LC_TIME=EN date +'%Y%m%d-%H%M%S').$(MODEL)$(FW_VERSION).$(BUILDVER)
+BUILDVER=$(shell whoami).$(shell hg id -i -r .)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -164,7 +164,6 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
-	-mlong-calls \
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
@@ -193,6 +192,16 @@ AFLAGS=\
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+
+# compile some modules with -O3 for increased speed
+zebra.o: $(SRC_DIR)/zebra.c
+	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
+menu.o: $(SRC_DIR)/menu.c
+	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
+bmp.o: $(SRC_DIR)/bmp.c
+	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
+chdk-gui_draw.o: $(SRC_DIR)/chdk-gui_draw.c
+	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
 
 
 zip: prepare_zip magiclantern-$(VERSION).zip
