@@ -49,11 +49,15 @@
 #endif
 
 #ifdef CONFIG_5D3
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
 #define EVF_STATE (*(struct state_object **)0x2600c)
 #define MOVREC_STATE (*(struct state_object **)0x27850)
 #endif
 
 #ifdef CONFIG_1100D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x4C34)
 #define MOVREC_STATE (*(struct state_object **)0x5720)
 #endif

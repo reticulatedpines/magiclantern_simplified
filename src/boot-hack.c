@@ -771,12 +771,7 @@ void out_volume_up(){};
 void out_volume_down(){};
 int new_LiveViewApp_handler = 0xff123456;
 void bootflag_write_bootblock(){};
-void hdr_mvr_log() {}
-void hdr_get_iso_range() {}
-int hdrv_enabled = 0;
 int audio_levels = 0;
 int handle_af_patterns(struct event * event) { return 1; }
-void lv_request_pause_updating(){}
-void lv_wait_for_pause_updating_to_finish(){}
 
 #endif
