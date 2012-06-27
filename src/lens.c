@@ -210,17 +210,17 @@ int should_draw_bottom_bar()
 int raw2shutter_ms(int raw_shutter)
 {
     if (!raw_shutter) return 0;
-    return (int) roundf(powf(2.0, (136.0 - raw_shutter)/8.0));
+    return (int) roundf(powf(2.0, (56.0 - raw_shutter)/8.0) * 1000.0);
 }
 int shutter_ms_to_raw(int shutter_ms)
 {
     if (shutter_ms == 0) return 160;
-    return (int) roundf(136.0 - log2f(shutter_ms) * 8.0);
+    return (int) roundf(56.0 - log2f((float)shutter_ms / 1000.0) * 8.0);
 }
 int shutterf_to_raw(float shutterf)
 {
     if (shutterf == 0) return 160;
-    return (int) roundf(136.0 - log2f(shutterf*1000.0) * 8.0);
+    return (int) roundf(56.0 - log2f(shutterf) * 8.0);
 }
 
 // this one attempts to round in the same way as with previous call
@@ -262,13 +262,13 @@ void round_noflicker_test()
 int shutterf_to_raw_noflicker(float shutterf)
 {
     if (shutterf == 0) return 160;
-    return round_noflicker(136.0 - log2f(shutterf*1000.0) * 8.0);
+    return round_noflicker(56.0 - log2f(shutterf) * 8.0);
 }
 
 float raw2shutterf(int raw_shutter)
 {
     if (!raw_shutter) return 0.0;
-    return powf(2.0, (136.0 - raw_shutter)/8.0) / 1000.0;
+    return powf(2.0, (56.0 - raw_shutter)/8.0);
 }
 
 int raw2iso(int raw_iso)
