@@ -92,7 +92,6 @@ dofp_update()
 //**********************************************************************/
 
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
-/* NOT USED FOR NOW
 int check_eyefi()
 {
     FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
@@ -102,7 +101,7 @@ int check_eyefi()
         return 1;
     }
     return 0;
-}*/
+}
 
 void EyeFi_RenameCR2toAVI(char* dir)
 {
@@ -1631,7 +1630,7 @@ static struct menu_entry tweak_menus[] = {
     },
     #endif
     
-    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) 
     {
         .name        = "EyeFi Trick",
         .select        = menu_open_submenu,
@@ -2188,6 +2187,9 @@ static void tweak_init()
     extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Tweaks", tweak_menus_shoot, 1 );
     menu_add( "Tweaks", key_menus, COUNT(key_menus) );
+#if defined(CONFIG_60D) || defined(CONFIG_600D) 
+    if (check_eyefi())
+#endif
     menu_add( "Tweaks", tweak_menus, COUNT(tweak_menus) );
     menu_add( "Play", play_menus, COUNT(play_menus) );
     menu_add( "Display", display_menus, COUNT(display_menus) );
