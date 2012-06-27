@@ -121,13 +121,10 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
     #endif
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #endif
     
-    #ifdef CONFIG_5D3
-    #endif
-
         vsync_func();
 
     return ans;
