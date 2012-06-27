@@ -512,7 +512,7 @@ int check_autoexec()
 // check if fonts.dat is present on the card
 int check_fonts()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "ML/SETTINGS/FONTS.DAT", 0);
+    FILE * f = FIO_Open(CARD_DRIVE "ML/DATA/FONTS.DAT", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);

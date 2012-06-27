@@ -5113,8 +5113,8 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FIO_RemoveFile(CARD_DRIVE "ML/SETTINGS/overlay.dat");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/SETTINGS/overlay.dat");
+    FIO_RemoveFile(CARD_DRIVE "ML/DATA/overlay.dat");
+    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/DATA/overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
@@ -5134,7 +5134,7 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_Open(CARD_DRIVE "ML/SETTINGS/overlay.dat", O_RDONLY | O_SYNC);
+    FILE* f = FIO_Open(CARD_DRIVE "ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);
@@ -5200,7 +5200,7 @@ static void transparent_overlay_from_play()
 }
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#define defish_lut_file CARD_DRIVE "ML/rectilin.lut"
+#define defish_lut_file CARD_DRIVE "ML/DATA/rectilin.lut"
 
 static uint8_t* defish_lut = INVALID_PTR;
 

@@ -83,7 +83,8 @@ install: autoexec.bin
 
 	mkdir $(CF_CARD)/ML || echo "no problem"
 	mkdir $(CF_CARD)/ML/settings || echo "no problem"
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
+	mkdir $(CF_CARD)/ML/data || echo "no problem"
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/data/
 	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
@@ -105,11 +106,13 @@ prepare_zip:
 	mkdir zip/ML || echo "ok"
 	cp $(SRC_DIR)/zip.txt zip
 	cp $(TOP_DIR)/README zip/ML/
-	cp $(DOC_DIR)/INSTALL.pdf zip/ML/.
-	cp $(DOC_DIR)/UserGuide.pdf zip/ML/.
-	mkdir zip/ML/settingss || echo "ok"
-	cp $(SRC_DIR)/FONTS.DAT zip/ML/
-	cp ../../vram/rectilin.lut zip/ML/settings.
+	cp $(DOC_DIR)/INSTALL.pdf zip/ML/
+	cp $(DOC_DIR)/UserGuide.pdf zip/ML/
+	mkdir zip/ML/logs || echo "ok"
+	mkdir zip/ML/settings || echo "ok"
+	mkdir zip/ML/data || echo "ok"
+	cp $(SRC_DIR)/FONTS.DAT zip/ML/data
+	cp ../../vram/rectilin.lut zip/ML/data
 	mkdir zip/ML/cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
 	mkdir zip/ML/scripts || echo "ok"
@@ -118,8 +121,7 @@ prepare_zip:
 	cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
 	mkdir zip/ML/doc || echo "ok"
 	cp $(DOC_DIR)/cam/* zip/ML/doc/
-	cp $(SRC_DIR)/logo.bmp zip/ML/docs.
-	mkdir zip/ML/logs || echo "ok"
+	cp $(SRC_DIR)/logo.bmp zip/ML/docs
 	make x
 	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
 	cp ../../installer/60D.110/*.fir zip || echo "no FIR"

@@ -56,10 +56,11 @@ plugins: FORCE
 install: all
 	mkdir -p $(CF_CARD)/ML/
 	mkdir -p $(CF_CARD)/ML/settings/
+	mkdir -p $(CF_CARD)/ML/data/
 	mkdir -p $(CF_CARD)/ML/cropmks/
 	cp platform/all/autoexec.bin $(CF_CARD)
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
-	cp vram/rectilin.lut $(CF_CARD)/ML/
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/data/
+	cp vram/rectilin.lut $(CF_CARD)/ML/data/
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	$(UMOUNT) $(CF_CARD)
 
