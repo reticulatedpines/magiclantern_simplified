@@ -1695,14 +1695,17 @@ static void
 aperture_display( void * priv, int x, int y, int selected )
 {
     int a = lens_info.aperture;
+    int av = ABS(lens_info.raw_aperture - 8);
     if (!lens_info.name[0]) // for unchipped lenses, always display zero
         a = 0;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Aperture    : f/%d.%d",
+        "Aperture    : f/%d.%d (AV %d.%d)",
         a / 10,
-        a % 10
+        a % 10, 
+        av / 8, 
+        (av % 8) * 10/8
     );
     menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, lens_info.aperture ? (uintptr_t)((lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1])) : (uintptr_t) (lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture."));
 }
@@ -4626,7 +4629,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Aperture",
         .display    = aperture_display,
         .select     = aperture_toggle,
-        .help = "Adjust aperture in 1/8 EV steps.",
+        .help = "Adjust aperture. Also displays APEX aperture (AV) in stops.",
         .essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
