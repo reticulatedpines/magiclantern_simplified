@@ -155,10 +155,10 @@ Command-line usage:
         input = tkFileDialog.askdirectory(parent=root,title='Please select a directory with 422 files')
 
 if os.path.isfile(input):
-    convert_422_bmp(input, change_ext(input, ".jpg"))
+    convert_422_bmp(input, change_ext(input, ".tif"))
 elif os.path.isdir(input):
     for f in sorted(os.listdir(input)):
         if f.endswith(".422"):
             f = os.path.join(input, f)
-            convert_422_bmp(f, change_ext(f, ".jpg"));
+            convert_422_bmp(f, change_ext(f, ".tif"));
 print "Done."
