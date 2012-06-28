@@ -1142,8 +1142,7 @@ silent_pic_take_longexp()
     msleep(500);
     div_yuv_by_const_dst8bit_src16bit(vram->vram, longexp_buf, numpix, num);
     char* imgname = silent_pic_get_name();
-    FIO_RemoveFile(imgname);
-    FILE* f = FIO_CreateFile(imgname);
+    FILE* f = FIO_CreateFileEx(imgname);
     if (f == INVALID_PTR)
     {
         bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
@@ -1318,8 +1317,7 @@ silent_pic_take_sweep(int interactive)
 
     char* imgname = silent_pic_get_name();
 
-    FIO_RemoveFile(imgname);
-    FILE* f = FIO_CreateFile(imgname);
+    FILE* f = FIO_CreateFileEx(imgname);
     if (f == INVALID_PTR)
     {
         bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
@@ -1400,8 +1398,7 @@ silent_pic_take_slitscan(int interactive)
 
     char* imgname = silent_pic_get_name();
 
-    FIO_RemoveFile(imgname);
-    FILE* f = FIO_CreateFile(imgname);
+    FILE* f = FIO_CreateFileEx(imgname);
     if (f == INVALID_PTR)
     {
         bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
@@ -3499,8 +3496,7 @@ void bulb_ramping_init()
         if( FIO_GetFileSize( fn, &size ) != 0 ) break;
         if (size == 0) break;
     }
-    FIO_RemoveFile(fn);
-    bramp_log_file = FIO_CreateFile(fn);
+    bramp_log_file = FIO_CreateFileEx(fn);
 
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
@@ -4751,8 +4747,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         FILE * f = INVALID_PTR;
         char name[100];
         snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-        FIO_RemoveFile(name);
-        f = FIO_CreateFile(name);
+        f = FIO_CreateFileEx(name);
         if ( f == INVALID_PTR )
         {
             bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
@@ -4774,8 +4769,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         FILE * f = INVALID_PTR;
         char name[100];
         snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-        FIO_RemoveFile(name);
-        f = FIO_CreateFile(name);
+        f = FIO_CreateFileEx(name);
         if ( f == INVALID_PTR )
         {
             bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );

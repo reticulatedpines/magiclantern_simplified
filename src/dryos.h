@@ -456,6 +456,7 @@ OS_FUNCTION( 0x0100002,	int,	FIO_ReadFile, FILE* stream, void* ptr, size_t count
 OS_FUNCTION( 0x0100003,	int,	FIO_WriteFile, FILE* stream, const void* ptr, size_t count );
 OS_FUNCTION( 0x0100004,	void,	FIO_CloseFile, FILE* stream );
 OS_FUNCTION( 0x0100005,	FILE*,	FIO_CreateFile, const char* name );
+OS_FUNCTION( 0x0100005,	FILE*,	FIO_CreateFileEx, const char* name );
 /** Returns for 0 success */
 OS_FUNCTION( 0x0100006, int,	FIO_GetFileSize, const char * filename, unsigned * size);
 OS_FUNCTION( 0x0100007, struct fio_dirent *,	FIO_FindFirstEx, const char * dirname, struct fio_file * file);

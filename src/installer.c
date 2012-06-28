@@ -387,8 +387,7 @@ initial_install(void)
     int y = 0;
     big_bmp_printf(FONT_LARGE, 0, y+=30, "Magic Lantern install");
 
-    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
-    FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
+    FILE * f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         big_bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");

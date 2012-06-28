@@ -964,8 +964,7 @@ waveform_draw_image(
 static FILE * g_aj_logfile = INVALID_PTR;
 unsigned int aj_create_log_file( char * name)
 {
-   FIO_RemoveFile( name );
-   g_aj_logfile = FIO_CreateFile( name );
+   g_aj_logfile = FIO_CreateFileEx( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
       bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
@@ -1023,7 +1022,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
     msleep(1000);
     int n = 0x10000000 / bufsize;
     {
-        FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/bench.tmp");
+        FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/bench.tmp");
         int t0 = tic();
         int i;
         for (i = 0; i < n; i++)
@@ -5114,8 +5113,7 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FIO_RemoveFile(CARD_DRIVE "ML/DATA/overlay.dat");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/DATA/overlay.dat");
+    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/DATA/overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");

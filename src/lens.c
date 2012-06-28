@@ -1223,8 +1223,7 @@ mvr_create_logfile(
     char name[100];
     snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), file_number);
 
-    FIO_RemoveFile(name);
-    mvr_logfile = FIO_CreateFile( name );
+    mvr_logfile = FIO_CreateFileEx( name );
     if( mvr_logfile == INVALID_PTR )
     {
         bmp_printf( FONT_MED, 0, 40,

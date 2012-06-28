@@ -173,7 +173,7 @@ static int vmax(int* x, int n)
 static void dump_rom_task(void* priv)
 {
     msleep(200);
-    FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
+    FILE * f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
@@ -183,7 +183,7 @@ static void dump_rom_task(void* priv)
 
     msleep(200);
 
-    f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/BOOT0.BIN");
+    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/BOOT0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
@@ -341,8 +341,7 @@ static int compute_signature(int* start, int num)
 
 void find_response_curve(char* fname)
 {
-    FIO_RemoveFile(fname);
-    FILE* f = FIO_CreateFile(fname);
+    FILE* f = FIO_CreateFileEx(fname);
 
     ensure_movie_mode();
     clrscr();
@@ -1702,8 +1701,7 @@ void save_crash_log()
         if (size == 0) break;
     }
 
-    FIO_RemoveFile(log_filename);
-    FILE* f = FIO_CreateFile(log_filename);
+    FILE* f = FIO_CreateFileEx(log_filename);
     my_fprintf(f, "%s\n\n", get_assert_msg());
     my_fprintf(f, 
         "Magic Lantern version : %s\n"
@@ -2001,7 +1999,7 @@ static void meminfo_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Free Memory  : %dK + %dK",
+        "Free Memory  : %dK+%dK(%dK)",
         m/1024, b/1024
     );
     menu_draw_icon(x, y, b > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
@@ -2124,11 +2122,8 @@ static void prop_display(
 
 void prop_dump()
 {
-    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/PROP.LOG");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/PROP.LOG");
-
-    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
-    FILE* g = FIO_CreateFile(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
+    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/PROP.LOG");
+    FILE* g = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
     
     unsigned i, j, k;
     
@@ -3190,6 +3185,7 @@ void CopyMLFilesToRAM_BeforeFormat()
 void CopyMLFilesBack_AfterFormat()
 {
     FIO_CreateDirectory(CARD_DRIVE "ML");
+    FIO_CreateDirectory(CARD_DRIVE "ML/DATA");
     FIO_CreateDirectory(CARD_DRIVE "ML/SETTINGS");
     FIO_CreateDirectory(CARD_DRIVE "ML/CROPMKS");
     FIO_CreateDirectory(CARD_DRIVE "ML/SCRIPTS");

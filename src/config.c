@@ -249,7 +249,7 @@ config_save_file(
     }
     
     FIO_RemoveFile(filename);
-    FILE * file = FIO_CreateFile( filename );
+    FILE * file = FIO_CreateFileEx( filename );
     if( file == INVALID_PTR )
         return -1;
     
@@ -308,7 +308,7 @@ static void config_flag_file_setting_save(char* file, int setting)
     FIO_RemoveFile(file);
     if (setting)
     {
-        FILE* f = FIO_CreateFile(file);
+        FILE* f = FIO_CreateFileEx(file);
         FIO_CloseFile(f);
     }
 }

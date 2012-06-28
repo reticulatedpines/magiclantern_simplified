@@ -216,8 +216,7 @@ switch ( param1 )
 
 			bmp_printf(FONT_LARGE, 0, 0, "UL '%s' %db", fn, s);
 
-			FIO_RemoveFile(fn);
-			f = FIO_CreateFile(fn);
+			f = FIO_CreateFileEx(fn);
 			if ( f == NULL )
 			{
 				msg.id = PTP_RC_GeneralError;

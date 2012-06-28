@@ -1498,8 +1498,7 @@ my_sounddev_task()
     
 #ifdef CONFIG_AUDIO_REG_LOG
         // Create the logging file
-        FIO_RemoveFile(CARD_DRIVE "ML/audioreg.txt");
-        reg_file = FIO_CreateFile(CARD_DRIVE "ML/audioreg.txt" );
+        reg_file = FIO_CreateFileEx(CARD_DRIVE "ML/audioreg.txt" );
 #endif
     
         msleep(500);
@@ -1703,8 +1702,7 @@ void audio_reg_dump_600D()
         if (size == 0) break;
     }
 
-    FIO_RemoveFile(log_filename);
-    FILE* f = FIO_CreateFile(log_filename);
+    FILE* f = FIO_CreateFileEx(log_filename);
 
     int output = 0;
     for( int addr = 0 ; addr < 0x100 ; addr++ )
