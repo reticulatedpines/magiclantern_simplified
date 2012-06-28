@@ -19,6 +19,7 @@ struct memSuite
 
 void* shoot_malloc(int size)
 {
+    return 0; // unstable
     if (!alloc_sem) alloc_sem = create_named_semaphore(0,0);
     struct memSuite * hSuite = 0;
     AllocateMemoryResource(size, allocCBR, &hSuite);

@@ -1132,11 +1132,12 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
-        bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
-        #else
+        // shoot_malloc is not that stable
+        //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
+        //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
+        //~ #else
         bvram_mirror_start = (void*)alloc_dma_memory(BMP_VRAM_SIZE);
-        #endif
+        //~ #endif
         if (!bvram_mirror_start) 
         {   
             while(1)
