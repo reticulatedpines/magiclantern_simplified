@@ -248,7 +248,6 @@ config_save_file(
         count++;
     }
     
-    FIO_RemoveFile(filename);
     FILE * file = FIO_CreateFileEx( filename );
     if( file == INVALID_PTR )
         return -1;

@@ -1999,7 +1999,7 @@ static void meminfo_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Free Memory  : %dK+%dK(%dK)",
+        "Free Memory  : %dK + %dK",
         m/1024, b/1024
     );
     menu_draw_icon(x, y, b > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
