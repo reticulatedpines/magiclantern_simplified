@@ -148,6 +148,7 @@ movie_restart_print(
     );
 }
 
+#if 0 // unstable
 void do_movie_mode_remap()
 {
     if (gui_state == GUISTATE_PLAYMENU) return;
@@ -159,6 +160,7 @@ void do_movie_mode_remap()
         ensure_movie_mode();
     }
 }
+#endif
 /*
 CONFIG_INT("dof.adjust", dof_adjust, 1);
 int get_dof_adjust() { return dof_adjust; }
@@ -212,6 +214,7 @@ static void aperiso_open(void* priv)
     lens_set_rawiso(aperiso_rawiso);
 }*/
 
+#if 0
 static void
 mode_remap_print(
     void *          priv,
@@ -227,6 +230,7 @@ mode_remap_print(
         movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X_STR : movie_mode_remap == 2 ? MOVIE_MODE_REMAP_Y_STR : "OFF"
     );
 }
+#endif
 
 // start with LV
 //**********************************************************************
@@ -391,7 +395,7 @@ movtweak_task( void* unused )
 
         if (!recording) movie_was_stopped_by_set = 0;
 
-        do_movie_mode_remap();
+        //~ do_movie_mode_remap();
         
         if (is_movie_mode())
         {
@@ -1003,7 +1007,8 @@ static struct menu_entry mov_menus[] = {
         .select_reverse = movie_af_noisefilter_bump,
         .select_auto = movie_af_aggressiveness_bump,
     },*/
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    //~ #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    #if 0
     {
         .name = "MovieModeRemap",
         .priv = &movie_mode_remap,

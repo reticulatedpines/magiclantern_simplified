@@ -920,7 +920,7 @@ fake_halfshutter_step()
 static void
 tweak_task( void* unused)
 {
-    do_movie_mode_remap();
+    //~ do_movie_mode_remap();
     
     TASK_LOOP
     {

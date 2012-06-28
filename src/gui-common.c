@@ -126,7 +126,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_follow_focus(event) == 0) return 0;
     if (handle_zoom_overlay(event) == 0) return 0;
     if (handle_zoom_x5_x10(event) == 0) return 0;
-    if (handle_movie_mode_shortcut(event) == 0) return 0;
+    //~ if (handle_movie_mode_shortcut(event) == 0) return 0; // unstable
     
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     if (handle_quick_access_menu_items(event) == 0) return 0;
