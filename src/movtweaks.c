@@ -1047,11 +1047,11 @@ static struct menu_entry mov_menus[] = {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
         .display = movie_rec_key_print,
-        #ifdef CONFIG_5D2
+        //~ #ifdef CONFIG_5D2
         .select = menu_binary_toggle,
-        #else
-        .select = menu_ternary_toggle,
-        #endif
+        //~ #else
+        //~ .select = menu_ternary_toggle,
+        //~ #endif
         .help = "Change the button used for recording. Hint: wired remote."
     },
     #endif
