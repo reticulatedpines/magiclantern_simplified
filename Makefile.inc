@@ -124,10 +124,11 @@ prepare_zip:
 	cp $(SRC_DIR)/logo.bmp zip/ML/docs
 	make x
 	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
-	cp ../../installer/60D.110/*.fir zip || echo "no FIR"
-	cp ../../installer/600D.101/*.fir zip || echo "no FIR"
-	cp ../../installer/50D.108/*.fir zip || echo "no FIR" 
+	cp ../../installer/60D.111/*.fir zip || echo "no FIR"
+	cp ../../installer/600D.102/*.fir zip || echo "no FIR"
+	cp ../../installer/50D.109/*.fir zip || echo "no FIR" 
 	cp ../../installer/500D.111/*.fir zip || echo "no FIR"
+	cp ../../installer/5D2.212/*.fir zip || echo "no FIR"
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
@@ -145,11 +146,13 @@ magiclantern-$(VERSION).zip: \
 		ML/INSTALL.pdf \
 		ML/UserGuide.pdf \
 		ML/cropmks/* \
-		ML/scripts/* \
-		ML/plugins/* \
 		ML/doc/* \
+		ML/data/* \
 		*.fir \
-		autoexec.bin
+		autoexec.bin \
+
+		#~ ML/scripts/* \
+		#~ ML/plugins/* \
 
 CFLAGS=\
 	$(FLAGS) \
