@@ -230,7 +230,7 @@
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x323b0+0x38)
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x323b0+0x2c)
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
 
