@@ -1964,16 +1964,20 @@ void piggyback_canon_menu()
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    SetGUIRequestMode(GUIMODE_ML_MENU);
-    msleep(100);
+    canon_gui_disable_front_buffer(0);
+    int new_gui_mode = GUIMODE_ML_MENU;
+    SetGUIRequestMode(new_gui_mode);
+    canon_gui_disable_front_buffer(0);
+    msleep(new_gui_mode <= 2 ? 100 : 20);
+    canon_gui_disable_front_buffer(0);
+    //~ msleep(100);
     menu_redraw();
-    if (MENU_MODE)
-    {
-        msleep(100);
-        menu_redraw();
-        msleep(100);
-        menu_redraw();
-    }
+    msleep(50);
+    canon_gui_disable_front_buffer(0);
+    menu_redraw();
+    msleep(50);
+    canon_gui_disable_front_buffer(0);
+    menu_redraw();
 #endif
 }
 
@@ -1987,7 +1991,7 @@ void close_canon_menu()
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     SetGUIRequestMode(0);
-    msleep(200);
+    msleep(100);
 #endif
 #ifdef CONFIG_5DC
     //~ forces the canon menu under the ML one to close, thus turning the 5dc screen off.
@@ -2025,7 +2029,6 @@ static void menu_close()
 
     update_disp_mode_bits_from_params();
 
-    canon_gui_enable_front_buffer(0);
     lens_focus_stop();
     show_only_selected = 0;
     
@@ -2033,6 +2036,8 @@ static void menu_close()
     else draw_livev_for_playback();
 
     close_canon_menu();
+    clrscr();
+    canon_gui_enable_front_buffer(0);
 }
 
 /*
