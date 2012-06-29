@@ -437,14 +437,12 @@ void digic_iso_step()
             EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
         }
 
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
         if (digic_black_level != 100)
         {
             int presetup = MEMX(SHAD_PRESETUP);
             presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level-100);
             EngDrvOut(SHAD_PRESETUP, presetup);
         }
-        #endif
 
     }
     else // photo mode - display gain, for preview only
