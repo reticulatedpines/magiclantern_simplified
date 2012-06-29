@@ -104,7 +104,7 @@ void menu_show_only_selected()
     menu_damage = 1;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected ); }
-int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected ); }
+int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected && hist_countdown < 2 ); }
 
 int draw_event = 0;
 
@@ -1442,7 +1442,7 @@ menu_redraw_do()
         else
         {
             if (!lv) show_only_selected = 0;
-            if (show_only_selected) quick_redraw = false;
+            //~ if (show_only_selected) quick_redraw = false;
             //~ if (MENU_MODE || lv) clrscr();
 
             //~ menu_damage = 0;
@@ -1481,8 +1481,8 @@ menu_redraw_do()
             
                 if (quick_redraw)
                 {
-                    if (!show_only_selected && !submenu_mode)
-                        menus_display( menus, 0, 0 ); 
+                    if (!submenu_mode)
+                        menus_display( menus, 0, 0 ); // only the selected item will be redrawn
                 }
                 else
                 {
@@ -1503,7 +1503,7 @@ menu_redraw_do()
                 
                 //~ give_semaphore(menu_redraw_sem);
 
-                if (show_only_selected) 
+                if (show_only_selected && !quick_redraw) 
                 {
                     draw_ml_topbar(0, 1);
                     draw_ml_bottombar(0, 1);
