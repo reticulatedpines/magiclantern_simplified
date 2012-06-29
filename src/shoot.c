@@ -5667,7 +5667,7 @@ shoot_task( void* unused )
         }
 
         // same for motion detect
-        int mdx = motion_detect && liveview_display_idle() && !recording;
+        int mdx = motion_detect && liveview_display_idle() && !recording && !gui_menu_shown();
         
         if (!tfx && !DISPLAY_IS_ON) msleep(200); // no need to react very fast, can powersave a bit
         
