@@ -1457,7 +1457,8 @@ menu_redraw_do()
                 static int prev_so = 0;
                 if (show_only_selected)
                 {
-                    bmp_fill( 0, 0, 0, 720, 480 );
+                    if (!quick_redraw)
+                        bmp_fill( 0, 0, 0, 720, 480 );
                     if (zebra_should_run())
                     {
                         if (prev_so) copy_zebras_from_mirror();
@@ -1503,7 +1504,7 @@ menu_redraw_do()
                 
                 //~ give_semaphore(menu_redraw_sem);
 
-                if (show_only_selected && !quick_redraw) 
+                if (show_only_selected) 
                 {
                     draw_ml_topbar(0, 1);
                     draw_ml_bottombar(0, 1);
