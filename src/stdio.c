@@ -444,7 +444,7 @@ FILE* FIO_CreateFileEx(const char* name)
              namae[i] = '/';
          }
     }
-    FIO_RemoveFile(name);
+
     f = FIO_CreateFile(name);
 
     //~ if (f != INVALID_PTR) NotifyBox(2000, "create file: %s => success", name); msleep(2000);
