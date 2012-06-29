@@ -1020,8 +1020,16 @@ menu_display(
                     msg
                 );
 
-                if (!submenu_mode && !show_only_selected && CURRENT_DIALOG_MAYBE) // we can use scrollwheel for navigation
-                    bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_GRAY45, COLOR_BLACK);
+                if (!submenu_mode && !show_only_selected) // we can use scrollwheel for navigation
+                {
+                    bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_GRAY50, COLOR_BLACK);
+                    if (!CURRENT_DIALOG_MAYBE) // wait, we CAN'T use it... 
+                                               // and you need to be careful because you will change shooting settings while recording!
+                    {
+                        draw_line(680, 425, 720, 440, COLOR_WHITE);
+                        draw_line(680, 426, 720, 441, COLOR_WHITE);
+                    }
+                }
             }
 
             // if there's a warning message set, display it
