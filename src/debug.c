@@ -1275,12 +1275,12 @@ int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fi
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
 int mem_spy_count_lo = 1; // how many times is a value allowed to change
-int mem_spy_count_hi = 50; // (limits)
-int mem_spy_freq_lo = 0; 
-int mem_spy_freq_hi = 0;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_count_hi = 0; // (limits)
+int mem_spy_freq_lo = 10; 
+int mem_spy_freq_hi = 50;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0;
 int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
-int mem_spy_start_time = 30;  // ignore values changing early (these are noise)
+int mem_spy_start_time = 0;  // ignore values changing early (these are noise)
 
 
 static int* dbg_memmirror = 0;
@@ -2777,8 +2777,8 @@ thats_all:
         property_list,
         actual_num_properties,
         debug_property_handler,
-        (void*) 0xdeadbeef,
-        debug_token_handler
+        0,
+        0
     );
 #endif
 

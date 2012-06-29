@@ -1432,7 +1432,7 @@ PROP_HANDLER( PROP_ISO_AUTO )
     uint32_t raw = *(uint32_t *) buf;
 
     #ifdef CONFIG_5D2
-    if (expsim==2) raw = *(uint8_t*)(MEM(0x1D78) + 0x5C);
+    if (expsim==2) raw = (uint8_t)FRAME_ISO;
     #endif
 
     lens_info.raw_iso_auto = raw;
@@ -1446,7 +1446,7 @@ PROP_HANDLER( PROP_BV )
     uint32_t raw_iso = ((uint8_t*)buf)[1];
 
     #ifdef CONFIG_5D2
-    if (expsim==2) raw_iso = *(uint8_t*)(MEM(0x1D78) + 0x5C);
+    if (expsim==2) raw_iso = (uint8_t)FRAME_ISO;
     #endif
 
     if (raw_iso)

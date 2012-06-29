@@ -876,7 +876,7 @@ void update_lvae_for_autoiso_n_displaygain()
         if (!fixed_iso_needed_by_max_auto_iso) // iso auto is alive and kicking
         {
             #ifdef CONFIG_5D2
-            int a = (int)(*(uint8_t*)(MEM(0x1D78) + 0x5C)); // FRAME_ISO from hdr.c
+            int a = (uint8_t)FRAME_ISO;
             lens_info.raw_iso_auto = a;
             lens_info.iso_auto = raw2iso(a);
             #else
