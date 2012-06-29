@@ -269,6 +269,7 @@ int magic_is_off()
 
 int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
@@ -734,7 +735,16 @@ my_init_task(int a, int b, int c, int d)
 
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
+    
+    // wait for overriden gui_main_task (but use a timeout so it doesn't break if you disable that for debugging)
+    for (int i = 0; i < 30; i++)
+    {
+        if (ml_gui_initialized) break;
+        msleep(100);
+    }
     msleep(200);
+    
+    // at this point, gui_main_start should be started and should be able to tell whether SET was pressed at startup
     
     if (magic_off_request)
     {

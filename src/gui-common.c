@@ -50,6 +50,9 @@ int handle_other_events(struct event * event)
 
 int handle_common_events_startup(struct event * event)
 {   
+    extern int ml_gui_initialized;
+    ml_gui_initialized = 1;
+    
     if (handle_tricky_canon_calls(event) == 0) return 0;
 
     extern int ml_started;
