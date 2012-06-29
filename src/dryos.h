@@ -435,7 +435,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func);
 // mod like in math... x mod n is from 0 to n-1
 #define mod(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
 
-#define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig), fmt, ## __VA_ARGS__);
+#define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig) - 1, fmt, ## __VA_ARGS__);
 
 #define MEMX(x) ( \
         ((((int)(x)) & 0xF0000000) == 0xC0000000) ? shamem_read(x) : \
