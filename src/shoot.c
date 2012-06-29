@@ -5667,7 +5667,7 @@ shoot_task( void* unused )
         }
 
         // same for motion detect
-        int mdx = motion_detect && liveview_display_idle() && !recording && !gui_menu_shown();
+        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
         
         if (!tfx && !DISPLAY_IS_ON) msleep(200); // no need to react very fast, can powersave a bit
         
@@ -5706,26 +5706,25 @@ shoot_task( void* unused )
                 //TODO: maybe get the spot yuv of the target box
                 get_spot_yuv(100, &y, &u, &v);
                 aev = y / 2;
-                if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
-                if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
+                if (K > 20) bmp_printf(FONT_MED, 0, 100, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+                if (K > 20 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
                     lens_take_picture(64,1);
-                    //~ msleep(trap_focus_delay);
                     K = 0;
                 }
+                if (K == 20) idle_force_powersave_in_1s();
                 old_ae_avg = old_ae_avg * 90/100 + aev * 10;
             }
             else if (motion_detect_trigger == 1)
             {
                 int d = get_spot_motion(100, get_global_draw());
-                if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
-                if (K > 50 && d >= (int)motion_detect_level)
+                if (K > 20) bmp_printf(FONT_MED, 0, 100, "Motion level: %d   ", d);
+                if (K > 20 && d >= (int)motion_detect_level)
                 {
-                    //~ remote_shot(1);
                     lens_take_picture(64,1);
-                    //~ msleep(trap_focus_delay);
                     K = 0;
                 }
+                if (K == 20) idle_force_powersave_in_1s();
             }
         }
 

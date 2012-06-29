@@ -4109,6 +4109,13 @@ static int idle_countdown_killflicker = 5;
 static int idle_countdown_killflicker_prev = 5;
 #endif
 
+void idle_force_powersave_in_1s()
+{
+    idle_countdown_display_off = 10;
+    idle_countdown_display_dim = 10;
+    idle_countdown_globaldraw  = 10;
+}
+
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
     if (ml_shutdown_requested) return;
