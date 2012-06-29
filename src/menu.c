@@ -2052,7 +2052,7 @@ static void menu_close()
     else draw_livev_for_playback();
 
     close_canon_menu();
-    clrscr();
+    if (lv) clrscr();
     canon_gui_enable_front_buffer(0);
 }
 
