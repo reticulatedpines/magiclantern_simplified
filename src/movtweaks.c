@@ -412,7 +412,7 @@ movtweak_task( void* unused )
                 force_liveview();
         }
 
-        update_lvae_for_autoiso_n_displaygain();
+        //~ update_lvae_for_autoiso_n_displaygain();
         
         if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
         {

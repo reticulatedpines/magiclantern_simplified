@@ -4581,7 +4581,7 @@ static struct menu_entry expo_menus[] = {
                 .max = 50,
                 .help = "Raises shadow level.",
             },*/
-            #ifndef CONFIG_500D
+            #if 0 // unstable
             {
                 .name = "Min Movie AutoISO",
                 .priv = &lvae_iso_min,
