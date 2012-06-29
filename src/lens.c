@@ -1610,6 +1610,8 @@ LENS_SET(iso)
 LENS_SET(shutter)
 LENS_SET(aperture)
 
+PROP_INT(PROP_WB_KELVIN_PH, wb_kelvin_ph);
+
 void
 lens_set_kelvin(int k)
 {
@@ -1619,8 +1621,11 @@ lens_set_kelvin(int k)
     if (k > 10000 || k < 2500) // workaround for 60D; out-of-range values are ignored in photo mode
     {
         int lim = k > 10000 ? 10000 : 2500;
-        prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
-        msleep(20);
+        if ((k > 10000 && wb_kelvin_ph < lim) || (k < 2500 && wb_kelvin_ph > lim))
+        {
+            prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
+            msleep(20);
+        }
     }
 
     prop_request_change(PROP_WB_MODE_LV, &mode, 4);
