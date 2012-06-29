@@ -1026,8 +1026,8 @@ menu_display(
                     if (!CURRENT_DIALOG_MAYBE) // wait, we CAN'T use it... 
                                                // and you need to be careful because you will change shooting settings while recording!
                     {
-                        draw_line(680, 425, 720, 440, COLOR_WHITE);
-                        draw_line(680, 426, 720, 441, COLOR_WHITE);
+                        draw_line(720, 425, 680, 440, COLOR_WHITE);
+                        draw_line(720, 426, 680, 441, COLOR_WHITE);
                     }
                 }
             }
