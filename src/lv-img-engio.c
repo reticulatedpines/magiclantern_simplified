@@ -383,7 +383,7 @@ int handle_digic_poke(struct event * event){ return 1; }; // dummy
 
 void image_effects_step()
 {
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
 
@@ -412,7 +412,7 @@ void image_effects_step()
 
 void digic_iso_step()
 {
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
     if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
