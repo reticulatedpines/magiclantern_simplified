@@ -655,11 +655,11 @@ static void leftright_sign(int x, int y)
     int i;
     for (i = 5; i < 32-5; i++)
     {
-        draw_line(x + 3, y + i, x + 18 + 3, y + 16, COLOR_WHITE);
-        draw_line(x + 3, y + i, x + 18 + 3, y + 16, COLOR_WHITE);
+        draw_line(x + 3, y + i, x + 18 + 3, y + 16, COLOR_CYAN);
+        draw_line(x + 3, y + i, x + 18 + 3, y + 16, COLOR_CYAN);
 
-        draw_line(x - 3, y + i, x - 18 - 3, y + 16, COLOR_WHITE);
-        draw_line(x - 3, y + i, x - 18 - 3, y + 16, COLOR_WHITE);
+        draw_line(x - 3, y + i, x - 18 - 3, y + 16, COLOR_CYAN);
+        draw_line(x - 3, y + i, x - 18 - 3, y + 16, COLOR_CYAN);
     }
 }
 
@@ -983,9 +983,9 @@ menu_display(
                 }
 
 
-                STR_APPEND(msg, "        ", Q_BTN_NAME);
                 if (submenu_mode || show_only_selected)
                 {
+                    STR_APPEND(msg, "      ");
                     if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
                     {
                         STR_APPEND(msg, "L/R/Wheel : ");
@@ -1002,10 +1002,15 @@ menu_display(
                     {
                         STR_APPEND(msg, "change value");
                     }
-                    leftright_sign(690, 400);
+
+                    if (CURRENT_DIALOG_MAYBE) // we can use scrollwheel
+                        bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_CYAN, COLOR_BLACK);
+                    else
+                        leftright_sign(690, 415);
                 }
                 else if (menu->children && !submenu_mode && !show_only_selected)
                 {
+                    STR_APPEND(msg, "          ");
                     STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
                 }
                 
@@ -1014,8 +1019,11 @@ menu_display(
                      10,  425, 
                     msg
                 );
+
+                if (!submenu_mode && !show_only_selected && CURRENT_DIALOG_MAYBE) // we can use scrollwheel for navigation
+                    bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_GRAY45, COLOR_BLACK);
             }
-            
+
             // if there's a warning message set, display it
             if (menu->selected && warning_msg)
             {
