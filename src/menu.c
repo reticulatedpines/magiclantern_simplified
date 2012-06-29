@@ -1010,7 +1010,8 @@ menu_display(
                 }
                 else if (menu->children && !submenu_mode && !show_only_selected)
                 {
-                    STR_APPEND(msg, "          ");
+                    int nspaces = 16 - strlen(Q_BTN_NAME);
+                    for (int i = 0; i < nspaces; i++) { STR_APPEND(msg, " "); }
                     STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
                 }
                 
