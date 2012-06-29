@@ -1957,10 +1957,11 @@ void flashlight_lcd_task(void *priv)
     int b = backlight_level;
     set_backlight_level(7);
     
-    while (!get_halfshutter_pressed() && DISPLAY_IS_ON)
+    while (!get_halfshutter_pressed() && DISPLAY_IS_ON && display_idle())
     {
         bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
         msleep(50);
+        idle_wakeup_reset_counters(-12345678);
     }
     set_backlight_level(b);
     canon_gui_enable_front_buffer(1);
