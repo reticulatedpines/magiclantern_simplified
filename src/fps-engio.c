@@ -1086,11 +1086,7 @@ static void fps_task()
 {
     TASK_LOOP
     {
-        #ifdef CONFIG_500D
-        msleep(FPS_OVERRIDE ? 20 : 100);
-        #else
         msleep(100);
-        #endif
         
         fps_check_refresh();
 
@@ -1130,6 +1126,15 @@ static void fps_task()
         fps_setup_timerA(f);
         fps_setup_timerB(f);
         //~ info_led_off();        
+    }
+}
+
+void fps_refresh_500D()
+{
+    if (FPS_OVERRIDE && written_value_a && written_value_b)
+    {
+        SafeEngDrvOut(FPS_REGISTER_A, written_value_a);
+        SafeEngDrvOut(FPS_REGISTER_A, written_value_b);
     }
 }
 
