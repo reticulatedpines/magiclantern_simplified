@@ -639,8 +639,10 @@ quickzoom_display(
         x, y,
         "Zoom in PLAY mode : %s", 
         quickzoom == 0 ? "Normal" :
+        quickzoom == 1 ? "Fast" :
         quickzoom == 2 ? "Fast+100%" :
-        quickzoom == 1 ? "Fast" : "err"
+        quickzoom == 3 ? "Fast+100%+AFP" :
+                         "err"
     );
 }
 
@@ -956,20 +958,20 @@ tweak_task( void* unused)
             {
                 for (int i = 0; i < 10; i++)
                 {
-                    if (quickzoom == 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
+                    if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                     {
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX-2;
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX-2;
-                        play_zoom_center_on_selected_af_point();
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
+                        if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
                         #endif
                     }
                     msleep(30);
-                    if (quickzoom == 2) play_zoom_center_on_selected_af_point();
+                    if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                 }
                 while (get_zoom_in_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
-                if (quickzoom == 2)
+                if (quickzoom == 3)
                 {
                     play_zoom_center_on_selected_af_point();
                     fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
@@ -2145,7 +2147,7 @@ struct menu_entry play_menus[] = {
     {
         .name = "Zoom in PLAY mode",
         .priv = &quickzoom, 
-        .max = 2,
+        .max = 3,
         .display = quickzoom_display,
         .help = "Faster zoom in Play mode, for pixel peeping :)",
         .essential = FOR_PHOTO,
