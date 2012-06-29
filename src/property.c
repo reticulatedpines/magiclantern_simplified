@@ -100,8 +100,8 @@ prop_init( void* unused )
         property_list,
         actual_num_properties,
         global_property_handler,
-        &global_token,
-        global_token_handler
+        0,
+        0
     );
 }
 
