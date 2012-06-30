@@ -3287,6 +3287,7 @@ struct menu_entry powersave_menus[] = {
     .name = "Powersave settings...",
     .select = menu_open_submenu,
     .submenu_width = 715,
+    .help = "Options for reducing power consumption during idle times.",
     .children =  (struct menu_entry[]) {
         {
             .name = "Enable power saving",

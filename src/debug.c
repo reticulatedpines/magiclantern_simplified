@@ -2597,7 +2597,8 @@ static struct menu_entry cfg_menus[] = {
 {
     .name = "Config file...",
     .select = menu_open_submenu,
-        .children =  (struct menu_entry[]) {
+    .help = "Config auto save, manual save, restore defaults...",
+    .children =  (struct menu_entry[]) {
         {
             .name = "Config AutoSave",
             .priv = &config_autosave,
@@ -3282,6 +3283,7 @@ void config_menu_init()
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Prefs", livev_cfg_menus,  1);
+    crop_factor_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }

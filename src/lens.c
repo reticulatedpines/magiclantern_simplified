@@ -1769,14 +1769,13 @@ static struct menu_entry tweak_menus[] = {
 #endif
 
 // hack to show this at the end of prefs menu
-#ifndef CONFIG_FULLFRAME
-static void
+void
 crop_factor_menu_init()
 {
-    msleep(1000);
+#ifndef CONFIG_FULLFRAME
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
-}
 #endif
+}
 
 static void
 lens_init( void* unused )
@@ -1790,11 +1789,7 @@ lens_init( void* unused )
 
     lens_info.lens_rotation = 0.1;
     lens_info.lens_step = 1.0;
- 
-    #ifndef CONFIG_FULLFRAME
-    run_in_separate_task(crop_factor_menu_init,0);
-    #endif
-    //~ FIO_RemoveFile("B:/lens.log");
+     //~ FIO_RemoveFile("B:/lens.log");
     //~ logfile = FIO_CreateFile("B:/lens.log");
 }
 

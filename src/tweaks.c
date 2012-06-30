@@ -1575,7 +1575,7 @@ static struct menu_entry key_menus[] = {
         },
     },
     {
-        .name       = "Misc key shortcuts...",
+        .name       = "Misc key settings...",
         .select = menu_open_submenu,
         .help = "Misc options related to shortcut keys.",
         .children =  (struct menu_entry[]) {
@@ -2020,6 +2020,7 @@ static struct menu_entry display_menus[] = {
         .name = "Display settings...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
+        .help = "Contrast, saturation, color scheme. No effect on recording.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Contrast       ",
@@ -2056,6 +2057,7 @@ static struct menu_entry display_menus[] = {
         .name = "Layout settings...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
+        .help = "Screen orientation, position fine-tuning...",
         .children =  (struct menu_entry[]) {
                 {
                     .name = "Image position ",
@@ -2153,6 +2155,7 @@ struct menu_entry play_menus[] = {
         .name = "Image review settings...",
         .select = menu_open_submenu,
         .submenu_width = 715,
+        .help = "Options for PLAY (image review) mode.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "SET+MainDial      ",
