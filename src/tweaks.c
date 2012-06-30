@@ -1800,7 +1800,7 @@ struct menu_entry expo_tweak_menus[] = {
         .icon_type = IT_DICE,
         //~ .help = "ExpSim: LCD image reflects exposure settings (ISO+Tv+Av).",
         .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
         //~ .show_liveview = 1,
     },
 };
@@ -2028,7 +2028,7 @@ static struct menu_entry display_menus[] = {
                 .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
-                .essential = FOR_LIVEVIEW,
+                //.essential = FOR_LIVEVIEW,
             },
             {
                 .name = "LV saturation",
@@ -2037,7 +2037,7 @@ static struct menu_entry display_menus[] = {
                 .display = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
-                .essential = FOR_LIVEVIEW,
+                //.essential = FOR_LIVEVIEW,
             },
             {
                 .name = "Color Scheme",
@@ -2090,7 +2090,7 @@ static struct menu_entry display_menus[] = {
                     .select = menu_binary_toggle,
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
-                    .essential = FOR_LIVEVIEW,
+                    //.essential = FOR_LIVEVIEW,
                 },
             #endif
             MENU_EOL
@@ -2102,7 +2102,7 @@ static struct menu_entry display_menus[] = {
         .display        = clearscreen_display,
         .select         = menu_binary_toggle,
         .help = "Clear bitmap overlays from LiveView display.",
-        //~ .essential = FOR_LIVEVIEW,
+        //~ //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Mode",
@@ -2115,7 +2115,7 @@ static struct menu_entry display_menus[] = {
             },
             MENU_EOL
         },
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
 #ifdef CONFIG_KILL_FLICKER
     {
@@ -2142,7 +2142,7 @@ static struct menu_entry display_menus[] = {
         .display = af_frame_autohide_display,
         .help = "You can hide the focus box (the little white rectangle).",
         .icon_type = IT_DISABLE_SOME_FEATURE,
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
 };
 
@@ -2161,7 +2161,7 @@ struct menu_entry play_menus[] = {
                 .max = 3,
                 .display = play_set_wheel_display,
                 .help = "What to do when you hold SET and turn MainDial (Wheel)",
-                .essential = FOR_PHOTO,
+                //.essential = FOR_PHOTO,
                 .icon_type = IT_DICE,
                 //~ .edit_mode = EM_MANY_VALUES,
             },
@@ -2172,7 +2172,7 @@ struct menu_entry play_menus[] = {
                 .display = qrplay_display,
                 //~ .help = "Go to play mode to enable zooming and maybe other keys.",
                 .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
-                .essential = FOR_PHOTO,
+                //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             },
             {
@@ -2180,7 +2180,7 @@ struct menu_entry play_menus[] = {
                 .priv = &quickreview_liveview, 
                 .max = 1,
                 .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
-                .essential = FOR_PHOTO,
+                //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             },
         #ifndef CONFIG_5D3
@@ -2190,7 +2190,7 @@ struct menu_entry play_menus[] = {
                 .max = 3,
                 .display = quickzoom_display,
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
-                .essential = FOR_PHOTO,
+                //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             },
         #endif
@@ -2200,7 +2200,7 @@ struct menu_entry play_menus[] = {
                 .priv = &star_zoom, 
                 .max = 1,
                 .help = "If you swap AF-ON (CFn IV-2), ML will revert'em in PLAY.",
-                .essential = FOR_PLAYBACK,
+                //.essential = FOR_PLAYBACK,
                 .icon_type = IT_BOOL,
             },
             #endif */
@@ -2211,7 +2211,7 @@ struct menu_entry play_menus[] = {
                 .select = menu_binary_toggle, 
                 .display = play_lv_display,
                 .help = "You may use the LiveView button to protect images quickly.",
-                .essential = FOR_PHOTO,
+                //.essential = FOR_PHOTO,
             },
         #endif
             {
@@ -2220,7 +2220,7 @@ struct menu_entry play_menus[] = {
                 .select = menu_binary_toggle, 
                 .display = quick_delete_print,
                 .help = "Delete files quickly with SET+Erase (be careful!!!)",
-                .essential = FOR_PHOTO,
+                //.essential = FOR_PHOTO,
             },
             MENU_EOL,
         },

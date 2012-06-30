@@ -453,7 +453,7 @@ static struct menu_entry mov_menus[] = {
         .display    = bitrate_print,
         .select     = bitrate_toggle,
         .help = "Change H.264 bitrate. Be careful, recording may stop!",
-        .essential = 1,
+        //.essential = 1,
         .edit_mode = EM_MANY_VALUES,
         .children =  (struct menu_entry[]) {
             {
@@ -500,7 +500,7 @@ static struct menu_entry mov_menus[] = {
         .select     = menu_quaternary_toggle,
         .display    = time_indicator_display,
         .help = "Time indicator during recording",
-        .essential = 1,
+        //.essential = 1,
         //~ .edit_mode = EM_MANY_VALUES,
     },
 };

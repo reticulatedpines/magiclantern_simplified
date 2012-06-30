@@ -944,7 +944,7 @@ static struct menu_entry fps_menu[] = {
         .select = fps_enable_disable,
         .display = fps_print,
         .help = "Changes FPS. Also disables sound and alters shutter speeds.",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
 /*            {

@@ -11,16 +11,16 @@ struct menu_entry help_menus[] = {
     /*{
         .name = "Press MENU : Easy/Advanced mode",
         .display = menu_easy_advanced_display,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },*/
     {
         .name = "Press MENU : Hide unused items",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Press " INFO_BTN_NAME
                           " : Bring up Help menu",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
@@ -36,7 +36,7 @@ struct menu_entry help_menus[] = {
         #else
         error
         #endif
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "... like this :)",
@@ -46,23 +46,23 @@ struct menu_entry help_menus[] = {
     },
     {
         .name = "SET/PLAY   : Change values",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Zoom In    : Preview LiveView",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Key shortcuts",
         .priv = "Key shortcuts",
         .select = menu_help_go_to_label,
         .display = menu_print,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Complete user guide",
         .select = menu_open_submenu,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             #include "menuindexentries.h"
             MENU_EOL

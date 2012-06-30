@@ -4054,7 +4054,7 @@ static struct menu_entry shoot_menus[] = {
         .display    = hdr_display,
         .select     = menu_binary_toggle,
         .help = "Exposure bracketing for HDR images. Press shutter once.",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -4111,7 +4111,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .display    = intervalometer_display,
         .help = "Take pictures or movies at fixed intervals (for timelapse).",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 //~ .name = "Take a pic every",
@@ -4204,7 +4204,7 @@ static struct menu_entry shoot_menus[] = {
         .display = bulb_display, 
         .select = menu_binary_toggle, 
         .help = "For very long exposures. Hold shutter half-pressed for 1s.",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 //~ .name = "Bulb exposure",
@@ -4225,7 +4225,7 @@ static struct menu_entry shoot_menus[] = {
          #else
         .help = "Use the LCD face sensor as a simple remote (avoids shake).",
          #endif
-        //~ .essential = FOR_PHOTO,
+        //~ //.essential = FOR_PHOTO,
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
@@ -4236,7 +4236,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .display    = audio_release_display,
         .help = "Clap your hands or pop a balloon to take a picture.",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Trigger level (dB)",
@@ -4255,7 +4255,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .display    = motion_detect_display,
         .help = "Take a picture when subject is moving or exposure changes.",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -4323,7 +4323,7 @@ static struct menu_entry shoot_menus[] = {
         .display = mlu_display, 
         .select = mlu_toggle,
         .help = "MLU setting can be linked with self-timer and LCD remote.",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
     },
     /*{
         .display = picq_display, 
@@ -4349,7 +4349,7 @@ static struct menu_entry flash_menus[] = {
                     .display    = flash_ae_display,
                     .select     = flash_ae_toggle,
                     .help = "Flash exposure compensation, from -5EV to +3EV.",
-                    .essential = FOR_PHOTO,
+                    //.essential = FOR_PHOTO,
                     .edit_mode = EM_MANY_VALUES,
                 },
             #endif
@@ -4460,7 +4460,7 @@ static struct menu_entry expo_menus[] = {
         .display    = kelvin_wbs_display,
         .select     = kelvin_toggle,
         .help = "Adjust Kelvin white balance and GM/BA WBShift.",
-        .essential = FOR_PHOTO | FOR_MOVIE,
+        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
         .children =  (struct menu_entry[]) {
@@ -4478,7 +4478,7 @@ static struct menu_entry expo_menus[] = {
                 //~ .select_auto = wbs_gm_auto,
                 .help = "Green-Magenta white balance shift, for fluorescent lights.",
                 //~ .show_liveview = 1,
-                .essential = FOR_MOVIE,
+                //.essential = FOR_MOVIE,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
@@ -4552,7 +4552,7 @@ static struct menu_entry expo_menus[] = {
         .display    = iso_display,
         .select     = iso_toggle,
         .help = "Adjust and fine-tune ISO.",
-        .essential = FOR_PHOTO | FOR_MOVIE,
+        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
         .submenu_width = 650,
@@ -4646,7 +4646,7 @@ static struct menu_entry expo_menus[] = {
         .display    = shutter_display,
         .select     = shutter_toggle,
         .help = "Fine-tune shutter value.",
-        .essential = FOR_PHOTO | FOR_MOVIE,
+        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
@@ -4655,7 +4655,7 @@ static struct menu_entry expo_menus[] = {
         .display    = aperture_display,
         .select     = aperture_toggle,
         .help = "Adjust aperture. Also displays APEX aperture (AV) in stops.",
-        .essential = FOR_PHOTO | FOR_MOVIE,
+        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
@@ -4666,7 +4666,7 @@ static struct menu_entry expo_menus[] = {
         .help = "Change current picture style.",
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
-        //~ .essential = FOR_PHOTO | FOR_MOVIE,
+        //~ //.essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {
                 //~ .name = "PictureStyle",
@@ -4718,7 +4718,7 @@ static struct menu_entry expo_menus[] = {
         .select     = picstyle_rec_toggle,
         .help = "You can use a different picture style when recording.",
         .submenu_height = 160,
-        //~ .essential = FOR_MOVIE,
+        //~ //.essential = FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {
                 //~ .name = "PictureStyle",

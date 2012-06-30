@@ -74,7 +74,7 @@ struct menu_entry
                 int                     y,
                 int                     selected
         );
-        int8_t essential;
+        //~ int8_t essential;
         int8_t hidden;
         int8_t icon_type;
         int8_t edit_mode;
@@ -119,6 +119,7 @@ struct menu_entry
 
 
 // these can be combined with OR
+/*
 #define FOR_MOVIE 1
 #define FOR_PHOTO 2 // LV + non-LV
 #define FOR_LIVEVIEW 4 // photo and movie
@@ -126,7 +127,7 @@ struct menu_entry
 #define FOR_PLAYBACK 16 // photo and movie
 #define FOR_EXT_MONITOR 32 // HDMI or SD
 #define FOR_SUBMENU 64
-
+*/
 /*
 #define IS_VISIBLE(menu) ( \
         (menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \

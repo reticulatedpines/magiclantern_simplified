@@ -2843,7 +2843,7 @@ struct menu_entry zebra_menus[] = {
         .select_Q   = toggle_disp_mode_menu,
         .display    = global_draw_display,
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
     {
         .name = "Zebras",
@@ -2851,7 +2851,7 @@ struct menu_entry zebra_menus[] = {
         .select     = menu_binary_toggle,
         .display    = zebra_draw_display,
         .help = "Zebra stripes: show overexposed or underexposed areas.",
-        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Color space",
@@ -2894,7 +2894,7 @@ struct menu_entry zebra_menus[] = {
         .display        = focus_peaking_display,
         .select         = menu_binary_toggle,
         .help = "Show tiny dots on focused edges.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Method",
@@ -2940,7 +2940,7 @@ struct menu_entry zebra_menus[] = {
         .min = 0,
         .max = 1,
         .help = "Zoom box for checking focus. Can be used while recording.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Trigger mode",
@@ -3005,7 +3005,7 @@ struct menu_entry zebra_menus[] = {
         .display    = crop_display,
         .select     = menu_binary_toggle,
         .help = "Cropmarks or custom grids for framing.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
         .submenu_width = 650,
         .submenu_height = 225,
         .children =  (struct menu_entry[]) {
@@ -3039,7 +3039,7 @@ struct menu_entry zebra_menus[] = {
         .display = transparent_overlay_display, 
         .select = menu_binary_toggle,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
-        .essential = FOR_PLAYBACK,
+        //.essential = FOR_PLAYBACK,
     },
     #if !defined(CONFIG_5D2)
     {
@@ -3048,7 +3048,7 @@ struct menu_entry zebra_menus[] = {
         .display = defish_preview_display, 
         .select = menu_binary_toggle,
         .help = "Preview rectilinear image from Samyang 8mm fisheye.",
-        .essential = FOR_PLAYBACK,
+        //.essential = FOR_PLAYBACK,
     },
     #endif
     {
@@ -3057,7 +3057,7 @@ struct menu_entry zebra_menus[] = {
         .select         = menu_binary_toggle,
         .display        = spotmeter_menu_display,
         .help = "Exposure aid: display brightness from a small spot.",
-        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Unit",
@@ -3085,7 +3085,7 @@ struct menu_entry zebra_menus[] = {
         .select     = menu_binary_toggle,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
-        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Palette",
@@ -3105,7 +3105,7 @@ struct menu_entry zebra_menus[] = {
         .select_auto = waveform_toggle,
         .display    = hist_display,
         .help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
-        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
     */
     {
@@ -3114,7 +3114,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .display = hist_print,
         .help = "Exposure aid: shows the distribution of brightness levels.",
-        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Color space",
@@ -3159,7 +3159,7 @@ struct menu_entry zebra_menus[] = {
             },
             MENU_EOL
         },
-        .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
     {
         .name = "Vectorscope",
@@ -3167,7 +3167,7 @@ struct menu_entry zebra_menus[] = {
         .priv       = &vectorscope_draw,
         .max = 1,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
     /*{
         .priv           = &focus_graph,
@@ -3205,7 +3205,7 @@ struct menu_entry level_indic_menus[] = {
         .select = menu_binary_toggle, 
         .display = electronic_level_display,
         .help = "Electronic level indicator in 0.5 degree steps.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
     #endif
 };
@@ -3333,7 +3333,7 @@ struct menu_entry powersave_menus[] = {
             .name = "Battery remaining",
             .display = batt_display,
             .help = "Battery remaining. Wait for 2%% discharge before reading.",
-            //~ .essential = FOR_MOVIE | FOR_PHOTO,
+            //~ //.essential = FOR_MOVIE | FOR_PHOTO,
         },
         #endif
         MENU_EOL

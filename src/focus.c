@@ -1215,7 +1215,7 @@ static struct menu_entry focus_menu[] = {
         .max = 2,
         .display    = trap_focus_display,
         .help = "Takes a picture when the subject comes in focus. MF only.",
-        .essential = FOR_PHOTO,
+        //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
     {
@@ -1224,7 +1224,7 @@ static struct menu_entry focus_menu[] = {
         .display    = afp_display,
         .select = menu_binary_toggle,
         .help = "Custom AF patterns (photo mode only; ported from 400plus)",
-        .essential = FOR_PHOTO_NON_LIVEVIEW,
+        //.essential = FOR_PHOTO_NON_LIVEVIEW,
     },
     {
         .name = "Follow Focus",
@@ -1233,7 +1233,7 @@ static struct menu_entry focus_menu[] = {
         .select     = menu_binary_toggle,
 
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
 
         .children =  (struct menu_entry[]) {
             #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
@@ -1279,7 +1279,7 @@ static struct menu_entry focus_menu[] = {
         .display    = focus_rack_speed_display,
         .select     = focus_stepsize_toggle,
         .help = "Step size for focus commands (same units as in EOS Utility)",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
     {
         .name = "Focus StepDelay",
@@ -1287,7 +1287,7 @@ static struct menu_entry focus_menu[] = {
         .display    = focus_delay_display,
         .select     = focus_delay_toggle,
         .help = "Delay between two successive focus commands.",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .display    = focus_delay_display,
@@ -1369,7 +1369,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus Dist",
         .display    = display_lens_hyperfocal,
         .help = "Focus distance and DOF info (read-only)",
-        .essential = FOR_PHOTO | FOR_MOVIE,
+        //.essential = FOR_PHOTO | FOR_MOVIE,
     },
 };
 

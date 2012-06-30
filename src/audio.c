@@ -1304,7 +1304,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse = audio_mgain_toggle_reverse,
                 .display        = audio_mgain_display,
                 .help = "Gain applied to both inputs in analog domain (preferred).",
-                .essential = FOR_MOVIE,
+                //.essential = FOR_MOVIE,
                 .edit_mode = EM_MANY_VALUES,
         },
 #ifndef CONFIG_500D
@@ -1335,7 +1335,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse         = audio_input_toggle_reverse,
                 .display        = audio_input_display,
                 .help = "Audio input: internal / external / both / balanced / auto.",
-                .essential = FOR_MOVIE,
+                //.essential = FOR_MOVIE,
                 //~ .edit_mode = EM_MANY_VALUES,
         },
 #endif
@@ -1351,7 +1351,7 @@ static struct menu_entry audio_menus[] = {
                  .display           = audio_filters_display,
                  //~ .icon_type = IT_DISABLE_SOME_FEATURE,
                  .help = "High pass filter for wind noise reduction. AK4646.pdf p.34.",
-                 .essential = FOR_MOVIE,
+                 //.essential = FOR_MOVIE,
          },
     #endif
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -1373,7 +1373,7 @@ static struct menu_entry audio_menus[] = {
                 .select         = audio_binary_toggle,
                 .display        = audio_micpower_display,
                 .help = "Needed for int. and some other mics, but lowers impedance.",
-                .essential = FOR_MOVIE,
+                //.essential = FOR_MOVIE,
         },
         {
                 .name = "AGC",
@@ -1382,7 +1382,7 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_alc_display,
                 .help = "Automatic Gain Control - turn it off :)",
                 //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
-                .essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
+                //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
         },
         {
                 .name = "Output volume (dB)",
@@ -1400,7 +1400,7 @@ static struct menu_entry audio_menus[] = {
                 .select         = audio_monitoring_toggle,
                 .display        = audio_monitoring_display,
                 .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-                .essential = FOR_MOVIE,
+                //.essential = FOR_MOVIE,
         },
 #endif // 600D
         {
@@ -1409,7 +1409,7 @@ static struct menu_entry audio_menus[] = {
                 .select         = menu_binary_toggle,
                 .display        = audio_meter_display,
                 .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
-                .essential = FOR_MOVIE,
+                //.essential = FOR_MOVIE,
         },
 };
 

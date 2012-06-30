@@ -961,7 +961,7 @@ static struct menu_entry mov_menus[] = {
         .select_Q   = lv_movie_size_toggle,
         .display    = lv_movie_print,
         .help       = "Enable movie recording on 50D :) ",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
     },
 #endif
 #ifdef CONFIG_50D
@@ -971,7 +971,7 @@ static struct menu_entry mov_menus[] = {
         .display = shutter_btn_rec_print, 
         .select = menu_ternary_toggle,
         .help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
     },
 #endif
     /*{
@@ -998,7 +998,7 @@ static struct menu_entry mov_menus[] = {
         .display    = movie_restart_print,
         .select     = menu_binary_toggle,
         .help = "Auto-restart movie recording, if it happens to stop.",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
     },
     #endif
     /*{
@@ -1016,7 +1016,7 @@ static struct menu_entry mov_menus[] = {
         .display    = mode_remap_print,
         .select     = menu_ternary_toggle,
         .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
     },
     #endif
     /*{
@@ -1040,7 +1040,7 @@ static struct menu_entry mov_menus[] = {
         .select = menu_ternary_toggle, 
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
         //~ .edit_mode = EM_MANY_VALUES_LV,
     },
     #ifndef CONFIG_50D
@@ -1077,7 +1077,7 @@ static struct menu_entry mov_menus[] = {
         .display    = enable_liveview_print,
         .select     = menu_ternary_toggle,
         .help = "Always use LiveView (with manual lens or after lens swap).",
-        .essential  = FOR_MOVIE,
+        //.essential  = FOR_MOVIE,
     },
     #endif
 #if defined(CONFIG_50D) //|| defined(CONFIG_500D)
@@ -1087,7 +1087,7 @@ static struct menu_entry mov_menus[] = {
         .select     = movie_expo_lock_toggle,
         .display    = movie_expo_lock_print,
         .help       = "Lock the exposure in movie mode (50D/500D)",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
     },
 #endif
 #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
@@ -1097,7 +1097,7 @@ static struct menu_entry mov_menus[] = {
         .display = shutter_lock_print, 
         .select = menu_binary_toggle,
         .help = "Lock shutter value in movie mode (change from Expo only).",
-        .essential = FOR_MOVIE,
+        //.essential = FOR_MOVIE,
     },
 #endif
 };
@@ -1108,7 +1108,7 @@ struct menu_entry expo_override_menus[] = {
         .select     = bv_toggle,
         .display    = bv_display,
         .help = "Low-level manual exposure controls (bypasses Canon limits)",
-        .essential = FOR_LIVEVIEW,
+        //.essential = FOR_LIVEVIEW,
         //~ .show_liveview = 1,
     },
 };
@@ -1119,7 +1119,7 @@ static struct menu_entry display_menus[] = {
         .display = screen_layout_display, 
         .select = screen_layout_toggle,
         .help = "Position of top/bottom bars, useful for external displays.",
-        .essential = FOR_EXT_MONITOR,
+        //.essential = FOR_EXT_MONITOR,
         //~ .edit_mode = EM_MANY_VALUES,
     },
     {
@@ -1128,7 +1128,7 @@ static struct menu_entry display_menus[] = {
         .display = hdmi_force_display, 
         .select = menu_binary_toggle,
         .help = "Force low resolution (720x480) on HDMI displays.",
-        .essential = FOR_EXT_MONITOR,
+        //.essential = FOR_EXT_MONITOR,
     },
 };
 void movtweak_init()

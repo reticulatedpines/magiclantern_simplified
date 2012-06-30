@@ -51,7 +51,7 @@ for l in f[1:]:
         .priv = "%s",
         .select = menu_help_go_to_label,
         .display = menu_print,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },""" % (item, item)
 
     if type == "end":

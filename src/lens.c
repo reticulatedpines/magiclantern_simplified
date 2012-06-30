@@ -1741,7 +1741,7 @@ static struct menu_entry lens_menus[] = {
         .select = menu_binary_toggle,
         .display = movielog_display,
         .help = "Save metadata for each movie, e.g. MVI_1234.LOG",
-        .essential = 1,
+        //.essential = 1,
     },
 #endif
 };

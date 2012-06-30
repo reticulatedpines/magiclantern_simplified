@@ -541,7 +541,7 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-        if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
+        //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
     }
@@ -554,7 +554,7 @@ menu_add(
     {
         if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->selected = 0;
-        if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
+        //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry->next     = head->next;
         new_entry->prev     = head;
         head->next      = new_entry;

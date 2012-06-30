@@ -2502,7 +2502,7 @@ struct menu_entry debug_menus[] = {
         .name        = "Stability tests...",
         .select        = menu_open_submenu,
         .help = "Tests to make sure Magic Lantern is stable and won't crash.",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Quick test (around 15 min)",
@@ -2536,7 +2536,7 @@ struct menu_entry debug_menus[] = {
         .name        = "Fault emulation...",
         .select        = menu_open_submenu,
         .help = "Causes intentionally wrong behavior to see DryOS reaction.",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Create a stuck task",
@@ -2591,13 +2591,13 @@ struct menu_entry debug_menus[] = {
         .name = "Free Memory",
         .display = meminfo_display,
         .help = "Free memory available for malloc and AllocateMemory.",
-        .essential = 0,
+        //.essential = 0,
     },
     {
         .name = "Shutter Count",
         .display = shuttercount_display,
         .help = "Number of pics taken + number of LiveView actuations",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "CMOS temperature",
@@ -2607,14 +2607,14 @@ struct menu_entry debug_menus[] = {
         #else
         .help = "Sensor temperature, in raw units.",
         #endif
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #ifdef CONFIG_5D2
     {
         .name = "Ambient light",
         .display = ambient_display,
         .help = "Ambient light from the sensor under LCD, in raw units.",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
     #if defined(CONFIG_60D) || defined(CONFIG_5D2)
@@ -2622,7 +2622,7 @@ struct menu_entry debug_menus[] = {
         .name = "Battery remaining",
         .display = batt_display,
         .help = "Battery remaining. Wait for 2%% discharge before reading.",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
     #if CONFIG_DEBUGMSG
