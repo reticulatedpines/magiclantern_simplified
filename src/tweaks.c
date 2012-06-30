@@ -1837,6 +1837,8 @@ void preview_contrast_n_saturation_step()
 
     static int contrast_values[] = {0x790000, 0x400040, 0x100070, 0x80, 0xE000A0, 0xC000C0};
     int desired_contrast = contrast_values[preview_contrast];
+    if (gui_menu_shown() && !menu_active_but_hidden())
+        desired_contrast = contrast_values[3]; // do not apply it while ML menu is on (so you can read it in low contrast modes)
 
     extern int focus_peaking_grayscale;
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
