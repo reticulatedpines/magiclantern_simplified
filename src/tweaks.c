@@ -1856,7 +1856,7 @@ void preview_saturation_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Saturation     : %s",
+        "LV saturation : %s",
         preview_saturation == 0 ? "0 (Grayscale)" :
         preview_saturation == 1 ? "Normal" :
         preview_saturation == 2 ? "High" :
@@ -1882,7 +1882,7 @@ void preview_contrast_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Contrast       : %s",
+        "LV contrast   : %s",
         preview_contrast == 0 ? "Zero" :
         preview_contrast == 1 ? "Very low" :
         preview_contrast == 2 ? "Low" :
@@ -2015,13 +2015,13 @@ extern void clearscreen_display( void * priv, int x, int y, int selected);
 
 static struct menu_entry display_menus[] = {
     {
-        .name = "Display settings...",
+        .name = "Display adjustments...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
         .help = "Contrast, saturation, color scheme. No effect on recording.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Contrast       ",
+                .name = "LV contrast",
                 .priv     = &preview_contrast,
                 .max = 5,
                 .display = preview_contrast_display,
@@ -2031,7 +2031,7 @@ static struct menu_entry display_menus[] = {
                 .essential = FOR_LIVEVIEW,
             },
             {
-                .name = "Saturation",
+                .name = "LV saturation",
                 .priv     = &preview_saturation,
                 .max = 3,
                 .display = preview_saturation_display,
@@ -2040,7 +2040,7 @@ static struct menu_entry display_menus[] = {
                 .essential = FOR_LIVEVIEW,
             },
             {
-                .name = "Color Scheme   ",
+                .name = "Color Scheme",
                 .priv     = &bmp_color_scheme,
                 .max = 4,
                 .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
