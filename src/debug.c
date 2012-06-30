@@ -1892,6 +1892,43 @@ void screenshot_start(void* priv, int delta)
     screenshot_sec = 10;
 }
 
+void screenshots_for_menu()
+{
+    msleep(1000);
+    extern struct semaphore * gui_sem;
+    give_semaphore(gui_sem);
+    
+    select_menu_by_name("Audio", "AGC");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Expo", "ISO");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("LiveV", "Magic Zoom");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Movie", "FPS override");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Shoot", "Motion Detect");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Focus", "Follow Focus");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Display", "Display settings...");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Prefs", "Powersave settings...");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Debug", "Free Memory");
+    msleep(1000); call("dispcheck");
+
+    select_menu_by_name("Help", "About Magic Lantern");
+    msleep(1000); call("dispcheck");
+}
+
 void toggle_draw_event( void * priv );
 
 static void
@@ -2361,6 +2398,12 @@ struct menu_entry debug_menus[] = {
         #else
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
+    },
+    {
+        .name = "Menu screenshots",
+        .select     = run_in_separate_task,
+        .priv = screenshots_for_menu,
+        .help = "Take a screenshot for each ML menu.",
     },
 #if CONFIG_DEBUGMSG
     {
