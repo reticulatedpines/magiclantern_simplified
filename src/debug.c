@@ -139,6 +139,7 @@ static void
 delete_config( void * priv, int delta )
 {
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG" );
     if (config_autosave) config_autosave_toggle(0, 0);
 }
 
@@ -915,7 +916,7 @@ static void stress_test_task(void* unused)
     stress_test_picture(2, 2000);
 
     set_shooting_mode(SHOOTMODE_M);
-
+    msleep(1000);
     if (!lv) force_liveview();
     msleep(1000);
 
@@ -964,6 +965,8 @@ static void stress_test_task(void* unused)
         display_off(); msleep(rand()%200);
         display_on(); msleep(rand()%200);
     }
+
+    msleep(3000); // 60D: display on/off is slow and will continue a while after this
 
     stress_test_picture(2, 2000);
 
@@ -2502,6 +2505,7 @@ struct menu_entry debug_menus[] = {
         .name        = "Stability tests...",
         .select        = menu_open_submenu,
         .help = "Tests to make sure Magic Lantern is stable and won't crash.",
+        .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {

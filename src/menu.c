@@ -2518,6 +2518,7 @@ void menu_load_hidden_items()
             prev = i;
         }
     }
+    free_dma_memory(buf);
 }
 
 // completely hide recently hidden menus

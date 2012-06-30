@@ -682,7 +682,7 @@ void get_afframe_pos(int W, int H, int* x, int* y)
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
-static int face_zoom_request = 0;
+//~ static int face_zoom_request = 0;
 
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
 /*    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
