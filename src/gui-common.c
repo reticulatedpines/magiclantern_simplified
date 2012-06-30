@@ -95,11 +95,11 @@ int handle_common_events_by_feature(struct event * event)
     }
     idle_wakeup_reset_counters(event->param);
     
+    if (handle_upside_down(event) == 0) return 0;
     if (handle_ml_menu_keys(event) == 0) return 0;
    
     if (handle_digic_poke(event) == 0) return 0;
     spy_event(event); // for debugging only
-    if (handle_upside_down(event) == 0) return 0;
     if (handle_shutter_events(event) == 0) return 0;
     if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
     
