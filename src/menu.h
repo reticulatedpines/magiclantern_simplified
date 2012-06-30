@@ -86,6 +86,11 @@ struct menu_entry
         uint32_t id; // unique ID
 };
 
+#define MENU_ENTRY_NOT_HIDDEN 0
+#define MENU_ENTRY_HIDDEN 1
+#define MENU_ENTRY_NEVER_HIDE -1
+#define MENU_ENTRY_RECENTLY_HIDDEN -2
+
 #define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 1
 #define EM_MANY_VALUES_LV 2
@@ -123,7 +128,7 @@ struct menu_entry
 #define FOR_SUBMENU 64
 
 /*
-#define IS_ESSENTIAL(menu) ( \
+#define IS_VISIBLE(menu) ( \
         (menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
         (menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
         (menu->essential & FOR_LIVEVIEW && lv) || \
@@ -133,7 +138,7 @@ struct menu_entry
         (menu->essential & FOR_SUBMENU && submenu_mode) || \
 0) */
 
-#define IS_ESSENTIAL(menu) (menu->hidden <= 0)
+#define IS_VISIBLE(menu) (menu->hidden != MENU_ENTRY_HIDDEN)
 
 struct menu
 {

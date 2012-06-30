@@ -66,7 +66,6 @@ static int redraw_in_progress = 0;
 #define MENU_REDRAW_FULL 1
 #define MENU_REDRAW_QUICK 2
 
-
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
 void menu_close_post_delete_dialog_box();
@@ -83,7 +82,7 @@ static struct menu_entry advanced_menu[] = {
     {
         .name = "Display hidden menus",
         .priv = &advanced_mode,
-        .hidden = -1, // cannot hide
+        .hidden = MENU_ENTRY_NEVER_HIDE,
         .max = 1,
         .help = "MENU hides unused items. Enable this to display everything."
     }
@@ -503,7 +502,7 @@ menu_has_visible_items(struct menu_entry *  menu)
 {
     while( menu )
     {
-        if (advanced_mode || IS_ESSENTIAL(menu))
+        if (advanced_mode || IS_VISIBLE(menu))
         {
             return 1;
         }
@@ -928,7 +927,7 @@ menu_display(
 {
     while( menu )
     {
-        if (advanced_mode || IS_ESSENTIAL(menu))
+        if (advanced_mode || IS_VISIBLE(menu))
         {
             // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
             if (menu->selected && menu->help)
@@ -959,7 +958,7 @@ menu_display(
                 else
                     submenu_print(menu, x, y);
                 
-                if (!IS_ESSENTIAL(menu))
+                if (menu->hidden && menu->hidden != MENU_ENTRY_NEVER_HIDE)
                     dim_hidden_menu(x, y);
             }
             
@@ -1252,9 +1251,9 @@ menu_entry_showhide_toggle(
     }
     give_semaphore( menu_sem );
 
-    if (entry->hidden != -1)
+    if (entry->hidden != MENU_ENTRY_NEVER_HIDE)
     {
-        entry->hidden = !entry->hidden;
+        entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_RECENTLY_HIDDEN;
         menu_make_sure_selection_is_valid();
         menu_hidden_dirty = 1;
     }
@@ -1438,7 +1437,7 @@ menu_entry_move(
     entry->selected = 1;
     give_semaphore( menu_sem );
     
-    if (!advanced_mode && !IS_ESSENTIAL(entry) && menu_has_visible_items(menu))
+    if (!advanced_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu))
         menu_entry_move(menu, direction); // try again, skip hidden items
         // warning: would block if the menu is empty
 }
@@ -1473,7 +1472,7 @@ static void menu_make_sure_selection_is_valid()
         if( entry->selected )
             break;
     }
-    if (entry->selected && !IS_ESSENTIAL(entry))
+    if (entry->selected && !IS_VISIBLE(entry))
     {
         menu_entry_move(menu, -1);
         menu_entry_move(menu, 1);
@@ -2114,6 +2113,7 @@ static void menu_close()
     if (!menu_shown) return;
     menu_shown = false;
 
+    if (menu_hidden_dirty) menu_cleanup_hidden_items();
     update_disp_mode_bits_from_params();
 
     lens_focus_stop();
@@ -2476,7 +2476,7 @@ void menu_save_hidden_items()
         int i;
         for(i = 0 ; entry ; entry = entry->next, i++ )
         {
-            if (!IS_ESSENTIAL(entry))
+            if (!IS_VISIBLE(entry))
             {
                 snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1, "%s\\%s\n", menu->name, entry->name);
             }
@@ -2516,6 +2516,22 @@ void menu_load_hidden_items()
                 hide_menu_by_name(menu_name, entry_name);
             }
             prev = i;
+        }
+    }
+}
+
+// completely hide recently hidden menus
+void menu_cleanup_hidden_items()
+{
+    struct menu * menu = menus;
+    for( ; menu ; menu = menu->next )
+    {
+        struct menu_entry * entry = menu->children;
+        
+        int i;
+        for(i = 0 ; entry ; entry = entry->next, i++ )
+        {
+            if (entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN) entry->hidden = MENU_ENTRY_HIDDEN;
         }
     }
 }
