@@ -637,7 +637,7 @@ quickzoom_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Zoom in PLAY mode : %s", 
+        "Zoom in PLAY mode: %s", 
         quickzoom == 0 ? "Normal" :
         quickzoom == 1 ? "Fast" :
         quickzoom == 2 ? "Fast+100%" :
@@ -758,7 +758,7 @@ play_set_wheel_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "SET+MainDial(PLAY): %s", 
+        "SET + MainDial   : %s", 
         play_set_wheel_action == 0 ? "422 Preview" :
         play_set_wheel_action == 1 ? "ExposureFusion" : 
         play_set_wheel_action == 2 ? "CompareImages" : 
@@ -778,7 +778,7 @@ quick_delete_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Quick Erase       : %s", 
+        "Quick Erase      : %s", 
         quick_delete ? "SET+Erase" : "OFF"
     );
 }
@@ -836,7 +836,7 @@ int handle_set_wheel_play(struct event * event)
     return 1;
 }
 
-CONFIG_INT("play.lv.button", play_lv_action, 1);
+CONFIG_INT("play.lv.button", play_lv_action, 0);
 
 static void
 play_lv_display(
@@ -849,7 +849,7 @@ play_lv_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV button   (PLAY): %s", 
+        "LV button        : %s", 
         play_lv_action == 0 ? "Default" :
         play_lv_action == 1 ? "Protect Image" : "err"
     );
@@ -1048,7 +1048,7 @@ qrplay_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Image Review Mode : %s", 
+        "Image Review Mode: %s", 
         quick_review_allow_zoom == 0 ? "QuickReview" :
         quick_review_allow_zoom == 1 ? "Rvw:Hold->Play" : "ZoomIn->Play"
     );
@@ -1536,6 +1536,7 @@ static struct menu_entry key_menus[] = {
     {
         .name       = "Arrow/SET shortcuts...",
         .select = menu_open_submenu,
+        .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
             #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
@@ -2018,6 +2019,7 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Display settings...",
         .select         = menu_open_submenu,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Contrast       ",
@@ -2053,6 +2055,7 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Layout settings...",
         .select         = menu_open_submenu,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
                 {
                     .name = "Image position ",
@@ -2149,9 +2152,10 @@ struct menu_entry play_menus[] = {
     {
         .name = "Image review settings...",
         .select = menu_open_submenu,
+        .submenu_width = 715,
         .children =  (struct menu_entry[]) {
             {
-                .name = "SET+MainDial (PLAY)",
+                .name = "SET+MainDial      ",
                 .priv = &play_set_wheel_action, 
                 .max = 3,
                 .display = play_set_wheel_display,
@@ -2171,7 +2175,7 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             {
-                .name = "LiveV tools in QR ",
+                .name = "LiveV tools in QR",
                 .priv = &quickreview_liveview, 
                 .max = 1,
                 .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
@@ -2201,7 +2205,7 @@ struct menu_entry play_menus[] = {
             #endif */
         #if defined(CONFIG_60D) || defined(CONFIG_600D)
             {
-                .name = "LV button (PLAY)",
+                .name = "LV button",
                 .priv = &play_lv_action, 
                 .select = menu_binary_toggle, 
                 .display = play_lv_display,

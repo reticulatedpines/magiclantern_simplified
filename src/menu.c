@@ -41,6 +41,7 @@ static int config_dirty = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
 int submenu_mode = 0;
+int g_submenu_width = 0;
 static int menu_id_increment = 1;
 
 static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
@@ -461,6 +462,8 @@ menu_find_by_name(
     new_menu->prev      = menu;
     new_menu->next      = NULL; // Inserting at end
     new_menu->children  = NULL;
+    new_menu->submenu_width = 0;
+    new_menu->submenu_height = 0;
 
     // menu points to the last entry or NULL if there are none
     if( menu )
@@ -556,8 +559,10 @@ menu_add(
             int count = 0;
             struct menu_entry * child = entry->children;
             while (!MENU_IS_EOL(child)) { count++; child++; }
-            menu_find_by_name( entry->name, ICON_ML_SUBMENU);
+            struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
             menu_add(entry->name, entry->children, count);
+            submenu->submenu_width = entry->submenu_width;
+            submenu->submenu_height = entry->submenu_height;
         }
         entry = entry->prev;
         if (!entry) break;
@@ -714,9 +719,8 @@ void submenu_only_icon(int x, int y, int value)
 
 void selection_bar(int x0, int y0)
 {
-    int w = x0 + 720 - 40 - 10;
-    if (submenu_mode==1) w -= 90;
-
+    int w = x0 + g_submenu_width - 40 - 10;
+    
     extern int bmp_color_scheme;
     
     uint8_t* B = bmp_vram();
@@ -1177,9 +1181,10 @@ submenu_display(struct menu * submenu)
     int count = 0;
     struct menu_entry * child = submenu->children;
     while (child) { count++; child = child->next; }
-    int h = MIN((count + 4) * font_large.height, 400);
-
-    int bx = 45;
+    int h = submenu->submenu_height ? submenu->submenu_height : MIN((count + 3) * font_large.height, 400);
+    int w = submenu->submenu_width  ? submenu->submenu_width : 600;
+    g_submenu_width = w;
+    int bx = (720 - w)/2;
     int by = (480 - h)/2 - 30;
     
     if (!show_only_selected)
@@ -1425,6 +1430,7 @@ static void
 menu_redraw_do()
 {
         menu_damage = 0;
+        g_submenu_width = 720;
         
         if (!DISPLAY_IS_ON) return;
         if (sensor_cleaning) return;

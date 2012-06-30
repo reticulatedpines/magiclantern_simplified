@@ -4055,6 +4055,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .help = "Exposure bracketing for HDR images. Press shutter once.",
         .essential = FOR_PHOTO,
+        .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Frames",
@@ -4149,6 +4150,7 @@ static struct menu_entry shoot_menus[] = {
         .priv       = &bulb_ramping_enabled,
         .display = bulb_ramping_print,
         .max = 1,
+        .submenu_width = 650,
         .help = "Exposure / focus ramping for advanced timelapse sequences.",
         .children =  (struct menu_entry[]) {
             {
@@ -4254,6 +4256,7 @@ static struct menu_entry shoot_menus[] = {
         .display    = motion_detect_display,
         .help = "Take a picture when subject is moving or exposure changes.",
         .essential = FOR_PHOTO,
+        .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Trigger by",
@@ -4552,6 +4555,7 @@ static struct menu_entry expo_menus[] = {
         .essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
+        .submenu_width = 650,
 
         .children =  (struct menu_entry[]) {
             {
@@ -4713,6 +4717,7 @@ static struct menu_entry expo_menus[] = {
         .display    = picstyle_rec_display,
         .select     = picstyle_rec_toggle,
         .help = "You can use a different picture style when recording.",
+        .submenu_height = 160,
         //~ .essential = FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {

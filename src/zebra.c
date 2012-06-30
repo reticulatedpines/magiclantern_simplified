@@ -2597,7 +2597,7 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Display presets  : %d", 
+        "LV Display Presets  : %d", 
         disp_profiles_0 + 1
     );
 }
@@ -3006,6 +3006,8 @@ struct menu_entry zebra_menus[] = {
         .select     = menu_binary_toggle,
         .help = "Cropmarks or custom grids for framing.",
         .essential = FOR_LIVEVIEW,
+        .submenu_width = 650,
+        .submenu_height = 225,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bitmap",
@@ -3081,6 +3083,7 @@ struct menu_entry zebra_menus[] = {
         .priv       = &falsecolor_draw,
         .display    = falsecolor_display,
         .select     = menu_binary_toggle,
+        .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
         .essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
@@ -3283,6 +3286,7 @@ struct menu_entry powersave_menus[] = {
 {
     .name = "Powersave settings...",
     .select = menu_open_submenu,
+    .submenu_width = 715,
     .children =  (struct menu_entry[]) {
         {
             .name = "Enable power saving",

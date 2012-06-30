@@ -78,8 +78,10 @@ struct menu_entry
         int8_t icon_type;
         int8_t edit_mode;
         const char * help;
-        const char * name; // for now it's used only for context help; will be used for display too.
+        const char * name; // used for context help and sometimes for display
         struct menu_entry * children;
+        int16_t submenu_width; // not required for entry item, but makes it easier to declare in existing menu structures
+        int16_t submenu_height;
         uint32_t id; // unique ID
 };
 
@@ -109,6 +111,7 @@ struct menu_entry
 #define UNIT_ISO 5
 #define UNIT_HEX 6
 
+
 // these can be combined with OR
 #define FOR_MOVIE 1
 #define FOR_PHOTO 2 // LV + non-LV
@@ -128,6 +131,7 @@ struct menu_entry
         (menu->essential & FOR_SUBMENU && submenu_mode) || \
 0)
 
+
 struct menu
 {
         struct menu *           next;
@@ -137,6 +141,8 @@ struct menu
         int                     selected;
         int icon;
         uint32_t id; // unique ID
+        int16_t submenu_width;
+        int16_t submenu_height;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
