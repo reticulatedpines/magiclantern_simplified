@@ -2594,24 +2594,30 @@ struct menu_entry debug_menus[] = {
 };
 
 static struct menu_entry cfg_menus[] = {
-    {
-        .name = "Config AutoSave",
-        .priv = &config_autosave,
-        .display    = config_autosave_display,
-        .select        = config_autosave_toggle,
-        .help = "If enabled, ML settings are saved automatically at shutdown."
+{
+    .name = "Config file...",
+    .select = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+        {
+            .name = "Config AutoSave",
+            .priv = &config_autosave,
+            .display    = config_autosave_display,
+            .select        = config_autosave_toggle,
+            .help = "If enabled, ML settings are saved automatically at shutdown."
+        },
+        {
+            .name = "Save config now",
+            .select        = save_config,
+            .help = "Save ML settings to ML/MAGIC.CFG"
+        },
+        {
+            .name = "Delete config file",
+            .select        = delete_config,
+            .help = "Use this to restore ML default settings. Restart needed."
+        },
+        MENU_EOL,
     },
-    {
-        .name = "Save config now",
-        .select        = save_config,
-        .help = "Save ML settings to ML/MAGIC.CFG"
-    },
-    {
-        .name = "Delete config file",
-        .select        = delete_config,
-        .help = "Use this to restore ML default settings. Restart needed."
-    },
-    
+},
 };
 
 
@@ -3274,8 +3280,8 @@ void config_menu_init()
 {
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
-    menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
-    menu_add( "Config", livev_cfg_menus,  1);
+    menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
+    menu_add( "Prefs", livev_cfg_menus,  1);
     //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }

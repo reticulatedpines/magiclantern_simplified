@@ -20,7 +20,7 @@ int override_zoom_buttons; // while focus menu is active and rack focus items ar
 
 int should_override_zoom_buttons()
 {
-    return (override_zoom_buttons && !is_manual_focus() && lv && get_menu_advanced_mode());
+    return (override_zoom_buttons && !is_manual_focus() && lv);// && get_menu_advanced_mode());
 }
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );

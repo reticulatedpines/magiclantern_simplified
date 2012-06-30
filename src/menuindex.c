@@ -8,11 +8,11 @@ void menu_open_submenu();
 extern void menu_easy_advanced_display(void* priv, int x0, int y0, int selected);
 
 struct menu_entry help_menus[] = {
-    {
+    /*{
         .name = "Press MENU : Easy/Advanced mode",
         .display = menu_easy_advanced_display,
         .essential = FOR_MOVIE | FOR_PHOTO,
-    },
+    },*/
     {
         .name = "Press " INFO_BTN_NAME
                           " : Bring up Help menu",

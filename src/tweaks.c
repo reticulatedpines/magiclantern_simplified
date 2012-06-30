@@ -1532,7 +1532,7 @@ void display_shortcut_key_hints_lv()
 
 static struct menu_entry key_menus[] = {
     {
-        .name       = "Arrow Key Shortcuts...",
+        .name       = "Key Shortcuts...",
         .select = menu_open_submenu,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
@@ -1562,48 +1562,48 @@ static struct menu_entry key_menus[] = {
                 .max = 1,
                 .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
             },
+            #if defined(CONFIG_550D) || defined(CONFIG_500D)
+            {
+                .name = "LCD Sensor Shortcuts",
+                .priv       = &lcd_sensor_shortcuts,
+                .select     = menu_binary_toggle,
+                .display    = lcd_sensor_shortcuts_print,
+                .help = "Use the LCD face sensor as an extra key in ML.",
+            },
+            #endif
+            {
+                .name = "Sticky DOF Preview  ", 
+                .priv = &dofpreview_sticky, 
+                .max = 1,
+                .help = "Makes the DOF preview button sticky (press to toggle).",
+            },
+            {
+                .name       = "Sticky HalfShutter  ",
+                .priv = &halfshutter_sticky,
+                .max = 1,
+                .help = "Makes the half-shutter button sticky (press to toggle).",
+            },
+            #ifdef CONFIG_60D
+            {
+                .name = "Swap MENU <--> ERASE",
+                .priv = &swap_menu,
+                .display    = swap_menu_display,
+                .select     = menu_binary_toggle,
+                .help = "Swaps MENU and ERASE buttons."
+            },
+            #endif
+            #ifdef CONFIG_600D
+            {
+                .name = "DigitalZoom Shortcut",
+                .priv = &digital_zoom_shortcut,
+                .display = digital_zoom_shortcut_display, 
+                .select = menu_binary_toggle,
+                .help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
+            },
+            #endif
             MENU_EOL
         },
     },
-    #if defined(CONFIG_550D) || defined(CONFIG_500D)
-    {
-        .name = "LCD Sensor Shortcuts",
-        .priv       = &lcd_sensor_shortcuts,
-        .select     = menu_binary_toggle,
-        .display    = lcd_sensor_shortcuts_print,
-        .help = "Use the LCD face sensor as an extra key in ML.",
-    },
-    #endif
-    {
-        .name = "Sticky DOF Preview  ", 
-        .priv = &dofpreview_sticky, 
-        .max = 1,
-        .help = "Makes the DOF preview button sticky (press to toggle).",
-    },
-    {
-        .name       = "Sticky HalfShutter  ",
-        .priv = &halfshutter_sticky,
-        .max = 1,
-        .help = "Makes the half-shutter button sticky (press to toggle).",
-    },
-    #ifdef CONFIG_60D
-    {
-        .name = "Swap MENU <--> ERASE",
-        .priv = &swap_menu,
-        .display    = swap_menu_display,
-        .select     = menu_binary_toggle,
-        .help = "Swaps MENU and ERASE buttons."
-    },
-    #endif
-    #ifdef CONFIG_600D
-    {
-        .name = "DigitalZoom Shortcut",
-        .priv = &digital_zoom_shortcut,
-        .display = digital_zoom_shortcut_display, 
-        .select = menu_binary_toggle,
-        .help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
-    },
-    #endif
 };
 static struct menu_entry tweak_menus[] = {
 /*  {
@@ -1631,7 +1631,8 @@ static struct menu_entry tweak_menus[] = {
         .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
     #endif
-    
+};
+static struct menu_entry eyefi_menus[] = {
     #if defined(CONFIG_60D) || defined(CONFIG_600D) 
     {
         .name        = "EyeFi Trick",
@@ -1999,6 +2000,84 @@ extern void clearscreen_display( void * priv, int x, int y, int selected);
 
 static struct menu_entry display_menus[] = {
     {
+        .name = "Display settings...",
+        .select         = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Contrast       ",
+                .priv     = &preview_contrast,
+                .max = 5,
+                .display = preview_contrast_display,
+                .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
+                .help = "For LiveView preview only. Does not affect recording.",
+                .edit_mode = EM_MANY_VALUES_LV,
+                .essential = FOR_LIVEVIEW,
+            },
+            {
+                .name = "Saturation",
+                .priv     = &preview_saturation,
+                .max = 3,
+                .display = preview_saturation_display,
+                .help = "For LiveView preview only. Does not affect recording.",
+                .edit_mode = EM_MANY_VALUES_LV,
+                .essential = FOR_LIVEVIEW,
+            },
+            {
+                .name = "Color Scheme   ",
+                .priv     = &bmp_color_scheme,
+                .max = 4,
+                .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
+                .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
+                .icon_type = IT_NAMED_COLOR,
+                //~ .edit_mode = EM_MANY_VALUES,
+            },
+            MENU_EOL
+        },
+    },
+    {
+        .name = "Layout settings...",
+        .select         = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+                {
+                    .name = "Image position ",
+                    .priv = &lcd_adjust_position,
+                    .max = 2,
+                    .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
+                    .icon_type = IT_BOOL,
+                    .help = "May make the image easier to see from difficult angles.",
+                },
+                {
+                    .name = "UpsideDown mode",
+                    .priv = &menu_upside_down,
+                    .display = menu_upside_down_print,
+                    .select = menu_binary_toggle,
+                    .help = "Displays overlay graphics upside-down and flips arrow keys.",
+                },
+            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+                {
+                    .name = "Orientation    ",
+                    .priv = &DISPLAY_ORIENTATION,
+                    .select     = display_orientation_toggle,
+                    .max = 2,
+                    .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
+                    .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
+                },
+            #endif
+            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+                {
+                    .name = "Auto Mirroring",
+                    .priv = &display_dont_mirror,
+                    .display = display_dont_mirror_display, 
+                    .select = menu_binary_toggle,
+                    .help = "Prevents display mirroring, which may reverse ML texts.",
+                    .icon_type = IT_DISABLE_SOME_FEATURE,
+                    .essential = FOR_LIVEVIEW,
+                },
+            #endif
+            MENU_EOL
+        },
+    },
+    {
         .name = "Clear Overlays",
         .priv           = &clearscreen_enabled,
         .display        = clearscreen_display,
@@ -2019,70 +2098,6 @@ static struct menu_entry display_menus[] = {
         },
         .essential = FOR_LIVEVIEW,
     },
-    {
-        .name = "Contrast       ",
-        .priv     = &preview_contrast,
-        .max = 5,
-        .display = preview_contrast_display,
-        .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
-        .help = "For LiveView preview only. Does not affect recording.",
-        .edit_mode = EM_MANY_VALUES_LV,
-        .essential = FOR_LIVEVIEW,
-    },
-    {
-        .name = "Saturation",
-        .priv     = &preview_saturation,
-        .max = 3,
-        .display = preview_saturation_display,
-        .help = "For LiveView preview only. Does not affect recording.",
-        .edit_mode = EM_MANY_VALUES_LV,
-        .essential = FOR_LIVEVIEW,
-    },
-    {
-        .name = "Color Scheme   ",
-        .priv     = &bmp_color_scheme,
-        .max = 4,
-        .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
-        .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
-        .icon_type = IT_NAMED_COLOR,
-        //~ .edit_mode = EM_MANY_VALUES,
-    },
-    {
-        .name = "Image position ",
-        .priv = &lcd_adjust_position,
-        .max = 2,
-        .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
-        .icon_type = IT_BOOL,
-        .help = "May make the image easier to see from difficult angles.",
-    },
-    {
-        .name = "UpsideDown mode",
-        .priv = &menu_upside_down,
-        .display = menu_upside_down_print,
-        .select = menu_binary_toggle,
-        .help = "Displays overlay graphics upside-down and flips arrow keys.",
-    },
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name = "Orientation    ",
-        .priv = &DISPLAY_ORIENTATION,
-        .select     = display_orientation_toggle,
-        .max = 2,
-        .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
-        .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
-    },
-#endif
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name = "Auto Mirroring",
-        .priv = &display_dont_mirror,
-        .display = display_dont_mirror_display, 
-        .select = menu_binary_toggle,
-        .help = "Prevents display mirroring, which may reverse ML texts.",
-        .icon_type = IT_DISABLE_SOME_FEATURE,
-        .essential = FOR_LIVEVIEW,
-    },
-#endif
 #ifdef CONFIG_KILL_FLICKER
     {
         .name       = "Kill Canon GUI",
@@ -2116,85 +2131,93 @@ extern int quickreview_liveview;
 
 struct menu_entry play_menus[] = {
     {
-        .name = "SET+MainDial (PLAY)",
-        .priv = &play_set_wheel_action, 
-        .max = 3,
-        .display = play_set_wheel_display,
-        .help = "What to do when you hold SET and turn MainDial (Wheel)",
-        .essential = FOR_PHOTO,
-        .icon_type = IT_DICE,
-        //~ .edit_mode = EM_MANY_VALUES,
-    },
-    {
-        .name = "Image Review Mode",
-        .priv = &quick_review_allow_zoom, 
-        .max = 1,
-        .display = qrplay_display,
-        //~ .help = "Go to play mode to enable zooming and maybe other keys.",
-        .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
-        .essential = FOR_PHOTO,
-        .icon_type = IT_BOOL,
-    },
-    {
-        .name = "LiveV tools in QR ",
-        .priv = &quickreview_liveview, 
-        .max = 1,
-        .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
-        .essential = FOR_PHOTO,
-        .icon_type = IT_BOOL,
-    },
-#ifndef CONFIG_5D3
-    {
-        .name = "Zoom in PLAY mode",
-        .priv = &quickzoom, 
-        .max = 3,
-        .display = quickzoom_display,
-        .help = "Faster zoom in Play mode, for pixel peeping :)",
-        .essential = FOR_PHOTO,
-        .icon_type = IT_BOOL,
-    },
-#endif
-/*    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    {
-        .name = "Always ZoomOut w.*",
-        .priv = &star_zoom, 
-        .max = 1,
-        .help = "If you swap AF-ON (CFn IV-2), ML will revert'em in PLAY.",
-        .essential = FOR_PLAYBACK,
-        .icon_type = IT_BOOL,
-    },
-    #endif */
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name = "LV button (PLAY)",
-        .priv = &play_lv_action, 
-        .select = menu_binary_toggle, 
-        .display = play_lv_display,
-        .help = "You may use the LiveView button to protect images quickly.",
-        .essential = FOR_PHOTO,
-    },
-#endif
-    {
-        .name = "Quick Erase",
-        .priv = &quick_delete, 
-        .select = menu_binary_toggle, 
-        .display = quick_delete_print,
-        .help = "Delete files quickly with SET+Erase (be careful!!!)",
-        .essential = FOR_PHOTO,
+        .name = "Image review settings...",
+        .select = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "SET+MainDial (PLAY)",
+                .priv = &play_set_wheel_action, 
+                .max = 3,
+                .display = play_set_wheel_display,
+                .help = "What to do when you hold SET and turn MainDial (Wheel)",
+                .essential = FOR_PHOTO,
+                .icon_type = IT_DICE,
+                //~ .edit_mode = EM_MANY_VALUES,
+            },
+            {
+                .name = "Image Review Mode",
+                .priv = &quick_review_allow_zoom, 
+                .max = 1,
+                .display = qrplay_display,
+                //~ .help = "Go to play mode to enable zooming and maybe other keys.",
+                .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
+                .essential = FOR_PHOTO,
+                .icon_type = IT_BOOL,
+            },
+            {
+                .name = "LiveV tools in QR ",
+                .priv = &quickreview_liveview, 
+                .max = 1,
+                .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
+                .essential = FOR_PHOTO,
+                .icon_type = IT_BOOL,
+            },
+        #ifndef CONFIG_5D3
+            {
+                .name = "Zoom in PLAY mode",
+                .priv = &quickzoom, 
+                .max = 3,
+                .display = quickzoom_display,
+                .help = "Faster zoom in Play mode, for pixel peeping :)",
+                .essential = FOR_PHOTO,
+                .icon_type = IT_BOOL,
+            },
+        #endif
+        /*    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+            {
+                .name = "Always ZoomOut w.*",
+                .priv = &star_zoom, 
+                .max = 1,
+                .help = "If you swap AF-ON (CFn IV-2), ML will revert'em in PLAY.",
+                .essential = FOR_PLAYBACK,
+                .icon_type = IT_BOOL,
+            },
+            #endif */
+        #if defined(CONFIG_60D) || defined(CONFIG_600D)
+            {
+                .name = "LV button (PLAY)",
+                .priv = &play_lv_action, 
+                .select = menu_binary_toggle, 
+                .display = play_lv_display,
+                .help = "You may use the LiveView button to protect images quickly.",
+                .essential = FOR_PHOTO,
+            },
+        #endif
+            {
+                .name = "Quick Erase",
+                .priv = &quick_delete, 
+                .select = menu_binary_toggle, 
+                .display = quick_delete_print,
+                .help = "Delete files quickly with SET+Erase (be careful!!!)",
+                .essential = FOR_PHOTO,
+            },
+            MENU_EOL,
+        },
     },
 };
 
 static void tweak_init()
 {
     extern struct menu_entry tweak_menus_shoot[];
-    menu_add( "Tweaks", tweak_menus_shoot, 1 );
-    menu_add( "Tweaks", key_menus, COUNT(key_menus) );
+    menu_add( "Prefs", play_menus, COUNT(play_menus) );
+    menu_add( "Prefs", tweak_menus_shoot, 1 );
+    menu_add( "Prefs", key_menus, COUNT(key_menus) );
+    menu_add( "Prefs", tweak_menus, COUNT(tweak_menus) );
+    menu_add( "Display", display_menus, COUNT(display_menus) );
 #if defined(CONFIG_60D) || defined(CONFIG_600D) 
     if (check_eyefi())
+        menu_add( "Movie", eyefi_menus, COUNT(eyefi_menus) );
 #endif
-    menu_add( "Tweaks", tweak_menus, COUNT(tweak_menus) );
-    menu_add( "Play", play_menus, COUNT(play_menus) );
-    menu_add( "Display", display_menus, COUNT(display_menus) );
 }
 
 INIT_FUNC(__FILE__, tweak_init);

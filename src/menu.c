@@ -59,7 +59,7 @@ int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
-static CONFIG_INT("menu.advanced", advanced_mode, 1);
+/*static CONFIG_INT("menu.advanced", advanced_mode, 1);
 
 int get_menu_advanced_mode() { return advanced_mode; }
 
@@ -77,7 +77,7 @@ void menu_easy_advanced_display(
         advanced_mode ? "Easy" : "EASY",
         advanced_mode ? "ADVANCED" : "Advanced"
     );
-}
+}*/
 
 void menu_set_dirty() { menu_damage = 1; }
 
@@ -478,7 +478,7 @@ menu_find_by_name(
     return new_menu;
 }
 
-static int
+/*static int
 menu_has_visible_items(struct menu_entry *  menu)
 {
     while( menu )
@@ -490,7 +490,7 @@ menu_has_visible_items(struct menu_entry *  menu)
         menu = menu->next;
     }
     return 0;
-}
+}*/
 
 void
 menu_add(
@@ -892,7 +892,7 @@ menu_display(
 {
     while( menu )
     {
-        if (advanced_mode || IS_ESSENTIAL(menu))
+        //~ if (advanced_mode || IS_ESSENTIAL(menu))
         {
             // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
             if (menu->selected && menu->help)
@@ -1057,7 +1057,7 @@ menu_display(
                 selection_bar(x, y);
 
             // move down for next item
-            y += font_large.height-1;
+            y += font_large.height;
             
             // stop before attempting to display things outside the screen
             if ((unsigned)y > 480 - font_large.height 
@@ -1102,8 +1102,8 @@ menus_display(
 #endif
     for( ; menu ; menu = menu->next )
     {
-        if (!menu_has_visible_items(menu->children))
-            continue; // empty menu
+        //~ if (!menu_has_visible_items(menu->children))
+            //~ continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
 #ifdef CONFIG_5DC
@@ -1138,11 +1138,7 @@ menus_display(
                 //~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
                 x += w;
             }
-        #ifndef CONFIG_5DC
-            x += 47;
-        #else
             x += 57;
-        #endif
             //~ if (menu->selected)
             //~ {
                 //~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
@@ -1311,7 +1307,8 @@ menu_move(
     menu_first_by_icon = menu->icon;
     give_semaphore( menu_sem );
     
-    if (IS_SUBMENU(menu) || !menu_has_visible_items(menu->children))
+    // ?!
+    if (IS_SUBMENU(menu))// || !menu_has_visible_items(menu->children))
         menu_move(menu, direction); // this menu is hidden, skip it (try again)
         // will fail if no menus are displayed!
 }
@@ -1331,8 +1328,8 @@ menu_entry_move(
     if( rc != 0 )
         return;
     
-    if (!menu_has_visible_items(menu->children))
-        return;
+    //~ if (!menu_has_visible_items(menu->children))
+        //~ return;
 
     struct menu_entry * entry = menu->children;
 
@@ -1377,12 +1374,12 @@ menu_entry_move(
     entry->selected = 1;
     give_semaphore( menu_sem );
     
-    if (!advanced_mode && !IS_ESSENTIAL(entry))
-        menu_entry_move(menu, direction); // try again, skip hidden items
+    //~ if (!advanced_mode && !IS_ESSENTIAL(entry))
+        //~ menu_entry_move(menu, direction); // try again, skip hidden items
         // warning: would block if the menu is empty
 }
 
-
+/*
 // Make sure we will not display an empty menu
 // If the menu or the selection is empty, move back and forth to restore a valid selection
 static void menu_make_sure_selection_is_valid()
@@ -1410,7 +1407,7 @@ static void menu_make_sure_selection_is_valid()
         menu_entry_move(menu, -1);
         menu_entry_move(menu, 1);
     }
-}
+}*/
 
 
 /*static void menu_select_current(int reverse)
@@ -1479,7 +1476,7 @@ menu_redraw_do()
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
                 //~ take_semaphore(menu_redraw_sem, 0);
-                menu_make_sure_selection_is_valid();
+                //~ menu_make_sure_selection_is_valid();
             
                 if (quick_redraw)
                 {
@@ -1724,11 +1721,11 @@ handle_ml_menu_keys(struct event * event)
     switch( button_code )
     {
     case BGMT_MENU:
-        if (submenu_mode) submenu_mode = 0;
+/*        if (submenu_mode) submenu_mode = 0;
         else advanced_mode = !advanced_mode;
         show_only_selected = 0;
         menu_help_active = 0;
-
+*/
         break;
 
     case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
@@ -1887,12 +1884,12 @@ menu_init( void )
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
     menu_find_by_name( "Display", ICON_MONITOR );
-    menu_find_by_name( "Tweaks", ICON_SMILE );
-    menu_find_by_name( "Play", ICON_ML_PLAY );
-    menu_find_by_name( "Power", ICON_P_SQUARE );
+    menu_find_by_name( "Prefs", ICON_SMILE );
+    //~ menu_find_by_name( "Play", ICON_ML_PLAY );
+    //~ menu_find_by_name( "Power", ICON_P_SQUARE );
     menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
     //~ menu_find_by_name( "Config" );
-    menu_find_by_name( "Config", ICON_CF );
+    //~ menu_find_by_name( "Config", ICON_CF );
     menu_find_by_name( "Help", ICON_i );
     //~ menu_find_by_name( "Boot" );
 

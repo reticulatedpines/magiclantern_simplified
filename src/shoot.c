@@ -1698,7 +1698,7 @@ aperture_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Aperture    : f/%d.%d (AV %d.%d)",
+        "Aperture    : f/%d.%d, Av%d.%d",
         a / 10,
         a % 10, 
         av / 8, 
@@ -1991,6 +1991,8 @@ static int crit_kelvin(int k)
     int R = Y + 1437 * V / 1024;
     //~ int G = Y -  352 * U / 1024 - 731 * V / 1024;
     int B = Y + 1812 * U / 1024;
+    
+    NotifyBox(5000, "Adjusting white balance...");
 
     return B - R;
 }
@@ -2010,6 +2012,8 @@ static int crit_wbs_gm(int k)
     int G = Y -  352 * U / 1024 - 731 * V / 1024;
     int B = Y + 1812 * U / 1024;
 
+    NotifyBox(5000, "Adjusting white balance shift...");
+
     //~ BMP_LOCK( draw_ml_bottombar(0,0); )
     return (R+B)/2 - G;
 }
@@ -2024,7 +2028,8 @@ static void kelvin_auto_run()
     if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
     else i = bin_search(KELVIN_MIN/KELVIN_STEP, lens_info.kelvin/KELVIN_STEP + 1, crit_kelvin);
     lens_set_kelvin(i * KELVIN_STEP);
-    redraw();
+    //~ NotifyBoxHide();
+    //~ redraw();
 }
 
 static void wbs_gm_auto_run()
@@ -2037,6 +2042,7 @@ static void wbs_gm_auto_run()
     if (c0 > 0) i = bin_search(lens_info.wbs_gm, 10, crit_wbs_gm);
     else i = bin_search(-9, lens_info.wbs_gm + 1, crit_wbs_gm);
     lens_set_wbs_gm(i);
+    NotifyBoxHide();
     redraw();
 }
 
@@ -4267,23 +4273,6 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-    #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
-    {
-        //~ .select     = flash_and_no_flash_toggle,
-        .display    = flash_and_no_flash_display,
-        .priv = &flash_and_no_flash,
-        .max = 1,
-        .help = "Take odd pictures with flash, even pictures without flash."
-    },
-    #endif
-    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
-    {
-        .name = "3rd p. flash LV ",
-        .priv = &lv_3rd_party_flash,
-        .max = 1,
-        .help = "A trick to allow 3rd party flashes to fire in LiveView."
-    },
-    #endif
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -4346,9 +4335,45 @@ static struct menu_entry shoot_menus[] = {
     }*/
 };
 
+static struct menu_entry flash_menus[] = {
+    {
+        .name = "Flash tweaks...",
+        .select     = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D2 // no built-in flash; external flashes have their own EV compensation
+                {
+                    .name = "Flash AEcomp",
+                    .display    = flash_ae_display,
+                    .select     = flash_ae_toggle,
+                    .help = "Flash exposure compensation, from -5EV to +3EV.",
+                    .essential = FOR_PHOTO,
+                    .edit_mode = EM_MANY_VALUES,
+                },
+            #endif
+            #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+            {
+                //~ .select     = flash_and_no_flash_toggle,
+                .display    = flash_and_no_flash_display,
+                .priv = &flash_and_no_flash,
+                .max = 1,
+                .help = "Take odd pictures with flash, even pictures without flash."
+            },
+            #endif
+            #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+            {
+                .name = "3rd p. flash LV ",
+                .priv = &lv_3rd_party_flash,
+                .max = 1,
+                .help = "A trick to allow 3rd party flashes to fire in LiveView."
+            },
+            #endif
+            MENU_EOL,
+        },
+    }
+};
 struct menu_entry tweak_menus_shoot[] = {
     {
-        .name = "LV Zoom Settings...",
+        .name = "LiveView Zoom Settings...",
         .select = menu_open_submenu,
         //~ .display = zoom_display,
         .icon_type = IT_SUBMENU,
@@ -4719,16 +4744,6 @@ static struct menu_entry expo_menus[] = {
     },
 #endif
 */
-#ifndef CONFIG_5D2 // no built-in flash; external flashes have their own EV compensation
-    {
-        .name = "Flash AEcomp",
-        .display    = flash_ae_display,
-        .select     = flash_ae_toggle,
-        .help = "Flash exposure compensation, from -5EV to +3EV.",
-        .essential = FOR_PHOTO,
-        .edit_mode = EM_MANY_VALUES,
-    },
-#endif
 };
 
 // for firing HDR shots - avoids random misfire due to low polling frequency
@@ -5921,6 +5936,9 @@ void shoot_init()
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
+    #ifndef CONFIG_5D2
+    menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
+    #endif
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
 #ifndef CONFIG_5DC

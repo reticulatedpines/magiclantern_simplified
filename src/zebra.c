@@ -2822,7 +2822,7 @@ electronic_level_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Level Indic.: %s",
+        "Level Indicator: %s",
         electronic_level ? "ON" : "OFF"
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
@@ -3166,16 +3166,6 @@ struct menu_entry zebra_menus[] = {
         .help = "Shows color distribution as U-V plot. For grading & WB.",
         .essential = FOR_LIVEVIEW,
     },
-    #ifdef CONFIG_60D
-    {
-        .name = "Level Indic.", 
-        .priv = &electronic_level, 
-        .select = menu_binary_toggle, 
-        .display = electronic_level_display,
-        .help = "Electronic level indicator in 0.5 degree steps.",
-        .essential = FOR_LIVEVIEW,
-    },
-    #endif
     /*{
         .priv           = &focus_graph,
         .display        = focus_graph_display,
@@ -3204,6 +3194,18 @@ struct menu_entry zebra_menus[] = {
     //~ },
 };
 
+struct menu_entry level_indic_menus[] = {
+    #ifdef CONFIG_60D
+    {
+        .name = "Level Indic.", 
+        .priv = &electronic_level, 
+        .select = menu_binary_toggle, 
+        .display = electronic_level_display,
+        .help = "Electronic level indicator in 0.5 degree steps.",
+        .essential = FOR_LIVEVIEW,
+    },
+    #endif
+};
 struct menu_entry livev_dbg_menus[] = {
     {
         .name = "Show LiveV FPS",
@@ -3278,53 +3280,60 @@ CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 #endif
 
 struct menu_entry powersave_menus[] = {
-    {
-        .name = "Enable power saving",
-        .priv           = &idle_rec,
-        .max = 2,
-        .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
-        .help = "If enabled, powersave (see above) works when recording too."
+{
+    .name = "Powersave settings...",
+    .select = menu_open_submenu,
+    .children =  (struct menu_entry[]) {
+        {
+            .name = "Enable power saving",
+            .priv           = &idle_rec,
+            .max = 2,
+            .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
+            .help = "If enabled, powersave (see above) works when recording too."
+        },
+        #if defined(CONFIG_550D) || defined(CONFIG_500D)
+        {
+            .name = "Use LCD sensor     ",
+            .priv           = &lcd_sensor_wakeup,
+            .max = 1,
+            .help = "With the LCD sensor you may wakeup or force powersave mode."
+        },
+        #endif
+        {
+            .name = "Dim display",
+            .priv           = &idle_display_dim_after,
+            .display        = idle_display_dim_print,
+            .select         = idle_timeout_toggle,
+            .help = "Dim LCD display in LiveView when idle, to save power.",
+            .edit_mode = EM_MANY_VALUES,
+        },
+        {
+            .name = "Turn off LCD",
+            .priv           = &idle_display_turn_off_after,
+            .display        = idle_display_turn_off_print,
+            .select         = idle_timeout_toggle,
+            .help = "Turn off display and pause LiveView when idle and not REC.",
+            .edit_mode = EM_MANY_VALUES,
+        },
+        {
+            .name = "Turn off GlobalDraw",
+            .priv           = &idle_display_global_draw_off_after,
+            .display        = idle_display_global_draw_off_print,
+            .select         = idle_timeout_toggle,
+            .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
+            .edit_mode = EM_MANY_VALUES,
+        },
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+        {
+            .name = "Battery remaining",
+            .display = batt_display,
+            .help = "Battery remaining. Wait for 2%% discharge before reading.",
+            //~ .essential = FOR_MOVIE | FOR_PHOTO,
+        },
+        #endif
+        MENU_EOL
     },
-    #if defined(CONFIG_550D) || defined(CONFIG_500D)
-    {
-        .name = "Use LCD sensor     ",
-        .priv           = &lcd_sensor_wakeup,
-        .max = 1,
-        .help = "With the LCD sensor you may wakeup or force powersave mode."
-    },
-    #endif
-    {
-        .name = "Dim display",
-        .priv           = &idle_display_dim_after,
-        .display        = idle_display_dim_print,
-        .select         = idle_timeout_toggle,
-        .help = "Dim LCD display in LiveView when idle, to save power.",
-        .edit_mode = EM_MANY_VALUES,
-    },
-    {
-        .name = "Turn off LCD",
-        .priv           = &idle_display_turn_off_after,
-        .display        = idle_display_turn_off_print,
-        .select         = idle_timeout_toggle,
-        .help = "Turn off display and pause LiveView when idle and not REC.",
-        .edit_mode = EM_MANY_VALUES,
-    },
-    {
-        .name = "Turn off GlobalDraw",
-        .priv           = &idle_display_global_draw_off_after,
-        .display        = idle_display_global_draw_off_print,
-        .select         = idle_timeout_toggle,
-        .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
-        .edit_mode = EM_MANY_VALUES,
-    },
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
-    {
-        .name = "Battery remaining",
-        .display = batt_display,
-        .help = "Battery remaining. Wait for 2%% discharge before reading.",
-        //~ .essential = FOR_MOVIE | FOR_PHOTO,
-    },
-    #endif
+}
 };
 
 struct menu_entry livev_cfg_menus[] = {
@@ -4942,7 +4951,7 @@ void update_disp_mode_bits_from_params()
         (focus_peaking        ? 1<<8 : 0) |
         (zoom_overlay_enabled ? 1<<9 : 0) |
         (transparent_overlay  ? 1<<10: 0) |
-        (electronic_level     ? 1<<11: 0) |
+        //~ (electronic_level     ? 1<<11: 0) |
         (defish_preview       ? 1<<12: 0) |
         (vectorscope_draw     ? 1<<13: 0) |
         0;
@@ -4972,7 +4981,7 @@ void update_disp_mode_params_from_bits()
     focus_peaking        = bits & (1<<8) ? 1 : 0;
     zoom_overlay_enabled = bits & (1<<9) ? 1 : 0;
     transparent_overlay  = bits & (1<<10)? 1 : 0;
-    electronic_level     = bits & (1<<11)? 1 : 0;
+    //~ electronic_level     = bits & (1<<11)? 1 : 0;
     defish_preview       = bits & (1<<12)? 1 : 0;
     vectorscope_draw     = bits & (1<<13)? 1 : 0;
 //~ end:
@@ -5076,7 +5085,8 @@ static void zebra_init()
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
-    menu_add( "Power", powersave_menus, COUNT(powersave_menus) );
+    menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
+    menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
 }
 
 INIT_FUNC(__FILE__, zebra_init);

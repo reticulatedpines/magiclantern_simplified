@@ -73,7 +73,8 @@ static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 // in simple menu, FPS override is only displayed in movie mode
 // so... it should only take effect in movie mode, no?
 // but in advanced mode, it can be used in photo mode too (for night vision)
-#define FPS_OVERRIDE (fps_override && (is_movie_mode() || get_menu_advanced_mode()))
+//~ #define FPS_OVERRIDE (fps_override && (is_movie_mode() || get_menu_advanced_mode()))
+#define FPS_OVERRIDE fps_override
 
 // 1000 = zero, more is positive, less is negative
 static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add this to default Canon value
