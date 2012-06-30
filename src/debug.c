@@ -1913,7 +1913,7 @@ spy_print(
     menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
-
+/*
 
 PROP_INT(PROP_STROBO_REDEYE, red_eye);
 void flashlight_frontled_task(void* priv)
@@ -1986,6 +1986,7 @@ static void flashlight_lcd(void* priv, int delta)
     gui_stop_menu();
     task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
 }
+*/
 
 static void meminfo_display(
     void *            priv,
@@ -2346,12 +2347,12 @@ struct menu_entry debug_menus[] = {
         },
     },
 #endif
-    {
+    /*{
         .name        = "Flashlight",
         .select        = flashlight_lcd,
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
-    },
+    },*/
     {
         .name = "Screenshot (10 s)",
         .select     = screenshot_start,
