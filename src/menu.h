@@ -75,6 +75,7 @@ struct menu_entry
                 int                     selected
         );
         int8_t essential;
+        int8_t hidden;
         int8_t icon_type;
         int8_t edit_mode;
         const char * help;
@@ -121,6 +122,7 @@ struct menu_entry
 #define FOR_EXT_MONITOR 32 // HDMI or SD
 #define FOR_SUBMENU 64
 
+/*
 #define IS_ESSENTIAL(menu) ( \
         (menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
         (menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
@@ -129,8 +131,9 @@ struct menu_entry
         (menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
         (menu->essential & FOR_EXT_MONITOR && EXT_MONITOR_CONNECTED) || \
         (menu->essential & FOR_SUBMENU && submenu_mode) || \
-0)
+0) */
 
+#define IS_ESSENTIAL(menu) (menu->hidden <= 0)
 
 struct menu
 {

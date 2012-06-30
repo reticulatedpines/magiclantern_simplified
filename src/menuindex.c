@@ -14,6 +14,10 @@ struct menu_entry help_menus[] = {
         .essential = FOR_MOVIE | FOR_PHOTO,
     },*/
     {
+        .name = "Press MENU : Hide unused items",
+        .essential = FOR_MOVIE | FOR_PHOTO,
+    },
+    {
         .name = "Press " INFO_BTN_NAME
                           " : Bring up Help menu",
         .essential = FOR_MOVIE | FOR_PHOTO,

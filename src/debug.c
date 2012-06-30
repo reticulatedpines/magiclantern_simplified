@@ -3328,6 +3328,7 @@ void config_menu_init()
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Prefs", livev_cfg_menus,  1);
     crop_factor_menu_init();
+    advanced_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 }

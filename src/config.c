@@ -207,6 +207,7 @@ config_save_file(
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
     char* msgc = CACHEABLE(msg);
+    msg[0] = '\0';
   
     snprintf( msgc, MAX_SIZE,
         "# Magic Lantern %s (%s)\n"
@@ -233,13 +234,13 @@ config_save_file(
     for( ; var < _config_vars_end ; var++ )
     {
         if( var->type == 0 )
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1,
                 "%s = %d\r\n",
                 var->name,
                 *(unsigned*) var->value
             );
         else
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1,
                 "%s = %s\r\n",
                 var->name,
                 *(const char**) var->value
