@@ -579,7 +579,7 @@ void check_install()
                     " BOOTDISK flag is ENABLED.          \n"
                     " AUTOEXEC.BIN found.                \n"
                     "                                    \n"
-                    "   !!! ML/SETTINGS/FONTS.DAT !!!    \n" 
+                    "     !!! ML/DATA/FONTS.DAT !!!      \n" 
                     "         !!! NOT FOUND !!!          \n"
                     "                                    \n"
                     " Please copy ALL ML files on your   \n"
