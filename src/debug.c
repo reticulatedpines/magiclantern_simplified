@@ -1776,10 +1776,6 @@ int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
-    extern int ml_started;
-    while (!ml_started) msleep(100);
-    
-    config_menu_init();
     //~ ensure_movie_mode();
     //~ movie_start();
     //~ msleep(2000);

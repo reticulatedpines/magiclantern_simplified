@@ -1346,6 +1346,7 @@ static struct menu_entry audio_menus[] = {
      },*/
     #if !defined(CONFIG_550D) && !defined(CONFIG_500D)
          {
+                .name = "Wind Filter",
                  .priv              = &enable_filters,
                  .select            = audio_binary_toggle,
                  .display           = audio_filters_display,

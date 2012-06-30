@@ -1942,7 +1942,7 @@ menu_init( void )
     menu_find_by_name( "Audio", ICON_MIC);
 #endif
     menu_find_by_name( "Expo", ICON_AE);
-    menu_find_by_name( "LiveV", ICON_LV);
+    menu_find_by_name( "Overlay", ICON_LV);
 #if defined(CONFIG_500D)
     menu_find_by_name( "Movie", ICON_FILM );
 #endif
@@ -2147,6 +2147,10 @@ void show_welcome_screen()
 static void
 menu_task( void* unused )
 {
+    extern int ml_started;
+    while (!ml_started) msleep(100);
+    config_menu_init();
+    
     menu_load_hidden_items();
     select_menu_by_icon(menu_first_by_icon);
     menu_make_sure_selection_is_valid();
