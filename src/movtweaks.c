@@ -261,13 +261,14 @@ enable_liveview_print(
 
 void force_liveview()
 {
+    extern int ml_started;
+    while (!ml_started) msleep(50);
+
     msleep(50);
     if (lv) return;
     info_led_on();
     while (sensor_cleaning) msleep(100);
     while (get_halfshutter_pressed()) msleep(100);
-    extern int ml_started;
-    if (!ml_started) return;
     ResumeLiveView();
     while (get_halfshutter_pressed()) msleep(100);
     get_out_of_play_mode(200);
