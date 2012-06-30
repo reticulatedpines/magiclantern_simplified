@@ -131,7 +131,7 @@ static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 static CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
 //~ static CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
 //~ static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
-static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
+//~ static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
@@ -685,14 +685,14 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 static int face_zoom_request = 0;
 
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+/*    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     int v = *(int*)buf;
     if (zoom_enable_face)
     {
         if (v == 0 && lv && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
             face_zoom_request = 1;
     }
-    #endif
+    #endif*/
 
     zoom_sharpen_step();
     zoom_auto_exposure_step();
@@ -2633,7 +2633,7 @@ static void zoom_lv_face_step()
 #ifdef AFFRAME_PROP_LEN
     if (!lv) return;
     if (recording) return;
-    if (face_zoom_request && lv_dispsize == 1 && !recording)
+    /*if (face_zoom_request && lv_dispsize == 1 && !recording)
     {
         if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
         {
@@ -2663,7 +2663,7 @@ static void zoom_lv_face_step()
             face_zoom_request = 0;
             //~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
         }
-    }
+    }*/
     
     if ((zoom_halfshutter == 1 && is_manual_focus()) || (zoom_halfshutter == 2))
     {
@@ -4400,7 +4400,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Disable x10 zoom in LiveView.",
                 .icon_type = IT_DISABLE_SOME_FEATURE,
             },
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    /*        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
             {
                 .name = "Zoom :-)",
                 .priv = &zoom_enable_face, 
@@ -4408,7 +4408,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .icon_type = IT_BOOL,
                 .help = "Enable zoom when Face Detection is active."
             },
-            #endif
+            #endif */
             {
                 .name = "Auto exposure on Zoom ",
                 .priv = &zoom_auto_exposure,
