@@ -1188,6 +1188,7 @@ void star_zoom_update()
 */
 
 CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
+CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
 #ifdef CONFIG_5D2
     CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
     CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
@@ -1348,6 +1349,7 @@ int handle_arrow_keys(struct event * event)
         if (!is_arrow_mode_ok(arrow_keys_mode))
             return 1;
 
+        if (arrow_keys_use_set)
         if (event->param == BGMT_PRESS_SET
         #ifdef BGMT_JOY_CENTER
         || event->param == BGMT_JOY_CENTER
@@ -1490,7 +1492,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
+        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
     }
     else if (mode == 2)
     {
@@ -1498,7 +1500,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
+        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
     }
     else if (mode == 3)
     {
@@ -1506,7 +1508,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
+        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
     {
@@ -1514,7 +1516,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
+        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
     }
     else if (mode == 10)
     {
@@ -1532,7 +1534,7 @@ void display_shortcut_key_hints_lv()
 
 static struct menu_entry key_menus[] = {
     {
-        .name       = "Key Shortcuts...",
+        .name       = "Arrow/SET shortcuts...",
         .select = menu_open_submenu,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
@@ -1562,6 +1564,20 @@ static struct menu_entry key_menus[] = {
                 .max = 1,
                 .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
             },
+            {
+                .name = "Use SET button",
+                .priv = &arrow_keys_use_set,
+                .max = 1,
+                .help = "Enables functions for SET when you use arrow shortcuts.",
+            },
+            MENU_EOL,
+        },
+    },
+    {
+        .name       = "Misc key shortcuts...",
+        .select = menu_open_submenu,
+        .help = "Misc options related to shortcut keys.",
+        .children =  (struct menu_entry[]) {
             #if defined(CONFIG_550D) || defined(CONFIG_500D)
             {
                 .name = "LCD Sensor Shortcuts",
