@@ -3415,7 +3415,7 @@ cropmark_draw()
     get_yuv422_vram(); // just to refresh VRAM params
     clear_lv_affframe_if_dirty();
 
-    if (transparent_overlay && !transparent_overlay_hidden)
+    if (transparent_overlay && !transparent_overlay_hidden && !PLAY_MODE)
     {
         show_overlay();
         zoom_overlay_dirty = 1;
@@ -3451,6 +3451,7 @@ cropmark_draw()
     if (cropmarks) 
     {
         // Cropmarks enabled, but cache is not valid
+        if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
         clrscr_mirror(); // clean any remaining zebras / peaking
         bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
@@ -4899,10 +4900,11 @@ livev_lopriority_task( void* unused )
         }
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_OR_QR_MODE)
+        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON)
         {
+            //~ beep();
+            msleep(500);
             cropmark_redraw();
-            msleep(300);
         }
 
         static int qr_zebras_drawn = 0; // zebras in QR should only be drawn once
@@ -4913,6 +4915,7 @@ livev_lopriority_task( void* unused )
             {
                 msleep(500);
                 draw_livev_for_playback();
+                if (cropmarks_play) cropmark_redraw();
                 qr_zebras_drawn = 1;
             }
         }
