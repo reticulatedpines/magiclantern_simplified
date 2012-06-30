@@ -256,8 +256,8 @@
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x246a4)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) // notation from g3gg0
-#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8)) // not sure
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) //for mark iii
+#define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xc)) // for sure now
 
 //~ #define LV_STRUCT_PTR 0x1D78
 //~ #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)

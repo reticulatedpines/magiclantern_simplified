@@ -96,8 +96,10 @@ static void vsync_func() // called once per frame.. in theory :)
     hdr_step();
     #endif
     
+    #if !defined(CONFIG_5D3)
     digic_iso_step();
     image_effects_step();
+    #endif
 
     if (lv_should_pause_updating)
     {
