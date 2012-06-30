@@ -2512,8 +2512,8 @@ void menu_load_hidden_items()
                 buf[sep] = 0;
                 char* menu_name = &buf[prev+1];
                 char* entry_name = &buf[sep+1];
-                //~ NotifyBox(2000, "%s -> %s", menu_name, entry_name);
-                hide_menu_by_name(menu_name, entry_name); msleep(2000);
+                //~ NotifyBox(2000, "%s -> %s", menu_name, entry_name); msleep(2000);
+                hide_menu_by_name(menu_name, entry_name);
             }
             prev = i;
         }
