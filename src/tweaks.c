@@ -2146,7 +2146,7 @@ static struct menu_entry display_menus[] = {
     },
 };
 
-extern int quickreview_liveview;
+//~ extern int quickreview_liveview;
 
 struct menu_entry play_menus[] = {
     {
@@ -2160,7 +2160,7 @@ struct menu_entry play_menus[] = {
                 .priv = &play_set_wheel_action, 
                 .max = 3,
                 .display = play_set_wheel_display,
-                .help = "What to do when you hold SET and turn MainDial (Wheel)",
+                .help = "What to do when you hold SET and turn MainDial scrollwheel",
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_DICE,
                 //~ .edit_mode = EM_MANY_VALUES,
@@ -2175,14 +2175,14 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             },
-            {
+/*            {
                 .name = "LiveV tools in QR",
                 .priv = &quickreview_liveview, 
                 .max = 1,
                 .help = "Allow LiveView tools to run in QuickReview (photo) mode too.",
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
-            },
+            }, */
         #ifndef CONFIG_5D3
             {
                 .name = "Zoom in PLAY mode",

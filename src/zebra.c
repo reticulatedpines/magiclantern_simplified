@@ -179,6 +179,10 @@ static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 1 );
+
+#define ZEBRAS_IN_QUICKREVIEW (global_draw > 1)
+#define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
+
 static CONFIG_INT( "zebra.draw",    zebra_draw, 0 );
 static CONFIG_INT( "zebra.mode",    zebra_colorspace,   1 );// luma/rgb
 static CONFIG_INT( "zebra.level.hi",    zebra_level_hi, 95 );
@@ -202,8 +206,6 @@ static CONFIG_INT( "zoom.overlay.x", zoom_overlay_x, 1);
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 //~ static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
-
-CONFIG_INT( "quickreview.liveview", quickreview_liveview, 1); // allow LiveView tools in QR mode
 
 //~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_trigger_mode() 
@@ -384,22 +386,31 @@ int get_global_draw() // menu setting, or off if
 {
     extern int ml_started;
     if (!ml_started) return 0;
+    if (!global_draw) return 0;
     
     if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
     
-    return global_draw &&
-        (lv_disp_mode == 0 || !lv) &&
-        !idle_globaldraw_disable && 
-        !sensor_cleaning && 
-        bmp_is_on() &&
-        DISPLAY_IS_ON && 
-        recording != 1 && 
-        #ifdef CONFIG_KILL_FLICKER
-        !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
-        #endif
-        !LV_PAUSED && 
-        lens_info.job_state <= 10 &&
-        !(recording && !lv);
+    if (lv && ZEBRAS_IN_LIVEVIEW)
+    {
+        return 
+            lv_disp_mode == 0 &&
+            !idle_globaldraw_disable && 
+            bmp_is_on() &&
+            DISPLAY_IS_ON && 
+            recording != 1 && 
+            #ifdef CONFIG_KILL_FLICKER
+            !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
+            #endif
+            !LV_PAUSED && 
+            lens_info.job_state <= 10;
+    }
+    
+    if (!lv && ZEBRAS_IN_QUICKREVIEW)
+    {
+        return DISPLAY_IS_ON;
+    }
+        
+    return 0;
 }
 
 int get_global_draw_setting() // whatever is set in menu
@@ -2160,12 +2171,22 @@ global_draw_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Global Draw : %s",
-        global_draw ? "ON " : "OFF"
+        global_draw == 0 ? "OFF" :
+        global_draw == 1 ? "LiveView" :
+        global_draw == 2 ? "QuickReview" :
+        global_draw == 3 ? "LV+QR" : ""
     );
     if (disp_profiles_0)
-        bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 460, y, "%s DISP %d", selected ? "[Q]" : "   ", get_disp_mode());
-    if (lv && lv_disp_mode && global_draw)
+    {
+        bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 560, y, "DISP %d", get_disp_mode());
+        if (selected) bmp_printf(FONT_MED, 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
+    }
+    if (lv && lv_disp_mode && ZEBRAS_IN_LIVEVIEW)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
+    if (global_draw && lv && !ZEBRAS_IN_LIVEVIEW)
+        menu_draw_icon(x, y, MNI_WARNING, 0);
+    if (global_draw && !lv && !ZEBRAS_IN_QUICKREVIEW)
+        menu_draw_icon(x, y, MNI_WARNING, 0);
 }
 
 static void
@@ -2839,9 +2860,11 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Global Draw",
         .priv       = &global_draw,
-        .select     = menu_binary_toggle,
+        .max = 3,
+        //~ .select     = menu_binary_toggle,
         .select_Q   = toggle_disp_mode_menu,
         .display    = global_draw_display,
+        .icon_type = IT_BOOL,
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         //.essential = FOR_LIVEVIEW,
     },
@@ -4656,7 +4679,7 @@ int is_focus_peaking_enabled()
 {
     return
         focus_peaking &&
-        (lv || (QR_MODE && quickreview_liveview))
+        (lv || (QR_MODE && ZEBRAS_IN_QUICKREVIEW))
         && get_global_draw()
         && !should_draw_zoom_overlay()
     ;
@@ -4909,7 +4932,7 @@ livev_lopriority_task( void* unused )
 
         static int qr_zebras_drawn = 0; // zebras in QR should only be drawn once
         extern int hdr_enabled;
-        if (quickreview_liveview && QR_MODE && get_global_draw() && !hdr_enabled)
+        if (ZEBRAS_IN_QUICKREVIEW && QR_MODE && get_global_draw() && !hdr_enabled)
         {
             if (!qr_zebras_drawn)
             {
@@ -5089,7 +5112,7 @@ static void zebra_init()
 {
     precompute_yuv2rgb();
     
-    menu_add( "LiveV", zebra_menus, COUNT(zebra_menus) );
+    menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
