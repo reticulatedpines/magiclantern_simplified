@@ -2040,6 +2040,17 @@ open_canon_menu()
     //~ }
 }
 
+// pump a few redraws quickly, to mask Canon's back menu
+void menu_redraw_flood()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        canon_gui_enable_front_buffer(0);
+        menu_redraw_full();
+        msleep(20);
+    }
+}
+
 void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
@@ -2050,20 +2061,9 @@ void piggyback_canon_menu()
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    canon_gui_disable_front_buffer(0);
     int new_gui_mode = GUIMODE_ML_MENU;
-    SetGUIRequestMode(new_gui_mode);
-    canon_gui_disable_front_buffer(0);
-    msleep(new_gui_mode <= 2 ? 100 : 20);
-    canon_gui_disable_front_buffer(0);
-    //~ msleep(100);
-    menu_redraw();
-    msleep(50);
-    canon_gui_disable_front_buffer(0);
-    menu_redraw();
-    msleep(50);
-    canon_gui_disable_front_buffer(0);
-    menu_redraw();
+    if (new_gui_mode) task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0);
+    if (new_gui_mode != CURRENT_DIALOG_MAYBE) SetGUIRequestMode(new_gui_mode);
 #endif
 }
 
@@ -2103,10 +2103,9 @@ static void menu_open()
     menu_shown = 1;
 
     piggyback_canon_menu();
-
     canon_gui_disable_front_buffer(0);
     if (lv && EXT_MONITOR_CONNECTED) clrscr();
-    menu_redraw();
+    menu_redraw_full();
 }
 static void menu_close() 
 { 
