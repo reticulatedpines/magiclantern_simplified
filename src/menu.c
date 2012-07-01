@@ -737,7 +737,7 @@ void submenu_only_icon(int x, int y, int value)
 
 void selection_bar(int x0, int y0)
 {
-    int w = x0 + g_submenu_width - 40 - 10;
+    int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
     
     extern int bmp_color_scheme;
     
@@ -754,7 +754,7 @@ void selection_bar(int x0, int y0)
 
 void dim_hidden_menu(int x0, int y0)
 {
-    int w = x0 + g_submenu_width - 40 - 10;
+    int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
     
     uint8_t* B = bmp_vram();
     for (int y = y0; y < y0 + 31; y++)

@@ -1951,7 +1951,7 @@ static void falsecolor_palette_preview(int x, int y)
 {
     for (int i = 0; i < 256; i++)
     {
-        draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height, false_colour[falsecolor_palette][i]);
+        draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
     }
 }
 
@@ -2179,7 +2179,7 @@ global_draw_display( void * priv, int x, int y, int selected )
     if (disp_profiles_0)
     {
         bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 560, y, "DISP %d", get_disp_mode());
-        if (selected) bmp_printf(FONT_MED, 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
+        if (selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
     }
     if (lv && lv_disp_mode && ZEBRAS_IN_LIVEVIEW)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
