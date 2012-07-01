@@ -106,9 +106,6 @@ static void vsync_func() // called once per frame.. in theory :)
         msleep(lv_should_pause_updating);
         lv_should_pause_updating = 0;
     }
-    #ifdef CONFIG_500D
-    fps_refresh_500D();
-    #endif
 }
 
 int (*StateTransition)(void*,int,int,int,int) = 0;

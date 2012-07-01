@@ -1090,7 +1090,11 @@ static void fps_task()
 {
     TASK_LOOP
     {
+        #ifdef CONFIG_500D
+        msleep(fps_override ? 20 : 100);
+        #else
         msleep(100);
+        #endif
         
         fps_check_refresh();
 
@@ -1133,16 +1137,11 @@ static void fps_task()
     }
 }
 
-void fps_refresh_500D()
-{
-    if (FPS_OVERRIDE && written_value_a && written_value_b)
-    {
-        SafeEngDrvOut(FPS_REGISTER_A, written_value_a);
-        SafeEngDrvOut(FPS_REGISTER_A, written_value_b);
-    }
-}
-
+#ifdef CONFIG_500D
+TASK_CREATE("fps_task", fps_task, 0, 0x18, 0x1000 );
+#else
 TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );
+#endif
 
 
 void fps_mvr_log(FILE* mvr_logfile)
