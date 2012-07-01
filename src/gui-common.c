@@ -73,6 +73,8 @@ int handle_common_events_startup(struct event * event)
     return 1;
 }
 
+extern int ResumeLiveView();
+
 int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras
@@ -89,7 +91,11 @@ int handle_common_events_by_feature(struct event * event)
     
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
-        int ans = ResumeLiveView();
+        int ans =  (ml_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
+
+        //~ run_in_separate_task(ResumeLiveView, 0);
+        //~ return 0;
+        //~ int ans = ResumeLiveView();
         idle_wakeup_reset_counters(event->param);
         return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
