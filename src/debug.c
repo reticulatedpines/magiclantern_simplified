@@ -1916,7 +1916,7 @@ void screenshots_for_menu()
     select_menu_by_name("Focus", "Follow Focus");
     msleep(1000); call("dispcheck");
 
-    select_menu_by_name("Display", "Display settings...");
+    select_menu_by_name("Display", "LV saturation");
     msleep(1000); call("dispcheck");
 
     select_menu_by_name("Prefs", "Powersave settings...");

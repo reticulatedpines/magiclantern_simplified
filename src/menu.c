@@ -2303,13 +2303,13 @@ void select_menu(char* name, int entry_index)
 
 void select_menu_by_name(char* name, char* entry_name)
 {
-    int menu_was_selected = 0;
+    struct menu * menu_that_was_selected = 0;
     int entry_was_selected = 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        menu->selected = !strcmp(menu->name, name) && !menu_was_selected;
-        if (menu->selected) menu_was_selected = 1;
+        menu->selected = !strcmp(menu->name, name) && !menu_that_was_selected;
+        if (menu->selected) menu_that_was_selected = menu;
         if (menu->selected)
         {
             struct menu_entry * entry = menu->children;
@@ -2323,8 +2323,8 @@ void select_menu_by_name(char* name, char* entry_name)
         }
     }
     
-    if (!menu_was_selected) menu->selected = 1; // name not found, just select one
-    if (!entry_was_selected) menu->children->selected = 1;
+    if (!menu_that_was_selected) { menu->selected = 1; menu_that_was_selected = menu; }// name not found, just select one
+    if (!entry_was_selected) menu_that_was_selected->children->selected = 1;
     //~ menu_damage = 1;
 }
 
