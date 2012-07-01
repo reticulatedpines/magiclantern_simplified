@@ -557,9 +557,10 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    while(gui_menu_shown()) msleep(100);
-    msleep(2000);
-    menu_benchmark();
+    //~ while(gui_menu_shown()) msleep(100);
+    //~ msleep(2000);
+    //~ menu_benchmark();
+    menu_save_all_items_dbg();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -2572,6 +2573,7 @@ struct menu_entry debug_menus[] = {
         .help = "Displays the tasks started by Canon and Magic Lantern.",
         .children =  (struct menu_entry[]) {
             {
+                .name = "Task list",
                 .display = tasks_print,
                 .priv = &what_tasks_to_show,
                 .min = 1,

@@ -1290,6 +1290,7 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
+                .name = "StepDelay",
                 .display    = focus_delay_display,
                 .select     = focus_delay_toggle,
                 .help = "Delay between two successive focus commands.",

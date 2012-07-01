@@ -2495,6 +2495,38 @@ void menu_save_hidden_items()
     FIO_CloseFile( file );
 }
 
+void menu_save_all_items_dbg()
+{
+    #define MAX_SIZE 10240
+    char* msg = alloc_dma_memory(MAX_SIZE);
+    char* msgc = CACHEABLE(msg);
+    msg[0] = '\0';
+
+    int unnamed = 0;
+    struct menu * menu = menus;
+    for( ; menu ; menu = menu->next )
+    {
+        struct menu_entry * entry = menu->children;
+        
+        int i;
+        for(i = 0 ; entry ; entry = entry->next, i++ )
+        {
+            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1, "%s\\%s\n", menu->name, entry->name);
+            if (strlen(entry->name) == 0 || strlen(menu->name) == 0) unnamed++;
+        }
+    }
+    
+    FILE * file = FIO_CreateFileEx( CARD_DRIVE "ML/LOGS/MENUS.LOG" );
+    if( file == INVALID_PTR )
+        return;
+    
+    FIO_WriteFile(file, msg, strlen(msgc));
+
+    FIO_CloseFile( file );
+    
+    NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
+}
+
 void menu_load_hidden_items()
 {
     int size = 0;

@@ -956,6 +956,7 @@ static struct menu_entry fps_menu[] = {
                 .help = "FPS presets - a few useful combinations.",
             },*/
             {
+                .name = "Desired FPS", 
                 .priv    = &fps_override_index,
                 .display = desired_fps_print,
                 .min = 0,
@@ -986,13 +987,14 @@ static struct menu_entry fps_menu[] = {
                 .help = "FPS range. Changing this will change FPS timer A.",
             },*/
             {
+                .name = "Shutter range",
                 .display = shutter_range_print,
                 //~ .select = fps_timer_a_big_change,
                 .select = fps_timer_fine_tune_a_big,
                 .help = "Shutter speed range with current settings. Adjusts timer A.",
             },
             {
-                //~ .name = "FPS timer A",
+                .name = "FPS timer A",
                 .display = fps_timer_print,
                 .priv = &desired_fps_timer_a_offset,
                 .select = fps_timer_fine_tune_a,
