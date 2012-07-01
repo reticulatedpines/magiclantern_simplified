@@ -1646,6 +1646,7 @@ static struct menu_entry key_menus[] = {
     {
         .name       = "Misc key settings...",
         .select = menu_open_submenu,
+        .submenu_width = 656,
         .help = "Misc options related to shortcut keys.",
         .children =  (struct menu_entry[]) {
             #if defined(CONFIG_550D) || defined(CONFIG_500D)
