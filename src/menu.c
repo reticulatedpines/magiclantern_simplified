@@ -1785,7 +1785,7 @@ handle_ml_menu_keys(struct event * event)
     if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
 #endif
 
-    int menu_selection_changed = 0; // if true, do not allow quick redraws
+    int menu_needs_full_redraw = 0; // if true, do not allow quick redraws
     
     switch( button_code )
     {
@@ -1796,6 +1796,7 @@ handle_ml_menu_keys(struct event * event)
         menu_help_active = 0;
 */
         menu_entry_showhide_toggle(menu);
+        menu_needs_full_redraw = 1;
         
         break;
 
@@ -1809,13 +1810,14 @@ handle_ml_menu_keys(struct event * event)
         else submenu_mode = (!submenu_mode)*2;
         menu_damage = 1;
         menu_help_active = 0;
+        menu_needs_full_redraw = 1;
         break;
 
     case BGMT_PRESS_UP:
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
         menu_entry_move( menu, -1 );
-        menu_selection_changed = 1;
+         if (submenu_mode == 2) menu_needs_full_redraw = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
@@ -1823,7 +1825,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         menu_entry_move( menu, 1 );
-        menu_selection_changed = 1;
+         if (submenu_mode == 2) menu_needs_full_redraw = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
         break;
 
@@ -1832,7 +1834,7 @@ handle_ml_menu_keys(struct event * event)
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
-        else { menu_move( menu, 1 ); show_only_selected = 0; menu_selection_changed = 1; }
+        else { menu_move( menu, 1 ); show_only_selected = 0; }
         break;
 
     case BGMT_PRESS_LEFT:
@@ -1840,7 +1842,7 @@ handle_ml_menu_keys(struct event * event)
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
-        else { menu_move( menu, -1 ); show_only_selected = 0; menu_selection_changed = 1; }
+        else { menu_move( menu, -1 ); show_only_selected = 0; }
         break;
 
 #ifdef CONFIG_5D3
@@ -1851,6 +1853,7 @@ handle_ml_menu_keys(struct event * event)
         else
         {
             menu_entry_select( menu, 3 ); // "SET" select
+            menu_needs_full_redraw = 1;
         }
         //~ menu_damage = 1;
         break;
@@ -1859,12 +1862,14 @@ handle_ml_menu_keys(struct event * event)
         menu_help_active = !menu_help_active;
         show_only_selected = 0;
         if (menu_help_active) menu_help_go_to_selected_entry(main_menu);
+        menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         break;
 
     case BGMT_PLAY:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 1 ); // reverse select
+        menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         break;
 
@@ -1889,6 +1894,7 @@ handle_ml_menu_keys(struct event * event)
 #endif
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // auto setting select
+        menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         break;
 
@@ -1916,10 +1922,10 @@ handle_ml_menu_keys(struct event * event)
     
     // if submenu mode was changed, force a full redraw
     static int prev_submenu_mode = 0;
-    if (submenu_mode != prev_submenu_mode) menu_selection_changed = 1;
+    if (submenu_mode != prev_submenu_mode) menu_needs_full_redraw = 1;
     prev_submenu_mode = submenu_mode;
     
-    if (menu_selection_changed && submenu_mode==2) menu_redraw_full();
+    if (menu_needs_full_redraw) menu_redraw_full();
     else menu_redraw();
     keyrepeat_ack(button_code);
     hist_countdown = 3;
