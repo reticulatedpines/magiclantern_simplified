@@ -2048,6 +2048,7 @@ void grayscale_menus_step()
             else if (bmp_color_scheme == 2) alter_bitmap_palette(1,1,0,0);
             else if (bmp_color_scheme == 3) alter_bitmap_palette(3,1,0,0);
             else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
+            else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
         }
     }
 
@@ -2125,8 +2126,8 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "Color Scheme   ",
                 .priv     = &bmp_color_scheme,
-                .max = 4,
-                .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
+                .max = 5,
+                .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
                 .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
                 .icon_type = IT_NAMED_COLOR,
                 //~ .edit_mode = EM_MANY_VALUES,
