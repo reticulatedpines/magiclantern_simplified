@@ -75,23 +75,33 @@ int handle_common_events_startup(struct event * event)
 
 extern int ResumeLiveView();
 
+static int pre_shutdown_requested = 0; // used for preventing wakeup from paused LiveView at shutdown (causes race condition with Canon code and crashes)
+
+void reset_pre_shutdown_flag_task()
+{
+    msleep(3000);
+    pre_shutdown_requested = 0;
+}
+
 int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras
     // there may be exceptions
-
+    
     // these are required for correct shutdown from powersave mode
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
         event->param == GMT_GUICMD_LOCK_OFF)
     {
-        ml_shutdown();
+        pre_shutdown_requested = 1;
+        config_save_at_shutdown();
+        task_create("pre_shutdown_reset", 0x1c, 0, reset_pre_shutdown_flag_task, 0); // if false shutdown, reset this after a few seconds
         return 1;
     }
     
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
-        int ans =  (ml_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
+        int ans =  (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
 
         //~ run_in_separate_task(ResumeLiveView, 0);
         //~ return 0;
