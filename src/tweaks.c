@@ -919,6 +919,25 @@ fake_halfshutter_step()
     }
 }
 
+static int quickzoom_pressed = 0;
+static int quickzoom_unpressed = 0;
+int handle_fast_zoom_in_play_mode(struct event * event)
+{
+    if (!IS_FAKE(event))
+    {
+        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && quickzoom && PLAY_MODE)
+        {
+            quickzoom_pressed = 1; // will be reset after it's handled
+            quickzoom_unpressed = 0;
+        }
+        else if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE && quickzoom && PLAY_MODE)
+        {
+            quickzoom_unpressed = 1;
+        }
+    }
+    return 1;
+}
+
 static void
 tweak_task( void* unused)
 {
@@ -954,7 +973,7 @@ tweak_task( void* unused)
         #ifndef CONFIG_5D3 // already has this? I remember Marvin told me so
         if (quickzoom && PLAY_MODE)
         {
-            if (get_zoom_in_pressed()) 
+            if (quickzoom_pressed) 
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -970,18 +989,15 @@ tweak_task( void* unused)
                     msleep(30);
                     if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                 }
-                while (get_zoom_in_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
-                if (quickzoom == 3)
-                {
-                    play_zoom_center_on_selected_af_point();
-                    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-                }
+                while (!quickzoom_unpressed && PLAY_MODE) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                quickzoom_pressed = 0;
             }
             if (get_zoom_out_pressed())
             {
                 msleep(300);
                 while (get_zoom_out_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
+                fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
             }
         }
         #endif

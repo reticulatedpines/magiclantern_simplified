@@ -3378,7 +3378,6 @@ int joy_center_pressed = 0;
 int handle_buttons_being_held(struct event * event)
 {
     // keep track of buttons being pressed
-    if (event->param == BGMT_PRESS_SET) set_pressed = 1;
     if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
     if (event->param == BGMT_PLAY) set_pressed = 0;
     if (event->param == BGMT_MENU) set_pressed = 0;
@@ -3386,16 +3385,16 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
     if (!IS_FAKE(event))
     {
+        if (event->param == BGMT_PRESS_SET) set_pressed = 1;
         if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
         if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
         if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
         if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
+        if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
+        #endif
     }
-
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
-    if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
-    #endif
     
     return 1;
 }
