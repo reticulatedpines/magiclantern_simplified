@@ -2987,7 +2987,7 @@ bulb_take_pic(int duration)
     for (int i = 0; i < d; i++)
     {
         // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
-        if (DISPLAY_IS_ON) fake_simple_button(BGMT_INFO);
+        if (DISPLAY_IS_ON && i>0) fake_simple_button(BGMT_INFO);
         
         // turn off the LED - no light pollution, please :)
         // but blink it quickly every 10 seconds to have some feedback
@@ -3002,6 +3002,7 @@ bulb_take_pic(int duration)
         // exposure was canceled earlier by user
         if (lens_info.job_state == 0) break;
     }
+    
     msleep(duration % 1000);
     //~ prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
     //~ NotifyBox(3000, "BulbEnd");
