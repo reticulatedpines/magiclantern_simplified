@@ -2049,6 +2049,7 @@ open_canon_menu()
 // pump a few redraws quickly, to mask Canon's back menu
 void menu_redraw_flood()
 {
+    if (!lv) msleep(200);
     for (int i = 0; i < 10; i++)
     {
         canon_gui_enable_front_buffer(0);
@@ -2069,7 +2070,7 @@ void piggyback_canon_menu()
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
     if (new_gui_mode) task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0);
-    if (new_gui_mode != CURRENT_DIALOG_MAYBE) SetGUIRequestMode(new_gui_mode);
+    if (new_gui_mode != CURRENT_DIALOG_MAYBE) { SetGUIRequestMode(new_gui_mode); msleep(200); }
 #endif
 }
 
