@@ -2104,6 +2104,14 @@ static struct menu_entry display_menus[] = {
         //.essential = FOR_LIVEVIEW,
     },
     {
+        .name = "Force HDMI-VGA",
+        .priv = &hdmi_force_vga, 
+        .display = hdmi_force_display, 
+        .select = menu_binary_toggle,
+        .help = "Force low resolution (720x480) on HDMI displays.",
+        //.essential = FOR_EXT_MONITOR,
+    },
+    {
         .name = "Screen layout settings...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
@@ -2156,14 +2164,6 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
     },
-    {
-        .name = "Force HDMI-VGA",
-        .priv = &hdmi_force_vga, 
-        .display = hdmi_force_display, 
-        .select = menu_binary_toggle,
-        .help = "Force low resolution (720x480) on HDMI displays.",
-        //.essential = FOR_EXT_MONITOR,
-    }
 };
 
 //~ extern int quickreview_liveview;
