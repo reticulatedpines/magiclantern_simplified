@@ -473,7 +473,7 @@ zebra_nrec_display(
     menu_draw_icon(x, y, MNI_BOOL(!zebra_nrec), 0);
 }*/
 
-static void
+void
 hdmi_force_display(
         void *                  priv,
         int                     x,
@@ -494,7 +494,7 @@ CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 unsigned* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
 int get_screen_layout() { return (int) *get_screen_layout_ptr(); }
 
-static void
+void
 screen_layout_display(
         void *                  priv,
         int                     x,
@@ -1113,28 +1113,10 @@ struct menu_entry expo_override_menus[] = {
     },
 };
 
-static struct menu_entry display_menus[] = {
-    {
-        .name = "Screen Layout",
-        .display = screen_layout_display, 
-        .select = screen_layout_toggle,
-        .help = "Position of top/bottom bars, useful for external displays.",
-        //.essential = FOR_EXT_MONITOR,
-        //~ .edit_mode = EM_MANY_VALUES,
-    },
-    {
-        .name = "Force HDMI-VGA",
-        .priv = &hdmi_force_vga, 
-        .display = hdmi_force_display, 
-        .select = menu_binary_toggle,
-        .help = "Force low resolution (720x480) on HDMI displays.",
-        //.essential = FOR_EXT_MONITOR,
-    },
-};
 void movtweak_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
-    menu_add( "Display", display_menus, COUNT(display_menus) );
+    //~ menu_add( "Display", display_menus, COUNT(display_menus) );
     bv_sem = create_named_semaphore( "bv", 1 );
 }
 

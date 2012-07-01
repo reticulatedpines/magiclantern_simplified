@@ -1856,7 +1856,7 @@ void preview_saturation_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV saturation : %s",
+        "LV saturation  : %s",
         preview_saturation == 0 ? "0 (Grayscale)" :
         preview_saturation == 1 ? "Normal" :
         preview_saturation == 2 ? "High" :
@@ -1882,7 +1882,7 @@ void preview_contrast_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV contrast   : %s",
+        "LV contrast    : %s",
         preview_contrast == 0 ? "Zero" :
         preview_contrast == 1 ? "Very low" :
         preview_contrast == 2 ? "Low" :
@@ -1900,7 +1900,7 @@ void adjust_saturation_level(int delta)
 {
     preview_saturation = COERCE((int)preview_saturation + delta, 0, 3);
     NotifyBox(2000, 
-        "LCD Saturation : %s",
+        "LCD Saturation  : %s",
         preview_saturation == 0 ? "0 (Grayscale)" :
         preview_saturation == 1 ? "Normal" :
         preview_saturation == 2 ? "High" :
@@ -2012,14 +2012,18 @@ void lcd_adjust_position_step()
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
 extern void clearscreen_display( void * priv, int x, int y, int selected);
+extern void screen_layout_display( void * priv, int x, int y, int selected);
+extern void screen_layout_toggle(void* priv, int delta);
+extern int hdmi_force_vga;
+extern void hdmi_force_display(void* priv, int delta);
 
 static struct menu_entry display_menus[] = {
-    {
+/*    {
         .name = "Display adjustments...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
         .help = "Contrast, saturation, color scheme. No effect on recording.",
-        .children =  (struct menu_entry[]) {
+        .children =  (struct menu_entry[]) {*/
             {
                 .name = "LV contrast",
                 .priv     = &preview_contrast,
@@ -2040,7 +2044,7 @@ static struct menu_entry display_menus[] = {
                 //.essential = FOR_LIVEVIEW,
             },
             {
-                .name = "Color Scheme",
+                .name = "Color Scheme   ",
                 .priv     = &bmp_color_scheme,
                 .max = 4,
                 .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red"},
@@ -2048,54 +2052,9 @@ static struct menu_entry display_menus[] = {
                 .icon_type = IT_NAMED_COLOR,
                 //~ .edit_mode = EM_MANY_VALUES,
             },
-            MENU_EOL
+/*            MENU_EOL
         },
-    },
-    {
-        .name = "Layout settings...",
-        .select         = menu_open_submenu,
-        .submenu_width = 700,
-        .help = "Screen orientation, position fine-tuning...",
-        .children =  (struct menu_entry[]) {
-                {
-                    .name = "Image position ",
-                    .priv = &lcd_adjust_position,
-                    .max = 2,
-                    .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
-                    .icon_type = IT_BOOL,
-                    .help = "May make the image easier to see from difficult angles.",
-                },
-                {
-                    .name = "UpsideDown mode",
-                    .priv = &menu_upside_down,
-                    .display = menu_upside_down_print,
-                    .select = menu_binary_toggle,
-                    .help = "Displays overlay graphics upside-down and flips arrow keys.",
-                },
-            #if defined(CONFIG_60D) || defined(CONFIG_600D)
-                {
-                    .name = "Orientation    ",
-                    .priv = &DISPLAY_ORIENTATION,
-                    .select     = display_orientation_toggle,
-                    .max = 2,
-                    .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
-                    .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
-                },
-            #endif
-            #if defined(CONFIG_60D) || defined(CONFIG_600D)
-                {
-                    .name = "Auto Mirroring",
-                    .priv = &display_dont_mirror,
-                    .display = display_dont_mirror_display, 
-                    .select = menu_binary_toggle,
-                    .help = "Prevents display mirroring, which may reverse ML texts.",
-                    .icon_type = IT_DISABLE_SOME_FEATURE,
-                    //.essential = FOR_LIVEVIEW,
-                },
-            #endif
-            MENU_EOL
-        },
-    },
+    }, */
     {
         .name = "Clear Overlays",
         .priv           = &clearscreen_enabled,
@@ -2144,6 +2103,67 @@ static struct menu_entry display_menus[] = {
         .icon_type = IT_DISABLE_SOME_FEATURE,
         //.essential = FOR_LIVEVIEW,
     },
+    {
+        .name = "Screen layout settings...",
+        .select         = menu_open_submenu,
+        .submenu_width = 700,
+        .help = "Screen orientation, position fine-tuning...",
+        .children =  (struct menu_entry[]) {
+                {
+                    .name = "Screen Layout",
+                    .display = screen_layout_display, 
+                    .select = screen_layout_toggle,
+                    .help = "Position of top/bottom bars, useful for external displays.",
+                    //.essential = FOR_EXT_MONITOR,
+                    //~ .edit_mode = EM_MANY_VALUES,
+                },
+                {
+                    .name = "Image position ",
+                    .priv = &lcd_adjust_position,
+                    .max = 2,
+                    .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
+                    .icon_type = IT_BOOL,
+                    .help = "May make the image easier to see from difficult angles.",
+                },
+                {
+                    .name = "UpsideDown mode",
+                    .priv = &menu_upside_down,
+                    .display = menu_upside_down_print,
+                    .select = menu_binary_toggle,
+                    .help = "Displays overlay graphics upside-down and flips arrow keys.",
+                },
+            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+                {
+                    .name = "Orientation    ",
+                    .priv = &DISPLAY_ORIENTATION,
+                    .select     = display_orientation_toggle,
+                    .max = 2,
+                    .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
+                    .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
+                },
+            #endif
+            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+                {
+                    .name = "Auto Mirroring",
+                    .priv = &display_dont_mirror,
+                    .display = display_dont_mirror_display, 
+                    .select = menu_binary_toggle,
+                    .help = "Prevents display mirroring, which may reverse ML texts.",
+                    .icon_type = IT_DISABLE_SOME_FEATURE,
+                    //.essential = FOR_LIVEVIEW,
+                },
+            #endif
+            MENU_EOL
+        },
+    },
+    {
+        .name = "Force HDMI-VGA",
+        .priv = &hdmi_force_vga, 
+        .display = hdmi_force_display, 
+        .select = menu_binary_toggle,
+        .help = "Force low resolution (720x480) on HDMI displays.",
+        //.essential = FOR_EXT_MONITOR,
+    }
 };
 
 //~ extern int quickreview_liveview;
