@@ -2917,6 +2917,7 @@ struct menu_entry zebra_menus[] = {
         .display        = focus_peaking_display,
         .select         = menu_binary_toggle,
         .help = "Show tiny dots on focused edges.",
+        .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
@@ -2963,6 +2964,7 @@ struct menu_entry zebra_menus[] = {
         .min = 0,
         .max = 1,
         .help = "Zoom box for checking focus. Can be used while recording.",
+        .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
