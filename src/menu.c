@@ -1178,7 +1178,7 @@ menus_display(
                 //~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
                 x += w;
             }
-            x += 57;
+            x += 62;
             //~ if (menu->selected)
             //~ {
                 //~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
@@ -2323,7 +2323,7 @@ void select_menu_by_name(char* name, char* entry_name)
         }
     }
     
-    if (!menu_that_was_selected) { menu->selected = 1; menu_that_was_selected = menu; }// name not found, just select one
+    if (!menu_that_was_selected) { menus->selected = 1; menu_that_was_selected = menus; }// name not found, just select the first one one
     if (!entry_was_selected) menu_that_was_selected->children->selected = 1;
     //~ menu_damage = 1;
 }
