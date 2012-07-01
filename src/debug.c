@@ -686,7 +686,7 @@ static void stress_test_task(void* unused)
     NotifyBox(1000, "ML menu scroll...");
     give_semaphore(gui_sem);
     msleep(1000);
-    for (int i = 0; i <= 1000; i++)
+    for (int i = 0; i <= 5000; i++)
     {
         static int dir = 0;
         switch(dir)
