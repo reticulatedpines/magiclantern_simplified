@@ -4969,18 +4969,19 @@ livev_lopriority_task( void* unused )
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x4000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
 
+// these may be out of order for config compatibility
 void update_disp_mode_bits_from_params()
 {
 //~ BMP_LOCK(
     uint32_t bits =
-        (global_draw          ? 1<<0 : 0) |
+        (global_draw & 1      ? 1<<0 : 0) |
         (zebra_draw           ? 1<<1 : 0) |
         (hist_draw            ? 1<<2 : 0) |
         (crop_enabled         ? 1<<3 : 0) |
         (waveform_draw        ? 1<<4 : 0) |
         (falsecolor_draw      ? 1<<5 : 0) |
         (spotmeter_draw       ? 1<<6 : 0) |
-        //~ (clearscreen_enabled  ? 1<<7 : 0) |
+        (global_draw & 2      ? 1<<7 : 0) |
         (focus_peaking        ? 1<<8 : 0) |
         (zoom_overlay_enabled ? 1<<9 : 0) |
         (transparent_overlay  ? 1<<10: 0) |
@@ -5003,20 +5004,21 @@ void update_disp_mode_params_from_bits()
                     disp_mode == 2 ? disp_mode_b :
                     disp_mode == 3 ? disp_mode_c : disp_mode_x;
 
-    global_draw          = bits & (1<<0) ? 1 : 0;
+    int global_draw_0    = bits & (1<<0) ? 1 : 0;
     zebra_draw           = bits & (1<<1) ? 1 : 0;
     hist_draw            = bits & (1<<2) ? 1 : 0;
     crop_enabled         = bits & (1<<3) ? 1 : 0;
     waveform_draw        = bits & (1<<4) ? 1 : 0;
     falsecolor_draw      = bits & (1<<5) ? 1 : 0;
     spotmeter_draw       = bits & (1<<6) ? 1 : 0;
-    //~ clearscreen_enabled  = bits & (1<<7) ? 1 : 0;
+    int global_draw_1    = bits & (1<<7) ? 1 : 0;
     focus_peaking        = bits & (1<<8) ? 1 : 0;
     zoom_overlay_enabled = bits & (1<<9) ? 1 : 0;
     transparent_overlay  = bits & (1<<10)? 1 : 0;
     //~ electronic_level     = bits & (1<<11)? 1 : 0;
     defish_preview       = bits & (1<<12)? 1 : 0;
     vectorscope_draw     = bits & (1<<13)? 1 : 0;
+    global_draw = global_draw_0 + global_draw_1 * 2;
 //~ end:
 //~ )
 }
