@@ -670,7 +670,7 @@ static void stress_test_task(void* unused)
     msleep(2000);
 
     NotifyBox(1000, "Cropmarks preview...");
-    select_menu_by_name("LiveV", "Cropmarks");
+    select_menu_by_name("Overlay", "Cropmarks");
     give_semaphore( gui_sem );
     msleep(500);
     menu_open_submenu();
@@ -1036,34 +1036,34 @@ static void stress_test_random_action()
                 //~ fake_simple_button(BGMT_LV);
                 return;
             case 1:
-                stress_test_toggle_menu_item("LiveV", "Global Draw");
+                stress_test_toggle_menu_item("Overlay", "Global Draw");
                 return;
             case 2:
-                stress_test_toggle_menu_item("LiveV", "Zebras");
+                stress_test_toggle_menu_item("Overlay", "Zebras");
                 return;
             case 3:
-                stress_test_toggle_menu_item("LiveV", "Cropmarks");
+                stress_test_toggle_menu_item("Overlay", "Cropmarks");
                 return;
             case 4:
-                stress_test_toggle_menu_item("LiveV", "Focus Peak");
+                stress_test_toggle_menu_item("Overlay", "Focus Peak");
                 return;
             case 5:
-                stress_test_toggle_menu_item("LiveV", "Magic Zoom");
+                stress_test_toggle_menu_item("Overlay", "Magic Zoom");
                 return;
             case 6:
-                stress_test_toggle_menu_item("LiveV", "Spotmeter");
+                stress_test_toggle_menu_item("Overlay", "Spotmeter");
                 return;
             case 7:
-                stress_test_toggle_menu_item("LiveV", "Ghost Image");
+                stress_test_toggle_menu_item("Overlay", "Ghost Image");
                 return;
             case 8:
-                stress_test_toggle_menu_item("LiveV", "False Color");
+                stress_test_toggle_menu_item("Overlay", "False Color");
                 return;
             case 9:
-                stress_test_toggle_menu_item("LiveV", "Histogram");
+                stress_test_toggle_menu_item("Overlay", "Histogram");
                 return;
             case 10:
-                stress_test_toggle_menu_item("LiveV", "Waveform");
+                stress_test_toggle_menu_item("Overlay", "Waveform");
                 return;
             case 11:
                 stress_test_toggle_menu_item("Audio", "AGC");
@@ -1147,7 +1147,7 @@ static void stress_test_random_action()
                 //~ fake_simple_button(BGMT_INFO);
                 return;
             case 38:
-                stress_test_toggle_menu_item("LiveV", "Vectorscope");
+                stress_test_toggle_menu_item("Overlay", "Vectorscope");
                 return;
         }
     }
@@ -1192,7 +1192,7 @@ static void stress_test_random_action_simple()
         {
             case 0:
             {
-                stress_test_toggle_menu_item("LiveV", "Global Draw");
+                stress_test_toggle_menu_item("Overlay", "Global Draw");
                 return;
             }
             case 1:
@@ -1904,7 +1904,7 @@ void screenshots_for_menu()
     select_menu_by_name("Expo", "ISO");
     msleep(1000); call("dispcheck");
 
-    select_menu_by_name("LiveV", "Magic Zoom");
+    select_menu_by_name("Overlay", "Magic Zoom");
     msleep(1000); call("dispcheck");
 
     select_menu_by_name("Movie", "FPS override");

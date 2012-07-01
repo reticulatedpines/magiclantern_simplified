@@ -33,11 +33,12 @@
 
 #define DOUBLE_BUFFERING 1
 
-/*int sem_line = 0;
+/*
+int sem_line = 0;
 
 int take_semapore_dbg(int sem, int timeout, int line) 
 { 
-    bmp_printf(FONT_LARGE, 0, 0, "take: %d ", sem_line); 
+    bmp_printf(FONT_LARGE, 0, 0, "take: %d (%d) ", sem_line, line); 
     int ans = take_semaphore(sem, timeout); 
     sem_line = line; 
     bmp_printf(FONT_LARGE, 0, 0, "take: OK "); 
@@ -45,7 +46,8 @@ int take_semapore_dbg(int sem, int timeout, int line)
 }
 
 #define TAKE_SEMAPHORE(sem, timeout) take_semapore_dbg(sem, timeout, __LINE__)
-#define GIVE_SEMAPHORE(sem) { sem_line = 0; give_semaphore(sem); }*/
+#define GIVE_SEMAPHORE(sem) { sem_line = 0; give_semaphore(sem); }
+*/
 
 static struct semaphore * menu_sem;
 extern struct semaphore * gui_sem;
@@ -1280,9 +1282,17 @@ menu_entry_select(
 
     if( !entry )
         return;
-
+    
     //~ if (entry->show_liveview)
         //~ menu_show_only_selected();
+    
+    // don't perform actions on empty items (can happen on empty submenus)
+    if (!IS_VISIBLE(entry) && !advanced_mode)
+    {
+        submenu_mode = 0;
+        show_only_selected = 0;
+        return;
+    }
 
     if(mode == 1) // decrement
     {
@@ -2293,19 +2303,28 @@ void select_menu(char* name, int entry_index)
 
 void select_menu_by_name(char* name, char* entry_name)
 {
+    int menu_was_selected = 0;
+    int entry_was_selected = 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        menu->selected = !strcmp(menu->name, name);
+        menu->selected = !strcmp(menu->name, name) && !menu_was_selected;
+        if (menu->selected) menu_was_selected = 1;
         if (menu->selected)
         {
             struct menu_entry * entry = menu->children;
             
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
-                entry->selected = !strcmp(entry->name, entry_name);
+            {
+                entry->selected = !strcmp(entry->name, entry_name) && !entry_was_selected;
+                if (entry->selected) entry_was_selected = 1;
+            }
         }
     }
+    
+    if (!menu_was_selected) menu->selected = 1; // name not found, just select one
+    if (!entry_was_selected) menu->children->selected = 1;
     //~ menu_damage = 1;
 }
 
