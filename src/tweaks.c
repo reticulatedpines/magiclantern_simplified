@@ -1003,6 +1003,7 @@ tweak_task( void* unused)
             {
                 if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                 {
+                    info_led_on();
                     for (int i = 0; i < 10; i++)
                     {
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
@@ -1012,15 +1013,26 @@ tweak_task( void* unused)
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
                         msleep(50);
                     }
+                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    quickzoom_pressed = 0;
+                    msleep(500);
+                    info_led_off();
+                }
+                else if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
+                {
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
+                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); 
+                    fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                    quickzoom_pressed = 0;
                 }
                 else
                 {
                     msleep(300);
                     while (!quickzoom_unpressed && PLAY_MODE) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    quickzoom_pressed = 0;
                 }
-
-                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-                quickzoom_pressed = 0;
             }
             if (get_zoom_out_pressed())
             {
