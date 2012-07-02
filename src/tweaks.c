@@ -1025,7 +1025,7 @@ tweak_task( void* unused)
                         msleep(20);
                     }
                     fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-                    msleep(600);
+                    msleep(800); // not sure how to tell when it's safe to start zooming out
                     info_led_off();
                 }
                 else if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
