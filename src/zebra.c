@@ -33,6 +33,9 @@
 #include "gui.h"
 #include "lens.h"
 
+
+#define DIGIC_ZEBRA_REGISTER 0xC0F140cc
+
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
@@ -1251,6 +1254,7 @@ static int zebra_color_word_row_thick(int c, int y)
 
 int focus_peaking_debug = 0;
 
+static int zebra_digic_dirty = 0;
 // returns how the focus peaking threshold changed
 static int
 draw_zebra_and_focus( int Z, int F )
@@ -1284,10 +1288,11 @@ draw_zebra_and_focus( int Z, int F )
 
         if (zebra_colorspace == 2)
         {
+            zebra_digic_dirty = 1;
             if (zlh != 255)
-                EngDrvOut(0xC0F140cc, 0xC000 + zlh); // overexposure only, can't do both
+                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh); // overexposure only, can't do both
             else if (zll != 0)
-                EngDrvOut(0xC0F140cc, 0x1d000 + zll); // underexposure only
+                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll); // underexposure only
             return;
         }
         
@@ -4744,11 +4749,14 @@ livev_hipriority_task( void* unused )
         
         get_422_hd_idle_buf(); // just to keep it up-to-date
         
+        if (zebra_digic_dirty && !zebra_draw) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0);
+        
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
             if (!zebra_should_run())
             {
+                if (zebra_digic_dirty) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0);
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_60D
                 disable_electronic_level();
