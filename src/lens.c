@@ -47,16 +47,17 @@ void lensinfo_set_aperture(int raw);
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
 
 CONFIG_INT("movie.log", movie_log, 0);
-#ifndef CONFIG_FULLFRAME
-#define SENSORCROPFACTOR 16
-CONFIG_INT("crop.info", crop_info, 0);
+#ifdef CONFIG_FULLFRAME
+#define SENSORCROPFACTOR 10
+#define crop_info 0
 #elif defined(CONFIG_600D)
 static PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 #define DIGITAL_ZOOM ((is_movie_mode() && video_mode_crop && video_mode_resolution == 0) ? digital_zoom_ratio : 100)
 #define SENSORCROPFACTOR 16 * DIGITAL_ZOOM / 100
+CONFIG_INT("crop.info", crop_info, 0);
 #else
-#define SENSORCROPFACTOR 10
-#define crop_info 0
+#define SENSORCROPFACTOR 16
+CONFIG_INT("crop.info", crop_info, 0);
 #endif
 
 //~ static struct semaphore * lens_sem;
