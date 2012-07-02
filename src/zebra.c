@@ -1283,13 +1283,13 @@ draw_zebra_and_focus( int Z, int F )
     if (zd)
     {
         
-        int zlh = zebra_level_hi * 255 / 100;
+        int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
         if (zebra_colorspace == 2)
         {
             zebra_digic_dirty = 1;
-            if (zlh != 255)
+            if (zlh <= 255)
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh); // overexposure only, can't do both
             else if (zll != 0)
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll); // underexposure only
@@ -1914,21 +1914,54 @@ static void
 zebra_draw_display( void * priv, int x, int y, int selected )
 {
     unsigned z = *(unsigned*) priv;
+    
+    int over_disabled = (zebra_level_hi > 100);
+    int under_disabled = (zebra_level_lo == 0);
+    if (zebra_colorspace == 2 && zebra_level_hi <= 100) under_disabled = 1;
+    
+    char msg[50];
+    snprintf(msg, sizeof(msg), "Zebras      : ");
+    
     if (!z)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Zebras      : OFF"
-        );
+    {
+        STR_APPEND(msg, "OFF");
+    }
     else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Zebras      : %s, %d..%d%%",
+    {
+        STR_APPEND(msg,
+            "%s, ",
             zebra_colorspace == 0 ? "Luma" :
-            zebra_colorspace == 1 ? "RGB" : "Luma Fast",
+            zebra_colorspace == 1 ? "RGB" : "Luma Fast"
+        );
+    }
+    
+    if (over_disabled)
+    {
+        STR_APPEND(msg, 
+            "under %d%%",
+            zebra_level_lo
+        );
+    }
+    else if (under_disabled)
+    {
+        STR_APPEND(msg, 
+            "over %d%%",
+            zebra_level_hi
+        );
+    }
+    else
+    {
+        STR_APPEND(msg, 
+            "%d..%d%%",
             zebra_level_lo, zebra_level_hi
         );
+    }
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "%s", 
+        msg
+    );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
 }
 
@@ -1936,7 +1969,7 @@ static void
 zebra_level_display( void * priv, int x, int y, int selected )
 {
     unsigned level = *(unsigned*) priv;
-    if (zebra_colorspace == 2 && zebra_level_hi != 100 && priv == &zebra_level_lo)
+    if (zebra_colorspace == 2 && zebra_level_hi <= 100 && priv == &zebra_level_lo)
     {
             bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1945,7 +1978,7 @@ zebra_level_display( void * priv, int x, int y, int selected )
         );
         menu_draw_icon(x, y, MNI_WARNING, "In fast mode you can't use both 'under' and 'over' zebras.");
     }
-    else if (level == 0 || level == 100)
+    else if (level == 0 || level > 100)
     {
             bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
@@ -2935,7 +2968,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Overexposure", 
                 .priv = &zebra_level_hi,
                 .min = 70,
-                .max = 100,
+                .max = 101,
                 .display = zebra_level_display,
                 .help = "Overexposure threshold.",
             },
