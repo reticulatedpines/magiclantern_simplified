@@ -2895,7 +2895,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Overexposure", 
                 .priv = &zebra_level_hi,
-                .min = 80,
+                .min = 70,
                 .max = 100,
                 .display = zebra_level_display,
                 .help = "Overexposure threshold (100=disable).",
