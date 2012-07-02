@@ -4230,7 +4230,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_600D) && !defined(CONFIG_50D)
+    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC)
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -4250,6 +4250,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     #endif
+#ifndef CONFIG_5DC
     {
         .name = "Motion Detect",
         .priv       = &motion_detect,
@@ -4318,6 +4319,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
+#endif
     {
         .name = "Mirror Lockup",
         .priv = &mlu_auto,
@@ -4664,6 +4666,7 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
+#ifndef CONFIG_5DC
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -4735,6 +4738,7 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+#endif
 
 /*#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
     {
@@ -5956,7 +5960,7 @@ void shoot_init()
     menu_add( "Expo", expo_override_menus, 1 );
 #endif
 
-#ifndef CONFIG_600D // expsim doesn't work
+#if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
 #endif

@@ -1060,7 +1060,8 @@ menu_display(
                      10,  425, 
                     msg
                 );
-
+                
+            #ifndef CONFIG_5DC
                 if (!submenu_mode && !show_only_selected) // we can use scrollwheel for navigation
                 {
                     bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_GRAY50, COLOR_BLACK);
@@ -1071,6 +1072,7 @@ menu_display(
                         draw_line(720, 426, 680, 441, COLOR_WHITE);
                     }
                 }
+            #endif
             }
 
             // if there's a warning message set, display it
@@ -1958,7 +1960,9 @@ menu_init( void )
     menu_find_by_name( "Audio", ICON_MIC);
 #endif
     menu_find_by_name( "Expo", ICON_AE);
+#ifndef CONFIG_5DC
     menu_find_by_name( "Overlay", ICON_LV);
+#endif
 #if defined(CONFIG_500D)
     menu_find_by_name( "Movie", ICON_FILM );
 #endif
@@ -1970,7 +1974,9 @@ menu_init( void )
     menu_find_by_name( "Focus", ICON_SHARPNESS );
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
+#ifndef CONFIG_5DC
     menu_find_by_name( "Display", ICON_MONITOR );
+#endif
     menu_find_by_name( "Prefs", ICON_SMILE );
     //~ menu_find_by_name( "Play", ICON_ML_PLAY );
     //~ menu_find_by_name( "Power", ICON_P_SQUARE );
