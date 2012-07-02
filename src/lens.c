@@ -53,7 +53,7 @@ CONFIG_INT("movie.log", movie_log, 0);
 #elif defined(CONFIG_600D)
 static PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 #define DIGITAL_ZOOM ((is_movie_mode() && video_mode_crop && video_mode_resolution == 0) ? digital_zoom_ratio : 100)
-#define SENSORCROPFACTOR 16 * DIGITAL_ZOOM / 100
+#define SENSORCROPFACTOR (16 * DIGITAL_ZOOM / 100)
 CONFIG_INT("crop.info", crop_info, 0);
 #else
 #define SENSORCROPFACTOR 16
