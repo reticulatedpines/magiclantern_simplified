@@ -324,10 +324,10 @@
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 #define IMGPLAY_ZOOM_POS_X MEM(0x75e38) // Zoom CentrePos
 #define IMGPLAY_ZOOM_POS_Y MEM(0x75e3c)
-#define IMGPLAY_ZOOM_POS_X_CENTER 0x2be
-#define IMGPLAY_ZOOM_POS_Y_CENTER 0x1d4
-#define IMGPLAY_ZOOM_POS_DELTA_X (0x2be - 0x190)
-#define IMGPLAY_ZOOM_POS_DELTA_Y (0x1d4 - 0x150)
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x144
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0xd8 - 0x7d)
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
 
