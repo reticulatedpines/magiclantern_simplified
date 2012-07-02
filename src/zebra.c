@@ -267,7 +267,7 @@ static CONFIG_INT( "focus.peaking.method", focus_peaking_method,
     0    // smaller sensors are a bit too noisy => first derivative works better
     #endif
 );
-static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
+static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
