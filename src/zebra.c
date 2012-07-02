@@ -1933,28 +1933,28 @@ zebra_draw_display( void * priv, int x, int y, int selected )
             zebra_colorspace == 0 ? "Luma" :
             zebra_colorspace == 1 ? "RGB" : "Luma Fast"
         );
-    }
     
-    if (over_disabled)
-    {
-        STR_APPEND(msg, 
-            "under %d%%",
-            zebra_level_lo
-        );
-    }
-    else if (under_disabled)
-    {
-        STR_APPEND(msg, 
-            "over %d%%",
-            zebra_level_hi
-        );
-    }
-    else
-    {
-        STR_APPEND(msg, 
-            "%d..%d%%",
-            zebra_level_lo, zebra_level_hi
-        );
+        if (over_disabled)
+        {
+            STR_APPEND(msg, 
+                "under %d%%",
+                zebra_level_lo
+            );
+        }
+        else if (under_disabled)
+        {
+            STR_APPEND(msg, 
+                "over %d%%",
+                zebra_level_hi
+            );
+        }
+        else
+        {
+            STR_APPEND(msg, 
+                "%d..%d%%",
+                zebra_level_lo, zebra_level_hi
+            );
+        }
     }
     bmp_printf(
         MENU_FONT,
