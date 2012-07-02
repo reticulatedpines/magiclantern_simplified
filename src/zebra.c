@@ -4749,7 +4749,8 @@ livev_hipriority_task( void* unused )
         
         get_422_hd_idle_buf(); // just to keep it up-to-date
         
-        if (zebra_digic_dirty && !zebra_draw) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0);
+        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
+        if (zebra_digic_dirty && !zd) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0);
         
         if (!zebra_should_run())
         {
