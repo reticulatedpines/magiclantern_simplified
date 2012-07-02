@@ -2453,7 +2453,7 @@ flash_ae_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Flash AEcomp: %s%d.%d EV",
+        "Flash expo comp.: %s%d.%d EV",
         ae_ev < 0 ? "-" : "",
         ABS(ae_ev) / 10, 
         ABS(ae_ev % 10)
@@ -4343,16 +4343,17 @@ static struct menu_entry flash_menus[] = {
     {
         .name = "Flash tweaks...",
         .select     = menu_open_submenu,
+        .help = "Flash exposure compensation, 3rd party flash in LiveView...",
         .children =  (struct menu_entry[]) {
             #ifndef CONFIG_5D2 // no built-in flash; external flashes have their own EV compensation
-                {
-                    .name = "Flash AEcomp",
-                    .display    = flash_ae_display,
-                    .select     = flash_ae_toggle,
-                    .help = "Flash exposure compensation, from -5EV to +3EV.",
-                    //.essential = FOR_PHOTO,
-                    .edit_mode = EM_MANY_VALUES,
-                },
+            {
+                .name = "Flash expo comp.",
+                .display    = flash_ae_display,
+                .select     = flash_ae_toggle,
+                .help = "Flash exposure compensation, from -10EV to +3EV.",
+                //.essential = FOR_PHOTO,
+                .edit_mode = EM_MANY_VALUES,
+            },
             #endif
             #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
             {
@@ -4381,6 +4382,7 @@ struct menu_entry tweak_menus_shoot[] = {
         .name = "LiveView Zoom Settings...",
         .select = menu_open_submenu,
         //~ .display = zoom_display,
+        .submenu_width = 650,
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
