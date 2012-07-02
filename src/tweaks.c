@@ -922,18 +922,28 @@ fake_halfshutter_step()
 
 static int quickzoom_pressed = 0;
 static int quickzoom_unpressed = 0;
+static int quickzoom_fake_unpressed = 0;
 int handle_fast_zoom_in_play_mode(struct event * event)
 {
+    if (!quickzoom || !PLAY_MODE) return 1;
     if (!IS_FAKE(event))
     {
-        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && quickzoom && PLAY_MODE)
+        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
         {
             quickzoom_pressed = 1; // will be reset after it's handled
             quickzoom_unpressed = 0;
+            quickzoom_fake_unpressed = 0;
         }
-        else if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE && quickzoom && PLAY_MODE)
+        else if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
         {
             quickzoom_unpressed = 1;
+        }
+    }
+    else
+    {
+        if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        {
+            quickzoom_fake_unpressed = 1;
         }
     }
     return 1;
@@ -1004,22 +1014,24 @@ tweak_task( void* unused)
                 if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                 {
                     info_led_on();
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
-                        msleep(50);
+                        msleep(30);
                     }
                     fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    msleep(200);
                     quickzoom_pressed = 0;
-                    msleep(500);
+                    msleep(400);
                     info_led_off();
                 }
                 else if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
                 {
+                    msleep(100);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
                     fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); 
