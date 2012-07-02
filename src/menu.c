@@ -57,6 +57,7 @@ static int menu_shown = false;
 static int show_only_selected; // for ISO, kelvin...
 static int config_dirty = 0;
 static int menu_hidden_dirty = 0;
+static int menu_hidden_should_display_help = 0;
 static char* warning_msg = 0;
 int menu_help_active = 0;
 int submenu_mode = 0;
@@ -1081,10 +1082,21 @@ menu_display(
                      10,  show_only_selected ? 425 : 450, 
                         "                                                           "
                 );
+
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
                      10,  show_only_selected ? 425 : 450, 
                         warning_msg
+                );
+            }
+
+            // if you have hidden some menus, display help about how to bring them back
+            if (menu_hidden_should_display_help && !advanced_mode)
+            {
+                bmp_printf(
+                    FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
+                     10,  show_only_selected ? 425 : 450, 
+                        "To show hidden menus, enable last option from Prefs menu.  "
                 );
             }
 
@@ -1807,6 +1819,7 @@ handle_ml_menu_keys(struct event * event)
 */
         menu_entry_showhide_toggle(menu);
         menu_needs_full_redraw = 1;
+        menu_hidden_should_display_help = 1;
         
         break;
 
@@ -1829,6 +1842,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_move( menu, -1 );
          if (submenu_mode == 2) menu_needs_full_redraw = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
+        menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PRESS_DOWN:
@@ -1837,6 +1851,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_move( menu, 1 );
          if (submenu_mode == 2) menu_needs_full_redraw = 1;
         //~ if (!submenu_mode) show_only_selected = 0;
+        menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PRESS_RIGHT:
@@ -1845,6 +1860,7 @@ handle_ml_menu_keys(struct event * event)
         if (menu_help_active) { menu_help_next_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
         else { menu_move( menu, 1 ); show_only_selected = 0; }
+        menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PRESS_LEFT:
@@ -1853,6 +1869,7 @@ handle_ml_menu_keys(struct event * event)
         if (menu_help_active) { menu_help_prev_page(); break; }
         if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
         else { menu_move( menu, -1 ); show_only_selected = 0; }
+        menu_hidden_should_display_help = 0;
         break;
 
 #ifdef CONFIG_5D3
@@ -1866,6 +1883,7 @@ handle_ml_menu_keys(struct event * event)
             menu_needs_full_redraw = 1;
         }
         //~ menu_damage = 1;
+        menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_INFO:
@@ -1874,6 +1892,7 @@ handle_ml_menu_keys(struct event * event)
         if (menu_help_active) menu_help_go_to_selected_entry(main_menu);
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
+        menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PLAY:
@@ -1881,6 +1900,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_select( menu, 1 ); // reverse select
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
+        menu_hidden_should_display_help = 0;
         break;
 
 #ifdef BGMT_Q
@@ -1906,6 +1926,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_select( menu, 2 ); // auto setting select
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
+        menu_hidden_should_display_help = 0;
         break;
 
 #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
@@ -2118,6 +2139,7 @@ static void menu_open()
     menu_help_active = 0;
     keyrepeat = 0;
     menu_shown = 1;
+    menu_hidden_should_display_help = 0;
 
     piggyback_canon_menu();
     canon_gui_disable_front_buffer(0);
