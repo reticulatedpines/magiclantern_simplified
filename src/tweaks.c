@@ -2172,6 +2172,7 @@ static struct menu_entry display_menus[] = {
         .icon_type = IT_DISABLE_SOME_FEATURE,
         //.essential = FOR_LIVEVIEW,
     },
+#ifndef CONFIG_5DC
     {
         .name = "Force HDMI-VGA",
         .priv = &hdmi_force_vga, 
@@ -2180,12 +2181,14 @@ static struct menu_entry display_menus[] = {
         .help = "Force low resolution (720x480) on HDMI displays.",
         //.essential = FOR_EXT_MONITOR,
     },
+#endif
     {
         .name = "Screen layout settings...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
         .help = "Screen orientation, position fine-tuning...",
         .children =  (struct menu_entry[]) {
+#ifndef CONFIG_5DC
                 {
                     .name = "Screen Layout",
                     .display = screen_layout_display, 
@@ -2194,6 +2197,7 @@ static struct menu_entry display_menus[] = {
                     //.essential = FOR_EXT_MONITOR,
                     //~ .edit_mode = EM_MANY_VALUES,
                 },
+#endif
                 {
                     .name = "Image position ",
                     .priv = &lcd_adjust_position,
