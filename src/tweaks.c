@@ -975,21 +975,23 @@ tweak_task( void* unused)
         {
             if (quickzoom_pressed) 
             {
-                for (int i = 0; i < 10; i++)
+                if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                 {
-                    if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
+                    for (int i = 0; i < 10; i++)
                     {
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
-                        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-                        #endif
+                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        msleep(50);
                     }
-                    msleep(30);
-                    if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                 }
-                while (!quickzoom_unpressed && PLAY_MODE) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+                else
+                {
+                    msleep(300);
+                    while (!quickzoom_unpressed && PLAY_MODE) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+                }
+
                 fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
                 quickzoom_pressed = 0;
             }
