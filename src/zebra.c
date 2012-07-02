@@ -187,7 +187,7 @@ static CONFIG_INT( "global.draw",   global_draw, 1 );
 #define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
 
 static CONFIG_INT( "zebra.draw",    zebra_draw, 0 );
-static CONFIG_INT( "zebra.mode",    zebra_colorspace,   1 );// luma/rgb
+static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lumafast
 static CONFIG_INT( "zebra.level.hi",    zebra_level_hi, 95 );
 static CONFIG_INT( "zebra.level.lo",    zebra_level_lo, 5 );
        CONFIG_INT( "zebra.rec", zebra_rec,  1 );
