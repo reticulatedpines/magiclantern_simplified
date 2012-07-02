@@ -1096,7 +1096,7 @@ menu_display(
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
                      10,  show_only_selected ? 425 : 450, 
-                        "To show hidden menus, enable last option from Prefs menu.  "
+                        "To restore hidden menus, enable last option from Prefs menu."
                 );
             }
 
@@ -1270,6 +1270,8 @@ menu_entry_showhide_toggle(
         entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_RECENTLY_HIDDEN;
         menu_make_sure_selection_is_valid();
         menu_hidden_dirty = 1;
+        if (entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN)
+            menu_hidden_should_display_help = 1;
     }
 }
 
@@ -1819,7 +1821,6 @@ handle_ml_menu_keys(struct event * event)
 */
         menu_entry_showhide_toggle(menu);
         menu_needs_full_redraw = 1;
-        menu_hidden_should_display_help = 1;
         
         break;
 
