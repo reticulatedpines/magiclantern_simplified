@@ -643,7 +643,7 @@ static void lua_task( void* unused )
 }
 
 void lua_init(void* unused) {
-	menu_add("Tweaks", lua_menus, COUNT(lua_menus) );
+	menu_add("Debug", lua_menus, COUNT(lua_menus) );
 }
 
 static struct plugin_descriptor lua_plug_desc = {
