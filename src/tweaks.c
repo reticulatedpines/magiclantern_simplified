@@ -637,12 +637,12 @@ quickzoom_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Zoom in PLAY mode: %s", 
-        quickzoom == 0 ? "Normal" :
-        quickzoom == 1 ? "Fast" :
-        quickzoom == 2 ? "Fast+100%" :
-        quickzoom == 3 ? "Fast+100%+AFP" :
-        quickzoom == 4 ? "Fast+100%+Last" :
+        "Quick Zoom  : %s", 
+        quickzoom == 0 ? "OFF" :
+        quickzoom == 1 ? "ON" :
+        quickzoom == 2 ? "SinglePress -> 100%" :
+        quickzoom == 3 ? "Full zoom on AF pt." :
+        quickzoom == 4 ? "Full Z on last pos." :
                          "err"
     );
 }
@@ -759,11 +759,11 @@ play_set_wheel_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "SET + MainDial   : %s", 
+        "SET+MainDial: %s", 
         play_set_wheel_action == 0 ? "422 Preview" :
-        play_set_wheel_action == 1 ? "ExposureFusion" : 
-        play_set_wheel_action == 2 ? "CompareImages" : 
-        play_set_wheel_action == 3 ? "TimelapsePlay" : "err"
+        play_set_wheel_action == 1 ? "Exposure Fusion" : 
+        play_set_wheel_action == 2 ? "Compare Images" : 
+        play_set_wheel_action == 3 ? "Timelapse Play" : "err"
     );
 }
 
@@ -779,7 +779,7 @@ quick_delete_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Quick Erase      : %s", 
+        "Quick Erase : %s", 
         quick_delete ? "SET+Erase" : "OFF"
     );
 }
@@ -850,7 +850,7 @@ play_lv_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV button        : %s", 
+        "LV button   : %s", 
         play_lv_action == 0 ? "Default" :
         play_lv_action == 1 ? "Protect Image" : "err"
     );
@@ -1117,9 +1117,9 @@ qrplay_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Image Review Mode: %s", 
-        quick_review_allow_zoom == 0 ? "QuickReview" :
-        quick_review_allow_zoom == 1 ? "Rvw:Hold->Play" : "ZoomIn->Play"
+        "Image Review: %s", 
+        quick_review_allow_zoom == 0 ? "QuickReview default" :
+        quick_review_allow_zoom == 1 ? "CanonMnu:Hold->PLAY" : "ZoomIn->Play"
     );
 }
 
@@ -2245,7 +2245,7 @@ struct menu_entry play_menus[] = {
         .help = "Options for PLAY (image review) mode.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "SET+MainDial      ",
+                .name = "SET+MainDial",
                 .priv = &play_set_wheel_action, 
                 .max = 3,
                 .display = play_set_wheel_display,
