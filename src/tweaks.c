@@ -1014,19 +1014,18 @@ tweak_task( void* unused)
                 if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                 {
                     info_led_on();
-                    for (int i = 0; i < 20; i++)
+                    quickzoom_pressed = 0;
+                    for (int i = 0; i < 30; i++)
                     {
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
-                        msleep(30);
+                        msleep(20);
                     }
                     fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-                    msleep(200);
-                    quickzoom_pressed = 0;
-                    msleep(400);
+                    msleep(600);
                     info_led_off();
                 }
                 else if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
