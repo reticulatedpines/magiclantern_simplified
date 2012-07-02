@@ -120,6 +120,7 @@ call_init_funcs( void * priv )
 int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int magic_off_request = 0;
+int ml_gui_initialized = 0; // 1 after gui_main_task is started
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff

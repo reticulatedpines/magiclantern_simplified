@@ -1226,6 +1226,7 @@ static struct menu_entry focus_menu[] = {
         .help = "Custom AF patterns (photo mode only; ported from 400plus)",
         //.essential = FOR_PHOTO_NON_LIVEVIEW,
     },
+#ifndef CONFIG_5DC
     {
         .name = "Follow Focus",
         .priv = &follow_focus,
@@ -1372,6 +1373,7 @@ static struct menu_entry focus_menu[] = {
         .help = "Focus distance and DOF info (read-only)",
         //.essential = FOR_PHOTO | FOR_MOVIE,
     },
+#endif
 };
 
 

@@ -557,10 +557,6 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    //~ while(gui_menu_shown()) msleep(100);
-    //~ msleep(2000);
-    //~ menu_benchmark();
-    menu_save_all_items_dbg();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -3328,7 +3324,9 @@ void config_menu_init()
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Prefs", livev_cfg_menus,  1);
+#endif
     crop_factor_menu_init();
     advanced_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);

@@ -2248,6 +2248,7 @@ struct menu_entry play_menus[] = {
         .submenu_width = 715,
         .help = "Options for PLAY (image review) mode.",
         .children =  (struct menu_entry[]) {
+#ifndef CONFIG_5DC
             {
                 .name = "SET+MainDial",
                 .priv = &play_set_wheel_action, 
@@ -2258,6 +2259,7 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_DICE,
                 //~ .edit_mode = EM_MANY_VALUES,
             },
+#endif
             {
                 .name = "Image Review Mode",
                 .priv = &quick_review_allow_zoom, 
@@ -2324,10 +2326,14 @@ static void tweak_init()
 {
     extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Prefs", tweak_menus_shoot, 1 );
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
+    #endif
     menu_add( "Prefs", tweak_menus, COUNT(tweak_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Display", display_menus, COUNT(display_menus) );
+#endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D) 
     if (check_eyefi())
         menu_add( "Movie", eyefi_menus, COUNT(eyefi_menus) );
