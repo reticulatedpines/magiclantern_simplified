@@ -1278,8 +1278,18 @@ draw_zebra_and_focus( int Z, int F )
     int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
     if (zd)
     {
+        
         int zlh = zebra_level_hi * 255 / 100;
         int zll = zebra_level_lo * 255 / 100;
+
+        if (zebra_colorspace == 2)
+        {
+            if (zlh != 255)
+                EngDrvOut(0xC0F140cc, 0xC000 + zlh); // overexposure only, can't do both
+            else if (zll != 0)
+                EngDrvOut(0xC0F140cc, 0x1d000 + zll); // underexposure only
+            return;
+        }
         
         uint8_t * lvram = get_yuv422_vram()->vram;
         lvram = (void*)YUV422_LV_BUFFER_DMA_ADDR; // this one is not updating right now, but it's a bit behind
@@ -1910,7 +1920,8 @@ zebra_draw_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Zebras      : %s, %d..%d%%",
-            zebra_colorspace ? "RGB" : "Luma",
+            zebra_colorspace == 0 ? "Luma" :
+            zebra_colorspace == 1 ? "RGB" : "Luma Fast",
             zebra_level_lo, zebra_level_hi
         );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
@@ -1920,15 +1931,38 @@ static void
 zebra_level_display( void * priv, int x, int y, int selected )
 {
     unsigned level = *(unsigned*) priv;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "%s : %d%% (%d)",
-        priv == &zebra_level_lo ? "Underexposure" : 
-                                  "Overexposure ",
-        level, 0, 
-        (level * 255 + 50) / 100
-    );
+    if (zebra_colorspace == 2 && zebra_level_hi != 100 && priv == &zebra_level_lo)
+    {
+            bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "Underexposure : Disabled"
+        );
+        menu_draw_icon(x, y, MNI_WARNING, "In fast mode you can't use both 'under' and 'over' zebras.");
+    }
+    else if (level == 0 || level == 100)
+    {
+            bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "%s : Disabled",
+            priv == &zebra_level_lo ? "Underexposure" : 
+                                      "Overexposure "
+        );
+        menu_draw_icon(x, y, MNI_DISABLE, 0);
+    }
+    else
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "%s : %d%% (%d)",
+            priv == &zebra_level_lo ? "Underexposure" : 
+                                      "Overexposure ",
+            level, 0, 
+            (level * 255 + 50) / 100
+        );
+    }
 }
 static void
 zebra_toggle( void* priv, int sign )
@@ -2879,8 +2913,8 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Color space",
                 .priv = &zebra_colorspace, 
-                .max = 1,
-                .choices = (const char *[]) {"Luma", "RGB"},
+                .max = 2,
+                .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
                 .icon_type = IT_NAMED_COLOR,
                 .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
             },
@@ -2890,7 +2924,7 @@ struct menu_entry zebra_menus[] = {
                 .min = 0,
                 .max = 20,
                 .display = zebra_level_display,
-                .help = "Underexposure threshold (0=disable).",
+                .help = "Underexposure threshold.",
             },
             {
                 .name = "Overexposure", 
@@ -2898,7 +2932,7 @@ struct menu_entry zebra_menus[] = {
                 .min = 70,
                 .max = 100,
                 .display = zebra_level_display,
-                .help = "Overexposure threshold (100=disable).",
+                .help = "Overexposure threshold.",
             },
             {
                 .name = "When recording", 
