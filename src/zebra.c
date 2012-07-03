@@ -188,8 +188,8 @@ static CONFIG_INT( "global.draw",   global_draw, 1 );
 
 static CONFIG_INT( "zebra.draw",    zebra_draw, 0 );
 static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lumafast
-static CONFIG_INT( "zebra.level.hi",    zebra_level_hi, 95 );
-static CONFIG_INT( "zebra.level.lo",    zebra_level_lo, 5 );
+static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
+static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
        CONFIG_INT( "zebra.rec", zebra_rec,  1 );
 static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
 static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
@@ -1280,13 +1280,21 @@ draw_zebra_and_focus( int Z, int F )
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
-        if (zebra_colorspace == 2)
+        if (zebra_colorspace == 2 && lv) // use regular zebras in photo mode
         {
             zebra_digic_dirty = 1;
-            if (zlh <= 255)
-                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh); // overexposure only, can't do both
-            else if (zll != 0)
-                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll); // underexposure only
+            
+            // if both zebras are enabled, alternate them (can't display both at the same time)
+            // if only one is enabled, show them both
+            
+            int parity = (get_seconds_clock() / 2) % 2;
+            int ov = (zebra_level_hi <= 100 && (zebra_level_lo ==   0 || parity == 0));
+            int un = (zebra_level_lo  >   0 && (zebra_level_hi  > 100 || parity == 1));
+            
+            if (ov)
+                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh);
+            else if (un)
+                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll);
             goto fpeak;
         }
         
@@ -1912,7 +1920,6 @@ zebra_draw_display( void * priv, int x, int y, int selected )
     
     int over_disabled = (zebra_level_hi > 100);
     int under_disabled = (zebra_level_lo == 0);
-    if (zebra_colorspace == 2 && zebra_level_hi <= 100) under_disabled = 1;
     
     char msg[50];
     snprintf(msg, sizeof(msg), "Zebras      : ");
@@ -1964,16 +1971,7 @@ static void
 zebra_level_display( void * priv, int x, int y, int selected )
 {
     unsigned level = *(unsigned*) priv;
-    if (zebra_colorspace == 2 && zebra_level_hi <= 100 && priv == &zebra_level_lo)
-    {
-            bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Underexposure : Disabled"
-        );
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"In fast mode you can't use both 'under' and 'over' zebras.");
-    }
-    else if (level == 0 || level > 100)
+    if (level == 0 || level > 100)
     {
             bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
