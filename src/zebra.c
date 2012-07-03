@@ -1926,7 +1926,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
         STR_APPEND(msg,
             "%s, ",
             zebra_colorspace == 0 ? "Luma" :
-            zebra_colorspace == 1 ? "RGB" : "Luma Fast"
+            zebra_colorspace == 1 ? "RGB" : "LumaFast"
         );
     
         if (over_disabled)
