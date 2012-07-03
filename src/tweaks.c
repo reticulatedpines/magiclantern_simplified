@@ -1718,8 +1718,8 @@ static struct menu_entry tweak_menus[] = {
     },
     #endif
 };
+#if defined(CONFIG_60D) || defined(CONFIG_600D) 
 static struct menu_entry eyefi_menus[] = {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) 
     {
         .name        = "EyeFi Trick",
         .select        = menu_open_submenu,
@@ -1748,8 +1748,8 @@ static struct menu_entry eyefi_menus[] = {
             MENU_EOL
         },
     },
-    #endif    
 };
+#endif    
 
 
 
@@ -2084,7 +2084,7 @@ extern void clearscreen_display( void * priv, int x, int y, int selected);
 extern void screen_layout_display( void * priv, int x, int y, int selected);
 extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
-extern void hdmi_force_display(void* priv, int delta);
+extern void hdmi_force_display( void * priv, int x, int y, int selected);
 
 static struct menu_entry display_menus[] = {
 /*    {

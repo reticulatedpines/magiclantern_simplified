@@ -1293,7 +1293,7 @@ draw_zebra_and_focus( int Z, int F )
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh); // overexposure only, can't do both
             else if (zll != 0)
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll); // underexposure only
-            return;
+            goto fpeak;
         }
         
         uint8_t * lvram = get_yuv422_vram()->vram;
@@ -1452,7 +1452,6 @@ draw_zebra_and_focus( int Z, int F )
         }
     }
 
-
     // HD to LV coordinate transform:
     // non-record: 1056 px: 1.46 ratio (yuck!)
     // record: 1720: 2.38 ratio (yuck!)
@@ -1468,6 +1467,8 @@ draw_zebra_and_focus( int Z, int F )
     static int thr_increment = 1;
     static int prev_thr = 50;
     static int thr_delta = 0;
+
+fpeak:
 
     if (F && focus_peaking)
     {
@@ -1976,7 +1977,7 @@ zebra_level_display( void * priv, int x, int y, int selected )
             x, y,
             "Underexposure : Disabled"
         );
-        menu_draw_icon(x, y, MNI_WARNING, "In fast mode you can't use both 'under' and 'over' zebras.");
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"In fast mode you can't use both 'under' and 'over' zebras.");
     }
     else if (level == 0 || level > 100)
     {
@@ -5192,9 +5193,7 @@ static void zebra_init()
 {
     precompute_yuv2rgb();
     
-#ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
-#endif
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );

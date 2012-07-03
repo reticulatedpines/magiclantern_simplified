@@ -1626,7 +1626,7 @@ lens_set_kelvin(int k)
     if (k > 10000 || k < 2500) // workaround for 60D; out-of-range values are ignored in photo mode
     {
         int lim = k > 10000 ? 10000 : 2500;
-        if ((k > 10000 && wb_kelvin_ph < lim) || (k < 2500 && wb_kelvin_ph > lim))
+        if ((k > 10000 && (int)wb_kelvin_ph < lim) || (k < 2500 && (int)wb_kelvin_ph > lim))
         {
             prop_request_change(PROP_WB_KELVIN_PH, &lim, 4);
             msleep(20);

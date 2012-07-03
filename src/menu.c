@@ -116,6 +116,9 @@ static void menu_show_version(void);
 static struct menu * get_current_submenu();
 static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
+static void menu_save_hidden_items();
+static void menu_load_hidden_items();
+static void menu_cleanup_hidden_items();
 
 extern int gui_state;
 void menu_show_only_selected()
@@ -1231,7 +1234,7 @@ submenu_display(struct menu * submenu)
     int count = 0;
     struct menu_entry * child = submenu->children;
     while (child) { count++; child = child->next; }
-    int h = submenu->submenu_height ? submenu->submenu_height : MIN((count + 3) * font_large.height, 400);
+    int h = submenu->submenu_height ? submenu->submenu_height : (int)MIN((count + 3) * font_large.height, 400);
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
     g_submenu_width = w;
     int bx = (720 - w)/2;
@@ -1463,7 +1466,7 @@ menu_entry_move(
     entry->selected = 1;
     give_semaphore( menu_sem );
     
-    if (!advanced_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu))
+    if (!advanced_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu->children))
         menu_entry_move(menu, direction); // try again, skip hidden items
         // warning: would block if the menu is empty
 }
@@ -2519,7 +2522,7 @@ int handle_quick_access_menu_items(struct event * event)
 }
 #endif
 
-void menu_save_hidden_items()
+static void menu_save_hidden_items()
 {
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
@@ -2582,10 +2585,10 @@ void menu_save_all_items_dbg()
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 }
 
-void menu_load_hidden_items()
+static void menu_load_hidden_items()
 {
     int size = 0;
-    char* buf = read_entire_file( CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG", &size);
+    char* buf = (char*)read_entire_file( CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG", &size);
     if (!size) return;
     if (!buf) return;
     int prev = -1;
@@ -2612,7 +2615,7 @@ void menu_load_hidden_items()
 }
 
 // completely hide recently hidden menus
-void menu_cleanup_hidden_items()
+static void menu_cleanup_hidden_items()
 {
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )

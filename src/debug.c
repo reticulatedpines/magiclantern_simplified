@@ -2397,7 +2397,7 @@ struct menu_entry debug_menus[] = {
     },
     {
         .name = "Menu screenshots",
-        .select     = run_in_separate_task,
+        .select     = (void (*)(void*,int))run_in_separate_task,
         .priv = screenshots_for_menu,
         .help = "Take a screenshot for each ML menu.",
     },
