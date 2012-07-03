@@ -4778,14 +4778,14 @@ livev_hipriority_task( void* unused )
         get_422_hd_idle_buf(); // just to keep it up-to-date
         
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
-        if (zebra_digic_dirty && !zd) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0);
+        if (zebra_digic_dirty && !zd) { EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); zebra_digic_dirty = 0; }
         
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
             if (!zebra_should_run())
             {
-                if (zebra_digic_dirty) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0);
+                if (zebra_digic_dirty) { EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); zebra_digic_dirty = 0; }
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_60D
                 disable_electronic_level();
