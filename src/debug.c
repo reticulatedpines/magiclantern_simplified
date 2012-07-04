@@ -3491,5 +3491,3 @@ void engio_write(int* command_sequence)
     _engio_write(command_sequence);
     //~ _card_led_off();
 }
-
-void iso_refresh_display() {} // dummy, to be cleaned up

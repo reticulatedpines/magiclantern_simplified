@@ -5973,3 +5973,24 @@ void shoot_init()
 }
 
 INIT_FUNC("shoot", shoot_init);
+
+
+void iso_refresh_display() // in photo mode
+{
+    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500)
+    if (!lv && display_idle())
+    {
+        int a, d;
+        split_iso(lens_info.raw_iso, &a, &d);
+        if (d)
+        {
+            int bg = bmp_getpixel(MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y-10);
+            bmp_fill(bg, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y-10, 160, 60);
+            char msg[30];
+            snprintf(msg, sizeof(msg), "%d ", raw2iso(lens_info.raw_iso));
+            int w = bfnt_draw_char(ICON_ISO, MENU_DISP_ISO_POS_X + 5, MENU_DISP_ISO_POS_Y, COLOR_FG_NONLV, bg);
+            bfnt_puts(msg, MENU_DISP_ISO_POS_X + w + 10, MENU_DISP_ISO_POS_Y, COLOR_FG_NONLV, bg);
+        }
+    }
+    #endif
+}

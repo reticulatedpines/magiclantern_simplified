@@ -236,8 +236,8 @@
 #define DISPLAY_CLOCK_POS_Y 410
 
 // for intermediate ISO
-#define MENU_DISP_ISO_POS_X 500
-#define MENU_DISP_ISO_POS_Y 27
+#define MENU_DISP_ISO_POS_X 470
+#define MENU_DISP_ISO_POS_Y 55
 
 // for HDR status
 #define HDR_STATUS_POS_X 380
