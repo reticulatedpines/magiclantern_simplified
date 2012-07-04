@@ -5980,9 +5980,7 @@ void iso_refresh_display() // in photo mode
     #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500)
     if (!lv && display_idle())
     {
-        int a, d;
-        split_iso(lens_info.raw_iso, &a, &d);
-        if (d)
+        if (lens_info.raw_iso % 8 != 0)
         {
             int bg = bmp_getpixel(MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y-10);
             bmp_fill(bg, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y-10, 160, 60);
