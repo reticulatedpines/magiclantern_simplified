@@ -1930,7 +1930,7 @@ handle_ml_menu_keys(struct event * event)
 #endif
 #ifdef CONFIG_50D
     case BGMT_FUNC:
-    case BGMT_LV:
+    //~ case BGMT_LV:
 #endif
 #ifdef CONFIG_5DC
     case BGMT_JUMP:
