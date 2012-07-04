@@ -1761,7 +1761,14 @@ int handle_ml_menu_keyrepeat(struct event * event)
             case BGMT_PRESS_RIGHT:
             case BGMT_PRESS_UP:
             case BGMT_PRESS_DOWN:
-                keyrepeat = event->param;
+            #ifdef BGMT_PRESS_UP_LEFT
+            case BGMT_PRESS_UP_LEFT:
+            case BGMT_PRESS_UP_RIGHT:
+            case BGMT_PRESS_DOWN_LEFT:
+            case BGMT_PRESS_DOWN_RIGHT:
+            #endif
+                if (keyrepeat && event->param != keyrepeat) keyrepeat = 0;
+                else keyrepeat = event->param;
                 break;
 
             #ifdef BGMT_UNPRESS_UDLR
