@@ -713,6 +713,7 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
 void set_lv_zoom(int zoom)
 {
     if (recording) return;
+    if (is_movie_mode() && video_mode_crop) return;
     zoom = COERCE(zoom, 1, 10);
     if (zoom > 1 && zoom < 10) zoom = 5;
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
