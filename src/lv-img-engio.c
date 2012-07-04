@@ -95,6 +95,31 @@ digic_iso_print(
 }
 
 void
+display_gain_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
+    G = G * 10/8;
+    int GA = abs(G);
+
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "LV display gain: %s%d.%d EV",
+        G > 0 ? "+" : G < 0 ? "-" : "",
+        GA/10, GA%10
+    );
+
+    if (G && is_movie_mode())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only for photo mode. For movie mode, use ML digital ISO.");
+    menu_draw_icon(x, y, MNI_BOOL(G), 0);
+}
+
+void
 digic_black_print(
     void *          priv,
     int         x,
@@ -116,11 +141,8 @@ digic_black_print(
 
 static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
 
-void digic_iso_toggle(int* priv, int delta)
+void digic_iso_or_gain_toggle(int* priv, int delta)
 {
-    if (is_movie_mode()) priv = (int*)&digic_iso_gain_movie;
-    else priv = (int*)&digic_iso_gain_photo;
-    
     int i;
     for (i = 0; i < COUNT(digic_iso_presets); i++)
         if (digic_iso_presets[i] >= *priv) break;
@@ -130,6 +152,21 @@ void digic_iso_toggle(int* priv, int delta)
     } while (!is_movie_mode() && digic_iso_presets[i] < 1024);
     
     *priv = digic_iso_presets[i];
+}
+
+void digic_iso_toggle(int* priv, int delta)
+{
+    if (is_movie_mode()) priv = (int*)&digic_iso_gain_movie;
+    else priv = (int*)&digic_iso_gain_photo;
+    
+    digic_iso_or_gain_toggle(priv, delta);
+}
+
+void display_gain_toggle(int* priv, int delta)
+{
+    priv = (int*)&digic_iso_gain_photo;
+    
+    digic_iso_or_gain_toggle(priv, delta);
 }
 
 //~ static CONFIG_INT("digic.effects", image_effects, 0);

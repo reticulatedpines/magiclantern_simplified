@@ -2085,6 +2085,8 @@ extern void screen_layout_display( void * priv, int x, int y, int selected);
 extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
 extern void hdmi_force_display( void * priv, int x, int y, int selected);
+extern void display_gain_toggle(int* priv, int delta);
+extern void display_gain_print( void * priv, int x, int y, int selected);
 
 static struct menu_entry display_menus[] = {
 /*    {
@@ -2111,6 +2113,13 @@ static struct menu_entry display_menus[] = {
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 //.essential = FOR_LIVEVIEW,
+            },
+            {
+                .name = "LV display gain",
+                .display = display_gain_print,
+                .select = display_gain_toggle,
+                .help = "Boost LiveView display gain, for night vision (photo mode).",
+                .edit_mode = EM_MANY_VALUES_LV,
             },
             {
                 .name = "Color Scheme   ",
