@@ -1614,9 +1614,9 @@ iso_toggle( void * priv, int sign )
             fullstop_iso_toggle(priv, sign);
             return;
         }
-    }
 
-    set_display_gain_equiv(0); // disable DIGIC iso
+        set_movie_digital_iso_gain(0); // disable DIGIC iso
+    }
     
     int i = raw2index_iso(lens_info.raw_iso);
     int k;

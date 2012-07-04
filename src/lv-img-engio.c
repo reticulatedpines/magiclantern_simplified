@@ -46,6 +46,12 @@ void set_display_gain_equiv(int gain)
     else digic_iso_gain_photo = gain;
 }
 
+void set_movie_digital_iso_gain(int gain)
+{
+    if (gain == 0) gain = 1024;
+    digic_iso_gain_movie = gain;
+}
+
 int gain_to_ev_scaled(int gain, int scale)
 {
     if (gain == 0) return 0;
