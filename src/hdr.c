@@ -60,7 +60,7 @@ void hdr_step()
     }
     else
     {
-        if (!HALFSHUTTER_PRESSED) odd_frame = (frame / video_mode_fps / 2) % 2;
+        if (!HALFSHUTTER_PRESSED) odd_frame = (get_seconds_clock() / 4) % 2;
     }
 
     int iso_low, iso_high;
@@ -89,7 +89,7 @@ void hdr_kill_flicker()
         #endif
     }
 
-    odd_frame = (frame / video_mode_fps / 2) % 2;
+    odd_frame = (get_seconds_clock() / 4) % 2;
  
     if (recording) // kill flicker by displaying odd (or even) frames only
     {

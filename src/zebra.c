@@ -1288,6 +1288,7 @@ draw_zebra_and_focus( int Z, int F )
             // if only one is enabled, show them both
             
             int parity = (get_seconds_clock() / 2) % 2;
+            
             int ov = (zebra_level_hi <= 100 && (zebra_level_lo ==   0 || parity == 0));
             int un = (zebra_level_lo  >   0 && (zebra_level_hi  > 100 || parity == 1));
             
