@@ -1091,7 +1091,7 @@ static void fps_task()
     TASK_LOOP
     {
         #ifdef CONFIG_500D
-        msleep(fps_override ? 20 : 100);
+        msleep(fps_override && recording ? 10 : 100);
         #else
         msleep(100);
         #endif
@@ -1138,7 +1138,7 @@ static void fps_task()
 }
 
 #ifdef CONFIG_500D
-TASK_CREATE("fps_task", fps_task, 0, 0x18, 0x1000 );
+TASK_CREATE("fps_task", fps_task, 0, 0x17, 0x1000 );
 #else
 TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );
 #endif
