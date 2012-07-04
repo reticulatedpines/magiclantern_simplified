@@ -237,7 +237,7 @@
 
 // for intermediate ISO
 #define MENU_DISP_ISO_POS_X 470
-#define MENU_DISP_ISO_POS_Y 55
+#define MENU_DISP_ISO_POS_Y 40
 
 // for HDR status
 #define HDR_STATUS_POS_X 380
