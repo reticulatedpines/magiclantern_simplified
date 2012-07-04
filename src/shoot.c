@@ -2739,6 +2739,9 @@ int handle_zoom_x5_x10(struct event * event)
     if (!lv) return 1;
     if (recording) return 1;
     if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
+    #ifdef CONFIG_600D
+    if (get_disp_pressed()) return 1;
+    #endif
     
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && liveview_display_idle() && !gui_menu_shown())
     {

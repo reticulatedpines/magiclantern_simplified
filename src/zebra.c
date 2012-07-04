@@ -3690,6 +3690,9 @@ int handle_zoom_overlay(struct event * event)
 {
     if (gui_menu_shown()) return 1;
     if (!lv) return 1;
+    #ifdef CONFIG_600D
+    if (get_disp_pressed()) return 1;
+    #endif
 
 #ifdef CONFIG_5D2
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
