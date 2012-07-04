@@ -9,6 +9,18 @@
 import os, re, time, string
 import urllib
 
+def include(o, filename, start=0):
+    f = open(filename).readlines();
+    for l in f[start:]:
+        o.write(l)
+    o.write("\n");
+
+def include_indent(o, filename, start=0):
+    f = open(filename).readlines();
+    for l in f[start:]:
+        o.write(l.replace("~", "`").replace("--", "~~").replace("~-", "~~").replace("==", "--").replace("-=", "--"))
+    o.write("\n");
+
 def sub(file, fr, to):
     txt = open(file).read()
     txt = re.sub(fr, to, txt);
@@ -29,7 +41,7 @@ def fixwikilinks(file):
             txt = txt.replace(origstr, "")
         else:
             txt = txt.replace(origstr, "`%s <http://magiclantern.wikia.com/wiki/%s>`_" % (x, urllib.quote(x)))
-        
+    
     #~ sub("INSTALL.rst", , ")
 
     f = open(file,"w")
@@ -46,7 +58,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
             label = m.groups()[0]
             txt += r""".. raw:: latex
     
-    \vspace{-10mm}\subsubsection*{}\label{%s}
+    \subsubsection*{}\label{%s}%%
 """ % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-").replace(".", "-")
     f = open(file,"w")
     f.write(txt)
@@ -76,16 +88,22 @@ m = open("MANUAL.txt").readlines();
 c = open("CONFIG.txt").readlines();
 
 o = open("userguide.rst", "w")
-print >> o, """Magic Lantern 0.2.1 for Canon 550D, Firmware 1.0.9 -- User's Guide
-===========================================================================
+print >> o, """Magic Lantern v2.3 -- User's Guide
+====================================================
 
 """
-for l in f:
-    o.write(l)
-for l in m:
-    o.write(l)
-for l in c:
-    o.write(l)
+include(o, "FEATURES.txt");
+include(o, "MANUAL.txt", 1);
+include(o, "MN-AUDIO.txt");
+include(o, "MN-EXPO.txt");
+include(o, "MN-OVERLAY.txt");
+include(o, "MN-MOVIE.txt");
+include(o, "MN-SHOOT.txt");
+include(o, "MN-FOCUS.txt");
+include(o, "MN-DISPLAY.txt");
+include(o, "MN-PREFS.txt");
+include(o, "MN-DEBUG.txt");
+include_indent(o, "FAQ.txt");
 o.close()
 
 os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
@@ -95,7 +113,7 @@ labelhack("userguide.rst")
 add_menu_items_to_contents("userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex")
-os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' UserGuide.tex")
+os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide.tex")
 
 os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide.tex")
 os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide.tex")

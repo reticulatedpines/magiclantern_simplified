@@ -27,7 +27,7 @@ To go back to Canon firmware, you may:
 Is Magic Lantern only for video?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**No.** First versions were developed by independent filmmakers and tailored for video production on 5D Mark II. 
+**No.** Early versions were developed by independent filmmakers and tailored for video production on 5D Mark II. 
 Things changed when Magic Lantern was ported to smaller (APS-C) cameras, like 550D, 60D, 600D and 500D, which attracted developers interested in both still photography and DSLR video. 
 
 `Visit the gallery for photo examples. <http://magiclantern.fm/hdrbracketing>`_
@@ -40,23 +40,24 @@ This is a "clean room" / "black box" reverse engineering effort and as such shou
 addresses the `legality question <http://www.chillingeffects.org/reverse/faq.cgi#QID195>`_;
 producing an interoperable product is one of the explicit allowances enshrined in law. 
 
+Magic Lantern **does not contain any Canon code**. Furthermore, we **do not distribute any copyrighted code or cryptographic secrets**, neither from Canon nor from any other third party. All the knowledge used for development was obtained by analyzing ARM code from the firmware, by experimenting, and from lawfully obtained documentation. 
+
 Is it safe?
 ~~~~~~~~~~~
 
-**No.** Magic Lantern was created by reverse engineering an undocumented system that controls hardware. Therefore, **we can't be certain that it's 100% safe.**
+**No.** Magic Lantern was created by reverse engineering an undocumented system that controls hardware. Therefore, **we can't be certain that it's 100% safe**.
 
 Magic Lantern does not replace Canon code (which is stored in ROM), but it **does change the settings** 
 (which are saved to a non-volatile memory). If Magic Lantern would set incorrect values for certain settings, 
 this may cause the camera not to boot (even without ML).
 
-**The same risk is present if you use third party software for USB remote control.**
-These programs use the same API for changing camera settings (properties), and Canon code does not always check
-the validity of the settings before saving them to NVRAM. `Here's a proof <https://vimeo.com/groups/magiclantern/forum/topic:255083>`_.
+**The same risk is present if you use third party software for USB remote control.** These programs use the same API for changing camera settings (properties), and Canon code does not always check
+the validity of the settings before saving them to NVRAM. `Here's a proof <https://vimeo.com/groups/magiclantern/forum/topic:255083>`_. Even developers of USB control software, who use Canon's own SDK, `agree with this <http://www.reikan.co.uk/photography/blog/?p=1550>`_. 
 
 Imagine that your config file gets corrupted and you can't just delete it and start from scratch.
 We consider this a design flaw in Canon software. We did encounter such problems during development, but we were able to recover from them. For technical details, see [[Unbricking]].
 
-**Probably the safest way to run Magic Lantern (or any third party camera control software) is to use custom modes - in these modes, Canon code does not save user settings to NVRAM.**
+**Probably the safest way to run Magic Lantern (or any third party camera control software) is to use custom modes** - in these modes, Canon code does not save user settings to NVRAM.
 
 In practice, we are doing our best to prevent these situations, and thousands of users are enjoying it without problems. However, this does not represent a guarantee - **use it at your own risk**.
 
@@ -65,20 +66,21 @@ Actually, using Magic Lantern we have successfully `unbricked a 5D Mark II damag
 Does it void my warranty?
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It is very similar to CHDK, which has a FAQ: `Does using the CHDK program void your warranty? <http://chdk.wikia.com/wiki/FAQ#Q._Does_using_the_CHDK_program_void_your_warranty.3F>`_:
-
-    First, please bear in mind that CHDK comes with no warranty for any use; you use it at your own risk. What follows is just a few thoughts, and is not a legal opinion. Many believe that using the CHDK does not harm your warranty, since it is said to be loaded into the memory only temporarily (turn off the cam and it's gone completely) and that it leaves the original camera firmware untouched.
-
-They include an email exchange with Canon:
-
-    After researching this software on the internet it appears that CHDK doesn't make any actual changes to your camera. If you delete the CHDK software from your memory card, or if you choose not to activate the CHDK software on the card (or remove and replace the batteries), then the camera will behave absolutely normally - nothing has been (or ever is) changed, so the warranty is not affected.
-
-Also, a Magic Lantern user `posted this on dpreview <http://forums.dpreview.com/forums/read.asp?forum=1032&message=39444192>`_):
+A Magic Lantern user `posted this on dpreview <http://forums.dpreview.com/forums/read.asp?forum=1032&message=39444192>`_):
 
     I've spoken to canon Cps (pro service in UK) and they've advised me that it's quite possible to downgrade firmware from new version to older version BUT they advised me to send it in to Canon for them to do it and test. Small service charge would be involved but could be done while I wait.
     
     Interestingly enough, they also advised me that Magic Lantern firmware would not invalidate my Canon Warranty as it's not a hardware modification. Though I'm reluctant to find out for sure :-) 
+
+And another user `posted this on t2iforum <http://www.t2iforum.com/firmware-updates/noob-questions-about-magic-lantern-and-warranty/msg28145/#msg28145>`_: 
+
+    I contacted Canon Support Portugal about using ML, the answer was the following:
     
+    Quote
+    
+    (...) the use of custom firmware or any other third party acessory with our equpment will void the warranty of the product IF PROVEN that the malfunction of the device was caused by the use of those.
+    Canon respects the rights that their customers have to decide what accessories or firmware to use, although **we do not recommended their use, and we are not responsible for any damage to the equipment**.
+
 The Magic Lantern firmware is distributed with **NO WARRANTY** and **NO GUARANTEES** are provided. It might work. It might not. It hasn't destroyed any cameras yet, but who knows. 
 
 How will it interact with future upgrades from Canon?
@@ -102,18 +104,15 @@ How do I bring up the Magic Lantern menus?
 
 Press the ``DELETE`` button.
 
-Why do I see only a few options in the menu?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+What! The menu has too many things, I'm lost!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You may be in Easy menu mode, where Magic Lantern only shows the features considered essential. 
-This menu may vary with the shooting mode (photo mode, movie mode, LiveView, HDMI etc).
-
-Press ``MENU`` to open the advanced menu, where all options are displayed.
+Press ``MENU`` to hide what you don't use.
 
 How do I restore ML default settings?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Delete the config file (``MAGIC.CFG``) and restart the camera.
+Delete the config file (``MAGIC.CFG``) from `Prefs`_ menu and restart the camera.
 
 How do I erase all of the images without removing ML?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -170,7 +169,7 @@ Yes. Check out these features:
 * Ultra fast zoom in playback mode.
 * Change image review mode to PLAY - after taking a picture you can press Zoom In right away and check critical focus in a split-second.
 * Navigate the menu using the scrollwheels - much faster than with arrow keys.
-* Simple menu - only display the essentials, so you don't have to scroll through lots of menus.
+* Hide unused menu items, so you don't have to scroll through all of them.
 
 Does Magic Lantern consume more power than standard Canon firmware?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -219,7 +218,7 @@ Does ML do any persistent changes to my camera?
 * Picture style and associated parameters;
 * Flash settings (enabled/disabled, exposure compensation, red eye reduction);
 * AF points, AF mode in LiveView, focus box position;
-* Exposure simulation setting (in Expo menu; disabled temporarily when using 5x/10x zoom modes);
+* Exposure simulation setting (in Expo menu);
 * Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
 * Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
 * Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
@@ -243,7 +242,7 @@ Troubleshooting
 It won't boot!
 ~~~~~~~~~~~~~~
 
-* If the LED is blinking continuously, you have the **wrong Canon firmware version**.
+* If the LED is blinking continuously, **you have the wrong Canon firmware version**.
 * Make sure you didn't delete ``AUTOEXEC.BIN`` from your ML card. If you did, format the card, take the battery out, and reboot.
 * If you still have problems, `ask on the forum <http://magiclantern.fm/forum/>`_.
 
@@ -273,15 +272,15 @@ You may need to register it from Canon menu. This is not related to ML, but peop
 My camera freezes / I get ERR70/80/99 / I get corrupted files. Why?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Format your card. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
-* If you get ERR70, you will also get a crash log on your card. Please send this file to developers.
+* **Format your card from your camera**. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
+* If you get **ERR70**, you will also get a crash log on your card. **Please send this file to developers**.
 * Run the stability tests from the Debug menu. If it fails, report a bug and send your config file to developers.
 * To report bugs, `go here <http://www.magiclantern.fm/forum/index.php?board=23.0>`_.
 
 What about ERR20 when taking pictures?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This problem is not related to (or caused by) Magic Lantern.
+**This problem is not related to (or caused by) Magic Lantern**.
 
 You will get this error when your shutter mechanism no longer works properly. Contact your Canon service center.
 

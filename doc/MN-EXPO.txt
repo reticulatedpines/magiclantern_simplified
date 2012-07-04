@@ -1,0 +1,114 @@
+Expo
+~~~~
+
+.. _image settings:
+
+.. figure:: 02.expo.png
+    :align: center
+    :width: 5cm
+
+Adjusting the exposure parameters. Most of these settings only work in Manual (photo and video), and some of them work in P, Av and Tv too.
+
+.. _White balance:
+.. _WhiteBalance:
+.. _Kelvin white balance:
+
+
+WhiteBalance
+````````````
+
+Advanced white balance control. The preferred method is Kelvin white balance (range: 1500...15000K).
+  
+Submenu options:
+  
+* Kelvin white balance;
+* WBShift G/M: Green-Magenta white balance shift. Useful for fluorescent lighting;
+* WBShift B/A: Blue-Amber white balance shift. 1 unit = 5 mireks on Kelvin axis, according to `this post <http://www.openphotographyforums.com/forums/archive/index.php/t-5450.html>`_;
+* Custom RGB multipliers: fine-tune custom white balance;
+* Black level: this parameter is applied on RAW data, before applying white balance. Adjust it if you have problems with green or magenta shadows;
+* Auto adjust Kelvin + G/M: in LiveView, ML will compute the white balance for the current scene, using the center (200x200 pixels rectangle) as reference gray.
+
+
+.. _ISO:
+
+ISO
+```
+
+Advanced ISO control.
+
+Color coding:
+  
+* orange = pure analog ISO (100, 200 ... 3200);
+* green = ISO with negative digital gain (160, 320 ... 2500);
+* red = ISO with positive digital gain (avoid these values).
+
+Submenu options:
+
+* Equivalent ISO;
+* Analog ISO;
+* Canon digital ISO;
+* ML digital ISO (DIGIC) - in movie mode: negative values will reduce noise, but may cause color issues in highlights. This feature enables ISO 50, ISO 51200 and many other intermediate or astronomical ISOs.
+* Display Gain (night vision) - in photo mode, for previewing night scenes;
+* Highlight Tone Priority (which increases dynamic range by 1 stop);
+* ISO selection (Canon ISOs or ML ISOs) - only used in movie mode;
+
+.. _shutter:
+
+Shutter
+```````
+
+Fine-tune shutter speed.
+
+* In photo mode, Magic Lantern displays shutter values rounded to 2 significant digits (e.g. 1/50 may be displayed by ML as 1/48). This is not a bug.
+* In movie mode, shutter values are displayed with 3 decimal places (for example, in PAL mode, Canon uses 1/33.333 to avoid flicker).
+* To use shutter speeds normally not available in Canon firmware (like 1/25 or 1/8000 in movie mode), enable `exposure override`_.
+
+Aperture
+````````
+
+Adjust aperture. When `exposure override`_ is enabled, you can adjust it in 1/8-stop increments.
+
+PictureStyle
+````````````
+
+Change picture style or adjust its parameters.
+  
+REC PicStyle
+````````````
+
+You can use a different picture style when recording (toggled automagically). May be useful with flat picture styles.
+
+.. _exposure override:
+
+Exp.Override
+````````````
+
+This mode bypasses Canon exposure limitations (for ISO, Tv, Av). It enables:
+ 
+* Manual video exposure controls in cameras without it (500D, 50D, 1100D).
+* 1/25s in movie mode (24p/25p) -> 1/3 stops better in low light.
+* 1/8000s in movie mode, `useful for slow motion <http://www.youtube.com/watch?v=5ztuUh3bgqA>`_.
+* ISO 12800 is allowed in movie mode on 60D and 600D.
+* Full-time DOF preview in photo mode, without blocking certain keys.
+
+Settings:
+
+* OFF: Canon default exposure mode.
+* ON: ML overrides exposure values (change them from Expo menu).
+* Auto: ML enables it only when needed:
+
+  - For 500D, 50D, 1100D: in movie mode, to enable manual exposure controls.
+  - For 60D: in Manual mode with a manual lens, to fix the `LiveView underexposure bug <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
+  - For 550D/60D/600D/5D2: when you select a shutter speed, aperture or ISO value which is not available in standard firmware (e.g. 1/25s or 1/8000s in movie mode).
+
+Side effect: in photo mode, anything slower than 1/25 seconds will be underexposed in LiveView.
+
+
+LV Display
+``````````
+Selects or displays LiveView display type:
+
+* Photo display, with exposure simulation
+* Photo display, without exposure simulation (for framing and for flash photography)
+* Movie display.
+

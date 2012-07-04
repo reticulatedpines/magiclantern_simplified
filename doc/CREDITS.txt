@@ -3,13 +3,13 @@
     { \small \vspace{-10mm}
 
 Magic Lantern is an open (GPL) framework for developing enhancements to the amazing Canon 5D Mark II and 550D/T2i digital SLRs. 
-Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by a small team, helped by a very enthusiastic and respectful `user community <http://vimeo.com/groups/magiclantern>`_.
+Magic Lantern is being developed by a small team, helped by a very enthusiastic and respectful `user community <http://www.magiclantern.fm/forum>`_.
 
 .. raw:: latex
 
     { \scriptsize \vspace{5mm}
 
-**Initial version by** `Trammell Hudson <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ (original author and lead of Magic Lantern project)
+**Initial version by** `Trammell Hudson <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ (original author and former leader of Magic Lantern project)
 
 **Crypto tools and firmware analysis by**
  `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
