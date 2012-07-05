@@ -3,7 +3,7 @@
 # for yagarto, use ARM_ABI=none-eabi
 ARM_ABI=elf
 
-ARM_PATH=~/arm-toolchain462
+ARM_PATH=/media/old_home/alex/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
@@ -106,8 +106,8 @@ prepare_zip:
 	mkdir zip/ML || echo "ok"
 	cp $(SRC_DIR)/zip.txt zip
 	cp $(TOP_DIR)/README zip/ML/
-	cp $(DOC_DIR)/INSTALL.pdf zip/ML/
-	cp $(DOC_DIR)/UserGuide.pdf zip/ML/
+	cp $(DOC_DIR)/INSTALL.pdf zip/
+	cp $(DOC_DIR)/UserGuide.pdf zip/
 	mkdir zip/ML/logs || echo "ok"
 	mkdir zip/ML/settings || echo "ok"
 	mkdir zip/ML/data || echo "ok"
@@ -134,8 +134,8 @@ prepare_zip:
 magiclantern-$(VERSION).zip: \
 	zip/zip.txt \
 	zip/ML/README \
-	zip/ML/INSTALL.pdf \
-	zip/ML/UserGuide.pdf \
+	zip/INSTALL.pdf \
+	zip/UserGuide.pdf \
 
 	-rm $@
 	cp autoexec.bin zip
@@ -143,8 +143,8 @@ magiclantern-$(VERSION).zip: \
 	cd zip; zip -z ../$@ < \
 		zip.txt \
 		ML/README \
-		ML/INSTALL.pdf \
-		ML/UserGuide.pdf \
+		INSTALL.pdf \
+		UserGuide.pdf \
 		ML/cropmks/* \
 		ML/doc/* \
 		ML/data/* \
