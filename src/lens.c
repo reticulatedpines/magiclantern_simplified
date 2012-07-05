@@ -604,8 +604,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
         {
             int iso_low, iso_high;
             hdr_get_iso_range(&iso_low, &iso_high);
-            iso_low = raw2iso(iso_low);
-            iso_high = raw2iso(iso_high);
+            iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
+            iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, bg),
                       x_origin + 245  , 
                       y_origin + 5, 

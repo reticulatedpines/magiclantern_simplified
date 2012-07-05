@@ -46,6 +46,7 @@ void hdr_step()
     if (!hdrv_enabled) return;
     if (!lv) return;
     if (!is_movie_mode()) return;
+    if (!lens_info.raw_iso) return;
     
     static int odd_frame = 0;
     static int frame;
@@ -121,8 +122,8 @@ hdr_print(
 
         int ev_x10 = (iso_high - iso_low) * 10/8;
         
-        iso_low = raw2iso(iso_low);
-        iso_high = raw2iso(iso_high);
+        iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
+        iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
 
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
@@ -131,6 +132,8 @@ hdr_print(
             iso_low, iso_high, 
             ev_x10/10, ev_x10%10
         );
+        if (!lens_info.raw_iso)
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
     }
     else
     {
@@ -143,6 +146,69 @@ hdr_print(
     }
 }
 
+int get_effective_hdr_iso_for_display(int raw_iso)
+{
+    if (!lens_info.raw_iso) return 0;
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+    // on recent cameras, HDR video can only alter the analog part of the ISO (and keep the digital one unchanged)
+    int ha,hd;
+    split_iso(raw_iso, &ha, &hd);
+    
+    int raw_current_iso = lens_info.raw_iso;
+    int ca,cd;
+    split_iso(raw_current_iso, &ca, &cd);
+    
+    int actual_iso = ha + cd;
+#else
+    int actual_iso = raw_iso;
+#endif
+
+    // also apply digic iso, if any
+    extern int digic_iso_gain_movie;
+    if (digic_iso_gain_movie != 1024)
+    {
+        actual_iso += (gain_to_ev_x8(digic_iso_gain_movie) - 80);
+    }
+    return actual_iso;
+}
+void hdr_iso_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int hdr_iso = MEM(priv);
+    int effective_iso = get_effective_hdr_iso_for_display(hdr_iso);
+    int d = effective_iso - hdr_iso;
+    d = d * 10 / 8;
+    
+    if (d)
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "ISO %s: %d (%d, %s%d.%d EV)", 
+            priv == &hdr_iso_a ? "A" : "B",
+            raw2iso(effective_iso),
+            raw2iso(hdr_iso),
+            d > 0 ? "+" : "-", ABS(d)/10, ABS(d)%10
+        );
+    }
+    else
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "ISO %s     : %d", 
+            priv == &hdr_iso_a ? "A" : "B",
+            raw2iso(effective_iso)
+        );
+    }
+    if (!lens_info.raw_iso)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
+}
 
 struct menu_entry hdr_menu[] = {
     {
@@ -159,6 +225,7 @@ struct menu_entry hdr_menu[] = {
                 .min = 72,
                 .max = 120,
                 .select = hdr_iso_toggle,
+                .display = hdr_iso_display,
                 .unit = UNIT_ISO,
                 .help = "ISO value for one half of the frames.",
             },
@@ -168,6 +235,7 @@ struct menu_entry hdr_menu[] = {
                 .min = 72,
                 .max = 120,
                 .select = hdr_iso_toggle,
+                .display = hdr_iso_display,
                 .unit = UNIT_ISO,
                 .help = "ISO value for the other half of the frames.",
             },
@@ -192,6 +260,13 @@ void iso_test()
 static void hdr_init()
 {
     menu_add( "Movie", hdr_menu, COUNT(hdr_menu) );
+
+    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    // round to nearest full-stop ISO (these cameras can't change the digital component)
+    hdr_iso_a = ((hdr_iso_a + 3) / 8) * 8;
+    hdr_iso_b = ((hdr_iso_b + 3) / 8) * 8;
+    #endif
+
 }
 
 INIT_FUNC("hdr", hdr_init);
@@ -203,8 +278,8 @@ void hdr_mvr_log(FILE* mvr_logfile)
         int iso_low, iso_high;
         hdr_get_iso_range(&iso_low, &iso_high);
         int ev_x10 = (iso_high - iso_low) * 10/8;
-        iso_low = raw2iso(iso_low);
-        iso_high = raw2iso(iso_high);
+        iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
+        iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
         my_fprintf(mvr_logfile, "HDR video      : ISO %d/%d (%d.%d EV)\n", iso_low, iso_high, ev_x10/10, ev_x10%10);
     }
 }
