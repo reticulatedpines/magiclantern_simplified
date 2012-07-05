@@ -2345,7 +2345,7 @@ static void tweak_init()
 #endif
 #if defined(CONFIG_60D) || defined(CONFIG_600D) 
     if (check_eyefi())
-        menu_add( "Movie", eyefi_menus, COUNT(eyefi_menus) );
+        menu_add( "Shoot", eyefi_menus, COUNT(eyefi_menus) );
 #endif
 }
 
