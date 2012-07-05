@@ -1601,12 +1601,13 @@ iso_toggle( void * priv, int sign )
 {
     if (is_movie_mode())
     {
-        if ((lens_info.raw_iso == 72 && sign < 0) ||
-            (lens_info.raw_iso == 80 && sign < 0 && get_htp()) ||
-            (lens_info.raw_iso == 120 && sign > 0))
+        extern int bv_auto;
+        if (lens_info.raw_iso && priv != -1)
+        if ((lens_info.raw_iso <= (get_htp() ? 80 : 72) && sign < 0) ||
+            (lens_info.raw_iso >= (bv_auto ? 128 : 120) && sign > 0))
         {
-            lens_set_rawiso(0); // ISO auto
-            return;
+            if (lens_set_rawiso(0)) // ISO auto
+                return;
         }
 
         if (iso_selection == 1) // constant DIGIC gain, full-stop analog
@@ -1619,6 +1620,7 @@ iso_toggle( void * priv, int sign )
     }
     
     int i = raw2index_iso(lens_info.raw_iso);
+    int i0 = i;
     int k;
     for (k = 0; k < 10; k++)
     {
@@ -1627,6 +1629,11 @@ iso_toggle( void * priv, int sign )
 
         while (!is_round_iso(values_iso[i]))
             i = mod(i + sign, COUNT(codes_iso));
+        
+        if (priv == -1 && SGN(i - i0) != sign) // wrapped around
+            break;
+        
+        if (priv == -1 && i == 0) break; // no auto iso allowed from shortcuts
         
         if (lens_set_rawiso(codes_iso[i])) break;
     }

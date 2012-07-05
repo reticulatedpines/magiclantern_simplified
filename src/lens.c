@@ -1976,6 +1976,7 @@ int bv_set_rawshutter(unsigned shutter)
 
 int bv_set_rawiso(unsigned iso) 
 { 
+    if (iso == 0) return 0;
     if (iso >= 72 && iso <= 128) // 100-12800
     {
         if (get_htp()) iso -= 8; // quirk: with exposure override and HTP, image is brighter by 1 stop than with Canon settings
@@ -2067,7 +2068,6 @@ void bv_auto_update()
     else bv_disable();
     lens_display_set_dirty();
     //~ give_semaphore(lens_sem);
-    
     //~ give_semaphore(bv_sem);
 }
 
