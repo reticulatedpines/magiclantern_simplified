@@ -28,7 +28,7 @@ Zebras
 
 .. figure:: Zebras.jpg
     :align: center
-    :height: 2cm
+    :height: 5cm
 
 Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
   
@@ -61,7 +61,7 @@ Other parameters:
 * ``Color``: either fixed color, or a color coding according to focus intensity.
 * ``Grayscale img``: if enabled, LiveView will displayed as grayscale (but still recorded as color).
   
-To see how it works, `check this article from Luminous Landscape <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
+#To see how it works, `check this article from Luminous Landscape <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
 
 .. _magic zoom:
 .. _zoom while recording:

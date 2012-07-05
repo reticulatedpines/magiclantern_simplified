@@ -42,7 +42,7 @@ Color Scheme
 ````````````
 
 This affects the colors and brightness of the on-screen information (including LiveView overlays, Canon menus and ML menus).
-Range from: Bright (default), Dark, Bright Gray, Dark Gray, Dark Red. Tip: dark themes may reduce the eye strain during night shooting.
+Range from: Bright (default), Dark, Bright Gray, Dark Gray, Dark Red, Dark Green. Tip: dark themes may reduce the eye strain during night shooting.
 
 Clear Overlays
 ``````````````

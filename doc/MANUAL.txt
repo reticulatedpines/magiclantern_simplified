@@ -52,12 +52,12 @@ Most cameras have a button labeled as ``[Q]``. A few cameras don't, so you will 
 Liveview screen layout
 ----------------------
 
-Magic Lantern uses the available screen space to display operational information in a clear and practical manner. The image shows a screenshot with commonly used ML features enabled.
+#Magic Lantern uses the available screen space to display operational information in a clear and practical manner. The image shows a screenshot with commonly used ML features enabled.
 
 .. figure:: beertje6.jpg
     :alt: LiveView screen info
     :align: center
-    :width: 10cm
+    :width: 7.5cm
 
 Some items that may need more details:
 
@@ -76,7 +76,7 @@ PLAY mode shortcuts
 ~~~~~~~~~~~~~~~~~~~
 
 * ``Q`` (550D), ``UNLOCK`` (60D), ``DISP`` (600D), ``LV`` (500D), ``FUNC`` (50D) or ``Picture Style`` (5D Mark II): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `Overlay`_ menu).
-* ``SET`` + ``Main Dial (Scrollwheel)`` in ``PLAY`` mode: customizable function (preview HDR images, silent pictures, multiple exposures, timelapse playback, image comparison). See `SET+MainDial`_.
+* ``SET`` + ``Main Dial (Scrollwheel)`` in ``PLAY`` mode: customizable function (preview HDR images, timelapse playback and others). See `SET+MainDial`_.
 * ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can use it for panoramas or for repeating shots.
 * ``LV`` on 60D/600D: you can configure it to protect images with a single button press.
 * ``SET+Erase``: you can configure it to erase images without the confirmation dialog.

@@ -120,7 +120,7 @@ Technical notes:
 * Exposure is metered using a condition like this (for example): *70% of pixels should be below 50% brightness*.
 * Exposure for every shot is computed from previous shots, using a feedback controller algorithm with a smoothing factor.
 * ISO is chosen using the 180 degree rule, so the resulting shutter speed stays between 90 and 270 degrees (that is, between 1/4 and 3/4 of the delay between two shots).
-* Only full-stop ISOs (100, 200, 400 etc) are used (because you are supposed to shoot RAW).
+* Only full-stop ISOs are used (you are supposed to shoot RAW).
 * Shutter speed can be adjusted with a resolution of 10ms.
 * Frames with fast shutter speeds (less than 1 second in Rebel cameras, less 0.1 seconds in 60D) are taken in Manual mode. You will get flicker.
 * It can go from 1/8000s @ ISO 100 (daylight) to several minutes of exposure time @ ISO 6400 (complete darkness).

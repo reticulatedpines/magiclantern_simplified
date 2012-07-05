@@ -46,6 +46,7 @@ print >> o, """{{page>faq-header&nofooter}}
 include(o, "FAQ.txt");
 o.close()
 
+os.system(r"sed -i -e 's/^#//g' userguide.rst")
 os.system("rst2html.py userguide.rst > userguide.html")
 os.system("html2wiki --no-escape-entities --dialect DokuWiki userguide.html > userguide.wiki")
 

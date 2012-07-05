@@ -23,7 +23,7 @@ Submenu options:
   
 * Kelvin white balance;
 * WBShift G/M: Green-Magenta white balance shift. Useful for fluorescent lighting;
-* WBShift B/A: Blue-Amber white balance shift. 1 unit = 5 mireks on Kelvin axis, according to `this post <http://www.openphotographyforums.com/forums/archive/index.php/t-5450.html>`_;
+#* WBShift B/A: Blue-Amber white balance shift. 1 unit = 5 mireks on Kelvin axis, according to `this post <http://www.openphotographyforums.com/forums/archive/index.php/t-5450.html>`_;
 * Custom RGB multipliers: fine-tune custom white balance;
 * Black level: this parameter is applied on RAW data, before applying white balance. Adjust it if you have problems with green or magenta shadows;
 * Auto adjust Kelvin + G/M: in LiveView, ML will compute the white balance for the current scene, using the center (200x200 pixels rectangle) as reference gray.
@@ -37,9 +37,9 @@ ISO
 Advanced ISO control.
 
 Color coding:
-  
-* orange = pure analog ISO (100, 200 ... 3200);
-* green = ISO with negative digital gain (160, 320 ... 2500);
+
+* orange = Canon ISO with good noise or dynamic range characteristics (100, 160, 200, 320 ... 3200).
+* green = ISO with negative digital gain applied via DIGIC (80, 90, 160, 320 - obtained by setting ML digital ISO to a negative value). These can have lower noise and/or better highlight rolloff than their Canon equivalents.
 * red = ISO with positive digital gain (avoid these values).
 
 Submenu options:
@@ -49,7 +49,7 @@ Submenu options:
 * Canon digital ISO;
 * ML digital ISO (DIGIC) - in movie mode: negative values will reduce noise, but may cause color issues in highlights. This feature enables ISO 50, ISO 51200 and many other intermediate or astronomical ISOs.
 * Display Gain (night vision) - in photo mode, for previewing night scenes;
-* Highlight Tone Priority (which increases dynamic range by 1 stop);
+* Highlight Tone Priority (which increases dynamic range by 1 stop in movie mode);
 * ISO selection (Canon ISOs or ML ISOs) - only used in movie mode;
 
 .. _shutter:
@@ -59,6 +59,7 @@ Shutter
 
 Fine-tune shutter speed.
 
+* When exposure override is enabled, you can adjust it in 1/8-stop increments (movie mode only).
 * In photo mode, Magic Lantern displays shutter values rounded to 2 significant digits (e.g. 1/50 may be displayed by ML as 1/48). This is not a bug.
 * In movie mode, shutter values are displayed with 3 decimal places (for example, in PAL mode, Canon uses 1/33.333 to avoid flicker).
 * To use shutter speeds normally not available in Canon firmware (like 1/25 or 1/8000 in movie mode), enable `exposure override`_.
@@ -66,7 +67,7 @@ Fine-tune shutter speed.
 Aperture
 ````````
 
-Adjust aperture. When `exposure override`_ is enabled, you can adjust it in 1/8-stop increments.
+Adjust aperture. When `exposure override`_ is enabled, you can adjust it in 1/8-stop increments (movie mode only).
 
 PictureStyle
 ````````````

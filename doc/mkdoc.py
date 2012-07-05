@@ -81,7 +81,7 @@ def add_menu_items_to_contents(file):
     f.close()
 
 
-os.system("montage ../cropmks/hd_ta.bmp ../cropmks/CineSco2.bmp ../cropmks/CrssMtr1.bmp ../cropmks/Passport.bmp  ../cropmks/PhiPhoto.bmp -tile 5x1 -geometry 300x200+5+5 Cropmarks550D.png")
+os.system("montage ../cropmks/hd_ta.bmp ../cropmks/CineSco2.bmp ../cropmks/CrssMtr2.bmp ../cropmks/Passport.bmp  ../cropmks/PhiPhoto.bmp -tile 4x1 -geometry 300x200+5+5 Cropmarks550D.png")
 
 f = open("FEATURES.txt").readlines();
 m = open("MANUAL.txt").readlines();
@@ -111,6 +111,7 @@ os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 fixwikilinks("userguide.rst")
 labelhack("userguide.rst")
 add_menu_items_to_contents("userguide.rst")
+os.system(r"sed -i -e 's/^#//g' userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex")
 os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide.tex")

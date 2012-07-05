@@ -168,7 +168,7 @@ Possible postprocessing workflows:
 * `HDR Glogger Web Service <http://hdr.glogger.mobi/upload_hdr.php>`_
 * etc (please help me filling the list!)
 
-`Discussion thread, postprocessing workflow, FAQ... <http://vimeo.com/groups/magiclantern/forumthread:250295>`_
+#`Discussion thread, postprocessing workflow, FAQ... <http://www.magiclantern.fm/forum/index.php?board=14.0>`_
 
 Image Effects
 `````````````
@@ -197,7 +197,7 @@ Limitations:
 * The camera will not record sound. You can use an external recorder (for example, `Zoom H1, H2 or H4n <http://amzn.to/zoom-h>`_) and sync the sound in post with a clapperboard.
 * You can't play back movies in the camera.
   
-This setting remains active even if you start the camera with standard firmware (until you clear your settings).
+#This setting remains active even if you start the camera with standard firmware (until you clear your settings).
 
 Shutter Button (50D)
 ````````````````````

@@ -45,7 +45,7 @@ Audio input source for recording:
 .. figure:: XLRtoBalancedCable.jpg
     :alt: XLR microphone to Balanced input pinouts
     :align: center
-    :width: 8cm
+    :width: 6cm
 
 "Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
 
