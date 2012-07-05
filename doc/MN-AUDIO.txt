@@ -15,7 +15,7 @@ from Magic Lantern. You can only use audio meters during recording.
 
 .. _manual audio controls:
 
-{{vimeo>18507408?250x140|Audio tests by Ryan Sauvé}}{{vimeo>5903379?250x140|Audio_Conclusions}}
+{{vimeo>18507408?250x140|Audio tests by Ryan Sauvé }}{{vimeo>5903379?250x140|Audio_Conclusions}}
 
 Analog Gain (dB)
 ````````````````
