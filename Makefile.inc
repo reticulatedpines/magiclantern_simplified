@@ -3,7 +3,7 @@
 # for yagarto, use ARM_ABI=none-eabi
 ARM_ABI=elf
 
-ARM_PATH=/media/old_home/alex/arm-toolchain462
+ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)

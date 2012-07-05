@@ -1602,7 +1602,7 @@ iso_toggle( void * priv, int sign )
     if (is_movie_mode())
     {
         extern int bv_auto;
-        if (lens_info.raw_iso && priv != -1)
+        if (lens_info.raw_iso && priv != (void*)-1)
         if ((lens_info.raw_iso <= (get_htp() ? 80 : 72) && sign < 0) ||
             (lens_info.raw_iso >= (bv_auto ? 128 : 120) && sign > 0))
         {
@@ -1701,7 +1701,7 @@ aperture_display( void * priv, int x, int y, int selected )
 {
     int a = lens_info.aperture;
     int av = ABS(lens_info.raw_aperture - 8);
-    if (!lens_info.name[0]) // for unchipped lenses, always display zero
+    if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
         a = 0;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -4154,7 +4154,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     {
-        .name = "Bulb/Focus Ramp ",
+        .name = "Bulb/Focus Ramping",
         .priv       = &bulb_ramping_enabled,
         .display = bulb_ramping_print,
         .max = 1,

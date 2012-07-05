@@ -940,12 +940,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  450, 
+                     10,  453, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-                     10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/,  450, 
+                     10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/,  453, 
                     menu->help
                 );
             }
@@ -975,7 +975,7 @@ menu_display(
             }
 
             // display key help
-            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height <  425)
+            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height <  430)
             {
                 char msg[100] = "";
 
@@ -1048,7 +1048,7 @@ menu_display(
                     }
 
                     if (CURRENT_DIALOG_MAYBE) // we can use scrollwheel
-                        bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_CYAN, COLOR_BLACK);
+                        bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_CYAN, COLOR_BLACK);
                     else
                         leftright_sign(690, 415);
                 }
@@ -1061,19 +1061,19 @@ menu_display(
                 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
-                     10,  425, 
+                     10,  430, 
                     msg
                 );
                 
             #ifndef CONFIG_5DC
                 if (!submenu_mode && !show_only_selected) // we can use scrollwheel for navigation
                 {
-                    bfnt_draw_char(ICON_MAINDIAL, 680, 412, COLOR_GRAY50, COLOR_BLACK);
+                    bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_GRAY50, COLOR_BLACK);
                     if (!CURRENT_DIALOG_MAYBE) // wait, we CAN'T use it... 
                                                // and you need to be careful because you will change shooting settings while recording!
                     {
-                        draw_line(720, 425, 680, 440, COLOR_WHITE);
-                        draw_line(720, 426, 680, 441, COLOR_WHITE);
+                        draw_line(720, 430, 680, 445, COLOR_WHITE);
+                        draw_line(720, 431, 680, 446, COLOR_WHITE);
                     }
                 }
             #endif
@@ -1084,13 +1084,13 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
-                     10,  show_only_selected ? 425 : 450, 
+                     10,  show_only_selected ? 430 : 453, 
                         "                                                           "
                 );
 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
-                     10,  show_only_selected ? 425 : 450, 
+                     10,  show_only_selected ? 430 : 453, 
                         warning_msg
                 );
             }
@@ -1100,7 +1100,7 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
-                     10,  show_only_selected ? 425 : 450, 
+                     10,  show_only_selected ? 430 : 453, 
                         "To restore hidden menus, enable last option from Prefs menu."
                 );
             }
