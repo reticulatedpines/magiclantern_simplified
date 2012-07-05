@@ -2899,10 +2899,6 @@ hdr_display( void * priv, int x, int y, int selected )
         
         if (aeb_setting)
         {
-            #ifdef CONFIG_60D
-            if (drive_mode == DRIVE_HISPEED_CONTINUOUS)
-                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Canon AEB settings will be used. Press shutter once.");
-            #endif
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off Canon bracketing (AEB)!");
         }
     }
@@ -5645,19 +5641,6 @@ shoot_task( void* unused )
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
-                #ifdef CONFIG_60D
-                // smarter trigger for Canon bracketing in high-speed mode
-                else if (hdr_enabled && aeb_setting && drive_mode == DRIVE_HISPEED_CONTINUOUS)
-                {
-                    lens_wait_readytotakepic(64);
-                    SW1(1,0);
-                    SW2(1,1000);
-                    SW2(0,0);
-                    SW1(0,0);
-                    lens_wait_readytotakepic(64);
-                    info_led_blink(1,50,50);
-                }
-                #endif
             }
             picture_was_taken_flag = 0;
         }
