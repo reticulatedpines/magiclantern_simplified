@@ -95,11 +95,19 @@ void menu_help_go_to_label(void* label)
     config_file_pos = 0;
 
     char line_buf[ 100 ];
+    
+    // trim spaces
+    char label_adj[100];
+    snprintf(label_adj, sizeof(label_adj), "%s", label);
+    while (label_adj[strlen(label_adj)-1] == ' ')
+    {
+        label_adj[strlen(label_adj)-1] = '\0';
+    }
 
     while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
     {
         char* name = line_buf+4;
-        if(!strcmp(name, label))
+        if(!strcmp(name, label_adj))
         {
             page = atoi(line_buf);
         }

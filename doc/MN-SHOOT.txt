@@ -197,8 +197,8 @@ Detection time is somewhere between 200 and 300 ms according to `DataGhost's spe
 .. _silent pictures:
 .. _Silent Picture:
 
-Silent Pictures
-```````````````
+Silent Picture
+``````````````
 
 {{ vimeo>18835420?250x140}}
 
@@ -241,8 +241,8 @@ Mirror lockup. See Canon user guide for details.
 .. _flash exposure compensation:
 .. _Flash AEcomp:
 
-Flash tweaks
-````````````
+Flash tweaks...
+```````````````
 
 A few tweaks for flash users:
 

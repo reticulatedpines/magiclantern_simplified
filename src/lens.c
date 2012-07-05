@@ -1741,7 +1741,7 @@ movielog_display( void * priv, int x, int y, int selected )
 static struct menu_entry lens_menus[] = {
 #ifndef CONFIG_50D
     {
-        .name = "Movie logging",
+        .name = "Movie Logging",
         .priv = &movie_log,
         .select = menu_binary_toggle,
         .display = movielog_display,

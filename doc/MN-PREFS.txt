@@ -56,6 +56,17 @@ Quick Erase
 
 Shortcut for erasing images without confirmation (hold SET and press ERASE). Be careful!
 
+LiveView Zoom Settings...
+`````````````````````````
+
+Customize Canon's x5/x10 zoom in LiveView:
+
+* Zoom x5, x10: you can disable one of them, so the first ``Zoom In`` press will zoom in, and the second will zoom out;
+* Auto exposure on zoom: auto adjusts exposure while zoom is active. This lets you adjust aperture freely on a manual lens, without the image going too bright or too dark (so it helps when focusing);
+* Increase SharpContrast: when zoom is active, sharpness and contrast are maximized. Increased sharpness works somewhat like focus peaking.
+* Zoom on HalfShutter: zoom is enabled when you press the shutter halfway.
+* Zoom with Focus Ring: if your Canon lens reports focus distance, you can enable zooming just by turning the focus ring. If you'd like the zoom to stay enabled for a longer time, press and hold the shutter halfway.
+
 .. _Arrow/SET shortcuts:
 
 Arrow/SET shortcuts...

@@ -34,6 +34,7 @@ for l in f[1:]:
         item = name.split(":")[0]
         item = item.split(" and ")[0] # hacks, to be removed
         item = item.split(" / ")[0]
+        item = item.split(" (")[0]
         item = item.split(" X sec")[0]
         item = item.strip()
         #~ idx[item] = page

@@ -3234,7 +3234,7 @@ struct menu_entry zebra_menus[] = {
         },
     },
     {
-        .name = "Waveform",
+        .name = "Histogram", // it's waveform, but in help is described as "Histogram and Waveform
         .priv       = &waveform_draw,
         .display = waveform_print,
         .max = 1,
@@ -3291,7 +3291,7 @@ struct menu_entry zebra_menus[] = {
 struct menu_entry level_indic_menus[] = {
     #ifdef CONFIG_60D
     {
-        .name = "Level Indic.", 
+        .name = "Level Indicator", 
         .priv = &electronic_level, 
         .select = menu_binary_toggle, 
         .display = electronic_level_display,
@@ -3434,7 +3434,7 @@ struct menu_entry powersave_menus[] = {
 
 struct menu_entry livev_cfg_menus[] = {
     {
-        .name = "DISP presets",
+        .name = "LV Display Presets",
         .priv       = &disp_profiles_0,
         .select     = menu_quaternary_toggle,
         .display    = disp_profiles_0_display,

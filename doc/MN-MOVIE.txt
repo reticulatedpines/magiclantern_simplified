@@ -170,8 +170,8 @@ Possible postprocessing workflows:
 
 #`Discussion thread, postprocessing workflow, FAQ... <http://www.magiclantern.fm/forum/index.php?board=14.0>`_
 
-Image Effects
-`````````````
+Image Effects...
+````````````````
 
 Custom image effects found by investigating DIGIC registers:
 
