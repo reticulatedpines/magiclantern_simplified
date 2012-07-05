@@ -400,21 +400,40 @@ int isgraph(int x) { return ispunct(x) || isalnum(x); }
 int isspace(int x) { return strchr(" \r\n\t",x)!=0; }
 int iscntrl(int x) { return strchr("\x07\x08\r\n\x0C\x0B\x09",x)!=0; }
 
+static int is_dir(char* path)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if( IS_ERROR(dirent) )
+    {
+        return 0; // this dir does not exist
+    }
+    else 
+    {
+        FIO_CleanupAfterFindNext_maybe(dirent);
+        return 1; // dir found
+    }
+}
 void FIO_CreateDir_recursive(char* path)
 {
     //~ NotifyBox(2000, "create dir: %s ", path); msleep(2000);
     // B:/ML/something
+    
+    if (is_dir(path)) return;
+    
     int n = strlen(path);
     for (int i = n-1; i > 2; i--)
     {
          if (path[i] == '/')
          {
              path[i] = '\0';
-             FIO_CreateDir_recursive(path);
+             if (!is_dir(path))
+                FIO_CreateDir_recursive(path);
              path[i] = '/';
          }
     }
-    FIO_CreateDirectory(path);
+
+        FIO_CreateDirectory(path);
 }
 
 // a wrapper that also creates missing dirs and removes existing file
