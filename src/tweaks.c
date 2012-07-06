@@ -2029,8 +2029,8 @@ void grayscale_menus_step()
 {
     static int prev_g = 0;
     static int prev_d = 0;
+    static int prev_gm = 0;
     static unsigned prev_b = 0;
-    static unsigned prev_gm = 0;
 
     // optimization: only update palette after a display mode change
     int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b) || (prev_gm != CURRENT_DIALOG_MAYBE);
@@ -2093,7 +2093,7 @@ extern void screen_layout_display( void * priv, int x, int y, int selected);
 extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
 extern void hdmi_force_display( void * priv, int x, int y, int selected);
-extern void display_gain_toggle(int* priv, int delta);
+extern void display_gain_toggle(void* priv, int delta);
 extern void display_gain_print( void * priv, int x, int y, int selected);
 
 static struct menu_entry display_menus[] = {

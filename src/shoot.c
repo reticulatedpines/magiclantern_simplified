@@ -1630,10 +1630,10 @@ iso_toggle( void * priv, int sign )
         while (!is_round_iso(values_iso[i]))
             i = mod(i + sign, COUNT(codes_iso));
         
-        if (priv == -1 && SGN(i - i0) != sign) // wrapped around
+        if (priv == (void*)-1 && SGN(i - i0) != sign) // wrapped around
             break;
         
-        if (priv == -1 && i == 0) break; // no auto iso allowed from shortcuts
+        if (priv == (void*)-1 && i == 0) break; // no auto iso allowed from shortcuts
         
         if (lens_set_rawiso(codes_iso[i])) break;
     }
