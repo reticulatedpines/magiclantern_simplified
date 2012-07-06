@@ -181,7 +181,7 @@ static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 int transparent_overlay_hidden = 0;
 
-static CONFIG_INT( "global.draw",   global_draw, 1 );
+static CONFIG_INT( "global.draw",   global_draw, 3 );
 
 #define ZEBRAS_IN_QUICKREVIEW (global_draw > 1)
 #define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
@@ -2240,7 +2240,7 @@ global_draw_display( void * priv, int x, int y, int selected )
         global_draw == 0 ? "OFF" :
         global_draw == 1 ? "LiveView" :
         global_draw == 2 ? "QuickReview" :
-        global_draw == 3 ? "LV+QR" : ""
+        global_draw == 3 ? "ON, all modes" : ""
     );
     if (disp_profiles_0)
     {
