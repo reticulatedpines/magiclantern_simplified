@@ -33,7 +33,9 @@
 
 #define DOUBLE_BUFFERING 1
 
-#define MENU_HELP_Y_POS (menu_lv_transparent_mode ? 430 : 453)
+#define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
+#define MENU_HELP_Y_POS (menu_lv_transparent_mode ? 425 : 453)
+#define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
 /*
 int sem_line = 0;
@@ -1064,7 +1066,7 @@ menu_display(
                 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
-                     10,  menu_lv_transparent_mode ? 425 : 430, 
+                     10,  MENU_KEYHELP_Y_POS, 
                     msg
                 );
                 
@@ -1087,13 +1089,13 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
-                     10,  MENU_HELP_Y_POS, 
-                        "                                                           "
+                     10,  MENU_WARNING_Y_POS, 
+                        "                                                            "
                 );
 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
-                     10,  MENU_HELP_Y_POS, 
+                     10,  MENU_WARNING_Y_POS, 
                         warning_msg
                 );
             }
