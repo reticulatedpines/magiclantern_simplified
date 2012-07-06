@@ -3474,6 +3474,7 @@ void cropmark_draw_from_cache()
 
 void copy_zebras_from_mirror()
 {
+    if (zebra_colorspace == 2) return; // fast luma, mirror not used
     uint32_t* B = (uint32_t*)bmp_vram();
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     ASSERT(B);
