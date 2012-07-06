@@ -4831,7 +4831,7 @@ livev_hipriority_task( void* unused )
             zoom_overlay_dirty = 1;
             if (falsecolor_draw)
             {
-                if (k % 2 == 0)
+                if (k % 4 == 0)
                     BMP_LOCK( if (lv) draw_false_downsampled(); )
             }
             else if (defish_preview)
