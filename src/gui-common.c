@@ -80,11 +80,11 @@ extern int ResumeLiveView();
 void incomplete_shutdown_notice()
 {
     msleep(4000);
-    for (int i = 0; i < 100; i++)
+    while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, 
-                    "Incomplete shutdown.      \n"
-                    "Please restart your camera");
+                    "Incomplete shutdown.       \n"
+                    "Please restart your camera.");
         info_led_blink(1,500,500);
     }
 }
