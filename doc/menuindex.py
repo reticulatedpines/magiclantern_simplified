@@ -32,7 +32,13 @@ for l in f[1:]:
 
     if type == "subsubsection": # each menu entry is a subsection
         item = name.split(":")[0]
-        item = item.split(" and ")[0] # hacks, to be removed
+        
+        if " and " in item:
+            and_terms = item.split(" and ")
+            for t in and_terms:
+                print >> o, "%03d %s" % (page, t.strip())
+            continue
+            
         item = item.split(" / ")[0]
         item = item.split(" (")[0]
         item = item.split(" X sec")[0]

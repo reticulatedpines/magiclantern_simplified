@@ -3234,7 +3234,7 @@ struct menu_entry zebra_menus[] = {
         },
     },
     {
-        .name = "Histogram", // it's waveform, but in help is described as "Histogram and Waveform
+        .name = "Waveform",
         .priv       = &waveform_draw,
         .display = waveform_print,
         .max = 1,
