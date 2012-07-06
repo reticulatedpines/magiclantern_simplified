@@ -89,3 +89,6 @@ int handle_digic_poke(struct event * event) { return 1; }
 int handle_movie_rec_key(struct event * event) { return 1; }
 int handle_movie_mode_shortcut(struct event * event) { return 1; }
 int handle_fps_events(struct event * event) { return 1; }
+
+int get_effective_hdr_iso_for_display(int raw_iso ) { return 1; };
+void set_movie_digital_iso_gain(int gain) {};

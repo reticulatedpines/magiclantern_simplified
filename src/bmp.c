@@ -1317,9 +1317,6 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
-#ifdef CONFIG_5DC
-    n = n/2;
-#endif
 
     int* dst = (int*) dest;
     int* end = (int*)(dest + n);
