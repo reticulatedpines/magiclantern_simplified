@@ -1425,7 +1425,7 @@ PROP_HANDLER( PROP_ISO )
         bv_set_rawiso(buf[0]);
         bv_auto_needed_by_iso = 0;
     }
-    else if (!buf[0]) lens_info.raw_iso = 0;
+    //~ else if (!buf[0]) lens_info.raw_iso = 0;
     #endif
     bv_auto_update();
     lens_display_set_dirty();
