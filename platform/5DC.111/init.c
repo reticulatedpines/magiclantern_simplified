@@ -60,10 +60,10 @@ void dumpmem(int addr, int len)
 }
 
 //~ dump memory 64kb at a time using a buffer.
-void dump_with_buffer(int addr, int len)
+void dump_with_buffer(int addr, int len, char* filename)
 {
-    FIO_RemoveFile("A:/0x0.BIN");
-    FILE* f = FIO_CreateFile("A:/0x0.BIN");
+    FIO_RemoveFile(filename);
+    FILE* f = FIO_CreateFile(filename);
     if (f!=-1)
     { 
         int address = addr;
