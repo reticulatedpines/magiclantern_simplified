@@ -604,21 +604,25 @@ void clear_lv_afframe()
     int y0 = COERCE(yaf,BMP_H_MINUS+75+os.off_169, BMP_H_PLUS-75-os.off_169) - 75;
     int w = 200;
     int h = 150;
+    int g = get_global_draw();
     for (int i = y0; i < y0 + h; i++)
     {
         for (int j = x0; j < x0+w; j++)
         {
-            int p = bmp_getpixel(j,i);
-            int m = M[BM(j,i)];
-            if (m == 0x80) M[BM(j,i)] = 0;
-            if (p == COLOR_BLACK || p == COLOR_WHITE)
+            if (g)
             {
-                bmp_putpixel(j,i, m & 0x80 ? m & ~0x80 : 0);
+                int p = bmp_getpixel(j,i);
+                int m = M[BM(j,i)];
+                if (m == 0x80) M[BM(j,i)] = 0;
+                if (p == COLOR_BLACK || p == COLOR_WHITE)
+                {
+                    bmp_putpixel(j,i, m & 0x80 ? m & ~0x80 : 0);
+                }
             }
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop"); // just in case
+            else // if globaldraw is off, just delete the frame (there may be old cropmark data in cache)
+            {
+                    bmp_putpixel(j,i,0);
+            }
         }
     }
     afframe_countdown = 0;
