@@ -2141,11 +2141,6 @@ void close_canon_menu()
     SetGUIRequestMode(0);
     msleep(100);
 #endif
-#ifdef CONFIG_5DC
-    //~ forces the canon menu under the ML one to close, thus turning the 5dc screen off.
-    fake_simple_button(BGMT_MENU);
-    msleep(50);
-#endif
 }
 
 static void menu_open() 
