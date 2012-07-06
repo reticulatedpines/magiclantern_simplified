@@ -62,6 +62,11 @@
 #define MOVREC_STATE (*(struct state_object **)0x5720)
 #endif
 
+#ifdef CONFIG_5DC
+extern int halfshutter_pressed; // we need to detect halfshutter press from EMState.
+#define EMState (*(struct state_object **)0x4f24)
+#endif
+
 /*
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
@@ -131,8 +136,15 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #endif
     
+#ifndef CONFIG_5DC
         vsync_func();
+#endif
 
+#ifdef CONFIG_5DC
+    if (z == 0x0) halfshutter_pressed = 1;
+    if (z == 0xB) halfshutter_pressed = 0;
+#endif
+    
     return ans;
 }
 
@@ -156,6 +168,10 @@ static void state_init(void* unused)
     //~ #endif
     #ifdef EVF_STATE
         stateobj_start_spy(EVF_STATE);
+    #endif
+    
+    #ifdef EMState
+        stateobj_start_spy(EMState);
     #endif
 }
 

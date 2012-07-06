@@ -644,3 +644,4 @@ NSTUB( 0xdeadbeef, new_LiveViewApp_handler ) // not called
 NSTUB( 0xdeadbeef, ShootOlcApp_handler ) // not called
 NSTUB( 0xdeadbeef, ErrForCamera_handler ) // not called
 
+NSTUB( 0xffb22afc, TryPostEvent )
