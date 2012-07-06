@@ -5703,7 +5703,17 @@ shoot_task( void* unused )
 
         if (tfx) // MF
         {
-            if (HALFSHUTTER_PRESSED) info_led_on(); else info_led_off();
+            static int info_led_turned_on = 0;
+            if (HALFSHUTTER_PRESSED)
+            {
+                 info_led_on();
+                 info_led_turned_on = 1;
+            }
+            else if (info_led_turned_on)
+            {
+                info_led_off();
+                info_led_turned_on = 0;
+            }
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
                 lens_take_picture(64,0);
