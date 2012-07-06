@@ -2047,7 +2047,7 @@ void grayscale_menus_step()
 
     if (bmp_color_scheme || prev_b)
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 3; i++)
         {
             if (d)
             {
