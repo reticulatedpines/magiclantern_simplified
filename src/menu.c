@@ -1061,7 +1061,7 @@ menu_display(
                 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
-                     10,  430, 
+                     10,  show_only_selected ? 425 : 430, 
                     msg
                 );
                 
