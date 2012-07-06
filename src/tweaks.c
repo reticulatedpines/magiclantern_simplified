@@ -2033,28 +2033,32 @@ void grayscale_menus_step()
     static unsigned prev_b = 0;
 
     // optimization: only update palette after a display mode change
-    int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b) || (prev_gm != CURRENT_DIALOG_MAYBE);
+    int guimode = CURRENT_DIALOG_MAYBE;
+    int d = DISPLAY_IS_ON;
+    int transition = (d != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b) || (prev_gm != guimode);
     
-    prev_d = DISPLAY_IS_ON;
-    prev_g = gui_state;
-    prev_gm = CURRENT_DIALOG_MAYBE;
-
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     if (!transition) return;
 
-    msleep(100);
+    prev_d = d;
+    prev_g = gui_state;
+    prev_gm = guimode;
 
     if (bmp_color_scheme || prev_b)
     {
-        if (DISPLAY_IS_ON)
+        for (int i = 0; i < 5; i++)
         {
-            if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
-            else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);
-            else if (bmp_color_scheme == 2) alter_bitmap_palette(1,1,0,0);
-            else if (bmp_color_scheme == 3) alter_bitmap_palette(3,1,0,0);
-            else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
-            else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
+            if (d)
+            {
+                if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
+                else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);
+                else if (bmp_color_scheme == 2) alter_bitmap_palette(1,1,0,0);
+                else if (bmp_color_scheme == 3) alter_bitmap_palette(3,1,0,0);
+                else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
+                else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
+            }
+            msleep(100);
         }
     }
 
