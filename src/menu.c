@@ -33,6 +33,8 @@
 
 #define DOUBLE_BUFFERING 1
 
+#define MENU_HELP_Y_POS (menu_lv_transparent_mode ? 430 : 453)
+
 /*
 int sem_line = 0;
 
@@ -54,7 +56,7 @@ extern struct semaphore * gui_sem;
 static struct semaphore * menu_redraw_sem;
 static int menu_damage;
 static int menu_shown = false;
-static int show_only_selected; // for ISO, kelvin...
+static int menu_lv_transparent_mode; // for ISO, kelvin...
 static int config_dirty = 0;
 static int menu_hidden_dirty = 0;
 static int menu_hidden_should_display_help = 0;
@@ -123,11 +125,11 @@ static void menu_cleanup_hidden_items();
 extern int gui_state;
 void menu_show_only_selected()
 {
-    show_only_selected = 1;
+    menu_lv_transparent_mode = 1;
     menu_damage = 1;
 }
-int menu_active_but_hidden() { return gui_menu_shown() && ( show_only_selected ); }
-int menu_active_and_not_hidden() { return gui_menu_shown() && !( show_only_selected && hist_countdown < 2 ); }
+int menu_active_but_hidden() { return gui_menu_shown() && ( menu_lv_transparent_mode ); }
+int menu_active_and_not_hidden() { return gui_menu_shown() && !( menu_lv_transparent_mode && hist_countdown < 2 ); }
 
 int draw_event = 0;
 
@@ -928,7 +930,8 @@ static void
 menu_display(
     struct menu_entry * menu,
     int         x,
-    int         y
+    int         y, 
+    int only_selected
 )
 {
     while( menu )
@@ -940,19 +943,19 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  show_only_selected ? 430 : 453, 
+                     10,  MENU_HELP_Y_POS, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-                     10,  show_only_selected ? 430 : 453, 
+                     10,  MENU_HELP_Y_POS, 
                     menu->help
                 );
             }
 
             // display icon (only the first icon is drawn)
             icon_drawn = 0;
-            if (!show_only_selected || menu->selected)
+            if ((!menu_lv_transparent_mode && !only_selected) || menu->selected)
             {
                 if (menu->display)
                     menu->display(
@@ -969,7 +972,7 @@ menu_display(
             }
             
             // this should be after menu->display, in order to allow it to override the icon
-            if (menu->selected || !show_only_selected)
+            if (menu->selected || (!menu_lv_transparent_mode && !only_selected))
             {
                 entry_draw_icon(menu, x, y);
             }
@@ -998,7 +1001,7 @@ menu_display(
                 {
                     STR_APPEND(msg, "SET: toggle edit mode   ");
                 }
-                else if (show_only_selected)
+                else if (menu_lv_transparent_mode)
                 {
                     STR_APPEND(msg, "SET: toggle LiveView    ");
                 }
@@ -1027,7 +1030,7 @@ menu_display(
                 }
 
 
-                if (submenu_mode || show_only_selected)
+                if (submenu_mode || menu_lv_transparent_mode || only_selected)
                 {
                     STR_APPEND(msg, "      ");
                     if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
@@ -1052,7 +1055,7 @@ menu_display(
                     else
                         leftright_sign(690, 415);
                 }
-                else if (menu->children && !submenu_mode && !show_only_selected)
+                else if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
                 {
                     int nspaces = 16 - strlen(Q_BTN_NAME);
                     for (int i = 0; i < nspaces; i++) { STR_APPEND(msg, " "); }
@@ -1061,12 +1064,12 @@ menu_display(
                 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
-                     10,  show_only_selected ? 425 : 430, 
+                     10,  menu_lv_transparent_mode ? 425 : 430, 
                     msg
                 );
                 
             #ifndef CONFIG_5DC
-                if (!submenu_mode && !show_only_selected) // we can use scrollwheel for navigation
+                if (!submenu_mode && !menu_lv_transparent_mode) // we can use scrollwheel for navigation
                 {
                     bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_GRAY50, COLOR_BLACK);
                     if (!CURRENT_DIALOG_MAYBE) // wait, we CAN'T use it... 
@@ -1084,13 +1087,13 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
-                     10,  show_only_selected ? 430 : 453, 
+                     10,  MENU_HELP_Y_POS, 
                         "                                                           "
                 );
 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
-                     10,  show_only_selected ? 430 : 453, 
+                     10,  MENU_HELP_Y_POS, 
                         warning_msg
                 );
             }
@@ -1100,13 +1103,13 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
-                     10,  show_only_selected ? 430 : 453, 
+                     10,  MENU_HELP_Y_POS, 
                         "To restore hidden menus, enable last option from Prefs menu."
                 );
             }
 
             // display submenu marker if this item has a submenu
-            if (menu->children && !show_only_selected)
+            if (menu->children && !menu_lv_transparent_mode)
                 submenu_icon(x, y);
             
             // display selection bar
@@ -1143,7 +1146,7 @@ menus_display(
     extern int override_zoom_buttons; // from focus.c
     override_zoom_buttons = 0; // will override them only if rack focus items are selected
 
-    //~ if (!show_only_selected)
+    //~ if (!menu_lv_transparent_mode)
         //~ bmp_printf(
             //~ FONT(FONT_MED, 55, COLOR_BLACK), // gray
             //~  10,  430, 
@@ -1176,7 +1179,7 @@ menus_display(
             bg
         );
         
-        if (!show_only_selected)
+        if (!menu_lv_transparent_mode)
         {
             int w = fontspec_font( fontspec )->width * 6;
             //int h = fontspec_font( fontspec )->height;
@@ -1206,7 +1209,8 @@ menus_display(
             menu_display(
                 menu->children,
                 orig_x + 40,
-                y + 45
+                y + 45, 
+                0
             );
     }
     give_semaphore( menu_sem );
@@ -1216,14 +1220,12 @@ static void
 implicit_submenu_display()
 {
     struct menu * menu = get_selected_menu();
-    int sos = show_only_selected;
-    show_only_selected = 1;
     menu_display(
         menu->children,
          40,
-         45
+         45,
+         1
     );
-    show_only_selected = sos;
 }
 
 static void
@@ -1240,7 +1242,7 @@ submenu_display(struct menu * submenu)
     int bx = (720 - w)/2;
     int by = (480 - h)/2 - 30;
     
-    if (!show_only_selected)
+    if (!menu_lv_transparent_mode)
     {
         bmp_fill(COLOR_GRAY40,  bx,  by, 720-2*bx+4, 50);
         bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
@@ -1249,7 +1251,7 @@ submenu_display(struct menu * submenu)
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
 
-    menu_display(submenu->children,  bx + 50,  by + 50 + 20);
+    menu_display(submenu->children,  bx + 50,  by + 50 + 20, 0);
 }
 
 static void
@@ -1309,7 +1311,7 @@ menu_entry_select(
     if (!IS_VISIBLE(entry) && !advanced_mode)
     {
         submenu_mode = 0;
-        show_only_selected = 0;
+        menu_lv_transparent_mode = 0;
         return;
     }
 
@@ -1322,12 +1324,12 @@ menu_entry_select(
     else if (mode == 2) // Q
     {
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else { submenu_mode = !submenu_mode; show_only_selected = 0; }
+        else { submenu_mode = !submenu_mode; menu_lv_transparent_mode = 0; }
     }
     else if (mode == 3) // SET
     {
         if (submenu_mode == 2) submenu_mode = 0;
-        else if (show_only_selected && entry->icon_type != IT_ACTION) show_only_selected = 0;
+        else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
         else if (entry->edit_mode == EM_FEW_VALUES) // SET increments
         {
             if( entry->select ) entry->select( entry->priv, 1);
@@ -1336,11 +1338,11 @@ menu_entry_select(
         else if (entry->edit_mode == EM_MANY_VALUES)
         {
             submenu_mode = (!submenu_mode)*2;
-            show_only_selected = 0;
+            menu_lv_transparent_mode = 0;
         }
         else if (entry->edit_mode == EM_MANY_VALUES_LV)
         {
-            if (lv) show_only_selected = !show_only_selected;
+            if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
             else if (submenu_mode != 1) submenu_mode = (!submenu_mode)*2;
             else // increment
             {
@@ -1537,8 +1539,8 @@ menu_redraw_do()
         }
         else
         {
-            if (!lv) show_only_selected = 0;
-            //~ if (show_only_selected) quick_redraw = false;
+            if (!lv) menu_lv_transparent_mode = 0;
+            //~ if (menu_lv_transparent_mode) quick_redraw = false;
             //~ if (MENU_MODE || lv) clrscr();
 
             //~ menu_damage = 0;
@@ -1551,7 +1553,7 @@ menu_redraw_do()
                 }
 
                 static int prev_so = 0;
-                if (show_only_selected)
+                if (menu_lv_transparent_mode)
                 {
                     if (!quick_redraw)
                         bmp_fill( 0, 0, 0, 720, 480 );
@@ -1570,7 +1572,7 @@ menu_redraw_do()
                     if (!quick_redraw || !submenu_mode)
                         bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
                 }
-                prev_so = show_only_selected;
+                prev_so = menu_lv_transparent_mode;
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
                 //~ take_semaphore(menu_redraw_sem, 0);
@@ -1583,16 +1585,16 @@ menu_redraw_do()
                 }
                 else
                 {
-                    if (!show_only_selected || !submenu_mode)
+                    if (!menu_lv_transparent_mode || !submenu_mode)
                         menus_display( menus, 0, 0 ); 
                 }
 
-                if (!show_only_selected && !submenu_mode)
+                if (!menu_lv_transparent_mode && !submenu_mode)
                     if (is_menu_active("Help")) menu_show_version();
 
                 if (submenu_mode)
                 {
-                    if (!show_only_selected && !quick_redraw) bmp_dim();
+                    if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim();
                     struct menu * submenu = get_current_submenu();
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();
@@ -1600,7 +1602,7 @@ menu_redraw_do()
                 
                 //~ give_semaphore(menu_redraw_sem);
 
-                if (show_only_selected) 
+                if (menu_lv_transparent_mode) 
                 {
                     draw_ml_topbar(0, 1);
                     draw_ml_bottombar(0, 1);
@@ -1828,7 +1830,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_MENU:
 /*        if (submenu_mode) submenu_mode = 0;
         else advanced_mode = !advanced_mode;
-        show_only_selected = 0;
+        menu_lv_transparent_mode = 0;
         menu_help_active = 0;
 */
         menu_entry_showhide_toggle(menu);
@@ -1842,7 +1844,7 @@ handle_ml_menu_keys(struct event * event)
         return 1;
         
     case BGMT_PRESS_ZOOMIN_MAYBE:
-        if (lv) show_only_selected = !show_only_selected;
+        if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
         else submenu_mode = (!submenu_mode)*2;
         menu_damage = 1;
         menu_help_active = 0;
@@ -1853,8 +1855,8 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
         menu_entry_move( menu, -1 );
-         if (submenu_mode == 2 || show_only_selected) menu_needs_full_redraw = 1;
-        //~ if (!submenu_mode) show_only_selected = 0;
+         if (submenu_mode == 2 || menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+        //~ if (!submenu_mode) menu_lv_transparent_mode = 0;
         menu_hidden_should_display_help = 0;
         break;
 
@@ -1862,8 +1864,8 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         menu_entry_move( menu, 1 );
-         if (submenu_mode == 2 || show_only_selected) menu_needs_full_redraw = 1;
-        //~ if (!submenu_mode) show_only_selected = 0;
+         if (submenu_mode == 2 || menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+        //~ if (!submenu_mode) menu_lv_transparent_mode = 0;
         menu_hidden_should_display_help = 0;
         break;
 
@@ -1871,8 +1873,8 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
-        if (submenu_mode || show_only_selected) menu_entry_select( menu, 0 );
-        else { menu_move( menu, 1 ); show_only_selected = 0; }
+        if (submenu_mode || menu_lv_transparent_mode) menu_entry_select( menu, 0 );
+        else { menu_move( menu, 1 ); menu_lv_transparent_mode = 0; }
         menu_hidden_should_display_help = 0;
         break;
 
@@ -1880,8 +1882,8 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
-        if (submenu_mode || show_only_selected) menu_entry_select( menu, 1 );
-        else { menu_move( menu, -1 ); show_only_selected = 0; }
+        if (submenu_mode || menu_lv_transparent_mode) menu_entry_select( menu, 1 );
+        else { menu_move( menu, -1 ); menu_lv_transparent_mode = 0; }
         menu_hidden_should_display_help = 0;
         break;
 
@@ -1901,7 +1903,7 @@ handle_ml_menu_keys(struct event * event)
 
     case BGMT_INFO:
         menu_help_active = !menu_help_active;
-        show_only_selected = 0;
+        menu_lv_transparent_mode = 0;
         if (menu_help_active) menu_help_go_to_selected_entry(main_menu);
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
@@ -2151,7 +2153,7 @@ static void menu_open()
     msleep(50);
 #endif
     
-    show_only_selected = 0;
+    menu_lv_transparent_mode = 0;
     submenu_mode = 0;
     menu_help_active = 0;
     keyrepeat = 0;
@@ -2172,7 +2174,7 @@ static void menu_close()
     update_disp_mode_bits_from_params();
 
     lens_focus_stop();
-    show_only_selected = 0;
+    menu_lv_transparent_mode = 0;
     
     if (!PLAY_MODE) { redraw(); }
     else draw_livev_for_playback();
@@ -2212,7 +2214,7 @@ menu_task( void* unused )
     TASK_LOOP
     {
         int menu_or_shortcut_menu_shown = (menu_shown || arrow_keys_shortcuts_active());
-        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : should_draw_zoom_overlay() && show_only_selected ? 2000 : 500;
+        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : should_draw_zoom_overlay() && menu_lv_transparent_mode ? 2000 : 500;
         int rc = take_semaphore( gui_sem, dt );
         if( rc != 0 )
         {
@@ -2242,7 +2244,7 @@ menu_task( void* unused )
                 continue;
             }
 
-            if ((!menu_help_active && !show_only_selected) || menu_damage) {
+            if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
                 menu_redraw();
             }
 
