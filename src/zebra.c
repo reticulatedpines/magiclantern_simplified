@@ -123,9 +123,9 @@ static void precompute_yuv2rgb()
 #define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
 { \
     Y = UYVY_GET_AVG_Y(uyvy); \
-    R = MIN(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 255); \
-    G = MIN(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 255); \
-    B = MIN(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 255); \
+    R = COERCE(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 0, 255); \
+    G = COERCE(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 0, 255); \
+    B = COERCE(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 0, 255); \
 } \
 
 
@@ -1116,16 +1116,16 @@ static void waveform_init()
 
 static void histo_init()
 {
-    if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t*));
+    if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t));
     //~ if (!hist) fail("Hist malloc failed");
 
-    if (!hist_r) hist_r = AllocateMemory(hist_width * sizeof(uint32_t*));
+    if (!hist_r) hist_r = AllocateMemory(hist_width * sizeof(uint32_t));
     //~ if (!hist_r) fail("HistR malloc failed");
 
-    if (!hist_g) hist_g = AllocateMemory(hist_width * sizeof(uint32_t*));
+    if (!hist_g) hist_g = AllocateMemory(hist_width * sizeof(uint32_t));
     //~ if (!hist_g) fail("HistG malloc failed");
 
-    if (!hist_b) hist_b = AllocateMemory(hist_width * sizeof(uint32_t*));
+    if (!hist_b) hist_b = AllocateMemory(hist_width * sizeof(uint32_t));
     //~ if (!hist_b) fail("HistB malloc failed");
 }
 
@@ -4000,14 +4000,6 @@ static void draw_zoom_overlay(int dirty)
         default:
             return;
     }
-    
-    /*if (zoom_overlay_size == 6)
-    {
-        x0 = 360;
-        y0 = 240;
-        x2 = 0;
-    }*/
-
     //~ bmp_printf(FONT_LARGE, 50, 50, "%d,%d %d,%d", W, H, aff_x0_lv);
 
     if (zoom_overlay_pos)
@@ -4165,6 +4157,7 @@ void draw_histogram_and_waveform(int allow_play)
     
     get_yuv422_vram();
 
+
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
@@ -4176,7 +4169,7 @@ void draw_histogram_and_waveform(int allow_play)
     if (is_zoom_mode_so_no_zebras()) return;
 
 //    int screen_layout = get_screen_layout();
-    
+
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
         if (should_draw_bottom_graphs())
@@ -4985,7 +4978,6 @@ static void black_bars_16x9()
 #endif
 }
 
-
 // Items which do not need a high FPS, but are CPU intensive
 // histogram, waveform...
 static void
@@ -5036,7 +5028,9 @@ livev_lopriority_task( void* unused )
         loprio_sleep();
 
         if (!gui_menu_shown())
+        {
             draw_histogram_and_waveform(0);
+        }
     }
 }
 
