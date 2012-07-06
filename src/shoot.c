@@ -5691,6 +5691,8 @@ shoot_task( void* unused )
             if (gui_menu_shown()) continue;
             if (HALFSHUTTER_PRESSED) continue;
             SW1(1,200);
+            NotifyBox(2000, "Trap focus: buttons are locked. \n"
+                            "Press shutter halfway to unlock.");
         }
 
         // same for motion detect
