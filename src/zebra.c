@@ -2755,6 +2755,8 @@ int handle_transparent_overlay(struct event * event)
         return 0;
     }
 
+    if (!get_global_draw()) return 1;
+
     if (transparent_overlay && liveview_display_idle() && !gui_menu_shown())
     {
         if (event->param == BGMT_PRESS_UP)
@@ -3691,6 +3693,7 @@ int handle_zoom_overlay(struct event * event)
 {
     if (gui_menu_shown()) return 1;
     if (!lv) return 1;
+    if (!get_global_draw()) return 1;
     #ifdef CONFIG_600D
     if (get_disp_pressed()) return 1;
     #endif
