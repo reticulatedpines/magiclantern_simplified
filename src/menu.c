@@ -1889,6 +1889,9 @@ handle_ml_menu_keys(struct event * event)
         menu_hidden_should_display_help = 0;
         break;
 
+    case BGMT_UNPRESS_SET:
+        break;
+
 #ifdef CONFIG_5D3
     case BGMT_JOY_CENTER:
 #endif
