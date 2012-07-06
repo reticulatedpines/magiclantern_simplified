@@ -981,7 +981,7 @@ tweak_task( void* unused)
     
     TASK_LOOP
     {
-        msleep(DISPLAY_IS_ON || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
+        msleep(DISPLAY_IS_ON || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 300);
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
@@ -2026,12 +2026,14 @@ void grayscale_menus_step()
     static int prev_g = 0;
     static int prev_d = 0;
     static unsigned prev_b = 0;
+    static unsigned prev_gm = 0;
 
     // optimization: only update palette after a display mode change
-    int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b);
+    int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b) || (prev_gm != CURRENT_DIALOG_MAYBE);
     
     prev_d = DISPLAY_IS_ON;
     prev_g = gui_state;
+    prev_gm = CURRENT_DIALOG_MAYBE;
 
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
