@@ -940,12 +940,12 @@ menu_display(
             {
                 bmp_printf(
                     FONT(FONT_MED, 0xC, COLOR_BLACK), // red
-                     10,  453, 
+                     10,  show_only_selected ? 430 : 453, 
                         "                                                           "
                 );
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
-                     10 /* + ((700/font_med.width) - strlen(menu->help)) * font_med.width / 2*/,  453, 
+                     10,  show_only_selected ? 430 : 453, 
                     menu->help
                 );
             }
