@@ -34,7 +34,7 @@
 #define DOUBLE_BUFFERING 1
 
 #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
-#define MENU_HELP_Y_POS (menu_lv_transparent_mode ? 425 : 453)
+#define MENU_HELP_Y_POS 453
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
 /*
@@ -1067,7 +1067,7 @@ menu_display(
                     STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
                 }
                 
-                while (strlen(msg) < 60) { STR_APPEND(msg, " "); }
+                //~ while (strlen(msg) < 60) { STR_APPEND(msg, " "); }
 
                 
                 bmp_printf(
