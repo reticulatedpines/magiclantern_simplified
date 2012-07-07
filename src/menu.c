@@ -959,6 +959,9 @@ menu_display(
             icon_drawn = 0;
             if ((!menu_lv_transparent_mode && !only_selected) || menu->selected)
             {
+                if (quick_redraw) // selected menu was not erased, so there may be leftovers on the screen
+                    bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x, y, 720, font_large.height);
+                
                 if (menu->display)
                     menu->display(
                         menu->priv,
