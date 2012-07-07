@@ -1650,8 +1650,8 @@ shutter_display( void * priv, int x, int y, int selected )
         int deg = 360 * fps_get_current_x1000() / s;
         //~ ASSERT(deg <= 360);
         snprintf(msg, sizeof(msg),
-            "Shutter     : 1/%d.%03d, %d ",
-            s/1000, s%1000, 
+            "Shutter     : 1/%d.%d, %d ",
+            s/1000, (s%1000+50)/100,
             deg);
     }
     else
