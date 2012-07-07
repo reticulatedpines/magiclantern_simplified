@@ -985,7 +985,13 @@ tweak_task( void* unused)
     
     TASK_LOOP
     {
-        msleep(DISPLAY_IS_ON || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 300);
+        // keep this task responsive for first 2 seconds after turning display off (for reacting quickly to palette changes etc)
+        static int display_countdown = 40;
+        if (DISPLAY_IS_ON)
+            display_countdown = 40;
+        else if (display_countdown) display_countdown--;
+        
+        msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
@@ -2027,29 +2033,30 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
-    static int prev_g = 0;
-    static int prev_d = 0;
-    static int prev_gm = 0;
-    static unsigned prev_b = 0;
+    // problem: grayscale registers are not overwritten by Canon when palette is changed
+    // so we don't know when to refresh it
+    // => need to use pure guesswork
+    static int prev_sig = 0;
+    static int prev_b = 0;
 
     // optimization: only update palette after a display mode change
     int guimode = CURRENT_DIALOG_MAYBE;
     int d = DISPLAY_IS_ON;
-    int transition = (d != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b) || (prev_gm != guimode);
+    int sig = get_current_dialog_handler() + d + guimode + bmp_color_scheme*314;
+    int transition = (sig != prev_sig);
     
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     if (!transition) return;
 
-    prev_d = d;
-    prev_g = gui_state;
-    prev_gm = guimode;
+    prev_sig = sig;
 
     if (bmp_color_scheme || prev_b)
     {
-        for (int i = 0; i < 3; i++)
+        //~ info_led_on();
+        for (int i = 0; i < 5; i++)
         {
-            if (d)
+            if (DISPLAY_IS_ON)
             {
                 if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
                 else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);
@@ -2058,8 +2065,9 @@ void grayscale_menus_step()
                 else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
                 else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
             }
-            msleep(100);
+            msleep(PLAY_MODE ? 150 : 30); // playback mode may change the palette very late after turning display on
         }
+        //~ info_led_off();
     }
 
     prev_b = bmp_color_scheme;
