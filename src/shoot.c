@@ -4989,7 +4989,7 @@ static int hdr_check_cancel(int init)
 void ensure_play_or_qr_mode_after_shot()
 {
     msleep(300);
-    lens_wait_readytotakepic(64);
+    while (lens_info.job_state > 8) msleep(100);
     msleep(300);
     #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
     for (int i = 0; i < 20; i++)
@@ -5003,7 +5003,7 @@ void ensure_play_or_qr_mode_after_shot()
     
     if (!QR_OR_PLAY) // image review disabled?
     {
-        lens_wait_readytotakepic(64);
+        while (lens_info.job_state > 8) msleep(100);
         fake_simple_button(BGMT_PLAY);
         for (int i = 0; i < 50; i++)
         {
