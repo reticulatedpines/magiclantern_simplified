@@ -121,16 +121,13 @@ CONFIG_INT( "focus.trap", trap_focus, 0);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
+
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
-static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = hi-res, 2 = slit-scan, 3 = long-exp
-static CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
-#define silent_pic_burst (silent_pic_submode == 1)
-#define silent_pic_fullhd (silent_pic_submode == 2)
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = hi-res
+#define silent_pic_burst (silent_pic_mode == 1)
 static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
-static CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
-//~ static CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
-//~ static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
+
 //~ static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -614,17 +611,16 @@ silent_pic_display( void * priv, int x, int y, int selected )
             "Silent Picture  : OFF"
         );
     }
-    else if (silent_pic_mode == 0)
+    else if (silent_pic_mode <= 1)
     {
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Silent Picture  : %s",
-            silent_pic_burst ? "Burst" : 
-            silent_pic_fullhd ? "FullHD" : "Single"
+            silent_pic_burst ? "Burst" : "Simple"
         );
     }
-    else if (silent_pic_mode == 1)
+    else if (silent_pic_mode == 2)
     {
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
@@ -635,29 +631,6 @@ silent_pic_display( void * priv, int x, int y, int selected )
         );
         bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
     }
-    /*else if (silent_pic_mode == 3)
-    {
-        int t = timer_values_longexp[mod(silent_pic_longexp_time_index, COUNT(timer_values_longexp))];
-        unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-        bmp_printf(
-            FONT(fnt, COLOR_RED, FONT_BG(fnt)),
-            x, y,
-            "Silent Pic LongX: %ds",
-            t
-            //~ silent_pic_longexp_method == 0 ? "AVG" :
-            //~ silent_pic_longexp_method == 1 ? "MAX" :
-            //~ silent_pic_longexp_method == 2 ? "SUM" : "err"
-        );
-    }*/
-    /*else if (silent_pic_mode == 2)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Slit-scan Pic   : 1ln/%dclk",
-            silent_pic_slitscan_skipframes
-        );
-    }*/
 }
 
 #ifdef AFFRAME_PROP_LEN
@@ -1179,56 +1152,16 @@ void ensure_movie_mode()
     if (!lv) force_liveview();
 }
 
-static int
-silent_pic_ensure_movie_mode()
-{
-    if (silent_pic_fullhd && !is_movie_mode()) 
-    { 
-        ensure_movie_mode();
-    }
-    #ifndef CONFIG_600D // on 600D you only have to go in movie mode
-    if (silent_pic_fullhd && !recording)
-    {
-        movie_start();
-        return 1;
-    }
-    #endif
-    return 0;
-}
-
-static void stop_recording_and_delete_movie()
-{
-    if (recording)
-    {
-        movie_end();
-        char name[100];
-        snprintf(name, sizeof(name), "%s/MVI_%04d.THM", get_dcim_dir(), file_number);
-        FIO_RemoveFile(name);
-        snprintf(name, sizeof(name), "%s/MVI_%04d.MOV", get_dcim_dir(), file_number);
-        FIO_RemoveFile(name);
-    }
-}
-
-static void
-silent_pic_stop_dummy_movie()
-{ 
-    #ifndef CONFIG_600D
-    stop_recording_and_delete_movie();
-    #endif
-}
-
 void
 silent_pic_take_simple(int interactive)
 {
-    int movie_started = silent_pic_ensure_movie_mode();
-    
     char* imgname = silent_pic_get_name();
 
     struct vram_info * vram = get_yuv422_hd_vram();
     int p = vram->pitch;
     int h = vram->height;
     
-    lv_request_pause_updating(silent_pic_burst ? 500 : 1000);
+    lv_request_pause_updating(500);
     msleep(50);
     
     dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
@@ -1249,8 +1182,6 @@ silent_pic_take_simple(int interactive)
     }
 
     msleep(100);
-    
-    if (movie_started) silent_pic_stop_dummy_movie();
 }
 
 void
@@ -1460,23 +1391,15 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
     if (!lv) force_liveview();
 
-    //~ if (beep_enabled) Beep();
-    
-    //~ idle_globaldraw_dis();
-    
-    if (silent_pic_mode == 0) // normal
+    if (silent_pic_mode <= 1) // normal, burst
+    {
         silent_pic_take_simple(interactive);
-    else if (silent_pic_mode == 1) // hi-res
+    }
+    else if (silent_pic_mode == 2) // hi-res
     {
         silent_pic_matrix_running = 1;
         silent_pic_take_sweep(interactive);
     }
-    //~ else if (silent_pic_mode == 2) // slit-scan
-        //~ silent_pic_take_slitscan(interactive);
-    //~ else if (silent_pic_mode == 3) // long exposure
-        //~ silent_pic_take_longexp();
-
-    //~ idle_globaldraw_en();
 
     silent_pic_matrix_running = 0;
 
@@ -4296,18 +4219,16 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                .max = 1,
-                .choices = (const char *[]) {"Simple", "Hi-Res", "SlitScan"},
+                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+                .max = 2, // hi-res works
+                #else
+                .max = 1, // hi-res doesn't work
+                #endif
+                .choices = (const char *[]) {"Simple", "Burst", "Hi-Res"},
                 .icon_type = IT_DICE,
-                .help = "Silent picture mode: simple or high-resolution."
+                .help = "Silent picture mode: simple, burst or high-resolution."
             },
-            {
-                .name = "Flags", 
-                .priv = &silent_pic_submode,
-                .max = 2,
-                .choices = (const char *[]) {"None", "Burst","FullHD"},
-                .help = "Enables burst mode (for simple pics) or FullHD resolution."
-            },
+            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -4316,14 +4237,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
-            /*{
-                .name = "Slit Skip", 
-                .priv = &silent_pic_slitscan_skipframes,
-                .min = 1,
-                .max = 4,
-                .icon_type = IT_PERCENT,
-                .help = "For slit-scan: how many frames to skip between two lines."
-            },*/
+            #endif
             MENU_EOL
         },
     },
