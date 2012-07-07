@@ -2679,7 +2679,7 @@ static void zoom_lv_face_step()
         if (hs && lv_dispsize == 1)
         {
             zoom_was_triggered_by_halfshutter = 1;
-            int zoom = zoom_disable_x5 ? 10 : 5;
+            int zoom = zoom_disable_x10 ? 5 : 10;
             set_lv_zoom(zoom);
             msleep(100);
         }
@@ -2710,7 +2710,7 @@ void zoom_focus_ring_engage() // called from shoot_task
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
     zoom_focus_ring_disable_time = ms100_clock + 4000;
-    int zoom = zoom_disable_x5 ? 10 : 5;
+    int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
 }
 static void zoom_focus_ring_step()
