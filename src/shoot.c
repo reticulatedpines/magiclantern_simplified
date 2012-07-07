@@ -4119,6 +4119,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .display    = intervalometer_display,
         .help = "Take pictures or movies at fixed intervals (for timelapse).",
+        .submenu_width = 650,
         //.essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
