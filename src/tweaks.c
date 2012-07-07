@@ -1027,8 +1027,8 @@ tweak_task( void* unused)
                     quickzoom_pressed = 0;
                     for (int i = 0; i < 30; i++)
                     {
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1));
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1));
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
