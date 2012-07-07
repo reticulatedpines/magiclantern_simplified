@@ -2147,6 +2147,11 @@ void close_canon_menu()
     SetGUIRequestMode(0);
     msleep(100);
 #endif
+#ifdef CONFIG_5DC
+    //~ forces the 5dc screen to turn on for ML menu.
+    fake_simple_button(BGMT_MENU);
+    msleep(50);
+#endif
 }
 
 static void menu_open() 
