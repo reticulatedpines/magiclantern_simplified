@@ -2039,10 +2039,12 @@ void grayscale_menus_step()
     static int prev_sig = 0;
     static int prev_b = 0;
 
-    // optimization: only update palette after a display mode change
+    // optimization: try to only update palette after a display mode change
+    // but this is not 100% reliable => update at least once every second
     int guimode = CURRENT_DIALOG_MAYBE;
     int d = DISPLAY_IS_ON;
-    int sig = get_current_dialog_handler() + d + guimode + bmp_color_scheme*314;
+    //~ info_led_blink(1,50,50);
+    int sig = get_current_dialog_handler() + d + guimode + bmp_color_scheme*314 + get_seconds_clock();
     int transition = (sig != prev_sig);
     
     if (ml_shutdown_requested) return;
@@ -2054,7 +2056,7 @@ void grayscale_menus_step()
     if (bmp_color_scheme || prev_b)
     {
         //~ info_led_on();
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 3; i++)
         {
             if (DISPLAY_IS_ON)
             {
@@ -2065,7 +2067,7 @@ void grayscale_menus_step()
                 else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
                 else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
             }
-            msleep(PLAY_MODE ? 150 : 30); // playback mode may change the palette very late after turning display on
+            msleep(50);
         }
         //~ info_led_off();
     }
