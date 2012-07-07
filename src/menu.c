@@ -1067,6 +1067,9 @@ menu_display(
                     STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
                 }
                 
+                while (strlen(msg) < 60) { STR_APPEND(msg, " "); }
+
+                
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
                      10,  MENU_KEYHELP_Y_POS, 
