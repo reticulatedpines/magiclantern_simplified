@@ -5842,14 +5842,9 @@ shoot_task( void* unused )
                     get_out_of_play_mode(0);
                 }
 
-                extern int idle_display_turn_off_after;
-                if (idle_display_turn_off_after && lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
+                if (lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
                 {
-                    // stop LiveView and turn off display to save power
-                    msleep(500);
-                    PauseLiveView();
-                    msleep(200);
-                    display_off();
+                    idle_force_powersave_in_1s();
                     display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
                 }
             }

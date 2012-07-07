@@ -4363,24 +4363,27 @@ int ResumeLiveView()
 static void idle_display_off()
 {
     extern int motion_detect;
-
-    wait_till_next_second();
-
-    if (motion_detect || recording)
+    
+    if (!is_intervalometer_running())
     {
-        NotifyBox(3000, "DISPLAY OFF...");
-    }
-    else
-    {
-        NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
-    }
+        wait_till_next_second();
 
-    if (!(lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED))
-    {
-        for (int i = 0; i < 30; i++)
+        if (motion_detect || recording)
         {
-            if (idle_countdown_display_off) { NotifyBoxHide(); return; }
-            msleep(100);
+            NotifyBox(3000, "DISPLAY OFF...");
+        }
+        else
+        {
+            NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
+        }
+
+        if (!(lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED))
+        {
+            for (int i = 0; i < 30; i++)
+            {
+                if (idle_countdown_display_off) { NotifyBoxHide(); return; }
+                msleep(100);
+            }
         }
     }
     if (!(motion_detect || recording)) PauseLiveView();
