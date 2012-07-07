@@ -1228,7 +1228,7 @@ silent_pic_take_simple(int interactive)
     int p = vram->pitch;
     int h = vram->height;
     
-    lv_request_pause_updating(300);
+    lv_request_pause_updating(silent_pic_burst ? 500 : 1000);
     msleep(50);
     
     dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
