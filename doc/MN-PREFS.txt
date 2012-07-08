@@ -73,6 +73,7 @@ Arrow/SET shortcuts...
 ``````````````````````
 
 Select the features you want to adjust quickly with arrow keys:
+
 * Audio gain
 * ISO/Kelvin
 * Shutter/Aperture
@@ -184,9 +185,9 @@ LV Display Presets
 
 This feature lets you use up to 4 display presets for the settings in the `Overlay`_ menu.
 
-On the top bar, you will see ``DISP`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``Overlay`` menu. So you can, for example, configure ``DISP 1`` with false colors, ``DISP 2`` with zebras and focus peaking, and ``DISP 3`` with clear display.
+On the top bar, you will see ``DISP`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``Overlay`` menu. So you can, for example, configure ``DISP 0`` with false colors, ``DISP 1`` with zebras and focus peaking, and ``DISP 2`` with cropmarks.
 
-This menu item sets the maximum number of available DISP presets. To disable this feature, set the number of presets to 1.
+This menu item sets the maximum number of available display presets. To disable this feature, set the number of presets to 1.
 
 To change the current display preset, press ``INFO/DISP`` in LiveView, or ``[Q]`` on the GlobalDraw entry in the Overlay menu.
 
