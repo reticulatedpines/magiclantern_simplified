@@ -114,14 +114,12 @@ void menu_help_go_to_label(void* label)
     {
         char* name = line_buf+4;
         str_make_lowercase(name);
+        int pagenum = atoi(line_buf);
         if(streq(name, label_adj))
         {
-            page = atoi(line_buf);
+            page = pagenum;
         }
-        if(streq(name, "end"))
-        {
-            help_pages = atoi(line_buf);
-        }
+        help_pages = MAX(help_pages, pagenum);
     }
     free_dma_memory(config_file_buf);
     config_file_buf = 0;
