@@ -1385,7 +1385,7 @@ static struct menu_entry focus_menu[] = {
         },
     },
     {
-        .name = "Focus Dist",
+        .name = "Focus distance",
         .display    = display_lens_hyperfocal,
         .help = "Focus distance and DOF info (read-only)",
         //.essential = FOR_PHOTO | FOR_MOVIE,

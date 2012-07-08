@@ -172,27 +172,13 @@ Recommended focus step settings: same as for `rack focus`_.
 
 .. _focus and DOF info:
 
-The following items are display only:
+Focus distance and DOF info
+```````````````````````````
 
-Focus Dist
-``````````
+These items are read-only:
 
-The distance to the focal point. Value is returned by most newer Canon lenses. If the lens does not report any distance information, 0 will be displayed and the DOF calculations will not be correct. 
-    
-See also [[Focus distance]].
-
-Hyperfocal
-``````````
-
-The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
-
-DOF Near
-````````
-
-The nearest distance in which objects appear in focus. 
-
-DOF Far
-```````
-
-The farthest distance in which objects appear in focus. 
-
+* Lens info: displays lens name, current focal length and current aperture.
+* Focus Dist: The distance to the focal point. Most newer newer Canon lenses report this value, but not all.
+* Hyperfocal: The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
+* DOF Near: The nearest distance in which objects appear in focus.
+* DOF Far: The farthest distance in which objects appear in focus.
