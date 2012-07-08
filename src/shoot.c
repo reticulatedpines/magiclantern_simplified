@@ -737,6 +737,7 @@ void move_lv_afframe(int dx, int dy)
 {
 #ifdef AFFRAME_PROP_LEN
     if (!liveview_display_idle()) return;
+    if (is_movie_mode() && video_mode_crop) return;
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
@@ -1228,6 +1229,14 @@ silent_pic_take_sweep(int interactive)
             msleep(2000);
             return; 
         }
+    }
+
+    if ((is_movie_mode() && video_mode_crop))
+    {
+        NotifyBox(2000, "Hi-res silent pictures  \n"
+                        "won't work in crop mode.");
+        msleep(2000);
+        return; 
     }
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
@@ -5407,9 +5416,12 @@ shoot_task( void* unused )
     #ifdef AFFRAME_PROP_LEN
     if (!lv)
     {   // center AF frame at startup in photo mode
-        afframe[2] = (afframe[0] - afframe[4])/2;
-        afframe[3] = (afframe[1] - afframe[5])/2;
-        prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+        if (!((is_movie_mode() && video_mode_crop)))
+        {
+            afframe[2] = (afframe[0] - afframe[4])/2;
+            afframe[3] = (afframe[1] - afframe[5])/2;
+            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+        }
     }
     #endif
 
