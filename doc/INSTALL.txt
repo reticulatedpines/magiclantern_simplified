@@ -70,7 +70,7 @@ Magic Lantern v2.3 works **only** with the following camera firmware versions:
 * Canon **550D / T2i / Kiss X4**: firmware `1.0.9 <http://web.canon.jp/imaging/eosd/firm-e/eosdigital7/firmware.html>`_
 * Canon **600D / T3i / Kiss X5**: firmware `1.0.2 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_rebel_t3i_18_55mm_is_ii_kit#DriversAndSoftware>`_
 * Canon **50D**: firmware `1.0.9. <http://www.usa.canon.com/cusa/support/consumer/eos_slr_camera_systems/eos_digital_slr_cameras/eos_50d#DriversAndSoftware>`_
-* Canon **60D**: firmware `1.1.0 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_60d#DriversAndSoftware>`_
+* Canon **60D**: firmware `1.1.1 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_60d#DriversAndSoftware>`_
 * Canon **5D Mark II**: firmware `2.1.2 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_5d_mark_ii#DriversAndSoftware>`_
 
 If, for some reason, these links don't work, `check the online install guide for updated links <http://wiki.magiclantern.fm/install>`_.
