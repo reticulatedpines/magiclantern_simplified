@@ -4303,7 +4303,7 @@ static struct menu_entry flash_menus[] = {
 };
 struct menu_entry tweak_menus_shoot[] = {
     {
-        .name = "LiveView Zoom Settings...",
+        .name = "LiveView zoom settings...",
         .select = menu_open_submenu,
         //~ .display = zoom_display,
         .submenu_width = 650,

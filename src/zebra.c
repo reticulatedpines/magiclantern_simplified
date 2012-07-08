@@ -2293,7 +2293,7 @@ clearscreen_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Clear Overlays : %s",
+        "Clear overlays : %s",
         //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
         mode == 1 ? "HalfShutter/DofP" : 
@@ -2684,7 +2684,7 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV Display Presets  : %d", 
+        "LV display presets  : %d", 
         disp_profiles_0 + 1
     );
 }

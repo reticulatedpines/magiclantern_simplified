@@ -2144,7 +2144,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Color Scheme   ",
+                .name = "Color scheme   ",
                 .priv     = &bmp_color_scheme,
                 .max = 5,
                 .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
@@ -2156,7 +2156,7 @@ static struct menu_entry display_menus[] = {
         },
     }, */
     {
-        .name = "Clear Overlays",
+        .name = "Clear overlays",
         .priv           = &clearscreen_enabled,
         .display        = clearscreen_display,
         .select         = menu_binary_toggle,
