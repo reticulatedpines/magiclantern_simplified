@@ -506,54 +506,19 @@ bmp_fill(
     w = COERCE(w, 0, BMP_W_PLUS-x-1);
     h = COERCE(h, 0, BMP_H_PLUS-y-1);
 
-    const int start = x;
-    //~ const uint32_t width = BMP_WIDTH;
-    const uint32_t pitch = BMPPITCH;
-    //~ const uint32_t height = BMP_HEIGHT;
-    
     const uint32_t word = 0
         | (color << 24)
         | (color << 16)
         | (color <<  8)
         | (color <<  0);
 
-    int y_end = y + h;
-
-    if( w == 0 || h == 0 )
-        return;
-
-    uint8_t * const vram = bmp_vram();
-    uint32_t * row = (void*)( vram + y * pitch + start );
-    ASSERT(row)
-
-    if( !vram || ( 1 & (uintptr_t) vram ) )
+    uint32_t* b = bmp_vram();
+    
+    for (int i = y; i < y+h; i++)
     {
-        //sei( flags );
-        return;
-    }
-
-
-    for( ; y<y_end ; y++, row += pitch/4 )
-    {
-        int x;
-
-        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
-        for( x=w/4-1 ; x >= 0 ; x-- )
-        #else
-            for( x=0 ; x < (int)w/4 ; x++ )
-        #endif
+        for (int j = x; j < x+w; j+=4)
         {
-            row[ x ] = word;
-/*            #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
-            asm( "nop" );
-            asm( "nop" );
-            asm( "nop" );
-            asm( "nop" );
-            #endif
-            asm( "nop" );
-            asm( "nop" );
-            asm( "nop" );
-            asm( "nop" ); */
+            b[BM(j,i)/4] = word;
         }
     }
 }
