@@ -2262,9 +2262,6 @@ menu_task( void* unused )
                 menu_redraw();
             }
 
-            if (sensor_cleaning && menu_shown)
-                menu_close();
-
             if (gui_state == GUISTATE_MENUDISP && menu_shown)
                 menu_close();
 
@@ -2651,4 +2648,15 @@ static void menu_cleanup_hidden_items()
             if (entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN) entry->hidden = MENU_ENTRY_HIDDEN;
         }
     }
+}
+
+
+PROP_HANDLER(PROP_SHOOTING_MODE)
+{
+    gui_stop_menu();
+}
+
+PROP_HANDLER(PROP_ACTIVE_SWEEP_STATUS)
+{
+    gui_stop_menu();
 }
