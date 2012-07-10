@@ -79,7 +79,7 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 
 void reset_pre_shutdown_flag_task()
 {
-    msleep(3000);
+    msleep(4000);
     pre_shutdown_requested = 0;
 }
 
@@ -95,7 +95,7 @@ int handle_common_events_by_feature(struct event * event)
     {
         pre_shutdown_requested = 1;
         config_save_at_shutdown();
-        task_create("pre_shutdown_reset", 0x1c, 0, reset_pre_shutdown_flag_task, 0); // if false shutdown, reset this after a few seconds
+        task_create("pre_shutdown_reset", 0x1c, 0x1000, reset_pre_shutdown_flag_task, 0); // if false shutdown, reset this after a few seconds
         return 1;
     }
     
