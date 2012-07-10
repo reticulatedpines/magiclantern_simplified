@@ -557,6 +557,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    menu_benchmark();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1224,6 +1225,25 @@ static void excessive_redraws_task()
         if (gui_menu_shown()) menu_redraw();
         else redraw();
         msleep(10);
+    }
+}
+
+static void bmp_fill_test_task()
+{
+    msleep(2000);
+    while(1)
+    {
+        int x1 = rand() % 720;
+        int x2 = rand() % 720;
+        int y1 = rand() % 480;
+        int y2 = rand() % 480;
+        int xm = MIN(x1,x2); int xM = MAX(x1,x2);
+        int ym = MIN(y1,y2); int yM = MAX(y1,y2);
+        int w = xM-xm;
+        int h = yM-ym;
+        int c = rand() % 255;
+        bmp_fill(c, xm, ym, w, h);
+        msleep(20);
     }
 }
 
@@ -2525,6 +2545,12 @@ struct menu_entry debug_menus[] = {
                 .priv = excessive_redraws_task,
                 .help = "Causes excessive redraws for testing the graphics backend",
             },
+            {
+                .name = "Rectangle test (infinite)",
+                .select = (void(*)(void*,int))run_in_separate_task, 
+                .priv = bmp_fill_test_task,
+                .help = "Stresses graphics bandwith. Run this while recording.",
+            },
             MENU_EOL,
         }
     },
@@ -3475,6 +3501,7 @@ int display_is_on() { return DISPLAY_IS_ON; }
 
 void EngDrvOut(int reg, int value)
 {
+    if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
     //~ _card_led_on();
     _EngDrvOut(reg, value);
@@ -3483,6 +3510,7 @@ void EngDrvOut(int reg, int value)
 
 void engio_write(int* command_sequence)
 {
+    if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     //~ _card_led_on();
     _engio_write(command_sequence);

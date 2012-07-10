@@ -985,7 +985,13 @@ tweak_task( void* unused)
     
     TASK_LOOP
     {
-        msleep(DISPLAY_IS_ON || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 300);
+        // keep this task responsive for first 2 seconds after turning display off (for reacting quickly to palette changes etc)
+        static int display_countdown = 40;
+        if (DISPLAY_IS_ON)
+            display_countdown = 40;
+        else if (display_countdown) display_countdown--;
+        
+        msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
@@ -1021,8 +1027,8 @@ tweak_task( void* unused)
                     quickzoom_pressed = 0;
                     for (int i = 0; i < 30; i++)
                     {
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1));
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1));
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
@@ -2027,35 +2033,43 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
-    static int prev_g = 0;
-    static int prev_d = 0;
-    static int prev_gm = 0;
-    static unsigned prev_b = 0;
+    // problem: grayscale registers are not overwritten by Canon when palette is changed
+    // so we don't know when to refresh it
+    // => need to use pure guesswork
+    static int prev_sig = 0;
+    static int prev_b = 0;
 
-    // optimization: only update palette after a display mode change
-    int transition = (DISPLAY_IS_ON != prev_d) || (gui_state != prev_g) || (bmp_color_scheme != prev_b) || (prev_gm != CURRENT_DIALOG_MAYBE);
+    // optimization: try to only update palette after a display mode change
+    // but this is not 100% reliable => update at least once every second
+    int guimode = CURRENT_DIALOG_MAYBE;
+    int d = DISPLAY_IS_ON;
+    //~ info_led_blink(1,50,50);
+    int sig = get_current_dialog_handler() + d + guimode + bmp_color_scheme*314 + get_seconds_clock();
+    int transition = (sig != prev_sig);
     
-    prev_d = DISPLAY_IS_ON;
-    prev_g = gui_state;
-    prev_gm = CURRENT_DIALOG_MAYBE;
-
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
     if (!transition) return;
 
-    msleep(100);
+    prev_sig = sig;
 
     if (bmp_color_scheme || prev_b)
     {
-        if (DISPLAY_IS_ON)
+        //~ info_led_on();
+        for (int i = 0; i < 3; i++)
         {
-            if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
-            else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);
-            else if (bmp_color_scheme == 2) alter_bitmap_palette(1,1,0,0);
-            else if (bmp_color_scheme == 3) alter_bitmap_palette(3,1,0,0);
-            else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
-            else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
+            if (DISPLAY_IS_ON)
+            {
+                if      (bmp_color_scheme == 0) alter_bitmap_palette(1,0,0,0);
+                else if (bmp_color_scheme == 1) alter_bitmap_palette(3,0,0,0);
+                else if (bmp_color_scheme == 2) alter_bitmap_palette(1,1,0,0);
+                else if (bmp_color_scheme == 3) alter_bitmap_palette(3,1,0,0);
+                else if (bmp_color_scheme == 4) alter_bitmap_palette(5,0,-170/2,500/2); // strong shift towards red
+                else if (bmp_color_scheme == 5) alter_bitmap_palette(3,0,-170/2,-500/2); // strong shift toward green (pink 5,0,170/2,500/2)
+            }
+            msleep(50);
         }
+        //~ info_led_off();
     }
 
     prev_b = bmp_color_scheme;
@@ -2130,7 +2144,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Color Scheme   ",
+                .name = "Color scheme   ",
                 .priv     = &bmp_color_scheme,
                 .max = 5,
                 .choices = (const char *[]) {"Bright", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
@@ -2142,7 +2156,7 @@ static struct menu_entry display_menus[] = {
         },
     }, */
     {
-        .name = "Clear Overlays",
+        .name = "Clear overlays",
         .priv           = &clearscreen_enabled,
         .display        = clearscreen_display,
         .select         = menu_binary_toggle,

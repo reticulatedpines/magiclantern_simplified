@@ -14,8 +14,6 @@ void lcd_release_step(){};
 void force_liveview() {};
 int lcd_release_running = 0;
 void set_shooting_mode(){};
-void lv_request_pause_updating(){};
-void lv_wait_for_pause_updating_to_finish(){};
 int get_screen_layout(){ return 0; };
 void rec_notify_trigger(){};
 void set_display_gain_equiv(){};

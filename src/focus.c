@@ -500,6 +500,23 @@ focus_delay_display(
     menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
 
+static void
+focus_delay_sub_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Focus delay   : %dms",
+        (1 << lens_focus_delay) * 10
+    );
+    menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
+}
+
 
 /*
 static void
@@ -1291,13 +1308,13 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
-                .name = "StepDelay",
-                .display    = focus_delay_display,
+                .name = "Focus delay",
+                .display    = focus_delay_sub_display,
                 .select     = focus_delay_toggle,
                 .help = "Delay between two successive focus commands.",
             },
             {         //"Focus StepDelay"
-                .name = "Wait flag      ",
+                .name = "Wait flag",
                 .priv = &lens_focus_waitflag,
                 .max = 1,
                 .help = "Wait for 'focus done' signal before sending next command.",
@@ -1368,7 +1385,7 @@ static struct menu_entry focus_menu[] = {
         },
     },
     {
-        .name = "Focus Dist",
+        .name = "Focus distance",
         .display    = display_lens_hyperfocal,
         .help = "Focus distance and DOF info (read-only)",
         //.essential = FOR_PHOTO | FOR_MOVIE,

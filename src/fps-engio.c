@@ -371,6 +371,11 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
     restore_sound_recording();
 }
+PROP_HANDLER(PROP_MVR_REC_START)
+{
+    if (!buf[0] && !lv)
+        restore_sound_recording();
+}
 //--------------------------------------------------------
 
 static int fps_get_timer(int fps_x1000)

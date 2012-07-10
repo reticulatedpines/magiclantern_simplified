@@ -52,6 +52,7 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
+	state-object.o \
 	tasks.o \
 
 

@@ -181,7 +181,7 @@ static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 int transparent_overlay_hidden = 0;
 
-static CONFIG_INT( "global.draw",   global_draw, 1 );
+static CONFIG_INT( "global.draw",   global_draw, 3 );
 
 #define ZEBRAS_IN_QUICKREVIEW (global_draw > 1)
 #define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
@@ -1698,7 +1698,7 @@ void guess_focus_peaking_threshold()
 void
 clrscr_mirror( void )
 {
-    if (!lv) return;
+    if (!lv && !PLAY_OR_QR_MODE) return;
     if (!get_global_draw()) return;
 
     uint8_t * const bvram = bmp_vram();
@@ -2240,7 +2240,7 @@ global_draw_display( void * priv, int x, int y, int selected )
         global_draw == 0 ? "OFF" :
         global_draw == 1 ? "LiveView" :
         global_draw == 2 ? "QuickReview" :
-        global_draw == 3 ? "LV+QR" : ""
+        global_draw == 3 ? "ON, all modes" : ""
     );
     if (disp_profiles_0)
     {
@@ -2293,7 +2293,7 @@ clearscreen_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Clear Overlays : %s",
+        "Clear overlays : %s",
         //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
         mode == 1 ? "HalfShutter/DofP" : 
@@ -2684,7 +2684,7 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV Display Presets  : %d", 
+        "LV display presets  : %d", 
         disp_profiles_0 + 1
     );
 }
@@ -4113,9 +4113,11 @@ void draw_livev_for_playback()
 {
     get_yuv422_vram(); // just to refresh VRAM params
     if (!PLAY_MODE && !QR_MODE) return;
-    clrscr();
     
 BMP_LOCK(
+
+    bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
+    clrscr();
 
     // don't draw cropmarks in QR mode (buggy on 4:3 screens)
     if (!QR_MODE) cropmark_redraw();
@@ -4138,6 +4140,8 @@ BMP_LOCK(
     }
     
     draw_histogram_and_waveform(1);
+
+    bvram_mirror_clear(); // may remain filled with playback zebras 
 )
 }
 
@@ -4359,24 +4363,27 @@ int ResumeLiveView()
 static void idle_display_off()
 {
     extern int motion_detect;
-
-    wait_till_next_second();
-
-    if (motion_detect || recording)
+    
+    if (!is_intervalometer_running())
     {
-        NotifyBox(3000, "DISPLAY OFF...");
-    }
-    else
-    {
-        NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
-    }
+        wait_till_next_second();
 
-    if (!(lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED))
-    {
-        for (int i = 0; i < 30; i++)
+        if (motion_detect || recording)
         {
-            if (idle_countdown_display_off) { NotifyBoxHide(); return; }
-            msleep(100);
+            NotifyBox(3000, "DISPLAY OFF...");
+        }
+        else
+        {
+            NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
+        }
+
+        if (!(lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED))
+        {
+            for (int i = 0; i < 30; i++)
+            {
+                if (idle_countdown_display_off) { NotifyBoxHide(); return; }
+                msleep(100);
+            }
         }
     }
     if (!(motion_detect || recording)) PauseLiveView();
@@ -4752,6 +4759,13 @@ int is_focus_peaking_enabled()
     ;
 }
 
+static void digic_zebra_cleanup()
+{
+    if (!DISPLAY_IS_ON) return;
+    EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
+    zebra_digic_dirty = 0;
+}
+
 
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
@@ -4776,14 +4790,14 @@ livev_hipriority_task( void* unused )
         get_422_hd_idle_buf(); // just to keep it up-to-date
         
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
-        if (zebra_digic_dirty && !zd) { EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); zebra_digic_dirty = 0; }
+        if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
             if (!zebra_should_run())
             {
-                if (zebra_digic_dirty) { EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); zebra_digic_dirty = 0; }
+                if (zebra_digic_dirty) digic_zebra_cleanup();
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_60D
                 disable_electronic_level();
@@ -5185,8 +5199,9 @@ int handle_livev_playback(struct event * event, int button)
 static void zebra_init()
 {
     precompute_yuv2rgb();
-    
+#ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
+#endif
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );

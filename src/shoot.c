@@ -121,16 +121,13 @@ CONFIG_INT( "focus.trap", trap_focus, 0);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
+
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
-static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = hi-res, 2 = slit-scan, 3 = long-exp
-static CONFIG_INT( "silent.pic.submode", silent_pic_submode, 0);   // simple, burst, fullhd
-#define silent_pic_burst (silent_pic_submode == 1)
-#define silent_pic_fullhd (silent_pic_submode == 2)
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = hi-res
+#define silent_pic_burst (silent_pic_mode == 1)
 static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
-static CONFIG_INT( "silent.pic.slitscan.skipframes", silent_pic_slitscan_skipframes, 1);
-//~ static CONFIG_INT( "silent.pic.longexp.time.index", silent_pic_longexp_time_index, 5);
-//~ static CONFIG_INT( "silent.pic.longexp.method", silent_pic_longexp_method, 0);
+
 //~ static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -614,17 +611,16 @@ silent_pic_display( void * priv, int x, int y, int selected )
             "Silent Picture  : OFF"
         );
     }
-    else if (silent_pic_mode == 0)
+    else if (silent_pic_mode <= 1)
     {
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Silent Picture  : %s",
-            silent_pic_burst ? "Burst" : 
-            silent_pic_fullhd ? "FullHD" : "Single"
+            silent_pic_burst ? "Burst" : "Simple"
         );
     }
-    else if (silent_pic_mode == 1)
+    else if (silent_pic_mode == 2)
     {
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
@@ -635,29 +631,6 @@ silent_pic_display( void * priv, int x, int y, int selected )
         );
         bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
     }
-    /*else if (silent_pic_mode == 3)
-    {
-        int t = timer_values_longexp[mod(silent_pic_longexp_time_index, COUNT(timer_values_longexp))];
-        unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-        bmp_printf(
-            FONT(fnt, COLOR_RED, FONT_BG(fnt)),
-            x, y,
-            "Silent Pic LongX: %ds",
-            t
-            //~ silent_pic_longexp_method == 0 ? "AVG" :
-            //~ silent_pic_longexp_method == 1 ? "MAX" :
-            //~ silent_pic_longexp_method == 2 ? "SUM" : "err"
-        );
-    }*/
-    /*else if (silent_pic_mode == 2)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Slit-scan Pic   : 1ln/%dclk",
-            silent_pic_slitscan_skipframes
-        );
-    }*/
 }
 
 #ifdef AFFRAME_PROP_LEN
@@ -764,6 +737,7 @@ void move_lv_afframe(int dx, int dy)
 {
 #ifdef AFFRAME_PROP_LEN
     if (!liveview_display_idle()) return;
+    if (is_movie_mode() && video_mode_crop) return;
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
@@ -1179,56 +1153,16 @@ void ensure_movie_mode()
     if (!lv) force_liveview();
 }
 
-static int
-silent_pic_ensure_movie_mode()
-{
-    if (silent_pic_fullhd && !is_movie_mode()) 
-    { 
-        ensure_movie_mode();
-    }
-    #ifndef CONFIG_600D // on 600D you only have to go in movie mode
-    if (silent_pic_fullhd && !recording)
-    {
-        movie_start();
-        return 1;
-    }
-    #endif
-    return 0;
-}
-
-static void stop_recording_and_delete_movie()
-{
-    if (recording)
-    {
-        movie_end();
-        char name[100];
-        snprintf(name, sizeof(name), "%s/MVI_%04d.THM", get_dcim_dir(), file_number);
-        FIO_RemoveFile(name);
-        snprintf(name, sizeof(name), "%s/MVI_%04d.MOV", get_dcim_dir(), file_number);
-        FIO_RemoveFile(name);
-    }
-}
-
-static void
-silent_pic_stop_dummy_movie()
-{ 
-    #ifndef CONFIG_600D
-    stop_recording_and_delete_movie();
-    #endif
-}
-
 void
 silent_pic_take_simple(int interactive)
 {
-    int movie_started = silent_pic_ensure_movie_mode();
-    
     char* imgname = silent_pic_get_name();
 
     struct vram_info * vram = get_yuv422_hd_vram();
     int p = vram->pitch;
     int h = vram->height;
     
-    lv_request_pause_updating(300);
+    lv_request_pause_updating(500);
     msleep(50);
     
     dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
@@ -1249,8 +1183,6 @@ silent_pic_take_simple(int interactive)
     }
 
     msleep(100);
-    
-    if (movie_started) silent_pic_stop_dummy_movie();
 }
 
 void
@@ -1297,6 +1229,14 @@ silent_pic_take_sweep(int interactive)
             msleep(2000);
             return; 
         }
+    }
+
+    if ((is_movie_mode() && video_mode_crop))
+    {
+        NotifyBox(2000, "Hi-res silent pictures  \n"
+                        "won't work in crop mode.");
+        msleep(2000);
+        return; 
     }
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
@@ -1460,23 +1400,15 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
     if (!lv) force_liveview();
 
-    //~ if (beep_enabled) Beep();
-    
-    //~ idle_globaldraw_dis();
-    
-    if (silent_pic_mode == 0) // normal
+    if (silent_pic_mode <= 1) // normal, burst
+    {
         silent_pic_take_simple(interactive);
-    else if (silent_pic_mode == 1) // hi-res
+    }
+    else if (silent_pic_mode == 2) // hi-res
     {
         silent_pic_matrix_running = 1;
         silent_pic_take_sweep(interactive);
     }
-    //~ else if (silent_pic_mode == 2) // slit-scan
-        //~ silent_pic_take_slitscan(interactive);
-    //~ else if (silent_pic_mode == 3) // long exposure
-        //~ silent_pic_take_longexp();
-
-    //~ idle_globaldraw_en();
 
     silent_pic_matrix_running = 0;
 
@@ -1650,8 +1582,8 @@ shutter_display( void * priv, int x, int y, int selected )
         int deg = 360 * fps_get_current_x1000() / s;
         //~ ASSERT(deg <= 360);
         snprintf(msg, sizeof(msg),
-            "Shutter     : 1/%d.%03d, %d ",
-            s/1000, s%1000, 
+            "Shutter     : 1/%d.%d, %d ",
+            s/1000, (s%1000+50)/100,
             deg);
     }
     else
@@ -2679,7 +2611,7 @@ static void zoom_lv_face_step()
         if (hs && lv_dispsize == 1)
         {
             zoom_was_triggered_by_halfshutter = 1;
-            int zoom = zoom_disable_x5 ? 10 : 5;
+            int zoom = zoom_disable_x10 ? 5 : 10;
             set_lv_zoom(zoom);
             msleep(100);
         }
@@ -2710,7 +2642,7 @@ void zoom_focus_ring_engage() // called from shoot_task
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
     zoom_focus_ring_disable_time = ms100_clock + 4000;
-    int zoom = zoom_disable_x5 ? 10 : 5;
+    int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
 }
 static void zoom_focus_ring_step()
@@ -2942,7 +2874,7 @@ int is_bulb_mode()
 void ensure_bulb_mode()
 {
     lens_wait_readytotakepic(64);
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     int a = lens_info.raw_aperture;
     set_shooting_mode(SHOOTMODE_BULB);
     if (expsim == 2) set_expsim(1);
@@ -3853,7 +3785,7 @@ static void compute_exposure_for_next_shot()
         int mev = bramp_luma_to_ev_x100(bramp_measured_level);
         //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, mev > 0 ? "" : "-", ABS(mev)/100, ABS(mev)%100); msleep(1000);
 
-        my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
+        my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d ", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
 
         /**
          * Use a discrete feedback controller, designed such as the closed loop system 
@@ -4119,6 +4051,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .display    = intervalometer_display,
         .help = "Take pictures or movies at fixed intervals (for timelapse).",
+        .submenu_width = 650,
         //.essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
@@ -4295,18 +4228,16 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                .max = 1,
-                .choices = (const char *[]) {"Simple", "Hi-Res", "SlitScan"},
+                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+                .max = 2, // hi-res works
+                #else
+                .max = 1, // hi-res doesn't work
+                #endif
+                .choices = (const char *[]) {"Simple", "Burst", "Hi-Res"},
                 .icon_type = IT_DICE,
-                .help = "Silent picture mode: simple or high-resolution."
+                .help = "Silent picture mode: simple, burst or high-resolution."
             },
-            {
-                .name = "Flags", 
-                .priv = &silent_pic_submode,
-                .max = 2,
-                .choices = (const char *[]) {"None", "Burst","FullHD"},
-                .help = "Enables burst mode (for simple pics) or FullHD resolution."
-            },
+            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -4315,14 +4246,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
-            /*{
-                .name = "Slit Skip", 
-                .priv = &silent_pic_slitscan_skipframes,
-                .min = 1,
-                .max = 4,
-                .icon_type = IT_PERCENT,
-                .help = "For slit-scan: how many frames to skip between two lines."
-            },*/
+            #endif
             MENU_EOL
         },
     },
@@ -4388,7 +4312,7 @@ static struct menu_entry flash_menus[] = {
 };
 struct menu_entry tweak_menus_shoot[] = {
     {
-        .name = "LiveView Zoom Settings...",
+        .name = "LiveView zoom settings...",
         .select = menu_open_submenu,
         //~ .display = zoom_display,
         .submenu_width = 650,
@@ -4988,7 +4912,7 @@ static int hdr_check_cancel(int init)
 void ensure_play_or_qr_mode_after_shot()
 {
     msleep(300);
-    lens_wait_readytotakepic(64);
+    while (lens_info.job_state > 8) msleep(100);
     msleep(300);
     #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
     for (int i = 0; i < 20; i++)
@@ -5002,7 +4926,7 @@ void ensure_play_or_qr_mode_after_shot()
     
     if (!QR_OR_PLAY) // image review disabled?
     {
-        lens_wait_readytotakepic(64);
+        while (lens_info.job_state > 8) msleep(100);
         fake_simple_button(BGMT_PLAY);
         for (int i = 0; i < 50; i++)
         {
@@ -5492,9 +5416,12 @@ shoot_task( void* unused )
     #ifdef AFFRAME_PROP_LEN
     if (!lv)
     {   // center AF frame at startup in photo mode
-        afframe[2] = (afframe[0] - afframe[4])/2;
-        afframe[3] = (afframe[1] - afframe[5])/2;
-        prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+        if (!((is_movie_mode() && video_mode_crop)))
+        {
+            afframe[2] = (afframe[0] - afframe[4])/2;
+            afframe[3] = (afframe[1] - afframe[5])/2;
+            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+        }
     }
     #endif
 
@@ -5691,6 +5618,8 @@ shoot_task( void* unused )
             if (gui_menu_shown()) continue;
             if (HALFSHUTTER_PRESSED) continue;
             SW1(1,200);
+            NotifyBox(2000, "Trap focus: buttons are locked. \n"
+                            "Press shutter halfway to unlock.");
         }
 
         // same for motion detect
@@ -5743,25 +5672,25 @@ shoot_task( void* unused )
                 //TODO: maybe get the spot yuv of the target box
                 get_spot_yuv(100, &y, &u, &v);
                 aev = y / 2;
-                if (K > 20) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
-                if (K > 20 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
+                if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+                if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
                     lens_take_picture(64,1);
                     K = 0;
                 }
-                if (K == 20) idle_force_powersave_in_1s();
+                if (K == 40) idle_force_powersave_in_1s();
                 old_ae_avg = old_ae_avg * 90/100 + aev * 10;
             }
             else if (motion_detect_trigger == 1)
             {
                 int d = get_spot_motion(100, get_global_draw());
-                if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
-                if (K > 20 && d >= (int)motion_detect_level)
+                if (K > 40) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
+                if (K > 40 && d >= (int)motion_detect_level)
                 {
                     lens_take_picture(64,1);
                     K = 0;
                 }
-                if (K == 20) idle_force_powersave_in_1s();
+                if (K == 40) idle_force_powersave_in_1s();
             }
         }
 
@@ -5839,14 +5768,9 @@ shoot_task( void* unused )
                     get_out_of_play_mode(0);
                 }
 
-                extern int idle_display_turn_off_after;
-                if (idle_display_turn_off_after && lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
+                if (lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
                 {
-                    // stop LiveView and turn off display to save power
-                    msleep(500);
-                    PauseLiveView();
-                    msleep(200);
-                    display_off();
+                    idle_force_powersave_in_1s();
                     display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
                 }
             }

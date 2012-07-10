@@ -34,7 +34,7 @@
 #define DOUBLE_BUFFERING 1
 
 #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
-#define MENU_HELP_Y_POS (menu_lv_transparent_mode ? 425 : 453)
+#define MENU_HELP_Y_POS 453
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
 /*
@@ -87,7 +87,7 @@ static CONFIG_INT("menu.adv", advanced_mode, 0);
 
 static struct menu_entry advanced_menu[] = {
     {
-        .name = "Display hidden menus",
+        .name = "Show all menu items ",
         .priv = &advanced_mode,
         .hidden = MENU_ENTRY_NEVER_HIDE,
         .max = 1,
@@ -959,6 +959,9 @@ menu_display(
             icon_drawn = 0;
             if ((!menu_lv_transparent_mode && !only_selected) || menu->selected)
             {
+                if (quick_redraw && menu->selected) // selected menu was not erased, so there may be leftovers on the screen
+                    bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x, y, g_submenu_width-50, font_large.height);
+                
                 if (menu->display)
                     menu->display(
                         menu->priv,
@@ -1063,6 +1066,9 @@ menu_display(
                     for (int i = 0; i < nspaces; i++) { STR_APPEND(msg, " "); }
                     STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
                 }
+                
+                //~ while (strlen(msg) < 60) { STR_APPEND(msg, " "); }
+
                 
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
@@ -1889,6 +1895,9 @@ handle_ml_menu_keys(struct event * event)
         menu_hidden_should_display_help = 0;
         break;
 
+    case BGMT_UNPRESS_SET:
+        return 0; // block Canon menu redraws
+
 #ifdef CONFIG_5D3
     case BGMT_JOY_CENTER:
 #endif
@@ -2139,7 +2148,7 @@ void close_canon_menu()
     msleep(100);
 #endif
 #ifdef CONFIG_5DC
-    //~ forces the canon menu under the ML one to close, thus turning the 5dc screen off.
+    //~ forces the 5dc screen to turn on for ML menu.
     fake_simple_button(BGMT_MENU);
     msleep(50);
 #endif

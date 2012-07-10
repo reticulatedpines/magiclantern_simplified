@@ -84,6 +84,11 @@ void menu_help_go_to_page(int page)
     menu_help_active = 1;
 }
 
+void str_make_lowercase(char* s)
+{
+    while (*s) { *s = tolower(*s); s++; }
+}
+
 void menu_help_go_to_label(void* label)
 {
     int page = 1;
@@ -103,18 +108,18 @@ void menu_help_go_to_label(void* label)
     {
         label_adj[strlen(label_adj)-1] = '\0';
     }
+    str_make_lowercase(label_adj);
 
     while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
     {
         char* name = line_buf+4;
-        if(!strcmp(name, label_adj))
+        str_make_lowercase(name);
+        int pagenum = atoi(line_buf);
+        if(streq(name, label_adj))
         {
-            page = atoi(line_buf);
+            page = pagenum;
         }
-        if(!strcmp(name, "end"))
-        {
-            help_pages = atoi(line_buf);
-        }
+        help_pages = MAX(help_pages, pagenum);
     }
     free_dma_memory(config_file_buf);
     config_file_buf = 0;
