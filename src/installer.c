@@ -191,8 +191,6 @@ void fake_simple_button(int bgmt_code)
     GUI_Control(bgmt_code, 0, 0, 0);
 }
 
-PROP_INT(PROP_TFT_STATUS, tft_status);
-
 void install_task()
 {
     
@@ -204,23 +202,12 @@ void install_task()
     
     Msleep(200);
     
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status: %d          ", tft_status);
+    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status: %d          ", !DISPLAY_IS_ON);
     
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status || gui_state != GUISTATE_IDLE) { SW1(1,100); SW1(0,100); Msleep(500); }
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
-    if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status) { fake_simple_button(BGMT_INFO); Msleep(500); }
-    if (tft_status)
-#else
-    if (tft_status || gui_state != GUISTATE_IDLE)
-#endif
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+
+    if (!DISPLAY_IS_ON)
     {
-        PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status error...     ");
         card_led_blink(10, 10, 90);
         card_led_blink(10, 90, 10);
         card_led_blink(10, 10, 90);
@@ -228,7 +215,7 @@ void install_task()
         card_led_blink(10, 10, 90);
         card_led_blink(10, 90, 10);
         beep();
-        return; // display off, can't install
+        return; // display off, won't install
     }
     Msleep(500);
 
@@ -450,6 +437,8 @@ void bootflag_toggle( void * priv )
         return;
     }
 
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+
     clrscr();
     ui_lock(UILOCK_EVERYTHING);
     clrscr();
@@ -480,6 +469,8 @@ void bootflag_toggle( void * priv )
 
 void firmware_fix( void * priv )
 {
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+
     clrscr();
     ui_lock(UILOCK_EVERYTHING);
     clrscr();
@@ -526,7 +517,8 @@ int check_fonts()
 void check_install()
 {
     //~ Msleep(1);
-    
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+
     if (boot_flags->firmware)
     {
         big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
