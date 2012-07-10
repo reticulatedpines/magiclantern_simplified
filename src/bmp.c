@@ -500,26 +500,31 @@ bmp_fill(
     h = h/2;
 #endif
     
-    //~ if (!bmp_enabled) return;
-    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
-    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
-    w = COERCE(w, 0, BMP_W_PLUS-x-1);
-    h = COERCE(h, 0, BMP_H_PLUS-y-1);
-
-    const uint32_t word = 0
-        | (color << 24)
-        | (color << 16)
-        | (color <<  8)
-        | (color <<  0);
-
-    uint32_t* b = bmp_vram();
+    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1); 
+    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1); 
+    w = COERCE(w, 0, BMP_W_PLUS-x-1); 
+    h = COERCE(h, 0, BMP_H_PLUS-y-1); 
     
-    for (int i = y; i < y+h; i++)
-    {
-        for (int j = x; j < x+w; j+=4)
-        {
-            b[BM(j,i)/4] = word;
-        }
+    const uint32_t wordColor = (color << 24) | (color << 16) | (color << 8) | color; 
+    const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor; 
+    
+    uint8_t* b = bmp_vram(); 
+    for (int i = y; i < y+h; i++) 
+    { 
+        uint32_t *buffer = (uint32_t *)&(b[BM(x,i)]); 
+        uint32_t *bufferEnd = (uint32_t *)&(b[BM(x+w,i)]); 
+        
+        while (buffer < bufferEnd) 
+        { 
+            if((uint32_t)bufferEnd - (uint32_t)buffer < 8) 
+            { 
+                *buffer = wordColor; buffer++; 
+            } 
+            else 
+            { 
+                *((uint64_t*)buffer) = dwordColor; buffer += 2; 
+            } 
+        } 
     }
 }
 
