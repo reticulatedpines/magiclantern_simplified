@@ -1841,8 +1841,11 @@ handle_ml_menu_keys(struct event * event)
         menu_lv_transparent_mode = 0;
         menu_help_active = 0;
 */
-        menu_entry_showhide_toggle(menu);
-        menu_needs_full_redraw = 1;
+        if (!menu_lv_transparent_mode && submenu_mode != 2)
+        {
+            menu_entry_showhide_toggle(menu);
+            menu_needs_full_redraw = 1;
+        }
         
         break;
 
