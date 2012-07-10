@@ -132,7 +132,7 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 
 PROP_HANDLER(PROP_CARD_COVER)
 {
-    if (buf[0] == 1) ml_shutdown();
+    if (buf[0] == 1) config_save_at_shutdown();
 }
 
 static int task_holding_bmp_lock = 0;
