@@ -763,7 +763,7 @@ my_init_task(int a, int b, int c, int d)
         additional_version[7] = '\0';
         return ans;
     }
-    task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
+    task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
     return ans;
 #endif // !CONFIG_EARLY_PORT
 }
