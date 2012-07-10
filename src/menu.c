@@ -87,7 +87,7 @@ static CONFIG_INT("menu.adv", advanced_mode, 0);
 
 static struct menu_entry advanced_menu[] = {
     {
-        .name = "Display hidden menus",
+        .name = "Show all menu items ",
         .priv = &advanced_mode,
         .hidden = MENU_ENTRY_NEVER_HIDE,
         .max = 1,
