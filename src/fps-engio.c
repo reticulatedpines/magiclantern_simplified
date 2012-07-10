@@ -108,21 +108,21 @@ static void fps_patch_timerB(int timer_value);
 #if defined(CONFIG_5D2)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 20, lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 20, lv_dispsize > 1 ? 500 : 400)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
     #define TG_FREQ_SHUTTER 23188405 // not sure
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 10), lv_dispsize > 1 ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
 #elif defined(CONFIG_50D)
     #define TG_FREQ_BASE 28800000
     #define TG_FREQ_SHUTTER 41379310 // not sure
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 630 : 688 )
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 10), lv_dispsize > 1 ? 630 : 688 )
 #else // 550D, 600D, 60D
     #define TG_FREQ_BASE 28800000
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - 10, lv_dispsize > 1 ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 10), lv_dispsize > 1 ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
     #define TG_FREQ_PAL  50000000
     #define TG_FREQ_NTSC_SHUTTER 49440000
     #define TG_FREQ_ZOOM 39230730 // not 100% sure
