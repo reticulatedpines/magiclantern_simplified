@@ -1428,7 +1428,7 @@ int handle_arrow_keys(struct event * event)
         if (!is_arrow_mode_ok(arrow_keys_mode))
             return 1;
 
-        if (arrow_keys_use_set)
+        if (arrow_keys_use_set && !recording)
         if (event->param == BGMT_PRESS_SET
         #ifdef BGMT_JOY_CENTER
         || event->param == BGMT_JOY_CENTER
@@ -1571,7 +1571,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
-        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
+        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
     }
     else if (mode == 2)
     {
@@ -1579,7 +1579,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
-        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
+        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
     }
     else if (mode == 3)
     {
@@ -1587,7 +1587,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
-        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
+        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
     {
@@ -1595,7 +1595,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
-        if (arrow_keys_use_set) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
+        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
     }
     else if (mode == 10)
     {
