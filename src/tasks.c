@@ -130,11 +130,6 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
     if (buf[0] == 0)  ml_shutdown();
 }
 
-PROP_HANDLER(PROP_CARD_COVER)
-{
-    if (buf[0] == 1) config_save_at_shutdown();
-}
-
 static int task_holding_bmp_lock = 0;
 static int line_holding_bmp_lock = 0;
 static char func_holding_bmp_lock[50] = "";
