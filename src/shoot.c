@@ -1578,12 +1578,12 @@ shutter_display( void * priv, int x, int y, int selected )
     char msg[100];
     if (is_movie_mode())
     {
-        int s = get_current_shutter_reciprocal_x1000();
+        int s = get_current_shutter_reciprocal_x1000() + 50;
         int deg = 360 * fps_get_current_x1000() / s;
         //~ ASSERT(deg <= 360);
         snprintf(msg, sizeof(msg),
             "Shutter     : 1/%d.%d, %d ",
-            s/1000, (s%1000+50)/100,
+            s/1000, (s%1000)/100,
             deg);
     }
     else

@@ -242,11 +242,13 @@ static int get_current_tg_freq()
 
 static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, int Tb, int Tb0)
 {
+    int default_fps = calc_fps_x1000(Ta0, Tb0);
+    shutter_r_x1000 = MAX(shutter_r_x1000, default_fps);
+
     if (Ta == Ta0 && Tb == Tb0) 
         return shutter_r_x1000; // otherwise there may be small rounding errors
     
     int shutter_us = 1000000000 / shutter_r_x1000;
-    int default_fps = calc_fps_x1000(Ta0, Tb0);
     //~ int actual_fps = calc_fps_x1000(Ta, Tb);
     int resulting_fps_if_we_only_change_timer_b = calc_fps_x1000(Ta0, Tb);
     int fps_timer_delta_us = MAX(1000000000 / resulting_fps_if_we_only_change_timer_b - 1000000000 / default_fps, 0);
@@ -277,7 +279,7 @@ int get_current_shutter_reciprocal_x1000()
     int shutter_r_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     
     // shutter speed can't be slower than 1/fps
-    shutter_r_x1000 = MAX(shutter_r_x1000, fps_get_current_x1000());
+    //~ shutter_r_x1000 = MAX(shutter_r_x1000, fps_get_current_x1000());
     
     // FPS override will alter shutter speed (exposure time)
     // FPS "difference" from C0F06014 will be added as a constant term to exposure time
