@@ -1318,7 +1318,7 @@ static struct menu_entry audio_menus[] = {
                 .edit_mode = EM_MANY_VALUES,
         },
         {
-                .name = "L-DigitalGain", // hack
+                .name = "R-DigitalGain",
                 .priv           = &dgain_r,
                 .select         = audio_dgain_toggle,
                 .select_reverse = audio_dgain_toggle_reverse,
