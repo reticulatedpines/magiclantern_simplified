@@ -737,7 +737,7 @@ void selection_bar(int x0, int y0)
         for (int x = x0-5; x < w; x++)
         {
             if (B[BM(x,y)] == COLOR_BLACK)
-                B[BM(x,y)] = submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
+                B[BM(x,y)] = advanced_hidden_edit_mode ? 18 : submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
         }
     }
 }
@@ -1207,12 +1207,13 @@ menus_display(
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
+        int color_selected = advanced_hidden_edit_mode ? 18 : COLOR_BLUE;
 #ifdef CONFIG_5DC
-        int fg = menu->selected ? COLOR_BLUE : COLOR_WHITE;
-        int bg = menu->selected ? COLOR_BLUE : 0;
+        int fg = menu->selected ? color_selected : COLOR_WHITE;
+        int bg = menu->selected ? color_selected : 0;
 #else
         int fg = menu->selected ? COLOR_WHITE : 70;
-        int bg = menu->selected ? COLOR_BLUE : 40;
+        int bg = menu->selected ? color_selected : 40;
 #endif
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
