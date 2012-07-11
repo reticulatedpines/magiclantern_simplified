@@ -1107,7 +1107,7 @@ menu_display(
             }
 
             // if you have hidden some menus, display help about how to bring them back
-            if (menu_hidden_should_display_help && !advanced_mode)
+            if (menu_hidden_should_display_help && !advanced_mode && !is_menu_active("Help"))
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
@@ -1214,12 +1214,49 @@ menus_display(
         }
 
         if( menu->selected )
+        {
             menu_display(
                 menu->children,
                 orig_x + 40,
                 y + 45, 
                 0
             );
+        
+            // show any items that may be hidden
+            if (!advanced_mode && !menu_lv_transparent_mode)
+            {
+                char hidden_msg[70];
+                snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
+                int hidden_count = 0;
+
+                struct menu_entry * entry = menu->children;
+                while( entry )
+                {
+                    if (entry->hidden == MENU_ENTRY_HIDDEN || entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN)
+                    {
+                        if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
+                        int len = strlen(hidden_msg);
+                        STR_APPEND(hidden_msg, "%s", entry->name);
+                        hidden_msg[MIN(len+15, sizeof(hidden_msg))] = '\0';
+                        hidden_count++;
+                    }
+                    entry = entry->next;
+                }
+                STR_APPEND(hidden_msg, ".");
+                
+                hidden_msg[58] = hidden_msg[57] = hidden_msg[56] = '.';
+                hidden_msg[59] = '\0';
+
+                if (hidden_count)
+                {
+                    bmp_printf(
+                        FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
+                         10,  MENU_KEYHELP_Y_POS - font_med.height, 
+                         hidden_msg
+                    );
+                }
+            }
+        }
     }
     give_semaphore( menu_sem );
 }
@@ -2453,7 +2490,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    bmp_printf(FONT_MED,  10,  410,
+    big_bmp_printf(FONT_MED,  10,  410,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",
