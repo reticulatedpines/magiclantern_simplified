@@ -2407,7 +2407,7 @@ struct menu_entry debug_menus[] = {
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },*/
     {
-        .name = "Screenshot (10 s)",
+        .name = "Screenshot - 10s",
         .select     = screenshot_start,
         #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
         .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",

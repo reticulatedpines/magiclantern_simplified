@@ -8,7 +8,7 @@ Debug
 
 Functions for troubleshooting, development, and possibly unstable features.
 
-Screenshot (10 s)
+Screenshot - 10s
 `````````````````
 
 Print screen after 10 seconds. This option saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
