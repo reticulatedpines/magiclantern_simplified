@@ -1817,7 +1817,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%x -> %x ", bmp_vram_raw(), bmp_vram_real());
+        //~ bmp_printf(FONT_LARGE, 50, 50, "%x  ", FRAME_ISO);
         if (get_global_draw())
         {
             #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
@@ -1852,6 +1852,22 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                         ae_warned = 1;
                     }
                 }
+                #elif defined(CONFIG_5D2)
+                static int ae_warned = 0;
+                if (is_movie_mode() && !lens_info.raw_shutter && recording)
+                {
+                    if (!ae_warned && !gui_menu_shown())
+                    {
+                        msleep(2000);
+                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                            "!!! Auto exposure !!!\n"
+                            "Use M mode and set 'LV display: Movie' from Expo menu");
+                        msleep(4000);
+                        redraw();
+                        ae_warned = 1;
+                    }
+                }
+                else ae_warned = 0;
                 #endif
                 
                 static int rca_warned = 0;
