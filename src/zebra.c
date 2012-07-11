@@ -5350,7 +5350,7 @@ static void transparent_overlay_from_play()
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
 #else
 #define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/apsc8r.lut"
-#define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc9p.lut"
+#define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
 #endif
 
 static uint8_t* defish_lut = INVALID_PTR;
@@ -5359,7 +5359,7 @@ static int defish_projection_loaded = -1;
 static void defish_lut_load()
 {
     char* defish_lut_file = defish_projection ? defish_lut_file_panini : defish_lut_file_rectilin;
-    if (defish_projection != defish_projection_loaded)
+    if ((int)defish_projection != defish_projection_loaded)
     {
         if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
         
