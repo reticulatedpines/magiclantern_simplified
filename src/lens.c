@@ -1465,19 +1465,20 @@ PROP_HANDLER( PROP_BV )
     }
 }
 
+static int shutter_was_set_from_ml = 0;
 static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
     #ifndef CONFIG_500D
     else if (buf[0]  // sync expo override to Canon values
-        //~ #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            && ABS(buf[0] - lens_info.raw_shutter) > 3 // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
-        //~ #endif                                         // especially when pressing half-shutter
+            && (!shutter_was_set_from_ml || ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
+                                                       // especially when pressing half-shutter
         )
     {
         bv_set_rawshutter(buf[0]);
         bv_auto_needed_by_shutter = 0;
+        shutter_was_set_from_ml = 0;
     }
     #endif
     bv_auto_update();
@@ -2074,6 +2075,12 @@ void bv_auto_update()
     //~ give_semaphore(bv_sem);
 }
 
+void bv_auto_update_startup()
+{
+    bv_auto_update();
+    if (CONTROL_BV) shutter_was_set_from_ml = 1;
+}
+
 /** Camera control functions */
 int lens_set_rawaperture( int aperture)
 {
@@ -2101,7 +2108,7 @@ int lens_set_rawshutter( int shutter )
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
     bv_auto_update(); // auto flip between "BV" or "normal"
-    if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawshutter(shutter);
+    if (bv_auto_should_enable() || CONTROL_BV) { shutter_was_set_from_ml = 1; return bv_set_rawshutter(shutter); }
     return !bv_auto_needed_by_shutter;
 }
 

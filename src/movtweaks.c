@@ -372,7 +372,7 @@ movtweak_task( void* unused )
 
     extern int ml_started;
     while (!ml_started) msleep(100);
-    bv_auto_update();
+    bv_auto_update_startup();
     bv_startup = 0;
 
     TASK_LOOP
