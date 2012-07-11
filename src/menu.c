@@ -1139,6 +1139,54 @@ menu_display(
     }
 }
 
+static void
+show_hidden_items(struct menu * menu, int force_clear)
+{
+    // show any items that may be hidden
+    if (!advanced_mode && !menu_lv_transparent_mode)
+    {
+        char hidden_msg[70];
+        snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
+        int hidden_count = 0;
+
+        struct menu_entry * entry = menu->children;
+        while( entry )
+        {
+            if (entry->hidden == MENU_ENTRY_HIDDEN || entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN)
+            {
+                if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
+                int len = strlen(hidden_msg);
+                STR_APPEND(hidden_msg, "%s", entry->name);
+                while (isspace(hidden_msg[strlen(hidden_msg)-1])) hidden_msg[strlen(hidden_msg)-1] = '\0';
+                while (ispunct(hidden_msg[strlen(hidden_msg)-1])) hidden_msg[strlen(hidden_msg)-1] = '\0';
+                hidden_msg[MIN(len+15, sizeof(hidden_msg))] = '\0';
+                hidden_count++;
+            }
+            entry = entry->next;
+        }
+        STR_APPEND(hidden_msg, ".");
+        
+        hidden_msg[58] = hidden_msg[57] = hidden_msg[56] = '.';
+        hidden_msg[59] = '\0';
+
+        if (hidden_count || force_clear)
+        {
+            bmp_printf(
+                FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
+                 10,  MENU_KEYHELP_Y_POS - font_med.height - 5, 
+                "                                                            "
+            );
+        }
+        if (hidden_count)
+        {
+            bmp_printf(
+                FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
+                 10,  MENU_KEYHELP_Y_POS - font_med.height - 5, 
+                 hidden_msg
+            );
+        }
+    }
+}
 
 static void
 menus_display(
@@ -1221,43 +1269,9 @@ menus_display(
                 y + 45, 
                 0
             );
+            
+            show_hidden_items(menu, 0);
         
-            // show any items that may be hidden
-            if (!advanced_mode && !menu_lv_transparent_mode)
-            {
-                char hidden_msg[70];
-                snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
-                int hidden_count = 0;
-
-                struct menu_entry * entry = menu->children;
-                while( entry )
-                {
-                    if (entry->hidden == MENU_ENTRY_HIDDEN || entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN)
-                    {
-                        if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
-                        int len = strlen(hidden_msg);
-                        STR_APPEND(hidden_msg, "%s", entry->name);
-                        while (isspace(hidden_msg[strlen(hidden_msg)-1])) hidden_msg[strlen(hidden_msg)-1] = '\0';
-                        while (ispunct(hidden_msg[strlen(hidden_msg)-1])) hidden_msg[strlen(hidden_msg)-1] = '\0';
-                        hidden_msg[MIN(len+15, sizeof(hidden_msg))] = '\0';
-                        hidden_count++;
-                    }
-                    entry = entry->next;
-                }
-                STR_APPEND(hidden_msg, ".");
-                
-                hidden_msg[58] = hidden_msg[57] = hidden_msg[56] = '.';
-                hidden_msg[59] = '\0';
-
-                if (hidden_count)
-                {
-                    bmp_printf(
-                        FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
-                         10,  MENU_KEYHELP_Y_POS - font_med.height, 
-                         hidden_msg
-                    );
-                }
-            }
         }
     }
     give_semaphore( menu_sem );
@@ -1282,7 +1296,7 @@ submenu_display(struct menu * submenu)
 
     int count = 0;
     struct menu_entry * child = submenu->children;
-    while (child) { count++; child = child->next; }
+    while (child) { if (advanced_mode || IS_VISIBLE(child)) count++; child = child->next; }
     int h = submenu->submenu_height ? submenu->submenu_height : (int)MIN((count + 3) * font_large.height, 400);
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
     g_submenu_width = w;
@@ -1299,6 +1313,7 @@ submenu_display(struct menu * submenu)
     }
 
     menu_display(submenu->children,  bx + 50,  by + 50 + 20, 0);
+    show_hidden_items(submenu, 1);
 }
 
 static void
