@@ -1143,7 +1143,7 @@ void bvram_mirror_init()
         //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
         //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
         //~ #else
-        bvram_mirror_start = (void*)alloc_dma_memory(BMP_VRAM_SIZE);
+        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
         //~ #endif
         if (!bvram_mirror_start) 
         {   
@@ -5211,7 +5211,7 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
-    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
