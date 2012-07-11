@@ -17,13 +17,13 @@ from Magic Lantern. You can only use audio meters during recording.
 
 {{vimeo>18507408?250x140|Audio tests by Ryan Sauvé }}{{vimeo>5903379?250x140|Audio_Conclusions}}
 
-Analog Gain (dB)
-````````````````
+Analog Gain
+```````````
 
-Gain applied to both inputs in the analog domain. If you use an external preamp, set this parameter as low as possible; otherwise, set it as high as possible without clipping (audio meters should be green).
+Gain applied to both inputs in the analog domain, in dB. If you use an external preamp, set this parameter as low as possible; otherwise, set it as high as possible without clipping (audio meters should be green).
 
-L-DigitalGain and R-DigitalGain (dB)
-````````````````````````````````````
+L-DigitalGain and R-DigitalGain
+```````````````````````````````
 
 Digital gain applied to left and right channel. Recommended setting: 0.
 
@@ -96,8 +96,8 @@ Warning: mobile phone cables **will not work**; even if the connector looks simi
   
 For details, see `Audio monitoring HOWTO on Vimeo group <http://vimeo.com/groups/magiclantern/forumthread:237296>`_.
 
-Output volume (dB)
-``````````````````
+Output volume
+`````````````
 
 Digital output gain for audio monitoring. It does not have any effect on the internal camera speaker.
 

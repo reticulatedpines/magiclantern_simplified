@@ -1298,7 +1298,7 @@ static struct menu_entry audio_menus[] = {
         },
 #endif
         {
-                .name = "Analog Gain (dB)",
+                .name = "Analog Gain",
                 .priv           = &mgain,
                 .select         = audio_mgain_toggle,
                 .select_reverse = audio_mgain_toggle_reverse,
@@ -1386,7 +1386,7 @@ static struct menu_entry audio_menus[] = {
                 //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
         },
         {
-                .name = "Output volume (dB)",
+                .name = "Output volume",
                 .priv           = &lovl,
                 .select         = audio_3bit_toggle,
                 .select_reverse         = audio_3bit_toggle_reverse,
