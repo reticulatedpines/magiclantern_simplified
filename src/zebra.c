@@ -3500,6 +3500,21 @@ void copy_zebras_from_mirror()
     }
 }
 
+void clear_zebras_from_mirror()
+{
+    uint8_t* M = (uint32_t*)get_bvram_mirror();
+    get_yuv422_vram();
+    for (int i = os.y0; i < os.y_max; i++)
+    {
+        for (int j = os.x0; j < os.x_max; j++)
+        {
+            uint8_t m = M[BM(j,i)];
+            if (m & 0x80) continue;
+            M[BM(j,i)] = 0;
+        }
+    }
+}
+
 void cropmark_clear_cache()
 {
     BMP_LOCK(

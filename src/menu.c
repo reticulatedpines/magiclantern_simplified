@@ -62,6 +62,7 @@ static int menu_lv_transparent_mode; // for ISO, kelvin...
 static int config_dirty = 0;
 static int menu_hidden_dirty = 0;
 static int menu_hidden_should_display_help = 0;
+static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
 static char* warning_msg = 0;
 int menu_help_active = 0;
 int submenu_mode = 0;
@@ -1597,6 +1598,12 @@ menu_redraw_do()
                     //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
                     bmp_draw_to_idle(1);
                 }
+                
+                if (!menu_lv_transparent_mode)
+                {
+                    clear_zebras_from_mirror();
+                    menu_zebras_mirror_dirty = 0;
+                }
 
                 static int prev_so = 0;
                 if (menu_lv_transparent_mode)
@@ -1607,6 +1614,7 @@ menu_redraw_do()
                     {
                         if (prev_so) copy_zebras_from_mirror();
                         else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
+                        menu_zebras_mirror_dirty = 1;
                     }
                     if (hist_countdown == 0 && !should_draw_zoom_overlay())
                         draw_histogram_and_waveform(); // too slow
@@ -2213,6 +2221,7 @@ static void menu_open()
     keyrepeat = 0;
     menu_shown = 1;
     menu_hidden_should_display_help = 0;
+    if (lv) menu_zebras_mirror_dirty = 1;
 
     piggyback_canon_menu();
     canon_gui_disable_front_buffer(0);
