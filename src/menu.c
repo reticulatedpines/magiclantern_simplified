@@ -2285,18 +2285,13 @@ menu_task( void* unused )
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && config_dirty && !recording && !ml_shutdown_requested)
+                if (config_autosave && (config_dirty || menu_hidden_dirty) && !recording && !ml_shutdown_requested)
                 {
                     save_config(0);
                     config_dirty = 0;
-                }
-                
-                if (menu_hidden_dirty && !recording && !ml_shutdown_requested)
-                {
-                    menu_save_hidden_items();
                     menu_hidden_dirty = 0;
                 }
-
+                
                 continue;
             }
 
@@ -2591,8 +2586,10 @@ int handle_quick_access_menu_items(struct event * event)
 }
 #endif
 
-static void menu_save_hidden_items()
+void config_menu_save_hidden_items()
 {
+    if (!menu_hidden_dirty) return;
+
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
     char* msgc = CACHEABLE(msg);

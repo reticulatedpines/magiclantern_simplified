@@ -133,6 +133,7 @@ save_config( void * priv, int delta )
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
     config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" ); 
+    config_menu_save_hidden_items();
     give_semaphore(config_save_sem);
 }
 static void
