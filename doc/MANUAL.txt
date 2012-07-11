@@ -116,6 +116,8 @@ Misc shortcuts
 * ``SET`` in LiveView: center AF area (the little rectangle).
 * Activating *AF mode* dialog when Manual Focus is active will toggle `Trap Focus`_.
 
+.. _customizable menus:
+
 Magic Lantern menu
 ------------------
 

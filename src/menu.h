@@ -89,7 +89,6 @@ struct menu_entry
 #define MENU_ENTRY_NOT_HIDDEN 0
 #define MENU_ENTRY_HIDDEN 1
 #define MENU_ENTRY_NEVER_HIDE -1
-#define MENU_ENTRY_RECENTLY_HIDDEN -2
 
 #define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 1

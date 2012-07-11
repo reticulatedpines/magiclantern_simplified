@@ -83,24 +83,7 @@ int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
-static CONFIG_INT("menu.adv", advanced_mode, 0);
-
-static struct menu_entry advanced_menu[] = {
-    {
-        .name = "Show all menu items ",
-        .priv = &advanced_mode,
-        .hidden = MENU_ENTRY_NEVER_HIDE,
-        .max = 1,
-        .help = "MENU hides unused items. Enable this to display everything."
-    }
-};
-
-void advanced_menu_init()
-{
-    menu_add("Prefs", advanced_menu, COUNT(advanced_menu));
-}
-
-int get_menu_advanced_mode() { return advanced_mode; }
+int advanced_hidden_edit_mode = 0;
 
 void menu_set_dirty() { menu_damage = 1; }
 
@@ -122,7 +105,6 @@ static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
 static void menu_save_hidden_items();
 static void menu_load_hidden_items();
-static void menu_cleanup_hidden_items();
 
 extern int gui_state;
 void menu_show_only_selected()
@@ -512,7 +494,7 @@ menu_has_visible_items(struct menu_entry *  menu)
 {
     while( menu )
     {
-        if (advanced_mode || IS_VISIBLE(menu))
+        if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
             return 1;
         }
@@ -938,7 +920,7 @@ menu_display(
 {
     while( menu )
     {
-        if (advanced_mode || IS_VISIBLE(menu))
+        if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
             // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
             if (menu->selected && menu->help)
@@ -1107,12 +1089,12 @@ menu_display(
             }
 
             // if you have hidden some menus, display help about how to bring them back
-            if (menu_hidden_should_display_help && !advanced_mode && !is_menu_active("Help"))
+            if (menu_hidden_should_display_help && !is_menu_active("Help"))
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
-                        "To restore hidden menus, enable last option from Prefs menu."
+                        "Press MENU to hide unused items. Press MENU to show again."
                 );
             }
 
@@ -1143,7 +1125,7 @@ static void
 show_hidden_items(struct menu * menu, int force_clear)
 {
     // show any items that may be hidden
-    if (!advanced_mode && !menu_lv_transparent_mode)
+    if (!advanced_hidden_edit_mode && !menu_lv_transparent_mode)
     {
         char hidden_msg[70];
         snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
@@ -1152,7 +1134,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         struct menu_entry * entry = menu->children;
         while( entry )
         {
-            if (entry->hidden == MENU_ENTRY_HIDDEN || entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN)
+            if (!IS_VISIBLE(entry))
             {
                 if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
                 int len = strlen(hidden_msg);
@@ -1299,7 +1281,7 @@ submenu_display(struct menu * submenu)
 
     int count = 0;
     struct menu_entry * child = submenu->children;
-    while (child) { if (advanced_mode || IS_VISIBLE(child)) count++; child = child->next; }
+    while (child) { if (advanced_hidden_edit_mode || IS_VISIBLE(child)) count++; child = child->next; }
     int h = submenu->submenu_height ? submenu->submenu_height : (int)MIN((count + 3) * font_large.height, 400);
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
     g_submenu_width = w;
@@ -1339,11 +1321,9 @@ menu_entry_showhide_toggle(
 
     if (entry->hidden != MENU_ENTRY_NEVER_HIDE)
     {
-        entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_RECENTLY_HIDDEN;
+        entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_HIDDEN;
         menu_make_sure_selection_is_valid();
         menu_hidden_dirty = 1;
-        if (entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN)
-            menu_hidden_should_display_help = 1;
     }
 }
 
@@ -1373,7 +1353,7 @@ menu_entry_select(
         //~ menu_show_only_selected();
     
     // don't perform actions on empty items (can happen on empty submenus)
-    if (!IS_VISIBLE(entry) && !advanced_mode)
+    if (!IS_VISIBLE(entry) && !advanced_hidden_edit_mode)
     {
         submenu_mode = 0;
         menu_lv_transparent_mode = 0;
@@ -1533,7 +1513,7 @@ menu_entry_move(
     entry->selected = 1;
     give_semaphore( menu_sem );
     
-    if (!advanced_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu->children))
+    if (!advanced_hidden_edit_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu->children))
         menu_entry_move(menu, direction); // try again, skip hidden items
         // warning: would block if the menu is empty
 }
@@ -1543,7 +1523,7 @@ menu_entry_move(
 // If the menu or the selection is empty, move back and forth to restore a valid selection
 static void menu_make_sure_selection_is_valid()
 {
-    if (advanced_mode) return; // all menus displayed
+    if (advanced_hidden_edit_mode) return; // all menus displayed
     
     struct menu * menu = get_selected_menu();
     if (submenu_mode)
@@ -1894,14 +1874,16 @@ handle_ml_menu_keys(struct event * event)
     {
     case BGMT_MENU:
 /*        if (submenu_mode) submenu_mode = 0;
-        else advanced_mode = !advanced_mode;
+        else advanced_hidden_edit_mode = !advanced_hidden_edit_mode;
         menu_lv_transparent_mode = 0;
         menu_help_active = 0;
 */
         if (!menu_lv_transparent_mode && submenu_mode != 2)
         {
-            menu_entry_showhide_toggle(menu);
+            if (!advanced_hidden_edit_mode) advanced_hidden_edit_mode = 2;
+            else menu_entry_showhide_toggle(menu);
             menu_needs_full_redraw = 1;
+            menu_hidden_should_display_help = 1;
         }
         
         break;
@@ -2241,7 +2223,7 @@ static void menu_close()
     if (!menu_shown) return;
     menu_shown = false;
 
-    if (menu_hidden_dirty) menu_cleanup_hidden_items();
+    advanced_hidden_edit_mode = 0;
     update_disp_mode_bits_from_params();
 
     lens_focus_stop();
@@ -2698,20 +2680,4 @@ static void menu_load_hidden_items()
         }
     }
     free_dma_memory(buf);
-}
-
-// completely hide recently hidden menus
-static void menu_cleanup_hidden_items()
-{
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
-    {
-        struct menu_entry * entry = menu->children;
-        
-        int i;
-        for(i = 0 ; entry ; entry = entry->next, i++ )
-        {
-            if (entry->hidden == MENU_ENTRY_RECENTLY_HIDDEN) entry->hidden = MENU_ENTRY_HIDDEN;
-        }
-    }
 }

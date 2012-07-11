@@ -200,11 +200,3 @@ For example, a 50mm lens at f1.8 will be displayed as:
   
 * ``50mm f/1.8`` with this option disabled;
 * ``80eq f/1.8`` with this option enabled.
-
-.. _customizable menus:
-
-Display hidden menus
-````````````````````
-
-To reduce menu clutter, Magic Lantern allows you to hide unused menu items. Enable this to display the hidden items, so you can re-enable them.
-
