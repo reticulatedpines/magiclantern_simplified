@@ -2222,6 +2222,8 @@ menu_task( void* unused )
     while (!ml_started) msleep(100);
     config_menu_init();
     
+    int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
+    
     menu_load_hidden_items();
     select_menu_by_icon(menu_first_by_icon);
     menu_make_sure_selection_is_valid();
@@ -2265,6 +2267,9 @@ menu_task( void* unused )
             if (sensor_cleaning && menu_shown)
                 menu_close();
 
+            if (initial_mode != shooting_mode && menu_shown)
+                menu_close();
+
             if (gui_state == GUISTATE_MENUDISP && menu_shown)
                 menu_close();
 
@@ -2291,6 +2296,7 @@ menu_task( void* unused )
 
         //~ fake_simple_button(BGMT_PICSTYLE);
         menu_open();
+        initial_mode = shooting_mode;
     }
 }
 
