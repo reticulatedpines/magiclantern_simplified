@@ -1237,6 +1237,8 @@ menus_display(
                         if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
                         int len = strlen(hidden_msg);
                         STR_APPEND(hidden_msg, "%s", entry->name);
+                        while (isspace(hidden_msg[strlen(hidden_msg)-1])) hidden_msg[strlen(hidden_msg)-1] = '\0';
+                        while (ispunct(hidden_msg[strlen(hidden_msg)-1])) hidden_msg[strlen(hidden_msg)-1] = '\0';
                         hidden_msg[MIN(len+15, sizeof(hidden_msg))] = '\0';
                         hidden_count++;
                     }
