@@ -2881,6 +2881,7 @@ static void idle_timeout_toggle(void* priv, int sign)
 }
 
 static CONFIG_INT("defish.preview", defish_preview, 0);
+static CONFIG_INT("defish.projection", defish_projection, 0);
 static void
 defish_preview_display(
     void *          priv,
@@ -2893,7 +2894,7 @@ defish_preview_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Defishing   : %s",
-        defish_preview ? "ON" : "OFF"
+        defish_preview ? (defish_projection ? "Panini" : "Rectilinear") : "OFF"
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
 }
@@ -3134,16 +3135,24 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         //.essential = FOR_PLAYBACK,
     },
-    #if !defined(CONFIG_5D2)
     {
         .name = "Defishing",
         .priv = &defish_preview, 
         .display = defish_preview_display, 
         .select = menu_binary_toggle,
-        .help = "Preview rectilinear image from Samyang 8mm fisheye.",
-        //.essential = FOR_PLAYBACK,
+        .help = "Preview straightened images from Samyang 8mm fisheye.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Projection",
+                .priv = &defish_projection, 
+                .max = 1,
+                .choices = (const char *[]) {"Rectilinear", "Panini"},
+                .icon_type = IT_DICE,
+                .help = "Projection used for defishing (Rectilinear or Panini).",
+            },
+            MENU_EOL
+        }
     },
-    #endif
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
@@ -5336,16 +5345,27 @@ static void transparent_overlay_from_play()
 }
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#define defish_lut_file CARD_DRIVE "ML/DATA/rectilin.lut"
+#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
+#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
+#define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
+#else
+#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/apsc8r.lut"
+#define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc9p.lut"
+#endif
 
 static uint8_t* defish_lut = INVALID_PTR;
+static int defish_projection_loaded = -1;
 
 static void defish_lut_load()
 {
-    if (defish_lut == INVALID_PTR)
+    char* defish_lut_file = defish_projection ? defish_lut_file_panini : defish_lut_file_rectilin;
+    if (defish_projection != defish_projection_loaded)
     {
+        if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
+        
         int size = 0;
         defish_lut = (uint8_t*)read_entire_file(defish_lut_file, &size);
+        defish_projection_loaded = defish_projection;
     }
     if (defish_lut == NULL)
     {

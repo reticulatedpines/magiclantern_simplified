@@ -1,8 +1,8 @@
 #!/usr/bin/env octave3.2
 
-prefix = "rectilin";
+prefix = argv(){1};
 
-xy = double(imread([prefix "-xy.png"]));
+xy = double(imread([prefix ".png"]));
 
 f = fopen([prefix ".lut"], "wb")
 for i = 1:480/2

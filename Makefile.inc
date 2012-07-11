@@ -91,6 +91,7 @@ install: autoexec.bin
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
 	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
 	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -112,7 +113,7 @@ prepare_zip:
 	mkdir zip/ML/settings || echo "ok"
 	mkdir zip/ML/data || echo "ok"
 	cp $(SRC_DIR)/FONTS.DAT zip/ML/data
-	cp ../../vram/rectilin.lut zip/ML/data
+	cp $(VRAM_DIR)/*.lut zip/ML/data
 	mkdir zip/ML/cropmks || echo "ok"
 	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
 	mkdir zip/ML/scripts || echo "ok"
