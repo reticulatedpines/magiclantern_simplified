@@ -1166,8 +1166,11 @@ show_hidden_items(struct menu * menu, int force_clear)
         }
         STR_APPEND(hidden_msg, ".");
         
-        hidden_msg[58] = hidden_msg[57] = hidden_msg[56] = '.';
-        hidden_msg[59] = '\0';
+        if (strlen(hidden_msg) > 59)
+        {
+            hidden_msg[58] = hidden_msg[57] = hidden_msg[56] = '.';
+            hidden_msg[59] = '\0';
+        }
 
         if (hidden_count || force_clear)
         {
