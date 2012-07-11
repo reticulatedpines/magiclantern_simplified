@@ -345,7 +345,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
             format_time_hours_minutes_seconds(d),
             bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_enabled) ? "" : ", Movie"
         );
-        if (selected) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 10, selected);
+        if (selected) timelapse_calc_display(&interval_timer_index, 10, 370, selected);
     }
     else
     {
@@ -2979,7 +2979,7 @@ bulb_display( void * priv, int x, int y, int selected )
         bulb_timer ? format_time_hours_minutes_seconds(d) : "OFF"
     );
     menu_draw_icon(x, y, !bulb_timer ? MNI_OFF : is_bulb_mode() ? MNI_PERCENT : MNI_WARNING, is_bulb_mode() ? (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)) : (intptr_t) "Bulb timer only works in BULB mode");
-    if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, x - font_large.width*2, y + font_large.height * 9, selected);
+    if (selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, 10, 370, selected);
 }
 
 static void
