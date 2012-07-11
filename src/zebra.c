@@ -4194,7 +4194,7 @@ void draw_histogram_and_waveform(int allow_play)
         if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
             BMP_LOCK( waveform_draw_image( os.x0 + 250,  480 - 54, 54); )
         else
-            BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR, os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
+            BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
     }
     
     if(vectorscope_draw)
