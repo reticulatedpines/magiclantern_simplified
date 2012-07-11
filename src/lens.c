@@ -1032,9 +1032,12 @@ void lens_wait_readytotakepic(int wait)
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
         if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
         msleep(20);
-        if ((lens_info.job_state <= 0xA) || (uilock & 0xFF)) info_led_on();
+        if (!recording)
+        {
+            if ((lens_info.job_state <= 0xA) || (uilock & 0xFF)) info_led_on();
+        }
     }
-    info_led_off();
+    if (!recording) info_led_off();
 }
 
 int mirror_locked = 0;
