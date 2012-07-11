@@ -1094,7 +1094,7 @@ menu_display(
                 bmp_printf(
                     FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
-                        "Press MENU to hide unused items. Press MENU to show again."
+                        "Press MENU to hide items. Press MENU to show them again."
                 );
             }
 

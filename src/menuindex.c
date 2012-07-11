@@ -14,10 +14,6 @@ struct menu_entry help_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },*/
     {
-        .name = "Press MENU : Hide unused items",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
-    },
-    {
         .name = "Press " INFO_BTN_NAME
                           " : Bring up Help menu",
         //.essential = FOR_MOVIE | FOR_PHOTO,
@@ -50,6 +46,10 @@ struct menu_entry help_menus[] = {
     },
     {
         .name = "Zoom In    : Preview LiveView",
+        //.essential = FOR_MOVIE | FOR_PHOTO,
+    },
+    {
+        .name = "Press MENU : Show/hide items",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
