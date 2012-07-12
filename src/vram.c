@@ -425,10 +425,9 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
-    
 #ifdef CONFIG_550D
-    if (is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)YUV422_HD_BUFFER_1;
+    if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
+        return (void*)UNCACHEABLE(shamem_read(0xc0f04008)); // RAM address not updated properly, read it from the DIGIC
 #endif
 
 // single-buffered HD buffer
