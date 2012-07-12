@@ -1599,7 +1599,7 @@ menu_redraw_do()
                     bmp_draw_to_idle(1);
                 }
                 
-                if (!menu_lv_transparent_mode)
+                if (menu_zebras_mirror_dirty && !menu_lv_transparent_mode)
                 {
                     clear_zebras_from_mirror();
                     menu_zebras_mirror_dirty = 0;
