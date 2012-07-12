@@ -132,11 +132,9 @@ Usage:
 Defishing
 `````````
 
-Preview the rectified (defished) image from `Samyang 8mm fisheye lens <http://amzn.to/ml-samyang-8mm>`_, using rectilinear projection.
+Preview the rectified (defished) image from the `Samyang 8mm fisheye lens <http://amzn.to/ml-samyang-8mm>`_, using rectilinear or Panini projection.
   
 **This feature works best in photo mode** (outside LiveView).
-  
-Defishing uses a pre-computed look-up table (LUT). It is possible to create LUT files for any other lens or projection by defishing ``vram/xy.png`` with your favorite defishing software, and then running ``vram/defish-lut.m`` to get the LUT file. All the required files are found in the ML source tree. Project files (``*.PTO``) for nona (hugin) are provided for both rectilinear and Panini projections.
 
 .. _spotmeter:
 
