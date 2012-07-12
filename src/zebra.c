@@ -46,7 +46,7 @@ extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 
 static void waveform_init();
-static void histo_init();
+//~ static void histo_init();
 static void do_disp_mode_change();
 static void show_overlay();
 static void transparent_overlay_from_play();
@@ -159,7 +159,7 @@ void bmp_on();
 void bmp_off();
 
 #define hist_height         54
-#define hist_width          128
+#define HIST_WIDTH          128
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
 #define WAVEFORM_FACTOR (1 << waveform_size) // 1, 2 or 4
@@ -273,7 +273,7 @@ static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  3 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
-//~ static CONFIG_INT( "hist.x",        hist_x,     720 - hist_width - 4 );
+//~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
 //~ static CONFIG_INT( "hist.y",        hist_y,     100 );
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_5D2
@@ -423,11 +423,11 @@ static uint8_t* waveform = 0;
 #define WAVEFORM_UNSAFE(x,y) (waveform[(x) + (y) * WAVEFORM_WIDTH])
 #define WAVEFORM(x,y) (waveform[COERCE((x), 0, WAVEFORM_WIDTH-1) + COERCE((y), 0, WAVEFORM_HEIGHT-1) * WAVEFORM_WIDTH])
 
-/** Store the histogram data for each of the "hist_width" bins */
-static uint32_t* hist = 0;
-static uint32_t* hist_r = 0;
-static uint32_t* hist_g = 0;
-static uint32_t* hist_b = 0;
+/** Store the histogram data for each of the "HIST_WIDTH" bins */
+static uint32_t hist[HIST_WIDTH];
+static uint32_t hist_r[HIST_WIDTH];
+static uint32_t hist_g[HIST_WIDTH];
+static uint32_t hist_b[HIST_WIDTH];
 
 /** Maximum value in the histogram so that at least one entry fills
  * the box */
@@ -628,15 +628,9 @@ hist_build()
 
     int x,y;
     
-    histo_init();
-    if (!hist) return;
-    if (!hist_r) return;
-    if (!hist_g) return;
-    if (!hist_b) return;
-
     hist_max = 0;
     hist_total_px = 0;
-    for( x=0 ; x<hist_width ; x++ )
+    for( x=0 ; x<HIST_WIDTH ; x++ )
     {
         hist[x] = 0;
         hist_r[x] = 0;
@@ -667,9 +661,9 @@ hist_build()
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
                 COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
                 // YRGB range: 0-255
-                uint32_t R_level = R * hist_width / 256;
-                uint32_t G_level = G * hist_width / 256;
-                uint32_t B_level = B * hist_width / 256;
+                uint32_t R_level = R * HIST_WIDTH / 256;
+                uint32_t G_level = G * HIST_WIDTH / 256;
+                uint32_t B_level = B * HIST_WIDTH / 256;
                 hist_r[R_level]++;
                 hist_g[G_level]++;
                 hist_b[B_level]++;
@@ -682,7 +676,7 @@ hist_build()
             }
 
             hist_total_px++;
-            uint32_t hist_level = Y * hist_width / 256;
+            uint32_t hist_level = Y * HIST_WIDTH / 256;
 
             // Ignore the 0 bin.  It generates too much noise
             unsigned count = ++ (hist[ hist_level ]);
@@ -710,16 +704,16 @@ int hist_get_percentile_level(int percentile)
 {
     int total = 0;
     int i;
-    for( i=0 ; i < hist_width ; i++ )
+    for( i=0 ; i < HIST_WIDTH ; i++ )
         total += hist[i];
     
     int thr = total * percentile / 100;  // 50% => median
     int n = 0;
-    for( i=0 ; i < hist_width ; i++ )
+    for( i=0 ; i < HIST_WIDTH ; i++ )
     {
         n += hist[i];
         if (n >= thr)
-            return i * 255 / hist_width;
+            return i * 255 / HIST_WIDTH;
     }
     return -1; // invalid argument?
 }
@@ -826,11 +820,11 @@ hist_draw_image(
     unsigned i, y;
     
     if (highlight_level >= 0) 
-        highlight_level = highlight_level * hist_width / 256;
+        highlight_level = highlight_level * HIST_WIDTH / 256;
 
     int log_max = log_length(hist_max);
     
-    for( i=0 ; i < hist_width ; i++ )
+    for( i=0 ; i < HIST_WIDTH ; i++ )
     {
         // Scale by the maximum bin value
         const uint32_t size  = hist_log ? log_length(hist[i])   * hist_height / log_max : (hist[i]   * hist_height) / hist_max;
@@ -850,10 +844,10 @@ hist_draw_image(
             else if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
-                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
+                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
         }
         
-        if (hist_warn && i == hist_width - 1
+        if (hist_warn && i == HIST_WIDTH - 1
             && !should_draw_zoom_overlay()) // magic zoom borders will be "overexposed" => will cause warning
         {
             unsigned int thr = hist_total_px / (
@@ -864,23 +858,23 @@ hist_draw_image(
             int yw = y_origin + 10 - 16 + (hist_log ? hist_height - 20 : 0);
             if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
             {
-                if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) dot(x_origin + hist_width/2 - 20 - 16, yw, COLOR_RED   , 7);
-                if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) dot(x_origin + hist_width/2      - 16, yw, COLOR_GREEN1, 7);
-                if (hist_b[i] + hist_b[i-1] + hist_b[i-2] > thr) dot(x_origin + hist_width/2 + 20 - 16, yw, COLOR_LIGHTBLUE  , 7);
+                if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) dot(x_origin + HIST_WIDTH/2 - 20 - 16, yw, COLOR_RED   , 7);
+                if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) dot(x_origin + HIST_WIDTH/2      - 16, yw, COLOR_GREEN1, 7);
+                if (hist_b[i] + hist_b[i-1] + hist_b[i-2] > thr) dot(x_origin + HIST_WIDTH/2 + 20 - 16, yw, COLOR_LIGHTBLUE  , 7);
             }
             else
             {
-                if (hist[i] + hist[i-1] + hist[i-2] > thr) dot(x_origin + hist_width/2 - 16, yw, COLOR_RED, 7);
+                if (hist[i] + hist[i-1] + hist[i-2] > thr) dot(x_origin + HIST_WIDTH/2 - 16, yw, COLOR_RED, 7);
             }
         }
     }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, hist_width+1, hist_height+1);
+    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
 }
 
 void hist_highlight(int level)
 {
     get_yuv422_vram();
-    hist_draw_image( os.x_max - hist_width, os.y0 + 100, level );
+    hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
 }
 
 /** Draw the waveform image into the bitmap framebuffer.
@@ -1113,21 +1107,6 @@ static void waveform_init()
     if (!waveform)
         waveform = AllocateMemory(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
-}
-
-static void histo_init()
-{
-    if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t));
-    //~ if (!hist) fail("Hist malloc failed");
-
-    if (!hist_r) hist_r = AllocateMemory(hist_width * sizeof(uint32_t));
-    //~ if (!hist_r) fail("HistR malloc failed");
-
-    if (!hist_g) hist_g = AllocateMemory(hist_width * sizeof(uint32_t));
-    //~ if (!hist_g) fail("HistG malloc failed");
-
-    if (!hist_b) hist_b = AllocateMemory(hist_width * sizeof(uint32_t));
-    //~ if (!hist_b) fail("HistB malloc failed");
 }
 
 void bvram_mirror_clear()
@@ -4176,7 +4155,7 @@ void draw_histogram_and_waveform(int allow_play)
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
         else
-            BMP_LOCK( hist_draw_image( os.x_max - hist_width - 5, os.y0 + 100, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
     }
 
     if (should_draw_zoom_overlay()) return;
