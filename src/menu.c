@@ -738,22 +738,23 @@ void selection_bar(int x0, int y0)
         for (int x = x0-5; x < w; x++)
         {
             if (B[BM(x,y)] == COLOR_BLACK)
-                B[BM(x,y)] = advanced_hidden_edit_mode ? 18 : submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
+                B[BM(x,y)] = advanced_hidden_edit_mode ? COLOR_DARK_RED : submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
         }
     }
 }
 
-void dim_hidden_menu(int x0, int y0)
+void dim_hidden_menu(int x0, int y0, int selected)
 {
     int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
     
     uint8_t* B = bmp_vram();
+    int new_color = selected ? COLOR_ALMOST_BLACK : COLOR_GRAY50;
     for (int y = y0; y < y0 + 31; y++)
     {
         for (int x = x0-5; x < w; x++)
         {
             if (B[BM(x,y)] != COLOR_BLACK)
-                B[BM(x,y)] = COLOR_GRAY50;
+                B[BM(x,y)] = new_color;
         }
     }
 }
@@ -956,7 +957,7 @@ menu_display(
                     submenu_print(menu, x, y);
                 
                 if (menu->hidden && menu->hidden != MENU_ENTRY_NEVER_HIDE)
-                    dim_hidden_menu(x, y);
+                    dim_hidden_menu(x, y, menu->selected);
             }
             
             // this should be after menu->display, in order to allow it to override the icon
@@ -1093,9 +1094,9 @@ menu_display(
             if (menu_hidden_should_display_help && !is_menu_active("Help"))
             {
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK),
+                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
-                        "Press MENU to hide items. Press MENU to show them again."
+                        "Press MENU to hide items. Press MENU to show them again.   "
                 );
             }
 
@@ -1208,7 +1209,7 @@ menus_display(
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
-        int color_selected = advanced_hidden_edit_mode ? 18 : COLOR_BLUE;
+        int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
 #ifdef CONFIG_5DC
         int fg = menu->selected ? color_selected : COLOR_WHITE;
         int bg = menu->selected ? color_selected : 0;
