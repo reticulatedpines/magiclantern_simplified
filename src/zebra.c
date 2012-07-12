@@ -576,11 +576,21 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
             int r = vectorscope_height/2 - 1;
             int inside_circle = xc*xc + yc*yc < (r-1)*(r-1);
             int on_circle = !inside_circle && xc*xc + yc*yc <= (r+1)*(r+1);
-            int on_axis = (x==vectorscope_width/2) || (y==vectorscope_height/2);
+            // kdenlive vectorscope:
+            // center: 175,180
+            // I: 83,38   => dx=-92, dy=142
+            // Q: 320,87  => dx=145, dy=93
+            // let's say 660/1024 is a good approximation of the slope
+            
+            int on_axis = (x==vectorscope_width/2) || (y==vectorscope_height/2) || (inside_circle && (xc==yc*660/1024 || -xc*660/1024==yc));
 
             if (on_circle || (on_axis && brightness==0))
             {
-                bmp_buf[x] = 60; // gray
+                #ifdef CONFIG_4_3_SCREEN
+                bmp_buf[x] = 60;
+                #else
+                bmp_buf[x] = COLOR_BLACK;
+                #endif
             }
             else if (inside_circle)
             {
