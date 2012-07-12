@@ -510,4 +510,9 @@ OS_FUNCTION( 0x0300001,	int,	abs, int number );
 OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
 extern int _dummy_variable;
+
+// for optimization
+#define unlikely(exp) __builtin_expect(exp,0)
+#define likely(exp) __builtin_expect(exp,1)
+
 #endif

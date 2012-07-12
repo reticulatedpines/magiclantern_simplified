@@ -1219,7 +1219,56 @@ static inline int zebra_color_word_row(int c, int y)
 
 static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
-//~ static int very_dirty = 0;
+static unsigned int* bm_hd_r_cache = 0;
+static unsigned int* bm_hd_x_cache = 0;
+static int bm_hd_bm2lv_sx = 0;
+static int bm_hd_lv2hd_sx = 0;
+
+void zebra_update_lut()
+{
+    int rebuild = 0;
+    
+    if (unlikely(!bm_hd_r_cache)) 
+    {
+        bm_hd_r_cache = AllocateMemory(540 * sizeof(unsigned int));
+        rebuild = 1;
+    }
+    
+    if (unlikely(!bm_hd_x_cache)) 
+    {
+        bm_hd_x_cache = AllocateMemory(960 * sizeof(unsigned int));
+        rebuild = 1;
+    }
+    
+    if(unlikely(bm_hd_bm2lv_sx != bm2lv.sx))
+    {
+        bm_hd_bm2lv_sx = bm2lv.sx;
+        rebuild = 1;
+    }
+    if(unlikely(bm_hd_lv2hd_sx != lv2hd.sx))
+    {
+        bm_hd_lv2hd_sx = lv2hd.sx;
+        rebuild = 1;
+    }
+    
+    if(unlikely(rebuild))
+    {
+        int yStart = os.y0 + os.off_169 + 8;
+        int yEnd = os.y_max - os.off_169 - 8;
+        int xStart = os.x0 + 8;
+        int xEnd = os.x_max - 8;
+        
+        for(int y = yStart; y < yEnd; y += 1)
+        {
+            bm_hd_r_cache[y] = BM2HD_R(y);
+        }
+
+        for (int x = xStart; x < xEnd; x += 1)
+        {
+            bm_hd_x_cache[x] = (BM2HD_X(x) * 2) + 1;
+        }        
+    }
+}
 
 static int zebra_color_word_row_thick(int c, int y)
 {
@@ -1245,38 +1294,18 @@ static int zebra_color_word_row_thick(int c, int y)
     return cw;
 }
 
+#define MAX_DIRTY_PIXELS 5000
 
 int focus_peaking_debug = 0;
 
 static int zebra_digic_dirty = 0;
-// returns how the focus peaking threshold changed
-static int
-draw_zebra_and_focus( int Z, int F )
+
+void draw_zebras( int Z, int F )
 {
-    //~ if (lv_dispsize != 1) return;
-    //~ if (vram_width > 720) return;
-
-/*  int Zd = should_draw_zoom_overlay();
-    static int Zdp = 0;
-    if (Zd && !Zdp) clrscr_mirror();
-    Zdp = Zd;
-    if (Zd) msleep(100); // reduce frame rate when zoom overlay is active
-    */
-    
-    //~ if (unified_loop == 1) { draw_zebra_and_focus_unified(); return; }
-    //~ if (unified_loop == 2 && (ext_monitor_hdmi || ext_monitor_rca || (is_movie_mode() && video_mode_resolution != 0)))
-        //~ { draw_zebra_and_focus_unified(); return; }
-    
-    if (!get_global_draw()) return 0;
-
     uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return 0;
-    if (!bvram_mirror) return 0;
-    
     int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
     if (zd)
     {
-        
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
@@ -1296,7 +1325,7 @@ draw_zebra_and_focus( int Z, int F )
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh);
             else if (un)
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll);
-            goto fpeak;
+            return;
         }
         
         uint8_t * lvram = get_yuv422_vram()->vram;
@@ -1306,31 +1335,30 @@ draw_zebra_and_focus( int Z, int F )
         // y is in BM coords
         for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
         {
-
-            uint32_t color_over    = zebra_color_word_row(COLOR_RED,  y);
-            uint32_t color_under   = zebra_color_word_row(COLOR_BLUE, y);
-            uint32_t color_over_2  = zebra_color_word_row(COLOR_RED,  y+1);
-            uint32_t color_under_2 = zebra_color_word_row(COLOR_BLUE, y+1);
-
-            uint32_t color_rgb_under   = zebra_rgb_color(1, 0, 0, 0, y);
-            uint32_t color_rgb_under_2 = zebra_rgb_color(1, 0, 0, 0, y+1);
-
-            uint32_t color_rgb_clipR   = zebra_rgb_color(0, 1, 0, 0, y);
-            uint32_t color_rgb_clipR_2 = zebra_rgb_color(0, 1, 0, 0, y+1);
-            uint32_t color_rgb_clipG   = zebra_rgb_color(0, 0, 1, 0, y);
-            uint32_t color_rgb_clipG_2 = zebra_rgb_color(0, 0, 1, 0, y+1);
-            uint32_t color_rgb_clipB   = zebra_rgb_color(0, 0, 0, 1, y);
-            uint32_t color_rgb_clipB_2 = zebra_rgb_color(0, 0, 0, 1, y+1);
-
-            uint32_t color_rgb_clipRG   = zebra_rgb_color(0, 1, 1, 0, y);
-            uint32_t color_rgb_clipRG_2 = zebra_rgb_color(0, 1, 1, 0, y+1);
-            uint32_t color_rgb_clipGB   = zebra_rgb_color(0, 0, 1, 1, y);
-            uint32_t color_rgb_clipGB_2 = zebra_rgb_color(0, 0, 1, 1, y+1);
-            uint32_t color_rgb_clipRB   = zebra_rgb_color(0, 1, 0, 1, y);
-            uint32_t color_rgb_clipRB_2 = zebra_rgb_color(0, 1, 0, 1, y+1);
-
-            uint32_t color_rgb_clipRGB   = zebra_rgb_color(0, 1, 1, 1, y);
-            uint32_t color_rgb_clipRGB_2 = zebra_rgb_color(0, 1, 1, 1, y+1);
+            #define color_over           zebra_color_word_row(COLOR_RED,  y)
+            #define color_under          zebra_color_word_row(COLOR_BLUE, y)
+            #define color_over_2         zebra_color_word_row(COLOR_RED,  y+1)
+            #define color_under_2        zebra_color_word_row(COLOR_BLUE, y+1)
+            
+            #define color_rgb_under      zebra_rgb_color(1, 0, 0, 0, y)
+            #define color_rgb_under_2    zebra_rgb_color(1, 0, 0, 0, y+1)
+            
+            #define color_rgb_clipR      zebra_rgb_color(0, 1, 0, 0, y)
+            #define color_rgb_clipR_2    zebra_rgb_color(0, 1, 0, 0, y+1)
+            #define color_rgb_clipG      zebra_rgb_color(0, 0, 1, 0, y)
+            #define color_rgb_clipG_2    zebra_rgb_color(0, 0, 1, 0, y+1)
+            #define color_rgb_clipB      zebra_rgb_color(0, 0, 0, 1, y)
+            #define color_rgb_clipB_2    zebra_rgb_color(0, 0, 0, 1, y+1)
+            
+            #define color_rgb_clipRG     zebra_rgb_color(0, 1, 1, 0, y)
+            #define color_rgb_clipRG_2   zebra_rgb_color(0, 1, 1, 0, y+1)
+            #define color_rgb_clipGB     zebra_rgb_color(0, 0, 1, 1, y)
+            #define color_rgb_clipGB_2   zebra_rgb_color(0, 0, 1, 1, y+1)
+            #define color_rgb_clipRB     zebra_rgb_color(0, 1, 0, 1, y)
+            #define color_rgb_clipRB_2   zebra_rgb_color(0, 1, 0, 1, y+1)
+            
+            #define color_rgb_clipRGB    zebra_rgb_color(0, 1, 1, 1, y)
+            #define color_rgb_clipRGB_2  zebra_rgb_color(0, 1, 1, 1, y+1)
 
             uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
             uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(y)       );  // 4 pixels
@@ -1359,21 +1387,19 @@ draw_zebra_and_focus( int Z, int F )
                     //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);
                     COMPUTE_UYVY2YRGB(*lvp, Y, R, G, B);
 
-
-                    if (Y < zll) // underexposed
+                    if(unlikely(Y < zll)) // underexposed
                     {
                         BP = MP = color_rgb_under;
                         BN = MN = color_rgb_under_2;
                     }
                     else
                     {
-
                         //~ BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
                         //~ BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
                         
-                        if (R > zlh) // R clipped
+                        if (unlikely(R > zlh)) // R clipped
                         {
-                            if (G > zlh) // RG clipped
+                            if (unlikely(G > zlh)) // RG clipped
                             {
                                 if (B > zlh) // RGB clipped (all of them)
                                 {
@@ -1388,7 +1414,7 @@ draw_zebra_and_focus( int Z, int F )
                             }
                             else // R clipped, G not clipped
                             {
-                                if (B > zlh) // only R and B clipped
+                                if (unlikely(B > zlh)) // only R and B clipped
                                 {
                                     BP = MP = color_rgb_clipRB;
                                     BN = MN = color_rgb_clipRB_2;
@@ -1402,9 +1428,9 @@ draw_zebra_and_focus( int Z, int F )
                         }
                         else // R not clipped
                         {
-                            if (G > zlh) // R not clipped, G clipped
+                            if (unlikely(G > zlh)) // R not clipped, G clipped
                             {
-                                if (B > zlh) // only G and B clipped
+                                if (unlikely(B > zlh)) // only G and B clipped
                                 {
                                     BP = MP = color_rgb_clipGB;
                                     BN = MN = color_rgb_clipGB_2;
@@ -1417,7 +1443,7 @@ draw_zebra_and_focus( int Z, int F )
                             }
                             else // R not clipped, G not clipped
                             {
-                                if (B > zlh) // only B clipped
+                                if (unlikely(B > zlh)) // only B clipped
                                 {
                                     BP = MP = color_rgb_clipB;
                                     BN = MN = color_rgb_clipB_2;
@@ -1433,12 +1459,12 @@ draw_zebra_and_focus( int Z, int F )
                 else // luma
                 {
                     int p0 = (*lvp) >> 8 & 0xFF;
-                    if (p0 > zlh)
+                    if (unlikely(p0 > zlh))
                     {
                         BP = MP = color_over;
                         BN = MN = color_over_2;
                     }
-                    else if (p0 < zll)
+                    else if (unlikely(p0 < zll))
                     {
                         BP = MP = color_under;
                         BN = MN = color_under_2;
@@ -1454,40 +1480,70 @@ draw_zebra_and_focus( int Z, int F )
             }
         }
     }
+}
 
-    // HD to LV coordinate transform:
-    // non-record: 1056 px: 1.46 ratio (yuck!)
-    // record: 1720: 2.38 ratio (yuck!)
+void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+{    
+    int color = get_focus_color(thr, e);
+    //~ int color = COLOR_RED;
+    color = (color << 8) | color;   
     
-    // How to scan?
-    // Scan the HD vram and do ratio conversion only for the 1% pixels displayed
+    uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
+    uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
+    
+    uint16_t pixel = b_row[x/2];
+    uint16_t mirror = m_row[x/2];
+    uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
+    uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
+    if (mirror  & 0x8080) 
+        return;
+    if (mirror2 & 0x8080)
+        return;
+    if (pixel  != 0 && pixel  != mirror )
+        return;
+    if (pixel2 != 0 && pixel2 != mirror2)
+        return;
 
-    //~ bvram_mirror_init();
-    //~ int BMPPITCH = bmp_pitch();
-    //~ int y;
+    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
+    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
+    
+    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+    {
+        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
+    }
+}
+
+
+// returns how the focus peaking threshold changed
+static int
+draw_zebra_and_focus( int Z, int F )
+{
+    if (unlikely(!get_global_draw())) return 0;
+
+    uint8_t * const bvram = bmp_vram_real();
+    if (unlikely(!bvram)) return 0;
+    if (unlikely(!bvram_mirror)) return 0;
+    
+    draw_zebras(Z, F);
 
     static int thr = 50;
     static int thr_increment = 1;
     static int prev_thr = 50;
     static int thr_delta = 0;
 
-fpeak:
-
     if (F && focus_peaking)
     {
         // clear previously written pixels
-        #define MAX_DIRTY_PIXELS 5000
-        if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
-        if (!dirty_pixels) return -1;
+        if (unlikely(!dirty_pixels)) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixels)) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)
         {
-            //~ dirty_pixels[i] = COERCE(dirty_pixels[i], -BMP_HDMI_OFFSET, BMP_VRAM_SIZE-BMP_HDMI_OFFSET);
             #define B1 *(uint16_t*)(bvram + dirty_pixels[i])
             #define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
             #define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
             #define M2 *(uint16_t*)(bvram_mirror + dirty_pixels[i] + BMPPITCH)
-            if ((B1 == 0 || B1 == M1) && (B2 == 0 || B2 == M2))
+            if (unlikely((B1 == 0 || B1 == M1)) && unlikely((B2 == 0 || B2 == M2)))
                 B1 = B2 = M1 = M2 = 0;
             #undef B1
             #undef B2
@@ -1496,162 +1552,97 @@ fpeak:
         }
         dirty_pixels_num = 0;
         
-        struct vram_info * hd_vram = get_yuv422_hd_vram();
-        uint32_t * const hdvram = UNCACHEABLE(hd_vram->vram);
-                
+        struct vram_info *hd_vram = get_yuv422_hd_vram();
+        uint32_t hdvram = (uint32_t)UNCACHEABLE(hd_vram->vram);
+        
+        int yStart = os.y0 + os.off_169 + 8;
+        int yEnd = os.y_max - os.off_169 - 8;
+        int xStart = os.x0 + 8;
+        int xEnd = os.x_max - 8;
         int n_over = 0;
-        int n_total = 0;
-
-        // look in the HD buffer
-        for(int y = os.y0 + os.off_169 + 8; y < os.y_max - os.off_169 - 8; y += 2 )
+        int n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
+        
+        const uint8_t* p8; // that's a moving pointer
+        
+        zebra_update_lut();
+        
+        if(focus_peaking_method == 0)
         {
-            uint16_t * const hd_row = (uint16_t *)(hdvram + BM2HD_R(y) / 4); // 2 pixels
-            
-            //~ uint32_t* hdp ; // that's a moving pointer
-            uint8_t* p8; // that's a moving pointer
-            for (int x = os.x0 + 8; x < os.x_max - 8; x += 2)
+            for(int y = yStart; y < yEnd; y += 2)
             {
-                //~ hdp = (uint32_t *)(hd_row + BM2HD_X(x));
-                p8 = (uint8_t *)(hd_row + BM2HD_X(x)) + 1;
-                //~ hdp = hdvram + BM2HD(x,y)/4;
-                #define PX_AB (*hdp)        // current pixel group
-                #define PX_CD (*(hdp + 1))  // next pixel group
-                #define a ((int32_t)(PX_AB >>  8) & 0xFF)
-                #define b ((int32_t)(PX_AB >> 24) & 0xFF)
-                #define c ((int32_t)(PX_CD >>  8) & 0xFF)
-                #define d ((int32_t)(PX_CD >> 24) & 0xFF)
+                uint32_t hd_row = hdvram + bm_hd_r_cache[y];
                 
-                #define mBC MIN(b,c)
-                #define AE MIN(a,b)
-                #define BE MIN(a, mBC)
-                #define CE MIN(mBC, d)
-
-                #define MBC MAX(b,c)
-                #define AD MAX(a,b)
-                #define BD MAX(a, MBC)
-                #define CD MAX(MBC, d)
-
-                #define BED MAX(AE,MAX(BE,CE))
-                #define BDE MIN(AD,MIN(BD,CD))
-
-                #define SIGNBIT(x) (x & (1<<31))
-                #define CHECKSIGN(a,b) (SIGNBIT(a) ^ SIGNBIT(b) ? 0 : 0xFF)
-                #define D1 (b-a)
-                #define D2 (c-b)
-                #define D3 (d-c)
-
-                #define e_morph (ABS(b - ((BDE + BED) >> 1)) << 3)
-                //~ #define e_opposite_sign (MAX(0, - (c-b)*(b-a)) >> 3)
-                //~ #define e_sign3 CHECKSIGN(D1,D3) & CHECKSIGN(D1,-D2) & ((ABS(D1) + ABS(D2) + ABS(D3)) >> 1)
-                
-                /** simple Laplacian filter
-                 *     -1
-                 *  -1  4 -1
-                 *     -1
-                 * 
-                 * Big endian:
-                 *  uyvy uyvy uyvy
-                 *  uyvy uYvy uyvy
-                 *  uyvy uyvy uyvy
-                 */
-                #define P (vram_hd.pitch)
-                /*#define p_cc     ((int32_t)((*(hdp  ))   >>  8) & 0xFF)
-                #define p_rc     ((int32_t)((*(hdp  ))   >> 24) & 0xFF)
-                #define p_lc     ((int32_t)((*(hdp-1))   >> 24) & 0xFF)
-                #define p_llc    ((int32_t)((*(hdp-1))   >>  8) & 0xFF)
-                #define p_rrc    ((int32_t)((*(hdp+1))   >>  8) & 0xFF)
-                #define p_rrrc   ((int32_t)((*(hdp+1))   >> 24) & 0xFF)
-                #define p_rrrrc  ((int32_t)((*(hdp+2))   >>  8) & 0xFF)
-                #define p_rrrrrc ((int32_t)((*(hdp+2))   >> 24) & 0xFF)
-
-                #define p_cu    ((int32_t)((*(hdp-P))   >>  8) & 0xFF)
-                #define p_cd    ((int32_t)((*(hdp+P))   >>  8) & 0xFF)
-                #define p_cuu   ((int32_t)((*(hdp-2*P)) >>  8) & 0xFF)*/
-                //~ #define p_cdd ((int32_t)((*(hdp+2*P)) >>  8) & 0xFF)
-                //~ #define p_cddd ((int32_t)((*(hdp+3*P)) >>  8) & 0xFF)
-
-                #define p_cc ((int)(*p8))
-                #define p_rc ((int)(*(p8+2)))
-                #define p_lc ((int)(*(p8-2)))
-                #define p_llc ((int)(*(p8-4)))
-                #define p_rrc ((int)(*(p8+4)))
-                #define p_rrrc ((int)(*(p8+6)))
-                #define p_rrrrc ((int)(*(p8+8)))
-                #define p_rrrrrc ((int)(*(p8+10)))
-                #define p_cu ((int)(*(p8-P)))
-                #define p_cd ((int)(*(p8+P)))
-
-                #define p_ru ((int)(*(p8+2-P)))
-                #define p_lu ((int)(*(p8-2-P)))
-                #define p_rd ((int)(*(p8+2+P)))
-                #define p_ld ((int)(*(p8-2+P)))
-                
-                #define e_laplacian_x   ABS(p_cc * 2 - p_lc - p_rc)
-                #define e_laplacian_xy  ABS(p_cc * 4 - p_lc - p_rc - p_cu - p_cd)
-                #define e_laplacian_xy9 ABS(p_cc * 8 - p_lc - p_rc - p_cu - p_cd - p_ru - p_lu - p_rd - p_ld)
-                #define e_dx            ABS(p_rc - p_cc)
-                #define e_dy            ABS(p_cd - p_cc)
-
-                // FFT component at Nyquist frequency 
-                #define e_nyquist_x ABS(p_llc + p_cc + p_rrc + p_rrrrc - p_lc - p_rc - p_rrrc - p_rrrrrc)/2
-                #define e_nyquist_y ABS(p_cuu + p_cc - p_cu - p_cd)
-
-                int e = focus_peaking_method == 0 ? MAX(e_dx, e_dy) : e_laplacian_xy;
-                        //~ focus_peaking_method == 1 ? e_laplacian_xy :
-                                                    //~ MAX(e_zigzag_x, e_zigzag_y);
-                                                    //~ e_nyquist_x;
-                #undef a
-                #undef b
-                #undef c
-                #undef d
-                #undef z
-                #undef P
-                
-                /*if (focus_peaking_debug)
+                for (int x = xStart; x < xEnd; x += 2)
                 {
-                    int c = (COERCE(e, 0, thr*2) * 41 / thr / 2) + 38;
-                    uint16_t* bm16 = (uint16_t*) bvram;
-                    uint16_t* m16 = (uint16_t*) bvram_mirror;
-                    bm16[BM(x,y)/2] = bm16[BM(x,y+1)/2] =
-                     m16[BM(x,y)/2] =  m16[BM(x,y+1)/2] = c | (c<<8);
-                    continue;
-                }*/
-                
-                n_total++;
-                if (e < thr) continue;
-                // else
-                { // executed for 1% of pixels
-                    n_over++;
-                    if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
-                    {
-                        break;
-                    }
-
-                    int color = get_focus_color(thr, e);
-                    //~ int color = COLOR_RED;
-                    color = (color << 8) | color;   
+                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x]);
                     
-                    uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
-                    uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
+                    int p_cc = (int)(*p8);
+                    int p_rc = (int)(*(p8 + 2));
+                    int p_cd = (int)(*(p8 + vram_hd.pitch));
                     
-                    uint16_t pixel = b_row[x/2];
-                    uint16_t mirror = m_row[x/2];
-                    uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
-                    uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
-                    if (mirror  & 0x8080) continue;
-                    if (mirror2 & 0x8080) continue;
-                    if (pixel  != 0 && pixel  != mirror ) continue;
-                    if (pixel2 != 0 && pixel2 != mirror2) continue;
-
-                    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
-                    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
-                    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+                    int e_dx = ABS(p_rc - p_cc);
+                    int e_dy = ABS(p_cd - p_cc);
+                    
+                    int e = MAX(e_dx, e_dy);
+                    
+                    /* executed for 1% of pixels */
+                    if (unlikely(e >= thr))
                     {
-                        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
+                        n_over++;
+                        if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
+                        {
+                            break;
+                        }
+
+                        focus_found_pixel(x, y, e, thr, bvram);
                     }
                 }
             }
         }
+        else
+        {
+            for(int y = yStart; y < yEnd; y += 2)
+            {
+                uint32_t hd_row = hdvram + bm_hd_r_cache[y];
+                
+                for (int x = xStart; x < xEnd; x += 2)
+                {
+                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x]);
+                    
+                    /** simple Laplacian filter
+                     *     -1
+                     *  -1  4 -1
+                     *     -1
+                     * 
+                     * Big endian:
+                     *  uyvy uyvy uyvy
+                     *  uyvy uYvy uyvy
+                     *  uyvy uyvy uyvy
+                     */
+                     
+                    
+                    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
+                    result -= (int)(*(p8 - 2));
+                    result -= (int)(*(p8 + vram_hd.pitch));
+                    result -= (int)(*(p8 - vram_hd.pitch));
+                    
+                    int e = ABS(result);
+                    
+                    /* executed for 1% of pixels */
+                    if (unlikely(e >= thr))
+                    {
+                        n_over++;
+                        if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
+                        {
+                            break;
+                        }
+
+                        focus_found_pixel(x, y, e, thr, bvram);
+                    }
+                }
+            }
+        }
+
         //~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
         
         if (1000 * n_over / n_total > (int)focus_peaking_pthr)
@@ -3502,7 +3493,7 @@ void copy_zebras_from_mirror()
 
 void clear_zebras_from_mirror()
 {
-    uint8_t* M = (uint32_t*)get_bvram_mirror();
+    uint8_t* M = (uint8_t*)get_bvram_mirror();
     get_yuv422_vram();
     for (int i = os.y0; i < os.y_max; i++)
     {
@@ -5565,4 +5556,17 @@ void play_422(char* filename)
     if( rc != size ) return;
 
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
+}
+
+void peaking_benchmark()
+{
+    fake_simple_button(BGMT_PLAY);
+    msleep(1000);
+    int a = get_seconds_clock();
+    for (int i = 0; i < 10000; i++)
+    {
+        draw_zebra_and_focus(0,1);
+    }
+    int b = get_seconds_clock();
+    NotifyBox(10000, "%d ", b-a);
 }
