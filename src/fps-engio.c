@@ -1190,10 +1190,21 @@ static void fps_task()
             while (recording && MVR_FRAME_NUMBER < video_mode_fps) 
                 msleep(MIN_MSLEEP);
 
+        static int prev_sig = 0;
         fps_read_current_timer_values();
         fps_read_default_timer_values();
+        int sig = fps_timer_a_orig + fps_timer_b_orig*314 + lv_dispsize*111 + video_mode_resolution*17 + video_mode_fps*123 + video_mode_crop*4567;
+        int video_mode_changed = (sig != prev_sig);
+        prev_sig = sig;
         
         //~ bmp_printf(FONT_LARGE, 50, 50, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
+
+        if (video_mode_changed) // video mode changed, wait for it to settle
+        {
+            msleep(500);
+            if (is_movie_mode() && video_mode_crop) msleep(500);
+            continue;
+        }
 
         //~ info_led_on();
         fps_setup_timerA(f);
