@@ -104,8 +104,11 @@ extern struct vram_info vram_lv;
 
 
  // offsets on one axis, in pixels
-#define BM2LV_X(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
+#define BM2LV_Xu(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
 #define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
+
+extern int bm2lv_x_cache[];
+#define BM2LV_X(x) bm2lv_x_cache[x - BMP_W_MINUS]
 
 #define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
 #define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sy)
@@ -159,14 +162,20 @@ extern struct vram_info vram_lv;
 #define LV2HD_R(y) (LV2HD_Y(y) * vram_hd.pitch)
 #define HD2LV_R(y) (HD2LV_Y(y) * vram_lv.pitch)
 
-#define BM2HD_R(y) (BM2HD_Y(y) * vram_hd.pitch)
+#define BM2HD_Ru(y) (BM2HD_Y(y) * vram_hd.pitch)
 #define HD2BM_R(y) (HD2BM_Y(y) * BMPPITCH     )
+
+extern int bm2hd_r_cache[];
+#define BM2HD_R(y) bm2hd_r_cache[y - BMP_H_MINUS]
+
+extern int y_times_BMPPITCH_cache[];
 
 #ifdef CONFIG_5DC
 #define BM(x,y) (((x)/2) * 1 + ((y)/2) * BMPPITCH     )
 #else
-#define BM(x,y) ((x) * 1 + (y) * BMPPITCH     )
+#define BM(x,y) ((x) * 1 + y_times_BMPPITCH_cache[y - BMP_H_MINUS])
 #endif
+
 #define LV(x,y) ((x) * 2 + (y) * vram_lv.pitch)
 #define HD(x,y) ((x) * 2 + (y) * vram_hd.pitch)
 #define BM_R(y) ((y) * BMPPITCH     )
@@ -174,12 +183,15 @@ extern struct vram_info vram_lv;
 #define HD_R(y) ((y) * vram_hd.pitch)
 
 // normalized coordinates (0,0 ... 720,480)
-#define BM2N_X(x) (((x) - os.x0) * 720 / os.x_ex)
+#define BM2N_Xu(x) (((x) - os.x0) * 720 / os.x_ex)
 #define BM2N_Y(y) (((y) - os.y0) * 480 / os.y_ex)
 #define LV2N_X(x) BM2N_X(LV2BM_X(x))
 #define LV2N_Y(y) BM2N_Y(LV2BM_Y(y))
 #define HD2N_X(x) BM2N_X(HD2BM_X(x))
 #define HD2N_Y(y) BM2N_Y(HD2BM_Y(y))
+
+extern int bm2n_x_cache[];
+#define BM2N_X(x) bm2n_x_cache[x - BMP_W_MINUS]
 
 #define N2BM_X(xn) ((xn) * os.x_ex / 720 + os.x0)
 #define N2BM_Y(yn) ((yn) * os.y_ex / 480 + os.y0)

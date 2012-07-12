@@ -32,6 +32,7 @@
 #include "property.h"
 #include "gui.h"
 #include "lens.h"
+#include "math.h"
 
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
@@ -1219,27 +1220,15 @@ static inline int zebra_color_word_row(int c, int y)
 
 static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
-static unsigned int* bm_hd_r_cache = 0;
-static unsigned int* bm_hd_x_cache = 0;
+//~ static unsigned int* bm_hd_r_cache = 0;
+static unsigned int bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
 static int bm_hd_bm2lv_sx = 0;
 static int bm_hd_lv2hd_sx = 0;
 
 void zebra_update_lut()
 {
     int rebuild = 0;
-    
-    if (unlikely(!bm_hd_r_cache)) 
-    {
-        bm_hd_r_cache = AllocateMemory(540 * sizeof(unsigned int));
-        rebuild = 1;
-    }
-    
-    if (unlikely(!bm_hd_x_cache)) 
-    {
-        bm_hd_x_cache = AllocateMemory(960 * sizeof(unsigned int));
-        rebuild = 1;
-    }
-    
+        
     if(unlikely(bm_hd_bm2lv_sx != bm2lv.sx))
     {
         bm_hd_bm2lv_sx = bm2lv.sx;
@@ -1253,19 +1242,12 @@ void zebra_update_lut()
     
     if(unlikely(rebuild))
     {
-        int yStart = os.y0 + os.off_169 + 8;
-        int yEnd = os.y_max - os.off_169 - 8;
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
-        
-        for(int y = yStart; y < yEnd; y += 1)
-        {
-            bm_hd_r_cache[y] = BM2HD_R(y);
-        }
 
         for (int x = xStart; x < xEnd; x += 1)
         {
-            bm_hd_x_cache[x] = (BM2HD_X(x) * 2) + 1;
+            bm_hd_x_cache[x - BMP_W_MINUS] = (BM2HD_X(x) * 2) + 1;
         }        
     }
 }
@@ -1300,7 +1282,7 @@ int focus_peaking_debug = 0;
 
 static int zebra_digic_dirty = 0;
 
-void draw_zebras( int Z, int F )
+void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
     int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
@@ -1524,7 +1506,7 @@ draw_zebra_and_focus( int Z, int F )
     if (unlikely(!bvram)) return 0;
     if (unlikely(!bvram_mirror)) return 0;
     
-    draw_zebras(Z, F);
+    draw_zebras(Z);
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -1570,11 +1552,11 @@ draw_zebra_and_focus( int Z, int F )
         {
             for(int y = yStart; y < yEnd; y += 2)
             {
-                uint32_t hd_row = hdvram + bm_hd_r_cache[y];
+                uint32_t hd_row = hdvram + BM2HD_R(y);
                 
                 for (int x = xStart; x < xEnd; x += 2)
                 {
-                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x]);
+                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
                     
                     int p_cc = (int)(*p8);
                     int p_rc = (int)(*(p8 + 2));
@@ -1603,11 +1585,11 @@ draw_zebra_and_focus( int Z, int F )
         {
             for(int y = yStart; y < yEnd; y += 2)
             {
-                uint32_t hd_row = hdvram + bm_hd_r_cache[y];
+                uint32_t hd_row = hdvram + BM2HD_R(y);
                 
                 for (int x = xStart; x < xEnd; x += 2)
                 {
-                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x]);
+                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
                     
                     /** simple Laplacian filter
                      *     -1
@@ -5370,7 +5352,7 @@ static void defish_lut_load()
         if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
         
         int size = 0;
-        defish_lut = (uint8_t*)read_entire_file(defish_lut_file, &size);
+        defish_lut = (uint8_t*) read_entire_file(defish_lut_file, &size);
         defish_projection_loaded = defish_projection;
     }
     if (defish_lut == NULL)
@@ -5422,6 +5404,7 @@ static void defish_draw()
     }
 }
 
+
 static void defish_draw_play()
 {
     defish_lut_load();
@@ -5438,7 +5421,7 @@ static void defish_draw_play()
     int buf_size = w * h * 2;
 
     memcpy(aux_buf, lvram, buf_size);
-
+    
     for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
     {
         for (int x = BM2LV_X(os.x0); x < BM2LV_X(os.x0 + os.x_ex/2); x++)
@@ -5452,6 +5435,7 @@ static void defish_draw_play()
 
             int id = defish_lut[(i * 360 + j) * 2 + 1];
             int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+            
             int k;
             for (k = 0; k < 4; k++)
             {
@@ -5563,10 +5547,11 @@ void peaking_benchmark()
     fake_simple_button(BGMT_PLAY);
     msleep(1000);
     int a = get_seconds_clock();
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < 1000; i++)
     {
         draw_zebra_and_focus(0,1);
     }
     int b = get_seconds_clock();
     NotifyBox(10000, "%d ", b-a);
+    beep();
 }
