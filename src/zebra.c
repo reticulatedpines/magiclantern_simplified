@@ -1133,7 +1133,7 @@ void bvram_mirror_init()
         //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
         //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
         //~ #else
-        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
+        bvram_mirror_start = (void*)UNCACHEABLE(AllocateMemory(BMP_VRAM_SIZE));
         //~ #endif
         if (!bvram_mirror_start) 
         {   
