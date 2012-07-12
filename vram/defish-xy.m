@@ -14,4 +14,4 @@ for i = 1:480
 		end
 	end
 end
-imwrite(XY,'xy.png'); # defish this and save it as rectilin-xy.jpg
+imwrite(XY,'xy.tiff'); # defish this and save it as rectilin-xy.jpg

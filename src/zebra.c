@@ -5405,6 +5405,61 @@ static void defish_draw()
 }
 
 
+static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
+{
+    uint32_t* src = &buf[pixoff / 2];
+    
+    uint32_t chroma = (*src)  & 0x00FF00FF;
+    uint32_t luma1 = (*src >>  8) & 0xFF;
+    uint32_t luma2 = (*src >> 24) & 0xFF;
+    uint32_t luma = pixoff % 2 ? luma2 : luma1;
+    return (chroma | (luma << 8) | (luma << 24));
+}
+
+/* some sort of bilinear interpolation, doesn't seem to be correct
+ * also too slow for real use
+static uint32_t get_yuv_pixel_averaged(uint32_t* buf, float i, float j)
+{
+    int ilo = (int)floorf(i); int ihi = (int)ceilf(i);
+    int jlo = (int)floorf(j); int jhi = (int)ceilf(j);
+    
+    float k1 = i - ilo;
+    float k2 = j - jlo;
+    float w1 = (1-k1) * (1-k2);
+    float w2 = k1 * k2;
+    float w3 = k1 * (1-k2);
+    float w4 = (1-k1) * k2;
+    
+    uint32_t ll = get_yuv_pixel(buf, LV(jlo,ilo)/2);
+    uint32_t hh = get_yuv_pixel(buf, LV(jhi,ihi)/2);
+    uint32_t hl = get_yuv_pixel(buf, LV(jhi,ilo)/2);
+    uint32_t lh = get_yuv_pixel(buf, LV(jlo,ihi)/2);
+    
+    uint32_t luma1 = (((ll >>  8) & 0xFF) * w1 + ((hh >>  8) & 0xFF) * w2 + ((hl >>  8) & 0xFF) * w3 + ((lh >>  8) & 0xFF) * w4) / (w1+w2+w3+w4);
+    uint32_t luma2 = (((ll >> 24) & 0xFF) * w1 + ((hh >> 24) & 0xFF) * w2 + ((hl >> 24) & 0xFF) * w3 + ((lh >> 24) & 0xFF) * w4) / (w1+w2+w3+w4);
+
+    uint32_t u = (int)((float)((int8_t)((ll >>  0) & 0xFF)) * w1 + (float)((int8_t)((hh >>  0) & 0xFF)) * w2 + (float)((int8_t)((hl >>  0) & 0xFF)) * w3 + ((float)((int8_t)((lh >>  0) & 0xFF)) * w4) / (w1+w2+w3+w4));
+    uint32_t v = (int)((float)((int8_t)((ll >> 16) & 0xFF)) * w1 + (float)((int8_t)((hh >> 16) & 0xFF)) * w2 + (float)((int8_t)((hl >> 16) & 0xFF)) * w3 + ((float)((int8_t)((lh >> 16) & 0xFF)) * w4) / (w1+w2+w3+w4));
+    
+    return (u & 0xFF) | ((v & 0xFF) << 16) | ((luma1 & 0xFF) << 8) | ((luma2 & 0xFF) << 24);
+}
+*/
+int defish_get_averaged_coord(uint8_t* lut, int i, int j, int num, int den)
+{
+    int acc = 0;
+    for (int di = -2; di <= 2; di++)
+    {
+        for (int dj = -2; dj <= 2; dj++)
+        {
+            int newi = COERCE(i+di, 0, 239);
+            int newj = COERCE(j+dj, 0, 359);
+            acc += lut[(newi * 360 + newj) * 2];
+        }
+    }
+    return acc * num / 25 / den;
+}
+
+
 static void defish_draw_play()
 {
     defish_lut_load();
@@ -5433,8 +5488,12 @@ static void defish_draw_play()
             static int off_i[] = {0,  0,479,479};
             static int off_j[] = {0,719,  0,719};
 
-            int id = defish_lut[(i * 360 + j) * 2 + 1];
-            int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+            //~ int id = defish_lut[(i * 360 + j) * 2 + 1];
+            //~ int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+            
+            // this reduces the quantization error from the LUT 
+            int id = defish_get_averaged_coord(defish_lut + 1, i, j, 1, 1);
+            int jd = defish_get_averaged_coord(defish_lut, i, j, 360, 255);
             
             int k;
             for (k = 0; k < 4; k++)
@@ -5444,7 +5503,24 @@ static void defish_draw_play()
                 int Id = (off_i[k] ? off_i[k] - id : id);
                 int Jd = (off_j[k] ? off_j[k] - jd : jd);
                 
-                lvram[LV(X,Y)/4] = aux_buf[N2LV(Jd,Id)/4];
+                //~ lvram[LV(X,Y)/4] = aux_buf[N2LV(Jd,Id)/4];
+
+                // Rather than copying an entire uyvy pair, copy only one pixel (and overwrite luma for both pixels in the bin)
+                // => slightly better image quality
+                
+                // Actually, IQ is far lower than what Nona does with proper interpolation
+                // but this is enough for preview purposes
+                
+                
+                //~ uint32_t new_color = get_yuv_pixel_averaged(aux_buf, Id, Jd);
+
+                int pixoff_src = N2LV(Jd,Id) / 2;
+                uint32_t new_color = get_yuv_pixel(aux_buf, pixoff_src);
+
+                int pixoff_dst = LV(X,Y) / 2;
+                uint32_t* dst = &lvram[pixoff_dst / 2];
+                uint32_t mask = (pixoff_dst % 2 ? 0xffFF00FF : 0x00FFffFF);
+                *(dst) = (new_color & mask) | (*(dst) & ~mask);
             }
         }
     }

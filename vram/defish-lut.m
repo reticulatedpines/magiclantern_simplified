@@ -2,7 +2,7 @@
 
 prefix = argv(){1};
 
-xy = double(imread([prefix ".png"]));
+xy = double(imread([prefix ".tif"]));
 
 f = fopen([prefix ".lut"], "wb")
 for i = 1:480/2

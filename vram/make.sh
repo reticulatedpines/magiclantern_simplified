@@ -2,7 +2,7 @@
 
 for f in $(ls *.pto); do
     echo `basename $f .pto`
-    nona -o `basename $f .pto`.png $f xy.png 
+    nona -o `basename $f .pto`.tif $f xy.tiff
     octave defish-lut.m `basename $f .pto`
 done
 
