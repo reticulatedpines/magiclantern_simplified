@@ -50,6 +50,7 @@ Customize the LiveView button in ``PLAY`` mode:
   
 * Default (enter LiveView)
 * Protect image
+* Rate image
 
 Quick Erase
 """""""""""

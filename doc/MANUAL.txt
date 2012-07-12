@@ -78,7 +78,7 @@ PLAY mode shortcuts
 * ``Q`` (550D), ``UNLOCK`` (60D), ``DISP`` (600D), ``LV`` (500D), ``FUNC`` (50D) or ``Picture Style`` (5D Mark II): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `Overlay`_ menu).
 * ``SET`` + ``Main Dial (Scrollwheel)`` in ``PLAY`` mode: customizable function (preview HDR images, timelapse playback and others). See `SET+MainDial`_.
 * ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can use it for panoramas or for repeating shots.
-* ``LV`` on 60D/600D: you can configure it to protect images with a single button press.
+* ``LV`` on 60D/600D: you can configure it to protect or rate images with a single button press.
 * ``SET+Erase``: you can configure it to erase images without the confirmation dialog.
 * ``Zoom In``: quick image magnification: a single click can zoom all the way in, on center point, on AF point etc (configurable).
 

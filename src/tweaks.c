@@ -856,7 +856,7 @@ play_lv_display(
         x, y,
         "LV button   : %s", 
         play_lv_action == 0 ? "Default" :
-        play_lv_action == 1 ? "Protect Image" : "err"
+        play_lv_action == 1 ? "Protect Image" : "Rate Image"
     );
 }
 
@@ -867,9 +867,25 @@ int handle_lv_play(struct event * event)
     
     if (event->param == BGMT_LV && PLAY_MODE)
     {
-        fake_simple_button(BGMT_Q); // toggle protect current image
-        fake_simple_button(BGMT_WHEEL_DOWN);
-        fake_simple_button(BGMT_Q);
+        if (play_lv_action == 1)
+        {
+            fake_simple_button(BGMT_Q); // toggle protect current image
+            fake_simple_button(BGMT_WHEEL_DOWN);
+            fake_simple_button(BGMT_Q);
+        }
+        else
+        {
+            fake_simple_button(BGMT_Q); // rate image
+            fake_simple_button(BGMT_PRESS_DOWN);
+            fake_simple_button(BGMT_PRESS_DOWN);
+            #ifdef BGMT_UNPRESS_UDLR
+            fake_simple_button(BGMT_UNPRESS_UDLR);
+            #else
+            fake_simple_button(BGMT_UNPRESS_DOWN);
+            #endif
+            fake_simple_button(BGMT_WHEEL_DOWN);
+            fake_simple_button(BGMT_Q);
+        }
         return 0;
     }
     return 1;
@@ -2334,9 +2350,10 @@ struct menu_entry play_menus[] = {
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 
-                .select = menu_binary_toggle, 
+                .max = 2,
                 .display = play_lv_display,
-                .help = "You may use the LiveView button to protect images quickly.",
+                .help = "You may use the LiveView button to Protect or Rate images.",
+                .icon_type = IT_BOOL,
                 //.essential = FOR_PHOTO,
             },
         #endif
