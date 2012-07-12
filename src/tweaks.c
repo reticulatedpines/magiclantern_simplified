@@ -643,7 +643,7 @@ quickzoom_display(
         x, y,
         "Quick Zoom  : %s", 
         quickzoom == 0 ? "OFF" :
-        quickzoom == 1 ? "ON" :
+        quickzoom == 1 ? "ON (fast zoom)" :
         quickzoom == 2 ? "SinglePress -> 100%" :
         quickzoom == 3 ? "Full zoom on AF pt." :
         quickzoom == 4 ? "Full Z on last pos." :

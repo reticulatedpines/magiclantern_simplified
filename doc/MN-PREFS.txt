@@ -38,7 +38,7 @@ Quick Zoom
 Faster zoom in PLAY mode, for checking critical focus:
 
 * OFF
-* ON - zooms faster than Canon firmware.
+* ON (fast zoom) - zooms faster than Canon firmware.
 * SinglePress -> 100%: a single press of ``Zoom In`` will zoom all the way in (to 100%) - on center point. Next press will zoom out (full screen image).
 * Full zoom on AF point: similar, but it will zoom on currently selected autofocus point.
 * Full zoom on last position: similar, but it will remember the last position of the zoom box.
