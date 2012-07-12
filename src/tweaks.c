@@ -282,7 +282,7 @@ expsim_display( void * priv, int x, int y, int selected )
         /*expsim == 2 ?*/ "Movie" 
     );
     if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
-    else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+    //~ else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 }
 
 // LV metering

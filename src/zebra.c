@@ -3063,7 +3063,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Cropmarks or custom grids for framing.",
         //.essential = FOR_LIVEVIEW,
         .submenu_width = 650,
-        .submenu_height = 225,
+        .submenu_height = 270,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bitmap",
