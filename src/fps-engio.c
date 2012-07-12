@@ -65,7 +65,7 @@ static int fps_timer_b;        // C0F06014
 static int fps_timer_b_orig; 
 
 
-static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000, 32000, 33000, 34000, 35000, 40000, 48000, 50000, 60000, 65000};
+static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000, 32000, 33000, 33333, 34000, 35000, 40000, 48000, 50000, 60000, 65000};
 
 static CONFIG_INT("fps.override", fps_override, 0);
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
@@ -99,6 +99,10 @@ static int is_current_mode_ntsc()
 int fps_get_current_x1000();
 static void fps_unpatch_table();
 static void fps_patch_timerB(int timer_value);
+static void flip_zoom();
+static void fps_read_default_timer_values();
+static void fps_read_current_timer_values();
+
 
 #define FPS_TIMER_A_MAX 0x2000
 #define FPS_TIMER_B_MAX (0x4000-1)
@@ -432,8 +436,6 @@ static void fps_setup_timerB(int fps_x1000)
     if (lens_info.job_state) return;
     if (!fps_x1000) return;
 
-    fps_needs_updating = 0;
-
     // now we can compute timer B
     int timerB_off = ((int)desired_fps_timer_b_offset) - 1000;
     int timerB = 0;
@@ -451,24 +453,41 @@ static void fps_setup_timerB(int fps_x1000)
     #ifdef NEW_FPS_METHOD
     if (fps_timer_b_method == 0) // digic method
     {
-        fps_unpatch_table();
+        fps_unpatch_table(1);
     #endif
         
         // output the value to register
         timerB -= 1;
         written_value_b = PACK(timerB, fps_reg_b_orig);
         SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
+        fps_needs_updating = 0;
     #ifdef NEW_FPS_METHOD
     }
     else
     {
+        fps_read_default_timer_values();
+        int defA_before_patching = fps_reg_a_orig;
+        int defB_before_patching = fps_reg_b_orig;
+        
         fps_patch_timerB(timerB);
         written_value_b = timerB-1;
-        if (!recording) msleep(1000);
+        if (!recording) msleep(500);
         // timer A was changed by refreshing the screen
         // timer B may not be refreshed when recording
-        SafeEngDrvOut(FPS_REGISTER_A, written_value_a);
-        SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
+        
+        // BUT... are we still in the same video mode? or did the user switch it quickly?
+        fps_read_default_timer_values();
+        if (defA_before_patching == fps_reg_a_orig && defB_before_patching == fps_reg_b_orig)
+        {
+            SafeEngDrvOut(FPS_REGISTER_A, written_value_a);
+            fps_needs_updating = 0;
+        }
+        else // something went wrong, will fix at next iteration
+        {
+            //~ beep();
+        }
+        //~ SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
+        msleep(500);
     }
     #endif
 
@@ -540,20 +559,21 @@ desired_fps_print(
 )
 {
     int desired_fps = fps_values_x1000[fps_override_index] / 10;
+    int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
 
     if (desired_fps % 100)
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Desired FPS  : %d.%02d (from %d)",
-            desired_fps/100, desired_fps%100, video_mode_fps
+            desired_fps/100, desired_fps%100, (default_fps+500)/1000
         );
     else
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Desired FPS  : %d (from %d)",
-            desired_fps/100, video_mode_fps
+            desired_fps/100, (default_fps+500)/1000
         );
     
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
@@ -567,7 +587,7 @@ PROP_HANDLER(PROP_VIDEO_MODE)
     memcpy(video_mode, buf, 20);
 }
 
-static void flip_zoom()
+static void flip_zoom_twostage(int stage)
 {
     // flip zoom or video mode back and forth to apply settings instantly
     if (!lv) return;
@@ -576,36 +596,60 @@ static void flip_zoom()
     {
         // in movie mode, flipping the FPS seems nicer
         {
-            int f0 = video_mode[2];
-            video_mode[2] = 
-                f0 == 24 ? 25 : 
-                f0 == 25 ? 24 : 
-                f0 == 30 ? 25 : 
-                f0 == 50 ? 60 :
-              /*f0 == 60*/ 50;
-            prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-            msleep(50);
-            video_mode[2] = f0;
-            prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-            msleep(50);
+            static int f0;
+            if (stage == 1)
+            {
+                f0 = video_mode[2];
+                video_mode[2] = 
+                    f0 == 24 ? 25 : 
+                    f0 == 25 ? 24 : 
+                    f0 == 30 ? 25 : 
+                    f0 == 50 ? 60 :
+                  /*f0 == 60*/ 50;
+                prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+                msleep(50);
+            }
+            else if (stage == 2)
+            {
+                video_mode[2] = f0;
+                prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+                msleep(50);
+            }
 
             return;
         }
     }
     
-    int zoom0 = lv_dispsize;
-    int zoom1 = zoom0 == 10 ? 5 : zoom0 == 5 ? 1 : 10;
-    set_lv_zoom(zoom1);
-    set_lv_zoom(zoom0);
+    static int zoom0;
+    if (stage == 1)
+    {
+        zoom0 = lv_dispsize;
+        int zoom1 = zoom0 == 5 ? 10 : 5;
+        set_lv_zoom(zoom1);
+    }
+    else if (stage == 2)
+    {
+        set_lv_zoom(zoom0);
+    }
 }
 
-static void fps_unpatch_table()
+static void flip_zoom()
+{
+    flip_zoom_twostage(1);
+    flip_zoom_twostage(2);
+}
+
+static void fps_unpatch_table(int refresh)
 {
     if (SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_original)
         return;
     SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
-    flip_zoom();
-    msleep(1000);
+    
+    if (refresh)
+    {
+        flip_zoom();
+        msleep(500);
+    }
 }
 #endif
 
@@ -633,7 +677,7 @@ static void fps_reset()
     fps_register_reset();
 
     #ifdef NEW_FPS_METHOD
-    fps_unpatch_table();
+    fps_unpatch_table(1);
     #endif
 
     restore_sound_recording();
@@ -871,7 +915,8 @@ void fps_setup_timerA(int fps_x1000)
             // we get best low light capability and lowest amount of jello effect.
             timerA = fps_timer_a_orig;
             #ifdef NEW_FPS_METHOD
-            fps_timer_b_method = fps_x1000/1000 < video_mode_fps ? 0 : 1;
+            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+            fps_timer_b_method = fps_x1000 < default_fps ? 0 : 1;
             #endif
             break;
         case 1:
@@ -1062,6 +1107,17 @@ static void fps_read_current_timer_values()
     fps_timer_b = (VB & 0xFFFF) + 1;
 }
 
+static int fps_check_if_current_timer_values_changed()
+{
+    int changed = 0;
+    static int prev_a = 0;
+    static int prev_b = 0;
+    if (prev_a != fps_timer_a || prev_b != fps_timer_b) changed = 1;
+    prev_a = fps_timer_a;
+    prev_b = fps_timer_b;
+    return changed;    
+}
+
 static void fps_read_default_timer_values()
 {
     if (recording == 1) return;
@@ -1135,12 +1191,16 @@ static void fps_task()
                 msleep(MIN_MSLEEP);
 
         fps_read_current_timer_values();
-        fps_read_default_timer_values(); // default values can be always read safely
+        fps_read_default_timer_values();
+        
+        //~ bmp_printf(FONT_LARGE, 50, 50, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
 
         //~ info_led_on();
         fps_setup_timerA(f);
         fps_setup_timerB(f);
-        //~ info_led_off();        
+        //~ info_led_off();
+        //~ fps_read_current_timer_values();
+        //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
     }
 }
 
@@ -1262,15 +1322,28 @@ static void fps_patch_timerB(int timer_value)
 
     if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
         return;
+
+    // at this point we are in previous FPS mode (maybe with timer A altered)
+
+    fps_unpatch_table(0);
+    fps_read_default_timer_values();
+    SafeEngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
+
+    flip_zoom_twostage(1);
     
-    //~ memcpy(sensor_timing_table_patched, sensor_timing_table_original,  sizeof(sensor_timing_table_patched));
+    // at this point we are in some other video mode, at default fps
+
     for (int i = 0; i < COUNT(sensor_timing_table_patched); i++)
         sensor_timing_table_patched[i] = (i == pos) ? timer_value : sensor_timing_table_original[i];
 
     // use the patched sensor table
     SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_patched;
     
-    if (!recording) flip_zoom();
+    // no effect yet...
+    
+    flip_zoom_twostage(2);
+    
+    // now we are back to original video mode, at new FPS
 }
 
 static void sensor_timing_table_init()
