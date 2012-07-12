@@ -140,8 +140,6 @@ Notes and tips:
 
 * Recommended usage: set FPS to a very low value (for example, 3fps) to record a timelapse.
 
-* Tip: this feature also works in photo mode, making LiveView usable in dark environments. Combine it with `display gain`_.
-
 * To get 180-degree shutter speed at very low FPS, simply discard half of the frames in post.
 
 * If 0.2 FPS is not enough, use `Frame Merger <http://bit.ly/frame-merger>`_ (a VirtualDub plugin).
@@ -152,6 +150,8 @@ Notes and tips:
   * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
 
 * For fine-tuning and calibrating custom frame rates, use `EOSTimerGen <http://bit.ly/EOSTimerGen>`_.
+
+* Tip: this feature **also works in photo mode**, making LiveView usable in dark environments. Combine it with `display gain`_.
 
 HDR video
 `````````

@@ -106,7 +106,7 @@ Sticky DOF Preview
 
 This will make the DOF preview button sticky (so you no longer have to hold it pressed).
   
-Note: enabling DOF preview will block certain buttons.
+Note: enabling DOF preview will block most other buttons.
   
 Tip: enable `Exposure Override`_ to preview DOF without blocking the buttons.
 
@@ -132,7 +132,7 @@ On 600D/T3i, this lets you customize the behavior of ``DISP`` + ``Zoom In / Zoom
 * ``1x,3x`` : toggle between 1x and 3x digital zoom modes (FullHD)
 * ``3x...10x``: default Canon setting (change digital zoom value between 3x and 10x).
   
-Note: by default, Magic Lantern disables digital zoom values greater than 3x in order to avoid image quality degradation.
+Note: by default, Magic Lantern **disables digital zoom values greater than 3x** in order to avoid image quality degradation.
 
 .. _Auto Burst PicQ:
 
@@ -174,9 +174,9 @@ Config file...
 
 Magic Lantern saves its settings in a configuration file named ``MAGIC.CFG``, located under ``ML/SETTINGS`` directory on your card. This submenu lets you customize how these settings are saved.
 
-* Config Autosave: If enabled, settings are saved automatically to ''magic.cfg'' whenever you change a setting in ML menu. Config saving process will take place as soon as you close the menu.
+* Config Autosave: If enabled, settings are saved automatically to ''MAGIC.CFG'' whenever you change a setting in ML menu. Config saving process will take place as soon as you close the menu.
 * Save config now: Save ML settings to ``ML/SETTINGS/MAGIC.CFG``.
-* Delete config file: use this to restore ML default settings. After deleting the config file, restart the camera.
+* Delete config file: use this to restore ML default settings. After deleting the config file, restart your camera.
 
 .. _display preset:
 .. _display presets:

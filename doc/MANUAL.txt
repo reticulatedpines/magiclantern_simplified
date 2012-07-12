@@ -37,7 +37,7 @@ However, the following cameras do not have a dedicated movie mode. For these cam
 * For Canon 5D Mark II: in LiveView, with movie recording enabled AND LiveView display set to Movie. Tip: you can change LiveView display type from Expo menu.
 * For Canon 50D: in LiveView, with movie recording enabled from ML menu.
 
-When movie mode is active, Magic Lantern will show a ``Mv`` symbol on the bottom info bar.
+When movie mode is active, Magic Lantern will show a ``Mv`` symbol on the bottom info bar. In this mode, certain ML tools that normally work for stills (like intervalometer or audio remote shot) will change their behavior and will record movies.
 
 The ``Q`` button
 ~~~~~~~~~~~~~~~~
