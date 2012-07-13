@@ -20,9 +20,8 @@ Known issues
 ------------
 
 * First second of recorded audio may be very loud.
-* Sometimes, rack and stack focus simply refuse to work, and you need to restart your camera.
 * SD monitors are not completely supported (magic zoom and RGB tools will not work).
-* **Magic Lantern has no audio controls for Canon 600D/T3i and newer cameras.** You can disable AGC from Canon menus though.
+* **Magic Lantern has no audio controls for Canon 600D/T3i and newer cameras.** Luckily, you can disable AGC from Canon menus.
 
 Common terms
 ------------
@@ -34,8 +33,8 @@ Most cameras have a dedicated movie mode on the mode dial. In this case, it's ob
 
 However, the following cameras do not have a dedicated movie mode. For these cameras, Magic Lantern considers the following configurations as "movie mode":
 
-* For Canon 5D Mark II: in LiveView, with movie recording enabled AND LiveView display set to Movie. Tip: you can change LiveView display type from Expo menu.
-* For Canon 50D: in LiveView, with movie recording enabled from ML menu.
+* **Canon 5D Mark II**: in *LiveView*, with *movie recording enabled* AND *LiveView display set to Movie*. Tip: you can change LiveView display type from Expo menu.
+* **Canon 50D**: in *LiveView*, with *movie recording enabled* from ML menu.
 
 When movie mode is active, Magic Lantern will show a ``Mv`` symbol on the bottom info bar. In this mode, certain ML tools that normally work for stills (like intervalometer or audio remote shot) will change their behavior and will record movies.
 
@@ -57,7 +56,7 @@ Liveview screen layout
 .. figure:: beertje6.jpg
     :alt: LiveView screen info
     :align: center
-    :width: 7.5cm
+    :width: 10cm
 
 Some items that may need more details:
 
@@ -67,7 +66,9 @@ Some items that may need more details:
 * ISO: values with low noise (negative digital gain) are displayed in green.
 * Clipping dots on histogram: they appear when the image contains overexposed areas.
 * Green/magenta white balance shift: not all cameras let you adjust these in movie mode; fine-tune them from White Balance submenu in ML menu.
+* Focus distance: this is displayed for most newer Canon lenses. If your lens does not report focus distance, ML will display the AF/MF status instead. Detailed `focus and DOF info`_ is displayed in the Focus menu.
 
+.. _shortcut keys:
 
 Key shortcuts
 -------------
@@ -80,7 +81,6 @@ PLAY mode shortcuts
 * ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can use it for panoramas or for repeating shots.
 * ``LV`` on 60D/600D: you can configure it to protect or rate images with a single button press.
 * ``SET+Erase``: you can configure it to erase images without the confirmation dialog.
-* ``Zoom In``: quick image magnification: a single click can zoom all the way in, on center point, on AF point etc (configurable).
 
 Arrow key shortcuts
 ~~~~~~~~~~~~~~~~~~~
@@ -88,7 +88,7 @@ Arrow key shortcuts
 Arrow keys can be used to quickly adjust the following settings:
 
 * Audio gains and input source;
-* ISO (in intermediate steps) and Kelvin WB (push-button WB also available);
+* ISO (in intermediate steps) and Kelvin WB (press SET for push-button WB);
 * Shutter and aperture, in finer steps;
 * LCD backlight, saturation and display gain.
 
@@ -113,7 +113,7 @@ Misc shortcuts
 * ``SET`` pressed at startup: loads vanilla firmware (does not load Magic Lantern).
 * ``INFO/DISP`` in LiveView: change current `display preset`_, if this feature is enabled.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
-* ``SET`` in LiveView: center AF area (the little rectangle).
+* ``SET`` in LiveView: center the focus box.
 * Activating *AF mode* dialog when Manual Focus is active will toggle `Trap Focus`_.
 
 .. _customizable menus:
@@ -121,15 +121,15 @@ Misc shortcuts
 Magic Lantern menu
 ------------------
 
-* Press ``ERASE`` button to bring up the Magic Lantern menu.
+* **Press the ``ERASE`` button** to bring up the Magic Lantern menu.
 * Use arrow keys, joystick or scrollwheels to navigate.
 * Use ``SET`` and ``PLAY`` to toggle values.
-* Use ``Q`` to open a submenu with more settings.
+* Use ``Q`` (or equivalent) to open a submenu with more settings.
 * Press ``INFO`` or ``DISP`` button to get help.
 * In LiveView, press ``Zoom In`` to preview the image behind ML menu.
-* Press ''MENU'' to hide items that you don't use (to reduce clutter).
+* Press ``MENU`` to hide items that you don't use (to reduce clutter).
 
-For cameras without ``Q``:
+For cameras without ``Q``, use this equivalent button:
 
 * 5D Mark II: press the ``Picture Style`` button.
 * 50D: press the ``FUNC`` button.
@@ -137,8 +137,8 @@ For cameras without ``Q``:
 
 One-handed menu navigation for 5D Mark II and 50D (optional):
 
-* Open ML menu and submenus with a long-press on joystick center key;
-* Navigate ML menu with scrollwheels;
+* Open ML menu and submenus with a long press on joystick center key;
+* Navigate ML menu with joystick or scrollwheels;
 * Close submenus with a short press of joystick center key (use Left and Right to adjust values);
 * Close ML menu with a short half-shutter press.
 

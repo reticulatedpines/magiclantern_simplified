@@ -189,8 +189,8 @@ Motion detection in LiveView.
 
 Trigger modes:
     
-* ``Exposure change``: it only reacts to brightness changes. Detects large moving subjects which cause significant change in exposure.
-* ``Frame difference``: it computes the difference between last two frames A and B (luma channel only); this detects smaller movements which do not change exposure.
+* **Exposure change**: it only reacts to brightness changes. Detects large moving subjects which cause significant change in exposure.
+* **Frame difference**: it computes the difference between last two frames A and B (luma channel only); this detects smaller movements which do not change exposure.
    
 Detection time is somewhere between 200 and 300 ms according to `DataGhost's speed test <http://dataghost.com/chdk/md_meter.html>`_; it's faster with silent pictures.
 
@@ -208,10 +208,11 @@ This feature is reserved to very advanced users. It can take pictures in LiveVie
   
 Modes:
   
-* ``Silent Picture``: simple, low-resolution. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution). For almost-FullHD resolution (1720x974), choose ``FullHD`` to record a dummy movie.
-* ``Silent Pic Hi-Res``: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing shutter count.
+* **Simple**: low-resolution mode where the LiveView image buffer is simply saved on the card. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution).
+* **Burst**: similar to Simple, but images are saved continuously as long as you keep the shutter pressed halfway.
+* **Hi-Res**: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing shutter count.
   
-Silent picture setting is applied to `intervalometer`_ and `remote triggers`_. It will also go to LiveView when you press the shutter half-way. Therefore, you should only enable this setting when you actually use it.
+Silent picture setting is applied to `intervalometer`_ and `remote triggers`_. It will also go to LiveView when you press the shutter half-way in regular photo mode. Therefore, you should only enable this setting when you actually use it.
   
 Images are saved in ``DCIM/1xxCANON/`` after the following rules:
   
@@ -246,7 +247,7 @@ Flash tweaks...
 
 A few tweaks for flash users:
 
-* Flash expo compensation (-10..+3 EV). Tip: you may use -10EV to trigger an external flash without putting light on the scene coming from the onboard flash.
-* Flash / No flash: use this when you are not sure whether to use flash or not. Odd pictures (by file number) will be taken with flash, even pictures without flash.
-* 3rd party flash in LV: a trick for using a non-Canon flash in LiveView on Rebel cameras, which disables LiveView on half-shutter press. **DISABLE this option when you don't use it!!!**
+* **Flash expo compensation** (-10..+3 EV). Tip: you may use -10EV to trigger an external flash without putting light on the scene coming from the onboard flash.
+* **Flash / No flash**: use this when you are not sure whether to use flash or not. Odd pictures (by file number) will be taken with flash, even pictures without flash.
+* **3rd party flash in LV**: a trick for using a non-Canon flash in LiveView on Rebel cameras, which disables LiveView on half-shutter press. **DISABLE this option when you don't use it!!!**
 

@@ -38,19 +38,26 @@ Advanced ISO control.
 
 Color coding:
 
-* orange = Canon ISO with good noise or dynamic range characteristics (100, 160, 200, 320 ... 3200).
+* orange = Canon ISO with good noise or dynamic range (100, 160, 200, 320 ... 3200).
 * green = ISO with negative digital gain applied via DIGIC (80, 90, 160, 320 - obtained by setting ML digital ISO to a negative value). These can have lower noise and/or better highlight rolloff than their Canon equivalents.
 * red = ISO with positive digital gain (avoid these values).
 
 Submenu options:
 
-* Equivalent ISO;
-* Analog ISO;
-* Canon digital ISO;
-* ML digital ISO (DIGIC) - in movie mode: negative values will reduce noise, but may cause color issues in highlights. This feature enables ISO 50, ISO 51200 and many other intermediate or astronomical ISOs.
-* Display Gain (night vision) - in photo mode, for previewing night scenes;
-* Highlight Tone Priority (which increases dynamic range by 1 stop in movie mode);
-* ISO selection (Canon ISOs or ML ISOs) - only used in movie mode;
+* **Equivalent ISO**;
+* **Analog ISO**;
+* **Canon digital ISO** - used for obtaining intermediate ISOs like 160, 320, 640;
+* **ML digital ISO** (DIGIC) - in movie mode: enables ISO 50, ISO 80, ISO 51200 and many other intermediate or astronomical ISOs;
+* **Highlight Tone Priority** (which increases dynamic range by 1 stop in movie mode);
+* **ISO selection** (Canon ISOs or ML ISOs) - only used in movie mode;
+
+Notes and tips for ML digital ISO, in movie mode only:
+
+* Negative values will reduce noise, but may cause color issues in highlights (pink highlights).
+* Positive values will increase noise, but in very dark scenes they will also get more shadow detail (at the cost of clipped highlights).
+* Consider using negative ISO when you notice noise in shadows or when you want a smooth highlight rolloff.
+* Try to use as much negative ISO gain as possible, but without getting pink highlights (-0.3 EV will probably work best; if you use HTP you may go up to -1 EV).
+* For increased dynamic range, combine negative digital ISO (which reduces shadow noise) with the excellent `Flaat picture styles <http://www.similaar.com/foto/flaat-picture-styles/index.html>`_ (which are a very good approximation of log-gamma curves).
 
 .. _shutter:
 
@@ -60,8 +67,8 @@ Shutter
 Fine-tune shutter speed.
 
 * When exposure override is enabled, you can adjust it in 1/8-stop increments (movie mode only).
-* In photo mode, Magic Lantern displays shutter values rounded to 2 significant digits (e.g. 1/50 may be displayed by ML as 1/48). This is not a bug.
-* In movie mode, shutter values are displayed with 3 decimal places (for example, in PAL mode, Canon uses 1/33.333 to avoid flicker).
+* In photo mode, Magic Lantern displays integer shutter values without rounding them (e.g. 1/50 will be displayed by ML as 1/48). This is not a bug.
+* In movie mode, shutter values are displayed with one decimal place (for example, in PAL mode, Canon uses 1/33.3 to avoid flicker).
 * To use shutter speeds normally not available in Canon firmware (like 1/25 or 1/8000 in movie mode), enable `exposure override`_.
 
 Aperture
@@ -94,22 +101,22 @@ This mode bypasses Canon exposure limitations (for ISO, Tv, Av). It enables:
 
 Settings:
 
-* OFF: Canon default exposure mode.
-* ON: ML overrides exposure values (change them from Expo menu).
-* Auto: ML enables it only when needed:
+* **OFF**: Canon default exposure mode.
+* **ON**: ML overrides exposure values (change them from Expo menu).
+* **Auto**: ML enables it only when needed (that's not auto exposure, but automatic decision of when you need low-level manual controls):
 
   - For 500D, 50D, 1100D: in movie mode, to enable manual exposure controls.
   - For 60D: in Manual mode with a manual lens, to fix the `LiveView underexposure bug <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
   - For 550D/60D/600D/5D2: when you select a shutter speed, aperture or ISO value which is not available in standard firmware (e.g. 1/25s or 1/8000s in movie mode).
 
-Side effect: in photo mode, anything slower than 1/25 seconds will be underexposed in LiveView.
+Side effect: in photo mode, anything slower than 1/30s will be underexposed in LiveView.
 
 
 LV Display
 ``````````
 Selects or displays LiveView display type:
 
-* Photo display, with exposure simulation
-* Photo display, without exposure simulation (for framing and for flash photography)
-* Movie display.
+* **Photo display, with exposure simulation**
+* **Photo display, without exposure simulation** (for framing and for flash photography)
+* **Movie display**.
 

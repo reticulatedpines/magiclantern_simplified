@@ -24,7 +24,7 @@
 \titlespacing*{\subsubsection}{-20pt}{10pt}{0pt}
 
 \titleformat{\section}[display]{\normalfont\huge\bfseries}{}{20pt}{\vskip30pt\LARGE}[\vskip-20pt\tikz \draw (0,1) -- (15,1);]
-\titleformat{\subsection}[display]{\normalfont\huge\bfseries}{}{20pt}{\vskip30pt\LARGE}[\vskip-20pt\tikz \draw (0,1) -- (15,1);]
+\titleformat{\subsection}[display]{\normalfont\huge\bfseries}{}{20pt}{\vskip30pt\Large}[\vskip-20pt\tikz \draw (0,1) -- (15,1);]
 \titleformat{\subsubsection}[display]{\normalfont\huge\bfseries}{}{20pt}{\large}[]
 
 %~ \let\oldsssec=\subsubsection
@@ -33,8 +33,8 @@
 %~ \let\oldssec=\subsection
 %~ \renewcommand{\subsection}[2]{\oldssec #1{#2}\leftskip-20pt}
 
-%~ \let\oldsec=\section
-%~ \renewcommand{\section}[2]{\oldsec #1{#2}\leftskip-20pt}
+%~ \let\oldssec=\subsection
+%~ \def\subsection{\newpage\oldssec}
 
 \newcommand{\DUroletitlereference}[1]{\texttt{\textbf{#1}}}
 

@@ -94,6 +94,7 @@ print >> o, """Magic Lantern v2.3 -- User's Guide
 """
 include(o, "FEATURES.txt");
 include(o, "MANUAL.txt", 1);
+include(o, "MENUSTART.txt");
 include(o, "MN-AUDIO.txt");
 include(o, "MN-EXPO.txt");
 include(o, "MN-OVERLAY.txt");
@@ -103,6 +104,7 @@ include(o, "MN-FOCUS.txt");
 include(o, "MN-DISPLAY.txt");
 include(o, "MN-PREFS.txt");
 include(o, "MN-DEBUG.txt");
+include(o, "MENUEND.txt");
 include_indent(o, "FAQ.txt");
 o.close()
 

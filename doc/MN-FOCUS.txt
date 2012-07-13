@@ -17,8 +17,8 @@ For MF users: takes a picture when the subject comes into focus.
 
 Modes: 
 
-* Hold AF button: you need to hold the autofocus button (half-shutter, ``*`` or ``AF-ON``, depending on your settings).
-* Continuous: you don't need to hold any button; ML will "hold" the half-shutter pressed for you. This will also block most buttons; press the shutter halfway to unlock them for two seconds.
+* **Hold AF button**: you need to hold the autofocus button (half-shutter, ``*`` or ``AF-ON``, depending on your settings).
+* **Continuous**: you don't need to hold any button; ML will "hold" the half-shutter pressed for you. This will also block most buttons; press the shutter halfway to unlock them for two seconds.
 
 Notes:
 
@@ -62,8 +62,8 @@ Follow Focus
 
 Very simple follow focus (like a rack focus controlled manually).
   
-* ``Arrows``: you will be able to focus with the arrow keys.
-* ``LCD Sensor``: on 550D/500D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you may need to disable `LCDsensor Remote`_.
+* **Arrows**: you will be able to focus with the arrow keys.
+* **LCD Sensor**: on 550D/500D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you may need to disable `LCDsensor Remote`_.
 
 Recommended focus step settings: 
   
@@ -145,6 +145,7 @@ Recommended focus step settings:
   
 * Focus StepSize: 1 or 2
 * Focus StepDelay:
+
   - without ``Wait`` flag: large delays (around 100 ms) => will ignore small position errors
   - with ``Wait`` flag: small delays (only lens is in very good mechanical condition)
 
@@ -177,8 +178,8 @@ Focus distance and DOF info
 
 These items are read-only:
 
-* Lens info: displays lens name, current focal length and current aperture.
-* Focus Dist: The distance to the focal point. Most newer newer Canon lenses report this value, but not all.
-* Hyperfocal: The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
-* DOF Near: The nearest distance in which objects appear in focus.
-* DOF Far: The farthest distance in which objects appear in focus.
+* **Lens info**: displays lens name, current focal length and current aperture.
+* **Focus Dist**: The distance to the focal point. Most newer newer Canon lenses report this value, but not all.
+* **Hyperfocal**: The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
+* **DOF Near**: The nearest distance in which objects appear in focus.
+* **DOF Far**: The farthest distance in which objects appear in focus.

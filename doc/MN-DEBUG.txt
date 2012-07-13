@@ -15,11 +15,6 @@ Print screen after 10 seconds. This option saves a BMP file for the overlays and
 
 The card LED will blink every second, until the screenshot is taken.
 
-Menu screenshots
-````````````````
-
-Create screenshots of all main menus at once.
-
 Don't click me!
 ```````````````
 

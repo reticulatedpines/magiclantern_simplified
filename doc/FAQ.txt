@@ -66,7 +66,7 @@ Actually, using Magic Lantern we have successfully `unbricked a 5D Mark II damag
 Does it void my warranty?
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A Magic Lantern user `posted this on dpreview <http://forums.dpreview.com/forums/read.asp?forum=1032&message=39444192>`_):
+A Magic Lantern user `posted this on dpreview <http://forums.dpreview.com/forums/read.asp?forum=1032&message=39444192>`_:
 
     I've spoken to canon Cps (pro service in UK) and they've advised me that it's quite possible to downgrade firmware from new version to older version BUT they advised me to send it in to Canon for them to do it and test. Small service charge would be involved but could be done while I wait.
     
@@ -104,10 +104,10 @@ How do I bring up the Magic Lantern menus?
 
 Press the ``DELETE`` button.
 
-What! The menu has too many things, I'm lost!
+What! So many options in the menu, I'm lost!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Press ``MENU`` to hide what you don't use.
+Press ``MENU`` to hide what you don't use. Press ``INFO/DISP`` to get context help.
 
 How do I restore ML default settings?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,12 +164,12 @@ I want to use my camera as quickly as possible. Can ML help me?
 
 Yes. Check out these features:
 
-* Shortcut keys for commonly used functions.
-* Display presets - create custom LiveView modes (for example, your favorite settings for checking exposure, focus, framing and so on).
-* Ultra fast zoom in playback mode.
-* Change image review mode to PLAY - after taking a picture you can press Zoom In right away and check critical focus in a split-second.
+* `Shortcut keys`_ for commonly used functions.
+* `Display presets`_ - create custom LiveView modes (for example, your favorite settings for checking exposure, focus, framing and so on).
+* `Quick zoom`_ in playback mode.
+* `Change image review mode to PLAY`_ - after taking a picture you can press Zoom In right away and check critical focus in a split-second.
 * Navigate the menu using the scrollwheels - much faster than with arrow keys.
-* Hide unused menu items, so you don't have to scroll through all of them.
+* Hide unused menu items, so you don't have to scroll through all of them (press ``MENU``).
 
 Does Magic Lantern consume more power than standard Canon firmware?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -201,12 +201,29 @@ Follow the [[install]] guide. You will have to copy Magic Lantern files on your 
 The running firmware shuts down, loads the file into RAM and starts it running. 
 Rather than reflashing the ROMs, this new program starts the DryOS boot process to install itself. 
 
+What happens during installation?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two ways of running user code on Canon DSLR cameras:
+
+1. Using the update process with a ``.fir`` file, which must be digitally signed.
+
+2. Using the bootdisk process: if the camera finds ``AUTOEXEC.BIN`` on the card, this file is loaded and executed. 
+   This file does not have to be signed, but the ``BOOTDISK`` flag must be enabled in the camera and the card must be prepared in a special way (labeled as "bootable").
+
+When you run ML installer via *Firmware Update*, it will do the following:
+
+* it will enable the ``BOOTDISK`` flag in the camera, by calling ``EnableBootDisk`` function from Canon firmware; this flag is stored in ROM, so the modification is persistent, but can be reverted easily;
+* it prepares the card (makes it bootable) by writing the following strings in the boot area: ``EOS_DEVELOP`` and ``BOOTDISK``;
+* it **does not reflash the original firmware**.
+
+
 How do I uninstall it?
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Simply format the card. The bootflag will be still there, but it will not affect normal operation (except for EyeFi cards).
+Simply format the card. The boot flag will be still there, but it will not affect normal operation (except for EyeFi cards).
 
-To remove the bootflag (for using EyeFi cards), run Firmware Update from a ML card and follow the instructions.
+To remove the boot flag (for using EyeFi cards), run *Firmware Update* from a ML card and follow the instructions.
 
 Does ML do any persistent changes to my camera?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -214,17 +231,14 @@ Does ML do any persistent changes to my camera?
 **Yes.** Besides the bootflag (which is required for auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
 
 * ISO, shutter, aperture, white balance;
-* Exposure compensation, drive mode;
+* Exposure compensation, exposure simulation, drive mode, AF points, AF mode;
 * Picture style and associated parameters;
 * Flash settings (enabled/disabled, exposure compensation, red eye reduction);
-* AF points, AF mode in LiveView, focus box position;
-* Exposure simulation setting (in Expo menu);
 * Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
 * Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
 * Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
 * Sound recording is disabled temporarily when you use `FPS override`_;
 * On 600D, video mode may be changed via ML shortcut key;
-* On 60D, INFO button function may be changed if you enable ``DispOFF in photo mode``;
 * On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
 
 With few exceptions, these settings can also be changed from Canon menus or controls.
@@ -273,7 +287,7 @@ My camera freezes / I get ERR70/80/99 / I get corrupted files. Why?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * **Format your card from your camera**. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
-* If you get **ERR70**, you will also get a crash log on your card. **Please send this file to developers**.
+* If you get **ERR70**, you will also get a crash log on your card (``ML/LOGS/CRASHnn.LOG``). **Please send this file to developers**.
 * Run the stability tests from the Debug menu. If it fails, report a bug and send your config file to developers.
 * To report bugs, `go here <http://www.magiclantern.fm/forum/index.php?board=23.0>`_.
 
@@ -299,12 +313,7 @@ Does it work with CHDK?
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 We have used some of the CHDK tools to learn about Canon firmware files, but this is all new code. 
-They have done an amazing job of supporting hundreds of different camera models across multiple architectures and operating systems. At some point in the future chdk might be ported to the 5D Mark 2, but this project is much more focused on just the 5D Mark II and the needs of film makers. CHDK is a great project for Canon's Point-and-Shoot cameras. Without their initial effort in understanding DryOS, Canon's firmware files and the boot process, I wouldn't have been able to make as much progress as quickly as I did. While I was able to use modern tools to analyze dump files of ROM images thanks to their efforts, they got started bitbanging a UART via the status LED on a camera body. That's truly hardcore.
-
-Why the name change?
-~~~~~~~~~~~~~~~~~~~~
-
-Originally the project was called just "5D Mark Free", but out of an abundance of caution it seemed best to avoid Canon's trademarks.
+They have done an amazing job of supporting hundreds of different camera models across multiple architectures and operating systems. CHDK is a great project for Canon's Point-and-Shoot cameras. Without their initial effort in understanding DryOS, Canon's firmware files and the boot process, we wouldn't have been able to make as much progress as quickly as we did. While we were able to use modern tools to analyze dump files of ROM images thanks to their efforts, they got started bitbanging a UART via the status LED on a camera body. That's truly hardcore.
 
 What is it written in? Can I get the source?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -314,8 +323,8 @@ The firmware hack is in C, with some inline assembly for boot strapping. The fir
 How do I get a ROM0.bin firmware image?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We do not distribute ROM images, nor IDA .idb files, since they are verbatim copies of Canon's copyrighted code.
-You can generate the ROM images from your own camera by compiling with ``CONFIG_DEBUGMSG=1`` and then selecting ``Dump ROM`` from Debug menu.
+**We do not distribute ROM images**, nor IDA .idb files, since they are verbatim copies of Canon's copyrighted code.
+You can generate the ROM images from your own camera by enabling ``CONFIG_DEBUGMSG=1`` in ``debug.c`` and then selecting ``Dump ROM`` from Debug menu.
 
 What are all of the 0xff81beef things and funny names like EP_SetManualMovieMode()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

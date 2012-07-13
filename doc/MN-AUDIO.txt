@@ -8,9 +8,7 @@ Audio
 
 Manual audio controls.
 
-**This menu is not available on Canon 600D / T3i**.
-
-The 600D/T3i already has manual audio control, but right now it's not possible to change audio settings
+**This menu is not available on Canon 600D / T3i**. The 600D/T3i already has manual audio control with Canon firmware, but right now it's not possible to change audio settings
 from Magic Lantern. You can only use audio meters during recording.
 
 .. _manual audio controls:
@@ -81,25 +79,21 @@ Headphone Monitoring
 {{ vimeo>21672001?250x140| Audio monitoring tutorial}}
   
 Audio monitoring with headphones, using the A/V cable.
-  
-**Disable this setting if you are using a SD monitor**!
 
-**This feature is not available on 600D/T3i**.
+**Disable this setting if you are using a SD monitor**!
 
 To use audio monitoring, you need a special cable:
   
-* your Canon A/V cable with `a RCA - 3.5mm jack adapter <http://amzn.to/ml-audiomon-rca35>`_
-* `a dedicated cable from Sescom <http://www.sescom.com/product.asp?item=DSLR-550D-HOCF>`_
+* your Canon A/V cable with `a RCA - 3.5mm jack adapter <http://amzn.to/ml-audiomon-rca35>`_;
+* `a dedicated cable from Sescom <http://www.sescom.com/product.asp?item=DSLR-550D-HOCF>`_;
 * or you may solder it yourself (you will have to cut your A/V cable). 
   
 Warning: mobile phone cables **will not work**; even if the connector looks similar, it's not identical. You must use `the original cable which came with your camera <http://amzn.to/canon-usb-rca>`_.
-  
-For details, see `Audio monitoring HOWTO on Vimeo group <http://vimeo.com/groups/magiclantern/forumthread:237296>`_.
 
 Output volume
 `````````````
 
-Digital output gain for audio monitoring. It does not have any effect on the internal camera speaker.
+Digital output gain for audio monitoring. It does not have any effect on the built-in speaker.
 
 For best results, you should a pair of low impedance headphones, for example `Audio Technica ATH-M50 (38 ohms) <http://amzn.to/ml-athm50>`_.
 With high-impedance headphones, you may have to use a headphone amplifier like `FiiO E5 <http://amzn.to/fiio-e5>`_.
@@ -109,7 +103,7 @@ With high-impedance headphones, you may have to use a headphone amplifier like `
 Audio Meters
 ````````````
 
-Display the input audio level, from -40dB to 0dB; meters become yellow at -12 dB and red at -3 dB.
+Display input audio level, from -40dB to 0dB; meters become yellow at -12dB and red at -3dB.
 
 Audio meters are only displayed in movie mode.
 

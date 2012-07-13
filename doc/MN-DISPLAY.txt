@@ -13,18 +13,18 @@ Options for display (most of them are for LiveView).
 LV contrast
 ```````````
 
-Adjusts the contrast in LiveView. It doesn't affect recording. This helps when focusing with very flat picture styles.
+Adjusts the contrast in LiveView. It does not affect recording. This helps when focusing with very flat picture styles.
 
-Values: Normal (no effect), High, Very high, Zero, Very low, Low.
+Choices: *Normal* (no effect), *High*, *Very high*, *Low*, *Very low*, *Zero*.
 
 .. _saturation:
 
 LV saturation
 `````````````
 
-Adjusts the saturation in LiveView. It doesn't affect recording. This helps you focus without being distracted by color.
+Adjusts the saturation in LiveView. It does not affect recording. This helps you focus without being distracted by color.
 
-Values: Normal (no effect), High, Very high, Zero (grayscale).
+Choices: *Normal* (no effect), *High*, *Very high*, *Zero (grayscale)*.
 
 .. _night vision:
 .. _display gain:
@@ -36,27 +36,30 @@ LV display gain
 
 Photo mode only: this feature increases the brightness in LiveView, making it usable in very dark scenes (where Canon's LiveView would be pitch black). Combine this with FPS override for better low-light performance.
 
+Range: 0 ... +7 EV.
+
 For movie mode, use ML digital ISOs for a similar effect.
 
-Color Scheme
+Color scheme
 ````````````
 
-This affects the colors and brightness of the on-screen information (including LiveView overlays, Canon menus and ML menus).
-Range from: Bright (default), Dark, Bright Gray, Dark Gray, Dark Red, Dark Green. Tip: dark themes may reduce the eye strain during night shooting.
+This affects the colors and brightness for on-screen information (including LiveView overlays, Canon menus and ML menus).
+Choices: *Default*, *Dark*, *Bright Gray*, *Dark Gray*, *Dark Red*, *Dark Green*. Tip: dark themes may reduce the eye strain during night shooting.
 
-Clear Overlays
+.. _Clean LiveView display:
+
+Clear overlays
 ``````````````
  
 Clear bitmap overlays from LiveView display.
  
-* ``HalfShutter``: Hold the shutter half-pressed, or the ``*`` button, or DOF preview for around 1 second
-  to clear all the overlays from the Live View display (audio, zebra, crops, shutter speeds...).
+* **HalfShutter**: LiveView overlays are cleared when you hold the shutter button pressed halfway for one second. You can also use the ``*`` button or the ``DOF preview`` button.
   
   Tip: assign autofocus to ``*`` button (from Custom Functions, set ``Shutter/AE lock button`` = ``AE lock/AF``).
   
-* ``WhenIdle``: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle (i.e. you don't press any buttons).
+* **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle (i.e. a few seconds after last button press).
 
-* ``Always``: In this mode, all the overlays are erased from the screen; you will have to change shooting settings blindly. You can still use the menus.
+* **Always**: In this mode, all the overlays are erased. Menus will work normally.
   
   Tip: this feature may be useful with [[External Recorders]], since it removes the focus box and other graphics from the display.
 
@@ -82,15 +85,15 @@ Choose screen layout (position of ML top and bottom bars), for different cameras
   
 Top/bottom layouts:
   
-* Inside 3:2: default layout for 3:2-screen cameras (550D and newer).
-* Inside 16:10: for 16:10 HDMI monitors.
-* Inside 16:9: for 16:9 HDMI monitors.
-* 4:3 movie (for 5D Mark II, 500D and 50D in movie mode).
+* **Inside 3:2**: default layout for 3:2-screen cameras (550D and newer).
+* **Inside 16:10**: for 16:10 HDMI monitors.
+* **Inside 16:9**: for 16:9 HDMI monitors.
+* **4:3 movie**: for 5D Mark II, 500D and 50D in movie mode.
   
 Bottom-only layouts:
 
-* Under 3:2: useful for 4:3-screen cameras (500D, 50D, 5D Mark 2) in photo mode.
-* Under 16:9: suitable for low-resolution external monitors and for 4:3-screen cameras in movie mode.
+* **Under 3:2**: useful for 4:3-screen cameras (500D, 50D, 5D Mark 2) in photo mode.
+* **Under 16:9**: suitable for low-resolution external monitors and for 4:3-screen cameras in movie mode.
 
 
 Image position
@@ -127,9 +130,6 @@ Kill Canon GUI
 
 For 50D only: disable Canon graphics elements to avoid conflicts with ML graphics in LiveView.
  
-* ``Idle/Menus``: only enable Canon graphics when some transparent menu from LiveView is active.
-* ``Idle/Menus+Keys``: only enable Canon graphics when you press some keys or navigate the transparent menus from LiveView.
-
-.. _Display:
-.. _Clean LiveView display:
+* **Idle/Menus**: only enable Canon graphics when some transparent menu from LiveView is active.
+* **Idle/Menus+Keys**: only enable Canon graphics when you press some keys or navigate the transparent menus from LiveView.
 

@@ -21,36 +21,38 @@ SET+MainDial
  
 When you hold ``SET`` pressed and turn the main dial (scrollwheel), ML may perform one of these functions:
   
-* ``Play 422``: display silent pictures from ``DCIM/100CANON`` (low-res only).
-* ``Exposure Fusion``: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
-* ``Compare Images``: compare two images with a diagonal split view. The current image will always end up in the top half.
-* ``Timelapse Play``: scroll through all your pictures quickly.
+* **Play 422**: display silent pictures from ``DCIM/100CANON`` (low-res only).
+* **Exposure Fusion**: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
+* **Compare Images**: compare two images with a diagonal split view. The current image will always end up in the top half.
+* **Timelapse Play**: scroll through all your pictures quickly.
+
+.. _Change image review mode to PLAY:
 
 Image review
 """"""""""""
   
-* ``QuickReview default``: just like in standard firmware.
-* ``CanonMnu:Hold->PLAY``: if you set ``Image Review: Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``). Credits goto Ken Rockwell for suggesting this.
+* **QuickReview default**: just like in standard firmware.
+* **CanonMenu:Hold->PLAY**: if you set ``Image Review: Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``). Credits goto Ken Rockwell for suggesting this.
 
 Quick Zoom
 """"""""""
 
 Faster zoom in PLAY mode, for checking critical focus:
 
-* OFF
-* ON (fast zoom) - zooms faster than Canon firmware.
-* SinglePress -> 100%: a single press of ``Zoom In`` will zoom all the way in (to 100%) - on center point. Next press will zoom out (full screen image).
-* Full zoom on AF point: similar, but it will zoom on currently selected autofocus point.
-* Full zoom on last position: similar, but it will remember the last position of the zoom box.
+* **OFF**
+* **ON (fast zoom)** - zooms faster than Canon firmware.
+* **SinglePress -> 100%**: a single press of ``Zoom In`` will zoom all the way in (to 100%) - on center point. Next press will zoom out (full screen image).
+* **Full zoom on AF point**: similar, but it will zoom on currently selected autofocus point.
+* **Full zoom on last position**: similar, but it will remember the last position of the zoom box.
 
 LV button
 """""""""
 
 Customize the LiveView button in ``PLAY`` mode:
   
-* Default (enter LiveView)
-* Protect image
-* Rate image
+* **Default** (enter LiveView)
+* **Protect image**
+* **Rate image**
 
 Quick Erase
 """""""""""
@@ -62,11 +64,11 @@ LiveView Zoom Settings...
 
 Customize Canon's x5/x10 zoom in LiveView:
 
-* Zoom x5, x10: you can disable one of them, so the first ``Zoom In`` press will zoom in, and the second will zoom out;
-* Auto exposure on zoom: auto adjusts exposure while zoom is active. This lets you adjust aperture freely on a manual lens, without the image going too bright or too dark (so it helps when focusing);
-* Increase SharpContrast: when zoom is active, sharpness and contrast are maximized. Increased sharpness works somewhat like focus peaking.
-* Zoom on HalfShutter: zoom is enabled when you press the shutter halfway.
-* Zoom with Focus Ring: if your Canon lens reports focus distance, you can enable zooming just by turning the focus ring. If you'd like the zoom to stay enabled for a longer time, press and hold the shutter halfway.
+* **Zoom x5, x10**: you can disable one of them, so the first ``Zoom In`` press will zoom in, and the second will zoom out;
+* **Auto exposure on zoom**: auto adjusts exposure while zoom is active. This lets you adjust aperture freely on a manual lens, without the image going too bright or too dark (so it helps when focusing);
+* **Increase SharpContrast**: when zoom is active, sharpness and contrast are maximized. Increased sharpness works somewhat like focus peaking.
+* **Zoom on HalfShutter**: zoom is enabled when you press the shutter halfway.
+* **Zoom with Focus Ring**: if your Canon lens reports focus distance, you can enable zooming just by turning the focus ring. If you'd like the zoom to stay enabled for a longer time, press and hold the shutter halfway.
 
 .. _Arrow/SET shortcuts:
 
@@ -161,11 +163,11 @@ Powersave in LiveView...
 
 Options for maximizing battery life when using LiveView.
 
-* Enable power saving: on Standby, during Recording, or always.
-* Use LCD sensor: you can use it to wake up from powersave (wave your hand near it), or to force powersave mode (cover the sensor for a few seconds).
-* Dim display: In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
-* Turn off LCD and LV: this will turn off the display and the sensor activity in LiveView. Mirror will not be moved. If the camera is recording or motion detection is enabled, only the display will be turned off (so recording will not stop).
-* Turn off GlobalDraw: if the camera is idle, ML overlay graphics will be disabled to reduce CPU usage.
+* **Enable power saving**: on Standby, during Recording, or always.
+* **Use LCD sensor**: you can use it to wake up from powersave (wave your hand near it), or to force powersave mode (cover the sensor for a few seconds).
+* **Dim display**: In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
+* **Turn off LCD and LV**: this will turn off the display and the sensor activity in LiveView. Mirror will not be moved. If the camera is recording or motion detection is enabled, only the display will be turned off (so recording will not stop).
+* **Turn off GlobalDraw**: if the camera is idle, ML overlay graphics will be disabled to reduce CPU usage.
 
 .. _magic.cfg:
 
@@ -174,9 +176,9 @@ Config file...
 
 Magic Lantern saves its settings in a configuration file named ``MAGIC.CFG``, located under ``ML/SETTINGS`` directory on your card. This submenu lets you customize how these settings are saved.
 
-* Config Autosave: If enabled, settings are saved automatically to ''MAGIC.CFG'' whenever you change a setting in ML menu. Config saving process will take place as soon as you close the menu.
-* Save config now: Save ML settings to ``ML/SETTINGS/MAGIC.CFG``.
-* Delete config file: use this to restore ML default settings. After deleting the config file, restart your camera.
+* **Config Autosave**: If enabled, settings are saved automatically to ''MAGIC.CFG'' whenever you change a setting in ML menu. Config saving process will take place as soon as you close the menu.
+* **Save config now**: Save ML settings to ``ML/SETTINGS/MAGIC.CFG``.
+* **Delete config file**: use this to restore ML default settings. After deleting the config file, restart your camera.
 
 .. _display preset:
 .. _display presets:
