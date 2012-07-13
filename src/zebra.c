@@ -3560,7 +3560,7 @@ int cropmark_cache_is_valid()
     // check if cropmark cache is still valid
     int sig = 
         crop_index * 13579 + crop_enabled * 14567 +
-        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
+        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + lv;
 
     static int prev_sig = 0;
     if (prev_sig != sig)
