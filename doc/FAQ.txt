@@ -96,6 +96,82 @@ Despite this tight integration, **Magic Lantern software does not contain any Ca
 It is entirely a clean-room implementation that runs along side the official Canon firmware 
 as a separate DryOS task. 
 
+
+Installation
+------------
+
+How do I install it?
+~~~~~~~~~~~~~~~~~~~~
+
+Follow the [[install]] guide. You will have to copy Magic Lantern files on your card and run Update firmware from the menu.
+The running firmware shuts down, loads the file into RAM and starts it running. 
+Rather than reflashing the ROMs, this new program starts the DryOS boot process to install itself. 
+
+What happens during installation?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two ways of running user code on Canon DSLR cameras:
+
+1. Using the update process with a ``.fir`` file, which must be digitally signed.
+
+2. Using the bootdisk process: if the camera finds ``AUTOEXEC.BIN`` on the card, this file is loaded and executed. 
+   This file does not have to be signed, but the ``BOOTDISK`` flag must be enabled in the camera and the card must be prepared in a special way (labeled as "bootable").
+
+When you run ML installer via *Firmware Update*, it will do the following:
+
+* it will enable the ``BOOTDISK`` flag in the camera, by calling ``EnableBootDisk`` function from Canon firmware; this flag is stored in ROM, so the modification is persistent, but can be reverted easily;
+* it prepares the card (makes it bootable) by writing the following strings in the boot area: ``EOS_DEVELOP`` and ``BOOTDISK``;
+* it **does not reflash the original firmware**.
+
+Do I have to install Magic Lantern on all my cards?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yes, because Magic Lantern runs from the card.
+
+If you prefer, you can use cards with Magic Lantern loaded, and cards without it. Just make sure you don't delete Magic Lantern files from the card; always format them from the camera, if possible.
+
+ML saves settings on the card. Can I use the same settings for all my cards?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You have to copy the configuration files (from ``ML/SETTINGS`` directory) on all your cards.
+
+Can I use the same card in two compatible cameras?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It will work, but it's not a good practice. We do not recommend doing this.
+
+How do I uninstall it?
+~~~~~~~~~~~~~~~~~~~~~~
+
+Simply format the card. The boot flag will be still there, but it will not affect normal operation (except for EyeFi cards).
+
+To remove the boot flag (for using EyeFi cards), run *Firmware Update* from a ML card and follow the instructions.
+
+Does ML do any persistent changes to my camera?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Yes.** Besides the bootflag (which is required for auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
+
+* ISO, shutter, aperture, white balance;
+* Exposure compensation, exposure simulation, drive mode, AF points, AF mode;
+* Picture style and associated parameters;
+* Flash settings (enabled/disabled, exposure compensation, red eye reduction);
+* Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
+* Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
+* Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
+* Sound recording is disabled temporarily when you use `FPS override`_;
+* On 600D, video mode may be changed via ML shortcut key;
+* On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
+
+With few exceptions, these settings can also be changed from Canon menus or controls.
+
+A few settings are changed temporarily during certain operations (for example, autofocus for bracketed shots), but these settings are saved by Canon firmware in NVRAM. If you take the battery out in the middle of the operation (for example, in the middle of taking a picture), ML won't be able to restore these settings back to your initial values, and you'll have to change them back from Canon menus.
+
+To the best of our knowledge, all these settings are restored to default values when you run "Clear camera settings" and "Clear custom functions" from Canon menu.
+
+All persistent changes can be seen in ML source code by examining the calls to ``prop_request_change``. Some of the changes are not persistent (for example, LiveView zooming), and they were not included in the above list.
+
+
 Usage
 -----
 
@@ -146,7 +222,7 @@ Look in `Debug`_ menu.
 Can I use LiveView in complete darkness?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Yes.** Increase display gain (under ISO submenu, or on arrow key shortcuts), use a low FPS (with `FPS override`_), or both.
+**Yes.** Increase `display gain`_ (from Display menu), use a low FPS (with `FPS override`_), or both.
 
 Also check out the dark color schemes optimized for night shooting, or try disabling exposure simulation.
 
@@ -155,9 +231,9 @@ How do I shoot timelapse?
 
 You have a couple of options:
 
-* Intervalometer - the classic way. You will have to postprocess the shots in order to create the final movie. In this mode, you also have access to advanced options like bulb and focus ramping, HDR timelapse or very long exposures.
-* FPS override - simply select a low FPS value (down to about 0.2 FPS) and ML will record a timelapse.
-* Silent picture timelapse. Only for very advanced users.
+* `Intervalometer`_ - the classic way. You will have to postprocess the shots in order to create the final movie. With this method, you also have access to advanced options like bulb and focus ramping, HDR timelapse or very long exposures.
+* `FPS override`_ - simply select a low FPS value (down to about 0.2 FPS) and ML will record a timelapse.
+* `Silent picture`_ timelapse. Only for very advanced users.
 
 I want to use my camera as quickly as possible. Can ML help me?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,7 +242,7 @@ Yes. Check out these features:
 
 * `Shortcut keys`_ for commonly used functions.
 * `Display presets`_ - create custom LiveView modes (for example, your favorite settings for checking exposure, focus, framing and so on).
-* `Quick zoom`_ in playback mode.
+* `Quick zoom`_ in playback (image review) mode.
 * `Change image review mode to PLAY`_ - after taking a picture you can press Zoom In right away and check critical focus in a split-second.
 * Navigate the menu using the scrollwheels - much faster than with arrow keys.
 * Hide unused menu items, so you don't have to scroll through all of them (press ``MENU``).
@@ -191,65 +267,6 @@ Best audio is obtained by use of a preamp system fed to the camera. As a general
 For more info, check out the `Canon DSLR Audio thread on dvxuser <http://www.dvxuser.com/V6/showthread.php?240822-The-Canon-DSLR-Audio-thread>`_ and `AGC Disable - Magic Lantern vs. Juicedlink? on dvinfo <http://www.dvinfo.net/forum/all-things-audio/498727-agc-disable-magic-lantern-vs-juicedlink-2.html>`_.
 
 
-Installation
-------------
-
-How do I install it?
-~~~~~~~~~~~~~~~~~~~~
-
-Follow the [[install]] guide. You will have to copy Magic Lantern files on your card and run Update firmware from the menu.
-The running firmware shuts down, loads the file into RAM and starts it running. 
-Rather than reflashing the ROMs, this new program starts the DryOS boot process to install itself. 
-
-What happens during installation?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There are two ways of running user code on Canon DSLR cameras:
-
-1. Using the update process with a ``.fir`` file, which must be digitally signed.
-
-2. Using the bootdisk process: if the camera finds ``AUTOEXEC.BIN`` on the card, this file is loaded and executed. 
-   This file does not have to be signed, but the ``BOOTDISK`` flag must be enabled in the camera and the card must be prepared in a special way (labeled as "bootable").
-
-When you run ML installer via *Firmware Update*, it will do the following:
-
-* it will enable the ``BOOTDISK`` flag in the camera, by calling ``EnableBootDisk`` function from Canon firmware; this flag is stored in ROM, so the modification is persistent, but can be reverted easily;
-* it prepares the card (makes it bootable) by writing the following strings in the boot area: ``EOS_DEVELOP`` and ``BOOTDISK``;
-* it **does not reflash the original firmware**.
-
-
-How do I uninstall it?
-~~~~~~~~~~~~~~~~~~~~~~
-
-Simply format the card. The boot flag will be still there, but it will not affect normal operation (except for EyeFi cards).
-
-To remove the boot flag (for using EyeFi cards), run *Firmware Update* from a ML card and follow the instructions.
-
-Does ML do any persistent changes to my camera?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Yes.** Besides the bootflag (which is required for auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
-
-* ISO, shutter, aperture, white balance;
-* Exposure compensation, exposure simulation, drive mode, AF points, AF mode;
-* Picture style and associated parameters;
-* Flash settings (enabled/disabled, exposure compensation, red eye reduction);
-* Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
-* Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
-* Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
-* Sound recording is disabled temporarily when you use `FPS override`_;
-* On 600D, video mode may be changed via ML shortcut key;
-* On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
-
-With few exceptions, these settings can also be changed from Canon menus or controls.
-
-A few settings are changed temporarily during certain operations (for example, autofocus for bracketed shots), but these settings are saved by Canon firmware in NVRAM. If you take the battery out in the middle of the operation (for example, in the middle of taking a picture), ML won't be able to restore these settings back to your initial values, and you'll have to change them back from Canon menus.
-
-To the best of our knowledge, all these settings are restored to default values when you run "Clear camera settings" and "Clear custom functions" from Canon menu.
-
-All persistent changes can be seen in ML source code by examining the calls to ``prop_request_change``. Some of the changes are not persistent (for example, LiveView zooming), and they were not included in the above list.
-
-
 Troubleshooting
 ---------------
 
@@ -270,12 +287,15 @@ Why do I have to press the shutter button twice to take a picture?
 
 Mirror Lockup (MLU) is active.
 
+Why is the LED blinking every 5 seconds?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You have forgotten your camera on... with the main display off.
+
 Why did the autofocus stop working?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It was probably moved to back button (``*`` or ``AF-ON``). Check your custom functions. It may happen if you take the battery out in the middle of photo shooting.
-
-Anyway... any serious DSLR user should set AF to the back button ;)
 
 Why picture style X does not appear in movie mode?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -287,16 +307,13 @@ My camera freezes / I get ERR70/80/99 / I get corrupted files. Why?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * **Format your card from your camera**. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
-* If you get **ERR70**, you will also get a crash log on your card (``ML/LOGS/CRASHnn.LOG``). **Please send this file to developers**.
-* Run the stability tests from the Debug menu. If it fails, report a bug and send your config file to developers.
-* To report bugs, `go here <http://www.magiclantern.fm/forum/index.php?board=23.0>`_.
+* If you get **ERR70**, you will also get a crash log on your card (``ML/LOGS/CRASHnn.LOG``). `Please send this file to developers <http://www.magiclantern.fm/forum/index.php?board=23.0>`_.
+* Run the stability tests from the Debug menu. If it fails, `report a bug <http://www.magiclantern.fm/forum/index.php?board=23.0>`_ and send your config file to developers.
 
 What about ERR20 when taking pictures?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**This problem is not related to (or caused by) Magic Lantern**.
-
-You will get this error when your shutter mechanism no longer works properly. Contact your Canon service center.
+**This problem is not related to (or caused by) Magic Lantern**. You will get this error when your shutter mechanism no longer works properly. Contact your Canon service center.
 
 Consider entering your shutter count in the `Camera Shutter Life Database <http://www.olegkikin.com/shutterlife/>`_.
 
