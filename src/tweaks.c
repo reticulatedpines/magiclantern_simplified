@@ -880,14 +880,22 @@ void play_lv_key_step()
     }
     
     play_rate_flag = play_rate_flag % 6; 
-    
+
+    extern thunk PlayMain_handler;
+    extern thunk PlayMovieGuideApp_handler;
+
     if (play_rate_flag)
     {
         rating_in_progress = 1;
         NotifyBoxHide();
         fake_simple_button(BGMT_Q); // rate image
         fake_simple_button(BGMT_PRESS_DOWN);
-        fake_simple_button(BGMT_PRESS_DOWN);
+
+        // for photos, we need to go down 2 steps
+        // for movies, we only need 1 step
+        intptr_t h = get_current_dialog_handler();
+        if (h == (intptr_t)&PlayMain_handler)
+            fake_simple_button(BGMT_PRESS_DOWN);
 
         #ifdef BGMT_UNPRESS_UDLR
         fake_simple_button(BGMT_UNPRESS_UDLR);
@@ -906,8 +914,8 @@ void play_lv_key_step()
         msleep(500);
         for (int i = 0; i < 50; i++)
         {
-            extern thunk PlayMain_handler;
-            if ((intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler) 
+            intptr_t h = get_current_dialog_handler();
+            if (h == (intptr_t)&PlayMain_handler || h == (intptr_t)&PlayMovieGuideApp_handler)
                 break; // rating done :)
             msleep(100);
         }
@@ -927,7 +935,9 @@ int handle_lv_play(struct event * event)
     {
 
         extern thunk PlayMain_handler;
-        if ((intptr_t)get_current_dialog_handler() != (intptr_t)&PlayMain_handler) 
+        extern thunk PlayMovieGuideApp_handler;
+        intptr_t h = get_current_dialog_handler();
+        if (h != (intptr_t)&PlayMain_handler && h != (intptr_t)&PlayMovieGuideApp_handler)
         {
             if (rating_in_progress) return 0; // user presses buttons too fast
             return 1; // not in main play dialog, maybe in Q menu somewhere
