@@ -860,13 +860,79 @@ play_lv_display(
     );
 }
 
+int play_rate_flag = 0;
+int rating_in_progress = 0;
+void play_lv_key_step()
+{
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
+
+    // wait for user request to settle
+    int prev = play_rate_flag;
+    if (prev) while(1)
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            NotifyBox(1000, "Rate: +%d...", play_rate_flag % 6);
+            msleep(100);
+        }
+        if (play_rate_flag == prev) break;
+        prev = play_rate_flag;
+    }
+    
+    play_rate_flag = play_rate_flag % 6; 
+    
+    if (play_rate_flag)
+    {
+        rating_in_progress = 1;
+        NotifyBoxHide();
+        fake_simple_button(BGMT_Q); // rate image
+        fake_simple_button(BGMT_PRESS_DOWN);
+        fake_simple_button(BGMT_PRESS_DOWN);
+
+        #ifdef BGMT_UNPRESS_UDLR
+        fake_simple_button(BGMT_UNPRESS_UDLR);
+        #else
+        fake_simple_button(BGMT_UNPRESS_DOWN);
+        #endif
+        
+        // alter rating N times
+        int n = play_rate_flag;
+        for (int i = 0; i < n; i++)
+            fake_simple_button(BGMT_WHEEL_DOWN);
+        
+        fake_simple_button(BGMT_Q); // close dialog
+        play_rate_flag = 0;
+
+        msleep(500);
+        for (int i = 0; i < 50; i++)
+        {
+            extern thunk PlayMain_handler;
+            if ((intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler) 
+                break; // rating done :)
+            msleep(100);
+        }
+        rating_in_progress = 0;
+    }
+
+#endif
+}
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D)
+
 int handle_lv_play(struct event * event)
 {
     if (!play_lv_action) return 1;
     
     if (event->param == BGMT_LV && PLAY_MODE)
     {
+
+        extern thunk PlayMain_handler;
+        if ((intptr_t)get_current_dialog_handler() != (intptr_t)&PlayMain_handler) 
+        {
+            if (rating_in_progress) return 0; // user presses buttons too fast
+            return 1; // not in main play dialog, maybe in Q menu somewhere
+        }
+
         if (play_lv_action == 1)
         {
             fake_simple_button(BGMT_Q); // toggle protect current image
@@ -875,16 +941,7 @@ int handle_lv_play(struct event * event)
         }
         else
         {
-            fake_simple_button(BGMT_Q); // rate image
-            fake_simple_button(BGMT_PRESS_DOWN);
-            fake_simple_button(BGMT_PRESS_DOWN);
-            #ifdef BGMT_UNPRESS_UDLR
-            fake_simple_button(BGMT_UNPRESS_UDLR);
-            #else
-            fake_simple_button(BGMT_UNPRESS_DOWN);
-            #endif
-            fake_simple_button(BGMT_WHEEL_DOWN);
-            fake_simple_button(BGMT_Q);
+            play_rate_flag++;
         }
         return 0;
     }
@@ -1086,6 +1143,8 @@ tweak_task( void* unused)
         dofp_update();
 
         clear_lv_affframe_if_dirty();
+        
+        play_lv_key_step();
         
         //~ #ifdef CONFIG_60D
         #if 0
