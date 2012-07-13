@@ -5788,14 +5788,6 @@ shoot_task( void* unused )
             {
                 bulb_ramping_init();
             }
-            
-            if (lv && silent_pic_enabled) // half-press shutter to disable power management
-            {
-                assign_af_button_to_halfshutter();
-                SW1(1,10);
-                SW1(0,50);
-                restore_af_button_assignment();
-            }
 
             if (!intervalometer_running) continue;
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
@@ -5825,6 +5817,15 @@ shoot_task( void* unused )
             {
                 compute_exposure_for_next_shot();
             }
+
+           if (lv && silent_pic_enabled) // half-press shutter to disable power management
+           {
+               assign_af_button_to_halfshutter();
+               SW1(1,10);
+               SW1(0,50);
+               restore_af_button_assignment();
+               msleep(300);
+           }
         }
         else // intervalometer not running
         {
