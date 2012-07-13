@@ -49,7 +49,6 @@ ML_OBJS-y = \
 	af_patterns.o \
 	focus.o \
 	notify_box.o \
-	qtimer.o \
 	dialog_test.o \
 	bootflags.o \
 	vram.o \

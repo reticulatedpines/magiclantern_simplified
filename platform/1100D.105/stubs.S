@@ -38,6 +38,7 @@ NSTUB(0xFF1E8B94, AcquireRecursiveLock)           // might be good (dumps=1, sco
 NSTUB(0xFF07096C, AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
 NSTUB(0xFF31CAD8, CreateDialogBox)                // might be good (dumps=1, score=74)
 NSTUB(0xFF073A7C, CreateRecursiveLock)            // might be good (dumps=1, score=5.6)
+NSTUB(0xFF06C914, DryosDebugMsg)                       // might be good (dumps=1, score=1.1e+03)
 NSTUB(0xFF06C914, DebugMsg)                       // might be good (dumps=1, score=1.1e+03)
 NSTUB(0xFF31C270, DeleteDialogBox)                // might be good (dumps=1, score=47)
 NSTUB(0xFF1D48C8, _EngDrvOut)                      // might be good (dumps=1, score=61)

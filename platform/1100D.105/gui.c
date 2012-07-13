@@ -30,11 +30,6 @@
 #include <consts.h>
 #include <lens.h>
 
-#include "qtimer.h"
-
-int av_pressed = 0;
-int get_av_pressed() { return av_pressed; }
-
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
 struct semaphore * gui_sem;
@@ -45,23 +40,28 @@ static int handle_buttons(struct event * event)
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
+	static int t_press = 0;
+	struct tm now;
 	if (!ml_started) return 1;
 
-	if (BGMT_PRESS_AV)   av_pressed = 1;
-	if (BGMT_UNPRESS_AV) av_pressed = 0;
-	
-	if ((BGMT_UNPRESS_AV && !av_long_pressed) || event->param == BGMT_TRASH)
-	{
-		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
-		{
+	if (BGMT_PRESS_AV) {
+		t_press = get_ms_clock_value();
+	}
+
+	unsigned int is_idle = (gui_state == GUISTATE_IDLE);
+	if (BGMT_UNPRESS_AV) {
+		unsigned int dt = get_ms_clock_value() - t_press;
+		
+		if (dt < 200 && !gui_menu_shown() && is_idle) {
 			give_semaphore( gui_sem );
 			return 0;
 		}
-		else if (gui_menu_shown())
-		{
-			gui_stop_menu();
-			return 0;
-		}
+	} 
+	
+	if (event->param == BGMT_TRASH && gui_menu_shown())
+	{
+		gui_stop_menu();
+		return 0;
 	}
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
