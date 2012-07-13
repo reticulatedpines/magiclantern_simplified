@@ -780,7 +780,7 @@ static void fps_timer_print(
         finetune_delta ? finetune_delta : ABS(delta) >= 100 ? t / t0 : delta, 
         dec
     );
-    ASSERT(fps_override || delta==0);
+    //~ ASSERT(fps_override || delta==0);
 
     if (!fps_override)
         menu_draw_icon(x, y, MNI_OFF, 0);

@@ -1634,7 +1634,7 @@ aperture_display( void * priv, int x, int y, int selected )
     int a = lens_info.aperture;
     int av = ABS(lens_info.raw_aperture - 8);
     if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
-        a = 0;
+        a = av = 0;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
