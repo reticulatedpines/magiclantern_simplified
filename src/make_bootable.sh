@@ -3,14 +3,23 @@
 # See http://chdk.setepontos.com/index.php/topic,4214.0.html
 #     http://en.wikipedia.org/wiki/File_Allocation_Table#Boot_Sector
 
-# change this on linux
-dev=/dev/sdb1
-
 # Fix for osx, auto detects the card if formatted incamera before using this script
-if [[ $OSTYPE == darwin* ]]; then
+if [[ $OSTYPE == darwin* ]]; then   # Existing: OS X
   dev=/dev/$(diskutil list | grep EOS_DIGITAL | awk '{print $6}' )
   echo $dev
   diskutil unmount $dev
+elif [[ $OSTYPE == linux* ]]; then   # New: Linux
+  dev=$(mount | grep EOS_DIGITAL | awk '{print $1}' )
+  if [ "x$dev" = "x" ]; then
+    echo "The EOS_DIGITAL card should be mounted before running the script."
+    exit
+  fi
+  echo "Found $dev"
+  if [ $(id -u) != 0 ]; then
+    echo "dd operations require you to have access to the device, run script as root to be sure"
+    exit
+  fi
+  umount $dev
 fi
 
 # read the boot sector to determine the filesystem version
