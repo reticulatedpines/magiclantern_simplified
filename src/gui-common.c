@@ -6,8 +6,10 @@
 #include <bmp.h>
 
 static int bottom_bar_dirty = 0;
+static int last_time_active = 0;
 
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
+int get_last_time_active() { return last_time_active; }
 
 int handle_other_events(struct event * event)
 {
@@ -111,6 +113,11 @@ int handle_common_events_by_feature(struct event * event)
     }
     idle_wakeup_reset_counters(event->param);
     
+    // If we're here, we're dealing with a button press.  Record the timestamp
+    // as a record of when the user was last actively pushing buttons.
+    if (event->param != GMT_OLC_INFO_CHANGED)
+        last_time_active = get_seconds_clock();
+
     if (handle_upside_down(event) == 0) return 0;
     if (handle_ml_menu_keys(event) == 0) return 0;
    
