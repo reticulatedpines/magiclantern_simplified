@@ -2128,8 +2128,8 @@ void grayscale_menus_step()
     // but this is not 100% reliable => update at least once every second
     int guimode = CURRENT_DIALOG_MAYBE;
     int d = DISPLAY_IS_ON;
-    //~ info_led_blink(1,50,50);
-    int sig = get_current_dialog_handler() + d + guimode + bmp_color_scheme*314 + get_seconds_clock();
+    int b = bmp_color_scheme;
+    int sig = get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();
     int transition = (sig != prev_sig);
     
     if (ml_shutdown_requested) return;
@@ -2157,7 +2157,7 @@ void grayscale_menus_step()
         //~ info_led_off();
     }
 
-    prev_b = bmp_color_scheme;
+    prev_b = b;
 }
 
 void lcd_adjust_position_step()
