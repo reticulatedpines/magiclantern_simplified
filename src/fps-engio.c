@@ -48,6 +48,7 @@
 
 void SafeEngDrvOut(int reg, int val)
 {
+    //~ info_led_blink(1,50,50);
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
@@ -689,13 +690,13 @@ static void fps_change_value(void* priv, int delta)
     fps_override_index = mod(fps_override_index + delta, COUNT(fps_values_x1000));
     desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 static void fps_enable_disable(void* priv, int delta)
 {
     fps_override = !fps_override;
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 static int find_fps_index(int fps_x1000)
@@ -818,25 +819,25 @@ static void fps_timer_a_big_change(void* priv, int delta)
     k += delta;
     
     fps_change_timer_a(t0 + k * (tmax - t0) / 20);
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }*/
 
 static void fps_timer_fine_tune_a(void* priv, int delta)
 {
     desired_fps_timer_a_offset += delta * 2;
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 static void fps_timer_fine_tune_a_big(void* priv, int delta)
 {
     desired_fps_timer_a_offset += delta * 100;
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 static void fps_timer_fine_tune_b(void* priv, int delta)
 {
     desired_fps_timer_b_offset += delta;
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 /*static void fps_bool_toggle(void* priv, int delta)
@@ -979,13 +980,13 @@ static void fps_criteria_change(void* priv, int delta)
     desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
     fps_criteria = mod(fps_criteria + delta, 4);
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 static void fps_sound_toggle(void* priv, int delta)
 {
     fps_sound_disable = !fps_sound_disable;
-    fps_needs_updating = 1;
+    if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
 
