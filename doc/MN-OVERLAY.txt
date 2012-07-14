@@ -80,7 +80,7 @@ Trigger modes (not all modes are available on all cameras):
 * **Zoom.REC**: triggered by pressing ``Zoom In`` button while recording. If your camera has a LCD sensor, you may also cover it and press ``Zoom In``.
 * **FocusR+HalfS**: triggered by turning the focus ring, or by pressing shutter halfway.
 * **Focus+ZREC**: triggered by turning the focus ring, or by pressing ``Zoom In`` while recording.
-* **Zoom In (*)**: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, press both zoom buttons at the same time or cover the LCD sensor.
+* **Zoom In (+)**: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, press both zoom buttons at the same time or cover the LCD sensor.
 * **Always On**: no trigger key needed. You can use both Canon's 5x/10x zoom and Magic Zoom.
 
 When ML believes you have achieved perfect focus, Magic Zoom will display a focus confirmation (customizable):

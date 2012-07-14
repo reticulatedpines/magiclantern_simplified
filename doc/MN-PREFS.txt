@@ -32,7 +32,7 @@ Image review
 """"""""""""
   
 * **QuickReview default**: just like in standard firmware.
-* **CanonMenu:Hold->PLAY**: if you set ``Image Review: Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``). Credits goto Ken Rockwell for suggesting this.
+* **CanonMenu:Hold->PLAY**: if you set ``ImageReview:Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``). Credits goto Ken Rockwell for hint `("You have to hit PLAY") <http://www.kenrockwell.com/canon/5d-mk-ii.htm>`_.
 
 Quick Zoom
 """"""""""
@@ -86,7 +86,7 @@ You can also enable quick functions for the SET button, coupled with the corresp
 
 * Audio input (internal mic, external mic, balanced...)
 * Push-button white balance
-* 180-degree shutter speed
+* 180-degree shutter speed (or the closest approximation)
 * Reset LCD brightness to 5 and saturation to Normal.
 
 

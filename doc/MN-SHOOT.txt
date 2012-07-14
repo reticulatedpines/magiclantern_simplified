@@ -39,6 +39,10 @@ Take pictures or movies at fixed intervals.
 
 You can stop the intervalometer by rotating the mode dial, by pressing ``MENU`` or ``PLAY``, or by turning off the camera.
 
+Turning on Intervalometer displays a calculation for how long the time lapse will shoot for, how many frames it will take and the playback time, based on your image quality setting, free space and video frame rate selected in Canon menus.
+
+Example; 1h33m,  563 shots, 24fps => 00m23s
+    
 Settings (in submenu):
 
 * Duration between two shots.
@@ -83,7 +87,7 @@ Settings for auto ramping:
 
 **Quick start guide for auto ramping**:
   
-**1.** Take a picture of your scene. You will use it to say: "I want my timelapse to be exposed like this picture".
+**1.** Take a picture of your scene. ML will use it as an example of: "I want my timelapse to be exposed like this picture".
 
 **2.** Enable Bulb Ramping and Intervalometer.
 

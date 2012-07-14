@@ -90,8 +90,8 @@ Force LiveView
 
 Force LiveView in Movie mode (bypass the dialog saying *Press LV button to activate movie shooting*).
   
-* Always: force LiveView even if you use an unchipped lens, or no lens at all. Be careful, you may get dust on the sensor while changing lenses.
-* Start & CPU lenses: it will force LiveView at startup, regardless of the lens used. After this, it will only bypass the dialog when a chipped lens is attached (i.e. it will enter LiveView as soon as you attach a chipped lens).
+* **Always**: force LiveView even if you use an unchipped lens, or no lens at all. Be careful, you may get dust on the sensor while changing lenses.
+* **Start & CPU lenses**: it will force LiveView at startup, regardless of the lens used. After this, it will only bypass the dialog when a chipped lens is attached (i.e. it will enter LiveView as soon as you attach a chipped lens).
 
 Shutter Lock
 ````````````
@@ -116,11 +116,11 @@ Options:
   
 * **Optimize for**: 
     
-  * **Low light**: use this option for recording timelapse with shutter speed set to 1/fps (360 degrees); at high FPS values, you may be able to use other shutter speed values.
-  * **Exact FPS**: try to achieve an exact FPS value, such as 24.000 or 30.000 or 12.500. If more exact solutions are found, ML will choose the one with lowest jello effect.
+  * **Low light**: use this option for recording timelapse with shutter speeds close to 1/fps (360 degrees); at high FPS values, you may be able to use other shutter speed values.
+  * **Exact FPS**: tries to achieve an exact FPS value, such as 24.000 or 30.000 or 12.500. If more exact solutions are found, ML will choose the one with lowest jello effect.
   * **High FPS**: changes FPS without altering shutter speed and allows a slight overcranking (60D, 600D).
-  * **LowJello, 180d**: try to minimize the jello effect (caused by rolling shutter), while allowing you to expose at 180 degrees (0.5/fps) if possible.
-  * **High Jello**: maximize the jello effect and enable fast shutter speeds. You can use this mode for recording slit-scan frames (distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_, which use the extreme jello effect in creative ways).
+  * **LowJello, 180d**: tries to minimize the jello effect (caused by rolling shutter), while allowing you to expose at 180 degrees (0.5/fps) if possible.
+  * **High Jello**: maximizes the jello effect and enables fast shutter speeds. You can use this mode for recording slit-scan frames (distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_, which use the extreme jello effect in creative ways).
 
 * **Shutter range**: displays the available shutter speed range with current settings. When you use FPS override, Canon menu will still display 1/30 ... 1/4000, but the actual shutter speed will be different; read it from ML displays. You can alter shutter speed range by changing the ratio between the two timer values (decreasing timer B will result in faster shutter speeds available).
  

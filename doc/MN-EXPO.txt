@@ -67,8 +67,8 @@ Shutter
 Fine-tune shutter speed.
 
 * When exposure override is enabled, you can adjust it in 1/8-stop increments (movie mode only).
-* In photo mode, Magic Lantern displays integer shutter values without rounding them (e.g. 1/50 will be displayed by ML as 1/48). This is not a bug.
-* In movie mode, shutter values are displayed with one decimal place (for example, in PAL mode, Canon uses 1/33.3 to avoid flicker).
+* In **photo mode**, Magic Lantern displays integer shutter values without rounding them (e.g. 1/50 will be displayed by ML as 1/48). This is not a bug.
+* In **movie mode**, shutter values are displayed with one decimal place (for example, in PAL mode, Canon uses 1/33.3 to avoid flicker).
 * To use shutter speeds normally not available in Canon firmware (like 1/25 or 1/8000 in movie mode), enable `exposure override`_.
 
 Aperture
