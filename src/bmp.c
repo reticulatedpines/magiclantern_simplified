@@ -1310,6 +1310,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     }
 }
 
+// this is only used in menu, so only cover the 720x480 part
 void bmp_dim()
 {
     uint32_t* b = (uint32_t *)bmp_vram();
@@ -1318,14 +1319,14 @@ void bmp_dim()
     int i;
     //int j;
 #ifdef CONFIG_5DC
-    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i+=2)
+    for (i = 0; i < 480; i+=2)
     {
         bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);
     }
 #else
-    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
+    for (i = 0; i < 480; i ++)
     {
-        bmp_dim_line(&b[BM(0,i)/4], BMP_TOTAL_WIDTH, i%2);
+        bmp_dim_line(&b[BM(0,i)/4], 720, i%2);
     }
 #endif
 }
