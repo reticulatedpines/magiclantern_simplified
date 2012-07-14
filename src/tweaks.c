@@ -1604,7 +1604,8 @@ void arrow_key_step()
     if (gui_menu_shown()) return;
 
     #if defined(CONFIG_500D) || defined(CONFIG_550D)
-    int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+    extern int lcd_release_running;
+    int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED && !lcd_release_running;
     static int prev_lcd = 0;
     if (lcd && !prev_lcd)
     {
@@ -1628,7 +1629,8 @@ void display_shortcut_key_hints_lv()
     #endif
     if (NotifyBoxActive()) return;
 
-    int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED;
+    extern int lcd_release_running;
+    int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED && !lcd_release_running;
     if (arrow_keys_shortcuts_active()) mode = arrow_keys_mode;
     else if (!mode && is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && !lcd) mode = 10;
     if (mode == 0 && old_mode == 0) return;
