@@ -1036,8 +1036,10 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     return 1;
 }
 
+#ifdef IMGPLAY_ZOOM_POS_X
 static int play_zoom_last_x = 0;
 static int play_zoom_last_y = 0;
+#endif
 
 void play_zoom_center_on_last_af_point()
 {
