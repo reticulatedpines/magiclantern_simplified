@@ -38,7 +38,7 @@
 #endif
 
 #if (defined(CONFIG_600D) || defined(CONFIG_1100D))
-#define CONFIG_OKI_IC
+#define CONFIG_EARLY_AUDIO
 #endif
 
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
@@ -830,7 +830,7 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
-#if defined(CONFIG_OKI_IC)
+#if defined(CONFIG_EARLY_AUDIO)
         return;
 #endif
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -1297,7 +1297,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#if !defined(CONFIG_OKI_IC)
+#if !defined(CONFIG_EARLY_AUDIO)
 #if 0
         {
                 .priv           = &o2gain,
@@ -1523,7 +1523,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_OKI_IC) //Commented as it needs more testing
+#if !defined(CONFIG_EARLY_AUDIO) && !defined(CONFIG_1100D) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 
