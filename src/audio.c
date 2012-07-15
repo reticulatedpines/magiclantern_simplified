@@ -29,7 +29,7 @@
 #include "gui.h"
 
 
-#if defined(CONFIG_50D) || defined(CONFIG_1100D)
+#if defined(CONFIG_50D) 
 #include "disable-this-module.h"
 #endif
 
@@ -335,7 +335,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#ifndef CONFIG_500D         // mono mic on 500d :(
+#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d :(
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -343,7 +343,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#ifndef CONFIG_500D
+#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d :(
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
@@ -822,7 +822,7 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
-#ifdef CONFIG_600D
+#if defined(CONFIG_600D) || defined(CONFIG_1100D)
         return;
 #endif
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -835,7 +835,7 @@ audio_configure( int force )
 #endif
 
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
-#ifdef CONFIG_500D //500d only has internal mono audio :(
+#if (defined(CONFIG_500D) || defined(CONFIG_1100D))         // no external sources on 500d and 1100d :(
         int input_source = 0;
 #else
         int input_source = get_input_source();
@@ -1289,7 +1289,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#ifndef CONFIG_600D
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
 #if 0
         {
                 .priv           = &o2gain,
@@ -1344,7 +1344,7 @@ static struct menu_entry audio_menus[] = {
      .select            = windcut_toggle,
      .display   = windcut_display,
      },*/
-    #if !defined(CONFIG_550D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_550D) && !defined(CONFIG_500D)
          {
                 .name = "Wind Filter",
                  .priv              = &enable_filters,
@@ -1354,7 +1354,7 @@ static struct menu_entry audio_menus[] = {
                  .help = "High pass filter for wind noise reduction. AK4646.pdf p.34.",
                  //.essential = FOR_MOVIE,
          },
-    #endif
+#endif
 #ifdef CONFIG_AUDIO_REG_LOG
         {
                 .priv           = "Close register log",
@@ -1403,7 +1403,7 @@ static struct menu_entry audio_menus[] = {
                 .help = "Monitoring via A-V jack. Disable if you use a SD display.",
                 //.essential = FOR_MOVIE,
         },
-#endif // 600D
+#endif // 600D and 1100D
         {
                 .name = "Audio Meters",
                 .priv           = &cfg_draw_meters,
@@ -1515,7 +1515,7 @@ my_sounddev_task()
         }
 }
 
-#ifndef CONFIG_600D
+#if !(defined(CONFIG_600D) || defined CONFIG_1100D) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 

@@ -130,11 +130,11 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
     if (buf[0] == 0)  ml_shutdown();
 }
 
+#if 0
 static int task_holding_bmp_lock = 0;
 static int line_holding_bmp_lock = 0;
 static char func_holding_bmp_lock[50] = "";
 
-#if 0
 int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 {
     char* task_name = get_task_name_from_id((int)get_current_task());
