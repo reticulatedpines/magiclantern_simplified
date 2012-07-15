@@ -4101,10 +4101,13 @@ int zebra_should_run()
         !WAVEFORM_FULLSCREEN;
 }
 
+int livev_for_playback_running = 0;
 void draw_livev_for_playback()
 {
-    get_yuv422_vram(); // just to refresh VRAM params
     if (!PLAY_MODE && !QR_MODE) return;
+
+    livev_for_playback_running = 1;
+    get_yuv422_vram(); // just to refresh VRAM params
     
 BMP_LOCK(
 
@@ -4135,6 +4138,7 @@ BMP_LOCK(
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
+    livev_for_playback_running = 0;
 }
 
 int should_draw_bottom_graphs()
@@ -5161,10 +5165,13 @@ int livev_playback = 0;
 
 static void livev_playback_toggle()
 {
+    if (livev_for_playback_running) return;
+    
     livev_playback = !livev_playback;
     if (livev_playback)
     {
-        task_create("lv_playback", 0x1a, 0x1000, draw_livev_for_playback, 0);
+        livev_for_playback_running = 1;
+        task_create("lv_playback", 0x1a, 0x4000, draw_livev_for_playback, 0);
     }
     else
     {
