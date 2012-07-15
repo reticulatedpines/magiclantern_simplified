@@ -33,6 +33,14 @@
 #include "disable-this-module.h"
 #endif
 
+#if (defined(CONFIG_500D) || defined(CONFIG_1100D))
+#define CONFIG_MONO_MIC
+#endif
+
+#if (defined(CONFIG_600D) || defined(CONFIG_1100D))
+#define CONFIG_OKI_IC
+#endif
+
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
 #ifdef CONFIG_500D
@@ -335,7 +343,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d :(
+#if !defined(CONFIG_MONO_MIC)         // mono mic on 500d and 1100d :(
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -343,7 +351,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d :(
+#if !defined(CONFIG_MONO_MIC)         // mono mic on 500d and 1100d :(
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
@@ -822,7 +830,7 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
-#if defined(CONFIG_600D) || defined(CONFIG_1100D)
+#if defined(CONFIG_OKI_IC)
         return;
 #endif
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -835,7 +843,7 @@ audio_configure( int force )
 #endif
 
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
-#if (defined(CONFIG_500D) || defined(CONFIG_1100D))         // no external sources on 500d and 1100d :(
+#if defined(CONFIG_MONO_MIC)         // no external sources on 500d and 1100d :(
         int input_source = 0;
 #else
         int input_source = get_input_source();
@@ -1289,7 +1297,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
+#if !defined(CONFIG_OKI_IC)
 #if 0
         {
                 .priv           = &o2gain,
@@ -1403,7 +1411,7 @@ static struct menu_entry audio_menus[] = {
                 .help = "Monitoring via A-V jack. Disable if you use a SD display.",
                 //.essential = FOR_MOVIE,
         },
-#endif // 600D and 1100D
+#endif // OKI IC
         {
                 .name = "Audio Meters",
                 .priv           = &cfg_draw_meters,
@@ -1515,7 +1523,7 @@ my_sounddev_task()
         }
 }
 
-#if !(defined(CONFIG_600D) || defined CONFIG_1100D) //Commented as it needs more testing
+#if !defined(CONFIG_OKI_IC) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 
