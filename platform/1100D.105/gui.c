@@ -41,7 +41,6 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	static int t_press = 0;
-	struct tm now;
 	if (!ml_started) return 1;
 
 	if (BGMT_PRESS_AV) {
