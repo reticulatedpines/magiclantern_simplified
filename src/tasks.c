@@ -134,6 +134,7 @@ static int task_holding_bmp_lock = 0;
 static int line_holding_bmp_lock = 0;
 static char func_holding_bmp_lock[50] = "";
 
+#if 0
 int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 {
     char* task_name = get_task_name_from_id((int)get_current_task());
@@ -185,3 +186,4 @@ int CheckBmpReleaseRecursiveLock(void* lock)
     //~ bmp_puts(FONT_LARGE, &x, &x, msg);
     return r;
 }
+#endif
