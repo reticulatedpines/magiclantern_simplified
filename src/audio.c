@@ -1344,7 +1344,7 @@ static struct menu_entry audio_menus[] = {
      .select            = windcut_toggle,
      .display   = windcut_display,
      },*/
-    #if !defined(CONFIG_550D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_550D) && !defined(CONFIG_500D)
          {
                 .name = "Wind Filter",
                  .priv              = &enable_filters,
@@ -1354,7 +1354,7 @@ static struct menu_entry audio_menus[] = {
                  .help = "High pass filter for wind noise reduction. AK4646.pdf p.34.",
                  //.essential = FOR_MOVIE,
          },
-    #endif
+#endif
 #ifdef CONFIG_AUDIO_REG_LOG
         {
                 .priv           = "Close register log",
@@ -1515,9 +1515,9 @@ my_sounddev_task()
         }
 }
 
-//#if !(defined(CONFIG_600D) || defined CONFIG_1100D)
+#if !(defined(CONFIG_600D) || defined CONFIG_1100D) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
-//#endif
+#endif
 
 #if 0
 /** Replace the audio level task with our own.
