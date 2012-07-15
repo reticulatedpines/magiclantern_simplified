@@ -193,7 +193,10 @@ void fake_simple_button(int bgmt_code)
 
 void install_task()
 {
-    
+    call_init_funcs(0);
+
+    Msleep(500);
+
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Install task starting...");
     
     while (sensor_cleaning) Msleep(200);
@@ -261,7 +264,7 @@ void redraw() { clrscr(); }
 
 static volatile int init_funcs_done;
 
-static void
+void
 call_init_funcs( void * priv )
 {
     // Call all of the init functions
@@ -328,12 +331,9 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[2] = 'l';
     additional_version[3] = '\0';
 
-    Msleep( 2000 );
-    
-    call_init_funcs(0);
-    Msleep(1000);
+    Msleep( 4000 );
 
-    task_create("install_task", 0x1b, 0, install_task, 0);
+    task_create("install_task", 0x1b, 0x4000, install_task, 0);
     return ans;
 }
 
