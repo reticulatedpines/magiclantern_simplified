@@ -5469,6 +5469,8 @@ static void defish_draw_play()
     int w = vram->width;
     int h = vram->height;
     int buf_size = w * h * 2;
+    
+    if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
 
     memcpy(aux_buf, lvram, buf_size);
     
@@ -5518,6 +5520,8 @@ static void defish_draw_play()
                 *(dst) = (new_color & mask) | (*(dst) & ~mask);
             }
         }
+        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+        if ((void*)get_yuv422_vram()->vram != (void*)lvram) break; // user moved to a new image?
     }
 }
 
