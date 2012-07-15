@@ -162,7 +162,7 @@ _draw_char(
     {
         struct font * shadow =
         #ifdef CONFIG_STATIC_FONTS
-            font;
+            (struct font *) font;
         #else
             font == &font_large ? &font_large_shadow :
             font == &font_med ? &font_med_shadow :
