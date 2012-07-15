@@ -558,7 +558,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    peaking_benchmark();
+    menu_benchmark();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -2432,12 +2432,12 @@ struct menu_entry debug_menus[] = {
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
     },
-    {
+/*    {
         .name = "Menu screenshots",
         .select     = (void (*)(void*,int))run_in_separate_task,
         .priv = screenshots_for_menu,
         .help = "Take a screenshot for each ML menu.",
-    },
+    }, */
 #if CONFIG_DEBUGMSG
     {
         .name = "Draw palette",
