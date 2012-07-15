@@ -1158,7 +1158,7 @@ static void fps_task()
 {
     TASK_LOOP
     {
-        #ifdef CONFIG_500D
+        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
         msleep(fps_override && recording ? 10 : 100);
         #else
         msleep(100);
