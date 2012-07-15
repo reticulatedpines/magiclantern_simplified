@@ -2380,7 +2380,7 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
     int xcb = os.x0 + os.x_ex/2 + dx;
     int ycb = os.y0 + os.y_ex/2 + dy;
     int xcl = BM2LV_X(xcb);
-    int ycl = BM2LV_X(ycb);
+    int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(size_dxb);
 
     bmp_draw_rect(COLOR_WHITE, xcb - size_dxb, ycb - size_dxb, 2*size_dxb, 2*size_dxb);
@@ -2430,7 +2430,7 @@ int get_spot_motion(int dxb, int draw)
     int xcb = os.x0 + os.x_ex/2;
     int ycb = os.y0 + os.y_ex/2;
     int xcl = BM2LV_X(xcb);
-    int ycl = BM2LV_X(ycb);
+    int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(dxb);
 
     draw_line(xcb - dxb, ycb - dxb, xcb + dxb, ycb - dxb, COLOR_WHITE);
@@ -2474,7 +2474,7 @@ int get_spot_focus(int dxb)
     int xcb = os.x0 + os.x_ex/2;
     int ycb = os.y0 + os.y_ex/2;
     int xcl = BM2LV_X(xcb);
-    int ycl = BM2LV_X(ycb);
+    int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(dxb);
     
     // Sum the absolute difference of values around the center
@@ -2526,7 +2526,7 @@ static void spotmeter_step()
         ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
     }
     int xcl = BM2LV_X(xcb);
-    int ycl = BM2LV_X(ycb);
+    int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(dxb);
     
     unsigned sy = 0;
