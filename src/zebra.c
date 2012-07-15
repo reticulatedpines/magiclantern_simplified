@@ -4494,8 +4494,16 @@ clearscreen_loop:
         
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
+        // Here we're blinking the info LED approximately once every five
+        // seconds to show the user that their camera is still on and has
+        // not dropped into standby mode.  But it's distracting to blink
+        // it every five seconds, and if the user pushed a button recently
+        // then they already _know_ that their camera is still on, so
+        // let's only do it if the camera's buttons have been idle for at
+        // least 30 seconds.
         if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording && !get_halfshutter_pressed() && !is_intervalometer_running())
-            info_led_blink(1, 10, 10);
+            if ((get_seconds_clock() - get_last_time_active()) > 30)
+                info_led_blink(1, 10, 10);
 
         if (!lv) continue;
 
