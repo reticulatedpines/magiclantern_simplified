@@ -131,6 +131,8 @@ def add_menu_items_to_contents(file):
     f.write(txt)
     f.close()
 
+os.system(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
+
 os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 
 fixwikilinks("userguide.rst")
@@ -139,9 +141,11 @@ fixwikilinks("userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 os.system(r"sed -i -e 's/^#.*$//g' userguide.rst")
 os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
-os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
+#~ os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
 sub("UserGuide-cam.tex", r"\\subsubsection", r"\\newpage\\subsubsection")
 sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
+
+os.system(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
 
 os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide-cam.tex")
