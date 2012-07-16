@@ -1600,20 +1600,21 @@ menu_redraw_do()
                     bmp_draw_to_idle(1);
                 }
                 
-                if (menu_zebras_mirror_dirty && !menu_lv_transparent_mode)
+                int z = zebra_should_run();
+                if (menu_zebras_mirror_dirty && !z)
                 {
                     clear_zebras_from_mirror();
                     menu_zebras_mirror_dirty = 0;
                 }
 
-                static int prev_so = 0;
+                static int prev_z = 0;
                 if (menu_lv_transparent_mode)
                 {
                     if (!quick_redraw)
                         bmp_fill( 0, 0, 0, 720, 480 );
-                    if (zebra_should_run())
+                    if (z)
                     {
-                        if (prev_so) copy_zebras_from_mirror();
+                        if (prev_z) copy_zebras_from_mirror();
                         else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
                         menu_zebras_mirror_dirty = 1;
                     }
@@ -1627,7 +1628,7 @@ menu_redraw_do()
                     if (!quick_redraw || !submenu_mode)
                         bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
                 }
-                prev_so = menu_lv_transparent_mode;
+                prev_z = z;
 
                 // this part needs to know which items are selected - don't run it in the middle of selection changing
                 //~ take_semaphore(menu_redraw_sem, 0);
