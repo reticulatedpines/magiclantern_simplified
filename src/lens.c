@@ -1069,42 +1069,67 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
     //~ NotifyBox(1000, "MLU locked");
 }
 
-volatile int af_button_assignment = -1;
+// if ML fails to restore AF button functionality at shutdown,
+// save it in config file and restore it at next startup
+
+#define AF_BUTTON_NOT_MODIFIED 100
+//~ CONFIG_INT("af.btn", orig_af_button_assignment, AF_BUTTON_NOT_MODIFIED);
+int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
+
 // to preview AF patterns
 void assign_af_button_to_halfshutter()
 {
+    if (ml_shutdown_requested) return;
     if (is_manual_focus()) return;
+    if (orig_af_button_assignment == AF_BTN_HALFSHUTTER) return;
     //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
-    if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
-    if (af_button_assignment != AF_BTN_HALFSHUTTER) cfn_set_af_button(AF_BTN_HALFSHUTTER);
-    else af_button_assignment = -1;
+    if (ml_shutdown_requested) return;
+    if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
+    cfn_set_af_button(AF_BTN_HALFSHUTTER);
     //~ give_semaphore(lens_sem);
 }
 
 // to prevent AF
 void assign_af_button_to_star_button()
 {
+    if (ml_shutdown_requested) return;
     if (is_manual_focus()) return;
+    if (orig_af_button_assignment == AF_BTN_STAR) return;
     //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
-    if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
-    if (af_button_assignment != AF_BTN_STAR) cfn_set_af_button(AF_BTN_STAR);
-    else af_button_assignment = -1;
+    if (ml_shutdown_requested) return;
+    if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
+    cfn_set_af_button(AF_BTN_STAR);
     //~ give_semaphore(lens_sem);
 }
 
 void restore_af_button_assignment()
 {
-    if (is_manual_focus()) return;
-    if (af_button_assignment == -1) return;
+    if (orig_af_button_assignment != AF_BUTTON_NOT_MODIFIED)
+        orig_af_button_assignment = COERCE(orig_af_button_assignment, 0, 5); // just in case, so we don't read invalid values from config file
+    
+    if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) return;
     //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
-    cfn_set_af_button(af_button_assignment);
-    af_button_assignment = -1;
+    cfn_set_af_button(orig_af_button_assignment);
+    msleep(100);
+    if (cfn_get_af_button_assignment() == (int)orig_af_button_assignment)
+        orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED; // success
     //~ give_semaphore(lens_sem);
 }
 
+// keep retrying until it succeeds, or until the 3-second timeout expires
+void restore_af_button_assignment_at_shutdown()
+{
+    for (int i = 0; i < 30; i++)
+    {
+        if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED)
+            break;
+        restore_af_button_assignment();
+        info_led_blink(1,50,50);
+    }
+}
 
 int
 lens_take_picture(
