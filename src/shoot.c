@@ -2629,18 +2629,22 @@ static int zoom_focus_ring_disable_time = 0;
 static int zoom_focus_ring_flag = 0;
 void zoom_focus_ring_trigger() // called from prop handler
 {
-    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
-    if (!zfr) return;
     if (recording) return;
     if (lv_dispsize > 1) return;
+    if (gui_menu_shown()) return;
+    if (!DISPLAY_IS_ON) return;
+    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    if (!zfr) return;
     zoom_focus_ring_flag = 1;
 }
 void zoom_focus_ring_engage() // called from shoot_task
 {
+    if (recording) return;
+    if (lv_dispsize > 1) return;
+    if (gui_menu_shown()) return;
+    if (!DISPLAY_IS_ON) return;
     int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
     if (!zfr) return;
-    if (recording) return;
-    if (!DISPLAY_IS_ON) return;
     zoom_focus_ring_disable_time = ms100_clock + 4000;
     int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
