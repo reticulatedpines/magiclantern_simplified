@@ -1032,8 +1032,6 @@ void lens_wait_readytotakepic(int wait)
     int i;
     for (i = 0; i < wait * 10; i++)
     {
-        if (ml_shutdown_requested) return;
-        if (sensor_cleaning) { msleep(50); continue; }
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
         if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
@@ -2153,34 +2151,22 @@ int hdr_set_something(int (*set_something)(int), int arg)
 {
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)
-    {
-        if (ml_shutdown_requested) return 0;
-
         if (set_something(arg))
             return 1;
-    }
 
     // didn't work, let's wait for job state...
     lens_wait_readytotakepic(64);
 
     for (int i = 0; i < 5; i++)
-    {
-        if (ml_shutdown_requested) return 0;
-
         if (set_something(arg))
             return 1;
-    }
 
     // now this is really extreme... okay, one final try
     while (lens_info.job_state) msleep(100);
 
     for (int i = 0; i < 5; i++)
-    {
-        if (ml_shutdown_requested) return 0;
-
         if (set_something(arg))
             return 1;
-    }
 
     // I give up    
     return 0;
