@@ -1069,11 +1069,7 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
     //~ NotifyBox(1000, "MLU locked");
 }
 
-// if ML fails to restore AF button functionality at shutdown,
-// save it in config file and restore it at next startup
-
 #define AF_BUTTON_NOT_MODIFIED 100
-//~ CONFIG_INT("af.btn", orig_af_button_assignment, AF_BUTTON_NOT_MODIFIED);
 int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
 
 // to preview AF patterns
