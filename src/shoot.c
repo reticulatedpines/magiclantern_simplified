@@ -5376,7 +5376,7 @@ void wait_till_next_second()
     while (now.tm_sec == s)
     {
         LoadCalendarFromRTC( &now );
-        msleep(DISPLAY_IS_ON ? 100 : 300);
+        msleep(DISPLAY_IS_ON ? 20 : 300);
     }
 }
 
@@ -5431,7 +5431,7 @@ shoot_task( void* unused )
     TASK_LOOP
     {
         msleep(MIN_MSLEEP);
-        
+
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -5723,16 +5723,16 @@ shoot_task( void* unused )
         
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
-
         if (intervalometer_running)
         {
             int seconds_clock_0 = seconds_clock;
             int display_turned_off = 0;
             //~ int images_compared = 0;
-            msleep(100);
+            msleep(20);
             while (SECONDS_REMAINING > 0)
             {
-                msleep(300);
+                int dt = timer_values[interval_timer_index];
+                msleep(dt < 5 ? 20 : 300);
 
                 if (!intervalometer_running) break; // from inner loop only
                 
@@ -5795,11 +5795,12 @@ shoot_task( void* unused )
 
             int dt = timer_values[interval_timer_index];
             // compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
+            //~ intervalometer_next_shot_time = intervalometer_next_shot_time + dt;
             intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
             
             mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
             
-            if (dt == 0) // crazy mode - needs to be fast
+            if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
                 take_a_pic(0);
             }
