@@ -5400,12 +5400,13 @@ static void mlu_step()
         mlu_prev_value = -1;
     }
 
-    if (!lv && display_idle() && !get_halfshutter_pressed()) // normal shooting mode, non-liveview
+    if (!lv && !MENU_MODE && !get_halfshutter_pressed()) // normal shooting mode, non-liveview, outside Canon menu
     {
         int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
         if (mlu_auto_value != mlu_current_value)
         {
             set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+            msleep(500);
         }
     }
 }
@@ -5796,7 +5797,7 @@ shoot_task( void* unused )
             // compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
             intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
             
-            //~ info_led_blink(2,50,50);
+            mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
             
             if (dt == 0) // crazy mode - needs to be fast
             {
