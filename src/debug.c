@@ -2423,6 +2423,7 @@ struct menu_entry debug_menus[] = {
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },*/
+#ifndef CONFIG_5DC
     {
         .name = "Screenshot - 10s",
         .select     = screenshot_start,
@@ -2432,6 +2433,7 @@ struct menu_entry debug_menus[] = {
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
     },
+#endif
 /*    {
         .name = "Menu screenshots",
         .select     = (void (*)(void*,int))run_in_separate_task,

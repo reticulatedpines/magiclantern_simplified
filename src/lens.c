@@ -1341,6 +1341,7 @@ PROP_HANDLER( PROP_LENS_NAME )
     memcpy( (char*)lens_info.name, buf, len );
 }
 
+#ifndef CONFIG_5DC  //~ no PROP_LENS present in 5dc.
 PROP_HANDLER(PROP_LENS)
 {
     uint8_t* info = (uint8_t *) buf;
@@ -1355,6 +1356,7 @@ PROP_HANDLER(PROP_LENS)
     
     //~ bv_update_lensinfo();
 }
+#endif
 
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
 {

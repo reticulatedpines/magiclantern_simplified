@@ -3352,6 +3352,7 @@ int lcd_sensor_wakeup = 0;
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 #endif
 
+#ifndef CONFIG_5DC
 struct menu_entry powersave_menus[] = {
 {
     .name = "Powersave in LiveView...",
@@ -3410,6 +3411,7 @@ struct menu_entry powersave_menus[] = {
     },
 }
 };
+#endif
 
 struct menu_entry livev_cfg_menus[] = {
     {
@@ -5212,7 +5214,9 @@ static void zebra_init()
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
+#endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
 }
 

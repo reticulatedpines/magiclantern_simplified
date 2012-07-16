@@ -4391,6 +4391,7 @@ extern void digic_black_print( void * priv, int x, int y, int selected);
 
 extern int digic_shadow_lift;
 
+#ifndef CONFIG_5DC
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -4450,7 +4451,6 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-        #ifndef CONFIG_5DC
             {
                 .name = "Black Level", 
                 .priv = &digic_black_level,
@@ -4460,7 +4460,6 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
             },
-        #endif
             /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,
@@ -4599,7 +4598,6 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
-#ifndef CONFIG_5DC
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -4671,7 +4669,6 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
-#endif
 
 /*#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
     {
@@ -4692,6 +4689,7 @@ static struct menu_entry expo_menus[] = {
 #endif
 */
 };
+#endif
 
 // for firing HDR shots - avoids random misfire due to low polling frequency
 int picture_was_taken_flag = 0;
@@ -5883,7 +5881,9 @@ void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
+#endif
     #ifndef CONFIG_5D2
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
