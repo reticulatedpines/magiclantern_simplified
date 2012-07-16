@@ -27,7 +27,7 @@ void* shoot_malloc(int size)
     if (r) return 0;
     if (hSuite->num_chunks != 1) { beep(); return 0; }
     //~ bmp_hexdump(FONT_SMALL, 0, 100, hSuite, 32*10);
-    void* hChunk = GetFirstChunkFromSuite_maybe(hSuite);
+    void* hChunk = (void*) GetFirstChunkFromSuite_maybe(hSuite);
     //~ bmp_hexdump(FONT_SMALL, 0, 300, hChunk, 32*10);
-    return GetMemoryAddressOfMemoryChunk(hChunk);
+    return (void*) GetMemoryAddressOfMemoryChunk(hChunk);
 }
