@@ -47,6 +47,10 @@
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
+#ifdef CONFIG_EARLY_AUDIO
+void audio_reg_dump_600D();
+#endif
+
 static void audio_configure(int force);
 static void volume_display();
 
@@ -1420,6 +1424,10 @@ static struct menu_entry audio_menus[] = {
                 .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
                 //.essential = FOR_MOVIE,
         },
+	{
+		.name = "Dump Audio Registers",
+		.select =  audio_reg_dump_600D
+	},
 };
 
 
@@ -1523,7 +1531,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_EARLY_AUDIO) && !defined(CONFIG_1100D) //Commented as it needs more testing
+#if !defined(CONFIG_EARLY_AUDIO) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 
@@ -1692,12 +1700,12 @@ static void audio_menus_init()
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
         menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 #else
-        menu_add( "Display", audio_menus, 1 );
+        menu_add( "Display", audio_menus, COUNT(audio_menus) );
 #endif
 }
 
-/* Dump audio for 600D
-#ifdef CONFIG_600D
+// Dump audio for 600D 
+#ifdef CONFIG_EARLY_AUDIO
 void audio_reg_dump_600D()
 {
     static char log_filename[100];
@@ -1713,7 +1721,6 @@ void audio_reg_dump_600D()
 
     FILE* f = FIO_CreateFileEx(log_filename);
 
-    int output = 0;
     for( int addr = 0 ; addr < 0x100 ; addr++ )
     {
         const uint16_t reg = audio_ic_read(addr << 8);
@@ -1723,4 +1730,3 @@ void audio_reg_dump_600D()
     FIO_CloseFile(f);
 }
 #endif
-*/
