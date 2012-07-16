@@ -1447,12 +1447,13 @@ int handle_rack_focus(struct event * event)
 
     if (recording && !gui_menu_shown())
     {
-        if (event->param == BGMT_PLAY)
+        if (event->param == BGMT_PLAY) // this should be good as rack focus trigger key too
         {
             rack_focus_start_now(0,0);
             return 0;
         }
-        if (event->param == BGMT_MENU)
+
+        if (event->param == BGMT_MENU && is_follow_focus_active())
         {
             focus_reset_a(0,0);
             NotifyBox(2000, "Focus point saved here.     \n"
