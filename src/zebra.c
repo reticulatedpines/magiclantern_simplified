@@ -256,7 +256,15 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (ext_monitor_rca) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
+
+    #ifdef CONFIG_4_3_SCREEN
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
+    #else
+    int zt = zoom_overlay_triggered_by_zoom_btn;
+    if ((zt==1 || zt==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
+    if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
+    #endif
+
     return false;
 }
 
@@ -3422,13 +3430,6 @@ struct menu_entry livev_cfg_menus[] = {
         .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
     },
 };
-
-
-/*PROP_HANDLER(PROP_MVR_REC_START)
-{
-    if (buf[0] != 1) redraw_after(2000);
-    return prop_cleanup( token, property );
-}*/
 
 void cropmark_draw_from_cache()
 {
