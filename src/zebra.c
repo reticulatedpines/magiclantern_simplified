@@ -262,7 +262,8 @@ int should_draw_zoom_overlay()
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
-    if ((zt==1 || zt==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
+    int zm = get_zoom_overlay_trigger_mode();
+    if (zt && (zm==1 || zm==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
     if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #endif
 
