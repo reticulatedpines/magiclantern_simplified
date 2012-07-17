@@ -1531,9 +1531,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_EARLY_AUDIO) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
-#endif
 
 #if 0
 /** Replace the audio level task with our own.
