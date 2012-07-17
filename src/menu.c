@@ -1767,7 +1767,7 @@ menu_redraw_task()
         else redraw();
     }
 }
-TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x4000 );
 
 void
 menu_redraw()
@@ -2395,7 +2395,7 @@ menu_task_minimal( void* unused )
     }
 }
 
-TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );
+TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x1000 );
 
 int is_menu_active(char* name)
 {
