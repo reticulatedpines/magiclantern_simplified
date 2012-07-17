@@ -1334,7 +1334,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus End Point",
         .display    = focus_show_a,
         .select     = focus_reset_a,
-        .help = "Press SET to fix here the end point of rack focus."
+        .help = "SET: fix here rack end point. ZoomIn+L/R: start point."
     },
     {
         .name = "Rack Delay     ",
