@@ -410,15 +410,16 @@ rack_focus_print(
 static void
 focus_reset_a( void * priv, int delta )
 {
-    focus_task_delta = 0;
-    menu_show_only_selected();
+    if (menu_active_but_hidden()) menu_disable_lv_transparent_mode();
+    else if (focus_task_delta) focus_task_delta = 0;
+    else menu_enable_lv_transparent_mode();
 }
 
 static void
 focus_alter_a( void * priv, int delta )
 {
     menu_show_only_selected();
-    lens_focus_enqueue_step(delta);
+    menu_enable_lv_transparent_mode(delta);
 }
 
 int focus_rack_auto_record = 0;
@@ -428,7 +429,7 @@ static void
 focus_toggle( void * priv )
 {
     if (focus_rack_delta) return; // another rack focus operation in progress
-    menu_show_only_selected();
+    menu_enable_lv_transparent_mode();
     focus_task_delta = -focus_task_delta;
     focus_rack_delta = focus_task_delta;
     give_semaphore( focus_task_sem );
@@ -1483,11 +1484,11 @@ int handle_rack_focus_menu_overrides(struct event * event)
                     lens_focus_start(1 * get_follow_focus_dir_h());
                     return 0;
                 case BGMT_WHEEL_LEFT:
-                    menu_show_only_selected();
+                    menu_enable_lv_transparent_mode();
                     lens_focus_enqueue_step( -get_follow_focus_dir_h() );
                     return 0;
                 case BGMT_WHEEL_RIGHT:
-                    menu_show_only_selected();
+                    menu_enable_lv_transparent_mode();
                     lens_focus_enqueue_step( get_follow_focus_dir_h() );
                     return 0;
             }

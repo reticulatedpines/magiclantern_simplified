@@ -123,10 +123,14 @@ static void menu_save_hidden_items();
 static void menu_load_hidden_items();
 
 extern int gui_state;
-void menu_show_only_selected()
+void menu_enable_lv_transparent_mode()
 {
     menu_lv_transparent_mode = 1;
     menu_damage = 1;
+}
+void menu_disable_lv_transparent_mode()
+{
+    menu_lv_transparent_mode = 0;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( menu_lv_transparent_mode ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( menu_lv_transparent_mode && hist_countdown < 2 ); }
