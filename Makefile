@@ -60,7 +60,7 @@ install: all
 	mkdir -p $(CF_CARD)/ML/cropmks/
 	cp platform/all/autoexec.bin $(CF_CARD)
 	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/data/
-	cp vram/rectilin.lut $(CF_CARD)/ML/data/
+	cp vram/*.lut $(CF_CARD)/ML/data/
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	$(UMOUNT) $(CF_CARD)
 
