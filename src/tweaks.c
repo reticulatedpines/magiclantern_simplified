@@ -608,30 +608,35 @@ void clear_lv_afframe()
     // on 5D2, LV grids are black, just like AF frame...
     // so, try to erase what's white and a few pixels of nearby black
     
+    uint8_t * const bvram = bmp_vram();
+    #define Pr(X,Y) bvram[BM(X,Y)]
+    #define Pw(X,Y) bvram[BM(COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1), COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1))]
     // not quite efficient, but works
     for (int i = y0+h; i > y0; i--)
     {
         for (int j = x0+w; j > x0; j--)
         {
-            int p = bmp_getpixel(j,i);
+            int p = Pr(j,i);
             if (p == COLOR_WHITE)
             {
                 for (int di = 2; di >= 0; di--)
                 {
                     for (int dj = 2; dj >= 0; dj--)
                     {
-                        int p = bmp_getpixel(j+dj,i+di);
+                        int p = Pr(j+dj,i+di);
                         if (p == COLOR_WHITE || p == COLOR_BLACK)
                         {
                             int m = M[BM(j+dj,i+di)];
                             if (m == 0x80) M[BM(j+dj,i+di)] = 0;
-                            bmp_putpixel(j+dj,i+di, g && (m & 0x80) ? m & ~0x80 : 0);
+                            Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0;
                         }
                     }
                 }
             }
         }
     }
+    #undef Pw
+    #undef Pr
     afframe_countdown = 0;
 }
 
