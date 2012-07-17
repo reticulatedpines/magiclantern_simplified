@@ -255,6 +255,7 @@ int should_draw_zoom_overlay()
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
     if (ext_monitor_rca) return 0;
+    if (hdmi_code == 5) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -2338,6 +2339,8 @@ zoom_overlay_display(
 
     if (ext_monitor_rca)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
+    else if (hdmi_code == 5)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work in HDMI 1080i.");
     else if (is_movie_mode() && video_mode_fps > 30)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
