@@ -3374,6 +3374,7 @@ void config_menu_init()
     crop_factor_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
+    menu_menu_init();
 }
 
 void spy_event(struct event * event)
