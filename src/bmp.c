@@ -542,15 +542,20 @@ bmp_fill(
 }
 
 #else
+/* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
+//#define BMP_FILL_BYTEALIGN
 
+/** Fill a section of bitmap memory with solid color
+ * Only has a four-pixel resolution in X.
+ */
 void
 bmp_fill(
-         uint8_t            color,
-         int        x,
-         int        y,
-         int        w,
-         int        h
-         )
+    uint8_t            color,
+    int        x,
+    int        y,
+    int        w,
+    int        h
+)
 {
 #ifdef CONFIG_5DC
     x = x/2;
@@ -558,32 +563,101 @@ bmp_fill(
     w = w/2;
     h = h/2;
 #endif
-    
-    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1); 
-    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1); 
-    w = COERCE(w, 0, BMP_W_PLUS-x-1); 
-    h = COERCE(h, 0, BMP_H_PLUS-y-1); 
-    
-    const uint32_t wordColor = (color << 24) | (color << 16) | (color << 8) | color; 
-    const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor; 
-    
-    uint8_t* b = bmp_vram(); 
-    for (int i = y; i < y+h; i++) 
-    { 
-        uint32_t *buffer = (uint32_t *)&(b[BM(x,i)]); 
-        uint32_t *bufferEnd = (uint32_t *)&(b[BM(x+w,i)]); 
-        
-        while (buffer < bufferEnd) 
-        { 
-            if((uint32_t)bufferEnd - (uint32_t)buffer < 8) 
-            { 
-                *buffer = wordColor; buffer++; 
-            } 
-            else 
-            { 
-                *((uint64_t*)buffer) = dwordColor; buffer += 2; 
-            } 
-        } 
+
+   
+    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
+    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
+    w = COERCE(w, 0, BMP_W_PLUS-x-1);
+    h = COERCE(h, 0, BMP_H_PLUS-y-1);
+   
+    const uint16_t halfColor = (color << 8) | color;
+    const uint32_t wordColor = ((uint32_t)halfColor << 16) | halfColor;
+    const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor;
+   
+    uint8_t* b = bmp_vram();
+   
+    /* pre-align the pixels to speed up fill routine below.
+       will draw pixels for byte addresses (if enabled) so the code later can use a optimized dword-store operation.
+       if using x positions and widths that are 8-pixel aligned, this code will not get called.
+      
+       __builtin_expect(exp, result) tells the compiler what we think the result is in most of the cases.
+       this will improve performance by not-jumping around, but continously executing code.
+       will reduce the perfomance impact of the byte-/word- aligning routines when enabled.
+     */
+#if defined(BMP_FILL_BYTEALIGN)
+    if(__builtin_expect((x & 1), 0))
+    {
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint8_t *)&(b[BM(x,posY)])) = color;
+        }
+        x += 1;
+        w -= 1;
+    }
+    if(__builtin_expect((w & 1), 0))
+    {
+        w -= 1;
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint8_t *)&(b[BM(x+w,posY)])) = color;
+        }
+    }
+#endif
+#if defined(BMP_FILL_BYTEALIGN) || defined(BMP_FILL_HALFALIGN)
+    if(__builtin_expect((x & 2), 0))
+    {
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint16_t *)&(b[BM(x,posY)])) = halfColor;
+        }
+        x += 2;
+        w -= 2;
+    }
+    if(__builtin_expect((w & 2), 0))
+    {
+        w -= 2;
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint16_t *)&(b[BM(x+w,posY)])) = halfColor;
+        }
+    }
+#endif
+    /* any 32-bit access necessary? not that complex to handle.
+       STRD in the loop later allows 32-bit aligned addresses, so no special treatment needed to make the memory addresses 64 bit aligned.
+       unfortunately the compiler does not generate STRDs, but STM.
+      
+       tell the compiler, is is likely that this condition is true
+    */
+    if(__builtin_expect((w & 4), 1))
+    {
+        /* fill a column with 32 bit writes */
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint32_t *)&(b[BM(x,posY)])) = wordColor;
+        }
+        x += 4;
+        w -= 4;
+    }
+
+    /* not needed if BMP_FILL_BYTEALIGN is set, but doesnt hurt. its just to protect from misaligned accesses */
+    x &= ~3;
+    w &= ~7;
+   
+    /* finally fill with optimized 64 bit writes.
+       planned to let the compiler generate STRD that uses only 2 cpu cycles plus ADD that needs 1.
+       but we only get STMIA. the generated STMIA is also fine, but that uses 4 instead of 3 cpu cycles. still not that bad.
+     */
+
+    for (int i = y; i < y+h; i++)
+    {
+        uint32_t buffer = (uint32_t)&(b[BM(x,i)]);
+        uint32_t bufferEnd = (uint32_t)&(b[BM(x+w,i)]);
+       
+        while (buffer < bufferEnd)
+        {
+            *((uint64_t*)buffer) = dwordColor;
+            buffer += 8;
+        }
     }
 }
 #endif
