@@ -5322,15 +5322,29 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
     ASSERT(dst);
     if (!dst) return;
     int i,j;
-    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i++)
+    
+    // only used for menu => 720x480
+    static int js_cache[720];
+    
+    for (j = 0; j < 720; j++)
+        js_cache[j] = (j - x0) * denx / 128 + x0;
+    
+    for (i = 0; i < 480; i++)
     {
-        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j++)
+        int is = (i - y0) * deny / 128 + y0;
+        uint8_t* dst_r = &dst[BM(0,i)];
+        uint8_t* src_r = &src[BM(0,is)];
+        
+        if (is >= 0 && is < 480)
         {
-            int is = (i - y0) * deny / 128 + y0;
-            int js = (j - x0) * denx / 128 + x0;
-            dst[BM(j,i)] = (is >= 0 && js >= 0 && is < 480 && js < 720) // this is only used for menu
-                ? src[BM(js,is)] : 0;
+            for (j = 0; j < 720; j++)
+            {
+                int js = js_cache[j];
+                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
+            }
         }
+        else
+            bzero32(dst_r, 720);
     }
 }
 
