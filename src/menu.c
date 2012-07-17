@@ -1913,6 +1913,14 @@ handle_ml_menu_keys(struct event * event)
         }
         
         break;
+    
+    #ifdef BGMT_PRESS_UP_LEFT
+    case BGMT_PRESS_UP_LEFT:
+    case BGMT_PRESS_UP_RIGHT:
+    case BGMT_PRESS_DOWN_LEFT:
+    case BGMT_PRESS_DOWN_RIGHT:
+        return 0; // ignore diagonal buttons
+    #endif
 
     case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
         //~ menu_close();
