@@ -2164,7 +2164,7 @@ open_canon_menu()
 void menu_redraw_flood()
 {
     if (!lv) msleep(200);
-    else if (EXT_MONITOR_CONNECTED) msleep(200);
+    else if (EXT_MONITOR_CONNECTED) msleep(300);
     for (int i = 0; i < 10; i++)
     {
         canon_gui_enable_front_buffer(0);
@@ -2247,7 +2247,7 @@ static void menu_close()
 
     close_canon_menu();
     canon_gui_enable_front_buffer(0);
-    if (lv) { clrscr(); redraw(); }
+    if (lv) redraw();
 }
 
 /*
