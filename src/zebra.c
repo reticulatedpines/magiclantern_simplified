@@ -222,7 +222,7 @@ int get_zoom_overlay_trigger_mode()
 int get_zoom_overlay_trigger_by_focus_ring()
 {
     int z = get_zoom_overlay_trigger_mode();
-    #ifdef CONFIG_4_3_SCREEN
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     return z == 2 || z == 3;
     #else
     return z == 2;
@@ -231,7 +231,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
-    #ifdef CONFIG_4_3_SCREEN
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
@@ -257,7 +257,7 @@ int should_draw_zoom_overlay()
     if (ext_monitor_rca) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
 
-    #ifdef CONFIG_4_3_SCREEN
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
@@ -2301,7 +2301,7 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
-#ifdef CONFIG_4_3_SCREEN
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
         zoom_overlay_trigger_mode == 2 ? "Focus," :
         zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
@@ -3017,7 +3017,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
-                #ifdef CONFIG_4_3_SCREEN
+                #if defined(CONFIG_5D2) || defined(CONFIG_50D)
                 .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
                 .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
@@ -3693,7 +3693,7 @@ int handle_zoom_overlay(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
 
-#ifdef CONFIG_4_3_SCREEN
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
