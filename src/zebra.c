@@ -2663,8 +2663,9 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV display presets  : %d", 
-        disp_profiles_0 + 1
+        "LV display presets  : %d%s", 
+        disp_profiles_0 + 1,
+        disp_profiles_0 ? " (ON)" : " (OFF)"
     );
 }
 
