@@ -4536,7 +4536,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "Highlight Tone Priority",
                 .select = (void (*)(void *,int))htp_toggle,
                 .display = htp_display,
-                .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
+                .help = "Highlight Tone Priority. Use with negative ML digital ISO.",
             },
             {
                 .name = "ISO Selection    ",
