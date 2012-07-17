@@ -222,7 +222,7 @@ int get_zoom_overlay_trigger_mode()
 int get_zoom_overlay_trigger_by_focus_ring()
 {
     int z = get_zoom_overlay_trigger_mode();
-    #ifdef CONFIG_5D2
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     return z == 2 || z == 3;
     #else
     return z == 2;
@@ -231,7 +231,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
-    #ifdef CONFIG_5D2
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
@@ -256,7 +256,15 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (ext_monitor_rca) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
+
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
+    #else
+    int zt = zoom_overlay_triggered_by_zoom_btn;
+    if ((zt==1 || zt==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
+    if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
+    #endif
+
     return false;
 }
 
@@ -276,7 +284,7 @@ static CONFIG_INT( "hist.log",  hist_log,   1 );
 //~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
 //~ static CONFIG_INT( "hist.y",        hist_y,     100 );
 static CONFIG_INT( "waveform.draw", waveform_draw,
-#ifdef CONFIG_5D2
+#ifdef CONFIG_4_3_SCREEN
 1
 #else
 0
@@ -2293,7 +2301,7 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
         zoom_overlay_trigger_mode == 2 ? "Focus," :
         zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
@@ -3009,9 +3017,9 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
-                #ifdef CONFIG_5D2
+                #if defined(CONFIG_5D2) || defined(CONFIG_50D)
                 .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
-                .help = "Trigger MZ by focus ring or half-shutter.",
+                .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
                 .choices = (const char *[]) {"OFF", "Zoom.REC", "Focus+ZREC", "ZoomIn (+)", "Always On"},
                 .help = "Zoom when recording / trigger from focus ring / Zoom button",
@@ -3352,6 +3360,7 @@ int lcd_sensor_wakeup = 0;
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 #endif
 
+#ifndef CONFIG_5DC
 struct menu_entry powersave_menus[] = {
 {
     .name = "Powersave in LiveView...",
@@ -3410,6 +3419,7 @@ struct menu_entry powersave_menus[] = {
     },
 }
 };
+#endif
 
 struct menu_entry livev_cfg_menus[] = {
     {
@@ -3420,13 +3430,6 @@ struct menu_entry livev_cfg_menus[] = {
         .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
     },
 };
-
-
-/*PROP_HANDLER(PROP_MVR_REC_START)
-{
-    if (buf[0] != 1) redraw_after(2000);
-    return prop_cleanup( token, property );
-}*/
 
 void cropmark_draw_from_cache()
 {
@@ -3690,7 +3693,7 @@ int handle_zoom_overlay(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
@@ -3738,7 +3741,7 @@ int handle_zoom_overlay(struct event * event)
             { move_lv_afframe(0, -200); return 0; }
         if (event->param == BGMT_PRESS_DOWN)
             { move_lv_afframe(0, 200); return 0; }
-        #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2)
+        #ifndef CONFIG_4_3_SCREEN
         if (event->param == BGMT_PRESS_SET)
             { center_lv_afframe(); return 0; }
         #endif
@@ -5212,7 +5215,9 @@ static void zebra_init()
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
+#endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
 }
 
@@ -5318,15 +5323,29 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
     ASSERT(dst);
     if (!dst) return;
     int i,j;
-    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i++)
+    
+    // only used for menu => 720x480
+    static int js_cache[720];
+    
+    for (j = 0; j < 720; j++)
+        js_cache[j] = (j - x0) * denx / 128 + x0;
+    
+    for (i = 0; i < 480; i++)
     {
-        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j++)
+        int is = (i - y0) * deny / 128 + y0;
+        uint8_t* dst_r = &dst[BM(0,i)];
+        uint8_t* src_r = &src[BM(0,is)];
+        
+        if (is >= 0 && is < 480)
         {
-            int is = (i - y0) * deny / 128 + y0;
-            int js = (j - x0) * denx / 128 + x0;
-            dst[BM(j,i)] = (is >= 0 && js >= 0 && is < 480 && js < 720) // this is only used for menu
-                ? src[BM(js,is)] : 0;
+            for (j = 0; j < 720; j++)
+            {
+                int js = js_cache[j];
+                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
+            }
         }
+        else
+            bzero32(dst_r, 720);
     }
 }
 

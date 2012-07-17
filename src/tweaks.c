@@ -605,23 +605,30 @@ void clear_lv_afframe()
     int w = 200;
     int h = 150;
     int g = get_global_draw();
-    for (int i = y0; i < y0 + h; i++)
+    // on 5D2, LV grids are black, just like AF frame...
+    // so, try to erase what's white and a few pixels of nearby black
+    
+    // not quite efficient, but works
+    for (int i = y0+h; i > y0; i--)
     {
-        for (int j = x0; j < x0+w; j++)
+        for (int j = x0+w; j > x0; j--)
         {
-            if (g)
+            int p = bmp_getpixel(j,i);
+            if (p == COLOR_WHITE)
             {
-                int p = bmp_getpixel(j,i);
-                int m = M[BM(j,i)];
-                if (m == 0x80) M[BM(j,i)] = 0;
-                if (p == COLOR_BLACK || p == COLOR_WHITE)
+                for (int di = 2; di >= 0; di--)
                 {
-                    bmp_putpixel(j,i, m & 0x80 ? m & ~0x80 : 0);
+                    for (int dj = 2; dj >= 0; dj--)
+                    {
+                        int p = bmp_getpixel(j+dj,i+di);
+                        if (p == COLOR_WHITE || p == COLOR_BLACK)
+                        {
+                            int m = M[BM(j+dj,i+di)];
+                            if (m == 0x80) M[BM(j+dj,i+di)] = 0;
+                            bmp_putpixel(j+dj,i+di, g && (m & 0x80) ? m & ~0x80 : 0);
+                        }
+                    }
                 }
-            }
-            else // if globaldraw is off, just delete the frame (there may be old cropmark data in cache)
-            {
-                    bmp_putpixel(j,i,0);
             }
         }
     }

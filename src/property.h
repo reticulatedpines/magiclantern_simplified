@@ -31,7 +31,12 @@
 #define PROP_TFT_STATUS         0x80030015
 #define PROP_LENS_NAME          0x80030021
 #define PROP_LENS_SOMETHING     0x80030022
+
+//~ 5dc doesn't have a PROP_LENS.
+#ifndef CONFIG_5DC
 #define PROP_LENS               0x80030011 // info about lens? flags?
+#endif
+
 #define PROP_HDMI_CHANGE        0x8003002c // 1 if HDMI display connected
 #define PROP_HDMI_CHANGE_CODE   0x8003002e // edidc?
 #define PROP_USBRCA_MONITOR 0x80030018
@@ -250,7 +255,12 @@
  * 0x8 == "guiSetDarkBusy" -- noise reduction?
  * 0x0 == Job Done
  */
+#ifdef CONFIG_5DC
+#define PROP_LAST_JOB_STATE   0x80030011
+#else
 #define PROP_LAST_JOB_STATE   0x80030012  // 8 == writing to card, 0 = idle, B = busy.
+#endif
+
 #define PROP_STROBO_FIRING    0x80040013  // 0 = enable, 1 = disable, 2 = auto?
 #define PROP_STROBO_ETTLMETER 0x80040014  // 0 = evaluative, 1 = average
 #define PROP_STROBO_CURTAIN   0x80040015  // 0 = first, 1 = second

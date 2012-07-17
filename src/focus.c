@@ -1235,6 +1235,7 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
+#ifndef CONFIG_5DC
     {
         .name = "Focus Patterns",
         .priv = &af_patterns,
@@ -1243,7 +1244,6 @@ static struct menu_entry focus_menu[] = {
         .help = "Custom AF patterns (photo mode only; ported from 400plus)",
         //.essential = FOR_PHOTO_NON_LIVEVIEW,
     },
-#ifndef CONFIG_5DC
     {
         .name = "Follow Focus",
         .priv = &follow_focus,
@@ -1447,12 +1447,13 @@ int handle_rack_focus(struct event * event)
 
     if (recording && !gui_menu_shown())
     {
-        if (event->param == BGMT_PLAY)
+        if (event->param == BGMT_PLAY) // this should be good as rack focus trigger key too
         {
             rack_focus_start_now(0,0);
             return 0;
         }
-        if (event->param == BGMT_MENU)
+
+        if (event->param == BGMT_MENU && is_follow_focus_active())
         {
             focus_reset_a(0,0);
             NotifyBox(2000, "Focus point saved here.     \n"

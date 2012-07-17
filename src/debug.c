@@ -1876,11 +1876,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     if (!rca_warned && !gui_menu_shown())
                     {
                         msleep(2000);
-                        beep();
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "SD monitors are NOT fully supported!\n"
-                            "RGB tools and magic zoom will not work.");
-                        msleep(2000);
+                        bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
+                            "SD monitors NOT fully supported!\n"
+                            "RGB tools and MZoom won't work. ");
+                        msleep(4000);
                         redraw();
                         rca_warned = 1;
                     }
@@ -2423,6 +2422,7 @@ struct menu_entry debug_menus[] = {
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },*/
+#ifndef CONFIG_5DC
     {
         .name = "Screenshot - 10s",
         .select     = screenshot_start,
@@ -2432,6 +2432,7 @@ struct menu_entry debug_menus[] = {
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
     },
+#endif
 /*    {
         .name = "Menu screenshots",
         .select     = (void (*)(void*,int))run_in_separate_task,

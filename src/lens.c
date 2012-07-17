@@ -1032,6 +1032,8 @@ void lens_wait_readytotakepic(int wait)
     int i;
     for (i = 0; i < wait * 10; i++)
     {
+        if (ml_shutdown_requested) return;
+        if (sensor_cleaning) { msleep(50); continue; }
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
         //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
         if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
@@ -1067,42 +1069,63 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
     //~ NotifyBox(1000, "MLU locked");
 }
 
-volatile int af_button_assignment = -1;
+#define AF_BUTTON_NOT_MODIFIED 100
+int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
+
 // to preview AF patterns
 void assign_af_button_to_halfshutter()
 {
+    if (ml_shutdown_requested) return;
     if (is_manual_focus()) return;
+    if (orig_af_button_assignment == AF_BTN_HALFSHUTTER) return;
     //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
-    if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
-    if (af_button_assignment != AF_BTN_HALFSHUTTER) cfn_set_af_button(AF_BTN_HALFSHUTTER);
-    else af_button_assignment = -1;
+    if (ml_shutdown_requested) return;
+    if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
+    cfn_set_af_button(AF_BTN_HALFSHUTTER);
     //~ give_semaphore(lens_sem);
 }
 
 // to prevent AF
 void assign_af_button_to_star_button()
 {
+    if (ml_shutdown_requested) return;
     if (is_manual_focus()) return;
+    if (orig_af_button_assignment == AF_BTN_STAR) return;
     //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
-    if (af_button_assignment == -1) af_button_assignment = cfn_get_af_button_assignment();
-    if (af_button_assignment != AF_BTN_STAR) cfn_set_af_button(AF_BTN_STAR);
-    else af_button_assignment = -1;
+    if (ml_shutdown_requested) return;
+    if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
+    cfn_set_af_button(AF_BTN_STAR);
     //~ give_semaphore(lens_sem);
 }
 
 void restore_af_button_assignment()
 {
-    if (is_manual_focus()) return;
-    if (af_button_assignment == -1) return;
+    if (orig_af_button_assignment != AF_BUTTON_NOT_MODIFIED)
+        orig_af_button_assignment = COERCE(orig_af_button_assignment, 0, 5); // just in case, so we don't read invalid values from config file
+    
+    if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) return;
     //~ take_semaphore(lens_sem, 0);
     while (lens_info.job_state >= 0xa) msleep(20);
-    cfn_set_af_button(af_button_assignment);
-    af_button_assignment = -1;
+    cfn_set_af_button(orig_af_button_assignment);
+    msleep(100);
+    if (cfn_get_af_button_assignment() == (int)orig_af_button_assignment)
+        orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED; // success
     //~ give_semaphore(lens_sem);
 }
 
+// keep retrying until it succeeds, or until the 3-second timeout expires
+void restore_af_button_assignment_at_shutdown()
+{
+    for (int i = 0; i < 30; i++)
+    {
+        if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED)
+            break;
+        restore_af_button_assignment();
+        info_led_blink(1,50,50);
+    }
+}
 
 int
 lens_take_picture(
@@ -1339,6 +1362,7 @@ PROP_HANDLER( PROP_LENS_NAME )
     memcpy( (char*)lens_info.name, buf, len );
 }
 
+#ifndef CONFIG_5DC  //~ no PROP_LENS present in 5dc.
 PROP_HANDLER(PROP_LENS)
 {
     uint8_t* info = (uint8_t *) buf;
@@ -1353,6 +1377,7 @@ PROP_HANDLER(PROP_LENS)
     
     //~ bv_update_lensinfo();
 }
+#endif
 
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
 {
@@ -2151,22 +2176,34 @@ int hdr_set_something(int (*set_something)(int), int arg)
 {
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)
+    {
+        if (ml_shutdown_requested) return 0;
+
         if (set_something(arg))
             return 1;
+    }
 
     // didn't work, let's wait for job state...
     lens_wait_readytotakepic(64);
 
     for (int i = 0; i < 5; i++)
+    {
+        if (ml_shutdown_requested) return 0;
+
         if (set_something(arg))
             return 1;
+    }
 
     // now this is really extreme... okay, one final try
     while (lens_info.job_state) msleep(100);
 
     for (int i = 0; i < 5; i++)
+    {
+        if (ml_shutdown_requested) return 0;
+
         if (set_something(arg))
             return 1;
+    }
 
     // I give up    
     return 0;

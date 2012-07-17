@@ -2629,18 +2629,22 @@ static int zoom_focus_ring_disable_time = 0;
 static int zoom_focus_ring_flag = 0;
 void zoom_focus_ring_trigger() // called from prop handler
 {
-    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
-    if (!zfr) return;
     if (recording) return;
     if (lv_dispsize > 1) return;
+    if (gui_menu_shown()) return;
+    if (!DISPLAY_IS_ON) return;
+    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    if (!zfr) return;
     zoom_focus_ring_flag = 1;
 }
 void zoom_focus_ring_engage() // called from shoot_task
 {
+    if (recording) return;
+    if (lv_dispsize > 1) return;
+    if (gui_menu_shown()) return;
+    if (!DISPLAY_IS_ON) return;
     int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
     if (!zfr) return;
-    if (recording) return;
-    if (!DISPLAY_IS_ON) return;
     zoom_focus_ring_disable_time = ms100_clock + 4000;
     int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
@@ -2926,7 +2930,7 @@ bulb_take_pic(int duration)
     for (int i = 0; i < d; i++)
     {
         // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
-        if (DISPLAY_IS_ON && i>0) fake_simple_button(BGMT_INFO);
+        if (DISPLAY_IS_ON && i==1) fake_simple_button(BGMT_INFO);
         
         // turn off the LED - no light pollution, please :)
         // but blink it quickly every 10 seconds to have some feedback
@@ -4391,6 +4395,7 @@ extern void digic_black_print( void * priv, int x, int y, int selected);
 
 extern int digic_shadow_lift;
 
+#ifndef CONFIG_5DC
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -4450,7 +4455,6 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-        #ifndef CONFIG_5DC
             {
                 .name = "Black Level", 
                 .priv = &digic_black_level,
@@ -4460,7 +4464,6 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
             },
-        #endif
             /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,
@@ -4533,7 +4536,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "Highlight Tone Priority",
                 .select = (void (*)(void *,int))htp_toggle,
                 .display = htp_display,
-                .help = "Highlight Tone Priority. Use with negative DIGIC gain.",
+                .help = "Highlight Tone Priority. Use with negative ML digital ISO.",
             },
             {
                 .name = "ISO Selection    ",
@@ -4599,7 +4602,6 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
-#ifndef CONFIG_5DC
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -4671,7 +4673,6 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
-#endif
 
 /*#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
     {
@@ -4692,6 +4693,7 @@ static struct menu_entry expo_menus[] = {
 #endif
 */
 };
+#endif
 
 // for firing HDR shots - avoids random misfire due to low polling frequency
 int picture_was_taken_flag = 0;
@@ -5376,7 +5378,7 @@ void wait_till_next_second()
     while (now.tm_sec == s)
     {
         LoadCalendarFromRTC( &now );
-        msleep(DISPLAY_IS_ON ? 100 : 300);
+        msleep(DISPLAY_IS_ON ? 20 : 300);
     }
 }
 
@@ -5400,12 +5402,13 @@ static void mlu_step()
         mlu_prev_value = -1;
     }
 
-    if (!lv && display_idle() && !get_halfshutter_pressed()) // normal shooting mode, non-liveview
+    if (!lv && !MENU_MODE && !get_halfshutter_pressed()) // normal shooting mode, non-liveview, outside Canon menu
     {
         int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
         if (mlu_auto_value != mlu_current_value)
         {
             set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+            msleep(500);
         }
     }
 }
@@ -5430,7 +5433,7 @@ shoot_task( void* unused )
     TASK_LOOP
     {
         msleep(MIN_MSLEEP);
-        
+
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -5722,16 +5725,16 @@ shoot_task( void* unused )
         
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
-
         if (intervalometer_running)
         {
             int seconds_clock_0 = seconds_clock;
             int display_turned_off = 0;
             //~ int images_compared = 0;
-            msleep(100);
+            msleep(20);
             while (SECONDS_REMAINING > 0)
             {
-                msleep(300);
+                int dt = timer_values[interval_timer_index];
+                msleep(dt < 5 ? 20 : 300);
 
                 if (!intervalometer_running) break; // from inner loop only
                 
@@ -5794,11 +5797,12 @@ shoot_task( void* unused )
 
             int dt = timer_values[interval_timer_index];
             // compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
+            //~ intervalometer_next_shot_time = intervalometer_next_shot_time + dt;
             intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
             
-            //~ info_led_blink(2,50,50);
+            mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
             
-            if (dt == 0) // crazy mode - needs to be fast
+            if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
                 take_a_pic(0);
             }
@@ -5882,7 +5886,9 @@ void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
+#ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
+#endif
     #ifndef CONFIG_5D2
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif

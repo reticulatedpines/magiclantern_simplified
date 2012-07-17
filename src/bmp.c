@@ -484,14 +484,91 @@ bmp_hexdump(
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
  */
+#ifdef CONFIG_5DC
 void
 bmp_fill(
-    uint8_t            color,
-    int        x,
-    int        y,
-    int        w,
-    int        h
-)
+         uint8_t            color,
+         int        x,
+         int        y,
+         int        w,
+         int        h
+         )
+{
+#ifdef CONFIG_5DC
+    x = x/2;
+    y = y/2;
+    w = w/2;
+    h = h/2;
+#endif
+    
+    //~ if (!bmp_enabled) return;
+    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
+    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
+    w = COERCE(w, 0, BMP_W_PLUS-x-1);
+    h = COERCE(h, 0, BMP_H_PLUS-y-1);
+    
+    const int start = x;
+    //~ const uint32_t width = BMP_WIDTH;
+    const uint32_t pitch = BMPPITCH;
+    //~ const uint32_t height = BMP_HEIGHT;
+    
+    const uint32_t word = 0
+    | (color << 24)
+    | (color << 16)
+    | (color <<  8)
+    | (color <<  0);
+    
+    int y_end = y + h;
+    
+    if( w == 0 || h == 0 )
+        return;
+    
+    uint8_t * const vram = bmp_vram();
+    uint32_t * row = (void*)( vram + y * pitch + start );
+    ASSERT(row)
+    
+    if( !vram || ( 1 & (uintptr_t) vram ) )
+    {
+        //sei( flags );
+        return;
+    }
+    
+    
+    for( ; y<y_end ; y++, row += pitch/4 )
+    {
+        int x;
+        
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
+        for( x=w/4-1 ; x >= 0 ; x-- )
+#else
+            for( x=0 ; x < (int)w/4 ; x++ )
+#endif
+            {
+                row[ x ] = word;
+                /*            #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
+                 asm( "nop" );
+                 asm( "nop" );
+                 asm( "nop" );
+                 asm( "nop" );
+                 #endif
+                 asm( "nop" );
+                 asm( "nop" );
+                 asm( "nop" );
+                 asm( "nop" ); */
+            }
+    }
+}
+
+#else
+
+void
+bmp_fill(
+         uint8_t            color,
+         int        x,
+         int        y,
+         int        w,
+         int        h
+         )
 {
 #ifdef CONFIG_5DC
     x = x/2;
@@ -527,6 +604,7 @@ bmp_fill(
         } 
     }
 }
+#endif
 
 /** Draw a picture of the BMP color palette. */
 void

@@ -119,6 +119,7 @@ void ml_shutdown()
     
     info_led_on();
     _card_led_on();
+    restore_af_button_assignment_at_shutdown();
     config_save_at_shutdown();
     info_led_on();
     _card_led_on();
