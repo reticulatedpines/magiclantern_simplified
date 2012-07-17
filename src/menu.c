@@ -2031,14 +2031,6 @@ handle_ml_menu_keys(struct event * event)
         menu_hidden_should_display_help = 0;
         break;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
-    case BGMT_PRESS_UP_RIGHT:
-    case BGMT_PRESS_UP_LEFT:
-    case BGMT_PRESS_DOWN_RIGHT:
-    case BGMT_PRESS_DOWN_LEFT:
-        break; // ignore
-#endif
-
     default:
         /*DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
             __func__,
