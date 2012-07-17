@@ -481,67 +481,6 @@ bmp_hexdump(
 }
 #endif
 
-/** Fill a section of bitmap memory with solid color
- * Only has a four-pixel resolution in X.
- */
-#ifdef CONFIG_5DC
-
-// !!! BROKEN (BUFFER OVERFLOW), PLEASE CHANGE IT !!!
-void
-bmp_fill(
-         uint8_t            color,
-         int        x,
-         int        y,
-         int        w,
-         int        h
-         )
-{
-    x = x/2;
-    y = y/2;
-    w = w/2;
-    h = h/2;
-
-    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
-    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
-    w = COERCE(w, 0, BMP_W_PLUS-x-1);
-    h = COERCE(h, 0, BMP_H_PLUS-y-1);
-    
-    const int start = x;
-    const uint32_t pitch = BMPPITCH;
-    
-    const uint32_t word = 0
-    | (color << 24)
-    | (color << 16)
-    | (color <<  8)
-    | (color <<  0);
-    
-    int y_end = y + h;
-    
-    if( w == 0 || h == 0 )
-        return;
-    
-    uint8_t * const vram = bmp_vram();
-    uint32_t * row = (void*)( vram + y * pitch + start );
-    ASSERT(row)
-    
-    if( !vram || ( 1 & (uintptr_t) vram ) )
-    {
-        return;
-    }
-    
-    
-    for( ; y<y_end ; y++, row += pitch/4 )
-    {
-        int x;
-        
-            for( x=0 ; x < (int)w/4 ; x++ )
-            {
-                row[ x ] = word;
-            }
-    }
-}
-
-#else
 /* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
 //#define BMP_FILL_BYTEALIGN
 
@@ -557,20 +496,12 @@ bmp_fill(
     int        h
 )
 {
-#ifdef CONFIG_5DC
-    x = x/2;
-    y = y/2;
-    w = w/2;
-    h = h/2;
-#endif
-
-   
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     w = COERCE(w, 0, BMP_W_PLUS-x-1);
     h = COERCE(h, 0, BMP_H_PLUS-y-1);
    
-    const uint16_t halfColor = (color << 8) | color;
+    const uint16_t halfColor = ((uint16_t)color << 8) | color;
     const uint32_t wordColor = ((uint32_t)halfColor << 16) | halfColor;
     const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor;
    
@@ -585,7 +516,7 @@ bmp_fill(
        will reduce the perfomance impact of the byte-/word- aligning routines when enabled.
      */
 #if defined(BMP_FILL_BYTEALIGN)
-    if(__builtin_expect((x & 1), 0))
+    if(unlikely(x & 1))
     {
         for (int posY = y; posY < y+h; posY++)
         {
@@ -594,7 +525,7 @@ bmp_fill(
         x += 1;
         w -= 1;
     }
-    if(__builtin_expect((w & 1), 0))
+    if(unlikely(w & 1))
     {
         w -= 1;
         for (int posY = y; posY < y+h; posY++)
@@ -604,7 +535,7 @@ bmp_fill(
     }
 #endif
 #if defined(BMP_FILL_BYTEALIGN) || defined(BMP_FILL_HALFALIGN)
-    if(__builtin_expect((x & 2), 0))
+    if(unlikely(x & 2))
     {
         for (int posY = y; posY < y+h; posY++)
         {
@@ -613,7 +544,7 @@ bmp_fill(
         x += 2;
         w -= 2;
     }
-    if(__builtin_expect((w & 2), 0))
+    if(unlikely(w & 2))
     {
         w -= 2;
         for (int posY = y; posY < y+h; posY++)
@@ -626,9 +557,9 @@ bmp_fill(
        STRD in the loop later allows 32-bit aligned addresses, so no special treatment needed to make the memory addresses 64 bit aligned.
        unfortunately the compiler does not generate STRDs, but STM.
       
-       tell the compiler, is is likely that this condition is true
+       tell the compiler, is is unlikely that this condition is true, as many paints may start at e.g. 0 and end with e.g. 720
     */
-    if(__builtin_expect((w & 4), 1))
+    if(unlikely(w & 4))
     {
         /* fill a column with 32 bit writes */
         for (int posY = y; posY < y+h; posY++)
@@ -647,7 +578,6 @@ bmp_fill(
        planned to let the compiler generate STRD that uses only 2 cpu cycles plus ADD that needs 1.
        but we only get STMIA. the generated STMIA is also fine, but that uses 4 instead of 3 cpu cycles. still not that bad.
      */
-
     for (int i = y; i < y+h; i++)
     {
         uint32_t buffer = (uint32_t)&(b[BM(x,i)]);
@@ -660,7 +590,7 @@ bmp_fill(
         }
     }
 }
-#endif
+
 
 /** Draw a picture of the BMP color palette. */
 void
