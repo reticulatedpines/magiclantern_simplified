@@ -2164,6 +2164,7 @@ open_canon_menu()
 void menu_redraw_flood()
 {
     if (!lv) msleep(200);
+    else if (EXT_MONITOR_CONNECTED) msleep(200);
     for (int i = 0; i < 10; i++)
     {
         canon_gui_enable_front_buffer(0);

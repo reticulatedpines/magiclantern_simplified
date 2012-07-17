@@ -125,6 +125,21 @@ void vram_params_set_dirty()
 {
     vram_params_dirty = 1;
     bmp_mute_flag_reset();
+    afframe_set_dirty();
+}
+
+void vram_params_update_if_dirty()
+{
+    if (vram_params_dirty)
+    {
+        BMP_LOCK( 
+            if (vram_params_dirty)
+            {
+                update_vram_params(); 
+                vram_params_dirty = 0;
+            }
+        )
+    }
 }
 
 int* vram_params[] = { 
@@ -173,8 +188,8 @@ void update_vram_params()
     #if CONFIG_DEBUGMSG
     if (is_menu_active("VRAM")) return;
     #endif
-    //~ msleep(50); // just to make sure all prop handlers finished after mode change
-
+    //~ msleep(100); // just to make sure all prop handlers finished after mode change
+    
     if (!ext_monitor_hdmi) hdmi_code = 0; // 5D doesn't revert it, maybe other cameras too
 
     // force a redraw when you connect the external monitor
@@ -185,8 +200,8 @@ void update_vram_params()
     prev_ext_monitor_rca = ext_monitor_rca;
     
     // LV crop area (black bars)
-    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0);
-    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0);
+    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : ext_monitor_rca ? (pal ? 40 : 40) :    0);
+    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : ext_monitor_rca ? (pal ? 29 : 25) :    0);
     os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
     os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
 #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
@@ -287,7 +302,9 @@ void update_vram_params()
     int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
     #endif
-        
+
+    vram_update_luts();
+
     lv2hd.sx = 1024 * vram_hd.width / BM2LV_DX(os.x_ex - bar_x * 2);
     lv2hd.sy = 1024 * vram_hd.height / BM2LV_DY(os.y_ex - bar_y * 2);
     
@@ -471,14 +488,7 @@ int first_video_clip = 1;
 
 struct vram_info * get_yuv422_vram()
 {
-    if (vram_params_dirty)
-    {
-        BMP_LOCK( 
-            if (vram_params_dirty) 
-                update_vram_params(); 
-            vram_params_dirty = 0;
-        )
-    }
+    vram_params_update_if_dirty();
 
     #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
     
@@ -501,11 +511,7 @@ struct vram_info * get_yuv422_vram()
 
 struct vram_info * get_yuv422_hd_vram()
 {
-    if (vram_params_dirty)
-    {
-        BMP_LOCK( update_vram_params(); )
-        vram_params_dirty = 0;
-    }
+    vram_params_update_if_dirty();
 
     if (!lv) // play/quickreview, HD buffer not active => use LV instead
         return get_yuv422_vram();
