@@ -2067,7 +2067,7 @@ void preview_contrast_display(
                                 "Very high"
     );
 
-    if (EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
+    if (preview_contrast != 3 && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
     if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
     else menu_draw_icon(x, y, MNI_ON, 0);
 }
