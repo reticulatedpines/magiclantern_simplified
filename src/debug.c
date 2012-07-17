@@ -558,7 +558,11 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    menu_benchmark();
+    while(1)
+    {
+        SetGUIRequestMode(CURRENT_DIALOG_MAYBE ? 0 : GUIMODE_ML_MENU);
+        msleep(500);        
+    }
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
