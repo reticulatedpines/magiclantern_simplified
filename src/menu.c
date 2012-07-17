@@ -1768,7 +1768,7 @@ menu_redraw_task()
             msleep(20);
             redraw_in_progress = 0;
         }
-        else redraw();
+        //~ else redraw();
     }
 }
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x4000 );
@@ -2263,12 +2263,9 @@ static void menu_close()
     lens_focus_stop();
     menu_lv_transparent_mode = 0;
     
-    if (!PLAY_MODE) { redraw(); }
-    else draw_livev_for_playback();
-
     close_canon_menu();
     canon_gui_enable_front_buffer(0);
-    if (lv) redraw();
+    redraw();
 }
 
 /*
