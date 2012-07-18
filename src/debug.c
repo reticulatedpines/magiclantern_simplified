@@ -208,6 +208,11 @@ static void dump_rom(void* priv)
 
 void unsafe_beep()
 {
+    // on 60D, camera crashes after 105 beeps (figure out why!)
+    static int beep_count = 0;
+    beep_count++;
+    if (beep_count > 20) return;
+    
     take_semaphore(beep_sem, 0);
     call("StartPlayWaveData");
     msleep(100);
