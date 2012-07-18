@@ -363,7 +363,6 @@ atoi(
     return value;
 }
 
-/*
 struct config_var* get_config_vars_start() {
 	return _config_vars_start;
 }
@@ -371,4 +370,4 @@ struct config_var* get_config_vars_start() {
 struct config_var* get_config_vars_end() {
 	return _config_vars_end;
 }
-*/
+
