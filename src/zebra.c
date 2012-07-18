@@ -3454,6 +3454,12 @@ void cropmark_draw_from_cache()
             if (!(m & 0x80)) continue;
             if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
             B[BM(j,i)] = m & ~0x80;
+            #ifdef CONFIG_500D
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            #endif
         }
     }
 }
@@ -3473,6 +3479,12 @@ void copy_zebras_from_mirror()
             uint32_t m = M[BM(j,i)/4];
             if (p != 0) continue;
             B[BM(j,i)/4] = m & ~0x80808080;
+            #ifdef CONFIG_500D
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            #endif
         }
     }
 }
@@ -3488,6 +3500,12 @@ void clear_zebras_from_mirror()
             uint8_t m = M[BM(j,i)];
             if (m & 0x80) continue;
             M[BM(j,i)] = 0;
+            #ifdef CONFIG_500D
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            #endif
         }
     }
 }
