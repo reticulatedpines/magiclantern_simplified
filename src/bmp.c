@@ -926,26 +926,14 @@ void bmp_putpixel(int x, int y, uint8_t color)
 
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
-
-#ifdef CONFIG_5DC
-    w = w/2;
-    h = h/2;
-    x0 = x0/2;
-    y0 = y0/2;
-#endif
-    
-    //~ if (!bmp_enabled) return;
     uint8_t * const bvram = bmp_vram();
-    ASSERT(bvram)
     if (!bvram) return;
     
-    int x, y;
-    #define P(X,Y) bvram[COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1) + COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1) * BMPPITCH]
-    for (x = x0; x <= x0 + w; x++)
-        P(x, y0) = P(x, y0+h) = color;
-    for (y = y0; y <= y0 + h; y++)
-        P(x0, y) = P(x0+w, y) = color;
-    #undef P
+    draw_line(x0,   y0, x0+w,   y0, color);
+    draw_line(x0, y0+h, x0+w, y0+h, color);
+
+    draw_line(x0,   y0,   x0, y0+h, color);
+    draw_line(x0+w, y0, x0+w, y0+h, color);
 }
 
 int _bmp_draw_should_stop = 0;
