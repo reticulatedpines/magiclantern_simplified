@@ -983,6 +983,10 @@ waveform_draw_image(
                 asm( "nop" );
                 asm( "nop" );
                 asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
                 #endif
                 pixel = 0;
             }
