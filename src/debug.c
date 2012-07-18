@@ -565,10 +565,15 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    uint8_t * const bvram = bmp_vram();
     while(1)
     {
-        SetGUIRequestMode(CURRENT_DIALOG_MAYBE ? 0 : GUIMODE_ML_MENU);
-        msleep(500);        
+        #define P(X,Y) bvram[COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1) + COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1) * BMPPITCH]
+        int x = mod(rand(), 720);
+        int y = mod(rand(), 480);
+        int c = mod(rand(), 80);
+        P(x, y) = c;
+        #undef P
     }
 }
 
