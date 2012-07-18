@@ -978,10 +978,12 @@ waveform_draw_image(
                 // Draw the pixel, rounding down to the nearest
                 // quad word write (and then nop to avoid err70).
                 *(uint32_t*)( row + (i & ~3) ) = pixel;
-                //~ asm( "nop" );
-                //~ asm( "nop" );
-                //~ asm( "nop" );
-                //~ asm( "nop" );
+                #ifdef CONFIG_500D // err70?!
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                #endif
                 pixel = 0;
             }
         }
