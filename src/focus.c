@@ -52,7 +52,7 @@ CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right 
 CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
 
 static int focus_dir;
-int get_focus_dir() { return focus_dir; }
+//~ int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() 
 { 
     if (!follow_focus) return 0;
@@ -321,19 +321,20 @@ void focus_stack_trigger_from_menu(void* priv, int delta)
 }
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
-
+/*
 void follow_focus_reverse_dir()
 {
     focus_task_dir_n_speedx = -focus_task_dir_n_speedx;
 }
+*/
 
-void plot_focus_status()
+/*void plot_focus_status()
 {
     if (gui_menu_shown()) return;
     bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s        ", focus_task_dir_n_speedx > 0 ? "FAR " : focus_task_dir_n_speedx < 0 ? "NEAR" : "    ");
-}
+}*/
 
-static void
+/*static void
 focus_dir_display( 
     void *          priv,
     int         x,
@@ -348,7 +349,7 @@ focus_dir_display(
         focus_dir ? "FAR " : "NEAR"
     );
     menu_draw_icon(x, y, MNI_ON, 0);
-}
+}*/
 
 static void
 focus_show_a( 
@@ -415,12 +416,12 @@ focus_reset_a( void * priv, int delta )
     else menu_enable_lv_transparent_mode();
 }
 
-static void
+/*static void
 focus_alter_a( void * priv, int delta )
 {
     menu_show_only_selected();
     menu_enable_lv_transparent_mode(delta);
-}
+}*/
 
 int focus_rack_auto_record = 0;
 int focus_rack_enable_delay = 1;
@@ -727,7 +728,7 @@ TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
     //~ return prop_cleanup( token, property );
 //~ }
 
-static void
+/*static void
 follow_focus_toggle_dir_h( void * priv )
 {
     follow_focus_reverse_h = !follow_focus_reverse_h;
@@ -736,7 +737,7 @@ static void
 follow_focus_toggle_dir_v( void * priv )
 {
     follow_focus_reverse_v = !follow_focus_reverse_v;
-}
+}*/
 
 static void
 follow_focus_print(

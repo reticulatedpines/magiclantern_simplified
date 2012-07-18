@@ -303,7 +303,7 @@ initial_install(void)
 
 
 
-#if 1
+#if 0
 void
 bootflag_display_all(
     void *          priv,
@@ -391,6 +391,7 @@ struct menu_entry boot_menus[] = {
 };
 #endif
 
+#if 0
 static void
 bootflags_init( void )
 {
@@ -410,6 +411,7 @@ bootflags_init( void )
     }*/
 
 }
+#endif
 
 
 //~ INIT_FUNC( __FILE__, bootflags_init );

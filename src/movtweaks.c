@@ -940,11 +940,11 @@ void update_lvae_for_autoiso_n_displaygain()
 #endif
 }
 
-int gain_to_ev(int gain)
+/*int gain_to_ev(int gain)
 {
     if (gain == 0) return 0;
     return (int) roundf(log2f(gain));
-}
+}*/
 
 int gain_to_ev_x8(int gain)
 {
@@ -1122,7 +1122,7 @@ void movtweak_init()
 
 INIT_FUNC(__FILE__, movtweak_init);
 
-int handle_movie_mode_shortcut(struct event * event)
+/*int handle_movie_mode_shortcut(struct event * event)
 {
     // movie mode shortcut
     if (event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
@@ -1134,4 +1134,4 @@ int handle_movie_mode_shortcut(struct event * event)
         }
     }
     return 1;
-}
+}*/

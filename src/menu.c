@@ -1791,10 +1791,10 @@ menu_redraw_full()
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
 }
 
-void menu_inject_redraw_event()
+/*void menu_inject_redraw_event()
 {
     menu_redraw();
-}
+}*/
 
 static struct menu * get_selected_menu()
 {
@@ -2649,7 +2649,7 @@ void config_menu_save_hidden_items()
     FIO_CloseFile( file );
 }
 
-void menu_save_all_items_dbg()
+/*void menu_save_all_items_dbg()
 {
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
@@ -2679,7 +2679,7 @@ void menu_save_all_items_dbg()
     FIO_CloseFile( file );
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
-}
+}*/
 
 static void menu_load_hidden_items()
 {

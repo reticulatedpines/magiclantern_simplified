@@ -39,11 +39,11 @@ dofp_set(int value)
     prop_request_change(PROP_DOF_PREVIEW_MAYBE, &value, 2);
 }
 
-static void 
+/*static void 
     dofp_lock(void* priv, int delta)
 {
     dofp_set(1);
-}
+}*/
 
 PROP_HANDLER(PROP_LAST_JOB_STATE)
 {
@@ -978,10 +978,10 @@ void hs_show()
 {
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
 }
-void hs_hide()
+/*void hs_hide()
 {
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
-}
+}*/
 
 void 
 fake_halfshutter_step()
@@ -1249,6 +1249,7 @@ swap_menu_display(
     );
 }
 
+#ifdef CONFIG_60D
 int handle_swap_menu_erase(struct event * event)
 {
     if (swap_menu && !IS_FAKE(event))
@@ -1266,6 +1267,7 @@ int handle_swap_menu_erase(struct event * event)
     }
     return 1;
 }
+#endif
 
 /*extern int picstyle_disppreset_enabled;
 static void

@@ -79,10 +79,11 @@ void bmp_idle_copy(int direction, int fullsize)
     }
 }
 
+/*
 void bmp_idle_clear()
 {
     bzero32(BMP_VRAM_START(bmp_vram_idle()), BMP_VRAM_SIZE);
-}
+}*/
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
@@ -904,14 +905,14 @@ uint8_t bmp_getpixel(int x, int y)
     return bvram[x + y * BMPPITCH];
 }
 
-uint8_t bmp_getpixel_real(int x, int y)
+/*uint8_t bmp_getpixel_real(int x, int y)
 {
     ASSERT(x >= BMP_W_MINUS && x < BMP_W_PLUS)
     ASSERT(y >= BMP_H_MINUS && y < BMP_H_PLUS)
 
     uint8_t * const bvram = bmp_vram_real();
     return bvram[x + y * BMPPITCH];
-}
+}*/
 
 void bmp_putpixel(int x, int y, uint8_t color)
 {
@@ -1260,6 +1261,7 @@ void bfnt_puts(char* s, int x, int y, int fg, int bg)
     }
 }
 
+/*
 void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 {
     while (*s)
@@ -1267,7 +1269,7 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
         x += bfnt_draw_char(*s, x, y, fg, bg);
         s++;
     }
-}
+}*/
 
 #if CONFIG_DEBUGMSG
 void

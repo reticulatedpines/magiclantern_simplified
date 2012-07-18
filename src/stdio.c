@@ -179,7 +179,7 @@ strtol(
 }
 
 
-double
+/*double
 strtod(
     const char *        str,
     char **         endptr
@@ -197,7 +197,7 @@ strtod(
     return val;
 #endif
 }
-
+*/
 
 unsigned long
 strtoul(
@@ -224,13 +224,13 @@ streq( const char * a, const char * b )
 /** Exit is tough; we want to kill the current thread, but how? */
 #include "bmp.h"
 
-void
+/*void
 exit( int rc )
 {
     bmp_printf( FONT_SMALL, 0, 50, "Exit %d", rc );
     while(1)
         ;
-}
+}*/
 
 
 /** realloc is implemented via malloc/free */

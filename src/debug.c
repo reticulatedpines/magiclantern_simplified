@@ -57,6 +57,7 @@ void take_screenshot( void * priv )
     silent_pic_take_lv_dbg();
 }
 
+#ifdef CONFIG_DEBUGMSG
 int draw_prop = 0;
 
 static void
@@ -71,6 +72,7 @@ draw_prop_reset( void * priv )
 {
     dbg_propn = 0;
 }
+#endif
 
 #ifdef CONFIG_5D3
 void _card_led_on() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
@@ -579,12 +581,12 @@ void run_in_separate_task(void (*priv)(void), int delta)
 
 #ifdef CONFIG_STRESS_TEST
 
-static void stress_test_long(void* priv, int delta)
+/*static void stress_test_long(void* priv, int delta)
 {
     gui_stop_menu();
     task_create("fake_buttons", 0x1c, 0, fake_buttons, 0);
     task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
-}
+}*/
 
  void stress_test_picture(int n, int delay)
 {
@@ -1192,7 +1194,7 @@ static void stress_test_random_task(void* unused)
     }
 }
 
-static void stress_test_random_action_simple()
+/*static void stress_test_random_action_simple()
 {
     {
         switch (rand() % 4)
@@ -1214,6 +1216,7 @@ static void stress_test_random_action_simple()
         }
     }
 }
+*/
 
 void stress_test_menu_dlg_api_task(void* unused)
 {
@@ -1268,7 +1271,7 @@ void ui_lock(int x)
     msleep(50);
 }
 
-void toggle_mirror_display()
+/*void toggle_mirror_display()
 {
     #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     //~ zebra_pause();
@@ -1280,7 +1283,7 @@ void toggle_mirror_display()
     msleep(200);
     //~ zebra_resume();
     #endif
-}
+}*/
 
 /*void fake_simple_button(int bgmt_code)
 {
@@ -1504,8 +1507,8 @@ void draw_electronic_level(int angle, int prev_angle, int force_redraw)
     int r = 200;
     draw_angled_line(x0, y0, r, prev_angle, 0);
     draw_angled_line(x0+1, y0+1, r, prev_angle, 0);
-    draw_angled_line(x0, y0, r, angle, angle % 900 ? COLOR_BLACK : COLOR_GREEN1);
-    draw_angled_line(x0+1, y0+1, r, angle, angle % 900 ? COLOR_WHITE : COLOR_GREEN2);
+    draw_angled_line(x0, y0, r, angle, (angle % 900) ? COLOR_BLACK : COLOR_GREEN1);
+    draw_angled_line(x0+1, y0+1, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
 }
 
 void disable_electronic_level()
@@ -1848,9 +1851,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     display_shortcut_key_hints_lv();
                 )
                 #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
-                static int ae_warned = 0;
                 if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
                 {
+                    static int ae_warned = 0;
                     if (!ae_warned && !gui_menu_shown())
                     {
                         bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
@@ -1879,9 +1882,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 else ae_warned = 0;
                 #endif
                 
-                static int rca_warned = 0;
                 if (ext_monitor_rca) 
                 {
+                    static int rca_warned = 0;
                     if (!rca_warned && !gui_menu_shown())
                     {
                         msleep(2000);
@@ -1933,7 +1936,7 @@ void screenshot_start(void* priv, int delta)
     screenshot_sec = 10;
 }
 
-void screenshots_for_menu()
+/*void screenshots_for_menu()
 {
     msleep(1000);
     extern struct semaphore * gui_sem;
@@ -1969,6 +1972,7 @@ void screenshots_for_menu()
     select_menu_by_name("Help", "About Magic Lantern");
     msleep(1000); call("dispcheck");
 }
+*/
 
 void toggle_draw_event( void * priv );
 
@@ -2322,6 +2326,7 @@ static void AVItoCR2(void* priv, int delta)
     EyeFi_RenameAVItoCR2(get_dcim_dir());
 }*/
 
+/*
 static void frozen_task()
 {
     msleep(2000);
@@ -2346,6 +2351,7 @@ static void alloc_1M_task()
 {
     AllocateMemory(1024 * 1024);
 }
+*/
 
 static void save_cpu_usage_log_task()
 {
@@ -2716,6 +2722,7 @@ static struct menu_entry cfg_menus[] = {
 },
 };
 
+#if CONFIG_DEBUGMSG
 
 static void * debug_token;
 
@@ -2736,7 +2743,6 @@ debug_token_handler(
     );
 }
 
-#if CONFIG_DEBUGMSG
 //~ static int dbg_propn = 0;
 #define MAXPROP 30
 static unsigned dbg_props[MAXPROP] = {0};
@@ -3164,6 +3170,10 @@ int handle_keep_ml_after_format_toggle()
     return 0;
 }
 
+/** 
+ * for testing dialogs and string IDs
+ */
+/*
 void HijackDialogBox()
 {
     struct gui_task * current = gui_task_list.current;
@@ -3177,6 +3187,7 @@ void HijackDialogBox()
     }
     dialog_redraw(dialog);
 }
+*/
 
 unsigned GetFileSize(char* filename)
 {
@@ -3421,7 +3432,7 @@ bool get_halfshutter_pressed() { return halfshutter_pressed && !dofpreview; }
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
 int set_pressed = 0;
-int get_zoom_in_pressed() { return zoom_in_pressed; }
+//~ int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 int get_set_pressed() { return set_pressed; }
 int joy_center_pressed = 0;
@@ -3520,7 +3531,7 @@ void display_off()
 {
     fake_simple_button(MLEV_TURN_OFF_DISPLAY);
 }
-int display_is_on() { return DISPLAY_IS_ON; }
+//~ int display_is_on() { return DISPLAY_IS_ON; }
 
 
 // engio functions may fail and lock the camera
@@ -3535,7 +3546,7 @@ void EngDrvOut(int reg, int value)
     //~ _card_led_off();
 }
 
-void engio_write(int* command_sequence)
+/*void engio_write(int* command_sequence)
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
@@ -3543,3 +3554,4 @@ void engio_write(int* command_sequence)
     _engio_write(command_sequence);
     //~ _card_led_off();
 }
+*/

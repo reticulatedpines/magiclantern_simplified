@@ -69,6 +69,8 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
     } while (dx<=dy);
 }
 
+#ifdef CONFIG_60D // only used for level indicator
+
 #include "cordic-16bit.h"
 
 void cordic_ex(int theta, int* s, int* c, int n)
@@ -90,7 +92,7 @@ void cordic_ex(int theta, int* s, int* c, int n)
 }
 
 // slow like a snail, but at least it works :)
-void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
+/*void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
 {
     float a;
     for (a = ang_start*10; a < ang_end*10; a++)
@@ -99,7 +101,7 @@ void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
         cordic_ex(a * MUL / 573, &s, &c, 16);
         draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
     }
-}
+}*/
 
 void draw_angled_line(int x, int y, int r, int ang, color cl)
 {
@@ -107,4 +109,4 @@ void draw_angled_line(int x, int y, int r, int ang, color cl)
    cordic_ex(ang * MUL / 573, &s, &c, 16);
    draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
 }
-
+#endif

@@ -1118,13 +1118,13 @@ void card_benchmark_schedule()
 }
 #endif
 
-static void dump_vram()
+/*static void dump_vram()
 {
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/4.bin");
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/4-1.bin");
     //dump_seg(0x1000, 0x100000, CARD_DRIVE "ML/LOGS/ram.bin");
     //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "ML/LOGS/VRAM.BIN");
-}
+}*/
 
 int fps_ticks = 0;
 
@@ -1257,7 +1257,7 @@ void zebra_update_lut()
     }
 }
 
-static int zebra_color_word_row_thick(int c, int y)
+/*static int zebra_color_word_row_thick(int c, int y)
 {
     //~ return zebra_color_word_row(c,y);
     if (!c) return 0;
@@ -1279,7 +1279,7 @@ static int zebra_color_word_row_thick(int c, int y)
             break;
     }
     return cw;
-}
+}*/
 
 #define MAX_DIRTY_PIXELS 5000
 
@@ -1974,11 +1974,11 @@ zebra_level_display( void * priv, int x, int y, int selected )
         );
     }
 }
-static void
+/*static void
 zebra_toggle( void* priv, int sign )
 {
     menu_ternary_toggle(priv, -sign);
-}
+}*/
 
 static char* falsecolor_palette_name()
 {
@@ -2025,11 +2025,6 @@ falsecolor_display_palette( void * priv, int x, int y, int selected )
     falsecolor_palette_preview(x - 420, y + font_large.height + 10);
 }
 
-static void
-falsecolor_palette_toggle(void* priv)
-{
-    falsecolor_palette = mod(falsecolor_palette+1, COUNT(false_colour));
-}
 /*
 static void
 focus_debug_display( void * priv, int x, int y, int selected )
@@ -2233,7 +2228,7 @@ global_draw_display( void * priv, int x, int y, int selected )
         menu_draw_icon(x, y, MNI_WARNING, 0);
 }
 
-static void
+/*static void
 waveform_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(
@@ -2243,7 +2238,7 @@ waveform_display( void * priv, int x, int y, int selected )
         *(unsigned*) priv ? "ON " : "OFF"
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
-}
+}*/
 
 static void
 vectorscope_display( void * priv, int x, int y, int selected )
@@ -2899,12 +2894,12 @@ electronic_level_display(
     menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
 }
 
-static void clearscreen_now()
+/*static void clearscreen_now()
 {
     gui_stop_menu();
     bmp_on();
     bmp_off();
-}
+}*/
 
 struct menu_entry zebra_menus[] = {
     {
@@ -3593,7 +3588,7 @@ cropmark_redraw()
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
 
-int is_safe_to_mess_with_the_display(int timeout_ms)
+/*int is_safe_to_mess_with_the_display(int timeout_ms)
 {
     int k = 0;
     while (lens_info.job_state >= 10 || !DISPLAY_IS_ON || recording == 1)
@@ -3603,7 +3598,7 @@ int is_safe_to_mess_with_the_display(int timeout_ms)
         msleep(100);
     }
     return 1;
-}
+}*/
 
 void bmp_on()
 {
@@ -3627,11 +3622,11 @@ void bmp_on()
     #endif
     }
 }
-void bmp_on_force()
+/*void bmp_on_force()
 {
     _bmp_muted = true; _bmp_unmuted = false;
     bmp_on();
-}
+}*/
 void bmp_off()
 {
     //~ return;
@@ -4729,11 +4724,11 @@ void redraw()
 */
 
 
-static void false_color_toggle()
+/*static void false_color_toggle()
 {
     falsecolor_draw = !falsecolor_draw;
     if (falsecolor_draw) zoom_overlay_disable();
-}
+}*/
 
 static int transparent_overlay_flag = 0;
 void schedule_transparent_overlay()
@@ -5656,7 +5651,7 @@ void play_422(char* filename)
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
 }
 
-void peaking_benchmark()
+/*void peaking_benchmark()
 {
     fake_simple_button(BGMT_PLAY);
     msleep(1000);
@@ -5669,3 +5664,4 @@ void peaking_benchmark()
     NotifyBox(10000, "%d ", b-a);
     beep();
 }
+*/
