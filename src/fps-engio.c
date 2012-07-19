@@ -153,6 +153,10 @@ static void fps_read_current_timer_values();
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #elif defined(CONFIG_1100D)
     #define NEW_FPS_METHOD 1
+    #undef TG_FREQ_BASE
+    #define TG_FREQ_BASE 32200000
+    #undef FPS_TIMER_A_MIN
+    #define FPS_TIMER_A_MIN fps_timer_a_orig // Safe bet for now
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
@@ -1154,7 +1158,7 @@ static void fps_task()
 {
     TASK_LOOP
     {
-        #ifdef CONFIG_500D
+        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
         msleep(fps_override && recording ? 10 : 100);
         #else
         msleep(100);

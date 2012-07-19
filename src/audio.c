@@ -33,10 +33,24 @@
 #include "disable-this-module.h"
 #endif
 
+#if (defined(CONFIG_500D) || defined(CONFIG_1100D))
+#define CONFIG_MONO_MIC
+#define CONFIG_NO_EXT_MIC
+#endif
+
+#if (defined(CONFIG_600D))
+#define CONFIG_EARLY_AUDIO
+#endif
+
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
 #ifdef CONFIG_500D
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
+#endif
+
+#ifdef CONFIG_EARLY_AUDIO
+void audio_reg_dump_600D();
+void try_init_audioIC_1100D();
 #endif
 
 static void audio_configure(int force);
@@ -335,7 +349,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d :(
+#if !defined(CONFIG_MONO_MIC)         // mono mic on 500d and 1100d :(
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -343,7 +357,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d :(
+#if !defined(CONFIG_MONO_MIC)         // mono mic on 500d and 1100d :(
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
@@ -822,7 +836,7 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
-#if defined(CONFIG_600D) || defined(CONFIG_1100D)
+#if defined(CONFIG_EARLY_AUDIO)
         return;
 #endif
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -835,7 +849,7 @@ audio_configure( int force )
 #endif
 
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
-#if (defined(CONFIG_500D) || defined(CONFIG_1100D))         // no external sources on 500d and 1100d :(
+#if defined(CONFIG_MONO_MIC)         // no external sources on 500d and 1100d :(
         int input_source = 0;
 #else
         int input_source = get_input_source();
@@ -1289,7 +1303,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
+#if !defined(CONFIG_EARLY_AUDIO)
 #if 0
         {
                 .priv           = &o2gain,
@@ -1307,7 +1321,7 @@ static struct menu_entry audio_menus[] = {
                 //.essential = FOR_MOVIE,
                 .edit_mode = EM_MANY_VALUES,
         },
-#ifndef CONFIG_500D
+#ifndef CONFIG_MONO_MIC
         {
                 .name = "L-DigitalGain",
                 .priv           = &dgain_l,
@@ -1327,7 +1341,7 @@ static struct menu_entry audio_menus[] = {
                 .edit_mode = EM_MANY_VALUES,
         },
 #endif
-#ifndef CONFIG_500D
+#ifndef CONFIG_NO_EXT_MIC
         {
                 .name = "Input source",
                 .priv           = &input_choice,
@@ -1344,7 +1358,7 @@ static struct menu_entry audio_menus[] = {
      .select            = windcut_toggle,
      .display   = windcut_display,
      },*/
-#if !defined(CONFIG_550D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_550D) && !defined(CONFIG_500D) && !defined(CONFIG_1100D)
          {
                 .name = "Wind Filter",
                  .priv              = &enable_filters,
@@ -1367,7 +1381,7 @@ static struct menu_entry audio_menus[] = {
      .select            = audio_binary_toggle,
      .display   = audio_loopback_display,
      },*/
-#ifndef CONFIG_500D
+#ifndef CONFIG_NO_EXT_MIC
         {
                 .name = "Mic Power",
                 .priv           = &mic_power,
@@ -1395,6 +1409,7 @@ static struct menu_entry audio_menus[] = {
                 //~ .edit_mode = EM_MANY_VALUES,
         },
 #endif
+#ifndef CONFIG_1100D
         {
                 .name = "Headphone Monitoring",
                 .priv = &audio_monitoring,
@@ -1403,7 +1418,8 @@ static struct menu_entry audio_menus[] = {
                 .help = "Monitoring via A-V jack. Disable if you use a SD display.",
                 //.essential = FOR_MOVIE,
         },
-#endif // 600D and 1100D
+#endif
+#else // OKI IC
         {
                 .name = "Audio Meters",
                 .priv           = &cfg_draw_meters,
@@ -1412,6 +1428,15 @@ static struct menu_entry audio_menus[] = {
                 .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
                 //.essential = FOR_MOVIE,
         },
+	{
+		.name = "Enable Audio IC (1100D)",
+		.select = try_init_audioIC_1100D
+	},
+	{
+		.name = "Dump Audio Registers",
+		.select =  audio_reg_dump_600D
+	},
+#endif
 };
 
 
@@ -1515,9 +1540,7 @@ my_sounddev_task()
         }
 }
 
-#if !(defined(CONFIG_600D) || defined CONFIG_1100D) //Commented as it needs more testing
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
-#endif
 
 #if 0
 /** Replace the audio level task with our own.
@@ -1681,15 +1704,15 @@ void input_toggle()
 
 static void audio_menus_init()
 {
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
         menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 #else
-        menu_add( "Display", audio_menus, 1 );
+        menu_add( "Display", audio_menus, COUNT(audio_menus) );
 #endif
 }
 
-/* Dump audio for 600D
-#ifdef CONFIG_600D
+#ifdef CONFIG_EARLY_AUDIO
+// Dump audio for 600D 
 void audio_reg_dump_600D()
 {
     static char log_filename[100];
@@ -1705,7 +1728,6 @@ void audio_reg_dump_600D()
 
     FILE* f = FIO_CreateFileEx(log_filename);
 
-    int output = 0;
     for( int addr = 0 ; addr < 0x100 ; addr++ )
     {
         const uint16_t reg = audio_ic_read(addr << 8);
@@ -1714,5 +1736,11 @@ void audio_reg_dump_600D()
     
     FIO_CloseFile(f);
 }
+
+void try_init_audioIC_1100D() {
+	int init_sequence[] = {	0xA000,	0xA100,	0xA202,	0xA3A9,	0xA664,	0xA7A4,	0xA8D2,	0xA92D,	0xAA6D,	0xAB80,	0xAE0F,	0xA523,	0xA46A,	0xA040,	0xA103	};
+	for(int i=0; i<15; ++i) {
+		audio_ic_write(init_sequence[i]);    // bitwise OR everything together and call _audio_ic_write function
+	}
+}
 #endif
-*/
