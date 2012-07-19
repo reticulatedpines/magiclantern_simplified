@@ -565,20 +565,6 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-    while(1)
-    {
-        uint8_t * const bvram = bmp_vram();
-        for (int i = 0; i < 10000; i++)
-        {
-            #define P(X,Y) bvram[COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1) + COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1) * BMPPITCH]
-            int x = mod(rand(), 720);
-            int y = mod(rand(), 480);
-            int c = mod(rand(), 80);
-            P(x, y) = c;
-            #undef P
-        }
-        msleep(20);
-    }
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1390,18 +1376,22 @@ static void dbg_memspy_update()
     static int init_done = 0;
     if (!init_done) dbg_memspy_init();
     init_done = 1;
-
+    
     if (!dbg_memmirror) return;
     if (!dbg_memchanges) return;
-
+    
     int elapsed_time = _toc();
     bmp_printf(FONT_MED, 50, 400, "%d ", elapsed_time);
-
+    
     int i;
     int k=0;
     for (i = 0; i < mem_spy_len; i++)
     {
+#ifdef CONFIG_5DC
+        uint32_t fnt = FONT_MED;
+#else
         uint32_t fnt = FONT_SMALL;
+#endif
         uint32_t addr = dbg_memspy_get_addr(i);
         int oldval = dbg_memmirror[i];
         int newval = MEMX(addr);
@@ -1410,13 +1400,17 @@ static void dbg_memspy_update()
             //~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
             dbg_memmirror[i] = newval;
             if (dbg_memchanges[i] < 1000000) dbg_memchanges[i]++;
+#ifdef CONFIG_5DC
+            fnt = FONT(FONT_MED, COLOR_BLUE, COLOR_BG);
+#else
             fnt = FONT(FONT_SMALL, 5, COLOR_BG);
+#endif
             if (elapsed_time < mem_spy_start_time) dbg_memchanges[i] = 1000000; // so it will be ignored
         }
         //~ else continue;
-
+        
         if (mem_spy_bool && newval != 0 && newval != 1 && newval != -1) continue;
-
+        
         if (mem_spy_value_lo && newval < mem_spy_value_lo) continue;
         if (mem_spy_value_hi && newval > mem_spy_value_hi) continue;
         
@@ -1426,19 +1420,33 @@ static void dbg_memspy_update()
         int freq = dbg_memchanges[i] / elapsed_time;
         if (mem_spy_freq_lo && freq < mem_spy_freq_lo) continue;
         if (mem_spy_freq_hi && freq > mem_spy_freq_hi) continue;
-
+        
+#ifdef CONFIG_5DC
+        int x =  10 + 16 * 22 * (k % 2);
+        int y =  10 + 20 * (k / 2);
+        bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
+        k = (k + 1) % 30;
+#else
         int x =  10 + 8 * 22 * (k % 4);
         int y =  10 + 12 * (k / 4);
         bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
         k = (k + 1) % 120;
+#endif
     }
-
+    
     for (i = 0; i < 10; i++)
     {
-        int x =  10 + 8 * 22 * (k % 4);
+#ifdef CONFIG_5DC
+        int x =  10 + 8 * 22 * (k % 2);
+        int y =  10 + 20 * (k / 2);
+        bmp_printf(FONT_MED, x, y, "                    ");
+        k = (k + 1) % 30;
+#else
+        int x =  10 + 16 * 22 * (k % 4);
         int y =  10 + 12 * (k / 4);
         bmp_printf(FONT_SMALL, x, y, "                    ");
         k = (k + 1) % 120;
+#endif
     }
 }
 #endif
@@ -2849,8 +2857,10 @@ ack:
 
 #endif
 
-#if defined(CONFIG_500D) || defined(CONFIG_5DC)
+#if defined(CONFIG_500D)
 #define num_properties 2048
+#elif defined(CONFIG_5DC)
+#define num_properties 0
 #else
 #define num_properties 8192
 #endif
