@@ -1437,12 +1437,12 @@ static void dbg_memspy_update()
     for (i = 0; i < 10; i++)
     {
 #ifdef CONFIG_5DC
-        int x =  10 + 8 * 22 * (k % 2);
+        int x =  10 + 16 * 22 * (k % 2);
         int y =  10 + 20 * (k / 2);
         bmp_printf(FONT_MED, x, y, "                    ");
         k = (k + 1) % 30;
 #else
-        int x =  10 + 16 * 22 * (k % 4);
+        int x =  10 + 8 * 22 * (k % 4);
         int y =  10 + 12 * (k / 4);
         bmp_printf(FONT_SMALL, x, y, "                    ");
         k = (k + 1) % 120;
