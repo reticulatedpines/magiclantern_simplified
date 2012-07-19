@@ -3567,7 +3567,6 @@ cropmark_draw()
         // Cropmarks enabled, but cache is not valid
         if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
         clrscr_mirror(); // clean any remaining zebras / peaking
-        cropmark_cache_update_signature();
         bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
         //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -3575,6 +3574,7 @@ cropmark_draw()
     }
 
 end:
+    cropmark_cache_update_signature();
     cropmark_cache_dirty = 0;
     zoom_overlay_dirty = 1;
     crop_dirty = 0;
