@@ -617,6 +617,7 @@ void clear_lv_afframe()
         for (int j = x0+w; j > x0; j--)
         {
             int p = Pr(j,i);
+            // clear focus box (white pixels, and any black neighbouring pixels from bottom-right - shadow)
             if (p == COLOR_WHITE)
             {
                 for (int di = 2; di >= 0; di--)
@@ -627,12 +628,15 @@ void clear_lv_afframe()
                         if (p == COLOR_WHITE || p == COLOR_BLACK)
                         {
                             int m = M[BM(j+dj,i+di)];
-                            if (m == 0x80) M[BM(j+dj,i+di)] = 0;
-                            Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0;
+                            Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0; // if global draw on, copy color from ML cropmark, otherwise, transparent
                         }
                     }
                 }
             }
+            
+            // clear spotmeter area marked as unsafe for zebras
+            int m = M[BM(j,i)];
+            if (m == 0x80) M[BM(j,i)] = 0;
         }
     }
     #undef Pw
