@@ -327,7 +327,7 @@ void update_vram_params()
 }
 
 
-void trans_test()
+/*void trans_test()
 {
     for (int i = 0; i < 1000; i += 10)
     {
@@ -343,7 +343,7 @@ void trans_test()
         );
         msleep(300);
     }
-}
+}*/
 
 /*
 int* lut_bm2lv_x = 0;
@@ -599,14 +599,16 @@ vram_print(
 static void vram_toggle(void* priv, int delta)
 {
     MEM(vram_params[(int)priv]) += priv ? delta : SGN(delta);
+#ifndef CONFIG_5DC
     menu_show_only_selected();
+#endif
     crop_set_dirty(1);
     //~ update_vram_params_calc();
 }
 
 static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
 static void vram_toggle_rev(void* priv) { vram_toggle(priv, -increment); }
-static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment, 1); }
+//~ static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment, 1); }
 
 #define VRAM_MENU_ENTRY(x)  { \
         .priv = (void *) x, \

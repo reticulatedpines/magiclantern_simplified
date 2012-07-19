@@ -372,7 +372,7 @@ time_indicator_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL_GDR(time_indicator));
 }
 
-static void
+/*static void
 bitrate_indicator_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(
@@ -382,7 +382,7 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
         bitrate_indicator ? "ON" : "OFF"
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR(bitrate_indicator));
-}
+}*/
 
 CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 static void

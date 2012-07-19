@@ -153,6 +153,10 @@ static void fps_read_current_timer_values();
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #elif defined(CONFIG_1100D)
     #define NEW_FPS_METHOD 1
+    #undef TG_FREQ_BASE
+    #define TG_FREQ_BASE 32200000
+    #undef FPS_TIMER_A_MIN
+    #define FPS_TIMER_A_MIN fps_timer_a_orig // Safe bet for now
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
@@ -420,7 +424,7 @@ static int fps_get_timer(int fps_x1000)
 int written_value_a = 0;
 int written_value_b = 0;
 int fps_needs_updating = 0;
-int fps_was_changed_by_canon() 
+/*int fps_was_changed_by_canon() 
 { 
     int ans = 
         written_value_a != FPS_REGISTER_A_VALUE || 
@@ -428,7 +432,7 @@ int fps_was_changed_by_canon()
         
     //~ if (ans) NotifyBox(2000, "wa=%8x wb=%8x\nra=%8x rb=%8x", written_value_a, written_value_b, FPS_REGISTER_A_VALUE, FPS_REGISTER_B_VALUE);
     return ans;
-}
+}*/
 
 static void fps_setup_timerB(int fps_x1000)
 {
@@ -699,7 +703,7 @@ static void fps_enable_disable(void* priv, int delta)
     if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
-static int find_fps_index(int fps_x1000)
+/*static int find_fps_index(int fps_x1000)
 {
     for (int i = 0; i < COUNT(fps_values_x1000); i++)
     {
@@ -707,10 +711,10 @@ static int find_fps_index(int fps_x1000)
             return i;
     }
     return -1;
-}
+}*/
 
 
-void fps_range_print(
+/*void fps_range_print(
     void *          priv,
     int         x,
     int         y,
@@ -727,7 +731,7 @@ void fps_range_print(
         fps_high / 1000, fps_high % 1000
     );
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
-}
+}*/
 
 void shutter_range_print(
     void *          priv,
@@ -1108,7 +1112,7 @@ static void fps_read_current_timer_values()
     fps_timer_b = (VB & 0xFFFF) + 1;
 }
 
-static int fps_check_if_current_timer_values_changed()
+/*static int fps_check_if_current_timer_values_changed()
 {
     int changed = 0;
     static int prev_a = 0;
@@ -1117,7 +1121,7 @@ static int fps_check_if_current_timer_values_changed()
     prev_a = fps_timer_a;
     prev_b = fps_timer_b;
     return changed;    
-}
+}*/
 
 static void fps_read_default_timer_values()
 {
@@ -1154,7 +1158,7 @@ static void fps_task()
 {
     TASK_LOOP
     {
-        #ifdef CONFIG_500D
+        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
         msleep(fps_override && recording ? 10 : 100);
         #else
         msleep(100);

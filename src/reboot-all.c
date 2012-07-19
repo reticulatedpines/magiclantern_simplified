@@ -126,34 +126,40 @@ static int guess_firmware_version()
             blob_start = &blob_start_550;
             blob_end = &blob_end_550;
             RESTARTSTART = (void*)RESTARTSTART_550;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_60D_111:
             blob_start = &blob_start_60;
             blob_end = &blob_end_60;
             RESTARTSTART = (void*)RESTARTSTART_60;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_600D_101:
         case SIG_600D_102: // firmwares are identical
             blob_start = &blob_start_600;
             blob_end = &blob_end_600;
             RESTARTSTART = (void*)RESTARTSTART_600;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_50D_109:
             blob_start = &blob_start_50;
             blob_end = &blob_end_50;
             RESTARTSTART = (void*)RESTARTSTART_50;
             ROMSTART = (void *)0xFF810000;
+            *(int*)0xC02200BC = 0x46;  // CF card LED on
             return 1;
         case SIG_500D_111:
             blob_start = &blob_start_500;
             blob_end = &blob_end_500;
             RESTARTSTART = (void*)RESTARTSTART_500;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_5D2_212:
             blob_start = &blob_start_5d2;
             blob_end = &blob_end_5d2;
             RESTARTSTART = (void*)RESTARTSTART_5D2;
             ROMSTART = (void *)0xFF810000;
+            *(int*)0xC02200BC = 0x46;  // CF card LED on
             return 1;
         default:
             fail();

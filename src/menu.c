@@ -108,10 +108,14 @@ static void menu_save_hidden_items();
 static void menu_load_hidden_items();
 
 extern int gui_state;
-void menu_show_only_selected()
+void menu_enable_lv_transparent_mode()
 {
     menu_lv_transparent_mode = 1;
     menu_damage = 1;
+}
+void menu_disable_lv_transparent_mode()
+{
+    menu_lv_transparent_mode = 0;
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( menu_lv_transparent_mode ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( menu_lv_transparent_mode && hist_countdown < 2 ); }
@@ -1749,10 +1753,10 @@ menu_redraw_task()
             msleep(20);
             redraw_in_progress = 0;
         }
-        else redraw();
+        //~ else redraw();
     }
 }
-TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1d, 0x4000 );
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x4000 );
 
 void
 menu_redraw()
@@ -1772,10 +1776,10 @@ menu_redraw_full()
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
 }
 
-void menu_inject_redraw_event()
+/*void menu_inject_redraw_event()
 {
     menu_redraw();
-}
+}*/
 
 static struct menu * get_selected_menu()
 {
@@ -1898,6 +1902,14 @@ handle_ml_menu_keys(struct event * event)
         }
         
         break;
+    
+    #ifdef BGMT_PRESS_UP_LEFT
+    case BGMT_PRESS_UP_LEFT:
+    case BGMT_PRESS_UP_RIGHT:
+    case BGMT_PRESS_DOWN_LEFT:
+    case BGMT_PRESS_DOWN_RIGHT:
+        return 0; // ignore diagonal buttons
+    #endif
 
     case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
         //~ menu_close();
@@ -2007,14 +2019,6 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_damage = 1;
         menu_hidden_should_display_help = 0;
         break;
-
-#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
-    case BGMT_PRESS_UP_RIGHT:
-    case BGMT_PRESS_UP_LEFT:
-    case BGMT_PRESS_DOWN_RIGHT:
-    case BGMT_PRESS_DOWN_LEFT:
-        break; // ignore
-#endif
 
     default:
         /*DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
@@ -2242,12 +2246,9 @@ static void menu_close()
     lens_focus_stop();
     menu_lv_transparent_mode = 0;
     
-    if (!PLAY_MODE) { redraw(); }
-    else draw_livev_for_playback();
-
     close_canon_menu();
     canon_gui_enable_front_buffer(0);
-    if (lv) redraw();
+    redraw();
 }
 
 /*
@@ -2378,7 +2379,7 @@ menu_task_minimal( void* unused )
     }
 }
 
-TASK_CREATE( "menu_task", menu_task, 0, 0x1d, 0x1000 );
+TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x1000 );
 
 int is_menu_active(char* name)
 {
@@ -2631,7 +2632,7 @@ void config_menu_save_hidden_items()
     FIO_CloseFile( file );
 }
 
-void menu_save_all_items_dbg()
+/*void menu_save_all_items_dbg()
 {
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
@@ -2661,7 +2662,7 @@ void menu_save_all_items_dbg()
     FIO_CloseFile( file );
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
-}
+}*/
 
 static void menu_load_hidden_items()
 {

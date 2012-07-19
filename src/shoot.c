@@ -839,6 +839,7 @@ int compute_signature(int* start, int num)
     return c;
 }
 
+/*
 static void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
 {
     ASSERT(acc);
@@ -853,9 +854,9 @@ static void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
         accs[i*2] += srcs[i*2]; // chroma, signed
         accu[i*2+1] += srcu[i*2+1]; // luma, unsigned
     }
-}
+}*/
 
-static void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den)
+/*static void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, int den)
 {
     ASSERT(dst);
     ASSERT(src);
@@ -869,7 +870,7 @@ static void div_yuv_by_const_dst8bit_src16bit(void* dst, void* src, int numpix, 
         dsts[i*2] = srcs[i*2] / den; // chroma, signed
         dstu[i*2+1] = srcu[i*2+1] / den; // luma, unsigned
     }
-}
+}*/
 
 // octave:
 // x = linspace(0,1,256);
@@ -1201,7 +1202,7 @@ silent_pic_take_lv_dbg()
     dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
 
-void
+/*void
 silent_pic_take_test()
 {
     char* imgname = silent_pic_get_name();
@@ -1211,7 +1212,7 @@ silent_pic_take_test()
     int h = vram->height;
     
     dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
-}
+}*/
 
 int silent_pic_matrix_running = 0;
  void
@@ -1301,7 +1302,7 @@ silent_pic_take_sweep(int interactive)
 #endif
 }
 
-static void vsync(volatile int* addr)
+/*static void vsync(volatile int* addr)
 {
     int i;
     int v0 = *addr;
@@ -1311,7 +1312,7 @@ static void vsync(volatile int* addr)
         msleep(MIN_MSLEEP);
     }
     bmp_printf(FONT_MED, 30, 100, "vsync failed");
-}
+}*/
 
 /*
 static void
@@ -2402,7 +2403,7 @@ flash_ae_display( void * priv, int x, int y, int selected )
 }
 
 // 0 = off, 1 = alo, 2 = htp
-static int get_ladj()
+/*static int get_ladj()
 {
     int alo = get_alo();
     if (get_htp()) return 4;
@@ -2410,7 +2411,7 @@ static int get_ladj()
     if (alo == ALO_STD) return 2;
     if (alo == ALO_HIGH) return 3;
     return 0;
-}
+}*/
 
 /*
 #if defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -2694,7 +2695,7 @@ int handle_zoom_x5_x10(struct event * event)
     return 1;
 }
 
-static void 
+/*static void 
 zoom_sharpen_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(
@@ -2703,7 +2704,7 @@ zoom_sharpen_display( void * priv, int x, int y, int selected )
         "Zoom SharpContrast++: %s",
         zoom_sharpen ? "ON" : "OFF"
     );
-}
+}*/
 
 // called from some prop_handlers (shoot.c and zebra.c)
 void zoom_sharpen_step()
@@ -4174,7 +4175,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC) & !defined(CONFIG_1100D)
+    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC)
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -4855,7 +4856,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             bulb_ramping_enabled = 0; // to force a pic in manual mode
 
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            if (expsim == 2) { set_expsim(1); msleep(100); } // can't set shutter slower than 1/30 in movie mode
+            if (expsim == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans = hdr_set_rawshutter(rc);
             take_a_pic(allow_af);
@@ -4971,6 +4972,12 @@ static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, 
 static void hdr_auto_take_pics(int step_size, int skip0)
 {
     int i;
+    
+    if (step_size == 0)
+    {
+        NotifyBox(3000, "AutoHDR: EV step must be nonzero");
+        return;
+    }
     
     // make sure it won't autofocus
     // change it only once per HDR sequence to avoid slowdown
@@ -5229,7 +5236,7 @@ void schedule_mlu_lock() { mlu_lock_flag = 1; }
 
 static int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
-int is_movie_start_scheduled() { return movie_start_flag; }
+//~ int is_movie_start_scheduled() { return movie_start_flag; }
 
 static int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }

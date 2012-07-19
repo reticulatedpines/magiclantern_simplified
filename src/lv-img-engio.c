@@ -250,7 +250,7 @@ void update_digic_register_addr(int dr, int delta, int skip_zero)
     }
 
     digic_value = MEMX(digic_register);
-    if (digic_value & 0xFFF == 0x800) beep();
+    if ((digic_value & 0xFFF) == 0x800) beep();
     digic_show();
 }
 
