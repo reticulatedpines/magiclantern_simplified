@@ -58,6 +58,8 @@ static int zebra_color_word_row(int c, int y);
 static void spotmeter_step();
 
 
+static void cropmark_cache_update_signature();
+static int cropmark_cache_is_valid();
 static void default_movie_cropmarks();
 static void black_bars_16x9();
 static void black_bars();
@@ -3565,6 +3567,7 @@ cropmark_draw()
         // Cropmarks enabled, but cache is not valid
         if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
         clrscr_mirror(); // clean any remaining zebras / peaking
+        cropmark_cache_update_signature();
         bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
         //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -3577,26 +3580,28 @@ end:
     crop_dirty = 0;
 }
 
-int cropmark_cache_is_valid()
+static int cropmark_cache_sig = 0;
+static int cropmark_cache_get_signature()
 {
-    int ans = 1;
-    if (cropmark_cache_dirty) return 0;
-    
     get_yuv422_vram(); // update VRAM params if needed
-
-    // check if cropmark cache is still valid
     int sig = 
         crop_index * 13579 + crop_enabled * 14567 +
-        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + lv;
+        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
+    return sig;
+}
+static void cropmark_cache_update_signature()
+{
+    cropmark_cache_sig = cropmark_cache_get_signature();
+}
 
-    static int prev_sig = 0;
-    if (prev_sig != sig)
-    {
-        cropmark_cache_dirty = 1;
-        ans = 0;
-    }
-    prev_sig = sig;
-    return ans;
+static int cropmark_cache_is_valid()
+{
+    if (cropmark_cache_dirty) return 0; // some other ML task asked for redraw
+    
+    int sig = cropmark_cache_get_signature(); // video mode changed => needs redraw
+    if (cropmark_cache_sig != sig) return 0;
+    
+    return 1; // everything looks alright
 }
 
 static void
@@ -4840,6 +4845,7 @@ livev_hipriority_task( void* unused )
                 }
                 vram_params_set_dirty();
                 zoom_overlay_triggered_by_focus_ring_countdown = 0;
+                crop_set_dirty(10);
                 msleep(500);
             }
         }
