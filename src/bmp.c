@@ -79,10 +79,11 @@ void bmp_idle_copy(int direction, int fullsize)
     }
 }
 
+/*
 void bmp_idle_clear()
 {
     bzero32(BMP_VRAM_START(bmp_vram_idle()), BMP_VRAM_SIZE);
-}
+}*/
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
@@ -484,124 +485,162 @@ bmp_hexdump(
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
  */
-#ifdef CONFIG_5DC
+#ifdef CONFIG_500D // unoptimized version; drawing too fast gives ERR70
 void
 bmp_fill(
-         uint8_t            color,
-         int        x,
-         int        y,
-         int        w,
-         int        h
-         )
+    uint8_t            color,
+    int        x,
+    int        y,
+    int        w,
+    int        h
+)
 {
-#ifdef CONFIG_5DC
-    x = x/2;
-    y = y/2;
-    w = w/2;
-    h = h/2;
-#endif
-    
-    //~ if (!bmp_enabled) return;
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     w = COERCE(w, 0, BMP_W_PLUS-x-1);
     h = COERCE(h, 0, BMP_H_PLUS-y-1);
-    
-    const int start = x;
-    //~ const uint32_t width = BMP_WIDTH;
-    const uint32_t pitch = BMPPITCH;
-    //~ const uint32_t height = BMP_HEIGHT;
-    
+
     const uint32_t word = 0
-    | (color << 24)
-    | (color << 16)
-    | (color <<  8)
-    | (color <<  0);
+        | (color << 24)
+        | (color << 16)
+        | (color <<  8)
+        | (color <<  0);
+
+    uint32_t* b = (intptr_t)bmp_vram() & 0xFFFFFFF;
     
-    int y_end = y + h;
-    
-    if( w == 0 || h == 0 )
-        return;
-    
-    uint8_t * const vram = bmp_vram();
-    uint32_t * row = (void*)( vram + y * pitch + start );
-    ASSERT(row)
-    
-    if( !vram || ( 1 & (uintptr_t) vram ) )
+    for (int i = y; i < y+h; i++)
     {
-        //sei( flags );
-        return;
-    }
-    
-    
-    for( ; y<y_end ; y++, row += pitch/4 )
-    {
-        int x;
-        
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
-        for( x=w/4-1 ; x >= 0 ; x-- )
-#else
-            for( x=0 ; x < (int)w/4 ; x++ )
-#endif
-            {
-                row[ x ] = word;
-                /*            #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // what's going on here?!?!
-                 asm( "nop" );
-                 asm( "nop" );
-                 asm( "nop" );
-                 asm( "nop" );
-                 #endif
-                 asm( "nop" );
-                 asm( "nop" );
-                 asm( "nop" );
-                 asm( "nop" ); */
-            }
+        for (int j = x; j < x+w; j+=4)
+        {
+            b[BM(j,i)/4] = word;
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+        }
     }
 }
+#else // all other cameras work just fine with fast code
 
-#else
+/* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
+//#define BMP_FILL_BYTEALIGN
 
+/** Fill a section of bitmap memory with solid color
+ * Only has a four-pixel resolution in X.
+ */
 void
 bmp_fill(
-         uint8_t            color,
-         int        x,
-         int        y,
-         int        w,
-         int        h
-         )
+    uint8_t            color,
+    int        x,
+    int        y,
+    int        w,
+    int        h
+)
 {
-#ifdef CONFIG_5DC
-    x = x/2;
-    y = y/2;
-    w = w/2;
-    h = h/2;
+    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
+    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
+    w = COERCE(w, 0, BMP_W_PLUS-x-1);
+    h = COERCE(h, 0, BMP_H_PLUS-y-1);
+   
+    const uint16_t halfColor = ((uint16_t)color << 8) | color;
+    const uint32_t wordColor = ((uint32_t)halfColor << 16) | halfColor;
+    const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor;
+   
+    uint8_t* b = bmp_vram();
+   
+    /* pre-align the pixels to speed up fill routine below.
+       will draw pixels for byte addresses (if enabled) so the code later can use a optimized dword-store operation.
+       if using x positions and widths that are 8-pixel aligned, this code will not get called.
+      
+       __builtin_expect(exp, result) tells the compiler what we think the result is in most of the cases.
+       this will improve performance by not-jumping around, but continously executing code.
+       will reduce the perfomance impact of the byte-/word- aligning routines when enabled.
+     */
+#if defined(BMP_FILL_BYTEALIGN)
+    if(unlikely(x & 1))
+    {
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint8_t *)&(b[BM(x,posY)])) = color;
+        }
+        x += 1;
+        w -= 1;
+    }
+    if(unlikely(w & 1))
+    {
+        w -= 1;
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint8_t *)&(b[BM(x+w,posY)])) = color;
+        }
+    }
 #endif
-    
-    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1); 
-    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1); 
-    w = COERCE(w, 0, BMP_W_PLUS-x-1); 
-    h = COERCE(h, 0, BMP_H_PLUS-y-1); 
-    
-    const uint32_t wordColor = (color << 24) | (color << 16) | (color << 8) | color; 
-    const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor; 
-    
-    uint8_t* b = bmp_vram(); 
-    for (int i = y; i < y+h; i++) 
-    { 
-        uint32_t *buffer = (uint32_t *)&(b[BM(x,i)]); 
-        uint32_t *bufferEnd = (uint32_t *)&(b[BM(x+w,i)]); 
-        
-        while (buffer < bufferEnd) 
-        { 
-            if((uint32_t)bufferEnd - (uint32_t)buffer < 8) 
-            { 
-                *buffer = wordColor; buffer++; 
-            } 
-            else 
-            { 
-                *((uint64_t*)buffer) = dwordColor; buffer += 2; 
-            } 
-        } 
+#if defined(BMP_FILL_BYTEALIGN) || defined(BMP_FILL_HALFALIGN)
+    if(unlikely(x & 2))
+    {
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint16_t *)&(b[BM(x,posY)])) = halfColor;
+        }
+        x += 2;
+        w -= 2;
+    }
+    if(unlikely(w & 2))
+    {
+        w -= 2;
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint16_t *)&(b[BM(x+w,posY)])) = halfColor;
+        }
+    }
+#endif
+    /* any 32-bit access necessary? not that complex to handle.
+       STRD in the loop later allows 32-bit aligned addresses, so no special treatment needed to make the memory addresses 64 bit aligned.
+       unfortunately the compiler does not generate STRDs, but STM.
+      
+       tell the compiler, is is unlikely that this condition is true, as many paints may start at e.g. 0 and end with e.g. 720
+    */
+    if(unlikely(w & 4))
+    {
+        /* fill a column with 32 bit writes */
+        for (int posY = y; posY < y+h; posY++)
+        {
+            *((uint32_t *)&(b[BM(x,posY)])) = wordColor;
+        }
+        x += 4;
+        w -= 4;
+    }
+
+    /* not needed if BMP_FILL_BYTEALIGN is set, but doesnt hurt. its just to protect from misaligned accesses */
+    x &= ~3;
+    w &= ~7;
+   
+    /* finally fill with optimized 64 bit writes.
+       planned to let the compiler generate STRD that uses only 2 cpu cycles plus ADD that needs 1.
+       but we only get STMIA. the generated STMIA is also fine, but that uses 4 instead of 3 cpu cycles. still not that bad.
+     */
+    for (int i = y; i < y+h; i++)
+    {
+        uint32_t buffer = (uint32_t)&(b[BM(x,i)]);
+        uint32_t bufferEnd = (uint32_t)&(b[BM(x+w,i)]);
+       
+        while (buffer < bufferEnd)
+        {
+            *((uint64_t*)buffer) = dwordColor;
+            buffer += 8;
+        }
     }
 }
 #endif
@@ -675,7 +714,7 @@ bmp_load(
         filename,
         size
     );
-
+    
     uint8_t * buf = alloc_dma_memory( size );
     if( !buf )
     {
@@ -918,14 +957,14 @@ uint8_t bmp_getpixel(int x, int y)
     return bvram[x + y * BMPPITCH];
 }
 
-uint8_t bmp_getpixel_real(int x, int y)
+/*uint8_t bmp_getpixel_real(int x, int y)
 {
     ASSERT(x >= BMP_W_MINUS && x < BMP_W_PLUS)
     ASSERT(y >= BMP_H_MINUS && y < BMP_H_PLUS)
 
     uint8_t * const bvram = bmp_vram_real();
     return bvram[x + y * BMPPITCH];
-}
+}*/
 
 void bmp_putpixel(int x, int y, uint8_t color)
 {
@@ -939,25 +978,13 @@ void bmp_putpixel(int x, int y, uint8_t color)
 
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
-#ifdef CONFIG_5DC
-    w = w/2;
-    h = h/2;
-    x0 = x0/2;
-    y0 = y0/2;
-#endif
-    
-    //~ if (!bmp_enabled) return;
     uint8_t * const bvram = bmp_vram();
-    ASSERT(bvram)
     if (!bvram) return;
     
-    int x, y;
-    #define P(X,Y) bvram[COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1) + COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1) * BMPPITCH]
-    for (x = x0; x <= x0 + w; x++)
-        P(x, y0) = P(x, y0+h) = color;
-    for (y = y0; y <= y0 + h; y++)
-        P(x0, y) = P(x0+w, y) = color;
-    #undef P
+    draw_line(x0,   y0,   x0+w,   y0, color);
+    draw_line(x0+w, y0,   x0+w, y0+h, color);
+    draw_line(x0+w, y0+h,   x0, y0+h, color);
+    draw_line(x0,   y0,     x0, y0+h, color);
 }
 
 int _bmp_draw_should_stop = 0;
@@ -1273,6 +1300,7 @@ void bfnt_puts(char* s, int x, int y, int fg, int bg)
     }
 }
 
+/*
 void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 {
     while (*s)
@@ -1280,7 +1308,7 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
         x += bfnt_draw_char(*s, x, y, fg, bg);
         s++;
     }
-}
+}*/
 
 #if CONFIG_DEBUGMSG
 void

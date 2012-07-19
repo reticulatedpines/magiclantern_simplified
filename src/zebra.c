@@ -222,7 +222,7 @@ int get_zoom_overlay_trigger_mode()
 int get_zoom_overlay_trigger_by_focus_ring()
 {
     int z = get_zoom_overlay_trigger_mode();
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2)
     return z == 2 || z == 3;
     #else
     return z == 2;
@@ -231,7 +231,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2)
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
@@ -255,13 +255,15 @@ int should_draw_zoom_overlay()
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
     if (ext_monitor_rca) return 0;
+    if (hdmi_code == 5) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
 
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2)
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
-    if ((zt==1 || zt==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
+    int zm = get_zoom_overlay_trigger_mode();
+    if (zt && (zm==1 || zm==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
     if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #endif
 
@@ -976,10 +978,16 @@ waveform_draw_image(
                 // Draw the pixel, rounding down to the nearest
                 // quad word write (and then nop to avoid err70).
                 *(uint32_t*)( row + (i & ~3) ) = pixel;
-                //~ asm( "nop" );
-                //~ asm( "nop" );
-                //~ asm( "nop" );
-                //~ asm( "nop" );
+                #ifdef CONFIG_500D // err70?!
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                asm( "nop" );
+                #endif
                 pixel = 0;
             }
         }
@@ -1116,13 +1124,13 @@ void card_benchmark_schedule()
 }
 #endif
 
-static void dump_vram()
+/*static void dump_vram()
 {
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/4.bin");
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/4-1.bin");
     //dump_seg(0x1000, 0x100000, CARD_DRIVE "ML/LOGS/ram.bin");
     //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "ML/LOGS/VRAM.BIN");
-}
+}*/
 
 int fps_ticks = 0;
 
@@ -1255,7 +1263,7 @@ void zebra_update_lut()
     }
 }
 
-static int zebra_color_word_row_thick(int c, int y)
+/*static int zebra_color_word_row_thick(int c, int y)
 {
     //~ return zebra_color_word_row(c,y);
     if (!c) return 0;
@@ -1277,7 +1285,7 @@ static int zebra_color_word_row_thick(int c, int y)
             break;
     }
     return cw;
-}
+}*/
 
 #define MAX_DIRTY_PIXELS 5000
 
@@ -1972,11 +1980,11 @@ zebra_level_display( void * priv, int x, int y, int selected )
         );
     }
 }
-static void
+/*static void
 zebra_toggle( void* priv, int sign )
 {
     menu_ternary_toggle(priv, -sign);
-}
+}*/
 
 static char* falsecolor_palette_name()
 {
@@ -2023,11 +2031,6 @@ falsecolor_display_palette( void * priv, int x, int y, int selected )
     falsecolor_palette_preview(x - 420, y + font_large.height + 10);
 }
 
-static void
-falsecolor_palette_toggle(void* priv)
-{
-    falsecolor_palette = mod(falsecolor_palette+1, COUNT(false_colour));
-}
 /*
 static void
 focus_debug_display( void * priv, int x, int y, int selected )
@@ -2231,7 +2234,7 @@ global_draw_display( void * priv, int x, int y, int selected )
         menu_draw_icon(x, y, MNI_WARNING, 0);
 }
 
-static void
+/*static void
 waveform_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(
@@ -2241,7 +2244,7 @@ waveform_display( void * priv, int x, int y, int selected )
         *(unsigned*) priv ? "ON " : "OFF"
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
-}
+}*/
 
 static void
 vectorscope_display( void * priv, int x, int y, int selected )
@@ -2301,7 +2304,7 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2)
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
         zoom_overlay_trigger_mode == 2 ? "Focus," :
         zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
@@ -2338,6 +2341,8 @@ zoom_overlay_display(
 
     if (ext_monitor_rca)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
+    else if (hdmi_code == 5)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work in HDMI 1080i.");
     else if (is_movie_mode() && video_mode_fps > 30)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
@@ -2660,8 +2665,9 @@ disp_profiles_0_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "LV display presets  : %d", 
-        disp_profiles_0 + 1
+        "LV display presets  : %d%s", 
+        disp_profiles_0 + 1,
+        disp_profiles_0 ? " (ON)" : " (OFF)"
     );
 }
 
@@ -2894,12 +2900,12 @@ electronic_level_display(
     menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
 }
 
-static void clearscreen_now()
+/*static void clearscreen_now()
 {
     gui_stop_menu();
     bmp_on();
     bmp_off();
-}
+}*/
 
 struct menu_entry zebra_menus[] = {
     {
@@ -3017,7 +3023,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
-                #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+                #if defined(CONFIG_5D2)
                 .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
                 .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
@@ -3448,6 +3454,12 @@ void cropmark_draw_from_cache()
             if (!(m & 0x80)) continue;
             if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
             B[BM(j,i)] = m & ~0x80;
+            #ifdef CONFIG_500D
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            #endif
         }
     }
 }
@@ -3467,6 +3479,12 @@ void copy_zebras_from_mirror()
             uint32_t m = M[BM(j,i)/4];
             if (p != 0) continue;
             B[BM(j,i)/4] = m & ~0x80808080;
+            #ifdef CONFIG_500D
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            #endif
         }
     }
 }
@@ -3482,6 +3500,12 @@ void clear_zebras_from_mirror()
             uint8_t m = M[BM(j,i)];
             if (m & 0x80) continue;
             M[BM(j,i)] = 0;
+            #ifdef CONFIG_500D
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            #endif
         }
     }
 }
@@ -3588,7 +3612,7 @@ cropmark_redraw()
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
 
-int is_safe_to_mess_with_the_display(int timeout_ms)
+/*int is_safe_to_mess_with_the_display(int timeout_ms)
 {
     int k = 0;
     while (lens_info.job_state >= 10 || !DISPLAY_IS_ON || recording == 1)
@@ -3598,7 +3622,7 @@ int is_safe_to_mess_with_the_display(int timeout_ms)
         msleep(100);
     }
     return 1;
-}
+}*/
 
 void bmp_on()
 {
@@ -3622,11 +3646,11 @@ void bmp_on()
     #endif
     }
 }
-void bmp_on_force()
+/*void bmp_on_force()
 {
     _bmp_muted = true; _bmp_unmuted = false;
     bmp_on();
-}
+}*/
 void bmp_off()
 {
     //~ return;
@@ -3693,7 +3717,7 @@ int handle_zoom_overlay(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2)
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
@@ -4724,11 +4748,11 @@ void redraw()
 */
 
 
-static void false_color_toggle()
+/*static void false_color_toggle()
 {
     falsecolor_draw = !falsecolor_draw;
     if (falsecolor_draw) zoom_overlay_disable();
-}
+}*/
 
 static int transparent_overlay_flag = 0;
 void schedule_transparent_overlay()
@@ -5651,7 +5675,7 @@ void play_422(char* filename)
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
 }
 
-void peaking_benchmark()
+/*void peaking_benchmark()
 {
     fake_simple_button(BGMT_PLAY);
     msleep(1000);
@@ -5664,3 +5688,4 @@ void peaking_benchmark()
     NotifyBox(10000, "%d ", b-a);
     beep();
 }
+*/

@@ -1629,13 +1629,13 @@ int lens_get_##param() \
     return lens_info.param; \
 } 
 
-LENS_GET(iso)
-LENS_GET(shutter)
-LENS_GET(aperture)
+//~ LENS_GET(iso)
+//~ LENS_GET(shutter)
+//~ LENS_GET(aperture)
 LENS_GET(ae)
-LENS_GET(kelvin)
-LENS_GET(wbs_gm)
-LENS_GET(wbs_ba)
+//~ LENS_GET(kelvin)
+//~ LENS_GET(wbs_gm)
+//~ LENS_GET(wbs_ba)
 
 #define LENS_SET(param) \
 void lens_set_##param(int value) \
@@ -1984,6 +1984,7 @@ void bv_update_lensinfo()
     }
 }
 
+/*
 void bv_update_props()
 {
     if (CONTROL_BV) // sync lens info and camera properties with overriden values
@@ -1992,7 +1993,7 @@ void bv_update_props()
         prop_set_rawshutter(CONTROL_BV_TV);
         prop_set_rawaperture(CONTROL_BV_AV);
     }
-}
+}*/
 
 extern int bv_iso;
 extern int bv_tv;

@@ -105,6 +105,7 @@ prop_init( void* unused )
     );
 }
 
+#if 0
 // for reading simple integer properties
 // not reliable in realtime scenarios (race condition?)
 int _get_prop(int prop)
@@ -126,6 +127,7 @@ char* _get_prop_str(int prop)
     if (!err) return data;
     return 0;
 }
+#endif
 /* not reliable
 
 

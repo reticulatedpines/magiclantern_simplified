@@ -52,7 +52,7 @@ CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right 
 CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
 
 static int focus_dir;
-int get_focus_dir() { return focus_dir; }
+//~ int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() 
 { 
     if (!follow_focus) return 0;
@@ -321,19 +321,20 @@ void focus_stack_trigger_from_menu(void* priv, int delta)
 }
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
-
+/*
 void follow_focus_reverse_dir()
 {
     focus_task_dir_n_speedx = -focus_task_dir_n_speedx;
 }
+*/
 
-void plot_focus_status()
+/*void plot_focus_status()
 {
     if (gui_menu_shown()) return;
     bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s        ", focus_task_dir_n_speedx > 0 ? "FAR " : focus_task_dir_n_speedx < 0 ? "NEAR" : "    ");
-}
+}*/
 
-static void
+/*static void
 focus_dir_display( 
     void *          priv,
     int         x,
@@ -348,7 +349,7 @@ focus_dir_display(
         focus_dir ? "FAR " : "NEAR"
     );
     menu_draw_icon(x, y, MNI_ON, 0);
-}
+}*/
 
 static void
 focus_show_a( 
@@ -410,16 +411,17 @@ rack_focus_print(
 static void
 focus_reset_a( void * priv, int delta )
 {
-    focus_task_delta = 0;
-    menu_show_only_selected();
+    if (menu_active_but_hidden()) menu_disable_lv_transparent_mode();
+    else if (focus_task_delta) focus_task_delta = 0;
+    else menu_enable_lv_transparent_mode();
 }
 
-static void
+/*static void
 focus_alter_a( void * priv, int delta )
 {
     menu_show_only_selected();
-    lens_focus_enqueue_step(delta);
-}
+    menu_enable_lv_transparent_mode(delta);
+}*/
 
 int focus_rack_auto_record = 0;
 int focus_rack_enable_delay = 1;
@@ -428,7 +430,7 @@ static void
 focus_toggle( void * priv )
 {
     if (focus_rack_delta) return; // another rack focus operation in progress
-    menu_show_only_selected();
+    menu_enable_lv_transparent_mode();
     focus_task_delta = -focus_task_delta;
     focus_rack_delta = focus_task_delta;
     give_semaphore( focus_task_sem );
@@ -726,7 +728,7 @@ TASK_CREATE( "focus_task", focus_task, 0, 0x18, 0x1000 );
     //~ return prop_cleanup( token, property );
 //~ }
 
-static void
+/*static void
 follow_focus_toggle_dir_h( void * priv )
 {
     follow_focus_reverse_h = !follow_focus_reverse_h;
@@ -735,7 +737,7 @@ static void
 follow_focus_toggle_dir_v( void * priv )
 {
     follow_focus_reverse_v = !follow_focus_reverse_v;
-}
+}*/
 
 static void
 follow_focus_print(
@@ -1333,7 +1335,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus End Point",
         .display    = focus_show_a,
         .select     = focus_reset_a,
-        .help = "Press SET to fix here the end point of rack focus."
+        .help = "SET: fix here rack end point. ZoomIn+L/R: start point."
     },
     {
         .name = "Rack Delay     ",
@@ -1483,11 +1485,11 @@ int handle_rack_focus_menu_overrides(struct event * event)
                     lens_focus_start(1 * get_follow_focus_dir_h());
                     return 0;
                 case BGMT_WHEEL_LEFT:
-                    menu_show_only_selected();
+                    menu_enable_lv_transparent_mode();
                     lens_focus_enqueue_step( -get_follow_focus_dir_h() );
                     return 0;
                 case BGMT_WHEEL_RIGHT:
-                    menu_show_only_selected();
+                    menu_enable_lv_transparent_mode();
                     lens_focus_enqueue_step( get_follow_focus_dir_h() );
                     return 0;
             }

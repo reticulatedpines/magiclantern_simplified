@@ -39,11 +39,11 @@ dofp_set(int value)
     prop_request_change(PROP_DOF_PREVIEW_MAYBE, &value, 2);
 }
 
-static void 
+/*static void 
     dofp_lock(void* priv, int delta)
 {
     dofp_set(1);
-}
+}*/
 
 PROP_HANDLER(PROP_LAST_JOB_STATE)
 {
@@ -608,30 +608,35 @@ void clear_lv_afframe()
     // on 5D2, LV grids are black, just like AF frame...
     // so, try to erase what's white and a few pixels of nearby black
     
+    uint8_t * const bvram = bmp_vram();
+    #define Pr(X,Y) bvram[BM(X,Y)]
+    #define Pw(X,Y) bvram[BM(COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1), COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1))]
     // not quite efficient, but works
     for (int i = y0+h; i > y0; i--)
     {
         for (int j = x0+w; j > x0; j--)
         {
-            int p = bmp_getpixel(j,i);
+            int p = Pr(j,i);
             if (p == COLOR_WHITE)
             {
                 for (int di = 2; di >= 0; di--)
                 {
                     for (int dj = 2; dj >= 0; dj--)
                     {
-                        int p = bmp_getpixel(j+dj,i+di);
+                        int p = Pr(j+dj,i+di);
                         if (p == COLOR_WHITE || p == COLOR_BLACK)
                         {
                             int m = M[BM(j+dj,i+di)];
                             if (m == 0x80) M[BM(j+dj,i+di)] = 0;
-                            bmp_putpixel(j+dj,i+di, g && (m & 0x80) ? m & ~0x80 : 0);
+                            Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0;
                         }
                     }
                 }
             }
         }
     }
+    #undef Pw
+    #undef Pr
     afframe_countdown = 0;
 }
 
@@ -973,10 +978,10 @@ void hs_show()
 {
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
 }
-void hs_hide()
+/*void hs_hide()
 {
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
-}
+}*/
 
 void 
 fake_halfshutter_step()
@@ -1244,6 +1249,7 @@ swap_menu_display(
     );
 }
 
+#ifdef CONFIG_60D
 int handle_swap_menu_erase(struct event * event)
 {
     if (swap_menu && !IS_FAKE(event))
@@ -1261,6 +1267,7 @@ int handle_swap_menu_erase(struct event * event)
     }
     return 1;
 }
+#endif
 
 /*extern int picstyle_disppreset_enabled;
 static void
@@ -2067,7 +2074,7 @@ void preview_contrast_display(
                                 "Very high"
     );
 
-    if (EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
+    if (preview_contrast != 3 && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
     if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
     else menu_draw_icon(x, y, MNI_ON, 0);
 }
