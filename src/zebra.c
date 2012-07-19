@@ -4669,6 +4669,7 @@ void redraw_do()
 {
     extern int ml_started;
     if (!ml_started) return;
+    if (gui_menu_shown()) { menu_redraw(); return; }
     
 BMP_LOCK (
 
