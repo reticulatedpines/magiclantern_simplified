@@ -37,21 +37,6 @@
 #define MENU_HELP_Y_POS 453
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
-CONFIG_INT("menu.scrollwheels", menu_scrollwheels, 1); // enable scrollwheel support in ML menu; disable if you have trouble
-
-static struct menu_entry menu_menus[] = {
-    {
-        .name = "Scrollwheels in menu",
-        .priv = &menu_scrollwheels, 
-        .max = 1,
-        .help = "For ML menu navigation. Disable if you get stability issues."
-    }
-};
-
-void menu_menu_init() 
-{
-    menu_add("Prefs", menu_menus, COUNT(menu_menus));
-}
 /*
 int sem_line = 0;
 
@@ -2190,7 +2175,6 @@ void menu_redraw_flood()
 
 void piggyback_canon_menu()
 {
-    if (!menu_scrollwheels) return;
 #ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
     if (is_movie_mode()) return; // doesn'tworkstation
@@ -2207,7 +2191,6 @@ void piggyback_canon_menu()
 
 void close_canon_menu()
 {
-    if (!menu_scrollwheels) return;
 #ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
     if (is_movie_mode()) return; // doesn'tworkstation
