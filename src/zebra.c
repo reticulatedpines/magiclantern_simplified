@@ -3607,6 +3607,7 @@ static int cropmark_cache_is_valid()
 static void
 cropmark_redraw()
 {
+    if (gui_menu_shown()) return; 
     if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
     if (!cropmark_cache_is_valid())
         cropmark_clear_cache();
