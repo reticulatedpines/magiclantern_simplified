@@ -536,7 +536,7 @@ lv_movie_print(
         x, y,
         "Movie Record  : %s",
         lv_movie_select != 2 ? "Disabled" :
-        video_mode_resolution == 0 ? "1920x1088, 30fps" : 
+        video_mode_resolution == 0 ? "1920x1080, 30fps" : 
         video_mode_resolution == 2 ? "640x480, 30fps" : "Invalid"
     );
     menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
