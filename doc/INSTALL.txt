@@ -27,6 +27,8 @@ software before you are tempted to try running it on your camera.
 Important notes
 ===============
 
+* **After opening the card door, always wait for LED confirmation (or for 5 seconds) before removing the card!!!** (no such problem on 550D).
+
 * **EyeFi cards will not work**; you will have to use SD / SDHC / SDXC / CF cards.
 
 * If you have a bootable card and have the ``BOOTDISK`` flag set in the camera (which the installer does), and you do not have an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT**! It will hang and not wake up until the battery is removed.
@@ -57,7 +59,13 @@ Before installing Magic Lantern, you need to:
 * Do your research. There is a lot of information available on Magic Lantern web site. Read the `user guide <http://wiki.magiclantern.fm/userguide>`_ and the `FAQ <http://wiki.magiclantern.fm/faq>`_, explore the in-depth articles and the `documentation <http://magiclantern.fm/documentation>`_ section.
 * Be patient. Magic Lantern can overwhelm with the amount of functions added. But it is actually very easy to use once you know the basics.
 
-**Magic Lantern v2.3 uses a slightly different directory structure than previous versions (ML data files were moved to the ML subdirectory). For this reason, we strongly recommend to format your cards and do a fresh install**.
+Very important
+--------------
+
+* Magic Lantern v2.3 uses a slightly **different directory structure** than previous versions (ML data files were moved to the ML subdirectory). For this reason, we strongly recommend to **format your cards and do a fresh install**.
+* After opening the card door, **always wait for LED confirmation** (or for 5 seconds) before removing the card!!! During that period, Canon firmware **accesses the card without turning on the LED**, and if you remove the card too early, the camera will freeze and will drain the battery. Exception: 550D users don't have to wait.
+
+
 
 Get the right camera firmware version
 =====================================
@@ -124,12 +132,16 @@ Step 3. Magic Lantern first startup
 -----------------------------------
 
 * Go to Canon menus and restore your preferences. Don't forget these:
+
   - On 550D/60D/600D, enable manual video exposure.
   - On 5D Mark II and 50D, enable LiveView shooting.
   - You may also have to re-install your custom picture styles.
+
 * In LiveView, toggle the ``INFO/DISP`` button until you see the Magic Lantern audio levels and bottom info bar.
 * Press the **DELETE** button to open ML menu and **READ THE HELP TEXT** that pops up.
 * Read the User Guide and start using Magic Lantern.
+* **Don't forget to wait for LED confirmation before removing the card!** (unless you use a 550D)
+
 
 Installing Magic Lantern on other cards
 =======================================

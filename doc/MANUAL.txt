@@ -2,6 +2,8 @@
 Important notes
 ---------------
 
+* **After opening the card door, always wait for LED confirmation (or for 5 seconds) before removing the card!!!** (no such problem on 550D).
+
 * If you have a bootable SD card and have the ``BOOTDISK`` flag set in the camera (which the installer does), and you do not have an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT**! It will hang and not wake up until the battery is removed.
 
 * If you encounter a "locked up" camera, **quickly remove the battery**.

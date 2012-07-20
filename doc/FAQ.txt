@@ -277,6 +277,27 @@ It won't boot!
 * Make sure you didn't delete ``AUTOEXEC.BIN`` from your ML card. If you did, format the card, take the battery out, and reboot.
 * If you still have problems, `ask on the forum <http://magiclantern.fm/forum/>`_.
 
+After shutdown, it won't power on unless removing battery!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are removing the card too early. **Always wait for LED blinking confirmation** (or for 5 seconds) before removing the card!
+
+What's going on: on certain cameras, a few seconds after you open the card door, Canon firmware *is accessing the card without any LED activity*. If you remove the card during this period, 
+the camera will get stuck in an infinite loop, will slowly drain your battery, and will not reboot until you take the battery out and you put back in.
+
+Magic Lantern v2.3 will show a confirmation LED blink after this process ended. With older versions, after you open the card door, wait for 5 seconds before removing the card.
+
+This problem can't be fixed without rewriting Canon bootloader code (which we won't do), so you really have to **be patient when removing the card**.
+
+What happened with movie mode remap?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We had `serious problems <http://www.magiclantern.fm/forum/index.php?topic=1126.0>`_ with it, so it was disabled. The problems were confirmed with a `minimal example <http://theoval.cmp.uea.ac.uk/~nlct/latex/minexample/>`_ code, so the issue is either in Canon firmware (which was probably not designed for dynamic mode remapping) or in the way we request the mode remapping procedure.
+
+**The only way to get it back is to show us a safe way to change the shooting mode.** For this you need to point out what's wrong with this call: ''prop_request_change(PROP_SHOOTING_MODE, &new_mode, 4)'', and suggest a different method - which can only be done by examining Canon code and understanding how mode switching works.
+
+**Testing will not help** - the probability of things going wrong is very low, but nonzero.
+
 Why does the camera take pictures when pressing the shutter half-way?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
