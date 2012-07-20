@@ -657,3 +657,5 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func) {}
 void CheckBmpAcquireRecursiveLock(){};
 void CheckBmpReleaseRecursiveLock(){};
 
+void afframe_set_dirty(){};
+void draw_line(){};
