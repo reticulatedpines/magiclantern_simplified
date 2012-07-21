@@ -1171,7 +1171,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         if (hidden_count)
         {
             bmp_printf(
-                FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
+                FONT(FONT_MED, COLOR_GRAY50, COLOR_BLACK), 
                  10,  MENU_KEYHELP_Y_POS - font_med.height - 5, 
                  hidden_msg
             );
