@@ -80,10 +80,12 @@ CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 int do_draw_meters = 0;
 
+/*
 int ext_cfg_draw_meters(void)
 {
     return cfg_draw_meters;
 }
+*/
 
 struct audio_level audio_levels[2];
 
@@ -93,7 +95,7 @@ struct audio_level *get_audio_levels(void)
 }
 
 // from Morgan Look
-// THIS FUNCTION IS NOT TESTED!!! (it may work, or it may not)
+/*
 void masked_audio_ic_write(
                            unsigned reg,     // the register we wish to manipulate (eg AUDIO_IC_SIG1)
                            unsigned mask, // the range of bits we want to manipulate (eg 0x05 or b0000111) to only allow changes to b3,b2,b0
@@ -106,7 +108,7 @@ void masked_audio_ic_write(
     bits &= mask;                      // limit scope of new bits with mask
     _audio_ic_write(reg | bits | old);    // bitwise OR everything together and call _audio_ic_write function
 }
-
+*/
 
 /** Returns a dB translated from the raw level
  *
@@ -1684,7 +1686,7 @@ static void audio_menus_init()
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
         menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 #else
-        menu_add( "Display", audio_menus, 1 );
+        menu_add( "Display", audio_menus, COUNT(audio_menus) );
 #endif
 }
 
