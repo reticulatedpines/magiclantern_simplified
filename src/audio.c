@@ -77,7 +77,11 @@ int loopback = 1;
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
 CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+#ifdef CONFIG_500D
+CONFIG_INT("audio.monitoring", audio_monitoring, 0);
+#else
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
+#endif
 int do_draw_meters = 0;
 
 /*
@@ -1378,7 +1382,6 @@ static struct menu_entry audio_menus[] = {
                 .help = "Needed for int. and some other mics, but lowers impedance.",
                 //.essential = FOR_MOVIE,
         },
-#endif
         {
                 .name = "AGC",
                 .priv           = &alc_enable,
@@ -1397,6 +1400,7 @@ static struct menu_entry audio_menus[] = {
                 .help = "Output volume for audio monitoring (headphones only).",
                 //~ .edit_mode = EM_MANY_VALUES,
         },
+#endif
         {
                 .name = "Headphone Monitoring",
                 .priv = &audio_monitoring,
