@@ -57,9 +57,14 @@ CMOS temperature
 
 Displays the internal CMOS temperature, in raw units.
 
-Battery remaining
+Ambient light (5D Mark II)
+``````````````````````````
+
+Displays the value from ambient light sensor (under LCD display), expressed in EV steps. The scale is arbitrary (not calibrated in any way).
+
+Battery remaining (60D and 5D Mark II)
 `````````````````
 
-60D and 5D Mark II only: displays battery percentage, estimated time remaining and battery discharging rate.
+Displays battery percentage, estimated time remaining and battery discharging rate.
   
 For accurate readings, wait until the percentage indicator decreases by at least 2% since powering on.

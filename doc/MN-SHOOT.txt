@@ -259,3 +259,10 @@ A few tweaks for flash users:
 * **Flash / No flash**: use this when you are not sure whether to use flash or not. Odd pictures (by file number) will be taken with flash, even pictures without flash.
 * **3rd party flash in LV**: a trick for enabling non-Canon flashes in LiveView on Rebel cameras. This trick disables LiveView temporarily on half-shutter press, therefore you should **DISABLE this option when you don't use it!!!**
 
+EyeFi Trick (visible only with an EyeFi card inserted)
+``````````````````````````````````````````````````````
+
+This feature lets you transfer RAW files with a non-pro EyeFi card. You can rename those files from CR2 to AVI, so the EyeFi card will send you raw picture to your PC as a movie file. Once transfered, just rename them back to CR2 on your PC.
+
+To rename the files back on camera, choose ``Rename AVI to CR2``.
+
