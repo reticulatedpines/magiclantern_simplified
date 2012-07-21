@@ -6,6 +6,7 @@ include $(TOP_DIR)/Makefile.top
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
 FW_VERSION=112
 MODEL=5D3
+UPDATE_NAME=5D3-112.fir
 ML_VERSION=unified1 
 
 #used in CFLAGS
@@ -58,7 +59,7 @@ all:
 	make clean
 	make magiclantern.bin
 	make updater.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300112.FIR updater.bin ml-5D3-112.fir
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D300112.FIR updater.bin $(UPDATE_NAME)
 
 clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin

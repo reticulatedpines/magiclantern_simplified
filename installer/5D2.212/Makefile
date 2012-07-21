@@ -6,7 +6,7 @@ include $(TOP_DIR)/Makefile.top
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
 FW_VERSION=212
 MODEL=5D2
-UPDATE_NAME=5D2_212.fir
+UPDATE_NAME=5D2-212.fir
 ML_VERSION=unified1 
 FIRMWARE_ID	= 0x80000218
 
@@ -61,7 +61,7 @@ all:
 	make clean
 	make magiclantern.bin
 	make updater.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D200212.FIR updater.bin ml-5D2-212.fir
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D200212.FIR updater.bin $(UPDATE_NAME)
 
 clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
