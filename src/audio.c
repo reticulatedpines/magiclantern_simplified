@@ -1378,6 +1378,7 @@ static struct menu_entry audio_menus[] = {
                 .help = "Needed for int. and some other mics, but lowers impedance.",
                 //.essential = FOR_MOVIE,
         },
+#endif
         {
                 .name = "AGC",
                 .priv           = &alc_enable,
@@ -1396,7 +1397,6 @@ static struct menu_entry audio_menus[] = {
                 .help = "Output volume for audio monitoring (headphones only).",
                 //~ .edit_mode = EM_MANY_VALUES,
         },
-#endif
         {
                 .name = "Headphone Monitoring",
                 .priv = &audio_monitoring,
