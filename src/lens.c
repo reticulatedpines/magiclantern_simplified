@@ -30,7 +30,8 @@
 #include "menu.h"
 #include "math.h"
 
-//~ FILE* logfile = 0;
+// for movie logging
+char* mvr_logfile_buffer = 0;
 
 #if defined(CONFIG_5D2) || defined(CONFIG_5D3)
 #define CONFIG_FULLFRAME
@@ -1178,8 +1179,6 @@ lens_take_picture(
     }
 }
 
-static FILE * mvr_logfile = INVALID_PTR;
-
 /** Write the current lens info into the logfile */
 static void
 mvr_update_logfile(
@@ -1187,15 +1186,17 @@ mvr_update_logfile(
     int            force
 )
 {
-    if( mvr_logfile == INVALID_PTR )
+    if( mvr_logfile_buffer == 0 )
         return;
+
+    char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
 
     static unsigned last_iso;
     static unsigned last_shutter;
     static unsigned last_aperture;
     static unsigned last_focal_len;
     static unsigned last_focus_dist;
-    static unsigned last_second;
+    static int last_second;
 
     // Check if nothing changed and not forced.  Do not write.
     if( !force
@@ -1224,8 +1225,7 @@ mvr_update_logfile(
     struct tm now;
     LoadCalendarFromRTC( &now );
 
-    my_fprintf(
-        mvr_logfile,
+    MVR_LOG_APPEND (
         "%02d:%02d:%02d,%d,%d,%d.%d,%d,%d\n",
         now.tm_hour,
         now.tm_min,
@@ -1247,15 +1247,31 @@ mvr_create_logfile(
     unsigned        event
 )
 {
-    DebugMsg( DM_MAGIC, 3, "%s: event %d", __func__, event );
     if (!movie_log) return;
 
     if( event == 0 )
     {
-        // Movie stopped
-        if( mvr_logfile != INVALID_PTR )
-            FIO_CloseFile( mvr_logfile );
-        mvr_logfile = INVALID_PTR;
+        // Movie stopped - write the log file
+        char name[100];
+        snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), file_number);
+
+        FILE * mvr_logfile = mvr_logfile = FIO_CreateFileEx( name );
+        if( mvr_logfile == INVALID_PTR )
+        {
+            bmp_printf( FONT_MED, 0, 40,
+                "Unable to create movie log! fd=%x\n%s",
+                (unsigned) mvr_logfile,
+                name
+            );
+            return;
+        }
+
+        FIO_WriteFile( mvr_logfile, mvr_logfile_buffer, strlen(mvr_logfile_buffer) );
+
+        FIO_CloseFile( mvr_logfile );
+        
+        free_dma_memory(mvr_logfile_buffer);
+        mvr_logfile_buffer = 0;
         return;
     }
 
@@ -1263,25 +1279,13 @@ mvr_create_logfile(
         return;
 
     // Movie starting
-    char name[100];
-    snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), file_number);
-
-    mvr_logfile = FIO_CreateFileEx( name );
-    if( mvr_logfile == INVALID_PTR )
-    {
-        bmp_printf( FONT_MED, 0, 40,
-            "Unable to create movie log! fd=%x\n%s",
-            (unsigned) mvr_logfile,
-            name
-        );
-
-        return;
-    }
+    mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
+    char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
 
     struct tm now;
     LoadCalendarFromRTC( &now );
 
-    my_fprintf( mvr_logfile,
+    snprintf( mvr_logfile_buffer_cached, MVR_LOG_BUF_SIZE,
         "Start          : %4d/%02d/%02d %02d:%02d:%02d\n",
         now.tm_year + 1900,
         now.tm_mon + 1,
@@ -1291,12 +1295,13 @@ mvr_create_logfile(
         now.tm_sec
     );
 
-    my_fprintf( mvr_logfile, "Lens name      : %s\n", lens_info.name );
+    MVR_LOG_APPEND (
+        "Lens name      : %s\n", lens_info.name 
+    );
 
     int sr_x1000 = get_current_shutter_reciprocal_x1000();
 
-    my_fprintf(
-        mvr_logfile,
+    MVR_LOG_APPEND (
         "ISO            : %d\n"
         "Shutter        : 1/%d.%03ds\n"
         "Aperture       : f/%d.%d\n"
@@ -1309,7 +1314,7 @@ mvr_create_logfile(
         lens_info.focus_dist
     );
 
-    my_fprintf(mvr_logfile, 
+    MVR_LOG_APPEND (
         "White Balance  : %d%s, %s %d, %s %d\n",
         lens_info.wb_mode == WB_KELVIN ? lens_info.kelvin : lens_info.wb_mode,
         lens_info.wb_mode == WB_KELVIN ? "K" : 
@@ -1326,7 +1331,7 @@ mvr_create_logfile(
         );
 
     
-    my_fprintf( mvr_logfile, 
+    MVR_LOG_APPEND (
         "Picture Style  : %s (%d,%d,%d,%d)\n", 
         get_picstyle_name(lens_info.raw_picstyle), 
         lens_get_sharpness(),
@@ -1335,11 +1340,12 @@ mvr_create_logfile(
         ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
         );
 
-    fps_mvr_log(mvr_logfile);
-    hdr_mvr_log(mvr_logfile);
+    fps_mvr_log(mvr_logfile_buffer_cached);
+    hdr_mvr_log(mvr_logfile_buffer_cached);
 
-    my_fprintf( mvr_logfile, "\n\nCSV data:\n%s\n",
-        "Frame,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
+    MVR_LOG_APPEND (
+        "\n\nCSV data:\n%s\n",
+        "Time,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
     );
 
     // Force the initial values to be written

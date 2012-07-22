@@ -1227,10 +1227,12 @@ TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );
 #endif
 
 
-void fps_mvr_log(FILE* mvr_logfile)
+void fps_mvr_log(char* mvr_logfile_buffer_cached)
 {
     int f = fps_get_current_x1000();
-    my_fprintf(mvr_logfile, "FPS            : %d.%03d\n", f/1000, f%1000);
+    MVR_LOG_APPEND (
+        "FPS            : %d.%03d\n", f/1000, f%1000
+    );
 }
 
 // on certain events (PLAY, RECORD) we need to disable FPS override temporarily

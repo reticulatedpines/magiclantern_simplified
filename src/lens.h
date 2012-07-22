@@ -30,6 +30,10 @@
 
 #include "property.h"
 
+// for movie logging
+#define MVR_LOG_BUF_SIZE 8192
+#define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer_cached + strlen(mvr_logfile_buffer_cached), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer_cached) - 2, ## __VA_ARGS__ );
+
 int get_htp();
 
 struct lens_info

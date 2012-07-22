@@ -271,7 +271,7 @@ static void hdr_init()
 
 INIT_FUNC("hdr", hdr_init);
 
-void hdr_mvr_log(FILE* mvr_logfile)
+void hdr_mvr_log(char* mvr_logfile_buffer_cached)
 {
     if (hdrv_enabled)
     {
@@ -280,6 +280,8 @@ void hdr_mvr_log(FILE* mvr_logfile)
         int ev_x10 = (iso_high - iso_low) * 10/8;
         iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
         iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
-        my_fprintf(mvr_logfile, "HDR video      : ISO %d/%d (%d.%d EV)\n", iso_low, iso_high, ev_x10/10, ev_x10%10);
+        MVR_LOG_APPEND (
+            "HDR video      : ISO %d/%d (%d.%d EV)\n", iso_low, iso_high, ev_x10/10, ev_x10%10
+        );
     }
 }
