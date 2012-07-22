@@ -1,9 +1,9 @@
 #generic makefile
 
 # for yagarto, use ARM_ABI=none-eabi
-ARM_ABI=none-eabi
+ARM_ABI=elf
 
-ARM_PATH=~/gcc-arm-2012.q1
+ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
@@ -33,7 +33,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 BUILDVER=$(shell whoami).$(shell hg id -i -r .)
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
+VERSION:=v2.3.RC5.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -198,16 +198,6 @@ AFLAGS=\
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
-
-# compile some modules with -O3 for increased speed
-zebra.o: $(SRC_DIR)/zebra.c
-	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
-menu.o: $(SRC_DIR)/menu.c
-	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
-bmp.o: $(SRC_DIR)/bmp.c
-	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
-chdk-gui_draw.o: $(SRC_DIR)/chdk-gui_draw.c
-	$(call build,CC,$(CC) $(CFLAGS) -O3 -c -o $@ $<)
 
 
 zip: prepare_zip magiclantern-$(VERSION).zip
