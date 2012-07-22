@@ -1704,7 +1704,7 @@ menu_redraw_do()
                         if (screen_layout == SCREENLAYOUT_16_10)
                             bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
                         else if (screen_layout == SCREENLAYOUT_16_9)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 185);
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
                         else
                         {
                             if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
