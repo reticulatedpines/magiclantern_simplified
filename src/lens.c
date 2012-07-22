@@ -1317,7 +1317,7 @@ mvr_create_logfile(
         sr_x1000/1000, sr_x1000%1000,
         lens_info.aperture / 10, lens_info.aperture % 10,
         lens_info.focal_len,
-        lens_info.focus_dist
+        lens_info.focus_dist * 10
     );
 
     MVR_LOG_APPEND (
