@@ -1195,6 +1195,7 @@ mvr_update_logfile(
     static unsigned last_aperture;
     static unsigned last_focal_len;
     static unsigned last_focus_dist;
+    static unsigned last_second;
 
     // Check if nothing changed and not forced.  Do not write.
     if( !force
@@ -1205,6 +1206,12 @@ mvr_update_logfile(
     &&  last_focus_dist    == info->focus_dist
     )
         return;
+    
+    // Don't update more often than once per second
+    if (!force
+    && last_second == get_seconds_clock()
+    )
+        return;
 
     // Record the last settings so that we know if anything changes
     last_iso    = info->iso;
@@ -1212,6 +1219,7 @@ mvr_update_logfile(
     last_aperture    = info->aperture;
     last_focal_len    = info->focal_len;
     last_focus_dist    = info->focus_dist;
+    last_second = get_seconds_clock();
 
     struct tm now;
     LoadCalendarFromRTC( &now );
@@ -1719,17 +1727,18 @@ void update_stuff()
     iso_components_update();
 }
 
+
 PROP_HANDLER( PROP_LV_LENS )
 {
     const struct prop_lv_lens * const lv_lens = (void*) buf;
     lens_info.focal_len    = bswap16( lv_lens->focal_len );
     lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
 
-    uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
-    uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
+    //~ uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
+    //~ uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
 
-    lens_info.lens_rotation = *((float*)&lrswap);
-    lens_info.lens_step = *((float*)&lsswap);
+    //~ lens_info.lens_rotation = *((float*)&lrswap);
+    //~ lens_info.lens_step = *((float*)&lsswap);
     
     static unsigned old_focus_dist = 0;
     static unsigned old_focal_len = 0;
@@ -1825,8 +1834,8 @@ lens_init( void* unused )
     menu_add("Movie", lens_menus, COUNT(lens_menus));
 #endif
 
-    lens_info.lens_rotation = 0.1;
-    lens_info.lens_step = 1.0;
+    //~ lens_info.lens_rotation = 0.1;
+    //~ lens_info.lens_step = 1.0;
      //~ FIO_RemoveFile("B:/lens.log");
     //~ logfile = FIO_CreateFile("B:/lens.log");
 }

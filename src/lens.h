@@ -76,8 +76,8 @@ struct lens_info
         uint8_t         raw_aperture_min;
         uint8_t         raw_aperture_max;
 
-        float                   lens_rotation;
-        float                   lens_step;
+        //~ float                   lens_rotation;
+        //~ float                   lens_step;
 };
 
 extern struct lens_info lens_info;
