@@ -1204,9 +1204,9 @@ static void fps_task()
         
         //~ bmp_printf(FONT_LARGE, 50, 50, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
 
-        if (video_mode_changed) // video mode changed, wait for it to settle
-        {
-            msleep(500);
+        if (video_mode_changed && !recording) // Video mode changed, wait for it to settle
+        {                                     // This won't happen while recording (obvious), 
+            msleep(500);                      // BUT sometimes Canon code might choose to revert FPS back - in this case, ML must act quickly
             if (is_movie_mode() && video_mode_crop) msleep(500);
             continue;
         }
