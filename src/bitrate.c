@@ -155,8 +155,6 @@ bitrate_print(
 
 void bitrate_mvr_log(char* mvr_logfile_buffer_cached)
 {
-    int f = fps_get_current_x1000();
-
     if (bitrate_mode == 1)
     {
         MVR_LOG_APPEND (

@@ -506,7 +506,7 @@ bmp_fill(
         | (color <<  8)
         | (color <<  0);
 
-    uint32_t* b = (intptr_t)bmp_vram() & 0xFFFFFFF;
+    uint32_t* b = (uint32_t*)bmp_vram();
     
     for (int i = y; i < y+h; i++)
     {
