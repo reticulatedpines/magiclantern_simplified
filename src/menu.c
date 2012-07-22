@@ -508,6 +508,22 @@ menu_has_visible_items(struct menu_entry *  menu)
     return 0;
 }
 
+static int
+are_there_any_visible_menus()
+{
+    struct menu * menu = menus;
+    while( menu )
+    {
+        if (advanced_hidden_edit_mode || (!IS_SUBMENU(menu) && menu_has_visible_items(menu->children)))
+        {
+            return 1;
+        }
+        menu = menu->next;
+    }
+    return 0;
+}
+
+
 void
 menu_add(
     const char *        name,
@@ -1160,11 +1176,13 @@ show_hidden_items(struct menu * menu, int force_clear)
             hidden_msg[59] = '\0';
         }
 
+        int hidden_pos_y = MENU_KEYHELP_Y_POS - font_med.height - 5;
+        if (is_menu_active("Help")) hidden_pos_y -= font_med.height;
         if (hidden_count || force_clear)
         {
             bmp_printf(
                 FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
-                 10,  MENU_KEYHELP_Y_POS - font_med.height - 5, 
+                 10,  hidden_pos_y, 
                 "                                                            "
             );
         }
@@ -1172,7 +1190,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         {
             bmp_printf(
                 FONT(FONT_MED, COLOR_GRAY50, COLOR_BLACK), 
-                 10,  MENU_KEYHELP_Y_POS - font_med.height - 5, 
+                 10, hidden_pos_y, 
                  hidden_msg
             );
         }
@@ -1209,7 +1227,7 @@ menus_display(
 #endif
     for( ; menu ; menu = menu->next )
     {
-        if (!menu_has_visible_items(menu->children))
+        if (!menu_has_visible_items(menu->children) && !menu->selected)
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
@@ -1453,9 +1471,13 @@ menu_move(
     menu_first_by_icon = menu->icon;
     give_semaphore( menu_sem );
     
-    if (IS_SUBMENU(menu) || !menu_has_visible_items(menu->children))
+
+    if (IS_SUBMENU(menu))
+        menu_move(menu, direction); // always skip submenus
+
+    else if (!menu_has_visible_items(menu->children) && are_there_any_visible_menus())
         menu_move(menu, direction); // this menu is hidden, skip it (try again)
-        // will fail if no menus are displayed!
+            // would fail if no menus are displayed, so we double check before trying
 }
 
 
