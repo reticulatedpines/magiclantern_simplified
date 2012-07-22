@@ -43,6 +43,9 @@ void hdr_get_iso_range(int* iso_low, int* iso_high)
 
 void hdr_step()
 {
+    #ifdef CONFIG_500D
+    return;
+    #endif
     if (!hdrv_enabled) return;
     if (!lv) return;
     if (!is_movie_mode()) return;
@@ -259,7 +262,9 @@ void iso_test()
 
 static void hdr_init()
 {
+    #ifndef CONFIG_500D
     menu_add( "Movie", hdr_menu, COUNT(hdr_menu) );
+    #endif
 
     #if defined(CONFIG_60D) || defined(CONFIG_600D)
     // round to nearest full-stop ISO (these cameras can't change the digital component)

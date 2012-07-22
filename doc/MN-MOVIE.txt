@@ -170,6 +170,8 @@ Possible postprocessing workflows:
 
 #See also the `postprocessing thread on the forum <http://www.magiclantern.fm/forum/index.php?board=14.0>`_.
 
+Note: this feature does not work on 500D/T1i.
+
 Image Effects...
 ````````````````
 
