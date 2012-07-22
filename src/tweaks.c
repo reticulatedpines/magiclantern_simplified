@@ -1770,7 +1770,7 @@ static struct menu_entry key_menus[] = {
             {
                 .name = "LCD Sensor Shortcuts",
                 .priv       = &lcd_sensor_shortcuts,
-                .select     = menu_binary_toggle,
+                .select     = menu_ternary_toggle,
                 .display    = lcd_sensor_shortcuts_print,
                 .help = "Use the LCD face sensor as an extra key in ML.",
             },

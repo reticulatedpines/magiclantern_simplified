@@ -37,7 +37,7 @@ CONFIG_INT("lcdsensor.shortcuts", lcd_sensor_shortcuts, 1);
 #else
 CONFIG_INT("lcdsensor.shortcuts", lcd_sensor_shortcuts, 0);
 #endif
-int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
+int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts==1 || (lcd_sensor_shortcuts==2 && is_movie_mode()); }
 
 CONFIG_INT( "lcd.release", lcd_release_running, 0);
 
@@ -201,6 +201,7 @@ lcd_sensor_shortcuts_print(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LCD Sensor Shortcuts: %s", 
-        lcd_sensor_shortcuts ? "ON" : "OFF"
+        lcd_sensor_shortcuts == 1 ? "ON" : 
+        lcd_sensor_shortcuts == 2 ? "Movie" : "OFF"
     );
 }
