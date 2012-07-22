@@ -68,6 +68,7 @@ int menu_help_active = 0;
 int submenu_mode = 0;
 int g_submenu_width = 0;
 static int menu_id_increment = 1;
+static int redraw_flood_stop = 0;
 
 static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
 static int redraw_in_progress = 0;
@@ -1935,6 +1936,7 @@ handle_ml_menu_keys(struct event * event)
 
     case BGMT_PRESS_HALFSHUTTER: // If they press the shutter halfway
         //~ menu_close();
+        redraw_flood_stop = 1;
         give_semaphore(gui_sem);
         return 1;
         
@@ -2193,6 +2195,7 @@ void menu_redraw_flood()
     else if (EXT_MONITOR_CONNECTED) msleep(300);
     for (int i = 0; i < 10; i++)
     {
+        if (redraw_flood_stop) break;
         canon_gui_enable_front_buffer(0);
         menu_redraw_full();
         msleep(20);
@@ -2210,7 +2213,7 @@ void piggyback_canon_menu()
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
-    if (new_gui_mode) task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0);
+    if (new_gui_mode) { redraw_flood_stop = 0; task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0); }
     if (new_gui_mode != CURRENT_DIALOG_MAYBE) { SetGUIRequestMode(new_gui_mode); msleep(200); }
 #endif
 }
