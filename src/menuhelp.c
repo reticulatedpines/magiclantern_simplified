@@ -52,6 +52,7 @@ void menu_help_show_page(int page)
     if (doc)
     {
         bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
+        msleep(200); // no idea if it helps on 500D, but who knows (at least feels better on the UI)
         FreeMemory(doc);
     }
     else
