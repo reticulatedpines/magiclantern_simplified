@@ -4606,6 +4606,11 @@ clearscreen_loop:
             bmp_off();
             while ((get_halfshutter_pressed() || dofpreview)) msleep(100);
             bmp_on();
+            #ifdef CONFIG_5D2
+            msleep(100);
+            if (get_zoom_overlay_trigger_by_halfshutter()) // this long press should not trigger MZ
+                zoom_overlay_toggle();
+            #endif
         }
         //~ else if (clearscreen == 2)  // always clear overlays
         //~ {
