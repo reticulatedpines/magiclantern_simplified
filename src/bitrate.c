@@ -153,6 +153,24 @@ bitrate_print(
     }
 }
 
+void bitrate_mvr_log(char* mvr_logfile_buffer_cached)
+{
+    int f = fps_get_current_x1000();
+
+    if (bitrate_mode == 1)
+    {
+        MVR_LOG_APPEND (
+            "Bit Rate (CBR) : %d.%dx", bitrate_factor/10, bitrate_factor%10
+        );
+    }
+    else if (bitrate_mode == 2)
+    {
+        MVR_LOG_APPEND (
+            "Bit Rate (VBR) : QScale %d", qscale
+        );
+    }
+}
+
 static void
 cbr_display(
     void *          priv,

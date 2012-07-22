@@ -211,7 +211,7 @@ config_save_file(
   
     snprintf( msgc, MAX_SIZE,
         "# Magic Lantern %s (%s)\n"
-        "# Build on %s by %s\n",
+        "# Built on %s by %s\n",
         build_version,
         build_id,
         build_date,

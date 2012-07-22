@@ -29,6 +29,7 @@
 #include "config.h"
 #include "menu.h"
 #include "math.h"
+#include "version.h"
 
 // for movie logging
 char* mvr_logfile_buffer = 0;
@@ -1282,10 +1283,15 @@ mvr_create_logfile(
     mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
     char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
 
+    snprintf( mvr_logfile_buffer_cached, MVR_LOG_BUF_SIZE,
+        "# Magic Lantern %s\n\n",
+        build_version
+    );
+
     struct tm now;
     LoadCalendarFromRTC( &now );
 
-    snprintf( mvr_logfile_buffer_cached, MVR_LOG_BUF_SIZE,
+    MVR_LOG_APPEND (
         "Start          : %4d/%02d/%02d %02d:%02d:%02d\n",
         now.tm_year + 1900,
         now.tm_mon + 1,
@@ -1342,7 +1348,8 @@ mvr_create_logfile(
 
     fps_mvr_log(mvr_logfile_buffer_cached);
     hdr_mvr_log(mvr_logfile_buffer_cached);
-
+    bitrate_mvr_log(mvr_logfile_buffer_cached);
+    
     MVR_LOG_APPEND (
         "\n\nCSV data:\n%s\n",
         "Time,ISO,Shutter,Aperture,Focal_Len,Focus_Dist"
