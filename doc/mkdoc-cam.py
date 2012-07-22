@@ -49,6 +49,13 @@ def sub(file, fr, to):
     f.write(txt)
     f.close()
 
+def replace(file, fr, to):
+    txt = open(file).read()
+    txt = txt.replace(fr, to);
+    f = open(file,"w")
+    f.write(txt)
+    f.close()
+
 def fixwikilinks(file):
     txt = open(file).read()
 
@@ -162,6 +169,17 @@ os.system(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
+
+replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
+  Movie mode%""", r"""\subsection*{\phantomsection%
+  Movie mode%""");
+
+replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
+  PLAY mode shortcuts%""", r"""\subsection*{\phantomsection%
+  PLAY mode shortcuts%""");
+
+
+  
 
 #~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
 os.system("lualatex -interaction=batchmode UserGuide-cam.tex")

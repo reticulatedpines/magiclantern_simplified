@@ -25,8 +25,8 @@ Exposure bracketing for HDR images and timelapses.
 * To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Prefs`_ menu, Image review settings, 
   then go to playback mode, hold ``SET`` and turn the main dial (wheel).
   
-* For each HDR picture set, Magic Lantern may also write a bash script for stacking the exposures
-  with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x), with optional alignment (align_image_stack). More info: `Exposure Fusion: What is it? How does it Compare to HDR? How Do I Do It? <http://www.digital-photography-school.com/exposure-fusion-what-is-it-how-does-it-compare-to-hdr-how-do-i-do-it>`_.
+#* For each HDR picture set, Magic Lantern may also write a bash script for stacking the exposures
+#  with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x), with optional alignment (align_image_stack). More info: `Exposure Fusion: What is it? How does it Compare to HDR? How Do I Do It? <http://www.digital-photography-school.com/exposure-fusion-what-is-it-how-does-it-compare-to-hdr-how-do-i-do-it>`_.
 
 .. _intervalometer:
 

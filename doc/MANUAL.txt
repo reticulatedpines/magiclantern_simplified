@@ -35,7 +35,7 @@ Most cameras have a dedicated movie mode on the mode dial. In this case, it's ob
 
 However, the following cameras do not have a dedicated movie mode. For these cameras, Magic Lantern considers the following configurations as "movie mode":
 
-* **Canon 5D Mark II**: in *LiveView*, with *movie recording enabled* AND *LiveView display set to Movie*. Tip: you can change LiveView display type from Expo menu.
+* **Canon 5D Mark II**: in *LiveView*, with *movie recording enabled* AND *LiveView display set to Movie*.
 * **Canon 50D**: in *LiveView*, with *movie recording enabled* from ML menu.
 
 When movie mode is active, Magic Lantern will show a ``Mv`` symbol on the bottom info bar. In this mode, certain ML tools that normally work for stills (like intervalometer or audio remote shot) will change their behavior and will record movies.
@@ -68,7 +68,7 @@ Some items that may need more details:
 * ISO: values with low noise (negative digital gain) are displayed in green.
 * Clipping dots on histogram: they appear when the image contains overexposed areas.
 * Green/magenta white balance shift: not all cameras let you adjust these in movie mode; fine-tune them from White Balance submenu in ML menu.
-* Focus distance: this is displayed for most newer Canon lenses. If your lens does not report focus distance, ML will display the AF/MF status instead. Detailed `focus and DOF info`_ is displayed in the Focus menu.
+#* Focus distance: this is displayed for most newer Canon lenses. If your lens does not report focus distance, ML will display the AF/MF status instead. Detailed `focus and DOF info`_ is displayed in the Focus menu.
 
 .. _shortcut keys:
 
