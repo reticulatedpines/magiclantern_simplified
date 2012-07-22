@@ -485,7 +485,7 @@ bmp_hexdump(
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
  */
-#ifdef CONFIG_500D // unoptimized version; drawing too fast gives ERR70
+#if 0
 void
 bmp_fill(
     uint8_t            color,

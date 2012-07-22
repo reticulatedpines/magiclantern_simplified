@@ -32,6 +32,12 @@ void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
      for (x=x1; x<=x2; ++x) {
          if (steep) bmp_putpixel_fast(bvram, y, x, cl);
          else bmp_putpixel_fast(bvram, x, y, cl);
+         #ifdef CONFIG_500D // err70?!
+         asm("nop");
+         asm("nop");
+         asm("nop");
+         asm("nop");
+         #endif
          error += deltay;
          if ((error<<1) >= deltax) {
              y += ystep;
