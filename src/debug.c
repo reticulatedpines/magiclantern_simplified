@@ -1883,7 +1883,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 }
                 #elif defined(CONFIG_5D2)
                 static int ae_warned = 0;
-                if (is_movie_mode() && !lens_info.raw_shutter && recording)
+                if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
                 {
                     if (!ae_warned && !gui_menu_shown())
                     {

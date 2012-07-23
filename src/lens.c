@@ -614,11 +614,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       y_origin + 5, 
                       "%4d/%d", iso_low, iso_high) ;
         }
-        else if (info->iso
-        #ifdef CONFIG_5D2
-        && !(expsim == 2 && !info->raw_shutter) // 5D2 quirk: auto exposure mode still reports photo mode ISO, but records at auto ISO
-        #endif
-        )
+        else if (info->iso)
         {
 
             text_font = FONT(
